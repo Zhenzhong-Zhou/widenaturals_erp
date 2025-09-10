@@ -2,7 +2,7 @@ import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
 import {
   createLookupMetaSelector,
-  transformIdLabel
+  mapLookupItems,
 } from '../utils/lookupSelectorUtils';
 import type {
   PaymentMethodLookupItem,
@@ -45,11 +45,19 @@ export const selectPaymentMethodLookupError = createSelector(
 export const selectPaymentMethodLookupMeta = createLookupMetaSelector(selectPaymentMethodLookupState);
 
 /**
- * Selector that maps payment method lookup items to dropdown options
- * with `{ label, value }`, where `value` is the item `id`.
- * Suitable for use in Autocomplete, Select, etc.
+ * Selector that maps payment method lookup items into dropdown options.
+ *
+ * Each option includes:
+ * - `label` and `value` for use in dropdown UI components (with `value` = method `id`)
+ * - `isActive` flag to indicate whether the payment method is currently active
+ *
+ * Suitable for use in Autocomplete, Select, and other dropdown components
+ * where payment method choices are required.
+ *
+ * @returns An array of {@link LookupOption} objects enriched with status flags.
  */
 export const selectPaymentMethodDropdownOptions = createSelector(
   [selectPaymentMethodLookupItems],
-  (items: PaymentMethodLookupItem[]): LookupOption[] => transformIdLabel(items)
+  (items: PaymentMethodLookupItem[]): LookupOption[] =>
+    mapLookupItems(items, ['isActive'])
 );

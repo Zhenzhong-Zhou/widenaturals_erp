@@ -2,7 +2,7 @@ import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
 import {
   createLookupMetaSelector,
-  transformIdLabel
+  mapLookupItems,
 } from '../utils/lookupSelectorUtils';
 import type {
   LookupOption,
@@ -45,10 +45,20 @@ export const selectTaxRateLookupError = createSelector(
 export const selectTaxRateLookupMeta = createLookupMetaSelector(selectTaxRateLookupState);
 
 /**
- * Selects transformed tax rate options for dropdown components.
- * Maps each item to `{ label, value }` using `id` as `value` and `label` as display text.
+ * Selector that maps tax rate lookup items into dropdown options.
+ *
+ * Each option includes:
+ * - `label` (from the tax rate name) and `value` (the tax rate `id`)
+ * - `isActive` flag to indicate whether the tax rate is currently active
+ * - `isValidToday` flag to indicate whether the tax rate is valid on the current date
+ *
+ * Suitable for use in Autocomplete, Select, and other dropdown components
+ * where tax rate choices are required.
+ *
+ * @returns An array of {@link LookupOption} objects enriched with status flags.
  */
 export const selectTaxRateDropdownOptions = createSelector(
   [selectTaxRateLookupItems],
-  (items: TaxRateLookupItem[]): LookupOption[] => transformIdLabel(items)
+  (items: TaxRateLookupItem[]): LookupOption[] =>
+    mapLookupItems(items, ['isActive', 'isValidToday'])
 );

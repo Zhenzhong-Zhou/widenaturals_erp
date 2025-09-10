@@ -5,6 +5,7 @@ import type {
   AllocateInventoryResponse,
   AllocationReviewRequest,
   FetchPaginatedInventoryAllocationsParams,
+  InventoryAllocationConfirmationResponse,
   InventoryAllocationResponse,
   InventoryAllocationReviewResponse,
 } from '@features/inventoryAllocation/state/inventoryAllocationTypes.ts';
@@ -135,6 +136,57 @@ export const fetchPaginatedInventoryAllocationsThunk = createAsyncThunk<
     } catch (error) {
       console.error('Thunk failed: fetchInventoryAllocationsThunk', error);
       return rejectWithValue(error);
+    }
+  }
+);
+
+/**
+ * Thunk to confirm inventory allocations for a given order.
+ *
+ * This thunk dispatches `pending`, `fulfilled`, and `rejected` actions automatically
+ * via Redux Toolkit's `createAsyncThunk`. It triggers the backend confirmation
+ * process for the specified order and returns the full API response, which includes:
+ * - Whether the confirmation was successful
+ * - A server message
+ * - A detailed payload of confirmed allocations, updated inventory records, and item statuses
+ *
+ * The result can be consumed in React components, middleware, or slices to drive
+ * post-confirmation behavior such as displaying toasts, updating UI state, or refreshing data.
+ *
+ * @function
+ * @async
+ * @param {Object} args - Arguments for the confirmation request.
+ * @param {string} args.orderId - UUID of the order to confirm inventory allocations for.
+ *
+ * @returns {Promise<InventoryAllocationConfirmationResponse>} A typed response that includes:
+ *  - `success`: whether the operation succeeded
+ *  - `message`: backend-provided status message
+ *  - `data`: the payload with allocation IDs, inventory updates, and order item statuses
+ *
+ * @throws {string} Returns a rejected thunk with an error message if the request fails.
+ *
+ * @example
+ * dispatch(confirmInventoryAllocationThunk({ orderId }))
+ *   .then((result) => {
+ *     if (confirmInventoryAllocationThunk.fulfilled.match(result)) {
+ *       toast.success(result.payload.message);
+ *     } else {
+ *       toast.error(result.payload ?? 'Confirmation failed');
+ *     }
+ *   });
+ */
+export const confirmInventoryAllocationThunk = createAsyncThunk<
+  InventoryAllocationConfirmationResponse,
+  { orderId: string },
+  { rejectValue: string }
+>(
+  'inventoryAllocations/confirm',
+  async ({ orderId }, { rejectWithValue }) => {
+    try {
+      return await inventoryAllocationService.confirmInventoryAllocation(orderId);
+    } catch (error: any) {
+      console.error('Thunk: confirmInventoryAllocation failed', error);
+      return rejectWithValue(error?.response?.data ?? error.message);
     }
   }
 );

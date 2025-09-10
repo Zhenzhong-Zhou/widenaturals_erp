@@ -2,7 +2,7 @@ import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
 import {
   createLookupMetaSelector,
-  transformIdLabel
+  mapLookupItems,
 } from '../utils/lookupSelectorUtils';
 import type { DiscountLookupItem, LookupOption } from '@features/lookup/state/lookupTypes';
 
@@ -42,11 +42,18 @@ export const selectDiscountLookupError = createSelector(
 export const selectDiscountLookupMeta = createLookupMetaSelector(selectDiscountLookupState);
 
 /**
- * Selector that maps discount lookup items to dropdown options
- * with `{ label, value }`, where `value` is the item `id`.
- * Suitable for use in Autocomplete, Select, etc.
+ * Selector that transforms discount lookup items into dropdown options.
+ *
+ * Each option includes:
+ * - `label` and `value` for dropdown components (with `value` = discount `id`)
+ * - `isActive` flag to indicate if the discount is currently active
+ * - `isValidToday` flag to indicate if the discount is valid on the current date
+ *
+ * Suitable for use in Autocomplete, Select, and other dropdown UI components
+ * that need to display discounts with status/validity context.
  */
 export const selectDiscountDropdownOptions = createSelector(
   [selectDiscountLookupItems],
-  (items: DiscountLookupItem[]): LookupOption[] => transformIdLabel(items)
+  (items: DiscountLookupItem[]): LookupOption[] =>
+    mapLookupItems(items, ['isActive', 'isValidToday'])
 );

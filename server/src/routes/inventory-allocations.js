@@ -19,8 +19,8 @@ const createQueryNormalizationMiddleware = require('../middlewares/query-normali
 const router = express.Router();
 
 /**
- * @route POST /inventory-allocation/allocate/:orderId
- * @permission INVENTORY.ALLOCATE_INVENTORY
+ * @route POST /inventory-allocations/allocate/:orderId
+ * @permission INVENTORY_ALLOCATION.ALLOCATE
  * @description
  * Allocates available inventory to all items in a given sales order.
  *
@@ -29,7 +29,7 @@ const router = express.Router();
  * - `strategy` (4-character string, default: 'fefo') and `warehouseId` (UUID) from request body.
  *
  * Middleware:
- * - `authorize`: Requires ALLOCATE_INVENTORY permission.
+ * - `authorize`: Requires ALLOCATE permission.
  * - `validate`: Checks both route params and request body against Joi schemas.
  *
  * Controller:
@@ -65,7 +65,7 @@ router.post(
  * - `sanitizeFields` – cleans known array fields like `allocationIds`.
  * - `validate` – validates `orderId` param and body schema.
  *
- * @permission PERMISSIONS.INVENTORY.REVIEW_ALLOCATION
+ * @permission PERMISSIONS.INVENTORY_ALLOCATION.REVIEW
  *
  * @param {string} req.params.orderId - UUID of the order to review allocations for.
  * @param {string[]} req.body.warehouseIds - Required list of warehouse UUIDs to filter by.
@@ -157,12 +157,12 @@ router.get(
 );
 
 /**
- * POST /inventory-allocation/confirm/:orderId
+ * POST /inventory-allocations/confirm/:orderId
  *
  * Confirms inventory allocation for a specific order.
  *
  * This route:
- * - Requires `ALLOCATE_INVENTORY` permission.
+ * - Requires `ALLOCATE_INVENTORY.CONFIRM` permission.
  * - Validates the `orderId` route parameter.
  * - Locks the order and its items.
  * - Updates item statuses based on matched allocation.
@@ -170,7 +170,7 @@ router.get(
  * - Updates warehouse inventory and logs the action.
  *
  * Access Control:
- * - Only users with `PERMISSIONS.INVENTORY.ALLOCATE_INVENTORY` can invoke this action.
+ * - Only users with `PERMISSIONS.ALLOCATE_INVENTORY.CONFIRM` can invoke this action.
  *
  * Validation:
  * - `params.orderId` must be a valid UUID (validated via `orderIdParamSchema`).
@@ -184,7 +184,7 @@ router.get(
  */
 router.post(
   '/confirm/:orderId',
-  authorize([PERMISSIONS.INVENTORY_ALLOCATION.ALLOCATE]),
+  authorize([PERMISSIONS.INVENTORY_ALLOCATION.CONFIRM]),
   validate(orderIdParamSchema, 'params'),
   confirmInventoryAllocationController
 );

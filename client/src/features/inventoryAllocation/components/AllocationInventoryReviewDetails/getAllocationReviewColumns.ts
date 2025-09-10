@@ -1,6 +1,7 @@
 import { type Column } from '@components/common/CustomTable';
 import type { FlattenedAllocationReviewItem } from '@features/inventoryAllocation/utils/flattenAllocationReviewData';
 import { formatDate } from '@utils/dateTimeUtils';
+import { formatLabel } from '@utils/textUtils';
 import { formatStatus } from '@utils/formatters';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
 import { getFallbackValue } from '@utils/objectUtils';
@@ -78,7 +79,9 @@ export const getAllocationReviewColumns = (
     {
       id: 'warehouseStatus',
       label: 'Stock Status',
-      renderCell: (row) => formatStatus(getPrimaryWarehouseField(row, 'statusName') ?? '—'),
+      renderCell: (row) => formatStatus(formatLabel(getPrimaryWarehouseField(row, 'statusName'), {
+        preserveHyphen: true,
+      }) ?? '—'),
     },
     {
       id: 'orderItemQty',

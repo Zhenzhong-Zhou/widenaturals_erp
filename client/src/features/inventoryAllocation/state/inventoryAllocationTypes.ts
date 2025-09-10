@@ -149,6 +149,12 @@ export interface OrderItemReview extends OrderItemStatus {
   /** Human-readable status name (e.g., "Fully Allocated") */
   statusName: string;
   
+  /**
+   * Internal status code used for program logic (e.g., "ORDER_ALLOCATED", "ALLOC_CONFIRMED").
+   * Not intended for direct display in the UI.
+   */
+  statusCode: string;
+  
   /** ISO timestamp when the item status was last updated */
   statusDate: string;
 }
@@ -469,7 +475,6 @@ export interface FetchPaginatedInventoryAllocationsParams
 export type InventoryAllocationSortField =
   // Allocation-level summary fields (FROM alloc_agg aa)
   | 'allocationStatus'
-  | 'allocationStatusCodes'
   | 'allocationStatuses'
   | 'allocatedAt'
   | 'allocatedCreatedAt'
@@ -513,3 +518,65 @@ export type InventoryAllocationSortField =
  * Redux state slice for paginated inventory allocations.
  */
 export type PaginatedInventoryAllocationState = ReduxPaginatedState<InventoryAllocationSummary>;
+
+/** Represents the allocation status update for a single order item */
+export interface AllocationItemStatusUpdate {
+  /** UUID of the order item */
+  orderItemId: string;
+  
+  /** Updated status code (e.g., "ORDER_ALLOCATED") */
+  newStatus: string;
+  
+  /** Whether this item is now fully allocated */
+  isFullyAllocated: boolean;
+}
+
+/** Payload returned from the inventory allocation confirmation endpoint */
+export interface InventoryAllocationConfirmationPayload {
+  /** UUID of the order that was confirmed */
+  orderId: string;
+  
+  /** UUIDs of the confirmed allocation records */
+  allocationIds: string[];
+  
+  /** UUIDs of the updated warehouse inventory records */
+  updatedWarehouseInventoryIds: string[];
+  
+  /** UUIDs of the generated activity logs */
+  logIds: { id: string }[];
+  
+  /** Whether the full order is now fully allocated */
+  fullyAllocated: boolean;
+  
+  /** Updated statuses for individual order items */
+  updatedItemStatuses: AllocationItemStatusUpdate[];
+}
+
+/** Standard API response wrapper for confirming inventory allocations */
+export type InventoryAllocationConfirmationResponse =
+  ApiSuccessResponse<InventoryAllocationConfirmationPayload>;
+
+/**
+ * State for tracking the result of an inventory allocation confirmation request.
+ *
+ * This state includes the full API response from the confirmation endpoint,
+ * including success status, server message, and the confirmed allocation payload.
+ * It follows the standardized `AsyncState` structure with `loading`, `error`, and `data`.
+ *
+ * @example
+ * {
+ *   loading: false,
+ *   error: null,
+ *   data: {
+ *     success: true,
+ *     message: "Inventory allocation confirmed successfully",
+ *     data: {
+ *       orderId: "...",
+ *       allocationIds: [...],
+ *       updatedWarehouseInventoryIds: [...],
+ *       ...
+ *     }
+ *   }
+ * }
+ */
+export type InventoryAllocationConfirmationState = AsyncState<InventoryAllocationConfirmationResponse | null>;

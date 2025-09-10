@@ -7,7 +7,7 @@ const {
   includeFlagsBasedOnAccess,
 } = require('../utils/transformer-utils');
 const { getFullName } = require('../utils/name-utils');
-const { formatTaxRateLabel, formatPackagingMaterialLabel } = require('../utils/string-utils');
+const { formatTaxRateLabel, formatPackagingMaterialLabel, formatDiscount } = require('../utils/string-utils');
 const { formatAddress } = require('../utils/address-utils');
 
 /**
@@ -384,28 +384,51 @@ const transformPaymentMethodPaginatedLookupResult = (paginatedResult, userAccess
 /**
  * Transforms an enriched discount row into a UI-friendly structure for dropdowns.
  *
- * Includes visibility flags like `isActive` and `isValidToday` only if permitted by user access.
+ * - Always includes `id` and a `label` string.
+ * - The `label` combines the discount name with its formatted value
+ *   (e.g., `"Subscriber Reward (5.00%)"`).
+ * - Optionally includes flags such as `isActive` and `isValidToday` if allowed by user access.
  *
- * @param {Object} row - Enriched discount row.
+ * @param {object} row - Enriched discount row from the database.
  * @param {string} row.id - Unique identifier of the discount.
- * @param {string} row.name - Name of the discount.
- * @param {boolean} [row.isActive] - Indicates if the discount is currently active.
- * @param {boolean} [row.isValidToday] - Indicates if the discount is valid today.
- * @param {Object} userAccess - User access control context.
- * @param {boolean} [userAccess.canViewAllStatuses] - Whether the user can see inactive discounts.
- * @param {boolean} [userAccess.canViewAllValidLookups] - Whether the user can see expired/future discounts.
+ * @param {string} row.name - Human-readable discount name.
+ * @param {string} row.discount_type - Type of discount (e.g., "PERCENTAGE", "FIXED").
+ * @param {string|number} row.discount_value - Discount value to format and append.
+ * @param {boolean} [row.isActive] - Whether the discount is active.
+ * @param {boolean} [row.isValidToday] - Whether the discount is valid today.
+ * @param {object} userAccess - User access control context.
  *
  * @returns {{ id: string, label: string, isActive?: boolean, isValidToday?: boolean }}
- * Returns a transformed object with required and conditional fields for UI rendering.
+ * Object ready for UI dropdowns, with a combined label and optional flags.
+ *
+ * @example
+ * const row = {
+ *   id: "24c73d12",
+ *   name: "Subscriber Reward",
+ *   discount_type: "PERCENTAGE",
+ *   discount_value: "5.00",
+ *   isActive: true,
+ *   isValidToday: true
+ * };
+ *
+ * const result = transformDiscountLookup(row, userAccess);
+ * // => {
+ * //   id: "24c73d12",
+ * //   label: "Subscriber Reward (5.00%)",
+ * //   isActive: true,
+ * //   isValidToday: true
+ * // }
  */
-
-// todo: use discount format util function
 const transformDiscountLookup = (row, userAccess) => {
+  const formattedValue = formatDiscount(row.discount_type, row.discount_value); // e.g. "5.00%"
+  const label = `${row.name} (${formattedValue})`;
+  
   const base = transformIdNameToIdLabel(row);
   const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
   
   return {
     ...base,
+    label,
     ...flagSubset,
   };
 };
@@ -538,19 +561,20 @@ const transformDeliveryMethodPaginatedLookupResult = (
  * The label is constructed using the product name and SKU, optionally including
  * the barcode for better identification in long lists.
  *
- * If `userAccess` is provided, additional flags such as `isAbnormal`, `abnormalReasons`,
- * `isActive`, and `isValidToday` may be conditionally included based on access level.
+ * If `userAccess` is provided, additional flags such as `isActive`, `isValidToday`,
+ * etc. may be conditionally included based on access level.
+ *
+ * Always includes an `isNormal` flag:
+ * - Uses `row.isNormal` if present (from backend enrichment).
+ * - Defaults to `true` if missing.
  *
  * @param {Object} row - Raw row from the SKU lookup query.
  * @param {Object} [options] - Optional transformation settings.
  * @param {boolean} [options.includeBarcode=false] - Whether to include the barcode in the label text.
  * @param {Object} [userAccess] - User access context to conditionally include visibility or validation flags.
- * @param {boolean} [userAccess.allowAllSkus] - Whether the user is allowed to view all SKUs regardless of status.
- * @param {boolean} [userAccess.canViewAllStatuses] - Whether to expose isActive flag.
- * @param {boolean} [userAccess.canViewAllValidLookups] - Whether to expose isValidToday flag.
  *
- * @returns {Object|null} - Transformed object with at least `id` and `label`, plus flags if permitted;
- *                          or `null` if the input row is invalid.
+ * @returns {Object|null} - Transformed object with at least `id`, `label`, and `isNormal`,
+ *                          plus flags if permitted; or `null` if the input row is invalid.
  */
 const transformSkuLookupRow = (row, { includeBarcode = false} = {}, userAccess) => {
   const product_name = getProductDisplayName(row);
@@ -567,6 +591,7 @@ const transformSkuLookupRow = (row, { includeBarcode = false} = {}, userAccess) 
   return cleanObject({
     ...base,
     ...flagSubset,
+    isNormal: row.isNormal ?? true,
   });
 };
 

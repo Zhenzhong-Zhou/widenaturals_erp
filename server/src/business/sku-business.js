@@ -153,38 +153,48 @@ const enforceSkuLookupVisibilityRules = (options = {}, userAccess = {}) => {
 /**
  * Applies access control filters to a SKU lookup query based on user permissions.
  *
- * If the user lacks permission to view inactive SKUs, `status_id` is restricted to active.
- * If the user lacks permission to view out-of-stock SKUs, a virtual flag
- * `requireAvailableStock = true` is added (to enforce EXISTS stock check in builder).
+ * - If the user lacks permission to view inactive SKUs, `status_id` is forced to active.
+ * - If the user lacks permission to view out-of-stock SKUs, a virtual flag
+ *   `requireAvailableStock = true` is added (to enforce EXISTS stock check in builder).
  *
- * @param {Object} query - Original query object with filters and options.
- * @param {Object} userAccess - Access flags (e.g., `allowAllSkus`).
+ * @param {object} filters - Base query filters (brand, category, keyword, etc.).
+ * @param {object} userAccess - Access flags (e.g., `{ allowAllSkus: boolean }`).
  * @param {string} activeStatusId - UUID for the 'active' SKU/product status.
- * @returns {Object} Modified query object with enforced filters.
+ * @returns {object} Modified query object with enforced filters.
  */
-const filterSkuLookupQuery = (query, userAccess, activeStatusId) => {
+const filterSkuLookupQuery = (filters = {}, userAccess = {}, activeStatusId) => {
   try {
-    const modified = { ...query };
+    if (typeof activeStatusId !== 'string' || activeStatusId.length === 0) {
+      throw AppError.validationError('[filterSkuLookupQuery] Missing or invalid `activeStatusId`');
+    }
+    
+    if (!userAccess || typeof userAccess !== 'object') {
+      throw AppError.validationError('[filterSkuLookupQuery] Invalid `userAccess` object');
+    }
+    
+    const modified = { ...filters };
     
     if (!userAccess.allowAllSkus) {
       // Enforce active status on both SKU and Product level
       modified.sku_status_id = activeStatusId;
       modified.product_status_id = activeStatusId;
       
-      // Flag to trigger EXISTS clause in builder (for warehouse or location inventory)
+      // Require stock availability checks
       modified.requireAvailableStock = true;
       
-      // Optional: default stock source if not provided
-      modified.requireAvailableStockFrom =
-        modified.requireAvailableStockFrom || 'warehouse';
+      // Only set default if not already provided
+      if (!modified.requireAvailableStockFrom) {
+        modified.requireAvailableStockFrom = 'warehouse';
+      }
     }
     
     return modified;
   } catch (err) {
     logSystemException(err, 'Failed to apply access filters in filterSkuLookupQuery', {
       context: 'sku-business/filterSkuLookupQuery',
-      originalQuery: query,
+      originalFilters: filters,
       userAccess,
+      activeStatusId,
     });
     
     throw AppError.businessError('Unable to apply SKU lookup access filters', {
@@ -196,19 +206,25 @@ const filterSkuLookupQuery = (query, userAccess, activeStatusId) => {
 };
 
 /**
- * Enriches a SKU row with flags for whether it and its related entities
- * (product, inventory, batch) are in expected "normal" status.
+ * Enriches a SKU row with derived flags about its status validity.
  *
- * @param {Object} row - The raw SKU row with status fields:
+ * - If the row has no status fields at all, it is considered `isNormal = true`.
+ * - Otherwise, each status field (SKU, product, warehouse, location, batch)
+ *   is compared against the expected "active/normal" status IDs.
+ * - The row is considered `isNormal = true` only if all checks pass.
+ * - If any check fails, `issueReasons` is added with human-readable messages
+ *   describing which statuses are invalid.
+ *
+ * @param {object} row - Raw SKU row that may include status fields:
  *   {
- *     sku_status_id,
- *     product_status_id,
- *     warehouse_status_id,
- *     location_status_id,
- *     batch_status_id,
+ *     sku_status_id?: string,
+ *     product_status_id?: string,
+ *     warehouse_status_id?: string,
+ *     location_status_id?: string,
+ *     batch_status_id?: string,
  *     ...
  *   }
- * @param {Object} expectedStatusIds - Object containing expected status IDs:
+ * @param {object} expectedStatusIds - Map of expected status IDs:
  *   {
  *     sku: string,
  *     product: string,
@@ -216,7 +232,21 @@ const filterSkuLookupQuery = (query, userAccess, activeStatusId) => {
  *     location: string,
  *     batch: string
  *   }
- * @returns {Object} Enriched row with flags like `isSkuActive`, `isInventoryNormal`, `isAbnormal`, etc.
+ *
+ * @returns {object} The enriched row, extended with:
+ *   - `isNormal: boolean` — true if all checks pass or no status fields exist.
+ *   - `issueReasons?: string[]` — array of human-readable reasons when `isNormal` is false.
+ *
+ * @example
+ * const row = { sku_status_id: 'abc', product_status_id: 'xyz' };
+ * const expected = { sku: 'abc', product: 'xyz', warehouse: 'w1', location: 'l1', batch: 'b1' };
+ * const result = enrichSkuRow(row, expected);
+ *
+ * // result = {
+ * //   sku_status_id: 'abc',
+ * //   product_status_id: 'xyz',
+ * //   isNormal: true
+ * // }
  */
 const enrichSkuRow = (row, expectedStatusIds) => {
   const {
@@ -226,6 +256,21 @@ const enrichSkuRow = (row, expectedStatusIds) => {
     location_status_id,
     batch_status_id,
   } = row;
+  
+  // If no status fields at all → default to normal
+  const noStatusFields =
+    sku_status_id == null &&
+    product_status_id == null &&
+    warehouse_status_id == null &&
+    location_status_id == null &&
+    batch_status_id == null;
+  
+  if (noStatusFields) {
+    return {
+      ...row,
+      isNormal: true,
+    };
+  }
   
   const statusChecks = {
     skuStatusValid: sku_status_id === expectedStatusIds.sku,

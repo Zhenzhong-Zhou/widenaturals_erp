@@ -41,13 +41,18 @@ export const selectDeliveryMethodLookupMeta = createLookupMetaSelector(
 );
 
 /**
- * Selector that maps delivery method lookup items to dropdown options,
- * including `label`, `value`, and `isPickupLocation` flags.
+ * Selector that transforms delivery method lookup items into dropdown options.
  *
- * Used to render delivery method options with additional logic
- * based on whether the method is a pickup location.
+ * Each option includes:
+ * - `label` and `value` for use in dropdown components
+ * - `isPickupLocation` flag to indicate if the method represents a pickup location
+ * - `isActive` flag to indicate if the delivery method is currently active
+ *
+ * Used to render delivery method options with additional UI logic
+ * such as showing inactive states or highlighting pickup methods.
  */
 export const selectDeliveryMethodLookupOptions = createSelector(
   [selectDeliveryMethodLookupItems],
-  (items: DeliveryMethodLookupItem[]): LookupOption[] => mapLookupItems(items, ['isPickupLocation'])
+  (items: DeliveryMethodLookupItem[]): LookupOption[] =>
+    mapLookupItems(items, ['isPickupLocation', 'isActive'])
 );

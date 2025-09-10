@@ -8,7 +8,6 @@ const {
   checkPermissions,
   resolveUserPermissionContext,
 } = require('../services/role-permission-service');
-const { getStatusId } = require('../config/status-cache');
 const { PERMISSIONS } = require('../utils/constants/domain/customer-constants');
 
 /**
@@ -172,21 +171,42 @@ const enforceCustomerLookupVisibilityRules = (filters = {}, userAccess, activeSt
 /**
  * Enriches a customer database row with UI-ready flags.
  *
- * Adds derived boolean fields:
- * - `isActive`: True if customer has active status.
- * - `hasAddress`: True if customer has any linked addresses.
+ * This function adds derived boolean fields:
+ * - `isActive`: Whether the customer's `status_id` matches the provided active status ID.
+ * - `hasAddress`: Whether the customer has an associated address (based on `has_address` field).
  *
- * This is useful when transforming database records for use in dropdowns or select lists.
+ * These fields are useful for conditionally rendering customer options in dropdowns,
+ * select lists, and other UI components.
  *
- * @param {object} row - Raw customer row from the database (must include `status_id` and `has_address`).
- * @param {string} activeStatusId - The ID that represents the "active" customer status.
- * @returns {object} - The enriched customer object with additional UI flags.
+ * @param {object} row - The raw customer object from the database.
+ *   Expected to contain at least:
+ *     - `status_id: string`
+ *     - `has_address: boolean | null`
+ * @param {string} activeStatusId - The status ID representing an "active" customer.
+ *
+ * @throws {AppError} If the row is not a valid object or if the activeStatusId is missing or invalid.
+ *
+ * @returns {object} A new object containing all original customer fields plus:
+ *   - `isActive: boolean`
+ *   - `hasAddress: boolean`
  *
  * @example
- * const enriched = enrichCustomerOption(row, ACTIVE_STATUS_ID);
- * if (enriched.isActive && enriched.hasAddress) { ... }
+ * const enriched = enrichCustomerOption(customerRow, ACTIVE_STATUS_ID);
+ * if (enriched.isActive && enriched.hasAddress) {
+ *   showCustomer(enriched);
+ * }
  */
 const enrichCustomerOption = (row, activeStatusId) => {
+  // Validate row
+  if (!row || typeof row !== 'object') {
+    throw AppError.validationError('[enrichCustomerOption] Invalid `row` - expected object but got ' + typeof row);
+  }
+  
+  // Validate activeStatusId
+  if (typeof activeStatusId !== 'string' || activeStatusId.length === 0) {
+    throw AppError.validationError('[enrichCustomerOption] Missing or invalid `activeStatusId`');
+  }
+  
   return {
     ...row,
     isActive: row.status_id === activeStatusId,

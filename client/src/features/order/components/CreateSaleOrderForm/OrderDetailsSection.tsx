@@ -164,7 +164,6 @@ const OrderDetailsSection: FC<Props> = ({
     }
   }
   
-  // todo: adjust all dropdown menu render with extra info chip or flag
   const fields: FieldConfig[] = [
     {
       id: 'order_type_id',
@@ -346,11 +345,21 @@ const OrderDetailsSection: FC<Props> = ({
         onChange ? (
           <DiscountDropdown
             value={value ?? ''}
-            onChange={onChange}
+            onChange={(id) => {
+              onChange?.(id);
+              
+              const matchedOption = discount.options.find(opt => opt.value === id);
+              
+              discountDropdown.setDropdownState((prev) => ({
+                ...prev,
+                inputValue: matchedOption?.label ?? '', // Ensure label shown, not raw input or UUID
+              }));
+            }}
             inputValue={discountDropdown.dropdownState.inputValue}
             fetchParams={discountDropdown.fetchParams}
             setFetchParams={discountDropdown.setFetchParams}
-            onInputChange={(_e, newValue) => {
+            onInputChange={(_, newValue, reason) => {
+              if (reason !== 'input') return;
               discountDropdown.setDropdownState((prev) => ({
                 ...prev,
                 inputValue: newValue,

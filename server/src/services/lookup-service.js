@@ -311,7 +311,7 @@ const fetchCustomerLookupService = async (
     });
     
     // Step 5: Enrich customer records for UI
-    const enrichedRows = data.map(enrichCustomerOption);
+    const enrichedRows = data.map((row) => enrichCustomerOption(row, activeStatusId));
     
     // Step 6: Format for client consumption
     return transformCustomerPaginatedLookupResult(
@@ -785,7 +785,7 @@ const fetchPaginatedSkuLookupService = async (
     }
     
     // Step 5: Filter query input based on user role and visibility rules
-    const queryFilters = filterSkuLookupQuery(filters, userAccess);
+    const queryFilters = filterSkuLookupQuery(filters, userAccess, activeStatusId);
     
     // Step 6: Execute the query to fetch raw SKU records
     const rawResult = await getSkuLookup({

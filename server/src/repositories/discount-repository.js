@@ -38,7 +38,7 @@ const getDiscountById = async (discountId, client = null) => {
  * Retrieves a paginated list of discount records for use in dropdown or autocomplete components.
  *
  * Supports filtering by keyword, active status, creator, validity dates, and other metadata.
- * Results are returned in ascending order by name to ensure predictable dropdown behavior.
+ * Results are sorted ascending by name for predictable dropdown behavior.
  *
  * Typically used in client UI components where users select available discounts,
  * such as in pricing or promotional forms.
@@ -47,7 +47,7 @@ const getDiscountById = async (discountId, client = null) => {
  * @param {number} [options.limit=50] - Maximum number of results to return
  * @param {number} [options.offset=0] - Offset for pagination
  * @param {Object} [options.filters={}] - Optional filter fields (e.g., keyword, isActive, createdBy)
- * @returns {Promise<{ items: { label: string, value: string }[], hasMore: boolean }>} - Paginated dropdown data
+ * @returns {Promise<{ data: { label: string, value: string }[], pagination: { hasMore: boolean, limit: number, offset: number } }>}
  *
  * @throws {AppError} If an error occurs while querying the database
  */
@@ -55,17 +55,20 @@ const getDiscountsLookup = async ({
                                     limit = 50,
                                     offset = 0,
                                     filters = {},
-                                  }) => {
+                                  } = {}) => {
   const tableName = 'discounts d';
+  
   const { whereClause, params } = buildDiscountFilter(filters);
-  // todo include discount_type and discount_value
+  
   const queryText = `
     SELECT
       d.id,
       d.name,
       d.status_id,
       d.valid_from,
-      d.valid_to
+      d.valid_to,
+      d.discount_type,
+      d.discount_value
     FROM ${tableName}
     WHERE ${whereClause}
   `;
@@ -80,26 +83,28 @@ const getDiscountsLookup = async ({
       limit,
       sortBy: 'd.name',
       sortOrder: 'ASC',
-      additionalSort: 'd.name ASC',
+      additionalSort: 'd.valid_from ASC',
     });
     
     logSystemInfo('Fetched discounts lookup successfully', {
       context: 'discounts-repository/getDiscountsLookup',
       totalFetched: result.data?.length ?? 0,
-      offset,
-      limit,
+      pagination: { offset, limit },
       filters,
     });
     
     return result;
-  } catch (error) {
-    logSystemException(error, 'Failed to fetch discounts lookup', {
+  } catch (err) {
+    logSystemException(err, 'Failed to fetch discounts lookup', {
       context: 'discounts-repository/getDiscountsLookup',
       offset,
       limit,
       filters,
     });
-    throw AppError.databaseError('Failed to fetch discounts options.');
+    
+    throw AppError.databaseError('Failed to fetch discounts lookup options.', {
+      cause: err,
+    });
   }
 };
 

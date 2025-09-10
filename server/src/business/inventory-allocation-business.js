@@ -13,6 +13,7 @@
 
 const { cleanObject } = require('../utils/object-utils');
 const { generateChecksum } = require('../utils/crypto-utils');
+const AppError = require('../utils/AppError');
 
 /**
  * Allocates inventory batches for each order item using the specified strategy (FEFO or FIFO).
@@ -255,33 +256,36 @@ const computeAllocationStatusPerItem = (orderItemsMetadata, inventoryAllocationD
 };
 
 /**
- * Recalculates and updates reserved quantities in `warehouse_inventory` based on confirmed allocations.
+ * Updates reserved quantities and inventory status based on confirmed allocations.
  *
  * This function:
- * 1. Aggregates total allocated quantities by (warehouse_id + batch_id).
- * 2. Adds these to the existing reserved quantities for each inventory record.
- * 3. Recalculates the available quantity (warehouse_quantity - reserved_quantity).
- * 4. Updates the inventory `status_id` based on whether there is available stock.
+ * 1. Aggregates total allocated quantities grouped by `(warehouse_id, batch_id)`.
+ * 2. Adds the allocated amount to the current `reserved_quantity` for each matched warehouse-batch record.
+ * 3. Validates that allocations do not exceed the available quantity.
+ * 4. Recalculates the `status_id` based on remaining quantity after reservation.
+ * 5. Returns updated records ready for bulk persistence (e.g., UPDATE ... WHERE ...).
  *
- * The function returns a list of records formatted for bulk update.
+ * This function does not mutate the input data. It returns a new array of updated records.
+ *
+ * Throws a `ConflictError` if any allocation exceeds the available stock.
  *
  * @param {Array<{
  *   warehouse_id: string,
  *   batch_id: string,
  *   allocated_quantity: number
- * }>} allocations - Confirmed inventory allocations per batch and warehouse.
+ * }>} allocations - List of confirmed allocation records grouped by warehouse and batch.
  *
  * @param {Array<{
  *   warehouse_id: string,
  *   batch_id: string,
  *   warehouse_quantity: number,
  *   reserved_quantity: number
- * }>} warehouseBatchInfo - Current inventory records per warehouse-batch pair.
+ * }>} warehouseBatchInfo - Current inventory state per (warehouse, batch) pair.
  *
  * @param {{
  *   inStockStatusId: string,
  *   outOfStockStatusId: string
- * }} statusIds - Inventory status IDs to apply based on availability.
+ * }} statusIds - Status IDs used to mark inventory as in stock or out of stock.
  *
  * @returns {Array<{
  *   warehouse_id: string,
@@ -289,7 +293,9 @@ const computeAllocationStatusPerItem = (orderItemsMetadata, inventoryAllocationD
  *   warehouse_quantity: number,
  *   reserved_quantity: number,
  *   status_id: string
- * }>} Updated inventory records ready for bulk update.
+ * }>} Updated records reflecting new reserved quantities and statuses.
+ *
+ * @throws {AppError} If any allocation would exceed the available quantity.
  */
 const updateReservedQuantitiesFromAllocations = (
   allocations,
@@ -307,13 +313,22 @@ const updateReservedQuantitiesFromAllocations = (
   // Step 2: Update each warehouse record with new reserved qty and recalculate status
   return warehouseBatchInfo.map((record) => {
     const key = `${record.warehouse_id}__${record.batch_id}`;
-    const newlyAllocated = allocationMap[key] || 0;
+    const allocationQty = allocationMap[key] || 0;
     
     const currentReservedQty = Number(record.reserved_quantity || 0);
-    const newReservedQty = currentReservedQty + newlyAllocated;
+    const availableQty = Number(record.warehouse_quantity) - currentReservedQty;
     
-    const availableQty = record.warehouse_quantity - newReservedQty;
-    const status_id = availableQty > 0 ? inStockStatusId : outOfStockStatusId;
+    // Validate: prevent over-reservation
+    if (allocationQty > availableQty) {
+      throw AppError.conflictError(
+        `Insufficient stock to fulfill allocation request. Please review batch availability. ` +
+        `Available: ${availableQty}, Requested: ${allocationQty}`
+      );
+    }
+    
+    const newReservedQty = currentReservedQty + allocationQty;
+    const remainingQty = Number(record.warehouse_quantity) - newReservedQty;
+    const status_id = remainingQty > 0 ? inStockStatusId : outOfStockStatusId;
     
     return {
       warehouse_id: record.warehouse_id,
