@@ -13,6 +13,7 @@ import ExpirySeverityChip, {
 import type { FlatInventoryRowBase } from '@features/inventoryShared/types/InventorySharedType.ts';
 import Tooltip from '@mui/material/Tooltip';
 import { getGroupedRowProps } from '@utils/table/tableRowPropsUtils.ts';
+import { formatLabel } from '@utils/textUtils.ts';
 
 interface BaseInventoryTableProps<T> {
   isLoading: boolean;
@@ -84,6 +85,11 @@ const BaseInventoryTable = <T,>({
 
   const columns: Column<FlatInventoryRowBase<T>>[] = useMemo(() => {
     return [
+      {
+        id: 'type',
+        label: 'Batch Type',
+        format: (value) => formatLabel(String(value ?? '')),
+      },
       { id: 'name', label: 'Name' },
       { id: 'lotNumber', label: 'Lot #' },
       { id: 'expiryDate', label: 'Expiry Date' },

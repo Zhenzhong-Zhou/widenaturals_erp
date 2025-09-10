@@ -12,6 +12,7 @@ const LocationInventoryTable: FC<LocationInventoryTableProps> = (props) => {
       getGroupHeaderId={(name) => `group-${name}`}
       getRowData={(item) => ({
         id: item.id,
+        type: item.lot?.batchType,
         name: item.display.name,
         lotNumber: item.lot?.number ?? '-',
         expiryDate: item.lot?.expiryDate

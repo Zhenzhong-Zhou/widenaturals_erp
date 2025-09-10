@@ -420,6 +420,7 @@ const getPaginatedLocationInventoryRecords = async ({
   const queryText = `
     SELECT
       li.id AS location_inventory_id,
+      br.id AS batch_id,
       br.batch_type AS item_type,
       li.location_id,
       loc.name AS location_name,

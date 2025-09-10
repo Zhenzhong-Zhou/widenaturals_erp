@@ -3,6 +3,65 @@ const { deriveInventoryStatusFlags } = require('../utils/transformer-utils');
 const { cleanObject } = require('../utils/object-utils');
 
 /**
+ * @typedef {Object} InventoryRecordRow
+ * @property {string} item_type
+ * @property {string} [product_name]
+ * @property {string} [brand_name]
+ * @property {string} [sku_code]
+ * @property {string} [barcode]
+ * @property {string} [language]
+ * @property {string} [country_code]
+ * @property {string} [size_label]
+ * @property {string} [product_manufacturer_name]
+ * @property {string} [product_lot_number]
+ * @property {string} [product_manufacture_date]
+ * @property {string} [product_expiry_date]
+ * @property {string} [material_name]
+ * @property {string} [material_code]
+ * @property {string} [material_color]
+ * @property {string} [material_size]
+ * @property {string} [material_unit]
+ * @property {string} [material_supplier_name]
+ * @property {string} [material_lot_number]
+ * @property {string} [material_manufacture_date]
+ * @property {string} [material_expiry_date]
+ * @property {string} [received_label_name]
+ * @property {string} [part_name]
+ * @property {string} [part_code]
+ * @property {string} [part_type]
+ * @property {string} [part_unit]
+ * @property {string} [status_name]
+ * @property {number} [reserved_quantity]
+ * @property {string} [batch_id]
+ * @property {string} [location_id]
+ * @property {string} [location_name]
+ * @property {string} [location_type_name]
+ * @property {string} [created_by_firstname]
+ * @property {string} [created_by_lastname]
+ * @property {string} [updated_by_firstname]
+ * @property {string} [updated_by_lastname]
+ * @property {string} [created_at]
+ * @property {string} [updated_at]
+ * @property {string} [last_update]
+ * @property {string} [inbound_date]
+ * @property {string} [outbound_date]
+ * @property {string} [status_date]
+ * @property {number} [location_quantity]
+ * @property {number} [warehouse_quantity]
+ */
+
+/**
+ * @typedef {Object} TransformInventoryConfig
+ * @property {string} idField
+ * @property {string} scopeKey
+ * @property {string} scopeIdField
+ * @property {string} scopeNameField
+ * @property {string} [scopeTypeField]
+ * @property {string} quantityField
+ * @property {boolean} [includeInboundOutboundDates]
+ */
+
+/**
  * @description
  * Transforms a raw inventory database row (from either `location_inventory` or `warehouse_inventory`)
  * into a structured, display-ready object. This function abstracts common transformation logic
@@ -12,16 +71,8 @@ const { cleanObject } = require('../utils/object-utils');
  * This base function is intended to be reused by both `transformLocationInventoryRecord` and
  * `transformWarehouseInventoryRecord` by supplying a scoped config to adapt the transformation.
  *
- * @param {Object} row - A single raw DB result row representing an inventory record
- * @param {Object} config - Configuration for adapting to the table-specific structure
- * @param {string} config.idField - The row field name used for the inventory record ID
- * @param {string} config.scopeKey - Either `"location"` or `"warehouse"` — the key for the scope object
- * @param {string} config.scopeIdField - Field name for the location or warehouse ID
- * @param {string} config.scopeNameField - Field name for the location or warehouse name
- * @param {string} [config.scopeTypeField] - Optional field name for location type (only for location inventory)
- * @param {string} config.quantityField - Field name for total quantity (`location_quantity` or `warehouse_quantity`)
- * @param {boolean} config.includeInboundOutboundDates - Whether to include inbound/outbound timestamps (location inventory only)
- *
+ * @param {InventoryRecordRow} row - A single raw DB result row representing an inventory record
+ * @param {TransformInventoryConfig} config - Configuration for adapting to the table-specific structure
  * @returns {Object} A cleaned, enriched inventory object ready for client display
  */
 const transformInventoryRecordBase = (row, config) => {
@@ -82,9 +133,11 @@ const transformInventoryRecordBase = (row, config) => {
     }),
     location: row.location_id
       ? {
-          id: row.location_id,
-        }
-      : '',
+        id: row.location_id,
+        name: row.location_name,
+        type: row.location_type_name,
+      }
+      : null,
     quantity: {
       [camelQuantityKey]: totalQuantity,
       reserved: reservedQuantity,
@@ -92,6 +145,7 @@ const transformInventoryRecordBase = (row, config) => {
     },
     lot: {
       batchId: row.batch_id,
+      batchType: row.item_type,
       number: displayLotNumber,
       manufactureDate: displayManufactureDate,
       expiryDate: displayExpiryDate,
