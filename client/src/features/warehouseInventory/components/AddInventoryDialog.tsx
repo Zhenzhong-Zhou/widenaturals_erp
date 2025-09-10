@@ -82,20 +82,6 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
     }
   }, [open, fetchBatchRegistryLookup, batchLookupParams]);
 
-  // Reset on close
-  useEffect(() => {
-    if (!open) {
-      restBatchRegistryLookup();
-    }
-  }, [open, restBatchRegistryLookup]);
-
-  // Also reset on unmounting (as fallback)
-  useEffect(() => {
-    return () => {
-      restBatchRegistryLookup();
-    };
-  }, [restBatchRegistryLookup]);
-
   const transformWarehouseLookupToOptions = (
     items: WarehouseLookupItem[]
   ): WarehouseOption[] => {
@@ -113,14 +99,15 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
     () => mapBatchLookupToOptions(batchOptions, true),
     [batchOptions]
   );
-
+  
   useEffect(() => {
     if (!open) {
+      restBatchRegistryLookup();
       setSelectedBatch(null);
       resetState();
       setSubmitting(false);
     }
-  }, [open]);
+  }, [open, restBatchRegistryLookup]);
 
   const handleFormSubmit = (formData: CreateInventoryRecordsRequest) => {
     try {
