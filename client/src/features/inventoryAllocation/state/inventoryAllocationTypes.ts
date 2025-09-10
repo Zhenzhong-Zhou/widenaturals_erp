@@ -375,8 +375,17 @@ export interface InventoryAllocationSummary {
   /** Payment method used (e.g., "Credit Card") */
   paymentMethod: string | null;
   
-  /** Payment status (e.g., "Paid", "Unpaid") */
-  paymentStatus: string | null;
+  /**
+   * Payment status of the order.
+   *
+   * Includes:
+   * - `name`: Human-readable label (e.g., "Paid", "Unpaid")
+   * - `code`: System-defined code (e.g., "PAID", "UNPAID")
+   */
+  paymentStatus: {
+    name: string;
+    code: string;
+  };
   
   /** Name of the delivery method (e.g., "Standard", "Express"). Nullable if not set. */
   deliveryMethod: string | null;

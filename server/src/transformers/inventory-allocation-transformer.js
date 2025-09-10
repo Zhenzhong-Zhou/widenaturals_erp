@@ -394,7 +394,8 @@ const transformInventoryAllocationReviewRows = (rows) => {
  * @property {string|null} customer_firstname
  * @property {string|null} customer_lastname
  * @property {string|null} payment_method
- * @property {string|null} payment_status
+ * @property {string|null} payment_status_name
+ * @property {string|null} payment_status_code
  * @property {string|null} delivery_method
  * @property {string} created_at - ISO timestamp of when the order was created
  * @property {string|null} updated_at - ISO timestamp of when the order was last updated
@@ -423,7 +424,8 @@ const transformInventoryAllocationReviewRows = (rows) => {
  * @property {{ name: string, code: string }} orderStatus
  * @property {{ fullName: string }} customer
  * @property {string|null} paymentMethod
- * @property {string|null} paymentStatus
+ * @property {string|null} paymentStatusName
+ * @property {string|null} paymentStatusCode
  * @property {string|null} deliveryMethod
  * @property {string} orderCreatedAt - ISO timestamp of when the order was created
  * @property {string} orderCreatedBy - Full name of the user who created the order
@@ -465,7 +467,10 @@ const transformInventoryAllocationRow = (row) => {
       fullName: getFullName(row.customer_firstname, row.customer_lastname),
     },
     paymentMethod: row.payment_method ?? null,
-    paymentStatus: row.payment_status ?? null,
+    paymentStatus: {
+      name: row.payment_status_name ?? null,
+      code: row.payment_status_code ?? null,
+    },
     deliveryMethod: row.delivery_method ?? null,
     
     orderCreatedAt: row.created_at,

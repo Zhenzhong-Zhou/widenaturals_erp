@@ -119,6 +119,7 @@ const findOrderItemsByOrderId = async (orderId) => {
       oi.subtotal               AS item_subtotal,
       oi.status_id              AS item_status_id,
       ios.name                  AS item_status_name,
+      ios.code                  AS item_status_code,
       oi.status_date            AS item_status_date,
       oi.metadata               AS item_metadata,
       oi.sku_id,
