@@ -10,10 +10,6 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
 import Divider from '@mui/material/Divider';
-import {
-  faMapMarkerAlt,
-  faQuestionCircle,
-} from '@fortawesome/free-solid-svg-icons';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import AddressCreateDialog from '@features/address/components/AddressCreateDialog';
@@ -87,26 +83,6 @@ const AddressesPage: FC = () => {
     meta: customerLookupPaginationMeta,
     fetch: fetchCustomerDropdownOptions,
   } = useCustomerLookup(fetchParams);
-
-  const deduplicatedOptions = useMemo(() => {
-    return Array.from(
-      new Map(
-        customerDropdownOptions.map((opt) => {
-          const hasAddr = opt.hasAddress ?? false;
-          
-          return [
-            opt.value,
-            {
-              ...opt,
-              icon: hasAddr ? faMapMarkerAlt : faQuestionCircle,
-              tooltip: hasAddr ? 'Has Address' : 'No Address',
-              iconColor: hasAddr ? 'green' : 'gray',
-            },
-          ];
-        })
-      ).values()
-    );
-  }, [customerDropdownOptions]);
   
   const handleRefresh = useCallback(() => {
     applyFiltersAndSorting(queryParams);
@@ -157,7 +133,7 @@ const AddressesPage: FC = () => {
               onChange={setFilters}
               onApply={() => setPage(1)}
               onReset={handleResetFilters}
-              customerDropdownOptions={deduplicatedOptions}
+              customerDropdownOptions={customerDropdownOptions}
               fetchCustomerDropdownOptions={fetchCustomerDropdownOptions}
               customerLookupLoading={customerLookupLoading}
               customerLookupError={customerLookupError}
@@ -183,7 +159,7 @@ const AddressesPage: FC = () => {
         open={dialogOpen}
         onClose={handleCloseDialog}
         onSuccess={handleRefresh}
-        customerDropdownOptions={deduplicatedOptions}
+        customerDropdownOptions={customerDropdownOptions}
         fetchCustomerDropdownOptions={fetchCustomerDropdownOptions}
         customerLookupLoading={customerLookupLoading}
         customerLookupError={customerLookupError}

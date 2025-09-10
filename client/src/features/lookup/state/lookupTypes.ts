@@ -317,27 +317,32 @@ export interface OrderTypeLookupQueryParams {
 }
 
 /**
- * Represents a single order type option for use in dropdown or autocomplete components.
+ * Represents a single order type item for use in dropdowns or autocomplete components.
  *
- * This structure is produced by transforming raw `order_types` records into a UI-friendly format.
- * Fields are conditionally included based on user access permissions.
+ * Produced by transforming raw `order_types` table rows into a UI-friendly format.
+ * Some fields may only be present if the current user has sufficient access permissions.
  *
- * @property {string} id - Unique identifier for the order type.
- * @property {string} label - Display name shown in the UI (may include category prefix).
- * @property {boolean} isRequiredPayment - Indicates whether this order type expects payment.
- * @property {boolean} [isActive] - Optional flag indicating if the order type is currently active (included if permitted).
- * @property {string} [category] - Optional category name for this order type (included if permitted).
+ * @property {boolean} isRequiredPayment - Whether this order type requires payment.
+ * @property {boolean} [isActive] - True if the order type is active; may be omitted based on access control.
+ * @property {string} [category] - Optional category or grouping label for this order type.
  */
-export interface OrderTypeLookupItem {
-  id: string;
-  label: string;
+export interface OrderTypeLookupItem extends LookupItemWithStatus {
   isRequiredPayment: boolean;
-  isActive?: boolean;
   category?: string;
 }
 
+/**
+ * API response type for order type lookup.
+ *
+ * Wraps an array of `OrderTypeLookupItem` in a standard API success response.
+ */
 export type OrderTypeLookupResponse = ApiSuccessResponse<OrderTypeLookupItem[]>;
 
+/**
+ * Async state shape used in store or hook for tracking order type lookup state.
+ *
+ * Includes loading, error, and data fields representing an array of `OrderTypeLookupItem`.
+ */
 export type OrderTypeLookupState = AsyncState<OrderTypeLookupItem[]>;
 
 /**
@@ -349,9 +354,10 @@ export type PaymentMethodLookupQueryParams = LookupQuery;
 /**
  * A single payment method item returned from the API lookup.
  *
- * Based on the standard lookup item structure of `{ id, label }`.
+ * Extends the standard lookup item structure of `{ id, label }` with:
+ * - `isActive`: Whether the payment method is currently active.
  */
-export type PaymentMethodLookupItem = LookupItem;
+export type PaymentMethodLookupItem = LookupItemWithStatus;
 
 /**
  * Response structure for the payment method lookup endpoint.

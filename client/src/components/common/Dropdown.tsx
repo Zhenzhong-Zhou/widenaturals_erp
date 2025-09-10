@@ -26,7 +26,7 @@ import { useThemeContext } from '@context/ThemeContext';
 
 export interface OptionType {
   value: string | null;
-  label: string;
+  label: string | JSX.Element;
   type?: string; // e.g., 'product' | 'material' | etc.
   icon?: IconProp | JSX.Element;
   iconColor?: string;
@@ -115,7 +115,9 @@ const Dropdown: FC<DropdownProps> = ({
       <Autocomplete
         disabled={disabled}
         options={modifiedOptions}
-        getOptionLabel={(option) => option.label || ''}
+        getOptionLabel={(option) =>
+          typeof option.label === 'string' ? option.label : ''
+        }
         value={modifiedOptions.find((option) => option.value === value) || null}
         inputValue={inputValue}
         onInputChange={onInputChange}
@@ -316,7 +318,9 @@ const Dropdown: FC<DropdownProps> = ({
                     )}
                   </Box>
                 )}
-                <span>{option.label}</span>
+                {typeof option.label === 'string'
+                  ? <span>{option.label}</span>
+                  : option.label}
               </MenuItem>
             )}
             {error && (

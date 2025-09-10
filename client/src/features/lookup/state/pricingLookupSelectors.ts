@@ -54,15 +54,20 @@ export const selectPricingLookupError = createSelector(
 export const selectPricingLookupMeta = createLookupMetaSelector(selectPricingLookupState);
 
 /**
- * Selector to map all pricing lookup items into generic dropdown options.
+ * Selector that maps pricing lookup items into dropdown options.
  *
- * Maps each pricing item into a `{ label, value }` format for use in UI components.
- * This does not filter based on validity or status — all items are included.
+ * Each option includes:
+ * - `label` and `value` for use in dropdown UI components (with `value` = pricing `id`)
+ * - `isActive` flag to indicate if the pricing record is active
+ * - `isValidToday` flag to indicate if the pricing is valid on the current date
  *
- * @returns An array of {@link LookupOption} objects representing pricing options.
+ * Suitable for use in Autocomplete, Select, and other dropdown components
+ * that need to display pricing options with status and validity context.
+ *
+ * @returns An array of {@link LookupOption} objects enriched with status flags.
  */
 export const selectPricingLookupOptions = createSelector(
   selectPricingLookupItems,
   (items: PricingLookupItem[]): LookupOption[] =>
-    mapLookupItems(items) // Maps to { label, value } by default
+    mapLookupItems(items, ['isActive', 'isValidToday'])
 );

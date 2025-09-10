@@ -3,7 +3,7 @@ const {
   resolveOrderAccessContext,
   resolveUserPermissionContext,
 } = require('../services/role-permission-service');
-const { logSystemException } = require('../utils/system-logger');
+const { logSystemException, logSystemError } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 const { PERMISSIONS } = require('../utils/constants/domain/order-type-constants');
 
@@ -239,17 +239,58 @@ const filterOrderTypeLookupQuery = (query, access, activeStatusId) => {
 };
 
 /**
- * Enriches an order type row with computed flags like `isActive` and optionally `isPaymentRequired`.
+ * Enriches an order type row with UI-friendly flags.
  *
- * @param {Object} row - Raw order type row with `status_id` and `requires_payment`
- * @param {string|number} activeStatusId - The status ID representing "active"
- * @returns {Object} Enriched row with `isActive` and `requiresPayment` booleans
+ * Adds:
+ * - `isActive`: true if the row's `status_id` matches the provided `activeStatusId`
+ * - `requiresPayment`: boolean flag derived from the raw `requires_payment` field
+ *
+ * Validation:
+ * - Throws a client-safe validation error if the row is missing or not an object.
+ * - Throws a client-safe validation error if `activeStatusId` is missing or invalid.
+ * - Full details (row type, contents, activeStatusId) are logged internally for diagnostics,
+ *   but not exposed to the client.
+ *
+ * @param {object} row - Raw order type row from the database. Must include `status_id` and `requires_payment`.
+ * @param {string} activeStatusId - UUID of the "active" status used for comparison.
+ *
+ * @returns {object} Enriched order type object including:
+ *   - All original fields
+ *   - `isActive` (boolean)
+ *   - `requiresPayment` (boolean)
+ *
+ * @throws {AppError} If the row is invalid or `activeStatusId` is missing/invalid.
  */
 const enrichOrderTypeRow = (row, activeStatusId) => {
+  // Validate row
+  if (!row || typeof row !== 'object') {
+    logSystemError('[enrichOrderTypeRow] Invalid row type', {
+      gotType: typeof row,
+      row,
+    });
+    
+    // Client-safe message
+    throw AppError.validationError('Invalid order type data received.');
+  }
+
+  // Validate activeStatusId
+  if (typeof activeStatusId !== 'string' || activeStatusId.trim().length === 0) {
+    logSystemError('[enrichOrderTypeRow] Missing or invalid activeStatusId', {
+      activeStatusId,
+    });
+    
+    // Client-safe message
+    throw AppError.validationError('Order type configuration is invalid.');
+  }
+  
+  // Normalize values
+  const statusId = row.status_id ?? null;
+  const requiresPayment = Boolean(row.requires_payment);
+  
   return {
     ...row,
-    isActive: row.status_id === activeStatusId,
-    requiresPayment: Boolean(row.requires_payment), // pass-through for consistency
+    isActive: statusId === activeStatusId,
+    requiresPayment,
   };
 };
 

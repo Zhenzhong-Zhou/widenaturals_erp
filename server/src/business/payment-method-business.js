@@ -2,7 +2,7 @@ const {
   resolveUserPermissionContext,
 } = require('../services/role-permission-service');
 const AppError = require('../utils/AppError');
-const { logSystemException } = require('../utils/system-logger');
+const { logSystemException, logSystemError } = require('../utils/system-logger');
 const { PERMISSIONS } = require('../utils/constants/domain/payment-method-constants');
 
 /**
@@ -93,23 +93,43 @@ const enforcePaymentMethodLookupVisibilityRules = (filters = {}, userAccess) => 
 };
 
 /**
- * Enriches a payment method row with a UI-friendly `isDisabled` flag.
+ * Enriches a payment method row with a UI-friendly `isActive` flag.
  *
- * This utility is typically used to mark inactive options for UI components
- * (e.g., disabling them in dropdowns). It does not modify the original structure
- * beyond adding a derived `isDisabled` boolean.
+ * - Converts the raw `is_active` field (from DB) into a normalized boolean `isActive`.
+ * - Preserves all original fields for downstream use.
+ * - Throws a client-safe error if the row is invalid, while logging developer diagnostics.
  *
- * @param {Object} row - The raw payment method row, must include `is_active` field.
- * @returns {Object} Enriched payment method row with an `isDisabled` flag.
+ * Useful when transforming database records for dropdowns or other UI
+ * components that require a consistent `isActive` property.
+ *
+ * @param {object} row - Raw payment method row (must include `is_active` field).
+ * @returns {object} Enriched payment method row with an `isActive` boolean.
+ *
+ * @throws {AppError} ValidationError if the row is invalid.
  *
  * @example
- * const enriched = enrichPaymentMethodOption({ id: '123', name: 'Credit Card', is_active: false });
- * // => { id: '123', name: 'Credit Card', is_active: false, isDisabled: true }
+ * const enriched = enrichPaymentMethodOption({
+ *   id: '123',
+ *   name: 'Credit Card',
+ *   is_active: false
+ * });
+ * // => { id: '123', name: 'Credit Card', is_active: false, isActive: false }
  */
 const enrichPaymentMethodOption = (row) => {
+  if (!row || typeof row !== 'object') {
+    // Log detailed error for devs
+    logSystemError('[enrichPaymentMethodOption] Invalid row type', {
+      gotType: typeof row,
+      row,
+    });
+    
+    // Throw sanitized error for client
+    throw AppError.validationError('Invalid payment method data received.');
+  }
+  
   return {
     ...row,
-    isActive: row.is_active,
+    isActive: row.is_active === true,
   };
 };
 

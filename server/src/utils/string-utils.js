@@ -60,6 +60,7 @@ const convertToKey = (formattedHeader) => {
  * @param {number|null} discountValue - The value of the discount.
  * @returns {string} - Formatted discount value.
  */
+// todo: move to module file base: discount-utils.js
 const formatDiscount = (discountType, discountValue) => {
   if (!discountType || discountValue === null || discountValue === undefined)
     return 'N/A';
