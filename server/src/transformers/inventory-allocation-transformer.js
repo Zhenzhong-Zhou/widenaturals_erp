@@ -1,6 +1,6 @@
 const { getFullName } = require('../utils/name-utils');
 const { getProductDisplayName } = require('../utils/display-name-utils');
-const { formatPackagingMaterialLabel } = require('../utils/string-utils');
+const { formatPackagingMaterialLabel } = require('../utils/packaging-material-utils');
 const { cleanObject } = require('../utils/object-utils');
 const { getBatchSummary, getWarehouseInventoryList } = require('../utils/inventory-utils');
 const { transformPaginatedResult } = require('../utils/transformer-utils');
