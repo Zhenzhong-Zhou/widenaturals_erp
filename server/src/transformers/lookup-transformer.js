@@ -7,7 +7,7 @@ const {
   includeFlagsBasedOnAccess,
 } = require('../utils/transformer-utils');
 const { getFullName } = require('../utils/name-utils');
-const { formatPackagingMaterialLabel } = require('../utils/string-utils');
+const { formatPackagingMaterialLabel } = require('../utils/packaging-material-utils');
 const { formatAddress } = require('../utils/address-utils');
 const { formatDiscount } = require('../utils/discount-utils');
 const { formatTaxRateLabel } = require('../utils/tax-rate-utils');
