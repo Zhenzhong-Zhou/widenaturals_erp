@@ -28,7 +28,7 @@ exports.up = function (knex) {
       .references('id')
       .inTable('shipment_status'); // Normalized status
 
-    table.date('shipment_date').nullable();
+    table.date('shipped_at').nullable();
     table.date('expected_delivery_date').nullable();
 
     table.text('notes').nullable();
