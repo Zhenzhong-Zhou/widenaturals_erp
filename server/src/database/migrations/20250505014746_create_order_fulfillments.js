@@ -34,12 +34,14 @@ exports.up = async function (knex) {
     
     table.text('fulfillment_notes').nullable();
     
-    table.timestamp('fulfilled_at').defaultTo(knex.fn.now());
+    table.timestamp('fulfilled_at').nullable();
 
     table.timestamp('created_at').defaultTo(knex.fn.now());
     table.timestamp('updated_at').defaultTo(knex.fn.now());
 
     table.uuid('fulfilled_by').references('id').inTable('users');
+    
+    table.uuid('created_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');
 
     table.unique(['order_item_id', 'shipment_id'], {
