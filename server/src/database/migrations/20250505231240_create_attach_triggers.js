@@ -224,6 +224,7 @@ exports.up = function (knex) {
  * @param { import("knex").Knex } knex
  * @returns {Knex.Raw<TResult>}
  */
+// todo: update this for all reltive table it may be the last file always?
 exports.down = function (knex) {
   return knex.raw(`
     -- Drop all update triggers
