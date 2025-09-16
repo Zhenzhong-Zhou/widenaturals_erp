@@ -920,12 +920,34 @@ const lockRows = async (
 };
 
 /**
- * Builds an update clause for a specific column based on the provided strategy.
+ * Builds a SQL update expression for use in UPSERT (ON CONFLICT DO UPDATE).
  *
- * @param {string} col - Column name.
- * @param {string} strategy - Strategy ('add', 'subtract', 'overwrite', etc.).
- * @param {string} tableAlias - Optional alias (default: 'table').
- * @returns {string} - SQL fragment for update.
+ * Business rule:
+ *  - Each column update follows a strategy that defines how to merge
+ *    the existing table value with the new EXCLUDED value.
+ *  - Used to enforce consistent conflict resolution across tables.
+ *
+ * Supported strategies:
+ *  - "add"        → Increment existing value by excluded value
+ *  - "subtract"   → Decrement existing value by excluded value
+ *  - "max"        → Take the greater of existing and excluded values
+ *  - "min"        → Take the lesser of existing and excluded values
+ *  - "coalesce"   → Use excluded value if not null, otherwise keep existing
+ *  - "recalculate_subtotal" → Recompute subtotal using price * (qty + new qty)
+ *  - "jsonb"/"json"/"merge_json" → Append structured JSON/JSONB with timestamp
+ *  - "text"/"merge_text" → Append incoming text with timestamp to audit history
+ *  - "keep"       → Skip updating this column
+ *  - "overwrite"  → Default; replace with excluded value
+ *
+ * @function
+ * @param {string} col - Column name to update
+ * @param {string} strategy - Update strategy (see list above)
+ * @param {string} [tableAlias='table'] - Table alias for the existing row
+ * @returns {string|null} SQL expression fragment for the update, or null if skipped
+ *
+ * @example
+ * applyUpdateRule('quantity', 'add', 'orders')
+ * // => "quantity = orders.quantity + EXCLUDED.quantity"
  */
 const applyUpdateRule = (col, strategy, tableAlias = 'table') => {
   switch (strategy) {
@@ -941,15 +963,65 @@ const applyUpdateRule = (col, strategy, tableAlias = 'table') => {
       return `${col} = COALESCE(EXCLUDED.${col}, ${tableAlias}.${col})`;
     case 'recalculate_subtotal':
       return `subtotal = (EXCLUDED.price * (${tableAlias}.quantity_ordered + EXCLUDED.quantity_ordered))`;
-    case 'merge':
-      return `${col} = ${tableAlias}.${col} || EXCLUDED.${col}`;
+    case 'jsonb':
+    case 'json':
+    case 'merge_json':
+      return buildMergeExpression(col, tableAlias, 'jsonb');
+    case 'text':
+    case 'merge_text':
+      return buildMergeExpression(col, tableAlias, 'text');
     case 'keep':
-      // Do not change this column; skip including it in SET
-      return null;
+      return null; // Skip update
     case 'overwrite':
     default:
       return `${col} = EXCLUDED.${col}`;
   }
+};
+
+/**
+ * Builds a SQL merge expression for JSON/JSONB or text columns.
+ *
+ * Business rule:
+ *  - Appends a new entry with timestamp and data, preserving audit trail.
+ *  - For JSONB: uses `|| jsonb_build_object` to append structured data.
+ *  - For text/JSON: concatenates string entries with line breaks and timestamp.
+ *
+ * @function
+ * @param {string} col - Column name to merge
+ * @param {string} tableAlias - Table alias for the existing row
+ * @param {string} [type='text'] - Type of merge ("text" | "json" | "jsonb")
+ * @returns {string} SQL expression fragment
+ *
+ * @example
+ * buildMergeExpression('notes', 'orders', 'text')
+ * // => "notes = CONCAT_WS('\n\n', TRIM(orders.notes), CONCAT('[2025-09-16 14:00:00] ', TRIM(EXCLUDED.notes)))"
+ */
+const buildMergeExpression = (col, tableAlias, type = 'text') => {
+  if (type === 'jsonb') {
+    return `${col} = COALESCE(${tableAlias}.${col}, '[]'::jsonb) || jsonb_build_object(
+      'timestamp', TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI:SS'),
+      'data', EXCLUDED.${col}
+    )`;
+  }
+  
+  const needsCast = type === 'json';
+  const current = needsCast
+    ? `TRIM((${tableAlias}.${col})::text)`
+    : `TRIM(${tableAlias}.${col})`;
+  
+  const incoming = needsCast
+    ? `TRIM((EXCLUDED.${col})::text)`
+    : `TRIM(EXCLUDED.${col})`;
+  
+  const baseExpr = `CONCAT_WS(
+    E'\\n\\n',
+    ${current},
+    CONCAT('[', TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI:SS'), '] ', ${incoming})
+  )`;
+  
+  return needsCast
+    ? `${col} = (${baseExpr})::json`
+    : `${col} = ${baseExpr}`;
 };
 
 /**

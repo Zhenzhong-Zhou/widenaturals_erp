@@ -26,7 +26,6 @@ const AppError = require('../utils/AppError');
  *   source_ref_id?: UUID,
  *   recorded_by?: UUID,
  *   inventory_scope: 'warehouse',
- *   status_effective_at?: timestamp,
  *   recorded_at?: timestamp,
  *   checksum: string
  * }
@@ -69,8 +68,8 @@ const insertInventoryActivityLogs = async (logs, client, meta) => {
       log.source_type || null,
       log.source_ref_id || null,
     ]);
-
-    return await bulkInsert(
+    
+    const activityResult = await bulkInsert(
       'inventory_activity_log',
       activityColumns,
       activityRows,
@@ -79,7 +78,9 @@ const insertInventoryActivityLogs = async (logs, client, meta) => {
       client,
       meta
     );
-
+    
+    const activityIds = activityResult.map(r => r.id);
+    
     // === Inventory Activity Audit Log ===
     const auditColumns = [
       'warehouse_inventory_id',
@@ -89,7 +90,6 @@ const insertInventoryActivityLogs = async (logs, client, meta) => {
       'quantity_change',
       'new_quantity',
       'status_id',
-      'status_effective_at',
       'action_by',
       'comments',
       'checksum',
@@ -106,7 +106,6 @@ const insertInventoryActivityLogs = async (logs, client, meta) => {
       log.quantity_change,
       log.new_quantity,
       log.status_id,
-      log.status_effective_at,
       log.performed_by,
       log.comments || null,
       log.checksum,
@@ -156,6 +155,14 @@ const insertInventoryActivityLogs = async (logs, client, meta) => {
         ''
       );
     }
+    
+    return {
+      insertedActivityCount: activityRows.length,
+      insertedAuditCount: auditRows.length,
+      warehouseAuditCount: warehouseAuditRows.length,
+      locationAuditCount: locationAuditRows.length,
+      activityLogIds: activityIds,
+    };
   } catch (error) {
     logSystemException(error, 'Failed to insert inventory activity logs', {
       context: 'inventory-log-repository/insertInventoryActivityLogs',

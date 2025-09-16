@@ -426,6 +426,14 @@ const transformOrderWithItems = (
       if (match) {
         o.sku = match.sku?.code ?? null;
         o.productDisplayName = match.displayName ?? null;
+        
+        // Optional safety check: ensure conflictNote is structured correctly
+        if (o.data && o.timestamp) {
+          o.conflictNote = {
+            data: o.data,
+            timestamp: o.timestamp,
+          };
+        }
       }
     }
   }
@@ -449,7 +457,6 @@ const transformOrderWithItems = (
     type: {
       id: orderRow.order_type_id,
       name: orderRow.order_type_name,
-      code: orderRow.order_code,
     },
     status: {
       id: orderRow.order_status_id,

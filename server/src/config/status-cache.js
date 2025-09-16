@@ -83,6 +83,16 @@ const STATUS_KEY_LOOKUP = [
     table: 'inventory_allocation_status',
     name: 'pending',
   },
+  {
+    key: 'outbound_shipment_init',
+    table: 'shipment_status',
+    name: 'pending',
+  },
+  {
+    key: 'order_fulfillment_init',
+    table: 'fulfillment_status',
+    name: 'pending',
+  },
 ];
 
 /**
