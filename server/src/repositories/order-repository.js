@@ -660,6 +660,75 @@ const getInventoryAllocationsByOrderId = async (orderId, client) => {
   }
 };
 
+/**
+ * Fetches delivery-related metadata for a sales order.
+ *
+ * Business rules:
+ *  - Only applicable for orders of type `sales_orders`.
+ *  - Aggregates all `order_item_ids` belonging to the order.
+ *  - Includes the delivery method if set, otherwise null.
+ *
+ * Usage:
+ *  - Called during outbound fulfillment to determine delivery method
+ *    and which items must be linked to the shipment.
+ *
+ * @async
+ * @function
+ * @param {string} orderId - UUID of the order
+ * @param {import('pg').PoolClient|null} [client=null] - Optional PostgreSQL client or transaction
+ *
+ * @returns {Promise<{
+ *   sales_order_id: string,
+ *   delivery_method_id: string | null,
+ *   order_item_ids: string[]
+ * } | null>} Delivery metadata for the sales order, or `null` if not found.
+ *
+ * @throws {AppError} Throws `AppError.databaseError` if the query fails
+ *
+ * @example
+ * const metadata = await getSalesOrderShipmentMetadata("order-123", client);
+ * // {
+ * //   sales_order_id: "order-123",
+ * //   delivery_method_id: "del-001",
+ * //   order_item_ids: ["oi-001", "oi-002"]
+ * // }
+ */
+const getSalesOrderShipmentMetadata = async (orderId, client = null) => {
+  const sql = `
+    SELECT
+      so.id AS sales_order_id,
+      so.delivery_method_id,
+      ARRAY_AGG(oi.id) AS order_item_ids
+    FROM sales_orders so
+    JOIN orders o ON so.id = o.id
+    JOIN order_items oi ON oi.order_id = o.id
+    WHERE o.id = $1
+    GROUP BY so.id, so.delivery_method_id;
+  `;
+  
+  try {
+    const { rows } = await query(sql, [orderId], client);
+    
+    logSystemInfo('Fetched sales order shipment metadata', {
+      context: 'sales-order-repository/getSalesOrderShipmentMetadata',
+      orderId,
+      rowCount: rows.length,
+    });
+    
+    return rows[0] ?? null;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch sales order shipment metadata', {
+      context: 'sales-order-repository/getSalesOrderShipmentMetadata',
+      orderId,
+    });
+    
+    throw AppError.databaseError(
+      'Database query failed while fetching sales order shipment metadata',
+      { cause: error, orderId }
+    );
+  }
+};
+
 module.exports = {
   insertOrder,
   getPaginatedOrders,
@@ -668,4 +737,5 @@ module.exports = {
   fetchOrderMetadata,
   updateOrderStatus,
   getInventoryAllocationsByOrderId,
+  getSalesOrderShipmentMetadata,
 };

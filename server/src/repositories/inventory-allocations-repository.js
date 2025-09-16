@@ -507,9 +507,12 @@ const getInventoryAllocationReview = async (orderId, warehouseIds, allocationIds
  *     allocation_statuses: string;
  *     allocation_summary_status:
  *       | 'Failed'
- *       | 'Fully Allocated'
  *       | 'Partially Allocated'
+ *       | 'Fulfilling'
  *       | 'Pending Allocation'
+ *       | 'Allocation Confirmed'
+ *       | 'Fulfilled'
+ *       | 'Allocation Returned'
  *       | 'Unknown';
  *     allocation_ids: string[];
  *   }>,
@@ -577,16 +580,21 @@ const getPaginatedInventoryAllocations = async ({
     alloc_agg AS (
       SELECT *,
         CASE
-          WHEN ARRAY['ALLOC_FAILED'] <@ allocation_status_codes::text[] THEN 'Failed'
-          WHEN ARRAY['ALLOC_CONFIRMED'] <@ allocation_status_codes::text[]
-               AND NOT ARRAY['ALLOC_PENDING'] <@ allocation_status_codes::text[]
-          THEN 'Fully Allocated'
-          WHEN ARRAY['ALLOC_CONFIRMED'] <@ allocation_status_codes::text[]
-               AND ARRAY['ALLOC_PENDING'] <@ allocation_status_codes::text[]
-          THEN 'Partially Allocated'
-          WHEN ARRAY['ALLOC_PENDING'] <@ allocation_status_codes::text[]
-               AND cardinality(allocation_status_codes) = 1
-          THEN 'Pending Allocation'
+          WHEN 'ALLOC_FAILED' = ANY(allocation_status_codes) THEN 'Failed'
+          WHEN 'ALLOC_PARTIAL' = ANY(allocation_status_codes)
+            OR 'ALLOC_BACKORDERED' = ANY(allocation_status_codes)
+            THEN 'Partially Allocated'
+          WHEN 'ALLOC_FULFILLING' = ANY(allocation_status_codes)
+            AND NOT ('ALLOC_FULFILLED' = ALL(allocation_status_codes))
+            THEN 'Fulfilling'
+          WHEN 'ALLOC_PENDING' = ALL(allocation_status_codes)
+            THEN 'Pending Allocation'
+          WHEN 'ALLOC_CONFIRMED' = ALL(allocation_status_codes)
+            THEN 'Allocation Confirmed'
+          WHEN 'ALLOC_FULFILLED' = ALL(allocation_status_codes)
+            THEN 'Fulfilled'
+          WHEN 'ALLOC_RETURNED' = ALL(allocation_status_codes)
+            THEN 'Allocation Returned'
           ELSE 'Unknown'
         END AS allocation_summary_status
       FROM raw_alloc
@@ -677,10 +685,89 @@ const getPaginatedInventoryAllocations = async ({
   }
 };
 
+/**
+ * Validates and fetches allocation records by order ID and allocation IDs.
+ *
+ * Business rule:
+ *  - Each allocation must belong to an order_item that belongs to the given order.
+ *  - Ensures no cross-order allocation leakage during fulfillment or adjustment.
+ *
+ * Usage:
+ *  - Typically called before fulfillment to validate allocation ownership.
+ *  - If fewer rows are returned than requested, some allocation IDs are invalid for this order.
+ *
+ * @async
+ * @function
+ * @param {string} orderId - UUID of the order
+ * @param {string[]} allocationIds - Array of allocation UUIDs to validate
+ * @param {import('pg').PoolClient|null} [client=null] - Optional PostgreSQL client/transaction
+ * @returns {Promise<Array<{
+ *   allocation_id: string,
+ *   order_item_id: string,
+ *   warehouse_id: string,
+ *   batch_id: string,
+ *   allocated_quantity: number
+ * }>>} Matching allocation rows. Length < allocationIds.length means some are invalid.
+ *
+ * @throws {AppError} Database error if the query fails
+ *
+ * @example
+ * const allocations = await getAllocationsByOrderId(orderId, ['alloc-1', 'alloc-2']);
+ * // [
+ * //   {
+ * //     allocation_id: "alloc-1",
+ * //     order_item_id: "item-123",
+ * //     warehouse_id: "wh-001",
+ * //     batch_id: "batch-xyz",
+ * //     allocated_quantity: 10
+ * //   }
+ * // ]
+ */
+const getAllocationsByOrderId = async (orderId, allocationIds, client = null) => {
+  const sql = `
+    SELECT
+      ia.id AS allocation_id,
+      ia.order_item_id,
+      ia.warehouse_id,
+      ia.batch_id,
+      ia.allocated_quantity
+    FROM inventory_allocations ia
+    JOIN order_items oi ON ia.order_item_id = oi.id
+    WHERE ia.id = ANY($1)
+      AND oi.order_id = $2;
+  `;
+  
+  try {
+    const { rows } = await query(sql, [allocationIds, orderId], client);
+    
+    logSystemInfo('Validated allocations for order', {
+      context: 'inventory-allocations-repository/getAllocationsByOrderId',
+      orderId,
+      requestedCount: allocationIds.length,
+      returnedCount: rows.length,
+    });
+    
+    return rows;
+  } catch (error) {
+    logSystemException(error, 'Failed to validate allocations for order', {
+      context: 'inventory-allocations-repository/getAllocationsByOrderId',
+      orderId,
+      allocationIds,
+    });
+    
+    throw AppError.databaseError('Database query failed while validating allocations for order', {
+      cause: error,
+      orderId,
+      allocationIds,
+    });
+  }
+};
+
 module.exports = {
   insertInventoryAllocationsBulk,
   updateInventoryAllocationStatus,
   getMismatchedAllocationIds,
   getInventoryAllocationReview,
   getPaginatedInventoryAllocations,
+  getAllocationsByOrderId,
 };

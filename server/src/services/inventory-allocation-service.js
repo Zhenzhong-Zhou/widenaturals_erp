@@ -533,14 +533,14 @@ const confirmInventoryAllocationService = async (user, rawOrderId) => {
         warehouseBatchInfo,
         { orderId: rawOrderId, performedBy: userId, actionTypeId: inventoryActionTypeId }
       );
-      const insertedLogIds = await insertInventoryActivityLogs(inventoryActivityLogs, client);
+      const logInsertResult = await insertInventoryActivityLogs(inventoryActivityLogs, client);
       
       // --- 10. Final transformation and return ---
       const rawResult = buildOrderAllocationResult({
         orderId: rawOrderId,
         inventoryAllocations: inventoryAllocationDetails,
         warehouseUpdateIds: updatedWarehouseRecords,
-        inventoryLogIds: insertedLogIds,
+        inventoryLogIds: logInsertResult.activityLogIds,
         allocationResults,
       });
       

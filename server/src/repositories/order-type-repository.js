@@ -144,14 +144,14 @@ const getOrderTypeLookup = async ({ filters = {} } = {}) => {
     const { rows } = await query(queryText, params);
 
     logSystemInfo('Fetched order type lookup', {
-      context: 'orderType-repository/getOrderTypeLookup',
+      context: 'order-type-repository/getOrderTypeLookup',
       filters,
     });
 
     return rows;
   } catch (error) {
     logSystemException(error, 'Failed to fetch order type lookup', {
-      context: 'orderType-repository/getOrderTypeLookup',
+      context: 'order-type-repository/getOrderTypeLookup',
       filters,
     });
     throw AppError.databaseError('Failed to fetch order type lookup');
@@ -191,8 +191,80 @@ const getOrderTypeIdsByCategory = async (category, client = null) => {
   );
 };
 
+/**
+ * Fetches the order type metadata (code, name, category, number) for a given order ID.
+ *
+ * Business rule:
+ *  - Orders are linked to an order type that defines their category (e.g. sales, purchase, transfer).
+ *  - This metadata is required to determine downstream logic such as fulfillment and shipment rules.
+ *
+ * Usage:
+ *  - Call at the service layer before performing operations that depend on order type.
+ *  - Intended as a read-only repository helper.
+ *
+ * @async
+ * @function
+ * @param {string} orderId - UUID of the order
+ * @param {import('pg').PoolClient|null} [client=null] - Optional PostgreSQL client or transaction
+ * @returns {Promise<{
+ *   order_id: string,
+ *   order_number: string,
+ *   order_type_code: string,
+ *   order_type_name: string,
+ *   order_type_category: string
+ * } | null>} The order type metadata, or null if the order is not found
+ *
+ * @throws {AppError} DatabaseError if the query fails
+ *
+ * @example
+ * const orderTypeMeta = await getOrderTypeMetaByOrderId('uuid-123');
+ * // {
+ * //   order_id: "uuid-123",
+ * //   order_number: "SO-2025-0001",
+ * //   order_type_code: "SALES",
+ * //   order_type_name: "Sales Order",
+ * //   order_type_category: "sales"
+ * // }
+ */
+const getOrderTypeMetaByOrderId = async (orderId, client = null) => {
+  const sql = `
+    SELECT
+      o.id AS order_id,
+      o.order_number,
+      ot.code AS order_type_code,
+      ot.name AS order_type_name,
+      ot.category AS order_type_category
+    FROM orders o
+    JOIN order_types ot ON o.order_type_id = ot.id
+    WHERE o.id = $1;
+  `;
+  
+  try {
+    const { rows } = await query(sql, [orderId], client);
+    
+    logSystemInfo('Fetched order type metadata', {
+      context: 'order-type-repository/getOrderTypeMetaByOrderId',
+      orderId,
+      rowCount: rows.length,
+    });
+    
+    return rows[0] ?? null;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch order type metadata', {
+      context: 'order-type-repository/getOrderTypeMetaByOrderId',
+      orderId,
+    });
+    
+    throw AppError.databaseError('Database query failed while fetching order type metadata', {
+      cause: error,
+      orderId,
+    });
+  }
+};
+
 module.exports = {
   getPaginatedOrderTypes,
   getOrderTypeLookup,
   getOrderTypeIdsByCategory,
+  getOrderTypeMetaByOrderId,
 };

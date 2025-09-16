@@ -5,48 +5,49 @@ const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 /**
  * Inserts multiple order items in bulk for a given order.
  *
- * - Skips insertion if `orderItems` is empty.
- * - Automatically sets `created_at` and `updated_at` to current time.
- * - Applies conflict resolution on `(order_id, product_id, packaging_material_id)`:
- *   - `quantity_ordered` is added to existing.
- *   - `price` is overwritten.
- *   - `subtotal` is recalculated as `(EXCLUDED.price * (existing.quantity_ordered + EXCLUDED.quantity_ordered))`.
- *   - `updated_at` is overwritten.
+ * Business rule:
+ *  - Each order item must reference either a SKU (`sku_id`) or a packaging material (`packaging_material_id`), but not both.
+ *  - On conflict, updates follow the specified strategies:
+ *    - `quantity_ordered` → incremented
+ *    - `price` → overwritten
+ *    - `subtotal` → recalculated as `(EXCLUDED.price * (existing.quantity_ordered + EXCLUDED.quantity_ordered))`
+ *    - `metadata` → merged (JSON/text append)
+ *    - `updated_at` → overwritten
  *
- * @param {string} orderId - The associated order ID.
- * @param {Array<Object>} orderItems - List of order items to insert. Each item must include:
- * @param {string} orderItems[].order_id - Associated order ID
- * @param {string|null} [orderItems[].sku_id] - Optional sku reference
- * @param {string|null} [orderItems[].packaging_material_id] - Optional packaging material reference
+ * Usage:
+ *  - Call within a transaction when inserting new items or merging into an existing order.
+ *  - Optimized to perform at most two bulk inserts: one for SKU items, one for packaging items.
+ *
+ * @async
+ * @function
+ * @param {string} orderId - The associated order ID
+ * @param {Array<Object>} orderItems - List of order items to insert
+ * @param {string|null} [orderItems[].sku_id] - SKU reference (mutually exclusive with packaging_material_id)
+ * @param {string|null} [orderItems[].packaging_material_id] - Packaging material reference (mutually exclusive with sku_id)
  * @param {number} orderItems[].quantity_ordered - Quantity ordered
  * @param {string|null} [orderItems[].price_id] - Optional price reference
  * @param {number|null} [orderItems[].price] - Unit price
- * @param {number} orderItems[].subtotal - Line subtotal (used or recalculated on conflict)
+ * @param {number} [orderItems[].subtotal] - Subtotal (default: recalculated)
  * @param {string} orderItems[].status_id - Status ID
  * @param {string|Date} [orderItems[].status_date] - Optional status timestamp (default: now)
+ * @param {Object|null} [orderItems[].metadata] - Optional metadata JSON object
  * @param {string|null} [orderItems[].created_by] - User ID who created the record
  * @param {string|null} [orderItems[].updated_by] - User ID who last updated the record
- *
  * @param {import('pg').PoolClient} client - Active PostgreSQL transaction client
  *
- * @throws {AppError} Throws database error if insertion fails
+ * @returns {Promise<Object[]>} Inserted or updated order item rows returned by `bulkInsert`
+ *
+ * @throws {AppError} Throws validation error for invalid items, or database error on failure
+ *
+ * @example
+ * await insertOrderItemsBulk(orderId, [
+ *   { sku_id: "sku-123", quantity_ordered: 2, price: 10, status_id: "active" },
+ *   { packaging_material_id: "pack-456", quantity_ordered: 5, price: 2, status_id: "active" }
+ * ], client);
  */
 const insertOrderItemsBulk = async (orderId, orderItems, client) => {
-  const rows = orderItems.map((item) => [
-    orderId,
-    item.sku_id ?? null,
-    item.packaging_material_id ?? null,
-    item.quantity_ordered,
-    item.price_id ?? null,
-    item.price ?? null,
-    item.subtotal,
-    item.status_id,
-    item.metadata ?? null,
-    null,
-    item.created_by ?? null,
-    item.updated_by ?? null,
-  ]);
-
+  if (!Array.isArray(orderItems) || orderItems.length === 0) return [];
+  
   const columns = [
     'order_id',
     'sku_id',
@@ -61,33 +62,90 @@ const insertOrderItemsBulk = async (orderId, orderItems, client) => {
     'created_by',
     'updated_by',
   ];
-
-  const conflictColumns = ['order_id', 'sku_id', 'packaging_material_id'];
-
+  
   const updateStrategies = {
-    quantity_ordered: 'add', // adds EXCLUDED.quantity_ordered to existing data
-    price: 'overwrite', // simply overwrites if present
-    subtotal: 'recalculate_subtotal', // subtotal already precalculated
-    metadata: 'merge',
-    updated_at: 'overwrite', // overwrites with EXCLUDED.updated_at (usually set to NOW())
+    quantity_ordered: 'add',
+    price: 'overwrite',
+    subtotal: 'recalculate_subtotal',
+    metadata: 'merge_json',
+    updated_at: 'overwrite',
   };
-
-  try {
-    return await bulkInsert(
-      'order_items',
-      columns,
-      rows,
-      conflictColumns,
-      updateStrategies,
-      client,
-      { context: 'order-item-repository/insertOrderItemsBulk' }
+  
+  const mapToRow = (item) => [
+    orderId,
+    item.sku_id ?? null,
+    item.packaging_material_id ?? null,
+    item.quantity_ordered,
+    item.price_id ?? null,
+    item.price ?? null,
+    item.subtotal ?? ((item.price ?? 0) * item.quantity_ordered),
+    item.status_id,
+    item.metadata ?? null,
+    null,
+    item.created_by ?? null,
+    item.updated_by ?? null,
+  ];
+  
+  const skuItems = orderItems.filter(
+    (item) => item.sku_id && !item.packaging_material_id
+  );
+  const packagingItems = orderItems.filter(
+    (item) => !item.sku_id && item.packaging_material_id
+  );
+  
+  // Validate input
+  const invalidItems = orderItems.filter(
+    (item) =>
+      (item.sku_id && item.packaging_material_id) ||
+      (!item.sku_id && !item.packaging_material_id)
+  );
+  
+  if (invalidItems.length > 0) {
+    throw new Error(
+      `insertOrderItemsBulk(): Invalid items — each item must provide either sku_id or packaging_material_id (but not both).`
     );
+  }
+  
+  try {
+    const results = [];
+    
+    // Insert SKU items
+    if (skuItems.length > 0) {
+      const rows = skuItems.map(mapToRow);
+      const result = await bulkInsert(
+        'order_items',
+        columns,
+        rows,
+        ['order_id', 'sku_id'], // Valid because packaging_material_id is null
+        updateStrategies,
+        client,
+        { context: 'order-item-repository/insertOrderItemsBulk:sku' }
+      );
+      results.push(...result);
+    }
+    
+    // Insert Packaging items
+    if (packagingItems.length > 0) {
+      const rows = packagingItems.map(mapToRow);
+      const result = await bulkInsert(
+        'order_items',
+        columns,
+        rows,
+        ['order_id', 'packaging_material_id'], // Valid because sku_id is null
+        updateStrategies,
+        client,
+        { context: 'order-item-repository/insertOrderItemsBulk:packaging' }
+      );
+      results.push(...result);
+    }
+    
+    return results;
   } catch (error) {
     logSystemException(error, 'Failed to bulk insert order items', {
       context: 'order-item-repository/insertOrderItemsBulk',
       data: orderItems,
     });
-
+    
     throw AppError.databaseError('Unable to insert order items in bulk.');
   }
 };
@@ -403,10 +461,87 @@ const getOrderItemsByOrderId = async (orderId, client) => {
   }
 };
 
+/**
+ * Validates that all order items in a given order are fully allocated.
+ *
+ * Business rule:
+ *  - An order item is fully allocated if the sum of allocated quantities
+ *    (from `inventory_allocations`) is greater than or equal to its
+ *    `quantity_ordered`.
+ *  - Fulfillment should be blocked if any item is underallocated.
+ *
+ * Behavior:
+ *  - Returns `null` if the order is fully allocated.
+ *  - Returns a truthy row (e.g., `{ underallocated_item_id: <UUID> }`)
+ *    if at least one item is underallocated.
+ *
+ * Performance:
+ *  - Uses `GROUP BY` + `HAVING` with `LIMIT 1` for early exit.
+ *  - Requires indexes on `order_items(order_id)` and
+ *    `inventory_allocations(order_item_id)` for best performance.
+ *
+ * @async
+ * @function
+ * @param {string} orderId - UUID of the order to check
+ * @param {import('pg').PoolClient|null} [client=null] - Optional PostgreSQL client or transaction
+ * @returns {Promise<{ underallocated_item_id: string } | null>}
+ *   - `null` if fully allocated
+ *   - Row containing the `order_item_id` of one underallocated item
+ *
+ * @throws {AppError} Throws `AppError.databaseError` if the query fails
+ *
+ * @example
+ * const underAllocated = await validateFullAllocationForFulfillment(orderId);
+ * if (underAllocated) {
+ *   throw new Error(`Order cannot be fulfilled; item ${underAllocated.underallocated_item_id} is underallocated.`);
+ * }
+ */
+const validateFullAllocationForFulfillment = async (orderId, client = null) => {
+  const sql = `
+    SELECT 1
+    FROM order_items oi
+    LEFT JOIN inventory_allocations ia ON ia.order_item_id = oi.id
+    WHERE oi.order_id = $1
+    GROUP BY oi.id, oi.quantity_ordered
+    HAVING COALESCE(SUM(ia.allocated_quantity), 0) < oi.quantity_ordered
+    LIMIT 1;
+  `;
+  
+  try {
+    const { rows } = await query(sql, [orderId], client);
+    
+    const isFullyAllocated = rows.length === 0;
+    
+    logSystemInfo(
+      isFullyAllocated
+        ? 'All order items are fully allocated.'
+        : 'Some order items are not fully allocated.',
+      {
+        context: 'order-item-repository/validateFullAllocationForFulfillment',
+        orderId,
+        rowCount: rows.length,
+      }
+    );
+    
+    return rows[0] ?? null;
+  } catch (error) {
+    logSystemException(error, 'Failed to validate order item allocations for fulfillment.', {
+      context: 'order-item-repository/validateFullAllocationForFulfillment',
+      orderId,
+    });
+    
+    throw AppError.databaseError('Could not validate order allocation status.', {
+      cause: error,
+      orderId,
+    });
+  }
+};
+
 module.exports = {
   insertOrderItemsBulk,
   findOrderItemsByOrderId,
   updateOrderItemStatusesByOrderId,
   updateOrderItemStatus,
   getOrderItemsByOrderId,
+  validateFullAllocationForFulfillment,
 };
