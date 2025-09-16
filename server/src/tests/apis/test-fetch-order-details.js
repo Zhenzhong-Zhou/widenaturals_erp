@@ -1,6 +1,5 @@
 const { pool } = require('../../database/db');
-const { getSkuLookup } = require('../../repositories/sku-repository');
-const { getOrderDetailsByIdService } = require('../../services/order-service');
+const { fetchOrderDetailsByIdService } = require('../../services/order-service');
 
 (async () => {
   const client = await pool.connect();
@@ -19,10 +18,9 @@ const { getOrderDetailsByIdService } = require('../../services/order-service');
   };
   
   try {
-    // const orderId = await getOrderDetailsByIdService();
-    const orderId = '9ddf4ab6-3470-4971-8b85-3f529e4e0323';
+    const orderId = '12daa236-8d56-484a-9888-35fe1a6a7ece';
     
-    const serviceResult = await getOrderDetailsByIdService(orderId);
+    const serviceResult = await fetchOrderDetailsByIdService('sales', orderId, enrichedUser);
     console.log('SKU lookup service result:', serviceResult);
   } catch (error) {
     console.error('Failed to fetch discount lookup:', error.message);
