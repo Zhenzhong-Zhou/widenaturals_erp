@@ -22,37 +22,37 @@ exports.seed = async function (knex) {
   
   const statuses = [
     {
-      name: 'Pending',
+      name: 'pending',
       code: 'SHIPMENT_PENDING',
       description: 'Shipment is created but not yet processed.',
       is_final: false,
     },
     {
-      name: 'Ready to Ship',
+      name: 'ready_to_ship',
       code: 'SHIPMENT_READY',
       description: 'Shipment is packed and ready to be picked up or dispatched.',
       is_final: false,
     },
     {
-      name: 'In Transit',
+      name: 'in_transit',
       code: 'SHIPMENT_IN_TRANSIT',
       description: 'Shipment has left the facility and is on its way.',
       is_final: false,
     },
     {
-      name: 'Delivered',
+      name: 'delivered',
       code: 'SHIPMENT_DELIVERED',
       description: 'Shipment successfully delivered to the destination.',
       is_final: true,
     },
     {
-      name: 'Cancelled',
+      name: 'cancelled',
       code: 'SHIPMENT_CANCELLED',
       description: 'Shipment was cancelled before dispatch or mid-process.',
       is_final: true,
     },
     {
-      name: 'Returned',
+      name: 'returned',
       code: 'SHIPMENT_RETURNED',
       description: 'Shipment was returned after an unsuccessful delivery.',
       is_final: true,
