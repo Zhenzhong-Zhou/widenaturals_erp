@@ -111,18 +111,20 @@ const InventoryAllocationReviewPage = () => {
     return allocationReviewItems ? flattenInventoryAllocationReviewItems(allocationReviewItems) : [];
   }, [allocationReviewItems]);
   
+  const confirmableStatusCodes = [
+    'ORDER_ALLOCATED',
+    'ALLOC_CONFIRMED',
+    'ALLOC_FULFILLING',
+  ];
+  
   const shouldHideConfirmButton = useMemo(() => {
     if (!allocationReviewItems || allocationReviewItems.length === 0) return false;
     
-    const allItemsFullyAllocated = allocationReviewItems.every(
-      (item: AllocationReviewItem) => item.orderItem?.statusCode === 'ORDER_ALLOCATED'
+    return allocationReviewItems.some(
+      (item: AllocationReviewItem) =>
+        confirmableStatusCodes.includes(item.allocationStatusCode) ||
+        confirmableStatusCodes.includes(item.orderItem?.statusCode ?? '')
     );
-    
-    const allAllocationsConfirmed = allocationReviewItems.every(
-      (item: AllocationReviewItem) => item.allocationStatusCode === 'ALLOC_CONFIRMED'
-    );
-    
-    return allItemsFullyAllocated && allAllocationsConfirmed;
   }, [allocationReviewItems]);
   
   // === Confirm Submit ===

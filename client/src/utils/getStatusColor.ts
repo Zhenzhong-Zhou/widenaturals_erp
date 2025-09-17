@@ -46,13 +46,21 @@ const statusMaps = {
     ALLOC_CONFIRMED: 'info',
     ALLOC_PARTIAL: 'secondary',
     ALLOC_COMPLETED: 'success',
+    ALLOC_FULFILLING: 'warning',
+    ALLOC_PARTIALLY_FULFILLED: 'secondary',
     ALLOC_FULFILLED: 'primary',
     ALLOC_CANCELLED: 'error',
-
+    ALLOC_RETURNED: 'warning',
+    
     // Summary labels from SQL
     'Pending Allocation': 'default',
     'Partially Allocated': 'secondary',
+    'Allocation Confirmed': 'info',
     'Fully Allocated': 'primary',
+    'Fulfilling': 'warning',
+    'Partially Fulfilled': 'secondary',
+    'Fulfilled': 'primary',
+    'Allocation Returned': 'secondary',
     'Failed': 'error',
     'Unknown': 'default',
   },
@@ -75,6 +83,50 @@ const statusMaps = {
 } as const;
 
 type StatusType = keyof typeof statusMaps;
+
+type AllocationSummary =
+  | 'Pending Allocation'
+  | 'Partially Allocated'
+  | 'Allocation Confirmed'
+  | 'Fully Allocated'
+  | 'Fulfilling'
+  | 'Partially Fulfilled'
+  | 'Fulfilled'
+  | 'Allocation Returned'
+  | 'Failed'
+  | 'Unknown';
+
+/**
+ * Derives a human-readable allocation summary from raw status codes.
+ * Mirrors backend SQL CASE logic.
+ */
+export const getAllocationSummary = (codes: string[]): AllocationSummary => {
+  if (!Array.isArray(codes) || codes.length === 0) return 'Unknown';
+  
+  if (codes.includes('ALLOC_FAILED')) return 'Failed';
+  if (codes.includes('ALLOC_PARTIAL') || codes.includes('ALLOC_BACKORDERED'))
+    return 'Partially Allocated';
+  if (codes.includes('ALLOC_FULFILLING') && !codes.every(c => c === 'ALLOC_FULFILLED'))
+    return 'Fulfilling';
+  if (codes.every(c => c === 'ALLOC_PENDING')) return 'Pending Allocation';
+  if (codes.every(c => c === 'ALLOC_CONFIRMED')) return 'Allocation Confirmed';
+  if (codes.every(c => c === 'ALLOC_FULFILLED')) return 'Fulfilled';
+  if (codes.every(c => c === 'ALLOC_RETURNED')) return 'Allocation Returned';
+  
+  return 'Unknown';
+};
+
+/**
+ * Returns allocation summary + corresponding color.
+ */
+export const getAllocationDisplay = (
+  codes: string[] | string
+): { summary: string; color: StatusColor } => {
+  const arr = Array.isArray(codes) ? codes : [codes];
+  const summary = getAllocationSummary(arr);
+  const color = statusMaps.allocation[summary] ?? 'default';
+  return { summary, color };
+};
 
 export const getStatusColor = (
   status?: string | null,

@@ -377,6 +377,7 @@ const OrderItemSection: FC<OrderItemSectionProps> = ({
         label: 'Override price',
         group: 'priceBlock',
         grid: { xs: 12, md: 6 },
+        conditional: (row) => !!row?.price_id,
         component: ({ value, onChange, getRowValues, setRowValues }: RowAwareComponentProps) => (
           <FormControlLabel
             control={

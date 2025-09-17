@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import StatusChip from '@components/common/StatusChip';
-import { getStatusColor } from './getStatusColor';
+import { getAllocationDisplay, getStatusColor } from './getStatusColor';
 
 type StatusType = 'order' | 'payment' | 'item' | 'allocation' | 'inventory';
 
@@ -16,14 +16,23 @@ const humanizeCode = (code: string, type: StatusType): string => {
 };
 
 export const formatStatus = (
-  code?: string | null,
+  code?: string | string[] | null,
   type: StatusType = 'order',
   labelOverride?: string | null
 ): ReactNode => {
-  if (!code) return '—';
+  if (!code || (Array.isArray(code) && code.length === 0)) return '—';
   
-  const color = getStatusColor(code, type);
-  const label = labelOverride ?? humanizeCode(code, type);
+  if (type === 'allocation') {
+    // handle string[] or string directly
+    const { summary, color } = getAllocationDisplay(code);
+    const label = labelOverride ?? summary;
+    return <StatusChip label={label} color={color} />;
+  }
+  
+  // --- non-allocation (order, item, payment, inventory, etc.)
+  const singleCode = Array.isArray(code) ? code[0] : code; // fallback: use first element
+  const color = getStatusColor(singleCode, type);
+  const label = labelOverride ?? humanizeCode(singleCode ?? '', type);
   
   return <StatusChip label={label} color={color} />;
 };
@@ -41,8 +50,12 @@ export const formatAllocationStatus = (
   code?: string | string[] | null,
   label?: string | null
 ): ReactNode => {
-  const singleCode = Array.isArray(code) ? code[0] ?? null : code;
-  return formatStatus(singleCode, 'allocation', label);
+  if (!code) return formatStatus(null, 'allocation', label);
+  
+  // If it's an array, pass the whole array
+  const value = Array.isArray(code) ? code : code;
+  
+  return formatStatus(value, 'allocation', label);
 };
 
 export const formatInventoryStatus = (

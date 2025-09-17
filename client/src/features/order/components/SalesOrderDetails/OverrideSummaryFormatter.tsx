@@ -9,6 +9,10 @@ interface OverrideItem {
   productDisplayName?: string;
   db_price?: number;
   submitted_price?: number;
+  conflictNote?: {
+    timestamp: string;
+    data: Record<string, any>;
+  };
 }
 
 interface OverrideSummary {
@@ -55,6 +59,23 @@ const OverrideSummaryFormatter = (
               <strong>SKU:</strong> {item.productDisplayName} ({item.sku}) —{' '}
               <strong>DB:</strong> ${item.db_price} →{' '}
               <strong>Submitted:</strong> ${item.submitted_price}
+              {item.conflictNote && (
+                <Box sx={{ mt: 0.5, ml: 2 }}>
+                  <CustomTypography variant="body2" sx={{ fontWeight: 500 }}>
+                    Conflict Note:
+                  </CustomTypography>
+                  <CustomTypography variant="body2" sx={{ fontStyle: 'italic' }}>
+                    [{formatDateTime(item.conflictNote.timestamp)}]
+                  </CustomTypography>
+                  <Box component="ul" sx={{ pl: 2 }}>
+                    {Object.entries(item.conflictNote.data).map(([key, value]) => (
+                      <li key={key}>
+                        <code>{key}</code>: <code>{String(value)}</code>
+                      </li>
+                    ))}
+                  </Box>
+                </Box>
+              )}
             </li>
           ))}
         </Box>

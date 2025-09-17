@@ -13,6 +13,8 @@ interface Props {
 
 const InventoryAllocationExpandableContent: FC<Props> = ({ row }) => {
   const {
+    batchType,
+    barcode,
     createdAt,
     createdByName,
     updatedAt,
@@ -27,6 +29,15 @@ const InventoryAllocationExpandableContent: FC<Props> = ({ row }) => {
       </CustomTypography>
       
       <Grid container spacing={2}>
+        <Grid size={{ xs: 12 }}>
+          <DetailsSection
+            fields={[
+              { label: 'Batch Type', value: batchType, format: formatLabel },
+              { label: 'Barcode', value: barcode },
+            ]}
+          />
+        </Grid>
+        
         <Grid size={{ xs: 12, md: 6 }}>
           <DetailsSection
             fields={[
@@ -67,7 +78,7 @@ const InventoryAllocationExpandableContent: FC<Props> = ({ row }) => {
               return (
                 <Box key={w.id ?? idx} sx={{ mb: 2 }}>
                   <CustomTypography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                    {w.warehouseName ?? `Warehouse ${idx + 1}`}
+                    Warehouse Name: {w.warehouseName ?? `Warehouse ${idx + 1}`}
                   </CustomTypography>
                   <DetailsSection fields={fields} />
                 </Box>
