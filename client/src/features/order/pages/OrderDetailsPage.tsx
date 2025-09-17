@@ -111,7 +111,7 @@ const OrderDetailsPage: FC = () => {
     }
   }, [updateStatusError]);
   
-  const statusCode = header?.type?.code ?? '';
+  const statusCode = header?.status?.code ?? '';
   
   const confirmableStatusCodes = [
     'ORDER_PENDING',

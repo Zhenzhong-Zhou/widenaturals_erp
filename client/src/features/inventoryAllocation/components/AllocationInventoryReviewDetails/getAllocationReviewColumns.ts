@@ -26,20 +26,9 @@ export const getAllocationReviewColumns = (
   
   return [
     {
-      id: 'batchType',
-      label: 'Type',
-      renderCell: (row) => row.batchType === 'product' ? 'Product' :
-        row.batchType === 'packaging_material' ? 'Packaging Material' : '—',
-    },
-    {
       id: 'name',
       label: 'Item',
       renderCell: (row) => getFallbackValue(row.productName, row.packagingMaterialLabel),
-    },
-    {
-      id: 'barcode',
-      label: 'Barcode',
-      renderCell: (row) => getFallbackValue(row.barcode),
     },
     {
       id: 'sku_or_material_code',
@@ -55,11 +44,6 @@ export const getAllocationReviewColumns = (
       id: 'expiry',
       label: 'Expiry',
       renderCell: (row) => formatDate(row.batchExpiryDate),
-    },
-    {
-      id: 'warehouse',
-      label: 'Warehouse',
-      renderCell: (row) => getFallbackValue(getPrimaryWarehouseField(row, 'warehouseName') ?? '—',),
     },
     {
       id: 'warehouseQty',
@@ -79,7 +63,7 @@ export const getAllocationReviewColumns = (
     {
       id: 'allocationStatus',
       label: 'Alloc. Status',
-      renderCell: (row) => formatAllocationStatus(row.allocationStatusCode, row.allocationStatus),
+      renderCell: (row) => formatAllocationStatus(row.allocationStatusCode, formatLabel(row.allocationStatus)),
     },
     {
       id: 'warehouseStatus',
