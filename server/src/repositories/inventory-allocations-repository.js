@@ -763,6 +763,68 @@ const getAllocationsByOrderId = async (orderId, allocationIds, client = null) =>
   }
 };
 
+/**
+ * Fetches allocation status metadata (code, description, is_final) for a given order,
+ * optionally filtered by specific order item IDs.
+ *
+ * @function
+ * @param {string} orderId - UUID of the order to fetch allocations for.
+ * @param {string[] | null} [orderItemIds=null] - Optional array of order item IDs to filter allocations.
+ * @param {import('pg').PoolClient|null} [client=null] - Optional PostgreSQL client for transactional usage.
+ * @returns {Promise<Array<Object>>} Resolves to an array of allocation records with joined status info.
+ *
+ * Each record in the returned array includes:
+ *  - {string} order_id - The associated order ID
+ *  - {string} allocation_id - The allocation record ID
+ *  - {string} order_item_id - The order item ID this allocation belongs to
+ *  - {string} status_id - The foreign key ID of the allocation status
+ *  - {string} allocation_status_code - Human-readable allocation status code (e.g., ALLOC_CONFIRMED)
+ *  - {string} allocation_status_description - Descriptive status explanation
+ *  - {boolean} is_final - Whether this status is considered a terminal state
+ *
+ * @throws {AppError} If the database query fails or parameters are invalid
+ */
+const getAllocationStatuses = async (orderId, orderItemIds = null, client = null) => {
+  let sql = `
+    SELECT
+      o.id AS order_id,
+      ia.id AS allocation_id,
+      ia.order_item_id,
+      ia.status_id,
+      ias.code AS allocation_status_code,
+      ias.is_final
+    FROM inventory_allocations ia
+    JOIN order_items oi ON ia.order_item_id = oi.id
+    JOIN orders o ON oi.order_id = o.id
+    JOIN inventory_allocation_status ias ON ia.status_id = ias.id
+    WHERE oi.order_id = $1
+  `;
+  
+  const params = [orderId];
+  
+  if (Array.isArray(orderItemIds) && orderItemIds.length > 0) {
+    sql += ` AND ia.order_item_id = ANY($2)`;
+    params.push(orderItemIds);
+  }
+  
+  try {
+    const { rows } = await query(sql, params, client);
+    return rows;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch allocation statuses by orderId/orderItemIds', {
+      context: 'inventory-allocations-repository/getAllocationStatuses',
+      orderId,
+      orderItemIds,
+    });
+    
+    throw AppError.databaseError('Failed to fetch allocation statuses for the specified order.', {
+      function: 'getAllocationStatuses',
+      orderId,
+      orderItemIds,
+    });
+  }
+};
+
 module.exports = {
   insertInventoryAllocationsBulk,
   updateInventoryAllocationStatus,
@@ -770,4 +832,5 @@ module.exports = {
   getInventoryAllocationReview,
   getPaginatedInventoryAllocations,
   getAllocationsByOrderId,
+  getAllocationStatuses,
 };

@@ -47,6 +47,61 @@ const validateOrderIsFullyAllocated = async (orderId, client) => {
   }
 };
 
+// TODO: In next step may use if not should be removed
+// Ordered list of valid fulfillment status transitions
+const FULFILLMENT_STATUS_SEQUENCE = [
+  'FULFILLMENT_PENDING',
+  'FULFILLMENT_PICKING',
+  'FULFILLMENT_PACKED',
+  'FULFILLMENT_SHIPPED',
+  'FULFILLMENT_DELIVERED',
+  'FULFILLMENT_CANCELLED', // Cancellation can happen at any stage before delivered
+];
+
+// Final statuses — no further transitions allowed
+const FULFILLMENT_FINAL_STATUSES = [
+  'FULFILLMENT_DELIVERED',
+  'FULFILLMENT_CANCELLED',
+];
+
+// TODO: later if use, enhance docstring
+// Helper to check if a status is final
+const isFulfillmentStatusFinal = (code) =>
+  FULFILLMENT_FINAL_STATUSES.includes(code);
+
+/**
+ * Validates whether a fulfillment status can transition to a given next status.
+ *
+ * @param {string} currentCode - Current status code of the fulfillment.
+ * @param {string} nextCode - Intended next status code.
+ * @throws {AppError} If the transition is invalid or violates final status rules.
+ */
+const validateFulfillmentStatusTransition = (
+  currentCode,
+  nextCode
+) => {
+  const currentIndex = FULFILLMENT_STATUS_SEQUENCE.indexOf(currentCode);
+  const nextIndex = FULFILLMENT_STATUS_SEQUENCE.indexOf(nextCode);
+  
+  if (currentIndex === -1 || nextIndex === -1) {
+    throw AppError.validationError(
+      `Invalid fulfillment status code(s): ${currentCode}, ${nextCode}`
+    );
+  }
+  
+  if (isFulfillmentStatusFinal(currentCode)) {
+    throw AppError.validationError(
+      `Cannot transition from final fulfillment status: ${currentCode}`
+    );
+  }
+  
+  if (nextIndex <= currentIndex) {
+    throw AppError.validationError(
+      `Cannot transition fulfillment status backward: ${currentCode} → ${nextCode}`
+    );
+  }
+};
+
 /**
  * Fetches allocation metadata for an order and locks related warehouse inventory rows.
  *
@@ -627,6 +682,7 @@ const buildInventoryActivityLogs = (enrichedAllocations, updatesObject, {
 
 module.exports = {
   validateOrderIsFullyAllocated,
+  validateFulfillmentStatusTransition,
   getAndLockAllocations,
   assertSingleWarehouseAllocations,
   insertOutboundShipmentRecord,
