@@ -1,4 +1,4 @@
-const { bulkInsert } = require('../database/db');
+const { bulkInsert, query } = require('../database/db');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
@@ -128,6 +128,93 @@ const insertOutboundShipmentsBulk = async (shipments, client) => {
   }
 };
 
+/**
+ * Updates the status of one or more outbound shipment records.
+ *
+ * Business rules:
+ *  - Shipment rows are updated in bulk by ID.
+ *  - Each row’s `status_id` is set to the new status, and `shipped_at`/`updated_at`
+ *    timestamps are refreshed.
+ *  - `updated_by` is tracked for audit and traceability.
+ *  - If no matching rows exist, the update is skipped and a warning is logged.
+ *
+ * Usage:
+ *  - Called when outbound shipments advance to a new status (e.g., `PENDING` → `SHIPPED`).
+ *  - Intended to be used within transactional service flows alongside fulfillment updates.
+ *
+ * Performance:
+ *  - O(n) update, where n = number of shipment IDs.
+ *  - Optimized: single bulk update with `ANY($3::uuid[])`.
+ *
+ * @async
+ * @function
+ * @param {Object} params - Parameters for the update
+ * @param {string} params.statusId - The new status ID to set
+ * @param {string} params.userId - ID of the user performing the update
+ * @param {string[]} params.shipmentIds - Array of outbound shipment UUIDs to update
+ * @param {import('pg').PoolClient} client - PostgreSQL client/transaction
+ * @returns {Promise<string[]|number>} Array of updated shipment IDs, or 0 if none updated
+ *
+ * @throws {AppError} Database error if the update fails
+ *
+ * @example
+ * const updatedShipments = await updateOutboundShipmentStatus(
+ *   { statusId: 'SHIPMENT_SHIPPED', userId: 'user-123', shipmentIds: ['s1', 's2'] },
+ *   client
+ * );
+ * // => ['s1', 's2']
+ */
+const updateOutboundShipmentStatus = async ({ statusId, userId, shipmentIds }, client) => {
+  const sql = `
+    UPDATE outbound_shipments
+    SET
+      status_id = $1,
+      shipped_at = NOW(),
+      updated_at = NOW(),
+      updated_by = $2
+    WHERE id = ANY($3::uuid[])
+    RETURNING id
+  `;
+  
+  const params = [statusId, userId, shipmentIds];
+  
+  try {
+    const result = await query(sql, params, client);
+    
+    if (result.rowCount === 0) {
+      logSystemInfo('Shipment status update skipped: no matching shipments', {
+        context: 'outbound-shipment-repository/updateOutboundShipmentStatus',
+        statusId,
+        userId,
+        shipmentIds,
+        severity: 'WARN',
+      });
+      return 0;
+    }
+    
+    logSystemInfo('Outbound shipment statuses updated successfully', {
+      context: 'outbound-shipment-repository/updateOutboundShipmentStatus',
+      updatedCount: result.rowCount,
+      statusId,
+      userId,
+      shipmentIds,
+      severity: 'INFO',
+    });
+    
+    return result.rows.map(r => r.id);
+  } catch (err) {
+    logSystemException(err, 'Failed to update outbound shipment status', {
+      context: 'outbound-shipment-repository/updateOutboundShipmentStatus',
+      statusId,
+      userId,
+      shipmentIds,
+      severity: 'ERROR',
+    });
+    throw AppError.databaseError('Failed to update outbound shipment status');
+  }
+};
+
 module.exports = {
   insertOutboundShipmentsBulk,
+  updateOutboundShipmentStatus,
 };

@@ -11,9 +11,9 @@ const {
 } = require('../repositories/inventory-allocations-repository');
 const { lockRows } = require('../database/db');
 const { getStatusId } = require('../config/status-cache');
-const { insertOutboundShipmentsBulk } = require('../repositories/outbound-shipment-repository');
+const { insertOutboundShipmentsBulk, updateOutboundShipmentStatus } = require('../repositories/outbound-shipment-repository');
 const { updateOrderStatus } = require('../repositories/order-repository');
-const { getInventoryAllocationStatusId } = require('../repositories/inventory-allocation-status-repository');
+const { updateOrderFulfillmentStatus } = require('../repositories/order-fulfillment-repository');
 
 /**
  * Validates that an order is fully allocated before fulfillment.
@@ -103,31 +103,68 @@ const validateFulfillmentStatusTransition = (
 };
 
 /**
- * Fetches allocation metadata for an order and locks related warehouse inventory rows.
+ * Assert that allocations exist and contain valid fields.
  *
  * Business rule:
- *  - Allocations must be locked before fulfillment to prevent race conditions
- *    with concurrent updates (e.g., other fulfillments or adjustments).
+ *  - Each allocation must reference a valid ID, warehouse, and batch.
+ *  - Quantities must be greater than zero before fulfillment.
+ *
+ * @param {Array} allocationMeta - Array of allocation metadata objects
+ * @throws {AppError} NotFoundError if no allocations are found
+ * @throws {AppError} ValidationError if required fields or quantities are invalid
+ */
+const assertAllocationsValid = (allocationMeta = []) => {
+  if (!Array.isArray(allocationMeta) || allocationMeta.length === 0) {
+    throw AppError.notFoundError('No allocations found for this order.');
+  }
+  
+  allocationMeta.forEach((a) => {
+    if (!a.allocation_id || !a.warehouse_id || !a.batch_id) {
+      throw AppError.validationError('Allocation data is missing required fields.', { allocation: a });
+    }
+    if (a.allocated_quantity <= 0) {
+      throw AppError.validationError('Allocation quantity must be greater than zero.', { allocation: a });
+    }
+  });
+};
+
+/**
+ * Fetch allocations for an order and lock related warehouse inventory rows.
+ *
+ * Business rules:
+ *  - Allocations must be validated and locked before fulfillment to prevent race
+ *    conditions with concurrent adjustments or shipments.
+ *  - Locking is applied at the `warehouse_inventory` level using `(warehouse_id, batch_id)`
+ *    pairs derived from the allocations.
  *
  * Implementation details:
  *  - Delegates fetching to `getAllocationsByOrderId`.
- *  - Builds lock conditions based on `{ warehouse_id, batch_id }` pairs.
- *  - Uses `lockRows` with `FOR UPDATE` to enforce row-level locking.
+ *  - Validates allocation integrity via `assertAllocationsValid`.
+ *  - Builds lock conditions from `{ warehouse_id, batch_id }` pairs.
+ *  - Executes `lockRows` with `FOR UPDATE` to enforce row-level locking.
  *
  * Usage:
- *  - Call before performing any inventory adjustments or shipment inserts.
- *  - Intended to be executed within a database transaction.
+ *  - Call at the start of a fulfillment or adjustment process, before making
+ *    any inventory deductions or status transitions.
+ *  - Must be executed inside an active transaction to hold locks consistently.
  *
  * @async
- * @function
- * @param {string} orderId - The ID of the order whose allocations should be fetched
- * @param {string[]} allocationIds - Array of allocation IDs to fetch and lock
+ * @function getAndLockAllocations
+ * @param {string} orderId - The ID of the order whose allocations are being fulfilled
+ * @param {string[]|null} [allocationIds=null] - Optional list of allocation IDs to filter;
+ *                                               if null, all allocations for the order are fetched
  * @param {Object} client - Database client/transaction context
- * @returns {Promise<Object[]>} Allocation metadata including warehouse_id and batch_id
- * @throws {AppError} If allocations cannot be fetched or rows cannot be locked
+ * @returns {Promise<{ allocationMeta: Object[], warehouseBatchKeys: Object[] }>}
+ *  allocationMeta - List of allocations with IDs, warehouse_id, batch_id, and quantities
+ *  warehouseBatchKeys - Array of `{ warehouse_id, batch_id }` pairs used for locking
+ *
+ * @throws {AppError} If allocations are invalid or lock acquisition fails
  */
-const getAndLockAllocations = async (orderId, allocationIds, client) => {
+const getAndLockAllocations = async (orderId, allocationIds = null, client) => {
   const allocationMeta = await getAllocationsByOrderId(orderId, allocationIds, client);
+  
+  assertAllocationsValid(allocationMeta);
+  
   const lockConditions = allocationMeta.map(({ batch_id, warehouse_id }) => ({
     warehouse_id: warehouse_id,
     batch_id: batch_id,
@@ -138,7 +175,10 @@ const getAndLockAllocations = async (orderId, allocationIds, client) => {
     orderId,
   });
   
-  return allocationMeta;
+  return {
+    allocationMeta,
+    warehouseBatchKeys: lockConditions,
+  };
 };
 
 /**
@@ -325,6 +365,190 @@ const buildFulfillmentInputsFromAllocations = (allocationMeta, shipmentId, userI
 };
 
 /**
+ * Assert that order metadata is present and contains required fields.
+ *
+ * Business rule:
+ *  - An order must have a valid `order_id` and `order_number` before it can be
+ *    used in fulfillment or inventory adjustment workflows.
+ *
+ * @param {Object} orderMeta - Metadata object returned from repository/service
+ * @param {string} orderMeta.order_id - Unique ID of the order
+ * @param {string} orderMeta.order_number - Human-readable order number
+ *
+ * @throws {AppError} NotFoundError if metadata is missing or incomplete
+ */
+const assertOrderMeta = (orderMeta) => {
+  if (!orderMeta || !orderMeta.order_id || !orderMeta.order_number) {
+    throw AppError.notFoundError('Order metadata not found or invalid.');
+  }
+};
+
+/**
+ * Assert that fulfillments exist and contain valid references.
+ *
+ * Business rule:
+ *  - Every fulfillment must reference both a `fulfillment_id` and `shipment_id`.
+ *
+ * @param {Array} fulfillments - Array of fulfillment records
+ * @param {string} order_number - Order number for error context
+ * @throws {AppError} NotFoundError if no fulfillments exist
+ * @throws {AppError} ValidationError if required IDs are missing
+ */
+const assertFulfillmentsValid = (fulfillments = [], order_number) => {
+  if (!Array.isArray(fulfillments) || fulfillments.length === 0) {
+    throw AppError.notFoundError(`No fulfillments found for order: ${order_number}`);
+  }
+  
+  fulfillments.forEach((f) => {
+    if (!f.fulfillment_id) {
+      throw AppError.validationError('Fulfillment missing fulfillment_id.');
+    }
+    if (!f.shipment_id) {
+      throw AppError.validationError('Fulfillment missing shipment_id.');
+    }
+  });
+};
+
+/**
+ * Assert that inventory coverage exists for allocations.
+ *
+ * Business rule:
+ *  - Every allocation must have a corresponding inventory record
+ *    in `warehouse_inventory`.
+ *
+ * @param {Array} inventoryMeta - Inventory rows fetched from `warehouse_inventory`
+ * @throws {AppError} NotFoundError if no inventory records exist
+ */
+const assertInventoryCoverage = (inventoryMeta = []) => {
+  if (!Array.isArray(inventoryMeta) || inventoryMeta.length === 0) {
+    throw AppError.notFoundError('No inventory records found for allocations.');
+  }
+};
+
+/**
+ * Assert that enriched allocations contain valid inventory data.
+ *
+ * Business rule:
+ *  - Enriched allocations must include `available_quantity` and `allocated_quantity`
+ *    for accurate adjustment calculations.
+ *
+ * @param {Array} enrichedAllocations - Array of enriched allocation objects
+ * @throws {AppError} BusinessError if no enriched allocations are provided
+ * @throws {AppError} ValidationError if required fields are missing
+ */
+const assertEnrichedAllocations = (enrichedAllocations = []) => {
+  if (!Array.isArray(enrichedAllocations) || enrichedAllocations.length === 0) {
+    throw AppError.businessError('Enriched allocations are empty.');
+  }
+  
+  enrichedAllocations.forEach(a => {
+    if (a.available_quantity == null || a.allocated_quantity == null) {
+      throw AppError.validationError(
+        'Enriched allocation missing required inventory fields.',
+        { allocation: a }
+      );
+    }
+  });
+};
+
+/**
+ * Assert that inventory adjustments were calculated.
+ *
+ * Business rule:
+ *  - Adjustment object must contain at least one warehouse/batch key
+ *    with corresponding updates.
+ *
+ * @param {Object} updatesObject - Object mapping `{warehouse_id-batch_id}` → adjustments
+ * @throws {AppError} BusinessError if adjustments are missing or invalid
+ */
+const assertInventoryAdjustments = (updatesObject = {}) => {
+  if (
+    !updatesObject ||
+    typeof updatesObject !== 'object' ||
+    Object.keys(updatesObject).length === 0
+  ) {
+    throw AppError.businessError('No inventory adjustments calculated.');
+  }
+};
+
+/**
+ * Assert that warehouse inventory updates were applied.
+ *
+ * Business rule:
+ *  - At least one `warehouse_inventory` row must be updated after adjustments.
+ *
+ * @param {Array} warehouseInventoryIds - IDs of updated warehouse inventory rows
+ * @param {Object} [context={}] - Optional debug context (e.g. attempted updates)
+ * @throws {AppError} BusinessError if no updates were applied
+ */
+const assertWarehouseUpdatesApplied = (warehouseInventoryIds = [], context = {}) => {
+  if (!Array.isArray(warehouseInventoryIds) || warehouseInventoryIds.length === 0) {
+    throw AppError.businessError(
+      'No warehouse inventory records were updated during fulfillment adjustment.',
+      context
+    );
+  }
+};
+
+/**
+ * Assert that status IDs were successfully resolved.
+ *
+ * Business rule:
+ *  - Order, shipment, and fulfillment statuses must all resolve to valid IDs
+ *    before applying updates.
+ *
+ * @param {Object} ids - Status ID bundle
+ * @param {string} ids.orderStatusId - Order status ID
+ * @param {string} ids.shipmentStatusId - Shipment status ID
+ * @param {string} ids.fulfillmentStatusId - Fulfillment status ID
+ * @throws {AppError} ValidationError if any status ID is missing
+ */
+const assertStatusesResolved = ({ orderStatusId, shipmentStatusId, fulfillmentStatusId }) => {
+  if (!orderStatusId || !shipmentStatusId || !fulfillmentStatusId) {
+    throw AppError.validationError('Invalid or unresolved status codes.', {
+      orderStatusId,
+      shipmentStatusId,
+      fulfillmentStatusId,
+    });
+  }
+};
+
+/**
+ * Assert that an inventory action type ID was resolved.
+ *
+ * Business rule:
+ *  - A valid inventory action type must exist for the given name
+ *    (e.g., "fulfilled", "reserve").
+ *
+ * @param {string} inventoryActionTypeId - Resolved ID of the action type
+ * @param {string} name - Action type name for error context
+ * @throws {AppError} NotFoundError if no matching action type was found
+ */
+const assertActionTypeIdResolved = (inventoryActionTypeId, name) => {
+  if (!inventoryActionTypeId) {
+    throw AppError.notFoundError(
+      `Inventory action type not found for name: ${name}`
+    );
+  }
+};
+
+/**
+ * Assert that inventory activity logs were generated.
+ *
+ * Business rule:
+ *  - At least one log entry must be created for auditing inventory adjustments.
+ *
+ * @param {Array} logs - Log entries (either to be inserted or returned from DB)
+ * @param {string} [stage='logs'] - Stage label for error context
+ * @throws {AppError} BusinessError if no logs are generated
+ */
+const assertLogsGenerated = (logs, stage = 'logs') => {
+  if (!Array.isArray(logs) || logs.length === 0) {
+    throw AppError.businessError(`No inventory activity logs generated at stage: ${stage}`);
+  }
+};
+
+/**
  * Enriches allocation metadata with corresponding warehouse inventory details.
  *
  * Business rule:
@@ -432,6 +656,7 @@ const calculateInventoryAdjustments = (enrichedAllocations) => {
           warehouse_quantity: newWarehouseQty,
           reserved_quantity: newReservedQty,
           status_id: newStatusId,
+          last_update: new Date(),
         },
       ];
     })
@@ -439,104 +664,285 @@ const calculateInventoryAdjustments = (enrichedAllocations) => {
 };
 
 /**
- * Updates statuses for order, order items, and allocations during fulfillment.
+ * Update allocation statuses in bulk for a given order.
  *
- * Business rule:
- *  - When fulfillment begins, the order and its items transition to a new status
- *    (e.g., `ORDER_PROCESSING`).
- *  - Allocations transition to `ALLOC_FULFILLING` to indicate they are being consumed.
- *  - All relevant allocation rows are locked before update to ensure concurrency safety.
+ * Business rules:
+ *  - All allocations must be locked (`FOR UPDATE`) before updating to prevent
+ *    race conditions with concurrent fulfillment or adjustment processes.
+ *  - Only valid allocation IDs will be updated; missing or invalid IDs will
+ *    trigger an error at the repository layer.
  *
- * Usage:
- *  - Call after inventory adjustments are prepared but before inserting logs.
- *  - Intended to synchronize status changes across all related entities in one step.
- *
- * Performance:
- *  - O(n) to collect allocation IDs.
- *  - Executes three DB updates (order, order items, allocations).
- *  - Already optimized: explicit row locking and bulk allocation update.
+ * Workflow:
+ *  1. Extract allocation IDs from `allocationMeta`.
+ *  2. Acquire row-level locks on `inventory_allocations` for those IDs.
+ *  3. Apply the new status to all locked allocations.
  *
  * @async
  * @function
- * @param {string} orderId - The ID of the order being updated
- * @param {Object[]} allocationMeta - List of allocation metadata objects
- * @param {string} allocationMeta[].allocation_id - Allocation ID for each row
- * @param {string} newOrderStatusId - The new status ID for the order and order items
- * @param {string} userId - The ID of the user performing the operation
+ * @param {Array} allocationMeta - Allocation metadata containing `allocation_id`
+ * @param {string} allocationStatusId - ID of the new allocation status
+ * @param {string} orderId - ID of the order associated with allocations
+ * @param {string} orderNumber - Human-readable order number (for logging/debugging)
+ * @param {string} userId - ID of the user performing the update
  * @param {Object} client - Database client/transaction context
- * @returns {Promise<Object>} Updated status rows:
- *  - {Object} orderStatusRow - Updated order status row
- *  - {Object} orderItemStatusRow - Updated order item status row(s)
- *  - {Object} inventoryAllocationStatusRow - Updated allocation status rows
+ * @returns {Promise<Array>} Updated allocation status rows
+ *
+ * @throws {AppError}
+ *  - ValidationError: If allocation IDs are missing or invalid
+ *  - DatabaseError: If locking or updating allocations fails
  */
-const updateAllStatuses = async (orderId, allocationMeta, newOrderStatusId, userId, client) => {
+const updateAllocationsStatusBusiness = async (allocationMeta, allocationStatusId, orderId, orderNumber, userId, client) => {
+  const allocationIds = allocationMeta.map(a => a.allocation_id);
+
+  // Lock allocations before updating to ensure consistency
+  await lockRows(client, 'inventory_allocations', allocationIds, 'FOR UPDATE', {
+    stage: 'allocation-status-update',
+    orderId,
+    orderNumber,
+    userId,
+  });
+  
+  return updateInventoryAllocationStatus(
+    {
+      statusId: allocationStatusId,
+      userId,
+      allocationIds,
+    },
+    client
+  );
+};
+
+/**
+ * Update fulfillment statuses in bulk for a given order.
+ *
+ * Business rules:
+ *  - All fulfillments must be locked (`FOR UPDATE`) before updating to prevent
+ *    race conditions with concurrent adjustments or shipment updates.
+ *  - Only valid fulfillment IDs will be updated; missing or invalid IDs will
+ *    result in no changes.
+ *
+ * Workflow:
+ *  1. Extract fulfillment IDs from the `fulfillments` array.
+ *  2. Acquire row-level locks on `order_fulfillments`.
+ *  3. Apply the new status to all locked fulfillments.
+ *
+ * @async
+ * @function
+ * @param {Array} fulfillments - Fulfillment records containing `fulfillment_id`
+ * @param {string} newStatusId - ID of the new fulfillment status
+ * @param {string} orderId - ID of the order associated with fulfillments
+ * @param {string} orderNumber - Human-readable order number (for logging/debugging)
+ * @param {string} userId - ID of the user performing the update
+ * @param {Object} client - Database client/transaction context
+ * @returns {Promise<Array>} Updated fulfillment status rows
+ *
+ * @throws {AppError}
+ *  - ValidationError: If fulfillment IDs are missing or invalid
+ *  - DatabaseError: If locking or updating fulfillments fails
+ */
+const updateFulfillmentsStatusBusiness = async (fulfillments, newStatusId, orderId, orderNumber, userId, client) => {
+  const fulfillmentIds = fulfillments.map(f => f.fulfillment_id).filter(Boolean);
+  if (!fulfillmentIds.length || !newStatusId) return [];
+  
+  await lockRows(client, 'order_fulfillments', fulfillmentIds, 'FOR UPDATE', {
+    stage: 'fulfillment-status-update',
+    orderId,
+    orderNumber,
+    userId,
+  });
+  
+  return updateOrderFulfillmentStatus(
+    {
+      statusId: newStatusId,
+      userId,
+      fulfillmentIds,
+    },
+    client
+  );
+};
+
+/**
+ * Update shipment statuses in bulk for a given order.
+ *
+ * Business rules:
+ *  - All shipments must be locked (`FOR UPDATE`) before updating to prevent
+ *    race conditions with concurrent fulfillment or adjustment processes.
+ *  - Only valid shipment IDs will be updated; missing or invalid IDs will
+ *    result in no changes.
+ *
+ * Workflow:
+ *  1. Extract shipment IDs from the `fulfillments` array.
+ *  2. Acquire row-level locks on `outbound_shipments`.
+ *  3. Apply the new status to all locked shipments.
+ *
+ * @async
+ * @function
+ * @param {Array} fulfillments - Fulfillment records containing `shipment_id`
+ * @param {string} newStatusId - ID of the new shipment status
+ * @param {string} orderId - ID of the order associated with shipments
+ * @param {string} orderNumber - Human-readable order number (for logging/debugging)
+ * @param {string} userId - ID of the user performing the update
+ * @param {Object} client - Database client/transaction context
+ * @returns {Promise<Array>} Updated shipment status rows
+ *
+ * @throws {AppError}
+ *  - ValidationError: If shipment IDs are missing or invalid
+ *  - DatabaseError: If locking or updating shipments fails
+ */
+const updateShipmentsStatusBusiness = async (fulfillments, newStatusId, orderId, orderNumber, userId, client) => {
+  const shipmentIds = fulfillments.map(f => f.shipment_id).filter(Boolean);
+  if (!shipmentIds.length || !newStatusId) return [];
+  
+  await lockRows(client, 'outbound_shipments', shipmentIds, 'FOR UPDATE', {
+    stage: 'shipment-status-update',
+    orderId,
+    orderNumber,
+    userId,
+  });
+  
+  return updateOutboundShipmentStatus(
+    {
+      statusId: newStatusId,
+      userId,
+      shipmentIds,
+    },
+    client
+  );
+};
+
+/**
+ * Updates statuses for all entities involved in fulfillment:
+ * - Order
+ * - Order Items
+ * - Allocations
+ * - Fulfillments
+ * - Shipments
+ *
+ * Business rules:
+ *  - The order and all its items transition together to the same new status (e.g., `ORDER_PROCESSING`).
+ *  - Allocations transition to a provided allocation status (e.g., `ALLOC_FULFILLING`).
+ *  - Fulfillments and shipments optionally transition if new status IDs are provided.
+ *  - Allocation, fulfillment, and shipment rows are locked before updates to prevent concurrency issues.
+ *
+ * Usage:
+ *  - Call during fulfillment adjustment or shipment processing after inventory changes are staged.
+ *  - Ensures all related statuses remain synchronized in a single transactional step.
+ *
+ * Performance:
+ *  - O(n) complexity for mapping allocation/fulfillment/shipment IDs.
+ *  - Executes up to 5 DB updates (order, order items, allocations, fulfillments, shipments).
+ *  - Row locking applied to allocations, fulfillments, and shipments for safety.
+ *
+ * @async
+ * @function
+ * @param {Object} params
+ * @param {string} params.orderId - The ID of the order being updated
+ * @param {string} params.orderNumber - Human-readable order number (for logging/context)
+ * @param {Object[]} [params.allocationMeta=[]] - Allocation metadata objects
+ * @param {string} params.newOrderStatusId - New status ID for the order and its items
+ * @param {string} params.newAllocationStatusId - New status ID for allocations
+ * @param {Object[]} [params.fulfillments=[]] - Fulfillment metadata objects
+ * @param {string} [params.newFulfillmentStatusId] - New status ID for fulfillments
+ * @param {string} [params.newShipmentStatusId] - New status ID for shipments
+ * @param {string} params.userId - The ID of the user performing the update
+ * @param {Object} params.client - Database client/transaction context
+ *
+ * @returns {Promise<Object>} Updated rows grouped by entity:
+ *  - {Object} orderStatusRow - Updated order row
+ *  - {Object[]} orderItemStatusRow - Updated order item rows
+ *  - {Object[]} inventoryAllocationStatusRow - Updated allocation rows
+ *  - {Object[]} orderFulfillmentStatusRow - Updated fulfillment rows
+ *  - {Object[]} shipmentStatusRow - Updated shipment rows
+ *
+ * @throws {AppError} If any required update fails
+ */
+const updateAllStatuses = async ({
+                                   orderId,
+                                   orderNumber,
+                                   allocationMeta = [],
+                                   newOrderStatusId,
+                                   newAllocationStatusId,
+                                   fulfillments = [],
+                                   newFulfillmentStatusId,
+                                   newShipmentStatusId,
+                                   userId,
+                                   client
+}) => {
+  // --- 1. Update Order status
   const orderStatusRow = await updateOrderStatus(client, {
     orderId,
     newStatusId: newOrderStatusId,
     updatedBy: userId,
   });
   
+  // --- 2. Update all Order Item statuses
   const orderItemStatusRow = await updateOrderItemStatusesByOrderId(client, {
     orderId,
     newStatusId: newOrderStatusId,
     updatedBy: userId,
   });
   
-  const allocationFulfillingId = await getInventoryAllocationStatusId('ALLOC_FULFILLING', client);
-  const allocationIds = allocationMeta.map(a => a.allocation_id);
+  // --- 3. Update Allocation statuses
+  const inventoryAllocationStatusRow = allocationMeta.length
+    ? await updateAllocationsStatusBusiness(allocationMeta, newAllocationStatusId, orderId, orderNumber, userId, client)
+    : [];
   
-  await lockRows(client, 'inventory_allocations', allocationIds, 'FOR UPDATE', {
-    traceId: 'fulfillment',
-    orderId,
-  });
+  // --- 4. Update Fulfillment statuses
+  const orderFulfillmentStatusRow = fulfillments.length && newFulfillmentStatusId
+    ? await updateFulfillmentsStatusBusiness(fulfillments, newFulfillmentStatusId, orderId, orderNumber, userId, client)
+    : [];
   
-  const inventoryAllocationStatusRow = await updateInventoryAllocationStatus({
-    statusId: allocationFulfillingId,
-    userId,
-    allocationIds,
-  }, client);
+  // --- 5. Update Shipment statuses
+  const shipmentStatusRow = fulfillments.length && newShipmentStatusId
+    ? await updateFulfillmentsStatusBusiness(fulfillments, newShipmentStatusId, orderId, orderNumber, userId, client)
+    : [];
   
   return {
     orderStatusRow,
     orderItemStatusRow,
     inventoryAllocationStatusRow,
+    orderFulfillmentStatusRow,
+    shipmentStatusRow,
   };
 };
 
 /**
- * Builds a fulfillment inventory activity log entry.
+ * Builds a single inventory activity log entry for a fulfillment event.
  *
- * Business rule:
- *  - Every fulfillment event must generate a warehouse inventory log entry
+ * Business rules:
+ *  - Every fulfillment that adjusts warehouse inventory must generate a log entry
  *    for auditing, traceability, and reconciliation.
- *  - Captures before/after reserved and warehouse quantities, along with allocation references.
- *  - Includes a checksum to ensure data integrity.
+ *  - Records before/after reserved and warehouse quantities alongside allocation,
+ *    shipment, and fulfillment references.
+ *  - Computes a checksum over the critical fields to ensure integrity.
  *
  * Usage:
- *  - Call inside fulfillment services when consuming allocations.
- *  - Intended for insertion into `inventory_activity_log`.
+ *  - Call inside fulfillment services (e.g., adjustInventoryForFulfillmentService).
+ *  - Insert the returned object into `inventory_activity_log`.
  *
  * Performance:
- *  - O(1), constructs a single log object.
+ *  - O(1): constructs a single log object.
  *  - Optimized: uses `cleanObject` to strip null/undefined fields.
  *
- * @async
  * @function
  * @param {Object} params - Parameters for building the log entry
  * @param {Object} params.allocation - Allocation metadata
  * @param {Object} params.update - Inventory update object
- * @param {string} params.inventoryActionTypeId - Inventory action type (e.g., "fulfillment")
+ * @param {string} params.inventoryActionTypeId - Action type ID (e.g., fulfillment)
  * @param {string} params.userId - ID of the user performing the operation
- * @param {string} params.orderId - ID of the order
+ * @param {string} params.orderId - ID of the order being fulfilled
  * @param {string} params.shipmentId - ID of the outbound shipment
  * @param {string} params.fulfillmentId - ID of the fulfillment record
- * @param {string|null} params.fulfillmentNotes - Optional notes about the fulfillment
  * @param {string} params.orderNumber - Human-readable order number
- * @returns {Object} Fulfillment log entry object including:
- *  - Warehouse inventory details
- *  - Quantity before, change, and after
- *  - Metadata (batch, allocation, shipment, fulfillment)
- *  - Integrity checksum
+ *
+ * @returns {Object} Log entry object including:
+ *  - `warehouse_inventory_id`: Target warehouse inventory
+ *  - `previous_quantity`, `quantity_change`, `new_quantity`
+ *  - `metadata`: Allocation, batch, shipment, and reserved quantity details
+ *  - `inventory_action_type_id`, `order_id`, `status_id`
+ *  - `comments`: System-generated fulfillment context
+ *  - `checksum`: Integrity hash for validation
+ *
  * @example
  * buildFulfillmentLogEntry({
  *   allocation: {
@@ -557,7 +963,6 @@ const updateAllStatuses = async (orderId, allocationMeta, newOrderStatusId, user
  *   orderId: "order-001",
  *   shipmentId: "ship-002",
  *   fulfillmentId: "fulfill-003",
- *   fulfillmentNotes: "Priority shipment",
  *   orderNumber: "SO-2025-0001"
  * });
  */
@@ -569,13 +974,12 @@ const buildFulfillmentLogEntry = ({
                                     orderId,
                                     shipmentId,
                                     fulfillmentId,
-                                    fulfillmentNotes,
                                     orderNumber
                                   }) => {
   const previous_quantity = allocation.warehouse_quantity;
   const quantity_change = -allocation.allocated_quantity;
   const new_quantity = update.warehouse_quantity;
-  const comments = fulfillmentNotes ?? `Fulfillment started for order ${orderNumber}`;
+  const comments = `[System] Inventory adjusted during fulfillment for order ${orderNumber}`;
   
   const metadata = cleanObject({
     batch_id: allocation.batch_id,
@@ -627,34 +1031,49 @@ const buildFulfillmentLogEntry = ({
 };
 
 /**
- * Builds inventory activity log entries for all enriched allocations.
+ * Builds a set of inventory activity log entries for a batch of enriched allocations.
  *
- * Business rule:
- *  - Each allocation fulfilled must generate an inventory activity log entry.
- *  - Logs are created by delegating to `buildFulfillmentLogEntry` for consistency.
- *  - Links allocations to their corresponding inventory updates.
+ * Business rules:
+ *  - Each allocation consumed during fulfillment must generate an inventory activity log entry.
+ *  - Delegates per-allocation log construction to `buildFulfillmentLogEntry` for consistency.
+ *  - Matches each allocation with its computed inventory update from `updatesObject`.
  *
  * Usage:
- *  - Call after calculating inventory adjustments and before inserting logs into the database.
- *  - Intended to generate bulk log payloads for `insertInventoryActivityLogs`.
+ *  - Call after computing inventory adjustments (`calculateInventoryAdjustments`).
+ *  - Use the returned array directly in `insertInventoryActivityLogs`.
  *
  * Performance:
- *  - O(n) where n = number of enriched allocations.
- *  - Optimized: single pass, O(1) lookups in updatesObject.
+ *  - O(n), where n = number of enriched allocations.
+ *  - Efficient: single pass, O(1) lookup in `updatesObject` using composite key `warehouseId-batchId`.
  *
- * @async
  * @function
  * @param {Object[]} enrichedAllocations - List of enriched allocation objects
- * @param {Object} updatesObject - Map of updates keyed by "warehouseId-batchId"
+ * @param {string} enrichedAllocations[].allocation_id - Allocation ID
+ * @param {string} enrichedAllocations[].warehouse_id - Warehouse ID
+ * @param {string} enrichedAllocations[].batch_id - Batch ID
+ * @param {number} enrichedAllocations[].allocated_quantity - Quantity allocated
+ * @param {number} enrichedAllocations[].warehouse_quantity - Quantity before adjustment
+ * @param {number} enrichedAllocations[].reserved_quantity - Reserved qty before adjustment
+ * @param {Object} updatesObject - Map of update deltas keyed by `${warehouse_id}-${batch_id}`
  * @param {Object} options - Additional log parameters
- * @param {string} options.inventoryActionTypeId - ID of the inventory action type
- * @param {string} options.userId - ID of the user performing the action
- * @param {string} options.orderId - ID of the order
- * @param {string} options.shipmentId - ID of the shipment
- * @param {string} options.fulfillmentId - ID of the fulfillment
- * @param {string|null} options.fulfillmentNotes - Optional fulfillment notes
+ * @param {string} options.inventoryActionTypeId - Inventory action type ID (e.g., fulfillment)
+ * @param {string} options.userId - ID of the user performing the operation
+ * @param {string} options.orderId - ID of the order being fulfilled
+ * @param {string} options.shipmentId - ID of the outbound shipment
+ * @param {string} options.fulfillmentId - ID of the fulfillment record
  * @param {string} options.orderNumber - Human-readable order number
- * @returns {Object[]} Array of inventory activity log entries
+ *
+ * @returns {Object[]} Inventory activity log entries, ready for insertion
+ *
+ * @example
+ * buildInventoryActivityLogs(enrichedAllocations, updatesObject, {
+ *   inventoryActionTypeId: "fulfillment",
+ *   userId: "user-123",
+ *   orderId: "order-456",
+ *   shipmentId: "ship-789",
+ *   fulfillmentId: "fulfill-000",
+ *   orderNumber: "SO-2025-0001"
+ * });
  */
 const buildInventoryActivityLogs = (enrichedAllocations, updatesObject, {
   inventoryActionTypeId,
@@ -662,7 +1081,6 @@ const buildInventoryActivityLogs = (enrichedAllocations, updatesObject, {
   orderId,
   shipmentId,
   fulfillmentId,
-  fulfillmentNotes,
   orderNumber
 }) => {
   return enrichedAllocations.map(a =>
@@ -674,7 +1092,6 @@ const buildInventoryActivityLogs = (enrichedAllocations, updatesObject, {
       orderId,
       shipmentId,
       fulfillmentId,
-      fulfillmentNotes,
       orderNumber
     })
   );
@@ -683,11 +1100,21 @@ const buildInventoryActivityLogs = (enrichedAllocations, updatesObject, {
 module.exports = {
   validateOrderIsFullyAllocated,
   validateFulfillmentStatusTransition,
+  assertAllocationsValid,
   getAndLockAllocations,
   assertSingleWarehouseAllocations,
   insertOutboundShipmentRecord,
   buildShipmentBatchInputs,
   buildFulfillmentInputsFromAllocations,
+  assertOrderMeta,
+  assertFulfillmentsValid,
+  assertInventoryCoverage,
+  assertEnrichedAllocations,
+  assertInventoryAdjustments,
+  assertWarehouseUpdatesApplied,
+  assertStatusesResolved,
+  assertActionTypeIdResolved,
+  assertLogsGenerated,
   enrichAllocationsWithInventory,
   calculateInventoryAdjustments,
   updateAllStatuses,

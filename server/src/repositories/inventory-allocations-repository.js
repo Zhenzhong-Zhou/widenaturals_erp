@@ -686,30 +686,37 @@ const getPaginatedInventoryAllocations = async ({
 };
 
 /**
- * Validates and fetches allocation records by order ID and allocation IDs.
+ * Fetches allocation records for a given order and optional allocation IDs.
  *
- * Business rule:
- *  - Each allocation must belong to an order_item that belongs to the given order.
- *  - Ensures no cross-order allocation leakage during fulfillment or adjustment.
+ * Business rules:
+ *  - Each allocation must belong to an `order_item` that is linked to the specified order.
+ *  - Prevents cross-order allocation leakage during fulfillment or adjustment.
+ *  - If fewer rows are returned than requested, some allocation IDs do not belong to the order.
  *
  * Usage:
- *  - Typically called before fulfillment to validate allocation ownership.
- *  - If fewer rows are returned than requested, some allocation IDs are invalid for this order.
+ *  - Call during fulfillment or adjustment flows to validate allocation ownership.
+ *  - Use before locking rows (`getAndLockAllocations`) to ensure data integrity.
+ *
+ * Performance:
+ *  - Executes a single SQL query with optional filtering by allocation IDs.
+ *  - Returns only matching allocations tied to the order.
  *
  * @async
  * @function
- * @param {string} orderId - UUID of the order
- * @param {string[]} allocationIds - Array of allocation UUIDs to validate
- * @param {import('pg').PoolClient|null} [client=null] - Optional PostgreSQL client/transaction
+ * @param {string} orderId - UUID of the order to validate allocations against
+ * @param {string[]|null} [allocationIds=null] - Optional array of allocation UUIDs to restrict results
+ * @param {import('pg').PoolClient|null} [client=null] - Optional PostgreSQL client/transaction context
+ *
  * @returns {Promise<Array<{
  *   allocation_id: string,
  *   order_item_id: string,
  *   warehouse_id: string,
  *   batch_id: string,
  *   allocated_quantity: number
- * }>>} Matching allocation rows. Length < allocationIds.length means some are invalid.
+ * }>>} Array of matching allocation records. If allocationIds are provided,
+ * the result length may be smaller if some IDs are invalid for the given order.
  *
- * @throws {AppError} Database error if the query fails
+ * @throws {AppError} - If the query fails or the database encounters an error
  *
  * @example
  * const allocations = await getAllocationsByOrderId(orderId, ['alloc-1', 'alloc-2']);
@@ -723,8 +730,8 @@ const getPaginatedInventoryAllocations = async ({
  * //   }
  * // ]
  */
-const getAllocationsByOrderId = async (orderId, allocationIds, client = null) => {
-  const sql = `
+const getAllocationsByOrderId = async (orderId, allocationIds = null, client = null) => {
+  let sql = `
     SELECT
       ia.id AS allocation_id,
       ia.order_item_id,
@@ -733,17 +740,23 @@ const getAllocationsByOrderId = async (orderId, allocationIds, client = null) =>
       ia.allocated_quantity
     FROM inventory_allocations ia
     JOIN order_items oi ON ia.order_item_id = oi.id
-    WHERE ia.id = ANY($1)
-      AND oi.order_id = $2;
+    WHERE oi.order_id = $1
   `;
   
+  const params = [orderId];
+  
+  if (Array.isArray(allocationIds) && allocationIds.length > 0) {
+    sql += ` AND ia.id = ANY($2)`;
+    params.push(allocationIds);
+  }
+  
   try {
-    const { rows } = await query(sql, [allocationIds, orderId], client);
+    const { rows } = await query(sql, params, client);
     
     logSystemInfo('Validated allocations for order', {
       context: 'inventory-allocations-repository/getAllocationsByOrderId',
       orderId,
-      requestedCount: allocationIds.length,
+      requestedCount: Array.isArray(allocationIds) ? allocationIds.length : 0,
       returnedCount: rows.length,
     });
     
