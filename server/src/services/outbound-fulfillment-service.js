@@ -2,14 +2,14 @@ const { withTransaction } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { getOrderTypeMetaByOrderId } = require('../repositories/order-type-repository');
 const { getSalesOrderShipmentMetadata } = require('../repositories/order-repository');
-const { insertOrderFulfillmentsBulk } = require('../repositories/order-fulfillment-repository');
+const { insertOrderFulfillmentsBulk, getOrderFulfillments } = require('../repositories/order-fulfillment-repository');
 const { insertShipmentBatchesBulk } = require('../repositories/shipment-batch-repository');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const { getWarehouseInventoryQuantities, bulkUpdateWarehouseQuantities } = require('../repositories/warehouse-inventory-repository');
 const { getOrderStatusByCode } = require('../repositories/order-status-repository');
 const { insertInventoryActivityLogs } = require('../repositories/inventory-log-repository');
 const { getInventoryActionTypeId } = require('../repositories/inventory-action-type-repository');
-const { transformFulfillmentResult } = require('../transformers/outbound-fulfillment-transformer');
+const { transformFulfillmentResult, transformAdjustedFulfillmentResult } = require('../transformers/outbound-fulfillment-transformer');
 const {
   validateOrderIsFullyAllocated,
   getAndLockAllocations,
@@ -20,39 +20,47 @@ const {
   enrichAllocationsWithInventory,
   calculateInventoryAdjustments,
   updateAllStatuses,
-  buildInventoryActivityLogs,
+  buildInventoryActivityLogs, assertOrderMeta, assertFulfillmentsValid,
+  assertStatusesResolved, assertLogsGenerated, assertInventoryCoverage, assertEnrichedAllocations,
+  assertInventoryAdjustments, assertActionTypeIdResolved, assertWarehouseUpdatesApplied,
 } = require('../business/outbound-fulfillment-business');
 const { getAllocationStatuses } = require('../repositories/inventory-allocations-repository');
 const { validateAllocationStatusTransition } = require('../business/inventory-allocation-business');
+const { getShipmentStatusByCode } = require('../repositories/shipment-status-repository');
+const { getFulfillmentStatusByCode } = require('../repositories/fulfillment-status-repository');
+const { getInventoryAllocationStatusId } = require('../repositories/inventory-allocation-status-repository');
 
 /**
  * Service: fulfillOutboundShipmentService
  *
- * Orchestrates the fulfillment of an outbound shipment for a given order.
- * Ensures full transactional consistency across allocations, shipments,
- * inventory updates, and logging — all executed within a single transaction.
+ * Orchestrates the initial fulfillment of an outbound shipment for a given order.
+ * This service is responsible for validating allocations, creating outbound
+ * shipment records, inserting fulfillment and shipment batch links, and updating
+ * order/allocation statuses — all within a single transaction.
+ *
+ * Note:
+ * - This service does **not** adjust inventory quantities or insert inventory logs.
+ *   Those responsibilities are deferred to `adjustInventoryForFulfillmentService`.
  *
  * Validation & Business Rules:
  *  - Fulfillment is allowed **only** if all order items are fully allocated.
  *  - Each allocation must be in a valid status for transition to `ALLOC_FULFILLING`.
  *  - Fulfillment cannot proceed from a finalized allocation or fulfillment status.
- *  - Allocations spanning multiple warehouses are **not allowed** for a single fulfillment.
- *  - Shipment, fulfillment, and batch records are linked for full traceability.
+ *  - Allocations spanning multiple warehouses are **not allowed** in a single fulfillment.
+ *  - Shipment, fulfillment, and batch records must be linked for full traceability.
  *
  * Workflow:
  *  1. Validate:
  *     - The order is fully allocated (no partially or unallocated items).
- *     - Each allocation's current status allows transition to `ALLOC_FULFILLING`.
+ *     - Each allocation’s current status allows transition to `ALLOC_FULFILLING`.
  *  2. Fetch allocation metadata and apply row-level locking (`FOR UPDATE`).
  *  3. Assert allocations belong to a single warehouse.
  *  4. Conditionally fetch delivery metadata depending on order type.
  *  5. Insert a new outbound shipment record.
  *  6. Insert fulfillment records grouped by `order_item_id + shipment_id`.
- *  7. Insert shipment batch records linking batch and shipment.
- *  8. Adjust warehouse inventory quantities based on allocations.
- *  9. Update allocation, order item, and order statuses.
- * 10. Insert inventory activity logs for audit tracking.
- * 11. Return the full structured fulfillment result.
+ *  7. Insert shipment batch records linking allocation batches to the shipment.
+ *  8. Update allocation, order item, and order statuses.
+ *  9. Return the structured fulfillment result.
  *
  * @param {Object} requestData - Fulfillment request payload
  * @param {string} requestData.orderId - ID of the order to fulfill
@@ -67,14 +75,11 @@ const { validateAllocationStatusTransition } = require('../business/inventory-al
  *
  * @returns {Promise<Object>} Fulfillment result object:
  *  - orderId: ID of the fulfilled order
- *  - shipmentRow: Inserted shipment record
+ *  - shipmentRow: Inserted outbound shipment record
  *  - fulfillmentRow: Inserted fulfillment record(s)
  *  - shipmentBatchRow: Inserted shipment batch record(s)
- *  - warehouseInventoryIds: Updated warehouse inventory record IDs
  *  - orderStatusRow: Updated order status
  *  - orderItemStatusRow: Updated order item statuses
- *  - inventoryAllocationStatusRow: Updated allocation statuses
- *  - logMetadata: Inserted inventory activity logs
  *
  * @throws {AppError}
  *  - ValidationError: If allocation or fulfillment preconditions are not met
@@ -92,11 +97,13 @@ const fulfillOutboundShipmentService = async (requestData, user) => {
         shipmentBatchNote
       } = requestData;
       
+      const nextAllocationStepCode = 'ALLOC_FULFILLING';
+      
       // 1. Validate that the order is fully allocated (no partial/missing allocations)
       await validateOrderIsFullyAllocated(rawOrderId, client);
       
       // 2. Fetch and lock allocations for the given order and allocation IDs
-      const allocationMeta = await getAndLockAllocations(rawOrderId, allocations.ids, client);
+      const { allocationMeta } = await getAndLockAllocations(rawOrderId, allocations.ids, client);
       
       // 3. Ensure all allocations belong to the same warehouse
       const warehouseId = assertSingleWarehouseAllocations(allocationMeta);
@@ -105,13 +112,13 @@ const fulfillOutboundShipmentService = async (requestData, user) => {
       const orderItemIds = allocationMeta.map(item => item.order_item_id);
       const allocationStatuses = await getAllocationStatuses(rawOrderId, orderItemIds,  client);
       allocationStatuses.forEach(({ allocation_status_code: code }) => {
-        validateAllocationStatusTransition(code, 'ALLOC_FULFILLING');
+        validateAllocationStatusTransition(code, nextAllocationStepCode);
       });
       
       const orderId = allocationStatuses[0]?.order_id;
       
       // 5. Fetch order metadata including type category and number
-      const { order_id, order_number, order_type_category } = await getOrderTypeMetaByOrderId(orderId, client);
+      const { order_id, order_type_category } = await getOrderTypeMetaByOrderId(orderId, client);
       
       // 6. Optionally fetch delivery method ID — varies by order type.
       // - For 'sales' orders, delivery method is stored in `sales_orders`.
@@ -153,6 +160,8 @@ const fulfillOutboundShipmentService = async (requestData, user) => {
         client
       );
       
+      // TODO: lockRows allocations
+      
       // 9. Insert shipment batch linking the allocation and shipment
       const shipmentBatchInputs = buildShipmentBatchInputs(
         allocationMeta,
@@ -165,77 +174,262 @@ const fulfillOutboundShipmentService = async (requestData, user) => {
         client
       );
       
-      // 10. Fetch current inventory for each affected batch
-      const inventoryMeta = await getWarehouseInventoryQuantities(
-        allocationMeta.map(({ batch_id, warehouse_id }) => ({
-          warehouse_id: warehouse_id,
-          batch_id: batch_id
-        })), client
-      );
-      
-      // 11. Enrich allocations with inventory data for delta computation
-      const enrichedAllocations = enrichAllocationsWithInventory(allocationMeta, inventoryMeta);
-      
-      // 12. Compute inventory adjustment deltas based on fulfillment (deduct reserved & actual qty)
-      const updatesObject = calculateInventoryAdjustments(enrichedAllocations);
-      
-      // 13. Perform bulk inventory updates (adjust quantity and reserved_quantity)
-      const warehouseInventoryIds = await bulkUpdateWarehouseQuantities(updatesObject, userId, client);
-      
-      // 14. Update statuses: Order, Order Items, and Allocations
+      // 10. Update high-level order + allocation statuses
       const {
         id: newStatusId,
       } = await getOrderStatusByCode('ORDER_PROCESSING', client);
-      const { orderStatusRow, orderItemStatusRow, inventoryAllocationStatusRow } =
-        await updateAllStatuses(order_id, allocationMeta, newStatusId, userId, client);
+      const newAllocationStatusId = await getInventoryAllocationStatusId(nextAllocationStepCode, client);
       
-      // 15. Insert inventory activity logs for auditability
-      const inventoryActionTypeId = await getInventoryActionTypeId('reserve', client);
-      const logs = buildInventoryActivityLogs(enrichedAllocations, updatesObject, {
-        inventoryActionTypeId,
-        userId,
-        orderId,
-        shipmentId: shipmentRow.id,
-        fulfillmentId: fulfillmentRow.id,
-        fulfillmentNotes,
-        orderNumber: order_number,
-      });
-      const logMetadata = await insertInventoryActivityLogs(logs, client);
+      const { orderStatusRow, orderItemStatusRow } =
+        await updateAllStatuses({
+          orderId: order_id,
+          allocationMeta,
+          newOrderStatusId: newStatusId,
+          newAllocationStatusId,
+          fulfillments: [],
+          newFulfillmentStatusId: null,
+          newShipmentStatusId: null,
+          userId,
+          client,
+        });
       
-      // 16. Log success and return transformed result
-      logSystemInfo('Successfully fulfilled outbound shipment', {
+      // 11. Log success
+      logSystemInfo('Outbound shipment created and linked to allocations', {
         context: 'outbound-fulfillment-service/fulfillOutboundShipmentService',
         orderId,
         shipmentId: shipmentRow.id,
         userId,
       });
-      
-      // 17. Transform + return
+
+      // 12. Transform + return
       return transformFulfillmentResult({
         orderId,
         shipmentRow,
         fulfillmentRow,
         shipmentBatchRow,
-        warehouseInventoryIds,
         orderStatusRow,
         orderItemStatusRow,
-        inventoryAllocationStatusRow,
-        logMetadata,
       });
     });
   } catch (error) {
-    logSystemException(error, 'Failed to fulfill outbound shipment', {
+    logSystemException(error, 'Error creating outbound shipment', {
       context: 'outbound-fulfillment-service/fulfillOutboundShipmentService',
       orderId: requestData?.orderId,
       userId: user?.id,
     });
-    throw AppError.serviceError('Unable to fulfill outbound shipment.', {
+    throw AppError.serviceError('Unable to create outbound shipment.', {
       cause: error,
       context: 'outbound-fulfillment-service/fulfillOutboundShipmentService',
     });
   }
 };
 
+/**
+ * Service: adjustInventoryForFulfillmentService
+ *
+ * Handles the inventory adjustment phase of outbound fulfillment.
+ * This service executes after an outbound shipment and related fulfillments
+ * have been created (via `fulfillOutboundShipmentService`).
+ *
+ * Responsibilities:
+ *  - Apply row-level locks on allocations and related inventory.
+ *  - Compute and apply inventory quantity adjustments based on fulfilled quantities.
+ *  - Update statuses across order, order items, allocations, fulfillments, and shipments.
+ *  - Insert inventory activity logs for auditability.
+ *
+ * Validation & Business Rules:
+ *  - A fulfillment record must already exist for the order; otherwise, adjustment cannot proceed.
+ *  - Inventory is adjusted only for allocations linked to the order’s fulfillments.
+ *  - Status transitions must respect business rules (no updates from finalized states).
+ *  - Activity logs must capture fulfillment → allocation → shipment relationships.
+ *
+ * Workflow:
+ *  1. Validate the order exists and fetch metadata (order number, type).
+ *  2. Fetch and lock allocations for the order (`FOR UPDATE`).
+ *  3. Fetch existing fulfillments; fail if none found.
+ *  4. Fetch current inventory snapshot for affected batches.
+ *  5. Enrich allocations with inventory data and compute adjustment deltas.
+ *  6. Perform bulk inventory updates (quantity and reserved quantity).
+ *  7. Resolve new status IDs (order, fulfillment, shipment).
+ *  8. Update statuses across order, items, allocations, fulfillments, and shipments.
+ *  9. Insert inventory activity logs for audit tracking.
+ * 10. Return the full structured result (updated statuses, inventory IDs, logs).
+ *
+ * @param {Object} requestData - Adjustment request payload
+ * @param {string} requestData.orderId - ID of the order to adjust fulfillment for
+ * @param {string} requestData.orderStatus - Target order status code
+ * @param {string} requestData.shipmentStatus - Target shipment status code
+ * @param {string} requestData.fulfillmentStatus - Target fulfillment status code
+ *
+ * @param {Object} user - Authenticated user object
+ * @param {string} user.id - ID of the user initiating the adjustment
+ *
+ * @returns {Promise<Object>} Adjustment result object:
+ *  - orderId: ID of the adjusted order
+ *  - orderNumber: Order number
+ *  - fulfillments: Fulfillment rows involved in adjustment
+ *  - shipmentId: Shipment ID linked to fulfillments
+ *  - warehouseInventoryIds: Updated warehouse inventory record IDs
+ *  - orderStatusRow: Updated order status
+ *  - orderItemStatusRow: Updated order item statuses
+ *  - inventoryAllocationStatusRow: Updated allocation statuses
+ *  - orderFulfillmentStatusRow: Updated fulfillment statuses
+ *  - shipmentStatusRow: Updated shipment statuses
+ *  - logMetadata: Inserted inventory activity logs
+ *
+ * @throws {AppError}
+ *  - NotFoundError: If no fulfillments exist for the order
+ *  - ValidationError: If status transitions are invalid
+ *  - ServiceError: If inventory adjustment or status updates fail
+ */
+const adjustInventoryForFulfillmentService = async (requestData, user) => {
+  try {
+    return await withTransaction(async (client) => {
+      const userId = user.id;
+      const { orderId: rawOrderId, orderStatus, shipmentStatus, fulfillmentStatus } = requestData;
+      // TODO: validate process: status?
+      
+      // --- 1. Fetch order metadata (ensures order exists & provides order number)
+      const orderMeta =
+        await getOrderTypeMetaByOrderId(rawOrderId, client);
+      assertOrderMeta(orderMeta);
+      const { order_id: orderId, order_number: orderNumber } = orderMeta;
+      
+      // --- 2. Fetch and lock allocations for this order
+      const { allocationMeta, warehouseBatchKeys } = await getAndLockAllocations(
+        orderId,
+        null,
+        client
+      );
+      
+      // --- 3. Fetch existing fulfillments for the order
+      const fulfillments = await getOrderFulfillments({ orderId }, client);
+      assertFulfillmentsValid(fulfillments, orderNumber);
+      
+      // --- 4. Fetch current inventory snapshot for affected batches
+      const inventoryMeta = await getWarehouseInventoryQuantities(
+        warehouseBatchKeys,
+        client
+      );
+      assertInventoryCoverage(inventoryMeta);
+      
+      // --- 5. Enrich allocations with current inventory (for delta calculation)
+      const enrichedAllocations = enrichAllocationsWithInventory(
+        allocationMeta,
+        inventoryMeta
+      );
+      assertEnrichedAllocations(enrichedAllocations);
+      
+      // --- 6. Compute inventory deltas based on fulfillment quantities
+      const updatesObject = calculateInventoryAdjustments(enrichedAllocations);
+      assertInventoryAdjustments(updatesObject);
+      
+      // TODO: lockRows warehouse_inventory, inventory_allocations
+      
+      // --- 7. Apply inventory adjustments (update qty + reserved qty)
+      const warehouseInventoryIds = await bulkUpdateWarehouseQuantities(updatesObject, userId, client);
+      assertWarehouseUpdatesApplied(warehouseInventoryIds, { updates: updatesObject });
+      
+      // --- 8. Resolve new status IDs for order, shipment, and fulfillment
+      const { id: newOrderStatusId } = await getOrderStatusByCode(
+        orderStatus,
+        client
+      );
+      const { id: newShipmentStatusId } = await getShipmentStatusByCode(
+        shipmentStatus,
+        client
+      );
+      const { id: newFulfillmentStatusId } = await getFulfillmentStatusByCode(
+        fulfillmentStatus,
+        client
+      );
+      assertStatusesResolved({
+        orderStatusId: newOrderStatusId,
+        shipmentStatusId: newShipmentStatusId,
+        fulfillmentStatusId: newFulfillmentStatusId,
+      });
+      
+      // --- 9. Update statuses across order, items, allocations, fulfillments, shipments
+      const {
+        orderStatusRow,
+        orderItemStatusRow,
+        inventoryAllocationStatusRow,
+        orderFulfillmentStatusRow,
+        shipmentStatusRow,
+      } = await updateAllStatuses(
+        orderId,
+        orderNumber,
+        allocationMeta,
+        newOrderStatusId,
+        fulfillments,
+        newFulfillmentStatusId,
+        newShipmentStatusId,
+        userId,
+        client
+      );
+      
+      // --- 10. Insert inventory activity logs for traceability
+      const inventoryActionTypeId = await getInventoryActionTypeId(
+        'fulfilled',
+        client
+      );
+      assertActionTypeIdResolved(inventoryActionTypeId, 'fulfilled');
+      const logs = fulfillments.flatMap(f =>
+        buildInventoryActivityLogs(enrichedAllocations, updatesObject, {
+          inventoryActionTypeId,
+          userId,
+          orderId,
+          shipmentId: f.shipment_id,        // same across all fulfillments
+          fulfillmentId: f.fulfillment_id,  // unique per fulfillment
+          orderNumber,
+        })
+      );
+      assertLogsGenerated(logs, 'build');
+      const logMetadata = await insertInventoryActivityLogs(logs, client);
+      assertLogsGenerated(logMetadata, 'insert');
+      
+      // --- 11. Log success
+      logSystemInfo('Inventory successfully adjusted for fulfillment', {
+        context:
+          'outbound-fulfillment-service/adjustInventoryForFulfillmentService',
+        orderId,
+        userId,
+      });
+      
+      // --- 12. Transform + return structured result
+      return transformAdjustedFulfillmentResult({
+        orderId,
+        orderNumber,
+        fulfillments,
+        shipmentId: fulfillments[0].shipment_id,
+        warehouseInventoryIds,
+        orderStatusRow,
+        orderItemStatusRow,
+        inventoryAllocationStatusRow,
+        orderFulfillmentStatusRow,
+        shipmentStatusRow,
+        logMetadata,
+      });
+    });
+  } catch (error) {
+    logSystemException(error, 'Error adjusting inventory for fulfillment', {
+      context: 'outbound-fulfillment-service/adjustInventoryForFulfillmentService',
+      orderId: requestData?.orderId,
+      userId: user?.id,
+    });
+    
+    throw AppError.serviceError(
+      'Unable to adjust inventory for fulfillment.',
+      {
+        cause: error,
+        context:
+          'outbound-fulfillment-service/adjustInventoryForFulfillmentService',
+      }
+    );
+  }
+};
+
 module.exports = {
   fulfillOutboundShipmentService,
+  adjustInventoryForFulfillmentService,
 };
