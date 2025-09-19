@@ -500,6 +500,7 @@ const confirmInventoryAllocationService = async (user, rawOrderId) => {
         warehouse_quantity: row.warehouse_quantity,
         reserved_quantity: row.reserved_quantity,
         status_id: row.status_id,
+        last_update: new Date(),
       }]));
       
       // --- 8. Apply bulk warehouse inventory updates ---

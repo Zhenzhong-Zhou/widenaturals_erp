@@ -496,6 +496,7 @@ const insertWarehouseInventoryRecords = async (records, client, meta = {}) => {
     'outbound_date',
     'status_id',
     'created_by',
+    'updated_at',
     'updated_by',
   ];
 
@@ -508,6 +509,7 @@ const insertWarehouseInventoryRecords = async (records, client, meta = {}) => {
     null,
     r.status_id ?? getStatusIdByQuantity(r.warehouse_quantity),
     r.created_by ?? null,
+    null,
     null,
   ]);
 

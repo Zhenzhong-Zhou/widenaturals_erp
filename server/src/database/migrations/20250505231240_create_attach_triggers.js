@@ -258,7 +258,6 @@ exports.down = function (knex) {
     DROP TRIGGER IF EXISTS set_warehouses_updated_at ON warehouses;
     DROP TRIGGER IF EXISTS set_inventory_updated_at ON inventory;
     DROP TRIGGER IF EXISTS set_warehouse_inventory_updated_at ON warehouse_inventory;
-    DROP TRIGGER IF EXISTS set_warehouse_inventory_lots_updated_at ON warehouse_inventory_lots;
     DROP TRIGGER IF EXISTS set_warehouse_lot_status_updated_at ON warehouse_lot_status;
     DROP TRIGGER IF EXISTS set_inventory_action_types_updated_at ON inventory_action_types;
     DROP TRIGGER IF EXISTS set_inventory_transfer_status_updated_at ON inventory_transfer_status;
