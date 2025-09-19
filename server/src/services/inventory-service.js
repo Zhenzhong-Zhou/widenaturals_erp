@@ -220,7 +220,7 @@ const adjustInventoryQuantitiesService = async (
       const warehouseInventoryUpdatesWithReserve = Object.fromEntries(
         Object.entries(warehouseInventoryUpdates).map(([key, value]) => [
           key,
-          { ...value, reserved_quantity: 0 },
+          { ...value, reserved_quantity: 0, last_update: new Date() },
         ])
       );
       
