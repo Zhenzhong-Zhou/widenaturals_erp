@@ -28,13 +28,14 @@ const { adjustInventoryForFulfillmentService } = require('../../services/outboun
     console.log(`${logContext} ✅ Test user loaded:`, testUser);
     
     // Step 2: Choose test order
-    const orderId = '61d418fb-b5bc-454d-ac2d-3ddfe84bea6a'; // adjust as needed
+    const orderId = '1f783740-2f44-4539-ab88-9d77ea4e8201'; // adjust as needed
     console.log(`${logContext} Using test orderId: ${orderId}`);
     
     // Step 3: Build requestData for service
     const requestData = {
       orderId,
       orderStatus: 'ORDER_FULFILLED',
+      allocationStatus: 'ALLOC_FULFILLED',
       shipmentStatus: 'SHIPMENT_READY',
       fulfillmentStatus: 'FULFILLMENT_PACKED',
     };

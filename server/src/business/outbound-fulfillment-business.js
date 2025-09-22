@@ -729,7 +729,7 @@ const updateAllocationsStatusBusiness = async (allocationMeta, allocationStatusI
     userId,
   });
   
-  return updateInventoryAllocationStatus(
+  return await updateInventoryAllocationStatus(
     {
       statusId: allocationStatusId,
       userId,
@@ -778,7 +778,7 @@ const updateFulfillmentsStatusBusiness = async (fulfillments, newStatusId, order
     userId,
   });
   
-  return updateOrderFulfillmentStatus(
+  return await updateOrderFulfillmentStatus(
     {
       statusId: newStatusId,
       userId,
@@ -827,7 +827,7 @@ const updateShipmentsStatusBusiness = async (fulfillments, newStatusId, orderId,
     userId,
   });
   
-  return updateOutboundShipmentStatus(
+  return await updateOutboundShipmentStatus(
     {
       statusId: newStatusId,
       userId,

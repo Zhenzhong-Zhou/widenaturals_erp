@@ -26,12 +26,12 @@ const { fulfillOutboundShipmentService } = require('../../services/outbound-fulf
     const enrichedUser = { id: userId, role: roleId };
     
     // Step 2: Set test params
-    const orderId = 'ddf5a3d3-8ad9-44b0-9084-20ddfcafc356';
+    const orderId = '939b06e5-0dd1-4ed5-85cf-1aee4642292e';
     const allocationIds = [
-      '40c7cf30-c34c-4669-8aa0-1eb8faaca89c',
-      '6c4a4e2a-c5fe-4303-ae5c-e79873e477f9',
-      'f2056847-91d2-46ee-8cf2-51e29ecadc45',
-      '18a33dd0-719b-4f82-9ad1-d90cca075468'
+      '2edacd88-03c5-4ac2-831f-ccaba25c0ecc',
+      '6682815d-362f-41ed-a1f3-bbbcc1bde74f',
+      '04f678b9-9dc0-4fc7-82e0-53a82c72ec5b',
+      'a5cb163e-9281-4340-8154-0998cc69f793'
     ];
     
     // Step 3: Build requestData

@@ -20,7 +20,7 @@ const { cleanObject } = require('../utils/object-utils');
  * @param {Object} params - Input payload for transformation
  * @param {string} params.orderId - Order ID
  * @param {Object} params.shipmentRow - Inserted shipment row
- * @param {Object} params.fulfillmentRow - Inserted fulfillment row
+ * @param {Object} params.fulfillmentRowWithStatus - Inserted fulfillment row
  * @param {Object} params.shipmentBatchRow - Inserted shipment batch row
  * @param {Object} params.orderStatusRow - Updated order status row
  * @param {Object[]} params.orderItemStatusRow - Updated order item status rows
@@ -34,7 +34,7 @@ const { cleanObject } = require('../utils/object-utils');
 const transformFulfillmentResult = ({
                                       orderId,
                                       shipmentRow,
-                                      fulfillmentRow,
+                                      fulfillmentRowWithStatus,
                                       shipmentBatchRow,
                                       orderStatusRow,
                                       orderItemStatusRow,
@@ -50,8 +50,8 @@ const transformFulfillmentResult = ({
       batchId: shipmentBatchRow?.id ?? null,
     },
     fulfillment: {
-      id: fulfillmentRow?.id ?? null,
-      statusId: fulfillmentRow?.status_id ?? null,
+      id: fulfillmentRowWithStatus?.id ?? null,
+      statusId: fulfillmentRowWithStatus?.status_id ?? null,
     },
     statusUpdates: {
       updatedOrderItemStatusIds: orderItemStatusRow?.map(row => row.id) ?? [],
