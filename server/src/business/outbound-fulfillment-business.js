@@ -538,43 +538,63 @@ const assertActionTypeIdResolved = (inventoryActionTypeId, name) => {
  * Business rule:
  *  - At least one log entry must be created for auditing inventory adjustments.
  *
- * @param {Array} logs - Log entries (either to be inserted or returned from DB)
- * @param {string} [stage='logs'] - Stage label for error context
+ * @param {Array<object>|{activityLogIds?: string[], insertedActivityCount?: number}} logs
+ *    - Pre-insert: an array of log objects built in memory.
+ *    - Post-insert: a metadata object returned from DB insert (with `activityLogIds`).
+ * @param {string} [stage='logs'] - Stage label for error context (e.g. 'build', 'insert')
  * @throws {AppError} BusinessError if no logs are generated
  */
 const assertLogsGenerated = (logs, stage = 'logs') => {
-  if (!Array.isArray(logs) || logs.length === 0) {
-    throw AppError.businessError(`No inventory activity logs generated at stage: ${stage}`);
+  if (Array.isArray(logs)) {
+    if (logs.length === 0) {
+      throw AppError.businessError(`No inventory activity logs generated at stage: ${stage}`);
+    }
+  } else if (logs && typeof logs === 'object') {
+    if (!logs.activityLogIds || logs.activityLogIds.length === 0) {
+      throw AppError.businessError(`No inventory activity logs inserted at stage: ${stage}`);
+    }
+  } else {
+    throw AppError.businessError(`Invalid log structure at stage: ${stage}`);
   }
 };
 
 /**
  * Enriches allocation metadata with corresponding warehouse inventory details.
  *
- * Business rule:
+ * Business rules:
  *  - Each allocation must be paired with its warehouse inventory record
- *    to calculate adjustments and log activity during fulfillment.
- *  - Matching is performed on `{ warehouse_id, batch_id }`.
+ *    using `{ warehouse_id, batch_id }` as the composite key.
+ *  - Adds derived `available_quantity = warehouse_quantity - reserved_quantity`.
+ *  - Aliases inventory record ID → `warehouse_inventory_id`.
+ *  - Copies `status_id` → `inventory_status_id` for clarity in downstream logic.
  *
  * Usage:
  *  - Call after fetching both allocation metadata and warehouse inventory records.
- *  - Intended to prepare enriched allocation objects for inventory updates and logging.
+ *  - Prepares enriched allocation objects for inventory adjustments and audit logging.
  *
  * Performance:
- *  - Current approach with `.find` is O(n × m).
- *  - Refactored version uses a lookup Map for O(n + m).
+ *  - Uses a lookup Map for O(n + m) matching (efficient for large datasets).
  *
- * @async
  * @function
  * @param {Object[]} allocationMeta - List of allocation metadata objects
+ * @param {string} allocationMeta[].allocation_id - Allocation record ID
+ * @param {string} allocationMeta[].order_item_id - Order item ID
  * @param {string} allocationMeta[].warehouse_id - Warehouse ID of the allocation
  * @param {string} allocationMeta[].batch_id - Batch ID of the allocation
+ * @param {number} allocationMeta[].allocated_quantity - Quantity allocated
  * @param {Object[]} inventoryMeta - List of warehouse inventory records
- * @param {string} inventoryMeta[].id - Inventory record ID
+ * @param {string} inventoryMeta[].id - Warehouse inventory record ID
  * @param {string} inventoryMeta[].warehouse_id - Warehouse ID of the inventory record
  * @param {string} inventoryMeta[].batch_id - Batch ID of the inventory record
+ * @param {number} inventoryMeta[].warehouse_quantity - Current warehouse quantity
+ * @param {number} inventoryMeta[].reserved_quantity - Current reserved quantity
  * @param {string} inventoryMeta[].status_id - Current inventory status ID
- * @returns {Object[]} Enriched allocation objects with inventory details
+ * @returns {Object[]} Enriched allocation objects including:
+ *  - All original allocation fields
+ *  - All matched inventory fields
+ *  - `available_quantity` (derived)
+ *  - `warehouse_inventory_id` (alias for inventory `id`)
+ *  - `inventory_status_id` (alias for inventory `status_id`)
  */
 const enrichAllocationsWithInventory = (allocationMeta, inventoryMeta) => {
   // Build lookup map: key = "warehouseId-batchId"
@@ -585,9 +605,16 @@ const enrichAllocationsWithInventory = (allocationMeta, inventoryMeta) => {
   // Enrich allocations using O(1) lookups
   return allocationMeta.map(a => {
     const inv = inventoryMap.get(`${a.warehouse_id}-${a.batch_id}`);
+    const available_quantity =
+      inv?.warehouse_quantity != null && inv?.reserved_quantity != null
+        ? inv.warehouse_quantity - inv.reserved_quantity
+        : null;
+    
+    
     return {
       ...a,
       ...inv,
+      available_quantity,
       warehouse_inventory_id: inv?.id ?? null,
       inventory_status_id: inv?.status_id ?? null,
     };
@@ -820,9 +847,9 @@ const updateShipmentsStatusBusiness = async (fulfillments, newStatusId, orderId,
  *
  * Business rules:
  *  - The order and all its items transition together to the same new status (e.g., `ORDER_PROCESSING`).
- *  - Allocations transition to a provided allocation status (e.g., `ALLOC_FULFILLING`).
- *  - Fulfillments and shipments optionally transition if new status IDs are provided.
- *  - Allocation, fulfillment, and shipment rows are locked before updates to prevent concurrency issues.
+ *  - Allocations transition if allocation metadata and a new allocation status ID are provided.
+ *  - Fulfillments and shipments transition only if fulfillments are provided AND new status IDs are specified.
+ *  - Allocation, fulfillment, and shipment rows should be row-locked upstream to avoid concurrency issues.
  *
  * Usage:
  *  - Call during fulfillment adjustment or shipment processing after inventory changes are staged.
@@ -836,23 +863,23 @@ const updateShipmentsStatusBusiness = async (fulfillments, newStatusId, orderId,
  * @async
  * @function
  * @param {Object} params
- * @param {string} params.orderId - The ID of the order being updated
+ * @param {string} params.orderId - ID of the order being updated
  * @param {string} params.orderNumber - Human-readable order number (for logging/context)
- * @param {Object[]} [params.allocationMeta=[]] - Allocation metadata objects
+ * @param {Object[]} [params.allocationMeta=[]] - Allocation metadata objects to update
  * @param {string} params.newOrderStatusId - New status ID for the order and its items
- * @param {string} params.newAllocationStatusId - New status ID for allocations
- * @param {Object[]} [params.fulfillments=[]] - Fulfillment metadata objects
+ * @param {string} [params.newAllocationStatusId] - New status ID for allocations
+ * @param {Object[]} [params.fulfillments=[]] - Fulfillment metadata objects to update
  * @param {string} [params.newFulfillmentStatusId] - New status ID for fulfillments
  * @param {string} [params.newShipmentStatusId] - New status ID for shipments
- * @param {string} params.userId - The ID of the user performing the update
+ * @param {string} params.userId - ID of the user performing the update
  * @param {Object} params.client - Database client/transaction context
  *
  * @returns {Promise<Object>} Updated rows grouped by entity:
- *  - {Object} orderStatusRow - Updated order row
- *  - {Object[]} orderItemStatusRow - Updated order item rows
- *  - {Object[]} inventoryAllocationStatusRow - Updated allocation rows
- *  - {Object[]} orderFulfillmentStatusRow - Updated fulfillment rows
- *  - {Object[]} shipmentStatusRow - Updated shipment rows
+ *  - {Object}   orderStatusRow              Updated order row
+ *  - {Object[]} orderItemStatusRow          Updated order item rows
+ *  - {Object[]} inventoryAllocationStatusRow Updated allocation rows
+ *  - {Object[]} orderFulfillmentStatusRow   Updated fulfillment rows
+ *  - {Object[]} shipmentStatusRow           Updated shipment rows
  *
  * @throws {AppError} If any required update fails
  */
@@ -866,8 +893,8 @@ const updateAllStatuses = async ({
                                    newFulfillmentStatusId,
                                    newShipmentStatusId,
                                    userId,
-                                   client
-}) => {
+                                   client,
+                                 }) => {
   // --- 1. Update Order status
   const orderStatusRow = await updateOrderStatus(client, {
     orderId,
@@ -875,27 +902,51 @@ const updateAllStatuses = async ({
     updatedBy: userId,
   });
   
-  // --- 2. Update all Order Item statuses
+  // --- 2. Update all Order Item statuses (all items under the order)
   const orderItemStatusRow = await updateOrderItemStatusesByOrderId(client, {
     orderId,
     newStatusId: newOrderStatusId,
     updatedBy: userId,
   });
   
-  // --- 3. Update Allocation statuses
-  const inventoryAllocationStatusRow = allocationMeta.length
-    ? await updateAllocationsStatusBusiness(allocationMeta, newAllocationStatusId, orderId, orderNumber, userId, client)
-    : [];
+  // --- 3. Update Allocation statuses if allocations provided
+  const inventoryAllocationStatusRow =
+    allocationMeta.length && newAllocationStatusId
+      ? await updateAllocationsStatusBusiness(
+        allocationMeta,
+        newAllocationStatusId,
+        orderId,
+        orderNumber,
+        userId,
+        client
+      )
+      : [];
   
-  // --- 4. Update Fulfillment statuses
-  const orderFulfillmentStatusRow = fulfillments.length && newFulfillmentStatusId
-    ? await updateFulfillmentsStatusBusiness(fulfillments, newFulfillmentStatusId, orderId, orderNumber, userId, client)
-    : [];
+  // --- 4. Update Fulfillment statuses if fulfillments and new status provided
+  const orderFulfillmentStatusRow =
+    fulfillments.length && newFulfillmentStatusId
+      ? await updateFulfillmentsStatusBusiness(
+        fulfillments,
+        newFulfillmentStatusId,
+        orderId,
+        orderNumber,
+        userId,
+        client
+      )
+      : [];
   
-  // --- 5. Update Shipment statuses
-  const shipmentStatusRow = fulfillments.length && newShipmentStatusId
-    ? await updateFulfillmentsStatusBusiness(fulfillments, newShipmentStatusId, orderId, orderNumber, userId, client)
-    : [];
+  // --- 5. Update Shipment statuses if fulfillments and new status provided
+  const shipmentStatusRow =
+    fulfillments.length && newShipmentStatusId
+      ? await updateShipmentsStatusBusiness(
+        fulfillments,
+        newShipmentStatusId,
+        orderId,
+        orderNumber,
+        userId,
+        client
+      )
+      : [];
   
   return {
     orderStatusRow,
@@ -1031,10 +1082,10 @@ const buildFulfillmentLogEntry = ({
 };
 
 /**
- * Builds a set of inventory activity log entries for a batch of enriched allocations.
+ * Builds a set of inventory activity log entries for a batch of allocations.
  *
  * Business rules:
- *  - Each allocation consumed during fulfillment must generate an inventory activity log entry.
+ *  - Each allocation consumed during fulfillment must generate a log entry.
  *  - Delegates per-allocation log construction to `buildFulfillmentLogEntry` for consistency.
  *  - Matches each allocation with its computed inventory update from `updatesObject`.
  *
@@ -1043,19 +1094,13 @@ const buildFulfillmentLogEntry = ({
  *  - Use the returned array directly in `insertInventoryActivityLogs`.
  *
  * Performance:
- *  - O(n), where n = number of enriched allocations.
- *  - Efficient: single pass, O(1) lookup in `updatesObject` using composite key `warehouseId-batchId`.
+ *  - O(n), where n = number of allocations.
+ *  - Efficient: single pass, O(1) lookup in `updatesObject` using composite key `warehouse_id-batch_id`.
  *
  * @function
- * @param {Object[]} enrichedAllocations - List of enriched allocation objects
- * @param {string} enrichedAllocations[].allocation_id - Allocation ID
- * @param {string} enrichedAllocations[].warehouse_id - Warehouse ID
- * @param {string} enrichedAllocations[].batch_id - Batch ID
- * @param {number} enrichedAllocations[].allocated_quantity - Quantity allocated
- * @param {number} enrichedAllocations[].warehouse_quantity - Quantity before adjustment
- * @param {number} enrichedAllocations[].reserved_quantity - Reserved qty before adjustment
- * @param {Object} updatesObject - Map of update deltas keyed by `${warehouse_id}-${batch_id}`
- * @param {Object} options - Additional log parameters
+ * @param {Object[]} allocations - List of allocation objects (ideally enriched with inventory data)
+ * @param {Object} updatesObject - Map of inventory update deltas keyed by `${warehouse_id}-${batch_id}`
+ * @param {Object} options - Context for log building
  * @param {string} options.inventoryActionTypeId - Inventory action type ID (e.g., fulfillment)
  * @param {string} options.userId - ID of the user performing the operation
  * @param {string} options.orderId - ID of the order being fulfilled
@@ -1063,7 +1108,15 @@ const buildFulfillmentLogEntry = ({
  * @param {string} options.fulfillmentId - ID of the fulfillment record
  * @param {string} options.orderNumber - Human-readable order number
  *
- * @returns {Object[]} Inventory activity log entries, ready for insertion
+ * @returns {Object[]} Array of inventory activity log entries, ready for DB insertion.
+ *   Each entry includes fields like:
+ *    - `warehouse_inventory_id`
+ *    - `order_id`
+ *    - `status_id`
+ *    - `quantity_change`
+ *    - `new_quantity`
+ *    - `comments`
+ *    - `metadata` (batch, allocation, shipment, fulfillment context)
  *
  * @example
  * buildInventoryActivityLogs(enrichedAllocations, updatesObject, {
@@ -1075,15 +1128,19 @@ const buildFulfillmentLogEntry = ({
  *   orderNumber: "SO-2025-0001"
  * });
  */
-const buildInventoryActivityLogs = (enrichedAllocations, updatesObject, {
-  inventoryActionTypeId,
-  userId,
-  orderId,
-  shipmentId,
-  fulfillmentId,
-  orderNumber
-}) => {
-  return enrichedAllocations.map(a =>
+const buildInventoryActivityLogs = (
+  allocations,
+  updatesObject,
+  {
+    inventoryActionTypeId,
+    userId,
+    orderId,
+    shipmentId,
+    fulfillmentId,
+    orderNumber,
+  }
+) => {
+  return allocations.map(a =>
     buildFulfillmentLogEntry({
       allocation: a,
       update: updatesObject[`${a.warehouse_id}-${a.batch_id}`],
@@ -1092,7 +1149,7 @@ const buildInventoryActivityLogs = (enrichedAllocations, updatesObject, {
       orderId,
       shipmentId,
       fulfillmentId,
-      orderNumber
+      orderNumber,
     })
   );
 };
