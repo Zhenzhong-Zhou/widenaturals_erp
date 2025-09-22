@@ -374,16 +374,23 @@ const adjustInventoryForFulfillmentService = async (requestData, user) => {
         client
       );
       assertActionTypeIdResolved(inventoryActionTypeId, 'fulfilled');
-      const logs = fulfillments.flatMap(f =>
-        buildInventoryActivityLogs(enrichedAllocations, updatesObject, {
+      const logs = fulfillments.flatMap(f => {
+        // find the one allocation this fulfillment is tied to
+        const allocation = enrichedAllocations.find(
+          a => a.allocation_id === f.allocation_id
+        );
+        
+        if (!allocation) return []; // skip if allocation not found (safety net)
+        
+        return buildInventoryActivityLogs([allocation], updatesObject, {
           inventoryActionTypeId,
           userId,
           orderId,
           shipmentId: f.shipment_id,        // same across all fulfillments
           fulfillmentId: f.fulfillment_id,  // unique per fulfillment
           orderNumber,
-        })
-      );
+        });
+      });
       assertLogsGenerated(logs, 'build');
       const logMetadata = await insertInventoryActivityLogs(logs, client);
       assertLogsGenerated(logMetadata, 'insert');

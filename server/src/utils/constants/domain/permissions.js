@@ -27,6 +27,10 @@ const PERMISSIONS = {
     VIEW: 'view_inventory_allocations',
     CONFIRM: 'confirm_allocation',
   },
+  OUTBOUND_FULFILLMENT: {
+    INITIATE: 'initiate_outbound_fulfillment',
+    FULFILL: 'fulfill_outbound_fulfillment',
+  }
 };
 
 module.exports = PERMISSIONS;
