@@ -160,6 +160,11 @@ const fulfillOutboundShipmentService = async (requestData, user) => {
         client
       );
       
+      const fulfillmentRowWithStatus = {
+        ...fulfillmentRow,
+        status_id: fulfillmentInputs[0].status_id,
+      };
+      
       // TODO: lockRows allocations
       
       // 9. Insert shipment batch linking the allocation and shipment
@@ -205,7 +210,7 @@ const fulfillOutboundShipmentService = async (requestData, user) => {
       return transformFulfillmentResult({
         orderId,
         shipmentRow,
-        fulfillmentRow,
+        fulfillmentRowWithStatus,
         shipmentBatchRow,
         orderStatusRow,
         orderItemStatusRow,
@@ -286,7 +291,7 @@ const adjustInventoryForFulfillmentService = async (requestData, user) => {
   try {
     return await withTransaction(async (client) => {
       const userId = user.id;
-      const { orderId: rawOrderId, orderStatus, shipmentStatus, fulfillmentStatus } = requestData;
+      const { orderId: rawOrderId, orderStatus, allocationStatus, shipmentStatus, fulfillmentStatus } = requestData;
       // TODO: validate process: status?
       
       // --- 1. Fetch order metadata (ensures order exists & provides order number)
@@ -335,6 +340,10 @@ const adjustInventoryForFulfillmentService = async (requestData, user) => {
         orderStatus,
         client
       );
+      const newAllocationStatusId = await getInventoryAllocationStatusId(
+        allocationStatus,
+        client
+      );
       const { id: newShipmentStatusId } = await getShipmentStatusByCode(
         shipmentStatus,
         client
@@ -357,15 +366,18 @@ const adjustInventoryForFulfillmentService = async (requestData, user) => {
         orderFulfillmentStatusRow,
         shipmentStatusRow,
       } = await updateAllStatuses(
-        orderId,
-        orderNumber,
-        allocationMeta,
-        newOrderStatusId,
-        fulfillments,
-        newFulfillmentStatusId,
-        newShipmentStatusId,
-        userId,
-        client
+        {
+          orderId,
+          orderNumber,
+          allocationMeta,
+          newOrderStatusId,
+          newAllocationStatusId,
+          fulfillments,
+          newFulfillmentStatusId,
+          newShipmentStatusId,
+          userId,
+          client
+        }
       );
       
       // --- 10. Insert inventory activity logs for traceability
