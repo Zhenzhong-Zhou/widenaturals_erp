@@ -27,6 +27,7 @@ import { userReducers } from '@features/user';
 import { warehouseReducers } from '@features/warehouse';
 import { warehouseInventoryReducers } from '@features/warehouseInventory';
 import { inventoryAllocationReducers } from '@features/inventoryAllocation';
+import { outboundFulfillmentReducers } from '@features/outboundFulfillment/state';
 
 // Use helper to combine
 const appReducer = combineReducers(
@@ -59,6 +60,7 @@ const appReducer = combineReducers(
     orderTypeReducers,
     orderReducers,
     inventoryAllocationReducers,
+    outboundFulfillmentReducers,
 
     // Reporting
     reportReducers,
