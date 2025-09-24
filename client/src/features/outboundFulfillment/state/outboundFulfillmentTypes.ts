@@ -119,14 +119,12 @@ export interface OutboundFulfillmentFilters {
  * Derived from outboundShipmentSortMap (server).
  */
 export type OutboundFulfillmentSortKey =
-  | 'shipmentId'
   | 'shipmentStatus'
   | 'shipmentStatusCode'
   | 'shippedAt'
   | 'expectedDeliveryDate'
   | 'createdAt'
   | 'updatedAt'
-  | 'orderId'
   | 'orderNumber'
   | 'warehouseName'
   | 'deliveryMethod'
