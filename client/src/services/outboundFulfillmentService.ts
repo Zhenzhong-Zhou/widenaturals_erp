@@ -2,9 +2,12 @@ import type {
   InitiateFulfillmentBody,
   InitiateFulfillmentRequest,
   InitiateFulfillmentResponse,
+  OutboundFulfillmentQuery,
+  PaginatedOutboundFulfillmentResponse,
 } from '@features/outboundFulfillment/state';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import { postRequest } from '@utils/apiRequest';
+import { getRequest, postRequest } from '@utils/apiRequest';
+import { buildQueryString } from '@utils/buildQueryString';
 
 /**
  * Initiates outbound fulfillment for a specific order.
@@ -69,6 +72,62 @@ const initiateOutboundFulfillment = async (
   }
 };
 
+/**
+ * Fetches a paginated list of outbound fulfillment (shipment) records from the API.
+ *
+ * This function supports:
+ * - Pagination: `page`, `limit`
+ * - Sorting: `sortBy`, `sortOrder`
+ * - Filtering: via `filters` object (flattened into query params)
+ *
+ * ### How it Works
+ * - Extracts `filters` from the provided params
+ * - Flattens filters and other query parameters into a flat key-value object
+ * - Converts the flat object into a query string via `buildQueryString`
+ * - Sends a typed GET request to the `OUTBOUND_FULFILLMENT.ALL` endpoint
+ * - Returns a structured, typed response
+ *
+ * ### Query Parameters
+ * - Pagination: `page`, `limit`
+ * - Sorting: `sortBy`, `sortOrder`
+ * - Filters (flattened): `statusIds`, `warehouseIds`, `deliveryMethodIds`,
+ *   `orderNumber`, `keyword`, etc.
+ *
+ * @param {OutboundFulfillmentQuery} params
+ *   - Pagination: `page`, `limit`
+ *   - Sorting: `sortBy`, `sortOrder`
+ *   - Filtering: `filters` object with shipment/order-level filters
+ *
+ * @returns {Promise<PaginatedOutboundFulfillmentResponse>}
+ *   A typed paginated response containing:
+ *   - `data`: outbound shipment records
+ *   - `pagination`: page info (`page`, `limit`, `totalRecords`, `totalPages`)
+ *
+ * @throws {Error} If the request fails or the API returns an error
+ */
+const fetchPaginatedOutboundFulfillment = async (
+  params: OutboundFulfillmentQuery = {}
+): Promise<PaginatedOutboundFulfillmentResponse> => {
+  try {
+    const { filters = {}, ...rest } = params;
+    
+    // Flatten nested filters into top-level query keys
+    const flatParams = {
+      ...rest,
+      ...filters,
+    };
+    
+    const queryString = buildQueryString(flatParams);
+    const url = `${API_ENDPOINTS.OUTBOUND_FULFILLMENTS.ALL_RECORDS}${queryString}`;
+    
+    return await getRequest<PaginatedOutboundFulfillmentResponse>(url);
+  } catch (error) {
+    console.error('Failed to fetch outbound fulfillments:', error);
+    throw error;
+  }
+};
+
 export const outboundFulfillmentService = {
   initiateOutboundFulfillment,
+  fetchPaginatedOutboundFulfillment,
 };

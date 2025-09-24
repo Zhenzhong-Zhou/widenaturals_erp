@@ -80,6 +80,7 @@ export const API_ENDPOINTS = {
     CONFIRM_ALLOCATION: (orderId: string) => `/inventory-allocations/confirm/${orderId}`,
   },
   OUTBOUND_FULFILLMENTS: {
-    INITIATE_FULFILLMENT: (orderId: string) => `/outbound-fulfillments/orders/${orderId}/fulfillment/initiate`
+    INITIATE_FULFILLMENT: (orderId: string) => `/outbound-fulfillments/orders/${orderId}/fulfillment/initiate`,
+    ALL_RECORDS: '/outbound-fulfillments',
   },
 };

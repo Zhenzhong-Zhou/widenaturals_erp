@@ -1,4 +1,9 @@
-import type { ApiSuccessResponse, AsyncState } from '@shared-types/api';
+import type {
+  ApiSuccessResponse,
+  AsyncState, PaginatedResponse,
+  PaginationParams, ReduxPaginatedState,
+  SortConfig,
+} from '@shared-types/api';
 
 /**
  * Request body payload for initiating outbound fulfillment.
@@ -85,3 +90,118 @@ export type InitiateFulfillmentResponse = ApiSuccessResponse<InitiateFulfillment
  * Uses AsyncState with InitiateFulfillmentData as the payload type.
  */
 export type InitiateOutboundFulfillmentState = AsyncState<InitiateFulfillmentData | null>;
+
+/**
+ * Shipment-level and order-level filters for outbound fulfillment queries.
+ */
+export interface OutboundFulfillmentFilters {
+  // Shipment-level
+  statusIds?: string[];
+  warehouseIds?: string[];
+  deliveryMethodIds?: string[];
+  createdBy?: string;
+  updatedBy?: string;
+  createdAfter?: string; // ISO date string
+  createdBefore?: string; // ISO date string
+  shippedAfter?: string; // ISO date string
+  shippedBefore?: string; // ISO date string
+  
+  // Order-level
+  orderId?: string;
+  orderNumber?: string;
+  
+  // Keyword fuzzy match
+  keyword?: string;
+}
+
+/**
+ * Available sort keys for outbound shipments.
+ * Derived from outboundShipmentSortMap (server).
+ */
+export type OutboundFulfillmentSortKey =
+  | 'shipmentId'
+  | 'shipmentStatus'
+  | 'shipmentStatusCode'
+  | 'shippedAt'
+  | 'expectedDeliveryDate'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'orderId'
+  | 'orderNumber'
+  | 'warehouseName'
+  | 'deliveryMethod'
+  | 'trackingNumber'
+  | 'createdByFirstName'
+  | 'createdByLastName'
+  | 'updatedByFirstName'
+  | 'updatedByLastName';
+
+/**
+ * Query request params for outbound fulfillment fetch.
+ * Extends shared pagination and sorting config.
+ */
+export interface OutboundFulfillmentQuery
+  extends PaginationParams, SortConfig {
+  /**
+   * Outbound fulfillment–specific filters (shipment-level, order-level, etc.)
+   */
+  filters?: OutboundFulfillmentFilters;
+}
+
+/**
+ * Transformed outbound shipment record from API.
+ */
+export interface OutboundShipmentRecord {
+  shipmentId: string;
+  order: {
+    id: string;
+    number: string;
+  };
+  warehouse: {
+    id: string;
+    name: string | null;
+  };
+  deliveryMethod: {
+    id: string;
+    name: string;
+  } | null;
+  trackingNumber: {
+    id: string;
+    number: string;
+  } | null;
+  status: {
+    id: string;
+    code: string;
+    name: string;
+  };
+  dates: {
+    shippedAt: string | null;
+    expectedDelivery: string | null;
+  };
+  notes: string | null;
+  shipmentDetails: Record<string, any> | null;
+  audit: {
+    createdAt: string;
+    createdBy: {
+      id: string;
+      fullName: string;
+    };
+    updatedAt: string | null;
+    updatedBy: {
+      id: string | null;
+      fullName: string;
+    };
+  };
+}
+
+/**
+ * Paginated response for outbound fulfillment shipments.
+ */
+export type PaginatedOutboundFulfillmentResponse =
+  PaginatedResponse<OutboundShipmentRecord>;
+
+/**
+ * Outbound fulfillment list state.
+ * Extends generic ReduxPaginatedState with OutboundShipmentRecord type.
+ */
+export type PaginatedOutboundFulfillmentsState = ReduxPaginatedState<OutboundShipmentRecord>;
