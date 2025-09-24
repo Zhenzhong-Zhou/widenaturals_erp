@@ -286,6 +286,38 @@ const SORTABLE_FIELDS = {
     // Fallback default
     defaultNaturalSort: 'o.created_at',
   },
+  outboundShipmentSortMap: {
+    // Shipment-level fields (FROM outbound_shipments os)
+    shipmentId: 'os.id',
+    shipmentStatus: 'ss.name',
+    shipmentStatusCode: 'ss.code',
+    shippedAt: 'os.shipped_at',
+    expectedDeliveryDate: 'os.expected_delivery_date',
+    createdAt: 'os.created_at',
+    updatedAt: 'os.updated_at',
+    
+    // Order-level fields (FROM orders o)
+    orderId: 'os.order_id',
+    orderNumber: 'o.order_number',
+    
+    // Warehouse-level fields (FROM warehouses w)
+    warehouseName: 'w.name',
+    
+    // Delivery method (FROM delivery_methods dm)
+    deliveryMethod: 'dm.method_name',
+    
+    // Tracking info (FROM tracking_numbers tn)
+    trackingNumber: 'tn.tracking_number',
+    
+    // Audit fields (FROM users u1/u2)
+    createdByFirstName: 'u1.firstname',
+    createdByLastName: 'u1.lastname',
+    updatedByFirstName: 'u2.firstname',
+    updatedByLastName: 'u2.lastname',
+    
+    // Default fallback
+    defaultNaturalSort: 'os.created_at',
+  },
 };
 
 module.exports = {

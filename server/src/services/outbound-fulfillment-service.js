@@ -9,7 +9,7 @@ const { getWarehouseInventoryQuantities, bulkUpdateWarehouseQuantities } = requi
 const { getOrderStatusByCode } = require('../repositories/order-status-repository');
 const { insertInventoryActivityLogs } = require('../repositories/inventory-log-repository');
 const { getInventoryActionTypeId } = require('../repositories/inventory-action-type-repository');
-const { transformFulfillmentResult, transformAdjustedFulfillmentResult } = require('../transformers/outbound-fulfillment-transformer');
+const { transformFulfillmentResult, transformAdjustedFulfillmentResult, transformPaginatedOutboundShipmentResults } = require('../transformers/outbound-fulfillment-transformer');
 const {
   validateOrderIsFullyAllocated,
   getAndLockAllocations,
@@ -29,6 +29,8 @@ const { validateAllocationStatusTransition } = require('../business/inventory-al
 const { getShipmentStatusByCode } = require('../repositories/shipment-status-repository');
 const { getFulfillmentStatusByCode } = require('../repositories/fulfillment-status-repository');
 const { getInventoryAllocationStatusId } = require('../repositories/inventory-allocation-status-repository');
+const { error } = require('winston');
+const { getPaginatedOutboundShipmentRecords } = require('../repositories/outbound-shipment-repository');
 
 /**
  * Service: fulfillOutboundShipmentService
@@ -448,7 +450,123 @@ const adjustInventoryForFulfillmentService = async (requestData, user) => {
   }
 };
 
+/**
+ * Service: Fetch Paginated Outbound Fulfillments
+ *
+ * Provides a service-level abstraction over repository queries for outbound shipments.
+ * Handles pagination, filtering, transformation, and structured logging.
+ *
+ * ### Flow
+ * 1. Delegates to `getPaginatedOutboundShipmentRecords` in the repository layer
+ *    with provided filters, pagination, and sorting options.
+ * 2. If no results are found:
+ *    - Logs an informational event (`No outbound shipment records found`)
+ *    - Returns an empty `data` array with zeroed pagination metadata
+ * 3. If results are found:
+ *    - Transforms raw SQL rows into clean API-ready objects via
+ *      `transformPaginatedOutboundShipmentResults`
+ *    - Logs a successful fetch event with context and metadata
+ * 4. On error:
+ *    - Logs the exception with contextual metadata
+ *    - Throws a service-level `AppError` with a user-friendly message
+ *
+ * ### Parameters
+ * @param {Object} options - Query options
+ * @param {Object} [options.filters={}] - Filtering criteria (delegated to buildOutboundShipmentFilter)
+ * @param {number} [options.page=1] - Current page number (1-based)
+ * @param {number} [options.limit=10] - Max rows per page
+ * @param {string} [options.sortBy='created_at'] - Sort column (validated against outboundShipmentSortMap)
+ * @param {string} [options.sortOrder='DESC'] - Sort direction (`ASC` or `DESC`)
+ *
+ * ### Returns
+ * @returns {Promise<{
+ *   data: any[];
+ *   pagination: {
+ *     page: number;
+ *     limit: number;
+ *     totalRecords: number;
+ *     totalPages: number;
+ *   };
+ * }>} Paginated outbound fulfillment results
+ *
+ * ### Errors
+ * @throws {AppError} - Wrapped service error if repository execution fails
+ *
+ * ### Example
+ * ```ts
+ * const { data, pagination } = await fetchPaginatedOutboundFulfillmentService({
+ *   filters: { warehouseIds: ['uuid-warehouse'] },
+ *   page: 1,
+ *   limit: 20,
+ *   sortBy: 'created_at',
+ *   sortOrder: 'DESC',
+ * });
+ * ```
+ */
+const fetchPaginatedOutboundFulfillmentService = async ({
+                                                           filters = {},
+                                                           page = 1,
+                                                           limit = 10,
+                                                           sortBy = 'created_at',
+                                                           sortOrder = 'DESC',
+                                                         }) => {
+  try {
+    // Step 1: Query raw paginated outbound shipment rows from repository
+    const rawResult = await getPaginatedOutboundShipmentRecords({
+      filters,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
+    
+    // Step 2: Handle no results
+    if (!rawResult || rawResult.data.length === 0) {
+      logSystemInfo('No outbound shipment records found', {
+        context: 'outbound-fulfillment-service/fetchPaginatedOutboundFulfillmentService',
+        filters,
+        pagination: { page, limit },
+        sort: { sortBy, sortOrder },
+      });
+      
+      return {
+        data: [],
+        pagination: {
+          page,
+          limit,
+          totalRecords: 0,
+          totalPages: 0,
+        },
+      };
+    }
+    
+    // Step 3: Transform raw SQL rows into clean API-ready objects
+    const result = transformPaginatedOutboundShipmentResults(rawResult);
+    
+    // Step 4: Log success
+    logSystemInfo('Fetched paginated outbound shipment records', {
+      context: 'outbound-fulfillment-service/fetchPaginatedOutboundFulfillmentService',
+      filters,
+      pagination: result.pagination,
+      sort: { sortBy, sortOrder },
+    });
+    
+    return result;
+  } catch (error) {
+    // Step 5: Log exception and rethrow as service-level error
+    logSystemException(error, 'Failed to fetch paginated outbound shipment records', {
+      context: 'outbound-fulfillment-service/fetchPaginatedOutboundFulfillmentService',
+      filters,
+      pagination: { page, limit },
+      sort: { sortBy, sortOrder },
+    });
+    
+    throw AppError.serviceError('Could not fetch outbound shipments. Please try again later.');
+  }
+};
+
 module.exports = {
   fulfillOutboundShipmentService,
   adjustInventoryForFulfillmentService,
+  fetchPaginatedOutboundFulfillmentService,
 };
