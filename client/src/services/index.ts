@@ -20,3 +20,4 @@ export { customerService } from './customerService';
 export { addressService } from './addressService';
 export { orderService } from './orderService';
 export { inventoryAllocationService } from './inventoryAllocationService';
+export { outboundFulfillmentService } from './outboundFulfillmentService';
