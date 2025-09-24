@@ -21,7 +21,7 @@ import {
  * - Derived selectors (hasData, totalRecords)
  * - Dispatcher functions for fetching and resetting state
  */
-export const usePaginatedOutboundFulfillments = () => {
+const usePaginatedOutboundFulfillments = () => {
   const dispatch = useAppDispatch();
   
   // --- Selectors ---
