@@ -1,5 +1,15 @@
 const Joi = require('joi');
-const { validateOptionalString, validateUUIDArray, validateString } = require('./general-validators');
+const {
+  validateOptionalString,
+  validateUUIDArray,
+  validateString,
+  createSortSchema,
+  validateUUIDOrUUIDArrayOptional,
+  validateOptionalUUID,
+  createdDateRangeSchema,
+  shippedDateRangeSchema,
+  paginationSchema
+} = require('./general-validators');
 
 /**
  * Joi schema: fulfillOutboundShipmentBodySchema
@@ -74,7 +84,73 @@ const fulfillAdjustmentBodySchema = Joi.object({
   ),
 });
 
+/**
+ * Joi schema for validating outbound fulfillment (shipment) query parameters.
+ *
+ * Combines pagination, sorting, and domain-specific filters into a single schema
+ * for use in controllers and middleware.
+ *
+ * ### Includes:
+ * - **Pagination**
+ *   - `page` (default: 1)
+ *   - `limit` (default: 10)
+ *
+ * - **Sorting**
+ *   - `sortBy` (default: `created_at`, validated against outboundShipmentSortMap)
+ *   - `sortOrder` (`ASC` or `DESC`)
+ *
+ * - **Date Ranges**
+ *   - `createdAfter` / `createdBefore`
+ *   - `shippedAfter` / `shippedBefore`
+ *
+ * - **Shipment-level Filters**
+ *   - `statusIds` → array of Shipment Status IDs
+ *   - `warehouseIds` → array of Warehouse IDs
+ *   - `deliveryMethodIds` → array of Delivery Method IDs
+ *   - `createdBy` → filter by creator user ID
+ *   - `updatedBy` → filter by last updater user ID
+ *
+ * - **Order-level Filters**
+ *   - `orderId` → specific order UUID
+ *   - `orderNumber` → fuzzy match on order number
+ *
+ * - **Keyword Search**
+ *   - `keyword` → fuzzy match across order number, warehouse name, delivery method
+ *
+ * ### Usage:
+ * Used in:
+ * - `createQueryNormalizationMiddleware` for `/outbound-fulfillments`
+ * - Validation of query params in controllers
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const outboundFulfillmentQuerySchema = paginationSchema
+  // Default sort field
+  .concat(createSortSchema('created_at'))
+  // Date range filters
+  .concat(createdDateRangeSchema)
+  .concat(shippedDateRangeSchema)
+  .keys({
+    // --- Shipment-level filters ---
+    statusIds: validateUUIDOrUUIDArrayOptional('Shipment Status IDs'),
+    warehouseIds: validateUUIDOrUUIDArrayOptional('Warehouse IDs'),
+    deliveryMethodIds: validateUUIDOrUUIDArrayOptional('Delivery Method IDs'),
+    
+    createdBy: validateOptionalUUID('Shipment Created By User ID'),
+    updatedBy: validateOptionalUUID('Shipment Updated By User ID'),
+    
+    // --- Order-level filters ---
+    orderId: validateOptionalUUID('Order ID'),
+    orderNumber: validateOptionalString('Order Number'),
+    
+    // --- Keyword search ---
+    keyword: validateOptionalString(
+      'Keyword for fuzzy matching (order number, warehouse, delivery method)'
+    ),
+  });
+
 module.exports = {
   fulfillOutboundShipmentBodySchema,
   fulfillAdjustmentBodySchema,
+  outboundFulfillmentQuerySchema,
 };

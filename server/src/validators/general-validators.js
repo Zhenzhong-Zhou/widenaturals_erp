@@ -381,6 +381,30 @@ const aggregatedDateRangeSchema = Joi.object({
 });
 
 /**
+ * Joi schema for filtering by shipped date range.
+ *
+ * Includes:
+ * - `shippedAfter`: ISO date to filter records shipped on or after this date
+ * - `shippedBefore`: ISO date to filter records shipped on or before this date
+ *
+ * Accepts null or empty string values.
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const shippedDateRangeSchema = Joi.object({
+  shippedAfter: Joi.date()
+    .iso()
+    .optional()
+    .allow(null, '')
+    .label('Shipped After'),
+  shippedBefore: Joi.date()
+    .iso()
+    .optional()
+    .allow(null, '')
+    .label('Shipped Before'),
+});
+
+/**
  * Creates a Joi schema for a boolean query parameter that accepts flexible truthy/falsy values.
  *
  * - Accepts true/false, or strings like 'true'/'false'
@@ -453,6 +477,7 @@ module.exports = {
   statusDateRangeSchema,
   allocatedDateRangeSchema,
   aggregatedDateRangeSchema,
+  shippedDateRangeSchema,
   createBooleanFlag,
   validateKeyword,
   validateOptionalString,

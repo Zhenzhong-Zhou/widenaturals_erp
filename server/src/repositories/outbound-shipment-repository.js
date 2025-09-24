@@ -1,6 +1,7 @@
-const { bulkInsert, query } = require('../database/db');
+const { bulkInsert, query, paginateResults } = require('../database/db');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
+const { buildOutboundShipmentFilter } = require('../utils/sql/build-outbound-shipment-filters');
 
 /**
  * Inserts or updates outbound shipment records in bulk.
@@ -214,7 +215,125 @@ const updateOutboundShipmentStatus = async ({ statusId, userId, shipmentIds }, c
   }
 };
 
+/**
+ * Fetches a paginated list of outbound shipment records with filtering, sorting, and logging.
+ *
+ * @param {Object} options - Query options
+ * @param {Object} [options.filters={}] - Filtering criteria (delegated to buildOutboundShipmentFilter)
+ * @param {number} [options.page=1] - Current page number (1-based)
+ * @param {number} [options.limit=10] - Max rows per page
+ * @param {string} [options.sortBy='created_at'] - Sort column (validated via outboundShipmentSortMap)
+ * @param {string} [options.sortOrder='DESC'] - Sort direction (`ASC` or `DESC`)
+ *
+ * @returns {Promise<{
+ *   data: any[];
+ *   pagination: { page: number; limit: number; totalRecords: number; totalPages: number };
+ * } | null>}
+ * - Paginated results array with metadata, or `null` if no records were found.
+ *
+ * @throws {AppError}
+ * - Wraps database errors in `AppError.databaseError` with query context.
+ *
+ * @note
+ * - `sortBy` must be validated via `outboundShipmentSortMap` to prevent unsafe SQL injection.
+ *
+ * @logging
+ * - Logs successful queries with filters, pagination, and sorting.
+ * - Logs empty results with pagination context.
+ * - Logs exceptions with error details.
+ */
+const getPaginatedOutboundShipmentRecords = async ({
+                                                     filters = {},
+                                                     page = 1,
+                                                     limit = 10,
+                                                     sortBy = 'created_at',
+                                                     sortOrder = 'DESC',
+                                                   }) => {
+  const { whereClause, params } = buildOutboundShipmentFilter(filters);
+  
+  const dataQuery = `
+    SELECT
+      os.id AS shipment_id,
+      os.order_id,
+      o.order_number,
+      os.warehouse_id,
+      w.name AS warehouse_name,
+      os.delivery_method_id,
+      dm.method_name AS delivery_method,
+      os.tracking_number_id,
+      tn.tracking_number AS tracking_number,
+      os.status_id,
+      ss.code AS status_code,
+      ss.name AS status_name,
+      os.shipped_at,
+      os.expected_delivery_date,
+      os.notes,
+      os.shipment_details,
+      os.created_at,
+      os.updated_at,
+      os.created_by,
+      u1.firstname AS created_by_firstname,
+      u1.lastname AS created_by_lastname,
+      os.updated_by,
+      u2.firstname AS updated_by_firstname,
+      u2.lastname AS updated_by_lastname
+    FROM outbound_shipments os
+    LEFT JOIN orders o ON os.order_id = o.id
+    LEFT JOIN warehouses w ON os.warehouse_id = w.id
+    LEFT JOIN delivery_methods dm ON os.delivery_method_id = dm.id
+    LEFT JOIN tracking_numbers tn ON os.tracking_number_id = tn.id
+    LEFT JOIN shipment_status ss ON os.status_id = ss.id
+    LEFT JOIN users u1 ON os.created_by = u1.id
+    LEFT JOIN users u2 ON os.updated_by = u2.id
+    WHERE ${whereClause}
+    ORDER BY ${sortBy} ${sortOrder}
+  `;
+  
+  try {
+    const result = await paginateResults({
+      dataQuery,
+      params,
+      page,
+      limit,
+      meta: {
+        context: 'outbound-shipment-repository/getPaginatedOutboundShipmentRecords',
+      }
+    });
+    
+    if (result.data.length === 0) {
+      logSystemInfo('No outbound shipments found for current query', {
+        context: 'outbound-shipment-repository/getPaginatedOutboundShipmentRecords',
+        filters,
+        pagination: { page, limit },
+        sorting: { sortBy, sortOrder },
+      });
+      return null;
+    }
+    
+    logSystemInfo('Fetched paginated outbound shipment records successfully', {
+      context: 'outbound-shipment-repository/getPaginatedOutboundShipmentRecords',
+      filters,
+      pagination: { page, limit },
+      sorting: { sortBy, sortOrder },
+    });
+    
+    return result;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch paginated outbound shipment records', {
+      context: 'outbound-shipment-repository/getPaginatedOutboundShipmentRecords',
+      filters,
+      pagination: { page, limit },
+      sorting: { sortBy, sortOrder },
+    });
+    
+    throw AppError.databaseError('Failed to fetch paginated outbound shipment records', {
+      context: 'outbound-shipment-repository/getPaginatedOutboundShipmentRecords',
+    });
+  }
+};
+
 module.exports = {
   insertOutboundShipmentsBulk,
   updateOutboundShipmentStatus,
+  getPaginatedOutboundShipmentRecords,
 };

@@ -3,8 +3,12 @@ const authorize = require('../middlewares/authorize');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
 const validate = require('../middlewares/validate');
 const { orderIdParamSchema } = require('../validators/order-validators');
-const { fulfillOutboundShipmentBodySchema, fulfillAdjustmentBodySchema } = require('../validators/outbound-fulfillment-validators');
-const { fulfillOutboundShipmentController, adjustInventoryForFulfillmentController } = require('../controllers/outbound-fulfillment-controller');
+const { fulfillOutboundShipmentBodySchema, fulfillAdjustmentBodySchema, outboundFulfillmentQuerySchema } = require('../validators/outbound-fulfillment-validators');
+const { fulfillOutboundShipmentController, adjustInventoryForFulfillmentController,
+  getPaginatedOutboundFulfillmentController
+} = require('../controllers/outbound-fulfillment-controller');
+const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
+const { sanitizeFields } = require('../middlewares/sanitize');
 
 const router = express.Router();
 
@@ -97,6 +101,52 @@ router.post(
   validate(orderIdParamSchema, 'params'),
   validate(fulfillAdjustmentBodySchema, 'body'),
   adjustInventoryForFulfillmentController
+);
+
+/**
+ * GET /api/v1/outbound-fulfillments
+ *
+ * Retrieves a paginated list of outbound fulfillment (shipment) records.
+ *
+ * ### Middleware stack:
+ * - `authorize` → Ensures the user has OUTBOUND_FULFILLMENT.VIEW permission
+ * - `createQueryNormalizationMiddleware` → Normalizes sort fields and array filters:
+ *    - Sort map: `outboundShipmentSortMap`
+ *    - Array filters: `statusIds`, `warehouseIds`, `deliveryMethodIds`
+ * - `sanitizeFields` → Cleans potentially unsafe string fields (`keyword`)
+ * - `validate` → Validates query params against `outboundFulfillmentQuerySchema`
+ *
+ * ### Query Parameters (normalized & validated):
+ * - Pagination: `page`, `limit`
+ * - Sorting: `sortBy`, `sortOrder` (validated against `outboundShipmentSortMap`)
+ * - Filters:
+ *   - Shipment-level: `statusIds[]`, `warehouseIds[]`, `deliveryMethodIds[]`
+ *   - Audit: `createdBy`, `updatedBy`, `createdAfter`, `createdBefore`, `shippedAfter`, `shippedBefore`
+ *   - Order-level: `orderId`, `orderNumber`
+ *   - Keyword search: fuzzy match on order number, warehouse, delivery method
+ *
+ * ### Response (200 OK):
+ * {
+ *   success: true,
+ *   message: "Outbound fulfillments retrieved successfully.",
+ *   data: [...],
+ *   pagination: { page, limit, totalRecords, totalPages }
+ * }
+ *
+ * @access Protected
+ */
+router.get(
+  '/',
+  authorize([PERMISSIONS.OUTBOUND_FULFILLMENT.VIEW]),
+  createQueryNormalizationMiddleware(
+    'outboundShipmentSortMap',
+    ['statusIds', 'warehouseIds', 'deliveryMethodIds'], // array filters
+    [],
+    outboundFulfillmentQuerySchema
+  ),
+  sanitizeFields(['keyword']),
+  validate(outboundFulfillmentQuerySchema, 'query'),
+  getPaginatedOutboundFulfillmentController
 );
 
 module.exports = router;

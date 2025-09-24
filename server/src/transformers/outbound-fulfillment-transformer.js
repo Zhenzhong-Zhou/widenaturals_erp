@@ -1,4 +1,6 @@
 const { cleanObject } = require('../utils/object-utils');
+const { getFullName } = require('../utils/name-utils');
+const { transformPaginatedResult } = require('../utils/transformer-utils');
 
 /**
  * Transforms raw DB rows into a normalized fulfillment result object.
@@ -140,7 +142,111 @@ const transformAdjustedFulfillmentResult = ({
   };
 };
 
+/**
+ * Transforms a single raw outbound shipment SQL row into a clean, API-ready object.
+ *
+ * ### Input
+ * A flat SQL row returned from `getPaginatedOutboundShipmentRecords`, containing:
+ * - Shipment-level fields (id, status, notes, shipment_details, dates)
+ * - Order-level fields (order_id, order_number)
+ * - Warehouse info (warehouse_id, warehouse_name)
+ * - Delivery method and tracking number (joined metadata)
+ * - Audit fields (created/updated timestamps and usernames)
+ *
+ * ### Output
+ * A normalized object with nested structures for:
+ * - `shipmentId`
+ * - `order` → `{ id, number }`
+ * - `warehouse` → `{ id, name }`
+ * - `deliveryMethod` → `{ id, name } | null`
+ * - `trackingNumber` → `{ id, number } | null`
+ * - `status` → `{ id, code, name }`
+ * - `dates` → `{ shippedAt, expectedDelivery }`
+ * - `notes` and `shipmentDetails`
+ * - `audit` → `{ createdAt, createdBy, updatedAt, updatedBy }`
+ *
+ * @param {Record<string, any>} row - Raw SQL row object
+ * @returns {Record<string, any>} Clean API-ready outbound shipment object
+ */
+const transformOutboundShipmentRow = (row) => {
+  const base = {
+    shipmentId: row.shipment_id,
+    order: {
+      id: row.order_id,
+      number: row.order_number,
+    },
+    warehouse: {
+      id: row.warehouse_id,
+      name: row.warehouse_name ?? null,
+    },
+    deliveryMethod: row.delivery_method
+      ? {
+        id: row.delivery_method_id,
+        name: row.delivery_method,
+      }
+      : null,
+    trackingNumber: row.tracking_number
+      ? {
+        id: row.tracking_number_id,
+        number: row.tracking_number,
+      }
+      : null,
+    status: {
+      id: row.status_id,
+      code: row.status_code,
+      name: row.status_name,
+    },
+    dates: {
+      shippedAt: row.shipped_at ?? null,
+      expectedDelivery: row.expected_delivery_date ?? null,
+    },
+    notes: row.notes ?? null,
+    shipmentDetails: row.shipment_details ?? null, // JSONB
+    audit: {
+      createdAt: row.created_at,
+      createdBy: {
+        id: row.created_by,
+        fullName: getFullName(row.created_by_firstname, row.created_by_lastname),
+      },
+      updatedAt: row.updated_at,
+      updatedBy: {
+        id: row.updated_by,
+        fullName: getFullName(row.updated_by_firstname, row.updated_by_lastname),
+      },
+    },
+  };
+  
+  return cleanObject(base);
+};
+
+/**
+ * Transforms a paginated set of outbound shipment rows into API-ready format.
+ *
+ * Wraps `transformOutboundShipmentRow` for each row and preserves pagination metadata.
+ *
+ * ### Input
+ * - `paginatedResult` → `{ data: SQLRow[], pagination: { page, limit, totalRecords, totalPages } }`
+ *
+ * ### Output
+ * - `{ data: TransformedOutboundShipment[], pagination }`
+ *
+ * @param {{
+ *   data: Record<string, any>[];
+ *   pagination: { page: number; limit: number; totalRecords: number; totalPages: number };
+ * }} paginatedResult - The raw paginated result from the repository
+ * @returns {{
+ *   data: Record<string, any>[];
+ *   pagination: { page: number; limit: number; totalRecords: number; totalPages: number };
+ * }} Cleaned paginated outbound shipment results
+ */
+const transformPaginatedOutboundShipmentResults = (paginatedResult) => {
+  return transformPaginatedResult(paginatedResult, (row) =>
+    transformOutboundShipmentRow(row)
+  );
+};
+
 module.exports = {
   transformFulfillmentResult,
   transformAdjustedFulfillmentResult,
+  transformPaginatedOutboundShipmentResults,
 };

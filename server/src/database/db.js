@@ -703,14 +703,14 @@ const getCountQuery = (queryText, alias = 'subquery') => {
  * @returns {Promise<Object>} - Paginated results with metadata.
  */
 const paginateResults = async ({
-  dataQuery,
-  params = [],
-  page = 1,
-  limit = 20,
-  meta = {},
-}) => {
+                                 dataQuery,
+                                 params = [],
+                                 page = 1,
+                                 limit = 20,
+                                 meta = {},
+                               }) => {
   const offset = (page - 1) * limit;
-
+  
   // Main paginated query
   const paginatedQuery = `${dataQuery.trim().replace(/;$/, '')} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
   const paginatedParams = [...params, limit, offset];

@@ -1,5 +1,5 @@
 const wrapAsync = require('../utils/wrap-async');
-const { fulfillOutboundShipmentService, adjustInventoryForFulfillmentService } = require('../services/outbound-fulfillment-service');
+const { fulfillOutboundShipmentService, adjustInventoryForFulfillmentService, fetchPaginatedOutboundFulfillmentService } = require('../services/outbound-fulfillment-service');
 const { logInfo } = require('../utils/logger-helper');
 
 /**
@@ -105,7 +105,66 @@ const adjustInventoryForFulfillmentController = wrapAsync( async (req, res) => {
   });
 });
 
+/**
+ * Controller: Get Paginated Outbound Fulfillments
+ *
+ * Handles GET /api/v1/outbound-fulfillments requests.
+ *
+ * Flow:
+ * 1. Extracts normalized query params (`page`, `limit`, `sortBy`, `sortOrder`, `filters`)
+ *    from `req.normalizedQuery` (populated by query normalization middleware).
+ * 2. Delegates to `fetchPaginatedOutboundFulfillmentService` to fetch
+ *    transformed shipment records with pagination and filtering applied.
+ * 3. Responds with a standardized JSON payload including:
+ *    - `success: true`
+ *    - `message: "Outbound fulfillments retrieved successfully."`
+ *    - `data: []` array of outbound fulfillment records
+ *    - `pagination` metadata `{ page, limit, totalRecords, totalPages }`
+ *
+ * Example response:
+ * {
+ *   success: true,
+ *   message: "Outbound fulfillments retrieved successfully.",
+ *   data: [
+ *     {
+ *       shipmentId: "uuid",
+ *       order: { id: "uuid", number: "SO-00123" },
+ *       warehouse: { id: "uuid", name: "Main Warehouse" },
+ *       status: { id: "uuid", code: "SHIPPED", name: "Shipped" },
+ *       dates: { shippedAt: "...", createdAt: "...", updatedAt: "..." },
+ *       createdBy: { id: "uuid", fullName: "Alice Admin" },
+ *       updatedBy: { id: "uuid", fullName: "Bob Manager" }
+ *     }
+ *   ],
+ *   pagination: { page: 1, limit: 10, totalRecords: 42, totalPages: 5 }
+ * }
+ *
+ * @access Protected
+ * @throws {AppError} Propagates errors from the service layer
+ */
+const getPaginatedOutboundFulfillmentController = wrapAsync(async (req, res) => {
+  const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
+  
+  // Step 1: Fetch transformed paginated results from service
+  const { data, pagination } = await fetchPaginatedOutboundFulfillmentService({
+    filters,
+    page,
+    limit,
+    sortBy,
+    sortOrder,
+  });
+  
+  // Step 2: Return 200 response
+  res.status(200).json({
+    success: true,
+    message: 'Outbound fulfillments retrieved successfully.',
+    data,
+    pagination,
+  });
+});
+
 module.exports = {
   fulfillOutboundShipmentController,
   adjustInventoryForFulfillmentController,
+  getPaginatedOutboundFulfillmentController,
 };
