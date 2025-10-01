@@ -7,6 +7,7 @@ exports.up = async function(knex) {
     table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
     
     table.uuid('shipment_id').notNullable().references('id').inTable('outbound_shipments');
+    table.uuid('fulfillment_id').notNullable().references('id').inTable('order_fulfillments');
     table.uuid('batch_id').notNullable().references('id').inTable('batch_registry');
     table.integer('quantity_shipped').notNullable(); // from that batch
     table.text('notes').nullable();
@@ -14,7 +15,7 @@ exports.up = async function(knex) {
     table.uuid('created_by').references('id').inTable('users');
     table.timestamp('created_at').defaultTo(knex.fn.now());
     
-    table.unique(['shipment_id', 'batch_id']);
+    table.unique(['fulfillment_id', 'batch_id'], { indexName: 'uniq_shipment_batches_fulfillment_batch' });
   });
   
 };

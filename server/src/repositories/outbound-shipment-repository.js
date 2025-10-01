@@ -332,8 +332,172 @@ const getPaginatedOutboundShipmentRecords = async ({
   }
 };
 
+/**
+ * Fetch detailed outbound shipment information by shipment ID.
+ *
+ * Includes the following:
+ *  - Shipment header (status, warehouse, notes, expected delivery date, etc.)
+ *  - Tracking information (tracking number, carrier, service, status, etc.)
+ *  - Fulfillments (linked order items, fulfillment status, quantities, etc.)
+ *  - Order Item details:
+ *    - If product → includes SKU & Product metadata (SKU code, barcode, product name, brand, category, etc.)
+ *    - If packaging material → includes packaging material metadata (code, name, size, color, unit, dimensions)
+ *  - Batch information (shipment_batches + batch_registry):
+ *    - If product batch → includes `product_lot_number`, `product_expiry_date`
+ *    - If packaging material batch → includes `material_lot_number`, `material_expiry_date`,
+ *      plus `material_snapshot_name` and `received_label_name`
+ *
+ * Note:
+ *  - Returns a **flat array of rows** (one per fulfillment × batch).
+ *  - Data will contain **duplicated shipment/fulfillment headers**.
+ *  - Use a transformer (e.g., `transformShipmentDetailsRows`) to structure into:
+ *    {
+ *      shipment,
+ *      tracking,
+ *      fulfillments: [
+ *        { orderItem, batches[] }
+ *      ]
+ *    }
+ *
+ * @param {string} shipmentId - UUID of the outbound shipment
+ * @returns {Promise<object[]>} Raw query result rows
+ *
+ * @example
+ * [
+ *   {
+ *     shipment_id: 'uuid',
+ *     warehouse_name: 'Main Warehouse',
+ *     fulfillment_id: 'uuid',
+ *     order_item_id: 'uuid',
+ *     -- If product:
+ *     sku: 'WN-MO400-S-UN',
+ *     product_name: 'Seal Oil 400mg',
+ *     product_lot_number: 'LOT-2024-001',
+ *     product_expiry_date: '2026-12-31',
+ *
+ *     -- If packaging material:
+ *     packaging_material_name: 'Bottle 200ml Amber',
+ *     material_lot_number: 'PM-001',
+ *     material_expiry_date: '2030-01-01',
+ *     received_label_name: 'Bottle 200ml Amber • pcs',
+ *
+ *     quantity_shipped: 100,
+ *     batch_registry_id: 'uuid',
+ *     batch_type: 'product' | 'packaging_material'
+ *   },
+ *   ...
+ * ]
+ *
+ * @throws {AppError} Wrapped `databaseError` if the query fails
+ */
+const getShipmentDetailsById = async (shipmentId) => {
+  const sql = `
+    SELECT
+      os.id AS shipment_id,
+      os.order_id,
+      os.warehouse_id,
+      ws.name AS warehouse_name,
+      os.status_id AS shipment_status_id,
+      ss.code AS shipment_status_code,
+      ss.name AS shipment_status_name,
+      os.shipped_at,
+      os.expected_delivery_date,
+      os.notes AS shipment_notes,
+      os.shipment_details,
+      tn.id AS tracking_id,
+      tn.tracking_number,
+      tn.carrier,
+      tn.service_name,
+      tn.bol_number,
+      tn.freight_type,
+      tn.custom_notes AS tracking_notes,
+      tn.shipped_date AS tracking_shipped_date,
+      tn.status_id AS tracking_status_id,
+      ts.name AS tracking_status_name,
+      of.id AS fulfillment_id,
+      of.quantity_fulfilled,
+      of.fulfilled_at,
+      of.fulfillment_notes,
+      of.status_id AS fulfillment_status_id,
+      fs.code AS fulfillment_status_code,
+      fs.name AS fulfillment_status_name,
+      oi.id AS order_item_id,
+      oi.quantity_ordered,
+      oi.metadata AS order_item_metadata,
+      s.id AS sku_id,
+      s.sku,
+      s.barcode,
+      s.country_code,
+      s.size_label,
+      s.market_region,
+      p.id AS product_id,
+      p.name AS product_name,
+      p.brand,
+      p.series,
+      p.category,
+      oi.packaging_material_id,
+      pkg.code   AS packaging_material_code,
+      pkg.name   AS packaging_material_name,
+      pkg.color  AS packaging_material_color,
+      pkg.size   AS packaging_material_size,
+      pkg.unit   AS packaging_material_unit,
+      pkg.length_cm AS packaging_material_length_cm,
+      pkg.width_cm  AS packaging_material_width_cm,
+      pkg.height_cm AS packaging_material_height_cm,
+      sb.id AS shipment_batch_id,
+      sb.quantity_shipped,
+      br.id AS batch_registry_id,
+      br.batch_type,
+      pb.lot_number  AS product_lot_number,
+      pb.expiry_date AS product_expiry_date,
+      pmb.id AS packaging_material_batch_id,
+      pmb.lot_number AS material_lot_number,
+      pmb.expiry_date AS material_expiry_date,
+      pmb.material_snapshot_name,
+      pmb.received_label_name
+    FROM outbound_shipments os
+    LEFT JOIN warehouses ws ON ws.id = os.warehouse_id
+    LEFT JOIN shipment_status ss ON ss.id = os.status_id
+    LEFT JOIN tracking_numbers tn ON tn.id = os.tracking_number_id
+    LEFT JOIN status ts ON ts.id = tn.status_id
+    LEFT JOIN order_fulfillments of ON of.shipment_id = os.id
+    LEFT JOIN fulfillment_status fs ON fs.id = of.status_id
+    LEFT JOIN order_items oi ON oi.id = of.order_item_id
+    LEFT JOIN skus s ON s.id = oi.sku_id
+    LEFT JOIN products p ON p.id = s.product_id
+    LEFT JOIN packaging_materials pkg ON pkg.id = oi.packaging_material_id
+    LEFT JOIN shipment_batches sb ON sb.fulfillment_id = of.id
+    LEFT JOIN batch_registry br ON br.id = sb.batch_id
+    LEFT JOIN product_batches pb ON br.product_batch_id = pb.id
+    LEFT JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id
+    WHERE os.id = $1;
+  `;
+  
+  try {
+    const result = await query(sql, [shipmentId]);
+    
+    logSystemInfo('Fetched shipment details', {
+      context: 'outbound-shipment-repository/getShipmentDetailsById',
+      shipmentId,
+      rowCount: result.rowCount,
+    });
+    
+    return result.rows;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch shipment details', {
+      context: 'outbound-shipment-repository/getShipmentDetailsById',
+      shipmentId,
+    });
+    
+    throw AppError.databaseError('Failed to fetch shipment details', {
+      shipmentId,
+    });
+  }
+};
+
 module.exports = {
   insertOutboundShipmentsBulk,
   updateOutboundShipmentStatus,
   getPaginatedOutboundShipmentRecords,
+  getShipmentDetailsById,
 };

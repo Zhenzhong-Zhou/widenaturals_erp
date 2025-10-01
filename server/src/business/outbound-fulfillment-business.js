@@ -260,36 +260,57 @@ const insertOutboundShipmentRecord = async (order_id, warehouse_id, delivery_met
 /**
  * Builds input payloads for creating shipment batch records from allocation metadata.
  *
- * Business rule:
- *  - Each allocation fulfilled must be represented in the shipment batch table.
- *  - Shipment batches record the shipped quantity of each batch tied to a shipment.
+ * Business rules:
+ *  - Each allocation fulfilled must be represented in the `shipment_batches` table.
+ *  - Shipment batches record the shipped quantity of each batch tied to a shipment and fulfillment.
  *
  * Usage:
- *  - Call immediately after inserting a shipment record.
- *  - Intended to prepare insert-ready objects for `insertShipmentBatchesBulk`.
+ *  - Call immediately after inserting a shipment and its fulfillment record(s).
+ *  - Output is insert-ready for `insertShipmentBatchesBulk`.
  *
- * @async
  * @function
- * @param {Object[]} allocationMeta - List of allocation metadata objects
- * @param {string} allocationMeta[].batch_id - The batch ID linked to the allocation
- * @param {number} allocationMeta[].allocated_quantity - The quantity allocated per batch
- * @param {string} shipmentId - The ID of the outbound shipment
+ * @param {Array<{
+ *   batch_id: string,
+ *   allocated_quantity: number
+ * }>} allocationMeta - List of allocation metadata objects
+ * @param {string} shipmentId - UUID of the outbound shipment
+ * @param {string} fulfillmentId - UUID of the fulfillment associated with this shipment
  * @param {string|null} note - Optional notes for the shipment batch
- * @param {string} userId - The ID of the user creating the records
- * @returns {Object[]} Array of shipment batch input objects ready for database insertion
+ * @param {string} userId - UUID of the user creating the records
+ * @returns {Array<{
+ *   shipment_id: string,
+ *   fulfillment_id: string,
+ *   batch_id: string,
+ *   quantity_shipped: number,
+ *   notes: string|null,
+ *   created_by: string
+ * }>} Array of shipment batch input objects ready for database insertion
+ *
  * @example
- * // Example output for a single allocation
- * [{
- *   shipment_id: "ship-123",
- *   batch_id: "batch-456",
- *   quantity_shipped: 100,
- *   notes: "Priority shipment",
- *   created_by: "user-789"
- * }]
+ * buildShipmentBatchInputs(
+ *   [{ batch_id: "batch-456", allocated_quantity: 100 }],
+ *   "ship-123",
+ *   "ful-789",
+ *   "Priority shipment",
+ *   "user-789"
+ * )
+ * // => [{
+ * //   shipment_id: "ship-123",
+ * //   fulfillment_id: "ful-789",
+ * //   batch_id: "batch-456",
+ * //   quantity_shipped: 100,
+ * //   notes: "Priority shipment",
+ * //   created_by: "user-789"
+ * // }]
  */
-const buildShipmentBatchInputs = (allocationMeta, shipmentId, note, userId) => {
+const buildShipmentBatchInputs = (  allocationMeta,
+                                    shipmentId,
+                                    fulfillmentId,
+                                    note,
+                                    userId) => {
   return allocationMeta.map(a => ({
     shipment_id: shipmentId,
+    fulfillment_id: fulfillmentId,
     batch_id: a.batch_id,
     quantity_shipped: a.allocated_quantity,
     notes: note ?? null,

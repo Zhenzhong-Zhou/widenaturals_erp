@@ -6,19 +6,20 @@ const AppError = require('../utils/AppError');
  * Inserts or updates shipment batch records in bulk.
  *
  * Business rules:
- *  - On conflict (`shipment_id`, `batch_id`), the following strategies apply:
- *    - `quantity_shipped`: incremented (sums quantities if the same batch is reinserted).
+ *  - On conflict (`fulfillment_id`, `batch_id`), the following strategies apply:
+ *    - `quantity_shipped`: incremented (sums quantities if the same fulfillment/batch pair is reinserted).
  *    - `notes`: merged using text concatenation with timestamp prefix.
  *    - `created_at`: overwritten to reflect the most recent insert (acts as "last seen" timestamp).
  *
  * Usage:
- *  - Call during fulfillment when recording which batches were shipped for a shipment.
+ *  - Call during fulfillment when recording which batches were shipped for a specific fulfillment.
  *  - Optimized to perform a single bulk insert/update round-trip.
  *
  * @async
  * @function
  * @param {Array<{
  *   shipment_id: string,
+ *   fulfillment_id: string,
  *   batch_id: string,
  *   quantity_shipped: number,
  *   notes?: string | null,
@@ -32,8 +33,8 @@ const AppError = require('../utils/AppError');
  *
  * @example
  * await insertShipmentBatchesBulk([
- *   { shipment_id: "shp-001", batch_id: "batch-123", quantity_shipped: 10, notes: "Initial fulfillment" },
- *   { shipment_id: "shp-001", batch_id: "batch-123", quantity_shipped: 5, notes: "Extra allocation" }
+ *   { shipment_id: "shp-001", fulfillment_id: "ful-789", batch_id: "batch-123", quantity_shipped: 10, notes: "Initial fulfillment" },
+ *   { shipment_id: "shp-001", fulfillment_id: "ful-789", batch_id: "batch-123", quantity_shipped: 5, notes: "Extra allocation" }
  * ], client);
  * // Merges into one record with quantity_shipped = 15 and merged notes
  */
@@ -42,6 +43,7 @@ const insertShipmentBatchesBulk = async (shipmentBatches, client) => {
   
   const columns = [
     'shipment_id',
+    'fulfillment_id',
     'batch_id',
     'quantity_shipped',
     'notes',
@@ -50,18 +52,20 @@ const insertShipmentBatchesBulk = async (shipmentBatches, client) => {
   
   const rows = shipmentBatches.map((b) => [
     b.shipment_id,
+    b.fulfillment_id,
     b.batch_id,
     b.quantity_shipped,
     b.notes ?? null,
     b.created_by ?? null,
   ]);
   
-  const conflictColumns = ['shipment_id', 'batch_id'];
+  // Now uniqueness is per-fulfillment, per-batch
+  const conflictColumns = ['fulfillment_id', 'batch_id'];
   
   const updateStrategies = {
-    quantity_shipped: 'add',      // Sum quantities if same shipment/batch
-    notes: 'merge_text',               // Merge notes text
-    created_at: 'overwrite',      // Keep latest creation time (optional)
+    quantity_shipped: 'add',   // Add to existing shipped quantity
+    notes: 'merge_text',       // Concatenate notes
+    created_at: 'overwrite',   // Refresh timestamp if re-inserted
   };
   
   try {

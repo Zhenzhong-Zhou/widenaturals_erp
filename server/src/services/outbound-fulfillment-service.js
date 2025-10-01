@@ -5,11 +5,19 @@ const { getSalesOrderShipmentMetadata } = require('../repositories/order-reposit
 const { insertOrderFulfillmentsBulk, getOrderFulfillments } = require('../repositories/order-fulfillment-repository');
 const { insertShipmentBatchesBulk } = require('../repositories/shipment-batch-repository');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
-const { getWarehouseInventoryQuantities, bulkUpdateWarehouseQuantities } = require('../repositories/warehouse-inventory-repository');
+const {
+  getWarehouseInventoryQuantities,
+  bulkUpdateWarehouseQuantities
+} = require('../repositories/warehouse-inventory-repository');
 const { getOrderStatusByCode } = require('../repositories/order-status-repository');
 const { insertInventoryActivityLogs } = require('../repositories/inventory-log-repository');
 const { getInventoryActionTypeId } = require('../repositories/inventory-action-type-repository');
-const { transformFulfillmentResult, transformAdjustedFulfillmentResult, transformPaginatedOutboundShipmentResults } = require('../transformers/outbound-fulfillment-transformer');
+const {
+  transformFulfillmentResult,
+  transformAdjustedFulfillmentResult,
+  transformPaginatedOutboundShipmentResults,
+  transformShipmentDetailsRows
+} = require('../transformers/outbound-fulfillment-transformer');
 const {
   validateOrderIsFullyAllocated,
   getAndLockAllocations,
@@ -20,17 +28,26 @@ const {
   enrichAllocationsWithInventory,
   calculateInventoryAdjustments,
   updateAllStatuses,
-  buildInventoryActivityLogs, assertOrderMeta, assertFulfillmentsValid,
-  assertStatusesResolved, assertLogsGenerated, assertInventoryCoverage, assertEnrichedAllocations,
-  assertInventoryAdjustments, assertActionTypeIdResolved, assertWarehouseUpdatesApplied,
+  buildInventoryActivityLogs,
+  assertOrderMeta,
+  assertFulfillmentsValid,
+  assertStatusesResolved,
+  assertLogsGenerated,
+  assertInventoryCoverage,
+  assertEnrichedAllocations,
+  assertInventoryAdjustments,
+  assertActionTypeIdResolved,
+  assertWarehouseUpdatesApplied,
 } = require('../business/outbound-fulfillment-business');
 const { getAllocationStatuses } = require('../repositories/inventory-allocations-repository');
 const { validateAllocationStatusTransition } = require('../business/inventory-allocation-business');
 const { getShipmentStatusByCode } = require('../repositories/shipment-status-repository');
 const { getFulfillmentStatusByCode } = require('../repositories/fulfillment-status-repository');
 const { getInventoryAllocationStatusId } = require('../repositories/inventory-allocation-status-repository');
-const { error } = require('winston');
-const { getPaginatedOutboundShipmentRecords } = require('../repositories/outbound-shipment-repository');
+const {
+  getPaginatedOutboundShipmentRecords,
+  getShipmentDetailsById
+} = require('../repositories/outbound-shipment-repository');
 
 /**
  * Service: fulfillOutboundShipmentService
@@ -157,24 +174,28 @@ const fulfillOutboundShipmentService = async (requestData, user) => {
         userId,
         fulfillmentNotes
       );
-      const [fulfillmentRow] = await insertOrderFulfillmentsBulk(
+      const fulfillmentRows = await insertOrderFulfillmentsBulk(
         fulfillmentInputs,
         client
       );
       
-      const fulfillmentRowWithStatus = {
-        ...fulfillmentRow,
-        status_id: fulfillmentInputs[0].status_id,
-      };
+      const fulfillmentRowsWithStatus = fulfillmentRows.map((row, idx) => ({
+        ...row,
+        status_id: fulfillmentInputs[idx].status_id,
+      }));
       
       // TODO: lockRows allocations
       
       // 9. Insert shipment batch linking the allocation and shipment
-      const shipmentBatchInputs = buildShipmentBatchInputs(
-        allocationMeta,
-        shipmentRow.id,
-        shipmentBatchNote,
-        userId
+      // For each allocationMeta + its fulfillmentRow
+      const shipmentBatchInputs = allocationMeta.flatMap((meta, idx) =>
+        buildShipmentBatchInputs(
+          [meta],              // wrap in array since function expects allocationMeta[]
+          shipmentRow.id,
+          fulfillmentRows[idx].id, // correct fulfillmentId
+          shipmentBatchNote,
+          userId
+        )
       );
       const [shipmentBatchRow] = await insertShipmentBatchesBulk(
         shipmentBatchInputs,
@@ -212,7 +233,7 @@ const fulfillOutboundShipmentService = async (requestData, user) => {
       return transformFulfillmentResult({
         orderId,
         shipmentRow,
-        fulfillmentRowWithStatus,
+        fulfillmentRowsWithStatus,
         shipmentBatchRow,
         orderStatusRow,
         orderItemStatusRow,
@@ -565,8 +586,53 @@ const fetchPaginatedOutboundFulfillmentService = async ({
   }
 };
 
+/**
+ * Service: Fetch and transform detailed shipment information by shipment ID.
+ *
+ * Responsibilities:
+ *  - Calls repository function (`getShipmentDetailsById`) to fetch raw denormalized rows.
+ *  - Transforms rows into a nested structured object (`transformShipmentDetailsRows`).
+ *  - Logs success/failure with structured metadata.
+ *
+ * @async
+ * @function
+ * @param {string} shipmentId - UUID of the outbound shipment
+ * @returns {Promise<Object|null>} Nested shipment details or null if no data
+ *
+ * @throws {AppError} Throws `AppError.serviceError` if fetch/transform fails
+ *
+ * @example
+ * const details = await fetchShipmentDetailsService("shp-001");
+ * console.log(details.shipment.status.code); // "SHIP_CONFIRMED"
+ */
+const fetchShipmentDetailsService = async (shipmentId) => {
+  try {
+    const rawRows = await getShipmentDetailsById(shipmentId);
+    const transformed = transformShipmentDetailsRows(rawRows);
+    
+    logSystemInfo('Fetched and transformed shipment details', {
+      context: 'outbound-shipment-service/fetchShipmentDetailsService',
+      shipmentId,
+      rowCount: rawRows?.length ?? 0,
+    });
+    
+    return transformed;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch shipment details', {
+      context: 'outbound-shipment-service/fetchShipmentDetailsService',
+      shipmentId,
+    });
+    
+    throw AppError.serviceError('Failed to fetch shipment details', {
+      shipmentId,
+      cause: error,
+    });
+  }
+};
+
 module.exports = {
   fulfillOutboundShipmentService,
   adjustInventoryForFulfillmentService,
   fetchPaginatedOutboundFulfillmentService,
+  fetchShipmentDetailsService,
 };
