@@ -476,17 +476,6 @@ const transformShipmentDetailsRows = (rows) => {
         Object.assign(batch, {
           lotNumber: row.material_lot_number,
           expiryDate: row.material_expiry_date,
-          label:
-            row.material_snapshot_name ||
-            formatPackagingMaterialLabel({
-              name: row.packaging_material_name,
-              size: row.packaging_material_size,
-              color: row.packaging_material_color,
-              unit: row.packaging_material_unit,
-              length_cm: row.packaging_material_length_cm,
-              width_cm: row.packaging_material_width_cm,
-              height_cm: row.packaging_material_height_cm,
-            }),
         });
       }
       

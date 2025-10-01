@@ -3,9 +3,17 @@ const authorize = require('../middlewares/authorize');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
 const validate = require('../middlewares/validate');
 const { orderIdParamSchema } = require('../validators/order-validators');
-const { fulfillOutboundShipmentBodySchema, fulfillAdjustmentBodySchema, outboundFulfillmentQuerySchema } = require('../validators/outbound-fulfillment-validators');
-const { fulfillOutboundShipmentController, adjustInventoryForFulfillmentController,
-  getPaginatedOutboundFulfillmentController
+const { shipmentIdParamSchema } = require('../validators/outbound-shipment-validators');
+const {
+  fulfillOutboundShipmentBodySchema,
+  fulfillAdjustmentBodySchema,
+  outboundFulfillmentQuerySchema
+} = require('../validators/outbound-fulfillment-validators');
+const {
+  fulfillOutboundShipmentController,
+  adjustInventoryForFulfillmentController,
+  getPaginatedOutboundFulfillmentController,
+  getShipmentDetailsController
 } = require('../controllers/outbound-fulfillment-controller');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 const { sanitizeFields } = require('../middlewares/sanitize');
@@ -147,6 +155,55 @@ router.get(
   sanitizeFields(['keyword']),
   validate(outboundFulfillmentQuerySchema, 'query'),
   getPaginatedOutboundFulfillmentController
+);
+
+/**
+ * GET /api/v1/outbound-shipments/:shipmentId/details
+ *
+ * Retrieves full details for a single outbound shipment, including:
+ *  - Shipment header (status, warehouse, delivery info, notes)
+ *  - Tracking information (carrier, tracking number, service, status)
+ *  - Fulfillments (linked order items, quantities, fulfillment status)
+ *  - SKU/Product metadata (if product item)
+ *  - Packaging material metadata (if packaging material item)
+ *  - Batch allocations (product or packaging material batches tied to each fulfillment)
+ *
+ * ### Middleware stack:
+ * - `authorize` → Ensures the user has OUTBOUND_FULFILLMENT.VIEW permission
+ * - `validate` → Validates `shipmentId` route param against `uuidSchema`
+ *
+ * ### Route Parameters:
+ * - `shipmentId` (string, UUID, required) → The outbound shipment to fetch
+ *
+ * ### Response (200 OK):
+ * {
+ *   success: true,
+ *   message: "Shipment details fetched successfully",
+ *   data: {
+ *     shipment: { ...header, tracking: {...} },
+ *     fulfillments: [
+ *       {
+ *         fulfillmentId,
+ *         status,
+ *         orderItem: { sku | packagingMaterial },
+ *         batches: [...]
+ *       }
+ *     ]
+ *   }
+ * }
+ *
+ * ### Error Responses:
+ * - 400 Bad Request → Invalid or missing shipmentId
+ * - 403 Forbidden → User lacks OUTBOUND_FULFILLMENT.VIEW permission
+ * - 404 Not Found → Shipment with given ID does not exist
+ *
+ * @access Protected
+ */
+router.get(
+  '/:shipmentId/details',
+  authorize([PERMISSIONS.OUTBOUND_FULFILLMENT.VIEW]),
+  validate(shipmentIdParamSchema, 'params'), // validate shipmentId as UUID
+  getShipmentDetailsController
 );
 
 module.exports = router;

@@ -1,5 +1,7 @@
 const wrapAsync = require('../utils/wrap-async');
-const { fulfillOutboundShipmentService, adjustInventoryForFulfillmentService, fetchPaginatedOutboundFulfillmentService } = require('../services/outbound-fulfillment-service');
+const { fulfillOutboundShipmentService, adjustInventoryForFulfillmentService, fetchPaginatedOutboundFulfillmentService,
+  fetchShipmentDetailsService
+} = require('../services/outbound-fulfillment-service');
 const { logInfo } = require('../utils/logger-helper');
 
 /**
@@ -163,8 +165,39 @@ const getPaginatedOutboundFulfillmentController = wrapAsync(async (req, res) => 
   });
 });
 
+/**
+ * Controller: Fetch detailed outbound shipment information by ID.
+ *
+ * Route: GET /api/v1/outbound-shipments/:shipmentId/details
+ *
+ * Responsibilities:
+ *  - Validates request params
+ *  - Calls service to fetch + transform shipment details
+ *  - Returns standardized JSON response
+ *
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ */
+const getShipmentDetailsController = wrapAsync(async (req, res) => {
+  const { shipmentId } = req.params;
+  
+  const details = await fetchShipmentDetailsService(shipmentId);
+  
+  logInfo('Shipment details fetched successfully', req, {
+    context: 'outbound-fulfillment-controller/getShipmentDetailsController',
+    shipmentId,
+  });
+  
+  return res.status(200).json({
+    success: true,
+    message: 'Shipment details fetched successfully',
+    data: details,
+  });
+});
+
 module.exports = {
   fulfillOutboundShipmentController,
   adjustInventoryForFulfillmentController,
   getPaginatedOutboundFulfillmentController,
+  getShipmentDetailsController,
 };

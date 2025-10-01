@@ -608,6 +608,11 @@ const fetchPaginatedOutboundFulfillmentService = async ({
 const fetchShipmentDetailsService = async (shipmentId) => {
   try {
     const rawRows = await getShipmentDetailsById(shipmentId);
+    
+    if (!rawRows || rawRows.length === 0) {
+      throw AppError.notFoundError(`Shipment not found for ID=${shipmentId}`);
+    }
+    
     const transformed = transformShipmentDetailsRows(rawRows);
     
     logSystemInfo('Fetched and transformed shipment details', {
