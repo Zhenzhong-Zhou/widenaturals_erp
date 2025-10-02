@@ -158,7 +158,7 @@ router.get(
 );
 
 /**
- * GET /api/v1/outbound-shipments/:shipmentId/details
+ * GET /api/v1/outbound-fulfillments/:shipmentId/details
  *
  * Retrieves full details for a single outbound shipment, including:
  *  - Shipment header (status, warehouse, delivery info, notes)

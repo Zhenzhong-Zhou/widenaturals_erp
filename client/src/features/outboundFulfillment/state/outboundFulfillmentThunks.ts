@@ -1,7 +1,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
   InitiateFulfillmentRequest,
-  InitiateFulfillmentResponse, OutboundFulfillmentQuery, PaginatedOutboundFulfillmentResponse,
+  InitiateFulfillmentResponse, OutboundFulfillmentQuery, PaginatedOutboundFulfillmentResponse, ShipmentDetailsResponse,
 } from '@features/outboundFulfillment/state/outboundFulfillmentTypes';
 import { outboundFulfillmentService } from '@services/outboundFulfillmentService';
 
@@ -111,6 +111,33 @@ export const fetchPaginatedOutboundFulfillmentThunk = createAsyncThunk<
         'Failed to fetch outbound fulfillments';
       
       return rejectWithValue(message);
+    }
+  }
+);
+
+/**
+ * Thunk: Fetch outbound shipment details by ID.
+ *
+ * Dispatches pending/fulfilled/rejected actions automatically.
+ *
+ * @param {string} shipmentId - The UUID of the outbound shipment
+ * @returns {Promise<ShipmentDetailsResponse>} Shipment details response
+ *
+ * @example
+ * dispatch(fetchOutboundShipmentDetailsThunk("844f3d53-a102-46aa-8644-90b3a3b35fd7"));
+ */
+export const fetchOutboundShipmentDetailsThunk = createAsyncThunk<
+  ShipmentDetailsResponse, // return type
+  string,                  // argument type
+  { rejectValue: string }  // optional reject payload
+>(
+  'outboundShipments/fetchDetails',
+  async (shipmentId, { rejectWithValue }) => {
+    try {
+      return await outboundFulfillmentService.fetchOutboundShipmentDetails(shipmentId);
+    } catch (error: any) {
+      console.error('Thunk error (fetchOutboundShipmentDetails):', error);
+      return rejectWithValue(error.message || 'Failed to fetch shipment details');
     }
   }
 );

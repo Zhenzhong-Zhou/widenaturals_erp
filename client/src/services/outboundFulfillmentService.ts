@@ -3,7 +3,7 @@ import type {
   InitiateFulfillmentRequest,
   InitiateFulfillmentResponse,
   OutboundFulfillmentQuery,
-  PaginatedOutboundFulfillmentResponse,
+  PaginatedOutboundFulfillmentResponse, ShipmentDetailsResponse,
 } from '@features/outboundFulfillment/state';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { getRequest, postRequest } from '@utils/apiRequest';
@@ -127,7 +127,45 @@ const fetchPaginatedOutboundFulfillment = async (
   }
 };
 
+/**
+ * Fetches detailed outbound shipment information by shipment ID.
+ *
+ * ### How it Works
+ * - Builds the endpoint URL using the provided `shipmentId`
+ * - Sends a typed GET request to the API
+ * - Returns structured shipment details including:
+ *   - Shipment header (warehouse, status, notes, etc.)
+ *   - Tracking information (carrier, tracking number, status, etc.)
+ *   - Fulfillments (linked order items, SKUs, packaging materials)
+ *   - Batches (per-fulfillment batch allocations, with lot/expiry info)
+ *
+ * @param {string} shipmentId - UUID of the shipment to fetch details for
+ *
+ * @returns {Promise<ShipmentDetailsResponse>}
+ *   A typed response containing:
+ *   - `shipment`: header-level info
+ *   - `fulfillments`: fulfillment list with order items & batches
+ *
+ * @throws {Error} If the request fails or the API returns an error
+ *
+ * @example
+ * const details = await fetchOutboundShipmentDetails("844f3d53-a102-46aa-8644-90b3a3b35fd7");
+ * console.log(details.data.shipment.status.code); // e.g., "SHIPMENT_PENDING"
+ */
+export const fetchOutboundShipmentDetails = async (
+  shipmentId: string
+): Promise<ShipmentDetailsResponse> => {
+  try {
+    const url = API_ENDPOINTS.OUTBOUND_FULFILLMENTS.OUTBOUND_SHIPMENT_DETAILS(shipmentId);
+    return await getRequest<ShipmentDetailsResponse>(url);
+  } catch (error) {
+    console.error(`Failed to fetch shipment details for ID=${shipmentId}:`, error);
+    throw error;
+  }
+};
+
 export const outboundFulfillmentService = {
   initiateOutboundFulfillment,
   fetchPaginatedOutboundFulfillment,
+  fetchOutboundShipmentDetails,
 };

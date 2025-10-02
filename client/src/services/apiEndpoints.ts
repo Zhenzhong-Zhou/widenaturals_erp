@@ -82,5 +82,6 @@ export const API_ENDPOINTS = {
   OUTBOUND_FULFILLMENTS: {
     INITIATE_FULFILLMENT: (orderId: string) => `/outbound-fulfillments/orders/${orderId}/fulfillment/initiate`,
     ALL_RECORDS: '/outbound-fulfillments',
+    OUTBOUND_SHIPMENT_DETAILS: (shipmentId: string) => `/outbound-fulfillments/${shipmentId}/details`,
   },
 };

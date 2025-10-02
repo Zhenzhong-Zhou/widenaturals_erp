@@ -203,3 +203,121 @@ export type PaginatedOutboundFulfillmentResponse =
  * Extends generic ReduxPaginatedState with OutboundShipmentRecord type.
  */
 export type PaginatedOutboundFulfillmentsState = ReduxPaginatedState<OutboundShipmentRecord>;
+
+
+/** Shipment details response (data property) */
+export interface ShipmentDetails {
+  shipment: ShipmentHeader;
+  fulfillments: Fulfillment[];
+}
+
+/** Shipment header info */
+export interface ShipmentHeader {
+  shipmentId: string;
+  orderId: string;
+  warehouse: {
+    id: string;
+    name: string;
+  };
+  status: {
+    id: string;
+    code: string;
+    name: string;
+  };
+  shippedAt: string | null;
+  expectedDeliveryDate: string | null;
+  notes: string | null;
+  details: string | null;
+  tracking: TrackingInfo | null;
+}
+
+/** Tracking info (nullable in your response) */
+export interface TrackingInfo {
+  id: string;
+  number: string;
+  carrier: string;
+  serviceName: string;
+  bolNumber: string | null;
+  freightType: string | null;
+  notes: string | null;
+  shippedDate: string | null;
+  status: {
+    id: string;
+    name: string;
+  };
+}
+
+/** Fulfillment info */
+export interface Fulfillment {
+  fulfillmentId: string;
+  quantityFulfilled: number;
+  fulfilledAt: string | null;
+  notes: string | null;
+  status: {
+    id: string;
+    code: string;
+    name: string;
+  };
+  orderItem: OrderItem | null;
+  batches: ShipmentBatch[];
+}
+
+/** Order item (either product SKU or packaging material) */
+export type OrderItem = {
+  id: string;
+  quantityOrdered: number;
+  metadata: Record<string, any> | null;
+} & (
+  | { sku: SkuInfo; packagingMaterial?: never }
+  | { packagingMaterial: PackagingMaterialInfo; sku?: never }
+  );
+
+/** SKU + Product metadata */
+export interface SkuInfo {
+  id: string;
+  code: string;
+  barcode: string;
+  sizeLabel: string;
+  region: string;
+  product: {
+    id: string;
+    name: string;
+    category: string;
+  };
+}
+
+/** Packaging material metadata */
+export interface PackagingMaterialInfo {
+  id: string;
+  code: string;
+  label: string;
+}
+
+/** Batch info */
+export interface ShipmentBatch {
+  shipmentBatchId: string;
+  quantityShipped: number;
+  batchRegistryId: string;
+  batchType: "product" | "packaging_material";
+  lotNumber: string | null;
+  expiryDate: string | null;
+}
+
+/**
+ * API response type for fetching shipment details
+ * via GET /api/v1/outbound-shipments/:shipmentId/details
+ */
+export type ShipmentDetailsResponse = ApiSuccessResponse<ShipmentDetails>;
+
+/**
+ * Redux state slice for storing detailed outbound shipment information.
+ *
+ * This leverages the generic `AsyncState<T>` pattern, where:
+ * - `data` holds the fetched `ShipmentDetails` object (or null if not loaded)
+ * - `loading` indicates whether a fetch request is in progress
+ * - `error` contains any error message from a failed fetch
+ *
+ * Used in combination with `fetchOutboundShipmentDetailsThunk`
+ * to manage the lifecycle of fetching a single shipment’s details.
+ */
+export type OutboundShipmentDetailsState = AsyncState<ShipmentDetails | null>;

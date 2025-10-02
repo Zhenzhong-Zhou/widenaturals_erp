@@ -1,0 +1,50 @@
+import { createSelector } from '@reduxjs/toolkit';
+import type { RootState } from '@store/store';
+
+/**
+ * Base selector to access the outbound shipment details slice.
+ */
+const selectOutboundShipmentDetailsState = (state: RootState) =>
+  state.outboundShipmentDetails;
+
+/**
+ * Selector: Fetches the shipment details data (ShipmentDetails or null).
+ */
+export const selectOutboundShipmentDetailsData = createSelector(
+  [selectOutboundShipmentDetailsState],
+  (detailsState) => detailsState.data
+);
+
+/**
+ * Selector: Returns the loading state (true if a fetch is in progress).
+ */
+export const selectOutboundShipmentDetailsLoading = createSelector(
+  [selectOutboundShipmentDetailsState],
+  (detailsState) => detailsState.loading
+);
+
+/**
+ * Selector: Returns the last error message (if any) from fetching shipment details.
+ */
+export const selectOutboundShipmentDetailsError = createSelector(
+  [selectOutboundShipmentDetailsState],
+  (detailsState) => detailsState.error
+);
+
+/**
+ * Selector: Extracts only the shipment header object from details.
+ * Returns null if details are not loaded.
+ */
+export const selectShipmentHeader = createSelector(
+  [selectOutboundShipmentDetailsData],
+  (data) => data?.shipment ?? null
+);
+
+/**
+ * Selector: Extracts the fulfillments array from shipment details.
+ * Returns an empty array if no data is loaded.
+ */
+export const selectShipmentFulfillments = createSelector(
+  [selectOutboundShipmentDetailsData],
+  (data) => data?.fulfillments ?? []
+);
