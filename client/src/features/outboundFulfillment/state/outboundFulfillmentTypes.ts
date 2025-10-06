@@ -480,3 +480,127 @@ export interface FlattenedFulfillmentRow {
   // Batch info is now a sub-array of batch rows
   batches: FlattenedBatchRow[];
 }
+
+/**
+ * Represents the request payload for confirming an outbound fulfillment.
+ *
+ * This object is sent to the backend endpoint:
+ *   POST /orders/:orderId/fulfillment/confirm
+ *
+ * The confirmation process finalizes the outbound workflow by updating statuses
+ * across order, shipment, and fulfillment entities, and by applying related
+ * inventory adjustments and audit logs.
+ */
+export interface ConfirmOutboundFulfillmentRequest {
+  /**
+   * The unique ID of the order being confirmed.
+   * Provided as a path parameter in the API route.
+   */
+  orderId: string;
+  
+  /**
+   * Target order status code.
+   * Example: "ORDER_FULFILLED", "ORDER_PROCESSING"
+   */
+  orderStatus: string;
+  
+  /**
+   * Target allocation status code.
+   * Example: "ALLOC_COMPLETED", "ALLOC_FULFILLED"
+   */
+  allocationStatus?: string;
+  
+  /**
+   * Target shipment status code.
+   * Example: "SHIPMENT_READY", "SHIPMENT_IN_PROGRESS", "SHIPMENT_FULFILLED"
+   */
+  shipmentStatus: string;
+  
+  /**
+   * Target fulfillment status code.
+   * Example: "FULFILLMENT_PACKED", "FULFILLMENT_COMPLETED"
+   */
+  fulfillmentStatus: string;
+}
+
+/**
+ * Represents the full response returned after confirming an outbound fulfillment.
+ * Extends the generic ApiSuccessResponse<T> for consistency across all API responses.
+ */
+export type ConfirmOutboundFulfillmentResponse = ApiSuccessResponse<ConfirmOutboundFulfillmentResult>;
+
+/**
+ * Root result object for confirmed outbound fulfillment.
+ */
+export interface ConfirmOutboundFulfillmentResult {
+  order: ConfirmedOrderMeta;
+  shipment: ConfirmedShipmentMeta;
+  fulfillments: ConfirmedFulfillmentMeta[];
+  inventory: ConfirmedInventoryMeta;
+  statuses: ConfirmedStatusesGroup;
+  logs: ConfirmedActivityLogMeta;
+}
+
+/** Basic order info */
+export interface ConfirmedOrderMeta {
+  id: string;
+  number: string;
+}
+
+/** Shipment info with status linkage */
+export interface ConfirmedShipmentMeta {
+  id: string;
+  statuses: string[]; // Usually shipment status record IDs or UUIDs
+}
+
+/** Individual fulfillment status summary */
+export interface ConfirmedFulfillmentMeta {
+  id: string;
+  statusId: string;
+}
+
+/** Inventory update results */
+export interface ConfirmedInventoryMeta {
+  updatedWarehouseIds: { id: string }[];
+}
+
+/** Group of all updated statuses */
+export interface ConfirmedStatusesGroup {
+  order: {
+    id: string;
+    order_status_id: string;
+    status_date: string;
+  };
+  orderItems: {
+    id: string;
+    status_id: string;
+    status_date: string;
+  }[];
+  allocations: string[];
+  fulfillments: string[];
+  shipments: string[];
+}
+
+/** Inserted activity and audit logs summary */
+export interface ConfirmedActivityLogMeta {
+  insertedActivityCount: number;
+  insertedAuditCount: number;
+  warehouseAuditCount: number;
+  locationAuditCount: number;
+  activityLogIds: string[];
+}
+
+/**
+ * Represents the Redux async state for confirming an outbound fulfillment.
+ *
+ * This slice state is updated by the `confirmOutboundFulfillmentThunk`
+ * and contains the latest confirmation data, loading state, and error info.
+ */
+export interface ConfirmOutboundFulfillmentState
+  extends AsyncState<ConfirmOutboundFulfillmentResult | null> {
+  /**
+   * Timestamp of the last successful confirmation.
+   * Useful for caching, UI refreshes, or audit display.
+   */
+  lastConfirmedAt?: string | null;
+}

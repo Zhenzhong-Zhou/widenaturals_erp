@@ -1,4 +1,6 @@
 import type {
+  ConfirmOutboundFulfillmentRequest,
+  ConfirmOutboundFulfillmentResponse,
   InitiateFulfillmentBody,
   InitiateFulfillmentRequest,
   InitiateFulfillmentResponse,
@@ -164,8 +166,78 @@ export const fetchOutboundShipmentDetails = async (
   }
 };
 
+/**
+ * Confirms an outbound fulfillment for a specific order.
+ *
+ * This service function finalizes the outbound fulfillment process by confirming
+ * the associated fulfillment, shipment, and order statuses. It communicates with
+ * the backend API endpoint:
+ *
+ *    POST /orders/:orderId/fulfillment/confirm
+ *
+ * Responsibilities:
+ * - Validates and confirms that all related allocations, fulfillments, and shipments
+ *   meet the business rules for confirmation.
+ * - Applies final inventory adjustments (reduces stock, releases reserved quantities).
+ * - Updates workflow statuses for order, order items, fulfillments, allocations, and shipment.
+ * - Inserts audit and activity logs for traceability.
+ *
+ * The backend endpoint requires:
+ * - `orderId` as a path parameter
+ * - `orderStatus`, `shipmentStatus`, and `fulfillmentStatus` in the request body
+ *   (e.g., `ORDER_FULFILLED`, `SHIPMENT_IN_PROGRESS`, `FULFILLMENT_PACKED`)
+ *
+ * On success, the response includes the full API envelope, containing:
+ * - `success`: boolean indicating operation success
+ * - `message`: backend confirmation message
+ * - `data`: structured payload describing updated statuses, inventory adjustments,
+ *   and inserted log metadata
+ *
+ * Intended to be called after fulfillment initiation, usually during a confirmation
+ * or dispatch step in the outbound logistics workflow.
+ *
+ * @async
+ * @function
+ * @param {ConfirmOutboundFulfillmentRequest} request - Request payload including
+ *        orderId, and new status codes for order, shipment, and fulfillment.
+ * @returns {Promise<ConfirmOutboundFulfillmentResponse>} - Full API response with
+ *          updated fulfillment confirmation results.
+ *
+ * @throws {Error} If the confirmation request fails (e.g., validation or server error).
+ *
+ * @example
+ * const request: ConfirmOutboundFulfillmentRequest = {
+ *   orderId: '939b06e5-0dd1-4ed5-85cf-1aee4642292e',
+ *   orderStatus: 'ORDER_FULFILLED',
+ *   shipmentStatus: 'SHIPMENT_IN_PROGRESS',
+ *   fulfillmentStatus: 'FULFILLMENT_PACKED',
+ * };
+ *
+ * const response = await confirmOutboundFulfillment(request);
+ * if (response.success) {
+ *   console.log('Outbound fulfillment confirmed:', response.data.statuses);
+ *   console.log('Shipment updated:', response.data.shipment.id);
+ * }
+ */
+export const confirmOutboundFulfillment = async (
+  request: ConfirmOutboundFulfillmentRequest
+): Promise<ConfirmOutboundFulfillmentResponse> => {
+  const url = API_ENDPOINTS.OUTBOUND_FULFILLMENTS.CONFIRM_FULFILLMENT(request.orderId);
+  
+  try {
+    return await postRequest<
+      ConfirmOutboundFulfillmentRequest,
+      ConfirmOutboundFulfillmentResponse
+    >(url, request);
+  } catch (error) {
+    console.error('Failed to confirm outbound fulfillment', { request, error });
+    throw error;
+  }
+};
+
 export const outboundFulfillmentService = {
   initiateOutboundFulfillment,
   fetchPaginatedOutboundFulfillment,
   fetchOutboundShipmentDetails,
+  confirmOutboundFulfillment,
 };

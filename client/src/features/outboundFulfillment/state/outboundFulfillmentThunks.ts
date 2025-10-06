@@ -1,7 +1,12 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
+  ConfirmOutboundFulfillmentRequest,
+  ConfirmOutboundFulfillmentResponse,
   InitiateFulfillmentRequest,
-  InitiateFulfillmentResponse, OutboundFulfillmentQuery, PaginatedOutboundFulfillmentResponse, ShipmentDetailsResponse,
+  InitiateFulfillmentResponse,
+  OutboundFulfillmentQuery,
+  PaginatedOutboundFulfillmentResponse,
+  ShipmentDetailsResponse,
 } from '@features/outboundFulfillment/state/outboundFulfillmentTypes';
 import { outboundFulfillmentService } from '@services/outboundFulfillmentService';
 
@@ -138,6 +143,43 @@ export const fetchOutboundShipmentDetailsThunk = createAsyncThunk<
     } catch (error: any) {
       console.error('Thunk error (fetchOutboundShipmentDetails):', error);
       return rejectWithValue(error.message || 'Failed to fetch shipment details');
+    }
+  }
+);
+
+/**
+ * Thunk: confirmOutboundFulfillmentThunk
+ *
+ * Dispatches an async request to confirm an outbound fulfillment for a specific order.
+ * This triggers backend validation and finalization of inventory, fulfillment, shipment,
+ * and order statuses.
+ *
+ * Use this thunk after an outbound fulfillment has been initiated and allocations are complete.
+ *
+ * Flow:
+ *  1. Dispatches loading state.
+ *  2. Calls the backend API via `confirmOutboundFulfillment`.
+ *  3. On success, updates state with new fulfillment confirmation data.
+ *  4. On failure, dispatches rejected action with normalized error message.
+ */
+export const confirmOutboundFulfillmentThunk = createAsyncThunk<
+  ConfirmOutboundFulfillmentResponse, // Return type on success
+  ConfirmOutboundFulfillmentRequest,  // Argument type
+  { rejectValue: string }             // Rejected error payload
+>(
+  'outboundFulfillment/confirmOutboundFulfillment',
+  async (request, { rejectWithValue }) => {
+    try {
+      return await outboundFulfillmentService.confirmOutboundFulfillment(request);
+    } catch (error: any) {
+      console.error('Failed to confirm outbound fulfillment:', error);
+      
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Unable to confirm outbound fulfillment. Please try again later.';
+      
+      return rejectWithValue(message);
     }
   }
 );
