@@ -29,7 +29,7 @@ const PERMISSIONS = {
   },
   OUTBOUND_FULFILLMENT: {
     INITIATE: 'initiate_outbound_fulfillment',
-    FULFILL: 'fulfill_outbound_fulfillment',
+    CONFIRM: 'confirm_outbound_fulfillment',
     VIEW: 'view_outbound_fulfillments',
   }
 };

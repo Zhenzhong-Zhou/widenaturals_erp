@@ -1,5 +1,8 @@
 const wrapAsync = require('../utils/wrap-async');
-const { fulfillOutboundShipmentService, adjustInventoryForFulfillmentService, fetchPaginatedOutboundFulfillmentService,
+const {
+  fulfillOutboundShipmentService,
+  confirmOutboundFulfillmentService,
+  fetchPaginatedOutboundFulfillmentService,
   fetchShipmentDetailsService
 } = require('../services/outbound-fulfillment-service');
 const { logInfo } = require('../utils/logger-helper');
@@ -57,52 +60,60 @@ const fulfillOutboundShipmentController = wrapAsync(async (req, res) => {
 });
 
 /**
- * Controller: adjustInventoryForFulfillmentController
+ * Controller: confirmOutboundFulfillmentController
  *
  * Purpose:
- *  Handles API requests to adjust inventory after a fulfillment action is completed.
+ *  Handles API requests to confirm outbound fulfillment.
+ *  This endpoint finalizes the fulfillment process — applying inventory updates,
+ *  resolving status transitions, and recording inventory activity logs.
  *
  * Flow:
  *  - Extracts `orderId` from route params and merges with body payload.
- *  - Calls `adjustInventoryForFulfillmentService` to process inventory, status, and logs.
+ *  - Invokes `confirmOutboundFulfillmentService` to perform transactional logic:
+ *      • Validate workflow statuses (order, shipment, fulfillment)
+ *      • Apply inventory deductions
+ *      • Update related statuses across entities
+ *      • Insert audit and activity logs
  *  - Logs a structured success message for observability.
  *  - Returns a standardized JSON response:
  *      {
  *        success: true,
- *        message: 'Inventory successfully adjusted for fulfillment.',
- *        data: <result>
+ *        message: 'Outbound fulfillment successfully confirmed.',
+ *        data: <confirmationResult>
  *      }
  *
  * Logging:
  *  - Uses structured logging with context, orderId, and userId.
- *  - Errors are delegated to global error middleware via wrapAsync.
+ *  - All thrown errors are handled by the global error middleware (via wrapAsync).
  *
- * @route   POST /orders/:orderId/fulfillment/fulfill
+ * @route   POST /orders/:orderId/fulfillment/confirm
  * @access  Protected
  *
- * @param   {import('express').Request} req - Express request (params + body validated upstream)
+ * @param   {import('express').Request} req - Express request (validated upstream)
  * @param   {import('express').Response} res - Express response
- * @returns {Promise<import('express').Response>} JSON response with fulfillment adjustment result
+ * @returns {Promise<import('express').Response>} JSON response with fulfillment confirmation result
  */
-const adjustInventoryForFulfillmentController = wrapAsync( async (req, res) => {
+const confirmOutboundFulfillmentController = wrapAsync(async (req, res) => {
   const user = req.user;
   const { orderId } = req.params;
-  const requestData = {
-    ...req.body,
-    orderId,
-  };
   
-  const result = await adjustInventoryForFulfillmentService(requestData, user);
+  // Merge path param and request body
+  const requestData = { ...req.body, orderId };
   
-  logInfo('Fulfillment inventory adjustment completed successfully', req, {
-    context: 'outbound-fulfillment-controller/adjustInventoryForFulfillmentController',
+  // Execute confirmation logic
+  const result = await confirmOutboundFulfillmentService(requestData, user);
+  
+  // Structured success log
+  logInfo('Outbound fulfillment confirmed successfully', req, {
+    context: 'outbound-fulfillment-controller/confirmOutboundFulfillmentController',
     orderId: result.orderId,
     userId: user?.id,
   });
   
+  // Respond to client
   res.status(200).json({
     success: true,
-    message: 'Inventory successfully adjusted for fulfillment.',
+    message: 'Outbound fulfillment successfully confirmed.',
     data: result,
   });
 });
@@ -197,7 +208,7 @@ const getShipmentDetailsController = wrapAsync(async (req, res) => {
 
 module.exports = {
   fulfillOutboundShipmentController,
-  adjustInventoryForFulfillmentController,
+  confirmOutboundFulfillmentController,
   getPaginatedOutboundFulfillmentController,
   getShipmentDetailsController,
 };

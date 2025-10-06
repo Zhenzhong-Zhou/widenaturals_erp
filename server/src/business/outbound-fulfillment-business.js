@@ -14,6 +14,7 @@ const { getStatusId } = require('../config/status-cache');
 const { insertOutboundShipmentsBulk, updateOutboundShipmentStatus } = require('../repositories/outbound-shipment-repository');
 const { updateOrderStatus } = require('../repositories/order-repository');
 const { updateOrderFulfillmentStatus } = require('../repositories/order-fulfillment-repository');
+const { logSystemInfo } = require('../utils/system-logger');
 
 /**
  * Validates that an order is fully allocated before fulfillment.
@@ -431,6 +432,61 @@ const assertFulfillmentsValid = (fulfillments = [], order_number) => {
 };
 
 /**
+ * Assert that a shipment record exists and contains valid data.
+ *
+ * Business Rules:
+ *  - Shipment record must not be null or undefined.
+ *  - Must contain a valid `shipment_id` field.
+ *
+ * Typical Usage:
+ *  ```js
+ *  const shipment = await getShipmentByShipmentId(shipmentId, client);
+ *  assertShipmentFound(shipment, shipmentId);
+ *  ```
+ *
+ * Throws:
+ *  - NotFoundError if the shipment is missing.
+ *  - ValidationError if the record exists but is malformed.
+ *
+ * @param {object|null} shipment - Shipment record fetched from database
+ * @param {string} shipmentId - Shipment UUID for error and log context
+ * @throws {AppError} NotFoundError | ValidationError
+ */
+const assertShipmentFound = (shipment, shipmentId) => {
+  if (!shipment) {
+    logSystemInfo('Shipment not found during fulfillment confirmation', {
+      context: 'outbound-fulfillment-service/assertShipmentFound',
+      shipmentId,
+    });
+    
+    throw AppError.notFoundError(`Shipment with ID "${shipmentId}" was not found.`, {
+      context: 'outbound-fulfillment-service/assertShipmentFound',
+      shipmentId,
+      severity: 'warning',
+    });
+  }
+  
+  if (!shipment.shipment_id) {
+    logSystemInfo('Shipment record is missing critical fields', {
+      context: 'outbound-fulfillment-service/assertShipmentFound',
+      shipmentId,
+      shipment,
+    });
+    
+    throw AppError.validationError('Shipment record is malformed or missing `shipment_id`.', {
+      context: 'outbound-fulfillment-service/assertShipmentFound',
+      shipmentId,
+    });
+  }
+  
+  logSystemInfo('Validated shipment record successfully', {
+    context: 'outbound-fulfillment-service/assertShipmentFound',
+    shipmentId,
+    statusCode: shipment.status_code,
+  });
+};
+
+/**
  * Assert that inventory coverage exists for allocations.
  *
  * Business rule:
@@ -577,6 +633,70 @@ const assertLogsGenerated = (logs, stage = 'logs') => {
   } else {
     throw AppError.businessError(`Invalid log structure at stage: ${stage}`);
   }
+};
+
+/**
+ * Validate that the current order, fulfillment, and shipment statuses
+ * are eligible for fulfillment confirmation.
+ *
+ * This prevents invalid workflow transitions (e.g. confirming an order that
+ * is already shipped, or a fulfillment that’s already completed).
+ *
+ * @param {Object} params
+ * @param {string} params.orderStatusCode - Current order status code
+ * @param {string[]} params.fulfillmentStatuses - Array of fulfillment status codes
+ * @param {string} params.shipmentStatusCode - Current shipment status code
+ *
+ * @throws {AppError} If any status is not eligible for confirmation
+ */
+const validateStatusesBeforeConfirmation = ({
+                                              orderStatusCode,
+                                              fulfillmentStatuses,
+                                              shipmentStatusCode,
+                                            }) => {
+  // Normalize fulfillment statuses to an array
+  const fulfillmentCodes = Array.isArray(fulfillmentStatuses)
+    ? fulfillmentStatuses
+    : [fulfillmentStatuses];
+  
+  const ALLOWED = {
+    order: ['ORDER_PROCESSING', 'ORDER_FULFILLED'],
+    fulfillment: ['FULFILLMENT_PENDING', 'FULFILLMENT_PICKING', 'FULFILLMENT_PARTIAL'],
+    shipment: ['SHIPMENT_PENDING'],
+  };
+  
+  // --- Validate order ---
+  if (!ALLOWED.order.includes(orderStatusCode)) {
+    throw AppError.validationError(
+      `Order status "${orderStatusCode}" is not eligible for fulfillment confirmation.`,
+      { context: 'validateStatusesBeforeConfirmation' }
+    );
+  }
+  
+  // --- Validate fulfillments ---
+  for (const code of fulfillmentCodes) {
+    if (!ALLOWED.fulfillment.includes(code)) {
+      throw AppError.validationError(
+        `Fulfillment with status "${code}" cannot be confirmed.`,
+        { context: 'validateStatusesBeforeConfirmation' }
+      );
+    }
+  }
+  
+  // --- Validate shipment ---
+  if (!ALLOWED.shipment.includes(shipmentStatusCode)) {
+    throw AppError.validationError(
+      `Shipment status "${shipmentStatusCode}" is not eligible for fulfillment confirmation.`,
+      { context: 'validateStatusesBeforeConfirmation' }
+    );
+  }
+  
+  logSystemInfo('Status validation passed', {
+    context: 'validateStatusesBeforeConfirmation',
+    orderStatusCode,
+    fulfillmentStatuses: fulfillmentCodes,
+    shipmentStatusCode,
+  });
 };
 
 /**
@@ -1186,6 +1306,7 @@ module.exports = {
   buildFulfillmentInputsFromAllocations,
   assertOrderMeta,
   assertFulfillmentsValid,
+  assertShipmentFound,
   assertInventoryCoverage,
   assertEnrichedAllocations,
   assertInventoryAdjustments,
@@ -1193,6 +1314,7 @@ module.exports = {
   assertStatusesResolved,
   assertActionTypeIdResolved,
   assertLogsGenerated,
+  validateStatusesBeforeConfirmation,
   enrichAllocationsWithInventory,
   calculateInventoryAdjustments,
   updateAllStatuses,

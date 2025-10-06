@@ -130,6 +130,90 @@ const insertOutboundShipmentsBulk = async (shipments, client) => {
 };
 
 /**
+ * Fetch a single outbound shipment record by its unique shipment ID.
+ *
+ * This function is optimized for use in workflow validation (e.g., during
+ * fulfillment confirmation or shipment processing). It returns the essential
+ * shipment metadata, including linked status information, for use in
+ * downstream logic such as validation, status transitions, or audit logging.
+ *
+ * ## Notes
+ * - Uses LEFT JOIN with `shipment_status` to resolve human-readable status metadata.
+ * - Designed to run safely inside a transaction context.
+ * - Returns `null` if no shipment record is found for the provided ID.
+ * - Logs both successful queries and database exceptions.
+ *
+ * ## Example Return Object
+ * ```js
+ * {
+ *   shipment_id: 'uuid',
+ *   order_id: 'uuid',
+ *   warehouse_id: 'uuid',
+ *   status_id: 'uuid',
+ *   status_code: 'SHIPMENT_READY',
+ *   status_name: 'Ready to Ship',
+ *   status_is_final: false
+ * }
+ * ```
+ *
+ * @async
+ * @function
+ * @param {string} shipmentId - UUID of the outbound shipment to fetch
+ * @param {import('pg').PoolClient} client - PostgreSQL transaction client
+ * @returns {Promise<object|null>} Shipment record with status fields, or null if not found
+ *
+ * @throws {AppError} Wrapped database error if the query fails
+ */
+const getShipmentByShipmentId = async (shipmentId, client) => {
+  const sql = `
+    SELECT
+      os.id AS shipment_id,
+      os.order_id,
+      os.warehouse_id,
+      os.status_id,
+      ss.code AS status_code,
+      ss.name AS status_name,
+      ss.is_final AS status_is_final
+    FROM outbound_shipments os
+    LEFT JOIN shipment_status ss ON ss.id = os.status_id
+    WHERE os.id = $1;
+  `;
+  
+  try {
+    const result = await query(sql, [shipmentId], client);
+    const row = result?.rows?.[0] || null;
+    
+    if (!row) {
+      logSystemInfo('No outbound shipment found for the given ID', {
+        context: 'outbound-shipment-repository/getShipmentByShipmentId',
+        shipmentId,
+      });
+      return null;
+    }
+    
+    logSystemInfo('Successfully fetched outbound shipment by ID', {
+      context: 'outbound-shipment-repository/getShipmentByShipmentId',
+      shipmentId,
+      statusCode: row.status_code,
+      warehouseId: row.warehouse_id,
+    });
+    
+    return row;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch outbound shipment by ID', {
+      context: 'outbound-shipment-repository/getShipmentByShipmentId',
+      shipmentId,
+    });
+    
+    throw AppError.databaseError('Database error fetching outbound shipment record', {
+      shipmentId,
+      cause: error,
+      context: 'outbound-shipment-repository/getShipmentByShipmentId',
+    });
+  }
+};
+
+/**
  * Updates the status of one or more outbound shipment records.
  *
  * Business rules:
@@ -577,6 +661,7 @@ const getShipmentDetailsById = async (shipmentId) => {
 
 module.exports = {
   insertOutboundShipmentsBulk,
+  getShipmentByShipmentId,
   updateOutboundShipmentStatus,
   getPaginatedOutboundShipmentRecords,
   getShipmentDetailsById,

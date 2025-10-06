@@ -71,5 +71,5 @@ const getShipmentStatusByCode = async (statusCode, client = null) => {
 };
 
 module.exports = {
-  getShipmentStatusByCode
+  getShipmentStatusByCode,
 };

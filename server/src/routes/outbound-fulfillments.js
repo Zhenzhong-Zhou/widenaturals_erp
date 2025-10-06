@@ -11,7 +11,7 @@ const {
 } = require('../validators/outbound-fulfillment-validators');
 const {
   fulfillOutboundShipmentController,
-  adjustInventoryForFulfillmentController,
+  confirmOutboundFulfillmentController,
   getPaginatedOutboundFulfillmentController,
   getShipmentDetailsController
 } = require('../controllers/outbound-fulfillment-controller');
@@ -63,27 +63,32 @@ router.post(
 );
 
 /**
- * Route: POST /orders/:orderId/fulfillment/fulfill
+ * Route: POST /orders/:orderId/fulfillment/confirm
  *
  * Purpose:
- *  Adjusts warehouse inventory and updates statuses (order, shipment, fulfillment, allocations)
- *  after an outbound fulfillment is processed.
+ *  Confirms outbound fulfillment for a given order.
+ *  This endpoint finalizes the fulfillment process by:
+ *    - Validating order, shipment, and fulfillment statuses.
+ *    - Applying inventory quantity updates.
+ *    - Updating related statuses across order, allocations, fulfillments, and shipments.
+ *    - Recording inventory activity logs for traceability.
  *
  * Validations:
  *  - `params.orderId`: must be a valid UUID (validated by `orderIdParamSchema`)
- *  - `body.orderStatus`: string (target order status code)
- *  - `body.shipmentStatus`: string (target shipment status code)
- *  - `body.fulfillmentStatus`: string (target fulfillment status code)
+ *  - `body.orderStatus`: string (target order status code, e.g. "ORDER_FULFILLED")
+ *  - `body.shipmentStatus`: string (target shipment status code, e.g. "SHIPMENT_DISPATCHED")
+ *  - `body.fulfillmentStatus`: string (target fulfillment status code, e.g. "FULFILLMENT_CONFIRMED")
  *
  * Flow:
- *  - Authorize request using `PERMISSIONS.OUTBOUND_FULFILLMENT.FULFILL`.
+ *  - Authorize request using `PERMISSIONS.OUTBOUND_FULFILLMENT.CONFIRM`.
  *  - Validate request params and body using Joi schemas.
- *  - Delegate orchestration to `adjustInventoryForFulfillmentController`.
+ *  - Delegate orchestration to `confirmOutboundFulfillmentController`.
  *  - Controller calls service to:
- *      * Apply inventory adjustments
- *      * Update related statuses
- *      * Insert activity logs
- *  - Returns standardized JSON response.
+ *      • Validate workflow eligibility (statuses, shipment linkage)
+ *      • Apply inventory updates
+ *      • Update all related statuses
+ *      • Insert audit and activity logs
+ *  - Returns a standardized JSON response with updated status and inventory data.
  *
  * Request:
  *  - Params:
@@ -96,19 +101,20 @@ router.post(
  *      }
  *
  * Response:
- *  - 200 OK: Fulfillment adjustment result (statuses, inventory updates, logs)
- *  - 400 VALIDATION_ERROR: Invalid request payload
+ *  - 200 OK: Outbound fulfillment confirmed successfully
+ *  - 400 VALIDATION_ERROR: Invalid payload or status transition
  *  - 403 FORBIDDEN: User lacks required permission
- *  - 500 SERVICE_ERROR: Internal failure during adjustment
+ *  - 404 NOT_FOUND: Order or fulfillment not found
+ *  - 500 SERVICE_ERROR: Internal failure during confirmation
  *
  * @access Protected
  */
 router.post(
-  '/orders/:orderId/fulfillment/fulfill',
-  authorize([PERMISSIONS.OUTBOUND_FULFILLMENT.FULFILL]),
+  '/orders/:orderId/fulfillment/confirm',
+  authorize([PERMISSIONS.OUTBOUND_FULFILLMENT.CONFIRM]),
   validate(orderIdParamSchema, 'params'),
   validate(fulfillAdjustmentBodySchema, 'body'),
-  adjustInventoryForFulfillmentController
+  confirmOutboundFulfillmentController
 );
 
 /**

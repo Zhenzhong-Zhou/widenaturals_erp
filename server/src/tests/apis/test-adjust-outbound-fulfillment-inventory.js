@@ -1,6 +1,6 @@
 const { pool } = require('../../database/db');
 const { initStatusCache } = require('../../config/status-cache');
-const { adjustInventoryForFulfillmentService } = require('../../services/outbound-fulfillment-service');
+const { confirmOutboundFulfillmentService } = require('../../services/outbound-fulfillment-service');
 
 (async () => {
   const client = await pool.connect();
@@ -41,8 +41,8 @@ const { adjustInventoryForFulfillmentService } = require('../../services/outboun
     };
     
     // Step 4: Execute service
-    console.log(`${logContext} ▶️ Running adjustInventoryForFulfillmentService...`);
-    const result = await adjustInventoryForFulfillmentService(requestData, testUser);
+    console.log(`${logContext} ▶️ Running confirmOutboundFulfillmentService...`);
+    const result = await confirmOutboundFulfillmentService(requestData, testUser);
     
     // Step 5: Review Results
     console.log(`${logContext} ✅ Service completed successfully.`);

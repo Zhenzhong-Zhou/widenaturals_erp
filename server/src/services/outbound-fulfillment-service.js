@@ -1,7 +1,7 @@
 const { withTransaction } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { getOrderTypeMetaByOrderId } = require('../repositories/order-type-repository');
-const { getSalesOrderShipmentMetadata } = require('../repositories/order-repository');
+const { getSalesOrderShipmentMetadata, fetchOrderMetadata } = require('../repositories/order-repository');
 const { insertOrderFulfillmentsBulk, getOrderFulfillments } = require('../repositories/order-fulfillment-repository');
 const { insertShipmentBatchesBulk } = require('../repositories/shipment-batch-repository');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
@@ -37,16 +37,16 @@ const {
   assertEnrichedAllocations,
   assertInventoryAdjustments,
   assertActionTypeIdResolved,
-  assertWarehouseUpdatesApplied,
+  assertWarehouseUpdatesApplied, assertShipmentFound, validateStatusesBeforeConfirmation,
 } = require('../business/outbound-fulfillment-business');
 const { getAllocationStatuses } = require('../repositories/inventory-allocations-repository');
 const { validateAllocationStatusTransition } = require('../business/inventory-allocation-business');
 const { getShipmentStatusByCode } = require('../repositories/shipment-status-repository');
-const { getFulfillmentStatusByCode } = require('../repositories/fulfillment-status-repository');
+const { getFulfillmentStatusByCode, getFulfillmentStatusesByIds } = require('../repositories/fulfillment-status-repository');
 const { getInventoryAllocationStatusId } = require('../repositories/inventory-allocation-status-repository');
 const {
   getPaginatedOutboundShipmentRecords,
-  getShipmentDetailsById
+  getShipmentDetailsById, getShipmentByShipmentId
 } = require('../repositories/outbound-shipment-repository');
 
 /**
@@ -253,197 +253,221 @@ const fulfillOutboundShipmentService = async (requestData, user) => {
 };
 
 /**
- * Service: adjustInventoryForFulfillmentService
+ * Service: confirmOutboundFulfillmentService
  *
- * Handles the inventory adjustment phase of outbound fulfillment.
- * This service executes after an outbound shipment and related fulfillments
- * have been created (via `fulfillOutboundShipmentService`).
+ * Handles the **confirmation phase** of outbound fulfillment.
+ * This is the stage where inventory is finalized and status transitions
+ * are applied to reflect that the outbound shipment is now confirmed.
  *
+ * This service runs after the outbound shipment and fulfillments have been
+ * initially created via `fulfillOutboundShipmentService`.
+ *
+ * ---
  * Responsibilities:
- *  - Apply row-level locks on allocations and related inventory.
- *  - Compute and apply inventory quantity adjustments based on fulfilled quantities.
- *  - Update statuses across order, order items, allocations, fulfillments, and shipments.
- *  - Insert inventory activity logs for auditability.
+ *  - Validate workflow eligibility via current order, shipment, and fulfillment statuses.
+ *  - Lock related allocations and inventory rows for safe concurrent processing.
+ *  - Compute and apply inventory quantity adjustments (fulfilled quantities → deducted).
+ *  - Update statuses across orders, order items, allocations, fulfillments, and shipments.
+ *  - Insert inventory activity logs for traceability and audit.
  *
+ * ---
  * Validation & Business Rules:
- *  - A fulfillment record must already exist for the order; otherwise, adjustment cannot proceed.
- *  - Inventory is adjusted only for allocations linked to the order’s fulfillments.
- *  - Status transitions must respect business rules (no updates from finalized states).
- *  - Activity logs must capture fulfillment → allocation → shipment relationships.
+ *  - Fulfillment records must exist for the given order; otherwise, confirmation cannot proceed.
+ *  - Status validation ensures only confirmable states are processed
+ *    (e.g., not confirming already fulfilled or cancelled shipments).
+ *  - A single shipment ID must be associated with all fulfillments being confirmed.
+ *  - Confirming outbound fulfillment always updates inventory and audit logs atomically.
  *
+ * ---
  * Workflow:
- *  1. Validate the order exists and fetch metadata (order number, type).
- *  2. Fetch and lock allocations for the order (`FOR UPDATE`).
- *  3. Fetch existing fulfillments; fail if none found.
- *  4. Fetch current inventory snapshot for affected batches.
- *  5. Enrich allocations with inventory data and compute adjustment deltas.
- *  6. Perform bulk inventory updates (quantity and reserved quantity).
- *  7. Resolve new status IDs (order, fulfillment, shipment).
- *  8. Update statuses across order, items, allocations, fulfillments, and shipments.
- *  9. Insert inventory activity logs for audit tracking.
- * 10. Return the full structured result (updated statuses, inventory IDs, logs).
+ *  1. Fetch and validate the order metadata (existence, order type, and current status).
+ *  2. Lock all allocations for this order (`FOR UPDATE`) to prevent race conditions.
+ *  3. Fetch all fulfillments and ensure they reference a single outbound shipment.
+ *  4. Fetch the outbound shipment record by its canonical ID.
+ *  5. Fetch fulfillment status codes for validation.
+ *  6. Validate workflow eligibility before confirmation (order, shipment, fulfillment statuses).
+ *  7. Fetch and verify inventory snapshot for all affected batches.
+ *  8. Enrich allocations with inventory data and compute quantity deltas.
+ *  9. Apply inventory updates in bulk.
+ * 10. Resolve target status IDs (order, allocation, shipment, fulfillment).
+ * 11. Update all statuses in a single transaction.
+ * 12. Insert inventory activity logs for traceability.
+ * 13. Return a structured summary of all updated records.
  *
- * @param {Object} requestData - Adjustment request payload
- * @param {string} requestData.orderId - ID of the order to adjust fulfillment for
+ * ---
+ * @param {Object} requestData - Confirmation request payload
+ * @param {string} requestData.orderId - ID of the order to confirm
  * @param {string} requestData.orderStatus - Target order status code
+ * @param {string} requestData.allocationStatus - Target allocation status code
  * @param {string} requestData.shipmentStatus - Target shipment status code
  * @param {string} requestData.fulfillmentStatus - Target fulfillment status code
+ * @param {Object} user - Authenticated user context
+ * @param {string} user.id - ID of the user performing the confirmation
  *
- * @param {Object} user - Authenticated user object
- * @param {string} user.id - ID of the user initiating the adjustment
- *
- * @returns {Promise<Object>} Adjustment result object:
- *  - orderId: ID of the adjusted order
- *  - orderNumber: Order number
- *  - fulfillments: Fulfillment rows involved in adjustment
- *  - shipmentId: Shipment ID linked to fulfillments
- *  - warehouseInventoryIds: Updated warehouse inventory record IDs
- *  - orderStatusRow: Updated order status
- *  - orderItemStatusRow: Updated order item statuses
- *  - inventoryAllocationStatusRow: Updated allocation statuses
- *  - orderFulfillmentStatusRow: Updated fulfillment statuses
- *  - shipmentStatusRow: Updated shipment statuses
- *  - logMetadata: Inserted inventory activity logs
+ * @returns {Promise<Object>} Confirmation result object
+ *  - orderId
+ *  - orderNumber
+ *  - fulfillments
+ *  - shipmentId
+ *  - warehouseInventoryIds
+ *  - orderStatusRow
+ *  - orderItemStatusRow
+ *  - inventoryAllocationStatusRow
+ *  - orderFulfillmentStatusRow
+ *  - shipmentStatusRow
+ *  - logMetadata
  *
  * @throws {AppError}
- *  - NotFoundError: If no fulfillments exist for the order
- *  - ValidationError: If status transitions are invalid
- *  - ServiceError: If inventory adjustment or status updates fail
+ *  - NotFoundError: if no fulfillments exist for the order
+ *  - ValidationError: if statuses are not eligible for confirmation
+ *  - ServiceError: if inventory update or transaction fails
  */
-const adjustInventoryForFulfillmentService = async (requestData, user) => {
+const confirmOutboundFulfillmentService = async (requestData, user) => {
   try {
     return await withTransaction(async (client) => {
       const userId = user.id;
-      const { orderId: rawOrderId, orderStatus, allocationStatus, shipmentStatus, fulfillmentStatus } = requestData;
-      // TODO: validate process: status?
+      const {
+        orderId: rawOrderId,
+        orderStatus,
+        allocationStatus,
+        shipmentStatus,
+        fulfillmentStatus,
+      } = requestData;
       
-      // --- 1. Fetch order metadata (ensures order exists & provides order number)
-      const orderMeta =
-        await getOrderTypeMetaByOrderId(rawOrderId, client);
+      // --- 1. Validate and fetch order metadata
+      const orderMeta = await getOrderTypeMetaByOrderId(rawOrderId, client);
       assertOrderMeta(orderMeta);
       const { order_id: orderId, order_number: orderNumber } = orderMeta;
       
+      // Fetch current order status (for workflow validation)
+      const { order_status_code } = await fetchOrderMetadata(orderId, client);
+      
       // --- 2. Fetch and lock allocations for this order
-      const { allocationMeta, warehouseBatchKeys } = await getAndLockAllocations(
-        orderId,
-        null,
-        client
-      );
+      const { allocationMeta, warehouseBatchKeys } = await getAndLockAllocations(orderId, null, client);
       
       // --- 3. Fetch existing fulfillments for the order
       const fulfillments = await getOrderFulfillments({ orderId }, client);
       assertFulfillmentsValid(fulfillments, orderNumber);
       
-      // --- 4. Fetch current inventory snapshot for affected batches
-      const inventoryMeta = await getWarehouseInventoryQuantities(
-        warehouseBatchKeys,
-        client
-      );
+      // --- 4. Resolve unique shipment ID from fulfillments
+      const uniqueShipmentIds = [...new Set(fulfillments.map(f => f.shipment_id))];
+      if (uniqueShipmentIds.length > 1) {
+        throw AppError.validationError(
+          'Multiple shipment IDs detected — cannot confirm multiple shipments in a single transaction.',
+          { context: 'confirmOutboundFulfillmentService' }
+        );
+      }
+      
+      const shipmentId = uniqueShipmentIds[0];
+      
+      // Optional: check for mismatch between request and derived shipment
+      if (requestData.shipmentId && requestData.shipmentId !== shipmentId) {
+        logSystemInfo('Shipment ID mismatch detected', {
+          context: 'confirmOutboundFulfillmentService',
+          requestShipmentId: requestData.shipmentId,
+          actualShipmentId: shipmentId,
+        });
+      }
+      
+      // --- 5. Fetch shipment record and assert existence
+      const shipment = await getShipmentByShipmentId(shipmentId, client);
+      assertShipmentFound(shipment, shipmentId);
+      
+      // --- 6. Fetch fulfillment status metadata
+      const fulfillmentStatusIds = fulfillments.map(f => f.status_id);
+      const fulfillmentStatusMeta = await getFulfillmentStatusesByIds(fulfillmentStatusIds, client);
+      
+      // --- 7. Validate workflow eligibility before confirmation
+      validateStatusesBeforeConfirmation({
+        orderStatusCode: order_status_code,
+        fulfillmentStatuses: fulfillmentStatusMeta.map(s => s.code),
+        shipmentStatusCode: shipment.status_code,
+      });
+      
+      // --- 8. Fetch inventory snapshot for affected batches
+      const inventoryMeta = await getWarehouseInventoryQuantities(warehouseBatchKeys, client);
       assertInventoryCoverage(inventoryMeta);
       
-      // --- 5. Enrich allocations with current inventory (for delta calculation)
-      const enrichedAllocations = enrichAllocationsWithInventory(
-        allocationMeta,
-        inventoryMeta
-      );
+      // --- 9. Enrich allocations with current inventory data
+      const enrichedAllocations = enrichAllocationsWithInventory(allocationMeta, inventoryMeta);
       assertEnrichedAllocations(enrichedAllocations);
       
-      // --- 6. Compute inventory deltas based on fulfillment quantities
+      // --- 10. Compute inventory adjustments (delta quantities)
       const updatesObject = calculateInventoryAdjustments(enrichedAllocations);
       assertInventoryAdjustments(updatesObject);
       
       // TODO: lockRows warehouse_inventory, inventory_allocations
       
-      // --- 7. Apply inventory adjustments (update qty + reserved qty)
+      // --- 11. Apply bulk inventory updates (qty + reserved qty)
       const warehouseInventoryIds = await bulkUpdateWarehouseQuantities(updatesObject, userId, client);
       assertWarehouseUpdatesApplied(warehouseInventoryIds, { updates: updatesObject });
       
-      // --- 8. Resolve new status IDs for order, shipment, and fulfillment
-      const { id: newOrderStatusId } = await getOrderStatusByCode(
-        orderStatus,
-        client
-      );
-      const newAllocationStatusId = await getInventoryAllocationStatusId(
-        allocationStatus,
-        client
-      );
-      const { id: newShipmentStatusId } = await getShipmentStatusByCode(
-        shipmentStatus,
-        client
-      );
-      const { id: newFulfillmentStatusId } = await getFulfillmentStatusByCode(
-        fulfillmentStatus,
-        client
-      );
+      // --- 12. Resolve new status IDs for transition
+      const { id: newOrderStatusId } = await getOrderStatusByCode(orderStatus, client);
+      const newAllocationStatusId = await getInventoryAllocationStatusId(allocationStatus, client);
+      const { id: newShipmentStatusId } = await getShipmentStatusByCode(shipmentStatus, client);
+      const { id: newFulfillmentStatusId } = await getFulfillmentStatusByCode(fulfillmentStatus, client);
+      
       assertStatusesResolved({
         orderStatusId: newOrderStatusId,
         shipmentStatusId: newShipmentStatusId,
         fulfillmentStatusId: newFulfillmentStatusId,
       });
       
-      // --- 9. Update statuses across order, items, allocations, fulfillments, shipments
+      // --- 13. Update statuses across all linked entities
       const {
         orderStatusRow,
         orderItemStatusRow,
         inventoryAllocationStatusRow,
         orderFulfillmentStatusRow,
         shipmentStatusRow,
-      } = await updateAllStatuses(
-        {
-          orderId,
-          orderNumber,
-          allocationMeta,
-          newOrderStatusId,
-          newAllocationStatusId,
-          fulfillments,
-          newFulfillmentStatusId,
-          newShipmentStatusId,
-          userId,
-          client
-        }
-      );
+      } = await updateAllStatuses({
+        orderId,
+        orderNumber,
+        allocationMeta,
+        newOrderStatusId,
+        newAllocationStatusId,
+        fulfillments,
+        newFulfillmentStatusId,
+        newShipmentStatusId,
+        userId,
+        client,
+      });
       
-      // --- 10. Insert inventory activity logs for traceability
-      const inventoryActionTypeId = await getInventoryActionTypeId(
-        'fulfilled',
-        client
-      );
+      // --- 14. Insert inventory activity logs
+      const inventoryActionTypeId = await getInventoryActionTypeId('fulfilled', client);
       assertActionTypeIdResolved(inventoryActionTypeId, 'fulfilled');
+      
       const logs = fulfillments.flatMap(f => {
-        // find the one allocation this fulfillment is tied to
-        const allocation = enrichedAllocations.find(
-          a => a.allocation_id === f.allocation_id
-        );
-        
-        if (!allocation) return []; // skip if allocation not found (safety net)
-        
+        const allocation = enrichedAllocations.find(a => a.allocation_id === f.allocation_id);
+        if (!allocation) return [];
         return buildInventoryActivityLogs([allocation], updatesObject, {
           inventoryActionTypeId,
           userId,
           orderId,
-          shipmentId: f.shipment_id,        // same across all fulfillments
-          fulfillmentId: f.fulfillment_id,  // unique per fulfillment
+          shipmentId: f.shipment_id,
+          fulfillmentId: f.fulfillment_id,
           orderNumber,
         });
       });
+      
       assertLogsGenerated(logs, 'build');
       const logMetadata = await insertInventoryActivityLogs(logs, client);
       assertLogsGenerated(logMetadata, 'insert');
       
-      // --- 11. Log success
-      logSystemInfo('Inventory successfully adjusted for fulfillment', {
-        context:
-          'outbound-fulfillment-service/adjustInventoryForFulfillmentService',
+      // --- 15. Log success
+      logSystemInfo('Outbound fulfillment successfully confirmed', {
+        context: 'outbound-fulfillment-service/confirmOutboundFulfillmentService',
         orderId,
         userId,
       });
       
-      // --- 12. Transform + return structured result
+      // --- 16. Return structured confirmation result
       return transformAdjustedFulfillmentResult({
         orderId,
         orderNumber,
         fulfillments,
-        shipmentId: fulfillments[0].shipment_id,
+        shipmentId,
         warehouseInventoryIds,
         orderStatusRow,
         orderItemStatusRow,
@@ -454,20 +478,16 @@ const adjustInventoryForFulfillmentService = async (requestData, user) => {
       });
     });
   } catch (error) {
-    logSystemException(error, 'Error adjusting inventory for fulfillment', {
-      context: 'outbound-fulfillment-service/adjustInventoryForFulfillmentService',
+    logSystemException(error, 'Error confirming outbound fulfillment', {
+      context: 'outbound-fulfillment-service/confirmOutboundFulfillmentService',
       orderId: requestData?.orderId,
       userId: user?.id,
     });
     
-    throw AppError.serviceError(
-      'Unable to adjust inventory for fulfillment.',
-      {
-        cause: error,
-        context:
-          'outbound-fulfillment-service/adjustInventoryForFulfillmentService',
-      }
-    );
+    throw AppError.serviceError('Unable to confirm outbound fulfillment.', {
+      cause: error,
+      context: 'outbound-fulfillment-service/confirmOutboundFulfillmentService',
+    });
   }
 };
 
@@ -637,7 +657,7 @@ const fetchShipmentDetailsService = async (shipmentId) => {
 
 module.exports = {
   fulfillOutboundShipmentService,
-  adjustInventoryForFulfillmentService,
+  confirmOutboundFulfillmentService,
   fetchPaginatedOutboundFulfillmentService,
   fetchShipmentDetailsService,
 };
