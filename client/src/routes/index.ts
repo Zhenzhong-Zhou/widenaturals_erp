@@ -321,6 +321,16 @@ export const routes = [
       requiredPermission: 'view_outbound_fulfillments',
     },
   },
+  {
+    path: '/fulfillments/outbound-shipment/:shipmentId',
+    component: lazy(() => import('@features/outboundFulfillment/pages/OutboundShipmentDetailsPage')),
+    meta: {
+      requiresAuth: true,
+      title: 'Outbound Shipment Details',
+      showInSidebar: false,
+      requiredPermission: 'view_outbound_fulfillments',
+    },
+  },
   // {
   //   path: '/orders/transfers',
   //   component: lazy(() => import('@features/order/pages/OrderTransferPage')),

@@ -204,7 +204,6 @@ export type PaginatedOutboundFulfillmentResponse =
  */
 export type PaginatedOutboundFulfillmentsState = ReduxPaginatedState<OutboundShipmentRecord>;
 
-
 /** Shipment details response (data property) */
 export interface ShipmentDetails {
   shipment: ShipmentHeader;
@@ -219,6 +218,7 @@ export interface ShipmentHeader {
     id: string;
     name: string;
   };
+  deliveryMethod: DeliveryMethod | null;
   status: {
     id: string;
     code: string;
@@ -229,6 +229,15 @@ export interface ShipmentHeader {
   notes: string | null;
   details: string | null;
   tracking: TrackingInfo | null;
+  audit: AuditInfo;
+}
+
+/** Delivery method */
+export interface DeliveryMethod {
+  id: string;
+  name: string;
+  isPickup: boolean;
+  estimatedTime: string | { days: number; hours?: number } | null;
 }
 
 /** Tracking info (nullable in your response) */
@@ -258,15 +267,37 @@ export interface Fulfillment {
     code: string;
     name: string;
   };
+  audit: FulfillmentAuditInfo;
   orderItem: OrderItem | null;
   batches: ShipmentBatch[];
+}
+
+/** Fulfillment-level audit */
+export interface FulfillmentAuditInfo extends AuditInfo {
+  fulfilledBy: {
+    id: string;
+    name: string;
+  } | null;
+}
+
+/** Generic audit info */
+export interface AuditInfo {
+  createdAt: string | null;
+  createdBy: {
+    id: string | null;
+    name: string;
+  } | null;
+  updatedAt: string | null;
+  updatedBy: {
+    id: string | null;
+    name: string;
+  } | null;
 }
 
 /** Order item (either product SKU or packaging material) */
 export type OrderItem = {
   id: string;
   quantityOrdered: number;
-  metadata: Record<string, any> | null;
 } & (
   | { sku: SkuInfo; packagingMaterial?: never }
   | { packagingMaterial: PackagingMaterialInfo; sku?: never }
@@ -297,6 +328,8 @@ export interface PackagingMaterialInfo {
 export interface ShipmentBatch {
   shipmentBatchId: string;
   quantityShipped: number;
+  notes: string | null;
+  audit: AuditInfo;
   batchRegistryId: string;
   batchType: "product" | "packaging_material";
   lotNumber: string | null;
@@ -321,3 +354,129 @@ export type ShipmentDetailsResponse = ApiSuccessResponse<ShipmentDetails>;
  * to manage the lifecycle of fetching a single shipment’s details.
  */
 export type OutboundShipmentDetailsState = AsyncState<ShipmentDetails | null>;
+
+/**
+ * Represents a **flattened outbound shipment header** for display and data binding.
+ *
+ * Combines key shipment-level attributes, including:
+ *  - Warehouse and delivery method information
+ *  - Shipment status and scheduling fields
+ *  - Audit metadata (created/updated by users)
+ *  - Tracking details (carrier, service, BOL, freight type)
+ *
+ * Used primarily for:
+ *  - Outbound shipment detail views
+ *  - Table header summaries and metadata sections
+ */
+/**
+ * Represents a **flattened outbound shipment header** for display and data binding.
+ *
+ * Combines key shipment-level attributes, including:
+ *  - Warehouse and delivery method information
+ *  - Shipment status and scheduling fields
+ *  - Audit metadata (created/updated by users)
+ *  - Tracking details (carrier, service, BOL, freight type)
+ *
+ * Used primarily for:
+ *  - Outbound shipment detail views
+ *  - Table header summaries and metadata sections
+ */
+export interface FlattenedShipmentHeader {
+  shipmentId: string;
+  orderId: string;
+  warehouseId: string | null;
+  warehouseName: string | null;
+  
+  /** Delivery method information */
+  deliveryMethodId: string | null;
+  deliveryMethodName: string | null;
+  deliveryMethodIsPickup: boolean | null;
+  deliveryMethodEstimatedTime: string | null;
+  
+  /** Shipment status */
+  statusId: string | null;
+  statusCode: string | null;
+  statusName: string | null;
+  
+  /** Scheduling and notes */
+  shippedAt: string | null;
+  expectedDeliveryDate: string | null;
+  notes: string | null;
+  details: string | null;
+  
+  /** Audit info */
+  createdAt: string | null;
+  createdByName: string | null;
+  updatedAt: string | null;
+  updatedByName: string | null;
+  
+  /** Tracking info */
+  trackingId: string | null;
+  trackingNumber: string | null;
+  trackingCarrier: string | null;
+  trackingService: string | null;
+  trackingBolNumber: string | null;
+  trackingFreightType: string | null;
+  trackingNotes: string | null;
+  trackingShippedDate: string | null;
+  trackingStatusId: string | null;
+  trackingStatusName: string | null;
+}
+
+/** Batch-only type for the mini table */
+export interface FlattenedBatchRow {
+  shipmentBatchId: string;
+  batchRegistryId: string | null;
+  batchType: string | null;
+  lotNumber: string | null;
+  expiryDate: string | null;
+  quantityShipped: number | null;
+  notes: string | null;
+  createdAt: string | null;
+  createdByName: string | null;
+  snapshotName?: string | null;
+  receivedLabelName?: string | null;
+}
+
+/**
+ * Represents a **flattened outbound fulfillment record** for display in
+ * the Outbound Fulfillment Table.
+ *
+ * Each record corresponds to a single `order_fulfillment` entry, enriched with:
+ *  - **Audit info** (created, updated, fulfilled users & timestamps)
+ *  - **Item details** (either product SKU or packaging material)
+ *  - **Batch list** (array of shipped batch entries linked to this fulfillment)
+ *
+ * This flattened structure is optimized for table rendering and UI display —
+ * providing a single row per fulfillment with nested batch data.
+ */
+export interface FlattenedFulfillmentRow {
+  fulfillmentId: string;
+  fulfillmentStatusCode: string | null;
+  fulfillmentStatusName: string | null;
+  quantityFulfilled: number | null;
+  fulfilledAt: string | null;
+  fulfillmentNote: string | null;
+  
+  // audit
+  createdAt: string | null;
+  createdByName: string | null;
+  updatedAt: string | null;
+  updatedByName: string | null;
+  fulfilledByName: string | null;
+  
+  // item details
+  orderItemId: string | null;
+  orderItemQuantity: number | null;
+  productName?: string | null;
+  skuCode?: string | null;
+  barcode?: string | null;
+  category?: string | null;
+  region?: string | null;
+  sizeLabel?: string | null;
+  packagingMaterialCode?: string | null;
+  packagingMaterialLabel?: string | null;
+  
+  // Batch info is now a sub-array of batch rows
+  batches: FlattenedBatchRow[];
+}

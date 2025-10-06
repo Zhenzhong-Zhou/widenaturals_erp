@@ -24,9 +24,10 @@ export const getOutboundFulfillmentTableColumns = (
       minWidth: 180,
       sortable: true,
       renderCell: (row) =>
-        row.order?.id ? (
+        row.shipmentId ? (
           <Link
-            to={`/orders/details/${row.order.id}`}
+            to={`/fulfillments/outbound-shipment/${row.shipmentId}`}
+            state={{ orderNumber: row.order.number }}
             style={{
               textDecoration: 'none',
               color: '#1976D2',

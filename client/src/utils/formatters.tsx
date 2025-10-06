@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import StatusChip from '@components/common/StatusChip';
 import { getAllocationDisplay, getStatusColor } from './getStatusColor';
 
-type StatusType = 'order' | 'payment' | 'item' | 'allocation' | 'inventory';
+type StatusType = 'order' | 'payment' | 'item' | 'allocation' | 'inventory' | 'shipment' | 'fulfillment';
 
 const humanizeCode = (code: string, type: StatusType): string => {
   const cleaned = (type === 'order' || type === 'item')
@@ -63,3 +63,8 @@ export const formatInventoryStatus = (
   label?: string | null
 ): ReactNode => formatStatus(code, 'inventory', label);
 
+export const formatShipmentStatus = (code?: string | null, label?: string | null) =>
+  formatStatus(code, 'shipment', label);
+
+export const formatFulfillmentStatus = (code?: string | null, label?: string | null) =>
+  formatStatus(code, 'fulfillment', label);

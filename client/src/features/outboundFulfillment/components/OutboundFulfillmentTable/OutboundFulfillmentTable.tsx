@@ -1,4 +1,7 @@
 import { type FC, Suspense, useCallback, useMemo } from 'react';
+import Box from '@mui/material/Box';
+import CustomButton from '@components/common/CustomButton';
+import CustomTypography from '@components/common/CustomTypography';
 import CustomTable from '@components/common/CustomTable';
 import SkeletonExpandedRow from '@components/common/SkeletonExpandedRow';
 import type { OutboundShipmentRecord } from '@features/outboundFulfillment/state';
@@ -40,6 +43,7 @@ const OutboundFulfillmentsTable: FC<OutboundFulfillmentsTableProps> = ({
                                                                          onDrillDownToggle,
                                                                          selectedRowIds,
                                                                          onSelectionChange,
+                                                                         onRefresh,
                                                                        }) => {
   const columns = useMemo(() => {
     return getOutboundFulfillmentTableColumns(
@@ -67,25 +71,46 @@ const OutboundFulfillmentsTable: FC<OutboundFulfillmentsTableProps> = ({
   );
   
   return (
-    <CustomTable<OutboundShipmentRecord>
-      loading={loading}
-      data={data}
-      columns={columns}
-      page={page} // parent already converts backend 1-based → 0-based
-      totalPages={totalPages}
-      totalRecords={totalRecords}
-      initialRowsPerPage={rowsPerPage}
-      onPageChange={onPageChange}
-      onRowsPerPageChange={onRowsPerPageChange}
-      getRowId={(row) => row.shipmentId}
-      expandedRowId={expandedRowId}
-      expandable={!!onDrillDownToggle}
-      expandedContent={renderOutboundFulfillmentExpandedContent}
-      onSelectionChange={onSelectionChange}
-      selectedRowIds={selectedRowIds}
-      showCheckboxes={!!onSelectionChange}
-      emptyMessage="No outbound fulfillments found."
-    />
+    <Box>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={2}
+      >
+        <CustomTypography variant="h6" fontWeight={600}>
+          Outbound Shipments
+        </CustomTypography>
+        
+        <CustomButton
+          onClick={onRefresh}
+          variant="outlined"
+          sx={{ color: 'primary', fontWeight: 500 }}
+        >
+          Refresh
+        </CustomButton>
+      </Box>
+      
+      <CustomTable<OutboundShipmentRecord>
+        loading={loading}
+        data={data}
+        columns={columns}
+        page={page} // parent already converts backend 1-based → 0-based
+        totalPages={totalPages}
+        totalRecords={totalRecords}
+        initialRowsPerPage={rowsPerPage}
+        onPageChange={onPageChange}
+        onRowsPerPageChange={onRowsPerPageChange}
+        getRowId={(row) => row.shipmentId}
+        expandedRowId={expandedRowId}
+        expandable={!!onDrillDownToggle}
+        expandedContent={renderOutboundFulfillmentExpandedContent}
+        onSelectionChange={onSelectionChange}
+        selectedRowIds={selectedRowIds}
+        showCheckboxes={!!onSelectionChange}
+        emptyMessage="No outbound fulfillments found."
+      />
+    </Box>
   );
 };
 

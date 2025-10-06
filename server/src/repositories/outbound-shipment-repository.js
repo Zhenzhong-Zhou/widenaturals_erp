@@ -335,29 +335,73 @@ const getPaginatedOutboundShipmentRecords = async ({
 /**
  * Fetch detailed outbound shipment information by shipment ID.
  *
+ * The query joins across `outbound_shipments`, `order_fulfillments`,
+ * `order_items`, `skus`, `products`, `packaging_materials`,
+ * `shipment_batches`, and batch registries, including audit user metadata.
+ *
  * Includes the following:
- *  - Shipment header (status, warehouse, notes, expected delivery date, etc.)
- *  - Tracking information (tracking number, carrier, service, status, etc.)
- *  - Fulfillments (linked order items, fulfillment status, quantities, etc.)
- *  - Order Item details:
- *    - If product → includes SKU & Product metadata (SKU code, barcode, product name, brand, category, etc.)
- *    - If packaging material → includes packaging material metadata (code, name, size, color, unit, dimensions)
- *  - Batch information (shipment_batches + batch_registry):
- *    - If product batch → includes `product_lot_number`, `product_expiry_date`
- *    - If packaging material batch → includes `material_lot_number`, `material_expiry_date`,
- *      plus `material_snapshot_name` and `received_label_name`
+ *
+ * **Shipment header**
+ *  - Core: `shipment_id`, `order_id`, `warehouse_id`, `warehouse_name`
+ *  - Delivery method: `delivery_method_id`, `delivery_method_name`,
+ *    `delivery_method_is_pickup`, `delivery_method_estimated_time`
+ *  - Status: `shipment_status_id`, `shipment_status_code`, `shipment_status_name`
+ *  - Dates: `shipped_at`, `expected_delivery_date`
+ *  - Notes/details: `shipment_notes`, `shipment_details`
+ *  - Audit: `created_at`, `created_by` (with firstname/lastname),
+ *    `updated_at`, `updated_by` (with firstname/lastname)
+ *
+ * **Tracking information**
+ *  - Tracking number: `tracking_id`, `tracking_number`
+ *  - Carrier/service: `carrier`, `service_name`, `bol_number`, `freight_type`
+ *  - Status: `tracking_status_id`, `tracking_status_name`
+ *  - Notes/dates: `tracking_notes`, `tracking_shipped_date`
+ *
+ * **Fulfillments**
+ *  - Fulfillment core: `fulfillment_id`, `quantity_fulfilled`,
+ *    `fulfilled_at`, `fulfillment_notes`
+ *  - Status: `fulfillment_status_id`, `fulfillment_status_code`, `fulfillment_status_name`
+ *  - Audit: `created_at`, `created_by` (with firstname/lastname),
+ *    `updated_at`, `updated_by` (with firstname/lastname),
+ *    `fulfilled_by` (with firstname/lastname)
+ *
+ * **Order Items**
+ *  - Common: `order_item_id`, `quantity_ordered`
+ *  - If product:
+ *    - SKU: `sku_id`, `sku`, `barcode`, `country_code`, `size_label`, `market_region`
+ *    - Product: `product_id`, `product_name`, `brand`, `series`, `category`
+ *  - If packaging material:
+ *    - Metadata: `packaging_material_id`, `packaging_material_code`,
+ *      `packaging_material_name`, `packaging_material_color`,
+ *      `packaging_material_size`, `packaging_material_unit`,
+ *      `packaging_material_length_cm`, `packaging_material_width_cm`,
+ *      `packaging_material_height_cm`
+ *
+ * **Batches**
+ *  - Shipment batch: `shipment_batch_id`, `quantity_shipped`,
+ *    `shipment_batch_notes`, `shipment_batch_created_at`,
+ *    `shipment_batch_created_by` (with firstname/lastname)
+ *  - Registry: `batch_registry_id`, `batch_type`
+ *  - If product batch: `product_lot_number`, `product_expiry_date`
+ *  - If packaging material batch: `packaging_material_batch_id`,
+ *    `material_lot_number`, `material_expiry_date`,
+ *    `material_snapshot_name`, `received_label_name`
+ *
+ * ---
  *
  * Note:
- *  - Returns a **flat array of rows** (one per fulfillment × batch).
- *  - Data will contain **duplicated shipment/fulfillment headers**.
- *  - Use a transformer (e.g., `transformShipmentDetailsRows`) to structure into:
- *    {
- *      shipment,
- *      tracking,
- *      fulfillments: [
- *        { orderItem, batches[] }
- *      ]
- *    }
+ * - The raw query returns a **flat array of rows** (one per fulfillment × batch).
+ * - Shipment, tracking, and fulfillment headers will be duplicated across rows.
+ * - Use a transformer (e.g. `transformShipmentDetailsRows`) to
+ *   normalize into nested structure:
+ *
+ * ```ts
+ * {
+ *   shipment: ShipmentHeader,
+ *   tracking: TrackingInfo | null,
+ *   fulfillments: Fulfillment[] // each with orderItem + batches[]
+ * }
+ * ```
  *
  * @param {string} shipmentId - UUID of the outbound shipment
  * @returns {Promise<object[]>} Raw query result rows
@@ -367,15 +411,17 @@ const getPaginatedOutboundShipmentRecords = async ({
  *   {
  *     shipment_id: 'uuid',
  *     warehouse_name: 'Main Warehouse',
+ *     delivery_method_name: 'Standard Shipping',
  *     fulfillment_id: 'uuid',
  *     order_item_id: 'uuid',
- *     -- If product:
+ *
+ *     // If product:
  *     sku: 'WN-MO400-S-UN',
  *     product_name: 'Seal Oil 400mg',
  *     product_lot_number: 'LOT-2024-001',
  *     product_expiry_date: '2026-12-31',
  *
- *     -- If packaging material:
+ *     // If packaging material:
  *     packaging_material_name: 'Bottle 200ml Amber',
  *     material_lot_number: 'PM-001',
  *     material_expiry_date: '2030-01-01',
@@ -397,6 +443,10 @@ const getShipmentDetailsById = async (shipmentId) => {
       os.order_id,
       os.warehouse_id,
       ws.name AS warehouse_name,
+      os.delivery_method_id,
+      dm.method_name AS delivery_method_name,
+      dm.is_pickup_location AS delivery_method_is_pickup,
+      dm.estimated_time AS delivery_method_estimated_time,
       os.status_id AS shipment_status_id,
       ss.code AS shipment_status_code,
       ss.name AS shipment_status_name,
@@ -404,6 +454,14 @@ const getShipmentDetailsById = async (shipmentId) => {
       os.expected_delivery_date,
       os.notes AS shipment_notes,
       os.shipment_details,
+      os.created_at,
+      os.created_by,
+      created_by_user.firstname AS shipment_created_by_firstname,
+      created_by_user.lastname  AS shipment_created_by_lastname,
+      os.updated_at,
+      os.updated_by,
+      updated_by_user.firstname AS shipment_updated_by_firstname,
+      updated_by_user.lastname  AS shipment_updated_by_lastname,
       tn.id AS tracking_id,
       tn.tracking_number,
       tn.carrier,
@@ -421,9 +479,19 @@ const getShipmentDetailsById = async (shipmentId) => {
       of.status_id AS fulfillment_status_id,
       fs.code AS fulfillment_status_code,
       fs.name AS fulfillment_status_name,
+      of.created_at AS fulfillment_created_at,
+      of.created_by AS fulfillment_created_by,
+      fulfillment_created_by_user.firstname AS fulfillment_created_by_firstname,
+      fulfillment_created_by_user.lastname  AS fulfillment_created_by_lastname,
+      of.updated_at AS fulfillment_updated_at,
+      of.updated_by AS fulfillment_updated_by,
+      fulfillment_updated_by_user.firstname AS fulfillment_updated_by_firstname,
+      fulfillment_updated_by_user.lastname  AS fulfillment_updated_by_lastname,
+      of.fulfilled_by,
+      fulfillment_fulfilled_by_user.firstname AS fulfillment_fulfilled_by_firstname,
+      fulfillment_fulfilled_by_user.lastname  AS fulfillment_fulfilled_by_lastname,
       oi.id AS order_item_id,
       oi.quantity_ordered,
-      oi.metadata AS order_item_metadata,
       s.id AS sku_id,
       s.sku,
       s.barcode,
@@ -446,6 +514,11 @@ const getShipmentDetailsById = async (shipmentId) => {
       pkg.height_cm AS packaging_material_height_cm,
       sb.id AS shipment_batch_id,
       sb.quantity_shipped,
+      sb.notes AS shipment_batch_notes,
+      sb.created_at AS shipment_batch_created_at,
+      sb.created_by AS shipment_batch_created_by,
+      shipment_batch_created_by_user.firstname AS shipment_batch_created_by_firstname,
+      shipment_batch_created_by_user.lastname  AS shipment_batch_created_by_lastname,
       br.id AS batch_registry_id,
       br.batch_type,
       pb.lot_number  AS product_lot_number,
@@ -457,11 +530,17 @@ const getShipmentDetailsById = async (shipmentId) => {
       pmb.received_label_name
     FROM outbound_shipments os
     LEFT JOIN warehouses ws ON ws.id = os.warehouse_id
+    LEFT JOIN delivery_methods dm ON dm.id = os.delivery_method_id
     LEFT JOIN shipment_status ss ON ss.id = os.status_id
     LEFT JOIN tracking_numbers tn ON tn.id = os.tracking_number_id
     LEFT JOIN status ts ON ts.id = tn.status_id
+    LEFT JOIN users created_by_user ON created_by_user.id = os.created_by
+    LEFT JOIN users updated_by_user ON updated_by_user.id = os.updated_by
     LEFT JOIN order_fulfillments of ON of.shipment_id = os.id
     LEFT JOIN fulfillment_status fs ON fs.id = of.status_id
+    LEFT JOIN users fulfillment_created_by_user ON fulfillment_created_by_user.id = of.created_by
+    LEFT JOIN users fulfillment_updated_by_user ON fulfillment_updated_by_user.id = of.updated_by
+    LEFT JOIN users fulfillment_fulfilled_by_user ON fulfillment_fulfilled_by_user.id = of.fulfilled_by
     LEFT JOIN order_items oi ON oi.id = of.order_item_id
     LEFT JOIN skus s ON s.id = oi.sku_id
     LEFT JOIN products p ON p.id = s.product_id
@@ -470,6 +549,7 @@ const getShipmentDetailsById = async (shipmentId) => {
     LEFT JOIN batch_registry br ON br.id = sb.batch_id
     LEFT JOIN product_batches pb ON br.product_batch_id = pb.id
     LEFT JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id
+    LEFT JOIN users shipment_batch_created_by_user ON shipment_batch_created_by_user.id = sb.created_by
     WHERE os.id = $1;
   `;
   

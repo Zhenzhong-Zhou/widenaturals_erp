@@ -80,6 +80,22 @@ const statusMaps = {
     returned: 'info',
     returned_inspection: 'secondary',
   },
+  shipment: {
+    SHIPMENT_PENDING: 'warning',
+    SHIPMENT_READY: 'info',
+    SHIPMENT_IN_TRANSIT: 'secondary',
+    SHIPMENT_DELIVERED: 'success',
+    SHIPMENT_CANCELLED: 'error',
+    SHIPMENT_RETURNED: 'warning',
+  },
+  fulfillment: {
+    FULFILLMENT_PENDING: 'warning',     // waiting to be processed
+    FULFILLMENT_PICKING: 'info',        // items being picked
+    FULFILLMENT_PACKED: 'secondary',    // items packed and ready
+    FULFILLMENT_SHIPPED: 'primary',     // shipped out
+    FULFILLMENT_DELIVERED: 'success',   // delivered successfully
+    FULFILLMENT_CANCELLED: 'error',     // cancelled fulfillment
+  },
 } as const;
 
 type StatusType = keyof typeof statusMaps;

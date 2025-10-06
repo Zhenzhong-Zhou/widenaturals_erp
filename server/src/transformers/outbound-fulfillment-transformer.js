@@ -250,10 +250,16 @@ const transformPaginatedOutboundShipmentResults = (paginatedResult) => {
 
 /**
  * @typedef {Object} ShipmentDetailRow
+ *
+ * --- Shipment ---
  * @property {string} shipment_id - UUID of the outbound shipment
  * @property {string} order_id - UUID of the parent order
  * @property {string} warehouse_id - UUID of the warehouse where shipment originates
  * @property {string} warehouse_name - Name of the warehouse
+ * @property {string|null} delivery_method_id - UUID of the delivery method
+ * @property {string|null} delivery_method_name - Human-readable delivery method name
+ * @property {boolean|null} delivery_method_is_pickup - Whether this delivery method is pickup
+ * @property {string|object|null} delivery_method_estimated_time - Estimated time (string or structured JSON)
  * @property {string} shipment_status_id - UUID of the shipment status
  * @property {string} shipment_status_code - Code of the shipment status (e.g. SHIP_PENDING)
  * @property {string} shipment_status_name - Human-readable shipment status
@@ -261,7 +267,16 @@ const transformPaginatedOutboundShipmentResults = (paginatedResult) => {
  * @property {string|null} expected_delivery_date - Estimated delivery date
  * @property {string|null} shipment_notes - Internal notes attached to the shipment
  * @property {string|null} shipment_details - Extra structured details (JSON or text)
+ * @property {string} created_at - Timestamp shipment created
+ * @property {string|null} created_by - UUID of user who created the shipment
+ * @property {string|null} shipment_created_by_firstname
+ * @property {string|null} shipment_created_by_lastname
+ * @property {string|null} updated_at - Timestamp shipment last updated
+ * @property {string|null} updated_by - UUID of user who last updated
+ * @property {string|null} shipment_updated_by_firstname
+ * @property {string|null} shipment_updated_by_lastname
  *
+ * --- Tracking ---
  * @property {string|null} tracking_id - UUID of the tracking record
  * @property {string|null} tracking_number - Tracking number from carrier
  * @property {string|null} carrier - Carrier name (FedEx, UPS, etc.)
@@ -273,6 +288,7 @@ const transformPaginatedOutboundShipmentResults = (paginatedResult) => {
  * @property {string|null} tracking_status_id - UUID of tracking status
  * @property {string|null} tracking_status_name - Human-readable tracking status
  *
+ * --- Fulfillment ---
  * @property {string|null} fulfillment_id - UUID of the fulfillment record
  * @property {number|null} quantity_fulfilled - Quantity fulfilled in this fulfillment
  * @property {string|null} fulfilled_at - Timestamp when fulfillment occurred
@@ -280,11 +296,23 @@ const transformPaginatedOutboundShipmentResults = (paginatedResult) => {
  * @property {string|null} fulfillment_status_id - UUID of fulfillment status
  * @property {string|null} fulfillment_status_code - Code of fulfillment status
  * @property {string|null} fulfillment_status_name - Human-readable fulfillment status
+ * @property {string|null} fulfillment_created_at - Fulfillment creation timestamp
+ * @property {string|null} fulfillment_created_by - UUID of user who created
+ * @property {string|null} fulfillment_created_by_firstname
+ * @property {string|null} fulfillment_created_by_lastname
+ * @property {string|null} fulfillment_updated_at - Fulfillment update timestamp
+ * @property {string|null} fulfillment_updated_by - UUID of user who updated
+ * @property {string|null} fulfillment_updated_by_firstname
+ * @property {string|null} fulfillment_updated_by_lastname
+ * @property {string|null} fulfilled_by - UUID of user who performed fulfillment
+ * @property {string|null} fulfillment_fulfilled_by_firstname
+ * @property {string|null} fulfillment_fulfilled_by_lastname
  *
+ * --- Order Item ---
  * @property {string|null} order_item_id - UUID of the related order item
  * @property {number|null} quantity_ordered - Quantity originally ordered
- * @property {Object|null} order_item_metadata - JSON metadata for order item (e.g. customizations)
  *
+ * --- SKU/Product ---
  * @property {string|null} sku_id - UUID of SKU (if product item)
  * @property {string|null} sku - SKU code
  * @property {string|null} barcode - Barcode (UPC/EAN/GTIN)
@@ -297,6 +325,7 @@ const transformPaginatedOutboundShipmentResults = (paginatedResult) => {
  * @property {string|null} series - Product series
  * @property {string|null} category - Product category
  *
+ * --- Packaging Material ---
  * @property {string|null} packaging_material_id - UUID of packaging material (if packaging item)
  * @property {string|null} packaging_material_code - Internal code for packaging material
  * @property {string|null} packaging_material_name - Name of packaging material
@@ -307,14 +336,22 @@ const transformPaginatedOutboundShipmentResults = (paginatedResult) => {
  * @property {number|null} packaging_material_width_cm - Width in cm
  * @property {number|null} packaging_material_height_cm - Height in cm
  *
+ * --- Shipment Batch ---
  * @property {string|null} shipment_batch_id - UUID of shipment batch record
  * @property {number|null} quantity_shipped - Quantity shipped from this batch
+ * @property {string|null} shipment_batch_notes - Notes on this shipment batch
+ * @property {string|null} shipment_batch_created_at - Timestamp batch created
+ * @property {string|null} shipment_batch_created_by - UUID of batch creator
+ * @property {string|null} shipment_batch_created_by_firstname
+ * @property {string|null} shipment_batch_created_by_lastname
  * @property {string|null} batch_registry_id - UUID of batch registry record
  * @property {string} batch_type - Type of batch ("product" or "packaging_material")
  *
+ * --- Product Batch ---
  * @property {string|null} product_lot_number - Lot number for product batches
  * @property {string|null} product_expiry_date - Expiry date for product batches
  *
+ * --- Packaging Material Batch ---
  * @property {string|null} packaging_material_batch_id - UUID of packaging material batch
  * @property {string|null} material_lot_number - Lot number for packaging material batch
  * @property {string|null} material_expiry_date - Expiry date for packaging material batch
@@ -360,6 +397,7 @@ const transformPaginatedOutboundShipmentResults = (paginatedResult) => {
 const transformShipmentDetailsRows = (rows) => {
   if (!rows || !rows.length) return null;
   
+  // --- Shipment header ---
   const header = {
     shipmentId: rows[0].shipment_id,
     orderId: rows[0].order_id,
@@ -367,6 +405,14 @@ const transformShipmentDetailsRows = (rows) => {
       id: rows[0].warehouse_id,
       name: rows[0].warehouse_name,
     },
+    deliveryMethod: rows[0].delivery_method_id
+      ? {
+        id: rows[0].delivery_method_id,
+        name: rows[0].delivery_method_name,
+        isPickup: rows[0].delivery_method_is_pickup,
+        estimatedTime: rows[0].delivery_method_estimated_time,
+      }
+      : null,
     status: {
       id: rows[0].shipment_status_id,
       code: rows[0].shipment_status_code,
@@ -376,6 +422,18 @@ const transformShipmentDetailsRows = (rows) => {
     expectedDeliveryDate: rows[0].expected_delivery_date,
     notes: rows[0].shipment_notes,
     details: rows[0].shipment_details,
+    audit: {
+      createdAt: rows[0].created_at,
+      createdBy: {
+        id: rows[0].created_by,
+        name: getFullName(rows[0].shipment_created_by_firstname, rows[0].shipment_created_by_lastname),
+      },
+      updatedAt: rows[0].updated_at,
+      updatedBy: {
+        id: rows[0].updated_by,
+        name: getFullName(rows[0].shipment_updated_by_firstname, rows[0].shipment_updated_by_lastname),
+      },
+    },
     tracking: rows[0].tracking_id
       ? {
         id: rows[0].tracking_id,
@@ -394,6 +452,7 @@ const transformShipmentDetailsRows = (rows) => {
       : null,
   };
   
+  // --- Fulfillments ---
   const fulfillmentsMap = new Map();
   
   rows.forEach((row) => {
@@ -410,11 +469,28 @@ const transformShipmentDetailsRows = (rows) => {
           code: row.fulfillment_status_code,
           name: row.fulfillment_status_name,
         },
+        audit: {
+          createdAt: row.fulfillment_created_at,
+          createdBy: {
+            id: row.fulfillment_created_by,
+            name: getFullName(row.fulfillment_created_by_firstname, row.fulfillment_created_by_lastname),
+          },
+          updatedAt: row.fulfillment_updated_at,
+          updatedBy: {
+            id: row.fulfillment_updated_by,
+            name: getFullName(row.fulfillment_updated_by_firstname, row.fulfillment_updated_by_lastname),
+          },
+          fulfilledBy: row.fulfilled_by
+            ? {
+              id: row.fulfilled_by,
+              name: getFullName(row.fulfillment_fulfilled_by_firstname, row.fulfillment_fulfilled_by_lastname),
+            }
+            : null,
+        },
         orderItem: row.order_item_id
           ? {
             id: row.order_item_id,
             quantityOrdered: row.quantity_ordered,
-            metadata: row.order_item_metadata,
             ...(row.sku_id && row.product_id
               ? {
                 sku: {
@@ -461,6 +537,14 @@ const transformShipmentDetailsRows = (rows) => {
       const batch = {
         shipmentBatchId: row.shipment_batch_id,
         quantityShipped: row.quantity_shipped,
+        notes: row.shipment_batch_notes,
+        audit: {
+          createdAt: row.shipment_batch_created_at,
+          createdBy: {
+            id: row.shipment_batch_created_by,
+            name: getFullName(row.shipment_batch_created_by_firstname, row.shipment_batch_created_by_lastname),
+          },
+        },
         batchRegistryId: row.batch_registry_id,
         batchType: row.batch_type,
       };
@@ -483,7 +567,7 @@ const transformShipmentDetailsRows = (rows) => {
     }
   });
   
-  logSystemInfo('Transformed shipment rows', {
+  logSystemInfo('Transformed shipment detail rows', {
     shipmentId: rows[0].shipment_id,
     fulfillmentCount: fulfillmentsMap.size,
     batchCount: rows.filter(r => r.shipment_batch_id).length,

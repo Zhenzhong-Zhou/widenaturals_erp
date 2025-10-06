@@ -3,7 +3,8 @@ import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchOutboundShipmentDetailsThunk,
   selectOutboundShipmentDetailsData, selectOutboundShipmentDetailsError,
-  selectOutboundShipmentDetailsLoading, selectShipmentFulfillments, selectShipmentHeader,
+  selectOutboundShipmentDetailsLoading, selectShipmentFulfillments,
+  selectShipmentFulfillmentsItemCount, selectShipmentHeader,
 } from '@features/outboundFulfillment/state';
 import { resetOutboundShipmentDetails } from '@features/outboundFulfillment/state/outboundShipmentDetailsSlice';
 
@@ -40,6 +41,7 @@ const useOutboundShipmentDetails = () => {
   const error = useAppSelector(selectOutboundShipmentDetailsError);
   const header = useAppSelector(selectShipmentHeader);
   const fulfillments = useAppSelector(selectShipmentFulfillments);
+  const itemCount = useAppSelector(selectShipmentFulfillmentsItemCount);
   
   // Action dispatchers
   const fetchDetails = useCallback(
@@ -60,6 +62,7 @@ const useOutboundShipmentDetails = () => {
       error,
       header,
       fulfillments,
+      itemCount,
       fetchDetails,
       reset,
     }),

@@ -48,3 +48,14 @@ export const selectShipmentFulfillments = createSelector(
   [selectOutboundShipmentDetailsData],
   (data) => data?.fulfillments ?? []
 );
+
+/**
+ * Selector: Returns the number of fulfillment items in the shipment details.
+ *
+ * - Used for stable counts (e.g., badges, headers, summaries)
+ * - Defaults to `0` if shipment details are not yet loaded
+ */
+export const selectShipmentFulfillmentsItemCount = createSelector(
+  [selectOutboundShipmentDetailsData],
+  (data) => data?.fulfillments.length ?? 0
+);
