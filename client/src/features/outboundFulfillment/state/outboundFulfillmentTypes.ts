@@ -524,6 +524,31 @@ export interface ConfirmOutboundFulfillmentRequest {
 }
 
 /**
+ * Represents the request body for confirming an outbound fulfillment.
+ *
+ * This type excludes the `orderId` field from {@link ConfirmOutboundFulfillmentRequest},
+ * since the `orderId` is passed as a path parameter in the API route:
+ *
+ *   POST /orders/:orderId/fulfillment/confirm
+ *
+ * The body contains only the status transition fields that determine how
+ * the outbound fulfillment and related entities (allocation, shipment, and order)
+ * should be updated on confirmation.
+ *
+ * @example
+ * const body: ConfirmOutboundFulfillmentBody = {
+ *   orderStatus: 'ORDER_FULFILLED',
+ *   allocationStatus: 'ALLOC_FULFILLED',
+ *   shipmentStatus: 'SHIPMENT_READY',
+ *   fulfillmentStatus: 'FULFILLMENT_PACKED',
+ * };
+ */
+export type ConfirmOutboundFulfillmentBody = Omit<
+  ConfirmOutboundFulfillmentRequest,
+  'orderId'
+>;
+
+/**
  * Represents the full response returned after confirming an outbound fulfillment.
  * Extends the generic ApiSuccessResponse<T> for consistency across all API responses.
  */

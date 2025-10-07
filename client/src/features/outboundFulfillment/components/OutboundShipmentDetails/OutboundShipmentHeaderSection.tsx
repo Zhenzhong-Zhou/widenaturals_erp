@@ -5,6 +5,7 @@ import MemoizedDetailsSection from '@components/common/DetailsSection';
 import { formatShipmentStatus } from '@utils/formatters';
 import type { FlattenedShipmentHeader } from '@features/outboundFulfillment/state';
 import { formatDateTime } from '@utils/dateTimeUtils';
+import { formatLabel } from '@utils/textUtils';
 
 interface OutboundShipmentHeaderSectionProps {
   orderNumber: string;
@@ -25,7 +26,7 @@ const OutboundShipmentHeaderSection: FC<OutboundShipmentHeaderSectionProps> = ({
                 label: 'Shipment Status',
                 value: flattened.statusName,
                 format: () =>
-                  formatShipmentStatus(flattened.statusCode ?? '', flattened.statusName ?? ''),
+                  formatShipmentStatus(flattened.statusCode ?? '', formatLabel(flattened.statusName) ?? ''),
               },
               { label: 'Shipped At', value: flattened.shippedAt || '—' },
               { label: 'Delivery Methode', value: flattened.deliveryMethodName || '—' },

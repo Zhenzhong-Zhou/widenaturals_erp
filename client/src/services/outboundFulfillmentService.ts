@@ -1,11 +1,13 @@
 import type {
+  ConfirmOutboundFulfillmentBody,
   ConfirmOutboundFulfillmentRequest,
   ConfirmOutboundFulfillmentResponse,
   InitiateFulfillmentBody,
   InitiateFulfillmentRequest,
   InitiateFulfillmentResponse,
   OutboundFulfillmentQuery,
-  PaginatedOutboundFulfillmentResponse, ShipmentDetailsResponse,
+  PaginatedOutboundFulfillmentResponse,
+  ShipmentDetailsResponse,
 } from '@features/outboundFulfillment/state';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { getRequest, postRequest } from '@utils/apiRequest';
@@ -222,15 +224,16 @@ export const fetchOutboundShipmentDetails = async (
 export const confirmOutboundFulfillment = async (
   request: ConfirmOutboundFulfillmentRequest
 ): Promise<ConfirmOutboundFulfillmentResponse> => {
-  const url = API_ENDPOINTS.OUTBOUND_FULFILLMENTS.CONFIRM_FULFILLMENT(request.orderId);
+  const { orderId, ...body } = request;
+  const url = API_ENDPOINTS.OUTBOUND_FULFILLMENTS.CONFIRM_FULFILLMENT(orderId);
   
   try {
     return await postRequest<
-      ConfirmOutboundFulfillmentRequest,
+      ConfirmOutboundFulfillmentBody,
       ConfirmOutboundFulfillmentResponse
-    >(url, request);
+    >(url, body);
   } catch (error) {
-    console.error('Failed to confirm outbound fulfillment', { request, error });
+    console.error('Failed to confirm outbound fulfillment', { body, error });
     throw error;
   }
 };

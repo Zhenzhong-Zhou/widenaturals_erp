@@ -20,6 +20,7 @@ import {
 import { OutboundShipmentHeaderSection } from '@features/outboundFulfillment/components/OutboundShipmentDetails';
 import SkeletonExpandedRow from '@components/common/SkeletonExpandedRow';
 import NoDataFound from '@components/common/NoDataFound';
+import ConfirmFulfillmentButton from '@features/outboundFulfillment/components/ConfirmFulfillmentButton';
 
 const FulfillmentDetailsTable = lazy(() =>
   import('../components/OutboundShipmentDetails/index')
@@ -68,6 +69,32 @@ const OutboundShipmentDetailsPage: FC = () => {
   const flattenedFulfillments = useMemo(() => {
     return shipmentFulfillments ? flattenFulfillments(shipmentFulfillments) : null;
   }, [shipmentFulfillments]);
+  
+  // === Determine Confirm Button Visibility ===
+  const canConfirmFulfillment = useMemo(() => {
+    if (!shipmentHeader || !shipmentFulfillments?.length) return false;
+    
+    const shipmentCode = shipmentHeader.status?.code ?? '';
+    const fulfillmentCodes: string[] = shipmentFulfillments.map(
+      (f: { status?: { code?: string } }) => f.status?.code ?? ''
+    );
+    
+    const ALLOWED = {
+      order: ['ORDER_PROCESSING', 'ORDER_FULFILLED'], // optional if you add order status later
+      fulfillment: ['FULFILLMENT_PENDING', 'FULFILLMENT_PICKING', 'FULFILLMENT_PARTIAL'],
+      shipment: ['SHIPMENT_PENDING'],
+    };
+    
+    // All fulfillments must be confirmable
+    const allFulfillmentsValid = fulfillmentCodes.every(
+      (code: string) => ALLOWED.fulfillment.includes(code)
+    );
+    
+    // Shipment must be in confirmable state
+    const shipmentValid = ALLOWED.shipment.includes(shipmentCode);
+    
+    return allFulfillmentsValid && shipmentValid;
+  }, [shipmentHeader, shipmentFulfillments]);
   
   // === Render ===
   if (!shipmentDetails || shipmentDetails.length === 0) {
@@ -144,6 +171,10 @@ const OutboundShipmentDetailsPage: FC = () => {
               >
                 {shipmentDetailsLoading ? 'Refreshing' : 'Refresh Data'}
               </CustomButton>
+              
+              {canConfirmFulfillment && (
+                <ConfirmFulfillmentButton orderId={shipmentHeader.orderId} refresh={refresh}/>
+              )}
             </Stack>
           </Box>
           
