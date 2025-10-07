@@ -1,6 +1,6 @@
 const { pool, getUniqueScalarValue } = require('../../database/db');
 const { initStatusCache } = require('../../config/status-cache');
-const { confirmInventoryAllocation } = require('../../services/inventory-allocation-service');
+const { confirmInventoryAllocationService } = require('../../services/inventory-allocation-service');
 
 (async () => {
   const client = await pool.connect();
@@ -41,7 +41,7 @@ const { confirmInventoryAllocation } = require('../../services/inventory-allocat
       client
     );
     
-    const result = await confirmInventoryAllocation(enrichedUser, 'b44024b3-9777-4b33-a471-448539c3931c');
+    const result = await confirmInventoryAllocationService(enrichedUser, 'b44024b3-9777-4b33-a471-448539c3931c');
     
     console.log(`✅ Status updated. Items affected: `, result);
   } catch (err) {
