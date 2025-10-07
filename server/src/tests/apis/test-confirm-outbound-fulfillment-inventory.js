@@ -35,7 +35,7 @@ const { confirmOutboundFulfillmentService } = require('../../services/outbound-f
     const requestData = {
       orderId,
       orderStatus: 'ORDER_FULFILLED',
-      allocationStatus: 'ALLOC_FULFILLED',
+      allocationStatus: 'ALLOC_COMPLETED',
       shipmentStatus: 'SHIPMENT_READY',
       fulfillmentStatus: 'FULFILLMENT_PACKED',
     };

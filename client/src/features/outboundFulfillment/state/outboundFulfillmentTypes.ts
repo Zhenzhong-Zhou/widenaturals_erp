@@ -538,7 +538,7 @@ export interface ConfirmOutboundFulfillmentRequest {
  * @example
  * const body: ConfirmOutboundFulfillmentBody = {
  *   orderStatus: 'ORDER_FULFILLED',
- *   allocationStatus: 'ALLOC_FULFILLED',
+ *   allocationStatus: 'ALLOC_COMPLETED',
  *   shipmentStatus: 'SHIPMENT_READY',
  *   fulfillmentStatus: 'FULFILLMENT_PACKED',
  * };
