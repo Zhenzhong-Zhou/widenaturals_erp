@@ -37,8 +37,10 @@ const {
   assertEnrichedAllocations,
   assertInventoryAdjustments,
   assertActionTypeIdResolved,
-  assertWarehouseUpdatesApplied, assertShipmentFound, validateStatusesBeforeConfirmation,
-  validateStatusesBeforePickupCompletion,
+  assertWarehouseUpdatesApplied,
+  assertShipmentFound,
+  validateStatusesBeforeConfirmation,
+  validateStatusesBeforeManualFulfillment,
 } = require('../business/outbound-fulfillment-business');
 const { getAllocationStatuses } = require('../repositories/inventory-allocations-repository');
 const { validateAllocationStatusTransition } = require('../business/inventory-allocation-business');
@@ -660,11 +662,12 @@ const fetchShipmentDetailsService = async (shipmentId) => {
 /**
  * @function
  * @description
- * Finalizes the pickup workflow for an outbound fulfillment order.
+ * Finalizes a manual outbound fulfillment workflow (for in-store pickup or personal delivery).
  *
- * This marks the fulfillment as completed when a customer pickup occurs.
+ * This service marks a fulfillment as completed when goods are manually handed over
+ * — either via customer pickup or direct staff delivery — without involving a carrier.
  * It validates workflow states (order, shipment, fulfillment, allocation),
- * updates all linked entities atomically, and returns normalized results.
+ * performs all related status transitions atomically, and returns normalized results.
  *
  * @businessFlow
  *  1. Validate the shipment and associated order.
@@ -672,17 +675,17 @@ const fetchShipmentDetailsService = async (shipmentId) => {
  *  3. Verify workflow readiness using `validateStatusesBeforePickupCompletion`.
  *  4. Resolve new target status IDs (order, shipment, fulfillment).
  *  5. Perform all status updates within a transaction using `updateAllStatuses`.
- *  6. Return a structured pickup-completion result.
+ *  6. Return a structured fulfillment-completion result.
  *
  * @param {Object} requestData - Input parameters
  * @param {string} requestData.shipmentId - ID of the shipment being completed
- * @param {string} requestData.orderStatus - Target order status (e.g., 'ORDER_FULFILLED')
+ * @param {string} requestData.orderStatus - Target order status (e.g., 'ORDER_DELIVERED')
  * @param {string} requestData.shipmentStatus - Target shipment status (e.g., 'SHIPMENT_COMPLETED')
  * @param {string} requestData.fulfillmentStatus - Target fulfillment status (e.g., 'FULFILLMENT_COMPLETED')
  * @param {Object} user - Authenticated user performing the action
  * @param {string} user.id - User ID
  *
- * @returns {Promise<Object>} A transformed pickup-completion response:
+ * @returns {Promise<Object>} A transformed manual-fulfillment response:
  * {
  *   order: { id, statusId, statusDate },
  *   items: [{ id, statusId, statusDate }],
@@ -694,7 +697,7 @@ const fetchShipmentDetailsService = async (shipmentId) => {
  * @throws {AppError.validationError|AppError.serviceError}
  *   If validation or transactional operations fail.
  */
-const completePickupFulfillmentService = async (requestData, user) => {
+const completeManualFulfillmentService = async (requestData, user) => {
   try {
     return await withTransaction(async (client) => {
       const userId = user.id;
@@ -712,7 +715,7 @@ const completePickupFulfillmentService = async (requestData, user) => {
       
       const orderId = shipment.order_id;
       logSystemInfo('Step 1: Shipment record fetched', {
-        context: 'outbound-fulfillment-service/completePickupFulfillmentService',
+        context: 'outbound-fulfillment-service/completeManualFulfillmentService',
         shipmentId: rawShipmentId,
         orderId,
         currentShipmentStatus: shipment.status_code,
@@ -723,7 +726,7 @@ const completePickupFulfillmentService = async (requestData, user) => {
       if (!fulfillments?.length) {
         throw AppError.validationError(
           `No fulfillments found for order ID ${orderId}.`,
-          { context: 'outbound-fulfillment-service/completePickupFulfillmentService' }
+          { context: 'outbound-fulfillment-service/completeManualFulfillmentService' }
         );
       }
       
@@ -732,7 +735,7 @@ const completePickupFulfillmentService = async (requestData, user) => {
       if (orderIds.length !== 1 || orderIds[0] !== shipment.order_id) {
         throw AppError.validationError(
           'Mismatched order_id between shipment and fulfillments',
-          { context: 'outbound-fulfillment-service/completePickupFulfillmentService', }
+          { context: 'outbound-fulfillment-service/completeManualFulfillmentService' }
         );
       }
       
@@ -755,7 +758,7 @@ const completePickupFulfillmentService = async (requestData, user) => {
         : [];
       
       logSystemInfo('Step 5: Order, items, and fulfillment metadata fetched', {
-        context: 'outbound-fulfillment-service/completePickupFulfillmentService',
+        context: 'outbound-fulfillment-service/completeManualFulfillmentService',
         orderId,
         orderNumber,
         currentOrderStatus: order_status_code,
@@ -767,8 +770,8 @@ const completePickupFulfillmentService = async (requestData, user) => {
       // --- Step 6: Retrieve allocation status metadata for validation
       const allocationStatusMetadata = await getAllocationStatuses(orderId, orderItemIds, client);
       
-      // --- Step 7: Validate workflow eligibility before pickup completion
-      validateStatusesBeforePickupCompletion({
+      // --- Step 7: Validate workflow eligibility before manual completion
+      validateStatusesBeforeManualFulfillment({
         orderStatusCode: order_status_code,
         orderItemStatusCode: orderItemMetadata.map(oi => oi.order_item_code),
         allocationStatuses: allocationStatusMetadata.map(ia => ia.allocation_status_code),
@@ -807,8 +810,8 @@ const completePickupFulfillmentService = async (requestData, user) => {
       });
       
       // --- Step 10: Log success with contextual metadata
-      logSystemInfo('Pickup fulfillment successfully completed', {
-        context: 'outbound-fulfillment-service/completePickupFulfillmentService',
+      logSystemInfo('Manual fulfillment successfully completed', {
+        context: 'outbound-fulfillment-service/completeManualFulfillmentService',
         orderId,
         shipmentId: rawShipmentId,
         newStatuses: {
@@ -828,14 +831,14 @@ const completePickupFulfillmentService = async (requestData, user) => {
     });
   } catch (error) {
     // --- Global error logging for this service
-    logSystemException(error, 'Failed to complete pickup fulfillment', {
-      context: 'outbound-fulfillment-service/completePickupFulfillmentService',
+    logSystemException(error, 'Failed to complete manual fulfillment', {
+      context: 'outbound-fulfillment-service/completeManualFulfillmentService',
       requestData,
       userId: user?.id,
     });
     
-    throw AppError.serviceError('Pickup fulfillment transaction failed', {
-      context: 'outbound-fulfillment-service/completePickupFulfillmentService',
+    throw AppError.serviceError('Manual fulfillment transaction failed', {
+      context: 'outbound-fulfillment-service/completeManualFulfillmentService',
       cause: error.message,
     });
   }
@@ -846,5 +849,5 @@ module.exports = {
   confirmOutboundFulfillmentService,
   fetchPaginatedOutboundFulfillmentService,
   fetchShipmentDetailsService,
-  completePickupFulfillmentService,
+  completeManualFulfillmentService,
 };

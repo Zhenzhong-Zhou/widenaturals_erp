@@ -1,28 +1,28 @@
 /**
- * @file test-complete-pickup-fulfillment.js
+ * @file test-complete-manual-fulfillment.js
  * @description
- * Standalone script to manually test the `completePickupFulfillmentService`
- * for outbound fulfillment pickup workflows.
+ * Standalone script to manually test the `completeManualFulfillmentService`
+ * for outbound manual fulfillment workflows (e.g., pickup in store or personal delivery).
  *
  * Steps:
  *  1. Initialize DB and status cache.
  *  2. Fetch test user (root@widenaturals.com).
  *  3. Define a target shipment ID.
- *  4. Execute service and log structured results.
+ *  4. Execute the service and log structured results.
  */
 
 const { performance } = require('perf_hooks');
 const { pool } = require('../../database/db');
 const { initStatusCache } = require('../../config/status-cache');
-const { completePickupFulfillmentService } = require('../../services/outbound-fulfillment-service');
+const { completeManualFulfillmentService } = require('../../services/outbound-fulfillment-service');
 
 (async () => {
-  const logPrefix = '[Test: completePickupFulfillmentService]';
+  const logPrefix = '[Test: completeManualFulfillmentService]';
   const startTime = performance.now();
   let client;
   
   try {
-    console.log(`${logPrefix} 🚀 Starting pickup fulfillment test...`);
+    console.log(`${logPrefix} 🚀 Starting manual fulfillment test...`);
     
     // --- Step 1: Initialize DB and status cache
     client = await pool.connect();
@@ -51,7 +51,7 @@ const { completePickupFulfillmentService } = require('../../services/outbound-fu
     // --- Step 4: Build request payload
     const requestData = {
       shipmentId,
-      orderStatus: 'ORDER_DELIVERED', // final state for pickup completion
+      orderStatus: 'ORDER_DELIVERED', // final state for manual fulfillment
       shipmentStatus: 'SHIPMENT_COMPLETED',
       fulfillmentStatus: 'FULFILLMENT_COMPLETED',
     };
@@ -59,8 +59,8 @@ const { completePickupFulfillmentService } = require('../../services/outbound-fu
     console.log(`${logPrefix} ⚙️  Request Data:`, requestData);
     
     // --- Step 5: Execute the service
-    console.log(`${logPrefix} ▶️ Executing completePickupFulfillmentService...`);
-    const result = await completePickupFulfillmentService(requestData, testUser);
+    console.log(`${logPrefix} ▶️ Executing completeManualFulfillmentService...`);
+    const result = await completeManualFulfillmentService(requestData, testUser);
     
     // --- Step 6: Output structured results
     console.log(`${logPrefix} ✅ Service completed successfully.\n`);

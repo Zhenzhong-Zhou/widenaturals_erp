@@ -1320,11 +1320,11 @@ const buildInventoryActivityLogs = (
  * @function
  * @description
  * Validates that all related entities (order, order items, fulfillment, shipment, allocation)
- * are in the correct pre-pickup states before marking a pickup as completed.
+ * are in the correct pre-completion states before marking a manual fulfillment as completed.
  *
- * Ensures consistency and data integrity across order, shipment, fulfillment,
- * allocation, and order-item domains.
- * Throws a validation error if any status does not meet the allowed conditions.
+ * This validator ensures that all workflow entities are in eligible states before completing
+ * a non-carrier outbound fulfillment (e.g., in-store pickup or personal delivery).
+ * Throws a validation error if any status does not meet the allowed pre-completion conditions.
  *
  * @param {Object} params - Validation input
  * @param {string} params.orderStatusCode - Current order status code
@@ -1333,24 +1333,25 @@ const buildInventoryActivityLogs = (
  * @param {string} params.shipmentStatusCode - Current shipment status code
  * @param {string|string[]} [params.allocationStatuses] - One or more current allocation status codes
  *
- * @throws {AppError.validationError} If any status is not in the allowed list
+ * @throws {AppError.validationError}
+ *   If any status is not within the allowed pre-completion set.
  *
  * @example
- * validateStatusesBeforePickupCompletion({
- *   orderStatusCode: 'ORDER_PROCESSING',
- *   orderItemStatusCode: ['ORDER_PROCESSING'],
+ * validateStatusesBeforeManualFulfillment({
+ *   orderStatusCode: 'ORDER_FULFILLED',
+ *   orderItemStatusCode: ['ORDER_FULFILLED'],
  *   fulfillmentStatuses: ['FULFILLMENT_PACKED'],
  *   shipmentStatusCode: 'SHIPMENT_READY',
  *   allocationStatuses: ['ALLOC_COMPLETED'],
  * });
  */
-const validateStatusesBeforePickupCompletion = ({
-                                                  orderStatusCode,
-                                                  orderItemStatusCode,
-                                                  allocationStatuses,
-                                                  shipmentStatusCode,
-                                                  fulfillmentStatuses,
-                                                }) => {
+const validateStatusesBeforeManualFulfillment = ({
+                                                   orderStatusCode,
+                                                   orderItemStatusCode,
+                                                   allocationStatuses,
+                                                   shipmentStatusCode,
+                                                   fulfillmentStatuses,
+                                                 }) => {
   // --- Normalize inputs
   const orderItemCodes = Array.isArray(orderItemStatusCode)
     ? orderItemStatusCode
@@ -1364,7 +1365,7 @@ const validateStatusesBeforePickupCompletion = ({
     ? fulfillmentStatuses
     : [fulfillmentStatuses];
   
-  // --- Allowed statuses before pickup completion
+  // --- Allowed statuses before manual fulfillment completion
   const ALLOWED = {
     order: ['ORDER_FULFILLED'],
     orderItem: ['ORDER_FULFILLED'],
@@ -1376,8 +1377,8 @@ const validateStatusesBeforePickupCompletion = ({
   // --- Validate order ---
   if (!ALLOWED.order.includes(orderStatusCode)) {
     throw AppError.validationError(
-      `Order status "${orderStatusCode}" is not eligible for pickup completion.`,
-      { context: 'outbound-fulfillment-business/validateStatusesBeforePickupCompletion' }
+      `Order status "${orderStatusCode}" is not eligible for manual fulfillment completion.`,
+      { context: 'outbound-fulfillment-business/validateStatusesBeforeManualFulfillment' }
     );
   }
   
@@ -1385,8 +1386,8 @@ const validateStatusesBeforePickupCompletion = ({
   for (const code of orderItemCodes) {
     if (!ALLOWED.orderItem.includes(code)) {
       throw AppError.validationError(
-        `Order item with status "${code}" is not eligible for pickup completion.`,
-        { context: 'outbound-fulfillment-business/validateStatusesBeforePickupCompletion' }
+        `Order item with status "${code}" is not eligible for manual fulfillment completion.`,
+        { context: 'outbound-fulfillment-business/validateStatusesBeforeManualFulfillment' }
       );
     }
   }
@@ -1395,8 +1396,8 @@ const validateStatusesBeforePickupCompletion = ({
   for (const code of allocationCodes) {
     if (!ALLOWED.allocation.includes(code)) {
       throw AppError.validationError(
-        `Allocation with status "${code}" is not eligible for pickup completion.`,
-        { context: 'outbound-fulfillment-business/validateStatusesBeforePickupCompletion' }
+        `Allocation with status "${code}" is not eligible for manual fulfillment completion.`,
+        { context: 'outbound-fulfillment-business/validateStatusesBeforeManualFulfillment' }
       );
     }
   }
@@ -1404,8 +1405,8 @@ const validateStatusesBeforePickupCompletion = ({
   // --- Validate shipment ---
   if (!ALLOWED.shipment.includes(shipmentStatusCode)) {
     throw AppError.validationError(
-      `Shipment status "${shipmentStatusCode}" is not eligible for pickup completion.`,
-      { context: 'outbound-fulfillment-business/validateStatusesBeforePickupCompletion' }
+      `Shipment status "${shipmentStatusCode}" is not eligible for manual fulfillment completion.`,
+      { context: 'outbound-fulfillment-business/validateStatusesBeforeManualFulfillment' }
     );
   }
   
@@ -1413,17 +1414,17 @@ const validateStatusesBeforePickupCompletion = ({
   for (const code of fulfillmentCodes) {
     if (!ALLOWED.fulfillment.includes(code)) {
       throw AppError.validationError(
-        `Fulfillment with status "${code}" cannot be marked as completed (pickup).`,
-        { context: 'outbound-fulfillment-business/validateStatusesBeforePickupCompletion' }
+        `Fulfillment with status "${code}" cannot be marked as completed (manual fulfillment).`,
+        { context: 'outbound-fulfillment-business/validateStatusesBeforeManualFulfillment' }
       );
     }
   }
   
   // --- Log success
-  logSystemInfo('Pickup status validation passed', {
-    context: 'outbound-fulfillment-business/validateStatusesBeforePickupCompletion',
+  logSystemInfo('Manual fulfillment status validation passed', {
+    context: 'outbound-fulfillment-business/validateStatusesBeforeManualFulfillment',
     orderStatusCode,
-    orderItemStatusCode: orderItemCodes,
+    orderItemStatusCodes: orderItemCodes,
     allocationStatuses: allocationCodes,
     shipmentStatusCode,
     fulfillmentStatuses: fulfillmentCodes,
@@ -1455,5 +1456,5 @@ module.exports = {
   updateAllStatuses,
   buildFulfillmentLogEntry,
   buildInventoryActivityLogs,
-  validateStatusesBeforePickupCompletion,
+  validateStatusesBeforeManualFulfillment,
 };
