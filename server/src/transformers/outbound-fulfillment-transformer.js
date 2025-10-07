@@ -579,9 +579,72 @@ const transformShipmentDetailsRows = (rows) => {
   });
 };
 
+/**
+ * @function
+ * @description
+ * Transforms the raw status update results from `updateAllStatuses`
+ * into a structured and human-readable response for pickup completion.
+ *
+ * This is a pure transformer with no side effects or external dependencies.
+ * It should be invoked within the service layer after transactional updates.
+ *
+ * @param {Object} statusResult - Raw result object from updateAllStatuses
+ * @returns {Object} Transformed response for pickup completion
+ *
+ * @example
+ * const transformed = transformPickupCompletionResult({
+ *   orderStatusRow,
+ *   orderItemStatusRow,
+ *   orderFulfillmentStatusRow,
+ *   shipmentStatusRow,
+ * });
+ */
+const transformPickupCompletionResult = (statusResult) => {
+  if (!statusResult) return {};
+  
+  const {
+    orderStatusRow,
+    orderItemStatusRow,
+    orderFulfillmentStatusRow,
+    shipmentStatusRow,
+  } = statusResult;
+  
+  return cleanObject({
+    order: orderStatusRow
+      ? {
+        id: orderStatusRow.id,
+        statusId: orderStatusRow.order_status_id,
+        statusDate: orderStatusRow.status_date,
+      }
+      : null,
+    items: Array.isArray(orderItemStatusRow)
+      ? orderItemStatusRow.map((item) => ({
+        id: item.id,
+        statusId: item.status_id,
+        statusDate: item.status_date,
+      }))
+      : [],
+    fulfillments: Array.isArray(orderFulfillmentStatusRow)
+      ? orderFulfillmentStatusRow.map((id) => ({ id }))
+      : [],
+    shipment: Array.isArray(shipmentStatusRow)
+      ? shipmentStatusRow.map((id) => ({ id }))
+      : [],
+    summary: {
+      orderItemsCount: orderItemStatusRow?.length || 0,
+      fulfillmentsCount: orderFulfillmentStatusRow?.length || 0,
+      shipmentCount: shipmentStatusRow?.length || 0,
+    },
+    meta: {
+      updatedAt: new Date().toISOString(),
+    },
+  });
+};
+
 module.exports = {
   transformFulfillmentResult,
   transformAdjustedFulfillmentResult,
   transformPaginatedOutboundShipmentResults,
   transformShipmentDetailsRows,
+  transformPickupCompletionResult,
 };

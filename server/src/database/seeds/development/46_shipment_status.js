@@ -34,6 +34,12 @@ exports.seed = async function (knex) {
       is_final: false,
     },
     {
+      name: 'completed',
+      code: 'SHIPMENT_COMPLETED',
+      is_final: true,
+      description: 'Shipment process completed — goods handed off or picked up; delivery cycle closed.',
+    },
+    {
       name: 'in_transit',
       code: 'SHIPMENT_IN_TRANSIT',
       description: 'Shipment has left the facility and is on its way.',

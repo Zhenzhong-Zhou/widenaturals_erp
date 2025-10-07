@@ -16,7 +16,7 @@ const {
   transformFulfillmentResult,
   transformAdjustedFulfillmentResult,
   transformPaginatedOutboundShipmentResults,
-  transformShipmentDetailsRows
+  transformShipmentDetailsRows, transformPickupCompletionResult
 } = require('../transformers/outbound-fulfillment-transformer');
 const {
   validateOrderIsFullyAllocated,
@@ -38,6 +38,7 @@ const {
   assertInventoryAdjustments,
   assertActionTypeIdResolved,
   assertWarehouseUpdatesApplied, assertShipmentFound, validateStatusesBeforeConfirmation,
+  validateStatusesBeforePickupCompletion,
 } = require('../business/outbound-fulfillment-business');
 const { getAllocationStatuses } = require('../repositories/inventory-allocations-repository');
 const { validateAllocationStatusTransition } = require('../business/inventory-allocation-business');
@@ -48,6 +49,7 @@ const {
   getPaginatedOutboundShipmentRecords,
   getShipmentDetailsById, getShipmentByShipmentId
 } = require('../repositories/outbound-shipment-repository');
+const { getOrderItemsByOrderId } = require('../repositories/order-item-repository');
 
 /**
  * Service: fulfillOutboundShipmentService
@@ -636,7 +638,7 @@ const fetchShipmentDetailsService = async (shipmentId) => {
     const transformed = transformShipmentDetailsRows(rawRows);
     
     logSystemInfo('Fetched and transformed shipment details', {
-      context: 'outbound-shipment-service/fetchShipmentDetailsService',
+      context: 'outbound-fulfillment-service/fetchShipmentDetailsService',
       shipmentId,
       rowCount: rawRows?.length ?? 0,
     });
@@ -644,7 +646,7 @@ const fetchShipmentDetailsService = async (shipmentId) => {
     return transformed;
   } catch (error) {
     logSystemException(error, 'Failed to fetch shipment details', {
-      context: 'outbound-shipment-service/fetchShipmentDetailsService',
+      context: 'outbound-fulfillment-service/fetchShipmentDetailsService',
       shipmentId,
     });
     
@@ -655,9 +657,194 @@ const fetchShipmentDetailsService = async (shipmentId) => {
   }
 };
 
+/**
+ * @function
+ * @description
+ * Finalizes the pickup workflow for an outbound fulfillment order.
+ *
+ * This marks the fulfillment as completed when a customer pickup occurs.
+ * It validates workflow states (order, shipment, fulfillment, allocation),
+ * updates all linked entities atomically, and returns normalized results.
+ *
+ * @businessFlow
+ *  1. Validate the shipment and associated order.
+ *  2. Ensure fulfillments and allocations belong to the same order.
+ *  3. Verify workflow readiness using `validateStatusesBeforePickupCompletion`.
+ *  4. Resolve new target status IDs (order, shipment, fulfillment).
+ *  5. Perform all status updates within a transaction using `updateAllStatuses`.
+ *  6. Return a structured pickup-completion result.
+ *
+ * @param {Object} requestData - Input parameters
+ * @param {string} requestData.shipmentId - ID of the shipment being completed
+ * @param {string} requestData.orderStatus - Target order status (e.g., 'ORDER_FULFILLED')
+ * @param {string} requestData.shipmentStatus - Target shipment status (e.g., 'SHIPMENT_COMPLETED')
+ * @param {string} requestData.fulfillmentStatus - Target fulfillment status (e.g., 'FULFILLMENT_COMPLETED')
+ * @param {Object} user - Authenticated user performing the action
+ * @param {string} user.id - User ID
+ *
+ * @returns {Promise<Object>} A transformed pickup-completion response:
+ * {
+ *   order: { id, statusId, statusDate },
+ *   items: [{ id, statusId, statusDate }],
+ *   fulfillments: [{ id }],
+ *   shipment: [{ id }],
+ *   meta: { updatedAt }
+ * }
+ *
+ * @throws {AppError.validationError|AppError.serviceError}
+ *   If validation or transactional operations fail.
+ */
+const completePickupFulfillmentService = async (requestData, user) => {
+  try {
+    return await withTransaction(async (client) => {
+      const userId = user.id;
+      const {
+        shipmentId: rawShipmentId,
+        orderStatus,
+        shipmentStatus,
+        fulfillmentStatus,
+      } = requestData;
+      
+      // --- Step 1: Fetch and validate shipment record
+      // Ensures the provided shipment exists and retrieves its associated order ID
+      const shipment = await getShipmentByShipmentId(rawShipmentId, client);
+      assertShipmentFound(shipment, rawShipmentId);
+      
+      const orderId = shipment.order_id;
+      logSystemInfo('Step 1: Shipment record fetched', {
+        context: 'outbound-fulfillment-service/completePickupFulfillmentService',
+        shipmentId: rawShipmentId,
+        orderId,
+        currentShipmentStatus: shipment.status_code,
+      });
+      
+      // --- Step 2: Retrieve and validate all fulfillments linked to the order
+      const fulfillments = await getOrderFulfillments({ orderId }, client);
+      if (!fulfillments?.length) {
+        throw AppError.validationError(
+          `No fulfillments found for order ID ${orderId}.`,
+          { context: 'outbound-fulfillment-service/completePickupFulfillmentService' }
+        );
+      }
+      
+      // Validate fulfillments all reference the same order
+      const orderIds = [...new Set(fulfillments.map(f => f.order_id))];
+      if (orderIds.length !== 1 || orderIds[0] !== shipment.order_id) {
+        throw AppError.validationError(
+          'Mismatched order_id between shipment and fulfillments',
+          { context: 'outbound-fulfillment-service/completePickupFulfillmentService', }
+        );
+      }
+      
+      // --- Step 3: Fetch current fulfillment status metadata
+      const fulfillmentStatusIds = fulfillments.map(f => f.status_id);
+      const fulfillmentStatusMeta = await getFulfillmentStatusesByIds(fulfillmentStatusIds, client);
+      
+      // --- Step 4: Fetch order metadata and verify existence
+      const orderMeta = await getOrderTypeMetaByOrderId(orderId, client);
+      assertOrderMeta(orderMeta);
+      const { order_number: orderNumber } = orderMeta;
+      
+      // --- Step 5: Fetch current order and order item metadata
+      const { order_status_code } = await fetchOrderMetadata(orderId, client);
+      const orderItemMetadata = await getOrderItemsByOrderId(orderId, client);
+      
+      // Derive order item IDs safely
+      const orderItemIds = Array.isArray(orderItemMetadata)
+        ? orderItemMetadata.map((oi) => oi.order_item_id).filter(Boolean)
+        : [];
+      
+      logSystemInfo('Step 5: Order, items, and fulfillment metadata fetched', {
+        context: 'outbound-fulfillment-service/completePickupFulfillmentService',
+        orderId,
+        orderNumber,
+        currentOrderStatus: order_status_code,
+        orderItemIds,
+        fulfillmentStatuses: fulfillmentStatusMeta.map(s => s.code),
+        shipmentStatusCode: shipment.status_code,
+      });
+      
+      // --- Step 6: Retrieve allocation status metadata for validation
+      const allocationStatusMetadata = await getAllocationStatuses(orderId, orderItemIds, client);
+      
+      // --- Step 7: Validate workflow eligibility before pickup completion
+      validateStatusesBeforePickupCompletion({
+        orderStatusCode: order_status_code,
+        orderItemStatusCode: orderItemMetadata.map(oi => oi.order_item_code),
+        allocationStatuses: allocationStatusMetadata.map(ia => ia.allocation_status_code),
+        shipmentStatusCode: shipment.status_code,
+        fulfillmentStatuses: fulfillmentStatusMeta.map(s => s.code),
+      });
+      
+      // --- Step 8: Resolve target status IDs from codes
+      const { id: newOrderStatusId } = await getOrderStatusByCode(orderStatus, client);
+      const { id: newShipmentStatusId } = await getShipmentStatusByCode(shipmentStatus, client);
+      const { id: newFulfillmentStatusId } = await getFulfillmentStatusByCode(fulfillmentStatus, client);
+      
+      assertStatusesResolved({
+        orderStatusId: newOrderStatusId,
+        shipmentStatusId: newShipmentStatusId,
+        fulfillmentStatusId: newFulfillmentStatusId,
+      });
+      
+      // --- Step 9: Perform atomic status updates across entities
+      const {
+        orderStatusRow,
+        orderItemStatusRow,
+        orderFulfillmentStatusRow,
+        shipmentStatusRow,
+      } = await updateAllStatuses({
+        orderId,
+        orderNumber,
+        allocationMeta: null,
+        newOrderStatusId,
+        newAllocationStatusId: null,
+        fulfillments,
+        newFulfillmentStatusId,
+        newShipmentStatusId,
+        userId,
+        client,
+      });
+      
+      // --- Step 10: Log success with contextual metadata
+      logSystemInfo('Pickup fulfillment successfully completed', {
+        context: 'outbound-fulfillment-service/completePickupFulfillmentService',
+        orderId,
+        shipmentId: rawShipmentId,
+        newStatuses: {
+          orderStatus,
+          shipmentStatus,
+          fulfillmentStatus,
+        },
+      });
+      
+      // --- Step 11: Return normalized transformer output
+      return transformPickupCompletionResult({
+        orderStatusRow,
+        orderItemStatusRow,
+        orderFulfillmentStatusRow,
+        shipmentStatusRow,
+      });
+    });
+  } catch (error) {
+    // --- Global error logging for this service
+    logSystemException(error, 'Failed to complete pickup fulfillment', {
+      context: 'outbound-fulfillment-service/completePickupFulfillmentService',
+      requestData,
+      userId: user?.id,
+    });
+    
+    throw AppError.serviceError('Pickup fulfillment transaction failed', {
+      context: 'outbound-fulfillment-service/completePickupFulfillmentService',
+      cause: error.message,
+    });
+  }
+};
+
 module.exports = {
   fulfillOutboundShipmentService,
   confirmOutboundFulfillmentService,
   fetchPaginatedOutboundFulfillmentService,
   fetchShipmentDetailsService,
+  completePickupFulfillmentService,
 };

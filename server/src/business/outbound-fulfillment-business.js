@@ -979,50 +979,67 @@ const updateShipmentsStatusBusiness = async (fulfillments, newStatusId, orderId,
 };
 
 /**
- * Updates statuses for all entities involved in fulfillment:
- * - Order
- * - Order Items
- * - Allocations
- * - Fulfillments
- * - Shipments
+ * @function
+ * @description
+ * Updates workflow statuses across all entities associated with an order —
+ * including the order itself, its items, allocations, fulfillments, and shipments —
+ * in a single transactional operation.
  *
- * Business rules:
- *  - The order and all its items transition together to the same new status (e.g., `ORDER_PROCESSING`).
- *  - Allocations transition if allocation metadata and a new allocation status ID are provided.
- *  - Fulfillments and shipments transition only if fulfillments are provided AND new status IDs are specified.
- *  - Allocation, fulfillment, and shipment rows should be row-locked upstream to avoid concurrency issues.
+ * This ensures consistent status propagation across the fulfillment workflow.
  *
- * Usage:
- *  - Call during fulfillment adjustment or shipment processing after inventory changes are staged.
- *  - Ensures all related statuses remain synchronized in a single transactional step.
+ * Business Rules:
+ *  - The order and all its items are always updated together using `newOrderStatusId`.
+ *  - Allocations are updated only if both `allocationMeta` and `newAllocationStatusId` are provided.
+ *  - Fulfillments and shipments are updated only if `fulfillments` exist and corresponding new status IDs are provided.
+ *  - Allocation, fulfillment, and shipment rows should be row-locked upstream to avoid race conditions.
+ *
+ * Typical Use Cases:
+ *  - During fulfillment confirmation, pickup completion, or shipment processing.
+ *  - To synchronize statuses after inventory or allocation adjustments are finalized.
  *
  * Performance:
- *  - O(n) complexity for mapping allocation/fulfillment/shipment IDs.
- *  - Executes up to 5 DB updates (order, order items, allocations, fulfillments, shipments).
- *  - Row locking applied to allocations, fulfillments, and shipments for safety.
+ *  - Executes up to five DB updates (order, order items, allocations, fulfillments, shipments).
+ *  - Each update runs in O(n) time relative to the number of affected rows.
+ *  - Relies on upstream transaction context for atomicity and rollback safety.
  *
  * @async
- * @function
- * @param {Object} params
- * @param {string} params.orderId - ID of the order being updated
- * @param {string} params.orderNumber - Human-readable order number (for logging/context)
- * @param {Object[]} [params.allocationMeta=[]] - Allocation metadata objects to update
- * @param {string} params.newOrderStatusId - New status ID for the order and its items
- * @param {string} [params.newAllocationStatusId] - New status ID for allocations
- * @param {Object[]} [params.fulfillments=[]] - Fulfillment metadata objects to update
- * @param {string} [params.newFulfillmentStatusId] - New status ID for fulfillments
- * @param {string} [params.newShipmentStatusId] - New status ID for shipments
- * @param {string} params.userId - ID of the user performing the update
- * @param {Object} params.client - Database client/transaction context
+ * @param {Object} params - Function parameters.
+ * @param {string} params.orderId - ID of the order being updated.
+ * @param {string} params.orderNumber - Human-readable order number (used for logging/context).
+ * @param {Object[]} [params.allocationMeta=[]] - Allocation metadata array to update (may be empty or null).
+ * @param {string} [params.newOrderStatusId] - New status ID for the order and its items.
+ * @param {string} [params.newAllocationStatusId] - New status ID for allocations (if provided).
+ * @param {Object[]} [params.fulfillments=[]] - Fulfillment metadata array to update.
+ * @param {string} [params.newFulfillmentStatusId] - New status ID for fulfillments (if provided).
+ * @param {string} [params.newShipmentStatusId] - New status ID for shipments (if provided).
+ * @param {string} params.userId - ID of the user performing the update.
+ * @param {Object} params.client - Database transaction client.
  *
- * @returns {Promise<Object>} Updated rows grouped by entity:
- *  - {Object}   orderStatusRow              Updated order row
- *  - {Object[]} orderItemStatusRow          Updated order item rows
- *  - {Object[]} inventoryAllocationStatusRow Updated allocation rows
- *  - {Object[]} orderFulfillmentStatusRow   Updated fulfillment rows
- *  - {Object[]} shipmentStatusRow           Updated shipment rows
+ * @returns {Promise<Object>} Object grouping the updated rows by entity:
+ * {
+ *   orderStatusRow: Object|null,                // Updated order row (or null if skipped)
+ *   orderItemStatusRow: Object[]|[],            // Updated order items
+ *   inventoryAllocationStatusRow: Object[]|[],  // Updated allocations
+ *   orderFulfillmentStatusRow: Object[]|[],     // Updated fulfillments
+ *   shipmentStatusRow: Object[]|[],             // Updated shipments
+ * }
  *
- * @throws {AppError} If any required update fails
+ * @throws {AppError}
+ *  - If any required update fails or a database constraint is violated.
+ *
+ * @example
+ * const results = await updateAllStatuses({
+ *   orderId,
+ *   orderNumber,
+ *   allocationMeta,
+ *   newOrderStatusId,
+ *   newAllocationStatusId,
+ *   fulfillments,
+ *   newFulfillmentStatusId,
+ *   newShipmentStatusId,
+ *   userId,
+ *   client,
+ * });
  */
 const updateAllStatuses = async ({
                                    orderId,
@@ -1036,6 +1053,10 @@ const updateAllStatuses = async ({
                                    userId,
                                    client,
                                  }) => {
+  // Normalize to arrays in case null is explicitly passed
+  const allocations = Array.isArray(allocationMeta) ? allocationMeta : [];
+  const fulfillmentList = Array.isArray(fulfillments) ? fulfillments : [];
+  
   // --- 1. Update Order status
   const orderStatusRow = await updateOrderStatus(client, {
     orderId,
@@ -1052,9 +1073,9 @@ const updateAllStatuses = async ({
   
   // --- 3. Update Allocation statuses if allocations provided
   const inventoryAllocationStatusRow =
-    allocationMeta.length && newAllocationStatusId
+    allocations.length && newAllocationStatusId
       ? await updateAllocationsStatusBusiness(
-        allocationMeta,
+        allocations,
         newAllocationStatusId,
         orderId,
         orderNumber,
@@ -1065,9 +1086,9 @@ const updateAllStatuses = async ({
   
   // --- 4. Update Fulfillment statuses if fulfillments and new status provided
   const orderFulfillmentStatusRow =
-    fulfillments.length && newFulfillmentStatusId
+    fulfillmentList.length && newFulfillmentStatusId
       ? await updateFulfillmentsStatusBusiness(
-        fulfillments,
+        fulfillmentList,
         newFulfillmentStatusId,
         orderId,
         orderNumber,
@@ -1078,9 +1099,9 @@ const updateAllStatuses = async ({
   
   // --- 5. Update Shipment statuses if fulfillments and new status provided
   const shipmentStatusRow =
-    fulfillments.length && newShipmentStatusId
+    fulfillmentList.length && newShipmentStatusId
       ? await updateShipmentsStatusBusiness(
-        fulfillments,
+        fulfillmentList,
         newShipmentStatusId,
         orderId,
         orderNumber,
@@ -1295,6 +1316,120 @@ const buildInventoryActivityLogs = (
   );
 };
 
+/**
+ * @function
+ * @description
+ * Validates that all related entities (order, order items, fulfillment, shipment, allocation)
+ * are in the correct pre-pickup states before marking a pickup as completed.
+ *
+ * Ensures consistency and data integrity across order, shipment, fulfillment,
+ * allocation, and order-item domains.
+ * Throws a validation error if any status does not meet the allowed conditions.
+ *
+ * @param {Object} params - Validation input
+ * @param {string} params.orderStatusCode - Current order status code
+ * @param {string|string[]} params.orderItemStatusCode - One or more current order item status codes
+ * @param {string|string[]} params.fulfillmentStatuses - One or more current fulfillment status codes
+ * @param {string} params.shipmentStatusCode - Current shipment status code
+ * @param {string|string[]} [params.allocationStatuses] - One or more current allocation status codes
+ *
+ * @throws {AppError.validationError} If any status is not in the allowed list
+ *
+ * @example
+ * validateStatusesBeforePickupCompletion({
+ *   orderStatusCode: 'ORDER_PROCESSING',
+ *   orderItemStatusCode: ['ORDER_PROCESSING'],
+ *   fulfillmentStatuses: ['FULFILLMENT_PACKED'],
+ *   shipmentStatusCode: 'SHIPMENT_READY',
+ *   allocationStatuses: ['ALLOC_COMPLETED'],
+ * });
+ */
+const validateStatusesBeforePickupCompletion = ({
+                                                  orderStatusCode,
+                                                  orderItemStatusCode,
+                                                  allocationStatuses,
+                                                  shipmentStatusCode,
+                                                  fulfillmentStatuses,
+                                                }) => {
+  // --- Normalize inputs
+  const orderItemCodes = Array.isArray(orderItemStatusCode)
+    ? orderItemStatusCode
+    : [orderItemStatusCode];
+  
+  const allocationCodes = Array.isArray(allocationStatuses)
+    ? allocationStatuses
+    : [allocationStatuses];
+  
+  const fulfillmentCodes = Array.isArray(fulfillmentStatuses)
+    ? fulfillmentStatuses
+    : [fulfillmentStatuses];
+  
+  // --- Allowed statuses before pickup completion
+  const ALLOWED = {
+    order: ['ORDER_FULFILLED'],
+    orderItem: ['ORDER_FULFILLED'],
+    allocation: ['ALLOC_COMPLETED'],
+    shipment: ['SHIPMENT_READY'],
+    fulfillment: ['FULFILLMENT_PACKED'],
+  };
+  
+  // --- Validate order ---
+  if (!ALLOWED.order.includes(orderStatusCode)) {
+    throw AppError.validationError(
+      `Order status "${orderStatusCode}" is not eligible for pickup completion.`,
+      { context: 'outbound-fulfillment-business/validateStatusesBeforePickupCompletion' }
+    );
+  }
+  
+  // --- Validate order items ---
+  for (const code of orderItemCodes) {
+    if (!ALLOWED.orderItem.includes(code)) {
+      throw AppError.validationError(
+        `Order item with status "${code}" is not eligible for pickup completion.`,
+        { context: 'outbound-fulfillment-business/validateStatusesBeforePickupCompletion' }
+      );
+    }
+  }
+  
+  // --- Validate allocations ---
+  for (const code of allocationCodes) {
+    if (!ALLOWED.allocation.includes(code)) {
+      throw AppError.validationError(
+        `Allocation with status "${code}" is not eligible for pickup completion.`,
+        { context: 'outbound-fulfillment-business/validateStatusesBeforePickupCompletion' }
+      );
+    }
+  }
+  
+  // --- Validate shipment ---
+  if (!ALLOWED.shipment.includes(shipmentStatusCode)) {
+    throw AppError.validationError(
+      `Shipment status "${shipmentStatusCode}" is not eligible for pickup completion.`,
+      { context: 'outbound-fulfillment-business/validateStatusesBeforePickupCompletion' }
+    );
+  }
+  
+  // --- Validate fulfillments ---
+  for (const code of fulfillmentCodes) {
+    if (!ALLOWED.fulfillment.includes(code)) {
+      throw AppError.validationError(
+        `Fulfillment with status "${code}" cannot be marked as completed (pickup).`,
+        { context: 'outbound-fulfillment-business/validateStatusesBeforePickupCompletion' }
+      );
+    }
+  }
+  
+  // --- Log success
+  logSystemInfo('Pickup status validation passed', {
+    context: 'outbound-fulfillment-business/validateStatusesBeforePickupCompletion',
+    orderStatusCode,
+    orderItemStatusCode: orderItemCodes,
+    allocationStatuses: allocationCodes,
+    shipmentStatusCode,
+    fulfillmentStatuses: fulfillmentCodes,
+  });
+};
+
 module.exports = {
   validateOrderIsFullyAllocated,
   validateFulfillmentStatusTransition,
@@ -1320,4 +1455,5 @@ module.exports = {
   updateAllStatuses,
   buildFulfillmentLogEntry,
   buildInventoryActivityLogs,
+  validateStatusesBeforePickupCompletion,
 };

@@ -50,9 +50,17 @@ exports.seed = async function (knex) {
       description: 'Items are packed and ready to ship',
     },
     {
+      name: 'completed',
+      code: 'FULFILLMENT_COMPLETED',
+      sort_order: 4,
+      category: 'internal',
+      is_default: false,
+      description: 'Fulfillment process completed — items have been delivered or picked up by the customer.',
+    },
+    {
       name: 'shipped',
       code: 'FULFILLMENT_SHIPPED',
-      sort_order: 4,
+      sort_order: 5,
       category: 'external',
       is_default: false,
       description: 'Shipment has been dispatched',
@@ -60,7 +68,7 @@ exports.seed = async function (knex) {
     {
       name: 'delivered',
       code: 'FULFILLMENT_DELIVERED',
-      sort_order: 5,
+      sort_order: 6,
       category: 'external',
       is_default: false,
       description: 'Order has been delivered to customer',
