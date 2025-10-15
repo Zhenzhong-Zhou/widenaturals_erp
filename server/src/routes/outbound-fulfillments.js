@@ -13,7 +13,7 @@ const {
   fulfillOutboundShipmentController,
   confirmOutboundFulfillmentController,
   getPaginatedOutboundFulfillmentController,
-  getShipmentDetailsController
+  getShipmentDetailsController, completeManualFulfillmentController
 } = require('../controllers/outbound-fulfillment-controller');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 const { sanitizeFields } = require('../middlewares/sanitize');
@@ -210,6 +210,62 @@ router.get(
   authorize([PERMISSIONS.OUTBOUND_FULFILLMENT.VIEW]),
   validate(shipmentIdParamSchema, 'params'), // validate shipmentId as UUID
   getShipmentDetailsController
+);
+
+/**
+ * Route: POST /outbound-fulfillment/manual/:shipmentId/complete
+ *
+ * Purpose:
+ *  Finalizes a manual outbound fulfillment workflow, such as:
+ *    - Customer in-store pickup, or
+ *    - Personal (non-carrier) delivery.
+ *
+ *  This endpoint completes the workflow by:
+ *    - Validating order, fulfillment, shipment, and allocation statuses.
+ *    - Updating all related entities (order, order items, fulfillments, shipments)
+ *      to reflect completion.
+ *    - Ensuring transactional integrity and logging audit data for traceability.
+ *
+ * Validations:
+ *  - `params.shipmentId`: must be a valid UUID (validated by `shipmentIdParamSchema`)
+ *  - `body.orderStatus`: target order status code (e.g. "ORDER_DELIVERED")
+ *  - `body.shipmentStatus`: target shipment status code (e.g. "SHIPMENT_COMPLETED")
+ *  - `body.fulfillmentStatus`: target fulfillment status code (e.g. "FULFILLMENT_COMPLETED")
+ *
+ * Flow:
+ *  - Authorize request using `PERMISSIONS.OUTBOUND_FULFILLMENT.COMPLETE_MANUAL`.
+ *  - Validate route params and body payload with Joi schemas.
+ *  - Delegate execution to `completeManualFulfillmentController`, which:
+ *      • Validates pre-completion statuses.
+ *      • Performs atomic status updates across related entities.
+ *      • Logs audit and system activity.
+ *  - Returns a standardized JSON response with updated entity statuses.
+ *
+ * Request:
+ *  - Params:
+ *      - shipmentId: UUID (required)
+ *  - Body:
+ *      {
+ *        orderStatus: string,
+ *        shipmentStatus: string,
+ *        fulfillmentStatus: string
+ *      }
+ *
+ * Response:
+ *  - 200 OK: Manual fulfillment completed successfully.
+ *  - 400 VALIDATION_ERROR: Invalid payload or status transition.
+ *  - 403 FORBIDDEN: User lacks required permission.
+ *  - 404 NOT_FOUND: Shipment or related entities not found.
+ *  - 500 SERVICE_ERROR: Internal error during completion.
+ *
+ * @access Protected
+ */
+router.post(
+  '/manual/:shipmentId/complete',
+  authorize([PERMISSIONS.OUTBOUND_FULFILLMENT.COMPLETE_MANUAL]),
+  validate(shipmentIdParamSchema, 'params'),
+  validate(fulfillAdjustmentBodySchema, 'body'),
+  completeManualFulfillmentController
 );
 
 module.exports = router;

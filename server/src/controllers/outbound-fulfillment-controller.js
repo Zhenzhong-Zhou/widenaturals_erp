@@ -3,7 +3,8 @@ const {
   fulfillOutboundShipmentService,
   confirmOutboundFulfillmentService,
   fetchPaginatedOutboundFulfillmentService,
-  fetchShipmentDetailsService
+  fetchShipmentDetailsService,
+  completeManualFulfillmentService,
 } = require('../services/outbound-fulfillment-service');
 const { logInfo } = require('../utils/logger-helper');
 
@@ -206,9 +207,69 @@ const getShipmentDetailsController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * Controller: completeManualFulfillmentController
+ *
+ * Purpose:
+ *  Handles API requests to finalize manual fulfillment processes
+ *  (e.g., in-store pickup or personal delivery).
+ *  This endpoint completes the workflow by updating all related entity statuses —
+ *  including order, order items, shipments, and fulfillments — in a single transaction.
+ *
+ * Flow:
+ *  - Extracts `shipmentId` from route params and merges it with the request body.
+ *  - Invokes `completeManualFulfillmentService` to execute transactional logic:
+ *      • Validate pre-completion statuses (order, shipment, fulfillment, allocations)
+ *      • Update all related statuses to reflect manual fulfillment completion
+ *      • Ensure transactional consistency and log audit details
+ *  - Logs a structured success event for observability.
+ *  - Returns a standardized JSON response:
+ *      {
+ *        success: true,
+ *        message: 'Manual fulfillment completed successfully.',
+ *        data: <manualFulfillmentResult>
+ *      }
+ *
+ * Logging:
+ *  - Uses structured logging with context, shipmentId, and userId.
+ *  - All thrown errors are handled by global error middleware (via wrapAsync).
+ *
+ * @route   POST /outbound-fulfillment/manual/:shipmentId/complete
+ * @access  Protected
+ *
+ * @param   {import('express').Request} req - Express request (validated upstream)
+ * @param   {import('express').Response} res - Express response
+ * @returns {Promise<import('express').Response>} JSON response with manual fulfillment result
+ */
+const completeManualFulfillmentController = wrapAsync(async (req, res) => {
+  const user = req.user;
+  const { shipmentId } = req.params;
+  
+  // Merge route param and request body into a single payload
+  const requestData = { ...req.body, shipmentId };
+  
+  // --- Execute manual fulfillment workflow
+  const result = await completeManualFulfillmentService(requestData, user);
+  
+  // --- Structured success log
+  logInfo('Manual fulfillment completed successfully', req, {
+    context: 'outbound-fulfillment-controller/completeManualFulfillmentController',
+    shipmentId,
+    userId: user?.id,
+  });
+  
+  // --- Send standardized JSON response
+  return res.status(200).json({
+    success: true,
+    message: 'Manual fulfillment completed successfully.',
+    data: result,
+  });
+});
+
 module.exports = {
   fulfillOutboundShipmentController,
   confirmOutboundFulfillmentController,
   getPaginatedOutboundFulfillmentController,
   getShipmentDetailsController,
+  completeManualFulfillmentController,
 };
