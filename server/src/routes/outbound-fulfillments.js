@@ -7,7 +7,7 @@ const { shipmentIdParamSchema } = require('../validators/outbound-shipment-valid
 const {
   fulfillOutboundShipmentBodySchema,
   fulfillAdjustmentBodySchema,
-  outboundFulfillmentQuerySchema
+  outboundFulfillmentQuerySchema, manualFulfillmentBodySchema
 } = require('../validators/outbound-fulfillment-validators');
 const {
   fulfillOutboundShipmentController,
@@ -264,7 +264,7 @@ router.post(
   '/manual/:shipmentId/complete',
   authorize([PERMISSIONS.OUTBOUND_FULFILLMENT.COMPLETE_MANUAL]),
   validate(shipmentIdParamSchema, 'params'),
-  validate(fulfillAdjustmentBodySchema, 'body'),
+  validate(manualFulfillmentBodySchema, 'body'),
   completeManualFulfillmentController
 );
 
