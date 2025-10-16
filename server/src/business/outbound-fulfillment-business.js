@@ -455,12 +455,12 @@ const assertFulfillmentsValid = (fulfillments = [], order_number) => {
 const assertShipmentFound = (shipment, shipmentId) => {
   if (!shipment) {
     logSystemInfo('Shipment not found during fulfillment confirmation', {
-      context: 'outbound-fulfillment-service/assertShipmentFound',
+      context: 'outbound-fulfillment-business/assertShipmentFound',
       shipmentId,
     });
     
     throw AppError.notFoundError(`Shipment with ID "${shipmentId}" was not found.`, {
-      context: 'outbound-fulfillment-service/assertShipmentFound',
+      context: 'outbound-fulfillment-business/assertShipmentFound',
       shipmentId,
       severity: 'warning',
     });
@@ -468,21 +468,67 @@ const assertShipmentFound = (shipment, shipmentId) => {
   
   if (!shipment.shipment_id) {
     logSystemInfo('Shipment record is missing critical fields', {
-      context: 'outbound-fulfillment-service/assertShipmentFound',
+      context: 'outbound-fulfillment-business/assertShipmentFound',
       shipmentId,
       shipment,
     });
     
     throw AppError.validationError('Shipment record is malformed or missing `shipment_id`.', {
-      context: 'outbound-fulfillment-service/assertShipmentFound',
+      context: 'outbound-fulfillment-business/assertShipmentFound',
       shipmentId,
     });
   }
   
   logSystemInfo('Validated shipment record successfully', {
-    context: 'outbound-fulfillment-service/assertShipmentFound',
+    context: 'outbound-fulfillment-business/assertShipmentFound',
     shipmentId,
     statusCode: shipment.status_code,
+  });
+};
+
+/**
+ * Asserts that the given delivery method is allowed for manual fulfillment.
+ *
+ * Manual fulfillment is allowed if:
+ * - The method is explicitly marked as a pickup location (e.g. in-store pickup), OR
+ * - The method name matches a predefined list of internal delivery types (e.g. personal driver).
+ *
+ * This ensures that only trusted, controlled delivery types can be manually fulfilled,
+ * excluding third-party or external carrier methods.
+ *
+ * @param {string | null | undefined} methodName - Human-readable delivery method name (e.g., "In-Store Pickup").
+ * @param {boolean | null | undefined} isPickupLocation - Whether the method is flagged as a pickup location.
+ * @throws {AppError} If the delivery method is not allowed for manual fulfillment.
+ */
+const assertDeliveryMethodIsAllowed = (methodName, isPickupLocation) => {
+  const ALLOWED_DELIVERY_METHODS = ['In-Store Pickup', 'Personal Driver Delivery'];
+  
+  const isAllowed =
+    Boolean(isPickupLocation) || ALLOWED_DELIVERY_METHODS.includes(methodName ?? '');
+  
+  if (!isAllowed) {
+    logSystemInfo('Blocked manual fulfillment due to disallowed delivery method', {
+      context: 'outbound-fulfillment-business/assertDeliveryMethodIsAllowed',
+      deliveryMethod: methodName,
+      isPickupLocation,
+      allowedMethods: ALLOWED_DELIVERY_METHODS,
+    });
+    
+    throw AppError.validationError(
+      `Manual fulfillment is only allowed for pickup or personal delivery. Found: ${methodName || 'none'}`,
+      {
+        context: 'outbound-fulfillment-business/assertDeliveryMethodIsAllowed',
+        deliveryMethod: methodName,
+        isPickupLocation,
+        allowedMethods: ALLOWED_DELIVERY_METHODS,
+      }
+    );
+  }
+  
+  logSystemInfo('Validated delivery method for manual fulfillment', {
+    context: 'outbound-fulfillment-business/assertDeliveryMethodIsAllowed',
+    deliveryMethod: methodName,
+    isPickupLocation,
   });
 };
 
@@ -669,7 +715,7 @@ const validateStatusesBeforeConfirmation = ({
   if (!ALLOWED.order.includes(orderStatusCode)) {
     throw AppError.validationError(
       `Order status "${orderStatusCode}" is not eligible for fulfillment confirmation.`,
-      { context: 'validateStatusesBeforeConfirmation' }
+      { context: 'outbound-fulfillment-business/validateStatusesBeforeConfirmation' }
     );
   }
   
@@ -678,7 +724,7 @@ const validateStatusesBeforeConfirmation = ({
     if (!ALLOWED.fulfillment.includes(code)) {
       throw AppError.validationError(
         `Fulfillment with status "${code}" cannot be confirmed.`,
-        { context: 'validateStatusesBeforeConfirmation' }
+        { context: 'outbound-fulfillment-business/validateStatusesBeforeConfirmation' }
       );
     }
   }
@@ -687,12 +733,12 @@ const validateStatusesBeforeConfirmation = ({
   if (!ALLOWED.shipment.includes(shipmentStatusCode)) {
     throw AppError.validationError(
       `Shipment status "${shipmentStatusCode}" is not eligible for fulfillment confirmation.`,
-      { context: 'validateStatusesBeforeConfirmation' }
+      { context: 'outbound-fulfillment-business/validateStatusesBeforeConfirmation' }
     );
   }
   
   logSystemInfo('Status validation passed', {
-    context: 'validateStatusesBeforeConfirmation',
+    context: 'outbound-fulfillment-business/validateStatusesBeforeConfirmation',
     orderStatusCode,
     fulfillmentStatuses: fulfillmentCodes,
     shipmentStatusCode,
@@ -1006,7 +1052,7 @@ const updateShipmentsStatusBusiness = async (fulfillments, newStatusId, orderId,
  * @param {Object} params - Function parameters.
  * @param {string} params.orderId - ID of the order being updated.
  * @param {string} params.orderNumber - Human-readable order number (used for logging/context).
- * @param {Object[]} [params.allocationMeta=[]] - Allocation metadata array to update (may be empty or null).
+ * @param {Object[]} [params.allocationMeta=[]] - Allocation metadata array to update (maybe empty or null).
  * @param {string} [params.newOrderStatusId] - New status ID for the order and its items.
  * @param {string} [params.newAllocationStatusId] - New status ID for allocations (if provided).
  * @param {Object[]} [params.fulfillments=[]] - Fulfillment metadata array to update.
@@ -1443,6 +1489,7 @@ module.exports = {
   assertOrderMeta,
   assertFulfillmentsValid,
   assertShipmentFound,
+  assertDeliveryMethodIsAllowed,
   assertInventoryCoverage,
   assertEnrichedAllocations,
   assertInventoryAdjustments,

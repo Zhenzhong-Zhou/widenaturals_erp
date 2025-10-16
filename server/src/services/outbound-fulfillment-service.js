@@ -40,7 +40,7 @@ const {
   assertWarehouseUpdatesApplied,
   assertShipmentFound,
   validateStatusesBeforeConfirmation,
-  validateStatusesBeforeManualFulfillment,
+  validateStatusesBeforeManualFulfillment, assertDeliveryMethodIsAllowed,
 } = require('../business/outbound-fulfillment-business');
 const { getAllocationStatuses } = require('../repositories/inventory-allocations-repository');
 const { validateAllocationStatusTransition } = require('../business/inventory-allocation-business');
@@ -662,30 +662,36 @@ const fetchShipmentDetailsService = async (shipmentId) => {
 /**
  * @function
  * @description
- * Finalizes a manual outbound fulfillment workflow (for in-store pickup or personal delivery).
+ * Completes a manual outbound fulfillment (e.g., in-store pickup or personal delivery).
  *
- * This service marks a fulfillment as completed when goods are manually handed over
- * — either via customer pickup or direct staff delivery — without involving a carrier.
- * It validates workflow states (order, shipment, fulfillment, allocation),
- * performs all related status transitions atomically, and returns normalized results.
+ * This service finalizes an outbound shipment and all related fulfillments for orders
+ * that do not involve external carriers. It validates the current workflow state,
+ * ensures all fulfillment and allocation conditions are met, resolves new status IDs,
+ * and performs all status transitions within a single atomic transaction.
+ *
+ * ## When to Use
+ * - Customer manually picks up the order in-store
+ * - Internal staff delivers the package (e.g., personal driver)
  *
  * @businessFlow
- *  1. Validate the shipment and associated order.
- *  2. Ensure fulfillments and allocations belong to the same order.
- *  3. Verify workflow readiness using `validateStatusesBeforePickupCompletion`.
- *  4. Resolve new target status IDs (order, shipment, fulfillment).
- *  5. Perform all status updates within a transaction using `updateAllStatuses`.
- *  6. Return a structured fulfillment-completion result.
+ *  1. Fetch the shipment record by ID.
+ *  2. Validate the delivery method (must be pickup-type or whitelisted).
+ *  3. Fetch and validate all fulfillments linked to the same order.
+ *  4. Fetch status metadata for fulfillments, order, and order items.
+ *  5. Validate workflow eligibility via `validateStatusesBeforeManualFulfillment`.
+ *  6. Resolve new status IDs from string codes.
+ *  7. Atomically update all related statuses via `updateAllStatuses`.
+ *  8. Return structured fulfillment completion result.
  *
- * @param {Object} requestData - Input parameters
- * @param {string} requestData.shipmentId - ID of the shipment being completed
- * @param {string} requestData.orderStatus - Target order status (e.g., 'ORDER_DELIVERED')
- * @param {string} requestData.shipmentStatus - Target shipment status (e.g., 'SHIPMENT_COMPLETED')
- * @param {string} requestData.fulfillmentStatus - Target fulfillment status (e.g., 'FULFILLMENT_COMPLETED')
- * @param {Object} user - Authenticated user performing the action
- * @param {string} user.id - User ID
+ * @param {Object} requestData
+ * @param {string} requestData.shipmentId - UUID of the outbound shipment
+ * @param {string} requestData.orderStatus - Target order status code (e.g., 'ORDER_DELIVERED')
+ * @param {string} requestData.shipmentStatus - Target shipment status code (e.g., 'SHIPMENT_COMPLETED')
+ * @param {string} requestData.fulfillmentStatus - Target fulfillment status code (e.g., 'FULFILLMENT_COMPLETED')
+ * @param {Object} user - Authenticated user
+ * @param {string} user.id - Acting user ID
  *
- * @returns {Promise<Object>} A transformed manual-fulfillment response:
+ * @returns {Promise<Object>} Transformed fulfillment completion result:
  * {
  *   order: { id, statusId, statusDate },
  *   items: [{ id, statusId, statusDate }],
@@ -694,8 +700,7 @@ const fetchShipmentDetailsService = async (shipmentId) => {
  *   meta: { updatedAt }
  * }
  *
- * @throws {AppError.validationError|AppError.serviceError}
- *   If validation or transactional operations fail.
+ * @throws {AppError.validationError|AppError.serviceError} On validation or transactional failure
  */
 const completeManualFulfillmentService = async (requestData, user) => {
   try {
@@ -713,12 +718,15 @@ const completeManualFulfillmentService = async (requestData, user) => {
       const shipment = await getShipmentByShipmentId(rawShipmentId, client);
       assertShipmentFound(shipment, rawShipmentId);
       
-      const orderId = shipment.order_id;
+      const { order_id, status_code, delivery_method_name } = shipment;
+      assertDeliveryMethodIsAllowed(delivery_method_name)
+      
+      const orderId = order_id;
       logSystemInfo('Step 1: Shipment record fetched', {
         context: 'outbound-fulfillment-service/completeManualFulfillmentService',
         shipmentId: rawShipmentId,
         orderId,
-        currentShipmentStatus: shipment.status_code,
+        currentShipmentStatus: status_code,
       });
       
       // --- Step 2: Retrieve and validate all fulfillments linked to the order
@@ -732,7 +740,7 @@ const completeManualFulfillmentService = async (requestData, user) => {
       
       // Validate fulfillments all reference the same order
       const orderIds = [...new Set(fulfillments.map(f => f.order_id))];
-      if (orderIds.length !== 1 || orderIds[0] !== shipment.order_id) {
+      if (orderIds.length !== 1 || orderIds[0] !== order_id) {
         throw AppError.validationError(
           'Mismatched order_id between shipment and fulfillments',
           { context: 'outbound-fulfillment-service/completeManualFulfillmentService' }
@@ -748,7 +756,7 @@ const completeManualFulfillmentService = async (requestData, user) => {
       assertOrderMeta(orderMeta);
       const { order_number: orderNumber } = orderMeta;
       
-      // --- Step 5: Fetch current order and order item metadata
+      // --- Step 5: Fetch order and order item metadata
       const { order_status_code } = await fetchOrderMetadata(orderId, client);
       const orderItemMetadata = await getOrderItemsByOrderId(orderId, client);
       
@@ -764,18 +772,18 @@ const completeManualFulfillmentService = async (requestData, user) => {
         currentOrderStatus: order_status_code,
         orderItemIds,
         fulfillmentStatuses: fulfillmentStatusMeta.map(s => s.code),
-        shipmentStatusCode: shipment.status_code,
+        shipmentStatusCode: status_code,
       });
       
       // --- Step 6: Retrieve allocation status metadata for validation
       const allocationStatusMetadata = await getAllocationStatuses(orderId, orderItemIds, client);
       
-      // --- Step 7: Validate workflow eligibility before manual completion
+      // --- Step 7: Validate status readiness for manual fulfillment completion
       validateStatusesBeforeManualFulfillment({
         orderStatusCode: order_status_code,
         orderItemStatusCode: orderItemMetadata.map(oi => oi.order_item_code),
         allocationStatuses: allocationStatusMetadata.map(ia => ia.allocation_status_code),
-        shipmentStatusCode: shipment.status_code,
+        shipmentStatusCode: status_code,
         fulfillmentStatuses: fulfillmentStatusMeta.map(s => s.code),
       });
       

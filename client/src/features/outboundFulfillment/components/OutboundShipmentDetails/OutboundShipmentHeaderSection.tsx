@@ -19,6 +19,7 @@ const OutboundShipmentHeaderSection: FC<OutboundShipmentHeaderSectionProps> = ({
         {/* Left column */}
         <DetailsGridItem>
           // todo: add yes no chip or another ui
+          // todo: adjust all status to be chip or other ui with differ color
           <MemoizedDetailsSection
             fields={[
               { label: 'Order Number', value: orderNumber },

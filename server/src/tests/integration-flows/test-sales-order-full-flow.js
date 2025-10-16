@@ -48,7 +48,8 @@ const {
       getUniqueScalarValue({ table: 'payment_methods', where: { code: 'CREDIT_CARD' }, select: 'id' }, client),
       getUniqueScalarValue({ table: 'discounts', where: { name: 'New Customer Offer' }, select: 'id' }, client),
       getUniqueScalarValue({ table: 'tax_rates', where: { name: 'PST', province: 'BC' }, select: 'id' }, client),
-      getUniqueScalarValue({ table: 'delivery_methods', where: { method_name: 'Standard Shipping' }, select: 'id' }, client),
+      getUniqueScalarValue({ table: 'delivery_methods', where: { method_name: 'In-Store Pickup' }, select: 'id' }, client),
+      // getUniqueScalarValue({ table: 'delivery_methods', where: { method_name: 'Standard Shipping' }, select: 'id' }, client),
       getUniqueScalarValue({ table: 'warehouses', where: { name: 'WIDE Naturals Inc.' }, select: 'id' }, client),
     ]);
     

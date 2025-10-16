@@ -133,15 +133,16 @@ const insertOutboundShipmentsBulk = async (shipments, client) => {
  * Fetch a single outbound shipment record by its unique shipment ID.
  *
  * This function is optimized for use in workflow validation (e.g., during
- * fulfillment confirmation or shipment processing). It returns the essential
- * shipment metadata, including linked status information, for use in
- * downstream logic such as validation, status transitions, or audit logging.
+ * fulfillment confirmation or shipment processing). It returns critical
+ * metadata needed for downstream logic such as validation, status transitions,
+ * delivery method checks, and audit logging.
  *
  * ## Notes
- * - Uses LEFT JOIN with `shipment_status` to resolve human-readable status metadata.
- * - Designed to run safely inside a transaction context.
- * - Returns `null` if no shipment record is found for the provided ID.
- * - Logs both successful queries and database exceptions.
+ * - Joins `shipment_status` to resolve status code, name, and finality.
+ * - Joins `delivery_methods` to include method name, pickup flag, and ETA.
+ * - Safe for use within transactional queries (uses `client`).
+ * - Returns `null` if the shipment does not exist.
+ * - Logs both successful and failed fetch attempts for traceability.
  *
  * ## Example Return Object
  * ```js
@@ -152,17 +153,21 @@ const insertOutboundShipmentsBulk = async (shipments, client) => {
  *   status_id: 'uuid',
  *   status_code: 'SHIPMENT_READY',
  *   status_name: 'Ready to Ship',
- *   status_is_final: false
+ *   status_is_final: false,
+ *   delivery_method_id: 'uuid',
+ *   delivery_method_name: 'In-Store Pickup',
+ *   is_pickup_location: true,
+ *   delivery_estimated_time: '1-3 business days'
  * }
  * ```
  *
  * @async
  * @function
- * @param {string} shipmentId - UUID of the outbound shipment to fetch
- * @param {import('pg').PoolClient} client - PostgreSQL transaction client
- * @returns {Promise<object|null>} Shipment record with status fields, or null if not found
+ * @param {string} shipmentId - UUID of the outbound shipment to fetch.
+ * @param {import('pg').PoolClient} client - PostgreSQL transaction client.
+ * @returns {Promise<object|null>} Shipment record with status and delivery method info, or null if not found.
  *
- * @throws {AppError} Wrapped database error if the query fails
+ * @throws {AppError} If a database error occurs while fetching the shipment.
  */
 const getShipmentByShipmentId = async (shipmentId, client) => {
   const sql = `
@@ -173,9 +178,14 @@ const getShipmentByShipmentId = async (shipmentId, client) => {
       os.status_id,
       ss.code AS status_code,
       ss.name AS status_name,
-      ss.is_final AS status_is_final
+      ss.is_final AS status_is_final,
+      dm.id AS delivery_method_id,
+      dm.method_name AS delivery_method_name,
+      dm.is_pickup_location AS is_pickup_location,
+      dm.estimated_time AS delivery_estimated_time
     FROM outbound_shipments os
     LEFT JOIN shipment_status ss ON ss.id = os.status_id
+    LEFT JOIN delivery_methods dm ON dm.id = os.delivery_method_id
     WHERE os.id = $1;
   `;
   
