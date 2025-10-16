@@ -1,5 +1,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
+  CompleteManualFulfillmentParams,
+  CompleteManualFulfillmentResponse,
   ConfirmOutboundFulfillmentRequest,
   ConfirmOutboundFulfillmentResponse,
   InitiateFulfillmentRequest,
@@ -180,6 +182,54 @@ export const confirmOutboundFulfillmentThunk = createAsyncThunk<
         'Unable to confirm outbound fulfillment. Please try again later.';
       
       return rejectWithValue(message);
+    }
+  }
+);
+
+/**
+ * Thunk to complete a manual outbound fulfillment (e.g., in-store pickup or personal delivery).
+ *
+ * This thunk dispatches an asynchronous request to finalize a manual fulfillment by:
+ * - Calling the backend API to update shipment, fulfillment, and order statuses
+ * - Handling success or failure for downstream UI reactions (e.g., toast, redirect, reload)
+ *
+ * Backend Endpoint:
+ *   POST /outbound-fulfillments/manual/:shipmentId/complete
+ *
+ * Requirements:
+ * - `shipmentId` (path param): ID of the shipment being fulfilled manually.
+ * - `body` (request payload):
+ *   - `orderStatus`: Final order status (e.g., "ORDER_DELIVERED")
+ *   - `shipmentStatus`: Final shipment status (e.g., "SHIPMENT_COMPLETED")
+ *   - `fulfillmentStatus`: Final fulfillment status (e.g., "FULFILLMENT_COMPLETED")
+ *
+ * Redux Usage:
+ * ```ts
+ * dispatch(completeManualFulfillmentThunk({
+ *   shipmentId: '9cd7e960-985b-4f4e-9f68-1782535f5d18',
+ *   body: {
+ *     orderStatus: 'ORDER_DELIVERED',
+ *     shipmentStatus: 'SHIPMENT_COMPLETED',
+ *     fulfillmentStatus: 'FULFILLMENT_COMPLETED',
+ *   }
+ * }));
+ * ```
+ *
+ * @param {CompleteManualFulfillmentParams} params - Object containing the shipment ID and status payload.
+ * @returns {Promise<CompleteManualFulfillmentResponse>} - Fulfillment result data on success.
+ * @throws {string} Rejected value with an error message on failure.
+ */
+export const completeManualFulfillmentThunk = createAsyncThunk<
+  CompleteManualFulfillmentResponse,
+  CompleteManualFulfillmentParams,
+  { rejectValue: string }
+>(
+  'outboundFulfillments/completeManual',
+  async (params, { rejectWithValue }) => {
+    try {
+      return await outboundFulfillmentService.completeManualFulfillment(params);
+    } catch (error: any) {
+      return rejectWithValue(error?.message ?? 'Manual fulfillment failed.');
     }
   }
 );

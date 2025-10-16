@@ -1,4 +1,6 @@
 import type {
+  CompleteManualFulfillmentBody, CompleteManualFulfillmentParams,
+  CompleteManualFulfillmentResponse,
   ConfirmOutboundFulfillmentBody,
   ConfirmOutboundFulfillmentRequest,
   ConfirmOutboundFulfillmentResponse,
@@ -238,9 +240,76 @@ export const confirmOutboundFulfillment = async (
   }
 };
 
+/**
+ * Completes a manual outbound fulfillment (e.g., in-store pickup or personal delivery).
+ *
+ * This service function finalizes a manual fulfillment by updating the statuses
+ * of the related shipment, fulfillment(s), order, and order items. It is intended
+ * for workflows that bypass logistics carriers and inventory allocation.
+ *
+ * Backend Endpoint:
+ *   POST /outbound-fulfillments/manual/:shipmentId/complete
+ *
+ * Responsibilities:
+ * - Skips carrier-based allocation logic.
+ * - Updates shipment, fulfillment, order, and item statuses.
+ * - Triggers inventory movement finalization (internally handled by the backend).
+ * - Inserts audit and activity logs for traceability.
+ *
+ * Requirements:
+ * - `shipmentId` is passed as a path parameter.
+ * - `body` contains the following status codes:
+ *   - `orderStatus`: Target order status (e.g., "ORDER_DELIVERED")
+ *   - `shipmentStatus`: Target shipment status (e.g., "SHIPMENT_COMPLETED")
+ *   - `fulfillmentStatus`: Target fulfillment status (e.g., "FULFILLMENT_COMPLETED")
+ *
+ * Returns:
+ * - On success, resolves with a structured API response including updated statuses
+ *   and summary metadata about the fulfillment process.
+ *
+ * @async
+ * @function completeManualFulfillment
+ * @param {CompleteManualFulfillmentParams} params - Includes the shipment ID and
+ *        the request body with new status codes.
+ * @returns {Promise<CompleteManualFulfillmentResponse>} Fulfillment result response.
+ * @throws {Error} If the request fails due to validation or server-side issues.
+ *
+ * @example
+ * const params: CompleteManualFulfillmentParams = {
+ *   shipmentId: '9cd7e960-985b-4f4e-9f68-1782535f5d18',
+ *   body: {
+ *     orderStatus: 'ORDER_DELIVERED',
+ *     shipmentStatus: 'SHIPMENT_COMPLETED',
+ *     fulfillmentStatus: 'FULFILLMENT_COMPLETED',
+ *   },
+ * };
+ *
+ * const response = await completeManualFulfillment(params);
+ * if (response.success) {
+ *   console.log('Manual fulfillment completed:', response.data.summary);
+ * }
+ */
+const completeManualFulfillment = async (
+  params: CompleteManualFulfillmentParams
+): Promise<CompleteManualFulfillmentResponse> => {
+  const { shipmentId, body } = params;
+  const url = API_ENDPOINTS.OUTBOUND_FULFILLMENTS.COMPLETE_MANUAL_FULFILLMENT(shipmentId);
+  
+  try {
+    return await postRequest<CompleteManualFulfillmentBody, CompleteManualFulfillmentResponse>(
+      url,
+      body
+    );
+  } catch (error) {
+    console.error('Failed to complete manual fulfillment', { body, error });
+    throw error;
+  }
+};
+
 export const outboundFulfillmentService = {
   initiateOutboundFulfillment,
   fetchPaginatedOutboundFulfillment,
   fetchOutboundShipmentDetails,
   confirmOutboundFulfillment,
+  completeManualFulfillment,
 };

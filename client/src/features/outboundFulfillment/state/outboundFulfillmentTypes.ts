@@ -629,3 +629,91 @@ export interface ConfirmOutboundFulfillmentState
    */
   lastConfirmedAt?: string | null;
 }
+
+/**
+ * Request body for completing a manual outbound fulfillment.
+ *
+ * This schema is used in manual workflows such as in-store pickup or personal delivery,
+ * where no logistics carrier or allocation process is involved.
+ *
+ * It specifies the final status codes for the order, shipment, and fulfillment entities.
+ */
+export interface CompleteManualFulfillmentBody {
+  /** Final order status code (e.g., "ORDER_DELIVERED") */
+  orderStatus: string;
+  
+  /** Final shipment status code (e.g., "SHIPMENT_COMPLETED") */
+  shipmentStatus: string;
+  
+  /** Final fulfillment status code (e.g., "FULFILLMENT_COMPLETED") */
+  fulfillmentStatus: string;
+}
+
+/**
+ * Parameters for completing a manual outbound fulfillment.
+ *
+ * This interface wraps the shipment ID (used in the URL path) and the
+ * request body (containing new status codes) required to finalize a
+ * manual fulfillment operation.
+ *
+ * Used in workflows such as in-store pickup or personal delivery where
+ * allocation logic is skipped.
+ */
+export interface CompleteManualFulfillmentParams {
+  /** Shipment ID used as a path parameter (e.g. "9cd7e960-985b-4f4e-9f68-1782535f5d18") */
+  shipmentId: string;
+  
+  /** Request body containing target status codes for order, shipment, and fulfillment */
+  body: CompleteManualFulfillmentBody;
+}
+
+/**
+ * Represents the response payload returned from a successful manual fulfillment completion.
+ */
+export interface ManualFulfillmentResult {
+  /** Updated order status data */
+  order: {
+    id: string;
+    statusId: string;
+    statusDate: string; // ISO timestamp
+  };
+  
+  /** Updated order items (each item with its new status) */
+  items: Array<{
+    id: string;
+    statusId: string;
+    statusDate: string; // ISO timestamp
+  }>;
+  
+  /** Fulfillment records involved in the manual process */
+  fulfillments: Array<{
+    id: string;
+  }>;
+  
+  /** Shipment records updated as part of the manual fulfillment */
+  shipment: Array<{
+    id: string;
+  }>;
+  
+  /** Summary counts of affected records */
+  summary: {
+    orderItemsCount: number;
+    fulfillmentsCount: number;
+    shipmentCount: number;
+  };
+  
+  /** Metadata indicating when the update occurred */
+  meta: {
+    updatedAt: string; // ISO timestamp
+  };
+}
+
+/**
+ * Standardized API success response type for manual fulfillment completion.
+ */
+export type CompleteManualFulfillmentResponse = ApiSuccessResponse<ManualFulfillmentResult>;
+
+/**
+ * Slice state for tracking manual fulfillment completion.
+ */
+export type CompleteManualFulfillmentSliceState = AsyncState<CompleteManualFulfillmentResponse | null>;
