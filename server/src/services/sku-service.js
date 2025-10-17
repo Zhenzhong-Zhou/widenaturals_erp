@@ -1,18 +1,18 @@
 const { getStatusId } = require('../config/status-cache');
 const {
   fetchPaginatedActiveSkusWithProductCards,
-  getSkuDetailsWithPricingAndMeta,
+  getSkuDetailsWithPricingAndMeta, getSkuBomCompositionById,
 } = require('../repositories/sku-repository');
 const {
   transformPaginatedSkuProductCardResult,
-  transformSkuDetailsWithMeta,
+  transformSkuDetailsWithMeta, transformSkuBomComposition,
 } = require('../transformers/sku-transformer');
 const AppError = require('../utils/AppError');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const { sanitizeSortBy } = require('../utils/sort-utils');
 const {
   getAllowedStatusIdsForUser,
-  getAllowedPricingTypesForUser,
+  getAllowedPricingTypesForUser, computeEstimatedBomCostSummary,
 } = require('../business/sku-business');
 
 /**
@@ -108,7 +108,80 @@ const getSkuDetailsForUserService = async (user, skuId) => {
   }
 };
 
+/**
+ * Fetch and transform the BOM composition for a given SKU.
+ *
+ * Responsibilities:
+ *  - Validate SKU ID input (pre-validated at controller/Joi level)
+ *  - Query database via repository
+ *  - Transform flat query results into structured BOM composition object
+ *  - Apply optional business logic hooks (e.g. cost roll-up, revision control)
+ *  - Handle logging, exception tracing, and consistent error propagation
+ *
+ * @async
+ * @function
+ * @param {string} skuId - UUID of the SKU to fetch BOM composition for
+ * @returns {Promise<{ header: object, details: object[] }>} Structured BOM data
+ * @throws {AppError} When SKU is invalid or data retrieval fails
+ *
+ * @example
+ * const bom = await getSkuBomCompositionService('374cfaad-a0ca-44dc-bfdd-19478c21f899');
+ * console.log(bom.header.bom.name); // "PG-TCM300-R-CN – Production BOM"
+ */
+const getSkuBomCompositionService = async (skuId) => {
+  try {
+    // Step 1: Defensive parameter check (secondary safety)
+    if (!skuId) {
+      throw AppError.validationError('SKU ID is required', {
+        context: 'bomCompositionService',
+      });
+    }
+    
+    // Step 2: Query repository for BOM data
+    const rawData = await getSkuBomCompositionById(skuId);
+    
+    if (!rawData || rawData.length === 0) {
+      throw AppError.notFoundError('No BOM composition found for the provided SKU ID', {
+        skuId,
+        context: 'bomCompositionService',
+      });
+    }
+    
+    // Step 3: Transform DB rows into nested structure
+    const structuredResult = transformSkuBomComposition(rawData);
+    
+    // Step 4: Optional business layer enrichment (future-proof hook)
+    structuredResult.summary = computeEstimatedBomCostSummary(structuredResult);
+    
+    // Step 5: Log successful operation (for traceability)
+    logSystemInfo('Fetched SKU BOM composition successfully', {
+      context: 'bomCompositionService',
+      skuId,
+      rowCount: rawData.length,
+      totalCost: structuredResult.summary?.totalEstimatedCost ?? null,
+    });
+    
+    return structuredResult;
+  } catch (error) {
+    // Step 6: Centralized exception logging
+    logSystemException(error, 'Failed to get SKU BOM composition', {
+      context: 'bomCompositionService',
+      skuId,
+    });
+    
+    // Preserve standardized error hierarchy
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError('Unexpected error fetching SKU BOM composition', {
+      skuId,
+      context: 'bomCompositionService',
+      originalError: error.message,
+    });
+  }
+};
+
 module.exports = {
   fetchPaginatedSkuProductCardsService,
   getSkuDetailsForUserService,
+  getSkuBomCompositionService,
 };
