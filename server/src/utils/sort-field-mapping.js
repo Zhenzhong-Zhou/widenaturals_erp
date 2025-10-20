@@ -3,6 +3,47 @@
  * organized by table/module for reuse across service and repository layers.
  */
 const SORTABLE_FIELDS = {
+  bomSortMap: {
+    // --- Product / SKU level ---
+    productName: 'p.name',
+    brand: 'p.brand',
+    series: 'p.series',
+    category: 'p.category',
+    skuCode: 's.sku',
+    marketRegion: 's.market_region',
+    sizeLabel: 's.size_label',
+    
+    // --- Compliance level ---
+    complianceType: 'c.type',
+    complianceStatus: 'st_compliance.name',
+    complianceIssuedDate: 'c.issued_date',
+    complianceExpiryDate: 'c.expiry_date',
+    
+    // --- BOM level ---
+    bomCode: 'b.code',
+    bomName: 'b.name',
+    revision: 'b.revision',
+    isActive: 'b.is_active',
+    isDefault: 'b.is_default',
+    bomStatus: 'st_bom.name',
+    bomStatusDate: 'b.status_date',
+    
+    // --- Audit fields ---
+    createdAt: 'b.created_at',
+    updatedAt: 'b.updated_at',
+    createdBy: 'cu.firstname',
+    updatedBy: 'uu.firstname',
+    
+    // --- Complex / synthetic sorting ---
+    defaultNaturalSort: `
+      p.name ASC,
+      s.sku ASC,
+      b.is_default DESC,
+      b.is_active DESC,
+      b.revision DESC,
+      b.created_at DESC
+    `,
+  },
   skuProductCards: {
     brand: 'p.brand',
     category: 'p.category',

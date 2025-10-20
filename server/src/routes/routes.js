@@ -20,6 +20,7 @@ const userRoutes = require('./users');
 const adminRoutes = require('./admin');
 const productRoutes = require('./products');
 const skuRoutes = require('./skus');
+const bomRoutes = require('./boms');
 const complianceRoutes = require('./compliances');
 const priceTypeRoutes = require('./pricing-types');
 const pricingRoutes = require('./pricings');
@@ -89,6 +90,34 @@ router.use('/admin', authenticate(), adminRoutes);
 router.use('/products', authenticate(), productRoutes);
 router.use('/skus', authenticate(), skuRoutes);
 router.use('/compliances', authenticate(), complianceRoutes);
+
+/**
+ * @route /boms
+ * @group Bill of Materials (BOM) Routes
+ * @description
+ * Mounts all BOM-related API endpoints under the `/boms` path.
+ *
+ * This router handles BOM listing, filtering, and management operations,
+ * such as retrieving paginated BOM lists, fetching individual BOM details,
+ * and future create/update endpoints.
+ *
+ * Middleware Stack:
+ * - `authenticate()`: Ensures the user is authenticated before accessing any BOM endpoints.
+ * - `bomRoutes`: Handles all downstream route definitions for the BOM module.
+ *
+ * Example Mounted Routes:
+ * - `GET /api/v1/boms` → Fetch paginated BOM list
+ * - `GET /api/v1/boms/:id` → Fetch specific BOM details (future)
+ * - `POST /api/v1/boms` → Create a new BOM record (future)
+ *
+ * @example
+ * // Mounting in main router (routes/index.js)
+ * router.use('/boms', authenticate(), bomRoutes);
+ *
+ * @see authenticate
+ * @see bomRoutes
+ */
+router.use('/boms', authenticate(), bomRoutes);
 
 /**
  * Pricing types and pricing records

@@ -390,37 +390,76 @@ const retryDatabaseConnection = async (config, retries = 5) => {
 };
 
 /**
- * Appends ORDER BY, LIMIT, and OFFSET clauses to a base query.
+ * @function
+ * @description
+ * Utility function to construct a paginated SQL query by appending
+ * `ORDER BY`, `LIMIT`, and `OFFSET` clauses to a provided base query string.
  *
- * @param {string} baseQuery - The base SQL SELECT query (without LIMIT/OFFSET).
- * @param {string | null} sortBy - Primary column to sort by (optional).
- * @param {'ASC' | 'DESC'} [sortOrder='ASC'] - Sort order for the primary sort column.
- * @param {string} [additionalSort] - Additional sort columns with directions (e.g., 'lastname ASC, created_at DESC').
- * @param {number} paramIndex - Starting index for LIMIT/OFFSET bind parameters (usually params.length).
- * @returns {string} - The modified query with ORDER BY, LIMIT, and OFFSET.
+ * This function is typically used within repository or query-builder modules
+ * to safely generate parameterized pagination logic compatible with PostgreSQL.
+ *
+ * It supports:
+ *  - Dynamic column sorting (`sortBy` and `sortOrder`)
+ *  - Multi-column sorting (`additionalSort`)
+ *  - Parameterized limit and offset for safe query binding
+ *
+ * @param {Object} options - Configuration object.
+ * @param {string} options.baseQuery - The base SQL `SELECT` query without `LIMIT` or `OFFSET` clauses.
+ * @param {string|null} [options.sortBy] - Primary column or expression to sort by (e.g., `'b.created_at'`).
+ * @param {'ASC'|'DESC'} [options.sortOrder='ASC'] - Sorting direction for the primary column.
+ * @param {string} [options.additionalSort] - Optional secondary sort clause(s), e.g. `'p.name ASC, b.revision DESC'`.
+ * @param {number} options.paramIndex - Starting parameter index for the `LIMIT` and `OFFSET` placeholders,
+ * usually derived from the current length of the query parameters array (`params.length`).
+ *
+ * @returns {string} The complete SQL query string with appended `ORDER BY`, `LIMIT`, and `OFFSET` clauses.
+ *
+ * @example
+ * const baseQuery = 'SELECT * FROM boms WHERE is_active = TRUE';
+ * const finalQuery = buildPaginatedQuery({
+ *   baseQuery,
+ *   sortBy: 'b.created_at',
+ *   sortOrder: 'DESC',
+ *   additionalSort: 'p.name ASC',
+ *   paramIndex: 3
+ * });
+ *
+ * // Output:
+ * // SELECT * FROM boms WHERE is_active = TRUE
+ * // ORDER BY b.created_at DESC, p.name ASC
+ * // LIMIT $4 OFFSET $5
+ *
+ * @see paginateQuery
+ * @see getPaginatedBoms
  */
 const buildPaginatedQuery = ({
-  baseQuery,
-  sortBy,
-  sortOrder = 'ASC',
-  additionalSort,
-  paramIndex,
-}) => {
-  let query = baseQuery;
-
+                               baseQuery,
+                               sortBy,
+                               sortOrder = 'ASC',
+                               additionalSort,
+                               paramIndex,
+                             }) => {
+  let query = baseQuery.trim();
+  
+  // Handle raw multi-column sort or default sort clause
   if (sortBy) {
-    const validSortOrder = ['ASC', 'DESC'].includes(sortOrder.toUpperCase())
-      ? sortOrder.toUpperCase()
-      : 'ASC';
-
-    query += ` ORDER BY ${sortBy} ${validSortOrder}`;
-
+    const isRawClause = /\bASC\b|\bDESC\b/i.test(sortBy);
+    
+    const orderClause = isRawClause
+      ? sortBy
+      : `${sortBy} ${['ASC', 'DESC'].includes((sortOrder || '').toUpperCase())
+        ? sortOrder.toUpperCase()
+        : 'ASC'}`;
+    
+    query += ` ORDER BY ${orderClause}`;
+    
     if (additionalSort) {
       query += `, ${additionalSort}`;
     }
   }
-
+  
+  // Append pagination
   query += ` LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 2}`;
+  
   return query;
 };
 

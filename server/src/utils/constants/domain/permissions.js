@@ -18,6 +18,9 @@ const PERMISSIONS = {
     VIEW_DETAILS: 'view_sku_details',
     VIEW_BOM_DETAILS: 'view_bom_details',
   },
+  BOMS: {
+    VIEW_LIST: 'view_boms',
+  },
   REPORTS: {
     VIEW: 'view_reports',
   },
