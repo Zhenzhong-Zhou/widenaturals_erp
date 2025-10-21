@@ -211,10 +211,8 @@ const getPaginatedOrders =  async ({
     logSystemException(error, 'Failed to fetch paginated orders', {
       context: 'order-repository/getPaginatedOrders',
       filters,
-      page,
-      limit,
-      sortBy,
-      sortOrder,
+      pagination: { page, limit },
+      sorting: { sortBy, sortOrder },
     });
     throw AppError.databaseError('Unable to fetch orders from the database', {
       cause: error,
