@@ -35,7 +35,7 @@
  * @see utils/system-logger
  */
 
-const { fetchPaginatedBomsService } = require('../services/bom-service');
+const { fetchPaginatedBomsService, getBomDetailsService } = require('../services/bom-service');
 const wrapAsync = require('../utils/wrap-async');
 const { logInfo } = require('../utils/logger-helper');
 
@@ -118,6 +118,62 @@ const fetchPaginatedBomsController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * Controller: Fetch full BOM details and cost summary by BOM ID.
+ *
+ * Route: GET /api/v1/boms/:bomId/details
+ *
+ * Responsibilities:
+ *  - Validate BOM ID (middleware or Joi schema)
+ *  - Call service layer to fetch structured BOM details
+ *  - Return standardized JSON response with optional summary
+ *  - Handle and log success/failure consistently
+ *
+ * @async
+ * @function
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ * @param {import('express').NextFunction} next - Express next middleware
+ * @returns {Promise<void>} Sends standardized JSON response.
+ *
+ * @example
+ * // Request
+ * GET /api/v1/boms/b8a81f8f-45b1-4c4a-9a2b-ef8e2a123456/details
+ *
+ * // Response
+ * {
+ *   "success": true,
+ *   "message": "Fetched BOM details successfully.",
+ *   "data": {
+ *     "header": { ... },
+ *     "details": [ ... ],
+ *     "summary": { ... }
+ *   }
+ * }
+ */
+const getBomDetailsController = wrapAsync(async (req, res) => {
+  const { bomId } = req.params;
+  
+  // Step 1: Call service to fetch detailed BOM structure
+  const result = await getBomDetailsService(bomId);
+  
+  // Step 2: Log success for traceability
+  logInfo('Fetched BOM details successfully', req, {
+    context: 'bom-controller/getBomDetailsController',
+    bomId,
+    itemCount: result?.details?.length || 0,
+    totalEstimatedCost: result?.summary?.totalEstimatedCost || 0,
+  });
+  
+  // Step 3: Return standardized API response
+  return res.status(200).json({
+    success: true,
+    message: 'Fetched BOM details successfully.',
+    data: result,
+  });
+});
+
 module.exports = {
   fetchPaginatedBomsController,
+  getBomDetailsController,
 };

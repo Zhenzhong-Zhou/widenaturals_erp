@@ -1,7 +1,8 @@
-const { getPaginatedBoms } = require('../repositories/bom-repository');
+const { getPaginatedBoms, getBomDetailsById } = require('../repositories/bom-repository');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
-const { transformPaginatedOBoms } = require('../transformers/bom-transformer');
+const { transformPaginatedOBoms, transformBomDetails } = require('../transformers/bom-transformer');
 const AppError = require('../utils/AppError');
+const { computeEstimatedBomCostSummary } = require('../business/bom-business');
 
 /**
  * @function
@@ -100,6 +101,78 @@ const fetchPaginatedBomsService = async ({
   }
 };
 
+/**
+ * Fetch and transform full BOM details by BOM ID.
+ *
+ * Responsibilities:
+ *  - Validate BOM ID input (controller/Joi handles most validation)
+ *  - Query database via repository (`getBomDetailsById`)
+ *  - Transform flat SQL rows into structured nested BOM detail object
+ *  - Optionally enrich data (e.g., cost summary, audit formatting)
+ *  - Provide consistent logging and standardized error handling
+ *
+ * @async
+ * @function
+ * @param {string} bomId - UUID of the BOM to fetch details for.
+ * @returns {Promise<{ header: object, details: object[], summary?: object }>} Structured BOM details with optional summary.
+ * @throws {AppError} When BOM is invalid, not found, or query fails.
+ *
+ * @example
+ * const bom = await getBomDetailsService('b8a81f8f-45b1-4c4a-9a2b-ef8e2a123456');
+ * console.log(bom.header.bom.code); // "BOM-PG-TCM300-R-CN"
+ */
+const getBomDetailsService = async (bomId) => {
+  try {
+    // Step 1: Validate input
+    if (!bomId) {
+      throw AppError.validationError('BOM ID is required', {
+        context: 'bomDetailsService',
+      });
+    }
+    
+    // Step 2: Query repository for BOM details
+    const rawData = await getBomDetailsById(bomId);
+    
+    if (!rawData || rawData.length === 0) {
+      throw AppError.notFoundError('No BOM details found for the provided BOM ID', {
+        bomId,
+        context: 'bomDetailsService',
+      });
+    }
+    
+    // Step 3: Transform raw rows into structured BOM details
+    const structuredResult = transformBomDetails(rawData);
+    
+    // Step 4: Optional enrichment hook — compute aggregate stats (future expansion)
+    structuredResult.summary = computeEstimatedBomCostSummary?.(structuredResult) ?? null;
+    
+    // Step 5: Log success
+    logSystemInfo('Fetched BOM details successfully', {
+      context: 'bomDetailsService',
+      bomId,
+      rowCount: rawData.length,
+      totalCost: structuredResult.summary?.totalEstimatedCost ?? null,
+    });
+    
+    return structuredResult;
+  } catch (error) {
+    // Step 6: Log and rethrow standardized error
+    logSystemException(error, 'Failed to fetch BOM details', {
+      context: 'bomDetailsService',
+      bomId,
+    });
+    
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError('Unexpected error fetching BOM details', {
+      bomId,
+      context: 'bomDetailsService',
+      originalError: error.message,
+    });
+  }
+};
+
 module.exports = {
   fetchPaginatedBomsService,
+  getBomDetailsService,
 };

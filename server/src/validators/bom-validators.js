@@ -23,7 +23,7 @@ const {
   validateKeyword,
   paginationSchema,
   createSortSchema,
-  createdDateRangeSchema,
+  createdDateRangeSchema, validateUUID,
 } = require('./general-validators');
 
 /**
@@ -154,6 +154,27 @@ const bomQuerySchema = paginationSchema
       .description('Search term for matching BOM name, code, or description.'),
   });
 
+/**
+ * Joi schema: Validate BOM ID route parameter.
+ *
+ * Used for routes like:
+ *   GET /api/v1/boms/:bomId/details
+ *
+ * Ensures the provided BOM ID is a valid UUID (v4).
+ *
+ * @constant
+ * @type {Joi.ObjectSchema}
+ *
+ * @example
+ * // Example usage in middleware
+ * const { error } = bomIdParamSchema.validate(req.params);
+ * if (error) throw AppError.validationError(error.message);
+ */
+const bomIdParamSchema = Joi.object({
+  bomId: validateUUID('BOM ID').description('UUID of the BOM record'),
+});
+
 module.exports = {
   bomQuerySchema,
+  bomIdParamSchema,
 };
