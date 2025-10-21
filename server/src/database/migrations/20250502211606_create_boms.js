@@ -7,7 +7,7 @@ exports.up = async function (knex) {
     table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
 
     table.uuid('sku_id').notNullable().references('id').inTable('skus');
-    table.string('code', 50).notNullable(); // e.g. "BOM-FOCUS-001"
+    table.string('code', 50).notNullable().unique(); // e.g. "BOM-FOCUS-001"
     table.string('name', 100).notNullable(); // e.g. "Focus Capsules BOM"
     table.text('description');
 
@@ -23,9 +23,12 @@ exports.up = async function (knex) {
     table.uuid('created_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');
 
-    table.unique(['sku_id', 'revision']);
-    table.unique(['code']);
-    table.index(['sku_id']);
+    table.unique(['sku_id', 'revision'], { indexName: 'uq_boms_sku_id_revision'});
+    
+    table.index(['sku_id'], 'idx_boms_sku_id');
+    table.index(['is_active'], 'idx_boms_is_active');
+    table.index(['sku_id', 'is_active'], 'idx_boms_sku_active');
+    table.index(['status_id'], 'idx_boms_status_id');
   });
 };
 

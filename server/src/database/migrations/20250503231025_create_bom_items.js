@@ -27,8 +27,8 @@ exports.up = async function (knex) {
     table.uuid('updated_by').references('id').inTable('users');
 
     // Indexes
-    table.index(['bom_id']);
-    table.index(['part_id']);
+    table.index(['bom_id'], 'idx_bom_items_bom_id');
+    table.index(['part_id'], 'idx_bom_items_part_id');
 
     // Composite uniqueness to prevent duplicate part-material combos per BOM
     table.unique(['bom_id', 'part_id'], {
