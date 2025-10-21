@@ -103,7 +103,7 @@ const insertOrderFulfillmentsBulk = async (fulfillments, client) => {
       updateStrategies,
       client,
       { context: 'order-fulfillment-repository/insertOrderFulfillmentsBulk' },
-      'id'
+      ['id', 'order_item_id']
     );
     
     logSystemInfo('Successfully inserted or updated order fulfillments', {

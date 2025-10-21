@@ -183,6 +183,10 @@ const fulfillOutboundShipmentService = async (requestData, user) => {
         client
       );
       
+      if (!Array.isArray(fulfillmentRows) || !fulfillmentRows.length) {
+        throw new Error('No fulfillment rows returned from insertOrderFulfillmentsBulk()');
+      }
+      
       const fulfillmentRowsWithStatus = fulfillmentRows.map((row, idx) => ({
         ...row,
         status_id: fulfillmentInputs[idx].status_id,
@@ -192,15 +196,24 @@ const fulfillOutboundShipmentService = async (requestData, user) => {
       
       // 9. Insert shipment batch linking the allocation and shipment
       // For each allocationMeta + its fulfillmentRow
-      const shipmentBatchInputs = allocationMeta.flatMap((meta, idx) =>
-        buildShipmentBatchInputs(
-          [meta],              // wrap in array since function expects allocationMeta[]
+      const shipmentBatchInputs = allocationMeta.flatMap((meta) => {
+        // Find fulfillment that matches this allocation’s order_item_id (or other grouping key)
+        const fulfillment = fulfillmentRows.find(
+          (f) => f.order_item_id === meta.order_item_id
+        );
+        
+        if (!fulfillment) {
+          throw new Error(`No fulfillment found for allocation ${meta.id} (order_item_id=${meta.order_item_id})`);
+        }
+        
+        return buildShipmentBatchInputs(
+          [meta],
           shipmentRow.id,
-          fulfillmentRows[idx].id, // correct fulfillmentId
+          fulfillment.id,
           shipmentBatchNote,
           userId
-        )
-      );
+        );
+      });
       const [shipmentBatchRow] = await insertShipmentBatchesBulk(
         shipmentBatchInputs,
         client
