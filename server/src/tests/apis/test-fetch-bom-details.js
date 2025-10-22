@@ -51,7 +51,7 @@ const chalk = require('chalk');
     console.log(`${logPrefix} 👤 Using test user:`, JSON.stringify(testUser));
     
     // --- Step 3: Define test BOM ID
-    const bomId = 'b8a81f8f-45b1-4c4a-9a2b-ef8e2a123456'; // 🔧 Replace with valid ID
+    const bomId = 'ed8a61d2-2c15-4ab1-99d0-0f4996f2e477'; // 🔧 Replace with valid ID
     console.log(`${logPrefix} 🧩 Testing BOM Details for ID: ${chalk.yellow(bomId)}`);
     
     // --- Step 4: Execute service
