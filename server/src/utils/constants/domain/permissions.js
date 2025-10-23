@@ -16,10 +16,10 @@ const PERMISSIONS = {
   SKUS: {
     VIEW_CARDS: 'view_sku_cards',
     VIEW_DETAILS: 'view_sku_details',
-    VIEW_BOM_DETAILS: 'view_bom_details',
   },
   BOMS: {
     VIEW_LIST: 'view_boms',
+    VIEW_BOM_DETAILS: 'view_bom_details',
   },
   REPORTS: {
     VIEW: 'view_reports',

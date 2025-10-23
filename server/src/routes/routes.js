@@ -21,6 +21,7 @@ const adminRoutes = require('./admin');
 const productRoutes = require('./products');
 const skuRoutes = require('./skus');
 const bomRoutes = require('./boms');
+const bomItemRoutes = require('./bom-items');
 const complianceRoutes = require('./compliances');
 const priceTypeRoutes = require('./pricing-types');
 const pricingRoutes = require('./pricings');
@@ -118,6 +119,27 @@ router.use('/compliances', authenticate(), complianceRoutes);
  * @see bomRoutes
  */
 router.use('/boms', authenticate(), bomRoutes);
+
+/**
+ * @route /api/bom-items
+ * @description
+ * Mounts all BOM Item–related routes.
+ *
+ * This route group handles operations related to Bill of Materials (BOM) items,
+ * including:
+ *  - Fetching BOM material supply details (parts, packaging materials, suppliers, batches)
+ *  - Calculating BOM cost summaries (estimated vs. actual)
+ *  - Managing BOM-related entities
+ *
+ * Middleware chain:
+ *  1. `authenticate()` — Verifies JWT token and user identity
+ *  2. `bomItemRoutes` — Contains detailed routes (GET /:bomId/material-supply, etc.)
+ *
+ * Example:
+ *  GET /api/bom-items/:bomId/material-supply
+ *  → fetch detailed supply & cost breakdown for a BOM
+ */
+router.use('/bom-items', authenticate(), bomItemRoutes);
 
 /**
  * Pricing types and pricing records
