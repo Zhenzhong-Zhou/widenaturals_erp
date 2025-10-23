@@ -6,7 +6,7 @@ const { bomQuerySchema, bomIdParamSchema } = require('../validators/bom-validato
 const { sanitizeFields } = require('../middlewares/sanitize');
 const validate = require('../middlewares/validate');
 const {
-  fetchPaginatedBomsController,
+  getPaginatedBomsController,
   getBomDetailsController
 } = require('../controllers/bom-controller');
 
@@ -69,7 +69,7 @@ router.get(
   ),
   sanitizeFields(['keyword', 'productName', 'skuCode']),
   validate(bomQuerySchema, 'query'),
-  fetchPaginatedBomsController
+  getPaginatedBomsController
 );
 
 /**
@@ -132,7 +132,7 @@ router.get(
  */
 router.get(
   '/:bomId/details',
-  authorize([PERMISSIONS.BOMS.VIEW_DETAILS]),
+  authorize([PERMISSIONS.BOMS.VIEW_BOM_DETAILS]),
   validate(bomIdParamSchema, 'params'), // Joi param validator for BOM ID
   getBomDetailsController                // Controller
 );

@@ -1,6 +1,6 @@
 /**
  * @fileoverview
- * Manual test script for `getBomDetailsService`
+ * Manual test script for `fetchBomDetailsService`
  *
  * Purpose:
  *   - Execute the BOM Details Service directly for inspection
@@ -18,7 +18,7 @@
 
 const { performance } = require('perf_hooks');
 const { pool } = require('../../database/db');
-const { getBomDetailsService } = require('../../services/bom-service');
+const { fetchBomDetailsService } = require('../../services/bom-service');
 const { logSystemException } = require('../../utils/logger');
 const chalk = require('chalk');
 
@@ -51,12 +51,12 @@ const chalk = require('chalk');
     console.log(`${logPrefix} 👤 Using test user:`, JSON.stringify(testUser));
     
     // --- Step 3: Define test BOM ID
-    const bomId = 'ed8a61d2-2c15-4ab1-99d0-0f4996f2e477'; // 🔧 Replace with valid ID
+    const bomId = '3a348701-86ff-472c-900e-cdff40700cda'; // 🔧 Replace with valid ID
     console.log(`${logPrefix} 🧩 Testing BOM Details for ID: ${chalk.yellow(bomId)}`);
     
     // --- Step 4: Execute service
-    console.log(`${logPrefix} ▶️ Executing getBomDetailsService...`);
-    const result = await getBomDetailsService(bomId);
+    console.log(`${logPrefix} ▶️ Executing fetchBomDetailsService...`);
+    const result = await fetchBomDetailsService(bomId);
     
     if (!result) {
       throw new Error('Service returned null or undefined result.');

@@ -262,6 +262,7 @@ const transformPaginatedOBoms = (paginatedResult) => {
  * @property {string|null} specifications
  * @property {string|null} estimated_unit_cost
  * @property {string|null} currency
+ * @property {number} exchange_rate
  * @property {string|null} note
  * @property {Date|null} bom_item_created_at
  * @property {string|null} bom_item_created_by
@@ -377,6 +378,7 @@ const transformBomDetails = (rows = []) => {
           ? Number(r.estimated_unit_cost)
           : null,
         currency: r.currency,
+        exchangeRate: r.exchange_rate ? Number(r.exchange_rate) : 1,
         note: r.note,
         part: {
           id: r.part_id,

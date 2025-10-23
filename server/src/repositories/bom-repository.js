@@ -233,6 +233,7 @@ const getBomDetailsById = async (bomId) => {
       bi.specifications,
       bi.estimated_unit_cost,
       bi.currency,
+      bi.exchange_rate,
       bi.note,
       bi.created_at AS bom_item_created_at,
       bi.created_by AS bom_item_created_by,

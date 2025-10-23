@@ -5,6 +5,7 @@ const AppError = require('../utils/AppError');
 const { computeEstimatedBomCostSummary } = require('../business/bom-business');
 
 /**
+ * @async
  * @function
  * @description
  * Fetches a paginated, filterable, and sortable list of Bill of Materials (BOM) records.
@@ -118,37 +119,30 @@ const fetchPaginatedBomsService = async ({
  * @throws {AppError} When BOM is invalid, not found, or query fails.
  *
  * @example
- * const bom = await getBomDetailsService('b8a81f8f-45b1-4c4a-9a2b-ef8e2a123456');
+ * const bom = await fetchBomDetailsService('b8a81f8f-45b1-4c4a-9a2b-ef8e2a123456');
  * console.log(bom.header.bom.code); // "BOM-PG-TCM300-R-CN"
  */
-const getBomDetailsService = async (bomId) => {
+const fetchBomDetailsService = async (bomId) => {
   try {
-    // Step 1: Validate input
-    if (!bomId) {
-      throw AppError.validationError('BOM ID is required', {
-        context: 'bomDetailsService',
-      });
-    }
-    
-    // Step 2: Query repository for BOM details
+    // Step 1: Query repository for BOM details
     const rawData = await getBomDetailsById(bomId);
     
     if (!rawData || rawData.length === 0) {
       throw AppError.notFoundError('No BOM details found for the provided BOM ID', {
         bomId,
-        context: 'bomDetailsService',
+        context: 'bom-service/fetchBomDetailsService',
       });
     }
     
-    // Step 3: Transform raw rows into structured BOM details
+    // Step 2: Transform raw rows into structured BOM details
     const structuredResult = transformBomDetails(rawData);
     
-    // Step 4: Optional enrichment hook — compute aggregate stats (future expansion)
+    // Step 3: Optional enrichment hook — compute aggregate stats (future expansion)
     structuredResult.summary = computeEstimatedBomCostSummary?.(structuredResult) ?? null;
     
-    // Step 5: Log success
+    // Step 4: Log success
     logSystemInfo('Fetched BOM details successfully', {
-      context: 'bomDetailsService',
+      context: 'bom-service/fetchBomDetailsService',
       bomId,
       rowCount: rawData.length,
       totalCost: structuredResult.summary?.totalEstimatedCost ?? null,
@@ -156,9 +150,9 @@ const getBomDetailsService = async (bomId) => {
     
     return structuredResult;
   } catch (error) {
-    // Step 6: Log and rethrow standardized error
+    // Step 5: Log and rethrow standardized error
     logSystemException(error, 'Failed to fetch BOM details', {
-      context: 'bomDetailsService',
+      context: 'bom-service/fetchBomDetailsService',
       bomId,
     });
     
@@ -166,7 +160,7 @@ const getBomDetailsService = async (bomId) => {
     
     throw AppError.serviceError('Unexpected error fetching BOM details', {
       bomId,
-      context: 'bomDetailsService',
+      context: 'bom-service/fetchBomDetailsService',
       originalError: error.message,
     });
   }
@@ -174,5 +168,5 @@ const getBomDetailsService = async (bomId) => {
 
 module.exports = {
   fetchPaginatedBomsService,
-  getBomDetailsService,
+  fetchBomDetailsService,
 };

@@ -35,7 +35,7 @@
  * @see utils/system-logger
  */
 
-const { fetchPaginatedBomsService, getBomDetailsService } = require('../services/bom-service');
+const { fetchPaginatedBomsService, fetchBomDetailsService } = require('../services/bom-service');
 const wrapAsync = require('../utils/wrap-async');
 const { logInfo } = require('../utils/logger-helper');
 
@@ -87,7 +87,7 @@ const { logInfo } = require('../utils/logger-helper');
  * @see AppError
  * @see wrapAsync
  */
-const fetchPaginatedBomsController = wrapAsync(async (req, res) => {
+const getPaginatedBomsController = wrapAsync(async (req, res) => {
   // Extract normalized query parameters
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
   
@@ -155,7 +155,7 @@ const getBomDetailsController = wrapAsync(async (req, res) => {
   const { bomId } = req.params;
   
   // Step 1: Call service to fetch detailed BOM structure
-  const result = await getBomDetailsService(bomId);
+  const result = await fetchBomDetailsService(bomId);
   
   // Step 2: Log success for traceability
   logInfo('Fetched BOM details successfully', req, {
@@ -174,6 +174,6 @@ const getBomDetailsController = wrapAsync(async (req, res) => {
 });
 
 module.exports = {
-  fetchPaginatedBomsController,
+  getPaginatedBomsController,
   getBomDetailsController,
 };
