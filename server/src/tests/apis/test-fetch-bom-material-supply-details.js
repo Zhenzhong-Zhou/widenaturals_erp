@@ -48,7 +48,7 @@ const { logSystemException, logSystemInfo } = require('../../utils/system-logger
     console.log(`${logPrefix} 👤 Using test user: ${chalk.green(JSON.stringify(testUser))}`);
     
     // --- Step 3: Define test BOM ID ---
-    const bomId = 'fefec9a0-0165-4246-acd3-9af4f8781475'; // ⚙️ Replace with valid BOM ID
+    const bomId = 'a1a654fb-cb9a-4fd8-9de4-e3aa4546fe84'; // ⚙️ Replace with valid BOM ID
     console.log(`${logPrefix} 🧩 Fetching BOM Details for ID: ${chalk.yellow(bomId)}`);
     
     // --- Step 4: Execute service ---

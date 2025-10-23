@@ -19,7 +19,8 @@ exports.up = async function (knex) {
     // Optional override costing (otherwise fallback to materials.unit_cost)
     table.decimal('estimated_unit_cost', 12, 4);
     table.string('currency', 5); // 'USD', 'CAD', etc.
-
+    table.decimal('exchange_rate', 12, 6);
+    
     // Timestamps & authorship
     table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
     table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());

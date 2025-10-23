@@ -19,6 +19,7 @@ exports.up = async function (knex) {
     
     table.decimal('contract_unit_cost', 12, 4);
     table.string('currency', 5);
+    table.decimal('exchange_rate', 12, 6);
     table.date('valid_from');
     table.date('valid_to');
     
