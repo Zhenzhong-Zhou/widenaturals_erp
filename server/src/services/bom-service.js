@@ -1,8 +1,10 @@
-const { getPaginatedBoms, getBomDetailsById } = require('../repositories/bom-repository');
+const { getPaginatedBoms, getBomDetailsById, getBOMProductionSummary } = require('../repositories/bom-repository');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
-const { transformPaginatedOBoms, transformBomDetails } = require('../transformers/bom-transformer');
+const { transformPaginatedOBoms, transformBomDetails, transformBOMProductionSummaryRows,
+  buildBOMProductionSummaryResponse
+} = require('../transformers/bom-transformer');
 const AppError = require('../utils/AppError');
-const { computeEstimatedBomCostSummary } = require('../business/bom-business');
+const { computeEstimatedBomCostSummary, getProductionReadinessReport } = require('../business/bom-business');
 
 /**
  * @async
@@ -166,7 +168,103 @@ const fetchBomDetailsService = async (bomId) => {
   }
 };
 
+/**
+ * @function
+ * @description
+ * Service-level function to fetch, transform, and analyze a BOM’s full material readiness summary.
+ *
+ * Responsibilities:
+ *  - Retrieve BOM and related packaging material data from the repository layer.
+ *  - Transform raw SQL rows into structured, part-based summary objects.
+ *  - Apply business logic to evaluate production readiness:
+ *      • Detect material shortages.
+ *      • Identify bottlenecks (limiting parts).
+ *      • Assess inactive stock impact.
+ *      • Compute max producible units.
+ *  - Return a comprehensive report with readiness metadata and detailed part summaries.
+ *
+ * Flow:
+ *  Repository → Transformer → Business → Response
+ *
+ * @param {string} bomId - UUID of the target Bill of Materials.
+ * @returns {Promise<Object>} Resolves to a structured production readiness report for the specified BOM.
+ * @throws {AppError} If any repository, transformation, or analysis step fails.
+ *
+ * @example
+ * const report = await fetchBOMProductionSummaryService('a1a654fb-cb9a-4fd8-9de4-e3aa4546fe84');
+ * console.dir(report, { depth: null });
+ */
+const fetchBOMProductionSummaryService = async (bomId) => {
+  try {
+    // ------------------------------------------------------------------------
+    // 1. Fetch raw data from repository (DB query)
+    // ------------------------------------------------------------------------
+    const rawData = await getBOMProductionSummary(bomId);
+    logSystemInfo(`Fetched raw BOM data for ${bomId}`, {
+      context: 'bom-service/fetchBOMProductionSummaryService',
+      severity: 'info',
+      recordCount: rawData?.length || 0,
+      step: 'repository',
+    });
+    
+    // ------------------------------------------------------------------------
+    // 2. Transform flat SQL rows → structured BOM summary
+    // ------------------------------------------------------------------------
+    const transformedSummary = transformBOMProductionSummaryRows(rawData);
+    logSystemInfo('Transformed BOM data into structured summary', {
+      context: 'bom-service/fetchBOMProductionSummaryService',
+      severity: 'debug',
+      step: 'transformer',
+      partCount: transformedSummary.length,
+    });
+    
+    // ------------------------------------------------------------------------
+    // 3. Apply business logic (capacity, shortages, bottlenecks, inactive stock)
+    // ------------------------------------------------------------------------
+    const readinessReport = getProductionReadinessReport(transformedSummary);
+    logSystemInfo('Generated production readiness report', {
+      context: 'bom-service/fetchBOMProductionSummaryService',
+      severity: 'info',
+      step: 'business',
+      maxProducibleUnits: readinessReport.maxProducibleUnits,
+      shortageCount: readinessReport.shortageParts?.length || 0,
+    });
+    
+    // ------------------------------------------------------------------------
+    // 4. Return final structured report to controller/client
+    // ------------------------------------------------------------------------
+    const response = buildBOMProductionSummaryResponse(bomId, readinessReport);
+    
+    logSystemInfo('Returning BOM readiness summary to controller', {
+      context: 'bom-service/fetchBOMProductionSummaryService',
+      severity: 'info',
+      step: 'response',
+      bomId,
+    });
+    
+    return response;
+  } catch (error) {
+    // ------------------------------------------------------------------------
+    // Error Handling & Logging
+    // ------------------------------------------------------------------------
+    logSystemException(error, 'Failed to build BOM production readiness report', {
+      context: 'bom-service/fetchBOMProductionSummaryService',
+      bomId,
+      severity: 'error',
+    });
+    
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError('Failed to fetch BOM production summary', {
+      bomId,
+      context: 'bom-service/fetchBOMProductionSummaryService',
+      originalError: error.message,
+    });
+  }
+};
+
 module.exports = {
   fetchPaginatedBomsService,
   fetchBomDetailsService,
+  fetchBOMProductionSummaryService,
 };

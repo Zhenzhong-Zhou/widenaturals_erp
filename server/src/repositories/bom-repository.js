@@ -228,7 +228,7 @@ const getBomDetailsById = async (bomId) => {
       uu.firstname AS bom_updated_by_firstname,
       uu.lastname AS bom_updated_by_lastname,
       bi.id AS bom_item_id,
-      bi.quantity_per_unit,
+      bi.part_qty_per_product,
       bi.unit,
       bi.specifications,
       bi.estimated_unit_cost,
@@ -281,7 +281,174 @@ const getBomDetailsById = async (bomId) => {
   }
 };
 
+/**
+ * Retrieves a comprehensive production summary for a given Bill of Materials (BOM),
+ * detailing all required parts, corresponding packaging material availability,
+ * and batch-level warehouse inventory data.
+ *
+ * ---
+ * **Logical stages:**
+ *  1. `part_requirements` – Extracts all BOM parts and required quantities per product unit.
+ *  2. `part_inventory`    – Aggregates total available quantities of packaging materials.
+ *  3. `part_details`      – Expands each material into batch-level details including lot,
+ *                           supplier, warehouse, and inventory status.
+ * ---
+ *
+ * **Returned columns include:**
+ *  - `part_id`, `part_name`, `required_qty_per_unit`
+ *  - `total_available_quantity`, `max_producible_units`, `is_shortage`, `shortage_qty`
+ *  - Detailed batch info: `lot_number`, `warehouse_name`, `supplier_name`,
+ *    `available_quantity`, `inventory_status`, and timestamps.
+ *
+ * **Notes:**
+ *  - Only includes batches with `batch_type = 'packaging_material'`.
+ *  - Adds contextual flags:
+ *      • `is_usable_for_production` – TRUE if available quantity > 0.
+ *      • `is_inactive_batch` – TRUE if the batch status is inactive.
+ *  - Designed for use in production capacity analysis, procurement planning,
+ *    and manufacturing readiness audits.
+ *
+ * @async
+ * @function
+ * @param {string} bomId - UUID of the Bill of Materials to summarize.
+ * @returns {Promise<Array<Object>>} A promise resolving to an array of summary rows.
+ * @throws {AppError} If the database query fails or returns invalid data.
+ *
+ * @example
+ * const summary = await getBOMProductionSummary('a1a654fb-cb9a-4fd8-9de4-e3aa4546fe84');
+ * console.table(summary);
+ */
+const getBOMProductionSummary = async (bomId) => {
+  const sql = `
+    WITH part_requirements AS (
+      SELECT
+        bi.bom_id,
+        pa.id AS part_id,
+        pa.name AS part_name,
+        bim.packaging_material_id,
+        COALESCE(bim.material_qty_per_product, 1) AS material_qty_per_product,
+        COALESCE(bim.unit, 'pcs') AS required_unit
+      FROM bom_items AS bi
+      JOIN parts AS pa ON pa.id = bi.part_id
+      LEFT JOIN bom_item_materials AS bim ON bim.bom_item_id = bi.id
+      WHERE bi.bom_id = $1
+    ),
+    part_inventory AS (
+      SELECT
+        pm.id AS packaging_material_id,
+        SUM(wi.warehouse_quantity - wi.reserved_quantity) AS total_available_quantity
+      FROM warehouse_inventory wi
+      JOIN batch_registry br ON wi.batch_id = br.id
+      LEFT JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id
+      LEFT JOIN packaging_material_suppliers pms ON pmb.packaging_material_supplier_id = pms.id
+      LEFT JOIN packaging_materials pm ON pms.packaging_material_id = pm.id
+      WHERE br.batch_type = 'packaging_material'
+      GROUP BY pm.id
+    ),
+    part_details AS (
+      SELECT
+        pm.id AS packaging_material_id,
+        pm.name AS material_name,
+        pmb.material_snapshot_name,
+        pmb.received_label_name,
+        pmb.lot_number,
+        pmb.quantity AS batch_quantity,
+        wi.warehouse_quantity,
+        wi.reserved_quantity,
+        (wi.warehouse_quantity - wi.reserved_quantity) AS available_quantity,
+        wi.inbound_date,
+        wi.outbound_date,
+        wi.last_update,
+        wi.status_id AS warehouse_inventory_status_id,
+        ist.name AS inventory_status,
+        w.name AS warehouse_name,
+        pms.supplier_id,
+        sup.name AS supplier_name,
+        CASE
+          WHEN (wi.warehouse_quantity - wi.reserved_quantity) > 0
+          THEN TRUE ELSE FALSE
+        END AS is_usable_for_production,
+        CASE
+          WHEN COALESCE(bst.is_active, FALSE) = FALSE
+          THEN TRUE ELSE FALSE
+        END AS is_inactive_batch
+      FROM warehouse_inventory wi
+      JOIN warehouses w ON wi.warehouse_id = w.id
+      JOIN batch_registry br ON wi.batch_id = br.id
+      JOIN inventory_status ist ON wi.status_id = ist.id
+          AND ist.name IN ('available','in_stock')
+      LEFT JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id
+      LEFT JOIN batch_status AS bst ON bst.id = pmb.status_id
+          AND bst.name IN ('active','inactive')
+      LEFT JOIN packaging_material_suppliers pms ON pmb.packaging_material_supplier_id = pms.id
+      LEFT JOIN suppliers sup ON sup.id = pms.supplier_id
+      LEFT JOIN packaging_materials pm ON pms.packaging_material_id = pm.id
+      WHERE br.batch_type = 'packaging_material'
+    )
+    SELECT
+      pr.part_id,
+      pr.part_name,
+      pr.material_qty_per_product AS required_qty_per_unit,
+      COALESCE(pi.total_available_quantity, 0) AS total_available_quantity,
+      CASE
+        WHEN COALESCE(pr.material_qty_per_product, 0) = 0 THEN NULL
+        ELSE FLOOR(COALESCE(pi.total_available_quantity, 0) / pr.material_qty_per_product)
+      END AS max_producible_units,
+      CASE
+        WHEN COALESCE(pi.total_available_quantity, 0) < pr.material_qty_per_product THEN TRUE
+        ELSE FALSE
+      END AS is_shortage,
+      GREATEST(pr.material_qty_per_product - COALESCE(pi.total_available_quantity, 0), 0)
+        AS shortage_qty,
+      pd.material_name,
+      pd.material_snapshot_name,
+      pd.received_label_name,
+      pd.lot_number,
+      pd.batch_quantity,
+      pd.warehouse_quantity,
+      pd.reserved_quantity,
+      pd.available_quantity,
+      pd.inbound_date,
+      pd.outbound_date,
+      pd.last_update,
+      pd.inventory_status,
+      pd.warehouse_name,
+      pd.supplier_name
+    FROM part_requirements pr
+    LEFT JOIN part_inventory pi
+      ON pi.packaging_material_id = pr.packaging_material_id
+    LEFT JOIN part_details pd
+      ON pd.packaging_material_id = pr.packaging_material_id
+    ORDER BY pr.part_name, pd.material_name, pd.lot_number, pd.warehouse_name;
+  `;
+  
+  try {
+    const result = await query(sql, [bomId]);
+    
+    logSystemInfo(`Fetched production summary for BOM ${bomId}`, {
+      context: 'bom-repository/getBOMProductionSummary',
+      severity: 'info',
+      recordCount: result?.rows?.length || 0,
+      bomId,
+    });
+    
+    return result.rows;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch BOM production summary', {
+      context: 'bom-repository/getBOMProductionSummary',
+      severity: 'error',
+      bomId,
+      querySnippet: sql.slice(0, 200),
+    });
+    
+    throw AppError.databaseError('Failed to fetch BOM production summary', {
+      bomId,
+    });
+  }
+};
+
 module.exports = {
   getPaginatedBoms,
   getBomDetailsById,
+  getBOMProductionSummary,
 };

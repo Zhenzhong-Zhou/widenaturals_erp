@@ -20,6 +20,7 @@ const PERMISSIONS = {
   BOMS: {
     VIEW_LIST: 'view_boms',
     VIEW_BOM_DETAILS: 'view_bom_details',
+    VIEW_BOM_PRODUCTION_SUMMARY: 'view_bom_production_summary',
   },
   REPORTS: {
     VIEW: 'view_reports',

@@ -7,7 +7,7 @@ const { sanitizeFields } = require('../middlewares/sanitize');
 const validate = require('../middlewares/validate');
 const {
   getPaginatedBomsController,
-  getBomDetailsController
+  getBomDetailsController, fetchBOMProductionSummaryController
 } = require('../controllers/bom-controller');
 
 const router = express.Router();
@@ -135,6 +135,69 @@ router.get(
   authorize([PERMISSIONS.BOMS.VIEW_BOM_DETAILS]),
   validate(bomIdParamSchema, 'params'), // Joi param validator for BOM ID
   getBomDetailsController                // Controller
+);
+
+/**
+ * @route GET /api/v1/boms/:bomId/production-summary
+ * @group BOMs - Bill of Materials
+ * @permission VIEW_BOM_PRODUCTION_SUMMARY
+ *
+ * Retrieves a detailed **production readiness summary** for a specific Bill of Materials (BOM).
+ *
+ * The summary includes:
+ *  - Required quantities per part (per finished unit)
+ *  - Available material quantities across warehouses
+ *  - Maximum manufacturable units (bottleneck-based)
+ *  - Shortages, inactive batches, and stock health indicators
+ *
+ * Middlewares:
+ *  - `authorize([PERMISSIONS.BOMS.VIEW_BOM_PRODUCTION_SUMMARY])`: Ensures the requester has
+ *    permission to view BOM production readiness data.
+ *  - `validate(bomIdParamSchema, 'params')`: Validates the `bomId` path parameter via Joi schema.
+ *
+ * @example
+ * // Request
+ * GET /api/boms/61bb1f94-aeb2-4724-b9b8-35023b165fdd/production-summary
+ *
+ * // Response (200)
+ * {
+ *   "success": true,
+ *   "message": "BOM production readiness summary retrieved successfully.",
+ *   "data": {
+ *     "bomId": "61bb1f94-aeb2-4724-b9b8-35023b165fdd",
+ *     "metadata": {
+ *       "maxProducibleUnits": 40,
+ *       "isReadyForProduction": true,
+ *       "stockHealth": { "usable": 12175, "inactive": 0 },
+ *       "bottleneckParts": [{ "partId": "...", "partName": "Capsule" }],
+ *       "generatedAt": "2025-10-24T17:57:26.988Z"
+ *     },
+ *     "parts": [
+ *       {
+ *         "partId": "...",
+ *         "partName": "Capsule",
+ *         "requiredQtyPerUnit": 60,
+ *         "totalAvailableQuantity": 2450,
+ *         "maxProducibleUnits": 40,
+ *         "isBottleneck": true,
+ *         "materials": [
+ *           { "materialName": "Vegetable Capsule 0", "availableQuantity": 2450 }
+ *         ]
+ *       }
+ *     ]
+ *   }
+ * }
+ *
+ * @returns {200} JSON Response containing structured production readiness data
+ * @returns {403} Forbidden - Missing or insufficient permissions
+ * @returns {400} Bad Request - Invalid BOM ID parameter
+ * @returns {500} Internal Server Error - Unexpected server error
+ */
+router.get(
+  '/:bomId/production-summary',
+  authorize([PERMISSIONS.BOMS.VIEW_BOM_PRODUCTION_SUMMARY]),
+  validate(bomIdParamSchema, 'params'),
+  fetchBOMProductionSummaryController
 );
 
 module.exports = router;

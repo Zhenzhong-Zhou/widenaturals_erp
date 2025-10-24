@@ -257,7 +257,7 @@ const transformPaginatedOBoms = (paginatedResult) => {
  * @property {string|null} bom_updated_by_firstname
  * @property {string|null} bom_updated_by_lastname
  * @property {string|null} bom_item_id
- * @property {string|null} quantity_per_unit
+ * @property {string|null} part_qty_per_product
  * @property {string|null} unit
  * @property {string|null} specifications
  * @property {string|null} estimated_unit_cost
@@ -369,8 +369,8 @@ const transformBomDetails = (rows = []) => {
       .filter((r) => r.bom_item_id)
       .map((r) => ({
         id: r.bom_item_id,
-        quantityPerUnit: r.quantity_per_unit
-          ? Number(r.quantity_per_unit)
+        partQtyPerProduct: r.part_qty_per_product
+          ? Number(r.part_qty_per_product)
           : null,
         unit: r.unit,
         specifications: r.specifications,
@@ -420,7 +420,192 @@ const transformBomDetails = (rows = []) => {
   }
 };
 
+/**
+ * @typedef {Object} MaterialBatch
+ * Represents a batch-level detail for a packaging material used in a BOM part.
+ *
+ * @property {string} materialName - The display name of the packaging material.
+ * @property {string|null} materialSnapshotName - Snapshot name captured when batch was created.
+ * @property {string|null} receivedLabelName - Label name provided by supplier.
+ * @property {string|null} lotNumber - Batch or lot number identifier.
+ * @property {number} batchQuantity - Original batch quantity.
+ * @property {number} warehouseQuantity - Current warehouse quantity.
+ * @property {number} reservedQuantity - Currently reserved quantity.
+ * @property {number} availableQuantity - Quantity available for production.
+ * @property {string|null} inventoryStatus - Status label (e.g. 'in_stock', 'available').
+ * @property {string|null} warehouseName - Name of the warehouse where the batch is stored.
+ * @property {string|null} supplierName - Name of the supplier associated with the batch.
+ * @property {string|null} inboundDate - ISO timestamp for when the batch arrived.
+ * @property {string|null} outboundDate - ISO timestamp for when the batch was shipped out.
+ * @property {string|null} lastUpdate - ISO timestamp of the last quantity update.
+ * @property {boolean} [isInactiveBatch=false] - Indicates whether the batch is marked inactive.
+ * @property {boolean} [isUsableForProduction=true] - Optional flag denoting if the batch is usable for production.
+ */
+
+/**
+ * @typedef {Object} BOMProductionSummaryRow
+ * Represents a single raw SQL result row from `getBOMProductionSummary`.
+ *
+ * @property {string} part_id - ID of the BOM part.
+ * @property {string} part_name - Name of the part (e.g., 'Bottle', 'Cap').
+ * @property {number} required_qty_per_unit - Required quantity of the material per product.
+ * @property {number} total_available_quantity - Total available quantity across warehouses.
+ * @property {number|null} max_producible_units - Computed number of producible product units.
+ * @property {boolean} is_shortage - Whether available quantity is insufficient.
+ * @property {number} shortage_qty - Difference between required and available quantity.
+ * @property {string|null} material_name - Name of the packaging material.
+ * @property {string|null} material_snapshot_name - Material snapshot name (if available).
+ * @property {string|null} received_label_name - Supplier label name (if any).
+ * @property {string|null} lot_number - Lot number for the batch.
+ * @property {number|null} batch_quantity - Total quantity for the batch.
+ * @property {number|null} warehouse_quantity - Current quantity in warehouse.
+ * @property {number|null} reserved_quantity - Reserved portion of warehouse quantity.
+ * @property {number|null} available_quantity - Quantity available for production.
+ * @property {string|null} inventory_status - Status of the batch inventory.
+ * @property {string|null} warehouse_name - Name of the warehouse storing the batch.
+ * @property {string|null} supplier_name - Supplier associated with the batch.
+ * @property {string|null} inbound_date - Inbound timestamp for the batch.
+ * @property {string|null} outbound_date - Outbound timestamp for the batch.
+ * @property {string|null} last_update - Timestamp of last modification.
+ */
+
+/**
+ * @typedef {Object} BOMPartSummary
+ * Represents a structured summary of a single BOM part with its related batches.
+ *
+ * @property {string} partId - UUID of the part.
+ * @property {string} partName - Name of the part.
+ * @property {number} requiredQtyPerUnit - Required material quantity per product unit.
+ * @property {number} totalAvailableQuantity - Total available quantity of material.
+ * @property {number|null} maxProducibleUnits - Computed producible units based on availability.
+ * @property {boolean} isShortage - Indicates if available stock is below required threshold.
+ * @property {number} shortageQty - Shortage amount if any.
+ * @property {MaterialBatch[]} materialBatches - List of detailed batch records.
+ */
+
+/**
+ * Transforms raw BOM production summary rows into structured BOM part summaries.
+ *
+ * The function groups all raw SQL rows (from `getBOMProductionSummary`) by `part_id`,
+ * then aggregates associated batch-level data (`materialBatches`) under each part.
+ *
+ * This structured format is ideal for API responses, UI rendering,
+ * and internal BOM readiness analysis.
+ *
+ * @function transformBOMProductionSummaryRows
+ * @param {BOMProductionSummaryRow[]} rows - Raw rows returned from `getBOMProductionSummary`.
+ * @returns {BOMPartSummary[]} Array of structured BOM production summary objects.
+ *
+ * @example
+ * const rawRows = await getBOMProductionSummary(bomId);
+ * const summary = transformBOMProductionSummaryRows(rawRows);
+ * console.dir(summary, { depth: null });
+ *
+ * // Example output:
+ * // [
+ * //   {
+ * //     partId: 'f11929e0-15de-48e2-b680-69d615fce175',
+ * //     partName: 'Bottle',
+ * //     requiredQtyPerUnit: 1,
+ * //     totalAvailableQuantity: 250,
+ * //     maxProducibleUnits: 250,
+ * //     isShortage: false,
+ * //     shortageQty: 0,
+ * //     materialBatches: [
+ * //       {
+ * //         materialName: '250ml Plastic Bottle',
+ * //         lotNumber: 'PMB-LOT-1001',
+ * //         warehouseName: 'Main Warehouse',
+ * //         supplierName: 'Supplier X',
+ * //         availableQuantity: 125,
+ * //         inventoryStatus: 'in_stock',
+ * //         inboundDate: '2025-05-01T10:00:00.000Z'
+ * //       },
+ * //       ...
+ * //     ]
+ * //   }
+ * // ]
+ */
+const transformBOMProductionSummaryRows = (rows = []) => {
+  if (!rows || rows.length === 0) return [];
+  
+  const grouped = new Map();
+  
+  for (const row of rows) {
+    const partId = row.part_id;
+    if (!grouped.has(partId)) {
+      grouped.set(partId, {
+        partId,
+        partName: row.part_name,
+        requiredQtyPerUnit: Number(row.required_qty_per_unit) || 0,
+        totalAvailableQuantity: Number(row.total_available_quantity) || 0,
+        maxProducibleUnits:
+          row.max_producible_units !== null
+            ? Number(row.max_producible_units)
+            : null,
+        isShortage: Boolean(row.is_shortage),
+        shortageQty: Number(row.shortage_qty) || 0,
+        materialBatches: [],
+      });
+    }
+    
+    // Push batch-level details (if present)
+    if (row.material_name || row.lot_number) {
+      grouped.get(partId).materialBatches.push(
+        cleanObject({
+          materialName: row.material_name,
+          materialSnapshotName: row.material_snapshot_name,
+          receivedLabelName: row.received_label_name,
+          lotNumber: row.lot_number,
+          batchQuantity: Number(row.batch_quantity) || 0,
+          warehouseQuantity: Number(row.warehouse_quantity) || 0,
+          reservedQuantity: Number(row.reserved_quantity) || 0,
+          availableQuantity: Number(row.available_quantity) || 0,
+          inventoryStatus: row.inventory_status,
+          warehouseName: row.warehouse_name,
+          supplierName: row.supplier_name,
+          inboundDate: row.inbound_date,
+          outboundDate: row.outbound_date,
+          lastUpdate: row.last_update,
+        })
+      );
+    }
+  }
+  
+  return Array.from(grouped.values());
+};
+
+/**
+ * Build a standardized API response for a BOM production readiness report.
+ *
+ * @param {string} bomId - The BOM identifier.
+ * @param {object} readinessReport - Output from getProductionReadinessReport().
+ * @returns {object} Structured API response for client consumption.
+ */
+const buildBOMProductionSummaryResponse = (bomId, readinessReport) => {
+  if (!readinessReport) return { bomId, metadata: {}, parts: [] };
+  
+  const bottleneckParts = readinessReport.summary
+    .filter((p) => p.isBottleneck)
+    .map((p) => ({ partId: p.partId, partName: p.partName }));
+  
+  return {
+    bomId,
+    metadata: {
+      generatedAt: readinessReport.generatedAt,
+      isReadyForProduction: readinessReport.isReadyForProduction,
+      maxProducibleUnits: readinessReport.maxProducibleUnits,
+      bottleneckParts,
+      stockHealth: readinessReport.stockHealth,
+      shortageCount: readinessReport.shortageParts?.length ?? 0,
+    },
+    parts: readinessReport.summary || [],
+  };
+};
+
 module.exports = {
   transformPaginatedOBoms,
   transformBomDetails,
+  transformBOMProductionSummaryRows,
+  buildBOMProductionSummaryResponse,
 };

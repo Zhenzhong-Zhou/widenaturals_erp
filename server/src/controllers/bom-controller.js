@@ -35,7 +35,11 @@
  * @see utils/system-logger
  */
 
-const { fetchPaginatedBomsService, fetchBomDetailsService } = require('../services/bom-service');
+const {
+  fetchPaginatedBomsService,
+  fetchBomDetailsService,
+  fetchBOMProductionSummaryService
+} = require('../services/bom-service');
 const wrapAsync = require('../utils/wrap-async');
 const { logInfo } = require('../utils/logger-helper');
 
@@ -166,9 +170,73 @@ const getBomDetailsController = wrapAsync(async (req, res) => {
   });
   
   // Step 3: Return standardized API response
-  return res.status(200).json({
+  res.status(200).json({
     success: true,
     message: 'Fetched BOM details successfully.',
+    data: result,
+  });
+});
+
+/**
+ * GET /api/v1/boms/:bomId/production-summary
+ *
+ * Fetches a detailed production readiness report for the specified BOM.
+ *
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ * @param {import('express').NextFunction} next - Express next middleware function
+ *
+ * @returns {Promise<void>} Sends JSON response with structured readiness data
+ *
+ * @example
+ * // Request:
+ * GET /api/boms/61bb1f94-aeb2-4724-b9b8-35023b165fdd/production-summary
+ *
+ * // Response:
+ * {
+ *   "bomId": "61bb1f94-aeb2-4724-b9b8-35023b165fdd",
+ *   "metadata": {
+ *     "maxProducibleUnits": 40,
+ *     "isReadyForProduction": true,
+ *     "stockHealth": { "usable": 12175, "inactive": 0 },
+ *     "bottleneckParts": [{ "partId": "...", "partName": "Capsule" }],
+ *     "generatedAt": "2025-10-24T17:57:26.988Z"
+ *   },
+ *   "parts": [
+ *     {
+ *       "partId": "...",
+ *       "partName": "Capsule",
+ *       "requiredQtyPerUnit": 60,
+ *       "totalAvailableQuantity": 2450,
+ *       "maxProducibleUnits": 40,
+ *       "isBottleneck": true,
+ *       "materials": [ { "materialName": "...", "availableQuantity": 2450 } ]
+ *     }
+ *   ]
+ * }
+ */
+const fetchBOMProductionSummaryController = wrapAsync(async (req, res) => {
+  const { bomId } = req.params;
+  
+  logInfo('Fetching BOM production readiness', req, {
+    context: 'bom-controller/fetchBOMProductionSummaryController',
+    bomId,
+  });
+  
+  // 1 Call service
+  const result = await fetchBOMProductionSummaryService(bomId);
+  
+  // 2 Log and respond
+  logInfo('BOM production readiness retrieved successfully', req, {
+    context: 'bom-controller/fetchBOMProductionSummaryController',
+    bomId,
+    maxProducibleUnits: result?.metadata?.maxProducibleUnits ?? null,
+  });
+  
+  // 3 Respond
+  res.status(200).json({
+    success: true,
+    message: 'BOM production readiness summary retrieved successfully.',
     data: result,
   });
 });
@@ -176,4 +244,5 @@ const getBomDetailsController = wrapAsync(async (req, res) => {
 module.exports = {
   getPaginatedBomsController,
   getBomDetailsController,
+  fetchBOMProductionSummaryController,
 };
