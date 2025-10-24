@@ -29,12 +29,12 @@ exports.seed = async function (knex) {
   );
   
   // 2. Fetch all relevant data
-  const bomItems = await knex('bom_items').select('id', 'part_id', 'quantity_per_unit', 'unit');
+  const bomItems = await knex('bom_items').select('id', 'part_id', 'part_qty_per_product', 'unit');
   const partMaterials = await knex('part_materials').select(
     'id',
     'part_id',
     'packaging_material_id',
-    'quantity',
+    'material_qty_per_part',
     'unit'
   );
   
@@ -48,7 +48,7 @@ exports.seed = async function (knex) {
         bom_item_id: bi.id,
         part_material_id: pm.id,
         packaging_material_id: pm.packaging_material_id,
-        quantity: pm.quantity ?? bi.quantity_per_unit,
+        material_qty_per_product: bi.part_qty_per_product ?? 1,
         unit: pm.unit ?? bi.unit,
         note: 'Dummy notes',
         status_id: activeUserId,

@@ -586,7 +586,7 @@ exports.seed = async function (knex) {
       id: knex.raw('uuid_generate_v4()'),
       part_id: partId,
       packaging_material_id: materialId,
-      quantity: entry.quantity,
+      material_qty_per_part: entry.quantity,
       unit: entry.unit,
       created_at: now,
       updated_at: null,

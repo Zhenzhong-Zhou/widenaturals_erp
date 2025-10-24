@@ -71,105 +71,122 @@ exports.seed = async function (knex) {
     ],
   };
   
-  const sharedItems = {
+  const seriesDefinitions = {
     series1: [
       {
         code: 'PART-LID',
         qty: 1,
         unit: 'pc',
-        note: 'white plastic lid, food-grade',
+        specifications: 'White plastic, food-grade, 38mm neck',
+        note: 'Used for 250ml PET bottles',
       },
       {
         code: 'SEAL-TAMPER',
         qty: 1,
         unit: 'pc',
-        note: 'white foam tamper seal, food-grade',
+        specifications: 'White foam tamper seal, adhesive type',
+        note: 'Standard tamper-evident seal for supplement bottles',
       },
       {
         code: 'DSC-PACKET',
         qty: 1,
         unit: 'pc',
-        note: 'desiccant plug (clear plastic)',
+        specifications: 'Desiccant plug, clear plastic, 1g silica',
+        note: 'Inserted inside bottle before capping',
       },
       {
         code: 'CAP-VEG',
         qty: 60,
         unit: 'pcs',
-        note: 'clear vegan capsule, size 0',
+        specifications: 'Transparent vegan capsule, size 0, HPMC material',
+        note: 'Each bottle contains 60 filled capsules',
       },
       {
         code: 'PART-FILLER',
         qty: 1,
         unit: 'pc',
-        note: 'clear plastic filler, food-grade',
+        specifications: 'Plastic filler insert, single layer',
+        note: 'Prevents movement inside bottle',
       },
       {
         code: 'PART-BOTTLE',
         qty: 1,
         unit: 'pc',
-        note: '250ml plastic bottle, food-grade',
+        specifications: '250ml PET bottle, amber color, food-grade',
+        note: 'Main container for capsule products',
       },
       {
         code: 'LBL-STD',
         qty: 1,
         unit: 'pc',
-        note: 'standard paper label, 19.6×7.0cm',
+        specifications: 'Paper label, 19.6×7.0cm, matte finish',
+        note: 'Standard bilingual label (EN/FR)',
       },
       {
         code: 'BOX-STD',
         qty: 1,
         unit: 'pc',
-        note: 'standard cardboard box, 6.4×6.4×11.3cm',
+        specifications: 'Cardboard box, 6.4×6.4×11.3cm, natural brown',
+        note: 'Outer packaging for retail display',
       },
     ],
+    
     series2: [
       {
         code: 'PART-LID',
         qty: 1,
         unit: 'pc',
-        note: 'metallica plastic lid, food-grade',
+        specifications: 'Metallic plastic lid, silver finish, food-grade',
+        note: 'Used for glass or frosted bottles',
       },
       {
         code: 'INSERT-DESICCANT',
         qty: 1,
         unit: 'pc',
-        note: 'clear desiccant insert, plastic',
+        specifications: 'Plastic desiccant insert, clear, 0.5g',
+        note: 'Alternative to desiccant packet, placed inside cap',
       },
       {
         code: 'DSC-PACKET',
         qty: 1,
         unit: 'pc',
-        note: 'green desiccant plug packet',
+        specifications: 'Green desiccant plug, 1g silica gel',
+        note: 'Placed inside the bottle for moisture protection',
       },
       {
         code: 'CAP-VEG',
         qty: 60,
         unit: 'pcs',
-        note: 'white vegan capsule, size 1',
+        specifications: 'White vegan capsule, size 1, HPMC material',
+        note: 'Each bottle contains 60 filled capsules',
       },
       {
         code: 'PART-FILLER',
         qty: 1,
         unit: 'pc',
-        note: 'plastic filler, clear',
+        specifications: 'Plastic filler, transparent',
+        note: 'For consistent packaging height',
       },
       {
         code: 'PART-BOTTLE',
         qty: 1,
         unit: 'pc',
-        note: 'frosted glass bottle, 9k or 11k size',
+        specifications: 'Frosted glass bottle, 250ml, 9K or 11K size',
+        note: 'Premium packaging for export series',
       },
       {
         code: 'LBL-STD',
         qty: 1,
         unit: 'pc',
-        note: 'standard paper label (e.g. 13×4.5cm or 15.2×5.7cm)',
+        specifications: 'Paper label, 13×4.5cm or 15.2×5.7cm, matte finish',
+        note: 'Standard label for glass bottle variant',
       },
       {
         code: 'BOX-STD',
         qty: 1,
         unit: 'pc',
-        note: 'outer packaging box (cardboard or rigid box)',
+        specifications: 'Rigid outer box, cardboard, 6.5×6.5×12cm',
+        note: 'For higher-end presentation series',
       },
     ],
     series3: [
@@ -177,37 +194,43 @@ exports.seed = async function (knex) {
         code: 'PART-LID',
         qty: 1,
         unit: 'pc',
-        note: 'natural aluminum lid, food-grade',
+        specifications: 'Natural aluminum lid, brushed finish, food-grade',
+        note: 'Screw-type aluminum lid matching 220ml bottle',
       },
       {
         code: 'LINER-THREADED',
         qty: 1,
         unit: 'pc',
-        note: 'white plastic threaded liner, food-grade',
+        specifications: 'Plastic threaded liner, white, food-grade',
+        note: 'Placed between lid and bottle neck',
       },
       {
         code: 'DSC-PACKET',
         qty: 1,
         unit: 'pc',
-        note: 'white plastic desiccant plug, food-grade',
+        specifications: 'Desiccant plug, plastic, 1g, food-grade',
+        note: 'Standard for aluminum bottles',
       },
       {
         code: 'CAP-SOFTGEL',
         qty: 120,
         unit: 'pcs',
-        note: 'yellow gelatin softgel capsule, 500mg, food-grade',
+        specifications: 'Yellow gelatin softgel, 500mg fill weight, 00 size',
+        note: 'Each bottle contains 120 softgels',
       },
       {
         code: 'PART-BOTTLE',
         qty: 1,
         unit: 'pc',
-        note: '220ml aluminum bottle, food-grade',
+        specifications: '220ml aluminum bottle, brushed finish',
+        note: 'Used for softgel product lines',
       },
       {
         code: 'LBL-STD',
         qty: 1,
         unit: 'pc',
-        note: 'plastic label, 16.0×6.5cm',
+        specifications: 'Plastic label, 16.0×6.5cm, waterproof adhesive',
+        note: 'Standard label for aluminum bottle variant',
       },
     ],
   };
@@ -248,7 +271,7 @@ exports.seed = async function (knex) {
       id: knex.raw('uuid_generate_v4()'),
       bom_id,
       part_id: partMap[item.code],
-      quantity_per_unit: item.qty,
+      part_qty_per_product: item.qty,
       unit: item.unit,
       note: item.note || null,
       estimated_unit_cost,
@@ -265,7 +288,7 @@ exports.seed = async function (knex) {
   let index = 0;
   
   for (const [series, bomCodes] of Object.entries(sharedSeries)) {
-    const items = sharedItems[series];
+    const items = seriesDefinitions[series];
     if (!items) continue;
     
     for (const bomCode of bomCodes) {

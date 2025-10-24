@@ -11,7 +11,7 @@ exports.up = async function (knex) {
       .notNullable()
       .references('id')
       .inTable('packaging_materials');
-    table.decimal('quantity', 10, 2).notNullable().checkPositive();
+    table.decimal('material_qty_per_part', 10, 2).notNullable().checkPositive();
     table.string('unit', 20);
     table.text('note'); // Optional
 

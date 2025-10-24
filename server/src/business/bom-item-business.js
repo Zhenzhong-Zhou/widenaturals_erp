@@ -27,7 +27,7 @@ const calculateBomMaterialCostsBusiness = (
     
     for (const item of bomItems) {
       for (const mat of item.packagingMaterials || []) {
-        const quantityPerBom = item.bomItemMaterial?.quantity ?? 1;
+        const quantityPerBom = item.bomItemMaterial?.requiredQtyPerProduct ?? 1;
         
         // Extract cost data
         const estimatedUnitCost = mat.estimatedUnitCost ?? 0;

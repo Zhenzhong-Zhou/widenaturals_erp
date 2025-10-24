@@ -31,7 +31,7 @@ const getBomMaterialSupplyDetailsById = async (bomId) => {
       bim.id AS bom_item_material_id,
       bim.part_material_id,
       bim.packaging_material_id,
-      bim.quantity AS bom_item_material_qty,
+      bim.material_qty_per_product AS bom_required_qty,
       bim.unit AS bom_item_material_unit,
       bim.note AS bom_item_material_note,
       bim.status_id AS bom_item_material_status_id,
@@ -100,7 +100,7 @@ const getBomMaterialSupplyDetailsById = async (bomId) => {
       pmb.exchange_rate AS batch_exchange_rate,
       pmb.total_cost AS batch_total_cost,
       pmb.status_id AS batch_status_id,
-      st_batch.name AS batch_status,
+      bst.name AS batch_status,
       pmb.status_date AS batch_status_date,
       pmb.received_at,
       pmb.received_by,
@@ -139,8 +139,8 @@ const getBomMaterialSupplyDetailsById = async (bomId) => {
       ON u_pms_updated.id = pms.updated_by
     LEFT JOIN packaging_material_batches AS pmb
       ON pmb.packaging_material_supplier_id = pms.id
-    LEFT JOIN status AS st_batch
-      ON st_batch.id = pmb.status_id
+    LEFT JOIN batch_status AS bst
+      ON bst.id = pmb.status_id
     LEFT JOIN users AS u_pmb_created
       ON u_pmb_created.id = pmb.created_by
     LEFT JOIN users AS u_pmb_updated
@@ -154,7 +154,7 @@ const getBomMaterialSupplyDetailsById = async (bomId) => {
     return result.rows;
   } catch (error) {
     logSystemException(error, 'Failed to fetch BOM material supply details', {
-      context: 'bom-repository/getBomMaterialSupplyDetailsById',
+      context: 'bom-item-repository/getBomMaterialSupplyDetailsById',
       severity: 'error',
       bomId,
     });

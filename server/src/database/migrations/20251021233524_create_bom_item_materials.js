@@ -26,7 +26,7 @@ exports.up = async function (knex) {
       .inTable("packaging_materials");
     
     // Quantities specific to this BOM usage
-    table.decimal("quantity", 10, 3).notNullable().checkPositive();
+    table.decimal("material_qty_per_product", 10, 3).notNullable().checkPositive();
     table.string("unit", 20).notNullable();
     table.text("note");
     

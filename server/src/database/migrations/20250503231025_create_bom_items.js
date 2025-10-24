@@ -8,8 +8,8 @@ exports.up = async function (knex) {
 
     table.uuid('bom_id').notNullable().references('id').inTable('boms');
     table.uuid('part_id').notNullable().references('id').inTable('parts');
-
-    table.decimal('quantity_per_unit', 10, 3).notNullable(); // Required
+    
+    table.decimal('part_qty_per_product', 10, 3).notNullable(); // Required
     table.string('unit', 20).notNullable(); // 'pcs', 'g', etc.
 
     // Optional: Additional specs (QA or engineering details)

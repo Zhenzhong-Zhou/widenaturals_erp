@@ -19,7 +19,7 @@
  * @property {string} part_name
  *
  * @property {string|null} bom_item_material_id
- * @property {number|null} bom_item_material_qty
+ * @property {number|null} bom_required_qty
  * @property {string|null} bom_item_material_unit
  * @property {string|null} bom_item_material_note
  * @property {string|null} bom_item_material_status_id
@@ -125,7 +125,7 @@ const transformBomMaterialSupplyDetails = (rows = []) => {
         },
         bomItemMaterial: {
           id: row.bom_item_material_id,
-          quantity: Number(row.bom_item_material_qty ?? 0),
+          requiredQtyPerProduct: Number(row.bom_required_qty ?? 0),
           unit: row.bom_item_material_unit,
           note: row.bom_item_material_note,
           status: {
