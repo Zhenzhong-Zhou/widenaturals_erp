@@ -175,3 +175,24 @@ export const formatToThreeDecimal = (
   
   return num.toFixed(3);
 };
+
+/**
+ * Truncate a string to a maximum length, adding an ellipsis ("…") if it exceeds the limit.
+ *
+ * @example
+ * truncateText("Hello world", 5) // → "Hello…"
+ *
+ * @param text - The input string to truncate.
+ * @param maxLength - Maximum allowed length before truncation.
+ * @param ellipsis - Optional custom ellipsis string (default "…").
+ * @returns The truncated string.
+ */
+export const truncateText = (
+  text: string | null | undefined,
+  maxLength: number = 50,
+  ellipsis: string = '…'
+): string => {
+  if (!text) return ''; // gracefully handle null/undefined
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength).trimEnd() + ellipsis;
+};

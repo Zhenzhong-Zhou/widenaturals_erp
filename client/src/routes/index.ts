@@ -62,6 +62,15 @@ export const routes = [
     meta: { requiresAuth: true, title: 'Compliances', showInSidebar: true },
   },
   {
+    path: '/boms',
+    component: lazy(() => import('@features/bom/pages/BomsListPage')),
+    meta: {
+      requiresAuth: true,
+      title: 'Bom List',
+      showInSidebar: true,
+    },
+  },
+  {
     path: '/pricing-types',
     component: lazy(
       () => import('@features/pricingType/pages/PricingTypePage')

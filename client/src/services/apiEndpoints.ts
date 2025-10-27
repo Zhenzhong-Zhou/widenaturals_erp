@@ -20,6 +20,9 @@ export const API_ENDPOINTS = {
   ALL_LOCATION_TYPES: '/location-types',
   LOCATION_TYPE_DETAILS: '/location-types/:id',
   ALL_LOCATIONS: '/locations',
+  BOMS: {
+    ALL_RECORDS: '/boms',
+  },
   LOCATION_INVENTORY: {
     ALL_RECORDS: '/location-inventory',
     KPI_SUMMARY: '/location-inventory/kpi-summary',
