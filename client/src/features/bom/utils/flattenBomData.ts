@@ -1,7 +1,7 @@
 import type {
   BomAudit,
   BomListItem, BomStatus,
-  BomSummary, ComplianceInfo,
+  BomRow, ComplianceInfo,
   FlattenedBomRecord,
   ProductSummary,
   SkuSummary,
@@ -25,7 +25,7 @@ export const flattenBomRecords = (records: BomListItem[]): FlattenedBomRecord[] 
   return records.map((record) => {
     const product = record.product ?? ({} as ProductSummary);
     const sku = record.sku ?? ({} as SkuSummary);
-    const bom = record.bom ?? ({} as BomSummary);
+    const bom = record.bom ?? ({} as BomRow);
     
     const audit = bom.audit ?? ({} as BomAudit);
     const status = bom.status ?? ({} as BomStatus);

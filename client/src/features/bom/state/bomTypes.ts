@@ -20,7 +20,7 @@ export type FetchPaginatedBomsResponse = PaginatedResponse<BomListItem>;
 export interface BomListItem {
   product: ProductSummary;
   sku: SkuSummary;
-  bom: BomSummary;
+  bom: BomRow;
 }
 
 /**
@@ -64,7 +64,7 @@ export interface ComplianceInfo {
 /**
  * BOM core information.
  */
-export interface BomSummary {
+export interface BomRow {
   id: string;
   code: string;
   name: string;
