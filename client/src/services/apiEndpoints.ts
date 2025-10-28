@@ -22,6 +22,9 @@ export const API_ENDPOINTS = {
   ALL_LOCATIONS: '/locations',
   BOMS: {
     ALL_RECORDS: '/boms',
+    BOM_DETAILS: (bomId: string) => `/boms/${bomId}/details`,
+    BOM_MATERIAL_SUPPLY_DETAILS: (bomId: string) => `/bom-items/${bomId}/material-supply`,
+    BOM_PRODUCTION_SUMMARY: (bomId: string) => `/boms/${bomId}/production-summary`,
   },
   LOCATION_INVENTORY: {
     ALL_RECORDS: '/location-inventory',

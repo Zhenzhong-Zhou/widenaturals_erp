@@ -88,23 +88,43 @@ export const formatLabel = (
 };
 
 /**
- * Formats a number as a currency string.
- * @param value - The number or string to format.
- * @param currencySymbol - The currency symbol to prepend (default: "$").
- * @returns A formatted currency string.
+ * Formats a numeric value as a currency string.
+ *
+ * Supports both direct currency symbols (e.g. "$", "HK$") and ISO currency codes
+ * (e.g. "USD", "CAD", "CNY"). When an ISO code is provided, the value is formatted
+ * using the browser's `Intl.NumberFormat` for locale-aware display.
+ *
+ * @param value - The numeric value to format (number or string).
+ * @param currency - Currency symbol or ISO code (default: "$").
+ * @param locale - Locale identifier used for formatting when a currency code is provided (default: "en-US").
+ * @param decimals - Number of decimal places to display (default: 2).
+ * @returns A formatted currency string (e.g. "$12.34", "HK$0.0356", "¥1,234.50").
  */
 export const formatCurrency = (
   value: string | number | null,
-  currencySymbol: string = '$'
+  currency: string = '$',
+  locale: string = 'en-US',
+  decimals: number = 2
 ): string => {
   if (value === null || value === undefined) {
-    return `${currencySymbol}0.00`;
+    return `${currency}0.00`;
   }
-
+  
   const number = typeof value === 'string' ? parseFloat(value) : value;
-  if (isNaN(number)) return `${currencySymbol}0.00`;
-
-  return `${currencySymbol}${number.toFixed(2)}`;
+  if (isNaN(number)) return `${currency}0.00`;
+  
+  // If user passed ISO code like "USD", "CNY", "CAD", use Intl.NumberFormat
+  if (currency.length === 3 && /^[A-Z]{3}$/.test(currency)) {
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    }).format(number);
+  }
+  
+  // Otherwise assume it's a symbol like "$", "HK$", etc.
+  return `${currency}${number.toFixed(decimals)}`;
 };
 
 /**

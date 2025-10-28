@@ -1,4 +1,5 @@
 import type {
+  BomDetailsResponse,
   FetchBomsParams,
   FetchPaginatedBomsResponse,
 } from '@features/bom/state/bomTypes';
@@ -50,6 +51,38 @@ const fetchPaginatedBoms = async (
   }
 };
 
+/**
+ * Fetch detailed information for a specific BOM.
+ *
+ * Issues `GET /boms/:bomId/details` to retrieve the full BOM structure,
+ * including product, SKU, compliance, and part breakdowns.
+ *
+ * Notes:
+ * - Returns header, detailed parts list, and summary cost data.
+ * - Used by the BOM Details page and related inspection views.
+ *
+ * @param bomId - The unique identifier of the BOM to fetch.
+ * @returns A promise resolving to detailed BOM data.
+ * @throws Rethrows any network or parsing error from the request helper.
+ *
+ * @example
+ * const res = await bomService.fetchBomDetails('61bb1f94-aeb2-4724-b9b8-35023b165fdd');
+ * console.log(res.data.header.product.name);
+ */
+const fetchBomDetails = async (
+  bomId: string
+): Promise<BomDetailsResponse> => {
+  const url = API_ENDPOINTS.BOMS.BOM_DETAILS(bomId);
+  
+  try {
+    return await getRequest<BomDetailsResponse>(url);
+  } catch (error) {
+    console.error('Failed to fetch BOM details:', { bomId, error });
+    throw error;
+  }
+};
+
 export const bomService = {
   fetchPaginatedBoms,
+  fetchBomDetails,
 };

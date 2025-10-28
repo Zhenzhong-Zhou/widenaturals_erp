@@ -71,6 +71,15 @@ export const routes = [
     },
   },
   {
+    path: '/boms/:bomId',
+    component: lazy(() => import('@features/bom/pages/BomOverviewPage')),
+    meta: {
+      requiresAuth: true,
+      title: 'Bom Overview',
+      showInSidebar: false,
+    },
+  },
+  {
     path: '/pricing-types',
     component: lazy(
       () => import('@features/pricingType/pages/PricingTypePage')
