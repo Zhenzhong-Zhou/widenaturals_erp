@@ -3,30 +3,57 @@ const { logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
 /**
- * Business: Calculate total BOM material cost summary.
+ * Business Logic: Calculate total BOM material cost summary (Option B: preferred supplier).
  *
- * - Converts all costs to system base currency.
- * - Uses actual batch/supplier/estimated hierarchy for cost resolution.
- * - Returns only aggregated totals (no enriched BOM data).
+ * - Converts all costs into the system base currency.
+ * - Resolves cost using this hierarchy:
+ *   Batch → Preferred Supplier → Estimated Unit Cost.
+ * - Aggregates totals by part and supplier (one supplier per part).
+ * - Returns a BOM-level summary ready for reporting or roll-up costing.
+ *
+ * Future Extension (Option A):
+ *   Expand this function to support multi-supplier cost aggregation
+ *   and detailed analytics such as per-supplier or per-batch variance.
  *
  * @param {string} bomId - The BOM ID being analyzed.
  * @param {Array<Object>} bomItems - Transformed BOM items (from transformer).
- * @param {string} [systemBaseCurrency='CAD'] - Default system currency for normalization.
- * @returns {Object} BOM-level cost summary.
+ * @param {string} [systemBaseCurrency='CAD'] - System base currency for normalization.
+ * @param {Object} [options] - Optional settings.
+ * @param {"preferred"|"aggregate"} [options.mode='preferred']
+ *   Mode selector: 'preferred' (current Option B) or 'aggregate' (future Option A).
+ * @returns {Object} BOM-level cost summary with totals, supplier totals, and part totals.
  */
 const calculateBomMaterialCostsBusiness = (
   bomId,
   bomItems = [],
-  systemBaseCurrency = 'CAD'
+  systemBaseCurrency = 'CAD',
+  options = { mode: 'preferred' }
 ) => {
   try {
-    const round = (num) => Number((num ?? 0).toFixed(4));
+    const { mode } = options;
+    const round = (num) => Number((num ?? 0).toFixed(6));
     
     let totalEstimatedCost = 0;
     let totalActualCost = 0;
+    const supplierTotals = new Map();
+    const partTotals = new Map();
     
     for (const item of bomItems) {
+      const partId = item.part?.id;
+      let partTotal = 0;
+      
       for (const mat of item.packagingMaterials || []) {
+        // Option B: use preferred or first supplier
+        let supplier = null;
+        if (Array.isArray(mat.suppliers) && mat.suppliers.length > 0) {
+          supplier =
+            mode === 'preferred'
+              ? mat.suppliers.find((s) => s.contract?.isPreferred) || mat.suppliers[0]
+              : mat.suppliers[0];
+        } else {
+          supplier = mat.supplier; // fallback to old single-supplier structure
+        }
+        
         const quantityPerBom = item.bomItemMaterial?.requiredQtyPerProduct ?? 1;
         
         // Extract cost data
@@ -34,33 +61,16 @@ const calculateBomMaterialCostsBusiness = (
         const estimatedCurrency = mat.currency ?? systemBaseCurrency;
         const estimatedExchange = mat.exchangeRate ?? 1;
         
-        const batch = mat?.supplier?.batches?.[0];
-        const supplier = mat?.supplier?.contract;
+        const supplierCost = supplier?.contract?.unitCost ?? null;
+        const supplierCurrency = supplier?.contract?.currency ?? estimatedCurrency;
+        const supplierExchange = supplier?.contract?.exchangeRate ?? 1;
         
-        const batchCost = batch?.unitCost ?? null;
-        const batchCurrency = batch?.currency ?? null;
-        const batchExchange = batch?.exchangeRate ?? null;
+        // Select active cost source
+        const actualUnitCost = supplierCost ?? estimatedUnitCost;
+        const actualCurrency = supplierCost ? supplierCurrency : estimatedCurrency;
+        const actualExchange = supplierCost ? supplierExchange : estimatedExchange;
         
-        const supplierCost = supplier?.unitCost ?? null;
-        const supplierCurrency = supplier?.currency ?? null;
-        const supplierExchange = supplier?.exchangeRate ?? null;
-        
-        // Determine final unit cost
-        let actualUnitCost = estimatedUnitCost;
-        let actualCurrency = estimatedCurrency;
-        let actualExchange = estimatedExchange;
-        
-        if (batchCost != null) {
-          actualUnitCost = batchCost;
-          actualCurrency = batchCurrency ?? estimatedCurrency;
-          actualExchange = batchExchange ?? 1;
-        } else if (supplierCost != null) {
-          actualUnitCost = supplierCost;
-          actualCurrency = supplierCurrency ?? estimatedCurrency;
-          actualExchange = supplierExchange ?? 1;
-        }
-        
-        // Convert all to base currency
+        // Normalize to base currency
         const estimatedCostBase = convertToBaseCurrency(
           estimatedUnitCost * quantityPerBom,
           estimatedCurrency,
@@ -76,29 +86,59 @@ const calculateBomMaterialCostsBusiness = (
         
         totalEstimatedCost += estimatedCostBase;
         totalActualCost += actualCostBase;
+        partTotal += actualCostBase;
+        
+        // Track per-supplier totals
+        if (supplier.id) {
+          supplierTotals.set(
+            supplier.id,
+            (supplierTotals.get(supplier.id) || 0) + actualCostBase
+          );
+        }
+      }
+      
+      if (partId) {
+        partTotals.set(partId, (partTotals.get(partId) || 0) + partTotal);
       }
     }
+    
+    // --- Structured summary output ---
+    const suppliers = Array.from(supplierTotals.entries()).map(([id, totalCost]) => ({
+      id,
+      totalCost: round(totalCost),
+    }));
+    
+    const parts = Array.from(partTotals.entries()).map(([partId, totalCost]) => ({
+      partId,
+      totalCost: round(totalCost),
+    }));
     
     return {
       bomId,
       baseCurrency: systemBaseCurrency,
-      totalEstimatedCost: round(totalEstimatedCost),
-      totalActualCost: round(totalActualCost),
-      variance: round(totalActualCost - totalEstimatedCost),
-      variancePercentage: totalEstimatedCost
-        ? round(((totalActualCost - totalEstimatedCost) / totalEstimatedCost) * 100)
-        : 0,
+      totals: {
+        totalEstimatedCost: round(totalEstimatedCost),
+        totalActualCost: round(totalActualCost),
+        variance: round(totalActualCost - totalEstimatedCost),
+        variancePercentage: totalEstimatedCost
+          ? round(((totalActualCost - totalEstimatedCost) / totalEstimatedCost) * 100)
+          : 0,
+      },
+      suppliers,
+      parts,
     };
   } catch (error) {
-    logSystemException(error, 'Failed to calculate BOM material costs', {
+    logSystemException(error, 'Failed to calculate BOM material cost summary', {
       context: 'bom-item-business/calculateBomMaterialCostsBusiness',
       bomId,
       severity: 'error',
     });
     
-    throw AppError.businessError('Failed to calculate BOM material costs', {
+    throw AppError.businessError('Unable to complete BOM cost calculation', {
       bomId,
-      hint: 'Ensure supplier or batch costs are properly linked and currency rates are provided.',
+      hint:
+        'Check supplier or batch cost links and ensure currency exchange rates are defined. ' +
+        'Current mode: preferred-supplier (Option B).',
     });
   }
 };
