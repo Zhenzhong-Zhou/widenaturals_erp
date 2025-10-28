@@ -273,6 +273,7 @@ exports.seed = async function (knex) {
       part_id: partMap[item.code],
       part_qty_per_product: item.qty,
       unit: item.unit,
+      specifications: item.specifications || null,
       note: item.note || null,
       estimated_unit_cost,
       currency,
