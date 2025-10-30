@@ -14,23 +14,23 @@ import {
   BomHeaderSection,
   BomSummarySection,
   BomDetailsTable,
-  BomMaterialSupplySummarySection
+  BomMaterialSupplySummarySection,
 } from '@features/bom/components/BomOverview';
 import useBomDetails from '@hooks/useBomDetails';
-import {
-  flattenAllBomMaterialSupplyDetails,
-  flattenBomDetails,
-  flattenBomHeader,
-  flattenBomMaterialSupplySummary,
-  flattenBomSummary,
-} from '@features/bom/utils/flattenBomOverview';
 import useBomMaterialSupplyDetails from '@hooks/useBomMaterialSupplyDetails';
+import {
+  flattenBomHeader,
+  flattenBomSummary,
+  flattenBomDetails,
+  flattenBomMaterialSupplySummary,
+  flattenAllBomMaterialSupplyDetails,
+} from '@features/bom/utils/flattenBomOverview';
 import { mergeBomDetailsWithSupplyDetails } from '@features/bom/utils/mergeBomOverviewData';
-
 
 const BomOverviewPage = () => {
   const { bomId } = useParams<{ bomId: string }>();
   
+  // === BOM Details Hook ===
   const {
     data: bomDetails,
     summary: bomSummary,
@@ -42,37 +42,33 @@ const BomOverviewPage = () => {
     reset: resetBomDetails,
   } = useBomDetails();
   
+  // === BOM Material Supply Hook ===
   const {
     loading: isSupplyLoading,
     error: supplyError,
     summary: supplySummary,
     details: supplyDetails,
     hasData: hasSupplyData,
-    costOverview: supplyCostOverview,
-    selectedBomId: activeBomId,
     fetchDetails: fetchBomSupplyDetails,
     resetDetails: resetBomSupplyDetails,
   } = useBomMaterialSupplyDetails();
   
-  // === Early Bailouts ===
+  // === Early error handling ===
   if (!bomId) {
-    return <ErrorMessage message="Missing bom ID in URL." />;
+    return <ErrorMessage message="Missing BOM ID in URL." />;
   }
-  if (bomDetailsError) {
-    return <ErrorMessage message={bomDetailsError ?? 'Failed to load boms details.'} />;
-  }
-
-  // === Fetch & Refresh Logic: BOM Details ===
-  const refreshOverview = useCallback(() => {
+  
+  // === Fetch BOM Overview ===
+  const refreshBomDetails = useCallback(() => {
     if (bomId) fetchBomDetails(bomId);
   }, [bomId, fetchBomDetails]);
   
   useEffect(() => {
-    refreshOverview();
+    refreshBomDetails();
     return () => resetBomDetails();
-  }, [refreshOverview, resetBomDetails]);
-
-  // === Fetch & Refresh Logic: BOM Material Supply Details ===
+  }, [refreshBomDetails, resetBomDetails]);
+  
+  // === Fetch BOM Material Supply Details ===
   const refreshMaterialSupply = useCallback(() => {
     if (bomId) fetchBomSupplyDetails(bomId);
   }, [bomId, fetchBomSupplyDetails]);
@@ -82,55 +78,45 @@ const BomOverviewPage = () => {
     return () => resetBomSupplyDetails();
   }, [refreshMaterialSupply, resetBomSupplyDetails]);
   
-  const flattenedHeader = useMemo(() => {
-    return bomDetails ? flattenBomHeader(bomDetails.header) : null;
-  }, [bomDetails]);
+  // === Data Flattening ===
+  const flattenedHeader = useMemo(() => bomDetails ? flattenBomHeader(bomDetails.header) : null, [bomDetails]);
+  const flattenedSummary = useMemo(() => bomSummary ? flattenBomSummary(bomSummary) : null, [bomSummary]);
+  const flattenedDetails = useMemo(() => bomDetails ? flattenBomDetails(bomDetails.details) : null, [bomDetails]);
+  const flattenedSupplySummary = useMemo(() => supplySummary ? flattenBomMaterialSupplySummary(supplySummary) : null, [supplySummary]);
+  const flattenedSupplyDetails = useMemo(() => supplyDetails ? flattenAllBomMaterialSupplyDetails(supplyDetails) : null, [supplyDetails]);
   
-  const flattenedSummary = useMemo(() => {
-    return bomDetails ? flattenBomSummary(bomSummary) : null;
-  }, [bomDetails]);
-  
-  const flattenedDetails = useMemo(() => {
-    return bomDetails ? flattenBomDetails(bomDetails.details) : null;
-  }, [bomDetails]);
-  
-  const flattenedSupplySummary = useMemo(() => {
-    return supplySummary ? flattenBomMaterialSupplySummary(supplySummary) : null;
-  }, [supplySummary]);
-  
-  const flattenedSupplyDetails = useMemo(() => {
-    return supplyDetails ? flattenAllBomMaterialSupplyDetails(supplyDetails) : null;
-  }, [supplyDetails]);
-  
+  // === Merge BOM & Supply data ===
   const mergedBomData = useMemo(() => {
     return flattenedDetails && flattenedSupplyDetails
       ? mergeBomDetailsWithSupplyDetails(flattenedDetails, flattenedSupplyDetails)
       : [];
   }, [flattenedDetails, flattenedSupplyDetails]);
   
-  // === Loading State ===
-  if (
+  // === Unified loading state ===
+  const isPageLoading =
     !hasBomData ||
     isBomLoading ||
     !flattenedHeader ||
     !flattenedSummary ||
-    !flattenedDetails
-  ) {
-    return <Loading message="Loading bom overview..." />;
+    !flattenedDetails;
+  
+  if (isPageLoading) {
+    return <Loading message="Loading BOM overview..." />;
   }
   
   return (
     <Box sx={{ p: 3 }}>
-      <CustomTypography variant="h4" sx={{ mb: 2 }}>
-        {flattenedHeader?.bomName} - BOM Information
+      {/* === Page Title === */}
+      <CustomTypography variant="h4" sx={{ mb: 2, fontWeight: 600 }}>
+        {flattenedHeader?.bomName} — BOM Information
       </CustomTypography>
       
-      {/* Actions Row */}
+      {/* === Actions Row === */}
       <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
         <GoBackButton />
       </Stack>
       
-      {/* Order Details */}
+      {/* === Main Card Container === */}
       <Card
         sx={{
           maxWidth: 1800,
@@ -143,7 +129,7 @@ const BomOverviewPage = () => {
         }}
       >
         <CardContent>
-          {/* Header */}
+          {/* --- BOM Overview Header Section --- */}
           <Box
             sx={{
               display: 'flex',
@@ -157,38 +143,87 @@ const BomOverviewPage = () => {
             </CustomTypography>
             
             <Stack direction="row" spacing={2} alignItems="center">
-              <CustomButton onClick={refreshOverview}>Refresh BOm Details</CustomButton>
+              <CustomButton onClick={refreshBomDetails}>Refresh BOM Details</CustomButton>
             </Stack>
           </Box>
           
           <Divider sx={{ mb: 3 }} />
           
-          {/* BOM Details Header Info */}
-          {flattenedHeader && <BomHeaderSection flattened={flattenedHeader} />}
+          {/* --- BOM Details Header Section --- */}
+          <Box sx={{ mb: 3 }}>
+            {isBomLoading ? (
+              <Loading message="Loading BOM header..." />
+            ) : bomDetailsError ? (
+              <ErrorMessage message={bomDetailsError ?? 'Failed to load BOM header.'} />
+            ) : hasBomData && flattenedHeader ? (
+              <BomHeaderSection flattened={flattenedHeader} />
+            ) : (
+              <CustomTypography variant="body2" color="text.secondary">
+                No BOM header data available.
+              </CustomTypography>
+            )}
+          </Box>
           
-          {flattenedSummary && <BomSummarySection flattenedSummary={flattenedSummary} />}
+          {/* --- BOM Summary Section --- */}
+          <Box sx={{ mb: 3 }}>
+            {isBomLoading ? (
+              <Loading message="Loading BOM summary..." />
+            ) : bomDetailsError ? (
+              <ErrorMessage message={bomDetailsError ?? 'Failed to load BOM summary.'} />
+            ) : hasBomData && flattenedSummary ? (
+              <BomSummarySection flattenedSummary={flattenedSummary} />
+            ) : (
+              <CustomTypography variant="body2" color="text.secondary">
+                No BOM summary data available.
+              </CustomTypography>
+            )}
+          </Box>
           
-          {
-            flattenedSupplySummary &&
-            <BomMaterialSupplySummarySection
-              summary={flattenedSupplySummary}
-              suppliers={supplySummary.suppliers}
-              parts={supplySummary.parts}
-            />
-          }
+          {/* --- Supply Summary Section --- */}
+          <Box sx={{ mb: 3 }}>
+            {isSupplyLoading ? (
+              <Loading message="Loading supply summary..." />
+            ) : supplyError ? (
+              <ErrorMessage message={supplyError ?? 'Failed to load BOM supply info.'} />
+            ) : hasSupplyData && flattenedSupplySummary ? (
+              <BomMaterialSupplySummarySection
+                isSupplyLoading={isSupplyLoading}
+                refreshMaterialSupply={refreshMaterialSupply}
+                summary={flattenedSupplySummary}
+                suppliers={supplySummary.suppliers}
+                parts={supplySummary.parts}
+              />
+            ) : (
+              <CustomTypography variant="body2" color="text.secondary">
+                No supply summary data available.
+              </CustomTypography>
+            )}
+          </Box>
           
-          {/* Bom Part Items */}
-          <BomDetailsTable
-            mergedData={mergedBomData}
-            itemCount={bomPartCount}
-          />
+          {/* --- BOM Details Table Section --- */}
+          <Box sx={{ mt: 4 }}>
+            {isBomLoading || isSupplyLoading ? (
+              <Loading message="Loading detailed records..." />
+            ) : bomDetailsError || supplyError ? (
+              <ErrorMessage
+                message={
+                  bomDetailsError ??
+                  supplyError ??
+                  'Failed to load BOM or supply details.'
+                }
+              />
+            ) : hasBomData && hasSupplyData && mergedBomData.length > 0 ? (
+              <BomDetailsTable mergedData={mergedBomData} itemCount={bomPartCount} />
+            ) : (
+              <CustomTypography variant="body2" color="text.secondary">
+                No merged detail data available.
+              </CustomTypography>
+            )}
+          </Box>
           
+          {/* --- Footer --- */}
           <Box mt={4} display="flex" justifyContent="flex-end" gap={2}>
-            <CustomButton
-              variant="contained"
-              color="info"
-              href={`/boms`}
-            >
+            <CustomButton variant="contained" color="info" href="/boms">
               Back to BOM List
             </CustomButton>
           </Box>

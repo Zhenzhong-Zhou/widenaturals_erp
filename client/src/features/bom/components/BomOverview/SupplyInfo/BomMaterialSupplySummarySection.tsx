@@ -17,8 +17,11 @@ import type {
   BomSupplierSummary,
   FlattenedBomMaterialSupplySummary
 } from '@features/bom/state';
+import { formatDateTime } from '@utils/dateTimeUtils';
 
 interface BomMaterialSupplySummarySectionProps {
+  isSupplyLoading: boolean;
+  refreshMaterialSupply: () => void;
   summary: FlattenedBomMaterialSupplySummary | null;
   suppliers: BomSupplierSummary[];
   parts: BomPartSummary[];
@@ -36,6 +39,8 @@ interface BomMaterialSupplySummarySectionProps {
  * />
  */
 const BomMaterialSupplySummarySection: FC<BomMaterialSupplySummarySectionProps> = ({
+                                                                                     isSupplyLoading,
+                                                                                     refreshMaterialSupply,
                                                                                      summary,
                                                                                      suppliers,
                                                                                      parts,
@@ -82,27 +87,56 @@ const BomMaterialSupplySummarySection: FC<BomMaterialSupplySummarySectionProps> 
   return (
     <Card sx={{ mb: 2 }}>
       <CardContent>
-        <DetailsSection sectionTitle="BOM Cost Overview" fields={fields} />
-        
-        <Box sx={{ mt: 2, textAlign: 'right' }}>
-          <CustomButton
-            size="small"
-            variant="outlined"
-            onClick={handleToggle}
-          >
-            {expanded ? 'Hide Details' : 'View More Details'}
-          </CustomButton>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            mb: 2,
+          }}
+        >
+          <CustomTypography variant="h6" fontWeight={600}>
+            BOM Cost Overview
+          </CustomTypography>
+          
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <CustomButton
+              size="small"
+              variant="outlined"
+              color="primary"
+              onClick={refreshMaterialSupply}
+              disabled={isSupplyLoading}
+            >
+              {isSupplyLoading ? 'Refreshing...' : 'Refresh Supply'}
+            </CustomButton>
+            <CustomButton
+              size="small"
+              variant="outlined"
+              onClick={handleToggle}
+            >
+              {expanded ? 'Hide Details' : 'View Details'}
+            </CustomButton>
+          </Box>
         </Box>
+        
+        <DetailsSection fields={fields} />
+        <CustomTypography
+          variant="caption"
+          color="text.secondary"
+          sx={{ mt: 1, display: 'block', textAlign: 'right' }}
+        >
+          Last refreshed: {formatDateTime(new Date())}
+        </CustomTypography>
         
         <Collapse in={expanded} timeout="auto" unmountOnExit>
           <Divider sx={{ my: 2 }} />
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <CustomTypography variant="body1" color="text.secondary">
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, p: 1 }}>
+            <CustomTypography variant="subtitle1" fontWeight={600}>
               Supplier Breakdown
             </CustomTypography>
             <BomSupplierBreakdownMiniTable data={suppliers} />
             
-            <CustomTypography variant="body1" color="text.secondary">
+            <CustomTypography variant="subtitle1" fontWeight={600}>
               Part Breakdown
             </CustomTypography>
             <BomPartBreakdownMiniTable data={parts} />

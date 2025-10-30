@@ -21,8 +21,6 @@ interface BomDetailsTableProps {
   loading?: boolean;
   /** Total number of BOM items (used for single-page pagination). */
   itemCount: number;
-  
-  // todo: loading?
 }
 
 /**

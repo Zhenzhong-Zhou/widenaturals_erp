@@ -1,9 +1,10 @@
 import type { FC } from 'react';
-import Section from '@components/layout/Section.tsx';
-import DetailsGrid, { DetailsGridItem } from '@components/layout/DetailsGrid.tsx';
-import MemoizedDetailsSection from '@components/common/DetailsSection.tsx';
+import Section from '@components/layout/Section';
+import DetailsGrid, { DetailsGridItem } from '@components/layout/DetailsGrid';
+import MemoizedDetailsSection from '@components/common/DetailsSection';
 import type { FlattenedBomHeader } from '@features/bom/state';
-import { formatLabel } from '@utils/textUtils.ts';
+import { formatLabel } from '@utils/textUtils';
+import { formatToISODate } from '@utils/dateTimeUtils';
 
 interface BomHeaderSectionProps {
   flattened: FlattenedBomHeader;
@@ -50,8 +51,8 @@ const BomHeaderSection: FC<BomHeaderSectionProps> = ({ flattened }) => {
             fields={[
               { label: 'Type', value: flattened.complianceType || '—' },
               { label: 'Number', value: flattened.complianceNumber || '—' },
-              { label: 'Status', value: flattened.complianceStatus || '—' },
-              { label: 'Issued Date', value: flattened.complianceIssuedDate || '—' },
+              { label: 'Status', value: flattened.complianceStatus || '—', format: formatLabel },
+              { label: 'Issued Date', value: flattened.complianceIssuedDate || '—', format: formatToISODate },
             ]}
           />
         </DetailsGridItem>
@@ -64,7 +65,7 @@ const BomHeaderSection: FC<BomHeaderSectionProps> = ({ flattened }) => {
               { label: 'BOM Name', value: flattened.bomName || '—' },
               { label: 'BOM Code', value: flattened.bomCode || '—' },
               { label: 'Revision', value: flattened.bomRevision || '—' },
-              { label: 'Status', value: formatLabel(flattened.bomStatus )|| '—' },
+              { label: 'Status', value: formatLabel(flattened.bomStatus )|| '—', format: formatLabel },
             ]}
           />
         </DetailsGridItem>
@@ -76,8 +77,8 @@ const BomHeaderSection: FC<BomHeaderSectionProps> = ({ flattened }) => {
             fields={[
               { label: 'Created By', value: flattened.bomCreatedBy || '—' },
               { label: 'Updated By', value: flattened.bomUpdatedBy || '—' },
-              { label: 'Created At', value: flattened.bomCreatedAt || '—' },
-              { label: 'Updated At', value: flattened.bomUpdatedAt || '—' },
+              { label: 'Created At', value: flattened.bomCreatedAt || '—', format: formatToISODate },
+              { label: 'Updated At', value: flattened.bomUpdatedAt || '—', format: formatToISODate },
             ]}
           />
         </DetailsGridItem>
