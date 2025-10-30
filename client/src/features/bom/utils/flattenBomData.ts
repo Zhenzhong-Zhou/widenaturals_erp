@@ -1,5 +1,5 @@
 import type {
-  BomAudit,
+  AuditRecord,
   BomListItem, BomStatus,
   BomRow, ComplianceInfo,
   FlattenedBomRecord,
@@ -27,7 +27,7 @@ export const flattenBomRecords = (records: BomListItem[]): FlattenedBomRecord[] 
     const sku = record.sku ?? ({} as SkuSummary);
     const bom = record.bom ?? ({} as BomRow);
     
-    const audit = bom.audit ?? ({} as BomAudit);
+    const audit = bom.audit ?? ({} as AuditRecord);
     const status = bom.status ?? ({} as BomStatus);
     const compliance = sku.compliance ?? ({} as ComplianceInfo);
     

@@ -10,9 +10,23 @@ import CustomButton from '@components/common/CustomButton';
 import GoBackButton from '@components/common/GoBackButton';
 import ErrorMessage from '@components/common/ErrorMessage';
 import Loading from '@components/common/Loading';
-import { BomHeaderSection, BomSummarySection, BomDetailsTable } from '@features/bom/components/BomOverview';
+import {
+  BomHeaderSection,
+  BomSummarySection,
+  BomDetailsTable,
+  BomMaterialSupplySummarySection
+} from '@features/bom/components/BomOverview';
 import useBomDetails from '@hooks/useBomDetails';
-import { flattenBomDetails, flattenBomHeader, flattenBomSummary } from '@features/bom/utils/flattenBomOverview';
+import {
+  flattenAllBomMaterialSupplyDetails,
+  flattenBomDetails,
+  flattenBomHeader,
+  flattenBomMaterialSupplySummary,
+  flattenBomSummary,
+} from '@features/bom/utils/flattenBomOverview';
+import useBomMaterialSupplyDetails from '@hooks/useBomMaterialSupplyDetails';
+import { mergeBomDetailsWithSupplyDetails } from '@features/bom/utils/mergeBomOverviewData';
+
 
 const BomOverviewPage = () => {
   const { bomId } = useParams<{ bomId: string }>();
@@ -28,6 +42,18 @@ const BomOverviewPage = () => {
     reset: resetBomDetails,
   } = useBomDetails();
   
+  const {
+    loading: isSupplyLoading,
+    error: supplyError,
+    summary: supplySummary,
+    details: supplyDetails,
+    hasData: hasSupplyData,
+    costOverview: supplyCostOverview,
+    selectedBomId: activeBomId,
+    fetchDetails: fetchBomSupplyDetails,
+    resetDetails: resetBomSupplyDetails,
+  } = useBomMaterialSupplyDetails();
+  
   // === Early Bailouts ===
   if (!bomId) {
     return <ErrorMessage message="Missing bom ID in URL." />;
@@ -35,17 +61,26 @@ const BomOverviewPage = () => {
   if (bomDetailsError) {
     return <ErrorMessage message={bomDetailsError ?? 'Failed to load boms details.'} />;
   }
-  
-  // === Fetch & Refresh Logic ===
-  const refresh = useCallback(() => {
+
+  // === Fetch & Refresh Logic: BOM Details ===
+  const refreshOverview = useCallback(() => {
     if (bomId) fetchBomDetails(bomId);
   }, [bomId, fetchBomDetails]);
   
   useEffect(() => {
-    refresh();
-    
+    refreshOverview();
     return () => resetBomDetails();
-  }, [refresh, resetBomDetails]);
+  }, [refreshOverview, resetBomDetails]);
+
+  // === Fetch & Refresh Logic: BOM Material Supply Details ===
+  const refreshMaterialSupply = useCallback(() => {
+    if (bomId) fetchBomSupplyDetails(bomId);
+  }, [bomId, fetchBomSupplyDetails]);
+  
+  useEffect(() => {
+    refreshMaterialSupply();
+    return () => resetBomSupplyDetails();
+  }, [refreshMaterialSupply, resetBomSupplyDetails]);
   
   const flattenedHeader = useMemo(() => {
     return bomDetails ? flattenBomHeader(bomDetails.header) : null;
@@ -59,10 +94,19 @@ const BomOverviewPage = () => {
     return bomDetails ? flattenBomDetails(bomDetails.details) : null;
   }, [bomDetails]);
   
-  console.log(bomDetails)
-  console.log(bomPartCount)
-  console.log(hasBomData)
-  console.log(flattenedDetails)
+  const flattenedSupplySummary = useMemo(() => {
+    return supplySummary ? flattenBomMaterialSupplySummary(supplySummary) : null;
+  }, [supplySummary]);
+  
+  const flattenedSupplyDetails = useMemo(() => {
+    return supplyDetails ? flattenAllBomMaterialSupplyDetails(supplyDetails) : null;
+  }, [supplyDetails]);
+  
+  const mergedBomData = useMemo(() => {
+    return flattenedDetails && flattenedSupplyDetails
+      ? mergeBomDetailsWithSupplyDetails(flattenedDetails, flattenedSupplyDetails)
+      : [];
+  }, [flattenedDetails, flattenedSupplyDetails]);
   
   // === Loading State ===
   if (
@@ -113,7 +157,7 @@ const BomOverviewPage = () => {
             </CustomTypography>
             
             <Stack direction="row" spacing={2} alignItems="center">
-              <CustomButton onClick={refresh}>Refresh BOm Details</CustomButton>
+              <CustomButton onClick={refreshOverview}>Refresh BOm Details</CustomButton>
             </Stack>
           </Box>
           
@@ -124,8 +168,20 @@ const BomOverviewPage = () => {
           
           {flattenedSummary && <BomSummarySection flattenedSummary={flattenedSummary} />}
           
-          {/* Allocation Items */}
-          <BomDetailsTable data={flattenedDetails} itemCount={bomPartCount} />
+          {
+            flattenedSupplySummary &&
+            <BomMaterialSupplySummarySection
+              summary={flattenedSupplySummary}
+              suppliers={supplySummary.suppliers}
+              parts={supplySummary.parts}
+            />
+          }
+          
+          {/* Bom Part Items */}
+          <BomDetailsTable
+            mergedData={mergedBomData}
+            itemCount={bomPartCount}
+          />
           
           <Box mt={4} display="flex" justifyContent="flex-end" gap={2}>
             <CustomButton
@@ -136,12 +192,10 @@ const BomOverviewPage = () => {
               Back to BOM List
             </CustomButton>
           </Box>
-          
         </CardContent>
       </Card>
     </Box>
   );
-  
 };
 
 export default BomOverviewPage;

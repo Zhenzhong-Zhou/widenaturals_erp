@@ -1,5 +1,5 @@
 import type {
-  BomDetailsResponse,
+  BomDetailsResponse, BomMaterialSupplyDetailsResponse,
   FetchBomsParams,
   FetchPaginatedBomsResponse,
 } from '@features/bom/state/bomTypes';
@@ -82,7 +82,41 @@ const fetchBomDetails = async (
   }
 };
 
+/**
+ * Fetch material supply details for a specific BOM.
+ *
+ * Issues `GET /bom-items/:bomId/material-supply` to retrieve
+ * the full supplier, cost, and batch breakdown for all BOM items.
+ *
+ * Notes:
+ * - Returns summary totals (per supplier and part) and detailed
+ *   material-level data including contracts, exchange rates, and batches.
+ * - Used by the BOM Material Supply Details page and cost analysis views.
+ *
+ * @param bomId - The unique identifier of the BOM whose supply details to fetch.
+ * @returns A promise resolving to {@link BomMaterialSupplyDetailsResponse} containing
+ *          summary and detailed material cost structures.
+ * @throws Rethrows any network or parsing error encountered during the request.
+ *
+ * @example
+ * const res = await bomService.fetchBomMaterialSupplyDetails('cbbf2680-2730-4cb1-a38e-ce32f93609c1');
+ * console.log(res.data.summary.totals.totalEstimatedCost);
+ */
+const fetchBomMaterialSupplyDetails = async (
+  bomId: string
+): Promise<BomMaterialSupplyDetailsResponse> => {
+  const url = API_ENDPOINTS.BOMS.BOM_MATERIAL_SUPPLY_DETAILS(bomId);
+  
+  try {
+    return await getRequest<BomMaterialSupplyDetailsResponse>(url);
+  } catch (error) {
+    console.error('Failed to fetch BOM Material Supply Details:', { bomId, error });
+    throw error;
+  }
+};
+
 export const bomService = {
   fetchPaginatedBoms,
   fetchBomDetails,
+  fetchBomMaterialSupplyDetails,
 };

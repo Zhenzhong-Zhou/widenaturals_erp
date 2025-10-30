@@ -1,10 +1,14 @@
 import type {
   BomHeader,
+  BomMaterialSupplyDetail,
+  BomMaterialSupplySummary,
   BomPartDetail,
   BomSummary,
   FlattenedBomDetailRow,
   FlattenedBomHeader,
+  FlattenedBomMaterialSupplySummary,
   FlattenedBomSummary,
+  FlattenedBomSupplyRow,
 } from '@features/bom/state/bomTypes';
 
 /**
@@ -164,4 +168,171 @@ export const flattenBomSummary = (summary: BomSummary | null): FlattenedBomSumma
     summaryCurrency: summary.currency ?? null,
     summaryItemCount: summary.itemCount ?? null,
   };
+};
+
+/**
+ * Flattens a nested BOM Material Supply Summary response into a
+ * simplified, UI-friendly structure for overview panels and dashboards.
+ *
+ * Keeps nested `suppliers` and `parts` arrays intact so that
+ * mini-tables can still render their detailed breakdowns.
+ *
+ * @param summary - The nested summary object returned from the API.
+ * @returns Flattened summary object with derived metrics and preserved sub-structures.
+ */
+export const flattenBomMaterialSupplySummary = (
+  summary: BomMaterialSupplySummary
+): FlattenedBomMaterialSupplySummary => {
+  const {
+    bomId,
+    baseCurrency,
+    totals: { totalEstimatedCost, totalActualCost, variance, variancePercentage },
+    suppliers = [],
+    parts = [],
+  } = summary;
+  
+  const supplierCount = suppliers.length;
+  const partCount = parts.length;
+  
+  return {
+    bomId,
+    baseCurrency,
+    totalEstimatedCost,
+    totalActualCost,
+    variance,
+    variancePercentage,
+    supplierCount,
+    partCount,
+  };
+};
+
+/**
+ * Flattens a nested BOM Material Supply Detail into an array of
+ * table-friendly supply records, one per supplier batch.
+ */
+export const flattenBomMaterialSupplyDetail = (
+  detail: BomMaterialSupplyDetail
+): FlattenedBomSupplyRow[] => {
+  const { bomId, bomItemId, part, bomItemMaterial, packagingMaterials } = detail;
+  
+  if (!packagingMaterials?.length) return [];
+  
+  const rows: FlattenedBomSupplyRow[] = [];
+  
+  for (const material of packagingMaterials) {
+    const { supplier, status: materialStatus, audit: materialAudit, dimensions, ...mat } = material;
+    if (!supplier) continue;
+    
+    const { contract, batches, audit: supplierAudit } = supplier;
+    if (!batches?.length) continue;
+    
+    for (const batch of batches) {
+      const { status: batchStatus, audit: batchAudit } = batch;
+      
+      rows.push({
+        // --- BOM & Part Metadata ---
+        bomId,
+        bomItemId,
+        partId: part.id,
+        partName: part.name,
+        
+        // --- BOM Item Material Info ---
+        bomItemMaterialId: bomItemMaterial.id,
+        requiredQtyPerProduct: bomItemMaterial.requiredQtyPerProduct,
+        bomUnit: bomItemMaterial.unit,
+        materialNote: bomItemMaterial.note ?? null,
+        bomItemMaterialStatusName: bomItemMaterial.status.name,
+        bomItemMaterialStatusDate: bomItemMaterial.status.date,
+        bomItemMaterialCreatedAt: bomItemMaterial.createdAt,
+        bomItemMaterialCreatedBy: bomItemMaterial.createdBy?.name,
+        bomItemMaterialUpdatedAt: bomItemMaterial.updatedAt,
+        bomItemMaterialUpdatedBy: bomItemMaterial.updatedBy
+          ? bomItemMaterial.updatedBy.name
+          : null,
+        
+        // --- Packaging Material Info ---
+        packagingMaterialId: mat.id,
+        packagingMaterialName: mat.name,
+        packagingMaterialCode: mat.code,
+        materialComposition: mat.materialComposition ?? null,
+        category: mat.category,
+        color: mat.color ?? null,
+        size: mat.size ?? null,
+        grade: mat.grade ?? null,
+        estimatedUnitCost: mat.estimatedUnitCost,
+        materialCurrency: mat.currency,
+        materialExchangeRate: mat.exchangeRate,
+        isVisibleForSalesOrder: mat.isVisibleForSalesOrder,
+        packagingMaterialLengthCm: dimensions?.length_cm ?? 0,
+        packagingMaterialWidthCm: dimensions?.width_cm ?? 0,
+        packagingMaterialHeightCm: dimensions?.height_cm ?? 0,
+        packagingMaterialWeightG: dimensions?.weight_g ?? 0,
+        packagingMaterialLengthInch: dimensions?.length_inch ?? 0,
+        packagingMaterialWidthInch: dimensions?.width_inch ?? 0,
+        packagingMaterialHeightInch: dimensions?.height_inch ?? 0,
+        packagingMaterialWeightLbs: dimensions?.weight_lb ?? 0,
+        packagingMaterialStatusName: materialStatus.name,
+        packagingMaterialStatusDate: materialStatus.date,
+        packagingMaterialCreatedAt: materialAudit.createdAt,
+        packagingMaterialCreatedBy: materialAudit.createdBy.name,
+        packagingMaterialUpdatedAt: materialAudit.updatedAt,
+        packagingMaterialUpdatedBy: materialAudit.updatedBy
+          ? materialAudit.updatedBy.name
+          : null,
+        
+        // --- Supplier Info ---
+        supplierId: supplier.id,
+        supplierName: supplier.name,
+        supplierContractUnitCost: contract.unitCost,
+        supplierContractCurrency: contract.currency,
+        supplierContractExchangeRate: contract.exchangeRate,
+        supplierContractValidFrom: contract.validFrom,
+        supplierContractValidTo: contract.validTo,
+        supplierLeadTimeDays: contract.leadTimeDays ?? null,
+        supplierPreferred: contract.isPreferred,
+        supplierNote: contract.note ?? null,
+        supplierCreatedAt: supplierAudit.createdAt,
+        supplierCreatedBy: supplierAudit.createdBy.name,
+        supplierUpdatedAt: supplierAudit.updatedAt,
+        supplierUpdatedBy: supplierAudit.updatedBy
+          ? supplierAudit.updatedBy.name
+          : null,
+        
+        // --- Batch Info ---
+        batchId: batch.id,
+        lotNumber: batch.lotNumber,
+        materialSnapshotName: batch.materialSnapshotName,
+        receivedLabelName: batch.receivedLabelName,
+        unitCost: batch.unitCost,
+        quantity: batch.quantity,
+        batchUnit: batch.unit,
+        batchCurrency: batch.currency,
+        batchExchangeRate: batch.exchangeRate,
+        totalCost: batch.totalCost,
+        manufactureDate: batch.manufactureDate,
+        expiryDate: batch.expiryDate,
+        batchStatusName: batchStatus.name,
+        batchStatusDate: batchStatus.date,
+        batchCreatedAt: batchAudit.createdAt,
+        batchCreatedBy: batchAudit.createdBy.name,
+        batchUpdatedAt: batchAudit.updatedAt,
+        batchUpdatedBy: batchAudit.updatedBy
+          ? batchAudit.updatedBy.name
+          : null,
+      });
+    }
+  }
+  
+  return rows;
+};
+
+/**
+ * Flattens an array of BOM Material Supply Details into a single
+ * flattened dataset (one row per supplier batch).
+ */
+export const flattenAllBomMaterialSupplyDetails = (
+  details: BomMaterialSupplyDetail[]
+): FlattenedBomSupplyRow[] => {
+  if (!Array.isArray(details)) return [];
+  return details.flatMap(flattenBomMaterialSupplyDetail);
 };

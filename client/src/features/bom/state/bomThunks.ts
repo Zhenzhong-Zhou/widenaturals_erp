@@ -1,5 +1,10 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import type { BomDetailsResponse, FetchBomsParams, FetchPaginatedBomsResponse } from '@features/bom/state/bomTypes';
+import type {
+  BomDetailsResponse,
+  BomMaterialSupplyDetailsResponse,
+  FetchBomsParams,
+  FetchPaginatedBomsResponse,
+} from '@features/bom/state/bomTypes';
 import { bomService } from '@services/bomService';
 
 /**
@@ -60,6 +65,38 @@ export const fetchBomDetailsThunk = createAsyncThunk<
         error?.message ||
         'Failed to load BOM details.';
       return rejectWithValue(message);
+    }
+  }
+);
+
+/**
+ * Thunk: Fetch material supply details for a specific BOM.
+ *
+ * Dispatches an async request to load detailed supplier, cost,
+ * and batch breakdowns for all BOM items.
+ *
+ * Notes:
+ * - Uses `bomService.fetchBomMaterialSupplyDetails(bomId)` to call the API.
+ * - Returns full structured response with summary and detailed sections.
+ * - Consumed by BOM Material Supply Details UI and cost analysis modules.
+ *
+ * @param bomId - The unique BOM identifier to fetch material supply details for.
+ * @returns A fulfilled action with {@link BomMaterialSupplyDetailsResponse}.
+ *
+ * @example
+ * dispatch(fetchBomMaterialSupplyDetailsThunk('cbbf2680-2730-4cb1-a38e-ce32f93609c1'));
+ */
+export const fetchBomMaterialSupplyDetailsThunk = createAsyncThunk<
+  BomMaterialSupplyDetailsResponse,
+  string
+>(
+  'bom/fetchBomMaterialSupplyDetails',
+  async (bomId, { rejectWithValue }) => {
+    try {
+      return await bomService.fetchBomMaterialSupplyDetails(bomId);
+    } catch (error: any) {
+      console.error('Failed to fetch BOM Material Supply Details:', { bomId, error });
+      return rejectWithValue(error.response?.data ?? error.message);
     }
   }
 );
