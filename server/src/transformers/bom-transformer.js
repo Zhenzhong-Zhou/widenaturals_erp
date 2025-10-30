@@ -347,7 +347,7 @@ const transformBomDetails = (rows = []) => {
           createdAt: headerRow.bom_created_at,
           createdBy: {
             id: headerRow.bom_created_by,
-            fullName: getFullName(
+            name: getFullName(
               headerRow.bom_created_by_firstname,
               headerRow.bom_created_by_lastname
             ),
@@ -355,7 +355,7 @@ const transformBomDetails = (rows = []) => {
           updatedAt: headerRow.bom_updated_at,
           updatedBy: {
             id: headerRow.bom_updated_by,
-            fullName: getFullName(
+            name: getFullName(
               headerRow.bom_updated_by_firstname,
               headerRow.bom_updated_by_lastname
             ),
@@ -392,7 +392,7 @@ const transformBomDetails = (rows = []) => {
           createdAt: r.bom_item_created_at,
           createdBy: {
             id: r.bom_item_created_by,
-            fullName: getFullName(
+            name: getFullName(
               r.bom_item_created_by_firstname,
               r.bom_item_created_by_lastname
             ),
@@ -400,7 +400,7 @@ const transformBomDetails = (rows = []) => {
           updatedAt: r.bom_item_updated_at,
           updatedBy: {
             id: r.bom_item_updated_by,
-            fullName: getFullName(
+            name: getFullName(
               r.bom_item_updated_by_firstname,
               r.bom_item_updated_by_lastname
             ),
@@ -492,7 +492,7 @@ const transformBomDetails = (rows = []) => {
  * This structured format is ideal for API responses, UI rendering,
  * and internal BOM readiness analysis.
  *
- * @function transformBOMProductionSummaryRows
+ * @function
  * @param {BOMProductionSummaryRow[]} rows - Raw rows returned from `getBOMProductionSummary`.
  * @returns {BOMPartSummary[]} Array of structured BOM production summary objects.
  *

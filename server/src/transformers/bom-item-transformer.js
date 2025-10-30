@@ -11,6 +11,8 @@
  *  - Cost and status enrichment for reporting and analytics
  */
 
+const { getFullName } = require('../utils/name-utils');
+
 /**
  * @typedef {Object} RawBOMRow
  * @property {string} bom_id
@@ -25,8 +27,10 @@
  * @property {string|null} bom_item_material_status_id
  * @property {string|null} bom_item_material_status
  * @property {Date|null} bom_item_material_status_date
+ * @property {Date|null} bom_item_material_created_by
  * @property {string|null} bom_item_material_created_firstname
  * @property {string|null} bom_item_material_created_lastname
+ * @property {Date|null} bom_item_material_updated_by
  * @property {string|null} bom_item_material_updated_firstname
  * @property {string|null} bom_item_material_updated_lastname
  * @property {Date|null} bom_item_material_created_at
@@ -49,11 +53,17 @@
  * @property {number|null} width_cm
  * @property {number|null} height_cm
  * @property {number|null} weight_g
+ * @property {number|null} length_inch
+ * @property {number|null} width_inch
+ * @property {number|null} height_inch
+ * @property {number|null} weight_lb
  * @property {string|null} packaging_material_status_id
  * @property {string|null} packaging_material_status
  * @property {Date|null} packaging_material_status_date
+ * @property {Date|null} packaging_material_created_by
  * @property {string|null} packaging_material_created_firstname
  * @property {string|null} packaging_material_created_lastname
+ * @property {Date|null} packaging_material_updated_by
  * @property {string|null} packaging_material_updated_firstname
  * @property {string|null} packaging_material_updated_lastname
  * @property {Date|null} packaging_material_created_at
@@ -69,8 +79,10 @@
  * @property {boolean|null} is_preferred
  * @property {number|null} lead_time_days
  * @property {string|null} supplier_note
+ * @property {Date|null} supplier_link_created_by
  * @property {string|null} supplier_link_created_firstname
  * @property {string|null} supplier_link_created_lastname
+ * @property {string|null} supplier_link_updated_by
  * @property {string|null} supplier_link_updated_firstname
  * @property {string|null} supplier_link_updated_lastname
  * @property {Date|null} supplier_link_created_at
@@ -91,8 +103,10 @@
  * @property {string|null} batch_status_id
  * @property {string|null} batch_status
  * @property {Date|null} batch_status_date
+ * @property {Date|null} batch_created_by
  * @property {string|null} batch_created_firstname
  * @property {string|null} batch_created_lastname
+ * @property {string|null} batch_updated_by
  * @property {string|null} batch_updated_firstname
  * @property {string|null} batch_updated_lastname
  * @property {Date|null} batch_created_at
@@ -134,12 +148,18 @@ const transformBomMaterialSupplyDetails = (rows = []) => {
             date: row.bom_item_material_status_date,
           },
           createdBy: {
-            firstname: row.bom_item_material_created_firstname,
-            lastname: row.bom_item_material_created_lastname,
+            id: row.bom_item_material_created_by,
+            name: getFullName(
+              row.bom_item_material_created_firstname,
+              row.bom_item_material_created_lastname
+            ),
           },
           updatedBy: {
-            firstname: row.bom_item_material_updated_firstname,
-            lastname: row.bom_item_material_updated_lastname,
+            id: row.bom_item_material_updated_by,
+            name: getFullName(
+              row.bom_item_material_updated_firstname,
+              row.bom_item_material_updated_lastname,
+            ),
           },
           createdAt: row.bom_item_material_created_at,
           updatedAt: row.bom_item_material_updated_at,
@@ -168,6 +188,10 @@ const transformBomMaterialSupplyDetails = (rows = []) => {
         width_cm: Number(row.width_cm ?? 0),
         height_cm: Number(row.height_cm ?? 0),
         weight_g: Number(row.weight_g ?? 0),
+        length_inch: Number(row.length_inch ?? 0),
+        width_inch: Number(row.width_inch ?? 0),
+        height_inch: Number(row.height_inch ?? 0),
+        weight_lb: Number(row.weight_lb ?? 0),
       },
       status: {
         id: row.packaging_material_status_id,
@@ -176,12 +200,18 @@ const transformBomMaterialSupplyDetails = (rows = []) => {
       },
       audit: {
         createdBy: {
-          firstname: row.packaging_material_created_firstname,
-          lastname: row.packaging_material_created_lastname,
+          id: row.packaging_material_created_by,
+          name: getFullName(
+            row.packaging_material_created_firstname,
+            row.packaging_material_created_lastname,
+          ),
         },
         updatedBy: {
-          firstname: row.packaging_material_updated_firstname,
-          lastname: row.packaging_material_updated_lastname,
+          id: row.packaging_material_updated_by,
+          name: getFullName(
+            row.packaging_material_updated_firstname,
+            row.packaging_material_updated_lastname,
+          ),
         },
         createdAt: row.packaging_material_created_at,
         updatedAt: row.packaging_material_updated_at,
@@ -202,12 +232,18 @@ const transformBomMaterialSupplyDetails = (rows = []) => {
           },
           audit: {
             createdBy: {
-              firstname: row.supplier_link_created_firstname,
-              lastname: row.supplier_link_created_lastname,
+              id: row.supplier_link_created_by,
+              name: getFullName(
+                row.supplier_link_created_firstname,
+                row.supplier_link_created_lastname,
+              ),
             },
             updatedBy: {
-              firstname: row.supplier_link_updated_firstname,
-              lastname: row.supplier_link_updated_lastname,
+              id: row.supplier_link_updated_by,
+              name: getFullName(
+                row.supplier_link_updated_firstname,
+                row.supplier_link_updated_lastname,
+              ),
             },
             createdAt: row.supplier_link_created_at,
             updatedAt: row.supplier_link_updated_at,
@@ -239,12 +275,18 @@ const transformBomMaterialSupplyDetails = (rows = []) => {
         },
         audit: {
           createdBy: {
-            firstname: row.batch_created_firstname,
-            lastname: row.batch_created_lastname,
+            id: row.batch_created_by,
+            name: getFullName(
+              row.batch_created_firstname,
+              row.batch_created_lastname,
+            ),
           },
           updatedBy: {
-            firstname: row.batch_updated_firstname,
-            lastname: row.batch_updated_lastname,
+            id: row.batch_updated_by,
+            name: getFullName(
+              row.batch_updated_firstname,
+              row.batch_updated_lastname,
+            ),
           },
           createdAt: row.batch_created_at,
           updatedAt: row.batch_updated_at,

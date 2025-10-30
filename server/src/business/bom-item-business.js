@@ -3,25 +3,69 @@ const { logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
 /**
- * Business Logic: Calculate total BOM material cost summary (Option B: preferred supplier).
+ * Business Logic: Calculate total BOM material cost summary (Option B: preferred supplier mode).
  *
- * - Converts all costs into the system base currency.
- * - Resolves cost using this hierarchy:
- *   Batch → Preferred Supplier → Estimated Unit Cost.
- * - Aggregates totals by part and supplier (one supplier per part).
- * - Returns a BOM-level summary ready for reporting or roll-up costing.
+ * Computes per-BOM cost totals by resolving material, supplier, and part relationships.
+ * All costs are normalized into the system base currency and grouped for reporting.
  *
- * Future Extension (Option A):
- *   Expand this function to support multi-supplier cost aggregation
- *   and detailed analytics such as per-supplier or per-batch variance.
+ * **Cost Resolution Hierarchy:**
+ *   1. Batch cost (if available)
+ *   2. Preferred Supplier contract cost
+ *   3. Estimated unit cost from packaging material
  *
- * @param {string} bomId - The BOM ID being analyzed.
- * @param {Array<Object>} bomItems - Transformed BOM items (from transformer).
- * @param {string} [systemBaseCurrency='CAD'] - System base currency for normalization.
- * @param {Object} [options] - Optional settings.
- * @param {"preferred"|"aggregate"} [options.mode='preferred']
- *   Mode selector: 'preferred' (current Option B) or 'aggregate' (future Option A).
- * @returns {Object} BOM-level cost summary with totals, supplier totals, and part totals.
+ * **Aggregations:**
+ *   - Total BOM-level estimated and actual costs
+ *   - Supplier-level totals (one preferred supplier per part)
+ *   - Part-level totals including display and material names
+ *
+ * **Enhancements in this version:**
+ *   - Adds supplier and part name resolution for UI display
+ *   - Includes fallback handling for missing suppliers or parts
+ *   - Produces structured output ready for frontend summary tables
+ *   - Supports “preferred” or “aggregate” mode selection for future Option A expansion
+ *
+ * **Future Extension (Option A):**
+ *   Enable multi-supplier cost aggregation and per-batch variance analytics.
+ *
+ * @param {string} bomId
+ *   The BOM identifier being analyzed.
+ * @param {Array<Object>} bomItems
+ *   Transformed BOM item list (from transformer).
+ * @param {string} [systemBaseCurrency='CAD']
+ *   System base currency used for normalization.
+ * @param {Object} [options]
+ *   Optional calculation settings.
+ * @param {'preferred'|'aggregate'} [options.mode='preferred']
+ *   Mode selector:
+ *     - `'preferred'` → Uses one preferred or first supplier per part (current behavior)
+ *     - `'aggregate'` → Reserved for future multi-supplier support.
+ *
+ * @returns {{
+ *   bomId: string;
+ *   baseCurrency: string;
+ *   totals: {
+ *     totalEstimatedCost: number;
+ *     totalActualCost: number;
+ *     variance: number;
+ *     variancePercentage: number;
+ *   };
+ *   suppliers: {
+ *     id: string;
+ *     name: string;
+ *     supplierTotalActualCost: number;
+ *   }[];
+ *   parts: {
+ *     partId: string;
+ *     partName: string;
+ *     materialName: string | null;
+ *     displayName: string | null;
+ *     partTotalContractCost: number;
+ *   }[];
+ * }}
+ *   A structured cost summary containing overall totals, supplier totals, and part totals.
+ *
+ * @throws {AppError}
+ *   Throws a business error if supplier, batch, or currency data are missing or inconsistent.
  */
 const calculateBomMaterialCostsBusiness = (
   bomId,
@@ -103,15 +147,29 @@ const calculateBomMaterialCostsBusiness = (
     }
     
     // --- Structured summary output ---
-    const suppliers = Array.from(supplierTotals.entries()).map(([id, totalCost]) => ({
-      id,
-      totalCost: round(totalCost),
-    }));
+    const suppliers = Array.from(supplierTotals.entries()).map(([id, totalCost]) => {
+      const supplier = bomItems
+        .flatMap((b) => b.packagingMaterials)
+        .map((m) => m.supplier)
+        .find((s) => s?.id === id);
+      return {
+        id,
+        name: supplier?.name || 'Unknown Supplier',
+        supplierTotalActualCost: round(totalCost),
+      };
+    });
     
-    const parts = Array.from(partTotals.entries()).map(([partId, totalCost]) => ({
-      partId,
-      totalCost: round(totalCost),
-    }));
+    const parts = Array.from(partTotals.entries()).map(([partId, totalCost]) => {
+      const bomItem = bomItems.find((b) => b.part?.id === partId);
+      const mainMaterial = bomItem?.packagingMaterials?.[0];
+      return {
+        partId,
+        partName: bomItem?.part?.name || 'Unknown Part',
+        materialName: mainMaterial?.name || null,
+        displayName: mainMaterial?.name || bomItem?.part?.name,
+        partTotalContractCost: round(totalCost),
+      };
+    });
     
     return {
       bomId,
