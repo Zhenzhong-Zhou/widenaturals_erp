@@ -814,3 +814,127 @@ export interface BomItemWithSupply {
   details: FlattenedBomDetailRow;
   supplyDetails: FlattenedBomSupplyRow[];
 }
+
+/** Root response structure for BOM Production Readiness Summary */
+export type BomProductionReadinessResponse = ApiSuccessResponse<BomProductionReadinessData>;
+
+
+/** Core data object containing metadata and part-level readiness details */
+export interface BomProductionReadinessData {
+  bomId: string;
+  metadata: BomReadinessMetadata;
+  parts: BomReadinessPart[];
+}
+
+/** Metadata section summarizing overall readiness and production capacity */
+export interface BomReadinessMetadata {
+  /** Timestamp when readiness was calculated */
+  generatedAt: string;
+  /** Whether all required parts have sufficient stock to start production */
+  isReadyForProduction: boolean;
+  /** Maximum number of finished units producible given current stock */
+  maxProducibleUnits: number;
+  /** Parts that limit production output (lowest availability) */
+  bottleneckParts: BomBottleneckPart[];
+  /** Aggregated stock health summary */
+  stockHealth: StockHealth;
+  /** Total count of parts currently in shortage */
+  shortageCount: number;
+}
+
+/**
+ * Represents a part identified as a bottleneck for BOM production readiness.
+ * Includes enriched display and material metadata for UI and reporting.
+ */
+export interface BomBottleneckPart {
+  /** Unique identifier of the part */
+  partId: string;
+  
+  /** Human-readable part name (e.g., "Bottle", "Capsule") */
+  partName: string;
+  
+  /** Related packaging material name, if available (e.g., "250ml Plastic Bottle") */
+  packagingMaterialName: string | null;
+  
+  /** Snapshot or version name of the material record, if applicable */
+  materialSnapshotName: string | null;
+  
+  /** Human-readable display label, typically from received label or fallback to partName */
+  displayLabel: string;
+}
+
+/** Indicates overall usable vs inactive inventory across all parts */
+export interface StockHealth {
+  usable: number;
+  inactive: number;
+}
+
+/** Detailed readiness record for each BOM part and its associated material batches */
+export interface BomReadinessPart {
+  partId: string;
+  partName: string;
+  /** Quantity of this part required per finished product unit */
+  requiredQtyPerUnit: number;
+  /** Total quantity of the part available in stock */
+  totalAvailableQuantity: number;
+  /** Maximum producible finished units constrained by this part */
+  maxProducibleUnits: number;
+  /** Whether the part is currently in shortage */
+  isShortage: boolean;
+  /** Quantity shortfall, if any */
+  shortageQty: number;
+  /** Material batches linked to this part */
+  materialBatches: MaterialBatch[];
+  /** Whether this part is the bottleneck limiting production */
+  isBottleneck: boolean;
+}
+
+/** Represents an available batch of a specific packaging material or component */
+export interface MaterialBatch {
+  materialName: string;
+  materialSnapshotName: string;
+  receivedLabelName: string;
+  lotNumber: string;
+  batchQuantity: number;
+  warehouseQuantity: number;
+  reservedQuantity: number;
+  availableQuantity: number;
+  /** Inventory status (e.g., 'in_stock', 'reserved', 'inactive') */
+  inventoryStatus: string;
+  warehouseName: string;
+  supplierName: string;
+  inboundDate: string;
+  lastUpdate: string;
+}
+
+/**
+ * Represents the Redux slice state for **BOM Production Readiness Summary**.
+ *
+ * Tracks API loading status, potential errors, and the full readiness summary
+ * payload from `fetchBomProductionSummaryThunk`.
+ *
+ * Used by:
+ * - BOM Production Summary Page
+ * - Production Planning and Readiness dashboards
+ * - Manufacturing Preparation / Readiness Reports
+ */
+export interface BomProductionReadinessState
+  extends AsyncState<BomProductionReadinessResponse | null> {
+  /**
+   * The currently selected BOM ID whose readiness summary is being viewed.
+   * Helps maintain UI context between BOM overview and readiness pages.
+   */
+  selectedBomId: string | null;
+  
+  /**
+   * Indicates whether the current BOM is production-ready,
+   * derived from the response metadata for quick reference.
+   */
+  isReadyForProduction: boolean;
+  
+  /**
+   * Tracks the total number of parts currently identified as bottlenecks.
+   * Useful for alerting and readiness score calculations.
+   */
+  bottleneckCount: number;
+}

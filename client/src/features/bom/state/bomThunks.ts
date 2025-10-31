@@ -2,6 +2,7 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
   BomDetailsResponse,
   BomMaterialSupplyDetailsResponse,
+  BomProductionReadinessResponse,
   FetchBomsParams,
   FetchPaginatedBomsResponse,
 } from '@features/bom/state/bomTypes';
@@ -97,6 +98,63 @@ export const fetchBomMaterialSupplyDetailsThunk = createAsyncThunk<
     } catch (error: any) {
       console.error('Failed to fetch BOM Material Supply Details:', { bomId, error });
       return rejectWithValue(error.response?.data ?? error.message);
+    }
+  }
+);
+
+/**
+ * Thunk to fetch the **BOM Production Readiness Summary** for a given BOM.
+ *
+ * **Overview:**
+ * - Invokes {@link bomService.fetchBomProductionSummary} to retrieve production readiness data
+ *   including overall producibility metrics, bottleneck parts, stock health, and detailed
+ *   material batch availability for each part.
+ * - Provides the core readiness data used by the BOM Production Summary view and
+ *   production planning dashboards.
+ * - Automatically manages async loading and error states through the Redux slice.
+ *
+ * **Dispatch Example:**
+ * ```ts
+ * dispatch(fetchBomProductionSummaryThunk(bomId));
+ * ```
+ *
+ * **Returned Data Includes:**
+ * - `metadata`: Global readiness metrics (e.g., `maxProducibleUnits`, `isReadyForProduction`).
+ * - `parts`: Per-part details, including shortages, bottlenecks, and material batches.
+ *
+ * **Error Handling:**
+ * - Rejects with a structured `{ message, status }` payload for consistent error reporting.
+ * - Errors are logged with contextual metadata for diagnostics.
+ *
+ * **Related Files:**
+ * - Service: `bomService.fetchBomProductionSummary`
+ * - Slice: `bomProductionReadinessSlice.ts`
+ * - Types: `BomProductionReadinessResponse`, `BomReadinessMetadata`, `BomReadinessPart`
+ */
+export const fetchBomProductionSummaryThunk = createAsyncThunk<
+  BomProductionReadinessResponse, // Return type (only data payload)
+  string,                                 // Argument type (bomId)
+  {
+    rejectValue: {
+      message: string;
+      status?: number;
+    };
+  }
+>(
+  'bom/fetchBomProductionSummary',
+  async (bomId, { rejectWithValue }) => {
+    try {
+      return await bomService.fetchBomProductionSummary(bomId);
+    } catch (error: any) {
+      console.error('❌ Failed to fetch BOM Production Summary:', error);
+      
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Failed to fetch BOM production summary.';
+      const status = error?.response?.status;
+      
+      return rejectWithValue({ message, status });
     }
   }
 );
