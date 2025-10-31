@@ -16,7 +16,13 @@ exports.up = async function (knex) {
       .notNullable()
       .references('id')
       .inTable('suppliers');
-
+    
+    table.decimal('contract_unit_cost', 12, 4);
+    table.string('currency', 5);
+    table.decimal('exchange_rate', 12, 6);
+    table.date('valid_from');
+    table.date('valid_to');
+    
     table.boolean('is_preferred').notNullable().defaultTo(false);
     table.integer('lead_time_days').nullable(); // Optional supplier-specific lead time
     table.text('note').nullable(); // Any remarks about this relationship

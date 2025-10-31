@@ -10,7 +10,7 @@ exports.seed = async function (knex) {
     .first();
   if (existing) {
     console.log(
-      '⚠️ Skipping seeding: `inventory_allocation_status` already has data.'
+      'Skipping seeding: `inventory_allocation_status` already has data.'
     );
     return;
   }
@@ -50,6 +50,12 @@ exports.seed = async function (knex) {
       is_final: false,
     },
     {
+      name: 'fulfilling',
+      code: 'ALLOC_FULFILLING',
+      description: 'Inventory is being picked, packed, or transferred (fulfillment in progress).',
+      is_final: false,
+    },
+    {
       name: 'fulfilled',
       code: 'ALLOC_FULFILLED',
       description:
@@ -82,7 +88,7 @@ exports.seed = async function (knex) {
     .ignore();
 
   console.log(
-    `✅ Seeded ${
+    `Seeded ${
       inserted?.rowCount || allocationStatuses.length
     } records into 'inventory_allocation_status'.`
   );

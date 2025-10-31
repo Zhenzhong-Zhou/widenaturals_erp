@@ -22,17 +22,16 @@ const { reviewInventoryAllocationService } = require('../../services/inventory-a
     const enrichedUser = { id: userId, role: roleId };
     
     // Step 2: Set test params
-    const orderId = '5e65fdbb-009b-4299-a374-3bdddd6ec608';
+    const orderId = '306e2c8a-5494-408d-a4fd-c5b1687ddcc9';
+    const warehouseIds = ['78f379f5-42a9-4202-a5dc-387bda7f9afd'];
     const allocationIds = [
-      'b500748d-d3e5-4a82-b03e-a9801762326c',
-      'afc47952-5c90-4765-869b-2426a1322616',
-      '5adcc2d6-1ddf-417a-b4d3-1ef9c451aff5',
-      '2a7e778c-f2c5-44ec-a7cd-43ef74395da0',
-      'bb7c866c-409f-499c-86f1-e5ee8c7801ec'
+      'cbcb4bf9-40b7-4029-86d4-5cd3c9f515ee',
+      '13fec63d-055e-4166-95a5-529b39f2f827',
+      '76beedf5-748a-47a3-a36c-60ab9ac99be0'
     ];
     
     // Step 3: Execute service
-    const result = await reviewInventoryAllocationService(orderId, allocationIds, enrichedUser);
+    const result = await reviewInventoryAllocationService(orderId, allocationIds, warehouseIds);
     
     console.log(`${logContext} Review Result:`);
     console.dir(result, { depth: null, colors: true });

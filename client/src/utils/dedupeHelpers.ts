@@ -63,3 +63,24 @@ export const dedupeByValue = <T extends { value: string }>(
   }
   return Array.from(map.values());
 };
+
+/**
+ * Deduplicates supply rows by batchId (or supplierId fallback).
+ * Keeps the **last occurrence** of each unique key.
+ *
+ * @example
+ * const uniqueSupply = dedupeByBatchKey(supplyRows);
+ */
+export const dedupeByBatchKey = <T extends { batchId?: string; supplierId?: string }>(
+  items: T[]
+): T[] => {
+  const map = new Map<string, T>();
+  
+  for (const item of items) {
+    const key = item.batchId ?? item.supplierId;
+    if (!key) continue;
+    map.set(key, item); // last one wins
+  }
+  
+  return Array.from(map.values());
+};

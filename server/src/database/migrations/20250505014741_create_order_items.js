@@ -34,8 +34,11 @@ exports.up = async function (knex) {
     table.uuid('created_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');
     
-    table.unique(['order_id', 'sku_id', 'packaging_material_id'], {
-      indexName: 'unique_order_item',
+    table.unique(['order_id', 'sku_id'], {
+      indexName: 'unique_order_sku_only',
+    });
+    table.unique(['order_id', 'packaging_material_id'], {
+      indexName: 'unique_order_packaging_only',
     });
   });
   
@@ -67,6 +70,6 @@ exports.up = async function (knex) {
  * @param { import("knex").Knex } knex
  * @returns {Knex.SchemaBuilder}
  */
-exports.down = function (knex) {
-  return knex.schema.dropTableIfExists('order_items');
+exports.down = async function (knex) {
+  await knex.schema.dropTableIfExists('order_items');
 };

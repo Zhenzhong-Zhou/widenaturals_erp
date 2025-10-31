@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom';
 import type { Column } from '@components/common/CustomTable';
-import StatusChip from '@components/common/StatusChip';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
 import type { OrderListItem } from '@features/order/state';
 import { getShortOrderNumber } from '@features/order/utils/orderUtils';
 import { formatDateTime } from '@utils/dateTimeUtils';
+import { formatOrderStatus, formatPaymentStatus } from '@utils/formatters';
 
 export const getOrdersTableColumns = (
   category: string,
@@ -36,7 +36,7 @@ export const getOrdersTableColumns = (
     {
       id: 'status',
       label: 'Status',
-      renderCell: (row) => <StatusChip label={row.status.name} />,
+      renderCell: (row) => formatOrderStatus(row.orderStatus.code, row.orderStatus.name),
     },
     {
       id: 'customerName',
@@ -49,9 +49,7 @@ export const getOrdersTableColumns = (
     {
       id: 'paymentStatus',
       label: 'Payment Status',
-      renderCell: (row) => (
-        <StatusChip label={row.paymentStatus ?? 'UNKNOWN'} />
-      ),
+      renderCell: (row) => formatPaymentStatus(row.paymentStatus.code, row.paymentStatus.name),
     },
     {
       id: 'deliveryMethod',

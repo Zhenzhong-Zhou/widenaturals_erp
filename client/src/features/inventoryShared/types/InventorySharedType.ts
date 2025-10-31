@@ -116,6 +116,7 @@ export interface BaseInventoryRecord {
 
   lot: {
     batchId: string;
+    batchType: string;
     number: string;
     manufactureDate: string | null;
     expiryDate: string | null;

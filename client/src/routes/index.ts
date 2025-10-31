@@ -62,6 +62,24 @@ export const routes = [
     meta: { requiresAuth: true, title: 'Compliances', showInSidebar: true },
   },
   {
+    path: '/boms',
+    component: lazy(() => import('@features/bom/pages/BomsListPage')),
+    meta: {
+      requiresAuth: true,
+      title: 'Bom List',
+      showInSidebar: true,
+    },
+  },
+  {
+    path: '/boms/:bomId',
+    component: lazy(() => import('@features/bom/pages/BomOverviewPage')),
+    meta: {
+      requiresAuth: true,
+      title: 'Bom Overview',
+      showInSidebar: false,
+    },
+  },
+  {
     path: '/pricing-types',
     component: lazy(
       () => import('@features/pricingType/pages/PricingTypePage')
@@ -311,16 +329,26 @@ export const routes = [
       requiredPermission: 'view_inventory_allocations',
     },
   },
-  // {
-  //   path: '/orders/:type/:id/allocation',
-  //   component: lazy(() => import('@features/order/pages/OrderAllocationDetailsPage')),
-  //   meta: { requiresAuth: true, title: 'Order Allocation', showInSidebar: false },
-  // },
-  // {
-  //   path: '/orders/fulfillment',
-  //   component: lazy(() => import('@features/order/pages/OrderFulfillmentPage')),
-  //   meta: { requiresAuth: true, title: 'Fulfillment', showInSidebar: true },
-  // },
+  {
+    path: '/fulfillments',
+    component: lazy(() => import('@features/outboundFulfillment/pages/OutboundFulfillmentsListPage')),
+    meta: {
+      requiresAuth: true,
+      title: 'Fulfillment',
+      showInSidebar: true,
+      requiredPermission: 'view_outbound_fulfillments',
+    },
+  },
+  {
+    path: '/fulfillments/outbound-shipment/:shipmentId',
+    component: lazy(() => import('@features/outboundFulfillment/pages/OutboundShipmentDetailsPage')),
+    meta: {
+      requiresAuth: true,
+      title: 'Outbound Shipment Details',
+      showInSidebar: false,
+      requiredPermission: 'view_outbound_fulfillments',
+    },
+  },
   // {
   //   path: '/orders/transfers',
   //   component: lazy(() => import('@features/order/pages/OrderTransferPage')),

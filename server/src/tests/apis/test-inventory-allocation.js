@@ -1,6 +1,6 @@
 const { pool, getUniqueScalarValue } = require('../../database/db');
 const { initStatusCache } = require('../../config/status-cache');
-const { allocateInventoryForOrder } = require('../../services/inventory-allocation-service');
+const { allocateInventoryForOrderService } = require('../../services/inventory-allocation-service');
 
 (async () => {
   const client = await pool.connect();
@@ -41,7 +41,7 @@ const { allocateInventoryForOrder } = require('../../services/inventory-allocati
       client
     );
     
-    const result = await allocateInventoryForOrder(enrichedUser, '896f87bd-a473-48c7-90fd-e5ad4de786fe', {
+    const result = await allocateInventoryForOrderService(enrichedUser, '896f87bd-a473-48c7-90fd-e5ad4de786fe', {
       strategy: 'fefo',
       warehouseId
     });

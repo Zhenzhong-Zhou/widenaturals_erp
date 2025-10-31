@@ -203,8 +203,8 @@ exports.up = function (knex) {
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
-    CREATE TRIGGER set_order_fulfillment_updated_at
-    BEFORE UPDATE ON order_fulfillment
+    CREATE TRIGGER set_order_fulfillments_updated_at
+    BEFORE UPDATE ON order_fulfillments
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
@@ -224,6 +224,7 @@ exports.up = function (knex) {
  * @param { import("knex").Knex } knex
  * @returns {Knex.Raw<TResult>}
  */
+// todo: update this for all reltive table it may be the last file always?
 exports.down = function (knex) {
   return knex.raw(`
     -- Drop all update triggers
@@ -257,7 +258,6 @@ exports.down = function (knex) {
     DROP TRIGGER IF EXISTS set_warehouses_updated_at ON warehouses;
     DROP TRIGGER IF EXISTS set_inventory_updated_at ON inventory;
     DROP TRIGGER IF EXISTS set_warehouse_inventory_updated_at ON warehouse_inventory;
-    DROP TRIGGER IF EXISTS set_warehouse_inventory_lots_updated_at ON warehouse_inventory_lots;
     DROP TRIGGER IF EXISTS set_warehouse_lot_status_updated_at ON warehouse_lot_status;
     DROP TRIGGER IF EXISTS set_inventory_action_types_updated_at ON inventory_action_types;
     DROP TRIGGER IF EXISTS set_inventory_transfer_status_updated_at ON inventory_transfer_status;
@@ -274,7 +274,7 @@ exports.down = function (knex) {
     DROP TRIGGER IF EXISTS set_sales_orders_updated_at ON sales_orders;
     DROP TRIGGER IF EXISTS set_returns_updated_at ON returns;
     DROP TRIGGER IF EXISTS set_return_items_updated_at ON return_items;
-    DROP TRIGGER IF EXISTS set_order_fulfillment_updated_at ON order_fulfillment;
+    DROP TRIGGER IF EXISTS set_order_fulfillments_updated_at ON order_fulfillments;
     DROP TRIGGER IF EXISTS set_outbound_shipments_updated_at ON outbound_shipments;
     DROP TRIGGER IF EXISTS set_shipment_status_updated_at ON shipment_status;
   `);

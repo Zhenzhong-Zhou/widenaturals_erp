@@ -29,10 +29,26 @@ const OrderHeaderSection: FC<OrderHeaderSectionProps> = ({ flattened }) => {
         <DetailsGridItem>
           <MemoizedDetailsSection
             fields={[
-              { label: 'Order Status', value: flattened.orderStatus, format: formatOrderStatus },
-              { label: 'Status Date', value: flattened.orderStatusDate, format: formatDate },
-              { label: 'Payment Method', value: flattened.paymentInfo.method, format: formatLabel },
-              { label: 'Payment Status', value: flattened.paymentInfo.status, format: formatPaymentStatus },
+              {
+                label: 'Order Status',
+                value: flattened.orderStatus,
+                format: (v) => formatOrderStatus(v?.code, v?.name),
+              },
+              {
+                label: 'Status Date',
+                value: flattened.orderStatusDate,
+                format: formatDate,
+              },
+              {
+                label: 'Payment Method',
+                value: flattened.paymentInfo.method,
+                format: formatLabel,
+              },
+              {
+                label: 'Payment Status',
+                value: flattened.paymentInfo,
+                format: (v) => formatPaymentStatus(v?.code, v?.name),
+              },
             ]}
           />
         </DetailsGridItem>

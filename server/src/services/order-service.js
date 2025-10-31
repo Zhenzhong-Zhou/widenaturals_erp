@@ -130,7 +130,7 @@ const createOrderService = async (orderData, category, user) => {
       category,
       orderData,
     });
-    throw AppError.businessError('Unable to create order');
+    throw AppError.serviceError('Unable to create order');
   }
 };
 
@@ -241,7 +241,7 @@ const fetchPaginatedOrdersService = async ({
       sortOrder,
     });
     
-    throw AppError.businessError('Unable to fetch paginated orders', {
+    throw AppError.serviceError('Unable to fetch paginated orders', {
       details: error.message,
       stage: 'fetch-paginated-orders',
       cause: error,
@@ -353,7 +353,7 @@ const fetchOrderDetailsByIdService = async (category, orderId, user) => {
       userId: user?.id,
     });
     // Wrap non-AppError errors into a domain error
-    throw AppError.databaseError('Unable to retrieve order details at this time');
+    throw AppError.serviceError('Unable to retrieve order details at this time');
   }
 };
 

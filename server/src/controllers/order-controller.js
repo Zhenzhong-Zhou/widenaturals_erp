@@ -139,7 +139,7 @@ const fetchPaginatedOrdersController = wrapAsync(async (req, res) => {
   
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
   
-  logInfo('Received request to fetch paginated orders', {
+  logInfo('Received request to fetch paginated orders', req, {
     context: 'order-controller/fetchPaginatedOrdersController',
     category,
     userId: user?.id,

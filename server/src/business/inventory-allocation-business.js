@@ -189,6 +189,67 @@ const allocateBatchesByStrategy = (
   };
 };
 
+// Ordered list of valid allocation status transitions
+const ALLOCATION_STATUS_SEQUENCE = [
+  'ALLOC_PENDING',
+  'ALLOC_CONFIRMED',
+  'ALLOC_PARTIAL',
+  'ALLOC_COMPLETED',
+  'ALLOC_FULFILLING',
+  'ALLOC_FULFILLED',
+  'ALLOC_CANCELLED',
+];
+
+// Final statuses — no further transitions allowed
+const ALLOCATION_FINAL_STATUSES = ['ALLOC_FULFILLED', 'ALLOC_CANCELLED'];
+
+/**
+ * Checks if the given allocation status is final (i.e., cannot be transitioned further).
+ *
+ * @param {string} code - The allocation status code to check.
+ * @returns {boolean} True if the status is considered final, false otherwise.
+ */
+const isFinalStatus = (code) => ALLOCATION_FINAL_STATUSES.includes(code);
+
+/**
+ * Validates whether a transition from the current allocation status to the next is allowed.
+ *
+ * Rules:
+ * - Both statuses must exist in the defined status sequence.
+ * - No transitions are allowed from final statuses (`ALLOC_FULFILLED`, `ALLOC_CANCELLED`).
+ * - Backward transitions (e.g., `ALLOC_CONFIRMED` → `ALLOC_PENDING`) are not allowed.
+ *
+ * @function
+ * @param {string} currentCode - The current allocation status code.
+ * @param {string} nextCode - The desired next status code.
+ * @throws {AppError} If transition is invalid due to:
+ *   - Unknown status code
+ *   - Transition from a final status
+ *   - Attempted backward transition
+ */
+const validateAllocationStatusTransition = (currentCode, nextCode) => {
+  const currentIndex = ALLOCATION_STATUS_SEQUENCE.indexOf(currentCode);
+  const nextIndex = ALLOCATION_STATUS_SEQUENCE.indexOf(nextCode);
+  
+  if (currentIndex === -1 || nextIndex === -1) {
+    throw AppError.validationError(
+      `Invalid status code(s): ${currentCode}, ${nextCode}`
+    );
+  }
+  
+  if (isFinalStatus(currentCode)) {
+    throw AppError.validationError(
+      `Cannot transition from final allocation status: ${currentCode}`
+    );
+  }
+  
+  if (nextIndex <= currentIndex) {
+    throw AppError.validationError(
+      `Cannot transition allocation status backward: ${currentCode} → ${nextCode}`
+    );
+  }
+};
+
 /**
  * Computes the allocation status for each order item based on total allocated quantity.
  *
@@ -575,6 +636,7 @@ const buildOrderAllocationResult = ({
 module.exports = {
   allocateBatchesForOrderItems,
   allocateBatchesByStrategy,
+  validateAllocationStatusTransition,
   computeAllocationStatusPerItem,
   updateReservedQuantitiesFromAllocations,
   buildWarehouseInventoryActivityLogsForOrderAllocation,

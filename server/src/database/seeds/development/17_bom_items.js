@@ -6,7 +6,7 @@ const { fetchDynamicValue } = require('../03_utils');
  */
 exports.seed = async function (knex) {
   console.log('Seeding bom_items (shared + custom)...');
-
+  
   const createdBy = await fetchDynamicValue(
     knex,
     'users',
@@ -14,15 +14,15 @@ exports.seed = async function (knex) {
     'system@internal.local',
     'id'
   );
-
+  
   const [boms, parts] = await Promise.all([
     knex('boms').select('id', 'code'),
     knex('parts').select('id', 'code'),
   ]);
-
+  
   const bomMap = Object.fromEntries(boms.map((b) => [b.code, b.id]));
   const partMap = Object.fromEntries(parts.map((p) => [p.code, p.id]));
-
+  
   const sharedSeries = {
     series1: [
       'BOM-CH-HN100-R-CN',
@@ -70,106 +70,123 @@ exports.seed = async function (knex) {
       'BOM-WN-MO411-L-UN',
     ],
   };
-
-  const sharedItems = {
+  
+  const seriesDefinitions = {
     series1: [
       {
         code: 'PART-LID',
         qty: 1,
         unit: 'pc',
-        note: 'white plastic lid, food-grade',
+        specifications: 'White plastic, food-grade, 38mm neck',
+        note: 'Used for 250ml PET bottles',
       },
       {
         code: 'SEAL-TAMPER',
         qty: 1,
         unit: 'pc',
-        note: 'white foam tamper seal, food-grade',
+        specifications: 'White foam tamper seal, adhesive type',
+        note: 'Standard tamper-evident seal for supplement bottles',
       },
       {
         code: 'DSC-PACKET',
         qty: 1,
         unit: 'pc',
-        note: 'desiccant plug (clear plastic)',
+        specifications: 'Desiccant plug, clear plastic, 1g silica',
+        note: 'Inserted inside bottle before capping',
       },
       {
         code: 'CAP-VEG',
         qty: 60,
         unit: 'pcs',
-        note: 'clear vegan capsule, size 0',
+        specifications: 'Transparent vegan capsule, size 0, HPMC material',
+        note: 'Each bottle contains 60 filled capsules',
       },
       {
         code: 'PART-FILLER',
         qty: 1,
         unit: 'pc',
-        note: 'clear plastic filler, food-grade',
+        specifications: 'Plastic filler insert, single layer',
+        note: 'Prevents movement inside bottle',
       },
       {
         code: 'PART-BOTTLE',
         qty: 1,
         unit: 'pc',
-        note: '250ml plastic bottle, food-grade',
+        specifications: '250ml PET bottle, amber color, food-grade',
+        note: 'Main container for capsule products',
       },
       {
         code: 'LBL-STD',
         qty: 1,
         unit: 'pc',
-        note: 'standard paper label, 19.6×7.0cm',
+        specifications: 'Paper label, 19.6×7.0cm, matte finish',
+        note: 'Standard bilingual label (EN/FR)',
       },
       {
         code: 'BOX-STD',
         qty: 1,
         unit: 'pc',
-        note: 'standard cardboard box, 6.4×6.4×11.3cm',
+        specifications: 'Cardboard box, 6.4×6.4×11.3cm, natural brown',
+        note: 'Outer packaging for retail display',
       },
     ],
+    
     series2: [
       {
         code: 'PART-LID',
         qty: 1,
         unit: 'pc',
-        note: 'metallica plastic lid, food-grade',
+        specifications: 'Metallic plastic lid, silver finish, food-grade',
+        note: 'Used for glass or frosted bottles',
       },
       {
         code: 'INSERT-DESICCANT',
         qty: 1,
         unit: 'pc',
-        note: 'clear desiccant insert, plastic',
+        specifications: 'Plastic desiccant insert, clear, 0.5g',
+        note: 'Alternative to desiccant packet, placed inside cap',
       },
       {
         code: 'DSC-PACKET',
         qty: 1,
         unit: 'pc',
-        note: 'green desiccant plug packet',
+        specifications: 'Green desiccant plug, 1g silica gel',
+        note: 'Placed inside the bottle for moisture protection',
       },
       {
         code: 'CAP-VEG',
         qty: 60,
         unit: 'pcs',
-        note: 'white vegan capsule, size 1',
+        specifications: 'White vegan capsule, size 1, HPMC material',
+        note: 'Each bottle contains 60 filled capsules',
       },
       {
         code: 'PART-FILLER',
         qty: 1,
         unit: 'pc',
-        note: 'plastic filler, clear',
+        specifications: 'Plastic filler, transparent',
+        note: 'For consistent packaging height',
       },
       {
         code: 'PART-BOTTLE',
         qty: 1,
         unit: 'pc',
-        note: 'frosted glass bottle, 9k or 11k size',
+        specifications: 'Frosted glass bottle, 250ml, 9K or 11K size',
+        note: 'Premium packaging for export series',
       },
       {
         code: 'LBL-STD',
         qty: 1,
         unit: 'pc',
-        note: 'standard paper label (e.g. 13×4.5cm or 15.2×5.7cm)',
+        specifications: 'Paper label, 13×4.5cm or 15.2×5.7cm, matte finish',
+        note: 'Standard label for glass bottle variant',
       },
       {
         code: 'BOX-STD',
         qty: 1,
         unit: 'pc',
-        note: 'outer packaging box (cardboard or rigid box)',
+        specifications: 'Rigid outer box, cardboard, 6.5×6.5×12cm',
+        note: 'For higher-end presentation series',
       },
     ],
     series3: [
@@ -177,77 +194,128 @@ exports.seed = async function (knex) {
         code: 'PART-LID',
         qty: 1,
         unit: 'pc',
-        note: 'natural aluminum lid, food-grade',
+        specifications: 'Natural aluminum lid, brushed finish, food-grade',
+        note: 'Screw-type aluminum lid matching 220ml bottle',
       },
       {
         code: 'LINER-THREADED',
         qty: 1,
         unit: 'pc',
-        note: 'white plastic threaded liner, food-grade',
+        specifications: 'Plastic threaded liner, white, food-grade',
+        note: 'Placed between lid and bottle neck',
       },
       {
         code: 'DSC-PACKET',
         qty: 1,
         unit: 'pc',
-        note: 'white plastic desiccant plug, food-grade',
+        specifications: 'Desiccant plug, plastic, 1g, food-grade',
+        note: 'Standard for aluminum bottles',
       },
       {
         code: 'CAP-SOFTGEL',
         qty: 120,
         unit: 'pcs',
-        note: 'yellow gelatin softgel capsule, 500mg, food-grade',
+        specifications: 'Yellow gelatin softgel, 500mg fill weight, 00 size',
+        note: 'Each bottle contains 120 softgels',
       },
       {
         code: 'PART-BOTTLE',
         qty: 1,
         unit: 'pc',
-        note: '220ml aluminum bottle, food-grade',
+        specifications: '220ml aluminum bottle, brushed finish',
+        note: 'Used for softgel product lines',
       },
       {
         code: 'LBL-STD',
         qty: 1,
         unit: 'pc',
-        note: 'plastic label, 16.0×6.5cm',
+        specifications: 'Plastic label, 16.0×6.5cm, waterproof adhesive',
+        note: 'Standard label for aluminum bottle variant',
       },
     ],
   };
-
-  const generateBomItemRow = (bom_id, item) => ({
-    id: knex.raw('uuid_generate_v4()'),
-    bom_id,
-    part_id: partMap[item.code],
-    quantity_per_unit: item.qty,
-    unit: item.unit,
-    note: item.note || null,
-    estimated_unit_cost: item.unit_cost || null,
-    currency: item.currency || null,
-    created_by: createdBy,
-    updated_by: null,
-    created_at: knex.fn.now(),
-    updated_at: knex.fn.now(),
-  });
-
+  
+  // Currency pool for deterministic cycling
+  const currencyPool = ['CAD', 'USD', 'CNY', 'HKD', 'EUR', 'JPY'];
+  
+  const getEstimatedCostByPartCode = (code) => {
+    if (code.includes('LID')) return 0.25;
+    if (code.includes('BOTTLE')) return 1.2;
+    if (code.includes('BOX')) return 0.8;
+    if (code.includes('LBL')) return 0.15;
+    if (code.includes('CAP')) return 0.05;
+    if (code.includes('LINER')) return 0.1;
+    if (code.includes('DSC')) return 0.05;
+    if (code.includes('FILLER')) return 0.2;
+    return 0.1;
+  };
+  
+  const generateBomItemRow = (bom_id, item, index) => {
+    const currency = currencyPool[index % currencyPool.length];
+    
+    // Consistent currency → exchange rate mapping
+    const exchangeRateMap = {
+      CAD: 1.0,     // 1 CAD = 1 CAD
+      USD: 0.73,    // 1 USD = 0.73 CAD
+      EUR: 0.67,    // 1 EUR = 0.67 CAD
+      CNY: 0.19,    // 1 CNY = 0.19 CAD
+      HKD: 0.18,    // 1 HKD = 0.18 CAD
+      JPY: 0.0089,  // 1 JPY = 0.0089 CAD
+    };
+    
+    const exchange_rate = exchangeRateMap[currency] || 1.0;
+    const baseCost = getEstimatedCostByPartCode(item.code);
+    const estimated_unit_cost = Number((baseCost * exchange_rate).toFixed(4));
+    
+    return {
+      id: knex.raw('uuid_generate_v4()'),
+      bom_id,
+      part_id: partMap[item.code],
+      part_qty_per_product: item.qty,
+      unit: item.unit,
+      specifications: item.specifications || null,
+      note: item.note || null,
+      estimated_unit_cost,
+      currency,
+      exchange_rate,
+      created_by: createdBy,
+      updated_by: null,
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now(),
+    };
+  };
+  
   const rows = [];
-
+  let index = 0;
+  
   for (const [series, bomCodes] of Object.entries(sharedSeries)) {
-    const items = sharedItems[series];
+    const items = seriesDefinitions[series];
     if (!items) continue;
-
+    
     for (const bomCode of bomCodes) {
       const bom_id = bomMap[bomCode];
       if (!bom_id) continue;
+      
       for (const item of items) {
         if (!partMap[item.code]) continue;
-        rows.push(generateBomItemRow(bom_id, item));
+        rows.push(generateBomItemRow(bom_id, item, index++));
       }
     }
   }
-
+  
   if (rows.length > 0) {
     await knex('bom_items')
       .insert(rows)
       .onConflict(['bom_id', 'part_id'])
       .ignore();
-    console.log(`Seeded ${rows.length} BOM item records.`);
+    
+    console.log(`Seeded ${rows.length} BOM item records with multi-currency cost and exchange rate.`);
   }
+
+  // Optional currency summary
+  const summary = rows.reduce((acc, r) => {
+    acc[r.currency] = (acc[r.currency] || 0) + 1;
+    return acc;
+  }, {});
+  console.table(summary);
 };

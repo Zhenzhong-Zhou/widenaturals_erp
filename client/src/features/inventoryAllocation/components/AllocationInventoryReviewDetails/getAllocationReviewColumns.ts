@@ -2,7 +2,7 @@ import { type Column } from '@components/common/CustomTable';
 import type { FlattenedAllocationReviewItem } from '@features/inventoryAllocation/utils/flattenAllocationReviewData';
 import { formatDate } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
-import { formatStatus } from '@utils/formatters';
+import { formatAllocationStatus, formatInventoryStatus, formatItemStatus } from '@utils/formatters';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
 import { getFallbackValue } from '@utils/objectUtils';
 
@@ -19,22 +19,16 @@ export const getAllocationReviewColumns = (
   expandedRowId: string | null,
   handleDrillDownToggle?: (id: string) => void
 ): Column<FlattenedAllocationReviewItem>[] => {
+  const getFormattedInventoryStatus = (row: any) => {
+    const status = getPrimaryWarehouseField(row, 'statusName') ?? 'unknown';
+    return formatInventoryStatus(status, formatLabel(status, { preserveHyphen: true }));
+  };
+  
   return [
-    {
-      id: 'batchType',
-      label: 'Type',
-      renderCell: (row) => row.batchType === 'product' ? 'Product' :
-        row.batchType === 'packaging_material' ? 'Packaging Material' : '—',
-    },
     {
       id: 'name',
       label: 'Item',
       renderCell: (row) => getFallbackValue(row.productName, row.packagingMaterialLabel),
-    },
-    {
-      id: 'barcode',
-      label: 'Barcode',
-      renderCell: (row) => getFallbackValue(row.barcode),
     },
     {
       id: 'sku_or_material_code',
@@ -50,11 +44,6 @@ export const getAllocationReviewColumns = (
       id: 'expiry',
       label: 'Expiry',
       renderCell: (row) => formatDate(row.batchExpiryDate),
-    },
-    {
-      id: 'warehouse',
-      label: 'Warehouse',
-      renderCell: (row) => getFallbackValue(getPrimaryWarehouseField(row, 'warehouseName') ?? '—',),
     },
     {
       id: 'warehouseQty',
@@ -74,14 +63,12 @@ export const getAllocationReviewColumns = (
     {
       id: 'allocationStatus',
       label: 'Alloc. Status',
-      renderCell: (row) => formatStatus(row.allocationStatus),
+      renderCell: (row) => formatAllocationStatus(row.allocationStatusCode, formatLabel(row.allocationStatus)),
     },
     {
       id: 'warehouseStatus',
       label: 'Stock Status',
-      renderCell: (row) => formatStatus(formatLabel(getPrimaryWarehouseField(row, 'statusName'), {
-        preserveHyphen: true,
-      }) ?? '—'),
+      renderCell: getFormattedInventoryStatus,
     },
     {
       id: 'orderItemQty',
@@ -91,7 +78,7 @@ export const getAllocationReviewColumns = (
     {
       id: 'orderItemStatus',
       label: 'Item Status',
-      renderCell: (row) => formatStatus(row.orderItemStatusName),
+      renderCell: (row) => formatItemStatus(row.orderItemStatusCode, row.orderItemStatusName),
     },
     {
       id: 'orderItemStatusDate',

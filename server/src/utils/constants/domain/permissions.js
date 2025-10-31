@@ -13,6 +13,15 @@ const PERMISSIONS = {
   DASHBOARD: {
     VIEW: 'view_dashboard',
   },
+  SKUS: {
+    VIEW_CARDS: 'view_sku_cards',
+    VIEW_DETAILS: 'view_sku_details',
+  },
+  BOMS: {
+    VIEW_LIST: 'view_boms',
+    VIEW_BOM_DETAILS: 'view_bom_details',
+    VIEW_BOM_PRODUCTION_SUMMARY: 'view_bom_production_summary',
+  },
   REPORTS: {
     VIEW: 'view_reports',
   },
@@ -27,6 +36,12 @@ const PERMISSIONS = {
     VIEW: 'view_inventory_allocations',
     CONFIRM: 'confirm_allocation',
   },
+  OUTBOUND_FULFILLMENT: {
+    INITIATE: 'initiate_outbound_fulfillment',
+    CONFIRM: 'confirm_outbound_fulfillment',
+    VIEW: 'view_outbound_fulfillments',
+    COMPLETE_MANUAL: 'complete_manual_outbound_fulfillments'
+  }
 };
 
 module.exports = PERMISSIONS;

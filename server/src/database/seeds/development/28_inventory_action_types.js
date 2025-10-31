@@ -71,6 +71,15 @@ exports.seed = async function (knex) {
       default_action: true,
     },
     {
+      name: 'fulfilled',
+      description: 'Inventory deducted from stock due to order fulfillment (picking/packing/shipping).',
+      category: 'transaction',
+      is_adjustment: false,
+      affects_financials: false,
+      requires_audit: true,
+      default_action: false,
+    },
+    {
       name: 'sold',
       description: 'Stock deducted due to sales.',
       category: 'transaction',

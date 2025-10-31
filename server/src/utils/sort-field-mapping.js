@@ -3,6 +3,47 @@
  * organized by table/module for reuse across service and repository layers.
  */
 const SORTABLE_FIELDS = {
+  bomSortMap: {
+    // --- Product / SKU level ---
+    productName: 'p.name',
+    brand: 'p.brand',
+    series: 'p.series',
+    category: 'p.category',
+    skuCode: 's.sku',
+    marketRegion: 's.market_region',
+    sizeLabel: 's.size_label',
+    
+    // --- Compliance level ---
+    complianceType: 'c.type',
+    complianceStatus: 'st_compliance.name',
+    complianceIssuedDate: 'c.issued_date',
+    complianceExpiryDate: 'c.expiry_date',
+    
+    // --- BOM level ---
+    bomCode: 'b.code',
+    bomName: 'b.name',
+    revision: 'b.revision',
+    isActive: 'b.is_active',
+    isDefault: 'b.is_default',
+    bomStatus: 'st_bom.name',
+    bomStatusDate: 'b.status_date',
+    
+    // --- Audit fields ---
+    createdAt: 'b.created_at',
+    updatedAt: 'b.updated_at',
+    createdBy: 'cu.firstname',
+    updatedBy: 'uu.firstname',
+    
+    // --- Complex / synthetic sorting ---
+    defaultNaturalSort: `
+      p.name ASC,
+      s.sku ASC,
+      b.is_default DESC,
+      b.is_active DESC,
+      b.revision DESC,
+      b.created_at DESC
+    `,
+  },
   skuProductCards: {
     brand: 'p.brand',
     category: 'p.category',
@@ -285,6 +326,38 @@ const SORTABLE_FIELDS = {
     
     // Fallback default
     defaultNaturalSort: 'o.created_at',
+  },
+  outboundShipmentSortMap: {
+    // Shipment-level fields (FROM outbound_shipments os)
+    shipmentId: 'os.id',
+    shipmentStatus: 'ss.name',
+    shipmentStatusCode: 'ss.code',
+    shippedAt: 'os.shipped_at',
+    expectedDeliveryDate: 'os.expected_delivery_date',
+    createdAt: 'os.created_at',
+    updatedAt: 'os.updated_at',
+    
+    // Order-level fields (FROM orders o)
+    orderId: 'os.order_id',
+    orderNumber: 'o.order_number',
+    
+    // Warehouse-level fields (FROM warehouses w)
+    warehouseName: 'w.name',
+    
+    // Delivery method (FROM delivery_methods dm)
+    deliveryMethod: 'dm.method_name',
+    
+    // Tracking info (FROM tracking_numbers tn)
+    trackingNumber: 'tn.tracking_number',
+    
+    // Audit fields (FROM users u1/u2)
+    createdByFirstName: 'u1.firstname',
+    createdByLastName: 'u1.lastname',
+    updatedByFirstName: 'u2.firstname',
+    updatedByLastName: 'u2.lastname',
+    
+    // Default fallback
+    defaultNaturalSort: 'os.created_at',
   },
 };
 

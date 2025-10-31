@@ -14,6 +14,7 @@ import {
   AllocationOrderHeaderSection,
   AllocationReviewTable,
 } from '@features/inventoryAllocation/components/AllocationInventoryReviewDetails';
+import { InitiateFulfillmentModal } from '@features/outboundFulfillment/components/InitiateFulfillmentFormModal';
 import { getShortOrderNumber } from '@features/order/utils/orderUtils';
 import {
   flattenAllocationOrderHeader,
@@ -111,18 +112,26 @@ const InventoryAllocationReviewPage = () => {
     return allocationReviewItems ? flattenInventoryAllocationReviewItems(allocationReviewItems) : [];
   }, [allocationReviewItems]);
   
-  const shouldHideConfirmButton = useMemo(() => {
+  const confirmableStatusCodes = [
+    'ALLOC_PENDING'
+  ];
+  
+  const canConfirm = useMemo(() => {
     if (!allocationReviewItems || allocationReviewItems.length === 0) return false;
     
-    const allItemsFullyAllocated = allocationReviewItems.every(
-      (item: AllocationReviewItem) => item.orderItem?.statusCode === 'ORDER_ALLOCATED'
+    return allocationReviewItems.some(
+      (item: AllocationReviewItem) =>
+        confirmableStatusCodes.includes(item.allocationStatusCode) ||
+        confirmableStatusCodes.includes(item.orderItem?.statusCode ?? '')
     );
+  }, [allocationReviewItems]);
+  
+  const canInitiateFulfillment = useMemo(() => {
+    if (!allocationReviewItems || allocationReviewItems.length === 0) return false;
     
-    const allAllocationsConfirmed = allocationReviewItems.every(
+    return allocationReviewItems.some(
       (item: AllocationReviewItem) => item.allocationStatusCode === 'ALLOC_CONFIRMED'
     );
-    
-    return allItemsFullyAllocated && allAllocationsConfirmed;
   }, [allocationReviewItems]);
   
   // === Confirm Submit ===
@@ -189,7 +198,7 @@ const InventoryAllocationReviewPage = () => {
               {confirmError && (
                 <ErrorMessage message={confirmError} />
               )}
-              {!shouldHideConfirmButton && (
+              {canConfirm && (
                 <CustomButton
                   onClick={handleConfirmationSubmit}
                   disabled={isReviewLoading || isConfirming}
@@ -197,6 +206,21 @@ const InventoryAllocationReviewPage = () => {
                   {isReviewLoading || isConfirming ? 'Confirming' : 'Confirm Allocation'}
                 </CustomButton>
               )}
+              
+              {/* === New Initiate Fulfillment Button === */}
+              {orderId && allocationIds.length > 0 && canInitiateFulfillment && (
+                <InitiateFulfillmentModal
+                  orderId={orderId}
+                  allocationIds={allocationIds}
+                  defaultValues={{
+                    fulfillmentNotes: `Fulfillment initiated for Order ${allocationReviewHeader?.orderNumber ?? ''} — created by ${allocationReviewHeader?.salesperson?.fullName ?? 'Unknown User'}`,
+                    shipmentNotes: `Prepare shipment for Order ${allocationReviewHeader?.orderNumber ?? ''} (Status: ${allocationReviewHeader?.orderStatus?.name ?? 'N/A'})`,
+                    shipmentBatchNote: 'No additional batch notes provided.',
+                  }}
+                  onSuccess={refresh}
+                />
+              )}
+              
               <CustomButton
                 onClick={refresh}
                 variant="outlined"

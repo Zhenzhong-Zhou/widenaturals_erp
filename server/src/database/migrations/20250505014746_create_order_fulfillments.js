@@ -3,7 +3,7 @@
  * @returns {Knex.SchemaBuilder}
  */
 exports.up = async function (knex) {
-  await knex.schema.createTable('order_fulfillment', (table) => {
+  await knex.schema.createTable('order_fulfillments', (table) => {
     table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
 
     table
@@ -18,7 +18,7 @@ exports.up = async function (knex) {
       .inTable('inventory_allocations')
       .nullable();
 
-    table.integer('quantity_shipped').notNullable().checkPositive();
+    table.integer('quantity_fulfilled').notNullable().checkPositive();
 
     table
       .uuid('status_id')
@@ -31,13 +31,17 @@ exports.up = async function (knex) {
       .notNullable()
       .references('id')
       .inTable('outbound_shipments');
-
-    table.timestamp('shipped_at').defaultTo(knex.fn.now());
+    
+    table.text('fulfillment_notes').nullable();
+    
+    table.timestamp('fulfilled_at').nullable();
 
     table.timestamp('created_at').defaultTo(knex.fn.now());
     table.timestamp('updated_at').defaultTo(knex.fn.now());
 
     table.uuid('fulfilled_by').references('id').inTable('users');
+    
+    table.uuid('created_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');
 
     table.unique(['order_item_id', 'shipment_id'], {
@@ -46,9 +50,9 @@ exports.up = async function (knex) {
   });
 
   await knex.raw(`
-    ALTER TABLE order_fulfillment
+    ALTER TABLE order_fulfillments
     ADD CONSTRAINT check_quantity_non_negative
-    CHECK (quantity_shipped >= 0);
+    CHECK (quantity_fulfilled >= 0);
   `);
 };
 
@@ -57,5 +61,5 @@ exports.up = async function (knex) {
  * @returns {Knex.SchemaBuilder}
  */
 exports.down = async function (knex) {
-  await knex.schema.dropTableIfExists('order_fulfillment');
+  await knex.schema.dropTableIfExists('order_fulfillments');
 };

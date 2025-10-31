@@ -20,6 +20,8 @@ const userRoutes = require('./users');
 const adminRoutes = require('./admin');
 const productRoutes = require('./products');
 const skuRoutes = require('./skus');
+const bomRoutes = require('./boms');
+const bomItemRoutes = require('./bom-items');
 const complianceRoutes = require('./compliances');
 const priceTypeRoutes = require('./pricing-types');
 const pricingRoutes = require('./pricings');
@@ -37,6 +39,7 @@ const orderTypeRoutes = require('./order-types');
 const orderRoutes = require('./orders');
 const taxRateRoutes = require('./tax-rates');
 const inventoryAllocationRoutes = require('./inventory-allocations');
+const outboundFulfillmentRoutes = require('./outbound-fulfillments');
 const { createApiRateLimiter } = require('../middlewares/rate-limiter');
 const authenticate = require('../middlewares/authenticate');
 
@@ -90,6 +93,55 @@ router.use('/skus', authenticate(), skuRoutes);
 router.use('/compliances', authenticate(), complianceRoutes);
 
 /**
+ * @route /boms
+ * @group Bill of Materials (BOM) Routes
+ * @description
+ * Mounts all BOM-related API endpoints under the `/boms` path.
+ *
+ * This router handles BOM listing, filtering, and management operations,
+ * such as retrieving paginated BOM lists, fetching individual BOM details,
+ * and future create/update endpoints.
+ *
+ * Middleware Stack:
+ * - `authenticate()`: Ensures the user is authenticated before accessing any BOM endpoints.
+ * - `bomRoutes`: Handles all downstream route definitions for the BOM module.
+ *
+ * Example Mounted Routes:
+ * - `GET /api/v1/boms` → Fetch paginated BOM list
+ * - `GET /api/v1/boms/:id` → Fetch specific BOM details (future)
+ * - `POST /api/v1/boms` → Create a new BOM record (future)
+ *
+ * @example
+ * // Mounting in main router (routes/index.js)
+ * router.use('/boms', authenticate(), bomRoutes);
+ *
+ * @see authenticate
+ * @see bomRoutes
+ */
+router.use('/boms', authenticate(), bomRoutes);
+
+/**
+ * @route /api/bom-items
+ * @description
+ * Mounts all BOM Item–related routes.
+ *
+ * This route group handles operations related to Bill of Materials (BOM) items,
+ * including:
+ *  - Fetching BOM material supply details (parts, packaging materials, suppliers, batches)
+ *  - Calculating BOM cost summaries (estimated vs. actual)
+ *  - Managing BOM-related entities
+ *
+ * Middleware chain:
+ *  1. `authenticate()` — Verifies JWT token and user identity
+ *  2. `bomItemRoutes` — Contains detailed routes (GET /:bomId/material-supply, etc.)
+ *
+ * Example:
+ *  GET /api/bom-items/:bomId/material-supply
+ *  → fetch detailed supply & cost breakdown for a BOM
+ */
+router.use('/bom-items', authenticate(), bomItemRoutes);
+
+/**
  * Pricing types and pricing records
  */
 router.use('/pricing-types', authenticate(), priceTypeRoutes);
@@ -126,6 +178,7 @@ router.use('/tax-rates', authenticate(), taxRateRoutes);
  * Inventory allocation processing
  */
 router.use('/inventory-allocations', authenticate(), inventoryAllocationRoutes);
+router.use('/outbound-fulfillments', authenticate(), outboundFulfillmentRoutes);
 
 /**
  * Report generation and exports

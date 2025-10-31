@@ -1035,12 +1035,42 @@ exports.seed = async function (knex) {
     const statusName = statusByName.get(mat.name) || 'active';
     const isArchived = archivedNames.has(mat.name);
     
+    // Simple cost heuristic
+    let estimated_unit_cost = 0.5;
+    if (mat.material_composition?.includes('cardboard')) estimated_unit_cost = 1.2;
+    else if (mat.material_composition?.includes('aluminum')) estimated_unit_cost = 2.5;
+    else if (mat.material_composition?.includes('glass')) estimated_unit_cost = 3.0;
+    else if (mat.material_composition?.includes('plastic')) estimated_unit_cost = 0.8;
+    else if (mat.material_composition?.includes('paper')) estimated_unit_cost = 0.3;
+    else if (mat.material_composition?.includes('metal')) estimated_unit_cost = 1.8;
+    
+    // Cycle through a small list of currencies deterministically by index
+    const currencyRates = [
+      { currency: 'CAD', rate: 1.0 },   // 1 CAD = 1 CAD
+      { currency: 'USD', rate: 0.73 },  // 1 USD = 0.73 CAD
+      { currency: 'CNY', rate: 0.19 },  // 1 CNY = 0.19 CAD
+      { currency: 'HKD', rate: 0.18 },  // 1 HKD = 0.18 CAD
+      { currency: 'EUR', rate: 0.67 },  // 1 EUR = 0.67 CAD
+    ];
+    
+    const { currency, rate: exchange_rate } = currencyRates[idx % currencyRates.length];
+    
+    // Adjust estimated cost relative to exchange rate
+    const adjusted_cost = Number((estimated_unit_cost * exchange_rate).toFixed(4));
+    
     return {
       id: knex.raw('uuid_generate_v4()'),
       code: generateStandardizedCode('MAT', mat.name, { sequenceNumber: idx + 1 }),
-      category: 'core',                // default fallback
+      category: 'core', // default fallback
       is_visible_for_sales_order: false, // default fallback
-      ...mat,                          // overrides fallbacks where present
+      ...mat, // overrides fallbacks where present
+      
+      // --- new fields ---
+      estimated_unit_cost: adjusted_cost,
+      currency,
+      exchange_rate,
+      
+      // --- existing fields ---
       status_id: statusIds[statusName],
       status_date: knex.fn.now(),
       is_archived: isArchived,

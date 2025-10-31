@@ -1,7 +1,9 @@
 const { cleanObject } = require('../utils/object-utils');
 const { getFullName } = require('../utils/name-utils');
 const { makeAudit, compactAudit } = require('../utils/audit-utils');
-const { formatDiscount, formatTaxRateLabel, formatPackagingMaterialLabel } = require('../utils/string-utils');
+const { formatPackagingMaterialLabel } = require('../utils/packaging-material-utils');
+const { formatDiscount } = require('../utils/discount-utils');
+const { formatTaxRateLabel } = require('../utils/tax-rate-utils');
 const { getProductDisplayName } = require('../utils/display-name-utils');
 const { buildAddress } = require('../utils/address-utils');
 const { transformPaginatedResult } = require('../utils/transformer-utils');
@@ -19,6 +21,7 @@ const { transformPaginatedResult } = require('../utils/transformer-utils');
  * @property {string}        order_type_name
  * @property {string}        order_status_id
  * @property {string}        order_status_name
+ * @property {string}        order_status_code
  * @property {string}        order_code
  * @property {string}        customer_id
  * @property {string|null}   customer_firstname
@@ -27,6 +30,7 @@ const { transformPaginatedResult } = require('../utils/transformer-utils');
  * @property {string|null}   customer_phone
  * @property {string|null}   payment_status_id
  * @property {string|null}   payment_status_name
+ * @property {string|null}   payment_status_code
  * @property {string|null}   payment_method_id
  * @property {string|null}   payment_method_name
  * @property {string|null}   currency_code
@@ -99,6 +103,7 @@ const { transformPaginatedResult } = require('../utils/transformer-utils');
  * @property {number|null} item_subtotal
  * @property {string|null} item_status_id
  * @property {string|null} item_status_name
+ * @property {string|null} item_status_code
  * @property {string|Date|null} item_status_date
  * @property {object|undefined} item_metadata
  * // SKU fields (nullable for packaging-only lines)
@@ -145,8 +150,8 @@ const { transformPaginatedResult } = require('../utils/transformer-utils');
  * @param {string} row.id - Order UUID.
  * @param {string} row.order_number - Full order number (e.g., "SO-SSO-20250825-XYZ").
  * @param {string} [row.order_type] - Name of the order type.
- * @param {string} row.status_code - Machine-readable status code.
- * @param {string} row.status_name - Human-readable status name.
+ * @param {string} row.order_status_code - Machine-readable order status code.
+ * @param {string} row.order_status_name - Human-readable order status name.
  * @param {string} row.order_date - ISO date string of the order.
  * @param {string} row.status_date - ISO date string of the last status update.
  * @param {string} row.created_at - ISO date string of creation timestamp.
@@ -159,7 +164,8 @@ const { transformPaginatedResult } = require('../utils/transformer-utils');
  * @param {string} [row.customer_firstname] - Customer first name.
  * @param {string} [row.customer_lastname] - Customer last name.
  * @param {string} [row.payment_method] - Payment method name.
- * @param {string} [row.payment_status] - Payment status label.
+ * @param {string} [row.payment_status_name] - Payment status label.
+ * @param {string} [row.payment_status_code] - Machine-readable payment status code.
  * @param {string} [row.delivery_method] - Delivery method name.
  * @param {number} [row.number_of_items] - Number of items in the order.
  *
@@ -188,9 +194,9 @@ const transformOrderRow = (row) => {
     id: row.id,
     orderNumber: row.order_number,
     orderType: row.order_type || null,
-    status: {
-      code: row.status_code,
-      name: row.status_name,
+    orderStatus: {
+      code: row.order_status_code,
+      name: row.order_status_name,
     },
     orderDate: row.order_date,
     statusDate: row.status_date,
@@ -201,7 +207,10 @@ const transformOrderRow = (row) => {
     note: row.note ?? null,
     customerName,
     paymentMethod: row.payment_method || null,
-    paymentStatus: row.payment_status || null,
+    paymentStatus:{
+      name: row.payment_status_name || null,
+      code: row.payment_status_code || null,
+    },
     deliveryMethod: row.delivery_method || null,
     numberOfItems: row.number_of_items ?? 0,
   });
@@ -354,6 +363,7 @@ const transformOrderWithItems = (
       status: {
         id: item.item_status_id,
         name: item.item_status_name,
+        code: item.item_status_code,
         date: item.item_status_date,
       },
       metadata: includeItemMetadata ? item.item_metadata : undefined,
@@ -416,6 +426,14 @@ const transformOrderWithItems = (
       if (match) {
         o.sku = match.sku?.code ?? null;
         o.productDisplayName = match.displayName ?? null;
+        
+        // Optional safety check: ensure conflictNote is structured correctly
+        if (o.data && o.timestamp) {
+          o.conflictNote = {
+            data: o.data,
+            timestamp: o.timestamp,
+          };
+        }
       }
     }
   }
@@ -439,11 +457,11 @@ const transformOrderWithItems = (
     type: {
       id: orderRow.order_type_id,
       name: orderRow.order_type_name,
-      code: orderRow.order_code,
     },
     status: {
       id: orderRow.order_status_id,
       name: orderRow.order_status_name,
+      code: orderRow.order_status_code,
     },
     customer: {
       id: orderRow.customer_id,
@@ -455,6 +473,7 @@ const transformOrderWithItems = (
       status: {
         id: orderRow.payment_status_id,
         name: orderRow.payment_status_name,
+        code: orderRow.payment_status_code,
       },
       method: {
         id: orderRow.payment_method_id,

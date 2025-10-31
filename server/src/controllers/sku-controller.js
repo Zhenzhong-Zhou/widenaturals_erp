@@ -36,7 +36,7 @@ const getActiveSkuProductCardsController = wrapAsync(async (req, res) => {
   const filters = { brand, category, marketRegion, sizeLabel, keyword };
 
   logInfo('Fetching active SKU product cards', req, {
-    context: 'sku-controller',
+    context: 'sku-controller/getActiveSkuProductCardsController',
     query: { page, limit, sortBy, sortOrder, filters },
   });
 
@@ -51,7 +51,7 @@ const getActiveSkuProductCardsController = wrapAsync(async (req, res) => {
   const { data, pagination } = result;
 
   logInfo('Fetched active SKU product cards successfully', req, {
-    context: 'sku-controller',
+    context: 'sku-controller/getActiveSkuProductCardsController',
     resultCount: data.length,
     pagination,
   });
@@ -79,7 +79,7 @@ const getSkuDetailsController = wrapAsync(async (req, res) => {
   const data = await getSkuDetailsForUserService(user, skuId);
 
   logInfo('SKU details retrieved successfully', req, {
-    context: 'sku-controller',
+    context: 'sku-controller/getSkuDetailsController',
     userId: user.id,
     skuId,
   });

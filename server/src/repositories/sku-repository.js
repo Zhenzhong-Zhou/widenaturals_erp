@@ -546,5 +546,5 @@ module.exports = {
   fetchPaginatedActiveSkusWithProductCards,
   getSkuAndProductStatus,
   getSkuDetailsWithPricingAndMeta,
-  getSkuLookup
+  getSkuLookup,
 };

@@ -20,6 +20,12 @@ export const API_ENDPOINTS = {
   ALL_LOCATION_TYPES: '/location-types',
   LOCATION_TYPE_DETAILS: '/location-types/:id',
   ALL_LOCATIONS: '/locations',
+  BOMS: {
+    ALL_RECORDS: '/boms',
+    BOM_DETAILS: (bomId: string) => `/boms/${bomId}/details`,
+    BOM_MATERIAL_SUPPLY_DETAILS: (bomId: string) => `/bom-items/${bomId}/material-supply`,
+    BOM_PRODUCTION_SUMMARY: (bomId: string) => `/boms/${bomId}/production-summary`,
+  },
   LOCATION_INVENTORY: {
     ALL_RECORDS: '/location-inventory',
     KPI_SUMMARY: '/location-inventory/kpi-summary',
@@ -78,5 +84,12 @@ export const API_ENDPOINTS = {
     REVIEW_ALLOCATION: (orderId: string) => `/inventory-allocations/review/${orderId}`,
     ALL_ALLOCATIONS: '/inventory-allocations',
     CONFIRM_ALLOCATION: (orderId: string) => `/inventory-allocations/confirm/${orderId}`,
+  },
+  OUTBOUND_FULFILLMENTS: {
+    INITIATE_FULFILLMENT: (orderId: string) => `/outbound-fulfillments/orders/${orderId}/fulfillment/initiate`,
+    ALL_RECORDS: '/outbound-fulfillments',
+    OUTBOUND_SHIPMENT_DETAILS: (shipmentId: string) => `/outbound-fulfillments/${shipmentId}/details`,
+    CONFIRM_FULFILLMENT: (orderId: string) => `/outbound-fulfillments/orders/${orderId}/fulfillment/confirm`,
+    COMPLETE_MANUAL_FULFILLMENT: (shipmentId: string) => `/outbound-fulfillments/manual/${shipmentId}/complete`
   },
 };

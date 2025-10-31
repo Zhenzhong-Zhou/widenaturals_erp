@@ -18,6 +18,7 @@ import { orderTypeReducers } from '@features/orderType';
 import { pricingReducers } from '@features/pricing';
 import { pricingTypeReducers } from '@features/pricingType';
 import { skuReducers } from '@features/product';
+import { bomReducers } from '@features/bom';
 import { reportReducers } from '@features/report';
 import { lookupReducers } from '@features/lookup';
 import { resetPasswordReducers } from '@features/resetPassword';
@@ -27,6 +28,7 @@ import { userReducers } from '@features/user';
 import { warehouseReducers } from '@features/warehouse';
 import { warehouseInventoryReducers } from '@features/warehouseInventory';
 import { inventoryAllocationReducers } from '@features/inventoryAllocation';
+import { outboundFulfillmentReducers } from '@features/outboundFulfillment/state';
 
 // Use helper to combine
 const appReducer = combineReducers(
@@ -43,6 +45,7 @@ const appReducer = combineReducers(
     // Product & Pricing
     skuReducers,
     complianceReducers,
+    bomReducers,
     pricingTypeReducers,
     pricingReducers,
 
@@ -59,6 +62,7 @@ const appReducer = combineReducers(
     orderTypeReducers,
     orderReducers,
     inventoryAllocationReducers,
+    outboundFulfillmentReducers,
 
     // Reporting
     reportReducers,

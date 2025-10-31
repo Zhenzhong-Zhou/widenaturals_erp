@@ -108,20 +108,27 @@ const validateSalesOrderIds = async (orderData, client) => {
  */
 const buildOrderMetadata = (enrichedItems) => {
   const overrides = enrichedItems
-    .filter((i) => i.metadata && i.metadata.reason === 'manual override')
+    .filter((i) => i.metadata?.reason === 'manual override')
     .map((i) => ({
       sku_id: i.sku_id,
+      reason: i.metadata.reason,
       submitted_price: i.metadata.submitted_price,
       db_price: i.metadata.db_price,
+      ...(i.metadata.conflictNote && {
+        data: i.metadata.conflictNote.data,
+        timestamp: i.metadata.conflictNote.timestamp,
+      }),
     }));
-
+  
   return {
-    price_override_summary: {
-      has_override: overrides.length > 0,
-      override_count: overrides.length,
-      overrides,
-      generated_at: new Date().toISOString(),
-    },
+    ...(overrides.length > 0 && {
+      price_override_summary: {
+        has_override: true,
+        override_count: overrides.length,
+        overrides,
+        generated_at: new Date().toISOString(),
+      },
+    }),
   };
 };
 

@@ -3,7 +3,6 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from 'react';
 import Box from '@mui/material/Box';
@@ -11,7 +10,6 @@ import Grid from '@mui/material/Grid';
 import Card from '@mui/material/Card';
 import Divider from '@mui/material/Divider';
 import CustomTypography from '@components/common/CustomTypography';
-import CustomButton from '@components/common/CustomButton';
 import NoDataFound from '@components/common/NoDataFound';
 import Loading from '@components/common/Loading';
 import InventoryAllocationTable, {
@@ -26,7 +24,6 @@ import type {
 } from '@features/inventoryAllocation/state';
 
 const InventoryAllocationsPage: FC = () => {
-  const createButtonRef = useRef<HTMLButtonElement>(null);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
   const [sortBy, setSortBy] = useState<InventoryAllocationSortField>('orderCreatedAt');
@@ -82,15 +79,6 @@ const InventoryAllocationsPage: FC = () => {
         <CustomTypography variant="h5" fontWeight={700}>
           Inventory Allocation Management
         </CustomTypography>
-        
-        <CustomButton
-          ref={createButtonRef}
-          variant="contained"
-          onClick={handleRefresh}
-          sx={{ boxShadow: 2 }}
-        >
-          Refresh
-        </CustomButton>
       </Box>
       
       <Divider sx={{ mb: 3 }} />

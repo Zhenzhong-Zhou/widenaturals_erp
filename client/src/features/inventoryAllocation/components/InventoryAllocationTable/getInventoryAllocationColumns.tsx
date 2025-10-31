@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom';
 import type { Column } from '@components/common/CustomTable';
-import StatusChip from '@components/common/StatusChip';
 import { formatDate } from '@utils/dateTimeUtils';
 import { getShortOrderNumber } from '@features/order/utils/orderUtils';
 import type { InventoryAllocationSummary } from '@features/inventoryAllocation/state';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
+import { formatAllocationStatus, formatOrderStatus, formatPaymentStatus } from '@utils/formatters.tsx';
 
 export const getInventoryAllocationColumns = (
   expandedRowId?: string | null,
@@ -45,9 +45,7 @@ export const getInventoryAllocationColumns = (
       id: 'orderStatus',
       label: 'Status',
       sortable: true,
-      renderCell: (row) => (
-        <StatusChip label={row.orderStatus.name} />
-      ),
+      renderCell: (row) => formatOrderStatus(row.orderStatus.code, row.orderStatus.name),
     },
     {
       id: 'customer',
@@ -65,9 +63,7 @@ export const getInventoryAllocationColumns = (
       id: 'paymentStatus',
       label: 'Payment Status',
       sortable: true,
-      renderCell: (row) => (
-        <StatusChip label={row.paymentStatus ?? '—'} />
-      ),
+      renderCell: (row) => formatPaymentStatus(row.paymentStatus.code, row.paymentStatus.name),
     },
     {
       id: 'deliveryMethod',
@@ -92,9 +88,7 @@ export const getInventoryAllocationColumns = (
       id: 'allocationStatus',
       label: 'Allocation Status',
       sortable: false,
-      renderCell: (row) => (
-        <StatusChip label={row.allocationStatus.summary} />
-      ),
+      renderCell: (row) => formatAllocationStatus(row.allocationStatus.codes, row.allocationStatus.summary),
     },
     {
       id: 'orderCreatedAt',

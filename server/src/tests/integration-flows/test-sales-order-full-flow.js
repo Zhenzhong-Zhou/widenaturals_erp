@@ -1,7 +1,16 @@
 const { pool, getUniqueScalarValue } = require('../../database/db');
 const { initStatusCache } = require('../../config/status-cache');
-const { createOrderService, updateOrderStatusService } = require('../../services/order-service');
-const { allocateInventoryForOrderService, confirmInventoryAllocationService } = require('../../services/inventory-allocation-service');
+const {
+  createOrderService,
+  updateOrderStatusService,
+} = require('../../services/order-service');
+const {
+  allocateInventoryForOrderService,
+  confirmInventoryAllocationService,
+} = require('../../services/inventory-allocation-service');
+const {
+  fulfillOutboundShipmentService,
+} = require('../../services/outbound-fulfillment-service');
 
 (async () => {
   const client = await pool.connect();
@@ -10,11 +19,15 @@ const { allocateInventoryForOrderService, confirmInventoryAllocationService } = 
   try {
     const now = new Date();
     
-    const { rows } = await client.query(`SELECT id, role_id FROM users WHERE email = $1`, ['root@widenaturals.com']);
+    // Step 1: Get user (Root Admin)
+    const { rows } = await client.query(
+      `SELECT id, role_id FROM users WHERE email = $1`,
+      ['root@widenaturals.com']
+    );
     const { id: userId, role_id } = rows[0];
     const enrichedUser = { id: userId, role: role_id };
     
-    // Lookup all related data
+    // Step 2: Lookup required foreign keys
     const [
       order_type_id,
       order_status_id,
@@ -35,10 +48,12 @@ const { allocateInventoryForOrderService, confirmInventoryAllocationService } = 
       getUniqueScalarValue({ table: 'payment_methods', where: { code: 'CREDIT_CARD' }, select: 'id' }, client),
       getUniqueScalarValue({ table: 'discounts', where: { name: 'New Customer Offer' }, select: 'id' }, client),
       getUniqueScalarValue({ table: 'tax_rates', where: { name: 'PST', province: 'BC' }, select: 'id' }, client),
-      getUniqueScalarValue({ table: 'delivery_methods', where: { method_name: 'Standard Shipping' }, select: 'id' }, client),
+      getUniqueScalarValue({ table: 'delivery_methods', where: { method_name: 'In-Store Pickup' }, select: 'id' }, client),
+      // getUniqueScalarValue({ table: 'delivery_methods', where: { method_name: 'Standard Shipping' }, select: 'id' }, client),
       getUniqueScalarValue({ table: 'warehouses', where: { name: 'WIDE Naturals Inc.' }, select: 'id' }, client),
     ]);
     
+    // Step 3: Lookup SKUs and packaging
     const [sku1, sku2, sku3, packaging_material_id_1] = await Promise.all([
       getUniqueScalarValue({ table: 'skus', where: { sku: 'PG-NM203-R-CA' }, select: 'id' }, client),
       getUniqueScalarValue({ table: 'skus', where: { sku: 'PG-NM208-R-CN' }, select: 'id' }, client),
@@ -46,11 +61,11 @@ const { allocateInventoryForOrderService, confirmInventoryAllocationService } = 
       getUniqueScalarValue({ table: 'packaging_materials', where: { name: 'Brand E Paper Bag - Medium (Brown)' }, select: 'id' }, client),
     ]);
     
-    // Create sales order
+    // Step 4: Create sales order
     const orderData = {
       order_type_id,
       order_date: now,
-      note: 'Full flow test',
+      note: 'Full flow test — with outbound fulfillment',
       shipping_address_id,
       billing_address_id,
       customer_id,
@@ -102,20 +117,40 @@ const { allocateInventoryForOrderService, confirmInventoryAllocationService } = 
     const order = await createOrderService(orderData, 'sales', enrichedUser);
     console.log('✅ Order created:', order.orderId);
     
-    // Update status → ORDER_CONFIRMED
-    const statusUpdate = await updateOrderStatusService(enrichedUser, 'sales', order.orderId, 'ORDER_CONFIRMED');
+    // Step 5: Confirm order
+    const statusUpdate = await updateOrderStatusService(
+      enrichedUser,
+      'sales',
+      order.orderId,
+      'ORDER_CONFIRMED'
+    );
     console.log('✅ Order confirmed:', statusUpdate.enrichedItems.length, 'items updated');
     
-    // Allocate inventory
+    // Step 6: Allocate inventory
     const allocationResult = await allocateInventoryForOrderService(enrichedUser, order.orderId, {
       strategy: 'fefo',
       warehouseId: warehouse_id,
     });
     console.log('✅ Inventory allocated:', allocationResult);
-
-    // Confirm allocation
+    
+    // Step 7: Confirm allocation
     const confirmResult = await confirmInventoryAllocationService(enrichedUser, order.orderId);
     console.log('✅ Allocation confirmed:', confirmResult);
+    
+    // Step 8: Build fulfillment request
+    const allocationIds = allocationResult?.allocations?.map(a => a.id) || [];
+    const requestData = {
+      orderId: order.orderId,
+      allocations: { ids: allocationIds },
+      fulfillmentNotes: 'Automated test fulfillment',
+      shipmentNotes: 'Handle with care',
+      shipmentBatchNote: 'Test batch',
+    };
+    
+    // Step 9: Fulfill outbound shipment
+    const fulfillmentResult = await fulfillOutboundShipmentService(requestData, enrichedUser);
+    console.log('✅ Outbound fulfillment completed:');
+    console.dir(fulfillmentResult, { depth: 5 });
     
   } catch (err) {
     console.error('❌ Full flow failed:', err.stack || err.message);

@@ -71,14 +71,14 @@
     "pg": "^8.13.1",
     "sanitize-html": "^2.14.0",
     "sharp": "^0.34.1",
-    "uuid": "^11.0.5",
+    "uuid": "^13.0.0",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
-    "dotenv-cli": "^10.0.0",
+    "dotenv-cli": "^11.0.0",
     "jest": "^30.0.4",
     "nodemon": "^3.1.9",
     "supertest": "^7.0.0"

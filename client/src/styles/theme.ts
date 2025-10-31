@@ -2,6 +2,8 @@ import {
   createTheme,
   type ThemeOptions,
   type Theme,
+  type PaletteColor,
+  type PaletteColorOptions,
 } from '@mui/material/styles';
 
 // Extend the palette with custom colors
@@ -15,7 +17,10 @@ declare module '@mui/material/styles' {
       customDark: string;
       customHover: string;
     };
+    stack: string;
+    neutral: PaletteColor;
   }
+  
   interface PaletteOptions {
     actionCustom?: {
       addNew?: string;
@@ -25,12 +30,14 @@ declare module '@mui/material/styles' {
       customDark?: string;
       customHover?: string;
     };
-  }
-  interface Palette {
-    stack: string;
-  }
-  interface PaletteOptions {
     stack?: string;
+    neutral?: PaletteColorOptions;
+  }
+}
+
+declare module '@mui/material/Chip' {
+  interface ChipPropsColorOverrides {
+    neutral: true;
   }
 }
 
@@ -156,6 +163,10 @@ const lightTheme = createTheme({
       customDark: '#1a1a1a',
       customHover: '#2b2b2b',
     },
+    neutral: {
+      main: '#6c757d',
+      contrastText: '#ffffff',
+    },
   },
 });
 
@@ -181,6 +192,10 @@ const darkTheme = createTheme({
     backgroundCustom: {
       customDark: '#1a1a1a',
       customHover: '#2b2b2b',
+    },
+    neutral: {
+      main: '#adb5bd',
+      contrastText: '#1e1e1e',
     },
   },
 });
