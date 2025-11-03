@@ -1,8 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
-import {
-  fetchBomMaterialSupplyDetailsThunk,
-} from '@features/bom/state/bomThunks';
+import { fetchBomMaterialSupplyDetailsThunk } from '@features/bom/state/bomThunks';
 import {
   resetBomMaterialSupplyDetails,
   setSelectedBomId,
@@ -46,7 +44,7 @@ import {
  */
 const useBomMaterialSupplyDetails = () => {
   const dispatch = useAppDispatch();
-  
+
   const loading = useAppSelector(selectBomMaterialSupplyLoading);
   const error = useAppSelector(selectBomMaterialSupplyError);
   const summary = useAppSelector(selectBomMaterialSupplySummary);
@@ -54,7 +52,7 @@ const useBomMaterialSupplyDetails = () => {
   const hasData = useAppSelector(selectHasBomMaterialSupplyData);
   const costOverview = useAppSelector(selectBomMaterialSupplyCostOverview);
   const selectedBomId = useAppSelector(selectSelectedBomId);
-  
+
   const fetchDetails = useCallback(
     (bomId: string) => {
       dispatch(setSelectedBomId(bomId));
@@ -62,11 +60,11 @@ const useBomMaterialSupplyDetails = () => {
     },
     [dispatch]
   );
-  
+
   const resetDetails = useCallback(() => {
     dispatch(resetBomMaterialSupplyDetails());
   }, [dispatch]);
-  
+
   return useMemo(
     () => ({
       loading,

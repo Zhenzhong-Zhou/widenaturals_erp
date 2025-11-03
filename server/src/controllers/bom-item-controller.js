@@ -1,6 +1,8 @@
 const wrapAsync = require('../utils/wrap-async');
 const { logInfo } = require('../utils/logger-helper');
-const { fetchBomMaterialSupplyDetailsService } = require('../services/bom-item-service');
+const {
+  fetchBomMaterialSupplyDetailsService,
+} = require('../services/bom-item-service');
 
 /**
  * @async
@@ -42,15 +44,15 @@ const { fetchBomMaterialSupplyDetailsService } = require('../services/bom-item-s
  */
 const getBomMaterialSupplyDetailsController = wrapAsync(async (req, res) => {
   const { bomId } = req.params;
-  
+
   logInfo('Fetching BOM Material Supply Details', req, {
     context: 'bom-item-controller/getBomMaterialSupplyDetailsController',
     bomId,
   });
-  
+
   // --- Call Service ---
   const result = await fetchBomMaterialSupplyDetailsService(bomId);
-  
+
   if (!result || result.length === 0) {
     return res.status(404).json({
       success: false,
@@ -58,7 +60,7 @@ const getBomMaterialSupplyDetailsController = wrapAsync(async (req, res) => {
       data: null,
     });
   }
-  
+
   // --- Build structured response ---
   res.status(200).json({
     success: true,

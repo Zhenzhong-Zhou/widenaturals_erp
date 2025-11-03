@@ -30,10 +30,12 @@ import { isValidOrderCategory } from '@features/order/utils/orderCategoryUtils';
  * // → undefined (invalid category)
  */
 export const resolvePermission = (
-  requiredPermission: string | ((params: {
-    mode?: string
-  }) => string) | ((params: OrderRouteParams) => string) | undefined,
-  routeParams: Record<string, string | undefined>,
+  requiredPermission:
+    | string
+    | ((params: { mode?: string }) => string)
+    | ((params: OrderRouteParams) => string)
+    | undefined,
+  routeParams: Record<string, string | undefined>
 ): string | undefined => {
   if (typeof requiredPermission === 'function') {
     const category = routeParams?.category;
@@ -41,6 +43,8 @@ export const resolvePermission = (
       return requiredPermission(routeParams as OrderRouteParams);
     }
   }
-  
-  return typeof requiredPermission === 'string' ? requiredPermission : undefined;
+
+  return typeof requiredPermission === 'string'
+    ? requiredPermission
+    : undefined;
 };

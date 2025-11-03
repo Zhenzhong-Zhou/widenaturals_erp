@@ -4,7 +4,10 @@ import {
   type PricingLookupItem,
   type LookupOption,
 } from '@features/lookup/state/lookupTypes';
-import { createLookupMetaSelector, mapLookupItems } from '../utils/lookupSelectorUtils';
+import {
+  createLookupMetaSelector,
+  mapLookupItems,
+} from '../utils/lookupSelectorUtils';
 
 /**
  * Root selector to access the `pricingLookup` state slice from the Redux store.
@@ -12,7 +15,8 @@ import { createLookupMetaSelector, mapLookupItems } from '../utils/lookupSelecto
  * @param state - The global Redux store state.
  * @returns The `pricingLookup` slice state.
  */
-export const selectPricingLookupState = (state: RootState) => state.pricingLookup;
+export const selectPricingLookupState = (state: RootState) =>
+  state.pricingLookup;
 
 /**
  * Selector to retrieve the full list of pricing lookup items.
@@ -51,7 +55,9 @@ export const selectPricingLookupError = createSelector(
  *
  * @returns An object with `{ offset, limit, hasMore }` values.
  */
-export const selectPricingLookupMeta = createLookupMetaSelector(selectPricingLookupState);
+export const selectPricingLookupMeta = createLookupMetaSelector(
+  selectPricingLookupState
+);
 
 /**
  * Selector that maps pricing lookup items into dropdown options.

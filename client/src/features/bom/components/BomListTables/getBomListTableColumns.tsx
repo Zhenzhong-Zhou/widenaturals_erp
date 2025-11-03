@@ -26,9 +26,7 @@ export const getBomListTableColumns = (
       label: 'Product',
       sortable: true,
       renderCell: (row) => (
-        <Link
-          to={`/boms/${row.bomId}`}
-        >
+        <Link to={`/boms/${row.bomId}`}>
           <TruncatedText
             text={row.productName ?? '—'}
             maxLength={35}
@@ -113,7 +111,7 @@ export const getBomListTableColumns = (
       renderCell: (row) => formatLabel(row.status) ?? '—',
     },
   ];
-  
+
   // --- Optional drill-down column for expandable rows ---
   if (onDrillDownToggle) {
     columns.push(
@@ -123,6 +121,6 @@ export const getBomListTableColumns = (
       )
     );
   }
-  
+
   return columns;
 };

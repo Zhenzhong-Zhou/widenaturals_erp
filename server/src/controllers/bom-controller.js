@@ -38,7 +38,7 @@
 const {
   fetchPaginatedBomsService,
   fetchBomDetailsService,
-  fetchBOMProductionSummaryService
+  fetchBOMProductionSummaryService,
 } = require('../services/bom-service');
 const wrapAsync = require('../utils/wrap-async');
 const { logInfo } = require('../utils/logger-helper');
@@ -94,7 +94,7 @@ const { logInfo } = require('../utils/logger-helper');
 const getPaginatedBomsController = wrapAsync(async (req, res) => {
   // Extract normalized query parameters
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
-  
+
   // Step 1: Delegate to service
   const { data, pagination } = await fetchPaginatedBomsService({
     filters,
@@ -103,7 +103,7 @@ const getPaginatedBomsController = wrapAsync(async (req, res) => {
     sortBy,
     sortOrder,
   });
-  
+
   // Step 2: Structured logging
   logInfo('Fetched paginated BOM list request', req, {
     context: 'bom-controller/fetchPaginatedBomsController',
@@ -112,7 +112,7 @@ const getPaginatedBomsController = wrapAsync(async (req, res) => {
     sorting: { sortBy, sortOrder },
     count: pagination.totalRecords,
   });
-  
+
   // Step 3: Send standardized success response
   res.status(200).json({
     success: true,
@@ -157,10 +157,10 @@ const getPaginatedBomsController = wrapAsync(async (req, res) => {
  */
 const getBomDetailsController = wrapAsync(async (req, res) => {
   const { bomId } = req.params;
-  
+
   // Step 1: Call service to fetch detailed BOM structure
   const result = await fetchBomDetailsService(bomId);
-  
+
   // Step 2: Log success for traceability
   logInfo('Fetched BOM details successfully', req, {
     context: 'bom-controller/getBomDetailsController',
@@ -168,7 +168,7 @@ const getBomDetailsController = wrapAsync(async (req, res) => {
     itemCount: result?.details?.length || 0,
     totalEstimatedCost: result?.summary?.totalEstimatedCost || 0,
   });
-  
+
   // Step 3: Return standardized API response
   res.status(200).json({
     success: true,
@@ -217,22 +217,22 @@ const getBomDetailsController = wrapAsync(async (req, res) => {
  */
 const fetchBOMProductionSummaryController = wrapAsync(async (req, res) => {
   const { bomId } = req.params;
-  
+
   logInfo('Fetching BOM production readiness', req, {
     context: 'bom-controller/fetchBOMProductionSummaryController',
     bomId,
   });
-  
+
   // 1 Call service
   const result = await fetchBOMProductionSummaryService(bomId);
-  
+
   // 2 Log and respond
   logInfo('BOM production readiness retrieved successfully', req, {
     context: 'bom-controller/fetchBOMProductionSummaryController',
     bomId,
     maxProducibleUnits: result?.metadata?.maxProducibleUnits ?? null,
   });
-  
+
   // 3 Respond
   res.status(200).json({
     success: true,

@@ -90,19 +90,16 @@ const InventoryOverviewPage = () => {
 
   const { permissions } = usePermissions();
   const hasPermission = useHasPermission(permissions);
-  
+
   // Memoize permission checks
   const canViewBasicLogs = useMemo(
     () => hasPermission(['view_inventory_logs']),
     [hasPermission]
   );
-  
+
   const canViewInventoryLogs = useMemo(
     () =>
-      hasPermission([
-        'view_all_sku_logs',
-        'view_all_packing_material_logs',
-      ]),
+      hasPermission(['view_all_sku_logs', 'view_all_packing_material_logs']),
     [hasPermission]
   );
 
@@ -113,7 +110,7 @@ const InventoryOverviewPage = () => {
     error: logError,
     fetchLogs,
   } = usePaginatedInventoryActivityLogs();
-  
+
   const queryParams = useMemo(
     () => ({
       page: logPage,

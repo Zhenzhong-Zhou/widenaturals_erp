@@ -37,7 +37,12 @@ const {
   logSystemDebug,
 } = require('../utils/system-logger');
 const { generateTraceId } = require('../utils/id-utils');
-const { assertAllowed, qualify, q, isSafeIdent } = require('../utils/sql-ident');
+const {
+  assertAllowed,
+  qualify,
+  q,
+  isSafeIdent,
+} = require('../utils/sql-ident');
 const { uniq } = require('../utils/array-utils');
 
 // Get environment-specific connection configuration
@@ -432,34 +437,36 @@ const retryDatabaseConnection = async (config, retries = 5) => {
  * @see getPaginatedBoms
  */
 const buildPaginatedQuery = ({
-                               baseQuery,
-                               sortBy,
-                               sortOrder = 'ASC',
-                               additionalSort,
-                               paramIndex,
-                             }) => {
+  baseQuery,
+  sortBy,
+  sortOrder = 'ASC',
+  additionalSort,
+  paramIndex,
+}) => {
   let query = baseQuery.trim();
-  
+
   // Handle raw multi-column sort or default sort clause
   if (sortBy) {
     const isRawClause = /\bASC\b|\bDESC\b/i.test(sortBy);
-    
+
     const orderClause = isRawClause
       ? sortBy
-      : `${sortBy} ${['ASC', 'DESC'].includes((sortOrder || '').toUpperCase())
-        ? sortOrder.toUpperCase()
-        : 'ASC'}`;
-    
+      : `${sortBy} ${
+          ['ASC', 'DESC'].includes((sortOrder || '').toUpperCase())
+            ? sortOrder.toUpperCase()
+            : 'ASC'
+        }`;
+
     query += ` ORDER BY ${orderClause}`;
-    
+
     if (additionalSort) {
       query += `, ${additionalSort}`;
     }
   }
-  
+
   // Append pagination
   query += ` LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 2}`;
-  
+
   return query;
 };
 
@@ -485,15 +492,17 @@ const generateCountQuery = (
   distinctColumn
 ) => {
   const joinClause = joins.join(' ');
-  
+
   if (useDistinct && !distinctColumn) {
-    throw new Error('Distinct column must be provided when useDistinct is true.');
+    throw new Error(
+      'Distinct column must be provided when useDistinct is true.'
+    );
   }
-  
+
   const countExpr = useDistinct
     ? `COUNT(DISTINCT ${distinctColumn})`
     : 'COUNT(*)';
-  
+
   return `
     SELECT ${countExpr} AS total
     FROM ${tableName}
@@ -629,33 +638,33 @@ const paginateQuery = async ({
  * @throws {AppError} - Throws structured error on validation or query execution failure.
  */
 const paginateQueryByOffset = async ({
-                                       tableName,
-                                       joins = [],
-                                       whereClause = '1=1',
-                                       queryText,
-                                       params = [],
-                                       offset = 0,
-                                       limit = 10,
-                                       sortBy = null,
-                                       sortOrder = 'ASC',
-                                       additionalSort = null,
-                                       clientOrPool = pool,
-                                       meta = {},
-                                       useDistinct = false,
-                                       distinctColumn,
-                                     }) => {
+  tableName,
+  joins = [],
+  whereClause = '1=1',
+  queryText,
+  params = [],
+  offset = 0,
+  limit = 10,
+  sortBy = null,
+  sortOrder = 'ASC',
+  additionalSort = null,
+  clientOrPool = pool,
+  meta = {},
+  useDistinct = false,
+  distinctColumn,
+}) => {
   if (offset < 0 || limit < 1) {
     throw AppError.validationError(
       'Offset must be >= 0 and limit must be a positive integer.'
     );
   }
-  
+
   if (useDistinct && !distinctColumn) {
     throw AppError.validationError(
       'distinctColumn must be provided when useDistinct is true.'
     );
   }
-  
+
   const countQueryText = generateCountQuery(
     tableName,
     joins,
@@ -663,7 +672,7 @@ const paginateQueryByOffset = async ({
     useDistinct,
     distinctColumn
   );
-  
+
   const paginatedQuery = buildPaginatedQuery({
     baseQuery: queryText,
     sortBy,
@@ -671,17 +680,17 @@ const paginateQueryByOffset = async ({
     additionalSort,
     paramIndex: params.length,
   });
-  
+
   const queryParams = [...params, limit, offset];
-  
+
   try {
     const [dataResult, countResult] = await Promise.all([
       query(paginatedQuery, queryParams, clientOrPool),
       query(countQueryText, params, clientOrPool),
     ]);
-    
+
     const totalRecords = parseInt(countResult.rows[0]?.total || 0, 10);
-    
+
     return {
       data: dataResult.rows,
       pagination: {
@@ -699,7 +708,7 @@ const paginateQueryByOffset = async ({
       distinctColumn,
       ...meta,
     });
-    
+
     throw AppError.databaseError(
       'Failed to execute offset-based paginated query.'
     );
@@ -742,14 +751,14 @@ const getCountQuery = (queryText, alias = 'subquery') => {
  * @returns {Promise<Object>} - Paginated results with metadata.
  */
 const paginateResults = async ({
-                                 dataQuery,
-                                 params = [],
-                                 page = 1,
-                                 limit = 20,
-                                 meta = {},
-                               }) => {
+  dataQuery,
+  params = [],
+  page = 1,
+  limit = 20,
+  meta = {},
+}) => {
   const offset = (page - 1) * limit;
-  
+
   // Main paginated query
   const paginatedQuery = `${dataQuery.trim().replace(/;$/, '')} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
   const paginatedParams = [...params, limit, offset];
@@ -902,7 +911,7 @@ const lockRows = async (
   // Dynamically check if the table exists in PostgreSQL
   const maskedTable = maskTableName(table);
   const tableExistsQuery = `SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE schemaname = 'public' AND tablename = $1)`;
-  
+
   const { rows } = await query(tableExistsQuery, [table], client);
   if (!rows[0].exists) {
     throw AppError.notFoundError(`Table "${maskedTable}" does not exist.`);
@@ -934,7 +943,7 @@ const lockRows = async (
 
   try {
     const { rows } = await query(sql, values, client);
-    
+
     // Log missing rows
     if (rows.length !== conditions.length) {
       logSystemWarn(`Some rows were not found in "${maskedTable}"`, {
@@ -1042,25 +1051,23 @@ const buildMergeExpression = (col, tableAlias, type = 'text') => {
       'data', EXCLUDED.${col}
     )`;
   }
-  
+
   const needsCast = type === 'json';
   const current = needsCast
     ? `TRIM((${tableAlias}.${col})::text)`
     : `TRIM(${tableAlias}.${col})`;
-  
+
   const incoming = needsCast
     ? `TRIM((EXCLUDED.${col})::text)`
     : `TRIM(EXCLUDED.${col})`;
-  
+
   const baseExpr = `CONCAT_WS(
     E'\\n\\n',
     ${current},
     CONCAT('[', TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI:SS'), '] ', ${incoming})
   )`;
-  
-  return needsCast
-    ? `${col} = (${baseExpr})::json`
-    : `${col} = ${baseExpr}`;
+
+  return needsCast ? `${col} = (${baseExpr})::json` : `${col} = ${baseExpr}`;
 };
 
 /**
@@ -1512,13 +1519,13 @@ const checkRecordExists = async (table, condition, client = null) => {
  */
 const findMissingIds = async (client, table, ids, opts = {}) => {
   const { schema = 'public', idColumn = 'id', logOnError = true } = opts;
-  
+
   // Guard dynamic identifiers
   assertAllowed(schema, table);
-  
+
   const list = uniq(ids);
   if (list.length === 0) return [];
-  
+
   const sql = `
     WITH input(id) AS (SELECT DISTINCT UNNEST($1::uuid[]))
     SELECT i.id
@@ -1529,7 +1536,7 @@ const findMissingIds = async (client, table, ids, opts = {}) => {
       WHERE t.${q(idColumn)} = i.id
     );
   `;
-  
+
   try {
     // Prefer using the passed client directly
     const { rows } = await query(sql, [list], client);
@@ -1650,19 +1657,21 @@ const getFieldValuesByField = async (
 ) => {
   try {
     if (!table || !whereKey || !selectField) {
-      throw AppError.validationError('Invalid parameters for getFieldValuesByField');
+      throw AppError.validationError(
+        'Invalid parameters for getFieldValuesByField'
+      );
     }
-    
+
     const cleanField = selectField.replace(/[^a-zA-Z0-9_]/g, '');
     const cleanWhereKey = whereKey.replace(/[^a-zA-Z0-9_]/g, '');
     const maskedTable = table.replace(/[^a-zA-Z0-9_]/g, '');
-    
+
     const sql = `
       SELECT ${cleanField}
       FROM ${maskedTable}
       WHERE ${cleanWhereKey} = $1
     `;
-    
+
     const result = await query(sql, [whereValue], client);
     return result.rows.map((row) => row[cleanField]);
   } catch (err) {

@@ -13,7 +13,9 @@ import type {
   LotAdjustmentLookupQueryParams,
   LotAdjustmentTypeLookupResponse,
   OrderTypeLookupQueryParams,
-  OrderTypeLookupResponse, PackagingMaterialLookupQueryParams, PackagingMaterialLookupResponse,
+  OrderTypeLookupResponse,
+  PackagingMaterialLookupQueryParams,
+  PackagingMaterialLookupResponse,
   PaymentMethodLookupQueryParams,
   PaymentMethodLookupResponse,
   PricingLookupQueryParams,
@@ -208,18 +210,15 @@ export const fetchOrderTypeLookupThunk = createAsyncThunk<
  * @see PaymentMethodLookupResponse
  */
 export const fetchPaymentMethodLookup = createAsyncThunk<
-  PaymentMethodLookupResponse,                 // Return type on success
-  PaymentMethodLookupQueryParams | undefined  // Arg type
->(
-  'lookup/fetchPaymentMethodLookup',
-  async (params, thunkAPI) => {
-    try {
-      return await lookupService.fetchPaymentMethodLookup(params);
-    } catch (error) {
-      return thunkAPI.rejectWithValue(error);
-    }
+  PaymentMethodLookupResponse, // Return type on success
+  PaymentMethodLookupQueryParams | undefined // Arg type
+>('lookup/fetchPaymentMethodLookup', async (params, thunkAPI) => {
+  try {
+    return await lookupService.fetchPaymentMethodLookup(params);
+  } catch (error) {
+    return thunkAPI.rejectWithValue(error);
   }
-);
+});
 
 /**
  * Thunk to fetch a list of discounts for lookup UIs such as dropdowns or autocompletes.

@@ -1,5 +1,11 @@
-import { ORDER_CONSTANTS, type OrderCategory } from '@utils/constants/orderPermissions';
-import type { OrderListFilters, PermissionContext } from '@features/order/state';
+import {
+  ORDER_CONSTANTS,
+  type OrderCategory,
+} from '@utils/constants/orderPermissions';
+import type {
+  OrderListFilters,
+  PermissionContext,
+} from '@features/order/state';
 
 export interface OrderViewModeConfig {
   key: OrderCategory;
@@ -7,7 +13,10 @@ export interface OrderViewModeConfig {
   path: `/orders/${string}`;
   canSee: (ctx: PermissionContext) => boolean;
   buildBaseFilters: (ctx: PermissionContext) => OrderListFilters;
-  applyAllocationVisibility?: (ctx: PermissionContext, filters: OrderListFilters) => OrderListFilters;
+  applyAllocationVisibility?: (
+    ctx: PermissionContext,
+    filters: OrderListFilters
+  ) => OrderListFilters;
 }
 
 export const ORDER_VIEW_MODES: Record<OrderCategory, OrderViewModeConfig> = {
@@ -24,7 +33,9 @@ export const ORDER_VIEW_MODES: Record<OrderCategory, OrderViewModeConfig> = {
       ]),
     buildBaseFilters: () => ({}),
     applyAllocationVisibility: (ctx, filters) => {
-      const canViewSales = ctx.has(ORDER_CONSTANTS.PERMISSIONS.ORDER.get('VIEW', 'SALES'));
+      const canViewSales = ctx.has(
+        ORDER_CONSTANTS.PERMISSIONS.ORDER.get('VIEW', 'SALES')
+      );
       const canViewAlloc = ctx.has(ORDER_CONSTANTS.PERMISSIONS.ALLOCATION.VIEW);
       if (!canViewSales && canViewAlloc) {
         return { ...filters, minStatusCode: 'ORDER_CONFIRMED' };
@@ -89,7 +100,8 @@ export const ORDER_VIEW_MODES: Record<OrderCategory, OrderViewModeConfig> = {
     label: 'All Orders',
     path: '/orders/all',
     canSee: (ctx) =>
-      ctx.isRoot || ctx.has(ORDER_CONSTANTS.PERMISSIONS.ORDER.get('VIEW', 'ALL')),
+      ctx.isRoot ||
+      ctx.has(ORDER_CONSTANTS.PERMISSIONS.ORDER.get('VIEW', 'ALL')),
     buildBaseFilters: () => ({}),
   },
   allocatable: {
@@ -97,7 +109,6 @@ export const ORDER_VIEW_MODES: Record<OrderCategory, OrderViewModeConfig> = {
     label: 'Allocatable Orders',
     path: '/orders/allocatable',
     canSee: (ctx) => ctx.has(ORDER_CONSTANTS.PERMISSIONS.ALLOCATION.VIEW),
-    buildBaseFilters: () => ({
-    }),
+    buildBaseFilters: () => ({}),
   },
 };

@@ -31,7 +31,8 @@ const getInventoryAllocationStatusId = async (statusCode, client) => {
       },
       client,
       {
-        context: 'inventory-allocation-status-repository/getInventoryAllocationStatusId',
+        context:
+          'inventory-allocation-status-repository/getInventoryAllocationStatusId',
         statusCode,
       }
     );

@@ -18,23 +18,23 @@ import { clearDeliveryMethodLookup } from '@features/lookup/state/deliveryMethod
  */
 const useDeliveryMethodLookup = () => {
   const dispatch = useAppDispatch();
-  
+
   const options = useAppSelector(selectDeliveryMethodLookupOptions);
   const loading = useAppSelector(selectDeliveryMethodLookupLoading);
   const error = useAppSelector(selectDeliveryMethodLookupError);
   const meta = useAppSelector(selectDeliveryMethodLookupMeta);
-  
+
   const fetch = useCallback(
     (params?: DeliveryMethodLookupQueryParams) => {
       dispatch(fetchDeliveryMethodLookupThunk(params));
     },
     [dispatch]
   );
-  
+
   const reset = useCallback(() => {
     dispatch(clearDeliveryMethodLookup());
   }, [dispatch]);
-  
+
   return useMemo(
     () => ({
       options,

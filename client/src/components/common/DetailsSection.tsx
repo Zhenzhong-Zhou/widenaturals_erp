@@ -19,7 +19,7 @@ interface DetailsSectionProps {
   sx?: SxProps<Theme>;
 }
 
-const INLINE_DISPLAY_LENGTH = 50;
+const INLINE_DISPLAY_LENGTH = 40;
 
 const DetailsSection: FC<DetailsSectionProps> = ({
   fields,
@@ -43,7 +43,7 @@ const DetailsSection: FC<DetailsSectionProps> = ({
   );
 
   if (filteredFields.length === 0) return null;
-  
+
   return (
     <Box sx={{ mt: theme.spacing(2), ...sx }}>
       {sectionTitle && (
@@ -64,15 +64,15 @@ const DetailsSection: FC<DetailsSectionProps> = ({
           const isLongText =
             typeof value === 'string' && value.length > INLINE_DISPLAY_LENGTH;
           const shouldWrap = isLongText || isSmallScreen;
-          
+
           const raw = format
             ? format(value)
             : value !== null && value !== undefined
               ? value.toString()
               : 'N/A';
-          
+
           const isNode = isValidElement(raw);
-          
+
           return (
             <Grid size={{ xs: 12, md: 6 }} key={index}>
               <Box>
@@ -82,7 +82,7 @@ const DetailsSection: FC<DetailsSectionProps> = ({
                 >
                   {label}:
                 </CustomTypography>
-                
+
                 {isNode ? (
                   // IMPORTANT: do NOT wrap a React element (which may be a <div>) in Typography <p>
                   <Box sx={{ mt: 0.5 }}>{raw}</Box>

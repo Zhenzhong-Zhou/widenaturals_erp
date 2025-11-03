@@ -37,4 +37,6 @@ export const selectBatchRegistryLookupItems = createSelector(
  *
  * Returns `{ hasMore, limit, offset }` from the lookup slice.
  */
-export const selectBatchRegistryLookupMeta = createLookupMetaSelector(selectBatchRegistryLookupSlice);
+export const selectBatchRegistryLookupMeta = createLookupMetaSelector(
+  selectBatchRegistryLookupSlice
+);

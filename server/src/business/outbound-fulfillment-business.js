@@ -1,19 +1,24 @@
 const {
   validateFullAllocationForFulfillment,
-  updateOrderItemStatusesByOrderId
+  updateOrderItemStatusesByOrderId,
 } = require('../repositories/order-item-repository');
 const { cleanObject } = require('../utils/object-utils');
 const { generateChecksum } = require('../utils/crypto-utils');
 const AppError = require('../utils/AppError');
 const {
   getAllocationsByOrderId,
-  updateInventoryAllocationStatus
+  updateInventoryAllocationStatus,
 } = require('../repositories/inventory-allocations-repository');
 const { lockRows } = require('../database/db');
 const { getStatusId } = require('../config/status-cache');
-const { insertOutboundShipmentsBulk, updateOutboundShipmentStatus } = require('../repositories/outbound-shipment-repository');
+const {
+  insertOutboundShipmentsBulk,
+  updateOutboundShipmentStatus,
+} = require('../repositories/outbound-shipment-repository');
 const { updateOrderStatus } = require('../repositories/order-repository');
-const { updateOrderFulfillmentStatus } = require('../repositories/order-fulfillment-repository');
+const {
+  updateOrderFulfillmentStatus,
+} = require('../repositories/order-fulfillment-repository');
 const { logSystemInfo } = require('../utils/system-logger');
 
 /**
@@ -39,7 +44,10 @@ const { logSystemInfo } = require('../utils/system-logger');
  * @throws {AppError} Validation error if any order items are under-allocated
  */
 const validateOrderIsFullyAllocated = async (orderId, client) => {
-  const underAllocatedRow = await validateFullAllocationForFulfillment(orderId, client);
+  const underAllocatedRow = await validateFullAllocationForFulfillment(
+    orderId,
+    client
+  );
   if (underAllocatedRow) {
     throw AppError.validationError(
       'Order is not fully allocated. Fulfillment is only allowed when all items are fully allocated.',
@@ -77,25 +85,22 @@ const isFulfillmentStatusFinal = (code) =>
  * @param {string} nextCode - Intended next status code.
  * @throws {AppError} If the transition is invalid or violates final status rules.
  */
-const validateFulfillmentStatusTransition = (
-  currentCode,
-  nextCode
-) => {
+const validateFulfillmentStatusTransition = (currentCode, nextCode) => {
   const currentIndex = FULFILLMENT_STATUS_SEQUENCE.indexOf(currentCode);
   const nextIndex = FULFILLMENT_STATUS_SEQUENCE.indexOf(nextCode);
-  
+
   if (currentIndex === -1 || nextIndex === -1) {
     throw AppError.validationError(
       `Invalid fulfillment status code(s): ${currentCode}, ${nextCode}`
     );
   }
-  
+
   if (isFulfillmentStatusFinal(currentCode)) {
     throw AppError.validationError(
       `Cannot transition from final fulfillment status: ${currentCode}`
     );
   }
-  
+
   if (nextIndex <= currentIndex) {
     throw AppError.validationError(
       `Cannot transition fulfillment status backward: ${currentCode} → ${nextCode}`
@@ -118,13 +123,19 @@ const assertAllocationsValid = (allocationMeta = []) => {
   if (!Array.isArray(allocationMeta) || allocationMeta.length === 0) {
     throw AppError.notFoundError('No allocations found for this order.');
   }
-  
+
   allocationMeta.forEach((a) => {
     if (!a.allocation_id || !a.warehouse_id || !a.batch_id) {
-      throw AppError.validationError('Allocation data is missing required fields.', { allocation: a });
+      throw AppError.validationError(
+        'Allocation data is missing required fields.',
+        { allocation: a }
+      );
     }
     if (a.allocated_quantity <= 0) {
-      throw AppError.validationError('Allocation quantity must be greater than zero.', { allocation: a });
+      throw AppError.validationError(
+        'Allocation quantity must be greater than zero.',
+        { allocation: a }
+      );
     }
   });
 };
@@ -162,20 +173,24 @@ const assertAllocationsValid = (allocationMeta = []) => {
  * @throws {AppError} If allocations are invalid or lock acquisition fails
  */
 const getAndLockAllocations = async (orderId, allocationIds = null, client) => {
-  const allocationMeta = await getAllocationsByOrderId(orderId, allocationIds, client);
-  
+  const allocationMeta = await getAllocationsByOrderId(
+    orderId,
+    allocationIds,
+    client
+  );
+
   assertAllocationsValid(allocationMeta);
-  
+
   const lockConditions = allocationMeta.map(({ batch_id, warehouse_id }) => ({
     warehouse_id: warehouse_id,
     batch_id: batch_id,
   }));
-  
+
   await lockRows(client, 'warehouse_inventory', lockConditions, 'FOR UPDATE', {
     traceId: 'fulfillment',
     orderId,
   });
-  
+
   return {
     allocationMeta,
     warehouseBatchKeys: lockConditions,
@@ -207,7 +222,7 @@ const getAndLockAllocations = async (orderId, allocationIds = null, client) => {
  * @throws {AppError} If allocations span multiple warehouses
  */
 const assertSingleWarehouseAllocations = (allocationMeta) => {
-  const warehouseIds = [...new Set(allocationMeta.map(a => a.warehouse_id))];
+  const warehouseIds = [...new Set(allocationMeta.map((a) => a.warehouse_id))];
   if (warehouseIds.length > 1) {
     throw AppError.validationError(
       'Allocations span multiple warehouses. Split fulfillment per warehouse.',
@@ -240,7 +255,14 @@ const assertSingleWarehouseAllocations = (allocationMeta) => {
  * @returns {Promise<Object>} The inserted shipment row
  * @throws {AppError} If the shipment cannot be created
  */
-const insertOutboundShipmentRecord = async (order_id, warehouse_id, delivery_method_id, notes, userId, client) => {
+const insertOutboundShipmentRecord = async (
+  order_id,
+  warehouse_id,
+  delivery_method_id,
+  notes,
+  userId,
+  client
+) => {
   const shipmentStatusId = getStatusId('outbound_shipment_init');
   const shipmentInput = {
     order_id,
@@ -254,7 +276,10 @@ const insertOutboundShipmentRecord = async (order_id, warehouse_id, delivery_met
     shipment_details: null,
     created_by: userId,
   };
-  const [shipmentRow] = await insertOutboundShipmentsBulk([shipmentInput], client);
+  const [shipmentRow] = await insertOutboundShipmentsBulk(
+    [shipmentInput],
+    client
+  );
   return shipmentRow;
 };
 
@@ -304,12 +329,14 @@ const insertOutboundShipmentRecord = async (order_id, warehouse_id, delivery_met
  * //   created_by: "user-789"
  * // }]
  */
-const buildShipmentBatchInputs = (  allocationMeta,
-                                    shipmentId,
-                                    fulfillmentId,
-                                    note,
-                                    userId) => {
-  return allocationMeta.map(a => ({
+const buildShipmentBatchInputs = (
+  allocationMeta,
+  shipmentId,
+  fulfillmentId,
+  note,
+  userId
+) => {
+  return allocationMeta.map((a) => ({
     shipment_id: shipmentId,
     fulfillment_id: fulfillmentId,
     batch_id: a.batch_id,
@@ -356,14 +383,19 @@ const buildShipmentBatchInputs = (  allocationMeta,
  *   updated_by: "user-001"
  * }]
  */
-const buildFulfillmentInputsFromAllocations = (allocationMeta, shipmentId, userId, notes) => {
+const buildFulfillmentInputsFromAllocations = (
+  allocationMeta,
+  shipmentId,
+  userId,
+  notes
+) => {
   const statusId = getStatusId('order_fulfillment_init');
   const map = new Map();
-  
-  allocationMeta.forEach(a => {
+
+  allocationMeta.forEach((a) => {
     const key = `${a.order_item_id}-${shipmentId}`;
     const existing = map.get(key);
-    
+
     if (existing) {
       existing.quantity_fulfilled += a.allocated_quantity;
       existing.allocation_ids.push(a.allocation_id);
@@ -382,7 +414,7 @@ const buildFulfillmentInputsFromAllocations = (allocationMeta, shipmentId, userI
       });
     }
   });
-  
+
   return Array.from(map.values());
 };
 
@@ -418,9 +450,11 @@ const assertOrderMeta = (orderMeta) => {
  */
 const assertFulfillmentsValid = (fulfillments = [], order_number) => {
   if (!Array.isArray(fulfillments) || fulfillments.length === 0) {
-    throw AppError.notFoundError(`No fulfillments found for order: ${order_number}`);
+    throw AppError.notFoundError(
+      `No fulfillments found for order: ${order_number}`
+    );
   }
-  
+
   fulfillments.forEach((f) => {
     if (!f.fulfillment_id) {
       throw AppError.validationError('Fulfillment missing fulfillment_id.');
@@ -458,27 +492,33 @@ const assertShipmentFound = (shipment, shipmentId) => {
       context: 'outbound-fulfillment-business/assertShipmentFound',
       shipmentId,
     });
-    
-    throw AppError.notFoundError(`Shipment with ID "${shipmentId}" was not found.`, {
-      context: 'outbound-fulfillment-business/assertShipmentFound',
-      shipmentId,
-      severity: 'warning',
-    });
+
+    throw AppError.notFoundError(
+      `Shipment with ID "${shipmentId}" was not found.`,
+      {
+        context: 'outbound-fulfillment-business/assertShipmentFound',
+        shipmentId,
+        severity: 'warning',
+      }
+    );
   }
-  
+
   if (!shipment.shipment_id) {
     logSystemInfo('Shipment record is missing critical fields', {
       context: 'outbound-fulfillment-business/assertShipmentFound',
       shipmentId,
       shipment,
     });
-    
-    throw AppError.validationError('Shipment record is malformed or missing `shipment_id`.', {
-      context: 'outbound-fulfillment-business/assertShipmentFound',
-      shipmentId,
-    });
+
+    throw AppError.validationError(
+      'Shipment record is malformed or missing `shipment_id`.',
+      {
+        context: 'outbound-fulfillment-business/assertShipmentFound',
+        shipmentId,
+      }
+    );
   }
-  
+
   logSystemInfo('Validated shipment record successfully', {
     context: 'outbound-fulfillment-business/assertShipmentFound',
     shipmentId,
@@ -501,19 +541,26 @@ const assertShipmentFound = (shipment, shipmentId) => {
  * @throws {AppError} If the delivery method is not allowed for manual fulfillment.
  */
 const assertDeliveryMethodIsAllowed = (methodName, isPickupLocation) => {
-  const ALLOWED_DELIVERY_METHODS = ['In-Store Pickup', 'Personal Driver Delivery'];
-  
+  const ALLOWED_DELIVERY_METHODS = [
+    'In-Store Pickup',
+    'Personal Driver Delivery',
+  ];
+
   const isAllowed =
-    Boolean(isPickupLocation) || ALLOWED_DELIVERY_METHODS.includes(methodName ?? '');
-  
+    Boolean(isPickupLocation) ||
+    ALLOWED_DELIVERY_METHODS.includes(methodName ?? '');
+
   if (!isAllowed) {
-    logSystemInfo('Blocked manual fulfillment due to disallowed delivery method', {
-      context: 'outbound-fulfillment-business/assertDeliveryMethodIsAllowed',
-      deliveryMethod: methodName,
-      isPickupLocation,
-      allowedMethods: ALLOWED_DELIVERY_METHODS,
-    });
-    
+    logSystemInfo(
+      'Blocked manual fulfillment due to disallowed delivery method',
+      {
+        context: 'outbound-fulfillment-business/assertDeliveryMethodIsAllowed',
+        deliveryMethod: methodName,
+        isPickupLocation,
+        allowedMethods: ALLOWED_DELIVERY_METHODS,
+      }
+    );
+
     throw AppError.validationError(
       `Manual fulfillment is only allowed for pickup or personal delivery. Found: ${methodName || 'none'}`,
       {
@@ -524,7 +571,7 @@ const assertDeliveryMethodIsAllowed = (methodName, isPickupLocation) => {
       }
     );
   }
-  
+
   logSystemInfo('Validated delivery method for manual fulfillment', {
     context: 'outbound-fulfillment-business/assertDeliveryMethodIsAllowed',
     deliveryMethod: methodName,
@@ -563,8 +610,8 @@ const assertEnrichedAllocations = (enrichedAllocations = []) => {
   if (!Array.isArray(enrichedAllocations) || enrichedAllocations.length === 0) {
     throw AppError.businessError('Enriched allocations are empty.');
   }
-  
-  enrichedAllocations.forEach(a => {
+
+  enrichedAllocations.forEach((a) => {
     if (a.available_quantity == null || a.allocated_quantity == null) {
       throw AppError.validationError(
         'Enriched allocation missing required inventory fields.',
@@ -604,8 +651,14 @@ const assertInventoryAdjustments = (updatesObject = {}) => {
  * @param {Object} [context={}] - Optional debug context (e.g. attempted updates)
  * @throws {AppError} BusinessError if no updates were applied
  */
-const assertWarehouseUpdatesApplied = (warehouseInventoryIds = [], context = {}) => {
-  if (!Array.isArray(warehouseInventoryIds) || warehouseInventoryIds.length === 0) {
+const assertWarehouseUpdatesApplied = (
+  warehouseInventoryIds = [],
+  context = {}
+) => {
+  if (
+    !Array.isArray(warehouseInventoryIds) ||
+    warehouseInventoryIds.length === 0
+  ) {
     throw AppError.businessError(
       'No warehouse inventory records were updated during fulfillment adjustment.',
       context
@@ -626,7 +679,11 @@ const assertWarehouseUpdatesApplied = (warehouseInventoryIds = [], context = {})
  * @param {string} ids.fulfillmentStatusId - Fulfillment status ID
  * @throws {AppError} ValidationError if any status ID is missing
  */
-const assertStatusesResolved = ({ orderStatusId, shipmentStatusId, fulfillmentStatusId }) => {
+const assertStatusesResolved = ({
+  orderStatusId,
+  shipmentStatusId,
+  fulfillmentStatusId,
+}) => {
   if (!orderStatusId || !shipmentStatusId || !fulfillmentStatusId) {
     throw AppError.validationError('Invalid or unresolved status codes.', {
       orderStatusId,
@@ -670,11 +727,15 @@ const assertActionTypeIdResolved = (inventoryActionTypeId, name) => {
 const assertLogsGenerated = (logs, stage = 'logs') => {
   if (Array.isArray(logs)) {
     if (logs.length === 0) {
-      throw AppError.businessError(`No inventory activity logs generated at stage: ${stage}`);
+      throw AppError.businessError(
+        `No inventory activity logs generated at stage: ${stage}`
+      );
     }
   } else if (logs && typeof logs === 'object') {
     if (!logs.activityLogIds || logs.activityLogIds.length === 0) {
-      throw AppError.businessError(`No inventory activity logs inserted at stage: ${stage}`);
+      throw AppError.businessError(
+        `No inventory activity logs inserted at stage: ${stage}`
+      );
     }
   } else {
     throw AppError.businessError(`Invalid log structure at stage: ${stage}`);
@@ -696,47 +757,60 @@ const assertLogsGenerated = (logs, stage = 'logs') => {
  * @throws {AppError} If any status is not eligible for confirmation
  */
 const validateStatusesBeforeConfirmation = ({
-                                              orderStatusCode,
-                                              fulfillmentStatuses,
-                                              shipmentStatusCode,
-                                            }) => {
+  orderStatusCode,
+  fulfillmentStatuses,
+  shipmentStatusCode,
+}) => {
   // Normalize fulfillment statuses to an array
   const fulfillmentCodes = Array.isArray(fulfillmentStatuses)
     ? fulfillmentStatuses
     : [fulfillmentStatuses];
-  
+
   const ALLOWED = {
     order: ['ORDER_PROCESSING', 'ORDER_FULFILLED'],
-    fulfillment: ['FULFILLMENT_PENDING', 'FULFILLMENT_PICKING', 'FULFILLMENT_PARTIAL'],
+    fulfillment: [
+      'FULFILLMENT_PENDING',
+      'FULFILLMENT_PICKING',
+      'FULFILLMENT_PARTIAL',
+    ],
     shipment: ['SHIPMENT_PENDING'],
   };
-  
+
   // --- Validate order ---
   if (!ALLOWED.order.includes(orderStatusCode)) {
     throw AppError.validationError(
       `Order status "${orderStatusCode}" is not eligible for fulfillment confirmation.`,
-      { context: 'outbound-fulfillment-business/validateStatusesBeforeConfirmation' }
+      {
+        context:
+          'outbound-fulfillment-business/validateStatusesBeforeConfirmation',
+      }
     );
   }
-  
+
   // --- Validate fulfillments ---
   for (const code of fulfillmentCodes) {
     if (!ALLOWED.fulfillment.includes(code)) {
       throw AppError.validationError(
         `Fulfillment with status "${code}" cannot be confirmed.`,
-        { context: 'outbound-fulfillment-business/validateStatusesBeforeConfirmation' }
+        {
+          context:
+            'outbound-fulfillment-business/validateStatusesBeforeConfirmation',
+        }
       );
     }
   }
-  
+
   // --- Validate shipment ---
   if (!ALLOWED.shipment.includes(shipmentStatusCode)) {
     throw AppError.validationError(
       `Shipment status "${shipmentStatusCode}" is not eligible for fulfillment confirmation.`,
-      { context: 'outbound-fulfillment-business/validateStatusesBeforeConfirmation' }
+      {
+        context:
+          'outbound-fulfillment-business/validateStatusesBeforeConfirmation',
+      }
     );
   }
-  
+
   logSystemInfo('Status validation passed', {
     context: 'outbound-fulfillment-business/validateStatusesBeforeConfirmation',
     orderStatusCode,
@@ -786,18 +860,17 @@ const validateStatusesBeforeConfirmation = ({
 const enrichAllocationsWithInventory = (allocationMeta, inventoryMeta) => {
   // Build lookup map: key = "warehouseId-batchId"
   const inventoryMap = new Map(
-    inventoryMeta.map(i => [`${i.warehouse_id}-${i.batch_id}`, i])
+    inventoryMeta.map((i) => [`${i.warehouse_id}-${i.batch_id}`, i])
   );
-  
+
   // Enrich allocations using O(1) lookups
-  return allocationMeta.map(a => {
+  return allocationMeta.map((a) => {
     const inv = inventoryMap.get(`${a.warehouse_id}-${a.batch_id}`);
     const available_quantity =
       inv?.warehouse_quantity != null && inv?.reserved_quantity != null
         ? inv.warehouse_quantity - inv.reserved_quantity
         : null;
-    
-    
+
     return {
       ...a,
       ...inv,
@@ -854,16 +927,22 @@ const enrichAllocationsWithInventory = (allocationMeta, inventoryMeta) => {
  */
 const calculateInventoryAdjustments = (enrichedAllocations) => {
   return Object.fromEntries(
-    enrichedAllocations.map(a => {
+    enrichedAllocations.map((a) => {
       const key = `${a.warehouse_id}-${a.batch_id}`;
-      const newWarehouseQty = Math.max(0, a.warehouse_quantity - a.allocated_quantity);
-      const newReservedQty = Math.max(0, (a.reserved_quantity ?? 0) - a.allocated_quantity);
-      
+      const newWarehouseQty = Math.max(
+        0,
+        a.warehouse_quantity - a.allocated_quantity
+      );
+      const newReservedQty = Math.max(
+        0,
+        (a.reserved_quantity ?? 0) - a.allocated_quantity
+      );
+
       const newStatusId =
         newWarehouseQty > 0
           ? getStatusId('inventory_in_stock')
           : getStatusId('inventory_out_of_stock');
-      
+
       return [
         key,
         {
@@ -905,8 +984,15 @@ const calculateInventoryAdjustments = (enrichedAllocations) => {
  *  - ValidationError: If allocation IDs are missing or invalid
  *  - DatabaseError: If locking or updating allocations fails
  */
-const updateAllocationsStatusBusiness = async (allocationMeta, allocationStatusId, orderId, orderNumber, userId, client) => {
-  const allocationIds = allocationMeta.map(a => a.allocation_id);
+const updateAllocationsStatusBusiness = async (
+  allocationMeta,
+  allocationStatusId,
+  orderId,
+  orderNumber,
+  userId,
+  client
+) => {
+  const allocationIds = allocationMeta.map((a) => a.allocation_id);
 
   // Lock allocations before updating to ensure consistency
   await lockRows(client, 'inventory_allocations', allocationIds, 'FOR UPDATE', {
@@ -915,7 +1001,7 @@ const updateAllocationsStatusBusiness = async (allocationMeta, allocationStatusI
     orderNumber,
     userId,
   });
-  
+
   return await updateInventoryAllocationStatus(
     {
       statusId: allocationStatusId,
@@ -954,17 +1040,26 @@ const updateAllocationsStatusBusiness = async (allocationMeta, allocationStatusI
  *  - ValidationError: If fulfillment IDs are missing or invalid
  *  - DatabaseError: If locking or updating fulfillments fails
  */
-const updateFulfillmentsStatusBusiness = async (fulfillments, newStatusId, orderId, orderNumber, userId, client) => {
-  const fulfillmentIds = fulfillments.map(f => f.fulfillment_id).filter(Boolean);
+const updateFulfillmentsStatusBusiness = async (
+  fulfillments,
+  newStatusId,
+  orderId,
+  orderNumber,
+  userId,
+  client
+) => {
+  const fulfillmentIds = fulfillments
+    .map((f) => f.fulfillment_id)
+    .filter(Boolean);
   if (!fulfillmentIds.length || !newStatusId) return [];
-  
+
   await lockRows(client, 'order_fulfillments', fulfillmentIds, 'FOR UPDATE', {
     stage: 'fulfillment-status-update',
     orderId,
     orderNumber,
     userId,
   });
-  
+
   return await updateOrderFulfillmentStatus(
     {
       statusId: newStatusId,
@@ -1003,17 +1098,24 @@ const updateFulfillmentsStatusBusiness = async (fulfillments, newStatusId, order
  *  - ValidationError: If shipment IDs are missing or invalid
  *  - DatabaseError: If locking or updating shipments fails
  */
-const updateShipmentsStatusBusiness = async (fulfillments, newStatusId, orderId, orderNumber, userId, client) => {
-  const shipmentIds = fulfillments.map(f => f.shipment_id).filter(Boolean);
+const updateShipmentsStatusBusiness = async (
+  fulfillments,
+  newStatusId,
+  orderId,
+  orderNumber,
+  userId,
+  client
+) => {
+  const shipmentIds = fulfillments.map((f) => f.shipment_id).filter(Boolean);
   if (!shipmentIds.length || !newStatusId) return [];
-  
+
   await lockRows(client, 'outbound_shipments', shipmentIds, 'FOR UPDATE', {
     stage: 'shipment-status-update',
     orderId,
     orderNumber,
     userId,
   });
-  
+
   return await updateOutboundShipmentStatus(
     {
       statusId: newStatusId,
@@ -1088,74 +1190,74 @@ const updateShipmentsStatusBusiness = async (fulfillments, newStatusId, orderId,
  * });
  */
 const updateAllStatuses = async ({
-                                   orderId,
-                                   orderNumber,
-                                   allocationMeta = [],
-                                   newOrderStatusId,
-                                   newAllocationStatusId,
-                                   fulfillments = [],
-                                   newFulfillmentStatusId,
-                                   newShipmentStatusId,
-                                   userId,
-                                   client,
-                                 }) => {
+  orderId,
+  orderNumber,
+  allocationMeta = [],
+  newOrderStatusId,
+  newAllocationStatusId,
+  fulfillments = [],
+  newFulfillmentStatusId,
+  newShipmentStatusId,
+  userId,
+  client,
+}) => {
   // Normalize to arrays in case null is explicitly passed
   const allocations = Array.isArray(allocationMeta) ? allocationMeta : [];
   const fulfillmentList = Array.isArray(fulfillments) ? fulfillments : [];
-  
+
   // --- 1. Update Order status
   const orderStatusRow = await updateOrderStatus(client, {
     orderId,
     newStatusId: newOrderStatusId,
     updatedBy: userId,
   });
-  
+
   // --- 2. Update all Order Item statuses (all items under the order)
   const orderItemStatusRow = await updateOrderItemStatusesByOrderId(client, {
     orderId,
     newStatusId: newOrderStatusId,
     updatedBy: userId,
   });
-  
+
   // --- 3. Update Allocation statuses if allocations provided
   const inventoryAllocationStatusRow =
     allocations.length && newAllocationStatusId
       ? await updateAllocationsStatusBusiness(
-        allocations,
-        newAllocationStatusId,
-        orderId,
-        orderNumber,
-        userId,
-        client
-      )
+          allocations,
+          newAllocationStatusId,
+          orderId,
+          orderNumber,
+          userId,
+          client
+        )
       : [];
-  
+
   // --- 4. Update Fulfillment statuses if fulfillments and new status provided
   const orderFulfillmentStatusRow =
     fulfillmentList.length && newFulfillmentStatusId
       ? await updateFulfillmentsStatusBusiness(
-        fulfillmentList,
-        newFulfillmentStatusId,
-        orderId,
-        orderNumber,
-        userId,
-        client
-      )
+          fulfillmentList,
+          newFulfillmentStatusId,
+          orderId,
+          orderNumber,
+          userId,
+          client
+        )
       : [];
-  
+
   // --- 5. Update Shipment statuses if fulfillments and new status provided
   const shipmentStatusRow =
     fulfillmentList.length && newShipmentStatusId
       ? await updateShipmentsStatusBusiness(
-        fulfillmentList,
-        newShipmentStatusId,
-        orderId,
-        orderNumber,
-        userId,
-        client
-      )
+          fulfillmentList,
+          newShipmentStatusId,
+          orderId,
+          orderNumber,
+          userId,
+          client
+        )
       : [];
-  
+
   return {
     orderStatusRow,
     orderItemStatusRow,
@@ -1226,20 +1328,20 @@ const updateAllStatuses = async ({
  * });
  */
 const buildFulfillmentLogEntry = ({
-                                    allocation,
-                                    update,
-                                    inventoryActionTypeId,
-                                    userId,
-                                    orderId,
-                                    shipmentId,
-                                    fulfillmentId,
-                                    orderNumber
-                                  }) => {
+  allocation,
+  update,
+  inventoryActionTypeId,
+  userId,
+  orderId,
+  shipmentId,
+  fulfillmentId,
+  orderNumber,
+}) => {
   const previous_quantity = allocation.warehouse_quantity;
   const quantity_change = -allocation.allocated_quantity;
   const new_quantity = update.warehouse_quantity;
   const comments = `[System] Inventory adjusted during fulfillment for order ${orderNumber}`;
-  
+
   const metadata = cleanObject({
     batch_id: allocation.batch_id,
     allocation_id: allocation.allocation_id,
@@ -1249,8 +1351,8 @@ const buildFulfillmentLogEntry = ({
     reserved_quantity_after: update.reserved_quantity,
     warehouse_quantity_snapshot: previous_quantity,
   });
-  
-  const checksumPayload = cleanObject( {
+
+  const checksumPayload = cleanObject({
     warehouse_inventory_id: allocation.warehouse_inventory_id,
     inventory_action_type_id: inventoryActionTypeId,
     adjustment_type_id: null,
@@ -1266,7 +1368,7 @@ const buildFulfillmentLogEntry = ({
     source_ref_id: fulfillmentId,
     ...metadata,
   });
-  
+
   return cleanObject({
     warehouse_inventory_id: allocation.warehouse_inventory_id,
     location_inventory_id: null,
@@ -1348,7 +1450,7 @@ const buildInventoryActivityLogs = (
     orderNumber,
   }
 ) => {
-  return allocations.map(a =>
+  return allocations.map((a) =>
     buildFulfillmentLogEntry({
       allocation: a,
       update: updatesObject[`${a.warehouse_id}-${a.batch_id}`],
@@ -1392,25 +1494,25 @@ const buildInventoryActivityLogs = (
  * });
  */
 const validateStatusesBeforeManualFulfillment = ({
-                                                   orderStatusCode,
-                                                   orderItemStatusCode,
-                                                   allocationStatuses,
-                                                   shipmentStatusCode,
-                                                   fulfillmentStatuses,
-                                                 }) => {
+  orderStatusCode,
+  orderItemStatusCode,
+  allocationStatuses,
+  shipmentStatusCode,
+  fulfillmentStatuses,
+}) => {
   // --- Normalize inputs
   const orderItemCodes = Array.isArray(orderItemStatusCode)
     ? orderItemStatusCode
     : [orderItemStatusCode];
-  
+
   const allocationCodes = Array.isArray(allocationStatuses)
     ? allocationStatuses
     : [allocationStatuses];
-  
+
   const fulfillmentCodes = Array.isArray(fulfillmentStatuses)
     ? fulfillmentStatuses
     : [fulfillmentStatuses];
-  
+
   // --- Allowed statuses before manual fulfillment completion
   const ALLOWED = {
     order: ['ORDER_FULFILLED'],
@@ -1419,56 +1521,72 @@ const validateStatusesBeforeManualFulfillment = ({
     shipment: ['SHIPMENT_READY'],
     fulfillment: ['FULFILLMENT_PACKED'],
   };
-  
+
   // --- Validate order ---
   if (!ALLOWED.order.includes(orderStatusCode)) {
     throw AppError.validationError(
       `Order status "${orderStatusCode}" is not eligible for manual fulfillment completion.`,
-      { context: 'outbound-fulfillment-business/validateStatusesBeforeManualFulfillment' }
+      {
+        context:
+          'outbound-fulfillment-business/validateStatusesBeforeManualFulfillment',
+      }
     );
   }
-  
+
   // --- Validate order items ---
   for (const code of orderItemCodes) {
     if (!ALLOWED.orderItem.includes(code)) {
       throw AppError.validationError(
         `Order item with status "${code}" is not eligible for manual fulfillment completion.`,
-        { context: 'outbound-fulfillment-business/validateStatusesBeforeManualFulfillment' }
+        {
+          context:
+            'outbound-fulfillment-business/validateStatusesBeforeManualFulfillment',
+        }
       );
     }
   }
-  
+
   // --- Validate allocations ---
   for (const code of allocationCodes) {
     if (!ALLOWED.allocation.includes(code)) {
       throw AppError.validationError(
         `Allocation with status "${code}" is not eligible for manual fulfillment completion.`,
-        { context: 'outbound-fulfillment-business/validateStatusesBeforeManualFulfillment' }
+        {
+          context:
+            'outbound-fulfillment-business/validateStatusesBeforeManualFulfillment',
+        }
       );
     }
   }
-  
+
   // --- Validate shipment ---
   if (!ALLOWED.shipment.includes(shipmentStatusCode)) {
     throw AppError.validationError(
       `Shipment status "${shipmentStatusCode}" is not eligible for manual fulfillment completion.`,
-      { context: 'outbound-fulfillment-business/validateStatusesBeforeManualFulfillment' }
+      {
+        context:
+          'outbound-fulfillment-business/validateStatusesBeforeManualFulfillment',
+      }
     );
   }
-  
+
   // --- Validate fulfillments ---
   for (const code of fulfillmentCodes) {
     if (!ALLOWED.fulfillment.includes(code)) {
       throw AppError.validationError(
         `Fulfillment with status "${code}" cannot be marked as completed (manual fulfillment).`,
-        { context: 'outbound-fulfillment-business/validateStatusesBeforeManualFulfillment' }
+        {
+          context:
+            'outbound-fulfillment-business/validateStatusesBeforeManualFulfillment',
+        }
       );
     }
   }
-  
+
   // --- Log success
   logSystemInfo('Manual fulfillment status validation passed', {
-    context: 'outbound-fulfillment-business/validateStatusesBeforeManualFulfillment',
+    context:
+      'outbound-fulfillment-business/validateStatusesBeforeManualFulfillment',
     orderStatusCode,
     orderItemStatusCodes: orderItemCodes,
     allocationStatuses: allocationCodes,

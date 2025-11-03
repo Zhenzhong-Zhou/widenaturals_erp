@@ -25,7 +25,7 @@ const useWarehouseLookup = () => {
     },
     [dispatch]
   );
-  
+
   const resetLookup = useCallback(() => {
     dispatch(resetWarehouseLookup());
   }, [dispatch]);

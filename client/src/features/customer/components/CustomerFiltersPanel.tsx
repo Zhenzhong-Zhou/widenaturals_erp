@@ -9,7 +9,10 @@ import {
   renderDateField,
   renderInputField,
 } from '@utils/filters/filterUtils';
-import { adjustAfterDate, adjustBeforeDateInclusive } from '@utils/dateTimeUtils';
+import {
+  adjustAfterDate,
+  adjustBeforeDateInclusive,
+} from '@utils/dateTimeUtils';
 
 interface Props {
   filters: CustomerFilters;
@@ -61,7 +64,7 @@ const CustomerFiltersPanel: FC<Props> = ({
   useEffect(() => {
     reset(filters);
   }, [filters, reset]);
-  
+
   /**
    * Submits adjusted customer filters by transforming dates into ISO 8601 strings.
    *
@@ -78,7 +81,7 @@ const CustomerFiltersPanel: FC<Props> = ({
       statusDateAfter: adjustAfterDate(data.statusDateAfter),
       statusDateBefore: adjustBeforeDateInclusive(data.statusDateBefore),
     };
-    
+
     onChange(adjusted);
     onApply();
   };

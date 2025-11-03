@@ -37,7 +37,7 @@ const AppRoutes = () => {
       </ErrorDisplay>
     );
   }
-  
+
   return (
     <PermissionsProvider
       roleName={roleName}
@@ -49,16 +49,16 @@ const AppRoutes = () => {
           {routes.map(({ path, component: LazyComponent, meta }, index) => {
             const isProtected = meta?.requiresAuth;
             const isAccessDeniedRoute = path === '/access-denied';
-            
+
             const match = matchPath(path, window.location.pathname); // Get params
             const routeParams = match?.params ?? {};
-            const resolvedPermission = resolvePermission(meta?.requiredPermission, routeParams);
-            
+            const resolvedPermission = resolvePermission(
+              meta?.requiredPermission,
+              routeParams
+            );
+
             // Block direct access to /access-denied for non-root_admin/admin
-            if (
-              roleName && isAccessDeniedRoute &&
-              roleName !== 'root_admin'
-            ) {
+            if (roleName && isAccessDeniedRoute && roleName !== 'root_admin') {
               return (
                 <Route
                   key={index}
@@ -67,7 +67,7 @@ const AppRoutes = () => {
                 />
               );
             }
-            
+
             // Protected route
             if (isProtected) {
               if (!hasPermission(resolvedPermission, permissions, roleName)) {
@@ -83,7 +83,7 @@ const AppRoutes = () => {
                   />
                 );
               }
-              
+
               return (
                 <Route
                   key={index}
@@ -98,7 +98,7 @@ const AppRoutes = () => {
                 />
               );
             }
-            
+
             // Guest routes
             if (path === '/login' || path === '/') {
               // Wrap login and homepage with GuestRoute

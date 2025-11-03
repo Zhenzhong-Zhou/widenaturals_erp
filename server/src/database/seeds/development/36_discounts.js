@@ -15,17 +15,19 @@ exports.seed = async function (knex) {
     return;
   }
 
-  console.log(`[${new Date().toISOString()}] [SEED] Starting discounts seeding...`);
-  
+  console.log(
+    `[${new Date().toISOString()}] [SEED] Starting discounts seeding...`
+  );
+
   // Fetch status IDs
   const statusIds = await fetchDynamicValues(
     knex,
     'status',
     'name',
     ['active', 'inactive', 'discontinued', 'archived'],
-    'id',
+    'id'
   );
-  
+
   const getStatusId = (name) => {
     const id = statusIds[name];
     if (!id) throw new Error(`Status "${name}" not found in DB.`);
@@ -36,7 +38,7 @@ exports.seed = async function (knex) {
   const inactiveStatusId = getStatusId('inactive');
   const discontinuedStatusId = getStatusId('discontinued');
   const archivedStatusId = getStatusId('archived');
-  
+
   const systemActionId = await fetchDynamicValue(
     knex,
     'users',
@@ -118,8 +120,9 @@ exports.seed = async function (knex) {
       status_id: archivedStatusId,
       valid_from: new Date('2023-01-01T00:00:00Z'),
       valid_to: new Date('2023-01-31T23:59:59Z'),
-      description: 'Old archived promo for testing audit and inactive record handling.',
-    }
+      description:
+        'Old archived promo for testing audit and inactive record handling.',
+    },
   ];
 
   // Format data before insertion
@@ -137,12 +140,14 @@ exports.seed = async function (knex) {
     updated_by: null,
     updated_at: null,
   }));
-  
+
   // Insert discounts while ignoring conflicts
   await knex('discounts')
     .insert(formatted)
     .onConflict(['name', 'discount_type', 'valid_from'])
     .ignore();
-  
-  console.log(`${formatted.length} discount records seeded (skipping existing).`);
+
+  console.log(
+    `${formatted.length} discount records seeded (skipping existing).`
+  );
 };

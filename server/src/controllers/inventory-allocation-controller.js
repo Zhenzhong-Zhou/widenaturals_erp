@@ -2,7 +2,8 @@ const wrapAsync = require('../utils/wrap-async');
 const {
   allocateInventoryForOrderService,
   reviewInventoryAllocationService,
-  confirmInventoryAllocationService, fetchPaginatedInventoryAllocationsService
+  confirmInventoryAllocationService,
+  fetchPaginatedInventoryAllocationsService,
 } = require('../services/inventory-allocation-service');
 const { logInfo } = require('../utils/logger-helper');
 
@@ -44,16 +45,20 @@ const allocateInventoryForOrderController = wrapAsync(async (req, res) => {
   const { orderId } = req.params;
   const { strategy, warehouseId } = req.body;
   const user = req.user;
-  
-  const result = await allocateInventoryForOrderService(user, orderId, { strategy, warehouseId } );
-  
+
+  const result = await allocateInventoryForOrderService(user, orderId, {
+    strategy,
+    warehouseId,
+  });
+
   logInfo('Inventory allocated successfully', req, {
-    context: 'inventory-allocation-controller/allocateInventoryForOrderController',
+    context:
+      'inventory-allocation-controller/allocateInventoryForOrderController',
     orderId,
     userId: user?.id,
     severity: 'INFO',
   });
-  
+
   return res.status(200).json({
     success: true,
     message: 'Inventory allocation complete',
@@ -87,19 +92,23 @@ const allocateInventoryForOrderController = wrapAsync(async (req, res) => {
  *
  * @returns {Promise<void>} Sends JSON response with review data or error message
  */
-const reviewInventoryAllocationController = wrapAsync( async (req, res) => {
+const reviewInventoryAllocationController = wrapAsync(async (req, res) => {
   const { orderId } = req.params;
   const { warehouseIds = [], allocationIds = [] } = req.body;
-  
+
   const logMeta = {
     context: 'inventory/reviewInventoryAllocationController',
     orderId,
     allocationIds,
     user: req.user?.id,
   };
-  
-  const reviewData = await reviewInventoryAllocationService(orderId, warehouseIds, allocationIds);
-  
+
+  const reviewData = await reviewInventoryAllocationService(
+    orderId,
+    warehouseIds,
+    allocationIds
+  );
+
   if (!reviewData) {
     logInfo('No inventory allocations found', req, logMeta);
     return res.status(404).json({
@@ -107,14 +116,14 @@ const reviewInventoryAllocationController = wrapAsync( async (req, res) => {
       message: 'No inventory allocations found for review',
     });
   }
-  
+
   const allocationCount = reviewData?.items?.length ?? 0;
-  
+
   logInfo('Inventory allocation review retrieved successfully', req, {
     ...logMeta,
     allocationCount,
   });
-  
+
   return res.status(200).json({
     success: true,
     message: 'Inventory allocation review retrieved successfully',
@@ -159,26 +168,29 @@ const reviewInventoryAllocationController = wrapAsync( async (req, res) => {
  * @route GET /api/inventory-allocations
  * @access Protected
  */
-const getPaginatedInventoryAllocationsController = wrapAsync(async (req, res) => {
-  const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
-  
-  // Step 1: Fetch transformed paginated results from service
-  const { data, pagination } = await fetchPaginatedInventoryAllocationsService({
-    filters,
-    page,
-    limit,
-    sortBy,
-    sortOrder,
-  });
-  
-  // Step 2: Return 200 response
-  res.status(200).json({
-    success: true,
-    message: 'Inventory allocations retrieved successfully.',
-    data,
-    pagination,
-  });
-});
+const getPaginatedInventoryAllocationsController = wrapAsync(
+  async (req, res) => {
+    const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
+
+    // Step 1: Fetch transformed paginated results from service
+    const { data, pagination } =
+      await fetchPaginatedInventoryAllocationsService({
+        filters,
+        page,
+        limit,
+        sortBy,
+        sortOrder,
+      });
+
+    // Step 2: Return 200 response
+    res.status(200).json({
+      success: true,
+      message: 'Inventory allocations retrieved successfully.',
+      data,
+      pagination,
+    });
+  }
+);
 
 /**
  * Controller: Confirm inventory allocation for a specific order.
@@ -215,15 +227,16 @@ const getPaginatedInventoryAllocationsController = wrapAsync(async (req, res) =>
 const confirmInventoryAllocationController = wrapAsync(async (req, res) => {
   const rawOrderId = req.params.orderId;
   const user = req.user;
-  
+
   logInfo('Received inventory allocation confirmation request', req, {
-    context: 'inventory-allocation-controller/confirmInventoryAllocationController',
+    context:
+      'inventory-allocation-controller/confirmInventoryAllocationController',
     orderId: rawOrderId,
     userId: user?.id,
   });
-  
+
   const result = await confirmInventoryAllocationService(user, rawOrderId);
-  
+
   res.status(200).json({
     success: true,
     message: 'Inventory allocation confirmed successfully',

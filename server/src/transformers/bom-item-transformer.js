@@ -122,12 +122,12 @@ const { getFullName } = require('../utils/name-utils');
  */
 const transformBomMaterialSupplyDetails = (rows = []) => {
   if (!rows?.length) return [];
-  
+
   const resultMap = new Map();
-  
+
   for (const row of rows) {
     const bomItemId = row.bom_item_id;
-    
+
     // Initialize BOM item if not present in map
     if (!resultMap.has(bomItemId)) {
       resultMap.set(bomItemId, {
@@ -158,7 +158,7 @@ const transformBomMaterialSupplyDetails = (rows = []) => {
             id: row.bom_item_material_updated_by,
             name: getFullName(
               row.bom_item_material_updated_firstname,
-              row.bom_item_material_updated_lastname,
+              row.bom_item_material_updated_lastname
             ),
           },
           createdAt: row.bom_item_material_created_at,
@@ -167,7 +167,7 @@ const transformBomMaterialSupplyDetails = (rows = []) => {
         packagingMaterials: [],
       });
     }
-    
+
     // --- Build packaging material ---
     const packagingMaterial = {
       id: row.packaging_material_id,
@@ -203,14 +203,14 @@ const transformBomMaterialSupplyDetails = (rows = []) => {
           id: row.packaging_material_created_by,
           name: getFullName(
             row.packaging_material_created_firstname,
-            row.packaging_material_created_lastname,
+            row.packaging_material_created_lastname
           ),
         },
         updatedBy: {
           id: row.packaging_material_updated_by,
           name: getFullName(
             row.packaging_material_updated_firstname,
-            row.packaging_material_updated_lastname,
+            row.packaging_material_updated_lastname
           ),
         },
         createdAt: row.packaging_material_created_at,
@@ -218,41 +218,43 @@ const transformBomMaterialSupplyDetails = (rows = []) => {
       },
       supplier: row.supplier_id
         ? {
-          id: row.supplier_id,
-          name: row.supplier_name,
-          contract: {
-            unitCost: Number(row.supplier_contract_cost ?? 0),
-            currency: row.supplier_currency,
-            exchangeRate: Number(row.supplier_exchange_rate ?? 1),
-            validFrom: row.valid_from,
-            validTo: row.valid_to,
-            isPreferred: !!row.is_preferred,
-            leadTimeDays: row.lead_time_days ? Number(row.lead_time_days) : null,
-            note: row.supplier_note,
-          },
-          audit: {
-            createdBy: {
-              id: row.supplier_link_created_by,
-              name: getFullName(
-                row.supplier_link_created_firstname,
-                row.supplier_link_created_lastname,
-              ),
+            id: row.supplier_id,
+            name: row.supplier_name,
+            contract: {
+              unitCost: Number(row.supplier_contract_cost ?? 0),
+              currency: row.supplier_currency,
+              exchangeRate: Number(row.supplier_exchange_rate ?? 1),
+              validFrom: row.valid_from,
+              validTo: row.valid_to,
+              isPreferred: !!row.is_preferred,
+              leadTimeDays: row.lead_time_days
+                ? Number(row.lead_time_days)
+                : null,
+              note: row.supplier_note,
             },
-            updatedBy: {
-              id: row.supplier_link_updated_by,
-              name: getFullName(
-                row.supplier_link_updated_firstname,
-                row.supplier_link_updated_lastname,
-              ),
+            audit: {
+              createdBy: {
+                id: row.supplier_link_created_by,
+                name: getFullName(
+                  row.supplier_link_created_firstname,
+                  row.supplier_link_created_lastname
+                ),
+              },
+              updatedBy: {
+                id: row.supplier_link_updated_by,
+                name: getFullName(
+                  row.supplier_link_updated_firstname,
+                  row.supplier_link_updated_lastname
+                ),
+              },
+              createdAt: row.supplier_link_created_at,
+              updatedAt: row.supplier_link_updated_at,
             },
-            createdAt: row.supplier_link_created_at,
-            updatedAt: row.supplier_link_updated_at,
-          },
-          batches: [],
-        }
+            batches: [],
+          }
         : null,
     };
-    
+
     // --- Add batch if available ---
     if (row.packaging_material_batch_id && packagingMaterial.supplier) {
       packagingMaterial.supplier.batches.push({
@@ -278,14 +280,14 @@ const transformBomMaterialSupplyDetails = (rows = []) => {
             id: row.batch_created_by,
             name: getFullName(
               row.batch_created_firstname,
-              row.batch_created_lastname,
+              row.batch_created_lastname
             ),
           },
           updatedBy: {
             id: row.batch_updated_by,
             name: getFullName(
               row.batch_updated_firstname,
-              row.batch_updated_lastname,
+              row.batch_updated_lastname
             ),
           },
           createdAt: row.batch_created_at,
@@ -293,13 +295,15 @@ const transformBomMaterialSupplyDetails = (rows = []) => {
         },
       });
     }
-    
+
     // --- Attach material to BOM entry ---
     const bomEntry = resultMap.get(bomItemId);
-    const exists = bomEntry.packagingMaterials.some((m) => m.id === packagingMaterial.id);
+    const exists = bomEntry.packagingMaterials.some(
+      (m) => m.id === packagingMaterial.id
+    );
     if (!exists) bomEntry.packagingMaterials.push(packagingMaterial);
   }
-  
+
   return Array.from(resultMap.values());
 };
 

@@ -7,9 +7,9 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 export type FieldStatus = 'required' | 'invalid' | 'valid' | 'none';
 
 interface FieldStatusHelperProps {
-  status?: FieldStatus;   // 'required', 'invalid', 'valid', 'none'
-  message?: string;       // override default message
-  children?: ReactNode;   // if you want to completely override content
+  status?: FieldStatus; // 'required', 'invalid', 'valid', 'none'
+  message?: string; // override default message
+  children?: ReactNode; // if you want to completely override content
 }
 
 const defaultMessages: Record<FieldStatus, string> = {
@@ -20,15 +20,15 @@ const defaultMessages: Record<FieldStatus, string> = {
 };
 
 const FieldStatusHelper: FC<FieldStatusHelperProps> = ({
-                                                         status = 'none',
-                                                         message,
-                                                         children,
-                                                       }) => {
+  status = 'none',
+  message,
+  children,
+}) => {
   if (status === 'none') return null;
-  
+
   let icon: ReactNode;
   let color: 'error' | 'warning.main' | 'success.main';
-  
+
   switch (status) {
     case 'required':
       icon = <ErrorOutlineIcon fontSize="small" />;
@@ -45,7 +45,7 @@ const FieldStatusHelper: FC<FieldStatusHelperProps> = ({
     default:
       return null;
   }
-  
+
   return (
     <CustomTypography
       component="span"

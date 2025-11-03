@@ -54,10 +54,15 @@ export const allocateInventoryThunk = createAsyncThunk<
   'inventory/allocateInventory',
   async ({ params, body }, { rejectWithValue }) => {
     try {
-      return await inventoryAllocationService.allocateInventoryForOrderService(params, body);
+      return await inventoryAllocationService.allocateInventoryForOrderService(
+        params,
+        body
+      );
     } catch (error: any) {
       console.error('Thunk failed to allocate inventory:', error);
-      return rejectWithValue(error?.response?.data || error.message || 'Unknown error');
+      return rejectWithValue(
+        error?.response?.data || error.message || 'Unknown error'
+      );
     }
   }
 );
@@ -86,7 +91,10 @@ export const fetchInventoryAllocationReviewThunk = createAsyncThunk<
   'inventoryAllocations/fetchReview',
   async ({ orderId, body }, { rejectWithValue }) => {
     try {
-      return await inventoryAllocationService.fetchInventoryAllocationReview(orderId, body);
+      return await inventoryAllocationService.fetchInventoryAllocationReview(
+        orderId,
+        body
+      );
     } catch (error: any) {
       console.error('Thunk: Failed to fetch inventory allocation review', {
         orderId,
@@ -126,19 +134,18 @@ export const fetchInventoryAllocationReviewThunk = createAsyncThunk<
  * @throws Returns a rejected thunk action with error payload if the API call fails.
  */
 export const fetchPaginatedInventoryAllocationsThunk = createAsyncThunk<
-  InventoryAllocationResponse,                     // Returned response type
-  FetchPaginatedInventoryAllocationsParams         // Input params
->(
-  'inventoryAllocations/fetch',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await inventoryAllocationService.fetchPaginatedInventoryAllocations(params);
-    } catch (error) {
-      console.error('Thunk failed: fetchInventoryAllocationsThunk', error);
-      return rejectWithValue(error);
-    }
+  InventoryAllocationResponse, // Returned response type
+  FetchPaginatedInventoryAllocationsParams // Input params
+>('inventoryAllocations/fetch', async (params, { rejectWithValue }) => {
+  try {
+    return await inventoryAllocationService.fetchPaginatedInventoryAllocations(
+      params
+    );
+  } catch (error) {
+    console.error('Thunk failed: fetchInventoryAllocationsThunk', error);
+    return rejectWithValue(error);
   }
-);
+});
 
 /**
  * Thunk to confirm inventory allocations for a given order.
@@ -179,14 +186,11 @@ export const confirmInventoryAllocationThunk = createAsyncThunk<
   InventoryAllocationConfirmationResponse,
   { orderId: string },
   { rejectValue: string }
->(
-  'inventoryAllocations/confirm',
-  async ({ orderId }, { rejectWithValue }) => {
-    try {
-      return await inventoryAllocationService.confirmInventoryAllocation(orderId);
-    } catch (error: any) {
-      console.error('Thunk: confirmInventoryAllocation failed', error);
-      return rejectWithValue(error?.response?.data ?? error.message);
-    }
+>('inventoryAllocations/confirm', async ({ orderId }, { rejectWithValue }) => {
+  try {
+    return await inventoryAllocationService.confirmInventoryAllocation(orderId);
+  } catch (error: any) {
+    console.error('Thunk: confirmInventoryAllocation failed', error);
+    return rejectWithValue(error?.response?.data ?? error.message);
   }
-);
+});

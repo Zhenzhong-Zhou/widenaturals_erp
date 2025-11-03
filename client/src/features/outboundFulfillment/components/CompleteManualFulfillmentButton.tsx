@@ -6,15 +6,14 @@ import useCompleteManualFulfillment from '@hooks/useCompleteManualFulfillment';
 interface CompleteManualFulfillmentButtonProps {
   /** The ID of the shipment being manually fulfilled */
   shipmentId: string;
-  
+
   /** Callback to refresh data after successful manual fulfillment */
   refresh: () => void;
 }
 
-const CompleteManualFulfillmentButton: FC<CompleteManualFulfillmentButtonProps> = ({
-                                                                                     shipmentId,
-                                                                                     refresh,
-                                                                                   }) => {
+const CompleteManualFulfillmentButton: FC<
+  CompleteManualFulfillmentButtonProps
+> = ({ shipmentId, refresh }) => {
   const {
     loading,
     error,
@@ -22,7 +21,7 @@ const CompleteManualFulfillmentButton: FC<CompleteManualFulfillmentButtonProps> 
     submitManualFulfillment,
     resetManualFulfillment,
   } = useCompleteManualFulfillment();
-  
+
   /**
    * Handles the manual fulfillment submission.
    */
@@ -40,7 +39,7 @@ const CompleteManualFulfillmentButton: FC<CompleteManualFulfillmentButtonProps> 
       console.error('Manual fulfillment failed:', err);
     }
   }, [shipmentId, submitManualFulfillment]);
-  
+
   /**
    * React to success or failure, then reset.
    */
@@ -54,7 +53,7 @@ const CompleteManualFulfillmentButton: FC<CompleteManualFulfillmentButtonProps> 
       alert('Failed to complete manual fulfillment.');
     }
   }, [data, error, refresh, resetManualFulfillment]);
-  
+
   return (
     <Box>
       <CustomButton

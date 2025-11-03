@@ -20,7 +20,9 @@ type LookupBundles = {
   deliveryMethod: { fetch: (params?: DeliveryMethodLookupQueryParams) => void };
   sku: { fetch: (params?: SkuLookupQueryParams) => void };
   pricing: { fetch: (params?: PricingLookupQueryParams) => void };
-  packagingMaterial: { fetch: (params?: PackagingMaterialLookupQueryParams) => void };
+  packagingMaterial: {
+    fetch: (params?: PackagingMaterialLookupQueryParams) => void;
+  };
 };
 
 const useAllSalesOrderSearchHandlers = (
@@ -44,19 +46,21 @@ const useAllSalesOrderSearchHandlers = (
     handleTaxRateSearch: useDebouncedSearch<TaxRateLookupQueryParams>(
       bundles.taxRate.fetch
     ),
-    handleDeliveryMethodSearch: useDebouncedSearch<DeliveryMethodLookupQueryParams>(
-      bundles.deliveryMethod.fetch
-    ),
+    handleDeliveryMethodSearch:
+      useDebouncedSearch<DeliveryMethodLookupQueryParams>(
+        bundles.deliveryMethod.fetch
+      ),
     handleSkuSearch: useDebouncedSearch<SkuLookupQueryParams>(
       bundles.sku.fetch
     ),
     handlePricingSearch: useDebouncedSearch<PricingLookupQueryParams>(
       bundles.pricing.fetch
     ),
-    handlePackagingMaterialSearch: useDebouncedSearch<PackagingMaterialLookupQueryParams>(
-      bundles.packagingMaterial.fetch,
-      { mode: 'salesDropdown' } // remove or change if you want generic
-    ),
+    handlePackagingMaterialSearch:
+      useDebouncedSearch<PackagingMaterialLookupQueryParams>(
+        bundles.packagingMaterial.fetch,
+        { mode: 'salesDropdown' } // remove or change if you want generic
+      ),
   };
 };
 

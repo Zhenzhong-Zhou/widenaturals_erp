@@ -1,7 +1,14 @@
-const { query, paginateResults, paginateQueryByOffset } = require('../database/db');
+const {
+  query,
+  paginateResults,
+  paginateQueryByOffset,
+} = require('../database/db');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
-const { buildWhereClauseAndParams, skuDropdownKeywordHandler } = require('../utils/sql/build-sku-filters');
+const {
+  buildWhereClauseAndParams,
+  skuDropdownKeywordHandler,
+} = require('../utils/sql/build-sku-filters');
 const { minUuid } = require('../utils/sql/sql-helpers');
 
 /**
@@ -412,51 +419,51 @@ const getSkuDetailsWithPricingAndMeta = async (
  * @throws {AppError} If a query fails due to invalid input or database errors.
  */
 const getSkuLookup = async ({
-                              productStatusId,
-                              filters = {},
-                              options = {},
-                              limit = 50,
-                              offset = 0,
-                            }) => {
+  productStatusId,
+  filters = {},
+  options = {},
+  limit = 50,
+  offset = 0,
+}) => {
   const { whereClause, params } = buildWhereClauseAndParams(
     productStatusId,
     filters,
     skuDropdownKeywordHandler,
-    options,
+    options
   );
-  
+
   const tableName = 'skus s';
-  
+
   const baseJoins = ['LEFT JOIN products p ON s.product_id = p.id'];
-  
+
   // Determine whether to include joins for extended diagnostics
   const privilegedJoins = options.allowAllSkus
     ? [
-      ...baseJoins,
-      
-      // Join for SKU + product status
-      'LEFT JOIN status sku_status ON sku_status.id = s.status_id',
-      'LEFT JOIN status product_status ON product_status.id = p.status_id',
-      
-      // ----- Warehouse inventory join chain -----
-      'LEFT JOIN product_batches pb_wi ON pb_wi.sku_id = s.id',
-      'LEFT JOIN batch_registry br_wi ON br_wi.product_batch_id = pb_wi.id',
-      'LEFT JOIN warehouse_inventory wi ON wi.batch_id = br_wi.id',
-      'LEFT JOIN inventory_status warehouse_status ON warehouse_status.id = wi.status_id',
-      
-      // ----- Location inventory join chain -----
-      'LEFT JOIN product_batches pb_li ON pb_li.sku_id = s.id',
-      'LEFT JOIN batch_registry br_li ON br_li.product_batch_id = pb_li.id',
-      'LEFT JOIN location_inventory li ON li.batch_id = br_li.id',
-      'LEFT JOIN inventory_status location_status ON location_status.id = li.status_id',
-      'LEFT JOIN batch_registry br ON br.id = COALESCE(wi.batch_id, li.batch_id)',
-      'LEFT JOIN product_batches pb ON pb.id = br.product_batch_id',
-      'LEFT JOIN batch_status batch_status ON batch_status.id = pb.status_id',
-    ]
+        ...baseJoins,
+
+        // Join for SKU + product status
+        'LEFT JOIN status sku_status ON sku_status.id = s.status_id',
+        'LEFT JOIN status product_status ON product_status.id = p.status_id',
+
+        // ----- Warehouse inventory join chain -----
+        'LEFT JOIN product_batches pb_wi ON pb_wi.sku_id = s.id',
+        'LEFT JOIN batch_registry br_wi ON br_wi.product_batch_id = pb_wi.id',
+        'LEFT JOIN warehouse_inventory wi ON wi.batch_id = br_wi.id',
+        'LEFT JOIN inventory_status warehouse_status ON warehouse_status.id = wi.status_id',
+
+        // ----- Location inventory join chain -----
+        'LEFT JOIN product_batches pb_li ON pb_li.sku_id = s.id',
+        'LEFT JOIN batch_registry br_li ON br_li.product_batch_id = pb_li.id',
+        'LEFT JOIN location_inventory li ON li.batch_id = br_li.id',
+        'LEFT JOIN inventory_status location_status ON location_status.id = li.status_id',
+        'LEFT JOIN batch_registry br ON br.id = COALESCE(wi.batch_id, li.batch_id)',
+        'LEFT JOIN product_batches pb ON pb.id = br.product_batch_id',
+        'LEFT JOIN batch_status batch_status ON batch_status.id = pb.status_id',
+      ]
     : baseJoins;
-  
+
   const joins = options.allowAllSkus ? privilegedJoins : baseJoins;
-  
+
   const baseSelectFields = [
     's.id',
     'MIN(s.sku) AS sku',
@@ -466,7 +473,7 @@ const getSkuLookup = async ({
     'MIN(p.brand) AS brand',
     'MIN(s.size_label) AS size_label',
   ];
-  
+
   const diagnosticSelects = [
     minUuid('p', 'status_id', 'product_status_id'),
     minUuid('s', 'status_id', 'sku_status_id'),
@@ -474,12 +481,12 @@ const getSkuLookup = async ({
     minUuid('li', 'status_id', 'location_status_id'),
     minUuid('pb', 'status_id', 'batch_status_id'),
   ];
-  
+
   // Select fields to group by and return in SELECT clause
   const groupedSelectFields = options.allowAllSkus
     ? [...baseSelectFields, ...diagnosticSelects]
     : baseSelectFields;
-  
+
   // Note: GROUP BY s.id and MIN() aggregation are used to deduplicate rows per SKU,
   //       since one SKU may link to multiple inventory or batch entries.
   const queryText = `
@@ -495,7 +502,7 @@ const getSkuLookup = async ({
       MIN(p.name) ASC,
       s.id
   `;
-  
+
   try {
     const result = await paginateQueryByOffset({
       tableName,
@@ -516,7 +523,7 @@ const getSkuLookup = async ({
       useDistinct: !!options.allowAllSkus,
       distinctColumn: options.allowAllSkus ? 's.id' : undefined,
     });
-    
+
     logSystemInfo('Fetched SKU dropdown lookup successfully', {
       context: 'sku-repository/getSkuLookup',
       totalFetched: result.data?.length ?? 0,
@@ -526,7 +533,7 @@ const getSkuLookup = async ({
       filters,
       options,
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch SKU dropdown options', {
@@ -536,7 +543,7 @@ const getSkuLookup = async ({
       filters,
       options,
     });
-    
+
     throw AppError.databaseError('Failed to fetch SKU options for dropdown.');
   }
 };

@@ -7,7 +7,7 @@ import CustomButton from '@components/common/CustomButton';
 import SkeletonExpandedRow from '@components/common/SkeletonExpandedRow';
 import {
   getOrdersTableColumns,
-  OrderExpandedContent
+  OrderExpandedContent,
 } from '@features/order/components/OrdersTable/index';
 
 interface OrderTableProps {
@@ -28,21 +28,21 @@ interface OrderTableProps {
 }
 
 const OrderTable = ({
-                      category,
-                      data,
-                      loading,
-                      page,
-                      totalPages,
-                      totalRecords,
-                      rowsPerPage,
-                      onPageChange,
-                      onRowsPerPageChange,
-                      expandedRowId,
-                      onDrillDownToggle,
-                      selectedRowIds,
-                      onSelectionChange,
-                      onRefresh,
-                    }: OrderTableProps) => {
+  category,
+  data,
+  loading,
+  page,
+  totalPages,
+  totalRecords,
+  rowsPerPage,
+  onPageChange,
+  onRowsPerPageChange,
+  expandedRowId,
+  onDrillDownToggle,
+  selectedRowIds,
+  onSelectionChange,
+  onRefresh,
+}: OrderTableProps) => {
   const columns = useMemo(() => {
     return getOrdersTableColumns(
       category,
@@ -50,7 +50,7 @@ const OrderTable = ({
       onDrillDownToggle
     );
   }, [category, expandedRowId, onDrillDownToggle]);
-  
+
   const renderExpandedContent = useCallback(
     (row: OrderListItem) => (
       <Suspense
@@ -65,9 +65,10 @@ const OrderTable = ({
       >
         <OrderExpandedContent row={row} />
       </Suspense>
-    ), []
+    ),
+    []
   );
-  
+
   return (
     <Box>
       <Box
@@ -79,7 +80,7 @@ const OrderTable = ({
         <CustomTypography variant="h6" fontWeight={600}>
           Order List
         </CustomTypography>
-        
+
         <CustomButton
           onClick={onRefresh}
           variant="outlined"
@@ -88,7 +89,7 @@ const OrderTable = ({
           Refresh
         </CustomButton>
       </Box>
-        
+
       <CustomTable
         data={data}
         columns={columns}

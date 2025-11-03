@@ -16,11 +16,13 @@ exports.up = async function (knex) {
       table
         .uuid('payment_status_id')
         .references('id')
-        .inTable('payment_status').notNullable();
+        .inTable('payment_status')
+        .notNullable();
       table
         .uuid('payment_method_id')
         .references('id')
-        .inTable('payment_methods').notNullable();
+        .inTable('payment_methods')
+        .notNullable();
       table.string('currency_code', 3).defaultTo('CAD');
       table.decimal('exchange_rate', 10, 4).nullable();
       table.decimal('base_currency_amount', 10, 2).nullable(); // amount in CAD, for example

@@ -10,7 +10,10 @@ interface InventoryAllocationSortControlsProps {
   onSortOrderChange: (value: SortOrder) => void;
 }
 
-const inventoryAllocationSortOptions: { label: string; value: InventoryAllocationSortField }[] = [
+const inventoryAllocationSortOptions: {
+  label: string;
+  value: InventoryAllocationSortField;
+}[] = [
   { label: 'Order Number', value: 'orderNumber' },
   { label: 'Order Date', value: 'orderDate' },
   { label: 'Order Type', value: 'orderType' },
@@ -38,18 +41,17 @@ const inventoryAllocationSortOptions: { label: string; value: InventoryAllocatio
   { label: 'Default (Natural Sort)', value: 'defaultNaturalSort' },
 ];
 
-const InventoryAllocationSortControls: FC<InventoryAllocationSortControlsProps> = ({
-                                                                                     sortBy,
-                                                                                     sortOrder,
-                                                                                     onSortByChange,
-                                                                                     onSortOrderChange,
-                                                                                   }) => {
+const InventoryAllocationSortControls: FC<
+  InventoryAllocationSortControlsProps
+> = ({ sortBy, sortOrder, onSortByChange, onSortOrderChange }) => {
   return (
     <SortControls
       sortBy={sortBy}
       sortOrder={sortOrder}
       sortOptions={inventoryAllocationSortOptions}
-      onSortByChange={(val) => onSortByChange(val as InventoryAllocationSortField)}
+      onSortByChange={(val) =>
+        onSortByChange(val as InventoryAllocationSortField)
+      }
       onSortOrderChange={onSortOrderChange}
     />
   );

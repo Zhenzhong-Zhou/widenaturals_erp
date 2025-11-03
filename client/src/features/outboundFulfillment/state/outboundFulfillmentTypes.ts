@@ -1,7 +1,9 @@
 import type {
   ApiSuccessResponse,
-  AsyncState, PaginatedResponse,
-  PaginationParams, ReduxPaginatedState,
+  AsyncState,
+  PaginatedResponse,
+  PaginationParams,
+  ReduxPaginatedState,
   SortConfig,
 } from '@shared-types/api';
 
@@ -18,19 +20,19 @@ export interface InitiateFulfillmentBody {
   allocations: {
     ids: string[];
   };
-  
+
   /**
    * Optional free-form notes about the fulfillment itself.
    * Often used for system-generated or user-provided context.
    */
   fulfillmentNotes?: string;
-  
+
   /**
    * Optional notes for shipment preparation or handling.
    * Can include delivery instructions or system-generated context.
    */
   shipmentNotes?: string;
-  
+
   /**
    * Optional reference or comment for the shipment batch.
    * Defaults may be neutral (e.g. "No batch notes provided.")
@@ -51,7 +53,7 @@ export interface InitiateFulfillmentRequest {
    * This is passed in the URL path param (`/orders/:orderId/...`).
    */
   orderId: string;
-  
+
   /**
    * The request body containing allocations and notes.
    */
@@ -83,13 +85,15 @@ export interface InitiateFulfillmentData {
 /**
  * Full API response type for fulfillment initiation.
  */
-export type InitiateFulfillmentResponse = ApiSuccessResponse<InitiateFulfillmentData>;
+export type InitiateFulfillmentResponse =
+  ApiSuccessResponse<InitiateFulfillmentData>;
 
 /**
  * Outbound fulfillment initiation state.
  * Uses AsyncState with InitiateFulfillmentData as the payload type.
  */
-export type InitiateOutboundFulfillmentState = AsyncState<InitiateFulfillmentData | null>;
+export type InitiateOutboundFulfillmentState =
+  AsyncState<InitiateFulfillmentData | null>;
 
 /**
  * Shipment-level and order-level filters for outbound fulfillment queries.
@@ -105,11 +109,11 @@ export interface OutboundFulfillmentFilters {
   createdBefore?: string; // ISO date string
   shippedAfter?: string; // ISO date string
   shippedBefore?: string; // ISO date string
-  
+
   // Order-level
   orderId?: string;
   orderNumber?: string;
-  
+
   // Keyword fuzzy match
   keyword?: string;
 }
@@ -138,8 +142,7 @@ export type OutboundFulfillmentSortKey =
  * Query request params for outbound fulfillment fetch.
  * Extends shared pagination and sorting config.
  */
-export interface OutboundFulfillmentQuery
-  extends PaginationParams, SortConfig {
+export interface OutboundFulfillmentQuery extends PaginationParams, SortConfig {
   /**
    * Outbound fulfillment–specific filters (shipment-level, order-level, etc.)
    */
@@ -202,7 +205,8 @@ export type PaginatedOutboundFulfillmentResponse =
  * Outbound fulfillment list state.
  * Extends generic ReduxPaginatedState with OutboundShipmentRecord type.
  */
-export type PaginatedOutboundFulfillmentsState = ReduxPaginatedState<OutboundShipmentRecord>;
+export type PaginatedOutboundFulfillmentsState =
+  ReduxPaginatedState<OutboundShipmentRecord>;
 
 /** Shipment details response (data property) */
 export interface ShipmentDetails {
@@ -301,7 +305,7 @@ export type OrderItem = {
 } & (
   | { sku: SkuInfo; packagingMaterial?: never }
   | { packagingMaterial: PackagingMaterialInfo; sku?: never }
-  );
+);
 
 /** SKU + Product metadata */
 export interface SkuInfo {
@@ -331,7 +335,7 @@ export interface ShipmentBatch {
   notes: string | null;
   audit: AuditInfo;
   batchRegistryId: string;
-  batchType: "product" | "packaging_material";
+  batchType: 'product' | 'packaging_material';
   lotNumber: string | null;
   expiryDate: string | null;
 }
@@ -386,30 +390,30 @@ export interface FlattenedShipmentHeader {
   orderId: string;
   warehouseId: string | null;
   warehouseName: string | null;
-  
+
   /** Delivery method information */
   deliveryMethodId: string | null;
   deliveryMethodName: string | null;
   deliveryMethodIsPickup: boolean | null;
   deliveryMethodEstimatedTime: string | null;
-  
+
   /** Shipment status */
   statusId: string | null;
   statusCode: string | null;
   statusName: string | null;
-  
+
   /** Scheduling and notes */
   shippedAt: string | null;
   expectedDeliveryDate: string | null;
   notes: string | null;
   details: string | null;
-  
+
   /** Audit info */
   createdAt: string | null;
   createdByName: string | null;
   updatedAt: string | null;
   updatedByName: string | null;
-  
+
   /** Tracking info */
   trackingId: string | null;
   trackingNumber: string | null;
@@ -457,14 +461,14 @@ export interface FlattenedFulfillmentRow {
   quantityFulfilled: number | null;
   fulfilledAt: string | null;
   fulfillmentNote: string | null;
-  
+
   // audit
   createdAt: string | null;
   createdByName: string | null;
   updatedAt: string | null;
   updatedByName: string | null;
   fulfilledByName: string | null;
-  
+
   // item details
   orderItemId: string | null;
   orderItemQuantity: number | null;
@@ -476,7 +480,7 @@ export interface FlattenedFulfillmentRow {
   sizeLabel?: string | null;
   packagingMaterialCode?: string | null;
   packagingMaterialLabel?: string | null;
-  
+
   // Batch info is now a sub-array of batch rows
   batches: FlattenedBatchRow[];
 }
@@ -497,25 +501,25 @@ export interface ConfirmOutboundFulfillmentRequest {
    * Provided as a path parameter in the API route.
    */
   orderId: string;
-  
+
   /**
    * Target order status code.
    * Example: "ORDER_FULFILLED", "ORDER_PROCESSING"
    */
   orderStatus: string;
-  
+
   /**
    * Target allocation status code.
    * Example: "ALLOC_COMPLETED", "ALLOC_FULFILLED"
    */
   allocationStatus?: string;
-  
+
   /**
    * Target shipment status code.
    * Example: "SHIPMENT_READY", "SHIPMENT_IN_PROGRESS", "SHIPMENT_FULFILLED"
    */
   shipmentStatus: string;
-  
+
   /**
    * Target fulfillment status code.
    * Example: "FULFILLMENT_PACKED", "FULFILLMENT_COMPLETED"
@@ -552,7 +556,8 @@ export type ConfirmOutboundFulfillmentBody = Omit<
  * Represents the full response returned after confirming an outbound fulfillment.
  * Extends the generic ApiSuccessResponse<T> for consistency across all API responses.
  */
-export type ConfirmOutboundFulfillmentResponse = ApiSuccessResponse<ConfirmOutboundFulfillmentResult>;
+export type ConfirmOutboundFulfillmentResponse =
+  ApiSuccessResponse<ConfirmOutboundFulfillmentResult>;
 
 /**
  * Root result object for confirmed outbound fulfillment.
@@ -641,10 +646,10 @@ export interface ConfirmOutboundFulfillmentState
 export interface CompleteManualFulfillmentBody {
   /** Final order status code (e.g., "ORDER_DELIVERED") */
   orderStatus: string;
-  
+
   /** Final shipment status code (e.g., "SHIPMENT_COMPLETED") */
   shipmentStatus: string;
-  
+
   /** Final fulfillment status code (e.g., "FULFILLMENT_COMPLETED") */
   fulfillmentStatus: string;
 }
@@ -662,7 +667,7 @@ export interface CompleteManualFulfillmentBody {
 export interface CompleteManualFulfillmentParams {
   /** Shipment ID used as a path parameter (e.g. "9cd7e960-985b-4f4e-9f68-1782535f5d18") */
   shipmentId: string;
-  
+
   /** Request body containing target status codes for order, shipment, and fulfillment */
   body: CompleteManualFulfillmentBody;
 }
@@ -677,31 +682,31 @@ export interface ManualFulfillmentResult {
     statusId: string;
     statusDate: string; // ISO timestamp
   };
-  
+
   /** Updated order items (each item with its new status) */
   items: Array<{
     id: string;
     statusId: string;
     statusDate: string; // ISO timestamp
   }>;
-  
+
   /** Fulfillment records involved in the manual process */
   fulfillments: Array<{
     id: string;
   }>;
-  
+
   /** Shipment records updated as part of the manual fulfillment */
   shipment: Array<{
     id: string;
   }>;
-  
+
   /** Summary counts of affected records */
   summary: {
     orderItemsCount: number;
     fulfillmentsCount: number;
     shipmentCount: number;
   };
-  
+
   /** Metadata indicating when the update occurred */
   meta: {
     updatedAt: string; // ISO timestamp
@@ -711,9 +716,11 @@ export interface ManualFulfillmentResult {
 /**
  * Standardized API success response type for manual fulfillment completion.
  */
-export type CompleteManualFulfillmentResponse = ApiSuccessResponse<ManualFulfillmentResult>;
+export type CompleteManualFulfillmentResponse =
+  ApiSuccessResponse<ManualFulfillmentResult>;
 
 /**
  * Slice state for tracking manual fulfillment completion.
  */
-export type CompleteManualFulfillmentSliceState = AsyncState<CompleteManualFulfillmentResponse | null>;
+export type CompleteManualFulfillmentSliceState =
+  AsyncState<CompleteManualFulfillmentResponse | null>;

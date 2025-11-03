@@ -42,5 +42,6 @@ export const selectOrderTypeError = createSelector(
  */
 export const selectOrderTypeOptions = createSelector(
   [selectOrderTypeItems],
-  (items: OrderTypeLookupItem[]): LookupOption[] => mapLookupItems(items, ['isRequiredPayment', 'isActive'])
+  (items: OrderTypeLookupItem[]): LookupOption[] =>
+    mapLookupItems(items, ['isRequiredPayment', 'isActive'])
 );

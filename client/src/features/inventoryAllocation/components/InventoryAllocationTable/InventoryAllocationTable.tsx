@@ -6,7 +6,7 @@ import CustomButton from '@components/common/CustomButton';
 import type { InventoryAllocationSummary } from '@features/inventoryAllocation/state';
 import {
   getInventoryAllocationColumns,
-  InventoryAllocationTableExpandedRow
+  InventoryAllocationTableExpandedRow,
 } from '@features/inventoryAllocation/components/InventoryAllocationTable';
 
 interface InventoryAllocationTableProps {
@@ -21,23 +21,26 @@ interface InventoryAllocationTableProps {
 }
 
 const InventoryAllocationTable: FC<InventoryAllocationTableProps> = ({
-                                                                       data,
-                                                                       page,
-                                                                       rowsPerPage,
-                                                                       totalPages,
-                                                                       totalRecords,
-                                                                       onPageChange,
-                                                                       onRowsPerPageChange,
-                                                                       onRefresh,
-                                                                     }) => {
+  data,
+  page,
+  rowsPerPage,
+  totalPages,
+  totalRecords,
+  onPageChange,
+  onRowsPerPageChange,
+  onRefresh,
+}) => {
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-  
+
   const handleDrillDownToggle = (rowId: string) => {
     setExpandedRowId((prev) => (prev === rowId ? null : rowId));
   };
-  
-  const columns = getInventoryAllocationColumns(expandedRowId, handleDrillDownToggle);
-  
+
+  const columns = getInventoryAllocationColumns(
+    expandedRowId,
+    handleDrillDownToggle
+  );
+
   return (
     <Box>
       <Box
@@ -49,7 +52,7 @@ const InventoryAllocationTable: FC<InventoryAllocationTableProps> = ({
         <CustomTypography variant="h6" fontWeight={600}>
           Inventory Allocations
         </CustomTypography>
-        
+
         <CustomButton
           onClick={onRefresh}
           variant="outlined"
@@ -58,7 +61,7 @@ const InventoryAllocationTable: FC<InventoryAllocationTableProps> = ({
           Refresh
         </CustomButton>
       </Box>
-      
+
       <CustomTable
         columns={columns}
         data={data}

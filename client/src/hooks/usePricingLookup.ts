@@ -22,23 +22,23 @@ import {
  */
 const usePricingLookup = () => {
   const dispatch = useAppDispatch();
-  
+
   const options = useAppSelector(selectPricingLookupOptions);
   const loading = useAppSelector(selectPricingLookupLoading);
   const error = useAppSelector(selectPricingLookupError);
   const meta = useAppSelector(selectPricingLookupMeta);
-  
+
   const fetch = useCallback(
     (params?: PricingLookupQueryParams) => {
       dispatch(fetchPricingLookupThunk(params));
     },
     [dispatch]
   );
-  
+
   const reset = useCallback(() => {
     dispatch(resetPricingLookup());
   }, [dispatch]);
-  
+
   return useMemo(
     () => ({
       options,

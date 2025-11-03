@@ -3,17 +3,21 @@ const authorize = require('../middlewares/authorize');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
 const validate = require('../middlewares/validate');
 const { orderIdParamSchema } = require('../validators/order-validators');
-const { shipmentIdParamSchema } = require('../validators/outbound-shipment-validators');
+const {
+  shipmentIdParamSchema,
+} = require('../validators/outbound-shipment-validators');
 const {
   fulfillOutboundShipmentBodySchema,
   fulfillAdjustmentBodySchema,
-  outboundFulfillmentQuerySchema, manualFulfillmentBodySchema
+  outboundFulfillmentQuerySchema,
+  manualFulfillmentBodySchema,
 } = require('../validators/outbound-fulfillment-validators');
 const {
   fulfillOutboundShipmentController,
   confirmOutboundFulfillmentController,
   getPaginatedOutboundFulfillmentController,
-  getShipmentDetailsController, completeManualFulfillmentController
+  getShipmentDetailsController,
+  completeManualFulfillmentController,
 } = require('../controllers/outbound-fulfillment-controller');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 const { sanitizeFields } = require('../middlewares/sanitize');

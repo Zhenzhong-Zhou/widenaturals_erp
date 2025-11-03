@@ -39,13 +39,13 @@ const buildFulfillmentFilter = (filters = {}) => {
     const conditions = ['1=1'];
     const params = [];
     let paramIndex = 1;
-    
+
     if (filters.orderId) {
       conditions.push(`oi.order_id = $${paramIndex}`);
       params.push(filters.orderId);
       paramIndex++;
     }
-    
+
     if (filters.fulfillmentIds) {
       if (Array.isArray(filters.fulfillmentIds)) {
         conditions.push(`f.id = ANY($${paramIndex})`);
@@ -56,7 +56,7 @@ const buildFulfillmentFilter = (filters = {}) => {
       }
       paramIndex++;
     }
-    
+
     if (filters.allocationIds) {
       if (Array.isArray(filters.allocationIds)) {
         conditions.push(`f.allocation_id = ANY($${paramIndex})`);
@@ -67,7 +67,7 @@ const buildFulfillmentFilter = (filters = {}) => {
       }
       paramIndex++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -78,7 +78,7 @@ const buildFulfillmentFilter = (filters = {}) => {
       error: err.message,
       filters,
     });
-    
+
     throw AppError.databaseError('Failed to prepare fulfillment filter', {
       details: err.message,
       stage: 'build-fulfillment-where-clause',

@@ -8,10 +8,10 @@ interface StatusChipProps {
 }
 
 const StatusChip = ({
-                      label,
-                      color = 'default',
-                      variant = color === 'default' ? 'outlined' : 'filled',
-                    }: StatusChipProps) => {
+  label,
+  color = 'default',
+  variant = color === 'default' ? 'outlined' : 'filled',
+}: StatusChipProps) => {
   return (
     <Chip
       label={label}
@@ -23,7 +23,7 @@ const StatusChip = ({
         fontWeight: 600,
         bgcolor:
           color && color !== 'default'
-            ? theme.palette[color]?.light ?? undefined
+            ? (theme.palette[color]?.light ?? undefined)
             : undefined,
       })}
     />

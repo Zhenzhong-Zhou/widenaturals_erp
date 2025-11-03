@@ -4,9 +4,8 @@ import type { RootState } from '@store/store';
 /**
  * Base selector to access the completeManualFulfillment slice.
  */
-export const selectCompleteManualFulfillmentState = (
-  state: RootState
-) => state.completeManualFulfillment;
+export const selectCompleteManualFulfillmentState = (state: RootState) =>
+  state.completeManualFulfillment;
 
 /**
  * Selector for the loading state of manual fulfillment completion.

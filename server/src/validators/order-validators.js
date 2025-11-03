@@ -7,10 +7,14 @@ const {
   validateOptionalString,
   validateOptionalUUID,
   createdDateRangeSchema,
-  statusDateRangeSchema
+  statusDateRangeSchema,
 } = require('./general-validators');
-const { ORDER_CATEGORIES } = require('../utils/constants/domain/order-type-constants');
-const { ORDER_STATUS_CODES } = require('../utils/constants/domain/order-status-constants');
+const {
+  ORDER_CATEGORIES,
+} = require('../utils/constants/domain/order-type-constants');
+const {
+  ORDER_STATUS_CODES,
+} = require('../utils/constants/domain/order-status-constants');
 
 /**
  * Joi schema for validating base order payload.

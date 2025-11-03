@@ -22,45 +22,42 @@ type PackagingMaterialDropdownProps =
  * @component
  * @param {PackagingMaterialDropdownProps} props - Props controlling dropdown behavior.
  */
-const PackagingMaterialDropdown = ({ options = [], ...rest }: PackagingMaterialDropdownProps) => {
+const PackagingMaterialDropdown = ({
+  options = [],
+  ...rest
+}: PackagingMaterialDropdownProps) => {
   const enrichedPackagingMaterialOptions = useMemo(() => {
     return Array.from(
       new Map(
         options.map((opt) => {
           const isInactive = opt.isActive === false;
           const isArchived = opt.isArchived === true;
-          
+
           // Plain string for Autocomplete
           const rawLabel = getRawLabel(opt.label);
-          
+
           // JSX label for dropdown rendering
           const displayLabel = (
-            <CustomTypography color={isInactive || isArchived ? 'error' : 'inherit'}>
+            <CustomTypography
+              color={isInactive || isArchived ? 'error' : 'inherit'}
+            >
               {rawLabel}
             </CustomTypography>
           );
-          
+
           // Icon logic
-          const icon = isArchived
-            ? faArchive
-            : isInactive
-              ? faBan
-              : faBoxOpen;
-          
+          const icon = isArchived ? faArchive : isInactive ? faBan : faBoxOpen;
+
           // Tooltip logic
           const tooltip = isArchived
             ? 'Archived Packaging Material'
             : isInactive
               ? 'Inactive Packaging Material'
               : 'Active Packaging Material';
-          
+
           // Color logic
-          const iconColor = isArchived
-            ? 'gray'
-            : isInactive
-              ? 'gray'
-              : 'green';
-          
+          const iconColor = isArchived ? 'gray' : isInactive ? 'gray' : 'green';
+
           return [
             opt.value ?? opt.id,
             {
@@ -76,7 +73,7 @@ const PackagingMaterialDropdown = ({ options = [], ...rest }: PackagingMaterialD
       ).values()
     );
   }, [options]);
-  
+
   return (
     <PaginatedDropdown
       label="Select Packaging Material"

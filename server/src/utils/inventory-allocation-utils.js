@@ -19,7 +19,7 @@
 const dedupeWarehouseBatchKeys = (allocationDetails) => {
   const keySet = new Set();
   const uniqueKeys = [];
-  
+
   for (const { warehouse_id, batch_id } of allocationDetails) {
     const key = `${warehouse_id}::${batch_id}`;
     if (!keySet.has(key)) {
@@ -27,7 +27,7 @@ const dedupeWarehouseBatchKeys = (allocationDetails) => {
       uniqueKeys.push({ warehouse_id, batch_id });
     }
   }
-  
+
   return uniqueKeys;
 };
 

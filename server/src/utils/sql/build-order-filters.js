@@ -60,16 +60,18 @@ const buildOrderFilter = (filters = {}) => {
     const conditions = ['1=1'];
     const params = [];
     let paramIndex = 1;
-    
+
     if (filters.orderNumber) {
       conditions.push(`o.order_number ILIKE $${paramIndex}`);
       params.push(`%${filters.orderNumber}%`);
       paramIndex++;
     }
-    
+
     if (filters.orderTypeId) {
       if (Array.isArray(filters.orderTypeId)) {
-        const placeholders = filters.orderTypeId.map(() => `$${paramIndex++}`).join(', ');
+        const placeholders = filters.orderTypeId
+          .map(() => `$${paramIndex++}`)
+          .join(', ');
         conditions.push(`o.order_type_id IN (${placeholders})`);
         params.push(...filters.orderTypeId);
       } else {
@@ -78,7 +80,7 @@ const buildOrderFilter = (filters = {}) => {
         paramIndex++;
       }
     }
-    
+
     if (filters._activeStatusId) {
       conditions.push(`o.order_status_id = $${paramIndex}`);
       params.push(filters._activeStatusId);
@@ -88,7 +90,7 @@ const buildOrderFilter = (filters = {}) => {
       params.push(filters.orderStatusId);
       paramIndex++;
     }
-    
+
     if (filters.orderStatusIds !== undefined) {
       if (Array.isArray(filters.orderStatusIds)) {
         conditions.push(`o.order_status_id = ANY($${paramIndex})`);
@@ -98,43 +100,43 @@ const buildOrderFilter = (filters = {}) => {
       params.push(filters.orderStatusIds);
       paramIndex++;
     }
-    
+
     if (filters.createdBy) {
       conditions.push(`o.created_by = $${paramIndex}`);
       params.push(filters.createdBy);
       paramIndex++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`o.updated_by = $${paramIndex}`);
       params.push(filters.updatedBy);
       paramIndex++;
     }
-    
+
     if (filters.createdAfter) {
       conditions.push(`o.created_at >= $${paramIndex}`);
       params.push(filters.createdAfter);
       paramIndex++;
     }
-    
+
     if (filters.createdBefore) {
       conditions.push(`o.created_at <= $${paramIndex}`);
       params.push(filters.createdBefore);
       paramIndex++;
     }
-    
+
     if (filters.statusAfter) {
       conditions.push(`o.status_date >= $${paramIndex}`);
       params.push(filters.statusAfter);
       paramIndex++;
     }
-    
+
     if (filters.statusBefore) {
       conditions.push(`o.status_date <= $${paramIndex}`);
       params.push(filters.statusBefore);
       paramIndex++;
     }
-    
+
     if (filters.keyword) {
       const keyword = `%${filters.keyword.trim().replace(/\s+/g, ' ')}%`;
       if (filters._restrictKeywordToOrderNumberOnly) {
@@ -142,12 +144,14 @@ const buildOrderFilter = (filters = {}) => {
         params.push(keyword);
         paramIndex++;
       } else {
-        conditions.push(`(o.order_number ILIKE $${paramIndex} OR o.note ILIKE $${paramIndex})`);
+        conditions.push(
+          `(o.order_number ILIKE $${paramIndex} OR o.note ILIKE $${paramIndex})`
+        );
         params.push(keyword);
         paramIndex++;
       }
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -158,7 +162,7 @@ const buildOrderFilter = (filters = {}) => {
       error: err.message,
       filters,
     });
-    
+
     throw AppError.databaseError('Failed to prepare order filter', {
       details: err.message,
       stage: 'build-order-where-clause',

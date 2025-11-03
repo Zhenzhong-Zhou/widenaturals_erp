@@ -284,7 +284,10 @@ const pricingLookupQuerySchema = Joi.object({
  */
 const packagingMaterialLookupQuerySchema = Joi.object({
   ...baseLookupQuerySchema,
-  mode: Joi.string().valid('generic', 'salesDropdown').default('generic').label('Mode'),
+  mode: Joi.string()
+    .valid('generic', 'salesDropdown')
+    .default('generic')
+    .label('Mode'),
 });
 
 module.exports = {

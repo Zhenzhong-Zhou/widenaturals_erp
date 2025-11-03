@@ -40,8 +40,8 @@ const PERMISSIONS = {
     INITIATE: 'initiate_outbound_fulfillment',
     CONFIRM: 'confirm_outbound_fulfillment',
     VIEW: 'view_outbound_fulfillments',
-    COMPLETE_MANUAL: 'complete_manual_outbound_fulfillments'
-  }
+    COMPLETE_MANUAL: 'complete_manual_outbound_fulfillments',
+  },
 };
 
 module.exports = PERMISSIONS;

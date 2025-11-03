@@ -23,8 +23,10 @@ export const API_ENDPOINTS = {
   BOMS: {
     ALL_RECORDS: '/boms',
     BOM_DETAILS: (bomId: string) => `/boms/${bomId}/details`,
-    BOM_MATERIAL_SUPPLY_DETAILS: (bomId: string) => `/bom-items/${bomId}/material-supply`,
-    BOM_PRODUCTION_SUMMARY: (bomId: string) => `/boms/${bomId}/production-summary`,
+    BOM_MATERIAL_SUPPLY_DETAILS: (bomId: string) =>
+      `/bom-items/${bomId}/material-supply`,
+    BOM_PRODUCTION_SUMMARY: (bomId: string) =>
+      `/boms/${bomId}/production-summary`,
   },
   LOCATION_INVENTORY: {
     ALL_RECORDS: '/location-inventory',
@@ -76,20 +78,29 @@ export const API_ENDPOINTS = {
   ORDERS: {
     ADD_NEW_ORDER: (category: string) => `/orders/create/${category}`,
     ALL_CATEGORY_ORDERS: (category: string) => `/orders/${category}`,
-    ORDER_DETAILS: (category: string, orderId: string) => `/orders/${category}/${orderId}`,
-    ORDER_STATUS_UPDATE_PATH: (category: string, orderId: string) => `/orders/${category}/${orderId}/status`,
+    ORDER_DETAILS: (category: string, orderId: string) =>
+      `/orders/${category}/${orderId}`,
+    ORDER_STATUS_UPDATE_PATH: (category: string, orderId: string) =>
+      `/orders/${category}/${orderId}/status`,
   },
   INVENTORY_ALLOCATIONS: {
-    ALLOCATE_ORDER: (orderId: string) => `/inventory-allocations/allocate/${orderId}`,
-    REVIEW_ALLOCATION: (orderId: string) => `/inventory-allocations/review/${orderId}`,
+    ALLOCATE_ORDER: (orderId: string) =>
+      `/inventory-allocations/allocate/${orderId}`,
+    REVIEW_ALLOCATION: (orderId: string) =>
+      `/inventory-allocations/review/${orderId}`,
     ALL_ALLOCATIONS: '/inventory-allocations',
-    CONFIRM_ALLOCATION: (orderId: string) => `/inventory-allocations/confirm/${orderId}`,
+    CONFIRM_ALLOCATION: (orderId: string) =>
+      `/inventory-allocations/confirm/${orderId}`,
   },
   OUTBOUND_FULFILLMENTS: {
-    INITIATE_FULFILLMENT: (orderId: string) => `/outbound-fulfillments/orders/${orderId}/fulfillment/initiate`,
+    INITIATE_FULFILLMENT: (orderId: string) =>
+      `/outbound-fulfillments/orders/${orderId}/fulfillment/initiate`,
     ALL_RECORDS: '/outbound-fulfillments',
-    OUTBOUND_SHIPMENT_DETAILS: (shipmentId: string) => `/outbound-fulfillments/${shipmentId}/details`,
-    CONFIRM_FULFILLMENT: (orderId: string) => `/outbound-fulfillments/orders/${orderId}/fulfillment/confirm`,
-    COMPLETE_MANUAL_FULFILLMENT: (shipmentId: string) => `/outbound-fulfillments/manual/${shipmentId}/complete`
+    OUTBOUND_SHIPMENT_DETAILS: (shipmentId: string) =>
+      `/outbound-fulfillments/${shipmentId}/details`,
+    CONFIRM_FULFILLMENT: (orderId: string) =>
+      `/outbound-fulfillments/orders/${orderId}/fulfillment/confirm`,
+    COMPLETE_MANUAL_FULFILLMENT: (shipmentId: string) =>
+      `/outbound-fulfillments/manual/${shipmentId}/complete`,
   },
 };

@@ -18,19 +18,19 @@ import { clearDiscountLookup } from '@features/lookup/state/discountLookupSlice'
  */
 const useDiscountLookup = () => {
   const dispatch = useAppDispatch();
-  
+
   const options = useAppSelector(selectDiscountDropdownOptions);
   const loading = useAppSelector(selectDiscountLookupLoading);
   const error = useAppSelector(selectDiscountLookupError);
   const meta = useAppSelector(selectDiscountLookupMeta);
-  
+
   const fetch = useCallback(
     (params?: DiscountLookupQueryParams) => {
       dispatch(fetchDiscountLookupThunk(params));
     },
     [dispatch]
   );
-  
+
   const reset = useCallback(() => {
     dispatch(clearDiscountLookup());
   }, [dispatch]);

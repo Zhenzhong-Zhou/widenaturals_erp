@@ -15,11 +15,11 @@ exports.up = async function (knex) {
     table.string('unit', 20); // e.g., 'pc', 'g', 'ml'
     table.string('category', 50); // e.g. 'capsule', 'lid', 'bottle', 'gift_box', 'bag', etc.
     table.boolean('is_visible_for_sales_order').defaultTo(false);
-    
+
     table.decimal('estimated_unit_cost', 12, 4);
     table.string('currency', 5); // 'USD', 'CAD', 'CNY'
     table.decimal('exchange_rate', 12, 6);
-    
+
     table.decimal('length_cm', 10, 2);
     table.decimal('width_cm', 10, 2);
     table.decimal('height_cm', 10, 2);

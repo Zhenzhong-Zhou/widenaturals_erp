@@ -21,12 +21,12 @@ exports.up = async function (knex) {
 
     table.date('manufacture_date');
     table.date('expiry_date');
-    
+
     table.decimal('unit_cost', 12, 4);
     table.string('currency', 5); // 'CAD', 'USD', etc.
     table.decimal('exchange_rate', 12, 6); // optional if multi-currency
     table.decimal('total_cost', 14, 4); // optional convenience (quantity × unit_cost)
-    
+
     table
       .uuid('status_id')
       .notNullable()

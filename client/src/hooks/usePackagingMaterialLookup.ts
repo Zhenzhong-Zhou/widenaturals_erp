@@ -8,9 +8,7 @@ import {
   selectPackagingMaterialLookupLoading,
   selectPackagingMaterialLookupMeta,
 } from '@features/lookup/state';
-import {
-  resetPackagingMaterialLookup
-} from '@features/lookup/state/packagingMaterialLookupSlice';
+import { resetPackagingMaterialLookup } from '@features/lookup/state/packagingMaterialLookupSlice';
 
 /**
  * Hook for accessing packaging-material lookup state and actions.
@@ -24,23 +22,23 @@ import {
  */
 const usePackagingMaterialLookup = () => {
   const dispatch = useAppDispatch();
-  
+
   const options = useAppSelector(selectPackagingMaterialLookupOptions);
   const loading = useAppSelector(selectPackagingMaterialLookupLoading);
   const error = useAppSelector(selectPackagingMaterialLookupError);
   const meta = useAppSelector(selectPackagingMaterialLookupMeta);
-  
+
   const fetch = useCallback(
     (params?: PackagingMaterialLookupQueryParams) => {
       dispatch(fetchPackagingMaterialLookupThunk(params));
     },
     [dispatch]
   );
-  
+
   const reset = useCallback(() => {
     dispatch(resetPackagingMaterialLookup());
   }, [dispatch]);
-  
+
   return useMemo(
     () => ({
       options,

@@ -1,6 +1,8 @@
 const { logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
-const { resolveUserPermissionContext } = require('../services/role-permission-service');
+const {
+  resolveUserPermissionContext,
+} = require('../services/role-permission-service');
 const { PERMISSIONS } = require('../utils/constants/domain/tax-rate-constants');
 
 /**
@@ -53,27 +55,34 @@ const calculateTaxableAmount = (subtotal, discountAmount, taxRate) => {
 const evaluateTaxRateLookupAccessControl = async (user) => {
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     const canViewAllStatuses =
       isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_TAX_RATE_STATES);
-    
+
     const canViewAllValidLookups =
       isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_VALID_TAX_RATES);
-    
+
     return {
       canViewAllStatuses,
       canViewAllValidLookups,
     };
   } catch (err) {
-    logSystemException(err, 'Failed to evaluate tax rate lookup access control', {
-      context: 'tax-rate-business/evaluateTaxRateLookupAccessControl',
-      userId: user?.id,
-    });
-    
-    throw AppError.businessError('Unable to evaluate user access control for tax rate lookup', {
-      details: err.message,
-      stage: 'evaluate-tax-rate-lookup-access',
-    });
+    logSystemException(
+      err,
+      'Failed to evaluate tax rate lookup access control',
+      {
+        context: 'tax-rate-business/evaluateTaxRateLookupAccessControl',
+        userId: user?.id,
+      }
+    );
+
+    throw AppError.businessError(
+      'Unable to evaluate user access control for tax rate lookup',
+      {
+        details: err.message,
+        stage: 'evaluate-tax-rate-lookup-access',
+      }
+    );
   }
 };
 
@@ -93,17 +102,17 @@ const evaluateTaxRateLookupAccessControl = async (user) => {
  */
 const enforceTaxRateLookupVisibilityRules = (filters, userAccess) => {
   const adjusted = { ...filters };
-  
+
   // Restrict keyword visibility to currently valid records only
   if (filters.keyword && !userAccess.canViewAllValidLookups) {
     adjusted._restrictKeywordToValidOnly = true;
   }
-  
+
   // Enforce isActive = true if user can't view all
   if (!userAccess.canViewAllStatuses) {
     adjusted.isActive = true;
   }
-  
+
   return adjusted;
 };
 
@@ -122,29 +131,36 @@ const filterTaxRateLookupQuery = (query, userAccess) => {
   try {
     const modifiedQuery = { ...query };
     const now = new Date().toISOString();
-    
+
     if (!userAccess.canViewAllStatuses) {
       modifiedQuery.is_active = true;
     }
-    
+
     if (!userAccess.canViewAllValidLookups) {
       modifiedQuery.valid_from = { lte: now }; // valid_from <= now
       modifiedQuery.valid_to = { gteOrNull: now }; // valid_to >= now OR IS NULL
     }
-    
+
     return modifiedQuery;
   } catch (err) {
-    logSystemException(err, 'Failed to apply access filters in filterTaxRateLookupQuery', {
-      context: 'tax-rate-business/filterTaxRateLookupQuery',
-      originalQuery: query,
-      userAccess,
-    });
-    
-    throw AppError.businessError('Unable to apply tax rate lookup access filters', {
-      details: err.message,
-      stage: 'filter-tax-rate-lookup',
-      cause: err,
-    });
+    logSystemException(
+      err,
+      'Failed to apply access filters in filterTaxRateLookupQuery',
+      {
+        context: 'tax-rate-business/filterTaxRateLookupQuery',
+        originalQuery: query,
+        userAccess,
+      }
+    );
+
+    throw AppError.businessError(
+      'Unable to apply tax rate lookup access filters',
+      {
+        details: err.message,
+        stage: 'filter-tax-rate-lookup',
+        cause: err,
+      }
+    );
   }
 };
 
@@ -156,7 +172,7 @@ const filterTaxRateLookupQuery = (query, userAccess) => {
  */
 const enrichTaxRateRow = (row) => {
   const now = new Date();
-  
+
   return {
     ...row,
     isActive: row.is_active,

@@ -32,14 +32,9 @@ const OverrideSummaryFormatter = (
   summary: OverrideSummary | null | undefined
 ): JSX.Element | string => {
   if (!summary) return '—';
-  
-  const {
-    generated_at,
-    has_override,
-    override_count,
-    overrides,
-  } = summary;
-  
+
+  const { generated_at, has_override, override_count, overrides } = summary;
+
   return (
     <Box>
       <CustomTypography component="div">
@@ -51,7 +46,7 @@ const OverrideSummaryFormatter = (
       <CustomTypography component="div">
         Override Count: {override_count ?? 0}
       </CustomTypography>
-      
+
       {Array.isArray(overrides) && overrides.length > 0 ? (
         <Box component="ul" sx={{ pl: 2, mt: 1 }}>
           {overrides.map((item, i) => (
@@ -64,15 +59,20 @@ const OverrideSummaryFormatter = (
                   <CustomTypography variant="body2" sx={{ fontWeight: 500 }}>
                     Conflict Note:
                   </CustomTypography>
-                  <CustomTypography variant="body2" sx={{ fontStyle: 'italic' }}>
+                  <CustomTypography
+                    variant="body2"
+                    sx={{ fontStyle: 'italic' }}
+                  >
                     [{formatDateTime(item.conflictNote.timestamp)}]
                   </CustomTypography>
                   <Box component="ul" sx={{ pl: 2 }}>
-                    {Object.entries(item.conflictNote.data).map(([key, value]) => (
-                      <li key={key}>
-                        <code>{key}</code>: <code>{String(value)}</code>
-                      </li>
-                    ))}
+                    {Object.entries(item.conflictNote.data).map(
+                      ([key, value]) => (
+                        <li key={key}>
+                          <code>{key}</code>: <code>{String(value)}</code>
+                        </li>
+                      )
+                    )}
                   </Box>
                 </Box>
               )}

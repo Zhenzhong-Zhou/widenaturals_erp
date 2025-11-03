@@ -30,7 +30,7 @@ const BomHeaderSection: FC<BomHeaderSectionProps> = ({ flattened }) => {
             ]}
           />
         </DetailsGridItem>
-        
+
         {/* --- SKU Info --- */}
         <DetailsGridItem>
           <MemoizedDetailsSection
@@ -39,11 +39,14 @@ const BomHeaderSection: FC<BomHeaderSectionProps> = ({ flattened }) => {
               { label: 'SKU Code', value: flattened.skuCode || '—' },
               { label: 'Barcode', value: flattened.skuBarcode || '—' },
               { label: 'Size Label', value: flattened.skuSizeLabel || '—' },
-              { label: 'Market Region', value: flattened.skuMarketRegion || '—' },
+              {
+                label: 'Market Region',
+                value: flattened.skuMarketRegion || '—',
+              },
             ]}
           />
         </DetailsGridItem>
-        
+
         {/* --- Compliance Info --- */}
         <DetailsGridItem>
           <MemoizedDetailsSection
@@ -51,12 +54,20 @@ const BomHeaderSection: FC<BomHeaderSectionProps> = ({ flattened }) => {
             fields={[
               { label: 'Type', value: flattened.complianceType || '—' },
               { label: 'Number', value: flattened.complianceNumber || '—' },
-              { label: 'Status', value: flattened.complianceStatus || '—', format: formatLabel },
-              { label: 'Issued Date', value: flattened.complianceIssuedDate || '—', format: formatToISODate },
+              {
+                label: 'Status',
+                value: flattened.complianceStatus || '—',
+                format: formatLabel,
+              },
+              {
+                label: 'Issued Date',
+                value: flattened.complianceIssuedDate || '—',
+                format: formatToISODate,
+              },
             ]}
           />
         </DetailsGridItem>
-        
+
         {/* --- BOM Info --- */}
         <DetailsGridItem>
           <MemoizedDetailsSection
@@ -65,11 +76,15 @@ const BomHeaderSection: FC<BomHeaderSectionProps> = ({ flattened }) => {
               { label: 'BOM Name', value: flattened.bomName || '—' },
               { label: 'BOM Code', value: flattened.bomCode || '—' },
               { label: 'Revision', value: flattened.bomRevision || '—' },
-              { label: 'Status', value: formatLabel(flattened.bomStatus )|| '—', format: formatLabel },
+              {
+                label: 'Status',
+                value: formatLabel(flattened.bomStatus) || '—',
+                format: formatLabel,
+              },
             ]}
           />
         </DetailsGridItem>
-        
+
         {/* --- Audit Info --- */}
         <DetailsGridItem>
           <MemoizedDetailsSection
@@ -77,8 +92,16 @@ const BomHeaderSection: FC<BomHeaderSectionProps> = ({ flattened }) => {
             fields={[
               { label: 'Created By', value: flattened.bomCreatedBy || '—' },
               { label: 'Updated By', value: flattened.bomUpdatedBy || '—' },
-              { label: 'Created At', value: flattened.bomCreatedAt || '—', format: formatToISODate },
-              { label: 'Updated At', value: flattened.bomUpdatedAt || '—', format: formatToISODate },
+              {
+                label: 'Created At',
+                value: flattened.bomCreatedAt || '—',
+                format: formatToISODate,
+              },
+              {
+                label: 'Updated At',
+                value: flattened.bomUpdatedAt || '—',
+                format: formatToISODate,
+              },
             ]}
           />
         </DetailsGridItem>

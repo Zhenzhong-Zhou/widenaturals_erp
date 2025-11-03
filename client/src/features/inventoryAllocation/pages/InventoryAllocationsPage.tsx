@@ -1,10 +1,4 @@
-import {
-  type FC,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { type FC, useCallback, useEffect, useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Card from '@mui/material/Card';
@@ -13,7 +7,8 @@ import CustomTypography from '@components/common/CustomTypography';
 import NoDataFound from '@components/common/NoDataFound';
 import Loading from '@components/common/Loading';
 import InventoryAllocationTable, {
-  InventoryAllocationFiltersPanel, InventoryAllocationSortControls,
+  InventoryAllocationFiltersPanel,
+  InventoryAllocationSortControls,
 } from '@features/inventoryAllocation/components/InventoryAllocationTable';
 import { usePaginatedInventoryAllocations } from '@hooks/usePaginatedInventoryAllocations';
 import { usePaginationHandlers } from '@utils/hooks/usePaginationHandlers';
@@ -26,12 +21,16 @@ import type {
 const InventoryAllocationsPage: FC = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
-  const [sortBy, setSortBy] = useState<InventoryAllocationSortField>('orderCreatedAt');
+  const [sortBy, setSortBy] =
+    useState<InventoryAllocationSortField>('orderCreatedAt');
   const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
   const [filters, setFilters] = useState<InventoryAllocationFilters>({});
-  
-  const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(setPage, setLimit);
-  
+
+  const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(
+    setPage,
+    setLimit
+  );
+
   const {
     data: inventoryAllocations,
     loading: allocationsLoading,
@@ -41,7 +40,7 @@ const InventoryAllocationsPage: FC = () => {
     reset: resetInventoryAllocations,
     fetch: fetchInventoryAllocations,
   } = usePaginatedInventoryAllocations();
-  
+
   const queryParams = useMemo(
     () => ({
       page,
@@ -53,36 +52,43 @@ const InventoryAllocationsPage: FC = () => {
     }),
     [page, limit, sortBy, sortOrder, filters, fetchInventoryAllocations]
   );
-  
+
   useEffect(() => {
     applyFiltersAndSorting(queryParams);
-    
+
     return () => {
       resetInventoryAllocations(); // cleanup when component unmounts
     };
   }, [queryParams]);
-  
+
   const handleRefresh = useCallback(() => {
     applyFiltersAndSorting(queryParams);
   }, [queryParams]);
-  
+
   const handleResetFilters = () => {
     resetInventoryAllocations();
     setFilters({});
     setPage(1);
   };
-  
+
   return (
     <Box sx={{ px: 4, py: 3 }}>
       {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" mb={3} gap={2}>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        flexWrap="wrap"
+        mb={3}
+        gap={2}
+      >
         <CustomTypography variant="h5" fontWeight={700}>
           Inventory Allocation Management
         </CustomTypography>
       </Box>
-      
+
       <Divider sx={{ mb: 3 }} />
-      
+
       {/* Filter + Sort Controls */}
       <Card sx={{ p: 3, mb: 4, borderRadius: 2, minHeight: 200 }}>
         <Grid container spacing={2}>
@@ -104,11 +110,14 @@ const InventoryAllocationsPage: FC = () => {
           </Grid>
         </Grid>
       </Card>
-      
+
       {/* Allocation Table Section */}
       <Box>
         {allocationsLoading ? (
-          <Loading variant="dotted" message="Loading inventory allocations..." />
+          <Loading
+            variant="dotted"
+            message="Loading inventory allocations..."
+          />
         ) : allocationsError ? (
           <CustomTypography color="error">{allocationsError}</CustomTypography>
         ) : inventoryAllocations.length === 0 ? (

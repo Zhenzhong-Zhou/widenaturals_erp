@@ -4,7 +4,8 @@ import type { RootState } from '@store/store';
 /**
  * Root selector for accessing the sales order creation slice of the Redux state.
  */
-const selectSalesOrderCreationState = (state: RootState) => state.salesOrderCreation;
+const selectSalesOrderCreationState = (state: RootState) =>
+  state.salesOrderCreation;
 
 /**
  * Selector for checking if a sales order is currently being created.

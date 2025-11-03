@@ -1,12 +1,19 @@
 import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
-import { createLookupMetaSelector, mapLookupItems } from '../utils/lookupSelectorUtils';
-import type { DeliveryMethodLookupItem, LookupOption } from '@features/lookup/state/lookupTypes.ts';
+import {
+  createLookupMetaSelector,
+  mapLookupItems,
+} from '../utils/lookupSelectorUtils';
+import type {
+  DeliveryMethodLookupItem,
+  LookupOption,
+} from '@features/lookup/state/lookupTypes.ts';
 
 /**
  * Base selector for the delivery method lookup slice.
  */
-const selectDeliveryMethodLookupState = (state: RootState) => state.deliveryMethodLookup;
+const selectDeliveryMethodLookupState = (state: RootState) =>
+  state.deliveryMethodLookup;
 
 /**
  * Selector for retrieving the list of delivery method lookup items.

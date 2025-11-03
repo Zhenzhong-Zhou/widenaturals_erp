@@ -34,7 +34,8 @@ const deduplicateByCompositeKey = (records, keyFields = [], mergeFn = null) => {
 /**
  * Remove only null/undefined from an array.
  */
-const compact = (arr) => (arr ?? []).filter((v) => v !== null && v !== undefined);
+const compact = (arr) =>
+  (arr ?? []).filter((v) => v !== null && v !== undefined);
 
 /**
  * Unique while preserving order.
@@ -63,5 +64,5 @@ module.exports = {
   compact,
   uniq,
   uniqCompact,
-  uniqUuids
+  uniqUuids,
 };

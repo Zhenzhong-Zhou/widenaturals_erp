@@ -119,7 +119,7 @@ const { createOrderService } = require('../../services/order-service');
       },
       client
     );
-    
+
     const sku_id_3 = await getUniqueScalarValue(
       {
         table: 'skus',
@@ -128,7 +128,7 @@ const { createOrderService } = require('../../services/order-service');
       },
       client
     );
-    
+
     const packaging_material_id_1 = await getUniqueScalarValue(
       {
         table: 'packaging_materials',

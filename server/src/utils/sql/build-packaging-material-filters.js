@@ -40,17 +40,17 @@ const buildPackagingMaterialsFilter = (filters = {}) => {
     const conditions = ['1=1'];
     const params = [];
     let paramIndex = 1;
-    
+
     // Visibility for sales
     if (filters.visibleOnly === true) {
       conditions.push(`pm.is_visible_for_sales_order = true`);
     }
-    
+
     // Only unarchived by default
     if (filters.restrictToUnarchived !== false) {
       conditions.push(`pm.is_archived = false`);
     }
-    
+
     // Status
     if (filters.statusId) {
       conditions.push(`pm.status_id = $${paramIndex}`);
@@ -61,7 +61,7 @@ const buildPackagingMaterialsFilter = (filters = {}) => {
       params.push(filters._activeStatusId);
       paramIndex++;
     }
-    
+
     // Keyword search
     if (filters.keyword) {
       const keywordParam = `%${filters.keyword}%`;
@@ -75,20 +75,20 @@ const buildPackagingMaterialsFilter = (filters = {}) => {
       params.push(keywordParam);
       paramIndex++;
     }
-    
+
     // Created/updated by
     if (filters.createdBy) {
       conditions.push(`pm.created_by = $${paramIndex}`);
       params.push(filters.createdBy);
       paramIndex++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`pm.updated_by = $${paramIndex}`);
       params.push(filters.updatedBy);
       paramIndex++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -99,10 +99,13 @@ const buildPackagingMaterialsFilter = (filters = {}) => {
       filters,
       error: err.message,
     });
-    throw AppError.databaseError('Failed to prepare packaging material filter', {
-      details: err.message,
-      stage: 'build-packaging-materials-where-clause',
-    });
+    throw AppError.databaseError(
+      'Failed to prepare packaging material filter',
+      {
+        details: err.message,
+        stage: 'build-packaging-materials-where-clause',
+      }
+    );
   }
 };
 

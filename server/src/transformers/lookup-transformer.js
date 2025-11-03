@@ -7,7 +7,9 @@ const {
   includeFlagsBasedOnAccess,
 } = require('../utils/transformer-utils');
 const { getFullName } = require('../utils/name-utils');
-const { formatPackagingMaterialLabel } = require('../utils/packaging-material-utils');
+const {
+  formatPackagingMaterialLabel,
+} = require('../utils/packaging-material-utils');
 const { formatAddress } = require('../utils/address-utils');
 const { formatDiscount } = require('../utils/discount-utils');
 const { formatTaxRateLabel } = require('../utils/tax-rate-utils');
@@ -87,7 +89,7 @@ const transformBatchRegistryPaginatedLookupResult = (paginatedResult) =>
  */
 const transformWarehouseLookupRows = (rows) => {
   if (!Array.isArray(rows)) return [];
-  
+
   return rows.map((row) => ({
     value: row.warehouse_id,
     label: `${row.warehouse_name} (${row.location_name}${row.warehouse_type_name ? ' - ' + row.warehouse_type_name : ''})`,
@@ -119,7 +121,7 @@ const transformWarehouseLookupRows = (rows) => {
  */
 const transformLotAdjustmentLookupOptions = (rows) => {
   if (!Array.isArray(rows)) return [];
-  
+
   return rows.map((row) => ({
     value: row.lot_adjustment_type_id,
     label: row.name,
@@ -175,14 +177,14 @@ const transformLotAdjustmentLookupOptions = (rows) => {
  */
 const transformCustomerLookup = (row, userAccess) => {
   if (!row || typeof row !== 'object') return null;
-  
+
   const fullName = getFullName(row.firstname, row.lastname);
   const email = row.email || 'no-email';
   const label = `${fullName} (${email})`;
-  
+
   const base = transformIdNameToIdLabel({ ...row, name: label });
   const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
-  
+
   return {
     ...base,
     hasAddress: row?.has_address === true,
@@ -301,15 +303,15 @@ const transformCustomerAddressesLookupResult = (rows) =>
  */
 const transformOrderTypeLookup = (row, userAccess) => {
   if (!row || typeof row !== 'object') return null;
-  
+
   const label = userAccess?.canViewAllCategories
     ? `${row.category} - ${row.name}`
     : row.name;
-  
+
   const base = transformIdNameToIdLabel({ ...row, name: label });
-  
+
   const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
-  
+
   return {
     ...base,
     isRequiredPayment: !!row?.requires_payment,
@@ -353,7 +355,7 @@ const transformOrderTypeLookupResult = (rows, userAccess) => {
 const transformPaymentMethodLookup = (row, userAccess) => {
   const base = transformIdNameToIdLabel(row);
   const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
-  
+
   return {
     ...base,
     ...flagSubset,
@@ -376,7 +378,10 @@ const transformPaymentMethodLookup = (row, userAccess) => {
  *   hasMore: boolean
  * }} Transformed dropdown-compatible result with pagination support.
  */
-const transformPaymentMethodPaginatedLookupResult = (paginatedResult, userAccess) =>
+const transformPaymentMethodPaginatedLookupResult = (
+  paginatedResult,
+  userAccess
+) =>
   transformPaginatedResult(
     paginatedResult,
     (row) => transformPaymentMethodLookup(row, userAccess),
@@ -424,10 +429,10 @@ const transformPaymentMethodPaginatedLookupResult = (paginatedResult, userAccess
 const transformDiscountLookup = (row, userAccess) => {
   const formattedValue = formatDiscount(row.discount_type, row.discount_value); // e.g. "5.00%"
   const label = `${row.name} (${formattedValue})`;
-  
+
   const base = transformIdNameToIdLabel(row);
   const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
-  
+
   return {
     ...base,
     label,
@@ -482,10 +487,10 @@ const transformDiscountPaginatedLookupResult = (paginatedResult, userAccess) =>
  */
 const transformTaxRateLookup = (row, userAccess) => {
   const label = formatTaxRateLabel(row);
-  
+
   const base = transformIdNameToIdLabel({ ...row, name: label });
   const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
-  
+
   return {
     ...base,
     ...flagSubset,
@@ -531,7 +536,7 @@ const transformTaxRatePaginatedLookupResult = (paginatedResult, userAccess) =>
 const transformDeliveryMethodLookup = (row, userAccess) => {
   const base = transformIdNameToIdLabel(row);
   const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
-  
+
   return cleanObject({
     ...base,
     isPickupLocation: row?.is_pickup_location ?? false,
@@ -578,18 +583,22 @@ const transformDeliveryMethodPaginatedLookupResult = (
  * @returns {Object|null} - Transformed object with at least `id`, `label`, and `isNormal`,
  *                          plus flags if permitted; or `null` if the input row is invalid.
  */
-const transformSkuLookupRow = (row, { includeBarcode = false} = {}, userAccess) => {
+const transformSkuLookupRow = (
+  row,
+  { includeBarcode = false } = {},
+  userAccess
+) => {
   const product_name = getProductDisplayName(row);
-  
+
   const base = transformIdNameToIdLabel({
     id: row.id,
     name: includeBarcode
       ? `${product_name} (${row.sku}) • Barcode: ${row.barcode}`
       : `${product_name} (${row.sku})`,
   });
-  
+
   const flagSubset = includeFlagsBasedOnAccess?.(row, userAccess);
-  
+
   return cleanObject({
     ...base,
     ...flagSubset,
@@ -619,7 +628,11 @@ const transformSkuLookupRow = (row, { includeBarcode = false} = {}, userAccess) 
  *   - `items`: array of `{ id, label, ...flags }`
  *   - `hasMore`: boolean indicating whether more pages are available
  */
-const transformSkuPaginatedLookupResult = (paginatedResult, options = {}, userAccess) =>
+const transformSkuPaginatedLookupResult = (
+  paginatedResult,
+  options = {},
+  userAccess
+) =>
   transformPaginatedResult(
     paginatedResult,
     (row) => transformSkuLookupRow(row, options, userAccess),
@@ -682,42 +695,42 @@ const transformPricingLookupRow = (
   } = {}
 ) => {
   const productDisplayName = getProductDisplayName(row);
-  
+
   const labelParts = [];
-  
+
   if (showSku) {
     labelParts.push(`${productDisplayName} (${row.sku})`);
   }
-  
+
   if (showPriceType) {
     labelParts.push(row.price_type);
   }
-  
+
   if (showPriceInLabel) {
     labelParts.push(`$${row.price}`);
   }
-  
+
   const showLocation =
     userAccess?.canViewAllStatuses || userAccess?.canViewAllValidLookups;
-  
+
   const showFlags =
     userAccess?.canViewAllStatuses || userAccess?.canViewAllValidLookups;
-  
+
   // Always include id and label
   const base = {
     id: row.id,
     label: labelParts.join(' · '),
   };
-  
+
   // Optionally add more fields
   if (!labelOnly) {
     if (showLocation && row.location_name) {
       base.locationName = row.location_name;
     }
-    
+
     base.price = row.price;
     base.pricingTypeName = row.price_type;
-    
+
     const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
     Object.assign(base, flagSubset);
   } else if (labelOnly && showFlags) {
@@ -725,7 +738,7 @@ const transformPricingLookupRow = (
     const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
     Object.assign(base, flagSubset);
   }
-  
+
   return cleanObject(base);
 };
 
@@ -785,27 +798,27 @@ const transformPricingPaginatedLookupResult = (
  */
 const transformPackagingMaterialLookupRow = (row, userAccess) => {
   if (!row || typeof row !== 'object' || !row.id) return null;
-  
+
   const label = formatPackagingMaterialLabel(row);
   if (!label) return null;
-  
+
   const base = transformIdNameToIdLabel({ id: row.id, name: label });
-  
+
   const flagSubset =
     (typeof includeFlagsBasedOnAccess === 'function'
       ? includeFlagsBasedOnAccess(row, userAccess)
       : {}) || {};
-  
+
   const out = {
     ...base,
     ...flagSubset,
   };
-  
+
   // Only expose isArchived to users allowed to view all statuses
   if (userAccess?.canViewAllStatuses) {
     out.isArchived = row?.is_archived === true;
   }
-  
+
   return cleanObject(out);
 };
 
@@ -832,7 +845,10 @@ const transformPackagingMaterialLookupRow = (row, userAccess) => {
  * const result = transformPackagingMaterialPaginatedLookupResult(repoResult, access);
  * // { items: [...], offset: 0, limit: 20, hasMore: true }
  */
-const transformPackagingMaterialPaginatedLookupResult = (paginatedResult, userAccess) =>
+const transformPackagingMaterialPaginatedLookupResult = (
+  paginatedResult,
+  userAccess
+) =>
   transformPaginatedResult(
     paginatedResult,
     (row) => transformPackagingMaterialLookupRow(row, userAccess),

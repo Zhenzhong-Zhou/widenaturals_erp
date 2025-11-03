@@ -68,7 +68,7 @@ const createAddressService = async (
 
       const rawResult = await getEnrichedAddressesByIds(insertedIds, client);
       const enrichedRecords = transformEnrichedAddresses(rawResult);
-      
+
       return await Promise.all(
         enrichedRecords.map((address) =>
           filterAddressForViewer(address, user, purpose)

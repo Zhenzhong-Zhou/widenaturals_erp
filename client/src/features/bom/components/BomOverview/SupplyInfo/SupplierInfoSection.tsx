@@ -16,10 +16,25 @@ const SupplierInfoSection: FC<{ row: FlattenedBomSupplyRow }> = ({ row }) => (
     }}
     fields={[
       { label: 'Contract Currency', value: row.supplierContractCurrency },
-      { label: 'Contract Unit Cost', value: row.supplierContractUnitCost, format: (v) => formatCurrency(v, row.supplierContractCurrency) },
-      { label: 'Contract Exchanged Rate', value: row.supplierContractExchangeRate },
-      { label: 'Contract Valid From', value: row.supplierContractValidFrom, format: formatDate },
-      { label: 'Contract Valid To', value: row.supplierContractValidTo, format: formatDate },
+      {
+        label: 'Contract Unit Cost',
+        value: row.supplierContractUnitCost,
+        format: (v) => formatCurrency(v, row.supplierContractCurrency),
+      },
+      {
+        label: 'Contract Exchanged Rate',
+        value: row.supplierContractExchangeRate,
+      },
+      {
+        label: 'Contract Valid From',
+        value: row.supplierContractValidFrom,
+        format: formatDate,
+      },
+      {
+        label: 'Contract Valid To',
+        value: row.supplierContractValidTo,
+        format: formatDate,
+      },
       { label: 'Supplier Note', value: row.supplierNote },
       { label: 'Supplier Created At', value: row.supplierCreatedAt },
       { label: 'Supplier Created By', value: row.supplierCreatedBy },

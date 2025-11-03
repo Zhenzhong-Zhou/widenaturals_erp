@@ -47,7 +47,7 @@ const { logSystemException, logSystemInfo } = require('../utils/system-logger');
  */
 const insertOrderItemsBulk = async (orderId, orderItems, client) => {
   if (!Array.isArray(orderItems) || orderItems.length === 0) return [];
-  
+
   const columns = [
     'order_id',
     'sku_id',
@@ -62,7 +62,7 @@ const insertOrderItemsBulk = async (orderId, orderItems, client) => {
     'created_by',
     'updated_by',
   ];
-  
+
   const updateStrategies = {
     quantity_ordered: 'add',
     price: 'overwrite',
@@ -70,7 +70,7 @@ const insertOrderItemsBulk = async (orderId, orderItems, client) => {
     metadata: 'merge_json',
     updated_at: 'overwrite',
   };
-  
+
   const mapToRow = (item) => [
     orderId,
     item.sku_id ?? null,
@@ -78,37 +78,37 @@ const insertOrderItemsBulk = async (orderId, orderItems, client) => {
     item.quantity_ordered,
     item.price_id ?? null,
     item.price ?? null,
-    item.subtotal ?? ((item.price ?? 0) * item.quantity_ordered),
+    item.subtotal ?? (item.price ?? 0) * item.quantity_ordered,
     item.status_id,
     item.metadata ?? null,
     null,
     item.created_by ?? null,
     item.updated_by ?? null,
   ];
-  
+
   const skuItems = orderItems.filter(
     (item) => item.sku_id && !item.packaging_material_id
   );
   const packagingItems = orderItems.filter(
     (item) => !item.sku_id && item.packaging_material_id
   );
-  
+
   // Validate input
   const invalidItems = orderItems.filter(
     (item) =>
       (item.sku_id && item.packaging_material_id) ||
       (!item.sku_id && !item.packaging_material_id)
   );
-  
+
   if (invalidItems.length > 0) {
     throw new Error(
       `insertOrderItemsBulk(): Invalid items — each item must provide either sku_id or packaging_material_id (but not both).`
     );
   }
-  
+
   try {
     const results = [];
-    
+
     // Insert SKU items
     if (skuItems.length > 0) {
       const rows = skuItems.map(mapToRow);
@@ -123,7 +123,7 @@ const insertOrderItemsBulk = async (orderId, orderItems, client) => {
       );
       results.push(...result);
     }
-    
+
     // Insert Packaging items
     if (packagingItems.length > 0) {
       const rows = packagingItems.map(mapToRow);
@@ -138,14 +138,14 @@ const insertOrderItemsBulk = async (orderId, orderItems, client) => {
       );
       results.push(...result);
     }
-    
+
     return results;
   } catch (error) {
     logSystemException(error, 'Failed to bulk insert order items', {
       context: 'order-item-repository/insertOrderItemsBulk',
       data: orderItems,
     });
-    
+
     throw AppError.databaseError('Unable to insert order items in bulk.');
   }
 };
@@ -218,7 +218,7 @@ const findOrderItemsByOrderId = async (orderId) => {
     WHERE oi.order_id = $1
     ORDER BY oi.created_at;
   `;
-  
+
   const logMeta = {
     context: 'orderRepository.findOrderItemsByOrderId',
     severity: 'INFO',
@@ -227,12 +227,12 @@ const findOrderItemsByOrderId = async (orderId) => {
   };
   try {
     const { rows } = await query(sql, [orderId]);
-    
+
     if (rows.length === 0) {
       logSystemInfo('No order items found', { ...logMeta });
       return [];
     }
-    
+
     logSystemInfo('Order items fetched', { ...logMeta, rowCount: rows.length });
     return rows;
   } catch (error) {
@@ -240,7 +240,7 @@ const findOrderItemsByOrderId = async (orderId) => {
       ...logMeta,
       severity: 'ERROR',
     });
-    
+
     throw AppError.databaseError('Failed to fetch order items.');
   }
 };
@@ -270,7 +270,10 @@ const findOrderItemsByOrderId = async (orderId) => {
  *
  * @throws {AppError} If a database error occurs.
  */
-const updateOrderItemStatusesByOrderId = async (client, { orderId, newStatusId, updatedBy }) => {
+const updateOrderItemStatusesByOrderId = async (
+  client,
+  { orderId, newStatusId, updatedBy }
+) => {
   const sql = `
     UPDATE order_items
     SET
@@ -281,25 +284,28 @@ const updateOrderItemStatusesByOrderId = async (client, { orderId, newStatusId, 
     WHERE order_id = $3 AND status_id IS DISTINCT FROM $1
     RETURNING id, status_id, status_date
   `;
-  
+
   const values = [newStatusId, updatedBy, orderId];
-  
+
   try {
     const result = await query(sql, values, client);
-    
+
     const updatedRows = result.rows || [];
-    
+
     if (updatedRows.length === 0) {
-      logSystemInfo('No order items updated by orderId: all statuses already match', {
-        context: 'order-item-repository/updateOrderItemStatusesByOrderId',
-        orderId,
-        newStatusId,
-        updatedBy,
-        severity: 'WARN',
-      });
+      logSystemInfo(
+        'No order items updated by orderId: all statuses already match',
+        {
+          context: 'order-item-repository/updateOrderItemStatusesByOrderId',
+          orderId,
+          newStatusId,
+          updatedBy,
+          severity: 'WARN',
+        }
+      );
       return null;
     }
-    
+
     logSystemInfo('Order item statuses updated successfully by orderId', {
       context: 'order-item-repository/updateOrderItemStatusesByOrderId',
       updateType: 'bulk_by_order_id',
@@ -309,7 +315,7 @@ const updateOrderItemStatusesByOrderId = async (client, { orderId, newStatusId, 
       updatedCount: updatedRows.length,
       severity: 'INFO',
     });
-    
+
     return updatedRows;
   } catch (error) {
     logSystemException(error, 'Failed to update order item statuses', {
@@ -319,8 +325,10 @@ const updateOrderItemStatusesByOrderId = async (client, { orderId, newStatusId, 
       updatedBy,
       severity: 'ERROR',
     });
-    
-    throw AppError.databaseError(`Failed to update order item statuses: ${error.message}`);
+
+    throw AppError.databaseError(
+      `Failed to update order item statuses: ${error.message}`
+    );
   }
 };
 
@@ -350,7 +358,10 @@ const updateOrderItemStatusesByOrderId = async (client, { orderId, newStatusId, 
  *   updatedBy: 'user_456',
  * });
  */
-const updateOrderItemStatus = async (client, { orderItemId, newStatusId, updatedBy }) => {
+const updateOrderItemStatus = async (
+  client,
+  { orderItemId, newStatusId, updatedBy }
+) => {
   const sql = `
     UPDATE order_items
     SET
@@ -361,13 +372,13 @@ const updateOrderItemStatus = async (client, { orderItemId, newStatusId, updated
     WHERE id = $3 AND status_id IS DISTINCT FROM $1
     RETURNING id, status_id, status_date
   `;
-  
+
   const values = [newStatusId, updatedBy, orderItemId];
-  
+
   try {
     const result = await query(sql, values, client);
     const updatedRow = result.rows?.[0] ?? null;
-    
+
     if (updatedRow) {
       logSystemInfo('Order item status updated successfully', {
         context: 'order-item-repository/updateOrderItemStatus',
@@ -384,7 +395,7 @@ const updateOrderItemStatus = async (client, { orderItemId, newStatusId, updated
         severity: 'DEBUG',
       });
     }
-    
+
     return updatedRow;
   } catch (error) {
     logSystemException(error, 'Failed to update order item status', {
@@ -438,17 +449,17 @@ const getOrderItemsByOrderId = async (orderId, client) => {
     JOIN order_status os ON oi.status_id = os.id
     WHERE o.id = $1;
   `;
-  
+
   try {
     const result = await query(sql, [orderId], client);
-    
+
     logSystemInfo('Fetched order items by order ID', {
       context: 'order-item-repository/getOrderItemsByOrderId',
       orderId,
       rowCount: result?.rows?.length ?? 0,
       severity: 'INFO',
     });
-    
+
     return result.rows;
   } catch (error) {
     logSystemException(error, 'Failed to fetch order items by order ID', {
@@ -456,8 +467,10 @@ const getOrderItemsByOrderId = async (orderId, client) => {
       orderId,
       severity: 'ERROR',
     });
-    
-    throw AppError.databaseError('Unable to retrieve order items for the specified order.');
+
+    throw AppError.databaseError(
+      'Unable to retrieve order items for the specified order.'
+    );
   }
 };
 
@@ -506,12 +519,12 @@ const validateFullAllocationForFulfillment = async (orderId, client = null) => {
     HAVING COALESCE(SUM(ia.allocated_quantity), 0) < oi.quantity_ordered
     LIMIT 1;
   `;
-  
+
   try {
     const { rows } = await query(sql, [orderId], client);
-    
+
     const isFullyAllocated = rows.length === 0;
-    
+
     logSystemInfo(
       isFullyAllocated
         ? 'All order items are fully allocated.'
@@ -522,18 +535,25 @@ const validateFullAllocationForFulfillment = async (orderId, client = null) => {
         rowCount: rows.length,
       }
     );
-    
+
     return rows[0] ?? null;
   } catch (error) {
-    logSystemException(error, 'Failed to validate order item allocations for fulfillment.', {
-      context: 'order-item-repository/validateFullAllocationForFulfillment',
-      orderId,
-    });
-    
-    throw AppError.databaseError('Could not validate order allocation status.', {
-      cause: error,
-      orderId,
-    });
+    logSystemException(
+      error,
+      'Failed to validate order item allocations for fulfillment.',
+      {
+        context: 'order-item-repository/validateFullAllocationForFulfillment',
+        orderId,
+      }
+    );
+
+    throw AppError.databaseError(
+      'Could not validate order allocation status.',
+      {
+        cause: error,
+        orderId,
+      }
+    );
   }
 };
 

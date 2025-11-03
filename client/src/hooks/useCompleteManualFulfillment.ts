@@ -12,19 +12,21 @@ import { resetCompleteManualFulfillment } from '@features/outboundFulfillment/st
  */
 const useCompleteManualFulfillment = () => {
   const dispatch = useAppDispatch();
-  const { data, loading, error } = useAppSelector(selectCompleteManualFulfillmentCombined);
-  
+  const { data, loading, error } = useAppSelector(
+    selectCompleteManualFulfillmentCombined
+  );
+
   const submitManualFulfillment = useCallback(
     (params: CompleteManualFulfillmentParams) =>
       dispatch(completeManualFulfillmentThunk(params)),
     [dispatch]
   );
-  
+
   const resetManualFulfillment = useCallback(
     () => dispatch(resetCompleteManualFulfillment()),
     [dispatch]
   );
-  
+
   return {
     loading,
     data,

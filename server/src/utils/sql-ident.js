@@ -47,7 +47,8 @@ const q = (s) => {
  * @param {string} table - table name
  * @returns {string} - e.g. `"public"."skus"` or `"skus"`
  */
-const qualify = (schema, table) => (schema ? `${q(schema)}.${q(table)}` : q(table));
+const qualify = (schema, table) =>
+  schema ? `${q(schema)}.${q(table)}` : q(table);
 
 /**
  * Explicit allowlist of tables you permit for dynamic SQL.
@@ -146,7 +147,9 @@ const assertAllowed = (schema, table) => {
   const s = schema || 'public';
   const allowedSchemas = Object.keys(ALLOWED);
   if (!ALLOWED[s]) {
-    throw AppError.validationError(`Schema not allowed: ${s}. Allowed: ${allowedSchemas.join(', ')}`);
+    throw AppError.validationError(
+      `Schema not allowed: ${s}. Allowed: ${allowedSchemas.join(', ')}`
+    );
   }
   if (!ALLOWED[s].has(table)) {
     throw AppError.validationError(`Table not allowed: ${s}.${table}`);

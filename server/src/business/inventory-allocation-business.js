@@ -57,34 +57,40 @@ const AppError = require('../utils/AppError');
  *   }
  * }>} Allocation result for each order item.
  */
-const allocateBatchesForOrderItems = (orderItems, batches, strategy = 'fefo') => {
+const allocateBatchesForOrderItems = (
+  orderItems,
+  batches,
+  strategy = 'fefo'
+) => {
   // Build indexes to avoid N×M filtering
   const bySku = new Map();
   const byMat = new Map();
-  
+
   for (const b of batches || []) {
     if (b && b.sku_id) {
       if (!bySku.has(b.sku_id)) bySku.set(b.sku_id, []);
       bySku.get(b.sku_id).push(b);
     }
     if (b && b.packaging_material_id) {
-      if (!byMat.has(b.packaging_material_id)) byMat.set(b.packaging_material_id, []);
+      if (!byMat.has(b.packaging_material_id))
+        byMat.set(b.packaging_material_id, []);
       byMat.get(b.packaging_material_id).push(b);
     }
   }
-  
+
   return (orderItems || []).map((item) => {
-    const { order_item_id, sku_id, packaging_material_id, quantity_ordered } = item;
-    
+    const { order_item_id, sku_id, packaging_material_id, quantity_ordered } =
+      item;
+
     const candidates = sku_id
-      ? (bySku.get(sku_id) || [])
+      ? bySku.get(sku_id) || []
       : packaging_material_id
-        ? (byMat.get(packaging_material_id) || [])
+        ? byMat.get(packaging_material_id) || []
         : [];
-    
+
     const { allocatedBatches, allocatedTotal, remaining, fulfilled } =
       allocateBatchesByStrategy(candidates, quantity_ordered, { strategy });
-    
+
     return {
       order_item_id,
       sku_id: sku_id ?? null,
@@ -132,54 +138,65 @@ const allocateBatchesByStrategy = (
   { strategy = 'fefo', excludeExpired = false, now = new Date() } = {}
 ) => {
   if (!Array.isArray(batches) || requiredQuantity <= 0) {
-    return { allocatedBatches: [], allocatedTotal: 0, remaining: Math.max(0, requiredQuantity || 0), fulfilled: false };
+    return {
+      allocatedBatches: [],
+      allocatedTotal: 0,
+      remaining: Math.max(0, requiredQuantity || 0),
+      fulfilled: false,
+    };
   }
-  
+
   const sortField = strategy === 'fifo' ? 'inbound_date' : 'expiry_date';
-  
+
   // Normalize/prepare list
   let candidates = batches
-    .map(b => {
+    .map((b) => {
       const reserved = Math.max(0, Number(b.reserved_quantity || 0));
       const qty = Math.max(0, Number(b.warehouse_quantity || 0) - reserved);
       return { ...b, _available: qty };
     })
-    .filter(b => b._available > 0);
-  
+    .filter((b) => b._available > 0);
+
   // Optional: exclude expired for FEFO
   if (excludeExpired && sortField === 'expiry_date') {
-    candidates = candidates.filter(b => b.expiry_date && new Date(b.expiry_date) >= now);
+    candidates = candidates.filter(
+      (b) => b.expiry_date && new Date(b.expiry_date) >= now
+    );
   }
-  
+
   // Sort by strategy field; push records with missing sortField to the end
   candidates.sort((a, b) => {
-    const da = a[sortField] ? new Date(a[sortField]).getTime() : Number.POSITIVE_INFINITY;
-    const db = b[sortField] ? new Date(b[sortField]).getTime() : Number.POSITIVE_INFINITY;
+    const da = a[sortField]
+      ? new Date(a[sortField]).getTime()
+      : Number.POSITIVE_INFINITY;
+    const db = b[sortField]
+      ? new Date(b[sortField]).getTime()
+      : Number.POSITIVE_INFINITY;
     return da - db;
   });
-  
+
   const allocatedBatches = [];
   let accumulated = 0;
-  
+
   for (const batch of candidates) {
     if (accumulated >= requiredQuantity) break;
     const needed = requiredQuantity - accumulated;
     const take = Math.min(batch._available, needed);
     if (take <= 0) continue;
-    
+
     // Emit allocation row
     allocatedBatches.push({
       ...batch,
       allocated_quantity: take,
     });
-    
+
     accumulated += take;
   }
-  
+
   const allocatedTotal = accumulated;
   const remaining = Math.max(0, requiredQuantity - allocatedTotal);
   const fulfilled = remaining === 0;
-  
+
   return {
     allocatedBatches,
     allocatedTotal,
@@ -230,19 +247,19 @@ const isFinalStatus = (code) => ALLOCATION_FINAL_STATUSES.includes(code);
 const validateAllocationStatusTransition = (currentCode, nextCode) => {
   const currentIndex = ALLOCATION_STATUS_SEQUENCE.indexOf(currentCode);
   const nextIndex = ALLOCATION_STATUS_SEQUENCE.indexOf(nextCode);
-  
+
   if (currentIndex === -1 || nextIndex === -1) {
     throw AppError.validationError(
       `Invalid status code(s): ${currentCode}, ${nextCode}`
     );
   }
-  
+
   if (isFinalStatus(currentCode)) {
     throw AppError.validationError(
       `Cannot transition from final allocation status: ${currentCode}`
     );
   }
-  
+
   if (nextIndex <= currentIndex) {
     throw AppError.validationError(
       `Cannot transition allocation status backward: ${currentCode} → ${nextCode}`
@@ -281,21 +298,24 @@ const validateAllocationStatusTransition = (currentCode, nextCode) => {
  *   allocationStatus: 'ORDER_ALLOCATED' | 'ORDER_PARTIALLY_ALLOCATED' | 'ORDER_BACKORDERED'
  * }>} Summary of allocation status per order item.
  */
-const computeAllocationStatusPerItem = (orderItemsMetadata, inventoryAllocationDetails) => {
+const computeAllocationStatusPerItem = (
+  orderItemsMetadata,
+  inventoryAllocationDetails
+) => {
   // Aggregate total allocated quantity by order_item_id
   const allocationMap = inventoryAllocationDetails.reduce((acc, row) => {
     const key = row.order_item_id;
     acc[key] = (acc[key] || 0) + Number(row.allocated_quantity);
     return acc;
   }, {});
-  
+
   return orderItemsMetadata.map((item) => {
     const orderItemId = item.order_item_id;
     const orderedQty = Number(item.quantity_ordered || 0);
     const allocatedQty = allocationMap[orderItemId] || 0;
-    
+
     let allocationStatusCode;
-    
+
     if (allocatedQty === 0) {
       allocationStatusCode = 'ORDER_BACKORDERED';
     } else if (allocatedQty < orderedQty) {
@@ -303,9 +323,9 @@ const computeAllocationStatusPerItem = (orderItemsMetadata, inventoryAllocationD
     } else {
       allocationStatusCode = 'ORDER_ALLOCATED';
     }
-    
+
     const isMatched = allocatedQty === orderedQty;
-    
+
     return {
       orderItemId,
       isMatched,
@@ -365,32 +385,32 @@ const updateReservedQuantitiesFromAllocations = (
 ) => {
   // Step 1: Aggregate total allocated quantities by (warehouse_id + batch_id)
   const allocationMap = {};
-  
+
   for (const { warehouse_id, batch_id, allocated_quantity } of allocations) {
     const key = `${warehouse_id}__${batch_id}`;
     allocationMap[key] = (allocationMap[key] || 0) + Number(allocated_quantity);
   }
-  
+
   // Step 2: Update each warehouse record with new reserved qty and recalculate status
   return warehouseBatchInfo.map((record) => {
     const key = `${record.warehouse_id}__${record.batch_id}`;
     const allocationQty = allocationMap[key] || 0;
-    
+
     const currentReservedQty = Number(record.reserved_quantity || 0);
     const availableQty = Number(record.warehouse_quantity) - currentReservedQty;
-    
+
     // Validate: prevent over-reservation
     if (allocationQty > availableQty) {
       throw AppError.conflictError(
         `Insufficient stock to fulfill allocation request. Please review batch availability. ` +
-        `Available: ${availableQty}, Requested: ${allocationQty}`
+          `Available: ${availableQty}, Requested: ${allocationQty}`
       );
     }
-    
+
     const newReservedQty = currentReservedQty + allocationQty;
     const remainingQty = Number(record.warehouse_quantity) - newReservedQty;
     const status_id = remainingQty > 0 ? inStockStatusId : outOfStockStatusId;
-    
+
     return {
       warehouse_id: record.warehouse_id,
       batch_id: record.batch_id,
@@ -439,12 +459,7 @@ const updateReservedQuantitiesFromAllocations = (
 const buildWarehouseInventoryActivityLogsForOrderAllocation = (
   updatedRows,
   originalWarehouseInfo,
-  {
-    orderId,
-    performedBy,
-    actionTypeId,
-    comments = null,
-  }
+  { orderId, performedBy, actionTypeId, comments = null }
 ) => {
   const originalMap = Object.fromEntries(
     originalWarehouseInfo.map((record) => [
@@ -452,15 +467,15 @@ const buildWarehouseInventoryActivityLogsForOrderAllocation = (
       record,
     ])
   );
-  
+
   return updatedRows.map((updated) => {
     const key = `${updated.warehouse_id}__${updated.batch_id}`;
     const original = originalMap[key];
-    
+
     if (!original) {
       throw new Error(`Missing original data for ${key}`);
     }
-    
+
     return buildAllocationLogEntry({
       inventoryId: original.id,
       previousReservedQty: original.reserved_quantity,
@@ -473,7 +488,9 @@ const buildWarehouseInventoryActivityLogsForOrderAllocation = (
       sourceType: 'order',
       sourceRefId: orderId,
       recordScope: 'warehouse',
-      comments: comments ?? `System-generated log: reserved quantity updated during allocation`,
+      comments:
+        comments ??
+        `System-generated log: reserved quantity updated during allocation`,
       metadata: {
         source: 'order_allocation',
         warehouse_id: updated.warehouse_id,
@@ -510,22 +527,22 @@ const buildWarehouseInventoryActivityLogsForOrderAllocation = (
  * @returns {object} Inventory activity log object with checksum and full context.
  */
 const buildAllocationLogEntry = ({
-                                   inventoryId,
-                                   previousReservedQty,
-                                   newReservedQty,
-                                   warehouseQty, // unchanged but included for reference
-                                   statusId,
-                                   userId,
-                                   orderId,
-                                   inventoryActionTypeId, // e.g., 'ALLOCATE'
-                                   sourceType = 'order',
-                                   sourceRefId = null,
-                                   recordScope = 'warehouse',
-                                   comments = null,
-                                   metadata = {},
-                                 }) => {
+  inventoryId,
+  previousReservedQty,
+  newReservedQty,
+  warehouseQty, // unchanged but included for reference
+  statusId,
+  userId,
+  orderId,
+  inventoryActionTypeId, // e.g., 'ALLOCATE'
+  sourceType = 'order',
+  sourceRefId = null,
+  recordScope = 'warehouse',
+  comments = null,
+  metadata = {},
+}) => {
   const quantityChange = newReservedQty - previousReservedQty;
-  
+
   const checksumPayload = cleanObject({
     warehouse_inventory_id: inventoryId,
     inventory_action_type_id: inventoryActionTypeId,
@@ -547,7 +564,7 @@ const buildAllocationLogEntry = ({
       ...metadata,
     },
   });
-  
+
   return {
     warehouse_inventory_id: inventoryId,
     inventory_action_type_id: inventoryActionTypeId,
@@ -611,14 +628,14 @@ const buildAllocationLogEntry = ({
  * }} Allocation summary result object.
  */
 const buildOrderAllocationResult = ({
-                                      orderId,
-                                      inventoryAllocations,
-                                      warehouseUpdateIds,
-                                      inventoryLogIds,
-                                      allocationResults,
-                                    }) => {
+  orderId,
+  inventoryAllocations,
+  warehouseUpdateIds,
+  inventoryLogIds,
+  allocationResults,
+}) => {
   const fullyAllocated = allocationResults.every((res) => res.isMatched);
-  
+
   return {
     orderId,
     allocationIds: inventoryAllocations.map((a) => a.allocation_id),

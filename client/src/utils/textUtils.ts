@@ -31,7 +31,7 @@ export const formatNullable = (
 interface FormatLabelOptions {
   /** If true, hyphens (`-`) will be preserved instead of replaced with spaces */
   preserveHyphen?: boolean;
-  
+
   /** If true, middle dots (e.g. `·•‧⋅∙`) will be preserved instead of replaced with spaces */
   preserveDot?: boolean;
 }
@@ -64,22 +64,20 @@ export const formatLabel = (
   options: FormatLabelOptions = {}
 ): string => {
   if (text === null || text === undefined || text === '') return 'Unknown';
-  
+
   let label = String(text); // ensures label is a string
-  
+
   if (!options.preserveHyphen) {
     label = label.replace(/-/g, ' ');
   }
-  
+
   if (!options.preserveDot) {
     label = label.replace(/[·•‧⋅∙]/g, ' ');
   }
-  
+
   // Always normalize underscores and camelCase spacing
-  label = label
-    .replace(/_/g, ' ')
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2');
-  
+  label = label.replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+
   return label
     .toLowerCase()
     .split(' ')
@@ -109,10 +107,10 @@ export const formatCurrency = (
   if (value === null || value === undefined) {
     return `${currency}0.00`;
   }
-  
+
   const number = typeof value === 'string' ? parseFloat(value) : value;
   if (isNaN(number)) return `${currency}0.00`;
-  
+
   // If user passed ISO code like "USD", "CNY", "CAD", use Intl.NumberFormat
   if (currency.length === 3 && /^[A-Z]{3}$/.test(currency)) {
     return new Intl.NumberFormat(locale, {
@@ -122,7 +120,7 @@ export const formatCurrency = (
       maximumFractionDigits: decimals,
     }).format(number);
   }
-  
+
   // Otherwise assume it's a symbol like "$", "HK$", etc.
   return `${currency}${number.toFixed(decimals)}`;
 };
@@ -188,11 +186,10 @@ export const formatToThreeDecimal = (
   value: string | number | null | undefined,
   fallback: string = '—'
 ): string => {
-  const num =
-    typeof value === 'string' ? parseFloat(value.trim()) : value;
-  
+  const num = typeof value === 'string' ? parseFloat(value.trim()) : value;
+
   if (typeof num !== 'number' || !isFinite(num)) return fallback;
-  
+
   return num.toFixed(3);
 };
 

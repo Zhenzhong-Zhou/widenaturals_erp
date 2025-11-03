@@ -115,21 +115,26 @@ const filterCustomerForViewer = async (
 const evaluateCustomerLookupAccessControl = async (user) => {
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     return {
-      canViewAllStatuses: isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_CUSTOMERS),
-      canViewActiveOnly: isRoot || permissions.includes(PERMISSIONS.VIEW_ACTIVE_CUSTOMERS),
+      canViewAllStatuses:
+        isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_CUSTOMERS),
+      canViewActiveOnly:
+        isRoot || permissions.includes(PERMISSIONS.VIEW_ACTIVE_CUSTOMERS),
     };
   } catch (err) {
     logSystemException(err, 'Failed to evaluate customer access control', {
       context: 'customer-business/evaluateCustomerLookupAccessControl',
       userId: user?.id,
     });
-    
-    throw AppError.businessError('Unable to evaluate access control for customer lookup', {
-      details: err.message,
-      stage: 'evaluate-customer-access',
-    });
+
+    throw AppError.businessError(
+      'Unable to evaluate access control for customer lookup',
+      {
+        details: err.message,
+        stage: 'evaluate-customer-access',
+      }
+    );
   }
 };
 
@@ -152,9 +157,13 @@ const evaluateCustomerLookupAccessControl = async (user) => {
  * const userAccess = await evaluateCustomerLookupAccessControl(currentUser);
  * const safeFilters = enforceCustomerLookupVisibilityRules(userFilters, userAccess, ACTIVE_STATUS_ID);
  */
-const enforceCustomerLookupVisibilityRules = (filters = {}, userAccess, activeStatusId) => {
+const enforceCustomerLookupVisibilityRules = (
+  filters = {},
+  userAccess,
+  activeStatusId
+) => {
   const adjusted = { ...filters };
-  
+
   // Enforce active-only status filter for restricted users
   if (!userAccess.canViewAllStatuses) {
     adjusted.statusId ??= activeStatusId;
@@ -164,7 +173,7 @@ const enforceCustomerLookupVisibilityRules = (filters = {}, userAccess, activeSt
     delete adjusted.statusId;
     delete adjusted._activeStatusId;
   }
-  
+
   return adjusted;
 };
 
@@ -199,14 +208,19 @@ const enforceCustomerLookupVisibilityRules = (filters = {}, userAccess, activeSt
 const enrichCustomerOption = (row, activeStatusId) => {
   // Validate row
   if (!row || typeof row !== 'object') {
-    throw AppError.validationError('[enrichCustomerOption] Invalid `row` - expected object but got ' + typeof row);
+    throw AppError.validationError(
+      '[enrichCustomerOption] Invalid `row` - expected object but got ' +
+        typeof row
+    );
   }
-  
+
   // Validate activeStatusId
   if (typeof activeStatusId !== 'string' || activeStatusId.length === 0) {
-    throw AppError.validationError('[enrichCustomerOption] Missing or invalid `activeStatusId`');
+    throw AppError.validationError(
+      '[enrichCustomerOption] Missing or invalid `activeStatusId`'
+    );
   }
-  
+
   return {
     ...row,
     isActive: row.status_id === activeStatusId,

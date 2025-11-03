@@ -1,4 +1,11 @@
-import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
@@ -15,11 +22,14 @@ import GoBackButton from '@components/common/GoBackButton';
 import NoDataFound from '@components/common/NoDataFound';
 import {
   AuditInfoSection,
-  BillingInfoSection, CurrencyInfoSection,
+  BillingInfoSection,
+  CurrencyInfoSection,
   CustomerInfoSection,
   DiscountInfoSection,
-  OrderHeaderSection, OrderItemsTable,
-  OrderNoteSection, OrderTotalsSection,
+  OrderHeaderSection,
+  OrderItemsTable,
+  OrderNoteSection,
+  OrderTotalsSection,
   PriceOverrideSection,
   ShippingInfoSection,
 } from '@features/order/components/SalesOrderDetails';
@@ -39,7 +49,7 @@ const OrderDetailsPage: FC = () => {
     category: string;
     orderId: string;
   }>();
-  
+
   if (!category || !orderId) {
     return (
       <ErrorDisplay>
@@ -49,20 +59,20 @@ const OrderDetailsPage: FC = () => {
       </ErrorDisplay>
     );
   }
-  
+
   const isAllocatableCategory = category === 'allocatable';
   const { loading, permissions } = usePermissions();
   const hasPermission = useHasPermission(permissions);
-  
+
   const createButtonRef = useRef<HTMLButtonElement>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  
+
   const { handleOpenDialog, handleCloseDialog } = useDialogFocusHandlers(
     setDialogOpen,
     createButtonRef,
     () => dialogOpen
   );
-  
+
   const {
     data: orderData,
     header,
@@ -75,7 +85,7 @@ const OrderDetailsPage: FC = () => {
     fetchById,
     reset: resetOrderDetails,
   } = useOrderDetails();
-  
+
   const {
     data: updateStatusData,
     loading: updateStatusLoading,
@@ -84,98 +94,109 @@ const OrderDetailsPage: FC = () => {
     update: updateOrderStatus,
     reset: resetUpdateOrderStatus,
   } = useUpdateOrderStatus();
-  
+
   const refresh = useCallback(() => {
     if (category && orderId) {
       fetchById({ category, orderId });
     }
   }, [category, orderId, fetchById]);
-  
+
   useEffect(() => {
     resetOrderDetails();
     const timeout = setTimeout(refresh, 50);
     return () => clearTimeout(timeout);
   }, [refresh]);
-  
+
   useEffect(() => {
     if (isStatusUpdateSuccess && updateStatusData) {
       alert(updateStatusData.message ?? 'Order status updated');
       resetUpdateOrderStatus(); // clean up local slice
       refresh(); // re-fetch order details
     }
-  }, [isStatusUpdateSuccess, updateStatusData, resetUpdateOrderStatus, refresh]);
-  
+  }, [
+    isStatusUpdateSuccess,
+    updateStatusData,
+    resetUpdateOrderStatus,
+    refresh,
+  ]);
+
   useEffect(() => {
     if (updateStatusError) {
       alert(updateStatusError);
     }
   }, [updateStatusError]);
-  
+
   const statusCode = header?.status?.code ?? '';
-  
+
   const confirmableStatusCodes = [
     'ORDER_PENDING',
     'ORDER_EDITED',
     'ORDER_AWAITING_CONFIRMATION',
   ];
-  
+
   const cancelableStatusCodes = [
     'ORDER_PENDING',
     'ORDER_EDITED',
     'ORDER_CONFIRMED',
   ];
-  
-  const allocatableStatusCodes = [
-    'ORDER_CONFIRMED',
-  ];
-  
+
+  const allocatableStatusCodes = ['ORDER_CONFIRMED'];
+
   const canConfirmStatusUpdate = useMemo(() => {
     if (loading) return false;
-    
+
     return (
       hasPermission(ORDER_CONSTANTS.PERMISSIONS.ACTIONS.CONFIRM_SALES_ORDER) &&
       confirmableStatusCodes.includes(statusCode)
     );
   }, [loading, hasPermission, statusCode]);
-  
+
   const canCancelOrder = useMemo(() => {
     if (loading) return false;
-    
+
     return (
       hasPermission(ORDER_CONSTANTS.PERMISSIONS.ACTIONS.CANCEL_SALES_ORDER) &&
       cancelableStatusCodes.includes(statusCode)
     );
   }, [loading, hasPermission, statusCode]);
-  
+
   const canAllocateOrder = useMemo(() => {
     if (loading) return false;
-    
+
     return (
       hasPermission(ORDER_CONSTANTS.PERMISSIONS.ACTIONS.ALLOCATE_ORDER) &&
       allocatableStatusCodes.includes(statusCode)
     );
   }, [loading, hasPermission, statusCode]);
-  
+
   const handleStatusUpdate = async (statusCode: string) => {
     if (!orderId || !category) {
       console.warn('Missing orderId or category');
       return;
     }
-    
+
     try {
       await updateOrderStatus({ category, orderId }, statusCode);
     } catch (err: any) {
       console.error('Unexpected error in handleStatusUpdate:', err);
     }
   };
-  
+
   const titleOrderNumber = getShortOrderNumber(header?.orderNumber);
-  
-  const noDataIcon = useMemo(() => <SearchOffIcon fontSize="large" color="disabled" />, []);
-  const retryAction = useMemo(() => <CustomButton onClick={refresh}>Retry</CustomButton>, [refresh]);
-  
-  if (orderLoading) return <Loading variant={'dotted'} message="Loading order details..." />;
-  if (orderError) return <ErrorDisplay message="Failed to load order details." />;
+
+  const noDataIcon = useMemo(
+    () => <SearchOffIcon fontSize="large" color="disabled" />,
+    []
+  );
+  const retryAction = useMemo(
+    () => <CustomButton onClick={refresh}>Retry</CustomButton>,
+    [refresh]
+  );
+
+  if (orderLoading)
+    return <Loading variant={'dotted'} message="Loading order details..." />;
+  if (orderError)
+    return <ErrorDisplay message="Failed to load order details." />;
   if (!hasOrder) {
     return (
       <NoDataFound
@@ -185,9 +206,9 @@ const OrderDetailsPage: FC = () => {
       />
     );
   }
-  
+
   const flattened = flattenSalesOrderHeader(orderData);
-  
+
   return (
     <Box sx={{ p: 3 }}>
       {/* Header */}
@@ -225,7 +246,7 @@ const OrderDetailsPage: FC = () => {
             <CustomTypography variant="h4" sx={{ fontWeight: 'bold' }}>
               Sales Order Details
             </CustomTypography>
-            
+
             <Stack direction="row" spacing={2} alignItems="center">
               <CustomButton
                 onClick={refresh}
@@ -271,36 +292,36 @@ const OrderDetailsPage: FC = () => {
               )}
             </Stack>
           </Box>
-          
+
           <Divider sx={{ mb: 3 }} />
-          
+
           {/* Order Header Info */}
           <OrderHeaderSection flattened={flattened} />
-          
+
           {/* Customer Info */}
           <CustomerInfoSection flattened={flattened} />
-          
+
           {/* Discount Info */}
           <DiscountInfoSection flattened={flattened} />
-          
+
           {/* Override Info */}
           <PriceOverrideSection flattened={flattened} />
-          
+
           {/* Order Note */}
           <OrderNoteSection flattened={flattened} />
-          
+
           {/* Shipping Info */}
           <ShippingInfoSection flattened={flattened} />
-            
+
           {/* Billing Info */}
           <BillingInfoSection flattened={flattened} />
-          
+
           {/* Order Items */}
           <OrderItemsTable items={items} itemCount={itemCount} />
-          
+
           {/* Currency Info */}
           <CurrencyInfoSection flattened={flattened} />
-          
+
           {/* Order Totals */}
           <OrderTotalsSection
             subtotal={Number(flattened.subtotal ?? 0)}
@@ -309,9 +330,11 @@ const OrderDetailsPage: FC = () => {
             tax={Number(flattened.taxAmount ?? 0)}
             shipping={Number(totals.shippingFee ?? 0)}
             total={Number(totals.totalAmount ?? 0)}
-            baseCurrencyAmount={Number(flattened.paymentInfo?.baseCurrencyAmount ?? 0)}
+            baseCurrencyAmount={Number(
+              flattened.paymentInfo?.baseCurrencyAmount ?? 0
+            )}
           />
-          
+
           {/* Audit Info */}
           <AuditInfoSection flattened={flattened} />
         </CardContent>

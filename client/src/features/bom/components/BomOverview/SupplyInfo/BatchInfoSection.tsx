@@ -18,13 +18,41 @@ const BatchInfoSection: FC<{ row: FlattenedBomSupplyRow }> = ({ row }) => (
       { label: 'Unit', value: row.batchUnit },
       { label: 'Batch Currency', value: row.batchCurrency },
       { label: 'Batch Exchange Rate', value: row.batchExchangeRate },
-      { label: 'Manufacture Date', value: row.manufactureDate, format: formatToISODate },
-      { label: 'Batch Status', value: row.batchStatusName, format: formatLabel },
-      { label: 'Batch Status Date', value: row.batchStatusDate, format: formatDateTime },
-      { label: 'Batch Created At', value: row.batchCreatedAt, format: formatDateTime },
-      { label: 'Batch Created By', value: row.batchCreatedBy, format: formatLabel },
-      { label: 'Batch Updated At', value: row.batchUpdatedAt, format: formatDateTime },
-      { label: 'Batch Updated By', value: row.batchUpdatedBy, format: formatLabel },
+      {
+        label: 'Manufacture Date',
+        value: row.manufactureDate,
+        format: formatToISODate,
+      },
+      {
+        label: 'Batch Status',
+        value: row.batchStatusName,
+        format: formatLabel,
+      },
+      {
+        label: 'Batch Status Date',
+        value: row.batchStatusDate,
+        format: formatDateTime,
+      },
+      {
+        label: 'Batch Created At',
+        value: row.batchCreatedAt,
+        format: formatDateTime,
+      },
+      {
+        label: 'Batch Created By',
+        value: row.batchCreatedBy,
+        format: formatLabel,
+      },
+      {
+        label: 'Batch Updated At',
+        value: row.batchUpdatedAt,
+        format: formatDateTime,
+      },
+      {
+        label: 'Batch Updated By',
+        value: row.batchUpdatedBy,
+        format: formatLabel,
+      },
     ]}
   />
 );

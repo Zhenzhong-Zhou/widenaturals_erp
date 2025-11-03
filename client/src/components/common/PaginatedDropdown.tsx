@@ -50,7 +50,8 @@ const PaginatedDropdown = <TParams,>({
       error={error}
       hasMore={paginationMeta?.hasMore}
       pagination={
-        paginationMeta?.limit !== undefined && paginationMeta?.offset !== undefined
+        paginationMeta?.limit !== undefined &&
+        paginationMeta?.offset !== undefined
           ? { limit: paginationMeta.limit, offset: paginationMeta.offset }
           : undefined
       }
@@ -71,7 +72,9 @@ const PaginatedDropdown = <TParams,>({
       }}
       inputValue={inputValue}
       onInputChange={onInputChange}
-      noOptionsMessage={loading ? 'Loading...' : noOptionsMessage || 'No options available'}
+      noOptionsMessage={
+        loading ? 'Loading...' : noOptionsMessage || 'No options available'
+      }
       helperText={helperText}
     />
   );

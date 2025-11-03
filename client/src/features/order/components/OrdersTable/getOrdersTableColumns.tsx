@@ -36,7 +36,8 @@ export const getOrdersTableColumns = (
     {
       id: 'status',
       label: 'Status',
-      renderCell: (row) => formatOrderStatus(row.orderStatus.code, row.orderStatus.name),
+      renderCell: (row) =>
+        formatOrderStatus(row.orderStatus.code, row.orderStatus.name),
     },
     {
       id: 'customerName',
@@ -49,7 +50,8 @@ export const getOrdersTableColumns = (
     {
       id: 'paymentStatus',
       label: 'Payment Status',
-      renderCell: (row) => formatPaymentStatus(row.paymentStatus.code, row.paymentStatus.name),
+      renderCell: (row) =>
+        formatPaymentStatus(row.paymentStatus.code, row.paymentStatus.name),
     },
     {
       id: 'deliveryMethod',
@@ -70,7 +72,7 @@ export const getOrdersTableColumns = (
       label: 'Created By',
     },
   ];
-  
+
   if (onDrillDownToggle) {
     columns.push(
       createDrillDownColumn<OrderListItem>(
@@ -79,6 +81,6 @@ export const getOrdersTableColumns = (
       )
     );
   }
-  
+
   return columns;
 };

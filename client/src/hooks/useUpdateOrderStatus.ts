@@ -4,7 +4,8 @@ import {
   type OrderRouteParams,
   selectUpdatedOrderStatusData,
   selectUpdateOrderStatusError,
-  selectUpdateOrderStatusLoading, updateOrderStatusThunk,
+  selectUpdateOrderStatusLoading,
+  updateOrderStatusThunk,
 } from '@features/order/state';
 import { resetUpdateOrderStatusState } from '@features/order/state/updateOrderStatusSlice';
 
@@ -25,13 +26,16 @@ import { resetUpdateOrderStatusState } from '@features/order/state/updateOrderSt
  */
 const useUpdateOrderStatus = () => {
   const dispatch = useAppDispatch();
-  
+
   const loading = useAppSelector(selectUpdateOrderStatusLoading);
   const error = useAppSelector(selectUpdateOrderStatusError);
   const data = useAppSelector(selectUpdatedOrderStatusData);
-  
-  const isSuccess = useMemo(() => !loading && !error && !!data, [loading, error, data]);
-  
+
+  const isSuccess = useMemo(
+    () => !loading && !error && !!data,
+    [loading, error, data]
+  );
+
   /**
    * Dispatches a status update for a specific order.
    */
@@ -40,14 +44,14 @@ const useUpdateOrderStatus = () => {
       dispatch(updateOrderStatusThunk({ params, data: { statusCode } })),
     [dispatch]
   );
-  
+
   /**
    * Resets the update order status state to initial.
    */
   const reset = useCallback(() => {
     dispatch(resetUpdateOrderStatusState());
   }, [dispatch]);
-  
+
   return useMemo(
     () => ({ loading, error, data, isSuccess, update, reset }),
     [loading, error, data, isSuccess, update, reset]

@@ -41,7 +41,7 @@ const AddressesPage: FC = () => {
     offset: 0,
     limit: 10,
   });
-  
+
   const { handleOpenDialog, handleCloseDialog } = useDialogFocusHandlers(
     setDialogOpen,
     createButtonRef,
@@ -51,7 +51,7 @@ const AddressesPage: FC = () => {
     setPage,
     setLimit
   );
-  
+
   const {
     data: addresses,
     pagination: addressPagination,
@@ -59,7 +59,7 @@ const AddressesPage: FC = () => {
     error,
     fetchAddresses,
   } = usePaginateAddresses();
-  
+
   const queryParams = useMemo(
     () => ({
       page,
@@ -71,11 +71,11 @@ const AddressesPage: FC = () => {
     }),
     [page, limit, sortBy, sortOrder, filters, fetchAddresses]
   );
-  
+
   useEffect(() => {
     applyFiltersAndSorting(queryParams);
   }, [queryParams]);
-  
+
   const {
     loading: customerLookupLoading,
     error: customerLookupError,
@@ -83,22 +83,22 @@ const AddressesPage: FC = () => {
     meta: customerLookupPaginationMeta,
     fetch: fetchCustomerDropdownOptions,
   } = useCustomerLookup(fetchParams);
-  
+
   const handleRefresh = useCallback(() => {
     applyFiltersAndSorting(queryParams);
   }, [queryParams]);
-  
+
   const handleResetFilters = () => {
     setFilters({});
     setSortBy('createdAt');
     setSortOrder('');
     setPage(1);
   };
-  
+
   const handleDrillDownToggle = (rowId: string) => {
     setExpandedRowId((current) => (current === rowId ? null : rowId));
   };
-  
+
   return (
     <Box sx={{ px: 4, py: 3 }}>
       <Box

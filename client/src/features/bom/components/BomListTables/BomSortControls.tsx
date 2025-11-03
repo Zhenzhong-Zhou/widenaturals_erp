@@ -28,11 +28,11 @@ const bomSortOptions: { label: string; value: BomSortField }[] = [
 ];
 
 const BomSortControls: FC<BomSortControlsProps> = ({
-                                                     sortBy,
-                                                     sortOrder,
-                                                     onSortByChange,
-                                                     onSortOrderChange,
-                                                   }) => {
+  sortBy,
+  sortOrder,
+  onSortByChange,
+  onSortOrderChange,
+}) => {
   return (
     <SortControls
       sortBy={sortBy}

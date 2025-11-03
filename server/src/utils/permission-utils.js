@@ -24,31 +24,29 @@ const getAccessibleOrderCategoriesFromPermissions = (
   { action = 'VIEW' } = {}
 ) => {
   if (!Array.isArray(permissions)) return [];
-  
+
   // Normalize and precompute lookups
   const permSet = new Set(permissions);
   const actionLower = action.toLowerCase();
-  
+
   // Generic access (e.g., 'view_order') → all standard categories
   const genericKey = `${actionLower}_order`;
   const accessible = permSet.has(genericKey)
     ? [...ORDER_CATEGORIES]
     : ORDER_CATEGORIES.filter((category) =>
-      permSet.has(toPermissionValue(action, category))
-    );
-  
+        permSet.has(toPermissionValue(action, category))
+      );
+
   // Add virtual categories manually if applicable
   if (
     actionLower === 'view' &&
-    (
-      permSet.has(PERMISSIONS.VIEW_ALLOCATION_STAGE) ||
+    (permSet.has(PERMISSIONS.VIEW_ALLOCATION_STAGE) ||
       permSet.has(PERMISSIONS.VIEW_FULFILLMENT_STAGE) ||
-      permSet.has(PERMISSIONS.VIEW_SHIPPING_STAGE)
-    )
+      permSet.has(PERMISSIONS.VIEW_SHIPPING_STAGE))
   ) {
     accessible.push('allocatable');
   }
-  
+
   return accessible;
 };
 

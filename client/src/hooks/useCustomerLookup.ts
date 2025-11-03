@@ -25,12 +25,12 @@ const useCustomerLookup = (
 
   // Capture initialParams in a ref to ensure stability in useCallback
   const initialParamsRef = useRef(initialParams);
-  
+
   const options = useAppSelector(selectCustomerLookupOptions);
   const loading = useAppSelector(selectCustomerLookupLoading);
   const error = useAppSelector(selectCustomerLookupError);
   const meta = useAppSelector(selectCustomerLookupMeta);
-  
+
   // Memoized fetch trigger
   const fetch = useCallback(
     (params?: CustomerLookupQuery) => {
@@ -38,27 +38,30 @@ const useCustomerLookup = (
     },
     [dispatch]
   );
-  
+
   // Memoized reset trigger
   const reset = useCallback(() => {
     dispatch(resetCustomerLookup());
   }, [dispatch]);
-  
+
   // Auto-fetch on mount
   useEffect(() => {
     if (autoFetch && initialParamsRef.current) {
       fetch();
     }
   }, [autoFetch, fetch]);
-  
-  return useMemo(() => ({
-    options,
-    loading,
-    error,
-    meta,
-    fetch,
-    reset,
-  }), [options, loading, error, meta, fetch, reset]);
+
+  return useMemo(
+    () => ({
+      options,
+      loading,
+      error,
+      meta,
+      fetch,
+      reset,
+    }),
+    [options, loading, error, meta, fetch, reset]
+  );
 };
 
 export default useCustomerLookup;

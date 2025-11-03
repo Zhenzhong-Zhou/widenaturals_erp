@@ -1,5 +1,8 @@
 const { fetchDynamicValue } = require('../03_utils');
-const { ORDER_CATEGORIES, GENERIC_ORDER_PERMISSIONS } = require('../../../utils/constants/domain/order-type-constants');
+const {
+  ORDER_CATEGORIES,
+  GENERIC_ORDER_PERMISSIONS,
+} = require('../../../utils/constants/domain/order-type-constants');
 
 exports.seed = async function (knex) {
   const [{ count }] = await knex('permissions').count('id');
@@ -12,7 +15,7 @@ exports.seed = async function (knex) {
   console.log(
     `[${new Date().toISOString()}] [SEED] Starting permission seeding...`
   );
-  
+
   // Resolve system user (fail loudly if missing)
   const systemUserId = await fetchDynamicValue(
     knex,
@@ -21,18 +24,25 @@ exports.seed = async function (knex) {
     'system@internal.local',
     'id'
   );
-  
+
   if (!systemUserId) {
-    throw new Error('[SEED][permissions] System user not found: system@internal.local');
+    throw new Error(
+      '[SEED][permissions] System user not found: system@internal.local'
+    );
   }
-  
+
   // Resolve active status (fail loudly if missing)
-  const statusRow = await knex('status').select('id').where('name', 'active').first();
+  const statusRow = await knex('status')
+    .select('id')
+    .where('name', 'active')
+    .first();
   if (!statusRow?.id) {
-    throw new Error('[SEED][permissions] Status "active" not found in status table');
+    throw new Error(
+      '[SEED][permissions] Status "active" not found in status table'
+    );
   }
   const activeStatusId = statusRow.id;
-  
+
   const baseFields = {
     status_id: activeStatusId,
     created_at: knex.fn.now(),
@@ -190,7 +200,7 @@ exports.seed = async function (knex) {
       key: 'view_packaging_material_lookup',
       description: 'Allows accessing packaging material lookup dropdowns',
     },
-    
+
     // Pricing
     {
       name: 'View Pricing Types',
@@ -331,36 +341,45 @@ exports.seed = async function (knex) {
       description: 'Allows viewing orders in the shipping stage only',
     },
   ];
-  
+
   // Add category-specific order permissions
   const ACTION_META = {
-    view:   { label: 'View',   gerund: 'viewing',   plural: true  },
-    create: { label: 'Create', gerund: 'creating',  plural: false },
-    update: { label: 'Update', gerund: 'updating',  plural: false },
-    delete: { label: 'Delete', gerund: 'deleting',  plural: false },
+    view: { label: 'View', gerund: 'viewing', plural: true },
+    create: { label: 'Create', gerund: 'creating', plural: false },
+    update: { label: 'Update', gerund: 'updating', plural: false },
+    delete: { label: 'Delete', gerund: 'deleting', plural: false },
   };
-  
+
   for (const category of ORDER_CATEGORIES) {
-    const displayCategory = category.charAt(0).toUpperCase() + category.slice(1);
+    const displayCategory =
+      category.charAt(0).toUpperCase() + category.slice(1);
     const lcCategory = category.toLowerCase();
-    
+
     for (const action of Object.values(GENERIC_ORDER_PERMISSIONS)) {
       const verb = action.split('_')[0]; // view/create/update/delete
-      const meta = ACTION_META[verb] || { label: verb, gerund: `${verb}ing`, plural: true };
-      
+      const meta = ACTION_META[verb] || {
+        label: verb,
+        gerund: `${verb}ing`,
+        plural: true,
+      };
+
       // Name: plural for view, singular for others
-      const nameNoun = meta.plural ? `${displayCategory} Orders` : `${displayCategory} Order`;
+      const nameNoun = meta.plural
+        ? `${displayCategory} Orders`
+        : `${displayCategory} Order`;
       // Description: plural vs singular with article
-      const descNoun = meta.plural ? `${lcCategory} orders` : `a ${lcCategory} order`;
-      
+      const descNoun = meta.plural
+        ? `${lcCategory} orders`
+        : `a ${lcCategory} order`;
+
       permissions.push({
-        name: `${meta.label} ${nameNoun}`,                 // e.g., "Create Sales Order", "View Sales Orders"
-        key: `${verb}_${category}_order`,                      // e.g., "create_order_sales" (kept as-is)
-        description: `Allows ${meta.gerund} ${descNoun}`,  // e.g., "Allows creating a sales order"
+        name: `${meta.label} ${nameNoun}`, // e.g., "Create Sales Order", "View Sales Orders"
+        key: `${verb}_${category}_order`, // e.g., "create_order_sales" (kept as-is)
+        description: `Allows ${meta.gerund} ${descNoun}`, // e.g., "Allows creating a sales order"
       });
     }
   }
-  
+
   // Warn for duplicate keys
   const seen = new Set();
   const duplicateKeys = permissions

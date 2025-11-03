@@ -31,27 +31,27 @@ interface OutboundFulfillmentsTableProps {
  * Presentation-only: all data, pagination, and callbacks are passed via props.
  */
 const OutboundFulfillmentsTable: FC<OutboundFulfillmentsTableProps> = ({
-                                                                         data,
-                                                                         loading,
-                                                                         page,
-                                                                         rowsPerPage,
-                                                                         totalPages,
-                                                                         totalRecords,
-                                                                         onPageChange,
-                                                                         onRowsPerPageChange,
-                                                                         expandedRowId,
-                                                                         onDrillDownToggle,
-                                                                         selectedRowIds,
-                                                                         onSelectionChange,
-                                                                         onRefresh,
-                                                                       }) => {
+  data,
+  loading,
+  page,
+  rowsPerPage,
+  totalPages,
+  totalRecords,
+  onPageChange,
+  onRowsPerPageChange,
+  expandedRowId,
+  onDrillDownToggle,
+  selectedRowIds,
+  onSelectionChange,
+  onRefresh,
+}) => {
   const columns = useMemo(() => {
     return getOutboundFulfillmentTableColumns(
       expandedRowId ?? undefined,
       onDrillDownToggle
     );
   }, [expandedRowId, onDrillDownToggle]);
-  
+
   const renderOutboundFulfillmentExpandedContent = useCallback(
     (row: OutboundShipmentRecord) => (
       <Suspense
@@ -69,7 +69,7 @@ const OutboundFulfillmentsTable: FC<OutboundFulfillmentsTableProps> = ({
     ),
     []
   );
-  
+
   return (
     <Box>
       <Box
@@ -81,7 +81,7 @@ const OutboundFulfillmentsTable: FC<OutboundFulfillmentsTableProps> = ({
         <CustomTypography variant="h6" fontWeight={600}>
           Outbound Shipments
         </CustomTypography>
-        
+
         <CustomButton
           onClick={onRefresh}
           variant="outlined"
@@ -90,7 +90,7 @@ const OutboundFulfillmentsTable: FC<OutboundFulfillmentsTableProps> = ({
           Refresh
         </CustomButton>
       </Box>
-      
+
       <CustomTable<OutboundShipmentRecord>
         loading={loading}
         data={data}

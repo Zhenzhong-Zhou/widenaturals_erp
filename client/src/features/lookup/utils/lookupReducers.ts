@@ -1,5 +1,5 @@
 import { current, type Draft } from '@reduxjs/toolkit';
-import type { PaginatedLookupState } from "@shared-types/api";
+import type { PaginatedLookupState } from '@shared-types/api';
 import { dedupeById } from '@utils/dedupeHelpers';
 
 /**
@@ -10,13 +10,13 @@ import { dedupeById } from '@utils/dedupeHelpers';
 export interface PaginatedPayload<T> {
   /** The list of items returned in the current page. */
   items: T[];
-  
+
   /** Indicates whether there are more items available beyond the current page. */
   hasMore?: boolean;
-  
+
   /** The number of items per page. */
   limit?: number;
-  
+
   /** The offset of the current page (number of items skipped). */
   offset?: number;
 }
@@ -38,10 +38,10 @@ export const applyPaginatedFulfilled = <T extends { id: string }>(
   payload: PaginatedPayload<T>
 ) => {
   const { items, hasMore, limit, offset } = payload;
-  
+
   const existing = offset === 0 ? [] : current(state.data);
   const combined = [...existing, ...items];
-  
+
   state.data = dedupeById(combined) as Draft<T>[];
   state.loading = false;
   state.error = null;

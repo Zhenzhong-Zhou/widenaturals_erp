@@ -24,7 +24,7 @@ exports.up = async function (knex) {
     table.uuid('created_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');
   });
-  
+
   await knex.raw(`
     ALTER TABLE tracking_numbers
     ADD CONSTRAINT check_tracking_number_generic_format

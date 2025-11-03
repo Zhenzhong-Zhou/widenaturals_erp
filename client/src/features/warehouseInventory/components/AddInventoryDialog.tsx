@@ -99,7 +99,7 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
     () => mapBatchLookupToOptions(batchOptions, true),
     [batchOptions]
   );
-  
+
   useEffect(() => {
     if (!open) {
       restBatchRegistryLookup();

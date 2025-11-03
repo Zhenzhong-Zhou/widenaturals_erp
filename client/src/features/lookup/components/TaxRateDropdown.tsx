@@ -3,7 +3,11 @@ import type { TaxRateLookupQueryParams } from '@features/lookup/state';
 import type { PaginatedDropdownProps } from '@components/common/PaginatedDropdown';
 import PaginatedDropdown from '@components/common/PaginatedDropdown';
 import CustomTypography from '@components/common/CustomTypography';
-import { faBan, faCalendarTimes, faPercent } from '@fortawesome/free-solid-svg-icons';
+import {
+  faBan,
+  faCalendarTimes,
+  faPercent,
+} from '@fortawesome/free-solid-svg-icons';
 import { getRawLabel } from '@utils/labelHelpers';
 
 type TaxRateDropdownProps = PaginatedDropdownProps<TaxRateLookupQueryParams>;
@@ -30,37 +34,39 @@ const TaxRateDropdown = ({ options = [], ...rest }: TaxRateDropdownProps) => {
         options.map((opt) => {
           const isInactive = opt.isActive === false;
           const isExpired = opt.isValidToday === false;
-          
+
           // Always normalize to plain string for Autocomplete
           const rawLabel = getRawLabel(opt.label);
-          
+
           // JSX label for dropdown rendering
           const displayLabel = (
-            <CustomTypography color={isInactive || isExpired ? 'error' : 'inherit'}>
+            <CustomTypography
+              color={isInactive || isExpired ? 'error' : 'inherit'}
+            >
               {rawLabel}
             </CustomTypography>
           );
-          
+
           // Icon logic
           const icon = isInactive
             ? faBan
             : isExpired
               ? faCalendarTimes
               : faPercent;
-          
+
           // Tooltip logic
           const tooltip = isInactive
             ? 'Inactive Tax Rate'
             : isExpired
               ? 'Expired Tax Rate'
               : 'Active Tax Rate';
-          
+
           const iconColor = isInactive
             ? 'gray'
             : isExpired
               ? 'orange'
               : 'green';
-          
+
           return [
             opt.value ?? opt.id,
             {
@@ -76,7 +82,7 @@ const TaxRateDropdown = ({ options = [], ...rest }: TaxRateDropdownProps) => {
       ).values()
     );
   }, [options]);
-  
+
   return (
     <PaginatedDropdown
       label="Select Tax Rate"

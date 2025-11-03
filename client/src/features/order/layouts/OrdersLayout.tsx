@@ -10,43 +10,43 @@ import { getVisibleOrderModes } from '@features/order/utils/orderModeUtils';
 const OrdersLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   const visibleModes = getVisibleOrderModes(); // includes permission logic
-  
+
   // Redirect to first visible mode if user is on base path (/orders)
   useEffect(() => {
     if (location.pathname !== '/orders') return;
-    
+
     const firstMode = visibleModes[0];
     if (!firstMode || !firstMode.key) return;
-    
+
     if (visibleModes.length === 0) {
       navigate('/access-denied', { replace: true });
     } else if (visibleModes.length === 1) {
       navigate(`/orders/${firstMode.key}/all`, { replace: true });
     }
   }, [location.pathname, visibleModes, navigate]);
-  
+
   // Determine the active tab index based on current location
   const activeTabIndex = useMemo(() => {
     return visibleModes.findIndex((mode) =>
       location.pathname.startsWith(`/orders/${mode.key}`)
     );
   }, [location.pathname, visibleModes]);
-  
+
   const handleTabChange = (_event: SyntheticEvent, newIndex: number) => {
     const selectedMode = visibleModes[newIndex];
     if (selectedMode) {
       navigate(`/orders/${selectedMode.key}/all`);
     }
   };
-  
+
   return (
     <Box p={3}>
       <CustomTypography variant="h4" gutterBottom>
         Orders
       </CustomTypography>
-      
+
       <Tabs
         value={activeTabIndex === -1 ? 0 : activeTabIndex}
         onChange={handleTabChange}
@@ -67,7 +67,7 @@ const OrdersLayout = () => {
           />
         ))}
       </Tabs>
-      
+
       <Card elevation={1} sx={{ p: 2 }}>
         {location.pathname === '/orders' ? (
           <Box p={2} textAlign="center" color="text.secondary">

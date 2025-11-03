@@ -19,7 +19,9 @@ interface AllocationOrderHeaderSectionProps {
   flattened: FlattenedAllocationOrderHeader;
 }
 
-const AllocationOrderHeaderSection: FC<AllocationOrderHeaderSectionProps> = ({ flattened }) => {
+const AllocationOrderHeaderSection: FC<AllocationOrderHeaderSectionProps> = ({
+  flattened,
+}) => {
   return (
     <Section title="Order Header">
       <DetailsGrid>
@@ -30,12 +32,16 @@ const AllocationOrderHeaderSection: FC<AllocationOrderHeaderSectionProps> = ({ f
               {
                 label: 'Order Status',
                 value: flattened.orderStatus,
-                format: () => formatOrderStatus(flattened.orderStatusCode, flattened.orderStatus),
+                format: () =>
+                  formatOrderStatus(
+                    flattened.orderStatusCode,
+                    flattened.orderStatus
+                  ),
               },
             ]}
           />
         </DetailsGridItem>
-        
+
         <DetailsGridItem>
           <MemoizedDetailsSection
             fields={[

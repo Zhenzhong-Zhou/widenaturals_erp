@@ -1,4 +1,6 @@
-const { buildPackagingMaterialsFilter } = require('../utils/sql/build-packaging-material-filters');
+const {
+  buildPackagingMaterialsFilter,
+} = require('../utils/sql/build-packaging-material-filters');
 const { paginateQueryByOffset } = require('../database/db');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
@@ -20,12 +22,12 @@ const AppError = require('../utils/AppError');
  * @throws {AppError} If query fails
  */
 const getPackagingMaterialsForSalesOrderLookup = async ({
-                                                          limit = 50,
-                                                          offset = 0,
-                                                          filters = {},
-                                                        }) => {
+  limit = 50,
+  offset = 0,
+  filters = {},
+}) => {
   const tableName = 'packaging_materials pm';
-  
+
   const { whereClause, params } = buildPackagingMaterialsFilter(filters);
   const queryText = `
     SELECT
@@ -39,7 +41,7 @@ const getPackagingMaterialsForSalesOrderLookup = async ({
     FROM ${tableName}
     WHERE ${whereClause}
   `;
-  
+
   try {
     const result = await paginateQueryByOffset({
       tableName,
@@ -52,19 +54,21 @@ const getPackagingMaterialsForSalesOrderLookup = async ({
       sortOrder: 'ASC',
       additionalSort: 'pm.name ASC',
     });
-    
+
     logSystemInfo('Fetched packaging materials lookup successfully', {
-      context: 'packaging-materials-repository/getPackagingMaterialsForSalesOrderLookup',
+      context:
+        'packaging-materials-repository/getPackagingMaterialsForSalesOrderLookup',
       totalFetched: result.data?.length ?? 0,
       offset,
       limit,
       filters,
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch packaging materials lookup', {
-      context: 'packaging-materials-repository/getPackagingMaterialsForSalesOrderLookup',
+      context:
+        'packaging-materials-repository/getPackagingMaterialsForSalesOrderLookup',
       offset,
       limit,
       filters,

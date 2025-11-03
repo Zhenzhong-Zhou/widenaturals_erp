@@ -27,16 +27,22 @@ const BomPartExpandedSection: FC<BomPartExpandedSectionProps> = ({ row }) => {
             ]}
           />
         </DetailsGridItem>
-        
+
         {/* --- Right column: Audit info --- */}
         <DetailsGridItem>
           <MemoizedDetailsSection
             sectionTitle="Audit Info"
             fields={[
               { label: 'Created By', value: row.createdBy || '—' },
-              { label: 'Created At', value: formatDateTime(row.createdAt) || '—' },
+              {
+                label: 'Created At',
+                value: formatDateTime(row.createdAt) || '—',
+              },
               { label: 'Updated By', value: row.updatedBy || '—' },
-              { label: 'Updated At', value: formatDateTime(row.updatedAt) || '—' },
+              {
+                label: 'Updated At',
+                value: formatDateTime(row.updatedAt) || '—',
+              },
             ]}
           />
         </DetailsGridItem>

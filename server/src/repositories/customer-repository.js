@@ -47,7 +47,7 @@ const insertCustomerRecords = async (customers, client) => {
   const updateStrategies = Object.fromEntries(
     updateColumns.map((col) => [col, 'overwrite'])
   );
-  
+
   const rows = customers.map((customer) => [
     customer.firstname,
     customer.lastname,
@@ -246,11 +246,7 @@ const getPaginatedCustomers = async ({
  *
  * @throws {AppError} Throws a database error if the query fails.
  */
-const getCustomerLookup = async ({
-  filters = {},
-  limit = 50,
-  offset = 0,
-}) => {
+const getCustomerLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
   const tableName = 'customers c';
 
   // Build dynamic WHERE clause + params

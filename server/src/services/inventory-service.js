@@ -216,14 +216,14 @@ const adjustInventoryQuantitiesService = async (
           );
         }
       }
-      
+
       const warehouseInventoryUpdatesWithReserve = Object.fromEntries(
         Object.entries(warehouseInventoryUpdates).map(([key, value]) => [
           key,
           { ...value, reserved_quantity: 0, last_update: new Date() },
         ])
       );
-      
+
       // Step 3: Apply inventory quantity updates
       const [updatedWarehouseIds, updatedLocationIds] = await Promise.all([
         bulkUpdateWarehouseQuantities(
@@ -233,7 +233,7 @@ const adjustInventoryQuantitiesService = async (
         ),
         bulkUpdateLocationQuantities(locationInventoryUpdates, user_id, client),
       ]);
-      
+
       // Step 4: Enrich log records with user context
       const enrichedLogs = logRecords.map((log) => ({
         ...log,

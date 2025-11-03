@@ -25,21 +25,23 @@ interface BatchRegistryMultiSelectDropdownProps {
   placeholder?: string;
 }
 
-const BatchRegistryMultiSelectDropdown: FC<BatchRegistryMultiSelectDropdownProps> = ({
-                                                                                       label = 'Select Batches',
-                                                                                       placeholder = 'Choose batches...',
-                                                                                       batchLookupOptions,
-                                                                                       selectedOptions,
-                                                                                       onChange,
-                                                                                       batchLookupMeta,
-                                                                                       batchLookupLoading,
-                                                                                       disabled,
-                                                                                       error,
-                                                                                       helperText,
-                                                                                       sx,
-                                                                                       setFetchParams,
-                                                                                       batchLookupError,
-                                                                                     }) => {
+const BatchRegistryMultiSelectDropdown: FC<
+  BatchRegistryMultiSelectDropdownProps
+> = ({
+  label = 'Select Batches',
+  placeholder = 'Choose batches...',
+  batchLookupOptions,
+  selectedOptions,
+  onChange,
+  batchLookupMeta,
+  batchLookupLoading,
+  disabled,
+  error,
+  helperText,
+  sx,
+  setFetchParams,
+  batchLookupError,
+}) => {
   const handleFetchMore = (next?: { limit?: number; offset?: number }) => {
     if (!next) return;
     setFetchParams((prev) => ({
@@ -48,7 +50,7 @@ const BatchRegistryMultiSelectDropdown: FC<BatchRegistryMultiSelectDropdownProps
       limit: next.limit ?? prev.limit,
     }));
   };
-  
+
   return (
     <MultiSelectDropdown
       label={label}

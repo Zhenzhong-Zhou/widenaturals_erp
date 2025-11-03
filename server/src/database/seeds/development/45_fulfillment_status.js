@@ -7,13 +7,15 @@ const { fetchDynamicValue } = require('../03_utils');
 
 exports.seed = async function (knex) {
   console.log('Seeding fulfillment_status...');
-  
-  const existing = await knex('fulfillment_status').count('id as count').first();
+
+  const existing = await knex('fulfillment_status')
+    .count('id as count')
+    .first();
   if (existing?.count > 0) {
     console.log('Fulfillment status already seeded. Skipping.');
     return;
   }
-  
+
   const systemUserId = await fetchDynamicValue(
     knex,
     'users',
@@ -21,9 +23,9 @@ exports.seed = async function (knex) {
     'system@internal.local',
     'id'
   );
-  
+
   const now = knex.fn.now();
-  
+
   const statusList = [
     {
       name: 'pending',
@@ -55,7 +57,8 @@ exports.seed = async function (knex) {
       sort_order: 4,
       category: 'internal',
       is_default: false,
-      description: 'Fulfillment process completed — items have been delivered or picked up by the customer.',
+      description:
+        'Fulfillment process completed — items have been delivered or picked up by the customer.',
     },
     {
       name: 'shipped',
@@ -82,7 +85,7 @@ exports.seed = async function (knex) {
       description: 'Fulfillment was cancelled',
     },
   ];
-  
+
   const records = statusList.map((status) => ({
     id: knex.raw('uuid_generate_v4()'),
     ...status,
@@ -91,8 +94,8 @@ exports.seed = async function (knex) {
     created_by: systemUserId,
     updated_by: null,
   }));
-  
+
   await knex('fulfillment_status').insert(records);
-  
+
   console.log(`Seeded ${records.length} fulfillment statuses.`);
 };

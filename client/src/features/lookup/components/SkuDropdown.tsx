@@ -3,7 +3,11 @@ import type { SkuLookupQueryParams } from '@features/lookup/state';
 import type { PaginatedDropdownProps } from '@components/common/PaginatedDropdown';
 import PaginatedDropdown from '@components/common/PaginatedDropdown';
 import CustomTypography from '@components/common/CustomTypography';
-import { faBan, faCheckCircle, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
+import {
+  faBan,
+  faCheckCircle,
+  faExclamationTriangle,
+} from '@fortawesome/free-solid-svg-icons';
 import { getRawLabel } from '@utils/labelHelpers';
 
 type SkuDropdownProps = PaginatedDropdownProps<SkuLookupQueryParams>;
@@ -31,18 +35,19 @@ const SkuDropdown = ({ options = [], ...rest }: SkuDropdownProps) => {
       new Map(
         options.map((opt) => {
           const isNormal = opt.isNormal === true;
-          const hasIssues = Array.isArray(opt.issueReasons) && opt.issueReasons.length > 0;
-          
+          const hasIssues =
+            Array.isArray(opt.issueReasons) && opt.issueReasons.length > 0;
+
           // Keep plain string for internal label
           const rawLabel = getRawLabel(opt.label);
-          
+
           // JSX for dropdown rendering
           const displayLabel = (
             <CustomTypography color={!isNormal ? 'error' : 'inherit'}>
               {rawLabel}
             </CustomTypography>
           );
-          
+
           let tooltip: string;
           if (!isNormal) {
             tooltip = 'SKU is not in valid status';
@@ -51,7 +56,7 @@ const SkuDropdown = ({ options = [], ...rest }: SkuDropdownProps) => {
           } else {
             tooltip = 'SKU is valid and ready';
           }
-          
+
           let icon, iconColor;
           if (!isNormal) {
             icon = faBan;
@@ -63,7 +68,7 @@ const SkuDropdown = ({ options = [], ...rest }: SkuDropdownProps) => {
             icon = faCheckCircle;
             iconColor = 'green';
           }
-          
+
           return [
             opt.value,
             {
@@ -81,7 +86,7 @@ const SkuDropdown = ({ options = [], ...rest }: SkuDropdownProps) => {
       ).values()
     );
   }, [options]);
-  
+
   return (
     <PaginatedDropdown
       label="Select SKU"

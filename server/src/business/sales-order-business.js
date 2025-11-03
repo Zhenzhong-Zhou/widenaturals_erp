@@ -1,11 +1,14 @@
 const { logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
-const { validateIdExists, validateIdsExist } = require('../validators/entity-id-validators');
+const {
+  validateIdExists,
+  validateIdsExist,
+} = require('../validators/entity-id-validators');
 const {
   enrichOrderItemsWithResolvedPrice,
   dedupeOrderItems,
   assertPositiveQuantities,
-  assertNotPackagingOnly
+  assertNotPackagingOnly,
 } = require('./order-item-business');
 const { getDiscountById } = require('../repositories/discount-repository');
 const { calculateDiscountAmount } = require('./discount-business');
@@ -41,8 +44,13 @@ const {
  */
 const validateSalesOrderIds = async (orderData, client) => {
   try {
-    const { customer_id, payment_method_id, delivery_method_id, order_items = [] } = orderData;
-    
+    const {
+      customer_id,
+      payment_method_id,
+      delivery_method_id,
+      order_items = [],
+    } = orderData;
+
     // 1) Top-level: small set → fine to validate one-by-one
     for (const [id, table, label] of [
       [customer_id, 'customers', 'Customer'],
@@ -51,7 +59,7 @@ const validateSalesOrderIds = async (orderData, client) => {
     ]) {
       if (id != null) await validateIdExists(table, id, client, label);
     }
-    
+
     // 2) Per-line XOR (keep index for a precise error)
     for (let i = 0; i < order_items.length; i++) {
       const it = order_items[i];
@@ -63,20 +71,30 @@ const validateSalesOrderIds = async (orderData, client) => {
         );
       }
     }
-    
+
     // 3) Batch FK checks (0..4 queries depending on non-empty sets)
-    const idsOf = (items, key) =>
-      [...new Set(items.map(i => i[key]).filter(Boolean).map(s => String(s).trim().toLowerCase()))];
-    
-    const skuIds    = idsOf(order_items, 'sku_id');
-    const pkgIds    = idsOf(order_items, 'packaging_material_id');
+    const idsOf = (items, key) => [
+      ...new Set(
+        items
+          .map((i) => i[key])
+          .filter(Boolean)
+          .map((s) => String(s).trim().toLowerCase())
+      ),
+    ];
+
+    const skuIds = idsOf(order_items, 'sku_id');
+    const pkgIds = idsOf(order_items, 'packaging_material_id');
     const statusIds = idsOf(order_items, 'status_id');
-    const priceIds  = idsOf(order_items, 'price_id');
-    
+    const priceIds = idsOf(order_items, 'price_id');
+
     await Promise.all([
       validateIdsExist(client, 'skus', skuIds, { label: 'SKU' }),
-      validateIdsExist(client, 'packaging_materials', pkgIds, { label: 'Packaging' }),
-      validateIdsExist(client, 'order_status', statusIds, { label: 'Order item status' }),
+      validateIdsExist(client, 'packaging_materials', pkgIds, {
+        label: 'Packaging',
+      }),
+      validateIdsExist(client, 'order_status', statusIds, {
+        label: 'Order item status',
+      }),
       validateIdsExist(client, 'pricing', priceIds, { label: 'Price' }),
     ]);
   } catch (error) {
@@ -119,7 +137,7 @@ const buildOrderMetadata = (enrichedItems) => {
         timestamp: i.metadata.conflictNote.timestamp,
       }),
     }));
-  
+
   return {
     ...(overrides.length > 0 && {
       price_override_summary: {
@@ -175,70 +193,99 @@ const createSalesOrder = async (orderData, client) => {
       status_id,
       ...salesData
     } = orderData;
-    
+
     // --- Guards: prevent empty orders and missing addresses early ---
     if (!Array.isArray(order_items) || order_items.length === 0) {
-      logSystemException(new Error('Empty order_items'), 'Missing order items for sales order', {
-        context: 'sales-order-business/createSalesOrder',
-        order_id,
-        order_items,
-        created_by: orderData.created_by,
-      });
-      throw AppError.validationError('Sales order must include at least one item.');
+      logSystemException(
+        new Error('Empty order_items'),
+        'Missing order items for sales order',
+        {
+          context: 'sales-order-business/createSalesOrder',
+          order_id,
+          order_items,
+          created_by: orderData.created_by,
+        }
+      );
+      throw AppError.validationError(
+        'Sales order must include at least one item.'
+      );
     }
-    if (!shipping_address_id) throw AppError.validationError('Shipping address is required.');
-    if (!billing_address_id) throw AppError.validationError('Billing address is required.');
-    
+    if (!shipping_address_id)
+      throw AppError.validationError('Shipping address is required.');
+    if (!billing_address_id)
+      throw AppError.validationError('Billing address is required.');
+
     // --- Address ownership checks (and assignment if unclaimed) ---
-    await validateAndAssignAddressOwnership(shipping_address_id, customer_id, client);
-    await validateAndAssignAddressOwnership(billing_address_id, customer_id, client);
-    
+    await validateAndAssignAddressOwnership(
+      shipping_address_id,
+      customer_id,
+      client
+    );
+    await validateAndAssignAddressOwnership(
+      billing_address_id,
+      customer_id,
+      client
+    );
+
     // --- Items pipeline ---
     // 1) Dedupe first: reduces later validation/price lookups and fixes totals
     const dedupedItems = dedupeOrderItems(order_items);
-    
+
     // 2) Business rules (sales-specific)
-    assertPositiveQuantities(dedupedItems);   // defense-in-depth (also have Joi + DB CHECK)
-    assertNotPackagingOnly(dedupedItems);     // must contain at least one SKU line
-    
+    assertPositiveQuantities(dedupedItems); // defense-in-depth (also have Joi + DB CHECK)
+    assertNotPackagingOnly(dedupedItems); // must contain at least one SKU line
+
     // 3) FK validation on the deduped set (IDs exist, XOR, etc.)
-    await validateSalesOrderIds({ ...orderData, order_items: dedupedItems }, client);
-    
+    await validateSalesOrderIds(
+      { ...orderData, order_items: dedupedItems },
+      client
+    );
+
     // 4) Enrich (resolve price & per-line subtotal)
-    const { enrichedItems, subtotal } = await enrichOrderItemsWithResolvedPrice(dedupedItems, client);
-    
+    const { enrichedItems, subtotal } = await enrichOrderItemsWithResolvedPrice(
+      dedupedItems,
+      client
+    );
+
     // 5) Metadata derived from final line set
     const orderMetadata = buildOrderMetadata(enrichedItems);
-    
+
     // 6) Discount
     let discountAmount = 0;
     if (discount_id) {
       const discount = await getDiscountById(discount_id, client);
-      if (!discount) throw AppError.validationError(`Invalid discount_id: ${discount_id}`);
+      if (!discount)
+        throw AppError.validationError(`Invalid discount_id: ${discount_id}`);
       discountAmount = calculateDiscountAmount(subtotal, discount);
     }
     const discountedSubtotal = Math.max(subtotal - discountAmount, 0);
-    
+
     // 7) Tax
     let taxAmount = 0;
     if (tax_rate_id) {
       const taxRate = await getTaxRateById(tax_rate_id, client);
-      if (!taxRate) throw AppError.validationError(`Invalid tax_rate_id: ${tax_rate_id}`);
-      const { taxAmount: ta } = calculateTaxableAmount(subtotal, discountAmount, taxRate);
+      if (!taxRate)
+        throw AppError.validationError(`Invalid tax_rate_id: ${tax_rate_id}`);
+      const { taxAmount: ta } = calculateTaxableAmount(
+        subtotal,
+        discountAmount,
+        taxRate
+      );
       taxAmount = ta;
     }
-    
+
     // 8) Totals
     const totalAmount = discountedSubtotal + taxAmount + shipping_fee;
     const baseCurrencyAmount = exchange_rate
       ? Math.round(totalAmount * exchange_rate * 100) / 100
       : null;
-    
+
     // 9) Default payment status
     const paymentStatus = await getPaymentStatusIdByCode('UNPAID', client);
-    if (!paymentStatus) throw AppError.validationError('Missing default payment status: UNPAID');
+    if (!paymentStatus)
+      throw AppError.validationError('Missing default payment status: UNPAID');
     const payment_status_id = paymentStatus;
-    
+
     // --- Persist header (type-specific) ---
     const salesOrder = await insertSalesOrder(
       {
@@ -260,7 +307,7 @@ const createSalesOrder = async (orderData, client) => {
       },
       client
     );
-    
+
     // --- Persist items (carry initial status to lines if applicable) ---
     if (dedupedItems.length > 0) {
       const enrichedItemsWithStatus = enrichedItems.map((item) => ({
@@ -270,7 +317,7 @@ const createSalesOrder = async (orderData, client) => {
 
       await insertOrderItemsBulk(order_id, enrichedItemsWithStatus, client);
     }
-    
+
     return salesOrder;
   } catch (error) {
     logSystemException(error, 'Failed to create sales order', {

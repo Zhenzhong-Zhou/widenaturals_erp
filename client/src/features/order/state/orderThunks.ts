@@ -2,7 +2,9 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
   CreateSalesOrderInput,
   CreateSalesOrderResponse,
-  GetOrderDetailsResponse, OrderListResponse, OrderQueryParams,
+  GetOrderDetailsResponse,
+  OrderListResponse,
+  OrderQueryParams,
   OrderRouteParams,
   UpdateOrderStatusResponse,
 } from '@features/order/state/orderTypes';
@@ -26,17 +28,14 @@ import { orderService } from '@services/orderService';
 export const createSalesOrderThunk = createAsyncThunk<
   CreateSalesOrderResponse,
   { category: string; data: CreateSalesOrderInput }
->(
-  'orders/createSalesOrder',
-  async ({ category, data }, thunkAPI) => {
-    try {
-      return await orderService.createSalesOrder(category, data);
-    } catch (error: any) {
-      console.error('createSalesOrderThunk failed:', error);
-      return thunkAPI.rejectWithValue(error?.response?.data || error.message);
-    }
+>('orders/createSalesOrder', async ({ category, data }, thunkAPI) => {
+  try {
+    return await orderService.createSalesOrder(category, data);
+  } catch (error: any) {
+    console.error('createSalesOrderThunk failed:', error);
+    return thunkAPI.rejectWithValue(error?.response?.data || error.message);
   }
-);
+});
 
 /**
  * Thunk to fetch a paginated list of orders for a specific category.
@@ -62,9 +61,9 @@ export const createSalesOrderThunk = createAsyncThunk<
  * @returns A Promise resolving to the fetched order list or a rejected value containing an error message
  */
 export const fetchOrdersByCategoryThunk = createAsyncThunk<
-  OrderListResponse,                                      // Return type
-  { category: string; params?: OrderQueryParams },        // Argument type
-  { rejectValue: string }                                 // Optional reject payload
+  OrderListResponse, // Return type
+  { category: string; params?: OrderQueryParams }, // Argument type
+  { rejectValue: string } // Optional reject payload
 >(
   'orders/fetchByCategory',
   async ({ category, params }, { rejectWithValue }) => {
@@ -100,8 +99,8 @@ export const fetchOrdersByCategoryThunk = createAsyncThunk<
  */
 export const getOrderDetailsByIdThunk = createAsyncThunk<
   GetOrderDetailsResponse, // Return type
-  OrderRouteParams,                  // Argument type
-  { rejectValue: string }  // Optional reject payload type
+  OrderRouteParams, // Argument type
+  { rejectValue: string } // Optional reject payload type
 >(
   'orders/getOrderDetailsById',
   async ({ category, orderId }, { rejectWithValue }) => {
@@ -139,17 +138,14 @@ export const getOrderDetailsByIdThunk = createAsyncThunk<
  * @throws Will dispatch `rejected` action if the request fails.
  */
 export const updateOrderStatusThunk = createAsyncThunk<
-  UpdateOrderStatusResponse,                       // Return type
+  UpdateOrderStatusResponse, // Return type
   { params: OrderRouteParams; data: { statusCode: string } }, // Argument type
-  { rejectValue: string }        // Optional extra options
->(
-  'orders/updateOrderStatus',
-  async ({ params, data }, { rejectWithValue }) => {
-    try {
-      return await orderService.updateOrderStatus(params, data);
-    } catch (err: any) {
-      console.error('Error in updateOrderStatusThunk:', err);
-      return rejectWithValue(err?.message ?? 'Failed to update order status');
-    }
+  { rejectValue: string } // Optional extra options
+>('orders/updateOrderStatus', async ({ params, data }, { rejectWithValue }) => {
+  try {
+    return await orderService.updateOrderStatus(params, data);
+  } catch (err: any) {
+    console.error('Error in updateOrderStatusThunk:', err);
+    return rejectWithValue(err?.message ?? 'Failed to update order status');
   }
-);
+});

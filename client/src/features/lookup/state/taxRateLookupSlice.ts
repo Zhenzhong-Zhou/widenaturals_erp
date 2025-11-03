@@ -7,7 +7,8 @@ import {
 import { fetchTaxRateLookupThunk } from './lookupThunks';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 
-const initialState: TaxRateLookupState = createInitialPaginatedLookupState<TaxRateLookupItem>();
+const initialState: TaxRateLookupState =
+  createInitialPaginatedLookupState<TaxRateLookupItem>();
 
 const taxRateLookupSlice = createSlice({
   name: 'taxRateLookup',

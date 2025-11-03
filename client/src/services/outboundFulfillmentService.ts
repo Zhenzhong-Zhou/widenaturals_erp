@@ -1,5 +1,6 @@
 import type {
-  CompleteManualFulfillmentBody, CompleteManualFulfillmentParams,
+  CompleteManualFulfillmentBody,
+  CompleteManualFulfillmentParams,
   CompleteManualFulfillmentResponse,
   ConfirmOutboundFulfillmentBody,
   ConfirmOutboundFulfillmentRequest,
@@ -68,12 +69,20 @@ import { buildQueryString } from '@utils/buildQueryString';
 const initiateOutboundFulfillment = async (
   request: InitiateFulfillmentRequest
 ): Promise<InitiateFulfillmentResponse> => {
-  const url = API_ENDPOINTS.OUTBOUND_FULFILLMENTS.INITIATE_FULFILLMENT(request.orderId);
-  
+  const url = API_ENDPOINTS.OUTBOUND_FULFILLMENTS.INITIATE_FULFILLMENT(
+    request.orderId
+  );
+
   try {
-    return await postRequest<InitiateFulfillmentBody, InitiateFulfillmentResponse>(url, request.body);
+    return await postRequest<
+      InitiateFulfillmentBody,
+      InitiateFulfillmentResponse
+    >(url, request.body);
   } catch (error) {
-    console.error('Failed to initiate outbound fulfillment', { request, error });
+    console.error('Failed to initiate outbound fulfillment', {
+      request,
+      error,
+    });
     throw error;
   }
 };
@@ -116,16 +125,16 @@ const fetchPaginatedOutboundFulfillment = async (
 ): Promise<PaginatedOutboundFulfillmentResponse> => {
   try {
     const { filters = {}, ...rest } = params;
-    
+
     // Flatten nested filters into top-level query keys
     const flatParams = {
       ...rest,
       ...filters,
     };
-    
+
     const queryString = buildQueryString(flatParams);
     const url = `${API_ENDPOINTS.OUTBOUND_FULFILLMENTS.ALL_RECORDS}${queryString}`;
-    
+
     return await getRequest<PaginatedOutboundFulfillmentResponse>(url);
   } catch (error) {
     console.error('Failed to fetch outbound fulfillments:', error);
@@ -162,10 +171,14 @@ export const fetchOutboundShipmentDetails = async (
   shipmentId: string
 ): Promise<ShipmentDetailsResponse> => {
   try {
-    const url = API_ENDPOINTS.OUTBOUND_FULFILLMENTS.OUTBOUND_SHIPMENT_DETAILS(shipmentId);
+    const url =
+      API_ENDPOINTS.OUTBOUND_FULFILLMENTS.OUTBOUND_SHIPMENT_DETAILS(shipmentId);
     return await getRequest<ShipmentDetailsResponse>(url);
   } catch (error) {
-    console.error(`Failed to fetch shipment details for ID=${shipmentId}:`, error);
+    console.error(
+      `Failed to fetch shipment details for ID=${shipmentId}:`,
+      error
+    );
     throw error;
   }
 };
@@ -228,7 +241,7 @@ export const confirmOutboundFulfillment = async (
 ): Promise<ConfirmOutboundFulfillmentResponse> => {
   const { orderId, ...body } = request;
   const url = API_ENDPOINTS.OUTBOUND_FULFILLMENTS.CONFIRM_FULFILLMENT(orderId);
-  
+
   try {
     return await postRequest<
       ConfirmOutboundFulfillmentBody,
@@ -293,13 +306,14 @@ const completeManualFulfillment = async (
   params: CompleteManualFulfillmentParams
 ): Promise<CompleteManualFulfillmentResponse> => {
   const { shipmentId, body } = params;
-  const url = API_ENDPOINTS.OUTBOUND_FULFILLMENTS.COMPLETE_MANUAL_FULFILLMENT(shipmentId);
-  
+  const url =
+    API_ENDPOINTS.OUTBOUND_FULFILLMENTS.COMPLETE_MANUAL_FULFILLMENT(shipmentId);
+
   try {
-    return await postRequest<CompleteManualFulfillmentBody, CompleteManualFulfillmentResponse>(
-      url,
-      body
-    );
+    return await postRequest<
+      CompleteManualFulfillmentBody,
+      CompleteManualFulfillmentResponse
+    >(url, body);
   } catch (error) {
     console.error('Failed to complete manual fulfillment', { body, error });
     throw error;

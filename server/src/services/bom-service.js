@@ -1,10 +1,20 @@
-const { getPaginatedBoms, getBomDetailsById, getBOMProductionSummary } = require('../repositories/bom-repository');
+const {
+  getPaginatedBoms,
+  getBomDetailsById,
+  getBOMProductionSummary,
+} = require('../repositories/bom-repository');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
-const { transformPaginatedOBoms, transformBomDetails, transformBOMProductionSummaryRows,
-  buildBOMProductionSummaryResponse
+const {
+  transformPaginatedOBoms,
+  transformBomDetails,
+  transformBOMProductionSummaryRows,
+  buildBOMProductionSummaryResponse,
 } = require('../transformers/bom-transformer');
 const AppError = require('../utils/AppError');
-const { computeEstimatedBomCostSummary, getProductionReadinessReport } = require('../business/bom-business');
+const {
+  computeEstimatedBomCostSummary,
+  getProductionReadinessReport,
+} = require('../business/bom-business');
 
 /**
  * @async
@@ -62,12 +72,12 @@ const { computeEstimatedBomCostSummary, getProductionReadinessReport } = require
  * @see AppError.serviceError
  */
 const fetchPaginatedBomsService = async ({
-                                           filters = {},
-                                           page = 1,
-                                           limit = 10,
-                                           sortBy,
-                                           sortOrder = 'DESC',
-                                         }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy,
+  sortOrder = 'DESC',
+}) => {
   try {
     // Step 1. Fetch data
     const rawResult = await getPaginatedBoms({
@@ -77,7 +87,7 @@ const fetchPaginatedBomsService = async ({
       sortBy,
       sortOrder,
     });
-    
+
     // Step 2. Return structured response
     logSystemInfo('Fetched BOM list successfully', {
       context: 'bom-service/fetchPaginatedBomsService',
@@ -86,7 +96,7 @@ const fetchPaginatedBomsService = async ({
       sorting: { sortBy, sortOrder },
       count: rawResult.pagination.totalRecords,
     });
-    
+
     return transformPaginatedOBoms(rawResult);
   } catch (error) {
     logSystemException(error, 'Failed to fetch paginated BOMs', {
@@ -95,7 +105,7 @@ const fetchPaginatedBomsService = async ({
       pagination: { page, limit },
       sorting: { sortBy, sortOrder },
     });
-    
+
     throw AppError.serviceError('Failed to fetch BOM list', {
       context: 'bom-service/fetchPaginatedBomsService',
       originalError: error.message,
@@ -128,20 +138,24 @@ const fetchBomDetailsService = async (bomId) => {
   try {
     // Step 1: Query repository for BOM details
     const rawData = await getBomDetailsById(bomId);
-    
+
     if (!rawData || rawData.length === 0) {
-      throw AppError.notFoundError('No BOM details found for the provided BOM ID', {
-        bomId,
-        context: 'bom-service/fetchBomDetailsService',
-      });
+      throw AppError.notFoundError(
+        'No BOM details found for the provided BOM ID',
+        {
+          bomId,
+          context: 'bom-service/fetchBomDetailsService',
+        }
+      );
     }
-    
+
     // Step 2: Transform raw rows into structured BOM details
     const structuredResult = transformBomDetails(rawData);
-    
+
     // Step 3: Optional enrichment hook — compute aggregate stats (future expansion)
-    structuredResult.summary = computeEstimatedBomCostSummary?.(structuredResult) ?? null;
-    
+    structuredResult.summary =
+      computeEstimatedBomCostSummary?.(structuredResult) ?? null;
+
     // Step 4: Log success
     logSystemInfo('Fetched BOM details successfully', {
       context: 'bom-service/fetchBomDetailsService',
@@ -149,7 +163,7 @@ const fetchBomDetailsService = async (bomId) => {
       rowCount: rawData.length,
       totalCost: structuredResult.summary?.totalEstimatedCost ?? null,
     });
-    
+
     return structuredResult;
   } catch (error) {
     // Step 5: Log and rethrow standardized error
@@ -157,9 +171,9 @@ const fetchBomDetailsService = async (bomId) => {
       context: 'bom-service/fetchBomDetailsService',
       bomId,
     });
-    
+
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Unexpected error fetching BOM details', {
       bomId,
       context: 'bom-service/fetchBomDetailsService',
@@ -206,7 +220,7 @@ const fetchBOMProductionSummaryService = async (bomId) => {
       recordCount: rawData?.length || 0,
       step: 'repository',
     });
-    
+
     // ------------------------------------------------------------------------
     // 2. Transform flat SQL rows → structured BOM summary
     // ------------------------------------------------------------------------
@@ -217,7 +231,7 @@ const fetchBOMProductionSummaryService = async (bomId) => {
       step: 'transformer',
       partCount: transformedSummary.length,
     });
-    
+
     // ------------------------------------------------------------------------
     // 3. Apply business logic (capacity, shortages, bottlenecks, inactive stock)
     // ------------------------------------------------------------------------
@@ -229,32 +243,36 @@ const fetchBOMProductionSummaryService = async (bomId) => {
       maxProducibleUnits: readinessReport.maxProducibleUnits,
       shortageCount: readinessReport.shortageParts?.length || 0,
     });
-    
+
     // ------------------------------------------------------------------------
     // 4. Return final structured report to controller/client
     // ------------------------------------------------------------------------
     const response = buildBOMProductionSummaryResponse(bomId, readinessReport);
-    
+
     logSystemInfo('Returning BOM readiness summary to controller', {
       context: 'bom-service/fetchBOMProductionSummaryService',
       severity: 'info',
       step: 'response',
       bomId,
     });
-    
+
     return response;
   } catch (error) {
     // ------------------------------------------------------------------------
     // Error Handling & Logging
     // ------------------------------------------------------------------------
-    logSystemException(error, 'Failed to build BOM production readiness report', {
-      context: 'bom-service/fetchBOMProductionSummaryService',
-      bomId,
-      severity: 'error',
-    });
-    
+    logSystemException(
+      error,
+      'Failed to build BOM production readiness report',
+      {
+        context: 'bom-service/fetchBOMProductionSummaryService',
+        bomId,
+        severity: 'error',
+      }
+    );
+
     if (error instanceof AppError) throw error;
-    
+
     throw AppError.serviceError('Failed to fetch BOM production summary', {
       bomId,
       context: 'bom-service/fetchBOMProductionSummaryService',

@@ -49,8 +49,10 @@ export type OrderAction = (typeof ORDER_ACTIONS)[number];
  * @param category One of the supported order categories.
  * @returns The permission value string in snake_case.
  */
-export const toPermissionValue = (action: OrderAction, category: OrderCategory) =>
-  `${action.toLowerCase()}_${category}_order`;
+export const toPermissionValue = (
+  action: OrderAction,
+  category: OrderCategory
+) => `${action.toLowerCase()}_${category}_order`;
 
 /**
  * Dynamically generates a complete permission map for all
@@ -77,14 +79,14 @@ export const PERMISSIONS = Object.fromEntries(
     ])
   )
 ) as {
-  [K in `${OrderAction}_${Uppercase<OrderCategory>}_ORDER`]:
-  `${Lowercase<OrderAction>}_${OrderCategory}_order`;
+  [K in `${OrderAction}_${Uppercase<OrderCategory>}_ORDER`]: `${Lowercase<OrderAction>}_${OrderCategory}_order`;
 };
 
 export const ORDER_CONSTANTS = {
   PERMISSIONS: {
     ACTIONS: {
-      CONFIRM_AWAITING_REVIEW_SALES_ORDER: 'confirm_awaiting_review_sales_order',
+      CONFIRM_AWAITING_REVIEW_SALES_ORDER:
+        'confirm_awaiting_review_sales_order',
       CONFIRM_SALES_ORDER: 'confirm_sales_order',
       CANCEL_SALES_ORDER: 'cancel_sales_order',
       ALLOCATE_ORDER: 'allocate_inventory',
@@ -93,8 +95,10 @@ export const ORDER_CONSTANTS = {
       OVERRIDE_LOCKED_STATUS: 'override_locked_order_status',
     },
     ORDER: {
-      get: (action: 'VIEW' | 'CREATE' | 'UPDATE' | 'DELETE', category: string) =>
-        `${action.toLowerCase()}_${category.toLowerCase()}_order`,
+      get: (
+        action: 'VIEW' | 'CREATE' | 'UPDATE' | 'DELETE',
+        category: string
+      ) => `${action.toLowerCase()}_${category.toLowerCase()}_order`,
     },
     ALLOCATION: {
       VIEW: 'view_allocation_stage',

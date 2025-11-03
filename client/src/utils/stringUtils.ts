@@ -9,4 +9,5 @@
  * sanitizeString(undefined)  // → ''
  * sanitizeString(null)       // → ''
  */
-export const sanitizeString = (value?: string | null): string => (value ?? '').trim();
+export const sanitizeString = (value?: string | null): string =>
+  (value ?? '').trim();

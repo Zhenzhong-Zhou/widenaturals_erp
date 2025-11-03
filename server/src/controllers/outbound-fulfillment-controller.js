@@ -43,16 +43,17 @@ const fulfillOutboundShipmentController = wrapAsync(async (req, res) => {
     ...req.body,
     orderId,
   };
-  
+
   const result = await fulfillOutboundShipmentService(requestData, user);
-  
+
   // Log success
   logInfo('Outbound shipment fulfillment initiated', req, {
-    context: 'outbound-fulfillment-controller/fulfillOutboundShipmentController',
+    context:
+      'outbound-fulfillment-controller/fulfillOutboundShipmentController',
     orderId,
     userId: user.id,
   });
-  
+
   res.status(200).json({
     success: true,
     message: `Outbound shipment created and linked to allocations for order ${orderId}.`,
@@ -97,20 +98,21 @@ const fulfillOutboundShipmentController = wrapAsync(async (req, res) => {
 const confirmOutboundFulfillmentController = wrapAsync(async (req, res) => {
   const user = req.user;
   const { orderId } = req.params;
-  
+
   // Merge path param and request body
   const requestData = { ...req.body, orderId };
-  
+
   // Execute confirmation logic
   const result = await confirmOutboundFulfillmentService(requestData, user);
-  
+
   // Structured success log
   logInfo('Outbound fulfillment confirmed successfully', req, {
-    context: 'outbound-fulfillment-controller/confirmOutboundFulfillmentController',
+    context:
+      'outbound-fulfillment-controller/confirmOutboundFulfillmentController',
     orderId: result.orderId,
     userId: user?.id,
   });
-  
+
   // Respond to client
   res.status(200).json({
     success: true,
@@ -156,26 +158,30 @@ const confirmOutboundFulfillmentController = wrapAsync(async (req, res) => {
  * @access Protected
  * @throws {AppError} Propagates errors from the service layer
  */
-const getPaginatedOutboundFulfillmentController = wrapAsync(async (req, res) => {
-  const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
-  
-  // Step 1: Fetch transformed paginated results from service
-  const { data, pagination } = await fetchPaginatedOutboundFulfillmentService({
-    filters,
-    page,
-    limit,
-    sortBy,
-    sortOrder,
-  });
-  
-  // Step 2: Return 200 response
-  res.status(200).json({
-    success: true,
-    message: 'Outbound fulfillments retrieved successfully.',
-    data,
-    pagination,
-  });
-});
+const getPaginatedOutboundFulfillmentController = wrapAsync(
+  async (req, res) => {
+    const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
+
+    // Step 1: Fetch transformed paginated results from service
+    const { data, pagination } = await fetchPaginatedOutboundFulfillmentService(
+      {
+        filters,
+        page,
+        limit,
+        sortBy,
+        sortOrder,
+      }
+    );
+
+    // Step 2: Return 200 response
+    res.status(200).json({
+      success: true,
+      message: 'Outbound fulfillments retrieved successfully.',
+      data,
+      pagination,
+    });
+  }
+);
 
 /**
  * Controller: Fetch detailed outbound shipment information by ID.
@@ -192,14 +198,14 @@ const getPaginatedOutboundFulfillmentController = wrapAsync(async (req, res) => 
  */
 const getShipmentDetailsController = wrapAsync(async (req, res) => {
   const { shipmentId } = req.params;
-  
+
   const details = await fetchShipmentDetailsService(shipmentId);
-  
+
   logInfo('Shipment details fetched successfully', req, {
     context: 'outbound-fulfillment-controller/getShipmentDetailsController',
     shipmentId,
   });
-  
+
   return res.status(200).json({
     success: true,
     message: 'Shipment details fetched successfully',
@@ -244,20 +250,21 @@ const getShipmentDetailsController = wrapAsync(async (req, res) => {
 const completeManualFulfillmentController = wrapAsync(async (req, res) => {
   const user = req.user;
   const { shipmentId } = req.params;
-  
+
   // Merge route param and request body into a single payload
   const requestData = { ...req.body, shipmentId };
-  
+
   // --- Execute manual fulfillment workflow
   const result = await completeManualFulfillmentService(requestData, user);
-  
+
   // --- Structured success log
   logInfo('Manual fulfillment completed successfully', req, {
-    context: 'outbound-fulfillment-controller/completeManualFulfillmentController',
+    context:
+      'outbound-fulfillment-controller/completeManualFulfillmentController',
     shipmentId,
     userId: user?.id,
   });
-  
+
   // --- Send standardized JSON response
   return res.status(200).json({
     success: true,

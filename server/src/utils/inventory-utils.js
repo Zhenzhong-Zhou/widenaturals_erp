@@ -38,7 +38,7 @@ const getExpirySeverity = (expiryDate) => {
  */
 const getBatchData = (row) => {
   if (!row || typeof row !== 'object') return {};
-  
+
   switch (row.batch_type) {
     case 'product':
       return row.product_batch ?? {};
@@ -68,7 +68,7 @@ const getBatchData = (row) => {
 const getBatchSummary = (row) => {
   const data = getBatchData(row);
   const type = row?.batch_type ?? 'unknown';
-  
+
   if (type === 'product') {
     return {
       type,
@@ -77,7 +77,7 @@ const getBatchSummary = (row) => {
       manufactureDate: data.manufacture_date,
     };
   }
-  
+
   if (type === 'packaging_material') {
     return {
       type,
@@ -87,10 +87,9 @@ const getBatchSummary = (row) => {
       snapshotName: data.material_snapshot_name,
     };
   }
-  
+
   return { type };
 };
-
 
 /**
  * Extracts the list of warehouse inventory entries from the batch,

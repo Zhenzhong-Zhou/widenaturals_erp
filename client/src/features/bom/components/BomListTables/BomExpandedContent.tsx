@@ -19,24 +19,29 @@ interface BomExpandedContentProps {
 const BomExpandedContent: FC<BomExpandedContentProps> = ({ row }) => {
   return (
     <Box sx={{ px: 3, py: 2 }}>
-      <CustomTypography
-        variant="subtitle1"
-        sx={{ fontWeight: 600, mb: 2 }}
-      >
+      <CustomTypography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
         BOM Information Overview
       </CustomTypography>
-      
+
       {/* --- BOM Core Info --- */}
       <DetailsSection
         sectionTitle="BOM Identification"
         fields={[
           { label: 'BOM Code', value: row.bomCode, format: formatLabel },
-          { label: 'Description', value: row.bomDescription, format: formatLabel },
+          {
+            label: 'Description',
+            value: row.bomDescription,
+            format: formatLabel,
+          },
           { label: 'Status', value: row.status, format: formatLabel },
-          { label: 'Status Date', value: row.statusDate, format: formatDateTime },
+          {
+            label: 'Status Date',
+            value: row.statusDate,
+            format: formatDateTime,
+          },
         ]}
       />
-      
+
       {/* --- Product / SKU --- */}
       <DetailsSection
         sectionTitle="Product / SKU Attributes"
@@ -46,21 +51,33 @@ const BomExpandedContent: FC<BomExpandedContentProps> = ({ row }) => {
           { label: 'Size Label', value: row.sizeLabel, format: formatLabel },
           { label: 'Language', value: row.language },
           { label: 'Country Code', value: row.countryCode },
-          { label: 'SKU Description', value: row.skuDescription, format: formatLabel },
+          {
+            label: 'SKU Description',
+            value: row.skuDescription,
+            format: formatLabel,
+          },
         ]}
       />
-      
+
       {/* --- Compliance --- */}
       <DetailsSection
         sectionTitle="Compliance Information"
         fields={[
           { label: 'Compliance Type', value: row.complianceType },
           { label: 'NPN Number', value: row.npnNumber },
-          { label: 'Issued Date', value: row.complianceIssuedDate, format: formatDateTime },
-          { label: 'Expiry Date', value: row.complianceExpiryDate, format: formatDateTime },
+          {
+            label: 'Issued Date',
+            value: row.complianceIssuedDate,
+            format: formatDateTime,
+          },
+          {
+            label: 'Expiry Date',
+            value: row.complianceExpiryDate,
+            format: formatDateTime,
+          },
         ]}
       />
-      
+
       {/* --- Audit Trail --- */}
       <DetailsSection
         sectionTitle="Audit Trail"

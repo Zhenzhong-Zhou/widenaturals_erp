@@ -3,7 +3,11 @@ import type { GetBatchRegistryLookupParams } from '../state';
 import type { PaginatedDropdownProps } from '@components/common/PaginatedDropdown';
 import PaginatedDropdown from '@components/common/PaginatedDropdown';
 import CustomTypography from '@components/common/CustomTypography';
-import { faBoxOpen, faPills, faQuestionCircle } from '@fortawesome/free-solid-svg-icons';
+import {
+  faBoxOpen,
+  faPills,
+  faQuestionCircle,
+} from '@fortawesome/free-solid-svg-icons';
 import { getRawLabel } from '@utils/labelHelpers';
 
 type BatchRegistryDropdownProps =
@@ -25,24 +29,27 @@ type BatchRegistryDropdownProps =
  * @component
  * @param {BatchRegistryDropdownProps} props - Props controlling dropdown behavior.
  */
-const BatchRegistryDropdown = ({ options = [], ...rest }:  BatchRegistryDropdownProps) => {
+const BatchRegistryDropdown = ({
+  options = [],
+  ...rest
+}: BatchRegistryDropdownProps) => {
   const enrichedBatchRegistryOptions = useMemo(() => {
     return Array.from(
       new Map(
         options.map((opt) => {
           const isProduct = opt.type === 'product';
           const isPackaging = opt.type === 'packaging_material';
-          
+
           // Keep plain string for Autocomplete input
           const rawLabel = getRawLabel(opt.label);
-          
+
           // JSX for rendering
           const displayLabel = (
             <CustomTypography color={isProduct ? 'inherit' : 'primary'}>
               {rawLabel}
             </CustomTypography>
           );
-          
+
           return [
             opt.value,
             {
@@ -50,27 +57,23 @@ const BatchRegistryDropdown = ({ options = [], ...rest }:  BatchRegistryDropdown
               label: rawLabel,
               displayLabel,
               icon: isProduct
-                ? faPills               // icon for product batches
+                ? faPills // icon for product batches
                 : isPackaging
-                  ? faBoxOpen          // icon for packaging material batches
-                  : faQuestionCircle,  // fallback
+                  ? faBoxOpen // icon for packaging material batches
+                  : faQuestionCircle, // fallback
               tooltip: isProduct
                 ? 'Product Batch'
                 : isPackaging
                   ? 'Packaging Material Batch'
                   : 'Unknown Batch Type',
-              iconColor: isProduct
-                ? 'green'
-                : isPackaging
-                  ? 'blue'
-                  : 'gray',
+              iconColor: isProduct ? 'green' : isPackaging ? 'blue' : 'gray',
             },
           ];
         })
       ).values()
     );
   }, [options]);
-  
+
   return (
     <PaginatedDropdown
       label="Select Batch"
@@ -78,6 +81,6 @@ const BatchRegistryDropdown = ({ options = [], ...rest }:  BatchRegistryDropdown
       {...rest}
     />
   );
-}
+};
 
 export default BatchRegistryDropdown;

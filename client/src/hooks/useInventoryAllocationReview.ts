@@ -21,48 +21,55 @@ import {
 
 const useInventoryAllocationReview = () => {
   const dispatch = useAppDispatch();
-  
+
   const loading = useAppSelector(selectReviewLoading);
   const error = useAppSelector(selectReviewError);
   const message = useAppSelector(selectReviewMessage);
   const lastFetchedAt = useAppSelector(selectReviewLastFetchedAt);
-  
+
   const header = useAppSelector(selectReviewHeader);
   const items = useAppSelector(selectReviewItems);
   const itemCount = useAppSelector(selectReviewItemCount);
   const createdBy = useAppSelector(selectReviewCreatedBy);
   const allocations = useAppSelector(selectReviewAllocations);
   const allocationIds = useAppSelector(selectReviewAllocationIds);
-  
+
   /**
    * Fetch review with explicit input.
    */
   const fetchReview = useCallback(
     (orderId: string, request: AllocationReviewRequest) => {
       if (orderId && request?.allocationIds?.length > 0) {
-        dispatch(fetchInventoryAllocationReviewThunk({ orderId, body: request }));
+        dispatch(
+          fetchInventoryAllocationReviewThunk({ orderId, body: request })
+        );
       } else {
-        console.warn('Missing orderId or allocationIds for inventory review fetch');
+        console.warn(
+          'Missing orderId or allocationIds for inventory review fetch'
+        );
       }
     },
     [dispatch]
   );
-  
+
   const resetReview = useCallback(() => {
     dispatch(resetReviewState());
   }, [dispatch]);
-  
-  const updateReviewError = useCallback((msg: string | null) => {
-    dispatch(setReviewError(msg));
-  }, [dispatch]);
-  
+
+  const updateReviewError = useCallback(
+    (msg: string | null) => {
+      dispatch(setReviewError(msg));
+    },
+    [dispatch]
+  );
+
   return {
     // State
     loading,
     error,
     message,
     lastFetchedAt,
-    
+
     // Data
     header,
     items,
@@ -70,7 +77,7 @@ const useInventoryAllocationReview = () => {
     createdBy,
     allocationIds,
     allocations,
-    
+
     // Actions
     fetchReview, // usage: fetchReview(orderId, requestBody)
     resetReview,

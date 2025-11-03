@@ -6,12 +6,11 @@ import {
   selectHasPaginatedOutboundFulfillments,
   selectPaginatedOutboundFulfillmentsData,
   selectPaginatedOutboundFulfillmentsError,
-  selectPaginatedOutboundFulfillmentsLoading, selectPaginatedOutboundFulfillmentsPagination,
+  selectPaginatedOutboundFulfillmentsLoading,
+  selectPaginatedOutboundFulfillmentsPagination,
   selectPaginatedOutboundFulfillmentsTotalRecords,
 } from '@features/outboundFulfillment/state';
-import {
-  resetPaginatedOutboundFulfillments
-} from '@features/outboundFulfillment/state/paginatedOutboundFulfillmentsSlice';
+import { resetPaginatedOutboundFulfillments } from '@features/outboundFulfillment/state/paginatedOutboundFulfillmentsSlice';
 
 /**
  * Hook for accessing and managing paginated outbound fulfillment state.
@@ -23,15 +22,19 @@ import {
  */
 const usePaginatedOutboundFulfillments = () => {
   const dispatch = useAppDispatch();
-  
+
   // --- Selectors ---
   const loading = useAppSelector(selectPaginatedOutboundFulfillmentsLoading);
   const error = useAppSelector(selectPaginatedOutboundFulfillmentsError);
   const data = useAppSelector(selectPaginatedOutboundFulfillmentsData);
-  const pagination = useAppSelector(selectPaginatedOutboundFulfillmentsPagination);
+  const pagination = useAppSelector(
+    selectPaginatedOutboundFulfillmentsPagination
+  );
   const hasData = useAppSelector(selectHasPaginatedOutboundFulfillments);
-  const totalRecords = useAppSelector(selectPaginatedOutboundFulfillmentsTotalRecords);
-  
+  const totalRecords = useAppSelector(
+    selectPaginatedOutboundFulfillmentsTotalRecords
+  );
+
   // --- Actions ---
   const fetch = useCallback(
     (query: OutboundFulfillmentQuery) => {
@@ -39,11 +42,11 @@ const usePaginatedOutboundFulfillments = () => {
     },
     [dispatch]
   );
-  
+
   const reset = useCallback(() => {
     dispatch(resetPaginatedOutboundFulfillments());
   }, [dispatch]);
-  
+
   return {
     // state
     loading,
@@ -52,7 +55,7 @@ const usePaginatedOutboundFulfillments = () => {
     pagination,
     hasData,
     totalRecords,
-    
+
     // actions
     fetch,
     reset,

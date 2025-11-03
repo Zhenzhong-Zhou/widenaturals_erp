@@ -46,17 +46,17 @@ const OrderTypeDropdown: FC<OrderTypeDropdownProps> = ({
         orderTypeOptions.map((opt) => {
           const requiresPay = opt.isRequiredPayment === true;
           const isInactive = opt.isActive === false;
-          
+
           const rawLabel = getRawLabel(opt.label);
-          
+
           const displayLabel = (
             <CustomTypography color={isInactive ? 'error' : 'inherit'}>
               {rawLabel}
             </CustomTypography>
           );
-          
+
           let icon, tooltip, iconColor;
-          
+
           if (isInactive && requiresPay) {
             // Case 1: Inactive + Payment required
             icon = faBan;
@@ -78,7 +78,7 @@ const OrderTypeDropdown: FC<OrderTypeDropdownProps> = ({
             tooltip = 'Active order type';
             iconColor = 'green';
           }
-          
+
           return [
             opt.value,
             {
@@ -94,7 +94,7 @@ const OrderTypeDropdown: FC<OrderTypeDropdownProps> = ({
       ).values()
     );
   }, [orderTypeOptions]);
-  
+
   return (
     <Dropdown
       label="Order Type"

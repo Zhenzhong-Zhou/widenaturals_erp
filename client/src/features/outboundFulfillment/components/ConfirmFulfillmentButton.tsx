@@ -11,7 +11,10 @@ interface ConfirmFulfillmentButtonProps {
   refresh: () => void;
 }
 
-const ConfirmFulfillmentButton: FC<ConfirmFulfillmentButtonProps> = ({ orderId, refresh }) => {
+const ConfirmFulfillmentButton: FC<ConfirmFulfillmentButtonProps> = ({
+  orderId,
+  refresh,
+}) => {
   const {
     loading,
     error,
@@ -20,7 +23,7 @@ const ConfirmFulfillmentButton: FC<ConfirmFulfillmentButtonProps> = ({ orderId, 
     submitConfirmation,
     resetConfirmation,
   } = useConfirmOutboundFulfillment();
-  
+
   /**
    * Handles the confirmation submission flow.
    * Wrapped in useCallback to avoid re-creating on every render.
@@ -38,7 +41,7 @@ const ConfirmFulfillmentButton: FC<ConfirmFulfillmentButtonProps> = ({ orderId, 
       console.error('Confirm fulfillment failed:', err);
     }
   }, [orderId, submitConfirmation]);
-  
+
   /**
    * Effect to react to success and error states.
    * Resets state when unmounting or after completion.
@@ -53,30 +56,34 @@ const ConfirmFulfillmentButton: FC<ConfirmFulfillmentButtonProps> = ({ orderId, 
       alert('Failed to confirm fulfillment.');
     }
   }, [isSuccess, error]);
-  
+
   // Memoize a friendly display label
   const lastConfirmedLabel = useMemo(() => {
     if (!lastConfirmedAt) return null;
-    const relative = formatDistanceToNow(new Date(lastConfirmedAt), { addSuffix: true });
+    const relative = formatDistanceToNow(new Date(lastConfirmedAt), {
+      addSuffix: true,
+    });
     return `Last confirmed ${relative}`;
   }, [lastConfirmedAt]);
-  
+
   return (
-   <Box>
-     <CustomButton
-       variant="contained"
-       color="primary"
-       loading={loading}
-       disabled={loading}
-       onClick={handleConfirm}
-     >
-       {loading ? 'Confirming...' : 'Confirm Fulfillment'}
-     </CustomButton>
-     
-     {lastConfirmedLabel && (
-       <small style={{ color: '#6b7280', fontSize: '0.8rem' }}>{lastConfirmedLabel}</small>
-     )}
-   </Box>
+    <Box>
+      <CustomButton
+        variant="contained"
+        color="primary"
+        loading={loading}
+        disabled={loading}
+        onClick={handleConfirm}
+      >
+        {loading ? 'Confirming...' : 'Confirm Fulfillment'}
+      </CustomButton>
+
+      {lastConfirmedLabel && (
+        <small style={{ color: '#6b7280', fontSize: '0.8rem' }}>
+          {lastConfirmedLabel}
+        </small>
+      )}
+    </Box>
   );
 };
 

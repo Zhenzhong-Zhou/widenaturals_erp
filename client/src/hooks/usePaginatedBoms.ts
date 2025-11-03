@@ -15,7 +15,7 @@ import {
 import {
   resetBomListState,
   setBomFilters,
-  setBomPagination
+  setBomPagination,
 } from '@features/bom/state/paginatedBomsSlice';
 
 /**
@@ -37,7 +37,7 @@ import {
  */
 const usePaginatedBoms = () => {
   const dispatch = useAppDispatch();
-  
+
   // --- Selectors ---
   const data = useAppSelector(selectBomData);
   const pagination = useAppSelector(selectBomPagination);
@@ -46,37 +46,42 @@ const usePaginatedBoms = () => {
   const error = useAppSelector(selectBomError);
   const hasMore = useAppSelector(selectHasMoreBomPages);
   const isEmpty = useAppSelector(selectIsBomListEmpty);
-  
+
   const totalRecords = pagination?.totalRecords ?? 0;
   const hasData = data.length > 0;
-  
+
   // --- Action Dispatchers (memoized) ---
   /**
    * Triggers the paginated BOM fetch thunk with optional parameters.
    */
   const fetchBoms = useCallback(
-    (params?: FetchBomsParams) => dispatch(fetchPaginatedBomsThunk(params ?? {})),
+    (params?: FetchBomsParams) =>
+      dispatch(fetchPaginatedBomsThunk(params ?? {})),
     [dispatch]
   );
-  
+
   const resetFilters = useCallback(() => {
     dispatch(resetBomListState());
   }, [dispatch]);
-  
+
   const updateFilters = useCallback(
     (newFilters: FetchBomsParams['filters']) => {
       dispatch(setBomFilters(newFilters));
     },
     [dispatch]
   );
-  
+
   const updatePagination = useCallback(
-    (newPagination: Partial<NonNullable<PaginatedBomStateWithFilters['pagination']>>) => {
+    (
+      newPagination: Partial<
+        NonNullable<PaginatedBomStateWithFilters['pagination']>
+      >
+    ) => {
       dispatch(setBomPagination(newPagination));
     },
     [dispatch]
   );
-  
+
   // --- Memoized return object ---
   return useMemo(
     () => ({
@@ -90,7 +95,7 @@ const usePaginatedBoms = () => {
       isEmpty,
       totalRecords,
       hasData,
-      
+
       // Actions
       fetchBoms,
       resetFilters,

@@ -441,9 +441,9 @@ router.get(
   '/tax-rates',
   authorize([PERMISSIONS.VIEW_TAX_RATE]),
   createQueryNormalizationMiddleware(
-    '',        // moduleKey (optional for sorting)
-    [],        // arrayKeys
-    [],        // booleanKeys
+    '', // moduleKey (optional for sorting)
+    [], // arrayKeys
+    [], // booleanKeys
     ['keyword'], // filterKeys
     { includePagination: true, includeSorting: false }
   ),
@@ -495,8 +495,8 @@ router.get(
   '/delivery-methods',
   authorize([PERMISSIONS.VIEW_DELIVERY_METHOD]),
   createQueryNormalizationMiddleware(
-    '',                   // moduleKey (not needed here)
-    [],                   // arrayKeys
+    '', // moduleKey (not needed here)
+    [], // arrayKeys
     ['isPickupLocation'], // booleanKeys
     deliveryMethodLookupQuerySchema, // filterKeys
     { includePagination: true, includeSorting: false }
@@ -555,12 +555,12 @@ router.get(
   '/skus',
   authorize([PERMISSIONS.VIEW_SKU]),
   createQueryNormalizationMiddleware(
-    '',                          // moduleKey
-    [],                           // arrayKeys
-    [],                         // booleanKeys for filters
-    ['keyword'],           // filterKeys
+    '', // moduleKey
+    [], // arrayKeys
+    [], // booleanKeys for filters
+    ['keyword'], // filterKeys
     { includePagination: true, includeSorting: false },
-    ['includeBarcode']      // optionBooleanKeys (normalized into `options`)
+    ['includeBarcode'] // optionBooleanKeys (normalized into `options`)
   ),
   sanitizeFields(['keyword']),
   validate(
@@ -633,12 +633,12 @@ router.get(
   '/pricing',
   authorize([PERMISSIONS.VIEW_PRICING]),
   createQueryNormalizationMiddleware(
-    '',                           // moduleKey
-    [],                           // arrayKeys
-    [],                           // booleanKeys for filters
-    ['keyword', 'skuId'],                // filterKeys to extract `keyword` to root
+    '', // moduleKey
+    [], // arrayKeys
+    [], // booleanKeys for filters
+    ['keyword', 'skuId'], // filterKeys to extract `keyword` to root
     { includePagination: true, includeSorting: false },
-    ['labelOnly']                         // options.labelOnly is normalized here
+    ['labelOnly'] // options.labelOnly is normalized here
   ),
   sanitizeFields(['keyword']),
   validate(
@@ -701,12 +701,12 @@ router.get(
   '/packaging-materials',
   // authorize([PERMISSIONS.VIEW_PACKAGING_MATERIAL]),
   createQueryNormalizationMiddleware(
-    '',                               // moduleKey
-    [],                               // arrayKeys
-    [''],         // booleanKeys under filters
-    ['keyword'],                      // keys to lift to root (keyword)
+    '', // moduleKey
+    [], // arrayKeys
+    [''], // booleanKeys under filters
+    ['keyword'], // keys to lift to root (keyword)
     { includePagination: true, includeSorting: false },
-    [''],             // options.* keys to normalize
+    [''], // options.* keys to normalize
     ['mode']
   ),
   sanitizeFields(['keyword']),

@@ -15,7 +15,8 @@ const {
   transformTaxRatePaginatedLookupResult,
   transformDeliveryMethodPaginatedLookupResult,
   transformSkuPaginatedLookupResult,
-  transformPricingPaginatedLookupResult, transformPackagingMaterialPaginatedLookupResult,
+  transformPricingPaginatedLookupResult,
+  transformPackagingMaterialPaginatedLookupResult,
 } = require('../transformers/lookup-transformer');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const {
@@ -58,7 +59,7 @@ const {
   evaluateDiscountLookupAccessControl,
   filterDiscountLookupQuery,
   enforceDiscountLookupVisibilityRules,
-  enrichDiscountRow
+  enrichDiscountRow,
 } = require('../business/discount-business');
 const { getStatusId } = require('../config/status-cache');
 const {
@@ -73,24 +74,31 @@ const {
   enforceDeliveryMethodLookupVisibilityRules,
   enrichDeliveryMethodRow,
 } = require('../business/delivery-method-business');
-const { getDeliveryMethodsLookup } = require('../repositories/delivery-method-repository');
+const {
+  getDeliveryMethodsLookup,
+} = require('../repositories/delivery-method-repository');
 const {
   evaluateSkuFilterAccessControl,
   enforceSkuLookupVisibilityRules,
-  filterSkuLookupQuery, enrichSkuRow
+  filterSkuLookupQuery,
+  enrichSkuRow,
 } = require('../business/sku-business');
 const { getSkuLookup } = require('../repositories/sku-repository');
 const {
   evaluatePricingLookupAccessControl,
   enforcePricingLookupVisibilityRules,
   filterPricingLookupQuery,
-  enrichPricingRow
+  enrichPricingRow,
 } = require('../business/pricing-business');
 const { getPricingLookup } = require('../repositories/pricing-repository');
-const { evaluatePackagingMaterialLookupAccessControl, enforcePackagingMaterialVisibilityRules,
-  enrichPackagingMaterialOption
+const {
+  evaluatePackagingMaterialLookupAccessControl,
+  enforcePackagingMaterialVisibilityRules,
+  enrichPackagingMaterialOption,
 } = require('../business/packaging-material-business');
-const { getPackagingMaterialsForSalesOrderLookup } = require('../repositories/packaging-material-repository');
+const {
+  getPackagingMaterialsForSalesOrderLookup,
+} = require('../repositories/packaging-material-repository');
 
 /**
  * Service to fetch filtered and paginated batch registry records for lookup UI.
@@ -287,7 +295,7 @@ const fetchLotAdjustmentLookupService = async (user, filters = {}) => {
  */
 const fetchCustomerLookupService = async (
   user,
-  { filters = {}, limit = 50, offset = 0 },
+  { filters = {}, limit = 50, offset = 0 }
 ) => {
   try {
     // Step 1: Log the operation start
@@ -295,24 +303,30 @@ const fetchCustomerLookupService = async (
       context: 'lookup-service/fetchCustomerLookupService',
       metadata: { filters, limit, offset },
     });
-    
+
     // Step 2: Evaluate user access permissions
     const userAccess = await evaluateCustomerLookupAccessControl(user);
     const activeStatusId = getStatusId('customer_active');
-    
+
     // Step 3: Apply visibility enforcement rules to filters
-    const adjustedFilters = enforceCustomerLookupVisibilityRules(filters, userAccess, activeStatusId);
-    
+    const adjustedFilters = enforceCustomerLookupVisibilityRules(
+      filters,
+      userAccess,
+      activeStatusId
+    );
+
     // Step 4: Fetch paginated customer data
     const { data = [], pagination = {} } = await getCustomerLookup({
       filters: adjustedFilters,
       limit,
       offset,
     });
-    
+
     // Step 5: Enrich customer records for UI
-    const enrichedRows = data.map((row) => enrichCustomerOption(row, activeStatusId));
-    
+    const enrichedRows = data.map((row) =>
+      enrichCustomerOption(row, activeStatusId)
+    );
+
     // Step 6: Format for client consumption
     return transformCustomerPaginatedLookupResult(
       { data: enrichedRows, pagination },
@@ -326,7 +340,7 @@ const fetchCustomerLookupService = async (
       limit,
       offset,
     });
-    
+
     throw AppError.serviceError('Failed to fetch customer lookup list.', {
       details: err.message,
       stage: 'lookup-service/fetchCustomerLookupService',
@@ -420,33 +434,40 @@ const fetchCustomerAddressLookupService = async (customerId) => {
  * });
  * // items: [ { label: 'Sales Order', value: 'uuid', isActive: true }, ... ]
  */
-const fetchOrderTypeLookupService = async (
-  user,
-  { filters = {} }
-) => {
+const fetchOrderTypeLookupService = async (user, { filters = {} }) => {
   try {
     // Step 1: Evaluate user access control flags
-    const userAccess = await evaluateOrderTypeLookupAccessControl(user, { action: 'VIEW' });
-    const activeStatusId = getStatusId('order_type_active');
-    
-    // Step 2: Enforce filter visibility rules (e.g., restrict categories, status)
-    const enforcedFilters = enforceOrderTypeLookupVisibilityRules(filters, userAccess, {
-      activeStatusId,
+    const userAccess = await evaluateOrderTypeLookupAccessControl(user, {
+      action: 'VIEW',
     });
-    
+    const activeStatusId = getStatusId('order_type_active');
+
+    // Step 2: Enforce filter visibility rules (e.g., restrict categories, status)
+    const enforcedFilters = enforceOrderTypeLookupVisibilityRules(
+      filters,
+      userAccess,
+      {
+        activeStatusId,
+      }
+    );
+
     // Step 3: Build DB query filters (e.g., keyword ILIKE normalization)
-    const finalQuery = filterOrderTypeLookupQuery(enforcedFilters, userAccess, activeStatusId);
-    
+    const finalQuery = filterOrderTypeLookupQuery(
+      enforcedFilters,
+      userAccess,
+      activeStatusId
+    );
+
     // Step 4: Fetch paginated raw DB records
     const rawResult = await getOrderTypeLookup({
       filters: finalQuery,
     });
-    
+
     // Step 5: Enrich raw rows with UI flags (e.g., isActive)
     const enrichedRows = rawResult.map((row) =>
       enrichOrderTypeRow(row, activeStatusId)
     );
-    
+
     // Step 6: Transform for dropdown-compatible output
     return transformOrderTypeLookupResult(enrichedRows, userAccess);
   } catch (err) {
@@ -455,7 +476,7 @@ const fetchOrderTypeLookupService = async (
       userId: user?.id,
       filters,
     });
-    
+
     throw AppError.serviceError('Unable to fetch order type options');
   }
 };
@@ -486,20 +507,23 @@ const fetchPaginatedPaymentMethodLookupService = async (
   try {
     // Step 1: Evaluate user access control flags
     const userAccess = await evaluatePaymentMethodLookupAccessControl(user);
-    
+
     // Step 2: Enforce visibility restrictions based on access level
-    const adjustedFilters = enforcePaymentMethodLookupVisibilityRules(filters, userAccess);
-    
+    const adjustedFilters = enforcePaymentMethodLookupVisibilityRules(
+      filters,
+      userAccess
+    );
+
     // Step 3: Fetch raw paginated payment method records
     const { data = [], pagination = {} } = await getPaymentMethodLookup({
       filters: adjustedFilters,
       limit,
       offset,
     });
-    
+
     // Step 4: Enrich each row with status-related flags for UI logic
     const enrichedRows = data.map(enrichPaymentMethodOption);
-    
+
     // Step 5: Transform for dropdown-compatible output
     return transformPaymentMethodPaginatedLookupResult(
       { data: enrichedRows, pagination },
@@ -513,7 +537,7 @@ const fetchPaginatedPaymentMethodLookupService = async (
       limit,
       offset,
     });
-    
+
     throw AppError.serviceError('Unable to fetch payment method options.');
   }
 };
@@ -548,32 +572,42 @@ const fetchPaginatedDiscountLookupService = async (
     // Step 1: Evaluate user access rights
     const userAccess = await evaluateDiscountLookupAccessControl(user);
     const activeStatusId = getStatusId('discount_active');
-  
+
     // Step 2: Apply permission-based visibility rules
-    const permissionAdjustedFilters = enforceDiscountLookupVisibilityRules(filters, userAccess, activeStatusId);
-    
+    const permissionAdjustedFilters = enforceDiscountLookupVisibilityRules(
+      filters,
+      userAccess,
+      activeStatusId
+    );
+
     // Step 3: Apply domain-level filtering rules
-    const fullyAdjustedFilters = filterDiscountLookupQuery(permissionAdjustedFilters, userAccess);
-    
+    const fullyAdjustedFilters = filterDiscountLookupQuery(
+      permissionAdjustedFilters,
+      userAccess
+    );
+
     // Step 4: Query the repository
     const rawResult = await getDiscountsLookup({
       filters: fullyAdjustedFilters,
       limit,
       offset,
     });
-    
+
     const { data = [], pagination = {} } = rawResult;
-    
+
     // Step 5: Enrich each row with computed flags
     const enrichedRows = data.map((row) =>
       enrichDiscountRow(row, activeStatusId)
     );
-    
+
     // Step 6: Transform to client format
-    return transformDiscountPaginatedLookupResult({
-      data: enrichedRows,
-      pagination,
-    }, userAccess);
+    return transformDiscountPaginatedLookupResult(
+      {
+        data: enrichedRows,
+        pagination,
+      },
+      userAccess
+    );
   } catch (err) {
     logSystemException(err, 'Failed to fetch discount lookup', {
       context: 'lookup-service/fetchPaginatedDiscountLookupService',
@@ -582,7 +616,7 @@ const fetchPaginatedDiscountLookupService = async (
       limit,
       offset,
     });
-    
+
     throw AppError.serviceError('Unable to retrieve discount lookup options.', {
       cause: err,
     });
@@ -618,30 +652,39 @@ const fetchPaginatedTaxRateLookupService = async (
   try {
     // Step 1: Evaluate user access rights
     const userAccess = await evaluateTaxRateLookupAccessControl(user);
-    
+
     // Step 2: Apply permission-based visibility rules
-    const permissionAdjustedFilters = enforceTaxRateLookupVisibilityRules(filters, userAccess);
-    
+    const permissionAdjustedFilters = enforceTaxRateLookupVisibilityRules(
+      filters,
+      userAccess
+    );
+
     // Step 3: Apply business-layer filtering
-    const fullyAdjustedFilters = filterTaxRateLookupQuery(permissionAdjustedFilters, userAccess);
-    
+    const fullyAdjustedFilters = filterTaxRateLookupQuery(
+      permissionAdjustedFilters,
+      userAccess
+    );
+
     // Step 4: Query the repository
     const rawResult = await getTaxRatesLookup({
       filters: fullyAdjustedFilters,
       limit,
       offset,
     });
-    
+
     const { data = [], pagination = {} } = rawResult;
-    
+
     // Step 5: Enrich each row
     const enrichedRows = data.map(enrichTaxRateRow);
-    
+
     // Step 6: Transform to client format
-    return transformTaxRatePaginatedLookupResult({
-      data: enrichedRows,
-      pagination,
-    }, userAccess);
+    return transformTaxRatePaginatedLookupResult(
+      {
+        data: enrichedRows,
+        pagination,
+      },
+      userAccess
+    );
   } catch (err) {
     logSystemException(err, 'Failed to fetch tax rate lookup', {
       context: 'lookup-service/fetchPaginatedTaxRateLookupService',
@@ -650,7 +693,7 @@ const fetchPaginatedTaxRateLookupService = async (
       limit,
       offset,
     });
-    
+
     throw AppError.serviceError('Unable to retrieve tax rate lookup options.', {
       cause: err,
     });
@@ -694,29 +737,37 @@ const fetchPaginatedDeliveryMethodLookupService = async (
     // Step 1: Evaluate user access rights
     const userAccess = await evaluateDeliveryMethodLookupAccessControl(user);
     const activeStatusId = getStatusId('delivery_method_active');
-    
+
     // Step 2: Apply permission-based visibility rules
-    const permissionAdjustedFilters = enforceDeliveryMethodLookupVisibilityRules(filters, userAccess, activeStatusId);
-    
+    const permissionAdjustedFilters =
+      enforceDeliveryMethodLookupVisibilityRules(
+        filters,
+        userAccess,
+        activeStatusId
+      );
+
     // Step 3: Query the repository
     const rawResult = await getDeliveryMethodsLookup({
       filters: permissionAdjustedFilters,
       limit,
       offset,
     });
-    
+
     const { data = [], pagination = {} } = rawResult;
-    
+
     // Step 4: Enrich rows with computed flags
     const enrichedRows = data.map((row) =>
       enrichDeliveryMethodRow(row, activeStatusId)
     );
-    
+
     // Step 5: Transform to client format
-    return transformDeliveryMethodPaginatedLookupResult({
-      data: enrichedRows,
-      pagination,
-    }, userAccess);
+    return transformDeliveryMethodPaginatedLookupResult(
+      {
+        data: enrichedRows,
+        pagination,
+      },
+      userAccess
+    );
   } catch (err) {
     logSystemException(err, 'Failed to fetch delivery method lookup', {
       context: 'lookup-service/fetchPaginatedDeliveryMethodLookupService',
@@ -725,10 +776,13 @@ const fetchPaginatedDeliveryMethodLookupService = async (
       limit,
       offset,
     });
-    
-    throw AppError.serviceError('Unable to retrieve delivery method lookup options.', {
-      cause: err,
-    });
+
+    throw AppError.serviceError(
+      'Unable to retrieve delivery method lookup options.',
+      {
+        cause: err,
+      }
+    );
   }
 };
 
@@ -765,28 +819,35 @@ const fetchPaginatedSkuLookupService = async (
 ) => {
   try {
     const { includeBarcode = false } = options || {};
-    
+
     // Step 1: Load expected status IDs for validation logic
     const activeStatusId = getStatusId('product_active'); // Used for both product & SKU
     const inventoryStatusId = getStatusId('inventory_in_stock'); // Shared for warehouse and location inventory
     const batchStatusId = getStatusId('batch_active');
-    
+
     // Step 2: Evaluate user access control (permissions, overrides)
     const userAccess = await evaluateSkuFilterAccessControl(user);
-    
+
     // Step 3: Apply permission-based visibility rules
-    const enforcedOptions = enforceSkuLookupVisibilityRules(options, userAccess);
-    
+    const enforcedOptions = enforceSkuLookupVisibilityRules(
+      options,
+      userAccess
+    );
+
     // Step 4: Validate required status IDs if not showing all SKUs
     if (!enforcedOptions.allowAllSkus && !activeStatusId) {
       throw AppError.validationError(
         'activeStatusId is required when allowAllSkus is false'
       );
     }
-    
+
     // Step 5: Filter query input based on user role and visibility rules
-    const queryFilters = filterSkuLookupQuery(filters, userAccess, activeStatusId);
-    
+    const queryFilters = filterSkuLookupQuery(
+      filters,
+      userAccess,
+      activeStatusId
+    );
+
     // Step 6: Execute the query to fetch raw SKU records
     const rawResult = await getSkuLookup({
       productStatusId: activeStatusId,
@@ -795,9 +856,9 @@ const fetchPaginatedSkuLookupService = async (
       limit,
       offset,
     });
-    
+
     const { data = [], pagination = {} } = rawResult;
-    
+
     // Step 7: Add status flags (e.g., isNormal) to each row
     const expectedStatusIds = {
       sku: activeStatusId,
@@ -806,11 +867,11 @@ const fetchPaginatedSkuLookupService = async (
       location: inventoryStatusId,
       batch: batchStatusId,
     };
-    
+
     const enrichedRows = data.map((row) =>
       enrichSkuRow(row, expectedStatusIds)
     );
-    
+
     // Step 8: Transform into dropdown-compatible shape
     return transformSkuPaginatedLookupResult(
       { data: enrichedRows, pagination },
@@ -826,7 +887,7 @@ const fetchPaginatedSkuLookupService = async (
       limit,
       offset,
     });
-    
+
     throw AppError.serviceError('Unable to retrieve SKU lookup options.', {
       cause: err,
     });
@@ -868,39 +929,43 @@ const fetchPaginatedPricingLookupService = async (
   try {
     // Step 1: Load status cache
     const activeStatusId = getStatusId('pricing_active');
-    
+
     // Step 2: Evaluate access control
     const userAccess = await evaluatePricingLookupAccessControl(user);
-    
+
     // Step 3: Apply visibility rules
     const adjustedFilters = enforcePricingLookupVisibilityRules(
       filters,
       userAccess,
       activeStatusId
     );
-    
+
     // Step 4: Build final DB query filters
-    const queryFilters = filterPricingLookupQuery(adjustedFilters, userAccess, activeStatusId);
-    
+    const queryFilters = filterPricingLookupQuery(
+      adjustedFilters,
+      userAccess,
+      activeStatusId
+    );
+
     // Step 5: Fetch from DB
     const rawResult = await getPricingLookup({
       filters: queryFilters,
       limit,
       offset,
     });
-    
+
     const { data = [], pagination = {} } = rawResult;
-    
+
     // Step 6: Enrich rows with computed flags
     const enrichedRows = data.map((row) =>
       enrichPricingRow(row, activeStatusId)
     );
-    
+
     // Step 7: Transform for dropdown
     return transformPricingPaginatedLookupResult(
       { data: enrichedRows, pagination },
       userAccess,
-      displayOptions,
+      displayOptions
     );
   } catch (err) {
     logSystemException(err, 'Failed to fetch pricing lookup', {
@@ -910,7 +975,7 @@ const fetchPaginatedPricingLookupService = async (
       limit,
       offset,
     });
-    
+
     throw AppError.serviceError('Unable to retrieve pricing lookup options.', {
       cause: err,
     });
@@ -978,29 +1043,33 @@ const fetchPaginatedPackagingMaterialLookupService = async (
 ) => {
   try {
     const isSales = mode === 'salesDropdown';
-    
+
     // 1) Access control (role capabilities)
     const userAccess = await evaluatePackagingMaterialLookupAccessControl(user);
-    
+
     // 2) Resolve the "active" status id (used by enforcement + enrichment)
     const activeStatusId = getStatusId('packaging_material_active');
-    
+
     // 3) Role-based enforcement first (keeps this function purely about permissions)
-    let adjusted = enforcePackagingMaterialVisibilityRules(filters, userAccess, activeStatusId);
-    
+    let adjusted = enforcePackagingMaterialVisibilityRules(
+      filters,
+      userAccess,
+      activeStatusId
+    );
+
     // Make visibility explicit for readability/logging (builder only acts on === true)
     adjusted.visibleOnly = isSales;
-    
+
     // 3b) Mode overlay: sales dropdown must always be curated (even for admins)
     if (isSales) {
       adjusted = {
         ...adjusted,
-        restrictToUnarchived: true,     // always exclude archived
-        _activeStatusId: activeStatusId // always active-only
+        restrictToUnarchived: true, // always exclude archived
+        _activeStatusId: activeStatusId, // always active-only
       };
-      delete adjusted.statusId;         // prevent widening via caller-provided status
+      delete adjusted.statusId; // prevent widening via caller-provided status
     }
-    
+
     // 4) Repository query (offset-based pagination)
     // If this repo is sales-only, rename to a generic function; otherwise this is fine.
     const raw = await getPackagingMaterialsForSalesOrderLookup({
@@ -1009,10 +1078,12 @@ const fetchPaginatedPackagingMaterialLookupService = async (
       offset,
     });
     const { data = [], pagination = {} } = raw || {};
-    
+
     // 5) Enrich rows with flags for the UI
-    const enriched = data.map(row => enrichPackagingMaterialOption(row, activeStatusId));
-    
+    const enriched = data.map((row) =>
+      enrichPackagingMaterialOption(row, activeStatusId)
+    );
+
     // 6) Transform to client payload (items + hasMore + pagination)
     return transformPackagingMaterialPaginatedLookupResult(
       { data: enriched, pagination },
@@ -1028,10 +1099,13 @@ const fetchPaginatedPackagingMaterialLookupService = async (
       offset,
       mode,
     });
-    throw AppError.serviceError('Unable to retrieve packaging material lookup options.', {
-      cause: err,
-      stage: 'fetchPaginatedPackagingMaterialLookupService',
-    });
+    throw AppError.serviceError(
+      'Unable to retrieve packaging material lookup options.',
+      {
+        cause: err,
+        stage: 'fetchPaginatedPackagingMaterialLookupService',
+      }
+    );
   }
 };
 

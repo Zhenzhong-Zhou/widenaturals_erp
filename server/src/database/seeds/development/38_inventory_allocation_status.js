@@ -52,7 +52,8 @@ exports.seed = async function (knex) {
     {
       name: 'fulfilling',
       code: 'ALLOC_FULFILLING',
-      description: 'Inventory is being picked, packed, or transferred (fulfillment in progress).',
+      description:
+        'Inventory is being picked, packed, or transferred (fulfillment in progress).',
       is_final: false,
     },
     {

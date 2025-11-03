@@ -26,7 +26,8 @@ import {
 } from '@fortawesome/free-brands-svg-icons';
 import { getRawLabel } from '@utils/labelHelpers';
 
-type PaymentMethodDropdownProps = PaginatedDropdownProps<PaymentMethodLookupQueryParams>;
+type PaymentMethodDropdownProps =
+  PaginatedDropdownProps<PaymentMethodLookupQueryParams>;
 
 /**
  * Dropdown component for selecting a payment method from the lookup list.
@@ -43,7 +44,10 @@ type PaymentMethodDropdownProps = PaginatedDropdownProps<PaymentMethodLookupQuer
  * @component
  * @param {PaymentMethodDropdownProps} props - Props controlling dropdown behavior.
  */
-const PaymentMethodDropdown = ({ options = [], ...rest }: PaymentMethodDropdownProps) => {
+const PaymentMethodDropdown = ({
+  options = [],
+  ...rest
+}: PaymentMethodDropdownProps) => {
   /**
    * Maps a payment method label to a corresponding FontAwesome icon.
    *
@@ -93,7 +97,7 @@ const PaymentMethodDropdown = ({ options = [], ...rest }: PaymentMethodDropdownP
         return faCreditCard;
     }
   };
-  
+
   /**
    * Maps a payment method label to a color string for consistent UI theming.
    *
@@ -114,65 +118,67 @@ const PaymentMethodDropdown = ({ options = [], ...rest }: PaymentMethodDropdownP
       case 'credit card':
       case 'debit card':
         return 'blue'; // Financial standard cards
-      
+
       case 'paypal':
       case 'apple pay':
       case 'google pay':
         return 'black'; // Branded/pay app neutral tone
-      
+
       case 'bank transfer':
       case 'wire transfer':
         return 'teal'; // Trusted banking tone
-      
+
       case 'cash':
         return 'green'; // Obvious cash = green
-      
+
       case 'cheque':
         return 'brown'; // Traditional
-      
+
       case 'e-transfer':
         return 'purple'; // Digital yet distinct
-      
+
       case 'net terms (net 30)':
         return 'gray'; // Deferred payments
-      
+
       case 'store credit':
         return 'indigo'; // Internal balance
-      
+
       case 'gift card':
         return 'orange'; // Gift = highlight
-      
+
       case 'ach':
         return 'darkgreen'; // System-level money transfer
-      
+
       case 'crypto':
         return 'gold'; // Coin look
-      
+
       default:
         return 'gray'; // Fallback
     }
   };
-  
+
   const enrichedPaymentMethodOptions = useMemo(() => {
     return Array.from(
       new Map(
         options.map((opt) => {
           const isInactive = opt.isActive === false;
-          
+
           // Stable string for input/equality
           const rawLabel = getRawLabel(opt.label);
-          
+
           // JSX for dropdown rendering
           const displayLabel = (
             <CustomTypography color={isInactive ? 'error' : 'inherit'}>
               {rawLabel}
             </CustomTypography>
           );
-          
+
           const icon = isInactive ? faBan : getPaymentMethodIcon(rawLabel);
-          const iconColor = isInactive ? 'gray' : getPaymentMethodIconColor(rawLabel);
+          const iconColor = isInactive
+            ? 'gray'
+            : getPaymentMethodIconColor(rawLabel);
           const tooltip = isInactive ? 'Inactive Payment Method' : rawLabel;
-          
+
           return [
             opt.value ?? opt.id,
             {
@@ -188,14 +194,14 @@ const PaymentMethodDropdown = ({ options = [], ...rest }: PaymentMethodDropdownP
       ).values()
     );
   }, [options]);
-  
+
   return (
     <PaginatedDropdown
       label="Select Payment Method"
       options={enrichedPaymentMethodOptions}
       {...rest}
     />
-  )
+  );
 };
 
 export default PaymentMethodDropdown;

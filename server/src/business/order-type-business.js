@@ -3,9 +3,14 @@ const {
   resolveOrderAccessContext,
   resolveUserPermissionContext,
 } = require('../services/role-permission-service');
-const { logSystemException, logSystemError } = require('../utils/system-logger');
+const {
+  logSystemException,
+  logSystemError,
+} = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
-const { PERMISSIONS } = require('../utils/constants/domain/order-type-constants');
+const {
+  PERMISSIONS,
+} = require('../utils/constants/domain/order-type-constants');
 
 /**
  * Determines if the user has permission to access the internal `code` field for order types.
@@ -111,17 +116,22 @@ const filterOrderTypeRowsByPermission = async (result, user) => {
  *   // show all categories in the dropdown
  * }
  */
-const evaluateOrderTypeLookupAccessControl = async (user, { action = 'VIEW' } = {}) => {
+const evaluateOrderTypeLookupAccessControl = async (
+  user,
+  { action = 'VIEW' } = {}
+) => {
   try {
     const { isRoot, permissions } = await resolveUserPermissionContext(user);
-    const { accessibleCategories } = await resolveOrderAccessContext(user, { action });
-    
+    const { accessibleCategories } = await resolveOrderAccessContext(user, {
+      action,
+    });
+
     const has = (perm) => isRoot || permissions.includes(perm);
-    
+
     const canViewAllCategories = has(PERMISSIONS.VIEW_ORDER_TYPE_CODE);
-    const canViewAllStatuses   = has(PERMISSIONS.VIEW_ALL_ORDER_TYPE_STATUSES);
-    const canViewAllKeywords   = has(PERMISSIONS.VIEW_ORDER_TYPE);
-    
+    const canViewAllStatuses = has(PERMISSIONS.VIEW_ALL_ORDER_TYPE_STATUSES);
+    const canViewAllKeywords = has(PERMISSIONS.VIEW_ORDER_TYPE);
+
     return {
       canViewAllCategories,
       canViewAllStatuses,
@@ -129,15 +139,22 @@ const evaluateOrderTypeLookupAccessControl = async (user, { action = 'VIEW' } = 
       accessibleCategories: accessibleCategories ?? [],
     };
   } catch (err) {
-    logSystemException(err, 'Failed to evaluate order type lookup access control', {
-      context: 'order-type-business/evaluateOrderTypeLookupAccessControl',
-      userId: user?.id,
-    });
-    
-    throw AppError.businessError('Unable to evaluate user access control for order type lookup', {
-      details: err.message,
-      stage: 'evaluate-order-type-lookup-access',
-    });
+    logSystemException(
+      err,
+      'Failed to evaluate order type lookup access control',
+      {
+        context: 'order-type-business/evaluateOrderTypeLookupAccessControl',
+        userId: user?.id,
+      }
+    );
+
+    throw AppError.businessError(
+      'Unable to evaluate user access control for order type lookup',
+      {
+        details: err.message,
+        stage: 'evaluate-order-type-lookup-access',
+      }
+    );
   }
 };
 
@@ -161,22 +178,28 @@ const evaluateOrderTypeLookupAccessControl = async (user, { action = 'VIEW' } = 
  * @returns {Object} Adjusted filters with access rules applied
  * @throws {AppError} If user has no access to any order categories
  */
-const enforceOrderTypeLookupVisibilityRules = (filters, access, options = {}) => {
+const enforceOrderTypeLookupVisibilityRules = (
+  filters,
+  access,
+  options = {}
+) => {
   const adjusted = { ...filters };
-  
+
   // Enforce category restriction
   if (access.accessibleCategories && !access.canViewAllCategories) {
     if (access.accessibleCategories.length === 0) {
-      throw AppError.authorizationError('User is not authorized to view any order categories');
+      throw AppError.authorizationError(
+        'User is not authorized to view any order categories'
+      );
     }
     adjusted.category = access.accessibleCategories;
   }
-  
+
   // Enforce keyword visibility
   if (filters.keyword && !access.canViewAllKeywords) {
     adjusted._restrictKeywordToValidOnly = true;
   }
-  
+
   // Enforce active-only status filtering
   if (!access.canViewAllStatuses) {
     delete adjusted.statusId;
@@ -184,7 +207,7 @@ const enforceOrderTypeLookupVisibilityRules = (filters, access, options = {}) =>
       adjusted._activeStatusId = options.activeStatusId;
     }
   }
-  
+
   return adjusted;
 };
 
@@ -209,7 +232,7 @@ const enforceOrderTypeLookupVisibilityRules = (filters, access, options = {}) =>
 const filterOrderTypeLookupQuery = (query, access, activeStatusId) => {
   try {
     const adjusted = { ...query };
-    
+
     // Restrict status filtering if not allowed
     if (!access.canViewAllStatuses) {
       delete adjusted.statusId;
@@ -217,24 +240,31 @@ const filterOrderTypeLookupQuery = (query, access, activeStatusId) => {
         adjusted._activeStatusId = activeStatusId;
       }
     }
-    
+
     // Restrict keyword scope
     if (query.keyword && !access.canViewAllKeywords) {
       adjusted._restrictKeywordToValidOnly = true;
     }
-    
+
     return adjusted;
   } catch (err) {
-    logSystemException(err, 'Failed to apply access filters in filterOrderTypeLookupQuery', {
-      context: 'order-type-business/filterOrderTypeLookupQuery',
-      originalQuery: query,
-      access,
-    });
-    
-    throw AppError.businessError('Failed to apply access control filters to order type query', {
-      details: err.message,
-      stage: 'filter-order-type-lookup-query',
-    });
+    logSystemException(
+      err,
+      'Failed to apply access filters in filterOrderTypeLookupQuery',
+      {
+        context: 'order-type-business/filterOrderTypeLookupQuery',
+        originalQuery: query,
+        access,
+      }
+    );
+
+    throw AppError.businessError(
+      'Failed to apply access control filters to order type query',
+      {
+        details: err.message,
+        stage: 'filter-order-type-lookup-query',
+      }
+    );
   }
 };
 
@@ -268,25 +298,28 @@ const enrichOrderTypeRow = (row, activeStatusId) => {
       gotType: typeof row,
       row,
     });
-    
+
     // Client-safe message
     throw AppError.validationError('Invalid order type data received.');
   }
 
   // Validate activeStatusId
-  if (typeof activeStatusId !== 'string' || activeStatusId.trim().length === 0) {
+  if (
+    typeof activeStatusId !== 'string' ||
+    activeStatusId.trim().length === 0
+  ) {
     logSystemError('[enrichOrderTypeRow] Missing or invalid activeStatusId', {
       activeStatusId,
     });
-    
+
     // Client-safe message
     throw AppError.validationError('Order type configuration is invalid.');
   }
-  
+
   // Normalize values
   const statusId = row.status_id ?? null;
   const requiresPayment = Boolean(row.requires_payment);
-  
+
   return {
     ...row,
     isActive: statusId === activeStatusId,

@@ -77,7 +77,7 @@ const createCustomersService = async (
 
       const rawResult = await getEnrichedCustomersByIds(insertedIds, client);
       const enrichedRecords = transformEnrichedCustomers(rawResult);
-      
+
       return Promise.all(
         enrichedRecords.map((customer) =>
           filterCustomerForViewer(customer, user, purpose)
@@ -159,21 +159,25 @@ const createCustomersService = async (
  * // }
  */
 const fetchPaginatedCustomersService = async ({
-                                                filters = {},
-                                                user,
-                                                page = 1,
-                                                limit = 10,
-                                                sortBy = 'created_at',
-                                                sortOrder = 'DESC',
-                                              }) => {
+  filters = {},
+  user,
+  page = 1,
+  limit = 10,
+  sortBy = 'created_at',
+  sortOrder = 'DESC',
+}) => {
   try {
     // Step 1: Evaluate user access
     const userAccess = await evaluateCustomerLookupAccessControl(user);
-    
+
     // Step 2: Enforce visibility rules (e.g., restrict statusId)
     const activeStatusId = getStatusId('customer_active'); // assumed utility
-    const adjustedFilters = enforceCustomerLookupVisibilityRules(filters, userAccess, activeStatusId);
-    
+    const adjustedFilters = enforceCustomerLookupVisibilityRules(
+      filters,
+      userAccess,
+      activeStatusId
+    );
+
     // Step 3: Fetch paginated customer records
     const rawResult = await getPaginatedCustomers({
       filters: adjustedFilters,
@@ -182,10 +186,10 @@ const fetchPaginatedCustomersService = async ({
       sortBy,
       sortOrder,
     });
-    
+
     // Step 4: Transform result for UI
     const result = transformPaginatedCustomerResults(rawResult, userAccess);
-    
+
     // Step 5: Log success
     logSystemInfo('Fetched paginated customers', {
       context: 'customer-service/fetchPaginatedCustomersService',
@@ -194,7 +198,7 @@ const fetchPaginatedCustomersService = async ({
       pagination: { page, limit },
       sort: { sortBy, sortOrder },
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch paginated customers', {
@@ -204,7 +208,7 @@ const fetchPaginatedCustomersService = async ({
       pagination: { page, limit },
       sort: { sortBy, sortOrder },
     });
-    
+
     throw AppError.serviceError('Failed to fetch customer list.', {
       details: error.message,
       stage: 'fetchPaginatedCustomersService',

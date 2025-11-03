@@ -19,5 +19,5 @@ const shipmentIdParamSchema = Joi.object({
 });
 
 module.exports = {
-  shipmentIdParamSchema
+  shipmentIdParamSchema,
 };

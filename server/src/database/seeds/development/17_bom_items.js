@@ -6,7 +6,7 @@ const { fetchDynamicValue } = require('../03_utils');
  */
 exports.seed = async function (knex) {
   console.log('Seeding bom_items (shared + custom)...');
-  
+
   const createdBy = await fetchDynamicValue(
     knex,
     'users',
@@ -14,15 +14,15 @@ exports.seed = async function (knex) {
     'system@internal.local',
     'id'
   );
-  
+
   const [boms, parts] = await Promise.all([
     knex('boms').select('id', 'code'),
     knex('parts').select('id', 'code'),
   ]);
-  
+
   const bomMap = Object.fromEntries(boms.map((b) => [b.code, b.id]));
   const partMap = Object.fromEntries(parts.map((p) => [p.code, p.id]));
-  
+
   const sharedSeries = {
     series1: [
       'BOM-CH-HN100-R-CN',
@@ -70,7 +70,7 @@ exports.seed = async function (knex) {
       'BOM-WN-MO411-L-UN',
     ],
   };
-  
+
   const seriesDefinitions = {
     series1: [
       {
@@ -130,7 +130,7 @@ exports.seed = async function (knex) {
         note: 'Outer packaging for retail display',
       },
     ],
-    
+
     series2: [
       {
         code: 'PART-LID',
@@ -234,10 +234,10 @@ exports.seed = async function (knex) {
       },
     ],
   };
-  
+
   // Currency pool for deterministic cycling
   const currencyPool = ['CAD', 'USD', 'CNY', 'HKD', 'EUR', 'JPY'];
-  
+
   const getEstimatedCostByPartCode = (code) => {
     if (code.includes('LID')) return 0.25;
     if (code.includes('BOTTLE')) return 1.2;
@@ -249,24 +249,24 @@ exports.seed = async function (knex) {
     if (code.includes('FILLER')) return 0.2;
     return 0.1;
   };
-  
+
   const generateBomItemRow = (bom_id, item, index) => {
     const currency = currencyPool[index % currencyPool.length];
-    
+
     // Consistent currency → exchange rate mapping
     const exchangeRateMap = {
-      CAD: 1.0,     // 1 CAD = 1 CAD
-      USD: 0.73,    // 1 USD = 0.73 CAD
-      EUR: 0.67,    // 1 EUR = 0.67 CAD
-      CNY: 0.19,    // 1 CNY = 0.19 CAD
-      HKD: 0.18,    // 1 HKD = 0.18 CAD
-      JPY: 0.0089,  // 1 JPY = 0.0089 CAD
+      CAD: 1.0, // 1 CAD = 1 CAD
+      USD: 0.73, // 1 USD = 0.73 CAD
+      EUR: 0.67, // 1 EUR = 0.67 CAD
+      CNY: 0.19, // 1 CNY = 0.19 CAD
+      HKD: 0.18, // 1 HKD = 0.18 CAD
+      JPY: 0.0089, // 1 JPY = 0.0089 CAD
     };
-    
+
     const exchange_rate = exchangeRateMap[currency] || 1.0;
     const baseCost = getEstimatedCostByPartCode(item.code);
     const estimated_unit_cost = Number((baseCost * exchange_rate).toFixed(4));
-    
+
     return {
       id: knex.raw('uuid_generate_v4()'),
       bom_id,
@@ -284,32 +284,34 @@ exports.seed = async function (knex) {
       updated_at: knex.fn.now(),
     };
   };
-  
+
   const rows = [];
   let index = 0;
-  
+
   for (const [series, bomCodes] of Object.entries(sharedSeries)) {
     const items = seriesDefinitions[series];
     if (!items) continue;
-    
+
     for (const bomCode of bomCodes) {
       const bom_id = bomMap[bomCode];
       if (!bom_id) continue;
-      
+
       for (const item of items) {
         if (!partMap[item.code]) continue;
         rows.push(generateBomItemRow(bom_id, item, index++));
       }
     }
   }
-  
+
   if (rows.length > 0) {
     await knex('bom_items')
       .insert(rows)
       .onConflict(['bom_id', 'part_id'])
       .ignore();
-    
-    console.log(`Seeded ${rows.length} BOM item records with multi-currency cost and exchange rate.`);
+
+    console.log(
+      `Seeded ${rows.length} BOM item records with multi-currency cost and exchange rate.`
+    );
   }
 
   // Optional currency summary

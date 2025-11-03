@@ -2,6 +2,7 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
   BomDetailsResponse,
   BomMaterialSupplyDetailsResponse,
+  BomProductionReadinessResponse,
   FetchBomsParams,
   FetchPaginatedBomsResponse,
 } from '@features/bom/state/bomTypes';
@@ -22,21 +23,20 @@ import { bomService } from '@services/bomService';
  */
 export const fetchPaginatedBomsThunk = createAsyncThunk<
   FetchPaginatedBomsResponse, // Return type
-  FetchBomsParams,            // Argument type
-  { rejectValue: string }     // Error payload type
->(
-  'boms/fetchPaginatedBoms',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await bomService.fetchPaginatedBoms(params);
-    } catch (error: any) {
-      console.error('Thunk: Failed to fetch BOM list:', error);
-      return rejectWithValue(
-        error?.response?.data?.message || error?.message || 'Failed to fetch BOMs.'
-      );
-    }
+  FetchBomsParams, // Argument type
+  { rejectValue: string } // Error payload type
+>('boms/fetchPaginatedBoms', async (params, { rejectWithValue }) => {
+  try {
+    return await bomService.fetchPaginatedBoms(params);
+  } catch (error: any) {
+    console.error('Thunk: Failed to fetch BOM list:', error);
+    return rejectWithValue(
+      error?.response?.data?.message ||
+        error?.message ||
+        'Failed to fetch BOMs.'
+    );
   }
-);
+});
 
 /**
  * Thunk to fetch detailed information for a specific BOM.
@@ -50,24 +50,21 @@ export const fetchPaginatedBomsThunk = createAsyncThunk<
  * dispatch(fetchBomDetailsThunk('61bb1f94-aeb2-4724-b9b8-35023b165fdd'));
  */
 export const fetchBomDetailsThunk = createAsyncThunk<
-  BomDetailsResponse,  // The resolved payload type
-  string,                      // The argument type (bomId)
-  { rejectValue: string }      // Optional reject type for better typing
->(
-  'boms/fetchBomDetails',
-  async (bomId, { rejectWithValue }) => {
-    try {
-      return await bomService.fetchBomDetails(bomId);
-    } catch (error: any) {
-      console.error('Failed to fetch BOM details:', error);
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Failed to load BOM details.';
-      return rejectWithValue(message);
-    }
+  BomDetailsResponse, // The resolved payload type
+  string, // The argument type (bomId)
+  { rejectValue: string } // Optional reject type for better typing
+>('boms/fetchBomDetails', async (bomId, { rejectWithValue }) => {
+  try {
+    return await bomService.fetchBomDetails(bomId);
+  } catch (error: any) {
+    console.error('Failed to fetch BOM details:', error);
+    const message =
+      error?.response?.data?.message ||
+      error?.message ||
+      'Failed to load BOM details.';
+    return rejectWithValue(message);
   }
-);
+});
 
 /**
  * Thunk: Fetch material supply details for a specific BOM.
@@ -89,14 +86,68 @@ export const fetchBomDetailsThunk = createAsyncThunk<
 export const fetchBomMaterialSupplyDetailsThunk = createAsyncThunk<
   BomMaterialSupplyDetailsResponse,
   string
->(
-  'bom/fetchBomMaterialSupplyDetails',
-  async (bomId, { rejectWithValue }) => {
-    try {
-      return await bomService.fetchBomMaterialSupplyDetails(bomId);
-    } catch (error: any) {
-      console.error('Failed to fetch BOM Material Supply Details:', { bomId, error });
-      return rejectWithValue(error.response?.data ?? error.message);
-    }
+>('bom/fetchBomMaterialSupplyDetails', async (bomId, { rejectWithValue }) => {
+  try {
+    return await bomService.fetchBomMaterialSupplyDetails(bomId);
+  } catch (error: any) {
+    console.error('Failed to fetch BOM Material Supply Details:', {
+      bomId,
+      error,
+    });
+    return rejectWithValue(error.response?.data ?? error.message);
   }
-);
+});
+
+/**
+ * Thunk to fetch the **BOM Production Readiness Summary** for a given BOM.
+ *
+ * **Overview:**
+ * - Invokes {@link bomService.fetchBomProductionSummary} to retrieve production readiness data
+ *   including overall producibility metrics, bottleneck parts, stock health, and detailed
+ *   material batch availability for each part.
+ * - Provides the core readiness data used by the BOM Production Summary view and
+ *   production planning dashboards.
+ * - Automatically manages async loading and error states through the Redux slice.
+ *
+ * **Dispatch Example:**
+ * ```ts
+ * dispatch(fetchBomProductionSummaryThunk(bomId));
+ * ```
+ *
+ * **Returned Data Includes:**
+ * - `metadata`: Global readiness metrics (e.g., `maxProducibleUnits`, `isReadyForProduction`).
+ * - `parts`: Per-part details, including shortages, bottlenecks, and material batches.
+ *
+ * **Error Handling:**
+ * - Rejects with a structured `{ message, status }` payload for consistent error reporting.
+ * - Errors are logged with contextual metadata for diagnostics.
+ *
+ * **Related Files:**
+ * - Service: `bomService.fetchBomProductionSummary`
+ * - Slice: `bomProductionReadinessSlice.ts`
+ * - Types: `BomProductionReadinessResponse`, `BomReadinessMetadata`, `BomReadinessPart`
+ */
+export const fetchBomProductionSummaryThunk = createAsyncThunk<
+  BomProductionReadinessResponse, // Return type (only data payload)
+  string, // Argument type (bomId)
+  {
+    rejectValue: {
+      message: string;
+      status?: number;
+    };
+  }
+>('bom/fetchBomProductionSummary', async (bomId, { rejectWithValue }) => {
+  try {
+    return await bomService.fetchBomProductionSummary(bomId);
+  } catch (error: any) {
+    console.error('❌ Failed to fetch BOM Production Summary:', error);
+
+    const message =
+      error?.response?.data?.message ||
+      error?.message ||
+      'Failed to fetch BOM production summary.';
+    const status = error?.response?.status;
+
+    return rejectWithValue({ message, status });
+  }
+});

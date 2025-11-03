@@ -6,7 +6,7 @@ import {
 } from '../utils/lookupSelectorUtils';
 import type {
   LookupOption,
-  TaxRateLookupItem
+  TaxRateLookupItem,
 } from '@features/lookup/state/lookupTypes';
 
 /**
@@ -42,7 +42,9 @@ export const selectTaxRateLookupError = createSelector(
  * Selects pagination metadata for the tax rate lookup slice.
  * Includes `hasMore`, `limit`, and `offset` used for pagination controls.
  */
-export const selectTaxRateLookupMeta = createLookupMetaSelector(selectTaxRateLookupState);
+export const selectTaxRateLookupMeta = createLookupMetaSelector(
+  selectTaxRateLookupState
+);
 
 /**
  * Selector that maps tax rate lookup items into dropdown options.

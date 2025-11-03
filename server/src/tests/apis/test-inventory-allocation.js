@@ -1,14 +1,16 @@
 const { pool, getUniqueScalarValue } = require('../../database/db');
 const { initStatusCache } = require('../../config/status-cache');
-const { allocateInventoryForOrderService } = require('../../services/inventory-allocation-service');
+const {
+  allocateInventoryForOrderService,
+} = require('../../services/inventory-allocation-service');
 
 (async () => {
   const client = await pool.connect();
-  
+
   try {
     // Ensure statusMap is ready
     await initStatusCache();
-    
+
     const { rows } = await client.query(
       `SELECT id, role_id FROM users WHERE email = $1`,
       ['root@widenaturals.com']
@@ -21,8 +23,7 @@ const { allocateInventoryForOrderService } = require('../../services/inventory-a
       role: role_id,
     };
     const userId = user.id;
-    
-    
+
     const order_status_id = await getUniqueScalarValue(
       {
         table: 'order_status',
@@ -31,7 +32,7 @@ const { allocateInventoryForOrderService } = require('../../services/inventory-a
       },
       client
     );
-    
+
     const warehouseId = await getUniqueScalarValue(
       {
         table: 'warehouses',
@@ -40,12 +41,16 @@ const { allocateInventoryForOrderService } = require('../../services/inventory-a
       },
       client
     );
-    
-    const result = await allocateInventoryForOrderService(enrichedUser, '896f87bd-a473-48c7-90fd-e5ad4de786fe', {
-      strategy: 'fefo',
-      warehouseId
-    });
-    
+
+    const result = await allocateInventoryForOrderService(
+      enrichedUser,
+      '896f87bd-a473-48c7-90fd-e5ad4de786fe',
+      {
+        strategy: 'fefo',
+        warehouseId,
+      }
+    );
+
     console.log(`✅ Status updated. Items affected: `, result);
   } catch (err) {
     console.error('❌ Update failed:', err.message);

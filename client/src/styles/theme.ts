@@ -20,7 +20,7 @@ declare module '@mui/material/styles' {
     stack: string;
     neutral: PaletteColor;
   }
-  
+
   interface PaletteOptions {
     actionCustom?: {
       addNew?: string;

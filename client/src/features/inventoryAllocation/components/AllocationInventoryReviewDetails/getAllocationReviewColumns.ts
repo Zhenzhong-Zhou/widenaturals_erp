@@ -2,12 +2,16 @@ import { type Column } from '@components/common/CustomTable';
 import type { FlattenedAllocationReviewItem } from '@features/inventoryAllocation/utils/flattenAllocationReviewData';
 import { formatDate } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
-import { formatAllocationStatus, formatInventoryStatus, formatItemStatus } from '@utils/formatters';
+import {
+  formatAllocationStatus,
+  formatInventoryStatus,
+  formatItemStatus,
+} from '@utils/formatters';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
 import { getFallbackValue } from '@utils/objectUtils';
 
 export const getPrimaryWarehouseField = <
-  K extends keyof FlattenedAllocationReviewItem['warehouseInventoryList'][0]
+  K extends keyof FlattenedAllocationReviewItem['warehouseInventoryList'][0],
 >(
   row: FlattenedAllocationReviewItem,
   field: K
@@ -21,19 +25,24 @@ export const getAllocationReviewColumns = (
 ): Column<FlattenedAllocationReviewItem>[] => {
   const getFormattedInventoryStatus = (row: any) => {
     const status = getPrimaryWarehouseField(row, 'statusName') ?? 'unknown';
-    return formatInventoryStatus(status, formatLabel(status, { preserveHyphen: true }));
+    return formatInventoryStatus(
+      status,
+      formatLabel(status, { preserveHyphen: true })
+    );
   };
-  
+
   return [
     {
       id: 'name',
       label: 'Item',
-      renderCell: (row) => getFallbackValue(row.productName, row.packagingMaterialLabel),
+      renderCell: (row) =>
+        getFallbackValue(row.productName, row.packagingMaterialLabel),
     },
     {
       id: 'sku_or_material_code',
       label: 'SKU / Code',
-      renderCell: (row) => getFallbackValue(row.skuCode, row.packagingMaterialCode),
+      renderCell: (row) =>
+        getFallbackValue(row.skuCode, row.packagingMaterialCode),
     },
     {
       id: 'lot',
@@ -48,12 +57,14 @@ export const getAllocationReviewColumns = (
     {
       id: 'warehouseQty',
       label: 'Stock Qty',
-      renderCell: (row) => getPrimaryWarehouseField(row, 'warehouseQuantity') ?? '—',
+      renderCell: (row) =>
+        getPrimaryWarehouseField(row, 'warehouseQuantity') ?? '—',
     },
     {
       id: 'reserved',
       label: 'Reserved',
-      renderCell: (row) => getPrimaryWarehouseField(row, 'reservedQuantity') ?? '—',
+      renderCell: (row) =>
+        getPrimaryWarehouseField(row, 'reservedQuantity') ?? '—',
     },
     {
       id: 'allocated',
@@ -63,7 +74,11 @@ export const getAllocationReviewColumns = (
     {
       id: 'allocationStatus',
       label: 'Alloc. Status',
-      renderCell: (row) => formatAllocationStatus(row.allocationStatusCode, formatLabel(row.allocationStatus)),
+      renderCell: (row) =>
+        formatAllocationStatus(
+          row.allocationStatusCode,
+          formatLabel(row.allocationStatus)
+        ),
     },
     {
       id: 'warehouseStatus',
@@ -78,7 +93,8 @@ export const getAllocationReviewColumns = (
     {
       id: 'orderItemStatus',
       label: 'Item Status',
-      renderCell: (row) => formatItemStatus(row.orderItemStatusCode, row.orderItemStatusName),
+      renderCell: (row) =>
+        formatItemStatus(row.orderItemStatusCode, row.orderItemStatusName),
     },
     {
       id: 'orderItemStatusDate',
@@ -87,11 +103,11 @@ export const getAllocationReviewColumns = (
     },
     ...(handleDrillDownToggle
       ? [
-        createDrillDownColumn<FlattenedAllocationReviewItem>(
-          (row) => handleDrillDownToggle(row.allocationId),
-          (row) => expandedRowId === row.allocationId
-        ),
-      ]
+          createDrillDownColumn<FlattenedAllocationReviewItem>(
+            (row) => handleDrillDownToggle(row.allocationId),
+            (row) => expandedRowId === row.allocationId
+          ),
+        ]
       : []),
-  ]
+  ];
 };

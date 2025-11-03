@@ -27,19 +27,21 @@ const paginatedBomSlice = createSlice({
      * Reset all filters and pagination back to default.
      */
     resetBomListState: () => initialState,
-    
+
     /**
      * Manually set pagination (useful for table page changes).
      */
     setBomPagination(
       state,
-      action: PayloadAction<Partial<NonNullable<PaginatedBomStateWithFilters['pagination']>>>
+      action: PayloadAction<
+        Partial<NonNullable<PaginatedBomStateWithFilters['pagination']>>
+      >
     ) {
       if (state.pagination) {
         state.pagination = { ...state.pagination, ...action.payload };
       }
     },
-    
+
     /**
      * Apply local filters before dispatching fetch.
      */
@@ -47,7 +49,7 @@ const paginatedBomSlice = createSlice({
       state.filters = action.payload || {};
     },
   },
-  
+
   extraReducers: (builder) => {
     builder
       // --- Pending ---

@@ -1,6 +1,8 @@
 const { logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
-const { resolveUserPermissionContext } = require('../services/role-permission-service');
+const {
+  resolveUserPermissionContext,
+} = require('../services/role-permission-service');
 const { PERMISSIONS } = require('../utils/constants/domain/discount-constants');
 
 /**
@@ -63,13 +65,13 @@ const calculateDiscountAmount = (subtotal, discount) => {
 const evaluateDiscountLookupAccessControl = async (user) => {
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     const canViewAllStatuses =
       isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_DISCOUNT_STATUSES);
-    
+
     const canViewAllValidLookups =
       isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_VALID_DISCOUNTS);
-    
+
     return {
       canViewAllStatuses,
       canViewAllValidLookups,
@@ -79,11 +81,14 @@ const evaluateDiscountLookupAccessControl = async (user) => {
       context: 'discount-business/evaluateLookupAccessControl',
       userId: user?.id,
     });
-    
-    throw AppError.businessError('Unable to evaluate user access control for discount lookup', {
-      details: err.message,
-      stage: 'evaluate-lookup-access',
-    });
+
+    throw AppError.businessError(
+      'Unable to evaluate user access control for discount lookup',
+      {
+        details: err.message,
+        stage: 'evaluate-lookup-access',
+      }
+    );
   }
 };
 
@@ -102,14 +107,18 @@ const evaluateDiscountLookupAccessControl = async (user) => {
  * @param {string|number} [activeStatusId] - Default status ID (e.g., for "active")
  * @returns {Object} Updated filters with restricted access rules applied
  */
-const enforceDiscountLookupVisibilityRules = (filters, userAccess, activeStatusId) => {
+const enforceDiscountLookupVisibilityRules = (
+  filters,
+  userAccess,
+  activeStatusId
+) => {
   const adjusted = { ...filters };
-  
+
   // Restrict keyword visibility to valid discounts only
   if (filters.keyword && !userAccess.canViewAllValidLookups) {
     adjusted._restrictKeywordToValidOnly = true;
   }
-  
+
   // Enforce active-only restriction if user can't view all statuses
   if (!userAccess.canViewAllStatuses) {
     delete adjusted.statusId;
@@ -117,7 +126,7 @@ const enforceDiscountLookupVisibilityRules = (filters, userAccess, activeStatusI
       adjusted._activeStatusId = activeStatusId;
     }
   }
-  
+
   return adjusted;
 };
 
@@ -135,24 +144,31 @@ const enforceDiscountLookupVisibilityRules = (filters, userAccess, activeStatusI
 const filterDiscountLookupQuery = (query, userAccess) => {
   try {
     const modifiedQuery = { ...query };
-    
+
     // Only inject validOn if needed
     if (!userAccess.canViewAllValidLookups) {
       modifiedQuery.validOn = new Date().toISOString();
     }
-    
+
     return modifiedQuery;
   } catch (err) {
-    logSystemException(err, 'Failed to apply access filters in filterDiscountLookupQuery', {
-      context: 'discount-business/filterDiscountLookupQuery',
-      originalQuery: query,
-      userAccess,
-    });
-    
-    throw AppError.businessError('Failed to apply access control filters to discount query', {
-      details: err.message,
-      stage: 'filter-discount-lookup-query',
-    });
+    logSystemException(
+      err,
+      'Failed to apply access filters in filterDiscountLookupQuery',
+      {
+        context: 'discount-business/filterDiscountLookupQuery',
+        originalQuery: query,
+        userAccess,
+      }
+    );
+
+    throw AppError.businessError(
+      'Failed to apply access control filters to discount query',
+      {
+        details: err.message,
+        stage: 'filter-discount-lookup-query',
+      }
+    );
   }
 };
 
@@ -165,7 +181,7 @@ const filterDiscountLookupQuery = (query, userAccess) => {
  */
 const enrichDiscountRow = (row, activeStatusId) => {
   const now = new Date();
-  
+
   return {
     ...row,
     isActive: row.status_id === activeStatusId,

@@ -50,7 +50,9 @@ const inventoryActivityLogQuerySchema = Joi.object({})
     productIds: validateUUIDOrUUIDArrayOptional('Product IDs'),
     skuIds: validateUUIDOrUUIDArrayOptional('SKU IDs'),
     batchIds: validateUUIDOrUUIDArrayOptional('Batch IDs'),
-    packagingMaterialIds: validateUUIDOrUUIDArrayOptional('Packaging Material IDs'),
+    packagingMaterialIds: validateUUIDOrUUIDArrayOptional(
+      'Packaging Material IDs'
+    ),
     actionTypeIds: validateUUIDOrUUIDArrayOptional('Action Type IDs'),
     adjustmentTypeIds: validateUUIDOrUUIDArrayOptional('Adjustment Type IDs'),
 

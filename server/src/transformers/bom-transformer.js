@@ -124,9 +124,9 @@ const AppError = require('../utils/AppError');
  */
 const transformBomRow = (row) => {
   if (!row) return null;
-  
+
   const productName = getProductDisplayName(row);
-  
+
   const base = {
     product: {
       id: row.product_id,
@@ -178,17 +178,17 @@ const transformBomRow = (row) => {
         updatedAt: row.bom_updated_at,
         updatedBy: row.bom_updated_by
           ? {
-            id: row.bom_updated_by,
-            name: getFullName(
-              row.bom_updated_by_firstname,
-              row.bom_updated_by_lastname
-            ),
-          }
+              id: row.bom_updated_by,
+              name: getFullName(
+                row.bom_updated_by_firstname,
+                row.bom_updated_by_lastname
+              ),
+            }
           : null,
       },
     },
   };
-  
+
   return cleanObject(base);
 };
 
@@ -292,11 +292,11 @@ const transformPaginatedOBoms = (paginatedResult) => {
  */
 const transformBomDetails = (rows = []) => {
   if (!rows || rows.length === 0) return null;
-  
+
   try {
     const headerRow = rows[0];
     const productName = getProductDisplayName(headerRow);
-    
+
     // --- Header section ---
     const header = {
       product: {
@@ -318,17 +318,17 @@ const transformBomDetails = (rows = []) => {
       },
       compliance: headerRow.compliance_id
         ? {
-          id: headerRow.compliance_id,
-          type: headerRow.compliance_type,
-          number: headerRow.compliance_number,
-          issuedDate: headerRow.compliance_issued_date,
-          expiryDate: headerRow.compliance_expiry_date,
-          description: headerRow.compliance_description,
-          status: {
-            id: headerRow.compliance_status_id,
-            name: headerRow.compliance_status,
-          },
-        }
+            id: headerRow.compliance_id,
+            type: headerRow.compliance_type,
+            number: headerRow.compliance_number,
+            issuedDate: headerRow.compliance_issued_date,
+            expiryDate: headerRow.compliance_expiry_date,
+            description: headerRow.compliance_description,
+            status: {
+              id: headerRow.compliance_status_id,
+              name: headerRow.compliance_status,
+            },
+          }
         : null,
       bom: {
         id: headerRow.bom_id,
@@ -363,7 +363,7 @@ const transformBomDetails = (rows = []) => {
         },
       },
     };
-    
+
     // --- Details section ---
     const details = rows
       .filter((r) => r.bom_item_id)
@@ -407,13 +407,13 @@ const transformBomDetails = (rows = []) => {
           },
         },
       }));
-    
+
     return { header, details };
   } catch (error) {
     logSystemException(error, 'Error transforming BOM details', {
       context: 'transformBomDetails',
     });
-    
+
     throw AppError.transformerError('Failed to transform BOM details', {
       context: 'transformBomDetails',
     });
@@ -453,6 +453,7 @@ const transformBomDetails = (rows = []) => {
  * @property {number|null} max_producible_units - Computed number of producible product units.
  * @property {boolean} is_shortage - Whether available quantity is insufficient.
  * @property {number} shortage_qty - Difference between required and available quantity.
+ * @property {string|null} packaging_material_batch_id - ID of the packaging material batch.
  * @property {string|null} material_name - Name of the packaging material.
  * @property {string|null} material_snapshot_name - Material snapshot name (if available).
  * @property {string|null} received_label_name - Supplier label name (if any).
@@ -486,15 +487,17 @@ const transformBomDetails = (rows = []) => {
 /**
  * Transforms raw BOM production summary rows into structured BOM part summaries.
  *
- * The function groups all raw SQL rows (from `getBOMProductionSummary`) by `part_id`,
- * then aggregates associated batch-level data (`materialBatches`) under each part.
+ * Groups SQL result rows by `part_id`, then aggregates associated batch-level data
+ * (each representing a specific material batch used in the part). Adds convenience
+ * fields such as `packagingMaterialName`, `materialSnapshotName`, and `displayLabel`
+ * derived from the first available batch entry for UI and reporting use.
  *
- * This structured format is ideal for API responses, UI rendering,
- * and internal BOM readiness analysis.
+ * Intended for use directly after `getBOMProductionSummary()` repository output.
  *
  * @function
- * @param {BOMProductionSummaryRow[]} rows - Raw rows returned from `getBOMProductionSummary`.
- * @returns {BOMPartSummary[]} Array of structured BOM production summary objects.
+ * @param {BOMProductionSummaryRow[]} [rows=[]] - Raw SQL rows returned from `getBOMProductionSummary`.
+ * @returns {BOMPartSummary[]} Structured array of BOM part summaries ready for business logic
+ * and API response building.
  *
  * @example
  * const rawRows = await getBOMProductionSummary(bomId);
@@ -511,6 +514,9 @@ const transformBomDetails = (rows = []) => {
  * //     maxProducibleUnits: 250,
  * //     isShortage: false,
  * //     shortageQty: 0,
+ * //     packagingMaterialName: '250ml Plastic Bottle',
+ * //     materialSnapshotName: 'Bottle Snapshot v1',
+ * //     displayLabel: '250ml Bottle - Clear',
  * //     materialBatches: [
  * //       {
  * //         materialName: '250ml Plastic Bottle',
@@ -527,12 +533,17 @@ const transformBomDetails = (rows = []) => {
  * // ]
  */
 const transformBOMProductionSummaryRows = (rows = []) => {
-  if (!rows || rows.length === 0) return [];
-  
+  if (!rows?.length) return [];
+
   const grouped = new Map();
-  
+
+  // ──────────────────────────────────────────────
+  // 1. Group by part_id and accumulate batch-level data
+  // ──────────────────────────────────────────────
   for (const row of rows) {
     const partId = row.part_id;
+
+    // Initialize group if first time encountering this part
     if (!grouped.has(partId)) {
       grouped.set(partId, {
         partId,
@@ -548,11 +559,12 @@ const transformBOMProductionSummaryRows = (rows = []) => {
         materialBatches: [],
       });
     }
-    
-    // Push batch-level details (if present)
+
+    // Append material batch info (if present)
     if (row.material_name || row.lot_number) {
       grouped.get(partId).materialBatches.push(
         cleanObject({
+          materialBatchId: row.packaging_material_batch_id,
           materialName: row.material_name,
           materialSnapshotName: row.material_snapshot_name,
           receivedLabelName: row.received_label_name,
@@ -571,24 +583,64 @@ const transformBOMProductionSummaryRows = (rows = []) => {
       );
     }
   }
-  
+
+  // ──────────────────────────────────────────────
+  // 2. Enrich each part with representative display fields
+  //    (derived from the first material batch if available)
+  // ──────────────────────────────────────────────
+  for (const part of grouped.values()) {
+    const firstBatch = part.materialBatches[0];
+    part.packagingMaterialName = firstBatch?.materialName ?? null;
+    part.materialSnapshotName = firstBatch?.materialSnapshotName ?? null;
+    part.displayLabel = firstBatch?.receivedLabelName ?? part.partName;
+  }
+
   return Array.from(grouped.values());
 };
 
 /**
- * Build a standardized API response for a BOM production readiness report.
+ * Builds a standardized API response object for a BOM Production Readiness report.
  *
- * @param {string} bomId - The BOM identifier.
- * @param {object} readinessReport - Output from getProductionReadinessReport().
- * @returns {object} Structured API response for client consumption.
+ * Consumes the structured output of `getProductionReadinessReport()` and converts it
+ * into a client-friendly response matching the `BomProductionReadinessData` shape.
+ *
+ * The resulting object includes:
+ *  - **metadata:** Summary-level readiness metrics (status, max units, bottlenecks, etc.).
+ *  - **parts:** Flattened per-part readiness records with detailed stock and shortage data.
+ *
+ * @function
+ * @param {string} bomId - Unique identifier of the BOM for which readiness is generated.
+ * @param {object} readinessReport - The report object returned by `getProductionReadinessReport()`.
+ * @returns {object} Structured API response conforming to `BomProductionReadinessData`,
+ *                   containing both high-level metadata and detailed part readiness info.
+ *
+ * @example
+ * const readinessReport = getProductionReadinessReport(bomSummary);
+ * const response = buildBOMProductionSummaryResponse(
+ *   'cbbf2680-2730-4cb1-a38e-ce32f93609c1',
+ *   readinessReport
+ * );
+ *
+ * console.log(response.metadata.maxProducibleUnits);
+ * // → 18
  */
 const buildBOMProductionSummaryResponse = (bomId, readinessReport) => {
-  if (!readinessReport) return { bomId, metadata: {}, parts: [] };
-  
-  const bottleneckParts = readinessReport.summary
-    .filter((p) => p.isBottleneck)
-    .map((p) => ({ partId: p.partId, partName: p.partName }));
-  
+  if (!readinessReport) {
+    return { bomId, metadata: {}, parts: [] };
+  }
+
+  // Extract bottleneck parts for quick reference in metadata
+  const bottleneckParts =
+    readinessReport.summary
+      ?.filter((p) => p.isBottleneck)
+      ?.map((p) => ({
+        partId: p.partId,
+        partName: p.partName,
+        packagingMaterialName: p.packagingMaterialName ?? null,
+        materialSnapshotName: p.materialSnapshotName ?? null,
+        displayLabel: p.displayLabel ?? p.partName,
+      })) ?? [];
+
   return {
     bomId,
     metadata: {

@@ -18,7 +18,7 @@ const { validateUUID } = require('./general-validators');
  * if (error) throw AppError.validationError(error.message);
  */
 const skuIdParamSchema = Joi.object({
-    skuId: validateUUID('SKU ID').description('UUID of the SKU record'),
+  skuId: validateUUID('SKU ID').description('UUID of the SKU record'),
 });
 
 module.exports = {

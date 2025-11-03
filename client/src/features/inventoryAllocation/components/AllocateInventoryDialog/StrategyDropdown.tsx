@@ -15,9 +15,13 @@ const STRATEGY_OPTIONS: { value: AllocationStrategy; label: string }[] = [
   { value: 'custom', label: 'Custom Strategy' },
 ];
 
-const StrategyDropdown: FC<StrategyDropdownProps> = ({ value, onChange, disabled }) => {
+const StrategyDropdown: FC<StrategyDropdownProps> = ({
+  value,
+  onChange,
+  disabled,
+}) => {
   const options = useMemo(() => STRATEGY_OPTIONS, []);
-  
+
   return (
     <Dropdown
       label="Allocation Strategy"

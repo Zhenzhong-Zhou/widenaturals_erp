@@ -11,13 +11,13 @@ interface OrderItemsTableProps {
 
 const OrderItemsTable: FC<OrderItemsTableProps> = ({ items, itemCount }) => {
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-  
+
   const handleDrillDownToggle = (rowId: string) => {
     setExpandedRowId((prev) => (prev === rowId ? null : rowId));
   };
-  
+
   const columns = getOrderItemColumns(expandedRowId, handleDrillDownToggle);
-  
+
   return (
     <CustomTable<OrderItem>
       columns={columns}
@@ -27,9 +27,7 @@ const OrderItemsTable: FC<OrderItemsTableProps> = ({ items, itemCount }) => {
       getRowId={(row) => row.id}
       expandable
       expandedRowId={expandedRowId}
-      expandedContent={(row) => (
-        <OrderItemDetailSection row={row} />
-      )}
+      expandedContent={(row) => <OrderItemDetailSection row={row} />}
       onPageChange={() => {}} // No pagination handling for now
       onRowsPerPageChange={() => {}} // No pagination handling for now
       initialRowsPerPage={itemCount} // Display all items by default

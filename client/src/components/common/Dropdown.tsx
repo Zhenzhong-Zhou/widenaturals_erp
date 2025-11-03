@@ -56,7 +56,11 @@ interface DropdownProps {
   placeholder?: string;
   helperText?: ReactNode;
   inputValue?: string;
-  onInputChange?: (event: SyntheticEvent, value: string, reason: string) => void;
+  onInputChange?: (
+    event: SyntheticEvent,
+    value: string,
+    reason: string
+  ) => void;
   noOptionsMessage?: string;
 }
 
@@ -318,9 +322,11 @@ const Dropdown: FC<DropdownProps> = ({
                     )}
                   </Box>
                 )}
-                {typeof option.label === 'string'
-                  ? <span>{option.label}</span>
-                  : option.label}
+                {typeof option.label === 'string' ? (
+                  <span>{option.label}</span>
+                ) : (
+                  option.label
+                )}
               </MenuItem>
             )}
             {error && (

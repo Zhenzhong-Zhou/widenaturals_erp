@@ -146,12 +146,12 @@ export const formatDate = (
   ) {
     return fallback;
   }
-  
+
   const localTime = convertToLocalTime(timestamp, timezone);
   if (!localTime || !localTime.date || isNaN(localTime.date.getTime())) {
     return fallback; // invalid date → fallback
   }
-  
+
   return new Intl.DateTimeFormat('en-CA', {
     year: 'numeric',
     month: '2-digit',
@@ -294,9 +294,7 @@ export const adjustBeforeDateInclusive = (input?: string): string => {
  */
 export const adjustAfterDate = (input?: string): string => {
   const date = input ? new Date(input) : null;
-  return date && isValid(date)
-    ? startOfDay(date).toISOString()
-    : '';
+  return date && isValid(date) ? startOfDay(date).toISOString() : '';
 };
 
 /**

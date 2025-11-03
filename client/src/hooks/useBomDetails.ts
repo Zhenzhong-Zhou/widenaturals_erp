@@ -3,7 +3,9 @@ import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   selectBomDetailsData,
   selectBomDetailsError,
-  selectBomDetailsLoading, selectBomPartCount, selectBomTotalEstimatedCost,
+  selectBomDetailsLoading,
+  selectBomPartCount,
+  selectBomTotalEstimatedCost,
   selectHasBomDetails,
 } from '@features/bom/state/bomDetailsSelectors';
 import { fetchBomDetailsThunk } from '@features/bom/state/bomThunks';
@@ -21,7 +23,7 @@ import { resetBomDetails } from '@features/bom/state/bomDetailsSlice';
  */
 const useBomDetails = () => {
   const dispatch = useAppDispatch();
-  
+
   // --- Selectors ---
   const data = useAppSelector(selectBomDetailsData);
   const loading = useAppSelector(selectBomDetailsLoading);
@@ -29,17 +31,20 @@ const useBomDetails = () => {
   const hasData = useAppSelector(selectHasBomDetails);
   const partCount = useAppSelector(selectBomPartCount);
   const totalEstimatedCost = useAppSelector(selectBomTotalEstimatedCost);
-  
+
   // --- Actions ---
-  const fetch = useCallback((bomId: string | null) => {
-    if (!bomId) return;
-    dispatch(fetchBomDetailsThunk(bomId));
-  }, [dispatch]);
-  
+  const fetch = useCallback(
+    (bomId: string | null) => {
+      if (!bomId) return;
+      dispatch(fetchBomDetailsThunk(bomId));
+    },
+    [dispatch]
+  );
+
   const reset = useCallback(() => {
     dispatch(resetBomDetails());
   }, [dispatch]);
-  
+
   // --- Memoized derived values ---
   const summary = useMemo(() => data?.summary ?? null, [data]);
 
@@ -55,7 +60,17 @@ const useBomDetails = () => {
       fetch,
       reset,
     }),
-    [data, summary, loading, error, hasData, partCount, totalEstimatedCost, fetch, reset]
+    [
+      data,
+      summary,
+      loading,
+      error,
+      hasData,
+      partCount,
+      totalEstimatedCost,
+      fetch,
+      reset,
+    ]
   );
 };
 

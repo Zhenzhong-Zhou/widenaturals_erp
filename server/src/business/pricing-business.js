@@ -1,5 +1,7 @@
 const { logSystemWarn, logSystemException } = require('../utils/system-logger');
-const { resolveUserPermissionContext } = require('../services/role-permission-service');
+const {
+  resolveUserPermissionContext,
+} = require('../services/role-permission-service');
 const { PERMISSIONS } = require('../utils/constants/domain/pricing-constants');
 const AppError = require('../utils/AppError');
 
@@ -56,27 +58,34 @@ const resolveFinalPrice = (submittedPrice, dbPrice) => {
 const evaluatePricingLookupAccessControl = async (user) => {
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     const canViewAllStatuses =
       isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_PRICING_STATES);
-    
+
     const canViewAllValidLookups =
       isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_VALID_PRICING);
-    
+
     return {
       canViewAllStatuses,
       canViewAllValidLookups,
     };
   } catch (err) {
-    logSystemException(err, 'Failed to evaluate pricing lookup access control', {
-      context: 'pricing-business/evaluatePricingLookupAccessControl',
-      userId: user?.id,
-    });
-    
-    throw AppError.businessError('Unable to evaluate user access control for pricing lookup', {
-      details: err.message,
-      stage: 'evaluate-pricing-lookup-access',
-    });
+    logSystemException(
+      err,
+      'Failed to evaluate pricing lookup access control',
+      {
+        context: 'pricing-business/evaluatePricingLookupAccessControl',
+        userId: user?.id,
+      }
+    );
+
+    throw AppError.businessError(
+      'Unable to evaluate user access control for pricing lookup',
+      {
+        details: err.message,
+        stage: 'evaluate-pricing-lookup-access',
+      }
+    );
   }
 };
 
@@ -95,21 +104,25 @@ const evaluatePricingLookupAccessControl = async (user) => {
  * @param {string} [activeStatusId] - The UUID of the active status to enforce if user lacks permission
  * @returns {Object} Adjusted filters with enforced visibility rules
  */
-const enforcePricingLookupVisibilityRules = (filters, userAccess, activeStatusId) => {
+const enforcePricingLookupVisibilityRules = (
+  filters,
+  userAccess,
+  activeStatusId
+) => {
   const adjusted = { ...filters };
-  
+
   const keywordUsed = filters.keyword && filters.keyword.trim().length > 0;
-  
+
   // Restrict keyword visibility to currently valid pricing only
   if (keywordUsed && !userAccess.canViewAllValidLookups) {
     adjusted._restrictKeywordToValidOnly = true;
   }
-  
+
   // Enforce statusId = active if user can't view all statuses
   if (!userAccess.canViewAllStatuses && activeStatusId) {
     adjusted.statusId = activeStatusId;
   }
-  
+
   return adjusted;
 };
 
@@ -132,29 +145,36 @@ const filterPricingLookupQuery = (query, userAccess, activeStatusId) => {
   try {
     const modifiedQuery = { ...query };
     const now = new Date().toISOString();
-    
+
     if (!userAccess.canViewAllStatuses && activeStatusId) {
       modifiedQuery.statusId = activeStatusId;
     }
-    
+
     if (!userAccess.canViewAllValidLookups) {
       modifiedQuery.valid_from = { lte: now }; // valid_from <= now
       modifiedQuery.valid_to = { gteOrNull: now }; // valid_to >= now OR IS NULL
     }
-    
+
     return modifiedQuery;
   } catch (err) {
-    logSystemException(err, 'Failed to apply access filters in filterPricingLookupQuery', {
-      context: 'pricing-business/filterPricingLookupQuery',
-      originalQuery: query,
-      userAccess,
-    });
-    
-    throw AppError.businessError('Unable to apply pricing lookup access filters', {
-      details: err.message,
-      stage: 'filter-pricing-lookup',
-      cause: err,
-    });
+    logSystemException(
+      err,
+      'Failed to apply access filters in filterPricingLookupQuery',
+      {
+        context: 'pricing-business/filterPricingLookupQuery',
+        originalQuery: query,
+        userAccess,
+      }
+    );
+
+    throw AppError.businessError(
+      'Unable to apply pricing lookup access filters',
+      {
+        details: err.message,
+        stage: 'filter-pricing-lookup',
+        cause: err,
+      }
+    );
   }
 };
 
@@ -170,7 +190,7 @@ const filterPricingLookupQuery = (query, userAccess, activeStatusId) => {
  */
 const enrichPricingRow = (row, activeStatusId) => {
   const now = new Date();
-  
+
   return {
     ...row,
     isActive: row.status_id === activeStatusId,

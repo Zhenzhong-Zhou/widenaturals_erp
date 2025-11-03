@@ -66,9 +66,13 @@ const formatAddress = (row) => {
  * // Compact payload for UI display:
  * buildAddress(row, 'shipping_', { formattedOnly: true })
  */
-const buildAddress = (row, prefix, { includeFormatted = true, formattedOnly = false } = {}) => {
+const buildAddress = (
+  row,
+  prefix,
+  { includeFormatted = true, formattedOnly = false } = {}
+) => {
   if (!row[`${prefix}address_id`]) return null;
-  
+
   const base = {
     id: row[`${prefix}address_id`],
     customerId: row[`${prefix}customer_id`] ?? null,
@@ -77,24 +81,24 @@ const buildAddress = (row, prefix, { includeFormatted = true, formattedOnly = fa
     email: row[`${prefix}email`] ?? null,
     label: row[`${prefix}label`] ?? null,
   };
-  
+
   if (includeFormatted) {
     base.formatted = formatAddress({
       address_line1: row[`${prefix}address_line1`],
       address_line2: row[`${prefix}address_line2`],
-      city:          row[`${prefix}city`],
-      state:         row[`${prefix}state`],
-      postal_code:   row[`${prefix}postal_code`],
-      country:       row[`${prefix}country`],
-      region:        row[`${prefix}region`],
+      city: row[`${prefix}city`],
+      state: row[`${prefix}state`],
+      postal_code: row[`${prefix}postal_code`],
+      country: row[`${prefix}country`],
+      region: row[`${prefix}region`],
     });
   }
-  
+
   if (formattedOnly) {
     // keep only the identity + formatted fields; drop line1/line2/city/state/etc entirely
     return base;
   }
-  
+
   // keep flattened fields (legacy/full detail)
   return {
     ...base,

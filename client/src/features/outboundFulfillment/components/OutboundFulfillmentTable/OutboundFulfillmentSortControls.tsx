@@ -26,17 +26,16 @@ const sortOptions: { label: string; value: OutboundFulfillmentSortKey }[] = [
   { label: 'Updated By (Last Name)', value: 'updatedByLastName' },
 ];
 
-const OutboundFulfillmentSortControls: FC<OutboundFulfillmentSortControlsProps> = ({
-                                                                                     sortBy,
-                                                                                     sortOrder,
-                                                                                     onSortByChange,
-                                                                                     onSortOrderChange,
-                                                                                   }) => {
+const OutboundFulfillmentSortControls: FC<
+  OutboundFulfillmentSortControlsProps
+> = ({ sortBy, sortOrder, onSortByChange, onSortOrderChange }) => {
   return (
     <SortControls
       sortBy={sortBy}
       sortOrder={sortOrder}
-      onSortByChange={(value) => onSortByChange(value as OutboundFulfillmentSortKey)}
+      onSortByChange={(value) =>
+        onSortByChange(value as OutboundFulfillmentSortKey)
+      }
       onSortOrderChange={onSortOrderChange}
       sortOptions={sortOptions}
     />

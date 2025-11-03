@@ -2,12 +2,16 @@ const express = require('express');
 const authorize = require('../middlewares/authorize');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
-const { bomQuerySchema, bomIdParamSchema } = require('../validators/bom-validators');
+const {
+  bomQuerySchema,
+  bomIdParamSchema,
+} = require('../validators/bom-validators');
 const { sanitizeFields } = require('../middlewares/sanitize');
 const validate = require('../middlewares/validate');
 const {
   getPaginatedBomsController,
-  getBomDetailsController, fetchBOMProductionSummaryController
+  getBomDetailsController,
+  fetchBOMProductionSummaryController,
 } = require('../controllers/bom-controller');
 
 const router = express.Router();
@@ -134,7 +138,7 @@ router.get(
   '/:bomId/details',
   authorize([PERMISSIONS.BOMS.VIEW_BOM_DETAILS]),
   validate(bomIdParamSchema, 'params'), // Joi param validator for BOM ID
-  getBomDetailsController                // Controller
+  getBomDetailsController // Controller
 );
 
 /**

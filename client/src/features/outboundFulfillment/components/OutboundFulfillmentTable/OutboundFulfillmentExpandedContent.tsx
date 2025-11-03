@@ -29,13 +29,13 @@ const OutboundFulfillmentExpandedContent: FC<
     },
     { label: 'Notes', value: row.notes },
   ];
-  
+
   return (
     <Box sx={{ px: 3, py: 2 }}>
       <CustomTypography variant="subtitle1" fontWeight={600} gutterBottom>
         Outbound Fulfillment Details
       </CustomTypography>
-      
+
       <Grid container spacing={2}>
         {fields.map(({ label, value }, idx) => (
           <Grid key={idx} size={{ xs: 12, sm: 6 }}>

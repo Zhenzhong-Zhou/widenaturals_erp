@@ -1,7 +1,4 @@
-
-export const discountReducers = {
-
-};
+export const discountReducers = {};
 
 // Optional: export selectors, thunks, or types
 // export * from './discountSelectors';

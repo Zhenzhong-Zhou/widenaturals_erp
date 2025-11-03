@@ -4,8 +4,7 @@ import type { RootState } from '@store/store';
 /**
  * Base selector for the BOM slice state.
  */
-export const selectBomState = (state: RootState) =>
-  state.paginatedBoms;
+export const selectBomState = (state: RootState) => state.paginatedBoms;
 
 /**
  * Selects the current BOM list data.
@@ -78,6 +77,5 @@ export const selectIsBomListEmpty = createSelector(
  */
 export const selectHasMoreBomPages = createSelector(
   [selectBomPagination],
-  (pagination) =>
-    !!pagination && pagination.page < pagination.totalPages
+  (pagination) => !!pagination && pagination.page < pagination.totalPages
 );

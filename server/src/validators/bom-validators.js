@@ -23,7 +23,8 @@ const {
   validateKeyword,
   paginationSchema,
   createSortSchema,
-  createdDateRangeSchema, validateUUID,
+  createdDateRangeSchema,
+  validateUUID,
 } = require('./general-validators');
 
 /**
@@ -90,7 +91,7 @@ const bomQuerySchema = paginationSchema
       .valid('ASC', 'DESC', 'asc', 'desc')
       .default('DESC')
       .description('Sorting order (ASC or DESC).'),
-    
+
     // --- Core Filters ---
     productId: Joi.alternatives()
       .try(
@@ -99,7 +100,7 @@ const bomQuerySchema = paginationSchema
       )
       .optional()
       .description('Filter by one or more Product IDs.'),
-    
+
     skuId: Joi.alternatives()
       .try(
         Joi.array().items(validateOptionalUUID('SKU ID')).min(1),
@@ -107,28 +108,33 @@ const bomQuerySchema = paginationSchema
       )
       .optional()
       .description('Filter by one or more SKU IDs.'),
-    
-    productName: validateOptionalString('Product Name', 200)
-      .description('Partial match on product name.'),
-    
-    skuCode: validateOptionalString('SKU Code', 100)
-      .description('Partial match on SKU code.'),
-    
+
+    productName: validateOptionalString('Product Name', 200).description(
+      'Partial match on product name.'
+    ),
+
+    skuCode: validateOptionalString('SKU Code', 100).description(
+      'Partial match on SKU code.'
+    ),
+
     // --- Compliance Filters ---
-    complianceStatusId: validateOptionalUUID('Compliance Status ID')
-      .description('Filter by specific compliance status (UUID reference).'),
-    
+    complianceStatusId: validateOptionalUUID(
+      'Compliance Status ID'
+    ).description('Filter by specific compliance status (UUID reference).'),
+
     onlyActiveCompliance: Joi.boolean()
       .optional()
-      .description('Return only BOMs with SKUs that have active compliance records.'),
-    
+      .description(
+        'Return only BOMs with SKUs that have active compliance records.'
+      ),
+
     complianceType: validateOptionalString('Compliance Type', 50)
       .optional()
       .description('Filter by compliance type (e.g., NPN, FDA).'),
-    
+
     // --- BOM Status ---
     statusId: validateOptionalUUID('Status ID').optional(),
-    
+
     // --- Boolean flags ---
     isActive: Joi.boolean()
       .optional()
@@ -136,7 +142,7 @@ const bomQuerySchema = paginationSchema
     isDefault: Joi.boolean()
       .optional()
       .description('Filter by default BOMs only.'),
-    
+
     // --- Revision range ---
     revisionMin: validatePositiveInteger('Minimum Revision')
       .optional()
@@ -144,14 +150,15 @@ const bomQuerySchema = paginationSchema
     revisionMax: validatePositiveInteger('Maximum Revision')
       .optional()
       .description('Maximum revision number.'),
-    
+
     // --- Audit filters ---
     createdBy: validateOptionalUUID('Created By User ID').optional(),
     updatedBy: validateOptionalUUID('Updated By User ID').optional(),
-    
+
     // --- Keyword search ---
-    keyword: validateKeyword()
-      .description('Search term for matching BOM name, code, or description.'),
+    keyword: validateKeyword().description(
+      'Search term for matching BOM name, code, or description.'
+    ),
   });
 
 /**

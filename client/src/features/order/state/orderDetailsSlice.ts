@@ -1,5 +1,8 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { GetOrderDetailsResponse, OrderDetailsState } from '@features/order/state/orderTypes';
+import type {
+  GetOrderDetailsResponse,
+  OrderDetailsState,
+} from '@features/order/state/orderTypes';
 import { getOrderDetailsByIdThunk } from './orderThunks';
 
 const initialState: OrderDetailsState = {
@@ -24,10 +27,13 @@ const orderDetailsSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(getOrderDetailsByIdThunk.fulfilled, (state, action: PayloadAction<GetOrderDetailsResponse>) => {
-        state.loading = false;
-        state.data = action.payload.data;
-      })
+      .addCase(
+        getOrderDetailsByIdThunk.fulfilled,
+        (state, action: PayloadAction<GetOrderDetailsResponse>) => {
+          state.loading = false;
+          state.data = action.payload.data;
+        }
+      )
       .addCase(getOrderDetailsByIdThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload ?? 'Failed to fetch order details';

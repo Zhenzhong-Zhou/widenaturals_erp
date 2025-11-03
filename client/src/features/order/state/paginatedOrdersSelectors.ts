@@ -5,7 +5,8 @@ import type { OrderQueryParams } from '@features/order/state/orderTypes';
 /**
  * Base selector to retrieve the entire paginated orders slice from the Redux state.
  */
-export const selectPaginatedOrdersState = (state: RootState) => state.paginatedOrders;
+export const selectPaginatedOrdersState = (state: RootState) =>
+  state.paginatedOrders;
 
 /**
  * Selector to retrieve the current list of paginated orders.

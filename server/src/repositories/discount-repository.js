@@ -1,7 +1,5 @@
 const { query, paginateQueryByOffset } = require('../database/db');
-const {
-  buildDiscountFilter
-} = require('../utils/sql/build-discount-filters');
+const { buildDiscountFilter } = require('../utils/sql/build-discount-filters');
 const AppError = require('../utils/AppError');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 
@@ -52,14 +50,14 @@ const getDiscountById = async (discountId, client = null) => {
  * @throws {AppError} If an error occurs while querying the database
  */
 const getDiscountsLookup = async ({
-                                    limit = 50,
-                                    offset = 0,
-                                    filters = {},
-                                  } = {}) => {
+  limit = 50,
+  offset = 0,
+  filters = {},
+} = {}) => {
   const tableName = 'discounts d';
-  
+
   const { whereClause, params } = buildDiscountFilter(filters);
-  
+
   const queryText = `
     SELECT
       d.id,
@@ -72,7 +70,7 @@ const getDiscountsLookup = async ({
     FROM ${tableName}
     WHERE ${whereClause}
   `;
-  
+
   try {
     const result = await paginateQueryByOffset({
       tableName,
@@ -85,14 +83,14 @@ const getDiscountsLookup = async ({
       sortOrder: 'ASC',
       additionalSort: 'd.valid_from ASC',
     });
-    
+
     logSystemInfo('Fetched discounts lookup successfully', {
       context: 'discounts-repository/getDiscountsLookup',
       totalFetched: result.data?.length ?? 0,
       pagination: { offset, limit },
       filters,
     });
-    
+
     return result;
   } catch (err) {
     logSystemException(err, 'Failed to fetch discounts lookup', {
@@ -101,7 +99,7 @@ const getDiscountsLookup = async ({
       limit,
       filters,
     });
-    
+
     throw AppError.databaseError('Failed to fetch discounts lookup options.', {
       cause: err,
     });

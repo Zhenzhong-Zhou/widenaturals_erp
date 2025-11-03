@@ -1,6 +1,9 @@
 const { getSkuAndProductStatus } = require('../repositories/sku-repository');
 const AppError = require('../utils/AppError');
-const { checkPermissions, resolveUserPermissionContext } = require('../services/role-permission-service');
+const {
+  checkPermissions,
+  resolveUserPermissionContext,
+} = require('../services/role-permission-service');
 const { getStatusId } = require('../config/status-cache');
 const { logSystemException } = require('../utils/system-logger');
 const { PERMISSIONS } = require('../utils/constants/domain/sku-constants');
@@ -95,24 +98,27 @@ const canAccessSku = async (user, skuId) => {
 const evaluateSkuFilterAccessControl = async (user) => {
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     const allowAllSkus =
       isRoot ||
       permissions.includes(PERMISSIONS.ADMIN_OVERRIDE_SKU_FILTERS) ||
       permissions.includes(PERMISSIONS.ALLOW_INTERNAL_ORDER_SKUS) ||
       permissions.includes(PERMISSIONS.ALLOW_BACKORDER_SKUS);
-    
+
     return { allowAllSkus };
   } catch (err) {
     logSystemException(err, 'Failed to evaluate SKU filter access control', {
       context: 'sku-business/evaluateSkuFilterAccessControl',
       userId: user?.id,
     });
-    
-    throw AppError.businessError('Unable to evaluate SKU filter access control', {
-      details: err.message,
-      stage: 'evaluate-sku-access',
-    });
+
+    throw AppError.businessError(
+      'Unable to evaluate SKU filter access control',
+      {
+        details: err.message,
+        stage: 'evaluate-sku-access',
+      }
+    );
   }
 };
 
@@ -137,16 +143,16 @@ const enforceSkuLookupVisibilityRules = (options = {}, userAccess = {}) => {
     ...options,
     allowAllSkus: !!userAccess.allowAllSkus,
   };
-  
+
   // Force stock check if not allowed to see inactive or out-of-stock SKUs
   if (!userAccess.allowAllSkus) {
     adjusted.requireAvailableStock = true;
-    
+
     // Default to warehouse if not specified
     adjusted.requireAvailableStockFrom =
       adjusted.requireAvailableStockFrom || 'warehouse';
   }
-  
+
   return adjusted;
 };
 
@@ -162,41 +168,53 @@ const enforceSkuLookupVisibilityRules = (options = {}, userAccess = {}) => {
  * @param {string} activeStatusId - UUID for the 'active' SKU/product status.
  * @returns {object} Modified query object with enforced filters.
  */
-const filterSkuLookupQuery = (filters = {}, userAccess = {}, activeStatusId) => {
+const filterSkuLookupQuery = (
+  filters = {},
+  userAccess = {},
+  activeStatusId
+) => {
   try {
     if (typeof activeStatusId !== 'string' || activeStatusId.length === 0) {
-      throw AppError.validationError('[filterSkuLookupQuery] Missing or invalid `activeStatusId`');
+      throw AppError.validationError(
+        '[filterSkuLookupQuery] Missing or invalid `activeStatusId`'
+      );
     }
-    
+
     if (!userAccess || typeof userAccess !== 'object') {
-      throw AppError.validationError('[filterSkuLookupQuery] Invalid `userAccess` object');
+      throw AppError.validationError(
+        '[filterSkuLookupQuery] Invalid `userAccess` object'
+      );
     }
-    
+
     const modified = { ...filters };
-    
+
     if (!userAccess.allowAllSkus) {
       // Enforce active status on both SKU and Product level
       modified.sku_status_id = activeStatusId;
       modified.product_status_id = activeStatusId;
-      
+
       // Require stock availability checks
       modified.requireAvailableStock = true;
-      
+
       // Only set default if not already provided
       if (!modified.requireAvailableStockFrom) {
         modified.requireAvailableStockFrom = 'warehouse';
       }
     }
-    
+
     return modified;
   } catch (err) {
-    logSystemException(err, 'Failed to apply access filters in filterSkuLookupQuery', {
-      context: 'sku-business/filterSkuLookupQuery',
-      originalFilters: filters,
-      userAccess,
-      activeStatusId,
-    });
-    
+    logSystemException(
+      err,
+      'Failed to apply access filters in filterSkuLookupQuery',
+      {
+        context: 'sku-business/filterSkuLookupQuery',
+        originalFilters: filters,
+        userAccess,
+        activeStatusId,
+      }
+    );
+
     throw AppError.businessError('Unable to apply SKU lookup access filters', {
       details: err.message,
       stage: 'filter-sku-lookup',
@@ -256,7 +274,7 @@ const enrichSkuRow = (row, expectedStatusIds) => {
     location_status_id,
     batch_status_id,
   } = row;
-  
+
   // If no status fields at all → default to normal
   const noStatusFields =
     sku_status_id == null &&
@@ -264,37 +282,38 @@ const enrichSkuRow = (row, expectedStatusIds) => {
     warehouse_status_id == null &&
     location_status_id == null &&
     batch_status_id == null;
-  
+
   if (noStatusFields) {
     return {
       ...row,
       isNormal: true,
     };
   }
-  
+
   const statusChecks = {
     skuStatusValid: sku_status_id === expectedStatusIds.sku,
     productStatusValid: product_status_id === expectedStatusIds.product,
     warehouseInventoryValid:
-      !warehouse_status_id || warehouse_status_id === expectedStatusIds.warehouse,
+      !warehouse_status_id ||
+      warehouse_status_id === expectedStatusIds.warehouse,
     locationInventoryValid:
       !location_status_id || location_status_id === expectedStatusIds.location,
     batchStatusValid:
       !batch_status_id || batch_status_id === expectedStatusIds.batch,
   };
-  
+
   const isNormal = Object.values(statusChecks).every(Boolean);
-  
+
   return {
     ...row,
     isNormal,
     ...(isNormal
       ? {}
       : {
-        issueReasons: Object.entries(statusChecks)
-          .filter(([_, valid]) => !valid)
-          .map(([key]) => getGenericIssueReason(key)),
-      }),
+          issueReasons: Object.entries(statusChecks)
+            .filter(([_, valid]) => !valid)
+            .map(([key]) => getGenericIssueReason(key)),
+        }),
   };
 };
 

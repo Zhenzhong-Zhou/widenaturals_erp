@@ -16,7 +16,11 @@ const DiscountInfoSection: FC<DiscountInfoSectionProps> = ({ flattened }) => {
         <DetailsGridItem>
           <MemoizedDetailsSection
             fields={[
-              { label: 'Discount', value: flattened.discount, format: formatLabel },
+              {
+                label: 'Discount',
+                value: flattened.discount,
+                format: formatLabel,
+              },
               { label: 'Discount Label', value: flattened.discountLabel },
             ]}
           />

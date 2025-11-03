@@ -8,7 +8,8 @@ import {
 import { fetchSkuLookupThunk } from './lookupThunks';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 
-const initialState: SkuLookupState = createInitialPaginatedLookupState<SkuLookupItem>();
+const initialState: SkuLookupState =
+  createInitialPaginatedLookupState<SkuLookupItem>();
 
 const skuLookupSlice = createSlice({
   name: 'skuLookup',
@@ -27,14 +28,16 @@ const skuLookupSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchSkuLookupThunk.fulfilled,
+      .addCase(
+        fetchSkuLookupThunk.fulfilled,
         (state, action: PayloadAction<SkuLookupResponse>) => {
           applyPaginatedFulfilled(state, action.payload);
         }
       )
       .addCase(fetchSkuLookupThunk.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string ?? 'Failed to fetch SKU lookup';
+        state.error =
+          (action.payload as string) ?? 'Failed to fetch SKU lookup';
       });
   },
 });

@@ -14,34 +14,42 @@ interface OrderSummarySectionProps {
 }
 
 const OrderSummarySection = ({
-                               subtotal,
-                               discount = 0,
-                               tax = 0,
-                               taxRate = '',
-                               shipping = 0,
-                               total,
-                               baseCurrencyAmount,
-                             }: OrderSummarySectionProps) => {
+  subtotal,
+  discount = 0,
+  tax = 0,
+  taxRate = '',
+  shipping = 0,
+  total,
+  baseCurrencyAmount,
+}: OrderSummarySectionProps) => {
   return (
     <Box sx={{ px: 2, py: 1 }}>
       <Stack spacing={1}>
         <Row label="Subtotal" value={formatCurrency(subtotal)} />
-        {discount > 0 && <Row label="Discount" value={formatCurrency(discount)} />}
+        {discount > 0 && (
+          <Row label="Discount" value={formatCurrency(discount)} />
+        )}
         {taxRate && <Row label="Tax Rate" value={taxRate} />}
         {tax > 0 && <Row label="Tax" value={formatCurrency(tax)} />}
-        {shipping > 0 && <Row label="Shipping" value={formatCurrency(shipping)} />}
+        {shipping > 0 && (
+          <Row label="Shipping" value={formatCurrency(shipping)} />
+        )}
         <Row label="Total" value={formatCurrency(total)} bold />
-        <Row label="Currency Amount" value={formatCurrency(baseCurrencyAmount)} bold />
+        <Row
+          label="Currency Amount"
+          value={formatCurrency(baseCurrencyAmount)}
+          bold
+        />
       </Stack>
     </Box>
   );
 };
 
 const Row = ({
-               label,
-               value,
-               bold = false,
-             }: {
+  label,
+  value,
+  bold = false,
+}: {
   label: string;
   value: string;
   bold?: boolean;

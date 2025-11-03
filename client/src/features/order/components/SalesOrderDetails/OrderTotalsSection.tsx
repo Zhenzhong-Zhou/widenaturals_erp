@@ -13,14 +13,14 @@ interface OrderTotalsSectionProps {
 }
 
 const OrderTotalsSection: FC<OrderTotalsSectionProps> = ({
-                                                           subtotal,
-                                                           discount,
-                                                           taxRate,
-                                                           tax,
-                                                           shipping,
-                                                           total,
-                                                           baseCurrencyAmount,
-                                                         }) => (
+  subtotal,
+  discount,
+  taxRate,
+  tax,
+  shipping,
+  total,
+  baseCurrencyAmount,
+}) => (
   <Section title="Order Totals">
     <OrderSummarySection
       subtotal={subtotal}

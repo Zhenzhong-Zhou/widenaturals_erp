@@ -68,7 +68,7 @@ const insertInventoryActivityLogs = async (logs, client, meta) => {
       log.source_type || null,
       log.source_ref_id || null,
     ]);
-    
+
     const activityResult = await bulkInsert(
       'inventory_activity_log',
       activityColumns,
@@ -78,9 +78,9 @@ const insertInventoryActivityLogs = async (logs, client, meta) => {
       client,
       meta
     );
-    
-    const activityIds = activityResult.map(r => r.id);
-    
+
+    const activityIds = activityResult.map((r) => r.id);
+
     // === Inventory Activity Audit Log ===
     const auditColumns = [
       'warehouse_inventory_id',
@@ -155,7 +155,7 @@ const insertInventoryActivityLogs = async (logs, client, meta) => {
         ''
       );
     }
-    
+
     return {
       insertedActivityCount: activityRows.length,
       insertedAuditCount: auditRows.length,

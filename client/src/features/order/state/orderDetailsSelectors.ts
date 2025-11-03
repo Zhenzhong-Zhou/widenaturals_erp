@@ -1,6 +1,9 @@
 import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
-import type { OrderItem, TransformedOrder } from '@features/order/state/orderTypes';
+import type {
+  OrderItem,
+  TransformedOrder,
+} from '@features/order/state/orderTypes';
 
 /** Base selector: the whole orderDetails slice */
 export const selectOrderDetailsState = (state: RootState) => state.orderDetails;
@@ -59,14 +62,14 @@ export const selectOrderItemCount = createSelector(
  * const item = useAppSelector(selectItem);
  */
 export const makeSelectOrderItemById = (itemId: string) =>
-  createSelector([selectOrderItems], (items) =>
-    items.find((it: OrderItem) => it.id === itemId) ?? null
+  createSelector(
+    [selectOrderItems],
+    (items) => items.find((it: OrderItem) => it.id === itemId) ?? null
   );
 
 /** Quick boolean for route guards / skeletons */
-export const selectHasOrder = createSelector(
-  [selectOrderDetailsData],
-  (data) => Boolean(data)
+export const selectHasOrder = createSelector([selectOrderDetailsData], (data) =>
+  Boolean(data)
 );
 
 /**

@@ -1,8 +1,13 @@
 const { getFullName } = require('../utils/name-utils');
 const { getProductDisplayName } = require('../utils/display-name-utils');
-const { formatPackagingMaterialLabel } = require('../utils/packaging-material-utils');
+const {
+  formatPackagingMaterialLabel,
+} = require('../utils/packaging-material-utils');
 const { cleanObject } = require('../utils/object-utils');
-const { getBatchSummary, getWarehouseInventoryList } = require('../utils/inventory-utils');
+const {
+  getBatchSummary,
+  getWarehouseInventoryList,
+} = require('../utils/inventory-utils');
 const { transformPaginatedResult } = require('../utils/transformer-utils');
 
 /**
@@ -30,12 +35,13 @@ const { transformPaginatedResult } = require('../utils/transformer-utils');
 const extractOrderItemIdsByType = (items = []) => {
   const skuIds = [];
   const packagingMaterialIds = [];
-  
+
   for (const item of items) {
     if (item.sku_id) skuIds.push(item.sku_id);
-    if (item.packaging_material_id) packagingMaterialIds.push(item.packaging_material_id);
+    if (item.packaging_material_id)
+      packagingMaterialIds.push(item.packaging_material_id);
   }
-  
+
   return {
     skuIds: [...new Set(skuIds)],
     packagingMaterialIds: [...new Set(packagingMaterialIds)],
@@ -95,21 +101,28 @@ const extractOrderItemIdsByType = (items = []) => {
  * //   { order_item_id: 'item-123', transfer_order_item_id: null, warehouse_id: 'wh-1', batch_id: 'batch-2', allocated_quantity: 10, created_by: 'admin' }
  * // ]
  */
-const transformAllocationResultToInsertRows = (allocationResult, options = {}) => {
+const transformAllocationResultToInsertRows = (
+  allocationResult,
+  options = {}
+) => {
   if (!Array.isArray(allocationResult)) return [];
-  
+
   const rows = [];
   for (const item of allocationResult) {
     const { order_item_id } = item;
     const batches =
-      item?.allocated?.allocatedBatches ??
-      item?.allocatedBatches ??
-      [];
-    
+      item?.allocated?.allocatedBatches ?? item?.allocatedBatches ?? [];
+
     for (const batch of batches) {
       const qty = Number(batch?.allocated_quantity ?? 0);
-      if (!order_item_id || !batch?.batch_id || !batch?.warehouse_id || qty <= 0) continue;
-      
+      if (
+        !order_item_id ||
+        !batch?.batch_id ||
+        !batch?.warehouse_id ||
+        qty <= 0
+      )
+        continue;
+
       rows.push({
         order_item_id,
         transfer_order_item_id: null,
@@ -274,9 +287,9 @@ const transformAllocationReviewData = (rows, orderId) => {
  */
 const transformInventoryAllocationReviewRows = (rows) => {
   if (!rows?.length) return null;
-  
+
   const [first] = rows;
-  
+
   const header = cleanObject({
     orderNumber: first.order_number,
     note: first.order_note,
@@ -288,15 +301,18 @@ const transformInventoryAllocationReviewRows = (rows) => {
     },
     salesperson: {
       id: first.salesperson_id,
-      fullName: getFullName(first.salesperson_firstname, first.salesperson_lastname),
+      fullName: getFullName(
+        first.salesperson_firstname,
+        first.salesperson_lastname
+      ),
     },
   });
-  
+
   const items = rows.map((row) => {
     const batch = getBatchSummary(row);
-    
+
     const wiList = getWarehouseInventoryList(row);
-    
+
     const item = cleanObject({
       allocationId: row.allocation_id,
       orderItemId: row.order_item_id,
@@ -308,16 +324,22 @@ const transformInventoryAllocationReviewRows = (rows) => {
       allocationStatusCode: row.allocation_status_code,
       createdAt: row.allocation_created_at,
       updatedAt: row.allocation_updated_at,
-      
+
       createdBy: {
         id: row.allocation_created_by,
-        fullName: getFullName(row.allocation_created_by_firstname, row.allocation_created_by_lastname),
+        fullName: getFullName(
+          row.allocation_created_by_firstname,
+          row.allocation_created_by_lastname
+        ),
       },
       updatedBy: {
         id: row.allocation_updated_by,
-        fullName: getFullName(row.allocation_updated_by_firstname, row.allocation_updated_by_lastname),
+        fullName: getFullName(
+          row.allocation_updated_by_firstname,
+          row.allocation_updated_by_lastname
+        ),
       },
-      
+
       orderItem: {
         id: row.order_item_id,
         orderId: row.order_id,
@@ -327,41 +349,41 @@ const transformInventoryAllocationReviewRows = (rows) => {
         statusCode: row.item_status_code,
         statusDate: row.item_status_date,
       },
-      
+
       product: row.product_id
         ? {
-          productId: row.product_id,
-          skuId: row.sku_id,
-          skuCode: row.sku,
-          barcode: row.barcode,
-          displayName: row.sku_id
-            ? getProductDisplayName({
-              brand: row.brand,
-              sku: row.sku,
-              country_code: row.country_code,
-              product_name: row.product_name,
-              size_label: row.size_label,
-            })
-            : null,
-        }
+            productId: row.product_id,
+            skuId: row.sku_id,
+            skuCode: row.sku,
+            barcode: row.barcode,
+            displayName: row.sku_id
+              ? getProductDisplayName({
+                  brand: row.brand,
+                  sku: row.sku,
+                  country_code: row.country_code,
+                  product_name: row.product_name,
+                  size_label: row.size_label,
+                })
+              : null,
+          }
         : null,
-      
+
       packagingMaterial: row.packaging_material_id
         ? {
-          id: row.packaging_material_id,
-          code: row.packaging_material_code,
-          label: formatPackagingMaterialLabel({
-            name: row.packaging_material_name,
-            size: row.packaging_material_size,
-            color: row.packaging_material_color,
-            unit: row.packaging_material_unit,
-            length_cm: row.packaging_material_length_cm,
-            width_cm: row.packaging_material_width_cm,
-            height_cm: row.packaging_material_height_cm,
-          }),
-        }
+            id: row.packaging_material_id,
+            code: row.packaging_material_code,
+            label: formatPackagingMaterialLabel({
+              name: row.packaging_material_name,
+              size: row.packaging_material_size,
+              color: row.packaging_material_color,
+              unit: row.packaging_material_unit,
+              length_cm: row.packaging_material_length_cm,
+              width_cm: row.packaging_material_width_cm,
+              height_cm: row.packaging_material_height_cm,
+            }),
+          }
         : null,
-      
+
       warehouseInventoryList: wiList.map((wi) =>
         cleanObject({
           id: wi.warehouse_inventory_id,
@@ -373,13 +395,13 @@ const transformInventoryAllocationReviewRows = (rows) => {
           inboundDate: wi.inbound_date,
         })
       ),
-      
+
       batch,
     });
-    
+
     return cleanObject(item);
   });
-  
+
   return { header, items };
 };
 
@@ -472,34 +494,40 @@ const transformInventoryAllocationRow = (row) => {
       code: row.payment_status_code ?? null,
     },
     deliveryMethod: row.delivery_method ?? null,
-    
+
     orderCreatedAt: row.created_at,
-    orderCreatedBy: getFullName(row.created_by_firstname, row.created_by_lastname),
+    orderCreatedBy: getFullName(
+      row.created_by_firstname,
+      row.created_by_lastname
+    ),
     orderUpdatedAt: row.updated_at,
-    orderUpdatedBy: getFullName(row.updated_by_firstname, row.updated_by_lastname),
-    
+    orderUpdatedBy: getFullName(
+      row.updated_by_firstname,
+      row.updated_by_lastname
+    ),
+
     itemCount: {
       total: row.total_items ?? 0,
       allocated: row.allocated_items ?? 0,
     },
-    
+
     warehouses: {
       ids: row.warehouse_ids ?? [],
       names: row.warehouse_names ?? '',
     },
-    
+
     allocationStatus: {
       codes: row.allocation_status_codes ?? [],
       names: row.allocation_statuses ?? '',
       summary: row.allocation_summary_status ?? 'Unknown',
     },
-    
+
     allocationIds: row.allocation_ids ?? [],
-    
+
     allocatedAt: row.allocated_at,
     allocatedCreatedAt: row.allocated_created_at,
   };
-  
+
   return cleanObject(base);
 };
 

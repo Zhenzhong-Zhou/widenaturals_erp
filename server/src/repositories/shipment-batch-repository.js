@@ -39,8 +39,9 @@ const AppError = require('../utils/AppError');
  * // Merges into one record with quantity_shipped = 15 and merged notes
  */
 const insertShipmentBatchesBulk = async (shipmentBatches, client) => {
-  if (!Array.isArray(shipmentBatches) || shipmentBatches.length === 0) return [];
-  
+  if (!Array.isArray(shipmentBatches) || shipmentBatches.length === 0)
+    return [];
+
   const columns = [
     'shipment_id',
     'fulfillment_id',
@@ -49,7 +50,7 @@ const insertShipmentBatchesBulk = async (shipmentBatches, client) => {
     'notes',
     'created_by',
   ];
-  
+
   const rows = shipmentBatches.map((b) => [
     b.shipment_id,
     b.fulfillment_id,
@@ -58,16 +59,16 @@ const insertShipmentBatchesBulk = async (shipmentBatches, client) => {
     b.notes ?? null,
     b.created_by ?? null,
   ]);
-  
+
   // Now uniqueness is per-fulfillment, per-batch
   const conflictColumns = ['fulfillment_id', 'batch_id'];
-  
+
   const updateStrategies = {
-    quantity_shipped: 'add',   // Add to existing shipped quantity
-    notes: 'merge_text',       // Concatenate notes
-    created_at: 'overwrite',   // Refresh timestamp if re-inserted
+    quantity_shipped: 'add', // Add to existing shipped quantity
+    notes: 'merge_text', // Concatenate notes
+    created_at: 'overwrite', // Refresh timestamp if re-inserted
   };
-  
+
   try {
     const result = await bulkInsert(
       'shipment_batches',
@@ -79,19 +80,19 @@ const insertShipmentBatchesBulk = async (shipmentBatches, client) => {
       { context: 'shipment-batch-repository/insertShipmentBatchesBulk' },
       'id'
     );
-    
+
     logSystemInfo('Successfully inserted or updated shipment batches', {
       context: 'shipment-batches-repository/insertShipmentBatchesBulk',
       insertedCount: result.length,
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to insert shipment batches', {
       context: 'shipment-batches-repository/insertShipmentBatchesBulk',
       shipmentBatchCount: shipmentBatches.length,
     });
-    
+
     throw AppError.databaseError('Failed to insert shipment batches', {
       cause: error,
     });

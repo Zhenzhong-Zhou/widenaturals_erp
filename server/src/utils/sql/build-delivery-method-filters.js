@@ -40,34 +40,36 @@ const buildDeliveryMethodFilter = (filters = {}) => {
     const conditions = ['1=1'];
     const params = [];
     let paramIndex = 1;
-    
+
     if (filters.methodName) {
       conditions.push(`dm.method_name = $${paramIndex}`);
       params.push(filters.methodName);
       paramIndex++;
     }
-    
+
     if (filters.isPickupLocation !== undefined) {
       conditions.push(`dm.is_pickup_location = $${paramIndex}`);
       params.push(filters.isPickupLocation);
       paramIndex++;
     }
-    
+
     if (filters.createdBy) {
       conditions.push(`dm.created_by = $${paramIndex}`);
       params.push(filters.createdBy);
       paramIndex++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`dm.updated_by = $${paramIndex}`);
       params.push(filters.updatedBy);
       paramIndex++;
     }
-    
+
     if (filters.keyword) {
       const keywordParam = `%${filters.keyword}%`;
-      conditions.push(`(dm.method_name ILIKE $${paramIndex} OR dm.description ILIKE $${paramIndex})`);
+      conditions.push(
+        `(dm.method_name ILIKE $${paramIndex} OR dm.description ILIKE $${paramIndex})`
+      );
       params.push(keywordParam);
       paramIndex++;
     }
@@ -82,19 +84,19 @@ const buildDeliveryMethodFilter = (filters = {}) => {
       params.push(filters._activeStatusId);
       paramIndex++;
     }
-    
+
     if (filters.createdAfter) {
       conditions.push(`dm.created_at >= $${paramIndex}`);
       params.push(filters.createdAfter);
       paramIndex++;
     }
-    
+
     if (filters.createdBefore) {
       conditions.push(`dm.created_at <= $${paramIndex}`);
       params.push(filters.createdBefore);
       paramIndex++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,

@@ -8,7 +8,7 @@ exports.up = async function (knex) {
 
     table.uuid('bom_id').notNullable().references('id').inTable('boms');
     table.uuid('part_id').notNullable().references('id').inTable('parts');
-    
+
     table.decimal('part_qty_per_product', 10, 3).notNullable(); // Required
     table.string('unit', 20).notNullable(); // 'pcs', 'g', etc.
 
@@ -20,7 +20,7 @@ exports.up = async function (knex) {
     table.decimal('estimated_unit_cost', 12, 4);
     table.string('currency', 5); // 'USD', 'CAD', etc.
     table.decimal('exchange_rate', 12, 6);
-    
+
     // Timestamps & authorship
     table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
     table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());

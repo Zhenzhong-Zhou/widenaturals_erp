@@ -57,7 +57,7 @@ const transformPaginatedResult = async (
       },
     };
   }
-  
+
   const { data = [], pagination = {} } = paginatedResult;
 
   const transformedItems = await Promise.all(data.map(transformFn));
@@ -201,27 +201,27 @@ const includeFlagsBasedOnAccess = (row, userAccess = {}) => {
     canViewAllValidLookups = false,
     allowAllSkus = false,
   } = userAccess;
-  
+
   if (!row) return {};
-  
+
   const result = {};
-  
+
   if (canViewAllStatuses) {
     result.isActive = row.isActive ?? false;
   }
-  
+
   if (canViewAllValidLookups) {
     result.isValidToday = row.isValidToday ?? false;
   }
-  
+
   if (allowAllSkus && 'isNormal' in row) {
     result.isNormal = row.isNormal;
-    
+
     if (!row.isNormal && Array.isArray(row.issueReasons)) {
       result.issueReasons = row.issueReasons;
     }
   }
-  
+
   return cleanObject(result);
 };
 

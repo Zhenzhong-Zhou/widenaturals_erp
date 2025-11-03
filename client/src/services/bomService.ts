@@ -1,5 +1,7 @@
 import type {
-  BomDetailsResponse, BomMaterialSupplyDetailsResponse,
+  BomDetailsResponse,
+  BomMaterialSupplyDetailsResponse,
+  BomProductionReadinessResponse,
   FetchBomsParams,
   FetchPaginatedBomsResponse,
 } from '@features/bom/state/bomTypes';
@@ -32,17 +34,17 @@ const fetchPaginatedBoms = async (
   params: FetchBomsParams = {}
 ): Promise<FetchPaginatedBomsResponse> => {
   const { filters = {}, ...rest } = params;
-  
+
   // Flatten nested filters into top-level query keys
   const flatParams = {
     ...rest,
     ...filters,
   };
-  
+
   // Build full URL with query string
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.BOMS.ALL_RECORDS}${queryString}`;
-  
+
   try {
     return await getRequest<FetchPaginatedBomsResponse>(url);
   } catch (error) {
@@ -69,11 +71,9 @@ const fetchPaginatedBoms = async (
  * const res = await bomService.fetchBomDetails('61bb1f94-aeb2-4724-b9b8-35023b165fdd');
  * console.log(res.data.header.product.name);
  */
-const fetchBomDetails = async (
-  bomId: string
-): Promise<BomDetailsResponse> => {
+const fetchBomDetails = async (bomId: string): Promise<BomDetailsResponse> => {
   const url = API_ENDPOINTS.BOMS.BOM_DETAILS(bomId);
-  
+
   try {
     return await getRequest<BomDetailsResponse>(url);
   } catch (error) {
@@ -106,11 +106,50 @@ const fetchBomMaterialSupplyDetails = async (
   bomId: string
 ): Promise<BomMaterialSupplyDetailsResponse> => {
   const url = API_ENDPOINTS.BOMS.BOM_MATERIAL_SUPPLY_DETAILS(bomId);
-  
+
   try {
     return await getRequest<BomMaterialSupplyDetailsResponse>(url);
   } catch (error) {
-    console.error('Failed to fetch BOM Material Supply Details:', { bomId, error });
+    console.error('Failed to fetch BOM Material Supply Details:', {
+      bomId,
+      error,
+    });
+    throw error;
+  }
+};
+
+/**
+ * Fetch production readiness summary for a specific BOM.
+ *
+ * Issues `GET /boms/:bomId/production-summary` to retrieve
+ * readiness metrics including:
+ * - Maximum producible units (based on part availability)
+ * - Bottleneck parts limiting production
+ * - Stock health and shortage overview
+ * - Detailed part-level material batch data
+ *
+ * Notes:
+ * - Used by the BOM Production Readiness / Production Summary page.
+ * - Provides both summary-level and detailed readiness breakdowns.
+ *
+ * @param bomId - The unique identifier of the BOM whose production readiness to fetch.
+ * @returns A promise resolving to {@link BomProductionReadinessResponse} containing
+ *          readiness metadata, bottleneck parts, and detailed material stock info.
+ * @throws Rethrows any network or parsing error encountered during the request.
+ *
+ * @example
+ * const res = await bomService.fetchBomProductionSummary('2a3bbd18-e63a-42b7-aa63-b6b4b6d416b4');
+ * console.log(res.data.metadata.maxProducibleUnits);
+ */
+const fetchBomProductionSummary = async (
+  bomId: string
+): Promise<BomProductionReadinessResponse> => {
+  const url = API_ENDPOINTS.BOMS.BOM_PRODUCTION_SUMMARY(bomId);
+
+  try {
+    return await getRequest<BomProductionReadinessResponse>(url);
+  } catch (error) {
+    console.error('Failed to fetch BOM Production Summary:', { bomId, error });
     throw error;
   }
 };
@@ -119,4 +158,5 @@ export const bomService = {
   fetchPaginatedBoms,
   fetchBomDetails,
   fetchBomMaterialSupplyDetails,
+  fetchBomProductionSummary,
 };

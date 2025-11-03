@@ -23,7 +23,7 @@ exports.seed = async function (knex) {
     'active',
     'id'
   );
-  
+
   const authActions = [
     { name: 'Login Success', description: 'User successfully logged in.' },
     { name: 'Logout', description: 'User logged out.' },

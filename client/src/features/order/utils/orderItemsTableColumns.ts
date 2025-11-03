@@ -14,7 +14,11 @@ export const getOrderItemColumns = (
       id: 'line_type',
       label: 'Type',
       renderCell: (row) =>
-        row.sku ? 'Product' : row.packagingMaterial ? 'Packaging Material' : '—',
+        row.sku
+          ? 'Product'
+          : row.packagingMaterial
+            ? 'Packaging Material'
+            : '—',
     },
     {
       id: 'product_or_material',
@@ -32,7 +36,7 @@ export const getOrderItemColumns = (
       id: 'sku_or_code',
       label: 'Code',
       renderCell: (row) =>
-        row.sku ? row.sku.code ?? '—' : row.packagingMaterial?.code ?? '—',
+        row.sku ? (row.sku.code ?? '—') : (row.packagingMaterial?.code ?? '—'),
     },
     {
       id: 'barcode',
@@ -47,7 +51,7 @@ export const getOrderItemColumns = (
     {
       id: 'priceName',
       label: 'Price Name',
-      renderCell: (row) => row.priceId ? formatLabel(row.priceTypeName) : '—',
+      renderCell: (row) => (row.priceId ? formatLabel(row.priceTypeName) : '—'),
     },
     {
       id: 'listPrice',
@@ -79,11 +83,11 @@ export const getOrderItemColumns = (
     },
     ...(handleDrillDownToggle
       ? [
-        createDrillDownColumn<OrderItem>(
-          (row) => handleDrillDownToggle(row.id),
-          (row) => expandedRowId === row.id
-        ),
-      ]
+          createDrillDownColumn<OrderItem>(
+            (row) => handleDrillDownToggle(row.id),
+            (row) => expandedRowId === row.id
+          ),
+        ]
       : []),
   ];
 };

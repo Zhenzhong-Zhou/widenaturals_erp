@@ -10,7 +10,10 @@ import type {
   CustomerOption,
   LookupPaginationMeta,
 } from '@features/lookup/state';
-import { adjustAfterDate, adjustBeforeDateInclusive } from '@utils/dateTimeUtils';
+import {
+  adjustAfterDate,
+  adjustBeforeDateInclusive,
+} from '@utils/dateTimeUtils';
 import { renderDateField, renderInputField } from '@utils/filters/filterUtils';
 
 interface Props {

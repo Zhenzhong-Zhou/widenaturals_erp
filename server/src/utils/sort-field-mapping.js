@@ -12,13 +12,13 @@ const SORTABLE_FIELDS = {
     skuCode: 's.sku',
     marketRegion: 's.market_region',
     sizeLabel: 's.size_label',
-    
+
     // --- Compliance level ---
     complianceType: 'c.type',
     complianceStatus: 'st_compliance.name',
     complianceIssuedDate: 'c.issued_date',
     complianceExpiryDate: 'c.expiry_date',
-    
+
     // --- BOM level ---
     bomCode: 'b.code',
     bomName: 'b.name',
@@ -27,13 +27,13 @@ const SORTABLE_FIELDS = {
     isDefault: 'b.is_default',
     bomStatus: 'st_bom.name',
     bomStatusDate: 'b.status_date',
-    
+
     // --- Audit fields ---
     createdAt: 'b.created_at',
     updatedAt: 'b.updated_at',
     createdBy: 'cu.firstname',
     updatedBy: 'uu.firstname',
-    
+
     // --- Complex / synthetic sorting ---
     defaultNaturalSort: `
       p.name ASC,
@@ -269,61 +269,61 @@ const SORTABLE_FIELDS = {
   orderSortMap: {
     orderNumber: 'o.order_number',
     orderDate: 'o.order_date',
-    
+
     // Order Type
     orderType: 'ot.name',
-    
+
     // Status
     statusName: 'os.name',
     statusDate: 'o.status_date',
-    
+
     // Audit fields
     createdAt: 'o.created_at',
     updatedAt: 'o.updated_at',
     createdBy: 'u1.firstname',
     updatedBy: 'u2.firstname',
-    
+
     // Default fallback sort
     defaultNaturalSort: 'o.created_at',
   },
   inventoryAllocationSortMap: {
     // Allocation-level summary fields (FROM alloc_agg aa)
-    allocationStatus: 'aa.allocation_summary_status',     // derived field
-    allocationStatusCodes: 'aa.allocation_status_codes',  // raw code array
-    allocationStatuses: 'aa.allocation_statuses',         // raw label string
+    allocationStatus: 'aa.allocation_summary_status', // derived field
+    allocationStatusCodes: 'aa.allocation_status_codes', // raw code array
+    allocationStatuses: 'aa.allocation_statuses', // raw label string
     allocatedAt: 'aa.allocated_at',
     allocatedCreatedAt: 'aa.allocated_created_at',
-    
+
     // Warehouse display info (FROM alloc_agg aa)
     warehouseNames: 'aa.warehouse_names',
-    
+
     // Order-level fields (FROM orders o)
     orderNumber: 'o.order_number',
     orderDate: 'o.created_at',
     orderType: 'ot.name',
     orderStatus: 'os.name',
     orderStatusDate: 'o.status_date',
-    
+
     // Customer
     customerName: `c.firstname`, // or use a concat if you have a full name
     customerFirstName: 'c.firstname',
     customerLastName: 'c.lastname',
-    
+
     // Payment-related
     paymentMethod: 'pm.name',
     paymentStatus: 'ps.name',
     deliveryMethod: 'dm.method_name',
-    
+
     // Audit fields
     orderCreatedAt: 'o.created_at',
     orderUpdatedAt: 'o.updated_at', // not selected, optional
     orderCreatedByFirstName: 'u.firstname',
     orderCreatedByLastName: 'u.lastname',
-    
+
     // Item counts
     totalItems: 'ic.total_items',
     allocatedItems: 'aa.allocated_items',
-    
+
     // Fallback default
     defaultNaturalSort: 'o.created_at',
   },
@@ -336,26 +336,26 @@ const SORTABLE_FIELDS = {
     expectedDeliveryDate: 'os.expected_delivery_date',
     createdAt: 'os.created_at',
     updatedAt: 'os.updated_at',
-    
+
     // Order-level fields (FROM orders o)
     orderId: 'os.order_id',
     orderNumber: 'o.order_number',
-    
+
     // Warehouse-level fields (FROM warehouses w)
     warehouseName: 'w.name',
-    
+
     // Delivery method (FROM delivery_methods dm)
     deliveryMethod: 'dm.method_name',
-    
+
     // Tracking info (FROM tracking_numbers tn)
     trackingNumber: 'tn.tracking_number',
-    
+
     // Audit fields (FROM users u1/u2)
     createdByFirstName: 'u1.firstname',
     createdByLastName: 'u1.lastname',
     updatedByFirstName: 'u2.firstname',
     updatedByLastName: 'u2.lastname',
-    
+
     // Default fallback
     defaultNaturalSort: 'os.created_at',
   },

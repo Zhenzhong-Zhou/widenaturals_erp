@@ -1,33 +1,38 @@
 import { type FC, useCallback, useMemo, useState } from 'react';
 import CustomMiniTable from '@components/common/CustomMiniTable';
-import type { FlattenedBomSupplyRow } from '@features/bom/state';
+import type { UnifiedBatchRow } from '@features/bom/state';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 import {
   BatchInfoSection,
+  BatchInventorySection,
   BomItemMetadataSection,
   getBomSupplyMiniTableColumns,
   PackagingMaterialSection,
+  PartMetadataSection,
   SupplierInfoSection,
 } from '@features/bom/components/BomOverview';
 import CustomTypography from '@components/common/CustomTypography';
 import SidePanelDrawer from '@components/common/SidePanelDrawer';
-import DetailsSection from '@components/common/DetailsSection';
 
+/**
+ * Mini table displaying batch-level data for a single BOM item.
+ * Supports unified display of supplier and readiness (inventory) info.
+ */
 interface BomItemSupplyMiniTableProps {
   /**
-   * Flattened supply data for a single BOM item.
-   * Each record represents a supplier–batch combination.
+   * Flattened unified batch data for this BOM item.
+   * Each record can originate from supplier, readiness, or merged source.
    */
-  data: FlattenedBomSupplyRow[];
-  
+  data: UnifiedBatchRow[];
+
   /**
    * Whether to show dynamic quantity columns (Available, Allocated, Required)
    * merged from the production summary API.
    * Defaults to `false`.
    */
   showQuantities?: boolean;
-  
+
   /**
    * Optional custom empty message when there’s no data.
    */
@@ -45,75 +50,94 @@ interface BomItemSupplyMiniTableProps {
  * <BomItemSupplyMiniTable data={flattenedSupplyRows} showQuantities />
  */
 const BomItemSupplyMiniTable: FC<BomItemSupplyMiniTableProps> = ({
-                                                                   data,
-                                                                   emptyMessage = 'No supply records found',
-                                                                 }) => {
-  const [selectedRow, setSelectedRow] = useState<FlattenedBomSupplyRow | null>(null);
+  data,
+  emptyMessage = 'No supply records found',
+}) => {
+  const [selectedRow, setSelectedRow] = useState<UnifiedBatchRow | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  
-  const handleOpenDetails = useCallback((row: FlattenedBomSupplyRow) => {
+
+  const handleOpenDetails = useCallback((row: UnifiedBatchRow) => {
     setSelectedRow(row);
     setDrawerOpen(true);
   }, []);
-  
+
   const handleCloseDrawer = useCallback(() => {
     setDrawerOpen(false);
   }, []);
-  
-  const columns = useMemo(() =>
-    getBomSupplyMiniTableColumns(handleOpenDetails), [handleOpenDetails]);
-  
+
+  const columns = useMemo(
+    () => getBomSupplyMiniTableColumns(handleOpenDetails),
+    [handleOpenDetails]
+  );
+
   return (
     <>
-      {/* === Main mini table of supplier/batch list === */}
-      <CustomMiniTable
+      {/* === Mini Table === */}
+      <CustomMiniTable<UnifiedBatchRow>
         columns={columns}
         data={data}
         emptyMessage={emptyMessage}
         dense
       />
-      
-      {/* === Drawer for detailed batch info === */}
+
+      {/* === Side Panel === */}
       <SidePanelDrawer
         open={drawerOpen}
         onClose={handleCloseDrawer}
         title="Batch Details"
-        width={640}          // Consistent with other feature drawers
-        anchor="right"       // Default alignment is right
+        width={640} // Consistent with other feature drawers
+        anchor="right" // Default alignment is right
       >
         {selectedRow ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {/* Scroll container inside drawer (so header stays sticky) */}
             <Box sx={{ overflowY: 'auto', pr: 1, pb: 3 }}>
-              
               {/* === Section: Part Metadata === */}
-              <DetailsSection
-                sectionTitle="Part Metadata"
-                fields={[{ label: 'Part Name', value: selectedRow.partName }]}
-              />
-              
+              {selectedRow?.sourceSupply && (
+                <PartMetadataSection row={selectedRow.sourceSupply} />
+              )}
+
+              <Divider sx={{ my: 3 }} />
+
               {/* === Section: Packaging Material === */}
-              <PackagingMaterialSection row={selectedRow} />
-              
+              {selectedRow?.sourceSupply && (
+                <PackagingMaterialSection row={selectedRow.sourceSupply} />
+              )}
+
               {/* === Visual divider between major domains === */}
               <Divider sx={{ my: 3 }} />
-              
+
               {/* === Section: BOM Item Metadata === */}
-              <BomItemMetadataSection row={selectedRow} />
-              
+              {selectedRow?.sourceSupply && (
+                <BomItemMetadataSection row={selectedRow.sourceSupply} />
+              )}
+
               <Divider sx={{ my: 3 }} />
-              
+
               {/* === Section: Supplier Contract Info === */}
-              <SupplierInfoSection row={selectedRow} />
-              
+              {selectedRow?.sourceSupply && (
+                <SupplierInfoSection row={selectedRow.sourceSupply} />
+              )}
+
               <Divider sx={{ my: 3 }} />
-              
+
               {/* === Section: Batch Information === */}
-              <BatchInfoSection row={selectedRow} />
+              {selectedRow?.sourceSupply && (
+                <BatchInfoSection row={selectedRow.sourceSupply} />
+              )}
+
+              <Divider sx={{ my: 3 }} />
+
+              {/* --- Section: Inventory (Readiness) Information --- */}
+              {selectedRow?.sourceReadiness && (
+                <BatchInventorySection row={selectedRow.sourceReadiness} />
+              )}
             </Box>
           </Box>
         ) : (
-          <CustomTypography variant="body2">No record selected</CustomTypography>
+          <CustomTypography variant="body2">
+            No record selected
+          </CustomTypography>
         )}
       </SidePanelDrawer>
     </>

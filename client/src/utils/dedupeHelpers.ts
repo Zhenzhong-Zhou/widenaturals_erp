@@ -1,4 +1,4 @@
-import type { Draft } from "@reduxjs/toolkit";
+import type { Draft } from '@reduxjs/toolkit';
 
 /**
  * Deduplicates an array of items by their `id` field.
@@ -29,17 +29,19 @@ export const dedupeById = <T extends { id: string }>(
  * - The array is already sorted in the desired order (e.g., from backend API).
  * - You want to keep the first-encountered item for each `value`.
  */
-export const dedupeByValuePreserveOrder = <T extends { value: string }>(items: T[]): T[] => {
+export const dedupeByValuePreserveOrder = <T extends { value: string }>(
+  items: T[]
+): T[] => {
   const seen = new Set<string>();
   const result: T[] = [];
-  
+
   for (const item of items) {
     if (!seen.has(item.value)) {
       seen.add(item.value);
       result.push(item);
     }
   }
-  
+
   return result;
 };
 
@@ -71,16 +73,18 @@ export const dedupeByValue = <T extends { value: string }>(
  * @example
  * const uniqueSupply = dedupeByBatchKey(supplyRows);
  */
-export const dedupeByBatchKey = <T extends { batchId?: string; supplierId?: string }>(
+export const dedupeByBatchKey = <
+  T extends { batchId?: string; supplierId?: string },
+>(
   items: T[]
 ): T[] => {
   const map = new Map<string, T>();
-  
+
   for (const item of items) {
     const key = item.batchId ?? item.supplierId;
     if (!key) continue;
     map.set(key, item); // last one wins
   }
-  
+
   return Array.from(map.values());
 };

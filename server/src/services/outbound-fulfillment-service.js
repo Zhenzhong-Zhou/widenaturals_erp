@@ -1,22 +1,39 @@
 const { withTransaction } = require('../database/db');
 const AppError = require('../utils/AppError');
-const { getOrderTypeMetaByOrderId } = require('../repositories/order-type-repository');
-const { getSalesOrderShipmentMetadata, fetchOrderMetadata } = require('../repositories/order-repository');
-const { insertOrderFulfillmentsBulk, getOrderFulfillments } = require('../repositories/order-fulfillment-repository');
-const { insertShipmentBatchesBulk } = require('../repositories/shipment-batch-repository');
+const {
+  getOrderTypeMetaByOrderId,
+} = require('../repositories/order-type-repository');
+const {
+  getSalesOrderShipmentMetadata,
+  fetchOrderMetadata,
+} = require('../repositories/order-repository');
+const {
+  insertOrderFulfillmentsBulk,
+  getOrderFulfillments,
+} = require('../repositories/order-fulfillment-repository');
+const {
+  insertShipmentBatchesBulk,
+} = require('../repositories/shipment-batch-repository');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const {
   getWarehouseInventoryQuantities,
-  bulkUpdateWarehouseQuantities
+  bulkUpdateWarehouseQuantities,
 } = require('../repositories/warehouse-inventory-repository');
-const { getOrderStatusByCode } = require('../repositories/order-status-repository');
-const { insertInventoryActivityLogs } = require('../repositories/inventory-log-repository');
-const { getInventoryActionTypeId } = require('../repositories/inventory-action-type-repository');
+const {
+  getOrderStatusByCode,
+} = require('../repositories/order-status-repository');
+const {
+  insertInventoryActivityLogs,
+} = require('../repositories/inventory-log-repository');
+const {
+  getInventoryActionTypeId,
+} = require('../repositories/inventory-action-type-repository');
 const {
   transformFulfillmentResult,
   transformAdjustedFulfillmentResult,
   transformPaginatedOutboundShipmentResults,
-  transformShipmentDetailsRows, transformPickupCompletionResult
+  transformShipmentDetailsRows,
+  transformPickupCompletionResult,
 } = require('../transformers/outbound-fulfillment-transformer');
 const {
   validateOrderIsFullyAllocated,
@@ -40,18 +57,33 @@ const {
   assertWarehouseUpdatesApplied,
   assertShipmentFound,
   validateStatusesBeforeConfirmation,
-  validateStatusesBeforeManualFulfillment, assertDeliveryMethodIsAllowed,
+  validateStatusesBeforeManualFulfillment,
+  assertDeliveryMethodIsAllowed,
 } = require('../business/outbound-fulfillment-business');
-const { getAllocationStatuses } = require('../repositories/inventory-allocations-repository');
-const { validateAllocationStatusTransition } = require('../business/inventory-allocation-business');
-const { getShipmentStatusByCode } = require('../repositories/shipment-status-repository');
-const { getFulfillmentStatusByCode, getFulfillmentStatusesByIds } = require('../repositories/fulfillment-status-repository');
-const { getInventoryAllocationStatusId } = require('../repositories/inventory-allocation-status-repository');
+const {
+  getAllocationStatuses,
+} = require('../repositories/inventory-allocations-repository');
+const {
+  validateAllocationStatusTransition,
+} = require('../business/inventory-allocation-business');
+const {
+  getShipmentStatusByCode,
+} = require('../repositories/shipment-status-repository');
+const {
+  getFulfillmentStatusByCode,
+  getFulfillmentStatusesByIds,
+} = require('../repositories/fulfillment-status-repository');
+const {
+  getInventoryAllocationStatusId,
+} = require('../repositories/inventory-allocation-status-repository');
 const {
   getPaginatedOutboundShipmentRecords,
-  getShipmentDetailsById, getShipmentByShipmentId
+  getShipmentDetailsById,
+  getShipmentByShipmentId,
 } = require('../repositories/outbound-shipment-repository');
-const { getOrderItemsByOrderId } = require('../repositories/order-item-repository');
+const {
+  getOrderItemsByOrderId,
+} = require('../repositories/order-item-repository');
 
 /**
  * Service: fulfillOutboundShipmentService
@@ -117,38 +149,49 @@ const fulfillOutboundShipmentService = async (requestData, user) => {
         allocations,
         fulfillmentNotes,
         shipmentNotes,
-        shipmentBatchNote
+        shipmentBatchNote,
       } = requestData;
-      
+
       const nextAllocationStepCode = 'ALLOC_FULFILLING';
-      
+
       // 1. Validate that the order is fully allocated (no partial/missing allocations)
       await validateOrderIsFullyAllocated(rawOrderId, client);
-      
+
       // 2. Fetch and lock allocations for the given order and allocation IDs
-      const { allocationMeta } = await getAndLockAllocations(rawOrderId, allocations.ids, client);
-      
+      const { allocationMeta } = await getAndLockAllocations(
+        rawOrderId,
+        allocations.ids,
+        client
+      );
+
       // 3. Ensure all allocations belong to the same warehouse
       const warehouseId = assertSingleWarehouseAllocations(allocationMeta);
-      
+
       // 4. Validate allocation statuses — must be allowed to transition to ALLOC_FULFILLING
-      const orderItemIds = allocationMeta.map(item => item.order_item_id);
-      const allocationStatuses = await getAllocationStatuses(rawOrderId, orderItemIds,  client);
+      const orderItemIds = allocationMeta.map((item) => item.order_item_id);
+      const allocationStatuses = await getAllocationStatuses(
+        rawOrderId,
+        orderItemIds,
+        client
+      );
       allocationStatuses.forEach(({ allocation_status_code: code }) => {
         validateAllocationStatusTransition(code, nextAllocationStepCode);
       });
-      
+
       const orderId = allocationStatuses[0]?.order_id;
-      
+
       // 5. Fetch order metadata including type category and number
-      const { order_id, order_type_category } = await getOrderTypeMetaByOrderId(orderId, client);
-      
+      const { order_id, order_type_category } = await getOrderTypeMetaByOrderId(
+        orderId,
+        client
+      );
+
       // 6. Optionally fetch delivery method ID — varies by order type.
       // - For 'sales' orders, delivery method is stored in `sales_orders`.
       // - For 'transfer' orders, you may add logic later to fetch from `transfer_orders`.
       // - 'manufacturing' and other types do not require delivery info at this stage.
       let shipmentMeta = {};
-      
+
       if (order_type_category === 'sales') {
         shipmentMeta = await getSalesOrderShipmentMetadata(order_id, client);
       } else if (order_type_category === 'transfer') {
@@ -160,7 +203,7 @@ const fulfillOutboundShipmentService = async (requestData, user) => {
         // Fallback: no shipment metadata.
         shipmentMeta = {};
       }
-      
+
       // 7. Insert outbound shipment row
       const shipmentRow = await insertOutboundShipmentRecord(
         order_id,
@@ -170,7 +213,7 @@ const fulfillOutboundShipmentService = async (requestData, user) => {
         userId,
         client
       );
-      
+
       // 8. Insert order fulfillment(s) for the allocation
       const fulfillmentInputs = buildFulfillmentInputsFromAllocations(
         allocationMeta,
@@ -182,18 +225,20 @@ const fulfillOutboundShipmentService = async (requestData, user) => {
         fulfillmentInputs,
         client
       );
-      
+
       if (!Array.isArray(fulfillmentRows) || !fulfillmentRows.length) {
-        throw new Error('No fulfillment rows returned from insertOrderFulfillmentsBulk()');
+        throw new Error(
+          'No fulfillment rows returned from insertOrderFulfillmentsBulk()'
+        );
       }
-      
+
       const fulfillmentRowsWithStatus = fulfillmentRows.map((row, idx) => ({
         ...row,
         status_id: fulfillmentInputs[idx].status_id,
       }));
-      
+
       // TODO: lockRows allocations
-      
+
       // 9. Insert shipment batch linking the allocation and shipment
       // For each allocationMeta + its fulfillmentRow
       const shipmentBatchInputs = allocationMeta.flatMap((meta) => {
@@ -201,11 +246,13 @@ const fulfillOutboundShipmentService = async (requestData, user) => {
         const fulfillment = fulfillmentRows.find(
           (f) => f.order_item_id === meta.order_item_id
         );
-        
+
         if (!fulfillment) {
-          throw new Error(`No fulfillment found for allocation ${meta.id} (order_item_id=${meta.order_item_id})`);
+          throw new Error(
+            `No fulfillment found for allocation ${meta.id} (order_item_id=${meta.order_item_id})`
+          );
         }
-        
+
         return buildShipmentBatchInputs(
           [meta],
           shipmentRow.id,
@@ -218,26 +265,29 @@ const fulfillOutboundShipmentService = async (requestData, user) => {
         shipmentBatchInputs,
         client
       );
-      
+
       // 10. Update high-level order + allocation statuses
-      const {
-        id: newStatusId,
-      } = await getOrderStatusByCode('ORDER_PROCESSING', client);
-      const newAllocationStatusId = await getInventoryAllocationStatusId(nextAllocationStepCode, client);
-      
-      const { orderStatusRow, orderItemStatusRow } =
-        await updateAllStatuses({
-          orderId: order_id,
-          allocationMeta,
-          newOrderStatusId: newStatusId,
-          newAllocationStatusId,
-          fulfillments: [],
-          newFulfillmentStatusId: null,
-          newShipmentStatusId: null,
-          userId,
-          client,
-        });
-      
+      const { id: newStatusId } = await getOrderStatusByCode(
+        'ORDER_PROCESSING',
+        client
+      );
+      const newAllocationStatusId = await getInventoryAllocationStatusId(
+        nextAllocationStepCode,
+        client
+      );
+
+      const { orderStatusRow, orderItemStatusRow } = await updateAllStatuses({
+        orderId: order_id,
+        allocationMeta,
+        newOrderStatusId: newStatusId,
+        newAllocationStatusId,
+        fulfillments: [],
+        newFulfillmentStatusId: null,
+        newShipmentStatusId: null,
+        userId,
+        client,
+      });
+
       // 11. Log success
       logSystemInfo('Outbound shipment created and linked to allocations', {
         context: 'outbound-fulfillment-service/fulfillOutboundShipmentService',
@@ -350,33 +400,36 @@ const confirmOutboundFulfillmentService = async (requestData, user) => {
         shipmentStatus,
         fulfillmentStatus,
       } = requestData;
-      
+
       // --- 1. Validate and fetch order metadata
       const orderMeta = await getOrderTypeMetaByOrderId(rawOrderId, client);
       assertOrderMeta(orderMeta);
       const { order_id: orderId, order_number: orderNumber } = orderMeta;
-      
+
       // Fetch current order status (for workflow validation)
       const { order_status_code } = await fetchOrderMetadata(orderId, client);
-      
+
       // --- 2. Fetch and lock allocations for this order
-      const { allocationMeta, warehouseBatchKeys } = await getAndLockAllocations(orderId, null, client);
-      
+      const { allocationMeta, warehouseBatchKeys } =
+        await getAndLockAllocations(orderId, null, client);
+
       // --- 3. Fetch existing fulfillments for the order
       const fulfillments = await getOrderFulfillments({ orderId }, client);
       assertFulfillmentsValid(fulfillments, orderNumber);
-      
+
       // --- 4. Resolve unique shipment ID from fulfillments
-      const uniqueShipmentIds = [...new Set(fulfillments.map(f => f.shipment_id))];
+      const uniqueShipmentIds = [
+        ...new Set(fulfillments.map((f) => f.shipment_id)),
+      ];
       if (uniqueShipmentIds.length > 1) {
         throw AppError.validationError(
           'Multiple shipment IDs detected — cannot confirm multiple shipments in a single transaction.',
           { context: 'confirmOutboundFulfillmentService' }
         );
       }
-      
+
       const shipmentId = uniqueShipmentIds[0];
-      
+
       // Optional: check for mismatch between request and derived shipment
       if (requestData.shipmentId && requestData.shipmentId !== shipmentId) {
         logSystemInfo('Shipment ID mismatch detected', {
@@ -385,52 +438,79 @@ const confirmOutboundFulfillmentService = async (requestData, user) => {
           actualShipmentId: shipmentId,
         });
       }
-      
+
       // --- 5. Fetch shipment record and assert existence
       const shipment = await getShipmentByShipmentId(shipmentId, client);
       assertShipmentFound(shipment, shipmentId);
-      
+
       // --- 6. Fetch fulfillment status metadata
-      const fulfillmentStatusIds = fulfillments.map(f => f.status_id);
-      const fulfillmentStatusMeta = await getFulfillmentStatusesByIds(fulfillmentStatusIds, client);
-      
+      const fulfillmentStatusIds = fulfillments.map((f) => f.status_id);
+      const fulfillmentStatusMeta = await getFulfillmentStatusesByIds(
+        fulfillmentStatusIds,
+        client
+      );
+
       // --- 7. Validate workflow eligibility before confirmation
       validateStatusesBeforeConfirmation({
         orderStatusCode: order_status_code,
-        fulfillmentStatuses: fulfillmentStatusMeta.map(s => s.code),
+        fulfillmentStatuses: fulfillmentStatusMeta.map((s) => s.code),
         shipmentStatusCode: shipment.status_code,
       });
-      
+
       // --- 8. Fetch inventory snapshot for affected batches
-      const inventoryMeta = await getWarehouseInventoryQuantities(warehouseBatchKeys, client);
+      const inventoryMeta = await getWarehouseInventoryQuantities(
+        warehouseBatchKeys,
+        client
+      );
       assertInventoryCoverage(inventoryMeta);
-      
+
       // --- 9. Enrich allocations with current inventory data
-      const enrichedAllocations = enrichAllocationsWithInventory(allocationMeta, inventoryMeta);
+      const enrichedAllocations = enrichAllocationsWithInventory(
+        allocationMeta,
+        inventoryMeta
+      );
       assertEnrichedAllocations(enrichedAllocations);
-      
+
       // --- 10. Compute inventory adjustments (delta quantities)
       const updatesObject = calculateInventoryAdjustments(enrichedAllocations);
       assertInventoryAdjustments(updatesObject);
-      
+
       // TODO: lockRows warehouse_inventory, inventory_allocations
-      
+
       // --- 11. Apply bulk inventory updates (qty + reserved qty)
-      const warehouseInventoryIds = await bulkUpdateWarehouseQuantities(updatesObject, userId, client);
-      assertWarehouseUpdatesApplied(warehouseInventoryIds, { updates: updatesObject });
-      
+      const warehouseInventoryIds = await bulkUpdateWarehouseQuantities(
+        updatesObject,
+        userId,
+        client
+      );
+      assertWarehouseUpdatesApplied(warehouseInventoryIds, {
+        updates: updatesObject,
+      });
+
       // --- 12. Resolve new status IDs for transition
-      const { id: newOrderStatusId } = await getOrderStatusByCode(orderStatus, client);
-      const newAllocationStatusId = await getInventoryAllocationStatusId(allocationStatus, client);
-      const { id: newShipmentStatusId } = await getShipmentStatusByCode(shipmentStatus, client);
-      const { id: newFulfillmentStatusId } = await getFulfillmentStatusByCode(fulfillmentStatus, client);
-      
+      const { id: newOrderStatusId } = await getOrderStatusByCode(
+        orderStatus,
+        client
+      );
+      const newAllocationStatusId = await getInventoryAllocationStatusId(
+        allocationStatus,
+        client
+      );
+      const { id: newShipmentStatusId } = await getShipmentStatusByCode(
+        shipmentStatus,
+        client
+      );
+      const { id: newFulfillmentStatusId } = await getFulfillmentStatusByCode(
+        fulfillmentStatus,
+        client
+      );
+
       assertStatusesResolved({
         orderStatusId: newOrderStatusId,
         shipmentStatusId: newShipmentStatusId,
         fulfillmentStatusId: newFulfillmentStatusId,
       });
-      
+
       // --- 13. Update statuses across all linked entities
       const {
         orderStatusRow,
@@ -450,13 +530,18 @@ const confirmOutboundFulfillmentService = async (requestData, user) => {
         userId,
         client,
       });
-      
+
       // --- 14. Insert inventory activity logs
-      const inventoryActionTypeId = await getInventoryActionTypeId('fulfilled', client);
+      const inventoryActionTypeId = await getInventoryActionTypeId(
+        'fulfilled',
+        client
+      );
       assertActionTypeIdResolved(inventoryActionTypeId, 'fulfilled');
-      
-      const logs = fulfillments.flatMap(f => {
-        const allocation = enrichedAllocations.find(a => a.allocation_id === f.allocation_id);
+
+      const logs = fulfillments.flatMap((f) => {
+        const allocation = enrichedAllocations.find(
+          (a) => a.allocation_id === f.allocation_id
+        );
         if (!allocation) return [];
         return buildInventoryActivityLogs([allocation], updatesObject, {
           inventoryActionTypeId,
@@ -467,18 +552,19 @@ const confirmOutboundFulfillmentService = async (requestData, user) => {
           orderNumber,
         });
       });
-      
+
       assertLogsGenerated(logs, 'build');
       const logMetadata = await insertInventoryActivityLogs(logs, client);
       assertLogsGenerated(logMetadata, 'insert');
-      
+
       // --- 15. Log success
       logSystemInfo('Outbound fulfillment successfully confirmed', {
-        context: 'outbound-fulfillment-service/confirmOutboundFulfillmentService',
+        context:
+          'outbound-fulfillment-service/confirmOutboundFulfillmentService',
         orderId,
         userId,
       });
-      
+
       // --- 16. Return structured confirmation result
       return transformAdjustedFulfillmentResult({
         orderId,
@@ -500,7 +586,7 @@ const confirmOutboundFulfillmentService = async (requestData, user) => {
       orderId: requestData?.orderId,
       userId: user?.id,
     });
-    
+
     throw AppError.serviceError('Unable to confirm outbound fulfillment.', {
       cause: error,
       context: 'outbound-fulfillment-service/confirmOutboundFulfillmentService',
@@ -562,12 +648,12 @@ const confirmOutboundFulfillmentService = async (requestData, user) => {
  * ```
  */
 const fetchPaginatedOutboundFulfillmentService = async ({
-                                                           filters = {},
-                                                           page = 1,
-                                                           limit = 10,
-                                                           sortBy = 'created_at',
-                                                           sortOrder = 'DESC',
-                                                         }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'created_at',
+  sortOrder = 'DESC',
+}) => {
   try {
     // Step 1: Query raw paginated outbound shipment rows from repository
     const rawResult = await getPaginatedOutboundShipmentRecords({
@@ -577,16 +663,17 @@ const fetchPaginatedOutboundFulfillmentService = async ({
       sortBy,
       sortOrder,
     });
-    
+
     // Step 2: Handle no results
     if (!rawResult || rawResult.data.length === 0) {
       logSystemInfo('No outbound shipment records found', {
-        context: 'outbound-fulfillment-service/fetchPaginatedOutboundFulfillmentService',
+        context:
+          'outbound-fulfillment-service/fetchPaginatedOutboundFulfillmentService',
         filters,
         pagination: { page, limit },
         sort: { sortBy, sortOrder },
       });
-      
+
       return {
         data: [],
         pagination: {
@@ -597,29 +684,37 @@ const fetchPaginatedOutboundFulfillmentService = async ({
         },
       };
     }
-    
+
     // Step 3: Transform raw SQL rows into clean API-ready objects
     const result = transformPaginatedOutboundShipmentResults(rawResult);
-    
+
     // Step 4: Log success
     logSystemInfo('Fetched paginated outbound shipment records', {
-      context: 'outbound-fulfillment-service/fetchPaginatedOutboundFulfillmentService',
+      context:
+        'outbound-fulfillment-service/fetchPaginatedOutboundFulfillmentService',
       filters,
       pagination: result.pagination,
       sort: { sortBy, sortOrder },
     });
-    
+
     return result;
   } catch (error) {
     // Step 5: Log exception and rethrow as service-level error
-    logSystemException(error, 'Failed to fetch paginated outbound shipment records', {
-      context: 'outbound-fulfillment-service/fetchPaginatedOutboundFulfillmentService',
-      filters,
-      pagination: { page, limit },
-      sort: { sortBy, sortOrder },
-    });
-    
-    throw AppError.serviceError('Could not fetch outbound shipments. Please try again later.');
+    logSystemException(
+      error,
+      'Failed to fetch paginated outbound shipment records',
+      {
+        context:
+          'outbound-fulfillment-service/fetchPaginatedOutboundFulfillmentService',
+        filters,
+        pagination: { page, limit },
+        sort: { sortBy, sortOrder },
+      }
+    );
+
+    throw AppError.serviceError(
+      'Could not fetch outbound shipments. Please try again later.'
+    );
   }
 };
 
@@ -645,26 +740,26 @@ const fetchPaginatedOutboundFulfillmentService = async ({
 const fetchShipmentDetailsService = async (shipmentId) => {
   try {
     const rawRows = await getShipmentDetailsById(shipmentId);
-    
+
     if (!rawRows || rawRows.length === 0) {
       throw AppError.notFoundError(`Shipment not found for ID=${shipmentId}`);
     }
-    
+
     const transformed = transformShipmentDetailsRows(rawRows);
-    
+
     logSystemInfo('Fetched and transformed shipment details', {
       context: 'outbound-fulfillment-service/fetchShipmentDetailsService',
       shipmentId,
       rowCount: rawRows?.length ?? 0,
     });
-    
+
     return transformed;
   } catch (error) {
     logSystemException(error, 'Failed to fetch shipment details', {
       context: 'outbound-fulfillment-service/fetchShipmentDetailsService',
       shipmentId,
     });
-    
+
     throw AppError.serviceError('Failed to fetch shipment details', {
       shipmentId,
       cause: error,
@@ -725,92 +820,118 @@ const completeManualFulfillmentService = async (requestData, user) => {
         shipmentStatus,
         fulfillmentStatus,
       } = requestData;
-      
+
       // --- Step 1: Fetch and validate shipment record
       // Ensures the provided shipment exists and retrieves its associated order ID
       const shipment = await getShipmentByShipmentId(rawShipmentId, client);
       assertShipmentFound(shipment, rawShipmentId);
-      
+
       const { order_id, status_code, delivery_method_name } = shipment;
-      assertDeliveryMethodIsAllowed(delivery_method_name)
-      
+      assertDeliveryMethodIsAllowed(delivery_method_name);
+
       const orderId = order_id;
       logSystemInfo('Step 1: Shipment record fetched', {
-        context: 'outbound-fulfillment-service/completeManualFulfillmentService',
+        context:
+          'outbound-fulfillment-service/completeManualFulfillmentService',
         shipmentId: rawShipmentId,
         orderId,
         currentShipmentStatus: status_code,
       });
-      
+
       // --- Step 2: Retrieve and validate all fulfillments linked to the order
       const fulfillments = await getOrderFulfillments({ orderId }, client);
       if (!fulfillments?.length) {
         throw AppError.validationError(
           `No fulfillments found for order ID ${orderId}.`,
-          { context: 'outbound-fulfillment-service/completeManualFulfillmentService' }
+          {
+            context:
+              'outbound-fulfillment-service/completeManualFulfillmentService',
+          }
         );
       }
-      
+
       // Validate fulfillments all reference the same order
-      const orderIds = [...new Set(fulfillments.map(f => f.order_id))];
+      const orderIds = [...new Set(fulfillments.map((f) => f.order_id))];
       if (orderIds.length !== 1 || orderIds[0] !== order_id) {
         throw AppError.validationError(
           'Mismatched order_id between shipment and fulfillments',
-          { context: 'outbound-fulfillment-service/completeManualFulfillmentService' }
+          {
+            context:
+              'outbound-fulfillment-service/completeManualFulfillmentService',
+          }
         );
       }
-      
+
       // --- Step 3: Fetch current fulfillment status metadata
-      const fulfillmentStatusIds = fulfillments.map(f => f.status_id);
-      const fulfillmentStatusMeta = await getFulfillmentStatusesByIds(fulfillmentStatusIds, client);
-      
+      const fulfillmentStatusIds = fulfillments.map((f) => f.status_id);
+      const fulfillmentStatusMeta = await getFulfillmentStatusesByIds(
+        fulfillmentStatusIds,
+        client
+      );
+
       // --- Step 4: Fetch order metadata and verify existence
       const orderMeta = await getOrderTypeMetaByOrderId(orderId, client);
       assertOrderMeta(orderMeta);
       const { order_number: orderNumber } = orderMeta;
-      
+
       // --- Step 5: Fetch order and order item metadata
       const { order_status_code } = await fetchOrderMetadata(orderId, client);
       const orderItemMetadata = await getOrderItemsByOrderId(orderId, client);
-      
+
       // Derive order item IDs safely
       const orderItemIds = Array.isArray(orderItemMetadata)
         ? orderItemMetadata.map((oi) => oi.order_item_id).filter(Boolean)
         : [];
-      
+
       logSystemInfo('Step 5: Order, items, and fulfillment metadata fetched', {
-        context: 'outbound-fulfillment-service/completeManualFulfillmentService',
+        context:
+          'outbound-fulfillment-service/completeManualFulfillmentService',
         orderId,
         orderNumber,
         currentOrderStatus: order_status_code,
         orderItemIds,
-        fulfillmentStatuses: fulfillmentStatusMeta.map(s => s.code),
+        fulfillmentStatuses: fulfillmentStatusMeta.map((s) => s.code),
         shipmentStatusCode: status_code,
       });
-      
+
       // --- Step 6: Retrieve allocation status metadata for validation
-      const allocationStatusMetadata = await getAllocationStatuses(orderId, orderItemIds, client);
-      
+      const allocationStatusMetadata = await getAllocationStatuses(
+        orderId,
+        orderItemIds,
+        client
+      );
+
       // --- Step 7: Validate status readiness for manual fulfillment completion
       validateStatusesBeforeManualFulfillment({
         orderStatusCode: order_status_code,
-        orderItemStatusCode: orderItemMetadata.map(oi => oi.order_item_code),
-        allocationStatuses: allocationStatusMetadata.map(ia => ia.allocation_status_code),
+        orderItemStatusCode: orderItemMetadata.map((oi) => oi.order_item_code),
+        allocationStatuses: allocationStatusMetadata.map(
+          (ia) => ia.allocation_status_code
+        ),
         shipmentStatusCode: status_code,
-        fulfillmentStatuses: fulfillmentStatusMeta.map(s => s.code),
+        fulfillmentStatuses: fulfillmentStatusMeta.map((s) => s.code),
       });
-      
+
       // --- Step 8: Resolve target status IDs from codes
-      const { id: newOrderStatusId } = await getOrderStatusByCode(orderStatus, client);
-      const { id: newShipmentStatusId } = await getShipmentStatusByCode(shipmentStatus, client);
-      const { id: newFulfillmentStatusId } = await getFulfillmentStatusByCode(fulfillmentStatus, client);
-      
+      const { id: newOrderStatusId } = await getOrderStatusByCode(
+        orderStatus,
+        client
+      );
+      const { id: newShipmentStatusId } = await getShipmentStatusByCode(
+        shipmentStatus,
+        client
+      );
+      const { id: newFulfillmentStatusId } = await getFulfillmentStatusByCode(
+        fulfillmentStatus,
+        client
+      );
+
       assertStatusesResolved({
         orderStatusId: newOrderStatusId,
         shipmentStatusId: newShipmentStatusId,
         fulfillmentStatusId: newFulfillmentStatusId,
       });
-      
+
       // --- Step 9: Perform atomic status updates across entities
       const {
         orderStatusRow,
@@ -829,10 +950,11 @@ const completeManualFulfillmentService = async (requestData, user) => {
         userId,
         client,
       });
-      
+
       // --- Step 10: Log success with contextual metadata
       logSystemInfo('Manual fulfillment successfully completed', {
-        context: 'outbound-fulfillment-service/completeManualFulfillmentService',
+        context:
+          'outbound-fulfillment-service/completeManualFulfillmentService',
         orderId,
         shipmentId: rawShipmentId,
         newStatuses: {
@@ -841,7 +963,7 @@ const completeManualFulfillmentService = async (requestData, user) => {
           fulfillmentStatus,
         },
       });
-      
+
       // --- Step 11: Return normalized transformer output
       return transformPickupCompletionResult({
         orderStatusRow,
@@ -857,7 +979,7 @@ const completeManualFulfillmentService = async (requestData, user) => {
       requestData,
       userId: user?.id,
     });
-    
+
     throw AppError.serviceError('Manual fulfillment transaction failed', {
       context: 'outbound-fulfillment-service/completeManualFulfillmentService',
       cause: error.message,

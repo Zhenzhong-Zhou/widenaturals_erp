@@ -1,7 +1,8 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  type ConfirmOutboundFulfillmentRequest, confirmOutboundFulfillmentThunk,
+  type ConfirmOutboundFulfillmentRequest,
+  confirmOutboundFulfillmentThunk,
   selectConfirmFulfillmentSummary,
 } from '@features/outboundFulfillment/state';
 import { resetConfirmationState } from '@features/outboundFulfillment/state/confirmOutboundFulfillmentSlice';
@@ -19,12 +20,12 @@ import { resetConfirmationState } from '@features/outboundFulfillment/state/conf
  */
 const useConfirmOutboundFulfillment = () => {
   const dispatch = useAppDispatch();
-  
+
   // Select memoized state
   const { data, loading, error, lastConfirmedAt, isSuccess } = useAppSelector(
     selectConfirmFulfillmentSummary
   );
-  
+
   // Submit (confirm) handler — memoized to avoid unnecessary re-renders
   const submitConfirmation = useCallback(
     async (request: ConfirmOutboundFulfillmentRequest) => {
@@ -32,12 +33,12 @@ const useConfirmOutboundFulfillment = () => {
     },
     [dispatch]
   );
-  
+
   // Reset state handler
   const resetConfirmation = useCallback(() => {
     dispatch(resetConfirmationState());
   }, [dispatch]);
-  
+
   // Memoized return value for stable reference
   return useMemo(
     () => ({
@@ -49,7 +50,15 @@ const useConfirmOutboundFulfillment = () => {
       submitConfirmation,
       resetConfirmation,
     }),
-    [data, loading, error, isSuccess, lastConfirmedAt, submitConfirmation, resetConfirmation]
+    [
+      data,
+      loading,
+      error,
+      isSuccess,
+      lastConfirmedAt,
+      submitConfirmation,
+      resetConfirmation,
+    ]
   );
 };
 

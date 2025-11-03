@@ -14,11 +14,11 @@ import { resetCustomerAddresses } from '@features/lookup/state/addressByCustomer
  */
 const useCustomerAddressesLookup = () => {
   const dispatch = useAppDispatch();
-  
+
   const options = useAppSelector(selectCustomerAddressLookupData);
   const loading = useAppSelector(selectCustomerAddressLookupLoading);
   const error = useAppSelector(selectCustomerAddressLookupError);
-  
+
   /**
    * Triggers address lookup by customer ID.
    */
@@ -28,21 +28,24 @@ const useCustomerAddressesLookup = () => {
     },
     [dispatch]
   );
-  
+
   /**
    * Resets customer address lookup state (data, loading, error).
    */
   const reset = useCallback(() => {
     dispatch(resetCustomerAddresses());
   }, [dispatch]);
-  
-  return useMemo(() => ({
-    options,
-    loading,
-    error,
-    fetch,
-    reset,
-  }), [options, loading, error, fetch, reset]);
+
+  return useMemo(
+    () => ({
+      options,
+      loading,
+      error,
+      fetch,
+      reset,
+    }),
+    [options, loading, error, fetch, reset]
+  );
 };
 
 export default useCustomerAddressesLookup;

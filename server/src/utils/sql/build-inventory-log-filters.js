@@ -79,7 +79,7 @@ const buildInventoryLogWhereClause = (filters = {}) => {
       conditions.push(`ial.inventory_action_type_id = ANY($${paramIndex++})`);
       params.push(toPgArray(filters.actionTypeIds));
     }
-    
+
     if (filters.adjustmentTypeIds?.length) {
       conditions.push(`ial.adjustment_type_id = ANY($${paramIndex++})`);
       params.push(filters.adjustmentTypeIds);

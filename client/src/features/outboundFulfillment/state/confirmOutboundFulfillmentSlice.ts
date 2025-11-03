@@ -2,7 +2,7 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type {
   ConfirmOutboundFulfillmentResponse,
   ConfirmOutboundFulfillmentState,
-} from '../state/outboundFulfillmentTypes';
+} from './outboundFulfillmentTypes';
 import { confirmOutboundFulfillmentThunk } from './outboundFulfillmentThunks';
 
 /**
@@ -44,11 +44,14 @@ export const confirmOutboundFulfillmentSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(confirmOutboundFulfillmentThunk.fulfilled, (state, action: PayloadAction<ConfirmOutboundFulfillmentResponse>) => {
-        state.loading = false;
-        state.data = action.payload.data;
-        state.lastConfirmedAt = new Date().toISOString();
-      })
+      .addCase(
+        confirmOutboundFulfillmentThunk.fulfilled,
+        (state, action: PayloadAction<ConfirmOutboundFulfillmentResponse>) => {
+          state.loading = false;
+          state.data = action.payload.data;
+          state.lastConfirmedAt = new Date().toISOString();
+        }
+      )
       .addCase(confirmOutboundFulfillmentThunk.rejected, (state, action) => {
         state.loading = false;
         state.error =
@@ -58,7 +61,8 @@ export const confirmOutboundFulfillmentSlice = createSlice({
 });
 
 // Export reducer and reset action for use in components
-export const { resetConfirmationState } = confirmOutboundFulfillmentSlice.actions;
+export const { resetConfirmationState } =
+  confirmOutboundFulfillmentSlice.actions;
 
 // Export reducer for store registration
 export default confirmOutboundFulfillmentSlice.reducer;

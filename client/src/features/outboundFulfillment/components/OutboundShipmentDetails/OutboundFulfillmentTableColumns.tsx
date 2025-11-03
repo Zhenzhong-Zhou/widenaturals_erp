@@ -17,7 +17,10 @@
  */
 
 import type { Column } from '@components/common/CustomTable';
-import type { FlattenedBatchRow, FlattenedFulfillmentRow } from '@features/outboundFulfillment/state';
+import type {
+  FlattenedBatchRow,
+  FlattenedFulfillmentRow,
+} from '@features/outboundFulfillment/state';
 import { getFallbackValue } from '@utils/objectUtils';
 import { formatFulfillmentStatus } from '@utils/formatters';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
@@ -49,9 +52,9 @@ import { formatLabel } from '@utils/textUtils';
  */
 export const outboundFulfillmentTableColumns = (
   expandedRowId?: string | null,
-  handleDrillDownToggle?: (id: string) => void,
+  handleDrillDownToggle?: (id: string) => void
 ): Column<FlattenedFulfillmentRow>[] => {
-  return  [
+  return [
     {
       id: 'item',
       label: 'Item',
@@ -61,7 +64,8 @@ export const outboundFulfillmentTableColumns = (
     {
       id: 'sku_or_code',
       label: 'SKU / Code',
-      renderCell: (row) => getFallbackValue(row.skuCode, row.packagingMaterialCode),
+      renderCell: (row) =>
+        getFallbackValue(row.skuCode, row.packagingMaterialCode),
     },
     {
       id: 'barcode',
@@ -100,16 +104,15 @@ export const outboundFulfillmentTableColumns = (
     {
       id: 'fulfillmentAt',
       label: 'Fulfillment At',
-      renderCell: (row) =>
-        formatDateTime(row.fulfilledAt),
+      renderCell: (row) => formatDateTime(row.fulfilledAt),
     },
     ...(handleDrillDownToggle
       ? [
-        createDrillDownColumn<FlattenedFulfillmentRow>(
-          (row) => handleDrillDownToggle(row.fulfillmentId),
-          (row) => expandedRowId === row.fulfillmentId
-        ),
-      ]
+          createDrillDownColumn<FlattenedFulfillmentRow>(
+            (row) => handleDrillDownToggle(row.fulfillmentId),
+            (row) => expandedRowId === row.fulfillmentId
+          ),
+        ]
       : []),
   ];
 };
@@ -132,40 +135,41 @@ export const outboundFulfillmentTableColumns = (
  *   data={fulfillment.batches}
  * />
  */
-export const outboundFulfillmentBatchColumns: MiniColumn<FlattenedBatchRow>[] = [
-  {
-    id: 'batchType',
-    label: 'Type',
-    renderCell: (row) => formatLabel(row.batchType ?? '—'),
-  },
-  {
-    id: 'lotNumber',
-    label: 'Lot #',
-    renderCell: (row) => row.lotNumber ?? '—',
-  },
-  {
-    id: 'expiryDate',
-    label: 'Expiry',
-    renderCell: (row) => formatDate(row.expiryDate),
-  },
-  {
-    id: 'quantityShipped',
-    label: 'Shipped Qty',
-    renderCell: (row) => row.quantityShipped ?? '—',
-  },
-  {
-    id: 'createdAt',
-    label: 'Created At',
-    renderCell: (row) => formatDateTime(row.createdAt) ?? '—',
-  },
-  {
-    id: 'createdByName',
-    label: 'Created By',
-    renderCell: (row) => row.createdByName ?? '—',
-  },
-  {
-    id: 'notes',
-    label: 'Notes',
-    renderCell: (row) => row.notes ?? '—',
-  },
-];
+export const outboundFulfillmentBatchColumns: MiniColumn<FlattenedBatchRow>[] =
+  [
+    {
+      id: 'batchType',
+      label: 'Type',
+      renderCell: (row) => formatLabel(row.batchType ?? '—'),
+    },
+    {
+      id: 'lotNumber',
+      label: 'Lot #',
+      renderCell: (row) => row.lotNumber ?? '—',
+    },
+    {
+      id: 'expiryDate',
+      label: 'Expiry',
+      renderCell: (row) => formatDate(row.expiryDate),
+    },
+    {
+      id: 'quantityShipped',
+      label: 'Shipped Qty',
+      renderCell: (row) => row.quantityShipped ?? '—',
+    },
+    {
+      id: 'createdAt',
+      label: 'Created At',
+      renderCell: (row) => formatDateTime(row.createdAt) ?? '—',
+    },
+    {
+      id: 'createdByName',
+      label: 'Created By',
+      renderCell: (row) => row.createdByName ?? '—',
+    },
+    {
+      id: 'notes',
+      label: 'Notes',
+      renderCell: (row) => row.notes ?? '—',
+    },
+  ];

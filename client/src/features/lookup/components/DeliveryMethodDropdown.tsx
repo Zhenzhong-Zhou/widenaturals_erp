@@ -3,10 +3,16 @@ import type { DeliveryMethodLookupQueryParams } from '@features/lookup/state';
 import type { PaginatedDropdownProps } from '@components/common/PaginatedDropdown';
 import PaginatedDropdown from '@components/common/PaginatedDropdown';
 import CustomTypography from '@components/common/CustomTypography';
-import { faBan, faHelicopter, faStore, faTruck } from '@fortawesome/free-solid-svg-icons';
+import {
+  faBan,
+  faHelicopter,
+  faStore,
+  faTruck,
+} from '@fortawesome/free-solid-svg-icons';
 import { getRawLabel } from '@utils/labelHelpers';
 
-type DeliveryMethodDropdownProps = PaginatedDropdownProps<DeliveryMethodLookupQueryParams>;
+type DeliveryMethodDropdownProps =
+  PaginatedDropdownProps<DeliveryMethodLookupQueryParams>;
 
 /**
  * Dropdown component for selecting a delivery method from the lookup list.
@@ -24,24 +30,27 @@ type DeliveryMethodDropdownProps = PaginatedDropdownProps<DeliveryMethodLookupQu
  * @component
  * @param {DeliveryMethodDropdownProps} props - Props controlling dropdown behavior.
  */
-const DeliveryMethodDropdown = ({ options = [], ...rest }: DeliveryMethodDropdownProps) => {
+const DeliveryMethodDropdown = ({
+  options = [],
+  ...rest
+}: DeliveryMethodDropdownProps) => {
   const enrichedDeliveryMethodOptions = useMemo(() => {
     return Array.from(
       new Map(
         options.map((opt) => {
           const isInactive = opt.isActive === false;
           const isPickup = opt.isPickupLocation === true;
-          
+
           // Always keep plain string for Autocomplete input
           const rawLabel = getRawLabel(opt.label);
-          
+
           // JSX version for dropdown rendering
           const displayLabel = (
             <CustomTypography color={isInactive ? 'error' : 'inherit'}>
               {rawLabel}
             </CustomTypography>
           );
-          
+
           // Icon logic
           const icon = isInactive
             ? faBan
@@ -50,7 +59,7 @@ const DeliveryMethodDropdown = ({ options = [], ...rest }: DeliveryMethodDropdow
               : rawLabel.toLowerCase().includes('drone')
                 ? faHelicopter
                 : faTruck;
-          
+
           // Tooltip logic
           const tooltip = isInactive
             ? 'Inactive Delivery Method'
@@ -59,13 +68,9 @@ const DeliveryMethodDropdown = ({ options = [], ...rest }: DeliveryMethodDropdow
               : rawLabel.toLowerCase().includes('drone')
                 ? 'Drone Delivery'
                 : 'Delivery Method';
-          
-          const iconColor = isInactive
-            ? 'gray'
-            : isPickup
-              ? 'blue'
-              : 'green';
-          
+
+          const iconColor = isInactive ? 'gray' : isPickup ? 'blue' : 'green';
+
           return [
             opt.value ?? opt.id,
             {
@@ -81,7 +86,7 @@ const DeliveryMethodDropdown = ({ options = [], ...rest }: DeliveryMethodDropdow
       ).values()
     );
   }, [options]);
-  
+
   return (
     <PaginatedDropdown
       label="Select Delivery Method"

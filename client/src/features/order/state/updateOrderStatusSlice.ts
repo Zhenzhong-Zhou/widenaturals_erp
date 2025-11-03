@@ -1,5 +1,8 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { UpdateOrderStatusResponse, UpdateOrderStatusState } from './orderTypes';
+import type {
+  UpdateOrderStatusResponse,
+  UpdateOrderStatusState,
+} from './orderTypes';
 import { updateOrderStatusThunk } from '@features/order/state/orderThunks';
 
 const initialState: UpdateOrderStatusState = {
@@ -24,10 +27,13 @@ const updateOrderStatusSlice = createSlice({
         state.error = null;
         state.data = null;
       })
-      .addCase(updateOrderStatusThunk.fulfilled, (state, action: PayloadAction<UpdateOrderStatusResponse>) => {
-        state.loading = false;
-        state.data = action.payload;
-      })
+      .addCase(
+        updateOrderStatusThunk.fulfilled,
+        (state, action: PayloadAction<UpdateOrderStatusResponse>) => {
+          state.loading = false;
+          state.data = action.payload;
+        }
+      )
       .addCase(updateOrderStatusThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload ?? 'Failed to update order status';

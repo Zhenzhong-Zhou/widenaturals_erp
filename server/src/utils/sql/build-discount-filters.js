@@ -40,31 +40,31 @@ const buildDiscountFilter = (filters = {}) => {
     const conditions = ['1=1'];
     const params = [];
     let paramIndex = 1;
-    
+
     if (filters.name) {
       conditions.push(`d.name = $${paramIndex}`);
       params.push(filters.name);
       paramIndex++;
     }
-    
+
     if (filters.discountType) {
       conditions.push(`d.discount_type = $${paramIndex}`);
       params.push(filters.discountType);
       paramIndex++;
     }
-    
+
     if (filters.validFrom) {
       conditions.push(`d.valid_from >= $${paramIndex}`);
       params.push(filters.validFrom);
       paramIndex++;
     }
-    
+
     if (filters.validTo) {
       conditions.push(`d.valid_to <= $${paramIndex}`);
       params.push(filters.validTo);
       paramIndex++;
     }
-    
+
     if (filters.validOn) {
       conditions.push(`(
         d.valid_from <= $${paramIndex} AND
@@ -73,22 +73,24 @@ const buildDiscountFilter = (filters = {}) => {
       params.push(filters.validOn);
       paramIndex++;
     }
-    
+
     if (filters.createdBy) {
       conditions.push(`d.created_by = $${paramIndex}`);
       params.push(filters.createdBy);
       paramIndex++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`d.updated_by = $${paramIndex}`);
       params.push(filters.updatedBy);
       paramIndex++;
     }
-    
+
     if (filters.keyword) {
       const keywordParam = `%${filters.keyword}%`;
-      conditions.push(`(d.name ILIKE $${paramIndex} OR d.description ILIKE $${paramIndex})`);
+      conditions.push(
+        `(d.name ILIKE $${paramIndex} OR d.description ILIKE $${paramIndex})`
+      );
       params.push(keywordParam);
       paramIndex++;
     }
@@ -98,7 +100,7 @@ const buildDiscountFilter = (filters = {}) => {
       conditions.push(`d.valid_from <= NOW()`);
       conditions.push(`(d.valid_to IS NULL OR d.valid_to >= NOW())`);
     }
-    
+
     if (filters.statusId) {
       conditions.push(`d.status_id = $${paramIndex}`);
       params.push(filters.statusId);
@@ -109,19 +111,19 @@ const buildDiscountFilter = (filters = {}) => {
       params.push(filters._activeStatusId);
       paramIndex++;
     }
-    
+
     if (filters.createdAfter) {
       conditions.push(`d.created_at >= $${paramIndex}`);
       params.push(filters.createdAfter);
       paramIndex++;
     }
-    
+
     if (filters.createdBefore) {
       conditions.push(`d.created_at <= $${paramIndex}`);
       params.push(filters.createdBefore);
       paramIndex++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,

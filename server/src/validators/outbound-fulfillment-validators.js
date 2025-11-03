@@ -8,7 +8,7 @@ const {
   validateOptionalUUID,
   createdDateRangeSchema,
   shippedDateRangeSchema,
-  paginationSchema
+  paginationSchema,
 } = require('./general-validators');
 
 /**
@@ -235,14 +235,14 @@ const outboundFulfillmentQuerySchema = paginationSchema
     statusIds: validateUUIDOrUUIDArrayOptional('Shipment Status IDs'),
     warehouseIds: validateUUIDOrUUIDArrayOptional('Warehouse IDs'),
     deliveryMethodIds: validateUUIDOrUUIDArrayOptional('Delivery Method IDs'),
-    
+
     createdBy: validateOptionalUUID('Shipment Created By User ID'),
     updatedBy: validateOptionalUUID('Shipment Updated By User ID'),
-    
+
     // --- Order-level filters ---
     orderId: validateOptionalUUID('Order ID'),
     orderNumber: validateOptionalString('Order Number'),
-    
+
     // --- Keyword search ---
     keyword: validateOptionalString(
       'Keyword for fuzzy matching (order number, warehouse, delivery method)'

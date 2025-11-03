@@ -1,6 +1,9 @@
 const { getProductDisplayName } = require('../utils/display-name-utils');
 const { getFullName } = require('../utils/name-utils');
-const { transformPaginatedResult, includeFlagsBasedOnAccess } = require('../utils/transformer-utils');
+const {
+  transformPaginatedResult,
+  includeFlagsBasedOnAccess,
+} = require('../utils/transformer-utils');
 const { cleanObject } = require('../utils/object-utils');
 
 /**

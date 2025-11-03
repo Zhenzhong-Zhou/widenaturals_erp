@@ -44,5 +44,6 @@ export const inventoryAllocationConfirmationSlice = createSlice({
   },
 });
 
-export const { resetConfirmationState } = inventoryAllocationConfirmationSlice.actions;
+export const { resetConfirmationState } =
+  inventoryAllocationConfirmationSlice.actions;
 export default inventoryAllocationConfirmationSlice.reducer;

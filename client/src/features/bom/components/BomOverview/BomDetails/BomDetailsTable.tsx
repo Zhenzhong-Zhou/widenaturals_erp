@@ -1,7 +1,7 @@
 import { type FC, useCallback, useMemo, useState } from 'react';
 import type {
-  BomItemWithSupply,
-  FlattenedBomDetailRow
+  BomItemWithSupplyAndReadiness,
+  FlattenedBomDetailRow,
 } from '@features/bom/state/bomTypes';
 import Box from '@mui/material/Box';
 import CustomTable from '@components/common/CustomTable';
@@ -9,14 +9,15 @@ import CustomTypography from '@components/common/CustomTypography';
 import {
   BomPartExpandedSection,
   getBomDetailsTableColumns,
-  BomItemSupplyMiniTable
+  BomItemSupplyMiniTable,
 } from '@features/bom/components/BomOverview';
+import { mergeBatchesForDisplay } from '@features/bom/utils/mergeBomOverviewData';
 
 /**
  * Props for the BOM Details Table component.
  */
 interface BomDetailsTableProps {
-  mergedData: BomItemWithSupply[];
+  mergedData: BomItemWithSupplyAndReadiness[];
   /** Indicates if the data is currently loading. */
   loading?: boolean;
   /** Total number of BOM items (used for single-page pagination). */
@@ -38,30 +39,34 @@ interface BomDetailsTableProps {
  * />
  */
 const BomDetailsTable: FC<BomDetailsTableProps> = ({
-                                                     mergedData,
-                                                     loading,
-                                                     itemCount,
-                                                   }) => {
+  mergedData,
+  loading,
+  itemCount,
+}) => {
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-  
+
   const handleDrillDownToggle = (rowId: string) => {
     setExpandedRowId((prev) => (prev === rowId ? null : rowId));
   };
-  
+
   const columns = useMemo(
     () => getBomDetailsTableColumns(expandedRowId, handleDrillDownToggle),
     [expandedRowId]
   );
-  
+
   const renderExpandedContent = useCallback(
     (row: FlattenedBomDetailRow) => {
       const matched = mergedData.find(
         (item) => item.details.bomItemId === row.bomItemId
       );
-      
-      const supplyData = matched?.supplyDetails ?? [];
-      const hasSupply = supplyData.length > 0;
-      
+
+      const mergedBatchData = mergeBatchesForDisplay(
+        matched?.supplyDetails,
+        matched?.readinessDetails
+      );
+
+      const hasBatches = mergedBatchData.length > 0;
+
       return (
         <Box
           sx={{
@@ -85,14 +90,14 @@ const BomDetailsTable: FC<BomDetailsTableProps> = ({
           >
             <BomPartExpandedSection row={row} />
           </Box>
-          
-          {/* --- Supply info section --- */}
+
+          {/* --- Combined batch info section --- */}
           <Box
             sx={{
               borderRadius: 1,
-              bgcolor: hasSupply ? 'background.paper' : 'transparent',
-              boxShadow: hasSupply ? (theme) => theme.shadows[1] : 'none',
-              p: hasSupply ? 1.5 : 0,
+              bgcolor: hasBatches ? 'background.paper' : 'transparent',
+              boxShadow: hasBatches ? (theme) => theme.shadows[1] : 'none',
+              p: hasBatches ? 1.5 : 0,
             }}
           >
             <Box
@@ -107,21 +112,21 @@ const BomDetailsTable: FC<BomDetailsTableProps> = ({
                 variant="subtitle2"
                 sx={{ fontWeight: 600, color: 'text.primary' }}
               >
-                Supplier Batch Info
+                Supplier & Inventory Batches
               </CustomTypography>
             </Box>
-            
-            {hasSupply ? (
+
+            {hasBatches ? (
               <BomItemSupplyMiniTable
-                data={supplyData}
-                emptyMessage="No supplier batches found"
+                data={mergedBatchData}
+                emptyMessage="No batch data available"
               />
             ) : (
               <CustomTypography
                 variant="body2"
                 sx={{ color: 'text.secondary', fontStyle: 'italic', p: 1 }}
               >
-                No supplier batches found.
+                No batch data available.
               </CustomTypography>
             )}
           </Box>
@@ -130,7 +135,7 @@ const BomDetailsTable: FC<BomDetailsTableProps> = ({
     },
     [mergedData]
   );
-  
+
   return (
     <Box>
       {/* --- Header --- */}
@@ -144,7 +149,7 @@ const BomDetailsTable: FC<BomDetailsTableProps> = ({
           BOM Details
         </CustomTypography>
       </Box>
-      
+
       {/* --- Table --- */}
       <CustomTable
         columns={columns}

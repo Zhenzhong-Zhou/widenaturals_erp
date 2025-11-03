@@ -39,10 +39,11 @@ exports.up = async function (knex) {
 
     table.timestamp('created_at').defaultTo(knex.fn.now());
     table.timestamp('updated_at').defaultTo(knex.fn.now());
-    
-    table.unique(['order_id', 'warehouse_id'],
-      { indexName: 'outbound_shipments_order_id_warehouse_id_unique' });
-    
+
+    table.unique(['order_id', 'warehouse_id'], {
+      indexName: 'outbound_shipments_order_id_warehouse_id_unique',
+    });
+
     // Performance Optimization
     table.index(['order_id', 'warehouse_id', 'tracking_number_id']);
     table.index('status_id');

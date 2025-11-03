@@ -1,12 +1,19 @@
 import { type RefObject, useCallback } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import type { MultiItemFormRef } from '@components/common/MultiItemForm';
-import type { CreateSalesOrderForm, CreateSalesOrderInput, OrderItemInput } from '@features/order/state';
+import type {
+  CreateSalesOrderForm,
+  CreateSalesOrderInput,
+  OrderItemInput,
+} from '@features/order/state';
 
 interface UseSalesOrderSubmissionParams {
   form: UseFormReturn<CreateSalesOrderForm>;
   itemFormRef: RefObject<MultiItemFormRef | null>;
-  handleSubmitSalesOrder: (orderType: string, payload: CreateSalesOrderInput) => Promise<void>;
+  handleSubmitSalesOrder: (
+    orderType: string,
+    payload: CreateSalesOrderInput
+  ) => Promise<void>;
 }
 
 // tiny helpers
@@ -16,33 +23,37 @@ const toNumberOrUndefined = (v: any) => {
 };
 
 const stripUndefined = <T extends Record<string, any>>(obj: T): T =>
-  Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as T;
+  Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => v !== undefined)
+  ) as T;
 
 /**
  * Returns a memoized `handleFullSubmit` function to process and submit the full sales order form.
  */
 const useSalesOrderSubmission = ({
-                                   form,
-                                   itemFormRef,
-                                   handleSubmitSalesOrder,
-                                 }: UseSalesOrderSubmissionParams) => {
+  form,
+  itemFormRef,
+  handleSubmitSalesOrder,
+}: UseSalesOrderSubmissionParams) => {
   const handleFullSubmit = useCallback(async () => {
     const rawFormValues = form.getValues();
     const rawItems = itemFormRef.current?.getItems() || [];
-    
+
     const {
       billing_same_as_shipping,
       address_section_label,
       address_placeholder,
       ...formValues
     } = rawFormValues;
-    
+
     const cleanedItems: OrderItemInput[] = rawItems
       // drop rows with neither sku nor packaging selected
       .filter((it) => it?.sku_id || it?.packaging_material_id)
       .map((it) => {
         const lineType: 'sku' | 'packaging_material' =
-          it.line_type === 'packaging_material' || it.packaging_material_id ? 'packaging_material' : 'sku';
+          it.line_type === 'packaging_material' || it.packaging_material_id
+            ? 'packaging_material'
+            : 'sku';
 
         const quantity_ordered = toNumberOrUndefined(it.quantity_ordered) ?? 0;
         const override = !!it.override_price;
@@ -67,21 +78,25 @@ const useSalesOrderSubmission = ({
           return stripUndefined(item as OrderItemInput);
         }
       });
-    
+
     const exchange_rate =
       formValues.currency_code === 'CAD' || !formValues.exchange_rate
         ? 1
         : Number(formValues.exchange_rate);
-    
-    const order_date = new Date(formValues.order_date || Date.now()).toISOString();
-    
+
+    const order_date = new Date(
+      formValues.order_date || Date.now()
+    ).toISOString();
+
     if (formValues.discount_id === '') {
       delete formValues.discount_id;
     }
-    
+
     const shipping_fee =
-      String(formValues.shipping_fee ?? '').trim() === '' ? 0 : Number(formValues.shipping_fee);
-    
+      String(formValues.shipping_fee ?? '').trim() === ''
+        ? 0
+        : Number(formValues.shipping_fee);
+
     const payload: CreateSalesOrderInput = {
       ...formValues,
       order_date,
@@ -92,10 +107,10 @@ const useSalesOrderSubmission = ({
       shipping_fee,
       order_items: cleanedItems,
     };
-    
+
     await handleSubmitSalesOrder('sales', payload);
   }, [form, itemFormRef, handleSubmitSalesOrder]);
-  
+
   return { handleFullSubmit };
 };
 
