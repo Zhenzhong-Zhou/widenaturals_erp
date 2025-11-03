@@ -87,7 +87,7 @@ export const getOutboundFulfillmentTableColumns = (
       renderCell: (row) => formatLabel(row.audit?.createdBy?.fullName) ?? '—',
     },
   ];
-  
+
   if (onDrillDownToggle) {
     columns.push(
       createDrillDownColumn<OutboundShipmentRecord>(
@@ -96,6 +96,6 @@ export const getOutboundFulfillmentTableColumns = (
       )
     );
   }
-  
+
   return columns;
 };

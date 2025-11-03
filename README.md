@@ -9,11 +9,8 @@ A web-based ERP system designed to streamline the management of inventory, order
 1. [Getting Started](#getting-started)
 2. [Prerequisites](#prerequisites)
 3. [Installation](#installation)
-4. [Running the Project](#running-the-project)
-5. [Running Tests](#running-tests)
-6. [Directory Structure](#directory-structure)
-7. [Development Commands](#development-commands)
-8. [License](#license)
+4. [Development Commands](#development-commands)
+5. [License](#license)
 
 ---
 
@@ -200,10 +197,10 @@ Before starting, ensure you have the following installed:
   /usr/bin/node /path/to/backup-scheduler.js
   ```
   **Run the following command to see if cron is restricted for your user:**:
-  `bash
- sudo crontab -l
- crontab -l
- `
+  ```bash
+    sudo crontab -l
+    crontab -l
+  ```
   **Monitor Logs:**:
 
 ```bash

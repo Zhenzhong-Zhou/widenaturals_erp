@@ -4,9 +4,8 @@ import type { RootState } from '@store/store';
 /**
  * Base selector — gets the confirmOutboundFulfillment slice state.
  */
-export const selectConfirmOutboundFulfillmentState = (
-  state: RootState
-) => state.confirmOutboundFulfillment;
+export const selectConfirmOutboundFulfillmentState = (state: RootState) =>
+  state.confirmOutboundFulfillment;
 
 /**
  * Selector: data

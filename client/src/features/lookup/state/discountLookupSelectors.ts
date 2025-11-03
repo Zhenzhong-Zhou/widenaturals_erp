@@ -4,7 +4,10 @@ import {
   createLookupMetaSelector,
   mapLookupItems,
 } from '../utils/lookupSelectorUtils';
-import type { DiscountLookupItem, LookupOption } from '@features/lookup/state/lookupTypes';
+import type {
+  DiscountLookupItem,
+  LookupOption,
+} from '@features/lookup/state/lookupTypes';
 
 /**
  * Base selector for the discount lookup slice.
@@ -39,7 +42,9 @@ export const selectDiscountLookupError = createSelector(
  * Selects pagination metadata for the discount lookup slice.
  * Includes `hasMore`, `limit`, and `offset` used for pagination controls.
  */
-export const selectDiscountLookupMeta = createLookupMetaSelector(selectDiscountLookupState);
+export const selectDiscountLookupMeta = createLookupMetaSelector(
+  selectDiscountLookupState
+);
 
 /**
  * Selector that transforms discount lookup items into dropdown options.

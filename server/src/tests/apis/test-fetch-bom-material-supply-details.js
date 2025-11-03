@@ -19,49 +19,62 @@
 const { performance } = require('perf_hooks');
 const chalk = require('chalk');
 const { pool } = require('../../database/db');
-const { fetchBomMaterialSupplyDetailsService } = require('../../services/bom-item-service');
-const { logSystemException, logSystemInfo } = require('../../utils/system-logger');
+const {
+  fetchBomMaterialSupplyDetailsService,
+} = require('../../services/bom-item-service');
+const {
+  logSystemException,
+  logSystemInfo,
+} = require('../../utils/system-logger');
 
 (async () => {
   const logPrefix = chalk.cyan('[Test: BOM_DETAILS]');
   const startTime = performance.now();
   let client;
-  
+
   try {
     console.log(`${logPrefix} 🚀 Starting BOM Material Supply Details test...`);
-    
+
     // --- Step 1: Connect to DB ---
     client = await pool.connect();
     console.log(`${logPrefix} ✅ Database connection established.`);
-    
+
     // --- Step 2: Load test user ---
     const { rows: users } = await client.query(
       `SELECT id, role_id FROM users WHERE email = $1 LIMIT 1`,
       ['root@widenaturals.com']
     );
-    
+
     if (users.length === 0) {
       throw new Error('No test user found with email root@widenaturals.com');
     }
-    
+
     const testUser = { id: users[0].id, roleId: users[0].role_id };
-    console.log(`${logPrefix} 👤 Using test user: ${chalk.green(JSON.stringify(testUser))}`);
-    
+    console.log(
+      `${logPrefix} 👤 Using test user: ${chalk.green(JSON.stringify(testUser))}`
+    );
+
     // --- Step 3: Define test BOM ID ---
     const bomId = 'a1a654fb-cb9a-4fd8-9de4-e3aa4546fe84'; // ⚙️ Replace with valid BOM ID
-    console.log(`${logPrefix} 🧩 Fetching BOM Details for ID: ${chalk.yellow(bomId)}`);
-    
+    console.log(
+      `${logPrefix} 🧩 Fetching BOM Details for ID: ${chalk.yellow(bomId)}`
+    );
+
     // --- Step 4: Execute service ---
-    console.log(`${logPrefix} ▶️ Calling fetchBomMaterialSupplyDetailsService...`);
+    console.log(
+      `${logPrefix} ▶️ Calling fetchBomMaterialSupplyDetailsService...`
+    );
     const result = await fetchBomMaterialSupplyDetailsService(bomId);
-    
+
     if (!result || !Array.isArray(result)) {
-      throw new Error('Service returned unexpected result (null or invalid structure).');
+      throw new Error(
+        'Service returned unexpected result (null or invalid structure).'
+      );
     }
-    
+
     // --- Step 5: Display result summary ---
     console.log(`${logPrefix} ✅ Service execution completed successfully.\n`);
-    
+
     // Calculate high-level summary
     const summary = result.summary || {};
     console.log(chalk.bold(`${logPrefix} 💰 BOM Cost Summary:`));
@@ -72,10 +85,12 @@ const { logSystemException, logSystemInfo } = require('../../utils/system-logger
       VariancePercentage: `${summary.variancePercentage ?? '—'}%`,
       BaseCurrency: summary.baseCurrency ?? '—',
     });
-    
+
     // Show BOM item count
-    console.log(`${logPrefix} 🧱 Total BOM Items: ${chalk.green(result.length)}`);
-    
+    console.log(
+      `${logPrefix} 🧱 Total BOM Items: ${chalk.green(result.length)}`
+    );
+
     // Show a compact per-item cost breakdown
     console.log(chalk.bold(`${logPrefix} 🧾 BOM Item Breakdown:`));
     result.forEach((item, i) => {
@@ -83,18 +98,18 @@ const { logSystemException, logSystemInfo } = require('../../utils/system-logger
         `  ${chalk.yellow(i + 1)}. ${item.part?.name || 'Unknown'} — ${item.packagingMaterials?.length || 0} materials`
       );
     });
-    
+
     // --- Optional: Deep inspection (toggleable) ---
     const showFullDetails = true; // 👈 Toggle this if you want the deep view
     if (showFullDetails) {
       console.log(chalk.bold(`\n${logPrefix} 🪶 Full Object (Deep View):`));
       console.dir(result, { depth: null, colors: true });
     }
-    
+
     // --- Step 6: Log timing ---
     const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
     console.log(`${logPrefix} ⏱️ Completed in ${chalk.green(`${elapsed}s`)}.`);
-    
+
     // Log structured success
     logSystemInfo('BOM Material Supply Details test completed successfully', {
       context: 'test-fetch-bom-details',
@@ -102,14 +117,18 @@ const { logSystemException, logSystemInfo } = require('../../utils/system-logger
       elapsedSeconds: elapsed,
       recordCount: result?.length || 0,
     });
-    
+
     process.exitCode = 0;
   } catch (error) {
     console.error(`${logPrefix} ❌ Error: ${chalk.red(error.message)}`);
-    logSystemException(error, 'Manual test for fetchBomMaterialSupplyDetailsService failed', {
-      context: 'test-fetch-bom-details',
-      severity: 'error',
-    });
+    logSystemException(
+      error,
+      'Manual test for fetchBomMaterialSupplyDetailsService failed',
+      {
+        context: 'test-fetch-bom-details',
+        severity: 'error',
+      }
+    );
     process.exitCode = 1;
   } finally {
     // --- Step 7: Cleanup ---

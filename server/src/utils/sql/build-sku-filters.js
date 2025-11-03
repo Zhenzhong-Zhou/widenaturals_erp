@@ -46,25 +46,27 @@ const buildWhereClauseAndParams = (
     const conditions = [];
     const params = [];
     let paramIndex = 1;
-    
+
     if (!options.allowAllSkus) {
       if (!productStatusId) {
-        throw AppError.validationError('productStatusId is required when allowAllSkus is false');
+        throw AppError.validationError(
+          'productStatusId is required when allowAllSkus is false'
+        );
       }
-      
+
       // Enforce active status filtering when not bypassing
       conditions.push(`p.status_id = $${paramIndex}`);
       conditions.push(`s.status_id = $${paramIndex}`);
       params.push(productStatusId);
       paramIndex++;
     }
-    
+
     // Basic filters
     for (const [key, value] of Object.entries(filters)) {
       if (value !== undefined && value !== null && value !== '') {
         const field = fieldMap[key];
         if (!field && key !== 'keyword') continue;
-        
+
         if (key === 'keyword') {
           if (typeof keywordHandler === 'function') {
             const { condition, values } = keywordHandler(value, paramIndex);
@@ -85,15 +87,19 @@ const buildWhereClauseAndParams = (
         }
       }
     }
-    
+
     // Conditional EXISTS clauses for stock availability
     const existsClauses = [];
-    
-    if (options.requireAvailableStock && !options.allowAllSkus && (stockSource === 'warehouse' || stockSource === 'both')) {
+
+    if (
+      options.requireAvailableStock &&
+      !options.allowAllSkus &&
+      (stockSource === 'warehouse' || stockSource === 'both')
+    ) {
       const warehouseAlias = 'wi';
       const batchAlias = 'br';
       const productBatchAlias = 'pb';
-      
+
       let clause = `
         EXISTS (
           SELECT 1
@@ -103,31 +109,35 @@ const buildWhereClauseAndParams = (
           WHERE ${productBatchAlias}.sku_id = s.id
             AND ${warehouseAlias}.warehouse_quantity > 0
       `;
-      
+
       if (options.batchStatusId) {
         clause += ` AND ${productBatchAlias}.status_id = $${paramIndex++}`;
         params.push(options.batchStatusId);
       }
-      
+
       if (options.inventoryStatusId) {
         clause += ` AND ${warehouseAlias}.status_id = $${paramIndex++}`;
         params.push(options.inventoryStatusId);
       }
-      
+
       if (options.warehouseId) {
         clause += ` AND ${warehouseAlias}.warehouse_id = $${paramIndex++}`;
         params.push(options.warehouseId);
       }
-      
+
       clause += `)`;
       existsClauses.push(clause);
     }
-    
-    if (options.requireAvailableStock && !options.allowAllSkus && (stockSource === 'location' || stockSource === 'both')) {
+
+    if (
+      options.requireAvailableStock &&
+      !options.allowAllSkus &&
+      (stockSource === 'location' || stockSource === 'both')
+    ) {
       const locInvAlias = 'li';
       const batchAlias = 'br2';
       const productBatchAlias = 'pb2';
-      
+
       let clause = `
         EXISTS (
           SELECT 1
@@ -137,33 +147,34 @@ const buildWhereClauseAndParams = (
           WHERE ${productBatchAlias}.sku_id = s.id
             AND ${locInvAlias}.location_quantity > 0
       `;
-      
+
       if (options.batchStatusId) {
         clause += ` AND ${productBatchAlias}.status_id = $${paramIndex++}`;
         params.push(options.batchStatusId);
       }
-      
+
       if (options.inventoryStatusId) {
         clause += ` AND ${locInvAlias}.status_id = $${paramIndex++}`;
         params.push(options.inventoryStatusId);
       }
-      
+
       if (options.locationId) {
         clause += ` AND ${locInvAlias}.location_id = $${paramIndex++}`;
         params.push(options.locationId);
       }
-      
+
       clause += `)`;
       existsClauses.push(clause);
     }
-    
+
     if (existsClauses.length > 0) {
       conditions.push(`(${existsClauses.join(' OR ')})`);
     }
-    
+
     // If no condition and allowAllSkus is true, fallback to `1=1`
-    const whereClause = conditions.length > 0 ? conditions.join(' AND ') : '1=1';
-    
+    const whereClause =
+      conditions.length > 0 ? conditions.join(' AND ') : '1=1';
+
     return { whereClause, params };
   } catch (err) {
     logSystemException(err, 'Failed to construct WHERE clause', {
@@ -192,14 +203,14 @@ const buildWhereClauseAndParams = (
 const skuDropdownKeywordHandler = (keyword, paramIndex) => {
   const trimmed = keyword.trim().toLowerCase();
   const param = `%${trimmed}%`;
-  
+
   const condition = `(
     LOWER(s.sku) LIKE $${paramIndex} OR
     LOWER(s.barcode) LIKE $${paramIndex} OR
     LOWER(p.name) LIKE $${paramIndex} OR
     LOWER(s.size_label) LIKE $${paramIndex}
   )`;
-  
+
   return {
     condition,
     values: [param],

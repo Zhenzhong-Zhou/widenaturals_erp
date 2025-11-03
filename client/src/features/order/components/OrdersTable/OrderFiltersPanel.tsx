@@ -25,19 +25,19 @@ const emptyFilters: OrderListFilters = {
 };
 
 const OrderFiltersPanel: FC<Props> = ({
-                                        filters,
-                                        onChange,
-                                        onApply,
-                                        onReset,
-                                      }) => {
+  filters,
+  onChange,
+  onApply,
+  onReset,
+}) => {
   const { control, handleSubmit, reset } = useForm<OrderListFilters>({
     defaultValues: filters,
   });
-  
+
   useEffect(() => {
     reset(filters);
   }, [filters, reset]);
-  
+
   const submitFilters = (data: OrderListFilters) => {
     const adjusted: OrderListFilters = {
       ...data,
@@ -47,12 +47,12 @@ const OrderFiltersPanel: FC<Props> = ({
     onChange(adjusted);
     onApply();
   };
-  
+
   const resetFilters = () => {
     reset(emptyFilters);
     onReset();
   };
-  
+
   const textFields: {
     name: keyof OrderListFilters;
     label: string;
@@ -62,14 +62,14 @@ const OrderFiltersPanel: FC<Props> = ({
     { name: 'keyword', label: 'Search Keyword', placeholder: 'Order #...' },
     { name: 'orderCategory', label: 'Order Category' },
   ];
-  
+
   const dateFields: { name: keyof OrderListFilters; label: string }[] = [
     { name: 'createdAfter', label: 'Created After' },
     { name: 'createdBefore', label: 'Created Before' },
     { name: 'statusDateAfter', label: 'Status Date After' },
     { name: 'statusDateBefore', label: 'Status Date Before' },
   ];
-  
+
   return (
     <Box mb={2} p={2} border="1px solid #ccc" borderRadius={2}>
       <form onSubmit={handleSubmit(submitFilters)}>
@@ -77,12 +77,12 @@ const OrderFiltersPanel: FC<Props> = ({
           {textFields.map(({ name, label, placeholder }) =>
             renderInputField(control, name, label, placeholder)
           )}
-          
+
           {dateFields.map(({ name, label }) =>
             renderDateField(control, name, label)
           )}
         </Grid>
-        
+
         <Box display="flex" flexWrap="wrap" gap={2} mt={3}>
           <CustomButton type="submit" variant="contained">
             Apply

@@ -14,7 +14,9 @@ interface BomPartBreakdownMiniTableProps {
   data: BomPartSummary[];
 }
 
-const BomPartBreakdownMiniTable: FC<BomPartBreakdownMiniTableProps> = ({ data }) => {
+const BomPartBreakdownMiniTable: FC<BomPartBreakdownMiniTableProps> = ({
+  data,
+}) => {
   const columns = useMemo(
     () => [
       {
@@ -25,7 +27,8 @@ const BomPartBreakdownMiniTable: FC<BomPartBreakdownMiniTableProps> = ({ data })
       {
         id: 'materialName',
         label: 'Packaging Material Name',
-        renderCell: (row: BomPartSummary) => row.materialName || row.displayName || '—',
+        renderCell: (row: BomPartSummary) =>
+          row.materialName || row.displayName || '—',
       },
       {
         id: 'partTotalContractCost',
@@ -36,7 +39,7 @@ const BomPartBreakdownMiniTable: FC<BomPartBreakdownMiniTableProps> = ({ data })
     ],
     []
   );
-  
+
   return (
     <CustomMiniTable
       columns={columns}

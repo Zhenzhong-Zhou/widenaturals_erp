@@ -14,7 +14,9 @@ interface BomSupplierBreakdownMiniTableProps {
   data: BomSupplierSummary[];
 }
 
-const BomSupplierBreakdownMiniTable: FC<BomSupplierBreakdownMiniTableProps> = ({ data }) => {
+const BomSupplierBreakdownMiniTable: FC<BomSupplierBreakdownMiniTableProps> = ({
+  data,
+}) => {
   const columns = useMemo(
     () => [
       {
@@ -31,7 +33,7 @@ const BomSupplierBreakdownMiniTable: FC<BomSupplierBreakdownMiniTableProps> = ({
     ],
     []
   );
-  
+
   return (
     <CustomMiniTable
       columns={columns}

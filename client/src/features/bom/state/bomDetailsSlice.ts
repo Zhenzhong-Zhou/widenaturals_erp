@@ -28,10 +28,13 @@ export const bomDetailsSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchBomDetailsThunk.fulfilled, (state, action: PayloadAction<BomDetailsResponse>) => {
-        state.loading = false;
-        state.data = action.payload.data;
-      })
+      .addCase(
+        fetchBomDetailsThunk.fulfilled,
+        (state, action: PayloadAction<BomDetailsResponse>) => {
+          state.loading = false;
+          state.data = action.payload.data;
+        }
+      )
       .addCase(fetchBomDetailsThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload ?? 'Failed to load BOM details.';

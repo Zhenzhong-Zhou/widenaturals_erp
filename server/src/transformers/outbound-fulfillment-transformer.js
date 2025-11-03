@@ -3,7 +3,9 @@ const { getFullName } = require('../utils/name-utils');
 const { transformPaginatedResult } = require('../utils/transformer-utils');
 const { getProductDisplayName } = require('../utils/display-name-utils');
 const { logSystemInfo } = require('../utils/system-logger');
-const { formatPackagingMaterialLabel } = require('../utils/packaging-material-utils');
+const {
+  formatPackagingMaterialLabel,
+} = require('../utils/packaging-material-utils');
 
 /**
  * Transforms raw DB rows into a normalized fulfillment result object.
@@ -37,13 +39,13 @@ const { formatPackagingMaterialLabel } = require('../utils/packaging-material-ut
  *  - {Object} statusUpdates { updatedOrderItemStatusIds }
  */
 const transformFulfillmentResult = ({
-                                      orderId,
-                                      shipmentRow,
-                                      fulfillmentRowWithStatus,
-                                      shipmentBatchRow,
-                                      orderStatusRow,
-                                      orderItemStatusRow,
-                                    }) => {
+  orderId,
+  shipmentRow,
+  fulfillmentRowWithStatus,
+  shipmentBatchRow,
+  orderStatusRow,
+  orderItemStatusRow,
+}) => {
   const result = {
     orderId,
     orderStatus: {
@@ -59,10 +61,10 @@ const transformFulfillmentResult = ({
       statusId: fulfillmentRowWithStatus?.status_id ?? null,
     },
     statusUpdates: {
-      updatedOrderItemStatusIds: orderItemStatusRow?.map(row => row.id) ?? [],
+      updatedOrderItemStatusIds: orderItemStatusRow?.map((row) => row.id) ?? [],
     },
   };
-  
+
   return cleanObject(result);
 };
 
@@ -106,18 +108,18 @@ const transformFulfillmentResult = ({
  *  - {Object[]} logs
  */
 const transformAdjustedFulfillmentResult = ({
-                                              orderId,
-                                              orderNumber,
-                                              fulfillments,
-                                              shipmentId,
-                                              warehouseInventoryIds,
-                                              orderStatusRow,
-                                              orderItemStatusRow,
-                                              inventoryAllocationStatusRow,
-                                              orderFulfillmentStatusRow,
-                                              shipmentStatusRow,
-                                              logMetadata,
-                                            }) => {
+  orderId,
+  orderNumber,
+  fulfillments,
+  shipmentId,
+  warehouseInventoryIds,
+  orderStatusRow,
+  orderItemStatusRow,
+  inventoryAllocationStatusRow,
+  orderFulfillmentStatusRow,
+  shipmentStatusRow,
+  logMetadata,
+}) => {
   return {
     order: {
       id: orderId,
@@ -127,7 +129,7 @@ const transformAdjustedFulfillmentResult = ({
       id: shipmentId,
       statuses: shipmentStatusRow,
     },
-    fulfillments: fulfillments.map(f => ({
+    fulfillments: fulfillments.map((f) => ({
       id: f.fulfillment_id,
       statusId: f.status_id,
     })),
@@ -184,15 +186,15 @@ const transformOutboundShipmentRow = (row) => {
     },
     deliveryMethod: row.delivery_method
       ? {
-        id: row.delivery_method_id,
-        name: row.delivery_method,
-      }
+          id: row.delivery_method_id,
+          name: row.delivery_method,
+        }
       : null,
     trackingNumber: row.tracking_number
       ? {
-        id: row.tracking_number_id,
-        number: row.tracking_number,
-      }
+          id: row.tracking_number_id,
+          number: row.tracking_number,
+        }
       : null,
     status: {
       id: row.status_id,
@@ -209,16 +211,22 @@ const transformOutboundShipmentRow = (row) => {
       createdAt: row.created_at,
       createdBy: {
         id: row.created_by,
-        fullName: getFullName(row.created_by_firstname, row.created_by_lastname),
+        fullName: getFullName(
+          row.created_by_firstname,
+          row.created_by_lastname
+        ),
       },
       updatedAt: row.updated_at,
       updatedBy: {
         id: row.updated_by,
-        fullName: getFullName(row.updated_by_firstname, row.updated_by_lastname),
+        fullName: getFullName(
+          row.updated_by_firstname,
+          row.updated_by_lastname
+        ),
       },
     },
   };
-  
+
   return cleanObject(base);
 };
 
@@ -396,7 +404,7 @@ const transformPaginatedOutboundShipmentResults = (paginatedResult) => {
  */
 const transformShipmentDetailsRows = (rows) => {
   if (!rows || !rows.length) return null;
-  
+
   // --- Shipment header ---
   const header = {
     shipmentId: rows[0].shipment_id,
@@ -407,11 +415,11 @@ const transformShipmentDetailsRows = (rows) => {
     },
     deliveryMethod: rows[0].delivery_method_id
       ? {
-        id: rows[0].delivery_method_id,
-        name: rows[0].delivery_method_name,
-        isPickup: rows[0].delivery_method_is_pickup,
-        estimatedTime: rows[0].delivery_method_estimated_time,
-      }
+          id: rows[0].delivery_method_id,
+          name: rows[0].delivery_method_name,
+          isPickup: rows[0].delivery_method_is_pickup,
+          estimatedTime: rows[0].delivery_method_estimated_time,
+        }
       : null,
     status: {
       id: rows[0].shipment_status_id,
@@ -426,38 +434,44 @@ const transformShipmentDetailsRows = (rows) => {
       createdAt: rows[0].created_at,
       createdBy: {
         id: rows[0].created_by,
-        name: getFullName(rows[0].shipment_created_by_firstname, rows[0].shipment_created_by_lastname),
+        name: getFullName(
+          rows[0].shipment_created_by_firstname,
+          rows[0].shipment_created_by_lastname
+        ),
       },
       updatedAt: rows[0].updated_at,
       updatedBy: {
         id: rows[0].updated_by,
-        name: getFullName(rows[0].shipment_updated_by_firstname, rows[0].shipment_updated_by_lastname),
+        name: getFullName(
+          rows[0].shipment_updated_by_firstname,
+          rows[0].shipment_updated_by_lastname
+        ),
       },
     },
     tracking: rows[0].tracking_id
       ? {
-        id: rows[0].tracking_id,
-        number: rows[0].tracking_number,
-        carrier: rows[0].carrier,
-        serviceName: rows[0].service_name,
-        bolNumber: rows[0].bol_number,
-        freightType: rows[0].freight_type,
-        notes: rows[0].tracking_notes,
-        shippedDate: rows[0].tracking_shipped_date,
-        status: {
-          id: rows[0].tracking_status_id,
-          name: rows[0].tracking_status_name,
-        },
-      }
+          id: rows[0].tracking_id,
+          number: rows[0].tracking_number,
+          carrier: rows[0].carrier,
+          serviceName: rows[0].service_name,
+          bolNumber: rows[0].bol_number,
+          freightType: rows[0].freight_type,
+          notes: rows[0].tracking_notes,
+          shippedDate: rows[0].tracking_shipped_date,
+          status: {
+            id: rows[0].tracking_status_id,
+            name: rows[0].tracking_status_name,
+          },
+        }
       : null,
   };
-  
+
   // --- Fulfillments ---
   const fulfillmentsMap = new Map();
-  
+
   rows.forEach((row) => {
     if (!row.fulfillment_id) return;
-    
+
     if (!fulfillmentsMap.has(row.fulfillment_id)) {
       fulfillmentsMap.set(row.fulfillment_id, {
         fulfillmentId: row.fulfillment_id,
@@ -473,67 +487,76 @@ const transformShipmentDetailsRows = (rows) => {
           createdAt: row.fulfillment_created_at,
           createdBy: {
             id: row.fulfillment_created_by,
-            name: getFullName(row.fulfillment_created_by_firstname, row.fulfillment_created_by_lastname),
+            name: getFullName(
+              row.fulfillment_created_by_firstname,
+              row.fulfillment_created_by_lastname
+            ),
           },
           updatedAt: row.fulfillment_updated_at,
           updatedBy: {
             id: row.fulfillment_updated_by,
-            name: getFullName(row.fulfillment_updated_by_firstname, row.fulfillment_updated_by_lastname),
+            name: getFullName(
+              row.fulfillment_updated_by_firstname,
+              row.fulfillment_updated_by_lastname
+            ),
           },
           fulfilledBy: row.fulfilled_by
             ? {
-              id: row.fulfilled_by,
-              name: getFullName(row.fulfillment_fulfilled_by_firstname, row.fulfillment_fulfilled_by_lastname),
-            }
+                id: row.fulfilled_by,
+                name: getFullName(
+                  row.fulfillment_fulfilled_by_firstname,
+                  row.fulfillment_fulfilled_by_lastname
+                ),
+              }
             : null,
         },
         orderItem: row.order_item_id
           ? {
-            id: row.order_item_id,
-            quantityOrdered: row.quantity_ordered,
-            ...(row.sku_id && row.product_id
-              ? {
-                sku: {
-                  id: row.sku_id,
-                  code: row.sku,
-                  barcode: row.barcode,
-                  sizeLabel: row.size_label,
-                  region: row.market_region,
-                  product: {
-                    id: row.product_id,
-                    name: getProductDisplayName(row),
-                    category: row.category,
-                  },
-                },
-              }
-              : row.packaging_material_id
+              id: row.order_item_id,
+              quantityOrdered: row.quantity_ordered,
+              ...(row.sku_id && row.product_id
                 ? {
-                  packagingMaterial: {
-                    id: row.packaging_material_id,
-                    code: row.packaging_material_code,
-                    label:
-                      row.material_snapshot_name ||
-                      formatPackagingMaterialLabel({
-                        name: row.packaging_material_name,
-                        size: row.packaging_material_size,
-                        color: row.packaging_material_color,
-                        unit: row.packaging_material_unit,
-                        length_cm: row.packaging_material_length_cm,
-                        width_cm: row.packaging_material_width_cm,
-                        height_cm: row.packaging_material_height_cm,
-                      }),
-                  },
-                }
-                : {}),
-          }
+                    sku: {
+                      id: row.sku_id,
+                      code: row.sku,
+                      barcode: row.barcode,
+                      sizeLabel: row.size_label,
+                      region: row.market_region,
+                      product: {
+                        id: row.product_id,
+                        name: getProductDisplayName(row),
+                        category: row.category,
+                      },
+                    },
+                  }
+                : row.packaging_material_id
+                  ? {
+                      packagingMaterial: {
+                        id: row.packaging_material_id,
+                        code: row.packaging_material_code,
+                        label:
+                          row.material_snapshot_name ||
+                          formatPackagingMaterialLabel({
+                            name: row.packaging_material_name,
+                            size: row.packaging_material_size,
+                            color: row.packaging_material_color,
+                            unit: row.packaging_material_unit,
+                            length_cm: row.packaging_material_length_cm,
+                            width_cm: row.packaging_material_width_cm,
+                            height_cm: row.packaging_material_height_cm,
+                          }),
+                      },
+                    }
+                  : {}),
+            }
           : null,
         batches: [],
       });
     }
-    
+
     if (row.shipment_batch_id) {
       const fulfillment = fulfillmentsMap.get(row.fulfillment_id);
-      
+
       const batch = {
         shipmentBatchId: row.shipment_batch_id,
         quantityShipped: row.quantity_shipped,
@@ -542,37 +565,40 @@ const transformShipmentDetailsRows = (rows) => {
           createdAt: row.shipment_batch_created_at,
           createdBy: {
             id: row.shipment_batch_created_by,
-            name: getFullName(row.shipment_batch_created_by_firstname, row.shipment_batch_created_by_lastname),
+            name: getFullName(
+              row.shipment_batch_created_by_firstname,
+              row.shipment_batch_created_by_lastname
+            ),
           },
         },
         batchRegistryId: row.batch_registry_id,
         batchType: row.batch_type,
       };
-      
+
       if (row.batch_type === 'product') {
         Object.assign(batch, {
           lotNumber: row.product_lot_number,
           expiryDate: row.product_expiry_date,
         });
       }
-      
+
       if (row.batch_type === 'packaging_material') {
         Object.assign(batch, {
           lotNumber: row.material_lot_number,
           expiryDate: row.material_expiry_date,
         });
       }
-      
+
       fulfillment.batches.push(batch);
     }
   });
-  
+
   logSystemInfo('Transformed shipment detail rows', {
     shipmentId: rows[0].shipment_id,
     fulfillmentCount: fulfillmentsMap.size,
-    batchCount: rows.filter(r => r.shipment_batch_id).length,
+    batchCount: rows.filter((r) => r.shipment_batch_id).length,
   });
-  
+
   return cleanObject({
     shipment: header,
     fulfillments: Array.from(fulfillmentsMap.values()),
@@ -601,28 +627,28 @@ const transformShipmentDetailsRows = (rows) => {
  */
 const transformPickupCompletionResult = (statusResult) => {
   if (!statusResult) return {};
-  
+
   const {
     orderStatusRow,
     orderItemStatusRow,
     orderFulfillmentStatusRow,
     shipmentStatusRow,
   } = statusResult;
-  
+
   return cleanObject({
     order: orderStatusRow
       ? {
-        id: orderStatusRow.id,
-        statusId: orderStatusRow.order_status_id,
-        statusDate: orderStatusRow.status_date,
-      }
+          id: orderStatusRow.id,
+          statusId: orderStatusRow.order_status_id,
+          statusDate: orderStatusRow.status_date,
+        }
       : null,
     items: Array.isArray(orderItemStatusRow)
       ? orderItemStatusRow.map((item) => ({
-        id: item.id,
-        statusId: item.status_id,
-        statusDate: item.status_date,
-      }))
+          id: item.id,
+          statusId: item.status_id,
+          statusDate: item.status_date,
+        }))
       : [],
     fulfillments: Array.isArray(orderFulfillmentStatusRow)
       ? orderFulfillmentStatusRow.map((id) => ({ id }))

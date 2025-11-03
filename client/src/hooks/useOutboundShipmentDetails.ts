@@ -2,9 +2,12 @@ import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchOutboundShipmentDetailsThunk,
-  selectOutboundShipmentDetailsData, selectOutboundShipmentDetailsError,
-  selectOutboundShipmentDetailsLoading, selectShipmentFulfillments,
-  selectShipmentFulfillmentsItemCount, selectShipmentHeader,
+  selectOutboundShipmentDetailsData,
+  selectOutboundShipmentDetailsError,
+  selectOutboundShipmentDetailsLoading,
+  selectShipmentFulfillments,
+  selectShipmentFulfillmentsItemCount,
+  selectShipmentHeader,
 } from '@features/outboundFulfillment/state';
 import { resetOutboundShipmentDetails } from '@features/outboundFulfillment/state/outboundShipmentDetailsSlice';
 
@@ -34,7 +37,7 @@ import { resetOutboundShipmentDetails } from '@features/outboundFulfillment/stat
  */
 const useOutboundShipmentDetails = () => {
   const dispatch = useAppDispatch();
-  
+
   // State selectors
   const data = useAppSelector(selectOutboundShipmentDetailsData);
   const loading = useAppSelector(selectOutboundShipmentDetailsLoading);
@@ -42,18 +45,19 @@ const useOutboundShipmentDetails = () => {
   const header = useAppSelector(selectShipmentHeader);
   const fulfillments = useAppSelector(selectShipmentFulfillments);
   const itemCount = useAppSelector(selectShipmentFulfillmentsItemCount);
-  
+
   // Action dispatchers
   const fetchDetails = useCallback(
-    (shipmentId: string) => dispatch(fetchOutboundShipmentDetailsThunk(shipmentId)),
+    (shipmentId: string) =>
+      dispatch(fetchOutboundShipmentDetailsThunk(shipmentId)),
     [dispatch]
   );
-  
+
   const reset = useCallback(
     () => dispatch(resetOutboundShipmentDetails()),
     [dispatch]
   );
-  
+
   // Memoize returned object to prevent unnecessary rerenders
   return useMemo(
     () => ({

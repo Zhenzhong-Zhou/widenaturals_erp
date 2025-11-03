@@ -5,7 +5,10 @@ import Box from '@mui/material/Box';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import SkeletonExpandedRow from '@components/common/SkeletonExpandedRow';
-import { getBomListTableColumns, BomExpandedContent } from '@features/bom/components/BomListTables';
+import {
+  getBomListTableColumns,
+  BomExpandedContent,
+} from '@features/bom/components/BomListTables';
 
 interface BomListTableProps {
   data: FlattenedBomRecord[];
@@ -24,21 +27,20 @@ interface BomListTableProps {
 }
 
 const BomListTable = ({
-                      data,
-                      loading,
-                      page,
-                      totalPages,
-                      totalRecords,
-                      rowsPerPage,
-                      onPageChange,
-                      onRowsPerPageChange,
-                      expandedRowId,
-                      onDrillDownToggle,
-                      selectedRowIds,
-                      onSelectionChange,
-                      onRefresh,
-                    }: BomListTableProps) => {
-  
+  data,
+  loading,
+  page,
+  totalPages,
+  totalRecords,
+  rowsPerPage,
+  onPageChange,
+  onRowsPerPageChange,
+  expandedRowId,
+  onDrillDownToggle,
+  selectedRowIds,
+  onSelectionChange,
+  onRefresh,
+}: BomListTableProps) => {
   // --- Columns definition ---
   const columns = useMemo(() => {
     return getBomListTableColumns(
@@ -46,7 +48,7 @@ const BomListTable = ({
       onDrillDownToggle
     );
   }, [expandedRowId, onDrillDownToggle]);
-  
+
   const renderExpandedContent = useCallback(
     (row: FlattenedBomRecord) => (
       <Suspense
@@ -61,9 +63,10 @@ const BomListTable = ({
       >
         <BomExpandedContent row={row} />
       </Suspense>
-    ), []
+    ),
+    []
   );
-  
+
   return (
     <Box>
       <Box
@@ -75,7 +78,7 @@ const BomListTable = ({
         <CustomTypography variant="h6" fontWeight={600}>
           Bom List
         </CustomTypography>
-        
+
         <CustomButton
           onClick={onRefresh}
           variant="outlined"
@@ -84,7 +87,7 @@ const BomListTable = ({
           Refresh
         </CustomButton>
       </Box>
-      
+
       <CustomTable
         data={data}
         columns={columns}

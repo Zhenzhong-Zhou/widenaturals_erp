@@ -2,7 +2,7 @@ import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
 import type {
   BomReadinessPart,
-  BomReadinessSummary
+  BomReadinessSummary,
 } from '@features/bom/state/bomTypes';
 
 /** Base selector for the BOM Production Readiness slice */

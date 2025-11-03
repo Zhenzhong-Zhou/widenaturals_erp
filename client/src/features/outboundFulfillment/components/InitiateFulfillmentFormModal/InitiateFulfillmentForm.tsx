@@ -13,13 +13,13 @@ interface InitiateFulfillmentFormProps {
 }
 
 const InitiateFulfillmentForm: FC<InitiateFulfillmentFormProps> = ({
-                                                                     orderId,
-                                                                     allocationIds,
-                                                                     defaultValues,
-                                                                     onSuccess,
-                                                                   }) => {
+  orderId,
+  allocationIds,
+  defaultValues,
+  onSuccess,
+}) => {
   const { loading, error, submit, reset } = useInitiateOutboundFulfillment();
-  
+
   const fields: FieldConfig[] = [
     {
       id: 'fulfillmentNotes',
@@ -43,7 +43,7 @@ const InitiateFulfillmentForm: FC<InitiateFulfillmentFormProps> = ({
       grid: { xs: 12 }, // full width
     },
   ];
-  
+
   const handleSubmit = async (formData: Record<string, any>) => {
     const body: InitiateFulfillmentBody = {
       allocations: { ids: allocationIds },
@@ -51,7 +51,7 @@ const InitiateFulfillmentForm: FC<InitiateFulfillmentFormProps> = ({
       shipmentNotes: formData.shipmentNotes,
       shipmentBatchNote: formData.shipmentBatchNote,
     };
-    
+
     try {
       const response = await submit({ orderId, body });
       if (response.success) {
@@ -62,7 +62,7 @@ const InitiateFulfillmentForm: FC<InitiateFulfillmentFormProps> = ({
       alert(err?.message || 'Failed to initiate outbound fulfillment');
     }
   };
-  
+
   return (
     <CustomForm
       fields={fields}

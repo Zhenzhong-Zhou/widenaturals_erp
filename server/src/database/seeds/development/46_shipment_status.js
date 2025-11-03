@@ -5,21 +5,21 @@
 
 exports.seed = async function (knex) {
   console.log('Seeding shipment_status...');
-  
+
   const existing = await knex('shipment_status').count('id as count').first();
   if (Number(existing?.count) > 0) {
     console.log('shipment_status already seeded. Skipping.');
     return;
   }
-  
+
   // Optionally fetch system user ID (replace email as needed)
   const systemUser = await knex('users')
     .select('id')
     .where({ email: 'system@internal.local' })
     .first();
-  
+
   const now = knex.fn.now();
-  
+
   const statuses = [
     {
       name: 'pending',
@@ -30,14 +30,16 @@ exports.seed = async function (knex) {
     {
       name: 'ready_to_ship',
       code: 'SHIPMENT_READY',
-      description: 'Shipment is packed and ready to be picked up or dispatched.',
+      description:
+        'Shipment is packed and ready to be picked up or dispatched.',
       is_final: false,
     },
     {
       name: 'completed',
       code: 'SHIPMENT_COMPLETED',
       is_final: true,
-      description: 'Shipment process completed — goods handed off or picked up; delivery cycle closed.',
+      description:
+        'Shipment process completed — goods handed off or picked up; delivery cycle closed.',
     },
     {
       name: 'in_transit',
@@ -64,7 +66,7 @@ exports.seed = async function (knex) {
       is_final: true,
     },
   ];
-  
+
   await knex('shipment_status').insert(
     statuses.map((s) => ({
       ...s,
@@ -75,6 +77,6 @@ exports.seed = async function (knex) {
       updated_at: null,
     }))
   );
-  
+
   console.log(`Seeded ${statuses.length} shipment_status records.`);
 };

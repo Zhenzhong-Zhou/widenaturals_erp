@@ -1,7 +1,11 @@
 const {
   buildOrderTypeFilter,
 } = require('../utils/sql/build-order-type-filters');
-const { paginateQuery, query, getFieldValuesByField } = require('../database/db');
+const {
+  paginateQuery,
+  query,
+  getFieldValuesByField,
+} = require('../database/db');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
@@ -183,11 +187,11 @@ const getOrderTypeLookup = async ({ filters = {} } = {}) => {
  */
 const getOrderTypeIdsByCategory = async (category, client = null) => {
   return await getFieldValuesByField(
-    'order_types',     // table name
-    'category',        // filter field
-    category,          // filter value
-    'id',              // field to return
-    client             // optional transaction context
+    'order_types', // table name
+    'category', // filter field
+    category, // filter value
+    'id', // field to return
+    client // optional transaction context
   );
 };
 
@@ -238,27 +242,30 @@ const getOrderTypeMetaByOrderId = async (orderId, client = null) => {
     JOIN order_types ot ON o.order_type_id = ot.id
     WHERE o.id = $1;
   `;
-  
+
   try {
     const { rows } = await query(sql, [orderId], client);
-    
+
     logSystemInfo('Fetched order type metadata', {
       context: 'order-type-repository/getOrderTypeMetaByOrderId',
       orderId,
       rowCount: rows.length,
     });
-    
+
     return rows[0] ?? null;
   } catch (error) {
     logSystemException(error, 'Failed to fetch order type metadata', {
       context: 'order-type-repository/getOrderTypeMetaByOrderId',
       orderId,
     });
-    
-    throw AppError.databaseError('Database query failed while fetching order type metadata', {
-      cause: error,
-      orderId,
-    });
+
+    throw AppError.databaseError(
+      'Database query failed while fetching order type metadata',
+      {
+        cause: error,
+        orderId,
+      }
+    );
   }
 };
 

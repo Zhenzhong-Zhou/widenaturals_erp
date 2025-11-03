@@ -9,13 +9,13 @@ import { useCallback, useRef, useState } from 'react';
 export const useModalFocusHandlers = (transitionDuration: number = 300) => {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
-  
+
   const handleOpen = useCallback(() => {
     // Remove focus ring from the trigger button
     triggerRef.current?.blur();
     requestAnimationFrame(() => setOpen(true));
   }, []);
-  
+
   const handleClose = useCallback(() => {
     setOpen(false);
     // Restore focus after dialog transition ends
@@ -25,7 +25,7 @@ export const useModalFocusHandlers = (transitionDuration: number = 300) => {
       }
     }, transitionDuration);
   }, [open, transitionDuration]);
-  
+
   return {
     open,
     setOpen,

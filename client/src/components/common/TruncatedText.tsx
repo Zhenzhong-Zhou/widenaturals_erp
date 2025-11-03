@@ -11,17 +11,17 @@ interface TruncatedTextProps extends TypographyProps {
 }
 
 const TruncatedText: FC<TruncatedTextProps> = ({
-                                                 text,
-                                                 maxLength = 50,
-                                                 ellipsis = '…',
-                                                 className,
-                                                 ...rest
-                                               }) => {
+  text,
+  maxLength = 50,
+  ellipsis = '…',
+  className,
+  ...rest
+}) => {
   if (!text) return null;
-  
+
   const truncated = truncateText(text, maxLength, ellipsis);
   const isTruncated = truncated !== text;
-  
+
   return (
     <Tooltip title={isTruncated ? text : null} placement="top" arrow>
       <CustomTypography

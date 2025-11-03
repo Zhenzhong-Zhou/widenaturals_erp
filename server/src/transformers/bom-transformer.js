@@ -124,9 +124,9 @@ const AppError = require('../utils/AppError');
  */
 const transformBomRow = (row) => {
   if (!row) return null;
-  
+
   const productName = getProductDisplayName(row);
-  
+
   const base = {
     product: {
       id: row.product_id,
@@ -178,17 +178,17 @@ const transformBomRow = (row) => {
         updatedAt: row.bom_updated_at,
         updatedBy: row.bom_updated_by
           ? {
-            id: row.bom_updated_by,
-            name: getFullName(
-              row.bom_updated_by_firstname,
-              row.bom_updated_by_lastname
-            ),
-          }
+              id: row.bom_updated_by,
+              name: getFullName(
+                row.bom_updated_by_firstname,
+                row.bom_updated_by_lastname
+              ),
+            }
           : null,
       },
     },
   };
-  
+
   return cleanObject(base);
 };
 
@@ -292,11 +292,11 @@ const transformPaginatedOBoms = (paginatedResult) => {
  */
 const transformBomDetails = (rows = []) => {
   if (!rows || rows.length === 0) return null;
-  
+
   try {
     const headerRow = rows[0];
     const productName = getProductDisplayName(headerRow);
-    
+
     // --- Header section ---
     const header = {
       product: {
@@ -318,17 +318,17 @@ const transformBomDetails = (rows = []) => {
       },
       compliance: headerRow.compliance_id
         ? {
-          id: headerRow.compliance_id,
-          type: headerRow.compliance_type,
-          number: headerRow.compliance_number,
-          issuedDate: headerRow.compliance_issued_date,
-          expiryDate: headerRow.compliance_expiry_date,
-          description: headerRow.compliance_description,
-          status: {
-            id: headerRow.compliance_status_id,
-            name: headerRow.compliance_status,
-          },
-        }
+            id: headerRow.compliance_id,
+            type: headerRow.compliance_type,
+            number: headerRow.compliance_number,
+            issuedDate: headerRow.compliance_issued_date,
+            expiryDate: headerRow.compliance_expiry_date,
+            description: headerRow.compliance_description,
+            status: {
+              id: headerRow.compliance_status_id,
+              name: headerRow.compliance_status,
+            },
+          }
         : null,
       bom: {
         id: headerRow.bom_id,
@@ -363,7 +363,7 @@ const transformBomDetails = (rows = []) => {
         },
       },
     };
-    
+
     // --- Details section ---
     const details = rows
       .filter((r) => r.bom_item_id)
@@ -407,13 +407,13 @@ const transformBomDetails = (rows = []) => {
           },
         },
       }));
-    
+
     return { header, details };
   } catch (error) {
     logSystemException(error, 'Error transforming BOM details', {
       context: 'transformBomDetails',
     });
-    
+
     throw AppError.transformerError('Failed to transform BOM details', {
       context: 'transformBomDetails',
     });
@@ -534,15 +534,15 @@ const transformBomDetails = (rows = []) => {
  */
 const transformBOMProductionSummaryRows = (rows = []) => {
   if (!rows?.length) return [];
-  
+
   const grouped = new Map();
-  
+
   // ──────────────────────────────────────────────
   // 1. Group by part_id and accumulate batch-level data
   // ──────────────────────────────────────────────
   for (const row of rows) {
     const partId = row.part_id;
-    
+
     // Initialize group if first time encountering this part
     if (!grouped.has(partId)) {
       grouped.set(partId, {
@@ -559,7 +559,7 @@ const transformBOMProductionSummaryRows = (rows = []) => {
         materialBatches: [],
       });
     }
-    
+
     // Append material batch info (if present)
     if (row.material_name || row.lot_number) {
       grouped.get(partId).materialBatches.push(
@@ -583,7 +583,7 @@ const transformBOMProductionSummaryRows = (rows = []) => {
       );
     }
   }
-  
+
   // ──────────────────────────────────────────────
   // 2. Enrich each part with representative display fields
   //    (derived from the first material batch if available)
@@ -594,7 +594,7 @@ const transformBOMProductionSummaryRows = (rows = []) => {
     part.materialSnapshotName = firstBatch?.materialSnapshotName ?? null;
     part.displayLabel = firstBatch?.receivedLabelName ?? part.partName;
   }
-  
+
   return Array.from(grouped.values());
 };
 
@@ -628,18 +628,19 @@ const buildBOMProductionSummaryResponse = (bomId, readinessReport) => {
   if (!readinessReport) {
     return { bomId, metadata: {}, parts: [] };
   }
-  
+
   // Extract bottleneck parts for quick reference in metadata
-  const bottleneckParts = readinessReport.summary
-    ?.filter((p) => p.isBottleneck)
-    ?.map((p) => ({
-      partId: p.partId,
-      partName: p.partName,
-      packagingMaterialName: p.packagingMaterialName ?? null,
-      materialSnapshotName: p.materialSnapshotName ?? null,
-      displayLabel: p.displayLabel ?? p.partName,
-    })) ?? [];
-  
+  const bottleneckParts =
+    readinessReport.summary
+      ?.filter((p) => p.isBottleneck)
+      ?.map((p) => ({
+        partId: p.partId,
+        partName: p.partName,
+        packagingMaterialName: p.packagingMaterialName ?? null,
+        materialSnapshotName: p.materialSnapshotName ?? null,
+        displayLabel: p.displayLabel ?? p.partName,
+      })) ?? [];
+
   return {
     bomId,
     metadata: {

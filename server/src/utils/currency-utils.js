@@ -18,15 +18,15 @@ const convertToBaseCurrency = (
 ) => {
   const round = (num) => Number((num ?? 0).toFixed(4));
   if (!amount || amount === 0) return 0;
-  
+
   // already base or unknown currency
   if (!currency || currency === systemBaseCurrency) return round(amount);
-  
+
   // proper rate
   if (exchangeRate && exchangeRate > 0) {
     return round(amount * exchangeRate);
   }
-  
+
   // validation-level issue, not a crash
   const validationErr = AppError.validationError(
     `Missing or invalid exchange rate for ${currency}`,
@@ -37,12 +37,12 @@ const convertToBaseCurrency = (
       hint: 'Defaulting to 1:1 conversion rate.',
     }
   );
-  
+
   logSystemException(validationErr, 'Currency conversion fallback to 1:1', {
     context: 'convertToBaseCurrency',
     severity: 'warning',
   });
-  
+
   return round(amount);
 };
 

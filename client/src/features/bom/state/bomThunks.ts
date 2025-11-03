@@ -23,21 +23,20 @@ import { bomService } from '@services/bomService';
  */
 export const fetchPaginatedBomsThunk = createAsyncThunk<
   FetchPaginatedBomsResponse, // Return type
-  FetchBomsParams,            // Argument type
-  { rejectValue: string }     // Error payload type
->(
-  'boms/fetchPaginatedBoms',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await bomService.fetchPaginatedBoms(params);
-    } catch (error: any) {
-      console.error('Thunk: Failed to fetch BOM list:', error);
-      return rejectWithValue(
-        error?.response?.data?.message || error?.message || 'Failed to fetch BOMs.'
-      );
-    }
+  FetchBomsParams, // Argument type
+  { rejectValue: string } // Error payload type
+>('boms/fetchPaginatedBoms', async (params, { rejectWithValue }) => {
+  try {
+    return await bomService.fetchPaginatedBoms(params);
+  } catch (error: any) {
+    console.error('Thunk: Failed to fetch BOM list:', error);
+    return rejectWithValue(
+      error?.response?.data?.message ||
+        error?.message ||
+        'Failed to fetch BOMs.'
+    );
   }
-);
+});
 
 /**
  * Thunk to fetch detailed information for a specific BOM.
@@ -51,24 +50,21 @@ export const fetchPaginatedBomsThunk = createAsyncThunk<
  * dispatch(fetchBomDetailsThunk('61bb1f94-aeb2-4724-b9b8-35023b165fdd'));
  */
 export const fetchBomDetailsThunk = createAsyncThunk<
-  BomDetailsResponse,  // The resolved payload type
-  string,                      // The argument type (bomId)
-  { rejectValue: string }      // Optional reject type for better typing
->(
-  'boms/fetchBomDetails',
-  async (bomId, { rejectWithValue }) => {
-    try {
-      return await bomService.fetchBomDetails(bomId);
-    } catch (error: any) {
-      console.error('Failed to fetch BOM details:', error);
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Failed to load BOM details.';
-      return rejectWithValue(message);
-    }
+  BomDetailsResponse, // The resolved payload type
+  string, // The argument type (bomId)
+  { rejectValue: string } // Optional reject type for better typing
+>('boms/fetchBomDetails', async (bomId, { rejectWithValue }) => {
+  try {
+    return await bomService.fetchBomDetails(bomId);
+  } catch (error: any) {
+    console.error('Failed to fetch BOM details:', error);
+    const message =
+      error?.response?.data?.message ||
+      error?.message ||
+      'Failed to load BOM details.';
+    return rejectWithValue(message);
   }
-);
+});
 
 /**
  * Thunk: Fetch material supply details for a specific BOM.
@@ -90,17 +86,17 @@ export const fetchBomDetailsThunk = createAsyncThunk<
 export const fetchBomMaterialSupplyDetailsThunk = createAsyncThunk<
   BomMaterialSupplyDetailsResponse,
   string
->(
-  'bom/fetchBomMaterialSupplyDetails',
-  async (bomId, { rejectWithValue }) => {
-    try {
-      return await bomService.fetchBomMaterialSupplyDetails(bomId);
-    } catch (error: any) {
-      console.error('Failed to fetch BOM Material Supply Details:', { bomId, error });
-      return rejectWithValue(error.response?.data ?? error.message);
-    }
+>('bom/fetchBomMaterialSupplyDetails', async (bomId, { rejectWithValue }) => {
+  try {
+    return await bomService.fetchBomMaterialSupplyDetails(bomId);
+  } catch (error: any) {
+    console.error('Failed to fetch BOM Material Supply Details:', {
+      bomId,
+      error,
+    });
+    return rejectWithValue(error.response?.data ?? error.message);
   }
-);
+});
 
 /**
  * Thunk to fetch the **BOM Production Readiness Summary** for a given BOM.
@@ -133,28 +129,25 @@ export const fetchBomMaterialSupplyDetailsThunk = createAsyncThunk<
  */
 export const fetchBomProductionSummaryThunk = createAsyncThunk<
   BomProductionReadinessResponse, // Return type (only data payload)
-  string,                                 // Argument type (bomId)
+  string, // Argument type (bomId)
   {
     rejectValue: {
       message: string;
       status?: number;
     };
   }
->(
-  'bom/fetchBomProductionSummary',
-  async (bomId, { rejectWithValue }) => {
-    try {
-      return await bomService.fetchBomProductionSummary(bomId);
-    } catch (error: any) {
-      console.error('❌ Failed to fetch BOM Production Summary:', error);
-      
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Failed to fetch BOM production summary.';
-      const status = error?.response?.status;
-      
-      return rejectWithValue({ message, status });
-    }
+>('bom/fetchBomProductionSummary', async (bomId, { rejectWithValue }) => {
+  try {
+    return await bomService.fetchBomProductionSummary(bomId);
+  } catch (error: any) {
+    console.error('❌ Failed to fetch BOM Production Summary:', error);
+
+    const message =
+      error?.response?.data?.message ||
+      error?.message ||
+      'Failed to fetch BOM production summary.';
+    const status = error?.response?.status;
+
+    return rejectWithValue({ message, status });
   }
-);
+});

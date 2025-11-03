@@ -17,7 +17,7 @@ const {
   validateOptionalUUID,
   validateOptionalString,
   aggregatedDateRangeSchema,
-  validateUUIDOrUUIDArrayOptional
+  validateUUIDOrUUIDArrayOptional,
 } = require('./general-validators');
 
 /**
@@ -119,18 +119,20 @@ const inventoryAllocationsQuerySchema = paginationSchema
     warehouseIds: validateUUIDOrUUIDArrayOptional('Warehouse IDs'),
     batchIds: validateUUIDOrUUIDArrayOptional('Batch IDs'),
     allocationCreatedBy: validateOptionalUUID('Allocation Created By User ID'),
-    
+
     // --- Order-level filters ---
     orderNumber: validateOptionalString('Order Number'),
     orderStatusId: validateOptionalUUID('Order Status ID'),
     orderTypeId: validateOptionalUUID('Order Type ID'),
     orderCreatedBy: validateOptionalUUID('Order Created By User ID'),
-    
+
     // --- Sales order-level filters ---
     paymentStatusId: validateOptionalUUID('Payment Status ID'),
-    
+
     // --- Keyword search ---
-    keyword: validateOptionalString('Keyword for fuzzy matching (order number, SKU, product name, or customer)'),
+    keyword: validateOptionalString(
+      'Keyword for fuzzy matching (order number, SKU, product name, or customer)'
+    ),
   });
 
 module.exports = {

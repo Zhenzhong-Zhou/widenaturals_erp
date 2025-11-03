@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  type CreateSalesOrderInput, createSalesOrderThunk,
+  type CreateSalesOrderInput,
+  createSalesOrderThunk,
   selectCreatedSalesOrderId,
   selectSalesOrderCreationError,
   selectSalesOrderCreationLoading,
@@ -19,11 +20,11 @@ const useSalesOrderCreate = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
-  
+
   const loading = useAppSelector(selectSalesOrderCreationLoading);
   const error = useAppSelector(selectSalesOrderCreationError);
   const orderId = useAppSelector(selectCreatedSalesOrderId);
-  
+
   /**
    * Handles form submission logic for creating a new sales order.
    *
@@ -32,12 +33,16 @@ const useSalesOrderCreate = () => {
    */
   const handleSubmitSalesOrder = useCallback(
     async (category: string, data: CreateSalesOrderInput) => {
-      const resultAction = await dispatch(createSalesOrderThunk({ category, data }));
-      
+      const resultAction = await dispatch(
+        createSalesOrderThunk({ category, data })
+      );
+
       if (createSalesOrderThunk.fulfilled.match(resultAction)) {
         const id = resultAction.payload.data.orderId;
-        
-        enqueueSnackbar('Sales order created successfully!', { variant: 'success' });
+
+        enqueueSnackbar('Sales order created successfully!', {
+          variant: 'success',
+        });
         navigate(`/orders/${category}/details/${id}`);
       } else {
         enqueueSnackbar('Failed to create sales order.', { variant: 'error' });
@@ -45,7 +50,7 @@ const useSalesOrderCreate = () => {
     },
     [dispatch, navigate, enqueueSnackbar]
   );
-  
+
   return {
     loading,
     error,

@@ -13,19 +13,31 @@ interface OrderHeaderSectionProps {
 
 const OrderHeaderSection: FC<OrderHeaderSectionProps> = ({ flattened }) => {
   return (
-    <Section title={"Order Info"}>
+    <Section title={'Order Info'}>
       <DetailsGrid>
         <DetailsGridItem>
           <MemoizedDetailsSection
             fields={[
               { label: 'Order Number', value: flattened.orderNumber },
-              { label: 'Order Type', value: flattened.orderType, format: formatLabel },
-              { label: 'Order Date', value: flattened.orderDate, format: formatDate },
-              { label: 'Delivery Method', value: flattened.deliveryInfo.method, format: formatLabel },
+              {
+                label: 'Order Type',
+                value: flattened.orderType,
+                format: formatLabel,
+              },
+              {
+                label: 'Order Date',
+                value: flattened.orderDate,
+                format: formatDate,
+              },
+              {
+                label: 'Delivery Method',
+                value: flattened.deliveryInfo.method,
+                format: formatLabel,
+              },
             ]}
           />
         </DetailsGridItem>
-        
+
         <DetailsGridItem>
           <MemoizedDetailsSection
             fields={[

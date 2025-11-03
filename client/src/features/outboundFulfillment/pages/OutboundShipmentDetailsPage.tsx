@@ -21,23 +21,22 @@ import { OutboundShipmentHeaderSection } from '@features/outboundFulfillment/com
 import SkeletonExpandedRow from '@components/common/SkeletonExpandedRow';
 import NoDataFound from '@components/common/NoDataFound';
 import ConfirmFulfillmentButton from '@features/outboundFulfillment/components/ConfirmFulfillmentButton';
-import CompleteManualFulfillmentButton
-  from '@features/outboundFulfillment/components/CompleteManualFulfillmentButton';
+import CompleteManualFulfillmentButton from '@features/outboundFulfillment/components/CompleteManualFulfillmentButton';
 
-const FulfillmentDetailsTable = lazy(() =>
-  import('../components/OutboundShipmentDetails/index')
+const FulfillmentDetailsTable = lazy(
+  () => import('../components/OutboundShipmentDetails/index')
 );
 
 const OutboundShipmentDetailsPage: FC = () => {
   const { shipmentId } = useParams();
   const location = useLocation();
   const { orderNumber } = location.state || {};
-  
+
   if (!shipmentId) {
     // handle error, redirect, show fallback
     return <div>Invalid shipment</div>;
   }
-  
+
   const {
     data: shipmentDetails,
     loading: shipmentDetailsLoading,
@@ -48,90 +47,101 @@ const OutboundShipmentDetailsPage: FC = () => {
     fetchDetails: fetchShipmentDetails,
     reset: resetShipmentDetails,
   } = useOutboundShipmentDetails();
-  
+
   // === Fetch & Refresh Logic ===
   const refresh = useCallback(() => {
     if (shipmentId && orderNumber) {
       fetchShipmentDetails(shipmentId);
     }
   }, [shipmentId, orderNumber, fetchShipmentDetails]);
-  
+
   useEffect(() => {
     if (!shipmentId) return;
-    
+
     refresh();
-    
+
     return () => {
       resetShipmentDetails();
     };
   }, [shipmentId, refresh, resetShipmentDetails]);
-  
+
   // === Memoized Values ===
-  const titleOrderNumber = useMemo(() => getShortOrderNumber(orderNumber ?? ''), [orderNumber]);
-  
+  const titleOrderNumber = useMemo(
+    () => getShortOrderNumber(orderNumber ?? ''),
+    [orderNumber]
+  );
+
   const flattenedHeader = useMemo(() => {
     return shipmentHeader ? flattenShipmentHeader(shipmentHeader) : null;
   }, [shipmentHeader]);
-  
+
   const flattenedFulfillments = useMemo(() => {
-    return shipmentFulfillments ? flattenFulfillments(shipmentFulfillments) : null;
+    return shipmentFulfillments
+      ? flattenFulfillments(shipmentFulfillments)
+      : null;
   }, [shipmentFulfillments]);
-  
+
   // === Determine Confirm Button Visibility ===
   const canConfirmFulfillment = useMemo(() => {
     if (!shipmentHeader || !shipmentFulfillments?.length) return false;
-    
+
     const shipmentCode = shipmentHeader.status?.code ?? '';
     const fulfillmentCodes: string[] = shipmentFulfillments.map(
       (f: { status?: { code?: string } }) => f.status?.code ?? ''
     );
-    
+
     const ALLOWED = {
       order: ['ORDER_PROCESSING', 'ORDER_FULFILLED'], // optional if you add order status later
-      fulfillment: ['FULFILLMENT_PENDING', 'FULFILLMENT_PICKING', 'FULFILLMENT_PARTIAL'],
+      fulfillment: [
+        'FULFILLMENT_PENDING',
+        'FULFILLMENT_PICKING',
+        'FULFILLMENT_PARTIAL',
+      ],
       shipment: ['SHIPMENT_PENDING'],
     };
-    
+
     // All fulfillments must be confirmable
-    const allFulfillmentsValid = fulfillmentCodes.every(
-      (code: string) => ALLOWED.fulfillment.includes(code)
+    const allFulfillmentsValid = fulfillmentCodes.every((code: string) =>
+      ALLOWED.fulfillment.includes(code)
     );
-    
+
     // Shipment must be in confirmable state
     const shipmentValid = ALLOWED.shipment.includes(shipmentCode);
-    
+
     return allFulfillmentsValid && shipmentValid;
   }, [shipmentHeader, shipmentFulfillments]);
-  
+
   const canCompleteManualFulfillment = useMemo(() => {
     if (!shipmentHeader || !shipmentFulfillments?.length) return false;
-    
+
     const deliveryMethodName = shipmentHeader.deliveryMethod.name ?? '';
     const isPickupLocation = Boolean(shipmentHeader.deliveryMethod.isPickup);
-    
+
     const shipmentCode = shipmentHeader.status?.code ?? '';
     const fulfillmentCodes: string[] = shipmentFulfillments.map(
       (f: { status?: { code?: string } }) => f.status?.code ?? ''
     );
-    
+
     const ALLOWED = {
       deliveryMethods: ['In-Store Pickup', 'Personal Driver Delivery'],
       fulfillment: ['FULFILLMENT_PACKED', 'FULFILLMENT_PARTIAL'],
       shipment: ['SHIPMENT_READY', 'SHIPMENT_DISPATCHED'], // optionally support partials
     };
-    
+
     const deliveryMethodAllowed =
       isPickupLocation || ALLOWED.deliveryMethods.includes(deliveryMethodName);
-    
-    const allFulfillmentsCompletable = fulfillmentCodes.every(
-      (code) => ALLOWED.fulfillment.includes(code)
+
+    const allFulfillmentsCompletable = fulfillmentCodes.every((code) =>
+      ALLOWED.fulfillment.includes(code)
     );
-    
+
     const shipmentCompletable = ALLOWED.shipment.includes(shipmentCode);
-    
-    return allFulfillmentsCompletable && shipmentCompletable && deliveryMethodAllowed;
+
+    return (
+      allFulfillmentsCompletable && shipmentCompletable && deliveryMethodAllowed
+    );
   }, [shipmentHeader, shipmentFulfillments]);
-  
+
   // === Render ===
   if (!shipmentDetails || shipmentDetails.length === 0) {
     return (
@@ -141,34 +151,34 @@ const OutboundShipmentDetailsPage: FC = () => {
       />
     );
   }
-  
+
   if (shipmentDetailsLoading) {
     return <Loading message="Loading outbound shipment details..." />;
   }
-  
+
   if (shipmentDetailsError) {
     return <ErrorMessage message={shipmentDetailsError} />;
   }
-  
+
   if (!flattenedHeader) {
     return <ErrorMessage message="No shipment header available." />;
   }
-  
+
   if (!flattenedFulfillments) {
     return <ErrorMessage message="No shipment fulfimment details available." />;
   }
-  
+
   return (
     <Box sx={{ p: 3 }}>
       <CustomTypography variant="h4" sx={{ mb: 2 }}>
         {titleOrderNumber} - Order Information
       </CustomTypography>
-      
+
       {/* Actions Row */}
       <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
         <GoBackButton />
       </Stack>
-      
+
       {/* Order Details */}
       <Card
         sx={{
@@ -194,12 +204,12 @@ const OutboundShipmentDetailsPage: FC = () => {
             <CustomTypography variant="h4" sx={{ fontWeight: 'bold' }}>
               Outbound Shipment Details Review
             </CustomTypography>
-            
+
             <Stack direction="row" spacing={2} alignItems="center">
               {shipmentDetailsError && (
                 <ErrorMessage message={shipmentDetailsError} />
               )}
-              
+
               <CustomButton
                 onClick={refresh}
                 variant="outlined"
@@ -207,33 +217,46 @@ const OutboundShipmentDetailsPage: FC = () => {
               >
                 {shipmentDetailsLoading ? 'Refreshing' : 'Refresh Data'}
               </CustomButton>
-              
+
               {canConfirmFulfillment && (
-                <ConfirmFulfillmentButton orderId={shipmentHeader.orderId} refresh={refresh} />
+                <ConfirmFulfillmentButton
+                  orderId={shipmentHeader.orderId}
+                  refresh={refresh}
+                />
               )}
-              
+
               {canCompleteManualFulfillment && (
-                <CompleteManualFulfillmentButton shipmentId={shipmentId} refresh={refresh} />
+                <CompleteManualFulfillmentButton
+                  shipmentId={shipmentId}
+                  refresh={refresh}
+                />
               )}
             </Stack>
           </Box>
-          
+
           <Divider sx={{ mb: 3 }} />
-          
+
           {/* Outbound Shipment Details Header Info */}
-          <OutboundShipmentHeaderSection orderNumber={orderNumber} flattened={flattenedHeader} />
-          
+          <OutboundShipmentHeaderSection
+            orderNumber={orderNumber}
+            flattened={flattenedHeader}
+          />
+
           {/* Fulfillment Items */}
-          
+
           {shipmentDetailsLoading ? (
-            <SkeletonExpandedRow showSummary fieldPairs={6} summaryHeight={120} spacing={2} />
+            <SkeletonExpandedRow
+              showSummary
+              fieldPairs={6}
+              summaryHeight={120}
+              spacing={2}
+            />
           ) : (
             <FulfillmentDetailsTable
               data={flattenedFulfillments}
               itemCount={fulfillmentsItemCount}
             />
           )}
-          
         </CardContent>
       </Card>
     </Box>

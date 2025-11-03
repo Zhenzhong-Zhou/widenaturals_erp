@@ -1,7 +1,9 @@
 const { bulkInsert, query } = require('../database/db');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
-const { buildFulfillmentFilter } = require('../utils/sql/build-order-fulfillment-filters');
+const {
+  buildFulfillmentFilter,
+} = require('../utils/sql/build-order-fulfillment-filters');
 
 /**
  * Inserts or updates multiple order fulfillment records in bulk.
@@ -56,7 +58,7 @@ const { buildFulfillmentFilter } = require('../utils/sql/build-order-fulfillment
  */
 const insertOrderFulfillmentsBulk = async (fulfillments, client) => {
   if (!Array.isArray(fulfillments) || fulfillments.length === 0) return [];
-  
+
   const rows = fulfillments.map((f) => [
     f.order_item_id,
     f.allocation_id ?? null,
@@ -69,7 +71,7 @@ const insertOrderFulfillmentsBulk = async (fulfillments, client) => {
     f.created_by ?? null,
     f.updated_by ?? null,
   ]);
-  
+
   const columns = [
     'order_item_id',
     'allocation_id',
@@ -82,9 +84,9 @@ const insertOrderFulfillmentsBulk = async (fulfillments, client) => {
     'created_by',
     'updated_by',
   ];
-  
+
   const conflictColumns = ['order_item_id', 'shipment_id'];
-  
+
   const updateStrategies = {
     quantity_fulfilled: 'add',
     status_id: 'overwrite',
@@ -93,7 +95,7 @@ const insertOrderFulfillmentsBulk = async (fulfillments, client) => {
     fulfilled_by: 'coalesce',
     updated_by: 'overwrite',
   };
-  
+
   try {
     const result = await bulkInsert(
       'order_fulfillments',
@@ -105,19 +107,19 @@ const insertOrderFulfillmentsBulk = async (fulfillments, client) => {
       { context: 'order-fulfillment-repository/insertOrderFulfillmentsBulk' },
       ['id', 'order_item_id']
     );
-    
+
     logSystemInfo('Successfully inserted or updated order fulfillments', {
       context: 'order-fulfillment-repository/insertOrderFulfillmentsBulk',
       fulfillmentCount: fulfillments.length,
       resultCount: result.length,
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to bulk insert order fulfillments', {
       context: 'order-fulfillment-repository/insertOrderFulfillmentsBulk',
       fulfillmentCount: fulfillments.length,
-   });
+    });
     throw AppError.databaseError('Failed to insert order fulfillments', {
       cause: error,
     });
@@ -176,7 +178,7 @@ const insertOrderFulfillmentsBulk = async (fulfillments, client) => {
  */
 const getOrderFulfillments = async (filters, client = null) => {
   const { whereClause, params } = buildFulfillmentFilter(filters);
-  
+
   const sql = `
     SELECT
       f.id AS fulfillment_id,
@@ -191,23 +193,23 @@ const getOrderFulfillments = async (filters, client = null) => {
     WHERE ${whereClause}
     ORDER BY f.created_at ASC
   `;
-  
+
   try {
     const { rows } = await query(sql, params, client);
-    
+
     logSystemInfo('Fetched order fulfillments successfully', {
       context: 'order-fulfillment-repository/getOrderFulfillments',
       filters,
       returnedCount: rows.length,
     });
-    
+
     return rows;
   } catch (error) {
     logSystemException(error, 'Failed to fetch order fulfillments', {
       context: 'order-fulfillment-repository/getOrderFulfillments',
       filters,
     });
-    
+
     throw AppError.databaseError(
       'Database query failed while fetching order fulfillments.',
       { cause: error, filters }
@@ -251,7 +253,10 @@ const getOrderFulfillments = async (filters, client = null) => {
  * );
  * // => ['f1', 'f2']
  */
-const updateOrderFulfillmentStatus = async ({ statusId, userId, fulfillmentIds }, client) => {
+const updateOrderFulfillmentStatus = async (
+  { statusId, userId, fulfillmentIds },
+  client
+) => {
   const sql = `
     UPDATE order_fulfillments
     SET
@@ -262,23 +267,26 @@ const updateOrderFulfillmentStatus = async ({ statusId, userId, fulfillmentIds }
     WHERE id = ANY($3::uuid[])
     RETURNING id
   `;
-  
+
   const params = [statusId, userId, fulfillmentIds];
-  
+
   try {
     const result = await query(sql, params, client);
-    
+
     if (result.rowCount === 0) {
-      logSystemInfo('Fulfillment status update skipped: no matching fulfillments', {
-        context: 'order-fulfillment-repository/updateOrderFulfillmentStatus',
-        statusId,
-        userId,
-        fulfillmentIds,
-        severity: 'WARN',
-      });
+      logSystemInfo(
+        'Fulfillment status update skipped: no matching fulfillments',
+        {
+          context: 'order-fulfillment-repository/updateOrderFulfillmentStatus',
+          statusId,
+          userId,
+          fulfillmentIds,
+          severity: 'WARN',
+        }
+      );
       return 0;
     }
-    
+
     logSystemInfo('Order fulfillment statuses updated successfully', {
       context: 'order-fulfillment-repository/updateOrderFulfillmentStatus',
       updatedCount: result.rowCount,
@@ -287,8 +295,8 @@ const updateOrderFulfillmentStatus = async ({ statusId, userId, fulfillmentIds }
       fulfillmentIds,
       severity: 'INFO',
     });
-    
-    return result.rows.map(r => r.id);
+
+    return result.rows.map((r) => r.id);
   } catch (err) {
     logSystemException(err, 'Failed to update order fulfillment status', {
       context: 'order-fulfillment-repository/updateOrderFulfillmentStatus',

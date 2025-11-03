@@ -1,5 +1,8 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { AllocateInventoryResponse, AllocateInventoryState } from './inventoryAllocationTypes';
+import type {
+  AllocateInventoryResponse,
+  AllocateInventoryState,
+} from './inventoryAllocationTypes';
 import { allocateInventoryThunk } from '@features/inventoryAllocation/state/inventoryAllocationThunks';
 
 const initialState: AllocateInventoryState = {
@@ -24,15 +27,20 @@ const allocateInventorySlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(allocateInventoryThunk.fulfilled, (state, action: PayloadAction<AllocateInventoryResponse>) => {
-        state.loading = false;
-        state.data = action.payload.data; // response = { success, message, data }
-        state.error = null;
-      })
+      .addCase(
+        allocateInventoryThunk.fulfilled,
+        (state, action: PayloadAction<AllocateInventoryResponse>) => {
+          state.loading = false;
+          state.data = action.payload.data; // response = { success, message, data }
+          state.error = null;
+        }
+      )
       .addCase(allocateInventoryThunk.rejected, (state, action) => {
         state.loading = false;
         state.error =
-          (action.payload as string) || action.error.message || 'Allocation failed';
+          (action.payload as string) ||
+          action.error.message ||
+          'Allocation failed';
       });
   },
 });

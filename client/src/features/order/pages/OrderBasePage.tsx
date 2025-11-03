@@ -17,22 +17,24 @@ const tabs = [
 const OrderBasePage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  
-  const currentTabIndex = tabs.findIndex((tab) => location.pathname.startsWith(tab.path));
-  
+
+  const currentTabIndex = tabs.findIndex((tab) =>
+    location.pathname.startsWith(tab.path)
+  );
+
   const handleTabChange = (_event: SyntheticEvent, newValue: number) => {
     const selectedTab = tabs[newValue];
     if (selectedTab) {
       navigate(selectedTab.path);
     }
   };
-  
+
   return (
     <Box p={3}>
       <CustomTypography variant="h4" gutterBottom>
         Orders
       </CustomTypography>
-      
+
       <Tabs
         value={currentTabIndex === -1 ? 0 : currentTabIndex}
         onChange={handleTabChange}
@@ -44,9 +46,9 @@ const OrderBasePage = () => {
           <Tab key={tab.path} label={tab.label} />
         ))}
       </Tabs>
-      
+
       <CreateSaleOrderForm />
-      
+
       <Card elevation={1} sx={{ p: 2 }}>
         <Outlet />
       </Card>

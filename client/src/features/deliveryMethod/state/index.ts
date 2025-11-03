@@ -1,8 +1,4 @@
-
-
-export const deliveryMethodReducers = {
-
-};
+export const deliveryMethodReducers = {};
 
 // Optional: export thunks, selectors, or types here
 // export * from './deliveryMethodDropdownSelectors';

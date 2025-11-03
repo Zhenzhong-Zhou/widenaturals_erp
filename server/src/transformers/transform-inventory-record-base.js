@@ -133,10 +133,10 @@ const transformInventoryRecordBase = (row, config) => {
     }),
     location: row.location_id
       ? {
-        id: row.location_id,
-        name: row.location_name,
-        type: row.location_type_name,
-      }
+          id: row.location_id,
+          name: row.location_name,
+          type: row.location_type_name,
+        }
       : null,
     quantity: {
       [camelQuantityKey]: totalQuantity,

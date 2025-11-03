@@ -4,11 +4,15 @@ import { formatDate } from '@utils/dateTimeUtils';
 import { getShortOrderNumber } from '@features/order/utils/orderUtils';
 import type { InventoryAllocationSummary } from '@features/inventoryAllocation/state';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
-import { formatAllocationStatus, formatOrderStatus, formatPaymentStatus } from '@utils/formatters.tsx';
+import {
+  formatAllocationStatus,
+  formatOrderStatus,
+  formatPaymentStatus,
+} from '@utils/formatters.tsx';
 
 export const getInventoryAllocationColumns = (
   expandedRowId?: string | null,
-  handleDrillDownToggle?: (id: string) => void,
+  handleDrillDownToggle?: (id: string) => void
 ): Column<InventoryAllocationSummary>[] => {
   return [
     {
@@ -21,9 +25,9 @@ export const getInventoryAllocationColumns = (
             pathname: `/inventory-allocations/review/${row.orderId}`,
           }}
           state={{
-            warehouseIds: row.warehouses.ids,        // from your table row
-            allocationIds: row.allocationIds,      // from your table row
-            category: row.orderCategory,                     // or derive dynamically
+            warehouseIds: row.warehouses.ids, // from your table row
+            allocationIds: row.allocationIds, // from your table row
+            category: row.orderCategory, // or derive dynamically
           }}
           style={{
             textDecoration: 'none',
@@ -33,7 +37,7 @@ export const getInventoryAllocationColumns = (
         >
           {getShortOrderNumber(row.orderNumber)}
         </Link>
-      )
+      ),
     },
     {
       id: 'orderType',
@@ -45,7 +49,8 @@ export const getInventoryAllocationColumns = (
       id: 'orderStatus',
       label: 'Status',
       sortable: true,
-      renderCell: (row) => formatOrderStatus(row.orderStatus.code, row.orderStatus.name),
+      renderCell: (row) =>
+        formatOrderStatus(row.orderStatus.code, row.orderStatus.name),
     },
     {
       id: 'customer',
@@ -63,7 +68,8 @@ export const getInventoryAllocationColumns = (
       id: 'paymentStatus',
       label: 'Payment Status',
       sortable: true,
-      renderCell: (row) => formatPaymentStatus(row.paymentStatus.code, row.paymentStatus.name),
+      renderCell: (row) =>
+        formatPaymentStatus(row.paymentStatus.code, row.paymentStatus.name),
     },
     {
       id: 'deliveryMethod',
@@ -88,14 +94,17 @@ export const getInventoryAllocationColumns = (
       id: 'allocationStatus',
       label: 'Allocation Status',
       sortable: false,
-      renderCell: (row) => formatAllocationStatus(row.allocationStatus.codes, row.allocationStatus.summary),
+      renderCell: (row) =>
+        formatAllocationStatus(
+          row.allocationStatus.codes,
+          row.allocationStatus.summary
+        ),
     },
     {
       id: 'orderCreatedAt',
       label: 'Order Date',
       sortable: true,
-      format: (value) =>
-        typeof value === 'string' ? formatDate(value) : '—',
+      format: (value) => (typeof value === 'string' ? formatDate(value) : '—'),
     },
     {
       id: 'orderCreatedBy',
@@ -104,11 +113,11 @@ export const getInventoryAllocationColumns = (
     },
     ...(handleDrillDownToggle
       ? [
-        createDrillDownColumn<InventoryAllocationSummary>(
-          (row) => handleDrillDownToggle(row.orderId),
-          (row) => expandedRowId === row.orderId
-        ),
-      ]
+          createDrillDownColumn<InventoryAllocationSummary>(
+            (row) => handleDrillDownToggle(row.orderId),
+            (row) => expandedRowId === row.orderId
+          ),
+        ]
       : []),
   ];
 };

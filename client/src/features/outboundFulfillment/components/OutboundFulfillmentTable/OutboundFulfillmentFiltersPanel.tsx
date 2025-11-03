@@ -34,19 +34,19 @@ const emptyFilters: OutboundFulfillmentFilters = {
  * Supports shipment-level, order-level, and keyword filters.
  */
 const OutboundFulfillmentFiltersPanel: FC<Props> = ({
-                                                      filters,
-                                                      onChange,
-                                                      onApply,
-                                                      onReset,
-                                                    }) => {
+  filters,
+  onChange,
+  onApply,
+  onReset,
+}) => {
   const { control, handleSubmit, reset } = useForm<OutboundFulfillmentFilters>({
     defaultValues: filters,
   });
-  
+
   useEffect(() => {
     reset(filters);
   }, [filters, reset]);
-  
+
   const submitFilters = (data: OutboundFulfillmentFilters) => {
     const adjusted: OutboundFulfillmentFilters = {
       ...data,
@@ -56,12 +56,12 @@ const OutboundFulfillmentFiltersPanel: FC<Props> = ({
     onChange(adjusted);
     onApply();
   };
-  
+
   const resetFilters = () => {
     reset(emptyFilters);
     onReset();
   };
-  
+
   const textFields: {
     name: keyof OutboundFulfillmentFilters;
     label: string;
@@ -69,18 +69,25 @@ const OutboundFulfillmentFiltersPanel: FC<Props> = ({
   }[] = [
     { name: 'orderNumber', label: 'Order Number' },
     // { name: 'orderId', label: 'Order ID' },
-    { name: 'keyword', label: 'Search Keyword', placeholder: 'Order #, Warehouse, Method...' },
+    {
+      name: 'keyword',
+      label: 'Search Keyword',
+      placeholder: 'Order #, Warehouse, Method...',
+    },
     // { name: 'createdBy', label: 'Created By (User ID)' },
     // { name: 'updatedBy', label: 'Updated By (User ID)' },
   ];
-  
-  const dateFields: { name: keyof OutboundFulfillmentFilters; label: string }[] = [
+
+  const dateFields: {
+    name: keyof OutboundFulfillmentFilters;
+    label: string;
+  }[] = [
     { name: 'createdAfter', label: 'Created After' },
     { name: 'createdBefore', label: 'Created Before' },
     { name: 'shippedAfter', label: 'Shipped After' },
     { name: 'shippedBefore', label: 'Shipped Before' },
   ];
-  
+
   return (
     <Box mb={2} p={2} border="1px solid #ccc" borderRadius={2}>
       <form onSubmit={handleSubmit(submitFilters)}>
@@ -88,12 +95,12 @@ const OutboundFulfillmentFiltersPanel: FC<Props> = ({
           {textFields.map(({ name, label, placeholder }) =>
             renderInputField(control, name, label, placeholder)
           )}
-          
+
           {dateFields.map(({ name, label }) =>
             renderDateField(control, name, label)
           )}
         </Grid>
-        
+
         <Box display="flex" flexWrap="wrap" gap={2} mt={3}>
           <CustomButton type="submit" variant="contained">
             Apply

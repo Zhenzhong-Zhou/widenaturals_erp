@@ -8,16 +8,18 @@ exports.seed = async function (knex) {
   // Skip if already seeded
   const [{ count }] = await knex('delivery_methods').count('id');
   const total = parseInt(count, 10) || 0;
-  
+
   if (total > 0) {
     console.log(
       `[${new Date().toISOString()}] [SEED] Skipping delivery_methods seed: ${total} records already exist.`
     );
     return;
   }
-  
-  console.log(`[${new Date().toISOString()}] [SEED] Starting delivery_methods seeding...`);
-  
+
+  console.log(
+    `[${new Date().toISOString()}] [SEED] Starting delivery_methods seeding...`
+  );
+
   // Fetch status IDs
   const statusIds = await fetchDynamicValues(
     knex,
@@ -26,13 +28,13 @@ exports.seed = async function (knex) {
     ['active', 'inactive', 'discontinued', 'archived'],
     'id'
   );
-  
+
   const getStatusId = (name) => {
     const id = statusIds[name];
     if (!id) throw new Error(`Status "${name}" not found in DB.`);
     return id;
   };
-  
+
   const systemActionId = await fetchDynamicValue(
     knex,
     'users',
@@ -40,15 +42,15 @@ exports.seed = async function (knex) {
     'system@internal.local',
     'id'
   );
-  
+
   // Assign status IDs
   const active = getStatusId('active');
   const inactive = getStatusId('inactive');
   const discontinued = getStatusId('discontinued');
   const archived = getStatusId('archived');
-  
+
   const now = knex.fn.now();
-  
+
   // Delivery method definitions
   const deliveryMethods = [
     // Active
@@ -87,7 +89,7 @@ exports.seed = async function (knex) {
       estimated_time: '2 hours',
       status_id: active,
     },
-    
+
     // Inactive
     {
       method_name: 'Locker Pickup',
@@ -96,7 +98,7 @@ exports.seed = async function (knex) {
       estimated_time: '1 day',
       status_id: inactive,
     },
-    
+
     // Discontinued
     {
       method_name: 'Drone Delivery',
@@ -105,7 +107,7 @@ exports.seed = async function (knex) {
       estimated_time: '30 mins',
       status_id: discontinued,
     },
-    
+
     // Archived
     {
       method_name: 'Regional Truck Freight',
@@ -115,7 +117,7 @@ exports.seed = async function (knex) {
       status_id: archived,
     },
   ];
-  
+
   // Format insert payload
   const rows = deliveryMethods.map((dm) => ({
     id: knex.raw('uuid_generate_v4()'),
@@ -130,12 +132,12 @@ exports.seed = async function (knex) {
     created_by: systemActionId,
     updated_by: null,
   }));
-  
+
   const inserted = await knex('delivery_methods')
     .insert(rows)
     .onConflict(['method_name'])
     .ignore();
-  
+
   console.log(
     `Seeded ${inserted.rowCount || deliveryMethods.length} records into 'delivery_methods' table.`
   );

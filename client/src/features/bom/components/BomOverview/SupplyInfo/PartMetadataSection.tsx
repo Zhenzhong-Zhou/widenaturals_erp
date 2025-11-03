@@ -14,7 +14,7 @@ const PartMetadataSection: FC<{ row: FlattenedBomSupplyRow }> = ({ row }) => (
     }}
     fields={[
       { label: 'Part Name', value: row.partName },
-      { label: 'Snapshot Name', value: row?.materialSnapshotName, },
+      { label: 'Snapshot Name', value: row?.materialSnapshotName },
       { label: 'Supplier Label', value: row.receivedLabelName },
     ]}
   />

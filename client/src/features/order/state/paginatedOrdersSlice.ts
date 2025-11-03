@@ -24,7 +24,7 @@ const paginatedOrdersSlice = createSlice({
   initialState,
   reducers: {
     resetOrderListState: () => initialState,
-    
+
     /**
      * Updates the current filter parameters used for order list retrieval.
      */
@@ -38,11 +38,14 @@ const paginatedOrdersSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchOrdersByCategoryThunk.fulfilled, (state, action: PayloadAction<OrderListResponse>) => {
-        state.loading = false;
-        state.data = action.payload.data;
-        state.pagination = action.payload.pagination;
-      })
+      .addCase(
+        fetchOrdersByCategoryThunk.fulfilled,
+        (state, action: PayloadAction<OrderListResponse>) => {
+          state.loading = false;
+          state.data = action.payload.data;
+          state.pagination = action.payload.pagination;
+        }
+      )
       .addCase(fetchOrdersByCategoryThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload ?? 'Failed to load orders.';
@@ -50,5 +53,6 @@ const paginatedOrdersSlice = createSlice({
   },
 });
 
-export const { resetOrderListState, setOrderListFilters } = paginatedOrdersSlice.actions;
+export const { resetOrderListState, setOrderListFilters } =
+  paginatedOrdersSlice.actions;
 export default paginatedOrdersSlice.reducer;

@@ -87,7 +87,13 @@ const fetchInventoryActivityLogsService = async (
 
     // Full access: allow everything
     if (allowedKeys.includes('*')) {
-      const result = await getInventoryActivityLogs({ filters, page, limit, sortBy, sortOrder });
+      const result = await getInventoryActivityLogs({
+        filters,
+        page,
+        limit,
+        sortBy,
+        sortOrder,
+      });
       return transformInventoryActivityLogs(result);
     }
 

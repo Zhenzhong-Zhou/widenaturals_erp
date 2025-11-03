@@ -53,10 +53,17 @@ const validateUUID = (fieldName = 'id') =>
  * });
  */
 const validateOptionalUUID = (fieldName = 'id') =>
-  Joi.string().uuid().trim().optional().allow(null).disallow('').label(fieldName).messages({
-    'string.guid': '{{#label}} must be a valid UUID',
-    'any.invalid': '{{#label}} cannot be an empty string',
-  });
+  Joi.string()
+    .uuid()
+    .trim()
+    .optional()
+    .allow(null)
+    .disallow('')
+    .label(fieldName)
+    .messages({
+      'string.guid': '{{#label}} must be a valid UUID',
+      'any.invalid': '{{#label}} cannot be an empty string',
+    });
 
 /**
  * Returns a Joi schema for validating either a string or array of UUIDs (v4).
@@ -90,16 +97,16 @@ const validateUUIDOrUUIDArrayOptional = (fieldName = 'IDs') =>
  */
 const validateUUIDArray = (fieldName = 'IDs', options = {}) => {
   const { required = false, allowEmpty = false } = options;
-  
-  let schema = Joi.array().items(
-    Joi.string().uuid().trim().label('UUID')
-  ).label(fieldName);
-  
+
+  let schema = Joi.array()
+    .items(Joi.string().uuid().trim().label('UUID'))
+    .label(fieldName);
+
   if (required) schema = schema.required();
   else schema = schema.default([]);
-  
+
   if (!allowEmpty) schema = schema.min(1);
-  
+
   return schema.messages({
     'array.base': '{{#label}} must be an array',
     'any.required': '{{#label}} is required',
@@ -360,19 +367,19 @@ const aggregatedDateRangeSchema = Joi.object({
     .optional()
     .allow(null, '')
     .label('Aggregated Allocated After'),
-  
+
   aggregatedAllocatedBefore: Joi.date()
     .iso()
     .optional()
     .allow(null, '')
     .label('Aggregated Allocated Before'),
-  
+
   aggregatedCreatedAfter: Joi.date()
     .iso()
     .optional()
     .allow(null, '')
     .label('Aggregated Created After'),
-  
+
   aggregatedCreatedBefore: Joi.date()
     .iso()
     .optional()

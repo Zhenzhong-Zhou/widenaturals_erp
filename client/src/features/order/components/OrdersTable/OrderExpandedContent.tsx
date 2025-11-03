@@ -11,19 +11,19 @@ interface OrderExpandedContentProps {
 
 const OrderExpandedContent: FC<OrderExpandedContentProps> = ({ row }) => {
   const fields = [
-    { label: 'Status Date', value: formatDateTime(row.statusDate)},
+    { label: 'Status Date', value: formatDateTime(row.statusDate) },
     { label: 'Created At', value: formatDateTime(row.createdAt) },
     { label: 'Updated At', value: formatDateTime(row.updatedAt) },
     { label: 'Updated By', value: row.updatedBy },
     { label: 'Note', value: row.note },
   ];
-  
+
   return (
     <Box sx={{ px: 3, py: 2 }}>
       <CustomTypography variant="subtitle1" fontWeight={600} gutterBottom>
         Order Details
       </CustomTypography>
-      
+
       <Grid container spacing={2}>
         {fields.map(({ label, value }, idx) => (
           <Grid key={idx} size={{ xs: 12, sm: 6 }}>

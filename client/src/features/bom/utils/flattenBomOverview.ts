@@ -60,9 +60,9 @@ export const flattenBomHeader = (header: BomHeader): FlattenedBomHeader => {
       bomUpdatedBy: null,
     };
   }
-  
+
   const { product, sku, compliance, bom } = header;
-  
+
   return {
     // --- Product Info ---
     productId: product?.id ?? null,
@@ -70,7 +70,7 @@ export const flattenBomHeader = (header: BomHeader): FlattenedBomHeader => {
     productBrand: product?.brand ?? null,
     productSeries: product?.series ?? null,
     productCategory: product?.category ?? null,
-    
+
     // --- SKU Info ---
     skuId: sku?.id ?? null,
     skuCode: sku?.code ?? null,
@@ -80,7 +80,7 @@ export const flattenBomHeader = (header: BomHeader): FlattenedBomHeader => {
     skuMarketRegion: sku?.marketRegion ?? null,
     skuSizeLabel: sku?.sizeLabel ?? null,
     skuDescription: sku?.description ?? null,
-    
+
     // --- Compliance Info ---
     complianceId: compliance?.id ?? null,
     complianceType: compliance?.type ?? null,
@@ -89,7 +89,7 @@ export const flattenBomHeader = (header: BomHeader): FlattenedBomHeader => {
     complianceExpiryDate: compliance?.expiryDate ?? null,
     complianceDescription: compliance?.description ?? null,
     complianceStatus: compliance?.status?.name ?? null,
-    
+
     // --- BOM Info ---
     bomId: bom?.id ?? null,
     bomCode: bom?.code ?? null,
@@ -113,9 +113,11 @@ export const flattenBomHeader = (header: BomHeader): FlattenedBomHeader => {
  * @param details - The array of BOM part detail objects.
  * @returns Flattened array suitable for table display or CSV export.
  */
-export const flattenBomDetails = (details: BomPartDetail[]): FlattenedBomDetailRow[] => {
+export const flattenBomDetails = (
+  details: BomPartDetail[]
+): FlattenedBomDetailRow[] => {
   if (!Array.isArray(details)) return [];
-  
+
   return details.map((item) => ({
     // --- BOM Item Info ---
     bomItemId: item.id ?? null,
@@ -123,7 +125,7 @@ export const flattenBomDetails = (details: BomPartDetail[]): FlattenedBomDetailR
     unit: item.unit ?? null,
     specifications: item.specifications ?? null,
     note: item.note ?? null,
-    
+
     // --- Cost Info ---
     estimatedUnitCost: item.estimatedUnitCost ?? null,
     currency: item.currency ?? null,
@@ -132,7 +134,7 @@ export const flattenBomDetails = (details: BomPartDetail[]): FlattenedBomDetailR
       item.estimatedUnitCost && item.exchangeRate
         ? Number(item.estimatedUnitCost) * Number(item.exchangeRate)
         : null,
-    
+
     // --- Part Info ---
     partId: item.part?.id ?? null,
     partCode: item.part?.code ?? null,
@@ -140,7 +142,7 @@ export const flattenBomDetails = (details: BomPartDetail[]): FlattenedBomDetailR
     partType: item.part?.type ?? null,
     partUnitOfMeasure: item.part?.unitOfMeasure ?? null,
     partDescription: item.part?.description ?? null,
-    
+
     // --- Audit Info ---
     createdAt: item.audit?.createdAt ?? null,
     createdBy: item.audit?.createdBy?.name ?? null,
@@ -155,7 +157,9 @@ export const flattenBomDetails = (details: BomPartDetail[]): FlattenedBomDetailR
  * @param summary - The summary section from a BOM details response.
  * @returns Flat object containing normalized summary fields.
  */
-export const flattenBomSummary = (summary: BomSummary | null): FlattenedBomSummary => {
+export const flattenBomSummary = (
+  summary: BomSummary | null
+): FlattenedBomSummary => {
   if (!summary) {
     return {
       summaryType: null,
@@ -165,7 +169,7 @@ export const flattenBomSummary = (summary: BomSummary | null): FlattenedBomSumma
       summaryItemCount: null,
     };
   }
-  
+
   return {
     summaryType: summary.type ?? null,
     summaryDescription: summary.description ?? null,
@@ -191,14 +195,19 @@ export const flattenBomMaterialSupplySummary = (
   const {
     bomId,
     baseCurrency,
-    totals: { totalEstimatedCost, totalActualCost, variance, variancePercentage },
+    totals: {
+      totalEstimatedCost,
+      totalActualCost,
+      variance,
+      variancePercentage,
+    },
     suppliers = [],
     parts = [],
   } = summary;
-  
+
   const supplierCount = suppliers.length;
   const partCount = parts.length;
-  
+
   return {
     bomId,
     baseCurrency,
@@ -218,29 +227,36 @@ export const flattenBomMaterialSupplySummary = (
 export const flattenBomMaterialSupplyDetail = (
   detail: BomMaterialSupplyDetail
 ): FlattenedBomSupplyRow[] => {
-  const { bomId, bomItemId, part, bomItemMaterial, packagingMaterials } = detail;
-  
+  const { bomId, bomItemId, part, bomItemMaterial, packagingMaterials } =
+    detail;
+
   if (!packagingMaterials?.length) return [];
-  
+
   const rows: FlattenedBomSupplyRow[] = [];
-  
+
   for (const material of packagingMaterials) {
-    const { supplier, status: materialStatus, audit: materialAudit, dimensions, ...mat } = material;
+    const {
+      supplier,
+      status: materialStatus,
+      audit: materialAudit,
+      dimensions,
+      ...mat
+    } = material;
     if (!supplier) continue;
-    
+
     const { contract, batches, audit: supplierAudit } = supplier;
     if (!batches?.length) continue;
-    
+
     for (const batch of batches) {
       const { status: batchStatus, audit: batchAudit } = batch;
-      
+
       rows.push({
         // --- BOM & Part Metadata ---
         bomId,
         bomItemId,
         partId: part.id,
         partName: part.name,
-        
+
         // --- BOM Item Material Info ---
         bomItemMaterialId: bomItemMaterial.id,
         requiredQtyPerProduct: bomItemMaterial.requiredQtyPerProduct,
@@ -254,7 +270,7 @@ export const flattenBomMaterialSupplyDetail = (
         bomItemMaterialUpdatedBy: bomItemMaterial.updatedBy
           ? bomItemMaterial.updatedBy.name
           : null,
-        
+
         // --- Packaging Material Info ---
         packagingMaterialId: mat.id,
         packagingMaterialName: mat.name,
@@ -284,7 +300,7 @@ export const flattenBomMaterialSupplyDetail = (
         packagingMaterialUpdatedBy: materialAudit.updatedBy
           ? materialAudit.updatedBy.name
           : null,
-        
+
         // --- Supplier Info ---
         supplierId: supplier.id,
         supplierName: supplier.name,
@@ -302,7 +318,7 @@ export const flattenBomMaterialSupplyDetail = (
         supplierUpdatedBy: supplierAudit.updatedBy
           ? supplierAudit.updatedBy.name
           : null,
-        
+
         // --- Batch Info ---
         batchId: batch.id,
         lotNumber: batch.lotNumber,
@@ -321,13 +337,11 @@ export const flattenBomMaterialSupplyDetail = (
         batchCreatedAt: batchAudit.createdAt,
         batchCreatedBy: batchAudit.createdBy.name,
         batchUpdatedAt: batchAudit.updatedAt,
-        batchUpdatedBy: batchAudit.updatedBy
-          ? batchAudit.updatedBy.name
-          : null,
+        batchUpdatedBy: batchAudit.updatedBy ? batchAudit.updatedBy.name : null,
       });
     }
   }
-  
+
   return rows;
 };
 
@@ -373,7 +387,7 @@ export const flattenBomReadinessParts = (
       shortageQty,
       materialBatches,
     } = part;
-    
+
     // If no batches, still return one row for the part
     if (!materialBatches?.length) {
       return [
@@ -389,7 +403,7 @@ export const flattenBomReadinessParts = (
         },
       ];
     }
-    
+
     // Otherwise, expand each material batch
     return materialBatches.map((batch: MaterialBatch) => ({
       partId,
@@ -457,36 +471,36 @@ export const flattenBomReadinessMetadata = (
       readinessBottleneckMaterialSnapshotName: null,
     };
   }
-  
+
   const {
     generatedAt,
     isReadyForProduction,
     maxProducibleUnits,
     shortageCount,
     stockHealth,
-    bottleneckParts
+    bottleneckParts,
   } = metadata;
-  
+
   // Format stock health summary (example: "usable: 9850, inactive: 0")
   const stockHealthSummary = stockHealth
     ? Object.entries(stockHealth)
-      .map(([key, val]) => `${key}: ${val}`)
-      .join(', ')
+        .map(([key, val]) => `${key}: ${val}`)
+        .join(', ')
     : null;
-  
+
   // Extract bottleneck parts info
   const partNames = bottleneckParts?.length
     ? bottleneckParts.map((p) => p.partName).join(', ')
     : null;
-  
+
   const packagingMaterialName = bottleneckParts?.length
     ? bottleneckParts.map((p) => p.packagingMaterialName).join(', ')
     : null;
-  
+
   const materialSnapshotName = bottleneckParts?.length
     ? bottleneckParts.map((p) => p.materialSnapshotName).join(', ')
     : null;
-  
+
   return {
     readinessGeneratedAt: generatedAt ?? null,
     readinessStatus: isReadyForProduction ?? null,

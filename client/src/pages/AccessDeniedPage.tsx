@@ -7,7 +7,7 @@ import CustomButton from '@components/common/CustomButton';
 
 const AccessDeniedPage = () => {
   const navigate = useNavigate();
-  
+
   return (
     <Container maxWidth="sm">
       <Box

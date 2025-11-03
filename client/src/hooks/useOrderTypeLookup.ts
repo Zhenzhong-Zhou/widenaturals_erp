@@ -30,10 +30,7 @@ const useOrderTypeLookup = () => {
     [dispatch]
   );
 
-  const reset = useCallback(
-    () => dispatch(clearOrderTypeLookup()),
-    [dispatch]
-  );
+  const reset = useCallback(() => dispatch(clearOrderTypeLookup()), [dispatch]);
 
   return useMemo(
     () => ({

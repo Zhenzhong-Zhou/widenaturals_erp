@@ -1,6 +1,9 @@
 import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
-import { createLookupMetaSelector, mapLookupItems } from '../utils/lookupSelectorUtils';
+import {
+  createLookupMetaSelector,
+  mapLookupItems,
+} from '../utils/lookupSelectorUtils';
 import type {
   PackagingMaterialOnlyLookupItem,
   LookupOption,
@@ -40,8 +43,9 @@ export const selectPackagingMaterialLookupError = createSelector(
  * Selects pagination metadata for the packaging-material lookup slice.
  * Includes `hasMore`, `limit`, and `offset` used for pagination controls.
  */
-export const selectPackagingMaterialLookupMeta =
-  createLookupMetaSelector(selectPackagingMaterialLookupState);
+export const selectPackagingMaterialLookupMeta = createLookupMetaSelector(
+  selectPackagingMaterialLookupState
+);
 
 /**
  * Selector that maps packaging-material lookup items to dropdown options,

@@ -21,27 +21,33 @@ import type { RootState } from '@store/store';
 export const createLookupMetaSelector = (
   baseSelector: (state: RootState) => unknown
 ) => {
-  return createSelector([baseSelector], (state): { hasMore: boolean; limit: number; offset: number } => {
-    const hasValidShape =
-      typeof state === 'object' &&
-      state !== null &&
-      'hasMore' in state &&
-      'limit' in state &&
-      'offset' in state &&
-      typeof (state as any).hasMore === 'boolean' &&
-      typeof (state as any).limit === 'number' &&
-      typeof (state as any).offset === 'number';
-    
-    if (!hasValidShape && import.meta.env.DEV) {
-      console.warn('[createLookupMetaSelector] Invalid lookup slice shape:', state);
+  return createSelector(
+    [baseSelector],
+    (state): { hasMore: boolean; limit: number; offset: number } => {
+      const hasValidShape =
+        typeof state === 'object' &&
+        state !== null &&
+        'hasMore' in state &&
+        'limit' in state &&
+        'offset' in state &&
+        typeof (state as any).hasMore === 'boolean' &&
+        typeof (state as any).limit === 'number' &&
+        typeof (state as any).offset === 'number';
+
+      if (!hasValidShape && import.meta.env.DEV) {
+        console.warn(
+          '[createLookupMetaSelector] Invalid lookup slice shape:',
+          state
+        );
+      }
+
+      return {
+        hasMore: (state as any).hasMore ?? false,
+        limit: (state as any).limit ?? 0,
+        offset: (state as any).offset ?? 0,
+      };
     }
-    
-    return {
-      hasMore: (state as any).hasMore ?? false,
-      limit: (state as any).limit ?? 0,
-      offset: (state as any).offset ?? 0,
-    };
-  });
+  );
 };
 
 /**
@@ -71,7 +77,7 @@ export const transformIdLabel = <T extends { id: string; label: string }>(
  */
 export const mapLookupItems = <
   T extends { id: string; label: string } & Record<string, any>,
-  K extends keyof T = never
+  K extends keyof T = never,
 >(
   items: T[],
   extraFields: K[] = []
@@ -81,12 +87,15 @@ export const mapLookupItems = <
       label: item.label,
       value: item.id,
     };
-    
-    const extras = extraFields.reduce((acc, key) => {
-      acc[key] = item[key];
-      return acc;
-    }, {} as Pick<T, K>);
-    
+
+    const extras = extraFields.reduce(
+      (acc, key) => {
+        acc[key] = item[key];
+        return acc;
+      },
+      {} as Pick<T, K>
+    );
+
     return { ...base, ...extras };
   });
 };

@@ -7,7 +7,9 @@ import { formatDateTime } from '@utils/dateTimeUtils';
 /**
  * Displays key details about the packaging material linked to a BOM item or batch.
  */
-const PackagingMaterialSection: FC<{ row: FlattenedBomSupplyRow }> = ({ row }) => (
+const PackagingMaterialSection: FC<{ row: FlattenedBomSupplyRow }> = ({
+  row,
+}) => (
   <DetailsSection
     sectionTitle="Packaging Material Information"
     sx={{
@@ -24,24 +26,61 @@ const PackagingMaterialSection: FC<{ row: FlattenedBomSupplyRow }> = ({ row }) =
       { label: 'Color', value: row.color },
       { label: 'Size', value: row.size },
       { label: 'Grade', value: row.grade },
-      { label: 'Estimated Unit Cost', value: row.estimatedUnitCost, format: (v) => formatCurrency(v, row.materialCurrency) },
+      {
+        label: 'Estimated Unit Cost',
+        value: row.estimatedUnitCost,
+        format: (v) => formatCurrency(v, row.materialCurrency),
+      },
       { label: 'Material Currency', value: row.materialCurrency },
       { label: 'Exchange Rate', value: row.materialExchangeRate },
-      { label: 'Visible for Sales Orders', value: row.isVisibleForSalesOrder ? 'Yes' : 'No' },
+      {
+        label: 'Visible for Sales Orders',
+        value: row.isVisibleForSalesOrder ? 'Yes' : 'No',
+      },
       { label: 'Material Length (cm)', value: row.packagingMaterialLengthCm },
       { label: 'Material Width (cm)', value: row.packagingMaterialWidthCm },
       { label: 'Material Height (cm)', value: row.packagingMaterialHeightCm },
       { label: 'Material Weight (g)', value: row.packagingMaterialWeightG },
-      { label: 'Material Length (inch)', value: row.packagingMaterialLengthInch },
+      {
+        label: 'Material Length (inch)',
+        value: row.packagingMaterialLengthInch,
+      },
       { label: 'Material Width (inch)', value: row.packagingMaterialWidthInch },
-      { label: 'Material Height (inch)', value: row.packagingMaterialHeightInch },
+      {
+        label: 'Material Height (inch)',
+        value: row.packagingMaterialHeightInch,
+      },
       { label: 'Material Weight (lbs)', value: row.packagingMaterialWeightLbs },
-      { label: 'Material Status', value: row.packagingMaterialStatusName , format: formatLabel },
-      { label: 'Material Status Date', value: row.packagingMaterialStatusDate, format: formatDateTime },
-      { label: 'Material Created At', value: row.packagingMaterialCreatedAt, format: formatDateTime },
-      { label: 'Material Created By', value: row.packagingMaterialCreatedBy, format: formatLabel },
-      { label: 'Material Updated At', value: row.packagingMaterialUpdatedAt, format: formatDateTime },
-      { label: 'Material Updated By', value: row.packagingMaterialUpdatedBy, format: formatLabel },
+      {
+        label: 'Material Status',
+        value: row.packagingMaterialStatusName,
+        format: formatLabel,
+      },
+      {
+        label: 'Material Status Date',
+        value: row.packagingMaterialStatusDate,
+        format: formatDateTime,
+      },
+      {
+        label: 'Material Created At',
+        value: row.packagingMaterialCreatedAt,
+        format: formatDateTime,
+      },
+      {
+        label: 'Material Created By',
+        value: row.packagingMaterialCreatedBy,
+        format: formatLabel,
+      },
+      {
+        label: 'Material Updated At',
+        value: row.packagingMaterialUpdatedAt,
+        format: formatDateTime,
+      },
+      {
+        label: 'Material Updated By',
+        value: row.packagingMaterialUpdatedBy,
+        format: formatLabel,
+      },
     ]}
   />
 );

@@ -1,8 +1,4 @@
-
-
-export const taxRateReducers = {
-
-};
+export const taxRateReducers = {};
 
 // Optional: export thunks, selectors, types if needed
 // export * from './taxRateDropdownSelectors';

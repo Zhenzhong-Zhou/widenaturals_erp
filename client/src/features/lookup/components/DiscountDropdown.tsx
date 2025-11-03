@@ -3,7 +3,11 @@ import type { DiscountLookupQueryParams } from '@features/lookup/state';
 import type { PaginatedDropdownProps } from '@components/common/PaginatedDropdown';
 import PaginatedDropdown from '@components/common/PaginatedDropdown';
 import CustomTypography from '@components/common/CustomTypography';
-import { faBan, faHourglassEnd, faPercent } from '@fortawesome/free-solid-svg-icons';
+import {
+  faBan,
+  faHourglassEnd,
+  faPercent,
+} from '@fortawesome/free-solid-svg-icons';
 import { getRawLabel } from '@utils/labelHelpers';
 
 type DiscountDropdownProps = PaginatedDropdownProps<DiscountLookupQueryParams>;
@@ -30,45 +34,37 @@ const DiscountDropdown = ({ options = [], ...rest }: DiscountDropdownProps) => {
         options.map((opt) => {
           const isInactive = opt.isActive === false;
           const isExpired = opt.isValidToday === false;
-          
+
           // Keep string label
           const rawLabel = getRawLabel(opt.label);
-          
+
           // JSX for rendering
           const displayLabel = (
             <CustomTypography color={isInactive ? 'error' : 'inherit'}>
               {rawLabel}
             </CustomTypography>
           );
-          
+
           return [
             opt.value ?? opt.id,
             {
               ...opt,
               label: rawLabel,
               displayLabel,
-              icon: isInactive
-                ? faBan
-                : isExpired
-                  ? faHourglassEnd
-                  : faPercent,
+              icon: isInactive ? faBan : isExpired ? faHourglassEnd : faPercent,
               tooltip: isInactive
                 ? 'Inactive Discount'
                 : isExpired
                   ? 'Expired Discount'
                   : 'Active Discount',
-              iconColor: isInactive
-                ? 'gray'
-                : isExpired
-                  ? 'orange'
-                  : 'green',
+              iconColor: isInactive ? 'gray' : isExpired ? 'orange' : 'green',
             },
           ];
         })
       ).values()
     );
   }, [options]);
-  
+
   return (
     <PaginatedDropdown
       label="Select Discount"

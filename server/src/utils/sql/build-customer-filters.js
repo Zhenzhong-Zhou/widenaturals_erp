@@ -52,9 +52,7 @@ const AppError = require('../AppError');
  * // whereClause: "1=1 AND c.created_by = $1 AND (...) AND EXISTS (...)"
  * // params: ['user-uuid', 'john%', '%john%']
  */
-const buildCustomerFilter = (
-  filters = {},
-) => {
+const buildCustomerFilter = (filters = {}) => {
   try {
     const conditions = ['1=1'];
     const params = [];
@@ -65,7 +63,7 @@ const buildCustomerFilter = (
       params.push(filters.createdBy);
       paramIndex++;
     }
-    
+
     if (filters.keyword) {
       const keywordParam1 = `${filters.keyword}%`;
       const keywordParam2 = `%${filters.keyword}%`;
@@ -78,7 +76,7 @@ const buildCustomerFilter = (
       params.push(keywordParam1, keywordParam2);
       paramIndex += 2;
     }
-    
+
     if (filters.statusId) {
       conditions.push(`c.status_id = $${paramIndex}`);
       params.push(filters.statusId);
@@ -89,7 +87,7 @@ const buildCustomerFilter = (
       params.push(filters._activeStatusId);
       paramIndex++;
     }
-    
+
     if (filters.createdAfter) {
       conditions.push(`c.created_at >= $${paramIndex}`);
       params.push(filters.createdAfter);

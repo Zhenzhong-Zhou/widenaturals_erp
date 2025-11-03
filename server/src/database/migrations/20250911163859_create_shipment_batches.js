@@ -2,28 +2,41 @@
  * @param { import("knex").Knex } knex
  * @returns { Promise<void> }
  */
-exports.up = async function(knex) {
+exports.up = async function (knex) {
   await knex.schema.createTable('shipment_batches', (table) => {
     table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
-    
-    table.uuid('shipment_id').notNullable().references('id').inTable('outbound_shipments');
-    table.uuid('fulfillment_id').notNullable().references('id').inTable('order_fulfillments');
-    table.uuid('batch_id').notNullable().references('id').inTable('batch_registry');
+
+    table
+      .uuid('shipment_id')
+      .notNullable()
+      .references('id')
+      .inTable('outbound_shipments');
+    table
+      .uuid('fulfillment_id')
+      .notNullable()
+      .references('id')
+      .inTable('order_fulfillments');
+    table
+      .uuid('batch_id')
+      .notNullable()
+      .references('id')
+      .inTable('batch_registry');
     table.integer('quantity_shipped').notNullable(); // from that batch
     table.text('notes').nullable();
-    
+
     table.uuid('created_by').references('id').inTable('users');
     table.timestamp('created_at').defaultTo(knex.fn.now());
-    
-    table.unique(['fulfillment_id', 'batch_id'], { indexName: 'uniq_shipment_batches_fulfillment_batch' });
+
+    table.unique(['fulfillment_id', 'batch_id'], {
+      indexName: 'uniq_shipment_batches_fulfillment_batch',
+    });
   });
-  
 };
 
 /**
  * @param { import("knex").Knex } knex
  * @returns { Promise<void> }
  */
-exports.down = async function(knex) {
+exports.down = async function (knex) {
   await knex.schema.dropTableIfExists('shipment_batches');
 };

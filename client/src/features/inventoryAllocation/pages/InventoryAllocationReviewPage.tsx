@@ -34,8 +34,12 @@ const InventoryAllocationReviewPage = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const location = useLocation();
   const navigate = useNavigate();
-  const { warehouseIds = [], allocationIds = [], category }: LocationState = location.state || {};
-  
+  const {
+    warehouseIds = [],
+    allocationIds = [],
+    category,
+  }: LocationState = location.state || {};
+
   // === Hooks ===
   const {
     loading: isReviewLoading,
@@ -48,7 +52,7 @@ const InventoryAllocationReviewPage = () => {
     resetReview: resetAllocationReview,
     setReviewError: setAllocationReviewError,
   } = useInventoryAllocationReview();
-  
+
   const {
     loading: isConfirming,
     error: confirmError,
@@ -57,41 +61,47 @@ const InventoryAllocationReviewPage = () => {
     confirm: confirmedAllocation,
     reset: resetConfirmation,
   } = useInventoryAllocationConfirmation();
-  
+
   // === Early Bailouts ===
   if (!orderId) {
     return <ErrorMessage message="Missing order ID in URL." />;
   }
   if (reviewError) {
-    return <ErrorMessage message={reviewMessage ?? 'Failed to load allocation review.'} />;
+    return (
+      <ErrorMessage
+        message={reviewMessage ?? 'Failed to load allocation review.'}
+      />
+    );
   }
-  
+
   // === Fetch & Refresh Logic ===
   const refresh = useCallback(() => {
     if (orderId && category) {
       fetchAllocationReview(orderId, { warehouseIds, allocationIds });
     }
   }, [orderId, category, warehouseIds, allocationIds]);
-  
+
   useEffect(() => {
     if (!orderId) return;
-    
+
     if (!allocationIds.length) {
-      setAllocationReviewError("Missing allocation IDs for allocation review.");
-      navigate(`/orders/${category ?? 'sales'}/details/${orderId}`, { replace: true });
+      setAllocationReviewError('Missing allocation IDs for allocation review.');
+      navigate(`/orders/${category ?? 'sales'}/details/${orderId}`, {
+        replace: true,
+      });
       return;
     }
-    
+
     // Reset previous state
     resetAllocationReview();
     setAllocationReviewError(null);
-    
+
     // Fetch allocation review
     refresh();
-    
-    return () => resetAllocationReview();  // optional cleanup
+
+    return () => resetAllocationReview(); // optional cleanup
   }, [orderId, allocationIds, refresh]);
-  
+
   // === Success Handler ===
   useEffect(() => {
     if (confirmSuccess) {
@@ -100,40 +110,48 @@ const InventoryAllocationReviewPage = () => {
       resetConfirmation();
     }
   }, [confirmSuccess, confirmMessage, refresh]);
-  
+
   // === Memoized Values ===
-  const titleOrderNumber = useMemo(() => getShortOrderNumber(allocationReviewHeader?.orderNumber ?? ''), [allocationReviewHeader]);
-  
+  const titleOrderNumber = useMemo(
+    () => getShortOrderNumber(allocationReviewHeader?.orderNumber ?? ''),
+    [allocationReviewHeader]
+  );
+
   const flattenedHeader = useMemo(() => {
-    return allocationReviewHeader ? flattenAllocationOrderHeader(allocationReviewHeader) : null;
+    return allocationReviewHeader
+      ? flattenAllocationOrderHeader(allocationReviewHeader)
+      : null;
   }, [allocationReviewHeader]);
-  
+
   const flattenedItems = useMemo(() => {
-    return allocationReviewItems ? flattenInventoryAllocationReviewItems(allocationReviewItems) : [];
+    return allocationReviewItems
+      ? flattenInventoryAllocationReviewItems(allocationReviewItems)
+      : [];
   }, [allocationReviewItems]);
-  
-  const confirmableStatusCodes = [
-    'ALLOC_PENDING'
-  ];
-  
+
+  const confirmableStatusCodes = ['ALLOC_PENDING'];
+
   const canConfirm = useMemo(() => {
-    if (!allocationReviewItems || allocationReviewItems.length === 0) return false;
-    
+    if (!allocationReviewItems || allocationReviewItems.length === 0)
+      return false;
+
     return allocationReviewItems.some(
       (item: AllocationReviewItem) =>
         confirmableStatusCodes.includes(item.allocationStatusCode) ||
         confirmableStatusCodes.includes(item.orderItem?.statusCode ?? '')
     );
   }, [allocationReviewItems]);
-  
+
   const canInitiateFulfillment = useMemo(() => {
-    if (!allocationReviewItems || allocationReviewItems.length === 0) return false;
-    
+    if (!allocationReviewItems || allocationReviewItems.length === 0)
+      return false;
+
     return allocationReviewItems.some(
-      (item: AllocationReviewItem) => item.allocationStatusCode === 'ALLOC_CONFIRMED'
+      (item: AllocationReviewItem) =>
+        item.allocationStatusCode === 'ALLOC_CONFIRMED'
     );
   }, [allocationReviewItems]);
-  
+
   // === Confirm Submit ===
   const handleConfirmationSubmit = async () => {
     try {
@@ -143,7 +161,7 @@ const InventoryAllocationReviewPage = () => {
       console.error('Confirmation error:', error);
     }
   };
-  
+
   // === Loading State ===
   if (
     isReviewLoading ||
@@ -155,19 +173,19 @@ const InventoryAllocationReviewPage = () => {
   ) {
     return <Loading message="Loading allocation review..." />;
   }
-  
+
   // === Render actual content (omitted) ===
   return (
     <Box sx={{ p: 3 }}>
       <CustomTypography variant="h4" sx={{ mb: 2 }}>
         {titleOrderNumber} - Order Information
       </CustomTypography>
-      
+
       {/* Actions Row */}
       <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
         <GoBackButton />
       </Stack>
-      
+
       {/* Order Details */}
       <Card
         sx={{
@@ -193,34 +211,36 @@ const InventoryAllocationReviewPage = () => {
             <CustomTypography variant="h4" sx={{ fontWeight: 'bold' }}>
               Inventory Allocation Review
             </CustomTypography>
-            
+
             <Stack direction="row" spacing={2} alignItems="center">
-              {confirmError && (
-                <ErrorMessage message={confirmError} />
-              )}
+              {confirmError && <ErrorMessage message={confirmError} />}
               {canConfirm && (
                 <CustomButton
                   onClick={handleConfirmationSubmit}
                   disabled={isReviewLoading || isConfirming}
                 >
-                  {isReviewLoading || isConfirming ? 'Confirming' : 'Confirm Allocation'}
+                  {isReviewLoading || isConfirming
+                    ? 'Confirming'
+                    : 'Confirm Allocation'}
                 </CustomButton>
               )}
-              
+
               {/* === New Initiate Fulfillment Button === */}
-              {orderId && allocationIds.length > 0 && canInitiateFulfillment && (
-                <InitiateFulfillmentModal
-                  orderId={orderId}
-                  allocationIds={allocationIds}
-                  defaultValues={{
-                    fulfillmentNotes: `Fulfillment initiated for Order ${allocationReviewHeader?.orderNumber ?? ''} — created by ${allocationReviewHeader?.salesperson?.fullName ?? 'Unknown User'}`,
-                    shipmentNotes: `Prepare shipment for Order ${allocationReviewHeader?.orderNumber ?? ''} (Status: ${allocationReviewHeader?.orderStatus?.name ?? 'N/A'})`,
-                    shipmentBatchNote: 'No additional batch notes provided.',
-                  }}
-                  onSuccess={refresh}
-                />
-              )}
-              
+              {orderId &&
+                allocationIds.length > 0 &&
+                canInitiateFulfillment && (
+                  <InitiateFulfillmentModal
+                    orderId={orderId}
+                    allocationIds={allocationIds}
+                    defaultValues={{
+                      fulfillmentNotes: `Fulfillment initiated for Order ${allocationReviewHeader?.orderNumber ?? ''} — created by ${allocationReviewHeader?.salesperson?.fullName ?? 'Unknown User'}`,
+                      shipmentNotes: `Prepare shipment for Order ${allocationReviewHeader?.orderNumber ?? ''} (Status: ${allocationReviewHeader?.orderStatus?.name ?? 'N/A'})`,
+                      shipmentBatchNote: 'No additional batch notes provided.',
+                    }}
+                    onSuccess={refresh}
+                  />
+                )}
+
               <CustomButton
                 onClick={refresh}
                 variant="outlined"
@@ -230,15 +250,18 @@ const InventoryAllocationReviewPage = () => {
               </CustomButton>
             </Stack>
           </Box>
-          
+
           <Divider sx={{ mb: 3 }} />
-          
+
           {/* Allocation Order Header Info */}
           <AllocationOrderHeaderSection flattened={flattenedHeader} />
-          
+
           {/* Allocation Items */}
-          <AllocationReviewTable items={flattenedItems} itemCount={allocationItemCount} />
-          
+          <AllocationReviewTable
+            items={flattenedItems}
+            itemCount={allocationItemCount}
+          />
+
           <Box mt={4} display="flex" justifyContent="flex-end" gap={2}>
             <CustomButton
               variant="outlined"
@@ -247,7 +270,7 @@ const InventoryAllocationReviewPage = () => {
             >
               Back to Inventory Allocations
             </CustomButton>
-            
+
             <CustomButton
               variant="contained"
               color="info"

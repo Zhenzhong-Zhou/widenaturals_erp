@@ -27,7 +27,7 @@ export interface LookupPagination {
    * Used to limit the page size.
    */
   limit?: number;
-  
+
   /**
    * Number of records to skip before starting to return results.
    * Used for pagination offset (typically: (page - 1) * limit).
@@ -209,12 +209,12 @@ export interface LookupSuccessResponse<T> extends PaginationLookupInfo {
    * Indicates the API call was successful.
    */
   success: true;
-  
+
   /**
    * A human-readable message describing the result.
    */
   message: string;
-  
+
   /**
    * The array of lookup-compatible result items.
    */

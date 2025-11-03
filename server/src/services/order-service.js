@@ -11,7 +11,8 @@ const {
   insertOrder,
   findOrderByIdWithDetails,
   updateOrderStatus,
-  fetchOrderMetadata, getPaginatedOrders
+  fetchOrderMetadata,
+  getPaginatedOrders,
 } = require('../repositories/order-repository');
 const {
   createOrderWithType,
@@ -29,16 +30,21 @@ const AppError = require('../utils/AppError');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const {
   findOrderItemsByOrderId,
-  updateOrderItemStatusesByOrderId
+  updateOrderItemStatusesByOrderId,
 } = require('../repositories/order-item-repository');
 const {
   transformOrderWithItems,
   transformOrderStatusWithMetadata,
-  transformPaginatedOrderTypes
+  transformPaginatedOrderTypes,
 } = require('../transformers/order-transformer');
 const { getRoleNameById } = require('../repositories/role-repository');
-const { getOrderTypeIdsByCategory } = require('../repositories/order-type-repository');
-const { extractStatusCodesAndFetchIds, extractStatusIds } = require('../utils/order-status-utils');
+const {
+  getOrderTypeIdsByCategory,
+} = require('../repositories/order-type-repository');
+const {
+  extractStatusCodesAndFetchIds,
+  extractStatusIds,
+} = require('../utils/order-status-utils');
 
 /**
  * Service function to create a new order within the specified category.
@@ -118,7 +124,7 @@ const createOrderService = async (orderData, category, user) => {
         },
         client
       );
-      
+
       // 7. Return result
       // Returning orderId (same as baseOrderId); typeOrderId omitted for now since they're identical.
       // Adjust later if typeOrderId diverges from baseOrderId.
@@ -169,46 +175,48 @@ const createOrderService = async (orderData, category, user) => {
  * @throws {AppError} - If permission verification, access filtering, or database query execution fails
  */
 const fetchPaginatedOrdersService = async ({
-                                             filters = {},
-                                             category,
-                                             user,
-                                             page = 1,
-                                             limit = 10,
-                                             sortBy = 'created_at',
-                                             sortOrder = 'DESC',
-                                           }) => {
+  filters = {},
+  category,
+  user,
+  page = 1,
+  limit = 10,
+  sortBy = 'created_at',
+  sortOrder = 'DESC',
+}) => {
   try {
     // Step 1: Verify that user has permission to view this category
     await verifyOrderViewPermission(user, category, { action: 'VIEW' });
-    
+
     // Step 2: Evaluate user's global and stage-based access flags
     const userAccess = await evaluateOrdersViewAccessControl(user);
-    
+
     // Step 3: Resolve applicable order type IDs:
     // - If category !== 'all', fetch order types normally.
     // - If category === 'all' and user has full access, but filters.orderCategory is provided,
     //   treat it like a scoping hint and fetch order types accordingly.
     let orderTypeIds;
-    
+
     if (category !== 'all') {
       orderTypeIds = await getOrderTypeIdsByCategory(category);
     } else if (userAccess?.canViewAllOrders && filters?.orderCategory) {
       orderTypeIds = await getOrderTypeIdsByCategory(filters.orderCategory);
     }
-    
+
     // Step 4: Get allowed status codes for this category (based on virtual stage map)
     const nextAllowedStatuses = getNextAllowedStatuses(category);
-    
+
     // Step 5: Map those codes to internal status IDs
-    const allowedStatusCodes = extractStatusCodesAndFetchIds(nextAllowedStatuses);
-    
+    const allowedStatusCodes =
+      extractStatusCodesAndFetchIds(nextAllowedStatuses);
+
     // Skip DB lookup if no status codes
     let allowedStatusIds = [];
     if (allowedStatusCodes.length > 0) {
-      const allowedStatusRecords = await getOrderStatusesByCodes(allowedStatusCodes);
+      const allowedStatusRecords =
+        await getOrderStatusesByCodes(allowedStatusCodes);
       allowedStatusIds = extractStatusIds(allowedStatusRecords);
     }
-    
+
     // Step 6: Apply access control to filters (type, stage, and status scoping)
     const scopedFilters = await applyOrderAccessFilters(
       filters,
@@ -216,7 +224,7 @@ const fetchPaginatedOrdersService = async ({
       orderTypeIds,
       allowedStatusIds
     );
-    
+
     // Step 7: Run paginated query with scoped filters
     const rawResult = await getPaginatedOrders({
       filters: scopedFilters,
@@ -225,7 +233,7 @@ const fetchPaginatedOrdersService = async ({
       sortBy,
       sortOrder,
     });
-    
+
     // Step 8: Transform raw rows into API response structure
     return transformPaginatedOrderTypes(rawResult);
   } catch (error) {
@@ -240,7 +248,7 @@ const fetchPaginatedOrdersService = async ({
       sortBy,
       sortOrder,
     });
-    
+
     throw AppError.serviceError('Unable to fetch paginated orders', {
       details: error.message,
       stage: 'fetch-paginated-orders',
@@ -307,13 +315,16 @@ const fetchPaginatedOrdersService = async ({
  */
 const fetchOrderDetailsByIdService = async (category, orderId, user) => {
   try {
-    await verifyOrderViewPermission(user, category, { action: 'VIEW', orderId});
-    
+    await verifyOrderViewPermission(user, category, {
+      action: 'VIEW',
+      orderId,
+    });
+
     const [header, items] = await Promise.all([
       findOrderByIdWithDetails(orderId),
       findOrderItemsByOrderId(orderId),
     ]);
-    
+
     if (!header) {
       logSystemInfo('Order not found', {
         context: 'order-service/fetchOrderDetailsByIdService',
@@ -323,19 +334,17 @@ const fetchOrderDetailsByIdService = async (category, orderId, user) => {
       });
       throw AppError.notFoundError('Order not found');
     }
-    
+
     // Evaluate once; avoid multiple permission queries
-    const {
-      canViewOrderMetadata,
-      canViewOrderItemMetadata,
-    } = await evaluateOrderDetailsViewAccessControl(user);
-    
+    const { canViewOrderMetadata, canViewOrderItemMetadata } =
+      await evaluateOrderDetailsViewAccessControl(user);
+
     const transformed = transformOrderWithItems(header, items, {
       includeOrderMetadata: canViewOrderMetadata,
       includeItemMetadata: canViewOrderItemMetadata,
       // keep your defaults for addresses/display name inside the transformer or pass explicitly here
     });
-    
+
     logSystemInfo('Fetched order details', {
       context: 'order-service/fetchOrderDetailsByIdService',
       orderId,
@@ -344,7 +353,7 @@ const fetchOrderDetailsByIdService = async (category, orderId, user) => {
       includeItemMetadata: canViewOrderItemMetadata,
       severity: 'INFO',
     });
-    
+
     return transformed;
   } catch (err) {
     logSystemException(err, 'Failed to fetch order details', {
@@ -353,7 +362,9 @@ const fetchOrderDetailsByIdService = async (category, orderId, user) => {
       userId: user?.id,
     });
     // Wrap non-AppError errors into a domain error
-    throw AppError.serviceError('Unable to retrieve order details at this time');
+    throw AppError.serviceError(
+      'Unable to retrieve order details at this time'
+    );
   }
 };
 
@@ -383,17 +394,22 @@ const fetchOrderDetailsByIdService = async (category, orderId, user) => {
  *
  * @throws {AppError} - On validation, authorization, or transition errors.
  */
-const updateOrderStatusService = async (user, categoryParam, orderId, nextStatusCode) => {
+const updateOrderStatusService = async (
+  user,
+  categoryParam,
+  orderId,
+  nextStatusCode
+) => {
   return await withTransaction(async (client) => {
     const userId = user.id;
-    
+
     // Step 0: Attach roleName (e.g., "admin", "sales") to user for downstream permission checks
     const { name: roleName } = await getRoleNameById(user.role, client);
     user.roleName = roleName;
-    
+
     // Step 1: Validate that the order exists
     await validateIdExists('orders', orderId, client, 'Orders');
-    
+
     // Step 2: Get current order status metadata
     const orderWithMeta = await fetchOrderMetadata(orderId, client);
     const {
@@ -401,14 +417,14 @@ const updateOrderStatusService = async (user, categoryParam, orderId, nextStatus
       order_status_code: currentStatusCode,
       order_category: orderCategory,
     } = orderWithMeta;
-    
+
     // Step 3: Resolve full metadata for the target status code
     const {
       id: nextStatusId,
       category: nextStatusCategory,
       code: resolvedNextStatusCode,
     } = await getOrderStatusByCode(nextStatusCode, client);
-    
+
     // Step 4: Validate transition using FSM rules
     validateStatusTransitionByCategory(
       orderCategory,
@@ -417,43 +433,48 @@ const updateOrderStatusService = async (user, categoryParam, orderId, nextStatus
       currentStatusCode,
       resolvedNextStatusCode
     );
-    
+
     // Step 5: Protect against route vs. DB category mismatch
     if (orderCategory !== categoryParam) {
       throw AppError.authorizationError(
         `Category mismatch. Cannot update ${orderCategory} order via ${categoryParam} route.`
       );
     }
-    
+
     // Step 6: Check user permission to perform this transition
-    const canUpdate = await canUpdateOrderStatus(user, orderCategory, orderWithMeta, nextStatusCode);
-    
+    const canUpdate = await canUpdateOrderStatus(
+      user,
+      orderCategory,
+      orderWithMeta,
+      nextStatusCode
+    );
+
     if (!canUpdate) {
       throw AppError.authorizationError(
         `User role '${user.roleName}' is not allowed to update ${orderCategory} order to ${nextStatusCode}.`
       );
     }
-    
+
     // Step 7: Update the order status
     const updatedOrder = await updateOrderStatus(client, {
       orderId,
       newStatusId: nextStatusId,
       updatedBy: userId,
     });
-    
+
     if (!updatedOrder) {
       throw AppError.notFoundError(
         `Order ${orderId} not found or already in status ${resolvedNextStatusCode}.`
       );
     }
-    
+
     // Step 8: Cascade update to all order items
     const updatedItems = await updateOrderItemStatusesByOrderId(client, {
       orderId,
       newStatusId: nextStatusId,
       updatedBy: userId,
     });
-    
+
     // Step 9: Log the status update for audit purposes
     logSystemInfo('Order status updated', {
       context: 'order-service/updateOrderStatusService',
@@ -463,29 +484,29 @@ const updateOrderStatusService = async (user, categoryParam, orderId, nextStatus
       updatedBy: userId,
       role: user.roleName,
     });
-    
+
     // Step 10: Validate consistency and enrich response
     const inconsistentStatus = updatedItems.some(
       (item) => item.status_id !== updatedOrder.order_status_id
     );
-    
+
     if (inconsistentStatus) {
       throw AppError.validationError(
         'Mismatch between order and item status after update.'
       );
     }
-    
+
     const orderStatusMetadata = await getOrderStatusMetadataById(
       updatedOrder.order_status_id,
       client
     );
-    
+
     const { enrichedOrder, enrichedItems } = enrichStatusMetadata({
       updatedOrder,
       updatedItems,
       orderStatusMetadata,
     });
-    
+
     // Return the transformed records with camelCase metadata fields
     return transformOrderStatusWithMetadata({ enrichedOrder, enrichedItems });
   });

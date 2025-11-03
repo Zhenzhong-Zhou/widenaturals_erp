@@ -45,11 +45,18 @@ const allocateInventoryForOrderService = async (
 ): Promise<AllocateInventoryResponse> => {
   const { orderId } = params;
   const url = API_ENDPOINTS.INVENTORY_ALLOCATIONS.ALLOCATE_ORDER(orderId);
-  
+
   try {
-    return await postRequest<AllocateInventoryBody, AllocateInventoryResponse>(url, body);
+    return await postRequest<AllocateInventoryBody, AllocateInventoryResponse>(
+      url,
+      body
+    );
   } catch (error) {
-    console.error('Failed to allocate inventory for order:', { orderId, body, error });
+    console.error('Failed to allocate inventory for order:', {
+      orderId,
+      body,
+      error,
+    });
     throw error;
   }
 };
@@ -75,11 +82,17 @@ const fetchInventoryAllocationReview = async (
   body: AllocationReviewRequest
 ): Promise<InventoryAllocationReviewResponse> => {
   const url = API_ENDPOINTS.INVENTORY_ALLOCATIONS.REVIEW_ALLOCATION(orderId);
-  
+
   try {
-    return await postRequest<AllocationReviewRequest, InventoryAllocationReviewResponse>(url, body);
+    return await postRequest<
+      AllocationReviewRequest,
+      InventoryAllocationReviewResponse
+    >(url, body);
   } catch (error) {
-    console.error('Failed to fetch inventory allocation review', { orderId, error, });
+    console.error('Failed to fetch inventory allocation review', {
+      orderId,
+      error,
+    });
     throw error;
   }
 };
@@ -121,16 +134,16 @@ const fetchPaginatedInventoryAllocations = async (
 ): Promise<InventoryAllocationResponse> => {
   try {
     const { filters = {}, ...rest } = params;
-    
+
     // Flatten nested filters into top-level query keys
     const flatParams = {
       ...rest,
       ...filters,
     };
-    
+
     const queryString = buildQueryString(flatParams);
     const url = `${API_ENDPOINTS.INVENTORY_ALLOCATIONS.ALL_ALLOCATIONS}${queryString}`;
-    
+
     return await getRequest<InventoryAllocationResponse>(url);
   } catch (error) {
     console.error('Failed to fetch inventory allocations:', error);
@@ -175,9 +188,12 @@ const confirmInventoryAllocation = async (
   orderId: string
 ): Promise<InventoryAllocationConfirmationResponse> => {
   const url = API_ENDPOINTS.INVENTORY_ALLOCATIONS.CONFIRM_ALLOCATION(orderId);
-  
+
   try {
-    return await postRequest<void, InventoryAllocationConfirmationResponse>(url, undefined);
+    return await postRequest<void, InventoryAllocationConfirmationResponse>(
+      url,
+      undefined
+    );
   } catch (error) {
     console.error('Failed to confirm inventory allocation', { orderId, error });
     throw error;

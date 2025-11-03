@@ -1,5 +1,9 @@
-const { resolveUserPermissionContext } = require('../services/role-permission-service');
-const { PERMISSIONS } = require('../utils/constants/domain/delivery-method-constants');
+const {
+  resolveUserPermissionContext,
+} = require('../services/role-permission-service');
+const {
+  PERMISSIONS,
+} = require('../utils/constants/domain/delivery-method-constants');
 const { logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
@@ -13,21 +17,30 @@ const AppError = require('../utils/AppError');
 const evaluateDeliveryMethodLookupAccessControl = async (user) => {
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     const canViewAllStatuses =
-      isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_DELIVERY_METHOD_STATUSES);
-    
+      isRoot ||
+      permissions.includes(PERMISSIONS.VIEW_ALL_DELIVERY_METHOD_STATUSES);
+
     return { canViewAllStatuses };
   } catch (err) {
-    logSystemException(err, 'Failed to evaluate delivery method lookup access control', {
-      context: 'delivery-method-business/evaluateDeliveryMethodLookupAccessControl',
-      userId: user?.id,
-    });
-    
-    throw AppError.businessError('Unable to evaluate user access control for delivery method lookup', {
-      details: err.message,
-      stage: 'evaluate-delivery-method-lookup-access',
-    });
+    logSystemException(
+      err,
+      'Failed to evaluate delivery method lookup access control',
+      {
+        context:
+          'delivery-method-business/evaluateDeliveryMethodLookupAccessControl',
+        userId: user?.id,
+      }
+    );
+
+    throw AppError.businessError(
+      'Unable to evaluate user access control for delivery method lookup',
+      {
+        details: err.message,
+        stage: 'evaluate-delivery-method-lookup-access',
+      }
+    );
   }
 };
 
@@ -44,9 +57,13 @@ const evaluateDeliveryMethodLookupAccessControl = async (user) => {
  * @param {string|number} [activeStatusId] - Default status ID to enforce (e.g., "active")
  * @returns {Object} Updated filters with access-based restrictions applied
  */
-const enforceDeliveryMethodLookupVisibilityRules = (filters, userAccess, activeStatusId) => {
+const enforceDeliveryMethodLookupVisibilityRules = (
+  filters,
+  userAccess,
+  activeStatusId
+) => {
   const adjusted = { ...filters };
-  
+
   // Enforce active-only restriction if user can't view all statuses
   if (!userAccess.canViewAllStatuses) {
     delete adjusted.statusId;
@@ -54,7 +71,7 @@ const enforceDeliveryMethodLookupVisibilityRules = (filters, userAccess, activeS
       adjusted._activeStatusId = activeStatusId;
     }
   }
-  
+
   return adjusted;
 };
 

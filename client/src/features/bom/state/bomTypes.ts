@@ -1,5 +1,6 @@
 import type {
-  ApiSuccessResponse, AsyncState,
+  ApiSuccessResponse,
+  AsyncState,
   PaginatedResponse,
   PaginationParams,
   ReduxPaginatedState,
@@ -131,27 +132,27 @@ export interface BomListFilters {
   // --- Core Filters ---
   showBarcode?: boolean;
   skuId?: string | null;
-  
+
   // --- Compliance Filters ---
   complianceStatusId?: string;
   onlyActiveCompliance?: boolean;
   complianceType?: string;
-  
+
   // --- BOM Status ---
   statusId?: string;
-  
+
   // --- Boolean flags ---
   isActive?: boolean;
   isDefault?: boolean;
-  
+
   // --- Revision Range ---
   revisionMin?: number;
   revisionMax?: number;
-  
+
   // --- Audit filters ---
   createdBy?: string;
   updatedBy?: string;
-  
+
   // --- Keyword search ---
   keyword?: string;
 }
@@ -187,7 +188,7 @@ export interface FlattenedBomRecord {
   brand: string;
   series: string;
   category: string;
-  
+
   // SKU Info
   skuId: string;
   skuCode: string;
@@ -197,7 +198,7 @@ export interface FlattenedBomRecord {
   language: string;
   sizeLabel: string;
   skuDescription: string;
-  
+
   // BOM Info
   bomId: string;
   bomCode: string;
@@ -206,17 +207,17 @@ export interface FlattenedBomRecord {
   revision: number;
   isActive: boolean;
   isDefault: boolean;
-  
+
   // Status Info
   status: string;
   statusDate: string;
-  
+
   // Compliance Info
   npnNumber: string;
   complianceType: string;
   complianceIssuedDate: string | null;
   complianceExpiryDate: string | null;
-  
+
   // Audit Info
   createdAt: string;
   createdBy: string;
@@ -350,7 +351,7 @@ export interface FlattenedBomHeader {
   productBrand: string | null;
   productSeries: string | null;
   productCategory: string | null;
-  
+
   // --- SKU Info ---
   skuId: string | null;
   skuCode: string | null;
@@ -360,7 +361,7 @@ export interface FlattenedBomHeader {
   skuMarketRegion: string | null;
   skuSizeLabel: string | null;
   skuDescription: string | null;
-  
+
   // --- Compliance Info ---
   complianceId: string | null;
   complianceType: string | null;
@@ -369,7 +370,7 @@ export interface FlattenedBomHeader {
   complianceExpiryDate: string | null;
   complianceDescription: string | null;
   complianceStatus: string | null;
-  
+
   // --- BOM Info ---
   bomId: string | null;
   bomCode: string | null;
@@ -393,16 +394,16 @@ export interface FlattenedBomHeader {
 export interface FlattenedBomSummary {
   /** Summary type, e.g. "ESTIMATED" or "ACTUAL". */
   summaryType: string | null;
-  
+
   /** Description of how the summary was calculated. */
   summaryDescription: string | null;
-  
+
   /** Total cost normalized to CAD or a standard currency. */
   summaryTotalEstimatedCost: number | null;
-  
+
   /** The currency used for total cost (e.g. "CAD"). */
   summaryCurrency: string | null;
-  
+
   /** Total count of items in the BOM. */
   summaryItemCount: number | null;
 }
@@ -436,7 +437,8 @@ export interface FlattenedBomDetailRow {
 /**
  * Standard API success response wrapper for BOM Material Supply Details.
  */
-export type BomMaterialSupplyDetailsResponse = ApiSuccessResponse<BomMaterialSupplyData>;
+export type BomMaterialSupplyDetailsResponse =
+  ApiSuccessResponse<BomMaterialSupplyData>;
 
 /**
  * Main payload containing the summary and detailed breakdown
@@ -457,10 +459,10 @@ export interface BomMaterialSupplyData {
 export interface BomMaterialSupplySummary {
   /** BOM identifier */
   bomId: string;
-  
+
   /** Base currency used for normalization (e.g. "CAD") */
   baseCurrency: string;
-  
+
   /** Overall BOM cost totals */
   totals: {
     /** Total estimated cost converted to base currency */
@@ -472,10 +474,10 @@ export interface BomMaterialSupplySummary {
     /** Variance percentage relative to estimated total */
     variancePercentage: number;
   };
-  
+
   /** Supplier-level aggregated totals */
   suppliers: BomSupplierSummary[];
-  
+
   /** Part-level aggregated totals */
   parts: BomPartSummary[];
 }
@@ -577,10 +579,10 @@ export interface MaterialDimensions {
   width_cm: number;
   height_cm: number;
   weight_g: number;
-  length_inch: number,
-  width_inch: number,
-  height_inch: number,
-  weight_lb: number,
+  length_inch: number;
+  width_inch: number;
+  height_inch: number;
+  weight_lb: number;
 }
 
 /**
@@ -665,28 +667,28 @@ export interface BomMaterialSupplyDetailsState
 export interface FlattenedBomMaterialSupplySummary {
   /** BOM identifier */
   bomId: string;
-  
+
   /** Base currency used for cost normalization (e.g. "CAD") */
   baseCurrency: string;
-  
+
   /** Total estimated material cost (converted to base currency) */
   totalEstimatedCost: number;
-  
+
   /** Total actual material cost (converted to base currency) */
   totalActualCost: number;
-  
+
   /** Difference between actual and estimated costs */
   variance: number;
-  
+
   /** Variance percentage relative to estimated total */
   variancePercentage: number;
-  
+
   /** Total number of unique suppliers contributing to this BOM */
   supplierCount: number;
-  
+
   /** Total number of unique parts included in this BOM */
   partCount: number;
-  
+
   /** Optional: Actual cost amount from the top supplier (in base currency) */
   topSupplierActualCost?: number;
 
@@ -703,7 +705,7 @@ export interface FlattenedBomSupplyRow {
   bomItemId: string;
   partId: string;
   partName: string;
-  
+
   // --- BOM Item Material Info ---
   bomItemMaterialId: string;
   requiredQtyPerProduct: number;
@@ -715,7 +717,7 @@ export interface FlattenedBomSupplyRow {
   bomItemMaterialCreatedBy: string;
   bomItemMaterialUpdatedAt: string | null;
   bomItemMaterialUpdatedBy: string | null;
-  
+
   // --- Packaging Material Info ---
   packagingMaterialId: string;
   packagingMaterialName: string;
@@ -743,7 +745,7 @@ export interface FlattenedBomSupplyRow {
   packagingMaterialCreatedBy: string;
   packagingMaterialUpdatedAt: string | null;
   packagingMaterialUpdatedBy: string | null;
-  
+
   // --- Supplier Info ---
   supplierId: string;
   supplierName: string;
@@ -759,7 +761,7 @@ export interface FlattenedBomSupplyRow {
   supplierCreatedBy: string;
   supplierUpdatedAt: string | null;
   supplierUpdatedBy: string | null;
-  
+
   // --- Batch Info ---
   batchId: string;
   lotNumber: string;
@@ -829,7 +831,8 @@ export interface BomItemWithSupplyAndReadiness {
 }
 
 /** Root response structure for BOM Production Readiness Summary */
-export type BomProductionReadinessResponse = ApiSuccessResponse<BomProductionReadinessData>;
+export type BomProductionReadinessResponse =
+  ApiSuccessResponse<BomProductionReadinessData>;
 
 /** Core data object containing metadata and part-level readiness details */
 export interface BomProductionReadinessData {
@@ -861,16 +864,16 @@ export interface BomReadinessMetadata {
 export interface BomBottleneckPart {
   /** Unique identifier of the part */
   partId: string;
-  
+
   /** Human-readable part name (e.g., "Bottle", "Capsule") */
   partName: string;
-  
+
   /** Related packaging material name, if available (e.g., "250ml Plastic Bottle") */
   packagingMaterialName: string | null;
-  
+
   /** Snapshot or version name of the material record, if applicable */
   materialSnapshotName: string | null;
-  
+
   /** Human-readable display label, typically from received label or fallback to partName */
   displayLabel: string;
 }
@@ -948,13 +951,13 @@ export interface BomProductionReadinessState
    * Helps maintain UI context between BOM overview and readiness pages.
    */
   selectedBomId: string | null;
-  
+
   /**
    * Indicates whether the current BOM is production-ready,
    * derived from the response metadata for quick reference.
    */
   isReadyForProduction: boolean;
-  
+
   /**
    * Tracks the total number of parts currently identified as bottlenecks.
    * Useful for alerting and readiness score calculations.
@@ -987,61 +990,61 @@ export interface FlattenedBomReadinessPartRow extends Partial<MaterialBatch> {
 export interface UnifiedBatchRow {
   /** Source of the batch record — defines data origin */
   source: 'supplier' | 'readiness' | 'merged';
-  
+
   /** Unique batch identifier (can map to supplier or readiness batch IDs) */
   batchId: string;
-  
+
   /** Lot number or production batch code */
   lotNumber: string;
-  
+
   /** Associated supplier name, if available */
   supplierName?: string;
-  
+
   /** Associated warehouse name or storage location */
   warehouseName?: string;
-  
+
   /** Quantity currently available for allocation or production */
   availableQuantity?: number;
-  
+
   /** Quantity already reserved or allocated */
   reservedQuantity?: number;
-  
+
   /** Date when batch was received or recorded inbound */
   inboundDate?: string | null;
-  
+
   /** Current inventory status (e.g., 'in_stock', 'inactive', 'reserved') */
   inventoryStatus?: string;
-  
+
   /** Cost per unit in original currency */
   unitCost?: number | null;
-  
+
   /** Currency of the unit cost (e.g., 'CAD', 'USD') */
   currency?: string | null;
-  
+
   /** Related BOM part identifier */
   partId?: string;
-  
+
   /** Human-readable BOM part name */
   partName?: string;
-  
+
   /** Related packaging material name, if applicable */
   packagingMaterialName?: string;
-  
+
   /** Flag indicating whether this batch is a bottleneck in production */
   isBottleneck?: boolean;
-  
+
   /** Flag indicating whether this batch is in shortage */
   isShortage?: boolean;
-  
+
   /** Maximum producible units limited by this batch */
   maxProducibleUnits?: number;
-  
+
   /** Quantity shortfall relative to required units */
   shortageQty?: number;
-  
+
   /** Original flattened supply row reference for traceability or tooltips */
   sourceSupply?: FlattenedBomSupplyRow;
-  
+
   /** Original flattened readiness row reference for traceability or tooltips */
   sourceReadiness?: FlattenedBomReadinessPartRow;
 }
@@ -1056,28 +1059,28 @@ export interface UnifiedBatchRow {
 export interface FlattenedBomReadinessMetadata {
   /** ISO timestamp when readiness was last calculated */
   readinessGeneratedAt: string | null;
-  
+
   /** Indicates whether all parts are sufficient to begin production */
   readinessStatus: boolean | null;
-  
+
   /** Maximum producible finished units given current stock levels */
   readinessMaxUnits: number | null;
-  
+
   /** Total count of parts currently in shortage */
   readinessShortageCount: number | null;
-  
+
   /** Aggregated stock health summary in text form (e.g., "usable: 9850, inactive: 0") */
   readinessStockHealthSummary: string | null;
-  
+
   /** Comma-separated list of bottleneck part names */
   readinessBottleneckPartNames: string | null;
-  
+
   /** Comma-separated list of bottleneck material names */
   readinessBottleneckMaterialName: string | null;
-  
+
   /** Comma-separated list of bottleneck material snapshot names */
   readinessBottleneckMaterialSnapshotName: string | null;
-  
+
   /** Optional count of bottleneck parts limiting production output */
   readinessBottleneckCount?: number | null;
 }

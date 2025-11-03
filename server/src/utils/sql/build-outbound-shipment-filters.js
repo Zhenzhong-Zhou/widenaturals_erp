@@ -79,75 +79,75 @@ const buildOutboundShipmentFilter = (filters = {}) => {
     const conditions = ['1=1'];
     const params = [];
     let idx = 1;
-    
+
     // Shipment-level filters
     if (filters.statusIds?.length) {
       conditions.push(`os.status_id = ANY($${idx}::uuid[])`);
       params.push(filters.statusIds);
       idx++;
     }
-    
+
     if (filters.warehouseIds?.length) {
       conditions.push(`os.warehouse_id = ANY($${idx}::uuid[])`);
       params.push(filters.warehouseIds);
       idx++;
     }
-    
+
     if (filters.deliveryMethodIds?.length) {
       conditions.push(`os.delivery_method_id = ANY($${idx}::uuid[])`);
       params.push(filters.deliveryMethodIds);
       idx++;
     }
-    
+
     if (filters.createdBy) {
       conditions.push(`os.created_by = $${idx}`);
       params.push(filters.createdBy);
       idx++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`os.updated_by = $${idx}`);
       params.push(filters.updatedBy);
       idx++;
     }
-    
+
     if (filters.createdAfter) {
       conditions.push(`os.created_at >= $${idx}`);
       params.push(filters.createdAfter);
       idx++;
     }
-    
+
     if (filters.createdBefore) {
       conditions.push(`os.created_at <= $${idx}`);
       params.push(filters.createdBefore);
       idx++;
     }
-    
+
     if (filters.shippedAfter) {
       conditions.push(`os.shipped_at >= $${idx}`);
       params.push(filters.shippedAfter);
       idx++;
     }
-    
+
     if (filters.shippedBefore) {
       conditions.push(`os.shipped_at <= $${idx}`);
       params.push(filters.shippedBefore);
       idx++;
     }
-    
+
     // Order-level
     if (filters.orderId) {
       conditions.push(`os.order_id = $${idx}`);
       params.push(filters.orderId);
       idx++;
     }
-    
+
     if (filters.orderNumber) {
       conditions.push(`o.order_number ILIKE $${idx}`);
       params.push(`%${filters.orderNumber}%`);
       idx++;
     }
-    
+
     // Keyword search (fuzzy match across multiple cols)
     if (filters.keyword) {
       conditions.push(`(
@@ -158,7 +158,7 @@ const buildOutboundShipmentFilter = (filters = {}) => {
       params.push(`%${filters.keyword}%`);
       idx++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,

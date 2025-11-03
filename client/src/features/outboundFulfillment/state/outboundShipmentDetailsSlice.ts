@@ -1,5 +1,8 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { OutboundShipmentDetailsState, ShipmentDetailsResponse } from './outboundFulfillmentTypes';
+import type {
+  OutboundShipmentDetailsState,
+  ShipmentDetailsResponse,
+} from './outboundFulfillmentTypes';
 import { fetchOutboundShipmentDetailsThunk } from '@features/outboundFulfillment/state/outboundFulfillmentThunks';
 
 const initialState: OutboundShipmentDetailsState = {
@@ -39,6 +42,7 @@ const outboundShipmentDetailsSlice = createSlice({
   },
 });
 
-export const { resetOutboundShipmentDetails } = outboundShipmentDetailsSlice.actions;
+export const { resetOutboundShipmentDetails } =
+  outboundShipmentDetailsSlice.actions;
 
 export default outboundShipmentDetailsSlice.reducer;

@@ -59,7 +59,7 @@ exports.up = async function (knex) {
       COALESCE(order_item_id, transfer_order_item_id)
     ) STORED;
   `);
-  
+
   await knex.raw(`
     ALTER TABLE inventory_allocations
     ADD CONSTRAINT check_exactly_one_target_item

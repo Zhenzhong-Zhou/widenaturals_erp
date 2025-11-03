@@ -106,104 +106,104 @@ const buildInventoryAllocationFilter = (filters = {}) => {
     const outerConditions = ['1=1'];
     const rawAllocParams = [];
     const outerParams = [];
-    
+
     // --- RAW allocation-level filters ---
     let rawIndex = 1;
-    
+
     if (filters.statusIds?.length) {
       rawAllocConditions.push(`ia.status_id = ANY($${rawIndex}::uuid[])`);
       rawAllocParams.push(filters.statusIds);
       rawIndex++;
     }
-    
+
     if (filters.warehouseIds?.length) {
       rawAllocConditions.push(`ia.warehouse_id = ANY($${rawIndex}::uuid[])`);
       rawAllocParams.push(filters.warehouseIds);
       rawIndex++;
     }
-    
+
     if (filters.batchIds?.length) {
       rawAllocConditions.push(`ia.batch_id = ANY($${rawIndex}::uuid[])`);
       rawAllocParams.push(filters.batchIds);
       rawIndex++;
     }
-    
+
     if (filters.allocationCreatedBy) {
       rawAllocConditions.push(`ia.created_by = $${rawIndex}`);
       rawAllocParams.push(filters.allocationCreatedBy);
       rawIndex++;
     }
-    
+
     if (filters.allocatedAfter) {
       rawAllocConditions.push(`ia.allocated_at >= $${rawIndex}`);
       rawAllocParams.push(filters.allocatedAfter);
       rawIndex++;
     }
-    
+
     if (filters.allocatedBefore) {
       rawAllocConditions.push(`ia.allocated_at <= $${rawIndex}`);
       rawAllocParams.push(filters.allocatedBefore);
       rawIndex++;
     }
-    
+
     // --- OUTER order-level filters ---
     // Start outerIndex *after* rawAllocParams
     let outerIndex = rawIndex;
-    
+
     if (filters.aggregatedAllocatedAfter) {
       outerConditions.push(`aa.allocated_at >= $${outerIndex}`);
       outerParams.push(filters.aggregatedAllocatedAfter);
       outerIndex++;
     }
-    
+
     if (filters.aggregatedAllocatedBefore) {
       outerConditions.push(`aa.allocated_at <= $${outerIndex}`);
       outerParams.push(filters.aggregatedAllocatedBefore);
       outerIndex++;
     }
-    
+
     if (filters.aggregatedCreatedAfter) {
       outerConditions.push(`aa.allocated_created_at >= $${outerIndex}`);
       outerParams.push(filters.aggregatedCreatedAfter);
       outerIndex++;
     }
-    
+
     if (filters.aggregatedCreatedBefore) {
       outerConditions.push(`aa.allocated_created_at <= $${outerIndex}`);
       outerParams.push(filters.aggregatedCreatedBefore);
       outerIndex++;
     }
-    
+
     if (filters.orderNumber) {
       outerConditions.push(`o.order_number ILIKE $${outerIndex}`);
       outerParams.push(`%${filters.orderNumber}%`);
       outerIndex++;
     }
-    
+
     if (filters.orderStatusId) {
       outerConditions.push(`o.order_status_id = $${outerIndex}`);
       outerParams.push(filters.orderStatusId);
       outerIndex++;
     }
-    
+
     if (filters.orderTypeId) {
       outerConditions.push(`o.order_type_id = $${outerIndex}`);
       outerParams.push(filters.orderTypeId);
       outerIndex++;
     }
-    
+
     if (filters.orderCreatedBy) {
       outerConditions.push(`o.created_by = $${outerIndex}`);
       outerParams.push(filters.orderCreatedBy);
       outerIndex++;
     }
-    
+
     if (filters.paymentStatusId) {
       outerConditions.push(`so.payment_status_id = $${outerIndex}`);
       outerParams.push(filters.paymentStatusId);
       outerIndex++;
     }
-    
+
     if (filters.keyword) {
       outerConditions.push(`(
       o.order_number ILIKE $${outerIndex} OR
@@ -212,7 +212,7 @@ const buildInventoryAllocationFilter = (filters = {}) => {
       outerParams.push(`%${filters.keyword}%`);
       outerIndex++;
     }
-    
+
     return {
       rawAllocWhereClause: rawAllocConditions.join(' AND '),
       rawAllocParams,
@@ -225,10 +225,13 @@ const buildInventoryAllocationFilter = (filters = {}) => {
       error: err.message,
       filters,
     });
-    throw AppError.databaseError('Failed to prepare inventory allocation filter', {
-      details: err.message,
-      stage: 'build-inventory-allocation-where-clause',
-    });
+    throw AppError.databaseError(
+      'Failed to prepare inventory allocation filter',
+      {
+        details: err.message,
+        stage: 'build-inventory-allocation-where-clause',
+      }
+    );
   }
 };
 

@@ -1,8 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
-import {
-  fetchBomProductionSummaryThunk,
-} from '@features/bom/state/bomThunks';
+import { fetchBomProductionSummaryThunk } from '@features/bom/state/bomThunks';
 import {
   resetBomProductionReadiness,
   setSelectedBomId,
@@ -38,7 +36,7 @@ import {
  */
 const useBomProductionReadiness = () => {
   const dispatch = useAppDispatch();
-  
+
   // --- Selectors ---
   const metadata = useAppSelector(selectBomReadinessMetadata);
   const parts = useAppSelector(selectBomReadinessParts);
@@ -51,7 +49,7 @@ const useBomProductionReadiness = () => {
   const loading = useAppSelector(selectBomReadinessLoading);
   const error = useAppSelector(selectBomReadinessError);
   const hasData = useAppSelector(selectBomReadinessHasData);
-  
+
   // --- Actions ---
   const fetchReadiness = useCallback(
     (bomId: string) => {
@@ -60,11 +58,11 @@ const useBomProductionReadiness = () => {
     },
     [dispatch]
   );
-  
+
   const resetReadiness = useCallback(() => {
     dispatch(resetBomProductionReadiness());
   }, [dispatch]);
-  
+
   // --- Derived Memoized Object ---
   const readiness = useMemo(
     () => ({
@@ -94,7 +92,7 @@ const useBomProductionReadiness = () => {
       selectedBomId,
     ]
   );
-  
+
   return {
     ...readiness,
     fetchReadiness,

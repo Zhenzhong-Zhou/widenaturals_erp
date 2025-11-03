@@ -1,7 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type {
   BomMaterialSupplyDetailsResponse,
-  BomMaterialSupplyDetailsState
+  BomMaterialSupplyDetailsState,
 } from '@features/bom/state/bomTypes';
 import { fetchBomMaterialSupplyDetailsThunk } from './bomThunks';
 
@@ -27,20 +27,23 @@ export const bomMaterialSupplyDetailsSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchBomMaterialSupplyDetailsThunk.fulfilled, (state, action: PayloadAction<BomMaterialSupplyDetailsResponse>) => {
-        state.loading = false;
-        state.data = action.payload;
-      })
+      .addCase(
+        fetchBomMaterialSupplyDetailsThunk.fulfilled,
+        (state, action: PayloadAction<BomMaterialSupplyDetailsResponse>) => {
+          state.loading = false;
+          state.data = action.payload;
+        }
+      )
       .addCase(fetchBomMaterialSupplyDetailsThunk.rejected, (state, action) => {
         state.loading = false;
-        state.error = (action.payload as string) || 'Failed to fetch BOM Material Supply Details';
+        state.error =
+          (action.payload as string) ||
+          'Failed to fetch BOM Material Supply Details';
       });
   },
 });
 
-export const {
-  resetBomMaterialSupplyDetails,
-  setSelectedBomId,
-} = bomMaterialSupplyDetailsSlice.actions;
+export const { resetBomMaterialSupplyDetails, setSelectedBomId } =
+  bomMaterialSupplyDetailsSlice.actions;
 
 export default bomMaterialSupplyDetailsSlice.reducer;

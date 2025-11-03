@@ -9,7 +9,9 @@ interface OutboundFulfillmentExpandedSectionProps {
   row: FlattenedFulfillmentRow;
 }
 
-const OutboundFulfillmentExpandedSection: FC<OutboundFulfillmentExpandedSectionProps> = ({ row }) => {
+const OutboundFulfillmentExpandedSection: FC<
+  OutboundFulfillmentExpandedSectionProps
+> = ({ row }) => {
   return (
     <Section title="Fulfillment Item Info">
       <DetailsGrid>
@@ -24,21 +26,21 @@ const OutboundFulfillmentExpandedSection: FC<OutboundFulfillmentExpandedSectionP
             ]}
           />
         </DetailsGridItem>
-        
+
         {/* Right column - Fulfillment & Audit Info */}
         <DetailsGridItem>
           <MemoizedDetailsSection
             fields={[
               {
                 label: 'Created At',
-                value: row.createdAt || '—' ,
-                format: () => formatDateTime(row.createdAt)
-             },
+                value: row.createdAt || '—',
+                format: () => formatDateTime(row.createdAt),
+              },
               { label: 'Created By', value: row.createdByName || '—' },
               {
                 label: 'Updated At',
-                value: row.updatedAt || '—' ,
-                format: () => formatDateTime(row.updatedAt)
+                value: row.updatedAt || '—',
+                format: () => formatDateTime(row.updatedAt),
               },
               { label: 'Updated By', value: row.updatedByName || '—' },
               { label: 'Fulfilled By', value: row.fulfilledByName || '—' },

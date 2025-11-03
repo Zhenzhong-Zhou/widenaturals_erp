@@ -4,7 +4,8 @@ import type { RootState } from '@store/store';
 /**
  * Base selector for the inventory allocation slice of the Redux store.
  */
-const selectInventoryAllocationsSlice = (state: RootState) => state.paginatedInventoryAllocations;
+const selectInventoryAllocationsSlice = (state: RootState) =>
+  state.paginatedInventoryAllocations;
 
 /**
  * Selector to retrieve the list of inventory allocation summaries.
@@ -86,5 +87,6 @@ export const selectInventoryAllocationsTotalPages = createSelector(
 export const selectInventoryAllocationsHasMore = createSelector(
   [selectInventoryAllocationsSlice],
   (slice) =>
-    slice.pagination.page * slice.pagination.limit < slice.pagination.totalRecords
+    slice.pagination.page * slice.pagination.limit <
+    slice.pagination.totalRecords
 );

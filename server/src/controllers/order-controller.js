@@ -1,7 +1,8 @@
 const {
   createOrderService,
   fetchOrderDetailsByIdService,
-  updateOrderStatusService, fetchPaginatedOrdersService,
+  updateOrderStatusService,
+  fetchPaginatedOrdersService,
 } = require('../services/order-service');
 const AppError = require('../utils/AppError');
 const wrapAsync = require('../utils/wrap-async');
@@ -46,7 +47,7 @@ const createOrderController = wrapAsync(async (req, res, next) => {
     });
     return next(AppError.validationError('Order category is required.'));
   }
-  
+
   // Normalize category
   const cleanCategory = String(category).trim().toLowerCase();
 
@@ -61,7 +62,7 @@ const createOrderController = wrapAsync(async (req, res, next) => {
 
   // Shallow-clean null/undefined fields (top-level only)
   const cleanedBody = cleanObject(req.body);
-  
+
   // Edge-responsibility: add auditing info, not done in business layer
   const payload = { ...cleanedBody, created_by: userId };
 
@@ -70,10 +71,10 @@ const createOrderController = wrapAsync(async (req, res, next) => {
     userId,
     category: cleanCategory,
   });
-  
+
   // Business entrypoint — transaction + domain rules live beneath
   const result = await createOrderService(payload, cleanCategory, req.user);
-  
+
   logInfo('Order created successfully', req, {
     context: 'order-controller/createOrderController',
     userId,
@@ -136,9 +137,9 @@ const createOrderController = wrapAsync(async (req, res, next) => {
 const fetchPaginatedOrdersController = wrapAsync(async (req, res) => {
   const category = req.params.category;
   const user = req.user;
-  
+
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
-  
+
   logInfo('Received request to fetch paginated orders', req, {
     context: 'order-controller/fetchPaginatedOrdersController',
     category,
@@ -149,7 +150,7 @@ const fetchPaginatedOrdersController = wrapAsync(async (req, res) => {
     sortBy,
     sortOrder,
   });
-  
+
   const { data, pagination } = await fetchPaginatedOrdersService({
     filters,
     category,
@@ -159,7 +160,7 @@ const fetchPaginatedOrdersController = wrapAsync(async (req, res) => {
     sortBy,
     sortOrder,
   });
-  
+
   res.status(200).json({
     success: true,
     message: 'Orders retrieved successfully',
@@ -217,12 +218,16 @@ const fetchPaginatedOrdersController = wrapAsync(async (req, res) => {
 const getOrderDetailsByIdController = wrapAsync(async (req, res) => {
   const { category, orderId } = req.params;
   const user = req.user;
-  
+
   // Normalize category
   const cleanCategory = category.toLowerCase();
-  
-  const orderDetails = await fetchOrderDetailsByIdService(cleanCategory, orderId, user);
-  
+
+  const orderDetails = await fetchOrderDetailsByIdService(
+    cleanCategory,
+    orderId,
+    user
+  );
+
   logInfo('Order details retrieved', req, {
     context: 'order-controller/getOrderDetailsByIdController',
     orderId,
@@ -275,7 +280,9 @@ const getOrderDetailsByIdController = wrapAsync(async (req, res) => {
  */
 const updateOrderStatusController = wrapAsync(async (req, res) => {
   const user = req.user; // must be injected by auth middleware
-  const categoryParam = String(req.params.category || '').trim().toLowerCase();
+  const categoryParam = String(req.params.category || '')
+    .trim()
+    .toLowerCase();
   const orderId = String(req.params.orderId || '').trim();
   const nextStatusCode = String(req.body?.statusCode || '').trim();
 
@@ -307,7 +314,7 @@ const updateOrderStatusController = wrapAsync(async (req, res) => {
       orderUpdated: true,
       itemsUpdated: enrichedItems.length,
       recordsUpdated: 1 + enrichedItems.length,
-    }
+    },
   });
 });
 

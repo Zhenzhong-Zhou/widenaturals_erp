@@ -1,4 +1,6 @@
-const { getPricesByIdAndSkuBatch } = require('../repositories/pricing-repository');
+const {
+  getPricesByIdAndSkuBatch,
+} = require('../repositories/pricing-repository');
 const AppError = require('../utils/AppError');
 const { resolveFinalPrice } = require('./pricing-business');
 
@@ -16,24 +18,20 @@ const { resolveFinalPrice } = require('./pricing-business');
  * buildDedupeKey({ sku_id:'A', price_id:'P' }) // "sku|A|price:P"
  */
 const buildDedupeKey = (item, opts = {}) => {
-  const {
-    extraFields = [],
-  } = opts;
-  
+  const { extraFields = [] } = opts;
+
   // infer kind
   const isSku = !!item.sku_id;
   const isPkg = !!item.packaging_material_id;
-  
-  const kind = isSku ? 'sku'
-    : isPkg ? 'pkg'
-      : 'unknown'; // still allow dedupe on unknown with provided fields
-  
+
+  const kind = isSku ? 'sku' : isPkg ? 'pkg' : 'unknown'; // still allow dedupe on unknown with provided fields
+
   const parts = [kind];
-  
+
   // primary identity
   if (isSku) parts.push(item.sku_id);
   if (isPkg) parts.push(item.packaging_material_id);
-  
+
   // price identity (prefer catalog price_id, else override_price)
   if (item.price_id != null) {
     parts.push(`price:${item.price_id}`);
@@ -42,12 +40,12 @@ const buildDedupeKey = (item, opts = {}) => {
   } else {
     parts.push('price:'); // placeholder to keep shape stable
   }
-  
+
   // any extras (stable order)
   for (const f of extraFields) {
     parts.push(`${f}:${item[f] ?? ''}`);
   }
-  
+
   return parts.join('|');
 };
 
@@ -65,11 +63,11 @@ const buildDedupeKey = (item, opts = {}) => {
  */
 const dedupeOrderItems = (items, opts = {}) => {
   const map = new Map();
-  
+
   for (const it of items ?? []) {
     const key = buildDedupeKey(it, opts);
     const prev = map.get(key);
-    
+
     if (prev) {
       const prevQty = Number(prev.quantity_ordered) || 0;
       const addQty = Number(it.quantity_ordered) || 0;
@@ -79,7 +77,7 @@ const dedupeOrderItems = (items, opts = {}) => {
       map.set(key, { ...it });
     }
   }
-  
+
   return Array.from(map.values());
 };
 
@@ -107,7 +105,7 @@ const assertPositiveQuantities = (items) => {
  * @throws {AppError} If no item has `sku_id`.
  */
 const assertNotPackagingOnly = (items) => {
-  const hasSku = items.some(it => !!it.sku_id);
+  const hasSku = items.some((it) => !!it.sku_id);
   if (!hasSku) {
     throw AppError.validationError(
       'Sales order must include at least one product (SKU) item; packaging-only is not allowed.'
@@ -163,71 +161,78 @@ const enrichOrderItemsWithResolvedPrice = async (orderItems, client) => {
   for (const it of orderItems) {
     if (it.sku_id && it.price_id && !it.packaging_material_id) {
       const k = `${it.price_id}|${it.sku_id}`;
-      if (!seen.has(k)) { seen.add(k); pairs.push({ price_id: it.price_id, sku_id: it.sku_id }); }
+      if (!seen.has(k)) {
+        seen.add(k);
+        pairs.push({ price_id: it.price_id, sku_id: it.sku_id });
+      }
     }
   }
-  
+
   // 1) One round-trip: fetch catalog prices for all pairs
   const priceRows = await getPricesByIdAndSkuBatch(pairs, client);
   const priceMap = new Map(
-    priceRows.map(r => [`${r.price_id}|${r.sku_id}`, parseFloat(r.price)])
+    priceRows.map((r) => [`${r.price_id}|${r.sku_id}`, parseFloat(r.price)])
   );
-  
+
   // 2) Enrich items + compute subtotal
   let subtotal = 0;
   const enrichedItems = [];
-  
+
   for (let i = 0; i < orderItems.length; i++) {
     const item = orderItems[i];
-    
+
     // ---- CASE: Packaging (always zero-priced) ----
     if (item.packaging_material_id) {
       const finalPrice = 0;
       const lineSubtotal = (Number(item.quantity_ordered) || 0) * finalPrice;
-      
+
       subtotal += lineSubtotal;
       enrichedItems.push({
         ...item,
-        price_id: null,     // ensure we don't persist irrelevant price IDs
-        price: finalPrice,  // packaging is free
+        price_id: null, // ensure we don't persist irrelevant price IDs
+        price: finalPrice, // packaging is free
         subtotal: lineSubtotal,
       });
       continue;
     }
-    
+
     // ---- CASE: SKU lines ----
     const key = `${item.price_id}|${item.sku_id}`;
     const dbPrice = priceMap.get(key);
-    
+
     if (dbPrice == null) {
       // pair didn’t come back → invalid mapping
       throw AppError.validationError(
         `Item #${i + 1}: invalid price_id ${item.price_id} for sku_id ${item.sku_id}`
       );
     }
-    
+
     const submittedPrice =
       item.price != null ? parseFloat(item.price) : undefined;
-    
+
     // Resolve final price via your business rule (e.g., allow manual override)
     const finalPrice = resolveFinalPrice(submittedPrice, dbPrice);
-    
+
     const lineSubtotal = (Number(item.quantity_ordered) || 0) * finalPrice;
     subtotal += lineSubtotal;
-    
+
     const metadata =
       submittedPrice != null && finalPrice !== dbPrice
-        ? { submitted_price: submittedPrice, db_price: dbPrice, reason: 'manual override' }
+        ? {
+            submitted_price: submittedPrice,
+            db_price: dbPrice,
+            reason: 'manual override',
+          }
         : null;
-    
+
     enrichedItems.push({
       ...item,
-      price: finalPrice,    // trusted resolved price
+      price: finalPrice, // trusted resolved price
       subtotal: lineSubtotal,
       ...(metadata ? { metadata } : {}),
     });
   }
-  
+
   return { enrichedItems, subtotal };
 };
 

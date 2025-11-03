@@ -4,9 +4,8 @@ import type { RootState } from '@store/store';
 /**
  * Base selector to access the entire BOM Material Supply Details slice state.
  */
-export const selectBomMaterialSupplyDetailsState = (
-  state: RootState
-) => state.bomMaterialSupplyDetails;
+export const selectBomMaterialSupplyDetailsState = (state: RootState) =>
+  state.bomMaterialSupplyDetails;
 
 /**
  * Selects the full data payload (summary + details) from the slice.
@@ -84,10 +83,10 @@ export const selectBomMaterialSupplyCostOverview = createSelector(
   (summary) =>
     summary
       ? {
-        totalEstimated: summary.totals.totalEstimatedCost,
-        totalActual: summary.totals.totalActualCost,
-        variance: summary.totals.variance,
-        variancePercentage: summary.totals.variancePercentage,
-      }
+          totalEstimated: summary.totals.totalEstimatedCost,
+          totalActual: summary.totals.totalActualCost,
+          variance: summary.totals.variance,
+          variancePercentage: summary.totals.variancePercentage,
+        }
       : null
 );

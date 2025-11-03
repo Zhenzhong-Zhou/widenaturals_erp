@@ -2,7 +2,7 @@ import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
 import {
   createLookupMetaSelector,
-  mapLookupItems
+  mapLookupItems,
 } from '@features/lookup/utils/lookupSelectorUtils';
 
 /**
@@ -48,7 +48,9 @@ export const selectCustomerLookupError = createSelector(
  *
  * Returns an object containing `hasMore`, `limit`, and `offset`.
  */
-export const selectCustomerLookupMeta = createLookupMetaSelector(selectCustomerLookupState);
+export const selectCustomerLookupMeta = createLookupMetaSelector(
+  selectCustomerLookupState
+);
 
 /**
  * Selector to transform customer lookup items into `{ label, value, hasAddress }` format.

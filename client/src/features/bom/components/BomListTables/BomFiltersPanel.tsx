@@ -4,7 +4,10 @@ import Grid from '@mui/material/Grid';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
 import FilterPanelLayout from '@components/common/FilterPanelLayout';
-import { renderBooleanSelectField, renderInputField } from '@utils/filters/filterUtils';
+import {
+  renderBooleanSelectField,
+  renderInputField,
+} from '@utils/filters/filterUtils';
 import type { BomListFilters } from '@features/bom/state';
 import useSkuLookup from '@hooks/useSkuLookup';
 import SkuDropdown from '@features/lookup/components/SkuDropdown';
@@ -39,13 +42,18 @@ const emptyFilters: BomListFilters = {
  * Provides filtering by product, SKU, brand, category, compliance type, and revision.
  * Follows same UX pattern as InventoryAllocationFiltersPanel.
  */
-const BomFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset }) => {
+const BomFiltersPanel: FC<Props> = ({
+  filters,
+  onChange,
+  onApply,
+  onReset,
+}) => {
   const [showBarcode, setShowBarcode] = useState(false);
-  
+
   const { control, handleSubmit, reset } = useForm<BomListFilters>({
     defaultValues: filters,
   });
-  
+
   const {
     options: skuOptions,
     loading: isSkuLoading,
@@ -54,19 +62,19 @@ const BomFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset }) => 
     fetch: fetchSkuLookup,
     reset: resetSkuLookup,
   } = useSkuLookup();
-  
-  const skuDropdown = createDropdownBundle<SkuLookupQueryParams>({ includeBarcode: true });
-  
-  const {
-    fetchParams: skuFetchParams,
-    setFetchParams: setSkuFetchParams,
-  } = skuDropdown;
-  
+
+  const skuDropdown = createDropdownBundle<SkuLookupQueryParams>({
+    includeBarcode: true,
+  });
+
+  const { fetchParams: skuFetchParams, setFetchParams: setSkuFetchParams } =
+    skuDropdown;
+
   // --- Fetch all dropdown lookups on mount ---
   useEffect(() => {
     // Initial fetch on mount
     resetSkuLookup();
-    
+
     fetchSkuLookup({
       ...skuFetchParams,
       keyword: skuFetchParams.keyword ?? '',
@@ -74,29 +82,37 @@ const BomFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset }) => 
     });
     return () => resetSkuLookup();
   }, []);
-  
+
   useEffect(() => {
     setSkuFetchParams((prev) => ({
       ...prev,
       includeBarcode: showBarcode,
       offset: 0,
     }));
-    fetchSkuLookup({ ...skuFetchParams, includeBarcode: showBarcode, offset: 0 });
+    fetchSkuLookup({
+      ...skuFetchParams,
+      includeBarcode: showBarcode,
+      offset: 0,
+    });
   }, [showBarcode]);
-  
+
   // --- Input and range fields ---
   const textFields: {
     name: keyof BomListFilters;
     label: string;
     placeholder?: string;
   }[] = [
-    { name: 'keyword', label: 'Keyword', placeholder: 'BOM name, code or description' },
+    {
+      name: 'keyword',
+      label: 'Keyword',
+      placeholder: 'BOM name, code or description',
+    },
     { name: 'revisionMin', label: 'Revision ≥' },
     { name: 'revisionMax', label: 'Revision ≤' },
     // { name: 'createdBy', label: 'Created By' },
     // { name: 'updatedBy', label: 'Updated By' },
   ];
-  
+
   // --- Submit & Reset ---
   const submitFilters = (data: BomListFilters) => {
     const adjusted = {
@@ -107,23 +123,23 @@ const BomFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset }) => 
     onChange(adjusted);
     onApply();
   };
-  
+
   const resetFilters = () => {
     reset(emptyFilters);
     onReset();
   };
-  
+
   // Keep external filter sync
   useEffect(() => {
     reset(filters);
   }, [filters, reset]);
-  
+
   // --- Render ---
   return (
     <form onSubmit={handleSubmit(submitFilters)}>
       <FilterPanelLayout onReset={resetFilters}>
         <Grid container spacing={2}>
-        {/*  /!* --- Sku --- *!/*/}
+          {/*  /!* --- Sku --- *!/*/}
           <Grid size={{ xs: 12 }}>
             <Controller
               name="showBarcode"
@@ -146,7 +162,7 @@ const BomFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset }) => 
               )}
             />
           </Grid>
-          
+
           <Grid size={{ xs: 8 }}>
             <Controller
               name="skuId"
@@ -155,11 +171,11 @@ const BomFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset }) => 
                 <SkuDropdown
                   value={field.value ?? null}
                   onChange={(val) => field.onChange(val ?? '')}
-                  options={skuOptions}                    // from useSkuLookup
+                  options={skuOptions} // from useSkuLookup
                   loading={isSkuLoading}
                   error={skuError}
                   helperText={fieldState.error?.message || skuError?.message}
-                  paginationMeta={skuMeta}                // for infinite scroll
+                  paginationMeta={skuMeta} // for infinite scroll
                   fetchParams={skuFetchParams}
                   setFetchParams={setSkuFetchParams}
                   onRefresh={(params) => fetchSkuLookup(params)} // manual reload
@@ -167,7 +183,7 @@ const BomFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset }) => 
                   onInputChange={(_, newValue, reason) => {
                     if (reason !== 'input') return;
                     // keyword search on typing
-                    setSkuFetchParams(prev => ({
+                    setSkuFetchParams((prev) => ({
                       ...prev,
                       keyword: newValue,
                       offset: 0,
@@ -177,19 +193,19 @@ const BomFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset }) => 
                       ...skuFetchParams,
                       keyword: newValue,
                       offset: 0,
-                      includeBarcode: showBarcode
+                      includeBarcode: showBarcode,
                     });
                   }}
                 />
               )}
             />
           </Grid>
-          
+
           {/* --- Text fields --- */}
           {textFields.map(({ name, label, placeholder }) =>
             renderInputField(control, name, label, placeholder)
           )}
-          
+
           {/* --- Boolean Flags --- */}
           {renderBooleanSelectField(control, 'isActive', 'Active')}
           {renderBooleanSelectField(control, 'isDefault', 'Default')}

@@ -2,8 +2,13 @@ const {
   resolveUserPermissionContext,
 } = require('../services/role-permission-service');
 const AppError = require('../utils/AppError');
-const { logSystemException, logSystemError } = require('../utils/system-logger');
-const { PERMISSIONS } = require('../utils/constants/domain/payment-method-constants');
+const {
+  logSystemException,
+  logSystemError,
+} = require('../utils/system-logger');
+const {
+  PERMISSIONS,
+} = require('../utils/constants/domain/payment-method-constants');
 
 /**
  * Evaluates the access permissions of a user for payment method lookup operations.
@@ -24,21 +29,32 @@ const { PERMISSIONS } = require('../utils/constants/domain/payment-method-consta
 const evaluatePaymentMethodLookupAccessControl = async (user) => {
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     return {
-      canViewAllStatuses: isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_PAYMENT_METHOD_STATUSES),
-      canViewPaymentCode: isRoot || permissions.includes(PERMISSIONS.VIEW_PAYMENT_CODE),
+      canViewAllStatuses:
+        isRoot ||
+        permissions.includes(PERMISSIONS.VIEW_ALL_PAYMENT_METHOD_STATUSES),
+      canViewPaymentCode:
+        isRoot || permissions.includes(PERMISSIONS.VIEW_PAYMENT_CODE),
     };
   } catch (err) {
-    logSystemException(err, 'Failed to evaluate payment method access control', {
-      context: 'payment-method-business/evaluatePaymentMethodLookupAccessControl',
-      userId: user?.id,
-    });
-    
-    throw AppError.businessError('Unable to evaluate access control for payment method lookup', {
-      details: err.message,
-      stage: 'evaluate-payment-method-access',
-    });
+    logSystemException(
+      err,
+      'Failed to evaluate payment method access control',
+      {
+        context:
+          'payment-method-business/evaluatePaymentMethodLookupAccessControl',
+        userId: user?.id,
+      }
+    );
+
+    throw AppError.businessError(
+      'Unable to evaluate access control for payment method lookup',
+      {
+        details: err.message,
+        stage: 'evaluate-payment-method-access',
+      }
+    );
   }
 };
 
@@ -58,37 +74,41 @@ const evaluatePaymentMethodLookupAccessControl = async (user) => {
  * @returns {Object} Adjusted filters with enforced access constraints.
  * @throws {AppError} If a code-based keyword search is attempted without permission.
  */
-const enforcePaymentMethodLookupVisibilityRules = (filters = {}, userAccess) => {
+const enforcePaymentMethodLookupVisibilityRules = (
+  filters = {},
+  userAccess
+) => {
   const adjusted = { ...filters };
-  
+
   // Enforce active-only restriction
   if (!userAccess.canViewAllStatuses) {
     adjusted.isActive = true;
   } else {
     delete adjusted.isActive;
   }
-  
+
   // Restrict keyword filtering to name only
   if (!userAccess.canViewPaymentCode && adjusted.keyword) {
     const keyword = adjusted.keyword.trim();
-    
+
     // Defensive check: block attempts to match a code format
     if (/^[A-Z0-9_]+$/.test(keyword)) {
       logSystemException(
         new Error('Unauthorized code-based keyword search'),
         'Blocked keyword search by code without permission',
         {
-          context: 'payment-method-business/enforcePaymentMethodLookupVisibilityRules',
+          context:
+            'payment-method-business/enforcePaymentMethodLookupVisibilityRules',
           keyword,
         }
       );
-      
+
       throw AppError.authorizationError('Filtering by code is not allowed.');
     }
-    
+
     adjusted._restrictKeywordToNameOnly = true;
   }
-  
+
   return adjusted;
 };
 
@@ -122,11 +142,11 @@ const enrichPaymentMethodOption = (row) => {
       gotType: typeof row,
       row,
     });
-    
+
     // Throw sanitized error for client
     throw AppError.validationError('Invalid payment method data received.');
   }
-  
+
   return {
     ...row,
     isActive: row.is_active === true,

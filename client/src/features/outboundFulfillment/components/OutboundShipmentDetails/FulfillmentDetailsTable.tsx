@@ -16,57 +16,58 @@ interface FulfillmentTableProps {
 }
 
 const FulfillmentDetailsTable: FC<FulfillmentTableProps> = ({
-                                                              data,
-                                                              loading,
-                                                              itemCount,
+  data,
+  loading,
+  itemCount,
 }) => {
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-  
+
   const handleDrillDownToggle = (rowId: string) => {
     setExpandedRowId((prev) => (prev === rowId ? null : rowId));
   };
-  
-  const columns = useMemo(() =>
-    outboundFulfillmentTableColumns(expandedRowId, handleDrillDownToggle),
-    [expandedRowId]);
-  
+
+  const columns = useMemo(
+    () => outboundFulfillmentTableColumns(expandedRowId, handleDrillDownToggle),
+    [expandedRowId]
+  );
+
   return (
-   <Box>
-     <Box
-       display="flex"
-       justifyContent="space-between"
-       alignItems="center"
-       mb={2}
-     >
-       <CustomTypography variant="h6" fontWeight={600}>
-         Fulfillment Details
-       </CustomTypography>
-     </Box>
-     
-     <CustomTable
-       columns={columns}
-       data={data}
-       loading={loading}
-       page={0}
-       onPageChange={() => {}}
-       onRowsPerPageChange={() => {}}
-       initialRowsPerPage={itemCount}
-       rowsPerPageOptions={[itemCount]}
-       getRowId={(row) => row.fulfillmentId ?? 'nobatch'}
-       expandable
-       expandedRowId={expandedRowId}
-       expandedContent={(row) => (
-         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
-           {/* Expanded fulfillment info */}
-           <OutboundFulfillmentExpandedSection row={row} />
-           
-           {/* Mini table of batches */}
-           <FulfillmentBatchesMiniTable data={row.batches ?? []} />
-         </Box>
-       )}
-       emptyMessage="No fulfillemnt details found."
-     />
-   </Box>
+    <Box>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={2}
+      >
+        <CustomTypography variant="h6" fontWeight={600}>
+          Fulfillment Details
+        </CustomTypography>
+      </Box>
+
+      <CustomTable
+        columns={columns}
+        data={data}
+        loading={loading}
+        page={0}
+        onPageChange={() => {}}
+        onRowsPerPageChange={() => {}}
+        initialRowsPerPage={itemCount}
+        rowsPerPageOptions={[itemCount]}
+        getRowId={(row) => row.fulfillmentId ?? 'nobatch'}
+        expandable
+        expandedRowId={expandedRowId}
+        expandedContent={(row) => (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
+            {/* Expanded fulfillment info */}
+            <OutboundFulfillmentExpandedSection row={row} />
+
+            {/* Mini table of batches */}
+            <FulfillmentBatchesMiniTable data={row.batches ?? []} />
+          </Box>
+        )}
+        emptyMessage="No fulfillemnt details found."
+      />
+    </Box>
   );
 };
 

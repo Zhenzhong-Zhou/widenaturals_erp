@@ -15,7 +15,8 @@ import type {
   LotAdjustmentTypeLookupResponse,
   OrderTypeLookupQueryParams,
   OrderTypeLookupResponse,
-  PackagingMaterialLookupQueryParams, PackagingMaterialLookupResponse,
+  PackagingMaterialLookupQueryParams,
+  PackagingMaterialLookupResponse,
   PaymentMethodLookupQueryParams,
   PaymentMethodLookupResponse,
   PricingLookupQueryParams,
@@ -202,7 +203,7 @@ const fetchPaymentMethodLookup = async (
 ): Promise<PaymentMethodLookupResponse> => {
   const queryString = buildQueryString(params);
   const url = `${API_ENDPOINTS.LOOKUPS.PAYMENT_METHODS}${queryString}`;
-  
+
   try {
     return await getRequest<PaymentMethodLookupResponse>(url);
   } catch (error) {
@@ -225,7 +226,7 @@ const fetchDiscountLookup = async (
 ): Promise<DiscountLookupResponse> => {
   const queryString = buildQueryString(params);
   const url = `${API_ENDPOINTS.LOOKUPS.DISCOUNTS}${queryString}`;
-  
+
   try {
     return await getRequest<DiscountLookupResponse>(url);
   } catch (error) {
@@ -248,7 +249,7 @@ const fetchTaxRateLookup = async (
 ): Promise<TaxRateLookupResponse> => {
   const queryString = buildQueryString(params);
   const url = `${API_ENDPOINTS.LOOKUPS.TAX_RATES}${queryString}`;
-  
+
   try {
     return await getRequest<TaxRateLookupResponse>(url);
   } catch (error) {
@@ -271,7 +272,7 @@ const fetchDeliveryMethodLookup = async (
 ): Promise<DeliveryMethodLookupResponse> => {
   const queryString = buildQueryString(params);
   const url = `${API_ENDPOINTS.LOOKUPS.DELIVERY_METHODS}${queryString}`;
-  
+
   try {
     return await getRequest<DeliveryMethodLookupResponse>(url);
   } catch (error) {
@@ -295,7 +296,7 @@ const fetchSkuLookup = async (
 ): Promise<SkuLookupResponse> => {
   const queryString = buildQueryString(params);
   const url = `${API_ENDPOINTS.LOOKUPS.SKUS}${queryString}`;
-  
+
   try {
     return await getRequest<SkuLookupResponse>(url);
   } catch (error) {
@@ -320,7 +321,7 @@ const fetchPricingLookup = async (
 ): Promise<PricingLookupResponse> => {
   const queryString = buildQueryString(params);
   const url = `${API_ENDPOINTS.LOOKUPS.PRICING}${queryString}`;
-  
+
   try {
     return await getRequest<PricingLookupResponse>(url);
   } catch (error) {
@@ -356,7 +357,7 @@ const fetchPackagingMaterialLookup = async (
 ): Promise<PackagingMaterialLookupResponse> => {
   const queryString = buildQueryString(params);
   const url = `${API_ENDPOINTS.LOOKUPS.PACKAGING_MATERIALS}${queryString}`;
-  
+
   try {
     return await getRequest<PackagingMaterialLookupResponse>(url);
   } catch (error) {

@@ -130,17 +130,17 @@ const insertOrder = async (orderData, client) => {
  *   sortOrder: 'ASC',
  * });
  */
-const getPaginatedOrders =  async ({
-                                     filters = {},
-                                     page = 1,
-                                     limit = 10,
-                                     sortBy = 'created_at',
-                                     sortOrder = 'DESC',
-                                   }) => {
+const getPaginatedOrders = async ({
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'created_at',
+  sortOrder = 'DESC',
+}) => {
   const { whereClause, params } = buildOrderFilter(filters);
-  
+
   const tableName = 'orders o';
-  
+
   const joins = [
     'LEFT JOIN order_types ot ON o.order_type_id = ot.id',
     'LEFT JOIN order_status os ON o.order_status_id = os.id',
@@ -152,7 +152,7 @@ const getPaginatedOrders =  async ({
     'LEFT JOIN delivery_methods dm ON so.delivery_method_id = dm.id',
     'LEFT JOIN payment_status ps ON so.payment_status_id = ps.id',
   ];
-  
+
   const baseQuery = `
     SELECT
       o.id,
@@ -184,7 +184,7 @@ const getPaginatedOrders =  async ({
     ${joins.join('\n')}
     WHERE ${whereClause}
   `;
-  
+
   try {
     const result = await paginateQuery({
       tableName,
@@ -197,7 +197,7 @@ const getPaginatedOrders =  async ({
       sortBy,
       sortOrder,
     });
-    
+
     logSystemInfo('Fetched orders successfully', {
       context: 'order-repository/getPaginatedOrders',
       resultCount: result?.data?.length,
@@ -205,7 +205,7 @@ const getPaginatedOrders =  async ({
       pagination: { page, limit },
       sorting: { sortBy, sortOrder },
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch paginated orders', {
@@ -331,22 +331,22 @@ const findOrderByIdWithDetails = async (orderId) => {
     LEFT JOIN users               uub   ON uub.id = o.updated_by
     WHERE o.id = $1;
   `;
-  
+
   const logMeta = {
     context: 'order-repository/findOrderByIdWithDetails',
     severity: 'INFO',
     orderId,
     sqlTag: 'findOrderByIdWithDetails.v1',
   };
-  
+
   try {
     const { rows } = await query(sql, [orderId]);
-    
+
     if (rows.length === 0) {
       logSystemInfo('Order not found', { ...logMeta });
       return null;
     }
-    
+
     logSystemInfo('Order fetched', { ...logMeta, rowCount: rows.length });
     return rows[0]; // header-only query should return a single row
   } catch (error) {
@@ -355,7 +355,7 @@ const findOrderByIdWithDetails = async (orderId) => {
       ...logMeta,
       severity: 'ERROR',
     });
-    
+
     // Hide DB internals from callers
     throw AppError.databaseError('Failed to fetch order details.');
   }
@@ -502,14 +502,14 @@ const fetchOrderMetadata = async (orderId, client) => {
     JOIN order_status s ON o.order_status_id = s.id
     WHERE o.id = $1
   `;
-  
+
   try {
     const { rows } = await query(sql, [orderId], client);
-    
+
     if (rows.length === 0) {
       throw AppError.notFoundError(`Order ${orderId} not found.`);
     }
-    
+
     return rows[0];
   } catch (error) {
     logSystemException('Failed to fetch order metadata', {
@@ -517,7 +517,7 @@ const fetchOrderMetadata = async (orderId, client) => {
       orderId,
       error,
     });
-    
+
     throw AppError.databaseError('Failed to retrieve order metadata.');
   }
 };
@@ -547,7 +547,10 @@ const fetchOrderMetadata = async (orderId, client) => {
  *
  * @throws {AppError} If a database error occurs.
  */
-const updateOrderStatus = async (client, { orderId, newStatusId, updatedBy }) => {
+const updateOrderStatus = async (
+  client,
+  { orderId, newStatusId, updatedBy }
+) => {
   const sql = `
     UPDATE orders
     SET
@@ -558,12 +561,12 @@ const updateOrderStatus = async (client, { orderId, newStatusId, updatedBy }) =>
     WHERE id = $3 AND order_status_id IS DISTINCT FROM $1
     RETURNING id, order_status_id, status_date
   `;
-  
+
   const values = [newStatusId, updatedBy, orderId];
-  
+
   try {
     const result = await query(sql, values, client);
-    
+
     if (result.rowCount === 0) {
       logSystemInfo('Order status update skipped: no matching order', {
         context: 'order-repository/updateOrderStatus',
@@ -574,9 +577,9 @@ const updateOrderStatus = async (client, { orderId, newStatusId, updatedBy }) =>
       });
       return false;
     }
-    
+
     const updatedOrder = result.rows[0];
-    
+
     logSystemInfo('Order status updated successfully', {
       context: 'order-repository/updateOrderStatus',
       orderId: updatedOrder.id,
@@ -584,7 +587,7 @@ const updateOrderStatus = async (client, { orderId, newStatusId, updatedBy }) =>
       updatedBy,
       severity: 'INFO',
     });
-    
+
     return updatedOrder;
   } catch (error) {
     logSystemException(error, 'Failed to update order status', {
@@ -594,8 +597,10 @@ const updateOrderStatus = async (client, { orderId, newStatusId, updatedBy }) =>
       updatedBy,
       severity: 'ERROR',
     });
-    
-    throw AppError.databaseError(`Failed to update order status: ${error.message}`);
+
+    throw AppError.databaseError(
+      `Failed to update order status: ${error.message}`
+    );
   }
 };
 
@@ -639,7 +644,7 @@ const getInventoryAllocationsByOrderId = async (orderId, client) => {
     JOIN inventory_allocations ia ON ia.order_item_id = oi.id
     WHERE o.id = $1;
   `;
-  
+
   try {
     const result = await query(sql, [orderId], client);
     logSystemInfo('Order allocation details fetched', {
@@ -703,23 +708,23 @@ const getSalesOrderShipmentMetadata = async (orderId, client = null) => {
     WHERE o.id = $1
     GROUP BY so.id, so.delivery_method_id;
   `;
-  
+
   try {
     const { rows } = await query(sql, [orderId], client);
-    
+
     logSystemInfo('Fetched sales order shipment metadata', {
       context: 'sales-order-repository/getSalesOrderShipmentMetadata',
       orderId,
       rowCount: rows.length,
     });
-    
+
     return rows[0] ?? null;
   } catch (error) {
     logSystemException(error, 'Failed to fetch sales order shipment metadata', {
       context: 'sales-order-repository/getSalesOrderShipmentMetadata',
       orderId,
     });
-    
+
     throw AppError.databaseError(
       'Database query failed while fetching sales order shipment metadata',
       { cause: error, orderId }

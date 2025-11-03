@@ -70,7 +70,7 @@ const InventoryActivityLogFilterPanel: FC<
   lotAdjustmentError,
 }) => {
   const { reset } = useForm({ defaultValues: filters });
-  
+
   const handleChange =
     <K extends keyof InventoryActivityLogQueryParams>(field: K) =>
     (value: InventoryActivityLogQueryParams[K]) => {
@@ -101,19 +101,19 @@ const InventoryActivityLogFilterPanel: FC<
   };
 
   const handleSelectedLotAdjustmentsChange = (selected: LookupOption[]) => {
-    const selectedValues = selected.map(opt => opt.value);
+    const selectedValues = selected.map((opt) => opt.value);
     onSelectedLotAdjustmentsChange(selected);
     onChange({
       ...filters,
       adjustmentTypeIds: selectedValues,
     });
   };
-  
+
   const handleReset = () => {
-    reset({});      // Clear form
-    onReset();      // Notify parent
+    reset({}); // Clear form
+    onReset(); // Notify parent
   };
-  
+
   return (
     <Box sx={{ mb: 2 }}>
       <Grid container spacing={2}>

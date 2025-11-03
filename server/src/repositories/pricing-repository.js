@@ -1,4 +1,8 @@
-const { query, paginateQuery, paginateQueryByOffset } = require('../database/db');
+const {
+  query,
+  paginateQuery,
+  paginateQueryByOffset,
+} = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const { buildPricingFilters } = require('../utils/sql/build-pricing-filters');
@@ -255,10 +259,10 @@ const getPricingDetailsByPricingTypeId = async ({
 const getPricesByIdAndSkuBatch = async (pairs, client = null) => {
   try {
     if (!pairs?.length) return [];
-    
-    const priceIds = pairs.map(p => p.price_id);
-    const skuIds   = pairs.map(p => p.sku_id);
-    
+
+    const priceIds = pairs.map((p) => p.price_id);
+    const skuIds = pairs.map((p) => p.sku_id);
+
     const sql = `
       WITH input(price_id, sku_id) AS (
         SELECT * FROM UNNEST($1::uuid[], $2::uuid[])
@@ -296,11 +300,7 @@ const getPricesByIdAndSkuBatch = async (pairs, client = null) => {
  *
  * @throws {AppError} - If a database error occurs
  */
-const getPricingLookup = async ({
-                                  limit = 50,
-                                  offset = 0,
-                                  filters = {},
-                                }) => {
+const getPricingLookup = async ({ limit = 50, offset = 0, filters = {} }) => {
   const tableName = 'pricing p';
   const joins = [
     'JOIN skus s ON s.id = p.sku_id',
@@ -308,9 +308,9 @@ const getPricingLookup = async ({
     'JOIN products pr ON pr.id = s.product_id',
     'LEFT JOIN locations l ON l.id = p.location_id',
   ];
-  
+
   const { whereClause, params } = buildPricingFilters(filters);
-  
+
   const queryText = `
     SELECT
       p.id,
@@ -330,7 +330,7 @@ const getPricingLookup = async ({
     ${joins.join('\n')}
     WHERE ${whereClause}
   `;
-  
+
   try {
     const result = await paginateQueryByOffset({
       tableName,
@@ -344,7 +344,7 @@ const getPricingLookup = async ({
       sortOrder: '',
       additionalSort: 'pt.name ASC, p.valid_from DESC',
     });
-    
+
     logSystemInfo('Fetched pricing lookup successfully', {
       context: 'pricing-repository/getPricingLookup',
       totalFetched: result.data?.length ?? 0,
@@ -352,7 +352,7 @@ const getPricingLookup = async ({
       limit,
       filters,
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch pricing lookup', {

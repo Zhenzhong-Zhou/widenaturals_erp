@@ -3,7 +3,11 @@ import type { PricingLookupQueryParams } from '@features/lookup/state';
 import type { PaginatedDropdownProps } from '@components/common/PaginatedDropdown';
 import PaginatedDropdown from '@components/common/PaginatedDropdown';
 import CustomTypography from '@components/common/CustomTypography';
-import { faBan, faCalendarTimes, faDollarSign } from '@fortawesome/free-solid-svg-icons';
+import {
+  faBan,
+  faCalendarTimes,
+  faDollarSign,
+} from '@fortawesome/free-solid-svg-icons';
 import { getRawLabel } from '@utils/labelHelpers';
 
 type PricingDropdownProps = PaginatedDropdownProps<PricingLookupQueryParams>;
@@ -30,38 +34,40 @@ const PricingDropdown = ({ options = [], ...rest }: PricingDropdownProps) => {
         options.map((opt) => {
           const isInactive = opt.isActive === false;
           const isExpired = opt.isValidToday === false;
-          
+
           // Plain string for Autocomplete input & equality
           const rawLabel = getRawLabel(opt.label);
-          
+
           // JSX label for dropdown rendering
           const displayLabel = (
-            <CustomTypography color={isInactive || isExpired ? 'error' : 'inherit'}>
+            <CustomTypography
+              color={isInactive || isExpired ? 'error' : 'inherit'}
+            >
               {rawLabel}
             </CustomTypography>
           );
-          
+
           // Icon logic
           const icon = isInactive
             ? faBan
             : isExpired
               ? faCalendarTimes
               : faDollarSign;
-          
+
           // Tooltip logic
           const tooltip = isInactive
             ? 'Inactive Pricing'
             : isExpired
               ? 'Expired Pricing'
               : 'Active Pricing';
-          
+
           // Color logic
           const iconColor = isInactive
             ? 'gray'
             : isExpired
               ? 'orange'
               : 'green';
-          
+
           return [
             opt.value ?? opt.id,
             {
@@ -77,7 +83,7 @@ const PricingDropdown = ({ options = [], ...rest }: PricingDropdownProps) => {
       ).values()
     );
   }, [options]);
-  
+
   return (
     <PaginatedDropdown
       label="Select Pricing"

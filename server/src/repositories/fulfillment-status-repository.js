@@ -50,15 +50,17 @@ const getFulfillmentStatusByCode = async (statusCode, client = null) => {
     WHERE code = $1
     LIMIT 1
   `;
-  
+
   try {
     const { rows } = await query(sql, [statusCode], client);
     const row = rows?.[0];
-    
+
     if (!row) {
-      throw AppError.notFoundError(`Fulfillment status not found for code: ${statusCode}`);
+      throw AppError.notFoundError(
+        `Fulfillment status not found for code: ${statusCode}`
+      );
     }
-    
+
     return {
       id: row.id,
       code: row.code,
@@ -71,7 +73,9 @@ const getFulfillmentStatusByCode = async (statusCode, client = null) => {
       context: 'fulfillment-repository/getFulfillmentStatusByCode',
       statusCode,
     });
-    throw AppError.databaseError(`Failed to retrieve fulfillment status: ${error.message}`);
+    throw AppError.databaseError(
+      `Failed to retrieve fulfillment status: ${error.message}`
+    );
   }
 };
 
@@ -122,34 +126,37 @@ const getFulfillmentStatusesByIds = async (statusIds, client = null) => {
     });
     return [];
   }
-  
+
   const sql = `
     SELECT DISTINCT id, code, name
     FROM fulfillment_status
     WHERE id = ANY($1::uuid[])
   `;
-  
+
   try {
     const result = await query(sql, [statusIds], client);
-    
+
     logSystemInfo('Fetched fulfillment status metadata successfully', {
       context: 'outbound-fulfillment-repository/getFulfillmentStatusesByIds',
       rowCount: result.rowCount ?? result.rows?.length ?? 0,
       statusIdsCount: statusIds.length,
     });
-    
+
     return result.rows ?? [];
   } catch (error) {
     logSystemException(error, 'Failed to fetch fulfillment statuses by IDs', {
       context: 'outbound-fulfillment-repository/getFulfillmentStatusesByIds',
       statusIds,
     });
-    
-    throw AppError.databaseError('Unable to fetch fulfillment status metadata.', {
-      cause: error,
-      statusIds,
-      context: 'outbound-fulfillment-repository/getFulfillmentStatusesByIds',
-    });
+
+    throw AppError.databaseError(
+      'Unable to fetch fulfillment status metadata.',
+      {
+        cause: error,
+        statusIds,
+        context: 'outbound-fulfillment-repository/getFulfillmentStatusesByIds',
+      }
+    );
   }
 };
 

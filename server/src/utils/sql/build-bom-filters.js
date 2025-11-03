@@ -88,7 +88,7 @@ const buildBomFilter = (filters = {}) => {
     const conditions = ['1=1'];
     const params = [];
     let i = 1;
-    
+
     // SKU ID(s)
     if (filters.skuId) {
       if (Array.isArray(filters.skuId)) {
@@ -101,7 +101,7 @@ const buildBomFilter = (filters = {}) => {
         i++;
       }
     }
-    
+
     // Product ID(s)
     if (filters.productId) {
       if (Array.isArray(filters.productId)) {
@@ -114,117 +114,119 @@ const buildBomFilter = (filters = {}) => {
         i++;
       }
     }
-    
+
     // Product name (partial)
     if (filters.productName) {
       conditions.push(`p.name ILIKE $${i}`);
       params.push(`%${filters.productName}%`);
       i++;
     }
-    
+
     // SKU code (partial)
     if (filters.skuCode) {
       conditions.push(`s.sku ILIKE $${i}`);
       params.push(`%${filters.skuCode}%`);
       i++;
     }
-    
+
     // Compliance filters
     if (filters.complianceType) {
       conditions.push(`c.type ILIKE $${i}`);
       params.push(`%${filters.complianceType}%`);
       i++;
     }
-    
+
     if (filters.complianceStatusId) {
       conditions.push(`c.status_id = $${i}`);
       params.push(filters.complianceStatusId);
       i++;
     }
-    
+
     if (filters.onlyActiveCompliance === true) {
       conditions.push(`LOWER(st_compliance.name) = 'active'`);
     }
-    
+
     if (filters.complianceIssuedAfter) {
       conditions.push(`c.issued_date >= $${i}`);
       params.push(filters.complianceIssuedAfter);
       i++;
     }
-    
+
     if (filters.complianceExpiredBefore) {
       conditions.push(`c.expiry_date <= $${i}`);
       params.push(filters.complianceExpiredBefore);
       i++;
     }
-    
+
     // BOM status filters
     if (filters.statusId) {
       conditions.push(`b.status_id = $${i}`);
       params.push(filters.statusId);
       i++;
     }
-    
+
     // Is Active / Default
     if (typeof filters.isActive === 'boolean') {
       conditions.push(`b.is_active = $${i}`);
       params.push(filters.isActive);
       i++;
     }
-    
+
     if (typeof filters.isDefault === 'boolean') {
       conditions.push(`b.is_default = $${i}`);
       params.push(filters.isDefault);
       i++;
     }
-    
+
     // Revision range
     if (filters.revisionMin) {
       conditions.push(`b.revision >= $${i}`);
       params.push(filters.revisionMin);
       i++;
     }
-    
+
     if (filters.revisionMax) {
       conditions.push(`b.revision <= $${i}`);
       params.push(filters.revisionMax);
       i++;
     }
-    
+
     // Created/Updated by
     if (filters.createdBy) {
       conditions.push(`b.created_by = $${i}`);
       params.push(filters.createdBy);
       i++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`b.updated_by = $${i}`);
       params.push(filters.updatedBy);
       i++;
     }
-    
+
     // Date ranges
     if (filters.createdAfter) {
       conditions.push(`b.created_at >= $${i}`);
       params.push(filters.createdAfter);
       i++;
     }
-    
+
     if (filters.createdBefore) {
       conditions.push(`b.created_at <= $${i}`);
       params.push(filters.createdBefore);
       i++;
     }
-    
+
     // Keyword
     if (filters.keyword) {
       const kw = `%${filters.keyword.trim().replace(/\s+/g, ' ')}%`;
-      conditions.push(`(b.name ILIKE $${i} OR b.code ILIKE $${i} OR b.description ILIKE $${i})`);
+      conditions.push(
+        `(b.name ILIKE $${i} OR b.code ILIKE $${i} OR b.description ILIKE $${i})`
+      );
       params.push(kw);
       i++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,

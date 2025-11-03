@@ -12,14 +12,17 @@ interface OutboundShipmentHeaderSectionProps {
   flattened: FlattenedShipmentHeader;
 }
 
-const OutboundShipmentHeaderSection: FC<OutboundShipmentHeaderSectionProps> = ({ orderNumber, flattened }) => {
+const OutboundShipmentHeaderSection: FC<OutboundShipmentHeaderSectionProps> = ({
+  orderNumber,
+  flattened,
+}) => {
   return (
     <Section title="Shipment Header">
       <DetailsGrid>
         {/* Left column */}
         <DetailsGridItem>
-          // todo: add yes no chip or another ui
-          // todo: adjust all status to be chip or other ui with differ color
+          // todo: add yes no chip or another ui // todo: adjust all status to
+          be chip or other ui with differ color
           <MemoizedDetailsSection
             fields={[
               { label: 'Order Number', value: orderNumber },
@@ -27,22 +30,34 @@ const OutboundShipmentHeaderSection: FC<OutboundShipmentHeaderSectionProps> = ({
                 label: 'Shipment Status',
                 value: flattened.statusName,
                 format: () =>
-                  formatShipmentStatus(flattened.statusCode ?? '', formatLabel(flattened.statusName) ?? ''),
+                  formatShipmentStatus(
+                    flattened.statusCode ?? '',
+                    formatLabel(flattened.statusName) ?? ''
+                  ),
               },
               { label: 'Shipped At', value: flattened.shippedAt || '—' },
-              { label: 'Delivery Methode', value: flattened.deliveryMethodName || '—' },
-              { label: 'Is Pickup', value: flattened.deliveryMethodIsPickup ? 'Yes' : 'No' },
-              { label: 'Estimated Time', value: flattened.deliveryMethodEstimatedTime || '—' },
+              {
+                label: 'Delivery Methode',
+                value: flattened.deliveryMethodName || '—',
+              },
+              {
+                label: 'Is Pickup',
+                value: flattened.deliveryMethodIsPickup ? 'Yes' : 'No',
+              },
+              {
+                label: 'Estimated Time',
+                value: flattened.deliveryMethodEstimatedTime || '—',
+              },
               {
                 label: 'Created At',
                 value: flattened.createdAt || '—',
-                format: () => formatDateTime(flattened.createdAt)
+                format: () => formatDateTime(flattened.createdAt),
               },
               { label: 'Created By', value: flattened.createdByName || '—' },
             ]}
           />
         </DetailsGridItem>
-        
+
         {/* Right column */}
         <DetailsGridItem>
           <MemoizedDetailsSection
@@ -50,7 +65,10 @@ const OutboundShipmentHeaderSection: FC<OutboundShipmentHeaderSectionProps> = ({
               { label: 'Warehouse', value: flattened.warehouseName || '—' },
               { label: 'Notes', value: flattened.notes || '—' },
               { label: 'Details', value: flattened.details || '—' },
-              { label: 'Expected Delivery', value: flattened.expectedDeliveryDate || '—' },
+              {
+                label: 'Expected Delivery',
+                value: flattened.expectedDeliveryDate || '—',
+              },
               {
                 label: 'Tracking Number',
                 value: flattened.trackingNumber || '—',

@@ -1,7 +1,9 @@
 import type {
   AuditRecord,
-  BomListItem, BomStatus,
-  BomRow, ComplianceInfo,
+  BomListItem,
+  BomStatus,
+  BomRow,
+  ComplianceInfo,
   FlattenedBomRecord,
   ProductSummary,
   SkuSummary,
@@ -19,18 +21,20 @@ import type {
  *  - Compliance info (type, number, issuedDate)
  *  - Audit info (createdBy, createdAt, updatedBy, updatedAt)
  */
-export const flattenBomRecords = (records: BomListItem[]): FlattenedBomRecord[] => {
+export const flattenBomRecords = (
+  records: BomListItem[]
+): FlattenedBomRecord[] => {
   if (!Array.isArray(records)) return [];
-  
+
   return records.map((record) => {
     const product = record.product ?? ({} as ProductSummary);
     const sku = record.sku ?? ({} as SkuSummary);
     const bom = record.bom ?? ({} as BomRow);
-    
+
     const audit = bom.audit ?? ({} as AuditRecord);
     const status = bom.status ?? ({} as BomStatus);
     const compliance = sku.compliance ?? ({} as ComplianceInfo);
-    
+
     return {
       // --- Product Info ---
       productId: product.id ?? null,
@@ -38,7 +42,7 @@ export const flattenBomRecords = (records: BomListItem[]): FlattenedBomRecord[] 
       brand: product.brand ?? '—',
       series: product.series ?? '—',
       category: product.category ?? '—',
-      
+
       // --- SKU Info ---
       skuId: sku.id ?? null,
       skuCode: sku.code ?? '—',
@@ -48,7 +52,7 @@ export const flattenBomRecords = (records: BomListItem[]): FlattenedBomRecord[] 
       language: sku.language ?? '—',
       sizeLabel: sku.sizeLabel ?? '—',
       skuDescription: sku.description ?? '—',
-      
+
       // --- BOM Info ---
       bomId: bom.id ?? null,
       bomCode: bom.code ?? '—',
@@ -57,17 +61,17 @@ export const flattenBomRecords = (records: BomListItem[]): FlattenedBomRecord[] 
       revision: bom.revision ?? null,
       isActive: bom.isActive ?? false,
       isDefault: bom.isDefault ?? false,
-      
+
       // --- Status Info ---
       status: status.name ?? '—',
       statusDate: status.date ?? '',
-      
+
       // --- Compliance Info ---
       npnNumber: compliance.number ?? '—',
       complianceType: compliance.type ?? '—',
       complianceIssuedDate: compliance.issuedDate ?? null,
       complianceExpiryDate: compliance.expiryDate ?? null,
-      
+
       // --- Audit Info ---
       createdAt: audit.createdAt ?? '',
       createdBy: audit.createdBy?.name ?? '—',

@@ -43,22 +43,26 @@ import { outboundFulfillmentService } from '@services/outboundFulfillmentService
  */
 export const initiateOutboundFulfillmentThunk = createAsyncThunk<
   InitiateFulfillmentResponse, // return type
-  InitiateFulfillmentRequest,  // argument type
+  InitiateFulfillmentRequest, // argument type
   {
-    rejectValue: string;       // optional error type
+    rejectValue: string; // optional error type
   }
 >(
   'outboundFulfillments/initiate',
   async (request: InitiateFulfillmentRequest, { rejectWithValue }) => {
     try {
-      return await outboundFulfillmentService.initiateOutboundFulfillment(request);
+      return await outboundFulfillmentService.initiateOutboundFulfillment(
+        request
+      );
     } catch (error: any) {
       console.error('Thunk error: initiateOutboundFulfillment', error);
-      
+
       // Use backend-provided message if available
       const message =
-        error?.response?.data?.message || error.message || 'Failed to initiate outbound fulfillment';
-      
+        error?.response?.data?.message ||
+        error.message ||
+        'Failed to initiate outbound fulfillment';
+
       return rejectWithValue(message);
     }
   }
@@ -101,22 +105,24 @@ export const initiateOutboundFulfillmentThunk = createAsyncThunk<
  */
 export const fetchPaginatedOutboundFulfillmentThunk = createAsyncThunk<
   PaginatedOutboundFulfillmentResponse, // return type
-  OutboundFulfillmentQuery,             // argument type
-  { rejectValue: string }               // error type
+  OutboundFulfillmentQuery, // argument type
+  { rejectValue: string } // error type
 >(
   'outboundFulfillment/fetchPaginated',
   async (queryParams, { rejectWithValue }) => {
     try {
-      return await outboundFulfillmentService.fetchPaginatedOutboundFulfillment(queryParams);
+      return await outboundFulfillmentService.fetchPaginatedOutboundFulfillment(
+        queryParams
+      );
     } catch (error: any) {
       console.error('Thunk error: fetchPaginatedOutboundFulfillment', error);
-      
+
       // Use backend-provided message if available
       const message =
         error?.response?.data?.message ||
         error.message ||
         'Failed to fetch outbound fulfillments';
-      
+
       return rejectWithValue(message);
     }
   }
@@ -135,19 +141,18 @@ export const fetchPaginatedOutboundFulfillmentThunk = createAsyncThunk<
  */
 export const fetchOutboundShipmentDetailsThunk = createAsyncThunk<
   ShipmentDetailsResponse, // return type
-  string,                  // argument type
-  { rejectValue: string }  // optional reject payload
->(
-  'outboundShipments/fetchDetails',
-  async (shipmentId, { rejectWithValue }) => {
-    try {
-      return await outboundFulfillmentService.fetchOutboundShipmentDetails(shipmentId);
-    } catch (error: any) {
-      console.error('Thunk error (fetchOutboundShipmentDetails):', error);
-      return rejectWithValue(error.message || 'Failed to fetch shipment details');
-    }
+  string, // argument type
+  { rejectValue: string } // optional reject payload
+>('outboundShipments/fetchDetails', async (shipmentId, { rejectWithValue }) => {
+  try {
+    return await outboundFulfillmentService.fetchOutboundShipmentDetails(
+      shipmentId
+    );
+  } catch (error: any) {
+    console.error('Thunk error (fetchOutboundShipmentDetails):', error);
+    return rejectWithValue(error.message || 'Failed to fetch shipment details');
   }
-);
+});
 
 /**
  * Thunk: confirmOutboundFulfillmentThunk
@@ -166,21 +171,23 @@ export const fetchOutboundShipmentDetailsThunk = createAsyncThunk<
  */
 export const confirmOutboundFulfillmentThunk = createAsyncThunk<
   ConfirmOutboundFulfillmentResponse, // Return type on success
-  ConfirmOutboundFulfillmentRequest,  // Argument type
-  { rejectValue: string }             // Rejected error payload
+  ConfirmOutboundFulfillmentRequest, // Argument type
+  { rejectValue: string } // Rejected error payload
 >(
   'outboundFulfillment/confirmOutboundFulfillment',
   async (request, { rejectWithValue }) => {
     try {
-      return await outboundFulfillmentService.confirmOutboundFulfillment(request);
+      return await outboundFulfillmentService.confirmOutboundFulfillment(
+        request
+      );
     } catch (error: any) {
       console.error('Failed to confirm outbound fulfillment:', error);
-      
+
       const message =
         error?.response?.data?.message ||
         error?.message ||
         'Unable to confirm outbound fulfillment. Please try again later.';
-      
+
       return rejectWithValue(message);
     }
   }

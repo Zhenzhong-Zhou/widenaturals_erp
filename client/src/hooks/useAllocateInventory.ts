@@ -11,7 +11,7 @@ import {
 import { resetAllocationState } from '@features/inventoryAllocation/state/allocateInventorySlice';
 import type {
   AllocateInventoryBody,
-  AllocateInventoryParams
+  AllocateInventoryParams,
 } from '@features/inventoryAllocation/state';
 
 /**
@@ -22,13 +22,13 @@ import type {
  */
 const useAllocateInventory = () => {
   const dispatch = useAppDispatch();
-  
+
   const data = useAppSelector(selectAllocationData);
   const loading = useAppSelector(selectAllocationLoading);
   const error = useAppSelector(selectAllocationError);
   const orderId = useAppSelector(selectAllocationOrderId);
   const allocationIds = useAppSelector(selectAllocatedIds);
-  
+
   /**
    * Trigger inventory allocation for a given order.
    */
@@ -38,14 +38,14 @@ const useAllocateInventory = () => {
     },
     [dispatch]
   );
-  
+
   /**
    * Reset allocation state to initial.
    */
   const reset = useCallback(() => {
     dispatch(resetAllocationState());
   }, [dispatch]);
-  
+
   /**
    * Memoized state bundle.
    */
@@ -59,7 +59,7 @@ const useAllocateInventory = () => {
     }),
     [data, loading, error, orderId, allocationIds]
   );
-  
+
   return { ...state, allocate, reset };
 };
 

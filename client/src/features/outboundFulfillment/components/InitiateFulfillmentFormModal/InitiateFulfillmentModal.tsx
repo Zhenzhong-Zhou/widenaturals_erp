@@ -5,9 +5,7 @@ import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import CustomButton from '@components/common/CustomButton';
 import CustomTypography from '@components/common/CustomTypography';
-import {
-  InitiateFulfillmentForm
-} from '@features/outboundFulfillment/components/InitiateFulfillmentFormModal';
+import { InitiateFulfillmentForm } from '@features/outboundFulfillment/components/InitiateFulfillmentFormModal';
 import type { InitiateFulfillmentBody } from '@features/outboundFulfillment/state';
 import { useModalFocusHandlers } from '@utils/hooks/useModalFocusHandlers';
 
@@ -27,16 +25,16 @@ interface InitiateFulfillmentModalProps {
  * InitiateFulfillmentForm.
  */
 const InitiateFulfillmentModal: FC<InitiateFulfillmentModalProps> = ({
-                                                                       orderId,
-                                                                       allocationIds,
-                                                                       defaultValues,
-                                                                       onSuccess,
-                                                                       buttonLabel = 'Initiate Fulfillment',
-                                                                       buttonVariant = 'contained',
-                                                                       buttonColor = 'primary',
-                                                                     }) => {
+  orderId,
+  allocationIds,
+  defaultValues,
+  onSuccess,
+  buttonLabel = 'Initiate Fulfillment',
+  buttonVariant = 'contained',
+  buttonColor = 'primary',
+}) => {
   const { open, triggerRef, handleOpen, handleClose } = useModalFocusHandlers();
-  
+
   return (
     <>
       <CustomButton
@@ -47,7 +45,7 @@ const InitiateFulfillmentModal: FC<InitiateFulfillmentModalProps> = ({
       >
         {buttonLabel}
       </CustomButton>
-      
+
       <Modal open={open} onClose={handleClose}>
         <Box
           sx={{
@@ -71,7 +69,7 @@ const InitiateFulfillmentModal: FC<InitiateFulfillmentModalProps> = ({
             </CustomTypography>
           </Box>
           <Divider />
-          
+
           {/* Scrollable Content */}
           <Box sx={{ p: 3, flex: 1, overflowY: 'auto' }}>
             <InitiateFulfillmentForm
@@ -85,7 +83,7 @@ const InitiateFulfillmentModal: FC<InitiateFulfillmentModalProps> = ({
             />
           </Box>
           <Divider />
-          
+
           {/* Footer Actions */}
           <Stack
             direction="row"

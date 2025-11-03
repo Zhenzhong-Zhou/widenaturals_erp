@@ -24,7 +24,7 @@ const ORDER_CATEGORIES = [
   'manufacturing',
   'logistics',
   'adjustment',
-  'all',         // Virtual category for cross-category access
+  'all', // Virtual category for cross-category access
   'allocatable', // Virtual category for allocation-stage filtering
 ];
 
@@ -77,8 +77,8 @@ const toPermissionValue = (action, category) =>
  * @type {Record<string, string>}
  */
 const CATEGORY_PERMISSIONS = Object.fromEntries(
-  ORDER_ACTIONS.flatMap(action =>
-    ORDER_CATEGORIES.map(cat => [
+  ORDER_ACTIONS.flatMap((action) =>
+    ORDER_CATEGORIES.map((cat) => [
       toConstKey(action, cat),
       toPermissionValue(action, cat),
     ])

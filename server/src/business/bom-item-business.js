@@ -76,44 +76,50 @@ const calculateBomMaterialCostsBusiness = (
   try {
     const { mode } = options;
     const round = (num) => Number((num ?? 0).toFixed(6));
-    
+
     let totalEstimatedCost = 0;
     let totalActualCost = 0;
     const supplierTotals = new Map();
     const partTotals = new Map();
-    
+
     for (const item of bomItems) {
       const partId = item.part?.id;
       let partTotal = 0;
-      
+
       for (const mat of item.packagingMaterials || []) {
         // Option B: use preferred or first supplier
         let supplier = null;
         if (Array.isArray(mat.suppliers) && mat.suppliers.length > 0) {
           supplier =
             mode === 'preferred'
-              ? mat.suppliers.find((s) => s.contract?.isPreferred) || mat.suppliers[0]
+              ? mat.suppliers.find((s) => s.contract?.isPreferred) ||
+                mat.suppliers[0]
               : mat.suppliers[0];
         } else {
           supplier = mat.supplier; // fallback to old single-supplier structure
         }
-        
+
         const quantityPerBom = item.bomItemMaterial?.requiredQtyPerProduct ?? 1;
-        
+
         // Extract cost data
         const estimatedUnitCost = mat.estimatedUnitCost ?? 0;
         const estimatedCurrency = mat.currency ?? systemBaseCurrency;
         const estimatedExchange = mat.exchangeRate ?? 1;
-        
+
         const supplierCost = supplier?.contract?.unitCost ?? null;
-        const supplierCurrency = supplier?.contract?.currency ?? estimatedCurrency;
+        const supplierCurrency =
+          supplier?.contract?.currency ?? estimatedCurrency;
         const supplierExchange = supplier?.contract?.exchangeRate ?? 1;
-        
+
         // Select active cost source
         const actualUnitCost = supplierCost ?? estimatedUnitCost;
-        const actualCurrency = supplierCost ? supplierCurrency : estimatedCurrency;
-        const actualExchange = supplierCost ? supplierExchange : estimatedExchange;
-        
+        const actualCurrency = supplierCost
+          ? supplierCurrency
+          : estimatedCurrency;
+        const actualExchange = supplierCost
+          ? supplierExchange
+          : estimatedExchange;
+
         // Normalize to base currency
         const estimatedCostBase = convertToBaseCurrency(
           estimatedUnitCost * quantityPerBom,
@@ -127,11 +133,11 @@ const calculateBomMaterialCostsBusiness = (
           actualExchange,
           systemBaseCurrency
         );
-        
+
         totalEstimatedCost += estimatedCostBase;
         totalActualCost += actualCostBase;
         partTotal += actualCostBase;
-        
+
         // Track per-supplier totals
         if (supplier.id) {
           supplierTotals.set(
@@ -140,37 +146,41 @@ const calculateBomMaterialCostsBusiness = (
           );
         }
       }
-      
+
       if (partId) {
         partTotals.set(partId, (partTotals.get(partId) || 0) + partTotal);
       }
     }
-    
+
     // --- Structured summary output ---
-    const suppliers = Array.from(supplierTotals.entries()).map(([id, totalCost]) => {
-      const supplier = bomItems
-        .flatMap((b) => b.packagingMaterials)
-        .map((m) => m.supplier)
-        .find((s) => s?.id === id);
-      return {
-        id,
-        name: supplier?.name || 'Unknown Supplier',
-        supplierTotalActualCost: round(totalCost),
-      };
-    });
-    
-    const parts = Array.from(partTotals.entries()).map(([partId, totalCost]) => {
-      const bomItem = bomItems.find((b) => b.part?.id === partId);
-      const mainMaterial = bomItem?.packagingMaterials?.[0];
-      return {
-        partId,
-        partName: bomItem?.part?.name || 'Unknown Part',
-        materialName: mainMaterial?.name || null,
-        displayName: mainMaterial?.name || bomItem?.part?.name,
-        partTotalContractCost: round(totalCost),
-      };
-    });
-    
+    const suppliers = Array.from(supplierTotals.entries()).map(
+      ([id, totalCost]) => {
+        const supplier = bomItems
+          .flatMap((b) => b.packagingMaterials)
+          .map((m) => m.supplier)
+          .find((s) => s?.id === id);
+        return {
+          id,
+          name: supplier?.name || 'Unknown Supplier',
+          supplierTotalActualCost: round(totalCost),
+        };
+      }
+    );
+
+    const parts = Array.from(partTotals.entries()).map(
+      ([partId, totalCost]) => {
+        const bomItem = bomItems.find((b) => b.part?.id === partId);
+        const mainMaterial = bomItem?.packagingMaterials?.[0];
+        return {
+          partId,
+          partName: bomItem?.part?.name || 'Unknown Part',
+          materialName: mainMaterial?.name || null,
+          displayName: mainMaterial?.name || bomItem?.part?.name,
+          partTotalContractCost: round(totalCost),
+        };
+      }
+    );
+
     return {
       bomId,
       baseCurrency: systemBaseCurrency,
@@ -179,7 +189,10 @@ const calculateBomMaterialCostsBusiness = (
         totalActualCost: round(totalActualCost),
         variance: round(totalActualCost - totalEstimatedCost),
         variancePercentage: totalEstimatedCost
-          ? round(((totalActualCost - totalEstimatedCost) / totalEstimatedCost) * 100)
+          ? round(
+              ((totalActualCost - totalEstimatedCost) / totalEstimatedCost) *
+                100
+            )
           : 0,
       },
       suppliers,
@@ -191,7 +204,7 @@ const calculateBomMaterialCostsBusiness = (
       bomId,
       severity: 'error',
     });
-    
+
     throw AppError.businessError('Unable to complete BOM cost calculation', {
       bomId,
       hint:

@@ -30,7 +30,10 @@ const { logSystemInfo } = require('../utils/system-logger');
  * @param {string} [baseCurrency='CAD'] - Base currency for normalization
  * @returns {Object} Cost summary { type, description, totalEstimatedCost, currency, itemCount }
  */
-const computeEstimatedBomCostSummary = (structuredResult, baseCurrency = 'CAD') => {
+const computeEstimatedBomCostSummary = (
+  structuredResult,
+  baseCurrency = 'CAD'
+) => {
   if (!structuredResult?.details?.length) {
     return {
       type: 'ESTIMATED',
@@ -40,22 +43,21 @@ const computeEstimatedBomCostSummary = (structuredResult, baseCurrency = 'CAD') 
       itemCount: 0,
     };
   }
-  
+
   let total = 0;
-  
+
   for (const item of structuredResult.details) {
     const qty = Number(item.partQtyPerProduct ?? 1);
     const cost = Number(item.estimatedUnitCost ?? 0);
     const currency = item.currency ?? baseCurrency;
     const rate = Number(item.exchangeRate ?? 1);
-    
+
     const amount = qty * cost;
-    const converted =
-      currency === baseCurrency ? amount : amount * rate;
-    
+    const converted = currency === baseCurrency ? amount : amount * rate;
+
     total += converted;
   }
-  
+
   return {
     type: 'ESTIMATED',
     description:
@@ -98,10 +100,10 @@ const toNumber = (v, fallback = 0) => {
 const identifyShortageParts = (summary = []) =>
   Array.isArray(summary)
     ? summary.filter(
-      (p) =>
-        (p.isShortage ?? false) ||
-        toNumber(p.totalAvailableQuantity) < toNumber(p.requiredQtyPerUnit)
-    )
+        (p) =>
+          (p.isShortage ?? false) ||
+          toNumber(p.totalAvailableQuantity) < toNumber(p.requiredQtyPerUnit)
+      )
     : [];
 
 /**
@@ -150,7 +152,7 @@ const calculateMaterialUtilization = (summary = [], targetQty = 0) => {
  */
 const calculateInactiveStockImpact = (summary = []) => {
   const totals = { usable: 0, inactive: 0 };
-  
+
   for (const part of summary) {
     const batches = Array.isArray(part.materialBatches)
       ? part.materialBatches
@@ -161,7 +163,7 @@ const calculateInactiveStockImpact = (summary = []) => {
       else totals.usable += qty;
     }
   }
-  
+
   return totals;
 };
 
@@ -179,13 +181,13 @@ const calculateInactiveStockImpact = (summary = []) => {
  */
 const calculateMaxManufacturableUnits = (bomSummary = []) => {
   if (!Array.isArray(bomSummary) || bomSummary.length === 0) return 0;
-  
+
   const limits = bomSummary.map((p) => {
     const available = toNumber(p.totalAvailableQuantity);
     const required = Math.max(toNumber(p.requiredQtyPerUnit), 0.0001); // prevent divide-by-zero
     return Math.floor(available / required);
   });
-  
+
   const min = Math.min(...limits);
   return Number.isFinite(min) ? min : 0;
 };
@@ -204,7 +206,9 @@ const calculateMaxManufacturableUnits = (bomSummary = []) => {
  */
 const markBottleneckParts = (summary = []) => {
   if (!Array.isArray(summary) || summary.length === 0) return [];
-  const minUnits = Math.min(...summary.map((p) => toNumber(p.maxProducibleUnits)));
+  const minUnits = Math.min(
+    ...summary.map((p) => toNumber(p.maxProducibleUnits))
+  );
   return summary.map((p) => ({
     ...p,
     isBottleneck: toNumber(p.maxProducibleUnits) === minUnits,
@@ -241,14 +245,14 @@ const markBottleneckParts = (summary = []) => {
  */
 const getProductionReadinessReport = (inputSummary = []) => {
   if (!Array.isArray(inputSummary)) return null;
-  
+
   // 1 Compute derived metrics
   const summary = markBottleneckParts(inputSummary);
   const maxProducibleUnits = calculateMaxManufacturableUnits(summary);
   const shortageParts = identifyShortageParts(summary);
   const stockHealth = calculateInactiveStockImpact(summary);
   const bottleneckParts = summary.filter((p) => p.isBottleneck);
-  
+
   // 2 Build structured report
   const report = {
     summary,
@@ -259,7 +263,7 @@ const getProductionReadinessReport = (inputSummary = []) => {
     isReadyForProduction: shortageParts.length === 0,
     generatedAt: new Date().toISOString(),
   };
-  
+
   // 3 Log contextual info for traceability
   logSystemInfo('Production readiness generated', {
     context: 'bom-business/getProductionReadinessReport',
@@ -267,7 +271,7 @@ const getProductionReadinessReport = (inputSummary = []) => {
     shortageCount: shortageParts.length,
     bottleneckCount: bottleneckParts.length,
   });
-  
+
   return report;
 };
 

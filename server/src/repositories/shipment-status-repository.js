@@ -47,15 +47,17 @@ const getShipmentStatusByCode = async (statusCode, client = null) => {
     WHERE code = $1
     LIMIT 1
   `;
-  
+
   try {
     const { rows } = await query(sql, [statusCode], client);
     const row = rows?.[0];
-    
+
     if (!row) {
-      throw AppError.notFoundError(`Shipment status not found for code: ${statusCode}`);
+      throw AppError.notFoundError(
+        `Shipment status not found for code: ${statusCode}`
+      );
     }
-    
+
     return {
       id: row.id,
       code: row.code,
@@ -66,7 +68,9 @@ const getShipmentStatusByCode = async (statusCode, client = null) => {
       context: 'shipment-repository/getShipmentStatusByCode',
       statusCode,
     });
-    throw AppError.databaseError(`Failed to retrieve shipment status: ${error.message}`);
+    throw AppError.databaseError(
+      `Failed to retrieve shipment status: ${error.message}`
+    );
   }
 };
 

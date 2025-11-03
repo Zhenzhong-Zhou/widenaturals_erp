@@ -16,9 +16,8 @@ const CustomTypography: FC<CustomTypographyProps> = ({
   component,
   ...props
 }) => {
-  const defaultComponent =
-    variant?.startsWith('h') ? (variant as any) : 'p';
-  
+  const defaultComponent = variant?.startsWith('h') ? (variant as any) : 'p';
+
   return (
     <MuiTypography
       component={component ?? defaultComponent}

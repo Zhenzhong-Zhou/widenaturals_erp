@@ -1,7 +1,13 @@
 import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
-import { type LookupOption, type SkuLookupItem } from '@features/lookup/state/lookupTypes';
-import { createLookupMetaSelector, mapLookupItems } from '../utils/lookupSelectorUtils';
+import {
+  type LookupOption,
+  type SkuLookupItem,
+} from '@features/lookup/state/lookupTypes';
+import {
+  createLookupMetaSelector,
+  mapLookupItems,
+} from '../utils/lookupSelectorUtils';
 
 /**
  * Root selector to access the `skuLookup` state slice from the Redux store.
@@ -48,7 +54,8 @@ export const selectSkuLookupError = createSelector(
  *
  * @returns An object with `{ offset, limit, hasMore }` values.
  */
-export const selectSkuLookupMeta = createLookupMetaSelector(selectSkuLookupState);
+export const selectSkuLookupMeta =
+  createLookupMetaSelector(selectSkuLookupState);
 
 /**
  * Selector to retrieve and transform only *abnormal* SKU lookup items for dropdown use.

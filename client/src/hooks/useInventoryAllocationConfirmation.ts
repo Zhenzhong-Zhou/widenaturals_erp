@@ -5,7 +5,8 @@ import {
   selectAllocationConfirmError,
   selectAllocationConfirmLoading,
   selectAllocationConfirmMessage,
-  selectAllocationConfirmPayload, selectAllocationConfirmSuccess,
+  selectAllocationConfirmPayload,
+  selectAllocationConfirmSuccess,
 } from '@features/inventoryAllocation/state';
 import { resetConfirmationState } from '@features/inventoryAllocation/state/inventoryAllocationConfirmationSlice';
 
@@ -17,14 +18,14 @@ import { resetConfirmationState } from '@features/inventoryAllocation/state/inve
  */
 const useInventoryAllocationConfirmation = () => {
   const dispatch = useAppDispatch();
-  
+
   // State selectors
   const loading = useAppSelector(selectAllocationConfirmLoading);
   const error = useAppSelector(selectAllocationConfirmError);
   const success = useAppSelector(selectAllocationConfirmSuccess);
   const message = useAppSelector(selectAllocationConfirmMessage);
   const payload = useAppSelector(selectAllocationConfirmPayload);
-  
+
   /**
    * Triggers the confirmation thunk for the given order ID.
    */
@@ -34,23 +35,23 @@ const useInventoryAllocationConfirmation = () => {
     },
     [dispatch]
   );
-  
+
   /**
    * Resets the confirmation state (data, error, loading).
    */
   const reset = useCallback(() => {
     dispatch(resetConfirmationState());
   }, [dispatch]);
-  
+
   return {
-      loading,
-      error,
-      success,
-      message,
-      payload,
-      confirm,
-      reset,
-    };
+    loading,
+    error,
+    success,
+    message,
+    payload,
+    confirm,
+    reset,
+  };
 };
 
 export default useInventoryAllocationConfirmation;

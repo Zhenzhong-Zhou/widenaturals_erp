@@ -1,7 +1,13 @@
 const { bulkInsert, query, paginateResults } = require('../database/db');
-const { logSystemException, logSystemInfo, logSystemWarn } = require('../utils/system-logger');
+const {
+  logSystemException,
+  logSystemInfo,
+  logSystemWarn,
+} = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
-const { buildInventoryAllocationFilter } = require('../utils/sql/build-inventory-allocation-filters');
+const {
+  buildInventoryAllocationFilter,
+} = require('../utils/sql/build-inventory-allocation-filters');
 
 /**
  * Bulk inserts inventory allocation records into the `inventory_allocations` table.
@@ -58,7 +64,7 @@ const insertInventoryAllocationsBulk = async (allocations, client) => {
     item.updated_by ?? null,
     item.updated_at ?? null,
   ]);
-  
+
   const columns = [
     'order_item_id',
     'transfer_order_item_id',
@@ -71,9 +77,9 @@ const insertInventoryAllocationsBulk = async (allocations, client) => {
     'updated_by',
     'updated_at',
   ];
-  
+
   const conflictColumns = ['target_item_id', 'batch_id', 'warehouse_id'];
-  
+
   const updateStrategies = {
     allocated_quantity: 'overwrite',
     status_id: 'overwrite',
@@ -81,24 +87,29 @@ const insertInventoryAllocationsBulk = async (allocations, client) => {
     updated_by: 'overwrite',
     updated_at: 'now',
   };
-  
+
   try {
-   return await bulkInsert(
+    return await bulkInsert(
       'inventory_allocations',
       columns,
       rows,
       conflictColumns,
       updateStrategies,
       client,
-      { context: 'inventory-allocation-repository/insertInventoryAllocationsBulk' }
+      {
+        context:
+          'inventory-allocation-repository/insertInventoryAllocationsBulk',
+      }
     );
   } catch (error) {
     logSystemException(error, 'Failed to bulk insert inventory allocations', {
       context: 'inventory-allocation-repository/insertInventoryAllocationsBulk',
       data: allocations,
     });
-    
-    throw AppError.databaseError('Unable to insert inventory allocations in bulk.');
+
+    throw AppError.databaseError(
+      'Unable to insert inventory allocations in bulk.'
+    );
   }
 };
 
@@ -126,7 +137,10 @@ const insertInventoryAllocationsBulk = async (allocations, client) => {
  *
  * @throws {AppError} - Throws `AppError.databaseError` if the update fails.
  */
-const updateInventoryAllocationStatus = async ({ statusId, userId, allocationIds }, client) => {
+const updateInventoryAllocationStatus = async (
+  { statusId, userId, allocationIds },
+  client
+) => {
   const sql = `
     UPDATE inventory_allocations
     SET
@@ -137,42 +151,50 @@ const updateInventoryAllocationStatus = async ({ statusId, userId, allocationIds
     WHERE id = ANY($3::uuid[])
     RETURNING id
   `;
-  
+
   const params = [statusId, userId, allocationIds];
-  
+
   try {
     const result = await query(sql, params, client);
-    
+
     if (result.rowCount === 0) {
-      logSystemInfo('Allocation status update skipped: no matching allocations', {
-        context: 'inventory-allocation-repository/updateInventoryAllocationStatus',
-        statusId,
-        userId,
-        allocationIds,
-        severity: 'WARN',
-      });
+      logSystemInfo(
+        'Allocation status update skipped: no matching allocations',
+        {
+          context:
+            'inventory-allocation-repository/updateInventoryAllocationStatus',
+          statusId,
+          userId,
+          allocationIds,
+          severity: 'WARN',
+        }
+      );
       return 0;
     }
-    
+
     logSystemInfo('Inventory allocation statuses updated successfully', {
-      context: 'inventory-allocation-repository/updateInventoryAllocationStatus',
+      context:
+        'inventory-allocation-repository/updateInventoryAllocationStatus',
       updatedCount: result.rowCount,
       statusId,
       userId,
       allocationIds,
       severity: 'INFO',
     });
-    
-    return result.rows.map(r => r.id);
+
+    return result.rows.map((r) => r.id);
   } catch (err) {
     logSystemException(err, 'Failed to update inventory allocation status', {
-      context: 'inventory-allocation-repository/updateInventoryAllocationStatus',
+      context:
+        'inventory-allocation-repository/updateInventoryAllocationStatus',
       statusId,
       userId,
       allocationIds,
       severity: 'ERROR',
     });
-    throw AppError.databaseError('Failed to update inventory allocation status');
+    throw AppError.databaseError(
+      'Failed to update inventory allocation status'
+    );
   }
 };
 
@@ -195,7 +217,7 @@ const updateInventoryAllocationStatus = async ({ statusId, userId, allocationIds
  */
 const getMismatchedAllocationIds = async (orderId, allocationIds, client) => {
   if (!allocationIds?.length) return [];
-  
+
   const sql = `
     WITH input_ids AS (
       SELECT unnest($2::uuid[]) AS id
@@ -212,19 +234,19 @@ const getMismatchedAllocationIds = async (orderId, allocationIds, client) => {
     LEFT JOIN valid_allocations v ON v.id = i.id
     WHERE v.id IS NULL;
   `;
-  
+
   try {
     const { rows } = await query(sql, [orderId, allocationIds], client);
-    
+
     if (rows.length > 0) {
       logSystemWarn('Mismatched allocation IDs detected', {
         context: 'inventory-allocations-repository/getMismatchedAllocationIds',
         orderId,
-        mismatches: rows.map(r => r.id),
+        mismatches: rows.map((r) => r.id),
       });
     }
-    
-    return rows.map(r => r.id); // return mismatches
+
+    return rows.map((r) => r.id); // return mismatches
   } catch (error) {
     logSystemException(error, 'Failed to check mismatched allocation IDs', {
       context: 'inventory-allocations-repository/getMismatchedAllocationIds',
@@ -265,7 +287,12 @@ const getMismatchedAllocationIds = async (orderId, allocationIds, client) => {
  * @returns {Promise<object[] | null>} - Array of enriched allocation rows, or `null` if none found.
  * @throws {AppError} - Throws `AppError.databaseError` if query execution fails.
  */
-const getInventoryAllocationReview = async (orderId, warehouseIds, allocationIds, client) => {
+const getInventoryAllocationReview = async (
+  orderId,
+  warehouseIds,
+  allocationIds,
+  client
+) => {
   const sql = `
    WITH input_ids AS (
      SELECT
@@ -420,27 +447,32 @@ const getInventoryAllocationReview = async (orderId, warehouseIds, allocationIds
         AND (x.warehouse_ids IS NULL OR cardinality(x.warehouse_ids) = 0 OR wi.warehouse_id = ANY(x.warehouse_ids))
     ) wi_arr ON TRUE
   `;
-  
+
   try {
-    const { rows } = await query(sql, [orderId, warehouseIds, allocationIds], client);
-    
+    const { rows } = await query(
+      sql,
+      [orderId, warehouseIds, allocationIds],
+      client
+    );
+
     if (rows.length === 0) {
       logSystemInfo('No allocations found for review', {
-        context: 'inventory-allocations-repository/getInventoryAllocationReview',
+        context:
+          'inventory-allocations-repository/getInventoryAllocationReview',
         orderId,
         warehouseIds,
         allocationIds,
       });
       return null;
     }
-    
+
     logSystemInfo('Fetched allocation review successfully', {
       context: 'inventory-allocations-repository/getInventoryAllocationReview',
       orderId,
       warehouseIds,
       allocationCount: rows.length,
     });
-    
+
     return rows;
   } catch (error) {
     logSystemException(error, 'Failed to fetch allocation review', {
@@ -449,7 +481,7 @@ const getInventoryAllocationReview = async (orderId, warehouseIds, allocationIds
       warehouseIds,
       allocationIds,
     });
-    
+
     throw AppError.databaseError(
       'Error occurred while retrieving inventory allocation review'
     );
@@ -545,19 +577,15 @@ const getInventoryAllocationReview = async (orderId, warehouseIds, allocationIds
  * @throws {AppError} Throws `AppError.databaseError` on failure
  */
 const getPaginatedInventoryAllocations = async ({
-                                                  filters = {},
-                                                  page = 1,
-                                                  limit = 10,
-                                                  sortBy = 'created_at',
-                                                  sortOrder = 'DESC',
-                                                }) => {
-  const {
-    rawAllocWhereClause,
-    rawAllocParams,
-    outerWhereClause,
-    outerParams,
-  } = buildInventoryAllocationFilter(filters);
-  
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'created_at',
+  sortOrder = 'DESC',
+}) => {
+  const { rawAllocWhereClause, rawAllocParams, outerWhereClause, outerParams } =
+    buildInventoryAllocationFilter(filters);
+
   const baseQuery = `
     WITH raw_alloc AS (
       SELECT
@@ -648,7 +676,7 @@ const getPaginatedInventoryAllocations = async ({
     WHERE ${outerWhereClause}
     ORDER BY ${sortBy} ${sortOrder}
   `;
-  
+
   try {
     const result = await paginateResults({
       dataQuery: baseQuery,
@@ -656,31 +684,38 @@ const getPaginatedInventoryAllocations = async ({
       page,
       limit,
     });
-    
+
     if (result.data.length === 0) {
       logSystemInfo('No inventory allocations found', {
-        context: 'inventory-allocations-repository/getPaginatedInventoryAllocations',
+        context:
+          'inventory-allocations-repository/getPaginatedInventoryAllocations',
         pagination: { page, limit },
         sorting: { sortBy, sortOrder },
       });
       return null;
     }
-    
+
     logSystemInfo('Fetched paginated inventory allocations', {
-      context: 'inventory-allocations-repository/getPaginatedInventoryAllocations',
+      context:
+        'inventory-allocations-repository/getPaginatedInventoryAllocations',
       filters,
       pagination: { page, limit },
       sorting: { sortBy, sortOrder },
     });
-    
+
     return result;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch paginated inventory allocations', {
-      context: 'inventory-allocations-repository/getPaginatedInventoryAllocations',
-      filters,
-      pagination: { page, limit },
-      sorting: { sortBy, sortOrder },
-    });
+    logSystemException(
+      error,
+      'Failed to fetch paginated inventory allocations',
+      {
+        context:
+          'inventory-allocations-repository/getPaginatedInventoryAllocations',
+        filters,
+        pagination: { page, limit },
+        sorting: { sortBy, sortOrder },
+      }
+    );
     throw AppError.databaseError('Error fetching inventory allocation list');
   }
 };
@@ -730,7 +765,11 @@ const getPaginatedInventoryAllocations = async ({
  * //   }
  * // ]
  */
-const getAllocationsByOrderId = async (orderId, allocationIds = null, client = null) => {
+const getAllocationsByOrderId = async (
+  orderId,
+  allocationIds = null,
+  client = null
+) => {
   let sql = `
     SELECT
       ia.id AS allocation_id,
@@ -742,24 +781,24 @@ const getAllocationsByOrderId = async (orderId, allocationIds = null, client = n
     JOIN order_items oi ON ia.order_item_id = oi.id
     WHERE oi.order_id = $1
   `;
-  
+
   const params = [orderId];
-  
+
   if (Array.isArray(allocationIds) && allocationIds.length > 0) {
     sql += ` AND ia.id = ANY($2)`;
     params.push(allocationIds);
   }
-  
+
   try {
     const { rows } = await query(sql, params, client);
-    
+
     logSystemInfo('Validated allocations for order', {
       context: 'inventory-allocations-repository/getAllocationsByOrderId',
       orderId,
       requestedCount: Array.isArray(allocationIds) ? allocationIds.length : 0,
       returnedCount: rows.length,
     });
-    
+
     return rows;
   } catch (error) {
     logSystemException(error, 'Failed to validate allocations for order', {
@@ -767,12 +806,15 @@ const getAllocationsByOrderId = async (orderId, allocationIds = null, client = n
       orderId,
       allocationIds,
     });
-    
-    throw AppError.databaseError('Database query failed while validating allocations for order', {
-      cause: error,
-      orderId,
-      allocationIds,
-    });
+
+    throw AppError.databaseError(
+      'Database query failed while validating allocations for order',
+      {
+        cause: error,
+        orderId,
+        allocationIds,
+      }
+    );
   }
 };
 
@@ -797,7 +839,11 @@ const getAllocationsByOrderId = async (orderId, allocationIds = null, client = n
  *
  * @throws {AppError} If the database query fails or parameters are invalid
  */
-const getAllocationStatuses = async (orderId, orderItemIds = null, client = null) => {
+const getAllocationStatuses = async (
+  orderId,
+  orderItemIds = null,
+  client = null
+) => {
   let sql = `
     SELECT
       o.id AS order_id,
@@ -812,29 +858,36 @@ const getAllocationStatuses = async (orderId, orderItemIds = null, client = null
     JOIN inventory_allocation_status ias ON ia.status_id = ias.id
     WHERE oi.order_id = $1
   `;
-  
+
   const params = [orderId];
-  
+
   if (Array.isArray(orderItemIds) && orderItemIds.length > 0) {
     sql += ` AND ia.order_item_id = ANY($2)`;
     params.push(orderItemIds);
   }
-  
+
   try {
     const { rows } = await query(sql, params, client);
     return rows;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch allocation statuses by orderId/orderItemIds', {
-      context: 'inventory-allocations-repository/getAllocationStatuses',
-      orderId,
-      orderItemIds,
-    });
-    
-    throw AppError.databaseError('Failed to fetch allocation statuses for the specified order.', {
-      function: 'getAllocationStatuses',
-      orderId,
-      orderItemIds,
-    });
+    logSystemException(
+      error,
+      'Failed to fetch allocation statuses by orderId/orderItemIds',
+      {
+        context: 'inventory-allocations-repository/getAllocationStatuses',
+        orderId,
+        orderItemIds,
+      }
+    );
+
+    throw AppError.databaseError(
+      'Failed to fetch allocation statuses for the specified order.',
+      {
+        function: 'getAllocationStatuses',
+        orderId,
+        orderItemIds,
+      }
+    );
   }
 };
 

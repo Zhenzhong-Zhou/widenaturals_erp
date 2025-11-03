@@ -23,7 +23,7 @@ const useSalesOrderLookups = () => {
   const sku = useSkuLookup();
   const pricing = usePricingLookup();
   const packagingMaterial = usePackagingMaterialLookup();
-  
+
   return {
     orderType,
     customer,

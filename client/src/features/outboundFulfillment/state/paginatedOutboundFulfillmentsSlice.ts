@@ -29,18 +29,24 @@ const paginatedOutboundFulfillmentsSlice = createSlice({
       })
       .addCase(
         fetchPaginatedOutboundFulfillmentThunk.fulfilled,
-        (state, action: PayloadAction<PaginatedOutboundFulfillmentResponse>) => {
+        (
+          state,
+          action: PayloadAction<PaginatedOutboundFulfillmentResponse>
+        ) => {
           state.loading = false;
           state.data = action.payload.data;
           state.pagination = action.payload.pagination;
         }
       )
-      .addCase(fetchPaginatedOutboundFulfillmentThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          (action.payload as string) ||
-          'Failed to fetch paginated outbound fulfillments';
-      });
+      .addCase(
+        fetchPaginatedOutboundFulfillmentThunk.rejected,
+        (state, action) => {
+          state.loading = false;
+          state.error =
+            (action.payload as string) ||
+            'Failed to fetch paginated outbound fulfillments';
+        }
+      );
   },
 });
 

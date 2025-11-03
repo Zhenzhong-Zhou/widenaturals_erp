@@ -1,7 +1,9 @@
 const { cleanObject } = require('../utils/object-utils');
 const { getFullName } = require('../utils/name-utils');
 const { makeAudit, compactAudit } = require('../utils/audit-utils');
-const { formatPackagingMaterialLabel } = require('../utils/packaging-material-utils');
+const {
+  formatPackagingMaterialLabel,
+} = require('../utils/packaging-material-utils');
 const { formatDiscount } = require('../utils/discount-utils');
 const { formatTaxRateLabel } = require('../utils/tax-rate-utils');
 const { getProductDisplayName } = require('../utils/display-name-utils');
@@ -177,19 +179,21 @@ const { transformPaginatedResult } = require('../utils/transformer-utils');
  */
 const transformOrderRow = (row) => {
   if (!row) return null;
-  
-  const createdBy = [row.created_by_firstname, row.created_by_lastname]
-    .filter(Boolean)
-    .join(' ') || null;
-  
-  const updatedBy = [row.updated_by_firstname, row.updated_by_lastname]
-    .filter(Boolean)
-    .join(' ') || null;
-  
-  const customerName = [row.customer_firstname, row.customer_lastname]
-    .filter(Boolean)
-    .join(' ') || null;
-  
+
+  const createdBy =
+    [row.created_by_firstname, row.created_by_lastname]
+      .filter(Boolean)
+      .join(' ') || null;
+
+  const updatedBy =
+    [row.updated_by_firstname, row.updated_by_lastname]
+      .filter(Boolean)
+      .join(' ') || null;
+
+  const customerName =
+    [row.customer_firstname, row.customer_lastname].filter(Boolean).join(' ') ||
+    null;
+
   return cleanObject({
     id: row.id,
     orderNumber: row.order_number,
@@ -207,7 +211,7 @@ const transformOrderRow = (row) => {
     note: row.note ?? null,
     customerName,
     paymentMethod: row.payment_method || null,
-    paymentStatus:{
+    paymentStatus: {
       name: row.payment_status_name || null,
       code: row.payment_status_code || null,
     },
@@ -318,7 +322,7 @@ const transformOrderWithItems = (
   } = {}
 ) => {
   if (!orderRow) return null;
-  
+
   // Build header audit from normalized (order_) fields
   const orderAuditFull = makeAudit(
     {
@@ -331,11 +335,19 @@ const transformOrderWithItems = (
       order_updated_by_firstname: orderRow.order_updated_by_firstname,
       order_updated_by_lastname: orderRow.order_updated_by_lastname,
     },
-    { dedupe: dedupeAudit, prefix: 'order_', includeIds: true, includeFullName: true }
+    {
+      dedupe: dedupeAudit,
+      prefix: 'order_',
+      includeIds: true,
+      includeFullName: true,
+    }
   );
-  
-  const orderAudit = compactAudit(orderAuditFull, { keepIds: true, nameOnly: true });
-  
+
+  const orderAudit = compactAudit(orderAuditFull, {
+    keepIds: true,
+    nameOnly: true,
+  });
+
   const items = (orderItemRows || []).map((item) => {
     const itemAudit = makeAudit(
       {
@@ -350,7 +362,7 @@ const transformOrderWithItems = (
       },
       { dedupe: dedupeAudit, prefix: 'item_' }
     );
-    
+
     const base = {
       id: item.order_item_id,
       orderId: item.order_id,
@@ -369,64 +381,68 @@ const transformOrderWithItems = (
       metadata: includeItemMetadata ? item.item_metadata : undefined,
       sku: item.sku_id
         ? {
-          id: item.sku_id,
-          code: item.sku, // from SELECT s.sku
-          barcode: item.barcode || null,
-        }
+            id: item.sku_id,
+            code: item.sku, // from SELECT s.sku
+            barcode: item.barcode || null,
+          }
         : null,
       packagingMaterial: item.packaging_material_id
         ? {
-          id: item.packaging_material_id,
-          code: item.packaging_material_code,
-          name: formatPackagingMaterialLabel(
-            {
-              name:      item.packaging_material_name,
-              size:      item.packaging_material_size,
-              color:     item.packaging_material_color,
-              unit:      item.packaging_material_unit,
-              // only works if you selected these in SQL (see optional aliases above)
-              length_cm: item.packaging_material_length_cm,
-              width_cm:  item.packaging_material_width_cm,
-              height_cm: item.packaging_material_height_cm,
-            },
-            {
-              fallbackToDimensions: true,   // derive size like "10×20×30 cm" if size is missing
-              normalizeUnits: true,         // normalize "pcs/pieces/piece" -> "pc"
-            }
-          ),
-        }
+            id: item.packaging_material_id,
+            code: item.packaging_material_code,
+            name: formatPackagingMaterialLabel(
+              {
+                name: item.packaging_material_name,
+                size: item.packaging_material_size,
+                color: item.packaging_material_color,
+                unit: item.packaging_material_unit,
+                // only works if you selected these in SQL (see optional aliases above)
+                length_cm: item.packaging_material_length_cm,
+                width_cm: item.packaging_material_width_cm,
+                height_cm: item.packaging_material_height_cm,
+              },
+              {
+                fallbackToDimensions: true, // derive size like "10×20×30 cm" if size is missing
+                normalizeUnits: true, // normalize "pcs/pieces/piece" -> "pc"
+              }
+            ),
+          }
         : null,
       audit: compactAudit(itemAudit, { keepIds: true, nameOnly: true }),
     };
-    
+
     // Only add displayName for SKU lines and only if it’s non-empty
     if (includeItemDisplayName && item.sku_id) {
       // getProductDisplayName expects a single row-like object
       const dn = getProductDisplayName({
         brand: item.brand,
         sku: item.sku,
-        country_code: item.country_code,      // if available
+        country_code: item.country_code, // if available
         product_name: item.product_name,
-        size_label: item.size_label,          // if available
+        size_label: item.size_label, // if available
       });
       if (dn) base.displayName = dn; // don't set if falsy -> property omitted
     }
-    
+
     return base;
   });
-  
+
   // Enhance metadata.override_summary.overrides with SKU display data
-  if (includeOrderMetadata && orderRow.sales_order_metadata?.price_override_summary?.overrides) {
-    const overrides = orderRow.sales_order_metadata.price_override_summary.overrides;
-    
+  if (
+    includeOrderMetadata &&
+    orderRow.sales_order_metadata?.price_override_summary?.overrides
+  ) {
+    const overrides =
+      orderRow.sales_order_metadata.price_override_summary.overrides;
+
     for (const o of overrides) {
       if (!o.sku_id) continue;
-      
+
       const match = items.find((it) => it?.sku?.id === o.sku_id);
       if (match) {
         o.sku = match.sku?.code ?? null;
         o.productDisplayName = match.displayName ?? null;
-        
+
         // Optional safety check: ensure conflictNote is structured correctly
         if (o.data && o.timestamp) {
           o.conflictNote = {
@@ -437,17 +453,17 @@ const transformOrderWithItems = (
       }
     }
   }
-  
+
   const shippingAddress = buildAddress(orderRow, 'shipping_', {
     includeFormatted: includeFormattedAddresses,
     formattedOnly: formattedAddressesOnly,
   });
-  
+
   const billingAddress = buildAddress(orderRow, 'billing_', {
     includeFormatted: includeFormattedAddresses,
     formattedOnly: formattedAddressesOnly,
   });
-  
+
   return {
     id: orderRow.order_id,
     orderNumber: orderRow.order_number,
@@ -465,7 +481,10 @@ const transformOrderWithItems = (
     },
     customer: {
       id: orderRow.customer_id,
-      fullName: getFullName(orderRow.customer_firstname, orderRow.customer_lastname),
+      fullName: getFullName(
+        orderRow.customer_firstname,
+        orderRow.customer_lastname
+      ),
       email: orderRow.customer_email,
       phone: orderRow.customer_phone,
     },
@@ -485,24 +504,27 @@ const transformOrderWithItems = (
     },
     discount: orderRow.discount_id
       ? {
-        id: orderRow.discount_id,
-        name: orderRow.discount_name,
-        label: formatDiscount(orderRow.discount_type, orderRow.discount_value),
-        amount: orderRow.discount_amount,
-      }
+          id: orderRow.discount_id,
+          name: orderRow.discount_name,
+          label: formatDiscount(
+            orderRow.discount_type,
+            orderRow.discount_value
+          ),
+          amount: orderRow.discount_amount,
+        }
       : null,
     subtotal: orderRow.subtotal,
     tax: orderRow.tax_rate_id
       ? {
-        id: orderRow.tax_rate_id,
-        name: formatTaxRateLabel({
-          name: orderRow.tax_rate_name,
-          rate: orderRow.tax_rate_percent,
-          province: orderRow.tax_rate_province,
-          region: orderRow.tax_rate_region,
-        }),
-        amount: orderRow.tax_amount,
-      }
+          id: orderRow.tax_rate_id,
+          name: formatTaxRateLabel({
+            name: orderRow.tax_rate_name,
+            rate: orderRow.tax_rate_percent,
+            province: orderRow.tax_rate_province,
+            region: orderRow.tax_rate_region,
+          }),
+          amount: orderRow.tax_amount,
+        }
       : null,
     shippingFee: orderRow.shipping_fee,
     totalAmount: orderRow.total_amount,
@@ -535,14 +557,9 @@ const transformOrderWithItems = (
 const transformOrderStatusWithMetadata = ({ enrichedOrder, enrichedItems }) => {
   const transformKeys = (obj) => {
     if (!obj || typeof obj !== 'object') return {};
-    
-    const {
-      status_name,
-      status_code,
-      status_category,
-      ...rest
-    } = obj;
-    
+
+    const { status_name, status_code, status_category, ...rest } = obj;
+
     return {
       ...rest,
       statusName: status_name,
@@ -550,7 +567,7 @@ const transformOrderStatusWithMetadata = ({ enrichedOrder, enrichedItems }) => {
       statusCategory: status_category,
     };
   };
-  
+
   return {
     enrichedOrder: transformKeys(enrichedOrder),
     enrichedItems: (enrichedItems || []).map(transformKeys),

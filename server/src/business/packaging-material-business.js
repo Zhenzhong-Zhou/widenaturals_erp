@@ -1,5 +1,9 @@
-const { resolveUserPermissionContext } = require('../services/role-permission-service');
-const { PERMISSIONS } = require('../utils/constants/domain/packaging-material-constants');
+const {
+  resolveUserPermissionContext,
+} = require('../services/role-permission-service');
+const {
+  PERMISSIONS,
+} = require('../utils/constants/domain/packaging-material-constants');
 const { logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
@@ -26,24 +30,33 @@ const AppError = require('../utils/AppError');
 const evaluatePackagingMaterialLookupAccessControl = async (user) => {
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     return {
       canViewArchived:
-        isRoot || permissions.includes(PERMISSIONS.VIEW_ARCHIVED_PACKAGING_MATERIALS),
+        isRoot ||
+        permissions.includes(PERMISSIONS.VIEW_ARCHIVED_PACKAGING_MATERIALS),
       canViewAllStatuses:
         isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_PACKAGING_STATUSES),
       canViewHiddenSalesMaterials:
-        isRoot || permissions.includes(PERMISSIONS.VIEW_HIDDEN_SALES_PACKAGING_MATERIALS),
+        isRoot ||
+        permissions.includes(PERMISSIONS.VIEW_HIDDEN_SALES_PACKAGING_MATERIALS),
     };
   } catch (err) {
-    logSystemException(err, 'Failed to evaluate packaging material lookup access control', {
-      context: 'packaging-materials-business/evaluateLookupAccessControl',
-      userId: user?.id,
-    });
-    throw AppError.businessError('Unable to evaluate access control for packaging material lookup', {
-      details: err.message,
-      stage: 'evaluate-lookup-access',
-    });
+    logSystemException(
+      err,
+      'Failed to evaluate packaging material lookup access control',
+      {
+        context: 'packaging-materials-business/evaluateLookupAccessControl',
+        userId: user?.id,
+      }
+    );
+    throw AppError.businessError(
+      'Unable to evaluate access control for packaging material lookup',
+      {
+        details: err.message,
+        stage: 'evaluate-lookup-access',
+      }
+    );
   }
 };
 
@@ -84,12 +97,12 @@ const enforcePackagingMaterialVisibilityRules = (
   activeStatusId
 ) => {
   const adjusted = { ...filters };
-  
+
   if (!userAccess.canViewAllStatuses) {
     // Enforce active-only
     delete adjusted.statusId;
     adjusted.restrictToActiveStatus = true;
-    
+
     if (!activeStatusId) {
       throw AppError.validationError(
         'Missing activeStatusId for restricted status view',
@@ -100,7 +113,7 @@ const enforcePackagingMaterialVisibilityRules = (
       );
     }
     adjusted._activeStatusId = activeStatusId;
-    
+
     // Enforce unarchived-only
     adjusted.restrictToUnarchived = true;
   } else {
@@ -109,7 +122,7 @@ const enforcePackagingMaterialVisibilityRules = (
     delete adjusted.restrictToUnarchived;
     // Note: keep any caller-provided statusId/archive filters
   }
-  
+
   return adjusted;
 };
 

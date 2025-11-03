@@ -12,9 +12,11 @@ interface BomSummarySectionProps {
 /**
  * Displays summarized BOM information such as total cost, currency, and item count.
  */
-const BomSummarySection: FC<BomSummarySectionProps> = ({ flattenedSummary }) => {
+const BomSummarySection: FC<BomSummarySectionProps> = ({
+  flattenedSummary,
+}) => {
   if (!flattenedSummary) return null;
-  
+
   const {
     summaryType,
     summaryDescription,
@@ -22,7 +24,7 @@ const BomSummarySection: FC<BomSummarySectionProps> = ({ flattenedSummary }) => 
     summaryItemCount,
     summaryTotalEstimatedCost,
   } = flattenedSummary;
-  
+
   return (
     <Section title="BOM Summary">
       <DetailsGrid>
@@ -35,14 +37,15 @@ const BomSummarySection: FC<BomSummarySectionProps> = ({ flattenedSummary }) => 
             ]}
           />
         </DetailsGridItem>
-        
+
         <DetailsGridItem>
           <MemoizedDetailsSection
             fields={[
               {
                 label: 'Total Estimated Cost',
                 value:
-                  summaryTotalEstimatedCost !== null && summaryTotalEstimatedCost !== undefined
+                  summaryTotalEstimatedCost !== null &&
+                  summaryTotalEstimatedCost !== undefined
                     ? summaryTotalEstimatedCost.toFixed(4)
                     : '—',
               },

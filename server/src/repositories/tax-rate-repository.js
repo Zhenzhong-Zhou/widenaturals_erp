@@ -1,4 +1,7 @@
-const { getUniqueScalarValue, paginateQueryByOffset } = require('../database/db');
+const {
+  getUniqueScalarValue,
+  paginateQueryByOffset,
+} = require('../database/db');
 const AppError = require('../utils/AppError');
 const { buildTaxRateFilter } = require('../utils/sql/build-tax-rate-filters');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
@@ -45,14 +48,10 @@ const getTaxRateById = async (taxRateId, client = null) => {
  *
  * @throws {AppError} If an error occurs while querying the database
  */
-const getTaxRatesLookup = async ({
-                                   limit = 50,
-                                   offset = 0,
-                                   filters = {},
-                                 }) => {
+const getTaxRatesLookup = async ({ limit = 50, offset = 0, filters = {} }) => {
   const tableName = 'tax_rates tr';
   const { whereClause, params } = buildTaxRateFilter(filters);
-  
+
   const queryText = `
     SELECT
       tr.id,
@@ -66,7 +65,7 @@ const getTaxRatesLookup = async ({
     FROM ${tableName}
     WHERE ${whereClause}
   `;
-  
+
   try {
     const result = await paginateQueryByOffset({
       tableName,
@@ -79,7 +78,7 @@ const getTaxRatesLookup = async ({
       sortOrder: 'ASC',
       additionalSort: 'tr.name ASC',
     });
-    
+
     logSystemInfo('Fetched tax rates lookup successfully', {
       context: 'tax_rates-repository/getTaxRatesLookup',
       totalFetched: result.data?.length ?? 0,
@@ -87,7 +86,7 @@ const getTaxRatesLookup = async ({
       limit,
       filters,
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch tax rates lookup', {

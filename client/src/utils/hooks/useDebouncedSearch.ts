@@ -15,13 +15,15 @@ const useDebouncedSearch = <T extends Record<string, any>>(
   staticParams?: Omit<T, 'keyword'>,
   delay = 400
 ): SearchHandler => {
-  const debouncedFetchRef = useRef<DebouncedFunc<(keyword: string) => void> | null>(null);
-  
+  const debouncedFetchRef = useRef<DebouncedFunc<
+    (keyword: string) => void
+  > | null>(null);
+
   useEffect(() => {
     debouncedFetchRef.current = debounce((keyword: string) => {
       fetchFn({ keyword, ...staticParams } as unknown as T);
     }, delay);
-    
+
     return () => {
       debouncedFetchRef.current?.cancel();
     };

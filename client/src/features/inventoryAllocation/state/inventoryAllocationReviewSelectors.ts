@@ -1,8 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
-import type {
-  AllocationReviewItem
-} from '@features/inventoryAllocation/state/inventoryAllocationTypes';
+import type { AllocationReviewItem } from '@features/inventoryAllocation/state/inventoryAllocationTypes';
 import { isPackagingBatch, isProductBatch } from '@utils/batchTypeGuards.ts';
 
 /**
@@ -114,7 +112,7 @@ export const selectReviewAllocations = createSelector(
   (items) =>
     items.map((item: AllocationReviewItem) => {
       const { batch, product, packagingMaterial, allocatedQuantity } = item;
-      
+
       if (isProductBatch(batch)) {
         return {
           type: 'product' as const,
@@ -125,7 +123,7 @@ export const selectReviewAllocations = createSelector(
           allocated: allocatedQuantity,
         };
       }
-      
+
       if (isPackagingBatch(batch)) {
         return {
           type: 'packaging_material' as const,
@@ -136,7 +134,7 @@ export const selectReviewAllocations = createSelector(
           allocated: allocatedQuantity,
         };
       }
-      
+
       return {
         type: 'unknown' as const,
         allocated: allocatedQuantity,

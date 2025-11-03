@@ -23,8 +23,10 @@ exports.up = async function (knex) {
     table.uuid('created_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');
 
-    table.unique(['sku_id', 'revision'], { indexName: 'uq_boms_sku_id_revision'});
-    
+    table.unique(['sku_id', 'revision'], {
+      indexName: 'uq_boms_sku_id_revision',
+    });
+
     table.index(['sku_id'], 'idx_boms_sku_id');
     table.index(['is_active'], 'idx_boms_is_active');
     table.index(['sku_id', 'is_active'], 'idx_boms_sku_active');

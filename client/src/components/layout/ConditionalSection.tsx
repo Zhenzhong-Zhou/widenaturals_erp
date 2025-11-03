@@ -6,15 +6,13 @@ interface ConditionalSectionProps {
   condition: boolean;
 }
 
-const ConditionalSection: FC<
-  PropsWithChildren<ConditionalSectionProps>
-> = ({
-                                 title,
-                                 condition,
-                                 children,
-                               }) => {
+const ConditionalSection: FC<PropsWithChildren<ConditionalSectionProps>> = ({
+  title,
+  condition,
+  children,
+}) => {
   if (!condition) return null;
-  
+
   return <Section title={title}>{children}</Section>;
 };
 

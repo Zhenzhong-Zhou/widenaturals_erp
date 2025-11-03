@@ -9,7 +9,7 @@ import CustomTypography from '@components/common/CustomTypography';
 import {
   BomPartExpandedSection,
   getBomDetailsTableColumns,
-  BomItemSupplyMiniTable
+  BomItemSupplyMiniTable,
 } from '@features/bom/components/BomOverview';
 import { mergeBatchesForDisplay } from '@features/bom/utils/mergeBomOverviewData';
 
@@ -39,34 +39,34 @@ interface BomDetailsTableProps {
  * />
  */
 const BomDetailsTable: FC<BomDetailsTableProps> = ({
-                                                     mergedData,
-                                                     loading,
-                                                     itemCount,
-                                                   }) => {
+  mergedData,
+  loading,
+  itemCount,
+}) => {
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-  
+
   const handleDrillDownToggle = (rowId: string) => {
     setExpandedRowId((prev) => (prev === rowId ? null : rowId));
   };
-  
+
   const columns = useMemo(
     () => getBomDetailsTableColumns(expandedRowId, handleDrillDownToggle),
     [expandedRowId]
   );
-  
+
   const renderExpandedContent = useCallback(
     (row: FlattenedBomDetailRow) => {
       const matched = mergedData.find(
         (item) => item.details.bomItemId === row.bomItemId
       );
-      
+
       const mergedBatchData = mergeBatchesForDisplay(
         matched?.supplyDetails,
         matched?.readinessDetails
       );
-      
+
       const hasBatches = mergedBatchData.length > 0;
-      
+
       return (
         <Box
           sx={{
@@ -90,7 +90,7 @@ const BomDetailsTable: FC<BomDetailsTableProps> = ({
           >
             <BomPartExpandedSection row={row} />
           </Box>
-          
+
           {/* --- Combined batch info section --- */}
           <Box
             sx={{
@@ -115,7 +115,7 @@ const BomDetailsTable: FC<BomDetailsTableProps> = ({
                 Supplier & Inventory Batches
               </CustomTypography>
             </Box>
-            
+
             {hasBatches ? (
               <BomItemSupplyMiniTable
                 data={mergedBatchData}
@@ -135,7 +135,7 @@ const BomDetailsTable: FC<BomDetailsTableProps> = ({
     },
     [mergedData]
   );
-  
+
   return (
     <Box>
       {/* --- Header --- */}
@@ -149,7 +149,7 @@ const BomDetailsTable: FC<BomDetailsTableProps> = ({
           BOM Details
         </CustomTypography>
       </Box>
-      
+
       {/* --- Table --- */}
       <CustomTable
         columns={columns}

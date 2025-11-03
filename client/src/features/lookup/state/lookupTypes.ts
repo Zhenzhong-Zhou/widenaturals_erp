@@ -1,8 +1,10 @@
 import type {
   ApiSuccessResponse,
-  AsyncState, LookupPagination,
+  AsyncState,
+  LookupPagination,
   LookupSuccessResponse,
-  PaginatedLookupState, PaginationLookupInfo,
+  PaginatedLookupState,
+  PaginationLookupInfo,
 } from '@shared-types/api';
 
 /**
@@ -59,7 +61,7 @@ export interface ActiveValidFilter {
    * Optional flag to include only active records.
    */
   isActive?: boolean;
-  
+
   /**
    * Optional flag to include only currently valid records (e.g., based on valid_from/valid_to).
    */
@@ -80,7 +82,9 @@ export type LookupItemWithStatus = LookupItem & ActiveValidFilter;
  * @template T - The type of individual lookup items (e.g., DiscountLookupItem).
  * @returns A default-initialized {@link PaginatedLookupState} with empty data, no error, and pagination metadata.
  */
-export const createInitialPaginatedLookupState = <T>(): PaginatedLookupState<T> => ({
+export const createInitialPaginatedLookupState = <
+  T,
+>(): PaginatedLookupState<T> => ({
   data: [],
   loading: false,
   error: null,
@@ -97,12 +101,12 @@ export interface GetBatchRegistryLookupParams extends LookupPagination {
    * Filter by batch type (e.g., 'product', 'packaging_material').
    */
   batchType?: 'product' | 'packaging_material' | string;
-  
+
   /**
    * Optional warehouse ID to exclude batches already present in this warehouse.
    */
   warehouseId?: string;
-  
+
   /**
    * Optional location ID to exclude batches already present in this location.
    */
@@ -172,7 +176,7 @@ export interface WarehouseLookupItem extends LookupOption {
   metadata: {
     /** ID of the location the warehouse belongs to */
     locationId: string;
-    
+
     /** Type ID of the location (e.g., warehouse, retail, fulfillment) */
     locationTypeId: string;
   };
@@ -308,7 +312,7 @@ export interface OrderTypeLookupQueryParams {
    * Partial matches using ILIKE (case-insensitive) are supported.
    */
   keyword?: string;
-  
+
   /**
    * Optional category filter to restrict the lookup results to a specific order type category.
    * If not provided, all accessible categories may be included based on user permissions.
@@ -365,13 +369,15 @@ export type PaymentMethodLookupItem = LookupItemWithStatus;
  * Wraps a paginated array of `PaymentMethodLookupItem` and includes
  * lookup-specific pagination metadata.
  */
-export type PaymentMethodLookupResponse = LookupSuccessResponse<PaymentMethodLookupItem>;
+export type PaymentMethodLookupResponse =
+  LookupSuccessResponse<PaymentMethodLookupItem>;
 
 /**
  * Redux state for payment method lookup results.
  * Includes async and pagination metadata for infinite-scroll or paginated dropdowns.
  */
-export type PaymentMethodLookupState = PaginatedLookupState<PaymentMethodLookupItem>;
+export type PaymentMethodLookupState =
+  PaginatedLookupState<PaymentMethodLookupItem>;
 
 /**
  * Query parameters for fetching discount lookup results.
@@ -432,7 +438,8 @@ export type TaxRateLookupResponse = LookupSuccessResponse<TaxRateLookupItem>;
  * API response format for delivery method lookup queries.
  * Contains a list of delivery method options with status and pickup flags.
  */
-export type DeliveryMethodLookupResponse = LookupSuccessResponse<DeliveryMethodLookupItem>;
+export type DeliveryMethodLookupResponse =
+  LookupSuccessResponse<DeliveryMethodLookupItem>;
 
 /**
  * Redux state for discount lookup results.
@@ -450,7 +457,8 @@ export type TaxRateLookupState = PaginatedLookupState<TaxRateLookupItem>;
  * Redux state for delivery method lookup results.
  * Includes async and pagination metadata for infinite-scroll or paginated dropdowns.
  */
-export type DeliveryMethodLookupState = PaginatedLookupState<DeliveryMethodLookupItem>;
+export type DeliveryMethodLookupState =
+  PaginatedLookupState<DeliveryMethodLookupItem>;
 
 /**
  * Query input structure for SKU dropdown or autocomplete lookups.
@@ -476,7 +484,7 @@ export interface SkuLookupItem extends LookupItem {
    * Indicates if the SKU passed all expected status checks (product, SKU, inventory, batch).
    */
   isNormal?: boolean;
-  
+
   /**
    * List of reasons why the SKU failed validation (if `isNormal` is false).
    */
@@ -514,7 +522,7 @@ export interface PricingLookupQueryParams extends LookupQuery {
    * If provided, only pricing records related to the specified SKU will be returned.
    */
   skuId?: string | null;
-  
+
   /**
    * If true, the response will include only minimal fields: `id`, `label`, and optional flags
    * (e.g., `isActive`, `isValidToday`) based on user access.
@@ -536,12 +544,12 @@ export interface PricingLookupFullItem extends LookupItemWithStatus {
    * Optional based on user access and response options.
    */
   locationName?: string;
-  
+
   /**
    * Price value for the SKU or product, as a string or number.
    */
   price: string | number;
-  
+
   /**
    * Pricing type name (e.g., "Wholesale", "Retail").
    */

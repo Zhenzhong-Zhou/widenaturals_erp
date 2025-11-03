@@ -6,13 +6,14 @@ import {
 } from '../utils/lookupSelectorUtils';
 import type {
   PaymentMethodLookupItem,
-  LookupOption
+  LookupOption,
 } from '@features/lookup/state/lookupTypes';
 
 /**
  * Base selector for the payment method lookup slice.
  */
-const selectPaymentMethodLookupState = (state: RootState) => state.paymentMethodLookup;
+const selectPaymentMethodLookupState = (state: RootState) =>
+  state.paymentMethodLookup;
 
 /**
  * Selector for retrieving the list of payment method lookup items.
@@ -42,7 +43,9 @@ export const selectPaymentMethodLookupError = createSelector(
  * Selects pagination metadata for the payment method lookup slice.
  * Includes `hasMore`, `limit`, and `offset` used for pagination controls.
  */
-export const selectPaymentMethodLookupMeta = createLookupMetaSelector(selectPaymentMethodLookupState);
+export const selectPaymentMethodLookupMeta = createLookupMetaSelector(
+  selectPaymentMethodLookupState
+);
 
 /**
  * Selector that maps payment method lookup items into dropdown options.

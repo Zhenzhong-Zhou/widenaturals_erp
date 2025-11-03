@@ -5,7 +5,7 @@ import PaginatedDropdown from '@components/common/PaginatedDropdown';
 import {
   faBan,
   faMapMarkerAlt,
-  faQuestionCircle
+  faQuestionCircle,
 } from '@fortawesome/free-solid-svg-icons';
 import CustomTypography from '@components/common/CustomTypography';
 import { getRawLabel } from '@utils/labelHelpers';
@@ -33,17 +33,17 @@ const CustomerDropdown = ({ options = [], ...rest }: CustomerDropdownProps) => {
         options.map((opt) => {
           const hasAddress = opt.hasAddress ?? false;
           const isInactive = opt.isActive === false;
-          
+
           // Keep plain string for Autocomplete
           const rawLabel = getRawLabel(opt.label);
-          
+
           // JSX version for dropdown rendering
           const displayLabel = (
             <CustomTypography color={isInactive ? 'error' : 'inherit'}>
               {rawLabel}
             </CustomTypography>
           );
-          
+
           return [
             opt.value,
             {
@@ -60,25 +60,21 @@ const CustomerDropdown = ({ options = [], ...rest }: CustomerDropdownProps) => {
                 : hasAddress
                   ? 'Has Address'
                   : 'No Address',
-              iconColor: isInactive
-                ? 'gray'
-                : hasAddress
-                  ? 'green'
-                  : 'orange',
+              iconColor: isInactive ? 'gray' : hasAddress ? 'green' : 'orange',
             },
           ];
         })
       ).values()
     );
   }, [options]);
-  
+
   return (
     <PaginatedDropdown
       label="Select Customer"
       options={enrichedCustomerOptions}
       {...rest}
     />
-  )
+  );
 };
 
 export default CustomerDropdown;

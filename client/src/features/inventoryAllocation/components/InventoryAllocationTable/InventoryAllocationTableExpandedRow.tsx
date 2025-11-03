@@ -21,28 +21,52 @@ const InventoryAllocationTableExpandedRow: FC<Props> = ({ row }) => {
     orderUpdatedAt,
     orderUpdatedBy,
   } = row;
-  
+
   const nameLabel = Array.isArray(allocationStatus?.names)
     ? allocationStatus.names.join(', ')
-    : allocationStatus?.names ?? '—';
-  
+    : (allocationStatus?.names ?? '—');
+
   return (
     <Box sx={{ px: 3, py: 2 }}>
       <CustomTypography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
         Order Allocation Metadata
       </CustomTypography>
-      
+
       <Grid container spacing={2}>
         <Grid size={{ xs: 12 }}>
           <DetailsSection
             fields={[
-              { label: 'Order Category', value: orderCategory ?? '—', format: formatLabel },
-              { label: 'Allocation Statuses', value: nameLabel, format: formatLabel },
+              {
+                label: 'Order Category',
+                value: orderCategory ?? '—',
+                format: formatLabel,
+              },
+              {
+                label: 'Allocation Statuses',
+                value: nameLabel,
+                format: formatLabel,
+              },
               { label: 'Allocated At', value: allocatedAt, format: formatDate },
-              { label: 'Allocation Created At', value: allocatedCreatedAt, format: formatDate },
-              { label: 'Order Created At', value: orderCreatedAt, format: formatDate },
-              { label: 'Order Updated At', value: orderUpdatedAt, format: formatDate },
-              { label: 'Order Updated By', value: orderUpdatedBy, format: formatLabel },
+              {
+                label: 'Allocation Created At',
+                value: allocatedCreatedAt,
+                format: formatDate,
+              },
+              {
+                label: 'Order Created At',
+                value: orderCreatedAt,
+                format: formatDate,
+              },
+              {
+                label: 'Order Updated At',
+                value: orderUpdatedAt,
+                format: formatDate,
+              },
+              {
+                label: 'Order Updated By',
+                value: orderUpdatedBy,
+                format: formatLabel,
+              },
             ]}
           />
         </Grid>

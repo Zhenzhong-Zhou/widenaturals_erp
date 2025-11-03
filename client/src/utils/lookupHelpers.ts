@@ -13,7 +13,9 @@ import usePaginatedDropdown from '@features/lookup/hooks/usePaginatedDropdown';
  * @example
  * type CustomerDropdown = UsePaginatedDropdownReturn<CustomerLookupQuery>;
  */
-export type UsePaginatedDropdownReturn<T extends LookupQuery> = ReturnType<typeof usePaginatedDropdown<T>>;
+export type UsePaginatedDropdownReturn<T extends LookupQuery> = ReturnType<
+  typeof usePaginatedDropdown<T>
+>;
 
 /**
  * Extracts `fetchParams` and a safe `setFetchParams` function from a paginated dropdown state.
@@ -30,7 +32,7 @@ export type UsePaginatedDropdownReturn<T extends LookupQuery> = ReturnType<typeo
  */
 export const extractPaginatedHandlers = <
   TParams extends LookupQuery,
-  TState extends { fetchParams: TParams }
+  TState extends { fetchParams: TParams },
 >(
   state: TState,
   setState: Dispatch<SetStateAction<TState>>
@@ -40,10 +42,8 @@ export const extractPaginatedHandlers = <
     setFetchParams: (updater: SetStateAction<TParams>) =>
       setState((prev) => {
         const fetchParams =
-          typeof updater === 'function'
-            ? updater(prev.fetchParams)
-            : updater;
-        
+          typeof updater === 'function' ? updater(prev.fetchParams) : updater;
+
         return {
           ...prev,
           fetchParams,
@@ -67,13 +67,11 @@ export const extractPaginatedHandlers = <
  *   - `inputValue`: the text input state
  *   - `fetchParams`: the fetch parameters to send to the lookup API
  */
-export const getDefaultPaginatedDropdownState = <
-  TParams extends LookupQuery
->(
+export const getDefaultPaginatedDropdownState = <TParams extends LookupQuery>(
   overrides?: Partial<TParams> & { inputValue?: string }
 ) => {
   const { inputValue, ...fetchOverrides } = overrides ?? {};
-  
+
   return {
     inputValue: inputValue ?? '',
     fetchParams: {
@@ -90,7 +88,9 @@ export const getDefaultPaginatedDropdownState = <
  */
 export interface PaginatedDropdownBundle<T extends LookupQuery> {
   dropdownState: ReturnType<typeof usePaginatedDropdown<T>>['dropdownState'];
-  setDropdownState: ReturnType<typeof usePaginatedDropdown<T>>['setDropdownState'];
+  setDropdownState: ReturnType<
+    typeof usePaginatedDropdown<T>
+  >['setDropdownState'];
   fetchParams: T;
   setFetchParams: ReturnType<typeof usePaginatedDropdown<T>>['setFetchParams'];
 }
@@ -107,13 +107,9 @@ export interface PaginatedDropdownBundle<T extends LookupQuery> {
 export const createDropdownBundle = <T extends LookupQuery>(
   options?: Partial<T>
 ): PaginatedDropdownBundle<T> => {
-  const {
-    dropdownState,
-    setDropdownState,
-    fetchParams,
-    setFetchParams,
-  } = usePaginatedDropdown<T>(options);
-  
+  const { dropdownState, setDropdownState, fetchParams, setFetchParams } =
+    usePaginatedDropdown<T>(options);
+
   return {
     dropdownState,
     setDropdownState,
@@ -128,7 +124,10 @@ export const createDropdownBundle = <T extends LookupQuery>(
  * @param lookups - Array of dropdown objects, each containing a `fetch` function and `fetchParams`.
  */
 export const fetchLookups = (
-  lookups: { fetch: (params: any) => void; dropdown: PaginatedDropdownBundle<any> }[]
+  lookups: {
+    fetch: (params: any) => void;
+    dropdown: PaginatedDropdownBundle<any>;
+  }[]
 ): void => {
   lookups.forEach(({ fetch, dropdown }) => {
     fetch(dropdown.fetchParams);
@@ -140,9 +139,7 @@ export const fetchLookups = (
  *
  * @param resets - Array of objects each containing a `reset` function.
  */
-export const resetLookups = (
-  resets: { reset: () => void }[]
-): void => {
+export const resetLookups = (resets: { reset: () => void }[]): void => {
   resets.forEach(({ reset }) => {
     reset();
   });

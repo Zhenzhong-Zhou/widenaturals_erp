@@ -35,7 +35,7 @@ export const bomProductionReadinessSlice = createSlice({
      * or performing a full reload.
      */
     resetBomProductionReadiness: () => initialState,
-    
+
     /**
      * Sets the currently selected BOM ID manually.
      * Allows the UI to track which BOM context is active.
@@ -55,14 +55,17 @@ export const bomProductionReadinessSlice = createSlice({
         (state, action: PayloadAction<BomProductionReadinessResponse>) => {
           state.loading = false;
           state.data = action.payload;
-          state.isReadyForProduction = !!action.payload.data.metadata?.isReadyForProduction;
-          state.bottleneckCount = action.payload.data.metadata?.bottleneckParts?.length ?? 0;
+          state.isReadyForProduction =
+            !!action.payload.data.metadata?.isReadyForProduction;
+          state.bottleneckCount =
+            action.payload.data.metadata?.bottleneckParts?.length ?? 0;
         }
       )
       .addCase(fetchBomProductionSummaryThunk.rejected, (state, action) => {
         state.loading = false;
         state.error =
-          (action.payload as { message?: string })?.message || 'Failed to fetch BOM production summary.';
+          (action.payload as { message?: string })?.message ||
+          'Failed to fetch BOM production summary.';
       });
   },
 });

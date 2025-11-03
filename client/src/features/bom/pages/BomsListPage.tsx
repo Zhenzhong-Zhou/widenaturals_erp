@@ -9,7 +9,10 @@ import usePaginatedBoms from '@hooks/usePaginatedBoms';
 import Loading from '@components/common/Loading';
 import ErrorMessage from '@components/common/ErrorMessage';
 import NoDataFound from '@components/common/NoDataFound';
-import BomListTable, { BomFiltersPanel, BomSortControls } from '@features/bom/components/BomListTables';
+import BomListTable, {
+  BomFiltersPanel,
+  BomSortControls,
+} from '@features/bom/components/BomListTables';
 import type { BomListFilters, BomSortField } from '@features/bom/state';
 import { applyFiltersAndSorting } from '@utils/queryUtils';
 import { usePaginationHandlers } from '@utils/hooks/usePaginationHandlers';
@@ -33,7 +36,7 @@ const BomListPage = () => {
   const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
   const [filters, setFilters] = useState<BomListFilters>({});
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-  
+
   const {
     data: bomData,
     pagination: bomPagination,
@@ -43,9 +46,9 @@ const BomListPage = () => {
     fetchBoms: fetchPaginatedBomsList,
     resetFilters: resetBomFilters,
   } = usePaginatedBoms();
-  
-  const flattenData = flattenBomRecords(bomData)
-  
+
+  const flattenData = flattenBomRecords(bomData);
+
   const queryParams = useMemo(
     () => ({
       page,
@@ -57,53 +60,60 @@ const BomListPage = () => {
     }),
     [page, limit, sortBy, sortOrder, filters, fetchPaginatedBomsList]
   );
-  
+
   // --- Fetch data when filters or pagination change ---
   useEffect(() => {
     const timeout = setTimeout(() => {
       applyFiltersAndSorting(queryParams);
     }, 200); // 200ms debounce
-    
+
     return () => clearTimeout(timeout);
   }, [queryParams]);
-  
+
   useEffect(() => {
     return () => {
       resetBomFilters();
     };
   }, [resetBomFilters]);
-  
+
   // Stable refresh handler
   const handleRefresh = useCallback(() => {
     applyFiltersAndSorting(queryParams);
   }, [queryParams]);
-  
+
   const handleResetFilters = () => {
     resetBomFilters();
     setFilters({});
     setPage(1);
   };
-  
+
   const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(
     setPage,
     setLimit
   );
-  
+
   const handleDrillDownToggle = (rowId: string) => {
     setExpandedRowId((current) => (current === rowId ? null : rowId));
   };
-  
+
   return (
     <Box sx={{ px: 4, py: 3 }}>
       {/* Page Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" mb={3} gap={2}>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        flexWrap="wrap"
+        mb={3}
+        gap={2}
+      >
         <CustomTypography variant="h5" fontWeight={700}>
           Bill of Materials Management
         </CustomTypography>
       </Box>
-      
+
       <Divider sx={{ mb: 3 }} />
-      
+
       {/* Filter + Sort Controls */}
       <Card sx={{ p: 3, mb: 4, borderRadius: 2, minHeight: 200 }}>
         <Grid container spacing={2}>
@@ -125,31 +135,34 @@ const BomListPage = () => {
           </Grid>
         </Grid>
       </Card>
-      
+
       {/* BOM Table Section */}
-      {
-        bomLoading ? (
-          <Loading variant="dotted" message="Loading boms..." />
-        ) : bomError ? (
-          <ErrorMessage message={'bomError'} showNavigation={true} />
-        ) : isBomListEmpty ?? flattenData.length === 0 ? (
-          <NoDataFound message="No boms found."  action={<CustomButton onClick={handleResetFilters}> Reset </CustomButton>} />
-        ) : (
-          <BomListTable
-            data={flattenData}
-            loading={bomLoading}
-            page={page - 1}
-            rowsPerPage={limit}
-            totalRecords={bomPagination.totalRecords || 0}
-            totalPages={bomPagination.totalPages || 0}
-            onPageChange={handlePageChange}
-            onRowsPerPageChange={handleRowsPerPageChange}
-            expandedRowId={expandedRowId}
-            onDrillDownToggle={handleDrillDownToggle}
-            onRefresh={handleRefresh}
-          />
-        )
-      }
+      {bomLoading ? (
+        <Loading variant="dotted" message="Loading boms..." />
+      ) : bomError ? (
+        <ErrorMessage message={'bomError'} showNavigation={true} />
+      ) : (isBomListEmpty ?? flattenData.length === 0) ? (
+        <NoDataFound
+          message="No boms found."
+          action={
+            <CustomButton onClick={handleResetFilters}> Reset </CustomButton>
+          }
+        />
+      ) : (
+        <BomListTable
+          data={flattenData}
+          loading={bomLoading}
+          page={page - 1}
+          rowsPerPage={limit}
+          totalRecords={bomPagination.totalRecords || 0}
+          totalPages={bomPagination.totalPages || 0}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
+          expandedRowId={expandedRowId}
+          onDrillDownToggle={handleDrillDownToggle}
+          onRefresh={handleRefresh}
+        />
+      )}
     </Box>
   );
 };

@@ -5,7 +5,8 @@ const validate = require('../middlewares/validate');
 const { orderIdParamSchema } = require('../validators/order-validators');
 const {
   allocateInventorySchema,
-  allocationReviewSchema, inventoryAllocationsQuerySchema
+  allocationReviewSchema,
+  inventoryAllocationsQuerySchema,
 } = require('../validators/inventory-allocation-validators');
 const {
   allocateInventoryForOrderController,

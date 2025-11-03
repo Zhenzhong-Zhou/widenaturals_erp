@@ -27,7 +27,7 @@ import { resetInventoryAllocationsState } from '@features/inventoryAllocation/st
  */
 export const usePaginatedInventoryAllocations = () => {
   const dispatch = useAppDispatch();
-  
+
   const data = useAppSelector(selectInventoryAllocations);
   const pagination = useAppSelector(selectInventoryAllocationsPagination);
   const loading = useAppSelector(selectInventoryAllocationsLoading);
@@ -37,14 +37,14 @@ export const usePaginatedInventoryAllocations = () => {
   const limit = useAppSelector(selectInventoryAllocationsLimit);
   const totalRecords = useAppSelector(selectInventoryAllocationsTotalRecords);
   const totalPages = useAppSelector(selectInventoryAllocationsTotalPages);
-  
+
   /**
    * Memoized reset action for clearing inventory allocation state.
    */
   const reset = useCallback(() => {
     dispatch(resetInventoryAllocationsState());
   }, [dispatch]);
-  
+
   /**
    * Fetch inventory allocations with filters, pagination, etc.
    */
@@ -54,7 +54,7 @@ export const usePaginatedInventoryAllocations = () => {
     },
     [dispatch]
   );
-  
+
   return useMemo(
     () => ({
       data,

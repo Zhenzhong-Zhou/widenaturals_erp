@@ -4,7 +4,8 @@ import type { RootState } from '@store/store';
 /**
  * Base selector to access the allocateInventory slice from the global state.
  */
-const selectAllocateInventoryState = (state: RootState) => state.allocateInventory;
+const selectAllocateInventoryState = (state: RootState) =>
+  state.allocateInventory;
 
 /**
  * Selector to retrieve the full allocation data (orderId + allocationIds).

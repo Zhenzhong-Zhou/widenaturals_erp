@@ -1,4 +1,8 @@
-const { getUniqueScalarValue, getFieldsById, query } = require('../database/db');
+const {
+  getUniqueScalarValue,
+  getFieldsById,
+  query,
+} = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logSystemException } = require('../utils/system-logger');
 
@@ -48,15 +52,17 @@ const getOrderStatusByCode = async (statusCode, client) => {
     WHERE code = $1
     LIMIT 1
   `;
-  
+
   const values = [statusCode];
-  
+
   try {
     const result = await query(sql, values, client);
     const row = result.rows?.[0];
 
     if (!row) {
-      throw AppError.notFoundError(`Order status not found for code: ${statusCode}`);
+      throw AppError.notFoundError(
+        `Order status not found for code: ${statusCode}`
+      );
     }
 
     return {
@@ -69,8 +75,10 @@ const getOrderStatusByCode = async (statusCode, client) => {
       context: 'order-repository/getOrderStatusByCode',
       statusCode,
     });
-    
-    throw AppError.databaseError(`Failed to retrieve order status: ${error.message}`);
+
+    throw AppError.databaseError(
+      `Failed to retrieve order status: ${error.message}`
+    );
   }
 };
 
@@ -88,7 +96,12 @@ const getOrderStatusByCode = async (statusCode, client) => {
  * @throws {AppError} - If the record is not found or query fails.
  */
 const getOrderStatusMetadataById = async (id, client) => {
-  return await getFieldsById('order_status', id, ['name', 'category', 'code'], client);
+  return await getFieldsById(
+    'order_status',
+    id,
+    ['name', 'category', 'code'],
+    client
+  );
 };
 
 /**
@@ -100,15 +113,15 @@ const getOrderStatusMetadataById = async (id, client) => {
  */
 const getOrderStatusesByCodes = async (statusCodes, client) => {
   if (!Array.isArray(statusCodes) || statusCodes.length === 0) return [];
-  
+
   const placeholders = statusCodes.map((_, i) => `$${i + 1}`).join(', ');
-  
+
   const sql = `
     SELECT id, code, category
     FROM order_status
     WHERE code IN (${placeholders})
   `;
-  
+
   try {
     const result = await query(sql, statusCodes, client);
     return result.rows;
@@ -117,8 +130,10 @@ const getOrderStatusesByCodes = async (statusCodes, client) => {
       context: 'order-repository/getOrderStatusesByCodes',
       statusCodes,
     });
-    
-    throw AppError.databaseError(`Failed to retrieve order statuses: ${error.message}`);
+
+    throw AppError.databaseError(
+      `Failed to retrieve order statuses: ${error.message}`
+    );
   }
 };
 

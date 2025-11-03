@@ -1,4 +1,6 @@
-const { buildDeliveryMethodFilter } = require('../utils/sql/build-delivery-method-filters');
+const {
+  buildDeliveryMethodFilter,
+} = require('../utils/sql/build-delivery-method-filters');
 const { paginateQueryByOffset } = require('../database/db');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
@@ -19,13 +21,13 @@ const AppError = require('../utils/AppError');
  * @throws {AppError} If an error occurs while querying the database
  */
 const getDeliveryMethodsLookup = async ({
-                                          limit = 50,
-                                          offset = 0,
-                                          filters = {},
-                                        }) => {
+  limit = 50,
+  offset = 0,
+  filters = {},
+}) => {
   const tableName = 'delivery_methods dm';
   const { whereClause, params } = buildDeliveryMethodFilter(filters);
-  
+
   const queryText = `
     SELECT
       dm.id,
@@ -35,7 +37,7 @@ const getDeliveryMethodsLookup = async ({
     FROM ${tableName}
     WHERE ${whereClause}
   `;
-  
+
   try {
     const result = await paginateQueryByOffset({
       tableName,
@@ -48,7 +50,7 @@ const getDeliveryMethodsLookup = async ({
       sortOrder: 'ASC',
       additionalSort: 'dm.method_name ASC',
     });
-    
+
     logSystemInfo('Fetched delivery methods lookup successfully', {
       context: 'delivery_methods-repository/getDeliveryMethodsLookup',
       totalFetched: result.data?.length ?? 0,
@@ -56,7 +58,7 @@ const getDeliveryMethodsLookup = async ({
       limit,
       filters,
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch delivery methods lookup', {

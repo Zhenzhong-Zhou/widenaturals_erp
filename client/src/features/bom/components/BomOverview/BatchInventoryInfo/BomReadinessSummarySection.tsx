@@ -29,25 +29,26 @@ interface BomReadinessSummaryProps {
  *  - last updated timestamp + manual refresh
  */
 const BomReadinessSummarySection: FC<BomReadinessSummaryProps> = ({
-                                                                    flattenedMetadata,
-                                                                    readinessLoading,
-                                                                    refreshProductionReadiness,
-                                                                  }) => {
+  flattenedMetadata,
+  readinessLoading,
+  refreshProductionReadiness,
+}) => {
   if (!flattenedMetadata) {
     return (
-      <Card variant="outlined" sx={{
-        borderRadius: 3,
-        p: 2,
-        border: '1px dashed',
-        borderColor: 'divider',
-      }}
+      <Card
+        variant="outlined"
+        sx={{
+          borderRadius: 3,
+          p: 2,
+          border: '1px dashed',
+          borderColor: 'divider',
+        }}
       >
         <CardContent
           sx={{
             textAlign: 'center',
             color: 'text.secondary',
             fontStyle: 'italic',
-       
           }}
         >
           Production readiness data not available.
@@ -55,7 +56,7 @@ const BomReadinessSummarySection: FC<BomReadinessSummaryProps> = ({
       </Card>
     );
   }
-  
+
   const {
     readinessStatus,
     readinessMaxUnits,
@@ -67,7 +68,7 @@ const BomReadinessSummarySection: FC<BomReadinessSummaryProps> = ({
     readinessBottleneckCount,
     readinessGeneratedAt,
   } = flattenedMetadata;
-  
+
   return (
     <Card
       variant="outlined"
@@ -90,7 +91,7 @@ const BomReadinessSummarySection: FC<BomReadinessSummaryProps> = ({
           <CustomTypography variant="h5" sx={{ fontWeight: 600 }}>
             Production Readiness
           </CustomTypography>
-          
+
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             {readinessGeneratedAt && (
               <CustomTypography
@@ -109,7 +110,9 @@ const BomReadinessSummarySection: FC<BomReadinessSummaryProps> = ({
               startIcon={
                 <RefreshIcon
                   sx={{
-                    animation: readinessLoading ? 'spin 1s linear infinite' : 'none',
+                    animation: readinessLoading
+                      ? 'spin 1s linear infinite'
+                      : 'none',
                     '@keyframes spin': {
                       '0%': { transform: 'rotate(0deg)' },
                       '100%': { transform: 'rotate(360deg)' },
@@ -122,24 +125,24 @@ const BomReadinessSummarySection: FC<BomReadinessSummaryProps> = ({
             </CustomButton>
           </Box>
         </Box>
-        
+
         {/* === Summary Metrics === */}
         <Grid container spacing={1.5}>
-          <Grid size={{ xs: "auto" }}>
+          <Grid size={{ xs: 'auto' }}>
             <Chip
               label={readinessStatus ? 'Ready for Production' : 'Not Ready'}
               color={readinessStatus ? 'success' : 'error'}
               variant="filled"
             />
           </Grid>
-          <Grid size={{ xs: "auto" }}>
+          <Grid size={{ xs: 'auto' }}>
             <Chip
               label={`Max Producible: ${readinessMaxUnits ?? 0}`}
               color="info"
               variant="outlined"
             />
           </Grid>
-          <Grid size={{ xs: "auto" }}>
+          <Grid size={{ xs: 'auto' }}>
             <Chip
               label={`Shortages: ${readinessShortageCount ?? 0}`}
               color={
@@ -151,7 +154,7 @@ const BomReadinessSummarySection: FC<BomReadinessSummaryProps> = ({
             />
           </Grid>
           {readinessStockHealthSummary && (
-            <Grid size={{ xs: "auto" }}>
+            <Grid size={{ xs: 'auto' }}>
               <Chip
                 label={`Stock Health — ${readinessStockHealthSummary}`}
                 color="default"
@@ -160,7 +163,7 @@ const BomReadinessSummarySection: FC<BomReadinessSummaryProps> = ({
             </Grid>
           )}
           {readinessBottleneckCount && (
-            <Grid size={{ xs: "auto" }}>
+            <Grid size={{ xs: 'auto' }}>
               <Chip
                 label={`Bottlenecks: ${readinessBottleneckCount}`}
                 color="warning"
@@ -169,15 +172,14 @@ const BomReadinessSummarySection: FC<BomReadinessSummaryProps> = ({
             </Grid>
           )}
         </Grid>
-          
+
         {/* Divider for better visual grouping */}
         <Divider sx={{ my: 2.5 }} />
-        
+
         {/* === Bottleneck Detail Section === */}
-        {
-          (readinessBottleneckPartNames ||
-            readinessBottleneckMaterialName ||
-            readinessBottleneckMaterialSnapshotName) && (
+        {(readinessBottleneckPartNames ||
+          readinessBottleneckMaterialName ||
+          readinessBottleneckMaterialSnapshotName) && (
           <Box>
             <CustomTypography variant="subtitle2" sx={{ mb: 0.5 }}>
               Bottleneck Details

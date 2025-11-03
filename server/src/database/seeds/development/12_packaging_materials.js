@@ -8,7 +8,7 @@ const AppError = require('../../../utils/AppError');
  */
 exports.seed = async function (knex) {
   console.log('Seeding packaging_materials...');
-  
+
   const [statusMap, createdBy] = await Promise.all([
     fetchDynamicValues(
       knex,
@@ -22,13 +22,18 @@ exports.seed = async function (knex) {
 
   // Normalize keys just in case (Active vs. active)
   const statusIds = Object.fromEntries(
-    Object.entries(statusMap).map(([k, v]) => [String(k).toLowerCase().trim(), v])
+    Object.entries(statusMap).map(([k, v]) => [
+      String(k).toLowerCase().trim(),
+      v,
+    ])
   );
 
   // Ensure required statuses exist
   for (const key of ['active', 'inactive', 'discontinued']) {
     if (!statusIds[key]) {
-      throw AppError.validationError(`Missing status "${key}"`, { table: 'status' });
+      throw AppError.validationError(`Missing status "${key}"`, {
+        table: 'status',
+      });
     }
   }
 
@@ -1014,9 +1019,9 @@ exports.seed = async function (knex) {
       description: 'Brown branded kraft paper bag - Medium',
       category: 'sales',
       is_visible_for_sales_order: true,
-    }
+    },
   ];
-  
+
   // Pick a few to be non-active by NAME (safer than index)
   const statusByName = new Map([
     ['Brand A Paper Bag - Small (Red)', 'inactive'],
@@ -1025,51 +1030,60 @@ exports.seed = async function (knex) {
     ['Label for Mood - CN (Paper, 19.6×7.0cm)', 'inactive'],
     ['Gold Metallica Plastic Lid - Large', 'discontinued'],
   ]);
-  
+
   // Optional archive one (archive is orthogonal to status)
-  const archivedNames = new Set([
-    'Brand C Paper Bag - Large (Black)',
-  ]);
-  
+  const archivedNames = new Set(['Brand C Paper Bag - Large (Black)']);
+
   const rows = materials.map((mat, idx) => {
     const statusName = statusByName.get(mat.name) || 'active';
     const isArchived = archivedNames.has(mat.name);
-    
+
     // Simple cost heuristic
     let estimated_unit_cost = 0.5;
-    if (mat.material_composition?.includes('cardboard')) estimated_unit_cost = 1.2;
-    else if (mat.material_composition?.includes('aluminum')) estimated_unit_cost = 2.5;
-    else if (mat.material_composition?.includes('glass')) estimated_unit_cost = 3.0;
-    else if (mat.material_composition?.includes('plastic')) estimated_unit_cost = 0.8;
-    else if (mat.material_composition?.includes('paper')) estimated_unit_cost = 0.3;
-    else if (mat.material_composition?.includes('metal')) estimated_unit_cost = 1.8;
-    
+    if (mat.material_composition?.includes('cardboard'))
+      estimated_unit_cost = 1.2;
+    else if (mat.material_composition?.includes('aluminum'))
+      estimated_unit_cost = 2.5;
+    else if (mat.material_composition?.includes('glass'))
+      estimated_unit_cost = 3.0;
+    else if (mat.material_composition?.includes('plastic'))
+      estimated_unit_cost = 0.8;
+    else if (mat.material_composition?.includes('paper'))
+      estimated_unit_cost = 0.3;
+    else if (mat.material_composition?.includes('metal'))
+      estimated_unit_cost = 1.8;
+
     // Cycle through a small list of currencies deterministically by index
     const currencyRates = [
-      { currency: 'CAD', rate: 1.0 },   // 1 CAD = 1 CAD
-      { currency: 'USD', rate: 0.73 },  // 1 USD = 0.73 CAD
-      { currency: 'CNY', rate: 0.19 },  // 1 CNY = 0.19 CAD
-      { currency: 'HKD', rate: 0.18 },  // 1 HKD = 0.18 CAD
-      { currency: 'EUR', rate: 0.67 },  // 1 EUR = 0.67 CAD
+      { currency: 'CAD', rate: 1.0 }, // 1 CAD = 1 CAD
+      { currency: 'USD', rate: 0.73 }, // 1 USD = 0.73 CAD
+      { currency: 'CNY', rate: 0.19 }, // 1 CNY = 0.19 CAD
+      { currency: 'HKD', rate: 0.18 }, // 1 HKD = 0.18 CAD
+      { currency: 'EUR', rate: 0.67 }, // 1 EUR = 0.67 CAD
     ];
-    
-    const { currency, rate: exchange_rate } = currencyRates[idx % currencyRates.length];
-    
+
+    const { currency, rate: exchange_rate } =
+      currencyRates[idx % currencyRates.length];
+
     // Adjust estimated cost relative to exchange rate
-    const adjusted_cost = Number((estimated_unit_cost * exchange_rate).toFixed(4));
-    
+    const adjusted_cost = Number(
+      (estimated_unit_cost * exchange_rate).toFixed(4)
+    );
+
     return {
       id: knex.raw('uuid_generate_v4()'),
-      code: generateStandardizedCode('MAT', mat.name, { sequenceNumber: idx + 1 }),
+      code: generateStandardizedCode('MAT', mat.name, {
+        sequenceNumber: idx + 1,
+      }),
       category: 'core', // default fallback
       is_visible_for_sales_order: false, // default fallback
       ...mat, // overrides fallbacks where present
-      
+
       // --- new fields ---
       estimated_unit_cost: adjusted_cost,
       currency,
       exchange_rate,
-      
+
       // --- existing fields ---
       status_id: statusIds[statusName],
       status_date: knex.fn.now(),
@@ -1080,8 +1094,8 @@ exports.seed = async function (knex) {
       updated_at: null,
     };
   });
-  
+
   await knex('packaging_materials').insert(rows).onConflict('code').ignore();
-  
+
   console.log(`Seeded ${rows.length} packaging materials records.`);
 };

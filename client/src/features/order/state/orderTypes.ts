@@ -3,7 +3,8 @@ import type {
   AsyncState,
   PaginatedResponse,
   PaginationParams,
-  ReduxPaginatedState, SortConfig,
+  ReduxPaginatedState,
+  SortConfig,
 } from '@shared-types/api';
 
 /**
@@ -12,16 +13,16 @@ import type {
 export interface OrderItemInput {
   /** The UUID of the SKU being ordered */
   sku_id: string;
-  
+
   /** Optional UUID of the packaging material used for this item */
   packaging_material_id: string | null;
-  
+
   /** The quantity of the SKU being ordered */
   quantity_ordered: number;
-  
+
   /** The UUID of the price record associated with this item */
   price_id: string;
-  
+
   /** The price per unit of the SKU */
   price: number;
 }
@@ -32,43 +33,43 @@ export interface OrderItemInput {
 export interface CreateSalesOrderInput {
   /** The UUID of the order type (e.g., sales, transfer) */
   order_type_id: string;
-  
+
   /** The date the order was placed (ISO 8601 format) */
   order_date: string;
-  
+
   /** Optional notes or remarks associated with the order */
   note?: string;
-  
+
   /** The UUID of the customer placing the order */
   customer_id: string;
-  
+
   /** The UUID of the shipping address */
   shipping_address_id: string;
-  
+
   /** The UUID of the billing address */
   billing_address_id: string;
-  
+
   /** The UUID of the selected payment method */
   payment_method_id: string;
-  
+
   /** The currency code used in this order (e.g., USD, CAD) */
   currency_code: string;
-  
+
   /** The exchange rate applied if currency differs from base */
   exchange_rate: number;
-  
+
   /** Optional UUID of any discount applied to the order */
   discount_id?: string;
-  
+
   /** The UUID of the applicable tax rate */
   tax_rate_id: string;
-  
+
   /** Shipping fee applied to the order */
   shipping_fee: number;
-  
+
   /** The UUID of the delivery method used for this order */
   delivery_method_id: string;
-  
+
   /** List of items included in the order */
   order_items: OrderItemInput[];
 }
@@ -131,57 +132,57 @@ export interface OrderListFilters {
    * Free-text keyword for fuzzy search (e.g., customer name, SKU, order notes).
    */
   keyword?: string;
-  
+
   /**
    * Filter by exact order number (must match precisely).
    */
   orderNumber?: string;
-  
+
   /**
    * Logical order category code (e.g., 'sales', 'purchase', 'transfer').
    * Used to scope status filtering and type mapping.
    */
   orderCategory?: string;
-  
+
   /**
    * Filter by one or more order type UUIDs.
    * This may be user-provided or applied via access control.
    */
   orderTypeId?: string | string[];
-  
+
   /**
    * Filter by one or more order status UUIDs.
    * This may be user-provided or injected from access stage control.
    */
   orderStatusId?: string | string[];
-  
+
   /**
    * Filter for orders created after this ISO date (inclusive).
    * Example: '2025-01-01T00:00:00Z'
    */
   createdAfter?: string;
-  
+
   /**
    * Filter for orders created before this ISO date (inclusive).
    * Example: '2025-12-31T23:59:59Z'
    */
   createdBefore?: string;
-  
+
   /**
    * Filter for orders whose status last changed after this ISO date (inclusive).
    */
   statusDateAfter?: string;
-  
+
   /**
    * Filter for orders whose status last changed before this ISO date (inclusive).
    */
   statusDateBefore?: string;
-  
+
   /**
    * Filter for orders created by a specific user (UUID).
    */
   createdBy?: string;
-  
+
   /**
    * Filter for orders last updated by a specific user (UUID).
    */
@@ -234,13 +235,13 @@ export type OrderListSortField =
 export interface OrderListItem {
   /** Unique ID of the order (UUID) */
   id: string;
-  
+
   /** Human-readable order number (e.g., SO-20230821-XYZ) */
   orderNumber: string;
-  
+
   /** Name of the order type (e.g., Standard Sales Order) */
   orderType: string;
-  
+
   /**
    * Current order status.
    * - `code`: Machine-readable code (e.g., 'ORDER_PENDING')
@@ -248,53 +249,53 @@ export interface OrderListItem {
    */
   orderStatus: {
     code: string;
-    name: string
+    name: string;
   };
-  
+
   /**
    * Date when the order was placed (ISO 8601 string).
    * Typically, represents the customer's intended order date.
    * Example: '2025-08-25T00:00:00.000Z'
    */
   orderDate: string;
-  
+
   /** Date when the current status was last updated (ISO string) */
   statusDate: string;
-  
+
   /** Timestamp when the order was created (ISO string) */
   createdAt: string;
-  
+
   /** Name of the user who created the order */
   createdBy: string;
-  
+
   /** Timestamp when the order was last updated (ISO string) */
   updatedAt: string;
-  
+
   /** Name of the user who last updated the order */
   updatedBy: string;
-  
+
   /** Optional note or comment attached to the order */
   note?: string | null;
-  
+
   /** Full name of the associated customer, if available */
   customerName?: string | null;
-  
+
   /** Name of the payment method used (e.g., Credit Card) */
   paymentMethod?: string | null;
-    
-    /**
-     * Current payment status.
-     * - `code`: Machine-readable code (e.g., 'PAID', 'UNPAID')
-     * - `name`: Human-readable label (e.g., 'Paid', 'Unpaid')
-     */
-    paymentStatus: {
-      code: string;
-      name: string;
-    };
-  
+
+  /**
+   * Current payment status.
+   * - `code`: Machine-readable code (e.g., 'PAID', 'UNPAID')
+   * - `name`: Human-readable label (e.g., 'Paid', 'Unpaid')
+   */
+  paymentStatus: {
+    code: string;
+    name: string;
+  };
+
   /** Name of the delivery method (e.g., Canada Post) */
   deliveryMethod?: string | null;
-  
+
   /** Number of items linked to this order */
   numberOfItems: number;
 }
@@ -313,7 +314,8 @@ export type OrderListResponse = PaginatedResponse<OrderListItem>;
  * This interface is typically used for managing order list views with pagination,
  * server-side filtering, loading indicators, and error handling.
  */
-export interface PaginatedOrderStateWithFilters extends ReduxPaginatedState<OrderListItem> {
+export interface PaginatedOrderStateWithFilters
+  extends ReduxPaginatedState<OrderListItem> {
   filters: OrderQueryParams;
 }
 
@@ -483,13 +485,13 @@ export interface PackagingMaterialRef {
 export interface OrderItemStatus {
   /** Unique identifier for the status */
   id: string | null;
-  
+
   /** System code of the status (e.g., "ORDER_ALLOCATED") */
   code: string | null;
-  
+
   /** Human-readable name of the status (e.g., "Allocated") */
   name: string | null;
-  
+
   /** ISO date string indicating when the status was applied */
   date: string | null;
 }
@@ -546,7 +548,7 @@ export interface TransformedOrder {
   /** Optional order note */
   note: string | null;
   /** Order type reference */
-  type: { id: string; name: string; code: string; };
+  type: { id: string; name: string; code: string };
   /** Order status reference */
   status: { id: string | null; name: string | null; code: string | null };
   /** Customer details */
@@ -631,13 +633,13 @@ export type OrderRouteParams = {
 export interface FlattenedOrderHeader {
   /** Unique order number (human-readable) */
   orderNumber: string;
-  
+
   /** Date the order was created or placed */
   orderDate: string | null;
-  
+
   /** Optional note or memo attached to the order */
   orderNote: string;
-  
+
   /**
    * Current status of the order.
    *
@@ -649,112 +651,112 @@ export interface FlattenedOrderHeader {
     code: string;
     name: string;
   };
-  
+
   /** Date when the order status was last updated */
   orderStatusDate: string | null;
-  
+
   /** Order type name (e.g., Sale, Return, Transfer) */
   orderType: string | null;
-  
+
   /** Payment-related information */
   paymentInfo: {
     /** Payment method name (e.g., Credit Card, Bank Transfer) */
     method: string | null;
-    
+
     /** Human-readable payment status (e.g., "Paid") */
     status: string | null;
-    
+
     /** System-defined status code (e.g., "PAID") */
     code: string | null;
-    
+
     /** Currency code used for the transaction (e.g., USD, CAD) */
     currencyCode: string | null;
-    
+
     /** Exchange rate from base to target currency, if applicable */
     exchangeRate: number | null;
-    
+
     /** Order total in base currency */
     baseCurrencyAmount: number | null;
   };
-  
+
   /** Discount name or code applied to the order */
   discount: string | null;
-  
+
   /** User-friendly discount label for display */
   discountLabel: string | null;
-  
+
   /** Total discount amount */
   discountAmount: number | null;
-  
+
   /** Order subtotal before tax, shipping, and discounts */
   subtotal: number | null;
-  
+
   /** Tax rate name or label (e.g., GST, VAT) */
   taxRate: string | null;
-  
+
   /** Total tax amount applied */
   taxAmount: number | null;
-  
+
   /** Delivery method info (e.g., Pickup, Courier) */
   deliveryInfo: {
     /** Name of the delivery method */
     method: string | null;
   };
-  
+
   /** Shipping address and contact details */
   shippingInfo: {
     /** Full name of the shipping recipient */
     shippingFullname: string;
-    
+
     /** Phone number of the recipient */
     shippingPhone: string;
-    
+
     /** Email of the shipping contact */
     shippingEmail: string;
-    
+
     /** Formatted shipping address string */
     address: string;
   };
-  
+
   /** Billing address and contact details */
   billingInfo: {
     /** Full name of the billing contact */
     billingFullname: string;
-    
+
     /** Phone number of the billing contact */
     billingPhone: string;
-    
+
     /** Email of the billing contact */
     billingEmail: string;
-    
+
     /** Formatted billing address string */
     address: string;
   };
-  
+
   /** Full name of the customer placing the order */
   customerName: string;
-  
+
   /** Customer’s email address */
   customerEmail: string;
-  
+
   /** Customer’s phone number */
   customerPhone: string;
-  
+
   /** Metadata about who created/updated the order */
   auditInfo: {
     /** Order creation timestamp */
     createdAt: string;
-    
+
     /** Creator details (ID and name) */
     createdBy: { id: string | null; name: string } | null;
-    
+
     /** Last update timestamp */
     updatedAt: string;
-    
+
     /** Updater details (ID and name) */
     updatedBy: { id: string | null; name: string } | null;
   };
-  
+
   /** Additional order-level metadata for custom logic or display */
   orderMetadata: Record<string, any>;
 }
@@ -765,19 +767,19 @@ export interface FlattenedOrderHeader {
 export interface OrderStatusInfo {
   /** Unique identifier of the order */
   id: string;
-  
+
   /** Identifier of the order status (foreign key) */
   order_status_id: string;
-  
+
   /** Timestamp when the status was set (ISO 8601 format) */
   status_date: string;
-  
+
   /** Human-readable name of the order status */
   statusName: string;
-  
+
   /** Machine-readable code representing the order status */
   statusCode: string;
-  
+
   /** High-level category of the status (e.g., 'processing', 'completed') */
   statusCategory: string;
 }
@@ -788,19 +790,19 @@ export interface OrderStatusInfo {
 export interface OrderItemStatusInfo {
   /** Unique identifier of the order item */
   id: string;
-  
+
   /** Identifier of the item's status (foreign key) */
   status_id: string;
-  
+
   /** Timestamp when the status was set (ISO 8601 format) */
   status_date: string;
-  
+
   /** Human-readable name of the item status */
   statusName: string;
-  
+
   /** Machine-readable code representing the item status */
   statusCode: string;
-  
+
   /** High-level category of the status (e.g., 'processing', 'completed') */
   statusCategory: string;
 }
@@ -811,7 +813,7 @@ export interface OrderItemStatusInfo {
 export interface UpdateOrderStatusData {
   /** The updated status information of the order */
   order: OrderStatusInfo;
-  
+
   /** A list of updated status information for each order item */
   items: OrderItemStatusInfo[];
 }
@@ -819,17 +821,18 @@ export interface UpdateOrderStatusData {
 /**
  * Full API response when updating an order's status, extending the generic success response.
  */
-export interface UpdateOrderStatusResponse extends ApiSuccessResponse<UpdateOrderStatusData> {
+export interface UpdateOrderStatusResponse
+  extends ApiSuccessResponse<UpdateOrderStatusData> {
   /**
    * Additional metadata about the status update operation.
    */
   meta: {
     /** Whether the main order status was updated */
     orderUpdated: boolean;
-    
+
     /** Number of order items whose statuses were updated */
     itemsUpdated: number;
-    
+
     /** Total number of records affected (order + items) */
     recordsUpdated: number;
   };
@@ -845,4 +848,5 @@ export interface UpdateOrderStatusResponse extends ApiSuccessResponse<UpdateOrde
  * The `data` field is typed as `UpdateOrderStatusResponse | null`
  * to account for the initial, loading, or error state.
  */
-export type UpdateOrderStatusState = AsyncState<UpdateOrderStatusResponse | null>;
+export type UpdateOrderStatusState =
+  AsyncState<UpdateOrderStatusResponse | null>;

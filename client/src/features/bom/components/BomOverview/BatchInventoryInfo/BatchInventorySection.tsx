@@ -2,7 +2,9 @@ import type { FC } from 'react';
 import type { FlattenedBomReadinessPartRow } from '@features/bom/state';
 import DetailsSection from '@components/common/DetailsSection';
 
-const BatchInventorySection: FC<{ row: FlattenedBomReadinessPartRow }> = ({ row }) => (
+const BatchInventorySection: FC<{ row: FlattenedBomReadinessPartRow }> = ({
+  row,
+}) => (
   <DetailsSection
     sectionTitle="Batch Inventory"
     sx={{

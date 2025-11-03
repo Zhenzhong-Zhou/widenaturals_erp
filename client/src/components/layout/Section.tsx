@@ -10,7 +10,12 @@ interface SectionProps {
   spacingBottom?: number;
 }
 
-const Section: FC<SectionProps> = ({ title, children, spacingTop = 4, spacingBottom = 4 }) => {
+const Section: FC<SectionProps> = ({
+  title,
+  children,
+  spacingTop = 4,
+  spacingBottom = 4,
+}) => {
   return (
     <Box sx={{ mt: spacingTop, mb: spacingBottom }}>
       {title && (

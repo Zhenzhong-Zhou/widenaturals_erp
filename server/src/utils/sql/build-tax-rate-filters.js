@@ -42,51 +42,51 @@ const buildTaxRateFilter = (filters = {}) => {
     const conditions = ['1=1'];
     const params = [];
     let paramIndex = 1;
-    
+
     if (filters.name) {
       conditions.push(`tr.name = $${paramIndex}`);
       params.push(filters.name);
       paramIndex++;
     }
-    
+
     if (filters.region) {
       conditions.push(`tr.region = $${paramIndex}`);
       params.push(filters.region);
       paramIndex++;
     }
-    
+
     if (filters.province) {
       conditions.push(`tr.province = $${paramIndex}`);
       params.push(filters.province);
       paramIndex++;
     }
-    
+
     if (filters.isActive !== undefined) {
       conditions.push(`tr.is_active = $${paramIndex}`);
       params.push(filters.isActive);
       paramIndex++;
     }
-    
+
     if (filters.createdBy) {
       conditions.push(`tr.created_by = $${paramIndex}`);
       params.push(filters.createdBy);
       paramIndex++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`tr.updated_by = $${paramIndex}`);
       params.push(filters.updatedBy);
       paramIndex++;
     }
-    
+
     if (filters.keyword) {
       const keywordParam = `%${filters.keyword}%`;
       const keywordConditions = [
-        `(tr.name ILIKE $${paramIndex} OR tr.province ILIKE $${paramIndex})`
+        `(tr.name ILIKE $${paramIndex} OR tr.province ILIKE $${paramIndex})`,
       ];
       params.push(keywordParam);
       paramIndex++;
-      
+
       if (filters._restrictKeywordToValidOnly) {
         keywordConditions.push(`tr.valid_from <= NOW()`);
         keywordConditions.push(`(tr.valid_to IS NULL OR tr.valid_to >= NOW())`);
@@ -97,22 +97,22 @@ const buildTaxRateFilter = (filters = {}) => {
         params.push(filters.isActive);
         paramIndex++;
       }
-      
+
       conditions.push(`(${keywordConditions.join(' AND ')})`);
     }
-    
+
     if (filters.validFrom) {
       conditions.push(`tr.valid_from >= $${paramIndex}`);
       params.push(filters.validFrom);
       paramIndex++;
     }
-    
+
     if (filters.validTo) {
       conditions.push(`tr.valid_to <= $${paramIndex}`);
       params.push(filters.validTo);
       paramIndex++;
     }
-    
+
     if (filters.validOn) {
       conditions.push(`(
         tr.valid_from <= $${paramIndex} AND
@@ -121,19 +121,19 @@ const buildTaxRateFilter = (filters = {}) => {
       params.push(filters.validOn);
       paramIndex++;
     }
-    
+
     if (filters.createdAfter) {
       conditions.push(`tr.created_at >= $${paramIndex}`);
       params.push(filters.createdAfter);
       paramIndex++;
     }
-    
+
     if (filters.createdBefore) {
       conditions.push(`tr.created_at <= $${paramIndex}`);
       params.push(filters.createdBefore);
       paramIndex++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,

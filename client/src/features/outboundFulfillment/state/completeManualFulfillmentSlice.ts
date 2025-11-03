@@ -36,11 +36,13 @@ export const completeManualFulfillmentSlice = createSlice({
       )
       .addCase(completeManualFulfillmentThunk.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload ?? 'Failed to complete manual fulfillment.';
+        state.error =
+          action.payload ?? 'Failed to complete manual fulfillment.';
       });
   },
 });
 
-export const { resetCompleteManualFulfillment } = completeManualFulfillmentSlice.actions;
+export const { resetCompleteManualFulfillment } =
+  completeManualFulfillmentSlice.actions;
 
 export default completeManualFulfillmentSlice.reducer;

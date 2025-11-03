@@ -11,7 +11,8 @@ import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 /**
  * Initial state for the pricing lookup slice.
  */
-const initialState: PricingLookupState = createInitialPaginatedLookupState<PricingLookupItem>();
+const initialState: PricingLookupState =
+  createInitialPaginatedLookupState<PricingLookupItem>();
 
 /**
  * Redux slice to manage pricing lookup state for dropdowns and autocomplete fields.
@@ -36,14 +37,16 @@ const pricingLookupSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchPricingLookupThunk.fulfilled,
+      .addCase(
+        fetchPricingLookupThunk.fulfilled,
         (state, action: PayloadAction<PricingLookupResponse>) => {
           applyPaginatedFulfilled(state, action.payload);
         }
       )
       .addCase(fetchPricingLookupThunk.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string ?? 'Failed to fetch pricing lookup';
+        state.error =
+          (action.payload as string) ?? 'Failed to fetch pricing lookup';
       });
   },
 });

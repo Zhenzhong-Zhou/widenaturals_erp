@@ -643,7 +643,12 @@ const getWarehouseInventoryResponseByIds = async (ids, client) => {
  */
 const bulkUpdateWarehouseQuantities = async (updates, userId, client) => {
   const table = 'warehouse_inventory';
-  const columns = ['warehouse_quantity', 'reserved_quantity', 'status_id', 'last_update'];
+  const columns = [
+    'warehouse_quantity',
+    'reserved_quantity',
+    'status_id',
+    'last_update',
+  ];
   const whereColumns = ['warehouse_id', 'batch_id'];
   const columnTypes = {
     warehouse_quantity: 'integer',
@@ -651,7 +656,7 @@ const bulkUpdateWarehouseQuantities = async (updates, userId, client) => {
     status_id: 'uuid',
     last_update: 'timestamptz',
   };
-  
+
   try {
     const queryData = formatBulkUpdateQuery(
       table,
@@ -787,23 +792,27 @@ const getWarehouseInventoryQuantities = async (keys, client) => {
  *
  * @throws {AppError} If the database query fails.
  */
-const getAllocatableBatchesByWarehouse = async (allocationFilter = {}, options = {}, client) => {
+const getAllocatableBatchesByWarehouse = async (
+  allocationFilter = {},
+  options = {},
+  client
+) => {
   const {
     skuIds = [],
     packagingMaterialIds = [],
     warehouseId,
     inventoryStatusId,
   } = allocationFilter;
-  
+
   const orderByField =
     options.strategy === 'fefo'
       ? 'expiry_date'
       : options.strategy === 'fifo'
         ? 'inbound_date'
         : null;
-  
+
   const orderByClause = orderByField ? `ORDER BY ${orderByField} ASC` : '';
-  
+
   const sql = `
     SELECT
       wi.batch_id,
@@ -830,14 +839,14 @@ const getAllocatableBatchesByWarehouse = async (allocationFilter = {}, options =
       )
     ${orderByClause}
   `;
-  
+
   try {
     const result = await query(
       sql,
       [warehouseId, inventoryStatusId, skuIds, packagingMaterialIds],
       client
     );
-    
+
     logSystemInfo('Fetched allocatable batches by warehouse', {
       context: 'inventory-repository/getAllocatableBatchesByWarehouse',
       warehouseId,
@@ -847,7 +856,7 @@ const getAllocatableBatchesByWarehouse = async (allocationFilter = {}, options =
       rowCount: result?.rows?.length ?? 0,
       severity: 'INFO',
     });
-    
+
     return result.rows;
   } catch (error) {
     logSystemException(error, 'Failed to fetch allocatable batches', {
@@ -858,8 +867,10 @@ const getAllocatableBatchesByWarehouse = async (allocationFilter = {}, options =
       strategy: options.strategy ?? 'none',
       severity: 'ERROR',
     });
-    
-    throw AppError.databaseError('Unable to retrieve allocatable warehouse inventory.');
+
+    throw AppError.databaseError(
+      'Unable to retrieve allocatable warehouse inventory.'
+    );
   }
 };
 

@@ -36,14 +36,14 @@ export const getBomSupplyMiniTableColumns = (
       />
     ),
   },
-  
+
   // Lot number
   {
     id: 'lotNumber',
     label: 'Lot #',
     renderCell: (row) => row.lotNumber ?? '—',
   },
-  
+
   // Supplier (if available)
   {
     id: 'supplierName',
@@ -60,7 +60,7 @@ export const getBomSupplyMiniTableColumns = (
       />
     ),
   },
-  
+
   // Warehouse (readiness / inventory side)
   {
     id: 'warehouseName',
@@ -77,31 +77,31 @@ export const getBomSupplyMiniTableColumns = (
       />
     ),
   },
-  
+
   // Inbound / Manufacture Date
   {
     id: 'MFGDate',
     label: 'MFG Date',
     align: 'center',
-    renderCell: (row) => formatToISODate(row.sourceSupply?.manufactureDate ?? '—'),
+    renderCell: (row) =>
+      formatToISODate(row.sourceSupply?.manufactureDate ?? '—'),
   },
-  
+
   // Expiry Date
   {
     id: 'expiryDate',
     label: 'Expiry',
     align: 'center',
-    renderCell: (row) =>  formatDate(row.sourceSupply?.expiryDate ?? '—'),
+    renderCell: (row) => formatDate(row.sourceSupply?.expiryDate ?? '—'),
   },
-  
+
   {
     id: 'supplierPreferred',
     label: 'Preferred',
     align: 'center',
-    renderCell: (row) =>
-      row.sourceSupply?.supplierPreferred ? '✅' : '—',
+    renderCell: (row) => (row.sourceSupply?.supplierPreferred ? '✅' : '—'),
   },
-  
+
   // // Inventory Status Chip
   {
     id: 'inventoryStatus',
@@ -122,7 +122,7 @@ export const getBomSupplyMiniTableColumns = (
       />
     ),
   },
-  
+
   // Quantities
   {
     id: 'batchQuantity',
@@ -134,27 +134,22 @@ export const getBomSupplyMiniTableColumns = (
     id: 'availableQuantity',
     label: 'Available',
     align: 'right',
-    renderCell: (row) =>
-      row.availableQuantity ??
-      '—',
+    renderCell: (row) => row.availableQuantity ?? '—',
   },
   {
     id: 'reservedQuantity',
     label: 'Reserved',
     align: 'right',
-    renderCell: (row) =>
-      row.reservedQuantity ? row.reservedQuantity : '—',
+    renderCell: (row) => (row.reservedQuantity ? row.reservedQuantity : '—'),
   },
-  
+
   // Cost (supply side only)
   {
     id: 'unitCost',
     label: 'Unit Cost',
     align: 'right',
     renderCell: (row) =>
-      row.unitCost
-        ? formatCurrency(row.unitCost, row.currency ?? 'CAD')
-        : '—',
+      row.unitCost ? formatCurrency(row.unitCost, row.currency ?? 'CAD') : '—',
   },
   {
     id: 'totalCost',
@@ -165,19 +160,21 @@ export const getBomSupplyMiniTableColumns = (
         ? formatCurrency(row.sourceSupply?.totalCost, row.currency ?? 'CAD')
         : '—',
   },
-  
+
   // Bottleneck / Shortage
   {
     id: 'readinessFlags',
     label: 'Health',
     align: 'center',
     renderCell: (row) => {
-      if (row.isShortage) return <Chip size="small" color="error" label="Shortage" />;
-      if (row.isBottleneck) return <Chip size="small" color="warning" label="Bottleneck" />;
+      if (row.isShortage)
+        return <Chip size="small" color="error" label="Shortage" />;
+      if (row.isBottleneck)
+        return <Chip size="small" color="warning" label="Bottleneck" />;
       return <Chip size="small" color="success" label="OK" />;
     },
   },
-  
+
   // Actions
   {
     id: 'actions',

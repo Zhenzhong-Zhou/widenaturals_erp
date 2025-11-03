@@ -18,13 +18,13 @@ import type { InitiateFulfillmentRequest } from '@features/outboundFulfillment/s
  */
 const useInitiateOutboundFulfillment = () => {
   const dispatch = useAppDispatch();
-  
+
   // Select slice state
   const loading = useAppSelector(selectInitiateOutboundFulfillmentLoading);
   const error = useAppSelector(selectInitiateOutboundFulfillmentError);
   const data = useAppSelector(selectInitiateOutboundFulfillmentData);
   const hasData = useAppSelector(selectHasInitiateOutboundFulfillmentData);
-  
+
   /**
    * Submit function to initiate outbound fulfillment.
    */
@@ -34,14 +34,14 @@ const useInitiateOutboundFulfillment = () => {
     },
     [dispatch]
   );
-  
+
   /**
    * Reset function to clear slice state.
    */
   const reset = useCallback(() => {
     dispatch(resetInitiateOutboundFulfillmentState());
   }, [dispatch]);
-  
+
   return {
     loading,
     error,

@@ -37,13 +37,17 @@ const paginatedInventoryAllocations = createSlice({
           state.pagination = action.payload.pagination;
         }
       )
-      .addCase(fetchPaginatedInventoryAllocationsThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          action.error?.message || 'Failed to fetch inventory allocations';
-      });
+      .addCase(
+        fetchPaginatedInventoryAllocationsThunk.rejected,
+        (state, action) => {
+          state.loading = false;
+          state.error =
+            action.error?.message || 'Failed to fetch inventory allocations';
+        }
+      );
   },
 });
 
-export const { resetInventoryAllocationsState } = paginatedInventoryAllocations.actions;
+export const { resetInventoryAllocationsState } =
+  paginatedInventoryAllocations.actions;
 export default paginatedInventoryAllocations.reducer;

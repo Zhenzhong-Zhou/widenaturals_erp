@@ -1,7 +1,11 @@
 import type {
   CreateSalesOrderInput,
   CreateSalesOrderResponse,
-  GetOrderDetailsResponse, OrderListResponse, OrderQueryParams, OrderRouteParams, UpdateOrderStatusResponse,
+  GetOrderDetailsResponse,
+  OrderListResponse,
+  OrderQueryParams,
+  OrderRouteParams,
+  UpdateOrderStatusResponse,
 } from '@features/order/state';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { getRequest, patchRequest, postRequest } from '@utils/apiRequest';
@@ -24,9 +28,12 @@ const createSalesOrder = async (
   data: CreateSalesOrderInput
 ): Promise<CreateSalesOrderResponse> => {
   const url = API_ENDPOINTS.ORDERS.ADD_NEW_ORDER(category);
-  
+
   try {
-    return await postRequest<CreateSalesOrderInput, CreateSalesOrderResponse>(url, data);
+    return await postRequest<CreateSalesOrderInput, CreateSalesOrderResponse>(
+      url,
+      data
+    );
   } catch (error) {
     console.error('Failed to create sales order:', error);
     throw error;
@@ -58,13 +65,17 @@ const fetchOrdersByCategory = async (
 ): Promise<OrderListResponse> => {
   const cleanCategory = sanitizeString(category);
   const url = API_ENDPOINTS.ORDERS.ALL_CATEGORY_ORDERS(cleanCategory);
-  
+
   try {
     return await getRequest<OrderListResponse>(url, {
       params,
     });
   } catch (error) {
-    console.error('Failed to fetch orders by category:', { category: cleanCategory, params, error });
+    console.error('Failed to fetch orders by category:', {
+      category: cleanCategory,
+      params,
+      error,
+    });
     throw error;
   }
 };
@@ -89,17 +100,21 @@ const fetchOrdersByCategory = async (
  * const res = await fetchOrderDetailsById('0edac644-af24-4499-817e-cb593747dd1c');
  * console.log(res.data.orderNumber);
  */
-const fetchOrderDetailsById = async (
-  { category, orderId }: OrderRouteParams
-): Promise<GetOrderDetailsResponse> => {
+const fetchOrderDetailsById = async ({
+  category,
+  orderId,
+}: OrderRouteParams): Promise<GetOrderDetailsResponse> => {
   const cleanId = sanitizeString(orderId);
   const cleanCategory = sanitizeString(category);
   const url = API_ENDPOINTS.ORDERS.ORDER_DETAILS(cleanCategory, cleanId);
-  
+
   try {
     return await getRequest<GetOrderDetailsResponse>(url);
   } catch (error) {
-    console.error('Failed to fetch order details:', { orderId: cleanId, error });
+    console.error('Failed to fetch order details:', {
+      orderId: cleanId,
+      error,
+    });
     throw error;
   }
 };
@@ -122,15 +137,21 @@ const updateOrderStatus = async (
 ): Promise<UpdateOrderStatusResponse> => {
   const cleanCategory = sanitizeString(params.category);
   const cleanOrderId = sanitizeString(params.orderId);
-  
+
   if (!cleanCategory || !cleanOrderId) {
     throw new Error('Missing or invalid category/orderId');
   }
-  
-  const url = API_ENDPOINTS.ORDERS.ORDER_STATUS_UPDATE_PATH(cleanCategory, cleanOrderId);
-  
+
+  const url = API_ENDPOINTS.ORDERS.ORDER_STATUS_UPDATE_PATH(
+    cleanCategory,
+    cleanOrderId
+  );
+
   try {
-    return await patchRequest<typeof data, UpdateOrderStatusResponse>(url, data);
+    return await patchRequest<typeof data, UpdateOrderStatusResponse>(
+      url,
+      data
+    );
   } catch (error) {
     console.error('Failed to update order status:', error);
     throw error;

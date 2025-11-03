@@ -18,40 +18,42 @@ const getBaseCodeForBrandCategory = async (brandCode, categoryCode) => {
     WHERE brand_code = $1 AND category_code = $2
     LIMIT 1
   `;
-  
+
   const values = [brandCode, categoryCode];
-  
+
   try {
     const { rows } = await query(sql, values);
-    
+
     if (!rows || rows.length === 0) return null;
-    
+
     const { base_code } = rows[0];
-    
+
     if (typeof base_code !== 'number') {
       logSystemException(
         new Error('Invalid base_code type'),
-        '[getBaseCodeForBrandCategory] base_code is not a number', {
+        '[getBaseCodeForBrandCategory] base_code is not a number',
+        {
           context: 'sku-code-base-repository/getBaseCodeForBrandCategory',
           brandCode,
           categoryCode,
-          base_code
+          base_code,
         }
       );
       throw AppError.validationError('Invalid base code format.');
     }
-    
+
     return base_code;
   } catch (error) {
     logSystemException(
       error,
-      '[getBaseCodeForBrandCategory] Failed to fetch base code', {
+      '[getBaseCodeForBrandCategory] Failed to fetch base code',
+      {
         context: 'sku-code-base-repository/getBaseCodeForBrandCategory',
         brandCode,
-        categoryCode
+        categoryCode,
       }
     );
-    
+
     throw AppError.databaseError(
       'Failed to fetch base code for brand/category'
     );
@@ -75,12 +77,12 @@ const getBrandCategoryCodes = async (brand, category) => {
       AND LOWER(category_code) = LOWER($2)
     LIMIT 1
   `;
-  
+
   const values = [brand, category];
-  
+
   try {
     const { rows } = await query(sql, values);
-    
+
     if (!rows || rows.length === 0) {
       logSystemException(
         new Error('brand/category not found in sku_code_bases'),
@@ -95,9 +97,9 @@ const getBrandCategoryCodes = async (brand, category) => {
         `No SKU code base mapping found for brand "${brand}" and category "${category}".`
       );
     }
-    
+
     const { brand_code, category_code } = rows[0];
-    
+
     return {
       brandCode: brand_code,
       categoryCode: category_code,
@@ -112,7 +114,7 @@ const getBrandCategoryCodes = async (brand, category) => {
         category,
       }
     );
-    
+
     throw AppError.databaseError(
       'Failed to resolve brand/category code from sku_code_bases'
     );

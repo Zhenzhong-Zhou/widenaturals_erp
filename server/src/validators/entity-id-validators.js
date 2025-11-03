@@ -58,14 +58,19 @@ const validateIdsExist = async (
   { label = '', schema = 'public', idColumn = 'id', maxShow = 5 } = {}
 ) => {
   if (!ids || ids.length === 0) return; // nothing to validate
-  
+
   // Single round-trip: fetch missing IDs only
-  const missing = await findMissingIds(client, table, ids, { schema, idColumn });
-  
+  const missing = await findMissingIds(client, table, ids, {
+    schema,
+    idColumn,
+  });
+
   if (missing.length) {
     const preview = missing.slice(0, maxShow).join(', ');
     const suffix = missing.length > maxShow ? '…' : '';
-    throw AppError.notFoundError(`${label} ID(s) not found: ${preview}${suffix}`);
+    throw AppError.notFoundError(
+      `${label} ID(s) not found: ${preview}${suffix}`
+    );
   }
 };
 

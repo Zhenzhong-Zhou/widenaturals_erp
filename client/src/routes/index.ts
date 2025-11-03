@@ -1,5 +1,8 @@
 import { lazy } from 'react';
-import { ORDER_CONSTANTS, toPermissionValue } from '@utils/constants/orderPermissions';
+import {
+  ORDER_CONSTANTS,
+  toPermissionValue,
+} from '@utils/constants/orderPermissions';
 import type { OrderRouteParams } from '@features/order/state';
 import { isValidOrderCategory } from '@features/order/utils/orderCategoryUtils';
 
@@ -308,7 +311,10 @@ export const routes = [
   {
     path: '/inventory-allocations/review/:orderId',
     component: lazy(
-      () => import('@features/inventoryAllocation/pages/InventoryAllocationReviewPage')
+      () =>
+        import(
+          '@features/inventoryAllocation/pages/InventoryAllocationReviewPage'
+        )
     ),
     meta: {
       requiresAuth: true,
@@ -331,7 +337,12 @@ export const routes = [
   },
   {
     path: '/fulfillments',
-    component: lazy(() => import('@features/outboundFulfillment/pages/OutboundFulfillmentsListPage')),
+    component: lazy(
+      () =>
+        import(
+          '@features/outboundFulfillment/pages/OutboundFulfillmentsListPage'
+        )
+    ),
     meta: {
       requiresAuth: true,
       title: 'Fulfillment',
@@ -341,7 +352,12 @@ export const routes = [
   },
   {
     path: '/fulfillments/outbound-shipment/:shipmentId',
-    component: lazy(() => import('@features/outboundFulfillment/pages/OutboundShipmentDetailsPage')),
+    component: lazy(
+      () =>
+        import(
+          '@features/outboundFulfillment/pages/OutboundShipmentDetailsPage'
+        )
+    ),
     meta: {
       requiresAuth: true,
       title: 'Outbound Shipment Details',

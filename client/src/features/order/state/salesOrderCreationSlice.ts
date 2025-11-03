@@ -1,7 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type {
   CreateSalesOrderResponse,
-  SalesOrderCreationState
+  SalesOrderCreationState,
 } from '@features/order/state/orderTypes';
 import { createSalesOrderThunk } from './orderThunks';
 

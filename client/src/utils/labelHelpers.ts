@@ -9,6 +9,8 @@ import type { JSX } from 'react';
  * @param label - The label value (string, JSX, or other).
  * @returns Plain string version of the label (never null/undefined).
  */
-export const getRawLabel = (label: string | JSX.Element | null | undefined): string => {
+export const getRawLabel = (
+  label: string | JSX.Element | null | undefined
+): string => {
   return typeof label === 'string' ? label : String(label ?? '');
 };

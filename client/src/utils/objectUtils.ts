@@ -40,7 +40,9 @@ export const cleanObject = <T extends object>(
  * @example
  * getFallbackValue(null, undefined); // returns '—'
  */
-export const getFallbackValue = <T>(...values: (T | null | undefined)[]): T | '—' => {
+export const getFallbackValue = <T>(
+  ...values: (T | null | undefined)[]
+): T | '—' => {
   for (const value of values) {
     if (value !== null && value !== undefined) return value;
   }

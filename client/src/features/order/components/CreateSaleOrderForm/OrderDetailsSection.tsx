@@ -26,7 +26,9 @@ import type {
   PaymentMethodLookupQueryParams,
   DiscountLookupQueryParams,
   TaxRateLookupQueryParams,
-  DeliveryMethodLookupQueryParams, LookupBundle, OrderTypeLookupQueryParams,
+  DeliveryMethodLookupQueryParams,
+  LookupBundle,
+  OrderTypeLookupQueryParams,
 } from '@features/lookup/state';
 import { transformLookupOptions } from '@utils/lookupTransformers';
 import currencyCodes from 'currency-codes';
@@ -39,7 +41,7 @@ type Props = {
   selectedCustomerId: string | null;
   setSelectedCustomerId: (id: string) => void;
   addressOptions: LookupOption[];
-  
+
   // Lookup bundles (simplified)
   orderType: LookupBundle<OrderTypeLookupQueryParams>;
   customer: LookupBundle<CustomerLookupQuery>;
@@ -47,14 +49,14 @@ type Props = {
   discount: LookupBundle<DiscountLookupQueryParams>;
   taxRate: LookupBundle<TaxRateLookupQueryParams>;
   deliveryMethod: LookupBundle<DeliveryMethodLookupQueryParams>;
-  
+
   // Paginated dropdowns
   customerDropdown: UsePaginatedDropdownReturn<CustomerLookupQuery>;
   paymentMethodDropdown: UsePaginatedDropdownReturn<PaymentMethodLookupQueryParams>;
   discountDropdown: UsePaginatedDropdownReturn<DiscountLookupQueryParams>;
   taxRateDropdown: UsePaginatedDropdownReturn<TaxRateLookupQueryParams>;
   deliveryMethodDropdown: UsePaginatedDropdownReturn<DeliveryMethodLookupQueryParams>;
-  
+
   // Search + refresh handlers
   handleOrderTypeSearch: (keyword: string) => void;
   handleCustomerSearch: (keyword: string) => void;
@@ -66,46 +68,47 @@ type Props = {
 };
 
 const OrderDetailsSection: FC<Props> = ({
-                                          formInstance,
-                                          formRef,
-                                          selectedCustomerId,
-                                          setSelectedCustomerId,
-                                          addressOptions,
-                                          
-                                          // Lookup bundles
-                                          orderType,
-                                          customer,
-                                          paymentMethod,
-                                          discount,
-                                          taxRate,
-                                          deliveryMethod,
-                                          
-                                          // Dropdown grouped state/handlers
-                                          customerDropdown,
-                                          paymentMethodDropdown,
-                                          discountDropdown,
-                                          taxRateDropdown,
-                                          deliveryMethodDropdown,
-                                          
-                                          // Search + refresh
-                                          handleOrderTypeSearch,
-                                          handleCustomerSearch,
-                                          handlePaymentSearch,
-                                          handleDiscountSearch,
-                                          handleTaxRateSearch,
-                                          handleDeliveryMethodSearch,
-                                          refreshOrderTypes,
-                                        }) => {
+  formInstance,
+  formRef,
+  selectedCustomerId,
+  setSelectedCustomerId,
+  addressOptions,
+
+  // Lookup bundles
+  orderType,
+  customer,
+  paymentMethod,
+  discount,
+  taxRate,
+  deliveryMethod,
+
+  // Dropdown grouped state/handlers
+  customerDropdown,
+  paymentMethodDropdown,
+  discountDropdown,
+  taxRateDropdown,
+  deliveryMethodDropdown,
+
+  // Search + refresh
+  handleOrderTypeSearch,
+  handleCustomerSearch,
+  handlePaymentSearch,
+  handleDiscountSearch,
+  handleTaxRateSearch,
+  handleDeliveryMethodSearch,
+  refreshOrderTypes,
+}) => {
   const billingSameAsShipping = useWatch({
     control: formInstance.control,
     name: 'billing_same_as_shipping',
   });
-  
+
   const formattedOrderTypes = useMemo(
-    () => transformLookupOptions(orderType.options ?? [], { preserveHyphen: true }),
+    () =>
+      transformLookupOptions(orderType.options ?? [], { preserveHyphen: true }),
     [orderType.options]
   );
-  
+
   const currencyOptions = useMemo(() => {
     return currencyCodes.codes().reduce((acc, code) => {
       const currency = currencyCodes.code(code);
@@ -118,9 +121,9 @@ const OrderDetailsSection: FC<Props> = ({
       return acc;
     }, [] as LookupOption[]);
   }, []);
-  
+
   const addressFields: FieldConfig[] = [];
-  
+
   if (selectedCustomerId) {
     addressFields.push(
       {
@@ -151,7 +154,7 @@ const OrderDetailsSection: FC<Props> = ({
           ) : null,
       }
     );
-    
+
     if (!billingSameAsShipping) {
       addressFields.push({
         id: 'billing_address_id',
@@ -163,7 +166,7 @@ const OrderDetailsSection: FC<Props> = ({
       });
     }
   }
-  
+
   const fields: FieldConfig[] = [
     {
       id: 'order_type_id',
@@ -183,13 +186,13 @@ const OrderDetailsSection: FC<Props> = ({
             onRefresh={refreshOrderTypes}
             disabled={orderType.loading}
             helperText={
-              !value && required
-                ? <FieldStatusHelper status="required" />
-                : value && value.length < 3
-                  ? <FieldStatusHelper status="invalid" />
-                  : value
-                    ? <FieldStatusHelper status="valid" />
-                    : undefined
+              !value && required ? (
+                <FieldStatusHelper status="required" />
+              ) : value && value.length < 3 ? (
+                <FieldStatusHelper status="invalid" />
+              ) : value ? (
+                <FieldStatusHelper status="valid" />
+              ) : undefined
             }
           />
         ) : null,
@@ -204,7 +207,7 @@ const OrderDetailsSection: FC<Props> = ({
         const d = value ? new Date(value) : new Date();
         // if no value yet, write the default into RHF so watch() sees it
         if (!value) onChange?.(d.toISOString());
-        
+
         return (
           <CustomDatePicker
             label="Order Date"
@@ -228,7 +231,7 @@ const OrderDetailsSection: FC<Props> = ({
             onChange={(id) => {
               onChange(id);
               setSelectedCustomerId(id);
-              
+
               const matched = customer.options.find((opt) => opt.value === id);
               customerDropdown.setDropdownState((prev) => ({
                 ...prev,
@@ -258,13 +261,13 @@ const OrderDetailsSection: FC<Props> = ({
             setFetchParams={customerDropdown.setFetchParams}
             onRefresh={(params) => customer.fetch(params)}
             helperText={
-              !value && required
-                ? <FieldStatusHelper status="required" />
-                : value && value.length < 3
-                  ? <FieldStatusHelper status="invalid" />
-                  : value
-                    ? <FieldStatusHelper status="valid" />
-                    : undefined
+              !value && required ? (
+                <FieldStatusHelper status="required" />
+              ) : value && value.length < 3 ? (
+                <FieldStatusHelper status="invalid" />
+              ) : value ? (
+                <FieldStatusHelper status="valid" />
+              ) : undefined
             }
           />
         ) : null,
@@ -325,13 +328,13 @@ const OrderDetailsSection: FC<Props> = ({
             paginationMeta={paymentMethod.meta}
             onRefresh={(params) => paymentMethod.fetch(params)}
             helperText={
-              !value && required
-                ? <FieldStatusHelper status="required" />
-                : value && value.length < 3
-                  ? <FieldStatusHelper status="invalid" />
-                  : value
-                    ? <FieldStatusHelper status="valid" />
-                    : undefined
+              !value && required ? (
+                <FieldStatusHelper status="required" />
+              ) : value && value.length < 3 ? (
+                <FieldStatusHelper status="invalid" />
+              ) : value ? (
+                <FieldStatusHelper status="valid" />
+              ) : undefined
             }
           />
         ) : null,
@@ -347,9 +350,11 @@ const OrderDetailsSection: FC<Props> = ({
             value={value ?? ''}
             onChange={(id) => {
               onChange?.(id);
-              
-              const matchedOption = discount.options.find(opt => opt.value === id);
-              
+
+              const matchedOption = discount.options.find(
+                (opt) => opt.value === id
+              );
+
               discountDropdown.setDropdownState((prev) => ({
                 ...prev,
                 inputValue: matchedOption?.label ?? '', // Ensure label shown, not raw input or UUID
@@ -391,9 +396,11 @@ const OrderDetailsSection: FC<Props> = ({
             value={value ?? ''}
             onChange={(id) => {
               onChange?.(id);
-              
-              const matchedOption = taxRate.options.find(opt => opt.value === id);
-              
+
+              const matchedOption = taxRate.options.find(
+                (opt) => opt.value === id
+              );
+
               taxRateDropdown.setDropdownState((prev) => ({
                 ...prev,
                 inputValue: matchedOption?.label ?? '', // Ensure label shown, not UUID
@@ -421,13 +428,13 @@ const OrderDetailsSection: FC<Props> = ({
             paginationMeta={taxRate.meta}
             onRefresh={(params) => taxRate.fetch(params)}
             helperText={
-              !value && required
-                ? <FieldStatusHelper status="required" />
-                : value && value.length < 3
-                  ? <FieldStatusHelper status="invalid" />
-                  : value
-                    ? <FieldStatusHelper status="valid" />
-                    : undefined
+              !value && required ? (
+                <FieldStatusHelper status="required" />
+              ) : value && value.length < 3 ? (
+                <FieldStatusHelper status="invalid" />
+              ) : value ? (
+                <FieldStatusHelper status="valid" />
+              ) : undefined
             }
           />
         ) : null,
@@ -464,13 +471,13 @@ const OrderDetailsSection: FC<Props> = ({
             paginationMeta={deliveryMethod.meta}
             onRefresh={(params) => deliveryMethod.fetch(params)}
             helperText={
-              !value && required
-                ? <FieldStatusHelper status="required" />
-                : value && value.length < 3
-                  ? <FieldStatusHelper status="invalid" />
-                  : value
-                    ? <FieldStatusHelper status="valid" />
-                    : undefined
+              !value && required ? (
+                <FieldStatusHelper status="required" />
+              ) : value && value.length < 3 ? (
+                <FieldStatusHelper status="invalid" />
+              ) : value ? (
+                <FieldStatusHelper status="valid" />
+              ) : undefined
             }
           />
         ) : null,
@@ -490,13 +497,13 @@ const OrderDetailsSection: FC<Props> = ({
             onChange={onChange}
             options={currencyOptions}
             helperText={
-              !value && required
-                ? <FieldStatusHelper status="required" />
-                : value && value.length < 3
-                  ? <FieldStatusHelper status="invalid" />
-                  : value
-                    ? <FieldStatusHelper status="valid" />
-                    : undefined
+              !value && required ? (
+                <FieldStatusHelper status="required" />
+              ) : value && value.length < 3 ? (
+                <FieldStatusHelper status="invalid" />
+              ) : value ? (
+                <FieldStatusHelper status="valid" />
+              ) : undefined
             }
           />
         ) : null,
@@ -510,7 +517,7 @@ const OrderDetailsSection: FC<Props> = ({
       customRender: ({ value, onChange, watch }: CustomRenderParams) => {
         const selectedCurrency = watch?.('currency_code');
         if (selectedCurrency === 'CAD') return null;
-        
+
         return (
           <BaseInput
             label="Exchange Rate"
@@ -537,7 +544,7 @@ const OrderDetailsSection: FC<Props> = ({
       grid: { xs: 12 },
     },
   ];
-  
+
   return (
     <CustomForm
       ref={formRef}
@@ -548,7 +555,7 @@ const OrderDetailsSection: FC<Props> = ({
         '--field-h': '56px',
         '--label-y': 'calc(var(--field-h) / 2 - 12px)', // ~center for 56px
         '--label-y-shrink': '-9px',
-        
+
         maxWidth: 1600,
         width: '100%',
         p: { xs: 2, sm: 3 },
@@ -585,14 +592,15 @@ const OrderDetailsSection: FC<Props> = ({
         /* ---- Keep Note (multiline) big and rounded ---- */
         '& .MuiOutlinedInput-root.MuiInputBase-multiline': {
           height: 'auto',
-          minHeight: 120,            // feels like ~3 rows; adjust if you want
-          borderRadius: 5,           // keep the pill-ish look
-          alignItems: 'flex-start',  // text starts at top
+          minHeight: 120, // feels like ~3 rows; adjust if you want
+          borderRadius: 5, // keep the pill-ish look
+          alignItems: 'flex-start', // text starts at top
         },
-        '& .MuiOutlinedInput-root.MuiInputBase-multiline .MuiOutlinedInput-input': {
-          height: 'auto',
-          py: 1.25,
-        },
+        '& .MuiOutlinedInput-root.MuiInputBase-multiline .MuiOutlinedInput-input':
+          {
+            height: 'auto',
+            py: 1.25,
+          },
 
         /* ---- Label alignment (still good for singles) ---- */
         '& .MuiInputLabel-formControl': {

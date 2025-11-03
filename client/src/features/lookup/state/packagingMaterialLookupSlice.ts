@@ -47,5 +47,6 @@ const packagingMaterialLookupSlice = createSlice({
   },
 });
 
-export const { resetPackagingMaterialLookup } = packagingMaterialLookupSlice.actions;
+export const { resetPackagingMaterialLookup } =
+  packagingMaterialLookupSlice.actions;
 export default packagingMaterialLookupSlice.reducer;

@@ -3,7 +3,7 @@ const {
   createOrderController,
   getOrderDetailsByIdController,
   updateOrderStatusController,
-  fetchPaginatedOrdersController
+  fetchPaginatedOrdersController,
 } = require('../controllers/order-controller');
 const authorize = require('../middlewares/authorize');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
@@ -148,12 +148,7 @@ router.post(
 router.get(
   '/:category',
   authorize([PERMISSIONS.ORDER.VIEW]),
-  createQueryNormalizationMiddleware(
-    'orderSortMap',
-    [],
-    [],
-    orderQuerySchema
-  ),
+  createQueryNormalizationMiddleware('orderSortMap', [], [], orderQuerySchema),
   sanitizeFields(['category', 'keyword']),
   validate(orderCategorySchema, 'params'),
   validate(orderQuerySchema, 'query'),
@@ -252,7 +247,7 @@ router.patch(
   sanitizeFields(['orderId', 'category', 'statusCode']),
   validate(orderIdentifierSchema, 'params'),
   validate(updateOrderStatusSchema, 'body'),
-  updateOrderStatusController,
+  updateOrderStatusController
 );
 
 module.exports = router;

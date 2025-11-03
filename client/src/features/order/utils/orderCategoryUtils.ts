@@ -1,4 +1,7 @@
-import { ORDER_CATEGORIES, type OrderCategory } from '@utils/constants/orderPermissions';
+import {
+  ORDER_CATEGORIES,
+  type OrderCategory,
+} from '@utils/constants/orderPermissions';
 
 /**
  * Type guard to check if a given string is a valid order category.

@@ -1,5 +1,6 @@
 import {
-  type AllocationReviewItem, type BatchReview,
+  type AllocationReviewItem,
+  type BatchReview,
   type OrderHeaderReview,
 } from '../state';
 import { isPackagingBatch, isProductBatch } from '@utils/batchTypeGuards';
@@ -35,29 +36,29 @@ export interface FlattenedAllocationReviewItem {
   allocatedQuantity: number;
   createdAt: string;
   updatedAt: string;
-  
+
   orderItemId: string;
   orderId: string;
   orderItemStatusName: string;
   orderItemStatusCode: string;
   orderItemStatusDate: string;
   quantityOrdered: number;
-  
+
   skuCode: string | null;
   barcode: string | null;
   productName: string | null;
-  
+
   packagingMaterialCode: string | null;
   packagingMaterialLabel: string | null;
-  
+
   batchLotNumber: string | null;
   batchExpiryDate: string | null;
   manufactureDate: string | null;
   batchType: 'product' | 'packaging_material' | 'unknown';
-  
+
   createdByName: string;
   updatedByName: string;
-  
+
   warehouseInventoryList: {
     id: string;
     warehouseQuantity: number;
@@ -85,7 +86,7 @@ export const parseBatch = (
       batchType: 'unknown',
     };
   }
-  
+
   if (isProductBatch(batch)) {
     return {
       batchLotNumber: batch.lotNumber ?? null,
@@ -94,7 +95,7 @@ export const parseBatch = (
       batchType: batch.type,
     };
   }
-  
+
   if (isPackagingBatch(batch)) {
     return {
       batchLotNumber: batch.lotNumber ?? null,
@@ -103,7 +104,7 @@ export const parseBatch = (
       batchType: batch.type,
     };
   }
-  
+
   return {
     batchLotNumber: null,
     batchExpiryDate: null,
@@ -131,14 +132,10 @@ export const flattenInventoryAllocationReviewItems = (
       batch,
       warehouseInventoryList,
     } = item;
-    
-    const {
-      batchLotNumber,
-      batchExpiryDate,
-      manufactureDate,
-      batchType,
-    } = parseBatch(batch);
-    
+
+    const { batchLotNumber, batchExpiryDate, manufactureDate, batchType } =
+      parseBatch(batch);
+
     return {
       allocationId,
       allocationStatus: allocationStatusName ?? '—',
@@ -146,39 +143,39 @@ export const flattenInventoryAllocationReviewItems = (
       allocatedQuantity: allocatedQuantity ?? 0,
       createdAt: createdAt ?? '',
       updatedAt: updatedAt ?? createdAt ?? '',
-      
+
       orderItemId: orderItem?.id ?? '—',
       orderId: orderItem?.orderId ?? '—',
       orderItemStatusName: orderItem?.statusName ?? '—',
       orderItemStatusCode: orderItem?.statusCode ?? '—',
       orderItemStatusDate: orderItem?.statusDate ?? '',
       quantityOrdered: orderItem?.quantityOrdered ?? 0,
-      
+
       skuCode: product?.skuCode ?? null,
       barcode: product?.barcode ?? null,
       productName: product?.displayName ?? null,
-      
+
       packagingMaterialCode: packagingMaterial?.code ?? null,
       packagingMaterialLabel: packagingMaterial?.label ?? null,
-      
+
       batchLotNumber,
       batchExpiryDate,
       manufactureDate,
       batchType,
-      
+
       createdByName: createdBy?.fullName ?? '—',
       updatedByName: updatedBy?.fullName ?? '—',
-      
+
       warehouseInventoryList: Array.isArray(warehouseInventoryList)
         ? warehouseInventoryList.map((wi) => ({
-          id: wi.id,
-          warehouseQuantity: wi.warehouseQuantity ?? 0,
-          reservedQuantity: wi.reservedQuantity ?? 0,
-          statusName: wi.statusName ?? '—',
-          statusDate: wi.statusDate ?? '',
-          inboundDate: wi.inboundDate ?? '',
-          warehouseName: wi.warehouseName ?? '—',
-        }))
+            id: wi.id,
+            warehouseQuantity: wi.warehouseQuantity ?? 0,
+            reservedQuantity: wi.reservedQuantity ?? 0,
+            statusName: wi.statusName ?? '—',
+            statusDate: wi.statusDate ?? '',
+            inboundDate: wi.inboundDate ?? '',
+            warehouseName: wi.warehouseName ?? '—',
+          }))
         : [],
     };
   });

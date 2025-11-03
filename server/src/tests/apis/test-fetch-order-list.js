@@ -8,7 +8,7 @@ const { fetchPaginatedOrdersService } = require('../../services/order-service');
 
 (async () => {
   const client = await pool.connect();
-  
+
   try {
     // Step 1: Fetch test user (adjust email as needed)
     const {
@@ -18,16 +18,16 @@ const { fetchPaginatedOrdersService } = require('../../services/order-service');
       // ['root@widenaturals.com']
       ['jp@widenaturals.com']
     );
-    
+
     if (!user) {
       throw new Error('User not found for given email');
     }
-    
+
     const enrichedUser = {
       id: user.id,
       role: user.role_id,
     };
-    
+
     // Step 2: Fetch paginated orders for user and category
     const result = await fetchPaginatedOrdersService({
       filters: {
@@ -41,7 +41,7 @@ const { fetchPaginatedOrdersService } = require('../../services/order-service');
       limit: 50,
       client,
     });
-    
+
     console.dir(result, { depth: null, colors: true });
   } catch (error) {
     console.error('❌ Failed to fetch paginated orders:', error.message);

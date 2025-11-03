@@ -2,7 +2,14 @@ import type { OverridableStringUnion } from '@mui/types';
 import type { ChipPropsColorOverrides } from '@mui/material';
 
 export type StatusColor = OverridableStringUnion<
-  'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' | 'neutral',
+  | 'default'
+  | 'primary'
+  | 'secondary'
+  | 'error'
+  | 'info'
+  | 'success'
+  | 'warning'
+  | 'neutral',
   ChipPropsColorOverrides
 >;
 
@@ -51,18 +58,18 @@ const statusMaps = {
     ALLOC_FULFILLED: 'primary',
     ALLOC_CANCELLED: 'error',
     ALLOC_RETURNED: 'warning',
-    
+
     // Summary labels from SQL
     'Pending Allocation': 'default',
     'Partially Allocated': 'secondary',
     'Allocation Confirmed': 'info',
     'Fully Allocated': 'primary',
-    'Fulfilling': 'warning',
+    Fulfilling: 'warning',
     'Partially Fulfilled': 'secondary',
-    'Fulfilled': 'primary',
+    Fulfilled: 'primary',
     'Allocation Returned': 'secondary',
-    'Failed': 'error',
-    'Unknown': 'default',
+    Failed: 'error',
+    Unknown: 'default',
   },
   inventory: {
     in_stock: 'success',
@@ -89,12 +96,12 @@ const statusMaps = {
     SHIPMENT_RETURNED: 'warning',
   },
   fulfillment: {
-    FULFILLMENT_PENDING: 'warning',     // waiting to be processed
-    FULFILLMENT_PICKING: 'info',        // items being picked
-    FULFILLMENT_PACKED: 'secondary',    // items packed and ready
-    FULFILLMENT_SHIPPED: 'primary',     // shipped out
-    FULFILLMENT_DELIVERED: 'success',   // delivered successfully
-    FULFILLMENT_CANCELLED: 'error',     // cancelled fulfillment
+    FULFILLMENT_PENDING: 'warning', // waiting to be processed
+    FULFILLMENT_PICKING: 'info', // items being picked
+    FULFILLMENT_PACKED: 'secondary', // items packed and ready
+    FULFILLMENT_SHIPPED: 'primary', // shipped out
+    FULFILLMENT_DELIVERED: 'success', // delivered successfully
+    FULFILLMENT_CANCELLED: 'error', // cancelled fulfillment
   },
 } as const;
 
@@ -118,17 +125,21 @@ type AllocationSummary =
  */
 export const getAllocationSummary = (codes: string[]): AllocationSummary => {
   if (!Array.isArray(codes) || codes.length === 0) return 'Unknown';
-  
+
   if (codes.includes('ALLOC_FAILED')) return 'Failed';
   if (codes.includes('ALLOC_PARTIAL') || codes.includes('ALLOC_BACKORDERED'))
     return 'Partially Allocated';
-  if (codes.includes('ALLOC_FULFILLING') && !codes.every(c => c === 'ALLOC_FULFILLED'))
+  if (
+    codes.includes('ALLOC_FULFILLING') &&
+    !codes.every((c) => c === 'ALLOC_FULFILLED')
+  )
     return 'Fulfilling';
-  if (codes.every(c => c === 'ALLOC_PENDING')) return 'Pending Allocation';
-  if (codes.every(c => c === 'ALLOC_CONFIRMED')) return 'Allocation Confirmed';
-  if (codes.every(c => c === 'ALLOC_FULFILLED')) return 'Fulfilled';
-  if (codes.every(c => c === 'ALLOC_RETURNED')) return 'Allocation Returned';
-  
+  if (codes.every((c) => c === 'ALLOC_PENDING')) return 'Pending Allocation';
+  if (codes.every((c) => c === 'ALLOC_CONFIRMED'))
+    return 'Allocation Confirmed';
+  if (codes.every((c) => c === 'ALLOC_FULFILLED')) return 'Fulfilled';
+  if (codes.every((c) => c === 'ALLOC_RETURNED')) return 'Allocation Returned';
+
   return 'Unknown';
 };
 
@@ -149,8 +160,8 @@ export const getStatusColor = (
   type: StatusType = 'order'
 ): StatusColor => {
   if (!status) return 'default';
-  const normalized = (type === 'inventory') ? status : status.toUpperCase();
+  const normalized = type === 'inventory' ? status : status.toUpperCase();
   const map = statusMaps[type];
-  
+
   return (map as Record<string, StatusColor>)[normalized] ?? 'default';
 };

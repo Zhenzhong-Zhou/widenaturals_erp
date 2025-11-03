@@ -49,17 +49,17 @@ export const mergeBomDetailsWithSupplyAndReadiness = (
   readinessParts: FlattenedBomReadinessPartRow[] | null
 ): BomItemWithSupplyAndReadiness[] => {
   if (!bomDetails?.length) return [];
-  
+
   return bomDetails.map((detail) => {
     const { bomItemId, partId } = detail;
-    
+
     // --- Supply side ---
     const relatedSupply = dedupeByBatchKey(
       supplyDetails?.filter(
         (s) => s.bomItemId === bomItemId && s.partId === partId
       ) ?? []
     );
-    
+
     // --- Readiness side ---
     const relatedReadiness = dedupeByBatchKey(
       readinessParts
@@ -75,7 +75,7 @@ export const mergeBomDetailsWithSupplyAndReadiness = (
           batchId: r.materialBatchId ?? undefined,
         })) ?? []
     );
-    
+
     return {
       bomItemId,
       details: detail,
@@ -96,12 +96,12 @@ export const mergeBatchesForDisplay = (
   readiness: FlattenedBomReadinessPartRow[] = []
 ): UnifiedBatchRow[] => {
   const map = new Map<string, UnifiedBatchRow>();
-  
+
   // --- Insert supply batches ---
   for (const s of supply) {
     const key = s.batchId;
     if (!key) continue;
-    
+
     map.set(key, {
       source: 'supplier',
       batchId: key,
@@ -115,12 +115,12 @@ export const mergeBatchesForDisplay = (
       sourceSupply: s,
     });
   }
-  
+
   // --- Merge or add readiness batches ---
   for (const r of readiness) {
     const key = r.materialBatchId;
     if (!key) continue;
-    
+
     if (map.has(key)) {
       // Merge with existing supplier row
       const existing = map.get(key)!;
@@ -159,6 +159,6 @@ export const mergeBatchesForDisplay = (
       });
     }
   }
-  
+
   return Array.from(map.values());
 };

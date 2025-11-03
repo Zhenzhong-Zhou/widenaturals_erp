@@ -58,16 +58,16 @@ const AppError = require('../utils/AppError');
  * @see logSystemException
  */
 const getPaginatedBoms = async ({
-                                  filters = {},
-                                  page = 1,
-                                  limit = 10,
-                                  sortBy,
-                                  sortOrder = 'DESC',
-                                }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy,
+  sortOrder = 'DESC',
+}) => {
   const { whereClause, params } = buildBomFilter(filters);
-  
+
   const tableName = 'boms b';
-  
+
   const joins = [
     'JOIN skus AS s ON b.sku_id = s.id',
     'JOIN products AS p ON s.product_id = p.id',
@@ -77,7 +77,7 @@ const getPaginatedBoms = async ({
     'LEFT JOIN users AS cu ON cu.id = b.created_by',
     'LEFT JOIN users AS uu ON uu.id = b.updated_by',
   ];
-  
+
   const baseQuery = `
     SELECT
       p.id AS product_id,
@@ -121,7 +121,7 @@ const getPaginatedBoms = async ({
     ${joins.join('\n')}
     WHERE ${whereClause}
   `;
-  
+
   try {
     const result = await paginateQuery({
       tableName,
@@ -136,10 +136,10 @@ const getPaginatedBoms = async ({
       meta: {
         module: 'boms',
         context: 'bom-repository/getPaginatedBoms',
-        filters
+        filters,
       },
     });
-    
+
     logSystemInfo('Fetched paginated BOM list successfully', {
       context: 'bom-repository/getPaginatedBoms',
       filters,
@@ -147,7 +147,7 @@ const getPaginatedBoms = async ({
       sorting: { sortBy, sortOrder },
       totalRecords: result.pagination?.totalRecords,
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch paginated BOM list', {
@@ -156,7 +156,7 @@ const getPaginatedBoms = async ({
       pagination: { page, limit },
       sorting: { sortBy, sortOrder },
     });
-    
+
     throw AppError.databaseError('Failed to fetch paginated BOM list', {
       filters,
       pagination: { page, limit },
@@ -264,7 +264,7 @@ const getBomDetailsById = async (bomId) => {
     WHERE b.id = $1
     ORDER BY bi.id ASC, pa.type ASC;
   `;
-  
+
   try {
     const result = await query(sql, [bomId]);
     return result.rows;
@@ -273,7 +273,7 @@ const getBomDetailsById = async (bomId) => {
       context: 'bom-repository/getBomDetailsById',
       bomId,
     });
-    
+
     throw AppError.databaseError('Database error fetching BOM details', {
       bomId,
       hint: 'Ensure the BOM ID exists and related SKU/Product links are valid.',
@@ -423,17 +423,17 @@ const getBOMProductionSummary = async (bomId) => {
       ON pd.packaging_material_id = pr.packaging_material_id
     ORDER BY pr.part_name, pd.material_name, pd.lot_number, pd.warehouse_name;
   `;
-  
+
   try {
     const result = await query(sql, [bomId]);
-    
+
     logSystemInfo(`Fetched production summary for BOM ${bomId}`, {
       context: 'bom-repository/getBOMProductionSummary',
       severity: 'info',
       recordCount: result?.rows?.length || 0,
       bomId,
     });
-    
+
     return result.rows;
   } catch (error) {
     logSystemException(error, 'Failed to fetch BOM production summary', {
@@ -442,7 +442,7 @@ const getBOMProductionSummary = async (bomId) => {
       bomId,
       querySnippet: sql.slice(0, 200),
     });
-    
+
     throw AppError.databaseError('Failed to fetch BOM production summary', {
       bomId,
     });

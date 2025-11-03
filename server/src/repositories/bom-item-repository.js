@@ -160,7 +160,7 @@ const getBomMaterialSupplyDetailsById = async (bomId) => {
     WHERE bi.bom_id = $1
     ORDER BY pa.name, sup.name, pmb.lot_number;
   `;
-  
+
   try {
     const result = await query(sql, [bomId]);
     return result.rows;
@@ -170,11 +170,14 @@ const getBomMaterialSupplyDetailsById = async (bomId) => {
       severity: 'error',
       bomId,
     });
-    
-    throw AppError.databaseError('Failed to fetch BOM material supply details', {
-      bomId,
-      hint: 'Check BOM relations with bom_item_materials or supplier linkage integrity.',
-    });
+
+    throw AppError.databaseError(
+      'Failed to fetch BOM material supply details',
+      {
+        bomId,
+        hint: 'Check BOM relations with bom_item_materials or supplier linkage integrity.',
+      }
+    );
   }
 };
 

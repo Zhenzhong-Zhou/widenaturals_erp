@@ -22,9 +22,10 @@ const {
  */
 const extractFilterKeys = (input, nestedKey = 'filters') => {
   if (Array.isArray(input)) return input;
-  
+
   // Robust Joi detection (supports different Joi versions)
-  const isJoiSchema = typeof Joi?.isSchema === 'function' && Joi.isSchema(input);
+  const isJoiSchema =
+    typeof Joi?.isSchema === 'function' && Joi.isSchema(input);
   if (isJoiSchema) {
     const desc = input.describe?.();
     // Case A: input itself is the filters object schema
@@ -35,7 +36,7 @@ const extractFilterKeys = (input, nestedKey = 'filters') => {
     const nested = desc?.keys?.[nestedKey]?.keys;
     if (nested) return Object.keys(nested);
   }
-  
+
   const kind = Array.isArray(input) ? 'array' : typeof input;
   throw new Error(
     `Invalid filterKeysOrSchema: expected string[] or Joi object schema (optionally with nested "${nestedKey}"). Received ${kind}.`
@@ -138,14 +139,14 @@ const createQueryNormalizationMiddleware = (
   filterKeysOrSchema = [],
   options = {},
   optionBooleanKeys = [],
-  optionStringKeys = [],
+  optionStringKeys = []
 ) => {
   const finalOptions = {
     includePagination: true,
     includeSorting: true,
     ...options,
   };
-  
+
   let filterKeys = extractFilterKeys(filterKeysOrSchema);
 
   return (req, res, next) => {
@@ -176,7 +177,7 @@ const createQueryNormalizationMiddleware = (
         if (result.length > 0) normalizedArrays[key] = result;
       }
     }
-    
+
     // 5a. Filter-level booleans
     const normalizedBooleans = {};
     for (const key of booleanKeys) {
@@ -186,7 +187,7 @@ const createQueryNormalizationMiddleware = (
           val === true || val === 'true' || val === '1' || val === 1;
       }
     }
-    
+
     // 5b. Option-level booleans
     const normalizedOptionBooleans = {};
     for (const key of optionBooleanKeys) {
@@ -196,7 +197,7 @@ const createQueryNormalizationMiddleware = (
           val === true || val === 'true' || val === '1' || val === 1;
       }
     }
-    
+
     // 5c. Option-level strings
     const normalizedOptionStrings = {};
     for (const key of optionStringKeys) {

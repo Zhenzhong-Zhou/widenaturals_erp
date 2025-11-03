@@ -34,7 +34,8 @@ export const initiateOutboundFulfillmentSlice = createSlice({
       .addCase(initiateOutboundFulfillmentThunk.rejected, (state, action) => {
         state.loading = false;
         state.error =
-          (action.payload as string) || 'Failed to initiate outbound fulfillment';
+          (action.payload as string) ||
+          'Failed to initiate outbound fulfillment';
       });
   },
 });

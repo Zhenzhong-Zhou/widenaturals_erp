@@ -12,7 +12,9 @@ const authorize = require('../middlewares/authorize');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
 const { bomIdParamSchema } = require('../validators/bom-validators');
 const validate = require('../middlewares/validate');
-const { getBomMaterialSupplyDetailsController } = require('../controllers/bom-item-controller');
+const {
+  getBomMaterialSupplyDetailsController,
+} = require('../controllers/bom-item-controller');
 
 const router = express.Router();
 

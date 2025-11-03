@@ -7,7 +7,9 @@ const { logSystemException } = require('../utils/system-logger');
 const {
   getAccessibleOrderCategoriesFromPermissions,
 } = require('../utils/permission-utils');
-const { ORDER_CATEGORIES } = require('../utils/constants/domain/order-type-constants');
+const {
+  ORDER_CATEGORIES,
+} = require('../utils/constants/domain/order-type-constants');
 
 /**
  * Fetches the permissions and role name for a given role ID, with Redis caching.
@@ -27,14 +29,14 @@ const fetchPermissions = async (roleId) => {
     const cachedData = await redisClient.get(cacheKey);
     if (cachedData) {
       const parsed = JSON.parse(cachedData);
-      
+
       // Normalize to match expected shape
       return {
         roleName: parsed.roleName ?? parsed.role_name,
         permissions: parsed.permissions,
       };
     }
-    
+
     // Fetch from DB/service if cache misses
     const { role_name, permissions } = await getRolePermissionsByRoleId(roleId);
 
@@ -136,20 +138,23 @@ const checkPermissions = async (
  */
 const resolveOrderAccessContext = async (user, { action = 'VIEW' } = {}) => {
   const { permissions, isRoot } = await resolveUserPermissionContext(user);
-  
+
   // Root: full access
   if (isRoot) {
     return { isRoot, accessibleCategories: [...ORDER_CATEGORIES], action };
   }
-  
-  const accessibleCategories = getAccessibleOrderCategoriesFromPermissions(permissions, { action });
-  
+
+  const accessibleCategories = getAccessibleOrderCategoriesFromPermissions(
+    permissions,
+    { action }
+  );
+
   if (accessibleCategories.length === 0) {
     throw AppError.authorizationError(
       `You do not have permission to ${action.toLowerCase()} any order types`
     );
   }
-  
+
   return { isRoot, accessibleCategories, action };
 };
 

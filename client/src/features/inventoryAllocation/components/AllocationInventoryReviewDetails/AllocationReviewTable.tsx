@@ -3,7 +3,7 @@ import CustomTable from '@components/common/CustomTable';
 import type { FlattenedAllocationReviewItem } from '@features/inventoryAllocation/utils/flattenAllocationReviewData';
 import {
   getAllocationReviewColumns,
-  InventoryAllocationExpandableContent
+  InventoryAllocationExpandableContent,
 } from '@features/inventoryAllocation/components/AllocationInventoryReviewDetails';
 
 interface AllocationReviewTableProps {
@@ -11,15 +11,21 @@ interface AllocationReviewTableProps {
   itemCount: number;
 }
 
-const AllocationReviewTable: FC<AllocationReviewTableProps> = ({ items, itemCount }) => {
+const AllocationReviewTable: FC<AllocationReviewTableProps> = ({
+  items,
+  itemCount,
+}) => {
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-  
+
   const handleDrillDownToggle = (rowId: string) => {
     setExpandedRowId((prev) => (prev === rowId ? null : rowId));
   };
-  
-  const columns = getAllocationReviewColumns(expandedRowId, handleDrillDownToggle);
-  
+
+  const columns = getAllocationReviewColumns(
+    expandedRowId,
+    handleDrillDownToggle
+  );
+
   return (
     <CustomTable<FlattenedAllocationReviewItem>
       columns={columns}

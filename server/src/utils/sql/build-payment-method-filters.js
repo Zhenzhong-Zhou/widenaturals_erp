@@ -68,7 +68,7 @@ const buildPaymentMethodFilter = (filters = {}) => {
       params.push(filters.updatedBy);
       paramIndex++;
     }
-    
+
     if (filters.keyword) {
       const keywordClause = filters._restrictKeywordToNameOnly
         ? `pm.name ILIKE $${paramIndex}`
@@ -88,7 +88,7 @@ const buildPaymentMethodFilter = (filters = {}) => {
       params.push(filters.isActive);
       paramIndex++;
     }
-    
+
     if (filters.createdAfter) {
       conditions.push(`pm.created_at >= $${paramIndex}`);
       params.push(filters.createdAfter);

@@ -81,66 +81,66 @@ const buildPricingFilters = (filters = {}) => {
     const conditions = ['1=1'];
     const params = [];
     let paramIndex = 1;
-    
+
     const keywordStr = String(filters.keyword ?? '').trim();
     const keywordUsed = keywordStr.length > 0;
-    
+
     // === 1. Standard filters ===
-    
+
     if (filters.skuId) {
       conditions.push(`p.sku_id = $${paramIndex}`);
       params.push(filters.skuId);
       paramIndex++;
     }
-    
+
     if (filters.priceTypeId) {
       conditions.push(`p.price_type_id = $${paramIndex}`);
       params.push(filters.priceTypeId);
       paramIndex++;
     }
-    
+
     if (filters.locationId) {
       conditions.push(`p.location_id = $${paramIndex}`);
       params.push(filters.locationId);
       paramIndex++;
     }
-    
+
     if (filters.statusId) {
       conditions.push(`p.status_id = $${paramIndex}`);
       params.push(filters.statusId);
       paramIndex++;
     }
-    
+
     if (filters.brand) {
       params.push(filters.brand);
       conditions.push(`pr.brand = $${params.length}`);
     }
-    
+
     if (filters.pricingType) {
       params.push(filters.pricingType);
       conditions.push(`pt.name = $${params.length}`);
     }
-    
+
     if (filters.countryCode) {
       params.push(filters.countryCode);
       conditions.push(`s.country_code = $${params.length}`);
     }
-    
+
     if (filters.sizeLabel) {
       params.push(filters.sizeLabel);
       conditions.push(`s.size_label = $${params.length}`);
     }
-    
+
     if (filters.validFrom && filters.validTo) {
       params.push(filters.validFrom);
       conditions.push(`p.valid_from >= $${params.length}`);
-      
+
       params.push(filters.validTo);
       conditions.push(`p.valid_to <= $${params.length}`);
     }
-    
+
     // === 2. Keyword filter ===
-    
+
     if (keywordUsed) {
       const keywordParam = `%${filters.keyword.trim()}%`;
       params.push(keywordParam);
@@ -150,28 +150,28 @@ const buildPricingFilters = (filters = {}) => {
         pt.name ILIKE $${params.length}
       )`);
     }
-    
+
     // === 3. Enforced validity (via _restrictKeywordToValidOnly or filters.currentlyValid) ===
-    
+
     if (filters._restrictKeywordToValidOnly || filters.currentlyValid) {
       conditions.push(`p.valid_from <= NOW()`);
       conditions.push(`(p.valid_to IS NULL OR p.valid_to >= NOW())`);
     }
-    
+
     // === 4. Optional date range filters ===
-    
+
     if (filters.validFrom) {
       conditions.push(`p.valid_from >= $${paramIndex}`);
       params.push(filters.validFrom);
       paramIndex++;
     }
-    
+
     if (filters.validTo) {
       conditions.push(`p.valid_to <= $${paramIndex}`);
       params.push(filters.validTo);
       paramIndex++;
     }
-    
+
     if (filters.validOn) {
       conditions.push(`(
         p.valid_from <= $${paramIndex} AND
@@ -180,33 +180,33 @@ const buildPricingFilters = (filters = {}) => {
       params.push(filters.validOn);
       paramIndex++;
     }
-    
+
     // === 5. Metadata ===
-    
+
     if (filters.createdAfter) {
       conditions.push(`p.created_at >= $${paramIndex}`);
       params.push(filters.createdAfter);
       paramIndex++;
     }
-    
+
     if (filters.createdBefore) {
       conditions.push(`p.created_at <= $${paramIndex}`);
       params.push(filters.createdBefore);
       paramIndex++;
     }
-    
+
     if (filters.createdBy) {
       conditions.push(`p.created_by = $${paramIndex}`);
       params.push(filters.createdBy);
       paramIndex++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`p.updated_by = $${paramIndex}`);
       params.push(filters.updatedBy);
       paramIndex++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,

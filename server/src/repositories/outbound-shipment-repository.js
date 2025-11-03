@@ -1,7 +1,9 @@
 const { bulkInsert, query, paginateResults } = require('../database/db');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
-const { buildOutboundShipmentFilter } = require('../utils/sql/build-outbound-shipment-filters');
+const {
+  buildOutboundShipmentFilter,
+} = require('../utils/sql/build-outbound-shipment-filters');
 
 /**
  * Inserts or updates outbound shipment records in bulk.
@@ -56,7 +58,7 @@ const { buildOutboundShipmentFilter } = require('../utils/sql/build-outbound-shi
  */
 const insertOutboundShipmentsBulk = async (shipments, client) => {
   if (!Array.isArray(shipments) || shipments.length === 0) return [];
-  
+
   const columns = [
     'order_id',
     'warehouse_id',
@@ -71,7 +73,7 @@ const insertOutboundShipmentsBulk = async (shipments, client) => {
     'updated_by',
     'updated_at',
   ];
-  
+
   const rows = shipments.map((s) => [
     s.order_id,
     s.warehouse_id,
@@ -86,9 +88,9 @@ const insertOutboundShipmentsBulk = async (shipments, client) => {
     s.updated_by ?? null,
     null, // updated_at
   ]);
-  
+
   const conflictColumns = ['order_id', 'warehouse_id'];
-  
+
   const updateStrategies = {
     status_id: 'overwrite',
     shipped_at: 'overwrite',
@@ -98,7 +100,7 @@ const insertOutboundShipmentsBulk = async (shipments, client) => {
     updated_by: 'overwrite',
     updated_at: 'overwrite',
   };
-  
+
   try {
     const result = await bulkInsert(
       'outbound_shipments',
@@ -110,19 +112,19 @@ const insertOutboundShipmentsBulk = async (shipments, client) => {
       { context: 'outbound-shipment-repository/insertOutboundShipmentsBulk' },
       'id'
     );
-    
+
     logSystemInfo('Successfully inserted or updated outbound shipments', {
       context: 'outbound-shipment-repository/insertOutboundShipmentsBulk',
       insertedCount: result.length,
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to insert outbound shipments', {
       context: 'outbound-shipment-repository/insertOutboundShipmentsBulk',
       shipmentCount: shipments.length,
     });
-    
+
     throw AppError.databaseError('Failed to insert outbound shipments', {
       cause: error,
     });
@@ -188,11 +190,11 @@ const getShipmentByShipmentId = async (shipmentId, client) => {
     LEFT JOIN delivery_methods dm ON dm.id = os.delivery_method_id
     WHERE os.id = $1;
   `;
-  
+
   try {
     const result = await query(sql, [shipmentId], client);
     const row = result?.rows?.[0] || null;
-    
+
     if (!row) {
       logSystemInfo('No outbound shipment found for the given ID', {
         context: 'outbound-shipment-repository/getShipmentByShipmentId',
@@ -200,26 +202,29 @@ const getShipmentByShipmentId = async (shipmentId, client) => {
       });
       return null;
     }
-    
+
     logSystemInfo('Successfully fetched outbound shipment by ID', {
       context: 'outbound-shipment-repository/getShipmentByShipmentId',
       shipmentId,
       statusCode: row.status_code,
       warehouseId: row.warehouse_id,
     });
-    
+
     return row;
   } catch (error) {
     logSystemException(error, 'Failed to fetch outbound shipment by ID', {
       context: 'outbound-shipment-repository/getShipmentByShipmentId',
       shipmentId,
     });
-    
-    throw AppError.databaseError('Database error fetching outbound shipment record', {
-      shipmentId,
-      cause: error,
-      context: 'outbound-shipment-repository/getShipmentByShipmentId',
-    });
+
+    throw AppError.databaseError(
+      'Database error fetching outbound shipment record',
+      {
+        shipmentId,
+        cause: error,
+        context: 'outbound-shipment-repository/getShipmentByShipmentId',
+      }
+    );
   }
 };
 
@@ -259,7 +264,10 @@ const getShipmentByShipmentId = async (shipmentId, client) => {
  * );
  * // => ['s1', 's2']
  */
-const updateOutboundShipmentStatus = async ({ statusId, userId, shipmentIds }, client) => {
+const updateOutboundShipmentStatus = async (
+  { statusId, userId, shipmentIds },
+  client
+) => {
   const sql = `
     UPDATE outbound_shipments
     SET
@@ -270,12 +278,12 @@ const updateOutboundShipmentStatus = async ({ statusId, userId, shipmentIds }, c
     WHERE id = ANY($3::uuid[])
     RETURNING id
   `;
-  
+
   const params = [statusId, userId, shipmentIds];
-  
+
   try {
     const result = await query(sql, params, client);
-    
+
     if (result.rowCount === 0) {
       logSystemInfo('Shipment status update skipped: no matching shipments', {
         context: 'outbound-shipment-repository/updateOutboundShipmentStatus',
@@ -286,7 +294,7 @@ const updateOutboundShipmentStatus = async ({ statusId, userId, shipmentIds }, c
       });
       return 0;
     }
-    
+
     logSystemInfo('Outbound shipment statuses updated successfully', {
       context: 'outbound-shipment-repository/updateOutboundShipmentStatus',
       updatedCount: result.rowCount,
@@ -295,8 +303,8 @@ const updateOutboundShipmentStatus = async ({ statusId, userId, shipmentIds }, c
       shipmentIds,
       severity: 'INFO',
     });
-    
-    return result.rows.map(r => r.id);
+
+    return result.rows.map((r) => r.id);
   } catch (err) {
     logSystemException(err, 'Failed to update outbound shipment status', {
       context: 'outbound-shipment-repository/updateOutboundShipmentStatus',
@@ -337,14 +345,14 @@ const updateOutboundShipmentStatus = async ({ statusId, userId, shipmentIds }, c
  * - Logs exceptions with error details.
  */
 const getPaginatedOutboundShipmentRecords = async ({
-                                                     filters = {},
-                                                     page = 1,
-                                                     limit = 10,
-                                                     sortBy = 'created_at',
-                                                     sortOrder = 'DESC',
-                                                   }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'created_at',
+  sortOrder = 'DESC',
+}) => {
   const { whereClause, params } = buildOutboundShipmentFilter(filters);
-  
+
   const dataQuery = `
     SELECT
       os.id AS shipment_id,
@@ -382,7 +390,7 @@ const getPaginatedOutboundShipmentRecords = async ({
     WHERE ${whereClause}
     ORDER BY ${sortBy} ${sortOrder}
   `;
-  
+
   try {
     const result = await paginateResults({
       dataQuery,
@@ -390,39 +398,51 @@ const getPaginatedOutboundShipmentRecords = async ({
       page,
       limit,
       meta: {
-        context: 'outbound-shipment-repository/getPaginatedOutboundShipmentRecords',
-      }
+        context:
+          'outbound-shipment-repository/getPaginatedOutboundShipmentRecords',
+      },
     });
-    
+
     if (result.data.length === 0) {
       logSystemInfo('No outbound shipments found for current query', {
-        context: 'outbound-shipment-repository/getPaginatedOutboundShipmentRecords',
+        context:
+          'outbound-shipment-repository/getPaginatedOutboundShipmentRecords',
         filters,
         pagination: { page, limit },
         sorting: { sortBy, sortOrder },
       });
       return null;
     }
-    
+
     logSystemInfo('Fetched paginated outbound shipment records successfully', {
-      context: 'outbound-shipment-repository/getPaginatedOutboundShipmentRecords',
+      context:
+        'outbound-shipment-repository/getPaginatedOutboundShipmentRecords',
       filters,
       pagination: { page, limit },
       sorting: { sortBy, sortOrder },
     });
-    
+
     return result;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch paginated outbound shipment records', {
-      context: 'outbound-shipment-repository/getPaginatedOutboundShipmentRecords',
-      filters,
-      pagination: { page, limit },
-      sorting: { sortBy, sortOrder },
-    });
-    
-    throw AppError.databaseError('Failed to fetch paginated outbound shipment records', {
-      context: 'outbound-shipment-repository/getPaginatedOutboundShipmentRecords',
-    });
+    logSystemException(
+      error,
+      'Failed to fetch paginated outbound shipment records',
+      {
+        context:
+          'outbound-shipment-repository/getPaginatedOutboundShipmentRecords',
+        filters,
+        pagination: { page, limit },
+        sorting: { sortBy, sortOrder },
+      }
+    );
+
+    throw AppError.databaseError(
+      'Failed to fetch paginated outbound shipment records',
+      {
+        context:
+          'outbound-shipment-repository/getPaginatedOutboundShipmentRecords',
+      }
+    );
   }
 };
 
@@ -646,23 +666,23 @@ const getShipmentDetailsById = async (shipmentId) => {
     LEFT JOIN users shipment_batch_created_by_user ON shipment_batch_created_by_user.id = sb.created_by
     WHERE os.id = $1;
   `;
-  
+
   try {
     const result = await query(sql, [shipmentId]);
-    
+
     logSystemInfo('Fetched shipment details', {
       context: 'outbound-shipment-repository/getShipmentDetailsById',
       shipmentId,
       rowCount: result.rowCount,
     });
-    
+
     return result.rows;
   } catch (error) {
     logSystemException(error, 'Failed to fetch shipment details', {
       context: 'outbound-shipment-repository/getShipmentDetailsById',
       shipmentId,
     });
-    
+
     throw AppError.databaseError('Failed to fetch shipment details', {
       shipmentId,
     });

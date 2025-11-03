@@ -4,12 +4,15 @@ import {
   fetchOrdersByCategoryThunk,
   type OrderQueryParams,
   selectOrderFilters,
-  selectOrderPagination, selectOrdersError,
+  selectOrderPagination,
+  selectOrdersError,
   selectOrdersLoading,
   selectPaginatedOrders,
 } from '@features/order/state';
-import { resetOrderListState, setOrderListFilters } from '@features/order/state/paginatedOrdersSlice';
-
+import {
+  resetOrderListState,
+  setOrderListFilters,
+} from '@features/order/state/paginatedOrdersSlice';
 
 /**
  * Custom hook to access paginated order list state from the Redux store,
@@ -26,13 +29,13 @@ import { resetOrderListState, setOrderListFilters } from '@features/order/state/
  */
 const usePaginatedOrders = () => {
   const dispatch = useAppDispatch();
-  
+
   const orders = useAppSelector(selectPaginatedOrders);
   const pagination = useAppSelector(selectOrderPagination);
   const filters = useAppSelector(selectOrderFilters);
   const loading = useAppSelector(selectOrdersLoading);
   const error = useAppSelector(selectOrdersError);
-  
+
   /**
    * Dispatch the thunk to fetch orders for a given category and filters.
    */
@@ -42,14 +45,14 @@ const usePaginatedOrders = () => {
     },
     [dispatch]
   );
-  
+
   /**
    * Reset order list state to initial values.
    */
   const resetOrders = useCallback(() => {
     dispatch(resetOrderListState());
   }, [dispatch]);
-  
+
   /**
    * Set new order filters manually (e.g., from search or filter panel).
    */
@@ -59,7 +62,7 @@ const usePaginatedOrders = () => {
     },
     [dispatch]
   );
-  
+
   return useMemo(
     () => ({
       orders,
@@ -71,7 +74,16 @@ const usePaginatedOrders = () => {
       resetOrders,
       updateFilters,
     }),
-    [orders, pagination, filters, loading, error, fetchOrders, resetOrders, updateFilters]
+    [
+      orders,
+      pagination,
+      filters,
+      loading,
+      error,
+      fetchOrders,
+      resetOrders,
+      updateFilters,
+    ]
   );
 };
 

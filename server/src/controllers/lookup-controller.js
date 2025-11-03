@@ -10,7 +10,9 @@ const {
   fetchPaginatedDiscountLookupService,
   fetchPaginatedTaxRateLookupService,
   fetchPaginatedDeliveryMethodLookupService,
-  fetchPaginatedSkuLookupService, fetchPaginatedPricingLookupService, fetchPaginatedPackagingMaterialLookupService,
+  fetchPaginatedSkuLookupService,
+  fetchPaginatedPricingLookupService,
+  fetchPaginatedPackagingMaterialLookupService,
 } = require('../services/lookup-service');
 const { logInfo } = require('../utils/logger-helper');
 
@@ -137,14 +139,11 @@ const fetchCustomerLookupController = wrapAsync(async (req, res) => {
   const { filters = {}, limit, offset } = req.normalizedQuery;
   const { keyword = '' } = filters;
 
-  const dropdownResult = await fetchCustomerLookupService(
-    user,
-    {
-      keyword,
-      limit,
-      offset,
-    },
-  );
+  const dropdownResult = await fetchCustomerLookupService(user, {
+    keyword,
+    limit,
+    offset,
+  });
 
   const { items, hasMore } = dropdownResult;
 
@@ -211,7 +210,7 @@ const getCustomerAddressLookupController = wrapAsync(async (req, res) => {
 const getOrderTypeLookupController = wrapAsync(async (req, res) => {
   const user = req.user;
   const { filters = {} } = req.normalizedQuery;
-  
+
   const result = await fetchOrderTypeLookupService(user, { filters });
 
   return res.status(200).json({
@@ -307,15 +306,15 @@ const getPaymentMethodLookupController = wrapAsync(async (req, res) => {
 const getDiscountLookupController = wrapAsync(async (req, res) => {
   const user = req.user;
   const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
-  
+
   const dropdownResult = await fetchPaginatedDiscountLookupService(user, {
     filters,
     limit,
     offset,
   });
-  
+
   const { items, hasMore } = dropdownResult;
-  
+
   return res.status(200).json({
     success: true,
     message: 'Successfully retrieved discount lookup',
@@ -365,15 +364,15 @@ const getDiscountLookupController = wrapAsync(async (req, res) => {
 const getTaxRateLookupController = wrapAsync(async (req, res) => {
   const user = req.user;
   const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
-  
+
   const dropdownResult = await fetchPaginatedTaxRateLookupService(user, {
     filters,
     limit,
     offset,
   });
-  
+
   const { items, hasMore } = dropdownResult;
-  
+
   return res.status(200).json({
     success: true,
     message: 'Successfully retrieved tax rate lookup',
@@ -423,15 +422,15 @@ const getTaxRateLookupController = wrapAsync(async (req, res) => {
 const getDeliveryMethodLookupController = wrapAsync(async (req, res) => {
   const user = req.user;
   const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
-  
+
   const dropdownResult = await fetchPaginatedDeliveryMethodLookupService(user, {
     filters,
     limit,
     offset,
   });
-  
+
   const { items, hasMore } = dropdownResult;
-  
+
   return res.status(200).json({
     success: true,
     message: 'Successfully retrieved delivery method lookup',
@@ -486,16 +485,16 @@ const getSkuLookupController = wrapAsync(async (req, res) => {
     limit = 50,
     offset = 0,
   } = req.normalizedQuery;
-  
+
   const dropdownResult = await fetchPaginatedSkuLookupService(user, {
     filters,
     options,
     limit,
     offset,
   });
-  
+
   const { items, hasMore } = dropdownResult;
-  
+
   return res.status(200).json({
     success: true,
     message: 'Successfully retrieved SKU lookup',
@@ -563,7 +562,7 @@ const getPricingLookupController = wrapAsync(async (req, res) => {
     limit = 50,
     offset = 0,
   } = req.normalizedQuery;
-  
+
   const dropdownResult = await fetchPaginatedPricingLookupService(user, {
     filters,
     limit,
@@ -573,9 +572,9 @@ const getPricingLookupController = wrapAsync(async (req, res) => {
       labelOnly: options.labelOnly,
     },
   });
-  
+
   const { items, hasMore } = dropdownResult;
-  
+
   return res.status(200).json({
     success: true,
     message: 'Successfully retrieved pricing lookup',
@@ -641,16 +640,19 @@ const getPackagingMaterialLookupController = wrapAsync(async (req, res) => {
     limit = 50,
     offset = 0,
   } = req.normalizedQuery;
-  
+
   const { mode } = options;
-  
-  const { items, hasMore } = await fetchPaginatedPackagingMaterialLookupService(user, {
-    filters,
-    limit,
-    offset,
-    mode
-  });
-  
+
+  const { items, hasMore } = await fetchPaginatedPackagingMaterialLookupService(
+    user,
+    {
+      filters,
+      limit,
+      offset,
+      mode,
+    }
+  );
+
   return res.status(200).json({
     success: true,
     message: 'Successfully retrieved packaging material lookup',

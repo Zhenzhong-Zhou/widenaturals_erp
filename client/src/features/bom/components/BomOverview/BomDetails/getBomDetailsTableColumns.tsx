@@ -40,7 +40,7 @@ import { createDrillDownColumn } from '@utils/table/createDrillDownColumn.tsx';
  */
 export const getBomDetailsTableColumns = (
   expandedRowId?: string | null,
-  handleDrillDownToggle?: (id: string) => void,
+  handleDrillDownToggle?: (id: string) => void
 ): Column<FlattenedBomDetailRow>[] => {
   return [
     {
@@ -100,11 +100,11 @@ export const getBomDetailsTableColumns = (
     },
     ...(handleDrillDownToggle
       ? [
-        createDrillDownColumn<FlattenedBomDetailRow>(
-          (row) => handleDrillDownToggle(row.bomItemId),
-          (row) => expandedRowId === row.bomItemId
-        ),
-      ]
+          createDrillDownColumn<FlattenedBomDetailRow>(
+            (row) => handleDrillDownToggle(row.bomItemId),
+            (row) => expandedRowId === row.bomItemId
+          ),
+        ]
       : []),
   ];
 };

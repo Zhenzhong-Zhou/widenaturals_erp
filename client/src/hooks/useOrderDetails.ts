@@ -2,7 +2,8 @@ import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   getOrderDetailsByIdThunk,
-  makeSelectOrderItemById, type OrderRouteParams,
+  makeSelectOrderItemById,
+  type OrderRouteParams,
   selectHasOrder,
   selectOrderDetailsData,
   selectOrderDetailsError,
@@ -28,7 +29,7 @@ import { clearOrderDetails } from '@features/order/state/orderDetailsSlice';
  */
 export const useOrderDetails = () => {
   const dispatch = useAppDispatch();
-  
+
   const data = useAppSelector(selectOrderDetailsData);
   const header = useAppSelector(selectOrderHeader);
   const items = useAppSelector(selectOrderItems);
@@ -37,16 +38,16 @@ export const useOrderDetails = () => {
   const error = useAppSelector(selectOrderDetailsError);
   const hasOrder = useAppSelector(selectHasOrder);
   const totals = useAppSelector(selectOrderTotals);
-  
+
   const fetchById = useCallback(
     (params: OrderRouteParams) => dispatch(getOrderDetailsByIdThunk(params)),
     [dispatch]
   );
-  
+
   const reset = useCallback(() => {
     dispatch(clearOrderDetails());
   }, [dispatch]);
-  
+
   return {
     data,
     header,
