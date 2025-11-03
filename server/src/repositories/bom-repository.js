@@ -349,6 +349,7 @@ const getBOMProductionSummary = async (bomId) => {
       SELECT
         pm.id AS packaging_material_id,
         pm.name AS material_name,
+        pmb.id AS packaging_material_batch_id,
         pmb.material_snapshot_name,
         pmb.received_label_name,
         pmb.lot_number,
@@ -401,6 +402,7 @@ const getBOMProductionSummary = async (bomId) => {
       GREATEST(pr.material_qty_per_product - COALESCE(pi.total_available_quantity, 0), 0)
         AS shortage_qty,
       pd.material_name,
+      pd.packaging_material_batch_id,
       pd.material_snapshot_name,
       pd.received_label_name,
       pd.lot_number,

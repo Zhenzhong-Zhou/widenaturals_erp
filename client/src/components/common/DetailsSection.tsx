@@ -19,7 +19,7 @@ interface DetailsSectionProps {
   sx?: SxProps<Theme>;
 }
 
-const INLINE_DISPLAY_LENGTH = 50;
+const INLINE_DISPLAY_LENGTH = 40;
 
 const DetailsSection: FC<DetailsSectionProps> = ({
   fields,

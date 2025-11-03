@@ -453,6 +453,7 @@ const transformBomDetails = (rows = []) => {
  * @property {number|null} max_producible_units - Computed number of producible product units.
  * @property {boolean} is_shortage - Whether available quantity is insufficient.
  * @property {number} shortage_qty - Difference between required and available quantity.
+ * @property {string|null} packaging_material_batch_id - ID of the packaging material batch.
  * @property {string|null} material_name - Name of the packaging material.
  * @property {string|null} material_snapshot_name - Material snapshot name (if available).
  * @property {string|null} received_label_name - Supplier label name (if any).
@@ -563,6 +564,7 @@ const transformBOMProductionSummaryRows = (rows = []) => {
     if (row.material_name || row.lot_number) {
       grouped.get(partId).materialBatches.push(
         cleanObject({
+          materialBatchId: row.packaging_material_batch_id,
           materialName: row.material_name,
           materialSnapshotName: row.material_snapshot_name,
           receivedLabelName: row.received_label_name,
@@ -597,21 +599,30 @@ const transformBOMProductionSummaryRows = (rows = []) => {
 };
 
 /**
- * Builds a standardized API response object for a BOM production readiness report.
+ * Builds a standardized API response object for a BOM Production Readiness report.
  *
- * Consumes the output of `getProductionReadinessReport()` and formats it into a
- * structured, client-friendly response. This includes key metadata about
- * production readiness and detailed part-level information.
+ * Consumes the structured output of `getProductionReadinessReport()` and converts it
+ * into a client-friendly response matching the `BomProductionReadinessData` shape.
+ *
+ * The resulting object includes:
+ *  - **metadata:** Summary-level readiness metrics (status, max units, bottlenecks, etc.).
+ *  - **parts:** Flattened per-part readiness records with detailed stock and shortage data.
  *
  * @function
- * @param {string} bomId - Unique identifier of the BOM.
- * @param {object} readinessReport - Output from getProductionReadinessReport().
- * @returns {object} Structured API response for client consumption.
+ * @param {string} bomId - Unique identifier of the BOM for which readiness is generated.
+ * @param {object} readinessReport - The report object returned by `getProductionReadinessReport()`.
+ * @returns {object} Structured API response conforming to `BomProductionReadinessData`,
+ *                   containing both high-level metadata and detailed part readiness info.
  *
  * @example
- * const readinessReport = getProductionReadinessReport(summary);
- * const response = buildBOMProductionSummaryResponse('cbbf2680-2730-4cb1-a38e-ce32f93609c1', readinessReport);
+ * const readinessReport = getProductionReadinessReport(bomSummary);
+ * const response = buildBOMProductionSummaryResponse(
+ *   'cbbf2680-2730-4cb1-a38e-ce32f93609c1',
+ *   readinessReport
+ * );
+ *
  * console.log(response.metadata.maxProducibleUnits);
+ * // → 18
  */
 const buildBOMProductionSummaryResponse = (bomId, readinessReport) => {
   if (!readinessReport) {
@@ -620,14 +631,14 @@ const buildBOMProductionSummaryResponse = (bomId, readinessReport) => {
   
   // Extract bottleneck parts for quick reference in metadata
   const bottleneckParts = readinessReport.summary
-    .filter((p) => p.isBottleneck)
-    .map((p) => ({
+    ?.filter((p) => p.isBottleneck)
+    ?.map((p) => ({
       partId: p.partId,
       partName: p.partName,
       packagingMaterialName: p.packagingMaterialName ?? null,
       materialSnapshotName: p.materialSnapshotName ?? null,
       displayLabel: p.displayLabel ?? p.partName,
-    }));
+    })) ?? [];
   
   return {
     bomId,
