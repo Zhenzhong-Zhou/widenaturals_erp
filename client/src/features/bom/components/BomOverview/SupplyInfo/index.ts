@@ -1,5 +1,6 @@
 export { getBomSupplyMiniTableColumns } from './getBomSupplyMiniTableColumns';
 export { default as BomItemSupplyMiniTable } from './BomItemSupplyMiniTable';
+export { default as PartMetadataSection } from './PartMetadataSection';
 export { default as PackagingMaterialSection } from './PackagingMaterialSection';
 export { default as BomItemMetadataSection } from './BomItemMetadataSection';
 export { default as SupplierInfoSection } from './SupplierInfoSection';

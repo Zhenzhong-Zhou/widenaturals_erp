@@ -5,9 +5,9 @@ import {
 } from '@features/bom/state/bomThunks';
 import {
   resetBomProductionReadiness,
+  setSelectedBomId,
 } from '@features/bom/state/bomProductionReadinessSlice';
 import {
-  selectBomReadinessData,
   selectBomReadinessMetadata,
   selectBomReadinessParts,
   selectBomReadinessSummary,
@@ -17,7 +17,8 @@ import {
   selectIsReadyForProduction,
   selectBottleneckParts,
   selectStockHealth,
-  selectSelectedBomId,
+  selectMaxProducibleUnits,
+  selectReadinessSelectedBomId,
 } from '@features/bom/state/bomProductionReadinessSelectors';
 
 /**
@@ -39,23 +40,23 @@ const useBomProductionReadiness = () => {
   const dispatch = useAppDispatch();
   
   // --- Selectors ---
-  const data = useAppSelector(selectBomReadinessData);
   const metadata = useAppSelector(selectBomReadinessMetadata);
   const parts = useAppSelector(selectBomReadinessParts);
   const summary = useAppSelector(selectBomReadinessSummary);
   const bottlenecks = useAppSelector(selectBottleneckParts);
   const stockHealth = useAppSelector(selectStockHealth);
+  const maxProducibleUnits = useAppSelector(selectMaxProducibleUnits);
   const isReadyForProduction = useAppSelector(selectIsReadyForProduction);
-  const selectedBomId = useAppSelector(selectSelectedBomId);
+  const selectedBomId = useAppSelector(selectReadinessSelectedBomId);
   const loading = useAppSelector(selectBomReadinessLoading);
   const error = useAppSelector(selectBomReadinessError);
   const hasData = useAppSelector(selectBomReadinessHasData);
   
   // --- Actions ---
   const fetchReadiness = useCallback(
-    async (bomId: string) => {
-      if (!bomId) return;
-      await dispatch(fetchBomProductionSummaryThunk(bomId));
+    (bomId: string) => {
+      dispatch(setSelectedBomId(bomId));
+      dispatch(fetchBomProductionSummaryThunk(bomId));
     },
     [dispatch]
   );
@@ -67,12 +68,12 @@ const useBomProductionReadiness = () => {
   // --- Derived Memoized Object ---
   const readiness = useMemo(
     () => ({
-      data,
       metadata,
       parts,
       summary,
       bottlenecks,
       stockHealth,
+      maxProducibleUnits,
       isReadyForProduction,
       hasData,
       loading,
@@ -80,12 +81,12 @@ const useBomProductionReadiness = () => {
       selectedBomId,
     }),
     [
-      data,
       metadata,
       parts,
       summary,
       bottlenecks,
       stockHealth,
+      maxProducibleUnits,
       isReadyForProduction,
       hasData,
       loading,

@@ -1,10 +1,13 @@
 import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
-import type { BomReadinessPart } from '@features/bom/state/bomTypes';
+import type {
+  BomReadinessPart,
+  BomReadinessSummary
+} from '@features/bom/state/bomTypes';
 
 /** Base selector for the BOM Production Readiness slice */
 export const selectBomProductionReadinessState = (state: RootState) =>
-  state.productionReadiness;
+  state.bomProductionReadiness;
 
 /** Returns the full readiness summary data object */
 export const selectBomReadinessData = createSelector(
@@ -13,7 +16,7 @@ export const selectBomReadinessData = createSelector(
 );
 
 /** Returns the currently selected BOM ID */
-export const selectSelectedBomId = createSelector(
+export const selectReadinessSelectedBomId = createSelector(
   [selectBomProductionReadinessState],
   (state) => state.selectedBomId
 );
@@ -53,13 +56,13 @@ export const selectBomReadinessHasData = createSelector(
 /** Returns the readiness metadata summary (overall info like producibility, bottlenecks, etc.) */
 export const selectBomReadinessMetadata = createSelector(
   [selectBomReadinessData],
-  (data) => data?.metadata ?? null
+  (data) => data?.data?.metadata ?? null
 );
 
 /** Returns the list of all readiness parts with material batch info */
 export const selectBomReadinessParts = createSelector(
   [selectBomReadinessData],
-  (data) => data?.parts ?? []
+  (data) => data?.data?.parts ?? []
 );
 
 /** Returns true if the current BOM is ready for production */
@@ -93,24 +96,25 @@ export const selectMaxProducibleUnits = createSelector(
 );
 
 /**
- * Selector that returns a concise, derived summary object
- * representing key production readiness metrics for the current BOM.
+ * Selector that derives a concise, high-level summary of
+ * production readiness metrics for the currently selected BOM.
  *
- * Combines `metadata` and `bottleneckCount` into a single object for
- * easier consumption by dashboards, summary cards, and overview panels.
+ * It combines the normalized `metadata` and `bottleneckCount`
+ * into a single, lightweight object suitable for use in
+ * dashboards, summary chips, and overview panels.
  *
- * @returns An object containing:
- * - `isReady`: Whether the BOM is ready for production.
- * - `maxUnits`: Maximum producible units based on current inventory.
- * - `bottleneckCount`: Total number of bottleneck parts detected.
+ * @returns {BomReadinessSummary} Object containing key readiness indicators:
+ * - `isReady`: Whether the BOM is ready to start production.
+ * - `maxUnits`: Maximum producible finished units based on current stock.
+ * - `bottleneckCount`: Total number of bottleneck parts constraining production.
  *
  * @example
  * const summary = useSelector(selectBomReadinessSummary);
- * console.log(summary.maxUnits, summary.isReady);
+ * console.log(summary.isReady, summary.maxUnits, summary.bottleneckCount);
  */
 export const selectBomReadinessSummary = createSelector(
   [selectBomReadinessMetadata, selectBottleneckCount],
-  (metadata, bottleneckCount) => ({
+  (metadata, bottleneckCount): BomReadinessSummary => ({
     isReady: metadata?.isReadyForProduction ?? false,
     maxUnits: metadata?.maxProducibleUnits ?? 0,
     bottleneckCount,

@@ -15,6 +15,7 @@ const BomItemMetadataSection: FC<{ row: FlattenedBomSupplyRow }> = ({ row }) => 
     }}
     fields={[
       { label: 'BOM Unit', value: row.bomUnit },
+      { label: 'Per Product Qty', value: row.requiredQtyPerProduct },
       { label: 'Item Material Note', value: row.materialNote },
       { label: 'Item Material Status', value: row.bomItemMaterialStatusName, format: formatLabel },
       { label: 'Item Material Status Date', value: row.bomItemMaterialStatusDate },

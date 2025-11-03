@@ -1,38 +1,33 @@
 import type { MiniColumn } from '@components/common/CustomMiniTable';
-import type { FlattenedBomSupplyRow } from '@features/bom/state';
-import { formatDate } from '@utils/dateTimeUtils';
-import { formatCurrency } from '@utils/textUtils';
+import type { UnifiedBatchRow } from '@features/bom/state';
+import { formatDate, formatToISODate } from '@utils/dateTimeUtils';
+import { formatCurrency, formatLabel } from '@utils/textUtils';
 import TruncatedText from '@components/common/TruncatedText';
 import IconButton from '@mui/material/IconButton';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import Chip from '@mui/material/Chip';
 
 /**
- * Column configuration for the **BOM Item Supply Info Mini Table**.
+ * Columns for the **Unified BOM Batch Mini Table**.
  *
- * Displays supplier and batch-level details for each BOM item, including:
- *  - Supplier & contract info
- *  - Batch identification and expiry
- *  - Quantity & available stock (from Production Summary)
- *  - Cost details (unit cost, total cost)
- *  - Lead time and status
- *
- *
- * @example
- * <CustomMiniTable
- *   columns={bomSupplyMiniTableColumns}
- *   data={flattenedSupplyRows}
- * />
+ * Combines supplier, batch, and inventory readiness info:
+ *  - Supplier & material identification
+ *  - Lot number and inbound/expiry dates
+ *  - Warehouse and stock quantities
+ *  - Cost & currency info (when applicable)
+ *  - Readiness indicators (bottleneck / shortage)
  */
 export const getBomSupplyMiniTableColumns = (
-  handleOpenDetails: (row: FlattenedBomSupplyRow) => void
-): MiniColumn<FlattenedBomSupplyRow>[] => [
+  handleOpenDetails: (row: UnifiedBatchRow) => void
+): MiniColumn<UnifiedBatchRow>[] => [
+  // Material Name
   {
     id: 'packagingMaterialName',
     label: 'Material Name',
     renderCell: (row) => (
       <TruncatedText
-        text={row.packagingMaterialName ?? '—'}
-        maxLength={15}
+        text={row.packagingMaterialName ?? row.partName ?? '—'}
+        maxLength={10}
         variant="body2"
         sx={{
           textDecoration: 'none',
@@ -41,13 +36,22 @@ export const getBomSupplyMiniTableColumns = (
       />
     ),
   },
+  
+  // Lot number
+  {
+    id: 'lotNumber',
+    label: 'Lot #',
+    renderCell: (row) => row.lotNumber ?? '—',
+  },
+  
+  // Supplier (if available)
   {
     id: 'supplierName',
     label: 'Supplier',
     renderCell: (row) => (
       <TruncatedText
         text={row.supplierName ?? '—'}
-        maxLength={15}
+        maxLength={10}
         variant="body2"
         sx={{
           textDecoration: 'none',
@@ -56,13 +60,15 @@ export const getBomSupplyMiniTableColumns = (
       />
     ),
   },
+  
+  // Warehouse (readiness / inventory side)
   {
-    id: 'materialSnapshotName',
-    label: 'Snapshot Name',
+    id: 'warehouseName',
+    label: 'Warehouse',
     renderCell: (row) => (
       <TruncatedText
-        text={row.materialSnapshotName ?? '—'}
-        maxLength={15}
+        text={row.warehouseName ?? '—'}
+        maxLength={10}
         variant="body2"
         sx={{
           textDecoration: 'none',
@@ -71,79 +77,108 @@ export const getBomSupplyMiniTableColumns = (
       />
     ),
   },
+  
+  // Inbound / Manufacture Date
   {
-    id: 'receivedLabelName',
-    label: 'Supplier Label',
-    renderCell: (row) => (
-      <TruncatedText
-        text={row.receivedLabelName ?? '—'}
-        maxLength={15}
-        variant="body2"
-        sx={{
-          textDecoration: 'none',
-          '&:hover': { textDecoration: 'underline' },
-        }}
-      />
-    ),
+    id: 'MFGDate',
+    label: 'MFG Date',
+    align: 'center',
+    renderCell: (row) => formatToISODate(row.sourceSupply?.manufactureDate ?? '—'),
   },
-  // todo: chips or other ui
+  
+  // Expiry Date
+  {
+    id: 'expiryDate',
+    label: 'Expiry',
+    align: 'center',
+    renderCell: (row) =>  formatDate(row.sourceSupply?.expiryDate ?? '—'),
+  },
+  
   {
     id: 'supplierPreferred',
     label: 'Preferred',
     align: 'center',
     renderCell: (row) =>
-      row.supplierPreferred ? '✅' : '—',
+      row.sourceSupply?.supplierPreferred ? '✅' : '—',
   },
+  
+  // // Inventory Status Chip
   {
-    id: 'requiredQtyPerProduct',
-    label: 'Per Product Qty',
+    id: 'inventoryStatus',
+    label: 'Status',
     align: 'center',
-    renderCell: (row) =>
-      row.requiredQtyPerProduct ?? 1,
+    renderCell: (row) => (
+      <Chip
+        size="small"
+        label={formatLabel(row.inventoryStatus ?? '—')}
+        color={
+          row.inventoryStatus === 'in_stock'
+            ? 'success'
+            : row.inventoryStatus === 'reserved'
+              ? 'warning'
+              : 'default'
+        }
+        variant="outlined"
+      />
+    ),
   },
+  
+  // Quantities
   {
-    id: 'lotNumber',
-    label: 'Lot #',
-    renderCell: (row) => row.lotNumber ?? '—',
-  },
-  {
-    id: 'expiryDate',
-    label: 'Expiry Date',
-    renderCell: (row) => formatDate(row.expiryDate ?? '—'),
-  },
-  // {
-  //   id: 'availableQty',
-  //   label: 'Available',
-  //   align: 'right',
-  //   renderCell: (row) =>
-  //     row.availableQty?.toLocaleString() ?? row.quantity?.toLocaleString() ?? '—',
-  // },
-  {
-    id: 'quantity',
+    id: 'batchQuantity',
     label: 'Batch Qty',
     align: 'right',
-    renderCell: (row) => row.quantity ?? '—',
+    renderCell: (row) => row.sourceSupply?.quantity ?? '—',
   },
   {
-    id: 'batchUnitCost',
+    id: 'availableQuantity',
+    label: 'Available',
+    align: 'right',
+    renderCell: (row) =>
+      row.availableQuantity ??
+      '—',
+  },
+  {
+    id: 'reservedQuantity',
+    label: 'Reserved',
+    align: 'right',
+    renderCell: (row) =>
+      row.reservedQuantity ? row.reservedQuantity : '—',
+  },
+  
+  // Cost (supply side only)
+  {
+    id: 'unitCost',
     label: 'Unit Cost',
     align: 'right',
     renderCell: (row) =>
-      formatCurrency(row.unitCost, row.batchCurrency),
+      row.unitCost
+        ? formatCurrency(row.unitCost, row.currency ?? 'CAD')
+        : '—',
   },
   {
     id: 'totalCost',
     label: 'Total Cost',
     align: 'right',
     renderCell: (row) =>
-      formatCurrency(row.totalCost, 'CAD'), // your base currency
+      row.sourceSupply?.totalCost
+        ? formatCurrency(row.sourceSupply?.totalCost, row.currency ?? 'CAD')
+        : '—',
   },
+  
+  // Bottleneck / Shortage
   {
-    id: 'supplierLeadTimeDays',
-    label: 'Lead Time (d)',
+    id: 'readinessFlags',
+    label: 'Health',
     align: 'center',
-    renderCell: (row) => row.supplierLeadTimeDays ?? '—',
+    renderCell: (row) => {
+      if (row.isShortage) return <Chip size="small" color="error" label="Shortage" />;
+      if (row.isBottleneck) return <Chip size="small" color="warning" label="Bottleneck" />;
+      return <Chip size="small" color="success" label="OK" />;
+    },
   },
+  
+  // Actions
   {
     id: 'actions',
     label: '',

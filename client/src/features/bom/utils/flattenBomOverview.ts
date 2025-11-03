@@ -3,12 +3,17 @@ import type {
   BomMaterialSupplyDetail,
   BomMaterialSupplySummary,
   BomPartDetail,
+  BomReadinessMetadata,
+  BomReadinessPart,
   BomSummary,
   FlattenedBomDetailRow,
   FlattenedBomHeader,
   FlattenedBomMaterialSupplySummary,
+  FlattenedBomReadinessMetadata,
+  FlattenedBomReadinessPartRow,
   FlattenedBomSummary,
   FlattenedBomSupplyRow,
+  MaterialBatch,
 } from '@features/bom/state/bomTypes';
 
 /**
@@ -335,4 +340,162 @@ export const flattenAllBomMaterialSupplyDetails = (
 ): FlattenedBomSupplyRow[] => {
   if (!Array.isArray(details)) return [];
   return details.flatMap(flattenBomMaterialSupplyDetail);
+};
+
+/**
+ * Flattens an array of BOM readiness parts into a single-level structure
+ * where each row represents one material batch linked to a given part.
+ *
+ * If a part contains no material batches, a single placeholder row is still
+ * returned for that part to preserve display consistency.
+ *
+ * @param parts - Array of `BomReadinessPart` objects, each containing part-level
+ *                readiness data and associated material batch records.
+ * @returns Array of `FlattenedBomReadinessPartRow` entries representing
+ *          part–batch readiness relationships for table rendering.
+ *
+ * @example
+ * const rows = flattenBomReadinessParts(readinessParts);
+ * // → [{ partId, partName, lotNumber, availableQuantity, ... }, ...]
+ */
+export const flattenBomReadinessParts = (
+  parts: BomReadinessPart[] = []
+): FlattenedBomReadinessPartRow[] => {
+  return parts.flatMap((part) => {
+    const {
+      partId,
+      partName,
+      requiredQtyPerUnit,
+      totalAvailableQuantity,
+      maxProducibleUnits,
+      isBottleneck,
+      isShortage,
+      shortageQty,
+      materialBatches,
+    } = part;
+    
+    // If no batches, still return one row for the part
+    if (!materialBatches?.length) {
+      return [
+        {
+          partId,
+          partName,
+          requiredQtyPerUnit,
+          totalAvailableQuantity,
+          maxProducibleUnits,
+          isBottleneck,
+          isShortage,
+          shortageQty,
+        },
+      ];
+    }
+    
+    // Otherwise, expand each material batch
+    return materialBatches.map((batch: MaterialBatch) => ({
+      partId,
+      partName,
+      requiredQtyPerUnit,
+      totalAvailableQuantity,
+      maxProducibleUnits,
+      isBottleneck,
+      isShortage,
+      shortageQty,
+      ...batch,
+    }));
+  });
+};
+
+/**
+ * Flattens all BOM readiness parts into a unified list of normalized rows.
+ *
+ * This utility acts as a wrapper for `flattenBomReadinessParts`, ensuring a
+ * single-level array of readiness part records. It simplifies integration
+ * with UI tables or downstream transformation layers by removing any nested
+ * `materialBatches` structure.
+ *
+ * @param parts - Array of `BomReadinessPart` objects, each representing a part
+ *                and its associated material batch readiness data.
+ * @returns Flat array of `FlattenedBomReadinessPartRow` entries combining part
+ *          and batch-level readiness fields.
+ *
+ * @example
+ * const flat = flattenAllBomReadinessParts(bomReadiness.parts);
+ * // → [{ partId, partName, lotNumber, availableQuantity, ... }, ...]
+ */
+export const flattenAllBomReadinessParts = (
+  parts: BomReadinessPart[] = []
+): FlattenedBomReadinessPartRow[] => flattenBomReadinessParts(parts);
+
+/**
+ * Flattens a BOM readiness metadata object into a single-level structure
+ * suitable for table display, summary cards, or export operations.
+ *
+ * This function extracts key production readiness metrics (e.g., shortage count,
+ * bottleneck parts, stock health summary) from the nested `BomReadinessMetadata`
+ * object and normalizes them into flat, human-readable fields.
+ *
+ * @param metadata - The metadata section from a BOM readiness response.
+ * @returns A `FlattenedBomReadinessMetadata` object containing normalized
+ *          readiness fields for UI display or export.
+ *
+ * @example
+ * const flatMeta = flattenBomReadinessMetadata(response.metadata);
+ * // → { readinessStatus: true, readinessMaxUnits: 18, readinessBottleneckPartNames: "Capsule" }
+ */
+export const flattenBomReadinessMetadata = (
+  metadata: BomReadinessMetadata | null
+): FlattenedBomReadinessMetadata => {
+  if (!metadata) {
+    return {
+      readinessGeneratedAt: null,
+      readinessStatus: null,
+      readinessMaxUnits: null,
+      readinessShortageCount: null,
+      readinessStockHealthSummary: null,
+      readinessBottleneckPartNames: null,
+      readinessBottleneckMaterialName: null,
+      readinessBottleneckMaterialSnapshotName: null,
+    };
+  }
+  
+  const {
+    generatedAt,
+    isReadyForProduction,
+    maxProducibleUnits,
+    shortageCount,
+    stockHealth,
+    bottleneckParts
+  } = metadata;
+  
+  // Format stock health summary (example: "usable: 9850, inactive: 0")
+  const stockHealthSummary = stockHealth
+    ? Object.entries(stockHealth)
+      .map(([key, val]) => `${key}: ${val}`)
+      .join(', ')
+    : null;
+  
+  // Extract bottleneck parts info
+  const partNames = bottleneckParts?.length
+    ? bottleneckParts.map((p) => p.partName).join(', ')
+    : null;
+  
+  const packagingMaterialName = bottleneckParts?.length
+    ? bottleneckParts.map((p) => p.packagingMaterialName).join(', ')
+    : null;
+  
+  const materialSnapshotName = bottleneckParts?.length
+    ? bottleneckParts.map((p) => p.materialSnapshotName).join(', ')
+    : null;
+  
+  return {
+    readinessGeneratedAt: generatedAt ?? null,
+    readinessStatus: isReadyForProduction ?? null,
+    readinessMaxUnits: maxProducibleUnits ?? null,
+    readinessShortageCount: shortageCount ?? null,
+    readinessStockHealthSummary: stockHealthSummary,
+    readinessBottleneckPartNames: partNames,
+    readinessBottleneckMaterialName: packagingMaterialName,
+    readinessBottleneckMaterialSnapshotName: materialSnapshotName,
+    readinessBottleneckCount: bottleneckParts?.length ?? 0,
+  };
 };

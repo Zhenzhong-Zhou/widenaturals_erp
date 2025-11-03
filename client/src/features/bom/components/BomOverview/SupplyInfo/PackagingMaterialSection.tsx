@@ -4,6 +4,9 @@ import DetailsSection from '@components/common/DetailsSection';
 import { formatCurrency, formatLabel } from '@utils/textUtils';
 import { formatDateTime } from '@utils/dateTimeUtils';
 
+/**
+ * Displays key details about the packaging material linked to a BOM item or batch.
+ */
 const PackagingMaterialSection: FC<{ row: FlattenedBomSupplyRow }> = ({ row }) => (
   <DetailsSection
     sectionTitle="Packaging Material Information"

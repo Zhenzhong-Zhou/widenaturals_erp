@@ -782,42 +782,54 @@ export interface FlattenedBomSupplyRow {
 }
 
 /**
- * Represents a single BOM item and its associated supplier/batch supply details.
+ * Represents a single BOM item with its associated supplier supply data
+ * **and** production readiness (inventory) details.
  *
- * Used primarily in the BOM Overview and Supply Info modules to link
- * flattened BOM item data (`FlattenedBomDetailRow`) with its corresponding
- * supply records (`FlattenedBomSupplyRow[]`).
+ * Used primarily in the BOM Overview page to merge data across
+ * multiple domains — including base BOM item info, supplier supply
+ * records, and readiness (batch-level inventory) status.
  *
- * Each `BomItemWithSupply` object corresponds to one BOM item, combining:
- *  - **details:** Core part/material metadata and production requirements.
- *  - **supplyDetails:** One or more supplier–batch combinations linked
- *    to that item, including cost, currency, and lead time info.
+ * Each `BomItemWithSupplyAndReadiness` entry corresponds to one
+ * BOM item and combines:
+ *  - **details:** Flattened core part/material metadata and production requirements.
+ *  - **supplyDetails:** Linked supplier–batch combinations with cost, currency,
+ *    and procurement information.
+ *  - **readinessDetails:** Readiness-specific rows describing current stock,
+ *    bottleneck status, and max producible units based on batch availability.
  *
- * @interface BomItemWithSupply
+ * This unified model enables the front end to display comprehensive,
+ * per-item insights — such as supply coverage, inventory bottlenecks,
+ * and part-level producibility — within the BOM Details Table or
+ * its expanded row section.
+ *
+ * @interface BomItemWithSupplyAndReadiness
  *
  * @property {string} bomItemId - Unique identifier for the BOM item.
  * @property {FlattenedBomDetailRow} details - Flattened BOM item metadata
- *   (part, category, quantity per product, etc.).
- * @property {FlattenedBomSupplyRow[]} supplyDetails - List of supplier/batch
- *   records related to this BOM item, typically displayed in a mini-table
- *   within the expanded row of the BOM Details Table.
+ *   (part info, category, required quantity, etc.).
+ * @property {FlattenedBomSupplyRow[]} supplyDetails - List of supplier or
+ *   batch supply records linked to this item (used in Supply Info tables).
+ * @property {FlattenedBomReadinessPartRow[]} readinessDetails - List of
+ *   readiness records derived from inventory availability and production
+ *   constraint calculations for this item.
  *
  * @example
- * const record: BomItemWithSupply = {
+ * const record: BomItemWithSupplyAndReadiness = {
  *   bomItemId: 'f123abc4-5678-9def-0123-456789abcdef',
  *   details: flattenedBomDetails[0],
  *   supplyDetails: flattenedSupplyRows.filter(s => s.bomItemId === 'f123abc4-5678-9def-0123-456789abcdef'),
+ *   readinessDetails: flattenedReadinessRows.filter(r => r.partId === flattenedBomDetails[0].partId),
  * };
  */
-export interface BomItemWithSupply {
+export interface BomItemWithSupplyAndReadiness {
   bomItemId: string;
   details: FlattenedBomDetailRow;
   supplyDetails: FlattenedBomSupplyRow[];
+  readinessDetails: FlattenedBomReadinessPartRow[];
 }
 
 /** Root response structure for BOM Production Readiness Summary */
 export type BomProductionReadinessResponse = ApiSuccessResponse<BomProductionReadinessData>;
-
 
 /** Core data object containing metadata and part-level readiness details */
 export interface BomProductionReadinessData {
@@ -869,6 +881,16 @@ export interface StockHealth {
   inactive: number;
 }
 
+/** Lightweight summary of BOM readiness for quick UI display */
+export interface BomReadinessSummary {
+  /** True if production can start (no shortages) */
+  isReady: boolean;
+  /** Maximum producible finished units given current stock */
+  maxUnits: number;
+  /** Number of bottleneck parts limiting production */
+  bottleneckCount: number;
+}
+
 /** Detailed readiness record for each BOM part and its associated material batches */
 export interface BomReadinessPart {
   partId: string;
@@ -891,6 +913,7 @@ export interface BomReadinessPart {
 
 /** Represents an available batch of a specific packaging material or component */
 export interface MaterialBatch {
+  materialBatchId: string;
   materialName: string;
   materialSnapshotName: string;
   receivedLabelName: string;
@@ -937,4 +960,124 @@ export interface BomProductionReadinessState
    * Useful for alerting and readiness score calculations.
    */
   bottleneckCount: number;
+}
+
+/**
+ * Flattened row type for table display, derived only from parts and their batches.
+ */
+export interface FlattenedBomReadinessPartRow extends Partial<MaterialBatch> {
+  partId: string;
+  partName: string;
+  requiredQtyPerUnit: number;
+  totalAvailableQuantity: number;
+  maxProducibleUnits: number;
+  isBottleneck: boolean;
+  isShortage: boolean;
+  shortageQty: number;
+  packagingMaterialName?: string;
+}
+
+/**
+ * Represents a unified view of batch-level information across
+ * supplier data, readiness data, or merged combined data sources.
+ *
+ * This structure enables the frontend to render unified inventory/batch tables
+ * regardless of whether the data originates from supply, readiness, or merged contexts.
+ */
+export interface UnifiedBatchRow {
+  /** Source of the batch record — defines data origin */
+  source: 'supplier' | 'readiness' | 'merged';
+  
+  /** Unique batch identifier (can map to supplier or readiness batch IDs) */
+  batchId: string;
+  
+  /** Lot number or production batch code */
+  lotNumber: string;
+  
+  /** Associated supplier name, if available */
+  supplierName?: string;
+  
+  /** Associated warehouse name or storage location */
+  warehouseName?: string;
+  
+  /** Quantity currently available for allocation or production */
+  availableQuantity?: number;
+  
+  /** Quantity already reserved or allocated */
+  reservedQuantity?: number;
+  
+  /** Date when batch was received or recorded inbound */
+  inboundDate?: string | null;
+  
+  /** Current inventory status (e.g., 'in_stock', 'inactive', 'reserved') */
+  inventoryStatus?: string;
+  
+  /** Cost per unit in original currency */
+  unitCost?: number | null;
+  
+  /** Currency of the unit cost (e.g., 'CAD', 'USD') */
+  currency?: string | null;
+  
+  /** Related BOM part identifier */
+  partId?: string;
+  
+  /** Human-readable BOM part name */
+  partName?: string;
+  
+  /** Related packaging material name, if applicable */
+  packagingMaterialName?: string;
+  
+  /** Flag indicating whether this batch is a bottleneck in production */
+  isBottleneck?: boolean;
+  
+  /** Flag indicating whether this batch is in shortage */
+  isShortage?: boolean;
+  
+  /** Maximum producible units limited by this batch */
+  maxProducibleUnits?: number;
+  
+  /** Quantity shortfall relative to required units */
+  shortageQty?: number;
+  
+  /** Original flattened supply row reference for traceability or tooltips */
+  sourceSupply?: FlattenedBomSupplyRow;
+  
+  /** Original flattened readiness row reference for traceability or tooltips */
+  sourceReadiness?: FlattenedBomReadinessPartRow;
+}
+
+/**
+ * Flattened structure representing BOM-level readiness metadata
+ * for display in summary cards, tables, or export operations.
+ *
+ * This provides a single-layer, human-readable view derived from
+ * the backend `BomReadinessMetadata` object.
+ */
+export interface FlattenedBomReadinessMetadata {
+  /** ISO timestamp when readiness was last calculated */
+  readinessGeneratedAt: string | null;
+  
+  /** Indicates whether all parts are sufficient to begin production */
+  readinessStatus: boolean | null;
+  
+  /** Maximum producible finished units given current stock levels */
+  readinessMaxUnits: number | null;
+  
+  /** Total count of parts currently in shortage */
+  readinessShortageCount: number | null;
+  
+  /** Aggregated stock health summary in text form (e.g., "usable: 9850, inactive: 0") */
+  readinessStockHealthSummary: string | null;
+  
+  /** Comma-separated list of bottleneck part names */
+  readinessBottleneckPartNames: string | null;
+  
+  /** Comma-separated list of bottleneck material names */
+  readinessBottleneckMaterialName: string | null;
+  
+  /** Comma-separated list of bottleneck material snapshot names */
+  readinessBottleneckMaterialSnapshotName: string | null;
+  
+  /** Optional count of bottleneck parts limiting production output */
+  readinessBottleneckCount?: number | null;
 }

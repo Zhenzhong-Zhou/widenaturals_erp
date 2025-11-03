@@ -15,6 +15,7 @@ import {
   BomSummarySection,
   BomDetailsTable,
   BomMaterialSupplySummarySection,
+  BomReadinessSummarySection,
 } from '@features/bom/components/BomOverview';
 import useBomDetails from '@hooks/useBomDetails';
 import useBomMaterialSupplyDetails from '@hooks/useBomMaterialSupplyDetails';
@@ -24,8 +25,13 @@ import {
   flattenBomDetails,
   flattenBomMaterialSupplySummary,
   flattenAllBomMaterialSupplyDetails,
+  flattenAllBomReadinessParts,
+  flattenBomReadinessMetadata,
 } from '@features/bom/utils/flattenBomOverview';
-import { mergeBomDetailsWithSupplyDetails } from '@features/bom/utils/mergeBomOverviewData';
+import {
+  mergeBomDetailsWithSupplyAndReadiness,
+} from '@features/bom/utils/mergeBomOverviewData';
+import useBomProductionReadiness from '@hooks/useBomProductionReadiness';
 
 const BomOverviewPage = () => {
   const { bomId } = useParams<{ bomId: string }>();
@@ -53,6 +59,17 @@ const BomOverviewPage = () => {
     resetDetails: resetBomSupplyDetails,
   } = useBomMaterialSupplyDetails();
   
+  // === BOM Material Batch Inventory Hook ===
+  const {
+    metadata: readinessMetadata,
+    parts: readinessParts,
+    hasData: hasReadinessData,
+    loading: readinessLoading,
+    error: readinessError,
+    fetchReadiness: fetchBomReadiness,
+    resetReadiness: resetBomReadiness,
+  } = useBomProductionReadiness();
+  
   // === Early error handling ===
   if (!bomId) {
     return <ErrorMessage message="Missing BOM ID in URL." />;
@@ -77,6 +94,19 @@ const BomOverviewPage = () => {
     refreshMaterialSupply();
     return () => resetBomSupplyDetails();
   }, [refreshMaterialSupply, resetBomSupplyDetails]);
+
+  // === Fetch BOM Production Readiness ===
+  const refreshProductionReadiness = useCallback(() => {
+    if (bomId) fetchBomReadiness(bomId);
+  }, [bomId, fetchBomReadiness]);
+  
+  useEffect(() => {
+    // Fetch on mount or bomId change
+    refreshProductionReadiness();
+    
+    // Reset only on unmount or when BOM changes
+    return () => resetBomReadiness();
+  }, [refreshProductionReadiness, resetBomReadiness]);
   
   // === Data Flattening ===
   const flattenedHeader = useMemo(() => bomDetails ? flattenBomHeader(bomDetails.header) : null, [bomDetails]);
@@ -84,21 +114,33 @@ const BomOverviewPage = () => {
   const flattenedDetails = useMemo(() => bomDetails ? flattenBomDetails(bomDetails.details) : null, [bomDetails]);
   const flattenedSupplySummary = useMemo(() => supplySummary ? flattenBomMaterialSupplySummary(supplySummary) : null, [supplySummary]);
   const flattenedSupplyDetails = useMemo(() => supplyDetails ? flattenAllBomMaterialSupplyDetails(supplyDetails) : null, [supplyDetails]);
+  const flattenedReadinessPartRows = useMemo(() => readinessParts ? flattenAllBomReadinessParts(readinessParts) : null, [readinessParts]);
+  const flattenedReadinessMetadata = useMemo(() => readinessMetadata ? flattenBomReadinessMetadata(readinessMetadata) : null, [readinessMetadata]);
   
   // === Merge BOM & Supply data ===
   const mergedBomData = useMemo(() => {
-    return flattenedDetails && flattenedSupplyDetails
-      ? mergeBomDetailsWithSupplyDetails(flattenedDetails, flattenedSupplyDetails)
+    return flattenedDetails && flattenedSupplyDetails && flattenedReadinessPartRows
+      ? mergeBomDetailsWithSupplyAndReadiness(
+        flattenedDetails,
+        flattenedSupplyDetails,
+        flattenedReadinessPartRows
+      )
       : [];
-  }, [flattenedDetails, flattenedSupplyDetails]);
-  
+  }, [flattenedDetails, flattenedSupplyDetails, flattenedReadinessPartRows]);
+
   // === Unified loading state ===
   const isPageLoading =
-    !hasBomData ||
     isBomLoading ||
+    isSupplyLoading ||
+    readinessLoading ||
+    !hasBomData ||
+    !hasSupplyData ||
+    !hasReadinessData ||
     !flattenedHeader ||
     !flattenedSummary ||
-    !flattenedDetails;
+    !flattenedDetails ||
+    !flattenedSupplySummary ||
+    !flattenedReadinessMetadata;
   
   if (isPageLoading) {
     return <Loading message="Loading BOM overview..." />;
@@ -196,6 +238,27 @@ const BomOverviewPage = () => {
             ) : (
               <CustomTypography variant="body2" color="text.secondary">
                 No supply summary data available.
+              </CustomTypography>
+            )}
+          </Box>
+          
+          <Divider sx={{ mb: 3 }} />
+          
+          {/* --- Inventory Summary Section --- */}
+          <Box sx={{ mb: 3 }}>
+            {readinessLoading ? (
+              <Loading message="Loading batch inventory info..." />
+            ) : readinessError ? (
+              <ErrorMessage message={readinessError ?? 'Failed to load parts inventory info.'} />
+            ) : hasReadinessData && flattenedReadinessMetadata ? (
+              <BomReadinessSummarySection
+                readinessLoading={readinessLoading}
+                refreshProductionReadiness={refreshProductionReadiness}
+                flattenedMetadata={flattenedReadinessMetadata}
+              />
+            ) : (
+              <CustomTypography variant="body2" color="text.secondary">
+                No batch inventory data available.
               </CustomTypography>
             )}
           </Box>
