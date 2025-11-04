@@ -13,6 +13,9 @@ const PERMISSIONS = {
   DASHBOARD: {
     VIEW: 'view_dashboard',
   },
+  PRODUCTS: {
+    VIEW: 'view_products',
+  },
   SKUS: {
     VIEW_CARDS: 'view_sku_cards',
     VIEW_DETAILS: 'view_sku_details',

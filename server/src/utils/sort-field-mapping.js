@@ -3,6 +3,32 @@
  * organized by table/module for reuse across service and repository layers.
  */
 const SORTABLE_FIELDS = {
+  productSortMap: {
+    // Product-level fields (FROM products p)
+    productName: 'p.name',
+    series: 'p.series',
+    brand: 'p.brand',
+    category: 'p.category',
+    description: 'p.description',
+    
+    // Status-level fields (FROM status s)
+    statusName: 's.name',
+    statusId: 'p.status_id',
+    statusDate: 'p.status_date',
+    
+    // Audit timestamps (FROM products p)
+    createdAt: 'p.created_at',
+    updatedAt: 'p.updated_at',
+    
+    // Audit user fields (FROM users cb/ub)
+    createdByFirstName: 'cb.firstname',
+    createdByLastName: 'cb.lastname',
+    updatedByFirstName: 'ub.firstname',
+    updatedByLastName: 'ub.lastname',
+    
+    // Default fallback
+    defaultNaturalSort: 'p.created_at',
+  },
   bomSortMap: {
     // --- Product / SKU level ---
     productName: 'p.name',

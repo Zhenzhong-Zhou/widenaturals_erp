@@ -1,6 +1,8 @@
-const { query } = require('../database/db');
+const { query, paginateResults } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
+const { buildProductFilter } = require('../utils/sql/build-product-filters');
+const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 
 /**
  * Checks if a product exists in the database based on provided filters.
@@ -182,8 +184,134 @@ const getProductsForDropdown = async (search = null, limit = 100) => {
   }
 };
 
+/**
+ * Retrieves a paginated list of products with linked status and user metadata.
+ *
+ * This repository function builds a parameterized SQL query using the
+ * `buildProductFilter` utility to safely construct WHERE clauses from structured
+ * filter input. It supports pagination, dynamic sorting, and fuzzy keyword search,
+ * returning consistent query results across services and dashboards.
+ *
+ * ### Features
+ * - Secure, parameterized filtering via `buildProductFilter`
+ * - Joins to `status` for readable status names
+ * - Built-in pagination and structured logging
+ *
+ * ### Example
+ * ```js
+ * const result = await getPaginatedProducts({
+ *   filters: { keyword: 'Immune', brand: 'Canaherb' },
+ *   page: 2,
+ *   limit: 20,
+ *   sortBy: 'created_at',
+ *   sortOrder: 'DESC'
+ * });
+ * ```
+ *
+ * ### Returns
+ * ```js
+ * {
+ *   data: [ { id, name, brand, status_name, ... } ],
+ *   pagination: { total, totalPages, page, limit }
+ * }
+ * ```
+ *
+ * @async
+ * @function
+ * @param {Object} options - Query configuration
+ * @param {Object} [options.filters={}] - Structured filter criteria (see `buildProductFilter`)
+ * @param {number} [options.page=1] - Current page number (1-indexed)
+ * @param {number} [options.limit=10] - Records per page
+ * @param {string} [options.sortBy='created_at'] - Column to sort by (validated internally)
+ * @param {'ASC'|'DESC'} [options.sortOrder='DESC'] - Sort direction
+ *
+ * @returns {Promise<{
+ *   data: any[];
+ *   pagination: {
+ *     page: number;
+ *     limit: number;
+ *     totalRecords: number;
+ *     totalPages: number;
+ *   };
+ * }>} Paginated products results
+ * Returns a paginated dataset or `null` if no records are found.
+ *
+ * @throws {AppError} If query execution or pagination fails.
+ */
+const getPaginatedProducts = async ({
+                                      filters = {},
+                                      page = 1,
+                                      limit = 10,
+                                      sortBy = 'created_at',
+                                      sortOrder = 'DESC',
+                                    }) => {
+  const { whereClause, params } = buildProductFilter(filters);
+  
+  const queryText = `
+    SELECT
+      p.id,
+      p.name,
+      p.brand,
+      p.category,
+      p.series,
+      s.name AS status_name,
+      p.status_id,
+      p.status_date,
+      p.created_at,
+      p.updated_at
+    FROM products AS p
+    LEFT JOIN status AS s ON p.status_id = s.id
+    WHERE ${whereClause}
+    ORDER BY ${sortBy} ${sortOrder};
+  `;
+  
+  try {
+    const result = await paginateResults({
+      dataQuery: queryText,
+      params,
+      page,
+      limit,
+      meta: {
+        context: 'product-repository/getPaginatedProducts',
+      },
+    });
+    
+    if (result.data.length === 0) {
+      logSystemInfo('No products found for current query', {
+        context: 'product-repository/getPaginatedProducts',
+        filters,
+        pagination: { page, limit },
+        sorting: { sortBy, sortOrder },
+      });
+      return null;
+    }
+    
+    logSystemInfo('Fetched paginated product records successfully', {
+      context: 'product-repository/getPaginatedProducts',
+      filters,
+      pagination: { page, limit },
+      sorting: { sortBy, sortOrder },
+    });
+    
+    return result;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch paginated product records', {
+      context: 'product-repository/getPaginatedProducts',
+      filters,
+      pagination: { page, limit },
+      sorting: { sortBy, sortOrder },
+    });
+    
+    throw AppError.databaseError('Failed to fetch paginated product records', {
+      context: 'product-repository/getPaginatedProducts',
+      details: error.message,
+    });
+  }
+};
+
 module.exports = {
   checkProductExists,
   getAvailableProductsForDropdown,
   getProductsForDropdown,
+  getPaginatedProducts,
 };
