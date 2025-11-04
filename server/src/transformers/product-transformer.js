@@ -35,6 +35,7 @@
 
 const { cleanObject } = require('../utils/object-utils');
 const { transformPaginatedResult } = require('../utils/transformer-utils');
+const { getFullName } = require('../utils/name-utils');
 
 /**
  * Transforms a single raw product SQL row into a clean, API-ready object.
@@ -99,6 +100,55 @@ const transformPaginatedProductResults = (paginatedResult) => {
   );
 };
 
+/**
+ * Transformer: Product Detail
+ *
+ * Normalizes a raw SQL row from `getProductDetailsById` into a clean,
+ * API-ready object structure used by the service and controller layers.
+ *
+ * ### Behavior
+ * - Groups status and audit information into nested objects.
+ * - Normalizes null values for optional fields.
+ * - Combines first/last names into full names using `getFullName()`.
+ *
+ * @param {Record<string, any>} row - Raw product row from the database.
+ * @returns {object} Normalized product detail object.
+ *
+ * @example
+ * const product = transformProductDetail(row);
+ * console.log(product.status.name); // "Active"
+ */
+const transformProductDetail = (row) => {
+  const base = {
+    id: row.id,
+    name: row.name,
+    series: row.series ?? null,
+    brand: row.brand ?? null,
+    category: row.category ?? null,
+    description: row.description ?? null,
+    status: {
+      id: row.status_id,
+      name: row.status_name ?? null,
+      date: row.status_date ?? null,
+    },
+    audit: {
+      createdAt: row.created_at,
+      createdBy: {
+        id: row.created_by,
+        fullName: getFullName(row.created_by_firstname, row.created_by_lastname),
+      },
+      updatedAt: row.updated_at,
+      updatedBy: {
+        id: row.updated_by,
+        fullName: getFullName(row.updated_by_firstname, row.updated_by_lastname),
+      },
+    },
+  }
+  
+  return cleanObject(base);
+};
+
 module.exports = {
   transformPaginatedProductResults,
+  transformProductDetail,
 };

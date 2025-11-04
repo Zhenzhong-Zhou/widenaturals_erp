@@ -1,12 +1,12 @@
 const {
   getAvailableProductsForDropdown,
   getProductsForDropdown,
-  getPaginatedProducts,
+  getPaginatedProducts, getProductDetailsById,
 } = require('../repositories/product-repository');
 const { logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
-const { transformPaginatedProductResults } = require('../transformers/product-transformer');
+const { transformPaginatedProductResults, transformProductDetail } = require('../transformers/product-transformer');
 
 const fetchProductDropdownList = async (warehouse_id) => {
   try {
@@ -165,8 +165,89 @@ const fetchPaginatedProductsService = async ({
   }
 };
 
+/**
+ * Service: Fetch Product Details by ID
+ *
+ * Provides a service-level abstraction for fetching a single product record
+ * from the repository, including status and audit information.
+ *
+ * ### Flow
+ * 1. Delegates to `getProductDetailsById` in the repository layer.
+ * 2. If no product is found:
+ *    - Logs an informational event (`No product found for given ID`)
+ *    - Throws an AppError.notFound for clean controller handling.
+ * 3. If found:
+ *    - Transforms raw SQL row via `transformProductDetail` into an API-ready object.
+ *    - Logs a successful fetch event with contextual metadata.
+ * 4. On error:
+ *    - Logs the exception and wraps it in a service-level `AppError`.
+ *
+ * ### Parameters
+ * @param {string} productId - The UUID of the product to fetch.
+ *
+ * ### Returns
+ * @returns {Promise<object>} Clean, transformed product detail object.
+ *
+ * ### Errors
+ * - `AppError.notFound` if the product does not exist.
+ * - `AppError.serviceError` if an unexpected error occurs.
+ *
+ * ### Example
+ * ```ts
+ * const product = await fetchProductDetailsService('b7f5c613-22aa-4cb3-94d4-ff9d7f87b7a4');
+ * console.log(product.status.name); // "Active"
+ * ```
+ */
+const fetchProductDetailsService = async (productId) => {
+  const logContext = 'product-service/fetchProductDetailsService';
+  
+  try {
+    // Step 1: Fetch raw product row from repository
+    const rawProduct = await getProductDetailsById(productId);
+    
+    // Step 2: Handle not found
+    if (!rawProduct) {
+      logSystemInfo('No product found for given ID', {
+        context: logContext,
+        productId,
+      });
+      
+      throw AppError.notFoundError('Product not found', {
+        context: logContext,
+        productId,
+      });
+    }
+    
+    // Step 3: Transform into API-ready format
+    const product = transformProductDetail(rawProduct);
+    
+    // Step 4: Log success
+    logSystemInfo('Fetched product detail successfully', {
+      context: logContext,
+      productId,
+    });
+    
+    return product;
+  } catch (error) {
+    // Step 5: Log exception and rethrow as service-level error
+    logSystemException(error, 'Failed to fetch product detail', {
+      context: logContext,
+      productId,
+      error: error.message,
+    });
+    
+    // Bubble up structured service error
+    throw AppError.serviceError('Could not fetch product details. Please try again later.', {
+      context: logContext,
+      productId,
+      details: error.message,
+    });
+  }
+};
+
 module.exports = {
   fetchProductDropdownList,
   fetchAvailableProductsForDropdown,
   fetchPaginatedProductsService,
+  fetchProductDetailsService,
 };

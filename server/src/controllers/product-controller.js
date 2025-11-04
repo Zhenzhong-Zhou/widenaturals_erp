@@ -11,7 +11,7 @@ const wrapAsync = require('../utils/wrap-async');
 const {
   fetchProductDropdownList,
   fetchAvailableProductsForDropdown,
-  fetchPaginatedProductsService,
+  fetchPaginatedProductsService, fetchProductDetailsService,
 } = require('../services/product-service');
 const { logInfo } = require('../utils/logger-helper');
 
@@ -129,8 +129,71 @@ const getPaginatedProductsController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * Controller: Fetch Product Details
+ *
+ * Handles GET requests for `/api/products/:productId`.
+ * Retrieves a single product record including its status and audit information.
+ *
+ * ### Flow
+ * 1. Extracts `productId` from `req.params` (validated by Joi middleware).
+ * 2. Delegates to `fetchProductDetailsService` for business logic and data retrieval.
+ * 3. Returns a standardized JSON response `{ success, message, data }`.
+ * 4. Handles not-found and unexpected errors through centralized error middleware.
+ * 5. Logs all key events using structured logging (`logInfo`, `logError`).
+ *
+ * ### Example Request
+ * GET /api/products/8d5b7e4f-9231-4b0f-83d1-6c8e3b03b8f2
+ *
+ * ### Example Response
+ * ```json
+ * {
+ *   "success": true,
+ *   "message": "Product details fetched successfully.",
+ *   "data": {
+ *     "id": "uuid",
+ *     "name": "Omega-3 Fish Oil",
+ *     "brand": "Canaherb",
+ *     "category": "Herbal Natural",
+ *     "status": { "id": "uuid", "code": "ACTIVE", "name": "Active" },
+ *     "audit": {
+ *       "createdAt": "2025-11-03T20:10:00.000Z",
+ *       "createdBy": { "id": "uuid", "fullName": "John Smith" },
+ *       "updatedAt": "2025-11-03T21:00:00.000Z",
+ *       "updatedBy": { "id": "uuid", "fullName": "Jane Lee" }
+ *     }
+ *   }
+ * }
+ * ```
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+const getProductDetailsController = wrapAsync(async (req, res) => {
+  const logContext = 'products-controller/getProductDetailsController';
+  const { productId } = req.params;
+  
+  // Step 1: Fetch product detail via service layer
+  const product = await fetchProductDetailsService(productId);
+  
+  // Step 2: Log success
+  logInfo('Fetched product detail successfully', req, {
+    context: logContext,
+    productId,
+  });
+  
+  // Step 3: Return standardized response
+  res.status(200).json({
+    success: true,
+    message: 'Product details fetched successfully.',
+    data: product,
+  });
+});
+
 module.exports = {
   getProductsDropdownListController,
   getProductsForDropdownController,
   getPaginatedProductsController,
+  getProductDetailsController,
 };

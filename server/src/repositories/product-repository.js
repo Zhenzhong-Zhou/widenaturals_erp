@@ -309,9 +309,91 @@ const getPaginatedProducts = async ({
   }
 };
 
+/**
+ * Repository: Get Product Details by ID
+ *
+ * Fetches a single product record, including its status metadata and audit trail information.
+ * Designed for product detail views or edit pages where full context is required.
+ *
+ * ### Behavior
+ * - Uses parameterized SQL for injection safety.
+ * - Performs LEFT JOINs to include status and user metadata.
+ * - Returns a single row or `null` if no record exists.
+ * - Logs structured info and exception details for observability.
+ *
+ * ### Performance
+ * - Leverages indexed lookup on `products.id` (primary key).
+ * - Uses minimal joins and columns for efficient data retrieval.
+ *
+ * @param {string} productId - UUID of the product to fetch.
+ * @returns {Promise<object|null>} Full product record with status and audit info, or `null` if not found.
+ *
+ * @example
+ * const row = await getProductDetailsById('8d5b7e4f-9231-4b0f-83d1-6c8e3b03b8f2');
+ * if (row) console.log('Product:', row.name);
+ */
+const getProductDetailsById = async (productId) => {
+  const queryText = `
+    SELECT
+      p.id,
+      p.name,
+      p.series,
+      p.brand,
+      p.category,
+      p.description,
+      s.id AS status_id,
+      s.name AS status_name,
+      p.status_date,
+      p.created_at,
+      p.updated_at,
+      p.created_by,
+      cb.firstname AS created_by_firstname,
+      cb.lastname AS created_by_lastname,
+      p.updated_by,
+      ub.firstname AS updated_by_firstname,
+      ub.lastname AS updated_by_lastname
+    FROM products AS p
+    LEFT JOIN status AS s ON p.status_id = s.id
+    LEFT JOIN users AS cb ON p.created_by = cb.id
+    LEFT JOIN users AS ub ON p.updated_by = ub.id
+    WHERE p.id = $1
+  `;
+  
+  try {
+    const { rows } = await query(queryText, [productId]);
+    
+    if (rows.length === 0) {
+      logSystemInfo('No product found for given ID', {
+        context: 'product-repository/getProductDetailsById',
+        productId,
+      });
+      return null;
+    }
+    
+    logSystemInfo('Fetched product detail successfully', {
+      context: 'product-repository/getProductDetailsById',
+      productId,
+    });
+    
+    return rows[0];
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch product detail', {
+      context: 'product-repository/getProductDetailsById',
+      productId,
+      error: error.message,
+    });
+    
+    throw AppError.databaseError('Failed to fetch product detail', {
+      context: 'product-repository/getProductDetailsById',
+      details: error.message,
+    });
+  }
+};
+
 module.exports = {
   checkProductExists,
   getAvailableProductsForDropdown,
   getProductsForDropdown,
   getPaginatedProducts,
+  getProductDetailsById,
 };

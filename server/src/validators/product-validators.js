@@ -3,7 +3,8 @@ const {
   paginationSchema,
   createSortSchema,
   validateOptionalString,
-  validateOptionalUUID
+  validateOptionalUUID,
+  validateUUID
 } = require('./general-validators');
 
 /**
@@ -58,6 +59,25 @@ const productQuerySchema = paginationSchema
     ),
   });
 
+/**
+ * Joi schema for validating the `productId` route parameter.
+ *
+ * Fields:
+ * - `productId` (UUID)
+ *    - Required
+ *    - Must be a valid UUID (typically version 4)
+ *
+ * Common usage:
+ * - Route validation for endpoints like:
+ *     GET /products/:productId
+ *     PATCH /products/:productId/status
+ *     DELETE /products/:productId
+ */
+const productIdParamSchema = Joi.object({
+  productId: validateUUID('Product ID'),
+});
+
 module.exports = {
   productQuerySchema,
+  productIdParamSchema,
 };
