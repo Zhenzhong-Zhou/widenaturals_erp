@@ -4,6 +4,7 @@ const {
   getProductsForDropdownController,
   getPaginatedProductsController,
   getProductDetailsController,
+  updateProductStatusController,
 } = require('../controllers/product-controller');
 const authorize = require('../middlewares/authorize');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
@@ -14,14 +15,15 @@ const {
   productQuerySchema,
   productIdParamSchema
 } = require('../validators/product-validators');
+const { updateProductStatusSchema } = require('../validators/status-validators');
 
 const router = express.Router();
-
+// todo: remove it
 router.get(
   '/dropdown/warehouse/:warehouseId',
   getProductsDropdownListController
 );
-
+// todo: remove it
 router.get('/dropdown/orders', getProductsForDropdownController);
 
 /**
@@ -170,6 +172,65 @@ router.get(
   authorize([PERMISSIONS.PRODUCTS.VIEW]),
   validate(productIdParamSchema, 'params'),
   getProductDetailsController
+);
+
+/**
+ * @route PATCH /api/v1/products/:productId/status
+ * @description
+ * Updates the status of a specific product.
+ *
+ * ### Purpose
+ * - Allows authorized users to change a product’s lifecycle state
+ *   (e.g., from `ACTIVE` → `INACTIVE`, or `PENDING` → `ACTIVE`).
+ * - Ensures transactional integrity, row locking, and business rule validation
+ *   through the `updateProductStatusService`.
+ *
+ * ### Middleware Flow
+ * 1. **authorize([PERMISSIONS.PRODUCTS.UPDATE_STATUS])**
+ *    - Restricts access to users with `PRODUCTS.UPDATE_STATUS` permission.
+ * 2. **validate(productIdParamSchema, 'params')**
+ *    - Ensures the `productId` in the URL path is a valid UUID.
+ * 3. **validate(updateProductStatusSchema, 'body')**
+ *    - Validates request body fields (requires a valid `statusId` UUID).
+ * 4. **updateProductStatusController**
+ *    - Executes the service, logs results, and returns a standardized JSON response.
+ *
+ * ### Request
+ * **Path params:**
+ * - `productId` → UUID of the product to update
+ *
+ * **Body:**
+ * ```json
+ * {
+ *   "statusId": "uuid-of-new-status"
+ * }
+ * ```
+ *
+ * ### Response
+ * **200 OK**
+ * ```json
+ * {
+ *   "success": true,
+ *   "message": "Product status updated successfully.",
+ *   "data": { "id": "uuid-of-product" }
+ * }
+ * ```
+ *
+ * **Error Responses**
+ * - `400 Bad Request` → Invalid productId or statusId
+ * - `403 Forbidden` → Missing `UPDATE_STATUS` permission
+ * - `404 Not Found` → Product or status not found
+ * - `409 Conflict` → Invalid status transition (business rule violation)
+ *
+ * @access Protected
+ * @permission PRODUCTS.UPDATE_STATUS
+ */
+router.patch(
+  '/:productId/status',
+  authorize([PERMISSIONS.PRODUCTS.UPDATE_STATUS]),
+  validate(productIdParamSchema, 'params'),
+  validate(updateProductStatusSchema, 'body'),
+  updateProductStatusController
 );
 
 module.exports = router;

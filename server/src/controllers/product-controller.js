@@ -11,7 +11,7 @@ const wrapAsync = require('../utils/wrap-async');
 const {
   fetchProductDropdownList,
   fetchAvailableProductsForDropdown,
-  fetchPaginatedProductsService, fetchProductDetailsService,
+  fetchPaginatedProductsService, fetchProductDetailsService, updateProductStatusService,
 } = require('../services/product-service');
 const { logInfo } = require('../utils/logger-helper');
 
@@ -191,9 +191,66 @@ const getProductDetailsController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * Controller: Update Product Status
+ *
+ * Handles PATCH requests to update a product’s status.
+ * Provides structured logging, validation, and standardized JSON response.
+ *
+ * ### Flow
+ * 1. Extract `productId` from route params and `statusId` from request body.
+ * 2. Validate inputs (handled by middleware and fallback guards).
+ * 3. Delegate to `updateProductStatusService` for transactional execution.
+ * 4. Return standardized JSON response with result metadata.
+ * 5. Log key events for traceability and audit.
+ *
+ * ### Example Request
+ * PATCH /api/v1/products/:productId/status
+ * {
+ *   "statusId": "uuid-of-new-status"
+ * }
+ *
+ * ### Example Response
+ * {
+ *   "success": true,
+ *   "message": "Product status updated successfully.",
+ *   "data": { "id": "uuid-of-product" }
+ * }
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+const updateProductStatusController = wrapAsync(async (req, res) => {
+  const logContext = 'products-controller/updateProductStatusController';
+  
+  // Step 1: Extract and validate inputs
+  const { productId } = req.params;
+  const { statusId } = req.body;
+  const user = req.user;
+  
+  // Step 2: Execute service
+  const result = await updateProductStatusService({ productId, statusId, user });
+  
+  // Step 3: Log and respond
+  logInfo('Product status updated successfully', req, {
+    context: logContext,
+    productId,
+    statusId,
+    userId: user.id,
+  });
+  
+  res.status(200).json({
+    success: true,
+    message: 'Product status updated successfully.',
+    data: result, // { id: '...' }
+  });
+});
+
 module.exports = {
   getProductsDropdownListController,
   getProductsForDropdownController,
   getPaginatedProductsController,
   getProductDetailsController,
+  updateProductStatusController,
 };

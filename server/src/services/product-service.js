@@ -1,13 +1,22 @@
 const {
   getAvailableProductsForDropdown,
   getProductsForDropdown,
-  getPaginatedProducts, getProductDetailsById,
+  getPaginatedProducts,
+  getProductDetailsById,
+  updateProductStatus,
 } = require('../repositories/product-repository');
 const { logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
-const { transformPaginatedProductResults, transformProductDetail } = require('../transformers/product-transformer');
+const {
+  transformPaginatedProductResults,
+  transformProductDetail
+} = require('../transformers/product-transformer');
+const { withTransaction, lockRow } = require('../database/db');
+const { checkStatusExists } = require('../repositories/status-repository');
+const { assertValidProductStatusTransition } = require('../business/product-business');
 
+// todo: remove it
 const fetchProductDropdownList = async (warehouse_id) => {
   try {
     return await getAvailableProductsForDropdown(warehouse_id);
@@ -245,9 +254,83 @@ const fetchProductDetailsService = async (productId) => {
   }
 };
 
+/**
+ * Service: Update Product Status
+ *
+ * Performs a transactional product status update with full concurrency protection,
+ * validation, and logging. Designed for internal ERP workflows where product state
+ * transitions must follow strict business rules.
+ *
+ * ### Flow
+ * 1. Begin transaction and lock product row (`FOR UPDATE`).
+ * 2. Verify the target status exists in the `status` table.
+ * 3. Validate current → next transition rules (via business validator).
+ * 4. Update product's status and audit metadata.
+ * 5. Commit transaction and return updated record ID.
+ *
+ * @param {Object} options
+ * @param {string} options.productId - Product UUID
+ * @param {string} options.statusId - Target status UUID
+ * @param {{ id: string }} options.user - Authenticated user performing the action
+ * @returns {Promise<{ id: string }>} Updated product record ID
+ * @throws {AppError} If validation fails or database error occurs
+ */
+const updateProductStatusService = async ({ productId, statusId, user }) => {
+  return withTransaction(async (client) => {
+    const userId = user.id;
+    
+    // Step 1: Lock product
+    const product = await lockRow(client, 'products', productId, 'FOR UPDATE', {
+      context: 'product-service/updateProductStatusService',
+    });
+    
+    // Step 2: Validate status
+    const statusExists = await checkStatusExists(statusId, client);
+    if (!statusExists) {
+      throw AppError.validationError('Invalid or inactive status ID.');
+    }
+    
+    // Step 3: Basic validation
+    if (product.status_id === statusId) {
+      throw AppError.validationError('Product is already in this status.');
+    }
+    
+    // Optional: Step 4 - Apply business rule validation
+    assertValidProductStatusTransition(product.status_id, statusId);
+    
+    // Step 5: Update product status
+    const updated = await updateProductStatus(productId, statusId, userId, client);
+    
+    if (!updated) {
+      throw AppError.conflictError('Concurrent update detected — product status not updated.');
+    }
+    
+    // Step 6: Log success
+    logSystemInfo('Updated product status successfully', {
+      context: 'product-service/updateProductStatusService',
+      productId,
+      fromStatusId: product.status_id,
+      toStatusId: statusId,
+      userId,
+    });
+    
+    return updated;
+  });
+};
+
+// const updateProductInfoService = async ({ productId, statusCode, userId }) => {
+//   return withTransaction(async (client) => {
+//     const status = await statusRepository.getByCode(statusCode, 'product', client);
+//     await updateProductStatus(productId, status.id, userId, client);
+//     logSystemInfo('Product status updated', { productId, statusCode, updatedBy: userId });
+//     return { success: true };
+//   });
+// };
+
 module.exports = {
   fetchProductDropdownList,
   fetchAvailableProductsForDropdown,
   fetchPaginatedProductsService,
   fetchProductDetailsService,
+  updateProductStatusService,
 };

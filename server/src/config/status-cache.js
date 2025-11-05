@@ -1,11 +1,18 @@
 const { query } = require('../database/db');
 const {
   logSystemException,
-  logSystemError,
+  logSystemError, logSystemInfo,
 } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
+const { getAllStatuses } = require('../repositories/status-repository');
 
+// todo: enhancmeent
 let statusMap = null;
+// ---------------------------------------------
+// Private in-memory maps (atomic swap pattern)
+// ---------------------------------------------
+let STATUS_NAME_MAP = new Map(); // id (UUID) → UPPERCASE(name)
+let STATUS_ROW_MAP = new Map();  // id (UUID) → full row object
 
 /**
  * Defines mappings from logical status keys used in application code
@@ -205,7 +212,177 @@ const getStatusId = (key) => {
   return statusMap[key];
 };
 
+/**
+ * Repository: Load All Statuses into Cache
+ *
+ * Loads all rows from the `status` table into two in-memory maps:
+ * - `STATUS_NAME_MAP`: For lightweight UUID → UPPERCASE(name) lookups
+ * - `STATUS_ROW_MAP`:  For full record access (name, description, timestamps, etc.)
+ *
+ * ### Notes
+ * - Independent of `STATUS_KEY_LOOKUP` cache used by getStatusIdMap().
+ * - Uses atomic swap to avoid race conditions when replacing cached data.
+ *
+ * @param {import('pg').PoolClient} [client] - Optional PostgreSQL client for transaction context.
+ * @returns {Promise<void>}
+ * @throws {AppError} If the query or initialization fails.
+ */
+const loadAllStatusesIntoCache = async (client) => {
+  const sql = `
+    SELECT
+      id,
+      name,
+      description,
+      is_active,
+      created_at,
+      updated_at
+    FROM status
+    ORDER BY name ASC;
+  `;
+  
+  try {
+    // Use provided client if in a transaction, else fallback to shared pool
+    const rows = await getAllStatuses(client);
+    
+    // Prepare next generation of maps for atomic replacement
+    const nextNameMap = new Map();
+    const nextRowMap = new Map();
+    
+    for (const row of rows) {
+      const code = (row.name || '').toUpperCase();
+      nextNameMap.set(row.id, code);
+      nextRowMap.set(row.id, row);
+    }
+    
+    // Atomic swap to prevent race conditions
+    STATUS_NAME_MAP = nextNameMap;
+    STATUS_ROW_MAP = nextRowMap;
+    
+    logSystemInfo('Loaded status name and row caches', {
+      context: 'status-cache/loadAllStatusesIntoCache',
+      count: rows.length,
+    });
+  } catch (error) {
+    logSystemException(error, 'Failed to load status cache', {
+      context: 'status-cache/loadAllStatusesIntoCache',
+    });
+    
+    throw AppError.databaseError('Failed to load status cache.', {
+      context: 'status-cache/loadAllStatusesIntoCache',
+      details: error.message,
+    });
+  }
+};
+
+/**
+ * Retrieves the uppercase status name/code (e.g., "ACTIVE") by UUID.
+ * Returns null if the ID is unknown.
+ *
+ * @param {string} statusId - Status UUID
+ * @returns {string|null} Uppercased status name, or null if not found
+ */
+const getStatusNameById = (statusId) => STATUS_NAME_MAP.get(statusId) ?? null;
+
+/**
+ * Retrieves the full status record (id, name, description, etc.) by UUID.
+ * Returns null if the ID is unknown.
+ *
+ * @param {string} statusId - Status UUID
+ * @returns {{
+ *   id: string,
+ *   name: string,
+ *   description: string|null,
+ *   is_active: boolean,
+ *   created_at: string,
+ *   updated_at: string
+ * }|null}
+ */
+const getStatusRowById = (statusId) => STATUS_ROW_MAP.get(statusId) ?? null;
+
+/**
+ * Initializes the full status caches on application boot.
+ * Safe to call alongside `initStatusCache()` (logical key→ID cache).
+ *
+ * @param {import('pg').PoolClient} [client] - Optional PG client (for boot-time transaction)
+ * @returns {Promise<void>}
+ */
+const initStatusNameCache = async (client) => {
+  await loadAllStatusesIntoCache(client);
+};
+
+/**
+ * Initializes all status caches at application startup.
+ *
+ * Combines:
+ * - `initStatusCache()` → logical key → UUID map (STATUS_KEY_LOOKUP)
+ * - `initStatusNameCache()` → UUID → name/row maps (STATUS_NAME_MAP, STATUS_ROW_MAP)
+ *
+ * ### Responsibilities
+ * - Loads both caches atomically during system boot.
+ * - Logs timing and counts for observability.
+ * - Optionally schedules a periodic refresh (default: every 10 minutes).
+ *
+ * @param {import('pg').PoolClient} [client] - Optional PG client for boot-time transaction
+ * @param {boolean} [enableAutoRefresh=true] - Whether to refresh cache periodically
+ * @param {number} [refreshIntervalMs=600000] - Auto-refresh interval (default 10 minutes)
+ *
+ * @returns {Promise<void>}
+ */
+const initAllStatusCaches = async (
+  client,
+  enableAutoRefresh = true,
+  refreshIntervalMs = 10 * 60 * 1000
+) => {
+  const startTime = Date.now();
+  logSystemInfo('Initializing all status caches...', {
+    context: 'status-cache/initAllStatusCaches',
+  });
+  
+  try {
+    // Step 1: Run both caches concurrently
+    await Promise.all([
+      initStatusCache(client),      // key → UUID
+      initStatusNameCache(client),  // UUID → name/row
+    ]);
+    
+    const elapsed = Date.now() - startTime;
+    logSystemInfo('All status caches initialized successfully', {
+      context: 'status-cache/initAllStatusCaches',
+      elapsedMs: elapsed,
+    });
+    
+    // Step 2: Optional background auto-refresh
+    if (enableAutoRefresh) {
+      setInterval(async () => {
+        try {
+          await loadAllStatusesIntoCache();
+          logSystemInfo('Periodic status cache refresh completed', {
+            context: 'status-cache/auto-refresh',
+            timestamp: new Date().toISOString(),
+          });
+        } catch (err) {
+          logSystemException(err, 'Periodic status cache refresh failed', {
+            context: 'status-cache/auto-refresh',
+          });
+        }
+      }, refreshIntervalMs);
+    }
+  } catch (error) {
+    logSystemException(error, 'Failed to initialize all status caches', {
+      context: 'status-cache/initAllStatusCaches',
+    });
+    throw AppError.initializationError('Failed to initialize status caches.', {
+      details: error.message,
+    });
+  }
+};
+
 module.exports = {
   initStatusCache,
   getStatusId,
+  initStatusNameCache,
+  loadAllStatusesIntoCache,
+  getStatusNameById,
+  getStatusRowById,
+  initAllStatusCaches,
 };

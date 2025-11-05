@@ -1,5 +1,6 @@
 const AppError = require('../utils/AppError');
 const { query } = require('../database/db');
+const { logSystemException } = require('../utils/system-logger');
 
 /**
  * Fetches the ID of a status by its name.
@@ -61,7 +62,7 @@ const queryStatus = async (whereClause, params) => {
  * @returns {Promise<{ data: Array, pagination: Object }>} - Paginated data and metadata.
  * @throws {AppError} - Throws an error if the query fails.
  */
-const getAllStatuses = async (page = 1, limit = 10) => {
+const getPaginatedStatuses = async (page = 1, limit = 10) => {
   const baseQuery = `
     SELECT id, name, description, is_active, created_at
     FROM status
@@ -158,10 +159,128 @@ const getStatusById = async (id) => {
   }
 };
 
+/**
+ * Repository Utility: Check if a status record exists.
+ *
+ * Performs a fast, parameterized existence check using `SELECT EXISTS`
+ * against the `status` table.
+ *
+ * ### Characteristics
+ * - Uses index-only lookup when available (UUID primary key).
+ * - Returns a boolean result (`true` if status exists, otherwise `false`).
+ * - Accepts an optional PostgreSQL client for transactional safety.
+ * - Throws a structured `AppError.databaseError` on query failure.
+ *
+ * ### Performance
+ * This query is O(1) for practical purposes:
+ * - It short-circuits on the first match.
+ * - Reads only index metadata and minimal tuple data.
+ *
+ * ### Parameters
+ * @param {string} statusId - The UUID of the status to verify.
+ * @param {import('pg').PoolClient} [client] - Optional PG client for transactional queries.
+ *
+ * ### Returns
+ * @returns {Promise<boolean>} `true` if the status exists; otherwise `false`.
+ *
+ * ### Throws
+ * @throws {AppError} - Database error if the query execution fails.
+ *
+ * ### Example
+ * ```js
+ * const exists = await checkStatusExists(statusId, client);
+ * if (!exists) {
+ *   throw AppError.validationError('Invalid status ID.');
+ * }
+ * ```
+ */
+const checkStatusExists = async (statusId, client) => {
+  const sql = `
+    SELECT EXISTS (
+      SELECT 1
+      FROM status
+      WHERE id = $1
+    ) AS exists;
+  `;
+  
+  try {
+    const { rows } = await query(sql, [statusId], client);
+    return rows[0]?.exists ?? false;
+  } catch (error) {
+    logSystemException(error, '', {
+      context: 'status-repository/checkStatusExists',
+    });
+    
+    throw AppError.databaseError('Failed to execute status existence check.', {
+      context: 'status-repository/checkStatusExists',
+      query: sql,
+      params: [statusId],
+      originalError: error.message,
+    });
+  }
+};
+
+/**
+ * Repository: Fetch All Status Records
+ *
+ * Retrieves all status entries from the `status` table, ordered alphabetically by name.
+ *
+ * ### Purpose
+ * - Used for initializing in-memory caches (e.g., STATUS_CODE_MAP).
+ * - Supports admin UIs and configuration dashboards displaying available statuses.
+ * - Independent of STATUS_KEY_LOOKUP or other cached ID maps.
+ *
+ * ### Parameters
+ * @param {import('pg').PoolClient} [client] - Optional PostgreSQL client for transactional context.
+ *
+ * ### Returns
+ * @returns {Promise<Array<{
+ *   id: string,
+ *   name: string,
+ *   is_active: boolean
+ * }>>}
+ *   Array of status records with minimal fields required for caching and UI usage.
+ *
+ * ### Throws
+ * @throws {AppError} - If the database query fails.
+ *
+ * ### Example
+ * ```js
+ * const statuses = await fetchAllStatuses();
+ * console.log(statuses);
+ * // → [{ id: 'uuid-1', name: 'ACTIVE', is_active: true }, ...]
+ * ```
+ */
+const getAllStatuses = async (client) => {
+  const sql = `
+    SELECT
+      id,
+      name,
+      is_active
+    FROM status
+    ORDER BY name ASC;
+  `;
+  
+  try {
+    const { rows } = await query(sql, [], client);
+    return rows;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch all statuses', {
+      context: 'status-repository/getAllStatuses',
+    });
+    throw AppError.databaseError('Failed to load all statuses.', {
+      context: 'status-repository/getAllStatuses',
+      details: error.message,
+    });
+  }
+};
+
 module.exports = {
   getStatusIdByName,
   getStatusNameById,
-  getAllStatuses,
+  getPaginatedStatuses,
   getFilteredStatuses,
   getStatusById,
+  checkStatusExists,
+  getAllStatuses,
 };

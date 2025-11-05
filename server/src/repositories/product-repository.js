@@ -1,4 +1,4 @@
-const { query, paginateResults } = require('../database/db');
+const { query, paginateResults, updateById } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
 const { buildProductFilter } = require('../utils/sql/build-product-filters');
@@ -79,7 +79,7 @@ const checkProductExists = async (filters, combineWith = 'OR') => {
     });
   }
 };
-
+// todo: remove it
 /**
  * Retrieves a list of available products for a dropdown selection, filtering out those already associated with the given warehouse.
  *
@@ -148,6 +148,7 @@ const getAvailableProductsForDropdown = async (warehouseId) => {
   }
 };
 
+// todo: remove it
 /**
  * Fetches active products for a dropdown.
  * Filters by:
@@ -169,7 +170,7 @@ const getProductsForDropdown = async (search = null, limit = 100) => {
       FROM products p
       JOIN status s ON p.status_id = s.id
       WHERE s.name = 'active'
-      ${searchPattern ? `AND (p.product_name ILIKE $1 OR p.sku ILIKE $1 OR p.barcode ILIKE $1)` : ''}
+      ${searchPattern ? `AND (p.name ILIKE $1 OR p.sku ILIKE $1 OR p.barcode ILIKE $1)` : ''}
       ORDER BY p.product_name ASC
       LIMIT ${searchPattern ? '$2' : '$1'};
     `;
@@ -390,10 +391,107 @@ const getProductDetailsById = async (productId) => {
   }
 };
 
+/**
+ * Repository: Update Product Status
+ *
+ * Updates the status of a product by its ID. Automatically updates
+ * `status_date`, `updated_at`, and `updated_by` fields.
+ *
+ * @param {string} productId - UUID of the product to update
+ * @param {string} statusId - UUID of the new status
+ * @param {string} userId - UUID of the user performing the update
+ * @param {import('pg').PoolClient} client - Active database client/transaction
+ * @returns {Promise<{ id: string }>} Updated record identifier
+ *
+ * @throws {AppError} If update fails or product not found
+ */
+const updateProductStatus = async (productId, statusId, userId, client) => {
+  try {
+    const updates = {
+      status_id: statusId,
+      status_date: new Date(),
+    };
+    
+    const result = await updateById('products', productId, updates, userId, client);
+    
+    logSystemInfo('Updated product status successfully', {
+      context: 'product-repository/updateProductStatus',
+      productId,
+      statusId,
+      updatedBy: userId,
+    });
+    
+    return result; // { id: '...' }
+  } catch (error) {
+    logSystemException(error, 'Failed to update product status', {
+      context: 'product-repository/updateProductStatus',
+      productId,
+      statusId,
+      updatedBy: userId,
+    });
+    throw AppError.databaseError('Failed to update product status.', {
+      context: 'product-repository/updateProductStatus',
+      details: error.message,
+    });
+  }
+};
+
+/**
+ * Repository: Update Product Information
+ *
+ * Updates product fields such as name, brand, category, series, and description.
+ * Automatically updates `updated_at` and `updated_by` fields.
+ *
+ * @param {string} productId - UUID of the product to update
+ * @param {Object} updates - Fields to update (validated upstream)
+ * @param {string} userId - UUID of the user performing the update
+ * @param {import('pg').PoolClient} client - Active database client/transaction
+ * @returns {Promise<{ id: string }>} Updated record identifier
+ *
+ * @throws {AppError} If update fails or product not found
+ */
+// const updateProductInfo = async (productId, updates, userId, client) => {
+//   try {
+//     // Only allow updatable fields (extra safety guard)
+//     const allowedFields = ['name', 'series', 'brand', 'category', 'description'];
+//     const filteredUpdates = Object.fromEntries(
+//       Object.entries(updates).filter(([key]) => allowedFields.includes(key))
+//     );
+//
+//     if (Object.keys(filteredUpdates).length === 0) {
+//       throw AppError.validationError('No valid product fields provided to update.');
+//     }
+//
+//     const result = await updateById('products', productId, filteredUpdates, userId, client);
+//
+//     logSystemInfo('Updated product information successfully', {
+//       context: 'product-repository/updateProductInfo',
+//       productId,
+//       updatedBy: userId,
+//       fields: Object.keys(filteredUpdates),
+//     });
+//
+//     return result; // { id: '...' }
+//   } catch (error) {
+//     logSystemException(error, 'Failed to update product information', {
+//       context: 'product-repository/updateProductInfo',
+//       productId,
+//       updatedBy: userId,
+//       updates,
+//     });
+//     throw AppError.databaseError('Failed to update product information.', {
+//       context: 'product-repository/updateProductInfo',
+//       details: error.message,
+//     });
+//   }
+// };
+
 module.exports = {
   checkProductExists,
   getAvailableProductsForDropdown,
   getProductsForDropdown,
   getPaginatedProducts,
   getProductDetailsById,
+  updateProductStatus,
+  // updateProductInfo,
 };
