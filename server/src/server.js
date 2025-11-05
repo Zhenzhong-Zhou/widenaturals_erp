@@ -55,11 +55,10 @@ const startServer = async () => {
     logSystemInfo('Testing database connection...');
     await testConnection();
     logSystemInfo('Database connected successfully.');
-
-    logSystemInfo('Initializing status ID cache...');
-    // todo: adjsut?
+    
+    logSystemInfo('Initializing all status caches...');
     await initAllStatusCaches();
-    logSystemInfo('Status ID cache initialized.');
+    logSystemInfo('All status caches initialized successfully.');
 
     // Root admin initialization
     logSystemInfo('Initializing root admin...');

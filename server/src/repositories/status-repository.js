@@ -1,6 +1,6 @@
 const AppError = require('../utils/AppError');
-const { query } = require('../database/db');
-const { logSystemException } = require('../utils/system-logger');
+const { query, paginateResults } = require('../database/db');
+const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 
 /**
  * Fetches the ID of a status by its name.
@@ -55,37 +55,110 @@ const queryStatus = async (whereClause, params) => {
 };
 
 /**
- * Fetches paginated statuses with their details.
+ * Repository: Get Paginated Statuses
  *
- * @param {number} page - Current page number (1-based index).
- * @param {number} limit - Number of records per page.
- * @returns {Promise<{ data: Array, pagination: Object }>} - Paginated data and metadata.
- * @throws {AppError} - Throws an error if the query fails.
+ * Retrieves all statuses with pagination and consistent structured logging.
+ * Intended for simple admin UI tables or configuration dashboards.
+ *
+ * ### Features
+ * - Lightweight query (no joins or filters)
+ * - Consistent pagination metadata and structured logs
+ * - Safe parameterization for page/limit values
+ *
+ * ### Example
+ * ```js
+ * const result = await getPaginatedStatuses({ page: 1, limit: 20 });
+ * ```
+ *
+ * ### Returns
+ * ```js
+ * {
+ *   data: [ { id, name, description, is_active, created_at, updated_at } ],
+ *   pagination: { totalRecords, totalPages, page, limit }
+ * }
+ * ```
+ *
+ * @async
+ * @function
+ * @param {Object} options
+ * @param {number} [options.page=1] - Current page (1-based)
+ * @param {number} [options.limit=10] - Records per page
+ * @param {string} [options.sortBy='name'] - Sort column
+ * @param {'ASC'|'DESC'} [options.sortOrder='ASC'] - Sort direction
+ *
+ * @returns {Promise<{
+ * data: any[],
+ * pagination: {
+ * page: number, limit: number, totalRecords: number, totalPages: number
+ * } }
+ * >}
+ *
+ * @throws {AppError} - If database execution fails
  */
-const getPaginatedStatuses = async (page = 1, limit = 10) => {
-  const baseQuery = `
-    SELECT id, name, description, is_active, created_at
-    FROM status
+const getPaginatedStatuses = async ({
+                                      page = 1,
+                                      limit = 10,
+                                      sortBy = 'name',
+                                      sortOrder = 'ASC',
+                                    }) => {
+  const queryText = `
+    SELECT
+      s.id,
+      s.name,
+      s.description,
+      s.is_active,
+      s.created_at,
+      s.updated_at
+    FROM status AS s
+    ORDER BY ${sortBy} ${sortOrder};
   `;
-
-  const countQuery = `
-    SELECT COUNT(*) AS count
-    FROM status
-  `;
-
+  
   try {
-    return await paginateQuery({
-      queryText: baseQuery,
-      countQueryText: countQuery,
+    // Execute with pagination helper
+    const result = await paginateResults({
+      dataQuery: queryText,
       page,
       limit,
-      sortBy: 'created_at',
-      sortOrder: 'DESC',
+      meta: {
+        context: 'status-repository/getPaginatedStatuses',
+      },
     });
+    
+    // Handle empty result
+    if (!result?.data?.length) {
+      logSystemInfo('No statuses found for current query', {
+        context: 'status-repository/getPaginatedStatuses',
+        pagination: { page, limit },
+      });
+      return {
+        data: [],
+        pagination: {
+          page,
+          limit,
+          totalRecords: 0,
+          totalPages: 0,
+        },
+      };
+    }
+    
+    // Log success
+    logSystemInfo('Fetched paginated statuses successfully', {
+      context: 'status-repository/getPaginatedStatuses',
+      pagination: result.pagination,
+      sorting: { sortBy, sortOrder },
+    });
+    
+    return result;
   } catch (error) {
-    throw AppError('Failed to fetch statuses from the database', 500, {
-      type: 'DatabaseError',
-      isExpected: false,
+    logSystemException(error, 'Failed to fetch paginated statuses', {
+      context: 'status-repository/getPaginatedStatuses',
+      pagination: { page, limit },
+      sorting: { sortBy, sortOrder },
+    });
+    
+    throw AppError.databaseError('Failed to fetch paginated statuses.', {
+      context: 'status-repository/getPaginatedStatuses',
+      details: error.message,
     });
   }
 };
