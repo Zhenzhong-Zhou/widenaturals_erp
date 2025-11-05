@@ -1,7 +1,5 @@
 const express = require('express');
 const {
-  getProductsDropdownListController,
-  getProductsForDropdownController,
   getPaginatedProductsController,
   getProductDetailsController,
   updateProductStatusController,
@@ -18,13 +16,6 @@ const {
 const { updateProductStatusSchema } = require('../validators/status-validators');
 
 const router = express.Router();
-// todo: remove it
-router.get(
-  '/dropdown/warehouse/:warehouseId',
-  getProductsDropdownListController
-);
-// todo: remove it
-router.get('/dropdown/orders', getProductsForDropdownController);
 
 /**
  * Route: GET /api/v1/products
