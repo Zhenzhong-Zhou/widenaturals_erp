@@ -1,11 +1,9 @@
 const {
-  getAvailableProductsForDropdown,
-  getProductsForDropdown,
   getPaginatedProducts,
   getProductDetailsById,
   updateProductStatus,
+  updateProductInfo,
 } = require('../repositories/product-repository');
-const { logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const {
@@ -14,7 +12,7 @@ const {
 } = require('../transformers/product-transformer');
 const { withTransaction, lockRow } = require('../database/db');
 const { checkStatusExists } = require('../repositories/status-repository');
-const { assertValidProductStatusTransition } = require('../business/product-business');
+const { assertValidProductStatusTransition, filterUpdatableProductFields } = require('../business/product-business');
 
 /**
  * Service: Fetch Paginated Products
@@ -281,17 +279,72 @@ const updateProductStatusService = async ({ productId, statusId, user }) => {
   });
 };
 
-// const updateProductInfoService = async ({ productId, statusCode, userId }) => {
-//   return withTransaction(async (client) => {
-//     const status = await statusRepository.getByCode(statusCode, 'product', client);
-//     await updateProductStatus(productId, status.id, userId, client);
-//     logSystemInfo('Product status updated', { productId, statusCode, updatedBy: userId });
-//     return { success: true };
-//   });
-// };
+/**
+ * Service: Update Product Information
+ *
+ * Performs a transactional update of editable product fields (excluding status),
+ * ensuring concurrency protection, field-level validation, and structured audit logging.
+ * Intended for internal ERP/admin workflows that modify product metadata safely.
+ *
+ * ### Flow
+ * 1. Begin transaction and lock the product row (`FOR UPDATE`).
+ * 2. Validate existence and filter update payload via business rules.
+ * 3. Apply validated updates and record audit metadata.
+ * 4. Commit transaction and return a standardized success response.
+ *
+ * @param {Object} options
+ * @param {string} options.productId - Product UUID to update.
+ * @param {Object} options.updates - Key/value pairs of product fields to update (excluding status).
+ * @param {{ id: string }} options.user - Authenticated user performing the action.
+ *
+ * @returns {Promise<{ id: string, success: boolean }>} Update confirmation payload.
+ *
+ * @throws {AppError.notFoundError} If the product does not exist.
+ * @throws {AppError.validationError} If no valid update fields are provided.
+ * @throws {AppError.conflictError} If concurrent modification is detected.
+ * @throws {AppError.databaseError} If a database failure occurs.
+ */
+const updateProductInfoService = async ({ productId, updates, user }) => {
+  return withTransaction(async (client) => {
+    const userId = user.id;
+    
+    // Step 1: Lock product row to prevent concurrent edits
+    const product = await lockRow(client, 'products', productId, 'FOR UPDATE', {
+      context: 'product-service/updateProductInfoService',
+    });
+    
+    if (!product) {
+      throw AppError.notFoundError('Product not found.');
+    }
+    
+    // Step 2: Validate and filter allowed fields (handled by business layer)
+    const filteredUpdates = filterUpdatableProductFields(updates);
+    
+    // Step 3: Perform update atomically
+    const updated = await updateProductInfo(productId, filteredUpdates, userId, client);
+    
+    if (!updated) {
+      throw AppError.conflictError(
+        'Concurrent update detected — product information not updated.'
+      );
+    }
+    
+    // Step 4: Log success for audit trace
+    logSystemInfo('Product information updated successfully', {
+      context: 'product-service/updateProductInfoService',
+      productId,
+      updatedFields: Object.keys(filteredUpdates),
+      userId,
+    });
+    
+    // Step 5: Return standardized success payload
+    return updated;
+  });
+};
 
 module.exports = {
   fetchPaginatedProductsService,
   fetchProductDetailsService,
   updateProductStatusService,
+  updateProductInfoService,
 };

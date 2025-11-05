@@ -11,7 +11,7 @@ const wrapAsync = require('../utils/wrap-async');
 const {
   fetchPaginatedProductsService,
   fetchProductDetailsService,
-  updateProductStatusService,
+  updateProductStatusService, updateProductInfoService,
 } = require('../services/product-service');
 const { logInfo } = require('../utils/logger-helper');
 
@@ -212,8 +212,61 @@ const updateProductStatusController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * Controller: Update Product Information
+ *
+ * Handles HTTP requests for updating product metadata fields
+ * (excluding status). Delegates business logic to the service layer
+ * and ensures consistent API response formatting.
+ *
+ * ### Behavior
+ * - Parses `productId` from request params.
+ * - Validates and forwards update payload to service.
+ * - Returns a standardized success JSON response.
+ * - Relies on global error middleware for exception handling.
+ *
+ * @route PUT /api/products/:productId/info
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ *
+ * @returns {Promise<void>}
+ */
+const updateProductInfoController = wrapAsync(async (req, res) => {
+  const { productId } = req.params;
+  const updates = req.body;
+  const user = req.user; // injected by auth middleware
+  
+  // Basic input validation
+  if (!productId) {
+    return res.status(400).json({
+      success: false,
+      message: 'Missing required productId parameter.',
+    });
+  }
+  
+  if (!updates || typeof updates !== 'object') {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid request payload.',
+    });
+  }
+  
+  // Delegate to service
+  const result = await updateProductInfoService({ productId, updates, user });
+  
+  // Success response
+  return res.status(200).json({
+    success: true,
+    message: 'Product information updated successfully.',
+    data: result, // { id }
+  });
+});
+
 module.exports = {
   getPaginatedProductsController,
   getProductDetailsController,
   updateProductStatusController,
+  updateProductInfoController,
 };

@@ -342,56 +342,61 @@ const updateProductStatus = async (productId, statusId, userId, client) => {
  * Repository: Update Product Information
  *
  * Updates product fields such as name, brand, category, series, and description.
- * Automatically updates `updated_at` and `updated_by` fields.
+ * Automatically sets `updated_at` and `updated_by` fields through `updateById()`.
  *
- * @param {string} productId - UUID of the product to update
- * @param {Object} updates - Fields to update (validated upstream)
- * @param {string} userId - UUID of the user performing the update
- * @param {import('pg').PoolClient} client - Active database client/transaction
- * @returns {Promise<{ id: string }>} Updated record identifier
+ * ### Behavior
+ * - Accepts validated updates (filtered by business layer).
+ * - Performs SQL UPDATE with optimistic concurrency safety.
+ * - Logs success and failure for audit tracking.
  *
- * @throws {AppError} If update fails or product not found
+ * @param {string} productId - UUID of the product to update.
+ * @param {Object} updates - Fields to update (must be pre-validated).
+ * @param {string} userId - ID of the user performing the update.
+ * @param {import('pg').PoolClient} client - Active transaction client.
+ *
+ * @returns {Promise<{ id: string }>} Updated record identifier.
+ *
+ * @throws {AppError.validationError} If no valid fields are provided.
+ * @throws {AppError.databaseError} If the update query fails or product not found.
  */
-// const updateProductInfo = async (productId, updates, userId, client) => {
-//   try {
-//     // Only allow updatable fields (extra safety guard)
-//     const allowedFields = ['name', 'series', 'brand', 'category', 'description'];
-//     const filteredUpdates = Object.fromEntries(
-//       Object.entries(updates).filter(([key]) => allowedFields.includes(key))
-//     );
-//
-//     if (Object.keys(filteredUpdates).length === 0) {
-//       throw AppError.validationError('No valid product fields provided to update.');
-//     }
-//
-//     const result = await updateById('products', productId, filteredUpdates, userId, client);
-//
-//     logSystemInfo('Updated product information successfully', {
-//       context: 'product-repository/updateProductInfo',
-//       productId,
-//       updatedBy: userId,
-//       fields: Object.keys(filteredUpdates),
-//     });
-//
-//     return result; // { id: '...' }
-//   } catch (error) {
-//     logSystemException(error, 'Failed to update product information', {
-//       context: 'product-repository/updateProductInfo',
-//       productId,
-//       updatedBy: userId,
-//       updates,
-//     });
-//     throw AppError.databaseError('Failed to update product information.', {
-//       context: 'product-repository/updateProductInfo',
-//       details: error.message,
-//     });
-//   }
-// };
+const updateProductInfo = async (productId, updates, userId, client) => {
+  if (!updates || Object.keys(updates).length === 0) {
+    throw AppError.validationError('No update fields provided for product update.');
+  }
+  
+  try {
+    const result = await updateById('products', productId, updates, userId, client);
+    
+    logSystemInfo('Product information updated successfully', {
+      context: 'product-repository/updateProductInfo',
+      productId,
+      updatedBy: userId,
+      fields: Object.keys(updates),
+    });
+    
+    return result; // { id: '...' }
+  } catch (error) {
+    // Don’t rewrap AppError if it’s already typed correctly
+    if (error instanceof AppError) throw error;
+    
+    logSystemException(error, 'Failed to update product information', {
+      context: 'product-repository/updateProductInfo',
+      productId,
+      updatedBy: userId,
+      updates,
+    });
+    
+    throw AppError.databaseError('Database error while updating product information.', {
+      context: 'product-repository/updateProductInfo',
+      details: error.message,
+    });
+  }
+};
 
 module.exports = {
   checkProductExists,
   getPaginatedProducts,
   getProductDetailsById,
   updateProductStatus,
-  // updateProductInfo,
+  updateProductInfo,
 };

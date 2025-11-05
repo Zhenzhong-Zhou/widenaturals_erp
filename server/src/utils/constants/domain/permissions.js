@@ -16,6 +16,7 @@ const PERMISSIONS = {
   PRODUCTS: {
     VIEW: 'view_products',
     UPDATE_STATUS: 'update_product_status',
+    UPDATE_INFO: 'update_product_INFO',
   },
   SKUS: {
     VIEW_CARDS: 'view_sku_cards',

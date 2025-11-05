@@ -3,6 +3,7 @@ const {
   getPaginatedProductsController,
   getProductDetailsController,
   updateProductStatusController,
+  updateProductInfoController,
 } = require('../controllers/product-controller');
 const authorize = require('../middlewares/authorize');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
@@ -11,7 +12,8 @@ const { sanitizeFields } = require('../middlewares/sanitize');
 const validate = require('../middlewares/validate');
 const {
   productQuerySchema,
-  productIdParamSchema
+  productIdParamSchema,
+  productUpdateSchema
 } = require('../validators/product-validators');
 const { updateProductStatusSchema } = require('../validators/status-validators');
 
@@ -222,6 +224,57 @@ router.patch(
   validate(productIdParamSchema, 'params'),
   validate(updateProductStatusSchema, 'body'),
   updateProductStatusController
+);
+
+/**
+ * @route PUT /api/v1/products/:productId/info
+ * @description
+ * Updates general product information (e.g., name, series, brand, category, description)
+ * without modifying its status. This endpoint is used by internal admin or ERP interfaces
+ * to manage product metadata safely.
+ *
+ * ### Authorization
+ * - Requires the `PRODUCTS.UPDATE_INFO` permission.
+ * - Only authenticated and authorized users can perform this operation.
+ *
+ * ### Validation
+ * - `productId` (path param): Must be a valid UUID.
+ * - Request body must include **at least one** editable field (name, series, brand, category, description).
+ * - All string fields are automatically trimmed and sanitized.
+ *
+ * ### Middleware Stack
+ * 1. `authorize([PERMISSIONS.PRODUCTS.UPDATE_INFO])` — Enforces role-based access control.
+ * 2. `sanitizeFields(['description'])` — Removes harmful HTML/JS from the `description` field.
+ * 3. `validate(productIdParamSchema, 'params')` — Ensures valid product UUID.
+ * 4. `validate(productUpdateSchema, 'body')` — Validates the update payload shape.
+ * 5. `updateProductInfoController` — Handles business logic and response.
+ *
+ * ### Example Request
+ * ```json
+ * PUT /api/products/6b3f412b-9528-41f3-9d83-9b9b0d8b540b/info
+ * {
+ *   "name": "NMN 3000",
+ *   "brand": "Canaherb",
+ *   "description": "Updated product description."
+ * }
+ * ```
+ *
+ * ### Example Response
+ * ```json
+ * {
+ *   "success": true,
+ *   "message": "Product information updated successfully.",
+ *   "data": { "id": "6b3f412b-9528-41f3-9d83-9b9b0d8b540b", "success": true }
+ * }
+ * ```
+ */
+router.put(
+  '/:productId/info',
+  authorize([PERMISSIONS.PRODUCTS.UPDATE_INFO]),
+  sanitizeFields(['description']),
+  validate(productIdParamSchema, 'params'),
+  validate(productUpdateSchema, 'body'),
+  updateProductInfoController
 );
 
 module.exports = router;
