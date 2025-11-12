@@ -342,7 +342,19 @@ class AppError extends Error {
       ...options,
     });
   }
-
+  
+  /**
+   * File system–related error (e.g., read/write/delete failure).
+   */
+  static fileSystemError(message, options = {}) {
+    return new AppError(message, 500, {
+      type: 'FileSystemError',
+      code: 'FILE_SYSTEM_ERROR',
+      isExpected: false,
+      ...options,
+    });
+  }
+  
   /**
    * Health check or dependency failure.
    */
