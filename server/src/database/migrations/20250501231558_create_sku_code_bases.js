@@ -18,7 +18,9 @@ exports.up = async function (knex) {
     table.uuid('created_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');
 
-    table.unique(['brand_code', 'category_code']);
+    table.unique(['brand_code', 'category_code'], {
+      indexName: 'idx_sku_base_pair_unique',
+    });
   });
 };
 

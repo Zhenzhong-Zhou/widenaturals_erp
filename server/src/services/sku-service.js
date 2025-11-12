@@ -2,10 +2,13 @@ const { getStatusId } = require('../config/status-cache');
 const {
   fetchPaginatedActiveSkusWithProductCards,
   getSkuDetailsWithPricingAndMeta,
+  insertSkusBulk,
+  checkSkuExists,
 } = require('../repositories/sku-repository');
 const {
   transformPaginatedSkuProductCardResult,
   transformSkuDetailsWithMeta,
+  transformSkuRecord,
 } = require('../transformers/sku-transformer');
 const AppError = require('../utils/AppError');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
@@ -13,7 +16,12 @@ const { sanitizeSortBy } = require('../utils/sort-utils');
 const {
   getAllowedStatusIdsForUser,
   getAllowedPricingTypesForUser,
+  validateSkuListBusiness,
+  prepareSkuInsertPayloads,
 } = require('../business/sku-business');
+const { withTransaction, lockRows } = require('../database/db');
+const { getOrCreateBaseCodesBulk } = require('./sku-code-base-service');
+const { generateSKU } = require('../utils/sku-generator');
 
 /**
  * Service to fetch a paginated list of active SKU product cards.
@@ -108,7 +116,146 @@ const getSkuDetailsForUserService = async (user, skuId) => {
   }
 };
 
+/**
+ * @async
+ * @function
+ * @description
+ * Transactionally creates one or more SKUs with full validation, locking, and base code generation.
+ *
+ * ### Features
+ * - **Bulk Insert:** Handles any number of SKUs atomically within a single transaction.
+ * - **Product Locking:** Prevents concurrent modifications by locking all related product rows.
+ * - **Base Code Bootstrap:** Lazily creates any missing `(brand_code, category_code)` base code pairs in bulk.
+ * - **SKU Code Generation:** Generates standardized SKU codes (e.g. `CH-HN101-R-CN`) per product variant/region.
+ * - **Conflict Detection:** Checks for duplicate SKUs before insertion.
+ * - **Deferred Image Handling:** Product images are processed by a separate upload API.
+ *
+ * @param {Array<Object>} skuList - List of SKU input objects to create.
+ * @param {Object} user - Authenticated user performing the operation.
+ * @returns {Promise<Array<Object>>} Newly created SKU records with generated codes.
+ *
+ * @throws {AppError} Validation, conflict, or database errors.
+ *
+ * @example
+ * await createSkusService([
+ *   { product_id: 'p1', brand_code: 'CH', category_code: 'HN', variant_code: '101', region_code: 'CA' },
+ *   { product_id: 'p2', brand_code: 'PG', category_code: 'NM', variant_code: '204', region_code: 'CN' }
+ * ], currentUser);
+ */
+const createSkusService = async (skuList, user) => {
+  return withTransaction(async (client) => {
+    const context = 'sku-service/createSkusService';
+    const userId = user.id;
+    const lastUsedCodeMap = new Map(); // Keeps last used base code per (brand+category)
+    
+    try {
+      // ------------------------------------------------------------
+      // 1. Validate input & business rules
+      // ------------------------------------------------------------
+      if (!Array.isArray(skuList) || skuList.length === 0) {
+        throw AppError.validationError('No SKUs provided for creation.', { context });
+      }
+      
+      validateSkuListBusiness(skuList);
+      
+      const activeStatusId = getStatusId('general_active');
+      const inactiveStatusId = getStatusId('general_inactive');
+      
+      // ------------------------------------------------------------
+      // 2. Lock all related products to prevent concurrent updates
+      // ------------------------------------------------------------
+      const uniqueProductIds = [...new Set(skuList.map((s) => s.product_id))];
+      const lockedProducts = await lockRows(
+        client,
+        'products',
+        uniqueProductIds,
+        'FOR UPDATE',
+        { context }
+      );
+      
+      if (!lockedProducts?.length) {
+        throw AppError.notFoundError('No matching products found to lock.', { context });
+      }
+      
+      // ------------------------------------------------------------
+      // 3. Ensure (brand_code, category_code) base codes exist
+      // ------------------------------------------------------------
+      const basePairs = skuList.map((s) => ({
+        brandCode: s.brand_code,
+        categoryCode: s.category_code,
+        statusId: activeStatusId,
+        userId,
+      }));
+      
+      await getOrCreateBaseCodesBulk(basePairs, client);
+      
+      // ------------------------------------------------------------
+      // 4. Generate SKU codes (e.g., CH-HN101-R-CN)
+      //     Uses lastUsedCodeMap to minimize redundant DB lookups.
+      // ------------------------------------------------------------
+      const generatedSkus = [];
+      for (const s of skuList) {
+        const skuCode = await generateSKU(
+          s.brand_code,
+          s.category_code,
+          s.variant_code,
+          s.region_code,
+          lastUsedCodeMap,
+          client
+        );
+        generatedSkus.push(skuCode);
+      }
+      
+      // ------------------------------------------------------------
+      // 5. Pre-check for duplicates before insertion
+      //     (Avoids partial inserts or rollback costs)
+      // ------------------------------------------------------------
+      for (let i = 0; i < skuList.length; i++) {
+        const exists = await checkSkuExists(generatedSkus[i], skuList[i].product_id, client);
+        if (exists) {
+          throw AppError.conflictError(`SKU already exists: ${generatedSkus[i]}`, { context });
+        }
+      }
+      
+      // ------------------------------------------------------------
+      // 6. Prepare bulk insert payloads
+      // ------------------------------------------------------------
+      const insertPayloads = prepareSkuInsertPayloads(
+        skuList,
+        generatedSkus,
+        inactiveStatusId,
+        userId
+      );
+      
+      // ------------------------------------------------------------
+      // 7. Insert SKUs in bulk (efficient single query)
+      // ------------------------------------------------------------
+      const insertedSkus = await insertSkusBulk(insertPayloads, client);
+      
+      // ------------------------------------------------------------
+      // 8. Transform & enrich results before returning
+      // ------------------------------------------------------------
+      const transformed = transformSkuRecord(insertedSkus, generatedSkus);
+      
+      // ------------------------------------------------------------
+      // 9. Structured system log for auditing
+      // ------------------------------------------------------------
+      logSystemInfo('Bulk SKU creation completed', {
+        context,
+        totalInput: skuList.length,
+        insertedCount: insertedSkus.length,
+      });
+      
+      return transformed;
+    } catch (error) {
+      logSystemException(error, 'Failed to create SKUs in bulk', { context });
+      throw AppError.databaseError('Failed to create SKUs.', { cause: error, context });
+    }
+  });
+};
+
 module.exports = {
   fetchPaginatedSkuProductCardsService,
   getSkuDetailsForUserService,
+  createSkusService,
 };

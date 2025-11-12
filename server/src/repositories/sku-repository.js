@@ -1,7 +1,7 @@
 const {
   query,
   paginateResults,
-  paginateQueryByOffset,
+  paginateQueryByOffset, bulkInsert,
 } = require('../database/db');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
@@ -548,10 +548,163 @@ const getSkuLookup = async ({
   }
 };
 
+/**
+ * @async
+ * @function
+ * @description
+ * Inserts one or multiple SKU records into the database efficiently.
+ *
+ * - Supports **bulk insertion** (multi-row VALUES syntax).
+ * - Applies **ON CONFLICT (product_id, sku)** upsert logic to avoid duplicates.
+ * - Returns an array of inserted/updated records (default columns: `id`).
+ *
+ * @example
+ * await insertSkusBulk([
+ *   { product_id: '...', sku: 'CH-HN101-R-CN', barcode: '628693...', created_by: userId },
+ *   { product_id: '...', sku: 'CH-HN102-R-CA', barcode: '628693...', created_by: userId }
+ * ], client);
+ *
+ * @param {Array<Object>} skus - SKU objects to insert.
+ * @param {object} client - Active PG transaction client.
+ * @returns {Promise<Array>} Inserted SKU rows (default: `{ id }` only).
+ */
+const insertSkusBulk = async (skus, client) => {
+  if (!Array.isArray(skus) || skus.length === 0) return [];
+  
+  const context = 'sku-repository/insertSkusBulk';
+  
+  // Validate structure of input before processing
+  if (!skus.every((s) => s.product_id && s.sku)) {
+    throw AppError.validationError('Each SKU must include product_id and sku.');
+  }
+  
+  const columns = [
+    'product_id',
+    'sku',
+    'barcode',
+    'language',
+    'country_code',
+    'market_region',
+    'size_label',
+    'description',
+    'length_cm',
+    'width_cm',
+    'height_cm',
+    'weight_g',
+    'status_id',
+    'created_by',
+  ];
+  
+  // Convert objects into row arrays
+  const rows = skus.map((s) => [
+    s.product_id,
+    s.sku,
+    s.barcode,
+    s.language,
+    s.country_code,
+    s.market_region,
+    s.size_label,
+    s.description,
+    s.length_cm ?? null, // null → distinguish "unset" vs 0
+    s.width_cm ?? null,
+    s.height_cm ?? null,
+    s.weight_g ?? null,
+    s.status_id,
+    s.created_by ?? null,
+  ]);
+  
+  // Conflict handling (avoid duplicate SKU code)
+  const conflictColumns = ['product_id', 'sku'];
+  
+  const updateStrategies = {
+    description: 'overwrite', // Replace description if re-inserted
+    updated_at: 'overwrite',  // Refresh timestamp
+  };
+  
+  try {
+    const result = await bulkInsert(
+      'skus',
+      columns,
+      rows,
+      conflictColumns,
+      updateStrategies,
+      client,
+      { context },
+      'id'
+    );
+    
+    logSystemInfo('Successfully inserted or updated SKU records', {
+      context,
+      insertedCount: result.length,
+      totalInput: skus.length,
+    });
+    
+    return result;
+  } catch (error) {
+    logSystemException(error, 'Failed to insert SKU records', {
+      context,
+      skuCount: skus.length,
+    });
+    
+    throw AppError.databaseError('Failed to insert SKU records', {
+      cause: error,
+    });
+  }
+};
+
+/**
+ * @async
+ * @function
+ * @description
+ * Checks if a SKU already exists for a given product.
+ *
+ * @example
+ * const exists = await checkSkuExists('CH-HN101-R-CN', 'product-uuid', client);
+ * if (exists) throw AppError.conflictError('SKU already exists.');
+ *
+ * @param {string} sku - SKU code (e.g. "CH-HN117-R-CN").
+ * @param {string} productId - Product UUID.
+ * @param {object} client - Active PG client or transaction.
+ * @returns {Promise<boolean>} True if the SKU exists, false otherwise.
+ */
+const checkSkuExists = async (sku, productId, client) => {
+  const context = 'sku-repository/checkSkuExists';
+  
+  const sql = `
+    SELECT 1
+    FROM skus
+    WHERE sku = $1 AND product_id = $2
+    LIMIT 1;
+  `;
+  
+  try {
+    const { rows } = await query(sql, [sku, productId], client);
+    const exists = rows.length > 0;
+    
+    logSystemInfo('Checked SKU existence', {
+      context,
+      sku,
+      productId,
+      exists,
+    });
+    
+    return exists;
+  } catch (error) {
+    logSystemException(error, 'Failed to check SKU existence.', {
+      context,
+      sku,
+      productId,
+    });
+    throw AppError.databaseError('Failed to check SKU existence.', { cause: error });
+  }
+};
+
 module.exports = {
   getLastSku,
   fetchPaginatedActiveSkusWithProductCards,
   getSkuAndProductStatus,
   getSkuDetailsWithPricingAndMeta,
   getSkuLookup,
+  insertSkusBulk,
+  checkSkuExists,
 };

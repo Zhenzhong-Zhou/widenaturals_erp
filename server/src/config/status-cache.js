@@ -35,6 +35,16 @@ let STATUS_ROW_MAP = new Map();  // id (UUID) → full row object
  */
 const STATUS_KEY_LOOKUP = [
   { key: 'product_active', table: 'status', name: 'active' },
+  {
+    key: 'general_active',
+    table: 'status',
+    name: 'active',
+  },
+  {
+    key: 'general_inactive',
+    table: 'status',
+    name: 'inactive',
+  },
   { key: 'pricing_type_active', table: 'status', name: 'active' },
   { key: 'pricing_active', table: 'status', name: 'active' },
   { key: 'warehouse_active', table: 'status', name: 'active' },

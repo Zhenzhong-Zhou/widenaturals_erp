@@ -5,7 +5,7 @@ const {
   resolveUserPermissionContext,
 } = require('../services/role-permission-service');
 const { getStatusId } = require('../config/status-cache');
-const { logSystemException } = require('../utils/system-logger');
+const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const { PERMISSIONS } = require('../utils/constants/domain/sku-constants');
 const { getGenericIssueReason } = require('../utils/enrich-utils');
 
@@ -317,6 +317,149 @@ const enrichSkuRow = (row, expectedStatusIds) => {
   };
 };
 
+/**
+ * @constant SKU_REQUIRED_FIELDS
+ * Immutable list of required fields for all SKU creation payloads.
+ */
+const SKU_REQUIRED_FIELDS = Object.freeze([
+  'product_id',
+  'brand_code',
+  'category_code',
+  'variant_code',
+  'region_code',
+]);
+
+/**
+ * Validates a single SKU creation payload against required fields and business rules.
+ *
+ * @param {object} skuData - The SKU payload to validate.
+ * @param {string} [context='sku-business/validateSkuCreationBusiness'] - Log context for tracing.
+ * @throws {AppError.validationError} If a required field is missing or invalid.
+ *
+ * @example
+ * validateSkuCreationBusiness({
+ *   product_id: '123',
+ *   brand_code: 'CH',
+ *   category_code: 'HN',
+ *   variant_code: '101',
+ *   region_code: 'CA',
+ * });
+ */
+const validateSkuCreationBusiness = (
+  skuData,
+  context = 'sku-business/validateSkuCreationBusiness'
+) => {
+  // Use centralized constant for required fields
+  for (const field of SKU_REQUIRED_FIELDS) {
+    if (!skuData[field]) {
+      throw AppError.validationError(`Missing required field: ${field}`, { context });
+    }
+  }
+  
+  // Log only essential identifying metadata (avoid verbose logging)
+  logSystemInfo('SKU creation input validated.', {
+    context,
+    product_id: skuData.product_id,
+    brand_code: skuData.brand_code,
+    category_code: skuData.category_code,
+  });
+};
+
+/**
+ * Validates an array of SKU creation payloads in a single batch.
+ *
+ * Performs structural validation (array shape, non-empty) and
+ * iteratively validates each item with `validateSkuCreationBusiness`.
+ *
+ * @param {Array<object>} skuList - List of SKU payloads to validate.
+ * @param {string} [context='sku-business/validateSkuListBusiness'] - Log context for tracing.
+ * @throws {AppError.validationError} If the list is empty or contains invalid entries.
+ *
+ * @example
+ * validateSkuListBusiness([
+ *   { product_id: 'p1', brand_code: 'CH', category_code: 'HN', variant_code: '101', region_code: 'CA' },
+ *   { product_id: 'p2', brand_code: 'PG', category_code: 'NM', variant_code: '204', region_code: 'CN' }
+ * ]);
+ */
+const validateSkuListBusiness = (
+  skuList,
+  context = 'sku-business/validateSkuListBusiness'
+) => {
+  // Structural validation first
+  if (!Array.isArray(skuList) || skuList.length === 0) {
+    throw AppError.validationError(
+      `SKU list is empty or invalid. Expected fields: ${SKU_REQUIRED_FIELDS.join(', ')}`,
+      { context }
+    );
+  }
+  
+  // Validate each entry
+  for (const sku of skuList) {
+    validateSkuCreationBusiness(sku, context);
+  }
+  
+  // Summary log
+  logSystemInfo('Bulk SKU creation input validated successfully.', {
+    context,
+    count: skuList.length,
+  });
+};
+
+/**
+ * Normalizes a single SKU payload into a schema-compliant record for insertion.
+ *
+ * @param {object} skuData - Original SKU payload.
+ * @param {string} generatedSku - Generated SKU code string.
+ * @param {string} statusId - Default status ID.
+ * @param {string} userId - ID of the creator.
+ * @returns {object} Normalized payload suitable for DB insertion.
+ *
+ * @example
+ * const record = prepareSkuInsertPayload(sku, 'CH-HN101-R-CN', activeStatusId, user.id);
+ */
+const prepareSkuInsertPayload = (skuData, generatedSku, statusId, userId) => ({
+  product_id: skuData.product_id,
+  sku: generatedSku,
+  barcode: skuData.barcode ?? null,
+  language: skuData.language ?? 'en-fr',
+  country_code: skuData.country_code ?? null,
+  market_region: skuData.market_region ?? null,
+  size_label: skuData.size_label ?? null,
+  description: skuData.description ?? null,
+  length_cm: skuData.length_cm ?? null,
+  width_cm: skuData.width_cm ?? null,
+  height_cm: skuData.height_cm ?? null,
+  weight_g: skuData.weight_g ?? null,
+  status_id: statusId,
+  created_by: userId,
+});
+
+/**
+ * Prepares normalized database-ready payloads for multiple SKUs.
+ *
+ * Ensures that all optional fields are defaulted or sanitized.
+ * Each SKU payload is processed by `prepareSkuInsertPayload`.
+ *
+ * @param {Array<object>} skuList - Raw SKU input payloads.
+ * @param {Array<string>} generatedSkus - Generated SKU codes (must match length of skuList).
+ * @param {string} statusId - Default status ID for inserted SKUs.
+ * @param {string} userId - ID of the user performing the creation.
+ * @returns {Array<object>} Prepared payloads ready for bulk insertion.
+ *
+ * @example
+ * const payloads = prepareSkuInsertPayloads(skus, codes, activeStatusId, user.id);
+ */
+const prepareSkuInsertPayloads = (skuList, generatedSkus, statusId, userId) => {
+  // Optimization: preallocate array for better V8 perf on large lists
+  const result = new Array(skuList.length);
+  
+  for (let i = 0; i < skuList.length; i++) {
+    result[i] = prepareSkuInsertPayload(skuList[i], generatedSkus[i], statusId, userId);
+  }
+  
+  return result;
+};
+
 module.exports = {
   getAllowedStatusIdsForUser,
   getAllowedPricingTypesForUser,
@@ -325,4 +468,8 @@ module.exports = {
   enforceSkuLookupVisibilityRules,
   filterSkuLookupQuery,
   enrichSkuRow,
+  validateSkuCreationBusiness,
+  validateSkuListBusiness,
+  prepareSkuInsertPayload,
+  prepareSkuInsertPayloads,
 };

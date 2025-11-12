@@ -197,7 +197,25 @@ const transformSkuDetailsWithMeta = (row) => {
   };
 };
 
+/**
+ * Transforms an array of SKU rows returned from an insert or query
+ * into a minimal API response format.
+ *
+ * @param {object[]} skuRows - Array of rows returned from insertSkusBulk or query.
+ * @param {string[]} generatedSkus - Array of corresponding generated SKU codes.
+ * @returns {object[]} - Transformed list of minimal SKU objects.
+ */
+const transformSkuRecord = (skuRows, generatedSkus = []) => {
+  if (!Array.isArray(skuRows) || skuRows.length === 0) return [];
+  
+  return skuRows.map((row, idx) => ({
+    id: row.id,
+    skuCode: generatedSkus[idx] ?? null,
+  }));
+};
+
 module.exports = {
   transformPaginatedSkuProductCardResult,
   transformSkuDetailsWithMeta,
+  transformSkuRecord,
 };
