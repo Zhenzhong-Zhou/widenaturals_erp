@@ -42,7 +42,7 @@ const ensureDirectory = async (dir) => {
 };
 
 /**
- * Generates a SHA-256 hash for the given file.
+ * Generates an SHA-256 hash for the given file.
  * @param {string} filePath - Path to the file.
  * @returns {Promise<string>} - Hash value.
  */

@@ -797,6 +797,9 @@ const paginateResults = async ({
   }
 };
 
+// Declare cache outside the function (module-scoped)
+const primaryKeyCache = new Map();
+
 /**
  * Locks a specific row in the given table using the specified lock mode.
  *
@@ -830,43 +833,46 @@ const lockRow = async (
   }
 
   // Step 1: Fetch the primary key dynamically
-  const primaryKeySql = `
-    SELECT a.attname AS primary_key
-    FROM pg_index i
-    JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
-    WHERE i.indrelid = $1::regclass AND i.indisprimary;
-  `;
-
-  const tablePrimaryKey = await retry(async () => {
-    const result = await client.query(primaryKeySql, [table]);
-    if (result.rows.length === 0) {
-      throw AppError.validationError(
-        `No primary key found for table: ${maskedTable}`
-      );
+  let tablePrimaryKey;
+  if (primaryKeyCache.has(table)) {
+    tablePrimaryKey = primaryKeyCache.get(table);
+  } else {
+    const primaryKeySql = `
+      SELECT a.attname AS primary_key
+      FROM pg_index i
+      JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
+      WHERE i.indrelid = $1::regclass AND i.indisprimary;
+    `;
+    try {
+      const result = await query(primaryKeySql, [table], client);
+      if (result.rows.length === 0) {
+        throw AppError.validationError(`No primary key found for table: ${maskedTable}`);
+      }
+      tablePrimaryKey = result.rows[0].primary_key;
+      primaryKeyCache.set(table, tablePrimaryKey); // Cache result
+    } catch (error) {
+      logLockRowError(error, primaryKeySql, [table], maskedTable, 'PRIMARY_KEY_LOOKUP', meta);
+      throw error;
     }
-    return result.rows[0].primary_key;
-  });
-
+  }
+  
   // Step 2: Attempt to lock the row
   const sql = `SELECT * FROM ${table} WHERE ${tablePrimaryKey} = $1 ${lockMode}`;
-
-  return await retry(async () => {
-    try {
-      const result = await client.query(sql, [id]);
-      if (result.rows.length === 0) {
-        throw AppError.notFoundError(
-          `Row with ID "${maskedId}" not found in table "${maskedTable}"`
-        );
-      }
-      return result.rows[0];
-    } catch (error) {
-      logLockRowError(error, sql, [id], maskTableName(table), lockMode, {
-        ...meta,
-      });
-
-      throw error; // Keep original error for retry logic
+  try {
+    const result = await query(sql, [id], client);
+    if (result.rows.length === 0) {
+      throw AppError.notFoundError(
+        `Row with ID "${maskedId}" not found in table "${maskedTable}"`
+      );
     }
-  });
+    return result.rows[0];
+  } catch (error) {
+    logLockRowError(error, sql, [id], maskTableName(table), lockMode, {
+      ...meta,
+    });
+
+    throw error; // Keep original error for retry logic
+  }
 };
 
 /**

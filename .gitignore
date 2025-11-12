@@ -58,3 +58,4 @@ backups/
 backup/
 temp/
 server/public/uploads/sku-images
+server/src/tests/apis/public

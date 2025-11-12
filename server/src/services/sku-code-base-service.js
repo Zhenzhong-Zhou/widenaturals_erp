@@ -4,6 +4,7 @@ const { getExistingBaseCodesBulk, insertBaseCodesBulk } = require('../repositori
 const AppError = require('../utils/AppError');
 
 /**
+ * @async
  * @function
  * @description
  * Ensures that all `(brand_code, category_code)` base code pairs exist in the database.
