@@ -2,17 +2,19 @@ const {
   getPaginatedProducts,
   getProductDetailsById,
   updateProductStatus,
-  updateProductInfo,
+  updateProductInfo, insertProductsBulk,
 } = require('../repositories/product-repository');
 const AppError = require('../utils/AppError');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const {
   transformPaginatedProductResults,
-  transformProductDetail
+  transformProductDetail, transformProductList
 } = require('../transformers/product-transformer');
 const { withTransaction, lockRow } = require('../database/db');
 const { checkStatusExists } = require('../repositories/status-repository');
-const { assertValidProductStatusTransition, filterUpdatableProductFields } = require('../business/product-business');
+const { assertValidProductStatusTransition, filterUpdatableProductFields, validateProductListBusiness,
+  prepareProductInsertPayloads
+} = require('../business/product-business');
 
 /**
  * Service: Fetch Paginated Products
@@ -342,9 +344,89 @@ const updateProductInfoService = async ({ productId, updates, user }) => {
   });
 };
 
+/**
+ * @async
+ * @function
+ * @description
+ * Creates multiple products in a single atomic operation.
+ *
+ * This service orchestrates high-level creation logic by:
+ *   - Running business-layer validation (`validateProductListBusiness`)
+ *   - Normalizing product fields (`prepareProductInsertPayloads`)
+ *   - Delegating database write operations to the repository (`insertProductsBulk`)
+ *
+ * Transaction Notes:
+ *   - The entire bulk creation runs inside a single database transaction
+ *     via `withTransaction` to guarantee atomicity.
+ *   - If any product fails validation or insertion, the transaction rolls back,
+ *     preventing partial product creation and preserving data integrity.
+ *   - This behavior aligns with other ERP modules (SKUs, inventory, pricing)
+ *     for predictable error handling and audit consistency.
+ *
+ * Logging:
+ *   - Emits structured system logs for auditing and performance insights.
+ *
+ * @param {Array<Object>} productList
+ *   Array of raw product definitions validated by Joi at the route layer.
+ *
+ * @param {Object} user
+ *   Authenticated user context used for audit fields (`created_by`).
+ *
+ * @returns {Promise<Array>}
+ *   A normalized list of inserted product records transformed by transformProductList.
+ *
+ * @throws {AppError}
+ *   Throws domain-level errors wrapped in AppError when validation or database
+ *   operations fail.
+ */
+const createProductsService = async (productList, user) => {
+  const context = 'product-service/createProductsService';
+  const userId = user.id;
+  const startTime = Date.now();
+  
+  return withTransaction(async (client) => {
+    try {
+      // ---------------------------
+      // 1. Business validation
+      // ---------------------------
+      validateProductListBusiness(productList);
+      
+      // ---------------------------
+      // 2. Prepare normalized insert payloads
+      // ---------------------------
+      const insertPayloads = prepareProductInsertPayloads(productList, userId);
+      
+      // ---------------------------
+      // 3. Insert in bulk
+      // ---------------------------
+      const inserted = await insertProductsBulk(insertPayloads, client);
+      
+      // ---------------------------
+      // 4. Logging
+      // ---------------------------
+      logSystemInfo('Bulk product creation completed', {
+        context,
+        inputCount: productList.length,
+        insertedCount: inserted.length,
+        elapsedMs: Date.now() - startTime,
+      });
+      
+      return transformProductList(inserted);
+    } catch (error) {
+      logSystemException(error, 'Failed to create products in bulk', { context });
+      
+      throw AppError.databaseError('Failed to create products.', {
+        cause: error,
+        context,
+      });
+    }
+  });
+};
+
 module.exports = {
   fetchPaginatedProductsService,
   fetchProductDetailsService,
   updateProductStatusService,
   updateProductInfoService,
+  createProductsService,
 };

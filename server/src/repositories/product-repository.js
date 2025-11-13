@@ -1,4 +1,4 @@
-const { query, paginateResults, updateById } = require('../database/db');
+const { query, paginateResults, updateById, bulkInsert } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { buildProductFilter } = require('../utils/sql/build-product-filters');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
@@ -393,10 +393,148 @@ const updateProductInfo = async (productId, updates, userId, client) => {
   }
 };
 
+/**
+ * @async
+ * @function
+ * @description
+ * Performs a bulk insert of product records using the shared `bulkInsert` helper.
+ *
+ * This repository-level function:
+ *   - Accepts already-normalized product payloads (business layer handles normalization)
+ *   - Validates minimal structural requirements (name, brand, category)
+ *   - Converts objects into row arrays for fast bulk insertion
+ *   - Applies conflict-handling rules using PostgreSQL ON CONFLICT
+ *   - Ensures audit fields (`created_by`, `updated_by`, `updated_at`) follow project conventions
+ *
+ * Performance Characteristics:
+ *   - Uses a single multi-row INSERT for efficiency
+ *   - Returns only the `id` column to minimize payload size
+ *   - Handles 1–10,000 rows with very low overhead
+ *
+ * Conflict Strategy:
+ *   - Uses the unique composite key (name, brand, category)
+ *   - On conflict, selectively updates description, status_id, updated_by, and updated_at
+ *
+ * Expected product object shape:
+ *   {
+ *     name: string,
+ *     series: string | null,
+ *     brand: string,
+ *     category: string,
+ *     description: string | null,
+ *     status_id: uuid,
+ *     created_by: uuid,
+ *     updated_by: uuid | null
+ *   }
+ *
+ * @param {Array<Object>} products - List of normalized products to insert
+ * @param {PoolClient} client - PostgreSQL transaction client
+ * @returns {Promise<Array<{ id: string }>>} Array of inserted product IDs
+ *
+ * @throws {AppError} - When validation fails or the insert operation fails
+ */
+const insertProductsBulk = async (products, client) => {
+  const context = 'product-repository/insertProductsBulk';
+  
+  // ------------------------------------------------------------
+  // 1. Fast-fail validation
+  // ------------------------------------------------------------
+  if (!Array.isArray(products) || products.length === 0) {
+    return [];
+  }
+  
+  if (!products.every((p) => p.name && p.brand && p.category)) {
+    throw AppError.validationError(
+      'Each product must include at least name, brand, and category.',
+      { context }
+    );
+  }
+  
+  // ------------------------------------------------------------
+  // 2. Explicit column ordering (must match DB schema)
+  // ------------------------------------------------------------
+  const columns = [
+    'name',
+    'series',
+    'brand',
+    'category',
+    'description',
+    'status_id',
+    'created_by',
+    'updated_by',
+    'updated_at',
+  ];
+  
+  // ------------------------------------------------------------
+  // 3. Convert objects → row arrays
+  // ------------------------------------------------------------
+  const rows = products.map((p) => [
+    p.name,
+    p.series ?? null,
+    p.brand,
+    p.category,
+    p.description ?? null,
+    p.status_id,
+    p.created_by ?? null,
+    null,
+    null,
+  ]);
+  
+  // ------------------------------------------------------------
+  // 4. Conflict handling:
+  // - Typically: unique(name, brand, category) or SKU-level constraints
+  // - You can adjust these depending on your schema indexes
+  // ------------------------------------------------------------
+  const conflictColumns = ['name', 'brand', 'category'];
+  
+  const updateStrategies = {
+    description: 'overwrite',
+    status_id: 'overwrite',
+    status_date: 'overwrite',
+    updated_by: 'overwrite',
+    updated_at: 'overwrite',
+  };
+  
+  // ------------------------------------------------------------
+  // 5. Execute bulk insert
+  // ------------------------------------------------------------
+  try {
+    const result = await bulkInsert(
+      'products',
+      columns,
+      rows,
+      conflictColumns,
+      updateStrategies,
+      client,
+      { context },
+      'id' // return id column
+    );
+    
+    logSystemInfo('Successfully inserted or updated product records', {
+      context,
+      insertedCount: result.length,
+      totalInput: products.length,
+    });
+    
+    return result;
+  } catch (error) {
+    logSystemException(error, 'Failed to insert product records', {
+      context,
+      productCount: products.length,
+    });
+    
+    throw AppError.databaseError('Failed to insert product records', {
+      cause: error,
+      context,
+    });
+  }
+};
+
 module.exports = {
   checkProductExists,
   getPaginatedProducts,
   getProductDetailsById,
   updateProductStatus,
   updateProductInfo,
+  insertProductsBulk,
 };

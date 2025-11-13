@@ -4,8 +4,39 @@ const {
   createSortSchema,
   validateOptionalString,
   validateOptionalUUID,
-  validateUUID
+  validateUUID,
+  validateString
 } = require('./general-validators');
+
+/**
+ * BRAND_CATEGORY_REGEX
+ *
+ * Rules enforced:
+ *  - Each word must start with an uppercase letter (A–Z)
+ *  - Words may contain:
+ *      • letters (a–z, A–Z)
+ *      • digits (0–9)
+ *      • symbols: ', &, +, /, -
+ *  - Multiple words allowed, separated by spaces.
+ *  - Hyphens within words allowed.
+ *  - ALLCAPS words also accepted.
+ *
+ * Examples allowed:
+ *   "Canaherb"
+ *   "Herbal Natural"
+ *   "WIDE Naturals"
+ *   "Health+"
+ *   "Children's Supplements"
+ *   "Herbal-Natural Extract"
+ *
+ * Examples rejected:
+ *   "canaherb"              → lowercase start
+ *   "herbal Natural"        → first word lowercase
+ *   "Herbal natural"        → second word lowercase
+ *   "Ωmega Extract"         → unicode not allowed
+ */
+const BRAND_CATEGORY_REGEX =
+  /^[A-Z][a-zA-Z0-9'&+/-]*(\s+[A-Z][a-zA-Z0-9'&+/-]*)*$/;
 
 /**
  * Joi schema for validating product list query parameters.
@@ -117,8 +148,111 @@ const productUpdateSchema = Joi.object({
     'object.missing': 'At least one product field must be provided for update.',
   });
 
+/**
+ * Schema for validating a single product creation object.
+ *
+ * Brand & category rules (via BRAND_CATEGORY_REGEX):
+ *  - Each word must start with an uppercase letter.
+ *  - Words may include letters, digits, and symbols: ', &, +, /, -.
+ *  - Multiple words separated by spaces are allowed.
+ *  - Accepts Title Case ("Herbal Natural") or ALLCAPS ("CANAHERB").
+ *
+ * Examples accepted:
+ *   "Canaherb"
+ *   "Herbal Natural"
+ *   "WIDE Naturals"
+ *   "Health+"
+ *   "Children's Supplements"
+ *   "Herbal-Natural Extract"
+ *
+ * Examples rejected:
+ *   "canaherb"              (lowercase start)
+ *   "herbal Natural"        (first word lowercase)
+ *   "Herbal natural"        (second word lowercase)
+ *   "Ωmega Extract"         (unicode)
+ */
+const createProductSchema = Joi.object({
+  name: validateString('Product Name', 2, 255),
+  
+  series: Joi.string().trim().allow(null, '').max(255),
+  
+  brand: Joi.string()
+    .trim()
+    .pattern(BRAND_CATEGORY_REGEX)
+    .min(2)
+    .max(100)
+    .required()
+    .messages({
+      'string.pattern.base':
+        `"brand" must start each word with an uppercase letter and may include letters, digits, and symbols (', &, +, /, -).`,
+    }),
+  
+  category: Joi.string()
+    .trim()
+    .pattern(BRAND_CATEGORY_REGEX)
+    .min(2)
+    .max(100)
+    .required()
+    .messages({
+      'string.pattern.base':
+        `"category" must start each word with an uppercase letter and may include letters, digits, and symbols (', &, +, /, -).`,
+    }),
+  
+  description: validateOptionalString('Description', 1000),
+  
+  length_cm: Joi.number().positive().allow(null),
+  width_cm: Joi.number().positive().allow(null),
+  height_cm: Joi.number().positive().allow(null),
+  weight_g: Joi.number().positive().allow(null),
+});
+
+/**
+ * @constant
+ * @description
+ * Joi validation schema for bulk product creation requests.
+ *
+ * Expected payload shape:
+ *   {
+ *     "products": [
+ *       { ...single product fields... },
+ *       { ... }
+ *     ]
+ *   }
+ *
+ * Validation rules:
+ *  - `products` must be an array.
+ *  - Minimum 1 product; maximum 200 products per request.
+ *  - Each element in the array must satisfy `createProductSchema`,
+ *    which validates:
+ *       • Product name, brand, category
+ *       • TitleCase / ALLCAPS word rules via BRAND_CATEGORY_REGEX
+ *       • Optional fields (series, description, dimensions)
+ *
+ * Behavior notes:
+ *  - Ensures the entire request body is well-formed before reaching the
+ *    service layer.
+ *  - Prevents oversized bulk operations that may impact database performance.
+ *  - Works together with the controller to enforce clean input and avoid
+ *    partially valid submissions.
+ *
+ * Typical usage:
+ *   validate(createProductBulkSchema, 'body')
+ *
+ * Used by:
+ *   - POST /products/create
+ *   - Product creation tooling (bulk import UI, admin tools, integration APIs)
+ */
+const createProductBulkSchema = Joi.object({
+  products: Joi.array()
+    .items(createProductSchema)
+    .min(1)
+    .max(200)
+    .required(),
+});
+
 module.exports = {
   productQuerySchema,
   productIdParamSchema,
   productUpdateSchema,
+  createProductBulkSchema,
 };

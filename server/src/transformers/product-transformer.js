@@ -148,7 +148,18 @@ const transformProductDetail = (row) => {
   return cleanObject(base);
 };
 
+const transformProductRecord = (row) => {
+  if (!row) return null;
+  
+  return {
+    id: row.id,
+  };
+};
+
+const transformProductList = (rows = []) => rows.map(transformProductRecord);
+
 module.exports = {
   transformPaginatedProductResults,
   transformProductDetail,
+  transformProductList,
 };

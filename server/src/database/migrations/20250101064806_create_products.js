@@ -20,7 +20,9 @@ exports.up = async function (knex) {
     table.uuid('updated_by').references('id').inTable('users');
     
     // Primary and unique constraints
-    table.unique(['name', 'brand', 'series', 'category']);
+    table.unique(['name', 'brand', 'category'], {
+      indexName: 'uq_product_name_brand_category'
+    });
     
     // Basic indexes
     table.index(['name'], 'idx_products_name');

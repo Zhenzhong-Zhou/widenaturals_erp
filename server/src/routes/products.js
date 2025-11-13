@@ -4,6 +4,7 @@ const {
   getProductDetailsController,
   updateProductStatusController,
   updateProductInfoController,
+  createProductsController,
 } = require('../controllers/product-controller');
 const authorize = require('../middlewares/authorize');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
@@ -13,7 +14,8 @@ const validate = require('../middlewares/validate');
 const {
   productQuerySchema,
   productIdParamSchema,
-  productUpdateSchema
+  productUpdateSchema,
+  createProductBulkSchema
 } = require('../validators/product-validators');
 const { updateProductStatusSchema } = require('../validators/status-validators');
 
@@ -275,6 +277,75 @@ router.put(
   validate(productIdParamSchema, 'params'),
   validate(productUpdateSchema, 'body'),
   updateProductInfoController
+);
+
+/**
+ * @route POST /products/create
+ * @summary Bulk-create product records
+ * @description
+ * Creates multiple products within a **single atomic database transaction**.
+ *
+ * This endpoint is intended for:
+ *   - Initial product catalog setup
+ *   - Admin/ERP bulk import workflows
+ *   - Automated integrations that need to register multiple products at once
+ *
+ * Request Body:
+ *   {
+ *     "products": [
+ *       {
+ *         "name": "Immune Support",
+ *         "series": "Core Health",
+ *         "brand": "Canaherb",
+ *         "category": "Herbal Natural",
+ *         "description": "Immune formula..."
+ *       },
+ *       ...
+ *     ]
+ *   }
+ *
+ * Pipeline:
+ *   1. **Authorization**
+ *        - Requires `PRODUCTS.CREATE` permission.
+ *        - User object is attached to `req.user`.
+ *
+ *   2. **Field Sanitization**
+ *        - Optional sanitization for specific free-text fields (e.g., description).
+ *
+ *   3. **Joi Validation**
+ *        - Validates shape, required fields, and TitleCase/ALLCAPS brand/category rules.
+ *        - Ensures array size constraints (1–200 items).
+ *
+ *   4. **Controller Execution**
+ *        - Delegates to `createProductsController`.
+ *        - Controller triggers the service layer → business rules → repository layer.
+ *        - Runs inside a DB transaction to prevent partial inserts.
+ *
+ * Responses:
+ *   201 Created
+ *     {
+ *       "success": true,
+ *       "message": "Products created successfully.",
+ *       "stats": {
+ *         "inputCount": 5,
+ *         "createdCount": 5,
+ *         "elapsedMs": 42
+ *       },
+ *       "data": [ ...inserted product rows... ]
+ *     }
+ *
+ * Error Responses:
+ *   400 ValidationError – Invalid structure or product fields
+ *   403 Forbidden – Missing permission
+ *   409 Conflict – Duplicate product name/brand/category
+ *   500 DatabaseError – Unexpected error during transaction
+ */
+router.post(
+  '/create',
+  authorize([PERMISSIONS.PRODUCTS.CREATE]),
+  sanitizeFields(['description']),
+  validate(createProductBulkSchema, 'body'),
+  createProductsController
 );
 
 module.exports = router;

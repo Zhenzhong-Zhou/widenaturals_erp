@@ -11,9 +11,10 @@ const wrapAsync = require('../utils/wrap-async');
 const {
   fetchPaginatedProductsService,
   fetchProductDetailsService,
-  updateProductStatusService, updateProductInfoService,
+  updateProductStatusService, updateProductInfoService, createProductsService,
 } = require('../services/product-service');
 const { logInfo } = require('../utils/logger-helper');
+const AppError = require('../utils/AppError');
 
 /**
  * Controller: Fetch Paginated Products
@@ -264,9 +265,75 @@ const updateProductInfoController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * @async
+ * @function
+ * @description
+ * Handles bulk product creation requests.
+ *
+ * Responsibilities:
+ *  - Extracts validated product input from `req.body.products`
+ *  - Delegates creation logic to `createProductsService`
+ *  - Emits structured logs for auditing and diagnostics
+ *  - Returns standardized API response with statistics and inserted records
+ *
+ * Notes:
+ *  - Joi validation (shape, types) and authorization must occur in middleware.
+ *  - This controller intentionally contains no DB logic or business rules.
+ */
+const createProductsController = wrapAsync(async (req, res) => {
+  const context = 'product-controller/createProductsController';
+  const startTime = Date.now();
+  const traceId = `create-products-${Date.now().toString(36)}`;
+  
+  const { products } = req.body;   // validated by Joi beforehand
+  const user = req.user;           // populated by auth middleware
+  
+  if (!Array.isArray(products) || products.length === 0) {
+    throw AppError.validationError('No products provided.', { context, traceId });
+  }
+  
+  logInfo('Starting bulk product creation request', req, {
+    context,
+    traceId,
+    userId: user.id,
+    productCount: products.length,
+  });
+  
+  // -------------------------------
+  // 1. Execute service layer logic
+  // -------------------------------
+  const inserted = await createProductsService(products, user);
+  
+  const elapsedMs = Date.now() - startTime;
+  
+  logInfo('Bulk product creation completed', req, {
+    context,
+    traceId,
+    inputCount: products.length,
+    insertedCount: inserted.length,
+    elapsedMs,
+  });
+  
+  // -------------------------------
+  // 2. Send response
+  // -------------------------------
+  res.status(201).json({
+    success: true,
+    message: 'Products created successfully.',
+    stats: {
+      inputCount: products.length,
+      createdCount: inserted.length,
+      elapsedMs,
+    },
+    data: inserted,
+  });
+});
+
 module.exports = {
   getPaginatedProductsController,
   getProductDetailsController,
   updateProductStatusController,
   updateProductInfoController,
+  createProductsController,
 };

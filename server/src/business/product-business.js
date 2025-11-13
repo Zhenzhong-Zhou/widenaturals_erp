@@ -1,4 +1,4 @@
-const { getStatusNameById } = require('../config/status-cache');
+const { getStatusNameById, getStatusId } = require('../config/status-cache');
 const AppError = require('../utils/AppError');
 
 /**
@@ -130,8 +130,81 @@ const filterUpdatableProductFields = (updates = {}) => {
   return filtered;
 };
 
+/**
+ * @function
+ * @description
+ * Performs business-level validation on the incoming product list before
+ * storage or normalization. This function enforces domain rules that are
+ * not suitable for Joi schemas, such as:
+ *
+ *  - Ensuring at least one product is supplied.
+ *  - Ensuring each product provides the minimum identity fields:
+ *      * name
+ *      * brand
+ *      * category
+ *
+ * Joi validates structure and types at the request layer, while this function
+ * validates domain logic that applies regardless of how the data enters the system.
+ *
+ * @param {Array<Object>} products - Array of raw product input objects.
+ * @throws {AppError} If the product list is empty or missing required fields.
+ */
+const validateProductListBusiness = (products) => {
+  const context = 'product-business/validateProductListBusiness';
+  
+  if (!Array.isArray(products) || products.length === 0) {
+    throw AppError.validationError('No products provided for creation.', { context });
+  }
+  
+  for (const p of products) {
+    if (!p.name || !p.brand || !p.category) {
+      throw AppError.validationError(
+        'Each product must include name, brand, and category.',
+        { context }
+      );
+    }
+  }
+};
+
+/**
+ * @function
+ * @description
+ * Normalizes and enriches raw product input objects to produce a clean,
+ * database-ready insert payload. This includes:
+ *
+ *  - Trimming and uppercasing brand/category fields.
+ *  - Normalizing optional fields such as series and description.
+ *  - Applying default status (`general_inactive`).
+ *  - Assigning audit fields (`created_by`, `updated_by`).
+ *  - Ensuring `updated_by` remains NULL on insert, preserving audit integrity.
+ *
+ * This function ensures all products follow a consistent format before they
+ * reach the repository layer and guarantees that database triggers and audit
+ * fields behave predictably.
+ *
+ * @param {Array<Object>} products - Validated raw product objects.
+ * @param {string} userId - The authenticated user creating these records.
+ * @returns {Array<Object>} A normalized array ready for bulk insertion.
+ */
+const prepareProductInsertPayloads = (products, userId) => {
+  const activeStatusId = getStatusId('general_inactive');
+  
+  return products.map((p) => ({
+    name: p.name.trim(),
+    series: p.series?.trim() ?? null,
+    brand: p.brand.trim().toUpperCase(),
+    category: p.category.trim().toUpperCase(),
+    description: p.description ?? null,
+    status_id: activeStatusId,
+    created_by: userId,
+    updated_by: null,   // IMPORTANT: per your repo rules — remains NULL on insert
+  }));
+};
+
 module.exports = {
   validateProductStatusTransition,
   assertValidProductStatusTransition,
   filterUpdatableProductFields,
+  validateProductListBusiness,
+  prepareProductInsertPayloads,
 };
