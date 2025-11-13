@@ -15,9 +15,8 @@ const {
   productQuerySchema,
   productIdParamSchema,
   productUpdateSchema,
-  createProductBulkSchema
+  createProductBulkSchema, updateProductStatusSchema
 } = require('../validators/product-validators');
-const { updateProductStatusSchema } = require('../validators/status-validators');
 
 const router = express.Router();
 

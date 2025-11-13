@@ -2,13 +2,13 @@ const Joi = require('joi');
 const { validateUUID } = require('./general-validators');
 
 /**
- * Joi schema for updating product status.
- * Ensures request body contains a valid `statusId`.
+ * Joi schema for validating status updates.
+ * Reusable across product, SKU, material, etc.
  */
-const updateProductStatusSchema = Joi.object({
+const updateStatusIdSchema = Joi.object({
   statusId: validateUUID('Status ID'),
 });
 
 module.exports = {
-  updateProductStatusSchema,
+  updateStatusIdSchema,
 };

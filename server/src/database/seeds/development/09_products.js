@@ -901,7 +901,7 @@ exports.seed = async function (knex) {
   let insertedCount = 0;
 
   for (const productDef of productDefs) {
-    const productColumns = ['name', 'brand', 'series', 'category'];
+    const productColumns = ['name', 'brand', 'category'];
 
     const insertData = {
       id: knex.raw('uuid_generate_v4()'),

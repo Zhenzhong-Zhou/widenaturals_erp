@@ -7,6 +7,7 @@ const {
   validateUUID,
   validateString
 } = require('./general-validators');
+const { updateStatusIdSchema } = require('./status-validators');
 
 /**
  * BRAND_CATEGORY_REGEX
@@ -107,6 +108,23 @@ const productQuerySchema = paginationSchema
 const productIdParamSchema = Joi.object({
   productId: validateUUID('Product ID'),
 });
+
+/**
+ * Alias: updateProductStatusSchema
+ *
+ * This schema validates the request body for updating a product's status.
+ * It is an alias of the shared `updateStatusIdSchema`, which enforces:
+ *
+ *   {
+ *     "statusId": "<valid UUID>"
+ *   }
+ *
+ * Reason for aliasing:
+ * - Keeps product module semantics clear (`updateProductStatusSchema`)
+ * - Allows the shared core schema to be reused by other modules (SKUs, materials, etc.)
+ * - Prevents duplicated validation logic while keeping per-module naming expressive
+ */
+const updateProductStatusSchema = updateStatusIdSchema;
 
 /**
  * Joi Validation Schema: Product Information Update
@@ -253,6 +271,7 @@ const createProductBulkSchema = Joi.object({
 module.exports = {
   productQuerySchema,
   productIdParamSchema,
+  updateProductStatusSchema,
   productUpdateSchema,
   createProductBulkSchema,
 };
