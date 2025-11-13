@@ -239,7 +239,15 @@ const insertBaseCodesBulk = async (pairs, client, chunkSize = 1000) => {
     const { rows: [{ next_base }] } = await query(baseQuery, [], client);
     
     // 3. Prepare insert payloads
-    const columns = ['brand_code', 'category_code', 'base_code', 'status_id', 'created_by'];
+    const columns = [
+      'brand_code',
+      'category_code',
+      'base_code',
+      'status_id',
+      'created_by',
+      'updated_at',
+      'updated_by',
+    ];
     const resultMap = new Map();
     
     // 4. Optional chunking for large inserts (defensive scaling)
@@ -253,6 +261,8 @@ const insertBaseCodesBulk = async (pairs, client, chunkSize = 1000) => {
         next_base + (i + idx) * BASE_STEP,
         p.statusId,
         p.userId,
+        null,
+        null,
       ]);
       
       // Conflict handling — no updates, just skip existing

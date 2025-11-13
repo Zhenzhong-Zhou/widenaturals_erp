@@ -593,6 +593,8 @@ const insertSkusBulk = async (skus, client) => {
     'weight_g',
     'status_id',
     'created_by',
+    'updated_at',
+    'updated_by',
   ];
   
   // Convert objects into row arrays
@@ -611,6 +613,8 @@ const insertSkusBulk = async (skus, client) => {
     s.weight_g ?? null,
     s.status_id,
     s.created_by ?? null,
+    null,
+    null,
   ]);
   
   // Conflict handling (avoid duplicate SKU code)
