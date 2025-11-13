@@ -40,6 +40,11 @@ const processAndUploadSkuImages = async (images, sku, isProd, bucketName) => {
   const brandFolder = sku.slice(0, 2).toUpperCase();
   const tempDir = path.join('temp', sku);
   
+  if (!Array.isArray(images) || images.length === 0) {
+    logSystemInfo('No images passed to processAndUploadSkuImages', { context, sku });
+    return [];
+  }
+  
   // Adaptive concurrency: (CPU count - 1), capped between 2 and 6
   const concurrencyLimit = Math.min(Math.max(os.cpus().length - 1, 2), 6);
   
@@ -52,20 +57,36 @@ const processAndUploadSkuImages = async (images, sku, isProd, bucketName) => {
   const processSingleImage = async (img) => {
     let localPath;
     try {
+      logSystemInfo('Processing single image', { context, sku, img });
+      
+      const srcUrl = img.url || img.image_url;
+      if (!srcUrl) {
+        throw AppError.validationError('Missing image URL or local path');
+      }
+      
       // --- Step 1: Resolve local or remote source ---
-      if (img.url.startsWith('http')) {
-        const filename = path.basename(new URL(img.url).pathname);
+      if (srcUrl.startsWith('http')) {
+        const filename = path.basename(new URL(srcUrl).pathname);
         const tempFile = path.join(tempDir, filename);
-        const response = await fetch(img.url);
-        if (!response.ok) throw new Error(`Failed to fetch image: ${img.url}`);
+        const response = await fetch(srcUrl);
+        if (!response.ok) {
+          throw AppError.fileSystemError(`Failed to fetch image: ${srcUrl}`, {
+            status: response.status,
+            statusText: response.statusText,
+            retryable: response.status >= 500, // e.g. retry only on server errors
+            traceId: `${sku}-${Date.now().toString(36)}`,
+            context,
+            sku,
+          });
+        }
         const buffer = Buffer.from(await response.arrayBuffer());
         await fs.writeFile(tempFile, buffer);
         localPath = tempFile;
-        logSystemInfo('Downloaded remote image to temp dir', { context, imgUrl: img.url });
+        logSystemInfo('Downloaded remote image to temp dir', { context, imgUrl: srcUrl });
       } else {
-        localPath = path.isAbsolute(img.url)
-          ? img.url
-          : path.resolve(__dirname, '../../', img.url);
+        localPath = path.isAbsolute(srcUrl)
+          ? srcUrl
+          : path.resolve(__dirname, '../../', srcUrl);
       }
       
       await fs.access(localPath);
@@ -136,7 +157,7 @@ const processAndUploadSkuImages = async (images, sku, isProd, bucketName) => {
           uploadSkuImageToS3(bucketName, localPath, keyPrefix, path.basename(localPath)),
         ]);
       } else {
-        const devDir = path.resolve(`public/uploads/sku-images/${brandFolder}`);
+        const devDir = path.resolve(__dirname, '../../public/uploads/sku-images', brandFolder);
         await fs.mkdir(devDir, { recursive: true });
         await Promise.all([
           fs.copyFile(resizedMainPath, path.join(devDir, mainFileName)),
@@ -212,8 +233,20 @@ const processAndUploadSkuImages = async (images, sku, isProd, bucketName) => {
     logSystemException(error, 'Unhandled error during image batch processing', { context, sku });
     throw AppError.serviceError('Failed to process SKU images', { cause: error, sku });
   } finally {
-    // Always clean up temporary files
-    await fs.rm(tempDir, { recursive: true, force: true });
+    try {
+      // Clean up per-SKU temp folder
+      await fs.rm(tempDir, { recursive: true, force: true });
+      
+      // Optionally clean up isolated Multer subdir if it exists
+      const multerTempDir = path.resolve(__dirname, `../../temp/uploads/${sku}`);
+      if (await fs.stat(multerTempDir).catch(() => false)) {
+        await fs.rm(multerTempDir, { recursive: true, force: true });
+      }
+      
+      logSystemInfo('Temporary files cleaned up', { context, sku });
+    } catch (cleanupError) {
+      logSystemException(cleanupError, 'Failed during temporary file cleanup', { context, sku });
+    }
   }
   
   return processed;
@@ -221,7 +254,7 @@ const processAndUploadSkuImages = async (images, sku, isProd, bucketName) => {
 
 /**
  * @async
- * @function saveSkuImagesService
+ * @function
  * @description
  * Handles the full end-to-end workflow for saving images associated with a SKU.
  *

@@ -30,7 +30,7 @@ const BUCKET_NAME = 'wide-naturals-dev';
 // --- Define multiple SKUs with image sets ---
 const BULK_IMAGE_SETS = [
   {
-    skuCode: 'ZZ-XX500-R-CN',
+    skuCode: 'PG-TCM301-S-CA',
     images: [
       {
         url: 'src/assets/sku-images/Canaherb/focus_CA.jpg',
@@ -43,7 +43,7 @@ const BULK_IMAGE_SETS = [
     ],
   },
   {
-    skuCode: 'AB-CD700-R-CN',
+    skuCode: 'PG-TCM300-R-CN',
     images: [
       {
         url: 'src/assets/sku-images/Canaherb/memory_CN.jpg',
@@ -56,7 +56,7 @@ const BULK_IMAGE_SETS = [
     ],
   },
   {
-    skuCode: 'WN-MO400-S-UN',
+    skuCode: 'PG-NM211-S-CA',
     images: [
       {
         url: 'src/assets/sku-images/WIDE_Collections/mood_UN_front.jpg',

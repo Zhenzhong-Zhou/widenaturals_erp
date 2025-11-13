@@ -1,3 +1,5 @@
+const AppError = require('../utils/AppError');
+
 /**
  * @function
  * @description
@@ -34,7 +36,7 @@ const deduplicateSkuImages = (images = [], skuId) => {
  */
 const normalizeSkuImageForInsert = (img, skuId, userId, index = 0) => {
   if (!img || typeof img !== 'object') {
-    throw new Error('Invalid image metadata provided to normalizeSkuImageForInsert');
+    throw AppError.validationError('Invalid image metadata provided to normalizeSkuImageForInsert');
   }
   
   return {

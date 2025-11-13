@@ -20,6 +20,7 @@ const userRoutes = require('./users');
 const adminRoutes = require('./admin');
 const productRoutes = require('./products');
 const skuRoutes = require('./skus');
+const skuImageRoutes = require('./sku-images');
 const bomRoutes = require('./boms');
 const bomItemRoutes = require('./bom-items');
 const complianceRoutes = require('./compliances');
@@ -90,6 +91,7 @@ router.use('/admin', authenticate(), adminRoutes);
  */
 router.use('/products', authenticate(), productRoutes);
 router.use('/skus', authenticate(), skuRoutes);
+router.use('/sku-images', authenticate(), skuImageRoutes);
 router.use('/compliances', authenticate(), complianceRoutes);
 
 /**
