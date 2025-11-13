@@ -16,8 +16,10 @@ const authorize = require('../middlewares/authorize');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
 const {
   getActiveSkuProductCardsController,
-  getSkuDetailsController,
+  getSkuDetailsController, createSkusController,
 } = require('../controllers/sku-controller');
+const validate = require('../middlewares/validate');
+const { createSkuBulkSchema } = require('../validators/sku-validators');
 
 const router = express.Router();
 
@@ -68,6 +70,65 @@ router.get(
   '/sku-details/:skuId',
   authorize([PERMISSIONS.SKUS.VIEW_DETAILS]),
   getSkuDetailsController
+);
+
+/**
+ * @route POST /skus/create
+ * @group SKUs
+ * @permission SKUS.CREATE
+ *
+ * @description
+ * Bulk SKU creation endpoint.
+ * Accepts an array of SKU definitions and generates SKU codes,
+ * enforces business rules, locks related products, performs duplicate
+ * checks, and inserts all SKUs in a single transactional operation.
+ *
+ * Request body must match `createSkuBulkSchema`, which validates:
+ *   - product_id (UUID)
+ *   - brand_code / category_code / variant_code / region_code
+ *   - optional metadata (barcode, size_label, description, dimensions, etc.)
+ *
+ * Middlewares:
+ *   1. authorize([SKUS.CREATE])
+ *        - Ensures caller has permission to create SKUs.
+ *
+ *   2. validate(createSkuBulkSchema, 'body')
+ *        - Ensures payload structure and values are valid before passing
+ *          request to controller.
+ *
+ *   3. createSkusController
+ *        - Executes bulk creation using service + business logic layers.
+ *        - Handles logging, error wrapping, and API response formatting.
+ *
+ * Expected JSON payload (example):
+ * {
+ *   "skus": [
+ *     {
+ *       "product_id": "uuid",
+ *       "brand_code": "CH",
+ *       "category_code": "HN",
+ *       "variant_code": "200",
+ *       "region_code": "CA",
+ *       "barcode": "628693253017",
+ *       "size_label": "60 Capsules",
+ *       "description": "Hair Nutrition CA",
+ *       "length_cm": 5.2,
+ *       "width_cm": 5.0,
+ *       "height_cm": 10.0,
+ *       "weight_g": 150
+ *     }
+ *   ]
+ * }
+ *
+ * Success Response:
+ *   - HTTP 201
+ *   - JSON body containing normalized and enriched SKU records.
+ */
+router.post(
+  '/create',
+  authorize([PERMISSIONS.SKUS.CREATE]),
+  validate(createSkuBulkSchema, 'body'),
+  createSkusController
 );
 
 module.exports = router;
