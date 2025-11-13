@@ -4,7 +4,7 @@ const {
   checkPermissions,
   resolveUserPermissionContext,
 } = require('../services/role-permission-service');
-const { getStatusId } = require('../config/status-cache');
+const { getStatusId, getStatusNameById } = require('../config/status-cache');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const { PERMISSIONS } = require('../utils/constants/domain/sku-constants');
 const { getGenericIssueReason } = require('../utils/enrich-utils');
@@ -460,6 +460,93 @@ const prepareSkuInsertPayloads = (skuList, generatedSkus, statusId, userId) => {
   return result;
 };
 
+/**
+ * Validates whether an SKU can transition from its current status
+ * to a new target status, based on allowed SKU-specific transitions.
+ *
+ * ### Behavior
+ * - Fetches normalized status codes using `getStatusNameById`
+ * - Returns `false` if either status ID is missing or unknown
+ * - Only returns `true` for transitions explicitly defined below
+ *
+ * ### Example
+ * ```
+ * validateSkuStatusTransition('uuid-draft', 'uuid-active');       // true
+ * validateSkuStatusTransition('uuid-active', 'uuid-archived');    // false
+ * ```
+ *
+ * @param {string} currentStatusId - Current SKU status (UUID)
+ * @param {string} newStatusId - Target SKU status (UUID)
+ * @returns {boolean} True if the transition is allowed, false otherwise
+ */
+const validateSkuStatusTransition = (currentStatusId, newStatusId) => {
+  // ------------------------------------
+  // Allowed SKU status transitions
+  // ------------------------------------
+  const allowedTransitions = {
+    DRAFT: ['ACTIVE', 'INACTIVE'],
+    ACTIVE: ['INACTIVE', 'DISCONTINUED'],
+    INACTIVE: ['ACTIVE'],
+    DISCONTINUED: ['ARCHIVED'],
+    ARCHIVED: [], // final state
+  };
+  
+  // Look up status names via cache
+  const currentCode = getStatusNameById(currentStatusId);
+  const nextCode = getStatusNameById(newStatusId);
+  
+  if (!currentCode || !nextCode) return false;
+  
+  // Match transitions
+  const allowedNextStates = allowedTransitions[currentCode] ?? [];
+  return allowedNextStates.includes(nextCode);
+};
+
+/**
+ * Asserts that an SKU’s status transition is valid based on
+ * business-defined transition rules.
+ *
+ * This function mirrors the product version (`assertValidProductStatusTransition`)
+ * but applies SKU-specific transition logic using
+ * {@link validateSkuStatusTransition}.
+ *
+ * ### Behavior
+ * - Resolves both current & next status names from the status cache.
+ * - Throws if either ID is unknown.
+ * - Throws if the transition violates defined SKU transition rules.
+ *
+ * ### Example
+ * ```
+ * assertValidSkuStatusTransition(currentStatusId, nextStatusId);
+ * // continues silently if allowed
+ * // throws AppError.validationError if invalid
+ * ```
+ *
+ * @param {string} currentStatusId - UUID of the current SKU status
+ * @param {string} newStatusId - UUID of the target SKU status
+ * @throws {AppError} If the transition is invalid or unknown
+ */
+const assertValidSkuStatusTransition = (currentStatusId, newStatusId) => {
+  const current = getStatusNameById(currentStatusId);
+  const next = getStatusNameById(newStatusId);
+  
+  // Unknown or missing status values
+  if (!current || !next) {
+    throw AppError.validationError('Unknown SKU status ID(s).', {
+      currentStatusId,
+      newStatusId,
+    });
+  }
+  
+  // Transition not allowed per SKU rules
+  if (!validateSkuStatusTransition(currentStatusId, newStatusId)) {
+    throw AppError.validationError(`Invalid SKU status transition: ${current} → ${next}`, {
+      currentStatusId,
+      newStatusId,
+    });
+  }
+};
+
 module.exports = {
   getAllowedStatusIdsForUser,
   getAllowedPricingTypesForUser,
@@ -472,4 +559,6 @@ module.exports = {
   validateSkuListBusiness,
   prepareSkuInsertPayload,
   prepareSkuInsertPayloads,
+  validateSkuStatusTransition,
+  assertValidSkuStatusTransition,
 };

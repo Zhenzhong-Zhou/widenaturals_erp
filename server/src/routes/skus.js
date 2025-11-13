@@ -16,10 +16,16 @@ const authorize = require('../middlewares/authorize');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
 const {
   getActiveSkuProductCardsController,
-  getSkuDetailsController, createSkusController,
+  getSkuDetailsController,
+  createSkusController,
+  updateSkuStatusController,
 } = require('../controllers/sku-controller');
 const validate = require('../middlewares/validate');
-const { createSkuBulkSchema } = require('../validators/sku-validators');
+const {
+  createSkuBulkSchema,
+  skuIdParamSchema,
+  updateSkuStatusSchema
+} = require('../validators/sku-validators');
 
 const router = express.Router();
 
@@ -129,6 +135,70 @@ router.post(
   authorize([PERMISSIONS.SKUS.CREATE]),
   validate(createSkuBulkSchema, 'body'),
   createSkusController
+);
+
+/**
+ * @route PATCH /api/v1/skus/:skuId/status
+ * @description
+ * Updates the status of a specific SKU.
+ *
+ * ### Purpose
+ * - Allows authorized users to change a SKU’s lifecycle state
+ *   (e.g., `PENDING` → `ACTIVE`, `ACTIVE` → `INACTIVE`, or `ACTIVE` → `DISCONTINUED`).
+ * - Ensures transactional integrity with row locking, audit updates, and
+ *   business-rule enforcement through `updateSkuStatusService`.
+ *
+ * ### Middleware Flow
+ * 1. **authorize([PERMISSIONS.SKUS.UPDATE_STATUS])**
+ *    - Ensures the user has permission to modify SKU status.
+ *
+ * 2. **validate(skuIdParamSchema, 'params')**
+ *    - Verifies the `skuId` path parameter is a valid UUID.
+ *
+ * 3. **validate(updateSkuStatusSchema, 'body')**
+ *    - Validates request body (requires a valid `statusId` UUID).
+ *
+ * 4. **updateSkuStatusController**
+ *    - Executes the transactional update and returns a standardized response.
+ *
+ *
+ * ### Request
+ * **Path params:**
+ * - `skuId` → UUID of the SKU to update
+ *
+ * **Body:**
+ * ```json
+ * {
+ *   "statusId": "uuid-of-new-status"
+ * }
+ * ```
+ *
+ *
+ * ### Response
+ * **200 OK**
+ * ```json
+ * {
+ *   "success": true,
+ *   "message": "SKU status updated successfully.",
+ *   "data": { "id": "uuid-of-sku" }
+ * }
+ * ```
+ *
+ * ### Error Responses
+ * - `400 Bad Request` → Invalid skuId or statusId
+ * - `403 Forbidden` → Missing `SKUS.UPDATE_STATUS` permission
+ * - `404 Not Found` → SKU or status not found
+ * - `409 Conflict` → Invalid status transition (business rule violation)
+ *
+ * @access Protected
+ * @permission SKUS.UPDATE_STATUS
+ */
+router.patch(
+  '/:skuId/status',
+  authorize([PERMISSIONS.SKUS.UPDATE_STATUS]),
+  validate(skuIdParamSchema, 'params'),
+  validate(updateSkuStatusSchema, 'body'),
+  updateSkuStatusController
 );
 
 module.exports = router;

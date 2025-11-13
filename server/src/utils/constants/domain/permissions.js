@@ -17,13 +17,16 @@ const PERMISSIONS = {
     VIEW: 'view_products',
     CREATE: 'create_products',
     UPDATE_STATUS: 'update_product_status',
-    UPDATE_INFO: 'update_product_INFO',
+    UPDATE_INFO: 'update_product_info',
   },
   SKUS: {
     VIEW_CARDS: 'view_sku_cards',
     VIEW_DETAILS: 'view_sku_details',
     CREATE: 'create_skus',
     UPLOAD_IMAGE: 'create_skus_images',
+    UPDATE_STATUS: 'update_sku_status',
+    UPDATE_INFO: 'update_sku_info',
+    UPDATE_IMAGE: 'update_sku_images',
   },
   BOMS: {
     VIEW_LIST: 'view_boms',

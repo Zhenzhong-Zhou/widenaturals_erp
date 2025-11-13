@@ -3,6 +3,7 @@ const {
   validateUUID,
   validateOptionalString
 } = require('./general-validators');
+const { updateStatusIdSchema } = require('./status-validators');
 
 /**
  * Joi schema: Validate SKU ID route parameter.
@@ -108,7 +109,26 @@ const createSkuBulkSchema = Joi.object({
     .required(),
 });
 
+/**
+ * Alias: updateSkuStatusSchema
+ *
+ * Validation schema for updating an SKU's status.
+ * This re-exports the shared `updateStatusIdSchema`, which enforces the
+ * presence of a single required field:
+ *
+ *   {
+ *     "statusId": "<valid UUID>"
+ *   }
+ *
+ * Purpose of aliasing:
+ * - Provides a semantic, SKU-specific schema name for route definitions.
+ * - Ensures consistent validation logic across modules (products, SKUs, inventory).
+ * - Avoids duplication while still keeping module boundaries clear.
+ */
+const updateSkuStatusSchema = updateStatusIdSchema;
+
 module.exports = {
   skuIdParamSchema,
   createSkuBulkSchema,
+  updateSkuStatusSchema,
 };

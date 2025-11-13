@@ -1,7 +1,7 @@
 const {
   query,
   paginateResults,
-  paginateQueryByOffset, bulkInsert,
+  paginateQueryByOffset, bulkInsert, updateById,
 } = require('../database/db');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
@@ -703,6 +703,61 @@ const checkSkuExists = async (sku, productId, client) => {
   }
 };
 
+/**
+ * Repository: Update SKU Status
+ *
+ * Updates the status of a SKU record by its ID. Automatically updates:
+ *   - status_id
+ *   - status_date
+ *   - updated_at
+ *   - updated_by
+ *
+ * Mirrors the product status update pattern to ensure consistent
+ * audit behavior across ERP modules.
+ *
+ * @param {string} skuId - UUID of the SKU being updated
+ * @param {string} statusId - UUID of the new status value
+ * @param {string} userId - UUID of the user performing the update
+ * @param {import('pg').PoolClient} client - Active DB client/transaction
+ * @returns {Promise<{ id: string }>} Updated record identifier
+ *
+ * @throws {AppError} If update fails or SKU not found
+ */
+const updateSkuStatus = async (skuId, statusId, userId, client) => {
+  const context = 'sku-repository/updateSkuStatus';
+  
+  try {
+    const updates = {
+      status_id: statusId,
+      status_date: new Date(),
+    };
+    
+    // Reuse generic updateById helper for consistency
+    const result = await updateById('skus', skuId, updates, userId, client);
+    
+    logSystemInfo('Updated SKU status successfully', {
+      context,
+      skuId,
+      statusId,
+      updatedBy: userId,
+    });
+    
+    return result; // { id: '...' }
+  } catch (error) {
+    logSystemException(error, 'Failed to update SKU status', {
+      context,
+      skuId,
+      statusId,
+      updatedBy: userId,
+    });
+    
+    throw AppError.databaseError('Failed to update SKU status.', {
+      context,
+      cause: error.message,
+    });
+  }
+};
+
 module.exports = {
   getLastSku,
   fetchPaginatedActiveSkusWithProductCards,
@@ -711,4 +766,5 @@ module.exports = {
   getSkuLookup,
   insertSkusBulk,
   checkSkuExists,
+  updateSkuStatus,
 };

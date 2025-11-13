@@ -3,7 +3,7 @@ const {
   fetchPaginatedActiveSkusWithProductCards,
   getSkuDetailsWithPricingAndMeta,
   insertSkusBulk,
-  checkSkuExists,
+  checkSkuExists, updateSkuStatus,
 } = require('../repositories/sku-repository');
 const {
   transformPaginatedSkuProductCardResult,
@@ -17,11 +17,12 @@ const {
   getAllowedStatusIdsForUser,
   getAllowedPricingTypesForUser,
   validateSkuListBusiness,
-  prepareSkuInsertPayloads,
+  prepareSkuInsertPayloads, assertValidSkuStatusTransition,
 } = require('../business/sku-business');
-const { withTransaction, lockRows } = require('../database/db');
+const { withTransaction, lockRows, lockRow } = require('../database/db');
 const { getOrCreateBaseCodesBulk } = require('./sku-code-base-service');
 const { generateSKU } = require('../utils/sku-generator');
+const { checkStatusExists } = require('../repositories/status-repository');
 
 /**
  * Service to fetch a paginated list of active SKU product cards.
@@ -254,8 +255,105 @@ const createSkusService = async (skuList, user) => {
   });
 };
 
+/**
+ * Service: Update SKU Status
+ *
+ * Performs a transactional SKU status update with full concurrency protection,
+ * business-rule validation, and structured system logging.
+ *
+ * Designed for ERP workflows where SKU lifecycle changes (e.g., DRAFT → ACTIVE,
+ * ACTIVE → INACTIVE, DISCONTINUED → ARCHIVED) require strict validation.
+ *
+ * ### Flow
+ * 1. Begin transaction and lock the SKU row (`FOR UPDATE`) to avoid race conditions.
+ * 2. Verify the target status exists in the status table.
+ * 3. Validate current → next transition rules (via business validator).
+ * 4. Update SKU status + audit fields.
+ * 5. Commit transaction and return the updated SKU ID.
+ *
+ * @param {Object} options
+ * @param {string} options.skuId - SKU UUID
+ * @param {string} options.statusId - Target status UUID
+ * @param {{ id: string }} options.user - Authenticated user performing the update
+ *
+ * @returns {Promise<{ id: string }>} Updated SKU record ID
+ *
+ * @throws {AppError}
+ *   - If the SKU does not exist
+ *   - If the target status is invalid
+ *   - If the transition violates lifecycle rules
+ *   - If a concurrent update prevents the update
+ */
+const updateSkuStatusService = async ({ skuId, statusId, user }) => {
+  return withTransaction(async (client) => {
+    const context = 'sku-service/updateSkuStatusService';
+    const userId = user.id;
+    
+    // ----------------------------------------
+    // 1. Lock SKU row for concurrency safety
+    // ----------------------------------------
+    const sku = await lockRow(client, 'skus', skuId, 'FOR UPDATE', { context });
+    if (!sku) {
+      throw AppError.notFoundError('SKU not found.', { context, skuId });
+    }
+    
+    // ----------------------------------------
+    // 2. Validate that the target status exists
+    // ----------------------------------------
+    const statusExists = await checkStatusExists(statusId, client);
+    if (!statusExists) {
+      throw AppError.validationError('Invalid or inactive status ID.', {
+        context,
+        statusId,
+      });
+    }
+    
+    // ----------------------------------------
+    // 3. Basic validation (prevent no-op)
+    // ----------------------------------------
+    if (sku.status_id === statusId) {
+      throw AppError.validationError('SKU is already in this status.', {
+        context,
+        skuId,
+        statusId,
+      });
+    }
+    
+    // ----------------------------------------
+    // 4. Apply SKU-specific business rules
+    // ----------------------------------------
+    assertValidSkuStatusTransition(sku.status_id, statusId);
+    
+    // ----------------------------------------
+    // 5. Update SKU status inside the transaction
+    // ----------------------------------------
+    const updated = await updateSkuStatus(skuId, statusId, userId, client);
+    
+    if (!updated) {
+      throw AppError.conflictError(
+        'Concurrent update detected — SKU status not updated.',
+        { context, skuId }
+      );
+    }
+    
+    // ----------------------------------------
+    // 6. Log success
+    // ----------------------------------------
+    logSystemInfo('Updated SKU status successfully', {
+      context,
+      skuId,
+      fromStatusId: sku.status_id,
+      toStatusId: statusId,
+      userId,
+    });
+    
+    return updated;
+  });
+};
+
 module.exports = {
   fetchPaginatedSkuProductCardsService,
   getSkuDetailsForUserService,
   createSkusService,
+  updateSkuStatusService,
 };

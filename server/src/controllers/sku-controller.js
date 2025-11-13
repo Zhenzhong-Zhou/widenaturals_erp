@@ -1,7 +1,7 @@
 const wrapAsync = require('../utils/wrap-async');
 const {
   fetchPaginatedSkuProductCardsService,
-  getSkuDetailsForUserService, createSkusService,
+  getSkuDetailsForUserService, createSkusService, updateSkuStatusService,
 } = require('../services/sku-service');
 const { logInfo } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
@@ -167,8 +167,75 @@ const createSkusController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * Controller: Update SKU Status
+ *
+ * Handles PATCH requests to update a SKU’s status.
+ * Provides structured logging, validation, and standardized JSON response.
+ *
+ * ### Flow
+ * 1. Extract `skuId` from route params and `statusId` from request body.
+ * 2. Validate input (handled via Joi + parameter guards).
+ * 3. Delegate to `updateSkuStatusService` for transactional update.
+ * 4. Respond with standardized API payload.
+ * 5. Emit structured logs for traceability and auditing.
+ *
+ * ### Example Request
+ * PATCH /api/v1/skus/:skuId/status
+ * {
+ *   "statusId": "uuid-of-new-status"
+ * }
+ *
+ * ### Example Response
+ * {
+ *   "success": true,
+ *   "message": "SKU status updated successfully.",
+ *   "data": { "id": "uuid-of-sku" }
+ * }
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+const updateSkuStatusController = wrapAsync(async (req, res) => {
+  const context = 'sku-controller/updateSkuStatusController';
+  
+  // -------------------------------------------------
+  // 1. Extract and validate inputs
+  // -------------------------------------------------
+  const { skuId } = req.params;
+  const { statusId } = req.body;
+  const user = req.user;
+  
+  // -------------------------------------------------
+  // 2. Execute business logic (transactional)
+  // -------------------------------------------------
+  const result = await updateSkuStatusService({
+    skuId,
+    statusId,
+    user,
+  });
+  
+  // -------------------------------------------------
+  // 3. Logging + response
+  // -------------------------------------------------
+  logInfo('SKU status updated successfully', req, {
+    context,
+    skuId,
+    statusId,
+    userId: user.id,
+  });
+  
+  res.status(200).json({
+    success: true,
+    message: 'SKU status updated successfully.',
+    data: result, // { id: "..." }
+  });
+});
+
 module.exports = {
   getActiveSkuProductCardsController,
   getSkuDetailsController,
   createSkusController,
+  updateSkuStatusController,
 };
