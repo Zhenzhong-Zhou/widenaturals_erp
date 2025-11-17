@@ -1,6 +1,7 @@
 const { getProductDisplayName } = require('../utils/display-name-utils');
 const { getFullName } = require('../utils/name-utils');
 const { transformPaginatedResult } = require('../utils/transformer-utils');
+const { cleanObject } = require('../utils/object-utils');
 
 /**
  * Transforms a single raw SKU and product row into a product card structure
@@ -198,6 +199,110 @@ const transformSkuDetailsWithMeta = (row) => {
 };
 
 /**
+ * Transform a single raw SKU row returned from the paginated SQL query
+ * into a normalized, API-safe object. Produces nested groups for product
+ * metadata, status metadata, and audit information. Automatically removes
+ * null/undefined fields via `cleanObject`.
+ *
+ * ### Structure Returned:
+ * {
+ *   id,
+ *   productId,
+ *   sku,
+ *   barcode,
+ *   language,
+ *   countryCode,
+ *   marketRegion,
+ *   sizeLabel,
+ *   displayLabel,
+ *   product: { id, name, series, brand, category, displayName },
+ *   status: { id, name, date },
+ *   createdBy: { id, firstname, lastname, displayName },
+ *   updatedBy: { id, firstname, lastname, displayName }
+ * }
+ *
+ * @param {Object} row - Raw DB row from getPaginatedSkus().
+ * @returns {Object|null} Clean, transformed SKU record.
+ */
+const transformSkuListRecord = (row) => {
+  if (!row) return null;
+  
+  // Safely build display label (avoids “  — 60” artifacts)
+  const displayLabel = [
+    row.brand,
+    row.product_name,
+    row.size_label ? `— ${row.size_label}` : null,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+  
+  return cleanObject({
+    id: row.sku_id,
+    productId: row.product_id,
+    
+    sku: row.sku,
+    barcode: row.barcode,
+    language: row.language,
+    countryCode: row.country_code,
+    marketRegion: row.market_region,
+    sizeLabel: row.size_label,
+    
+    displayLabel,
+    
+    product: {
+      id: row.product_id,
+      name: row.product_name,
+      series: row.series,
+      brand: row.brand,
+      category: row.category,
+      displayName: getProductDisplayName(row),
+    },
+    
+    status: {
+      id: row.status_id,
+      name: row.status_name,
+      date: row.status_date,
+    },
+    
+    createdBy: {
+      id: row.created_by,
+      firstname: row.created_by_firstname,
+      lastname: row.created_by_lastname,
+      displayName: getFullName(row.created_by_firstname, row.created_by_lastname),
+    },
+    
+    updatedBy: {
+      id: row.updated_by,
+      firstname: row.updated_by_firstname,
+      lastname: row.updated_by_lastname,
+      displayName: getFullName(row.updated_by_firstname, row.updated_by_lastname),
+    },
+  });
+};
+
+/**
+ * Transform a paginated SKU query result by applying the SKU row
+ * transformer to each record. Wraps the generic pagination formatter
+ * (`transformPaginatedResult`) to return:
+ *
+ * {
+ *   data: [ transformedRows... ],
+ *   pagination: { page, limit, totalRecords, totalPages },
+ *   sort: { sortBy, sortOrder }
+ * }
+ *
+ * @param {Object} paginatedResult - Output from paginateResults().
+ * @returns {Object} Normalized paginated response for API consumers.
+ */
+const transformPaginatedSkuListResults = (paginatedResult) => {
+  return transformPaginatedResult(
+    paginatedResult,
+    transformSkuListRecord
+  );
+};
+
+/**
  * Transforms an array of SKU rows returned from an insert or query
  * into a minimal API response format.
  *
@@ -217,5 +322,6 @@ const transformSkuRecord = (skuRows, generatedSkus = []) => {
 module.exports = {
   transformPaginatedSkuProductCardResult,
   transformSkuDetailsWithMeta,
+  transformPaginatedSkuListResults,
   transformSkuRecord,
 };

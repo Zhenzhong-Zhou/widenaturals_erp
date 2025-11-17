@@ -22,6 +22,7 @@ const PERMISSIONS = {
   SKUS: {
     VIEW_CARDS: 'view_sku_cards',
     VIEW_DETAILS: 'view_sku_details',
+    VIEW_LIST: 'view_skus',
     CREATE: 'create_skus',
     UPLOAD_IMAGE: 'create_skus_images',
     UPDATE_STATUS: 'update_sku_status',

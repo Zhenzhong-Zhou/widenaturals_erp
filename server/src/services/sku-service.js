@@ -3,12 +3,12 @@ const {
   fetchPaginatedActiveSkusWithProductCards,
   getSkuDetailsWithPricingAndMeta,
   insertSkusBulk,
-  checkSkuExists, updateSkuStatus,
+  checkSkuExists, updateSkuStatus, getPaginatedSkus,
 } = require('../repositories/sku-repository');
 const {
   transformPaginatedSkuProductCardResult,
   transformSkuDetailsWithMeta,
-  transformSkuRecord,
+  transformSkuRecord, transformPaginatedSkuListResults,
 } = require('../transformers/sku-transformer');
 const AppError = require('../utils/AppError');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
@@ -114,6 +114,117 @@ const getSkuDetailsForUserService = async (user, skuId) => {
     });
 
     throw AppError.serviceError(err, 'Could not retrieve SKU details'); // Or rethrow if already wrapped
+  }
+};
+
+/**
+ * Service: Fetch Paginated SKU List
+ *
+ * Orchestrates SKU pagination flow using validated filters, mapped sort fields,
+ * repository allowlist enforcement, and transformer normalization.
+ *
+ * ### Flow
+ * 1. Receive sanitized query params from controller (filters, page, limit,
+ *    sortBy mapped to SQL-safe column via sortMap).
+ * 2. Call repository → getPaginatedSkus()
+ * 3. If no rows: return empty paginated result
+ * 4. Transform repository output using transformPaginatedSkuListResults()
+ * 5. Log success and return structured data to controller/UI
+ *
+ * ### Sorting
+ * `sortBy` must be an SQL-safe column name (pre-mapped in controller using
+ * skuSortMap). Repository performs a final SQL allowlist check.
+ *
+ * @param {Object} options
+ * @param {Object} [options.filters] - Validated and standardized filter object
+ * @param {number} [options.page=1]  - Page number (1-based)
+ * @param {number} [options.limit=10] - Items per page
+ * @param {string} [options.sortBy='s.created_at']
+ *        SQL-safe column name (already mapped in controller)
+ * @param {string} [options.sortOrder='DESC'] - "ASC" or "DESC"
+ *
+ * @returns {Promise<{
+ *    data: Array<Object>,
+ *    pagination: { page, limit, totalRecords, totalPages }
+ * }>}
+ *
+ * @throws {AppError} On repository or transformation failure.
+ */
+const fetchPaginatedSkusService = async ({
+                                           filters = {},
+                                           page = 1,
+                                           limit = 10,
+                                           sortBy = 's.created_at', // MUST be SQL-safe column
+                                           sortOrder = 'DESC',
+                                         }) => {
+  const context = 'sku-service/fetchPaginatedSkusService';
+  
+  try {
+    // ---------------------------------------------------------
+    // Step 1 — Query raw data from repository
+    // ---------------------------------------------------------
+    const rawResult = await getPaginatedSkus({
+      filters,
+      page,
+      limit,
+      sortBy,      // SQL-safe column
+      sortOrder,
+    });
+    
+    // ---------------------------------------------------------
+    // Step 2 — Handle empty result
+    // ---------------------------------------------------------
+    if (!rawResult || rawResult.data.length === 0) {
+      logSystemInfo('No SKU records found', {
+        context,
+        filters,
+        pagination: { page, limit },
+        sort: { sortBy, sortOrder },
+      });
+      
+      return {
+        data: [],
+        pagination: {
+          page,
+          limit,
+          totalRecords: 0,
+          totalPages: 0,
+        },
+      };
+    }
+    
+    // ---------------------------------------------------------
+    // Step 3 — Transform results
+    // ---------------------------------------------------------
+    const result = transformPaginatedSkuListResults(rawResult);
+    
+    // ---------------------------------------------------------
+    // Step 4 — Log success
+    // ---------------------------------------------------------
+    logSystemInfo('Fetched paginated SKU records successfully', {
+      context,
+      filters,
+      pagination: result.pagination,
+      sort: { sortBy, sortOrder },
+    });
+    
+    return result;
+    
+  } catch (error) {
+    // ---------------------------------------------------------
+    // Step 5 — Log + rethrow
+    // ---------------------------------------------------------
+    logSystemException(error, 'Failed to fetch paginated SKU records', {
+      context,
+      filters,
+      pagination: { page, limit },
+      sort: { sortBy, sortOrder },
+    });
+    
+    throw AppError.serviceError(
+      'Could not fetch SKU records. Please try again later.',
+      { context }
+    );
   }
 };
 
@@ -354,6 +465,7 @@ const updateSkuStatusService = async ({ skuId, statusId, user }) => {
 module.exports = {
   fetchPaginatedSkuProductCardsService,
   getSkuDetailsForUserService,
+  fetchPaginatedSkusService,
   createSkusService,
   updateSkuStatusService,
 };

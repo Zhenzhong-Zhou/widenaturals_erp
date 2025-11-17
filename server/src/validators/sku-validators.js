@@ -1,7 +1,13 @@
 const Joi = require('joi');
 const {
   validateUUID,
-  validateOptionalString
+  validateOptionalString,
+  paginationSchema,
+  createSortSchema,
+  validateUUIDOrUUIDArrayOptional,
+  validateOptionalUUID,
+  createdDateRangeSchema,
+  updatedDateRangeSchema
 } = require('./general-validators');
 const { updateStatusIdSchema } = require('./status-validators');
 
@@ -24,6 +30,131 @@ const { updateStatusIdSchema } = require('./status-validators');
 const skuIdParamSchema = Joi.object({
   skuId: validateUUID('SKU ID').description('UUID of the SKU record'),
 });
+
+/**
+ * Joi schema for validating SKU list query parameters.
+ *
+ * This schema unifies pagination, sorting, SKU-level filters, product-level filters,
+ * dimensional filters, audit filters, and keyword search into a single validation layer.
+ *
+ * It is used by controllers and middleware to normalize and validate incoming
+ * list/table queries for SKUs.
+ *
+ * ---
+ * ## Pagination
+ * - `page`  → page number (default: 1)
+ * - `limit` → page size  (default: 10)
+ *
+ * ## Sorting
+ * - `sortBy`    → validated against `skuSortMap` (default: `created_at`)
+ * - `sortOrder` → `ASC` or `DESC`
+ *
+ * ---
+ * ## SKU-Level Filters (table: skus)
+ * - `statusIds[]`   → array of SKU status UUIDs
+ * - `productIds[]`  → array of product UUIDs
+ * - `sku`           → partial match
+ * - `barcode`
+ * - `marketRegion`
+ * - `sizeLabel`
+ *
+ * ### Dimensional Filters (metric + imperial)
+ * Length:
+ *   - `minLengthCm`, `maxLengthCm` → centimeters
+ *   - `minLengthIn`, `maxLengthIn` → inches
+ *
+ * Width:
+ *   - `minWidthCm`,  `maxWidthCm`  → centimeters
+ *   - `minWidthIn`,  `maxWidthIn`  → inches
+ *
+ * Height:
+ *   - `minHeightCm`, `maxHeightCm` → centimeters
+ *   - `minHeightIn`, `maxHeightIn` → inches
+ *
+ * Weight:
+ *   - `minWeightG`,  `maxWeightG`  → grams
+ *   - `minWeightLb`, `maxWeightLb` → pounds
+ *
+ * (Allows UI to mix and match measurement systems cleanly.)
+ *
+ * ---
+ * ## Product-Level Filters (table: products)
+ * - `productName` → partial match
+ * - `brand`
+ * - `category`
+ *
+ * ---
+ * ## Audit Filters
+ * - `createdBy`, `updatedBy`
+ * - `createdAfter`, `createdBefore`
+ * - `updatedAfter`, `updatedBefore`
+ *
+ * ---
+ * ## Keyword Search (fuzzy)
+ * - `keyword` → fuzzy search across:
+ *     - SKU code
+ *     - product name
+ *     - brand
+ *     - category
+ *
+ * ---
+ * ### Usage
+ * Used in:
+ * - `createQueryNormalizationMiddleware('skuSortMap', ...)`
+ * - GET `/skus` route validation
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const skuQuerySchema = paginationSchema
+  .concat(createSortSchema('created_at'))
+  .concat(createdDateRangeSchema)
+  .concat(updatedDateRangeSchema)
+  .keys({
+    // -----------------------------------
+    // SKU-level filters
+    // -----------------------------------
+    statusIds: validateUUIDOrUUIDArrayOptional('Status IDs'),
+    productIds: validateUUIDOrUUIDArrayOptional('Product IDs'),
+    
+    sku: validateOptionalString('SKU Code'),
+    barcode: validateOptionalString('Barcode'),
+    marketRegion: validateOptionalString('Market Region'),
+    sizeLabel: validateOptionalString('Size Label'),
+    
+    // ---- Dimensional Filters (Length, Width, Height — cm / inch) ----
+    minLengthCm: Joi.number().min(0).optional(),
+    maxLengthCm: Joi.number().min(0).optional(),
+    minLengthIn: Joi.number().min(0).optional(),
+    maxLengthIn: Joi.number().min(0).optional(),
+    minWidthCm: Joi.number().min(0).optional(),
+    maxWidthCm: Joi.number().min(0).optional(),
+    minWidthIn: Joi.number().min(0).optional(),
+    maxWidthIn: Joi.number().min(0).optional(),
+    minHeightCm: Joi.number().min(0).optional(),
+    maxHeightCm: Joi.number().min(0).optional(),
+    minHeightIn: Joi.number().min(0).optional(),
+    maxHeightIn: Joi.number().min(0).optional(),
+    
+    // -----------------------------------
+    // Audit filters
+    // -----------------------------------
+    createdBy: validateOptionalUUID('Created By User ID'),
+    updatedBy: validateOptionalUUID('Updated By User ID'),
+    
+    // -----------------------------------
+    // Product-level filters
+    // -----------------------------------
+    productName: validateOptionalString('Product Name'),
+    brand: validateOptionalString('Brand Name'),
+    category: validateOptionalString('Category'),
+    
+    // -----------------------------------
+    // Keyword search
+    // -----------------------------------
+    keyword: validateOptionalString(
+      'Keyword for fuzzy match (SKU, product name, brand, category)'
+    ),
+  });
 
 /**
  * @constant
@@ -129,6 +260,7 @@ const updateSkuStatusSchema = updateStatusIdSchema;
 
 module.exports = {
   skuIdParamSchema,
+  skuQuerySchema,
   createSkuBulkSchema,
   updateSkuStatusSchema,
 };

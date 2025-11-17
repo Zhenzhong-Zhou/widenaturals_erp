@@ -19,13 +19,17 @@ const {
   getSkuDetailsController,
   createSkusController,
   updateSkuStatusController,
+  getPaginatedSkusController,
 } = require('../controllers/sku-controller');
 const validate = require('../middlewares/validate');
 const {
   createSkuBulkSchema,
   skuIdParamSchema,
-  updateSkuStatusSchema
+  updateSkuStatusSchema,
+  skuQuerySchema
 } = require('../validators/sku-validators');
+const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
+const { sanitizeFields } = require('../middlewares/sanitize');
 
 const router = express.Router();
 
@@ -76,6 +80,85 @@ router.get(
   '/sku-details/:skuId',
   authorize([PERMISSIONS.SKUS.VIEW_DETAILS]),
   getSkuDetailsController
+);
+
+/**
+ * GET /api/v1/skus
+ *
+ * Retrieves a paginated, filterable, sortable list of SKU records.
+ *
+ * ### Middleware stack:
+ * - `authorize` → Ensures the user has SKUS.VIEW_LIST permission
+ *
+ * - `createQueryNormalizationMiddleware` →
+ *     Normalizes sort keys and array-based filters using:
+ *     - Sort map: `skuSortMap`
+ *     - Array fields: `statusIds`, `productIds`
+ *       (expand here if more array filters are added)
+ *
+ * - `sanitizeFields` →
+ *     Sanitizes potentially unsafe or user-typed string fields:
+ *     - `keyword`, `productName`, `sku`
+ *
+ * - `validate` →
+ *     Validates normalized query parameters using `skuQuerySchema`
+ *
+ *
+ * ### Query Parameters (normalized & validated):
+ * - Pagination:
+ *     - `page`, `limit`
+ *
+ * - Sorting:
+ *     - `sortBy`, `sortOrder` (validated against `skuSortMap`)
+ *
+ * - SKU-level filters:
+ *     - `statusIds[]`
+ *     - `productIds[]`
+ *     - `sku` (ILIKE)
+ *     - `barcode`
+ *     - `sizeLabel`
+ *     - `marketRegion`
+ *     - `countryCode`
+ *     - creation/updated date ranges
+ *     - createdBy, updatedBy
+ *
+ * - Product-level filters:
+ *     - `productName`
+ *     - `brand`
+ *     - `category`
+ *
+ * - Keyword search:
+ *     - fuzzy match across SKU, product name, brand, category
+ *
+ *
+ * ### Response (200 OK):
+ * {
+ *   "success": true,
+ *   "message": "SKUs retrieved successfully.",
+ *   "data": [...],
+ *   "pagination": { "page", "limit", "totalRecords", "totalPages" }
+ * }
+ *
+ * @access Protected
+ */
+router.get(
+  '/',
+  authorize([PERMISSIONS.SKUS.VIEW_LIST]),
+  createQueryNormalizationMiddleware(
+    'skuSortMap',                 // Name of sort map
+    ['statusIds', 'productIds'],  // Array-based filter fields
+    [],                           // Reserved: fields that require numeric normalization (none for SKUs)
+    skuQuerySchema                // Joi schema for validation
+  ),
+  sanitizeFields([
+    'keyword',
+    'productName',
+    'sku',
+    'brand',
+    'category',
+  ]),
+  validate(skuQuerySchema, 'query'),
+  getPaginatedSkusController
 );
 
 /**

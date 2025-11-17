@@ -29,6 +29,32 @@ const SORTABLE_FIELDS = {
     // Default fallback
     defaultNaturalSort: 'p.created_at',
   },
+  skuSortMap: {
+    // ---- SKU-level fields ----
+    skuCode: 's.sku',
+    barcode: 's.barcode',
+    language: 's.language',
+    countryCode: 's.country_code',
+    marketRegion: 's.market_region',
+    sizeLabel: 's.size_label',
+    
+    // ---- Product-level fields ----
+    productName: 'p.name',
+    productSeries: 'p.series',
+    brand: 'p.brand',
+    category: 'p.category',
+    
+    // ---- Status fields ----
+    statusName: 'st.name',
+    statusDate: 's.status_date',
+    
+    // ---- Dates ----
+    createdAt: 's.created_at',
+    updatedAt: 's.updated_at',
+    
+    // ---- Default fallback ----
+    defaultNaturalSort: 's.created_at',
+  },
   bomSortMap: {
     // --- Product / SKU level ---
     productName: 'p.name',

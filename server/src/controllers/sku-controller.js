@@ -1,7 +1,7 @@
 const wrapAsync = require('../utils/wrap-async');
 const {
   fetchPaginatedSkuProductCardsService,
-  getSkuDetailsForUserService, createSkusService, updateSkuStatusService,
+  getSkuDetailsForUserService, createSkusService, updateSkuStatusService, fetchPaginatedSkusService,
 } = require('../services/sku-service');
 const { logInfo } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
@@ -88,6 +88,69 @@ const getSkuDetailsController = wrapAsync(async (req, res) => {
     success: true,
     message: 'SKU details retrieved successfully.',
     data,
+  });
+});
+
+/**
+ * Controller: Fetch Paginated SKUs
+ *
+ * Handles GET /skus with filtering, sorting, and pagination.
+ *
+ * Responsibilities:
+ *  - Extracts query parameters (filters, pagination, sorting)
+ *  - Delegates heavy logic to service layer: fetchPaginatedSkusService
+ *  - Emits structured system logs
+ *  - Returns standardized API response with pagination metadata
+ *
+ * Notes:
+ *  - Validation (query schema) should be applied using route middleware.
+ *  - Controller contains no DB logic — all business rules remain in services.
+ */
+const getPaginatedSkusController = wrapAsync(async (req, res) => {
+  const context = 'sku-controller/getPaginatedSkusController';
+  const startTime = Date.now();
+  
+  // -------------------------------
+  // 1. Extract request params
+  // -------------------------------
+  const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
+  
+  logInfo('Starting paginated SKU list request', req, {
+    context,
+    filters,
+    pagination: { page, limit },
+    sort: { sortBy, sortOrder },
+  });
+  
+  // -------------------------------
+  // 2. Execute service logic
+  // -------------------------------
+  const { data, pagination } = await fetchPaginatedSkusService({
+    filters,
+    page,
+    limit,
+    sortBy,
+    sortOrder,
+  });
+  
+  const elapsedMs = Date.now() - startTime;
+  
+  logInfo('Fetched paginated SKU list successfully', req, {
+    context,
+    filters,
+    pagination,
+    sort: { sortBy, sortOrder },
+    elapsedMs,
+  });
+  
+  // -------------------------------
+  // 3. Send API response
+  // -------------------------------
+  res.status(200).json({
+    success: true,
+    message: 'SKUs fetched successfully.',
+    data,
+    pagination,
   });
 });
 
@@ -236,6 +299,7 @@ const updateSkuStatusController = wrapAsync(async (req, res) => {
 module.exports = {
   getActiveSkuProductCardsController,
   getSkuDetailsController,
+  getPaginatedSkusController,
   createSkusController,
   updateSkuStatusController,
 };
