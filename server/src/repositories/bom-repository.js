@@ -71,9 +71,10 @@ const getPaginatedBoms = async ({
   const joins = [
     'JOIN skus AS s ON b.sku_id = s.id',
     'JOIN products AS p ON s.product_id = p.id',
-    'LEFT JOIN compliances AS c ON c.sku_id = s.id',
+    'LEFT JOIN sku_compliance_links AS scl ON scl.sku_id = s.id',
+    'LEFT JOIN compliance_records AS cr ON cr.id = scl.compliance_record_id',
     'LEFT JOIN status AS st_bom ON st_bom.id = b.status_id',
-    'LEFT JOIN status AS st_compliance ON st_compliance.id = c.status_id',
+    'LEFT JOIN status AS st_compliance ON st_compliance.id = cr.status_id',
     'LEFT JOIN users AS cu ON cu.id = b.created_by',
     'LEFT JOIN users AS uu ON uu.id = b.updated_by',
   ];
@@ -93,12 +94,12 @@ const getPaginatedBoms = async ({
       s.market_region,
       s.size_label,
       s.description AS sku_description,
-      c.id AS compliance_id,
-      c.type AS compliance_type,
-      c.compliance_id AS compliance_number,
+      cr.id AS compliance_record_id,
+      cr.type AS compliance_type,
+      cr.compliance_id AS compliance_number,
       st_compliance.name AS compliance_status,
-      c.issued_date AS compliance_issued_date,
-      c.expiry_date AS compliance_expiry_date,
+      cr.issued_date AS compliance_issued_date,
+      cr.expiry_date AS compliance_expiry_date,
       b.id AS bom_id,
       b.code AS bom_code,
       b.name AS bom_name,
@@ -201,14 +202,15 @@ const getBomDetailsById = async (bomId) => {
       s.market_region,
       s.size_label,
       s.description AS sku_description,
-      c.id AS compliance_id,
-      c.type AS compliance_type,
-      c.compliance_id AS compliance_number,
-      c.issued_date AS compliance_issued_date,
-      c.expiry_date AS compliance_expiry_date,
-      c.description AS compliance_description,
-      c.status_id AS compliance_status_id,
+      cr.id AS compliance_id,
+      cr.type AS compliance_type,
+      cr.compliance_id AS compliance_number,
+      cr.issued_date AS compliance_issued_date,
+      cr.expiry_date AS compliance_expiry_date,
+      cr.description AS compliance_description,
+      cr.status_id AS compliance_status_id,
       st_compliance.name AS compliance_status,
+      cr.status_date AS compliance_status_date,
       b.id AS bom_id,
       b.code AS bom_code,
       b.name AS bom_name,
@@ -252,9 +254,10 @@ const getBomDetailsById = async (bomId) => {
     FROM boms AS b
     JOIN skus AS s ON s.id = b.sku_id
     JOIN products AS p ON p.id = s.product_id
-    LEFT JOIN compliances AS c ON c.sku_id = s.id
+    LEFT JOIN sku_compliance_links AS scl ON scl.sku_id = s.id
+    LEFT JOIN compliance_records AS cr ON cr.id = scl.compliance_record_id
+    LEFT JOIN status AS st_compliance ON st_compliance.id = cr.status_id
     LEFT JOIN status AS st_bom ON st_bom.id = b.status_id
-    LEFT JOIN status AS st_compliance ON st_compliance.id = c.status_id
     LEFT JOIN bom_items AS bi ON bi.bom_id = b.id
     LEFT JOIN parts AS pa ON pa.id = bi.part_id
     LEFT JOIN users AS cu ON cu.id = b.created_by
