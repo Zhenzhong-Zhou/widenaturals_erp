@@ -1,1 +1,1 @@
-export { skuReducers } from './state';
+export { productReducers } from './state';

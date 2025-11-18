@@ -6,6 +6,9 @@ import type {
 import axiosInstance from '@utils/axiosConfig';
 import { API_ENDPOINTS } from './apiEndpoints';
 import type { AxiosError } from 'axios';
+import { sanitizeString } from '@utils/stringUtils.ts';
+import { getRequest } from '@utils/apiRequest.ts';
+import type { GetSkuDetailResponse } from '@features/sku/state/skuTypes';
 
 /**
  * Fetch a paginated list of active SKU product cards with optional filters.
@@ -72,7 +75,44 @@ export const getSkuDetails = async (
   }
 };
 
+/**
+ * Fetch a single SKU's full detail record by ID.
+ *
+ * Issues `GET /skus/:skuId/details` and returns the standard API envelope
+ * `ApiSuccessResponse<SkuDetail>`.
+ *
+ * Notes:
+ * - No query flags are supported for this endpoint.
+ * - Ensure `API_ENDPOINTS.SKUS.SKU_DETAILS` has the form:
+ *     SKU_DETAILS: (skuId: string) => `/skus/${skuId}/details`
+ *
+ * @param skuId - SKU UUID string (trimmed before use).
+ * @returns A promise resolving to the SKU detail response.
+ * @throws Rethrows any error from the request helper.
+ *
+ * @example
+ * const res = await fetchSkuDetailById('67ebf082-dea8-4297-a59d-13acb79d48a4');
+ * console.log(res.data.product.displayName);
+ */
+const fetchSkuDetailById = async (
+  skuId: string
+): Promise<GetSkuDetailResponse> => {
+  const cleanId = sanitizeString(skuId);
+  const url = API_ENDPOINTS.SKUS.SKU_DETAILS(cleanId);
+  
+  try {
+    return await getRequest<GetSkuDetailResponse>(url);
+  } catch (error) {
+    console.error('Failed to fetch SKU details:', {
+      skuId: cleanId,
+      error,
+    });
+    throw error;
+  }
+};
+
 export const skuService = {
   fetchActiveSkuProductCards,
   getSkuDetails,
+  fetchSkuDetailById
 };

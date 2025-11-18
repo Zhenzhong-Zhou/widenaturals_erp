@@ -1,7 +1,7 @@
 import skuProductCardsReducer from './skuProductCardSlice';
 import skuDetailsReducer from './skuDetailsSlice';
 
-export const skuReducers = {
+export const productReducers = {
   skuProductCards: skuProductCardsReducer,
   skuDetails: skuDetailsReducer,
 };
