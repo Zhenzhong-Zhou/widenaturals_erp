@@ -135,6 +135,12 @@ const transformPaginatedPricingDetailResult = (result) =>
 
 /**
  * @typedef {Object} SlicedSkuPricing
+ * @description
+ * Permission-filtered pricing row from slicePricingForUser().
+ * All visibility rules are already applied before transformation.
+ *
+ * @property {string} id                      - Pricing record ID
+ * @property {string} skuId                   - SKU ID this pricing belongs to
  * @property {Object} priceType
  * @property {string} priceType.name          - Human-readable price type (e.g., MSRP, Retail)
  * @property {Object} location
@@ -146,18 +152,30 @@ const transformPaginatedPricingDetailResult = (result) =>
  * @property {Object} [status]                - Optional status metadata
  * @property {string} status.id               - Status UUID
  * @property {string|Date} status.date        - Status change date
- * @property {Object} [audit]                 - Optional audit info
- * @property {string|Date} audit.createdAt    - Created timestamp
- * @property {string|Date} audit.updatedAt    - Updated timestamp
- * @property {string} audit.createdBy         - Created by user ID
- * @property {string} audit.updatedBy         - Updated by user ID
+ * @property {Object} [audit]                   - Optional audit metadata
+ * @property {string|Date} audit.createdAt      - Created timestamp
+ * @property {Object|null} audit.createdBy      - Creator identity
+ * @property {string} audit.createdBy.id        - Creator user ID
+ * @property {string} audit.createdBy.firstname - Creator first name
+ * @property {string} audit.createdBy.lastname  - Creator last name
+ * @property {string|Date} audit.updatedAt      - Updated timestamp
+ * @property {Object|null} audit.updatedBy      - Updater identity
+ * @property {string} audit.updatedBy.id        - Updater user ID
+ * @property {string} audit.updatedBy.firstname - Updater first name
+ * @property {string} audit.updatedBy.lastname  - Updater last name
  */
+
 
 /**
  * @typedef {Object} SkuDetailPricing
- * @property {string}       priceType
+ * @description
+ * Final API-facing DTO for pricing inside SKU detail responses.
+ *
+ * @property {string} id                        - Pricing record ID
+ * @property {string} skuId                     - SKU ID
+ * @property {string} priceType
  * @property {{name: string, type: string}} location
- * @property {number}       price
+ * @property {number} price
  * @property {string|Date|null} validFrom
  * @property {string|Date|null} validTo
  */
@@ -182,7 +200,9 @@ const transformPaginatedPricingDetailResult = (result) =>
 const transformSkuPricing = (row) => {
   if (!row) return null;
   
-  // Status block (optional)
+  // -----------------------------
+  // Status (optional)
+  // -----------------------------
   const status = row.status
     ? {
       id: row.status.id,
@@ -190,17 +210,41 @@ const transformSkuPricing = (row) => {
     }
     : undefined;
   
-  // Audit block (optional)
+  // -----------------------------
+  // Audit (optional)
+  // -----------------------------
   const audit = row.audit
     ? {
-      createdAt: row.audit.createdAt,
-      updatedAt: row.audit.updatedAt,
-      createdBy: row.audit.createdBy,
-      updatedBy: row.audit.updatedBy,
+      createdAt: row.audit.createdAt ?? null,
+      createdBy: row.audit.createdBy
+        ? {
+          id: row.audit.createdBy.id,
+          fullName: getFullName(
+            row.audit.createdBy.firstname,
+            row.audit.createdBy.lastname
+          ),
+        }
+        : null,
+      
+      updatedAt: row.audit.updatedAt ?? null,
+      updatedBy: row.audit.updatedBy
+        ? {
+          id: row.audit.updatedBy.id,
+          fullName: getFullName(
+            row.audit.updatedBy.firstname,
+            row.audit.updatedBy.lastname
+          ),
+        }
+        : null,
     }
     : undefined;
   
+  // -----------------------------
+  // Final Returned DTO
+  // -----------------------------
   return {
+    id: row.id,
+    skuId: row.skuId,
     priceType: row.priceType?.name ?? null,
     
     location: {

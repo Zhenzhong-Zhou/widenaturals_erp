@@ -324,6 +324,10 @@ const transformSkuRecord = (skuRows, generatedSkus = []) => {
 
 /**
  * @typedef {Object} SkuDetailSku
+ * @description
+ * Permission-safe SKU record returned from sliceSkuForUser().
+ * Contains core SKU fields plus joined product metadata.
+ *
  * @property {string} sku_id                  - Unique SKU identifier
  * @property {string} sku                     - SKU code
  * @property {string} barcode                 - Product barcode
@@ -351,7 +355,11 @@ const transformSkuRecord = (skuRows, generatedSkus = []) => {
  * @property {string|Date} sku_created_at     - SKU creation timestamp
  * @property {string|Date} sku_updated_at     - SKU updated timestamp
  * @property {string} sku_created_by          - User ID who created SKU
+ * @property {string} created_by_firstname    - Creator's first name
+ * @property {string} created_by_lastname     - Creator's last name
  * @property {string} sku_updated_by          - User ID who last updated SKU
+ * @property {string} updated_by_firstname    - Updater's first name
+ * @property {string} updated_by_lastname     - Updater's last name
  */
 
 /**
@@ -409,6 +417,7 @@ const transformSkuDetail = ({ sku, images, pricing, complianceRecords }) => {
       series: sku.product_series,
       brand: sku.product_brand,
       category: sku.product_category,
+      displayName: getProductDisplayName(sku),
     },
     
     // --- Dimensions ---
@@ -437,9 +446,15 @@ const transformSkuDetail = ({ sku, images, pricing, complianceRecords }) => {
     
     audit: {
       createdAt: sku.sku_created_at,
+      createdBy: {
+        id: sku.sku_created_by,
+        fullName: getFullName(sku.created_by_firstname, sku.created_by_lastname),
+      },
       updatedAt: sku.sku_updated_at,
-      createdBy: sku.sku_created_by,
-      updatedBy: sku.sku_updated_by,
+      updatedBy: {
+        id: sku.sku_updated_by,
+        fullName: getFullName(sku.updated_by_firstname, sku.updated_by_lastname),
+      },
     },
     
     // --- Lists with transformers applied ---

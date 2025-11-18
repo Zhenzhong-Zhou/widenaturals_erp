@@ -157,6 +157,7 @@ const sliceSkuImagesForUser = (imageRows, access) => {
     
     // Base shared fields visible to EVERYONE with VIEW_IMAGES
     const safe = {
+      id: row.id,
       imageUrl: row.image_url,
       type: row.image_type,
       isPrimary: row.is_primary,

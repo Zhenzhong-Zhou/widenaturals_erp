@@ -122,40 +122,60 @@ const insertSkuImagesBulk = async (skuId, images, createdBy, client) => {
 /**
  * Fetch all images linked to a specific SKU.
  *
- * Return format (raw rows before business-layer slicing):
+ * This repository returns **raw image rows**, including uploader metadata,
+ * without applying permission filtering. All visibility rules must be applied
+ * later using:
+ *   - evaluateSkuImageViewAccessControl()
+ *   - sliceSkuImagesForUser()
+ *
+ * ---------------------------------------------------------------------------
+ * Returned row structure (raw DB fields):
+ *
  *   [
  *     {
- *       id,
- *       sku_id,
- *       image_url,
- *       image_type,
- *       display_order,
- *       file_size_kb,
- *       file_format,
- *       alt_text,
- *       is_primary,
- *       uploaded_at,
- *       uploaded_by,
- *       uploaded_by_firstname,   <-- if you join users later
- *       uploaded_by_lastname
+ *       id: string,
+ *       sku_id: string,
+ *       image_url: string,
+ *       image_type: string,
+ *       display_order: number,
+ *       file_size_kb: number|null,
+ *       file_format: string|null,
+ *       alt_text: string|null,
+ *       is_primary: boolean,
+ *       uploaded_at: Date,
+ *       uploaded_by: string|null,
+ *       uploaded_by_firstname: string|null,   // from users.firstname
+ *       uploaded_by_lastname: string|null     // from users.lastname
  *     },
  *     ...
  *   ]
  *
- * Notes:
- *  - Ordering prioritizes primary images (is_primary DESC)
- *  - Secondary images sorted by display_order ASC
- *  - Sensitive fields (file_size_kb, file_format, uploader info)
- *    are later filtered using: sliceSkuImagesForUser()
- *  - This repository method performs **no permission logic**
+ * ---------------------------------------------------------------------------
+ * Ordering rules:
+ *   1. Primary image first:      is_primary DESC
+ *   2. Then by display order:    display_order ASC
  *
+ * ---------------------------------------------------------------------------
+ * Notes:
+ *   - This function does **not** hide metadata such as file size, file format,
+ *     or uploader info — business layer decides what to hide.
+ *   - If no images exist for the SKU, returns an empty array.
+ *   - Fully safe for large SKUs because the query only hits indexed columns:
+ *       - sku_id (FK)
+ *       - is_primary
+ *       - display_order
+ *
+ * ---------------------------------------------------------------------------
  * @async
  * @function
  *
- * @param {string} skuId - UUID of the SKU
- * @returns {Promise<Array<Object>>} Raw image rows
+ * @param {string} skuId - UUID of the SKU whose images should be loaded.
  *
- * @throws {AppError} If query fails
+ * @returns {Promise<Array<Object>>}
+ *          Raw image records before slicing/transforming.
+ *
+ * @throws {AppError}
+ *          When database query fails or connection issues occur.
  */
 const getSkuImagesBySkuId = async (skuId) => {
   const context = 'sku-image-repository/getSkuImagesBySkuId';
@@ -165,18 +185,22 @@ const getSkuImagesBySkuId = async (skuId) => {
   // ------------------------------------------------------------
   const sql = `
     SELECT
-      id,
-      sku_id,
-      image_url,
-      image_type,
-      display_order,
-      file_size_kb,
-      file_format,
-      alt_text,
-      is_primary,
-      uploaded_at,
-      uploaded_by
-    FROM sku_images
+      img.id,
+      img.sku_id,
+      img.image_url,
+      img.image_type,
+      img.display_order,
+      img.file_size_kb,
+      img.file_format,
+      img.alt_text,
+      img.is_primary,
+      img.uploaded_at,
+      img.uploaded_by,
+      u.firstname AS uploaded_by_firstname,
+      u.lastname AS uploaded_by_lastname
+    FROM sku_images AS img
+    LEFT JOIN users AS u
+      ON u.id = img.uploaded_by
     WHERE sku_id = $1
     ORDER BY
       is_primary DESC,

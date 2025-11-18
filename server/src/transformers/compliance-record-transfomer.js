@@ -1,24 +1,36 @@
+const { getFullName } = require('../utils/name-utils');
+
 /**
  * @typedef {Object} SliceSkuDetailCompliance
- * @property {string} type                    - Compliance type (NPN, FDA, COA, etc.)
- * @property {string} complianceId             - Compliance document number
- * @property {string|Date} issuedDate          - Issue date
- * @property {string|Date} expiryDate          - Expiry date
- * @property {Object} metadata                 - Metadata container
- * @property {Object} [metadata.status]        - Status info
- * @property {string} metadata.status.id       - Status UUID
- * @property {string} metadata.status.name     - Status name
- * @property {string|Date} metadata.status.date - Status timestamp
- * @property {string} metadata.description     - Compliance description
- * @property {Object} [audit]                  - Audit container
- * @property {string|Date} audit.createdAt     - Created timestamp
- * @property {string|Date} audit.updatedAt     - Updated timestamp
- * @property {Object} audit.createdBy          - { id, firstname, lastname }
- * @property {Object} audit.updatedBy          - { id, firstname, lastname } or null
+ * @description
+ * Output from `sliceComplianceRecordsForUser()`. All fields are already
+ * permission-filtered and safe for transformer usage.
+ *
+ * @property {string} id                                   - Compliance record ID
+ * @property {string} type                                 - Compliance type (NPN, FDA, COA, etc.)
+ * @property {string} complianceId                         - Compliance document number
+ * @property {string|Date} issuedDate                      - Date the compliance was issued
+ * @property {string|Date} expiryDate                      - Expiration date
+ * @property {Object} metadata                             - Metadata container
+ * @property {Object} [metadata.status]                    - Optional status info
+ * @property {string} metadata.status.id                   - Status UUID
+ * @property {string} metadata.status.name                 - Status name
+ * @property {string|Date} metadata.status.date            - Status timestamp
+ * @property {string} metadata.description                 - Description or note for the compliance record
+ * @property {Object} [audit]                              - Optional audit metadata
+ * @property {Object|null} audit.createdBy                 - Creator identity
+ * @property {string} audit.createdBy.id                   - Creator user ID
+ * @property {string} audit.createdBy.firstname            - Creator first name
+ * @property {string} audit.createdBy.lastname             - Creator last name
+ * @property {Object|null} audit.updatedBy                 - Updater identity
+ * @property {string} audit.updatedBy.id                   - Updater user ID
+ * @property {string} audit.updatedBy.firstname            - Updater first name
+ * @property {string} audit.updatedBy.lastname             - Updater last name
  */
 
 /**
  * @typedef {Object} SkuDetailCompliance
+ * @property {string} id
  * @property {string} type
  * @property {string} complianceId
  * @property {string|Date|null} issuedDate
@@ -46,7 +58,7 @@
 const transformComplianceRecord = (row) => {
   if (!row) return null;
   
-  // Build metadata block only if it exists
+  // Optional metadata
   const metadata = row.metadata
     ? {
       status: row.metadata.status
@@ -60,13 +72,29 @@ const transformComplianceRecord = (row) => {
     }
     : undefined;
   
-  // Build audit block only if it exists
+  // Optional audit
   const audit = row.audit
     ? {
       createdAt: row.audit.createdAt,
+      createdBy: row.audit.createdBy
+        ? {
+          id: row.audit.createdBy.id,
+          fullName: getFullName(
+            row.audit.createdBy.firstname,
+            row.audit.createdBy.lastname
+          ),
+        }
+        : null,
       updatedAt: row.audit.updatedAt,
-      createdBy: row.audit.createdBy,
-      updatedBy: row.audit.updatedBy,
+      updatedBy: row.audit.updatedBy
+        ? {
+          id: row.audit.updatedBy.id,
+          fullName: getFullName(
+            row.audit.updatedBy.firstname,
+            row.audit.updatedBy.lastname
+          ),
+        }
+        : null,
     }
     : undefined;
   

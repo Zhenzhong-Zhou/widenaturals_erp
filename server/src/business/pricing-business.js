@@ -334,6 +334,8 @@ const slicePricingForUser = (pricingRows, access) => {
     // 4. BASE SAFE SHAPE (regular users)
     // ---------------------------------------------------------
     const safe = {
+      id: row.id,
+      skuId: row.sku_id,
       priceType: { name: row.price_type_name },
       location: {
         name: row.location_name,

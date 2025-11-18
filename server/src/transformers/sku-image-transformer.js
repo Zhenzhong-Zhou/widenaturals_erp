@@ -1,3 +1,4 @@
+const { getFullName } = require('../utils/name-utils');
 /**
  * @function
  * @description
@@ -31,6 +32,11 @@ const transformSkuImageResults = (records = []) =>
 
 /**
  * @typedef {Object} SlicedSkuImage
+ * @description
+ * Result from sliceSkuImagesForUser(). All fields are already
+ * permission-filtered and safe for transformation.
+ *
+ * @property {string} id
  * @property {string} imageUrl                - Public URL of the image
  * @property {string} type                    - Image type (e.g., "main", "thumbnail")
  * @property {boolean} isPrimary              - Whether image is primary
@@ -41,17 +47,20 @@ const transformSkuImageResults = (records = []) =>
  * @property {number} metadata.displayOrder   - Sort order
  * @property {Object} [audit]                 - Optional audit info
  * @property {string|Date} audit.uploadedAt   - Upload timestamp
- * @property {string} audit.uploadedBy        - User who uploaded
+ * @property {string} audit.uploadedBy.id      - User UUID
+ * @property {string} audit.uploadedBy.firstname - Uploader first name
+ * @property {string} audit.uploadedBy.lastname  - Uploader last name
  */
 
 /**
  * @typedef {Object} SkuDetailImage
+ * @description
+ * Final normalized DTO returned in the SKU Detail API.
+ *
  * @property {string} imageUrl
  * @property {string} type
  * @property {boolean} isPrimary
  * @property {string} altText
- * @property {Object=} metadata
- * @property {Object=} audit
  */
 
 /**
@@ -69,7 +78,7 @@ const transformSkuImageResults = (records = []) =>
 const transformSkuImage = (row) => {
   if (!row) return null;
   
-  // Optional metadata block
+  // --- Metadata block (optional) ---
   const metadata = row.metadata
     ? {
       sizeKb: row.metadata.sizeKb,
@@ -78,15 +87,25 @@ const transformSkuImage = (row) => {
     }
     : undefined;
   
-  // Optional audit block
+  // --- Audit block (optional) ---
   const audit = row.audit
     ? {
       uploadedAt: row.audit.uploadedAt,
-      uploadedBy: row.audit.uploadedBy,
+      uploadedBy: row.audit.uploadedBy
+        ? {
+          id: row.audit.uploadedBy.id,
+          fullName: getFullName(
+            row.audit.uploadedBy.firstname,
+            row.audit.uploadedBy.lastname
+          ),
+        }
+        : null,
     }
     : undefined;
   
+  // --- Final DTO ---
   return {
+    id: row.id,
     imageUrl: row.imageUrl,
     type: row.type,
     isPrimary: row.isPrimary,

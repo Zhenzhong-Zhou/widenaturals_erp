@@ -361,55 +361,73 @@ const getPricingLookup = async ({ limit = 50, offset = 0, filters = {} }) => {
 /**
  * Fetch all pricing records linked to a specific SKU.
  *
+ * This repository returns the **raw, unfiltered pricing rows** used by the
+ * business layer and access-control functions:
+ *   - evaluatePricingViewAccessControl()
+ *   - slicePricingForUser()
+ *
+ * The repository itself performs **no permission filtering**.
+ *
+ * ---------------------------------------------------------------------------
  * Normalized join structure:
  *   pricing (pr)
  *     └─ pricing_types (pt)
  *     └─ locations (l)
  *          └─ location_types (lt)
+ *     └─ users (u1 = created_by, u2 = updated_by)
  *
- * Returns **all pricing entries** for the SKU (active, inactive, future, expired),
- * which will later be filtered/sliced in the business layer using:
- *   - evaluatePricingViewAccessControl()
- *   - slicePricingForUser()
+ * Returned rows include:
+ *   - Price type metadata
+ *   - Location + location type
+ *   - Status + status_date
+ *   - Audit fields, including first/last name for created_by, updated_by
  *
- * Typical use cases:
- *   - SKU Detail Page (admin / internal users)
+ * ---------------------------------------------------------------------------
+ * Ordering logic:
+ *   1. Price type code (so similar types group together)
+ *   2. valid_from DESC (newest pricing version first)
+ *
+ * ---------------------------------------------------------------------------
+ * Typical usage:
+ *   - SKU Detail Page (admin/full access)
  *   - Pricing history modal
- *   - Pricing audits / revisions
+ *   - Pricing comparisons across locations
+ *   - Audit and compliance workflows
  *
- * Ordering:
- *   - First by price type (stable grouping)
- *   - Then by valid_from DESC (newest first)
- *
+ * ---------------------------------------------------------------------------
  * @async
  * @function
  *
- * @param {string} skuId - SKU UUID
+ * @param {string} skuId - UUID of the SKU to fetch pricing for.
  *
- * @returns {Promise<Array<Object>>} Raw pricing rows:
+ * @returns {Promise<Array<Object>>} Raw pricing rows with the shape:
  *   [
  *     {
- *       id,
- *       sku_id,
- *       price_type_id,
- *       price_type_name,
- *       price_type_code,
- *       location_id,
- *       location_name,
- *       location_type,
- *       price,
- *       valid_from,
- *       valid_to,
- *       status_id,
- *       status_date,
- *       created_at,
- *       updated_at,
- *       created_by,
- *       updated_by
+ *       id: string,
+ *       sku_id: string,
+ *       price_type_id: string,
+ *       price_type_name: string,
+ *       price_type_code: string,
+ *       location_id: string|null,
+ *       location_name: string|null,
+ *       location_type: string|null,
+ *       price: number,
+ *       valid_from: Date,
+ *       valid_to: Date|null,
+ *       status_id: string,
+ *       status_date: Date,
+ *       created_at: Date,
+ *       updated_at: Date,
+ *       created_by: string|null,
+ *       created_by_firstname: string|null,
+ *       created_by_lastname: string|null,
+ *       updated_by: string|null,
+ *       updated_by_firstname: string|null,
+ *       updated_by_lastname: string|null
  *     }
  *   ]
  *
- * @throws {AppError} Database error if query fails.
+ * @throws {AppError} - On database or query failure.
  */
 const getPricingBySkuId = async (skuId) => {
   const context = 'pricing-repository/getPricingBySkuId';
@@ -435,11 +453,17 @@ const getPricingBySkuId = async (skuId) => {
       pr.created_at,
       pr.updated_at,
       pr.created_by,
-      pr.updated_by
+      u1.firstname AS created_by_firstname,
+      u1.lastname AS created_by_lastname,
+      pr.updated_by,
+      u2.firstname AS updated_by_firstname,
+      u2.lastname AS updated_by_lastname
     FROM pricing pr
     LEFT JOIN pricing_types pt ON pr.price_type_id = pt.id
     LEFT JOIN locations l ON pr.location_id = l.id
     LEFT JOIN location_types lt ON l.location_type_id = lt.id
+    LEFT JOIN users u1 ON pr.created_by = u1.id
+    LEFT JOIN users u2 ON pr.updated_by = u2.id
     WHERE pr.sku_id = $1
     ORDER BY
       pt.code ASC,
