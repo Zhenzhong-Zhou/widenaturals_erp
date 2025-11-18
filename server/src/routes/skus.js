@@ -19,7 +19,7 @@ const {
   getSkuDetailsController,
   createSkusController,
   updateSkuStatusController,
-  getPaginatedSkusController,
+  getPaginatedSkusController, fetchSkuDetailsController,
 } = require('../controllers/sku-controller');
 const validate = require('../middlewares/validate');
 const {
@@ -159,6 +159,49 @@ router.get(
   ]),
   validate(skuQuerySchema, 'query'),
   getPaginatedSkusController
+);
+
+/**
+ * Route: GET /skus/:skuId/details
+ *
+ * Retrieves a fully enriched SKU detail payload including:
+ * - SKU base attributes
+ * - Product metadata
+ * - Images (permission-aware)
+ * - Pricing records (permission-aware)
+ * - Compliance records (permission-aware)
+ *
+ * Middleware Chain:
+ * 1. authorize([PERMISSIONS.SKUS.VIEW_DETAILS])
+ *      - Ensures the authenticated user has the required permission to
+ *        view SKU details. Does NOT determine what fields they can view—
+ *        the service layer handles fine-grained access control.
+ *
+ * 2. validate(skuIdParamSchema, 'params')
+ *      - Ensures `skuId` is a valid UUID before reaching the controller.
+ *        Prevents useless database queries and improves error clarity.
+ *
+ * 3. fetchSkuDetailsController
+ *      - Executes the full business logic:
+ *          → fetchSkuDetailsService()
+ *          → slices pricing/images/compliance based on user permissions
+ *          → transforms output via transformSkuDetail()
+ *      - Returns consistent API response shape with traceId.
+ *
+ * Permissions:
+ *   - Requires SKUS.VIEW_DETAILS
+ *
+ * Errors:
+ *   - 400 if skuId invalid
+ *   - 403 if user lacks permission
+ *   - 404 if SKU does not exist
+ *   - 500 for unexpected server errors (captured by global error handler)
+ */
+router.get(
+  '/:skuId/details',
+  authorize([PERMISSIONS.SKUS.VIEW_DETAILS]),
+  validate(skuIdParamSchema, 'params'),
+  fetchSkuDetailsController
 );
 
 /**

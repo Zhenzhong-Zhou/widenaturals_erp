@@ -1,7 +1,11 @@
 const wrapAsync = require('../utils/wrap-async');
 const {
   fetchPaginatedSkuProductCardsService,
-  getSkuDetailsForUserService, createSkusService, updateSkuStatusService, fetchPaginatedSkusService,
+  getSkuDetailsForUserService,
+  createSkusService,
+  updateSkuStatusService,
+  fetchPaginatedSkusService,
+  fetchSkuDetailsService,
 } = require('../services/sku-service');
 const { logInfo } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
@@ -154,6 +158,67 @@ const getPaginatedSkusController = wrapAsync(async (req, res) => {
   });
 });
 
+// todo: need to rename to getSkuDetailsController later
+/**
+ * Controller: Fetch SKU Details
+ *
+ * GET /skus/:skuId/details
+ *
+ * Returns a comprehensive SKU detail payload containing:
+ * - SKU base info (name, barcode, dimensions, status, audit)
+ * - Product information (brand, series, category)
+ * - SKU images (respecting image permissions)
+ * - Pricing records (filtered by pricing permissions)
+ * - Compliance records (filtered by compliance permissions)
+ *
+ * All access control, slicing, and data shaping is handled inside
+ * `fetchSkuDetailsService` to keep the controller thin and consistent.
+ *
+ * This controller simply:
+ *  1. Validates input
+ *  2. Logs request metadata
+ *  3. Delegates work to the service layer
+ *  4. Returns final transformed response
+ */
+const fetchSkuDetailsController = wrapAsync(async (req, res) => {
+  const context = 'sku-controller/fetchSkuDetailsController';
+  
+  // Extract SKU ID from params
+  const { skuId } = req.params;
+  
+  // Authenticated user context (set by verifyToken + verifySession)
+  const user = req.user;
+  
+  // Unique trace for monitoring distributed logs
+  const traceId = `sku-detail-${Date.now().toString(36)}`;
+  
+  // -----------------------------
+  // 1. Incoming request log
+  // -----------------------------
+  logInfo('Incoming request: fetch SKU details', req, {
+    context,
+    traceId,
+    skuId,
+    userId: user?.id,
+  });
+  
+  // -----------------------------
+  // 2. Execute business/service layer
+  // -----------------------------
+  const skuDetail = await fetchSkuDetailsService(skuId, user);
+  
+  // -----------------------------
+  // 3. Send response
+  // -----------------------------
+  res.status(200).json({
+    success: true,
+    message: 'SKU details retrieved successfully.',
+    skuId,
+    data: skuDetail,
+    traceId,
+  });
+});
+
 /**
  * @async
  * @function
@@ -300,6 +365,7 @@ module.exports = {
   getActiveSkuProductCardsController,
   getSkuDetailsController,
   getPaginatedSkusController,
+  fetchSkuDetailsController,
   createSkusController,
   updateSkuStatusController,
 };
