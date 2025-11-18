@@ -717,6 +717,53 @@ const getPaginatedSkus = async ({
  * @async
  * @function
  * @description
+ * Checks if a SKU already exists for a given product.
+ *
+ * @example
+ * const exists = await checkSkuExists('CH-HN101-R-CN', 'product-uuid', client);
+ * if (exists) throw AppError.conflictError('SKU already exists.');
+ *
+ * @param {string} sku - SKU code (e.g. "CH-HN117-R-CN").
+ * @param {string} productId - Product UUID.
+ * @param {object} client - Active PG client or transaction.
+ * @returns {Promise<boolean>} True if the SKU exists, false otherwise.
+ */
+const checkSkuExists = async (sku, productId, client) => {
+  const context = 'sku-repository/checkSkuExists';
+  
+  const sql = `
+    SELECT 1
+    FROM skus
+    WHERE sku = $1 AND product_id = $2
+    LIMIT 1;
+  `;
+  
+  try {
+    const { rows } = await query(sql, [sku, productId], client);
+    const exists = rows.length > 0;
+    
+    logSystemInfo('Checked SKU existence', {
+      context,
+      sku,
+      productId,
+      exists,
+    });
+    
+    return exists;
+  } catch (error) {
+    logSystemException(error, 'Failed to check SKU existence.', {
+      context,
+      sku,
+      productId,
+    });
+    throw AppError.databaseError('Failed to check SKU existence.', { cause: error });
+  }
+};
+
+/**
+ * @async
+ * @function
+ * @description
  * Inserts one or multiple SKU records into the database efficiently.
  *
  * - Supports **bulk insertion** (multi-row VALUES syntax).
@@ -818,54 +865,6 @@ const insertSkusBulk = async (skus, client) => {
     throw AppError.databaseError('Failed to insert SKU records', {
       cause: error,
     });
-  }
-};
-
-// todo: move above insert skus
-/**
- * @async
- * @function
- * @description
- * Checks if a SKU already exists for a given product.
- *
- * @example
- * const exists = await checkSkuExists('CH-HN101-R-CN', 'product-uuid', client);
- * if (exists) throw AppError.conflictError('SKU already exists.');
- *
- * @param {string} sku - SKU code (e.g. "CH-HN117-R-CN").
- * @param {string} productId - Product UUID.
- * @param {object} client - Active PG client or transaction.
- * @returns {Promise<boolean>} True if the SKU exists, false otherwise.
- */
-const checkSkuExists = async (sku, productId, client) => {
-  const context = 'sku-repository/checkSkuExists';
-  
-  const sql = `
-    SELECT 1
-    FROM skus
-    WHERE sku = $1 AND product_id = $2
-    LIMIT 1;
-  `;
-  
-  try {
-    const { rows } = await query(sql, [sku, productId], client);
-    const exists = rows.length > 0;
-    
-    logSystemInfo('Checked SKU existence', {
-      context,
-      sku,
-      productId,
-      exists,
-    });
-    
-    return exists;
-  } catch (error) {
-    logSystemException(error, 'Failed to check SKU existence.', {
-      context,
-      sku,
-      productId,
-    });
-    throw AppError.databaseError('Failed to check SKU existence.', { cause: error });
   }
 };
 
@@ -1036,8 +1035,8 @@ module.exports = {
   getSkuDetailsWithPricingAndMeta,
   getSkuLookup,
   getPaginatedSkus,
-  insertSkusBulk,
   checkSkuExists,
+  insertSkusBulk,
   getSkuDetailsById,
   updateSkuStatus,
 };

@@ -148,6 +148,15 @@ const transformProductDetail = (row) => {
   return cleanObject(base);
 };
 
+/**
+ * Transform a single raw product row into a minimal response shape.
+ *
+ * This is used after bulk inserts where the database only returns
+ * the `id` column. No additional product attributes are included.
+ *
+ * @param {Object|null} row - Raw DB row containing at least `{ id }`
+ * @returns {Object|null} Object with `{ id }`
+ */
 const transformProductRecord = (row) => {
   if (!row) return null;
   
@@ -156,7 +165,16 @@ const transformProductRecord = (row) => {
   };
 };
 
-const transformProductList = (rows = []) => rows.map(transformProductRecord);
+/**
+ * Transform an array of raw product insert-return rows.
+ *
+ * @param {Array<Object>} rows - Array of rows from bulk insert
+ * @returns {Array<{id: string}>} Array of `{ id }` objects
+ */
+const transformProductList = (rows = []) => {
+  if (!Array.isArray(rows)) return [];
+  return rows.map(transformProductRecord);
+};
 
 module.exports = {
   transformPaginatedProductResults,
