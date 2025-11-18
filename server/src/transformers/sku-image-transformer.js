@@ -29,6 +29,74 @@ const transformSkuImageResults = (records = []) =>
     ? records.map((record) => transformSkuImageRow(record))
     : [];
 
+/**
+ * @typedef {Object} SlicedSkuImage
+ * @property {string} imageUrl                - Public URL of the image
+ * @property {string} type                    - Image type (e.g., "main", "thumbnail")
+ * @property {boolean} isPrimary              - Whether image is primary
+ * @property {string} altText                 - Accessible alt text
+ * @property {Object} [metadata]              - Optional metadata
+ * @property {number} metadata.sizeKb         - File size in KB
+ * @property {string} metadata.format         - Image format (jpg/png/webp)
+ * @property {number} metadata.displayOrder   - Sort order
+ * @property {Object} [audit]                 - Optional audit info
+ * @property {string|Date} audit.uploadedAt   - Upload timestamp
+ * @property {string} audit.uploadedBy        - User who uploaded
+ */
+
+/**
+ * @typedef {Object} SkuDetailImage
+ * @property {string} imageUrl
+ * @property {string} type
+ * @property {boolean} isPrimary
+ * @property {string} altText
+ * @property {Object=} metadata
+ * @property {Object=} audit
+ */
+
+/**
+ * Transform a single *sliced* SKU image record into an API-safe DTO.
+ *
+ * This function is a pure transformer. All permission-based filtering
+ * MUST happen in sliceSkuImagesForUser() before this step.
+ *
+ * @param {SlicedSkuImage|null} row
+ *        A single filtered image row produced by sliceSkuImagesForUser().
+ *
+ * @returns {SkuDetailImage|null}
+ *        Fully normalized DTO for API responses.
+ */
+const transformSkuImage = (row) => {
+  if (!row) return null;
+  
+  // Optional metadata block
+  const metadata = row.metadata
+    ? {
+      sizeKb: row.metadata.sizeKb,
+      format: row.metadata.format,
+      displayOrder: row.metadata.displayOrder,
+    }
+    : undefined;
+  
+  // Optional audit block
+  const audit = row.audit
+    ? {
+      uploadedAt: row.audit.uploadedAt,
+      uploadedBy: row.audit.uploadedBy,
+    }
+    : undefined;
+  
+  return {
+    imageUrl: row.imageUrl,
+    type: row.type,
+    isPrimary: row.isPrimary,
+    altText: row.altText,
+    metadata,
+    audit,
+  };
+};
+
 module.exports = {
   transformSkuImageResults,
+  transformSkuImage,
 };

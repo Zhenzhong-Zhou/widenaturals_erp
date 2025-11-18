@@ -122,7 +122,7 @@ const fetchPaginatedActiveSkusWithProductCards = async ({
         s.market_region,
         s.size_label,
         sku_status.name AS sku_status_name,
-        comp.compliance_id,
+        cr.compliance_id AS npn_compliance_id,
         pr.price AS msrp_price,
         img.image_url AS primary_image_url,
         img.alt_text AS image_alt_text
@@ -130,7 +130,8 @@ const fetchPaginatedActiveSkusWithProductCards = async ({
       INNER JOIN products p ON s.product_id = p.id
       INNER JOIN status st ON p.status_id = st.id
       LEFT JOIN status sku_status ON s.status_id = sku_status.id AND sku_status.id = $1
-      LEFT JOIN compliances comp ON comp.sku_id = s.id AND comp.type = 'NPN' AND comp.status_id = $1
+      LEFT JOIN sku_compliance_links scl ON scl.sku_id = s.id
+      LEFT JOIN compliance_records cr ON cr.id = scl.compliance_record_id AND cr.type = 'NPN' AND cr.status_id = $1
       LEFT JOIN LATERAL (
         SELECT pr.price, pr.status_id
         FROM pricing pr
@@ -147,7 +148,7 @@ const fetchPaginatedActiveSkusWithProductCards = async ({
       GROUP BY
         p.id, st.name,
         s.id, s.sku, s.barcode, s.market_region, s.size_label, sku_status.name,
-        comp.compliance_id,
+        cr.compliance_id,
         pr.price,
         img.image_url, img.alt_text
       ORDER BY ${sortBy} ${sortOrder}
@@ -265,7 +266,6 @@ const getSkuDetailsWithPricingAndMeta = async (
       sku.updated_by AS sku_updated_by,
       sku_updater.firstname AS sku_updated_by_firstname,
       sku_updater.lastname AS sku_updated_by_lastname,
-      sku.updated_at AS sku_updated_at,
       p.id AS product_id,
       p.name AS product_name,
       p.series,
@@ -296,12 +296,14 @@ const getSkuDetailsWithPricingAndMeta = async (
       ) AS prices,
       COALESCE(
         jsonb_agg(DISTINCT jsonb_build_object(
-          'type', c.type,
-          'compliance_id', c.compliance_id,
-          'issued_date', c.issued_date,
-          'expiry_date', c.expiry_date,
-          'description', c.description
-        )) FILTER (WHERE c.id IS NOT NULL),
+          'type', cr.type,
+          'compliance_id', cr.compliance_id,
+          'issued_date', cr.issued_date,
+          'expiry_date', cr.expiry_date,
+          'description', cr.description,
+          'status', cr_status.name,
+          'status_date', cr.status_date
+        )) FILTER (WHERE cr.id IS NOT NULL),
         '[]'
       ) AS compliances,
       COALESCE(
@@ -326,7 +328,9 @@ const getSkuDetailsWithPricingAndMeta = async (
     LEFT JOIN pricing_types AS pt ON pr.price_type_id = pt.id
     LEFT JOIN locations AS l ON pr.location_id = l.id
     LEFT JOIN location_types AS lt ON l.location_type_id = lt.id
-    LEFT JOIN compliances AS c ON c.sku_id = sku.id
+    LEFT JOIN sku_compliance_links AS scl ON scl.sku_id = sku.id
+    LEFT JOIN compliance_records AS cr ON cr.id = scl.compliance_record_id
+    LEFT JOIN status AS cr_status ON cr.status_id = cr_status.id
     LEFT JOIN sku_images AS img ON img.sku_id = sku.id
     WHERE sku.id = $1
       AND ($2::uuid[] IS NULL OR sku_status.id = ANY($2))
@@ -817,6 +821,7 @@ const insertSkusBulk = async (skus, client) => {
   }
 };
 
+// todo: move above insert skus
 /**
  * @async
  * @function
@@ -861,6 +866,111 @@ const checkSkuExists = async (sku, productId, client) => {
       productId,
     });
     throw AppError.databaseError('Failed to check SKU existence.', { cause: error });
+  }
+};
+
+/**
+ * Repository: Fetch a single SKU with minimal but complete base metadata.
+ *
+ * This function retrieves the core SKU information, including:
+ *   - SKU fields (sku, barcode, dimensions, status, audit fields)
+ *   - Related product metadata (name, brand, series, category)
+ *   - Status lookup (SKU status name)
+ *   - Created/updated user info (firstname/lastname)
+ *
+ * IMPORTANT:
+ *   Does NOT include:
+ *     - Pricing records
+ *     - Compliance records
+ *     - Images
+ *   These are intentionally fetched separately to avoid performance-heavy joins.
+ *
+ * Performance:
+ *   - Fast: uses PK filter `s.id = $1`
+ *   - Joins limited to: products, status, and users
+ *
+ * Error Handling:
+ *   - Returns `null` if SKU does not exist
+ *   - Throws `AppError.databaseError` on DB failures
+ *
+ * @param {string} skuId - UUID of the SKU to fetch
+ * @returns {Promise<Object|null>} SKU row with related metadata, or null if not found
+ */
+const getSkuDetailsById = async (skuId) => {
+  const context = 'sku-repository/getSkuDetailsById';
+  
+  // Base lookup of SKU metadata only — keep this query light & fast
+  const queryText = `
+    SELECT
+      s.id AS sku_id,
+      s.product_id,
+      p.name AS product_name,
+      p.series AS product_series,
+      p.brand AS product_brand,
+      p.category AS product_category,
+      s.sku,
+      s.barcode,
+      s.language,
+      s.country_code,
+      s.market_region,
+      s.size_label,
+      s.description AS sku_description,
+      s.length_cm,
+      s.width_cm,
+      s.height_cm,
+      s.weight_g,
+      s.length_inch,
+      s.width_inch,
+      s.height_inch,
+      s.weight_lb,
+      s.status_id AS sku_status_id,
+      st.name AS sku_status_name,
+      s.status_date AS sku_status_date,
+      s.created_at AS sku_created_at,
+      s.updated_at AS sku_updated_at,
+      s.created_by AS sku_created_by,
+      s.updated_by AS sku_updated_by,
+      u1.firstname AS created_by_firstname,
+      u1.lastname AS created_by_lastname,
+      u2.firstname AS updated_by_firstname,
+      u2.lastname AS updated_by_lastname
+    FROM skus s
+    LEFT JOIN products p ON p.id = s.product_id
+    LEFT JOIN status st ON st.id = s.status_id
+    LEFT JOIN users u1 ON u1.id = s.created_by
+    LEFT JOIN users u2 ON u2.id = s.updated_by
+    WHERE s.id = $1
+  `;
+  
+  try {
+    const { rows } = await query(queryText, [skuId]);
+    
+    if (rows.length === 0) {
+      // Not an error — SKU might simply not exist
+      logSystemInfo('No SKU found for given ID', {
+        context,
+        skuId,
+      });
+      return null;
+    }
+    
+    logSystemInfo('Fetched SKU detail successfully', {
+      context,
+      skuId,
+    });
+    
+    return rows[0];
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch SKU detail', {
+      context,
+      skuId,
+      error: error.message,
+    });
+    
+    throw AppError.databaseError('Failed to fetch SKU detail', {
+      context,
+      details: error.message,
+    });
   }
 };
 
@@ -928,5 +1038,6 @@ module.exports = {
   getPaginatedSkus,
   insertSkusBulk,
   checkSkuExists,
+  getSkuDetailsById,
   updateSkuStatus,
 };

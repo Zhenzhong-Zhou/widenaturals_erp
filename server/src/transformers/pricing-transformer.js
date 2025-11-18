@@ -2,9 +2,7 @@ const { getProductDisplayName } = require('../utils/display-name-utils');
 const { getFullName } = require('../utils/name-utils');
 const {
   transformPaginatedResult,
-  includeFlagsBasedOnAccess,
 } = require('../utils/transformer-utils');
-const { cleanObject } = require('../utils/object-utils');
 
 /**
  * Transforms a raw SQL pricing row into a flattened pricing list item.
@@ -135,8 +133,93 @@ const transformPricingDetailRow = (row) => {
 const transformPaginatedPricingDetailResult = (result) =>
   transformPaginatedResult(result, transformPricingDetailRow);
 
+/**
+ * @typedef {Object} SlicedSkuPricing
+ * @property {Object} priceType
+ * @property {string} priceType.name          - Human-readable price type (e.g., MSRP, Retail)
+ * @property {Object} location
+ * @property {string} location.name           - Location name (e.g., "Vancouver Office")
+ * @property {string} location.type           - Location type (e.g., "Office")
+ * @property {number} price                   - Price amount
+ * @property {string|Date} validFrom          - When price becomes valid
+ * @property {string|Date} validTo            - When price expires
+ * @property {Object} [status]                - Optional status metadata
+ * @property {string} status.id               - Status UUID
+ * @property {string|Date} status.date        - Status change date
+ * @property {Object} [audit]                 - Optional audit info
+ * @property {string|Date} audit.createdAt    - Created timestamp
+ * @property {string|Date} audit.updatedAt    - Updated timestamp
+ * @property {string} audit.createdBy         - Created by user ID
+ * @property {string} audit.updatedBy         - Updated by user ID
+ */
+
+/**
+ * @typedef {Object} SkuDetailPricing
+ * @property {string}       priceType
+ * @property {{name: string, type: string}} location
+ * @property {number}       price
+ * @property {string|Date|null} validFrom
+ * @property {string|Date|null} validTo
+ */
+
+/**
+ * Transform a single *sliced* pricing row into an API-safe DTO.
+ *
+ * This function performs a pure mapping from a permission-filtered
+ * pricing record (SlicedSkuPricing) into the normalized output shape
+ * (SkuDetailPricing).
+ *
+ * Permission logic (allowed pricing types, status visibility,
+ * historical pricing, etc.) MUST be handled upstream in
+ * slicePricingForUser().
+ *
+ * @param {SlicedSkuPricing|null} row
+ *        A single pricing row already processed by slicePricingForUser().
+ *
+ * @returns {SkuDetailPricing|null}
+ *        Normalized pricing DTO for the SKU detail response.
+ */
+const transformSkuPricing = (row) => {
+  if (!row) return null;
+  
+  // Status block (optional)
+  const status = row.status
+    ? {
+      id: row.status.id,
+      date: row.status.date,
+    }
+    : undefined;
+  
+  // Audit block (optional)
+  const audit = row.audit
+    ? {
+      createdAt: row.audit.createdAt,
+      updatedAt: row.audit.updatedAt,
+      createdBy: row.audit.createdBy,
+      updatedBy: row.audit.updatedBy,
+    }
+    : undefined;
+  
+  return {
+    priceType: row.priceType?.name ?? null,
+    
+    location: {
+      name: row.location?.name ?? null,
+      type: row.location?.type ?? null,
+    },
+    
+    price: row.price,
+    validFrom: row.validFrom,
+    validTo: row.validTo,
+    
+    status,
+    audit,
+  };
+};
+
 module.exports = {
   transformPaginatedPricingResult,
   transformExportPricingData,
   transformPaginatedPricingDetailResult,
+  transformSkuPricing,
 };

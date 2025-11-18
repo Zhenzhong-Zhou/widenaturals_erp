@@ -6,7 +6,7 @@ const {
 } = require('../services/role-permission-service');
 const { getStatusId, getStatusNameById } = require('../config/status-cache');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
-const { PERMISSIONS } = require('../utils/constants/domain/sku-constants');
+const { SKU_CONSTANTS } = require('../utils/constants/domain/sku-constants');
 const { getGenericIssueReason } = require('../utils/enrich-utils');
 
 /**
@@ -101,9 +101,9 @@ const evaluateSkuFilterAccessControl = async (user) => {
 
     const allowAllSkus =
       isRoot ||
-      permissions.includes(PERMISSIONS.ADMIN_OVERRIDE_SKU_FILTERS) ||
-      permissions.includes(PERMISSIONS.ALLOW_INTERNAL_ORDER_SKUS) ||
-      permissions.includes(PERMISSIONS.ALLOW_BACKORDER_SKUS);
+      permissions.includes(SKU_CONSTANTS.ADMIN_OVERRIDE_SKU_FILTERS) ||
+      permissions.includes(SKU_CONSTANTS.ALLOW_INTERNAL_ORDER_SKUS) ||
+      permissions.includes(SKU_CONSTANTS.ALLOW_BACKORDER_SKUS);
 
     return { allowAllSkus };
   } catch (err) {
@@ -547,6 +547,109 @@ const assertValidSkuStatusTransition = (currentStatusId, newStatusId) => {
   }
 };
 
+/**
+ * Business: Determine what SKU + Product status combinations a user is
+ * allowed to view on SKU list pages, SKU detail pages, or dropdowns.
+ *
+ * This does NOT modify any data — it only resolves *visibility authority*.
+ *
+ * Controls visibility of:
+ *   ✔ Active SKUs
+ *   ✔ Inactive / discontinued SKUs
+ *   ✔ SKUs linked to inactive or discontinued products
+ *   ✔ Full visibility override for admins / privileged users
+ *
+ * Permission meanings:
+ *   VIEW_SKUS               → Basic ability to see SKUs at all
+ *   VIEW_SKU_INACTIVE       → Allows viewing SKUs whose status != active
+ *   VIEW_PRODUCT_INACTIVE   → Allows viewing SKUs whose product is inactive
+ *   VIEW_SKUS_ALL_STATUSES  → Overrides all restrictions (super-user mode)
+ *
+ * @param {Object} user - Authenticated user with permissions
+ * @returns {Promise<{
+ *   canViewSku: boolean,
+ *   canViewInactiveSku: boolean,
+ *   canViewInactiveProduct: boolean,
+ *   canViewAllSkuStatuses: boolean
+ * }>}
+ */
+const evaluateSkuStatusAccessControl = async (user) => {
+  try {
+    const { permissions, isRoot } = await resolveUserPermissionContext(user);
+    
+    // Base permission: Can the user see SKUs at all?
+    const canViewSku =
+      isRoot || permissions.includes(SKU_CONSTANTS.PERMISSIONS.VIEW);
+    
+    // Can see SKUs whose *SKU status* is inactive
+    const canViewInactiveSku =
+      isRoot || permissions.includes(SKU_CONSTANTS.PERMISSIONS.VIEW_SKU_INACTIVE);
+    
+    // Can see SKUs whose *product* is inactive
+    const canViewInactiveProduct =
+      isRoot || permissions.includes(SKU_CONSTANTS.PERMISSIONS.VIEW_PRODUCT_INACTIVE);
+    
+    // Full override → see everything regardless of SKU or product status
+    const canViewAllSkuStatuses =
+      isRoot || permissions.includes(SKU_CONSTANTS.PERMISSIONS.VIEW_SKUS_ALL_STATUSES);
+    
+    return {
+      canViewSku,
+      canViewInactiveSku,
+      canViewInactiveProduct,
+      canViewAllSkuStatuses,
+    };
+  } catch (err) {
+    logSystemException(err, 'Failed to evaluate SKU access control', {
+      context: 'sku-business/evaluateSkuStatusAccessControl',
+      userId: user?.id,
+    });
+    
+    throw AppError.businessError(
+      'Unable to evaluate SKU status access control.',
+      { details: err.message }
+    );
+  }
+};
+
+/**
+ * Business: Slice a SKU row based on visibility rules.
+ *
+ * This function enforces WHAT the user is allowed to see,
+ * based on the access flags from evaluateSkuStatusAccessControl().
+ *
+ * Behavior:
+ *   ✔ Returns full SKU row for privileged users
+ *   ✔ Returns null if SKU is forbidden to this user
+ *   ✔ Does NOT redact partial fields — redaction can be added if needed
+ *
+ * @param {Object} skuRow - Raw row from getSkuDetailsById()
+ * @param {Object} access - Flags from evaluateSkuStatusAccessControl()
+ * @returns {Object|null} Sanitized SKU row or null if user cannot view it
+ */
+const sliceSkuForUser = (skuRow, access) => {
+  const ACTIVE_SKU_STATUS_ID = getStatusId('general_active');
+  const ACTIVE_PRODUCT_STATUS_ID = getStatusId('product_active');
+  
+  // Admin or super-permission override → full visibility
+  if (access.canViewAllSkuStatuses) return skuRow;
+  
+  // User lacks baseline SKU visibility → hide entirely
+  if (!access.canViewSku) return null;
+  
+  const isSkuActive = skuRow.sku_status_id === ACTIVE_SKU_STATUS_ID;
+  const isProductActive = skuRow.product_status_id === ACTIVE_PRODUCT_STATUS_ID;
+  
+  // Inactive SKU but user cannot view inactive SKUs
+  if (!isSkuActive && !access.canViewInactiveSku) return null;
+  
+  // SKU belongs to an inactive product but user cannot view inactive products
+  if (!isProductActive && !access.canViewInactiveProduct) return null;
+  
+  // Passed all visibility filters — return full row
+  return skuRow;
+};
+
 module.exports = {
   getAllowedStatusIdsForUser,
   getAllowedPricingTypesForUser,
@@ -561,4 +664,6 @@ module.exports = {
   prepareSkuInsertPayloads,
   validateSkuStatusTransition,
   assertValidSkuStatusTransition,
+  evaluateSkuStatusAccessControl,
+  sliceSkuForUser,
 };

@@ -119,7 +119,104 @@ const insertSkuImagesBulk = async (skuId, images, createdBy, client) => {
   }
 };
 
+/**
+ * Fetch all images linked to a specific SKU.
+ *
+ * Return format (raw rows before business-layer slicing):
+ *   [
+ *     {
+ *       id,
+ *       sku_id,
+ *       image_url,
+ *       image_type,
+ *       display_order,
+ *       file_size_kb,
+ *       file_format,
+ *       alt_text,
+ *       is_primary,
+ *       uploaded_at,
+ *       uploaded_by,
+ *       uploaded_by_firstname,   <-- if you join users later
+ *       uploaded_by_lastname
+ *     },
+ *     ...
+ *   ]
+ *
+ * Notes:
+ *  - Ordering prioritizes primary images (is_primary DESC)
+ *  - Secondary images sorted by display_order ASC
+ *  - Sensitive fields (file_size_kb, file_format, uploader info)
+ *    are later filtered using: sliceSkuImagesForUser()
+ *  - This repository method performs **no permission logic**
+ *
+ * @async
+ * @function
+ *
+ * @param {string} skuId - UUID of the SKU
+ * @returns {Promise<Array<Object>>} Raw image rows
+ *
+ * @throws {AppError} If query fails
+ */
+const getSkuImagesBySkuId = async (skuId) => {
+  const context = 'sku-image-repository/getSkuImagesBySkuId';
+  
+  // ------------------------------------------------------------
+  // SQL: Basic fetch from sku_images (no business slicing here)
+  // ------------------------------------------------------------
+  const sql = `
+    SELECT
+      id,
+      sku_id,
+      image_url,
+      image_type,
+      display_order,
+      file_size_kb,
+      file_format,
+      alt_text,
+      is_primary,
+      uploaded_at,
+      uploaded_by
+    FROM sku_images
+    WHERE sku_id = $1
+    ORDER BY
+      is_primary DESC,
+      display_order ASC
+  `;
+  
+  try {
+    const { rows } = await query(sql, [skuId]);
+    
+    if (rows.length === 0) {
+      logSystemInfo('No SKU images found', {
+        context,
+        skuId,
+      });
+      return [];
+    }
+    
+    logSystemInfo('Fetched SKU images successfully', {
+      context,
+      skuId,
+      count: rows.length,
+    });
+    
+    return rows;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch SKU images', {
+      context,
+      skuId,
+      error: error.message,
+    });
+    
+    throw AppError.databaseError('Failed to fetch SKU images.', {
+      context,
+      details: error.message,
+    });
+  }
+};
+
 module.exports = {
   assertNoExistingSkuImages,
   insertSkuImagesBulk,
+  getSkuImagesBySkuId,
 };

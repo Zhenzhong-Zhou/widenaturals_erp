@@ -3,12 +3,15 @@ const {
   fetchPaginatedActiveSkusWithProductCards,
   getSkuDetailsWithPricingAndMeta,
   insertSkusBulk,
-  checkSkuExists, updateSkuStatus, getPaginatedSkus,
+  checkSkuExists,
+  updateSkuStatus,
+  getPaginatedSkus,
+  getSkuDetailsById,
 } = require('../repositories/sku-repository');
 const {
   transformPaginatedSkuProductCardResult,
   transformSkuDetailsWithMeta,
-  transformSkuRecord, transformPaginatedSkuListResults,
+  transformSkuRecord, transformPaginatedSkuListResults, transformSkuDetail,
 } = require('../transformers/sku-transformer');
 const AppError = require('../utils/AppError');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
@@ -17,12 +20,18 @@ const {
   getAllowedStatusIdsForUser,
   getAllowedPricingTypesForUser,
   validateSkuListBusiness,
-  prepareSkuInsertPayloads, assertValidSkuStatusTransition,
+  prepareSkuInsertPayloads, assertValidSkuStatusTransition, evaluateSkuStatusAccessControl, sliceSkuForUser,
 } = require('../business/sku-business');
 const { withTransaction, lockRows, lockRow } = require('../database/db');
 const { getOrCreateBaseCodesBulk } = require('./sku-code-base-service');
 const { generateSKU } = require('../utils/sku-generator');
 const { checkStatusExists } = require('../repositories/status-repository');
+const { getSkuImagesBySkuId } = require('../repositories/sku-image-repository');
+const { getPricingBySkuId } = require('../repositories/pricing-repository');
+const { getComplianceBySkuId } = require('../repositories/compliance-record-repository');
+const { evaluateComplianceViewAccessControl, sliceComplianceRecordsForUser } = require('../business/compliance-record-business');
+const { evaluateSkuImageViewAccessControl, sliceSkuImagesForUser } = require('../business/sku-image-buiness');
+const { evaluatePricingViewAccessControl, slicePricingForUser } = require('../business/pricing-business');
 
 /**
  * Service to fetch a paginated list of active SKU product cards.
@@ -225,6 +234,129 @@ const fetchPaginatedSkusService = async ({
       'Could not fetch SKU records. Please try again later.',
       { context }
     );
+  }
+};
+
+/**
+ * Service: Fetch complete SKU details with permission filtering.
+ *
+ * This service orchestrates:
+ *   1. Fetching the base SKU record
+ *   2. Applying SKU-level visibility rules
+ *   3. Fetching and slicing associated SKU images
+ *   4. Fetching and slicing pricing records (conditional)
+ *   5. Fetching and slicing compliance records (conditional)
+ *   6. Transforming the combined results into a uniform API DTO
+ *
+ * This is the *root entry point* for the SKU Detail page.
+ * It returns only the fields the user is permitted to view.
+ *
+ * @param {string} skuId - SKU UUID
+ * @param {Object} user - Authenticated user context
+ * @returns {Promise<Object>} Fully transformed and permission-filtered SKU detail object
+ *
+ * @throws {AppError.NotFoundError} If SKU does not exist
+ * @throws {AppError.AuthorizationError} If SKU is hidden by permission rules
+ * @throws {AppError.ServiceError} For unexpected failures
+ */
+const fetchSkuDetailsService = async (skuId, user) => {
+  const context = 'sku-service/fetchSkuDetailsService';
+  const traceId = `sku-detail-${Date.now().toString(36)}`;
+  
+  try {
+    // --------------------------------------------------------
+    // 1. Fetch base SKU record
+    //    (Minimal joins: product info, status info, audit info)
+    // --------------------------------------------------------
+    const skuRow = await getSkuDetailsById(skuId);
+    if (!skuRow) {
+      throw AppError.notFoundError(`SKU not found: ${skuId}`, { context });
+    }
+    
+    // --------------------------------------------------------
+    // 2. Evaluate SKU-level access rules
+    // --------------------------------------------------------
+    const skuAccess = await evaluateSkuStatusAccessControl(user);
+    const safeSku = sliceSkuForUser(skuRow, skuAccess);
+    
+    // If SKU does not pass visibility rules → hide entire page
+    if (!safeSku) {
+      throw AppError.authorizationError(
+        'You do not have permission to view this SKU.',
+        { context, skuId }
+      );
+    }
+    
+    // --------------------------------------------------------
+    // 3. Image visibility rules
+    // --------------------------------------------------------
+    const imageAccess = await evaluateSkuImageViewAccessControl(user);
+    const imagesRaw = await getSkuImagesBySkuId(skuId);
+    const safeImages = sliceSkuImagesForUser(imagesRaw, imageAccess);
+    
+    // --------------------------------------------------------
+    // 4. Pricing records (optional)
+    // --------------------------------------------------------
+    const pricingAccess = await evaluatePricingViewAccessControl(user);
+    let safePricing = [];
+    
+    if (pricingAccess.canViewPricing) {
+      const pricingRows = await getPricingBySkuId(skuId);
+      safePricing = slicePricingForUser(pricingRows, pricingAccess);
+    }
+    
+    // --------------------------------------------------------
+    // 5. Compliance records (optional)
+    // --------------------------------------------------------
+    const complianceAccess = await evaluateComplianceViewAccessControl(user);
+    let safeComplianceRecords = [];
+    
+    if (complianceAccess.canViewCompliance) {
+      const complianceRows = await getComplianceBySkuId(skuId);
+      safeComplianceRecords = sliceComplianceRecordsForUser(
+        complianceRows,
+        complianceAccess
+      );
+    }
+    
+    // --------------------------------------------------------
+    // 6. Build final response DTO
+    //    (Transformer combines SKU + images + pricing + compliance)
+    // --------------------------------------------------------
+    const response = transformSkuDetail({
+      sku: safeSku,
+      images: safeImages,
+      pricing: safePricing,
+      complianceRecords: safeComplianceRecords,
+    });
+    
+    // --------------------------------------------------------
+    // 7. Structured logging
+    // --------------------------------------------------------
+    logSystemInfo('Fetched SKU detail', {
+      context,
+      traceId,
+      skuId,
+      userId: user?.id,
+      pricingCount: safePricing.length,
+      imageCount: safeImages.length,
+      complianceCount: safeComplianceRecords.length,
+    });
+    
+    return response;
+  } catch (error) {
+    // All errors captured and re-wrapped into service layer format
+    logSystemException(error, 'Failed to fetch SKU detail', {
+      context,
+      traceId,
+      skuId,
+      userId: user?.id,
+    });
+    
+    throw AppError.serviceError('Failed to fetch SKU detail', {
+      details: error.message,
+      context,
+    });
   }
 };
 
@@ -466,6 +598,7 @@ module.exports = {
   fetchPaginatedSkuProductCardsService,
   getSkuDetailsForUserService,
   fetchPaginatedSkusService,
+  fetchSkuDetailsService,
   createSkusService,
   updateSkuStatusService,
 };

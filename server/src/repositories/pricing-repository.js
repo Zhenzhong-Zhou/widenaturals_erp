@@ -7,13 +7,6 @@ const AppError = require('../utils/AppError');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const { buildPricingFilters } = require('../utils/sql/build-pricing-filters');
 
-// const sq = `
-// SELECT p.*
-// FROM pricing p
-// JOIN skus s ON s.id = p.sku_id
-// WHERE s.id = '48fc7dcb-b44d-436b-8bbe-0c16f2d5f17b';
-// `;
-
 /**
  * Fetches a paginated list of pricing records with enriched SKU and product data.
  *
@@ -365,9 +358,130 @@ const getPricingLookup = async ({ limit = 50, offset = 0, filters = {} }) => {
   }
 };
 
+/**
+ * Fetch all pricing records linked to a specific SKU.
+ *
+ * Normalized join structure:
+ *   pricing (pr)
+ *     └─ pricing_types (pt)
+ *     └─ locations (l)
+ *          └─ location_types (lt)
+ *
+ * Returns **all pricing entries** for the SKU (active, inactive, future, expired),
+ * which will later be filtered/sliced in the business layer using:
+ *   - evaluatePricingViewAccessControl()
+ *   - slicePricingForUser()
+ *
+ * Typical use cases:
+ *   - SKU Detail Page (admin / internal users)
+ *   - Pricing history modal
+ *   - Pricing audits / revisions
+ *
+ * Ordering:
+ *   - First by price type (stable grouping)
+ *   - Then by valid_from DESC (newest first)
+ *
+ * @async
+ * @function
+ *
+ * @param {string} skuId - SKU UUID
+ *
+ * @returns {Promise<Array<Object>>} Raw pricing rows:
+ *   [
+ *     {
+ *       id,
+ *       sku_id,
+ *       price_type_id,
+ *       price_type_name,
+ *       price_type_code,
+ *       location_id,
+ *       location_name,
+ *       location_type,
+ *       price,
+ *       valid_from,
+ *       valid_to,
+ *       status_id,
+ *       status_date,
+ *       created_at,
+ *       updated_at,
+ *       created_by,
+ *       updated_by
+ *     }
+ *   ]
+ *
+ * @throws {AppError} Database error if query fails.
+ */
+const getPricingBySkuId = async (skuId) => {
+  const context = 'pricing-repository/getPricingBySkuId';
+  
+  // -------------------------------------------------------------------
+  // SQL: Fetch raw pricing rows for the SKU + joined metadata
+  // -------------------------------------------------------------------
+  const queryText = `
+    SELECT
+      pr.id,
+      pr.sku_id,
+      pr.price_type_id,
+      pt.name AS price_type_name,
+      pt.code AS price_type_code,
+      pr.location_id,
+      l.name AS location_name,
+      lt.name AS location_type,
+      pr.price,
+      pr.valid_from,
+      pr.valid_to,
+      pr.status_id,
+      pr.status_date,
+      pr.created_at,
+      pr.updated_at,
+      pr.created_by,
+      pr.updated_by
+    FROM pricing pr
+    LEFT JOIN pricing_types pt ON pr.price_type_id = pt.id
+    LEFT JOIN locations l ON pr.location_id = l.id
+    LEFT JOIN location_types lt ON l.location_type_id = lt.id
+    WHERE pr.sku_id = $1
+    ORDER BY
+      pt.code ASC,
+      pr.valid_from DESC
+  `;
+  
+  try {
+    const { rows } = await query(queryText, [skuId]);
+    
+    if (rows.length === 0) {
+      logSystemInfo('No SKU pricing records found', {
+        context,
+        skuId,
+      });
+      return [];
+    }
+    
+    logSystemInfo('Fetched SKU pricing successfully', {
+      context,
+      skuId,
+      count: rows.length,
+    });
+    
+    return rows;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch SKU pricing', {
+      context,
+      skuId,
+      error: error.message,
+    });
+    
+    throw AppError.databaseError('Failed to fetch SKU pricing.', {
+      context,
+      details: error.message,
+    });
+  }
+};
+
 module.exports = {
   getAllPricingRecords,
   getPricingDetailsByPricingTypeId,
   getPricesByIdAndSkuBatch,
   getPricingLookup,
+  getPricingBySkuId,
 };
