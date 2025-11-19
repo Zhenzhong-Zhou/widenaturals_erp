@@ -213,3 +213,52 @@ export const truncateText = (
   if (text.length <= maxLength) return text;
   return text.slice(0, maxLength).trimEnd() + ellipsis;
 };
+
+/**
+ * Convert a numeric size into a human-friendly string,
+ * automatically scaling through units (B → KB → MB → GB → TB).
+ *
+ * The function:
+ * - Accepts a starting unit ("B", "KB", or "MB")
+ * - Auto-upgrades units while value >= 1024
+ * - Uses up to 1 decimal place (e.g., "1.5 MB")
+ * - Returns "—" for nullish or invalid values
+ *
+ * ### Examples
+ * ```
+ * formatSize(11, "KB")        // "11 KB"
+ * formatSize(2048, "KB")      // "2 MB"
+ * formatSize(1536, "KB")      // "1.5 MB"
+ * formatSize(1500000, "B")    // "1.4 MB"
+ * formatSize(null)            // "—"
+ * ```
+ *
+ * @param value - The numeric value to format (base 1024)
+ * @param startUnit - The unit the input value is currently in
+ * @returns Human-readable string with scaled unit, or "—" for invalid input
+ */
+export const formatSize = (
+  value?: number | null,
+  startUnit: "B" | "KB" | "MB" = "B"
+): string => {
+  if (value == null || isNaN(value)) return "—";
+  
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let index = units.indexOf(startUnit);
+  if (index === -1) index = 0; // fallback to B
+  
+  let size = value;
+  
+  // Auto-upgrade units as long as size exceeds threshold
+  while (size >= 1024 && index < units.length - 1) {
+    size /= 1024;
+    index++;
+  }
+  
+  // Use integer if clean, or one decimal if fractional
+  const formatted = Number.isInteger(size)
+    ? size.toString()
+    : size.toFixed(1);
+  
+  return `${formatted} ${units[index]}`;
+};

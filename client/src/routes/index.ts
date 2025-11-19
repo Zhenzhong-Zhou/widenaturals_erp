@@ -60,6 +60,15 @@ export const routes = [
     },
   },
   {
+    path: '/skus/:skuId',
+    component: lazy(() => import('@features/sku/pages/SkuDetailPage')),
+    meta: {
+      requiresAuth: true,
+      title: 'Sku Details',
+      showInSidebar: false,
+    },
+  },
+  {
     path: '/compliances',
     component: lazy(() => import('@features/compliance/pages/CompliancePage')),
     meta: { requiresAuth: true, title: 'Compliances', showInSidebar: true },
