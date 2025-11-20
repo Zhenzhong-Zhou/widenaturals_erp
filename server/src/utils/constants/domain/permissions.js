@@ -29,6 +29,9 @@ const PERMISSIONS = {
     UPDATE_INFO: 'update_sku_info',
     UPDATE_IMAGE: 'update_sku_images',
   },
+  COMPLIANCE_RECORDS: {
+    VIEW_LIST: 'view_compliance_records',
+  },
   BOMS: {
     VIEW_LIST: 'view_boms',
     VIEW_BOM_DETAILS: 'view_bom_details',

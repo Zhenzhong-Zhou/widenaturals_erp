@@ -55,6 +55,19 @@ const SORTABLE_FIELDS = {
     // ---- Default fallback ----
     defaultNaturalSort: 's.created_at',
   },
+  complianceRecordSortMap: {
+    createdAt: 'cr.created_at',
+    updatedAt: 'cr.updated_at',
+    issuedDate: 'cr.issued_date',
+    expiryDate: 'cr.expiry_date',
+    complianceNumber: 'cr.compliance_id',
+    productName: 'p.name',
+    skuCode: 's.sku',
+    status: 'cr.status_id',
+    
+    // keep sorting consistent and safe
+    defaultNaturalSort: 'cr.created_at',
+  },
   bomSortMap: {
     // --- Product / SKU level ---
     productName: 'p.name',

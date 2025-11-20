@@ -1,4 +1,128 @@
+const { cleanObject } = require('../utils/object-utils');
+const { getProductDisplayName } = require('../utils/display-name-utils');
 const { getFullName } = require('../utils/name-utils');
+const { transformPaginatedResult } = require('../utils/transformer-utils');
+
+/**
+ * @typedef {Object} ComplianceRecordRow
+ * @property {string} compliance_record_id
+ * @property {string} type
+ * @property {string} document_number
+ * @property {string|null} issued_date
+ * @property {string|null} expiry_date
+ * @property {string|null} description
+ *
+ * @property {string} status_id
+ * @property {string} status_name
+ * @property {string|null} status_date
+ *
+ * @property {string|null} created_at
+ * @property {string|null} updated_at
+ *
+ * @property {string|null} created_by
+ * @property {string|null} created_by_firstname
+ * @property {string|null} created_by_lastname
+ *
+ * @property {string|null} updated_by
+ * @property {string|null} updated_by_firstname
+ * @property {string|null} updated_by_lastname
+ *
+ * @property {string} sku_id
+ * @property {string} sku_code
+ * @property {string|null} size_label
+ * @property {string|null} market_region
+ *
+ * @property {string} product_id
+ * @property {string} product_name
+ * @property {string|null} brand
+ * @property {string|null} series
+ * @property {string|null} category
+ */
+
+/**
+ * Transforms a single raw SQL row from the compliance record query
+ * into a normalized API response object.
+ *
+ * @param {ComplianceRecordRow} row - Raw SQL row from query.
+ * @returns {Object|null} Normalized compliance record response.
+ */
+const transformComplianceRecordRow = (row) => {
+  if (!row) return null;
+  
+  return cleanObject({
+    id: row.compliance_record_id,
+    type: row.type,
+    documentNumber: row.document_number,
+    issuedDate: row.issued_date,
+    expiryDate: row.expiry_date,
+    description: row.description,
+    
+    status: {
+      id: row.status_id,
+      name: row.status_name,
+      date: row.status_date,
+    },
+    
+    audit: {
+      createdAt: row.created_at,
+      createdBy: row.created_by
+        ? {
+          id: row.created_by,
+          firstname: row.created_by_firstname,
+          lastname: row.created_by_lastname,
+          displayName: getFullName(
+            row.created_by_firstname,
+            row.created_by_lastname
+          ),
+        }
+        : null,
+      
+      updatedAt: row.updated_at,
+      updatedBy: row.updated_by
+        ? {
+          id: row.updated_by,
+          firstname: row.updated_by_firstname,
+          lastname: row.updated_by_lastname,
+          displayName: getFullName(
+            row.updated_by_firstname,
+            row.updated_by_lastname
+          ),
+        }
+        : null,
+    },
+    
+    sku: {
+      id: row.sku_id,
+      sku: row.sku_code,
+      sizeLabel: row.size_label,
+      marketRegion: row.market_region,
+    },
+    
+    product: {
+      id: row.product_id,
+      name: row.product_name,
+      brand: row.brand,
+      series: row.series,
+      category: row.category,
+      displayName: getProductDisplayName(row),
+    },
+  });
+};
+
+/**
+ * Applies `transformComplianceRecordRow` to each row of a paginated
+ * SQL result object and returns the normalized paginated response.
+ *
+ * @template T
+ * @param {import('../../types').PaginatedQueryResult<ComplianceRecordRow>} paginatedResult
+ * @returns {import('../../types').PaginatedTransformedResult<T>}
+ */
+const transformPaginatedComplianceRecordResults = (paginatedResult) => {
+  return transformPaginatedResult(
+    paginatedResult,
+    transformComplianceRecordRow
+  );
+};
 
 /**
  * @typedef {Object} SliceSkuDetailCompliance
@@ -110,5 +234,6 @@ const transformComplianceRecord = (row) => {
 };
 
 module.exports = {
+  transformPaginatedComplianceRecordResults,
   transformComplianceRecord,
 };

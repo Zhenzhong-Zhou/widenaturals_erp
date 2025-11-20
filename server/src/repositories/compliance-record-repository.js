@@ -110,7 +110,7 @@ const getPaginatedComplianceRecords = async ({
   // -------------------------------
   // 1. Sort Map
   // -------------------------------
-  const sortMap = getSortMapForModule('complianceSortMap');
+  const sortMap = getSortMapForModule('complianceRecordSortMap');
   const allowedSort = new Set(Object.values(sortMap));
   
   let sortByColumn = allowedSort.has(sortBy)
@@ -167,7 +167,6 @@ const getPaginatedComplianceRecords = async ({
         ON u1.id = cr.created_by
       LEFT JOIN users u2
         ON u2.id = cr.updated_by
-        
       WHERE ${whereClause}
       ORDER BY ${sortByColumn} ${sortOrder}
     `;
