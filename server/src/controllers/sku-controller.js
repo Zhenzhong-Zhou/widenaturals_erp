@@ -1,7 +1,6 @@
 const wrapAsync = require('../utils/wrap-async');
 const {
   fetchPaginatedSkuProductCardsService,
-  getSkuDetailsForUserService,
   createSkusService,
   updateSkuStatusService,
   fetchPaginatedSkusService,
@@ -69,33 +68,6 @@ const getActiveSkuProductCardsController = wrapAsync(async (req, res) => {
 });
 
 /**
- * GET /skus/:skuId
- * Returns detailed SKU information for the authenticated user, with pricing and status filtering applied.
- */
-const getSkuDetailsController = wrapAsync(async (req, res) => {
-  const { skuId } = req.params;
-  const user = req.user;
-
-  if (!skuId) {
-    throw AppError.validationError('SKU ID is required');
-  }
-
-  const data = await getSkuDetailsForUserService(user, skuId);
-
-  logInfo('SKU details retrieved successfully', req, {
-    context: 'sku-controller/getSkuDetailsController',
-    userId: user.id,
-    skuId,
-  });
-
-  res.status(200).json({
-    success: true,
-    message: 'SKU details retrieved successfully.',
-    data,
-  });
-});
-
-/**
  * Controller: Fetch Paginated SKUs
  *
  * Handles GET /skus with filtering, sorting, and pagination.
@@ -158,7 +130,6 @@ const getPaginatedSkusController = wrapAsync(async (req, res) => {
   });
 });
 
-// todo: need to rename to getSkuDetailsController later
 /**
  * Controller: Fetch SKU Details
  *
@@ -180,7 +151,7 @@ const getPaginatedSkusController = wrapAsync(async (req, res) => {
  *  3. Delegates work to the service layer
  *  4. Returns final transformed response
  */
-const fetchSkuDetailsController = wrapAsync(async (req, res) => {
+const getSkuDetailsController = wrapAsync(async (req, res) => {
   const context = 'sku-controller/fetchSkuDetailsController';
   
   // Extract SKU ID from params
@@ -363,9 +334,8 @@ const updateSkuStatusController = wrapAsync(async (req, res) => {
 
 module.exports = {
   getActiveSkuProductCardsController,
-  getSkuDetailsController,
   getPaginatedSkusController,
-  fetchSkuDetailsController,
+  getSkuDetailsController,
   createSkusController,
   updateSkuStatusController,
 };

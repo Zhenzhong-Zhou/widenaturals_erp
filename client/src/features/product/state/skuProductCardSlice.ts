@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
-import type { SkuProductCard } from './skuTypes';
-import { fetchSkuProductCardsThunk } from './skuThunks';
+import type { SkuProductCard } from './productTypes.ts';
+import { fetchSkuProductCardsThunk } from './productThunks';
 
 interface SkuProductCardState {
   data: SkuProductCard[];

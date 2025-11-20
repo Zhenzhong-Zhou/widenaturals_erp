@@ -1,11 +1,9 @@
 import type {
   PaginatedSkuProductCardResponse,
-  SkuDetailResponse,
   SkuProductCardFilters,
 } from '@features/product/state';
 import axiosInstance from '@utils/axiosConfig';
 import { API_ENDPOINTS } from './apiEndpoints';
-import type { AxiosError } from 'axios';
 import { sanitizeString } from '@utils/stringUtils.ts';
 import { getRequest } from '@utils/apiRequest.ts';
 import type { GetSkuDetailResponse } from '@features/sku/state/skuTypes';
@@ -48,34 +46,6 @@ const fetchActiveSkuProductCards = async (
 };
 
 /**
- * Fetches detailed SKU information with pricing, compliance, and image metadata.
- *
- * @param skuId - UUID of the SKU to fetch
- * @returns Promise resolving to ApiSuccessResponse containing SkuDetail
- * @throws Error if the request fails or skuId is missing
- */
-export const getSkuDetails = async (
-  skuId: string
-): Promise<SkuDetailResponse> => {
-  if (!skuId) {
-    throw new Error('SKU ID is required to fetch details.');
-  }
-
-  const endpoint = API_ENDPOINTS.SKU_DETAILS.replace(
-    ':skuId',
-    encodeURIComponent(skuId)
-  );
-
-  try {
-    const response = await axiosInstance.get<SkuDetailResponse>(endpoint);
-    return response.data;
-  } catch (error) {
-    // Optional: Add logging or rewrap error here
-    throw error as AxiosError;
-  }
-};
-
-/**
  * Fetch a single SKU's full detail record by ID.
  *
  * Issues `GET /skus/:skuId/details` and returns the standard API envelope
@@ -113,6 +83,5 @@ const fetchSkuDetailById = async (
 
 export const skuService = {
   fetchActiveSkuProductCards,
-  getSkuDetails,
   fetchSkuDetailById
 };

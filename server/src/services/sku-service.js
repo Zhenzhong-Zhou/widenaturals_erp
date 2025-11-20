@@ -1,7 +1,6 @@
 const { getStatusId } = require('../config/status-cache');
 const {
   fetchPaginatedActiveSkusWithProductCards,
-  getSkuDetailsWithPricingAndMeta,
   insertSkusBulk,
   checkSkuExists,
   updateSkuStatus,
@@ -10,17 +9,19 @@ const {
 } = require('../repositories/sku-repository');
 const {
   transformPaginatedSkuProductCardResult,
-  transformSkuDetailsWithMeta,
-  transformSkuRecord, transformPaginatedSkuListResults, transformSkuDetail,
+  transformSkuRecord,
+  transformPaginatedSkuListResults,
+  transformSkuDetail,
 } = require('../transformers/sku-transformer');
 const AppError = require('../utils/AppError');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const { sanitizeSortBy } = require('../utils/sort-utils');
 const {
-  getAllowedStatusIdsForUser,
-  getAllowedPricingTypesForUser,
   validateSkuListBusiness,
-  prepareSkuInsertPayloads, assertValidSkuStatusTransition, evaluateSkuStatusAccessControl, sliceSkuForUser,
+  prepareSkuInsertPayloads,
+  assertValidSkuStatusTransition,
+  evaluateSkuStatusAccessControl,
+  sliceSkuForUser,
 } = require('../business/sku-business');
 const { withTransaction, lockRows, lockRow } = require('../database/db');
 const { getOrCreateBaseCodesBulk } = require('./sku-code-base-service');
@@ -93,36 +94,6 @@ const fetchPaginatedSkuProductCardsService = async ({
       errorMessage: error.message,
     });
     throw AppError.serviceError('Failed to fetch active SKU product cards');
-  }
-};
-
-/**
- * Service function that fetches a SKU with status and pricing visibility rules applied.
- *
- * @param {object} user - Authenticated user
- * @param {string} skuId - SKU ID to fetch
- * @returns {Promise<object>} Transformed SKU detail for frontend
- */
-const getSkuDetailsForUserService = async (user, skuId) => {
-  try {
-    const allowedStatusIds = await getAllowedStatusIdsForUser(user);
-    const allowedPricingTypes = await getAllowedPricingTypesForUser(user);
-
-    const row = await getSkuDetailsWithPricingAndMeta(skuId, {
-      allowedStatusIds,
-      allowedPricingTypes,
-    });
-
-    return transformSkuDetailsWithMeta(row);
-  } catch (err) {
-    logSystemException('Failed to fetch SKU details for user', {
-      context: 'sku-service/getSkuDetailsForUserService',
-      skuId,
-      userId: user?.id,
-      error: err,
-    });
-
-    throw AppError.serviceError(err, 'Could not retrieve SKU details'); // Or rethrow if already wrapped
   }
 };
 
@@ -596,7 +567,6 @@ const updateSkuStatusService = async ({ skuId, statusId, user }) => {
 
 module.exports = {
   fetchPaginatedSkuProductCardsService,
-  getSkuDetailsForUserService,
   fetchPaginatedSkusService,
   fetchSkuDetailsService,
   createSkusService,

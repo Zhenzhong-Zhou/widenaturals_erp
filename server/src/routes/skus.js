@@ -16,10 +16,10 @@ const authorize = require('../middlewares/authorize');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
 const {
   getActiveSkuProductCardsController,
+  getPaginatedSkusController,
   getSkuDetailsController,
   createSkusController,
   updateSkuStatusController,
-  getPaginatedSkusController, fetchSkuDetailsController,
 } = require('../controllers/sku-controller');
 const validate = require('../middlewares/validate');
 const {
@@ -56,30 +56,6 @@ router.get(
   '/cards/active',
   authorize([PERMISSIONS.SKUS.VIEW_CARDS]),
   getActiveSkuProductCardsController
-);
-
-/**
- * ---------------------------------------------------------------------
- * GET /api/v1/skus/sku-details/:skuId
- * ---------------------------------------------------------------------
- * @summary Retrieve detailed SKU and product information.
- * @description
- * Returns a comprehensive view of the SKU, including product metadata,
- * region, language, and category details.
- *
- * @route GET /api/v1/skus/sku-details/:skuId
- * @access Protected
- *
- * @param {string} skuId.path.required - SKU UUID
- * @returns {200} Detailed SKU record with product metadata
- * @returns {400} Invalid SKU ID format
- * @returns {404} SKU not found
- * @returns {403} User not authorized
- */
-router.get(
-  '/sku-details/:skuId',
-  authorize([PERMISSIONS.SKUS.VIEW_DETAILS]),
-  getSkuDetailsController
 );
 
 /**
@@ -201,7 +177,7 @@ router.get(
   '/:skuId/details',
   authorize([PERMISSIONS.SKUS.VIEW_DETAILS]),
   validate(skuIdParamSchema, 'params'),
-  fetchSkuDetailsController
+  getSkuDetailsController
 );
 
 /**

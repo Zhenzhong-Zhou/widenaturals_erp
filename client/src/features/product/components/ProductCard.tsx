@@ -72,7 +72,7 @@ const ProductCard: FC<ProductCardProps> = ({ isLoading, product }) => {
               size="small"
               color="secondary"
               variant="outlined"
-              to={`/products/${skuId}`}
+              to={`/skus/${skuId}`}
             >
               View Details
             </CustomButton>

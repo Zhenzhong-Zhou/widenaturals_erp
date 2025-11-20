@@ -10,12 +10,12 @@ import CustomButton from '@components/common/CustomButton';
 import ProductCard from '@features/product/components/ProductCard';
 import CustomPagination from '@components/common/CustomPagination';
 import useSkuProductCards from '@hooks/useSkuProductCards';
-import GoBackButton from '@components/common/GoBackButton.tsx';
+import GoBackButton from '@components/common/GoBackButton';
 import type {
   SkuProductCard,
   SkuProductCardFilters,
 } from '@features/product/state';
-import SkuProductCardFilterPanel from '../components/SkuProductCardFilterPanel';
+import SkuProductCardFilterPanel from '@features/product/components/SkuProductCardFilterPanel';
 
 const ProductsPage = () => {
   const [filters, setFilters] = useState<SkuProductCardFilters>({});
