@@ -142,6 +142,25 @@ const evaluateSkuImageViewAccessControl = async (user) => {
  *   - No deep cloning
  *   - No additional DB access
  *
+ * @typedef {Object} RawImageRow
+ * @property {string} id
+ * @property {string} image_url
+ * @property {string} image_type
+ * @property {boolean} is_primary
+ * @property {string} alt_text
+ * @property {number|null} file_size_kb
+ * @property {string|null} file_format
+ * @property {number|null} display_order
+ * @property {string|null} uploaded_at
+ * @property {string|null} uploaded_by
+ * @property {string|null} uploaded_by_firstname
+ * @property {string|null} uploaded_by_lastname
+ *
+ * @typedef {Object} SkuImageAccess
+ * @property {boolean} canViewImages
+ * @property {boolean} canViewImageMetadata
+ * @property {boolean} canViewImageHistory
+ *
  * @param {Array<Object>} imageRows - Raw DB rows from repository
  * @param {Object} access - Result of evaluateSkuImageViewAccessControl()
  * @returns {Array<Object>} Filtered and safe image objects
@@ -177,7 +196,13 @@ const sliceSkuImagesForUser = (imageRows, access) => {
     if (access.canViewImageHistory) {
       safe.audit = {
         uploadedAt: row.uploaded_at,
-        uploadedBy: row.uploaded_by,
+        uploadedBy: row.uploaded_by
+          ? {
+            id: row.uploaded_by,
+            firstname: row.uploaded_by_firstname,
+            lastname: row.uploaded_by_lastname,
+          }
+          : null,
       };
     }
     

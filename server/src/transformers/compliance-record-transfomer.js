@@ -99,6 +99,7 @@ const transformComplianceRecord = (row) => {
     : undefined;
   
   return {
+    id: row.id,
     type: row.type,
     complianceId: row.complianceNumber,
     issuedDate: row.issuedDate,

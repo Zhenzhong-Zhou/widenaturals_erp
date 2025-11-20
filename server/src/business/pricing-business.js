@@ -362,9 +362,21 @@ const slicePricingForUser = (pricingRows, access) => {
     if (access.canViewPricingHistory) {
       safe.audit = {
         createdAt: row.created_at,
+        createdBy: row.created_by
+          ? {
+            id: row.created_by,
+            firstname: row.created_by_firstname,
+            lastname: row.created_by_lastname,
+          }
+          : null,
         updatedAt: row.updated_at,
-        createdBy: row.created_by,
-        updatedBy: row.updated_by,
+        updatedBy: row.updated_by
+          ? {
+            id: row.updated_by,
+            firstname: row.updated_by_firstname,
+            lastname: row.updated_by_lastname,
+          }
+          : null,
       };
     }
     

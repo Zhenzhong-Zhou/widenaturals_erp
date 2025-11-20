@@ -42,7 +42,7 @@ const { fetchSkuDetailsService } = require('../../services/sku-service');
     // 2. Set SKU to test
     // -----------------------------------------------------
     // *** Replace with a real SKU ID from your DB ***
-    const skuId = '44706eb0-81a6-45c6-b73b-7bf200f27547';
+    const skuId = '815d269a-e6d5-4b2a-9206-614f939e7378';
     
     console.log(`${logContext} Testing SKU ID:`, skuId);
     
