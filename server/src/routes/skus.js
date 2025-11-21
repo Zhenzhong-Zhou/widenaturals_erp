@@ -15,7 +15,7 @@ const express = require('express');
 const authorize = require('../middlewares/authorize');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
 const {
-  getActiveSkuProductCardsController,
+  getPaginatedSkuProductCardsController,
   getPaginatedSkusController,
   getSkuDetailsController,
   createSkusController,
@@ -23,10 +23,11 @@ const {
 } = require('../controllers/sku-controller');
 const validate = require('../middlewares/validate');
 const {
+  getPaginatedSkuProductCardsSchema,
   createSkuBulkSchema,
   skuIdParamSchema,
   updateSkuStatusSchema,
-  skuQuerySchema
+  skuQuerySchema,
 } = require('../validators/sku-validators');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 const { sanitizeFields } = require('../middlewares/sanitize');
@@ -35,27 +36,56 @@ const router = express.Router();
 
 /**
  * ---------------------------------------------------------------------
- * GET /api/v1/skus/cards/active
+ * GET /api/v1/skus/cards
  * ---------------------------------------------------------------------
- * @summary Fetch a paginated list of active SKU product cards.
+ * @summary Fetch a paginated list of SKU product cards.
  * @description
- * Returns lightweight SKU summaries for display in dashboards or lists.
- * Supports pagination and optional filtering by `status_id`.
+ * Returns lightweight SKU “product card” entries optimized for grid/list views.
+ * Each card includes:
+ *  - Product fields: name, brand, category, series
+ *  - SKU fields: SKU code, barcode, size label, market region
+ *  - Compliance: e.g., NPN document number
+ *  - Pricing: latest MSRP (location = Office)
+ *  - Primary image metadata: image_url, alt_text
  *
- * @route GET /api/v1/skus/cards/active?status_id={uuid}&page={number}&limit={number}
+ * Access Control:
+ *  - Visibility rules (active-only, inactive allowed, etc.) are applied
+ *    automatically based on the requesting user's permissions.
+ *  - Filters are transparently adjusted using ACL before the DB query.
+ *
+ * Query Capabilities:
+ *  - Pagination: `page`, `limit`
+ *  - Sorting: via `skuProductCards` sort map (validated by middleware)
+ *  - Filtering:
+ *      - productName, brand, category
+ *      - sku, skuIds[], sizeLabel, marketRegion
+ *      - complianceId
+ *      - keyword (multi-field fuzzy search)
+ *
  * @access Protected
  *
- * @queryparam {string} [status_id] Optional status filter (UUID)
- * @queryparam {number} [page=1] Current page index for pagination
- * @queryparam {number} [limit=20] Number of results per page
- *
- * @returns {200} JSON array of product cards with pagination meta
- * @returns {403} When user lacks permission
+ * @returns {200} Paginated list of SKU product cards
+ * @returns {400} Validation error (invalid query parameters)
+ * @returns {403} Forbidden (insufficient permissions)
  */
 router.get(
-  '/cards/active',
+  '/cards',
   authorize([PERMISSIONS.SKUS.VIEW_CARDS]),
-  getActiveSkuProductCardsController
+  createQueryNormalizationMiddleware(
+    'skuProductCards',                // sort map name
+    ['skuIds'], // array-based filter fields
+    [],                               // numeric fields
+    getPaginatedSkuProductCardsSchema
+  ),
+  sanitizeFields([
+    'keyword',
+    'productName',
+    'sku',
+    'brand',
+    'category',
+  ]),
+  validate(getPaginatedSkuProductCardsSchema, 'query'),
+  getPaginatedSkuProductCardsController
 );
 
 /**

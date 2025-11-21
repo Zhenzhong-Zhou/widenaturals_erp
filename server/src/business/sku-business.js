@@ -573,6 +573,57 @@ const sliceSkuForUser = (skuRow, access) => {
   return skuRow;
 };
 
+/**
+ * Business: applySkuProductCardVisibilityRules
+ *
+ * Adjust filters for SKU product-card listings based on ACL permissions.
+ *
+ * Rules:
+ *   - If user lacks permission → force ACTIVE-only SKU and/or product filters.
+ *   - If user has permission → do NOT inject active filters (leave as-is).
+ *   - No “blocking” or UUID hacks; filtering is done by controlled SQL filters.
+ */
+const applySkuProductCardVisibilityRules = (filters, acl) => {
+  const adjusted = { ...filters };
+  
+  const ACTIVE_SKU_STATUS_ID = getStatusId('general_active');
+  const ACTIVE_PRODUCT_STATUS_ID = getStatusId('product_active');
+  
+  // -------------------------------------------------------------
+  // 1. Full override → no visibility restrictions at all
+  // -------------------------------------------------------------
+  if (acl.canViewAllSkuStatuses) {
+    // Ensure no status restrictions are artificially applied
+    delete adjusted.skuStatusIds;
+    delete adjusted.productStatusIds;
+    return adjusted;
+  }
+  
+  // -------------------------------------------------------------
+  // 2. SKU-level visibility
+  // -------------------------------------------------------------
+  if (!acl.canViewInactiveSku) {
+    // User cannot see inactive SKUs → enforce ACTIVE SKUs
+    adjusted.skuStatusIds = [ACTIVE_SKU_STATUS_ID];
+  } else {
+    // User CAN see inactive SKUs → remove restrictions (if added earlier)
+    delete adjusted.skuStatusIds;
+  }
+  
+  // -------------------------------------------------------------
+  // 3. Product-level visibility
+  // -------------------------------------------------------------
+  if (!acl.canViewInactiveProduct) {
+    // User cannot see SKUs under inactive products
+    adjusted.productStatusIds = [ACTIVE_PRODUCT_STATUS_ID];
+  } else {
+    // User CAN see inactive products → remove restrictions
+    delete adjusted.productStatusIds;
+  }
+  
+  return adjusted;
+};
+
 module.exports = {
   evaluateSkuFilterAccessControl,
   enforceSkuLookupVisibilityRules,
@@ -586,4 +637,5 @@ module.exports = {
   assertValidSkuStatusTransition,
   evaluateSkuStatusAccessControl,
   sliceSkuForUser,
+  applySkuProductCardVisibilityRules,
 };

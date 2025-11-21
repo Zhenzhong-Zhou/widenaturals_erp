@@ -114,8 +114,12 @@ const SORTABLE_FIELDS = {
     category: 'p.category',
     marketRegion: 's.market_region',
     sizeLabel: 's.size_label',
-    keyword: 'p.name',
     createdAt: 's.created_at',
+    complianceNumber: 'cr.compliance_id',
+    defaultNaturalSort: `
+      p.name,
+      s.created_at
+    `,
   },
   pricingRecords: {
     productName: 'pr.name',

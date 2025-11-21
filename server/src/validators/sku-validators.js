@@ -7,9 +7,80 @@ const {
   validateUUIDOrUUIDArrayOptional,
   validateOptionalUUID,
   createdDateRangeSchema,
-  updatedDateRangeSchema
+  updatedDateRangeSchema, validateUUIDArray
 } = require('./general-validators');
 const { updateStatusIdSchema } = require('./status-validators');
+
+/**
+ * Joi validation schema for SKU product-card filters.
+ *
+ * Matches EXACTLY with buildSkuProductCardFilters() behavior.
+ */
+const skuProductCardFiltersSchema = Joi.object({
+  //
+  // PRODUCT filters
+  //
+  productName: validateOptionalString('Product Name'),    // ILIKE p.name
+  brand: validateOptionalString('Brand'),                 // ILIKE p.brand
+  category: validateOptionalString('Category'),           // ILIKE p.category
+  
+  // ACL may inject productStatusId automatically
+  productStatusId: validateOptionalUUID('Product Status ID'),
+  
+  //
+  // SKU filters
+  //
+  sku: validateOptionalString('SKU Code'),                // ILIKE s.sku
+  
+  skuIds: Joi.alternatives().try(
+    validateUUIDArray('SKU IDs'),                         // array form
+    validateOptionalUUID('SKU ID')                        // scalar form
+  ),
+  
+  sizeLabel: validateOptionalString('Size Label'),        // ILIKE s.size_label
+  marketRegion: validateOptionalString('Market Region'),  // ILIKE s.market_region
+  
+  skuStatusId: validateOptionalUUID('SKU Status ID'),     // ACL may inject
+  
+  //
+  // COMPLIANCE filters
+  //
+  complianceId: validateOptionalString('Compliance ID'),  // ILIKE cr.compliance_id
+  
+  //
+  // KEYWORD search (multi-field: product, brand, category, sku, compliance)
+  //
+  keyword: Joi.string()
+    .trim()
+    .allow('', null)                                      // allow empty string from UI
+    .optional()
+    .label('Keyword Search'),
+}).unknown(false);
+
+/**
+ * Joi schema: getPaginatedSkuProductCardsSchema
+ *
+ * Validates the full normalized query object for:
+ *   GET /api/v1/skus/cards
+ *
+ * Combined from:
+ *   - paginationSchema
+ *   - createSortSchema('skuProductCards')
+ *   - skuProductCardFiltersSchema (wrapped under `filters`)
+ *
+ * This ensures:
+ *   - Pagination is numeric & valid
+ *   - Sorting keys match server-side sort map
+ *   - Filter fields are validated & sanitized
+ *   - `filters` always exists (defaults to {})
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const getPaginatedSkuProductCardsSchema = paginationSchema
+  .concat(createSortSchema('skuProductCards'))
+  .keys({
+    filters: skuProductCardFiltersSchema.default({}),
+  });
 
 /**
  * Joi schema: Validate SKU ID route parameter.
@@ -259,6 +330,7 @@ const createSkuBulkSchema = Joi.object({
 const updateSkuStatusSchema = updateStatusIdSchema;
 
 module.exports = {
+  getPaginatedSkuProductCardsSchema,
   skuIdParamSchema,
   skuQuerySchema,
   createSkuBulkSchema,

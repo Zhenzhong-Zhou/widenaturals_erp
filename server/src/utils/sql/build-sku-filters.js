@@ -7,6 +7,140 @@
 const { SORTABLE_FIELDS } = require('../sort-field-mapping');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
+const { addIlikeFilter } = require('./sql-helpers');
+
+/**
+ * Builds SQL WHERE clause + parameter array for SKU Product-Card listing.
+ *
+ * Filters are already ACL-adjusted by the service layer:
+ *   - productName / brand / category
+ *   - sku / sizeLabel / marketRegion
+ *   - productStatusId / skuStatusId
+ *   - skuIds
+ *   - complianceId
+ *   - keyword (multi-field fuzzy match)
+ *
+ * Returned output can be injected into the repository query.
+ *
+ * @param {Object} filters - Normalized filter values.
+ * @param {string} [filters.productName]
+ * @param {string} [filters.brand]
+ * @param {string} [filters.category]
+ * @param {string} [filters.productStatusId]
+ * @param {string} [filters.sku]
+ * @param {string[]} [filters.skuIds]
+ * @param {string} [filters.sizeLabel]
+ * @param {string} [filters.marketRegion]
+ * @param {string} [filters.skuStatusId]
+ * @param {string} [filters.complianceId]
+ * @param {string} [filters.keyword]
+ *
+ * @returns {{
+ *   whereClause: string,
+ *   params: any[]
+ * }} SQL-safe condition string + params.
+ */
+const buildSkuProductCardFilters = (filters = {}) => {
+  try {
+    /** @type {string[]} */
+    const conditions = ['1=1'];
+    
+    /** @type {any[]} */
+    const params = [];
+    
+    /** @type {number} */
+    let idx = 1;
+    
+    // -------------------------------------------------------------
+    // PRODUCT filters (ILIKE)
+    // -------------------------------------------------------------
+    idx = addIlikeFilter(conditions, params, idx, filters.productName, 'p.name');
+    idx = addIlikeFilter(conditions, params, idx, filters.brand, 'p.brand');
+    idx = addIlikeFilter(conditions, params, idx, filters.category, 'p.category');
+    
+    if (filters.productStatusId) {
+      conditions.push(`p.status_id = $${idx}`);
+      params.push(filters.productStatusId);
+      idx++;
+    }
+    
+    // -------------------------------------------------------------
+    // SKU filters (ILIKE + UUID array)
+    // -------------------------------------------------------------
+    idx = addIlikeFilter(conditions, params, idx, filters.sku, 's.sku');
+    idx = addIlikeFilter(conditions, params, idx, filters.sizeLabel, 's.size_label');
+    idx = addIlikeFilter(
+      conditions,
+      params,
+      idx,
+      filters.marketRegion,
+      's.market_region'
+    );
+    
+    if (filters.skuIds) {
+      if (Array.isArray(filters.skuIds)) {
+        conditions.push(`s.id = ANY($${idx}::uuid[])`);
+      } else {
+        conditions.push(`s.id = $${idx}`);
+      }
+      params.push(filters.skuIds);
+      idx++;
+    }
+    
+    if (filters.skuStatusId) {
+      conditions.push(`s.status_id = $${idx}`);
+      params.push(filters.skuStatusId);
+      idx++;
+    }
+    
+    // -------------------------------------------------------------
+    // COMPLIANCE filters
+    // -------------------------------------------------------------
+    idx = addIlikeFilter(
+      conditions,
+      params,
+      idx,
+      filters.complianceId,
+      'cr.compliance_id'
+    );
+    
+    // -------------------------------------------------------------
+    // KEYWORD search (multi-field)
+    // -------------------------------------------------------------
+    if (filters.keyword) {
+      /** @type {string} */
+      const kw = `%${filters.keyword.trim().replace(/\s+/g, ' ')}%`;
+      
+      conditions.push(`
+        (
+          p.name ILIKE $${idx}
+          OR p.brand ILIKE $${idx}
+          OR p.category ILIKE $${idx}
+          OR s.sku ILIKE $${idx}
+          OR cr.compliance_id ILIKE $${idx}
+        )
+      `);
+      
+      params.push(kw);
+      idx++;
+    }
+    
+    return {
+      whereClause: conditions.join(' AND '),
+      params,
+    };
+  } catch (err) {
+    logSystemException(err, 'Failed to build SKU Product Card filter', {
+      context: 'sku-repository/buildSkuProductCardFilters',
+      error: err.message,
+      filters,
+    });
+    
+    throw AppError.databaseError('Failed to build SKU card filter conditions', {
+      details: err.message,
+    });
+  }
+};
 
 /**
  * Builds a dynamic SQL WHERE clause and parameters array for filtering SKU and product records.
@@ -506,6 +640,7 @@ const buildSkuFilter = (filters = {}) => {
 };
 
 module.exports = {
+  buildSkuProductCardFilters,
   buildWhereClauseAndParams,
   skuDropdownKeywordHandler,
   buildSkuFilter,

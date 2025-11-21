@@ -10,7 +10,7 @@ const AppError = require('../utils/AppError');
 const {
   buildWhereClauseAndParams,
   skuDropdownKeywordHandler,
-  buildSkuFilter,
+  buildSkuFilter, buildSkuProductCardFilters,
 } = require('../utils/sql/build-sku-filters');
 const { minUuid } = require('../utils/sql/sql-helpers');
 const { getSortMapForModule } = require('../utils/sort-utils');
@@ -63,106 +63,132 @@ const getLastSku = async (brandCode, categoryCode) => {
 };
 
 /**
- * Fetch a paginated list of active SKUs for product display (e.g., product cards or grid).
- * Includes basic product info, active SKU data, NPN compliance, pricing (MSRP), and primary image.
+ * Fetches paginated SKU product-card rows with combined product, SKU,
+ * pricing, compliance, and image metadata.
  *
- * @param {Object} options - Query options for pagination and sorting.
- * @param {number} options.page - Current page number (1-based).
- * @param {number} options.limit - Number of items per page.
- * @param {string} [options.sortBy='p.name, p.created_at'] - Sort columns.
- * @param {string} [options.sortOrder='DESC'] - Sort direction ('ASC' or 'DESC').
- * @param {string} options.productStatusId - UUID of the 'active' status to filter both product and SKU.
- * @param {Object} [options.filters] - Optional filter object with keys like brand, category, marketRegion, sizeLabel, keyword
- * @returns {Promise<Object>} Paginated response:
- * {
- *   data: Array<{
- *     sku_id,
- *     sku,
- *     size_label,
- *     barcode,
- *     product_name,
- *     brand,
- *     series,
- *     category,
- *     status_name,
- *     sku_status_name,
- *     compliance_id,
- *     msrp_price,
- *     primary_image_url,
- *     image_alt_text
- *   }>,
- *   pagination: { page: number, limit: number, totalRecords: number, totalPages: number }
- * }
+ * This repository function expects visibility rules (active-only,
+ * inactive allowed, etc.) to already be applied by the service/business
+ * layer via the `filters` argument.
+ *
+ * @param {Object} options
+ * @param {number} options.page - Page number (1-based).
+ * @param {number} options.limit - Items per page.
+ * @param {string} options.sortBy - Fully-qualified sort column.
+ * @param {string} options.sortOrder - Sort direction ('ASC' | 'DESC').
+ * @param {Object} options.filters - Pre-normalized filters prepared by business logic.
+ *
+ * @returns {Promise<{
+ *   data: Array<Object>,
+ *   pagination: {
+ *     page: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     totalPages: number
+ *   }
+ * }>}
  */
-const fetchPaginatedActiveSkusWithProductCards = async ({
+const getPaginatedSkuProductCards = async ({
   page = 1,
   limit = 10,
-  sortBy = 'name, created_at',
+  sortBy = 's.created_at',
   sortOrder = 'DESC',
-  productStatusId,
   filters = {},
 }) => {
+  const context = 'sku-repository/getPaginatedSkuProductCards';
+  
+  // ---------------------------------------------------------
+  // 1. Build WHERE clause + params from filters
+  // ---------------------------------------------------------
+  const { whereClause, params } = buildSkuProductCardFilters(filters);
+  
+  // ---------------------------------------------------------
+  // 2. Core Product-Card SQL (dependencies: products, skus,
+  //    compliance, MSRP price, status, primary image)
+  // ---------------------------------------------------------
+  const queryText = `
+    SELECT
+      p.name AS product_name,
+      p.series,
+      p.brand,
+      p.category,
+      st.name AS product_status_name,
+      s.id AS sku_id,
+      s.sku AS sku_code,
+      s.barcode,
+      s.country_code,
+      s.market_region,
+      s.size_label,
+      sku_status.name AS sku_status_name,
+      cr.type AS compliance_type,
+      cr.compliance_id AS compliance_id,
+      pr.price AS msrp_price,
+      img.image_url AS primary_image_url,
+      img.alt_text AS image_alt_text
+    FROM skus s
+    INNER JOIN products p
+      ON s.product_id = p.id
+    INNER JOIN status st
+      ON p.status_id = st.id
+    LEFT JOIN status sku_status
+      ON s.status_id = sku_status.id
+    LEFT JOIN sku_compliance_links scl
+      ON scl.sku_id = s.id
+    LEFT JOIN compliance_records cr
+      ON cr.id = scl.compliance_record_id
+    LEFT JOIN LATERAL (
+      SELECT pr.price, pr.status_id
+      FROM pricing pr
+      INNER JOIN pricing_types pt
+        ON pr.price_type_id = pt.id
+       AND pt.name = 'MSRP'
+      INNER JOIN locations l
+        ON pr.location_id = l.id
+      INNER JOIN location_types lt
+        ON l.location_type_id = lt.id
+       AND lt.name = 'Office'
+      WHERE pr.sku_id = s.id
+      ORDER BY pr.valid_from DESC NULLS LAST
+      LIMIT 1
+    ) pr ON TRUE
+    LEFT JOIN status ps
+      ON pr.status_id = ps.id
+    LEFT JOIN sku_images img
+      ON img.sku_id = s.id
+     AND img.is_primary = TRUE
+    WHERE ${whereClause}
+    GROUP BY
+      p.id,
+      st.name,
+      s.id,
+      s.sku,
+      s.barcode,
+      s.market_region,
+      s.size_label,
+      sku_status.name,
+      cr.compliance_id,
+      cr.type,
+      pr.price,
+      img.image_url,
+      img.alt_text
+    ORDER BY ${sortBy} ${sortOrder};
+  `;
+  
   try {
-    const { whereClause, params } = buildWhereClauseAndParams(
-      productStatusId,
-      filters
-    );
-
-    const queryText = `
-      SELECT
-        p.name AS product_name,
-        p.series,
-        p.brand,
-        p.category,
-        st.name AS status_name,
-        s.id AS sku_id,
-        s.sku,
-        s.barcode,
-        s.country_code,
-        s.market_region,
-        s.size_label,
-        sku_status.name AS sku_status_name,
-        cr.compliance_id AS npn_compliance_id,
-        pr.price AS msrp_price,
-        img.image_url AS primary_image_url,
-        img.alt_text AS image_alt_text
-      FROM skus s
-      INNER JOIN products p ON s.product_id = p.id
-      INNER JOIN status st ON p.status_id = st.id
-      LEFT JOIN status sku_status ON s.status_id = sku_status.id AND sku_status.id = $1
-      LEFT JOIN sku_compliance_links scl ON scl.sku_id = s.id
-      LEFT JOIN compliance_records cr ON cr.id = scl.compliance_record_id AND cr.type = 'NPN' AND cr.status_id = $1
-      LEFT JOIN LATERAL (
-        SELECT pr.price, pr.status_id
-        FROM pricing pr
-        INNER JOIN pricing_types pt ON pr.price_type_id = pt.id AND pt.name = 'MSRP'
-        INNER JOIN locations l ON pr.location_id = l.id
-        INNER JOIN location_types lt ON l.location_type_id = lt.id AND lt.name = 'Office'
-        WHERE pr.sku_id = s.id AND pr.status_id = $1
-        ORDER BY pr.valid_from DESC NULLS LAST
-        LIMIT 1
-      ) pr ON TRUE
-      LEFT JOIN sku_images img ON img.sku_id = s.id AND img.is_primary = TRUE
-      LEFT JOIN status ps ON pr.status_id = ps.id AND ps.id = $1
-      WHERE ${whereClause}
-      GROUP BY
-        p.id, st.name,
-        s.id, s.sku, s.barcode, s.market_region, s.size_label, sku_status.name,
-        cr.compliance_id,
-        pr.price,
-        img.image_url, img.alt_text
-      ORDER BY ${sortBy} ${sortOrder}
-    `;
-
-    logSystemInfo('Fetching paginated active SKUs with product cards', null, {
-      context: 'sku-repository/fetchPaginatedActiveSkusWithProductCards',
+    // ---------------------------------------------------------
+    // 3. Logging
+    // ---------------------------------------------------------
+    logSystemInfo('Executing product-card SKU pagination query', {
+      context,
       filters,
       sortBy,
       sortOrder,
       page,
       limit,
     });
-
+    
+    // ---------------------------------------------------------
+    // 4. Execute paginated query
+    // ---------------------------------------------------------
     return await paginateResults({
       dataQuery: queryText,
       params,
@@ -173,12 +199,15 @@ const fetchPaginatedActiveSkusWithProductCards = async ({
       limit,
     });
   } catch (error) {
-    logSystemException(error, 'Error fetching active SKUs with product cards', {
-      context: 'sku-repository/fetchPaginatedActiveSkusWithProductCards',
+    logSystemException(error, 'Failed to fetch SKU product cards', {
+      context,
       stage: 'query-execution',
-    });
-    throw AppError.databaseError('Failed to fetch active product SKUs', {
       details: error.message,
+    });
+    
+    throw AppError.databaseError('Failed to fetch SKU product cards', {
+      details: error.message,
+      context,
     });
   }
 };
@@ -830,7 +859,7 @@ const updateSkuStatus = async (skuId, statusId, userId, client) => {
 
 module.exports = {
   getLastSku,
-  fetchPaginatedActiveSkusWithProductCards,
+  getPaginatedSkuProductCards,
   getSkuLookup,
   getPaginatedSkus,
   checkSkuExists,

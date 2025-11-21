@@ -1,6 +1,6 @@
 const { getStatusId } = require('../config/status-cache');
 const {
-  fetchPaginatedActiveSkusWithProductCards,
+  getPaginatedSkuProductCards,
   insertSkusBulk,
   checkSkuExists,
   updateSkuStatus,
@@ -15,13 +15,13 @@ const {
 } = require('../transformers/sku-transformer');
 const AppError = require('../utils/AppError');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
-const { sanitizeSortBy } = require('../utils/sort-utils');
 const {
   validateSkuListBusiness,
   prepareSkuInsertPayloads,
   assertValidSkuStatusTransition,
   evaluateSkuStatusAccessControl,
   sliceSkuForUser,
+  applySkuProductCardVisibilityRules,
 } = require('../business/sku-business');
 const { withTransaction, lockRows, lockRow } = require('../database/db');
 const { getOrCreateBaseCodesBulk } = require('./sku-code-base-service');
@@ -35,65 +35,85 @@ const { evaluateSkuImageViewAccessControl, sliceSkuImagesForUser } = require('..
 const { evaluatePricingViewAccessControl, slicePricingForUser } = require('../business/pricing-business');
 
 /**
- * Service to fetch a paginated list of active SKU product cards.
+ * Service: fetchPaginatedSkuProductCardsService
  *
- * Filters by active product and active SKU status.
- * Supports filtering by brand, category, market region, size label, and keyword.
- * Accepts optional sorting.
+ * Fetch paginated SKU product cards optimized for catalog / product-grid views.
  *
- * @param {Object} options - Pagination, sorting, and filter options.
- * @param {number} options.page - Current page number (1-based).
- * @param {number} options.limit - Number of results per page.
- * @param {string} [options.sortBy] - Comma-separated sort keys (e.g., "name,created_at").
- * @param {string} [options.sortOrder='DESC'] - Sort direction ('ASC' or 'DESC').
- * @param {Object} [options.filters] - Optional filters (brand, category, marketRegion, sizeLabel, keyword).
- * @returns {Promise<Object>} Paginated and transformed SKU product card results:
- * {
- *   data: Array<TransformedSkuCard>,
- *   pagination: { page: number, limit: number, totalRecords: number, totalPages: number }
- * }
+ * Responsibilities:
+ *  - Apply business-level visibility rules (ACL slicing)
+ *  - Forward sanitized filters & sorting to repository layer
+ *  - Transform raw DB output into frontend product-card format
+ *
+ * Notes:
+ *  - `sortBy` is sanitized in the router middleware.
+ *  - ACL is evaluated here (not in repository) to keep query pure SQL.
+ *
+ * @param {Object} params
+ * @param {Object} params.filters - Normalized filters from router.
+ * @param {number} [params.page=1] - Page number
+ * @param {number} [params.limit=10] - Pagination size
+ * @param {string} params.sortBy - Fully-qualified column
+ * @param {string} params.sortOrder - 'ASC' | 'DESC'
+ * @param {Object} params.user - Authenticated user
+ *
+ * @returns {Promise<{data: Array, pagination: Object}>}
  */
 const fetchPaginatedSkuProductCardsService = async ({
-  page = 1,
-  limit = 10,
-  sortBy = 'name,created_at',
-  sortOrder = 'DESC',
-  filters = {},
-}) => {
+                                                      filters = {},
+                                                      page = 1,
+                                                      limit = 10,
+                                                      sortBy,
+                                                      sortOrder,
+                                                      user,
+                                                    }) => {
+  const context = 'sku-service/fetchPaginatedSkuProductCardsService';
+  
   try {
-    // Fetch the active status ID
-    const productStatusId = getStatusId('product_active');
-    const sanitizedSortBy = sanitizeSortBy(sortBy, 'skuProductCards');
-
-    logSystemInfo('Fetching paginated SKU product cards from DB', {
-      context: 'sku-service/fetchPaginatedSkuProductCardsService',
+    // -------------------------------------------------------------
+    // 1. Evaluate ACL — determines which statuses user can see
+    // -------------------------------------------------------------
+    const acl = await evaluateSkuStatusAccessControl(user);
+    
+    // -------------------------------------------------------------
+    // 2. Apply ACL to filters BEFORE SQL (critical)
+    // -------------------------------------------------------------
+    const adjustedFilters = applySkuProductCardVisibilityRules(filters, acl);
+    
+    logSystemInfo('Fetching paginated SKU product cards', {
+      context,
       page,
       limit,
-      sortBy: sanitizedSortBy,
+      sortBy,
       sortOrder,
-      filters,
-      productStatusId,
+      filtersBeforeAcl: filters,
+      filtersAfterAcl: adjustedFilters,
+      userId: user?.id,
     });
-
-    const paginatedActiveSkusWithProductRawData =
-      await fetchPaginatedActiveSkusWithProductCards({
-        page,
-        limit,
-        sortBy: sanitizedSortBy,
-        sortOrder,
-        productStatusId,
-        filters,
-      });
-
-    return transformPaginatedSkuProductCardResult(
-      paginatedActiveSkusWithProductRawData
-    );
+    
+    // -------------------------------------------------------------
+    // 3. Execute repository query (pure SQL)
+    // -------------------------------------------------------------
+    const rawResult = await getPaginatedSkuProductCards({
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      filters: adjustedFilters,
+    });
+    
+    // -------------------------------------------------------------
+    // 4. Transform into UI-friendly card format
+    // -------------------------------------------------------------
+    return transformPaginatedSkuProductCardResult(rawResult);
   } catch (error) {
-    logSystemException('Failed to fetch SKU product cards', null, {
-      context: 'sku-service/fetchPaginatedSkuProductCardsService',
-      errorMessage: error.message,
+    logSystemException(error, 'Failed to fetch SKU product cards', {
+      context,
+      userId: user?.id,
     });
-    throw AppError.serviceError('Failed to fetch active SKU product cards');
+    
+    throw AppError.serviceError('Failed to fetch SKU product cards.', {
+      context,
+    });
   }
 };
 

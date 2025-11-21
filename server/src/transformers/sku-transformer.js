@@ -7,41 +7,121 @@ const { transformSkuPricing } = require('./pricing-transformer');
 const { transformComplianceRecord } = require('./compliance-record-transfomer');
 
 /**
- * Transforms a single raw SKU and product row into a product card structure
- * suitable for frontend display (e.g., in product grids or SKU cards).
+ * @typedef {object} RawSkuProductCardRow
+ * @property {string} sku_id
+ * @property {string} sku_code
+ * @property {string} barcode
+ * @property {string} product_name
+ * @property {string} brand
+ * @property {string} series
+ * @property {string} category
+ * @property {string|null} product_status_name  - Product status
+ * @property {string|null} sku_status_name      - SKU-specific status
+ * @property {string|null} compliance_type
+ * @property {string|null} compliance_id
+ * @property {number|string|null} msrp_price
+ * @property {string|null} primary_image_url
+ * @property {string|null} image_alt_text
+ * @property {string|null} market_region
+ */
+
+/**
+ * @typedef {object} SkuProductCard
+ * @property {string} skuId
+ * @property {string} skuCode
+ * @property {string} barcode
+ * @property {string} displayName
+ * @property {string} brand
+ * @property {string} series
+ * @property {string} category
+ * @property {string|{product: string|null, sku: string|null}} status
+ * @property {{ type: string|null, number: string|null } | null} compliance
+ * @property {{ msrp: number|null }} price
+ * @property {{ url: string|null, alt: string }} image
+ */
+
+/**
+ * Normalize a single SKU + Product row into a product-card response.
  *
- * @param {object} row - Raw row from the database combining SKU and product info.
- * @param {string} row.sku_id - UUID of the SKU.
- * @param {string} row.sku - SKU code.
- * @param {string} row.barcode - Product barcode.
- * @param {string} row.brand - Brand name.
- * @param {string} row.series - Product series.
- * @param {string} row.status_name - Product status name.
- * @param {string} row.sku_status_name - SKU-specific status name.
- * @param {string|null} row.compliance_id - Compliance ID (e.g., NPN).
- * @param {string|null} row.primary_image_url - Main product image URL.
- * @param {string|null} row.image_alt_text - Alt text for the product image.
- * @param {number|string|null} row.msrp_price - MSRP price.
- * @returns {object} Transformed product card object.
+ * This structure feeds API results for product grids, SKU list pages, etc.
+ *
+ * @param {RawSkuProductCardRow} row
+ * @returns {SkuProductCard}
  */
 const transformSkuProductCardRow = (row) => {
-  const unifiedStatus =
-    row.status_name === row.sku_status_name
-      ? row.status_name
-      : { product: row.status_name, sku: row.sku_status_name };
-
+  if (!row) return null;
+  
+  // ---------------------------------------------------------
+  // Unified status logic
+  // ---------------------------------------------------------
+  let status;
+  
+  const productStatus = row.product_status_name || null;
+  const skuStatus = row.sku_status_name || null;
+  
+  if (!productStatus && !skuStatus) {
+    status = null;
+  } else if (productStatus === skuStatus) {
+    status = productStatus;   // both active
+  } else {
+    status = {
+      product: productStatus,
+      sku: skuStatus,
+    };
+  }
+  
+  // ---------------------------------------------------------
+  // Compliance record (NPN, FDA, etc.)
+  // ---------------------------------------------------------
+  const compliance =
+    row.compliance_type || row.compliance_id
+      ? {
+        type: row.compliance_type || null,
+        number: row.compliance_id || null,
+      }
+      : null;
+  
+  // ---------------------------------------------------------
+  // Safe pricing object
+  // ---------------------------------------------------------
+  const price = {
+    msrp: row.msrp_price ? Number(row.msrp_price) : null,
+  };
+  
+  // ---------------------------------------------------------
+  // Image object
+  // ---------------------------------------------------------
+  const image = {
+    url: row.primary_image_url || null,
+    alt: row.image_alt_text || '',
+  };
+  
+  // ---------------------------------------------------------
+  // Product display name
+  // ---------------------------------------------------------
+  const displayName =
+    typeof getProductDisplayName === 'function'
+      ? getProductDisplayName(row)
+      : `${row.product_name ?? ''} ${row.market_region ?? ''}`.trim();
+  
+  // ---------------------------------------------------------
+  // Final normalized card structure
+  // ---------------------------------------------------------
   return {
     skuId: row.sku_id,
-    skuCode: row.sku,
+    skuCode: row.sku_code,
     barcode: row.barcode,
-    displayName: getProductDisplayName(row),
+    
+    displayName,
+    
     brand: row.brand,
     series: row.series,
-    status: unifiedStatus,
-    npnComplianceId: row.compliance_id || null,
-    msrpPrice: row.msrp_price ? Number(row.msrp_price) : null,
-    imageUrl: row.primary_image_url || null,
-    imageAltText: row.image_alt_text || '',
+    category: row.category,
+    
+    status,
+    compliance,
+    price,
+    image,
   };
 };
 
