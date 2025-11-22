@@ -12,52 +12,6 @@ const {
 const { updateStatusIdSchema } = require('./status-validators');
 
 /**
- * Joi validation schema for SKU product-card filters.
- *
- * Matches EXACTLY with buildSkuProductCardFilters() behavior.
- */
-const skuProductCardFiltersSchema = Joi.object({
-  //
-  // PRODUCT filters
-  //
-  productName: validateOptionalString('Product Name'),    // ILIKE p.name
-  brand: validateOptionalString('Brand'),                 // ILIKE p.brand
-  category: validateOptionalString('Category'),           // ILIKE p.category
-  
-  // ACL may inject productStatusId automatically
-  productStatusId: validateOptionalUUID('Product Status ID'),
-  
-  //
-  // SKU filters
-  //
-  sku: validateOptionalString('SKU Code'),                // ILIKE s.sku
-  
-  skuIds: Joi.alternatives().try(
-    validateUUIDArray('SKU IDs'),                         // array form
-    validateOptionalUUID('SKU ID')                        // scalar form
-  ),
-  
-  sizeLabel: validateOptionalString('Size Label'),        // ILIKE s.size_label
-  marketRegion: validateOptionalString('Market Region'),  // ILIKE s.market_region
-  
-  skuStatusId: validateOptionalUUID('SKU Status ID'),     // ACL may inject
-  
-  //
-  // COMPLIANCE filters
-  //
-  complianceId: validateOptionalString('Compliance ID'),  // ILIKE cr.compliance_id
-  
-  //
-  // KEYWORD search (multi-field: product, brand, category, sku, compliance)
-  //
-  keyword: Joi.string()
-    .trim()
-    .allow('', null)                                      // allow empty string from UI
-    .optional()
-    .label('Keyword Search'),
-}).unknown(false);
-
-/**
  * Joi schema: getPaginatedSkuProductCardsSchema
  *
  * Validates the full normalized query object for:
@@ -77,10 +31,41 @@ const skuProductCardFiltersSchema = Joi.object({
  * @type {Joi.ObjectSchema}
  */
 const getPaginatedSkuProductCardsSchema = paginationSchema
-  .concat(createSortSchema('skuProductCards'))
+  .concat(createSortSchema('defaultNaturalSort'))
   .keys({
-    filters: skuProductCardFiltersSchema.default({}),
-  });
+    //
+    // PRODUCT filters
+    //
+    productName: validateOptionalString('Product Name'),
+    brand: validateOptionalString('Brand'),
+    category: validateOptionalString('Category'),
+    
+    //
+    // SKU filters
+    //
+    sku: validateOptionalString('SKU Code'),
+    skuIds: Joi.alternatives().try(
+      validateUUIDArray('SKU IDs'),
+      validateOptionalUUID('SKU ID')
+    ),
+    sizeLabel: validateOptionalString('Size Label'),
+    countryCode: validateOptionalString('Country Code'),
+    marketRegion: validateOptionalString('Market Region'),
+    skuStatusId: validateOptionalUUID('SKU Status ID'),
+    productStatusId: validateOptionalUUID('Product Status ID'),
+    
+    //
+    // COMPLIANCE
+    //
+    complianceId: validateOptionalString('Compliance ID'),
+    
+    //
+    // KEYWORD
+    //
+    keyword: Joi.string().trim().allow('', null).optional(),
+    
+  })
+  .unknown(false);
 
 /**
  * Joi schema: Validate SKU ID route parameter.

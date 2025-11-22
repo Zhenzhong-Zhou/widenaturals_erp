@@ -30,6 +30,7 @@ const { addIlikeFilter } = require('./sql-helpers');
  * @param {string} [filters.sku]
  * @param {string[]} [filters.skuIds]
  * @param {string} [filters.sizeLabel]
+ * @param {string} [filters.countryCode]
  * @param {string} [filters.marketRegion]
  * @param {string} [filters.skuStatusId]
  * @param {string} [filters.complianceId]
@@ -69,6 +70,13 @@ const buildSkuProductCardFilters = (filters = {}) => {
     // -------------------------------------------------------------
     idx = addIlikeFilter(conditions, params, idx, filters.sku, 's.sku');
     idx = addIlikeFilter(conditions, params, idx, filters.sizeLabel, 's.size_label');
+    idx = addIlikeFilter(
+      conditions,
+      params,
+      idx,
+      filters.countryCode,
+      's.country_code'
+    );
     idx = addIlikeFilter(
       conditions,
       params,
