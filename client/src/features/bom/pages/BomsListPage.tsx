@@ -140,12 +140,12 @@ const BomListPage = () => {
       {bomLoading ? (
         <Loading variant="dotted" message="Loading boms..." />
       ) : bomError ? (
-        <ErrorMessage message={'bomError'} showNavigation={true} />
+        <ErrorMessage message={bomError} showNavigation={true} />
       ) : (isBomListEmpty ?? flattenData.length === 0) ? (
         <NoDataFound
           message="No boms found."
           action={
-            <CustomButton onClick={handleResetFilters}> Reset </CustomButton>
+            <CustomButton onClick={handleResetFilters}>Reset</CustomButton>
           }
         />
       ) : (
