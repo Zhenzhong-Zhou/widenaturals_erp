@@ -1,6 +1,49 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import type { GetSkuDetailResponse } from '@features/sku/state/skuTypes';
+import type {
+  GetSkuDetailResponse,
+  GetSkuProductCardsResponse,
+  SkuProductCardQueryParams,
+} from '@features/sku/state/skuTypes';
 import { skuService } from '@services/skuService';
+
+/**
+ * Thunk: Fetch paginated SKU product cards.
+ *
+ * Wraps the API helper `fetchPaginatedSkuProductCards` and exposes it
+ * to Redux Toolkits async lifecycle (`pending` → `fulfilled` → `rejected`).
+ *
+ * @param params - Pagination, sorting, and filter parameters
+ * @returns A paginated list of SKU product cards + metadata
+ *
+ * @example
+ * dispatch(fetchPaginatedSkuProductCardsThunk({
+ *   page: 1,
+ *   limit: 20,
+ *   sortBy: "productName",
+ *   sortOrder: "ASC",
+ *   filters: { keyword: "immune" },
+ * }));
+ */
+export const fetchPaginatedSkuProductCardsThunk = createAsyncThunk<
+  GetSkuProductCardsResponse,
+  SkuProductCardQueryParams | undefined
+>(
+  'skus/fetchPaginatedProductCards',
+  async (params, { rejectWithValue }) => {
+    try {
+      return await skuService.fetchPaginatedSkuProductCards(params); // Full typed API envelope
+    } catch (error: any) {
+      console.error('Thunk error: failed to fetch SKU product cards', error);
+      
+      return rejectWithValue(
+        error?.response?.data || {
+          message: 'Failed to fetch SKU product cards',
+          raw: error,
+        }
+      );
+    }
+  }
+);
 
 /**
  * Thunk for fetching a single SKU's detail record by ID.

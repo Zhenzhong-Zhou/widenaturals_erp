@@ -9,8 +9,6 @@ export const API_ENDPOINTS = {
   ALL_USERS: '/users',
   USER_PROFILE: '/users/me',
   PRODUCTS_DROPDOWN_WAREHOUSE: '/products/dropdown/warehouse/:warehouseId',
-  ACTIVE_SKU_PRODUCT_CARDS: '/skus/cards/active',
-  SKU_DETAILS: '/skus/sku-details/:skuId',
   ALL_COMPLIANCES: '/compliances',
   PRICING_TYPES: '/pricing-types',
   PRICING_TYPE_METADATA: '/pricing-types/metadata/:id',
@@ -21,6 +19,7 @@ export const API_ENDPOINTS = {
   LOCATION_TYPE_DETAILS: '/location-types/:id',
   ALL_LOCATIONS: '/locations',
   SKUS: {
+    SKU_PRODUCT_CARDS: '/skus/cards',
     SKU_DETAILS: (skuId: string) => `/skus/${skuId}/details`,
   },
   BOMS: {

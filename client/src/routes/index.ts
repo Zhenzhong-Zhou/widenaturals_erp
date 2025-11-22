@@ -46,9 +46,9 @@ export const routes = [
     ],
   },
   {
-    path: '/products',
-    component: lazy(() => import('@features/product/pages/ProductsPage')),
-    meta: { requiresAuth: true, title: 'Products', showInSidebar: true },
+    path: '/product-catalog',
+    component: lazy(() => import('@features/sku/pages/ProductCatalogPage')),
+    meta: { requiresAuth: true, title: 'Product Catalog', showInSidebar: true },
   },
   {
     path: '/skus/:skuId',

@@ -262,3 +262,27 @@ export const formatSize = (
   
   return `${formatted} ${units[index]}`;
 };
+
+/**
+ * Formats a compliance record into a single readable string.
+ *
+ * Rules:
+ *   - Both type and number → `"NPN 80111230"`
+ *   - Only type → `"NPN"`
+ *   - Only number → `"80111230"`
+ *   - Neither present → `"N/A"`
+ *
+ * Useful for SKU/Product catalog cards, tables, and detail panels where a
+ * compact compliance label is needed.
+ */
+export const formatCompliance = (
+  type?: string | null,
+  number?: string | null
+): string => {
+  if (!type && !number) return "N/A";
+  
+  if (type && number) return `${type} ${number}`;
+  if (type) return type;
+  
+  return number ?? "N/A";
+};

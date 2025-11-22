@@ -4,7 +4,263 @@ import type {
   AuditUser,
   GenericAudit,
   GenericStatus,
+  PaginatedResponse,
+  PaginationParams,
+  ReduxPaginatedState,
+  SortConfig,
 } from '@shared-types/api';
+
+/**
+ * Root API response for fetching paginated SKU product cards.
+ * Includes pagination metadata and an array of compact SKU card entries.
+ */
+export type GetSkuProductCardsResponse = PaginatedResponse<SkuProductCard>;
+
+/**
+ * A single SKU product-card entry used for catalog listing.
+ * Contains only the fields required for grid/list display (not full SKU detail).
+ */
+export interface SkuProductCard {
+  /** Unique SKU identifier */
+  skuId: string;
+  
+  /** Formatted SKU code (e.g., "WN-MO409-L-UN") */
+  skuCode: string;
+  
+  /** Product barcode (UPC/EAN) */
+  barcode: string;
+  
+  /** Human-readable product name (e.g., "Algal Oil Pure + DHA – Kids") */
+  displayName: string;
+  
+  /** Brand name (e.g., "WIDE Naturals") */
+  brand: string;
+  
+  /** Series / product line (e.g., "WIDE Collection") */
+  series: string;
+  
+  /** Product category (e.g., "Marine Oil") */
+  category: string;
+  
+  /**
+   * Unified product/SKU status.
+   * - `null`: no status available
+   * - `"active"` | `"inactive"`: backend flattened because both sides matched
+   * - `{ product, sku }`: mixed state when product-level and SKU-level differ
+   */
+  status: SkuProductStatus;
+  
+  /** Compliance info such as NPN or FDA identifiers; `null` if not applicable */
+  compliance: SkuCompliance | null;
+  
+  /** Pricing information (currently only MSRP, but extendable for other price types) */
+  price: SkuCardPrice | null;
+  
+  /** Primary display image for the product card */
+  image: {
+    /** Relative or absolute URL to the image; `null` when not available */
+    url: string | null;
+    
+    /** Alternative text for accessibility; may be `null` */
+    alt: string | null;
+  };
+}
+
+/**
+ * Unified product + SKU status shape returned by backend.
+ *
+ * Backend behavior:
+ * - When both product and SKU have the same status → returns `"active"` or `"inactive"`
+ * - When product and SKU differ → returns `{ product: string|null, sku: string|null }`
+ * - When status missing → returns `null`
+ */
+export type SkuProductStatus =
+  | null
+  | string
+  | {
+  product: string | null;
+  sku: string | null;
+};
+
+/** Compliance metadata (e.g., Canadian NPN number or FDA code) */
+export interface SkuCompliance {
+  /** Compliance type (e.g., "NPN", "FDA", "CE") */
+  type: string;
+  
+  /** Compliance identifier or registration number */
+  number: string;
+}
+
+/**
+ * Price block for SKU product cards.
+ * Currently, supports MSRP, but intentionally structured for extensibility.
+ */
+export interface SkuCardPrice {
+  /** MSRP for display purposes; may be null if pricing is not available */
+  msrp: number | null;
+}
+
+/**
+ * Filters used to query and paginate the list of SKU product cards.
+ *
+ * This interface supports both:
+ * - User-provided filters (search UI, dropdown selectors, advanced filters).
+ * - System-applied filters (e.g., access-control enforced visibility rules).
+ *
+ * Fields like `productStatusId` or `skuStatusId` may be injected dynamically
+ * during ACL evaluation (e.g., `applySkuProductCardVisibilityRules`).
+ */
+export interface SkuProductCardFilters {
+  /**
+   * Free-text keyword for multi-field fuzzy search:
+   * name, brand, category, SKU code, compliance ID.
+   */
+  keyword?: string;
+  
+  /**
+   * Product-level filters
+   */
+  productName?: string;
+  brand?: string;
+  category?: string;
+  
+  /**
+   * SKU-level filters
+   */
+  sku?: string;
+  skuIds?: string[];
+  sizeLabel?: string;
+  marketRegion?: string;
+  countryCode?: string;
+  
+  /**
+   * Status constraints:
+   * - `productStatusId` → product table status
+   * - `skuStatusId` → sku table status
+   * These may be overridden by ACL logic.
+   */
+  productStatusId?: string;
+  skuStatusId?: string;
+  
+  /**
+   * Compliance filters (e.g., NPN / document numbers)
+   */
+  complianceId?: string;
+}
+
+/**
+ * Query parameters used to fetch a paginated, sorted, and filtered list
+ * of SKU product-card entries.
+ *
+ * Includes:
+ * - Pagination fields:
+ *    - `page`: current page number (1-based)
+ *    - `limit`: number of results per page
+ * - Sorting:
+ *    - `sortBy`: logical or DB field name resolved through the sort map
+ *    - `sortOrder`: 'ASC' | 'DESC'
+ * - Filters (`filters`):
+ *    - Product fields: name, brand, category
+ *    - SKU fields: sku code, barcode, size, region
+ *    - Compliance: document ID/NPN
+ *    - ACL-injected status constraints
+ */
+export interface SkuProductCardQueryParams
+  extends PaginationParams,
+    SortConfig {
+  filters?: SkuProductCardFilters;
+}
+
+/**
+ * Allowed fields for sorting the SKU product card list.
+ * These must align with entries in the skuProductCards sort map.
+ */
+export type SkuProductCardSortField =
+  | 'brand'
+  | 'category'
+  | 'marketRegion'
+  | 'sizeLabel'
+  | 'defaultNaturalSort';
+
+/**
+ * Redux-managed state slice for paginated SKU product cards.
+ *
+ * This type specializes the generic `ReduxPaginatedState<T>` for
+ * `SkuProductCard` items returned from the SKU Product Cards API.
+ *
+ * Includes:
+ *  - `data`:      array of SKU product-card entries
+ *  - `pagination`: pagination metadata (page, limit, totalRecords, totalPages)
+ *  - `loading`:   whether data is currently being fetched
+ *  - `error`:     optional error message from failed requests
+ *
+ * NOTE:
+ * If you need to persist query params (filters, sorting, etc.),
+ * extend this type to include `params: SkuProductCardQueryParams`.
+ */
+export type SkuProductCardsState = ReduxPaginatedState<SkuProductCard>;
+
+/**
+ * Flattened SKU Product Card used by the frontend UI.
+ *
+ * This type is produced after transforming the raw backend `SkuProductCard`
+ * response into a simplified, display-ready structure for catalog cards.
+ *
+ * It removes nested objects (status, compliance, image, price) and exposes
+ * only the fields needed by the product catalog grid.
+ */
+export interface SkuProductCardViewItem {
+  /** Unique SKU identifier */
+  skuId: string;
+  
+  /** Formatted SKU code (e.g., "WN-MO409-L-UN") */
+  skuCode: string;
+  
+  /** Display name for catalog UI (may differ from full product name) */
+  displayName: string;
+  
+  /** Brand name (e.g., "WIDE Naturals") */
+  brand: string;
+  
+  /** Series or collection the SKU belongs to */
+  series: string;
+  
+  /** Product category (e.g., "Marine Oil") */
+  category: string;
+  
+  /** Product barcode (UPC/EAN); may be null when unavailable */
+  barcode: string | null;
+  
+  /** Compliance type (e.g., NPN, FDA); null if no compliance is recorded */
+  complianceType: string | null;
+  
+  /** Compliance registration number; null when compliance does not apply */
+  complianceNumber: string | null;
+  
+  /**
+   * Unified product/SKU status string.
+   * Example: "active" or "inactive".
+   *
+   * Present only if product-level and SKU-level statuses are identical.
+   * Otherwise, the UI uses productStatus and skuStatus instead.
+   */
+  unifiedStatus: string | null;
+  
+  /** Product-level status when different from SKU-level; null otherwise */
+  productStatus: string | null;
+  
+  /** SKU-level status when different from product-level; null otherwise */
+  skuStatus: string | null;
+  
+  /** MSRP value used for catalog display; null when not available */
+  msrp: number | null;
+  
+  /** Absolute or relative URL to the primary display image; null if absent */
+  imageUrl: string | null;
+  
+  /** Alternative text for product image, guaranteed to be a string */
+  imageAlt: string;
+}
 
 /**
  * Root API response for `GET /sku/:id`.

@@ -1,46 +1,71 @@
-import { useAppDispatch, useAppSelector } from '@store/storeHooks.ts';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from "react";
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  fetchSkuProductCardsThunk,
-  selectSkuProductCards,
-  selectSkuProductError,
-  selectSkuProductLoading,
-  selectSkuProductPagination,
-  type SkuProductCardFilters,
-} from '@features/product/state';
+  selectSkuProductCardViewItems,
+  selectSkuProductCardPagination,
+  selectSkuProductCardLoading,
+  selectSkuProductCardError,
+  selectSkuProductCardsIsEmpty,
+} from '@features/sku/state';
+import { fetchPaginatedSkuProductCardsThunk } from "@features/sku/state/skuThunks";
+import type { SkuProductCardQueryParams } from "@features/sku/state/skuTypes";
+import { resetSkuProductCards } from '@features/sku/state/skuProductCardsSlice';
 
 /**
- * Hook to access SKU product card data from Redux.
- * Provides access to data, pagination, loading, and a manual refresh function.
+ * React hook exposing SKU Product-Card list state + actions.
  *
- * @param {SkuProductCardFilters} initialFilters - Default filters to apply when refreshing
+ * Provides:
+ *  - UI-ready items (mapped via selector)
+ *  - pagination metadata
+ *  - loading / error flags
+ *  - last-used query parameters
+ *  - fetch() function (memoized)
+ *  - reset() function
  */
-const useSkuProductCards = (initialFilters: SkuProductCardFilters = {}) => {
+export const useSkuProductCards = () => {
   const dispatch = useAppDispatch();
-
-  const skuCardList = useAppSelector(selectSkuProductCards);
-  const skuCardPagination = useAppSelector(selectSkuProductPagination);
-  const isSkuCardLoading = useAppSelector(selectSkuProductLoading);
-  const skuCardError = useAppSelector(selectSkuProductError);
-
-  const refreshSkuCards = useCallback(
-    (
-      page: number = 1,
-      limit: number = 10,
-      filters: SkuProductCardFilters = initialFilters
-    ) => {
-      dispatch(fetchSkuProductCardsThunk({ page, limit, filters }));
+  
+  // -------------------------------------
+  // Select state from Redux
+  // -------------------------------------
+  const items = useAppSelector(selectSkuProductCardViewItems);
+  const pagination = useAppSelector(selectSkuProductCardPagination);
+  const loading = useAppSelector(selectSkuProductCardLoading);
+  const error = useAppSelector(selectSkuProductCardError);
+  const isEmpty = useAppSelector(selectSkuProductCardsIsEmpty);
+  
+  // -------------------------------------
+  // Memoized fetcher
+  // -------------------------------------
+  const fetchCards = useCallback(
+    (query?: SkuProductCardQueryParams) => {
+      return dispatch(fetchPaginatedSkuProductCardsThunk(query));
     },
-    [dispatch, initialFilters]
+    [dispatch]
   );
-
-  return {
-    skuCardList,
-    skuCardPagination,
-    isSkuCardLoading,
-    skuCardError,
-    refreshSkuCards,
-  };
+  
+  // -------------------------------------
+  // Memoized reset
+  // -------------------------------------
+  const reset = useCallback(() => {
+    dispatch(resetSkuProductCards());
+  }, [dispatch]);
+  
+  // -------------------------------------
+  // Memoized return object (optional but clean)
+  // -------------------------------------
+  return useMemo(
+    () => ({
+      items,
+      pagination,
+      loading,
+      error,
+      isEmpty,
+      fetchCards,
+      reset,
+    }),
+    [items, pagination, loading, error, isEmpty, fetchCards, reset]
+  );
 };
 
 export default useSkuProductCards;
