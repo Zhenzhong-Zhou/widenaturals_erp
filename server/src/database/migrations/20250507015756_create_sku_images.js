@@ -26,9 +26,6 @@ exports.up = async function (knex) {
     table.index(['sku_id', 'display_order'], 'idx_sku_images_order');
 
     table.unique(['sku_id', 'image_url'], { indexName: 'uq_sku_image_unique' });
-    table.unique(['sku_id', 'image_url', 'is_primary'], {
-      indexName: 'uq_sku_image_per_url_primary',
-    });
   });
 };
 

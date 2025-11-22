@@ -19,10 +19,10 @@ exports.up = async function (knex) {
 
     table.text('description');
 
-    table.decimal('length_cm', 10, 2).notNullable();
-    table.decimal('width_cm', 10, 2).notNullable();
-    table.decimal('height_cm', 10, 2).notNullable();
-    table.decimal('weight_g', 10, 2).notNullable();
+    table.decimal('length_cm', 10, 2).nullable().defaultTo(0);
+    table.decimal('width_cm', 10, 2).nullable().defaultTo(0);
+    table.decimal('height_cm', 10, 2).nullable().defaultTo(0);
+    table.decimal('weight_g', 10, 2).nullable().defaultTo(0);
 
     table.uuid('status_id').notNullable().references('id').inTable('status');
     table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now());
@@ -56,10 +56,10 @@ exports.up = async function (knex) {
     ADD COLUMN weight_lb DECIMAL(10, 2) GENERATED ALWAYS AS (weight_g / 453.592) STORED,
     ADD CONSTRAINT chk_positive_dimensions
     CHECK (
-      length_cm > 0 AND
-      width_cm > 0 AND
-      height_cm > 0 AND
-      weight_g > 0
+      (length_cm IS NULL OR length_cm > 0) AND
+      (width_cm IS NULL OR width_cm > 0) AND
+      (height_cm IS NULL OR height_cm > 0) AND
+      (weight_g IS NULL OR weight_g > 0)
     );
   `);
 };

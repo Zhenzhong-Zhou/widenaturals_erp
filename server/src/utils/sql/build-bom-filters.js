@@ -131,29 +131,29 @@ const buildBomFilter = (filters = {}) => {
 
     // Compliance filters
     if (filters.complianceType) {
-      conditions.push(`c.type ILIKE $${i}`);
+      conditions.push(`cr.type ILIKE $${i}`);
       params.push(`%${filters.complianceType}%`);
       i++;
     }
-
+    
     if (filters.complianceStatusId) {
-      conditions.push(`c.status_id = $${i}`);
+      conditions.push(`cr.status_id = $${i}`);
       params.push(filters.complianceStatusId);
       i++;
     }
-
+    
     if (filters.onlyActiveCompliance === true) {
       conditions.push(`LOWER(st_compliance.name) = 'active'`);
     }
-
+    
     if (filters.complianceIssuedAfter) {
-      conditions.push(`c.issued_date >= $${i}`);
+      conditions.push(`cr.issued_date >= $${i}`);
       params.push(filters.complianceIssuedAfter);
       i++;
     }
-
+    
     if (filters.complianceExpiredBefore) {
-      conditions.push(`c.expiry_date <= $${i}`);
+      conditions.push(`cr.expiry_date <= $${i}`);
       params.push(filters.complianceExpiredBefore);
       i++;
     }

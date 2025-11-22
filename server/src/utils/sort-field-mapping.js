@@ -3,6 +3,71 @@
  * organized by table/module for reuse across service and repository layers.
  */
 const SORTABLE_FIELDS = {
+  productSortMap: {
+    // Product-level fields (FROM products p)
+    productName: 'p.name',
+    series: 'p.series',
+    brand: 'p.brand',
+    category: 'p.category',
+    description: 'p.description',
+    
+    // Status-level fields (FROM status s)
+    statusName: 's.name',
+    statusId: 'p.status_id',
+    statusDate: 'p.status_date',
+    
+    // Audit timestamps (FROM products p)
+    createdAt: 'p.created_at',
+    updatedAt: 'p.updated_at',
+    
+    // Audit user fields (FROM users cb/ub)
+    createdByFirstName: 'cb.firstname',
+    createdByLastName: 'cb.lastname',
+    updatedByFirstName: 'ub.firstname',
+    updatedByLastName: 'ub.lastname',
+    
+    // Default fallback
+    defaultNaturalSort: 'p.created_at',
+  },
+  skuSortMap: {
+    // ---- SKU-level fields ----
+    skuCode: 's.sku',
+    barcode: 's.barcode',
+    language: 's.language',
+    countryCode: 's.country_code',
+    marketRegion: 's.market_region',
+    sizeLabel: 's.size_label',
+    
+    // ---- Product-level fields ----
+    productName: 'p.name',
+    productSeries: 'p.series',
+    brand: 'p.brand',
+    category: 'p.category',
+    
+    // ---- Status fields ----
+    statusName: 'st.name',
+    statusDate: 's.status_date',
+    
+    // ---- Dates ----
+    createdAt: 's.created_at',
+    updatedAt: 's.updated_at',
+    
+    // ---- Default fallback ----
+    defaultNaturalSort: 's.created_at',
+  },
+  complianceRecordSortMap: {
+    createdAt: 'cr.created_at',
+    updatedAt: 'cr.updated_at',
+    issuedDate: 'cr.issued_date',
+    expiryDate: 'cr.expiry_date',
+    complianceNumber: 'cr.compliance_id',
+    productName: 'p.name',
+    skuCode: 's.sku',
+    status: 'cr.status_id',
+    
+    // keep sorting consistent and safe
+    defaultNaturalSort: 'cr.created_at',
+  },
   bomSortMap: {
     // --- Product / SKU level ---
     productName: 'p.name',
@@ -49,8 +114,12 @@ const SORTABLE_FIELDS = {
     category: 'p.category',
     marketRegion: 's.market_region',
     sizeLabel: 's.size_label',
-    keyword: 'p.name',
     createdAt: 's.created_at',
+    complianceNumber: 'cr.compliance_id',
+    defaultNaturalSort: `
+      p.name,
+      s.created_at
+    `,
   },
   pricingRecords: {
     productName: 'pr.name',

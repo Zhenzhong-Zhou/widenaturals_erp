@@ -1,4 +1,11 @@
 /**
+ * @fileoverview
+ * Shared array and collection utilities.
+ * Contains pure helper functions for deduplication, merging, and normalization.
+ * All functions here must remain side-effect-free and framework-agnostic.
+ */
+
+/**
  * Deduplicates an array of records by a composite key formed from specified fields.
  * Allows merging logic to be applied to duplicate via an optional mergeFn.
  *
@@ -59,10 +66,43 @@ const uniqUuids = (arr) =>
     )
   );
 
+/**
+ * @function
+ * @description
+ * Deduplicates an array of pair-like objects based on a composite key
+ * (e.g., brandCode + categoryCode).
+ *
+ * Returns a new array containing only one entry per unique key.
+ *
+ * @template T
+ * @param {Array<T>} list - Input array of objects to deduplicate.
+ * @param {(item: T) => string} keySelector - Function that returns a unique key string for each item.
+ * @returns {Array<T>} Deduplicated array of objects.
+ *
+ * @example
+ * const pairs = [
+ *   { brandCode: 'CH', categoryCode: 'HN' },
+ *   { brandCode: 'CH', categoryCode: 'HN' },
+ *   { brandCode: 'PG', categoryCode: 'NM' },
+ * ];
+ *
+ * const uniquePairs = deduplicatePairs(pairs, (p) => `${p.brandCode}-${p.categoryCode}`);
+ * // → [{ brandCode: 'CH', categoryCode: 'HN' }, { brandCode: 'PG', categoryCode: 'NM' }]
+ */
+const deduplicatePairs = (list, keySelector) => {
+  if (!Array.isArray(list) || list.length === 0) return [];
+  
+  // Use a Map for O(1) lookups and maintain last occurrence of each unique key
+  return Array.from(
+    new Map(list.map((item) => [keySelector(item), item])).values()
+  );
+};
+
 module.exports = {
   deduplicateByCompositeKey,
   compact,
   uniq,
   uniqCompact,
   uniqUuids,
+  deduplicatePairs,
 };

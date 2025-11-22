@@ -17,6 +17,57 @@
 const minUuid = (tableAlias, column, alias) =>
   `MIN(${tableAlias}.${column}::text)::uuid AS ${alias}`;
 
+/**
+ * @function
+ * @description
+ * Safely appends a case-insensitive (ILIKE) filter to a SQL WHERE clause builder.
+ *
+ * This helper:
+ *  - Enforces consistent ILIKE syntax across all filter builders
+ *  - Prevents duplicated logic (DRY)
+ *  - Safely increments parameter placeholders (`$1`, `$2`, ...)
+ *  - Skips empty/undefined/null values automatically
+ *
+ * @param {string[]} conditions
+ *   Mutable array of SQL condition strings (e.g., "p.name ILIKE $1").
+ *
+ * @param {Array<*>} params
+ *   Mutable array of parameter values corresponding to conditions.
+ *
+ * @param {number} idx
+ *   Current parameter placeholder index. Will be incremented if a filter is applied.
+ *
+ * @param {string|undefined|null} value
+ *   The raw filter input. If falsy, no condition is added.
+ *
+ * @param {string} field
+ *   Fully-qualified SQL column name (e.g., "p.name", "s.market_region").
+ *
+ * @returns {number}
+ *   The next available SQL parameter index.
+ *
+ * @example
+ *   let idx = 1;
+ *   idx = addIlikeFilter(conditions, params, idx, filters.brand, 'p.brand');
+ *   // adds:  "p.brand ILIKE $1"
+ *   // params: ["%CANAHERB%"]
+ *   // idx -> 2
+ *
+ * @note
+ *   - Automatically wraps the value with "%" wildcards.
+ *   - Prevents SQL injection by always using parameterized values.
+ *   - Use this only for STRING ILIKE filters.
+ */
+const addIlikeFilter = (conditions, params, idx, value, field) => {
+  if (!value) return idx;
+  
+  conditions.push(`${field} ILIKE $${idx}`);
+  params.push(`%${value}%`);
+  
+  return idx + 1;
+};
+
 module.exports = {
   minUuid,
+  addIlikeFilter,
 };

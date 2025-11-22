@@ -7,22 +7,38 @@ const AppError = require('./AppError');
 const normalizeError = require('./normalize-error');
 
 /**
- * Generates a formatted SKU string based on brand, category, variant, and region like PG-NM101-R-CA.
- * Ensures uniqueness in-memory for bulk operations.
+ * @async
+ * @function
+ * @description
+ * Generates a formatted SKU string following the standardized pattern:
+ * **{brandCode}-{categoryCode}{baseCode}-{variantCode}-{regionCode}**,
+ * for example: `"PG-NM101-R-CA"`.
  *
- * @param {string} brandCode - Short brand identifier (e.g., 'PG')
- * @param {string} categoryCode - Category code (e.g., 'NM')
- * @param {string} variantCode - Variant identifier (e.g., 'R' for Regular)
- * @param {string} regionCode - ISO 3166-1 country code (e.g., 'CA', 'INT')
- * @param {Map<string, number>} lastUsedCodeMap - In-memory tracker for the last used SKU code per brand-category combination.
- * @returns {Promise<string>} - A generated SKU string
+ * - Ensures **sequential numbering** per `(brandCode, categoryCode)` combination.
+ * - Checks against the database (via `client`) to fetch or initialize the latest `base_code`
+ *   using the `sku_code_bases` table.
+ * - Uses an in-memory `lastUsedCodeMap` to maintain incremental uniqueness within a bulk insert session.
+ * - Intended to be **called within a transaction** to ensure consistency.
+ *
+ * @param {string} brandCode - Short brand identifier (e.g. `"PG"`).
+ * @param {string} categoryCode - Product category code (e.g. `"NM"`).
+ * @param {string} variantCode - Variant identifier (e.g. `"R"` for Regular, `"S"` for Softgel).
+ * @param {string} regionCode - ISO 3166-1 country code or market region (e.g. `"CA"`, `"CN"`, `"INT"`).
+ * @param {Map<string, number>} lastUsedCodeMap - In-memory tracker mapping `"brand-category"` → last used numeric suffix.
+ * @param {object} client - Active PostgreSQL transaction client for querying and updating the `sku_code_bases` table.
+ * @returns {Promise<string>} A newly generated, unique SKU code string (e.g. `"PG-NM101-R-CA"`).
+ *
+ * @example
+ * const sku = await generateSKU('PG', 'NM', 'R', 'CA', lastUsedCodeMap, client);
+ * // → "PG-NM101-R-CA"
  */
 const generateSKU = async (
   brandCode,
   categoryCode,
   variantCode,
   regionCode,
-  lastUsedCodeMap
+  lastUsedCodeMap,
+  client
 ) => {
   const context = 'generate-sku';
 
@@ -58,7 +74,8 @@ const generateSKU = async (
     } else {
       const baseCode = await getBaseCodeForBrandCategory(
         brandCode,
-        categoryCode
+        categoryCode,
+        client
       );
       if (!baseCode) {
         throw AppError.validationError(`No base code found for ${key}`, {

@@ -411,6 +411,7 @@ exports.seed = async function (knex) {
           status_date: knex.fn.now(),
           created_by: systemUserId,
           updated_by: null,
+          updated_at: null,
         },
         {
           id: knex.raw('uuid_generate_v4()'),
@@ -424,6 +425,7 @@ exports.seed = async function (knex) {
           status_date: knex.fn.now(),
           created_by: systemUserId,
           updated_by: null,
+          updated_at: null,
         },
         {
           id: knex.raw('uuid_generate_v4()'),
@@ -437,6 +439,7 @@ exports.seed = async function (knex) {
           status_date: knex.fn.now(),
           created_by: systemUserId,
           updated_by: null,
+          updated_at: null,
         }
       );
 
@@ -453,6 +456,7 @@ exports.seed = async function (knex) {
           status_date: knex.fn.now(),
           created_by: systemUserId,
           updated_by: null,
+          updated_at: null,
         });
       }
     }

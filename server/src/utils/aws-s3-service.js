@@ -4,13 +4,15 @@ const {
   ListObjectsV2Command,
   DeleteObjectsCommand,
   GetObjectCommand,
+  HeadObjectCommand,
 } = require('@aws-sdk/client-s3');
 const fs = require('fs');
 const path = require('path');
 const mime = require('mime-types');
 const s3Client = require('../config/aws-s3-config');
 const { logInfo, logError } = require('./logger-helper');
-const { logSystemInfo, logSystemError } = require('./system-logger');
+const { logSystemInfo, logSystemError, logSystemException } = require('./system-logger');
+const AppError = require('./AppError');
 
 /**
  * Generic S3 operation with retry logic.
@@ -367,6 +369,40 @@ const listBackupsFromS3 = async (bucketName, folderPrefix = 'backups/') => {
 };
 
 /**
+ * @async
+ * @function
+ * @description
+ * Checks whether an object exists in an S3 bucket without downloading it.
+ *
+ * Uses a lightweight `HeadObject` request (metadata only).
+ *
+ * @param {string} bucketName - Name of the S3 bucket.
+ * @param {string} key - Object key (path inside the bucket).
+ * @returns {Promise<boolean>} True if object exists, false if not.
+ */
+const s3ObjectExists = async (bucketName, key) => {
+  const context = 'aws-s3-service/s3ObjectExists';
+  
+  try {
+    await s3Client.send(new HeadObjectCommand({ Bucket: bucketName, Key: key }));
+    logSystemInfo('S3 object exists', { context, bucketName, key });
+    return true;
+  } catch (error) {
+    if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
+      return false; // Object does not exist
+    }
+    
+    // Log and rethrow unexpected AWS errors
+    logSystemException(error, 'Failed to check S3 object existence', {
+      context,
+      bucketName,
+      key,
+    });
+    throw AppError.serviceError('S3 existence check failed', { cause: error });
+  }
+};
+
+/**
  * Uploads a SKU image to S3 and returns its public URL.
  *
  * @param {string} bucketName - The S3 bucket name.
@@ -431,5 +467,6 @@ module.exports = {
   deleteFilesFromS3,
   listFilesInS3,
   listBackupsFromS3,
+  s3ObjectExists,
   uploadSkuImageToS3,
 };

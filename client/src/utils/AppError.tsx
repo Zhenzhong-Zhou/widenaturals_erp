@@ -5,6 +5,7 @@ enum ErrorType {
   ValidationError = 'ValidationError',
   TimeoutError = 'TimeoutError',
   UnknownError = 'UnknownError',
+  NotFoundError = 'NotFoundError',
   GlobalError = 'GlobalError',
   SevereError = 'SevereError',
   ServerError = 'ServerError',

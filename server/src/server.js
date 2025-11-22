@@ -16,7 +16,7 @@ const { handleExit } = require('./utils/on-exit');
 const app = require('./app');
 const { createDatabaseAndInitialize } = require('./database/create-db');
 const { testConnection } = require('./database/db');
-const { initStatusCache } = require('./config/status-cache');
+const { initAllStatusCaches } = require('./config/status-cache');
 const { initializeRootAdmin } = require('./config/initialize-root');
 const {
   startPoolMonitoring,
@@ -55,10 +55,10 @@ const startServer = async () => {
     logSystemInfo('Testing database connection...');
     await testConnection();
     logSystemInfo('Database connected successfully.');
-
-    logSystemInfo('Initializing status ID cache...');
-    await initStatusCache();
-    logSystemInfo('Status ID cache initialized.');
+    
+    logSystemInfo('Initializing all status caches...');
+    await initAllStatusCaches();
+    logSystemInfo('All status caches initialized successfully.');
 
     // Root admin initialization
     logSystemInfo('Initializing root admin...');

@@ -7,13 +7,6 @@ const AppError = require('../utils/AppError');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const { buildPricingFilters } = require('../utils/sql/build-pricing-filters');
 
-// const sq = `
-// SELECT p.*
-// FROM pricing p
-// JOIN skus s ON s.id = p.sku_id
-// WHERE s.id = '48fc7dcb-b44d-436b-8bbe-0c16f2d5f17b';
-// `;
-
 /**
  * Fetches a paginated list of pricing records with enriched SKU and product data.
  *
@@ -365,9 +358,154 @@ const getPricingLookup = async ({ limit = 50, offset = 0, filters = {} }) => {
   }
 };
 
+/**
+ * Fetch all pricing records linked to a specific SKU.
+ *
+ * This repository returns the **raw, unfiltered pricing rows** used by the
+ * business layer and access-control functions:
+ *   - evaluatePricingViewAccessControl()
+ *   - slicePricingForUser()
+ *
+ * The repository itself performs **no permission filtering**.
+ *
+ * ---------------------------------------------------------------------------
+ * Normalized join structure:
+ *   pricing (pr)
+ *     └─ pricing_types (pt)
+ *     └─ locations (l)
+ *          └─ location_types (lt)
+ *     └─ users (u1 = created_by, u2 = updated_by)
+ *
+ * Returned rows include:
+ *   - Price type metadata
+ *   - Location + location type
+ *   - Status + status_date
+ *   - Audit fields, including first/last name for created_by, updated_by
+ *
+ * ---------------------------------------------------------------------------
+ * Ordering logic:
+ *   1. Price type code (so similar types group together)
+ *   2. valid_from DESC (newest pricing version first)
+ *
+ * ---------------------------------------------------------------------------
+ * Typical usage:
+ *   - SKU Detail Page (admin/full access)
+ *   - Pricing history modal
+ *   - Pricing comparisons across locations
+ *   - Audit and compliance workflows
+ *
+ * ---------------------------------------------------------------------------
+ * @async
+ * @function
+ *
+ * @param {string} skuId - UUID of the SKU to fetch pricing for.
+ *
+ * @returns {Promise<Array<Object>>} Raw pricing rows with the shape:
+ *   [
+ *     {
+ *       id: string,
+ *       sku_id: string,
+ *       price_type_id: string,
+ *       price_type_name: string,
+ *       price_type_code: string,
+ *       location_id: string|null,
+ *       location_name: string|null,
+ *       location_type: string|null,
+ *       price: number,
+ *       valid_from: Date,
+ *       valid_to: Date|null,
+ *       status_id: string,
+ *       status_date: Date,
+ *       created_at: Date,
+ *       updated_at: Date,
+ *       created_by: string|null,
+ *       created_by_firstname: string|null,
+ *       created_by_lastname: string|null,
+ *       updated_by: string|null,
+ *       updated_by_firstname: string|null,
+ *       updated_by_lastname: string|null
+ *     }
+ *   ]
+ *
+ * @throws {AppError} - On database or query failure.
+ */
+const getPricingBySkuId = async (skuId) => {
+  const context = 'pricing-repository/getPricingBySkuId';
+  
+  // -------------------------------------------------------------------
+  // SQL: Fetch raw pricing rows for the SKU + joined metadata
+  // -------------------------------------------------------------------
+  const queryText = `
+    SELECT
+      pr.id,
+      pr.sku_id,
+      pr.price_type_id,
+      pt.name AS price_type_name,
+      pt.code AS price_type_code,
+      pr.location_id,
+      l.name AS location_name,
+      lt.name AS location_type,
+      pr.price,
+      pr.valid_from,
+      pr.valid_to,
+      pr.status_id,
+      pr.status_date,
+      pr.created_at,
+      pr.updated_at,
+      pr.created_by,
+      u1.firstname AS created_by_firstname,
+      u1.lastname AS created_by_lastname,
+      pr.updated_by,
+      u2.firstname AS updated_by_firstname,
+      u2.lastname AS updated_by_lastname
+    FROM pricing pr
+    LEFT JOIN pricing_types pt ON pr.price_type_id = pt.id
+    LEFT JOIN locations l ON pr.location_id = l.id
+    LEFT JOIN location_types lt ON l.location_type_id = lt.id
+    LEFT JOIN users u1 ON pr.created_by = u1.id
+    LEFT JOIN users u2 ON pr.updated_by = u2.id
+    WHERE pr.sku_id = $1
+    ORDER BY
+      pt.code ASC,
+      pr.valid_from DESC
+  `;
+  
+  try {
+    const { rows } = await query(queryText, [skuId]);
+    
+    if (rows.length === 0) {
+      logSystemInfo('No SKU pricing records found', {
+        context,
+        skuId,
+      });
+      return [];
+    }
+    
+    logSystemInfo('Fetched SKU pricing successfully', {
+      context,
+      skuId,
+      count: rows.length,
+    });
+    
+    return rows;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch SKU pricing', {
+      context,
+      skuId,
+      error: error.message,
+    });
+    
+    throw AppError.databaseError('Failed to fetch SKU pricing.', {
+      context,
+      details: error.message,
+    });
+  }
+};
+
 module.exports = {
   getAllPricingRecords,
   getPricingDetailsByPricingTypeId,
   getPricesByIdAndSkuBatch,
   getPricingLookup,
+  getPricingBySkuId,
 };

@@ -18,11 +18,19 @@ exports.up = async function (knex) {
     table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
     table.uuid('created_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');
-
-    // Indexes
+    
+    // Primary and unique constraints
+    table.unique(['name', 'brand', 'category'], {
+      indexName: 'uq_product_name_brand_category'
+    });
+    
+    // Basic indexes
     table.index(['name'], 'idx_products_name');
-
-    table.unique(['name', 'brand', 'series', 'category']);
+    
+    // Performance indexes
+    table.index(['status_id'], 'idx_products_status_id');
+    table.index(['created_at'], 'idx_products_created_at'); // DESC not supported in Knex index
+    table.index(['brand', 'category'], 'idx_products_brand_category');
   });
 };
 

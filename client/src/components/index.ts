@@ -20,7 +20,6 @@ export { default as CustomPagination } from './common/CustomPagination';
 export { default as DetailPage } from './common/DetailPage';
 export { default as DetailHeader } from './common/DetailHeader';
 export { default as MetadataSection } from './common/MetadataSection';
-export { default as PriceDisplay } from './common/PriceDisplay';
 export { default as Dropdown } from './common/Dropdown';
 export { default as CustomDatePicker } from './common/CustomDatePicker';
 export { default as CustomDialog } from './common/CustomDialog';

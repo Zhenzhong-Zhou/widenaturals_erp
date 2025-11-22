@@ -12,11 +12,11 @@ interface ZoomImageDialogProps {
 }
 
 const ZoomImageDialog: FC<ZoomImageDialogProps> = ({
-  open,
-  imageUrl,
-  altText = 'Zoomed image',
-  onClose,
-}) => {
+                                                     open,
+                                                     imageUrl,
+                                                     altText = 'Zoomed image',
+                                                     onClose,
+                                                   }) => {
   return (
     <Dialog
       open={open}
@@ -25,8 +25,12 @@ const ZoomImageDialog: FC<ZoomImageDialogProps> = ({
       slotProps={{
         paper: {
           sx: {
-            width: '90vw',
-            height: '90vh',
+            width: '80vh',   // square-ish dialog
+            height: '80vh',
+            maxWidth: '100vw',
+            maxHeight: '100vw',
+            borderRadius: 3,
+            overflow: 'hidden',
           },
         },
       }}
@@ -35,35 +39,25 @@ const ZoomImageDialog: FC<ZoomImageDialogProps> = ({
         dividers
         sx={{
           p: 0,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: 'background.default',
         }}
       >
-        <Box
-          sx={{
-            width: 'auto',
-            height: 'auto',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            backgroundColor: 'background.default',
-          }}
+        <TransformWrapper
+          initialScale={0.6}     // smaller initial zoom = more comfortable view
+          minScale={0.5}
+          maxScale={3}
+          centerOnInit
+          wheel={{ step: 0.1 }}
         >
-          <TransformWrapper
-            initialScale={0.9}
-            minScale={0.5}
-            maxScale={3}
-            centerOnInit
-            wheel={{ step: 0.1 }}
-            pinch={{ step: 5 }}
-          >
-            <TransformComponent
-              wrapperStyle={{
-                width: 'auto',
-                height: 'auto',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
-              contentStyle={{
+          <TransformComponent>
+            <Box
+              sx={{
+                width: '100%',
+                height: '100%',
+                p: 3,                 // padding so image isn't touching edges
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
@@ -75,15 +69,14 @@ const ZoomImageDialog: FC<ZoomImageDialogProps> = ({
                 style={{
                   maxWidth: '100%',
                   maxHeight: '100%',
-                  width: 'auto',
-                  height: 'auto',
-                  display: 'block',
+                  objectFit: 'contain',  // ensures tall bottle fits well
                   userSelect: 'none',
+                  display: 'block',
                 }}
               />
-            </TransformComponent>
-          </TransformWrapper>
-        </Box>
+            </Box>
+          </TransformComponent>
+        </TransformWrapper>
       </DialogContent>
     </Dialog>
   );

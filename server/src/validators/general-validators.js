@@ -412,6 +412,56 @@ const shippedDateRangeSchema = Joi.object({
 });
 
 /**
+ * Joi schema for filtering compliance records by issued date range.
+ *
+ * Includes:
+ * - `issuedAfter`: filters `cr.issued_date >=`
+ * - `issuedBefore`: filters `cr.issued_date <=`
+ *
+ * Accepts null or empty string values.
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const issuedDateRangeSchema = Joi.object({
+  issuedAfter: Joi.date()
+    .iso()
+    .optional()
+    .allow(null, '')
+    .label('Issued After Date'),
+  
+  issuedBefore: Joi.date()
+    .iso()
+    .optional()
+    .allow(null, '')
+    .label('Issued Before Date'),
+});
+
+/**
+ * Joi schema for filtering compliance records by expiry date range.
+ *
+ * Includes:
+ * - `expiringAfter`: filters `cr.expiry_date >=`
+ * - `expiringBefore`: filters `cr.expiry_date <=`
+ *
+ * Accepts null or empty string values.
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const expiryDateRangeSchema = Joi.object({
+  expiringAfter: Joi.date()
+    .iso()
+    .optional()
+    .allow(null, '')
+    .label('Expiry After Date'),
+  
+  expiringBefore: Joi.date()
+    .iso()
+    .optional()
+    .allow(null, '')
+    .label('Expiry Before Date'),
+});
+
+/**
  * Creates a Joi schema for a boolean query parameter that accepts flexible truthy/falsy values.
  *
  * - Accepts true/false, or strings like 'true'/'false'
@@ -485,6 +535,8 @@ module.exports = {
   allocatedDateRangeSchema,
   aggregatedDateRangeSchema,
   shippedDateRangeSchema,
+  issuedDateRangeSchema,
+  expiryDateRangeSchema,
   createBooleanFlag,
   validateKeyword,
   validateOptionalString,

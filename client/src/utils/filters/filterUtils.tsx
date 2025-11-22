@@ -5,6 +5,7 @@ import CustomDatePicker from '@components/common/CustomDatePicker';
 import BooleanSelect, {
   type BooleanSelectOption,
 } from '@components/common/BooleanSelect';
+import Dropdown, { type OptionType } from '@components/common/Dropdown';
 
 /**
  * Renders a reusable controlled BaseInput field for a filter panel.
@@ -91,6 +92,46 @@ export const renderBooleanSelectField = <T extends Record<string, any>>(
             allowAll={allowAll}
           />
         )}
+      />
+    </Grid>
+  );
+};
+
+/**
+ * Generic reusable select field renderer using your custom <Dropdown />.
+ */
+export const renderSelectField = <
+  T extends Record<string, any>
+>(
+  control: Control<T>,
+  name: keyof T,
+  label: string,
+  options: OptionType[] = [],
+  allowAll: boolean = true
+) => {
+  return (
+    <Grid size={{ xs: 12, sm: 6, md: 3 }} key={String(name)}>
+      <Controller
+        name={name as any}
+        control={control}
+        render={({ field, fieldState }) => {
+          const finalOptions = allowAll
+            ? [{ label: 'All', value: null }, ...options]
+            : options;
+          
+          return (
+            <Dropdown
+              label={label}
+              value={field.value ?? null}
+              onChange={(val) => field.onChange(val ?? null)}
+              options={finalOptions}
+              helperText={fieldState.error?.message}
+              error={fieldState.error?.message || null}
+              searchable={true}
+              placeholder={`Select ${label}`}
+            />
+          );
+        }}
       />
     </Grid>
   );

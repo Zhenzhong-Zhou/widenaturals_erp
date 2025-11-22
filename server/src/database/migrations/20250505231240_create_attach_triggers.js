@@ -76,8 +76,8 @@ exports.up = function (knex) {
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
-    CREATE TRIGGER set_compliances_updated_at
-    BEFORE UPDATE ON compliances
+    CREATE TRIGGER set_compliance_records_updated_at
+    BEFORE UPDATE ON compliance_records
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
@@ -246,7 +246,7 @@ exports.down = function (knex) {
     DROP TRIGGER IF EXISTS set_location_types_updated_at ON location_types;
     DROP TRIGGER IF EXISTS set_locations_updated_at ON locations;
     DROP TRIGGER IF EXISTS set_pricing_types_updated_at ON pricing_types;
-    DROP TRIGGER IF EXISTS set_compliances_updated_at ON compliances;
+    DROP TRIGGER IF EXISTS set_compliance_records_updated_at ON compliance_records;
     DROP TRIGGER IF EXISTS set_delivery_methods_updated_at ON delivery_methods;
     DROP TRIGGER IF EXISTS set_order_types_updated_at ON order_types;
     DROP TRIGGER IF EXISTS set_order_status_updated_at ON order_status;

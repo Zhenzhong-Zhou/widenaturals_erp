@@ -4,6 +4,7 @@ const {
 } = require('../services/role-permission-service');
 const { PERMISSIONS } = require('../utils/constants/domain/pricing-constants');
 const AppError = require('../utils/AppError');
+const { getStatusId } = require('../config/status-cache');
 
 /**
  * Resolves the final price for an order item based on submitted price and DB price.
@@ -199,10 +200,198 @@ const enrichPricingRow = (row, activeStatusId) => {
   };
 };
 
+/**
+ * Business: Evaluate pricing visibility permissions for SKU detail or pricing lookup.
+ *
+ * This determines whether a user can view:
+ *   - Any pricing at all
+ *   - All pricing types (MSRP, Retail, Wholesale, Distributor, etc.)
+ *   - Inactive pricing (status != active)
+ *   - Expired or future-dated pricing (pricing history)
+ *   - Internal-only pricing (via VIEW_ALL_VALID_PRICING)
+ *
+ * Notes:
+ *   • This function does NOT decide which pricing rows appear — that is handled
+ *     by slicePricingForUser().
+ *   • This returns a set of boolean flags describing what the user *can* see.
+ *
+ * @param {Object} user - Authenticated user context with permission list
+ * @returns {Promise<{
+ *   canViewPricing: boolean,
+ *   canViewAllPricingTypes: boolean,
+ *   canViewInactivePricing: boolean,
+ *   canViewPricingHistory: boolean,
+ *   canViewAllValidPricing: boolean,
+ * }>}
+ */
+const evaluatePricingViewAccessControl = async (user) => {
+  try {
+    const { permissions, isRoot } = await resolveUserPermissionContext(user);
+    
+    // Base permission: can the user view ANY pricing?
+    const canViewPricing =
+      isRoot || permissions.includes(PERMISSIONS.VIEW_PRICING);
+    
+    // Extended permissions
+    const canViewAllPricingTypes =
+      isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_TYPES);
+    
+    const canViewInactivePricing =
+      isRoot || permissions.includes(PERMISSIONS.VIEW_INACTIVE);
+    
+    const canViewPricingHistory =
+      isRoot || permissions.includes(PERMISSIONS.VIEW_HISTORY);
+    
+    // Expired + future-dated pricing visibility
+    const canViewAllValidPricing =
+      isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_VALID_PRICING);
+    
+    return {
+      canViewPricing,
+      canViewAllPricingTypes,
+      canViewInactivePricing,
+      canViewPricingHistory,
+      canViewAllValidPricing,
+    };
+  } catch (err) {
+    logSystemException(
+      err,
+      'Failed to evaluate SKU pricing view access control',
+      {
+        context: 'pricing-business/evaluatePricingViewAccessControl',
+        userId: user?.id,
+      }
+    );
+    
+    throw AppError.businessError(
+      'Unable to determine pricing visibility permissions',
+      { details: err.message }
+    );
+  }
+};
+
+/**
+ * Business: Filter and redact pricing rows based on user's access control.
+ *
+ * Responsibilities:
+ *   ✔ Remove price types the user is not allowed to view
+ *   ✔ Remove inactive pricing unless allowed
+ *   ✔ Remove expired pricing unless allowed
+ *   ✔ Remove future pricing unless allowed
+ *   ✔ Redact status & audit fields for regular users
+ *
+ * This function enforces WHAT the user is allowed to see,
+ * while evaluatePricingViewAccessControl() determines WHY.
+ *
+ * @param {Array<Object>} pricingRows - Raw rows from repository
+ * @param {Object} access - Access flags from evaluatePricingViewAccessControl()
+ * @returns {Array<Object>} Safe pricing objects suitable for API response
+ */
+const slicePricingForUser = (pricingRows, access) => {
+  const ACTIVE_STATUS_ID = getStatusId('general_active');
+  
+  if (!Array.isArray(pricingRows)) return [];
+  
+  // Public price types visible to all normal users
+  const PUBLIC_PRICE_TYPES = ['MSRP', 'RETAIL'];
+  
+  const now = new Date();
+  const result = [];
+  
+  for (const row of pricingRows) {
+    const priceTypeName = row.price_type_name?.toUpperCase();
+    
+    // ---------------------------------------------------------
+    // 1. PRICE TYPE FILTER
+    //    Only users with VIEW_ALL_TYPES can see wholesale/internal pricing
+    // ---------------------------------------------------------
+    if (!access.canViewAllPricingTypes) {
+      if (!PUBLIC_PRICE_TYPES.includes(priceTypeName)) continue;
+    }
+    
+    // ---------------------------------------------------------
+    // 2. INACTIVE PRICING FILTER
+    // ---------------------------------------------------------
+    if (!access.canViewInactivePricing && row.status_id !== ACTIVE_STATUS_ID) {
+      continue;
+    }
+    
+    // ---------------------------------------------------------
+    // 3. VALIDITY WINDOW FILTER
+    //    Regular users cannot see expired or future-dated pricing
+    // ---------------------------------------------------------
+    const validFrom = row.valid_from ? new Date(row.valid_from) : null;
+    const validTo = row.valid_to ? new Date(row.valid_to) : null;
+    
+    const isExpired = validTo && validTo < now;
+    const isNotYetValid = validFrom && validFrom > now;
+    
+    if (!access.canViewPricingHistory && isExpired) continue;
+    
+    if (!access.canViewAllValidPricing && isNotYetValid) continue;
+    
+    // ---------------------------------------------------------
+    // 4. BASE SAFE SHAPE (regular users)
+    // ---------------------------------------------------------
+    const safe = {
+      id: row.id,
+      skuId: row.sku_id,
+      priceType: { name: row.price_type_name },
+      location: {
+        name: row.location_name,
+        type: row.location_type,
+      },
+      price: row.price,
+      validFrom: row.valid_from,
+      validTo: row.valid_to,
+    };
+    
+    // ---------------------------------------------------------
+    // 5. EXTENDED: status fields (admins + advanced roles)
+    // ---------------------------------------------------------
+    if (access.canViewAllPricingTypes) {
+      safe.status = {
+        id: row.status_id,
+        date: row.status_date,
+      };
+    }
+    
+    // ---------------------------------------------------------
+    // 6. EXTENDED: audit fields (admins + auditors)
+    // ---------------------------------------------------------
+    if (access.canViewPricingHistory) {
+      safe.audit = {
+        createdAt: row.created_at,
+        createdBy: row.created_by
+          ? {
+            id: row.created_by,
+            firstname: row.created_by_firstname,
+            lastname: row.created_by_lastname,
+          }
+          : null,
+        updatedAt: row.updated_at,
+        updatedBy: row.updated_by
+          ? {
+            id: row.updated_by,
+            firstname: row.updated_by_firstname,
+            lastname: row.updated_by_lastname,
+          }
+          : null,
+      };
+    }
+    
+    result.push(safe);
+  }
+  
+  return result;
+};
+
 module.exports = {
   resolveFinalPrice,
   evaluatePricingLookupAccessControl,
   enforcePricingLookupVisibilityRules,
   filterPricingLookupQuery,
   enrichPricingRow,
+  evaluatePricingViewAccessControl,
+  slicePricingForUser,
 };

@@ -7,6 +7,148 @@
 const { SORTABLE_FIELDS } = require('../sort-field-mapping');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
+const { addIlikeFilter } = require('./sql-helpers');
+
+/**
+ * Builds SQL WHERE clause + parameter array for SKU Product-Card listing.
+ *
+ * Filters are already ACL-adjusted by the service layer:
+ *   - productName / brand / category
+ *   - sku / sizeLabel / marketRegion
+ *   - productStatusId / skuStatusId
+ *   - skuIds
+ *   - complianceId
+ *   - keyword (multi-field fuzzy match)
+ *
+ * Returned output can be injected into the repository query.
+ *
+ * @param {Object} filters - Normalized filter values.
+ * @param {string} [filters.productName]
+ * @param {string} [filters.brand]
+ * @param {string} [filters.category]
+ * @param {string} [filters.productStatusId]
+ * @param {string} [filters.sku]
+ * @param {string[]} [filters.skuIds]
+ * @param {string} [filters.sizeLabel]
+ * @param {string} [filters.countryCode]
+ * @param {string} [filters.marketRegion]
+ * @param {string} [filters.skuStatusId]
+ * @param {string} [filters.complianceId]
+ * @param {string} [filters.keyword]
+ *
+ * @returns {{
+ *   whereClause: string,
+ *   params: any[]
+ * }} SQL-safe condition string + params.
+ */
+const buildSkuProductCardFilters = (filters = {}) => {
+  try {
+    /** @type {string[]} */
+    const conditions = ['1=1'];
+    
+    /** @type {any[]} */
+    const params = [];
+    
+    /** @type {number} */
+    let idx = 1;
+    
+    // -------------------------------------------------------------
+    // PRODUCT filters (ILIKE)
+    // -------------------------------------------------------------
+    idx = addIlikeFilter(conditions, params, idx, filters.productName, 'p.name');
+    idx = addIlikeFilter(conditions, params, idx, filters.brand, 'p.brand');
+    idx = addIlikeFilter(conditions, params, idx, filters.category, 'p.category');
+    
+    if (filters.productStatusId) {
+      conditions.push(`p.status_id = $${idx}`);
+      params.push(filters.productStatusId);
+      idx++;
+    }
+    
+    // -------------------------------------------------------------
+    // SKU filters (ILIKE + UUID array)
+    // -------------------------------------------------------------
+    idx = addIlikeFilter(conditions, params, idx, filters.sku, 's.sku');
+    idx = addIlikeFilter(conditions, params, idx, filters.sizeLabel, 's.size_label');
+    idx = addIlikeFilter(
+      conditions,
+      params,
+      idx,
+      filters.countryCode,
+      's.country_code'
+    );
+    idx = addIlikeFilter(
+      conditions,
+      params,
+      idx,
+      filters.marketRegion,
+      's.market_region'
+    );
+    
+    if (filters.skuIds) {
+      if (Array.isArray(filters.skuIds)) {
+        conditions.push(`s.id = ANY($${idx}::uuid[])`);
+      } else {
+        conditions.push(`s.id = $${idx}`);
+      }
+      params.push(filters.skuIds);
+      idx++;
+    }
+    
+    if (filters.skuStatusId) {
+      conditions.push(`s.status_id = $${idx}`);
+      params.push(filters.skuStatusId);
+      idx++;
+    }
+    
+    // -------------------------------------------------------------
+    // COMPLIANCE filters
+    // -------------------------------------------------------------
+    idx = addIlikeFilter(
+      conditions,
+      params,
+      idx,
+      filters.complianceId,
+      'cr.compliance_id'
+    );
+    
+    // -------------------------------------------------------------
+    // KEYWORD search (multi-field)
+    // -------------------------------------------------------------
+    if (filters.keyword) {
+      /** @type {string} */
+      const kw = `%${filters.keyword.trim().replace(/\s+/g, ' ')}%`;
+      
+      conditions.push(`
+        (
+          p.name ILIKE $${idx}
+          OR p.brand ILIKE $${idx}
+          OR p.category ILIKE $${idx}
+          OR s.sku ILIKE $${idx}
+          OR cr.compliance_id ILIKE $${idx}
+        )
+      `);
+      
+      params.push(kw);
+      idx++;
+    }
+    
+    return {
+      whereClause: conditions.join(' AND '),
+      params,
+    };
+  } catch (err) {
+    logSystemException(err, 'Failed to build SKU Product Card filter', {
+      context: 'sku-repository/buildSkuProductCardFilters',
+      error: err.message,
+      filters,
+    });
+    
+    throw AppError.databaseError('Failed to build SKU card filter conditions', {
+      details: err.message,
+    });
+  }
+};
 
 /**
  * Builds a dynamic SQL WHERE clause and parameters array for filtering SKU and product records.
@@ -217,7 +359,297 @@ const skuDropdownKeywordHandler = (keyword, paramIndex) => {
   };
 };
 
+/**
+ * Build WHERE clause + params for SKU list queries.
+ *
+ * ### Supported Filters
+ * - **SKU-level (`s`):**
+ *   - `statusIds[]`
+ *   - `sizeLabel`
+ *   - `marketRegion`
+ *   - `productIds[]`
+ *   - `sku` partial match
+ *   - dimensional filters (length/width/height/weight)
+ *   - date ranges: created_at / updated_at
+ *   - createdBy / updatedBy (UUID)
+ *
+ * - **Product-level (`p`):**
+ *   - `productName` (ILIKE)
+ *   - `brand`
+ *   - `category`
+ *
+ * - **Keyword fuzzy search**
+ *   - matches: `s.sku`, `p.name`, `p.brand`, `p.category`
+ *
+ * ### Return:
+ * {
+ *   whereClause: '1=1 AND s.status_id = ANY($1) ...',
+ *   params: [...]
+ * }
+ *
+ * @param {Object} [filters={}] - Optional filtering criteria object.
+ * @param {string[]} [filters.statusIds] - Filter by SKU status UUID(s).
+ * @param {string[]} [filters.productIds] - Filter by linked product UUID(s).
+ * @param {string} [filters.sizeLabel] - Filter by SKU size label (e.g., "60 Capsules").
+ * @param {string} [filters.marketRegion] - Filter by region code (e.g., "CA", "US", "HK").
+ * @param {string} [filters.sku] - Partial match against SKU code.
+ * @param {number} [filters.minLengthCm] - Minimum product length in centimeters (cm).
+ * @param {number} [filters.maxLengthCm] - Maximum product length in centimeters (cm).
+ * @param {number} [filters.minLengthIn] - Minimum product length in inches (in).
+ * @param {number} [filters.maxLengthIn] - Maximum product length in inches (in).
+ * @param {number} [filters.minWidthCm] - Minimum product width in centimeters (cm).
+ * @param {number} [filters.maxWidthCm] - Maximum product width in centimeters (cm).
+ * @param {number} [filters.minWidthIn] - Minimum product width in inches (in).
+ * @param {number} [filters.maxWidthIn] - Maximum product width in inches (in).
+ * @param {number} [filters.minHeightCm] - Minimum product height in centimeters (cm).
+ * @param {number} [filters.maxHeightCm] - Maximum product height in centimeters (cm).
+ * @param {number} [filters.minHeightIn] - Minimum product height in inches (in).
+ * @param {number} [filters.maxHeightIn] - Maximum product height in inches (in).
+ * @param {number} [filters.minWeightG] - Minimum product weight in grams (g).
+ * @param {number} [filters.maxWeightG] - Maximum product weight in grams (g).
+ * @param {number} [filters.minWeightLb] - Minimum product weight in pounds (lb).
+ * @param {number} [filters.maxWeightLb] - Maximum product weight in pounds (lb).
+ * @param {string} [filters.createdBy] - Filter by UUID of user who created the SKU.
+ * @param {string} [filters.updatedBy] - Filter by UUID of last updater.
+ * @param {string} [filters.createdAfter] - Lower bound for created_at ISO timestamp.
+ * @param {string} [filters.createdBefore] - Upper bound for created_at ISO timestamp.
+ * @param {string} [filters.updatedAfter] - Lower bound for updated_at ISO timestamp.
+ * @param {string} [filters.updatedBefore] - Upper bound for updated_at ISO timestamp.
+ * @param {string} [filters.productName] - ILIKE filter over related product name.
+ * @param {string} [filters.brand] - ILIKE filter over product brand.
+ * @param {string} [filters.category] - ILIKE filter over product category.
+ * @param {string} [filters.keyword] - Fuzzy match across SKU + product fields.
+ *
+ * @returns {{ whereClause: string, params: any[] }}
+ * SQL-safe WHERE clause (string) and parameter array for prepared statements.
+ */
+const buildSkuFilter = (filters = {}) => {
+  try {
+    const conditions = ['1=1'];
+    const params = [];
+    let idx = 1;
+    
+    // ------------------------------
+    // SKU-level filters
+    // ------------------------------
+    if (filters.statusIds?.length) {
+      conditions.push(`s.status_id = ANY($${idx}::uuid[])`);
+      params.push(filters.statusIds);
+      idx++;
+    }
+    
+    if (filters.productIds?.length) {
+      conditions.push(`s.product_id = ANY($${idx}::uuid[])`);
+      params.push(filters.productIds);
+      idx++;
+    }
+    
+    if (filters.marketRegion) {
+      conditions.push(`s.market_region ILIKE $${idx}`);
+      params.push(`%${filters.marketRegion}%`);
+      idx++;
+    }
+    
+    if (filters.sizeLabel) {
+      conditions.push(`s.size_label ILIKE $${idx}`);
+      params.push(`%${filters.sizeLabel}%`);
+      idx++;
+    }
+    
+    if (filters.sku) {
+      conditions.push(`s.sku ILIKE $${idx}`);
+      params.push(`%${filters.sku}%`);
+      idx++;
+    }
+    
+    // Dimensional filters
+    // ----------------------------------------------------
+    // Length (cm / inch)
+    // ----------------------------------------------------
+    if (filters.minLengthCm) {
+      conditions.push(`s.length_cm >= $${idx}`);
+      params.push(filters.minLengthCm);
+      idx++;
+    }
+    
+    if (filters.maxLengthCm) {
+      conditions.push(`s.length_cm <= $${idx}`);
+      params.push(filters.maxLengthCm);
+      idx++;
+    }
+    
+    if (filters.minLengthIn) {
+      conditions.push(`s.length_inch >= $${idx}`);
+      params.push(filters.minLengthIn);
+      idx++;
+    }
+    
+    if (filters.maxLengthIn) {
+      conditions.push(`s.length_inch <= $${idx}`);
+      params.push(filters.maxLengthIn);
+      idx++;
+    }
+    
+    // ----------------------------------------------------
+    // Width (cm / inch)
+    // ----------------------------------------------------
+    if (filters.minWidthCm) {
+      conditions.push(`s.width_cm >= $${idx}`);
+      params.push(filters.minWidthCm);
+      idx++;
+    }
+    
+    if (filters.maxWidthCm) {
+      conditions.push(`s.width_cm <= $${idx}`);
+      params.push(filters.maxWidthCm);
+      idx++;
+    }
+    
+    if (filters.minWidthIn) {
+      conditions.push(`s.width_inch >= $${idx}`);
+      params.push(filters.minWidthIn);
+      idx++;
+    }
+    
+    if (filters.maxWidthIn) {
+      conditions.push(`s.width_inch <= $${idx}`);
+      params.push(filters.maxWidthIn);
+      idx++;
+    }
+
+    // ----------------------------------------------------
+    // Height (cm / inch)
+    // ----------------------------------------------------
+    if (filters.minHeightCm) {
+      conditions.push(`s.height_cm >= $${idx}`);
+      params.push(filters.minHeightCm);
+      idx++;
+    }
+    
+    if (filters.maxHeightCm) {
+      conditions.push(`s.height_cm <= $${idx}`);
+      params.push(filters.maxHeightCm);
+      idx++;
+    }
+    
+    if (filters.minHeightIn) {
+      conditions.push(`s.height_inch >= $${idx}`);
+      params.push(filters.minHeightIn);
+      idx++;
+    }
+    
+    if (filters.maxHeightIn) {
+      conditions.push(`s.height_inch <= $${idx}`);
+      params.push(filters.maxHeightIn);
+      idx++;
+    }
+    
+    // ----------------------------------------------------
+    // Weight (g / lb)
+    // ----------------------------------------------------
+    if (filters.minWeightG) {
+      conditions.push(`s.weight_g >= $${idx}`);
+      params.push(filters.minWeightG);
+      idx++;
+    }
+    
+    if (filters.maxWeightG) {
+      conditions.push(`s.weight_g <= $${idx}`);
+      params.push(filters.maxWeightG);
+      idx++;
+    }
+    
+    if (filters.minWeightLb) {
+      conditions.push(`s.weight_lb >= $${idx}`);
+      params.push(filters.minWeightLb);
+      idx++;
+    }
+    
+    if (filters.maxWeightLb) {
+      conditions.push(`s.weight_lb <= $${idx}`);
+      params.push(filters.maxWeightLb);
+      idx++;
+    }
+    
+    // Audit filters
+    if (filters.createdBy) {
+      conditions.push(`s.created_by = $${idx}`);
+      params.push(filters.createdBy);
+      idx++;
+    }
+    
+    if (filters.updatedBy) {
+      conditions.push(`s.updated_by = $${idx}`);
+      params.push(filters.updatedBy);
+      idx++;
+    }
+    
+    if (filters.createdAfter) {
+      conditions.push(`s.created_at >= $${idx}`);
+      params.push(filters.createdAfter);
+      idx++;
+    }
+    
+    if (filters.createdBefore) {
+      conditions.push(`s.created_at <= $${idx}`);
+      params.push(filters.createdBefore);
+      idx++;
+    }
+    
+    if (filters.updatedAfter) {
+      conditions.push(`s.updated_at >= $${idx}`);
+      params.push(filters.updatedAfter);
+      idx++;
+    }
+    
+    if (filters.updatedBefore) {
+      conditions.push(`s.updated_at <= $${idx}`);
+      params.push(filters.updatedBefore);
+      idx++;
+    }
+    
+    // ------------------------------
+    // Product-level filters
+    // ------------------------------
+    if (filters.productName) {
+      conditions.push(`p.name ILIKE $${idx}`);
+      params.push(`%${filters.productName}%`);
+      idx++;
+    }
+    
+    // ------------------------------
+    // Keyword fuzzy search
+    // ------------------------------
+    if (filters.keyword) {
+      conditions.push(`(
+        s.sku ILIKE $${idx} OR
+        p.name ILIKE $${idx} OR
+        p.brand ILIKE $${idx} OR
+        p.category ILIKE $${idx}
+      )`);
+      params.push(`%${filters.keyword}%`);
+      idx++;
+    }
+    
+    return {
+      whereClause: conditions.join(' AND '),
+      params,
+    };
+    
+  } catch (err) {
+    logSystemException(err, 'Failed to build SKU filter', {
+      context: 'sku-repository/buildSkuFilter',
+      filters,
+    });
+    throw AppError.databaseError('Failed to prepare SKU filter', {
+      details: err.message,
+    });
+  }
+};
+
 module.exports = {
+  buildSkuProductCardFilters,
   buildWhereClauseAndParams,
   skuDropdownKeywordHandler,
+  buildSkuFilter,
 };

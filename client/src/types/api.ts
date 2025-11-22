@@ -76,16 +76,21 @@ export interface ApiSuccessResponse<T> {
    * Indicates whether the request was successful.
    */
   success: true;
-
+  
   /**
    * A human-readable message describing the result.
    */
   message: string;
-
+  
   /**
    * The actual data payload of the response.
    */
   data: T;
+  
+  /**
+   * Unique request identifier for tracing/logging.
+   */
+  traceId: string;
 }
 
 /**
@@ -311,4 +316,70 @@ export interface CreatedUpdatedByFilter {
 
   /** Filter by updater's user ID (UUID v4) */
   updatedBy?: string;
+}
+
+/**
+ * Represents a user associated with an audit action
+ * (e.g., createdBy, updatedBy).
+ */
+export interface AuditUser {
+  /** Unique user identifier (can be null for system actions). */
+  id: string | null;
+  
+  /** Display name of the user (e.g., "System Action"). */
+  fullName: string;
+}
+
+/**
+ * Generic audit structure used across multiple domain models.
+ *
+ * This base audit model supports:
+ * - standard created/updated timestamps
+ * - createdBy/updatedBy user references
+ * - optional module-specific fields (via the `extra` generic)
+ *
+ * @template TExtra - Additional fields used by a specific module,
+ *                    such as `{ uploadedAt: string }` for SKU images.
+ */
+export interface GenericAudit<TExtra = unknown> {
+  /** Timestamp indicating when the record was created. */
+  createdAt: string;
+  
+  /**
+   * User who created the record.
+   * May be null for system-generated or legacy records.
+   */
+  createdBy: AuditUser | null;
+  
+  /** Timestamp indicating when the record was last modified. */
+  updatedAt: string | null;
+  
+  /**
+   * User who last updated the record.
+   * May be null if the record has never been updated.
+   */
+  updatedBy: AuditUser | null;
+  
+  /**
+   * Optional module-specific audit data.
+   * Used to extend the audit model when needed.
+   * Example: `{ uploadedAt: string }` for image uploads.
+   */
+  extra?: TExtra;
+}
+
+/**
+ * Generic status model used across domain entities.
+ *
+ * @template TName - Restricts status names (e.g., "active" | "inactive").
+ */
+export interface GenericStatus<TName extends string = string> {
+  /** UUID of the status record */
+  id: string;
+  
+  /** Status label (e.g., "active", "inactive", "pending") */
+  name: TName;
+  
+  /** Timestamp associated with the status event */
+  date: string; // ISO timestamp
 }
