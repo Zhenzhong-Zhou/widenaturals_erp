@@ -21,6 +21,7 @@ export const API_ENDPOINTS = {
   SKUS: {
     SKU_PRODUCT_CARDS: '/skus/cards',
     SKU_DETAILS: (skuId: string) => `/skus/${skuId}/details`,
+    ALL_RECORDS: '/skus',
   },
   BOMS: {
     ALL_RECORDS: '/boms',

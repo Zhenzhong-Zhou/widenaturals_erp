@@ -1,5 +1,6 @@
 import type {
-  GetSkuDetailResponse,
+  FetchSkusParams,
+  GetSkuDetailResponse, GetSkuListResponse,
   GetSkuProductCardsResponse,
   SkuProductCardQueryParams,
 } from '@features/sku/state/skuTypes';
@@ -98,7 +99,64 @@ const fetchSkuDetailById = async (
   }
 };
 
+/**
+ * Fetch a paginated list of SKUs.
+ *
+ * Issues:
+ *   GET /skus?page={page}&limit={limit}&sortBy={col}&sortOrder={order}&...
+ *
+ * Standard response:
+ *   PaginatedResponse<SkuListItem>
+ *
+ * Notes:
+ * - Filters are provided in `params.filters`.
+ * - Function flattens them into top-level query parameters.
+ *
+ * @param params - Pagination, sorting, and SKU filter options.
+ * @returns A promise resolving to paginated SKU list response.
+ * @throws Rethrows any request helper error.
+ *
+ * @example
+ * const res = await fetchPaginatedSkus({
+ *   page: 1,
+ *   limit: 20,
+ *   sortBy: 'skuCode',
+ *   sortOrder: 'ASC',
+ *   filters: { keyword: 'DHA' }
+ * });
+ *
+ * console.log(res.data[0].sku);
+ */
+const fetchPaginatedSkus = async (
+  params: FetchSkusParams = {}
+): Promise<GetSkuListResponse> => {
+  const { filters = {}, ...rest } = params;
+  
+  // Flatten nested filters -> query params
+  const flatParams = {
+    ...rest,
+    ...filters,
+  };
+  
+  // Build ?page=…&limit=…&...
+  const queryString = buildQueryString(flatParams);
+  
+  // Full endpoint
+  const url = `${API_ENDPOINTS.SKUS.ALL_RECORDS}${queryString}`;
+  
+  try {
+    return await getRequest<GetSkuListResponse>(url);
+  } catch (error) {
+    console.error("Failed to fetch SKUs:", {
+      params,
+      error,
+    });
+    throw error;
+  }
+};
+
 export const skuService = {
   fetchPaginatedSkuProductCards,
-  fetchSkuDetailById
+  fetchSkuDetailById,
+  fetchPaginatedSkus,
 };

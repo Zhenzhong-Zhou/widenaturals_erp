@@ -717,3 +717,201 @@ export interface FlattenedPricingRecord {
   updatedBy: string | null;
   updatedAt: string | null;
 }
+
+/**
+ * Response type for the paginated SKU list API.
+ * Wraps a list of SKU items inside a standard `PaginatedResponse<T>` envelope.
+ */
+export type GetSkuListResponse = PaginatedResponse<SkuListItem>;
+
+/**
+ * Represents a single SKU row in the paginated SKU list response.
+ * Contains SKU details, product relationship, status info, and audit metadata.
+ */
+export interface SkuListItem {
+  /** Unique identifier for the SKU */
+  id: string;
+  
+  /** Foreign key reference to the parent product */
+  productId: string;
+  
+  /** SKU code */
+  sku: string;
+  
+  /** Barcode associated with the SKU */
+  barcode: string;
+  
+  /** Language code (e.g., "en-fr") */
+  language: string;
+  
+  /** Country code (e.g., "CA", "US", "UN") */
+  countryCode: string;
+  
+  /** Market region (e.g., "Universe", "Canada", etc.) */
+  marketRegion: string;
+  
+  /** Size label (e.g., "60 Softgels", "120 Capsules") */
+  sizeLabel: string;
+  
+  /** Friendly label for frontend display */
+  displayLabel: string;
+  
+  /** Related product information */
+  product: SkuListProduct;
+  
+  /** Current SKU status and timestamp */
+  status: SkuStatusRecord;
+  
+  /** Standardized audit information (createdBy, updatedBy, timestamps) */
+  audit: GenericAudit;
+}
+
+/**
+ * Minimal product metadata attached to an SKU in the list view.
+ */
+export interface SkuListProduct {
+  id: string;
+  name: string;
+  series: string;
+  brand: string;
+  category: string;
+  displayName: string;
+}
+
+/**
+ * Represents the status of an SKU at a point in time.
+ */
+export interface SkuStatusRecord {
+  /** Status ID (e.g., active, inactive, draft) */
+  id: string;
+  
+  /** Human-readable status name */
+  name: string;
+  
+  /** ISO 8601 timestamp when the SKU entered this status */
+  date: string;
+}
+
+/**
+ * Filter options for querying the paginated SKU list.
+ * Includes product-level, SKU-level, dimensional, audit, and keyword filters.
+ */
+export interface SkuListFilters {
+  // ------------------------------
+  // PRODUCT-LEVEL FILTERS
+  // ------------------------------
+  productName?: string | null;
+  brand?: string | null;
+  category?: string | null;
+  
+  // ------------------------------
+  // SKU-LEVEL FILTERS
+  // ------------------------------
+  sku?: string | null;
+  skuIds?: string[] | string | null;
+  sizeLabel?: string | null;
+  countryCode?: string | null;
+  marketRegion?: string | null;
+  
+  /** Filter by one or more SKU status IDs */
+  statusIds?: string[] | null;
+  
+  /** Filter by one or more parent product IDs */
+  productIds?: string[] | null;
+  
+  /** Filter by single SKU status ID */
+  skuStatusId?: string | null;
+  
+  /** Filter by product status ID */
+  productStatusId?: string | null;
+  
+  // ------------------------------
+  // COMPLIANCE FILTERS
+  // ------------------------------
+  /** Filter by compliance ID linked to the SKU */
+  complianceId?: string | null;
+  
+  // ------------------------------
+  // DIMENSIONAL FILTERS
+  // ------------------------------
+  minLengthCm?: number | null;
+  maxLengthCm?: number | null;
+  minLengthIn?: number | null;
+  maxLengthIn?: number | null;
+  
+  minWidthCm?: number | null;
+  maxWidthCm?: number | null;
+  minWidthIn?: number | null;
+  maxWidthIn?: number | null;
+  
+  minHeightCm?: number | null;
+  maxHeightCm?: number | null;
+  minHeightIn?: number | null;
+  maxHeightIn?: number | null;
+  
+  minWeightG?: number | null;
+  maxWeightG?: number | null;
+  minWeightLb?: number | null;
+  maxWeightLb?: number | null;
+  
+  // ------------------------------
+  // AUDIT FILTERS
+  // ------------------------------
+  createdBy?: string | null;
+  updatedBy?: string | null;
+  createdAfter?: string | Date | null;
+  createdBefore?: string | Date | null;
+  updatedAfter?: string | Date | null;
+  updatedBefore?: string | Date | null;
+  
+  // ------------------------------
+  // KEYWORD SEARCH
+  // ------------------------------
+  /** Matches across SKU code, product name, brand, category (ILIKE fuzzy match) */
+  keyword?: string | null;
+}
+
+/**
+ * Allowed sort-by field names for the paginated SKU list.
+ * These map directly to SQL sort expressions in the backend.
+ */
+export type SkuSortField =
+// ---- SKU-level fields ----
+  | 'skuCode'
+  | 'barcode'
+  | 'language'
+  | 'countryCode'
+  | 'marketRegion'
+  | 'sizeLabel'
+  
+  // ---- Product-level fields ----
+  | 'productName'
+  | 'productSeries'
+  | 'brand'
+  | 'category'
+  
+  // ---- Status fields ----
+  | 'statusName'
+  | 'statusDate'
+  
+  // ---- Audit fields ----
+  | 'createdAt'
+  | 'updatedAt'
+  
+  // ---- Default fallback ----
+  | 'defaultNaturalSort';
+
+/**
+ * Query parameters for fetching paginated SKUs.
+ * Combines pagination, sorting, and filter options.
+ */
+export interface FetchSkusParams extends PaginationParams, SortConfig {
+  /** Optional structured filter object */
+  filters?: SkuListFilters;
+}
+
+/**
+ * Redux state type for storing a paginated SKU list.
+ * Extends a generic paginated Redux structure with SKU item payloads.
+ */
+export type SkuListState = ReduxPaginatedState<SkuListItem>;
