@@ -10,6 +10,7 @@ const {
   updatedDateRangeSchema, validateUUIDArray
 } = require('./general-validators');
 const { updateStatusIdSchema } = require('./status-validators');
+const { CODE_RULES } = require('../utils/validation/code-rules');
 
 /**
  * Joi schema: getPaginatedSkuProductCardsSchema
@@ -232,27 +233,25 @@ const createSkuSchema = Joi.object({
   brand_code: Joi.string()
     .trim()
     .uppercase()
-    .min(2)
-    .max(5)
+    .pattern(CODE_RULES.BRAND)
     .required(),
   
   category_code: Joi.string()
     .trim()
     .uppercase()
-    .min(2)
-    .max(5)
+    .pattern(CODE_RULES.CATEGORY)
     .required(),
   
   variant_code: Joi.string()
     .trim()
-    .max(10) // Allow extended variant codes (e.g., 120, MO400, TCM300)
+    .uppercase()
+    .pattern(CODE_RULES.VARIANT)
     .required(),
   
   region_code: Joi.string()
     .trim()
     .uppercase()
-    .min(2)
-    .max(5)
+    .pattern(CODE_RULES.REGION)
     .required(),
   
   barcode: Joi.string().trim().allow(null, ''),

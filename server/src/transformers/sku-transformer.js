@@ -1,10 +1,10 @@
 const { getProductDisplayName } = require('../utils/display-name-utils');
-const { getFullName } = require('../utils/name-utils');
 const { transformPaginatedResult } = require('../utils/transformer-utils');
 const { cleanObject } = require('../utils/object-utils');
 const { transformSkuImage } = require('./sku-image-transformer');
 const { transformSkuPricing } = require('./pricing-transformer');
 const { transformComplianceRecord } = require('./compliance-record-transfomer');
+const { compactAudit, makeAudit } = require('../utils/audit-utils');
 
 /**
  * @typedef {object} RawSkuProductCardRow
@@ -201,19 +201,7 @@ const transformSkuListRecord = (row) => {
       date: row.status_date,
     },
     
-    createdBy: {
-      id: row.created_by,
-      firstname: row.created_by_firstname,
-      lastname: row.created_by_lastname,
-      displayName: getFullName(row.created_by_firstname, row.created_by_lastname),
-    },
-    
-    updatedBy: {
-      id: row.updated_by,
-      firstname: row.updated_by_firstname,
-      lastname: row.updated_by_lastname,
-      displayName: getFullName(row.updated_by_firstname, row.updated_by_lastname),
-    },
+    audit: compactAudit(makeAudit(row)),
   });
 };
 
@@ -377,18 +365,7 @@ const transformSkuDetail = ({ sku, images, pricing, complianceRecords }) => {
       date: sku.sku_status_date,
     },
     
-    audit: {
-      createdAt: sku.sku_created_at,
-      createdBy: {
-        id: sku.sku_created_by,
-        fullName: getFullName(sku.created_by_firstname, sku.created_by_lastname),
-      },
-      updatedAt: sku.sku_updated_at,
-      updatedBy: {
-        id: sku.sku_updated_by,
-        fullName: getFullName(sku.updated_by_firstname, sku.updated_by_lastname),
-      },
-    },
+    audit: compactAudit(makeAudit(sku)),
     
     // --- Lists with transformers applied ---
     images: images?.map(transformSkuImage) ?? [],
