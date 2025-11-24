@@ -4,6 +4,7 @@ import type {
   AuditUser,
   GenericAudit,
   GenericStatus,
+  OperationStats,
   PaginatedResponse,
   PaginationParams,
   ReduxPaginatedState,
@@ -1014,3 +1015,110 @@ export interface FlattenedSkuRecord {
   /** Display name of the user/system who last updated the SKU. */
   updatedBy: string;
 }
+
+/**
+ * Input payload for creating a single SKU.
+ * Mirrors the backend Joi validator: createSkuSchema
+ */
+export interface CreateSkuInput {
+  /** Product foreign key (required, UUID). */
+  product_id: string;
+  
+  /** Brand code segment of SKU (e.g., WN, PG). */
+  brand_code: string;
+  
+  /** Category code segment (e.g., MO, NM, HF). */
+  category_code: string;
+  
+  /** Variant code (e.g., 120, MO400, TCM300). */
+  variant_code: string;
+  
+  /** Region/market code segment (e.g., CA, CN, UN). */
+  region_code: string;
+  
+  /** Optional barcode (string or empty). */
+  barcode: string | null;
+  
+  /** Optional language tag (e.g., "en-fr"). */
+  language: string | null;
+  
+  /** ISO country code (e.g., "CA"), nullable. */
+  country_code: string | null;
+  
+  /** Market region (e.g., "Canada"), nullable. */
+  market_region: string | null;
+  
+  /** Display size label (e.g., "60 Softgels"). */
+  size_label: string | null;
+  
+  /** Optional SKU description. */
+  description: string | null;
+  
+  /** Dimensions (optional, positive numbers). */
+  length_cm: number | null;
+  width_cm: number | null;
+  height_cm: number | null;
+  
+  /** Weight (grams), optional. */
+  weight_g: number | null;
+}
+
+/**
+ * Bulk creation payload for multiple SKUs.
+ * Mirrors the backend Joi validator: createSkuBulkSchema
+ */
+export interface CreateSkuBulkInput {
+  /** Array of SKU creation payloads (1–200 items). */
+  skus: CreateSkuInput[];
+}
+
+/**
+ * API response for creating one or many SKUs.
+ *
+ * Combines:
+ *  - ApiSuccessResponse<T>
+ *  - OperationStats for timing + processing summary
+ *  - Created SKU array
+ */
+export interface CreateSkuResponse
+  extends ApiSuccessResponse<CreatedSkuRecord[]> {
+  /**
+   * Operational statistics such as:
+   *  - inputCount
+   *  - processedCount
+   *  - elapsedMs
+   *  - optional meta
+   */
+  stats: OperationStats;
+}
+
+/**
+ * Individual created SKU entry returned by the API.
+ */
+export interface CreatedSkuRecord {
+  /** UUID of the newly created SKU. */
+  id: string;
+  
+  /** Generated SKU code (e.g., "CJ-IUM500-S-CN"). */
+  skuCode: string;
+}
+
+/**
+ * Redux slice state for SKU creation operations.
+ *
+ * Extends the generic `AsyncState<T>` pattern used throughout the app,
+ * providing:
+ *   - `data`: API response containing created SKU records (or null before creation)
+ *   - `loading`: indicates an in-progress create request
+ *   - `error`: error message if the request fails
+ *
+ * This state is used by dialogs, forms, or bulk SKU creation workflows.
+ *
+ * @example
+ * const { loading, data, error } = useSelector(selectCreateSkusState);
+ * const isSuccess = !!data;
+ *
+ * @see AsyncState
+ * @see CreateSkuResponse
+ */
+export type CreateSkusState = AsyncState<CreateSkuResponse | null>;

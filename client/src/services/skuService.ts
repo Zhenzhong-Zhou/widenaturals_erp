@@ -1,12 +1,15 @@
 import type {
+  CreateSkuBulkInput,
+  CreateSkuResponse,
   FetchSkusParams,
-  GetSkuDetailResponse, GetSkuListResponse,
+  GetSkuDetailResponse,
+  GetSkuListResponse,
   GetSkuProductCardsResponse,
   SkuProductCardQueryParams,
 } from '@features/sku/state/skuTypes';
 import { API_ENDPOINTS } from './apiEndpoints';
 import { sanitizeString } from '@utils/stringUtils';
-import { getRequest } from '@utils/apiRequest';
+import { getRequest, postRequest } from '@utils/apiRequest';
 import { buildQueryString } from '@utils/buildQueryString';
 
 /**
@@ -155,8 +158,52 @@ const fetchPaginatedSkus = async (
   }
 };
 
+/**
+ * Create one or more SKUs via the backend API.
+ *
+ * - Sends a POST request containing either a single SKU or an array of SKUs.
+ * - Supports bulk operations using the CreateSkuBulkInput schema.
+ * - Returns metadata, stats, and an array of created SKU records.
+ * - Errors are logged and rethrown for upstream handling.
+ *
+ * @param {CreateSkuBulkInput} payload - Object containing one or more SKU definitions.
+ * @returns {Promise<CreateSkuResponse>} The API response with created SKU records.
+ * @throws Rethrows network or server errors for the caller to handle.
+ *
+ * @example
+ * const res = await createSkus({
+ *   skus: [
+ *     {
+ *       productId: 'uuid',
+ *       brandCode: 'WN',
+ *       categoryCode: 'MO',
+ *       variantCode: '411',
+ *       regionCode: 'UN',
+ *       language: 'en-fr'
+ *     }
+ *   ]
+ * });
+ * console.log(res.data[0].skuCode);
+ */
+const createSkus = async (
+  payload: CreateSkuBulkInput
+): Promise<CreateSkuResponse> => {
+  const url = API_ENDPOINTS.SKUS.ADD_NEW_RECORD;
+  
+  try {
+    return await postRequest<CreateSkuBulkInput, CreateSkuResponse>(
+      url,
+      payload
+    );
+  } catch (error) {
+    console.error('Failed to create SKUs:', error);
+    throw error;
+  }
+};
+
 export const skuService = {
   fetchPaginatedSkuProductCards,
   fetchSkuDetailById,
   fetchPaginatedSkus,
+  createSkus,
 };

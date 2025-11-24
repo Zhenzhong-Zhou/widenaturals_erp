@@ -383,3 +383,23 @@ export interface GenericStatus<TName extends string = string> {
   /** Timestamp associated with the status event */
   date: string; // ISO timestamp
 }
+
+/**
+ * Generic statistics returned from any type of operation
+ * (single or bulk).
+ *
+ * @template T - Optional contextual metadata for the operation.
+ */
+export interface OperationStats<T = void> {
+  /** Number of items received or attempted. Always ≥ 1. */
+  inputCount: number;
+  
+  /** Number of items successfully processed (1 for single ops). */
+  processedCount: number;
+  
+  /** Total time taken to complete, in milliseconds. */
+  elapsedMs: number;
+  
+  /** Optional metadata returned by this specific operation. */
+  meta?: T;
+}

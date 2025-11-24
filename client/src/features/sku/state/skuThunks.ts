@@ -1,5 +1,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
+  CreateSkuBulkInput,
+  CreateSkuResponse,
   FetchSkusParams,
   GetSkuDetailResponse,
   GetSkuListResponse,
@@ -136,6 +138,78 @@ export const fetchPaginatedSkusThunk = createAsyncThunk<
         err?.message ||
         'Failed to fetch SKUs';
       
+      return rejectWithValue(message);
+    }
+  }
+);
+
+/**
+ * RTK Thunk — Create one or more SKU records.
+ *
+ * This thunk submits a batch of SKU definitions to the backend API,
+ * which:
+ *   - Generates full SKU codes based on brand/category/variant/region rules
+ *   - Inserts the SKU rows in bulk
+ *   - Returns metadata describing the result (counts, timings)
+ *   - Returns the created SKU records (IDs + generated SKU codes)
+ *
+ * The thunk automatically:
+ *   - Handles loading/error states through Redux
+ *   - Normalizes API errors using `rejectWithValue`
+ *   - Supports both single-SKU and bulk-SKU creation workflows
+ *
+ * Typical usage includes SKU creation forms, bulk import dialogs,
+ * or administrative SKU management tools.
+ *
+ * @param payload - Bulk SKU creation input, containing one or more SKU definitions.
+ *
+ * @returns A promise resolving to the typed `CreateSkuResponse` when successful,
+ *          or rejecting with a string message via `rejectWithValue` on failure.
+ *
+ * @example
+ * // Dispatching bulk SKU creation
+ * dispatch(createSkusThunk({
+ *   skus: [
+ *     {
+ *       productId: '0b4fe34e-92b8-4bf7-a5d8-0a7e9a588001',
+ *       brandCode: 'WN',
+ *       categoryCode: 'MO',
+ *       variantCode: '411',
+ *       regionCode: 'UN',
+ *       barcode: '628719706039'
+ *     },
+ *     {
+ *       productId: '91b7ab32-3456-4a91-901f-c4c971adf3ce',
+ *       brandCode: 'CJ',
+ *       categoryCode: 'IUM',
+ *       variantCode: '500',
+ *       regionCode: 'CA'
+ *     }
+ *   ]
+ * }));
+ *
+ * @example
+ * // Derived UI logic
+ * const { submit, loading, isSuccess, createdSkuCodes } = useCreateSkus();
+ *
+ * if (isSuccess) {
+ *   toast.success(`Created SKUs: ${createdSkuCodes.join(', ')}`);
+ * }
+ */
+export const createSkusThunk = createAsyncThunk<
+  CreateSkuResponse,     // Returned payload on success
+  CreateSkuBulkInput,    // Input argument
+  { rejectValue: string } // Typed reject payload
+>(
+  'skus/createSkus',
+  async (payload, { rejectWithValue }) => {
+    try {
+      return await skuService.createSkus(payload);
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Failed to create SKUs.';
       return rejectWithValue(message);
     }
   }
