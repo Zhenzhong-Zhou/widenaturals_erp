@@ -915,3 +915,102 @@ export interface FetchSkusParams extends PaginationParams, SortConfig {
  * Extends a generic paginated Redux structure with SKU item payloads.
  */
 export type SkuListState = ReduxPaginatedState<SkuListItem>;
+
+/**
+ * A flattened, table-ready representation of a SKU list record.
+ *
+ * This structure is produced by `flattenSkuRecords()` and merges
+ * product metadata, SKU attributes, status information, and audit
+ * fields into a single row suitable for:
+ *   - Paginated SKU tables
+ *   - Export (CSV / Excel)
+ *   - Expandable row views
+ *   - Sorting and filtering UI
+ *
+ * All nested fields from the API (`product`, `status`, `audit`)
+ * are normalized into safe primitives with frontend-friendly
+ * fallbacks ("—", empty string, or null).
+ */
+export interface FlattenedSkuRecord {
+  // --------------------------
+  // Product Metadata
+  // --------------------------
+  
+  /** Unique identifier of the parent product; may be null if product is missing. */
+  productId: string | null;
+  
+  /** Human-friendly product name from the Product table. */
+  productName: string;
+  
+  /** Brand name for categorization and display (e.g., "WIDE Naturals"). */
+  brand: string;
+  
+  /** Product series such as “WIDE Collection”, “Marine Oil”, etc. */
+  series: string;
+  
+  /** Product category (e.g., "Marine Oil", "Vitamins", etc.). */
+  category: string;
+  
+  /**
+   * Preformatted display name combining product + variant info,
+   * suitable for table output.
+   */
+  displayProductName: string;
+  
+  // --------------------------
+  // SKU Metadata
+  // --------------------------
+  
+  /** SKU unique identifier. */
+  skuId: string | null;
+  
+  /** SKU code (e.g., "WN-MO411-L-UN"). */
+  skuCode: string;
+  
+  /** Barcode associated with this SKU. */
+  barcode: string;
+  
+  /** Language code such as "en-fr". */
+  language: string;
+  
+  /** Country code for this SKU (e.g., "CA", "US", "UN"). */
+  countryCode: string;
+  
+  /** Market region label (e.g., "Universe", "Canada"). */
+  marketRegion: string;
+  
+  /** Packaging or count size, such as “60 Softgels”. */
+  sizeLabel: string;
+  
+  /**
+   * Formatted SKU label for UI display, often includes product title
+   * plus variant attributes (e.g., size, language).
+   */
+  displayLabel: string;
+  
+  // --------------------------
+  // Status
+  // --------------------------
+  
+  /** Current SKU status (e.g., "active", "inactive"). */
+  statusName: string;
+  
+  /** ISO timestamp of the latest status change. */
+  statusDate: string;
+  
+  // --------------------------
+  // Audit Metadata
+  // --------------------------
+  
+  /** ISO timestamp when the SKU was created. */
+  createdAt: string;
+  
+  /** Display name of the user/system who created the SKU. */
+  createdBy: string;
+  
+  /** ISO timestamp when the SKU was last updated. */
+  updatedAt: string;
+  
+  /** Display name of the user/system who last updated the SKU. */
+  updatedBy: string;
+}
