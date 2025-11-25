@@ -1,6 +1,14 @@
-const { query, bulkInsert } = require('../database/db');
+const {
+  query,
+  bulkInsert,
+  paginateQueryByOffset
+} = require('../database/db');
 const AppError = require('../utils/AppError');
-const { logSystemException, logSystemInfo } = require('../utils/system-logger');
+const {
+  logSystemException,
+  logSystemInfo
+} = require('../utils/system-logger');
+const { buildSkuCodeBaseFilter } = require('../utils/sql/build-sku-code-base-filters');
 
 /**
  * @async
@@ -313,8 +321,93 @@ const insertBaseCodesBulk = async (pairs, client, chunkSize = 1000) => {
   }
 };
 
+/**
+ * Fetches SKU code base records for lookup dropdowns or autocomplete components.
+ *
+ * This function returns a lightweight, paginated list of SKU code base rows,
+ * applying optional filters such as brand_code, category_code, or keyword search.
+ *
+ * Intended for fast lookup use cases when generating SKUs.
+ *
+ * @param {Object} options - Options for the lookup query.
+ * @param {Object} [options.filters={}] - Dynamic filters for brand_code, category_code, status_id, keyword, etc.
+ * @param {number} [options.limit=50] - Maximum number of records to return.
+ * @param {number} [options.offset=0] - Records to skip for pagination.
+ *
+ * @returns {Promise<{
+ *   data: Array<{
+ *     id: string,
+ *     brand_code: string,
+ *     category_code: string,
+ *     base_code: number,
+ *     status_id: string,
+ *     has_children?: boolean
+ *   }>,
+ *   pagination: {
+ *     offset: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     hasMore: boolean
+ *   }
+ * }>}
+ *
+ * @throws {AppError} Throws a database error if the query fails.
+ */
+const getSkuCodeBaseLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
+  const context = 'sku-code-base-repository/getSkuCodeBaseLookup';
+  
+  const tableName = 'sku_code_bases scb';
+  
+  // Step 1: Build dynamic WHERE clause + params
+  // You will implement buildSkuCodeBaseFilter similar to buildCustomerFilter
+  const { whereClause, params } = buildSkuCodeBaseFilter(filters);
+  
+  // Step 2: Base select query (keep payload small for dropdowns)
+  const queryText = `
+    SELECT
+      scb.id,
+      scb.brand_code,
+      scb.category_code
+    FROM ${tableName}
+    WHERE ${whereClause}
+  `;
+  
+  try {
+    // Step 3: Execute with pagination and consistent sorting
+    const result = await paginateQueryByOffset({
+      tableName,
+      whereClause,
+      queryText,
+      params,
+      offset,
+      limit,
+      sortBy: 'scb.brand_code',
+      sortOrder: 'ASC',
+      additionalSort: 'scb.category_code ASC, scb.base_code ASC',
+    });
+    
+    logSystemInfo('Fetched SKU code base lookup data', {
+      context,
+      offset,
+      limit,
+      filters,
+    });
+    
+    return result;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch SKU code base lookup', {
+      context,
+      offset,
+      limit,
+      filters,
+    });
+    throw AppError.databaseError('Failed to fetch SKU code base lookup.');
+  }
+};
+
 module.exports = {
   getBaseCodeForBrandCategory,
   getExistingBaseCodesBulk,
   insertBaseCodesBulk,
+  getSkuCodeBaseLookup,
 };

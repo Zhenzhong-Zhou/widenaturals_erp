@@ -131,7 +131,6 @@ const buildCustomerFilter = (filters = {}) => {
       context: 'customer-repository/buildCustomerFilter',
       error: err.message,
       filters,
-      statusId,
     });
     throw AppError.databaseError('Failed to prepare customer dropdown filter', {
       details: err.message,

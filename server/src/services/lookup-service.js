@@ -16,7 +16,7 @@ const {
   transformDeliveryMethodPaginatedLookupResult,
   transformSkuPaginatedLookupResult,
   transformPricingPaginatedLookupResult,
-  transformPackagingMaterialPaginatedLookupResult,
+  transformPackagingMaterialPaginatedLookupResult, transformSkuCodeBasePaginatedLookupResult,
 } = require('../transformers/lookup-transformer');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const {
@@ -99,6 +99,8 @@ const {
 const {
   getPackagingMaterialsForSalesOrderLookup,
 } = require('../repositories/packaging-material-repository');
+const { evaluateSkuCodeBaseLookupAccessControl, enforceSkuCodeBaseLookupVisibilityRules, enrichSkuCodeBaseOption } = require('../business/sku-code-base-business');
+const { getSkuCodeBaseLookup } = require('../repositories/sku-code-base-repository');
 
 /**
  * Service to fetch filtered and paginated batch registry records for lookup UI.
@@ -1109,6 +1111,102 @@ const fetchPaginatedPackagingMaterialLookupService = async (
   }
 };
 
+/**
+ * Fetches filtered and paginated SKU Code Base records for lookup UIs
+ * (e.g., dropdowns, autocomplete inputs, selection lists).
+ *
+ * Supports:
+ * - Keyword-based matching on brand_code or category_code
+ * - Limit-offset pagination
+ * - Permission-aware status filtering (active-only for restricted users)
+ * - UI enrichment (e.g., flags like `isActive`)
+ *
+ * Internal flow:
+ * - Resolve user permissions
+ * - Enforce visibility rules
+ * - Perform repository-level lookup query
+ * - Enrich each row
+ * - Transform to UI-friendly format
+ *
+ * @param {object} user - Authenticated user object.
+ * @param {object} options - Query options.
+ * @param {object} [options.filters={}] - Optional filters (e.g., keyword, brand_code, category_code, status_id, etc.)
+ * @param {number} [options.limit=50] - Maximum number of rows.
+ * @param {number} [options.offset=0] - Offset for pagination.
+ *
+ * @returns {Promise<{
+ *   items: Array<{ id: string, label: string, isActive?: boolean }>,
+ *   offset: number,
+ *   limit: number,
+ *   hasMore: boolean
+ * }>}
+ *
+ * @throws {AppError} - If permission or query execution fails.
+ */
+const fetchSkuCodeBaseLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
+  const context = 'lookup-service/fetchSkuCodeBaseLookupService';
+  
+  try {
+    // Step 1: Log service entry
+    logSystemInfo('Fetching SKU Code Base lookup from service', {
+      context,
+      metadata: { filters, limit, offset },
+    });
+    
+    // Step 2: Evaluate permissions
+    const userAccess = await evaluateSkuCodeBaseLookupAccessControl(user);
+    const activeStatusId = getStatusId('general_active');
+    
+    // Step 3: Apply visibility enforcement
+    const adjustedFilters = enforceSkuCodeBaseLookupVisibilityRules(
+      filters,
+      userAccess,
+      activeStatusId
+    );
+    
+    // Step 4: Fetch paginated rows from repository
+    const { data = [], pagination = {} } = await getSkuCodeBaseLookup({
+      filters: adjustedFilters,
+      limit,
+      offset,
+    });
+    
+    // Step 5: Enrich each code base row
+    const enrichedRows = data.map((row) =>
+      enrichSkuCodeBaseOption(row, activeStatusId)
+    );
+    
+    // Step 6: Final UI-format result
+    return transformSkuCodeBasePaginatedLookupResult(
+      { data: enrichedRows, pagination },
+      userAccess
+    );
+  } catch (err) {
+    logSystemException(
+      err,
+      'Failed to fetch SKU Code Base lookup in service',
+      {
+        context,
+        userId: user?.id,
+        filters,
+        limit,
+        offset,
+      }
+    );
+    
+    throw AppError.serviceError(
+      'Failed to fetch SKU Code Base lookup list.',
+      {
+        details: err.message,
+        stage: context,
+      }
+    );
+  }
+};
+
 module.exports = {
   fetchBatchRegistryLookupService,
   fetchWarehouseLookupService,
@@ -1123,4 +1221,5 @@ module.exports = {
   fetchPaginatedSkuLookupService,
   fetchPaginatedPricingLookupService,
   fetchPaginatedPackagingMaterialLookupService,
+  fetchSkuCodeBaseLookupService,
 };

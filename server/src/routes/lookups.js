@@ -13,6 +13,7 @@ const {
   getSkuLookupController,
   getPricingLookupController,
   getPackagingMaterialLookupController,
+  getSkuCodeBaseLookupController,
 } = require('../controllers/lookup-controller');
 const authorize = require('../middlewares/authorize');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
@@ -31,7 +32,7 @@ const {
   deliveryMethodLookupQuerySchema,
   skuLookupQuerySchema,
   pricingLookupQuerySchema,
-  packagingMaterialLookupQuerySchema,
+  packagingMaterialLookupQuerySchema, skuCodeBaseLookupQuerySchema,
 } = require('../validators/lookup-validators');
 const { PERMISSIONS } = require('../utils/constants/domain/lookup-constants');
 
@@ -699,7 +700,7 @@ router.get(
  */
 router.get(
   '/packaging-materials',
-  // authorize([PERMISSIONS.VIEW_PACKAGING_MATERIAL]),
+  authorize([PERMISSIONS.VIEW_PACKAGING_MATERIAL]),
   createQueryNormalizationMiddleware(
     '', // moduleKey
     [], // arrayKeys
@@ -717,6 +718,63 @@ router.get(
     'Invalid query parameters.'
   ),
   getPackagingMaterialLookupController
+);
+
+/**
+ * @route GET /sku-code-bases
+ * @description
+ * Endpoint to fetch paginated SKU Code Base lookup options for dropdowns or selectors.
+ * Applies permission checks, query normalization, field sanitization, validation, and filtering.
+ *
+ * Middleware chain includes:
+ * - `authorize`: Enforces user permission to view SKU Code Base lookups
+ * - `createQueryNormalizationMiddleware`: Extracts and structures query parameters
+ *     (e.g., filters, keyword, brand_code, pagination)
+ * - `sanitizeFields`: Trims and sanitizes specific fields (e.g., `keyword`)
+ * - `validate`: Validates the normalized query against `skuCodeBaseLookupQuerySchema`
+ * - `getSkuCodeBaseLookupController`: Handles the request and returns formatted lookup options
+ *
+ * Query Parameters (after normalization):
+ * - `filters.keyword` — Optional search keyword for brand/category
+ * - `filters.brand_code` — Optional exact brand code filter
+ * - `filters.category_code` — Optional exact category code filter
+ * - `filters.status_id` — Optional status filter (maybe overridden based on permissions)
+ * - `limit` — Pagination size (default: 50)
+ * - `offset` — Pagination offset
+ *
+ * Response:
+ * - `200 OK` with JSON:
+ *   - `success` (boolean)
+ *   - `message` (string)
+ *   - `items` (array of `{ id, label, isActive }`)
+ *   - `limit` (number)
+ *   - `offset` (number)
+ *   - `hasMore` (boolean)
+ *
+ * @access Protected
+ * @permission Requires `view_sku_code_base_lookup` permission
+ */
+router.get(
+  '/sku-code-bases',
+  authorize([PERMISSIONS.VIEW_SKU_CODE_BASE]),
+  createQueryNormalizationMiddleware(
+    '',               // moduleKey (optional)
+    [],               // arrayKeys (none needed for this lookup)
+    [],               // booleanKeys (none needed)
+    ['keyword', 'brand_code', 'category_code'], // filterKeys
+    { includePagination: true, includeSorting: false }
+  ),
+  sanitizeFields(['keyword']),
+  validate(
+    skuCodeBaseLookupQuerySchema,
+    'query',
+    {
+      abortEarly: false,
+      convert: true,
+    },
+    'Invalid SKU Code Base lookup query parameters.'
+  ),
+  getSkuCodeBaseLookupController
 );
 
 module.exports = router;

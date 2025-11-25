@@ -855,6 +855,94 @@ const transformPackagingMaterialPaginatedLookupResult = (
     { includeLoadMore: true }
   );
 
+/**
+ * Transforms a single raw SKU Code Base record into a lookup-friendly object.
+ *
+ * Constructs a `label` using brand_code, category_code, and base_code,
+ * and conditionally appends UI flags (e.g. `isActive`) based on the user's access level.
+ *
+ * Used in lookup dropdowns, autocomplete inputs, and SKU creation flows.
+ *
+ * @param {{
+ *   id: string,
+ *   brand_code: string,
+ *   category_code: string,
+ *   base_code: number,
+ *   status_id?: string,
+ * }} row - Raw SKU Code Base row from the database.
+ *
+ * @param {object} userAccess - Object containing access-level flags
+ *                              (e.g., from `evaluateSkuCodeBaseLookupAccessControl()`).
+ *
+ * @returns {{
+ *   id: string,
+ *   label: string,
+ *   isActive?: boolean,
+ *   [key: string]: any
+ * }} Transformed lookup object with `id`, `label`, and optional enriched flags.
+ *
+ * @example
+ * const result = transformSkuCodeBaseLookup(row, userAccess);
+ * // { id, label: "BR-CT (200)", isActive: true }
+ */
+const transformSkuCodeBaseLookup = (row, userAccess) => {
+  if (!row || typeof row !== 'object') return null;
+  
+  const brand = row.brand_code || 'N/A';
+  const category = row.category_code || 'N/A';
+  const base = row.base_code != null ? row.base_code : '—';
+  
+  // Example label: "BR-CT (200)"
+  const label = `${brand}-${category} (${base})`;
+  
+  // Uses same helper as customer implementation
+  const baseObj = transformIdNameToIdLabel({ ...row, name: label });
+  
+  // Conditional UI flags (e.g., isActive)
+  const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
+  
+  return {
+    ...baseObj,
+    ...flagSubset,
+  };
+};
+
+/**
+ * Transforms a paginated set of raw SKU Code Base records into a UI-friendly
+ * format suitable for dropdowns or infinite-scroll lookup components.
+ *
+ * @param {{
+ *   data: Array<object>,
+ *   pagination: {
+ *     offset: number,
+ *     limit: number,
+ *     totalRecords: number
+ *   }
+ * }} paginatedResult - Raw paginated result from repository query.
+ *
+ * @param {object} userAccess - Access flags used to enrich each row.
+ *
+ * @returns {{
+ *   items: Array<{
+ *     id: string,
+ *     label: string,
+ *     [key: string]: any
+ *   }>,
+ *   offset: number,
+ *   limit: number,
+ *   hasMore: boolean
+ * }} Final lookup result formatted for UI dropdowns/infinite-scroll.
+ */
+const transformSkuCodeBasePaginatedLookupResult = (
+  paginatedResult,
+  userAccess
+) =>
+  transformPaginatedResult(
+    paginatedResult,
+    (row) => transformSkuCodeBaseLookup(row, userAccess),
+    { includeLoadMore: true }
+  );
+
 module.exports = {
   transformBatchRegistryPaginatedLookupResult,
   transformWarehouseLookupRows,
@@ -869,4 +957,5 @@ module.exports = {
   transformSkuPaginatedLookupResult,
   transformPricingPaginatedLookupResult,
   transformPackagingMaterialPaginatedLookupResult,
+  transformSkuCodeBasePaginatedLookupResult,
 };
