@@ -258,8 +258,6 @@ const createSkuSchema = Joi.object({
   
   language: Joi.string().trim().max(10).allow(null),
   
-  country_code: Joi.string().trim().length(2).uppercase().allow(null),
-  
   market_region: Joi.string().trim().max(100).allow(null),
   
   size_label: Joi.string().trim().max(100).allow(null),

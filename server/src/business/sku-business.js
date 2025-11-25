@@ -345,7 +345,7 @@ const prepareSkuInsertPayload = (skuData, generatedSku, statusId, userId) => ({
   sku: generatedSku,
   barcode: skuData.barcode ?? null,
   language: skuData.language ?? 'en-fr',
-  country_code: skuData.country_code ?? null,
+  country_code: skuData.region_code ?? null,
   market_region: skuData.market_region ?? null,
   size_label: skuData.size_label ?? null,
   description: skuData.description ?? null,
