@@ -1,7 +1,16 @@
-const { query, paginateResults, updateById, bulkInsert } = require('../database/db');
+const {
+  query,
+  paginateResults,
+  updateById,
+  bulkInsert,
+  paginateQueryByOffset
+} = require('../database/db');
 const AppError = require('../utils/AppError');
 const { buildProductFilter } = require('../utils/sql/build-product-filters');
-const { logSystemInfo, logSystemException } = require('../utils/system-logger');
+const {
+  logSystemInfo,
+  logSystemException
+} = require('../utils/system-logger');
 
 /**
  * Checks if a product exists in the database based on provided filters.
@@ -530,6 +539,95 @@ const insertProductsBulk = async (products, client) => {
   }
 };
 
+/**
+ * Fetches a lightweight, paginated list of products for use in
+ * dropdowns, autocomplete fields, or SKU/BOM creation workflows.
+ *
+ * This function intentionally returns a minimal payload to improve
+ * performance in UI lookup scenarios. Only the essential identifying
+ * fields (id, name, brand, category) are returned.
+ *
+ * Supports:
+ * - Exact and fuzzy filtering via buildProductFilter()
+ * - Keyword search (name/brand/category)
+ * - Stable sorting (name → brand → category)
+ * - Efficient offset-based pagination
+ *
+ * Best practice:
+ * - Keep lookup endpoints lightweight
+ * - Avoid joining large tables
+ * - Select only index-friendly fields
+ *
+ * @param {Object} options - Lookup query options.
+ * @param {Object} [options.filters={}] - Filters passed to buildProductFilter().
+ * @param {number} [options.limit=50] - Max number of rows to return.
+ * @param {number} [options.offset=0] - Number of rows to skip.
+ *
+ * @returns {Promise<{
+ *   data: Array<{
+ *     id: string,
+ *     name: string,
+ *     brand: string,
+ *     category: string
+ *   }>,
+ *   pagination: {
+ *     offset: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     hasMore: boolean
+ *   }
+ * }>}
+ *
+ * @throws {AppError} Database error if the lookup query fails.
+ */
+const getProductLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
+  const context = 'product-repository/getProductLookup';
+  const tableName = 'products p';
+  
+  const { whereClause, params } = buildProductFilter(filters);
+  
+  const queryText = `
+    SELECT
+      p.id,
+      p.name,
+      p.brand,
+      p.category
+    FROM ${tableName}
+    WHERE ${whereClause}
+  `;
+  
+  try {
+    const result = await paginateQueryByOffset({
+      tableName,
+      whereClause,
+      queryText,
+      params,
+      offset,
+      limit,
+      sortBy: 'p.name',
+      sortOrder: 'ASC',
+      additionalSort: 'p.brand ASC, p.category ASC'
+    });
+    
+    logSystemInfo('Fetched product lookup data', {
+      context,
+      offset,
+      limit,
+      filters
+    });
+    
+    return result;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch product lookup', {
+      context,
+      offset,
+      limit,
+      filters
+    });
+    throw AppError.databaseError('Failed to fetch product lookup.');
+  }
+};
+
 module.exports = {
   checkProductExists,
   getPaginatedProducts,
@@ -537,4 +635,5 @@ module.exports = {
   updateProductStatus,
   updateProductInfo,
   insertProductsBulk,
+  getProductLookup,
 };

@@ -1,5 +1,8 @@
 const { getStatusNameById, getStatusId } = require('../config/status-cache');
 const AppError = require('../utils/AppError');
+const { PERMISSIONS } = require('../utils/constants/domain/product-constants');
+const { resolveUserPermissionContext } = require('../services/role-permission-service');
+const { logSystemException } = require('../utils/system-logger');
 
 /**
  * Validates whether a product can transition from its current status
@@ -201,10 +204,117 @@ const prepareProductInsertPayloads = (products, userId) => {
   }));
 };
 
+/**
+ * Evaluates access control flags for Product lookup queries.
+ *
+ * Determines whether the user can:
+ * - View all product statuses (`canViewAllStatuses`)
+ * - View only "active" products (`canViewActiveOnly`)
+ *
+ * This influences lookup filtering rules.
+ *
+ * @param {object} user - Current authenticated user.
+ * @returns {Promise<{ canViewAllStatuses: boolean, canViewActiveOnly: boolean }>}
+ *
+ * @throws {AppError} If permission context cannot be resolved.
+ */
+const evaluateProductLookupAccessControl = async (user) => {
+  try {
+    const { permissions, isRoot } = await resolveUserPermissionContext(user);
+    
+    return {
+      canViewAllStatuses:
+        isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_PRODUCTS),
+      
+      canViewActiveOnly:
+        isRoot || permissions.includes(PERMISSIONS.VIEW_ACTIVE_PRODUCTS),
+    };
+  } catch (err) {
+    logSystemException(err, 'Failed to evaluate Product access control', {
+      context: 'product-business/evaluateProductLookupAccessControl',
+      userId: user?.id,
+    });
+    
+    throw AppError.businessError(
+      'Unable to evaluate access control for Product lookup',
+      {
+        details: err.message,
+        stage: 'evaluate-product-access',
+      }
+    );
+  }
+};
+
+/**
+ * Applies access-based visibility rules to Product lookup filters.
+ *
+ * - If user cannot view all statuses → enforce active-only.
+ * - If user has elevated permissions → remove enforced restrictions.
+ *
+ * @param {object} [filters={}] - Caller-provided filters.
+ * @param {object} userAccess - From evaluateProductLookupAccessControl().
+ * @param {string} activeStatusId - Status ID considered "active".
+ *
+ * @returns {object} A new filters object with enforced rules applied.
+ */
+const enforceProductLookupVisibilityRules = (
+  filters = {},
+  userAccess,
+  activeStatusId
+) => {
+  const adjusted = { ...filters };
+  
+  if (!userAccess.canViewAllStatuses) {
+    adjusted.status_id ??= activeStatusId;
+    adjusted._activeStatusId = activeStatusId;
+  } else {
+    delete adjusted.status_id;
+    delete adjusted._activeStatusId;
+  }
+  
+  return adjusted;
+};
+
+/**
+ * Adds UI-friendly derived fields to a Product lookup row.
+ *
+ * Adds:
+ * - `isActive`: true if row.status_id === activeStatusId
+ *
+ * @param {object} row - A Product DB row.
+ * @param {string} activeStatusId - ID representing an active product.
+ *
+ * @returns {object} Row with `isActive` added.
+ *
+ * @throws {AppError} If row or activeStatusId is invalid.
+ */
+const enrichProductOption = (row, activeStatusId) => {
+  if (!row || typeof row !== 'object') {
+    throw AppError.validationError(
+      '[enrichProductOption] Invalid `row` - expected object but got ' +
+      typeof row
+    );
+  }
+  
+  if (typeof activeStatusId !== 'string' || !activeStatusId) {
+    throw AppError.validationError(
+      '[enrichProductOption] Missing or invalid `activeStatusId`'
+    );
+  }
+  
+  return {
+    ...row,
+    isActive: row.status_id === activeStatusId,
+  };
+};
+
 module.exports = {
   validateProductStatusTransition,
   assertValidProductStatusTransition,
   filterUpdatableProductFields,
   validateProductListBusiness,
   prepareProductInsertPayloads,
+  evaluateProductLookupAccessControl,
+  enforceProductLookupVisibilityRules,
+  enrichProductOption,
 };

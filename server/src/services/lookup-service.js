@@ -16,9 +16,14 @@ const {
   transformDeliveryMethodPaginatedLookupResult,
   transformSkuPaginatedLookupResult,
   transformPricingPaginatedLookupResult,
-  transformPackagingMaterialPaginatedLookupResult, transformSkuCodeBasePaginatedLookupResult,
+  transformPackagingMaterialPaginatedLookupResult,
+  transformSkuCodeBasePaginatedLookupResult,
+  transformProductPaginatedLookupResult,
 } = require('../transformers/lookup-transformer');
-const { logSystemInfo, logSystemException } = require('../utils/system-logger');
+const {
+  logSystemInfo,
+  logSystemException
+} = require('../utils/system-logger');
 const {
   getLotAdjustmentTypeLookup,
 } = require('../repositories/lot-adjustment-type-repository');
@@ -99,8 +104,18 @@ const {
 const {
   getPackagingMaterialsForSalesOrderLookup,
 } = require('../repositories/packaging-material-repository');
-const { evaluateSkuCodeBaseLookupAccessControl, enforceSkuCodeBaseLookupVisibilityRules, enrichSkuCodeBaseOption } = require('../business/sku-code-base-business');
+const {
+  evaluateSkuCodeBaseLookupAccessControl,
+  enforceSkuCodeBaseLookupVisibilityRules,
+  enrichSkuCodeBaseOption
+} = require('../business/sku-code-base-business');
 const { getSkuCodeBaseLookup } = require('../repositories/sku-code-base-repository');
+const {
+  evaluateProductLookupAccessControl,
+  enforceProductLookupVisibilityRules,
+  enrichProductOption
+} = require('../business/product-business');
+const { getProductLookup } = require('../repositories/product-repository');
 
 /**
  * Service to fetch filtered and paginated batch registry records for lookup UI.
@@ -1207,6 +1222,98 @@ const fetchSkuCodeBaseLookupService = async (
   }
 };
 
+/**
+ * Fetches filtered and paginated Product records for lookup UI components
+ * (dropdowns, autocomplete inputs, selection lists).
+ *
+ * Supports:
+ * - Keyword-based fuzzy matching (name, brand, category, series)
+ * - Pagination via limit + offset
+ * - Permission-aware status filtering (active-only for restricted users)
+ * - Row-level UI enrichment (e.g., `isActive` flag)
+ *
+ * Internal flow:
+ * 1. Resolve user permissions
+ * 2. Apply product visibility rules (active-only if required)
+ * 3. Execute repository-level lookup query
+ * 4. Enrich each product row with UI flags
+ * 5. Transform into UI-optimized paginated structure
+ *
+ * @param {object} user - Authenticated user object.
+ * @param {object} options - Lookup query options.
+ * @param {object} [options.filters={}] - Optional product filters (keyword, brand, category, series, status_id).
+ * @param {number} [options.limit=50] - Max number of items to return.
+ * @param {number} [options.offset=0] - Pagination offset.
+ *
+ * @returns {Promise<{
+ *   items: Array<{ id: string, label: string, isActive?: boolean }>,
+ *   offset: number,
+ *   limit: number,
+ *   hasMore: boolean
+ * }>}
+ *
+ * @throws {AppError} When permission evaluation or repository query fails.
+ */
+const fetchProductLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
+  const context = 'lookup-service/fetchProductLookupService';
+  
+  try {
+    // Step 1: Log entry
+    logSystemInfo('Fetching Product lookup from service', {
+      context,
+      metadata: { filters, limit, offset },
+    });
+    
+    // Step 2: Permission evaluation
+    const userAccess = await evaluateProductLookupAccessControl(user);
+    const activeStatusId = getStatusId('general_active');
+    
+    // Step 3: Apply enforced visibility rules
+    const adjustedFilters = enforceProductLookupVisibilityRules(
+      filters,
+      userAccess,
+      activeStatusId
+    );
+    
+    // Step 4: Query repository
+    const { data = [], pagination = {} } = await getProductLookup({
+      filters: adjustedFilters,
+      limit,
+      offset,
+    });
+    
+    // Step 5: Enrich rows (e.g., add isActive flag)
+    const enrichedRows = data.map((row) =>
+      enrichProductOption(row, activeStatusId)
+    );
+    
+    // Step 6: Transform to UI-friendly paginated payload
+    return transformProductPaginatedLookupResult(
+      { data: enrichedRows, pagination },
+      userAccess
+    );
+  } catch (err) {
+    logSystemException(err, 'Failed to fetch Product lookup in service', {
+      context,
+      userId: user?.id,
+      filters,
+      limit,
+      offset,
+    });
+    
+    throw AppError.serviceError(
+      'Failed to fetch product lookup list.',
+      {
+        details: err.message,
+        stage: context,
+      }
+    );
+  }
+};
+
 module.exports = {
   fetchBatchRegistryLookupService,
   fetchWarehouseLookupService,
@@ -1222,4 +1329,5 @@ module.exports = {
   fetchPaginatedPricingLookupService,
   fetchPaginatedPackagingMaterialLookupService,
   fetchSkuCodeBaseLookupService,
+  fetchProductLookupService,
 };

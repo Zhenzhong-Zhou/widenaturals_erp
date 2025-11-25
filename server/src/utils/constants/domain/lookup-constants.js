@@ -17,6 +17,7 @@ const LOOKUPS = {
     VIEW_PRICING: 'view_pricing_lookup',
     VIEW_PACKAGING_MATERIAL: 'view_packaging_material_lookup',
     VIEW_SKU_CODE_BASE: 'view_sku_code_bases_lookup',
+    VIEW_PRODUCT: 'view_product_lookup',
   },
 };
 

@@ -38,39 +38,47 @@ const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
 /**
- * Builds a parameterized SQL `WHERE` clause for querying products.
+ * Builds a parameterized SQL WHERE clause for querying Products.
  *
- * The function accepts structured filter criteria and returns:
- * - A SQL-safe `WHERE` clause string (with numbered `$n` placeholders)
- * - A corresponding array of parameter values
+ * Produces a SQL-safe WHERE clause using `$n` placeholders and
+ * an aligned `params[]` array. Supports exact match, fuzzy match,
+ * multi-status filtering, and date range filtering.
  *
- * All filters are optional and combined using `AND` conditions. Supports fuzzy
- * matching for flexible search while preventing injection through parameter binding.
+ * ## Status Filter Priority
+ * 1. `statusIds` (array of UUIDs)
+ * 2. `status_id` (single UUID)
+ * 3. `_activeStatusId` (enforced fallback)
  *
- * ### Supported Filters
- * | Field | Type | Description |
- * |--------|------|-------------|
- * | `statusIds` | `string[]` | Filter by product status UUID(s). |
- * | `brand` | `string` | Filter by brand name (case-insensitive partial match). |
- * | `category` | `string` | Filter by category (case-insensitive partial match). |
- * | `series` | `string` | Filter by series (case-insensitive partial match). |
- * | `createdBy` / `updatedBy` | `string` | Filter by user UUID. |
- * | `createdAfter` / `createdBefore` | `string` (ISO date) | Filter by creation date range. |
- * | `keyword` | `string` | Fuzzy match across product name, brand, category, and status name. |
+ * ## Supported Filters
+ * | Field                | Type         | Description                                                |
+ * |----------------------|--------------|------------------------------------------------------------|
+ * | `statusIds`          | string[]     | Filter by multiple product status IDs                      |
+ * | `status_id`          | string       | Filter by a single status ID                               |
+ * | `_activeStatusId`    | string       | Forced fallback when user cannot view all statuses         |
+ * | `brand`              | string       | Partial case-insensitive match                             |
+ * | `category`           | string       | Partial case-insensitive match                             |
+ * | `series`             | string       | Partial case-insensitive match                             |
+ * | `createdBy`          | string       | Creator user ID                                            |
+ * | `updatedBy`          | string       | Last update user ID                                        |
+ * | `createdAfter`       | ISO string   | created_at >= timestamp                                    |
+ * | `createdBefore`      | ISO string   | created_at <= timestamp                                    |
+ * | `keyword`            | string       | Fuzzy match across name, brand, category, and series       |
  *
- * ### Returns
+ * ## Returns
  * ```js
  * {
- *   whereClause: string,  // SQL WHERE clause (e.g. "1=1 AND p.brand ILIKE $1")
- *   params: any[]         // Array of bound values for parameter placeholders
+ *   whereClause: "1=1 AND p.brand ILIKE $1 AND p.status_id = ANY($2::uuid[])",
+ *   params: ["%Omega%", ["uuid1","uuid2"]]
  * }
  * ```
  *
- * ### Throws
- * - `AppError` (databaseError): If clause generation fails
+ * ## Throws
+ * - `AppError.databaseError()` if any filter processing fails
  *
  * @param {Object} [filters={}] - Structured product filter criteria
  * @param {string[]} [filters.statusIds] - Product status UUIDs
+ * @param {string} [filters.status_id] - Match by status id.
+ * @param {string} [filters._activeStatusId] - Fallback enforced status.
  * @param {string} [filters.brand] - Partial brand name match
  * @param {string} [filters.category] - Partial category match
  * @param {string} [filters.series] - Partial series match
@@ -89,9 +97,20 @@ const buildProductFilter = (filters = {}) => {
     let idx = 1;
     
     // Filter by status
-    if (filters.statusIds?.length) {
-      conditions.push(`p.status_id = ANY($${idx}::uuid[])`);
-      params.push(filters.statusIds);
+    const statusFilterValue =
+      filters.statusIds?.length ? filters.statusIds :
+        filters.status_id ? filters.status_id :
+          filters._activeStatusId;
+    
+    if (statusFilterValue !== undefined && statusFilterValue !== null) {
+      
+      if (Array.isArray(statusFilterValue)) {
+        conditions.push(`p.status_id = ANY($${idx}::uuid[])`);
+      } else {
+        conditions.push(`p.status_id = $${idx}`);
+      }
+      
+      params.push(statusFilterValue);
       idx++;
     }
     
@@ -148,7 +167,6 @@ const buildProductFilter = (filters = {}) => {
         p.name ILIKE $${idx} OR
         p.brand ILIKE $${idx} OR
         p.category ILIKE $${idx} OR
-        s.name ILIKE $${idx}
       )`);
       params.push(`%${filters.keyword}%`);
       idx++;

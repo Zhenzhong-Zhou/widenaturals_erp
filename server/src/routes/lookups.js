@@ -14,6 +14,7 @@ const {
   getPricingLookupController,
   getPackagingMaterialLookupController,
   getSkuCodeBaseLookupController,
+  getProductLookupController,
 } = require('../controllers/lookup-controller');
 const authorize = require('../middlewares/authorize');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
@@ -32,7 +33,9 @@ const {
   deliveryMethodLookupQuerySchema,
   skuLookupQuerySchema,
   pricingLookupQuerySchema,
-  packagingMaterialLookupQuerySchema, skuCodeBaseLookupQuerySchema,
+  packagingMaterialLookupQuerySchema,
+  skuCodeBaseLookupQuerySchema,
+  productLookupQuerySchema,
 } = require('../validators/lookup-validators');
 const { PERMISSIONS } = require('../utils/constants/domain/lookup-constants');
 
@@ -775,6 +778,90 @@ router.get(
     'Invalid SKU Code Base lookup query parameters.'
   ),
   getSkuCodeBaseLookupController
+);
+
+/**
+ * @route GET /products
+ * @description
+ * Endpoint to fetch paginated **Product** lookup options for dropdowns or selectors.
+ *
+ * This lookup endpoint is intentionally lightweight and optimized for UI usage.
+ * It applies:
+ * - User permission checks
+ * - Query normalization (filters, pagination)
+ * - Field sanitization (e.g., trimming user input)
+ * - Joi validation for safe filter/pagination values
+ * - Service-level filtering + visibility rules (active-only for restricted users)
+ *
+ * Middleware chain includes:
+ *
+ * 1. `authorize`
+ *    Ensures the user has permission to load product lookup lists.
+ *
+ * 2. `createQueryNormalizationMiddleware`
+ *    Extracts raw query parameters and normalizes them into:
+ *    {
+ *      filters: { brand, category, series },
+ *      limit,
+ *      offset
+ *    }
+ *
+ * 3. `sanitizeFields`
+ *    Cleans input fields (e.g., trims whitespace).
+ *
+ * 4. `validate(productLookupQuerySchema)`
+ *    Application-level validation ensuring predictable filter/pagination structure.
+ *
+ * 5. `getProductLookupController`
+ *    Service-driven lookup returning:
+ *    - `{ id, label, isActive? }` items
+ *    - pagination metadata
+ *
+ *
+ * ### Query Parameters (after normalization)
+ * - `filters.brand`    — Optional partial brand filter
+ * - `filters.category` — Optional partial category filter
+ * - `filters.series`   — Optional partial series filter
+ * - `limit`            — Page size (default: 50)
+ * - `offset`           — Pagination offset
+ *
+ *
+ * ### Response: 200 OK
+ * ```json
+ * {
+ *   "success": true,
+ *   "message": "Successfully retrieved Product lookup",
+ *   "items": [{ "id": "...", "label": "...", "isActive": true }],
+ *   "limit": 50,
+ *   "offset": 0,
+ *   "hasMore": true
+ * }
+ * ```
+ *
+ * @access Protected
+ * @permission Requires `view_product_lookup` permission
+ */
+router.get(
+  '/products',
+  authorize([PERMISSIONS.VIEW_PRODUCT]),
+  createQueryNormalizationMiddleware(
+    '', // moduleKey not needed
+    [], // arrayKeys none for dropdown
+    [], // booleanKeys none
+    ['keyword', 'brand', 'category', 'series'], // filterKeys
+    { includePagination: true, includeSorting: false }
+  ),
+  sanitizeFields(['brand', 'category', 'series']),
+  validate(
+    productLookupQuerySchema,
+    'query',
+    {
+      abortEarly: false,
+      convert: true,
+    },
+    'Invalid Product lookup query parameters.'
+  ),
+  getProductLookupController
 );
 
 module.exports = router;

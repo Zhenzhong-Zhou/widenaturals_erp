@@ -943,6 +943,112 @@ const transformSkuCodeBasePaginatedLookupResult = (
     { includeLoadMore: true }
   );
 
+/**
+ * Transforms a single raw Product record into a lookup-friendly object.
+ *
+ * Produces:
+ * - `label` (e.g., "Fish Oil • WIDE Naturals (Softgel)")
+ * - Optional UI flags (e.g., `isActive`) depending on user access rules
+ *
+ * Used in:
+ * - Dropdowns
+ * - Autocomplete fields
+ * - SKU creation
+ * - BOM item assignment
+ * - Inventory item linking
+ *
+ * @param {{
+ *   id: string,
+ *   name: string,
+ *   brand?: string,
+ *   category?: string,
+ *   series?: string,
+ *   status_id?: string,
+ * }} row - Raw Product row from the repository.
+ *
+ * @param {object} userAccess - Access control flags
+ *                              (e.g. from `evaluateProductLookupAccessControl()`).
+ *
+ * @returns {{
+ *   id: string,
+ *   label: string,
+ *   isActive?: boolean,
+ *   [key: string]: any
+ * }} A lookup-optimized product object.
+ *
+ * @example
+ * const r = transformProductLookup(row, userAccess);
+ * // { id, label: "Fish Oil • WIDE Naturals (Softgel)", isActive: true }
+ */
+const transformProductLookup = (row, userAccess) => {
+  if (!row || typeof row !== 'object') return null;
+  
+  const name = row.name ?? 'Unnamed Product';
+  const brand = row.brand ?? '';
+  const category = row.category ?? '';
+  const series = row.series ?? '';
+  
+  /**
+   * Example label patterns used in ERP dropdowns:
+   * "Fish Oil • WIDE Naturals (Softgel)"
+   * "Vitamin D • PG Naturals (Capsule)"
+   */
+  const labelParts = [name];
+  
+  if (brand) labelParts.push(`• ${brand}`);
+  if (category) labelParts.push(`(${category})`);
+  else if (series) labelParts.push(`(${series})`);
+  
+  const label = labelParts.join(' ');
+  
+  // Use shared helper: { id, name → label } → { id, label }
+  const baseObj = transformIdNameToIdLabel({ ...row, name: label });
+  
+  // Optional derived flags like isActive
+  const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
+  
+  return {
+    ...baseObj,
+    ...flagSubset,
+  };
+};
+
+/**
+ * Transforms a paginated set of Product records into a UI-friendly lookup format.
+ *
+ * Applies:
+ * - Row-by-row transformation via `transformProductLookup`
+ * - Pagination metadata rewrite
+ * - Optional "Load more" flag for infinite scroll
+ *
+ * @param {{
+ *   data: Array<object>,
+ *   pagination: {
+ *     offset: number,
+ *     limit: number,
+ *     totalRecords: number
+ *   }
+ * }} paginatedResult - Raw repository output.
+ *
+ * @param {object} userAccess - Access flags for enriching each product row.
+ *
+ * @returns {{
+ *   items: Array<{ id: string, label: string, [key: string]: any }>,
+ *   offset: number,
+ *   limit: number,
+ *   hasMore: boolean
+ * }} Transformed lookup result.
+ */
+const transformProductPaginatedLookupResult = (
+  paginatedResult,
+  userAccess
+) =>
+  transformPaginatedResult(
+    paginatedResult,
+    (row) => transformProductLookup(row, userAccess),
+    { includeLoadMore: true }
+  );
+
 module.exports = {
   transformBatchRegistryPaginatedLookupResult,
   transformWarehouseLookupRows,
@@ -958,4 +1064,5 @@ module.exports = {
   transformPricingPaginatedLookupResult,
   transformPackagingMaterialPaginatedLookupResult,
   transformSkuCodeBasePaginatedLookupResult,
+  transformProductPaginatedLookupResult,
 };

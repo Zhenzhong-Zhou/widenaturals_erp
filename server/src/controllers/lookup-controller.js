@@ -12,7 +12,9 @@ const {
   fetchPaginatedDeliveryMethodLookupService,
   fetchPaginatedSkuLookupService,
   fetchPaginatedPricingLookupService,
-  fetchPaginatedPackagingMaterialLookupService, fetchSkuCodeBaseLookupService,
+  fetchPaginatedPackagingMaterialLookupService,
+  fetchSkuCodeBaseLookupService,
+  fetchProductLookupService,
 } = require('../services/lookup-service');
 const { logInfo } = require('../utils/logger-helper');
 
@@ -720,6 +722,59 @@ const getSkuCodeBaseLookupController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * Controller for retrieving paginated Product lookup options.
+ *
+ * Responsibilities:
+ * - Call service-layer access control and filtering logic.
+ * - Apply enforced visibility rules (e.g., active-only products for restricted users).
+ * - Support pagination via `limit` and `offset` query parameters.
+ * - Return results formatted for dropdowns/autocomplete components.
+ *
+ * Expected query structure from `req.normalizedQuery`:
+ * - filters: Optional object (e.g., { keyword, brand, category, series, status_id })
+ * - limit: Optional number (default 50)
+ * - offset: Optional number (default 0)
+ *
+ * @route GET /lookups/products
+ * @access Protected
+ * @permission `view_product_lookup` (enforced in service layer)
+ *
+ * @param {Express.Request} req - Request containing authenticated user + normalized query params.
+ * @param {Express.Response} res - Response used to send lookup results.
+ *
+ * @returns {void} Responds with JSON:
+ *  {
+ *    success: boolean,
+ *    message: string,
+ *    items: Array<{ id: string, label: string, isActive?: boolean }>,
+ *    offset: number,
+ *    limit: number,
+ *    hasMore: boolean
+ *  }
+ */
+const getProductLookupController = wrapAsync(async (req, res) => {
+  const user = req.user;
+  const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
+  console.log(">>>>>>????: ", filters);
+  const dropdownResult = await fetchProductLookupService(user, {
+    filters,
+    limit,
+    offset,
+  });
+  
+  const { items, hasMore } = dropdownResult;
+  
+  return res.status(200).json({
+    success: true,
+    message: 'Successfully retrieved Product lookup',
+    items,
+    offset,
+    limit,
+    hasMore,
+  });
+});
+
 module.exports = {
   getBatchRegistryLookupController,
   getWarehouseLookupController,
@@ -735,4 +790,5 @@ module.exports = {
   getPricingLookupController,
   getPackagingMaterialLookupController,
   getSkuCodeBaseLookupController,
+  getProductLookupController,
 };

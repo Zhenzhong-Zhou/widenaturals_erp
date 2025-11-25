@@ -330,6 +330,36 @@ const skuCodeBaseLookupQuerySchema = Joi.object({
     .optional(),
 });
 
+/**
+ * Joi validation schema for **Product lookup dropdown** query parameters.
+ *
+ * This schema is intentionally lightweight because it powers UI dropdowns
+ * and autocomplete components. Only minimal filters are allowed:
+ *
+ * ### Supported Filters (inside `filters`)
+ * - `brand`      (optional string)  – partial, case-insensitive match
+ * - `category`   (optional string)  – partial, case-insensitive match
+ * - `series`     (optional string)  – partial, case-insensitive match
+ *
+ * These fields allow narrowing the product list while keeping payload small
+ * and queries fast for dropdown UIs.
+ *
+ * ### Pagination
+ * - `limit`  (default: 50)   – maximum number of items to return
+ * - `offset` (default: 0)    – pagination offset
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const productLookupQuerySchema = Joi.object({
+  ...baseLookupQuerySchema,
+  
+  filters: Joi.object({
+    brand: validateOptionalString('Brand', 20),
+    category: validateOptionalString('Category', 20),
+    series: validateOptionalString('Series', 20),
+  }).default({}),
+});
+
 module.exports = {
   batchRegistryLookupQuerySchema,
   warehouseLookupQuerySchema,
@@ -345,4 +375,5 @@ module.exports = {
   pricingLookupQuerySchema,
   packagingMaterialLookupQuerySchema,
   skuCodeBaseLookupQuerySchema,
+  productLookupQuerySchema,
 };
