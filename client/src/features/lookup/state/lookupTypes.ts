@@ -718,3 +718,116 @@ export type PackagingMaterialLookupResponse =
  */
 export type PackagingMaterialLookupState =
   PaginatedLookupState<PackagingMaterialOnlyLookupItem>;
+
+/**
+ * Represents an individual SKU Code Base lookup item returned from the server.
+ *
+ * Extends `LookupItem` with optional status flags (`isActive`, `isValidToday`)
+ * to support UI dropdown filtering and status indicators.
+ */
+export type SkuCodeBaseLookupItem = LookupItemWithStatus;
+
+/**
+ * Response shape for SKU Code Base lookup requests.
+ *
+ * Wraps the paginated lookup payload inside the standard
+ * `LookupSuccessResponse<T>` envelope, containing:
+ * - `items: SkuCodeBaseLookupItem[]`
+ * - `limit`, `offset`, `hasMore`
+ * - `success: true`
+ * - `message`
+ */
+export type SkuCodeBaseLookupResponse =
+  LookupSuccessResponse<SkuCodeBaseLookupItem>;
+
+/**
+ * Query parameters for fetching SKU Code Base lookup items.
+ *
+ * Extends the generic `LookupQuery` (keyword, limit, offset)
+ * by adding SKU Code Base–specific filters:
+ *
+ * - `brand_code` — Optional exact brand code filter
+ * - `category_code` — Optional exact category code filter
+ *
+ * These map directly to server-side filters for `GET /lookups/sku-code-bases`.
+ */
+export interface SkuCodeBaseLookupParams extends LookupQuery {
+  brand_code?: string;
+  category_code?: string;
+}
+
+/**
+ * Redux state type for SKU Code Base lookup data.
+ *
+ * Combines:
+ * - `AsyncState<T[]>` (loading/error/data)
+ * - Pagination metadata (`limit`, `offset`, `hasMore`)
+ *
+ * Used by `skuCodeBaseLookupSlice`.
+ */
+export type SkuCodeBaseLookupState =
+  PaginatedLookupState<SkuCodeBaseLookupItem>;
+
+/**
+ * Represents a Product lookup item.
+ *
+ * Used in contexts where a lightweight product reference is needed
+ * (dropdowns, autocomplete during SKU creation, BOM flows, order pages, etc.).
+ *
+ * Supports UI flags such as:
+ * - `isActive`
+ * - `isValidToday`
+ */
+export type ProductLookupItem = LookupItemWithStatus;
+
+/**
+ * Response shape for Product lookup requests.
+ *
+ * Wraps product lookup results inside the standard
+ * paginated `LookupSuccessResponse<T>` payload.
+ */
+export type ProductLookupResponse =
+  LookupSuccessResponse<ProductLookupItem>;
+
+/**
+ * Nested filters object for product lookup queries.
+ *
+ * These filter fields are optional substring/fuzzy matches:
+ * - `brand` — product brand
+ * - `category` — product category
+ * - `series` — product series (e.g. “Immune”, “Heart Health”)
+ *
+ * These map directly to `buildProductFilter` on the backend.
+ */
+export interface ProductLookupFilters {
+  brand?: string;
+  category?: string;
+  series?: string;
+}
+
+/**
+ * Query parameters for fetching Product lookup items.
+ *
+ * Extends:
+ * - `LookupQuery` (keyword, limit, offset)
+ *
+ * Adds nested:
+ * - `filters` — {@link ProductLookupFilters}
+ *
+ * This structure matches the server’s `/lookups/products` expectations.
+ */
+export interface ProductLookupParams extends LookupQuery {
+  filters: ProductLookupFilters;
+}
+
+/**
+ * Redux state type for Product lookup data.
+ *
+ * Combines:
+ * - Asynchronous state (loading, error, data[])
+ * - Pagination metadata (limit, offset, hasMore)
+ *
+ * Used by `productLookupSlice`.
+ */
+export type ProductLookupState =
+  PaginatedLookupState<ProductLookupItem>;

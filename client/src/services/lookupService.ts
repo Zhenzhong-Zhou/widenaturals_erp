@@ -21,6 +21,10 @@ import type {
   PaymentMethodLookupResponse,
   PricingLookupQueryParams,
   PricingLookupResponse,
+  ProductLookupParams,
+  ProductLookupResponse,
+  SkuCodeBaseLookupParams,
+  SkuCodeBaseLookupResponse,
   SkuLookupQueryParams,
   SkuLookupResponse,
   TaxRateLookupQueryParams,
@@ -366,6 +370,122 @@ const fetchPackagingMaterialLookup = async (
   }
 };
 
+/**
+ * Fetches paginated **SKU Code Base lookup items** for dropdowns, autocomplete fields,
+ * or infinite-scroll selectors.
+ *
+ * This is a client-side wrapper around the server's
+ * `GET /lookups/sku-code-bases` API, producing a typed
+ * {@link SkuCodeBaseLookupResponse} structure.
+ *
+ * ## Supported Query Params
+ * From {@link SkuCodeBaseLookupParams}:
+ * - `keyword` — fuzzy match on brand_code / category_code
+ * - `brand_code` — optional exact brand code filter
+ * - `category_code` — optional exact category code filter
+ * - `limit` — max records to return (default: 50)
+ * - `offset` — pagination offset (default: 0)
+ *
+ * ## Behavior
+ * - Automatically serializes parameters via `buildQueryString`
+ * - Sends a typed GET request
+ * - Returns the paginated lookup payload `{ items, limit, offset, hasMore }`
+ * - Throws if request fails (for thunk or caller to catch)
+ *
+ * @param params Optional query parameters used to filter or paginate results.
+ *
+ * @returns Promise<SkuCodeBaseLookupResponse>
+ * A typed lookup response containing:
+ * - `success`
+ * - `message`
+ * - `items: SkuCodeBaseLookupItem[]`
+ * - `limit`, `offset`, `hasMore`
+ *
+ * @throws Error
+ * If the request fails for network or server reasons.
+ *
+ * @example
+ * // Fetch first page with a keyword
+ * await fetchSkuCodeBaseLookup({ keyword: 'CJ' });
+ *
+ * @example
+ * // Exact brand/category match
+ * await fetchSkuCodeBaseLookup({
+ *   brand_code: 'CJ',
+ *   category_code: 'IMM'
+ * });
+ */
+const fetchSkuCodeBaseLookup = async (
+  params?: SkuCodeBaseLookupParams
+): Promise<SkuCodeBaseLookupResponse> => {
+  const queryString = buildQueryString(params);
+  const url = `${API_ENDPOINTS.LOOKUPS.SKU_CODE_BASES}${queryString}`;
+  
+  try {
+    return await getRequest<SkuCodeBaseLookupResponse>(url);
+  } catch (error) {
+    console.error('Failed to fetch SKU code base lookup:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches paginated **Product lookup items** for dropdowns/selectors/autocomplete.
+ *
+ * This function calls the server’s `GET /lookups/products` endpoint and returns
+ * a typed {@link ProductLookupResponse}. Useful for product selection UIs
+ * (SKU creation, BOM flows, order forms, etc.).
+ *
+ * ## Supported Query Params
+ * From {@link ProductLookupParams}:
+ * - `keyword` — optional fuzzy match across name, brand, category
+ * - `filters.brand` — optional brand substring match
+ * - `filters.category` — optional category substring match
+ * - `filters.series` — optional series substring match
+ * - `limit` — max number of rows (default: 50)
+ * - `offset` — paging offset
+ *
+ * ## Behavior
+ * - Builds query string from nested filter params
+ * - Sends a typed GET request to `/lookups/products`
+ * - Returns paginated lookup info `{ items, limit, offset, hasMore }`
+ * - Throws error for caller-level handling (e.g. Redux thunk)
+ *
+ * @param params Optional product lookup filters and pagination options.
+ *
+ * @returns Promise<ProductLookupResponse>
+ * Containing lookup items and pagination metadata.
+ *
+ * @throws Error
+ * If the request fails or returns invalid data.
+ *
+ * @example
+ * // Simple keyword lookup
+ * await fetchProductLookup({ keyword: 'Omega' });
+ *
+ * @example
+ * // Filtered by brand + category
+ * await fetchProductLookup({
+ *   filters: {
+ *     brand: 'Wide Naturals',
+ *     category: 'Softgels'
+ *   }
+ * });
+ */
+const fetchProductLookup = async (
+  params?: ProductLookupParams
+): Promise<ProductLookupResponse> => {
+  const queryString = buildQueryString(params);
+  const url = `${API_ENDPOINTS.LOOKUPS.PRODUCTS}${queryString}`;
+  
+  try {
+    return await getRequest<ProductLookupResponse>(url);
+  } catch (error) {
+    console.error('Failed to fetch product lookup:', error);
+    throw error;
+  }
+};
+
 export const lookupService = {
   fetchBatchRegistryLookup,
   fetchWarehouseLookup,
@@ -380,4 +500,6 @@ export const lookupService = {
   fetchSkuLookup,
   fetchPricingLookup,
   fetchPackagingMaterialLookup,
+  fetchSkuCodeBaseLookup,
+  fetchProductLookup,
 };

@@ -11,6 +11,8 @@ import deliveryMethodLookupReducer from './deliveryMethodLookupSlice';
 import skuLookupReducer from './skuLookupSlice';
 import pricingLookupReducer from './pricingLookupSlice';
 import packagingMaterialLookupReducer from './packagingMaterialLookupSlice';
+import skuCodeBaseLookupReducer from './skuCodeBaseLookupSlice';
+import productLookupReducer from './productLookupSlice';
 
 export const lookupReducers = {
   batchRegistryLookup: batchRegistryLookupReducer,
@@ -26,6 +28,8 @@ export const lookupReducers = {
   skuLookup: skuLookupReducer,
   pricingLookup: pricingLookupReducer,
   packagingMaterialLookup: packagingMaterialLookupReducer,
+  skuCodeBaseLookup: skuCodeBaseLookupReducer,
+  productLookup: productLookupReducer,
 };
 
 // Optionally export selectors, thunks, types
@@ -42,5 +46,7 @@ export * from './deliveryMethodLookupSelectors';
 export * from './skuLookupSelectors';
 export * from './pricingLookupSelectors';
 export * from './packagingMaterialLookupSelectors';
+export * from './skuCodeBaseLookupSelectors';
+export * from './productLookupSelectors';
 export * from './lookupThunks';
 export * from './lookupTypes';
