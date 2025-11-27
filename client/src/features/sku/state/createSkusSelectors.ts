@@ -11,7 +11,7 @@ import type { CreatedSkuRecord } from '@features/sku/state/skuTypes';
  * @example
  * const state = useSelector(selectCreateSkusState);
  */
-export const selectCreateSkusState = (state: RootState) =>
+const selectCreateSkusState = (state: RootState) =>
   state.createSkus;
 
 /**

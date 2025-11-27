@@ -7,6 +7,7 @@ import {
   selectSkuCodeBaseLookupError,
   selectSkuCodeBaseLookupLoading,
   selectSkuCodeBaseLookupMeta,
+  selectSkuCodeBaseLookupRawItems,
 } from '@features/lookup/state';
 import { resetSkuCodeBaseLookup } from '@features/lookup/state/skuCodeBaseLookupSlice';
 
@@ -20,6 +21,7 @@ const useSkuCodeBaseLookup = () => {
   const dispatch = useAppDispatch();
   
   const options = useAppSelector(selectSkuCodeBaseLookupOptions);
+  const rawItems = useAppSelector(selectSkuCodeBaseLookupRawItems);
   const loading = useAppSelector(selectSkuCodeBaseLookupLoading);
   const error = useAppSelector(selectSkuCodeBaseLookupError);
   const meta = useAppSelector(selectSkuCodeBaseLookupMeta);
@@ -38,13 +40,14 @@ const useSkuCodeBaseLookup = () => {
   return useMemo(
     () => ({
       options,
+      rawItems,
       loading,
       error,
       meta,
       fetch,
       reset,
     }),
-    [options, loading, error, meta, fetch, reset]
+    [options, rawItems, loading, error, meta, fetch, reset]
   );
 };
 

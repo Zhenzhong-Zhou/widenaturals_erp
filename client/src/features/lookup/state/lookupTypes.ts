@@ -725,7 +725,11 @@ export type PackagingMaterialLookupState =
  * Extends `LookupItem` with optional status flags (`isActive`, `isValidToday`)
  * to support UI dropdown filtering and status indicators.
  */
-export type SkuCodeBaseLookupItem = LookupItemWithStatus;
+export interface SkuCodeBaseLookupItem extends LookupItemWithStatus {
+  /** Parsed SKU Code Base components */
+  brand_code: string;
+  category_code: string;
+}
 
 /**
  * Response shape for SKU Code Base lookup requests.
@@ -817,7 +821,7 @@ export interface ProductLookupFilters {
  * This structure matches the server’s `/lookups/products` expectations.
  */
 export interface ProductLookupParams extends LookupQuery {
-  filters: ProductLookupFilters;
+  filters?: ProductLookupFilters;
 }
 
 /**

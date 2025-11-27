@@ -16,7 +16,8 @@ export const selectSkuCodeBaseLookupState = (state: RootState) =>
   state.skuCodeBaseLookup;
 
 /**
- * Selector for retrieving SKU Code Base lookup items.
+ * Selector for retrieving raw SKU Code Base lookup items.
+ * These include brand_code and category_code.
  */
 export const selectSkuCodeBaseLookupItems = createSelector(
   [selectSkuCodeBaseLookupState],
@@ -54,4 +55,30 @@ export const selectSkuCodeBaseLookupOptions = createSelector(
   [selectSkuCodeBaseLookupItems],
   (items: SkuCodeBaseLookupItem[]): LookupOption[] =>
     mapLookupItems(items, ['isActive'])
+);
+
+/**
+ * Selector: Returns a shallow-cloned array of the raw SKU Code Base lookup items.
+ *
+ * Purpose:
+ * - Prevents accidental mutation of the Redux store by returning a new array (`[...]`)
+ * - Useful when components or utilities need the raw items for:
+ *   - Label parsing
+ *   - Code extraction (brand/category)
+ *   - Building dropdown options
+ *   - Caching or pre-processing
+ *
+ * Behavior:
+ * - Input: `selectSkuCodeBaseLookupItems` (memoized selector of SkuCodeBaseLookupItem[])
+ * - Output: A new array containing the same items.
+ *
+ * Notes:
+ * - Shallow copy only; objects inside the array remain the same.
+ * - Still memoized because the upstream selector only changes when items actually change.
+ *
+ * @returns SkuCodeBaseLookupItem[] A new array containing the lookup items.
+ */
+export const selectSkuCodeBaseLookupRawItems = createSelector(
+  [selectSkuCodeBaseLookupItems],
+  (items: SkuCodeBaseLookupItem[]) => [...items]
 );

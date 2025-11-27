@@ -69,6 +69,15 @@ export const routes = [
     },
   },
   {
+    path: '/skus/new',
+    component: lazy(() => import('@features/sku/pages/CreateSkuPage')),
+    meta: {
+      requiresAuth: true,
+      title: 'Create SKU FORM',
+      showInSidebar: false,
+    },
+  },
+  {
     path: '/compliances',
     component: lazy(() => import('@features/compliance/pages/CompliancePage')),
     meta: { requiresAuth: true, title: 'Compliances', showInSidebar: true },
