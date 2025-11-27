@@ -5,7 +5,7 @@ const {
   checkSkuExists,
   updateSkuStatus,
   getPaginatedSkus,
-  getSkuDetailsById,
+  getSkuDetailsById, checkBarcodeExists,
 } = require('../repositories/sku-repository');
 const {
   transformPaginatedSkuProductCardResult,
@@ -446,9 +446,20 @@ const createSkusService = async (skuList, user) => {
       //     (Avoids partial inserts or rollback costs)
       // ------------------------------------------------------------
       for (let i = 0; i < skuList.length; i++) {
-        const exists = await checkSkuExists(generatedSkus[i], skuList[i].product_id, client);
+        const s = skuList[i];
+        
+        // Check SKU uniqueness
+        const exists = await checkSkuExists(generatedSkus[i], s.product_id, client);
         if (exists) {
           throw AppError.conflictError(`SKU already exists: ${generatedSkus[i]}`, { context });
+        }
+        
+        // Check barcode uniqueness (if provided)
+        if (s.barcode) {
+          const barcodeExists = await checkBarcodeExists(s.barcode, client);
+          if (barcodeExists) {
+            throw AppError.conflictError(`Barcode already in use: ${s.barcode}`, { context });
+          }
         }
       }
       

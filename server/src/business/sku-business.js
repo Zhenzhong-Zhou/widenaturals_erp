@@ -2,7 +2,7 @@ const AppError = require('../utils/AppError');
 const { resolveUserPermissionContext, } = require('../services/role-permission-service');
 const { getStatusId, getStatusNameById } = require('../config/status-cache');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
-const { SKU_CONSTANTS } = require('../utils/constants/domain/sku-constants');
+const { SKU_CONSTANTS, BARCODE_REGEX } = require('../utils/constants/domain/sku-constants');
 const { getGenericIssueReason } = require('../utils/enrich-utils');
 
 /**
@@ -266,20 +266,36 @@ const SKU_REQUIRED_FIELDS = Object.freeze([
  *   category_code: 'HN',
  *   variant_code: '101',
  *   region_code: 'CA',
+ *   barcode: '1234567890123',
  * });
  */
 const validateSkuCreationBusiness = (
   skuData,
   context = 'sku-business/validateSkuCreationBusiness'
 ) => {
-  // Use centralized constant for required fields
+  // ---------------------------------------------
+  // 1. Required field validation
+  // ---------------------------------------------
   for (const field of SKU_REQUIRED_FIELDS) {
     if (!skuData[field]) {
       throw AppError.validationError(`Missing required field: ${field}`, { context });
     }
   }
   
-  // Log only essential identifying metadata (avoid verbose logging)
+  // ---------------------------------------------
+  // 2. Barcode format validation (if provided)
+  // ---------------------------------------------
+  // Allowed: digits, letters, dash, underscore, dot, slash, space, max len 64
+  if (skuData.barcode && !BARCODE_REGEX.test(skuData.barcode)) {
+    throw AppError.validationError(
+      `Invalid barcode format: ${skuData.barcode}`,
+      { context }
+    );
+  }
+  
+  // ---------------------------------------------
+  // 4. Minimal safe logging
+  // ---------------------------------------------
   logSystemInfo('SKU creation input validated.', {
     context,
     product_id: skuData.product_id,

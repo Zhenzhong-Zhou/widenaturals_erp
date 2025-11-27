@@ -546,6 +546,68 @@ const getPaginatedSkus = async ({
  * @async
  * @function
  * @description
+ * Checks whether a barcode already exists in the `skus` table.
+ *
+ * Behavior:
+ * - Returns `false` immediately if barcode is null/empty (no validation needed)
+ * - Performs a fast `SELECT 1 LIMIT 1` existence check
+ * - Logs both success and failure paths for debugging/auditing
+ *
+ * @example
+ * const exists = await checkBarcodeExists('1234567890123', client);
+ * if (exists) throw AppError.conflictError('Barcode already in use.');
+ *
+ * @param {string} barcode - The barcode to validate (EAN, UPC, internal code, etc.)
+ * @param {object} client - Active PG client or transaction handler.
+ * @returns {Promise<boolean>} True if barcode exists, otherwise false.
+ */
+const checkBarcodeExists = async (barcode, client) => {
+  const context = 'sku-repository/checkBarcodeExists';
+  
+  // no barcode → nothing to check
+  if (!barcode) {
+    logSystemInfo('Skipped barcode existence check (empty barcode)', {
+      context,
+      barcode,
+    });
+    return false;
+  }
+  
+  const sql = `
+    SELECT 1
+    FROM skus
+    WHERE barcode = $1
+    LIMIT 1;
+  `;
+  
+  try {
+    const { rows } = await query(sql, [barcode], client);
+    const exists = rows.length > 0;
+    
+    logSystemInfo('Checked barcode existence', {
+      context,
+      barcode,
+      exists,
+    });
+    
+    return exists;
+  } catch (error) {
+    logSystemException(error, 'Failed to check barcode existence.', {
+      context,
+      barcode,
+    });
+    
+    throw AppError.databaseError('Failed to check barcode existence.', {
+      cause: error,
+      context,
+    });
+  }
+};
+
+/**
+ * @async
+ * @function
+ * @description
  * Checks if a SKU already exists for a given product.
  *
  * @example
@@ -862,6 +924,7 @@ module.exports = {
   getPaginatedSkuProductCards,
   getSkuLookup,
   getPaginatedSkus,
+  checkBarcodeExists,
   checkSkuExists,
   insertSkusBulk,
   getSkuDetailsById,

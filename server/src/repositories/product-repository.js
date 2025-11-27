@@ -591,8 +591,10 @@ const getProductLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
       p.id,
       p.name,
       p.brand,
-      p.category
+      p.category,
+      p.status_id
     FROM ${tableName}
+    LEFT JOIN status AS s ON s.id = p.status_id
     WHERE ${whereClause}
   `;
   

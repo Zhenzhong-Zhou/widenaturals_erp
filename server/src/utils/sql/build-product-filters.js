@@ -163,12 +163,20 @@ const buildProductFilter = (filters = {}) => {
     
     // Keyword search (fuzzy match)
     if (filters.keyword) {
-      conditions.push(`(
-        p.name ILIKE $${idx} OR
-        p.brand ILIKE $${idx} OR
-        p.category ILIKE $${idx} OR
-      )`);
-      params.push(`%${filters.keyword}%`);
+      const likeParam = `%${filters.keyword}%`;
+      
+      const searchFields = [
+        'p.name',
+        'p.brand',
+        'p.category',
+      ];
+      
+      const orConditions = searchFields
+        .map((field) => `${field} ILIKE $${idx}`)
+        .join(' OR ');
+      
+      conditions.push(`(${orConditions})`);
+      params.push(likeParam);
       idx++;
     }
     

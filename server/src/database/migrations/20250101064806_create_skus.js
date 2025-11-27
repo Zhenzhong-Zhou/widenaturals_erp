@@ -9,7 +9,7 @@ exports.up = async function (knex) {
     table.uuid('product_id').notNullable().references('id').inTable('products');
 
     table.string('sku', 100).notNullable();
-    table.string('barcode', 100).nullable();
+    table.string('barcode', 100).nullable().unique();
 
     table.string('language', 10); // e.g., 'en', 'fr', 'en-zh'
     table.string('country_code', 2); // ISO 3166-1 alpha-2

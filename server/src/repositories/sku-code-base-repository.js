@@ -367,8 +367,11 @@ const getSkuCodeBaseLookup = async ({ filters = {}, limit = 50, offset = 0 }) =>
     SELECT
       scb.id,
       scb.brand_code,
-      scb.category_code
+      scb.category_code,
+      scb.base_code,
+      scb.status_id
     FROM ${tableName}
+    LEFT JOIN status AS s ON s.id = scb.status_id
     WHERE ${whereClause}
   `;
   

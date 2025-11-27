@@ -756,7 +756,7 @@ const getSkuCodeBaseLookupController = wrapAsync(async (req, res) => {
 const getProductLookupController = wrapAsync(async (req, res) => {
   const user = req.user;
   const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
-  console.log(">>>>>>????: ", filters);
+  
   const dropdownResult = await fetchProductLookupService(user, {
     filters,
     limit,
