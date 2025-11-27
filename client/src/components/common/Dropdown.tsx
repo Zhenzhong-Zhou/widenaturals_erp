@@ -56,6 +56,7 @@ interface DropdownProps {
   placeholder?: string;
   helperText?: ReactNode;
   inputValue?: string;
+  onOpen?: () => void;
   onInputChange?: (
     event: SyntheticEvent,
     value: string,
@@ -87,6 +88,7 @@ const Dropdown: FC<DropdownProps> = ({
   placeholder,
   helperText,
   inputValue,
+  onOpen,
   onInputChange,
   noOptionsMessage,
 }) => {
@@ -125,6 +127,7 @@ const Dropdown: FC<DropdownProps> = ({
         value={modifiedOptions.find((option) => option.value === value) || null}
         inputValue={inputValue}
         onInputChange={onInputChange}
+        onOpen={onOpen}
         onChange={(_, newValue) => {
           if (newValue?.value === 'add' && onAddNew) onAddNew();
           else if (newValue?.value === 'refresh' && onRefresh) onRefresh();

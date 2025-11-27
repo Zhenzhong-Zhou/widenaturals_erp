@@ -1042,9 +1042,6 @@ export interface CreateSkuInput {
   /** Optional language tag (e.g., "en-fr"). */
   language: string | null;
   
-  /** ISO country code (e.g., "CA"), nullable. */
-  country_code: string | null;
-  
   /** Market region (e.g., "Canada"), nullable. */
   market_region: string | null;
   

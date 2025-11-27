@@ -85,6 +85,7 @@ interface FormProps<TFieldValues extends FieldValues = FieldValues> {
   submitButtonLabel?: string;
   disabled?: boolean;
   showSubmitButton?: boolean;
+  showSubmitButtonOverride?: boolean;
   sx?: SxProps<Theme>;
   formInstance?: UseFormReturn<TFieldValues>;
 }
@@ -100,6 +101,7 @@ const CustomFormInner = <TFieldValues extends FieldValues = FieldValues>(
     submitButtonLabel = 'Submit',
     initialValues,
     showSubmitButton = true,
+    showSubmitButtonOverride = false,
     sx,
     formInstance,
   } = props;
@@ -427,13 +429,13 @@ const CustomFormInner = <TFieldValues extends FieldValues = FieldValues>(
 
       {/** Render the Submit button only if `showSubmitButton` is true */}
       <Box sx={{ minHeight: 40 }}>
-        {showSubmitButton && (
+        {showSubmitButton  && !canSubmit && (
           <CustomTypography sx={{ color: 'warning.main' }} variant="body2">
             Please complete all required fields to proceed.
           </CustomTypography>
         )}
 
-        {showSubmitButton && canSubmit && (
+        {showSubmitButton && (canSubmit || showSubmitButtonOverride) && (
           <CustomButton type="submit" variant="contained" color="primary">
             {submitButtonLabel}
           </CustomButton>
