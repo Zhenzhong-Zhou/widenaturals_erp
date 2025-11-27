@@ -18,7 +18,10 @@ const SKU_IMAGES_CONSTANTS = {
   },
 };
 
+const BARCODE_REGEX = /^[0-9A-Za-z\-._\/ ]{1,64}$/;
+
 module.exports = {
   SKU_CONSTANTS,
   SKU_IMAGES_CONSTANTS,
+  BARCODE_REGEX,
 };

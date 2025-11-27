@@ -11,6 +11,7 @@ const {
 } = require('./general-validators');
 const { updateStatusIdSchema } = require('./status-validators');
 const { CODE_RULES } = require('../utils/validation/code-rules');
+const { BARCODE_REGEX } = require('../utils/constants/domain/sku-constants');
 
 /**
  * Joi schema: getPaginatedSkuProductCardsSchema
@@ -254,7 +255,13 @@ const createSkuSchema = Joi.object({
     .pattern(CODE_RULES.REGION)
     .required(),
   
-  barcode: Joi.string().trim().allow(null, ''),
+  barcode: Joi.string()
+    .trim()
+    .pattern(BARCODE_REGEX)
+    .allow('', null)
+    .messages({
+      'string.pattern.base': 'Barcode format is invalid.'
+    }),
   
   language: Joi.string().trim().max(10).allow(null),
   

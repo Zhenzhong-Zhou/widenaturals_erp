@@ -1,7 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  selectCreateSkusState,
   selectCreateSkusData,
   selectCreateSkusError,
   selectCreateSkusLoading,
@@ -26,7 +25,6 @@ const useCreateSkus = () => {
   const dispatch = useAppDispatch();
   
   // --- Selectors ---
-  const state = useAppSelector(selectCreateSkusState);
   const data = useAppSelector(selectCreateSkusData);
   const loading = useAppSelector(selectCreateSkusLoading);
   const error = useAppSelector(selectCreateSkusError);
@@ -65,11 +63,8 @@ const useCreateSkus = () => {
       // actions
       submit,
       reset,
-      
-      // full slice state if needed
-      state,
     }),
-    [data, loading, error, isSuccess, createdSkuCodes, submit, reset, state]
+    [data, loading, error, isSuccess, createdSkuCodes, submit, reset]
   );
 };
 

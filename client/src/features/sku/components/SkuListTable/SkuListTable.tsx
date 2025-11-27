@@ -9,6 +9,7 @@ import {
   getSkuListTableColumns,
   SkuExpandedContent,
 } from '@features/sku/components/SkuListTable';
+import { Link } from 'react-router-dom';
 
 interface SkuListTableProps {
   data: FlattenedSkuRecord[];
@@ -84,6 +85,15 @@ const SkuListTable = ({
         <CustomTypography variant="h6" fontWeight={600}>
           SKU List
         </CustomTypography>
+        
+        <CustomButton
+          component={Link}
+          to="/skus/new"
+          variant="outlined"
+          sx={{ color: 'primary.main', fontWeight: 500 }}
+        >
+          Add New
+        </CustomButton>
         
         <CustomButton
           onClick={onRefresh}
