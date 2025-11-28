@@ -25,7 +25,7 @@ import type {
   SkuCodeBaseLookupParams,
   SkuCodeBaseLookupResponse,
   SkuLookupQueryParams,
-  SkuLookupResponse,
+  SkuLookupResponse, StatusLookupParams, StatusLookupResponse,
   TaxRateLookupQueryParams,
   TaxRateLookupResponse,
 } from '@features/lookup/state/lookupTypes';
@@ -465,6 +465,52 @@ export const fetchProductLookupThunk = createAsyncThunk<
     } catch (err: any) {
       console.error('thunkFetchProductLookup error:', err);
       return rejectWithValue(err?.message ?? 'Failed to fetch product lookup.');
+    }
+  }
+);
+
+/**
+ * Thunk: Fetch paginated **Status lookup** items for dropdowns/selectors.
+ *
+ * Calls `lookupService.fetchStatusLookup`, which hits `GET /lookups/statuses`
+ * and returns a typed {@link StatusLookupResponse}.
+ *
+ * ## Behavior
+ * - Accepts optional params such as:
+ *   - keyword
+ *   - filters.name
+ *   - filters.keyword
+ *   - filters.is_active
+ *   - limit / offset
+ * - Resolves with Status lookup data
+ * - Rejects with a readable error message if the request fails
+ *
+ * ## Example
+ * ```ts
+ * dispatch(fetchStatusLookupThunk({ keyword: 'active' }));
+ *
+ * dispatch(fetchStatusLookupThunk({
+ *   filters: { is_active: true }
+ * }));
+ * ```
+ *
+ * @param params Optional {@link StatusLookupParams} for filtering and pagination.
+ *
+ * @returns A typed thunk action resolving to `StatusLookupResponse`
+ *          or rejecting with `rejectValue: string`.
+ */
+export const fetchStatusLookupThunk = createAsyncThunk<
+  StatusLookupResponse,              // fulfilled type
+  StatusLookupParams | undefined,    // argument type
+  { rejectValue: string }            // rejection payload type
+>(
+  'lookups/fetchStatusLookup',
+  async (params, { rejectWithValue }) => {
+    try {
+      return await lookupService.fetchStatusLookup(params);
+    } catch (err: any) {
+      console.error('thunkFetchStatusLookup error:', err);
+      return rejectWithValue(err?.message ?? 'Failed to fetch status lookup.');
     }
   }
 );

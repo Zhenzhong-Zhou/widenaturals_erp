@@ -26,7 +26,7 @@ import type {
   SkuCodeBaseLookupParams,
   SkuCodeBaseLookupResponse,
   SkuLookupQueryParams,
-  SkuLookupResponse,
+  SkuLookupResponse, StatusLookupParams, StatusLookupResponse,
   TaxRateLookupQueryParams,
   TaxRateLookupResponse,
 } from '@features/lookup/state/lookupTypes';
@@ -486,6 +486,62 @@ const fetchProductLookup = async (
   }
 };
 
+/**
+ * Fetches paginated **Status lookup items** for dropdowns/selectors/autocomplete.
+ *
+ * This function calls the server’s `GET /lookups/statuses` endpoint and returns
+ * a typed {@link StatusLookupResponse}. It is used in UI components that need
+ * to select or filter by status (e.g., config panels, admin settings,
+ * product/SKU filtering, workflow states, etc.).
+ *
+ * ## Supported Query Params
+ * From {@link StatusLookupParams}:
+ * - `keyword`         — optional fuzzy match across name/description
+ * - `filters.name`    — optional partial match on status name
+ * - `filters.is_active` — optional boolean override (ACL enforced on server)
+ * - `limit`           — max number of rows (default: 50)
+ * - `offset`          — pagination offset
+ *
+ * ## Behavior
+ * - Converts nested filter values into query string params
+ * - Sends a typed GET request to `/lookups/statuses`
+ * - Returns paginated lookup info: `{ items, limit, offset, hasMore }`
+ * - Throws on failure for caller-level error handling
+ *
+ * @param params Optional status lookup filters and pagination values.
+ *
+ * @returns Promise<StatusLookupResponse>
+ * Containing lookup items and pagination metadata.
+ *
+ * @throws Error
+ * If the request fails or returns invalid data.
+ *
+ * @example
+ * // Simple keyword search
+ * await fetchStatusLookup({ keyword: 'active' });
+ *
+ * @example
+ * // Lookup active statuses only
+ * await fetchStatusLookup({
+ *   filters: {
+ *     is_active: true
+ *   }
+ * });
+ */
+const fetchStatusLookup = async (
+  params?: StatusLookupParams
+): Promise<StatusLookupResponse> => {
+  const queryString = buildQueryString(params);
+  const url = `${API_ENDPOINTS.LOOKUPS.STATUSES}${queryString}`;
+  
+  try {
+    return await getRequest<StatusLookupResponse>(url);
+  } catch (error) {
+    console.error('Failed to fetch status lookup:', error);
+    throw error;
+  }
+};
+
 export const lookupService = {
   fetchBatchRegistryLookup,
   fetchWarehouseLookup,
@@ -502,4 +558,5 @@ export const lookupService = {
   fetchPackagingMaterialLookup,
   fetchSkuCodeBaseLookup,
   fetchProductLookup,
+  fetchStatusLookup,
 };

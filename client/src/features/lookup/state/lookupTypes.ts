@@ -835,3 +835,69 @@ export interface ProductLookupParams extends LookupQuery {
  */
 export type ProductLookupState =
   PaginatedLookupState<ProductLookupItem>;
+
+/**
+ * Represents a Status lookup item.
+ *
+ * This is the lightweight form used in dropdowns,
+ * autocomplete inputs, filter panels, and configuration UIs.
+ *
+ * Supports UI flags such as:
+ * - `isActive` — mapped from boolean `is_active` on server
+ */
+export interface StatusLookupItem {
+  id: string;
+  label: string; // usually the status name (e.g. "Active", "Suspended")
+  isActive: boolean;
+}
+
+/**
+ * Response shape for Status lookup requests.
+ *
+ * Wraps lookup results inside the standard
+ * paginated `LookupSuccessResponse<T>` payload.
+ */
+export type StatusLookupResponse =
+  LookupSuccessResponse<StatusLookupItem>;
+
+/**
+ * Nested filters object for Status lookup queries.
+ *
+ * These optional fields map directly to the server's
+ * `buildStatusLookupFilters()` logic.
+ *
+ * - `name` — partial, case-insensitive match on status name
+ * - `keyword` — fuzzy match across name and description
+ * - `is_active` — optional flag (ACL-enforced on backend)
+ */
+export interface StatusLookupFilters {
+  name?: string;
+}
+
+/**
+ * Query parameters for fetching Status lookup items.
+ *
+ * Extends:
+ * - `LookupQuery` (keyword, limit, offset)
+ *
+ * Adds nested:
+ * - `filters` — {@link StatusLookupFilters}
+ *
+ * This shape matches the server’s `/lookups/statuses` expectations.
+ */
+export interface StatusLookupParams extends LookupQuery {
+  filters?: StatusLookupFilters;
+}
+
+/**
+ * Redux state type for Status lookup data.
+ *
+ * Combines:
+ * - async loading/error state
+ * - paginated metadata (limit, offset, hasMore)
+ * - lookup items
+ *
+ * Used by `statusLookupSlice` or any equivalent hook/state store.
+ */
+export type StatusLookupState =
+  PaginatedLookupState<StatusLookupItem>;

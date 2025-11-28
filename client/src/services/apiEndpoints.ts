@@ -7,6 +7,9 @@ export const API_ENDPOINTS = {
   REFRESH_TOKEN: '/session/refresh',
   LOGOUT: '/auth/logout',
   ALL_USERS: '/users',
+  STATUSES: {
+  
+  },
   USER_PROFILE: '/users/me',
   PRODUCTS_DROPDOWN_WAREHOUSE: '/products/dropdown/warehouse/:warehouseId',
   ALL_COMPLIANCES: '/compliances',
@@ -65,6 +68,7 @@ export const API_ENDPOINTS = {
     PACKAGING_MATERIALS: '/lookups/packaging-materials',
     SKU_CODE_BASES: '/lookups/sku-code-bases',
     PRODUCTS: '/lookups/products',
+    STATUSES: '/lookups/statuses',
   },
   REPORTS: {
     INVENTORY_ACTIVITY_LOGS: 'reports/inventory-activity-logs',
