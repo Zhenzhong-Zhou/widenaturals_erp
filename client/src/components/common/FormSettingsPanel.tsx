@@ -1,4 +1,5 @@
 import type { FC } from 'react';
+import { useThemeContext } from '@context/ThemeContext';
 import Box from '@mui/material/Box';
 import FormGroup from '@mui/material/FormGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -17,12 +18,17 @@ interface FormSettingsPanelProps {
 }
 
 const FormSettingsPanel: FC<FormSettingsPanelProps> = ({ settings }) => {
+  const { theme } = useThemeContext();
+  
   return (
     <Box
       sx={{
         p: 2,
         borderRadius: 2,
-        backgroundColor: 'rgba(0,0,0,0.03)',
+        backgroundColor:
+          theme.palette.mode === "light"
+            ? theme.palette.grey[50]
+            : theme.palette.grey[800],
         mb: 3,
         border: '1px solid #EEE'
       }}

@@ -19,18 +19,41 @@ import BaseInput from '@components/common/BaseInput';
 /**
  * Renderer for the **Product** lookup dropdown.
  *
- * - Syncs selected product back into RHF via `form.setValue()`
- * - Updates dropdown UI label state
- * - Calls optional backend sync helper
+ * Behaviors:
+ * - Single mode:
+ *   - Syncs selected product back into RHF via `form.setValue()`
+ *   - Updates global dropdown UI label state via `ctx.productDropdown`
+ *   - Calls optional backend sync helper
  *
- * Used in both:
+ * - Bulk mode:
+ *   - Maintains row-level dropdown input state (isolated per row)
+ *   - Does NOT update global ctx state
+ *   - Stores the visible label in `__productInput` inside the row
+ *
+ * Used in:
  * - Single-SKU Create form
+ * - Multi-item (bulk) SKU Create form
  */
 export const renderProductDropdown = (
   args: ProductDropdownRenderArgs
 ) => {
-  const { value, onChange, required, ctx } = args;
+  const {
+    value,
+    onChange,
+    required,
+    ctx,
+    getRowValues,
+    setRowValues,
+  } = args;
+  
   if (!onChange) return null;
+  
+  const isBulk = !!getRowValues;
+  const row = isBulk ? getRowValues() ?? {} : null;
+  
+  const inputValue = isBulk
+    ? row.__productInput ?? ""
+    : ctx.productDropdown.dropdownState.inputValue;
   
   return (
     <ProductDropdown
@@ -38,44 +61,61 @@ export const renderProductDropdown = (
       onChange={(id) => {
         onChange(id);
         
-        // Sync into form
-        ctx.form?.setValue("product_id", id, {
-          shouldValidate: true,
-          shouldDirty: true,
-        });
-        
-        // Update visible label
         const match = ctx.product.options.find((opt) => opt.value === id);
-        if (match) {
-          ctx.productDropdown.setDropdownState((prev: any) => ({
-            ...prev,
-            inputValue: match.label,
-          }));
+        
+        if (isBulk && setRowValues) {
+          // bulk row → update row only
+          setRowValues({
+            ...row,
+            __productInput: match?.label ?? "",
+          });
+        } else {
+          // single mode → sync form + global label
+          ctx.form?.setValue("product_id", id, {
+            shouldValidate: true,
+            shouldDirty: true,
+          });
+          
+          if (match) {
+            ctx.productDropdown.setDropdownState((prev: any) => ({
+              ...prev,
+              inputValue: match.label,
+            }));
+          }
         }
         
-        // Optional “backend state sync”
+        // backend optional sync
         ctx.syncProductDropdownLabel?.(id);
       }}
       options={ctx.product.options}
       fetchParams={ctx.productDropdown.fetchParams}
       setFetchParams={ctx.productDropdown.setFetchParams}
       onRefresh={(params) => ctx.product.fetch(params)}
-      inputValue={ctx.productDropdown.dropdownState.inputValue}
+      inputValue={inputValue}
       loading={ctx.product.loading}
       error={ctx.product.error}
       paginationMeta={ctx.product.meta}
       onInputChange={(_e, newValue, reason) => {
         if (reason !== "input") return;
         
-        ctx.productDropdown.setDropdownState((prev: any) => ({
-          ...prev,
-          inputValue: newValue,
-          fetchParams: {
-            ...prev.fetchParams,
-            keyword: newValue,
-            offset: 0,
-          },
-        }));
+        if (isBulk && setRowValues) {
+          // bulk mode → local row state only
+          setRowValues({
+            ...row,
+            __productInput: newValue,
+          });
+        } else {
+          // single mode → global ctx
+          ctx.productDropdown.setDropdownState((prev: any) => ({
+            ...prev,
+            inputValue: newValue,
+            fetchParams: {
+              ...prev.fetchParams,
+              keyword: newValue,
+              offset: 0,
+            },
+          }));
+        }
         
         ctx.handleProductSearch(newValue);
       }}
@@ -92,15 +132,31 @@ export const renderProductDropdown = (
  * Renderer for the **SKU Code Base** dropdown.
  *
  * Behaviors:
- * - Parses the selected base to extract brand_code + category_code
- * - Supports BOTH single-SKU mode and bulk-row mode
- * - Updates RHF fields (single mode)
- * - Updates row state (bulk mode)
- * - Syncs dropdown label
+ * - Extracts brand_code and category_code from the selected base
+ *
+ * - Single-SKU mode:
+ *   - Updates RHF form fields (`brand_code`, `category_code`)
+ *   - Updates global dropdown UI label state
+ *
+ * - Bulk mode:
+ *   - Uses row-level dropdown input state (per-row isolation)
+ *   - Stores visible input in `__skuCodeBaseInput`
+ *   - Updates brand/category on the row only (no global state updates)
+ *
+ * Also:
+ * - Supports async search and pagination via ctx
  */
 export const renderSkuCodeBaseDropdown = (args: SkuCodeBaseDropdownRenderArgs) => {
   const { value, onChange, required, ctx, getRowValues, setRowValues } = args;
   if (!onChange) return null;
+  
+  const isBulk = !!getRowValues;
+  const row = isBulk ? getRowValues() ?? {} : null;
+  
+  // Row-specific inputValue fallback
+  const inputValue = isBulk
+    ? row.__skuCodeBaseInput ?? ""
+    : ctx.skuCodeBaseDropdown.dropdownState.inputValue;
   
   const handleSelect = (selectedId: string) => {
     onChange(selectedId);
@@ -114,7 +170,7 @@ export const renderSkuCodeBaseDropdown = (args: SkuCodeBaseDropdownRenderArgs) =
         ctx.parseSkuCodeBaseLabel(match.label);
       
       // Single-SKU mode: use RHF form
-      if (!getRowValues && !setRowValues) {
+      if (!isBulk) {
         ctx.form?.setValue("brand_code", brand_code, {
           shouldDirty: true,
           shouldTouch: true,
@@ -126,19 +182,23 @@ export const renderSkuCodeBaseDropdown = (args: SkuCodeBaseDropdownRenderArgs) =
           shouldTouch: true,
           shouldValidate: true,
         });
+        
+        // global dropdown label
+        ctx.skuCodeBaseDropdown.setDropdownState((prev: any) => ({
+          ...prev,
+          inputValue: match.label,
+        }));
       }
       
       // Bulk mode: row-state sync
-      if (getRowValues && setRowValues) {
-        const current = getRowValues() ?? {};
-        setRowValues({ ...current, brand_code, category_code });
+      if (isBulk && setRowValues) {
+        setRowValues({
+          ...row,
+          __skuCodeBaseInput: match.label, // row-level label
+          brand_code,
+          category_code,
+        });
       }
-      
-      // Update dropdown visible text
-      ctx.skuCodeBaseDropdown.setDropdownState((prev: any) => ({
-        ...prev,
-        inputValue: match.label,
-      }));
     }
   };
   
@@ -150,22 +210,30 @@ export const renderSkuCodeBaseDropdown = (args: SkuCodeBaseDropdownRenderArgs) =
       fetchParams={ctx.skuCodeBaseDropdown.fetchParams}
       setFetchParams={ctx.skuCodeBaseDropdown.setFetchParams}
       onRefresh={(params) => ctx.skuCodeBase.fetch(params)}
-      inputValue={ctx.skuCodeBaseDropdown.dropdownState.inputValue}
+      inputValue={inputValue}
       loading={ctx.skuCodeBase.loading}
       error={ctx.skuCodeBase.error}
       paginationMeta={ctx.skuCodeBase.meta}
       onInputChange={(_e, newValue, reason) => {
         if (reason !== "input") return;
         
-        ctx.skuCodeBaseDropdown.setDropdownState((prev: any) => ({
-          ...prev,
-          inputValue: newValue,
-          fetchParams: {
-            ...prev.fetchParams,
-            keyword: newValue,
-            offset: 0,
-          },
-        }));
+        if (isBulk && setRowValues) {
+          // Safe bulk-only edit
+          setRowValues({
+            ...row,
+            __skuCodeBaseInput: newValue,
+          });
+        } else {
+          ctx.skuCodeBaseDropdown.setDropdownState((prev: any) => ({
+            ...prev,
+            inputValue: newValue,
+            fetchParams: {
+              ...prev.fetchParams,
+              keyword: newValue,
+              offset: 0,
+            },
+          }));
+        }
         
         ctx.handleSkuCodeBaseSearch(newValue);
       }}
@@ -235,6 +303,7 @@ export const renderBaseInputField = ({
                                        onChange,
                                        helperTextFn,
                                        transform,
+                                       fullWidth,
                                      }: {
   label: string;
   value: any;
@@ -242,11 +311,13 @@ export const renderBaseInputField = ({
   onChange?: (v: string) => void;
   helperTextFn?: (value: string, required: boolean) => ReactNode;
   transform?: (v: string) => string;
+  fullWidth?: boolean;
 }) => {
   return (
     <BaseInput
       label={label}
       value={value ?? ""}
+      fullWidth={fullWidth}
       onChange={(e) => {
         const raw = e.target.value;
         const output = transform ? transform(raw) : raw;

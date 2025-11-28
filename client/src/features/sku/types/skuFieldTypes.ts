@@ -16,15 +16,44 @@ import type { RowAwareComponentProps } from '@components/common/MultiItemForm';
 /**
  * Shared rendering context injected into every SKU field renderer.
  *
- * This object centralizes all dependencies needed during rendering:
- * - React Hook Form instance (`form`) for value updates
- * - Lookup bundles for Product and SKU Code Base dropdowns
- * - Pagination state + search handlers for dropdowns
- * - Feature flags (whether field editing should be manual/forced)
- * - Helper utilities such as label parsers
+ * This object centralizes all shared dependencies needed during field rendering,
+ * and allows both "single" and "bulk" SKU creation flows to use the same abstract
+ * field definitions while differing in UI behavior.
  *
- * This allows all render functions (single + bulk mode) to behave
- * consistently and avoids prop drilling or repeated imports.
+ * This context provides:
+ *
+ * 1. **Form Integration (Single Mode Only)**
+ *    - The React Hook Form instance (`form`) is available only in single-SKU mode.
+ *    - Single renderers use `form.setValue()` to sync dropdown selections and
+ *      autofill dependent fields (e.g., brand/category codes).
+ *
+ * 2. **Lookup Data + Async Pagination**
+ *    - `product` and `skuCodeBase` contain lookup results, pagination metadata,
+ *      loading/error states, and fetch functions.
+ *    - `productDropdown` and `skuCodeBaseDropdown` carry global dropdown UI state
+ *      (inputValue, pagination, keyword) for **single-SKU mode only**.
+ *
+ * 3. **Search Handlers**
+ *    - `handleProductSearch()` and `handleSkuCodeBaseSearch()` trigger lookup
+ *      filtering as the user types in dropdown inputs.
+ *
+ * 4. **Label Parsing + Autofill Utilities**
+ *    - `parseSkuCodeBaseLabel()` translates a label (e.g., "PG-HN") into structured
+ *      brand/category codes that can be written into form fields or bulk-row state.
+ *
+ * 5. **Feature Flags**
+ *    - Control whether certain fields (brand/category, variant, region, market region)
+ *      are editable manually or via predefined dropdown selections.
+ *
+ * 6. **Single vs Bulk Rendering Behavior**
+ *    - **Single mode** uses the global dropdown UI state inside `ctx.productDropdown`
+ *      / `ctx.skuCodeBaseDropdown`.
+ *    - **Bulk mode** does NOT use global dropdown state. Instead, renderers maintain
+ *      per-row `inputValue` inside the row state (e.g., `__productInput`,
+ *      `__skuCodeBaseInput`) to avoid cross-row interference.
+ *
+ * This context avoids prop-drilling, eliminates duplicate imports, and provides a
+ * unified rendering contract for all SKU field renderers.
  */
 export interface SkuFieldContext {
   /** UI permissions: allow manual typing of brand/category codes */
@@ -86,6 +115,17 @@ export interface SkuFieldContext {
   
   /** Optional handler to sync SKU Code Base label after change */
   syncSkuCodeBaseLabel?: (id: string) => void;
+  
+  /**
+   * Optional layout grid overrides for this field.
+   * Matches the MUI Grid breakpoint structure (xs / sm / md / lg).
+   */
+  grid?: {
+    xs?: number;
+    sm?: number;
+    md?: number;
+    lg?: number;
+  };
 }
 
 /* ========================================================================
@@ -126,36 +166,69 @@ export type BulkRenderer = (
  *
  * Fields act like an abstract schema:
  * - `type` determines input behavior
- * - `singleRender`/`bulkRender` override default rendering
+ * - `singleRender` / `bulkRender` override default UI rendering
  * - `defaultValue` seeds RHF or bulk-row initial values
+ *
+ * This structure is consumed by:
+ * - buildSingleSkuFields → <CustomForm />
+ * - buildBulkSkuFields   → <MultiItemForm />
  */
 export interface BaseSkuField {
-  /** Field key, mapped to RHF field name or bulk row property */
+  /** Field key, mapped to RHF field name or bulk-row property */
   id: string;
   
-  /** Visible label */
+  /** Visible label displayed to the user */
   label: string;
   
-  /** Input type (text/number/textarea/dropdown/custom) */
+  /**
+   * Input type describing how the value is edited.
+   * Examples: "text", "number", "textarea", "dropdown", "custom"
+   */
   type: BaseFieldType;
   
-  /** Whether this field is mandatory */
+  /** Whether the field is required for submission */
   required?: boolean;
   
-  /** Minimum numeric value (for number inputs) */
+  /** Minimum allowed numeric value (applies only to number inputs) */
   min?: number;
   
-  /** Number of rows for textarea fields */
+  /** Height of textarea fields (line count) */
   rows?: number;
   
-  /** Initial value for this field */
+  /**
+   * Initial value for this field.
+   * Used to seed RHF (single mode) or the initial row in MultiItemForm (bulk mode).
+   */
   defaultValue?: any;
   
-  /** Custom renderer for single SKU mode */
+  /**
+   * Custom renderer used in **single-SKU** mode.
+   * Overrides the default component, allowing specialized dropdowns or logic.
+   */
   singleRender?: SingleRenderer;
   
-  /** Custom renderer for bulk SKU mode */
+  /**
+   * Custom renderer used in **bulk-SKU** mode.
+   * Receives row-level helpers (getRowValues, setRowValues) and context.
+   */
   bulkRender?: BulkRenderer;
+  
+  /**
+   * Optional logical grouping identifier
+   * (used to cluster fields into UI rows/sections within the form layout).
+   */
+  group?: string;
+  
+  /**
+   * Optional MUI grid sizing for responsive layout.
+   * Each breakpoint defines how many columns the field spans.
+   */
+  grid?: {
+    xs?: number;
+    sm?: number;
+    md?: number;
+    lg?: number;
+  };
 }
 
 /**
@@ -173,24 +246,42 @@ export type BaseFieldType =
  * ===================================================================== */
 
 /**
- * Parameters passed to the Product dropdown renderer.
+ * Arguments passed to the Product dropdown renderer.
  *
- * Supports:
- * - Standard RHF single selection mode
- * - Backend label synchronization
+ * This structure supports both rendering modes:
+ *
+ * - **Single-SKU mode**
+ *   - Uses global dropdown UI state from `ctx.productDropdown`
+ *   - Syncs selection back into the RHF form
+ *
+ * - **Bulk-SKU mode**
+ *   - Uses row-level state via `getRowValues()` / `setRowValues()`
+ *   - Does NOT write to global dropdown state to avoid cross-row interference
+ *
+ * Each renderer receives these arguments automatically from either
+ * CustomForm (single mode) or MultiItemForm (bulk mode).
  */
 export interface ProductDropdownRenderArgs {
-  /** Current field value (product_id) */
+  /** Current field value (typically the selected product_id) */
   value: any;
   
   /** Change handler (undefined when field is read-only) */
   onChange?: (id: string) => void;
   
-  /** Whether field is required */
+  /** Whether the field must be filled */
   required?: boolean;
   
-  /** Shared SKU field context */
+  /** Shared SKU field context (lookup bundles, search handlers, RHF form, etc.) */
   ctx: SkuFieldContext;
+  
+  /** Returns the bulk row’s current values (defined only in bulk mode) */
+  getRowValues?: () => any;
+  
+  /** Updates the bulk row’s state (defined only in bulk mode) */
+  setRowValues?: (row: any) => void;
+  
+  /** Optional layout hint to render the dropdown at full width */
+  fullWidth?: boolean;
 }
 
 /* ========================================================================

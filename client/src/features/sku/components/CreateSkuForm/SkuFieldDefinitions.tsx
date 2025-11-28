@@ -31,6 +31,7 @@ import { buildRequiredHelper } from '@components/common/PatternHelper';
  * - Applies feature flags (manual vs dropdown fields)
  * - Defines all SKU creation fields for both Single-SKU and Bulk-SKU modes
  * - Produces a unified BaseSkuField[] structure consumed by CustomForm / MultiItemForm
+ * - Ensures bulk mode renderers support row-level UI state (e.g., independent dropdown input values)
  *
  * The returned array dynamically switches renderers based on:
  * - ctx.allowManualBrandCategory
@@ -58,6 +59,7 @@ export const buildSkuFields = (ctx: SkuFieldContext): BaseSkuField[] => {
       label: "Product",
       type: "custom",
       required: true,
+      grid: { xs: 12 },
       singleRender: (params) =>
         renderProductDropdown({
           value: params.value ?? "",
@@ -81,6 +83,8 @@ export const buildSkuFields = (ctx: SkuFieldContext): BaseSkuField[] => {
               label: "Brand Code",
               type: "custom",
               required: true,
+              group: allowManualBrandCategory ? "identityRow1" : "skuIdentityRow",
+              grid: { xs: 12, sm: 6 },
               singleRender: ({ value, onChange, required }) =>
                 renderBaseInputField({
                   label: "Brand Code",
@@ -88,7 +92,8 @@ export const buildSkuFields = (ctx: SkuFieldContext): BaseSkuField[] => {
                   required: !!required,
                   onChange,
                   helperTextFn: getBrandCategoryHelperText,
-                  transform: (v) => v.toUpperCase(), // normalization
+                  transform: (v) => v.toUpperCase(),
+                  fullWidth: true,
                 }),
               bulkRender: ({ value, onChange, required }) =>
                 renderBaseInputField({
@@ -98,6 +103,7 @@ export const buildSkuFields = (ctx: SkuFieldContext): BaseSkuField[] => {
                   onChange,
                   helperTextFn: getBrandCategoryHelperText,
                   transform: (v) => v.toUpperCase(),
+                  fullWidth: true,
                 }),
             },
             // CATEGORY
@@ -106,6 +112,8 @@ export const buildSkuFields = (ctx: SkuFieldContext): BaseSkuField[] => {
               label: "Category Code",
               type: "custom",
               required: true,
+              group: allowManualBrandCategory ? "identityRow1" : "skuIdentityRow",
+              grid: { xs: 12, sm: 6 },
               singleRender: ({ value, onChange, required }) =>
                 renderBaseInputField({
                   label: "Category Code",
@@ -114,6 +122,7 @@ export const buildSkuFields = (ctx: SkuFieldContext): BaseSkuField[] => {
                   onChange,
                   helperTextFn: getBrandCategoryHelperText,
                   transform: (v) => v.toUpperCase(),
+                  fullWidth: true,
                 }),
               bulkRender: ({ value, onChange, required }) =>
                 renderBaseInputField({
@@ -123,6 +132,7 @@ export const buildSkuFields = (ctx: SkuFieldContext): BaseSkuField[] => {
                   onChange,
                   helperTextFn: getBrandCategoryHelperText,
                   transform: (v) => v.toUpperCase(),
+                  fullWidth: true,
                 }),
             },
           ] satisfies BaseSkuField[]
@@ -134,6 +144,8 @@ export const buildSkuFields = (ctx: SkuFieldContext): BaseSkuField[] => {
               label: "Brand / Category",
               type: "custom",
               required: true,
+              group: "skuIdentityRow",
+              grid: { xs: 12, sm: 6 },
               singleRender: (params) =>
                 renderSkuCodeBaseDropdown({
                   value: params.value ?? "",
@@ -167,6 +179,7 @@ export const buildSkuFields = (ctx: SkuFieldContext): BaseSkuField[] => {
                   onChange,
                   helperTextFn: getVariantCodeHelperText,
                   transform: (v) => v.toUpperCase(),
+                  fullWidth: true,
                 }),
               bulkRender: ({ value, onChange, required }) =>
                 renderBaseInputField({
@@ -176,6 +189,7 @@ export const buildSkuFields = (ctx: SkuFieldContext): BaseSkuField[] => {
                   onChange,
                   helperTextFn: getVariantCodeHelperText,
                   transform: (v) => v.toUpperCase(),
+                  fullWidth: true,
                 }),
             },
           ] satisfies BaseSkuField[]
@@ -187,6 +201,8 @@ export const buildSkuFields = (ctx: SkuFieldContext): BaseSkuField[] => {
               label: "Variant Code",
               type: "custom",
               required: true,
+              group: allowManualVariantCode ? "identityRow1" : "skuIdentityRow",
+              grid: { xs: 12, sm: 6 },
               singleRender: ({ value, onChange, required }) =>
                 renderDropdownField({
                   label: "Variant Code",
@@ -230,6 +246,7 @@ export const buildSkuFields = (ctx: SkuFieldContext): BaseSkuField[] => {
                   onChange,
                   helperTextFn: getRegionCodeHelperText,
                   transform: (v) => v.toUpperCase(),
+                  fullWidth: true,
                 }),
               bulkRender: ({ value, onChange, required }) =>
                 renderBaseInputField({
@@ -239,6 +256,7 @@ export const buildSkuFields = (ctx: SkuFieldContext): BaseSkuField[] => {
                   onChange,
                   helperTextFn: getRegionCodeHelperText,
                   transform: (v) => v.toUpperCase(),
+                  fullWidth: true,
                 }),
             },
           ] satisfies BaseSkuField[]
@@ -250,6 +268,8 @@ export const buildSkuFields = (ctx: SkuFieldContext): BaseSkuField[] => {
               label: "Region Code",
               type: "custom",
               required: true,
+              group: allowManualBrandCategory ? "identityRow1" : "skuIdentityRow",
+              grid: { xs: 12, sm: 6 },
               singleRender: ({ value, onChange, required }) =>
                 renderDropdownField({
                   label: "Region Code",
@@ -285,6 +305,8 @@ export const buildSkuFields = (ctx: SkuFieldContext): BaseSkuField[] => {
               label: "Market Region",
               type: "custom",
               required: true,
+              group: allowManualMarketRegion ? "identityRow1" : "skuIdentityRow",
+              grid: { xs: 12, sm: 6 },
               singleRender: ({ value, onChange, required }) =>
                 renderBaseInputField({
                   label: "Market Region",
@@ -294,6 +316,7 @@ export const buildSkuFields = (ctx: SkuFieldContext): BaseSkuField[] => {
                   helperTextFn: getMarketRegionHelperText,
                   transform: (v) =>
                     v.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()),
+                  fullWidth: true,
                 }),
               bulkRender: ({ value, onChange, required }) =>
                 renderBaseInputField({
@@ -304,6 +327,7 @@ export const buildSkuFields = (ctx: SkuFieldContext): BaseSkuField[] => {
                   helperTextFn: getMarketRegionHelperText,
                   transform: (v) =>
                     v.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()),
+                  fullWidth: true,
                 }),
             },
           ] satisfies BaseSkuField[]
@@ -316,6 +340,8 @@ export const buildSkuFields = (ctx: SkuFieldContext): BaseSkuField[] => {
               type: "custom",
               required: true,
               defaultValue: "Canada",
+              group: allowManualMarketRegion ? "identityRow1" : "skuIdentityRow",
+              grid: { xs: 12, sm: 6 },
               singleRender: ({ value, onChange, required }) =>
                 renderDropdownField({
                   label: "Market Region",
@@ -347,6 +373,8 @@ export const buildSkuFields = (ctx: SkuFieldContext): BaseSkuField[] => {
       label: "Barcode",
       type: "custom",
       required: true,
+      group: "skuIdentityRow",
+      grid: { xs: 12, sm: 6 },
       singleRender: ({ value, onChange, required }) =>
         renderBaseInputField({
           label: "Barcode",
@@ -355,6 +383,7 @@ export const buildSkuFields = (ctx: SkuFieldContext): BaseSkuField[] => {
           onChange,
           helperTextFn: (v, isReq) =>
             getBarcodeHelperText(v ?? "", isReq, detectBarcodeRule(v ?? "")),
+          fullWidth: true,
         }),
       bulkRender: ({ value, onChange, required }) =>
         renderBaseInputField({
@@ -364,6 +393,7 @@ export const buildSkuFields = (ctx: SkuFieldContext): BaseSkuField[] => {
           onChange,
           helperTextFn: (v, isReq) =>
             getBarcodeHelperText(v ?? "", isReq, detectBarcodeRule(v ?? "")),
+          fullWidth: true,
         }),
     },
     {
@@ -372,6 +402,8 @@ export const buildSkuFields = (ctx: SkuFieldContext): BaseSkuField[] => {
       type: "custom",
       required: true,
       defaultValue: "en-fr",
+      group: "skuIdentityRow",
+      grid: { xs: 12, sm: 6 },
       singleRender: ({ value, onChange, required }) =>
         renderBaseInputField({
           label: "Language",
@@ -379,6 +411,7 @@ export const buildSkuFields = (ctx: SkuFieldContext): BaseSkuField[] => {
           onChange,
           required: !!required,
           helperTextFn: getLanguageHelperText,
+          fullWidth: true,
         }),
       bulkRender: ({ value, onChange, required }) =>
         renderBaseInputField({
@@ -387,6 +420,7 @@ export const buildSkuFields = (ctx: SkuFieldContext): BaseSkuField[] => {
           onChange,
           required: !!required,
           helperTextFn: getLanguageHelperText,
+          fullWidth: true,
         }),
     },
     {
@@ -394,6 +428,8 @@ export const buildSkuFields = (ctx: SkuFieldContext): BaseSkuField[] => {
       label: "Size Label",
       type: "custom",
       required: true,
+      group: "skuIdentityRow",
+      grid: { xs: 12, sm: 6 },
       singleRender: ({ value, onChange, required }) =>
         renderBaseInputField({
           label: "Size Label",
@@ -401,6 +437,7 @@ export const buildSkuFields = (ctx: SkuFieldContext): BaseSkuField[] => {
           onChange,
           required: !!required,
           helperTextFn: buildRequiredHelper,
+          fullWidth: true,
         }),
       bulkRender: ({ value, onChange, required }) =>
         renderBaseInputField({
@@ -409,16 +446,45 @@ export const buildSkuFields = (ctx: SkuFieldContext): BaseSkuField[] => {
           onChange,
           required: !!required,
           helperTextFn: buildRequiredHelper,
+          fullWidth: true,
         }),
     },
     
     // ============================================================
     // DIMENSIONS (numeric)
     // ============================================================
-    { id: "length_cm", label: "Length (cm)", type: "number", required: false },
-    { id: "width_cm", label: "Width (cm)", type: "number", required: false },
-    { id: "height_cm", label: "Height (cm)", type: "number", required: false },
-    { id: "weight_g", label: "Weight (g)", type: "number", required: false },
+    {
+      id: "length_cm",
+      label: "Length (cm)",
+      type: "number",
+      required: false,
+      group: "skuIdentityRow",
+      grid: { xs: 12, sm: 6 },
+    },
+    {
+      id: "width_cm",
+      label: "Width (cm)",
+      type: "number",
+      required: false,
+      group: "skuIdentityRow",
+      grid: { xs: 12, sm: 6 },
+    },
+    {
+      id: "height_cm",
+      label: "Height (cm)",
+      type: "number",
+      required: false,
+      group: "skuIdentityRow",
+      grid: { xs: 12, sm: 6 },
+    },
+    {
+      id: "weight_g",
+      label: "Weight (g)",
+      type: "number",
+      required: false,
+      group: "skuIdentityRow",
+      grid: { xs: 12, sm: 6 },
+    },
     
     // ============================================================
     // DESCRIPTION (textarea)
@@ -428,6 +494,8 @@ export const buildSkuFields = (ctx: SkuFieldContext): BaseSkuField[] => {
       label: "Description",
       type: "textarea",
       required: false,
+      group: "skuIdentityRow",
+      grid: { xs: 12, sm: 6 },
       rows: 3,
     },
   ];

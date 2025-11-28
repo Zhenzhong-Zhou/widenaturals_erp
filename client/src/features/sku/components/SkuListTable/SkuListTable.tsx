@@ -86,22 +86,24 @@ const SkuListTable = ({
           SKU List
         </CustomTypography>
         
-        <CustomButton
-          component={Link}
-          to="/skus/new"
-          variant="outlined"
-          sx={{ color: 'primary.main', fontWeight: 500 }}
-        >
-          Add New
-        </CustomButton>
-        
-        <CustomButton
-          onClick={onRefresh}
-          variant="outlined"
-          sx={{ color: 'primary.main', fontWeight: 500 }}
-        >
-          Refresh
-        </CustomButton>
+        <Box display="flex" gap={2}>
+          <CustomButton
+            component={Link}
+            to="/skus/new"
+            variant="contained"
+            sx={{ color: 'primary.secondary', fontWeight: 500 }}
+          >
+            Add New
+          </CustomButton>
+          
+          <CustomButton
+            onClick={onRefresh}
+            variant="outlined"
+            sx={{ color: 'primary.main', fontWeight: 500 }}
+          >
+            Refresh
+          </CustomButton>
+        </Box>
       </Box>
       
       {/* Table */}

@@ -65,6 +65,7 @@ const CreateSkuBulkForm: FC<CreateSkuFormProps> = ({
           size_label: '',
         },
       ]}
+      itemsPerRow={2}
     />
   );
 };
