@@ -1,6 +1,14 @@
 const AppError = require('../utils/AppError');
-const { query, paginateResults } = require('../database/db');
-const { logSystemException, logSystemInfo } = require('../utils/system-logger');
+const {
+  query,
+  paginateResults,
+  paginateQueryByOffset
+} = require('../database/db');
+const {
+  logSystemException,
+  logSystemInfo
+} = require('../utils/system-logger');
+const { buildStatusLookupFilters } = require('../utils/sql/build-status-filters');
 
 /**
  * Fetches the ID of a status by its name.
@@ -57,50 +65,47 @@ const queryStatus = async (whereClause, params) => {
 /**
  * Repository: Get Paginated Statuses
  *
- * Retrieves all statuses with pagination and consistent structured logging.
- * Intended for simple admin UI tables or configuration dashboards.
+ * Retrieves statuses with pagination, dynamic filtering, safe sorting,
+ * and structured system logging. Designed to support both admin UI tables
+ * and restricted ACL-driven lookup lists.
  *
- * ### Features
- * - Lightweight query (no joins or filters)
- * - Consistent pagination metadata and structured logs
- * - Safe parameterization for page/limit values
- *
- * ### Example
- * ```js
- * const result = await getPaginatedStatuses({ page: 1, limit: 20 });
- * ```
- *
- * ### Returns
- * ```js
- * {
- *   data: [ { id, name, description, is_active, created_at, updated_at } ],
- *   pagination: { totalRecords, totalPages, page, limit }
- * }
- * ```
+ * Filters are validated and normalized by the business layer, then converted
+ * into SQL WHERE clauses by `buildStatusLookupFilters`.
  *
  * @async
  * @function
  * @param {Object} options
+ * @param {Object} [options.filters={}] - Structured filter criteria (is_active, name, keyword, etc.)
  * @param {number} [options.page=1] - Current page (1-based)
- * @param {number} [options.limit=10] - Records per page
- * @param {string} [options.sortBy='name'] - Sort column
+ * @param {number} [options.limit=10] - Items per page
+ * @param {string} [options.sortBy='name'] - Sort column (validated by SORTABLE_FIELDS)
  * @param {'ASC'|'DESC'} [options.sortOrder='ASC'] - Sort direction
  *
  * @returns {Promise<{
- * data: any[],
- * pagination: {
- * page: number, limit: number, totalRecords: number, totalPages: number
- * } }
- * >}
+ *   data: any[];
+ *   pagination: {
+ *     page: number;
+ *     limit: number;
+ *     totalRecords: number;
+ *     totalPages: number;
+ *   }
+ * }>}
  *
- * @throws {AppError} - If database execution fails
+ * @throws {AppError} - On query or pagination failure
  */
 const getPaginatedStatuses = async ({
+                                      filters = {},
                                       page = 1,
                                       limit = 10,
                                       sortBy = 'name',
                                       sortOrder = 'ASC',
                                     }) => {
+  const context = 'status-repository/getPaginatedStatuses';
+  
+  // Build WHERE + params
+  const { whereClause, params } = buildStatusLookupFilters(filters);
+  
+  // Construct parameterized base query
   const queryText = `
     SELECT
       s.id,
@@ -110,26 +115,29 @@ const getPaginatedStatuses = async ({
       s.created_at,
       s.updated_at
     FROM status AS s
+    WHERE ${whereClause}
     ORDER BY ${sortBy} ${sortOrder};
   `;
   
   try {
-    // Execute with pagination helper
+    // Execute paginated query
     const result = await paginateResults({
       dataQuery: queryText,
+      params,
       page,
       limit,
-      meta: {
-        context: 'status-repository/getPaginatedStatuses',
-      },
+      meta: { context },
     });
     
-    // Handle empty result
+    // Empty result case (consistent with product repo)
     if (!result?.data?.length) {
       logSystemInfo('No statuses found for current query', {
-        context: 'status-repository/getPaginatedStatuses',
+        context,
+        filters,
         pagination: { page, limit },
+        sorting: { sortBy, sortOrder },
       });
+      
       return {
         data: [],
         pagination: {
@@ -141,9 +149,10 @@ const getPaginatedStatuses = async ({
       };
     }
     
-    // Log success
-    logSystemInfo('Fetched paginated statuses successfully', {
-      context: 'status-repository/getPaginatedStatuses',
+    // Successful fetch
+    logSystemInfo('Fetched paginated status records successfully', {
+      context,
+      filters,
       pagination: result.pagination,
       sorting: { sortBy, sortOrder },
     });
@@ -151,56 +160,16 @@ const getPaginatedStatuses = async ({
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch paginated statuses', {
-      context: 'status-repository/getPaginatedStatuses',
+      context,
+      filters,
       pagination: { page, limit },
       sorting: { sortBy, sortOrder },
     });
     
     throw AppError.databaseError('Failed to fetch paginated statuses.', {
-      context: 'status-repository/getPaginatedStatuses',
+      context,
       details: error.message,
     });
-  }
-};
-
-/**
- * Fetches filtered statuses with sorting.
- *
- * @param {boolean|null} isActive - Filter by active status (true/false). Pass `null` for no filter.
- * @param {string} sortBy - Column to sort by (e.g., "name" or "created_at").
- * @param {string} sortOrder - Order of sorting ("ASC" or "DESC").
- * @returns {Promise<Array>} - Array of filtered statuses.
- * @throws {AppError} - Throws an error if the query fails.
- */
-const getFilteredStatuses = async (
-  isActive = null,
-  sortBy = 'created_at',
-  sortOrder = 'DESC'
-) => {
-  const filters = [];
-  const params = [];
-
-  if (isActive !== null) {
-    filters.push('is_active = $1');
-    params.push(isActive);
-  }
-
-  const whereClause =
-    filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : '';
-  const text = `
-    SELECT id, name, description, is_active, created_at
-    FROM status
-    ${whereClause}
-    ORDER BY ${sortBy} ${sortOrder};
-  `;
-
-  try {
-    const result = await query(text, params);
-    return result.rows || [];
-  } catch (error) {
-    throw AppError.databaseError(
-      'Failed to fetch filtered statuses from the database'
-    );
   }
 };
 
@@ -348,12 +317,97 @@ const getAllStatuses = async (client) => {
   }
 };
 
+/**
+ * Fetches status records for lookup dropdowns or autocomplete components.
+ *
+ * This is a lightweight, paginated status lookup that supports
+ * optional filtering by:
+ *   - name (keyword)
+ *   - is_active
+ *   - id
+ *
+ * Intended for UI dropdowns selecting status_id for SKU, product,
+ * pricing types, inventory, etc.
+ *
+ * @param {Object} options - Query options.
+ * @param {Object} [options.filters={}] - Dynamic filters (name, is_active, keyword, id).
+ * @param {number} [options.limit=50] - Max rows returned.
+ * @param {number} [options.offset=0] - Pagination offset.
+ *
+ * @returns {Promise<{
+ *   data: Array<{
+ *     id: string,
+ *     name: string,
+ *     description?: string,
+ *     is_active: boolean
+ *   }>,
+ *   pagination: {
+ *     offset: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     hasMore: boolean
+ *   }
+ * }>}
+ *
+ * @throws {AppError} If database fails.
+ */
+const getStatusLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
+  const context = 'status-repository/getStatusLookup';
+  
+  const tableName = 'status s';
+  
+  // Step 1: Build dynamic WHERE clause for status
+  const { whereClause, params } = buildStatusLookupFilters(filters);
+  
+  // Step 2: Lightweight SELECT for dropdown
+  const queryText = `
+    SELECT
+      s.id,
+      s.name,
+      s.is_active
+    FROM ${tableName}
+    WHERE ${whereClause}
+  `;
+  
+  try {
+    // Step 3: Run paginated query
+    const result = await paginateQueryByOffset({
+      tableName,
+      whereClause,
+      queryText,
+      params,
+      offset,
+      limit,
+      sortBy: 's.name',
+      sortOrder: 'ASC',
+      additionalSort: 's.created_at ASC'
+    });
+    
+    logSystemInfo('Fetched status lookup data', {
+      context,
+      offset,
+      limit,
+      filters,
+    });
+    
+    return result;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch status lookup', {
+      context,
+      offset,
+      limit,
+      filters,
+    });
+    throw AppError.databaseError('Failed to fetch status lookup.');
+  }
+};
+
 module.exports = {
   getStatusIdByName,
   getStatusNameById,
   getPaginatedStatuses,
-  getFilteredStatuses,
   getStatusById,
   checkStatusExists,
   getAllStatuses,
+  getStatusLookup,
 };

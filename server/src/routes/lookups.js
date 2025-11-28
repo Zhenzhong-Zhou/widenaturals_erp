@@ -15,6 +15,7 @@ const {
   getPackagingMaterialLookupController,
   getSkuCodeBaseLookupController,
   getProductLookupController,
+  getStatusLookupController,
 } = require('../controllers/lookup-controller');
 const authorize = require('../middlewares/authorize');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
@@ -36,6 +37,7 @@ const {
   packagingMaterialLookupQuerySchema,
   skuCodeBaseLookupQuerySchema,
   productLookupQuerySchema,
+  statusLookupQuerySchema,
 } = require('../validators/lookup-validators');
 const { PERMISSIONS } = require('../utils/constants/domain/lookup-constants');
 
@@ -862,6 +864,90 @@ router.get(
     'Invalid Product lookup query parameters.'
   ),
   getProductLookupController
+);
+
+/**
+ * @route GET /lookups/statuses
+ * @description
+ * Endpoint to fetch paginated **Status** lookup options for dropdowns or autocomplete.
+ *
+ * This endpoint is optimized for UI usage. It applies:
+ * - User permission checks (via service layer)
+ * - Query normalization (filters, pagination)
+ * - Field sanitization (e.g., trim user input)
+ * - Joi validation using `statusLookupQuerySchema`
+ * - Service-level visibility rules (active-only for restricted users)
+ *
+ *
+ * Middleware chain includes:
+ *
+ * 1. `authorize`
+ *    Ensures the user has permission to load Status lookup lists.
+ *
+ * 2. `createQueryNormalizationMiddleware`
+ *    Extracts raw query parameters and normalizes them into:
+ *    {
+ *      filters: { name, keyword, is_active },
+ *      limit,
+ *      offset
+ *    }
+ *
+ * 3. `sanitizeFields`
+ *    Trims user input for safety and consistent matching.
+ *
+ * 4. `validate(statusLookupQuerySchema)`
+ *    Validates filter/pagination structure before service layer.
+ *
+ * 5. `getStatusLookupController`
+ *    Fetches paginated lookup results:
+ *    - `{ id, label, isActive }`
+ *    - pagination metadata
+ *
+ *
+ * ### Query Parameters (after normalization)
+ * - `filters.name`      — Optional partial status name filter
+ * - `filters.keyword`   — Optional fuzzy-match filter for name/description
+ * - `filters.is_active` — Optional boolean; may be overridden by ACL
+ * - `limit`             — Page size (default: 50)
+ * - `offset`            — Pagination offset
+ *
+ *
+ * ### Response: 200 OK
+ * ```json
+ * {
+ *   "success": true,
+ *   "message": "Successfully retrieved Status lookup",
+ *   "items": [{ "id": "...", "label": "Active", "isActive": true }],
+ *   "limit": 50,
+ *   "offset": 0,
+ *   "hasMore": true
+ * }
+ * ```
+ *
+ * @access Protected
+ * @permission Requires `view_status_lookup` permission
+ */
+router.get(
+  '/statuses',
+  authorize([PERMISSIONS.VIEW_STATUS]),
+  createQueryNormalizationMiddleware(
+    '', // no moduleKey needed for lookup UIs
+    [], // arrayKeys — none for Status lookup
+    ['is_active'], // booleanKeys
+    ['name', 'keyword', 'is_active'], // filterKeys for Status lookup
+    { includePagination: true, includeSorting: false }
+  ),
+  sanitizeFields(['name', 'keyword']),
+  validate(
+    statusLookupQuerySchema,
+    'query',
+    {
+      abortEarly: false,
+      convert: true,
+    },
+    'Invalid Status lookup query parameters.'
+  ),
+  getStatusLookupController
 );
 
 module.exports = router;

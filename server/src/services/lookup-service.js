@@ -18,7 +18,7 @@ const {
   transformPricingPaginatedLookupResult,
   transformPackagingMaterialPaginatedLookupResult,
   transformSkuCodeBasePaginatedLookupResult,
-  transformProductPaginatedLookupResult,
+  transformProductPaginatedLookupResult, transformStatusPaginatedLookupResult,
 } = require('../transformers/lookup-transformer');
 const {
   logSystemInfo,
@@ -116,6 +116,12 @@ const {
   enrichProductOption
 } = require('../business/product-business');
 const { getProductLookup } = require('../repositories/product-repository');
+const {
+  evaluateStatusLookupAccessControl,
+  enforceStatusLookupVisibilityRules,
+  enrichStatusLookupOption
+} = require('../business/status-business');
+const { getStatusLookup } = require('../repositories/status-repository');
 
 /**
  * Service to fetch filtered and paginated batch registry records for lookup UI.
@@ -1314,6 +1320,100 @@ const fetchProductLookupService = async (
   }
 };
 
+/**
+ * Fetches filtered and paginated Status records for lookup UIs
+ * (dropdowns, autocomplete lists, admin selection inputs).
+ *
+ * Supports:
+ * - Keyword-based matching
+ * - Limit-offset pagination
+ * - Permission-aware active-only visibility for restricted users
+ * - UI enrichment (e.g., `isActive` flag)
+ *
+ * Internal flow:
+ * - Resolve user permissions
+ * - Enforce visibility rules
+ * - Perform repository lookup query
+ * - Enrich each row
+ * - Transform final UI output
+ *
+ * @param {object} user - Authenticated user object.
+ * @param {object} options - Query options.
+ * @param {object} [options.filters={}] - Optional filters (keyword, name, is_active, etc.)
+ * @param {number} [options.limit=50] - Maximum rows to return.
+ * @param {number} [options.offset=0] - Offset for pagination.
+ *
+ * @returns {Promise<{
+ *   items: Array<{ id: string, label: string, isActive?: boolean }>,
+ *   offset: number,
+ *   limit: number,
+ *   hasMore: boolean
+ * }>}
+ *
+ * @throws {AppError} - If permission or lookup execution fails.
+ */
+const fetchStatusLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
+  const context = 'lookup-service/fetchStatusLookupService';
+  
+  try {
+    // Step 1: Service entry logging
+    logSystemInfo('Fetching Status lookup from service', {
+      context,
+      metadata: { filters, limit, offset },
+    });
+    
+    // Step 2: Resolve user access level
+    const userAccess = await evaluateStatusLookupAccessControl(user);
+    
+    // Step 3: Enforce visibility rules (active-only for restricted roles)
+    const adjustedFilters = enforceStatusLookupVisibilityRules(
+      filters,
+      userAccess
+    );
+    
+    // Step 4: Repository-level lookup
+    const { data = [], pagination = {} } = await getStatusLookup({
+      filters: adjustedFilters,
+      limit,
+      offset,
+    });
+    
+    // Step 5: Enrich each row (add isActive flag, etc.)
+    const enrichedRows = data.map((row) =>
+      enrichStatusLookupOption(row)
+    );
+    
+    // Step 6: Convert to UI-friendly format
+    return transformStatusPaginatedLookupResult(
+      { data: enrichedRows, pagination },
+      userAccess
+    );
+  } catch (err) {
+    logSystemException(
+      err,
+      'Failed to fetch Status lookup in service',
+      {
+        context,
+        userId: user?.id,
+        filters,
+        limit,
+        offset,
+      }
+    );
+    
+    throw AppError.serviceError(
+      'Failed to fetch Status lookup list.',
+      {
+        details: err.message,
+        stage: context,
+      }
+    );
+  }
+};
+
 module.exports = {
   fetchBatchRegistryLookupService,
   fetchWarehouseLookupService,
@@ -1330,4 +1430,5 @@ module.exports = {
   fetchPaginatedPackagingMaterialLookupService,
   fetchSkuCodeBaseLookupService,
   fetchProductLookupService,
+  fetchStatusLookupService,
 };

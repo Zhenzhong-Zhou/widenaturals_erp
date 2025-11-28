@@ -360,6 +360,34 @@ const productLookupQuerySchema = Joi.object({
   }).default({}),
 });
 
+/**
+ * Joi validation schema for **Status lookup dropdown** query parameters.
+ *
+ * This schema is intentionally lightweight because it powers UI components such
+ * as dropdowns and autocomplete lists. Only minimal, safe filters are allowed.
+ *
+ * ### Supported Filters (inside `filters`)
+ * - `name`       (optional string)  – partial, case-insensitive match
+ * - `is_active`  (optional boolean) – advanced filter (ACL rules applied in service)
+ *
+ * ### Pagination
+ * - `limit`  (default: 50) – max number of items returned
+ * - `offset` (default: 0)  – offset for pagination
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const statusLookupQuerySchema = Joi.object({
+  ...baseLookupQuerySchema,
+  
+  filters: Joi.object({
+    name: validateOptionalString('Status name', 50),
+    is_active: createBooleanFlag('Is Active')
+      .description(
+        'Optional visibility override; restricted users will have this enforced to true in service-layer ACL.'
+      ),
+  }).default({}),
+});
+
 module.exports = {
   batchRegistryLookupQuerySchema,
   warehouseLookupQuerySchema,
@@ -376,4 +404,5 @@ module.exports = {
   packagingMaterialLookupQuerySchema,
   skuCodeBaseLookupQuerySchema,
   productLookupQuerySchema,
+  statusLookupQuerySchema,
 };

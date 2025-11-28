@@ -1049,6 +1049,86 @@ const transformProductPaginatedLookupResult = (
     { includeLoadMore: true }
   );
 
+/**
+ * Transforms a single raw Status record into a lookup-friendly object.
+ *
+ * Constructs a `label` primarily using the status name, with optional description
+ * appended for more clarity depending on your UI needs.
+ *
+ * Also conditionally appends UI flags (e.g., `isActive`) based on the user's access level.
+ *
+ * @param {{
+ *   id: string,
+ *   name: string,
+ *   description?: string,
+ *   is_active?: boolean
+ * }} row - Raw Status row from the database.
+ *
+ * @param {object} userAccess - Access-level flags (e.g., from evaluateStatusLookupAccessControl()).
+ *
+ * @returns {{
+ *   id: string,
+ *   label: string,
+ *   isActive?: boolean,
+ *   [key: string]: any
+ * }} A UI-ready lookup object.
+ *
+ * @example
+ * const result = transformStatusLookup(row, userAccess);
+ * // { id, label: "Active", isActive: true }
+ */
+const transformStatusLookup = (row, userAccess) => {
+  if (!row || typeof row !== 'object') return null;
+  
+  const name = row.name || 'Unknown Status';
+  const desc = row.description ? ` - ${row.description}` : '';
+  
+  // Example label: "Active" or "Active - Used for normal records"
+  const label = `${name}${desc}`;
+  
+  // Reuse your id:name → id:label helper
+  const baseObj = transformIdNameToIdLabel({ ...row, name: label });
+  
+  // Apply tag enrichment (isActive, etc.)
+  const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
+  
+  return {
+    ...baseObj,
+    ...flagSubset,
+  };
+};
+
+/**
+ * Transforms a paginated set of raw Status records into a UI-friendly lookup result.
+ *
+ * @param {{
+ *   data: Array<object>,
+ *   pagination: {
+ *     offset: number,
+ *     limit: number,
+ *     totalRecords: number
+ *   }
+ * }} paginatedResult - Raw paginated result from repository.
+ *
+ * @param {object} userAccess - Access flags used to enrich each row.
+ *
+ * @returns {{
+ *   items: Array<{ id: string, label: string, [key: string]: any }>,
+ *   offset: number,
+ *   limit: number,
+ *   hasMore: boolean
+ * }}
+ */
+const transformStatusPaginatedLookupResult = (
+  paginatedResult,
+  userAccess
+) =>
+  transformPaginatedResult(
+    paginatedResult,
+    (row) => transformStatusLookup(row, userAccess),
+    { includeLoadMore: true }
+  );
+
 module.exports = {
   transformBatchRegistryPaginatedLookupResult,
   transformWarehouseLookupRows,
@@ -1065,4 +1145,5 @@ module.exports = {
   transformPackagingMaterialPaginatedLookupResult,
   transformSkuCodeBasePaginatedLookupResult,
   transformProductPaginatedLookupResult,
+  transformStatusPaginatedLookupResult,
 };

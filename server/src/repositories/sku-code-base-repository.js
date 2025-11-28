@@ -359,7 +359,6 @@ const getSkuCodeBaseLookup = async ({ filters = {}, limit = 50, offset = 0 }) =>
   const tableName = 'sku_code_bases scb';
   
   // Step 1: Build dynamic WHERE clause + params
-  // You will implement buildSkuCodeBaseFilter similar to buildCustomerFilter
   const { whereClause, params } = buildSkuCodeBaseFilter(filters);
   
   // Step 2: Base select query (keep payload small for dropdowns)
