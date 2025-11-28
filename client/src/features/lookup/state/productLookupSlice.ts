@@ -5,7 +5,6 @@ import {
   type ProductLookupResponse,
   type ProductLookupState,
 } from '@features/lookup/state/lookupTypes';
-
 import { fetchProductLookupThunk } from './lookupThunks';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 

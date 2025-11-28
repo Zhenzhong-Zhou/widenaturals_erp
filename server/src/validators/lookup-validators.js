@@ -381,10 +381,6 @@ const statusLookupQuerySchema = Joi.object({
   
   filters: Joi.object({
     name: validateOptionalString('Status name', 50),
-    is_active: createBooleanFlag('Is Active')
-      .description(
-        'Optional visibility override; restricted users will have this enforced to true in service-layer ACL.'
-      ),
   }).default({}),
 });
 
