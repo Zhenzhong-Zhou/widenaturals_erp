@@ -51,3 +51,40 @@ export type FilterField<T extends object> = {
    */
   options?: Array<{ label: string; value: any }>;
 };
+
+/**
+ * Represents a number that may be absent or explicitly set to `null`.
+ *
+ * Commonly used for optional numeric fields such as:
+ *  - dimensions (length, width, height)
+ *  - weight
+ *  - capacity or volume values
+ *  - numeric inputs that the user may intentionally leave blank
+ *
+ * Example:
+ * ```ts
+ * interface ProductDimensions {
+ *   length_cm: NullableNumber;
+ *   width_cm: NullableNumber;
+ * }
+ * ```
+ */
+export type NullableNumber = number | null;
+
+/**
+ * Represents a string that may be empty, omitted, or explicitly `null`.
+ *
+ * Useful when a field allows:
+ *  - user-optional text inputs
+ *  - non-required metadata
+ *  - optional descriptions or notes
+ *
+ * Example:
+ * ```ts
+ * interface ProductInfo {
+ *   description: NullableString;
+ *   series: NullableString;
+ * }
+ * ```
+ */
+export type NullableString = string | null;

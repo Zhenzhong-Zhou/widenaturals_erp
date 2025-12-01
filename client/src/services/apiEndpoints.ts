@@ -11,7 +11,6 @@ export const API_ENDPOINTS = {
   
   },
   USER_PROFILE: '/users/me',
-  PRODUCTS_DROPDOWN_WAREHOUSE: '/products/dropdown/warehouse/:warehouseId',
   ALL_COMPLIANCES: '/compliances',
   PRICING_TYPES: '/pricing-types',
   PRICING_TYPE_METADATA: '/pricing-types/metadata/:id',
@@ -21,6 +20,10 @@ export const API_ENDPOINTS = {
   ALL_LOCATION_TYPES: '/location-types',
   LOCATION_TYPE_DETAILS: '/location-types/:id',
   ALL_LOCATIONS: '/locations',
+  PRODUCTS: {
+    ADD_NEW_RECORD: '/products/create',
+    ALL_RECORDS: '/products',
+  },
   SKUS: {
     SKU_PRODUCT_CARDS: '/skus/cards',
     SKU_DETAILS: (skuId: string) => `/skus/${skuId}/details`,
