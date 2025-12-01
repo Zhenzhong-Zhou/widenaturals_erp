@@ -6,10 +6,10 @@ import {
   selectCreateSkusLoading,
   selectCreateSkusSuccess,
   selectCreatedSkuCodes,
-} from '@features/sku/state/createSkusSelectors';
-import { createSkusThunk } from '@features/sku/state/skuThunks';
+  type CreateSkuBulkInput,
+  createSkusThunk,
+} from '@features/sku/state';
 import { resetCreateSkusState } from '@features/sku/state/createSkusSlice';
-import type { CreateSkuBulkInput } from '@features/sku/state/skuTypes';
 
 /**
  * Hook providing a complete interface for creating SKUs.
