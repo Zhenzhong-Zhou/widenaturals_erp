@@ -4,10 +4,6 @@ import {
   createLookupMetaSelector,
   mapLookupItems,
 } from '../utils/lookupSelectorUtils';
-import type {
-  StatusLookupItem,
-  LookupOption,
-} from '@features/lookup/state/lookupTypes';
 
 /**
  * Base selector for the Status lookup slice.
@@ -47,13 +43,23 @@ export const selectStatusLookupMeta = createLookupMetaSelector(
 );
 
 /**
- * Maps Status lookup items to LookupOption[].
+ * Selector: maps raw Status lookup rows into an array of `StatusLookupOption`.
  *
- * Status items provide:
- * - `isActive`
+ * This transforms raw lookup entities into standardized dropdown-ready
+ * `LookupOption` objects while preserving the `isActive` flag.
+ *
+ * Returned structure per item:
+ * {
+ *   label: string;      // display name
+ *   value: string;      // ID
+ *   isActive: boolean;  // business-level active flag
+ * }
+ *
+ * Used by:
+ * - <StatusDropdown />
+ * - any paginated status lookup UI
  */
 export const selectStatusLookupOptions = createSelector(
   [selectStatusLookupItems],
-  (items: StatusLookupItem[]): LookupOption[] =>
-    mapLookupItems(items, ['isActive'])
+  (items) => mapLookupItems(items, ['isActive'])
 );

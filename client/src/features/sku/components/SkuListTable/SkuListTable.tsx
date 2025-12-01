@@ -1,7 +1,8 @@
 import { Suspense, useCallback, useMemo } from 'react';
-import CustomTable from '@components/common/CustomTable';
-import type { FlattenedSkuRecord } from '@features/sku/state';
+import { Link } from 'react-router-dom';
 import Box from '@mui/material/Box';
+import useCreateSkuSharedLogic from '@features/sku/hook/useCreateSkuSharedLogic';
+import CustomTable from '@components/common/CustomTable';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import SkeletonExpandedRow from '@components/common/SkeletonExpandedRow';
@@ -9,7 +10,7 @@ import {
   getSkuListTableColumns,
   SkuExpandedContent,
 } from '@features/sku/components/SkuListTable';
-import { Link } from 'react-router-dom';
+import type { FlattenedSkuRecord } from '@features/sku/state';
 
 interface SkuListTableProps {
   data: FlattenedSkuRecord[];
@@ -42,9 +43,14 @@ const SkuListTable = ({
                         onSelectionChange,
                         onRefresh,
                       }: SkuListTableProps) => {
-  // ----------------------------------------
-  // Column definitions
-  // ----------------------------------------
+  // Shared logic used for permission checks (e.g. canCreateSku)
+  const shared = useCreateSkuSharedLogic();
+  
+  /* -------------------------------------------------------
+   * Memoize column definitions
+   * - Prevents recalculating columns on every render
+   * - Stable unless expandedRowId or toggle handler changes
+   * ------------------------------------------------------- */
   const columns = useMemo(() => {
     return getSkuListTableColumns(
       expandedRowId ?? undefined,
@@ -52,9 +58,11 @@ const SkuListTable = ({
     );
   }, [expandedRowId, onDrillDownToggle]);
   
-  // ----------------------------------------
-  // Expanded row content (lazy loaded)
-  // ----------------------------------------
+  /* -------------------------------------------------------
+   * Expanded row content (lazy-loaded)
+   * - Suspense allows loading skeleton while chunk loads
+   * - useCallback ensures stable function reference
+   * ------------------------------------------------------- */
   const renderExpandedContent = useCallback(
     (row: FlattenedSkuRecord) => (
       <Suspense
@@ -75,7 +83,9 @@ const SkuListTable = ({
   
   return (
     <Box>
-      {/* Header */}
+      {/* ----------------------------------------- */}
+      {/* TABLE HEADER */}
+      {/* ----------------------------------------- */}
       <Box
         display="flex"
         justifyContent="space-between"
@@ -87,14 +97,17 @@ const SkuListTable = ({
         </CustomTypography>
         
         <Box display="flex" gap={2}>
-          <CustomButton
-            component={Link}
-            to="/skus/new"
-            variant="contained"
-            sx={{ color: 'primary.secondary', fontWeight: 500 }}
-          >
-            Add New
-          </CustomButton>
+          {/* Only show Add New if user has permission */}
+          {shared.canCreateSku && (
+            <CustomButton
+              component={Link}
+              to="/skus/new"
+              variant="contained"
+              sx={{ color: 'primary.secondary', fontWeight: 500 }}
+            >
+              Add New
+            </CustomButton>
+          )}
           
           <CustomButton
             onClick={onRefresh}
@@ -106,7 +119,9 @@ const SkuListTable = ({
         </Box>
       </Box>
       
-      {/* Table */}
+      {/* ----------------------------------------- */}
+      {/* MAIN TABLE */}
+      {/* ----------------------------------------- */}
       <CustomTable
         data={data}
         columns={columns}

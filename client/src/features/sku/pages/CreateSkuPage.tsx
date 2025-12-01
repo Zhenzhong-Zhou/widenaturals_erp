@@ -4,34 +4,46 @@ import { useThemeContext } from '@context/ThemeContext';
 import Box from '@mui/material/Box';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
+import Stack from '@mui/material/Stack';
 import CustomTypography from '@components/common/CustomTypography';
+import GoBackButton from '@components/common/GoBackButton';
+import CustomButton from '@components/common/CustomButton';
 import ErrorMessage from '@components/common/ErrorMessage';
 import Loading from '@components/common/Loading';
+import FormSettingsPanel from '@components/common/FormSettingsPanel';
+import SectionDividerLabel from '@components/common/SectionDividerLabel';
 import {
   CreateSkuBulkForm,
   CreateSkuSingleForm,
   SkuSuccessDialog,
 } from '@features/sku/components/CreateSkuForm';
-import FormSettingsPanel from '@components/common/FormSettingsPanel';
-import SectionDividerLabel from '@components/common/SectionDividerLabel';
 import useCreateSkuSharedLogic from '@features/sku/hook/useCreateSkuSharedLogic';
 import type { CreateSkuInput } from '@features/sku/state';
 
+/**
+ * Page: Create SKUs (Single + Bulk)
+ *
+ * Includes:
+ * - permission-aware shared create logic
+ * - page-level header + navigation
+ * - form settings panel
+ * - single/bulk form rendering
+ * - success dialog and error/loading handling
+ */
 const CreateSkuPage = () => {
   const navigate = useNavigate();
   const { theme } = useThemeContext();
   
+  /** Single or bulk create mode */
   const [mode, setMode] = useState<'single' | 'bulk'>('single');
   
-  // ⚙️ Dynamic toggle states
+  /** Form settings toggles */
   const [allowManualBrandCategory, setAllowManualBrandCategory] = useState(false);
   const [allowManualVariantCode, setAllowManualVariantCode] = useState(false);
   const [allowManualRegionCode, setAllowManualRegionCode] = useState(false);
   const [allowManualMarketRegion, setAllowManualMarketRegion] = useState(false);
   
-  // -------------------------------------------------------------------------
-  // Shared logic
-  // -------------------------------------------------------------------------
+  /** Shared create-logic hook */
   const shared = useCreateSkuSharedLogic();
   const {
     createSuccess,
@@ -43,6 +55,7 @@ const CreateSkuPage = () => {
     canCreateSku,
   } = shared;
   
+  /** Submit handler */
   const handleSubmit = useCallback(
     async (skus: CreateSkuInput[]) => {
       if (!canCreateSku) return;
@@ -56,9 +69,32 @@ const CreateSkuPage = () => {
       {/* ----------------------------------------- */}
       {/* HEADER */}
       {/* ----------------------------------------- */}
-      <CustomTypography variant="h5" fontWeight={700} mb={2}>
-        Create SKUs
-      </CustomTypography>
+      <Box sx={{ mb: 3 }}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          spacing={2}
+        >
+          {/* Title */}
+          <CustomTypography variant="h5" fontWeight={700}>
+            Create SKUs
+          </CustomTypography>
+          
+          {/* Right Action Buttons */}
+          <Stack direction="row" spacing={2}>
+            <GoBackButton sx={{ minWidth: 120 }} />
+            
+            <CustomButton
+              sx={{ minWidth: 120 }}
+              onClick={() => navigate('/skus')}
+              variant="outlined"
+            >
+              Back to SKU List
+            </CustomButton>
+          </Stack>
+        </Stack>
+      </Box>
       
       <Tabs value={mode} onChange={(_, v) => setMode(v)} sx={{ mb: 3 }}>
         <Tab label="Single Create" value="single" />
