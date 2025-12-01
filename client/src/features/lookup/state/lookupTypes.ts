@@ -861,33 +861,17 @@ export type StatusLookupResponse =
   LookupSuccessResponse<StatusLookupItem>;
 
 /**
- * Nested filters object for Status lookup queries.
- *
- * These optional fields map directly to the server's
- * `buildStatusLookupFilters()` logic.
- *
- * - `name` — partial, case-insensitive match on status name
- * - `keyword` — fuzzy match across name and description
- * - `is_active` — optional flag (ACL-enforced on backend)
- */
-export interface StatusLookupFilters {
-  name?: string;
-}
-
-/**
  * Query parameters for fetching Status lookup items.
  *
  * Extends:
  * - `LookupQuery` (keyword, limit, offset)
  *
  * Adds nested:
- * - `filters` — {@link StatusLookupFilters}
+
  *
  * This shape matches the server’s `/lookups/statuses` expectations.
  */
-export interface StatusLookupParams extends LookupQuery {
-  filters?: StatusLookupFilters;
-}
+export type StatusLookupParams = LookupQuery;
 
 /**
  * Redux state type for Status lookup data.
@@ -901,3 +885,18 @@ export interface StatusLookupParams extends LookupQuery {
  */
 export type StatusLookupState =
   PaginatedLookupState<StatusLookupItem>;
+
+/**
+ * Status lookup option returned by the status lookup API.
+ *
+ * Extends the generic `LookupOption` type with SKU-specific
+ * business information. Used by status dropdowns, pagination lists,
+ * and any lookup-based selection components.
+ *
+ * @property isActive - Indicates whether this status represents an active SKU
+ *                      in business logic (e.g., ACTIVE vs DISCONTINUED).
+ */
+export interface StatusLookupOption extends LookupOption {
+  /** Whether this status is considered active in business logic. */
+  isActive: boolean;
+}

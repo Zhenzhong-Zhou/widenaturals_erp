@@ -7,6 +7,9 @@ import type {
   GetSkuListResponse,
   GetSkuProductCardsResponse,
   SkuProductCardQueryParams,
+  UpdateSkuStatusRequestBody,
+  UpdateSkuStatusResponse,
+  UpdateSkuStatusThunkArgs,
 } from '@features/sku/state/skuTypes';
 import { skuService } from '@services/skuService';
 
@@ -210,6 +213,93 @@ export const createSkusThunk = createAsyncThunk<
         error?.response?.data?.message ||
         error?.message ||
         'Failed to create SKUs.';
+      return rejectWithValue(message);
+    }
+  }
+);
+
+/**
+ * Thunk: Update SKU Status
+ * ------------------------
+ * Dispatches a PATCH request to:
+ *
+ *    `/skus/:skuId/status`
+ *
+ * to update the `status_id` field of a specific SKU.
+ *
+ * This thunk acts as the business-layer entry point for invoking the
+ * SKU status update flow, and integrates with the `skuStatus` slice
+ * to provide loading, error, data, and success states.
+ *
+ * ---------------------------------------------------------------------
+ * Returns:
+ *   A fully typed `UpdateSkuStatusResponse` representing:
+ *
+ *     {
+ *       success: boolean;
+ *       message: string;
+ *       data: {
+ *         id: string; // the updated SKU ID
+ *       }
+ *     }
+ *
+ * ---------------------------------------------------------------------
+ * Errors:
+ *   - Network request failures
+ *   - 4xx and 5xx server errors
+ *   - Unknown exceptions
+ *
+ *   All errors are transformed into a user-friendly error message
+ *   via `rejectWithValue`, which populates `state.error` in the slice.
+ *
+ * ---------------------------------------------------------------------
+ * Usage Example (Component):
+ *
+ *   const dispatch = useAppDispatch();
+ *
+ *   const handleUpdate = () => {
+ *     dispatch(updateSkuStatusThunk({
+ *       skuId: 'b9e7d...',
+ *       status_id: 'ACTIVE'
+ *     }));
+ *   };
+ *
+ * ---------------------------------------------------------------------
+ * Usage Example (Hook: useSkuStatus):
+ *
+ *   const { updateStatus, loading, error, isSuccess } = useSkuStatus();
+ *
+ *   updateStatus({ skuId, status_id: 'DISCONTINUED' });
+ *
+ * ---------------------------------------------------------------------
+ * @param {UpdateSkuStatusThunkArgs} payload
+ *   Required parameters:
+ *     - skuId: string
+ *     - status_id: string (new status to apply)
+ *
+ * @returns {Promise<UpdateSkuStatusResponse>}
+ *   A wrapped API response containing the updated SKU ID.
+ *
+ * @throws
+ *   This thunk *does not* throw directly; instead it delegates error
+ *   handling to Redux via `rejectWithValue`.
+ */
+export const updateSkuStatusThunk = createAsyncThunk<
+  UpdateSkuStatusResponse,     // return type
+  UpdateSkuStatusThunkArgs,    // args type
+  { rejectValue: string }      // error payload type
+>(
+  'skus/updateStatus',
+  async ({ skuId, statusId }, { rejectWithValue }) => {
+    try {
+      const payload: UpdateSkuStatusRequestBody = { statusId };
+      return await skuService.updateSkuStatus(skuId, payload);
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to update SKU status';
+      
       return rejectWithValue(message);
     }
   }

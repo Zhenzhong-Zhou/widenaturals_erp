@@ -1119,3 +1119,72 @@ export interface CreatedSkuRecord {
  * @see CreateSkuResponse
  */
 export type CreateSkusState = AsyncState<CreateSkuResponse | null>;
+
+/**
+ * Request body payload for updating a SKU's status.
+ *
+ * Sent to the PATCH endpoint:
+ *    /skus/:skuId/status
+ *
+ * Contains only the field(s) that can be updated for this operation.
+ */
+export interface UpdateSkuStatusRequestBody {
+  /** The new status identifier to apply to the target SKU */
+  statusId: string;
+}
+
+/**
+ * The inner `data` payload returned by the API
+ * when a SKU status update operation succeeds.
+ */
+export interface UpdateSkuStatusResponseData {
+  /** The ID of the SKU whose status was updated */
+  id: string;
+}
+
+/**
+ * Full API success envelope returned after updating a SKU's status.
+ *
+ * Structure:
+ *   {
+ *     success: boolean;
+ *     message: string;
+ *     data: {
+ *        id: string;
+ *     }
+ *   }
+ */
+export type UpdateSkuStatusResponse =
+  ApiSuccessResponse<UpdateSkuStatusResponseData>;
+
+/**
+ * Arguments accepted by the Redux thunk responsible for updating
+ * a SKU's status.
+ *
+ * This type ensures a consistent payload shape across:
+ *   - Redux thunks
+ *   - hooks (e.g., useSkuStatus)
+ *   - components invoking the update action
+ */
+export interface UpdateSkuStatusThunkArgs {
+  /** The ID of the SKU to update */
+  skuId: string;
+  
+  /** The new status to apply to the SKU */
+  statusId: string;
+}
+
+/**
+ * Redux slice state structure for the SKU status update workflow.
+ *
+ * Uses the shared `AsyncState<T>` pattern:
+ *   {
+ *     data: UpdateSkuStatusResponse | null;
+ *     loading: boolean;
+ *     error: string | null;
+ *   }
+ *
+ * This makes SKU status updates consistent with all other async
+ * interactions in the SKU domain (create, fetch, bulk operations, etc.)
+ */
+export type SkuStatusState = AsyncState<UpdateSkuStatusResponse | null>;

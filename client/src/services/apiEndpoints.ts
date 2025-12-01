@@ -26,6 +26,7 @@ export const API_ENDPOINTS = {
     SKU_DETAILS: (skuId: string) => `/skus/${skuId}/details`,
     ALL_RECORDS: '/skus',
     ADD_NEW_RECORD: '/skus/create',
+    UPDATE_STATUS: (skuId: string) => `/skus/${skuId}/status`,
   },
   BOMS: {
     ALL_RECORDS: '/boms',

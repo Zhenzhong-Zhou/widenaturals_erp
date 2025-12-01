@@ -1,4 +1,11 @@
-import { type FC, useCallback, useEffect, useMemo } from 'react';
+import {
+  type FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import Stack from '@mui/material/Stack';
 import Grid from '@mui/material/Grid';
@@ -7,6 +14,8 @@ import CustomButton from '@components/common/CustomButton';
 import GoBackButton from '@components/common/GoBackButton';
 import usePermissions from '@hooks/usePermissions';
 import useSkuDetail from '@hooks/useSkuDetail';
+import useStatusLookup from '@hooks/useStatusLookup';
+import { useDialogFocusHandlers } from '@utils/hooks/useDialogFocusHandlers';
 import {
   flattenComplianceRecords,
   flattenPricingRecords,
@@ -16,8 +25,25 @@ import {
   SkuDetailRightPanel,
   SkuImageGallery,
 } from '@features/sku/components/SkuDetail';
-import { truncateText } from '@utils/textUtils';
+import { UpdateSkuStatusDialog } from '@features/sku/components/UpdateSkuStatusForm';
+import { formatLabel, truncateText } from '@utils/textUtils';
 
+/**
+ * SKU Detail Page
+ *
+ * Displays all information about a single SKU including:
+ * - images
+ * - product metadata
+ * - compliance records
+ * - pricing
+ *
+ * Also provides:
+ * - permission-based access control
+ * - ability to update SKU status
+ * - refresh controls
+ *
+ * URL: /skus/:skuId
+ */
 const SkuDetailPage: FC = () => {
   /* ---------------------------------------------------------
   * Router + Context Hooks
@@ -36,11 +62,34 @@ const SkuDetailPage: FC = () => {
     thumbnails,
     activePricing,
     complianceRecords,
-    loading,
-    error,
+    loading: skuDetailLoading,
+    error: skuDetailError,
     fetchSkuDetail,
     resetSkuDetail,
   } = useSkuDetail();
+  
+  const createButtonRef = useRef<HTMLButtonElement>(null);
+  
+  const {
+    options: statusOptions,
+    loading: statusLookupLoading,
+    error: statusLookupError,
+    meta: statusLookupMeta,
+    fetch: fetchStatusOptions,
+    reset: resetStatusLookup,
+  } = useStatusLookup();
+  
+  /* ---------------------------------------------------------
+   * Local UI State for Dialog
+  * --------------------------------------------------------- */
+  const [openStatusDialog, setOpenStatusDialog] = useState(false);
+
+  // Setup open/close with focus restoration for accessibility
+  const { handleOpenDialog, handleCloseDialog } = useDialogFocusHandlers(
+    setOpenStatusDialog,
+    createButtonRef,
+    () => openStatusDialog
+  );
   
   /* ---------------------------------------------------------
    * Fetching Logic
@@ -55,7 +104,7 @@ const SkuDetailPage: FC = () => {
   useEffect(() => {
     if (skuId) refresh();
     return () => resetSkuDetail();
-  }, [skuId]);
+  }, [skuId, refresh, resetSkuDetail]);
   
   /* ---------------------------------------------------------
    * Flattened structures for UI components
@@ -76,12 +125,24 @@ const SkuDetailPage: FC = () => {
     [activePricing]
   );
   
+  const formattedStatusOptions = useMemo(() =>
+      statusOptions.map(opt => ({
+        ...opt,
+        label: formatLabel(opt.label),
+      })),
+    [statusOptions]
+  );
+  
   /* ---------------------------------------------------------
    * Permission logic
    * --------------------------------------------------------- */
   const canViewInactive =
     permissions.includes('root_access') ||
     permissions.includes('view_all_product_statuses');
+  
+  const canUpdateStatus =
+    permissions.includes('root_access') ||
+    permissions.includes('update_sku_status');
   
   /* ---------------------------------------------------------
    * Page title (memoized)
@@ -101,6 +162,7 @@ const SkuDetailPage: FC = () => {
     sku?.status?.name !== "active" ||
     sku?.product?.status?.name !== "active";
   
+  // Prevent access to inactive SKUs unless user has proper permissions
   if (sku && isInactive && !canViewInactive) {
     return <Navigate to="/404" replace />;
   }
@@ -111,10 +173,27 @@ const SkuDetailPage: FC = () => {
   return (
     <DetailPage
       title={pageTitle}
-      isLoading={loading}
-      error={error ?? undefined}
+      isLoading={skuDetailLoading}
+      error={skuDetailError ?? undefined}
       sx={{ maxWidth: '100%', px: { xs: 2, md: 4 }, pb: 6 }}
     >
+      {/* Dialog */}
+      {skuId && (
+        <UpdateSkuStatusDialog
+          open={openStatusDialog}
+          onClose={handleCloseDialog}
+          skuId={skuId}
+          skuCode={flattenedSkuInfo?.sku ?? ''}
+          onSuccess={refresh}
+          statusDropdownOptions={formattedStatusOptions}
+          fetchStatusDropdownOptions={fetchStatusOptions}
+          resetStatusDropdownOptions={resetStatusLookup}
+          statusLookupLoading={statusLookupLoading}
+          statusLookupError={statusLookupError}
+          statusLookupMeta={statusLookupMeta}
+        />
+      )}
+      
       {/* Header Actions */}
       <Stack
         direction="row"
@@ -125,6 +204,20 @@ const SkuDetailPage: FC = () => {
         alignItems="center"
         justifyContent="flex-end"
       >
+        {canUpdateStatus && (
+          <CustomButton
+            sx={{
+              minWidth: 160,
+              height: 44,
+              borderRadius: 22,
+            }}
+            ref={createButtonRef}
+            onClick={handleOpenDialog}
+          >
+            Update SKU Status
+          </CustomButton>
+        )}
+        
         <CustomButton
           sx={{
             minWidth: 160,

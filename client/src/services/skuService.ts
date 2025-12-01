@@ -6,10 +6,12 @@ import type {
   GetSkuListResponse,
   GetSkuProductCardsResponse,
   SkuProductCardQueryParams,
+  UpdateSkuStatusRequestBody,
+  UpdateSkuStatusResponse,
 } from '@features/sku/state/skuTypes';
 import { API_ENDPOINTS } from './apiEndpoints';
 import { sanitizeString } from '@utils/stringUtils';
-import { getRequest, postRequest } from '@utils/apiRequest';
+import { getRequest, patchRequest, postRequest } from '@utils/apiRequest';
 import { buildQueryString } from '@utils/buildQueryString';
 
 /**
@@ -201,9 +203,46 @@ const createSkus = async (
   }
 };
 
+/**
+ * Update the status of a SKU via the backend API.
+ *
+ * - Sends a PUT request to update the `status_id` of the target SKU.
+ * - Uses the UpdateSkuStatusRequestBody schema for validation.
+ * - Returns the updated SKU ID wrapped in ApiSuccessResponse.
+ * - Errors are logged and rethrown for upstream handling.
+ *
+ * @param {string} skuId - The ID of the SKU to update.
+ * @param {UpdateSkuStatusRequestBody} payload - Object containing the new status_id.
+ * @returns {Promise<UpdateSkuStatusResponse>} The API response containing updated SKU data.
+ * @throws Rethrows network or server errors for the caller to handle.
+ *
+ * @example
+ * const res = await updateSkuStatus('b9e7d7d3-5eb6-4f03-8b61-97f59f909abc', {
+ *   status_id: 'ACTIVE'
+ * });
+ * console.log(res.data.id);
+ */
+const updateSkuStatus = async (
+  skuId: string,
+  payload: UpdateSkuStatusRequestBody
+): Promise<UpdateSkuStatusResponse> => {
+  const url = API_ENDPOINTS.SKUS.UPDATE_STATUS(skuId);
+  
+  try {
+    return await patchRequest<UpdateSkuStatusRequestBody, UpdateSkuStatusResponse>(
+      url,
+      payload
+    );
+  } catch (error) {
+    console.error(`Failed to update status for SKU ${skuId}:`, error);
+    throw error;
+  }
+};
+
 export const skuService = {
   fetchPaginatedSkuProductCards,
   fetchSkuDetailById,
   fetchPaginatedSkus,
   createSkus,
+  updateSkuStatus,
 };
