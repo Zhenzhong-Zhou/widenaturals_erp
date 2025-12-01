@@ -26,7 +26,9 @@ import type {
   SkuCodeBaseLookupParams,
   SkuCodeBaseLookupResponse,
   SkuLookupQueryParams,
-  SkuLookupResponse, StatusLookupParams, StatusLookupResponse,
+  SkuLookupResponse,
+  StatusLookupParams,
+  StatusLookupResponse,
   TaxRateLookupQueryParams,
   TaxRateLookupResponse,
 } from '@features/lookup/state/lookupTypes';

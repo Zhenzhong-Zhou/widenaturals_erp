@@ -49,7 +49,6 @@ export const skuProductCardsSlice = createSlice({
         (state, action: PayloadAction<GetSkuProductCardsResponse>) => {
           state.loading = false;
           state.data = action.payload.data;
-          console.log( state.data);
           state.pagination = action.payload.pagination;
         }
       )

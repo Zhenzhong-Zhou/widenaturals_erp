@@ -378,10 +378,7 @@ const productLookupQuerySchema = Joi.object({
  */
 const statusLookupQuerySchema = Joi.object({
   ...baseLookupQuerySchema,
-  
-  filters: Joi.object({
-    name: validateOptionalString('Status name', 50),
-  }).default({}),
+  name: validateOptionalString('Status name', 50),
 });
 
 module.exports = {
