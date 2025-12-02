@@ -17,11 +17,13 @@ import {
   getVariantCodeHelperText,
 } from '@features/sku/components/CreateSkuForm';
 import {
-  renderBaseInputField,
-  renderDropdownField,
   renderProductDropdown,
   renderSkuCodeBaseDropdown,
 } from '@features/sku/components/CreateSkuForm/SkuFieldRenderer';
+import {
+  renderBaseInputField,
+  renderDropdownField
+} from '@utils/form/FieldRenderers';
 import { buildRequiredHelper } from '@components/common/PatternHelper';
 
 /**

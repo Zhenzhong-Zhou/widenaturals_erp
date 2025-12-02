@@ -8,8 +8,6 @@ export { buildSkuFields } from './SkuFieldDefinitions';
 export {
   renderProductDropdown,
   renderSkuCodeBaseDropdown,
-  renderDropdownField,
-  renderBaseInputField,
 } from './SkuFieldRenderer';
 export {
   getProductHelperText,
