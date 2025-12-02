@@ -170,9 +170,17 @@ const getPaginatedProducts = async ({
       p.status_id,
       p.status_date,
       p.created_at,
-      p.updated_at
+      p.updated_at,
+      p.created_by,
+      p.updated_by,
+      cu.firstname AS created_by_firstname,
+      cu.lastname AS created_by_lastname,
+      uu.firstname AS updated_by_firstname,
+      uu.lastname AS updated_by_lastname
     FROM products AS p
     LEFT JOIN status AS s ON p.status_id = s.id
+    LEFT JOIN users AS cu ON p.created_by = cu.id
+    LEFT JOIN users AS uu ON p.updated_by = uu.id
     WHERE ${whereClause}
     ORDER BY ${sortBy} ${sortOrder};
   `;
