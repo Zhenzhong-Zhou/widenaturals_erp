@@ -276,7 +276,7 @@ const CustomFormInner = <TFieldValues extends FieldValues = FieldValues>(
                     render={({ field: controllerField }) => (
                       <CustomPhoneInput
                         required={field.required}
-                        value={controllerField.value}
+                        value={controllerField.value ?? ""}
                         onChange={controllerField.onChange}
                         country={field.country || 'ca'}
                       />

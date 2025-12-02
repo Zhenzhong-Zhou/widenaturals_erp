@@ -2,7 +2,7 @@ import { type FC, useEffect, useMemo, useState } from 'react';
 import CustomForm from '@components/common/CustomForm';
 import type { FieldConfig } from '@components/common/CustomForm';
 import { emailValidator } from '@utils/validation';
-import CustomTypography from '@components/common/CustomTypography.tsx';
+import CustomTypography from '@components/common/CustomTypography';
 import type {
   CustomerLookupQuery,
   CustomerOption,
