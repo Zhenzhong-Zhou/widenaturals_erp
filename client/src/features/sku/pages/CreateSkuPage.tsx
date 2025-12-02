@@ -2,8 +2,6 @@ import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useThemeContext } from '@context/ThemeContext';
 import Box from '@mui/material/Box';
-import Tabs from '@mui/material/Tabs';
-import Tab from '@mui/material/Tab';
 import Stack from '@mui/material/Stack';
 import CustomTypography from '@components/common/CustomTypography';
 import GoBackButton from '@components/common/GoBackButton';
@@ -11,6 +9,7 @@ import CustomButton from '@components/common/CustomButton';
 import ErrorMessage from '@components/common/ErrorMessage';
 import Loading from '@components/common/Loading';
 import FormSettingsPanel from '@components/common/FormSettingsPanel';
+import CreateModeToggle from '@components/common/CreateModeToggle';
 import SectionDividerLabel from '@components/common/SectionDividerLabel';
 import {
   CreateSkuBulkForm,
@@ -63,7 +62,7 @@ const CreateSkuPage = () => {
     },
     [canCreateSku, submitCreateSkus]
   );
-  
+  // todo: refactor with CreateModeToggle
   return (
     <Box sx={{ p: 3 }}>
       {/* ----------------------------------------- */}
@@ -96,10 +95,14 @@ const CreateSkuPage = () => {
         </Stack>
       </Box>
       
-      <Tabs value={mode} onChange={(_, v) => setMode(v)} sx={{ mb: 3 }}>
-        <Tab label="Single Create" value="single" />
-        <Tab label="Bulk Create" value="bulk" />
-      </Tabs>
+      {/* ----------------------------------------- */}
+      {/* MODE TOGGLE (Replaces Tabs) */}
+      {/* ----------------------------------------- */}
+      <CreateModeToggle
+        value={mode}
+        onChange={setMode}
+        label="SKU Create Mode"
+      />
       
       {/* ----------------------------------------- */}
       {/* FORM SETTINGS */}
