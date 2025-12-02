@@ -192,7 +192,16 @@ const productUpdateSchema = Joi.object({
 const createProductSchema = Joi.object({
   name: validateString('Product Name', 2, 255),
   
-  series: Joi.string().trim().allow(null, '').max(255),
+  series: Joi.string()
+    .trim()
+    .allow(null, '')
+    .pattern(BRAND_CATEGORY_REGEX)
+    .min(2)
+    .max(100)
+    .messages({
+      'string.pattern.base':
+        `"series" must start each word with an uppercase letter and may include letters, digits, and symbols (', &, +, /, -).`,
+    }),
   
   brand: Joi.string()
     .trim()
@@ -217,11 +226,6 @@ const createProductSchema = Joi.object({
     }),
   
   description: validateOptionalString('Description', 1000),
-  
-  length_cm: Joi.number().positive().allow(null),
-  width_cm: Joi.number().positive().allow(null),
-  height_cm: Joi.number().positive().allow(null),
-  weight_g: Joi.number().positive().allow(null),
 });
 
 /**

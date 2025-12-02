@@ -323,7 +323,7 @@ const createProductsController = wrapAsync(async (req, res) => {
     message: 'Products created successfully.',
     stats: {
       inputCount: products.length,
-      createdCount: inserted.length,
+      processedCount: inserted.length,
       elapsedMs,
     },
     data: inserted,

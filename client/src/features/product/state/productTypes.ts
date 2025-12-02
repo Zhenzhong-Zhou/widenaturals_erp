@@ -1,5 +1,4 @@
 import type {
-  NullableNumber,
   NullableString
 } from '@shared-types/shared';
 import type {
@@ -41,18 +40,6 @@ export interface CreateProductInput {
   
   /** Optional long description (nullable, up to 1000 chars). */
   description?: NullableString;
-  
-  /** Optional product length in centimeters (positive number or null). */
-  length_cm?: NullableNumber;
-  
-  /** Optional product width in centimeters (positive number or null). */
-  width_cm?: NullableNumber;
-  
-  /** Optional product height in centimeters (positive number or null). */
-  height_cm?: NullableNumber;
-  
-  /** Optional product weight in grams (positive number or null). */
-  weight_g?: NullableNumber;
 }
 
 /**
