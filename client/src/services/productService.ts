@@ -2,11 +2,13 @@ import type {
   CreateProductBulkInput,
   CreateProductResponse,
   FetchProductParams,
+  GetProductApiResponse,
   ProductListResponse,
 } from '@features/product/state';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { getRequest, postRequest } from '@utils/apiRequest';
 import { buildQueryString } from '@utils/buildQueryString';
+import { sanitizeString } from '@utils/stringUtils';
 
 /**
  * Fetch a paginated list of Products.
@@ -107,7 +109,44 @@ export const createProducts = async (
   }
 };
 
+/**
+ * Fetch a single Product's full detail record by ID.
+ *
+ * Issues `GET /products/:productId/details` and returns the standard API envelope:
+ * `ApiSuccessResponse<ProductResponse>`.
+ *
+ * Notes:
+ * - No query flags are supported for this endpoint.
+ * - Ensure `API_ENDPOINTS.PRODUCTS.PRODUCT_DETAILS` has the form:
+ *     PRODUCT_DETAILS: (productId: string) => `/products/${productId}/details`
+ *
+ * @param productId - Product UUID string (trimmed before use).
+ * @returns A promise resolving to the Product detail response.
+ * @throws Rethrows any error from the request helper.
+ *
+ * @example
+ * const res = await fetchProductDetailById('bd13fb34-ffd0-4138-afbe-f84a71f155a3');
+ * console.log(res.data.name);
+ */
+export const fetchProductDetailById = async (
+  productId: string
+): Promise<GetProductApiResponse> => {
+  const cleanId = sanitizeString(productId);
+  const url = API_ENDPOINTS.PRODUCTS.PRODUCT_DETAILS(cleanId);
+  
+  try {
+    return await getRequest<GetProductApiResponse>(url);
+  } catch (error) {
+    console.error('Failed to fetch product details:', {
+      productId: cleanId,
+      error,
+    });
+    throw error;
+  }
+};
+
 export const productService = {
   fetchPaginatedProducts,
   createProducts,
+  fetchProductDetailById,
 };

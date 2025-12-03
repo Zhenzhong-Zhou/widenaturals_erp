@@ -290,3 +290,63 @@ export interface FlattenedProductRecord {
   /** Name of the user who last updated the product (nullable) */
   updatedBy: NullableString;
 }
+
+/**
+ * Represents a fully transformed Product record returned by the backend.
+ *
+ * This structure mirrors the backend's `ProductDetailTransformer` output and includes:
+ * - Core product fields (name, series, brand, category, description)
+ * - Normalized `status` metadata
+ * - Full audit trail (`createdAt`, `updatedAt`, and user info)
+ */
+export interface ProductResponse {
+  /** Unique product identifier (UUID) */
+  id: string;
+  
+  /** Human-readable product name */
+  name: string;
+  
+  /** Product series/category grouping */
+  series: string;
+  
+  /** Brand associated with this product */
+  brand: string;
+  
+  /** Product category label (e.g., "NMN", "Omega") */
+  category: string;
+  
+  /** Marketing or descriptive text for UI display */
+  description: string;
+  
+  /** Status object containing the id, name, and last status update timestamp */
+  status: GenericStatus;
+  
+  /** Audit metadata: created/updated timestamps and user references */
+  audit: GenericAudit;
+}
+
+/**
+ * API response envelope for a single Product detail fetch.
+ *
+ * Standard structure shared across the ERP:
+ * - `success`: boolean indicator
+ * - `message`: server-supplied status message
+ * - `data`: the `ProductResponse` payload
+ * - `traceId`: request identifier for log correlation
+ */
+export type GetProductApiResponse = ApiSuccessResponse<ProductResponse>;
+
+/**
+ * Local Redux slice state for storing a single Product detail.
+ *
+ * This uses the shared `AsyncState<T>` pattern:
+ * - `data`: `ProductResponse | null`
+ * - `loading`: boolean for in-flight requests
+ * - `error`: string | null for failures
+ *
+ * Used by:
+ * - `productDetailSlice`
+ * - `useProductDetail` hook
+ * - Product detail selectors
+ */
+export type ProductDetailState = AsyncState<ProductResponse | null>;
