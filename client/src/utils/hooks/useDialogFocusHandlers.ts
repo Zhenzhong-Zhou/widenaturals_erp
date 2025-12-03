@@ -6,8 +6,8 @@ export const useDialogFocusHandlers = (
   getDialogOpen: () => boolean
 ) => {
   const handleOpenDialog = useCallback(
-    (e: MouseEvent<HTMLButtonElement>) => {
-      e.currentTarget.blur();
+    (e?: MouseEvent<HTMLButtonElement>) => {
+      e?.currentTarget?.blur?.();
       requestAnimationFrame(() => setDialogOpen(true));
     },
     [setDialogOpen]

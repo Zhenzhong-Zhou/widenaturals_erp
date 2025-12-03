@@ -233,3 +233,61 @@ export interface FetchProductParams extends PaginationParams, SortConfig {
  * - error message (if any)
  */
 export type ProductListState = ReduxPaginatedState<ProductListItem>;
+
+/**
+ * Represents a normalized, table-friendly version of a product record.
+ *
+ * This structure is produced by `flattenProductRecords()` and provides
+ * a clean flat shape optimized for rendering in product list tables,
+ * expandable rows, and data grids. It removes nested objects from the
+ * API response and standardizes missing or null fields.
+ *
+ * Includes:
+ * - Core product identity fields
+ * - Status metadata
+ * - Audit trail information
+ *
+ * All fields are formatted as simple strings to ensure predictable UI rendering.
+ */
+export interface FlattenedProductRecord {
+  /** Unique product identifier */
+  productId: string;
+  
+  /** Product name */
+  name: string;
+  
+  /** Product brand label */
+  brand: string;
+  
+  /** Product series label */
+  series: string;
+  
+  /** Product category label */
+  category: string;
+  
+  // -----------------------------
+  // Status Information
+  // -----------------------------
+  
+  /** Human-readable status name (e.g., "active", "inactive") */
+  statusName: string;
+  
+  /** ISO timestamp representing when the status was last updated */
+  statusDate: string;
+  
+  // -----------------------------
+  // Audit Information
+  // -----------------------------
+  
+  /** ISO timestamp representing when the product was created */
+  createdAt: string;
+  
+  /** Name of the user who created the product */
+  createdBy: string;
+  
+  /** ISO timestamp of last update (may be null if never updated) */
+  updatedAt: NullableString;
+  
+  /** Name of the user who last updated the product (nullable) */
+  updatedBy: NullableString;
+}
