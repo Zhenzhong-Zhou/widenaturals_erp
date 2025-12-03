@@ -8,10 +8,8 @@ import {
   selectPaginatedSkusTotalRecords,
   selectPaginatedSkusIsEmpty,
   type FetchSkusParams,
-} from '@features/sku/state';
-import {
   fetchPaginatedSkusThunk,
-} from '@features/sku/state/skuThunks';
+} from '@features/sku/state';
 import {
   resetPaginatedSkusState
 } from '@features/sku/state/paginatedSkusSlice';

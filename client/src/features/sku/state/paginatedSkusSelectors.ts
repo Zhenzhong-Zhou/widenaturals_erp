@@ -42,11 +42,11 @@ export const selectPaginatedSkusPagination = createSelector(
 );
 
 /**
- * Selector: Returns `true` if the SKU data array is empty.
+ * Selector: Returns `true` only if the SKU list is loaded and empty.
  */
 export const selectPaginatedSkusIsEmpty = createSelector(
-  [selectPaginatedSkusData],
-  (data) => data.length === 0
+  [selectPaginatedSkusData, selectPaginatedSkusLoading],
+  (data, loading) => !loading && data.length === 0
 );
 
 /**
