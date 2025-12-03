@@ -33,7 +33,12 @@ const Sidebar: FC<SidebarProps> = ({
 
   // Filter routes for sidebar
   const menuItems = routes.filter((route) => {
-    const requiredPermission = route.meta?.requiredPermission || '';
+    // Ensure requiredPermission is always a string
+    const requiredPermission =
+      typeof route.meta?.requiredPermission === 'string'
+        ? route.meta.requiredPermission
+        : '';
+    
     return (
       route.meta?.showInSidebar &&
       !route.path.includes('*') &&

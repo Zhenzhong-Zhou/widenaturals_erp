@@ -1,16 +1,8 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type {
-  WarehouseInventoryItemSummary,
-  WarehouseInventoryPagination,
-} from '@features/warehouseInventory/state/warehouseInventoryTypes.ts';
+  WarehouseInventoryItemSummaryState,
+} from '@features/warehouseInventory/state';
 import { fetchWarehouseInventoryItemSummaryThunk } from './warehouseInventoryThunks';
-
-interface WarehouseInventoryItemSummaryState {
-  data: WarehouseInventoryItemSummary[];
-  pagination: WarehouseInventoryPagination | null;
-  loading: boolean;
-  error: string | null;
-}
 
 const initialState: WarehouseInventoryItemSummaryState = {
   data: [],
