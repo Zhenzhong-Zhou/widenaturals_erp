@@ -4,7 +4,13 @@ import type {
 import type {
   ApiSuccessResponse,
   AsyncState,
+  GenericAudit,
+  GenericStatus,
   OperationStats,
+  PaginatedResponse,
+  PaginationParams,
+  ReduxPaginatedState,
+  SortConfig,
 } from '@shared-types/api';
 
 /**
@@ -112,3 +118,118 @@ export interface CreateProductResponse
  * };
  */
 export type CreateProductsState = AsyncState<CreateProductResponse | null>;
+
+/**
+ * Represents a single product entry returned in a paginated product list.
+ *
+ * Includes product identity, classification details, current status,
+ * and audit metadata (created/updated timestamps).
+ */
+export interface ProductListItem {
+  /** Unique product identifier (UUID) */
+  id: string;
+  
+  /** Product name */
+  name: string;
+  
+  /** Product series label (may be null if unset) */
+  series: NullableString;
+  
+  /** Product brand (maybe null if unset) */
+  brand: NullableString;
+  
+  /** Product category (maybe null if unset) */
+  category: NullableString;
+  
+  /** Product status object including name, id, and date */
+  status: GenericStatus;
+  
+  /** Audit information including created and updated timestamps */
+  audit: GenericAudit;
+}
+
+/**
+ * Standard paginated API response structure for product lists.
+ *
+ * Wraps:
+ * - product list items
+ * - success flag
+ * - message
+ * - pagination metadata
+ */
+export type ProductListResponse = PaginatedResponse<ProductListItem>;
+
+/**
+ * Supported filter options for fetching paginated product lists.
+ *
+ * All values are optional; undefined values are excluded from the query string.
+ * This object is flattened into URL query params by the fetch helper.
+ */
+export interface ProductListFilters {
+  /** Optional product status filter (UUID or multiple UUIDs) */
+  statusIds?: string | string[];
+  
+  /** Optional brand search (partial match allowed) */
+  brand?: string;
+  
+  /** Optional category search (partial match allowed) */
+  category?: string;
+  
+  /** Optional series search (partial match allowed) */
+  series?: string;
+  
+  /** Filter by creator user ID */
+  createdBy?: string;
+  
+  /** Filter by last-updater user ID */
+  updatedBy?: string;
+  
+  /** Keyword-based fuzzy text search across name, brand, category, status */
+  keyword?: string;
+}
+
+/**
+ * Allowed sortable fields for product list queries.
+ *
+ * These map directly to SQL columns via `productSortMap` on the backend.
+ */
+export type ProductSortField =
+  | 'productName'
+  | 'series'
+  | 'brand'
+  | 'category'
+  | 'description'
+  | 'statusName'
+  | 'statusId'
+  | 'statusDate'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'createdByFirstName'
+  | 'createdByLastName'
+  | 'updatedByFirstName'
+  | 'updatedByLastName'
+  | 'defaultNaturalSort';
+
+/**
+ * Query parameters accepted by the product list fetcher.
+ *
+ * Combines:
+ * - Pagination (page, limit)
+ * - Sort configuration (sortBy, sortOrder)
+ * - Structured filter object
+ */
+export interface FetchProductParams extends PaginationParams, SortConfig {
+  /** Optional structured filter object merged into the query string */
+  filters?: ProductListFilters;
+}
+
+/**
+ * Redux slice state for paginated product lists.
+ *
+ * Generated via a reusable `ReduxPaginatedState<T>` helper and includes:
+ * - data (product list items)
+ * - pagination metadata
+ * - loading flag
+ * - error message (if any)
+ */
+export type ProductListState = ReduxPaginatedState<ProductListItem>;

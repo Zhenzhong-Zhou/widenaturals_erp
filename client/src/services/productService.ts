@@ -1,9 +1,68 @@
 import type {
   CreateProductBulkInput,
-  CreateProductResponse
+  CreateProductResponse,
+  FetchProductParams,
+  ProductListResponse,
 } from '@features/product/state';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import { postRequest } from '@utils/apiRequest';
+import { getRequest, postRequest } from '@utils/apiRequest';
+import { buildQueryString } from '@utils/buildQueryString';
+
+/**
+ * Fetch a paginated list of Products.
+ *
+ * Issues:
+ *   GET /products?page={page}&limit={limit}&sortBy={col}&sortOrder={order}&...
+ *
+ * Standard response:
+ *   PaginatedResponse<ProductListItem>
+ *
+ * Notes:
+ * - Filters are provided in `params.filters`.
+ * - Function flattens them into top-level query parameters.
+ *
+ * @param params - Pagination, sorting, and product filter options.
+ * @returns A paginated product list response.
+ * @throws Rethrows request helper errors.
+ *
+ * @example
+ * const res = await fetchPaginatedProducts({
+ *   page: 1,
+ *   limit: 10,
+ *   sortBy: 'createdAt',
+ *   sortOrder: 'DESC',
+ *   filters: { keyword: 'omega' }
+ * });
+ *
+ * console.log(res.data[0].name);
+ */
+const fetchPaginatedProducts = async (
+  params: FetchProductParams = {}
+): Promise<ProductListResponse> => {
+  const { filters = {}, ...rest } = params;
+  
+  // Flatten nested filters
+  const flatParams = {
+    ...rest,
+    ...filters,
+  };
+  
+  // Build query string
+  const queryString = buildQueryString(flatParams);
+  
+  // Full URL
+  const url = `${API_ENDPOINTS.PRODUCTS.ALL_RECORDS}${queryString}`;
+  
+  try {
+    return await getRequest<ProductListResponse>(url);
+  } catch (error) {
+    console.error("Failed to fetch products:", {
+      params,
+      error,
+    });
+    throw error;
+  }
+};
 
 /**
  * Create one or more Products via the backend API.
@@ -49,5 +108,6 @@ export const createProducts = async (
 };
 
 export const productService = {
+  fetchPaginatedProducts,
   createProducts,
 };
