@@ -66,7 +66,7 @@ const getPaginatedProductsController = wrapAsync(async (req, res) => {
       sorting: { sortBy, sortOrder },
     });
     
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: 'No products found for the given criteria.',
       data: [],

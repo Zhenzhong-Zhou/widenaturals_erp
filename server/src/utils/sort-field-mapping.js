@@ -20,11 +20,11 @@ const SORTABLE_FIELDS = {
     createdAt: 'p.created_at',
     updatedAt: 'p.updated_at',
     
-    // Audit user fields (FROM users cb/ub)
-    createdByFirstName: 'cb.firstname',
-    createdByLastName: 'cb.lastname',
-    updatedByFirstName: 'ub.firstname',
-    updatedByLastName: 'ub.lastname',
+    // Audit user fields (FROM users cu/uu)
+    createdByFirstName: 'cu.firstname',
+    createdByLastName: 'cu.lastname',
+    updatedByFirstName: 'uu.firstname',
+    updatedByLastName: 'uu.lastname',
     
     // Default fallback
     defaultNaturalSort: 'p.created_at',

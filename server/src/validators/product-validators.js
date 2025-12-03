@@ -5,7 +5,8 @@ const {
   validateOptionalString,
   validateOptionalUUID,
   validateUUID,
-  validateString
+  validateString,
+  validateUUIDOrUUIDArrayOptional
 } = require('./general-validators');
 const { updateStatusIdSchema } = require('./status-validators');
 
@@ -77,7 +78,7 @@ const productQuerySchema = paginationSchema
   .concat(createSortSchema('created_at'))
   .keys({
     // --- Product-level filters ---
-    statusIds: validateOptionalUUID('Product Status IDs'),
+    statusIds: validateUUIDOrUUIDArrayOptional('Product Status IDs'),
     brand: validateOptionalString('Brand name (partial match allowed)'),
     category: validateOptionalString('Category name (partial match allowed)'),
     series: validateOptionalString('Series (partial match allowed)'),

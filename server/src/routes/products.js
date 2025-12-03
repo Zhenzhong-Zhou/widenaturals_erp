@@ -26,31 +26,46 @@ const router = express.Router();
  * Retrieves a paginated, filterable, and sortable list of products.
  *
  * ### Middleware Pipeline
+ *
  * 1. **authorize([PERMISSIONS.PRODUCTS.VIEW])**
  *    - Ensures the requesting user has permission to view product records.
- * 2. **createQueryNormalizationMiddleware('productSortMap')**
- *    - Normalizes and validates sorting, pagination, and filtering parameters.
- *    - Uses `productSortMap` to safely map `sortBy` keys → SQL columns.
+ *
+ * 2. **createQueryNormalizationMiddleware('productSortMap', ['statusIds'])**
+ *    - Normalizes pagination, sorting, and filtering parameters into predictable formats.
+ *    - Uses `productSortMap` to safely map `sortBy` values → SQL columns.
+ *    - Converts specified fields (e.g., `statusIds`) into normalized arrays.
+ *      This allows clients to pass:
+ *         - `?statusIds=uuid1,uuid2`
+ *         - `?statusIds[]=uuid1&statusIds[]=uuid2`
+ *         - `?statusIds=uuid1&statusIds=uuid2`
+ *      All formats become a consistent `string[]` before validation.
+ *
  * 3. **sanitizeFields(['keyword'])**
- *    - Strips unsafe HTML and sanitizes text fields (e.g. keyword search input).
+ *    - Strips unsafe HTML and sanitizes user input for keyword-based search.
+ *
  * 4. **validate(productQuerySchema, 'query')**
- *    - Validates all query parameters against the Joi `productQuerySchema`.
+ *    - Validates all query parameters using the Joi `productQuerySchema`.
+ *
  * 5. **getPaginatedProductsController**
- *    - Delegates to the service layer for fetching, transforming, and returning paginated products.
+ *    - Delegates to the service layer to fetch, normalize, and return paginated products.
+ *
+ * ---
  *
  * ### Query Parameters
  * | Name | Type | Default | Description |
  * |------|------|----------|--------------|
  * | `page` | number | 1 | Current page number |
- * | `limit` | number | 10 | Number of records per page |
- * | `sortBy` | string | `'created_at'` | Sort column (validated against `productSortMap`) |
+ * | `limit` | number | 10 | Number of results per page |
+ * | `sortBy` | string | `'created_at'` | Sort field (validated using `productSortMap`) |
  * | `sortOrder` | `'ASC' \| 'DESC'` | `'DESC'` | Sort direction |
- * | `keyword` | string | — | Fuzzy match on name, brand, category, status |
- * | `brand` | string | — | Filter by product brand (partial match) |
- * | `category` | string | — | Filter by product category |
- * | `series` | string | — | Filter by product series |
- * | `statusIds[]` | string[] (UUID) | — | Filter by one or more status IDs |
- * | `createdBy` / `updatedBy` | string (UUID) | — | Filter by creator/updater |
+ * | `keyword` | string | — | Fuzzy search on product name, brand, category, and status |
+ * | `brand` | string | — | Filter by brand |
+ * | `category` | string | — | Filter by category |
+ * | `series` | string | — | Filter by series |
+ * | `statusIds[]` | string[] (UUID) | — | One or more status IDs (array normalized by middleware) |
+ * | `createdBy` / `updatedBy` | string (UUID) | — | Filter by creator or last updater |
+ *
+ * ---
  *
  * ### Response
  * ```json
@@ -63,9 +78,21 @@ const router = express.Router();
  *       "name": "Product Name",
  *       "brand": "Canaherb",
  *       "category": "Herbal Natural",
- *       "status": { "id": "uuid", "name": "Active" },
- *       "createdAt": "2025-11-03T20:20:00.000Z",
- *       "updatedAt": "2025-11-03T21:00:00.000Z"
+ *       "status": { "id": "uuid", "name": "Inactive", "date": "2025-11-03T20:20:00.000Z" },
+ *       "audit": {
+ *         "createdAt": "2025-11-03T20:20:00.000Z",
+ *         "createdBy": {
+ *           "id": "uuid",
+ *           "firstname": "Root",
+ *           "lastname": "Admin"
+ *         },
+ *         "updatedAt": "2025-11-03T21:00:00.000Z",
+ *         "updatedBy": {
+ *           "id": "uuid",
+ *           "firstname": "Jane",
+ *           "lastname": "Doe"
+ *         }
+ *       }
  *     }
  *   ],
  *   "pagination": {
@@ -77,20 +104,22 @@ const router = express.Router();
  * }
  * ```
  *
+ * ---
+ *
  * ### Permissions
  * - Requires: `PERMISSIONS.PRODUCTS.VIEW`
  *
- * ### Errors
+ * ### Error Responses
  * - `403 Forbidden` → Missing or insufficient permissions
  * - `400 Bad Request` → Invalid query parameters
- * - `500 Internal Server Error` → Unexpected database or service failure
+ * - `500 Internal Server Error` → Unexpected service or database failure
  */
 router.get(
   '/',
   authorize([PERMISSIONS.PRODUCTS.VIEW]),
   createQueryNormalizationMiddleware(
     'productSortMap',
-    [], // array filters
+    ['statusIds'], // array filters
     [],
     productQuerySchema
   ),
