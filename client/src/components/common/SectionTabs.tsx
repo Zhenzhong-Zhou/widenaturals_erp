@@ -1,7 +1,7 @@
-import { type FC, type ReactNode, useState } from "react";
-import Tabs from "@mui/material/Tabs";
-import Tab from "@mui/material/Tab";
-import Box from "@mui/material/Box";
+import { type FC, type ReactNode, useState } from 'react';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import Box from '@mui/material/Box';
 
 export interface TabItem {
   label: string;
@@ -15,9 +15,9 @@ interface SectionTabsProps {
 
 const SectionTabs: FC<SectionTabsProps> = ({ tabs, defaultIndex = 0 }) => {
   const [value, setValue] = useState(defaultIndex);
-  
+
   return (
-    <Box sx={{ width: "100%", mt: 4 }}>
+    <Box sx={{ width: '100%', mt: 4 }}>
       <Tabs
         value={value}
         onChange={(_, newValue) => setValue(newValue)}
@@ -29,10 +29,8 @@ const SectionTabs: FC<SectionTabsProps> = ({ tabs, defaultIndex = 0 }) => {
           <Tab key={i} label={t.label} />
         ))}
       </Tabs>
-      
-      <Box sx={{ pt: 2 }}>
-        {tabs[value] ? tabs[value]!.content : null}
-      </Box>
+
+      <Box sx={{ pt: 2 }}>{tabs[value] ? tabs[value]!.content : null}</Box>
     </Box>
   );
 };

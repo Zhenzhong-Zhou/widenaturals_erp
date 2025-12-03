@@ -1,8 +1,6 @@
-import { createSelector } from "@reduxjs/toolkit";
-import type { RootState } from "@store/store";
-import {
-  mapSkuProductCardToViewItem
-} from '@features/sku/utils/skuProductCardUtils';
+import { createSelector } from '@reduxjs/toolkit';
+import type { RootState } from '@store/store';
+import { mapSkuProductCardToViewItem } from '@features/sku/utils/skuProductCardUtils';
 
 /**
  * ---------------------------------------------------------------------

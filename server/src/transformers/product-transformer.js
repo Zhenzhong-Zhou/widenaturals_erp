@@ -35,7 +35,7 @@
 
 const { cleanObject } = require('../utils/object-utils');
 const { transformPaginatedResult } = require('../utils/transformer-utils');
-const { getFullName } = require('../utils/name-utils');
+const { compactAudit, makeAudit } = require('../utils/audit-utils');
 
 /**
  * Transforms a single raw product SQL row into a clean, API-ready object.
@@ -55,12 +55,9 @@ const transformProductRow = (row) => {
       name: row.status_name ?? null,
       date: row.status_date ?? null,
     },
-    audit: {
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    },
+    audit: compactAudit(makeAudit(row)),
   };
-  
+
   return cleanObject(base);
 };
 
@@ -131,20 +128,9 @@ const transformProductDetail = (row) => {
       name: row.status_name ?? null,
       date: row.status_date ?? null,
     },
-    audit: {
-      createdAt: row.created_at,
-      createdBy: {
-        id: row.created_by,
-        fullName: getFullName(row.created_by_firstname, row.created_by_lastname),
-      },
-      updatedAt: row.updated_at,
-      updatedBy: {
-        id: row.updated_by,
-        fullName: getFullName(row.updated_by_firstname, row.updated_by_lastname),
-      },
-    },
-  }
-  
+    audit: compactAudit(makeAudit(row)),
+  };
+
   return cleanObject(base);
 };
 
@@ -159,7 +145,7 @@ const transformProductDetail = (row) => {
  */
 const transformProductRecord = (row) => {
   if (!row) return null;
-  
+
   return {
     id: row.id,
   };

@@ -47,8 +47,7 @@ export interface LocationInventoryQueryParams extends LocationInventoryFilters {
 export type LocationInventorySummaryState =
   ReduxPaginatedState<LocationInventorySummary>;
 
-export interface LocationInventorySummaryItemDetail
-  extends BaseInventorySummaryItem {
+export interface LocationInventorySummaryItemDetail extends BaseInventorySummaryItem {
   locationInventoryId: string;
   quantity: BaseInventorySummaryItem['quantity'] & {
     locationQuantity: number;
@@ -66,8 +65,7 @@ export type LocationInventorySummaryDetailResponse =
 export type LocationInventorySummaryDetailState =
   ReduxPaginatedState<LocationInventorySummaryItemDetail>;
 
-export interface FlatLocationInventorySummaryDetailRow
-  extends BaseFlatInventoryRow {
+export interface FlatLocationInventorySummaryDetailRow extends BaseFlatInventoryRow {
   locationInventoryId: string;
   locationQuantity: number;
   locationName: string;
@@ -128,8 +126,7 @@ export type LocationInventoryRecordsResponse =
 export type LocationInventoryState =
   ReduxPaginatedState<LocationInventoryRecord>;
 
-export interface FlatLocationInventoryRow
-  extends FlatInventoryRowBase<LocationInventoryRecord> {}
+export interface FlatLocationInventoryRow extends FlatInventoryRowBase<LocationInventoryRecord> {}
 
 export type LocationInventoryTableProps = BaseInventoryTableProps<
   LocationInventoryRecord,

@@ -5,6 +5,7 @@ const {
 const { PERMISSIONS } = require('../utils/constants/domain/pricing-constants');
 const AppError = require('../utils/AppError');
 const { getStatusId } = require('../config/status-cache');
+const { compactAudit, makeAudit } = require('../utils/audit-utils');
 
 /**
  * Resolves the final price for an order item based on submitted price and DB price.
@@ -227,25 +228,25 @@ const enrichPricingRow = (row, activeStatusId) => {
 const evaluatePricingViewAccessControl = async (user) => {
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     // Base permission: can the user view ANY pricing?
     const canViewPricing =
       isRoot || permissions.includes(PERMISSIONS.VIEW_PRICING);
-    
+
     // Extended permissions
     const canViewAllPricingTypes =
       isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_TYPES);
-    
+
     const canViewInactivePricing =
       isRoot || permissions.includes(PERMISSIONS.VIEW_INACTIVE);
-    
+
     const canViewPricingHistory =
       isRoot || permissions.includes(PERMISSIONS.VIEW_HISTORY);
-    
+
     // Expired + future-dated pricing visibility
     const canViewAllValidPricing =
       isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_VALID_PRICING);
-    
+
     return {
       canViewPricing,
       canViewAllPricingTypes,
@@ -262,7 +263,7 @@ const evaluatePricingViewAccessControl = async (user) => {
         userId: user?.id,
       }
     );
-    
+
     throw AppError.businessError(
       'Unable to determine pricing visibility permissions',
       { details: err.message }
@@ -289,18 +290,18 @@ const evaluatePricingViewAccessControl = async (user) => {
  */
 const slicePricingForUser = (pricingRows, access) => {
   const ACTIVE_STATUS_ID = getStatusId('general_active');
-  
+
   if (!Array.isArray(pricingRows)) return [];
-  
+
   // Public price types visible to all normal users
   const PUBLIC_PRICE_TYPES = ['MSRP', 'RETAIL'];
-  
+
   const now = new Date();
   const result = [];
-  
+
   for (const row of pricingRows) {
     const priceTypeName = row.price_type_name?.toUpperCase();
-    
+
     // ---------------------------------------------------------
     // 1. PRICE TYPE FILTER
     //    Only users with VIEW_ALL_TYPES can see wholesale/internal pricing
@@ -308,28 +309,28 @@ const slicePricingForUser = (pricingRows, access) => {
     if (!access.canViewAllPricingTypes) {
       if (!PUBLIC_PRICE_TYPES.includes(priceTypeName)) continue;
     }
-    
+
     // ---------------------------------------------------------
     // 2. INACTIVE PRICING FILTER
     // ---------------------------------------------------------
     if (!access.canViewInactivePricing && row.status_id !== ACTIVE_STATUS_ID) {
       continue;
     }
-    
+
     // ---------------------------------------------------------
     // 3. VALIDITY WINDOW FILTER
     //    Regular users cannot see expired or future-dated pricing
     // ---------------------------------------------------------
     const validFrom = row.valid_from ? new Date(row.valid_from) : null;
     const validTo = row.valid_to ? new Date(row.valid_to) : null;
-    
+
     const isExpired = validTo && validTo < now;
     const isNotYetValid = validFrom && validFrom > now;
-    
+
     if (!access.canViewPricingHistory && isExpired) continue;
-    
+
     if (!access.canViewAllValidPricing && isNotYetValid) continue;
-    
+
     // ---------------------------------------------------------
     // 4. BASE SAFE SHAPE (regular users)
     // ---------------------------------------------------------
@@ -345,7 +346,7 @@ const slicePricingForUser = (pricingRows, access) => {
       validFrom: row.valid_from,
       validTo: row.valid_to,
     };
-    
+
     // ---------------------------------------------------------
     // 5. EXTENDED: status fields (admins + advanced roles)
     // ---------------------------------------------------------
@@ -355,34 +356,17 @@ const slicePricingForUser = (pricingRows, access) => {
         date: row.status_date,
       };
     }
-    
+
     // ---------------------------------------------------------
     // 6. EXTENDED: audit fields (admins + auditors)
     // ---------------------------------------------------------
     if (access.canViewPricingHistory) {
-      safe.audit = {
-        createdAt: row.created_at,
-        createdBy: row.created_by
-          ? {
-            id: row.created_by,
-            firstname: row.created_by_firstname,
-            lastname: row.created_by_lastname,
-          }
-          : null,
-        updatedAt: row.updated_at,
-        updatedBy: row.updated_by
-          ? {
-            id: row.updated_by,
-            firstname: row.updated_by_firstname,
-            lastname: row.updated_by_lastname,
-          }
-          : null,
-      };
+      safe.audit = compactAudit(makeAudit(row));
     }
-    
+
     result.push(safe);
   }
-  
+
   return result;
 };
 

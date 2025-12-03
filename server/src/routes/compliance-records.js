@@ -2,10 +2,14 @@ const express = require('express');
 const authorize = require('../middlewares/authorize');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
-const { getPaginatedComplianceRecordsSchema } = require('../validators/compliance-record-validators');
+const {
+  getPaginatedComplianceRecordsSchema,
+} = require('../validators/compliance-record-validators');
 const { sanitizeFields } = require('../middlewares/sanitize');
 const validate = require('../middlewares/validate');
-const { getPaginatedComplianceRecordsController } = require('../controllers/compliance-record-controller');
+const {
+  getPaginatedComplianceRecordsController,
+} = require('../controllers/compliance-record-controller');
 
 const router = express.Router();
 
@@ -37,18 +41,12 @@ router.get(
   '/',
   authorize([PERMISSIONS.COMPLIANCE_RECORDS.VIEW_LIST]),
   createQueryNormalizationMiddleware(
-    'complianceRecordSortMap',                 // Name of sort map
-    ['statusIds', 'productIds', 'skuIds'],  // Array-based filter fields
-    [],                           // Reserved: fields that require numeric normalization (none for SKUs)
-    getPaginatedComplianceRecordsSchema                // Joi schema for validation
+    'complianceRecordSortMap', // Name of sort map
+    ['statusIds', 'productIds', 'skuIds'], // Array-based filter fields
+    [], // Reserved: fields that require numeric normalization (none for SKUs)
+    getPaginatedComplianceRecordsSchema // Joi schema for validation
   ),
-  sanitizeFields([
-    'keyword',
-    'productName',
-    'sku',
-    'brand',
-    'category',
-  ]),
+  sanitizeFields(['keyword', 'productName', 'sku', 'brand', 'category']),
   validate(getPaginatedComplianceRecordsSchema, 'query'),
   getPaginatedComplianceRecordsController
 );

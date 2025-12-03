@@ -76,17 +76,17 @@ export interface ApiSuccessResponse<T> {
    * Indicates whether the request was successful.
    */
   success: true;
-  
+
   /**
    * A human-readable message describing the result.
    */
   message: string;
-  
+
   /**
    * The actual data payload of the response.
    */
   data: T;
-  
+
   /**
    * Unique request identifier for tracing/logging.
    */
@@ -325,9 +325,9 @@ export interface CreatedUpdatedByFilter {
 export interface AuditUser {
   /** Unique user identifier (can be null for system actions). */
   id: string | null;
-  
+
   /** Display name of the user (e.g., "System Action"). */
-  fullName: string;
+  name: string;
 }
 
 /**
@@ -344,22 +344,22 @@ export interface AuditUser {
 export interface GenericAudit<TExtra = unknown> {
   /** Timestamp indicating when the record was created. */
   createdAt: string;
-  
+
   /**
    * User who created the record.
    * May be null for system-generated or legacy records.
    */
   createdBy: AuditUser | null;
-  
+
   /** Timestamp indicating when the record was last modified. */
   updatedAt: string | null;
-  
+
   /**
    * User who last updated the record.
    * May be null if the record has never been updated.
    */
   updatedBy: AuditUser | null;
-  
+
   /**
    * Optional module-specific audit data.
    * Used to extend the audit model when needed.
@@ -376,10 +376,30 @@ export interface GenericAudit<TExtra = unknown> {
 export interface GenericStatus<TName extends string = string> {
   /** UUID of the status record */
   id: string;
-  
+
   /** Status label (e.g., "active", "inactive", "pending") */
   name: TName;
-  
+
   /** Timestamp associated with the status event */
   date: string; // ISO timestamp
+}
+
+/**
+ * Generic statistics returned from any type of operation
+ * (single or bulk).
+ *
+ * @template T - Optional contextual metadata for the operation.
+ */
+export interface OperationStats<T = void> {
+  /** Number of items received or attempted. Always ≥ 1. */
+  inputCount: number;
+
+  /** Number of items successfully processed (1 for single ops). */
+  processedCount: number;
+
+  /** Total time taken to complete, in milliseconds. */
+  elapsedMs: number;
+
+  /** Optional metadata returned by this specific operation. */
+  meta?: T;
 }

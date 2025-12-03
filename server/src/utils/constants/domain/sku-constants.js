@@ -1,7 +1,7 @@
 const SKU_CONSTANTS = {
   PERMISSIONS: {
-    VIEW_SKUS: 'view_skus',                          // can see SKU at all
-    VIEW_SKU_INACTIVE: 'view_inactive_sku',        // can see inactive/discontinued SKUs
+    VIEW_SKUS: 'view_skus', // can see SKU at all
+    VIEW_SKU_INACTIVE: 'view_inactive_sku', // can see inactive/discontinued SKUs
     VIEW_PRODUCT_INACTIVE: 'view_inactive_product', // can see SKUs inside inactive products
     VIEW_SKUS_ALL_STATUSES: 'view_all_statuses_skus', // override: see all SKU + product statuses
     ALLOW_BACKORDER_SKUS: 'allow_backorder_skus', // Allow SKUs with no stock
@@ -18,7 +18,10 @@ const SKU_IMAGES_CONSTANTS = {
   },
 };
 
+const BARCODE_REGEX = /^[0-9A-Za-z\-._\/ ]{1,64}$/;
+
 module.exports = {
   SKU_CONSTANTS,
   SKU_IMAGES_CONSTANTS,
+  BARCODE_REGEX,
 };

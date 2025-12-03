@@ -100,9 +100,7 @@ export const renderBooleanSelectField = <T extends Record<string, any>>(
 /**
  * Generic reusable select field renderer using your custom <Dropdown />.
  */
-export const renderSelectField = <
-  T extends Record<string, any>
->(
+export const renderSelectField = <T extends Record<string, any>>(
   control: Control<T>,
   name: keyof T,
   label: string,
@@ -118,7 +116,7 @@ export const renderSelectField = <
           const finalOptions = allowAll
             ? [{ label: 'All', value: null }, ...options]
             : options;
-          
+
           return (
             <Dropdown
               label={label}
@@ -136,3 +134,55 @@ export const renderSelectField = <
     </Grid>
   );
 };
+
+/**
+ * Renders a reusable controlled numeric BaseInput field for a filter panel.
+ *
+ * @template TFieldValues - Shape of React Hook Form data.
+ * @param control - React Hook Form control instance.
+ * @param name - Field name.
+ * @param label - Input label.
+ * @param placeholder - Optional placeholder text.
+ * @param fullWidth - Whether the field spans full width (default: true).
+ * @returns JSX.Element - The rendered numeric input field wrapped in a Grid item.
+ */
+export const renderNumericField = <
+  TFieldValues extends Record<string, any> = any,
+>(
+  control: Control<TFieldValues>,
+  name: keyof TFieldValues,
+  label: string,
+  placeholder?: string,
+  fullWidth: boolean = true
+) => (
+  <Grid size={{ xs: 12, sm: 6, md: 3 }} key={String(name)}>
+    <Controller
+      name={name as any}
+      control={control}
+      render={({ field }) => (
+        <BaseInput
+          {...field}
+          type="number"
+          inputMode="numeric"
+          value={field.value ?? ''}
+          label={label}
+          placeholder={placeholder}
+          fullWidth={fullWidth}
+          sx={{ minHeight: 56 }}
+          // ensure numbers stay numeric
+          onChange={(e) => {
+            const value = e.target.value;
+            // empty input → null (so filter is cleared)
+            if (value === '' || value === null) {
+              field.onChange(null);
+              return;
+            }
+            // convert to number
+            const num = Number(value);
+            field.onChange(Number.isNaN(num) ? null : num);
+          }}
+        />
+      )}
+    />
+  </Grid>
+);

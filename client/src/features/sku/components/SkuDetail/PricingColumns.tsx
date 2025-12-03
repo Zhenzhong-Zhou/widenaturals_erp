@@ -9,7 +9,7 @@ import type { ActionConfig } from '@utils/table/renderActionIcons';
 
 export const createPricingColumns = (
   onMetadataClick: (row: FlattenedPricingRecord, target: HTMLElement) => void,
-  onAuditClick: (row: FlattenedPricingRecord, target: HTMLElement) => void,
+  onAuditClick: (row: FlattenedPricingRecord, target: HTMLElement) => void
 ): MiniColumn<FlattenedPricingRecord>[] => [
   { id: 'priceType', label: 'Price Type' },
   { id: 'locationName', label: 'Location' },
@@ -33,18 +33,21 @@ export const createPricingColumns = (
     label: 'Status',
     format: (value) => formatLabel(value),
   },
-  buildActionColumn<FlattenedPricingRecord>((row) => [
-    {
-      key: "meta",
-      title: "View Metadata",
-      icon: <ArticleOutlinedIcon fontSize="small" />,
-      onClick: onMetadataClick,
-    },
-    (row.createdBy || row.updatedBy) && {
-      key: "audit",
-      title: "View Audit",
-      icon: <InfoOutlinedIcon fontSize="small" />,
-      onClick: onAuditClick,
-    },
-  ].filter(Boolean) as ActionConfig<FlattenedPricingRecord>[]),
+  buildActionColumn<FlattenedPricingRecord>(
+    (row) =>
+      [
+        {
+          key: 'meta',
+          title: 'View Metadata',
+          icon: <ArticleOutlinedIcon fontSize="small" />,
+          onClick: onMetadataClick,
+        },
+        (row.createdBy || row.updatedBy) && {
+          key: 'audit',
+          title: 'View Audit',
+          icon: <InfoOutlinedIcon fontSize="small" />,
+          onClick: onAuditClick,
+        },
+      ].filter(Boolean) as ActionConfig<FlattenedPricingRecord>[]
+  ),
 ];

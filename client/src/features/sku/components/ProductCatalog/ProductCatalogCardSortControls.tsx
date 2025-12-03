@@ -10,7 +10,10 @@ interface SkuProductSortControlsProps {
   onSortOrderChange: (value: SortOrder) => void;
 }
 
-const skuProductSortOptions: { label: string; value: SkuProductCardSortField }[] = [
+const skuProductSortOptions: {
+  label: string;
+  value: SkuProductCardSortField;
+}[] = [
   { label: 'Brand', value: 'brand' },
   { label: 'Category', value: 'category' },
   { label: 'Market Region', value: 'marketRegion' },
@@ -19,11 +22,11 @@ const skuProductSortOptions: { label: string; value: SkuProductCardSortField }[]
 ];
 
 const ProductCatalogCardSortControls: FC<SkuProductSortControlsProps> = ({
-                                                                   sortBy,
-                                                                   sortOrder,
-                                                                   onSortByChange,
-                                                                   onSortOrderChange,
-                                                                 }) => {
+  sortBy,
+  sortOrder,
+  onSortByChange,
+  onSortOrderChange,
+}) => {
   return (
     <SortControls
       sortBy={sortBy}

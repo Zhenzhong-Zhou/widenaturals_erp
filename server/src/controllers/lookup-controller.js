@@ -13,6 +13,9 @@ const {
   fetchPaginatedSkuLookupService,
   fetchPaginatedPricingLookupService,
   fetchPaginatedPackagingMaterialLookupService,
+  fetchSkuCodeBaseLookupService,
+  fetchProductLookupService,
+  fetchStatusLookupService,
 } = require('../services/lookup-service');
 const { logInfo } = require('../utils/logger-helper');
 
@@ -663,6 +666,170 @@ const getPackagingMaterialLookupController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * Controller for retrieving paginated SKU Code Base lookup options.
+ *
+ * This controller:
+ * - Enforces access control via service-layer permission checks.
+ * - Applies visibility filters (e.g., restrict to active code bases for non-admin users).
+ * - Handles pagination via `limit` and `offset` query parameters.
+ * - Returns results formatted for dropdown usage, including UI flags.
+ *
+ * Expected query structure (via `req.normalizedQuery`):
+ * - filters: Optional object (e.g., { keyword, brand_code, category_code, status_id })
+ * - limit: Optional number (default 50)
+ * - offset: Optional number (default 0)
+ *
+ * @route GET /lookups/sku-code-bases
+ * @access Protected
+ * @permission `view_sku_code_base_lookup` (enforced in service layer)
+ *
+ * @param {Express.Request} req - Express request object containing user and normalizedQuery
+ * @param {Express.Response} res - Express response object used to send JSON response
+ *
+ * @returns {void} Responds with JSON:
+ *  {
+ *    success: boolean,
+ *    message: string,
+ *    items: Array<{
+ *      id: string,
+ *      label: string,
+ *      isActive?: boolean
+ *    }>,
+ *    offset: number,
+ *    limit: number,
+ *    hasMore: boolean
+ *  }
+ */
+const getSkuCodeBaseLookupController = wrapAsync(async (req, res) => {
+  const user = req.user;
+  const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
+
+  const dropdownResult = await fetchSkuCodeBaseLookupService(user, {
+    filters,
+    limit,
+    offset,
+  });
+
+  const { items, hasMore } = dropdownResult;
+
+  return res.status(200).json({
+    success: true,
+    message: 'Successfully retrieved SKU Code Base lookup',
+    items,
+    offset,
+    limit,
+    hasMore,
+  });
+});
+
+/**
+ * Controller for retrieving paginated Product lookup options.
+ *
+ * Responsibilities:
+ * - Call service-layer access control and filtering logic.
+ * - Apply enforced visibility rules (e.g., active-only products for restricted users).
+ * - Support pagination via `limit` and `offset` query parameters.
+ * - Return results formatted for dropdowns/autocomplete components.
+ *
+ * Expected query structure from `req.normalizedQuery`:
+ * - filters: Optional object (e.g., { keyword, brand, category, series, status_id })
+ * - limit: Optional number (default 50)
+ * - offset: Optional number (default 0)
+ *
+ * @route GET /lookups/products
+ * @access Protected
+ * @permission `view_product_lookup` (enforced in service layer)
+ *
+ * @param {Express.Request} req - Request containing authenticated user + normalized query params.
+ * @param {Express.Response} res - Response used to send lookup results.
+ *
+ * @returns {void} Responds with JSON:
+ *  {
+ *    success: boolean,
+ *    message: string,
+ *    items: Array<{ id: string, label: string, isActive?: boolean }>,
+ *    offset: number,
+ *    limit: number,
+ *    hasMore: boolean
+ *  }
+ */
+const getProductLookupController = wrapAsync(async (req, res) => {
+  const user = req.user;
+  const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
+
+  const dropdownResult = await fetchProductLookupService(user, {
+    filters,
+    limit,
+    offset,
+  });
+
+  const { items, hasMore } = dropdownResult;
+
+  return res.status(200).json({
+    success: true,
+    message: 'Successfully retrieved Product lookup',
+    items,
+    offset,
+    limit,
+    hasMore,
+  });
+});
+
+/**
+ * Controller for retrieving paginated Status lookup options.
+ *
+ * Responsibilities:
+ * - Call service-layer access control & visibility rules.
+ * - Apply permission-based filters (active-only if restricted).
+ * - Support pagination via `limit` and `offset` query parameters.
+ * - Return results formatted for dropdowns/autocomplete components.
+ *
+ * Expected query structure from `req.normalizedQuery`:
+ * - filters: Optional object (e.g., { keyword, name, is_active })
+ * - limit: Optional number (default 50)
+ * - offset: Optional number (default 0)
+ *
+ * @route GET /lookups/statuses
+ * @access Protected
+ * @permission `view_status_lookup` (enforced in service layer)
+ *
+ * @param {Express.Request} req - Request with user + normalized query params.
+ * @param {Express.Response} res - Response containing lookup results.
+ *
+ * @returns {void} Responds with JSON:
+ *  {
+ *    success: boolean,
+ *    message: string,
+ *    items: Array<{ id, label, isActive }>,
+ *    offset: number,
+ *    limit: number,
+ *    hasMore: boolean
+ *  }
+ */
+const getStatusLookupController = wrapAsync(async (req, res) => {
+  const user = req.user;
+  const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
+
+  // Service handles filtering, ACL enforcement, enrichment, pagination
+  const dropdownResult = await fetchStatusLookupService(user, {
+    filters,
+    limit,
+    offset,
+  });
+
+  const { items, hasMore } = dropdownResult;
+
+  return res.status(200).json({
+    success: true,
+    message: 'Successfully retrieved Status lookup',
+    items,
+    offset,
+    limit,
+    hasMore,
+  });
+});
+
 module.exports = {
   getBatchRegistryLookupController,
   getWarehouseLookupController,
@@ -677,4 +844,7 @@ module.exports = {
   getSkuLookupController,
   getPricingLookupController,
   getPackagingMaterialLookupController,
+  getSkuCodeBaseLookupController,
+  getProductLookupController,
+  getStatusLookupController,
 };

@@ -1,6 +1,6 @@
 const { cleanObject } = require('../utils/object-utils');
 const { getProductDisplayName } = require('../utils/display-name-utils');
-const { getFullName } = require('../utils/name-utils');
+const { compactAudit, makeAudit } = require('../utils/audit-utils');
 const { transformPaginatedResult } = require('../utils/transformer-utils');
 
 /**
@@ -48,7 +48,7 @@ const { transformPaginatedResult } = require('../utils/transformer-utils');
  */
 const transformComplianceRecordRow = (row) => {
   if (!row) return null;
-  
+
   return cleanObject({
     id: row.compliance_record_id,
     type: row.type,
@@ -56,48 +56,22 @@ const transformComplianceRecordRow = (row) => {
     issuedDate: row.issued_date,
     expiryDate: row.expiry_date,
     description: row.description,
-    
+
     status: {
       id: row.status_id,
       name: row.status_name,
       date: row.status_date,
     },
-    
-    audit: {
-      createdAt: row.created_at,
-      createdBy: row.created_by
-        ? {
-          id: row.created_by,
-          firstname: row.created_by_firstname,
-          lastname: row.created_by_lastname,
-          displayName: getFullName(
-            row.created_by_firstname,
-            row.created_by_lastname
-          ),
-        }
-        : null,
-      
-      updatedAt: row.updated_at,
-      updatedBy: row.updated_by
-        ? {
-          id: row.updated_by,
-          firstname: row.updated_by_firstname,
-          lastname: row.updated_by_lastname,
-          displayName: getFullName(
-            row.updated_by_firstname,
-            row.updated_by_lastname
-          ),
-        }
-        : null,
-    },
-    
+
+    audit: compactAudit(makeAudit(row)),
+
     sku: {
       id: row.sku_id,
       sku: row.sku_code,
       sizeLabel: row.size_label,
       marketRegion: row.market_region,
     },
-    
+
     product: {
       id: row.product_id,
       name: row.product_name,
@@ -181,47 +155,21 @@ const transformPaginatedComplianceRecordResults = (paginatedResult) => {
  */
 const transformComplianceRecord = (row) => {
   if (!row) return null;
-  
+
   // Optional metadata
   const metadata = row.metadata
     ? {
-      status: row.metadata.status
-        ? {
-          id: row.metadata.status.id,
-          name: row.metadata.status.name,
-          date: row.metadata.status.date,
-        }
-        : undefined,
-      description: row.metadata.description,
-    }
+        status: row.metadata.status
+          ? {
+              id: row.metadata.status.id,
+              name: row.metadata.status.name,
+              date: row.metadata.status.date,
+            }
+          : undefined,
+        description: row.metadata.description,
+      }
     : undefined;
-  
-  // Optional audit
-  const audit = row.audit
-    ? {
-      createdAt: row.audit.createdAt,
-      createdBy: row.audit.createdBy
-        ? {
-          id: row.audit.createdBy.id,
-          fullName: getFullName(
-            row.audit.createdBy.firstname,
-            row.audit.createdBy.lastname
-          ),
-        }
-        : null,
-      updatedAt: row.audit.updatedAt,
-      updatedBy: row.audit.updatedBy
-        ? {
-          id: row.audit.updatedBy.id,
-          fullName: getFullName(
-            row.audit.updatedBy.firstname,
-            row.audit.updatedBy.lastname
-          ),
-        }
-        : null,
-    }
-    : undefined;
-  
+
   return {
     id: row.id,
     type: row.type,
@@ -229,7 +177,7 @@ const transformComplianceRecord = (row) => {
     issuedDate: row.issuedDate,
     expiryDate: row.expiryDate,
     metadata,
-    audit,
+    audit: row.audit,
   };
 };
 

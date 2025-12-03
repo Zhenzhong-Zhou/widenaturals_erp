@@ -1,8 +1,6 @@
 const { getProductDisplayName } = require('../utils/display-name-utils');
 const { getFullName } = require('../utils/name-utils');
-const {
-  transformPaginatedResult,
-} = require('../utils/transformer-utils');
+const { transformPaginatedResult } = require('../utils/transformer-utils');
 
 /**
  * Transforms a raw SQL pricing row into a flattened pricing list item.
@@ -165,7 +163,6 @@ const transformPaginatedPricingDetailResult = (result) =>
  * @property {string} audit.updatedBy.lastname  - Updater last name
  */
 
-
 /**
  * @typedef {Object} SkuDetailPricing
  * @description
@@ -199,46 +196,17 @@ const transformPaginatedPricingDetailResult = (result) =>
  */
 const transformSkuPricing = (row) => {
   if (!row) return null;
-  
+
   // -----------------------------
   // Status (optional)
   // -----------------------------
   const status = row.status
     ? {
-      id: row.status.id,
-      date: row.status.date,
-    }
+        id: row.status.id,
+        date: row.status.date,
+      }
     : undefined;
-  
-  // -----------------------------
-  // Audit (optional)
-  // -----------------------------
-  const audit = row.audit
-    ? {
-      createdAt: row.audit.createdAt ?? null,
-      createdBy: row.audit.createdBy
-        ? {
-          id: row.audit.createdBy.id,
-          fullName: getFullName(
-            row.audit.createdBy.firstname,
-            row.audit.createdBy.lastname
-          ),
-        }
-        : null,
-      
-      updatedAt: row.audit.updatedAt ?? null,
-      updatedBy: row.audit.updatedBy
-        ? {
-          id: row.audit.updatedBy.id,
-          fullName: getFullName(
-            row.audit.updatedBy.firstname,
-            row.audit.updatedBy.lastname
-          ),
-        }
-        : null,
-    }
-    : undefined;
-  
+
   // -----------------------------
   // Final Returned DTO
   // -----------------------------
@@ -246,18 +214,18 @@ const transformSkuPricing = (row) => {
     id: row.id,
     skuId: row.skuId,
     priceType: row.priceType?.name ?? null,
-    
+
     location: {
       name: row.location?.name ?? null,
       type: row.location?.type ?? null,
     },
-    
+
     price: row.price,
     validFrom: row.validFrom,
     validTo: row.validTo,
-    
+
     status,
-    audit,
+    audit: row.audit,
   };
 };
 

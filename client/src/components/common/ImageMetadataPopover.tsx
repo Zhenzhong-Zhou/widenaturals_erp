@@ -1,7 +1,7 @@
 import type { FC } from 'react';
-import Popover from "@mui/material/Popover";
-import Box from "@mui/material/Box";
-import CustomTypography from "@components/common/CustomTypography";
+import Popover from '@mui/material/Popover';
+import Box from '@mui/material/Box';
+import CustomTypography from '@components/common/CustomTypography';
 
 export interface ImageMetadataField {
   label: string;
@@ -17,28 +17,28 @@ interface ImageMetadataPopoverProps {
 }
 
 const ImageMetadataPopover: FC<ImageMetadataPopoverProps> = ({
-                                                               anchorEl,
-                                                               open,
-                                                               onClose,
-                                                               fields,
-                                                               title = "Image Metadata",
-                                                             }) => {
+  anchorEl,
+  open,
+  onClose,
+  fields,
+  title = 'Image Metadata',
+}) => {
   return (
     <Popover
       open={open}
       anchorEl={anchorEl}
       onClose={onClose}
-      anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-      transformOrigin={{ vertical: "top", horizontal: "right" }}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      transformOrigin={{ vertical: 'top', horizontal: 'right' }}
     >
       <Box sx={{ p: 2, maxWidth: 300 }}>
         <CustomTypography variant="subtitle2" sx={{ mb: 1 }}>
           {title}
         </CustomTypography>
-        
+
         {fields.map((f, index) => (
           <CustomTypography key={index} variant="body2" sx={{ mb: 0.5 }}>
-            <strong>{f.label}:</strong> {f.value ?? "—"}
+            <strong>{f.label}:</strong> {f.value ?? '—'}
           </CustomTypography>
         ))}
       </Box>

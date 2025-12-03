@@ -17,6 +17,7 @@ export interface PaginatedDropdownProps<TParams> {
   onAddNew?: () => void;
   inputValue?: string;
   onInputChange?: (event: any, newValue: string, reason: string) => void;
+  onOpen?: () => void;
   noOptionsMessage?: string;
   helperText?: ReactNode;
 }
@@ -36,6 +37,7 @@ const PaginatedDropdown = <TParams,>({
   onAddNew,
   inputValue,
   onInputChange,
+  onOpen,
   noOptionsMessage,
   helperText,
 }: PaginatedDropdownProps<TParams>) => {
@@ -72,6 +74,7 @@ const PaginatedDropdown = <TParams,>({
       }}
       inputValue={inputValue}
       onInputChange={onInputChange}
+      onOpen={onOpen}
       noOptionsMessage={
         loading ? 'Loading...' : noOptionsMessage || 'No options available'
       }

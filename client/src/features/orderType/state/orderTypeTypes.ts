@@ -67,8 +67,7 @@ export type OrderTypeSortBy =
  * Parameters for fetching paginated and sorted order type records.
  */
 export interface FetchPaginatedOrderTypesParams
-  extends PaginationParams,
-    SortConfig {
+  extends PaginationParams, SortConfig {
   /** Optional filtering options */
   filters?: OrderTypeFilters;
 }

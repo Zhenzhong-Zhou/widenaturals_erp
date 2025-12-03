@@ -6,6 +6,7 @@ const {
   validateKeyword,
   validateOptionalString,
 } = require('./general-validators');
+const { CODE_RULES } = require('../utils/validation/code-rules');
 
 /**
  * Base Joi schema for validating common lookup query parameters.
@@ -290,6 +291,96 @@ const packagingMaterialLookupQuerySchema = Joi.object({
     .label('Mode'),
 });
 
+/**
+ * Joi schema for validating query parameters for the SKU Code Base lookup endpoint.
+ *
+ * This schema is composed using the shared `baseLookupQuerySchema`, and is used to validate and
+ * sanitize input for:
+ *   - GET /lookups/sku-code-bases
+ *
+ * Fields (inherited from baseLookupQuerySchema):
+ *
+ * @property {string} [keyword] - Optional search keyword for matching brand_code or category_code.
+ *   Validated using `validateKeyword()` to enforce length, format, and sanitization rules.
+ * @property {string} [brand_code] - Optional exact brand code filter.
+ * @property {string} [category_code] - Optional exact category code filter.
+ * @property {number} [limit=50] - Number of records to return per page. Must be between 1 and 100.
+ * @property {number} [offset=0] - Number of records to skip. Must be zero or greater.
+ *
+ * Example usage:
+ *   GET /lookups/sku-code-bases?keyword=PG&brand_code=PG&limit=20&offset=40
+ *
+ * Used by:
+ * - Query validation middleware before reaching the controller.
+ */
+const skuCodeBaseLookupQuerySchema = Joi.object({
+  ...baseLookupQuerySchema,
+
+  // Additional SKU Code Base–specific filters
+  brand_code: Joi.string()
+    .trim()
+    .uppercase()
+    .pattern(CODE_RULES.BRAND)
+    .optional(),
+
+  category_code: Joi.string()
+    .trim()
+    .uppercase()
+    .pattern(CODE_RULES.CATEGORY)
+    .optional(),
+});
+
+/**
+ * Joi validation schema for **Product lookup dropdown** query parameters.
+ *
+ * This schema is intentionally lightweight because it powers UI dropdowns
+ * and autocomplete components. Only minimal filters are allowed:
+ *
+ * ### Supported Filters (inside `filters`)
+ * - `brand`      (optional string)  – partial, case-insensitive match
+ * - `category`   (optional string)  – partial, case-insensitive match
+ * - `series`     (optional string)  – partial, case-insensitive match
+ *
+ * These fields allow narrowing the product list while keeping payload small
+ * and queries fast for dropdown UIs.
+ *
+ * ### Pagination
+ * - `limit`  (default: 50)   – maximum number of items to return
+ * - `offset` (default: 0)    – pagination offset
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const productLookupQuerySchema = Joi.object({
+  ...baseLookupQuerySchema,
+
+  filters: Joi.object({
+    brand: validateOptionalString('Brand', 20),
+    category: validateOptionalString('Category', 20),
+    series: validateOptionalString('Series', 20),
+  }).default({}),
+});
+
+/**
+ * Joi validation schema for **Status lookup dropdown** query parameters.
+ *
+ * This schema is intentionally lightweight because it powers UI components such
+ * as dropdowns and autocomplete lists. Only minimal, safe filters are allowed.
+ *
+ * ### Supported Filters (inside `filters`)
+ * - `name`       (optional string)  – partial, case-insensitive match
+ * - `is_active`  (optional boolean) – advanced filter (ACL rules applied in service)
+ *
+ * ### Pagination
+ * - `limit`  (default: 50) – max number of items returned
+ * - `offset` (default: 0)  – offset for pagination
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const statusLookupQuerySchema = Joi.object({
+  ...baseLookupQuerySchema,
+  name: validateOptionalString('Status name', 50),
+});
+
 module.exports = {
   batchRegistryLookupQuerySchema,
   warehouseLookupQuerySchema,
@@ -304,4 +395,7 @@ module.exports = {
   skuLookupQuerySchema,
   pricingLookupQuerySchema,
   packagingMaterialLookupQuerySchema,
+  skuCodeBaseLookupQuerySchema,
+  productLookupQuerySchema,
+  statusLookupQuerySchema,
 };

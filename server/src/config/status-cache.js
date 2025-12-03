@@ -11,7 +11,8 @@
 const { query, pool } = require('../database/db');
 const {
   logSystemException,
-  logSystemError, logSystemInfo,
+  logSystemError,
+  logSystemInfo,
 } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 const { getAllStatuses } = require('../repositories/status-repository');
@@ -21,7 +22,7 @@ let statusMap = null;
 // Private in-memory maps (atomic swap pattern)
 // ---------------------------------------------
 let STATUS_NAME_MAP = new Map(); // id (UUID) → UPPERCASE(name)
-let STATUS_ROW_MAP = new Map();  // id (UUID) → full row object
+let STATUS_ROW_MAP = new Map(); // id (UUID) → full row object
 
 /**
  * Defines mappings from logical status keys used in application code
@@ -148,13 +149,13 @@ const getStatusIdMap = async (client = null) => {
     const unions = [];
     const params = [];
     let paramIndex = 1;
-    
+
     for (const { table, name } of STATUS_KEY_LOOKUP) {
       nameSet.add(`${table}:${name}`);
     }
-    
+
     const uniquePairs = Array.from(nameSet);
-    
+
     for (const entry of uniquePairs) {
       const [table, name] = entry.split(':');
       unions.push(`
@@ -165,12 +166,12 @@ const getStatusIdMap = async (client = null) => {
       params.push(name.toLowerCase());
       paramIndex++;
     }
-    
+
     const sql = unions.join(' UNION ALL ');
-    
+
     // Use provided client if inside a transaction; fallback to shared pool otherwise
     const { rows } = await query(sql, params, client || pool);
-    
+
     const map = {};
     for (const { key, table, name } of STATUS_KEY_LOOKUP) {
       const row = rows.find(
@@ -180,13 +181,13 @@ const getStatusIdMap = async (client = null) => {
         map[key] = row.id;
       }
     }
-    
+
     return Object.freeze(map);
   } catch (error) {
     logSystemException(error, 'Failed to fetch status IDs', {
       context: 'get-status-id-map',
     });
-    
+
     throw AppError.databaseError('Failed to initialize status map', {
       details: error.message,
     });
@@ -209,7 +210,7 @@ const initStatusCache = async (client = null) => {
   try {
     // Pass the client down to share connection context
     statusMap = await getStatusIdMap(client || pool);
-    
+
     logSystemInfo('Initialized logical status ID map', {
       context: 'status-cache/initStatusCache',
       count: Object.keys(statusMap).length,
@@ -267,21 +268,21 @@ const loadAllStatusesIntoCache = async (client) => {
   try {
     // Use provided client if in a transaction, else fallback to shared pool
     const rows = await getAllStatuses(client);
-    
+
     // Prepare next generation of maps for atomic replacement
     const nextNameMap = new Map();
     const nextRowMap = new Map();
-    
+
     for (const row of rows) {
       const code = (row.name || '').toUpperCase();
       nextNameMap.set(row.id, code);
       nextRowMap.set(row.id, row);
     }
-    
+
     // Atomic swap to prevent race conditions
     STATUS_NAME_MAP = nextNameMap;
     STATUS_ROW_MAP = nextRowMap;
-    
+
     logSystemInfo('Status name and row caches loaded successfully', {
       context: 'status-cache/loadAllStatusesIntoCache',
       recordCount: rows.length,
@@ -290,7 +291,7 @@ const loadAllStatusesIntoCache = async (client) => {
     logSystemException(error, 'Failed to load status cache', {
       context: 'status-cache/loadAllStatusesIntoCache',
     });
-    
+
     throw AppError.databaseError('Failed to load status cache.', {
       context: 'status-cache/loadAllStatusesIntoCache',
       details: error.message,
@@ -365,28 +366,28 @@ const initAllStatusCaches = async (
   logSystemInfo('Initializing all status caches...', {
     context: 'status-cache/initAllStatusCaches',
   });
-  
+
   try {
     // Step 1: Run both caches concurrently (boot-time)
     await Promise.all([
-      initStatusCache(client),     // key → UUID
+      initStatusCache(client), // key → UUID
       initStatusNameCache(client), // UUID → name/row
     ]);
-    
+
     const elapsed = Date.now() - startTime;
     logSystemInfo('All status caches initialized successfully', {
       context: 'status-cache/initAllStatusCaches',
       elapsedMs: elapsed,
     });
-    
+
     // Step 2: Periodic auto-refresh (pool-based, not transaction client)
     if (enableAutoRefresh) {
       let refreshing = false;
-      
+
       setInterval(async () => {
         if (refreshing) return; // skip overlapping refresh
         refreshing = true;
-        
+
         try {
           await loadAllStatusesIntoCache(); // uses pool by default
           logSystemInfo('Status cache refresh completed', {
@@ -401,7 +402,7 @@ const initAllStatusCaches = async (
           refreshing = false;
         }
       }, refreshIntervalMs);
-      
+
       logSystemInfo('Periodic status cache auto-refresh enabled', {
         context: 'status-cache/initAllStatusCaches',
         refreshIntervalMs,
@@ -418,8 +419,8 @@ const initAllStatusCaches = async (
 };
 
 module.exports = {
-  initAllStatusCaches,   // top-level init (main entry)
-  getStatusId,           // main public lookup
+  initAllStatusCaches, // top-level init (main entry)
+  getStatusId, // main public lookup
   getStatusNameById,
   getStatusRowById,
   loadAllStatusesIntoCache,

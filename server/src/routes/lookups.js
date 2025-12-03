@@ -13,6 +13,9 @@ const {
   getSkuLookupController,
   getPricingLookupController,
   getPackagingMaterialLookupController,
+  getSkuCodeBaseLookupController,
+  getProductLookupController,
+  getStatusLookupController,
 } = require('../controllers/lookup-controller');
 const authorize = require('../middlewares/authorize');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
@@ -32,6 +35,9 @@ const {
   skuLookupQuerySchema,
   pricingLookupQuerySchema,
   packagingMaterialLookupQuerySchema,
+  skuCodeBaseLookupQuerySchema,
+  productLookupQuerySchema,
+  statusLookupQuerySchema,
 } = require('../validators/lookup-validators');
 const { PERMISSIONS } = require('../utils/constants/domain/lookup-constants');
 
@@ -699,7 +705,7 @@ router.get(
  */
 router.get(
   '/packaging-materials',
-  // authorize([PERMISSIONS.VIEW_PACKAGING_MATERIAL]),
+  authorize([PERMISSIONS.VIEW_PACKAGING_MATERIAL]),
   createQueryNormalizationMiddleware(
     '', // moduleKey
     [], // arrayKeys
@@ -717,6 +723,231 @@ router.get(
     'Invalid query parameters.'
   ),
   getPackagingMaterialLookupController
+);
+
+/**
+ * @route GET /sku-code-bases
+ * @description
+ * Endpoint to fetch paginated SKU Code Base lookup options for dropdowns or selectors.
+ * Applies permission checks, query normalization, field sanitization, validation, and filtering.
+ *
+ * Middleware chain includes:
+ * - `authorize`: Enforces user permission to view SKU Code Base lookups
+ * - `createQueryNormalizationMiddleware`: Extracts and structures query parameters
+ *     (e.g., filters, keyword, brand_code, pagination)
+ * - `sanitizeFields`: Trims and sanitizes specific fields (e.g., `keyword`)
+ * - `validate`: Validates the normalized query against `skuCodeBaseLookupQuerySchema`
+ * - `getSkuCodeBaseLookupController`: Handles the request and returns formatted lookup options
+ *
+ * Query Parameters (after normalization):
+ * - `filters.keyword` — Optional search keyword for brand/category
+ * - `filters.brand_code` — Optional exact brand code filter
+ * - `filters.category_code` — Optional exact category code filter
+ * - `filters.status_id` — Optional status filter (maybe overridden based on permissions)
+ * - `limit` — Pagination size (default: 50)
+ * - `offset` — Pagination offset
+ *
+ * Response:
+ * - `200 OK` with JSON:
+ *   - `success` (boolean)
+ *   - `message` (string)
+ *   - `items` (array of `{ id, label, isActive }`)
+ *   - `limit` (number)
+ *   - `offset` (number)
+ *   - `hasMore` (boolean)
+ *
+ * @access Protected
+ * @permission Requires `view_sku_code_base_lookup` permission
+ */
+router.get(
+  '/sku-code-bases',
+  authorize([PERMISSIONS.VIEW_SKU_CODE_BASE]),
+  createQueryNormalizationMiddleware(
+    '', // moduleKey (optional)
+    [], // arrayKeys (none needed for this lookup)
+    [], // booleanKeys (none needed)
+    ['keyword', 'brand_code', 'category_code'], // filterKeys
+    { includePagination: true, includeSorting: false }
+  ),
+  sanitizeFields(['keyword']),
+  validate(
+    skuCodeBaseLookupQuerySchema,
+    'query',
+    {
+      abortEarly: false,
+      convert: true,
+    },
+    'Invalid SKU Code Base lookup query parameters.'
+  ),
+  getSkuCodeBaseLookupController
+);
+
+/**
+ * @route GET /products
+ * @description
+ * Endpoint to fetch paginated **Product** lookup options for dropdowns or selectors.
+ *
+ * This lookup endpoint is intentionally lightweight and optimized for UI usage.
+ * It applies:
+ * - User permission checks
+ * - Query normalization (filters, pagination)
+ * - Field sanitization (e.g., trimming user input)
+ * - Joi validation for safe filter/pagination values
+ * - Service-level filtering + visibility rules (active-only for restricted users)
+ *
+ * Middleware chain includes:
+ *
+ * 1. `authorize`
+ *    Ensures the user has permission to load product lookup lists.
+ *
+ * 2. `createQueryNormalizationMiddleware`
+ *    Extracts raw query parameters and normalizes them into:
+ *    {
+ *      filters: { brand, category, series },
+ *      limit,
+ *      offset
+ *    }
+ *
+ * 3. `sanitizeFields`
+ *    Cleans input fields (e.g., trims whitespace).
+ *
+ * 4. `validate(productLookupQuerySchema)`
+ *    Application-level validation ensuring predictable filter/pagination structure.
+ *
+ * 5. `getProductLookupController`
+ *    Service-driven lookup returning:
+ *    - `{ id, label, isActive? }` items
+ *    - pagination metadata
+ *
+ *
+ * ### Query Parameters (after normalization)
+ * - `filters.brand`    — Optional partial brand filter
+ * - `filters.category` — Optional partial category filter
+ * - `filters.series`   — Optional partial series filter
+ * - `limit`            — Page size (default: 50)
+ * - `offset`           — Pagination offset
+ *
+ *
+ * ### Response: 200 OK
+ * ```json
+ * {
+ *   "success": true,
+ *   "message": "Successfully retrieved Product lookup",
+ *   "items": [{ "id": "...", "label": "...", "isActive": true }],
+ *   "limit": 50,
+ *   "offset": 0,
+ *   "hasMore": true
+ * }
+ * ```
+ *
+ * @access Protected
+ * @permission Requires `view_product_lookup` permission
+ */
+router.get(
+  '/products',
+  authorize([PERMISSIONS.VIEW_PRODUCT]),
+  createQueryNormalizationMiddleware(
+    '', // moduleKey not needed
+    [], // arrayKeys none for dropdown
+    [], // booleanKeys none
+    ['keyword', 'brand', 'category', 'series'], // filterKeys
+    { includePagination: true, includeSorting: false }
+  ),
+  sanitizeFields(['brand', 'category', 'series']),
+  validate(
+    productLookupQuerySchema,
+    'query',
+    {
+      abortEarly: false,
+      convert: true,
+    },
+    'Invalid Product lookup query parameters.'
+  ),
+  getProductLookupController
+);
+
+/**
+ * @route GET /lookups/statuses
+ * @description
+ * Endpoint to fetch paginated **Status** lookup options for dropdowns or autocomplete.
+ *
+ * This endpoint is optimized for UI usage. It applies:
+ * - User permission checks (via service layer)
+ * - Query normalization (filters, pagination)
+ * - Field sanitization (e.g., trim user input)
+ * - Joi validation using `statusLookupQuerySchema`
+ * - Service-level visibility rules (active-only for restricted users)
+ *
+ *
+ * Middleware chain includes:
+ *
+ * 1. `authorize`
+ *    Ensures the user has permission to load Status lookup lists.
+ *
+ * 2. `createQueryNormalizationMiddleware`
+ *    Extracts raw query parameters and normalizes them into:
+ *    {
+ *      filters: { name, keyword, is_active },
+ *      limit,
+ *      offset
+ *    }
+ *
+ * 3. `sanitizeFields`
+ *    Trims user input for safety and consistent matching.
+ *
+ * 4. `validate(statusLookupQuerySchema)`
+ *    Validates filter/pagination structure before service layer.
+ *
+ * 5. `getStatusLookupController`
+ *    Fetches paginated lookup results:
+ *    - `{ id, label, isActive }`
+ *    - pagination metadata
+ *
+ *
+ * ### Query Parameters (after normalization)
+ * - `filters.name`      — Optional partial status name filter
+ * - `filters.keyword`   — Optional fuzzy-match filter for name/description
+ * - `filters.is_active` — Optional boolean; may be overridden by ACL
+ * - `limit`             — Page size (default: 50)
+ * - `offset`            — Pagination offset
+ *
+ *
+ * ### Response: 200 OK
+ * ```json
+ * {
+ *   "success": true,
+ *   "message": "Successfully retrieved Status lookup",
+ *   "items": [{ "id": "...", "label": "Active", "isActive": true }],
+ *   "limit": 50,
+ *   "offset": 0,
+ *   "hasMore": true
+ * }
+ * ```
+ *
+ * @access Protected
+ * @permission Requires `view_status_lookup` permission
+ */
+router.get(
+  '/statuses',
+  authorize([PERMISSIONS.VIEW_STATUS]),
+  createQueryNormalizationMiddleware(
+    '', // no moduleKey needed for lookup UIs
+    [], // arrayKeys — none for Status lookup
+    ['is_active'], // booleanKeys
+    ['name', 'keyword', 'is_active'], // filterKeys for Status lookup
+    { includePagination: true, includeSorting: false }
+  ),
+  sanitizeFields(['name', 'keyword']),
+  validate(
+    statusLookupQuerySchema,
+    'query',
+    {
+      abortEarly: false,
+      convert: true,
+    },
+    'Invalid Status lookup query parameters.'
+  ),
+  getStatusLookupController
 );
 
 module.exports = router;

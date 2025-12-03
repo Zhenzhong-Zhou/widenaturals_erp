@@ -1,7 +1,7 @@
 import type {
   SkuProductCard,
   SkuProductCardViewItem,
-  SkuProductStatus
+  SkuProductStatus,
 } from '@features/sku/state';
 
 /**
@@ -40,22 +40,22 @@ export const extractStatusFields = (status: SkuProductStatus | null) => {
     return {
       productStatus: null,
       skuStatus: null,
-      unifiedStatus: "N/A",
+      unifiedStatus: 'N/A',
     };
   }
-  
+
   // Case 2: backend returned a plain string (both statuses identical)
-  if (typeof status !== "object") {
+  if (typeof status !== 'object') {
     return {
       productStatus: null,
       skuStatus: null,
       unifiedStatus: status as string,
     };
   }
-  
+
   // Case 3: backend returned { product, sku }
   const { product, sku } = status;
-  
+
   return {
     productStatus: product ?? null,
     skuStatus: sku ?? null,
@@ -80,28 +80,29 @@ export const extractStatusFields = (status: SkuProductStatus | null) => {
 export const mapSkuProductCardToViewItem = (
   card: SkuProductCard
 ): SkuProductCardViewItem => {
-  const { productStatus, skuStatus, unifiedStatus } =
-    extractStatusFields(card.status);
-  
+  const { productStatus, skuStatus, unifiedStatus } = extractStatusFields(
+    card.status
+  );
+
   return {
     skuId: card.skuId,
     skuCode: card.skuCode,
     displayName: card.displayName,
-    
+
     brand: card.brand,
     series: card.series,
     category: card.category,
     barcode: card.barcode,
-    
+
     complianceType: card.compliance?.type ?? null,
     complianceNumber: card.compliance?.number ?? null,
-    
+
     unifiedStatus,
     productStatus,
     skuStatus,
-    
+
     msrp: card.price?.msrp ?? null,
-    
+
     imageUrl: card.image?.url ?? null,
     imageAlt: card.image?.alt ?? '',
   };

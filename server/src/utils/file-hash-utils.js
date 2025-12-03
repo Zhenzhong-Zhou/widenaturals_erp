@@ -13,7 +13,9 @@ const getFileHash = async (filePath) => {
     return crypto.createHash('sha1').update(buffer).digest('hex');
   } catch (err) {
     // Use your structured error helper for consistency
-    throw AppError.fileSystemError(`Failed to hash file: ${filePath}`, { cause: err });
+    throw AppError.fileSystemError(`Failed to hash file: ${filePath}`, {
+      cause: err,
+    });
   }
 };
 

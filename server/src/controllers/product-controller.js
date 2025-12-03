@@ -11,7 +11,9 @@ const wrapAsync = require('../utils/wrap-async');
 const {
   fetchPaginatedProductsService,
   fetchProductDetailsService,
-  updateProductStatusService, updateProductInfoService, createProductsService,
+  updateProductStatusService,
+  updateProductInfoService,
+  createProductsService,
 } = require('../services/product-service');
 const { logInfo } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
@@ -37,7 +39,7 @@ const AppError = require('../utils/AppError');
  */
 const getPaginatedProductsController = wrapAsync(async (req, res) => {
   const logContext = 'products-controller/getPaginatedProductsController';
-  
+
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery ?? {
     page: 1,
     limit: 10,
@@ -45,7 +47,7 @@ const getPaginatedProductsController = wrapAsync(async (req, res) => {
     sortOrder: 'DESC',
     filters: {},
   };
-  
+
   // Step 1: Delegate to service layer
   const result = await fetchPaginatedProductsService({
     filters,
@@ -54,9 +56,12 @@ const getPaginatedProductsController = wrapAsync(async (req, res) => {
     sortBy,
     sortOrder,
   });
-  
-  const { data, pagination } = result ?? { data: [], pagination: { page, limit, totalRecords: 0, totalPages: 0 } };
-  
+
+  const { data, pagination } = result ?? {
+    data: [],
+    pagination: { page, limit, totalRecords: 0, totalPages: 0 },
+  };
+
   // Step 2: Handle no data
   if (!data || data.length === 0) {
     logInfo('No products found for current query', req, {
@@ -65,8 +70,8 @@ const getPaginatedProductsController = wrapAsync(async (req, res) => {
       pagination: { page, limit },
       sorting: { sortBy, sortOrder },
     });
-    
-    res.status(200).json({
+
+    return res.status(200).json({
       success: true,
       message: 'No products found for the given criteria.',
       data: [],
@@ -78,7 +83,7 @@ const getPaginatedProductsController = wrapAsync(async (req, res) => {
       },
     });
   }
-  
+
   // Step 3: Return success response
   logInfo('Fetched paginated products successfully', req, {
     context: logContext,
@@ -86,7 +91,7 @@ const getPaginatedProductsController = wrapAsync(async (req, res) => {
     pagination,
     sorting: { sortBy, sortOrder },
   });
-  
+
   res.status(200).json({
     success: true,
     message: 'Products fetched successfully.',
@@ -139,16 +144,16 @@ const getPaginatedProductsController = wrapAsync(async (req, res) => {
 const getProductDetailsController = wrapAsync(async (req, res) => {
   const logContext = 'products-controller/getProductDetailsController';
   const { productId } = req.params;
-  
+
   // Step 1: Fetch product detail via service layer
   const product = await fetchProductDetailsService(productId);
-  
+
   // Step 2: Log success
   logInfo('Fetched product detail successfully', req, {
     context: logContext,
     productId,
   });
-  
+
   // Step 3: Return standardized response
   res.status(200).json({
     success: true,
@@ -189,15 +194,19 @@ const getProductDetailsController = wrapAsync(async (req, res) => {
  */
 const updateProductStatusController = wrapAsync(async (req, res) => {
   const logContext = 'products-controller/updateProductStatusController';
-  
+
   // Step 1: Extract and validate inputs
   const { productId } = req.params;
   const { statusId } = req.body;
   const user = req.user;
-  
+
   // Step 2: Execute service
-  const result = await updateProductStatusService({ productId, statusId, user });
-  
+  const result = await updateProductStatusService({
+    productId,
+    statusId,
+    user,
+  });
+
   // Step 3: Log and respond
   logInfo('Product status updated successfully', req, {
     context: logContext,
@@ -205,7 +214,7 @@ const updateProductStatusController = wrapAsync(async (req, res) => {
     statusId,
     userId: user.id,
   });
-  
+
   res.status(200).json({
     success: true,
     message: 'Product status updated successfully.',
@@ -238,7 +247,7 @@ const updateProductInfoController = wrapAsync(async (req, res) => {
   const { productId } = req.params;
   const updates = req.body;
   const user = req.user; // injected by auth middleware
-  
+
   // Basic input validation
   if (!productId) {
     return res.status(400).json({
@@ -246,17 +255,17 @@ const updateProductInfoController = wrapAsync(async (req, res) => {
       message: 'Missing required productId parameter.',
     });
   }
-  
+
   if (!updates || typeof updates !== 'object') {
     return res.status(400).json({
       success: false,
       message: 'Invalid request payload.',
     });
   }
-  
+
   // Delegate to service
   const result = await updateProductInfoService({ productId, updates, user });
-  
+
   // Success response
   return res.status(200).json({
     success: true,
@@ -285,28 +294,31 @@ const createProductsController = wrapAsync(async (req, res) => {
   const context = 'product-controller/createProductsController';
   const startTime = Date.now();
   const traceId = `create-products-${Date.now().toString(36)}`;
-  
-  const { products } = req.body;   // validated by Joi beforehand
-  const user = req.user;           // populated by auth middleware
-  
+
+  const { products } = req.body; // validated by Joi beforehand
+  const user = req.user; // populated by auth middleware
+
   if (!Array.isArray(products) || products.length === 0) {
-    throw AppError.validationError('No products provided.', { context, traceId });
+    throw AppError.validationError('No products provided.', {
+      context,
+      traceId,
+    });
   }
-  
+
   logInfo('Starting bulk product creation request', req, {
     context,
     traceId,
     userId: user.id,
     productCount: products.length,
   });
-  
+
   // -------------------------------
   // 1. Execute service layer logic
   // -------------------------------
   const inserted = await createProductsService(products, user);
-  
+
   const elapsedMs = Date.now() - startTime;
-  
+
   logInfo('Bulk product creation completed', req, {
     context,
     traceId,
@@ -314,7 +326,7 @@ const createProductsController = wrapAsync(async (req, res) => {
     insertedCount: inserted.length,
     elapsedMs,
   });
-  
+
   // -------------------------------
   // 2. Send response
   // -------------------------------
@@ -323,7 +335,7 @@ const createProductsController = wrapAsync(async (req, res) => {
     message: 'Products created successfully.',
     stats: {
       inputCount: products.length,
-      createdCount: inserted.length,
+      processedCount: inserted.length,
       elapsedMs,
     },
     data: inserted,

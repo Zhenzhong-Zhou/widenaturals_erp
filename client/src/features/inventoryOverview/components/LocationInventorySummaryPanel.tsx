@@ -16,15 +16,11 @@ import type {
 
 const LocationInventoryFilterPanel = lazy(
   () =>
-    import(
-      '@features/locationInventory/components/LocationInventoryFilterPanel'
-    )
+    import('@features/locationInventory/components/LocationInventoryFilterPanel')
 );
 const LocationInventorySummaryTable = lazy(
   () =>
-    import(
-      '@features/locationInventory/components/LocationInventorySummaryTable'
-    )
+    import('@features/locationInventory/components/LocationInventorySummaryTable')
 );
 
 interface Props {

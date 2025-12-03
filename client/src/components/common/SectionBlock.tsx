@@ -6,10 +6,10 @@ import CustomTypography from '@components/common/CustomTypography';
 interface SectionBlockProps {
   title?: string;
   children: ReactNode;
-  gap?: number;          // space between title & content
-  mt?: number;           // margin top
-  mb?: number;           // margin bottom
-  divider?: boolean;     // whether to show a divider under the title
+  gap?: number; // space between title & content
+  mt?: number; // margin top
+  mb?: number; // margin bottom
+  divider?: boolean; // whether to show a divider under the title
 }
 
 /**
@@ -21,13 +21,13 @@ interface SectionBlockProps {
  * </SectionBlock>
  */
 const SectionBlock: FC<SectionBlockProps> = ({
-                                               title,
-                                               children,
-                                               gap = 2,
-                                               mt = 4,
-                                               mb = 0,
-                                               divider = false,
-                                             }) => {
+  title,
+  children,
+  gap = 2,
+  mt = 4,
+  mb = 0,
+  divider = false,
+}) => {
   return (
     <Box sx={{ mt, mb }}>
       {title && (
@@ -38,7 +38,7 @@ const SectionBlock: FC<SectionBlockProps> = ({
           {divider && <Divider sx={{ mt: 1 }} />}
         </Box>
       )}
-      
+
       {children}
     </Box>
   );

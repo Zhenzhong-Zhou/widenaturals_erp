@@ -1,6 +1,10 @@
-import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { createInitialPaginatedState } from '@store/pagination';
-import type { GetSkuProductCardsResponse, SkuProductCard, SkuProductCardsState } from '@features/sku/state/skuTypes';
+import type {
+  GetSkuProductCardsResponse,
+  SkuProductCard,
+  SkuProductCardsState,
+} from '@features/sku/state/skuTypes';
 import { fetchPaginatedSkuProductCardsThunk } from '@features/sku/state/skuThunks';
 
 /**
@@ -13,12 +17,13 @@ import { fetchPaginatedSkuProductCardsThunk } from '@features/sku/state/skuThunk
  * - error
  * - params (last-used query params for UI persistence)
  */
-const initialState: SkuProductCardsState = createInitialPaginatedState<SkuProductCard>();
+const initialState: SkuProductCardsState =
+  createInitialPaginatedState<SkuProductCard>();
 
 export const skuProductCardsSlice = createSlice({
-  name: "skuProductCards",
+  name: 'skuProductCards',
   initialState,
-  
+
   reducers: {
     /**
      * Fully resets the slice to its initial state.
@@ -30,7 +35,7 @@ export const skuProductCardsSlice = createSlice({
      */
     resetSkuProductCards: () => initialState,
   },
-  
+
   extraReducers: (builder) => {
     builder
       // -------------------------------------------------------
@@ -40,7 +45,7 @@ export const skuProductCardsSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      
+
       // -------------------------------------------------------
       // FETCH → SUCCESS
       // -------------------------------------------------------
@@ -49,28 +54,25 @@ export const skuProductCardsSlice = createSlice({
         (state, action: PayloadAction<GetSkuProductCardsResponse>) => {
           state.loading = false;
           state.data = action.payload.data;
-          console.log( state.data);
           state.pagination = action.payload.pagination;
         }
       )
-      
+
       // -------------------------------------------------------
       // FETCH → FAILURE
       // -------------------------------------------------------
       .addCase(fetchPaginatedSkuProductCardsThunk.rejected, (state, action) => {
         state.loading = false;
-        
+
         // Prefer backend-provided message if any exists
         state.error =
           (action.payload as any)?.message ||
           action.error?.message ||
-          "Failed to fetch SKU product cards.";
+          'Failed to fetch SKU product cards.';
       });
   },
 });
 
-export const {
-  resetSkuProductCards,
-} = skuProductCardsSlice.actions;
+export const { resetSkuProductCards } = skuProductCardsSlice.actions;
 
 export default skuProductCardsSlice.reducer;

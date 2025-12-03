@@ -342,7 +342,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   /**
    * File system–related error (e.g., read/write/delete failure).
    */
@@ -354,7 +354,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   /**
    * Health check or dependency failure.
    */

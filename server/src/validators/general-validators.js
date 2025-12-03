@@ -428,7 +428,7 @@ const issuedDateRangeSchema = Joi.object({
     .optional()
     .allow(null, '')
     .label('Issued After Date'),
-  
+
   issuedBefore: Joi.date()
     .iso()
     .optional()
@@ -453,7 +453,7 @@ const expiryDateRangeSchema = Joi.object({
     .optional()
     .allow(null, '')
     .label('Expiry After Date'),
-  
+
   expiringBefore: Joi.date()
     .iso()
     .optional()

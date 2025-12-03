@@ -17,6 +17,7 @@ interface MultiSelectDropdownProps {
   options: MultiSelectOption[];
   selectedOptions: MultiSelectOption[];
   onChange: (selected: MultiSelectOption[]) => void;
+  onOpen?: () => void;
 
   // states
   loading?: boolean;
@@ -55,6 +56,7 @@ const MultiSelectDropdown: FC<MultiSelectDropdownProps> = ({
   options,
   selectedOptions,
   onChange,
+  onOpen,
   loading = false,
   disabled = false,
   placeholder,
@@ -108,6 +110,9 @@ const MultiSelectDropdown: FC<MultiSelectDropdownProps> = ({
             (opt) => opt.value !== LOADING_OPTION.value
           );
           onChange(filtered);
+        }}
+        onOpen={() => {
+          if (onOpen) onOpen();
         }}
         inputValue={inputValue}
         onInputChange={(_, val) => onInputChange?.(val)}

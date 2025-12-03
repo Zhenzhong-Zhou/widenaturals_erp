@@ -1,4 +1,11 @@
-import { type FC, useCallback, useEffect, useMemo } from 'react';
+import {
+  type FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import Stack from '@mui/material/Stack';
 import Grid from '@mui/material/Grid';
@@ -7,6 +14,8 @@ import CustomButton from '@components/common/CustomButton';
 import GoBackButton from '@components/common/GoBackButton';
 import usePermissions from '@hooks/usePermissions';
 import useSkuDetail from '@hooks/useSkuDetail';
+import useStatusLookup from '@hooks/useStatusLookup';
+import { useDialogFocusHandlers } from '@utils/hooks/useDialogFocusHandlers';
 import {
   flattenComplianceRecords,
   flattenPricingRecords,
@@ -16,15 +25,32 @@ import {
   SkuDetailRightPanel,
   SkuImageGallery,
 } from '@features/sku/components/SkuDetail';
-import { truncateText } from '@utils/textUtils';
+import { UpdateSkuStatusDialog } from '@features/sku/components/UpdateSkuStatusForm';
+import { formatLabel, truncateText } from '@utils/textUtils';
 
+/**
+ * SKU Detail Page
+ *
+ * Displays all information about a single SKU including:
+ * - images
+ * - product metadata
+ * - compliance records
+ * - pricing
+ *
+ * Also provides:
+ * - permission-based access control
+ * - ability to update SKU status
+ * - refresh controls
+ *
+ * URL: /skus/:skuId
+ */
 const SkuDetailPage: FC = () => {
   /* ---------------------------------------------------------
-  * Router + Context Hooks
-  * --------------------------------------------------------- */
+   * Router + Context Hooks
+   * --------------------------------------------------------- */
   const { skuId } = useParams<{ skuId: string }>();
   const { permissions } = usePermissions();
-  
+
   /* ---------------------------------------------------------
    * SKU detail hook (provides all data & fetch helpers)
    * --------------------------------------------------------- */
@@ -36,12 +62,35 @@ const SkuDetailPage: FC = () => {
     thumbnails,
     activePricing,
     complianceRecords,
-    loading,
-    error,
+    loading: skuDetailLoading,
+    error: skuDetailError,
     fetchSkuDetail,
     resetSkuDetail,
   } = useSkuDetail();
-  
+
+  const createButtonRef = useRef<HTMLButtonElement>(null);
+
+  const {
+    options: statusOptions,
+    loading: statusLookupLoading,
+    error: statusLookupError,
+    meta: statusLookupMeta,
+    fetch: fetchStatusOptions,
+    reset: resetStatusLookup,
+  } = useStatusLookup();
+
+  /* ---------------------------------------------------------
+   * Local UI State for Dialog
+   * --------------------------------------------------------- */
+  const [openStatusDialog, setOpenStatusDialog] = useState(false);
+
+  // Setup open/close with focus restoration for accessibility
+  const { handleOpenDialog, handleCloseDialog } = useDialogFocusHandlers(
+    setOpenStatusDialog,
+    createButtonRef,
+    () => openStatusDialog
+  );
+
   /* ---------------------------------------------------------
    * Fetching Logic
    * - refresh function re-fetches SKU detail
@@ -51,12 +100,12 @@ const SkuDetailPage: FC = () => {
   const refresh = useCallback(() => {
     if (skuId) fetchSkuDetail(skuId);
   }, [skuId, fetchSkuDetail]);
-  
+
   useEffect(() => {
     if (skuId) refresh();
     return () => resetSkuDetail();
-  }, [skuId]);
-  
+  }, [skuId, refresh, resetSkuDetail]);
+
   /* ---------------------------------------------------------
    * Flattened structures for UI components
    * Memoized to avoid unnecessary re-renders
@@ -65,24 +114,38 @@ const SkuDetailPage: FC = () => {
     () => (sku ? flattenSkuInfo(sku) : null),
     [sku]
   );
-  
+
   const flattenedComplianceInfo = useMemo(
-    () => (complianceRecords ? flattenComplianceRecords(complianceRecords) : null),
+    () =>
+      complianceRecords ? flattenComplianceRecords(complianceRecords) : null,
     [complianceRecords]
   );
-  
+
   const flattenedPricingInfo = useMemo(
     () => (activePricing ? flattenPricingRecords(activePricing) : null),
     [activePricing]
   );
-  
+
+  const formattedStatusOptions = useMemo(
+    () =>
+      statusOptions.map((opt) => ({
+        ...opt,
+        label: formatLabel(opt.label),
+      })),
+    [statusOptions]
+  );
+
   /* ---------------------------------------------------------
    * Permission logic
    * --------------------------------------------------------- */
   const canViewInactive =
     permissions.includes('root_access') ||
     permissions.includes('view_all_product_statuses');
-  
+
+  const canUpdateStatus =
+    permissions.includes('root_access') ||
+    permissions.includes('update_sku_status');
+
   /* ---------------------------------------------------------
    * Page title (memoized)
    * --------------------------------------------------------- */
@@ -91,30 +154,47 @@ const SkuDetailPage: FC = () => {
     const base = truncateText(name, 50) || 'Product Details';
     return `${base} - Product Details`;
   }, [product]);
-  
+
   /* ---------------------------------------------------------
    * Access Guard:
    * If both SKU and parent product are inactive → deny access
    * unless user has explicit permission
    * --------------------------------------------------------- */
   const isInactive =
-    sku?.status?.name !== "active" ||
-    sku?.product?.status?.name !== "active";
-  
+    sku?.status?.name !== 'active' || sku?.product?.status?.name !== 'active';
+
+  // Prevent access to inactive SKUs unless user has proper permissions
   if (sku && isInactive && !canViewInactive) {
     return <Navigate to="/404" replace />;
   }
-  
+
   /* ---------------------------------------------------------
    * Render
    * --------------------------------------------------------- */
   return (
     <DetailPage
       title={pageTitle}
-      isLoading={loading}
-      error={error ?? undefined}
+      isLoading={skuDetailLoading}
+      error={skuDetailError ?? undefined}
       sx={{ maxWidth: '100%', px: { xs: 2, md: 4 }, pb: 6 }}
     >
+      {/* Dialog */}
+      {skuId && (
+        <UpdateSkuStatusDialog
+          open={openStatusDialog}
+          onClose={handleCloseDialog}
+          skuId={skuId}
+          skuCode={flattenedSkuInfo?.sku ?? ''}
+          onSuccess={refresh}
+          statusDropdownOptions={formattedStatusOptions}
+          fetchStatusDropdownOptions={fetchStatusOptions}
+          resetStatusDropdownOptions={resetStatusLookup}
+          statusLookupLoading={statusLookupLoading}
+          statusLookupError={statusLookupError}
+          statusLookupMeta={statusLookupMeta}
+        />
+      )}
+
       {/* Header Actions */}
       <Stack
         direction="row"
@@ -125,35 +205,43 @@ const SkuDetailPage: FC = () => {
         alignItems="center"
         justifyContent="flex-end"
       >
+        {canUpdateStatus && (
+          <CustomButton
+            sx={{
+              minWidth: 160,
+              height: 44,
+              borderRadius: 22,
+            }}
+            ref={createButtonRef}
+            onClick={handleOpenDialog}
+          >
+            Update SKU Status
+          </CustomButton>
+        )}
+
         <CustomButton
           sx={{
             minWidth: 160,
-            height: 44,            // FORCE SAME HEIGHT
-            borderRadius: 22,      // MATCH YOUR DESIGN
+            height: 44, // FORCE SAME HEIGHT
+            borderRadius: 22, // MATCH YOUR DESIGN
           }}
           onClick={refresh}
         >
           Refresh SKU Details
         </CustomButton>
-        
+
         <GoBackButton
           sx={{
             minWidth: 160,
-            height: 44,            // SAME HEIGHT HERE
+            height: 44, // SAME HEIGHT HERE
             borderRadius: 22,
           }}
         />
       </Stack>
-      
+
       {/* Main Content */}
       {sku && (
-        <Grid
-          container
-          spacing={2}
-          mt={4}
-          alignItems="flex-start"
-        >
-          
+        <Grid container spacing={2} mt={4} alignItems="flex-start">
           {/* LEFT — Image Gallery */}
           <Grid size={{ xs: 12, md: 4 }} sx={{ pr: { md: 4 } }}>
             <SkuImageGallery
@@ -162,15 +250,15 @@ const SkuDetailPage: FC = () => {
               primaryImage={primaryImage}
             />
           </Grid>
-          
+
           {/* RIGHT — All Info Sections */}
           <Grid
             size={{ xs: 12, md: 8 }}
             sx={{
               pl: { md: 6 },
-              display: "flex",
-              flexDirection: "column",
-              gap: 4
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 4,
             }}
           >
             <SkuDetailRightPanel

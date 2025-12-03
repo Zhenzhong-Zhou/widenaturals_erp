@@ -135,23 +135,23 @@ const buildBomFilter = (filters = {}) => {
       params.push(`%${filters.complianceType}%`);
       i++;
     }
-    
+
     if (filters.complianceStatusId) {
       conditions.push(`cr.status_id = $${i}`);
       params.push(filters.complianceStatusId);
       i++;
     }
-    
+
     if (filters.onlyActiveCompliance === true) {
       conditions.push(`LOWER(st_compliance.name) = 'active'`);
     }
-    
+
     if (filters.complianceIssuedAfter) {
       conditions.push(`cr.issued_date >= $${i}`);
       params.push(filters.complianceIssuedAfter);
       i++;
     }
-    
+
     if (filters.complianceExpiredBefore) {
       conditions.push(`cr.expiry_date <= $${i}`);
       params.push(filters.complianceExpiredBefore);

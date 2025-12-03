@@ -60,10 +60,10 @@ const minUuid = (tableAlias, column, alias) =>
  */
 const addIlikeFilter = (conditions, params, idx, value, field) => {
   if (!value) return idx;
-  
+
   conditions.push(`${field} ILIKE $${idx}`);
   params.push(`%${value}%`);
-  
+
   return idx + 1;
 };
 

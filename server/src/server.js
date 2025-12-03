@@ -55,7 +55,7 @@ const startServer = async () => {
     logSystemInfo('Testing database connection...');
     await testConnection();
     logSystemInfo('Database connected successfully.');
-    
+
     logSystemInfo('Initializing all status caches...');
     await initAllStatusCaches();
     logSystemInfo('All status caches initialized successfully.');

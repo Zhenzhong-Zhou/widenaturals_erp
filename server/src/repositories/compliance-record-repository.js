@@ -18,7 +18,9 @@ const { query, paginateResults } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const { getSortMapForModule } = require('../utils/sort-utils');
-const { buildComplianceRecordFilter } = require('../utils/sql/build-compliance-record-filters');
+const {
+  buildComplianceRecordFilter,
+} = require('../utils/sql/build-compliance-record-filters');
 
 /**
  * Repository: Get Paginated Compliance Records
@@ -99,30 +101,30 @@ const { buildComplianceRecordFilter } = require('../utils/sql/build-compliance-r
  * - Pagination uses LIMIT/OFFSET (PostgreSQL-optimized for these row sizes).
  */
 const getPaginatedComplianceRecords = async ({
-                                               filters = {},
-                                               page = 1,
-                                               limit = 10,
-                                               sortBy = 'cr.created_at',
-                                               sortOrder = 'DESC',
-                                             }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'cr.created_at',
+  sortOrder = 'DESC',
+}) => {
   const context = 'compliance-record-repository/getPaginatedComplianceRecords';
-  
+
   // -------------------------------
   // 1. Sort Map
   // -------------------------------
   const sortMap = getSortMapForModule('complianceRecordSortMap');
   const allowedSort = new Set(Object.values(sortMap));
-  
+
   let sortByColumn = allowedSort.has(sortBy)
     ? sortBy
     : sortMap.defaultNaturalSort;
-  
+
   try {
     // -------------------------------
     // 2. WHERE clause + params
     // -------------------------------
     const { whereClause, params } = buildComplianceRecordFilter(filters);
-    
+
     // -------------------------------
     // 3. SELECT QUERY (paginated)
     // -------------------------------
@@ -170,7 +172,7 @@ const getPaginatedComplianceRecords = async ({
       WHERE ${whereClause}
       ORDER BY ${sortByColumn} ${sortOrder}
     `;
-    
+
     // -------------------------------
     // 4. Pagination Helper
     // -------------------------------
@@ -181,7 +183,7 @@ const getPaginatedComplianceRecords = async ({
       limit,
       meta: { context },
     });
-    
+
     // ------------------------------------
     // 5. Logging
     // ------------------------------------
@@ -192,7 +194,7 @@ const getPaginatedComplianceRecords = async ({
       sorting: { sortBy: sortByColumn, sortOrder },
       count: result.data.length,
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch paginated compliance records', {
@@ -200,11 +202,11 @@ const getPaginatedComplianceRecords = async ({
       filters,
       pagination: { page, limit },
     });
-    
-    throw AppError.databaseError(
-      'Failed to fetch compliance records.',
-      { context, details: error.message }
-    );
+
+    throw AppError.databaseError('Failed to fetch compliance records.', {
+      context,
+      details: error.message,
+    });
   }
 };
 
@@ -250,7 +252,7 @@ const getPaginatedComplianceRecords = async ({
  */
 const getComplianceBySkuId = async (skuId) => {
   const context = 'compliance-record-repository/getComplianceBySkuId';
-  
+
   // -----------------------------------------------
   // SQL query: fetch compliance documents for a SKU
   // -----------------------------------------------
@@ -287,17 +289,17 @@ const getComplianceBySkuId = async (skuId) => {
       cr.issued_date DESC NULLS LAST,
       cr.expiry_date DESC NULLS LAST
   `;
-  
+
   try {
     const { rows } = await query(sql, [skuId]);
-    
+
     // Logging for observability / debugging
     logSystemInfo('Fetched SKU compliance records', {
       context,
       skuId,
       count: rows.length,
     });
-    
+
     return rows;
   } catch (error) {
     // Structured logging for Sentry/CloudWatch integration
@@ -306,7 +308,7 @@ const getComplianceBySkuId = async (skuId) => {
       skuId,
       error: error.message,
     });
-    
+
     throw AppError.databaseError('Failed to fetch SKU compliance records.', {
       context,
       details: error.message,

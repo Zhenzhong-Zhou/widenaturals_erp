@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   selectSkuProductCardViewItems,
@@ -7,8 +7,8 @@ import {
   selectSkuProductCardError,
   selectSkuProductCardsIsEmpty,
 } from '@features/sku/state';
-import { fetchPaginatedSkuProductCardsThunk } from "@features/sku/state/skuThunks";
-import type { SkuProductCardQueryParams } from "@features/sku/state/skuTypes";
+import { fetchPaginatedSkuProductCardsThunk } from '@features/sku/state/skuThunks';
+import type { SkuProductCardQueryParams } from '@features/sku/state/skuTypes';
 import { resetSkuProductCards } from '@features/sku/state/skuProductCardsSlice';
 
 /**
@@ -24,7 +24,7 @@ import { resetSkuProductCards } from '@features/sku/state/skuProductCardsSlice';
  */
 export const useSkuProductCards = () => {
   const dispatch = useAppDispatch();
-  
+
   // -------------------------------------
   // Select state from Redux
   // -------------------------------------
@@ -33,7 +33,7 @@ export const useSkuProductCards = () => {
   const loading = useAppSelector(selectSkuProductCardLoading);
   const error = useAppSelector(selectSkuProductCardError);
   const isEmpty = useAppSelector(selectSkuProductCardsIsEmpty);
-  
+
   // -------------------------------------
   // Memoized fetcher
   // -------------------------------------
@@ -43,14 +43,14 @@ export const useSkuProductCards = () => {
     },
     [dispatch]
   );
-  
+
   // -------------------------------------
   // Memoized reset
   // -------------------------------------
   const reset = useCallback(() => {
     dispatch(resetSkuProductCards());
   }, [dispatch]);
-  
+
   // -------------------------------------
   // Memoized return object (optional but clean)
   // -------------------------------------

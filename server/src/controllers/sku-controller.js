@@ -46,16 +46,16 @@ const AppError = require('../utils/AppError');
  *   }
  */
 const getPaginatedSkuProductCardsController = wrapAsync(async (req, res) => {
-  const context = 'sku-controller/getPaginatedSkuProductCardsController'
-  
+  const context = 'sku-controller/getPaginatedSkuProductCardsController';
+
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
   const user = req.user;
-  
+
   logInfo('Fetching SKU product cards', req, {
     context,
     query: { page, limit, sortBy, sortOrder, filters },
   });
-  
+
   // Service applies:
   //  - ACL visibility rules
   //  - Pagination
@@ -67,17 +67,17 @@ const getPaginatedSkuProductCardsController = wrapAsync(async (req, res) => {
     limit,
     sortBy,
     sortOrder,
-    user
+    user,
   });
-  
+
   const { data, pagination } = result;
-  
+
   logInfo('Fetched SKU product cards successfully', req, {
     context,
     resultCount: data.length,
     pagination,
   });
-  
+
   return res.status(200).json({
     success: true,
     message: 'Fetched SKU product cards successfully',
@@ -104,19 +104,19 @@ const getPaginatedSkuProductCardsController = wrapAsync(async (req, res) => {
 const getPaginatedSkusController = wrapAsync(async (req, res) => {
   const context = 'sku-controller/getPaginatedSkusController';
   const startTime = Date.now();
-  
+
   // -------------------------------
   // 1. Extract request params
   // -------------------------------
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
-  
+
   logInfo('Starting paginated SKU list request', req, {
     context,
     filters,
     pagination: { page, limit },
     sort: { sortBy, sortOrder },
   });
-  
+
   // -------------------------------
   // 2. Execute service logic
   // -------------------------------
@@ -127,9 +127,9 @@ const getPaginatedSkusController = wrapAsync(async (req, res) => {
     sortBy,
     sortOrder,
   });
-  
+
   const elapsedMs = Date.now() - startTime;
-  
+
   logInfo('Fetched paginated SKU list successfully', req, {
     context,
     filters,
@@ -137,7 +137,7 @@ const getPaginatedSkusController = wrapAsync(async (req, res) => {
     sort: { sortBy, sortOrder },
     elapsedMs,
   });
-  
+
   // -------------------------------
   // 3. Send API response
   // -------------------------------
@@ -172,16 +172,16 @@ const getPaginatedSkusController = wrapAsync(async (req, res) => {
  */
 const getSkuDetailsController = wrapAsync(async (req, res) => {
   const context = 'sku-controller/fetchSkuDetailsController';
-  
+
   // Extract SKU ID from params
   const { skuId } = req.params;
-  
+
   // Authenticated user context (set by verifyToken + verifySession)
   const user = req.user;
-  
+
   // Unique trace for monitoring distributed logs
   const traceId = `sku-detail-${Date.now().toString(36)}`;
-  
+
   // -----------------------------
   // 1. Incoming request log
   // -----------------------------
@@ -191,12 +191,12 @@ const getSkuDetailsController = wrapAsync(async (req, res) => {
     skuId,
     userId: user?.id,
   });
-  
+
   // -----------------------------
   // 2. Execute business/service layer
   // -----------------------------
   const skuDetail = await fetchSkuDetailsService(skuId, user);
-  
+
   // -----------------------------
   // 3. Send response
   // -----------------------------
@@ -245,26 +245,26 @@ const createSkusController = wrapAsync(async (req, res) => {
   const context = 'sku-controller/createSkusController';
   const startTime = Date.now();
   const traceId = `create-sku-${Date.now().toString(36)}`;
-  
+
   const { skus } = req.body; // validated by Joi prior to controller
-  const user = req.user;     // set by auth middleware
-  
+  const user = req.user; // set by auth middleware
+
   if (!Array.isArray(skus) || skus.length === 0) {
     throw AppError.validationError('No SKUs provided.', { context, traceId });
   }
-  
+
   logInfo('Starting bulk SKU creation request', req, {
     context,
     traceId,
     userId: user.id,
     count: skus.length,
   });
-  
+
   // --- Execute business logic through service layer ---
   const result = await createSkusService(skus, user);
-  
+
   const elapsedMs = Date.now() - startTime;
-  
+
   logInfo('Bulk SKU creation completed', req, {
     context,
     traceId,
@@ -272,7 +272,7 @@ const createSkusController = wrapAsync(async (req, res) => {
     createdCount: result.length,
     elapsedMs,
   });
-  
+
   res.status(201).json({
     success: true,
     message: 'SKUs created successfully.',
@@ -317,14 +317,14 @@ const createSkusController = wrapAsync(async (req, res) => {
  */
 const updateSkuStatusController = wrapAsync(async (req, res) => {
   const context = 'sku-controller/updateSkuStatusController';
-  
+
   // -------------------------------------------------
   // 1. Extract and validate inputs
   // -------------------------------------------------
   const { skuId } = req.params;
   const { statusId } = req.body;
   const user = req.user;
-  
+
   // -------------------------------------------------
   // 2. Execute business logic (transactional)
   // -------------------------------------------------
@@ -333,7 +333,7 @@ const updateSkuStatusController = wrapAsync(async (req, res) => {
     statusId,
     user,
   });
-  
+
   // -------------------------------------------------
   // 3. Logging + response
   // -------------------------------------------------
@@ -343,7 +343,7 @@ const updateSkuStatusController = wrapAsync(async (req, res) => {
     statusId,
     userId: user.id,
   });
-  
+
   res.status(200).json({
     success: true,
     message: 'SKU status updated successfully.',

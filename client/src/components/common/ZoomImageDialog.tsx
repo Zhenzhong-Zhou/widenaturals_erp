@@ -12,11 +12,11 @@ interface ZoomImageDialogProps {
 }
 
 const ZoomImageDialog: FC<ZoomImageDialogProps> = ({
-                                                     open,
-                                                     imageUrl,
-                                                     altText = 'Zoomed image',
-                                                     onClose,
-                                                   }) => {
+  open,
+  imageUrl,
+  altText = 'Zoomed image',
+  onClose,
+}) => {
   return (
     <Dialog
       open={open}
@@ -25,7 +25,7 @@ const ZoomImageDialog: FC<ZoomImageDialogProps> = ({
       slotProps={{
         paper: {
           sx: {
-            width: '80vh',   // square-ish dialog
+            width: '80vh', // square-ish dialog
             height: '80vh',
             maxWidth: '100vw',
             maxHeight: '100vw',
@@ -46,7 +46,7 @@ const ZoomImageDialog: FC<ZoomImageDialogProps> = ({
         }}
       >
         <TransformWrapper
-          initialScale={0.6}     // smaller initial zoom = more comfortable view
+          initialScale={0.6} // smaller initial zoom = more comfortable view
           minScale={0.5}
           maxScale={3}
           centerOnInit
@@ -57,7 +57,7 @@ const ZoomImageDialog: FC<ZoomImageDialogProps> = ({
               sx={{
                 width: '100%',
                 height: '100%',
-                p: 3,                 // padding so image isn't touching edges
+                p: 3, // padding so image isn't touching edges
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
@@ -69,7 +69,7 @@ const ZoomImageDialog: FC<ZoomImageDialogProps> = ({
                 style={{
                   maxWidth: '100%',
                   maxHeight: '100%',
-                  objectFit: 'contain',  // ensures tall bottle fits well
+                  objectFit: 'contain', // ensures tall bottle fits well
                   userSelect: 'none',
                   display: 'block',
                 }}

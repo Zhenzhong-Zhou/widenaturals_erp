@@ -239,27 +239,25 @@ export const truncateText = (
  */
 export const formatSize = (
   value?: number | null,
-  startUnit: "B" | "KB" | "MB" = "B"
+  startUnit: 'B' | 'KB' | 'MB' = 'B'
 ): string => {
-  if (value == null || isNaN(value)) return "—";
-  
-  const units = ["B", "KB", "MB", "GB", "TB"];
+  if (value == null || isNaN(value)) return '—';
+
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
   let index = units.indexOf(startUnit);
   if (index === -1) index = 0; // fallback to B
-  
+
   let size = value;
-  
+
   // Auto-upgrade units as long as size exceeds threshold
   while (size >= 1024 && index < units.length - 1) {
     size /= 1024;
     index++;
   }
-  
+
   // Use integer if clean, or one decimal if fractional
-  const formatted = Number.isInteger(size)
-    ? size.toString()
-    : size.toFixed(1);
-  
+  const formatted = Number.isInteger(size) ? size.toString() : size.toFixed(1);
+
   return `${formatted} ${units[index]}`;
 };
 
@@ -279,10 +277,10 @@ export const formatCompliance = (
   type?: string | null,
   number?: string | null
 ): string => {
-  if (!type && !number) return "N/A";
-  
+  if (!type && !number) return 'N/A';
+
   if (type && number) return `${type} ${number}`;
   if (type) return type;
-  
-  return number ?? "N/A";
+
+  return number ?? 'N/A';
 };

@@ -14,9 +14,16 @@ const multer = require('multer');
 const authorize = require('../middlewares/authorize');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
 const validate = require('../middlewares/validate');
-const { bulkSkuImageUploadSchema } = require('../validators/sku-image-validators');
-const { uploadSkuImagesController } = require('../controllers/sku-image-controller');
-const { parseSkuImageJson, attachUploadedFilesToSkus } = require('../middlewares/sku-image-upload-middleware');
+const {
+  bulkSkuImageUploadSchema,
+} = require('../validators/sku-image-validators');
+const {
+  uploadSkuImagesController,
+} = require('../controllers/sku-image-controller');
+const {
+  parseSkuImageJson,
+  attachUploadedFilesToSkus,
+} = require('../middlewares/sku-image-upload-middleware');
 
 const router = express.Router();
 

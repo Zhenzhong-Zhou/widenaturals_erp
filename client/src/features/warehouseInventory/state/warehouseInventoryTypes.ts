@@ -23,8 +23,7 @@ export interface FetchWarehouseInventoryItemSummaryParams {
   itemType?: ItemType;
 }
 
-export interface BaseWarehouseInventoryItemSummary
-  extends InventoryHealthStatus {
+export interface BaseWarehouseInventoryItemSummary extends InventoryHealthStatus {
   itemId: string;
   itemType: ItemType;
   itemName: string;
@@ -37,8 +36,7 @@ export interface BaseWarehouseInventoryItemSummary
 }
 
 // Product-specific
-export interface ProductWarehouseInventorySummary
-  extends BaseWarehouseInventoryItemSummary {
+export interface ProductWarehouseInventorySummary extends BaseWarehouseInventoryItemSummary {
   itemType: 'product';
   skuId: string;
   sku: string;
@@ -47,8 +45,7 @@ export interface ProductWarehouseInventorySummary
 }
 
 // Material-specific
-export interface MaterialWarehouseInventorySummary
-  extends BaseWarehouseInventoryItemSummary {
+export interface MaterialWarehouseInventorySummary extends BaseWarehouseInventoryItemSummary {
   itemType: 'packaging_material';
   materialId: string;
   materialCode: string;
@@ -60,8 +57,7 @@ export type WarehouseInventoryItemSummary =
   | ProductWarehouseInventorySummary
   | MaterialWarehouseInventorySummary;
 
-export interface WarehouseInventorySummaryItemDetails
-  extends BaseInventorySummaryItem {
+export interface WarehouseInventorySummaryItemDetails extends BaseInventorySummaryItem {
   warehouseInventoryId: string;
   quantity: BaseInventorySummaryItem['quantity'] & {
     warehouseQuantity: number;
@@ -78,8 +74,7 @@ export type WarehouseInventorySummaryDetailsByItemIdResponse =
 export type WarehouseInventorySummaryDetailState =
   ReduxPaginatedState<WarehouseInventorySummaryItemDetails>;
 
-export interface FlatWarehouseInventorySummaryDetailRow
-  extends BaseFlatInventoryRow {
+export interface FlatWarehouseInventorySummaryDetailRow extends BaseFlatInventoryRow {
   warehouseInventoryId: string;
   warehouseName: string;
   warehouseQuantity: number;
@@ -116,8 +111,7 @@ export interface FetchWarehouseInventoryArgs {
 export type WarehouseInventoryState =
   ReduxPaginatedState<WarehouseInventoryRecord>;
 
-export interface FlatWarehouseInventoryRow
-  extends FlatInventoryRowBase<WarehouseInventoryRecord> {}
+export interface FlatWarehouseInventoryRow extends FlatInventoryRowBase<WarehouseInventoryRecord> {}
 
 export type WarehouseInventoryTableProps = BaseInventoryTableProps<
   WarehouseInventoryRecord,

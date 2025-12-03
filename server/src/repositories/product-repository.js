@@ -1,4 +1,10 @@
-const { query, paginateResults, updateById, bulkInsert } = require('../database/db');
+const {
+  query,
+  paginateResults,
+  updateById,
+  bulkInsert,
+  paginateQueryByOffset,
+} = require('../database/db');
 const AppError = require('../utils/AppError');
 const { buildProductFilter } = require('../utils/sql/build-product-filters');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
@@ -66,7 +72,7 @@ const checkProductExists = async (filters, combineWith = 'OR') => {
       ${whereClause}
     ) AS exists;
   `;
-  
+
   try {
     const result = await query(queryText, queryParams);
     return result.rows[0].exists;
@@ -78,7 +84,7 @@ const checkProductExists = async (filters, combineWith = 'OR') => {
       severity: 'error',
       function: 'checkProductExists',
     });
-    
+
     throw AppError.databaseError('Failed to execute product existence check.', {
       query: queryText,
       params: queryParams,
@@ -142,14 +148,14 @@ const checkProductExists = async (filters, combineWith = 'OR') => {
  * @throws {AppError} If query execution or pagination fails.
  */
 const getPaginatedProducts = async ({
-                                      filters = {},
-                                      page = 1,
-                                      limit = 10,
-                                      sortBy = 'created_at',
-                                      sortOrder = 'DESC',
-                                    }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'created_at',
+  sortOrder = 'DESC',
+}) => {
   const { whereClause, params } = buildProductFilter(filters);
-  
+
   const queryText = `
     SELECT
       p.id,
@@ -161,13 +167,21 @@ const getPaginatedProducts = async ({
       p.status_id,
       p.status_date,
       p.created_at,
-      p.updated_at
+      p.updated_at,
+      p.created_by,
+      p.updated_by,
+      cu.firstname AS created_by_firstname,
+      cu.lastname AS created_by_lastname,
+      uu.firstname AS updated_by_firstname,
+      uu.lastname AS updated_by_lastname
     FROM products AS p
     LEFT JOIN status AS s ON p.status_id = s.id
+    LEFT JOIN users AS cu ON p.created_by = cu.id
+    LEFT JOIN users AS uu ON p.updated_by = uu.id
     WHERE ${whereClause}
     ORDER BY ${sortBy} ${sortOrder};
   `;
-  
+
   try {
     const result = await paginateResults({
       dataQuery: queryText,
@@ -178,7 +192,7 @@ const getPaginatedProducts = async ({
         context: 'product-repository/getPaginatedProducts',
       },
     });
-    
+
     if (result.data.length === 0) {
       logSystemInfo('No products found for current query', {
         context: 'product-repository/getPaginatedProducts',
@@ -188,14 +202,14 @@ const getPaginatedProducts = async ({
       });
       return null;
     }
-    
+
     logSystemInfo('Fetched paginated product records successfully', {
       context: 'product-repository/getPaginatedProducts',
       filters,
       pagination: { page, limit },
       sorting: { sortBy, sortOrder },
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch paginated product records', {
@@ -204,7 +218,7 @@ const getPaginatedProducts = async ({
       pagination: { page, limit },
       sorting: { sortBy, sortOrder },
     });
-    
+
     throw AppError.databaseError('Failed to fetch paginated product records', {
       context: 'product-repository/getPaginatedProducts',
       details: error.message,
@@ -261,10 +275,10 @@ const getProductDetailsById = async (productId) => {
     LEFT JOIN users AS ub ON p.updated_by = ub.id
     WHERE p.id = $1
   `;
-  
+
   try {
     const { rows } = await query(queryText, [productId]);
-    
+
     if (rows.length === 0) {
       logSystemInfo('No product found for given ID', {
         context: 'product-repository/getProductDetailsById',
@@ -272,12 +286,12 @@ const getProductDetailsById = async (productId) => {
       });
       return null;
     }
-    
+
     logSystemInfo('Fetched product detail successfully', {
       context: 'product-repository/getProductDetailsById',
       productId,
     });
-    
+
     return rows[0];
   } catch (error) {
     logSystemException(error, 'Failed to fetch product detail', {
@@ -285,7 +299,7 @@ const getProductDetailsById = async (productId) => {
       productId,
       error: error.message,
     });
-    
+
     throw AppError.databaseError('Failed to fetch product detail', {
       context: 'product-repository/getProductDetailsById',
       details: error.message,
@@ -313,16 +327,22 @@ const updateProductStatus = async (productId, statusId, userId, client) => {
       status_id: statusId,
       status_date: new Date(),
     };
-    
-    const result = await updateById('products', productId, updates, userId, client);
-    
+
+    const result = await updateById(
+      'products',
+      productId,
+      updates,
+      userId,
+      client
+    );
+
     logSystemInfo('Updated product status successfully', {
       context: 'product-repository/updateProductStatus',
       productId,
       statusId,
       updatedBy: userId,
     });
-    
+
     return result; // { id: '...' }
   } catch (error) {
     logSystemException(error, 'Failed to update product status', {
@@ -361,35 +381,46 @@ const updateProductStatus = async (productId, statusId, userId, client) => {
  */
 const updateProductInfo = async (productId, updates, userId, client) => {
   if (!updates || Object.keys(updates).length === 0) {
-    throw AppError.validationError('No update fields provided for product update.');
+    throw AppError.validationError(
+      'No update fields provided for product update.'
+    );
   }
-  
+
   try {
-    const result = await updateById('products', productId, updates, userId, client);
-    
+    const result = await updateById(
+      'products',
+      productId,
+      updates,
+      userId,
+      client
+    );
+
     logSystemInfo('Product information updated successfully', {
       context: 'product-repository/updateProductInfo',
       productId,
       updatedBy: userId,
       fields: Object.keys(updates),
     });
-    
+
     return result; // { id: '...' }
   } catch (error) {
     // Don’t rewrap AppError if it’s already typed correctly
     if (error instanceof AppError) throw error;
-    
+
     logSystemException(error, 'Failed to update product information', {
       context: 'product-repository/updateProductInfo',
       productId,
       updatedBy: userId,
       updates,
     });
-    
-    throw AppError.databaseError('Database error while updating product information.', {
-      context: 'product-repository/updateProductInfo',
-      details: error.message,
-    });
+
+    throw AppError.databaseError(
+      'Database error while updating product information.',
+      {
+        context: 'product-repository/updateProductInfo',
+        details: error.message,
+      }
+    );
   }
 };
 
@@ -435,21 +466,21 @@ const updateProductInfo = async (productId, updates, userId, client) => {
  */
 const insertProductsBulk = async (products, client) => {
   const context = 'product-repository/insertProductsBulk';
-  
+
   // ------------------------------------------------------------
   // 1. Fast-fail validation
   // ------------------------------------------------------------
   if (!Array.isArray(products) || products.length === 0) {
     return [];
   }
-  
+
   if (!products.every((p) => p.name && p.brand && p.category)) {
     throw AppError.validationError(
       'Each product must include at least name, brand, and category.',
       { context }
     );
   }
-  
+
   // ------------------------------------------------------------
   // 2. Explicit column ordering (must match DB schema)
   // ------------------------------------------------------------
@@ -464,7 +495,7 @@ const insertProductsBulk = async (products, client) => {
     'updated_by',
     'updated_at',
   ];
-  
+
   // ------------------------------------------------------------
   // 3. Convert objects → row arrays
   // ------------------------------------------------------------
@@ -479,14 +510,14 @@ const insertProductsBulk = async (products, client) => {
     null,
     null,
   ]);
-  
+
   // ------------------------------------------------------------
   // 4. Conflict handling:
   // - Typically: unique(name, brand, category) or SKU-level constraints
   // - You can adjust these depending on your schema indexes
   // ------------------------------------------------------------
   const conflictColumns = ['name', 'brand', 'category'];
-  
+
   const updateStrategies = {
     description: 'overwrite',
     status_id: 'overwrite',
@@ -494,7 +525,7 @@ const insertProductsBulk = async (products, client) => {
     updated_by: 'overwrite',
     updated_at: 'overwrite',
   };
-  
+
   // ------------------------------------------------------------
   // 5. Execute bulk insert
   // ------------------------------------------------------------
@@ -509,24 +540,115 @@ const insertProductsBulk = async (products, client) => {
       { context },
       'id' // return id column
     );
-    
+
     logSystemInfo('Successfully inserted or updated product records', {
       context,
       insertedCount: result.length,
       totalInput: products.length,
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to insert product records', {
       context,
       productCount: products.length,
     });
-    
+
     throw AppError.databaseError('Failed to insert product records', {
       cause: error,
       context,
     });
+  }
+};
+
+/**
+ * Fetches a lightweight, paginated list of products for use in
+ * dropdowns, autocomplete fields, or SKU/BOM creation workflows.
+ *
+ * This function intentionally returns a minimal payload to improve
+ * performance in UI lookup scenarios. Only the essential identifying
+ * fields (id, name, brand, category) are returned.
+ *
+ * Supports:
+ * - Exact and fuzzy filtering via buildProductFilter()
+ * - Keyword search (name/brand/category)
+ * - Stable sorting (name → brand → category)
+ * - Efficient offset-based pagination
+ *
+ * Best practice:
+ * - Keep lookup endpoints lightweight
+ * - Avoid joining large tables
+ * - Select only index-friendly fields
+ *
+ * @param {Object} options - Lookup query options.
+ * @param {Object} [options.filters={}] - Filters passed to buildProductFilter().
+ * @param {number} [options.limit=50] - Max number of rows to return.
+ * @param {number} [options.offset=0] - Number of rows to skip.
+ *
+ * @returns {Promise<{
+ *   data: Array<{
+ *     id: string,
+ *     name: string,
+ *     brand: string,
+ *     category: string
+ *   }>,
+ *   pagination: {
+ *     offset: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     hasMore: boolean
+ *   }
+ * }>}
+ *
+ * @throws {AppError} Database error if the lookup query fails.
+ */
+const getProductLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
+  const context = 'product-repository/getProductLookup';
+  const tableName = 'products p';
+
+  const { whereClause, params } = buildProductFilter(filters);
+
+  const queryText = `
+    SELECT
+      p.id,
+      p.name,
+      p.brand,
+      p.category,
+      p.status_id
+    FROM ${tableName}
+    LEFT JOIN status AS s ON s.id = p.status_id
+    WHERE ${whereClause}
+  `;
+
+  try {
+    const result = await paginateQueryByOffset({
+      tableName,
+      whereClause,
+      queryText,
+      params,
+      offset,
+      limit,
+      sortBy: 'p.name',
+      sortOrder: 'ASC',
+      additionalSort: 'p.brand ASC, p.category ASC',
+    });
+
+    logSystemInfo('Fetched product lookup data', {
+      context,
+      offset,
+      limit,
+      filters,
+    });
+
+    return result;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch product lookup', {
+      context,
+      offset,
+      limit,
+      filters,
+    });
+    throw AppError.databaseError('Failed to fetch product lookup.');
   }
 };
 
@@ -537,4 +659,5 @@ module.exports = {
   updateProductStatus,
   updateProductInfo,
   insertProductsBulk,
+  getProductLookup,
 };

@@ -12,8 +12,10 @@ import type { CustomDialogProps } from '@components/common/CustomDialog';
 import useWarehouseLookup from '@hooks/useWarehouseLookup';
 import useAllocateInventory from '@hooks/useAllocateInventory';
 
-export interface AllocateInventoryDialogProps
-  extends Omit<CustomDialogProps, 'title'> {
+export interface AllocateInventoryDialogProps extends Omit<
+  CustomDialogProps,
+  'title'
+> {
   orderId: string;
   category: string;
 }

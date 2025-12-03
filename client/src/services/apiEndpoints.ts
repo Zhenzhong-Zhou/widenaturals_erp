@@ -7,8 +7,8 @@ export const API_ENDPOINTS = {
   REFRESH_TOKEN: '/session/refresh',
   LOGOUT: '/auth/logout',
   ALL_USERS: '/users',
+  STATUSES: {},
   USER_PROFILE: '/users/me',
-  PRODUCTS_DROPDOWN_WAREHOUSE: '/products/dropdown/warehouse/:warehouseId',
   ALL_COMPLIANCES: '/compliances',
   PRICING_TYPES: '/pricing-types',
   PRICING_TYPE_METADATA: '/pricing-types/metadata/:id',
@@ -18,9 +18,16 @@ export const API_ENDPOINTS = {
   ALL_LOCATION_TYPES: '/location-types',
   LOCATION_TYPE_DETAILS: '/location-types/:id',
   ALL_LOCATIONS: '/locations',
+  PRODUCTS: {
+    ADD_NEW_RECORD: '/products/create',
+    ALL_RECORDS: '/products',
+  },
   SKUS: {
     SKU_PRODUCT_CARDS: '/skus/cards',
     SKU_DETAILS: (skuId: string) => `/skus/${skuId}/details`,
+    ALL_RECORDS: '/skus',
+    ADD_NEW_RECORD: '/skus/create',
+    UPDATE_STATUS: (skuId: string) => `/skus/${skuId}/status`,
   },
   BOMS: {
     ALL_RECORDS: '/boms',
@@ -61,6 +68,9 @@ export const API_ENDPOINTS = {
     SKUS: '/lookups/skus',
     PRICING: '/lookups/pricing',
     PACKAGING_MATERIALS: '/lookups/packaging-materials',
+    SKU_CODE_BASES: '/lookups/sku-code-bases',
+    PRODUCTS: '/lookups/products',
+    STATUSES: '/lookups/statuses',
   },
   REPORTS: {
     INVENTORY_ACTIVITY_LOGS: 'reports/inventory-activity-logs',

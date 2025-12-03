@@ -855,6 +855,274 @@ const transformPackagingMaterialPaginatedLookupResult = (
     { includeLoadMore: true }
   );
 
+/**
+ * Transforms a single raw SKU Code Base record into a lookup-friendly object.
+ *
+ * Constructs a `label` using brand_code, category_code, and base_code,
+ * and conditionally appends UI flags (e.g. `isActive`) based on the user's access level.
+ *
+ * Used in lookup dropdowns, autocomplete inputs, and SKU creation flows.
+ *
+ * @param {{
+ *   id: string,
+ *   brand_code: string,
+ *   category_code: string,
+ *   base_code: number,
+ *   status_id?: string,
+ * }} row - Raw SKU Code Base row from the database.
+ *
+ * @param {object} userAccess - Object containing access-level flags
+ *                              (e.g., from `evaluateSkuCodeBaseLookupAccessControl()`).
+ *
+ * @returns {{
+ *   id: string,
+ *   label: string,
+ *   isActive?: boolean,
+ *   [key: string]: any
+ * }} Transformed lookup object with `id`, `label`, and optional enriched flags.
+ *
+ * @example
+ * const result = transformSkuCodeBaseLookup(row, userAccess);
+ * // { id, label: "BR-CT (200)", isActive: true }
+ */
+const transformSkuCodeBaseLookup = (row, userAccess) => {
+  if (!row || typeof row !== 'object') return null;
+
+  const brand = row.brand_code || 'N/A';
+  const category = row.category_code || 'N/A';
+  const base = row.base_code != null ? row.base_code : '—';
+
+  // Example label: "BR-CT (200)"
+  const label = `${brand}-${category} (${base})`;
+
+  // Uses same helper as customer implementation
+  const baseObj = transformIdNameToIdLabel({ ...row, name: label });
+
+  // Conditional UI flags (e.g., isActive)
+  const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
+
+  return {
+    ...baseObj,
+    ...flagSubset,
+  };
+};
+
+/**
+ * Transforms a paginated set of raw SKU Code Base records into a UI-friendly
+ * format suitable for dropdowns or infinite-scroll lookup components.
+ *
+ * @param {{
+ *   data: Array<object>,
+ *   pagination: {
+ *     offset: number,
+ *     limit: number,
+ *     totalRecords: number
+ *   }
+ * }} paginatedResult - Raw paginated result from repository query.
+ *
+ * @param {object} userAccess - Access flags used to enrich each row.
+ *
+ * @returns {{
+ *   items: Array<{
+ *     id: string,
+ *     label: string,
+ *     [key: string]: any
+ *   }>,
+ *   offset: number,
+ *   limit: number,
+ *   hasMore: boolean
+ * }} Final lookup result formatted for UI dropdowns/infinite-scroll.
+ */
+const transformSkuCodeBasePaginatedLookupResult = (
+  paginatedResult,
+  userAccess
+) =>
+  transformPaginatedResult(
+    paginatedResult,
+    (row) => transformSkuCodeBaseLookup(row, userAccess),
+    { includeLoadMore: true }
+  );
+
+/**
+ * Transforms a single raw Product record into a lookup-friendly object.
+ *
+ * Produces:
+ * - `label` (e.g., "Fish Oil • WIDE Naturals (Softgel)")
+ * - Optional UI flags (e.g., `isActive`) depending on user access rules
+ *
+ * Used in:
+ * - Dropdowns
+ * - Autocomplete fields
+ * - SKU creation
+ * - BOM item assignment
+ * - Inventory item linking
+ *
+ * @param {{
+ *   id: string,
+ *   name: string,
+ *   brand?: string,
+ *   category?: string,
+ *   series?: string,
+ *   status_id?: string,
+ * }} row - Raw Product row from the repository.
+ *
+ * @param {object} userAccess - Access control flags
+ *                              (e.g. from `evaluateProductLookupAccessControl()`).
+ *
+ * @returns {{
+ *   id: string,
+ *   label: string,
+ *   isActive?: boolean,
+ *   [key: string]: any
+ * }} A lookup-optimized product object.
+ *
+ * @example
+ * const r = transformProductLookup(row, userAccess);
+ * // { id, label: "Fish Oil • WIDE Naturals (Softgel)", isActive: true }
+ */
+const transformProductLookup = (row, userAccess) => {
+  if (!row || typeof row !== 'object') return null;
+
+  const name = row.name ?? 'Unnamed Product';
+  const brand = row.brand ?? '';
+  const category = row.category ?? '';
+  const series = row.series ?? '';
+
+  /**
+   * Example label patterns used in ERP dropdowns:
+   * "Fish Oil • WIDE Naturals (Softgel)"
+   * "Vitamin D • PG Naturals (Capsule)"
+   */
+  const labelParts = [name];
+
+  if (brand) labelParts.push(`• ${brand}`);
+  if (category) labelParts.push(`(${category})`);
+  else if (series) labelParts.push(`(${series})`);
+
+  const label = labelParts.join(' ');
+
+  // Use shared helper: { id, name → label } → { id, label }
+  const baseObj = transformIdNameToIdLabel({ ...row, name: label });
+
+  // Optional derived flags like isActive
+  const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
+
+  return {
+    ...baseObj,
+    ...flagSubset,
+  };
+};
+
+/**
+ * Transforms a paginated set of Product records into a UI-friendly lookup format.
+ *
+ * Applies:
+ * - Row-by-row transformation via `transformProductLookup`
+ * - Pagination metadata rewrite
+ * - Optional "Load more" flag for infinite scroll
+ *
+ * @param {{
+ *   data: Array<object>,
+ *   pagination: {
+ *     offset: number,
+ *     limit: number,
+ *     totalRecords: number
+ *   }
+ * }} paginatedResult - Raw repository output.
+ *
+ * @param {object} userAccess - Access flags for enriching each product row.
+ *
+ * @returns {{
+ *   items: Array<{ id: string, label: string, [key: string]: any }>,
+ *   offset: number,
+ *   limit: number,
+ *   hasMore: boolean
+ * }} Transformed lookup result.
+ */
+const transformProductPaginatedLookupResult = (paginatedResult, userAccess) =>
+  transformPaginatedResult(
+    paginatedResult,
+    (row) => transformProductLookup(row, userAccess),
+    { includeLoadMore: true }
+  );
+
+/**
+ * Transforms a single raw Status record into a lookup-friendly object.
+ *
+ * Constructs a `label` primarily using the status name, with optional description
+ * appended for more clarity depending on your UI needs.
+ *
+ * Also conditionally appends UI flags (e.g., `isActive`) based on the user's access level.
+ *
+ * @param {{
+ *   id: string,
+ *   name: string,
+ *   description?: string,
+ *   is_active?: boolean
+ * }} row - Raw Status row from the database.
+ *
+ * @param {object} userAccess - Access-level flags (e.g., from evaluateStatusLookupAccessControl()).
+ *
+ * @returns {{
+ *   id: string,
+ *   label: string,
+ *   isActive?: boolean,
+ *   [key: string]: any
+ * }} A UI-ready lookup object.
+ *
+ * @example
+ * const result = transformStatusLookup(row, userAccess);
+ * // { id, label: "Active", isActive: true }
+ */
+const transformStatusLookup = (row, userAccess) => {
+  if (!row || typeof row !== 'object') return null;
+
+  const name = row.name || 'Unknown Status';
+  const desc = row.description ? ` - ${row.description}` : '';
+
+  // Example label: "Active" or "Active - Used for normal records"
+  const label = `${name}${desc}`;
+
+  // Reuse your id:name → id:label helper
+  const baseObj = transformIdNameToIdLabel({ ...row, name: label });
+
+  // Apply tag enrichment (isActive, etc.)
+  const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
+
+  return {
+    ...baseObj,
+    ...flagSubset,
+  };
+};
+
+/**
+ * Transforms a paginated set of raw Status records into a UI-friendly lookup result.
+ *
+ * @param {{
+ *   data: Array<object>,
+ *   pagination: {
+ *     offset: number,
+ *     limit: number,
+ *     totalRecords: number
+ *   }
+ * }} paginatedResult - Raw paginated result from repository.
+ *
+ * @param {object} userAccess - Access flags used to enrich each row.
+ *
+ * @returns {{
+ *   items: Array<{ id: string, label: string, [key: string]: any }>,
+ *   offset: number,
+ *   limit: number,
+ *   hasMore: boolean
+ * }}
+ */
+const transformStatusPaginatedLookupResult = (paginatedResult, userAccess) =>
+  transformPaginatedResult(
+    paginatedResult,
+    (row) => transformStatusLookup(row, userAccess),
+    { includeLoadMore: true }
+  );
+
 module.exports = {
   transformBatchRegistryPaginatedLookupResult,
   transformWarehouseLookupRows,
@@ -869,4 +1137,7 @@ module.exports = {
   transformSkuPaginatedLookupResult,
   transformPricingPaginatedLookupResult,
   transformPackagingMaterialPaginatedLookupResult,
+  transformSkuCodeBasePaginatedLookupResult,
+  transformProductPaginatedLookupResult,
+  transformStatusPaginatedLookupResult,
 };

@@ -72,18 +72,12 @@ router.get(
   '/cards',
   authorize([PERMISSIONS.SKUS.VIEW_CARDS]),
   createQueryNormalizationMiddleware(
-    'skuProductCards',                // sort map name
+    'skuProductCards', // sort map name
     ['skuIds'], // array-based filter fields
-    [],                               // numeric fields
+    [], // numeric fields
     getPaginatedSkuProductCardsSchema
   ),
-  sanitizeFields([
-    'keyword',
-    'productName',
-    'sku',
-    'brand',
-    'category',
-  ]),
+  sanitizeFields(['keyword', 'productName', 'sku', 'brand', 'category']),
   validate(getPaginatedSkuProductCardsSchema, 'query'),
   getPaginatedSkuProductCardsController
 );
@@ -151,18 +145,12 @@ router.get(
   '/',
   authorize([PERMISSIONS.SKUS.VIEW_LIST]),
   createQueryNormalizationMiddleware(
-    'skuSortMap',                 // Name of sort map
-    ['statusIds', 'productIds'],  // Array-based filter fields
-    [],                           // Reserved: fields that require numeric normalization (none for SKUs)
-    skuQuerySchema                // Joi schema for validation
+    'skuSortMap', // Name of sort map
+    ['statusIds', 'productIds'], // Array-based filter fields
+    [], // Reserved: fields that require numeric normalization (none for SKUs)
+    skuQuerySchema // Joi schema for validation
   ),
-  sanitizeFields([
-    'keyword',
-    'productName',
-    'sku',
-    'brand',
-    'category',
-  ]),
+  sanitizeFields(['keyword', 'productName', 'sku', 'brand', 'category']),
   validate(skuQuerySchema, 'query'),
   getPaginatedSkusController
 );

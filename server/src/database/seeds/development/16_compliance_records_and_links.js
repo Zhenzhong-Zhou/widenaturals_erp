@@ -14,22 +14,24 @@ exports.seed = async function (knex) {
     .where({ type: 'NPN' })
     .count('id as count')
     .first();
-  
+
   const hasLinks = await knex('sku_compliance_links')
     .count('id as count')
     .first();
-  
+
   if (Number(hasComplianceDocs.count) > 0 && Number(hasLinks.count) > 0) {
-    console.log('NPN compliance_records + sku_compliance_links already seeded. Skipping.');
+    console.log(
+      'NPN compliance_records + sku_compliance_links already seeded. Skipping.'
+    );
     return;
   }
-  
+
   // Fetch required IDs
   const [activeStatusId, systemUserId] = await Promise.all([
     fetchDynamicValue(knex, 'status', 'name', 'active', 'id'),
     fetchDynamicValue(knex, 'users', 'email', 'system@internal.local', 'id'),
   ]);
-  
+
   //
   // --------------------------------------------------------
   // 1. Mapping: productName::sizeLabel::countryCode → NPN ID
@@ -75,10 +77,12 @@ exports.seed = async function (knex) {
     'Omega-3 + MultiVitamin Fish Oil::120 Softgels::UN': '80107082',
     'Algal Oil Pure + DHA (Kids)::30 Softgels::UN': '80111230',
     'Algal Oil Pure + DHA (Kids)::60 Softgels::UN': '80111230',
-    'DHA Algal Oil for Pregnancy and Breastfeeding::30 Softgels::UN': '80111182',
-    'DHA Algal Oil for Pregnancy and Breastfeeding::60 Softgels::UN': '80111182',
+    'DHA Algal Oil for Pregnancy and Breastfeeding::30 Softgels::UN':
+      '80111182',
+    'DHA Algal Oil for Pregnancy and Breastfeeding::60 Softgels::UN':
+      '80111182',
   };
-  
+
   //
   // --------------------------------------------------------
   // 2. Fetch SKUs + product metadata for mapping
@@ -93,14 +97,14 @@ exports.seed = async function (knex) {
       'p.name',
       's.sku'
     );
-  
+
   //
   // --------------------------------------------------------
   // 3. Insert compliance_records (DOCUMENTS)
   // --------------------------------------------------------
   //
   const uniqueComplianceIds = [...new Set(Object.values(npnMap))];
-  
+
   const complianceRecords = await knex('compliance_records')
     .insert(
       uniqueComplianceIds.map((npn) => ({
@@ -119,7 +123,7 @@ exports.seed = async function (knex) {
     .onConflict(['type', 'compliance_id'])
     .merge()
     .returning(['id', 'compliance_id']);
-  
+
   //
   // --------------------------------------------------------
   // 4. Build lookup: compliance_id → record UUID
@@ -129,20 +133,20 @@ exports.seed = async function (knex) {
   for (const rec of complianceRecords) {
     complianceRecordIdMap[rec.compliance_id] = rec.id;
   }
-  
+
   //
   // --------------------------------------------------------
   // 5. Prepare sku_compliance_links
   // --------------------------------------------------------
   //
   const linkRows = [];
-  
+
   for (const row of rows) {
     const key = `${row.name}::${row.size_label}::${row.country_code}`;
     const complianceId = npnMap[key];
-    
+
     if (!complianceId) continue;
-    
+
     linkRows.push({
       id: knex.raw('uuid_generate_v4()'),
       sku_id: row.sku_id,
@@ -151,7 +155,7 @@ exports.seed = async function (knex) {
       created_by: systemUserId,
     });
   }
-  
+
   //
   // --------------------------------------------------------
   // 6. Insert sku_compliance_links (idempotent)
@@ -161,7 +165,7 @@ exports.seed = async function (knex) {
     .insert(linkRows)
     .onConflict(['sku_id', 'compliance_record_id'])
     .ignore();
-  
+
   console.log(
     `Inserted ${complianceRecords.length} compliance records and ${linkRows.length} sku compliance links.`
   );

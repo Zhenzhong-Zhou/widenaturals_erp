@@ -10,7 +10,8 @@ const AppError = require('../utils/AppError');
 const {
   buildWhereClauseAndParams,
   skuDropdownKeywordHandler,
-  buildSkuFilter, buildSkuProductCardFilters,
+  buildSkuFilter,
+  buildSkuProductCardFilters,
 } = require('../utils/sql/build-sku-filters');
 const { minUuid } = require('../utils/sql/sql-helpers');
 const { getSortMapForModule } = require('../utils/sort-utils');
@@ -95,12 +96,12 @@ const getPaginatedSkuProductCards = async ({
   filters = {},
 }) => {
   const context = 'sku-repository/getPaginatedSkuProductCards';
-  
+
   // ---------------------------------------------------------
   // 1. Build WHERE clause + params from filters
   // ---------------------------------------------------------
   const { whereClause, params } = buildSkuProductCardFilters(filters);
-  
+
   // ---------------------------------------------------------
   // 2. Core Product-Card SQL (dependencies: products, skus,
   //    compliance, MSRP price, status, primary image)
@@ -172,7 +173,7 @@ const getPaginatedSkuProductCards = async ({
       img.alt_text
     ORDER BY ${sortBy} ${sortOrder};
   `;
-  
+
   try {
     // ---------------------------------------------------------
     // 3. Logging
@@ -185,7 +186,7 @@ const getPaginatedSkuProductCards = async ({
       page,
       limit,
     });
-    
+
     // ---------------------------------------------------------
     // 4. Execute paginated query
     // ---------------------------------------------------------
@@ -204,7 +205,7 @@ const getPaginatedSkuProductCards = async ({
       stage: 'query-execution',
       details: error.message,
     });
-    
+
     throw AppError.databaseError('Failed to fetch SKU product cards', {
       details: error.message,
       context,
@@ -433,32 +434,32 @@ const getSkuLookup = async ({
  * @throws {AppError} Database error if query or pagination fails.
  */
 const getPaginatedSkus = async ({
-                                  filters = {},
-                                  page = 1,
-                                  limit = 10,
-                                  sortBy = 's.created_at',
-                                  sortOrder = 'DESC',
-                                }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 's.created_at',
+  sortOrder = 'DESC',
+}) => {
   const context = 'sku-repository/getPaginatedSkus';
-  
+
   // 1. Load module sort map
   const sortMap = getSortMapForModule('skuSortMap');
-  
+
   // 2. Allowed SQL columns
   const allowedSort = new Set(Object.values(sortMap));
-  
+
   // 3. Final SQL-safe sort column
   let sortByColumn = sortBy;
   if (!allowedSort.has(sortByColumn)) {
     sortByColumn = sortMap.defaultNaturalSort;
   }
-  
+
   try {
     // ------------------------------------
     // 1. Build WHERE clause + params
     // ------------------------------------
     const { whereClause, params } = buildSkuFilter(filters);
-    
+
     // ------------------------------------
     // 2. Build the SELECT query
     // ------------------------------------
@@ -495,7 +496,7 @@ const getPaginatedSkus = async ({
       WHERE ${whereClause}
       ORDER BY ${sortByColumn} ${sortOrder}
     `;
-    
+
     // ------------------------------------
     // 3. Execute pagination helper
     // ------------------------------------
@@ -506,7 +507,7 @@ const getPaginatedSkus = async ({
       limit,
       meta: { context },
     });
-    
+
     // ------------------------------------
     // 4. Logging
     // ------------------------------------
@@ -517,28 +518,84 @@ const getPaginatedSkus = async ({
       sorting: { sortBy: sortByColumn, sortOrder },
       count: result.data.length,
     });
-    
+
     return result;
-    
   } catch (error) {
     // ------------------------------------
     // 5. Error handling
     // ------------------------------------
-    logSystemException(
-      error,
-      'Failed to fetch paginated SKU records',
-      {
-        context,
-        filters,
-        pagination: { page, limit },
-        sorting: { sortBy: sortByColumn, sortOrder },
-      }
-    );
-    
-    throw AppError.databaseError(
-      'Failed to fetch paginated SKU records.',
-      { context }
-    );
+    logSystemException(error, 'Failed to fetch paginated SKU records', {
+      context,
+      filters,
+      pagination: { page, limit },
+      sorting: { sortBy: sortByColumn, sortOrder },
+    });
+
+    throw AppError.databaseError('Failed to fetch paginated SKU records.', {
+      context,
+    });
+  }
+};
+
+/**
+ * @async
+ * @function
+ * @description
+ * Checks whether a barcode already exists in the `skus` table.
+ *
+ * Behavior:
+ * - Returns `false` immediately if barcode is null/empty (no validation needed)
+ * - Performs a fast `SELECT 1 LIMIT 1` existence check
+ * - Logs both success and failure paths for debugging/auditing
+ *
+ * @example
+ * const exists = await checkBarcodeExists('1234567890123', client);
+ * if (exists) throw AppError.conflictError('Barcode already in use.');
+ *
+ * @param {string} barcode - The barcode to validate (EAN, UPC, internal code, etc.)
+ * @param {object} client - Active PG client or transaction handler.
+ * @returns {Promise<boolean>} True if barcode exists, otherwise false.
+ */
+const checkBarcodeExists = async (barcode, client) => {
+  const context = 'sku-repository/checkBarcodeExists';
+
+  // no barcode → nothing to check
+  if (!barcode) {
+    logSystemInfo('Skipped barcode existence check (empty barcode)', {
+      context,
+      barcode,
+    });
+    return false;
+  }
+
+  const sql = `
+    SELECT 1
+    FROM skus
+    WHERE barcode = $1
+    LIMIT 1;
+  `;
+
+  try {
+    const { rows } = await query(sql, [barcode], client);
+    const exists = rows.length > 0;
+
+    logSystemInfo('Checked barcode existence', {
+      context,
+      barcode,
+      exists,
+    });
+
+    return exists;
+  } catch (error) {
+    logSystemException(error, 'Failed to check barcode existence.', {
+      context,
+      barcode,
+    });
+
+    throw AppError.databaseError('Failed to check barcode existence.', {
+      cause: error,
+      context,
+    });
   }
 };
 
@@ -559,25 +616,25 @@ const getPaginatedSkus = async ({
  */
 const checkSkuExists = async (sku, productId, client) => {
   const context = 'sku-repository/checkSkuExists';
-  
+
   const sql = `
     SELECT 1
     FROM skus
     WHERE sku = $1 AND product_id = $2
     LIMIT 1;
   `;
-  
+
   try {
     const { rows } = await query(sql, [sku, productId], client);
     const exists = rows.length > 0;
-    
+
     logSystemInfo('Checked SKU existence', {
       context,
       sku,
       productId,
       exists,
     });
-    
+
     return exists;
   } catch (error) {
     logSystemException(error, 'Failed to check SKU existence.', {
@@ -585,7 +642,9 @@ const checkSkuExists = async (sku, productId, client) => {
       sku,
       productId,
     });
-    throw AppError.databaseError('Failed to check SKU existence.', { cause: error });
+    throw AppError.databaseError('Failed to check SKU existence.', {
+      cause: error,
+    });
   }
 };
 
@@ -611,14 +670,14 @@ const checkSkuExists = async (sku, productId, client) => {
  */
 const insertSkusBulk = async (skus, client) => {
   if (!Array.isArray(skus) || skus.length === 0) return [];
-  
+
   const context = 'sku-repository/insertSkusBulk';
-  
+
   // Validate structure of input before processing
   if (!skus.every((s) => s.product_id && s.sku)) {
     throw AppError.validationError('Each SKU must include product_id and sku.');
   }
-  
+
   const columns = [
     'product_id',
     'sku',
@@ -637,7 +696,7 @@ const insertSkusBulk = async (skus, client) => {
     'updated_at',
     'updated_by',
   ];
-  
+
   // Convert objects into row arrays
   const rows = skus.map((s) => [
     s.product_id,
@@ -657,15 +716,15 @@ const insertSkusBulk = async (skus, client) => {
     null,
     null,
   ]);
-  
+
   // Conflict handling (avoid duplicate SKU code)
   const conflictColumns = ['product_id', 'sku'];
-  
+
   const updateStrategies = {
     description: 'overwrite', // Replace description if re-inserted
-    updated_at: 'overwrite',  // Refresh timestamp
+    updated_at: 'overwrite', // Refresh timestamp
   };
-  
+
   try {
     const result = await bulkInsert(
       'skus',
@@ -677,20 +736,20 @@ const insertSkusBulk = async (skus, client) => {
       { context },
       'id'
     );
-    
+
     logSystemInfo('Successfully inserted or updated SKU records', {
       context,
       insertedCount: result.length,
       totalInput: skus.length,
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to insert SKU records', {
       context,
       skuCount: skus.length,
     });
-    
+
     throw AppError.databaseError('Failed to insert SKU records', {
       cause: error,
     });
@@ -726,7 +785,7 @@ const insertSkusBulk = async (skus, client) => {
  */
 const getSkuDetailsById = async (skuId) => {
   const context = 'sku-repository/getSkuDetailsById';
-  
+
   // Base lookup of SKU metadata only — keep this query light & fast
   const queryText = `
     SELECT
@@ -754,10 +813,10 @@ const getSkuDetailsById = async (skuId) => {
       s.status_id AS sku_status_id,
       st.name AS sku_status_name,
       s.status_date AS sku_status_date,
-      s.created_at AS sku_created_at,
-      s.updated_at AS sku_updated_at,
-      s.created_by AS sku_created_by,
-      s.updated_by AS sku_updated_by,
+      s.created_at,
+      s.updated_at,
+      s.created_by,
+      s.updated_by,
       u1.firstname AS created_by_firstname,
       u1.lastname AS created_by_lastname,
       u2.firstname AS updated_by_firstname,
@@ -769,10 +828,10 @@ const getSkuDetailsById = async (skuId) => {
     LEFT JOIN users u2 ON u2.id = s.updated_by
     WHERE s.id = $1
   `;
-  
+
   try {
     const { rows } = await query(queryText, [skuId]);
-    
+
     if (rows.length === 0) {
       // Not an error — SKU might simply not exist
       logSystemInfo('No SKU found for given ID', {
@@ -781,12 +840,12 @@ const getSkuDetailsById = async (skuId) => {
       });
       return null;
     }
-    
+
     logSystemInfo('Fetched SKU detail successfully', {
       context,
       skuId,
     });
-    
+
     return rows[0];
   } catch (error) {
     logSystemException(error, 'Failed to fetch SKU detail', {
@@ -794,7 +853,7 @@ const getSkuDetailsById = async (skuId) => {
       skuId,
       error: error.message,
     });
-    
+
     throw AppError.databaseError('Failed to fetch SKU detail', {
       context,
       details: error.message,
@@ -824,23 +883,23 @@ const getSkuDetailsById = async (skuId) => {
  */
 const updateSkuStatus = async (skuId, statusId, userId, client) => {
   const context = 'sku-repository/updateSkuStatus';
-  
+
   try {
     const updates = {
       status_id: statusId,
       status_date: new Date(),
     };
-    
+
     // Reuse generic updateById helper for consistency
     const result = await updateById('skus', skuId, updates, userId, client);
-    
+
     logSystemInfo('Updated SKU status successfully', {
       context,
       skuId,
       statusId,
       updatedBy: userId,
     });
-    
+
     return result; // { id: '...' }
   } catch (error) {
     logSystemException(error, 'Failed to update SKU status', {
@@ -849,7 +908,7 @@ const updateSkuStatus = async (skuId, statusId, userId, client) => {
       statusId,
       updatedBy: userId,
     });
-    
+
     throw AppError.databaseError('Failed to update SKU status.', {
       context,
       cause: error.message,
@@ -862,6 +921,7 @@ module.exports = {
   getPaginatedSkuProductCards,
   getSkuLookup,
   getPaginatedSkus,
+  checkBarcodeExists,
   checkSkuExists,
   insertSkusBulk,
   getSkuDetailsById,

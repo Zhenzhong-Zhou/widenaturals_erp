@@ -21,8 +21,13 @@ const { performance } = require('perf_hooks');
 const chalk = require('chalk');
 const path = require('path');
 const fs = require('fs');
-const { logSystemInfo, logSystemException } = require('../../utils/system-logger');
-const { processAndUploadSkuImages } = require('../../services/sku-image-service');
+const {
+  logSystemInfo,
+  logSystemException,
+} = require('../../utils/system-logger');
+const {
+  processAndUploadSkuImages,
+} = require('../../services/sku-image-service');
 
 // --- CONFIGURABLE TEST PARAMS ---
 const TEST_SKU = 'CH-TEST01-R-CN'; // Example SKU
@@ -42,18 +47,23 @@ const TEST_IMAGES = [
 (async () => {
   const logPrefix = chalk.cyan('[Test: PROCESS_SKU_IMAGES]');
   const startTime = performance.now();
-  
+
   console.log(`${logPrefix} 🚀 Starting SKU image processing test...`);
-  
+
   try {
     // Step 1 — Execute
-    const results = await processAndUploadSkuImages(TEST_IMAGES, TEST_SKU, IS_PROD, BUCKET_NAME);
-    
+    const results = await processAndUploadSkuImages(
+      TEST_IMAGES,
+      TEST_SKU,
+      IS_PROD,
+      BUCKET_NAME
+    );
+
     // Step 2 — Validate results
     if (!Array.isArray(results) || results.length === 0) {
       throw new Error('❌ No processed image data returned.');
     }
-    
+
     // Step 3 — Log processed results
     console.log(`${logPrefix} ✅ Processed images metadata:`);
     console.table(
@@ -65,13 +75,17 @@ const TEST_IMAGES = [
         primary: r.is_primary,
       }))
     );
-    
+
     // Step 4 — Verify structure
     const variantTypes = new Set(results.map((r) => r.image_type));
-    if (!variantTypes.has('main') || !variantTypes.has('thumbnail') || !variantTypes.has('zoom')) {
+    if (
+      !variantTypes.has('main') ||
+      !variantTypes.has('thumbnail') ||
+      !variantTypes.has('zoom')
+    ) {
       throw new Error('⚠️ Missing expected variants (main, thumbnail, zoom).');
     }
-    
+
     // Step 5 — Log success
     const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
     logSystemInfo('SKU image processing completed successfully.', {
@@ -81,15 +95,21 @@ const TEST_IMAGES = [
       elapsedSeconds: elapsed,
       mode: IS_PROD ? 'prod' : 'dev',
     });
-    
-    console.log(`${logPrefix} 🏁 Completed successfully in ${chalk.green(`${elapsed}s`)}.`);
+
+    console.log(
+      `${logPrefix} 🏁 Completed successfully in ${chalk.green(`${elapsed}s`)}.`
+    );
     process.exitCode = 0;
   } catch (error) {
     console.error(`${logPrefix} ❌ Error: ${chalk.red(error.message)}`);
-    logSystemException(error, 'Manual test for processAndUploadSkuImages failed', {
-      context: 'test-process-sku-images',
-      sku: TEST_SKU,
-    });
+    logSystemException(
+      error,
+      'Manual test for processAndUploadSkuImages failed',
+      {
+        context: 'test-process-sku-images',
+        sku: TEST_SKU,
+      }
+    );
     process.exitCode = 1;
   } finally {
     console.log(`${logPrefix} 🧹 Cleanup complete. Exiting.`);

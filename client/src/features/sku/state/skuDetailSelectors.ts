@@ -119,7 +119,6 @@ export const selectSkuThumbnailImages = createSelector(
  *
  * @returns {SkuPricing[]}
  */
-export const selectActivePricing = createSelector(
-  selectSkuPricing,
-  (pricing) => pricing.filter((p: SkuPricing) => p.status?.id)
+export const selectActivePricing = createSelector(selectSkuPricing, (pricing) =>
+  pricing.filter((p: SkuPricing) => p.status?.id)
 );

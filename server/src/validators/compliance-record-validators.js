@@ -8,7 +8,7 @@ const {
   validateOptionalString,
   validateUUIDArray,
   issuedDateRangeSchema,
-  expiryDateRangeSchema
+  expiryDateRangeSchema,
 } = require('./general-validators');
 
 /**
@@ -38,7 +38,7 @@ const complianceFiltersSchema = Joi.object({
   complianceId: validateOptionalString('Compliance Number'),
   createdBy: validateOptionalUUID('Created By User ID'),
   updatedBy: validateOptionalUUID('Updated By User ID'),
-  
+
   //
   // --------------------------------------------------
   // SKU-level filters (s.*)
@@ -48,7 +48,7 @@ const complianceFiltersSchema = Joi.object({
   sku: validateOptionalString('SKU'),
   sizeLabel: validateOptionalString('Size Label'),
   marketRegion: validateOptionalString('Market Region'),
-  
+
   //
   // --------------------------------------------------
   // Product-level filters (p.*)
@@ -58,7 +58,7 @@ const complianceFiltersSchema = Joi.object({
   productName: validateOptionalString('Product Name'),
   brand: validateOptionalString('Brand'),
   category: validateOptionalString('Category'),
-  
+
   //
   // --------------------------------------------------
   // Keyword fuzzy search
@@ -86,13 +86,13 @@ const complianceFiltersSchema = Joi.object({
 const getPaginatedComplianceRecordsSchema = paginationSchema
   // Sorting (default sort: cr.created_at)
   .concat(createSortSchema('cr.created_at'))
-  
+
   // Date range filters (outer-level fields)
   .concat(createdDateRangeSchema)
   .concat(updatedDateRangeSchema)
   .concat(issuedDateRangeSchema)
   .concat(expiryDateRangeSchema)
-  
+
   // Nested filter object
   .keys({
     filters: complianceFiltersSchema.default({}),

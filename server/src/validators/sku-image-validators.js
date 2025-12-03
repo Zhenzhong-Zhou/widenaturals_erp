@@ -48,71 +48,59 @@ const { validateUUID } = require('./general-validators');
  *    file upload validation and extraction.
  */
 const skuImageSchema = Joi.object({
-    file_uploaded: Joi.boolean()
-      .default(false),
-    
-    image_url: Joi.alternatives().try(
-        Joi.string()
-          .uri({ allowRelative: true })
-          .max(500),
-        
-        Joi.string()
-          .pattern(/^[\w\-./]+$/) // allow local file paths
-          .max(500),
-      )
-      .allow(null, '') // IMPORTANT to allow empty image_url when file uploaded
-      .messages({
-        'alternatives.match': '"image_url" must be a valid URL or local file path',
-      }),
-    
-    image_type: Joi.string()
-      .valid('main', 'thumbnail', 'zoom', 'gallery', 'unknown')
-      .default('unknown')
-      .insensitive(),
-    
-    display_order: Joi.number()
-      .integer()
-      .min(0)
-      .default(0),
-    
-    file_size_kb: Joi.number()
-      .integer()
-      .min(0)
-      .max(50000)
-      .allow(null),
-    
-    file_format: Joi.string()
-      .valid('webp', 'jpg', 'jpeg', 'png', 'gif', 'tiff', 'svg')
-      .default('webp')
-      .insensitive(),
-    
-    alt_text: Joi.string()
-      .allow('', null)
-      .max(255),
-    
-    is_primary: Joi.boolean()
-      .default(false),
-    
-    uploaded_at: Joi.date()
-      .optional()
-      .default(() => new Date()),
-    
-    source: Joi.string()
-      .valid('uploaded', 'synced', 'migrated', 'api', 'imported')
-      .default('uploaded'),
-  })
-  .custom((value, helpers) => {
-    const hasUrl = !!value.image_url;
-    const hasFile = !!value.file_uploaded;
-    
-    if (!hasUrl && !hasFile) {
-      return helpers.error('any.invalid', {
-        message: 'Either image_url or uploaded file is required',
-      });
-    }
-    
-    return value;
-  });
+  file_uploaded: Joi.boolean().default(false),
+
+  image_url: Joi.alternatives()
+    .try(
+      Joi.string().uri({ allowRelative: true }).max(500),
+
+      Joi.string()
+        .pattern(/^[\w\-./]+$/) // allow local file paths
+        .max(500)
+    )
+    .allow(null, '') // IMPORTANT to allow empty image_url when file uploaded
+    .messages({
+      'alternatives.match':
+        '"image_url" must be a valid URL or local file path',
+    }),
+
+  image_type: Joi.string()
+    .valid('main', 'thumbnail', 'zoom', 'gallery', 'unknown')
+    .default('unknown')
+    .insensitive(),
+
+  display_order: Joi.number().integer().min(0).default(0),
+
+  file_size_kb: Joi.number().integer().min(0).max(50000).allow(null),
+
+  file_format: Joi.string()
+    .valid('webp', 'jpg', 'jpeg', 'png', 'gif', 'tiff', 'svg')
+    .default('webp')
+    .insensitive(),
+
+  alt_text: Joi.string().allow('', null).max(255),
+
+  is_primary: Joi.boolean().default(false),
+
+  uploaded_at: Joi.date()
+    .optional()
+    .default(() => new Date()),
+
+  source: Joi.string()
+    .valid('uploaded', 'synced', 'migrated', 'api', 'imported')
+    .default('uploaded'),
+}).custom((value, helpers) => {
+  const hasUrl = !!value.image_url;
+  const hasFile = !!value.file_uploaded;
+
+  if (!hasUrl && !hasFile) {
+    return helpers.error('any.invalid', {
+      message: 'Either image_url or uploaded file is required',
+    });
+  }
+
+  return value;
+});
 
 /**
  * @constant

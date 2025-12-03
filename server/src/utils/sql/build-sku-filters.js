@@ -45,31 +45,49 @@ const buildSkuProductCardFilters = (filters = {}) => {
   try {
     /** @type {string[]} */
     const conditions = ['1=1'];
-    
+
     /** @type {any[]} */
     const params = [];
-    
+
     /** @type {number} */
     let idx = 1;
-    
+
     // -------------------------------------------------------------
     // PRODUCT filters (ILIKE)
     // -------------------------------------------------------------
-    idx = addIlikeFilter(conditions, params, idx, filters.productName, 'p.name');
+    idx = addIlikeFilter(
+      conditions,
+      params,
+      idx,
+      filters.productName,
+      'p.name'
+    );
     idx = addIlikeFilter(conditions, params, idx, filters.brand, 'p.brand');
-    idx = addIlikeFilter(conditions, params, idx, filters.category, 'p.category');
-    
+    idx = addIlikeFilter(
+      conditions,
+      params,
+      idx,
+      filters.category,
+      'p.category'
+    );
+
     if (filters.productStatusId) {
       conditions.push(`p.status_id = $${idx}`);
       params.push(filters.productStatusId);
       idx++;
     }
-    
+
     // -------------------------------------------------------------
     // SKU filters (ILIKE + UUID array)
     // -------------------------------------------------------------
     idx = addIlikeFilter(conditions, params, idx, filters.sku, 's.sku');
-    idx = addIlikeFilter(conditions, params, idx, filters.sizeLabel, 's.size_label');
+    idx = addIlikeFilter(
+      conditions,
+      params,
+      idx,
+      filters.sizeLabel,
+      's.size_label'
+    );
     idx = addIlikeFilter(
       conditions,
       params,
@@ -84,7 +102,7 @@ const buildSkuProductCardFilters = (filters = {}) => {
       filters.marketRegion,
       's.market_region'
     );
-    
+
     if (filters.skuIds) {
       if (Array.isArray(filters.skuIds)) {
         conditions.push(`s.id = ANY($${idx}::uuid[])`);
@@ -94,13 +112,13 @@ const buildSkuProductCardFilters = (filters = {}) => {
       params.push(filters.skuIds);
       idx++;
     }
-    
+
     if (filters.skuStatusId) {
       conditions.push(`s.status_id = $${idx}`);
       params.push(filters.skuStatusId);
       idx++;
     }
-    
+
     // -------------------------------------------------------------
     // COMPLIANCE filters
     // -------------------------------------------------------------
@@ -111,14 +129,14 @@ const buildSkuProductCardFilters = (filters = {}) => {
       filters.complianceId,
       'cr.compliance_id'
     );
-    
+
     // -------------------------------------------------------------
     // KEYWORD search (multi-field)
     // -------------------------------------------------------------
     if (filters.keyword) {
       /** @type {string} */
       const kw = `%${filters.keyword.trim().replace(/\s+/g, ' ')}%`;
-      
+
       conditions.push(`
         (
           p.name ILIKE $${idx}
@@ -128,11 +146,11 @@ const buildSkuProductCardFilters = (filters = {}) => {
           OR cr.compliance_id ILIKE $${idx}
         )
       `);
-      
+
       params.push(kw);
       idx++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -143,7 +161,7 @@ const buildSkuProductCardFilters = (filters = {}) => {
       error: err.message,
       filters,
     });
-    
+
     throw AppError.databaseError('Failed to build SKU card filter conditions', {
       details: err.message,
     });
@@ -428,7 +446,7 @@ const buildSkuFilter = (filters = {}) => {
     const conditions = ['1=1'];
     const params = [];
     let idx = 1;
-    
+
     // ------------------------------
     // SKU-level filters
     // ------------------------------
@@ -437,31 +455,31 @@ const buildSkuFilter = (filters = {}) => {
       params.push(filters.statusIds);
       idx++;
     }
-    
+
     if (filters.productIds?.length) {
       conditions.push(`s.product_id = ANY($${idx}::uuid[])`);
       params.push(filters.productIds);
       idx++;
     }
-    
+
     if (filters.marketRegion) {
       conditions.push(`s.market_region ILIKE $${idx}`);
       params.push(`%${filters.marketRegion}%`);
       idx++;
     }
-    
+
     if (filters.sizeLabel) {
       conditions.push(`s.size_label ILIKE $${idx}`);
       params.push(`%${filters.sizeLabel}%`);
       idx++;
     }
-    
+
     if (filters.sku) {
       conditions.push(`s.sku ILIKE $${idx}`);
       params.push(`%${filters.sku}%`);
       idx++;
     }
-    
+
     // Dimensional filters
     // ----------------------------------------------------
     // Length (cm / inch)
@@ -471,25 +489,25 @@ const buildSkuFilter = (filters = {}) => {
       params.push(filters.minLengthCm);
       idx++;
     }
-    
+
     if (filters.maxLengthCm) {
       conditions.push(`s.length_cm <= $${idx}`);
       params.push(filters.maxLengthCm);
       idx++;
     }
-    
+
     if (filters.minLengthIn) {
       conditions.push(`s.length_inch >= $${idx}`);
       params.push(filters.minLengthIn);
       idx++;
     }
-    
+
     if (filters.maxLengthIn) {
       conditions.push(`s.length_inch <= $${idx}`);
       params.push(filters.maxLengthIn);
       idx++;
     }
-    
+
     // ----------------------------------------------------
     // Width (cm / inch)
     // ----------------------------------------------------
@@ -498,19 +516,19 @@ const buildSkuFilter = (filters = {}) => {
       params.push(filters.minWidthCm);
       idx++;
     }
-    
+
     if (filters.maxWidthCm) {
       conditions.push(`s.width_cm <= $${idx}`);
       params.push(filters.maxWidthCm);
       idx++;
     }
-    
+
     if (filters.minWidthIn) {
       conditions.push(`s.width_inch >= $${idx}`);
       params.push(filters.minWidthIn);
       idx++;
     }
-    
+
     if (filters.maxWidthIn) {
       conditions.push(`s.width_inch <= $${idx}`);
       params.push(filters.maxWidthIn);
@@ -525,25 +543,25 @@ const buildSkuFilter = (filters = {}) => {
       params.push(filters.minHeightCm);
       idx++;
     }
-    
+
     if (filters.maxHeightCm) {
       conditions.push(`s.height_cm <= $${idx}`);
       params.push(filters.maxHeightCm);
       idx++;
     }
-    
+
     if (filters.minHeightIn) {
       conditions.push(`s.height_inch >= $${idx}`);
       params.push(filters.minHeightIn);
       idx++;
     }
-    
+
     if (filters.maxHeightIn) {
       conditions.push(`s.height_inch <= $${idx}`);
       params.push(filters.maxHeightIn);
       idx++;
     }
-    
+
     // ----------------------------------------------------
     // Weight (g / lb)
     // ----------------------------------------------------
@@ -552,62 +570,62 @@ const buildSkuFilter = (filters = {}) => {
       params.push(filters.minWeightG);
       idx++;
     }
-    
+
     if (filters.maxWeightG) {
       conditions.push(`s.weight_g <= $${idx}`);
       params.push(filters.maxWeightG);
       idx++;
     }
-    
+
     if (filters.minWeightLb) {
       conditions.push(`s.weight_lb >= $${idx}`);
       params.push(filters.minWeightLb);
       idx++;
     }
-    
+
     if (filters.maxWeightLb) {
       conditions.push(`s.weight_lb <= $${idx}`);
       params.push(filters.maxWeightLb);
       idx++;
     }
-    
+
     // Audit filters
     if (filters.createdBy) {
       conditions.push(`s.created_by = $${idx}`);
       params.push(filters.createdBy);
       idx++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`s.updated_by = $${idx}`);
       params.push(filters.updatedBy);
       idx++;
     }
-    
+
     if (filters.createdAfter) {
       conditions.push(`s.created_at >= $${idx}`);
       params.push(filters.createdAfter);
       idx++;
     }
-    
+
     if (filters.createdBefore) {
       conditions.push(`s.created_at <= $${idx}`);
       params.push(filters.createdBefore);
       idx++;
     }
-    
+
     if (filters.updatedAfter) {
       conditions.push(`s.updated_at >= $${idx}`);
       params.push(filters.updatedAfter);
       idx++;
     }
-    
+
     if (filters.updatedBefore) {
       conditions.push(`s.updated_at <= $${idx}`);
       params.push(filters.updatedBefore);
       idx++;
     }
-    
+
     // ------------------------------
     // Product-level filters
     // ------------------------------
@@ -616,7 +634,7 @@ const buildSkuFilter = (filters = {}) => {
       params.push(`%${filters.productName}%`);
       idx++;
     }
-    
+
     // ------------------------------
     // Keyword fuzzy search
     // ------------------------------
@@ -630,12 +648,11 @@ const buildSkuFilter = (filters = {}) => {
       params.push(`%${filters.keyword}%`);
       idx++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
     };
-    
   } catch (err) {
     logSystemException(err, 'Failed to build SKU filter', {
       context: 'sku-repository/buildSkuFilter',

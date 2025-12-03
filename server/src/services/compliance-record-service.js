@@ -1,6 +1,10 @@
-const { getPaginatedComplianceRecords } = require('../repositories/compliance-record-repository');
+const {
+  getPaginatedComplianceRecords,
+} = require('../repositories/compliance-record-repository');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
-const { transformPaginatedComplianceRecordResults } = require('../transformers/compliance-record-transfomer');
+const {
+  transformPaginatedComplianceRecordResults,
+} = require('../transformers/compliance-record-transfomer');
 const AppError = require('../utils/AppError');
 
 /**
@@ -35,14 +39,14 @@ const AppError = require('../utils/AppError');
  * @throws {AppError} ServiceError when the compliance records cannot be fetched.
  */
 const fetchPaginatedComplianceRecordsService = async ({
-                                                        filters = {},
-                                                        page = 1,
-                                                        limit = 10,
-                                                        sortBy = 'cr.created_at', // MUST be SQL-safe column
-                                                        sortOrder = 'DESC',
-                                                      }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'cr.created_at', // MUST be SQL-safe column
+  sortOrder = 'DESC',
+}) => {
   const context = 'compliance-service/fetchPaginatedComplianceRecordsService';
-  
+
   try {
     // ---------------------------------------------------------
     // Step 1 — Query raw data from repository
@@ -51,10 +55,10 @@ const fetchPaginatedComplianceRecordsService = async ({
       filters,
       page,
       limit,
-      sortBy,     // SQL-safe column
+      sortBy, // SQL-safe column
       sortOrder,
     });
-    
+
     // ---------------------------------------------------------
     // Step 2 — Handle empty result
     // ---------------------------------------------------------
@@ -65,7 +69,7 @@ const fetchPaginatedComplianceRecordsService = async ({
         pagination: { page, limit },
         sort: { sortBy, sortOrder },
       });
-      
+
       return {
         data: [],
         pagination: {
@@ -76,12 +80,12 @@ const fetchPaginatedComplianceRecordsService = async ({
         },
       };
     }
-    
+
     // ---------------------------------------------------------
     // Step 3 — Transform results
     // ---------------------------------------------------------
     const result = transformPaginatedComplianceRecordResults(rawResult);
-    
+
     // ---------------------------------------------------------
     // Step 4 — Log success
     // ---------------------------------------------------------
@@ -91,24 +95,19 @@ const fetchPaginatedComplianceRecordsService = async ({
       pagination: result.pagination,
       sort: { sortBy, sortOrder },
     });
-    
+
     return result;
-    
   } catch (error) {
     // ---------------------------------------------------------
     // Step 5 — Log + rethrow
     // ---------------------------------------------------------
-    logSystemException(
-      error,
-      'Failed to fetch paginated compliance records',
-      {
-        context,
-        filters,
-        pagination: { page, limit },
-        sort: { sortBy, sortOrder },
-      },
-    );
-    
+    logSystemException(error, 'Failed to fetch paginated compliance records', {
+      context,
+      filters,
+      pagination: { page, limit },
+      sort: { sortBy, sortOrder },
+    });
+
     throw AppError.serviceError(
       'Could not fetch compliance records. Please try again later.',
       { context }

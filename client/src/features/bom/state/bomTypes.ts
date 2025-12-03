@@ -172,8 +172,7 @@ export interface FetchBomsParams extends PaginationParams, SortConfig {
  * loading, and error handling, while adding module-specific fields
  * like filters and sort configuration.
  */
-export interface PaginatedBomStateWithFilters
-  extends ReduxPaginatedState<BomListItem> {
+export interface PaginatedBomStateWithFilters extends ReduxPaginatedState<BomListItem> {
   /** Current applied filters for the BOM list (e.g., status, brand, productName). */
   filters: FetchBomsParams['filters'];
 }
@@ -649,8 +648,7 @@ export interface StatusRecord {
  * - BOM Material Supply Details Page
  * - BOM Cost Summary / Supplier Breakdown components
  */
-export interface BomMaterialSupplyDetailsState
-  extends AsyncState<BomMaterialSupplyDetailsResponse | null> {
+export interface BomMaterialSupplyDetailsState extends AsyncState<BomMaterialSupplyDetailsResponse | null> {
   /**
    * The currently selected BOM ID whose supply details are loaded.
    * Useful for tracking active context between different BOM views.
@@ -944,8 +942,7 @@ export interface MaterialBatch {
  * - Production Planning and Readiness dashboards
  * - Manufacturing Preparation / Readiness Reports
  */
-export interface BomProductionReadinessState
-  extends AsyncState<BomProductionReadinessResponse | null> {
+export interface BomProductionReadinessState extends AsyncState<BomProductionReadinessResponse | null> {
   /**
    * The currently selected BOM ID whose readiness summary is being viewed.
    * Helps maintain UI context between BOM overview and readiness pages.

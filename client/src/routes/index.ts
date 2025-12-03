@@ -46,6 +46,11 @@ export const routes = [
     ],
   },
   {
+    path: '/products',
+    component: lazy(() => import('@features/product/pages/ProductListPage')),
+    meta: { requiresAuth: true, title: 'Product List', showInSidebar: true },
+  },
+  {
     path: '/product-catalog',
     component: lazy(() => import('@features/sku/pages/ProductCatalogPage')),
     meta: { requiresAuth: true, title: 'Product Catalog', showInSidebar: true },
@@ -56,6 +61,24 @@ export const routes = [
     meta: {
       requiresAuth: true,
       title: 'Sku Details',
+      showInSidebar: false,
+    },
+  },
+  {
+    path: '/skus',
+    component: lazy(() => import('@features/sku/pages/SkuListPage')),
+    meta: {
+      requiresAuth: true,
+      title: 'Sku List',
+      showInSidebar: true,
+    },
+  },
+  {
+    path: '/skus/new',
+    component: lazy(() => import('@features/sku/pages/CreateSkuPage')),
+    meta: {
+      requiresAuth: true,
+      title: 'Create SKU FORM',
       showInSidebar: false,
     },
   },
@@ -312,9 +335,7 @@ export const routes = [
     path: '/inventory-allocations/review/:orderId',
     component: lazy(
       () =>
-        import(
-          '@features/inventoryAllocation/pages/InventoryAllocationReviewPage'
-        )
+        import('@features/inventoryAllocation/pages/InventoryAllocationReviewPage')
     ),
     meta: {
       requiresAuth: true,
@@ -339,9 +360,7 @@ export const routes = [
     path: '/fulfillments',
     component: lazy(
       () =>
-        import(
-          '@features/outboundFulfillment/pages/OutboundFulfillmentsListPage'
-        )
+        import('@features/outboundFulfillment/pages/OutboundFulfillmentsListPage')
     ),
     meta: {
       requiresAuth: true,
@@ -354,9 +373,7 @@ export const routes = [
     path: '/fulfillments/outbound-shipment/:shipmentId',
     component: lazy(
       () =>
-        import(
-          '@features/outboundFulfillment/pages/OutboundShipmentDetailsPage'
-        )
+        import('@features/outboundFulfillment/pages/OutboundShipmentDetailsPage')
     ),
     meta: {
       requiresAuth: true,

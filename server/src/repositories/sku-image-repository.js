@@ -17,20 +17,29 @@ const AppError = require('../utils/AppError');
 const assertNoExistingSkuImages = async (skuId, client) => {
   const context = 'sku-image-service/assertNoExistingSkuImages';
   const sql = `SELECT 1 FROM sku_images WHERE sku_id = $1 LIMIT 1;`;
-  
+
   try {
     const { rows } = await query(sql, [skuId], client);
-    
+
     if (rows.length > 0) {
-      logSystemInfo('Existing SKU images found — upload blocked.', { context, skuId });
+      logSystemInfo('Existing SKU images found — upload blocked.', {
+        context,
+        skuId,
+      });
       throw AppError.validationError(
         `Images already exist for this SKU (${skuId}). To update, use the replace route instead.`
       );
     }
-    
-    logSystemInfo('No existing SKU images found, proceeding with upload.', { context, skuId });
+
+    logSystemInfo('No existing SKU images found, proceeding with upload.', {
+      context,
+      skuId,
+    });
   } catch (error) {
-    logSystemException(error, 'Failed to check existing SKU images.', { context, skuId });
+    logSystemException(error, 'Failed to check existing SKU images.', {
+      context,
+      skuId,
+    });
     throw AppError.databaseError(
       'Failed to query sku_images table during existence check.',
       { cause: error }
@@ -53,7 +62,7 @@ const assertNoExistingSkuImages = async (skuId, client) => {
  */
 const insertSkuImagesBulk = async (skuId, images, createdBy, client) => {
   if (!Array.isArray(images) || images.length === 0) return [];
-  
+
   const columns = [
     'sku_id',
     'image_url',
@@ -65,7 +74,7 @@ const insertSkuImagesBulk = async (skuId, images, createdBy, client) => {
     'is_primary',
     'uploaded_by',
   ];
-  
+
   const rows = images.map((img, idx) => [
     skuId,
     img.image_url,
@@ -77,10 +86,10 @@ const insertSkuImagesBulk = async (skuId, images, createdBy, client) => {
     img.is_primary ?? idx === 0, // default first as primary
     img.uploaded_by || createdBy,
   ]);
-  
+
   // Conflict rule: avoid duplicate image for same SKU
   const conflictColumns = ['sku_id', 'image_url'];
-  
+
   // Strategy: if same image re-inserted, refresh metadata & timestamp
   const updateStrategies = {
     alt_text: 'overwrite',
@@ -88,7 +97,7 @@ const insertSkuImagesBulk = async (skuId, images, createdBy, client) => {
     is_primary: 'overwrite',
     uploaded_at: 'overwrite', // applies NOW() via applyUpdateRule()
   };
-  
+
   try {
     const result = await bulkInsert(
       'sku_images',
@@ -100,13 +109,13 @@ const insertSkuImagesBulk = async (skuId, images, createdBy, client) => {
       { context: 'sku-image-repository/insertSkuImagesBulk' },
       '*'
     );
-    
+
     logSystemInfo('Successfully inserted or updated SKU images', {
       context: 'sku-image-repository/insertSkuImagesBulk',
       skuId,
       insertedCount: result.length,
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to insert SKU images', {
@@ -114,8 +123,10 @@ const insertSkuImagesBulk = async (skuId, images, createdBy, client) => {
       skuId,
       imageCount: images.length,
     });
-    
-    throw AppError.databaseError('Failed to insert SKU images', { cause: error });
+
+    throw AppError.databaseError('Failed to insert SKU images', {
+      cause: error,
+    });
   }
 };
 
@@ -179,7 +190,7 @@ const insertSkuImagesBulk = async (skuId, images, createdBy, client) => {
  */
 const getSkuImagesBySkuId = async (skuId) => {
   const context = 'sku-image-repository/getSkuImagesBySkuId';
-  
+
   // ------------------------------------------------------------
   // SQL: Basic fetch from sku_images (no business slicing here)
   // ------------------------------------------------------------
@@ -206,10 +217,10 @@ const getSkuImagesBySkuId = async (skuId) => {
       is_primary DESC,
       display_order ASC
   `;
-  
+
   try {
     const { rows } = await query(sql, [skuId]);
-    
+
     if (rows.length === 0) {
       logSystemInfo('No SKU images found', {
         context,
@@ -217,13 +228,13 @@ const getSkuImagesBySkuId = async (skuId) => {
       });
       return [];
     }
-    
+
     logSystemInfo('Fetched SKU images successfully', {
       context,
       skuId,
       count: rows.length,
     });
-    
+
     return rows;
   } catch (error) {
     logSystemException(error, 'Failed to fetch SKU images', {
@@ -231,7 +242,7 @@ const getSkuImagesBySkuId = async (skuId) => {
       skuId,
       error: error.message,
     });
-    
+
     throw AppError.databaseError('Failed to fetch SKU images.', {
       context,
       details: error.message,

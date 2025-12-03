@@ -1,4 +1,5 @@
 const { getFullName } = require('../utils/name-utils');
+
 /**
  * @function
  * @description
@@ -77,32 +78,32 @@ const transformSkuImageResults = (records = []) =>
  */
 const transformSkuImage = (row) => {
   if (!row) return null;
-  
+
   // --- Metadata block (optional) ---
   const metadata = row.metadata
     ? {
-      sizeKb: row.metadata.sizeKb,
-      format: row.metadata.format,
-      displayOrder: row.metadata.displayOrder,
-    }
+        sizeKb: row.metadata.sizeKb,
+        format: row.metadata.format,
+        displayOrder: row.metadata.displayOrder,
+      }
     : undefined;
-  
+
   // --- Audit block (optional) ---
   const audit = row.audit
     ? {
-      uploadedAt: row.audit.uploadedAt,
-      uploadedBy: row.audit.uploadedBy
-        ? {
-          id: row.audit.uploadedBy.id,
-          fullName: getFullName(
-            row.audit.uploadedBy.firstname,
-            row.audit.uploadedBy.lastname
-          ),
-        }
-        : null,
-    }
+        uploadedAt: row.audit.uploadedAt,
+        uploadedBy: row.audit.uploadedBy
+          ? {
+              id: row.audit.uploadedBy.id,
+              name: getFullName(
+                row.audit.uploadedBy.firstname,
+                row.audit.uploadedBy.lastname
+              ),
+            }
+          : null,
+      }
     : undefined;
-  
+
   // --- Final DTO ---
   return {
     id: row.id,

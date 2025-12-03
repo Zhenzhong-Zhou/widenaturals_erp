@@ -1,6 +1,8 @@
 const wrapAsync = require('../utils/wrap-async');
 const { logInfo } = require('../utils/logger-helper');
-const { fetchPaginatedComplianceRecordsService } = require('../services/compliance-record-service');
+const {
+  fetchPaginatedComplianceRecordsService,
+} = require('../services/compliance-record-service');
 
 /**
  * Controller: GET /compliance-records
@@ -36,14 +38,15 @@ const { fetchPaginatedComplianceRecordsService } = require('../services/complian
  * @returns {Promise<void>}
  */
 const getPaginatedComplianceRecordsController = wrapAsync(async (req, res) => {
-  const context = 'compliance-controller/fetchPaginatedComplianceRecordsController';
+  const context =
+    'compliance-controller/fetchPaginatedComplianceRecordsController';
   const startTime = Date.now();
-  
+
   // --------------------------------------
   // Extract normalized query parameters
   // --------------------------------------
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
-  
+
   // --------------------------------------
   // Log incoming request metadata
   // --------------------------------------
@@ -54,7 +57,7 @@ const getPaginatedComplianceRecordsController = wrapAsync(async (req, res) => {
     sort: { sortBy, sortOrder },
     userId: req.user?.id,
   });
-  
+
   // --------------------------------------
   // Fetch paginated compliance records
   // --------------------------------------
@@ -65,9 +68,9 @@ const getPaginatedComplianceRecordsController = wrapAsync(async (req, res) => {
     sortBy,
     sortOrder,
   });
-  
+
   const elapsedMs = Date.now() - startTime;
-  
+
   // --------------------------------------
   // Log completion metadata
   // --------------------------------------
@@ -78,7 +81,7 @@ const getPaginatedComplianceRecordsController = wrapAsync(async (req, res) => {
     sort: { sortBy, sortOrder },
     elapsedMs,
   });
-  
+
   // --------------------------------------
   // Send API response
   // --------------------------------------

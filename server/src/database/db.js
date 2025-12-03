@@ -846,16 +846,25 @@ const lockRow = async (
     try {
       const result = await query(primaryKeySql, [table], client);
       if (result.rows.length === 0) {
-        throw AppError.validationError(`No primary key found for table: ${maskedTable}`);
+        throw AppError.validationError(
+          `No primary key found for table: ${maskedTable}`
+        );
       }
       tablePrimaryKey = result.rows[0].primary_key;
       primaryKeyCache.set(table, tablePrimaryKey); // Cache result
     } catch (error) {
-      logLockRowError(error, primaryKeySql, [table], maskedTable, 'PRIMARY_KEY_LOOKUP', meta);
+      logLockRowError(
+        error,
+        primaryKeySql,
+        [table],
+        maskedTable,
+        'PRIMARY_KEY_LOOKUP',
+        meta
+      );
       throw error;
     }
   }
-  
+
   // Step 2: Attempt to lock the row
   const sql = `SELECT * FROM ${table} WHERE ${tablePrimaryKey} = $1 ${lockMode}`;
   try {
