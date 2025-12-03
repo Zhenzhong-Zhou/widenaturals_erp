@@ -10,8 +10,8 @@ import {
   selectSkuThumbnailImages,
   selectActivePricing,
   selectSkuComplianceRecords,
+  getSkuDetailByIdThunk,
 } from '@features/sku/state';
-import { getSkuDetailByIdThunk } from '@features/sku/state/skuThunks';
 import { resetSkuDetailState } from '@features/sku/state/skuDetailSlice';
 
 /**
