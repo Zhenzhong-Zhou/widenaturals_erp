@@ -2,18 +2,23 @@ const {
   getPaginatedProducts,
   getProductDetailsById,
   updateProductStatus,
-  updateProductInfo, insertProductsBulk,
+  updateProductInfo,
+  insertProductsBulk,
 } = require('../repositories/product-repository');
 const AppError = require('../utils/AppError');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const {
   transformPaginatedProductResults,
-  transformProductDetail, transformProductList
+  transformProductDetail,
+  transformProductList,
 } = require('../transformers/product-transformer');
 const { withTransaction, lockRow } = require('../database/db');
 const { checkStatusExists } = require('../repositories/status-repository');
-const { assertValidProductStatusTransition, filterUpdatableProductFields, validateProductListBusiness,
-  prepareProductInsertPayloads
+const {
+  assertValidProductStatusTransition,
+  filterUpdatableProductFields,
+  validateProductListBusiness,
+  prepareProductInsertPayloads,
 } = require('../business/product-business');
 
 /**
@@ -70,12 +75,12 @@ const { assertValidProductStatusTransition, filterUpdatableProductFields, valida
  * ```
  */
 const fetchPaginatedProductsService = async ({
-                                               filters = {},
-                                               page = 1,
-                                               limit = 10,
-                                               sortBy = 'created_at',
-                                               sortOrder = 'DESC',
-                                             }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'created_at',
+  sortOrder = 'DESC',
+}) => {
   try {
     // Step 1: Query raw paginated product rows from repository
     const rawResult = await getPaginatedProducts({
@@ -85,7 +90,7 @@ const fetchPaginatedProductsService = async ({
       sortBy,
       sortOrder,
     });
-    
+
     // Step 2: Handle no results
     if (!rawResult || rawResult.data.length === 0) {
       logSystemInfo('No products found', {
@@ -94,7 +99,7 @@ const fetchPaginatedProductsService = async ({
         pagination: { page, limit },
         sort: { sortBy, sortOrder },
       });
-      
+
       return {
         data: [],
         pagination: {
@@ -105,10 +110,10 @@ const fetchPaginatedProductsService = async ({
         },
       };
     }
-    
+
     // Step 3: Transform raw SQL rows into clean API-ready objects
     const result = transformPaginatedProductResults(rawResult);
-    
+
     // Step 4: Log success
     logSystemInfo('Fetched paginated product records successfully', {
       context: 'product-service/fetchPaginatedProductsService',
@@ -116,7 +121,7 @@ const fetchPaginatedProductsService = async ({
       pagination: result.pagination,
       sort: { sortBy, sortOrder },
     });
-    
+
     return result;
   } catch (error) {
     // Step 5: Log exception and rethrow as service-level error
@@ -126,7 +131,7 @@ const fetchPaginatedProductsService = async ({
       pagination: { page, limit },
       sort: { sortBy, sortOrder },
     });
-    
+
     throw AppError.serviceError(
       'Could not fetch products. Please try again later.',
       {
@@ -172,33 +177,33 @@ const fetchPaginatedProductsService = async ({
  */
 const fetchProductDetailsService = async (productId) => {
   const logContext = 'product-service/fetchProductDetailsService';
-  
+
   try {
     // Step 1: Fetch raw product row from repository
     const rawProduct = await getProductDetailsById(productId);
-    
+
     // Step 2: Handle not found
     if (!rawProduct) {
       logSystemInfo('No product found for given ID', {
         context: logContext,
         productId,
       });
-      
+
       throw AppError.notFoundError('Product not found', {
         context: logContext,
         productId,
       });
     }
-    
+
     // Step 3: Transform into API-ready format
     const product = transformProductDetail(rawProduct);
-    
+
     // Step 4: Log success
     logSystemInfo('Fetched product detail successfully', {
       context: logContext,
       productId,
     });
-    
+
     return product;
   } catch (error) {
     // Step 5: Log exception and rethrow as service-level error
@@ -207,13 +212,16 @@ const fetchProductDetailsService = async (productId) => {
       productId,
       error: error.message,
     });
-    
+
     // Bubble up structured service error
-    throw AppError.serviceError('Could not fetch product details. Please try again later.', {
-      context: logContext,
-      productId,
-      details: error.message,
-    });
+    throw AppError.serviceError(
+      'Could not fetch product details. Please try again later.',
+      {
+        context: logContext,
+        productId,
+        details: error.message,
+      }
+    );
   }
 };
 
@@ -241,33 +249,40 @@ const fetchProductDetailsService = async (productId) => {
 const updateProductStatusService = async ({ productId, statusId, user }) => {
   return withTransaction(async (client) => {
     const userId = user.id;
-    
+
     // Step 1: Lock product
     const product = await lockRow(client, 'products', productId, 'FOR UPDATE', {
       context: 'product-service/updateProductStatusService',
     });
-    
+
     // Step 2: Validate status
     const statusExists = await checkStatusExists(statusId, client);
     if (!statusExists) {
       throw AppError.validationError('Invalid or inactive status ID.');
     }
-    
+
     // Step 3: Basic validation
     if (product.status_id === statusId) {
       throw AppError.validationError('Product is already in this status.');
     }
-    
+
     // Optional: Step 4 - Apply business rule validation
     assertValidProductStatusTransition(product.status_id, statusId);
-    
+
     // Step 5: Update product status
-    const updated = await updateProductStatus(productId, statusId, userId, client);
-    
+    const updated = await updateProductStatus(
+      productId,
+      statusId,
+      userId,
+      client
+    );
+
     if (!updated) {
-      throw AppError.conflictError('Concurrent update detected — product status not updated.');
+      throw AppError.conflictError(
+        'Concurrent update detected — product status not updated.'
+      );
     }
-    
+
     // Step 6: Log success
     logSystemInfo('Updated product status successfully', {
       context: 'product-service/updateProductStatusService',
@@ -276,7 +291,7 @@ const updateProductStatusService = async ({ productId, statusId, user }) => {
       toStatusId: statusId,
       userId,
     });
-    
+
     return updated;
   });
 };
@@ -309,28 +324,33 @@ const updateProductStatusService = async ({ productId, statusId, user }) => {
 const updateProductInfoService = async ({ productId, updates, user }) => {
   return withTransaction(async (client) => {
     const userId = user.id;
-    
+
     // Step 1: Lock product row to prevent concurrent edits
     const product = await lockRow(client, 'products', productId, 'FOR UPDATE', {
       context: 'product-service/updateProductInfoService',
     });
-    
+
     if (!product) {
       throw AppError.notFoundError('Product not found.');
     }
-    
+
     // Step 2: Validate and filter allowed fields (handled by business layer)
     const filteredUpdates = filterUpdatableProductFields(updates);
-    
+
     // Step 3: Perform update atomically
-    const updated = await updateProductInfo(productId, filteredUpdates, userId, client);
-    
+    const updated = await updateProductInfo(
+      productId,
+      filteredUpdates,
+      userId,
+      client
+    );
+
     if (!updated) {
       throw AppError.conflictError(
         'Concurrent update detected — product information not updated.'
       );
     }
-    
+
     // Step 4: Log success for audit trace
     logSystemInfo('Product information updated successfully', {
       context: 'product-service/updateProductInfoService',
@@ -338,7 +358,7 @@ const updateProductInfoService = async ({ productId, updates, user }) => {
       updatedFields: Object.keys(filteredUpdates),
       userId,
     });
-    
+
     // Step 5: Return standardized success payload
     return updated;
   });
@@ -383,24 +403,24 @@ const createProductsService = async (productList, user) => {
   const context = 'product-service/createProductsService';
   const userId = user.id;
   const startTime = Date.now();
-  
+
   return withTransaction(async (client) => {
     try {
       // ---------------------------
       // 1. Business validation
       // ---------------------------
       validateProductListBusiness(productList);
-      
+
       // ---------------------------
       // 2. Prepare normalized insert payloads
       // ---------------------------
       const insertPayloads = prepareProductInsertPayloads(productList, userId);
-      
+
       // ---------------------------
       // 3. Insert in bulk
       // ---------------------------
       const inserted = await insertProductsBulk(insertPayloads, client);
-      
+
       // ---------------------------
       // 4. Logging
       // ---------------------------
@@ -410,11 +430,13 @@ const createProductsService = async (productList, user) => {
         insertedCount: inserted.length,
         elapsedMs: Date.now() - startTime,
       });
-      
+
       return transformProductList(inserted);
     } catch (error) {
-      logSystemException(error, 'Failed to create products in bulk', { context });
-      
+      logSystemException(error, 'Failed to create products in bulk', {
+        context,
+      });
+
       throw AppError.databaseError('Failed to create products.', {
         cause: error,
         context,

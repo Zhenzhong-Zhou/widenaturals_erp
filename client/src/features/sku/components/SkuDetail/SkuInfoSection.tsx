@@ -33,7 +33,7 @@ const SkuInfoSection: FC<SkuInfoSectionProps> = ({ flattened }) => {
             ]}
           />
         </DetailsGridItem>
-        
+
         {/* --- Dimensions --- */}
         <DetailsGridItem fullWidth>
           <MemoizedDetailsSection
@@ -42,17 +42,17 @@ const SkuInfoSection: FC<SkuInfoSectionProps> = ({ flattened }) => {
               { label: 'Length (cm)', value: flattened.lengthCm },
               { label: 'Width (cm)', value: flattened.widthCm },
               { label: 'Height (cm)', value: flattened.heightCm },
-              
+
               { label: 'Length (in)', value: flattened.lengthInch },
               { label: 'Width (in)', value: flattened.widthInch },
               { label: 'Height (in)', value: flattened.heightInch },
-              
+
               { label: 'Weight (g)', value: flattened.weightG },
               { label: 'Weight (lb)', value: flattened.weightLb },
             ]}
           />
         </DetailsGridItem>
-        
+
         {/* --- Status Info --- */}
         <DetailsGridItem fullWidth>
           <MemoizedDetailsSection
@@ -61,7 +61,7 @@ const SkuInfoSection: FC<SkuInfoSectionProps> = ({ flattened }) => {
               {
                 label: 'Status',
                 value: flattened.statusName,
-                format: formatLabel
+                format: formatLabel,
               },
               {
                 label: 'Status Date',
@@ -71,7 +71,7 @@ const SkuInfoSection: FC<SkuInfoSectionProps> = ({ flattened }) => {
             ]}
           />
         </DetailsGridItem>
-        
+
         {/* --- Audit Info --- */}
         <DetailsGridItem fullWidth>
           <MemoizedDetailsSection

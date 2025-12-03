@@ -14,7 +14,8 @@ const {
   fetchPaginatedPricingLookupService,
   fetchPaginatedPackagingMaterialLookupService,
   fetchSkuCodeBaseLookupService,
-  fetchProductLookupService, fetchStatusLookupService,
+  fetchProductLookupService,
+  fetchStatusLookupService,
 } = require('../services/lookup-service');
 const { logInfo } = require('../utils/logger-helper');
 
@@ -703,15 +704,15 @@ const getPackagingMaterialLookupController = wrapAsync(async (req, res) => {
 const getSkuCodeBaseLookupController = wrapAsync(async (req, res) => {
   const user = req.user;
   const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
-  
+
   const dropdownResult = await fetchSkuCodeBaseLookupService(user, {
     filters,
     limit,
     offset,
   });
-  
+
   const { items, hasMore } = dropdownResult;
-  
+
   return res.status(200).json({
     success: true,
     message: 'Successfully retrieved SKU Code Base lookup',
@@ -756,15 +757,15 @@ const getSkuCodeBaseLookupController = wrapAsync(async (req, res) => {
 const getProductLookupController = wrapAsync(async (req, res) => {
   const user = req.user;
   const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
-  
+
   const dropdownResult = await fetchProductLookupService(user, {
     filters,
     limit,
     offset,
   });
-  
+
   const { items, hasMore } = dropdownResult;
-  
+
   return res.status(200).json({
     success: true,
     message: 'Successfully retrieved Product lookup',
@@ -809,16 +810,16 @@ const getProductLookupController = wrapAsync(async (req, res) => {
 const getStatusLookupController = wrapAsync(async (req, res) => {
   const user = req.user;
   const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
-  
+
   // Service handles filtering, ACL enforcement, enrichment, pagination
   const dropdownResult = await fetchStatusLookupService(user, {
     filters,
     limit,
     offset,
   });
-  
+
   const { items, hasMore } = dropdownResult;
-  
+
   return res.status(200).json({
     success: true,
     message: 'Successfully retrieved Status lookup',

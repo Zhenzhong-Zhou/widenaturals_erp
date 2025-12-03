@@ -1,24 +1,27 @@
 import { type FC, useCallback } from 'react';
 import MultiItemForm from '@components/common/MultiItemForm';
-import type { BulkSkuRow, CreateSkuFormProps } from '@features/sku/types/skuFormTypes';
+import type {
+  BulkSkuRow,
+  CreateSkuFormProps,
+} from '@features/sku/types/skuFormTypes';
 import { buildBulkSkuFields } from '@features/sku/utils/skuFieldFactory';
 import { buildBulkSkuPayload } from '@features/sku/utils/buildSingleSkuPayload';
 
 const CreateSkuBulkForm: FC<CreateSkuFormProps> = ({
-                                        allowManualBrandCategory,
-                                        allowManualVariantCode,
-                                        allowManualRegionCode,
-                                        allowManualMarketRegion,
-                                        onSubmit,
-                                        skuCodeBase,
-                                        product,
-                                        skuCodeBaseDropdown,
-                                        productDropdown,
-                                        handleSkuCodeBaseSearch,
-                                        handleProductSearch,
-                                        parseSkuCodeBaseLabel,
-                                        isCreating,
-                                      }) => {
+  allowManualBrandCategory,
+  allowManualVariantCode,
+  allowManualRegionCode,
+  allowManualMarketRegion,
+  onSubmit,
+  skuCodeBase,
+  product,
+  skuCodeBaseDropdown,
+  productDropdown,
+  handleSkuCodeBaseSearch,
+  handleProductSearch,
+  parseSkuCodeBaseLabel,
+  isCreating,
+}) => {
   // -------------------------------------------------------------------------
   // Fields
   // -------------------------------------------------------------------------
@@ -35,18 +38,18 @@ const CreateSkuBulkForm: FC<CreateSkuFormProps> = ({
     handleProductSearch,
     parseSkuCodeBaseLabel,
   });
-  
+
   // -------------------------------------------------------------------------
   // Submit handler
   // -------------------------------------------------------------------------
   const handleBulkInternal = useCallback(
     async (rows: BulkSkuRow[]) => {
       const payload = rows.map(buildBulkSkuPayload); // convert rows → SKUs
-      await onSubmit(payload);                        // call parent handler
+      await onSubmit(payload); // call parent handler
     },
     [onSubmit]
   );
-  
+
   return (
     <MultiItemForm
       fields={fields}

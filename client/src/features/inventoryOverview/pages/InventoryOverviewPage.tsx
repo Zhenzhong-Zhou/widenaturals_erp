@@ -35,15 +35,11 @@ import {
 // Lazy loaded panels
 const LocationInventorySummaryPanel = lazy(
   () =>
-    import(
-      '@features/inventoryOverview/components/LocationInventorySummaryPanel'
-    )
+    import('@features/inventoryOverview/components/LocationInventorySummaryPanel')
 );
 const WarehouseInventorySummaryPanel = lazy(
   () =>
-    import(
-      '@features/inventoryOverview/components/WarehouseInventorySummaryPanel'
-    )
+    import('@features/inventoryOverview/components/WarehouseInventorySummaryPanel')
 );
 const RecentInventoryActivitySection = lazy(
   () => import('@features/report/components/RecentInventoryActivitySection')

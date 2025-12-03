@@ -17,12 +17,12 @@ const productSortOptions: { label: string; value: ProductSortField }[] = [
   { label: 'Brand', value: 'brand' },
   { label: 'Category', value: 'category' },
   { label: 'Description', value: 'description' },
-  
+
   // ---- Status fields ----
   { label: 'Status Name', value: 'statusName' },
   { label: 'Status ID', value: 'statusId' },
   { label: 'Status Date', value: 'statusDate' },
-  
+
   // ---- Audit fields ----
   { label: 'Created At', value: 'createdAt' },
   { label: 'Updated At', value: 'updatedAt' },
@@ -30,17 +30,17 @@ const productSortOptions: { label: string; value: ProductSortField }[] = [
   { label: 'Created By (Last Name)', value: 'createdByLastName' },
   { label: 'Updated By (First Name)', value: 'updatedByFirstName' },
   { label: 'Updated By (Last Name)', value: 'updatedByLastName' },
-  
+
   // ---- Default natural sort ----
   { label: 'Default (Natural Sort)', value: 'defaultNaturalSort' },
 ];
 
 const ProductSortControls: FC<ProductSortControlsProps> = ({
-                                                             sortBy,
-                                                             sortOrder,
-                                                             onSortByChange,
-                                                             onSortOrderChange,
-                                                           }) => {
+  sortBy,
+  sortOrder,
+  onSortByChange,
+  onSortOrderChange,
+}) => {
   return (
     <SortControls
       sortBy={sortBy}

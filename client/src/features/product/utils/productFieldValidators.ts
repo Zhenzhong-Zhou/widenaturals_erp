@@ -36,5 +36,7 @@ const BRAND_CATEGORY_REGEX =
  * getSeriesBrandCategoryHelperText("herbal natural", true)
  * // => "Each word must start with a capital letter..."
  */
-export const getSeriesBrandCategoryHelperText = (value: string, required: boolean) =>
-  getPatternHelperText(value, required, BRAND_CATEGORY_REGEX);
+export const getSeriesBrandCategoryHelperText = (
+  value: string,
+  required: boolean
+) => getPatternHelperText(value, required, BRAND_CATEGORY_REGEX);

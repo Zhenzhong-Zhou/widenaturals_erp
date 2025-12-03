@@ -6,7 +6,7 @@ const {
   validateOptionalUUID,
   validateUUID,
   validateString,
-  validateUUIDOrUUIDArrayOptional
+  validateUUIDOrUUIDArrayOptional,
 } = require('./general-validators');
 const { updateStatusIdSchema } = require('./status-validators');
 
@@ -82,10 +82,10 @@ const productQuerySchema = paginationSchema
     brand: validateOptionalString('Brand name (partial match allowed)'),
     category: validateOptionalString('Category name (partial match allowed)'),
     series: validateOptionalString('Series (partial match allowed)'),
-    
+
     createdBy: validateOptionalUUID('Product Created By User ID'),
     updatedBy: validateOptionalUUID('Product Updated By User ID'),
-    
+
     // --- Keyword search ---
     keyword: validateOptionalString(
       'Keyword for fuzzy matching across name, brand, category, and status'
@@ -156,12 +156,12 @@ const updateProductStatusSchema = updateStatusIdSchema;
  * → "At least one product field must be provided for update."
  */
 const productUpdateSchema = Joi.object({
-    name: validateOptionalString('Product Name', 150),
-    series: validateOptionalString('Series', 100),
-    brand: validateOptionalString('Brand', 100),
-    category: validateOptionalString('Category', 100),
-    description: Joi.string().trim().allow('').optional(),
-  })
+  name: validateOptionalString('Product Name', 150),
+  series: validateOptionalString('Series', 100),
+  brand: validateOptionalString('Brand', 100),
+  category: validateOptionalString('Category', 100),
+  description: Joi.string().trim().allow('').optional(),
+})
   .or('name', 'series', 'brand', 'category', 'description') // Require ≥1 field
   .messages({
     'object.missing': 'At least one product field must be provided for update.',
@@ -192,7 +192,7 @@ const productUpdateSchema = Joi.object({
  */
 const createProductSchema = Joi.object({
   name: validateString('Product Name', 2, 255),
-  
+
   series: Joi.string()
     .trim()
     .allow(null, '')
@@ -200,10 +200,9 @@ const createProductSchema = Joi.object({
     .min(2)
     .max(100)
     .messages({
-      'string.pattern.base':
-        `"series" must start each word with an uppercase letter and may include letters, digits, and symbols (', &, +, /, -).`,
+      'string.pattern.base': `"series" must start each word with an uppercase letter and may include letters, digits, and symbols (', &, +, /, -).`,
     }),
-  
+
   brand: Joi.string()
     .trim()
     .pattern(BRAND_CATEGORY_REGEX)
@@ -211,10 +210,9 @@ const createProductSchema = Joi.object({
     .max(100)
     .required()
     .messages({
-      'string.pattern.base':
-        `"brand" must start each word with an uppercase letter and may include letters, digits, and symbols (', &, +, /, -).`,
+      'string.pattern.base': `"brand" must start each word with an uppercase letter and may include letters, digits, and symbols (', &, +, /, -).`,
     }),
-  
+
   category: Joi.string()
     .trim()
     .pattern(BRAND_CATEGORY_REGEX)
@@ -222,10 +220,9 @@ const createProductSchema = Joi.object({
     .max(100)
     .required()
     .messages({
-      'string.pattern.base':
-        `"category" must start each word with an uppercase letter and may include letters, digits, and symbols (', &, +, /, -).`,
+      'string.pattern.base': `"category" must start each word with an uppercase letter and may include letters, digits, and symbols (', &, +, /, -).`,
     }),
-  
+
   description: validateOptionalString('Description', 1000),
 });
 
@@ -266,11 +263,7 @@ const createProductSchema = Joi.object({
  *   - Product creation tooling (bulk import UI, admin tools, integration APIs)
  */
 const createProductBulkSchema = Joi.object({
-  products: Joi.array()
-    .items(createProductSchema)
-    .min(1)
-    .max(200)
-    .required(),
+  products: Joi.array().items(createProductSchema).min(1).max(200).required(),
 });
 
 module.exports = {

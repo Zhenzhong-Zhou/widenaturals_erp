@@ -23,14 +23,14 @@ import type { UpdateSkuStatusThunkArgs } from '@features/sku/state';
  */
 const useSkuStatus = () => {
   const dispatch = useAppDispatch();
-  
+
   // --- Selectors ---
   const data = useAppSelector(selectSkuStatusData);
   const loading = useAppSelector(selectSkuStatusLoading);
   const error = useAppSelector(selectSkuStatusError);
   const isSuccess = useAppSelector(selectSkuStatusSuccess);
   const updatedSkuId = useAppSelector(selectUpdatedSkuId);
-  
+
   // -----------------------------
   // Update handler
   // -----------------------------
@@ -40,14 +40,14 @@ const useSkuStatus = () => {
     },
     [dispatch]
   );
-  
+
   // -----------------------------
   // Reset handler
   // -----------------------------
   const reset = useCallback(() => {
     dispatch(resetSkuStatus());
   }, [dispatch]);
-  
+
   // -----------------------------
   // Memoized API surface
   // -----------------------------
@@ -59,20 +59,12 @@ const useSkuStatus = () => {
       error,
       isSuccess,
       updatedSkuId,
-      
+
       // actions
       updateStatus,
       reset,
     }),
-    [
-      data,
-      loading,
-      error,
-      isSuccess,
-      updatedSkuId,
-      updateStatus,
-      reset,
-    ]
+    [data, loading, error, isSuccess, updatedSkuId, updateStatus, reset]
   );
 };
 

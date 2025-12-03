@@ -4,24 +4,22 @@ import CustomTypography from '@components/common/CustomTypography';
 
 interface ResultBodyProps {
   icon?: ReactNode;
-  message: ReactNode;       // main header
-  details?: ReactNode;      // flexible body (string | JSX | list | object)
+  message: ReactNode; // main header
+  details?: ReactNode; // flexible body (string | JSX | list | object)
   align?: 'left' | 'center'; // optional alignment
 }
 
 const ResultBody: FC<ResultBodyProps> = ({
-                                           icon,
-                                           message,
-                                           details,
-                                           align = 'center',
-                                         }) => (
+  icon,
+  message,
+  details,
+  align = 'center',
+}) => (
   <Box style={{ textAlign: align, padding: '1rem' }}>
     {icon && <Box style={{ marginBottom: 12 }}>{icon}</Box>}
-    
-    <CustomTypography variant="h6">
-      {message}
-    </CustomTypography>
-    
+
+    <CustomTypography variant="h6">{message}</CustomTypography>
+
     {details && (
       <Box style={{ marginTop: 8 }}>
         {typeof details === 'string' ? (

@@ -22,9 +22,7 @@ import type {
 
 const LocationInventorySummaryDetailTable = lazy(
   () =>
-    import(
-      '@features/locationInventory/components/LocationInventorySummaryDetailTable'
-    )
+    import('@features/locationInventory/components/LocationInventorySummaryDetailTable')
 );
 
 interface LocationInventorySummaryTableProps {

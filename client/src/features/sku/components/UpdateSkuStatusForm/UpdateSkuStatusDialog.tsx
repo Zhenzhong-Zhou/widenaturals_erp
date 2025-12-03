@@ -29,41 +29,40 @@ import {
 interface UpdateSkuStatusDialogProps {
   /** Controls dialog visibility */
   open: boolean;
-  
+
   /** Called when the dialog is dismissed */
   onClose: () => void;
-  
+
   /**
    * Optional callback after successful status update.
    * Useful for refreshing parent pages.
    */
   onSuccess?: () => void;
-  
+
   /** SKU database ID (UUID) to update */
   skuId: string;
-  
+
   /** Human-readable SKU code (for UI display) */
   skuCode: string;
-  
+
   /** Dropdown-ready list of status options */
   statusDropdownOptions?: StatusLookupOption[];
-  
+
   /** Fetch lookup options (pagination, search, etc.) */
   fetchStatusDropdownOptions?: (params?: StatusLookupParams) => void;
-  
+
   /** Reset lookup options (clear state) */
   resetStatusDropdownOptions?: () => void;
-  
+
   /** Status lookup loading flag */
   statusLookupLoading?: boolean;
-  
+
   /** Status lookup error for dropdown */
   statusLookupError?: string | null;
-  
+
   /** Metadata for pagination (hasMore, totalCount, etc.) */
   statusLookupMeta?: LookupPaginationMeta;
 }
-
 
 /**
  * Dialog component for updating a SKU's status.
@@ -74,19 +73,18 @@ interface UpdateSkuStatusDialogProps {
  *   - Status selection form otherwise
  */
 const UpdateSkuStatusDialog = ({
-                                 open,
-                                 onClose,
-                                 onSuccess,
-                                 skuId,
-                                 skuCode,
-                                 statusDropdownOptions,
-                                 fetchStatusDropdownOptions,
-                                 resetStatusDropdownOptions,
-                                 statusLookupLoading,
-                                 statusLookupError,
-                                 statusLookupMeta,
-                               }: UpdateSkuStatusDialogProps) => {
-  
+  open,
+  onClose,
+  onSuccess,
+  skuId,
+  skuCode,
+  statusDropdownOptions,
+  fetchStatusDropdownOptions,
+  resetStatusDropdownOptions,
+  statusLookupLoading,
+  statusLookupError,
+  statusLookupMeta,
+}: UpdateSkuStatusDialogProps) => {
   /**
    * Internal slice-based status update state + actions
    */
@@ -98,7 +96,7 @@ const UpdateSkuStatusDialog = ({
     updateStatus,
     reset: resetSkuStatus,
   } = useSkuStatus();
-  
+
   /**
    * Close dialog + reset slice anytime dialog exits.
    */
@@ -106,7 +104,7 @@ const UpdateSkuStatusDialog = ({
     resetSkuStatus();
     onClose();
   };
-  
+
   /**
    * Submit handler: only pass minimal payload:
    *   { skuId, statusId }
@@ -117,13 +115,13 @@ const UpdateSkuStatusDialog = ({
         skuId,
         statusId: formData.statusId,
       });
-      
+
       // Parent can refresh lists, invalidate queries, etc.
       if (onSuccess) onSuccess();
     },
     [skuId, updateStatus, onSuccess]
   );
-  
+
   // ---------------------------------------------------------------------------
   // UI STATE 1: Success Mode
   // ---------------------------------------------------------------------------
@@ -137,7 +135,7 @@ const UpdateSkuStatusDialog = ({
       />
     );
   }
-  
+
   // ---------------------------------------------------------------------------
   // UI STATE 2: Error Mode
   // ---------------------------------------------------------------------------
@@ -151,7 +149,7 @@ const UpdateSkuStatusDialog = ({
       />
     );
   }
-  
+
   // ---------------------------------------------------------------------------
   // UI STATE 3: Default Form Mode
   // ---------------------------------------------------------------------------
@@ -165,7 +163,7 @@ const UpdateSkuStatusDialog = ({
       <CustomTypography variant="body2" sx={{ mb: 2 }}>
         Updating status for SKU: <strong>{skuCode}</strong>
       </CustomTypography>
-      
+
       <UpdateSkuStatusForm
         skuId={skuId}
         loading={updateStatusLoading}
@@ -177,7 +175,7 @@ const UpdateSkuStatusDialog = ({
         statusLookupError={statusLookupError}
         statusLookupMeta={statusLookupMeta}
       />
-      
+
       <CustomTypography variant="caption" sx={{ mt: 1 }} color="text.secondary">
         This change will be logged into the SKU audit history.
       </CustomTypography>

@@ -10,22 +10,22 @@ const SORTABLE_FIELDS = {
     brand: 'p.brand',
     category: 'p.category',
     description: 'p.description',
-    
+
     // Status-level fields (FROM status s)
     statusName: 's.name',
     statusId: 'p.status_id',
     statusDate: 'p.status_date',
-    
+
     // Audit timestamps (FROM products p)
     createdAt: 'p.created_at',
     updatedAt: 'p.updated_at',
-    
+
     // Audit user fields (FROM users cu/uu)
     createdByFirstName: 'cu.firstname',
     createdByLastName: 'cu.lastname',
     updatedByFirstName: 'uu.firstname',
     updatedByLastName: 'uu.lastname',
-    
+
     // Default fallback
     defaultNaturalSort: 'p.created_at',
   },
@@ -37,21 +37,21 @@ const SORTABLE_FIELDS = {
     countryCode: 's.country_code',
     marketRegion: 's.market_region',
     sizeLabel: 's.size_label',
-    
+
     // ---- Product-level fields ----
     productName: 'p.name',
     productSeries: 'p.series',
     brand: 'p.brand',
     category: 'p.category',
-    
+
     // ---- Status fields ----
     statusName: 'st.name',
     statusDate: 's.status_date',
-    
+
     // ---- Dates ----
     createdAt: 's.created_at',
     updatedAt: 's.updated_at',
-    
+
     // ---- Default fallback ----
     defaultNaturalSort: 's.created_at',
   },
@@ -64,7 +64,7 @@ const SORTABLE_FIELDS = {
     productName: 'p.name',
     skuCode: 's.sku',
     status: 'cr.status_id',
-    
+
     // keep sorting consistent and safe
     defaultNaturalSort: 'cr.created_at',
   },

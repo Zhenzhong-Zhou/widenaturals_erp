@@ -31,48 +31,39 @@ import SkuCodeBaseDropdown from '@features/lookup/components/SkuCodeBaseDropdown
  * - Single-SKU Create form
  * - Multi-item (bulk) SKU Create form
  */
-export const renderProductDropdown = (
-  args: ProductDropdownRenderArgs
-) => {
-  const {
-    value,
-    onChange,
-    required,
-    ctx,
-    getRowValues,
-    setRowValues,
-  } = args;
-  
+export const renderProductDropdown = (args: ProductDropdownRenderArgs) => {
+  const { value, onChange, required, ctx, getRowValues, setRowValues } = args;
+
   if (!onChange) return null;
-  
+
   const isBulk = !!getRowValues;
-  const row = isBulk ? getRowValues() ?? {} : null;
-  
+  const row = isBulk ? (getRowValues() ?? {}) : null;
+
   const inputValue = isBulk
-    ? row.__productInput ?? ""
+    ? (row.__productInput ?? '')
     : ctx.productDropdown.dropdownState.inputValue;
-  
+
   return (
     <ProductDropdown
-      value={value ?? ""}
+      value={value ?? ''}
       onChange={(id) => {
         onChange(id);
-        
+
         const match = ctx.product.options.find((opt) => opt.value === id);
-        
+
         if (isBulk && setRowValues) {
           // bulk row → update row only
           setRowValues({
             ...row,
-            __productInput: match?.label ?? "",
+            __productInput: match?.label ?? '',
           });
         } else {
           // single mode → sync form + global label
-          ctx.form?.setValue("product_id", id, {
+          ctx.form?.setValue('product_id', id, {
             shouldValidate: true,
             shouldDirty: true,
           });
-          
+
           if (match) {
             ctx.productDropdown.setDropdownState((prev: any) => ({
               ...prev,
@@ -80,7 +71,7 @@ export const renderProductDropdown = (
             }));
           }
         }
-        
+
         // backend optional sync
         ctx.syncProductDropdownLabel?.(id);
       }}
@@ -93,8 +84,8 @@ export const renderProductDropdown = (
       error={ctx.product.error}
       paginationMeta={ctx.product.meta}
       onInputChange={(_e, newValue, reason) => {
-        if (reason !== "input") return;
-        
+        if (reason !== 'input') return;
+
         if (isBulk && setRowValues) {
           // bulk mode → local row state only
           setRowValues({
@@ -113,7 +104,7 @@ export const renderProductDropdown = (
             },
           }));
         }
-        
+
         ctx.handleProductSearch(newValue);
       }}
       helperText={getProductHelperText(value, !!required, ctx.product.options)}
@@ -143,50 +134,53 @@ export const renderProductDropdown = (
  * Also:
  * - Supports async search and pagination via ctx
  */
-export const renderSkuCodeBaseDropdown = (args: SkuCodeBaseDropdownRenderArgs) => {
+export const renderSkuCodeBaseDropdown = (
+  args: SkuCodeBaseDropdownRenderArgs
+) => {
   const { value, onChange, required, ctx, getRowValues, setRowValues } = args;
   if (!onChange) return null;
-  
+
   const isBulk = !!getRowValues;
-  const row = isBulk ? getRowValues() ?? {} : null;
-  
+  const row = isBulk ? (getRowValues() ?? {}) : null;
+
   // Row-specific inputValue fallback
   const inputValue = isBulk
-    ? row.__skuCodeBaseInput ?? ""
+    ? (row.__skuCodeBaseInput ?? '')
     : ctx.skuCodeBaseDropdown.dropdownState.inputValue;
-  
+
   const handleSelect = (selectedId: string) => {
     onChange(selectedId);
-    
+
     const match = ctx.skuCodeBase.options.find(
       (opt: any) => opt.value === selectedId
     );
-    
+
     if (match?.label) {
-      const { brand_code, category_code } =
-        ctx.parseSkuCodeBaseLabel(match.label);
-      
+      const { brand_code, category_code } = ctx.parseSkuCodeBaseLabel(
+        match.label
+      );
+
       // Single-SKU mode: use RHF form
       if (!isBulk) {
-        ctx.form?.setValue("brand_code", brand_code, {
+        ctx.form?.setValue('brand_code', brand_code, {
           shouldDirty: true,
           shouldTouch: true,
           shouldValidate: true,
         });
-        
-        ctx.form?.setValue("category_code", category_code, {
+
+        ctx.form?.setValue('category_code', category_code, {
           shouldDirty: true,
           shouldTouch: true,
           shouldValidate: true,
         });
-        
+
         // global dropdown label
         ctx.skuCodeBaseDropdown.setDropdownState((prev: any) => ({
           ...prev,
           inputValue: match.label,
         }));
       }
-      
+
       // Bulk mode: row-state sync
       if (isBulk && setRowValues) {
         setRowValues({
@@ -198,10 +192,10 @@ export const renderSkuCodeBaseDropdown = (args: SkuCodeBaseDropdownRenderArgs) =
       }
     }
   };
-  
+
   return (
     <SkuCodeBaseDropdown
-      value={value ?? ""}
+      value={value ?? ''}
       onChange={handleSelect}
       options={ctx.skuCodeBase.options}
       fetchParams={ctx.skuCodeBaseDropdown.fetchParams}
@@ -212,8 +206,8 @@ export const renderSkuCodeBaseDropdown = (args: SkuCodeBaseDropdownRenderArgs) =
       error={ctx.skuCodeBase.error}
       paginationMeta={ctx.skuCodeBase.meta}
       onInputChange={(_e, newValue, reason) => {
-        if (reason !== "input") return;
-        
+        if (reason !== 'input') return;
+
         if (isBulk && setRowValues) {
           // Safe bulk-only edit
           setRowValues({
@@ -231,7 +225,7 @@ export const renderSkuCodeBaseDropdown = (args: SkuCodeBaseDropdownRenderArgs) =
             },
           }));
         }
-        
+
         ctx.handleSkuCodeBaseSearch(newValue);
       }}
       helperText={getSkuCodeBaseDropdownHelperText(

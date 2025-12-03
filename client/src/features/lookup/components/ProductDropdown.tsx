@@ -6,8 +6,7 @@ import CustomTypography from '@components/common/CustomTypography';
 import { faBan, faCheck } from '@fortawesome/free-solid-svg-icons';
 import { getRawLabel } from '@utils/labelHelpers';
 
-type ProductDropdownProps =
-  PaginatedDropdownProps<ProductLookupParams>;
+type ProductDropdownProps = PaginatedDropdownProps<ProductLookupParams>;
 
 /**
  * Dropdown component for selecting a product lookup item.
@@ -21,33 +20,31 @@ type ProductDropdownProps =
  * @component
  */
 const ProductDropdown = ({
-                           options = [],
-                           fetchParams,
-                           onRefresh,
-                           ...rest
-                         }: ProductDropdownProps) => {
+  options = [],
+  fetchParams,
+  onRefresh,
+  ...rest
+}: ProductDropdownProps) => {
   const enrichedOptions = useMemo(() => {
     return Array.from(
       new Map(
         options.map((opt) => {
           const isInactive = opt.isActive === false;
-          
+
           const rawLabel = getRawLabel(opt.label);
-          
+
           const displayLabel = (
             <CustomTypography color={isInactive ? 'error' : 'inherit'}>
               {rawLabel}
             </CustomTypography>
           );
-          
+
           const icon = isInactive ? faBan : faCheck;
-          
-          const tooltip = isInactive
-            ? 'Inactive Product'
-            : 'Active Product';
-          
+
+          const tooltip = isInactive ? 'Inactive Product' : 'Active Product';
+
           const iconColor = isInactive ? 'gray' : 'green';
-          
+
           return [
             opt.value ?? opt.id,
             {
@@ -63,7 +60,7 @@ const ProductDropdown = ({
       ).values()
     );
   }, [options]);
-  
+
   return (
     <PaginatedDropdown
       label="Select Product"

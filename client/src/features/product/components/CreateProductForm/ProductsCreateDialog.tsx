@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
-import type { CreateMode } from "@shared-types/shared";
-import Box from "@mui/material/Box";
-import Alert from "@mui/material/Alert";
-import CustomDialog from "@components/common/CustomDialog";
-import CreateModeToggle from "@components/common/CreateModeToggle";
-import useCreateProducts from "@hooks/useCreateProducts";
+import { useCallback, useEffect, useState } from 'react';
+import type { CreateMode } from '@shared-types/shared';
+import Box from '@mui/material/Box';
+import Alert from '@mui/material/Alert';
+import CustomDialog from '@components/common/CustomDialog';
+import CreateModeToggle from '@components/common/CreateModeToggle';
+import useCreateProducts from '@hooks/useCreateProducts';
 import {
-  BulkProductForm, CreateProductSuccessDialog,
+  BulkProductForm,
+  CreateProductSuccessDialog,
   SingleProductForm,
 } from '@features/product/components/CreateProductForm';
 
@@ -17,14 +18,16 @@ interface ProductsCreateDialogProps {
 }
 
 const ProductsCreateDialog = ({
-                                open,
-                                onClose,
-                                onSuccess,
-                              }: ProductsCreateDialogProps) => {
-  const [mode, setMode] = useState<CreateMode>("single");
+  open,
+  onClose,
+  onSuccess,
+}: ProductsCreateDialogProps) => {
+  const [mode, setMode] = useState<CreateMode>('single');
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
-  const [submittedProductNames, setSubmittedProductNames] = useState<string[]>([]);
-  
+  const [submittedProductNames, setSubmittedProductNames] = useState<string[]>(
+    []
+  );
+
   const {
     data: createdProducts,
     loading: isCreating,
@@ -33,32 +36,32 @@ const ProductsCreateDialog = ({
     submit: createProducts,
     reset: resetCreateProducts,
   } = useCreateProducts();
-  
+
   // Open success dialog once creation succeeds
   useEffect(() => {
     if (isSuccess) {
       setShowSuccessDialog(true);
     }
   }, [isSuccess]);
-  
+
   const handleClose = () => {
     resetCreateProducts();
-    setMode("single");
+    setMode('single');
     onClose();
   };
-  
+
   const handleSubmit = useCallback(
     async (data: any | any[]) => {
-      const normalized = mode === "single" ? [data] : data;
-      
+      const normalized = mode === 'single' ? [data] : data;
+
       const names = normalized.map((p: { name: string }) => p.name);
       setSubmittedProductNames(names);
-      
+
       await createProducts({ products: normalized });
     },
     [mode, createProducts]
   );
-  
+
   return (
     <>
       {showSuccessDialog ? (
@@ -69,7 +72,7 @@ const ProductsCreateDialog = ({
             handleClose();
             onSuccess?.();
           }}
-          productNames={submittedProductNames ?? ""}
+          productNames={submittedProductNames ?? ''}
           responseData={createdProducts}
         />
       ) : (
@@ -90,26 +93,23 @@ const ProductsCreateDialog = ({
               onChange={setMode}
               label="Product Entry Mode"
             />
-            
+
             {/* Inline Error */}
             {creationError && (
               <Alert severity="error" sx={{ mt: 2 }}>
                 {creationError}
               </Alert>
             )}
-            
+
             {/* Forms */}
             <Box sx={{ mt: 2 }}>
-              {mode === "single" ? (
+              {mode === 'single' ? (
                 <SingleProductForm
                   loading={isCreating}
                   onSubmit={handleSubmit}
                 />
               ) : (
-                <BulkProductForm
-                  loading={isCreating}
-                  onSubmit={handleSubmit}
-                />
+                <BulkProductForm loading={isCreating} onSubmit={handleSubmit} />
               )}
             </Box>
           </Box>

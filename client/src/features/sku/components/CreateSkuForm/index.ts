@@ -19,5 +19,5 @@ export {
   BARCODE_RULES,
   detectBarcodeRule,
   getBarcodeHelperText,
-  getLanguageHelperText
+  getLanguageHelperText,
 } from './SkuFieldValidators';

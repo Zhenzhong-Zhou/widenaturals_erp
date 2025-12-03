@@ -1,4 +1,6 @@
-const { resolveUserPermissionContext } = require('../services/role-permission-service');
+const {
+  resolveUserPermissionContext,
+} = require('../services/role-permission-service');
 const {
   VIEW_COMPLIANCE_RECORDINGS,
   VIEW_COMPLIANCE_RECORDINGS_METADATA,
@@ -33,23 +35,23 @@ const { compactAudit, makeAudit } = require('../utils/audit-utils');
 const evaluateComplianceViewAccessControl = async (user) => {
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     // Basic permission — can user view compliance at all?
     const canViewCompliance =
       isRoot || permissions.includes(VIEW_COMPLIANCE_RECORDINGS);
-    
+
     // Can view status, status_date, description
     const canViewComplianceMetadata =
       isRoot || permissions.includes(VIEW_COMPLIANCE_RECORDINGS_METADATA);
-    
+
     // Can view created_by, updated_by, timestamps
     const canViewComplianceHistory =
       isRoot || permissions.includes(VIEW_COMPLIANCE_RECORDINGS_HISTORY);
-    
+
     // Can view inactive / expired compliance documents
     const canViewInactiveCompliance =
       isRoot || permissions.includes(VIEW_COMPLIANCE_RECORDINGS_INACTIVE);
-    
+
     return {
       canViewCompliance,
       canViewComplianceMetadata,
@@ -61,14 +63,13 @@ const evaluateComplianceViewAccessControl = async (user) => {
       context: 'compliance-business/evaluateComplianceViewAccessControl',
       userId: user?.id,
     });
-    
+
     throw AppError.businessError(
       'Unable to evaluate user access control for compliance records.',
       { details: err.message }
     );
   }
 };
-
 
 /**
  * Business: Remove restricted compliance fields from API output.
@@ -88,18 +89,21 @@ const evaluateComplianceViewAccessControl = async (user) => {
  */
 const sliceComplianceRecordsForUser = (complianceRows, access) => {
   if (!Array.isArray(complianceRows)) return [];
-  
+
   const ACTIVE_STATUS_ID = getStatusId('general_active');
   const results = [];
-  
+
   for (const row of complianceRows) {
     // ---------------------------------------------------------
     // 1. Filter inactive compliance docs unless allowed
     // ---------------------------------------------------------
-    if (!access.canViewInactiveCompliance && row.status_id !== ACTIVE_STATUS_ID) {
+    if (
+      !access.canViewInactiveCompliance &&
+      row.status_id !== ACTIVE_STATUS_ID
+    ) {
       continue;
     }
-    
+
     // ---------------------------------------------------------
     // 2. Base safe object for all users
     // ---------------------------------------------------------
@@ -110,7 +114,7 @@ const sliceComplianceRecordsForUser = (complianceRows, access) => {
       issuedDate: row.issued_date,
       expiryDate: row.expiry_date,
     };
-    
+
     // ---------------------------------------------------------
     // 3. Metadata: description, status fields
     // ---------------------------------------------------------
@@ -124,17 +128,17 @@ const sliceComplianceRecordsForUser = (complianceRows, access) => {
         description: row.description,
       };
     }
-    
+
     // ---------------------------------------------------------
     // 4. Audit history: created_by, updated_by
     // ---------------------------------------------------------
     if (access.canViewComplianceHistory) {
       safe.audit = compactAudit(makeAudit(row));
     }
-    
+
     results.push(safe);
   }
-  
+
   return results;
 };
 

@@ -136,8 +136,7 @@ export type AddressCreationState = MutationState<AddressResponse[]>;
  * along with address-specific fields like country, city, region, customer ID, and keyword search.
  */
 export interface AddressFilterConditions
-  extends CreatedUpdatedDateFilter,
-    CreatedUpdatedByFilter {
+  extends CreatedUpdatedDateFilter, CreatedUpdatedByFilter {
   /** Filter by country code or name */
   country?: string;
 
@@ -191,8 +190,7 @@ export interface AddressSortConfig extends SortConfig {
  * Intended for constructing API calls that list addresses with filtering, sorting, and pagination.
  */
 export interface AddressQueryParams
-  extends PaginationParams,
-    AddressSortConfig {
+  extends PaginationParams, AddressSortConfig {
   /** Optional filter conditions to apply to the address query */
   filters?: AddressFilterConditions;
 }

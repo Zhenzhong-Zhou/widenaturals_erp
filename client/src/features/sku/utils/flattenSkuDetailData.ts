@@ -26,13 +26,13 @@ import type {
  * @returns FlattenedImageMetadata | null
  */
 export const flattenImageMetadata = (
-  img: SkuImage | null,
+  img: SkuImage | null
 ): FlattenedImageMetadata | null => {
   if (!img) return null;
-  
+
   return {
     type: img.type ?? null,
-    isPrimary: img.isPrimary ? "Yes" : "No",
+    isPrimary: img.isPrimary ? 'Yes' : 'No',
     displayOrder: img.metadata?.displayOrder ?? null,
     sizeKb: img.metadata?.sizeKb ?? null,
     format: img.metadata?.format ?? null,
@@ -73,7 +73,7 @@ export const flattenSkuInfo = (data: SkuDetail): FlattenedSkuInfo => {
     status,
     audit,
   } = data;
-  
+
   return {
     id,
     sku,
@@ -83,24 +83,24 @@ export const flattenSkuInfo = (data: SkuDetail): FlattenedSkuInfo => {
     sizeLabel,
     countryCode,
     marketRegion,
-    
+
     // Dimensions (with empty-string fallback for UI table consistency)
-    lengthCm: dimensions?.cm?.length ?? "",
-    widthCm: dimensions?.cm?.width ?? "",
-    heightCm: dimensions?.cm?.height ?? "",
-    lengthInch: dimensions?.inches?.length ?? "",
-    widthInch: dimensions?.inches?.width ?? "",
-    heightInch: dimensions?.inches?.height ?? "",
-    weightG: dimensions?.weight?.g ?? "",
-    weightLb: dimensions?.weight?.lb ?? "",
-    
+    lengthCm: dimensions?.cm?.length ?? '',
+    widthCm: dimensions?.cm?.width ?? '',
+    heightCm: dimensions?.cm?.height ?? '',
+    lengthInch: dimensions?.inches?.length ?? '',
+    widthInch: dimensions?.inches?.width ?? '',
+    heightInch: dimensions?.inches?.height ?? '',
+    weightG: dimensions?.weight?.g ?? '',
+    weightLb: dimensions?.weight?.lb ?? '',
+
     // Status
-    statusName: status?.name ?? "unknown",
-    statusDate: status?.date ?? "",
-    
+    statusName: status?.name ?? 'unknown',
+    statusDate: status?.date ?? '',
+
     // Audit
-    createdAt: audit?.createdAt ?? "",
-    createdBy: audit?.createdBy?.name ?? "—",
+    createdAt: audit?.createdAt ?? '',
+    createdBy: audit?.createdBy?.name ?? '—',
     updatedAt: audit?.updatedAt ?? null,
     updatedBy: audit?.updatedBy?.name ?? null,
   };
@@ -126,24 +126,24 @@ export const flattenComplianceRecords = (
   records: SkuComplianceRecord[]
 ): FlattenedComplianceRecord[] => {
   if (!Array.isArray(records)) return [];
-  
+
   return records.map((rec) => ({
     id: rec.id,
     type: rec.type,
     complianceId: rec.complianceId,
     issuedDate: rec.issuedDate ?? null,
     expiryDate: rec.expiryDate ?? null,
-    
+
     // Metadata
-    description: rec.metadata?.description ?? "—",
-    status: rec.metadata?.status?.name ?? "—",
+    description: rec.metadata?.description ?? '—',
+    status: rec.metadata?.status?.name ?? '—',
     statusDate: rec.metadata?.status?.date ?? null,
-    
+
     // Audit
-    createdAt: rec.audit?.createdAt ?? "",
-    createdBy: rec.audit?.createdBy?.name ?? "—",
+    createdAt: rec.audit?.createdAt ?? '',
+    createdBy: rec.audit?.createdBy?.name ?? '—',
     updatedAt: rec.audit?.updatedAt ?? null,
-    updatedBy: rec.audit?.updatedBy?.name ?? "—",
+    updatedBy: rec.audit?.updatedBy?.name ?? '—',
   }));
 };
 
@@ -170,31 +170,31 @@ export const flattenPricingRecords = (
   records: any[]
 ): FlattenedPricingRecord[] => {
   if (!Array.isArray(records)) return [];
-  
+
   return records.map((r) => ({
     id: r.id,
     skuId: r.skuId,
-    priceType: r.priceType ?? "—",
-    
+    priceType: r.priceType ?? '—',
+
     // Location
-    locationName: r.location?.name ?? "—",
-    locationType: r.location?.type ?? "—",
-    
+    locationName: r.location?.name ?? '—',
+    locationType: r.location?.type ?? '—',
+
     // Pricing
-    price: r.price ?? "—",
-    
+    price: r.price ?? '—',
+
     // Status
-    status: r.status?.name ?? "—",
+    status: r.status?.name ?? '—',
     statusDate: r.status?.date ?? null,
-    
+
     // Validity period
     validFrom: r.validFrom ?? null,
     validTo: r.validTo ?? null,
-    
+
     // Audit
-    createdBy: r.audit?.createdBy?.name ?? "—",
+    createdBy: r.audit?.createdBy?.name ?? '—',
     createdAt: r.audit?.createdAt ?? null,
-    updatedBy: r.audit?.updatedBy?.name ?? "—",
+    updatedBy: r.audit?.updatedBy?.name ?? '—',
     updatedAt: r.audit?.updatedAt ?? null,
   }));
 };

@@ -1,6 +1,9 @@
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const { deduplicatePairs } = require('../utils/array-utils');
-const { getExistingBaseCodesBulk, insertBaseCodesBulk } = require('../repositories/sku-code-base-repository');
+const {
+  getExistingBaseCodesBulk,
+  insertBaseCodesBulk,
+} = require('../repositories/sku-code-base-repository');
 const AppError = require('../utils/AppError');
 
 /**
@@ -38,32 +41,35 @@ const getOrCreateBaseCodesBulk = async (pairs, client) => {
       logSystemInfo('No base codes to process.', { context });
       return new Map();
     }
-    
+
     // Deduplicate brand/category combinations
-    const uniquePairs = deduplicatePairs(pairs, (p) => `${p.brandCode}-${p.categoryCode}`);
-    
+    const uniquePairs = deduplicatePairs(
+      pairs,
+      (p) => `${p.brandCode}-${p.categoryCode}`
+    );
+
     if (uniquePairs.length === 0) {
       logSystemInfo('No base codes to process.', { context });
       return new Map();
     }
-    
+
     // 2. Fetch all existing base codes in one query
     const existingMap = await getExistingBaseCodesBulk(uniquePairs, client);
-    
+
     // 3. Determine which pairs are missing
     const missing = uniquePairs.filter(
       (p) => !existingMap.has(`${p.brandCode}-${p.categoryCode}`)
     );
-    
+
     // 4. Insert missing base codes (if any)
     if (missing.length > 0) {
       const insertedMap = await insertBaseCodesBulk(missing, client);
-      
+
       // Merge newly inserted base codes into the existing map
       for (const [key, value] of insertedMap.entries()) {
         existingMap.set(key, value);
       }
-      
+
       logSystemInfo('Inserted missing base codes.', {
         context,
         insertedCount: insertedMap.size,
@@ -75,11 +81,13 @@ const getOrCreateBaseCodesBulk = async (pairs, client) => {
         totalRequested: pairs.length,
       });
     }
-    
+
     // 5. Return consolidated map
     return existingMap;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch or create base codes in bulk.', { context });
+    logSystemException(error, 'Failed to fetch or create base codes in bulk.', {
+      context,
+    });
     throw AppError.databaseError('Failed to fetch or create base codes.', {
       cause: error,
       context,

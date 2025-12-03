@@ -20,7 +20,10 @@
 const { performance } = require('perf_hooks');
 const chalk = require('chalk');
 const { pool } = require('../../database/db');
-const { logSystemInfo, logSystemException } = require('../../utils/system-logger');
+const {
+  logSystemInfo,
+  logSystemException,
+} = require('../../utils/system-logger');
 const { initStatusCache } = require('../../config/status-cache');
 const { createProductsService } = require('../../services/product-service');
 
@@ -28,18 +31,18 @@ const { createProductsService } = require('../../services/product-service');
   const prefix = chalk.cyan('[Test: CREATE_PRODUCTS_BULK]');
   const start = performance.now();
   let client;
-  
+
   try {
     console.log(`${prefix} 🚀 Starting bulk product creation test...`);
-    
+
     // ------------------------------------------------------------
     // Step 1: DB Connection
     // ------------------------------------------------------------
     client = await pool.connect();
     console.log(`${prefix} ✅ Connected to database.`);
-    
+
     await initStatusCache();
-    
+
     // ------------------------------------------------------------
     // Step 2: Load Test User
     // ------------------------------------------------------------
@@ -47,14 +50,14 @@ const { createProductsService } = require('../../services/product-service');
       `SELECT id, email FROM users WHERE email = $1 LIMIT 1;`,
       ['root@widenaturals.com']
     );
-    
+
     if (users.length === 0) {
       throw new Error('Test user not found: root@widenaturals.com');
     }
-    
+
     const testUser = { id: users[0].id };
     console.log(`${prefix} 👤 Using test user: ${chalk.green(users[0].email)}`);
-    
+
     // ------------------------------------------------------------
     // Step 3: Prepare Product Payloads
     // ------------------------------------------------------------
@@ -79,9 +82,9 @@ const { createProductsService } = require('../../services/product-service');
         brand: 'Canaherb',
         category: 'Vitamins',
         description: 'Daily multivitamin blend',
-      }
+      },
     ];
-    
+
     console.log(`${prefix} 🧾 Prepared product payloads:`);
     console.table(
       productList.map((p) => ({
@@ -90,18 +93,18 @@ const { createProductsService } = require('../../services/product-service');
         category: p.category,
       }))
     );
-    
+
     // ------------------------------------------------------------
     // Step 4: Execute Service
     // ------------------------------------------------------------
     console.log(`${prefix} ▶️ Calling createProductsService...`);
-    
+
     const inserted = await createProductsService(productList, testUser);
-    
+
     if (!Array.isArray(inserted) || inserted.length === 0) {
       throw new Error('Service returned empty result set.');
     }
-    
+
     console.log(`${prefix} ✅ Products created successfully:`);
     console.table(
       inserted.map((p) => ({
@@ -111,7 +114,7 @@ const { createProductsService } = require('../../services/product-service');
         category: p.category,
       }))
     );
-    
+
     // ------------------------------------------------------------
     // Step 5: DB Verification
     // ------------------------------------------------------------
@@ -122,23 +125,25 @@ const { createProductsService } = require('../../services/product-service');
        WHERE id IN (${ids})
        ORDER BY created_at DESC;`
     );
-    
+
     console.log(`${prefix} 🔎 Verified products in database:`);
     console.table(verifyRows);
-    
+
     // ------------------------------------------------------------
     // Step 6: Timing
     // ------------------------------------------------------------
     const elapsed = ((performance.now() - start) / 1000).toFixed(2);
-    console.log(`${prefix} ⏱️ Test completed in ${chalk.green(`${elapsed}s`)}.`);
-    
+    console.log(
+      `${prefix} ⏱️ Test completed in ${chalk.green(`${elapsed}s`)}.`
+    );
+
     logSystemInfo('Bulk product creation test completed successfully', {
       context: 'test-create-products-bulk',
       inputCount: productList.length,
       insertedCount: inserted.length,
       elapsedSeconds: elapsed,
     });
-    
+
     process.exitCode = 0;
   } catch (error) {
     console.error(`${prefix} ❌ Error: ${chalk.red(error.message)}`);
@@ -149,10 +154,10 @@ const { createProductsService } = require('../../services/product-service');
   } finally {
     if (client) client.release();
     console.log(`${prefix} 🧹 DB client released.`);
-    
+
     await pool.end().catch(() => {});
     console.log(`${prefix} 🏁 Pool closed.`);
-    
+
     process.exit(process.exitCode);
   }
 })();

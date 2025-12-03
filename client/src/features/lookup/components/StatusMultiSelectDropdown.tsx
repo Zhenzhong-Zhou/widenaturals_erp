@@ -22,18 +22,18 @@ interface StatusMultiSelectDropdownProps {
  * Mirrors the structure and behavior of LotAdjustmentTypeMultiSelectDropdown.
  */
 const StatusMultiSelectDropdown: FC<StatusMultiSelectDropdownProps> = ({
-                                                                         label = 'Select Status',
-                                                                         options,
-                                                                         selectedOptions,
-                                                                         onChange,
-                                                                         onOpen,
-                                                                         loading,
-                                                                         disabled,
-                                                                         error,
-                                                                         helperText,
-                                                                         sx,
-                                                                         placeholder = 'Choose status…',
-                                                                       }) => {
+  label = 'Select Status',
+  options,
+  selectedOptions,
+  onChange,
+  onOpen,
+  loading,
+  disabled,
+  error,
+  helperText,
+  sx,
+  placeholder = 'Choose status…',
+}) => {
   return (
     <MultiSelectDropdown
       label={label}

@@ -6,7 +6,7 @@ import type {
 import { updateSkuStatusThunk } from '@features/sku/state/skuThunks';
 
 const initialState: SkuStatusState = {
-  data: null,      // holds ApiSuccessResponse or null
+  data: null, // holds ApiSuccessResponse or null
   loading: false,
   error: null,
 };
@@ -27,13 +27,10 @@ export const skuStatusSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      
+
       .addCase(
         updateSkuStatusThunk.fulfilled,
-        (
-          state,
-          action: PayloadAction<UpdateSkuStatusResponse>
-        ) => {
+        (state, action: PayloadAction<UpdateSkuStatusResponse>) => {
           state.loading = false;
           state.data = action.payload;
           state.error = null;

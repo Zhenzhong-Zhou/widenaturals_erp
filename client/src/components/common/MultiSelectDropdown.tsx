@@ -18,7 +18,7 @@ interface MultiSelectDropdownProps {
   selectedOptions: MultiSelectOption[];
   onChange: (selected: MultiSelectOption[]) => void;
   onOpen?: () => void;
-  
+
   // states
   loading?: boolean;
   disabled?: boolean;

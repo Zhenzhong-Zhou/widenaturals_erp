@@ -475,8 +475,7 @@ export interface InventoryAllocationFilters {
  * Params for fetching paginated inventory allocation results.
  */
 export interface FetchPaginatedInventoryAllocationsParams
-  extends PaginationParams,
-    SortConfig {
+  extends PaginationParams, SortConfig {
   filters?: InventoryAllocationFilters;
 }
 

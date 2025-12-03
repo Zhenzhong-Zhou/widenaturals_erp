@@ -431,7 +431,7 @@ const getPricingLookup = async ({ limit = 50, offset = 0, filters = {} }) => {
  */
 const getPricingBySkuId = async (skuId) => {
   const context = 'pricing-repository/getPricingBySkuId';
-  
+
   // -------------------------------------------------------------------
   // SQL: Fetch raw pricing rows for the SKU + joined metadata
   // -------------------------------------------------------------------
@@ -469,10 +469,10 @@ const getPricingBySkuId = async (skuId) => {
       pt.code ASC,
       pr.valid_from DESC
   `;
-  
+
   try {
     const { rows } = await query(queryText, [skuId]);
-    
+
     if (rows.length === 0) {
       logSystemInfo('No SKU pricing records found', {
         context,
@@ -480,13 +480,13 @@ const getPricingBySkuId = async (skuId) => {
       });
       return [];
     }
-    
+
     logSystemInfo('Fetched SKU pricing successfully', {
       context,
       skuId,
       count: rows.length,
     });
-    
+
     return rows;
   } catch (error) {
     logSystemException(error, 'Failed to fetch SKU pricing', {
@@ -494,7 +494,7 @@ const getPricingBySkuId = async (skuId) => {
       skuId,
       error: error.message,
     });
-    
+
     throw AppError.databaseError('Failed to fetch SKU pricing.', {
       context,
       details: error.message,

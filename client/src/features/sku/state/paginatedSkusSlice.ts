@@ -1,6 +1,10 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { createInitialPaginatedState } from '@store/pagination';
-import type { GetSkuListResponse, SkuListItem, SkuListState } from '@features/sku/state/skuTypes';
+import type {
+  GetSkuListResponse,
+  SkuListItem,
+  SkuListState,
+} from '@features/sku/state/skuTypes';
 import { fetchPaginatedSkusThunk } from '@features/sku/state/skuThunks';
 
 // ---------------------------
@@ -21,7 +25,7 @@ const paginatedSkusSlice = createSlice({
      */
     resetPaginatedSkusState: () => initialState,
   },
-  
+
   // ---------------------------
   // Extra reducers (pending / fulfilled / rejected)
   // ---------------------------
@@ -32,16 +36,16 @@ const paginatedSkusSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      
+
       // ---- fulfilled ----
       .addCase(
         fetchPaginatedSkusThunk.fulfilled,
         (state, action: PayloadAction<GetSkuListResponse>) => {
           const payload = action.payload;
-          
+
           state.loading = false;
           state.data = payload.data;
-          
+
           state.pagination = {
             page: payload.pagination.page,
             limit: payload.pagination.limit,
@@ -50,20 +54,16 @@ const paginatedSkusSlice = createSlice({
           };
         }
       )
-      
+
       // ---- rejected ----
       .addCase(fetchPaginatedSkusThunk.rejected, (state, action) => {
         state.loading = false;
         state.error =
-          action.payload ||
-          action.error?.message ||
-          'Failed to fetch SKUs.';
+          action.payload || action.error?.message || 'Failed to fetch SKUs.';
       });
   },
 });
 
-export const {
-  resetPaginatedSkusState,
-} = paginatedSkusSlice.actions;
+export const { resetPaginatedSkusState } = paginatedSkusSlice.actions;
 
 export default paginatedSkusSlice.reducer;

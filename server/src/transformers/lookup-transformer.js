@@ -887,20 +887,20 @@ const transformPackagingMaterialPaginatedLookupResult = (
  */
 const transformSkuCodeBaseLookup = (row, userAccess) => {
   if (!row || typeof row !== 'object') return null;
-  
+
   const brand = row.brand_code || 'N/A';
   const category = row.category_code || 'N/A';
   const base = row.base_code != null ? row.base_code : '—';
-  
+
   // Example label: "BR-CT (200)"
   const label = `${brand}-${category} (${base})`;
-  
+
   // Uses same helper as customer implementation
   const baseObj = transformIdNameToIdLabel({ ...row, name: label });
-  
+
   // Conditional UI flags (e.g., isActive)
   const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
-  
+
   return {
     ...baseObj,
     ...flagSubset,
@@ -982,31 +982,31 @@ const transformSkuCodeBasePaginatedLookupResult = (
  */
 const transformProductLookup = (row, userAccess) => {
   if (!row || typeof row !== 'object') return null;
-  
+
   const name = row.name ?? 'Unnamed Product';
   const brand = row.brand ?? '';
   const category = row.category ?? '';
   const series = row.series ?? '';
-  
+
   /**
    * Example label patterns used in ERP dropdowns:
    * "Fish Oil • WIDE Naturals (Softgel)"
    * "Vitamin D • PG Naturals (Capsule)"
    */
   const labelParts = [name];
-  
+
   if (brand) labelParts.push(`• ${brand}`);
   if (category) labelParts.push(`(${category})`);
   else if (series) labelParts.push(`(${series})`);
-  
+
   const label = labelParts.join(' ');
-  
+
   // Use shared helper: { id, name → label } → { id, label }
   const baseObj = transformIdNameToIdLabel({ ...row, name: label });
-  
+
   // Optional derived flags like isActive
   const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
-  
+
   return {
     ...baseObj,
     ...flagSubset,
@@ -1039,10 +1039,7 @@ const transformProductLookup = (row, userAccess) => {
  *   hasMore: boolean
  * }} Transformed lookup result.
  */
-const transformProductPaginatedLookupResult = (
-  paginatedResult,
-  userAccess
-) =>
+const transformProductPaginatedLookupResult = (paginatedResult, userAccess) =>
   transformPaginatedResult(
     paginatedResult,
     (row) => transformProductLookup(row, userAccess),
@@ -1079,19 +1076,19 @@ const transformProductPaginatedLookupResult = (
  */
 const transformStatusLookup = (row, userAccess) => {
   if (!row || typeof row !== 'object') return null;
-  
+
   const name = row.name || 'Unknown Status';
   const desc = row.description ? ` - ${row.description}` : '';
-  
+
   // Example label: "Active" or "Active - Used for normal records"
   const label = `${name}${desc}`;
-  
+
   // Reuse your id:name → id:label helper
   const baseObj = transformIdNameToIdLabel({ ...row, name: label });
-  
+
   // Apply tag enrichment (isActive, etc.)
   const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
-  
+
   return {
     ...baseObj,
     ...flagSubset,
@@ -1119,10 +1116,7 @@ const transformStatusLookup = (row, userAccess) => {
  *   hasMore: boolean
  * }}
  */
-const transformStatusPaginatedLookupResult = (
-  paginatedResult,
-  userAccess
-) =>
+const transformStatusPaginatedLookupResult = (paginatedResult, userAccess) =>
   transformPaginatedResult(
     paginatedResult,
     (row) => transformStatusLookup(row, userAccess),

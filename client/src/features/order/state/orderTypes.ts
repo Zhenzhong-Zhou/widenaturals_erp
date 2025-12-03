@@ -314,8 +314,7 @@ export type OrderListResponse = PaginatedResponse<OrderListItem>;
  * This interface is typically used for managing order list views with pagination,
  * server-side filtering, loading indicators, and error handling.
  */
-export interface PaginatedOrderStateWithFilters
-  extends ReduxPaginatedState<OrderListItem> {
+export interface PaginatedOrderStateWithFilters extends ReduxPaginatedState<OrderListItem> {
   filters: OrderQueryParams;
 }
 
@@ -821,8 +820,7 @@ export interface UpdateOrderStatusData {
 /**
  * Full API response when updating an order's status, extending the generic success response.
  */
-export interface UpdateOrderStatusResponse
-  extends ApiSuccessResponse<UpdateOrderStatusData> {
+export interface UpdateOrderStatusResponse extends ApiSuccessResponse<UpdateOrderStatusData> {
   /**
    * Additional metadata about the status update operation.
    */

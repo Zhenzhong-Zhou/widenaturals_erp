@@ -12,11 +12,11 @@ interface UpdateSkuStatusSuccessDialogProps {
 }
 
 const UpdateSkuStatusSuccessDialog: FC<UpdateSkuStatusSuccessDialogProps> = ({
-                                                                               open,
-                                                                               onClose,
-                                                                               skuCode,
-                                                                               newStatusName,
-                                                                             }) => {
+  open,
+  onClose,
+  skuCode,
+  newStatusName,
+}) => {
   return (
     <CustomDialog
       open={open}
@@ -30,9 +30,13 @@ const UpdateSkuStatusSuccessDialog: FC<UpdateSkuStatusSuccessDialogProps> = ({
         message="SKU Status Updated Successfully"
         details={
           <>
-            <Box><strong>SKU:</strong> {skuCode}</Box>
+            <Box>
+              <strong>SKU:</strong> {skuCode}
+            </Box>
             {newStatusName && (
-              <Box><strong>New Status:</strong> {newStatusName}</Box>
+              <Box>
+                <strong>New Status:</strong> {newStatusName}
+              </Box>
             )}
           </>
         }

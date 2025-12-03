@@ -22,31 +22,43 @@ const SkuExpandedContent: FC<SkuExpandedContentProps> = ({ row }) => {
       <CustomTypography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
         SKU Information Overview
       </CustomTypography>
-      
+
       {/* ------------------------------------
        * Product Information
        * ------------------------------------ */}
       <DetailsSection
         sectionTitle="Product Information"
         fields={[
-          { label: 'Product Name', value: row.productName, format: formatLabel },
+          {
+            label: 'Product Name',
+            value: row.productName,
+            format: formatLabel,
+          },
           { label: 'Brand', value: row.brand, format: formatLabel },
           { label: 'Series', value: row.series, format: formatLabel },
           { label: 'Category', value: row.category, format: formatLabel },
         ]}
       />
-      
+
       {/* ------------------------------------
        * SKU Core Attributes
        * ------------------------------------ */}
       <DetailsSection
         sectionTitle="SKU Attributes"
         fields={[
-          { label: 'Display Label', value: row.displayLabel, format: formatLabel },
-          { label: 'Country Code', value: row.countryCode, format: formatLabel },
+          {
+            label: 'Display Label',
+            value: row.displayLabel,
+            format: formatLabel,
+          },
+          {
+            label: 'Country Code',
+            value: row.countryCode,
+            format: formatLabel,
+          },
         ]}
       />
-      
+
       {/* ------------------------------------
        * Status
        * ------------------------------------ */}
@@ -54,10 +66,14 @@ const SkuExpandedContent: FC<SkuExpandedContentProps> = ({ row }) => {
         sectionTitle="Status Information"
         fields={[
           { label: 'Status', value: row.statusName, format: formatLabel },
-          { label: 'Status Date', value: row.statusDate, format: formatDateTime },
+          {
+            label: 'Status Date',
+            value: row.statusDate,
+            format: formatDateTime,
+          },
         ]}
       />
-      
+
       {/* ------------------------------------
        * Audit
        * ------------------------------------ */}

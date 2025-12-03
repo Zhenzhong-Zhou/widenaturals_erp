@@ -34,14 +34,14 @@ const { saveBulkSkuImagesService } = require('../services/sku-image-service');
 const uploadSkuImagesController = wrapAsync(async (req, res) => {
   const context = 'sku-image-controller/uploadSkuImagesController';
   const startTime = Date.now();
-  
+
   const { skus } = req.body;
   const user = req.user;
-  
+
   const isProd = process.env.NODE_ENV === 'production';
   const bucketName = process.env.S3_BUCKET_NAME;
   const traceId = `upload-${Date.now().toString(36)}`;
-  
+
   logInfo('Starting SKU image upload request', req, {
     context,
     traceId,
@@ -49,14 +49,14 @@ const uploadSkuImagesController = wrapAsync(async (req, res) => {
     skuCount: skus.length,
     mode: isProd ? 'production' : 'development',
   });
-  
+
   // Images are already fully attached by middleware
   const result = await saveBulkSkuImagesService(skus, user, isProd, bucketName);
-  
+
   const elapsedMs = Date.now() - startTime;
-  const successCount = result.filter(r => r.success).length;
+  const successCount = result.filter((r) => r.success).length;
   const failureCount = result.length - successCount;
-  
+
   logInfo('Completed SKU image upload batch', req, {
     context,
     traceId,
@@ -65,7 +65,7 @@ const uploadSkuImagesController = wrapAsync(async (req, res) => {
     failureCount,
     elapsedMs,
   });
-  
+
   res.status(200).json({
     success: true,
     message: 'SKU image upload batch completed successfully.',
@@ -73,7 +73,7 @@ const uploadSkuImagesController = wrapAsync(async (req, res) => {
       total: result.length,
       successCount,
       failureCount,
-      elapsedMs
+      elapsedMs,
     },
     data: result,
   });

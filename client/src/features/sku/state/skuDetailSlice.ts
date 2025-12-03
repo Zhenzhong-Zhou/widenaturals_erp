@@ -1,5 +1,8 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { GetSkuDetailResponse, SkuDetailState } from '@features/sku/state/skuTypes';
+import type {
+  GetSkuDetailResponse,
+  SkuDetailState,
+} from '@features/sku/state/skuTypes';
 import { getSkuDetailByIdThunk } from '@features/sku/state/skuThunks';
 
 /**
@@ -28,18 +31,23 @@ export const skuDetailSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      
+
       // --- Fulfilled ---
-      .addCase(getSkuDetailByIdThunk.fulfilled, (state, action: PayloadAction<GetSkuDetailResponse>) => {
-        state.loading = false;
-        state.data = action.payload.data; // normalized API payload
-      })
-      
+      .addCase(
+        getSkuDetailByIdThunk.fulfilled,
+        (state, action: PayloadAction<GetSkuDetailResponse>) => {
+          state.loading = false;
+          state.data = action.payload.data; // normalized API payload
+        }
+      )
+
       // --- Rejected ---
       .addCase(getSkuDetailByIdThunk.rejected, (state, action) => {
         state.loading = false;
         state.error =
-          (action.payload as string) || action.error.message || 'Failed to load SKU details';
+          (action.payload as string) ||
+          action.error.message ||
+          'Failed to load SKU details';
       });
   },
 });

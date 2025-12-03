@@ -1,6 +1,4 @@
-import type {
-  NullableString
-} from '@shared-types/shared';
+import type { NullableString } from '@shared-types/shared';
 import type {
   ApiSuccessResponse,
   AsyncState,
@@ -34,16 +32,16 @@ import type {
 export interface CreateProductInput {
   /** Product name — required (2–255 chars). */
   name: string;
-  
+
   /** Optional product series or line (nullable). */
   series?: NullableString;
-  
+
   /** Brand name — required and validated via BRAND_CATEGORY_REGEX. */
   brand: string;
-  
+
   /** Category name — required and validated via BRAND_CATEGORY_REGEX. */
   category: string;
-  
+
   /** Optional long description (nullable, up to 1000 chars). */
   description?: NullableString;
 }
@@ -96,8 +94,9 @@ export interface CreatedProduct {
  *   stats: { inputCount: 2, processedCount: 2, elapsedMs: 4 }
  * };
  */
-export interface CreateProductResponse
-  extends ApiSuccessResponse<CreatedProduct[]> {
+export interface CreateProductResponse extends ApiSuccessResponse<
+  CreatedProduct[]
+> {
   /** Operational statistics about the bulk creation operation. */
   stats: OperationStats;
 }
@@ -128,22 +127,22 @@ export type CreateProductsState = AsyncState<CreateProductResponse | null>;
 export interface ProductListItem {
   /** Unique product identifier (UUID) */
   id: string;
-  
+
   /** Product name */
   name: string;
-  
+
   /** Product series label (may be null if unset) */
   series: NullableString;
-  
+
   /** Product brand (maybe null if unset) */
   brand: NullableString;
-  
+
   /** Product category (maybe null if unset) */
   category: NullableString;
-  
+
   /** Product status object including name, id, and date */
   status: GenericStatus;
-  
+
   /** Audit information including created and updated timestamps */
   audit: GenericAudit;
 }
@@ -168,22 +167,22 @@ export type ProductListResponse = PaginatedResponse<ProductListItem>;
 export interface ProductListFilters {
   /** Optional product status filter (UUID or multiple UUIDs) */
   statusIds?: string | string[];
-  
+
   /** Optional brand search (partial match allowed) */
   brand?: string;
-  
+
   /** Optional category search (partial match allowed) */
   category?: string;
-  
+
   /** Optional series search (partial match allowed) */
   series?: string;
-  
+
   /** Filter by creator user ID */
   createdBy?: string;
-  
+
   /** Filter by last-updater user ID */
   updatedBy?: string;
-  
+
   /** Keyword-based fuzzy text search across name, brand, category, status */
   keyword?: string;
 }
@@ -252,42 +251,42 @@ export type ProductListState = ReduxPaginatedState<ProductListItem>;
 export interface FlattenedProductRecord {
   /** Unique product identifier */
   productId: string;
-  
+
   /** Product name */
   name: string;
-  
+
   /** Product brand label */
   brand: string;
-  
+
   /** Product series label */
   series: string;
-  
+
   /** Product category label */
   category: string;
-  
+
   // -----------------------------
   // Status Information
   // -----------------------------
-  
+
   /** Human-readable status name (e.g., "active", "inactive") */
   statusName: string;
-  
+
   /** ISO timestamp representing when the status was last updated */
   statusDate: string;
-  
+
   // -----------------------------
   // Audit Information
   // -----------------------------
-  
+
   /** ISO timestamp representing when the product was created */
   createdAt: string;
-  
+
   /** Name of the user who created the product */
   createdBy: string;
-  
+
   /** ISO timestamp of last update (maybe null if never updated) */
   updatedAt: NullableString;
-  
+
   /** Name of the user who last updated the product (nullable) */
   updatedBy: NullableString;
 }

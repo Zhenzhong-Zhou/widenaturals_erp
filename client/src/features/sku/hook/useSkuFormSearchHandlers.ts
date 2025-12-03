@@ -26,12 +26,11 @@ const useSkuFormSearchHandlers = (bundles: SkuFormLookupBundles) => {
     handleProductSearch: useDebouncedSearch<ProductLookupParams>(
       bundles.product.fetch
     ),
-    
+
     /** Debounced search for SKU Code Base dropdown */
-    handleSkuCodeBaseSearch:
-      useDebouncedSearch<SkuCodeBaseLookupParams>(
-        bundles.skuCodeBase.fetch
-      ),
+    handleSkuCodeBaseSearch: useDebouncedSearch<SkuCodeBaseLookupParams>(
+      bundles.skuCodeBase.fetch
+    ),
   };
 };
 

@@ -7,9 +7,7 @@ export const API_ENDPOINTS = {
   REFRESH_TOKEN: '/session/refresh',
   LOGOUT: '/auth/logout',
   ALL_USERS: '/users',
-  STATUSES: {
-  
-  },
+  STATUSES: {},
   USER_PROFILE: '/users/me',
   ALL_COMPLIANCES: '/compliances',
   PRICING_TYPES: '/pricing-types',

@@ -1,7 +1,5 @@
 import type { FieldConfig } from '@components/common/CustomForm';
-import {
-  buildSkuFields,
-} from '@features/sku/components/CreateSkuForm';
+import { buildSkuFields } from '@features/sku/components/CreateSkuForm';
 import type { MultiItemFieldConfig } from '@components/common/MultiItemForm';
 import type { SkuFieldContext } from '@features/sku/types/skuFieldTypes';
 
@@ -27,7 +25,7 @@ import type { SkuFieldContext } from '@features/sku/types/skuFieldTypes';
  */
 export const buildSingleSkuFields = (ctx: SkuFieldContext): FieldConfig[] => {
   const skuFields = buildSkuFields(ctx);
-  
+
   return skuFields.map((field) => {
     // ---------------------------------------------------
     // CUSTOM RENDER (uses singleRender)
@@ -36,7 +34,7 @@ export const buildSingleSkuFields = (ctx: SkuFieldContext): FieldConfig[] => {
       return {
         id: field.id,
         label: field.label,
-        type: "custom",
+        type: 'custom',
         required: field.required,
         defaultValue: field.defaultValue,
         grid: field.grid,
@@ -47,14 +45,14 @@ export const buildSingleSkuFields = (ctx: SkuFieldContext): FieldConfig[] => {
           }),
       } satisfies FieldConfig;
     }
-    
+
     // ---------------------------------------------------
     // NORMAL FIELD (convert dropdown → custom)
     // ---------------------------------------------------
     return {
       id: field.id,
       label: field.label,
-      type: field.type === "dropdown" ? "custom" : field.type,
+      type: field.type === 'dropdown' ? 'custom' : field.type,
       required: field.required,
       defaultValue: field.defaultValue,
       min: field.min,
@@ -86,23 +84,25 @@ export const buildSingleSkuFields = (ctx: SkuFieldContext): FieldConfig[] => {
  *
  * @returns MultiItemFieldConfig[] - Field configuration used by MultiItemForm.
  */
-export const buildBulkSkuFields = (ctx: SkuFieldContext): MultiItemFieldConfig[] => {
+export const buildBulkSkuFields = (
+  ctx: SkuFieldContext
+): MultiItemFieldConfig[] => {
   const skuFields = buildSkuFields(ctx);
-  
+
   return skuFields.map((field) => {
     // Custom renderer for bulk mode
     if (field.bulkRender) {
       return {
         id: field.id,
         label: field.label,
-        type: "custom",
+        type: 'custom',
         required: field.required,
         group: field.group,
         grid: field.grid ?? { xs: 12, sm: 6 },
         component: (params) => field.bulkRender!({ ...params, ctx }),
       };
     }
-    
+
     // Fallback: standard input for bulk table cells
     return {
       id: field.id,

@@ -422,7 +422,7 @@ const fetchSkuCodeBaseLookup = async (
 ): Promise<SkuCodeBaseLookupResponse> => {
   const queryString = buildQueryString(params);
   const url = `${API_ENDPOINTS.LOOKUPS.SKU_CODE_BASES}${queryString}`;
-  
+
   try {
     return await getRequest<SkuCodeBaseLookupResponse>(url);
   } catch (error) {
@@ -479,7 +479,7 @@ const fetchProductLookup = async (
 ): Promise<ProductLookupResponse> => {
   const queryString = buildQueryString(params);
   const url = `${API_ENDPOINTS.LOOKUPS.PRODUCTS}${queryString}`;
-  
+
   try {
     return await getRequest<ProductLookupResponse>(url);
   } catch (error) {
@@ -535,7 +535,7 @@ const fetchStatusLookup = async (
 ): Promise<StatusLookupResponse> => {
   const queryString = buildQueryString(params);
   const url = `${API_ENDPOINTS.LOOKUPS.STATUSES}${queryString}`;
-  
+
   try {
     return await getRequest<StatusLookupResponse>(url);
   } catch (error) {

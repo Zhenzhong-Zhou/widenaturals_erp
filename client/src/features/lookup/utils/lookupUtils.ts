@@ -33,7 +33,7 @@ export const createLookupParams = <T extends LookupQuery>(
     offset: 0,
     limit: 20,
   };
-  
+
   return {
     ...(baseDefaults as T),
     ...(defaults as T),
@@ -68,4 +68,4 @@ export const normalizeLookupParams = <T extends LookupQuery>(
     keyword: params.keyword ?? '',
     offset: params.offset ?? 0,
     limit: params.limit ?? 20,
-  } as T);
+  }) as T;

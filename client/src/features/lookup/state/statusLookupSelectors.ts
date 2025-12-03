@@ -8,8 +8,7 @@ import {
 /**
  * Base selector for the Status lookup slice.
  */
-export const selectStatusLookupState = (state: RootState) =>
-  state.statusLookup;
+export const selectStatusLookupState = (state: RootState) => state.statusLookup;
 
 /**
  * Retrieves Status lookup items.

@@ -790,8 +790,7 @@ export type ProductLookupItem = LookupItemWithStatus;
  * Wraps product lookup results inside the standard
  * paginated `LookupSuccessResponse<T>` payload.
  */
-export type ProductLookupResponse =
-  LookupSuccessResponse<ProductLookupItem>;
+export type ProductLookupResponse = LookupSuccessResponse<ProductLookupItem>;
 
 /**
  * Nested filters object for product lookup queries.
@@ -833,8 +832,7 @@ export interface ProductLookupParams extends LookupQuery {
  *
  * Used by `productLookupSlice`.
  */
-export type ProductLookupState =
-  PaginatedLookupState<ProductLookupItem>;
+export type ProductLookupState = PaginatedLookupState<ProductLookupItem>;
 
 /**
  * Represents a Status lookup item.
@@ -857,8 +855,7 @@ export interface StatusLookupItem {
  * Wraps lookup results inside the standard
  * paginated `LookupSuccessResponse<T>` payload.
  */
-export type StatusLookupResponse =
-  LookupSuccessResponse<StatusLookupItem>;
+export type StatusLookupResponse = LookupSuccessResponse<StatusLookupItem>;
 
 /**
  * Query parameters for fetching Status lookup items.
@@ -883,8 +880,7 @@ export type StatusLookupParams = LookupQuery;
  *
  * Used by `statusLookupSlice` or any equivalent hook/state store.
  */
-export type StatusLookupState =
-  PaginatedLookupState<StatusLookupItem>;
+export type StatusLookupState = PaginatedLookupState<StatusLookupItem>;
 
 /**
  * Status lookup option returned by the status lookup API.

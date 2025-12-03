@@ -276,7 +276,7 @@ const CustomFormInner = <TFieldValues extends FieldValues = FieldValues>(
                     render={({ field: controllerField }) => (
                       <CustomPhoneInput
                         required={field.required}
-                        value={controllerField.value ?? ""}
+                        value={controllerField.value ?? ''}
                         onChange={controllerField.onChange}
                         country={field.country || 'ca'}
                       />
@@ -429,7 +429,7 @@ const CustomFormInner = <TFieldValues extends FieldValues = FieldValues>(
 
       {/** Render the Submit button only if `showSubmitButton` is true */}
       <Box sx={{ minHeight: 40 }}>
-        {showSubmitButton  && !canSubmit && (
+        {showSubmitButton && !canSubmit && (
           <CustomTypography sx={{ color: 'warning.main' }} variant="body2">
             Please complete all required fields to proceed.
           </CustomTypography>

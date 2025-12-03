@@ -84,7 +84,7 @@ interface MultiItemFormProps {
   onSubmit?: (formData: Record<string, any>[]) => void;
   defaultValues?: Record<string, any>[];
   validation?: (
-    watch: (name: string) => any,
+    watch: (name: string) => any
   ) => Record<string, (value: any) => string | undefined>;
   loading?: boolean;
   renderBeforeFields?: (item: Record<string, any>, index: number) => ReactNode;
@@ -107,7 +107,7 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
       showSubmitButton = true,
       itemsPerRow = 1,
     } = props;
-    
+
     const makeNewRowInternal = useMemo(
       () =>
         props.makeNewRow ??
@@ -122,29 +122,29 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
           row.show_barcode_toggle = false;
           return row;
         }),
-      [props.makeNewRow, fields],
+      [props.makeNewRow, fields]
     );
-    
+
     const initialItems = defaultValues?.length
       ? defaultValues
       : [makeNewRowInternal()];
-    
+
     const { control, handleSubmit, watch, reset, getValues, setValue } =
       useForm<{ items: Record<string, any>[] }>({
         defaultValues: { items: initialItems },
       });
-    
+
     const allFields = watch('items');
-    
+
     useImperativeHandle(ref, () => ({
       getItems: () => (getValues('items') ?? []).map((r) => ({ ...r })),
     }));
-    
+
     useEffect(() => {
       // 1) push initial items on mount (so parent has defaults)
       const initial = getValues('items') ?? [];
       props.onItemsChange?.(initial.map((r) => ({ ...r })));
-      
+
       // 2) subscribe to ALL changes under "items"
       const subscription = watch((_, { name }) => {
         if (!name || !name.startsWith('items')) return;
@@ -152,18 +152,18 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
         // emit a fresh, cloned snapshot each change
         props.onItemsChange?.(current.map((r) => ({ ...r })));
       });
-      
+
       return () => subscription.unsubscribe();
       // watch & getValues are stable from RHF; only depend on onItemsChange
     }, [watch, getValues, props.onItemsChange]);
-    
+
     const {
       fields: fieldArray,
       append,
       remove,
       insert,
     } = useFieldArray({ control, name: 'items', keyName: 'fieldKey' });
-    
+
     const groupFieldsByRow = (fields: MultiItemFieldConfig[]) => {
       const groups: Record<string, MultiItemFieldConfig[]> = {};
       fields.forEach((field) => {
@@ -173,10 +173,10 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
       });
       return Object.values(groups);
     };
-    
+
     const canSubmit = allFields.every((row) => {
       const visibleFields = fields.filter(
-        (f) => !f.conditional || f.conditional(row ?? {}),
+        (f) => !f.conditional || f.conditional(row ?? {})
       );
       return visibleFields.every((f) => {
         if (!f.required) return true;
@@ -184,52 +184,56 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
         return v !== undefined && v !== null && v !== '';
       });
     });
-    
+
     const resetItem = (index: number) => {
       remove(index);
       insert(index, makeNewRowInternal());
     };
-    
+
     const handleRemove = (id: string) => {
       const index = fieldArray.findIndex((item) => item.id === id);
       if (index !== -1) {
         remove(index); // Remove the correct item using its index
       }
     };
-    
+
     const prepareFormDataForSubmit = (formData: {
       items: Record<string, any>[];
     }) => {
       return {
         ...formData,
         items: formData.items.map(
-          ({ line_type, show_barcode_toggle, ...rest }) => rest,
+          ({ line_type, show_barcode_toggle, ...rest }) => rest
         ),
       };
     };
-    
+
     const handleFormSubmit = (data: { items: Record<string, any>[] }) => {
       const cleanedItems = data.items.filter((item) =>
         Object.values(item).some(
-          (v) => v !== null && v !== undefined && v !== '',
-        ),
+          (v) => v !== null && v !== undefined && v !== ''
+        )
       );
-      
+
       const preparedData = prepareFormDataForSubmit({ items: cleanedItems });
-      
+
       if (onSubmit) {
         onSubmit(preparedData.items);
       }
     };
-    
+
     const validationRules = validation ? validation(watch) : {};
-    
+
     const resetForm = () => {
       reset({ items: [makeNewRowInternal()] }); // Reset form state with one empty row
     };
-    
+
     const renderItem = (
-      field: FieldArrayWithId<{ items: Record<string, any>[]; }, "items", "fieldKey">,
+      field: FieldArrayWithId<
+        { items: Record<string, any>[] },
+        'items',
+        'fieldKey'
+      >,
       index: number
     ) => (
       <Grid
@@ -261,26 +265,23 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
           >
             <ReplayIcon />
           </IconButton>
-          
+
           {fieldArray.length > 1 && (
-            <IconButton
-              onClick={() => handleRemove(field.id)}
-              color="error"
-            >
+            <IconButton onClick={() => handleRemove(field.id)} color="error">
               <Delete />
             </IconButton>
           )}
         </Box>
-        
+
         {renderBeforeFields?.(allFields[index] ?? {}, index)}
-        
+
         {/* Form Fields (Stacked in Vertical Layout Inside Each Form) */}
         {groupFieldsByRow(fields).map((group, gIdx) => (
           <Grid container spacing={2} key={`group-${gIdx}`}>
             {group.map((field) => {
               // current row snapshot
               const rowData = getValues(`items.${index}`) ?? {};
-              
+
               // respect conditional visibility if provided
               if (
                 typeof field.conditional === 'function' &&
@@ -288,12 +289,12 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
               ) {
                 return null;
               }
-              
+
               const grid = field.grid || {
                 xs: 12,
                 sm: group.length === 1 ? 12 : 6,
               };
-              
+
               return (
                 <Grid
                   key={field.id}
@@ -323,21 +324,19 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
                       const errorMessage = validateFn?.(value);
                       const helperText =
                         errorMessage || defaultHelperText || '';
-                      
+
                       if (field.type === 'custom' && field.component) {
                         const CustomComponent = field.component;
-                        
+
                         // Provide row helpers (optional; backward-compatible)
                         const getRowValues = () =>
                           getValues(`items.${index}`) ?? {};
-                        const setRowValues = (
-                          next: Record<string, any>
-                        ) =>
+                        const setRowValues = (next: Record<string, any>) =>
                           setValue(`items.${index}`, next, {
                             shouldValidate: true,
                             shouldDirty: true,
                           });
-                        
+
                         // Always return a ReactElement
                         return (
                           <>
@@ -357,7 +356,7 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
                           </>
                         );
                       }
-                      
+
                       if (field.type === 'select') {
                         return (
                           <Dropdown
@@ -373,7 +372,7 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
                           />
                         );
                       }
-                      
+
                       if (field.type === 'date') {
                         return (
                           <CustomDatePicker
@@ -388,19 +387,16 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
                           />
                         );
                       }
-                      
+
                       if (field.type === 'phone') {
                         const errorMessage = validateFn?.(value);
                         const helperText =
                           errorMessage || field.defaultHelperText || '';
-                        
+
                         return (
                           <FormControl fullWidth error={!!errorMessage}>
                             {field.label && (
-                              <InputLabel
-                                shrink
-                                required={field.required}
-                              >
+                              <InputLabel shrink required={field.required}>
                                 {field.label}
                               </InputLabel>
                             )}
@@ -410,13 +406,11 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
                               country={field.country || 'ca'}
                               required={field.required}
                             />
-                            <FormHelperText>
-                              {helperText}
-                            </FormHelperText>
+                            <FormHelperText>{helperText}</FormHelperText>
                           </FormControl>
                         );
                       }
-                      
+
                       if (field.type === 'email') {
                         return (
                           <BaseInput
@@ -433,7 +427,7 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
                           />
                         );
                       }
-                      
+
                       if (field.type === 'textarea') {
                         return (
                           <BaseInput
@@ -452,7 +446,7 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
                           />
                         );
                       }
-                      
+
                       if (field.type === 'text') {
                         return (
                           <BaseInput
@@ -469,7 +463,7 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
                           />
                         );
                       }
-                      
+
                       // number / fallback
                       return (
                         <BaseInput
@@ -493,7 +487,7 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
             })}
           </Grid>
         ))}
-        
+
         {/* Buttons shown only after the last item */}
         {index === fieldArray.length - 1 && (
           <Box
@@ -512,7 +506,7 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
             >
               <Add /> Add Another
             </CustomButton>
-            
+
             {showSubmitButton && (
               <CustomButton
                 type="submit"
@@ -524,7 +518,7 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
                 Submit All
               </CustomButton>
             )}
-            
+
             <CustomButton
               type="button"
               variant="outlined"
@@ -538,7 +532,7 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
         )}
       </Grid>
     );
-    
+
     return (
       <Box
         component="form"
@@ -554,7 +548,7 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
             {fieldArray.map((field, index) => (
               <Grid
                 key={field.fieldKey}
-                size={{ xs: 12, md: 12 / itemsPerRow}}
+                size={{ xs: 12, md: 12 / itemsPerRow }}
               >
                 {renderItem(field, index)}
               </Grid>

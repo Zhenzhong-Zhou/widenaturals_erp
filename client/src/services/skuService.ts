@@ -46,21 +46,21 @@ const fetchPaginatedSkuProductCards = async (
   params: SkuProductCardQueryParams = {}
 ): Promise<GetSkuProductCardsResponse> => {
   const { filters = {}, ...rest } = params;
-  
+
   // Flatten nested filters into top-level query keys
   const flatParams = {
     ...rest,
     ...filters,
   };
-  
+
   // Build full URL with query string
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.SKUS.SKU_PRODUCT_CARDS}${queryString}`;
-  
+
   try {
     return await getRequest<GetSkuProductCardsResponse>(url);
   } catch (error) {
-    console.error("Failed to fetch SKU product cards:", {
+    console.error('Failed to fetch SKU product cards:', {
       params,
       error,
     });
@@ -92,7 +92,7 @@ const fetchSkuDetailById = async (
 ): Promise<GetSkuDetailResponse> => {
   const cleanId = sanitizeString(skuId);
   const url = API_ENDPOINTS.SKUS.SKU_DETAILS(cleanId);
-  
+
   try {
     return await getRequest<GetSkuDetailResponse>(url);
   } catch (error) {
@@ -136,23 +136,23 @@ const fetchPaginatedSkus = async (
   params: FetchSkusParams = {}
 ): Promise<GetSkuListResponse> => {
   const { filters = {}, ...rest } = params;
-  
+
   // Flatten nested filters -> query params
   const flatParams = {
     ...rest,
     ...filters,
   };
-  
+
   // Build ?page=…&limit=…&...
   const queryString = buildQueryString(flatParams);
-  
+
   // Full endpoint
   const url = `${API_ENDPOINTS.SKUS.ALL_RECORDS}${queryString}`;
-  
+
   try {
     return await getRequest<GetSkuListResponse>(url);
   } catch (error) {
-    console.error("Failed to fetch SKUs:", {
+    console.error('Failed to fetch SKUs:', {
       params,
       error,
     });
@@ -191,7 +191,7 @@ const createSkus = async (
   payload: CreateSkuBulkInput
 ): Promise<CreateSkuResponse> => {
   const url = API_ENDPOINTS.SKUS.ADD_NEW_RECORD;
-  
+
   try {
     return await postRequest<CreateSkuBulkInput, CreateSkuResponse>(
       url,
@@ -227,12 +227,12 @@ const updateSkuStatus = async (
   payload: UpdateSkuStatusRequestBody
 ): Promise<UpdateSkuStatusResponse> => {
   const url = API_ENDPOINTS.SKUS.UPDATE_STATUS(skuId);
-  
+
   try {
-    return await patchRequest<UpdateSkuStatusRequestBody, UpdateSkuStatusResponse>(
-      url,
-      payload
-    );
+    return await patchRequest<
+      UpdateSkuStatusRequestBody,
+      UpdateSkuStatusResponse
+    >(url, payload);
   } catch (error) {
     console.error(`Failed to update status for SKU ${skuId}:`, error);
     throw error;

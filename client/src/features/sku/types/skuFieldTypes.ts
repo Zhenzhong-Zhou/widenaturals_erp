@@ -58,48 +58,48 @@ import type { RowAwareComponentProps } from '@components/common/MultiItemForm';
 export interface SkuFieldContext {
   /** UI permissions: allow manual typing of brand/category codes */
   allowManualBrandCategory: boolean;
-  
+
   /** UI permissions: allow user to manually type variant code */
   allowManualVariantCode: boolean;
-  
+
   /** UI permissions: allow user to manually edit region code */
   allowManualRegionCode: boolean;
-  
+
   /** UI permissions: allow editing of market region */
   allowManualMarketRegion: boolean;
-  
+
   /** React Hook Form instance (undefined in bulk mode) */
   form?: UseFormReturn<any>;
-  
+
   /* --------------------------------------------------------------------
    * PRODUCT LOOKUP
    * ------------------------------------------------------------------ */
-  
+
   /** Product lookup bundle (data, loading, error, pagination) */
   product: LookupBundle<ProductLookupParams>;
-  
+
   /** Pagination & state controller for Product dropdown */
   productDropdown: UsePaginatedDropdownReturn<ProductLookupParams>;
-  
+
   /** Handler for Product lookup search text */
   handleProductSearch: (keyword: string) => void;
-  
+
   /** Optional additional props for Product dropdown customization */
   productProps?: Record<string, any>;
-  
+
   /* --------------------------------------------------------------------
    * SKU CODE BASE LOOKUP
    * ------------------------------------------------------------------ */
-  
+
   /** SKU Code Base lookup bundle (brand/category code source) */
   skuCodeBase: LookupBundle<SkuCodeBaseLookupParams>;
-  
+
   /** Pagination & state controller for SKU Code Base dropdown */
   skuCodeBaseDropdown: UsePaginatedDropdownReturn<SkuCodeBaseLookupParams>;
-  
+
   /** Handler for SKU Code Base search input */
   handleSkuCodeBaseSearch: (keyword: string) => void;
-  
+
   /**
    * Parse a dropdown label into structured brand/category components.
    * Example:
@@ -109,13 +109,13 @@ export interface SkuFieldContext {
     brand_code: string;
     category_code: string;
   };
-  
+
   /** Optional handler to sync Product dropdown label from backend */
   syncProductDropdownLabel?: (id: string) => void;
-  
+
   /** Optional handler to sync SKU Code Base label after change */
   syncSkuCodeBaseLabel?: (id: string) => void;
-  
+
   /**
    * Optional layout grid overrides for this field.
    * Matches the MUI Grid breakpoint structure (xs / sm / md / lg).
@@ -176,49 +176,49 @@ export type BulkRenderer = (
 export interface BaseSkuField {
   /** Field key, mapped to RHF field name or bulk-row property */
   id: string;
-  
+
   /** Visible label displayed to the user */
   label: string;
-  
+
   /**
    * Input type describing how the value is edited.
    * Examples: "text", "number", "textarea", "dropdown", "custom"
    */
   type: BaseFieldType;
-  
+
   /** Whether the field is required for submission */
   required?: boolean;
-  
+
   /** Minimum allowed numeric value (applies only to number inputs) */
   min?: number;
-  
+
   /** Height of textarea fields (line count) */
   rows?: number;
-  
+
   /**
    * Initial value for this field.
    * Used to seed RHF (single mode) or the initial row in MultiItemForm (bulk mode).
    */
   defaultValue?: any;
-  
+
   /**
    * Custom renderer used in **single-SKU** mode.
    * Overrides the default component, allowing specialized dropdowns or logic.
    */
   singleRender?: SingleRenderer;
-  
+
   /**
    * Custom renderer used in **bulk-SKU** mode.
    * Receives row-level helpers (getRowValues, setRowValues) and context.
    */
   bulkRender?: BulkRenderer;
-  
+
   /**
    * Optional logical grouping identifier
    * (used to cluster fields into UI rows/sections within the form layout).
    */
   group?: string;
-  
+
   /**
    * Optional MUI grid sizing for responsive layout.
    * Each breakpoint defines how many columns the field spans.
@@ -235,11 +235,11 @@ export interface BaseSkuField {
  * Supported base field types before rendering translation.
  */
 export type BaseFieldType =
-  | "text"
-  | "textarea"
-  | "number"
-  | "dropdown"
-  | "custom";
+  | 'text'
+  | 'textarea'
+  | 'number'
+  | 'dropdown'
+  | 'custom';
 
 /* ========================================================================
  * PRODUCT DROPDOWN RENDER PARAMETERS
@@ -264,22 +264,22 @@ export type BaseFieldType =
 export interface ProductDropdownRenderArgs {
   /** Current field value (typically the selected product_id) */
   value: any;
-  
+
   /** Change handler (undefined when field is read-only) */
   onChange?: (id: string) => void;
-  
+
   /** Whether the field must be filled */
   required?: boolean;
-  
+
   /** Shared SKU field context (lookup bundles, search handlers, RHF form, etc.) */
   ctx: SkuFieldContext;
-  
+
   /** Returns the bulk row’s current values (defined only in bulk mode) */
   getRowValues?: () => any;
-  
+
   /** Updates the bulk row’s state (defined only in bulk mode) */
   setRowValues?: (row: any) => void;
-  
+
   /** Optional layout hint to render the dropdown at full width */
   fullWidth?: boolean;
 }
@@ -298,19 +298,19 @@ export interface ProductDropdownRenderArgs {
 export interface SkuCodeBaseDropdownRenderArgs {
   /** SKU Base selection value */
   value: any;
-  
+
   /** Change handler hook (null in read-only mode) */
   onChange?: (id: string) => void;
-  
+
   /** Required flag for validation */
   required?: boolean;
-  
+
   /** Shared lookup + parsing context */
   ctx: SkuFieldContext;
-  
+
   /** Get bulk row values (bulk mode only) */
   getRowValues?: () => any;
-  
+
   /** Set bulk row values (bulk mode only) */
   setRowValues?: (row: any) => void;
 }

@@ -63,7 +63,7 @@ export const getProductListTableColumns = (
       sortable: true,
       renderCell: (row) => row.series ?? '—',
     },
-    
+
     // ------------------------------
     // Status Info
     // ------------------------------
@@ -80,7 +80,7 @@ export const getProductListTableColumns = (
       renderCell: (row) => formatDateTime(row.statusDate) ?? '—',
     },
   ];
-  
+
   // ------------------------------
   // Drill-down Expansion Column
   // ------------------------------
@@ -92,6 +92,6 @@ export const getProductListTableColumns = (
       )
     );
   }
-  
+
   return columns;
 };

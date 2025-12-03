@@ -20,8 +20,13 @@
 const { performance } = require('perf_hooks');
 const chalk = require('chalk');
 const { pool } = require('../../database/db');
-const { logSystemInfo, logSystemException } = require('../../utils/system-logger');
-const { saveBulkSkuImagesService } = require('../../services/sku-image-service');
+const {
+  logSystemInfo,
+  logSystemException,
+} = require('../../utils/system-logger');
+const {
+  saveBulkSkuImagesService,
+} = require('../../services/sku-image-service');
 
 // --- CONFIGURABLE TEST SETTINGS ---
 const IS_PROD = false; // true → uploads to S3
@@ -74,46 +79,59 @@ const BULK_IMAGE_SETS = [
   const logPrefix = chalk.cyan('[Test: SAVE_BULK_SKU_IMAGES]');
   const start = performance.now();
   let client;
-  
+
   try {
     console.log(`${logPrefix} 🚀 Starting bulk SKU image upload test...`);
     client = await pool.connect();
-    
+
     // --- Step 1: Fetch SKU IDs and test user ---
     console.log(`${logPrefix} 🔍 Resolving SKU IDs from DB...`);
-    
+
     const skuMap = {};
     for (const { skuCode } of BULK_IMAGE_SETS) {
-      const { rows } = await client.query(`SELECT id FROM skus WHERE sku = $1 LIMIT 1;`, [skuCode]);
+      const { rows } = await client.query(
+        `SELECT id FROM skus WHERE sku = $1 LIMIT 1;`,
+        [skuCode]
+      );
       if (!rows.length) throw new Error(`❌ SKU not found: ${skuCode}`);
       skuMap[skuCode] = rows[0].id;
     }
-    
+
     const { rows: userRows } = await client.query(
       `SELECT id FROM users WHERE email = $1 LIMIT 1;`,
       ['root@widenaturals.com']
     );
-    if (!userRows.length) throw new Error('Test user not found: root@widenaturals.com');
+    if (!userRows.length)
+      throw new Error('Test user not found: root@widenaturals.com');
     const user = { id: userRows[0].id, email: 'root@widenaturals.com' };
-    
-    console.log(`${logPrefix} 👤 Using test user ${chalk.green(user.email)} (${user.id}).`);
-    console.log(`${logPrefix} 📦 Preparing ${BULK_IMAGE_SETS.length} SKU image sets...`);
-    
+
+    console.log(
+      `${logPrefix} 👤 Using test user ${chalk.green(user.email)} (${user.id}).`
+    );
+    console.log(
+      `${logPrefix} 📦 Preparing ${BULK_IMAGE_SETS.length} SKU image sets...`
+    );
+
     // --- Step 2: Build service payload ---
     const skuImageSets = BULK_IMAGE_SETS.map(({ skuCode, images }) => ({
       skuId: skuMap[skuCode],
       skuCode,
       images,
     }));
-    
+
     // --- Step 3: Execute bulk service ---
-    const results = await saveBulkSkuImagesService(skuImageSets, user, IS_PROD, BUCKET_NAME);
-    
+    const results = await saveBulkSkuImagesService(
+      skuImageSets,
+      user,
+      IS_PROD,
+      BUCKET_NAME
+    );
+
     // --- Step 4: Log results summary ---
     const succeeded = results.filter((r) => r.success).length;
     const failed = results.filter((r) => !r.success);
     const totalElapsed = ((performance.now() - start) / 1000).toFixed(2);
-    
+
     console.log(`${logPrefix} ✅ Bulk SKU image upload completed.`);
     console.table(
       results.map((r) => ({
@@ -123,12 +141,12 @@ const BULK_IMAGE_SETS = [
         error: r.error || '',
       }))
     );
-    
+
     if (failed.length > 0) {
       console.warn(chalk.yellow(`${logPrefix} ⚠️ Some SKUs failed to upload:`));
       failed.forEach((f) => console.warn(`  - ${f.skuId}: ${f.error}`));
     }
-    
+
     logSystemInfo('Bulk SKU image upload test completed', {
       context: 'test-save-bulk-sku-images',
       successCount: succeeded,
@@ -137,14 +155,18 @@ const BULK_IMAGE_SETS = [
       totalSkuSets: results.length,
       mode: IS_PROD ? 'prod' : 'dev',
     });
-    
+
     console.log(`${logPrefix} 🏁 Done in ${chalk.green(`${totalElapsed}s`)}.`);
     process.exitCode = failed.length > 0 ? 1 : 0;
   } catch (error) {
     console.error(`${logPrefix} ❌ Error: ${chalk.red(error.message)}`);
-    logSystemException(error, 'Manual test for saveBulkSkuImagesService failed', {
-      context: 'test-save-bulk-sku-images',
-    });
+    logSystemException(
+      error,
+      'Manual test for saveBulkSkuImagesService failed',
+      {
+        context: 'test-save-bulk-sku-images',
+      }
+    );
     process.exitCode = 1;
   } finally {
     if (client) client.release();

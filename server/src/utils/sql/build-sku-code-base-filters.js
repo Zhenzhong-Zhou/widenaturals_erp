@@ -37,21 +37,21 @@ const buildSkuCodeBaseFilter = (filters = {}) => {
     const conditions = ['1=1'];
     const params = [];
     let paramIndex = 1;
-    
+
     // ----- brand_code -----
     if (filters.brand_code) {
       conditions.push(`scb.brand_code = $${paramIndex}`);
       params.push(filters.brand_code);
       paramIndex++;
     }
-    
+
     // ----- category_code -----
     if (filters.category_code) {
       conditions.push(`scb.category_code = $${paramIndex}`);
       params.push(filters.category_code);
       paramIndex++;
     }
-    
+
     // ----- keyword search (brand_code / category_code) -----
     if (filters.keyword) {
       const fuzzy = `%${filters.keyword}%`;
@@ -64,7 +64,7 @@ const buildSkuCodeBaseFilter = (filters = {}) => {
       params.push(fuzzy);
       paramIndex++;
     }
-    
+
     // ----- status filters -----
     if (filters.status_id) {
       conditions.push(`scb.status_id = $${paramIndex}`);
@@ -76,32 +76,32 @@ const buildSkuCodeBaseFilter = (filters = {}) => {
       params.push(filters._activeStatusId);
       paramIndex++;
     }
-    
+
     // ----- date filters -----
     if (filters.createdAfter) {
       conditions.push(`scb.created_at >= $${paramIndex}`);
       params.push(filters.createdAfter);
       paramIndex++;
     }
-    
+
     if (filters.createdBefore) {
       conditions.push(`scb.created_at <= $${paramIndex}`);
       params.push(filters.createdBefore);
       paramIndex++;
     }
-    
+
     if (filters.statusDateAfter) {
       conditions.push(`scb.status_date >= $${paramIndex}`);
       params.push(filters.statusDateAfter);
       paramIndex++;
     }
-    
+
     if (filters.statusDateBefore) {
       conditions.push(`scb.status_date <= $${paramIndex}`);
       params.push(filters.statusDateBefore);
       paramIndex++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -112,7 +112,7 @@ const buildSkuCodeBaseFilter = (filters = {}) => {
       filters,
       error: err.message,
     });
-    
+
     throw AppError.databaseError('Failed to prepare SKU code base filter', {
       details: err.message,
       stage: 'build-sku-code-base-where-clause',

@@ -46,11 +46,11 @@ import { formatLabel, truncateText } from '@utils/textUtils';
  */
 const SkuDetailPage: FC = () => {
   /* ---------------------------------------------------------
-  * Router + Context Hooks
-  * --------------------------------------------------------- */
+   * Router + Context Hooks
+   * --------------------------------------------------------- */
   const { skuId } = useParams<{ skuId: string }>();
   const { permissions } = usePermissions();
-  
+
   /* ---------------------------------------------------------
    * SKU detail hook (provides all data & fetch helpers)
    * --------------------------------------------------------- */
@@ -67,9 +67,9 @@ const SkuDetailPage: FC = () => {
     fetchSkuDetail,
     resetSkuDetail,
   } = useSkuDetail();
-  
+
   const createButtonRef = useRef<HTMLButtonElement>(null);
-  
+
   const {
     options: statusOptions,
     loading: statusLookupLoading,
@@ -78,10 +78,10 @@ const SkuDetailPage: FC = () => {
     fetch: fetchStatusOptions,
     reset: resetStatusLookup,
   } = useStatusLookup();
-  
+
   /* ---------------------------------------------------------
    * Local UI State for Dialog
-  * --------------------------------------------------------- */
+   * --------------------------------------------------------- */
   const [openStatusDialog, setOpenStatusDialog] = useState(false);
 
   // Setup open/close with focus restoration for accessibility
@@ -90,7 +90,7 @@ const SkuDetailPage: FC = () => {
     createButtonRef,
     () => openStatusDialog
   );
-  
+
   /* ---------------------------------------------------------
    * Fetching Logic
    * - refresh function re-fetches SKU detail
@@ -100,12 +100,12 @@ const SkuDetailPage: FC = () => {
   const refresh = useCallback(() => {
     if (skuId) fetchSkuDetail(skuId);
   }, [skuId, fetchSkuDetail]);
-  
+
   useEffect(() => {
     if (skuId) refresh();
     return () => resetSkuDetail();
   }, [skuId, refresh, resetSkuDetail]);
-  
+
   /* ---------------------------------------------------------
    * Flattened structures for UI components
    * Memoized to avoid unnecessary re-renders
@@ -114,36 +114,38 @@ const SkuDetailPage: FC = () => {
     () => (sku ? flattenSkuInfo(sku) : null),
     [sku]
   );
-  
+
   const flattenedComplianceInfo = useMemo(
-    () => (complianceRecords ? flattenComplianceRecords(complianceRecords) : null),
+    () =>
+      complianceRecords ? flattenComplianceRecords(complianceRecords) : null,
     [complianceRecords]
   );
-  
+
   const flattenedPricingInfo = useMemo(
     () => (activePricing ? flattenPricingRecords(activePricing) : null),
     [activePricing]
   );
-  
-  const formattedStatusOptions = useMemo(() =>
-      statusOptions.map(opt => ({
+
+  const formattedStatusOptions = useMemo(
+    () =>
+      statusOptions.map((opt) => ({
         ...opt,
         label: formatLabel(opt.label),
       })),
     [statusOptions]
   );
-  
+
   /* ---------------------------------------------------------
    * Permission logic
    * --------------------------------------------------------- */
   const canViewInactive =
     permissions.includes('root_access') ||
     permissions.includes('view_all_product_statuses');
-  
+
   const canUpdateStatus =
     permissions.includes('root_access') ||
     permissions.includes('update_sku_status');
-  
+
   /* ---------------------------------------------------------
    * Page title (memoized)
    * --------------------------------------------------------- */
@@ -152,21 +154,20 @@ const SkuDetailPage: FC = () => {
     const base = truncateText(name, 50) || 'Product Details';
     return `${base} - Product Details`;
   }, [product]);
-  
+
   /* ---------------------------------------------------------
    * Access Guard:
    * If both SKU and parent product are inactive → deny access
    * unless user has explicit permission
    * --------------------------------------------------------- */
   const isInactive =
-    sku?.status?.name !== "active" ||
-    sku?.product?.status?.name !== "active";
-  
+    sku?.status?.name !== 'active' || sku?.product?.status?.name !== 'active';
+
   // Prevent access to inactive SKUs unless user has proper permissions
   if (sku && isInactive && !canViewInactive) {
     return <Navigate to="/404" replace />;
   }
-  
+
   /* ---------------------------------------------------------
    * Render
    * --------------------------------------------------------- */
@@ -193,7 +194,7 @@ const SkuDetailPage: FC = () => {
           statusLookupMeta={statusLookupMeta}
         />
       )}
-      
+
       {/* Header Actions */}
       <Stack
         direction="row"
@@ -217,36 +218,30 @@ const SkuDetailPage: FC = () => {
             Update SKU Status
           </CustomButton>
         )}
-        
+
         <CustomButton
           sx={{
             minWidth: 160,
-            height: 44,            // FORCE SAME HEIGHT
-            borderRadius: 22,      // MATCH YOUR DESIGN
+            height: 44, // FORCE SAME HEIGHT
+            borderRadius: 22, // MATCH YOUR DESIGN
           }}
           onClick={refresh}
         >
           Refresh SKU Details
         </CustomButton>
-        
+
         <GoBackButton
           sx={{
             minWidth: 160,
-            height: 44,            // SAME HEIGHT HERE
+            height: 44, // SAME HEIGHT HERE
             borderRadius: 22,
           }}
         />
       </Stack>
-      
+
       {/* Main Content */}
       {sku && (
-        <Grid
-          container
-          spacing={2}
-          mt={4}
-          alignItems="flex-start"
-        >
-          
+        <Grid container spacing={2} mt={4} alignItems="flex-start">
           {/* LEFT — Image Gallery */}
           <Grid size={{ xs: 12, md: 4 }} sx={{ pr: { md: 4 } }}>
             <SkuImageGallery
@@ -255,15 +250,15 @@ const SkuDetailPage: FC = () => {
               primaryImage={primaryImage}
             />
           </Grid>
-          
+
           {/* RIGHT — All Info Sections */}
           <Grid
             size={{ xs: 12, md: 8 }}
             sx={{
               pl: { md: 6 },
-              display: "flex",
-              flexDirection: "column",
-              gap: 4
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 4,
             }}
           >
             <SkuDetailRightPanel

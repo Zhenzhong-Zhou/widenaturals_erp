@@ -24,7 +24,7 @@ const createSkusSlice = createSlice({
      */
     resetCreateSkusState: () => initialState,
   },
-  
+
   extraReducers: (builder) => {
     builder
       // -------------------------
@@ -35,7 +35,7 @@ const createSkusSlice = createSlice({
         state.error = null;
         state.data = null; // clear previous result
       })
-      
+
       // -------------------------
       // Fulfilled
       // -------------------------
@@ -47,7 +47,7 @@ const createSkusSlice = createSlice({
           state.error = null;
         }
       )
-      
+
       // -------------------------
       // Rejected
       // -------------------------
@@ -55,9 +55,7 @@ const createSkusSlice = createSlice({
         state.loading = false;
         state.data = null;
         state.error =
-          action.payload ||
-          action.error?.message ||
-          'Failed to create SKUs.';
+          action.payload || action.error?.message || 'Failed to create SKUs.';
       });
   },
 });

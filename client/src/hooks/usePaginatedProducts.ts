@@ -27,7 +27,7 @@ import { resetPaginatedProductsState } from '@features/product/state/paginatedPr
  */
 const usePaginatedProducts = () => {
   const dispatch = useAppDispatch();
-  
+
   // ---------------------------
   // Selectors
   // ---------------------------
@@ -37,7 +37,7 @@ const usePaginatedProducts = () => {
   const error = useAppSelector(selectPaginatedProductsError);
   const totalRecords = useAppSelector(selectPaginatedProductsTotalRecords);
   const isEmpty = useAppSelector(selectPaginatedProductsIsEmpty);
-  
+
   // ---------------------------
   // Actions
   // ---------------------------
@@ -51,14 +51,14 @@ const usePaginatedProducts = () => {
     },
     [dispatch]
   );
-  
+
   /**
    * Reset product state back to initial empty paginated state.
    */
   const resetProducts = useCallback(() => {
     dispatch(resetPaginatedProductsState());
   }, [dispatch]);
-  
+
   // ---------------------------
   // Derived memoized values
   // ---------------------------
@@ -66,7 +66,7 @@ const usePaginatedProducts = () => {
     const { page, limit } = pagination;
     return { page, limit };
   }, [pagination]);
-  
+
   return {
     data,
     pagination,
@@ -74,9 +74,9 @@ const usePaginatedProducts = () => {
     error,
     totalRecords,
     isEmpty,
-    
+
     pageInfo, // { page, limit }
-    
+
     fetchProducts,
     resetProducts,
   };

@@ -40,23 +40,23 @@ const fetchPaginatedProducts = async (
   params: FetchProductParams = {}
 ): Promise<ProductListResponse> => {
   const { filters = {}, ...rest } = params;
-  
+
   // Flatten nested filters
   const flatParams = {
     ...rest,
     ...filters,
   };
-  
+
   // Build query string
   const queryString = buildQueryString(flatParams);
-  
+
   // Full URL
   const url = `${API_ENDPOINTS.PRODUCTS.ALL_RECORDS}${queryString}`;
-  
+
   try {
     return await getRequest<ProductListResponse>(url);
   } catch (error) {
-    console.error("Failed to fetch products:", {
+    console.error('Failed to fetch products:', {
       params,
       error,
     });
@@ -95,14 +95,14 @@ export const createProducts = async (
   payload: CreateProductBulkInput
 ): Promise<CreateProductResponse> => {
   const url = API_ENDPOINTS.PRODUCTS.ADD_NEW_RECORD;
-  
+
   try {
     return await postRequest<CreateProductBulkInput, CreateProductResponse>(
       url,
       payload
     );
   } catch (error) {
-    console.error("Failed to create products:", error);
+    console.error('Failed to create products:', error);
     throw error;
   }
 };

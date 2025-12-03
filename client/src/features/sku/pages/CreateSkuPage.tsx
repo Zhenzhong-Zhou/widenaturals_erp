@@ -32,16 +32,17 @@ import type { CreateSkuInput } from '@features/sku/state';
 const CreateSkuPage = () => {
   const navigate = useNavigate();
   const { theme } = useThemeContext();
-  
+
   /** Single or bulk create mode */
   const [mode, setMode] = useState<'single' | 'bulk'>('single');
-  
+
   /** Form settings toggles */
-  const [allowManualBrandCategory, setAllowManualBrandCategory] = useState(false);
+  const [allowManualBrandCategory, setAllowManualBrandCategory] =
+    useState(false);
   const [allowManualVariantCode, setAllowManualVariantCode] = useState(false);
   const [allowManualRegionCode, setAllowManualRegionCode] = useState(false);
   const [allowManualMarketRegion, setAllowManualMarketRegion] = useState(false);
-  
+
   /** Shared create-logic hook */
   const shared = useCreateSkuSharedLogic();
   const {
@@ -53,7 +54,7 @@ const CreateSkuPage = () => {
     resetCreateSkus,
     canCreateSku,
   } = shared;
-  
+
   /** Submit handler */
   const handleSubmit = useCallback(
     async (skus: CreateSkuInput[]) => {
@@ -79,11 +80,11 @@ const CreateSkuPage = () => {
           <CustomTypography variant="h5" fontWeight={700}>
             Create SKUs
           </CustomTypography>
-          
+
           {/* Right Action Buttons */}
           <Stack direction="row" spacing={2}>
             <GoBackButton sx={{ minWidth: 120 }} />
-            
+
             <CustomButton
               sx={{ minWidth: 120 }}
               onClick={() => navigate('/skus')}
@@ -94,7 +95,7 @@ const CreateSkuPage = () => {
           </Stack>
         </Stack>
       </Box>
-      
+
       {/* ----------------------------------------- */}
       {/* MODE TOGGLE (Replaces Tabs) */}
       {/* ----------------------------------------- */}
@@ -103,19 +104,19 @@ const CreateSkuPage = () => {
         onChange={setMode}
         label="SKU Create Mode"
       />
-      
+
       {/* ----------------------------------------- */}
       {/* FORM SETTINGS */}
       {/* ----------------------------------------- */}
       <SectionDividerLabel label="Form Settings" />
-      
+
       <Box
         sx={{
           p: 2,
           borderRadius: 2,
-          bgcolor: theme.palette.mode === "light" ? "grey.50" : "grey.800",
+          bgcolor: theme.palette.mode === 'light' ? 'grey.50' : 'grey.800',
           border: `1px solid ${
-            theme.palette.mode === "light" ? "grey.300" : "grey.700"
+            theme.palette.mode === 'light' ? 'grey.300' : 'grey.700'
           }`,
           mb: 4,
         }}
@@ -123,33 +124,33 @@ const CreateSkuPage = () => {
         <FormSettingsPanel
           settings={[
             {
-              id: "brandCategory",
-              label: "Manual Brand/Category",
+              id: 'brandCategory',
+              label: 'Manual Brand/Category',
               checked: allowManualBrandCategory,
               onToggle: setAllowManualBrandCategory,
             },
             {
-              id: "variantCode",
-              label: "Manual Variant Code",
+              id: 'variantCode',
+              label: 'Manual Variant Code',
               checked: allowManualVariantCode,
               onToggle: setAllowManualVariantCode,
             },
             {
-              id: "regionCode",
-              label: "Manual Country Code",
+              id: 'regionCode',
+              label: 'Manual Country Code',
               checked: allowManualRegionCode,
               onToggle: setAllowManualRegionCode,
             },
             {
-              id: "marketRegion",
-              label: "Manual Market Region",
+              id: 'marketRegion',
+              label: 'Manual Market Region',
               checked: allowManualMarketRegion,
               onToggle: setAllowManualMarketRegion,
             },
           ]}
         />
       </Box>
-      
+
       {/* ----------------------------------------- */}
       {/* FORM BODY */}
       {/* ----------------------------------------- */}
@@ -165,14 +166,11 @@ const CreateSkuPage = () => {
             response={createdResponse}
           />
         )}
-        
+
         {isCreating && (
-          <Loading
-            variant="dotted"
-            message="Loading SKU Creation Form..."
-          />
+          <Loading variant="dotted" message="Loading SKU Creation Form..." />
         )}
-        
+
         {mode === 'single' ? (
           <CreateSkuSingleForm
             allowManualBrandCategory={allowManualBrandCategory}

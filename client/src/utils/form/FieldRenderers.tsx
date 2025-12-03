@@ -15,21 +15,21 @@ import BaseInput from '@components/common/BaseInput';
  * - Uses a custom dropdown component
  */
 export const renderDropdownField = <T,>({
-                                          label,
-                                          value,
-                                          required,
-                                          onChange,
-                                          options,
-                                          helperTextFn,
-                                          component: Component,
-                                          extraProps = {},
-                                        }: DropdownRenderParams<T>) => {
+  label,
+  value,
+  required,
+  onChange,
+  options,
+  helperTextFn,
+  component: Component,
+  extraProps = {},
+}: DropdownRenderParams<T>) => {
   if (!onChange) return null;
-  
+
   const helperText = helperTextFn
     ? helperTextFn(value, required, options ?? [])
     : undefined;
-  
+
   return (
     <Component
       label={label}
@@ -53,14 +53,14 @@ export const renderDropdownField = <T,>({
  * - Optional helper text generator
  */
 export const renderBaseInputField = ({
-                                       label,
-                                       value,
-                                       required,
-                                       onChange,
-                                       helperTextFn,
-                                       transform,
-                                       fullWidth,
-                                     }: {
+  label,
+  value,
+  required,
+  onChange,
+  helperTextFn,
+  transform,
+  fullWidth,
+}: {
   label: string;
   value: any;
   required: boolean;
@@ -72,7 +72,7 @@ export const renderBaseInputField = ({
   return (
     <BaseInput
       label={label}
-      value={value ?? ""}
+      value={value ?? ''}
       fullWidth={fullWidth}
       onChange={(e) => {
         const raw = e.target.value;
@@ -80,7 +80,7 @@ export const renderBaseInputField = ({
         onChange?.(output);
       }}
       helperText={
-        helperTextFn ? helperTextFn(value ?? "", required) : undefined
+        helperTextFn ? helperTextFn(value ?? '', required) : undefined
       }
     />
   );

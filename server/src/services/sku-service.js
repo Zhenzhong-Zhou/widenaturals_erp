@@ -5,7 +5,8 @@ const {
   checkSkuExists,
   updateSkuStatus,
   getPaginatedSkus,
-  getSkuDetailsById, checkBarcodeExists,
+  getSkuDetailsById,
+  checkBarcodeExists,
 } = require('../repositories/sku-repository');
 const {
   transformPaginatedSkuProductCardResult,
@@ -29,10 +30,21 @@ const { generateSKU } = require('../utils/sku-generator');
 const { checkStatusExists } = require('../repositories/status-repository');
 const { getSkuImagesBySkuId } = require('../repositories/sku-image-repository');
 const { getPricingBySkuId } = require('../repositories/pricing-repository');
-const { getComplianceBySkuId } = require('../repositories/compliance-record-repository');
-const { evaluateComplianceViewAccessControl, sliceComplianceRecordsForUser } = require('../business/compliance-record-business');
-const { evaluateSkuImageViewAccessControl, sliceSkuImagesForUser } = require('../business/sku-image-buiness');
-const { evaluatePricingViewAccessControl, slicePricingForUser } = require('../business/pricing-business');
+const {
+  getComplianceBySkuId,
+} = require('../repositories/compliance-record-repository');
+const {
+  evaluateComplianceViewAccessControl,
+  sliceComplianceRecordsForUser,
+} = require('../business/compliance-record-business');
+const {
+  evaluateSkuImageViewAccessControl,
+  sliceSkuImagesForUser,
+} = require('../business/sku-image-buiness');
+const {
+  evaluatePricingViewAccessControl,
+  slicePricingForUser,
+} = require('../business/pricing-business');
 
 /**
  * Service: fetchPaginatedSkuProductCardsService
@@ -59,26 +71,26 @@ const { evaluatePricingViewAccessControl, slicePricingForUser } = require('../bu
  * @returns {Promise<{data: Array, pagination: Object}>}
  */
 const fetchPaginatedSkuProductCardsService = async ({
-                                                      filters = {},
-                                                      page = 1,
-                                                      limit = 10,
-                                                      sortBy,
-                                                      sortOrder,
-                                                      user,
-                                                    }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy,
+  sortOrder,
+  user,
+}) => {
   const context = 'sku-service/fetchPaginatedSkuProductCardsService';
-  
+
   try {
     // -------------------------------------------------------------
     // 1. Evaluate ACL — determines which statuses user can see
     // -------------------------------------------------------------
     const acl = await evaluateSkuStatusAccessControl(user);
-    
+
     // -------------------------------------------------------------
     // 2. Apply ACL to filters BEFORE SQL (critical)
     // -------------------------------------------------------------
     const adjustedFilters = applySkuProductCardVisibilityRules(filters, acl);
-    
+
     logSystemInfo('Fetching paginated SKU product cards', {
       context,
       page,
@@ -89,7 +101,7 @@ const fetchPaginatedSkuProductCardsService = async ({
       filtersAfterAcl: adjustedFilters,
       userId: user?.id,
     });
-    
+
     // -------------------------------------------------------------
     // 3. Execute repository query (pure SQL)
     // -------------------------------------------------------------
@@ -100,7 +112,7 @@ const fetchPaginatedSkuProductCardsService = async ({
       sortOrder,
       filters: adjustedFilters,
     });
-    
+
     // -------------------------------------------------------------
     // 4. Transform into UI-friendly card format
     // -------------------------------------------------------------
@@ -110,7 +122,7 @@ const fetchPaginatedSkuProductCardsService = async ({
       context,
       userId: user?.id,
     });
-    
+
     throw AppError.serviceError('Failed to fetch SKU product cards.', {
       context,
     });
@@ -151,14 +163,14 @@ const fetchPaginatedSkuProductCardsService = async ({
  * @throws {AppError} On repository or transformation failure.
  */
 const fetchPaginatedSkusService = async ({
-                                           filters = {},
-                                           page = 1,
-                                           limit = 10,
-                                           sortBy = 's.created_at', // MUST be SQL-safe column
-                                           sortOrder = 'DESC',
-                                         }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 's.created_at', // MUST be SQL-safe column
+  sortOrder = 'DESC',
+}) => {
   const context = 'sku-service/fetchPaginatedSkusService';
-  
+
   try {
     // ---------------------------------------------------------
     // Step 1 — Query raw data from repository
@@ -167,10 +179,10 @@ const fetchPaginatedSkusService = async ({
       filters,
       page,
       limit,
-      sortBy,      // SQL-safe column
+      sortBy, // SQL-safe column
       sortOrder,
     });
-    
+
     // ---------------------------------------------------------
     // Step 2 — Handle empty result
     // ---------------------------------------------------------
@@ -181,7 +193,7 @@ const fetchPaginatedSkusService = async ({
         pagination: { page, limit },
         sort: { sortBy, sortOrder },
       });
-      
+
       return {
         data: [],
         pagination: {
@@ -192,12 +204,12 @@ const fetchPaginatedSkusService = async ({
         },
       };
     }
-    
+
     // ---------------------------------------------------------
     // Step 3 — Transform results
     // ---------------------------------------------------------
     const result = transformPaginatedSkuListResults(rawResult);
-    
+
     // ---------------------------------------------------------
     // Step 4 — Log success
     // ---------------------------------------------------------
@@ -207,9 +219,8 @@ const fetchPaginatedSkusService = async ({
       pagination: result.pagination,
       sort: { sortBy, sortOrder },
     });
-    
+
     return result;
-    
   } catch (error) {
     // ---------------------------------------------------------
     // Step 5 — Log + rethrow
@@ -220,7 +231,7 @@ const fetchPaginatedSkusService = async ({
       pagination: { page, limit },
       sort: { sortBy, sortOrder },
     });
-    
+
     throw AppError.serviceError(
       'Could not fetch SKU records. Please try again later.',
       { context }
@@ -253,7 +264,7 @@ const fetchPaginatedSkusService = async ({
 const fetchSkuDetailsService = async (skuId, user) => {
   const context = 'sku-service/fetchSkuDetailsService';
   const traceId = `sku-detail-${Date.now().toString(36)}`;
-  
+
   try {
     // --------------------------------------------------------
     // 1. Fetch base SKU record
@@ -263,13 +274,13 @@ const fetchSkuDetailsService = async (skuId, user) => {
     if (!skuRow) {
       throw AppError.notFoundError(`SKU not found: ${skuId}`, { context });
     }
-    
+
     // --------------------------------------------------------
     // 2. Evaluate SKU-level access rules
     // --------------------------------------------------------
     const skuAccess = await evaluateSkuStatusAccessControl(user);
     const safeSku = sliceSkuForUser(skuRow, skuAccess);
-    
+
     // If SKU does not pass visibility rules → hide entire page
     if (!safeSku) {
       throw AppError.authorizationError(
@@ -277,31 +288,31 @@ const fetchSkuDetailsService = async (skuId, user) => {
         { context, skuId }
       );
     }
-    
+
     // --------------------------------------------------------
     // 3. Image visibility rules
     // --------------------------------------------------------
     const imageAccess = await evaluateSkuImageViewAccessControl(user);
     const imagesRaw = await getSkuImagesBySkuId(skuId);
     const safeImages = sliceSkuImagesForUser(imagesRaw, imageAccess);
-    
+
     // --------------------------------------------------------
     // 4. Pricing records (optional)
     // --------------------------------------------------------
     const pricingAccess = await evaluatePricingViewAccessControl(user);
     let safePricing = [];
-    
+
     if (pricingAccess.canViewPricing) {
       const pricingRows = await getPricingBySkuId(skuId);
       safePricing = slicePricingForUser(pricingRows, pricingAccess);
     }
-    
+
     // --------------------------------------------------------
     // 5. Compliance records (optional)
     // --------------------------------------------------------
     const complianceAccess = await evaluateComplianceViewAccessControl(user);
     let safeComplianceRecords = [];
-    
+
     if (complianceAccess.canViewCompliance) {
       const complianceRows = await getComplianceBySkuId(skuId);
       safeComplianceRecords = sliceComplianceRecordsForUser(
@@ -309,7 +320,7 @@ const fetchSkuDetailsService = async (skuId, user) => {
         complianceAccess
       );
     }
-    
+
     // --------------------------------------------------------
     // 6. Build final response DTO
     //    (Transformer combines SKU + images + pricing + compliance)
@@ -320,7 +331,7 @@ const fetchSkuDetailsService = async (skuId, user) => {
       pricing: safePricing,
       complianceRecords: safeComplianceRecords,
     });
-    
+
     // --------------------------------------------------------
     // 7. Structured logging
     // --------------------------------------------------------
@@ -333,7 +344,7 @@ const fetchSkuDetailsService = async (skuId, user) => {
       imageCount: safeImages.length,
       complianceCount: safeComplianceRecords.length,
     });
-    
+
     return response;
   } catch (error) {
     // All errors captured and re-wrapped into service layer format
@@ -343,7 +354,7 @@ const fetchSkuDetailsService = async (skuId, user) => {
       skuId,
       userId: user?.id,
     });
-    
+
     throw AppError.serviceError('Failed to fetch SKU detail', {
       details: error.message,
       context,
@@ -382,20 +393,22 @@ const createSkusService = async (skuList, user) => {
     const context = 'sku-service/createSkusService';
     const userId = user.id;
     const lastUsedCodeMap = new Map(); // Keeps last used base code per (brand+category)
-    
+
     try {
       // ------------------------------------------------------------
       // 1. Validate input & business rules
       // ------------------------------------------------------------
       if (!Array.isArray(skuList) || skuList.length === 0) {
-        throw AppError.validationError('No SKUs provided for creation.', { context });
+        throw AppError.validationError('No SKUs provided for creation.', {
+          context,
+        });
       }
-      
+
       validateSkuListBusiness(skuList);
-      
+
       const activeStatusId = getStatusId('general_active');
       const inactiveStatusId = getStatusId('general_inactive');
-      
+
       // ------------------------------------------------------------
       // 2. Lock all related products to prevent concurrent updates
       // ------------------------------------------------------------
@@ -407,11 +420,13 @@ const createSkusService = async (skuList, user) => {
         'FOR UPDATE',
         { context }
       );
-      
+
       if (!lockedProducts?.length) {
-        throw AppError.notFoundError('No matching products found to lock.', { context });
+        throw AppError.notFoundError('No matching products found to lock.', {
+          context,
+        });
       }
-      
+
       // ------------------------------------------------------------
       // 3. Ensure (brand_code, category_code) base codes exist
       // ------------------------------------------------------------
@@ -421,9 +436,9 @@ const createSkusService = async (skuList, user) => {
         statusId: activeStatusId,
         userId,
       }));
-      
+
       await getOrCreateBaseCodesBulk(basePairs, client);
-      
+
       // ------------------------------------------------------------
       // 4. Generate SKU codes (e.g., CH-HN101-R-CN)
       //     Uses lastUsedCodeMap to minimize redundant DB lookups.
@@ -440,29 +455,39 @@ const createSkusService = async (skuList, user) => {
         );
         generatedSkus.push(skuCode);
       }
-      
+
       // ------------------------------------------------------------
       // 5. Pre-check for duplicates before insertion
       //     (Avoids partial inserts or rollback costs)
       // ------------------------------------------------------------
       for (let i = 0; i < skuList.length; i++) {
         const s = skuList[i];
-        
+
         // Check SKU uniqueness
-        const exists = await checkSkuExists(generatedSkus[i], s.product_id, client);
+        const exists = await checkSkuExists(
+          generatedSkus[i],
+          s.product_id,
+          client
+        );
         if (exists) {
-          throw AppError.conflictError(`SKU already exists: ${generatedSkus[i]}`, { context });
+          throw AppError.conflictError(
+            `SKU already exists: ${generatedSkus[i]}`,
+            { context }
+          );
         }
-        
+
         // Check barcode uniqueness (if provided)
         if (s.barcode) {
           const barcodeExists = await checkBarcodeExists(s.barcode, client);
           if (barcodeExists) {
-            throw AppError.conflictError(`Barcode already in use: ${s.barcode}`, { context });
+            throw AppError.conflictError(
+              `Barcode already in use: ${s.barcode}`,
+              { context }
+            );
           }
         }
       }
-      
+
       // ------------------------------------------------------------
       // 6. Prepare bulk insert payloads
       // ------------------------------------------------------------
@@ -472,17 +497,17 @@ const createSkusService = async (skuList, user) => {
         inactiveStatusId,
         userId
       );
-      
+
       // ------------------------------------------------------------
       // 7. Insert SKUs in bulk (efficient single query)
       // ------------------------------------------------------------
       const insertedSkus = await insertSkusBulk(insertPayloads, client);
-      
+
       // ------------------------------------------------------------
       // 8. Transform & enrich results before returning
       // ------------------------------------------------------------
       const transformed = transformSkuRecord(insertedSkus, generatedSkus);
-      
+
       // ------------------------------------------------------------
       // 9. Structured system log for auditing
       // ------------------------------------------------------------
@@ -491,11 +516,14 @@ const createSkusService = async (skuList, user) => {
         totalInput: skuList.length,
         insertedCount: insertedSkus.length,
       });
-      
+
       return transformed;
     } catch (error) {
       logSystemException(error, 'Failed to create SKUs in bulk', { context });
-      throw AppError.databaseError('Failed to create SKUs.', { cause: error, context });
+      throw AppError.databaseError('Failed to create SKUs.', {
+        cause: error,
+        context,
+      });
     }
   });
 };
@@ -533,7 +561,7 @@ const updateSkuStatusService = async ({ skuId, statusId, user }) => {
   return withTransaction(async (client) => {
     const context = 'sku-service/updateSkuStatusService';
     const userId = user.id;
-    
+
     // ----------------------------------------
     // 1. Lock SKU row for concurrency safety
     // ----------------------------------------
@@ -541,7 +569,7 @@ const updateSkuStatusService = async ({ skuId, statusId, user }) => {
     if (!sku) {
       throw AppError.notFoundError('SKU not found.', { context, skuId });
     }
-    
+
     // ----------------------------------------
     // 2. Validate that the target status exists
     // ----------------------------------------
@@ -552,7 +580,7 @@ const updateSkuStatusService = async ({ skuId, statusId, user }) => {
         statusId,
       });
     }
-    
+
     // ----------------------------------------
     // 3. Basic validation (prevent no-op)
     // ----------------------------------------
@@ -563,24 +591,24 @@ const updateSkuStatusService = async ({ skuId, statusId, user }) => {
         statusId,
       });
     }
-    
+
     // ----------------------------------------
     // 4. Apply SKU-specific business rules
     // ----------------------------------------
     assertValidSkuStatusTransition(sku.status_id, statusId);
-    
+
     // ----------------------------------------
     // 5. Update SKU status inside the transaction
     // ----------------------------------------
     const updated = await updateSkuStatus(skuId, statusId, userId, client);
-    
+
     if (!updated) {
       throw AppError.conflictError(
         'Concurrent update detected — SKU status not updated.',
         { context, skuId }
       );
     }
-    
+
     // ----------------------------------------
     // 6. Log success
     // ----------------------------------------
@@ -591,7 +619,7 @@ const updateSkuStatusService = async ({ skuId, statusId, user }) => {
       toStatusId: statusId,
       userId,
     });
-    
+
     return updated;
   });
 };

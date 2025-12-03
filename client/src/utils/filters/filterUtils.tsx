@@ -100,9 +100,7 @@ export const renderBooleanSelectField = <T extends Record<string, any>>(
 /**
  * Generic reusable select field renderer using your custom <Dropdown />.
  */
-export const renderSelectField = <
-  T extends Record<string, any>
->(
+export const renderSelectField = <T extends Record<string, any>>(
   control: Control<T>,
   name: keyof T,
   label: string,
@@ -118,7 +116,7 @@ export const renderSelectField = <
           const finalOptions = allowAll
             ? [{ label: 'All', value: null }, ...options]
             : options;
-          
+
           return (
             <Dropdown
               label={label}
@@ -171,7 +169,6 @@ export const renderNumericField = <
           placeholder={placeholder}
           fullWidth={fullWidth}
           sx={{ minHeight: 56 }}
-          
           // ensure numbers stay numeric
           onChange={(e) => {
             const value = e.target.value;

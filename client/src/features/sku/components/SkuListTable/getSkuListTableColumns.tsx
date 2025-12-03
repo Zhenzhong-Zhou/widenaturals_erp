@@ -57,7 +57,7 @@ export const getSkuListTableColumns = (
       sortable: true,
       renderCell: (row) => row.category ?? '—',
     },
-    
+
     // ------------------------------
     // SKU Info
     // ------------------------------
@@ -91,7 +91,7 @@ export const getSkuListTableColumns = (
       sortable: true,
       renderCell: (row) => row.language ?? '—',
     },
-    
+
     // ------------------------------
     // Status Info
     // ------------------------------
@@ -102,7 +102,7 @@ export const getSkuListTableColumns = (
       renderCell: (row) => formatLabel(row.statusName) ?? '—',
     },
   ];
-  
+
   // ------------------------------
   // Drill-down Expansion Column
   // ------------------------------
@@ -114,6 +114,6 @@ export const getSkuListTableColumns = (
       )
     );
   }
-  
+
   return columns;
 };

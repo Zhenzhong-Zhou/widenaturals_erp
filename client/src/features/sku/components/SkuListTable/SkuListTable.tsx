@@ -29,23 +29,23 @@ interface SkuListTableProps {
 }
 
 const SkuListTable = ({
-                        data,
-                        loading,
-                        page,
-                        totalPages,
-                        totalRecords,
-                        rowsPerPage,
-                        onPageChange,
-                        onRowsPerPageChange,
-                        expandedRowId,
-                        onDrillDownToggle,
-                        selectedRowIds,
-                        onSelectionChange,
-                        onRefresh,
-                      }: SkuListTableProps) => {
+  data,
+  loading,
+  page,
+  totalPages,
+  totalRecords,
+  rowsPerPage,
+  onPageChange,
+  onRowsPerPageChange,
+  expandedRowId,
+  onDrillDownToggle,
+  selectedRowIds,
+  onSelectionChange,
+  onRefresh,
+}: SkuListTableProps) => {
   // Shared logic used for permission checks (e.g. canCreateSku)
   const shared = useCreateSkuSharedLogic();
-  
+
   /* -------------------------------------------------------
    * Memoize column definitions
    * - Prevents recalculating columns on every render
@@ -57,7 +57,7 @@ const SkuListTable = ({
       onDrillDownToggle
     );
   }, [expandedRowId, onDrillDownToggle]);
-  
+
   /* -------------------------------------------------------
    * Expanded row content (lazy-loaded)
    * - Suspense allows loading skeleton while chunk loads
@@ -80,7 +80,7 @@ const SkuListTable = ({
     ),
     []
   );
-  
+
   return (
     <Box>
       {/* ----------------------------------------- */}
@@ -95,7 +95,7 @@ const SkuListTable = ({
         <CustomTypography variant="h6" fontWeight={600}>
           SKU List
         </CustomTypography>
-        
+
         <Box display="flex" gap={2}>
           {/* Only show Add New if user has permission */}
           {shared.canCreateSku && (
@@ -108,7 +108,7 @@ const SkuListTable = ({
               Add New
             </CustomButton>
           )}
-          
+
           <CustomButton
             onClick={onRefresh}
             variant="outlined"
@@ -118,7 +118,7 @@ const SkuListTable = ({
           </CustomButton>
         </Box>
       </Box>
-      
+
       {/* ----------------------------------------- */}
       {/* MAIN TABLE */}
       {/* ----------------------------------------- */}

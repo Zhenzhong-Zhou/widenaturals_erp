@@ -32,13 +32,13 @@ const buildStatusLookupFilters = (filters = {}) => {
   try {
     /** @type {string[]} */
     const conditions = ['1=1'];
-    
+
     /** @type {any[]} */
     const params = [];
-    
+
     /** @type {number} */
     let idx = 1;
-    
+
     // -------------------------------------------------------------
     // EXACT MATCH: id
     // -------------------------------------------------------------
@@ -47,7 +47,7 @@ const buildStatusLookupFilters = (filters = {}) => {
       params.push(filters.id);
       idx++;
     }
-    
+
     // -------------------------------------------------------------
     // BOOLEAN: is_active
     // -------------------------------------------------------------
@@ -56,7 +56,7 @@ const buildStatusLookupFilters = (filters = {}) => {
       params.push(filters.is_active);
       idx++;
     }
-    
+
     // -------------------------------------------------------------
     // NAME: support both exact + ilike
     // -------------------------------------------------------------
@@ -66,27 +66,27 @@ const buildStatusLookupFilters = (filters = {}) => {
       params.push(filters.name);
       idx++;
     }
-    
+
     // allow ilike match (same field)
     idx = addIlikeFilter(conditions, params, idx, filters.name_ilike, 's.name');
-    
+
     // -------------------------------------------------------------
     // KEYWORD: fuzzy search across name + description
     // -------------------------------------------------------------
     if (filters.keyword) {
       const kw = `%${filters.keyword.trim().replace(/\s+/g, ' ')}%`;
-      
+
       conditions.push(`
         (
           s.name ILIKE $${idx}
           OR s.description ILIKE $${idx}
         )
       `);
-      
+
       params.push(kw);
       idx++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -97,7 +97,7 @@ const buildStatusLookupFilters = (filters = {}) => {
       error: err.message,
       filters,
     });
-    
+
     throw AppError.databaseError('Failed to build Status lookup filters', {
       details: err.message,
     });

@@ -7,7 +7,8 @@ const {
   validateUUIDOrUUIDArrayOptional,
   validateOptionalUUID,
   createdDateRangeSchema,
-  updatedDateRangeSchema, validateUUIDArray
+  updatedDateRangeSchema,
+  validateUUIDArray,
 } = require('./general-validators');
 const { updateStatusIdSchema } = require('./status-validators');
 const { CODE_RULES } = require('../utils/validation/code-rules');
@@ -41,7 +42,7 @@ const getPaginatedSkuProductCardsSchema = paginationSchema
     productName: validateOptionalString('Product Name'),
     brand: validateOptionalString('Brand'),
     category: validateOptionalString('Category'),
-    
+
     //
     // SKU filters
     //
@@ -55,17 +56,16 @@ const getPaginatedSkuProductCardsSchema = paginationSchema
     marketRegion: validateOptionalString('Market Region'),
     skuStatusId: validateOptionalUUID('SKU Status ID'),
     productStatusId: validateOptionalUUID('Product Status ID'),
-    
+
     //
     // COMPLIANCE
     //
     complianceId: validateOptionalString('Compliance ID'),
-    
+
     //
     // KEYWORD
     //
     keyword: Joi.string().trim().allow('', null).optional(),
-    
   })
   .unknown(false);
 
@@ -173,12 +173,12 @@ const skuQuerySchema = paginationSchema
     // -----------------------------------
     statusIds: validateUUIDOrUUIDArrayOptional('Status IDs'),
     productIds: validateUUIDOrUUIDArrayOptional('Product IDs'),
-    
+
     sku: validateOptionalString('SKU Code'),
     barcode: validateOptionalString('Barcode'),
     marketRegion: validateOptionalString('Market Region'),
     sizeLabel: validateOptionalString('Size Label'),
-    
+
     // ---- Dimensional Filters (Length, Width, Height — cm / inch) ----
     minLengthCm: Joi.number().min(0).optional(),
     maxLengthCm: Joi.number().min(0).optional(),
@@ -192,20 +192,20 @@ const skuQuerySchema = paginationSchema
     maxHeightCm: Joi.number().min(0).optional(),
     minHeightIn: Joi.number().min(0).optional(),
     maxHeightIn: Joi.number().min(0).optional(),
-    
+
     // -----------------------------------
     // Audit filters
     // -----------------------------------
     createdBy: validateOptionalUUID('Created By User ID'),
     updatedBy: validateOptionalUUID('Updated By User ID'),
-    
+
     // -----------------------------------
     // Product-level filters
     // -----------------------------------
     productName: validateOptionalString('Product Name'),
     brand: validateOptionalString('Brand Name'),
     category: validateOptionalString('Category'),
-    
+
     // -----------------------------------
     // Keyword search
     // -----------------------------------
@@ -230,47 +230,43 @@ const skuQuerySchema = paginationSchema
  */
 const createSkuSchema = Joi.object({
   product_id: validateUUID('Product ID'),
-  
+
   brand_code: Joi.string()
     .trim()
     .uppercase()
     .pattern(CODE_RULES.BRAND)
     .required(),
-  
+
   category_code: Joi.string()
     .trim()
     .uppercase()
     .pattern(CODE_RULES.CATEGORY)
     .required(),
-  
+
   variant_code: Joi.string()
     .trim()
     .uppercase()
     .pattern(CODE_RULES.VARIANT)
     .required(),
-  
+
   region_code: Joi.string()
     .trim()
     .uppercase()
     .pattern(CODE_RULES.REGION)
     .required(),
-  
-  barcode: Joi.string()
-    .trim()
-    .pattern(BARCODE_REGEX)
-    .allow('', null)
-    .messages({
-      'string.pattern.base': 'Barcode format is invalid.'
-    }),
-  
+
+  barcode: Joi.string().trim().pattern(BARCODE_REGEX).allow('', null).messages({
+    'string.pattern.base': 'Barcode format is invalid.',
+  }),
+
   language: Joi.string().trim().max(10).allow(null),
-  
+
   market_region: Joi.string().trim().max(100).allow(null),
-  
+
   size_label: Joi.string().trim().max(100).allow(null),
-  
+
   description: validateOptionalString('Description'),
-  
+
   length_cm: Joi.number().positive().allow(null),
   width_cm: Joi.number().positive().allow(null),
   height_cm: Joi.number().positive().allow(null),
@@ -293,11 +289,7 @@ const createSkuSchema = Joi.object({
  *  - Full validation of each SKU object using `createSkuSchema`.
  */
 const createSkuBulkSchema = Joi.object({
-  skus: Joi.array()
-    .items(createSkuSchema)
-    .min(1)
-    .max(200)
-    .required(),
+  skus: Joi.array().items(createSkuSchema).min(1).max(200).required(),
 });
 
 /**

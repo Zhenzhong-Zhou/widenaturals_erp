@@ -11,12 +11,14 @@ import NoDataFound from '@components/common/NoDataFound';
 import usePaginatedSkus from '@hooks/usePaginatedSkus';
 import { applyFiltersAndSorting } from '@utils/queryUtils';
 import { usePaginationHandlers } from '@utils/hooks/usePaginationHandlers';
-import
-  SkuListTable, {
+import SkuListTable, {
   SkuFiltersPanel,
-  SkuSortControls
+  SkuSortControls,
 } from '@features/sku/components/SkuListTable';
-import type { SkuListFilters, SkuSortField } from '@features/sku/state/skuTypes';
+import type {
+  SkuListFilters,
+  SkuSortField,
+} from '@features/sku/state/skuTypes';
 import { flattenSkuRecords } from '@features/sku/utils/flattenSkuData';
 
 /**
@@ -34,13 +36,11 @@ const SkuListPage = () => {
   // Local UI State
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
-  const [sortBy, setSortBy] =
-    useState<SkuSortField>('defaultNaturalSort');
-  const [sortOrder, setSortOrder] =
-    useState<'' | 'ASC' | 'DESC'>('');
+  const [sortBy, setSortBy] = useState<SkuSortField>('defaultNaturalSort');
+  const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
   const [filters, setFilters] = useState<SkuListFilters>({});
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-  
+
   // SKU list hook
   const {
     data: skuData,
@@ -51,35 +51,41 @@ const SkuListPage = () => {
     fetchSkus: fetchPaginatedSkusList,
     resetSkus: resetSkuState,
   } = usePaginatedSkus();
-  
+
   const flattenData = flattenSkuRecords(skuData);
-  
+
   // -----------------------------
   // Shared query object
   // -----------------------------
-  const fullQuery = useMemo(() => ({
-    page,
-    limit,
-    sortBy,
-    sortOrder,
-    filters,
-  }), [page, limit, sortBy, sortOrder, filters]);
-  
+  const fullQuery = useMemo(
+    () => ({
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      filters,
+    }),
+    [page, limit, sortBy, sortOrder, filters]
+  );
+
   // -----------------------------
   // Refresh action
   // -----------------------------
   const refreshSkuList = useCallback(() => {
     fetchPaginatedSkusList(fullQuery);
   }, [fullQuery, fetchPaginatedSkusList]);
-  
+
   // -----------------------------
   // Params for filtering/sorting engine
   // -----------------------------
-  const queryParams = useMemo(() => ({
-    ...fullQuery,
-    fetchFn: refreshSkuList,
-  }), [fullQuery, refreshSkuList]);
-  
+  const queryParams = useMemo(
+    () => ({
+      ...fullQuery,
+      fetchFn: refreshSkuList,
+    }),
+    [fullQuery, refreshSkuList]
+  );
+
   // -----------------------------
   // Debounced fetch
   // -----------------------------
@@ -87,27 +93,29 @@ const SkuListPage = () => {
     const timeout = setTimeout(() => applyFiltersAndSorting(queryParams), 200);
     return () => clearTimeout(timeout);
   }, [queryParams]);
-  
+
   // Reset filters on unmount
   useEffect(() => {
     return () => {
       resetSkuState();
     };
   }, [resetSkuState]);
-  
+
   const handleResetFilters = () => {
     resetSkuState();
     setFilters({});
     setPage(1);
   };
-  
-  const { handlePageChange, handleRowsPerPageChange } =
-    usePaginationHandlers(setPage, setLimit);
-  
+
+  const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(
+    setPage,
+    setLimit
+  );
+
   const handleDrillDownToggle = (rowId: string) => {
     setExpandedRowId((current) => (current === rowId ? null : rowId));
   };
-  
+
   return (
     <Box sx={{ px: 4, py: 3 }}>
       {/* Header */}
@@ -123,9 +131,9 @@ const SkuListPage = () => {
           SKU Management
         </CustomTypography>
       </Box>
-      
+
       <Divider sx={{ mb: 3 }} />
-      
+
       {/* Filter + Sort Controls */}
       <Card sx={{ p: 3, mb: 4, borderRadius: 2, minHeight: 200 }}>
         <Grid container spacing={2}>
@@ -147,7 +155,7 @@ const SkuListPage = () => {
           </Grid>
         </Grid>
       </Card>
-      
+
       {/* Main Table Rendering */}
       {skuLoading ? (
         <Loading variant="dotted" message="Loading SKUs..." />
@@ -156,7 +164,9 @@ const SkuListPage = () => {
       ) : (isSkuListEmpty ?? flattenData.length === 0) ? (
         <NoDataFound
           message="No SKUs found."
-          action={<CustomButton onClick={handleResetFilters}>Reset</CustomButton>}
+          action={
+            <CustomButton onClick={handleResetFilters}>Reset</CustomButton>
+          }
         />
       ) : (
         <SkuListTable

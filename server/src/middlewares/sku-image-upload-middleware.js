@@ -55,7 +55,6 @@ const parseSkuImageJson = (req, res, next) => {
   next();
 };
 
-
 /**
  * @function
  * @description
@@ -93,15 +92,15 @@ const attachUploadedFilesToSkus = (req, res, next) => {
   if (!req.files?.length || !req.body?.skus) {
     return next();
   }
-  
+
   const skus = req.body.skus;
-  
+
   req.files.forEach((file, index) => {
     const sku = skus[index];
     if (!sku) return;
-    
+
     sku.images = sku.images || [];
-    
+
     // Upgrade first metadata-only image to file-backed image
     if (
       sku.images[0] &&
@@ -125,7 +124,7 @@ const attachUploadedFilesToSkus = (req, res, next) => {
       });
     }
   });
-  
+
   next();
 };
 

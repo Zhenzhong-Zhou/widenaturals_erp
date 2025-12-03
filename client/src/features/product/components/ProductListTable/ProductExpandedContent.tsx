@@ -21,7 +21,7 @@ const ProductExpandedContent: FC<ProductExpandedContentProps> = ({ row }) => {
       <CustomTypography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
         Product Information Metadata
       </CustomTypography>
-      
+
       {/* ------------------------------------
        * Audit Trail
        * ------------------------------------ */}

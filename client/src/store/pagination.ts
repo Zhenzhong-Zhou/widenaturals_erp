@@ -16,9 +16,7 @@ import type { ReduxPaginatedState } from '@shared-types/api';
  * @template T - The type of each item stored in the paginated list.
  * @returns {ReduxPaginatedState<T>} A fully initialized paginated slice state.
  */
-export const createInitialPaginatedState = <
-  T,
->(): ReduxPaginatedState<T> => ({
+export const createInitialPaginatedState = <T>(): ReduxPaginatedState<T> => ({
   data: [],
   pagination: {
     page: 1,

@@ -16,16 +16,18 @@ const PricingInfoSection: FC<PricingInfoSectionProps> = ({ data }) => {
    * -------------------------------------
    */
   const [metaAnchorEl, setMetaAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedMeta, setSelectedMeta] = useState<FlattenedPricingRecord | null>(null);
-  
+  const [selectedMeta, setSelectedMeta] =
+    useState<FlattenedPricingRecord | null>(null);
+
   /**
    * -------------------------------------
    *   STATE — Audit Popover
    * -------------------------------------
    */
   const [auditAnchorEl, setAuditAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedAudit, setSelectedAudit] = useState<FlattenedPricingRecord | null>(null);
-  
+  const [selectedAudit, setSelectedAudit] =
+    useState<FlattenedPricingRecord | null>(null);
+
   /**
    * -------------------------------------
    *   CALLBACKS
@@ -38,7 +40,7 @@ const PricingInfoSection: FC<PricingInfoSectionProps> = ({ data }) => {
     },
     []
   );
-  
+
   const openAudit = useCallback(
     (row: FlattenedPricingRecord, target: HTMLElement) => {
       setAuditAnchorEl(target);
@@ -46,17 +48,17 @@ const PricingInfoSection: FC<PricingInfoSectionProps> = ({ data }) => {
     },
     []
   );
-  
+
   const closeMetadata = useCallback(() => {
     setMetaAnchorEl(null);
     setSelectedMeta(null);
   }, []);
-  
+
   const closeAudit = useCallback(() => {
     setAuditAnchorEl(null);
     setSelectedAudit(null);
   }, []);
-  
+
   /**
    * -------------------------------------
    *   COLUMNS (memoized)
@@ -66,7 +68,7 @@ const PricingInfoSection: FC<PricingInfoSectionProps> = ({ data }) => {
     () => createPricingColumns(openMetadata, openAudit),
     [openMetadata, openAudit]
   );
-  
+
   /**
    * -------------------------------------
    *   FIELD SETS
@@ -74,13 +76,13 @@ const PricingInfoSection: FC<PricingInfoSectionProps> = ({ data }) => {
    */
   const metadataFields = useMemo(() => {
     if (!selectedMeta) return [];
-    
+
     return [
       { label: 'Location Type', value: selectedMeta.locationType },
       { label: 'Status Date', value: formatDateTime(selectedMeta.statusDate) },
     ];
   }, [selectedMeta]);
-  
+
   const auditFields = useMemo(() => {
     if (!selectedAudit) return [];
     return [
@@ -90,7 +92,7 @@ const PricingInfoSection: FC<PricingInfoSectionProps> = ({ data }) => {
       { label: 'Updated At', value: formatDateTime(selectedAudit.updatedAt) },
     ];
   }, [selectedAudit]);
-  
+
   /**
    * -------------------------------------
    *   RENDER
@@ -104,7 +106,7 @@ const PricingInfoSection: FC<PricingInfoSectionProps> = ({ data }) => {
         emptyMessage="No pricing records"
         dense
       />
-      
+
       {/* METADATA POPOVER */}
       <InfoPopover
         anchorEl={metaAnchorEl}
@@ -113,7 +115,7 @@ const PricingInfoSection: FC<PricingInfoSectionProps> = ({ data }) => {
         title="Pricing Metadata"
         fields={metadataFields}
       />
-      
+
       {/* AUDIT POPOVER */}
       <InfoPopover
         anchorEl={auditAnchorEl}

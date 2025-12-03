@@ -1,6 +1,10 @@
 const AppError = require('../utils/AppError');
-const { resolveUserPermissionContext } = require('../services/role-permission-service');
-const { SKU_IMAGES_CONSTANTS } = require('../utils/constants/domain/sku-constants');
+const {
+  resolveUserPermissionContext,
+} = require('../services/role-permission-service');
+const {
+  SKU_IMAGES_CONSTANTS,
+} = require('../utils/constants/domain/sku-constants');
 const { logSystemException } = require('../utils/system-logger');
 
 /**
@@ -39,9 +43,11 @@ const deduplicateSkuImages = (images = [], skuId) => {
  */
 const normalizeSkuImageForInsert = (img, skuId, userId, index = 0) => {
   if (!img || typeof img !== 'object') {
-    throw AppError.validationError('Invalid image metadata provided to normalizeSkuImageForInsert');
+    throw AppError.validationError(
+      'Invalid image metadata provided to normalizeSkuImageForInsert'
+    );
   }
-  
+
   return {
     sku_id: skuId,
     image_url: String(img.image_url || '').trim(),
@@ -86,34 +92,35 @@ const normalizeSkuImageForInsert = (img, skuId, userId, index = 0) => {
 const evaluateSkuImageViewAccessControl = async (user) => {
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     // Basic permission: Can the user view the SKU images at all?
     const canViewImages =
-      isRoot || permissions.includes(SKU_IMAGES_CONSTANTS.PERMISSIONS.VIEW_IMAGES);
-    
+      isRoot ||
+      permissions.includes(SKU_IMAGES_CONSTANTS.PERMISSIONS.VIEW_IMAGES);
+
     // Extended: Can view file metadata (size, format, order, etc.)?
     const canViewImageMetadata =
-      isRoot || permissions.includes(SKU_IMAGES_CONSTANTS.PERMISSIONS.VIEW_IMAGE_METADATA);
-    
+      isRoot ||
+      permissions.includes(
+        SKU_IMAGES_CONSTANTS.PERMISSIONS.VIEW_IMAGE_METADATA
+      );
+
     // Extended: Can view audit info (uploaded_at, uploaded_by)?
     const canViewImageHistory =
-      isRoot || permissions.includes(SKU_IMAGES_CONSTANTS.PERMISSIONS.VIEW_IMAGE_HISTORY);
-    
+      isRoot ||
+      permissions.includes(SKU_IMAGES_CONSTANTS.PERMISSIONS.VIEW_IMAGE_HISTORY);
+
     return {
       canViewImages,
       canViewImageMetadata,
       canViewImageHistory,
     };
   } catch (err) {
-    logSystemException(
-      err,
-      'Failed to evaluate SKU image access control',
-      {
-        context: 'sku-image-business/evaluateSkuImageViewAccessControl',
-        userId: user?.id,
-      }
-    );
-    
+    logSystemException(err, 'Failed to evaluate SKU image access control', {
+      context: 'sku-image-business/evaluateSkuImageViewAccessControl',
+      userId: user?.id,
+    });
+
     throw AppError.businessError(
       'Unable to evaluate SKU image access control.',
       { details: err.message }
@@ -167,13 +174,13 @@ const evaluateSkuImageViewAccessControl = async (user) => {
  */
 const sliceSkuImagesForUser = (imageRows, access) => {
   if (!Array.isArray(imageRows)) return [];
-  
+
   const result = [];
-  
+
   for (const row of imageRows) {
     // If user cannot view images at all → skip completely
     if (!access.canViewImages) continue;
-    
+
     // Base shared fields visible to EVERYONE with VIEW_IMAGES
     const safe = {
       id: row.id,
@@ -182,7 +189,7 @@ const sliceSkuImagesForUser = (imageRows, access) => {
       isPrimary: row.is_primary,
       altText: row.alt_text,
     };
-    
+
     // Optional: Extended metadata
     if (access.canViewImageMetadata) {
       safe.metadata = {
@@ -191,24 +198,24 @@ const sliceSkuImagesForUser = (imageRows, access) => {
         displayOrder: row.display_order,
       };
     }
-    
+
     // Optional: Audit history
     if (access.canViewImageHistory) {
       safe.audit = {
         uploadedAt: row.uploaded_at,
         uploadedBy: row.uploaded_by
           ? {
-            id: row.uploaded_by,
-            firstname: row.uploaded_by_firstname,
-            lastname: row.uploaded_by_lastname,
-          }
+              id: row.uploaded_by,
+              firstname: row.uploaded_by_firstname,
+              lastname: row.uploaded_by_lastname,
+            }
           : null,
       };
     }
-    
+
     result.push(safe);
   }
-  
+
   return result;
 };
 

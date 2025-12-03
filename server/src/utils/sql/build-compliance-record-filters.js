@@ -64,7 +64,7 @@ const buildComplianceRecordFilter = (filters = {}) => {
     const conditions = ['1=1'];
     const params = [];
     let i = 1;
-    
+
     // ----------------------------------------
     // Compliance-level filters (cr.*)
     // ----------------------------------------
@@ -73,80 +73,80 @@ const buildComplianceRecordFilter = (filters = {}) => {
       params.push(filters.type);
       i++;
     }
-    
+
     if (filters.statusIds?.length) {
       conditions.push(`cr.status_id = ANY($${i}::uuid[])`);
       params.push(filters.statusIds);
       i++;
     }
-    
+
     if (filters.complianceId) {
       conditions.push(`cr.compliance_id ILIKE $${i}`);
       params.push(`%${filters.complianceId}%`);
       i++;
     }
-    
+
     if (filters.issuedAfter) {
       conditions.push(`cr.issued_date >= $${i}`);
       params.push(filters.issuedAfter);
       i++;
     }
-    
+
     if (filters.issuedBefore) {
       conditions.push(`cr.issued_date <= $${i}`);
       params.push(filters.issuedBefore);
       i++;
     }
-    
+
     if (filters.expiringAfter) {
       conditions.push(`cr.expiry_date >= $${i}`);
       params.push(filters.expiringAfter);
       i++;
     }
-    
+
     if (filters.expiringBefore) {
       conditions.push(`cr.expiry_date <= $${i}`);
       params.push(filters.expiringBefore);
       i++;
     }
-    
+
     // Audit: who created/updated the compliance record
     if (filters.createdBy) {
       conditions.push(`cr.created_by = $${i}`);
       params.push(filters.createdBy);
       i++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`cr.updated_by = $${i}`);
       params.push(filters.updatedBy);
       i++;
     }
-    
+
     if (filters.createdAfter) {
       conditions.push(`cr.created_at >= $${i}`);
       params.push(filters.createdAfter);
       i++;
     }
-    
+
     if (filters.createdBefore) {
       conditions.push(`cr.created_at <= $${i}`);
       params.push(filters.createdBefore);
       i++;
     }
-    
+
     if (filters.updatedAfter) {
       conditions.push(`cr.updated_at >= $${i}`);
       params.push(filters.updatedAfter);
       i++;
     }
-    
+
     if (filters.updatedBefore) {
       conditions.push(`cr.updated_at <= $${i}`);
       params.push(filters.updatedBefore);
       i++;
     }
-    
+
     // ----------------------------------------
     // SKU-level filters (s.*)
     // ----------------------------------------
@@ -155,25 +155,25 @@ const buildComplianceRecordFilter = (filters = {}) => {
       params.push(filters.skuIds);
       i++;
     }
-    
+
     if (filters.sku) {
       conditions.push(`s.sku ILIKE $${i}`);
       params.push(`%${filters.sku}%`);
       i++;
     }
-    
+
     if (filters.sizeLabel) {
       conditions.push(`s.size_label ILIKE $${i}`);
       params.push(`%${filters.sizeLabel}%`);
       i++;
     }
-    
+
     if (filters.marketRegion) {
       conditions.push(`s.market_region ILIKE $${i}`);
       params.push(`%${filters.marketRegion}%`);
       i++;
     }
-    
+
     // ----------------------------------------
     // Product-level filters (p.*)
     // ----------------------------------------
@@ -182,19 +182,19 @@ const buildComplianceRecordFilter = (filters = {}) => {
       params.push(`%${filters.productName}%`);
       i++;
     }
-    
+
     if (filters.brand) {
       conditions.push(`p.brand ILIKE $${i}`);
       params.push(`%${filters.brand}%`);
       i++;
     }
-    
+
     if (filters.category) {
       conditions.push(`p.category ILIKE $${i}`);
       params.push(`%${filters.category}%`);
       i++;
     }
-    
+
     // ----------------------------------------
     // Keyword search (multi-field fuzzy)
     // ----------------------------------------
@@ -209,7 +209,7 @@ const buildComplianceRecordFilter = (filters = {}) => {
       params.push(`%${filters.keyword}%`);
       i++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -219,7 +219,7 @@ const buildComplianceRecordFilter = (filters = {}) => {
       context: 'compliance-record-repository/buildComplianceRecordFilter',
       filters,
     });
-    
+
     throw AppError.databaseError('Failed to prepare compliance filter', {
       details: err.message,
     });

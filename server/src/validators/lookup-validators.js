@@ -315,14 +315,14 @@ const packagingMaterialLookupQuerySchema = Joi.object({
  */
 const skuCodeBaseLookupQuerySchema = Joi.object({
   ...baseLookupQuerySchema,
-  
+
   // Additional SKU Code Base–specific filters
   brand_code: Joi.string()
     .trim()
     .uppercase()
     .pattern(CODE_RULES.BRAND)
     .optional(),
-  
+
   category_code: Joi.string()
     .trim()
     .uppercase()
@@ -352,7 +352,7 @@ const skuCodeBaseLookupQuerySchema = Joi.object({
  */
 const productLookupQuerySchema = Joi.object({
   ...baseLookupQuerySchema,
-  
+
   filters: Joi.object({
     brand: validateOptionalString('Brand', 20),
     category: validateOptionalString('Category', 20),

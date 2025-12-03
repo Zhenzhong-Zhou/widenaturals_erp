@@ -1,8 +1,6 @@
 const { getProductDisplayName } = require('../utils/display-name-utils');
 const { getFullName } = require('../utils/name-utils');
-const {
-  transformPaginatedResult,
-} = require('../utils/transformer-utils');
+const { transformPaginatedResult } = require('../utils/transformer-utils');
 
 /**
  * Transforms a raw SQL pricing row into a flattened pricing list item.
@@ -198,17 +196,17 @@ const transformPaginatedPricingDetailResult = (result) =>
  */
 const transformSkuPricing = (row) => {
   if (!row) return null;
-  
+
   // -----------------------------
   // Status (optional)
   // -----------------------------
   const status = row.status
     ? {
-      id: row.status.id,
-      date: row.status.date,
-    }
+        id: row.status.id,
+        date: row.status.date,
+      }
     : undefined;
-  
+
   // -----------------------------
   // Final Returned DTO
   // -----------------------------
@@ -216,16 +214,16 @@ const transformSkuPricing = (row) => {
     id: row.id,
     skuId: row.skuId,
     priceType: row.priceType?.name ?? null,
-    
+
     location: {
       name: row.location?.name ?? null,
       type: row.location?.type ?? null,
     },
-    
+
     price: row.price,
     validFrom: row.validFrom,
     validTo: row.validTo,
-    
+
     status,
     audit: row.audit,
   };

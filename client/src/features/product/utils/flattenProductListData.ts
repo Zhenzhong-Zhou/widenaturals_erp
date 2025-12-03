@@ -1,6 +1,6 @@
 import type {
   FlattenedProductRecord,
-  ProductListItem
+  ProductListItem,
 } from '@features/product/state';
 import type { GenericAudit } from '@shared-types/api';
 
@@ -19,11 +19,11 @@ export const flattenProductRecords = (
   records: ProductListItem[]
 ): FlattenedProductRecord[] => {
   if (!Array.isArray(records)) return [];
-  
+
   return records.map((record) => {
     const status = record.status ?? { name: '—', date: '' };
     const audit: GenericAudit = record.audit ?? ({} as GenericAudit);
-    
+
     return {
       // ------------------------------
       // Product Info
@@ -33,13 +33,13 @@ export const flattenProductRecords = (
       brand: record.brand ?? '—',
       series: record.series ?? '—',
       category: record.category ?? '—',
-      
+
       // ------------------------------
       // Status Info
       // ------------------------------
       statusName: status.name ?? '—',
       statusDate: status.date ?? '',
-      
+
       // ------------------------------
       // Audit Info
       // ------------------------------

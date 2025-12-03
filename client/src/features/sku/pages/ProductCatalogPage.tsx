@@ -1,24 +1,24 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import Container from "@mui/material/Container";
-import Stack from "@mui/material/Stack";
-import Grid from "@mui/material/Grid";
-import Box from "@mui/material/Box";
-import Paper from "@mui/material/Paper";
-import MenuItem from "@mui/material/MenuItem";
-import CustomButton from "@components/common/CustomButton";
-import CustomPagination from "@components/common/CustomPagination";
-import CustomTypography from "@components/common/CustomTypography";
-import Loading from "@components/common/Loading";
-import ErrorMessage from "@components/common/ErrorMessage";
-import NoDataFound from "@components/common/NoDataFound";
-import GoBackButton from "@components/common/GoBackButton";
-import BaseInput from "@components/common/BaseInput";
+import Container from '@mui/material/Container';
+import Stack from '@mui/material/Stack';
+import Grid from '@mui/material/Grid';
+import Box from '@mui/material/Box';
+import Paper from '@mui/material/Paper';
+import MenuItem from '@mui/material/MenuItem';
+import CustomButton from '@components/common/CustomButton';
+import CustomPagination from '@components/common/CustomPagination';
+import CustomTypography from '@components/common/CustomTypography';
+import Loading from '@components/common/Loading';
+import ErrorMessage from '@components/common/ErrorMessage';
+import NoDataFound from '@components/common/NoDataFound';
+import GoBackButton from '@components/common/GoBackButton';
+import BaseInput from '@components/common/BaseInput';
 import useSkuProductCards from '@hooks/useSkuProductCards';
 import { applyFiltersAndSorting } from '@utils/queryUtils';
 import type {
   SkuProductCardFilters,
   SkuProductCardSortField,
-  SkuProductCardViewItem
+  SkuProductCardViewItem,
 } from '@features/sku/state';
 import {
   ProductCatalogCard,
@@ -32,7 +32,8 @@ const ProductCatalogPage = () => {
   // -----------------------------
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
-  const [sortBy, setSortBy] = useState<SkuProductCardSortField>('defaultNaturalSort');
+  const [sortBy, setSortBy] =
+    useState<SkuProductCardSortField>('defaultNaturalSort');
   const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
   const [filters, setFilters] = useState<SkuProductCardFilters>({});
 
@@ -52,13 +53,16 @@ const ProductCatalogPage = () => {
   // -----------------------------
   // Shared query object
   // -----------------------------
-  const fullQuery = useMemo(() => ({
-    page,
-    limit,
-    sortBy,
-    sortOrder,
-    filters,
-  }), [page, limit, sortBy, sortOrder, filters]);
+  const fullQuery = useMemo(
+    () => ({
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      filters,
+    }),
+    [page, limit, sortBy, sortOrder, filters]
+  );
 
   // -----------------------------
   // Refresh action
@@ -70,10 +74,13 @@ const ProductCatalogPage = () => {
   // -----------------------------
   // Params for filtering/sorting engine
   // -----------------------------
-  const queryParams = useMemo(() => ({
-    ...fullQuery,
-    fetchFn: refreshCatalog,
-  }), [fullQuery, refreshCatalog]);
+  const queryParams = useMemo(
+    () => ({
+      ...fullQuery,
+      fetchFn: refreshCatalog,
+    }),
+    [fullQuery, refreshCatalog]
+  );
 
   // -----------------------------
   // Debounced fetch
@@ -97,29 +104,28 @@ const ProductCatalogPage = () => {
     setFilters({});
     setPage(1);
   };
-  
+
   const handleFilterChange = (newFilters: SkuProductCardFilters) => {
     setFilters(newFilters);
     setPage(1);
   };
-  
+
   const handlePageChange = useCallback((newPage: number) => {
     setPage(newPage);
   }, []);
-  
+
   return (
     <Container maxWidth={false} sx={{ px: 2 }}>
       <Stack direction="column" spacing={3} mt={3}>
-        
         {/* Page Title */}
         <CustomTypography
           variant="h4"
           fontWeight={700}
-          sx={{ textAlign: "center", mb: 1 }}
+          sx={{ textAlign: 'center', mb: 1 }}
         >
           Product Catalog
         </CustomTypography>
-        
+
         {/* Action Bar */}
         <Stack
           direction="row"
@@ -138,22 +144,25 @@ const ProductCatalogPage = () => {
           >
             Refresh
           </CustomButton>
-          
+
           <GoBackButton
             size="medium"
             sx={{ minWidth: 160, height: 44, borderRadius: 22, px: 3 }}
           />
         </Stack>
-        
+
         {/* Filter & Sort Panel */}
-        <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: "1px solid #eee" }}>
+        <Paper
+          elevation={0}
+          sx={{ p: 3, borderRadius: 3, border: '1px solid #eee' }}
+        >
           <ProductCatalogCardFilterPanel
             filters={filters}
             onChange={handleFilterChange}
             onApply={() => setPage(1)}
             onReset={handleResetFilters}
           />
-          
+
           <ProductCatalogCardSortControls
             sortBy={sortBy}
             sortOrder={sortOrder}
@@ -161,7 +170,7 @@ const ProductCatalogPage = () => {
             onSortOrderChange={setSortOrder}
           />
         </Paper>
-        
+
         {/* Items Per Page */}
         <Box display="flex" justifyContent="flex-end" mb={1}>
           <BaseInput
@@ -183,7 +192,7 @@ const ProductCatalogPage = () => {
             ))}
           </BaseInput>
         </Box>
-        
+
         {/* Product Cards */}
         <Box>
           <Grid container spacing={{ xs: 2, md: 3, lg: 4 }}>
@@ -195,7 +204,9 @@ const ProductCatalogPage = () => {
               <NoDataFound
                 message="No products found."
                 action={
-                  <CustomButton onClick={handleResetFilters}>Reset</CustomButton>
+                  <CustomButton onClick={handleResetFilters}>
+                    Reset
+                  </CustomButton>
                 }
               />
             ) : (
@@ -213,7 +224,7 @@ const ProductCatalogPage = () => {
             )}
           </Grid>
         </Box>
-        
+
         {/* Pagination */}
         <Box mt={4} display="flex" justifyContent="center">
           <CustomPagination

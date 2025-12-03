@@ -1,8 +1,13 @@
 const AppError = require('../utils/AppError');
-const { resolveUserPermissionContext, } = require('../services/role-permission-service');
+const {
+  resolveUserPermissionContext,
+} = require('../services/role-permission-service');
 const { getStatusId, getStatusNameById } = require('../config/status-cache');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
-const { SKU_CONSTANTS, BARCODE_REGEX } = require('../utils/constants/domain/sku-constants');
+const {
+  SKU_CONSTANTS,
+  BARCODE_REGEX,
+} = require('../utils/constants/domain/sku-constants');
 const { getGenericIssueReason } = require('../utils/enrich-utils');
 
 /**
@@ -278,10 +283,12 @@ const validateSkuCreationBusiness = (
   // ---------------------------------------------
   for (const field of SKU_REQUIRED_FIELDS) {
     if (!skuData[field]) {
-      throw AppError.validationError(`Missing required field: ${field}`, { context });
+      throw AppError.validationError(`Missing required field: ${field}`, {
+        context,
+      });
     }
   }
-  
+
   // ---------------------------------------------
   // 2. Barcode format validation (if provided)
   // ---------------------------------------------
@@ -292,7 +299,7 @@ const validateSkuCreationBusiness = (
       { context }
     );
   }
-  
+
   // ---------------------------------------------
   // 4. Minimal safe logging
   // ---------------------------------------------
@@ -331,12 +338,12 @@ const validateSkuListBusiness = (
       { context }
     );
   }
-  
+
   // Validate each entry
   for (const sku of skuList) {
     validateSkuCreationBusiness(sku, context);
   }
-  
+
   // Summary log
   logSystemInfo('Bulk SKU creation input validated successfully.', {
     context,
@@ -391,11 +398,16 @@ const prepareSkuInsertPayload = (skuData, generatedSku, statusId, userId) => ({
 const prepareSkuInsertPayloads = (skuList, generatedSkus, statusId, userId) => {
   // Optimization: preallocate array for better V8 perf on large lists
   const result = new Array(skuList.length);
-  
+
   for (let i = 0; i < skuList.length; i++) {
-    result[i] = prepareSkuInsertPayload(skuList[i], generatedSkus[i], statusId, userId);
+    result[i] = prepareSkuInsertPayload(
+      skuList[i],
+      generatedSkus[i],
+      statusId,
+      userId
+    );
   }
-  
+
   return result;
 };
 
@@ -429,13 +441,13 @@ const validateSkuStatusTransition = (currentStatusId, newStatusId) => {
     DISCONTINUED: ['ARCHIVED'],
     ARCHIVED: [], // final state
   };
-  
+
   // Look up status names via cache
   const currentCode = getStatusNameById(currentStatusId);
   const nextCode = getStatusNameById(newStatusId);
-  
+
   if (!currentCode || !nextCode) return false;
-  
+
   // Match transitions
   const allowedNextStates = allowedTransitions[currentCode] ?? [];
   return allowedNextStates.includes(nextCode);
@@ -468,7 +480,7 @@ const validateSkuStatusTransition = (currentStatusId, newStatusId) => {
 const assertValidSkuStatusTransition = (currentStatusId, newStatusId) => {
   const current = getStatusNameById(currentStatusId);
   const next = getStatusNameById(newStatusId);
-  
+
   // Unknown or missing status values
   if (!current || !next) {
     throw AppError.validationError('Unknown SKU status ID(s).', {
@@ -476,13 +488,16 @@ const assertValidSkuStatusTransition = (currentStatusId, newStatusId) => {
       newStatusId,
     });
   }
-  
+
   // Transition not allowed per SKU rules
   if (!validateSkuStatusTransition(currentStatusId, newStatusId)) {
-    throw AppError.validationError(`Invalid SKU status transition: ${current} → ${next}`, {
-      currentStatusId,
-      newStatusId,
-    });
+    throw AppError.validationError(
+      `Invalid SKU status transition: ${current} → ${next}`,
+      {
+        currentStatusId,
+        newStatusId,
+      }
+    );
   }
 };
 
@@ -515,23 +530,26 @@ const assertValidSkuStatusTransition = (currentStatusId, newStatusId) => {
 const evaluateSkuStatusAccessControl = async (user) => {
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     // Base permission: Can the user see SKUs at all?
     const canViewSku =
       isRoot || permissions.includes(SKU_CONSTANTS.PERMISSIONS.VIEW);
-    
+
     // Can see SKUs whose *SKU status* is inactive
     const canViewInactiveSku =
-      isRoot || permissions.includes(SKU_CONSTANTS.PERMISSIONS.VIEW_SKU_INACTIVE);
-    
+      isRoot ||
+      permissions.includes(SKU_CONSTANTS.PERMISSIONS.VIEW_SKU_INACTIVE);
+
     // Can see SKUs whose *product* is inactive
     const canViewInactiveProduct =
-      isRoot || permissions.includes(SKU_CONSTANTS.PERMISSIONS.VIEW_PRODUCT_INACTIVE);
-    
+      isRoot ||
+      permissions.includes(SKU_CONSTANTS.PERMISSIONS.VIEW_PRODUCT_INACTIVE);
+
     // Full override → see everything regardless of SKU or product status
     const canViewAllSkuStatuses =
-      isRoot || permissions.includes(SKU_CONSTANTS.PERMISSIONS.VIEW_SKUS_ALL_STATUSES);
-    
+      isRoot ||
+      permissions.includes(SKU_CONSTANTS.PERMISSIONS.VIEW_SKUS_ALL_STATUSES);
+
     return {
       canViewSku,
       canViewInactiveSku,
@@ -543,7 +561,7 @@ const evaluateSkuStatusAccessControl = async (user) => {
       context: 'sku-business/evaluateSkuStatusAccessControl',
       userId: user?.id,
     });
-    
+
     throw AppError.businessError(
       'Unable to evaluate SKU status access control.',
       { details: err.message }
@@ -569,22 +587,22 @@ const evaluateSkuStatusAccessControl = async (user) => {
 const sliceSkuForUser = (skuRow, access) => {
   const ACTIVE_SKU_STATUS_ID = getStatusId('general_active');
   const ACTIVE_PRODUCT_STATUS_ID = getStatusId('product_active');
-  
+
   // Admin or super-permission override → full visibility
   if (access.canViewAllSkuStatuses) return skuRow;
-  
+
   // User lacks baseline SKU visibility → hide entirely
   if (!access.canViewSku) return null;
-  
+
   const isSkuActive = skuRow.sku_status_id === ACTIVE_SKU_STATUS_ID;
   const isProductActive = skuRow.product_status_id === ACTIVE_PRODUCT_STATUS_ID;
-  
+
   // Inactive SKU but user cannot view inactive SKUs
   if (!isSkuActive && !access.canViewInactiveSku) return null;
-  
+
   // SKU belongs to an inactive product but user cannot view inactive products
   if (!isProductActive && !access.canViewInactiveProduct) return null;
-  
+
   // Passed all visibility filters — return full row
   return skuRow;
 };
@@ -601,10 +619,10 @@ const sliceSkuForUser = (skuRow, access) => {
  */
 const applySkuProductCardVisibilityRules = (filters, acl) => {
   const adjusted = { ...filters };
-  
+
   const ACTIVE_SKU_STATUS_ID = getStatusId('general_active');
   const ACTIVE_PRODUCT_STATUS_ID = getStatusId('product_active');
-  
+
   // -------------------------------------------------------------
   // 1. Full override → no visibility restrictions at all
   // -------------------------------------------------------------
@@ -614,7 +632,7 @@ const applySkuProductCardVisibilityRules = (filters, acl) => {
     delete adjusted.productStatusIds;
     return adjusted;
   }
-  
+
   // -------------------------------------------------------------
   // 2. SKU-level visibility
   // -------------------------------------------------------------
@@ -625,7 +643,7 @@ const applySkuProductCardVisibilityRules = (filters, acl) => {
     // User CAN see inactive SKUs → remove restrictions (if added earlier)
     delete adjusted.skuStatusIds;
   }
-  
+
   // -------------------------------------------------------------
   // 3. Product-level visibility
   // -------------------------------------------------------------
@@ -636,7 +654,7 @@ const applySkuProductCardVisibilityRules = (filters, acl) => {
     // User CAN see inactive products → remove restrictions
     delete adjusted.productStatusIds;
   }
-  
+
   return adjusted;
 };
 

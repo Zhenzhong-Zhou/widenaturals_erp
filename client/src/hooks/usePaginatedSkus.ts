@@ -10,9 +10,7 @@ import {
   type FetchSkusParams,
   fetchPaginatedSkusThunk,
 } from '@features/sku/state';
-import {
-  resetPaginatedSkusState
-} from '@features/sku/state/paginatedSkusSlice';
+import { resetPaginatedSkusState } from '@features/sku/state/paginatedSkusSlice';
 
 /**
  * React hook for accessing paginated SKU list state and actions.
@@ -27,7 +25,7 @@ import {
  */
 const usePaginatedSkus = () => {
   const dispatch = useAppDispatch();
-  
+
   // ---------------------------
   // Selectors (memoized via Reselect)
   // ---------------------------
@@ -37,7 +35,7 @@ const usePaginatedSkus = () => {
   const error = useAppSelector(selectPaginatedSkusError);
   const totalRecords = useAppSelector(selectPaginatedSkusTotalRecords);
   const isEmpty = useAppSelector(selectPaginatedSkusIsEmpty);
-  
+
   // ---------------------------
   // Actions
   // ---------------------------
@@ -52,14 +50,14 @@ const usePaginatedSkus = () => {
     },
     [dispatch]
   );
-  
+
   /**
    * Reset SKU state back to the initial empty paginated form.
    */
   const resetSkus = useCallback(() => {
     dispatch(resetPaginatedSkusState());
   }, [dispatch]);
-  
+
   // ---------------------------
   // Derived memoized values
   // ---------------------------
@@ -67,7 +65,7 @@ const usePaginatedSkus = () => {
     const { page, limit } = pagination;
     return { page, limit };
   }, [pagination]);
-  
+
   return {
     data,
     pagination,
@@ -75,9 +73,9 @@ const usePaginatedSkus = () => {
     error,
     totalRecords,
     isEmpty,
-    
+
     pageInfo, // { page, limit }
-    
+
     fetchSkus,
     resetSkus,
   };

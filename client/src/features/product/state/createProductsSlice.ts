@@ -27,7 +27,7 @@ const createProductsSlice = createSlice({
      */
     resetCreateProductsState: () => initialState,
   },
-  
+
   extraReducers: (builder) => {
     builder
       // -------------------------
@@ -38,7 +38,7 @@ const createProductsSlice = createSlice({
         state.error = null;
         state.data = null; // clear previous result
       })
-      
+
       // -------------------------
       // Fulfilled
       // -------------------------
@@ -50,7 +50,7 @@ const createProductsSlice = createSlice({
           state.error = null;
         }
       )
-      
+
       // -------------------------
       // Rejected
       // -------------------------

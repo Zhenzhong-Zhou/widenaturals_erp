@@ -6,8 +6,7 @@ import CustomTypography from '@components/common/CustomTypography';
 import { faBan, faCheck } from '@fortawesome/free-solid-svg-icons';
 import { getRawLabel } from '@utils/labelHelpers';
 
-type SkuCodeBaseDropdownProps =
-  PaginatedDropdownProps<SkuCodeBaseLookupParams>;
+type SkuCodeBaseDropdownProps = PaginatedDropdownProps<SkuCodeBaseLookupParams>;
 
 /**
  * Dropdown component for selecting a SKU Code Base record.
@@ -21,38 +20,38 @@ type SkuCodeBaseDropdownProps =
  * @component
  */
 const SkuCodeBaseDropdown = ({
-                               options = [],
-                               onRefresh,
-                               fetchParams,
-                               ...rest
-                             }: SkuCodeBaseDropdownProps) => {
+  options = [],
+  onRefresh,
+  fetchParams,
+  ...rest
+}: SkuCodeBaseDropdownProps) => {
   const enrichedOptions = useMemo(() => {
     return Array.from(
       new Map(
         options.map((opt) => {
           const isInactive = opt.isActive === false;
-          
+
           // Raw label string for Autocomplete
           const rawLabel = getRawLabel(opt.label);
-          
+
           // JSX label with conditional styling
           const displayLabel = (
             <CustomTypography color={isInactive ? 'error' : 'inherit'}>
               {rawLabel}
             </CustomTypography>
           );
-          
+
           // Icon logic
           const icon = isInactive ? faBan : faCheck;
-          
+
           // Tooltip logic
           const tooltip = isInactive
             ? 'Inactive SKU Code Base'
             : 'Active SKU Code Base';
-          
+
           // Icon coloring
           const iconColor = isInactive ? 'gray' : 'green';
-          
+
           return [
             opt.value ?? opt.id,
             {
@@ -68,7 +67,7 @@ const SkuCodeBaseDropdown = ({
       ).values()
     );
   }, [options]);
-  
+
   return (
     <PaginatedDropdown
       label="Select SKU Code Base"

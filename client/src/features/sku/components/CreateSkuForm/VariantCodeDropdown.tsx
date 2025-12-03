@@ -1,6 +1,9 @@
 import { type FC, type ReactNode, useMemo } from 'react';
 import Dropdown, { type OptionType } from '@components/common/Dropdown';
-import { SKU_CONSTANTS, type VariantCodeItem } from '@utils/constants/skuConstants';
+import {
+  SKU_CONSTANTS,
+  type VariantCodeItem,
+} from '@utils/constants/skuConstants';
 
 interface VariantCodeDropdownProps {
   value: string | null;
@@ -12,13 +15,13 @@ interface VariantCodeDropdownProps {
 }
 
 const VariantCodeDropdown: FC<VariantCodeDropdownProps> = ({
-                                                             value,
-                                                             onChange,
-                                                             label = 'Variant Code',
-                                                             disabled = false,
-                                                             placeholder = 'Select Variant Code',
-                                                             helperText,
-                                                           }) => {
+  value,
+  onChange,
+  label = 'Variant Code',
+  disabled = false,
+  placeholder = 'Select Variant Code',
+  helperText,
+}) => {
   // Convert dataset → OptionType[]
   const options: OptionType[] = useMemo(
     () =>
@@ -29,7 +32,7 @@ const VariantCodeDropdown: FC<VariantCodeDropdownProps> = ({
       })),
     []
   );
-  
+
   return (
     <Dropdown
       label={label}

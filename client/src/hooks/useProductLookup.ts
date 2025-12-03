@@ -18,23 +18,23 @@ import { resetProductLookup } from '@features/lookup/state/productLookupSlice';
  */
 const useProductLookup = () => {
   const dispatch = useAppDispatch();
-  
+
   const options = useAppSelector(selectProductLookupOptions);
   const loading = useAppSelector(selectProductLookupLoading);
   const error = useAppSelector(selectProductLookupError);
   const meta = useAppSelector(selectProductLookupMeta);
-  
+
   const fetch = useCallback(
     (params?: ProductLookupParams) => {
       dispatch(fetchProductLookupThunk(params));
     },
     [dispatch]
   );
-  
+
   const reset = useCallback(() => {
     dispatch(resetProductLookup());
   }, [dispatch]);
-  
+
   return useMemo(
     () => ({
       options,

@@ -34,23 +34,20 @@ import { skuService } from '@services/skuService';
 export const fetchPaginatedSkuProductCardsThunk = createAsyncThunk<
   GetSkuProductCardsResponse,
   SkuProductCardQueryParams | undefined
->(
-  'skus/fetchPaginatedProductCards',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await skuService.fetchPaginatedSkuProductCards(params); // Full typed API envelope
-    } catch (error: any) {
-      console.error('Thunk error: failed to fetch SKU product cards', error);
-      
-      return rejectWithValue(
-        error?.response?.data || {
-          message: 'Failed to fetch SKU product cards',
-          raw: error,
-        }
-      );
-    }
+>('skus/fetchPaginatedProductCards', async (params, { rejectWithValue }) => {
+  try {
+    return await skuService.fetchPaginatedSkuProductCards(params); // Full typed API envelope
+  } catch (error: any) {
+    console.error('Thunk error: failed to fetch SKU product cards', error);
+
+    return rejectWithValue(
+      error?.response?.data || {
+        message: 'Failed to fetch SKU product cards',
+        raw: error,
+      }
+    );
   }
-);
+});
 
 /**
  * Thunk for fetching a single SKU's detail record by ID.
@@ -65,25 +62,23 @@ export const getSkuDetailByIdThunk = createAsyncThunk<
   GetSkuDetailResponse,
   string,
   { rejectValue: string }
->(
-  'skus/getSkuDetailById',
-  async (skuId, { rejectWithValue }) => {
-    try {
-      return await skuService.fetchSkuDetailById(skuId);
-    } catch (err: any) {
-      console.error('Thunk: Failed to fetch SKU detail', err);
-      
-      // Normalize error shape for rejectWithValue
-      const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        'Failed to fetch SKU detail' ||
-        err?.response?.data?.traceId || 'unknown';
-      
-      return rejectWithValue(message);
-    }
+>('skus/getSkuDetailById', async (skuId, { rejectWithValue }) => {
+  try {
+    return await skuService.fetchSkuDetailById(skuId);
+  } catch (err: any) {
+    console.error('Thunk: Failed to fetch SKU detail', err);
+
+    // Normalize error shape for rejectWithValue
+    const message =
+      err?.response?.data?.message ||
+      err?.message ||
+      'Failed to fetch SKU detail' ||
+      err?.response?.data?.traceId ||
+      'unknown';
+
+    return rejectWithValue(message);
   }
-);
+});
 
 /**
  * Redux Toolkit Thunk — Fetch paginated SKUs with full support for
@@ -125,26 +120,21 @@ export const getSkuDetailByIdThunk = createAsyncThunk<
  * @throws {Error} Re-throws request exceptions (network/server/API errors).
  */
 export const fetchPaginatedSkusThunk = createAsyncThunk<
-  GetSkuListResponse,          // Return type
-  FetchSkusParams,             // Argument type
-  { rejectValue: string }      // Error payload
->(
-  'skus/fetchList',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await skuService.fetchPaginatedSkus(params);
-    } catch (err: any) {
-      console.error('fetchSkusThunk error:', err);
-      
-      const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        'Failed to fetch SKUs';
-      
-      return rejectWithValue(message);
-    }
+  GetSkuListResponse, // Return type
+  FetchSkusParams, // Argument type
+  { rejectValue: string } // Error payload
+>('skus/fetchList', async (params, { rejectWithValue }) => {
+  try {
+    return await skuService.fetchPaginatedSkus(params);
+  } catch (err: any) {
+    console.error('fetchSkusThunk error:', err);
+
+    const message =
+      err?.response?.data?.message || err?.message || 'Failed to fetch SKUs';
+
+    return rejectWithValue(message);
   }
-);
+});
 
 /**
  * RTK Thunk — Create one or more SKU records.
@@ -200,23 +190,20 @@ export const fetchPaginatedSkusThunk = createAsyncThunk<
  * }
  */
 export const createSkusThunk = createAsyncThunk<
-  CreateSkuResponse,     // Returned payload on success
-  CreateSkuBulkInput,    // Input argument
+  CreateSkuResponse, // Returned payload on success
+  CreateSkuBulkInput, // Input argument
   { rejectValue: string } // Typed reject payload
->(
-  'skus/createSkus',
-  async (payload, { rejectWithValue }) => {
-    try {
-      return await skuService.createSkus(payload);
-    } catch (error: any) {
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Failed to create SKUs.';
-      return rejectWithValue(message);
-    }
+>('skus/createSkus', async (payload, { rejectWithValue }) => {
+  try {
+    return await skuService.createSkus(payload);
+  } catch (error: any) {
+    const message =
+      error?.response?.data?.message ||
+      error?.message ||
+      'Failed to create SKUs.';
+    return rejectWithValue(message);
   }
-);
+});
 
 /**
  * Thunk: Update SKU Status
@@ -285,22 +272,19 @@ export const createSkusThunk = createAsyncThunk<
  *   handling to Redux via `rejectWithValue`.
  */
 export const updateSkuStatusThunk = createAsyncThunk<
-  UpdateSkuStatusResponse,     // return type
-  UpdateSkuStatusThunkArgs,    // args type
-  { rejectValue: string }      // error payload type
->(
-  'skus/updateStatus',
-  async ({ skuId, statusId }, { rejectWithValue }) => {
-    try {
-      const payload: UpdateSkuStatusRequestBody = { statusId };
-      return await skuService.updateSkuStatus(skuId, payload);
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        'Failed to update SKU status';
-      
-      return rejectWithValue(message);
-    }
+  UpdateSkuStatusResponse, // return type
+  UpdateSkuStatusThunkArgs, // args type
+  { rejectValue: string } // error payload type
+>('skus/updateStatus', async ({ skuId, statusId }, { rejectWithValue }) => {
+  try {
+    const payload: UpdateSkuStatusRequestBody = { statusId };
+    return await skuService.updateSkuStatus(skuId, payload);
+  } catch (err: any) {
+    const message =
+      err?.response?.data?.message ||
+      err?.message ||
+      'Failed to update SKU status';
+
+    return rejectWithValue(message);
   }
-);
+});

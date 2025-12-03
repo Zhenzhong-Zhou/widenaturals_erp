@@ -59,11 +59,11 @@ export interface MarketRegionCodeItem {
  * marketing regions, not necessarily ISO standards.
  */
 const REGION_CODES: MarketRegionCodeItem[] = [
-  { value: "Universal", label: "Universal" },
-  { value: "China", label: "China" },
-  { value: "Canada", label: "Canada" },
-  { value: "United States", label: "United States" },
-  { value: "International", label: "International" },
+  { value: 'Universal', label: 'Universal' },
+  { value: 'China', label: 'China' },
+  { value: 'Canada', label: 'Canada' },
+  { value: 'United States', label: 'United States' },
+  { value: 'International', label: 'International' },
 ];
 
 /* ========================================================================
@@ -93,7 +93,7 @@ export interface CountryCodeItem {
  */
 export const getCountryCodeItems = (): CountryCodeItem[] => {
   const alpha2 = countries.getAlpha2Codes(); // { CA: 'Canada', US: 'United States', ... }
-  
+
   return Object.entries(alpha2)
     .map(([code]) => ({
       code,
@@ -118,17 +118,17 @@ export const SKU_CONSTANTS = {
   PERMISSIONS: {
     /** Allow creating SKUs even when inventory is zero */
     ALLOW_BACKORDER_SKUS: 'allow_backorder_skus',
-    
+
     /** Allow using inactive or discontinued SKUs for internal orders */
     ALLOW_INTERNAL_ORDER_SKUS: 'allow_internal_order_skus',
-    
+
     /** Admin override permission: bypass all SKU-level filters */
     ADMIN_OVERRIDE_SKU_FILTERS: 'admin_override_sku_filters',
   },
-  
+
   /** Predefined size/potency/capsule-count codes */
   VARIANT_CODES,
-  
+
   /** Predefined business-defined market regions */
   REGION_CODES,
 };

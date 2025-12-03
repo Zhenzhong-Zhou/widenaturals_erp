@@ -6,8 +6,7 @@ import CustomTypography from '@components/common/CustomTypography';
 import { faBan, faCheck } from '@fortawesome/free-solid-svg-icons';
 import { getRawLabel } from '@utils/labelHelpers';
 
-type StatusDropdownProps =
-  PaginatedDropdownProps<StatusLookupParams>;
+type StatusDropdownProps = PaginatedDropdownProps<StatusLookupParams>;
 
 /**
  * Dropdown component for selecting a Status lookup item.
@@ -19,33 +18,31 @@ type StatusDropdownProps =
  * @component
  */
 const StatusDropdown = ({
-                          options = [],
-                          fetchParams,
-                          onRefresh,
-                          ...rest
-                        }: StatusDropdownProps) => {
+  options = [],
+  fetchParams,
+  onRefresh,
+  ...rest
+}: StatusDropdownProps) => {
   const enrichedOptions = useMemo(() => {
     return Array.from(
       new Map(
         options.map((opt) => {
           const isInactive = opt.isActive === false;
-          
+
           const rawLabel = getRawLabel(opt.label);
-          
+
           const displayLabel = (
             <CustomTypography color={isInactive ? 'error' : 'inherit'}>
               {rawLabel}
             </CustomTypography>
           );
-          
+
           const icon = isInactive ? faBan : faCheck;
-          
-          const tooltip = isInactive
-            ? 'Inactive Status'
-            : 'Active Status';
-          
+
+          const tooltip = isInactive ? 'Inactive Status' : 'Active Status';
+
           const iconColor = isInactive ? 'gray' : 'green';
-          
+
           return [
             opt.value ?? opt.id,
             {
@@ -61,7 +58,7 @@ const StatusDropdown = ({
       ).values()
     );
   }, [options]);
-  
+
   return (
     <PaginatedDropdown
       label="Select Status"

@@ -22,12 +22,12 @@ export const flattenSkuRecords = (
   records: SkuListItem[]
 ): FlattenedSkuRecord[] => {
   if (!Array.isArray(records)) return [];
-  
+
   return records.map((record) => {
     const product: SkuListProduct = record.product ?? ({} as SkuListProduct);
     const status: SkuStatusRecord = record.status ?? ({} as SkuStatusRecord);
     const audit: GenericAudit = record.audit ?? ({} as GenericAudit);
-    
+
     return {
       // ------------------------------
       // Product Info
@@ -38,7 +38,7 @@ export const flattenSkuRecords = (
       series: product.series ?? '—',
       category: product.category ?? '—',
       displayProductName: product.displayName ?? '—',
-      
+
       // ------------------------------
       // SKU Info
       // ------------------------------
@@ -50,13 +50,13 @@ export const flattenSkuRecords = (
       marketRegion: record.marketRegion ?? '—',
       sizeLabel: record.sizeLabel ?? '—',
       displayLabel: record.displayLabel ?? '—',
-      
+
       // ------------------------------
       // Status Info
       // ------------------------------
       statusName: status.name ?? '—',
       statusDate: status.date ?? '',
-      
+
       // ------------------------------
       // Audit Info
       // ------------------------------

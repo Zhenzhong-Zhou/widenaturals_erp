@@ -21,9 +21,14 @@
 const { performance } = require('perf_hooks');
 const chalk = require('chalk');
 const { pool } = require('../../database/db');
-const { logSystemInfo, logSystemException } = require('../../utils/system-logger');
+const {
+  logSystemInfo,
+  logSystemException,
+} = require('../../utils/system-logger');
 const { saveSkuImagesService } = require('../../services/sku-image-service');
-const { transformSkuImageResults } = require('../../transformers/sku-image-transformer');
+const {
+  transformSkuImageResults,
+} = require('../../transformers/sku-image-transformer');
 
 // --- CONFIGURABLE TEST PARAMS ---
 const TEST_SKU_CODE = 'PG-TCM300-R-CN';
@@ -44,14 +49,14 @@ const TEST_IMAGES = [
   const logPrefix = chalk.cyan('[Test: SAVE_SKU_IMAGES]');
   const startTime = performance.now();
   let client;
-  
+
   console.log(`${logPrefix} 🚀 Starting SKU image save service test...`);
-  
+
   try {
     // --- Step 1: Connect to DB ---
     client = await pool.connect();
     console.log(`${logPrefix} ✅ Database connection established.`);
-    
+
     // --- Step 2: Fetch test SKU and user ---
     const { rows: skuRows } = await client.query(
       `SELECT id FROM skus WHERE sku = $1 LIMIT 1;`,
@@ -59,27 +64,39 @@ const TEST_IMAGES = [
     );
     if (!skuRows.length) throw new Error(`SKU not found: ${TEST_SKU_CODE}`);
     const skuId = skuRows[0].id;
-    
+
     const { rows: userRows } = await client.query(
       `SELECT id FROM users WHERE email = $1 LIMIT 1;`,
       ['root@widenaturals.com']
     );
-    if (!userRows.length) throw new Error('Test user not found: root@widenaturals.com');
+    if (!userRows.length)
+      throw new Error('Test user not found: root@widenaturals.com');
     const userId = userRows[0].id;
-    
-    console.log(`${logPrefix} 👤 Using SKU ${chalk.green(TEST_SKU_CODE)} (${skuId}) by user ${chalk.green(userId)}.`);
-    
+
+    console.log(
+      `${logPrefix} 👤 Using SKU ${chalk.green(TEST_SKU_CODE)} (${skuId}) by user ${chalk.green(userId)}.`
+    );
+
     // --- Step 3: Execute service ---
-    const insertedRows = await saveSkuImagesService(TEST_IMAGES, skuId, TEST_SKU_CODE, userId, IS_PROD, BUCKET_NAME);
-    
+    const insertedRows = await saveSkuImagesService(
+      TEST_IMAGES,
+      skuId,
+      TEST_SKU_CODE,
+      userId,
+      IS_PROD,
+      BUCKET_NAME
+    );
+
     if (!Array.isArray(insertedRows) || insertedRows.length === 0) {
       throw new Error('❌ No images were processed or inserted.');
     }
-    
+
     // --- Step 4: Transform results for API preview ---
     const transformed = transformSkuImageResults(insertedRows);
-    
-    console.log(`${logPrefix} ✅ Transformed API response (${transformed.length} entries):`);
+
+    console.log(
+      `${logPrefix} ✅ Transformed API response (${transformed.length} entries):`
+    );
     console.table(
       transformed.map((r) => ({
         id: r.id,
@@ -89,7 +106,7 @@ const TEST_IMAGES = [
         primary: r.isPrimary,
       }))
     );
-    
+
     // --- Step 5: Verify DB insert ---
     const { rows: dbRows } = await client.query(
       `SELECT image_type, image_url, file_size_kb, file_format, is_primary
@@ -98,11 +115,14 @@ const TEST_IMAGES = [
        ORDER BY display_order ASC;`,
       [skuId]
     );
-    
-    if (!dbRows.length) throw new Error('❌ No SKU image records found in database.');
-    console.log(`${logPrefix} 🔎 Verified ${chalk.green(dbRows.length)} images inserted into DB.`);
+
+    if (!dbRows.length)
+      throw new Error('❌ No SKU image records found in database.');
+    console.log(
+      `${logPrefix} 🔎 Verified ${chalk.green(dbRows.length)} images inserted into DB.`
+    );
     console.table(dbRows);
-    
+
     // --- Step 6: Success summary ---
     const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
     logSystemInfo('SKU image save service test completed successfully.', {
@@ -113,8 +133,10 @@ const TEST_IMAGES = [
       elapsedSeconds: elapsed,
       mode: IS_PROD ? 'prod' : 'dev',
     });
-    
-    console.log(`${logPrefix} 🏁 Completed successfully in ${chalk.green(`${elapsed}s`)}.`);
+
+    console.log(
+      `${logPrefix} 🏁 Completed successfully in ${chalk.green(`${elapsed}s`)}.`
+    );
     process.exitCode = 0;
   } catch (error) {
     console.error(`${logPrefix} ❌ Error: ${chalk.red(error.message)}`);

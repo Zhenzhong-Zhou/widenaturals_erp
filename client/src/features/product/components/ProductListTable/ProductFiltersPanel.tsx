@@ -48,53 +48,48 @@ const TEXT_FIELDS: FilterField<ProductListFilters>[] = [
  * Mirrors the UX and architecture of SkuFiltersPanel.
  */
 const ProductFiltersPanel: FC<ProductFiltersPanelProps> = ({
-                                                             filters,
-                                                             onChange,
-                                                             onOpen,
-                                                             onApply,
-                                                             onReset,
-                                                             statusOptions,
-                                                             statusLoading,
-                                                             statusError,
-                                                           }) => {
-  const {
-    control,
-    handleSubmit,
-    reset,
-    watch,
-    setValue,
-  } = useForm<ProductListFilters>({
-    defaultValues: filters,
-  });
-  
+  filters,
+  onChange,
+  onOpen,
+  onApply,
+  onReset,
+  statusOptions,
+  statusLoading,
+  statusError,
+}) => {
+  const { control, handleSubmit, reset, watch, setValue } =
+    useForm<ProductListFilters>({
+      defaultValues: filters,
+    });
+
   /** Keep external changes in sync */
   useEffect(() => {
     reset(filters);
   }, [filters, reset]);
-  
+
   // -------------------------------
   // Status dropdown binding
   // -------------------------------
   const statusValue = watch('statusIds');
-  
+
   // Convert from string[] → MultiSelectOption[]
   const selectedStatusOptions = useMemo(() => {
     if (!Array.isArray(statusValue)) return [];
-    
+
     return statusOptions
-      .filter(opt => statusValue.includes(opt.value))
-      .map(opt => ({
+      .filter((opt) => statusValue.includes(opt.value))
+      .map((opt) => ({
         value: opt.value,
         label: opt.label,
       }));
   }, [statusValue, statusOptions]);
-  
+
   // Convert from MultiSelectOption[] → string[]
   const handleStatusSelect = (options: { value: string; label: string }[]) => {
-    const ids = options.map(o => o.value);
+    const ids = options.map((o) => o.value);
     setValue('statusIds', ids.length ? ids : undefined, { shouldDirty: true });
   };
-  
+
   // -------------------------------
   // Submit / Reset
   // -------------------------------
@@ -102,12 +97,12 @@ const ProductFiltersPanel: FC<ProductFiltersPanelProps> = ({
     onChange(data);
     onApply();
   };
-  
+
   const resetFilters = () => {
     reset(emptyFilters);
     onReset();
   };
-  
+
   return (
     <form onSubmit={handleSubmit(submitFilters)}>
       <FilterPanelLayout onReset={resetFilters}>
@@ -116,7 +111,7 @@ const ProductFiltersPanel: FC<ProductFiltersPanelProps> = ({
           {TEXT_FIELDS.map(({ name, label, placeholder }) =>
             renderInputField(control, name, label, placeholder)
           )}
-          
+
           <StatusMultiSelectDropdown
             options={statusOptions}
             selectedOptions={selectedStatusOptions}

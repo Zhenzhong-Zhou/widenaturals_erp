@@ -1,14 +1,11 @@
 import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
-import type {
-  UpdateSkuStatusResponse,
-} from '@features/sku/state/skuTypes';
+import type { UpdateSkuStatusResponse } from '@features/sku/state/skuTypes';
 
 /**
  * Base selector — retrieves the full `skuStatus` slice.
  */
-export const selectSkuStatusState = (state: RootState) =>
-  state.skuStatus;
+export const selectSkuStatusState = (state: RootState) => state.skuStatus;
 
 /**
  * Selector: returns the full API response (`UpdateSkuStatusResponse`) or null.
@@ -51,6 +48,5 @@ export const selectSkuStatusSuccess = createSelector(
  */
 export const selectUpdatedSkuId = createSelector(
   [selectSkuStatusData],
-  (data: UpdateSkuStatusResponse | null) =>
-    data?.data?.id ?? null
+  (data: UpdateSkuStatusResponse | null) => data?.data?.id ?? null
 );

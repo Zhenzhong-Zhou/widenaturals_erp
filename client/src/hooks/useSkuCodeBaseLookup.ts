@@ -19,24 +19,24 @@ import { resetSkuCodeBaseLookup } from '@features/lookup/state/skuCodeBaseLookup
  */
 const useSkuCodeBaseLookup = () => {
   const dispatch = useAppDispatch();
-  
+
   const options = useAppSelector(selectSkuCodeBaseLookupOptions);
   const rawItems = useAppSelector(selectSkuCodeBaseLookupRawItems);
   const loading = useAppSelector(selectSkuCodeBaseLookupLoading);
   const error = useAppSelector(selectSkuCodeBaseLookupError);
   const meta = useAppSelector(selectSkuCodeBaseLookupMeta);
-  
+
   const fetch = useCallback(
     (params?: SkuCodeBaseLookupParams) => {
       dispatch(fetchSkuCodeBaseLookupThunk(params));
     },
     [dispatch]
   );
-  
+
   const reset = useCallback(() => {
     dispatch(resetSkuCodeBaseLookup());
   }, [dispatch]);
-  
+
   return useMemo(
     () => ({
       options,

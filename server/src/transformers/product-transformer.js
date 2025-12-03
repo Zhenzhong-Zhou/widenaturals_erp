@@ -57,7 +57,7 @@ const transformProductRow = (row) => {
     },
     audit: compactAudit(makeAudit(row)),
   };
-  
+
   return cleanObject(base);
 };
 
@@ -129,8 +129,8 @@ const transformProductDetail = (row) => {
       date: row.status_date ?? null,
     },
     audit: compactAudit(makeAudit(row)),
-  }
-  
+  };
+
   return cleanObject(base);
 };
 
@@ -145,7 +145,7 @@ const transformProductDetail = (row) => {
  */
 const transformProductRecord = (row) => {
   if (!row) return null;
-  
+
   return {
     id: row.id,
   };

@@ -18,12 +18,10 @@ const {
   transformPricingPaginatedLookupResult,
   transformPackagingMaterialPaginatedLookupResult,
   transformSkuCodeBasePaginatedLookupResult,
-  transformProductPaginatedLookupResult, transformStatusPaginatedLookupResult,
+  transformProductPaginatedLookupResult,
+  transformStatusPaginatedLookupResult,
 } = require('../transformers/lookup-transformer');
-const {
-  logSystemInfo,
-  logSystemException
-} = require('../utils/system-logger');
+const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const {
   getLotAdjustmentTypeLookup,
 } = require('../repositories/lot-adjustment-type-repository');
@@ -107,19 +105,21 @@ const {
 const {
   evaluateSkuCodeBaseLookupAccessControl,
   enforceSkuCodeBaseLookupVisibilityRules,
-  enrichSkuCodeBaseOption
+  enrichSkuCodeBaseOption,
 } = require('../business/sku-code-base-business');
-const { getSkuCodeBaseLookup } = require('../repositories/sku-code-base-repository');
+const {
+  getSkuCodeBaseLookup,
+} = require('../repositories/sku-code-base-repository');
 const {
   evaluateProductLookupAccessControl,
   enforceProductLookupVisibilityRules,
-  enrichProductOption
+  enrichProductOption,
 } = require('../business/product-business');
 const { getProductLookup } = require('../repositories/product-repository');
 const {
   evaluateStatusLookupAccessControl,
   enforceStatusLookupVisibilityRules,
-  enrichStatusLookupOption
+  enrichStatusLookupOption,
 } = require('../business/status-business');
 const { getStatusLookup } = require('../repositories/status-repository');
 
@@ -1169,62 +1169,55 @@ const fetchSkuCodeBaseLookupService = async (
   { filters = {}, limit = 50, offset = 0 }
 ) => {
   const context = 'lookup-service/fetchSkuCodeBaseLookupService';
-  
+
   try {
     // Step 1: Log service entry
     logSystemInfo('Fetching SKU Code Base lookup from service', {
       context,
       metadata: { filters, limit, offset },
     });
-    
+
     // Step 2: Evaluate permissions
     const userAccess = await evaluateSkuCodeBaseLookupAccessControl(user);
     const activeStatusId = getStatusId('general_active');
-    
+
     // Step 3: Apply visibility enforcement
     const adjustedFilters = enforceSkuCodeBaseLookupVisibilityRules(
       filters,
       userAccess,
       activeStatusId
     );
-    
+
     // Step 4: Fetch paginated rows from repository
     const { data = [], pagination = {} } = await getSkuCodeBaseLookup({
       filters: adjustedFilters,
       limit,
       offset,
     });
-    
+
     // Step 5: Enrich each code base row
     const enrichedRows = data.map((row) =>
       enrichSkuCodeBaseOption(row, activeStatusId)
     );
-    
+
     // Step 6: Final UI-format result
     return transformSkuCodeBasePaginatedLookupResult(
       { data: enrichedRows, pagination },
       userAccess
     );
   } catch (err) {
-    logSystemException(
-      err,
-      'Failed to fetch SKU Code Base lookup in service',
-      {
-        context,
-        userId: user?.id,
-        filters,
-        limit,
-        offset,
-      }
-    );
-    
-    throw AppError.serviceError(
-      'Failed to fetch SKU Code Base lookup list.',
-      {
-        details: err.message,
-        stage: context,
-      }
-    );
+    logSystemException(err, 'Failed to fetch SKU Code Base lookup in service', {
+      context,
+      userId: user?.id,
+      filters,
+      limit,
+      offset,
+    });
+
+    throw AppError.serviceError('Failed to fetch SKU Code Base lookup list.', {
+      details: err.message,
+      stage: context,
+    });
   }
 };
 
@@ -1265,37 +1258,37 @@ const fetchProductLookupService = async (
   { filters = {}, limit = 50, offset = 0 }
 ) => {
   const context = 'lookup-service/fetchProductLookupService';
-  
+
   try {
     // Step 1: Log entry
     logSystemInfo('Fetching Product lookup from service', {
       context,
       metadata: { filters, limit, offset },
     });
-    
+
     // Step 2: Permission evaluation
     const userAccess = await evaluateProductLookupAccessControl(user);
     const activeStatusId = getStatusId('general_active');
-    
+
     // Step 3: Apply enforced visibility rules
     const adjustedFilters = enforceProductLookupVisibilityRules(
       filters,
       userAccess,
       activeStatusId
     );
-    
+
     // Step 4: Query repository
     const { data = [], pagination = {} } = await getProductLookup({
       filters: adjustedFilters,
       limit,
       offset,
     });
-    
+
     // Step 5: Enrich rows (e.g., add isActive flag)
     const enrichedRows = data.map((row) =>
       enrichProductOption(row, activeStatusId)
     );
-    
+
     // Step 6: Transform to UI-friendly paginated payload
     return transformProductPaginatedLookupResult(
       { data: enrichedRows, pagination },
@@ -1309,14 +1302,11 @@ const fetchProductLookupService = async (
       limit,
       offset,
     });
-    
-    throw AppError.serviceError(
-      'Failed to fetch product lookup list.',
-      {
-        details: err.message,
-        stage: context,
-      }
-    );
+
+    throw AppError.serviceError('Failed to fetch product lookup list.', {
+      details: err.message,
+      stage: context,
+    });
   }
 };
 
@@ -1357,60 +1347,51 @@ const fetchStatusLookupService = async (
   { filters = {}, limit = 50, offset = 0 }
 ) => {
   const context = 'lookup-service/fetchStatusLookupService';
-  
+
   try {
     // Step 1: Service entry logging
     logSystemInfo('Fetching Status lookup from service', {
       context,
       metadata: { filters, limit, offset },
     });
-    
+
     // Step 2: Resolve user access level
     const userAccess = await evaluateStatusLookupAccessControl(user);
-    
+
     // Step 3: Enforce visibility rules (active-only for restricted roles)
     const adjustedFilters = enforceStatusLookupVisibilityRules(
       filters,
       userAccess
     );
-    
+
     // Step 4: Repository-level lookup
     const { data = [], pagination = {} } = await getStatusLookup({
       filters: adjustedFilters,
       limit,
       offset,
     });
-    
+
     // Step 5: Enrich each row (add isActive flag, etc.)
-    const enrichedRows = data.map((row) =>
-      enrichStatusLookupOption(row)
-    );
-    
+    const enrichedRows = data.map((row) => enrichStatusLookupOption(row));
+
     // Step 6: Convert to UI-friendly format
     return transformStatusPaginatedLookupResult(
       { data: enrichedRows, pagination },
       userAccess
     );
   } catch (err) {
-    logSystemException(
-      err,
-      'Failed to fetch Status lookup in service',
-      {
-        context,
-        userId: user?.id,
-        filters,
-        limit,
-        offset,
-      }
-    );
-    
-    throw AppError.serviceError(
-      'Failed to fetch Status lookup list.',
-      {
-        details: err.message,
-        stage: context,
-      }
-    );
+    logSystemException(err, 'Failed to fetch Status lookup in service', {
+      context,
+      userId: user?.id,
+      filters,
+      limit,
+      offset,
+    });
+
+    throw AppError.serviceError('Failed to fetch Status lookup list.', {
+      details: err.message,
+      stage: context,
+    });
   }
 };
 

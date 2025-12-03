@@ -16,9 +16,7 @@ import type {
 
 const WarehouseInventorySummaryTable = lazy(
   () =>
-    import(
-      '@features/warehouseInventory/components/WarehouseInventorySummaryTable'
-    )
+    import('@features/warehouseInventory/components/WarehouseInventorySummaryTable')
 );
 
 interface Props {

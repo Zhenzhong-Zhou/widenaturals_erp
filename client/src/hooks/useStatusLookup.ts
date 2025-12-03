@@ -18,23 +18,23 @@ import { resetStatusLookup } from '@features/lookup/state/statusLookupSlice';
  */
 const useStatusLookup = () => {
   const dispatch = useAppDispatch();
-  
+
   const options = useAppSelector(selectStatusLookupOptions);
   const loading = useAppSelector(selectStatusLookupLoading);
   const error = useAppSelector(selectStatusLookupError);
   const meta = useAppSelector(selectStatusLookupMeta);
-  
+
   const fetch = useCallback(
     (params?: StatusLookupParams) => {
       dispatch(fetchStatusLookupThunk(params));
     },
     [dispatch]
   );
-  
+
   const reset = useCallback(() => {
     dispatch(resetStatusLookup());
   }, [dispatch]);
-  
+
   return useMemo(
     () => ({
       options,

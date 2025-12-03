@@ -47,23 +47,20 @@ export const fetchPaginatedProductsThunk = createAsyncThunk<
   ProductListResponse,
   FetchProductParams,
   { rejectValue: string }
->(
-  'products/fetchPaginated',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await productService.fetchPaginatedProducts(params);
-    } catch (error: any) {
-      console.error('fetchProductsThunk failed:', error);
-      
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Failed to fetch product list';
-      
-      return rejectWithValue(message);
-    }
+>('products/fetchPaginated', async (params, { rejectWithValue }) => {
+  try {
+    return await productService.fetchPaginatedProducts(params);
+  } catch (error: any) {
+    console.error('fetchProductsThunk failed:', error);
+
+    const message =
+      error?.response?.data?.message ||
+      error?.message ||
+      'Failed to fetch product list';
+
+    return rejectWithValue(message);
   }
-);
+});
 
 /**
  * Async thunk: Create one or more products.
@@ -106,21 +103,18 @@ export const createProductsThunk = createAsyncThunk<
   CreateProductResponse,
   CreateProductBulkInput,
   { rejectValue: string }
->(
-  'products/createProducts',
-  async (payload, { rejectWithValue }) => {
-    try {
-      return await productService.createProducts(payload);
-    } catch (err: any) {
-      console.error('createProductsThunk error:', err);
-      
-      // Normalize backend / network error message
-      const message =
-        err?.response?.data?.message ||
-        err?.message ||
-        'Failed to create products.';
-      
-      return rejectWithValue(message);
-    }
+>('products/createProducts', async (payload, { rejectWithValue }) => {
+  try {
+    return await productService.createProducts(payload);
+  } catch (err: any) {
+    console.error('createProductsThunk error:', err);
+
+    // Normalize backend / network error message
+    const message =
+      err?.response?.data?.message ||
+      err?.message ||
+      'Failed to create products.';
+
+    return rejectWithValue(message);
   }
-);
+});

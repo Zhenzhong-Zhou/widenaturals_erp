@@ -6,7 +6,7 @@ import CustomButton from '@components/common/CustomButton';
 import SkeletonExpandedRow from '@components/common/SkeletonExpandedRow';
 import {
   getProductListTableColumns,
-  ProductExpandedContent
+  ProductExpandedContent,
 } from '@features/product/components/ProductListTable';
 import type { FlattenedProductRecord } from '@features/product/state/productTypes';
 
@@ -36,21 +36,21 @@ interface ProductListTableProps {
  * Matches the structure of SkuListTable for a uniform UX across the app.
  */
 const ProductListTable = ({
-                            data,
-                            loading,
-                            page,
-                            totalPages,
-                            totalRecords,
-                            rowsPerPage,
-                            onPageChange,
-                            onRowsPerPageChange,
-                            expandedRowId,
-                            onDrillDownToggle,
-                            selectedRowIds,
-                            onSelectionChange,
-                            onRefresh,
-                            onAddNew,
-                          }: ProductListTableProps) => {
+  data,
+  loading,
+  page,
+  totalPages,
+  totalRecords,
+  rowsPerPage,
+  onPageChange,
+  onRowsPerPageChange,
+  expandedRowId,
+  onDrillDownToggle,
+  selectedRowIds,
+  onSelectionChange,
+  onRefresh,
+  onAddNew,
+}: ProductListTableProps) => {
   // -------------------------------------------------------
   // Memoize Column Definitions
   // -------------------------------------------------------
@@ -60,7 +60,7 @@ const ProductListTable = ({
       onDrillDownToggle
     );
   }, [expandedRowId, onDrillDownToggle]);
-  
+
   // -------------------------------------------------------
   // Expanded Row Content (Lazy Loaded)
   // -------------------------------------------------------
@@ -81,7 +81,7 @@ const ProductListTable = ({
     ),
     []
   );
-  
+
   return (
     <Box>
       {/* ----------------------------------------- */}
@@ -96,7 +96,7 @@ const ProductListTable = ({
         <CustomTypography variant="h6" fontWeight={600}>
           Product List
         </CustomTypography>
-        
+
         <Box display="flex" gap={2}>
           <CustomButton
             onClick={onAddNew}
@@ -105,7 +105,7 @@ const ProductListTable = ({
           >
             Add New
           </CustomButton>
-          
+
           <CustomButton
             onClick={onRefresh}
             variant="outlined"
@@ -115,7 +115,7 @@ const ProductListTable = ({
           </CustomButton>
         </Box>
       </Box>
-      
+
       {/* ----------------------------------------- */}
       {/* MAIN TABLE */}
       {/* ----------------------------------------- */}

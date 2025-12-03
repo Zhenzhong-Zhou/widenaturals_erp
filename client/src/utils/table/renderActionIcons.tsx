@@ -14,7 +14,7 @@ export const renderActionIcons = <RowType extends object>(
   row: RowType,
   actions: ActionConfig<RowType>[]
 ) => (
-  <Box sx={{ display: "flex", gap: 0.75, justifyContent: "center" }}>
+  <Box sx={{ display: 'flex', gap: 0.75, justifyContent: 'center' }}>
     {actions.map((action) => (
       <Tooltip key={action.key} title={action.title}>
         <IconButton

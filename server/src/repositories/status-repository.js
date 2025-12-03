@@ -2,13 +2,12 @@ const AppError = require('../utils/AppError');
 const {
   query,
   paginateResults,
-  paginateQueryByOffset
+  paginateQueryByOffset,
 } = require('../database/db');
+const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const {
-  logSystemException,
-  logSystemInfo
-} = require('../utils/system-logger');
-const { buildStatusLookupFilters } = require('../utils/sql/build-status-filters');
+  buildStatusLookupFilters,
+} = require('../utils/sql/build-status-filters');
 
 /**
  * Fetches the ID of a status by its name.
@@ -94,17 +93,17 @@ const queryStatus = async (whereClause, params) => {
  * @throws {AppError} - On query or pagination failure
  */
 const getPaginatedStatuses = async ({
-                                      filters = {},
-                                      page = 1,
-                                      limit = 10,
-                                      sortBy = 'name',
-                                      sortOrder = 'ASC',
-                                    }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'name',
+  sortOrder = 'ASC',
+}) => {
   const context = 'status-repository/getPaginatedStatuses';
-  
+
   // Build WHERE + params
   const { whereClause, params } = buildStatusLookupFilters(filters);
-  
+
   // Construct parameterized base query
   const queryText = `
     SELECT
@@ -118,7 +117,7 @@ const getPaginatedStatuses = async ({
     WHERE ${whereClause}
     ORDER BY ${sortBy} ${sortOrder};
   `;
-  
+
   try {
     // Execute paginated query
     const result = await paginateResults({
@@ -128,7 +127,7 @@ const getPaginatedStatuses = async ({
       limit,
       meta: { context },
     });
-    
+
     // Empty result case (consistent with product repo)
     if (!result?.data?.length) {
       logSystemInfo('No statuses found for current query', {
@@ -137,7 +136,7 @@ const getPaginatedStatuses = async ({
         pagination: { page, limit },
         sorting: { sortBy, sortOrder },
       });
-      
+
       return {
         data: [],
         pagination: {
@@ -148,7 +147,7 @@ const getPaginatedStatuses = async ({
         },
       };
     }
-    
+
     // Successful fetch
     logSystemInfo('Fetched paginated status records successfully', {
       context,
@@ -156,7 +155,7 @@ const getPaginatedStatuses = async ({
       pagination: result.pagination,
       sorting: { sortBy, sortOrder },
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch paginated statuses', {
@@ -165,7 +164,7 @@ const getPaginatedStatuses = async ({
       pagination: { page, limit },
       sorting: { sortBy, sortOrder },
     });
-    
+
     throw AppError.databaseError('Failed to fetch paginated statuses.', {
       context,
       details: error.message,
@@ -244,7 +243,7 @@ const checkStatusExists = async (statusId, client) => {
       WHERE id = $1
     ) AS exists;
   `;
-  
+
   try {
     const { rows } = await query(sql, [statusId], client);
     return rows[0]?.exists ?? false;
@@ -252,7 +251,7 @@ const checkStatusExists = async (statusId, client) => {
     logSystemException(error, '', {
       context: 'status-repository/checkStatusExists',
     });
-    
+
     throw AppError.databaseError('Failed to execute status existence check.', {
       context: 'status-repository/checkStatusExists',
       query: sql,
@@ -302,7 +301,7 @@ const getAllStatuses = async (client) => {
     FROM status
     ORDER BY name ASC;
   `;
-  
+
   try {
     const { rows } = await query(sql, [], client);
     return rows;
@@ -353,12 +352,12 @@ const getAllStatuses = async (client) => {
  */
 const getStatusLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
   const context = 'status-repository/getStatusLookup';
-  
+
   const tableName = 'status s';
-  
+
   // Step 1: Build dynamic WHERE clause for status
   const { whereClause, params } = buildStatusLookupFilters(filters);
-  
+
   // Step 2: Lightweight SELECT for dropdown
   const queryText = `
     SELECT
@@ -368,7 +367,7 @@ const getStatusLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
     FROM ${tableName}
     WHERE ${whereClause}
   `;
-  
+
   try {
     // Step 3: Run paginated query
     const result = await paginateQueryByOffset({
@@ -380,16 +379,16 @@ const getStatusLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
       limit,
       sortBy: 's.name',
       sortOrder: 'ASC',
-      additionalSort: 's.created_at ASC'
+      additionalSort: 's.created_at ASC',
     });
-    
+
     logSystemInfo('Fetched status lookup data', {
       context,
       offset,
       limit,
       filters,
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch status lookup', {

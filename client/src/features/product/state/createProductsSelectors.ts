@@ -10,8 +10,7 @@ import type { CreatedProduct } from '@features/product/state/productTypes';
  * @example
  * const state = useSelector(selectCreateProductsState);
  */
-const selectCreateProductsState = (state: RootState) =>
-  state.createProducts;
+const selectCreateProductsState = (state: RootState) => state.createProducts;
 
 /**
  * Selector: returns the full API response (`CreateProductResponse`) or null.

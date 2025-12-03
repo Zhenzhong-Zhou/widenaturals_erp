@@ -23,14 +23,14 @@ import { resetCreateProductsState } from '@features/product/state/createProducts
  */
 const useCreateProducts = () => {
   const dispatch = useAppDispatch();
-  
+
   // --- Selectors ---
   const data = useAppSelector(selectCreateProductsData);
   const loading = useAppSelector(selectCreateProductsLoading);
   const error = useAppSelector(selectCreateProductsError);
   const isSuccess = useAppSelector(selectCreateProductsSuccess);
   const createdProductIds = useAppSelector(selectCreatedProductIds);
-  
+
   // -----------------------------
   // Submit handler
   // -----------------------------
@@ -40,14 +40,14 @@ const useCreateProducts = () => {
     },
     [dispatch]
   );
-  
+
   // -----------------------------
   // Reset handler
   // -----------------------------
   const reset = useCallback(() => {
     dispatch(resetCreateProductsState());
   }, [dispatch]);
-  
+
   // -----------------------------
   // Memoize returned object
   // -----------------------------
@@ -59,20 +59,12 @@ const useCreateProducts = () => {
       error,
       isSuccess,
       createdProductIds,
-      
+
       // actions
       submit,
       reset,
     }),
-    [
-      data,
-      loading,
-      error,
-      isSuccess,
-      createdProductIds,
-      submit,
-      reset,
-    ]
+    [data, loading, error, isSuccess, createdProductIds, submit, reset]
   );
 };
 

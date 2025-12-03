@@ -19,18 +19,18 @@ interface FormSettingsPanelProps {
 
 const FormSettingsPanel: FC<FormSettingsPanelProps> = ({ settings }) => {
   const { theme } = useThemeContext();
-  
+
   return (
     <Box
       sx={{
         p: 2,
         borderRadius: 2,
         backgroundColor:
-          theme.palette.mode === "light"
+          theme.palette.mode === 'light'
             ? theme.palette.grey[50]
             : theme.palette.grey[800],
         mb: 3,
-        border: '1px solid #EEE'
+        border: '1px solid #EEE',
       }}
     >
       <FormGroup row sx={{ gap: 4 }}>

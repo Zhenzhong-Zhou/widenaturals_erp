@@ -1,5 +1,5 @@
-import FieldStatusHelper from "@components/common/FieldStatusHelper";
-import { getPatternHelperText } from "@components/common/PatternHelper";
+import FieldStatusHelper from '@components/common/FieldStatusHelper';
+import { getPatternHelperText } from '@components/common/PatternHelper';
 
 /* ========================================================================
  * PRODUCT DROPDOWN VALIDATION
@@ -29,12 +29,12 @@ export const getProductHelperText = (
   if (!value) {
     return required ? <FieldStatusHelper status="required" /> : undefined;
   }
-  
+
   const exists = options.some((opt) => opt.value === value);
   if (!exists) {
     return <FieldStatusHelper status="invalid" />;
   }
-  
+
   return <FieldStatusHelper status="valid" />;
 };
 
@@ -63,14 +63,14 @@ export const getSkuCodeBaseDropdownHelperText = (
   if (!value && required) {
     return <FieldStatusHelper status="required" />;
   }
-  
+
   if (!value) return undefined;
-  
+
   const exists = options.some((opt) => opt.value === value);
   if (!exists) {
     return <FieldStatusHelper status="invalid" />;
   }
-  
+
   return <FieldStatusHelper status="valid" />;
 };
 
@@ -196,22 +196,22 @@ export const BARCODE_RULES = {
  */
 export const detectBarcodeRule = (val: string): RegExp => {
   const trimmed = val.trim();
-  
+
   // 1. EAN-13 (13 digits)
   if (/^[0-9]{13}$/.test(trimmed)) return BARCODE_RULES.EAN13;
-  
+
   // 2. UPC-A / UPC-12 (12 digits)
   if (/^[0-9]{12}$/.test(trimmed)) return BARCODE_RULES.UPC12;
-  
+
   // 3. GS1-8 (8 digits)
   if (/^[0-9]{8}$/.test(trimmed)) return BARCODE_RULES.GS1;
-  
+
   // 4. General internal alphanumeric barcode
   //     Supports Code39-safe characters: A-Z 0-9 - . _ / and space
   if (/^[0-9A-Za-z\-._\/ ]{1,64}$/.test(trimmed)) {
     return /^[0-9A-Za-z\-._\/ ]{1,64}$/;
   }
-  
+
   // 5️⃣ Fallback numeric rule (GS1 recommended)
   return BARCODE_RULES.GS1;
 };
@@ -257,5 +257,4 @@ export const getBarcodeHelperText = (
 export const getLanguageHelperText = (
   value: string | null | undefined,
   required: boolean
-) =>
-  getPatternHelperText(value ?? "", required, /^[A-Za-z-]+$/);
+) => getPatternHelperText(value ?? '', required, /^[A-Za-z-]+$/);

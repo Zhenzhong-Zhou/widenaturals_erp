@@ -626,8 +626,7 @@ export interface ConfirmedActivityLogMeta {
  * This slice state is updated by the `confirmOutboundFulfillmentThunk`
  * and contains the latest confirmation data, loading state, and error info.
  */
-export interface ConfirmOutboundFulfillmentState
-  extends AsyncState<ConfirmOutboundFulfillmentResult | null> {
+export interface ConfirmOutboundFulfillmentState extends AsyncState<ConfirmOutboundFulfillmentResult | null> {
   /**
    * Timestamp of the last successful confirmation.
    * Useful for caching, UI refreshes, or audit display.

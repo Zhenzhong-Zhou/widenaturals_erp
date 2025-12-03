@@ -20,14 +20,16 @@ const ComplianceInfoSection: FC<ComplianceInfoSectionProps> = ({ data }) => {
   // STATE (Description popover)
   // ----------------------------
   const [descAnchorEl, setDescAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedDesc, setSelectedDesc] = useState<FlattenedComplianceRecord | null>(null);
-  
+  const [selectedDesc, setSelectedDesc] =
+    useState<FlattenedComplianceRecord | null>(null);
+
   // ----------------------------
   // STATE (Audit popover)
   // ----------------------------
   const [auditAnchorEl, setAuditAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedAudit, setSelectedAudit] = useState<FlattenedComplianceRecord | null>(null);
-  
+  const [selectedAudit, setSelectedAudit] =
+    useState<FlattenedComplianceRecord | null>(null);
+
   // ----------------------------
   // CALLBACKS
   // ----------------------------
@@ -38,7 +40,7 @@ const ComplianceInfoSection: FC<ComplianceInfoSectionProps> = ({ data }) => {
     },
     []
   );
-  
+
   const openDescription = useCallback(
     (row: FlattenedComplianceRecord, target: HTMLElement) => {
       setDescAnchorEl(target);
@@ -46,17 +48,17 @@ const ComplianceInfoSection: FC<ComplianceInfoSectionProps> = ({ data }) => {
     },
     []
   );
-  
+
   const closeAudit = useCallback(() => {
     setAuditAnchorEl(null);
     setSelectedAudit(null);
   }, []);
-  
+
   const closeDescription = useCallback(() => {
     setDescAnchorEl(null);
     setSelectedDesc(null);
   }, []);
-  
+
   // ----------------------------
   // COLUMNS (memoized for performance)
   // ----------------------------
@@ -64,21 +66,19 @@ const ComplianceInfoSection: FC<ComplianceInfoSectionProps> = ({ data }) => {
     () => createComplianceColumns(openAudit, openDescription),
     [openAudit, openDescription]
   );
-  
+
   // ----------------------------
   // FIELD SETS
   // ----------------------------
   const descriptionFields = useMemo(() => {
     if (!selectedDesc) return [];
-    
-    return [
-      { label: 'Description', value: selectedDesc.description },
-    ];
+
+    return [{ label: 'Description', value: selectedDesc.description }];
   }, [selectedDesc]);
-  
+
   const auditFields = useMemo(() => {
     if (!selectedAudit) return [];
-    
+
     return [
       { label: 'Created By', value: selectedAudit.createdBy },
       { label: 'Created At', value: formatDateTime(selectedAudit.createdAt) },
@@ -86,7 +86,7 @@ const ComplianceInfoSection: FC<ComplianceInfoSectionProps> = ({ data }) => {
       { label: 'Updated At', value: formatDateTime(selectedAudit.updatedAt) },
     ];
   }, [selectedAudit]);
-  
+
   return (
     <>
       <CustomMiniTable
@@ -95,7 +95,7 @@ const ComplianceInfoSection: FC<ComplianceInfoSectionProps> = ({ data }) => {
         emptyMessage="No compliance records"
         dense
       />
-      
+
       {/* DESCRIPTION POPOVER */}
       <InfoPopover
         anchorEl={descAnchorEl}
@@ -104,7 +104,7 @@ const ComplianceInfoSection: FC<ComplianceInfoSectionProps> = ({ data }) => {
         title="Compliance Description"
         fields={descriptionFields}
       />
-      
+
       {/* AUDIT POPOVER */}
       <InfoPopover
         anchorEl={auditAnchorEl}

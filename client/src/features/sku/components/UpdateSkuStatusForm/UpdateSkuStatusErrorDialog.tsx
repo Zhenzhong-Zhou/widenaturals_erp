@@ -12,11 +12,11 @@ interface UpdateSkuStatusErrorDialogProps {
 }
 
 const UpdateSkuStatusErrorDialog: FC<UpdateSkuStatusErrorDialogProps> = ({
-                                                                           open,
-                                                                           onClose,
-                                                                           error,
-                                                                           skuCode,
-                                                                         }) => {
+  open,
+  onClose,
+  error,
+  skuCode,
+}) => {
   return (
     <CustomDialog
       open={open}
@@ -31,8 +31,12 @@ const UpdateSkuStatusErrorDialog: FC<UpdateSkuStatusErrorDialogProps> = ({
         message="Failed to Update SKU Status"
         details={
           <>
-            {skuCode && <Box><strong>SKU:</strong> {skuCode}</Box>}
-            
+            {skuCode && (
+              <Box>
+                <strong>SKU:</strong> {skuCode}
+              </Box>
+            )}
+
             {error ? (
               <Box style={{ marginTop: 6 }}>{error}</Box>
             ) : (

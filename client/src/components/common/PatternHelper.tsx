@@ -24,23 +24,23 @@ export const getPatternHelperText = (
   required: boolean,
   regex: RegExp
 ) => {
-  const v = value ?? "";
-  
+  const v = value ?? '';
+
   // Missing and required
   if (!v && required) {
     return <FieldStatusHelper status="required" />;
   }
-  
+
   // Provided but does not satisfy pattern
   if (v && !regex.test(v)) {
     return <FieldStatusHelper status="invalid" />;
   }
-  
+
   // Provided and valid
   if (v) {
     return <FieldStatusHelper status="valid" />;
   }
-  
+
   // Optional + empty → no helper text
   return undefined;
 };

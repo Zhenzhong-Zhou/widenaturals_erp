@@ -71,8 +71,7 @@ export interface CustomerFilters {
 }
 
 export interface FetchPaginatedCustomersParams
-  extends PaginationParams,
-    SortConfig {
+  extends PaginationParams, SortConfig {
   filters?: CustomerFilters;
 }
 

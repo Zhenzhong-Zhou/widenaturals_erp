@@ -21,9 +21,7 @@ import { getDefaultRowActions } from '@utils/table/getDefaultRowActions';
 
 const WarehouseInventorySummaryDetailTable = lazy(
   () =>
-    import(
-      '@features/warehouseInventory/components/WarehouseInventorySummaryDetailTable'
-    )
+    import('@features/warehouseInventory/components/WarehouseInventorySummaryDetailTable')
 );
 
 interface SkuInventorySummaryTableProps {

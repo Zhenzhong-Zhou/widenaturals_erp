@@ -11,7 +11,11 @@ const path = require('path');
 const mime = require('mime-types');
 const s3Client = require('../config/aws-s3-config');
 const { logInfo, logError } = require('./logger-helper');
-const { logSystemInfo, logSystemError, logSystemException } = require('./system-logger');
+const {
+  logSystemInfo,
+  logSystemError,
+  logSystemException,
+} = require('./system-logger');
 const AppError = require('./AppError');
 
 /**
@@ -382,16 +386,18 @@ const listBackupsFromS3 = async (bucketName, folderPrefix = 'backups/') => {
  */
 const s3ObjectExists = async (bucketName, key) => {
   const context = 'aws-s3-service/s3ObjectExists';
-  
+
   try {
-    await s3Client.send(new HeadObjectCommand({ Bucket: bucketName, Key: key }));
+    await s3Client.send(
+      new HeadObjectCommand({ Bucket: bucketName, Key: key })
+    );
     logSystemInfo('S3 object exists', { context, bucketName, key });
     return true;
   } catch (error) {
     if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
       return false; // Object does not exist
     }
-    
+
     // Log and rethrow unexpected AWS errors
     logSystemException(error, 'Failed to check S3 object existence', {
       context,

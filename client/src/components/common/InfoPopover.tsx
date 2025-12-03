@@ -16,12 +16,12 @@ interface InfoPopoverProps {
 }
 
 const InfoPopover = ({
-                       anchorEl,
-                       open,
-                       title,
-                       fields,
-                       onClose
-                     }: InfoPopoverProps) => {
+  anchorEl,
+  open,
+  title,
+  fields,
+  onClose,
+}: InfoPopoverProps) => {
   return (
     <Popover
       open={open}
@@ -33,7 +33,7 @@ const InfoPopover = ({
         <CustomTypography variant="subtitle2" sx={{ mb: 1 }}>
           {title}
         </CustomTypography>
-        
+
         {fields.map((field, i) => (
           <CustomTypography key={i} variant="body2" sx={{ mb: 0.5 }}>
             <strong>{field.label}:</strong> {field.value ?? '—'}

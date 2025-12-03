@@ -33,5 +33,4 @@ export const sanitizeString = (value?: string | null): string =>
  * @param v - any value coming from form/UI
  * @returns normalized value or `undefined`
  */
-export const normalize = (v: any) =>
-  v === null || v === '' ? undefined : v;
+export const normalize = (v: any) => (v === null || v === '' ? undefined : v);

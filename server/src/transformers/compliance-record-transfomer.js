@@ -48,7 +48,7 @@ const { transformPaginatedResult } = require('../utils/transformer-utils');
  */
 const transformComplianceRecordRow = (row) => {
   if (!row) return null;
-  
+
   return cleanObject({
     id: row.compliance_record_id,
     type: row.type,
@@ -56,22 +56,22 @@ const transformComplianceRecordRow = (row) => {
     issuedDate: row.issued_date,
     expiryDate: row.expiry_date,
     description: row.description,
-    
+
     status: {
       id: row.status_id,
       name: row.status_name,
       date: row.status_date,
     },
-    
+
     audit: compactAudit(makeAudit(row)),
-    
+
     sku: {
       id: row.sku_id,
       sku: row.sku_code,
       sizeLabel: row.size_label,
       marketRegion: row.market_region,
     },
-    
+
     product: {
       id: row.product_id,
       name: row.product_name,
@@ -155,19 +155,19 @@ const transformPaginatedComplianceRecordResults = (paginatedResult) => {
  */
 const transformComplianceRecord = (row) => {
   if (!row) return null;
-  
+
   // Optional metadata
   const metadata = row.metadata
     ? {
-      status: row.metadata.status
-        ? {
-          id: row.metadata.status.id,
-          name: row.metadata.status.name,
-          date: row.metadata.status.date,
-        }
-        : undefined,
-      description: row.metadata.description,
-    }
+        status: row.metadata.status
+          ? {
+              id: row.metadata.status.id,
+              name: row.metadata.status.name,
+              date: row.metadata.status.date,
+            }
+          : undefined,
+        description: row.metadata.description,
+      }
     : undefined;
 
   return {

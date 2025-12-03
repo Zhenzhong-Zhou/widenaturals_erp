@@ -1,5 +1,9 @@
-const { resolveUserPermissionContext } = require('../services/role-permission-service');
-const { PERMISSIONS } = require('../utils/constants/domain/sku-code-base-constants');
+const {
+  resolveUserPermissionContext,
+} = require('../services/role-permission-service');
+const {
+  PERMISSIONS,
+} = require('../utils/constants/domain/sku-code-base-constants');
 const { logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
@@ -20,7 +24,7 @@ const AppError = require('../utils/AppError');
 const evaluateSkuCodeBaseLookupAccessControl = async (user) => {
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     return {
       canViewAllStatuses:
         isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_SKU_CODE_BASES),
@@ -32,7 +36,7 @@ const evaluateSkuCodeBaseLookupAccessControl = async (user) => {
       context: 'sku-code-base-business/evaluateSkuCodeBaseLookupAccessControl',
       userId: user?.id,
     });
-    
+
     throw AppError.businessError(
       'Unable to evaluate access control for SKU Code Base lookup',
       {
@@ -61,7 +65,7 @@ const enforceSkuCodeBaseLookupVisibilityRules = (
   activeStatusId
 ) => {
   const adjusted = { ...filters };
-  
+
   // If user *cannot* view all statuses, enforce active-only restrictions
   if (!userAccess.canViewAllStatuses) {
     adjusted.status_id ??= activeStatusId;
@@ -71,7 +75,7 @@ const enforceSkuCodeBaseLookupVisibilityRules = (
     delete adjusted.status_id;
     delete adjusted._activeStatusId;
   }
-  
+
   return adjusted;
 };
 
@@ -103,17 +107,17 @@ const enrichSkuCodeBaseOption = (row, activeStatusId) => {
   if (!row || typeof row !== 'object') {
     throw AppError.validationError(
       '[enrichSkuCodeBaseOption] Invalid `row` - expected object but got ' +
-      typeof row
+        typeof row
     );
   }
-  
+
   // Validate activeStatusId
   if (typeof activeStatusId !== 'string' || activeStatusId.length === 0) {
     throw AppError.validationError(
       '[enrichSkuCodeBaseOption] Missing or invalid `activeStatusId`'
     );
   }
-  
+
   return {
     ...row,
     isActive: row.status_id === activeStatusId,

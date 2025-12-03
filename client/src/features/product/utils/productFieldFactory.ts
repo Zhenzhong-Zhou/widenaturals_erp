@@ -35,7 +35,7 @@ import type { RowAwareComponentProps } from '@components/common/MultiItemForm';
  * ];
  */
 export const makeSeriesBrandCategoryField = (
-  id: "series" | "brand" | "category",
+  id: 'series' | 'brand' | 'category',
   {
     required,
     grid,
@@ -47,26 +47,26 @@ export const makeSeriesBrandCategoryField = (
   }
 ) => {
   const label = id.charAt(0).toUpperCase() + id.slice(1);
-  
+
   return {
     id,
     label,
-    type: "custom" as const,
+    type: 'custom' as const,
     required,
     grid,
     group,
-    
+
     /** ------------ SINGLE FORM RENDERER (CustomForm) ------------ */
     customRender: (params: CustomRenderParams) =>
       renderBaseInputField({
         label,
-        value: params.value ?? "",
+        value: params.value ?? '',
         required: params.required ?? required,
         onChange: params.onChange,
         helperTextFn: getSeriesBrandCategoryHelperText,
         fullWidth: true,
       }),
-    
+
     /** ------------ BULK FORM RENDERER (MultiItemForm) ------------ */
     component: ({ value, onChange }: RowAwareComponentProps) =>
       renderBaseInputField({

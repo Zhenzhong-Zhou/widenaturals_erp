@@ -1,5 +1,8 @@
 import type { UseFormReturn } from 'react-hook-form';
-import type { BulkSkuRow, CreateSkuForm } from '@features/sku/types/skuFormTypes';
+import type {
+  BulkSkuRow,
+  CreateSkuForm,
+} from '@features/sku/types/skuFormTypes';
 import type { CreateSkuInput } from '@features/sku/state';
 
 /**
@@ -30,25 +33,25 @@ export const buildSingleSkuPayload = (
   formData: CreateSkuForm,
   form: UseFormReturn<CreateSkuForm>
 ): CreateSkuInput => {
-  const brandFromForm = form.getValues("brand_code");
-  const categoryFromForm = form.getValues("category_code");
-  
-  const brand_code = brandFromForm || formData.brand_code || "";
-  const category_code = categoryFromForm || formData.category_code || "";
-  
+  const brandFromForm = form.getValues('brand_code');
+  const categoryFromForm = form.getValues('category_code');
+
+  const brand_code = brandFromForm || formData.brand_code || '';
+  const category_code = categoryFromForm || formData.category_code || '';
+
   return {
-    product_id: formData.product_id ?? "",
+    product_id: formData.product_id ?? '',
     brand_code,
     category_code,
-    variant_code: formData.variant_code ?? "",
-    region_code: formData.region_code ?? "",
-    
-    barcode: formData.barcode ?? "",
-    language: formData.language ?? "",
-    market_region: formData.market_region ?? "",
-    size_label: formData.size_label ?? "",
-    description: formData.description ?? "",
-    
+    variant_code: formData.variant_code ?? '',
+    region_code: formData.region_code ?? '',
+
+    barcode: formData.barcode ?? '',
+    language: formData.language ?? '',
+    market_region: formData.market_region ?? '',
+    size_label: formData.size_label ?? '',
+    description: formData.description ?? '',
+
     length_cm: formData.length_cm ? Number(formData.length_cm) : null,
     width_cm: formData.width_cm ? Number(formData.width_cm) : null,
     height_cm: formData.height_cm ? Number(formData.height_cm) : null,
@@ -76,21 +79,19 @@ export const buildSingleSkuPayload = (
  *
  * @returns A normalized `CreateSkuInput` payload for backend submission.
  */
-export const buildBulkSkuPayload = (
-  row: BulkSkuRow
-): CreateSkuInput => ({
-  product_id: row.product_id ?? "",
-  brand_code: row.brand_code ?? "",
-  category_code: row.category_code ?? "",
-  variant_code: row.variant_code ?? "",
-  region_code: row.region_code ?? "",
-  
-  barcode: row.barcode ?? "",
-  language: row.language ?? "",
-  market_region: row.market_region ?? "",
-  size_label: row.size_label ?? "",
-  description: row.description ?? "",
-  
+export const buildBulkSkuPayload = (row: BulkSkuRow): CreateSkuInput => ({
+  product_id: row.product_id ?? '',
+  brand_code: row.brand_code ?? '',
+  category_code: row.category_code ?? '',
+  variant_code: row.variant_code ?? '',
+  region_code: row.region_code ?? '',
+
+  barcode: row.barcode ?? '',
+  language: row.language ?? '',
+  market_region: row.market_region ?? '',
+  size_label: row.size_label ?? '',
+  description: row.description ?? '',
+
   length_cm: row.length_cm ? Number(row.length_cm) : null,
   width_cm: row.width_cm ? Number(row.width_cm) : null,
   height_cm: row.height_cm ? Number(row.height_cm) : null,

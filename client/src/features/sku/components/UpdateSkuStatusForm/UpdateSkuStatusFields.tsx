@@ -6,21 +6,21 @@ import type {
   StatusLookupParams,
   StatusLookupOption,
   LookupPaginationMeta,
-  LookupQuery
+  LookupQuery,
 } from '@features/lookup/state';
 
 interface StatusFieldParams {
   inputValue: string;
   setInputValue: (v: string) => void;
   fetchParams: StatusLookupParams;
-  setFetchParams: Dispatch<SetStateAction<LookupQuery>>
-  
+  setFetchParams: Dispatch<SetStateAction<LookupQuery>>;
+
   /** Data from lookup hook */
   options?: StatusLookupOption[];
   loading?: boolean;
   error?: string | null;
   meta?: LookupPaginationMeta;
-  
+
   /** Fetch + refresh */
   fetchStatusDropdownOptions?: (params?: StatusLookupParams) => void;
 }
@@ -40,16 +40,16 @@ interface StatusFieldParams {
  * - Any page that needs a reusable SKU/Status dropdown field
  */
 export const createStatusField = ({
-                                    inputValue,
-                                    setInputValue,
-                                    fetchParams,
-                                    setFetchParams,
-                                    options = [],
-                                    loading,
-                                    error,
-                                    meta,
-                                    fetchStatusDropdownOptions,
-                                  }: StatusFieldParams): FieldConfig => {
+  inputValue,
+  setInputValue,
+  fetchParams,
+  setFetchParams,
+  options = [],
+  loading,
+  error,
+  meta,
+  fetchStatusDropdownOptions,
+}: StatusFieldParams): FieldConfig => {
   return {
     id: 'status_id',
     label: 'SKU Status',
@@ -64,7 +64,7 @@ export const createStatusField = ({
         inputValue={inputValue}
         onInputChange={(_e, val) => {
           setInputValue(val);
-          setFetchParams(prev =>
+          setFetchParams((prev) =>
             normalizeLookupParams({
               ...prev,
               keyword: val,

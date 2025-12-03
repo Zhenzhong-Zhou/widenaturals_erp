@@ -95,91 +95,87 @@ const buildProductFilter = (filters = {}) => {
     const conditions = ['1=1'];
     const params = [];
     let idx = 1;
-    
+
     // Filter by status
-    const statusFilterValue =
-      filters.statusIds?.length ? filters.statusIds :
-        filters.status_id ? filters.status_id :
-          filters._activeStatusId;
-    
+    const statusFilterValue = filters.statusIds?.length
+      ? filters.statusIds
+      : filters.status_id
+        ? filters.status_id
+        : filters._activeStatusId;
+
     if (statusFilterValue !== undefined && statusFilterValue !== null) {
-      
       if (Array.isArray(statusFilterValue)) {
         conditions.push(`p.status_id = ANY($${idx}::uuid[])`);
       } else {
         conditions.push(`p.status_id = $${idx}`);
       }
-      
+
       params.push(statusFilterValue);
       idx++;
     }
-    
+
     // Brand
     if (filters.brand) {
       conditions.push(`p.brand ILIKE $${idx}`);
       params.push(`%${filters.brand}%`);
       idx++;
     }
-    
+
     // Category
     if (filters.category) {
       conditions.push(`p.category ILIKE $${idx}`);
       params.push(`%${filters.category}%`);
       idx++;
     }
-    
+
     // Series
     if (filters.series) {
       conditions.push(`p.series ILIKE $${idx}`);
       params.push(`%${filters.series}%`);
       idx++;
     }
-    
+
     // Created/Updated by
     if (filters.createdBy) {
       conditions.push(`p.created_by = $${idx}`);
       params.push(filters.createdBy);
       idx++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`p.updated_by = $${idx}`);
       params.push(filters.updatedBy);
       idx++;
     }
-    
+
     // Date ranges
     if (filters.createdAfter) {
       conditions.push(`p.created_at >= $${idx}`);
       params.push(filters.createdAfter);
       idx++;
     }
-    
+
     if (filters.createdBefore) {
       conditions.push(`p.created_at <= $${idx}`);
       params.push(filters.createdBefore);
       idx++;
     }
-    
+
     // Keyword search (fuzzy match)
     if (filters.keyword) {
       const likeParam = `%${filters.keyword}%`;
-      
-      const searchFields = [
-        'p.name',
-        'p.brand',
-        'p.category',
-      ];
-      
+
+      const searchFields = ['p.name', 'p.brand', 'p.category'];
+
       const orConditions = searchFields
         .map((field) => `${field} ILIKE $${idx}`)
         .join(' OR ');
-      
+
       conditions.push(`(${orConditions})`);
       params.push(likeParam);
       idx++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,

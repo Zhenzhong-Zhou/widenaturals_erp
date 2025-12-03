@@ -9,7 +9,10 @@ import { buildActionColumn } from '@utils/table/buildActionColumn';
 
 export const createComplianceColumns = (
   onAuditClick: (row: FlattenedComplianceRecord, target: HTMLElement) => void,
-  onDescriptionClick: (row: FlattenedComplianceRecord, target: HTMLElement) => void,
+  onDescriptionClick: (
+    row: FlattenedComplianceRecord,
+    target: HTMLElement
+  ) => void
 ): MiniColumn<FlattenedComplianceRecord>[] => [
   { id: 'type', label: 'Type' },
   { id: 'complianceId', label: 'Compliance Number' },
@@ -33,21 +36,22 @@ export const createComplianceColumns = (
     label: 'Status Date',
     format: (value) => formatDateTime(value),
   },
-  buildActionColumn<FlattenedComplianceRecord>((row) =>
-    [
-      row.description && {
-        key: "desc",
-        title: "View Description",
-        icon: <DescriptionIcon fontSize="small" />,
-        onClick: onDescriptionClick,
-      },
-      
-      (row.createdBy || row.updatedBy) && {
-        key: "audit",
-        title: "View Audit",
-        icon: <InfoOutlinedIcon fontSize="small" />,
-        onClick: onAuditClick,
-      },
-    ].filter(Boolean) as ActionConfig<FlattenedComplianceRecord>[]
+  buildActionColumn<FlattenedComplianceRecord>(
+    (row) =>
+      [
+        row.description && {
+          key: 'desc',
+          title: 'View Description',
+          icon: <DescriptionIcon fontSize="small" />,
+          onClick: onDescriptionClick,
+        },
+
+        (row.createdBy || row.updatedBy) && {
+          key: 'audit',
+          title: 'View Audit',
+          icon: <InfoOutlinedIcon fontSize="small" />,
+          onClick: onAuditClick,
+        },
+      ].filter(Boolean) as ActionConfig<FlattenedComplianceRecord>[]
   ),
 ];

@@ -763,9 +763,9 @@ router.get(
   '/sku-code-bases',
   authorize([PERMISSIONS.VIEW_SKU_CODE_BASE]),
   createQueryNormalizationMiddleware(
-    '',               // moduleKey (optional)
-    [],               // arrayKeys (none needed for this lookup)
-    [],               // booleanKeys (none needed)
+    '', // moduleKey (optional)
+    [], // arrayKeys (none needed for this lookup)
+    [], // booleanKeys (none needed)
     ['keyword', 'brand_code', 'category_code'], // filterKeys
     { includePagination: true, includeSorting: false }
   ),

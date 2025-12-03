@@ -20,16 +20,16 @@ export type FilterField<T extends object> = {
    * Ensures type-safe mapping between UI fields and backend filters.
    */
   name: keyof T;
-  
+
   /** Human-readable label displayed in the UI */
   label: string;
-  
+
   /**
    * Optional placeholder text for text/number input fields.
    * Ignored for select or boolean fields.
    */
   placeholder?: string;
-  
+
   /**
    * Input control type:
    * - "text" → free text input
@@ -40,7 +40,7 @@ export type FilterField<T extends object> = {
    * Default is "text" when omitted.
    */
   type?: 'text' | 'number' | 'boolean' | 'select';
-  
+
   /**
    * Available values for select dropdowns.
    * Required when `type === "select"`.

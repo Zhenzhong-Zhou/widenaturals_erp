@@ -25,7 +25,9 @@ import type {
   SkuCodeBaseLookupParams,
   SkuCodeBaseLookupResponse,
   SkuLookupQueryParams,
-  SkuLookupResponse, StatusLookupParams, StatusLookupResponse,
+  SkuLookupResponse,
+  StatusLookupParams,
+  StatusLookupResponse,
   TaxRateLookupQueryParams,
   TaxRateLookupResponse,
 } from '@features/lookup/state/lookupTypes';
@@ -410,20 +412,19 @@ export const fetchPackagingMaterialLookupThunk = createAsyncThunk<
  * `SkuCodeBaseLookupResponse` or rejecting with an error message.
  */
 export const fetchSkuCodeBaseLookupThunk = createAsyncThunk<
-  SkuCodeBaseLookupResponse,              // fulfilled type
-  SkuCodeBaseLookupParams | undefined,    // argument type
-  { rejectValue: string }                 // rejection payload type
->(
-  'lookups/fetchSkuCodeBaseLookup',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await lookupService.fetchSkuCodeBaseLookup(params);
-    } catch (err: any) {
-      console.error('thunkFetchSkuCodeBaseLookup error:', err);
-      return rejectWithValue(err?.message ?? 'Failed to fetch SKU code base lookup.');
-    }
+  SkuCodeBaseLookupResponse, // fulfilled type
+  SkuCodeBaseLookupParams | undefined, // argument type
+  { rejectValue: string } // rejection payload type
+>('lookups/fetchSkuCodeBaseLookup', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchSkuCodeBaseLookup(params);
+  } catch (err: any) {
+    console.error('thunkFetchSkuCodeBaseLookup error:', err);
+    return rejectWithValue(
+      err?.message ?? 'Failed to fetch SKU code base lookup.'
+    );
   }
-);
+});
 
 /**
  * Thunk: Fetch paginated **Product lookup** items for dropdowns/selectors.
@@ -454,20 +455,17 @@ export const fetchSkuCodeBaseLookupThunk = createAsyncThunk<
  *          or rejecting with `rejectValue: string`.
  */
 export const fetchProductLookupThunk = createAsyncThunk<
-  ProductLookupResponse,              // fulfilled type
-  ProductLookupParams | undefined,    // argument type
-  { rejectValue: string }             // rejection payload type
->(
-  'lookups/fetchProductLookup',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await lookupService.fetchProductLookup(params);
-    } catch (err: any) {
-      console.error('thunkFetchProductLookup error:', err);
-      return rejectWithValue(err?.message ?? 'Failed to fetch product lookup.');
-    }
+  ProductLookupResponse, // fulfilled type
+  ProductLookupParams | undefined, // argument type
+  { rejectValue: string } // rejection payload type
+>('lookups/fetchProductLookup', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchProductLookup(params);
+  } catch (err: any) {
+    console.error('thunkFetchProductLookup error:', err);
+    return rejectWithValue(err?.message ?? 'Failed to fetch product lookup.');
   }
-);
+});
 
 /**
  * Thunk: Fetch paginated **Status lookup** items for dropdowns/selectors.
@@ -500,17 +498,14 @@ export const fetchProductLookupThunk = createAsyncThunk<
  *          or rejecting with `rejectValue: string`.
  */
 export const fetchStatusLookupThunk = createAsyncThunk<
-  StatusLookupResponse,              // fulfilled type
-  StatusLookupParams | undefined,    // argument type
-  { rejectValue: string }            // rejection payload type
->(
-  'lookups/fetchStatusLookup',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await lookupService.fetchStatusLookup(params);
-    } catch (err: any) {
-      console.error('thunkFetchStatusLookup error:', err);
-      return rejectWithValue(err?.message ?? 'Failed to fetch status lookup.');
-    }
+  StatusLookupResponse, // fulfilled type
+  StatusLookupParams | undefined, // argument type
+  { rejectValue: string } // rejection payload type
+>('lookups/fetchStatusLookup', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchStatusLookup(params);
+  } catch (err: any) {
+    console.error('thunkFetchStatusLookup error:', err);
+    return rejectWithValue(err?.message ?? 'Failed to fetch status lookup.');
   }
-);
+});

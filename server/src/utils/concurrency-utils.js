@@ -23,6 +23,6 @@ const processWithConcurrencyLimit = async (items, limit, handler) => {
   return results;
 };
 
-module.exports ={
+module.exports = {
   processWithConcurrencyLimit,
 };

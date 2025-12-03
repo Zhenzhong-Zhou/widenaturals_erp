@@ -26,7 +26,7 @@ const paginatedProductsSlice = createSlice({
      */
     resetPaginatedProductsState: () => initialState,
   },
-  
+
   // ---------------------------
   // Extra Reducers (pending / fulfilled / rejected)
   // ---------------------------
@@ -37,16 +37,16 @@ const paginatedProductsSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      
+
       // ---- fulfilled ----
       .addCase(
         fetchPaginatedProductsThunk.fulfilled,
         (state, action: PayloadAction<ProductListResponse>) => {
           const payload = action.payload;
-          
+
           state.loading = false;
           state.data = payload.data;
-          
+
           state.pagination = {
             page: payload.pagination.page,
             limit: payload.pagination.limit,
@@ -55,7 +55,7 @@ const paginatedProductsSlice = createSlice({
           };
         }
       )
-      
+
       // ---- rejected ----
       .addCase(fetchPaginatedProductsThunk.rejected, (state, action) => {
         state.loading = false;

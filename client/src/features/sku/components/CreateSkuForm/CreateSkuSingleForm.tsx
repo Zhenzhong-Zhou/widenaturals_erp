@@ -3,27 +3,27 @@ import { useForm } from 'react-hook-form';
 import CustomForm from '@components/common/CustomForm';
 import type {
   CreateSkuForm,
-  CreateSkuFormProps
+  CreateSkuFormProps,
 } from '@features/sku/types/skuFormTypes';
 import { buildSingleSkuFields } from '@features/sku/utils/skuFieldFactory';
 import { buildSingleSkuPayload } from '@features/sku/utils/buildSingleSkuPayload';
 
 const CreateSkuSingleForm: FC<CreateSkuFormProps> = ({
-                                                       allowManualBrandCategory,
-                                                       allowManualVariantCode,
-                                                       allowManualRegionCode,
-                                                       allowManualMarketRegion,
-                                                       onSubmit,
-                                                       canCreateSku,
-                                                       skuCodeBase,
-                                                       product,
-                                                       skuCodeBaseDropdown,
-                                                       productDropdown,
-                                                       handleSkuCodeBaseSearch,
-                                                       handleProductSearch,
-                                                       parseSkuCodeBaseLabel,
-                                                       isCreating,
-                                                     }) => {
+  allowManualBrandCategory,
+  allowManualVariantCode,
+  allowManualRegionCode,
+  allowManualMarketRegion,
+  onSubmit,
+  canCreateSku,
+  skuCodeBase,
+  product,
+  skuCodeBaseDropdown,
+  productDropdown,
+  handleSkuCodeBaseSearch,
+  handleProductSearch,
+  parseSkuCodeBaseLabel,
+  isCreating,
+}) => {
   // -------------------------------------------------------------------------
   // RHF form
   // -------------------------------------------------------------------------
@@ -47,7 +47,7 @@ const CreateSkuSingleForm: FC<CreateSkuFormProps> = ({
       description: '',
     },
   });
-  
+
   // -------------------------------------------------------------------------
   // Fields
   // -------------------------------------------------------------------------
@@ -65,9 +65,9 @@ const CreateSkuSingleForm: FC<CreateSkuFormProps> = ({
     handleProductSearch,
     parseSkuCodeBaseLabel,
   });
-  
+
   const canSubmit = form.formState.isValid && !isCreating && canCreateSku;
-  
+
   // -------------------------------------------------------------------------
   // Submit handler
   // -------------------------------------------------------------------------
@@ -78,7 +78,7 @@ const CreateSkuSingleForm: FC<CreateSkuFormProps> = ({
     },
     [onSubmit]
   );
-  
+
   return (
     <CustomForm
       fields={fields}
