@@ -3,6 +3,7 @@ import Section from '@components/layout/Section';
 import DetailsGrid, { DetailsGridItem } from '@components/layout/DetailsGrid';
 import MemoizedDetailsSection from '@components/common/DetailsSection';
 import type { FlattenedSkuInfo } from '@features/sku/state';
+import { formatLabel } from '@utils/textUtils';
 import { formatToISODate } from '@utils/dateTimeUtils';
 
 interface SkuInfoSectionProps {
@@ -57,7 +58,11 @@ const SkuInfoSection: FC<SkuInfoSectionProps> = ({ flattened }) => {
           <MemoizedDetailsSection
             sectionTitle="Status"
             fields={[
-              { label: 'Status', value: flattened.statusName },
+              {
+                label: 'Status',
+                value: flattened.statusName,
+                format: formatLabel
+              },
               {
                 label: 'Status Date',
                 value: flattened.statusDate,

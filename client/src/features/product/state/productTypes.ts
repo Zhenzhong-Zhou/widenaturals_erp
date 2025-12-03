@@ -285,7 +285,7 @@ export interface FlattenedProductRecord {
   /** Name of the user who created the product */
   createdBy: string;
   
-  /** ISO timestamp of last update (may be null if never updated) */
+  /** ISO timestamp of last update (maybe null if never updated) */
   updatedAt: NullableString;
   
   /** Name of the user who last updated the product (nullable) */
