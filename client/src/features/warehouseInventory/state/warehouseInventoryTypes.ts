@@ -57,6 +57,9 @@ export type WarehouseInventoryItemSummary =
   | ProductWarehouseInventorySummary
   | MaterialWarehouseInventorySummary;
 
+export type WarehouseInventoryItemSummaryState =
+  ReduxPaginatedState<WarehouseInventoryItemSummary>;
+
 export interface WarehouseInventorySummaryItemDetails extends BaseInventorySummaryItem {
   warehouseInventoryId: string;
   quantity: BaseInventorySummaryItem['quantity'] & {
