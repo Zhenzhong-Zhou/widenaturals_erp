@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import type { PricingType } from '@features/pricingType';
 import CustomTable, { type Column } from '@components/common/CustomTable';
 import { formatDateTime } from '@utils/dateTimeUtils';
-import { formatLabel, formatNullable } from '@utils/textUtils';
+import { formatNullable } from '@utils/textUtils';
 import { useThemeContext } from '@context/ThemeContext.tsx';
 import type { PricingTypeTableProps } from '../state';
 
@@ -45,14 +45,12 @@ const PricingTypeTable: FC<PricingTypeTableProps> = ({
       id: 'slug',
       label: 'Slug',
       sortable: false,
-      format: formatLabel,
     },
     { id: 'description', label: 'Description', sortable: false },
     {
       id: 'status',
       label: 'Status',
       sortable: true,
-      format: formatLabel,
     },
     {
       id: 'statusDate',

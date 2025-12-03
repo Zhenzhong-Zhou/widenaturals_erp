@@ -3,7 +3,7 @@ import type {
   FetchPricingParams,
   PaginatedPricingDetailsResponse,
   PaginatedPricingRecordsResponse,
-} from '@features/pricing/state/pricingTypes.ts';
+} from '@features/pricing/state/pricingTypes';
 import { pricingService } from '@services/pricingService';
 
 /**
@@ -55,15 +55,3 @@ export const fetchPricingDetailsByTypeThunk = createAsyncThunk<
     }
   }
 );
-
-// export const fetchPriceValueThunk = createAsyncThunk<
-//   PriceResponse,
-//   PriceRequestParams
-// >('pricing/fetchPriceValue', async (params, { rejectWithValue }) => {
-//   try {
-//     return await pricingService.fetchPriceByProductIdAndPriceTypeId(params);
-//   } catch (error: any) {
-//     console.error('Failed to fetch price:', error);
-//     return rejectWithValue(error.response?.data || 'Failed to fetch price');
-//   }
-// });

@@ -5,7 +5,6 @@ import type {
   PaginatedPricingDetailsResponse,
   PaginatedPricingRecordsResponse,
 } from '@features/pricing/state';
-import type { PriceRequestParams, PriceResponse } from '@features/pricing';
 import { saveAs } from 'file-saver';
 
 /**
@@ -113,26 +112,8 @@ const fetchPricingDetailsByType = async (
   }
 };
 
-const fetchPriceByProductIdAndPriceTypeId = async (
-  params: PriceRequestParams
-): Promise<PriceResponse> => {
-  try {
-    const response = await axiosInstance.get<PriceResponse>(
-      API_ENDPOINTS.PRICE_VALUE,
-      {
-        params,
-      }
-    );
-    return response.data;
-  } catch (error) {
-    console.error('Failed to fetch price:', error);
-    throw new Error('Failed to fetch price');
-  }
-};
-
 export const pricingService = {
   fetchPaginatedPricingRecords,
   exportPricingRecords,
   fetchPricingDetailsByType,
-  fetchPriceByProductIdAndPriceTypeId,
 };

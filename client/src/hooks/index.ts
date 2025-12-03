@@ -20,7 +20,6 @@ export { default as useProducts } from './useSkuProductCards';
 export { default as usePricing } from './usePricingList';
 export { default as usePricingDetail } from './usePricingListByType';
 export { default as usePricingTypes } from './usePricingTypes';
-export { default as usePricingTypeDropdown } from './usePricingTypeDropdown';
 
 // --- Location ---
 export { default as useLocations } from './useLocations';
