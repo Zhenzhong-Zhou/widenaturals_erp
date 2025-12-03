@@ -327,7 +327,7 @@ export interface AuditUser {
   id: string | null;
   
   /** Display name of the user (e.g., "System Action"). */
-  fullName: string;
+  name: string;
 }
 
 /**

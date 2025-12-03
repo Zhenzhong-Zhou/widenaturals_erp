@@ -36,7 +36,7 @@ export const flattenImageMetadata = (
     displayOrder: img.metadata?.displayOrder ?? null,
     sizeKb: img.metadata?.sizeKb ?? null,
     format: img.metadata?.format ?? null,
-    uploadedBy: img.audit?.uploadedBy?.fullName ?? null,
+    uploadedBy: img.audit?.uploadedBy?.name ?? null,
     uploadedAt: img.audit?.uploadedAt ?? null,
   };
 };
@@ -100,9 +100,9 @@ export const flattenSkuInfo = (data: SkuDetail): FlattenedSkuInfo => {
     
     // Audit
     createdAt: audit?.createdAt ?? "",
-    createdBy: audit?.createdBy?.fullName ?? "—",
+    createdBy: audit?.createdBy?.name ?? "—",
     updatedAt: audit?.updatedAt ?? null,
-    updatedBy: audit?.updatedBy?.fullName ?? null,
+    updatedBy: audit?.updatedBy?.name ?? null,
   };
 };
 
@@ -141,9 +141,9 @@ export const flattenComplianceRecords = (
     
     // Audit
     createdAt: rec.audit?.createdAt ?? "",
-    createdBy: rec.audit?.createdBy?.fullName ?? "—",
+    createdBy: rec.audit?.createdBy?.name ?? "—",
     updatedAt: rec.audit?.updatedAt ?? null,
-    updatedBy: rec.audit?.updatedBy?.fullName ?? "—",
+    updatedBy: rec.audit?.updatedBy?.name ?? "—",
   }));
 };
 
@@ -192,9 +192,9 @@ export const flattenPricingRecords = (
     validTo: r.validTo ?? null,
     
     // Audit
-    createdBy: r.audit?.createdBy?.fullName ?? "—",
+    createdBy: r.audit?.createdBy?.name ?? "—",
     createdAt: r.audit?.createdAt ?? null,
-    updatedBy: r.audit?.updatedBy?.fullName ?? "—",
+    updatedBy: r.audit?.updatedBy?.name ?? "—",
     updatedAt: r.audit?.updatedAt ?? null,
   }));
 };

@@ -1,4 +1,5 @@
 const { getFullName } = require('../utils/name-utils');
+
 /**
  * @function
  * @description
@@ -94,7 +95,7 @@ const transformSkuImage = (row) => {
       uploadedBy: row.audit.uploadedBy
         ? {
           id: row.audit.uploadedBy.id,
-          fullName: getFullName(
+          name: getFullName(
             row.audit.uploadedBy.firstname,
             row.audit.uploadedBy.lastname
           ),

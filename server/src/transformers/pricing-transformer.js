@@ -165,7 +165,6 @@ const transformPaginatedPricingDetailResult = (result) =>
  * @property {string} audit.updatedBy.lastname  - Updater last name
  */
 
-
 /**
  * @typedef {Object} SkuDetailPricing
  * @description
@@ -211,35 +210,6 @@ const transformSkuPricing = (row) => {
     : undefined;
   
   // -----------------------------
-  // Audit (optional)
-  // -----------------------------
-  const audit = row.audit
-    ? {
-      createdAt: row.audit.createdAt ?? null,
-      createdBy: row.audit.createdBy
-        ? {
-          id: row.audit.createdBy.id,
-          fullName: getFullName(
-            row.audit.createdBy.firstname,
-            row.audit.createdBy.lastname
-          ),
-        }
-        : null,
-      
-      updatedAt: row.audit.updatedAt ?? null,
-      updatedBy: row.audit.updatedBy
-        ? {
-          id: row.audit.updatedBy.id,
-          fullName: getFullName(
-            row.audit.updatedBy.firstname,
-            row.audit.updatedBy.lastname
-          ),
-        }
-        : null,
-    }
-    : undefined;
-  
-  // -----------------------------
   // Final Returned DTO
   // -----------------------------
   return {
@@ -257,7 +227,7 @@ const transformSkuPricing = (row) => {
     validTo: row.validTo,
     
     status,
-    audit,
+    audit: row.audit,
   };
 };
 

@@ -8,6 +8,7 @@ const {
 const { logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 const { getStatusId } = require('../config/status-cache');
+const { compactAudit, makeAudit } = require('../utils/audit-utils');
 
 /**
  * Business: Determine what compliance record fields a user may view.
@@ -128,24 +129,7 @@ const sliceComplianceRecordsForUser = (complianceRows, access) => {
     // 4. Audit history: created_by, updated_by
     // ---------------------------------------------------------
     if (access.canViewComplianceHistory) {
-      safe.audit = {
-        createdAt: row.created_at,
-        createdBy: row.created_by
-          ? {
-            id: row.created_by,
-            firstname: row.created_by_firstname,
-            lastname: row.created_by_lastname,
-          }
-          : null,
-        updatedAt: row.updated_at,
-        updatedBy: row.updated_by
-          ? {
-            id: row.updated_by,
-            firstname: row.updated_by_firstname,
-            lastname: row.updated_by_lastname,
-          }
-          : null,
-      };
+      safe.audit = compactAudit(makeAudit(row));
     }
     
     results.push(safe);

@@ -1,6 +1,6 @@
 const { cleanObject } = require('../utils/object-utils');
 const { getProductDisplayName } = require('../utils/display-name-utils');
-const { getFullName } = require('../utils/name-utils');
+const { compactAudit, makeAudit } = require('../utils/audit-utils');
 const { transformPaginatedResult } = require('../utils/transformer-utils');
 
 /**
@@ -63,33 +63,7 @@ const transformComplianceRecordRow = (row) => {
       date: row.status_date,
     },
     
-    audit: {
-      createdAt: row.created_at,
-      createdBy: row.created_by
-        ? {
-          id: row.created_by,
-          firstname: row.created_by_firstname,
-          lastname: row.created_by_lastname,
-          displayName: getFullName(
-            row.created_by_firstname,
-            row.created_by_lastname
-          ),
-        }
-        : null,
-      
-      updatedAt: row.updated_at,
-      updatedBy: row.updated_by
-        ? {
-          id: row.updated_by,
-          firstname: row.updated_by_firstname,
-          lastname: row.updated_by_lastname,
-          displayName: getFullName(
-            row.updated_by_firstname,
-            row.updated_by_lastname
-          ),
-        }
-        : null,
-    },
+    audit: compactAudit(makeAudit(row)),
     
     sku: {
       id: row.sku_id,
@@ -195,33 +169,7 @@ const transformComplianceRecord = (row) => {
       description: row.metadata.description,
     }
     : undefined;
-  
-  // Optional audit
-  const audit = row.audit
-    ? {
-      createdAt: row.audit.createdAt,
-      createdBy: row.audit.createdBy
-        ? {
-          id: row.audit.createdBy.id,
-          fullName: getFullName(
-            row.audit.createdBy.firstname,
-            row.audit.createdBy.lastname
-          ),
-        }
-        : null,
-      updatedAt: row.audit.updatedAt,
-      updatedBy: row.audit.updatedBy
-        ? {
-          id: row.audit.updatedBy.id,
-          fullName: getFullName(
-            row.audit.updatedBy.firstname,
-            row.audit.updatedBy.lastname
-          ),
-        }
-        : null,
-    }
-    : undefined;
-  
+
   return {
     id: row.id,
     type: row.type,
@@ -229,7 +177,7 @@ const transformComplianceRecord = (row) => {
     issuedDate: row.issuedDate,
     expiryDate: row.expiryDate,
     metadata,
-    audit,
+    audit: row.audit,
   };
 };
 

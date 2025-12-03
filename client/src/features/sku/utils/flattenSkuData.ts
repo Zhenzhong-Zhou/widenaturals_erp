@@ -61,9 +61,9 @@ export const flattenSkuRecords = (
       // Audit Info
       // ------------------------------
       createdAt: audit.createdAt ?? '',
-      createdBy: audit.createdBy?.fullName ?? '—',
+      createdBy: audit.createdBy?.name ?? '—',
       updatedAt: audit.updatedAt ?? '',
-      updatedBy: audit.updatedBy?.fullName ?? '—',
+      updatedBy: audit.updatedBy?.name ?? '—',
     };
   });
 };

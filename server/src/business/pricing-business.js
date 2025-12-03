@@ -5,6 +5,7 @@ const {
 const { PERMISSIONS } = require('../utils/constants/domain/pricing-constants');
 const AppError = require('../utils/AppError');
 const { getStatusId } = require('../config/status-cache');
+const { compactAudit, makeAudit } = require('../utils/audit-utils');
 
 /**
  * Resolves the final price for an order item based on submitted price and DB price.
@@ -360,24 +361,7 @@ const slicePricingForUser = (pricingRows, access) => {
     // 6. EXTENDED: audit fields (admins + auditors)
     // ---------------------------------------------------------
     if (access.canViewPricingHistory) {
-      safe.audit = {
-        createdAt: row.created_at,
-        createdBy: row.created_by
-          ? {
-            id: row.created_by,
-            firstname: row.created_by_firstname,
-            lastname: row.created_by_lastname,
-          }
-          : null,
-        updatedAt: row.updated_at,
-        updatedBy: row.updated_by
-          ? {
-            id: row.updated_by,
-            firstname: row.updated_by_firstname,
-            lastname: row.updated_by_lastname,
-          }
-          : null,
-      };
+      safe.audit = compactAudit(makeAudit(row));
     }
     
     result.push(safe);
