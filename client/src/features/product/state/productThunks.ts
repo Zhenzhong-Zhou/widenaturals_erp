@@ -3,6 +3,7 @@ import type {
   CreateProductBulkInput,
   CreateProductResponse,
   FetchProductParams,
+  GetProductApiResponse,
   ProductListResponse,
 } from '@features/product/state/productTypes';
 import { productService } from '@services/productService';
@@ -118,3 +119,54 @@ export const createProductsThunk = createAsyncThunk<
     return rejectWithValue(message);
   }
 });
+
+/**
+ * Thunk: Fetch a single product's full detail record by ID.
+ *
+ * This thunk calls `productService.fetchProductDetailById(productId)` and returns
+ * the full standard API envelope (`ApiSuccessResponse<ProductResponse>`). The reducer
+ * is responsible for unwrapping the `.data` payload if needed.
+ *
+ * Usage:
+ * ```ts
+ * dispatch(fetchProductDetailByIdThunk(productId));
+ * ```
+ *
+ * Behavior:
+ * - The service layer trims and sanitizes the incoming `productId`.
+ * - Resolves with `GetProductApiResponse`, containing:
+ *     - `success`
+ *     - `message`
+ *     - `data` (the `ProductResponse`)
+ *     - `traceId`
+ * - On failure, the thunk returns a human-readable message via `rejectWithValue`.
+ * - No additional transformation is applied in this thunk; the response is returned
+ *   exactly as delivered by the backend.
+ *
+ * @param productId - UUID of the product to fetch.
+ * @returns The full API envelope (`GetProductApiResponse`) wrapped in AsyncThunk logic.
+ */
+export const fetchProductDetailByIdThunk = createAsyncThunk<
+  GetProductApiResponse,
+  string,
+  { rejectValue: string }
+>(
+  'products/fetchProductDetailById',
+  async (productId, { rejectWithValue }) => {
+    try {
+      return await productService.fetchProductDetailById(productId);
+    } catch (error: any) {
+      console.error('fetchProductDetailByIdThunk failed:', {
+        productId,
+        error,
+      });
+      
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Failed to fetch product details';
+      
+      return rejectWithValue(message);
+    }
+  }
+);
