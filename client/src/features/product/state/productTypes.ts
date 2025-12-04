@@ -350,3 +350,75 @@ export type GetProductApiResponse = ApiSuccessResponse<ProductResponse>;
  * - Product detail selectors
  */
 export type ProductDetailState = AsyncState<ProductResponse | null>;
+
+/**
+ * Represents a UI-friendly flattened version of a `ProductResponse`.
+ *
+ * This structure removes nested objects (such as `status` and `audit`)
+ * and exposes their values as top-level fields for easier consumption
+ * by components, tables, and detail sections.
+ *
+ * Flattening simplifies rendering logic and avoids deep property traversal
+ * in view components such as `<DetailsSection />` or summary cards.
+ *
+ * Includes:
+ * - Core product fields (id, name, brand, etc.)
+ * - Flattened status metadata (`statusId`, `statusName`, `statusDate`)
+ * - Flattened audit metadata (created/updated timestamps + users)
+ *
+ * All optional or missing fields are normalized to `null` for consistency.
+ */
+export interface FlattenedProductDetail {
+  /** Unique product identifier */
+  id: string;
+  
+  /** Human-readable product name */
+  name: string;
+  
+  /** Product series grouping */
+  series: string;
+  
+  /** Associated brand */
+  brand: string;
+  
+  /** Product category label */
+  category: string;
+  
+  /** Marketing or descriptive text */
+  description: string;
+  
+  // -----------------------------
+  // Flattened Status Metadata
+  // -----------------------------
+  
+  /** Status ID (UUID) from the backend */
+  statusId: string | null;
+  
+  /** Status name such as "active" or "inactive" */
+  statusName: string | null;
+  
+  /** Timestamp of the last status change */
+  statusDate: string | null;
+  
+  // -----------------------------
+  // Flattened Audit Metadata
+  // -----------------------------
+  
+  /** Timestamp when the product was created */
+  createdAt: string | null;
+  
+  /** User ID of who created the product */
+  createdById: string | null;
+  
+  /** Full name of who created the product */
+  createdByName: string | null;
+  
+  /** Timestamp when the product was last updated (null if never) */
+  updatedAt: string | null;
+  
+  /** User ID of who last updated the product */
+  updatedById: string | null;
+  
+  /** Full name of who last updated the product */
+  updatedByName: string | null;
+}
