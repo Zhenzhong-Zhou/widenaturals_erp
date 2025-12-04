@@ -22,6 +22,8 @@ export const API_ENDPOINTS = {
     ADD_NEW_RECORD: '/products/create',
     ALL_RECORDS: '/products',
     PRODUCT_DETAILS: (productId: string) => `/products/${productId}/details`,
+    UPDATE_INFO: (productId: string) => `/products/${productId}/info`,
+    UPDATE_STATUS: (productId: string) => `/products/${productId}/status`,
   },
   SKUS: {
     SKU_PRODUCT_CARDS: '/skus/cards',

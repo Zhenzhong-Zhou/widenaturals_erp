@@ -1,10 +1,12 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import type {
+import {
   CreateProductBulkInput,
   CreateProductResponse,
   FetchProductParams,
   GetProductApiResponse,
-  ProductListResponse,
+  ProductListResponse, ProductStatusUpdateRequest,
+  ProductUpdateRequest,
+  UpdateProductApiResponse,
 } from '@features/product/state/productTypes';
 import { productService } from '@services/productService';
 
@@ -165,6 +167,113 @@ export const fetchProductDetailByIdThunk = createAsyncThunk<
         error?.response?.data?.message ||
         error?.message ||
         'Failed to fetch product details';
+      
+      return rejectWithValue(message);
+    }
+  }
+);
+
+/**
+ * Thunk: Update a product's core information fields by ID.
+ *
+ * Issues a `PUT /products/:productId/info` request to update one or more
+ * editable product attributes. The backend enforces that the payload must
+ * contain at least one valid field (name, series, brand, category, or
+ * description), as validated by `productUpdateSchema`.
+ *
+ * Behavior:
+ * - Accepts a typed partial update payload (`ProductUpdateRequest`).
+ * - Returns an `ApiSuccessResponse<{ id: string }>` containing the updated product ID.
+ * - Uses `rejectWithValue` to surface human-readable API error messages to the UI.
+ * - Logs contextual metadata to help with debugging and monitoring.
+ *
+ * Typical Use Cases:
+ * - Inline editing product fields
+ * - Product detail page "Edit" form submission
+ *
+ * @param productId - UUID of the product to update.
+ * @param payload - Partial fields allowed for update.
+ * @returns API envelope containing `{ id }` of the updated product.
+ *
+ * @example
+ * dispatch(updateProductInfoByIdThunk({
+ *   productId: '411e7fca-bde3-47be-82b9-4607a6db7580',
+ *   payload: { name: 'Updated Product Name' }
+ * }));
+ */
+export const updateProductInfoByIdThunk = createAsyncThunk<
+  UpdateProductApiResponse,
+  { productId: string; payload: ProductUpdateRequest },
+  { rejectValue: string }
+>(
+  'products/updateProductInfoById',
+  async ({ productId, payload }, { rejectWithValue }) => {
+    try {
+      return await productService.updateProductInfoById(productId, payload);
+    } catch (error: any) {
+      console.error('updateProductInfoByIdThunk failed:', {
+        productId,
+        payload,
+        error,
+      });
+      
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Failed to update product information.';
+      
+      return rejectWithValue(message);
+    }
+  }
+);
+
+/**
+ * Thunk: Update a product's status by ID.
+ *
+ * Issues a `PUT /products/:productId/status` request and updates only the
+ * status field of a product. The payload must include a valid `statusId`,
+ * validated by `updateStatusIdSchema`.
+ *
+ * Behavior:
+ * - Accepts a payload containing only `{ statusId: string }`.
+ * - Returns an `ApiSuccessResponse<{ id: string }>` with the updated product ID.
+ * - Uses `rejectWithValue` for clean error propagation to reducers/UI.
+ * - Logs request context to assist with error diagnosis.
+ *
+ * Typical Use Cases:
+ * - Activating or deactivating a product
+ * - Workflow/state transitions in product lifecycle
+ *
+ * @param productId - UUID of the product whose status is being changed.
+ * @param payload - Object containing the new `statusId`.
+ * @returns API envelope containing `{ id }` of the updated product.
+ *
+ * @example
+ * dispatch(updateProductStatusByIdThunk({
+ *   productId: '411e7fca-bde3-47be-82b9-4607a6db7580',
+ *   payload: { statusId: '73f01730-5166-4b83-9c56-270d1e03cbf6' }
+ * }));
+ */
+export const updateProductStatusByIdThunk = createAsyncThunk<
+  UpdateProductApiResponse,
+  { productId: string; payload: ProductStatusUpdateRequest },
+  { rejectValue: string }
+>(
+  'products/updateProductStatusById',
+  async ({ productId, payload }, { rejectWithValue }) => {
+    try {
+      return await productService.updateProductStatusById(productId, payload);
+    } catch (error: any) {
+      console.error('updateProductStatusByIdThunk failed:', {
+        productId,
+        payload,
+        error,
+      });
+      
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Failed to update product status.';
       
       return rejectWithValue(message);
     }
