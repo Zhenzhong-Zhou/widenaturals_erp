@@ -1,4 +1,4 @@
-import type {
+import {
   ApiSuccessResponse,
   AsyncState,
   AuditUser,
@@ -9,6 +9,7 @@ import type {
   PaginationParams,
   ReduxPaginatedState,
   SortConfig,
+  UpdateStatusIdRequest,
 } from '@shared-types/api';
 
 /**
@@ -1121,17 +1122,19 @@ export interface CreatedSkuRecord {
 export type CreateSkusState = AsyncState<CreateSkuResponse | null>;
 
 /**
- * Request body payload for updating a SKU's status.
+ * Request payload for updating a SKU's status.
  *
- * Sent to the PATCH endpoint:
- *    /skus/:skuId/status
+ * Used by the PATCH endpoint:
+ *    PATCH /skus/:skuId/status
  *
- * Contains only the field(s) that can be updated for this operation.
+ * This operation updates only the status field of a SKU, and therefore
+ * the payload consists solely of a `statusId` value. The field must be
+ * a valid UUID, as validated by the shared `updateStatusIdSchema`.
+ *
+ * This type reuses the generic `UpdateStatusIdRequest` interface to
+ * ensure consistency across all modules that support status updates.
  */
-export interface UpdateSkuStatusRequestBody {
-  /** The new status identifier to apply to the target SKU */
-  statusId: string;
-}
+export type UpdateSkuStatusRequestBody = UpdateStatusIdRequest;
 
 /**
  * The inner `data` payload returned by the API
