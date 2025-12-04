@@ -1,6 +1,6 @@
 import { renderBaseInputField } from '@utils/form/FieldRenderers';
 import { getSeriesBrandCategoryHelperText } from '@features/product/utils/productFieldValidators';
-import type { CustomRenderParams } from '@components/common/CustomForm';
+import type { CustomRenderParams, FieldConfig } from '@components/common/CustomForm';
 import type { RowAwareComponentProps } from '@components/common/MultiItemForm';
 
 /**
@@ -78,4 +78,66 @@ export const makeSeriesBrandCategoryField = (
         fullWidth: true,
       }),
   };
+};
+
+/**
+ * Builds the field definitions used in Product creation and update forms.
+ *
+ * This factory generates a `FieldConfig[]` array compatible with:
+ *  - CustomForm (single product create/update)
+ *  - MultiItemForm (bulk workflows, if needed)
+ *
+ * Behavior:
+ * - When `isUpdate = false` (default), fields match full creation requirements:
+ *      name, brand, and category are required.
+ * - When `isUpdate = true`, all fields become optional, matching the backend
+ *   `productUpdateSchema`, which requires at least one field to be provided.
+ *
+ * The field set mirrors the backend Joi schema for product creation/update
+ * to ensure consistent validation rules and UI behavior.
+ *
+ * @param options - Optional configuration object.
+ * @param options.isUpdate - When true, marks all fields as optional.
+ *
+ * @returns An array of `FieldConfig` objects describing the Product form fields.
+ *
+ * @example
+ * // Create Product form
+ * const fields = buildProductInfoFields({ isUpdate: false });
+ *
+ * @example
+ * // Update Product Info form
+ * const fields = buildProductInfoFields({ isUpdate: true });
+ */
+export const buildProductInfoFields = (options?: { isUpdate?: boolean }): FieldConfig[] => {
+  const isUpdate = options?.isUpdate ?? false;
+  
+  return [
+    {
+      id: 'name',
+      label: 'Product Name',
+      type: 'text',
+      required: !isUpdate,
+      grid: { xs: 12, sm: 6 },
+    },
+    makeSeriesBrandCategoryField('series', {
+      required: false,
+      grid: { xs: 12, sm: 6 },
+    }),
+    makeSeriesBrandCategoryField('brand', {
+      required: !isUpdate,
+      grid: { xs: 12, sm: 6 },
+    }),
+    makeSeriesBrandCategoryField('category', {
+      required: !isUpdate,
+      grid: { xs: 12, sm: 6 },
+    }),
+    {
+      id: 'description',
+      label: 'Description',
+      type: 'textarea',
+      required: false,
+      grid: { xs: 12 },
+    },
+  ];
 };
