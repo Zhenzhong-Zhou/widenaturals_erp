@@ -175,7 +175,11 @@ const ProductListPage = () => {
       {/* ---------------------------------------- */}
       {/* Modal Dialog */}
       {/* ---------------------------------------- */}
-      <ProductsCreateDialog open={dialogOpen} onClose={handleCloseDialog} />
+      <ProductsCreateDialog
+        open={dialogOpen}
+        onClose={handleCloseDialog}
+        onSuccess={refreshProductList}
+      />
 
       {/* ---------------------------------------- */}
       {/* Filter + Sort Controls */}
