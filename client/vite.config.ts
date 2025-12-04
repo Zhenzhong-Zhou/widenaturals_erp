@@ -105,7 +105,18 @@ export default defineConfig(({ mode }) => ({
             if (id.includes('libphonenumber-js')) return 'phone-utils-vendor';
             if (id.includes('slugify')) return 'slugify-vendor';
             if (id.includes('jwt-decode')) return 'jwt-vendor';
-
+            if (id.includes('styled-components')) return 'styled-vendor';
+            if (id.includes('i18n-iso-countries')) return 'i18n-vendor';
+            if (id.includes('currency-codes')) return 'currency-vendor';
+            if (id.includes('react-medium-image-zoom')) return 'image-zoom-vendor';
+            if (id.includes('react-zoom-pan-pinch')) return 'zoom-vendor';
+            if (id.includes('react-toastify')) return 'toast-vendor';
+            if (id.includes('react-phone-input-2')) return 'phone-input-vendor';
+            if (id.includes('validator')) return 'validator-vendor';
+            if (id.includes('file-saver')) return 'file-saver-vendor';
+            if (id.includes('path-browserify')) return 'path-browserify-vendor';
+            if (id.includes('qs')) return 'qs-vendor';
+            
             return 'misc-vendor'; // fallback for unclassified external deps
           }
 

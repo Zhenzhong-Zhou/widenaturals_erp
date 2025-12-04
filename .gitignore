@@ -39,8 +39,17 @@ nginx.conf
 .DS_Store
 Thumbs.db
 
+# TS internal build files
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+/dist/tsconfig*.tsbuildinfo
+
 # IDE WebStorm
 .idea/
+
+# Vite cache
+.vite/
+.cache/
 
 # Editor directories and files
 .vscode/*
