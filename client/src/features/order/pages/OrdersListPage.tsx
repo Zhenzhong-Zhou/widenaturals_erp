@@ -37,10 +37,10 @@ import NoDataFound from '@components/common/NoDataFound';
 import {
   OrderFiltersPanel,
   OrderSortControls,
-} from '@features/order/components/OrdersTable/index';
+} from '@features/order/components/OrdersTable';
 
 const OrdersTable = lazy(
-  () => import('@features/order/components/OrdersTable')
+  () => import('@features/order/components/OrdersTable/OrdersTable')
 );
 
 const OrdersListPage = () => {

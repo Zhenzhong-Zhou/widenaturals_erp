@@ -31,7 +31,7 @@ import { applyFiltersAndSorting } from '@utils/queryUtils';
 
 const OutboundFulfillmentsTable = lazy(
   () =>
-    import('@features/outboundFulfillment/components/OutboundFulfillmentTable')
+    import('@features/outboundFulfillment/components/OutboundFulfillmentTable/OutboundFulfillmentTable')
 );
 
 // baseline empty filters
