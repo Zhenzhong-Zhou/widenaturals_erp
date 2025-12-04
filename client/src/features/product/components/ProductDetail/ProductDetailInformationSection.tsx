@@ -24,7 +24,6 @@ const buildProductInfoFields = (p: FlattenedProductDetail): DetailsSectionField[
   {
     label: 'Category',
     value: p.category,
-    format: (v) => (v ? formatLabel(v) : '—'),
   },
   {
     label: 'Description',
