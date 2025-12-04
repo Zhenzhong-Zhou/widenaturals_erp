@@ -1,5 +1,5 @@
 import type { NullableString } from '@shared-types/shared';
-import type {
+import {
   ApiSuccessResponse,
   AsyncState,
   GenericAudit,
@@ -9,6 +9,7 @@ import type {
   PaginationParams,
   ReduxPaginatedState,
   SortConfig,
+  UpdateStatusIdRequest,
 } from '@shared-types/api';
 
 /**
@@ -422,3 +423,83 @@ export interface FlattenedProductDetail {
   /** Full name of who last updated the product */
   updatedByName: string | null;
 }
+
+/**
+ * Response payload returned after updating a product.
+ *
+ * Contains only the UUID of the affected product, since update endpoints
+ * acknowledge state change rather than returning full product details.
+ */
+export interface ProductUpdateResponseData {
+  /** UUID of the updated product */
+  id: string;
+}
+
+/**
+ * Standard API envelope returned by product update operations.
+ *
+ * Example:
+ * {
+ *   success: true,
+ *   message: "Product information updated successfully.",
+ *   data: { id: "..." },
+ *   traceId: "..."
+ * }
+ */
+export type UpdateProductApiResponse =
+  ApiSuccessResponse<ProductUpdateResponseData>;
+
+/**
+ * Request payload for updating general product information.
+ *
+ * All fields are optional at the type level, but backend validation
+ * (`productUpdateSchema`) requires that at least one field be provided.
+ *
+ * Only core editable attributes are included. Fields like status,
+ * inventory, compliance, and metadata are updated through separate APIs.
+ */
+export interface ProductUpdateRequest {
+  /** Product Name (max 150 chars) */
+  name?: string;
+  
+  /** Series grouping (max 100 chars) */
+  series?: string;
+  
+  /** Brand name (max 100 chars) */
+  brand?: string;
+  
+  /** Category name (max 100 chars) */
+  category?: string;
+  
+  /** Optional description text (empty string allowed) */
+  description?: string;
+}
+
+/**
+ * Request payload for updating a product's status.
+ *
+ * Uses the shared `UpdateStatusIdRequest` interface, ensuring consistent
+ * status update formats across modules such as SKU, product, customer,
+ * or order status transitions.
+ */
+export type ProductStatusUpdateRequest = UpdateStatusIdRequest;
+
+/**
+ * Async state wrapper used by the product info update slice.
+ *
+ * Stores:
+ *  - `data`   : API response (`{ id: string }`)
+ *  - `loading`: request lifecycle flag
+ *  - `error`  : user-facing error message
+ */
+export type ProductUpdateState =
+  AsyncState<UpdateProductApiResponse | null>;
+
+/**
+ * Async state wrapper used by the product status update slice.
+ *
+ * Identical in structure to `ProductUpdateState`, but represents the
+ * update operation for a product's status.
+ */
+export type ProductStatusUpdateState =
+  AsyncState<UpdateProductApiResponse | null>;

@@ -403,3 +403,14 @@ export interface OperationStats<T = void> {
   /** Optional metadata returned by this specific operation. */
   meta?: T;
 }
+
+/**
+ * Payload for updating the status of a resource.
+ *
+ * Matches the Joi schema:
+ *   { statusId: UUID }
+ */
+export interface UpdateStatusIdRequest {
+  /** New status ID (UUID) */
+  statusId: string;
+}
