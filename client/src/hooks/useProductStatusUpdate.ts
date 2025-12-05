@@ -6,15 +6,10 @@ import {
   selectProductStatusUpdateError,
   selectProductStatusUpdateSuccess,
   selectUpdatedProductStatusId,
-  ProductStatusUpdateRequest,
   updateProductStatusByIdThunk,
+  UpdateProductStatusThunkArgs,
 } from '@features/product/state';
 import { resetProductStatusUpdateState } from '@features/product/state/productStatusUpdateSlice';
-
-export interface UpdateProductStatusThunkArgs {
-  productId: string;
-  payload: ProductStatusUpdateRequest;
-}
 
 /**
  * Hook providing a clean interface for updating a product's status.

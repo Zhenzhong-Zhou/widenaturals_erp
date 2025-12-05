@@ -1,4 +1,4 @@
-export { createStatusField } from './UpdateSkuStatusFields';
+export { createStatusField } from './UpdateSkuStatusField';
 export { default as UpdateSkuStatusForm } from './UpdateSkuStatusForm';
 export { default as UpdateSkuStatusSuccessDialog } from './UpdateSkuStatusSuccessDialog';
 export { default as UpdateSkuStatusErrorDialog } from './UpdateSkuStatusErrorDialog';

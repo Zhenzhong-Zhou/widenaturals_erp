@@ -485,6 +485,23 @@ export interface ProductUpdateRequest {
 export type ProductStatusUpdateRequest = UpdateStatusIdRequest;
 
 /**
+ * Arguments accepted by the Redux thunk responsible for updating
+ * a Product’s status.
+ *
+ * This type ensures a consistent payload shape across:
+ *   - Redux thunks
+ *   - hooks (e.g., useProductStatusUpdate)
+ *   - dialog/components that trigger status updates
+ */
+export interface UpdateProductStatusThunkArgs {
+  /** The ID of the product whose status is being updated */
+  productId: string;
+  
+  /** The new status to assign */
+  statusId: string;
+}
+
+/**
  * Async state wrapper used by the product info update slice.
  *
  * Stores:

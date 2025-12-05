@@ -4,9 +4,11 @@ import {
   CreateProductResponse,
   FetchProductParams,
   GetProductApiResponse,
-  ProductListResponse, ProductStatusUpdateRequest,
+  ProductListResponse,
+  ProductStatusUpdateRequest,
   ProductUpdateRequest,
   UpdateProductApiResponse,
+  UpdateProductStatusThunkArgs,
 } from '@features/product/state/productTypes';
 import { productService } from '@services/productService';
 
@@ -256,17 +258,17 @@ export const updateProductInfoByIdThunk = createAsyncThunk<
  */
 export const updateProductStatusByIdThunk = createAsyncThunk<
   UpdateProductApiResponse,
-  { productId: string; payload: ProductStatusUpdateRequest },
+  UpdateProductStatusThunkArgs,
   { rejectValue: string }
 >(
   'products/updateProductStatusById',
-  async ({ productId, payload }, { rejectWithValue }) => {
+  async ({ productId, statusId }, { rejectWithValue }) => {
     try {
+      const payload: ProductStatusUpdateRequest = { statusId };
       return await productService.updateProductStatusById(productId, payload);
     } catch (error: any) {
       console.error('updateProductStatusByIdThunk failed:', {
         productId,
-        payload,
         error,
       });
       

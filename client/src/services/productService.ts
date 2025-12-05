@@ -9,7 +9,7 @@ import {
   UpdateProductApiResponse,
 } from '@features/product/state';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import { getRequest, postRequest, putRequest } from '@utils/apiRequest';
+import { getRequest, patchRequest, postRequest, putRequest } from '@utils/apiRequest';
 import { buildQueryString } from '@utils/buildQueryString';
 import { sanitizeString } from '@utils/stringUtils';
 
@@ -217,7 +217,7 @@ const updateProductStatusById = async (
   const url = API_ENDPOINTS.PRODUCTS.UPDATE_STATUS(productId);
   
   try {
-    return await putRequest<ProductStatusUpdateRequest, UpdateProductApiResponse>(
+    return await patchRequest<ProductStatusUpdateRequest, UpdateProductApiResponse>(
       url,
       payload
     );
