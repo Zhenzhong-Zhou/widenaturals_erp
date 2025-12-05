@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
@@ -7,8 +7,12 @@ import ErrorMessage from '@components/common/ErrorMessage';
 import NavigateBackButton from '@components/common/NavigateBackButton';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
-import useProductDetail from '@hooks/useProductDetail';
 import NoDataFound from '@components/common/NoDataFound';
+import NotFoundPage from '@pages/NotFoundPage';
+import useProductDetail from '@hooks/useProductDetail';
+import useStatusLookup from '@hooks/useStatusLookup';
+import usePagePermissionGuard from '@features/authorize/hooks/usePagePermissionGuard';
+import { useDialogFocusHandlers } from '@utils/hooks/useDialogFocusHandlers';
 import { flattenProductDetail } from '@features/product/utils/flattenProductDetail';
 import {
   ProductDetailAuditSection,
@@ -16,9 +20,24 @@ import {
   ProductDetailStatusSection,
 } from '@features/product/components/ProductDetail';
 
+import {
+  ProductUpdateInfoDialog,
+  UpdateProductStatusDialog,
+} from '@features/product/components/UpdateProductForm';
+
 const ProductDetailPage = () => {
+  // --------------------------------------
+  // 1. Route Params (Early Exit)
+  // --------------------------------------
   const { productId } = useParams<{ productId: string }>();
   
+  if (!productId) {
+    return <NotFoundPage />;
+  }
+
+  // --------------------------------------
+  // 2. Data Hooks
+  // --------------------------------------
   const {
     product: selectedProduct,
     loading: isLoadingProductDetail,
@@ -28,6 +47,50 @@ const ProductDetailPage = () => {
     resetProductDetail: resetProductDetailState,
   } = useProductDetail();
   
+  const statusLookup = useStatusLookup();
+
+  // --------------------------------------
+  // 3. Permission Hooks
+  // --------------------------------------
+  const canUpdateStatus = usePagePermissionGuard(['update_product_status']);
+  const canUpdateInfo = usePagePermissionGuard(['update_product_info']);
+
+  // --------------------------------------
+  // 4. UI State (Dialogs)
+  // --------------------------------------
+  const [showUpdateInfoDialog, setShowUpdateInfoDialog] = useState(false);
+  const [showUpdateStatusDialog, setShowUpdateStatusDialog] = useState(false);
+
+  // --------------------------------------
+  // 5. Refs (Focus Restore)
+  // --------------------------------------
+  const updateInfoButtonRef = useRef<HTMLButtonElement | null>(null);
+  const updateStatusButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  // --------------------------------------
+  // 6. Dialog Focus Handlers
+  // --------------------------------------
+  const {
+    handleOpenDialog: openInfoDialogWithFocus,
+    handleCloseDialog: closeInfoDialogWithFocus,
+  } = useDialogFocusHandlers(
+    setShowUpdateInfoDialog,
+    updateInfoButtonRef,
+    () => showUpdateInfoDialog
+  );
+  
+  const {
+    handleOpenDialog: openStatusDialogWithFocus,
+    handleCloseDialog: closeStatusDialogWithFocus,
+  } = useDialogFocusHandlers(
+    setShowUpdateStatusDialog,
+    updateStatusButtonRef,
+    () => showUpdateStatusDialog
+  );
+  
+  // --------------------------------------
+  // 7. Derived Values & Callbacks
+  // --------------------------------------
   const flattenProductDetails = useMemo(
     () => flattenProductDetail(selectedProduct),
     [selectedProduct]
@@ -37,38 +100,36 @@ const ProductDetailPage = () => {
     if (productId) fetchProductDetailById(productId);
   }, [productId, fetchProductDetailById]);
   
-  // -----------------------------
-  // Fetch on mount + cleanup
-  // -----------------------------
+  // --------------------------------------
+  // 8. Effects
+  // --------------------------------------
   useEffect(() => {
     refreshProductDetails();
-    return () => {
-      resetProductDetailState();
-    };
+    return () => resetProductDetailState();
   }, [productId, refreshProductDetails, resetProductDetailState]);
-  
-  
+
   // -----------------------------
-  // Render: Product Detail
+  // Render: Product Detail Page
   // -----------------------------
   return (
     <Box sx={{ p: 4 }}>
-      {/* PAGE HEADER */}
+      {/* --------------------------------------------- */}
+      {/* PAGE HEADER: Title + Back Button + Actions     */}
+      {/* --------------------------------------------- */}
       <Stack
         direction="row"
         justifyContent="space-between"
         alignItems="center"
         mb={4}
       >
-        {/* LEFT: Back + Title */}
+        {/* LEFT: Back Navigation + Product Title */}
         <Stack direction="row" spacing={2} alignItems="center">
-          {/* Single back button */}
           <NavigateBackButton
             label="Back to Product List"
             fallbackTo="/products"
           />
           
-          {/* Title */}
+          {/* Render product name when detail is loaded */}
           {flattenProductDetails && (
             <CustomTypography variant="h5" fontWeight={700}>
               {flattenProductDetails.name}
@@ -76,8 +137,9 @@ const ProductDetailPage = () => {
           )}
         </Stack>
         
-        {/* RIGHT: ACTIONS */}
+        {/* RIGHT: Page Action Buttons */}
         <Stack direction="row" spacing={1}>
+          {/* Always available Refresh button */}
           <CustomButton
             variant="outlined"
             color="primary"
@@ -86,31 +148,88 @@ const ProductDetailPage = () => {
             Refresh
           </CustomButton>
           
-          {/* Future actions */}
-          <CustomButton
-            variant="contained"
-            color="primary"
-          >
-            Edit
-          </CustomButton>
+          {/* Actions depend on permission + data availability */}
+          {!isProductDetailEmpty && !isLoadingProductDetail && (
+            <>
+              {/* Update Info Button (permission-protected) */}
+              {!canUpdateInfo.permLoading && canUpdateInfo.isAllowed && (
+                <CustomButton
+                  variant="contained"
+                  color="primary"
+                  ref={updateInfoButtonRef}
+                  onClick={openInfoDialogWithFocus}
+                >
+                  Update Info
+                </CustomButton>
+              )}
+              
+              {/* Update Status Button (permission-protected) */}
+              {!canUpdateStatus.permLoading && canUpdateStatus.isAllowed && (
+                <CustomButton
+                  variant="contained"
+                  color="secondary"
+                  ref={updateStatusButtonRef}
+                  onClick={openStatusDialogWithFocus}
+                >
+                  Update Status
+                </CustomButton>
+              )}
+            </>
+          )}
         </Stack>
       </Stack>
       
-      {/* PAGE CONTENT */}
+      {/* --------------------------------------------- */}
+      {/* PAGE CONTENT: Loading / Error / Empty / Detail */}
+      {/* --------------------------------------------- */}
+      
+      {/* Loading state */}
       {isLoadingProductDetail && (
         <Loading variant="dotted" message="Loading Product Details..." />
       )}
       
+      {/* Error state */}
       {productDetailError && <ErrorMessage message={productDetailError} />}
       
-      {isProductDetailEmpty && <NoDataFound message="No product details found." />}
+      {/* Empty state */}
+      {isProductDetailEmpty && (
+        <NoDataFound message="No product details found." />
+      )}
       
+      {/* Main product detail sections */}
       {flattenProductDetails && (
         <>
           <ProductDetailInformationSection product={flattenProductDetails} />
           <ProductDetailStatusSection product={flattenProductDetails} />
           <ProductDetailAuditSection product={flattenProductDetails} />
         </>
+      )}
+      
+      {/* --------------------------------------------- */}
+      {/* UPDATE INFO DIALOG (controlled with focus)     */}
+      {/* --------------------------------------------- */}
+      {flattenProductDetails && (
+        <ProductUpdateInfoDialog
+          open={showUpdateInfoDialog}
+          onClose={closeInfoDialogWithFocus}
+          onSuccess={refreshProductDetails}
+          productId={productId!}
+          productDetails={flattenProductDetails}
+        />
+      )}
+      
+      {/* --------------------------------------------- */}
+      {/* UPDATE STATUS DIALOG (controlled with focus)   */}
+      {/* --------------------------------------------- */}
+      {flattenProductDetails && (
+        <UpdateProductStatusDialog
+          open={showUpdateStatusDialog}
+          onClose={closeStatusDialogWithFocus}
+          onSuccess={refreshProductDetails}
+          productId={productId}
+          productName={flattenProductDetails.name}
+          statusLookup={statusLookup}
+        />
       )}
     </Box>
   );
