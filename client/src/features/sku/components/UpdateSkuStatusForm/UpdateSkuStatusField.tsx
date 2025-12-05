@@ -14,13 +14,13 @@ interface StatusFieldParams {
   setInputValue: (v: string) => void;
   fetchParams: StatusLookupParams;
   setFetchParams: Dispatch<SetStateAction<LookupQuery>>;
-
+  
   /** Data from lookup hook */
   options?: StatusLookupOption[];
   loading?: boolean;
   error?: string | null;
   meta?: LookupPaginationMeta;
-
+  
   /** Fetch + refresh */
   fetchStatusDropdownOptions?: (params?: StatusLookupParams) => void;
 }
@@ -40,16 +40,16 @@ interface StatusFieldParams {
  * - Any page that needs a reusable SKU/Status dropdown field
  */
 export const createStatusField = ({
-  inputValue,
-  setInputValue,
-  fetchParams,
-  setFetchParams,
-  options = [],
-  loading,
-  error,
-  meta,
-  fetchStatusDropdownOptions,
-}: StatusFieldParams): FieldConfig => {
+                                    inputValue,
+                                    setInputValue,
+                                    fetchParams,
+                                    setFetchParams,
+                                    options = [],
+                                    loading,
+                                    error,
+                                    meta,
+                                    fetchStatusDropdownOptions,
+                                  }: StatusFieldParams): FieldConfig => {
   return {
     id: 'status_id',
     label: 'SKU Status',
