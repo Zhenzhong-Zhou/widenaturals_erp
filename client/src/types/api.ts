@@ -414,3 +414,21 @@ export interface UpdateStatusIdRequest {
   /** New status ID (UUID) */
   statusId: string;
 }
+
+/**
+ * Common statistics for any batch-processing operation.
+ * Suitable for file uploads, bulk inserts, imports, sync jobs, and migrations.
+ */
+export interface BatchProcessStats {
+  /** Total number of items processed in this batch */
+  total: number;
+  
+  /** Number of items that completed successfully */
+  succeeded: number;
+  
+  /** Number of items that failed */
+  failed: number;
+  
+  /** Execution time in milliseconds */
+  durationMs: number;
+}

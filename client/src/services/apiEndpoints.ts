@@ -32,6 +32,9 @@ export const API_ENDPOINTS = {
     ADD_NEW_RECORD: '/skus/create',
     UPDATE_STATUS: (skuId: string) => `/skus/${skuId}/status`,
   },
+  SKU_IMAGES: {
+    UPLOAD_IMAGES: '/sku-images/upload',
+  },
   BOMS: {
     ALL_RECORDS: '/boms',
     BOM_DETAILS: (bomId: string) => `/boms/${bomId}/details`,
