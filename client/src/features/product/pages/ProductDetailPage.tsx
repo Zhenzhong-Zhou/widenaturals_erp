@@ -19,7 +19,6 @@ import {
   ProductDetailInformationSection,
   ProductDetailStatusSection,
 } from '@features/product/components/ProductDetail';
-
 import {
   ProductUpdateInfoDialog,
   UpdateProductStatusDialog,
@@ -106,7 +105,7 @@ const ProductDetailPage = () => {
   useEffect(() => {
     refreshProductDetails();
     return () => resetProductDetailState();
-  }, [productId, refreshProductDetails, resetProductDetailState]);
+  }, [refreshProductDetails, resetProductDetailState]);
 
   // -----------------------------
   // Render: Product Detail Page

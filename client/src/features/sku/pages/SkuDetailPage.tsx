@@ -12,6 +12,7 @@ import Grid from '@mui/material/Grid';
 import DetailPage from '@components/common/DetailPage';
 import CustomButton from '@components/common/CustomButton';
 import GoBackButton from '@components/common/GoBackButton';
+import NotFoundPage from '@pages/NotFoundPage';
 import usePermissions from '@hooks/usePermissions';
 import useSkuDetail from '@hooks/useSkuDetail';
 import useStatusLookup from '@hooks/useStatusLookup';
@@ -26,7 +27,7 @@ import {
   SkuImageGallery,
 } from '@features/sku/components/SkuDetail';
 import { UpdateSkuStatusDialog } from '@features/sku/components/UpdateSkuStatusForm';
-import { formatLabel, truncateText } from '@utils/textUtils';
+import { truncateText } from '@utils/textUtils';
 
 /**
  * SKU Detail Page
@@ -50,7 +51,11 @@ const SkuDetailPage: FC = () => {
    * --------------------------------------------------------- */
   const { skuId } = useParams<{ skuId: string }>();
   const { permissions } = usePermissions();
-
+  
+  if (!skuId) {
+    return <NotFoundPage />;
+  }
+  
   /* ---------------------------------------------------------
    * SKU detail hook (provides all data & fetch helpers)
    * --------------------------------------------------------- */
@@ -69,15 +74,8 @@ const SkuDetailPage: FC = () => {
   } = useSkuDetail();
 
   const createButtonRef = useRef<HTMLButtonElement>(null);
-
-  const {
-    options: statusOptions,
-    loading: statusLookupLoading,
-    error: statusLookupError,
-    meta: statusLookupMeta,
-    fetch: fetchStatusOptions,
-    reset: resetStatusLookup,
-  } = useStatusLookup();
+  
+  const statusLookup = useStatusLookup();
 
   /* ---------------------------------------------------------
    * Local UI State for Dialog
@@ -102,9 +100,9 @@ const SkuDetailPage: FC = () => {
   }, [skuId, fetchSkuDetail]);
 
   useEffect(() => {
-    if (skuId) refresh();
+    refresh();
     return () => resetSkuDetail();
-  }, [skuId, refresh, resetSkuDetail]);
+  }, [refresh, resetSkuDetail]);
 
   /* ---------------------------------------------------------
    * Flattened structures for UI components
@@ -124,15 +122,6 @@ const SkuDetailPage: FC = () => {
   const flattenedPricingInfo = useMemo(
     () => (activePricing ? flattenPricingRecords(activePricing) : null),
     [activePricing]
-  );
-
-  const formattedStatusOptions = useMemo(
-    () =>
-      statusOptions.map((opt) => ({
-        ...opt,
-        label: formatLabel(opt.label),
-      })),
-    [statusOptions]
   );
 
   /* ---------------------------------------------------------
@@ -186,12 +175,7 @@ const SkuDetailPage: FC = () => {
           skuId={skuId}
           skuCode={flattenedSkuInfo?.sku ?? ''}
           onSuccess={refresh}
-          statusDropdownOptions={formattedStatusOptions}
-          fetchStatusDropdownOptions={fetchStatusOptions}
-          resetStatusDropdownOptions={resetStatusLookup}
-          statusLookupLoading={statusLookupLoading}
-          statusLookupError={statusLookupError}
-          statusLookupMeta={statusLookupMeta}
+          statusLookup={statusLookup}
         />
       )}
 
@@ -212,6 +196,7 @@ const SkuDetailPage: FC = () => {
               height: 44,
               borderRadius: 22,
             }}
+            color="secondary"
             ref={createButtonRef}
             onClick={handleOpenDialog}
           >

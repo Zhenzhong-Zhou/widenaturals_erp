@@ -1,17 +1,15 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import CustomDialog from '@components/common/CustomDialog';
 import CustomTypography from '@components/common/CustomTypography';
 import useSkuStatus from '@hooks/useSkuStatus';
-import type {
-  LookupPaginationMeta,
-  StatusLookupOption,
-  StatusLookupParams,
-} from '@features/lookup/state';
 import {
   UpdateSkuStatusErrorDialog,
   UpdateSkuStatusForm,
   UpdateSkuStatusSuccessDialog,
 } from '@features/sku/components/UpdateSkuStatusForm';
+import {
+  StatusLookupController, StatusPayload,
+} from '@features/lookup/hooks/useStatusFieldController';
 
 /**
  * Props for UpdateSkuStatusDialog
@@ -44,24 +42,9 @@ interface UpdateSkuStatusDialogProps {
 
   /** Human-readable SKU code (for UI display) */
   skuCode: string;
-
-  /** Dropdown-ready list of status options */
-  statusDropdownOptions?: StatusLookupOption[];
-
-  /** Fetch lookup options (pagination, search, etc.) */
-  fetchStatusDropdownOptions?: (params?: StatusLookupParams) => void;
-
-  /** Reset lookup options (clear state) */
-  resetStatusDropdownOptions?: () => void;
-
-  /** Status lookup loading flag */
-  statusLookupLoading?: boolean;
-
-  /** Status lookup error for dropdown */
-  statusLookupError?: string | null;
-
-  /** Metadata for pagination (hasMore, totalCount, etc.) */
-  statusLookupMeta?: LookupPaginationMeta;
+  
+  /** Fully controlled dropdown lookup handler (hook object) */
+  statusLookup: StatusLookupController;
 }
 
 /**
@@ -73,18 +56,15 @@ interface UpdateSkuStatusDialogProps {
  *   - Status selection form otherwise
  */
 const UpdateSkuStatusDialog = ({
-  open,
-  onClose,
-  onSuccess,
-  skuId,
-  skuCode,
-  statusDropdownOptions,
-  fetchStatusDropdownOptions,
-  resetStatusDropdownOptions,
-  statusLookupLoading,
-  statusLookupError,
-  statusLookupMeta,
+                                 open,
+                                 onClose,
+                                 onSuccess,
+                                 skuId,
+                                 skuCode,
+                                 statusLookup,
 }: UpdateSkuStatusDialogProps) => {
+  const [selectedStatusLabel, setSelectedStatusLabel] = useState<string>("");
+  
   /**
    * Internal slice-based status update state + actions
    */
@@ -101,6 +81,7 @@ const UpdateSkuStatusDialog = ({
    * Close dialog + reset slice anytime dialog exits.
    */
   const handleClose = () => {
+    if (onSuccess) onSuccess();
     resetSkuStatus();
     onClose();
   };
@@ -110,18 +91,17 @@ const UpdateSkuStatusDialog = ({
    *   { skuId, statusId }
    */
   const handleSubmit = useCallback(
-    async (formData: { statusId: string }) => {
+    async (formData: StatusPayload) => {
+      setSelectedStatusLabel(formData.statusLabel);
+      
       await updateStatus({
         skuId,
         statusId: formData.statusId,
       });
-
-      // Parent can refresh lists, invalidate queries, etc.
-      if (onSuccess) onSuccess();
     },
-    [skuId, updateStatus, onSuccess]
+    [skuId, updateStatus]
   );
-
+  
   // ---------------------------------------------------------------------------
   // UI STATE 1: Success Mode
   // ---------------------------------------------------------------------------
@@ -131,7 +111,8 @@ const UpdateSkuStatusDialog = ({
         open={open}
         onClose={handleClose}
         skuCode={skuCode}
-        newStatusName={updateStatusData?.message}
+        newStatusName={selectedStatusLabel}
+        responseData={updateStatusData}
       />
     );
   }
@@ -168,12 +149,7 @@ const UpdateSkuStatusDialog = ({
         skuId={skuId}
         loading={updateStatusLoading}
         onSubmit={handleSubmit}
-        statusDropdownOptions={statusDropdownOptions}
-        fetchStatusDropdownOptions={fetchStatusDropdownOptions}
-        resetStatusDropdownOptions={resetStatusDropdownOptions}
-        statusLookupLoading={statusLookupLoading}
-        statusLookupError={statusLookupError}
-        statusLookupMeta={statusLookupMeta}
+        statusLookup={statusLookup}
       />
 
       <CustomTypography variant="caption" sx={{ mt: 1 }} color="text.secondary">

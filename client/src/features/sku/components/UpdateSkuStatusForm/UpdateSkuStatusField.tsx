@@ -10,34 +10,41 @@ import type {
 } from '@features/lookup/state';
 
 interface StatusFieldParams {
+  /** Current keyword text inside the dropdown */
   inputValue: string;
   setInputValue: (v: string) => void;
+  
+  /** Pagination + query state */
   fetchParams: StatusLookupParams;
   setFetchParams: Dispatch<SetStateAction<LookupQuery>>;
   
-  /** Data from lookup hook */
+  /** Lookup results */
   options?: StatusLookupOption[];
   loading?: boolean;
   error?: string | null;
   meta?: LookupPaginationMeta;
   
-  /** Fetch + refresh */
+  /** Trigger backend search */
   fetchStatusDropdownOptions?: (params?: StatusLookupParams) => void;
+  
+  /** Optional callback for keyword changes */
+  onKeywordChange?: (keyword: string) => void;
 }
 
 /**
- * Factory: Builds a FieldConfig for the Status dropdown field.
+ * Factory: Builds a FieldConfig for a generic Status dropdown field.
  *
- * This encapsulates all StatusDropdown logic:
- * - keyword input
- * - pagination fetch params
- * - refresh handling
- * - lookup errors + loading
- * - memo-safe callback setup
+ * This supports:
+ * - keyword search
+ * - paginated backend lookup
+ * - lookup refresh
+ * - loading and error states
+ * - dynamic label and field id
  *
  * Used by:
  * - UpdateSkuStatusForm
- * - Any page that needs a reusable SKU/Status dropdown field
+ * - UpdateProductStatusForm
+ * - Any form requiring a reusable Status dropdown field
  */
 export const createStatusField = ({
                                     inputValue,
@@ -49,9 +56,10 @@ export const createStatusField = ({
                                     error,
                                     meta,
                                     fetchStatusDropdownOptions,
+                                    onKeywordChange,
                                   }: StatusFieldParams): FieldConfig => {
   return {
-    id: 'status_id',
+    id: 'statusId',
     label: 'SKU Status',
     type: 'custom',
     required: true,
@@ -61,25 +69,39 @@ export const createStatusField = ({
         label="SKU Status"
         value={value ?? ''}
         onChange={(id) => onChange?.(id)}
+        
+        // Keyword input
         inputValue={inputValue}
-        onInputChange={(_e, val) => {
-          setInputValue(val);
+        onInputChange={(_e, newValue, reason) => {
+          setInputValue(newValue);
+          
+          if (reason !== 'input') return;
+          
           setFetchParams((prev) =>
             normalizeLookupParams({
               ...prev,
-              keyword: val,
+              keyword: newValue,
               offset: 0,
             })
           );
+          
+          onKeywordChange?.(newValue);
         }}
+        
         options={options}
         loading={loading}
         error={error}
         paginationMeta={meta}
+        
+        /** Pagination + fetch state */
         fetchParams={fetchParams}
         setFetchParams={setFetchParams}
+        
+        /** Manual reload button */
         onRefresh={(params) =>
-          fetchStatusDropdownOptions?.(normalizeLookupParams(params ?? {}))
+          fetchStatusDropdownOptions?.(
+            normalizeLookupParams(params ?? {})
+          )
         }
       />
     ),

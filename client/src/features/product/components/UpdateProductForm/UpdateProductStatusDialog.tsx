@@ -2,29 +2,14 @@ import { useCallback, useState } from 'react';
 import CustomDialog from '@components/common/CustomDialog';
 import CustomTypography from '@components/common/CustomTypography';
 import useProductStatusUpdate from '@hooks/useProductStatusUpdate';
-import type {
-  StatusLookupParams,
-  StatusLookupOption,
-  LookupPaginationMeta,
-} from '@features/lookup/state';
 import {
-  UpdateProductStatusErrorDialog, UpdateProductStatusForm,
+  UpdateProductStatusErrorDialog,
+  UpdateProductStatusForm,
   UpdateProductStatusSuccessDialog,
 } from '@features/product/components/UpdateProductForm';
-
-/**
- * Unified lookup controller passed into the dialog.
- * Matches the structure returned by useProductStatusLookup().
- */
-export interface ProductStatusLookupController {
-  options: StatusLookupOption[];
-  loading: boolean;
-  error: string | null;
-  meta: LookupPaginationMeta | undefined;
-  
-  fetch: (params?: StatusLookupParams) => void;
-  reset: () => void;
-}
+import {
+  StatusLookupController, StatusPayload,
+} from '@features/lookup/hooks/useStatusFieldController';
 
 interface UpdateProductStatusDialogProps {
   open: boolean;
@@ -35,7 +20,7 @@ interface UpdateProductStatusDialogProps {
   productName: string;
   
   /** Fully controlled dropdown lookup handler (hook object) */
-  statusLookup: ProductStatusLookupController;
+  statusLookup: StatusLookupController;
 }
 
 const UpdateProductStatusDialog = ({
@@ -63,7 +48,7 @@ const UpdateProductStatusDialog = ({
   };
   
   const handleSubmit = useCallback(
-    async (formData: { statusId: string; statusLabel: string }) => {
+    async (formData: StatusPayload) => {
       setSelectedStatusLabel(formData.statusLabel);
       
       await updateStatus({
