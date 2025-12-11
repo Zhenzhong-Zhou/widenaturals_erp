@@ -88,6 +88,15 @@ export const routes = [
     },
   },
   {
+    path: '/sku-images/upload',
+    component: lazy(() => import('@features/skuImage/pages/SkuImageBulkUploadPage')),
+    meta: {
+      requiresAuth: true,
+      title: 'Create SKU FORM',
+      showInSidebar: false,
+    },
+  },
+  {
     path: '/compliances',
     component: lazy(() => import('@features/compliance/pages/CompliancePage')),
     meta: { requiresAuth: true, title: 'Compliances', showInSidebar: true },
