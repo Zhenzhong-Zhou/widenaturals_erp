@@ -30,6 +30,7 @@ import { warehouseReducers } from '@features/warehouse';
 import { warehouseInventoryReducers } from '@features/warehouseInventory';
 import { inventoryAllocationReducers } from '@features/inventoryAllocation';
 import { outboundFulfillmentReducers } from '@features/outboundFulfillment';
+import { skuImageReducers } from '@features/skuImage';
 
 // Use helper to combine
 const appReducer = combineReducers(
@@ -46,6 +47,7 @@ const appReducer = combineReducers(
     // Product & Pricing
     productReducers,
     skuReducers,
+    skuImageReducers,
     complianceReducers,
     bomReducers,
     pricingTypeReducers,

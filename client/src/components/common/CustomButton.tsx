@@ -8,6 +8,8 @@ import Box from '@mui/material/Box';
 
 interface CustomButtonProps extends ButtonProps {
   to?: string; // Optional 'to' prop for routing
+  /** Router state (optional) */
+  state?: any;
   variant?: 'contained' | 'outlined' | 'text';
   color?: 'primary' | 'secondary' | 'success' | 'error' | 'info' | 'warning';
   size?: 'small' | 'medium' | 'large';
@@ -18,6 +20,7 @@ interface CustomButtonProps extends ButtonProps {
 const CustomButton: FC<CustomButtonProps> = ({
   children,
   to,
+  state,
   variant = 'contained',
   color = 'primary',
   size = 'medium',
@@ -34,6 +37,7 @@ const CustomButton: FC<CustomButtonProps> = ({
     <Button
       component={to ? RouterLink : 'button'}
       to={to}
+      state={state}
       variant={variant}
       color={color}
       size={size}

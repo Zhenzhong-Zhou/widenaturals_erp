@@ -424,11 +424,11 @@ export interface BatchProcessStats {
   total: number;
   
   /** Number of items that completed successfully */
-  succeeded: number;
+  successCount: number;
   
   /** Number of items that failed */
-  failed: number;
+  failureCount: number;
   
   /** Execution time in milliseconds */
-  durationMs: number;
+  elapsedMs: number;
 }

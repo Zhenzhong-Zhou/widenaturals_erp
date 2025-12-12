@@ -15,7 +15,9 @@ import SkuListTable, {
   SkuFiltersPanel,
   SkuSortControls,
 } from '@features/sku/components/SkuListTable';
-import type {
+import {
+  FlattenedSkuRecord,
+  SelectedSku,
   SkuListFilters,
   SkuSortField,
 } from '@features/sku/state/skuTypes';
@@ -40,7 +42,10 @@ const SkuListPage = () => {
   const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
   const [filters, setFilters] = useState<SkuListFilters>({});
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-
+  const [selectedSkus, setSelectedSkus] = useState<{
+    [skuId: string]: SelectedSku;
+  }>({});
+  
   // SKU list hook
   const {
     data: skuData,
@@ -53,7 +58,35 @@ const SkuListPage = () => {
   } = usePaginatedSkus();
 
   const flattenData = flattenSkuRecords(skuData);
-
+  
+  const updateSelectedSkus = (
+    prev: Record<string, SelectedSku>,
+    ids: string[],
+    flattenData: FlattenedSkuRecord[]
+  ) => {
+    const updated = { ...prev };
+    
+    ids.forEach(id => {
+      const row = flattenData.find(r => r.skuId === id);
+      if (row) {
+        updated[id] = {
+          skuId: row.skuId ?? '',
+          skuCode: row.skuCode,
+          displayProductName: row.displayProductName,
+        };
+      }
+    });
+    
+    // Remove deselected IDs
+    Object.keys(updated).forEach(id => {
+      if (!ids.includes(id)) {
+        delete updated[id];
+      }
+    });
+    
+    return updated;
+  };
+  
   // -----------------------------
   // Shared query object
   // -----------------------------
@@ -115,7 +148,16 @@ const SkuListPage = () => {
   const handleDrillDownToggle = (rowId: string) => {
     setExpandedRowId((current) => (current === rowId ? null : rowId));
   };
-
+  
+  const handleSelectionChange = useCallback(
+    (ids: string[]) => {
+      setSelectedSkus(prev =>
+        updateSelectedSkus(prev, ids, flattenData)
+      );
+    },
+    [flattenData]
+  );
+  
   return (
     <Box sx={{ px: 4, py: 3 }}>
       {/* Header */}
@@ -181,6 +223,9 @@ const SkuListPage = () => {
           expandedRowId={expandedRowId}
           onDrillDownToggle={handleDrillDownToggle}
           onRefresh={refreshSkuList}
+          onSelectionChange={handleSelectionChange}
+          selectedRowIds={Object.keys(selectedSkus)}
+          selectedSkus={selectedSkus}
         />
       )}
     </Box>

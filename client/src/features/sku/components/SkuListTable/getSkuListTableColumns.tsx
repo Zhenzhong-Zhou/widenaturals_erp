@@ -1,28 +1,55 @@
 import { Link } from 'react-router-dom';
+import CardMedia from '@mui/material/CardMedia';
 import type { Column } from '@components/common/CustomTable';
 import TruncatedText from '@components/common/TruncatedText';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
 import { formatLabel } from '@utils/textUtils';
+import { formatImageUrl } from '@utils/formatImageUrl';
 import type { FlattenedSkuRecord } from '@features/sku/state';
+import { NO_IMAGE_PLACEHOLDER } from '@utils/constants/assets';
 
 /**
  * Returns column definitions for the SKU list table.
- *
  * Includes:
- *  - Product metadata (name, brand, category)
- *  - SKU metadata (code, region, size, barcode)
- *  - Status info
- *  - Audit fields
- *  - Optional drill-down column for row expansion
- *
- * @param expandedRowId - Currently expanded SKU row ID.
- * @param onDrillDownToggle - Optional callback to toggle row expansion.
+ *  - Thumbnail image (primary image URL)
+ *  - Product metadata
+ *  - SKU metadata
+ *  - Status
+ *  - Drill-down expansion
  */
 export const getSkuListTableColumns = (
   expandedRowId?: string,
   onDrillDownToggle?: (id: string) => void
 ): Column<FlattenedSkuRecord>[] => {
   const columns: Column<FlattenedSkuRecord>[] = [
+    // ------------------------------
+    // Thumbnail Image Column
+    // ------------------------------
+    {
+      id: 'primaryImageUrl',
+      label: 'Image',
+      sortable: false, // Sorting by images is not meaningful
+      align: 'center',
+      renderCell: (row) => (
+        <CardMedia
+          component="img"
+          image={row.primaryImageUrl
+            ? formatImageUrl(row.primaryImageUrl)
+            : NO_IMAGE_PLACEHOLDER}
+          loading="lazy"
+          alt={row.displayProductName ?? 'SKU image'}
+          sx={{
+            width: 50,
+            height: 50,
+            objectFit: 'cover',
+            borderRadius: '4px',
+            border: '1px solid #e0e0e0',
+            backgroundColor: '#fafafa',
+          }}
+        />
+      ),
+    },
+    
     // ------------------------------
     // Product Info
     // ------------------------------
@@ -57,7 +84,7 @@ export const getSkuListTableColumns = (
       sortable: true,
       renderCell: (row) => row.category ?? '—',
     },
-
+    
     // ------------------------------
     // SKU Info
     // ------------------------------
@@ -91,7 +118,7 @@ export const getSkuListTableColumns = (
       sortable: true,
       renderCell: (row) => row.language ?? '—',
     },
-
+    
     // ------------------------------
     // Status Info
     // ------------------------------
@@ -102,7 +129,7 @@ export const getSkuListTableColumns = (
       renderCell: (row) => formatLabel(row.statusName) ?? '—',
     },
   ];
-
+  
   // ------------------------------
   // Drill-down Expansion Column
   // ------------------------------
@@ -114,6 +141,6 @@ export const getSkuListTableColumns = (
       )
     );
   }
-
+  
   return columns;
 };

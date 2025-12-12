@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
+import { useLocation } from 'react-router';
 import Stack from '@mui/material/Stack';
 import Grid from '@mui/material/Grid';
 import DetailPage from '@components/common/DetailPage';
@@ -51,6 +52,9 @@ const SkuDetailPage: FC = () => {
    * --------------------------------------------------------- */
   const { skuId } = useParams<{ skuId: string }>();
   const { permissions } = usePermissions();
+  
+  const location = useLocation();
+  const cameFromUpload = location.state?.fromUpload === true;
   
   if (!skuId) {
     return <NotFoundPage />;
@@ -112,7 +116,7 @@ const SkuDetailPage: FC = () => {
     () => (sku ? flattenSkuInfo(sku) : null),
     [sku]
   );
-
+  
   const flattenedComplianceInfo = useMemo(
     () =>
       complianceRecords ? flattenComplianceRecords(complianceRecords) : null,
@@ -221,6 +225,7 @@ const SkuDetailPage: FC = () => {
             height: 44, // SAME HEIGHT HERE
             borderRadius: 22,
           }}
+          fallbackTo={cameFromUpload ? "/skus" : undefined}
         />
       </Stack>
 

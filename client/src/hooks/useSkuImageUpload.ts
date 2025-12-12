@@ -9,8 +9,8 @@ import {
   selectSkuImageUploadSucceededCount,
   selectSkuImageUploadFailedCount,
   selectSkuImageUploadHasResults,
-  BulkSkuImageUploadRequest,
   uploadSkuImagesThunk,
+  selectSkuImageUploadSuccess,
 } from '@features/skuImage/state';
 import { resetUploadState } from '@features/skuImage/state/skuImageUploadSlice';
 
@@ -26,11 +26,12 @@ const useSkuImageUpload = () => {
   const succeededCount = useAppSelector(selectSkuImageUploadSucceededCount);
   const failedCount = useAppSelector(selectSkuImageUploadFailedCount);
   const hasResults = useAppSelector(selectSkuImageUploadHasResults);
+  const isSuccess = useAppSelector(selectSkuImageUploadSuccess);
   
   // Stable upload function
   const uploadImages = useCallback(
-    async (payload: BulkSkuImageUploadRequest) => {
-      return dispatch(uploadSkuImagesThunk(payload));
+    async (formData: FormData) => {
+      return dispatch(uploadSkuImagesThunk(formData));
     },
     [dispatch]
   );
@@ -50,7 +51,8 @@ const useSkuImageUpload = () => {
       results,
       hasResults,
       succeededCount,
-      failedCount
+      failedCount,
+      isSuccess,
     }),
     [
       loading,
@@ -60,7 +62,8 @@ const useSkuImageUpload = () => {
       results,
       hasResults,
       succeededCount,
-      failedCount
+      failedCount,
+      isSuccess,
     ]
   );
   

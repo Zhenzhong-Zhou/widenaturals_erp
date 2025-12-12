@@ -80,3 +80,19 @@ export const selectSkuImageUploadHasResults = createSelector(
   selectSkuImageUploadResults,
   (results) => Array.isArray(results) && results.length > 0
 );
+
+/**
+ * Selector: returns a boolean indicating whether the SKU image upload
+ * request completed successfully.
+ *
+ * This selector derives its value from `selectSkuImageUploadData`, which
+ * holds the API response for the upload operation. A non-null `data`
+ * value implies the request was successful and the backend returned
+ * a valid response object.
+ *
+ * @returns {boolean} `true` if upload data exists, otherwise `false`.
+ */
+export const selectSkuImageUploadSuccess = createSelector(
+  [selectSkuImageUploadData],
+  (data) => !!data
+);

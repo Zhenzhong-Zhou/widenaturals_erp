@@ -21,7 +21,6 @@ export type SkuImageType =
   | 'main'
   | 'thumbnail'
   | 'zoom'
-  | 'gallery'
   | 'unknown';
 
 /**
@@ -44,42 +43,64 @@ export type ImageFileFormat =
   | 'svg';
 
 /**
- * Represents one image definition in a bulk image upload request.
+ * Represents a single image entry in a bulk SKU image upload operation.
  *
- * The backend requires that each entry contains either a URL (image_url)
- * or an uploaded file (file_uploaded). Other fields provide metadata,
- * display ordering, and accessibility text.
+ * This structure is used on the client side to manage image staging,
+ * metadata, preview rendering, and eventual serialization into the
+ * backend-compatible multipart form payload.
+ *
+ * Exactly one of the following must be provided per image:
+ *  - `file_uploaded = true` with a `file` object (raw upload), OR
+ *  - `upload_mode = "url"` with an `image_url` (external reference).
+ *
+ * Fields such as `previewUrl`, `file`, and `source` are UI-only and never
+ * transmitted directly to the backend. All other properties contribute to
+ * how the backend registers, validates, and stores the image.
  */
 export interface SkuImageInput {
-  /** URL for the image, if not uploading a file. */
+  /**
+   * Indicates how this image was supplied by the user.
+   * `"file"` → uploaded as a binary file
+   * `"url"`  → referenced by an external image URL
+   */
+  upload_mode?: "file" | "url";
+  
+  /** Public image URL when `upload_mode = "url"` */
   image_url?: string | null;
   
-  /** Indicates that a file is included in multipart upload. */
+  /** True if this row represents an uploaded file in multipart form */
   file_uploaded?: boolean;
   
-  /** Logical role or display type of the image. */
+  /**
+   * Raw File object for uploads (client-only, never serialized).
+   * Included only if `file_uploaded = true`.
+   */
+  file?: File | null;
+  
+  /** Logical image category (e.g., thumbnail, main, gallery, detail) */
   image_type?: SkuImageType;
   
-  /** Ordering index for presentation. */
-  display_order?: number;
-  
-  /** File size in kilobytes (optional). */
+  /** Precomputed file size (KB), optional and UI-facing */
   file_size_kb?: number | null;
   
-  /** File format of the uploaded or referenced image. */
+  /** Inferred file extension/type such as jpg, png, webp */
   file_format?: ImageFileFormat;
-
-  /** Human-readable alt text for accessibility. */
+  
+  /** Human-friendly alt text for accessibility and SEO */
   alt_text?: string | null;
   
-  /** Whether this image should be treated as the primary SKU image. */
-  is_primary?: boolean;
-  
-  /** Timestamp indicating when the image was uploaded or created. */
-  uploaded_at?: string | Date;
-  
-  /** Source tag for tracking how the image was introduced. */
+  /**
+   * Optional tag indicating how the image was added
+   * (e.g., "uploaded", "url", "auto-generated").
+   * For UI/state tracking only.
+   */
   source?: SkuImageSource;
+  
+  /**
+   * Temporary browser-generated preview URL.
+   * Used for client-side rendering before uploading.
+   */
+  previewUrl?: string;
 }
 
 /**
@@ -99,15 +120,6 @@ export interface BulkSkuImageUploadItem {
   
   /** One or more image definitions associated with this SKU. */
   images: SkuImageInputArray;
-}
-
-/**
- * Payload structure for bulk image uploads.
- * Contains multiple SKUs, each with 1–100 image items.
- */
-export interface BulkSkuImageUploadRequest {
-  /** List of SKU image batches (1–50 SKUs allowed per request). */
-  skus: BulkSkuImageUploadItem[];
 }
 
 /**
@@ -174,4 +186,25 @@ export interface SkuImageUploadState
   
   /** Metrics summarizing the batch upload (success/failure counts, duration). */
   stats: BatchProcessStats | null;
+}
+
+/**
+ * UI-facing representation of a single SKU row in the bulk image upload form.
+ *
+ * Extends the backend-facing {@link BulkSkuImageUploadItem} with additional
+ * metadata required exclusively for the frontend, such as the product's
+ * display name. This structure powers each upload card shown to the user.
+ *
+ * This type is *never* sent to the backend directly. It is used only for:
+ *  - Rendering product-level information in each upload card
+ *  - Managing client-side image selections (`images`)
+ *  - Providing context during result enrichment after upload
+ */
+export interface SkuImageUploadCardData
+  extends BulkSkuImageUploadItem {
+  /**
+   * Human-readable product name associated with the SKU.
+   * Required for UI display (e.g., upload card header, results dialog).
+   */
+  displayProductName: string;
 }

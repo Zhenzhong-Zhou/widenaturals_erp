@@ -1,4 +1,9 @@
-import { Fragment, type ReactNode, useState } from 'react';
+import {
+  Fragment,
+  type ReactNode,
+  useMemo,
+  useState
+} from 'react';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -52,6 +57,7 @@ interface CustomTableProps<T = any> {
   selectedRowIds?: string[];
   onSelectionChange?: (ids: string[]) => void;
   showCheckboxes?: boolean; // for conditional checkbox
+  isRowSelectable?: (row: T, index: number) => boolean;
   showActionsColumn?: boolean; // optional actions column
   renderActions?: (row: T, rowIndex?: number) => ReactNode; // optional action cell renderer
 }
@@ -77,6 +83,7 @@ const CustomTable = <T extends Record<string, any>>({
   selectedRowIds,
   onSelectionChange,
   showCheckboxes = false,
+  isRowSelectable,
   showActionsColumn = false,
   renderActions,
 }: CustomTableProps<T>) => {
@@ -104,7 +111,16 @@ const CustomTable = <T extends Record<string, any>>({
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(columnId);
   };
-
+  
+  const selectableRows = useMemo(
+    () =>
+      data.filter((row, idx) => {
+        if (getRowProps?.(row, idx)?.isGroupHeader) return false;
+        return isRowSelectable ? isRowSelectable(row, idx) : true;
+      }),
+    [data, isRowSelectable, getRowProps]
+  );
+  
   const sortedData = orderBy
     ? [...data].sort((a, b) => {
         const aVal = a[orderBy as keyof typeof a];
@@ -122,7 +138,7 @@ const CustomTable = <T extends Record<string, any>>({
   const safePage = Math.min(page, Math.max(0, (totalPages || 1) - 1));
 
   const totalColCount = finalColumns.length + (showCheckboxes ? 2 : 1);
-
+  
   return (
     <Paper
       sx={{
@@ -151,27 +167,27 @@ const CustomTable = <T extends Record<string, any>>({
                     indeterminate={
                       selectedRowIds &&
                       selectedRowIds.length > 0 &&
-                      selectedRowIds.length <
-                        data.filter((r) => !getRowProps?.(r, 0)?.isGroupHeader)
-                          .length
+                      selectedRowIds.length < selectableRows.length
                     }
                     checked={
                       selectedRowIds &&
-                      selectedRowIds.length ===
-                        data.filter((r) => !getRowProps?.(r, 0)?.isGroupHeader)
-                          .length
+                      selectedRowIds.length > 0 &&
+                      selectedRowIds.length === selectableRows.length
                     }
                     onChange={(e) => {
+                      if (!onSelectionChange) return;
+                      
                       const shouldSelectAll = e.target.checked;
-                      const allIds = data
-                        .filter((r, i) => !getRowProps?.(r, i)?.isGroupHeader)
-                        .map((r) => getRowId?.(r) ?? r.id);
-                      onSelectionChange?.(shouldSelectAll ? allIds : []);
+                      const allIds = selectableRows.map(
+                        (r) => getRowId?.(r) ?? r.id
+                      );
+                      
+                      onSelectionChange(shouldSelectAll ? allIds : []);
                     }}
                   />
                 </TableCell>
               )}
-
+              
               <TableCell
                 align="center"
                 sx={{
@@ -291,6 +307,10 @@ const CustomTable = <T extends Record<string, any>>({
                                   id: `checkbox-${rowId}`, // optional: adds id for labels or testing
                                 },
                               }}
+                              disabled={
+                                getRowProps?.(row, rowIndex)?.isGroupHeader ||
+                                (isRowSelectable ? !isRowSelectable(row, rowIndex) : false)
+                              }
                               checked={selectedRowIds?.includes(rowId)}
                               onChange={(e) => {
                                 const isChecked = e.target.checked;

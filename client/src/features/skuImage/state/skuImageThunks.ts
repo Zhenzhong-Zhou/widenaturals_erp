@@ -1,50 +1,42 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
-  BulkSkuImageUploadRequest,
   BulkSkuImageUploadResponse
 } from '@features/skuImage/state';
 import { skuImageService } from '@services/skuImageService';
 
 /**
- * Async thunk for performing bulk SKU image uploads.
+ * Async thunk for performing **bulk SKU image uploads**.
  *
  * This thunk:
- * - Dispatches a POST request through `skuImageService.uploadSkuImages()`.
- * - Handles typed request/response contracts for stricter compile-time safety.
- * - Normalizes backend errors into a typed reject value for slice reducers.
- * - Supports batch uploads of 1–50 SKUs, each with 1–100 images.
+ * - Sends a multipart/form-data POST request using `skuImageService.uploadSkuImages()`.
+ * - Provides strict compile-time types for the request (`FormData`) and response
+ *   (`BulkSkuImageUploadResponse`).
+ * - Converts backend exceptions into a typed `rejectValue`, ensuring reducers
+ *   always receive predictable error shapes.
+ * - Supports batch operations of **1–50 SKUs**, each with **1–100 images**.
  *
- * Usage:
+ * **Example Usage**
  * ```ts
- * dispatch(uploadSkuImagesThunk({
- *   skus: [
- *     {
- *       skuId: 'uuid',
- *       skuCode: 'WN-MO409-L-UN',
- *       images: [
- *         {
- *           file_uploaded: true,
- *           image_type: 'main',
- *           display_order: 0
- *         }
- *       ]
- *     }
- *   ]
- * }));
+ * dispatch(uploadSkuImagesThunk(formData));
  * ```
  *
- * The fulfilled action returns:
- *   - Full API response (`BulkSkuImageUploadResponse`)
- *   - Per-SKU results (`BulkSkuImageUploadResult[]`)
- *   - Batch processing stats (`BatchProcessStats`)
+ * **FormData Structure**
+ * The FormData passed to this thunk must contain:
+ * - `"skus"`: JSON.stringify of the upload definition
+ * - `"files"`: one or more binary file blobs (if file uploads are used)
  *
- * The rejected action contains:
- *   - `message`: Error description
- *   - `traceId`: Optional backend trace identifier
+ * **Success Payload (`BulkSkuImageUploadResponse`) Includes:**
+ * - `results`: Per-SKU status (`BulkSkuImageUploadResult[]`)
+ * - `stats`: Batch processing summary (`BatchProcessStats`)
+ * - `success`: Overall success flag
+ *
+ * **Error Payload (`rejectValue`) Includes:**
+ * - `message`: Human-readable error message
+ * - `traceId?`: Optional backend correlation identifier
  */
 export const uploadSkuImagesThunk = createAsyncThunk<
-  BulkSkuImageUploadResponse,        // Success payload type
-  BulkSkuImageUploadRequest,         // Thunk argument type
+  BulkSkuImageUploadResponse, // Success payload
+  FormData,                   // Thunk argument
   {
     rejectValue: {
       message: string;
@@ -53,11 +45,10 @@ export const uploadSkuImagesThunk = createAsyncThunk<
   }
 >(
   'skuImage/upload',
-  async (payload, { rejectWithValue }) => {
+  async (formData, { rejectWithValue }) => {
     try {
-      return await skuImageService.uploadSkuImages(payload);
+      return await skuImageService.uploadSkuImages(formData);
     } catch (err: any) {
-      // Backend commonly returns { message, traceId }
       return rejectWithValue({
         message: err?.message ?? 'Failed to upload SKU images.',
         traceId: err?.traceId

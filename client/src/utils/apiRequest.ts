@@ -20,6 +20,54 @@ export const postRequest = async <T, R>(url: string, data: T): Promise<R> => {
 };
 
 /**
+ * POST helper for uploading multipart FormData (files + JSON payloads).
+ *
+ * Axios automatically applies the correct `Content-Type: multipart/form-data`
+ * including the boundary header. Therefore, **no Content-Type header should be set**.
+ *
+ * Features:
+ * - Ensures correct multipart handling
+ * - Supports large file uploads with extended timeout
+ * - Normalizes network and server errors for consistent error handling
+ *
+ * @template R - Expected response type
+ * @param url - API endpoint
+ * @param formData - FormData containing JSON metadata + file blobs
+ * @returns Parsed response payload (type R)
+ */
+export const postFormDataRequest = async <R>(
+  url: string,
+  formData: FormData
+): Promise<R> => {
+  try {
+    const response = await axiosInstance.post<R>(url, formData, {
+      headers: {
+        "Content-Type": undefined
+      },
+      timeout: 60_000, // 60s — safer for multiple files / slower networks
+    });
+    
+    return response.data;
+  } catch (err: any) {
+    // Normalize error
+    const message =
+      err?.response?.data?.message ??
+      err?.message ??
+      "Network error occurred during file upload.";
+    
+    const traceId = err?.response?.data?.traceId;
+    
+    // Wrap in AppError-compatible shape
+    throw {
+      message,
+      traceId,
+      status: err?.response?.status,
+      raw: err,
+    };
+  }
+};
+
+/**
  * Sends a typed HTTP GET request using Axios with optional configuration.
  *
  * This utility simplifies GET requests by allowing typed response handling
