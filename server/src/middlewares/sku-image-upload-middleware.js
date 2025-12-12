@@ -58,73 +58,83 @@ const parseSkuImageJson = (req, res, next) => {
 /**
  * @function
  * @description
- * Injects uploaded file information into the corresponding SKU's `images` array.
+ * Merges multipart-uploaded files (`req.files`) with the corresponding image
+ * metadata defined in `req.body.skus[*].images`. This ensures each image object
+ * is fully hydrated before Joi validation and downstream processing.
  *
- * Multer provides uploaded files at `req.files`, and the JSON payload provides
- * image metadata in `req.body.skus[x].images`. This middleware merges the two
- * so each image entry satisfies backend validation and downstream processing.
+ * This middleware is required because:
+ *  - The client sends image metadata via JSON (image_type, alt_text, etc.).
+ *  - Multer provides uploaded files separately through `req.files`.
+ *  - The backend schema requires each image to contain either:
+ *        • a valid `image_url`, OR
+ *        • `file_uploaded = true`
+ *    Therefore this step attaches the actual uploaded file paths to the JSON entries.
  *
- * Key behaviors:
- *  - Maps `req.files[index]` → `req.body.skus[index]` (1 image per SKU)
- *  - Converts uploaded files into valid image objects by setting:
- *        • image_url (local path)
- *        • file_uploaded = true
- *        • alt_text (fallback: filename)
- *        • source = 'uploaded'
- *  - Upgrades the first image entry when the client supplies metadata-only
- *    (image_type, alt_text, etc.) but no image_url. This allows users to mark
- *    which image is “main” before uploading.
- *  - Otherwise, appends the file as a new image entry.
+ * Core behaviors:
+ *  - Iterates through all SKUs and their `images` arrays.
+ *  - For each image with `file_uploaded = true`, assigns the next Multer file:
+ *        • `image_url`  → server file path
+ *        • `alt_text`   → preserved or defaulted to original filename
+ *        • `source`     → "uploaded"
+ *        • `uploaded_at` → timestamp (ISO string)
  *
- * Why this is necessary:
- *  - The Joi schema requires each image to have either:
- *        • image_url (URL or file path)
- *        • or file_uploaded = true
- *    Metadata-only images would fail validation without this step.
+ * File-to-image mapping:
+ *  - Uses sequential order: `req.files[fileIndex]` → next `image[file_uploaded = true]`.
+ *  - Throws a validation error if:
+ *        • More `file_uploaded = true` entries exist than uploaded files
+ *        • Fewer entries exist and leftover files remain (mismatch)
  *
- * Must run BEFORE Joi validation.
+ * Pre-conditions:
+ *  - Must run BEFORE Joi validation, since validation depends on enriched objects.
+ *  - `req.body.skus` must be parsed into an array (ensure JSON parsing middleware runs first).
  *
  * @param {ExpressRequest & { body: any, files?: Array<any> }} req
  * @param {ExpressResponse} res
  * @param {NextFunction} next
  */
 const attachUploadedFilesToSkus = (req, res, next) => {
-  if (!req.files?.length || !req.body?.skus) {
+  if (!req.files || !req.body?.skus) {
     return next();
   }
-
-  const skus = req.body.skus;
-
-  req.files.forEach((file, index) => {
-    const sku = skus[index];
-    if (!sku) return;
-
-    sku.images = sku.images || [];
-
-    // Upgrade first metadata-only image to file-backed image
-    if (
-      sku.images[0] &&
-      !sku.images[0].image_url &&
-      !sku.images[0].file_uploaded
-    ) {
-      sku.images[0] = {
-        ...sku.images[0],
-        image_url: file.path,
-        file_uploaded: true,
-        source: 'uploaded',
-        alt_text: sku.images[0].alt_text || file.originalname,
-      };
-    } else {
-      // Otherwise append a new image entry
-      sku.images.push({
-        image_url: file.path,
-        alt_text: file.originalname,
-        file_uploaded: true,
-        source: 'uploaded',
-      });
+  
+  const files = req.files;
+  let fileIndex = 0;
+  
+  for (const sku of req.body.skus) {
+    if (!Array.isArray(sku.images)) continue;
+    
+    for (const img of sku.images) {
+      // Only map real files to images explicitly marked as file uploads
+      if (img.file_uploaded) {
+        const file = files[fileIndex];
+        
+        if (!file) {
+          return next(
+            AppError.validationError(
+              "File count does not match 'file_uploaded' image entries."
+            )
+          );
+        }
+        
+        img.image_url = file.path;                // save server path
+        img.alt_text = img.alt_text || file.originalname;
+        img.source = "uploaded";                 // your existing field
+        img.uploaded_at = new Date().toISOString();
+        
+        fileIndex++;
+      }
     }
-  });
-
+  }
+  
+  // All files must be consumed, otherwise mismatch
+  if (fileIndex !== files.length) {
+    return next(
+      AppError.validationError(
+        `Received ${files.length} files but only ${fileIndex} were mapped.`
+      )
+    );
+  }
+  
   next();
 };
 

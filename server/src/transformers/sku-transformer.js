@@ -137,8 +137,8 @@ const transformPaginatedSkuProductCardResult = (paginatedResult) =>
 /**
  * Transform a single raw SKU row returned from the paginated SQL query
  * into a normalized, API-safe object. Produces nested groups for product
- * metadata, status metadata, and audit information. Automatically removes
- * null/undefined fields via `cleanObject`.
+ * metadata, status metadata, audit information, and now includes a
+ * `primaryImageUrl` returned by the LATERAL JOIN on `sku_images`.
  *
  * ### Structure Returned:
  * {
@@ -151,10 +151,29 @@ const transformPaginatedSkuProductCardResult = (paginatedResult) =>
  *   marketRegion,
  *   sizeLabel,
  *   displayLabel,
- *   product: { id, name, series, brand, category, displayName },
- *   status: { id, name, date },
- *   createdBy: { id, firstname, lastname, displayName },
- *   updatedBy: { id, firstname, lastname, displayName }
+ *   primaryImageUrl,   // NEW FIELD
+ *
+ *   product: {
+ *     id,
+ *     name,
+ *     series,
+ *     brand,
+ *     category,
+ *     displayName
+ *   },
+ *
+ *   status: {
+ *     id,
+ *     name,
+ *     date
+ *   },
+ *
+ *   audit: {
+ *     createdBy: { id, firstname, lastname, displayName },
+ *     updatedBy: { id, firstname, lastname, displayName },
+ *     createdAt,
+ *     updatedAt
+ *   }
  * }
  *
  * @param {Object} row - Raw DB row from getPaginatedSkus().
@@ -185,7 +204,9 @@ const transformSkuListRecord = (row) => {
     sizeLabel: row.size_label,
 
     displayLabel,
-
+    
+    primaryImageUrl: row.primary_image_url || null,
+    
     product: {
       id: row.product_id,
       name: row.product_name,
