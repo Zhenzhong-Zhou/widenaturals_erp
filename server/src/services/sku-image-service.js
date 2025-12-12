@@ -276,16 +276,19 @@ const processAndUploadSkuImages = async (
         );
         
         await fsp.mkdir(devDir, { recursive: true });
+        
+        const zoomFileName = path.basename(localPath);
+        
         await Promise.all([
           fsp.copyFile(resizedMain, path.join(devDir, `${baseName}_main.webp`)),
           fsp.copyFile(resizedThumb, path.join(devDir, `${baseName}_thumb.webp`)),
-          fsp.copyFile(localPath, path.join(devDir, path.basename(localPath))),
+          fsp.copyFile(localPath, path.join(devDir, zoomFileName)),
         ]);
         
         const base = `/uploads/sku-images/${brandFolder}/${baseName}`;
         mainUrl = `${base}_main.webp`;
         thumbUrl = `${base}_thumb.webp`;
-        zoomUrl = `${base}.${ext}`;
+        zoomUrl = `/uploads/sku-images/${brandFolder}/${zoomFileName}`;
       }
       
       return [
