@@ -4,7 +4,7 @@ import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Loading from '@components/common/Loading';
 import ErrorMessage from '@components/common/ErrorMessage';
-import NavigateBackButton from '@components/common/NavigateBackButton';
+import GoBackButton from '@components/common/GoBackButton';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import NoDataFound from '@components/common/NoDataFound';
@@ -123,7 +123,7 @@ const ProductDetailPage = () => {
       >
         {/* LEFT: Back Navigation + Product Title */}
         <Stack direction="row" spacing={2} alignItems="center">
-          <NavigateBackButton
+          <GoBackButton
             label="Back to Product List"
             fallbackTo="/products"
           />

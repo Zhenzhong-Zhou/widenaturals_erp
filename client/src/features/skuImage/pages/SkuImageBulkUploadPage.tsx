@@ -108,9 +108,13 @@ const SkuImageBulkUploadPage = () => {
   
   const handleCloseDialogs = () => {
     closeUploadDialogWithFocus();
-    closeUploadErrorDialogWithFocus();
     resetUploadState();
     navigate('/skus', { replace: true });
+  };
+  
+  const handleCloseUploadError = () => {
+    closeUploadErrorDialogWithFocus();
+    resetUploadState();
   };
   
   // ---------------------------------------------------------------------------
@@ -166,7 +170,7 @@ const SkuImageBulkUploadPage = () => {
     return (
       <SkuImageUploadErrorDialog
         open={showErrorDialog}
-        onClose={handleCloseDialogs}
+        onClose={handleCloseUploadError}
         error={uploadError}
         results={uploadResults}
         items={items}

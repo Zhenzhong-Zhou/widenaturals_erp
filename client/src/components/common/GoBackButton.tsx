@@ -59,7 +59,7 @@ interface GoBackButtonProps extends ButtonProps {
  */
 const GoBackButton: FC<GoBackButtonProps> = ({
                                                label = "Back",
-                                               fallbackTo = "/",
+                                               fallbackTo,
                                                sx,
                                                variant = "outlined",
                                                icon = <ArrowBackIcon />,
@@ -70,10 +70,12 @@ const GoBackButton: FC<GoBackButtonProps> = ({
   const handleBack = () => {
     beforeNavigate?.();
     
-    if (window.history.length > 2) {
+    if (fallbackTo) {
+      navigate(fallbackTo, { replace: true });
+    } else if (window.history.length > 1) {
       navigate(-1);
     } else {
-      navigate(fallbackTo, { replace: true });
+      navigate("/", { replace: true });
     }
   };
   
