@@ -9,7 +9,9 @@ export const API_ENDPOINTS = {
   ALL_USERS: '/users',
   STATUSES: {},
   USER_PROFILE: '/users/me',
-  ALL_COMPLIANCES: '/compliances',
+  COMPLIANCE_RECORDS: {
+    ALL_RECORDS: '/compliance-records',
+  },
   PRICING_TYPES: '/pricing-types',
   PRICING_TYPE_METADATA: '/pricing-types/metadata/:id',
   PRICING_LIST: '/pricings',
