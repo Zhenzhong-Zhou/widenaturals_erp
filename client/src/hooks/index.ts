@@ -33,5 +33,3 @@ export { default as useInventories } from './useLocationInventorySummary';
 export { default as useWarehouses } from './useWarehouses';
 export { default as useWarehouseDetails } from './useWarehouseDetails';
 
-// --- Compliance & Reporting ---
-export { default as useCompliances } from './useCompliances';
