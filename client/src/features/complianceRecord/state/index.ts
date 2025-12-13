@@ -1,6 +1,6 @@
 import paginatedComplianceRecordsReducer from './paginatedComplianceRecordSlice';
 
-export const complianceReducers = {
+export const complianceRecordReducers = {
   paginatedComplianceRecords: paginatedComplianceRecordsReducer,
 };
 

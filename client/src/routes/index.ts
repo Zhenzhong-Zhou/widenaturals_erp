@@ -97,9 +97,9 @@ export const routes = [
     },
   },
   {
-    path: '/compliances',
-    component: lazy(() => import('@features/compliance/pages/CompliancePage')),
-    meta: { requiresAuth: true, title: 'Compliances', showInSidebar: true },
+    path: '/compliance-records',
+    component: lazy(() => import('@features/complianceRecord/pages/ComplianceRecordListPage')),
+    meta: { requiresAuth: true, title: 'Compliance List', showInSidebar: true },
   },
   {
     path: '/boms',

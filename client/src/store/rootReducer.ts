@@ -4,7 +4,7 @@ import { createReducerMap } from '@utils/reducerUtils';
 // Reducer groups
 import { addressReducers } from '@features/address';
 import { authorizeReducers } from '@features/authorize';
-import { complianceReducers } from '@features/compliance';
+import { complianceRecordReducers } from '@features/complianceRecord';
 import { csrfReducers } from '@features/csrf';
 import { customerReducers } from '@features/customer';
 import { deliveryMethodReducers } from '@features/deliveryMethod';
@@ -48,7 +48,7 @@ const appReducer = combineReducers(
     productReducers,
     skuReducers,
     skuImageReducers,
-    complianceReducers,
+    complianceRecordReducers,
     bomReducers,
     pricingTypeReducers,
     pricingReducers,

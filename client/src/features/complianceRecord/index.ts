@@ -1,1 +1,1 @@
-export { complianceReducers } from './state';
+export { complianceRecordReducers } from './state';
