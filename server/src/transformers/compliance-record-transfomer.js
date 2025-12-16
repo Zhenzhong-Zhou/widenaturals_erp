@@ -10,7 +10,6 @@ const { transformPaginatedResult } = require('../utils/transformer-utils');
  * @property {string} document_number
  * @property {string|null} issued_date
  * @property {string|null} expiry_date
- * @property {string|null} description
  *
  * @property {string} status_id
  * @property {string} status_name
@@ -55,7 +54,6 @@ const transformComplianceRecordRow = (row) => {
     documentNumber: row.document_number,
     issuedDate: row.issued_date,
     expiryDate: row.expiry_date,
-    description: row.description,
 
     status: {
       id: row.status_id,
