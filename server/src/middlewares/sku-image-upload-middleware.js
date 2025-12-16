@@ -17,6 +17,7 @@
  */
 
 const AppError = require('../utils/AppError');
+const { normalizeToArray } = require('../utils/array-utils');
 
 /**
  * @function
@@ -57,6 +58,7 @@ const parseSkuImageJson = (req, res, next) => {
 
 /**
  * @function
+ *
  * @description
  * Merges multipart-uploaded files (`req.files`) with the corresponding image
  * metadata defined in `req.body.skus[*].images`. This ensures each image object
@@ -70,13 +72,19 @@ const parseSkuImageJson = (req, res, next) => {
  *        • `file_uploaded = true`
  *    Therefore this step attaches the actual uploaded file paths to the JSON entries.
  *
+ * Security & normalization:
+ *  - All untrusted request inputs (`req.files`, `req.body.skus`, `sku.images`)
+ *    are normalized into array form before processing.
+ *  - This prevents type confusion and parameter tampering vulnerabilities
+ *    (CWE-843), and resolves CodeQL security alerts.
+ *
  * Core behaviors:
  *  - Iterates through all SKUs and their `images` arrays.
  *  - For each image with `file_uploaded = true`, assigns the next Multer file:
- *        • `image_url`  → server file path
- *        • `alt_text`   → preserved or defaulted to original filename
- *        • `source`     → "uploaded"
- *        • `uploaded_at` → timestamp (ISO string)
+ *        • `image_url`   → server file path
+ *        • `alt_text`    → preserved or defaulted to original filename
+ *        • `source`      → "uploaded"
+ *        • `uploaded_at` → ISO timestamp
  *
  * File-to-image mapping:
  *  - Uses sequential order: `req.files[fileIndex]` → next `image[file_uploaded = true]`.
@@ -86,25 +94,26 @@ const parseSkuImageJson = (req, res, next) => {
  *
  * Pre-conditions:
  *  - Must run BEFORE Joi validation, since validation depends on enriched objects.
- *  - `req.body.skus` must be parsed into an array (ensure JSON parsing middleware runs first).
+ *  - JSON body parsing middleware must run first so `req.body.skus` is available.
  *
- * @param {ExpressRequest & { body: any, files?: Array<any> }} req
+ * @param {ExpressRequest & { body: any, files?: unknown }} req
  * @param {ExpressResponse} res
  * @param {NextFunction} next
  */
 const attachUploadedFilesToSkus = (req, res, next) => {
-  if (!req.files || !req.body?.skus) {
+  const files = normalizeToArray(req.files);
+  const skus = normalizeToArray(req.body?.skus);
+  
+  if (!files.length || !skus.length) {
     return next();
   }
   
-  const files = req.files;
   let fileIndex = 0;
   
-  for (const sku of req.body.skus) {
-    if (!Array.isArray(sku.images)) continue;
+  for (const sku of skus) {
+    const images = normalizeToArray(sku.images);
     
-    for (const img of sku.images) {
-      // Only map real files to images explicitly marked as file uploads
+    for (const img of images) {
       if (img.file_uploaded) {
         const file = files[fileIndex];
         
@@ -116,9 +125,9 @@ const attachUploadedFilesToSkus = (req, res, next) => {
           );
         }
         
-        img.image_url = file.path;                // save server path
+        img.image_url = file.path;
         img.alt_text = img.alt_text || file.originalname;
-        img.source = "uploaded";                 // your existing field
+        img.source = 'uploaded';
         img.uploaded_at = new Date().toISOString();
         
         fileIndex++;
@@ -126,7 +135,6 @@ const attachUploadedFilesToSkus = (req, res, next) => {
     }
   }
   
-  // All files must be consumed, otherwise mismatch
   if (fileIndex !== files.length) {
     return next(
       AppError.validationError(

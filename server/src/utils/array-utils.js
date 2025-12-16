@@ -98,6 +98,40 @@ const deduplicatePairs = (list, keySelector) => {
   );
 };
 
+/**
+ * Normalize an unknown input into a safe array.
+ *
+ * This utility is designed for untrusted inputs (e.g. HTTP request
+ * parameters, body fields, or middleware-injected values) that may be:
+ *
+ * - an array
+ * - a single value
+ * - null / undefined
+ *
+ * It guarantees the return value is always an array, preventing
+ * type confusion and unsafe `.length` or iteration access.
+ *
+ * @template T
+ * @param {T | T[] | null | undefined} value
+ *   The input value to normalize.
+ *
+ * @returns {T[]}
+ *   - Returns the original array if already an array
+ *   - Wraps a single value into an array
+ *   - Returns an empty array for null/undefined
+ *
+ * @example
+ * normalizeToArray('a');            // ['a']
+ * normalizeToArray(['a', 'b']);     // ['a', 'b']
+ * normalizeToArray(undefined);      // []
+ * normalizeToArray(null);           // []
+ */
+const normalizeToArray = (value) => {
+  if (Array.isArray(value)) return value;
+  if (value == null) return [];
+  return [value];
+};
+
 module.exports = {
   deduplicateByCompositeKey,
   compact,
@@ -105,4 +139,5 @@ module.exports = {
   uniqCompact,
   uniqUuids,
   deduplicatePairs,
+  normalizeToArray,
 };
