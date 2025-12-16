@@ -4,10 +4,10 @@ import { ComplianceRecord } from '@features/complianceRecord/state';
 
 /**
  * Base selector for the paginated compliance records slice.
- * Extracts the entire `complianceRecords` state from the Redux store.
+ * Extracts the entire `paginatedComplianceRecords` state from the Redux store.
  */
 export const selectPaginatedComplianceRecordsState = (state: RootState) =>
-  state.complianceRecords;
+  state.paginatedComplianceRecords;
 
 /**
  * Selector: Returns the array of compliance records.

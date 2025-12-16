@@ -29,7 +29,7 @@ export interface Column<T = any> {
   renderCell?: (row: T, rowIndex?: number) => ReactNode;
 }
 
-interface CustomTableProps<T = any> {
+export interface CustomTableProps<T = any> {
   rowsPerPageId?: string;
   loading?: boolean;
   columns: Column<T>[];
