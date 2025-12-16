@@ -71,9 +71,6 @@ export interface ComplianceRecord {
   /** Date the compliance document was issued (ISO 8601) */
   issuedDate: string;
   
-  /** Optional descriptive text for the compliance record */
-  description: string;
-  
   /**
    * Current compliance status.
    * Example values: active, inactive, archived
@@ -190,6 +187,23 @@ export interface ComplianceFilters {
 }
 
 /**
+ * Supported sort field keys for compliance records.
+ *
+ * These values are used by the UI and mapped to
+ * safe database columns on the server.
+ */
+export type ComplianceRecordSortField =
+  | 'createdAt'
+  | 'updatedAt'
+  | 'issuedDate'
+  | 'expiryDate'
+  | 'complianceNumber'
+  | 'productName'
+  | 'skuCode'
+  | 'status'
+  | 'defaultNaturalSort';
+
+/**
  * Query parameters for fetching paginated compliance records.
  *
  * Combines pagination, sorting, and filtering options.
@@ -209,26 +223,57 @@ export interface GetPaginatedComplianceRecordsParams
 export type ComplianceRecordsState =
   ReduxPaginatedState<ComplianceRecord>;
 
-
-
-
-export interface ComplianceTableRow {
+/**
+ * Flat compliance record row for table/list views.
+ *
+ * Derived from ComplianceRecord.
+ * Safe for sorting, filtering, and rendering.
+ */
+export interface ComplianceRecordTableRow {
+  // --------------------------------------------------
+  // Identity
+  // --------------------------------------------------
   id: string;
+  
+  // --------------------------------------------------
+  // Compliance
+  // --------------------------------------------------
   type: string;
   documentNumber: string;
   issuedDate: string;
   
+  // --------------------------------------------------
+  // Status
+  // --------------------------------------------------
+  statusId: string;
   statusName: string;
   statusDate: string;
   
-  sku: string;
+  // --------------------------------------------------
+  // SKU
+  // --------------------------------------------------
+  skuId: string;
+  skuCode: string;
   sizeLabel: string;
   marketRegion: string;
   
+  // --------------------------------------------------
+  // Product
+  // --------------------------------------------------
+  productId: string;
   productName: string;
   brand: string;
+  series: string;
   category: string;
+  productDisplayName: string;
   
+  // --------------------------------------------------
+  // Audit
+  // --------------------------------------------------
   createdAt: string;
-  createdBy: string;
+  createdById: string | null;
+  createdByName: string;
+  updatedAt: string | null;
+  updatedById: string | null;
+  updatedByName: string;
 }
