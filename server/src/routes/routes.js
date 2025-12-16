@@ -23,7 +23,7 @@ const skuRoutes = require('./skus');
 const skuImageRoutes = require('./sku-images');
 const bomRoutes = require('./boms');
 const bomItemRoutes = require('./bom-items');
-const complianceRoutes = require('./compliance-records');
+const complianceRecordRoutes = require('./compliance-records');
 const priceTypeRoutes = require('./pricing-types');
 const pricingRoutes = require('./pricings');
 const locationTypeRoutes = require('./locations-types');
@@ -92,7 +92,7 @@ router.use('/admin', authenticate(), adminRoutes);
 router.use('/products', authenticate(), productRoutes);
 router.use('/skus', authenticate(), skuRoutes);
 router.use('/sku-images', authenticate(), skuImageRoutes);
-router.use('/compliances', authenticate(), complianceRoutes);
+router.use('/compliance-records', authenticate(), complianceRecordRoutes);
 
 /**
  * @route /boms

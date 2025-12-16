@@ -7,7 +7,7 @@ import type { SkuImage, SkuPricing } from '@features/sku/state/skuTypes';
  *
  * @returns The full state object for the SKU detail module.
  */
-export const selectSkuDetailState = (state: RootState) => state.skuDetail;
+const selectSkuDetailState = (state: RootState) => state.skuDetail;
 
 /**
  * Selector: Loading status for the SKU detail request.

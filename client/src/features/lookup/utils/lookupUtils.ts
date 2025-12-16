@@ -1,4 +1,6 @@
+import { useMemo } from 'react';
 import type { LookupQuery } from '@features/lookup/state';
+import { MultiSelectOption } from '@components/common/MultiSelectDropdown';
 
 /**
  * Utility: Create lookup parameters with defaults.
@@ -69,3 +71,47 @@ export const normalizeLookupParams = <T extends LookupQuery>(
     offset: params.offset ?? 0,
     limit: params.limit ?? 20,
   }) as T;
+
+/**
+ * Creates a lazy `onOpen` handler for lookup-based dropdowns.
+ *
+ * The handler triggers a fetch only when the current option list is empty,
+ * preventing redundant network requests on repeated opens.
+ *
+ * Typical usage:
+ *   onOpen={createLazyOpenHandler(options, fetch)}
+ *
+ * @typeParam T - Lookup option type
+ * @param options - Current lookup options array
+ * @param fetch - Fetch function to load lookup options
+ * @returns A memo-safe `onOpen` callback
+ */
+export const createLazyOpenHandler = <T>(
+  options: T[],
+  fetch: () => void
+) => () => {
+  if (options.length === 0) {
+    fetch();
+  }
+};
+
+/**
+ * Returns a memoized copy of lookup options with formatted labels.
+ *
+ * Useful when display labels require transformation (e.g. title case,
+ * localization, normalization) without mutating the original option objects.
+ *
+ * The returned array preserves option identity except for the `label` field.
+ *
+ * @param options - Original lookup options
+ * @param formatLabel - Function to transform each option label
+ * @returns Memoized options array with formatted labels
+ */
+export const useFormattedOptions = (
+  options: MultiSelectOption[],
+  formatLabel: (label: string) => string
+) =>
+  useMemo(
+    () => options.map(o => ({ ...o, label: formatLabel(o.label) })),
+    [options, formatLabel]
+  );

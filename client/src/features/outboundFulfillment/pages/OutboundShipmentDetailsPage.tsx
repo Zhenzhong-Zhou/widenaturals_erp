@@ -24,7 +24,7 @@ import ConfirmFulfillmentButton from '@features/outboundFulfillment/components/C
 import CompleteManualFulfillmentButton from '@features/outboundFulfillment/components/CompleteManualFulfillmentButton';
 
 const FulfillmentDetailsTable = lazy(
-  () => import('../components/OutboundShipmentDetails/index')
+  () => import('../components/OutboundShipmentDetails/FulfillmentDetailsTable')
 );
 
 const OutboundShipmentDetailsPage: FC = () => {

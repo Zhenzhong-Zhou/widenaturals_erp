@@ -9,6 +9,7 @@ import {
   ProductExpandedContent,
 } from '@features/product/components/ProductListTable';
 import type { FlattenedProductRecord } from '@features/product/state/productTypes';
+import usePagePermissionGuard from '@features/authorize/hooks/usePagePermissionGuard';
 
 /**
  * Props for the Product list table.
@@ -51,6 +52,8 @@ const ProductListTable = ({
   onRefresh,
   onAddNew,
 }: ProductListTableProps) => {
+  const { permLoading, isAllowed } = usePagePermissionGuard(['create_products']);
+  
   // -------------------------------------------------------
   // Memoize Column Definitions
   // -------------------------------------------------------
@@ -98,13 +101,15 @@ const ProductListTable = ({
         </CustomTypography>
 
         <Box display="flex" gap={2}>
-          <CustomButton
-            onClick={onAddNew}
-            variant="contained"
-            sx={{ color: 'primary.secondary', fontWeight: 500 }}
-          >
-            Add New
-          </CustomButton>
+          {!permLoading && isAllowed && (
+            <CustomButton
+              onClick={onAddNew}
+              variant="contained"
+              sx={{ color: 'primary.secondary', fontWeight: 500 }}
+            >
+              Add New
+            </CustomButton>
+          )}
 
           <CustomButton
             onClick={onRefresh}

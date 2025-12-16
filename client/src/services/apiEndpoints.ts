@@ -9,7 +9,9 @@ export const API_ENDPOINTS = {
   ALL_USERS: '/users',
   STATUSES: {},
   USER_PROFILE: '/users/me',
-  ALL_COMPLIANCES: '/compliances',
+  COMPLIANCE_RECORDS: {
+    ALL_RECORDS: '/compliance-records',
+  },
   PRICING_TYPES: '/pricing-types',
   PRICING_TYPE_METADATA: '/pricing-types/metadata/:id',
   PRICING_LIST: '/pricings',
@@ -21,6 +23,9 @@ export const API_ENDPOINTS = {
   PRODUCTS: {
     ADD_NEW_RECORD: '/products/create',
     ALL_RECORDS: '/products',
+    PRODUCT_DETAILS: (productId: string) => `/products/${productId}/details`,
+    UPDATE_INFO: (productId: string) => `/products/${productId}/info`,
+    UPDATE_STATUS: (productId: string) => `/products/${productId}/status`,
   },
   SKUS: {
     SKU_PRODUCT_CARDS: '/skus/cards',
@@ -28,6 +33,9 @@ export const API_ENDPOINTS = {
     ALL_RECORDS: '/skus',
     ADD_NEW_RECORD: '/skus/create',
     UPDATE_STATUS: (skuId: string) => `/skus/${skuId}/status`,
+  },
+  SKU_IMAGES: {
+    UPLOAD_IMAGES: '/sku-images/upload',
   },
   BOMS: {
     ALL_RECORDS: '/boms',

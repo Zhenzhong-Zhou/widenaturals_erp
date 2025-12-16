@@ -63,7 +63,7 @@ const CreateSkuPage = () => {
     },
     [canCreateSku, submitCreateSkus]
   );
-  // todo: refactor with CreateModeToggle
+  
   return (
     <Box sx={{ p: 3 }}>
       {/* ----------------------------------------- */}

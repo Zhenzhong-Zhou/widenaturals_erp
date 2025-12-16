@@ -12,7 +12,7 @@ export interface MultiSelectOption {
   [key: string]: any;
 }
 
-interface MultiSelectDropdownProps {
+export interface MultiSelectDropdownProps {
   label: string;
   options: MultiSelectOption[];
   selectedOptions: MultiSelectOption[];
@@ -115,7 +115,10 @@ const MultiSelectDropdown: FC<MultiSelectDropdownProps> = ({
           if (onOpen) onOpen();
         }}
         inputValue={inputValue}
-        onInputChange={(_, val) => onInputChange?.(val)}
+        onInputChange={(_, val, reason) => {
+          if (reason !== 'input') return;
+          onInputChange?.(val);
+        }}
         loading={loading}
         disabled={disabled}
         renderInput={(params) => (

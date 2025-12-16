@@ -10,25 +10,6 @@ const { logSystemException } = require('../utils/system-logger');
 /**
  * @function
  * @description
- * Removes duplicate image entries for the same SKU (same sku_id + image_url).
- *
- * @param {Array} images - Array of processed image objects.
- * @param {string} skuId - The SKU ID to scope deduplication.
- * @returns {Array} Unique images for insertion.
- */
-const deduplicateSkuImages = (images = [], skuId) => {
-  const seen = new Set();
-  return images.filter((img) => {
-    const key = `${skuId}-${img.image_url ?? img.imageUrl}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-};
-
-/**
- * @function
- * @description
  * Pre-insert normalization function that converts processed SKU image metadata
  * into a standardized record structure for insertion into the `sku_images` table.
  *
@@ -49,6 +30,7 @@ const normalizeSkuImageForInsert = (img, skuId, userId, index = 0) => {
   }
 
   return {
+    group_id: img.group_id,
     sku_id: skuId,
     image_url: String(img.image_url || '').trim(),
     image_type: String(img.image_type || 'unknown').toLowerCase(),
@@ -220,7 +202,6 @@ const sliceSkuImagesForUser = (imageRows, access) => {
 };
 
 module.exports = {
-  deduplicateSkuImages,
   normalizeSkuImageForInsert,
   evaluateSkuImageViewAccessControl,
   sliceSkuImagesForUser,

@@ -23,29 +23,41 @@ const { validateUUID } = require('./general-validators');
 /**
  * @constant
  * @description
- * Joi schema for validating a single SKU image metadata object.
+ * Joi validation schema for a single SKU image definition.
  *
- * This schema supports both URL-based images and file-uploaded images.
- * Image metadata may originate from:
- *   - Direct JSON payload (URL images)
- *   - Files uploaded via multipart/form-data (local file paths)
- *   - System-generated variants (main, thumbnail, zoom)
+ * This schema supports both URL-based images and file-uploaded images
+ * (as processed by multer during multipart/form-data uploads).
  *
- * Key behaviors:
- *  - `image_url` accepts both remote URLs and local file paths.
- *  - `file_uploaded` indicates whether the image came from an uploaded file.
- *  - Validation requires that each image contains either:
- *        • a valid `image_url`, OR
+ * Accepted sources of image metadata:
+ *   - Client-provided JSON (URL images)
+ *   - Multipart file uploads (`file_uploaded = true`)
+ *   - System-generated or imported metadata (e.g., sync/migration jobs)
+ *
+ * Core validation rules:
+ *  - `image_url` may be:
+ *        • a full remote URL, or
+ *        • a server-local file path (when images are uploaded and normalized)
+ *    Empty values are allowed only when `file_uploaded = true`.
+ *
+ *  - `file_uploaded` indicates whether an uploaded file was included in
+ *    the multipart request. Its presence ensures that an image exists
+ *    even when `image_url` is not provided.
+ *
+ *  - The schema enforces that every image must contain ONE of:
+ *        • a non-empty `image_url`, OR
  *        • `file_uploaded = true`
- *    ensuring that every image corresponds to actual image data.
- *  - Optional fields such as `alt_text`, `display_order`, `image_type`,
- *    and format metadata are validated and normalized with sensible defaults.
  *
- * Notes:
- *  - `sku_id` is intentionally omitted; it is injected during normalization
- *    (e.g., via `normalizeSkuImageForInsert`) before persistence.
- *  - This schema does not validate the file content itself; multer handles
- *    file upload validation and extraction.
+ * Optional metadata:
+ *  - `alt_text`: user-entered text for accessibility.
+ *  - `image_type`: logical category (main, thumbnail, gallery, zoom, etc.).
+ *  - `uploaded_at`: timestamp (defaults to current date if omitted).
+ *  - `source`: classification of where the image came from.
+ *
+ * Important notes:
+ *  - `sku_id` is intentionally omitted; it is injected later during
+ *    normalization (e.g., `normalizeSkuImageForInsert`).
+ *  - The schema does NOT validate the binary content of uploaded files;
+ *    multer performs file extraction and format validation.
  */
 const skuImageSchema = Joi.object({
   file_uploaded: Joi.boolean().default(false),
@@ -68,20 +80,9 @@ const skuImageSchema = Joi.object({
     .valid('main', 'thumbnail', 'zoom', 'gallery', 'unknown')
     .default('unknown')
     .insensitive(),
-
-  display_order: Joi.number().integer().min(0).default(0),
-
-  file_size_kb: Joi.number().integer().min(0).max(50000).allow(null),
-
-  file_format: Joi.string()
-    .valid('webp', 'jpg', 'jpeg', 'png', 'gif', 'tiff', 'svg')
-    .default('webp')
-    .insensitive(),
-
+  
   alt_text: Joi.string().allow('', null).max(255),
-
-  is_primary: Joi.boolean().default(false),
-
+  
   uploaded_at: Joi.date()
     .optional()
     .default(() => new Date()),

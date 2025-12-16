@@ -1,38 +1,39 @@
 import { type FC } from 'react';
 import MultiSelectDropdown, {
-  type MultiSelectOption,
+  MultiSelectDropdownProps,
 } from '@components/common/MultiSelectDropdown';
 
-interface StatusMultiSelectDropdownProps {
+/**
+ * Status-specific multi-select dropdown props.
+ *
+ * Thin semantic wrapper around MultiSelectDropdown.
+ * Allows defaults and future status-only extensions.
+ */
+type StatusMultiSelectDropdownProps =
+  Omit<MultiSelectDropdownProps, 'label' | 'placeholder'> & {
   label?: string;
-  options: MultiSelectOption[];
-  selectedOptions: MultiSelectOption[];
-  onChange: (selected: MultiSelectOption[]) => void;
-  onOpen?: () => void;
-  loading?: boolean;
-  disabled?: boolean;
-  error?: string | null;
-  helperText?: string;
-  sx?: object;
   placeholder?: string;
-}
+};
 
 /**
  * Reusable multi-select dropdown for selecting product or item statuses.
  * Mirrors the structure and behavior of LotAdjustmentTypeMultiSelectDropdown.
  */
 const StatusMultiSelectDropdown: FC<StatusMultiSelectDropdownProps> = ({
-  label = 'Select Status',
-  options,
-  selectedOptions,
-  onChange,
-  onOpen,
-  loading,
-  disabled,
-  error,
-  helperText,
-  sx,
-  placeholder = 'Choose status…',
+                                                                         label = 'Select Status',
+                                                                         options,
+                                                                         selectedOptions,
+                                                                         onChange,
+                                                                         onOpen,
+                                                                         loading,
+                                                                         disabled,
+                                                                         error,
+                                                                         helperText,
+                                                                         sx,
+                                                                         placeholder = 'Choose status…',
+                                                                         paginationMeta,
+                                                                         inputValue,
+                                                                         onInputChange,
 }) => {
   return (
     <MultiSelectDropdown
@@ -47,6 +48,9 @@ const StatusMultiSelectDropdown: FC<StatusMultiSelectDropdownProps> = ({
       helperText={helperText}
       sx={sx}
       placeholder={placeholder}
+      paginationMeta={paginationMeta}
+      inputValue={inputValue}
+      onInputChange={onInputChange}
     />
   );
 };

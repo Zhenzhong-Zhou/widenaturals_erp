@@ -6,7 +6,7 @@ export { userService } from './userService';
 export { authorizeService } from './authorizeService';
 export { productService } from './productService';
 export { skuService } from './skuService';
-export { complianceService } from './complianceService';
+export { complianceRecordService } from './complianceRecordService';
 export { pricingTypeService } from './pricingTypeService';
 export { pricingService } from './pricingService';
 export { locationTypeService } from './locationTypeService';

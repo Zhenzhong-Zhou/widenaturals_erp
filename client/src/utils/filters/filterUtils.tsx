@@ -1,4 +1,4 @@
-import { Controller, type Control } from 'react-hook-form';
+import { Controller, type Control, FieldValues, Path } from 'react-hook-form';
 import Grid from '@mui/material/Grid';
 import BaseInput from '@components/common/BaseInput';
 import CustomDatePicker from '@components/common/CustomDatePicker';
@@ -46,16 +46,33 @@ export const renderInputField = <
 );
 
 /**
- * Renders a reusable controlled CustomDatePicker field for a filter panel.
+ * Renders a reusable, react-hook-form–controlled date picker field
+ * for filter panels.
+ *
+ * - Integrates `CustomDatePicker` with react-hook-form via `Controller`
+ * - Supports both flat and deeply nested form paths using `Path<T>`
+ * - Applies a consistent Grid layout used across list filter panels
+ * - Normalizes empty values to avoid uncontrolled input warnings
+ *
+ * Intended for use in dynamic filter panels where date range fields
+ * are rendered declaratively from configuration.
+ *
+ * @typeParam TFieldValues - react-hook-form field values shape
+ * @param control - react-hook-form control object
+ * @param name - Field path (supports nested paths)
+ * @param label - Display label for the date picker
+ * @returns JSX element wrapped in a responsive Grid cell
  */
-export const renderDateField = <TFieldValues extends Record<string, any> = any>(
+export const renderDateField = <
+  TFieldValues extends FieldValues = FieldValues
+>(
   control: Control<TFieldValues>,
-  name: keyof TFieldValues,
+  name: Path<TFieldValues>,
   label: string
 ) => (
   <Grid size={{ xs: 12, sm: 6, md: 3 }} key={String(name)}>
     <Controller
-      name={name as any}
+      name={name}
       control={control}
       render={({ field }) => (
         <CustomDatePicker

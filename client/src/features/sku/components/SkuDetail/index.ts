@@ -1,4 +1,5 @@
 export { default as SkuImageGallery } from './SkuImageGallery';
+export { default as ThumbnailList } from './ThumbnailList';
 export { default as ProductInfoSection } from './ProductInfoSection';
 export { default as SkuInfoSection } from './SkuInfoSection';
 export { createComplianceColumns } from './ComplianceColumns';

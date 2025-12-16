@@ -51,6 +51,11 @@ export const routes = [
     meta: { requiresAuth: true, title: 'Product List', showInSidebar: true },
   },
   {
+    path: '/products/:productId',
+    component: lazy(() => import('@features/product/pages/ProductDetailPage')),
+    meta: { requiresAuth: true, title: 'Product Detail', showInSidebar: false },
+  },
+  {
     path: '/product-catalog',
     component: lazy(() => import('@features/sku/pages/ProductCatalogPage')),
     meta: { requiresAuth: true, title: 'Product Catalog', showInSidebar: true },
@@ -83,9 +88,18 @@ export const routes = [
     },
   },
   {
-    path: '/compliances',
-    component: lazy(() => import('@features/compliance/pages/CompliancePage')),
-    meta: { requiresAuth: true, title: 'Compliances', showInSidebar: true },
+    path: '/sku-images/upload',
+    component: lazy(() => import('@features/skuImage/pages/SkuImageBulkUploadPage')),
+    meta: {
+      requiresAuth: true,
+      title: 'Create SKU FORM',
+      showInSidebar: false,
+    },
+  },
+  {
+    path: '/compliance-records',
+    component: lazy(() => import('@features/complianceRecord/pages/ComplianceRecordListPage')),
+    meta: { requiresAuth: true, title: 'Compliance List', showInSidebar: true },
   },
   {
     path: '/boms',

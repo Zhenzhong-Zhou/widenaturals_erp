@@ -3,19 +3,22 @@ import Box from '@mui/material/Box';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CustomDialog from '@components/common/CustomDialog';
 import ResultBody from '@components/common/ResultBody';
+import { UpdateSkuStatusResponse } from '@features/sku/state';
 
 interface UpdateSkuStatusSuccessDialogProps {
   open: boolean;
   onClose: () => void;
   skuCode: string;
   newStatusName?: string;
+  responseData: UpdateSkuStatusResponse
 }
 
 const UpdateSkuStatusSuccessDialog: FC<UpdateSkuStatusSuccessDialogProps> = ({
-  open,
-  onClose,
-  skuCode,
-  newStatusName,
+                                                                               open,
+                                                                               onClose,
+                                                                               skuCode,
+                                                                               newStatusName,
+                                                                               responseData,
 }) => {
   return (
     <CustomDialog
@@ -27,7 +30,7 @@ const UpdateSkuStatusSuccessDialog: FC<UpdateSkuStatusSuccessDialogProps> = ({
     >
       <ResultBody
         icon={<CheckCircleIcon color="success" sx={{ fontSize: 48 }} />}
-        message="SKU Status Updated Successfully"
+        message={responseData.message}
         details={
           <>
             <Box>

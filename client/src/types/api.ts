@@ -403,3 +403,52 @@ export interface OperationStats<T = void> {
   /** Optional metadata returned by this specific operation. */
   meta?: T;
 }
+
+/**
+ * Payload for updating the status of a resource.
+ *
+ * Matches the Joi schema:
+ *   { statusId: UUID }
+ */
+export interface UpdateStatusIdRequest {
+  /** New status ID (UUID) */
+  statusId: string;
+}
+
+/**
+ * Common statistics for any batch-processing operation.
+ * Suitable for file uploads, bulk inserts, imports, sync jobs, and migrations.
+ */
+export interface BatchProcessStats {
+  /** Total number of items processed in this batch */
+  total: number;
+  
+  /** Number of items that completed successfully */
+  successCount: number;
+  
+  /** Number of items that failed */
+  failureCount: number;
+  
+  /** Execution time in milliseconds */
+  elapsedMs: number;
+}
+
+/**
+ * Represents an inclusive date range filter.
+ *
+ * Used for filtering records by date-based fields
+ * such as creation date, issue date, expiry date, etc.
+ */
+export interface DateRange {
+  /**
+   * Inclusive start date (ISO 8601 string).
+   * Records with a date greater than or equal to this value are included.
+   */
+  from?: string;
+  
+  /**
+   * Inclusive end date (ISO 8601 string).
+   * Records with a date less than or equal to this value are included.
+   */
+  to?: string;
+}

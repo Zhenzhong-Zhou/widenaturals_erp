@@ -1,5 +1,5 @@
 import type { NullableString } from '@shared-types/shared';
-import type {
+import {
   ApiSuccessResponse,
   AsyncState,
   GenericAudit,
@@ -9,6 +9,7 @@ import type {
   PaginationParams,
   ReduxPaginatedState,
   SortConfig,
+  UpdateStatusIdRequest,
 } from '@shared-types/api';
 
 /**
@@ -290,3 +291,232 @@ export interface FlattenedProductRecord {
   /** Name of the user who last updated the product (nullable) */
   updatedBy: NullableString;
 }
+
+/**
+ * Represents a fully transformed Product record returned by the backend.
+ *
+ * This structure mirrors the backend's `ProductDetailTransformer` output and includes:
+ * - Core product fields (name, series, brand, category, description)
+ * - Normalized `status` metadata
+ * - Full audit trail (`createdAt`, `updatedAt`, and user info)
+ */
+export interface ProductResponse {
+  /** Unique product identifier (UUID) */
+  id: string;
+  
+  /** Human-readable product name */
+  name: string;
+  
+  /** Product series/category grouping */
+  series: string;
+  
+  /** Brand associated with this product */
+  brand: string;
+  
+  /** Product category label (e.g., "NMN", "Omega") */
+  category: string;
+  
+  /** Marketing or descriptive text for UI display */
+  description: string;
+  
+  /** Status object containing the id, name, and last status update timestamp */
+  status: GenericStatus;
+  
+  /** Audit metadata: created/updated timestamps and user references */
+  audit: GenericAudit;
+}
+
+/**
+ * API response envelope for a single Product detail fetch.
+ *
+ * Standard structure shared across the ERP:
+ * - `success`: boolean indicator
+ * - `message`: server-supplied status message
+ * - `data`: the `ProductResponse` payload
+ * - `traceId`: request identifier for log correlation
+ */
+export type GetProductApiResponse = ApiSuccessResponse<ProductResponse>;
+
+/**
+ * Local Redux slice state for storing a single Product detail.
+ *
+ * This uses the shared `AsyncState<T>` pattern:
+ * - `data`: `ProductResponse | null`
+ * - `loading`: boolean for in-flight requests
+ * - `error`: string | null for failures
+ *
+ * Used by:
+ * - `productDetailSlice`
+ * - `useProductDetail` hook
+ * - Product detail selectors
+ */
+export type ProductDetailState = AsyncState<ProductResponse | null>;
+
+/**
+ * Represents a UI-friendly flattened version of a `ProductResponse`.
+ *
+ * This structure removes nested objects (such as `status` and `audit`)
+ * and exposes their values as top-level fields for easier consumption
+ * by components, tables, and detail sections.
+ *
+ * Flattening simplifies rendering logic and avoids deep property traversal
+ * in view components such as `<DetailsSection />` or summary cards.
+ *
+ * Includes:
+ * - Core product fields (id, name, brand, etc.)
+ * - Flattened status metadata (`statusId`, `statusName`, `statusDate`)
+ * - Flattened audit metadata (created/updated timestamps + users)
+ *
+ * All optional or missing fields are normalized to `null` for consistency.
+ */
+export interface FlattenedProductDetail {
+  /** Unique product identifier */
+  id: string;
+  
+  /** Human-readable product name */
+  name: string;
+  
+  /** Product series grouping */
+  series: string;
+  
+  /** Associated brand */
+  brand: string;
+  
+  /** Product category label */
+  category: string;
+  
+  /** Marketing or descriptive text */
+  description: string;
+  
+  // -----------------------------
+  // Flattened Status Metadata
+  // -----------------------------
+  
+  /** Status ID (UUID) from the backend */
+  statusId: string | null;
+  
+  /** Status name such as "active" or "inactive" */
+  statusName: string | null;
+  
+  /** Timestamp of the last status change */
+  statusDate: string | null;
+  
+  // -----------------------------
+  // Flattened Audit Metadata
+  // -----------------------------
+  
+  /** Timestamp when the product was created */
+  createdAt: string | null;
+  
+  /** User ID of who created the product */
+  createdById: string | null;
+  
+  /** Full name of who created the product */
+  createdByName: string | null;
+  
+  /** Timestamp when the product was last updated (null if never) */
+  updatedAt: string | null;
+  
+  /** User ID of who last updated the product */
+  updatedById: string | null;
+  
+  /** Full name of who last updated the product */
+  updatedByName: string | null;
+}
+
+/**
+ * Response payload returned after updating a product.
+ *
+ * Contains only the UUID of the affected product, since update endpoints
+ * acknowledge state change rather than returning full product details.
+ */
+export interface ProductUpdateResponseData {
+  /** UUID of the updated product */
+  id: string;
+}
+
+/**
+ * Standard API envelope returned by product update operations.
+ *
+ * Example:
+ * {
+ *   success: true,
+ *   message: "Product information updated successfully.",
+ *   data: { id: "..." },
+ *   traceId: "..."
+ * }
+ */
+export type UpdateProductApiResponse =
+  ApiSuccessResponse<ProductUpdateResponseData>;
+
+/**
+ * Request payload for updating general product information.
+ *
+ * All fields are optional at the type level, but backend validation
+ * (`productUpdateSchema`) requires that at least one field be provided.
+ *
+ * Only core editable attributes are included. Fields like status,
+ * inventory, compliance, and metadata are updated through separate APIs.
+ */
+export interface ProductUpdateRequest {
+  /** Product Name (max 150 chars) */
+  name?: string;
+  
+  /** Series grouping (max 100 chars) */
+  series?: string;
+  
+  /** Brand name (max 100 chars) */
+  brand?: string;
+  
+  /** Category name (max 100 chars) */
+  category?: string;
+  
+  /** Optional description text (empty string allowed) */
+  description?: string;
+}
+
+/**
+ * Request payload for updating a product's status.
+ *
+ * Uses the shared `UpdateStatusIdRequest` interface, ensuring consistent
+ * status update formats across modules such as SKU, product, customer,
+ * or order status transitions.
+ */
+export type ProductStatusUpdateRequest = UpdateStatusIdRequest;
+
+/**
+ * Arguments accepted by the Redux thunk responsible for updating
+ * a Product’s status.
+ *
+ * This type ensures a consistent payload shape across:
+ *   - Redux thunks
+ *   - hooks (e.g., useProductStatusUpdate)
+ *   - dialog/components that trigger status updates
+ */
+export interface UpdateProductStatusThunkArgs {
+  /** The ID of the product whose status is being updated */
+  productId: string;
+  
+  /** The new status to assign */
+  statusId: string;
+}
+
+/**
+ * Async state wrapper used by the product info update slice.
+ *
+ * Stores:
+ *  - `data`   : API response (`{ id: string }`)
+ *  - `loading`: request lifecycle flag
+ *  - `error`  : user-facing error message
+ */
+export type ProductUpdateState =
+  AsyncState<UpdateProductApiResponse | null>;
+
+/**
+ * Async state wrapper used by the product status update slice.
+ *
+ * Identical in structure to `ProductUpdateState`, but represents the
+ * update operation for a product's status.
+ */
+export type ProductStatusUpdateState =
+  AsyncState<UpdateProductApiResponse | null>;

@@ -1,4 +1,4 @@
-import { type FC, useEffect, useMemo } from 'react';
+import { type FC, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import Grid from '@mui/material/Grid';
 import FilterPanelLayout from '@components/common/FilterPanelLayout';
@@ -7,6 +7,9 @@ import { renderInputField } from '@utils/filters/filterUtils';
 import type { ProductListFilters } from '@features/product/state/productTypes';
 import type { FilterField } from '@shared-types/shared';
 import type { LookupOption } from '@features/lookup/state';
+import useMultiSelectBinding from '@features/lookup/hooks/useMultiSelectBinding';
+import { useFormattedOptions } from '@features/lookup/utils/lookupUtils';
+import { formatLabel } from '@utils/textUtils';
 
 interface ProductFiltersPanelProps {
   filters: ProductListFilters;
@@ -70,26 +73,21 @@ const ProductFiltersPanel: FC<ProductFiltersPanelProps> = ({
   // -------------------------------
   // Status dropdown binding
   // -------------------------------
-  const statusValue = watch('statusIds');
-
-  // Convert from string[] → MultiSelectOption[]
-  const selectedStatusOptions = useMemo(() => {
-    if (!Array.isArray(statusValue)) return [];
-
-    return statusOptions
-      .filter((opt) => statusValue.includes(opt.value))
-      .map((opt) => ({
-        value: opt.value,
-        label: opt.label,
-      }));
-  }, [statusValue, statusOptions]);
-
-  // Convert from MultiSelectOption[] → string[]
-  const handleStatusSelect = (options: { value: string; label: string }[]) => {
-    const ids = options.map((o) => o.value);
-    setValue('statusIds', ids.length ? ids : undefined, { shouldDirty: true });
-  };
-
+  const {
+    selectedOptions: selectedStatusOptions,
+    handleSelect: handleStatusSelect,
+  } = useMultiSelectBinding({
+    watch,
+    setValue,
+    fieldName: 'statusIds',
+    options: statusOptions,
+  });
+  
+  const formattedStatusOptions = useFormattedOptions(
+    statusOptions,
+    formatLabel
+  );
+  
   // -------------------------------
   // Submit / Reset
   // -------------------------------
@@ -113,7 +111,7 @@ const ProductFiltersPanel: FC<ProductFiltersPanelProps> = ({
           )}
 
           <StatusMultiSelectDropdown
-            options={statusOptions}
+            options={formattedStatusOptions}
             selectedOptions={selectedStatusOptions}
             onChange={handleStatusSelect}
             onOpen={onOpen}

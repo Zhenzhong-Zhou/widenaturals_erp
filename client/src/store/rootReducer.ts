@@ -4,7 +4,7 @@ import { createReducerMap } from '@utils/reducerUtils';
 // Reducer groups
 import { addressReducers } from '@features/address';
 import { authorizeReducers } from '@features/authorize';
-import { complianceReducers } from '@features/compliance';
+import { complianceRecordReducers } from '@features/complianceRecord';
 import { csrfReducers } from '@features/csrf';
 import { customerReducers } from '@features/customer';
 import { deliveryMethodReducers } from '@features/deliveryMethod';
@@ -30,6 +30,7 @@ import { warehouseReducers } from '@features/warehouse';
 import { warehouseInventoryReducers } from '@features/warehouseInventory';
 import { inventoryAllocationReducers } from '@features/inventoryAllocation';
 import { outboundFulfillmentReducers } from '@features/outboundFulfillment';
+import { skuImageReducers } from '@features/skuImage';
 
 // Use helper to combine
 const appReducer = combineReducers(
@@ -46,7 +47,8 @@ const appReducer = combineReducers(
     // Product & Pricing
     productReducers,
     skuReducers,
-    complianceReducers,
+    skuImageReducers,
+    complianceRecordReducers,
     bomReducers,
     pricingTypeReducers,
     pricingReducers,

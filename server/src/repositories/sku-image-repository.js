@@ -1,4 +1,4 @@
-const { bulkInsert, query } = require('../database/db');
+const { query } = require('../database/db');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
@@ -6,124 +6,259 @@ const AppError = require('../utils/AppError');
  * @async
  * @function
  * @description
- * Ensures that the given SKU does not already have any images in the database.
- * Throws a validation error if any images exist — enforcing immutable SKU image policy.
+ * Checks whether a SKU already has a primary "main" image.
  *
- * @param {string} skuId - SKU UUID.
- * @param {object} client - PG transaction client.
- * @returns {Promise<void>}
- * @throws {AppError} If images already exist for this SKU.
+ * This helper performs a fast existence check using a SQL `EXISTS` clause
+ * and is typically used to enforce the rule that a SKU may have at most
+ * one primary image at any given time.
+ *
+ * Guarantees:
+ *  - Returns a strict boolean (`true` or `false`)
+ *  - Does not modify any data
+ *  - Efficient (stops at the first matching row)
+ *  - Safe for use inside transactions
+ *
+ * @param {string} skuId
+ *   UUID of the SKU to check.
+ *
+ * @param {object} client
+ *   PostgreSQL client used for query execution (maybe a transaction client).
+ *
+ * @returns {Promise<boolean>}
+ *   Resolves to `true` if a primary "main" image exists for the SKU,
+ *   otherwise resolves to `false`.
+ *
+ * @throws {AppError}
+ *   Throws a database error if the query fails.
  */
-const assertNoExistingSkuImages = async (skuId, client) => {
-  const context = 'sku-image-service/assertNoExistingSkuImages';
-  const sql = `SELECT 1 FROM sku_images WHERE sku_id = $1 LIMIT 1;`;
-
+const hasPrimaryMainImage = async (skuId, client) => {
+  const context = 'sku-image-service/hasPrimaryMainImage';
+  
+  const sql = `
+    SELECT EXISTS (
+      SELECT 1
+      FROM sku_images
+      WHERE sku_id = $1
+        AND image_type = 'main'
+        AND is_primary = TRUE
+    ) AS has_primary;
+  `;
+  
   try {
     const { rows } = await query(sql, [skuId], client);
-
-    if (rows.length > 0) {
-      logSystemInfo('Existing SKU images found — upload blocked.', {
-        context,
-        skuId,
-      });
-      throw AppError.validationError(
-        `Images already exist for this SKU (${skuId}). To update, use the replace route instead.`
-      );
-    }
-
-    logSystemInfo('No existing SKU images found, proceeding with upload.', {
+    
+    const hasPrimary = Boolean(rows[0]?.has_primary);
+    
+    logSystemInfo('Primary main image existence check complete.', {
       context,
       skuId,
+      hasPrimaryMain: hasPrimary,
     });
+    
+    return hasPrimary;
   } catch (error) {
-    logSystemException(error, 'Failed to check existing SKU images.', {
+    logSystemException(error, 'Failed to query sku_images for primary main image.', {
       context,
       skuId,
     });
+    
     throw AppError.databaseError(
-      'Failed to query sku_images table during existence check.',
-      { cause: error }
+      'Failed to check primary main image state.',
+      { cause: error, skuId, context }
     );
   }
 };
 
 /**
- * Inserts one or multiple SKU image records into the database.
+ * @async
+ * @function
+ * @description
+ * Returns the current maximum `display_order` value for images associated
+ * with the given SKU.
  *
- * - Supports bulk insertion for efficiency.
- * - Handles duplicate (same sku_id + image_url) conflicts gracefully.
- * - Returns inserted or updated image records.
+ * This value is used as the append base when uploading new images, ensuring
+ * that newly inserted records receive deterministic and non-overlapping
+ * `display_order` values.
  *
- * @param {string} skuId - ID of the SKU these images belong to.
- * @param {Array<Object>} images - Array of image objects to insert.
- * @param createdBy
- * @param {object} client - PG transaction client.
- * @returns {Promise<Array>} Inserted or updated image rows.
+ * Guarantees:
+ *  - Always resolves to a number (defaults to `0` when no images exist)
+ *  - Read-only operation with no side effects
+ *  - Safe for concurrent use within transactions
+ *
+ * @param {string} skuId
+ *   UUID of the SKU whose image ordering state is being queried.
+ *
+ * @param {object} client
+ *   PostgreSQL client used for query execution (maybe a transaction client).
+ *
+ * @returns {Promise<number>}
+ *   Resolves to the maximum `display_order` currently stored for the SKU.
+ *
+ * @throws {AppError}
+ *   Throws a database error if the query fails.
+ */
+const getSkuImageDisplayOrderBase = async (skuId, client) => {
+  const context = 'sku-image-service/getSkuImageDisplayOrderBase';
+  
+  const sql = `
+    SELECT COALESCE(MAX(display_order), 0) AS max_order
+    FROM sku_images
+    WHERE sku_id = $1;
+  `;
+  
+  try {
+    const result = await query(sql, [skuId], client);
+    
+    const count = Number(result.rows?.[0]?.count ?? 0);
+    
+    logSystemInfo('Counted existing SKU images.', {
+      context,
+      skuId,
+      count,
+    });
+    
+    return count;
+  } catch (error) {
+    logSystemException(error, 'Failed to count SKU images.', {
+      context,
+      skuId,
+    });
+    
+    throw AppError.databaseError(
+      'Failed to count existing SKU images.',
+      { cause: error, skuId, context }
+    );
+  }
+};
+
+/**
+ * @async
+ * @function
+ * @description
+ * Bulk inserts or updates SKU image records in a single, deterministic
+ * database operation.
+ *
+ * This function accepts pre-processed image metadata (no file handling),
+ * persists records using a JSON-based bulk insert, and relies on
+ * database-level conflict handling for idempotency.
+ *
+ * Behavior and guarantees:
+ *  - Inserts images in a deterministic order using (group_id, display_order)
+ *  - Requires a `group_id` for every image to preserve batch ordering
+ *  - Handles duplicate images safely via `(sku_id, image_url)` conflict rules
+ *  - Updates mutable metadata (`alt_text`, `display_order`, `is_primary`)
+ *    when conflicts occur
+ *  - Does not generate or modify image files (metadata-only operation)
+ *
+ * Conflict strategy:
+ *  - Uniqueness is enforced by `(sku_id, image_url)`
+ *  - On conflict, existing rows are updated rather than duplicated
+ *  - `uploaded_at` is refreshed on update to reflect the latest operation
+ *
+ * @param {string} skuId
+ *   UUID of the SKU to which the images belong.
+ *
+ * @param {Array<Object>} images
+ *   Array of normalized image metadata objects. Each object must include:
+ *   - `image_url`
+ *   - `display_order`
+ *   - `group_id`
+ *
+ * @param {string} createdBy
+ *   UUID of the user performing the insert or update.
+ *
+ * @param {object} client
+ *   PostgreSQL client used for transactional execution.
+ *
+ * @returns {Promise<Array<Object>>}
+ *   Resolves to the array of inserted or updated image rows as returned
+ *   by the database.
+ *
+ * @throws {AppError}
+ *   Throws a validation error if required fields (e.g. `group_id`) are missing,
+ *   or a database error if the insert/update operation fails.
  */
 const insertSkuImagesBulk = async (skuId, images, createdBy, client) => {
   if (!Array.isArray(images) || images.length === 0) return [];
-
-  const columns = [
-    'sku_id',
-    'image_url',
-    'image_type',
-    'display_order',
-    'file_size_kb',
-    'file_format',
-    'alt_text',
-    'is_primary',
-    'uploaded_by',
-  ];
-
-  const rows = images.map((img, idx) => [
-    skuId,
-    img.image_url,
-    img.image_type || null,
-    img.display_order || idx + 1,
-    img.file_size_kb ?? null,
-    img.file_format ?? null,
-    img.alt_text ?? null,
-    img.is_primary ?? idx === 0, // default first as primary
-    img.uploaded_by || createdBy,
-  ]);
-
-  // Conflict rule: avoid duplicate image for same SKU
-  const conflictColumns = ['sku_id', 'image_url'];
-
-  // Strategy: if same image re-inserted, refresh metadata & timestamp
-  const updateStrategies = {
-    alt_text: 'overwrite',
-    display_order: 'overwrite',
-    is_primary: 'overwrite',
-    uploaded_at: 'overwrite', // applies NOW() via applyUpdateRule()
-  };
-
+  
+  const payload = images.map(img => ({
+    image_url: img.image_url,
+    image_type: img.image_type,
+    display_order: img.display_order,
+    file_size_kb: img.file_size_kb ?? null,
+    file_format: img.file_format ?? null,
+    alt_text: img.alt_text ?? null,
+    is_primary: img.is_primary ?? false,
+    uploaded_by: img.uploaded_by || createdBy,
+    group_id: img.group_id,
+  }));
+  
+  if (payload.some(p => !p.group_id)) {
+    throw AppError.validationError('group_id is required for SKU image insert');
+  }
+  
+  const sql = `
+    INSERT INTO sku_images (
+      sku_id,
+      image_url,
+      image_type,
+      display_order,
+      file_size_kb,
+      file_format,
+      alt_text,
+      is_primary,
+      uploaded_by,
+      group_id
+    )
+    SELECT
+      $1 AS sku_id,
+      t.image_url,
+      t.image_type,
+      t.display_order,
+      t.file_size_kb,
+      t.file_format,
+      t.alt_text,
+      t.is_primary,
+      t.uploaded_by,
+      t.group_id
+    FROM jsonb_to_recordset($2::jsonb) AS t(
+      image_url text,
+      image_type text,
+      display_order int,
+      file_size_kb int,
+      file_format text,
+      alt_text text,
+      is_primary boolean,
+      uploaded_by uuid,
+      group_id uuid
+    )
+    ORDER BY t.group_id, t.display_order
+    ON CONFLICT (sku_id, image_url)
+    DO UPDATE SET
+      alt_text = EXCLUDED.alt_text,
+      display_order = EXCLUDED.display_order,
+      is_primary = EXCLUDED.is_primary,
+      uploaded_at = NOW()
+    RETURNING *;
+  `;
+  
   try {
-    const result = await bulkInsert(
-      'sku_images',
-      columns,
-      rows,
-      conflictColumns,
-      updateStrategies,
-      client,
-      { context: 'sku-image-repository/insertSkuImagesBulk' },
-      '*'
-    );
-
+    const { rows } = await query(sql, [skuId, JSON.stringify(payload)], client);
+    
     logSystemInfo('Successfully inserted or updated SKU images', {
       context: 'sku-image-repository/insertSkuImagesBulk',
       skuId,
-      insertedCount: result.length,
+      affectedCount: rows.length,
     });
-
-    return result;
+    
+    return rows;
   } catch (error) {
     logSystemException(error, 'Failed to insert SKU images', {
       context: 'sku-image-repository/insertSkuImagesBulk',
       skuId,
       imageCount: images.length,
     });
-
+    
     throw AppError.databaseError('Failed to insert SKU images', {
       cause: error,
     });
@@ -251,7 +386,8 @@ const getSkuImagesBySkuId = async (skuId) => {
 };
 
 module.exports = {
-  assertNoExistingSkuImages,
+  hasPrimaryMainImage,
+  getSkuImageDisplayOrderBase,
   insertSkuImagesBulk,
   getSkuImagesBySkuId,
 };

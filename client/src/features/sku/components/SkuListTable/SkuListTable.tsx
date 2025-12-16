@@ -2,6 +2,7 @@ import { Suspense, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import useCreateSkuSharedLogic from '@features/sku/hook/useCreateSkuSharedLogic';
+import usePagePermissionGuard from '@features/authorize/hooks/usePagePermissionGuard';
 import CustomTable from '@components/common/CustomTable';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
@@ -10,7 +11,7 @@ import {
   getSkuListTableColumns,
   SkuExpandedContent,
 } from '@features/sku/components/SkuListTable';
-import type { FlattenedSkuRecord } from '@features/sku/state';
+import { FlattenedSkuRecord, SelectedSku } from '@features/sku/state';
 
 interface SkuListTableProps {
   data: FlattenedSkuRecord[];
@@ -24,28 +25,38 @@ interface SkuListTableProps {
   expandedRowId?: string | null;
   onSelectionChange?: (ids: string[]) => void;
   selectedRowIds?: string[];
+  selectedSkus?: { [skuId: string]: SelectedSku };
   onDrillDownToggle?: (rowId: string) => void;
   onRefresh: () => void;
 }
 
 const SkuListTable = ({
-  data,
-  loading,
-  page,
-  totalPages,
-  totalRecords,
-  rowsPerPage,
-  onPageChange,
-  onRowsPerPageChange,
-  expandedRowId,
-  onDrillDownToggle,
-  selectedRowIds,
-  onSelectionChange,
-  onRefresh,
+                        data,
+                        loading,
+                        page,
+                        totalPages,
+                        totalRecords,
+                        rowsPerPage,
+                        onPageChange,
+                        onRowsPerPageChange,
+                        expandedRowId,
+                        onDrillDownToggle,
+                        selectedRowIds,
+                        selectedSkus,
+                        onSelectionChange,
+                        onRefresh,
 }: SkuListTableProps) => {
   // Shared logic used for permission checks (e.g. canCreateSku)
   const shared = useCreateSkuSharedLogic();
-
+  const { isAllowed } = usePagePermissionGuard(['create_skus_images']);
+  
+  const getSelectedSkuCount = (
+    selectedSkus?: Record<string, SelectedSku>
+  ): number => {
+    if (!selectedSkus) return 0;
+    return Object.keys(selectedSkus).length;
+  };
+  
   /* -------------------------------------------------------
    * Memoize column definitions
    * - Prevents recalculating columns on every render
@@ -57,7 +68,15 @@ const SkuListTable = ({
       onDrillDownToggle
     );
   }, [expandedRowId, onDrillDownToggle]);
-
+  
+  const selectedCount = useMemo(
+    () => getSelectedSkuCount(selectedSkus),
+    [selectedSkus]
+  );
+  
+  const isSelectableSku = (row: FlattenedSkuRecord) =>
+    Boolean(!row.primaryImageUrl);
+  
   /* -------------------------------------------------------
    * Expanded row content (lazy-loaded)
    * - Suspense allows loading skeleton while chunk loads
@@ -108,6 +127,19 @@ const SkuListTable = ({
               Add New
             </CustomButton>
           )}
+          
+          {isAllowed && (
+            <CustomButton
+              component={Link}
+              to="/sku-images/upload"
+              state={{ selectedSkus: Object.values(selectedSkus ?? {}) }}
+              variant="contained"
+              disabled={selectedCount === 0}
+              sx={{ color: 'primary.secondary', fontWeight: 500 }}
+            >
+              Bulk Upload Images {selectedCount > 0 ? `(${selectedCount})` : ''}
+            </CustomButton>
+          )}
 
           <CustomButton
             onClick={onRefresh}
@@ -139,6 +171,8 @@ const SkuListTable = ({
         getRowId={(row) => row.skuId ?? ''}
         selectedRowIds={selectedRowIds}
         onSelectionChange={onSelectionChange}
+        showCheckboxes={isAllowed}
+        isRowSelectable={isSelectableSku}
         emptyMessage="No SKUs found"
       />
     </Box>
