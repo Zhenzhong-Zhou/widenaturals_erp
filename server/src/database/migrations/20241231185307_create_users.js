@@ -11,6 +11,11 @@ exports.up = function (knex) {
     table.string('lastname', 100).nullable();
     table.string('phone_number', 15).unique().nullable();
     table.string('job_title', 100).nullable();
+    table
+      .boolean('is_system')
+      .notNullable()
+      .defaultTo(false)
+      .comment('Marks internal system / automation users');
     table.uuid('status_id').notNullable().references('id').inTable('status');
     table.text('note').nullable();
     table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now()); // Auto-set on creation in UTC

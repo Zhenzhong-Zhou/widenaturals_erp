@@ -67,6 +67,7 @@ exports.seed = async function (knex) {
         role_id: roleIds['system'],
         phone_number: null,
         job_title: 'System Process',
+        is_system: true,
         status_id: activeStatusId,
         note: 'Reserved system user for automated actions.',
         created_by: null,

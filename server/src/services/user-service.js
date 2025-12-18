@@ -1,31 +1,150 @@
 const { withTransaction } = require('../database/db');
 const {
+  evaluateUserVisibilityAccessControl,
+  sliceUserForUser
+} = require('../business/user-business');
+const {
   insertUser,
   getUser,
-  getAllUsers,
+  getPaginatedUsers,
 } = require('../repositories/user-repository');
+const { logSystemInfo, logSystemException } = require('../utils/system-logger');
+const { transformPaginatedUserForViewResults } = require('../transformers/user-transformer');
+const AppError = require('../utils/AppError');
 const { insertUserAuth } = require('../repositories/user-auth-repository');
 const { logError } = require('../utils/logger-helper');
-const AppError = require('../utils/AppError');
 const { hashPasswordWithSalt } = require('../utils/password-helper');
 
 /**
- * Service to fetch all users with pagination and sorting.
+ * Service: Fetch paginated users for UI consumption.
  *
- * @param {Object} options - Options for pagination and sorting.
- * @param {number} options.page - The page number to fetch.
- * @param {number} options.limit - The number of records per page.
- * @param {string} options.sortBy - Column to sort by.
- * @param {string} options.sortOrder - Sort order ('ASC' or 'DESC').
- * @returns {Promise<Object>} - Paginated users and metadata.
+ * Responsibilities:
+ * - Resolve visibility authority for the requesting user
+ * - Orchestrate paginated repository queries
+ * - Defensively enforce per-row visibility constraints
+ * - Normalize empty result sets
+ * - Transform records into UI-ready response shapes
+ * - Emit structured success and failure logs
+ *
+ * Enforcement model:
+ * - Repository filtering is the PRIMARY visibility enforcement
+ * - Per-row slicing is DEFENSIVE only
+ *
+ * This service does NOT:
+ * - Grant or infer permissions
+ * - Mutate visibility filters
+ * - Apply endpoint-specific response logic
+ *
+ * @param {Object} options
+ * @param {Object} [options.filters={}] - Normalized filtering criteria
+ * @param {number} [options.page=1] - Page number (1-based)
+ * @param {number} [options.limit=10] - Records per page
+ * @param {string} [options.sortBy='u.created_at'] - SQL-safe sort column
+ * @param {'ASC'|'DESC'} [options.sortOrder='DESC'] - Sort direction
+ * @param {'list'|'card'} [options.viewMode='list'] - UI presentation mode
+ * @param {Object} options.user - Authenticated requester context
+ *
+ * @returns {Promise<{ data: Object[], pagination: Object }>}
  */
-const fetchAllUsers = async ({ page, limit, sortBy, sortOrder }) => {
+const fetchPaginatedUsersService = async ({
+                                            filters = {},
+                                            page = 1,
+                                            limit = 10,
+                                            sortBy = 'u.created_at',
+                                            sortOrder = 'DESC',
+                                            viewMode = 'list',
+                                            user,
+                                          }) => {
+  const context = 'user-service/fetchPaginatedUsersService';
+  
   try {
-    // Call repository function
-    return await getAllUsers({ page, limit, sortBy, sortOrder });
+    // ---------------------------------------------------------
+    // Step 0 — Resolve visibility access control
+    // ---------------------------------------------------------
+    const access = await evaluateUserVisibilityAccessControl(user);
+    
+    // ---------------------------------------------------------
+    // Step 1 — Query raw data from repository
+    // ---------------------------------------------------------
+    const rawResult = await getPaginatedUsers({
+      filters,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
+    
+    // ---------------------------------------------------------
+    // Step 2 — Handle empty result
+    // ---------------------------------------------------------
+    if (!rawResult || rawResult.data.length === 0) {
+      logSystemInfo('No user records found', {
+        context,
+        filters,
+        pagination: { page, limit },
+        sort: { sortBy, sortOrder },
+        viewMode,
+      });
+      
+      return {
+        data: [],
+        pagination: {
+          page,
+          limit,
+          totalRecords: 0,
+          totalPages: 0,
+        },
+      };
+    }
+    
+    // ---------------------------------------------------------
+    // Step 3 — Enforce per-row visibility (defensive layer)
+    // ---------------------------------------------------------
+    const visibleRows = rawResult.data
+      .map(row => sliceUserForUser(row, access))
+      .filter(Boolean);
+    
+    // ---------------------------------------------------------
+    // Step 4 — Transform for UI consumption
+    // ---------------------------------------------------------
+    const result = transformPaginatedUserForViewResults(
+      {
+        ...rawResult,
+        data: visibleRows,
+      },
+      viewMode
+    );
+    
+    // ---------------------------------------------------------
+    // Step 5 — Log success
+    // ---------------------------------------------------------
+    logSystemInfo('Paginated user records fetched', {
+      context,
+      filters,
+      pagination: result.pagination,
+      sort: { sortBy, sortOrder },
+      viewMode,
+      // count: result.data.length,
+    });
+    
+    return result;
   } catch (error) {
-    logError('Error in fetchAllUsers service:', error);
-    throw AppError.serviceError('Failed to fetch users from service layer');
+    // ---------------------------------------------------------
+    // Step 6 — Log + rethrow
+    // ---------------------------------------------------------
+    logSystemException(error, 'Failed to fetch paginated user records', {
+      context,
+      filters,
+      pagination: { page, limit },
+      sort: { sortBy, sortOrder },
+      viewMode,
+      userId: user?.id,
+    });
+    
+    throw AppError.serviceError(
+      'Unable to retrieve user records at this time. Please try again later.',
+      { context }
+    );
   }
 };
 
@@ -123,4 +242,8 @@ const mapUserProfile = (user) => ({
   updated_at: user.updated_at,
 });
 
-module.exports = { fetchAllUsers, createUser, getUserProfileById };
+module.exports = {
+  fetchPaginatedUsersService,
+  createUser,
+  getUserProfileById
+};
