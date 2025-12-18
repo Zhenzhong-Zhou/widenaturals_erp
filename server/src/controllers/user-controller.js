@@ -1,48 +1,116 @@
 const wrapAsync = require('../utils/wrap-async');
+const { logInfo } = require('../utils/logger-helper');
 const {
-  getUserProfileById,
-  fetchAllUsers,
+  getUserProfileById, fetchPaginatedUsersService,
 } = require('../services/user-service');
 const AppError = require('../utils/AppError');
 const { fetchPermissions } = require('../services/role-permission-service');
 
 /**
- * Controller to handle fetching paginated users.
+ * Controller: Fetch paginated users (list or card view).
+ *
+ * Responsibilities:
+ * - Extract normalized and validated query parameters from middleware
+ * - Log request metadata and execution timing
+ * - Delegate pagination, visibility, and transformation to the service layer
+ * - Return a standardized paginated API response with trace metadata
+ *
+ * Notes:
+ * - Visibility rules (system/root users) are enforced in service/business layers
+ * - Sorting columns are assumed SQL-safe (resolved upstream)
+ * - `viewMode` controls response shape only ('list' | 'card')
  */
-const getAllUsersController = wrapAsync(async (req, res, next) => {
-  try {
-    const {
-      page = 1,
-      limit = 10,
-      sortBy = 'u.created_at',
-      sortOrder = 'ASC',
-    } = req.query;
-
-    // Validate inputs
-    const paginationParams = {
-      page: parseInt(page, 10),
-      limit: parseInt(limit, 10),
-      sortBy,
-      sortOrder,
-    };
-
-    if (paginationParams.page < 1 || paginationParams.limit < 1) {
-      return next(
-        AppError.validationError('Page and limit must be positive integers.')
-      );
-    }
-
-    // Call service
-    const users = await fetchAllUsers(paginationParams);
-
-    res.status(200).json({
-      success: true,
-      data: users.data,
-      pagination: users.pagination,
-    });
-  } catch (error) {
-    next(error);
+const getPaginatedUsersController = wrapAsync(async (req, res) => {
+  const context = 'user-controller/getPaginatedUsersController';
+  const startTime = Date.now();
+  
+  // -------------------------------
+  // 1. Extract normalized query params
+  // -------------------------------
+  // Parameters are normalized and schema-validated by upstream middleware
+  const {
+    page,
+    limit,
+    sortBy,
+    sortOrder,
+    filters,
+    options,
+  } = req.normalizedQuery;
+  
+  // UI-only view hint; defaults to list presentation
+  const viewMode = options?.viewMode ?? 'list';
+  
+  // Defensive validation at controller boundary:
+  // `viewMode` is UI-driven and not part of the query schema,
+  // but must be constrained to supported response shapes.
+  const allowedViewModes = new Set(['list', 'card']);
+  if (!allowedViewModes.has(viewMode)) {
+    throw AppError.validationError('Invalid viewMode');
   }
+  
+  // Authenticated requester (populated by auth middleware)
+  const user = req.user;
+  
+  // Trace identifier for correlating logs across controller,
+  // service, and repository layers for this request lifecycle
+  const traceId = `user-list-${Date.now().toString(36)}`;
+  
+  // -------------------------------
+  // 2. Incoming request log
+  // -------------------------------
+  // Log request entry with normalized parameters for auditability
+  // and performance diagnostics (no business logic applied yet)
+  logInfo('Incoming request: fetch paginated users', req, {
+    context,
+    traceId,
+    userId: user?.id,
+    pagination: { page, limit },
+    sorting: { sortBy, sortOrder },
+    viewMode,
+    filters,
+  });
+  
+  // -------------------------------
+  // 3. Execute service layer
+  // -------------------------------
+  // Sorting fields are resolved and SQL-safe via upstream normalization.
+  // Visibility rules and data shaping are handled by the service layer.
+  const { data, pagination } = await fetchPaginatedUsersService({
+    filters,
+    page,
+    limit,
+    sortBy,
+    sortOrder,
+    viewMode,
+    user,
+  });
+  
+  const elapsedMs = Date.now() - startTime;
+  
+  // -------------------------------
+  // 4. Completion log
+  // -------------------------------
+  // Log completion with execution metrics for observability
+  logInfo('Completed fetch paginated users', req, {
+    context,
+    traceId,
+    pagination,
+    sort: { sortBy, sortOrder },
+    viewMode,
+    count: data.length,
+    elapsedMs,
+  });
+  
+  // -------------------------------
+  // 5. Send response
+  // -------------------------------
+  res.status(200).json({
+    success: true,
+    message: 'Users retrieved successfully.',
+    data,
+    pagination,
+    traceId,
+  });
 });
 
 /**
@@ -96,7 +164,7 @@ const getPermissions = wrapAsync(async (req, res, next) => {
 });
 
 module.exports = {
-  getAllUsersController,
+  getPaginatedUsersController,
   getUserProfile,
   getPermissions,
 };
