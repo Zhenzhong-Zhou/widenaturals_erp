@@ -73,12 +73,12 @@ const { fetchPaginatedUsersService } = require('../../services/user-service');
     // Step 3: Filters & pagination
     // ------------------------------------------------------------
     const filters = {
-      keyword: 'john',
+      // keyword: 'john',
       // roleIds: ['uuid-role-example'],
       // statusIds: ['uuid-status-example'],
     };
     
-    const pagination = { page: 1, limit: 10 };
+    const pagination = { page: 1, limit: 50 };
     // const viewMode = 'list'; // try: 'card'
     const viewMode = 'card'; // try: 'card'
     
@@ -137,6 +137,7 @@ const { fetchPaginatedUsersService } = require('../../services/user-service');
               [chalk.green('full_name')]: user.fullName,
               [chalk.cyan('role')]: user.roleName,
               [chalk.blue('job_title')]: user.jobTitle,
+              [chalk.magenta('avatar_url')]: user.avatarUrl,
             };
           }
           
@@ -144,6 +145,7 @@ const { fetchPaginatedUsersService } = require('../../services/user-service');
           // List view (full)
           // ------------------------------
           return {
+            [chalk.red('avatar_url')]: user.avatarUrl,
             [chalk.green('full_name')]: user.fullName,
             [chalk.yellow('email')]: user.email,
             [chalk.cyan('role')]: user.roleName,
