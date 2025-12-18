@@ -33,7 +33,6 @@ const complianceFiltersSchema = Joi.object({
   // Compliance-level filters (cr.*)
   // --------------------------------------------------
   //
-  type: validateOptionalString('Type'),
   statusIds: validateUUIDArray('Status IDs'),
   complianceId: validateOptionalString('Compliance Number'),
   createdBy: validateOptionalUUID('Created By User ID'),
@@ -45,7 +44,6 @@ const complianceFiltersSchema = Joi.object({
   // --------------------------------------------------
   //
   skuIds: validateUUIDArray('SKU IDs'),
-  sku: validateOptionalString('SKU'),
   sizeLabel: validateOptionalString('Size Label'),
   marketRegion: validateOptionalString('Market Region'),
 
@@ -55,9 +53,6 @@ const complianceFiltersSchema = Joi.object({
   // --------------------------------------------------
   //
   productIds: validateUUIDArray('Product IDs'),
-  productName: validateOptionalString('Product Name'),
-  brand: validateOptionalString('Brand'),
-  category: validateOptionalString('Category'),
 
   //
   // --------------------------------------------------

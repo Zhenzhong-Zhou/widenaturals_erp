@@ -124,9 +124,6 @@ export interface ComplianceFilters {
   // Compliance-level filters
   // --------------------------------------------------
   
-  /** Compliance type (e.g. "NPN") */
-  type?: string;
-  
   /** Filter by one or more status IDs */
   statusIds?: string[];
   
@@ -146,9 +143,6 @@ export interface ComplianceFilters {
   /** Filter by one or more SKU IDs */
   skuIds?: string[];
   
-  /** SKU code (supports partial match depending on backend) */
-  sku?: string;
-  
   /** SKU size label */
   sizeLabel?: string;
   
@@ -161,15 +155,6 @@ export interface ComplianceFilters {
   
   /** Filter by one or more product IDs */
   productIds?: string[];
-  
-  /** Product name */
-  productName?: string;
-  
-  /** Brand name */
-  brand?: string;
-  
-  /** Product category */
-  category?: string;
   
   // --------------------------------------------------
   // Keyword search
