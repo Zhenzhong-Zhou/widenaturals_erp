@@ -1,6 +1,5 @@
 const SKU_CONSTANTS = {
   PERMISSIONS: {
-    VIEW_SKUS: 'view_skus', // can see SKU at all
     VIEW_SKU_INACTIVE: 'view_inactive_sku', // can see inactive/discontinued SKUs
     VIEW_PRODUCT_INACTIVE: 'view_inactive_product', // can see SKUs inside inactive products
     VIEW_SKUS_ALL_STATUSES: 'view_all_statuses_skus', // override: see all SKU + product statuses

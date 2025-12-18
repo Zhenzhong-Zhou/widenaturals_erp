@@ -1,4 +1,8 @@
 const AppError = require('../../utils/AppError');
+const fs = require('fs');
+const path = require('path');
+const mime = require('mime-types');
+
 /**
  * Fetch a single value dynamically from a table.
  *
@@ -88,4 +92,24 @@ const fetchDynamicValues = async (
   }
 };
 
-module.exports = { fetchDynamicValue, fetchDynamicValues };
+const getImageMetadata = (relativePath) => {
+  const absolutePath = path.resolve(process.cwd(), relativePath);
+  
+  if (!fs.existsSync(absolutePath)) {
+    throw new Error(`Avatar file not found: ${absolutePath}`);
+  }
+  
+  const stats = fs.statSync(absolutePath);
+  const mimeType = mime.lookup(absolutePath);
+  
+  return {
+    file_size_kb: Math.ceil(stats.size / 1024),
+    file_format: mime.extension(mimeType) || 'bin',
+  };
+};
+
+module.exports = {
+  fetchDynamicValue,
+  fetchDynamicValues,
+  getImageMetadata,
+};

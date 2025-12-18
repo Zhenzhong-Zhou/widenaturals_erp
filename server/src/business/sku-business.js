@@ -514,14 +514,12 @@ const assertValidSkuStatusTransition = (currentStatusId, newStatusId) => {
  *   ✔ Full visibility override for admins / privileged users
  *
  * Permission meanings:
- *   VIEW_SKUS               → Basic ability to see SKUs at all
  *   VIEW_SKU_INACTIVE       → Allows viewing SKUs whose status != active
  *   VIEW_PRODUCT_INACTIVE   → Allows viewing SKUs whose product is inactive
  *   VIEW_SKUS_ALL_STATUSES  → Overrides all restrictions (super-user mode)
  *
  * @param {Object} user - Authenticated user with permissions
  * @returns {Promise<{
- *   canViewSku: boolean,
  *   canViewInactiveSku: boolean,
  *   canViewInactiveProduct: boolean,
  *   canViewAllSkuStatuses: boolean
@@ -530,10 +528,6 @@ const assertValidSkuStatusTransition = (currentStatusId, newStatusId) => {
 const evaluateSkuStatusAccessControl = async (user) => {
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-
-    // Base permission: Can the user see SKUs at all?
-    const canViewSku =
-      isRoot || permissions.includes(SKU_CONSTANTS.PERMISSIONS.VIEW);
 
     // Can see SKUs whose *SKU status* is inactive
     const canViewInactiveSku =
@@ -551,7 +545,6 @@ const evaluateSkuStatusAccessControl = async (user) => {
       permissions.includes(SKU_CONSTANTS.PERMISSIONS.VIEW_SKUS_ALL_STATUSES);
 
     return {
-      canViewSku,
       canViewInactiveSku,
       canViewInactiveProduct,
       canViewAllSkuStatuses,
@@ -590,9 +583,6 @@ const sliceSkuForUser = (skuRow, access) => {
 
   // Admin or super-permission override → full visibility
   if (access.canViewAllSkuStatuses) return skuRow;
-
-  // User lacks baseline SKU visibility → hide entirely
-  if (!access.canViewSku) return null;
 
   const isSkuActive = skuRow.sku_status_id === ACTIVE_SKU_STATUS_ID;
   const isProductActive = skuRow.product_status_id === ACTIVE_PRODUCT_STATUS_ID;
