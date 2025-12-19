@@ -1,50 +1,88 @@
-import axiosInstance from '@utils/axiosConfig';
+import {
+  GetPaginatedUsersParams,
+  PaginatedUserCardListResponse,
+  PaginatedUserListResponse,
+  UserProfileResponse,
+  UserViewMode,
+} from '@features/user/state';
+import { buildQueryString } from '@utils/buildQueryString';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
+import { getRequest } from '@utils/apiRequest';
+import axiosInstance from '@utils/axiosConfig';
 import { clearTokens } from '@utils/tokenManager';
 import { handleError, mapErrorMessage } from '@utils/errorUtils';
 import { AppError, ErrorType } from '@utils/AppError';
-import type { UserProfileResponse, UseUsersResponse } from '@features/user';
 import { isCustomAxiosError } from '@utils/axiosUtils';
 import { withTimeout } from '@utils/timeoutUtils';
 import { withRetry } from '@utils/retryUtils';
 
 /**
- * Fetches a list of all users from the API.
+ * Fetch a paginated list of users.
  *
- * @async
- * @function fetchUsers
- * @returns {Promise<User[] | null>} - A promise that resolves to an array of user objects if successful, or null if an error occurs.
- * @throws {Error} - Throws an error if the API request fails and cannot be handled.
+ * Issues:
+ *   GET /users?page={page}&limit={limit}&sortBy={field}&sortOrder={order}&...
+ *
+ * Returns the standard paginated envelope:
+ *   PaginatedResponse<UserCardView | UserListView>
+ *
+ * Notes:
+ * - Query parameters should already be normalized
+ *   (pagination, sorting, filters, date ranges).
+ * - Filters are flattened to top-level query parameters to
+ *   match backend Joi schema expectations.
+ * - `viewMode` determines whether card or list view data is returned.
+ *
+ * @param params - Pagination, sorting, view mode, and filter options.
+ * @returns A promise resolving to the paginated user response.
+ * @throws Rethrows any error from the request helper.
+ *
+ * @example
+ * const res = await fetchPaginatedUsers({
+ *   page: 1,
+ *   limit: 20,
+ *   sortBy: 'createdAt',
+ *   sortOrder: 'desc',
+ *   viewMode: 'list',
+ *   filters: {
+ *     roleIds: ['985305ce-4c0d-4a35-b662-eb40ebe9e20a'],
+ *     keyword: 'admin',
+ *   },
+ * });
+ *
+ * console.log(res.data[0].fullName);
  */
-const fetchUsers = async ({
-  page = 1,
-  limit = 10,
-  sortBy = 'u.created_at',
-  sortOrder = 'ASC',
-}: {
-  page?: number;
-  limit?: number;
-  sortBy?: string;
-  sortOrder?: string;
-}): Promise<UseUsersResponse> => {
+const fetchPaginatedUsers = async (
+  params: GetPaginatedUsersParams & { viewMode?: UserViewMode } = {}
+): Promise<PaginatedUserCardListResponse | PaginatedUserListResponse> => {
+  const {
+    filters = {},
+    viewMode = 'list',
+    ...rest
+  } = params;
+  
+  // ----------------------------------
+  // Flatten filters for query string
+  // ----------------------------------
+  const flatParams = {
+    ...rest,
+    viewMode,
+    ...filters,
+  };
+  
+  // ----------------------------------
+  // Build request URL
+  // ----------------------------------
+  const queryString = buildQueryString(flatParams);
+  const url = `${API_ENDPOINTS.USERS.ALL_RECORDS}${queryString}`;
+  
   try {
-    const response = await axiosInstance.get(API_ENDPOINTS.ALL_USERS, {
-      params: { page, limit, sortBy, sortOrder }, // Send query parameters
+    return await getRequest<PaginatedUserCardListResponse | PaginatedUserListResponse>(url);
+  } catch (error) {
+    console.error('Failed to fetch paginated users:', {
+      params,
+      error,
     });
-
-    const { data, pagination } = response.data;
-    return {
-      data,
-      pagination: {
-        totalRecords: pagination.totalRecords,
-        page: pagination.page,
-        limit: pagination.limit,
-        totalPages: pagination.totalPages,
-      },
-    };
-  } catch (error: any) {
-    console.error('Error fetching users:', error.message);
-    throw error; // Re-throw the error for thunk to handle
+    throw error;
   }
 };
 
@@ -100,6 +138,6 @@ const fetchUserProfile = async (): Promise<UserProfileResponse> => {
  * Exported user service object.
  */
 export const userService = {
-  fetchUsers,
+  fetchPaginatedUsers,
   fetchUserProfile,
 };

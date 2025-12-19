@@ -6,7 +6,9 @@ export const API_ENDPOINTS = {
   RESET_PASSWORD: '/auth/reset-password',
   REFRESH_TOKEN: '/session/refresh',
   LOGOUT: '/auth/logout',
-  ALL_USERS: '/users',
+  USERS: {
+    ALL_RECORDS: '/users',
+  },
   STATUSES: {},
   USER_PROFILE: '/users/me',
   COMPLIANCE_RECORDS: {
