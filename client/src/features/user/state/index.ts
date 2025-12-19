@@ -1,7 +1,3 @@
-import userProfileReducer from './userProfileSlice';
-import usersReducer from './userSlice';
-
-export const userReducers = {
-  userProfile: userProfileReducer,
-  users: usersReducer,
-};
+export * from './paginatedUsersSelectors';
+export * from './userThunks';
+export * from './userTypes';

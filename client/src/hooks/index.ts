@@ -11,7 +11,7 @@ export { default as useTokenRefresh } from './useTokenRefresh';
 export { default as useValidateAndRefreshToken } from './useValidateAndRefreshToken';
 export { default as useUserProfile } from './useUserProfile';
 export { default as usePermissions } from './usePermissions';
-export { default as useUsers } from './useUsers';
+export { default as useUsers } from './usePaginatedUsers';
 
 // --- Product ---
 export { default as useProducts } from './useSkuProductCards';

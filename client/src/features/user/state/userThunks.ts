@@ -1,47 +1,47 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { AppError } from '@utils/AppError';
-import type { PaginationInfo, User, UserProfileResponse } from '@features/user';
+import {
+  GetPaginatedUsersParams,
+  PaginatedUserCardListResponse,
+  PaginatedUserListResponse,
+  UserProfileResponse,
+  UserViewMode,
+} from '@features/user/state';
 import { userService } from '@services/userService';
+import { AppError } from '@utils/AppError';
 
 /**
- * Fetch all users from the API.
+ * Fetch a paginated list of users from the backend.
  *
- * @async
- * @function fetchUsersThunk
- * @returns {Promise<User[]>} - A promise resolving to an array of user objects.
- * @throws {string} - Throws an error message if the API call fails.
+ * Supports both `card` and `list` view modes, allowing the backend
+ * to return either a lightweight identity payload or a full
+ * audit-enabled table payload based on the requested view.
+ *
+ * Responsibilities:
+ * - Delegates data fetching to the user service layer
+ * - Supports pagination, sorting, and filtering
+ * - Preserves backend pagination metadata
+ * - Normalizes API errors into a predictable reject payload
+ *   containing `message` and optional `traceId`
+ *
+ * Concurrency:
+ * - Safe for concurrent dispatches (Redux Toolkit handles request lifecycle)
+ *
+ * @param params - Pagination, sorting, filters, and optional view mode
+ * @returns A paginated user response (card or list view)
  */
-export const fetchUsersThunk = createAsyncThunk<
-  { data: User[]; pagination: PaginationInfo }, // Return type on success
-  { page?: number; limit?: number; sortBy?: string; sortOrder?: string }, // Argument type
-  { rejectValue: string } // Type for rejectWithValue
+export const fetchPaginatedUsersThunk = createAsyncThunk<
+  PaginatedUserCardListResponse | PaginatedUserListResponse,
+  GetPaginatedUsersParams & { viewMode?: UserViewMode }
 >(
-  'users/fetchAll',
-  async (
-    { page = 1, limit = 10, sortBy = 'u.created_at', sortOrder = 'ASC' },
-    { rejectWithValue }
-  ) => {
+  'users/fetchPaginatedUsers',
+  async (params, { rejectWithValue }) => {
     try {
-      const response = await userService.fetchUsers({
-        page,
-        limit,
-        sortBy,
-        sortOrder,
-      });
-
-      if (!response) {
-        // Handle the case where response is null
-        return rejectWithValue('Failed to fetch users');
-      }
-
-      return {
-        data: response.data, // Access response.data correctly
-        pagination: response.pagination, // Access response.pagination correctly
-      };
+      return await userService.fetchPaginatedUsers(params);
     } catch (error: any) {
-      const errorMessage = error.response?.data || 'Failed to fetch users';
-      console.error('Error fetching users:', errorMessage);
-      return rejectWithValue(errorMessage);
+      return rejectWithValue({
+        message: error?.message ?? 'Failed to fetch users',
+        traceId: error?.traceId,
+      });
     }
   }
 );
