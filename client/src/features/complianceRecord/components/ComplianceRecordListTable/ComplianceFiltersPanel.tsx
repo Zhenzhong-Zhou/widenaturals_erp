@@ -51,12 +51,7 @@ interface Props {
  */
 const emptyFilters: ComplianceFilters = {
   keyword: '',
-  type: '',
   complianceId: '',
-  sku: '',
-  productName: '',
-  brand: '',
-  category: '',
   sizeLabel: '',
   marketRegion: '',
   dateRanges: undefined,

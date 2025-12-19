@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import useCreateSkuSharedLogic from '@features/sku/hook/useCreateSkuSharedLogic';
 import usePagePermissionGuard from '@features/authorize/hooks/usePagePermissionGuard';
-import CustomTable from '@components/common/CustomTable';
+import CustomTable, { CustomTableProps } from '@components/common/CustomTable';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import SkeletonExpandedRow from '@components/common/SkeletonExpandedRow';
@@ -13,20 +13,35 @@ import {
 } from '@features/sku/components/SkuListTable';
 import { FlattenedSkuRecord, SelectedSku } from '@features/sku/state';
 
-interface SkuListTableProps {
-  data: FlattenedSkuRecord[];
-  loading: boolean;
-  page: number;
+interface SkuListTableProps
+  extends Omit<
+    CustomTableProps<FlattenedSkuRecord>,
+    | 'columns'
+    | 'rowsPerPageOptions'
+    | 'initialRowsPerPage'
+    | 'getRowId'
+    | 'expandable'
+    | 'expandedContent'
+  > {
+  /** Controlled rows-per-page value */
   rowsPerPage: number;
-  totalPages: number;
-  totalRecords: number;
-  onPageChange: (page: number) => void;
-  onRowsPerPageChange: (rowsPerPage: number) => void;
+  
+  /** Currently expanded SKU row id */
   expandedRowId?: string | null;
-  onSelectionChange?: (ids: string[]) => void;
-  selectedRowIds?: string[];
-  selectedSkus?: { [skuId: string]: SelectedSku };
+  
+  /** Toggle SKU drilldown panel */
   onDrillDownToggle?: (rowId: string) => void;
+  
+  /** Row selection change handler */
+  onSelectionChange?: (ids: string[]) => void;
+  
+  /** Currently selected row ids */
+  selectedRowIds?: string[];
+  
+  /** Selected SKU metadata map */
+  selectedSkus?: Record<string, SelectedSku>;
+  
+  /** Manual refresh trigger */
   onRefresh: () => void;
 }
 
