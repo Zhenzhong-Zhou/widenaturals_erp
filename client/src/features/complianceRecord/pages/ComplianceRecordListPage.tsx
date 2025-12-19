@@ -207,7 +207,7 @@ const ComplianceRecordListPage = () => {
           page={page - 1}
           rowsPerPage={limit}
           totalRecords={complianceTotal}
-          totalPages={compliancePageInfo?.limit ?? 0}
+          totalPages={compliancePageInfo?.totalPages ?? 0}
           onPageChange={handlePageChange}
           onRowsPerPageChange={handleRowsPerPageChange}
           expandedRowId={expandedRowId}
