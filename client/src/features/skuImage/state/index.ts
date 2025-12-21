@@ -1,10 +1,15 @@
-import skuImageUploadReducer from './skuImageUploadSlice';
+// --------------------------------------------------
+// Reducers (store-level, explicit)
+// --------------------------------------------------
+export { skuImageReducers } from './skuImageReducers';
 
-export const skuImageReducers = {
-  skuImageUpload: skuImageUploadReducer,
-};
-
-// Optional exports for thunks, selectors, types
+// --------------------------------------------------
+// Selectors
+// --------------------------------------------------
 export * from './skuImageUploadSelectors';
+
+// --------------------------------------------------
+// Thunks & Types
+// --------------------------------------------------
 export * from './skuImageThunks';
 export * from './skuImageTypes';

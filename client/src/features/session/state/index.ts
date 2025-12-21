@@ -1,9 +1,14 @@
-import sessionReducer from './sessionSlice';
+// --------------------------------------------------
+// Reducers (store-level, explicit)
+// --------------------------------------------------
+export { sessionReducers } from './sessionReducers';
 
-export const sessionReducers = {
-  session: sessionReducer,
-};
-
-// Optionally export thunks, selectors, and types
-export * from './sessionThunks';
+// --------------------------------------------------
+// Selectors
+// --------------------------------------------------
 export * from './sessionSelectors';
+
+// --------------------------------------------------
+// Thunks
+// --------------------------------------------------
+export * from './sessionThunks';

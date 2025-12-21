@@ -1,1 +1,1 @@
-export { warehouseInventoryReducers } from './state';
+export * from './state';

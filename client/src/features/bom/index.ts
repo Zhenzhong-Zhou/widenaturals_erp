@@ -1,1 +1,1 @@
-export { bomReducers } from './state';
+export * from './state';

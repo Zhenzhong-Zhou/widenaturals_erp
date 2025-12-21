@@ -1,9 +1,14 @@
-import csrfReducer from './csrfSlice';
+// --------------------------------------------------
+// Reducers (store integration point ONLY)
+// --------------------------------------------------
+export { csrfReducers } from './csrfReducers';
 
-export const csrfReducers = {
-  csrf: csrfReducer,
-};
-
-// Optional: export thunks, selectors, types
-export * from './csrfSlice'; // if it contains actions
+// --------------------------------------------------
+// Selectors
+// --------------------------------------------------
 export * from './csrfSelector';
+
+// --------------------------------------------------
+// Thunks
+// --------------------------------------------------
+export * from './csrfThunk';

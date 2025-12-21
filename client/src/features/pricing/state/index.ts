@@ -1,13 +1,16 @@
-import pricingListReducer from './pricingListSlice';
-import pricingListByTypeReducer from './pricingListByTypeSlice';
+// --------------------------------------------------
+// Reducers (store-level)
+// --------------------------------------------------
+export { pricingReducers } from './pricingReducers';
 
-export const pricingReducers = {
-  pricingList: pricingListReducer,
-  pricingListByType: pricingListByTypeReducer,
-};
-
-// Optional: Export thunks, selectors, types
+// --------------------------------------------------
+// Selectors
+// --------------------------------------------------
 export * from './pricingListSelectors';
 export * from './pricingListByTypeSelectors';
+
+// --------------------------------------------------
+// Thunks & Types
+// --------------------------------------------------
 export * from './pricingThunks';
 export * from './pricingTypes';

@@ -1,10 +1,15 @@
-import inventoryActivityLogsReducer from './inventoryActivityLogsSlice';
+// --------------------------------------------------
+// Reducers (store-level, explicit)
+// --------------------------------------------------
+export { reportReducers } from './reportReducers';
 
-export const reportReducers = {
-  inventoryActivityLogs: inventoryActivityLogsReducer,
-};
-
-// Optional: export thunks, selectors, types if you need
+// --------------------------------------------------
+// Selectors
+// --------------------------------------------------
 export * from './inventoryActivityLogsSelectors';
+
+// --------------------------------------------------
+// Thunks & Types
+// --------------------------------------------------
 export * from './reportThunks';
 export * from './reportTypes';

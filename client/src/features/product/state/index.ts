@@ -1,22 +1,19 @@
-import paginatedProductsReducer from './paginatedProductsSlice';
-import createProductsReducer from './createProductsSlice';
-import productDetailReducer from './productDetailSlice';
-import productStatusUpdateReducer from './productStatusUpdateSlice';
-import productInfoUpdateReducer from './productInfoUpdateSlice';
+// --------------------------------------------------
+// Reducers (store-level, explicit)
+// --------------------------------------------------
+export { productReducers } from './productReducers';
 
-export const productReducers = {
-  paginatedProducts: paginatedProductsReducer,
-  createProducts: createProductsReducer,
-  productDetail: productDetailReducer,
-  productStatusUpdate: productStatusUpdateReducer,
-  productInfoUpdate: productInfoUpdateReducer,
-};
-
-// Optional exports for types, selectors, and thunks
+// --------------------------------------------------
+// Selectors
+// --------------------------------------------------
 export * from './paginatedProductsSelectors';
 export * from './createProductsSelectors';
 export * from './productDetailSelectors';
 export * from './productStatusUpdateSelectors';
 export * from './productInfoUpdateSelectors';
+
+// --------------------------------------------------
+// Thunks & Types
+// --------------------------------------------------
 export * from './productThunks';
 export * from './productTypes';

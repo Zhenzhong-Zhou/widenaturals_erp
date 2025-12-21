@@ -1,1 +1,1 @@
-export { addressReducers } from './state';
+export * from './state';

@@ -1,10 +1,15 @@
-import paginatedComplianceRecordsReducer from './paginatedComplianceRecordSlice';
+// --------------------------------------------------
+// Reducers (store integration point ONLY)
+// --------------------------------------------------
+export { complianceRecordReducers } from './complianceRecordReducers';
 
-export const complianceRecordReducers = {
-  paginatedComplianceRecords: paginatedComplianceRecordsReducer,
-};
-
-// Optionally export thunks, selectors, types
+// --------------------------------------------------
+// Selectors
+// --------------------------------------------------
 export * from './paginatedComplianceRecordSelectors';
+
+// --------------------------------------------------
+// Thunks & Types
+// --------------------------------------------------
 export * from './complianceRecordThunks';
 export * from './complianceRecordTypes';

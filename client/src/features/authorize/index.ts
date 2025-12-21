@@ -1,1 +1,1 @@
-export { authorizeReducers } from './state';
+export * from './state';

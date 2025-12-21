@@ -1,9 +1,15 @@
-import permissionsReducer from './permissionSlice';
+// --------------------------------------------------
+// Reducers (store integration point ONLY)
+// --------------------------------------------------
+export { authorizeReducers } from './authorizeReducers';
 
-export const authorizeReducers = {
-  permissions: permissionsReducer,
-};
-
-// Optional: export other state-related logic
+// --------------------------------------------------
+// Selectors
+// --------------------------------------------------
 export * from './permissionSelector';
+
+// --------------------------------------------------
+// Thunks & Types
+// --------------------------------------------------
 export * from './authorizeThunk';
+export * from './authorzeTypes';

@@ -1,1 +1,1 @@
-export { customerReducers } from './state';
+export * from './state';

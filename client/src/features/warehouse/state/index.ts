@@ -1,12 +1,16 @@
-import warehouseReducer from './warehouseSlice';
-import warehouseDetailsReducer from './warehouseDetailSlice';
+// --------------------------------------------------
+// Reducers (store-level, explicit)
+// --------------------------------------------------
+export { warehouseReducers } from './warehouseReducers';
 
-export const warehouseReducers = {
-  warehouses: warehouseReducer,
-  warehouseDetails: warehouseDetailsReducer,
-};
-
-// Optional: export thunks, selectors, types here
+// --------------------------------------------------
+// Selectors
+// --------------------------------------------------
 export * from './warehouseSelectors';
+export * from './warehouseDetailSelectors';
+
+// --------------------------------------------------
+// Thunks & Types
+// --------------------------------------------------
 export * from './warehouseThunks';
 export * from './warehouseTypes';

@@ -10,7 +10,7 @@ import { csrfService } from '@services/csrfService';
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { AppError, ErrorType } from '@utils/AppError';
 import { handleError } from '@utils/errorUtils';
-import { updateCsrfToken } from '@features/csrf/state';
+import { updateCsrfToken } from '@features/csrf/state/csrfSlice';
 import { persistor } from '@store/store';
 
 export const loginThunk = createAsyncThunk(
