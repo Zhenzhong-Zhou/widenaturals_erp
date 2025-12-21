@@ -1,22 +1,19 @@
-import skuProductCardsReducer from './skuProductCardsSlice';
-import skuDetailReducer from './skuDetailSlice';
-import paginatedSkusReducer from './paginatedSkusSlice';
-import createSkusReducer from './createSkusSlice';
-import skuStatusReducer from './skuStatusSlice';
+// --------------------------------------------------
+// Reducers (store-level, explicit)
+// --------------------------------------------------
+export { skuReducers } from './skuReducers';
 
-export const skuReducers = {
-  skuProductCards: skuProductCardsReducer,
-  skuDetail: skuDetailReducer,
-  paginatedSkus: paginatedSkusReducer,
-  createSkus: createSkusReducer,
-  skuStatus: skuStatusReducer,
-};
-
-// Optional exports for thunks, selectors, types
+// --------------------------------------------------
+// Selectors
+// --------------------------------------------------
 export * from './skuProductCardsSelectors';
 export * from './skuDetailSelectors';
 export * from './paginatedSkusSelectors';
 export * from './createSkusSelectors';
 export * from './skuStatusSelectors';
+
+// --------------------------------------------------
+// Thunks & Types
+// --------------------------------------------------
 export * from './skuThunks';
 export * from './skuTypes';

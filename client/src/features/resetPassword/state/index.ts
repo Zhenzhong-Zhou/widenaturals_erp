@@ -1,10 +1,15 @@
-import resetPasswordReducer from './resetPasswordSlice';
+// --------------------------------------------------
+// Reducers (store-level, explicit)
+// --------------------------------------------------
+export { resetPasswordReducers } from './resetPasswordReducers';
 
-export const resetPasswordReducers = {
-  resetPassword: resetPasswordReducer,
-};
-
-// Optionally export selectors, thunks, and types here
+// --------------------------------------------------
+// Selectors
+// --------------------------------------------------
 export * from './resetPasswordSelectors';
+
+// --------------------------------------------------
+// Thunks & Types
+// --------------------------------------------------
 export * from './resetPasswordThunk';
 export * from './resetPasswordTypes';

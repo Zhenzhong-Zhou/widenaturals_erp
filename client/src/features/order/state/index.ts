@@ -1,19 +1,18 @@
-import salesOrderCreationReducer from './salesOrderCreationSlice';
-import paginatedOrdersReducer from './paginatedOrdersSlice';
-import orderDetailsReducer from './orderDetailsSlice';
-import updateOrderStatusReducer from './updateOrderStatusSlice';
+// --------------------------------------------------
+// Reducers (store integration point ONLY)
+// --------------------------------------------------
+export { orderReducers } from './orderReducers';
 
-export const orderReducers = {
-  salesOrderCreation: salesOrderCreationReducer,
-  paginatedOrders: paginatedOrdersReducer,
-  orderDetails: orderDetailsReducer,
-  updateOrderStatus: updateOrderStatusReducer,
-};
-
-// Optional exports for thunks, selectors, types
+// --------------------------------------------------
+// Selectors
+// --------------------------------------------------
 export * from './salesOrderCreationSelectors';
 export * from './paginatedOrdersSelectors';
 export * from './orderDetailsSelectors';
 export * from './updateOrderStatusSelectors';
+
+// --------------------------------------------------
+// Thunks & Types
+// --------------------------------------------------
 export * from './orderThunks';
 export * from './orderTypes';

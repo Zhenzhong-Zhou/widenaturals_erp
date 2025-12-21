@@ -1,10 +1,15 @@
-import locationReducer from './locationSlice';
+// --------------------------------------------------
+// Reducers (store integration point ONLY)
+// --------------------------------------------------
+export { locationReducers } from './locationReducers';
 
-export const locationReducers = {
-  locations: locationReducer,
-};
-
-// Optional: export thunks, selectors, and types
+// --------------------------------------------------
+// Selectors
+// --------------------------------------------------
 export * from './locationSelectors';
+
+// --------------------------------------------------
+// Thunks & Types
+// --------------------------------------------------
 export * from './locationThunks';
 export * from './locationTypes';

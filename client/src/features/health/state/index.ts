@@ -1,10 +1,19 @@
-import healthReducer from './healthStatusSlice';
+// --------------------------------------------------
+// Reducers (store integration point ONLY)
+// --------------------------------------------------
+export { healthReducers } from './healthReducers';
 
-export const healthReducers = {
-  health: healthReducer,
-};
-
-// Optionally export selectors, thunks, or types
+// --------------------------------------------------
+// Selectors
+// --------------------------------------------------
 export * from './healthStatusSelectors';
+
+// --------------------------------------------------
+// Thunks
+// --------------------------------------------------
 export * from './healthStatusThunk';
+
+// --------------------------------------------------
+// Types / State
+// --------------------------------------------------
 export * from './healthStatusState';
