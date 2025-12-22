@@ -7,7 +7,7 @@ import {
   selectAllocationOrderId,
   selectAllocatedIds,
   allocateInventoryThunk,
-  resetAllocationState,
+  resetAllocateInventory,
 } from '@features/inventoryAllocation/state';
 import type {
   AllocateInventoryBody,
@@ -43,7 +43,7 @@ const useAllocateInventory = () => {
    * Reset allocation state to initial.
    */
   const reset = useCallback(() => {
-    dispatch(resetAllocationState());
+    dispatch(resetAllocateInventory());
   }, [dispatch]);
 
   /**
