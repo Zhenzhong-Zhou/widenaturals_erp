@@ -1,4 +1,4 @@
-import type { ReduxPaginatedState } from '@shared-types/api';
+import type { PaginatedLookupState, ReduxPaginatedState } from '@shared-types/api';
 
 /**
  * Returns a standardized initial state object for any Redux slice that uses
@@ -27,3 +27,25 @@ export const createInitialPaginatedState = <T>(): ReduxPaginatedState<T> => ({
   loading: false,
   error: null,
 });
+
+/**
+ * Creates the initial state structure for an offset-based paginated Redux slice.
+ *
+ * This utility is commonly used to initialize state for dropdowns,
+ * autocomplete fields, and infinite scroll components that fetch data
+ * incrementally using `limit` and `offset`.
+ *
+ * @template T - The type of individual items stored in the paginated state
+ * @returns A default-initialized paginated state with empty data,
+ *          no error, and pagination metadata.
+ */
+export const createInitialOffsetPaginatedState = <T>(): PaginatedLookupState<T> => {
+  return {
+    data: [],
+    loading: false,
+    error: null,
+    limit: 50,
+    offset: 0,
+    hasMore: false,
+  };
+};

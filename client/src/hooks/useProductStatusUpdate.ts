@@ -7,9 +7,11 @@ import {
   selectProductStatusUpdateSuccess,
   selectUpdatedProductStatusId,
   updateProductStatusByIdThunk,
+  resetProductStatusUpdate,
+} from '@features/product/state';
+import type {
   UpdateProductStatusThunkArgs,
 } from '@features/product/state';
-import { resetProductStatusUpdateState } from '@features/product/state/productStatusUpdateSlice';
 
 /**
  * Hook providing a clean interface for updating a product's status.
@@ -41,7 +43,7 @@ const useProductStatusUpdate = () => {
   
   // --- Action: Reset slice ---
   const reset = useCallback(() => {
-    dispatch(resetProductStatusUpdateState());
+    dispatch(resetProductStatusUpdate());
   }, [dispatch]);
   
   // --- Public API ---

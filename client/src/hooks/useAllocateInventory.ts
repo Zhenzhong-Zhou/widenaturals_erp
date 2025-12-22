@@ -1,14 +1,14 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
-import { allocateInventoryThunk } from '@features/inventoryAllocation/state/inventoryAllocationThunks';
 import {
   selectAllocationData,
   selectAllocationLoading,
   selectAllocationError,
   selectAllocationOrderId,
   selectAllocatedIds,
-} from '@features/inventoryAllocation/state/allocateInventorySelectors';
-import { resetAllocationState } from '@features/inventoryAllocation/state/allocateInventorySlice';
+  allocateInventoryThunk,
+  resetAllocationState,
+} from '@features/inventoryAllocation/state';
 import type {
   AllocateInventoryBody,
   AllocateInventoryParams,

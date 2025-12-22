@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchOutboundShipmentDetailsThunk,
+  resetOutboundShipmentDetails,
   selectOutboundShipmentDetailsData,
   selectOutboundShipmentDetailsError,
   selectOutboundShipmentDetailsLoading,
@@ -9,7 +10,6 @@ import {
   selectShipmentFulfillmentsItemCount,
   selectShipmentHeader,
 } from '@features/outboundFulfillment/state';
-import { resetOutboundShipmentDetails } from '@features/outboundFulfillment/state/outboundShipmentDetailsSlice';
 
 /**
  * Custom hook for accessing and managing outbound shipment details state.

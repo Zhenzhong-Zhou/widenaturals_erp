@@ -1,15 +1,15 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
+  fetchBomDetailsThunk,
+  resetBomDetails,
   selectBomDetailsData,
   selectBomDetailsError,
   selectBomDetailsLoading,
   selectBomPartCount,
   selectBomTotalEstimatedCost,
   selectHasBomDetails,
-} from '@features/bom/state/bomDetailsSelectors';
-import { fetchBomDetailsThunk } from '@features/bom/state/bomThunks';
-import { resetBomDetails } from '@features/bom/state/bomDetailsSlice';
+} from '@features/bom/state';
 
 /**
  * Custom hook for accessing and managing BOM details.

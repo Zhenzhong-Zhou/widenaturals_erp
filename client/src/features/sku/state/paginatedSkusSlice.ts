@@ -23,7 +23,7 @@ const paginatedSkusSlice = createSlice({
      * Reset the entire paginated SKU state back to clean initial
      * (e.g., when leaving SKU page)
      */
-    resetPaginatedSkusState: () => initialState,
+    resetPaginatedSkus: () => initialState,
   },
 
   // ---------------------------
@@ -64,6 +64,6 @@ const paginatedSkusSlice = createSlice({
   },
 });
 
-export const { resetPaginatedSkusState } = paginatedSkusSlice.actions;
+export const { resetPaginatedSkus } = paginatedSkusSlice.actions;
 
 export default paginatedSkusSlice.reducer;

@@ -1,14 +1,16 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  type StatusLookupParams,
   fetchStatusLookupThunk,
   selectStatusLookupOptions,
   selectStatusLookupError,
   selectStatusLookupLoading,
   selectStatusLookupMeta,
+  resetStatusLookup,
 } from '@features/lookup/state';
-import { resetStatusLookup } from '@features/lookup/state/statusLookupSlice';
+import type {
+  StatusLookupParams,
+} from '@features/lookup/state';
 
 /**
  * Hook for accessing Status lookup state and actions.

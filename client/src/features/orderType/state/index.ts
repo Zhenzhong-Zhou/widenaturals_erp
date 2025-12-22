@@ -4,6 +4,11 @@
 export { orderTypeReducers } from './orderTypeReducers';
 
 // -----------------------------------------------------
+// Reset Actions (explicit public lifecycle API)
+// -----------------------------------------------------
+export { resetPaginatedOrderTypes } from './paginatedOrderTypesSlice';
+
+// -----------------------------------------------------
 // Selectors
 // -----------------------------------------------------
 export * from './paginatedOrderTypesSelectors';

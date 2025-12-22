@@ -32,7 +32,7 @@ const paginatedUsersSlice = createSlice({
      * - Switching modules
      * - Performing a full filter reset
      */
-    resetPaginatedUsersState: () => initialState,
+    resetPaginatedUsers: () => initialState,
   },
   
   // ---------------------------
@@ -80,5 +80,5 @@ const paginatedUsersSlice = createSlice({
   },
 });
 
-export const { resetPaginatedUsersState } = paginatedUsersSlice.actions;
+export const { resetPaginatedUsers } = paginatedUsersSlice.actions;
 export default paginatedUsersSlice.reducer;

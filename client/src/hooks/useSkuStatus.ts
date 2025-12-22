@@ -6,10 +6,12 @@ import {
   selectSkuStatusError,
   selectSkuStatusSuccess,
   selectUpdatedSkuId,
-  UpdateSkuStatusThunkArgs,
   updateSkuStatusThunk,
+  resetSkuStatus,
 } from '@features/sku/state';
-import { resetSkuStatus } from '@features/sku/state/skuStatusSlice';
+import type {
+  UpdateSkuStatusThunkArgs,
+} from '@features/sku/state';
 
 /**
  * Hook providing a clean interface for updating SKU status.

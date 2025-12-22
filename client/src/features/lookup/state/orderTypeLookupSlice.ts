@@ -15,7 +15,7 @@ const orderTypeLookupSlice = createSlice({
   name: 'orderTypeLookup',
   initialState,
   reducers: {
-    clearOrderTypeLookup(state) {
+    resetOrderTypeLookup(state) {
       state.data = [];
       state.loading = false;
       state.error = null;
@@ -42,5 +42,5 @@ const orderTypeLookupSlice = createSlice({
   },
 });
 
-export const { clearOrderTypeLookup } = orderTypeLookupSlice.actions;
+export const { resetOrderTypeLookup } = orderTypeLookupSlice.actions;
 export default orderTypeLookupSlice.reducer;

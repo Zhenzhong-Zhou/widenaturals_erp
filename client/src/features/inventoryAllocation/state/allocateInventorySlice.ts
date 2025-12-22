@@ -3,7 +3,7 @@ import type {
   AllocateInventoryResponse,
   AllocateInventoryState,
 } from './inventoryAllocationTypes';
-import { allocateInventoryThunk } from '@features/inventoryAllocation/state/inventoryAllocationThunks';
+import { allocateInventoryThunk } from '@features/inventoryAllocation/state';
 
 const initialState: AllocateInventoryState = {
   loading: false,
@@ -15,7 +15,7 @@ const allocateInventorySlice = createSlice({
   name: 'allocateInventory',
   initialState,
   reducers: {
-    resetAllocationState: (state) => {
+    resetAllocateInventory: (state) => {
       state.loading = false;
       state.data = null;
       state.error = null;
@@ -45,6 +45,6 @@ const allocateInventorySlice = createSlice({
   },
 });
 
-export const { resetAllocationState } = allocateInventorySlice.actions;
+export const { resetAllocateInventory } = allocateInventorySlice.actions;
 
 export default allocateInventorySlice.reducer;

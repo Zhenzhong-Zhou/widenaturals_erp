@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import { handleError, mapErrorMessage } from '@utils/errorUtils';
 import { AppError, ErrorType } from '@utils/AppError';
 import { withTimeout } from '@utils/timeoutUtils';
@@ -8,9 +9,8 @@ import { monitorCsrfStatus } from '@utils/monitorCsrfStatus';
 import {
   selectCsrfStatus,
   selectCsrfError,
-} from '@features/csrf/state/csrfSelector';
+} from '@features/csrf/state';
 import { resetCsrfToken } from '@features/csrf/state/csrfSlice';
-import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 
 interface InitializeAppOptions {
   delay?: number; // Simulated delay (default: 500ms)

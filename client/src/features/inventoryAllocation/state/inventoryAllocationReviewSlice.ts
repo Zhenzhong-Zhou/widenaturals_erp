@@ -3,7 +3,7 @@ import type {
   InventoryAllocationReviewResponse,
   InventoryAllocationReviewState,
 } from './inventoryAllocationTypes';
-import { fetchInventoryAllocationReviewThunk } from '@features/inventoryAllocation/state/inventoryAllocationThunks';
+import { fetchInventoryAllocationReviewThunk } from '@features/inventoryAllocation/state';
 
 const initialState: InventoryAllocationReviewState = {
   data: null,
@@ -18,7 +18,7 @@ const inventoryAllocationReviewSlice = createSlice({
   initialState,
   reducers: {
     /** Reset the slice back to its initial state. */
-    resetReviewState: () => initialState,
+    resetInventoryAllocationReview: () => initialState,
     /** Manually set error and stop loading (optional utility). */
     setReviewError: (state, action: PayloadAction<string | null>) => {
       state.error = action.payload;
@@ -61,7 +61,7 @@ const inventoryAllocationReviewSlice = createSlice({
   },
 });
 
-export const { resetReviewState, setReviewError } =
+export const { resetInventoryAllocationReview, setReviewError } =
   inventoryAllocationReviewSlice.actions;
 
 export default inventoryAllocationReviewSlice.reducer;

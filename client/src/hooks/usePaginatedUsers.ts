@@ -1,5 +1,9 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
+import type {
+  GetPaginatedUsersParams,
+  UserViewMode,
+} from '@features/user/state';
 import {
   selectPaginatedUsersData,
   selectPaginatedUsersPagination,
@@ -7,12 +11,8 @@ import {
   selectPaginatedUsersError,
   selectPaginatedUsersIsEmpty,
   fetchPaginatedUsersThunk,
-  GetPaginatedUsersParams,
-  UserViewMode,
+  resetPaginatedUsers,
 } from '@features/user/state';
-import {
-  resetPaginatedUsersState,
-} from '@features/user/state/paginatedUsersSlice';
 
 type FetchUsersParams =
   GetPaginatedUsersParams & { viewMode?: UserViewMode };
@@ -68,7 +68,7 @@ const usePaginatedUsers = () => {
    * - performing a full filter reset
    */
   const resetUsers = useCallback(() => {
-    dispatch(resetPaginatedUsersState());
+    dispatch(resetPaginatedUsers());
   }, [dispatch]);
   
   // ---------------------------

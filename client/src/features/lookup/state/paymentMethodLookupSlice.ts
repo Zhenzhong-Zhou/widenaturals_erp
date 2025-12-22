@@ -1,15 +1,17 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import type {
+  PaymentMethodLookupItem,
+  PaymentMethodLookupResponse,
+  PaymentMethodLookupState,
+} from '@features/lookup/state';
+import { createInitialOffsetPaginatedState } from '@store/pagination';
 import {
-  createInitialPaginatedLookupState,
-  type PaymentMethodLookupItem,
-  type PaymentMethodLookupResponse,
-  type PaymentMethodLookupState,
-} from '@features/lookup/state/lookupTypes';
-import { fetchPaymentMethodLookup } from './lookupThunks';
+  fetchPaymentMethodLookup,
+} from '@features/lookup/state';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 
 const initialState: PaymentMethodLookupState =
-  createInitialPaginatedLookupState<PaymentMethodLookupItem>();
+  createInitialOffsetPaginatedState<PaymentMethodLookupItem>();
 
 export const paymentMethodLookupSlice = createSlice({
   name: 'paymentMethodLookup',

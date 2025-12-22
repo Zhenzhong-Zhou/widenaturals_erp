@@ -1,16 +1,16 @@
 import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
+  fetchPaginatedAddressesThunk,
   selectPaginatedAddresses,
   selectPaginateError,
   selectPaginateLoading,
   selectPaginationMeta,
-} from '@features/address/state/paginateAddressSelectors';
-import {
-  fetchPaginatedAddressesThunk,
-  type AddressQueryParams,
+  resetPaginatedAddresses,
 } from '@features/address/state';
-import { resetPaginatedAddresses } from '@features/address/state/paginateAddressSlice';
+import type {
+  AddressQueryParams,
+} from '@features/address/state';
 
 /**
  * React hook for accessing and controlling paginated addresses state.

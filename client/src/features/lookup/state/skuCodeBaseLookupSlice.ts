@@ -1,19 +1,20 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import type {
+  SkuCodeBaseLookupItem,
+  SkuCodeBaseLookupResponse,
+  SkuCodeBaseLookupState,
+} from '@features/lookup/state';
+import { createInitialOffsetPaginatedState } from '@store/pagination';
 import {
-  createInitialPaginatedLookupState,
-  type SkuCodeBaseLookupItem,
-  type SkuCodeBaseLookupResponse,
-  type SkuCodeBaseLookupState,
-} from '@features/lookup/state/lookupTypes';
-
-import { fetchSkuCodeBaseLookupThunk } from './lookupThunks';
+  fetchSkuCodeBaseLookupThunk,
+} from '@features/lookup/state';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 
 // -----------------------------
 // Initial State
 // -----------------------------
 const initialState: SkuCodeBaseLookupState =
-  createInitialPaginatedLookupState<SkuCodeBaseLookupItem>();
+  createInitialOffsetPaginatedState<SkuCodeBaseLookupItem>();
 
 // -----------------------------
 // Slice
@@ -29,7 +30,7 @@ const skuCodeBaseLookupSlice = createSlice({
     resetSkuCodeBaseLookup: (state) => {
       Object.assign(
         state,
-        createInitialPaginatedLookupState<SkuCodeBaseLookupItem>()
+        createInitialOffsetPaginatedState<SkuCodeBaseLookupItem>()
       );
     },
   },

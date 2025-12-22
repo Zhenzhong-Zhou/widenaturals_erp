@@ -1,10 +1,5 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
-import { fetchBomProductionSummaryThunk } from '@features/bom/state/bomThunks';
-import {
-  resetBomProductionReadiness,
-  setSelectedBomId,
-} from '@features/bom/state/bomProductionReadinessSlice';
 import {
   selectBomReadinessMetadata,
   selectBomReadinessParts,
@@ -17,7 +12,10 @@ import {
   selectStockHealth,
   selectMaxProducibleUnits,
   selectReadinessSelectedBomId,
-} from '@features/bom/state/bomProductionReadinessSelectors';
+  fetchBomProductionSummaryThunk,
+  setProductionReadinessSelectedBomId,
+  resetBomProductionReadiness,
+} from '@features/bom/state';
 
 /**
  * React hook for accessing and managing BOM Production Readiness Summary state.
@@ -53,7 +51,7 @@ const useBomProductionReadiness = () => {
   // --- Actions ---
   const fetchReadiness = useCallback(
     (bomId: string) => {
-      dispatch(setSelectedBomId(bomId));
+      dispatch(setProductionReadinessSelectedBomId(bomId));
       dispatch(fetchBomProductionSummaryThunk(bomId));
     },
     [dispatch]

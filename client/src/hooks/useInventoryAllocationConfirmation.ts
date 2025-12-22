@@ -2,13 +2,13 @@ import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   confirmInventoryAllocationThunk,
+  resetInventoryAllocationConfirmation,
   selectAllocationConfirmError,
   selectAllocationConfirmLoading,
   selectAllocationConfirmMessage,
   selectAllocationConfirmPayload,
   selectAllocationConfirmSuccess,
 } from '@features/inventoryAllocation/state';
-import { resetConfirmationState } from '@features/inventoryAllocation/state/inventoryAllocationConfirmationSlice';
 
 /**
  * Hook to manage inventory allocation confirmation state and actions.
@@ -40,7 +40,7 @@ const useInventoryAllocationConfirmation = () => {
    * Resets the confirmation state (data, error, loading).
    */
   const reset = useCallback(() => {
-    dispatch(resetConfirmationState());
+    dispatch(resetInventoryAllocationConfirmation());
   }, [dispatch]);
 
   return {

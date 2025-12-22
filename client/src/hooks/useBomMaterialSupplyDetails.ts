@@ -1,10 +1,5 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
-import { fetchBomMaterialSupplyDetailsThunk } from '@features/bom/state/bomThunks';
-import {
-  resetBomMaterialSupplyDetails,
-  setSelectedBomId,
-} from '@features/bom/state/bomMaterialSupplyDetailsSlice';
 import {
   selectBomMaterialSupplyLoading,
   selectBomMaterialSupplyError,
@@ -13,7 +8,10 @@ import {
   selectHasBomMaterialSupplyData,
   selectBomMaterialSupplyCostOverview,
   selectSelectedBomId,
-} from '@features/bom/state/bomMaterialSupplyDetailsSelectors';
+  fetchBomMaterialSupplyDetailsThunk,
+  setSelectedSupplySelectedBomId,
+  resetBomMaterialSupplyDetails,
+} from '@features/bom/state';
 
 /**
  * Custom hook for accessing and managing BOM Material Supply Details state.
@@ -55,7 +53,7 @@ const useBomMaterialSupplyDetails = () => {
 
   const fetchDetails = useCallback(
     (bomId: string) => {
-      dispatch(setSelectedBomId(bomId));
+      dispatch(setSelectedSupplySelectedBomId(bomId));
       dispatch(fetchBomMaterialSupplyDetailsThunk(bomId));
     },
     [dispatch]

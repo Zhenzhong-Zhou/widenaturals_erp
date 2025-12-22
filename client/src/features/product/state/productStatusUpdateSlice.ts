@@ -16,7 +16,7 @@ export const productStatusUpdateSlice = createSlice({
   initialState,
   reducers: {
     /** Reset back to initial async state */
-    resetProductStatusUpdateState: () => initialState,
+    resetProductStatusUpdate: () => initialState,
   },
   extraReducers: (builder) => {
     builder
@@ -44,7 +44,7 @@ export const productStatusUpdateSlice = createSlice({
   },
 });
 
-export const { resetProductStatusUpdateState } =
+export const { resetProductStatusUpdate } =
   productStatusUpdateSlice.actions;
 
 export default productStatusUpdateSlice.reducer;

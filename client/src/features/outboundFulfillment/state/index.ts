@@ -4,6 +4,15 @@
 export { outboundFulfillmentReducers } from './outboundFulfillmentReducers';
 
 // --------------------------------------------------
+// Reset Actions (explicit public lifecycle API)
+// --------------------------------------------------
+export { resetInitiateOutboundFulfillment } from './initiateOutboundFulfillmentSlice';
+export { resetPaginatedOutboundFulfillments } from './paginatedOutboundFulfillmentsSlice';
+export { resetOutboundShipmentDetails } from './outboundShipmentDetailsSlice';
+export { resetConfirmOutboundFulfillment } from './confirmOutboundFulfillmentSlice';
+export { resetCompleteManualFulfillment } from './completeManualFulfillmentSlice';
+
+// --------------------------------------------------
 // Selectors
 // --------------------------------------------------
 export * from './initiateOutboundFulfillmentSelectors';

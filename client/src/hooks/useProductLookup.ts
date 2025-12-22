@@ -1,14 +1,16 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  type ProductLookupParams,
   fetchProductLookupThunk,
   selectProductLookupOptions,
   selectProductLookupError,
   selectProductLookupLoading,
   selectProductLookupMeta,
+  resetProductLookup,
 } from '@features/lookup/state';
-import { resetProductLookup } from '@features/lookup/state/productLookupSlice';
+import type {
+  ProductLookupParams,
+} from '@features/lookup/state';
 
 /**
  * Hook for accessing Product lookup state and actions.

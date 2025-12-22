@@ -13,11 +13,9 @@ import {
   selectReviewLastFetchedAt,
   selectReviewLoading,
   selectReviewMessage,
-} from '@features/inventoryAllocation/state';
-import {
-  resetReviewState,
+  resetInventoryAllocationReview,
   setReviewError,
-} from '@features/inventoryAllocation/state/inventoryAllocationReviewSlice';
+} from '@features/inventoryAllocation/state';
 
 const useInventoryAllocationReview = () => {
   const dispatch = useAppDispatch();
@@ -53,7 +51,7 @@ const useInventoryAllocationReview = () => {
   );
 
   const resetReview = useCallback(() => {
-    dispatch(resetReviewState());
+    dispatch(resetInventoryAllocationReview());
   }, [dispatch]);
 
   const updateReviewError = useCallback(

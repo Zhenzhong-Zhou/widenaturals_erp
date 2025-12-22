@@ -1,15 +1,16 @@
+import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   selectCustomerCreateError,
   selectCustomerCreateLoading,
   selectCustomerCreateResponse,
   selectCreatedCustomerNames,
-} from '@features/customer/state/customerCreateSelectors';
-import {
   createCustomersThunk,
-  type CreateCustomersRequest,
+  resetCustomerCreate,
 } from '@features/customer/state';
-import { resetCustomerCreateState } from '@features/customer/state/customerCreateSlice';
+import type {
+  CreateCustomersRequest,
+} from '@features/customer/state';
 
 /**
  * Custom hook to access memoized customer creation state.
@@ -34,9 +35,9 @@ const useCustomerCreate = () => {
   /**
    * Resets the customer creation state to initial.
    */
-  const resetCustomerCreate = () => {
-    dispatch(resetCustomerCreateState());
-  };
+  const resetCustomerCreateState = useCallback(() => {
+    dispatch(resetCustomerCreate());
+  }, [dispatch]);
 
   return {
     loading,
@@ -44,7 +45,7 @@ const useCustomerCreate = () => {
     customerCreateResponse,
     customerNames,
     createCustomers,
-    resetCustomerCreate,
+    resetCustomerCreateState,
   };
 };
 

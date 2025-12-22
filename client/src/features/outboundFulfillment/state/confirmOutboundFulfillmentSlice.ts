@@ -31,7 +31,7 @@ export const confirmOutboundFulfillmentSlice = createSlice({
      * Reset the confirmation state to its initial values.
      * Useful when navigating away from a details page or starting a new confirmation.
      */
-    resetConfirmationState: (state) => {
+    resetConfirmOutboundFulfillment: (state) => {
       state.data = null;
       state.loading = false;
       state.error = null;
@@ -61,7 +61,7 @@ export const confirmOutboundFulfillmentSlice = createSlice({
 });
 
 // Export reducer and reset action for use in components
-export const { resetConfirmationState } =
+export const { resetConfirmOutboundFulfillment } =
   confirmOutboundFulfillmentSlice.actions;
 
 // Export reducer for store registration

@@ -1,4 +1,4 @@
-import paginatedComplianceRecordsReducer from './paginatedComplianceRecordSlice';
+import paginatedComplianceRecordsReducer from './paginatedComplianceRecordsSlice';
 
 /**
  * Reducer map for the Compliance Record feature.

@@ -1,15 +1,17 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  type SkuCodeBaseLookupParams,
   fetchSkuCodeBaseLookupThunk,
   selectSkuCodeBaseLookupOptions,
   selectSkuCodeBaseLookupError,
   selectSkuCodeBaseLookupLoading,
   selectSkuCodeBaseLookupMeta,
   selectSkuCodeBaseLookupRawItems,
+  resetSkuCodeBaseLookup,
 } from '@features/lookup/state';
-import { resetSkuCodeBaseLookup } from '@features/lookup/state/skuCodeBaseLookupSlice';
+import type {
+  SkuCodeBaseLookupParams,
+} from '@features/lookup/state';
 
 /**
  * Hook for accessing SKU Code Base lookup state and actions.

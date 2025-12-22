@@ -2,11 +2,13 @@ import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchLocationInventorySummaryThunk,
-  type LocationInventoryQueryParams,
   selectLocationInventorySummaryData,
   selectLocationInventorySummaryError,
   selectLocationInventorySummaryLoading,
   selectLocationInventorySummaryPagination,
+} from '@features/locationInventory/state';
+import type {
+  LocationInventoryQueryParams,
 } from '@features/locationInventory/state';
 
 /**

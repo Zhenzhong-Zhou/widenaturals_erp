@@ -1,21 +1,21 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
+  fetchSkuLookupThunk,
   selectNormalSkuLookupOptions,
   selectAbnormalSkuLookupOptions,
   selectSkuLookupLoading,
   selectSkuLookupError,
   selectSkuLookupMeta,
-} from '@features/lookup/state/skuLookupSelectors';
-import { resetSkuLookup } from '@features/lookup/state/skuLookupSlice';
-import {
-  fetchSkuLookupThunk,
-  type SkuLookupQueryParams,
+  resetSkuLookup,
 } from '@features/lookup/state';
 import usePermissions from '@hooks/usePermissions';
 import useHasPermission from '@features/authorize/hooks/useHasPermission';
 import { SKU_CONSTANTS } from '@utils/constants/skuConstants';
 import { dedupeByValuePreserveOrder } from '@utils/dedupeHelpers';
+import type {
+  SkuLookupQueryParams,
+} from '@features/lookup/state';
 
 /**
  * Hook to access SKU lookup state and utility actions.

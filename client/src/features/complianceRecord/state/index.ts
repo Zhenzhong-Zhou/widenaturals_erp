@@ -4,6 +4,11 @@
 export { complianceRecordReducers } from './complianceRecordReducers';
 
 // --------------------------------------------------
+// Reset Actions (explicit public lifecycle API)
+// --------------------------------------------------
+export { resetPaginatedComplianceRecords } from './paginatedComplianceRecordsSlice';
+
+// --------------------------------------------------
 // Selectors
 // --------------------------------------------------
 export * from './paginatedComplianceRecordSelectors';

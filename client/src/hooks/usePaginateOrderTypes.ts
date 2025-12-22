@@ -1,14 +1,16 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  type FetchPaginatedOrderTypesParams,
+  fetchPaginatedOrderTypesThunk,
   selectOrderTypeList,
   selectOrderTypePagination,
   selectOrderTypesError,
   selectOrderTypesLoading,
+  resetPaginatedOrderTypes,
 } from '@features/orderType/state';
-import { fetchPaginatedOrderTypesThunk } from '@features/orderType/state/orderTypeThunks';
-import { resetOrderTypesState } from '@features/orderType/state/paginatedOrderTypesSlice';
+import type {
+  FetchPaginatedOrderTypesParams,
+} from '@features/orderType/state';
 
 /**
  * Hook to access paginated order types data and utilities.
@@ -37,7 +39,7 @@ const usePaginateOrderTypes = () => {
   );
 
   const reset = useCallback(() => {
-    dispatch(resetOrderTypesState());
+    dispatch(resetPaginatedOrderTypes());
   }, [dispatch]);
 
   return useMemo(
