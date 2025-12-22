@@ -11,8 +11,8 @@ import {
   selectSkuImageUploadHasResults,
   uploadSkuImagesThunk,
   selectSkuImageUploadSuccess,
-  resetSkuImageUpload,
 } from '@features/skuImage/state';
+import { resetSkuImageUpload } from '@features/skuImage/state/skuImageUploadSlice';
 
 const useSkuImageUpload = () => {
   const dispatch = useAppDispatch();

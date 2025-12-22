@@ -1,7 +1,6 @@
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   createAddressesThunk,
-  resetAddressCreation,
   selectAddressCreationData,
   selectAddressCreationError,
   selectAddressCreationLoading,
@@ -10,6 +9,7 @@ import {
 import type {
   AddressInputArray,
 } from '@features/address/state';
+import { resetAddressCreation } from '@features/address/state/addressCreationSlice';
 
 /**
  * Hook to access address creation state and actions.

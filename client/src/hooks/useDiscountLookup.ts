@@ -6,11 +6,11 @@ import {
   selectDiscountLookupError,
   selectDiscountLookupLoading,
   selectDiscountLookupMeta,
-  resetDiscountLookup,
 } from '@features/lookup/state';
 import type {
   DiscountLookupQueryParams,
 } from '@features/lookup/state';
+import { resetDiscountLookup } from '@features/lookup/state/discountLookupSlice';
 
 /**
  * Hook for accessing discount lookup state and actions.

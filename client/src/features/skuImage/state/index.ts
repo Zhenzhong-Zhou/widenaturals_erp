@@ -4,11 +4,6 @@
 export { skuImageReducers } from './skuImageReducers';
 
 // --------------------------------------------------
-// Reset Actions (explicit public lifecycle API)
-// --------------------------------------------------
-export { resetSkuImageUpload } from './skuImageUploadSlice';
-
-// --------------------------------------------------
 // Selectors
 // --------------------------------------------------
 export * from './skuImageUploadSelectors';

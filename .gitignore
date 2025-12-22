@@ -70,5 +70,6 @@ server/public/uploads/sku-images
 server/src/tests/apis/public
 
 # Client
-client/vite.config.d.ts
-client/vite.config.js
+vite.config.d.ts
+# Vite generated config
+vite.config.js

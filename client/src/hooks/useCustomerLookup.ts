@@ -9,8 +9,8 @@ import {
   selectCustomerLookupError,
   selectCustomerLookupOptions,
   selectCustomerLookupMeta,
-  resetCustomerLookup,
 } from '@features/lookup/state';
+import { resetCustomerLookup } from '@features/lookup/state/customerLookupSlice';
 
 /**
  * Hook to access customer lookup state and trigger customer fetching.

@@ -11,11 +11,13 @@ import {
   selectInventoryAllocationsPagination,
   selectInventoryAllocationsTotalPages,
   selectInventoryAllocationsTotalRecords,
-  resetPaginatedInventoryAllocations,
 } from '@features/inventoryAllocation/state';
 import type {
   FetchPaginatedInventoryAllocationsParams,
 } from '@features/inventoryAllocation/state';
+import {
+  resetPaginatedInventoryAllocations
+} from '@features/inventoryAllocation/state/paginatedInventoryAllocationsSlice.ts';
 
 /**
  * Custom hook to access and manage paginated inventory allocation data from the Redux store.

@@ -6,11 +6,11 @@ import {
   selectBatchRegistryLookupItems,
   selectBatchRegistryLookupLoading,
   selectBatchRegistryLookupMeta,
-  resetBatchRegistryLookup,
 } from '@features/lookup/state';
 import type {
   GetBatchRegistryLookupParams,
 } from '@features/lookup/state';
+import { resetBatchRegistryLookup } from '@features/lookup/state/batchRegistryLookupSlice';
 
 /**
  * Custom hook to access batch registry lookup state and actions.

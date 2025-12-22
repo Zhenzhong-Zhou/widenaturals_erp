@@ -6,11 +6,11 @@ import {
   selectStatusLookupError,
   selectStatusLookupLoading,
   selectStatusLookupMeta,
-  resetStatusLookup,
 } from '@features/lookup/state';
 import type {
   StatusLookupParams,
 } from '@features/lookup/state';
+import { resetStatusLookup } from '@features/lookup/state/statusLookupSlice';
 
 /**
  * Hook for accessing Status lookup state and actions.

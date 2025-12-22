@@ -6,11 +6,11 @@ import {
   selectDeliveryMethodLookupError,
   selectDeliveryMethodLookupLoading,
   selectDeliveryMethodLookupMeta,
-  resetDeliveryMethodLookup,
 } from '@features/lookup/state';
 import type {
   DeliveryMethodLookupQueryParams,
 } from '@features/lookup/state';
+import { resetDeliveryMethodLookup } from '@features/lookup/state/deliveryMethodLookupSlice.ts';
 
 /**
  * Hook for accessing delivery method lookup state and actions.

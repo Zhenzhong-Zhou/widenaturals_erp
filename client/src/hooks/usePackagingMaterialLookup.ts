@@ -6,11 +6,11 @@ import {
   selectPackagingMaterialLookupError,
   selectPackagingMaterialLookupLoading,
   selectPackagingMaterialLookupMeta,
-  resetPackagingMaterialLookup,
 } from '@features/lookup/state';
 import type {
   PackagingMaterialLookupQueryParams,
 } from '@features/lookup/state';
+import { resetPackagingMaterialLookup } from '@features/lookup/state/packagingMaterialLookupSlice';
 
 /**
  * Hook for accessing packaging-material lookup state and actions.

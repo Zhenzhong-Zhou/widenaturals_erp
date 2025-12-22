@@ -6,7 +6,6 @@ export { userReducers } from './userReducers';
 // --------------------------------------------------
 // Reset Actions (explicit public lifecycle API)
 // --------------------------------------------------
-export { resetPaginatedUsers } from './paginatedUsersSlice';
 export { resetUserProfile } from './userProfileSlice';
 
 // --------------------------------------------------

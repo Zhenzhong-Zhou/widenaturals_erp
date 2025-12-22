@@ -7,7 +7,6 @@ import {
   selectSkuLookupLoading,
   selectSkuLookupError,
   selectSkuLookupMeta,
-  resetSkuLookup,
 } from '@features/lookup/state';
 import usePermissions from '@hooks/usePermissions';
 import useHasPermission from '@features/authorize/hooks/useHasPermission';
@@ -16,6 +15,7 @@ import { dedupeByValuePreserveOrder } from '@utils/dedupeHelpers';
 import type {
   SkuLookupQueryParams,
 } from '@features/lookup/state';
+import { resetSkuLookup } from '@features/lookup/state/skuLookupSlice';
 
 /**
  * Hook to access SKU lookup state and utility actions.

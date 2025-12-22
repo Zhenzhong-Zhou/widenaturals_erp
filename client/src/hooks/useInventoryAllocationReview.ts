@@ -13,9 +13,11 @@ import {
   selectReviewLastFetchedAt,
   selectReviewLoading,
   selectReviewMessage,
+} from '@features/inventoryAllocation/state';
+import {
   resetInventoryAllocationReview,
   setReviewError,
-} from '@features/inventoryAllocation/state';
+} from '@features/inventoryAllocation/state/inventoryAllocationReviewSlice';
 
 const useInventoryAllocationReview = () => {
   const dispatch = useAppDispatch();
