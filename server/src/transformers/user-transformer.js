@@ -68,7 +68,9 @@ const transformUserForView = (userRow, viewMode) => {
     return cleanObject( {
       id: userRow.id,
       fullName: getFullName(userRow.firstname, userRow.lastname),
+      email: userRow.email,
       jobTitle: userRow.job_title,
+      roleId: userRow.role_id,
       roleName: userRow.role_name,
       statusName: userRow.status_name,
       avatarUrl: userRow.avatar_url,
