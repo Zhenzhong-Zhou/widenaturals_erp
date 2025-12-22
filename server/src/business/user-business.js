@@ -80,6 +80,75 @@ const evaluateUserVisibilityAccessControl = async (user) => {
 };
 
 /**
+ * Business: applyUserListVisibilityRules
+ *
+ * Adjust user list query filters based on evaluated visibility access control.
+ *
+ * Responsibility:
+ * - Translate ACL decisions into repository-consumable filter flags
+ * - Enforce ACTIVE-only visibility for non-privileged users (default)
+ * - Apply widened visibility when explicitly granted by ACL
+ *
+ * Enforcement model:
+ * - SQL filtering is the PRIMARY enforcement mechanism
+ * - Row slicing is defensive only
+ *
+ * This function MUST:
+ * - Set includeSystemUsers / includeRootUsers explicitly
+ * - Set enforceActiveOnly + activeStatusId when required
+ * - Remove conflicting status filters when ACTIVE-only enforcement applies
+ *
+ * This function MUST NOT:
+ * - Perform row-level filtering
+ * - Evaluate permissions or infer privilege from roles
+ * - Bypass repository-level visibility constraints
+ *
+ * @param {Object} filters - Original query filters
+ * @param {Object} acl - Result from evaluateUserVisibilityAccessControl()
+ * @returns {Object} Adjusted filters for repository consumption
+ */
+const applyUserListVisibilityRules = (filters, acl) => {
+  const adjusted = { ...filters };
+  const ACTIVE_USER_STATUS_ID = getStatusId('general_active');
+  
+  // -------------------------------------------------------------
+  // 1. Full override → no visibility restrictions
+  // -------------------------------------------------------------
+  if (acl.canViewAllUsers) {
+    adjusted.canViewAllUsers = true;
+    adjusted.includeSystemUsers = true;
+    adjusted.includeRootUsers = true;
+    delete adjusted.enforceActiveOnly;
+    delete adjusted.activeStatusId;
+    return adjusted;
+  }
+  
+  // -------------------------------------------------------------
+  // 2. Status visibility (ACTIVE-only enforced unless permitted)
+  // -------------------------------------------------------------
+  if (acl.enforceActiveOnly) {
+    adjusted.enforceActiveOnly = true;
+    adjusted.activeStatusId = ACTIVE_USER_STATUS_ID;
+    delete adjusted.statusIds;
+  } else {
+    delete adjusted.enforceActiveOnly;
+    delete adjusted.activeStatusId;
+  }
+  
+  // -------------------------------------------------------------
+  // 3. System user visibility
+  // -------------------------------------------------------------
+  adjusted.includeSystemUsers = acl.canViewSystemUsers === true;
+  
+  // -------------------------------------------------------------
+  // 4. Root user visibility
+  // -------------------------------------------------------------
+  adjusted.includeRootUsers = acl.canViewRootUsers === true;
+  
+  return adjusted;
+};
+
+/**
  * Business: Slice a user row based on visibility rules.
  *
  * Enforces WHAT categories of users the requester is allowed to view,
@@ -117,76 +186,8 @@ const sliceUserForUser = (userRow, access) => {
   return userRow;
 };
 
-/**
- * Business: applyUserListVisibilityRules
- *
- * Adjust user list query filters based on visibility permissions.
- *
- * Responsibility:
- * - Translate ACL decisions into repository-consumable filter flags
- * - Enforce ACTIVE-only visibility for regular users (default)
- * - Allow privileged users to widen visibility
- *
- * Enforcement model:
- * - SQL filtering is the PRIMARY enforcement
- * - Row slicing is defensive only
- *
- * This function MUST:
- * - Set includeSystemUsers / includeRootUsers explicitly
- * - Set enforceActiveOnly + activeStatusId when required
- *
- * This function MUST NOT:
- * - Perform row-level filtering
- * - Infer permissions from roles
- * - Bypass repository visibility rules
- *
- * @param {Object} filters - Original query filters
- * @param {Object} acl - Result from evaluateUserVisibilityAccessControl()
- * @returns {Object} Adjusted filters for repository consumption
- */
-const applyUserListVisibilityRules = (filters, acl) => {
-  const adjusted = { ...filters };
-  const ACTIVE_USER_STATUS_ID = getStatusId('general_active');
-  
-  // -------------------------------------------------------------
-  // 1. Full override → no visibility restrictions
-  // -------------------------------------------------------------
-  if (acl.canViewAllUsers) {
-    adjusted.includeSystemUsers = true;
-    adjusted.includeRootUsers = true;
-    delete adjusted.enforceActiveOnly;
-    delete adjusted.activeStatusId;
-    delete adjusted.statusIds;
-    return adjusted;
-  }
-  
-  // -------------------------------------------------------------
-  // 2. Status visibility (ACTIVE-only enforced unless permitted)
-  // -------------------------------------------------------------
-  if (acl.enforceActiveOnly) {
-    adjusted.enforceActiveOnly = true;
-    adjusted.activeStatusId = ACTIVE_USER_STATUS_ID;
-    delete adjusted.statusIds;
-  } else {
-    delete adjusted.enforceActiveOnly;
-    delete adjusted.activeStatusId;
-  }
-  
-  // -------------------------------------------------------------
-  // 3. System user visibility
-  // -------------------------------------------------------------
-  adjusted.includeSystemUsers = acl.canViewSystemUsers === true;
-  
-  // -------------------------------------------------------------
-  // 4. Root user visibility
-  // -------------------------------------------------------------
-  adjusted.includeRootUsers = acl.canViewRootUsers === true;
-  
-  return adjusted;
-};
-
 module.exports = {
   evaluateUserVisibilityAccessControl,
-  sliceUserForUser,
   applyUserListVisibilityRules,
+  sliceUserForUser,
 };

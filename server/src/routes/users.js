@@ -4,7 +4,7 @@
  */
 
 const express = require('express');
-const authorize = require('../middlewares/authorize');
+const { authorize, authorizeAny } = require('../middlewares/authorize');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 const { userQuerySchema } = require('../validators/user-validators');
@@ -23,36 +23,51 @@ const router = express.Router();
  * GET /users
  *
  * Fetch a paginated list of users with optional filtering, sorting,
- * and UI presentation control.
+ * and UI presentation control (list or card view).
  *
  * Responsibilities by layer:
- * - **Route**:
- *   - Enforces access control (`USERS.VIEW_LIST`)
- *   - Normalizes query parameters (pagination, sorting, filters, viewMode)
+ *
+ * - **Route Middleware**:
+ *   - Enforces module-level access control (`USERS.VIEW_USERS`)
+ *   - Ensures the requester has permission for at least one supported view
+ *     (`USERS.VIEW_LIST` or `USERS.VIEW_CARD`)
+ *   - Normalizes query parameters (pagination, sorting, filters, options)
  *   - Sanitizes free-text inputs
  *   - Validates query shape and types (schema-level only)
  *
- * - **Controller / Service**:
- *   - Applies visibility rules (system / root / status)
+ * - **Controller**:
+ *   - Enforces view-mode–specific permissions (`VIEW_LIST` vs `VIEW_CARD`)
+ *   - Validates supported `viewMode` values
+ *   - Coordinates logging, tracing, and request lifecycle
+ *   - Delegates pagination, visibility, and data shaping to the service layer
+ *
+ * - **Service / Business Layer**:
+ *   - Applies user visibility rules (system users, root users, status)
  *   - Executes paginated queries
- *   - Shapes response data for list or card views
+ *   - Shapes response data according to the requested view mode
  *
  * Query behavior:
- * - `statusIds`, `roleIds` → normalized as UUID arrays
- * - Pagination & sorting → normalized and SQL-safe
- * - `viewMode` → UI-only option (`list` | `card`)
- *   - Forwarded to the controller unchanged for response shaping
- *   - Does NOT affect filtering or visibility
- * - Visibility constraints are enforced in the service layer
+ * - `statusIds`, `roleIds`
+ *   → normalized as UUID arrays
+ * - Pagination & sorting
+ *   → normalized and SQL-safe via upstream middleware
+ * - `viewMode`
+ *   → UI-only option (`list` | `card`)
+ *     - Forwarded to the controller for authorization and response shaping
+ *     - Does NOT affect filtering or visibility rules
  *
  * This route does NOT:
  * - Perform business logic
- * - Enforce visibility rules
- * - Shape response data
+ * - Apply row-level visibility rules
+ * - Shape response data directly
  */
 router.get(
   '/',
-  authorize([PERMISSIONS.USERS.VIEW_LIST]),
+  authorize([PERMISSIONS.USERS.VIEW_USERS]),
+  authorizeAny([
+    PERMISSIONS.USERS.VIEW_LIST,
+    PERMISSIONS.USERS.VIEW_CARD,
+  ]),
   createQueryNormalizationMiddleware(
     'userSortMap',
     ['statusIds', 'roleIds'],       // array filters

@@ -1,8 +1,10 @@
 const wrapAsync = require('../utils/wrap-async');
 const { logInfo } = require('../utils/logger-helper');
 const {
-  getUserProfileById, fetchPaginatedUsersService,
+  getUserProfileById,
+  fetchPaginatedUsersService,
 } = require('../services/user-service');
+const { USERS: USER_PERMISSIONS } = require('../utils/constants/domain/permissions');
 const AppError = require('../utils/AppError');
 const { fetchPermissions } = require('../services/role-permission-service');
 
@@ -11,14 +13,17 @@ const { fetchPermissions } = require('../services/role-permission-service');
  *
  * Responsibilities:
  * - Extract normalized and validated query parameters from middleware
+ * - Enforce UI-level view-mode permissions (list vs card)
  * - Log request metadata and execution timing
  * - Delegate pagination, visibility, and transformation to the service layer
  * - Return a standardized paginated API response with trace metadata
  *
  * Notes:
+ * - Route-level authorization ensures module access (e.g. VIEW_USERS)
+ * - View-mode permissions (VIEW_LIST / VIEW_CARD) are enforced here
  * - Visibility rules (system/root users) are enforced in service/business layers
  * - Sorting columns are assumed SQL-safe (resolved upstream)
- * - `viewMode` controls response shape only ('list' | 'card')
+ * - `viewMode` affects response shape only; it does not affect data visibility
  */
 const getPaginatedUsersController = wrapAsync(async (req, res) => {
   const context = 'user-controller/getPaginatedUsersController';
@@ -37,15 +42,34 @@ const getPaginatedUsersController = wrapAsync(async (req, res) => {
     options,
   } = req.normalizedQuery;
   
+  // -------------------------------
+  // 1.1 View-mode permission enforcement
+  // -------------------------------
+  const permissions = req.permissions; // populated by authorize middleware (route-level)
+  
+  if (!permissions) {
+    throw AppError.authorizationError('Permission context missing');
+  }
+  
   // UI-only view hint; defaults to list presentation
   const viewMode = options?.viewMode ?? 'list';
   
   // Defensive validation at controller boundary:
-  // `viewMode` is UI-driven and not part of the query schema,
-  // but must be constrained to supported response shapes.
+  // viewMode is UI-driven and validated separately from query schema
   const allowedViewModes = new Set(['list', 'card']);
   if (!allowedViewModes.has(viewMode)) {
     throw AppError.validationError('Invalid viewMode');
+  }
+
+  // Enforce view-specific permissions (presentation-level authorization)
+  if (viewMode === 'list' &&
+    !permissions.includes(USER_PERMISSIONS.VIEW_LIST)) {
+    throw AppError.authorizationError('Forbidden: list view not permitted');
+  }
+  
+  if (viewMode === 'card' &&
+    !permissions.includes(USER_PERMISSIONS.VIEW_CARD)) {
+    throw AppError.authorizationError('Forbidden: card view not permitted');
   }
   
   // Authenticated requester (populated by auth middleware)
