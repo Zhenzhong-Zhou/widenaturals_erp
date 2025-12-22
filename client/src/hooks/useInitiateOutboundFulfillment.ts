@@ -5,10 +5,12 @@ import {
   selectInitiateOutboundFulfillmentError,
   selectInitiateOutboundFulfillmentData,
   selectHasInitiateOutboundFulfillmentData,
-} from '@features/outboundFulfillment/state/initiateOutboundFulfillmentSelectors';
-import { initiateOutboundFulfillmentThunk } from '@features/outboundFulfillment/state/outboundFulfillmentThunks';
-import { resetInitiateOutboundFulfillmentState } from '@features/outboundFulfillment/state/initiateOutboundFulfillmentSlice';
-import type { InitiateFulfillmentRequest } from '@features/outboundFulfillment/state/outboundFulfillmentTypes';
+  initiateOutboundFulfillmentThunk,
+  resetInitiateOutboundFulfillment,
+} from '@features/outboundFulfillment/state';
+import type {
+  InitiateFulfillmentRequest,
+} from '@features/outboundFulfillment/state';
 
 /**
  * Custom hook to manage outbound fulfillment initiation.
@@ -39,7 +41,7 @@ const useInitiateOutboundFulfillment = () => {
    * Reset function to clear slice state.
    */
   const reset = useCallback(() => {
-    dispatch(resetInitiateOutboundFulfillmentState());
+    dispatch(resetInitiateOutboundFulfillment());
   }, [dispatch]);
 
   return {

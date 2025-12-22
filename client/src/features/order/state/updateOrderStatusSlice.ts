@@ -18,7 +18,7 @@ const updateOrderStatusSlice = createSlice({
     /**
      * Resets the status update state back to initial.
      */
-    resetUpdateOrderStatusState: () => initialState,
+    resetUpdateOrderStatus: () => initialState,
   },
   extraReducers: (builder) => {
     builder
@@ -41,5 +41,5 @@ const updateOrderStatusSlice = createSlice({
   },
 });
 
-export const { resetUpdateOrderStatusState } = updateOrderStatusSlice.actions;
+export const { resetUpdateOrderStatus } = updateOrderStatusSlice.actions;
 export default updateOrderStatusSlice.reducer;

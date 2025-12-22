@@ -1,18 +1,20 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import type {
+  StatusLookupItem,
+  StatusLookupResponse,
+  StatusLookupState,
+} from '@features/lookup/state';
+import { createInitialOffsetPaginatedState } from '@store/pagination';
 import {
-  createInitialPaginatedLookupState,
-  type StatusLookupItem,
-  type StatusLookupResponse,
-  type StatusLookupState,
-} from '@features/lookup/state/lookupTypes';
-import { fetchStatusLookupThunk } from './lookupThunks';
+  fetchStatusLookupThunk,
+} from '@features/lookup/state';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 
 // -----------------------------
 // Initial State
 // -----------------------------
 const initialState: StatusLookupState =
-  createInitialPaginatedLookupState<StatusLookupItem>();
+  createInitialOffsetPaginatedState<StatusLookupItem>();
 
 // -----------------------------
 // Slice
@@ -28,7 +30,7 @@ const statusLookupSlice = createSlice({
     resetStatusLookup: (state) => {
       Object.assign(
         state,
-        createInitialPaginatedLookupState<StatusLookupItem>()
+        createInitialOffsetPaginatedState<StatusLookupItem>()
       );
     },
   },

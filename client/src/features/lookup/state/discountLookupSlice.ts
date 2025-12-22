@@ -1,15 +1,17 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import {
-  createInitialPaginatedLookupState,
-  type DiscountLookupItem,
-  type DiscountLookupResponse,
-  type DiscountLookupState,
-} from '@features/lookup/state/lookupTypes';
-import { fetchDiscountLookupThunk } from './lookupThunks';
+  fetchDiscountLookupThunk,
+} from '@features/lookup/state';
+import { createInitialOffsetPaginatedState } from '@store/pagination';
+import type {
+  DiscountLookupItem,
+  DiscountLookupResponse,
+  DiscountLookupState,
+} from '@features/lookup/state';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 
 const initialState: DiscountLookupState =
-  createInitialPaginatedLookupState<DiscountLookupItem>();
+  createInitialOffsetPaginatedState<DiscountLookupItem>();
 
 const discountLookupSlice = createSlice({
   name: 'discountLookup',
@@ -18,7 +20,7 @@ const discountLookupSlice = createSlice({
     /**
      * Clears the current discount lookup state.
      */
-    clearDiscountLookup: (state) => {
+    resetDiscountLookup: (state) => {
       state.data = [];
       state.loading = false;
       state.error = null;
@@ -45,5 +47,5 @@ const discountLookupSlice = createSlice({
   },
 });
 
-export const { clearDiscountLookup } = discountLookupSlice.actions;
+export const { resetDiscountLookup } = discountLookupSlice.actions;
 export default discountLookupSlice.reducer;

@@ -1,14 +1,16 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  type DeliveryMethodLookupQueryParams,
   fetchDeliveryMethodLookupThunk,
   selectDeliveryMethodLookupOptions,
   selectDeliveryMethodLookupError,
   selectDeliveryMethodLookupLoading,
   selectDeliveryMethodLookupMeta,
+  resetDeliveryMethodLookup,
 } from '@features/lookup/state';
-import { clearDeliveryMethodLookup } from '@features/lookup/state/deliveryMethodLookupSlice';
+import type {
+  DeliveryMethodLookupQueryParams,
+} from '@features/lookup/state';
 
 /**
  * Hook for accessing delivery method lookup state and actions.
@@ -32,7 +34,7 @@ const useDeliveryMethodLookup = () => {
   );
 
   const reset = useCallback(() => {
-    dispatch(clearDeliveryMethodLookup());
+    dispatch(resetDeliveryMethodLookup());
   }, [dispatch]);
 
   return useMemo(

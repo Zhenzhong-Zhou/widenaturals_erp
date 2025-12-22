@@ -24,7 +24,7 @@ const userProfileSlice = createSlice({
   name: 'userProfile',
   initialState,
   reducers: {
-    resetUserProfileState: (state) => {
+    resetUserProfile: (state) => {
       state.response = null;
       state.loading = false;
       state.error = null;
@@ -52,6 +52,6 @@ const userProfileSlice = createSlice({
   },
 });
 
-export const { resetUserProfileState, updateUserProfile } =
+export const { resetUserProfile, updateUserProfile } =
   userProfileSlice.actions;
 export default userProfileSlice.reducer;

@@ -1,6 +1,8 @@
 import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
+  fetchBaseInventoryActivityLogsThunk,
+  fetchPaginatedInventoryActivityLogsThunk,
   selectBaseInventoryLogs,
   selectBaseLogsError,
   selectBaseLogsLoading,
@@ -9,11 +11,9 @@ import {
   selectPaginatedLogsLoading,
   selectPaginatedLogsPagination,
 } from '@features/report/state';
-import {
-  fetchBaseInventoryActivityLogsThunk,
-  fetchPaginatedInventoryActivityLogsThunk,
+import type {
+  InventoryActivityLogQueryParams,
 } from '@features/report/state';
-import type { InventoryActivityLogQueryParams } from '@features/report/state';
 
 /**
  * Hook to get base (non-paginated) inventory activity logs and trigger fetch.

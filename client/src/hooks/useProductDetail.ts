@@ -6,8 +6,8 @@ import {
   selectProductDetailError,
   selectProductDetailIsEmpty,
   fetchProductDetailByIdThunk,
+  resetProductDetail,
 } from '@features/product/state';
-import { resetProductDetailState } from '@features/product/state/productDetailSlice';
 
 /**
  * Hook: Provides typed selectors and dispatchable actions
@@ -48,8 +48,8 @@ const useProductDetail = () => {
   /**
    * Reset Product detail slice state (useful on unmount).
    */
-  const resetProductDetail = useCallback(() => {
-    dispatch(resetProductDetailState());
+  const resetProductDetailState = useCallback(() => {
+    dispatch(resetProductDetail());
   }, [dispatch]);
   
   // ----------------------------
@@ -78,7 +78,7 @@ const useProductDetail = () => {
     
     // actions
     fetchProductDetail,
-    resetProductDetail,
+    resetProductDetailState,
   };
 };
 

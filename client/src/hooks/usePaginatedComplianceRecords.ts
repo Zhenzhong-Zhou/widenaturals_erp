@@ -1,18 +1,18 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
+  fetchComplianceRecordsThunk,
   selectPaginatedComplianceRecordsData,
   selectPaginatedComplianceRecordsPagination,
   selectPaginatedComplianceRecordsLoading,
   selectPaginatedComplianceRecordsError,
   selectPaginatedComplianceRecordsTotalRecords,
   selectPaginatedComplianceRecordsIsEmpty,
-  GetPaginatedComplianceRecordsParams,
-  fetchComplianceRecordsThunk,
+  resetPaginatedComplianceRecords,
 } from '@features/complianceRecord/state';
-import {
-  resetComplianceRecordsState
-} from '@features/complianceRecord/state/paginatedComplianceRecordSlice';
+import type {
+  GetPaginatedComplianceRecordsParams,
+} from '@features/complianceRecord/state';
 
 /**
  * React hook for accessing paginated compliance records state and actions.
@@ -57,7 +57,7 @@ const usePaginatedComplianceRecords = () => {
    * Reset compliance records state back to the initial empty paginated form.
    */
   const resetComplianceRecords = useCallback(() => {
-    dispatch(resetComplianceRecordsState());
+    dispatch(resetPaginatedComplianceRecords());
   }, [dispatch]);
   
   // ---------------------------

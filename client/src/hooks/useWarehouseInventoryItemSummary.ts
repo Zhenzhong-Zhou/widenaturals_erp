@@ -1,14 +1,14 @@
 import { useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '@store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   selectTotalAvailableQuantity,
   selectWarehouseInventoryItemSummaryError,
   selectWarehouseInventoryItemSummaryData,
   selectWarehouseInventoryItemSummaryLoading,
   selectWarehouseInventoryItemSummaryPagination,
+  fetchWarehouseInventoryItemSummaryThunk,
 } from '@features/warehouseInventory/state';
-import { fetchWarehouseInventoryItemSummaryThunk } from '@features/warehouseInventory/state/warehouseInventoryThunks';
-import type { ItemType } from '@features/inventoryShared/types/InventorySharedType.ts';
+import type { ItemType } from '@features/inventoryShared/types/InventorySharedType';
 
 /**
  * Custom hook to manage warehouse inventory summary state and trigger fetching logic.

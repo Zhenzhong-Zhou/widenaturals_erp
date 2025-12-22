@@ -4,6 +4,14 @@
 export { inventoryAllocationReducers } from './inventoryAllocationReducers';
 
 // --------------------------------------------------
+// Slice actions (explicit public API)
+// --------------------------------------------------
+export { resetAllocateInventory } from './allocateInventorySlice';
+export { resetInventoryAllocationReview, setReviewError } from './inventoryAllocationReviewSlice';
+export { resetPaginatedInventoryAllocations } from './paginatedInventoryAllocationsSlice';
+export { resetInventoryAllocationConfirmation } from './inventoryAllocationConfirmationSlice';
+
+// --------------------------------------------------
 // Selectors
 // --------------------------------------------------
 export * from './allocateInventorySelectors';

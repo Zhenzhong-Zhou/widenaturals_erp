@@ -1,14 +1,16 @@
 import { createSlice } from '@reduxjs/toolkit';
+import type {
+  TaxRateLookupItem,
+  TaxRateLookupState,
+} from '@features/lookup/state';
+import { createInitialOffsetPaginatedState } from '@store/pagination';
 import {
-  createInitialPaginatedLookupState,
-  type TaxRateLookupItem,
-  type TaxRateLookupState,
-} from '@features/lookup/state/lookupTypes';
-import { fetchTaxRateLookupThunk } from './lookupThunks';
+  fetchTaxRateLookupThunk,
+} from '@features/lookup/state';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 
 const initialState: TaxRateLookupState =
-  createInitialPaginatedLookupState<TaxRateLookupItem>();
+  createInitialOffsetPaginatedState<TaxRateLookupItem>();
 
 const taxRateLookupSlice = createSlice({
   name: 'taxRateLookup',
@@ -17,7 +19,7 @@ const taxRateLookupSlice = createSlice({
     /**
      * Clears the current tax rate lookup state.
      */
-    clearTaxRateLookup: (state) => {
+    resetTaxRateLookup: (state) => {
       state.data = [];
       state.loading = false;
       state.error = null;
@@ -41,5 +43,5 @@ const taxRateLookupSlice = createSlice({
   },
 });
 
-export const { clearTaxRateLookup } = taxRateLookupSlice.actions;
+export const { resetTaxRateLookup } = taxRateLookupSlice.actions;
 export default taxRateLookupSlice.reducer;

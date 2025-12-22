@@ -1,7 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  type FetchPaginatedInventoryAllocationsParams,
   fetchPaginatedInventoryAllocationsThunk,
   selectInventoryAllocations,
   selectInventoryAllocationsError,
@@ -12,8 +11,11 @@ import {
   selectInventoryAllocationsPagination,
   selectInventoryAllocationsTotalPages,
   selectInventoryAllocationsTotalRecords,
+  resetPaginatedInventoryAllocations,
 } from '@features/inventoryAllocation/state';
-import { resetInventoryAllocationsState } from '@features/inventoryAllocation/state/paginatedInventoryAllocationsSlice';
+import type {
+  FetchPaginatedInventoryAllocationsParams,
+} from '@features/inventoryAllocation/state';
 
 /**
  * Custom hook to access and manage paginated inventory allocation data from the Redux store.
@@ -42,7 +44,7 @@ export const usePaginatedInventoryAllocations = () => {
    * Memoized reset action for clearing inventory allocation state.
    */
   const reset = useCallback(() => {
-    dispatch(resetInventoryAllocationsState());
+    dispatch(resetPaginatedInventoryAllocations());
   }, [dispatch]);
 
   /**

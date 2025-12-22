@@ -1,15 +1,17 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
+import type {
+  ProductUpdateRequest,
+} from '@features/product/state';
 import {
   selectProductInfoUpdateData,
   selectProductInfoUpdateLoading,
   selectProductInfoUpdateError,
   selectProductInfoUpdateSuccess,
   selectUpdatedProductInfoId,
-  ProductUpdateRequest,
   updateProductInfoByIdThunk,
+  resetProductInfoUpdate,
 } from '@features/product/state';
-import { resetProductInfoUpdateState } from '@features/product/state/productInfoUpdateSlice';
 
 export interface UpdateProductInfoThunkArgs {
   productId: string;
@@ -46,7 +48,7 @@ const useProductInfoUpdate = () => {
   
   // --- Action: Reset slice ---
   const reset = useCallback(() => {
-    dispatch(resetProductInfoUpdateState());
+    dispatch(resetProductInfoUpdate());
   }, [dispatch]);
   
   // --- Public API ---

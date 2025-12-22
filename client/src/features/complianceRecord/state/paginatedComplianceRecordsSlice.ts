@@ -16,7 +16,7 @@ const paginatedComplianceRecordsSlice = createSlice({
     /**
      * Reset compliance list state (used on unmount or filter reset).
      */
-    resetComplianceRecordsState: () => initialState,
+    resetPaginatedComplianceRecords: () => initialState,
   },
   extraReducers: (builder) => {
     builder
@@ -52,6 +52,6 @@ const paginatedComplianceRecordsSlice = createSlice({
   },
 });
 
-export const { resetComplianceRecordsState, } = paginatedComplianceRecordsSlice.actions;
+export const { resetPaginatedComplianceRecords, } = paginatedComplianceRecordsSlice.actions;
 
 export default paginatedComplianceRecordsSlice.reducer;

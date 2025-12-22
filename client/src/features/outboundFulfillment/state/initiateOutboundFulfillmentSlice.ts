@@ -15,7 +15,7 @@ export const initiateOutboundFulfillmentSlice = createSlice({
   name: 'initiateOutboundFulfillment',
   initialState,
   reducers: {
-    resetInitiateOutboundFulfillmentState: () => initialState,
+    resetInitiateOutboundFulfillment: () => initialState,
   },
   extraReducers: (builder) => {
     builder
@@ -40,7 +40,7 @@ export const initiateOutboundFulfillmentSlice = createSlice({
   },
 });
 
-export const { resetInitiateOutboundFulfillmentState } =
+export const { resetInitiateOutboundFulfillment } =
   initiateOutboundFulfillmentSlice.actions;
 
 export default initiateOutboundFulfillmentSlice.reducer;

@@ -1,14 +1,16 @@
 import { useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
+import type {
+  CustomerLookupQuery,
+} from '@features/lookup/state';
 import {
-  type CustomerLookupQuery,
   fetchCustomerLookupThunk,
   selectCustomerLookupLoading,
   selectCustomerLookupError,
   selectCustomerLookupOptions,
   selectCustomerLookupMeta,
+  resetCustomerLookup,
 } from '@features/lookup/state';
-import { resetCustomerLookup } from '@features/lookup/state/customerLookupSlice';
 
 /**
  * Hook to access customer lookup state and trigger customer fetching.

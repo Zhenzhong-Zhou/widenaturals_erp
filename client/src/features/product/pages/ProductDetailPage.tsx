@@ -43,7 +43,7 @@ const ProductDetailPage = () => {
     error: productDetailError,
     isEmpty: isProductDetailEmpty,
     fetchProductDetail: fetchProductDetailById,
-    resetProductDetail: resetProductDetailState,
+    resetProductDetailState,
   } = useProductDetail();
   
   const statusLookup = useStatusLookup();

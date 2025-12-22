@@ -74,7 +74,7 @@ const SkuDetailPage: FC = () => {
     loading: skuDetailLoading,
     error: skuDetailError,
     fetchSkuDetail,
-    resetSkuDetail,
+    resetSkuDetailState,
   } = useSkuDetail();
 
   const createButtonRef = useRef<HTMLButtonElement>(null);
@@ -105,8 +105,8 @@ const SkuDetailPage: FC = () => {
 
   useEffect(() => {
     refresh();
-    return () => resetSkuDetail();
-  }, [refresh, resetSkuDetail]);
+    return () => resetSkuDetailState();
+  }, [refresh, resetSkuDetailState]);
 
   /* ---------------------------------------------------------
    * Flattened structures for UI components

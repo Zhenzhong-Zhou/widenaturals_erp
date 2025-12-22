@@ -6,9 +6,11 @@ import {
   selectPaymentMethodLookupLoading,
   selectPaymentMethodLookupError,
   selectPaymentMethodLookupMeta,
-  type PaymentMethodLookupQueryParams,
+  resetPaymentMethodLookup,
 } from '@features/lookup/state';
-import { resetPaymentMethodLookup } from '@features/lookup/state/paymentMethodLookupSlice';
+import type {
+  PaymentMethodLookupQueryParams,
+} from '@features/lookup/state';
 
 /**
  * Custom hook to access payment method lookup state from Redux.

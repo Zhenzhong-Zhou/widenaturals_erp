@@ -25,7 +25,7 @@ const createProductsSlice = createSlice({
      * Reset to a clean state.
      * Useful after dialog close or after a successful submission.
      */
-    resetCreateProductsState: () => initialState,
+    resetCreateProducts: () => initialState,
   },
 
   extraReducers: (builder) => {
@@ -68,5 +68,5 @@ const createProductsSlice = createSlice({
 // ---------------------------
 // Exports
 // ---------------------------
-export const { resetCreateProductsState } = createProductsSlice.actions;
+export const { resetCreateProducts } = createProductsSlice.actions;
 export default createProductsSlice.reducer;

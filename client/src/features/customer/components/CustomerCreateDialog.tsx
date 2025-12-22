@@ -33,7 +33,7 @@ const CustomerCreateDialog = ({
     customerCreateResponse,
     customerNames,
     createCustomers,
-    resetCustomerCreate,
+    resetCustomerCreateState,
   } = useCustomerCreate();
 
   useEffect(() => {
@@ -43,7 +43,7 @@ const CustomerCreateDialog = ({
   }, [customerCreateResponse]);
 
   const handleClose = () => {
-    resetCustomerCreate();
+    resetCustomerCreateState();
     setMode('single');
     onClose();
   };

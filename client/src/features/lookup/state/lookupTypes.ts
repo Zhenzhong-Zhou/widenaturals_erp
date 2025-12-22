@@ -74,26 +74,6 @@ export interface ActiveValidFilter {
 export type LookupItemWithStatus = LookupItem & ActiveValidFilter;
 
 /**
- * Creates the initial state structure for a paginated lookup slice.
- *
- * This utility is used to initialize Redux state for dropdowns, autocomplete,
- * or infinite scroll components that fetch paginated data.
- *
- * @template T - The type of individual lookup items (e.g., DiscountLookupItem).
- * @returns A default-initialized {@link PaginatedLookupState} with empty data, no error, and pagination metadata.
- */
-export const createInitialPaginatedLookupState = <
-  T,
->(): PaginatedLookupState<T> => ({
-  data: [],
-  loading: false,
-  error: null,
-  limit: 50,
-  offset: 0,
-  hasMore: false,
-});
-
-/**
  * Query parameters for fetching batch registry lookup data.
  */
 export interface GetBatchRegistryLookupParams extends LookupPagination {

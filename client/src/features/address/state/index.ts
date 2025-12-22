@@ -3,6 +3,13 @@
 // --------------------------------------------------
 export { addressReducers } from './addressReducers';
 
+
+// --------------------------------------------------
+// Actions (explicit public surface)
+// --------------------------------------------------
+export { resetAddressCreation } from './addressCreationSlice';
+export { resetPaginatedAddresses } from './paginateAddressSlice';
+
 // --------------------------------------------------
 // Selectors
 // --------------------------------------------------

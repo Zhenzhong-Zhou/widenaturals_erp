@@ -11,8 +11,8 @@ import {
   selectSkuImageUploadHasResults,
   uploadSkuImagesThunk,
   selectSkuImageUploadSuccess,
+  resetSkuImageUpload,
 } from '@features/skuImage/state';
-import { resetUploadState } from '@features/skuImage/state/skuImageUploadSlice';
 
 const useSkuImageUpload = () => {
   const dispatch = useAppDispatch();
@@ -38,7 +38,7 @@ const useSkuImageUpload = () => {
   
   // Stable reset function
   const reset = useCallback(() => {
-    dispatch(resetUploadState());
+    dispatch(resetSkuImageUpload());
   }, [dispatch]);
   
   // Grouped memoized return object (stable reference for components)

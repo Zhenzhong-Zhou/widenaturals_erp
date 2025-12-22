@@ -2,7 +2,7 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type {
   InventoryAllocationConfirmationResponse,
   InventoryAllocationConfirmationState,
-} from '@features/inventoryAllocation/state/inventoryAllocationTypes';
+} from '@features/inventoryAllocation/state';
 import { confirmInventoryAllocationThunk } from './inventoryAllocationThunks';
 
 const initialState: InventoryAllocationConfirmationState = {
@@ -15,7 +15,7 @@ export const inventoryAllocationConfirmationSlice = createSlice({
   name: 'inventoryAllocationConfirmation',
   initialState,
   reducers: {
-    resetConfirmationState: (state) => {
+    resetInventoryAllocationConfirmation: (state) => {
       state.data = null;
       state.loading = false;
       state.error = null;
@@ -44,6 +44,6 @@ export const inventoryAllocationConfirmationSlice = createSlice({
   },
 });
 
-export const { resetConfirmationState } =
+export const { resetInventoryAllocationConfirmation } =
   inventoryAllocationConfirmationSlice.actions;
 export default inventoryAllocationConfirmationSlice.reducer;

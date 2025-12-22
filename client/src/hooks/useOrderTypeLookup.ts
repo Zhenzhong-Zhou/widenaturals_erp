@@ -5,9 +5,11 @@ import {
   selectOrderTypeError,
   selectOrderTypeLoading,
   selectOrderTypeOptions,
-  type OrderTypeLookupQueryParams,
+  resetOrderTypeLookup,
 } from '@features/lookup/state';
-import { clearOrderTypeLookup } from '@features/lookup/state/orderTypeLookupSlice';
+import type {
+  OrderTypeLookupQueryParams,
+} from '@features/lookup/state';
 
 /**
  * Custom hook to fetch and access order type lookup options.
@@ -30,7 +32,7 @@ const useOrderTypeLookup = () => {
     [dispatch]
   );
 
-  const reset = useCallback(() => dispatch(clearOrderTypeLookup()), [dispatch]);
+  const reset = useCallback(() => dispatch(resetOrderTypeLookup()), [dispatch]);
 
   return useMemo(
     () => ({

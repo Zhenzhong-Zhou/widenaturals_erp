@@ -4,7 +4,10 @@ import { AppError, ErrorType } from '@utils/AppError';
 import { withTimeout } from '@utils/timeoutUtils';
 import { withRetry } from '@utils/retryUtils';
 import type { AppDispatch } from '@store/store';
-import { resetCsrfToken, updateCsrfToken } from '@features/csrf/state';
+import {
+  resetCsrfToken,
+  updateCsrfToken
+} from '@features/csrf/state/csrfSlice';
 
 /**
  * Fetches the CSRF token from the backend with retry and timeout logic.

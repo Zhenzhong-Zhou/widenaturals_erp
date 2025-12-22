@@ -12,7 +12,7 @@ const createWarehouseInventorySlice = createSlice({
   name: 'createWarehouseInventory',
   initialState,
   reducers: {
-    resetCreateInventoryState: (state) => {
+    resetCreateWarehouseInventory: (state) => {
       state.loading = false;
       state.error = null;
       state.data = null;
@@ -41,6 +41,6 @@ const createWarehouseInventorySlice = createSlice({
   },
 });
 
-export const { resetCreateInventoryState } =
+export const { resetCreateWarehouseInventory } =
   createWarehouseInventorySlice.actions;
 export default createWarehouseInventorySlice.reducer;

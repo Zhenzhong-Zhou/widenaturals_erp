@@ -1,13 +1,15 @@
 import { useMemo, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  type OrderRouteParams,
   selectUpdatedOrderStatusData,
   selectUpdateOrderStatusError,
   selectUpdateOrderStatusLoading,
   updateOrderStatusThunk,
+  resetUpdateOrderStatus,
 } from '@features/order/state';
-import { resetUpdateOrderStatusState } from '@features/order/state/updateOrderStatusSlice';
+import type {
+  OrderRouteParams,
+} from '@features/order/state';
 
 /**
  * Hook to access and control the update order status logic.
@@ -49,7 +51,7 @@ const useUpdateOrderStatus = () => {
    * Resets the update order status state to initial.
    */
   const reset = useCallback(() => {
-    dispatch(resetUpdateOrderStatusState());
+    dispatch(resetUpdateOrderStatus());
   }, [dispatch]);
 
   return useMemo(

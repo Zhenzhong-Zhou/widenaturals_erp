@@ -1,14 +1,16 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  type TaxRateLookupQueryParams,
   fetchTaxRateLookupThunk,
   selectTaxRateDropdownOptions,
   selectTaxRateLookupError,
   selectTaxRateLookupLoading,
   selectTaxRateLookupMeta,
+  resetTaxRateLookup,
 } from '@features/lookup/state';
-import { clearTaxRateLookup } from '@features/lookup/state/taxRateLookupSlice';
+import type {
+  TaxRateLookupQueryParams,
+} from '@features/lookup/state';
 
 /**
  * Hook for accessing tax rate lookup state and actions.
@@ -32,7 +34,7 @@ const useTaxRateLookup = () => {
   );
 
   const reset = useCallback(() => {
-    dispatch(clearTaxRateLookup());
+    dispatch(resetTaxRateLookup());
   }, [dispatch]);
 
   return useMemo(

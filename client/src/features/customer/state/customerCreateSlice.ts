@@ -13,7 +13,7 @@ const customerCreateSlice = createSlice({
   name: 'customerCreate',
   initialState,
   reducers: {
-    resetCustomerCreateState: () => initialState,
+    resetCustomerCreate: () => initialState,
   },
   extraReducers: (builder) => {
     builder
@@ -44,5 +44,5 @@ const customerCreateSlice = createSlice({
   },
 });
 
-export const { resetCustomerCreateState } = customerCreateSlice.actions;
+export const { resetCustomerCreate } = customerCreateSlice.actions;
 export default customerCreateSlice.reducer;

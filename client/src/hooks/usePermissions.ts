@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
-import { fetchPermissionsThunk } from '@features/authorize/state/authorizeThunk';
+import type {
+  UsePermissions,
+} from '@features/authorize/state';
 import {
+  fetchPermissionsThunk,
   selectPermissions,
   selectPermissionsError,
   selectPermissionsLoading,
   selectRoleName,
-} from '@features/authorize/state/permissionSelector';
-import { selectIsAuthenticated } from '@features/session/state/sessionSelectors';
+} from '@features/authorize/state';
+import { selectIsAuthenticated } from '@features/session/state';
 import { getEffectivePermissions } from '@utils/permissionUtils';
-import type { UsePermissions } from '@features/authorize/state/authorzeTypes';
 
 const usePermissions = (): UsePermissions => {
   const dispatch = useAppDispatch();

@@ -3,7 +3,7 @@ import type {
   InventoryAllocationResponse,
   PaginatedInventoryAllocationState,
 } from '@features/inventoryAllocation/state/inventoryAllocationTypes';
-import { fetchPaginatedInventoryAllocationsThunk } from '@features/inventoryAllocation/state/inventoryAllocationThunks';
+import { fetchPaginatedInventoryAllocationsThunk } from '@features/inventoryAllocation/state';
 
 const initialState: PaginatedInventoryAllocationState = {
   data: [],
@@ -21,7 +21,7 @@ const paginatedInventoryAllocations = createSlice({
   name: 'paginatedInventoryAllocations',
   initialState,
   reducers: {
-    resetInventoryAllocationsState: () => initialState,
+    resetPaginatedInventoryAllocations: () => initialState,
   },
   extraReducers: (builder) => {
     builder
@@ -48,6 +48,6 @@ const paginatedInventoryAllocations = createSlice({
   },
 });
 
-export const { resetInventoryAllocationsState } =
+export const { resetPaginatedInventoryAllocations } =
   paginatedInventoryAllocations.actions;
 export default paginatedInventoryAllocations.reducer;

@@ -2,9 +2,9 @@ import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   createWarehouseInventoryRecordsThunk,
+  resetCreateWarehouseInventory,
   selectCreatedWarehouseRecords,
 } from '@features/warehouseInventory/state';
-import { resetCreateInventoryState } from '@features/warehouseInventory/state/warehouseInventoryCreateSlice';
 import type { CreateInventoryRecordsRequest } from '@features/inventoryShared/types/InventorySharedType';
 
 /**
@@ -29,7 +29,7 @@ const useCreateWarehouseInventory = () => {
   );
 
   const resetState = useCallback(() => {
-    dispatch(resetCreateInventoryState());
+    dispatch(resetCreateWarehouseInventory());
   }, [dispatch]);
 
   return {

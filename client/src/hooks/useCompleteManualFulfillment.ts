@@ -1,11 +1,13 @@
 import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  type CompleteManualFulfillmentParams,
   completeManualFulfillmentThunk,
+  resetConfirmOutboundFulfillment,
   selectCompleteManualFulfillmentCombined,
 } from '@features/outboundFulfillment/state';
-import { resetCompleteManualFulfillment } from '@features/outboundFulfillment/state/completeManualFulfillmentSlice';
+import type {
+  CompleteManualFulfillmentParams,
+} from '@features/outboundFulfillment/state';
 
 /**
  * Hook to interact with the completeManualFulfillment state and actions.
@@ -23,7 +25,7 @@ const useCompleteManualFulfillment = () => {
   );
 
   const resetManualFulfillment = useCallback(
-    () => dispatch(resetCompleteManualFulfillment()),
+    () => dispatch(resetConfirmOutboundFulfillment()),
     [dispatch]
   );
 

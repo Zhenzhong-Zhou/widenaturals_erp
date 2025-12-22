@@ -22,7 +22,7 @@ const createSkusSlice = createSlice({
      * Reset to a clean state.
      * Useful after dialog close or after a successful submission.
      */
-    resetCreateSkusState: () => initialState,
+    resetCreateSkus: () => initialState,
   },
 
   extraReducers: (builder) => {
@@ -63,5 +63,5 @@ const createSkusSlice = createSlice({
 // ---------------------------
 // Exports
 // ---------------------------
-export const { resetCreateSkusState } = createSkusSlice.actions;
+export const { resetCreateSkus } = createSkusSlice.actions;
 export default createSkusSlice.reducer;

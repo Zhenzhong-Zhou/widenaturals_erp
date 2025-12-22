@@ -2,17 +2,17 @@ import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchOrdersByCategoryThunk,
-  type OrderQueryParams,
   selectOrderFilters,
   selectOrderPagination,
   selectOrdersError,
   selectOrdersLoading,
   selectPaginatedOrders,
-} from '@features/order/state';
-import {
-  resetOrderListState,
+  resetPaginatedOrders,
   setOrderListFilters,
-} from '@features/order/state/paginatedOrdersSlice';
+} from '@features/order/state';
+import type {
+  OrderQueryParams,
+} from '@features/order/state';
 
 /**
  * Custom hook to access paginated order list state from the Redux store,
@@ -50,7 +50,7 @@ const usePaginatedOrders = () => {
    * Reset order list state to initial values.
    */
   const resetOrders = useCallback(() => {
-    dispatch(resetOrderListState());
+    dispatch(resetPaginatedOrders());
   }, [dispatch]);
 
   /**

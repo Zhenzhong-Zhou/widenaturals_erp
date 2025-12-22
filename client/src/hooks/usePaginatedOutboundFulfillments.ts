@@ -2,15 +2,17 @@ import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchPaginatedOutboundFulfillmentThunk,
-  type OutboundFulfillmentQuery,
   selectHasPaginatedOutboundFulfillments,
   selectPaginatedOutboundFulfillmentsData,
   selectPaginatedOutboundFulfillmentsError,
   selectPaginatedOutboundFulfillmentsLoading,
   selectPaginatedOutboundFulfillmentsPagination,
   selectPaginatedOutboundFulfillmentsTotalRecords,
+  resetPaginatedOutboundFulfillments,
 } from '@features/outboundFulfillment/state';
-import { resetPaginatedOutboundFulfillments } from '@features/outboundFulfillment/state/paginatedOutboundFulfillmentsSlice';
+import type {
+  OutboundFulfillmentQuery,
+} from '@features/outboundFulfillment/state';
 
 /**
  * Hook for accessing and managing paginated outbound fulfillment state.

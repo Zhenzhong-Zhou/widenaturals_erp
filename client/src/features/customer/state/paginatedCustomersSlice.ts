@@ -18,7 +18,7 @@ const paginatedCustomersSlice = createSlice({
   name: 'paginatedCustomers',
   initialState,
   reducers: {
-    resetPaginatedCustomersState: () => initialState,
+    resetPaginatedCustomers: () => initialState,
   },
   extraReducers: (builder) => {
     builder
@@ -38,5 +38,5 @@ const paginatedCustomersSlice = createSlice({
   },
 });
 
-export const { resetPaginatedCustomersState } = paginatedCustomersSlice.actions;
+export const { resetPaginatedCustomers } = paginatedCustomersSlice.actions;
 export default paginatedCustomersSlice.reducer;

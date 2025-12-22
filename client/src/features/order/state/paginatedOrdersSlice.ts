@@ -23,7 +23,7 @@ const paginatedOrdersSlice = createSlice({
   name: 'paginatedOrders',
   initialState,
   reducers: {
-    resetOrderListState: () => initialState,
+    resetPaginatedOrders: () => initialState,
 
     /**
      * Updates the current filter parameters used for order list retrieval.
@@ -53,6 +53,6 @@ const paginatedOrdersSlice = createSlice({
   },
 });
 
-export const { resetOrderListState, setOrderListFilters } =
+export const { resetPaginatedOrders, setOrderListFilters } =
   paginatedOrdersSlice.actions;
 export default paginatedOrdersSlice.reducer;

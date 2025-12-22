@@ -4,6 +4,12 @@
 export { customerReducers } from './customerReducers';
 
 // --------------------------------------------------
+// Reset Actions (explicit public lifecycle API)
+// --------------------------------------------------
+export { resetCustomerCreate } from './customerCreateSlice';
+export { resetPaginatedCustomers } from './paginatedCustomersSlice';
+
+// --------------------------------------------------
 // Selectors
 // --------------------------------------------------
 export * from './customerCreateSelectors';

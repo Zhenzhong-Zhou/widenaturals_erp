@@ -11,8 +11,8 @@ import {
   selectActivePricing,
   selectSkuComplianceRecords,
   getSkuDetailByIdThunk,
+  resetSkuDetail,
 } from '@features/sku/state';
-import { resetSkuDetailState } from '@features/sku/state/skuDetailSlice';
 
 /**
  * Hook: Provides fully typed selectors and dispatchable actions
@@ -59,8 +59,8 @@ const useSkuDetail = () => {
   /**
    * Reset SKU detail slice state (on unmount or manual reset).
    */
-  const resetSkuDetail = useCallback(() => {
-    dispatch(resetSkuDetailState());
+  const resetSkuDetailState = useCallback(() => {
+    dispatch(resetSkuDetail());
   }, [dispatch]);
 
   // ----------------------------
@@ -100,7 +100,7 @@ const useSkuDetail = () => {
 
     // actions
     fetchSkuDetail,
-    resetSkuDetail,
+    resetSkuDetailState,
   };
 };
 

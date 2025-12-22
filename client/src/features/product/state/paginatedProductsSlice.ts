@@ -24,7 +24,7 @@ const paginatedProductsSlice = createSlice({
      * Reset the entire paginated Product state back to a clean initial snapshot.
      * Useful when navigating away from the product list page to avoid stale data.
      */
-    resetPaginatedProductsState: () => initialState,
+    resetPaginatedProducts: () => initialState,
   },
 
   // ---------------------------
@@ -67,6 +67,6 @@ const paginatedProductsSlice = createSlice({
   },
 });
 
-export const { resetPaginatedProductsState } = paginatedProductsSlice.actions;
+export const { resetPaginatedProducts } = paginatedProductsSlice.actions;
 
 export default paginatedProductsSlice.reducer;

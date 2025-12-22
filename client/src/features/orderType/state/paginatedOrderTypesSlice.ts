@@ -19,7 +19,7 @@ const orderTypesSlice = createSlice({
     /**
      * Resets the paginated order type state to initial.
      */
-    resetOrderTypesState: () => initialState,
+    resetPaginatedOrderTypes: () => initialState,
   },
   extraReducers: (builder) => {
     builder
@@ -42,5 +42,5 @@ const orderTypesSlice = createSlice({
   },
 });
 
-export const { resetOrderTypesState } = orderTypesSlice.actions;
+export const { resetPaginatedOrderTypes } = orderTypesSlice.actions;
 export default orderTypesSlice.reducer;

@@ -1,9 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  type FetchBomsParams,
   fetchPaginatedBomsThunk,
-  type PaginatedBomStateWithFilters,
   selectBomData,
   selectBomError,
   selectBomFilters,
@@ -11,12 +9,14 @@ import {
   selectBomPagination,
   selectHasMoreBomPages,
   selectIsBomListEmpty,
-} from '@features/bom/state';
-import {
-  resetBomListState,
+  resetPaginatedBoms,
   setBomFilters,
   setBomPagination,
-} from '@features/bom/state/paginatedBomsSlice';
+} from '@features/bom/state';
+import type {
+  FetchBomsParams,
+  PaginatedBomStateWithFilters,
+} from '@features/bom/state';
 
 /**
  * React hook for interacting with the BOM module state.
@@ -61,7 +61,7 @@ const usePaginatedBoms = () => {
   );
 
   const resetFilters = useCallback(() => {
-    dispatch(resetBomListState());
+    dispatch(resetPaginatedBoms());
   }, [dispatch]);
 
   const updateFilters = useCallback(

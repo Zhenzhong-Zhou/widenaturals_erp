@@ -1,6 +1,6 @@
 import useOrderTypeLookup from '@hooks/useOrderTypeLookup';
 import useCustomerLookup from '@hooks/useCustomerLookup';
-import useCustomerAddressesLookup from '@hooks/useCustomerAddresseslookup';
+import useCustomerAddressesLookup from '@hooks/useCustomerAddressesLookup';
 import usePaymentMethodLookup from '@hooks/usePaymentMethodLookup';
 import useDiscountLookup from '@hooks/useDiscountLookup';
 import useTaxRateLookup from '@hooks/useTaxRateLookup';

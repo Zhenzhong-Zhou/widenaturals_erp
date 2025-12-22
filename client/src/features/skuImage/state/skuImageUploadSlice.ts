@@ -20,7 +20,7 @@ export const skuImageUploadSlice = createSlice({
     /**
      * Reset state back to initial status
      */
-    resetUploadState: () => initialState
+    resetSkuImageUpload: () => initialState
   },
   extraReducers: (builder) => {
     builder
@@ -56,6 +56,6 @@ export const skuImageUploadSlice = createSlice({
   }
 });
 
-export const { resetUploadState } = skuImageUploadSlice.actions;
+export const { resetSkuImageUpload } = skuImageUploadSlice.actions;
 
 export default skuImageUploadSlice.reducer;

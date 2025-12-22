@@ -1,5 +1,8 @@
 import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
+import type {
+  FetchPricingParams,
+} from '@features/pricing/state';
 import {
   fetchPricingListDataThunk,
   selectIsPricingListEmpty,
@@ -7,7 +10,6 @@ import {
   selectPricingListData,
   selectPricingLoading,
   selectPricingListPagination,
-  type FetchPricingParams,
   selectPricingTotalCount,
 } from '@features/pricing/state';
 

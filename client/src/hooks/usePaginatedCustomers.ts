@@ -8,10 +8,10 @@ import {
   selectPaginatedCustomersTotalPages,
   selectPaginatedCustomersTotalRecords,
   selectPaginatedCustomersLimit,
-} from '@features/customer/state/paginatedCustomersSelectors';
-import {
-  type FetchPaginatedCustomersParams,
   fetchPaginatedCustomersThunk,
+} from '@features/customer/state';
+import type {
+  FetchPaginatedCustomersParams,
 } from '@features/customer/state';
 
 /**

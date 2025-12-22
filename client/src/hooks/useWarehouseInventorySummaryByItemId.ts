@@ -1,12 +1,12 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
+  fetchWarehouseInventorySummaryByItemIdThunk,
   selectWarehouseInventorySummaryItemDetailsData,
   selectWarehouseInventorySummaryItemDetailsError,
   selectWarehouseInventorySummaryItemDetailsLoading,
   selectWarehouseInventorySummaryItemDetailsPagination,
-} from '@features/warehouseInventory/state/warehouseInventorySummaryDetailSelectors';
-import { fetchWarehouseInventorySummaryByItemIdThunk } from '@features/warehouseInventory/state/warehouseInventoryThunks';
+} from '@features/warehouseInventory/state';
 import type { InventorySummaryDetailByItemIdParams } from '@features/inventoryShared/types/InventorySharedType';
 
 /**
