@@ -1,11 +1,11 @@
 const express = require('express');
+const { authorize } = require('../middlewares/authorize');
 const {
   createOrderController,
   getOrderDetailsByIdController,
   updateOrderStatusController,
   fetchPaginatedOrdersController,
 } = require('../controllers/order-controller');
-const authorize = require('../middlewares/authorize');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
 const validate = require('../middlewares/validate');
 const salesOrderSchema = require('../validators/sales-order-validators');

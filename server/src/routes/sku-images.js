@@ -11,7 +11,7 @@
 
 const express = require('express');
 const multer = require('multer');
-const authorize = require('../middlewares/authorize');
+const { authorize } = require('../middlewares/authorize');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
 const validate = require('../middlewares/validate');
 const {

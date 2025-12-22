@@ -1,4 +1,5 @@
 const express = require('express');
+const { authorize } = require('../middlewares/authorize');
 const {
   getPaginatedWarehouseInventorySummaryController,
   getWarehouseInventorySummaryDetailsController,
@@ -6,7 +7,6 @@ const {
   createWarehouseInventoryRecordController,
   adjustInventoryQuantitiesController,
 } = require('../controllers/warehouse-inventory-controller');
-const authorize = require('../middlewares/authorize');
 const { csrfMiddleware } = require('../middlewares/csrf-protection');
 
 const router = express.Router();

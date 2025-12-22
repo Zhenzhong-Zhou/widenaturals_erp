@@ -1,11 +1,11 @@
 const express = require('express');
+const { authorize } = require('../middlewares/authorize');
 const {
   getLocationInventoryKpiSummaryController,
   getLocationInventorySummaryController,
   getLocationInventorySummaryDetailsController,
   getLocationInventoryRecordController,
 } = require('../controllers/location-inventory-controller');
-const authorize = require('../middlewares/authorize');
 
 const router = express.Router();
 

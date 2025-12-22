@@ -1,4 +1,5 @@
 const express = require('express');
+const { authorize } = require('../middlewares/authorize');
 const {
   getPaginatedProductsController,
   getProductDetailsController,
@@ -6,7 +7,6 @@ const {
   updateProductInfoController,
   createProductsController,
 } = require('../controllers/product-controller');
-const authorize = require('../middlewares/authorize');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 const { sanitizeFields } = require('../middlewares/sanitize');

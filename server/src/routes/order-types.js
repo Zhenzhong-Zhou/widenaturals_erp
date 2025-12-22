@@ -1,5 +1,5 @@
 const express = require('express');
-const authorize = require('../middlewares/authorize');
+const { authorize } = require('../middlewares/authorize');
 const { sanitizeFields } = require('../middlewares/sanitize');
 const validate = require('../middlewares/validate');
 const { orderTypeQuerySchema } = require('../validators/order-type-validators');
