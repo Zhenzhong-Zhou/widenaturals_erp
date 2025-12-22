@@ -7,12 +7,12 @@ import {
   selectAllocationOrderId,
   selectAllocatedIds,
   allocateInventoryThunk,
-  resetAllocateInventory,
 } from '@features/inventoryAllocation/state';
 import type {
   AllocateInventoryBody,
   AllocateInventoryParams,
 } from '@features/inventoryAllocation/state';
+import { resetAllocateInventory } from '@features/inventoryAllocation/state/allocateInventorySlice';
 
 /**
  * Custom hook for inventory allocation state and actions.

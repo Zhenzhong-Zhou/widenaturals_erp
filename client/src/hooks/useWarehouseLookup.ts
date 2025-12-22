@@ -2,11 +2,11 @@ import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchWarehouseLookupThunk,
-  resetWarehouseLookup,
   selectWarehouseLookupError,
   selectWarehouseLookupItems,
   selectWarehouseLookupLoading,
 } from '@features/lookup/state';
+import { resetWarehouseLookup } from '@features/lookup/state/warehouseLookupSlice';
 
 /**
  * Hook to access warehouse lookup state with memoization and typed store access.

@@ -5,12 +5,12 @@ import {
   selectLotAdjustmentTypeError,
   selectLotAdjustmentTypeItems,
   selectLotAdjustmentTypeLoading,
-  resetLotAdjustmentTypeLookup,
 } from '@features/lookup/state';
 import type {
   LotAdjustmentLookupQueryParams,
 } from '@features/lookup/state';
 import { formatLabel } from '@utils/textUtils';
+import { resetLotAdjustmentTypeLookup } from '@features/lookup/state/lotAdjustmentTypeLookupSlice';
 
 /**
  * Custom hook to manage lot adjustment type lookup.

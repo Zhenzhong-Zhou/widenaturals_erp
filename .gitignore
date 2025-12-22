@@ -68,3 +68,8 @@ backup/
 temp/
 server/public/uploads/sku-images
 server/src/tests/apis/public
+
+# Client
+vite.config.d.ts
+# Vite generated config
+vite.config.js

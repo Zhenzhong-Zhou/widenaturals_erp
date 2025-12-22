@@ -11,8 +11,8 @@ import {
   selectPaginatedUsersError,
   selectPaginatedUsersIsEmpty,
   fetchPaginatedUsersThunk,
-  resetPaginatedUsers,
 } from '@features/user/state';
+import { resetPaginatedUsers } from '@features/user/state/paginatedUsersSlice';
 
 type FetchUsersParams =
   GetPaginatedUsersParams & { viewMode?: UserViewMode };

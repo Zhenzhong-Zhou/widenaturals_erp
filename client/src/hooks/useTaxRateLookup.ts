@@ -6,11 +6,11 @@ import {
   selectTaxRateLookupError,
   selectTaxRateLookupLoading,
   selectTaxRateLookupMeta,
-  resetTaxRateLookup,
 } from '@features/lookup/state';
 import type {
   TaxRateLookupQueryParams,
 } from '@features/lookup/state';
+import { resetTaxRateLookup } from '@features/lookup/state/taxRateLookupSlice';
 
 /**
  * Hook for accessing tax rate lookup state and actions.

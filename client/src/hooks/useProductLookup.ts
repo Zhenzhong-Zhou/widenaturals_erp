@@ -6,11 +6,11 @@ import {
   selectProductLookupError,
   selectProductLookupLoading,
   selectProductLookupMeta,
-  resetProductLookup,
 } from '@features/lookup/state';
 import type {
   ProductLookupParams,
 } from '@features/lookup/state';
+import { resetProductLookup } from '@features/lookup/state/productLookupSlice';
 
 /**
  * Hook for accessing Product lookup state and actions.

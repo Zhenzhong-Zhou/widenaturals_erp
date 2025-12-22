@@ -5,11 +5,11 @@ import {
   selectOrderTypeError,
   selectOrderTypeLoading,
   selectOrderTypeOptions,
-  resetOrderTypeLookup,
 } from '@features/lookup/state';
 import type {
   OrderTypeLookupQueryParams,
 } from '@features/lookup/state';
+import { resetOrderTypeLookup } from '@features/lookup/state/orderTypeLookupSlice';
 
 /**
  * Custom hook to fetch and access order type lookup options.

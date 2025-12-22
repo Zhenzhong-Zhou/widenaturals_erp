@@ -7,11 +7,11 @@ import {
   selectSkuCodeBaseLookupLoading,
   selectSkuCodeBaseLookupMeta,
   selectSkuCodeBaseLookupRawItems,
-  resetSkuCodeBaseLookup,
 } from '@features/lookup/state';
 import type {
   SkuCodeBaseLookupParams,
 } from '@features/lookup/state';
+import { resetSkuCodeBaseLookup } from '@features/lookup/state/skuCodeBaseLookupSlice';
 
 /**
  * Hook for accessing SKU Code Base lookup state and actions.

@@ -6,11 +6,11 @@ import {
   selectPricingLookupLoading,
   selectPricingLookupError,
   selectPricingLookupMeta,
-  resetPricingLookup,
 } from '@features/lookup/state';
 import type {
   PricingLookupQueryParams,
 } from '@features/lookup/state';
+import { resetPricingLookup } from '@features/lookup/state/pricingLookupSlice';
 
 /**
  * Hook to access pricing lookup state and utility actions.

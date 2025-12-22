@@ -2,11 +2,11 @@ import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchCustomerAddressesLookupThunk,
-  resetAddressByCustomerLookup,
   selectCustomerAddressLookupData,
   selectCustomerAddressLookupError,
   selectCustomerAddressLookupLoading,
 } from '@features/lookup/state';
+import { resetAddressByCustomerLookup } from '@features/lookup/state/addressByCustomerLookupSlice';
 
 /**
  * Hook to access customer-address lookup data and related loading/error states.
