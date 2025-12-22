@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   adjustWarehouseInventoryQuantitiesThunk,
-  resetAdjustInventoryState,
+  resetAdjustInventory,
   selectAdjustedInventoryRecords,
 } from '@features/warehouseInventory/state';
 import type { AdjustInventoryRequestBody } from '@features/inventoryShared/types/InventorySharedType';
@@ -29,7 +29,7 @@ const useAdjustWarehouseInventory = () => {
   );
 
   const resetState = useCallback(() => {
-    dispatch(resetAdjustInventoryState());
+    dispatch(resetAdjustInventory());
   }, [dispatch]);
 
   return {
