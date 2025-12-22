@@ -1,4 +1,5 @@
 const express = require('express');
+const { authorize } = require('../middlewares/authorize');
 const {
   getBatchRegistryLookupController,
   getWarehouseLookupController,
@@ -17,7 +18,6 @@ const {
   getProductLookupController,
   getStatusLookupController,
 } = require('../controllers/lookup-controller');
-const authorize = require('../middlewares/authorize');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 const { sanitizeFields } = require('../middlewares/sanitize');
 const validate = require('../middlewares/validate');

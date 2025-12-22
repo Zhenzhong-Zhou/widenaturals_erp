@@ -3,7 +3,7 @@ const {
   createCustomerController,
   getPaginatedCustomersController,
 } = require('../controllers/customer-controller');
-const authorize = require('../middlewares/authorize');
+const { authorize } = require('../middlewares/authorize');
 const validate = require('../middlewares/validate');
 const {
   customerArraySchema,

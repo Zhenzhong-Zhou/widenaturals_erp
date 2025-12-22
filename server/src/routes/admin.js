@@ -1,6 +1,6 @@
 const express = require('express');
 const validate = require('../middlewares/validate');
-const authorize = require('../middlewares/authorize');
+const { authorize } = require('../middlewares/authorize');
 const adminSchema = require('../validators/admin-validators');
 const { sanitizeFields } = require('../middlewares/sanitize');
 const {

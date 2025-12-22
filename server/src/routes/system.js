@@ -4,8 +4,8 @@
  */
 
 const express = require('express');
+const { authorize } = require('../middlewares/authorize');
 const { getSystemStatus } = require('../controllers/system-controller');
-const authorize = require('../middlewares/authorize');
 
 const router = express.Router();
 

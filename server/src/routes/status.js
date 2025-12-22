@@ -1,6 +1,5 @@
 const express = require('express');
 const statusController = require('../controllers/status-controller');
-const wrapAsync = require('../utils/wrap-async');
 
 const router = express.Router();
 
