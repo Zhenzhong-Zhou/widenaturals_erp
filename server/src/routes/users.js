@@ -7,13 +7,16 @@ const express = require('express');
 const { authorize, authorizeAny } = require('../middlewares/authorize');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
-const { userQuerySchema } = require('../validators/user-validators');
+const {
+  userQuerySchema,
+  userIdParamSchema
+} = require('../validators/user-validators');
 const validate = require('../middlewares/validate');
 const { sanitizeFields } = require('../middlewares/sanitize');
 const {
-  getUserProfile,
   getPermissions,
   getPaginatedUsersController,
+  getUserProfileController,
 } = require('../controllers/user-controller');
 const { createUserProfileRateLimiter } = require('../middlewares/rate-limiter');
 
@@ -85,10 +88,87 @@ router.get(
 );
 
 /**
- * @route GET /users/me
- * @description Fetch the authenticated user's profile.
+ * Route: GET /users/me/profile
+ *
+ * Retrieves the authenticated user's own profile.
+ *
+ * This endpoint:
+ * - Always resolves to the requesting user
+ * - Does NOT accept a userId parameter
+ * - Does NOT allow viewing other users
+ *
+ * Middleware Chain:
+ * 1. authorize([PERMISSIONS.USERS.VIEW_SELF_PROFILE])
+ *      - Ensures the requester is allowed to view their own profile.
+ *      - Granted to all authenticated user roles.
+ *
+ * 2. getUserProfileController
+ *      - Resolves target user as req.user.id
+ *      - Delegates visibility enforcement to the service layer
+ *      - Returns a fully transformed UserProfileDTO
+ *
+ * Permissions:
+ *   - Requires USERS.VIEW_SELF_PROFILE
+ *
+ * Errors:
+ *   - 403 if requester lacks self-profile access (rare)
+ *   - 500 for unexpected server errors
  */
-router.get('/me', createUserProfileRateLimiter(), getUserProfile);
+router.get(
+  '/me/profile',
+  authorize([PERMISSIONS.USERS.VIEW_SELF_PROFILE]),
+  getUserProfileController
+);
+
+/**
+ * Route: GET /users/:userId/profile
+ *
+ * Retrieves a fully enriched user profile payload for a specific user.
+ *
+ * This endpoint is intended for privileged users (e.g. admin, HR, support)
+ * who are allowed to view profiles other than their own.
+ *
+ * Returned payload may include:
+ * - Core identity (email, full name)
+ * - Contact information (phone number, job title)
+ * - Status information
+ * - Role metadata (permission-aware)
+ * - Avatar (public)
+ * - Audit metadata
+ *
+ * Middleware Chain:
+ * 1. authorize([PERMISSIONS.USERS.VIEW_ANY_USER_PROFILE])
+ *      - Ensures the requester has explicit permission to view
+ *        other users’ profiles.
+ *      - This is a privileged capability and is NOT granted
+ *        to normal users.
+ *
+ * 2. validate(userIdParamSchema, 'params')
+ *      - Ensures `userId` is a valid UUID.
+ *      - Prevents unnecessary database queries and improves error clarity.
+ *
+ * 3. getUserProfileController
+ *      - Delegates to fetchUserProfileService(), which:
+ *          → enforces profile-level visibility (self vs non-self)
+ *          → slices role metadata based on permissions
+ *          → transforms output via transformUserProfileRow()
+ *      - Returns a consistent API response envelope with traceId.
+ *
+ * Permissions:
+ *   - Requires USERS.VIEW_ANY_USER_PROFILE
+ *
+ * Errors:
+ *   - 400 if userId is invalid
+ *   - 403 if requester lacks permission to view other users
+ *   - 404 if user does not exist or is not accessible
+ *   - 500 for unexpected server errors (captured by global error handler)
+ */
+router.get(
+  '/:userId/profile',
+  authorize([PERMISSIONS.USERS.VIEW_ANY_USER_PROFILE]),
+  validate(userIdParamSchema, 'params'),
+  getUserProfileController
+);
 
 router.get('/me/permissions', getPermissions);
 

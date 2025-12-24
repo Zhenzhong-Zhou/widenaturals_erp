@@ -186,8 +186,109 @@ const sliceUserForUser = (userRow, access) => {
   return userRow;
 };
 
+/**
+ * Business: Determine whether the requester can view the target user's profile.
+ *
+ * Visibility rules:
+ *  - Users can always view their own profile
+ *  - Root users can view all profiles
+ *  - Users with explicit permission can view others' profiles
+ *
+ * This function resolves visibility authority only.
+ * It does NOT fetch data or perform slicing.
+ *
+ * @param {Object} requester - Authenticated user context
+ * @param {string} targetUserId - Target user UUID
+ * @returns {Promise<{
+ *   isSelf: boolean,
+ *   canViewProfile: boolean
+ * }>}
+ */
+const evaluateUserProfileAccessControl = async (requester, targetUserId) => {
+  const isSelf = requester?.id === targetUserId;
+  
+  const { permissions, isRoot } =
+    await resolveUserPermissionContext(requester);
+  
+  return {
+    isSelf,
+    canViewProfile:
+      isSelf ||
+      isRoot ||
+      permissions.includes(
+        USER_CONSTANTS.PERMISSIONS.VIEW_ANY_USER_PROFILE
+      ),
+  };
+};
+
+/**
+ * Blocks profile visibility entirely if not permitted.
+ *
+ * @param {UserProfileRow} row
+ * @param {{ canViewProfile: boolean }} access
+ * @returns {UserProfileRow|null}
+ */
+const sliceUserProfileForUser = (row, access) => {
+  if (!access.canViewProfile) return null;
+  return row;
+};
+
+/**
+ * Business: Determine whether the requester can view role information
+ * on a user profile.
+ *
+ * Visibility rules:
+ *  - Users can always view their own role
+ *  - Root users can view all roles
+ *  - Users with explicit permission can view others' roles
+ *
+ * @param {Object} requester - Authenticated user context
+ * @param {{ isSelf: boolean }} profileAccess
+ * @returns {Promise<{
+ *   canViewRole: boolean
+ * }>}
+ */
+const evaluateUserRoleViewAccessControl = async (requester, profileAccess) => {
+  const { permissions, isRoot } =
+    await resolveUserPermissionContext(requester);
+  
+  return {
+    canViewRole:
+      profileAccess.isSelf ||
+      isRoot ||
+      permissions.includes(
+        USER_CONSTANTS.PERMISSIONS.VIEW_USER_ROLES
+      ),
+  };
+};
+
+/**
+ * Applies role visibility rules.
+ *
+ * @param {UserProfileRow} row
+ * @param {{ canViewRole: boolean }} access
+ * @returns {UserProfileRow}
+ */
+const sliceUserRoleForUser = (row, access) => {
+  if (!access.canViewRole) {
+    return {
+      ...row,
+      role_id: null,
+      role_name: null,
+      role_group: null,
+      hierarchy_level: null,
+      permissions: null,
+    };
+  }
+  return row;
+};
+
 module.exports = {
   evaluateUserVisibilityAccessControl,
   applyUserListVisibilityRules,
   sliceUserForUser,
+  evaluateUserProfileAccessControl,
+  sliceUserProfileForUser,
+  evaluateUserRoleViewAccessControl,
+  sliceUserRoleForUser,
 };
