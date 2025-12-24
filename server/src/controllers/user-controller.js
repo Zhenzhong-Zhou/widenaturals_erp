@@ -1,8 +1,8 @@
 const wrapAsync = require('../utils/wrap-async');
 const { logInfo } = require('../utils/logger-helper');
 const {
-  getUserProfileById,
   fetchPaginatedUsersService,
+  fetchUserProfileService,
 } = require('../services/user-service');
 const { USERS: USER_PERMISSIONS } = require('../utils/constants/domain/permissions');
 const AppError = require('../utils/AppError');
@@ -138,27 +138,71 @@ const getPaginatedUsersController = wrapAsync(async (req, res) => {
 });
 
 /**
- * Controller to fetch the authenticated user's profile.
+ * Controller: Fetch User Profile
  *
- * @param {Object} req - The Express request object.
- * @param {Object} res - The Express response object.
- * @param {Function} next - The next middleware function.
+ * Handles:
+ *   GET /users/me/profile
+ *   GET /users/:userId/profile
+ *
+ * Returns a comprehensive user profile payload containing:
+ * - Core identity (email, full name)
+ * - Contact information (phone, job title)
+ * - Status information
+ * - Role metadata (permission-aware)
+ * - Avatar (public)
+ * - Audit metadata
+ *
+ * All access control, slicing, and data shaping is handled inside
+ * `fetchUserProfileService` to keep the controller thin and consistent.
+ *
+ * This controller is responsible only for:
+ *  1. Resolving the target user ID (self vs explicit user)
+ *  2. Logging request metadata
+ *  3. Delegating work to the service layer
+ *  4. Returning the final transformed response
  */
-const getUserProfile = wrapAsync(async (req, res) => {
-  // Ensure user is authenticated
-  if (!req.user || !req.user.id) {
-    throw AppError.authenticationError('User is not authenticated');
-  }
-
-  // Fetch user profile
-  const userProfile = await getUserProfileById(req.user.id);
-
-  // Send standardized response
+const getUserProfileController = wrapAsync(async (req, res) => {
+  const context = 'user-controller/getUserProfileController';
+  
+  // Resolve target user ID:
+  // - /users/me/profile        → req.user.id
+  // - /users/:userId/profile   → req.params.userId
+  const targetUserId = req.params.userId ?? req.user.id;
+  
+  // Authenticated requester context (set by verifyToken + verifySession)
+  const requester = req.user;
+  
+  // Unique trace ID for request correlation
+  const traceId = `user-profile-${Date.now().toString(36)}`;
+  
+  // -----------------------------
+  // 1. Incoming request log
+  // -----------------------------
+  logInfo('Incoming request: fetch user profile', req, {
+    context,
+    traceId,
+    targetUserId,
+    requesterId: requester?.id,
+    isSelf: requester?.id === targetUserId,
+  });
+  
+  // -----------------------------
+  // 2. Execute service layer
+  // -----------------------------
+  const userProfile = await fetchUserProfileService(
+    targetUserId,
+    requester
+  );
+  
+  // -----------------------------
+  // 3. Send response
+  // -----------------------------
   res.status(200).json({
     success: true,
-    message: 'User profile retrieved successfully',
+    message: 'User profile retrieved successfully.',
+    userId: targetUserId,
     data: userProfile,
-    timestamp: new Date().toISOString(),
+    traceId,
   });
 });
 
@@ -189,6 +233,6 @@ const getPermissions = wrapAsync(async (req, res, next) => {
 
 module.exports = {
   getPaginatedUsersController,
-  getUserProfile,
+  getUserProfileController,
   getPermissions,
 };

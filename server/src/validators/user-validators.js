@@ -6,8 +6,29 @@ const {
   updatedDateRangeSchema,
   validateUUIDOrUUIDArrayOptional,
   validateOptionalString,
-  validateOptionalUUID
+  validateOptionalUUID,
+  validateUUID
 } = require('./general-validators');
+
+/**
+ * Joi schema: Validate User ID route parameter.
+ *
+ * Used for routes like:
+ *   GET /api/v1/users/:userId/profile
+ *
+ * Ensures the provided User ID is a valid UUID (v4).
+ *
+ * @constant
+ * @type {Joi.ObjectSchema}
+ *
+ * @example
+ * // Example usage in middleware
+ * const { error } = userIdParamSchema.validate(req.params);
+ * if (error) throw AppError.validationError(error.message);
+ */
+const userIdParamSchema = Joi.object({
+  userId: validateUUID('User ID').description('UUID of the user record'),
+});
 
 /**
  * User query schema
@@ -59,5 +80,6 @@ const userQuerySchema = paginationSchema
   });
 
 module.exports = {
+  userIdParamSchema,
   userQuerySchema,
 };

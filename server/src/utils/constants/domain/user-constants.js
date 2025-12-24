@@ -17,6 +17,16 @@ const USER_CONSTANTS = {
     // Full visibility override (read-only):
     // Can view all users regardless of category or status
     
+    VIEW_ANY_USER_PROFILE: 'view_any_user_profile',
+    // Allows viewing other users' profiles by ID
+    // Without this, users may only view their own profile
+    
+    VIEW_USER_ROLES: 'view_user_roles',
+    // Allows viewing roles and role metadata of other users
+    
+    VIEW_USER_AVATARS: 'view_user_avatars',
+    // Allows viewing avatars of other users
+    
     // -------------------------------------------------
     // Administrative capabilities (mutating actions)
     // -------------------------------------------------

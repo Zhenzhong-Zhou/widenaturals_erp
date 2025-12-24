@@ -1,18 +1,16 @@
 const {
   query,
   retry,
-  lockRow,
-  getClient,
   paginateResults,
 } = require('../database/db');
+const { buildUserFilter } = require('../utils/sql/build-user-filters');
+const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const { logError, logWarn } = require('../utils/logger-helper');
 const {
   maskSensitiveInfo,
   maskField,
 } = require('../utils/sensitive-data-utils');
 const AppError = require('../utils/AppError');
-const { buildUserFilter } = require('../utils/sql/build-user-filters');
-const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 
 /**
  * Inserts a new user into the `users` table with retry logic for transient errors.
@@ -73,80 +71,6 @@ const insertUser = async (client, userDetails) => {
   } catch (error) {
     logError('Error inserting user:', error);
     throw AppError.databaseError('Failed to insert user');
-  }
-};
-
-/**
- * Fetches a user by a specific field (ID or email) and optionally locks the row.
- *
- * @param {object} client - The database client.
- * @param {string} field - The field to search by (`id` or `email`).
- * @param {string} value - The value of the field.
- * @param {boolean} shouldLock - Whether to lock the row for update (default: false).
- * @returns {Promise<object|null>} - The user record or null if not found.
- * @throws {AppError} - Throws an error for invalid fields or database issues.
- */
-const getUser = async (client, field, value, shouldLock = false) => {
-  const maskedField = maskField(field, value);
-
-  if (!['id', 'email'].includes(field)) {
-    throw AppError.validationError('Invalid field for user query');
-  }
-
-  const sql = `
-    SELECT
-      u.id,
-      u.email,
-      u.role_id,
-      r.name AS role_name,
-      u.status_id,
-      s.name AS status_name,
-      u.firstname,
-      u.lastname,
-      u.phone_number,
-      u.job_title,
-      u.note,
-      u.status_date,
-      u.created_at,
-      u.updated_at
-    FROM users u
-    INNER JOIN roles r ON u.role_id = r.id
-    INNER JOIN status s ON u.status_id = s.id
-    WHERE u.${field} = $1
-  `;
-  const params = [value];
-
-  let isExternalClient = !!client; // Determine if the client was passed in
-  let internalClient;
-
-  try {
-    // Use the provided client or create a new one
-    internalClient = client || (await getClient());
-
-    const user = await retry(async () => {
-      const result = await internalClient.query(sql, params);
-
-      if (result.rows.length === 0) {
-        return null;
-      }
-
-      return result.rows[0];
-    });
-
-    // Optionally lock the user's row to ensure consistency
-    if (shouldLock && user) {
-      await lockRow(internalClient, 'users', user.id, 'FOR UPDATE');
-    }
-
-    return user;
-  } catch (error) {
-    logError(`Error fetching user by ${maskedField}:`, error);
-    throw AppError.databaseError(`Failed to fetch user by ${maskedField}`);
-  } finally {
-    // Release the client if it was created internally
-    if (!isExternalClient && internalClient) {
-      internalClient.release();
-    }
   }
 };
 
@@ -274,6 +198,127 @@ const getPaginatedUsers = async ({
 };
 
 /**
+ * Repository: Fetch a single User Profile with complete identity context.
+ *
+ * This function retrieves:
+ *   - Core user identity fields
+ *   - User status metadata
+ *   - Role metadata
+ *   - Derived (read-only) role permissions
+ *   - Primary avatar (if exists)
+ *   - Audit metadata
+ *
+ * IMPORTANT:
+ *   Does NOT include:
+ *     - Authentication data (passwords, sessions, tokens)
+ *     - Security state (lockouts, login attempts)
+ *     - Activity / audit history
+ *
+ * Performance:
+ *   - Single-user lookup via PK filter `u.id = $1`
+ *   - Permissions aggregated once per role
+ *   - Avatar resolved via partial unique index
+ *
+ * Error Handling:
+ *   - Returns `null` if user does not exist
+ *   - Throws `AppError.databaseError` on DB failures
+ *
+ * @param {string} userId - UUID of the user
+ * @param {string} activeStatusId - UUID of the "active" status
+ * @returns {Promise<Object|null>} User profile row or null if not found
+ */
+const getUserProfileById = async (userId, activeStatusId) => {
+  const context = 'user-repository/getUserProfileById';
+  
+  const queryText = `
+    WITH role_permissions_agg AS (
+      SELECT
+        rp.role_id,
+        jsonb_agg(
+          jsonb_build_object(
+            'id', p.id,
+            'key', p.key,
+            'name', p.name
+          )
+          ORDER BY p.key
+        ) AS permissions
+      FROM role_permissions rp
+      JOIN permissions p
+        ON p.id = rp.permission_id
+       AND p.status_id = $2
+      WHERE rp.status_id = $2
+      GROUP BY rp.role_id
+    )
+
+    SELECT
+      u.id,
+      u.email,
+      u.firstname,
+      u.lastname,
+      u.phone_number,
+      u.job_title,
+      u.is_system,
+      s.id   AS status_id,
+      s.name AS status_name,
+      u.status_date,
+      r.id           AS role_id,
+      r.name         AS role_name,
+      r.role_group,
+      r.hierarchy_level,
+      COALESCE(rpa.permissions, '[]'::jsonb) AS permissions,
+      ui.image_url   AS avatar_url,
+      ui.file_format AS avatar_format,
+      ui.uploaded_at AS avatar_uploaded_at,
+      u.created_at,
+      u.updated_at,
+      u.created_by,
+      cu.firstname AS created_by_firstname,
+      cu.lastname  AS created_by_lastname,
+      u.updated_by,
+      uu.firstname AS updated_by_firstname,
+      uu.lastname  AS updated_by_lastname
+    FROM users u
+    JOIN status s ON s.id = u.status_id
+    LEFT JOIN roles r ON r.id = u.role_id
+    LEFT JOIN role_permissions_agg rpa ON rpa.role_id = r.id
+    LEFT JOIN user_images ui ON ui.user_id = u.id AND ui.is_primary = TRUE
+    LEFT JOIN users cu ON cu.id = u.created_by
+    LEFT JOIN users uu ON uu.id = u.updated_by
+    WHERE u.id = $1
+  `;
+  
+  try {
+    const { rows } = await query(queryText, [userId, activeStatusId]);
+    
+    if (rows.length === 0) {
+      logSystemInfo('No user profile found for given ID', {
+        context,
+        userId,
+      });
+      return null;
+    }
+    
+    logSystemInfo('Fetched user profile successfully', {
+      context,
+      userId,
+    });
+    
+    return rows[0];
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch user profile', {
+      context,
+      userId,
+      error: error.message,
+    });
+    
+    throw AppError.databaseError('Failed to fetch user profile', {
+      context,
+      details: error.message,
+    });
+  }
+};
+
+/**
  * Checks if a user exists in the database by a specific field and value.
  *
  * The function filters by the user's status (default is 'active').
@@ -317,7 +362,7 @@ const userExists = async (field, value, status = 'active') => {
 
 module.exports = {
   insertUser,
-  getUser,
   getPaginatedUsers,
+  getUserProfileById,
   userExists,
 };

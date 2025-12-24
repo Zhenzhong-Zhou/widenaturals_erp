@@ -3,18 +3,23 @@ const {
   evaluateUserVisibilityAccessControl,
   applyUserListVisibilityRules,
   sliceUserForUser,
+  evaluateUserProfileAccessControl,
+  sliceUserProfileForUser,
+  evaluateUserRoleViewAccessControl,
+  sliceUserRoleForUser,
 } = require('../business/user-business');
 const {
   insertUser,
-  getUser,
   getPaginatedUsers,
+  getUserProfileById,
 } = require('../repositories/user-repository');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
-const { transformPaginatedUserForViewResults } = require('../transformers/user-transformer');
+const { transformPaginatedUserForViewResults, transformUserProfileRow } = require('../transformers/user-transformer');
 const AppError = require('../utils/AppError');
 const { insertUserAuth } = require('../repositories/user-auth-repository');
 const { logError } = require('../utils/logger-helper');
 const { hashPasswordWithSalt } = require('../utils/password-helper');
+const { getStatusId } = require('../config/status-cache');
 
 /**
  * Service: Fetch paginated users for UI consumption.
@@ -205,67 +210,101 @@ const createUser = async (userDetails) => {
 };
 
 /**
- * Retrieves a user's profile by their ID.
+ * Service: Fetch complete user profile with permission filtering.
  *
- * @param {string} userId - The ID of the user to retrieve.
- * @returns {Promise<Object>} - The user's profile information.
- * @throws {AppError} - If the user ID is invalid or the user is not found.
+ * Root entry point for the User Profile page.
+ * Enforces server-side visibility to prevent ID-guessing
+ * and client-side mistakes.
+ *
+ * Security & policy notes:
+ * - Only ACTIVE users are directly accessible by profile ID
+ * - Profile visibility is enforced per-request on the server
+ * - Avatars are intentionally public and do not require ACL checks
+ *
+ * @param {string} userId - Target user UUID
+ * @param {Object} requester - Authenticated user context
+ * @returns {Promise<UserProfileDTO>}
  */
-const getUserProfileById = async (userId) => {
-  // Validate the input
-  if (!userId || typeof userId !== 'string') {
-    throw AppError.validationError('Invalid user ID provided');
-  }
-
+const fetchUserProfileService = async (userId, requester) => {
+  const context = 'user-service/fetchUserProfileService';
+  const traceId = `user-profile-${Date.now().toString(36)}`;
+  
   try {
-    // Fetch user profile from the repository
-    const user = await getUser(null, 'id', userId);
-
-    if (!user) {
-      throw AppError.notFoundError(`User with ID ${userId} not found`);
+    const activeId = getStatusId('general_active');
+    
+    // --------------------------------------------------------
+    // 1. Fetch base user profile record (ACTIVE users only)
+    // --------------------------------------------------------
+    // Inactive users are not directly accessible by profile ID.
+    const userRow = await getUserProfileById(userId, activeId);
+    
+    if (!userRow) {
+      throw AppError.notFoundError(`User not found: ${userId}`, { context });
     }
-
-    // Map and return the user profile
-    return mapUserProfile(user);
-  } catch (error) {
-    // Log the error with additional context
-    logError(`Error retrieving user profile for ID ${userId}:`, {
-      userId,
-      error: error.message,
-      stack: error.stack,
+    
+    // --------------------------------------------------------
+    // 2. Profile-level visibility (block entire page if denied)
+    // --------------------------------------------------------
+    const profileAccess =
+      await evaluateUserProfileAccessControl(requester, userId);
+    
+    const safeProfileRow =
+      sliceUserProfileForUser(userRow, profileAccess);
+    
+    if (!safeProfileRow) {
+      throw AppError.authorizationError(
+        'You are not authorized to view this user profile.',
+        { context, userId }
+      );
+    }
+    
+    // --------------------------------------------------------
+    // 3. Role visibility (self OR permission)
+    // --------------------------------------------------------
+    const roleAccess =
+      await evaluateUserRoleViewAccessControl(requester, profileAccess);
+    
+    const withRole =
+      sliceUserRoleForUser(safeProfileRow, roleAccess);
+    
+    // --------------------------------------------------------
+    // 4. Transform → API DTO
+    // --------------------------------------------------------
+    // Avatar visibility is intentionally public for all users.
+    const response = transformUserProfileRow(withRole);
+    
+    // --------------------------------------------------------
+    // 5. Structured logging
+    // --------------------------------------------------------
+    logSystemInfo('Fetched user profile', {
+      context,
+      traceId,
+      targetUserId: userId,
+      requesterId: requester?.id,
+      isSelf: profileAccess.isSelf,
+      roleVisible: Boolean(response?.role),
+      avatarVisible: Boolean(response?.avatar),
+      permissionCount: response?.role?.permissions?.length ?? 0,
     });
-
-    // Rethrow known errors or wrap unknown errors
-    if (error instanceof AppError) {
-      throw error;
-    }
-
-    throw AppError.serviceError(
-      'An unexpected error occurred while fetching the user profile'
-    );
+    
+    return response;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch user profile', {
+      context,
+      traceId,
+      targetUserId: userId,
+      requesterId: requester?.id,
+    });
+    
+    throw AppError.serviceError('Failed to fetch user profile', {
+      details: error.message,
+      context,
+    });
   }
 };
-
-/**
- * Maps a user database record to a user profile response object.
- *
- * @param {Object} user - The user record from the database.
- * @returns {Object} - The mapped user profile.
- */
-const mapUserProfile = (user) => ({
-  name: user.name,
-  email: user.email,
-  role: user.role_name,
-  firstname: user.firstname,
-  lastname: user.lastname,
-  phone_number: user.phone_number,
-  job_title: user.job_title,
-  created_at: user.created_at,
-  updated_at: user.updated_at,
-});
 
 module.exports = {
   fetchPaginatedUsersService,
   createUser,
-  getUserProfileById
+  fetchUserProfileService,
 };
