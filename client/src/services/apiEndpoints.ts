@@ -1,16 +1,33 @@
 export const API_ENDPOINTS = {
-  CSRF_TOKEN: '/csrf/token',
+  SECURITY: {
+    CSRF: {
+      TOKEN: '/csrf/token',
+    },
+    SESSION: {
+      LOGIN: '/session/login',
+      LOGOUT: '/auth/logout',
+      REFRESH: '/session/refresh',
+    },
+    AUTH: {
+      RESET_PASSWORD: '/auth/reset-password',
+    },
+    PERMISSIONS: {
+      SELF: '/users/me/permissions',
+    },
+  },
+  PUBLIC: {
+    HEALTH: '/public/health',
+  },
   USER_PERMISSION: '/users/me/permissions',
-  PUBLIC_HEALTH: '/public/health',
-  LOGIN: '/session/login',
-  RESET_PASSWORD: '/auth/reset-password',
   REFRESH_TOKEN: '/session/refresh',
-  LOGOUT: '/auth/logout',
   USERS: {
     ALL_RECORDS: '/users',
+    PROFILE: {
+      SELF: '/users/me/profile',
+      BY_ID: (userId: string) => `/users/${userId}/profile`,
+    },
   },
   STATUSES: {},
-  USER_PROFILE: '/users/me',
   COMPLIANCE_RECORDS: {
     ALL_RECORDS: '/compliance-records',
   },

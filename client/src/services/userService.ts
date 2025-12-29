@@ -3,141 +3,166 @@ import {
   PaginatedUserCardListResponse,
   PaginatedUserListResponse,
   UserProfileResponse,
+  UserProfileTarget,
   UserViewMode,
 } from '@features/user/state';
 import { buildQueryString } from '@utils/buildQueryString';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { getRequest } from '@utils/apiRequest';
-import axiosInstance from '@utils/axiosConfig';
-import { clearTokens } from '@utils/tokenManager';
-import { handleError, mapErrorMessage } from '@utils/errorUtils';
-import { AppError, ErrorType } from '@utils/AppError';
-import { isCustomAxiosError } from '@utils/axiosUtils';
-import { withTimeout } from '@utils/timeoutUtils';
-import { withRetry } from '@utils/retryUtils';
+import { AppError } from '@utils/AppError';
+import { sanitizeString } from '@utils/stringUtils';
 
 /**
  * Fetch a paginated list of users.
  *
- * Issues:
+ * Endpoint:
  *   GET /users?page={page}&limit={limit}&sortBy={field}&sortOrder={order}&...
  *
- * Returns the standard paginated envelope:
- *   PaginatedResponse<UserCardView | UserListView>
+ * Returns:
+ *   - `PaginatedUserCardListResponse` when `viewMode = 'card'`
+ *   - `PaginatedUserListResponse` when `viewMode = 'list'`
  *
  * Notes:
- * - Query parameters should already be normalized
- *   (pagination, sorting, filters, date ranges).
- * - Filters are flattened to top-level query parameters to
- *   match backend Joi schema expectations.
- * - `viewMode` determines whether card or list view data is returned.
+ * - Pagination, sorting, and filters are assumed to be normalized upstream.
+ * - Filters are flattened into top-level query params to match the backend API contract.
+ * - `viewMode` determines the response projection returned by the server.
  *
  * @param params - Pagination, sorting, view mode, and filter options.
  * @returns A promise resolving to the paginated user response.
- * @throws Rethrows any error from the request helper.
- *
- * @example
- * const res = await fetchPaginatedUsers({
- *   page: 1,
- *   limit: 20,
- *   sortBy: 'createdAt',
- *   sortOrder: 'desc',
- *   viewMode: 'list',
- *   filters: {
- *     roleIds: ['985305ce-4c0d-4a35-b662-eb40ebe9e20a'],
- *     keyword: 'admin',
- *   },
- * });
- *
- * console.log(res.data[0].fullName);
  */
 const fetchPaginatedUsers = async (
   params: GetPaginatedUsersParams & { viewMode?: UserViewMode } = {}
-): Promise<PaginatedUserCardListResponse | PaginatedUserListResponse> => {
+): Promise<
+  PaginatedUserCardListResponse | PaginatedUserListResponse
+> => {
   const {
     filters = {},
     viewMode = 'list',
-    ...rest
+    ...paginationAndSort
   } = params;
   
   // ----------------------------------
-  // Flatten filters for query string
+  // Flatten query params
   // ----------------------------------
-  const flatParams = {
-    ...rest,
+  const queryParams = {
+    ...paginationAndSort,
     viewMode,
     ...filters,
   };
   
   // ----------------------------------
-  // Build request URL
+  // Build URL
   // ----------------------------------
-  const queryString = buildQueryString(flatParams);
+  const queryString = buildQueryString(queryParams);
   const url = `${API_ENDPOINTS.USERS.ALL_RECORDS}${queryString}`;
   
-  try {
-    return await getRequest<PaginatedUserCardListResponse | PaginatedUserListResponse>(url);
-  } catch (error) {
-    console.error('Failed to fetch paginated users:', {
-      params,
-      error,
-    });
-    throw error;
-  }
+  // ----------------------------------
+  // Execute request
+  // ----------------------------------
+  return getRequest<
+    PaginatedUserCardListResponse | PaginatedUserListResponse
+  >(url, {
+    policy: 'READ',
+  });
 };
 
 /**
- * Fetches the authenticated user's profile.
+ * Fetches the authenticated user's own profile.
  *
- * @returns {Promise<UserProfileResponse>} - The user's profile data.
- * @throws {AppError} - If the request fails or returns an unexpected response.
+ * Issues `GET /users/me/profile` and returns the standard API envelope
+ * `UserProfileResponse`.
+ *
+ * Notes:
+ * - This endpoint is permission-aware and returns a profile
+ *   sliced according to the authenticated user's access scope.
+ * - No query parameters are supported.
+ *
+ * @returns A promise resolving to the authenticated user's profile.
+ * @throws {AppError} When the response violates the expected API contract.
  */
-const fetchUserProfile = async (): Promise<UserProfileResponse> => {
-  try {
-    const fetchProfile = () =>
-      axiosInstance.get<UserProfileResponse>(API_ENDPOINTS.USER_PROFILE);
-
-    // Add retry and timeout logic
-    const response = await withTimeout(
-      withRetry(
-        fetchProfile,
-        3,
-        1000,
-        'Failed to fetch user profile after retries'
-      ), // Retry with delay
-      5000, // Timeout in milliseconds
-      'Fetching user profile timed out'
+const fetchUserProfileSelf = async (): Promise<UserProfileResponse> => {
+  const data = await getRequest<UserProfileResponse>(
+    API_ENDPOINTS.USERS.PROFILE.SELF
+  );
+  
+  // ------------------------------------------------------------
+  // Defensive payload validation (API contract safeguard)
+  // ------------------------------------------------------------
+  if (!data || typeof data !== 'object') {
+    throw AppError.validation(
+      'Unexpected response format',
+      { response: data }
     );
-
-    // Validate response structure
-    if (!response.data || typeof response.data !== 'object') {
-      throw new AppError('Unexpected response format', 400, {
-        type: ErrorType.ValidationError,
-        details: response.data,
-      });
-    }
-
-    return response.data;
-  } catch (err: unknown) {
-    // Handle 401 Unauthorized
-    if (isCustomAxiosError(err) && err.response?.status === 401) {
-      clearTokens(); // Clear tokens for unauthorized errors
-      throw new AppError('Unauthorized. Please log in again.', 401, {
-        type: ErrorType.AuthenticationError,
-      });
-    }
-
-    // Handle all other errors
-    const mappedError = mapErrorMessage(err);
-    handleError(mappedError);
-    throw mappedError;
   }
+  
+  return data;
 };
 
 /**
- * Exported user service object.
+ * Fetches a user's profile by user ID.
+ *
+ * Issues `GET /users/:userId/profile` and returns the standard API envelope
+ * `UserProfileResponse`.
+ *
+ * Notes:
+ * - Access control is fully enforced server-side.
+ * - Returned data is permission-sliced based on the viewer's role.
+ *
+ * @param userId - Target user UUID string (sanitized before use).
+ * @returns A promise resolving to the target user's profile.
+ * @throws {AppError} When the response violates the expected API contract.
+ */
+const fetchUserProfileById = async (
+  userId: string
+): Promise<UserProfileResponse> => {
+  const cleanId = sanitizeString(userId);
+  const url = API_ENDPOINTS.USERS.PROFILE.BY_ID(cleanId);
+  
+  const data = await getRequest<UserProfileResponse>(url);
+  
+  // ------------------------------------------------------------
+  // Defensive payload validation (API contract safeguard)
+  // ------------------------------------------------------------
+  if (!data || typeof data !== 'object') {
+    throw AppError.validation(
+      'Unexpected response format',
+      { response: data }
+    );
+  }
+  
+  return data;
+};
+
+/**
+ * Core user profile fetcher shared by async thunks.
+ *
+ * Resolves whether to fetch:
+ * - the authenticated user's own profile, or
+ * - another user's profile by ID
+ *
+ * This function centralizes profile-fetching behavior
+ * to ensure consistent access patterns and error handling.
+ *
+ * @param target - Profile fetch target descriptor.
+ * @returns A promise resolving to the requested user profile.
+ */
+const fetchUserProfileCore = async (
+  target: UserProfileTarget
+): Promise<UserProfileResponse> => {
+  if (target.type === 'self') {
+    return fetchUserProfileSelf();
+  }
+  
+  return fetchUserProfileById(target.userId);
+};
+
+/**
+ * User service API.
+ *
+ * Exposes user-related read operations for thunks and controllers.
+ * This layer is transport-focused and contains no business logic.
  */
 export const userService = {
   fetchPaginatedUsers,
-  fetchUserProfile,
+  fetchUserProfileCore,
 };

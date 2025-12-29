@@ -62,7 +62,7 @@ export const getUserListTableColumns = (
       label: 'Name',
       sortable: true,
       renderCell: (row) => (
-        <Link to={`/users/${row.userId}`}>
+        <Link to={`/users/${row.userId}/profile`}>
           <TruncatedText
             text={formatLabel(row.fullName) ?? '—'}
             maxLength={28}

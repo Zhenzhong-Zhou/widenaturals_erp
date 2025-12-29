@@ -1,12 +1,17 @@
 import {
+  ApiSuccessResponse,
+  AsyncState,
   DateRange,
   GenericAudit,
+  GenericAvatar,
   GenericStatus,
+  ImageFileFormat,
   PaginatedResponse,
   PaginationParams,
   ReduxPaginatedState,
   SortConfig,
 } from '@shared-types/api';
+import { NullableNumber, NullableString } from '@shared-types/shared';
 
 /**
  * Base user view shared by all UI representations.
@@ -37,7 +42,7 @@ export interface UserBaseView {
   roleName?: string;
   
   /** Avatar image URL (nullable if not set) */
-  avatarUrl?: string | null;
+  avatarUrl?: NullableString;
 }
 
 /**
@@ -189,7 +194,7 @@ export interface FlattenedUserRecord {
   // ----------------------------
   // Identity
   // ----------------------------
-  userId: string | null;
+  userId: NullableString;
   fullName: string;
   email: string;
   jobTitle: string;
@@ -203,7 +208,7 @@ export interface FlattenedUserRecord {
   // ----------------------------
   // Avatar
   // ----------------------------
-  avatarUrl: string | null;
+  avatarUrl: NullableString;
   
   // ----------------------------
   // Status
@@ -220,23 +225,275 @@ export interface FlattenedUserRecord {
   updatedBy: string;
 }
 
-
-// Represents detailed information about a user's profile
-export interface UserProfile {
-  email: string;
-  role: string;
-  firstname: string;
-  lastname: string;
-  phone_number?: string | null; // Nullable field, optional for profile updates
-  job_title: string;
-  created_at: string; // ISO timestamp for creation date
-  updated_at: string; // ISO timestamp for last update
+/**
+ * Standard successful API response wrapper for user profile retrieval.
+ *
+ * - `data` contains the resolved user profile payload.
+ * - `userId` is echoed for traceability and log correlation.
+ *
+ * NOTE:
+ * `userId` may differ from `data.id` in edge cases such as
+ * delegated access, impersonation, or future system-level views.
+ */
+export interface UserProfileResponse extends ApiSuccessResponse<UserProfile> {
+  /**
+   * The unique identifier of the user whose profile was requested.
+   *
+   * Included explicitly to simplify logging, caching, and request correlation,
+   * independent of the resolved payload structure.
+   */
+  userId: string;
 }
 
-// Response structure for user profile API requests
-export interface UserProfileResponse {
-  success: boolean; // Indicates whether the request was successful
-  message: string; // Message describing the operation's result
-  data: UserProfile; // The user profile object
-  timestamp: string; // ISO timestamp when the response was generated
+/**
+ * Canonical user profile model returned by the User Profile API.
+ *
+ * This model represents a **read-only, presentation-safe** view of a user.
+ * It must never be treated as an authorization or identity source on the client.
+ *
+ * All access control, permission enforcement, and trust decisions
+ * remain strictly server-side.
+ */
+export interface UserProfile {
+  /**
+   * Unique user identifier (UUID).
+   */
+  id: string;
+  
+  /**
+   * User email address.
+   *
+   * Guaranteed to be unique within the system at all times.
+   */
+  email: string;
+  
+  /**
+   * Human-readable full name.
+   *
+   * Typically composed of first and last name, but may vary
+   * depending on system configuration or locale.
+   */
+  fullName: string;
+  
+  /**
+   * Optional job title or role description.
+   *
+   * May be null for system-seeded, service, or automation users.
+   */
+  jobTitle: NullableString;
+  
+  /**
+   * User avatar information.
+   *
+   * Null if the user has not uploaded an avatar.
+   * Presentation-only field with no security implications.
+   */
+  avatar: GenericAvatar | null;
+  
+  /**
+   * Indicates whether the user is a system-level account.
+   *
+   * System users may receive special handling or restrictions
+   * enforced exclusively by backend business logic.
+   */
+  isSystem: boolean;
+  
+  /**
+   * Current lifecycle status of the user.
+   *
+   * Includes status identifier, human-readable name,
+   * and the effective date of the status.
+   */
+  status: GenericStatus;
+  
+  /**
+   * Role assignment and associated permissions.
+   *
+   * This is a **presentation-level** role model intended for
+   * UI behavior (feature visibility, labeling, hints).
+   *
+   * It must not be treated as an authorization source.
+   */
+  role: UserRole;
+  
+  /**
+   * Audit metadata related to user creation and modification.
+   *
+   * Informational only. Must not be used for access control,
+   * trust decisions, or client-side security logic.
+   */
+  audit: GenericAudit;
+}
+
+/**
+ * Role assigned to a user.
+ *
+ * A role aggregates a dynamic set of permissions.
+ * The client must treat this model as descriptive rather than authoritative.
+ */
+export interface UserRole {
+  /**
+   * Unique role identifier.
+   */
+  id: string;
+  
+  /**
+   * Role name (e.g. "root_admin", "inventory_manager").
+   */
+  name: string;
+  
+  /**
+   * Optional role grouping or classification.
+   *
+   * May be null if the role does not belong to a defined group.
+   */
+  roleGroup: NullableString;
+  
+  /**
+   * Optional hierarchy level used for ordering or comparison.
+   *
+   * Informational only. No ordering or precedence guarantees
+   * should be inferred on the client.
+   */
+  hierarchyLevel: NullableNumber;
+  
+  /**
+   * List of permissions granted to this role.
+   *
+   * Permissions are modeled as opaque identifiers to allow
+   * backend-driven evolution without breaking clients.
+   *
+   * Ordering is not guaranteed and must not be relied upon.
+   */
+  permissions: RolePermission[];
+}
+
+/**
+ * Individual permission descriptor.
+ *
+ * The client must not assume:
+ * - the full universe of permissions is known
+ * - permission keys are stable across deployments
+ *
+ * Permission checks on the client are strictly for UX purposes.
+ * All authorization enforcement must occur server-side.
+ */
+export interface RolePermission {
+  /**
+   * Unique permission identifier.
+   */
+  id: string;
+  
+  /**
+   * Machine-readable permission key.
+   *
+   * Treated as an opaque string on the client to ensure
+   * forward compatibility and backend-driven changes.
+   */
+  key: string;
+  
+  /**
+   * Human-readable permission name.
+   *
+   * Intended for display, auditing, or administrative interfaces only.
+   */
+  name: string;
+}
+
+/**
+ * Target descriptor for user profile retrieval.
+ *
+ * Used to distinguish between:
+ * - self-profile access
+ * - privileged access to another user's profile
+ */
+export type UserProfileTarget =
+  | { type: 'self' }
+  | { type: 'byId'; userId: string };
+
+// -------------------------------------------------
+// Async State Shapes
+// -------------------------------------------------
+
+/**
+ * Base async state for user profile retrieval.
+ *
+ * `data` is null until successfully resolved.
+ */
+export type UserProfileAsyncState = AsyncState<UserProfile | null>;
+
+/**
+ * Async state for the authenticated user's own profile.
+ */
+export type UserSelfProfileState = UserProfileAsyncState;
+
+/**
+ * Async state for HR/Admin viewing another user's profile.
+ */
+export interface UserViewedProfileState extends UserProfileAsyncState {
+  /**
+   * The ID of the user currently being viewed.
+   *
+   * Used for route-driven HR/Admin profile pages and
+   * to prevent stale data reuse across navigations.
+   */
+  viewedUserId: NullableString;
+}
+
+/**
+ * Flattened, UI-optimized projection of `UserProfile`.
+ *
+ * Designed for list views, cards, tables, and grids.
+ * Contains no nested structures to simplify rendering.
+ */
+export interface FlattenedUserProfile {
+  // -------------------------------------------------
+  // Core identity
+  // -------------------------------------------------
+  id: string;
+  fullName: string;
+  email: string;
+  jobTitle: NullableString;
+  isSystem: boolean;
+  
+  // -------------------------------------------------
+  // Avatar (flattened projection)
+  // -------------------------------------------------
+  avatarUrl: NullableString;
+  avatarFormat: ImageFileFormat | null;
+  avatarUploadedAt: NullableString;
+  
+  // -------------------------------------------------
+  // Role & permissions
+  // -------------------------------------------------
+  roleId: NullableString;
+  roleName: NullableString;
+  roleGroup: NullableString;
+  hierarchyLevel: NullableNumber;
+  
+  /**
+   * Flattened list of permission keys.
+   *
+   * Derived from `UserRole.permissions[].key`.
+   * Intended solely for UI feature toggling.
+   */
+  permissions: string[];
+  
+  // -------------------------------------------------
+  // Status
+  // -------------------------------------------------
+  statusId: NullableString;
+  statusName: NullableString;
+  statusDate: NullableString;
+  
+  // -------------------------------------------------
+  // Audit (flattened for UI)
+  // -------------------------------------------------
+  createdAt: NullableString;
+  createdById: NullableString;
+  createdByName: NullableString;
+  
+  updatedAt: NullableString;
+  updatedById: NullableString;
+  updatedByName: NullableString;
 }

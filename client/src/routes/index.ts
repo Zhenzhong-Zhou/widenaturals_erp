@@ -59,6 +59,15 @@ export const routes = [
     ],
   },
   {
+    path: '/users/:userId/profile',
+    component: lazy(() => import('@features/user/pages/UserProfilePage')),
+    meta: {
+      requiresAuth: true,
+      title: 'User Profile',
+      showInSidebar: false,
+    },
+  },
+  {
     path: '/products',
     component: lazy(() => import('@features/product/pages/ProductListPage')),
     meta: { requiresAuth: true, title: 'Product Management', showInSidebar: true },

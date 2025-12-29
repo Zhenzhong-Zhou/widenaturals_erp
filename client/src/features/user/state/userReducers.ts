@@ -1,23 +1,33 @@
 import paginatedUsersReducer from './paginatedUsersSlice';
-import userProfileReducer from './userProfileSlice';
+import userSelfProfileReducer from './userSelfProfileSlice';
+import userViewedProfileReducer from './userViewedProfileSlice';
 
 /**
  * Reducer map for the User feature.
  *
- * This reducer group is consumed exclusively by the root reducer
- * to compose the `user` state subtree.
+ * This reducer group is composed into the root reducer
+ * to form the `user` state subtree.
  *
  * Design principles:
- * - Slice reducers are imported locally to avoid circular
+ * - Slice reducers are imported directly to avoid circular
  *   ES module initialization (TDZ) issues.
- * - Slice reducers are private implementation details.
+ * - Slice reducers are private implementation details of
+ *   the User feature and must not be imported elsewhere.
  * - Reducer aggregators must NEVER import feature or state
- *   index (barrel) files.
+ *   barrel (`index.ts`) files.
+ *
+ * State composition:
+ * - `paginatedUsers`     → Admin/list views with pagination & filters
+ * - `userSelfProfile`    → Authenticated user's own profile
+ * - `userViewedProfile`  → Privileged (HR/Admin) viewed user profile
  */
 export const userReducers = {
   /** Paginated user list with filters and pagination metadata */
   paginatedUsers: paginatedUsersReducer,
   
-  /** User profile detail and update state */
-  userProfile: userProfileReducer,
+  /** Authenticated user's own profile state */
+  userSelfProfile: userSelfProfileReducer,
+  
+  /** HR/Admin viewed user profile state */
+  userViewedProfile: userViewedProfileReducer,
 };

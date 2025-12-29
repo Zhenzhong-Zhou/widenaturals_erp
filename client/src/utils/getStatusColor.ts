@@ -13,6 +13,21 @@ export type StatusColor = OverridableStringUnion<
   ChipPropsColorOverrides
 >;
 
+export type GeneralStatus =
+  | 'ACTIVE'
+  | 'INACTIVE'
+  | 'PENDING'
+  | 'DISCONTINUED'
+  | 'ARCHIVED';
+
+export const generalStatusMap = {
+  ACTIVE: 'success',
+  INACTIVE: 'secondary',
+  PENDING: 'warning',
+  DISCONTINUED: 'error',
+  ARCHIVED: 'default',
+} as const satisfies Record<GeneralStatus, StatusColor>;
+
 const orderStatusMap = {
   ORDER_PENDING: 'default',
   ORDER_EDITED: 'info',
@@ -34,6 +49,7 @@ const orderStatusMap = {
 } as const;
 
 const statusMaps = {
+  general: generalStatusMap,
   order: orderStatusMap,
   payment: {
     PAID: 'success',

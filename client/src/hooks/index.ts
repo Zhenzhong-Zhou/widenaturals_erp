@@ -26,7 +26,10 @@ export { default as useSession } from './useSession';
 export { default as useLogout } from './useLogout';
 export { default as useTokenRefresh } from './useTokenRefresh';
 export { default as useValidateAndRefreshToken } from './useValidateAndRefreshToken';
-export { default as useUserProfile } from './useUserProfile';
+export { default as useUserSelfProfile } from './useUserSelfProfile';
+export { default as useUserSelfProfileAuto } from './useUserSelfProfileAuto';
+export { default as useUserViewedProfile } from './useUserViewedProfile';
+export { default as useUserViewedProfileAuto } from './useUserViewedProfileAuto';
 export { default as usePermissions } from './usePermissions';
 export { default as usePaginatedUsers } from './usePaginatedUsers';
 

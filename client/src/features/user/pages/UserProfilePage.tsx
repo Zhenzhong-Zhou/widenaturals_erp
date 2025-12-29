@@ -1,38 +1,106 @@
-import { type FC, useState } from 'react';
+import { type FC, useCallback, useMemo, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
-import {
-  selectUserProfileLoading,
-  selectUserProfileResponse,
-} from '@features/user';
 import { selectLastLogin } from '@features/session/state';
-import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
 import { clearTokens } from '@utils/tokenManager';
 import useLogout from '@hooks/useLogout';
+import usePagePermissionGuard from '@features/authorize/hooks/usePagePermissionGuard';
 import { resetPasswordThunk } from '@features/resetPassword';
+import {
+  useUserSelfProfile,
+  useUserViewedProfile,
+  useUserViewedProfileAuto,
+} from '@hooks/index';
+import { flattenUserProfile } from '@features/user/utils/flattenUserProfile';
 import DetailPage from '@components/common/DetailPage';
 import DetailHeader from '@components/common/DetailHeader';
-import MetadataSection from '@components/common/MetadataSection';
 import CustomButton from '@components/common/CustomButton';
+import GoBackButton from '@components/common/GoBackButton';
+import NoDataFound from '@components/common/NoDataFound';
+import { UserProfileDetails } from '@features/user/components/UserProfile';
 import ResetPasswordModal from '@features/resetPassword/components/ResetPasswordModal';
+import Box from '@mui/material/Box';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import { USER_DEFAULT_PLACEHOLDER } from '@utils/constants/assets';
 
 const UserProfilePage: FC = () => {
-  const response = useAppSelector(selectUserProfileResponse);
+  const { userId } = useParams<{ userId?: string }>();
   const lastLogin = useAppSelector(selectLastLogin);
-  const loading = useAppSelector(selectUserProfileLoading);
-  const user = response?.data;
   const [isModalOpen, setModalOpen] = useState(false);
   const dispatch = useAppDispatch();
   const { isLoading: isLogoutLoading } = useLogout();
+  
+  const {
+    isAllowed: canChangeOwnPassword,
+    permLoading,
+  } = usePagePermissionGuard([
+    'user.password.change.self',
+  ]);
+  
+  const {
+    isAllowed: canResetOthersPassword,
+  } = usePagePermissionGuard([
+    'user.password.reset.any',
+    'user.password.force_reset.any',
+  ]);
+  
+  // ----------------------------
+  // SELF PROFILE (My Profile)
+  // ----------------------------
+  const selfProfile = useUserSelfProfile();
+  
+  // ----------------------------
+  // VIEWED PROFILE (HR/Admin)
+  // ----------------------------
+  const viewedProfile = useUserViewedProfile();
 
-  const metadata = {
-    Role: user?.role || 'N/A',
-    'Job Title': user?.job_title || 'N/A',
-    Phone: user?.phone_number || 'N/A',
-    'Last Login': lastLogin ? formatDateTime(lastLogin) : 'N/A',
-    'Created At': user?.created_at ? formatDate(user?.created_at) : 'N/A',
-    'Updated At': user?.updated_at ? formatDate(user?.updated_at) : 'N/A',
-  };
-
+  // Auto-fetch only when viewing another user (HR/Admin context)
+  useUserViewedProfileAuto(userId ?? null);
+  
+  // ----------------------------
+  // Decide which profile to use
+  // ----------------------------
+  const isViewingSelf = !userId;
+  
+  // ----------------------------
+  // Normalize refresh action
+  // ----------------------------
+  const refreshProfile = useCallback(() => {
+    if (isViewingSelf) {
+      selfProfile.fetchSelfProfile();
+    } else if (userId) {
+      viewedProfile.fetchViewedProfile(userId);
+    }
+  }, [
+    isViewingSelf,
+    userId,
+    selfProfile.fetchSelfProfile,
+    viewedProfile.fetchViewedProfile,
+  ]);
+  
+  // Select profile source based on route context
+  const {
+    profile: userProfile,
+    fullName,
+    email,
+    isSystem,
+    loading: isProfileLoading,
+    error: profileError,
+    isLoadingEmpty: isInitialProfileLoading,
+  } = isViewingSelf ? selfProfile : viewedProfile;
+  
+  const isOwnProfile = isViewingSelf;
+  
+  // ----------------------------
+  // Derived data
+  // ----------------------------
+  const flattenedUserProfile = useMemo(
+    () => (userProfile ? flattenUserProfile(userProfile) : null),
+    [userProfile]
+  );
+  
+  const avatarSrc = flattenedUserProfile?.avatarUrl ?? USER_DEFAULT_PLACEHOLDER;
+  
   /**
    * Handles the password reset process and triggers a logout on success.
    */
@@ -61,25 +129,59 @@ const UserProfilePage: FC = () => {
       console.error('Error resetting password:', error);
     }
   };
-
+  
   return (
     <DetailPage
       title="User Profile"
-      isLoading={loading || isLogoutLoading} // Show a loading spinner during logout
-      error={user ? undefined : 'No user information available'}
+      isLoading={isProfileLoading || isLogoutLoading}
+      error={profileError}
+      sx={{ maxWidth: 1100 }}
     >
-      {user && (
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={2}
+      >
+      <GoBackButton/>
+        
+        <CustomButton
+          variant="outlined"
+          startIcon={<RefreshIcon />}
+          onClick={refreshProfile}
+        >
+          Refresh
+        </CustomButton>
+      </Box>
+      
+      {flattenedUserProfile ? (
         <>
           <DetailHeader
-            avatarSrc={''} // Replace it with actual avatar URL if available
-            avatarFallback={user.firstname?.charAt(0).toUpperCase()}
-            name={`${user.firstname} ${user.lastname}`}
-            subtitle={user.email}
+            avatarSrc={avatarSrc}
+            avatarFallback={fullName?.charAt(0)}
+            name={fullName}
+            subtitle={email}
           />
-          <MetadataSection data={metadata} />
-          <CustomButton onClick={() => setModalOpen(true)}>
-            Reset Password
-          </CustomButton>
+          
+          <UserProfileDetails
+            user={flattenedUserProfile}
+            lastLogin={lastLogin}
+          />
+          
+          {!isSystem &&
+            !permLoading &&
+            (
+              // Regular user: own profile only
+              (isOwnProfile && canChangeOwnPassword) ||
+              
+              // Privileged user: can reset others
+              (!isOwnProfile && canResetOthersPassword)
+            ) && (
+            <CustomButton sx={{ mt: 3 }} onClick={() => setModalOpen(true)}>
+              {isOwnProfile ? 'Change Password' : 'Reset Password'}
+            </CustomButton>
+          )}
+          
           {isModalOpen && (
             <ResetPasswordModal
               open={isModalOpen}
@@ -88,7 +190,9 @@ const UserProfilePage: FC = () => {
             />
           )}
         </>
-      )}
+      ) : !isInitialProfileLoading ? (
+        <NoDataFound message="No user profile found." />
+      ) : null}
     </DetailPage>
   );
 };
