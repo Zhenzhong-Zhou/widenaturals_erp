@@ -9,7 +9,7 @@ import {
 import { buildQueryString } from '@utils/buildQueryString';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { getRequest } from '@utils/apiRequest';
-import { AppError } from '@utils/AppError';
+import { AppError } from '@utils/error/AppError.tsx';
 import { sanitizeString } from '@utils/stringUtils';
 
 /**

@@ -1,42 +1,105 @@
-import axiosInstance from '@utils/axiosConfig';
-import { API_ENDPOINTS } from '@services/apiEndpoints';
 import type {
   WarehouseDetailsResponse,
   WarehouseResponse,
 } from '@features/warehouse';
-import { AppError } from '@utils/AppError';
+import { getRequest } from '@utils/apiRequest';
+import { API_ENDPOINTS } from '@services/apiEndpoints';
+import { AppError } from '@utils/error/AppError';
 
+/* =========================================================
+ * Warehouses
+ * ======================================================= */
+
+/**
+ * Fetch a paginated list of warehouses.
+ *
+ * Issues `GET /warehouses?page=&limit=`.
+ *
+ * Notes:
+ * - Read-only operation
+ * - Transport concerns handled centrally
+ *
+ * @param page - Page number (1-based)
+ * @param limit - Page size
+ *
+ * @returns Paginated warehouse list
+ * @throws {AppError}
+ */
 const fetchAllWarehouses = async (
   page: number,
   limit: number
 ): Promise<WarehouseResponse> => {
-  try {
-    const response = await axiosInstance.get<WarehouseResponse>(
-      `${API_ENDPOINTS.ALL_WAREHOUSES}?page=${page}&limit=${limit}`
+  if (page <= 0 || limit <= 0) {
+    throw AppError.validation(
+      'Invalid pagination parameters',
+      { page, limit }
     );
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching warehouses:', error);
-    throw new AppError('Failed to fetch warehouses');
   }
+  
+  const data = await getRequest<WarehouseResponse>(
+    API_ENDPOINTS.ALL_WAREHOUSES,
+    {
+      policy: 'READ',
+      config: {
+        params: { page, limit },
+      },
+    }
+  );
+  
+  // Defensive response validation
+  if (!data || typeof data !== 'object') {
+    throw AppError.server(
+      'Invalid warehouse list response',
+      { page, limit }
+    );
+  }
+  
+  return data;
 };
 
+/**
+ * Fetch warehouse details by ID.
+ *
+ * Issues `GET /warehouses/:id`.
+ *
+ * @param warehouseId - Warehouse identifier
+ *
+ * @returns Warehouse details
+ * @throws {AppError}
+ */
 const fetchWarehouseDetails = async (
   warehouseId: string
-): Promise<WarehouseDetailsResponse | null> => {
-  try {
-    const endpoint = API_ENDPOINTS.WAREHOUSE_DETAILS.replace(
+): Promise<WarehouseDetailsResponse> => {
+  if (!warehouseId) {
+    throw AppError.validation(
+      'Warehouse ID is required'
+    );
+  }
+  
+  const endpoint =
+    API_ENDPOINTS.WAREHOUSE_DETAILS.replace(
       ':id',
       warehouseId
     );
-    const response =
-      await axiosInstance.get<WarehouseDetailsResponse>(endpoint);
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching warehouse details:', error);
-    throw new AppError('Failed to fetch warehouse details');
+  
+  const data = await getRequest<WarehouseDetailsResponse>(
+    endpoint,
+    { policy: 'READ' }
+  );
+  
+  if (!data || typeof data !== 'object') {
+    throw AppError.server(
+      'Invalid warehouse details response',
+      { warehouseId }
+    );
   }
+  
+  return data;
 };
+
+/* =========================================================
+ * Export
+ * ======================================================= */
 
 export const warehouseService = {
   fetchAllWarehouses,

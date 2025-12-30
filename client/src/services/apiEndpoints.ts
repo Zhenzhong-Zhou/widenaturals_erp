@@ -38,7 +38,9 @@ export const API_ENDPOINTS = {
   PRICING_DETAILS_BY_TYPE: '/pricings/by-type/:id/details',
   ALL_LOCATION_TYPES: '/location-types',
   LOCATION_TYPE_DETAILS: '/location-types/:id',
-  ALL_LOCATIONS: '/locations',
+  LOCATIONS: {
+    ALL_RECORDS: '/locations',
+  },
   PRODUCTS: {
     ADD_NEW_RECORD: '/products/create',
     ALL_RECORDS: '/products',

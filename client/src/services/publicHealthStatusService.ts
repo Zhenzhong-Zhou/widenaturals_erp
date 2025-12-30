@@ -1,67 +1,59 @@
-import axiosInstance from '@utils/axiosConfig';
-import { API_ENDPOINTS } from '@services/apiEndpoints';
-import { AppError, ErrorType } from '@utils/AppError';
-import { withTimeout } from '@utils/timeoutUtils';
-import { withRetry } from '@utils/retryUtils';
-import { isCustomAxiosError } from '@utils/axiosUtils';
 import type { HealthState } from '@features/health/state';
+import { getRequest } from '@utils/apiRequest';
+import { API_ENDPOINTS } from '@services/apiEndpoints';
+import { AppError } from '@utils/error/AppError.tsx';
 
 /**
  * Fetches the public health status of the server.
  *
- * @returns {Promise<HealthState>} The server's public health status response.
- * @throws {AppError} Throws an AppError for any issues during the request.
+ * Issues:
+ *   GET /public/health
+ *
+ * Characteristics:
+ * - Public, unauthenticated endpoint
+ * - Safe to retry (idempotent)
+ * - Subject to centralized timeout, retry, and error normalization
+ *
+ * Intended usage:
+ * - Application bootstrap checks
+ * - Health monitoring / status pages
+ * - Infrastructure diagnostics
+ *
+ * @returns A promise resolving to the server's public health state.
+ *
+ * @throws {AppError}
+ * - `Server` error when the response shape is invalid
+ * - Transport-level errors are normalized upstream by `getRequest`
  */
-const fetchPublicHealthStatus = async (): Promise<HealthState> => {
-  try {
-    const timeoutMessage =
-      'Request timed out while fetching public health status';
-    const retryMessage =
-      'All retries failed while fetching public health status';
-
-    const response = await withRetry(
-      async () =>
-        await withTimeout(
-          axiosInstance.get<HealthState>(API_ENDPOINTS.PUBLIC_HEALTH),
-          5000, // Timeout in milliseconds
-          timeoutMessage // Timeout error message
-        ),
-      3, // Retry attempts
-      1000, // Delay in milliseconds between retries
-      retryMessage // Retry error message
+export const fetchPublicHealthStatus = async (): Promise<HealthState> => {
+  const data = await getRequest<HealthState>(
+    API_ENDPOINTS.PUBLIC.HEALTH
+  );
+  
+  /* --------------------------------------------------------
+   * Defensive shape validation
+   *
+   * This endpoint is infrastructure-critical. Even though
+   * it is public, we validate defensively to avoid
+   * cascading failures during app initialization.
+   * ------------------------------------------------------ */
+  if (!data || typeof data !== 'object') {
+    throw AppError.server(
+      'Invalid public health status response',
+      {
+        response: data,
+      }
     );
-
-    if (!response || response.status !== 200) {
-      throw new AppError('Unexpected response from server', 502, {
-        type: ErrorType.NetworkError,
-        details: `Response status: ${response?.status || 'unknown'}`,
-      });
-    }
-
-    return response.data;
-  } catch (error) {
-    if (isCustomAxiosError(error)) {
-      // Handle Axios-specific errors
-      throw new AppError(
-        'Failed to fetch public health status',
-        error.response?.status || 500,
-        {
-          type: ErrorType.NetworkError,
-          details: error.message,
-        }
-      );
-    }
-
-    // Re-throw unknown errors as AppError
-    throw new AppError('Unexpected error occurred', 500, {
-      type: ErrorType.UnknownError,
-      details: error instanceof AppError ? error.message : 'Unknown error',
-    });
   }
+  
+  return data;
 };
 
 /**
- * Exports the public health status service.
+ * Public health status service.
+ *
+ * Encapsulates public, unauthenticated health-related reads.
+ * Kept intentionally small and side-effect free.
  */
 export const publicHealthStatusService = {
   fetchPublicHealthStatus,

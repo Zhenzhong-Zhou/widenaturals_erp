@@ -1,27 +1,51 @@
-import axiosInstance from '@utils/axiosConfig';
-import { API_ENDPOINTS } from '@services/apiEndpoints';
 import type { LocationResponse } from '@features/location';
-import { AppError } from '@utils/AppError';
+import { API_ENDPOINTS } from '@services/apiEndpoints';
+import { getRequest } from '@utils/apiRequest';
+import { AppError } from '@utils/error';
+
+/* =========================================================
+ * Locations
+ * ======================================================= */
 
 /**
- * Fetch all locations from the API with pagination.
- * @param {number} page - Current page number
- * @param {number} limit - Number of results per page
- * @returns {Promise<LocationResponse>} - Returns typed location data with pagination
+ * Fetches paginated locations from the backend.
+ *
+ * Transport guarantees:
+ * - GET request (idempotent, retryable)
+ * - Centralized timeout + retry policy
+ * - Errors normalized into `AppError`
+ *
+ * @param page - Current page number (1-based)
+ * @param limit - Number of results per page
+ * @returns Paginated location response
+ *
+ * @throws {AppError}
  */
 const fetchAllLocations = async (
   page: number,
   limit: number
 ): Promise<LocationResponse> => {
-  try {
-    const response = await axiosInstance.get<LocationResponse>(
-      `${API_ENDPOINTS.ALL_LOCATIONS}?page=${page}&limit=${limit}`
+  const data = await getRequest<LocationResponse>(
+    API_ENDPOINTS.LOCATIONS.ALL_RECORDS,
+    {
+      policy: 'READ',
+      config: {
+        params: { page, limit },
+      },
+    }
+  );
+  
+  // ----------------------------------
+  // Defensive response validation
+  // ----------------------------------
+  if (!data || typeof data !== 'object') {
+    throw AppError.server(
+      'Invalid locations response',
+      { page, limit }
     );
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching locations:', error);
-    throw new AppError('Failed to fetch locations');
   }
+  
+  return data;
 };
 
 // Export the location service with structured API calls

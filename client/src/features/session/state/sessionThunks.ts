@@ -8,8 +8,7 @@ import {
 import { sessionService } from '@services/sessionService';
 import { csrfService } from '@services/csrfService';
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { AppError, ErrorType } from '@utils/AppError';
-import { handleError } from '@utils/errorUtils';
+import { AppError, ErrorType, handleError } from '@utils/error';
 import { updateCsrfToken } from '@features/csrf/state/csrfSlice';
 import { persistor } from '@store/store';
 
@@ -44,40 +43,69 @@ export const loginThunk = createAsyncThunk(
   }
 );
 
-// Define the refreshTokenThunk with createAsyncThunk
+/* =========================================================
+ * Refresh Access Token Thunk
+ * ======================================================= */
+
+/**
+ * Refreshes the user's access token and synchronizes CSRF state.
+ *
+ * Responsibilities:
+ * - Invoke refresh-token service
+ * - Update access token in Redux
+ * - Fetch & update CSRF token
+ *
+ * Error handling:
+ * - Authentication failures trigger logout
+ * - All errors are normalized as AppError
+ * - UI receives a simple rejection message
+ */
 export const refreshTokenThunk = createAsyncThunk<
-  { accessToken: string; csrfToken: string }, // Correct return type
-  void, // No arguments
-  { rejectValue: string } // Rejection value type
+  { accessToken: string; csrfToken: string },
+  void,
+  { rejectValue: string }
 >('session/refreshToken', async (_, { dispatch, rejectWithValue }) => {
   try {
-    // Call the refresh token service
+    /* ----------------------------------
+     * 1. Refresh access token
+     * ---------------------------------- */
     const { accessToken } = await sessionService.refreshToken();
-
-    // Dispatch the updated access token to the Redux state
+    
     dispatch(updateAccessToken(accessToken));
-
-    // Fetch the CSRF token
+    
+    /* ----------------------------------
+     * 2. Refresh CSRF token
+     * ---------------------------------- */
     const csrfToken = await csrfService.fetchCsrfToken();
+    
     if (!csrfToken) {
-      throw new Error('CSRF token is empty or invalid');
+      throw AppError.server(
+        'Failed to refresh CSRF token'
+      );
     }
-    dispatch(updateCsrfToken(csrfToken)); // Update CSRF token in Redux
-
-    // Return the new access and csrf tokens
+    
+    dispatch(updateCsrfToken(csrfToken));
+    
     return { accessToken, csrfToken };
-  } catch (error) {
-    console.error('Token refresh failed:', error);
-
-    // Handle specific error cases
-    if (error instanceof AppError && error.type === ErrorType.GlobalError) {
-      dispatch(logout()); // Perform logout if token refresh fails
+  } catch (error: unknown) {
+    const appError =
+      error instanceof AppError
+        ? error
+        : AppError.unknown(
+          'Token refresh failed',
+          error
+        );
+    
+    /* ----------------------------------
+     * Authentication failures → logout
+     * ---------------------------------- */
+    if (appError.type === ErrorType.Authentication) {
+      dispatch(logoutThunk());
     } else {
-      handleError(error); // Log and handle unexpected errors
-      dispatch(logout()); // Fallback to logout
+      handleError(appError);
+      dispatch(logoutThunk());
     }
-
-    // Reject the thunk with an error message
+    
     return rejectWithValue('Token refresh failed');
   }
 });

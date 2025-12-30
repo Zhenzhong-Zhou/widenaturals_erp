@@ -8,13 +8,14 @@ import type {
   LocationInventorySummaryDetailResponse,
   LocationInventorySummaryResponse,
 } from '@features/locationInventory/state';
-import { AppError } from '@utils/AppError';
+import { AppError } from '@utils/error';
 import type {
   InventorySummaryDetailByItemIdParams,
   ItemType,
 } from '@features/inventoryShared/types/InventorySharedType';
 import { buildLocationInventoryFilters } from '@utils/filters/buildLocationInventoryFilters';
-import type { PaginationParams, SortConfig } from '@shared-types/api.ts';
+import type { PaginationParams, SortConfig } from '@shared-types/api';
+import { getRequest } from '@utils/apiRequest';
 
 /**
  * Fetches KPI summary for location inventory.
@@ -41,26 +42,49 @@ const fetchLocationInventoryKpiSummary = async (
   }
 };
 
+/* =========================================================
+ * Location Inventory Summary
+ * ======================================================= */
+
 /**
- * Fetch all inventory summaries (product or material) with pagination, filters, and sorting.
- * @param {LocationInventoryQueryParams} params - Filter and pagination options
- * @returns {Promise<LocationInventorySummaryResponse>} The response containing summary data.
+ * Fetches paginated inventory summaries for a location.
+ *
+ * Supports both product and material inventory, with
+ * pagination, filtering, and sorting handled server-side.
+ *
+ * Transport guarantees:
+ * - GET request (idempotent, retryable)
+ * - Centralized timeout and retry policy
+ * - Axios + HTTP errors normalized into `AppError`
+ *
+ * @param params - Query filters, pagination, and sorting options
+ * @returns A promise resolving to the inventory summary response
+ *
+ * @throws {AppError}
+ * Thrown when the request fails or the backend responds with an error.
  */
-export const fetchLocationInventorySummary = async (
+const fetchLocationInventorySummary = async (
   params: LocationInventoryQueryParams
 ): Promise<LocationInventorySummaryResponse> => {
-  try {
-    const response = await axiosInstance.get<LocationInventorySummaryResponse>(
-      API_ENDPOINTS.LOCATION_INVENTORY.SUMMARY,
+  const data = await getRequest<LocationInventorySummaryResponse>(
+    API_ENDPOINTS.LOCATION_INVENTORY.SUMMARY,
+    {
+      policy: 'READ',
+      config: { params },
+    }
+  );
+  
+  // -------------------------------------------------------
+  // Defensive response validation (optional but recommended)
+  // -------------------------------------------------------
+  if (!data || typeof data !== 'object') {
+    throw AppError.server(
+      'Invalid location inventory summary response',
       { params }
     );
-    return response.data;
-  } catch (error: any) {
-    console.error('Error fetching inventory summary:', error);
-    throw new AppError(
-      error.response?.data?.message || 'Failed to fetch inventory summary'
-    );
   }
+  
+  return data;
 };
 
 /**

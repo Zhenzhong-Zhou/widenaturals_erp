@@ -6,8 +6,7 @@ import axios, {
 } from 'axios';
 import * as axiosRetry from 'axios-retry';
 import { store } from '@store/store';
-import { AppError, ErrorType } from '@utils/AppError';
-import { handleError } from '@utils/errorUtils';
+import { AppError } from '@utils/error';
 import { selectAccessToken } from '@features/session/state/sessionSelectors';
 import { updateAccessToken } from '@features/session/state/sessionSlice';
 import { logoutThunk } from '@features/session/state/sessionThunks';
@@ -16,41 +15,36 @@ import { sessionService } from '@services/sessionService';
 
 interface ErrorResponse {
   message?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 const baseURL = import.meta.env.VITE_BASE_URL;
 
-/* -------------------------------------------------------------------------- */
-/* Axios instance                                                             */
-/* -------------------------------------------------------------------------- */
+/* =========================================================
+ * Axios instance
+ * ======================================================= */
 
 const axiosInstance = axios.create({
   baseURL,
   timeout: 10_000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
   withCredentials: true,
 });
 
-/* -------------------------------------------------------------------------- */
-/* HTTP retry (transport-level only)                                          */
-/* -------------------------------------------------------------------------- */
+/* =========================================================
+ * Retry (transport-level only)
+ * ======================================================= */
 
 axiosRetry.default(axiosInstance, {
   retries: 3,
   retryDelay: (retryCount, error) => {
     const retryAfter = error.response?.headers?.['retry-after'];
-    
-    // Retry-After may be seconds or a date string
     if (retryAfter) {
       const seconds = Number(retryAfter);
       if (!Number.isNaN(seconds)) {
         return seconds * 1000;
       }
     }
-    
     return axiosRetry.exponentialDelay(retryCount);
   },
   retryCondition: (error) =>
@@ -59,35 +53,32 @@ axiosRetry.default(axiosInstance, {
     (error.response?.status ?? 0) >= 500,
 });
 
-/* -------------------------------------------------------------------------- */
-/* Token refresh single-flight logic                                          */
-/* -------------------------------------------------------------------------- */
+/* =========================================================
+ * Refresh token single-flight
+ * ======================================================= */
 
 let isRefreshing = false;
 
 let failedQueue: {
   resolve: (token: string) => void;
-  reject: (error: AxiosError) => void;
+  reject: (error: unknown) => void;
 }[] = [];
 
-const processQueue = (error: AxiosError | null, token: string | null) => {
+const processQueue = (error: unknown, token: string | null) => {
   failedQueue.forEach(({ resolve, reject }) => {
-    if (error || !token) {
-      reject(error as AxiosError);
-    } else {
-      resolve(token);
-    }
+    error ? reject(error) : resolve(token as string);
   });
   failedQueue = [];
 };
 
-/* -------------------------------------------------------------------------- */
-/* Request interceptor                                                        */
-/* -------------------------------------------------------------------------- */
+/* =========================================================
+ * Request interceptor
+ * ======================================================= */
 
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const state = store.getState();
+    
     const accessToken = selectAccessToken(state);
     const csrfToken = selectCsrfToken(state);
     
@@ -100,16 +91,12 @@ axiosInstance.interceptors.request.use(
     }
     
     return config;
-  },
-  (error) => {
-    handleError(error);
-    return Promise.reject(error);
   }
 );
 
-/* -------------------------------------------------------------------------- */
-/* Response interceptor                                                       */
-/* -------------------------------------------------------------------------- */
+/* =========================================================
+ * Response interceptor
+ * ======================================================= */
 
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => response,
@@ -118,15 +105,15 @@ axiosInstance.interceptors.response.use(
       _retry?: boolean;
     };
     
-    /* ---------------------------------- */
-    /* 401 → refresh token & replay       */
-    /* ---------------------------------- */
+    /* ----------------------------------
+     * 401 → refresh & replay
+     * ---------------------------------- */
     
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({
-            resolve: (token: string) => {
+            resolve: (token) => {
               if (originalRequest.headers) {
                 originalRequest.headers.Authorization = `Bearer ${token}`;
               }
@@ -152,63 +139,49 @@ axiosInstance.interceptors.response.use(
         
         return axiosInstance(originalRequest);
       } catch (refreshError) {
-        processQueue(
-          axios.isAxiosError(refreshError) ? refreshError : null,
-          null
-        );
-        
+        processQueue(refreshError, null);
         store.dispatch(logoutThunk());
         window.location.href = '/login';
         
         return Promise.reject(
-          AppError.create(
-            ErrorType.AuthenticationError,
-            'Session expired. Please log in again.',
-            401
-          )
+          AppError.authentication('Session expired. Please log in again.')
         );
       } finally {
         isRefreshing = false;
       }
     }
     
-    /* ---------------------------------- */
-    /* Error normalization                */
-    /* ---------------------------------- */
+    /* ----------------------------------
+     * HTTP → AppError normalization
+     * ---------------------------------- */
     
     const status = error.response?.status;
+    const message = error.response?.data?.message;
     
     if (status === 400) {
       return Promise.reject(
-        AppError.create(
-          ErrorType.ValidationError,
-          'Validation failed',
-          400,
-          { details: error.response?.data }
-        )
+        AppError.validation('Validation failed', error.response?.data)
       );
     }
     
-    if (typeof status === 'number' && status >= 500) {
+    if (status === 429) {
       return Promise.reject(
-        AppError.create(
-          ErrorType.ServerError,
-          'Server error occurred',
-          status,
-          { details: error.response?.data }
-        )
+        AppError.rateLimit('Too many requests')
       );
     }
     
-    const appError = AppError.create(
-      ErrorType.UnknownError,
-      error.response?.data?.message || 'Unexpected error occurred',
-      status ?? 500,
-      { details: error.response?.data || error.message }
-    );
+    if (status && status >= 500) {
+      return Promise.reject(
+        AppError.server('Server error occurred', error.response?.data)
+      );
+    }
     
-    handleError(appError);
-    return Promise.reject(appError);
+    return Promise.reject(
+      AppError.unknown(
+        message || 'Unexpected error occurred',
+        error
+      )
+    );
   }
 );
 

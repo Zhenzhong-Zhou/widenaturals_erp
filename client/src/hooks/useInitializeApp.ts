@@ -1,120 +1,115 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
-import { handleError, mapErrorMessage } from '@utils/errorUtils';
-import { AppError, ErrorType } from '@utils/AppError';
-import { withTimeout } from '@utils/timeoutUtils';
-import { withRetry } from '@utils/retryUtils';
 import { csrfService } from '@services/csrfService';
-import { monitorCsrfStatus } from '@utils/monitorCsrfStatus';
-import {
-  selectCsrfStatus,
-  selectCsrfError,
-} from '@features/csrf/state';
+import { selectCsrfStatus, selectCsrfError } from '@features/csrf/state';
 import { resetCsrfToken } from '@features/csrf/state/csrfSlice';
+import { AppError } from '@utils/error';
+import { monitorCsrfStatus } from '@utils/monitorCsrfStatus';
+import { sleep } from '@utils/async';
 
 interface InitializeAppOptions {
-  delay?: number; // Simulated delay (default: 500ms)
-  retryAttempts?: number; // Number of retry attempts (default: 3)
+  /** Optional artificial delay (ms) for splash/loading UI */
+  delayMs?: number;
 }
 
-const useInitializeApp = ({
-  delay = 500,
-  retryAttempts = 3,
-}: InitializeAppOptions = {}) => {
+/**
+ * Performs one-time application bootstrap.
+ *
+ * Responsibilities:
+ * - Initialize CSRF token
+ * - Run optional app-level bootstrap logic
+ * - Surface fatal initialization errors to AppContent
+ *
+ * MUST NOT:
+ * - Refresh access tokens
+ * - Mutate Axios headers
+ * - Perform UI side effects
+ */
+const useInitializeApp = (
+  { delayMs = 0 }: InitializeAppOptions = {}
+) => {
   const dispatch = useAppDispatch();
-  const csrfStatus = useAppSelector(selectCsrfStatus); // CSRF loading status
-  const csrfError = useAppSelector(selectCsrfError); // CSRF error
+  
+  const csrfStatus = useAppSelector(selectCsrfStatus);
+  const csrfError = useAppSelector(selectCsrfError);
+  
   const [isInitializing, setIsInitializing] = useState(false);
   const [initializationError, setInitializationError] =
     useState<AppError | null>(null);
-
-  const initializeCsrfToken = useCallback(async () => {
-    try {
-      await csrfService.initializeCsrfToken(dispatch);
-    } catch (error) {
-      console.error('Failed to initialize CSRF token:', error);
-      throw error;
-    }
-  }, [dispatch]);
-
-  const initialize = useCallback(async () => {
-    try {
-      // Simulate initialization delay
-      await withTimeout(
-        new Promise((resolve) => setTimeout(resolve, delay)),
-        1000,
-        'Initialization timed out'
-      );
-      console.info('App initialization completed');
-    } catch (error) {
-      const appError =
-        error instanceof AppError
-          ? error
-          : AppError.create(
-              ErrorType.GlobalError,
-              mapErrorMessage(error),
-              500,
-              { details: error }
-            );
-
-      handleError(appError);
-      setInitializationError(appError);
-      dispatch(resetCsrfToken());
-      throw appError;
-    }
-  }, [delay, dispatch]);
-
+  
+  // Prevent setState after unmount
+  const isMountedRef = useRef(true);
   useEffect(() => {
-    const initializeApp = async () => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+  
+  /**
+   * Step 1: Initialize CSRF token.
+   * Transport retries / errors are handled centrally.
+   */
+  const initializeCsrfToken = useCallback(async () => {
+    await csrfService.initializeCsrfToken(dispatch);
+  }, [dispatch]);
+  
+  /**
+   * Step 2: Optional app bootstrap logic.
+   */
+  const initializeAppCore = useCallback(async () => {
+    if (delayMs > 0) {
+      await sleep(delayMs);
+    }
+  }, [delayMs]);
+  
+  useEffect(() => {
+    const run = async () => {
       setIsInitializing(true);
+      setInitializationError(null);
+      
       try {
-        console.info('Starting app initialization...');
-
-        // Step 1: Fetch and initialize CSRF token
-        console.info('Fetching CSRF token...');
-        await withRetry(
-          initializeCsrfToken,
-          retryAttempts,
-          1000,
-          'Failed to fetch CSRF token after multiple attempts'
-        );
-
-        // Step 2: Monitor CSRF status (after successful token initialization)
-        console.info('Monitoring CSRF status...');
-        monitorCsrfStatus(csrfStatus, csrfError);
-
-        // Step 3: General app initialization
-        console.info('Initializing app...');
-        await initialize();
-
-        console.info('App initialized successfully');
-      } catch (error) {
+        await initializeCsrfToken();
+        await initializeAppCore();
+      } catch (error: unknown) {
         const appError =
           error instanceof AppError
             ? error
-            : AppError.create(
-                ErrorType.GlobalError,
-                'Error during app initialization',
-                500,
-                { details: error }
-              );
-        console.error('Initialization error:', appError);
-        setInitializationError(appError);
+            : AppError.server(
+              'Error during application initialization',
+              {
+                originalError:
+                  error instanceof Error
+                    ? error.message
+                    : String(error),
+              }
+            );
+        
+        // Local recovery: reset CSRF state
+        dispatch(resetCsrfToken());
+        
+        if (isMountedRef.current) {
+          setInitializationError(appError);
+        }
       } finally {
-        setIsInitializing(false);
+        if (isMountedRef.current) {
+          setIsInitializing(false);
+        }
       }
     };
-
-    initializeApp().catch();
-  }, [
-    dispatch,
-    csrfStatus,
-    csrfError,
-    initializeCsrfToken,
-    initialize,
-    retryAttempts,
-  ]);
-
+    
+    run().catch(() => {
+      // Errors are handled inside `run`
+    });
+  }, [dispatch, initializeCsrfToken, initializeAppCore]);
+  
+  /**
+   * Monitor CSRF state changes separately to avoid race conditions.
+   */
+  useEffect(() => {
+    monitorCsrfStatus(csrfStatus, csrfError);
+  }, [csrfStatus, csrfError]);
+  
   return {
     isInitializing,
     hasError: Boolean(initializationError),

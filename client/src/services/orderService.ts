@@ -10,6 +10,7 @@ import type {
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { getRequest, patchRequest, postRequest } from '@utils/apiRequest';
 import { sanitizeString } from '@utils/stringUtils';
+import { AppError } from '@utils/error';
 
 /**
  * Sends a request to create a new order under a specific category (e.g., 'sales', 'purchase').
@@ -40,44 +41,61 @@ const createSalesOrder = async (
   }
 };
 
+/* =========================================================
+ * Orders
+ * ======================================================= */
+
 /**
- * Fetch a paginated and filtered list of orders by category.
+ * Fetches a paginated and filtered list of orders by category.
  *
  * Issues `GET /orders/:category` with optional query parameters.
  *
- * Notes:
- * - `category` is trimmed and validated before constructing the URL.
- * - `params` will be passed as query parameters (e.g., page, sortBy, filters).
- * - Expects a standard paginated API response structure.
+ * Design notes:
+ * - Category is sanitized before URL construction
+ * - Transport concerns (retry, timeout, normalization) are centralized
+ * - This function does NOT log or swallow errors
  *
- * @param category - Order category (e.g., 'sales', 'purchase') for route param.
- * @param params - Optional query filters and pagination/sorting info.
- * @returns A promise resolving to the list of orders with pagination metadata.
- * @throws Rethrows any error from the underlying request helper.
+ * @param category - Order category (e.g. 'sales', 'purchase')
+ * @param params - Pagination, sorting, and filter parameters
  *
- * @example
- * const res = await fetchOrdersByCategory('sales', { page: 1, keyword: 'NMN' });
- * console.log(res.data[0].orderNumber);
+ * @returns Paginated order list response
+ *
+ * @throws {AppError}
  */
 const fetchOrdersByCategory = async (
   category: string,
   params?: OrderQueryParams
 ): Promise<OrderListResponse> => {
   const cleanCategory = sanitizeString(category);
-  const url = API_ENDPOINTS.ORDERS.ALL_CATEGORY_ORDERS(cleanCategory);
-
-  try {
-    return await getRequest<OrderListResponse>(url, {
-      params,
-    });
-  } catch (error) {
-    console.error('Failed to fetch orders by category:', {
-      category: cleanCategory,
-      params,
-      error,
-    });
-    throw error;
+  
+  if (!cleanCategory) {
+    throw AppError.validation(
+      'Order category is required',
+      { category }
+    );
   }
+  
+  const url =
+    API_ENDPOINTS.ORDERS.ALL_CATEGORY_ORDERS(cleanCategory);
+  
+  const data = await getRequest<OrderListResponse>(url, {
+    policy: 'READ',
+    config: {
+      params,
+    },
+  });
+  
+  // ----------------------------------
+  // Defensive response validation
+  // ----------------------------------
+  if (!data || typeof data !== 'object') {
+    throw AppError.server(
+      'Invalid order list response',
+      { category: cleanCategory, params }
+    );
+  }
+  
+  return data;
 };
 
 /**

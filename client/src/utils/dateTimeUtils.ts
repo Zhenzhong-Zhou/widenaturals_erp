@@ -1,4 +1,4 @@
-import { AppError, ErrorType } from '@utils/AppError';
+import { AppError, ErrorType } from '@utils/error';
 import { parse } from 'date-fns/parse';
 import { parseISO } from 'date-fns/parseISO';
 import { differenceInDays } from 'date-fns/differenceInDays';
@@ -12,71 +12,89 @@ import {
   startOfDay,
 } from 'date-fns';
 
+/* =========================================================
+ * Date Validation
+ * ======================================================= */
+
 /**
- * Validates a date input and ensures it matches a recognized format.
+ * Validates a date input against supported formats.
  *
- * - Supports common date formats: `YYYY-MM-DD`, `MM/DD/YYYY`, `YYYY.MM.DD`, `DD.MM.YYYY`, `YYYY/MM/DD`, `MM-DD-YYYY`.
- * - Throws an `AppError` if the input is invalid when `isFinalValidation` is `true`.
- * - Returns `true` for valid dates and `false` for partial or incomplete inputs.
+ * Supported formats:
+ * - YYYY-MM-DD
+ * - MM/DD/YYYY
+ * - YYYY.MM.DD
+ * - DD.MM.YYYY
+ * - YYYY/MM/DD
+ * - MM-DD-YYYY
  *
- * @param {string | Date} input - The date input to validate. It Can be a string or a `Date` object.
- * @throws {AppError} If `isFinalValidation` is `true` and the date is invalid.
- * @returns {boolean} - `true` if the date is valid, `false` if the input is incomplete or still being typed.
+ * Design principles:
+ * - Strict validation (no partial acceptance)
+ * - Deterministic parsing
+ * - Throws on invalid input
+ *
+ * Intended usage:
+ * - Form submission validation
+ * - API boundary validation
+ * - Data normalization before persistence
+ *
+ * @param input - Date value as string or Date instance
+ *
+ * @throws {AppError}
+ * Thrown when the input is missing, malformed, or unparseable.
  */
 const validateDate = (input: string | Date): void => {
   if (!input) {
-    throw new AppError('Invalid timestamp provided: Empty value', 400, {
-      type: ErrorType.ValidationError,
+    throw new AppError('Invalid date: value is required', {
+      type: ErrorType.Validation,
     });
   }
-
+  
   let date: Date | null = null;
-
+  
+  /* ----------------------------------
+   * Native Date input
+   * ---------------------------------- */
   if (input instanceof Date) {
     date = input;
-  } else {
-    {
-      // Trim whitespace to avoid issues with extra spaces
-      {
-        const trimmedInput = input.trim();
-        {
-          if (trimmedInput === '') {
-            throw new AppError(
-              'Invalid timestamp provided: Empty string',
-              400,
-              {
-                type: ErrorType.ValidationError,
-              }
-            );
-          }
-          {
-            const formats = [
-              'yyyy-MM-dd',
-              'MM/dd/yyyy',
-              'yyyy.MM.dd',
-              'dd.MM.yyyy',
-              'yyyy/MM/dd',
-              'MM-dd-yyyy',
-            ];
-            for (const format of formats) {
-              const parsedDate = parse(trimmedInput, format, new Date());
-
-              // Ensure the parsed date is actually valid
-              if (isValid(parsedDate) && !isNaN(parsedDate.getTime())) {
-                date = parsedDate;
-                break;
-              }
-            }
-          }
-        }
+  }
+  
+  /* ----------------------------------
+   * String input parsing
+   * ---------------------------------- */
+  if (typeof input === 'string') {
+    const trimmed = input.trim();
+    
+    if (!trimmed) {
+      throw new AppError('Invalid date: empty string', {
+        type: ErrorType.Validation,
+      });
+    }
+    
+    const formats = [
+      'yyyy-MM-dd',
+      'MM/dd/yyyy',
+      'yyyy.MM.dd',
+      'dd.MM.yyyy',
+      'yyyy/MM/dd',
+      'MM-dd-yyyy',
+    ];
+    
+    for (const format of formats) {
+      const parsed = parse(trimmed, format, new Date());
+      
+      if (isValid(parsed)) {
+        date = parsed;
+        break;
       }
     }
   }
-
-  // Final validation check
-  if (!date || isNaN(date.getTime())) {
-    throw new AppError(`Invalid timestamp provided: ${input}`, 400, {
-      type: ErrorType.ValidationError,
+  
+  /* ----------------------------------
+   * Final validation
+   * ---------------------------------- */
+  if (!date || Number.isNaN(date.getTime())) {
+    throw new AppError(`Invalid date format: ${String(input)}`, {
+      type: ErrorType.Validation,
     });
   }
 };
