@@ -1,4 +1,4 @@
-import { type FC, type MouseEvent, useState } from 'react';
+import { type FC, type MouseEvent, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Avatar from '@mui/material/Avatar';
@@ -10,7 +10,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSun, faMoon } from '@fortawesome/free-solid-svg-icons';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
-import HealthStatus from '@features/health/components/HealthStatus';
+import { HealthStatus } from '@features/health/components';
 import { useThemeContext } from '@context/ThemeContext';
 import { headerStyles, typographyStyles } from '@layouts/Header/headerStyles';
 
@@ -22,128 +22,77 @@ interface HeaderProps {
 const Header: FC<HeaderProps> = ({ fullName, onLogout }) => {
   const { theme, toggleTheme } = useThemeContext();
   const navigate = useNavigate();
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const initial = fullName?.charAt(0).toUpperCase();
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  
+  const initial = useMemo(
+    () => fullName?.charAt(0).toUpperCase() ?? 'G',
+    [fullName]
+  );
   
   const handleMenuOpen = (event: MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
-
+  
   const handleMenuClose = () => setAnchorEl(null);
-
-  const getStatusColor = (
-    status: string
-  ): 'success' | 'warning' | 'error' | 'info' | 'default' => {
-    switch (status.toLowerCase()) {
-      case 'healthy':
-        return 'success';
-      case 'maintenance':
-        return 'warning';
-      case 'unhealthy':
-        return 'error';
-      case 'loading':
-        return 'info'; // optional, or 'default'
-      default:
-        return 'default';
-    }
-  };
-
+  
   return (
     <Box
       sx={{
         ...headerStyles(theme),
         display: 'flex',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        px: 5, // Padding for spacing from sidebar
+        height: 64,
+        px: 5,
         py: 1.5,
         gap: 2,
       }}
     >
-      {/* Left: Brand */}
+      {/* Brand */}
       <CustomTypography
         variant="h6"
         sx={{
           ...typographyStyles(theme),
           fontWeight: 700,
-          fontFamily: "'Roboto', sans-serif",
           color: theme.palette.primary.main,
           minWidth: 200,
         }}
       >
         WIDE Naturals Inc.
       </CustomTypography>
-
-      {/* Right: Status, Theme, Avatar */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2,
-          ml: 'auto',
-        }}
-      >
-        {/* Server Health */}
-        <HealthStatus getStatusColor={getStatusColor} sx={{ ml: 'auto' }} />
-
-        {/* Theme Toggle */}
+      
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 'auto' }}>
+        <HealthStatus sx={{ ml: 'auto' }} />
+        
         <CustomButton
           variant="outlined"
           aria-label="Toggle theme"
           onClick={toggleTheme}
-          sx={{
-            fontWeight: 500,
-            fontSize: '0.875rem',
-            minWidth: 120,
-            px: 2,
-            textTransform: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            mr: 2,
-          }}
+          sx={{ minWidth: 120, gap: 1, mr: 2 }}
         >
           <FontAwesomeIcon
             icon={theme.palette.mode === 'dark' ? faSun : faMoon}
           />
           {theme.palette.mode === 'dark' ? 'Light' : 'Dark'} Mode
         </CustomButton>
-
-        {/* Avatar & Menu */}
+        
         <IconButton
           onClick={handleMenuOpen}
           aria-label="User menu"
+          title={fullName ?? 'Guest'}
           size="small"
-          sx={{
-            ml: 0,
-            border: `2px solid ${theme.palette.primary.main}`,
-          }}
+          sx={{ border: `2px solid ${theme.palette.primary.main}` }}
         >
-          <Avatar
-            alt={fullName ?? 'Guest'}
-            src={''}
-            sx={{
-              bgcolor: theme.palette.primary.main,
-              width: 36,
-              height: 36,
-              fontWeight: 600,
-              fontFamily: "'Roboto', sans-serif",
-            }}
-          >
-            {initial || 'G'}
+          <Avatar sx={{ bgcolor: theme.palette.primary.main }}>
+            {initial}
           </Avatar>
         </IconButton>
-
-        {/* Dropdown Menu */}
+        
         <Menu
           anchorEl={anchorEl}
           open={Boolean(anchorEl)}
           onClose={handleMenuClose}
           slotProps={{
-            paper: {
-              elevation: 3,
-              sx: { width: 200, borderRadius: 2 },
-            },
+            paper: { elevation: 3, sx: { width: 200, borderRadius: 2 } },
           }}
         >
           <MenuItem disabled>
@@ -151,9 +100,9 @@ const Header: FC<HeaderProps> = ({ fullName, onLogout }) => {
               {fullName || 'Guest'}
             </CustomTypography>
           </MenuItem>
-
+          
           <Divider />
-
+          
           <MenuItem
             onClick={() => {
               handleMenuClose();
@@ -162,7 +111,7 @@ const Header: FC<HeaderProps> = ({ fullName, onLogout }) => {
           >
             Profile
           </MenuItem>
-
+          
           <MenuItem
             onClick={() => {
               handleMenuClose();
