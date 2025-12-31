@@ -1,7 +1,7 @@
 import type { AppDispatch } from '@store/store';
-import { getRequest } from '@utils/apiRequest';
+import { getRequest } from '@utils/http';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import { AppError } from '@utils/error/AppError.tsx';
+import { AppError } from '@utils/error';
 import {
   resetCsrfToken,
   updateCsrfToken,
@@ -14,30 +14,32 @@ import {
  *   GET /csrf-token
  *
  * Characteristics:
- * - Public (cookie-based)
+ * - Public (cookie-based authentication)
  * - Read-only
  * - Safe to retry
  *
- * @returns A promise resolving to the CSRF token string.
+ * Notes:
+ * - Network and HTTP errors are normalized by the transport layer.
+ * - This function validates the response shape and enforces the
+ *   presence of a CSRF token.
  *
- * @throws {AppError}
- * - Server error if response is malformed
+ * @returns A promise resolving to the CSRF token string.
+ * @throws {AppError} When the request fails or the response is invalid.
  */
 const fetchCsrfToken = async (): Promise<string> => {
-  const data = await getRequest<{ csrfToken: string }>(
+  const response = await getRequest<{ csrfToken: string }>(
     API_ENDPOINTS.SECURITY.CSRF.TOKEN,
     {
       config: { withCredentials: true },
     }
   );
   
-  const token = data?.csrfToken;
+  const token = response?.csrfToken;
   
   if (!token) {
-    throw AppError.server(
-      'Invalid CSRF token response',
-      { response: data }
-    );
+    throw AppError.server('Invalid CSRF token response', {
+      response,
+    });
   }
   
   return token;

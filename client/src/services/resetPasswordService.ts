@@ -1,73 +1,43 @@
 import type { ResetPasswordResponse } from '@features/resetPassword';
-import { AppError } from '@utils/error/AppError.tsx';
-import { postRequest } from '@utils/apiRequest';
+import { postRequest } from '@utils/http';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
+import { AppError } from '@utils/error';
+
+/* =========================================================
+ * Reset Password
+ * ======================================================= */
 
 /**
  * Resets the authenticated user's password.
  *
- * Issues:
- *   POST /auth/reset-password
+ * POST /auth/reset-password
  *
- * Characteristics:
- * - State-changing (non-idempotent)
- * - Must NOT be retried
- * - Transport errors are normalized upstream
- *
- * @param currentPassword - The user's current password (optional).
- * @param newPassword - The new password to be set.
- *
- * @returns A promise resolving to the reset password result.
- *
- * @throws {AppError}
- * - Validation error if input is invalid
- * - Server error if response payload is malformed
+ * - Non-idempotent
+ * - WRITE-only operation
+ * - Transport and HTTP errors normalized by `postRequest`
  */
-export const resetPassword = async (
+const resetPassword = async (
   currentPassword: string | null,
   newPassword: string
 ): Promise<ResetPasswordResponse> => {
-  /* --------------------------------------------------------
-   * Domain validation
-   * ------------------------------------------------------ */
   if (!newPassword) {
-    throw AppError.validation(
-      'New password is required'
-    );
+    throw AppError.validation('New password is required');
   }
   
-  const payload = {
-    currentPassword,
-    newPassword,
-  };
-  
-  /* --------------------------------------------------------
-   * Transport (POST, non-retryable)
-   * ------------------------------------------------------ */
-  const data = await postRequest<
+  return postRequest<
     { currentPassword: string | null; newPassword: string },
     ResetPasswordResponse
   >(
     API_ENDPOINTS.SECURITY.AUTH.RESET_PASSWORD,
-    payload
+    { currentPassword, newPassword },
+    { policy: 'AUTH' }
   );
-  
-  /* --------------------------------------------------------
-   * Defensive payload validation
-   * ------------------------------------------------------ */
-  if (!data || typeof data !== 'object') {
-    throw AppError.server(
-      'Invalid reset password response payload',
-      { response: data }
-    );
-  }
-  
-  return data;
 };
 
-/**
- * Reset password service.
- */
+/* =========================================================
+ * Public API
+ * ======================================================= */
+
 export const resetPasswordService = {
   resetPassword,
 };

@@ -1,6 +1,6 @@
 import type { LocationResponse } from '@features/location';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import { getRequest } from '@utils/apiRequest';
+import { getRequest } from '@utils/http';
 import { AppError } from '@utils/error';
 
 /* =========================================================

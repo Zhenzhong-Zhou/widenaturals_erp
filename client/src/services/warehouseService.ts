@@ -2,9 +2,9 @@ import type {
   WarehouseDetailsResponse,
   WarehouseResponse,
 } from '@features/warehouse';
-import { getRequest } from '@utils/apiRequest';
+import { AppError } from '@utils/error';
+import { getRequest } from '@utils/http';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import { AppError } from '@utils/error/AppError';
 
 /* =========================================================
  * Warehouses
@@ -13,21 +13,15 @@ import { AppError } from '@utils/error/AppError';
 /**
  * Fetch a paginated list of warehouses.
  *
- * Issues `GET /warehouses?page=&limit=`.
+ * GET /warehouses?page=&limit=
  *
- * Notes:
- * - Read-only operation
- * - Transport concerns handled centrally
- *
- * @param page - Page number (1-based)
- * @param limit - Page size
- *
- * @returns Paginated warehouse list
- * @throws {AppError}
+ * - Read-only
+ * - Idempotent
+ * - Adds pagination via query params
  */
 const fetchAllWarehouses = async (
-  page: number,
-  limit: number
+  page = 1,
+  limit = 20
 ): Promise<WarehouseResponse> => {
   if (page <= 0 || limit <= 0) {
     throw AppError.validation(
@@ -36,8 +30,8 @@ const fetchAllWarehouses = async (
     );
   }
   
-  const data = await getRequest<WarehouseResponse>(
-    API_ENDPOINTS.ALL_WAREHOUSES,
+  return getRequest<WarehouseResponse>(
+    API_ENDPOINTS.WAREHOUSES.ALL_RECORDS,
     {
       policy: 'READ',
       config: {
@@ -45,60 +39,30 @@ const fetchAllWarehouses = async (
       },
     }
   );
-  
-  // Defensive response validation
-  if (!data || typeof data !== 'object') {
-    throw AppError.server(
-      'Invalid warehouse list response',
-      { page, limit }
-    );
-  }
-  
-  return data;
 };
 
 /**
  * Fetch warehouse details by ID.
  *
- * Issues `GET /warehouses/:id`.
+ * GET /warehouses/:warehouseId/details
  *
- * @param warehouseId - Warehouse identifier
- *
- * @returns Warehouse details
- * @throws {AppError}
+ * @param warehouseId - Warehouse UUID
  */
 const fetchWarehouseDetails = async (
   warehouseId: string
 ): Promise<WarehouseDetailsResponse> => {
   if (!warehouseId) {
-    throw AppError.validation(
-      'Warehouse ID is required'
-    );
+    throw AppError.validation('Warehouse ID is required');
   }
   
-  const endpoint =
-    API_ENDPOINTS.WAREHOUSE_DETAILS.replace(
-      ':id',
-      warehouseId
-    );
-  
-  const data = await getRequest<WarehouseDetailsResponse>(
-    endpoint,
+  return getRequest<WarehouseDetailsResponse>(
+    API_ENDPOINTS.WAREHOUSES.WAREHOUSE_DETAILS(warehouseId),
     { policy: 'READ' }
   );
-  
-  if (!data || typeof data !== 'object') {
-    throw AppError.server(
-      'Invalid warehouse details response',
-      { warehouseId }
-    );
-  }
-  
-  return data;
 };
 
 /* =========================================================
- * Export
+ * Public API
  * ======================================================= */
 
 export const warehouseService = {
