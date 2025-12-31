@@ -1,5 +1,8 @@
-import { requestWithPolicy } from './requestWithPolicy';
-import { REQUEST_POLICIES, RequestPolicyKey } from './requestPolicies';
+import type { RequestPolicyKey } from '@utils/http';
+import {
+  REQUEST_POLICIES,
+  requestWithPolicy
+} from '@utils/http/';
 
 /**
  * Executes a request using a named transport policy.
