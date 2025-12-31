@@ -2,7 +2,13 @@ import {
   ApiSuccessResponse,
   AsyncState,
   BatchProcessStats,
+  ImageFileFormat,
+  ImageType,
 } from '@shared-types/api';
+import {
+  NullableNumber,
+  NullableString
+} from '@shared-types/shared';
 
 /**
  * Describes the origin of a SKU image record.
@@ -17,30 +23,7 @@ export type SkuImageSource =
 /**
  * Supported image roles/types for SKU assets.
  */
-export type SkuImageType =
-  | 'main'
-  | 'thumbnail'
-  | 'zoom'
-  | 'unknown';
-
-/**
- * Supported image file formats for uploads and stored media.
- *
- * This reusable type is shared across SKU images, product images,
- * packaging material assets, document attachments, and any feature
- * that relies on image upload or validation.
- *
- * Extend this union if the backend later supports additional formats
- * (e.g., `avif`, `heif`).
- */
-export type ImageFileFormat =
-  | 'webp'
-  | 'jpg'
-  | 'jpeg'
-  | 'png'
-  | 'gif'
-  | 'tiff'
-  | 'svg';
+export type SkuImageType = ImageType;
 
 /**
  * Represents a single image entry in a bulk SKU image upload operation.
@@ -66,7 +49,7 @@ export interface SkuImageInput {
   upload_mode?: "file" | "url";
   
   /** Public image URL when `upload_mode = "url"` */
-  image_url?: string | null;
+  image_url?: NullableString;
   
   /** True if this row represents an uploaded file in multipart form */
   file_uploaded?: boolean;
@@ -81,13 +64,13 @@ export interface SkuImageInput {
   image_type?: SkuImageType;
   
   /** Precomputed file size (KB), optional and UI-facing */
-  file_size_kb?: number | null;
+  file_size_kb?: NullableNumber;
   
   /** Inferred file extension/type such as jpg, png, webp */
   file_format?: ImageFileFormat;
   
   /** Human-friendly alt text for accessibility and SEO */
-  alt_text?: string | null;
+  alt_text?: NullableString;
   
   /**
    * Optional tag indicating how the image was added

@@ -1,8 +1,10 @@
 import { type FC, useCallback, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import Box from '@mui/material/Box';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import { selectLastLogin } from '@features/session/state';
-import { clearTokens } from '@utils/tokenManager';
+import { clearTokens } from '@utils/auth';
 import useLogout from '@hooks/useLogout';
 import usePagePermissionGuard from '@features/authorize/hooks/usePagePermissionGuard';
 import { resetPasswordThunk } from '@features/resetPassword';
@@ -19,8 +21,6 @@ import GoBackButton from '@components/common/GoBackButton';
 import NoDataFound from '@components/common/NoDataFound';
 import { UserProfileDetails } from '@features/user/components/UserProfile';
 import ResetPasswordModal from '@features/resetPassword/components/ResetPasswordModal';
-import Box from '@mui/material/Box';
-import RefreshIcon from '@mui/icons-material/Refresh';
 import { USER_DEFAULT_PLACEHOLDER } from '@utils/constants/assets';
 
 const UserProfilePage: FC = () => {

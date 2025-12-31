@@ -19,9 +19,9 @@
 import type {
   BulkSkuImageUploadItem,
   BulkSkuImageUploadResult,
-  ImageFileFormat,
   SkuImageUploadCardData,
 } from '../state';
+import { ImageFileFormat } from '@shared-types/api';
 
 /**
  * Extract the file extension (format) from a given image File object.
