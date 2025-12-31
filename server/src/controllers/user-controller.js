@@ -4,7 +4,6 @@ const {
   fetchPaginatedUsersService,
   fetchUserProfileService,
 } = require('../services/user-service');
-const { USERS: USER_PERMISSIONS } = require('../utils/constants/domain/permissions');
 const AppError = require('../utils/AppError');
 const { fetchPermissions } = require('../services/role-permission-service');
 
@@ -59,17 +58,6 @@ const getPaginatedUsersController = wrapAsync(async (req, res) => {
   const allowedViewModes = new Set(['list', 'card']);
   if (!allowedViewModes.has(viewMode)) {
     throw AppError.validationError('Invalid viewMode');
-  }
-
-  // Enforce view-specific permissions (presentation-level authorization)
-  if (viewMode === 'list' &&
-    !permissions.includes(USER_PERMISSIONS.VIEW_LIST)) {
-    throw AppError.authorizationError('Forbidden: list view not permitted');
-  }
-  
-  if (viewMode === 'card' &&
-    !permissions.includes(USER_PERMISSIONS.VIEW_CARD)) {
-    throw AppError.authorizationError('Forbidden: card view not permitted');
   }
   
   // Authenticated requester (populated by auth middleware)
