@@ -9,22 +9,22 @@ import Divider from '@mui/material/Divider';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSun, faMoon } from '@fortawesome/free-solid-svg-icons';
 import CustomTypography from '@components/common/CustomTypography';
-import HealthStatus from '@features/health/components/HealthStatus';
 import CustomButton from '@components/common/CustomButton';
+import HealthStatus from '@features/health/components/HealthStatus';
 import { useThemeContext } from '@context/ThemeContext';
-import type { UserProfile } from '@features/user';
 import { headerStyles, typographyStyles } from '@layouts/Header/headerStyles';
 
 interface HeaderProps {
-  user?: UserProfile;
+  fullName?: string;
   onLogout: () => void;
 }
 
-const Header: FC<HeaderProps> = ({ user, onLogout }) => {
+const Header: FC<HeaderProps> = ({ fullName, onLogout }) => {
   const { theme, toggleTheme } = useThemeContext();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-
+  const initial = fullName?.charAt(0).toUpperCase();
+  
   const handleMenuOpen = (event: MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
@@ -120,7 +120,7 @@ const Header: FC<HeaderProps> = ({ user, onLogout }) => {
           }}
         >
           <Avatar
-            alt={user?.firstname || 'Guest'}
+            alt={fullName ?? 'Guest'}
             src={''}
             sx={{
               bgcolor: theme.palette.primary.main,
@@ -130,7 +130,7 @@ const Header: FC<HeaderProps> = ({ user, onLogout }) => {
               fontFamily: "'Roboto', sans-serif",
             }}
           >
-            {user?.firstname?.charAt(0).toUpperCase() || 'G'}
+            {initial || 'G'}
           </Avatar>
         </IconButton>
 
@@ -148,7 +148,7 @@ const Header: FC<HeaderProps> = ({ user, onLogout }) => {
         >
           <MenuItem disabled>
             <CustomTypography variant="body1">
-              {user?.firstname || 'Guest'}
+              {fullName || 'Guest'}
             </CustomTypography>
           </MenuItem>
 

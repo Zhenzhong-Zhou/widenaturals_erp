@@ -10,8 +10,8 @@ import {
   selectIsViewedSystemUser,
   selectViewedUserId,
   fetchUserViewedProfileThunk,
-  resetUserViewedProfile,
 } from '@features/user';
+import { resetUserViewedProfile } from '@features/user/state/userViewedProfileSlice';
 
 /**
  * Hook: Access and control a viewed user's profile (HR/Admin).

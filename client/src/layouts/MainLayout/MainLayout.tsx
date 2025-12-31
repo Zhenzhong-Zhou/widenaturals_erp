@@ -1,29 +1,28 @@
 import {
   useState,
-  Suspense,
-  cloneElement,
-  type ReactElement,
   useEffect,
-  isValidElement,
   useMemo,
+  cloneElement,
+  isValidElement,
+  type ReactElement,
 } from 'react';
-import { useThemeContext } from '@context/ThemeContext';
-import { useMediaQuery, useTheme } from '@mui/material';
 import Box from '@mui/material/Box';
+import { useMediaQuery, useTheme } from '@mui/material';
+import { useThemeContext } from '@context/ThemeContext';
+import { usePermissionsContext } from '@context/PermissionsContext';
 import Loading from '@components/common/Loading';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
-import ErrorMessage from '@components/common/ErrorMessage';
 import ModuleErrorBoundaryWrapper from '@components/shared/ModuleErrorBoundaryWrapper';
 import FallbackUI from '@components/shared/FallbackUI';
 import Sidebar from '@layouts/Sidebar/Sidebar';
 import Header from '@layouts/Header/Header';
 import Footer from '@layouts/Footer/Footer';
-import { AppError } from '@utils/AppError';
-import { getErrorLog } from '@utils/errorUtils';
-import { usePermissionsContext } from '@context/PermissionsContext';
-import useUserProfile from '@hooks/useUserProfile';
-import useLogout from '@hooks/useLogout';
-import useTokenRefresh from '@hooks/useTokenRefresh';
+import {
+  useLogout,
+  useTokenRefresh,
+  useUserSelfProfile,
+  useUserSelfProfileAuto,
+} from '@hooks/index';
 import {
   contentContainerStyles,
   layoutStyles,
@@ -43,50 +42,54 @@ interface MainLayoutProps {
 const MainLayout = ({ children }: MainLayoutProps) => {
   const { theme } = useThemeContext();
   const muiTheme = useTheme();
-  const isSmallScreen = useMediaQuery(muiTheme.breakpoints.down('md')); // Change breakpoint as needed
-
-  const [isSidebarOpen, setSidebarOpen] = useState(!isSmallScreen); // Open if large screen, close if small screen
-
-  const {
-    data: userProfile,
-    loading: userProfileLoading,
-    error: userProfileError,
-  } = useUserProfile();
-  const fullName =
-    `${userProfile.firstname ?? ''} ${userProfile.lastname ?? ''}`.trim();
-  const { logout } = useLogout();
+  const isSmallScreen = useMediaQuery(muiTheme.breakpoints.down('md'));
+  
+  const [isSidebarOpen, setSidebarOpen] = useState(!isSmallScreen);
+  
+  // --------------------------------------------------
+  // App bootstrap
+  // --------------------------------------------------
+  useUserSelfProfileAuto();
   useTokenRefresh();
+  
+  const { logout } = useLogout();
   const { roleName, permissions } = usePermissionsContext();
-
-  const toggleSidebar = () => setSidebarOpen((prev) => !prev);
-
+  
+  const {
+    fullName,
+    loading: isProfileLoading,
+    error: profileError,
+    isLoadingEmpty: isInitialProfileLoading,
+  } = useUserSelfProfile();
+  
   useEffect(() => {
-    setSidebarOpen(!isSmallScreen); // Automatically adjust sidebar state based on screen size
+    setSidebarOpen(!isSmallScreen);
   }, [isSmallScreen]);
-
+  
   const injectedChild = useMemo(() => {
     return isValidElement(children)
       ? cloneElement(children, { fullName, roleName, permissions })
       : null;
   }, [children, fullName, roleName, permissions]);
-
-  if (userProfileLoading) {
-    return <Loading fullPage={true} message="Loading user profile..." />;
+  
+  // --------------------------------------------------
+  // Global loading / error gates
+  // --------------------------------------------------
+  if (isInitialProfileLoading) {
+    return <Loading fullPage message="Preparing application..." />;
   }
-
-  // Handle global error for user profile
-  if (userProfileError) {
+  
+  if (isProfileLoading) {
+    return <Loading fullPage message="Loading user profile..." />;
+  }
+  
+  if (profileError) {
     return <ErrorDisplay message="Failed to load user profile." />;
   }
-
-  if (!userProfile) {
-    return (
-      <ErrorDisplay>
-        <ErrorMessage message="No user profile available." />
-      </ErrorDisplay>
-    );
-  }
-
+  
+  // --------------------------------------------------
+  // Layout
+  // --------------------------------------------------
   return (
     <Box className="layout" sx={layoutStyles(theme)}>
       {/* Sidebar */}
@@ -94,28 +97,20 @@ const MainLayout = ({ children }: MainLayoutProps) => {
         fallback={
           <FallbackUI
             title="Sidebar Error"
-            description="The sidebar failed to load. Please try refreshing the page or contact support."
+            description="The sidebar failed to load."
             errorCode="SIDEBAR-001"
-            errorLog={getErrorLog(
-              AppError.fromNetworkError({
-                url: '/api/sidebar',
-                message: 'Sidebar API request failed',
-              }).details
-            )}
-            onRetry={() => window.location.reload()}
+            errorLog="Sidebar render failure"
           />
         }
       >
-        <Suspense fallback={<Loading message="Loading sidebar..." />}>
-          <Sidebar
-            isOpen={isSidebarOpen}
-            toggleSidebar={toggleSidebar}
-            roleName={roleName}
-            permissions={permissions}
-          />
-        </Suspense>
+        <Sidebar
+          isOpen={isSidebarOpen}
+          toggleSidebar={() => setSidebarOpen((p) => !p)}
+          roleName={roleName}
+          permissions={permissions}
+        />
       </ModuleErrorBoundaryWrapper>
-
+      
       {/* Content Container */}
       <Box className="content-container" sx={contentContainerStyles(theme)}>
         {/* Header */}
@@ -123,64 +118,43 @@ const MainLayout = ({ children }: MainLayoutProps) => {
           fallback={
             <FallbackUI
               title="Header Error"
-              description="The header failed to load. Please try refreshing the page or contact support."
+              description="The header failed to load."
               errorCode="HEADER-001"
-              errorLog={getErrorLog(
-                AppError.fromValidationError({
-                  message: 'Header props are missing',
-                  component: 'Header',
-                }).details
-              )}
-              onRetry={() => window.location.reload()}
+              errorLog="Header render failure"
             />
           }
         >
-          <Suspense fallback={<Loading message="Loading header..." />}>
-            <Header user={userProfile} onLogout={logout} />
-          </Suspense>
+          <Header fullName={fullName} onLogout={logout} />
         </ModuleErrorBoundaryWrapper>
-
+        
         {/* Main Content */}
         <ModuleErrorBoundaryWrapper
           fallback={
             <FallbackUI
               title="Content Error"
-              description="The main content failed to load. Please try again later."
+              description="The main content failed to load."
               errorCode="CONTENT-001"
-              errorLog={getErrorLog(
-                AppError.fromNetworkError({
-                  url: '/api/content',
-                  message: 'Failed to fetch content data',
-                }).details
-              )}
+              errorLog="Main content render failure"
             />
           }
         >
-          <Suspense fallback={<Loading message="Loading content..." />}>
-            <Box sx={mainContentStyles(theme)}>{injectedChild}</Box>
-          </Suspense>
+          <Box sx={mainContentStyles(theme)}>
+            {injectedChild}
+          </Box>
         </ModuleErrorBoundaryWrapper>
-
+        
         {/* Footer */}
         <ModuleErrorBoundaryWrapper
           fallback={
             <FallbackUI
               title="Footer Error"
-              description="The footer failed to load. Please try refreshing the page."
+              description="The footer failed to load."
               errorCode="FOOTER-001"
-              errorLog={getErrorLog(
-                AppError.fromNetworkError({
-                  url: '/api/footer',
-                  message: 'Footer API request failed',
-                }).details
-              )}
-              onRetry={() => window.location.reload()}
+              errorLog="Footer render failure"
             />
           }
         >
-          <Suspense fallback={<Loading message="Loading footer..." />}>
-            <Footer />
-          </Suspense>
+          <Footer />
         </ModuleErrorBoundaryWrapper>
       </Box>
     </Box>

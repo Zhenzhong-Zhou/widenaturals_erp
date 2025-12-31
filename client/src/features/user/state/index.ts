@@ -7,7 +7,6 @@ export { userReducers } from './userReducers';
 // Reset Actions (explicit public lifecycle API)
 // --------------------------------------------------
 export { resetUserSelfProfile } from './userSelfProfileSlice';
-export { resetUserViewedProfile } from './userViewedProfileSlice';
 
 // --------------------------------------------------
 // Selectors
