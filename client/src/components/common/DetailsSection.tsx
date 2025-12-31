@@ -1,15 +1,22 @@
-import { type FC, isValidElement, memo } from 'react';
+import { type FC, isValidElement, memo, ReactNode } from 'react';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import type { SxProps, Theme } from '@mui/system';
 import CustomTypography from '@components/common/CustomTypography';
 import { useThemeContext } from '@context/ThemeContext';
-import type { ReactNode } from 'react';
+
+type DisplayValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | Record<string, any>;
 
 export interface DetailsSectionField {
   label: string;
-  value: string | number | null | undefined | Record<string, any>;
+  value: DisplayValue;
   format?: (value: any) => string | ReactNode;
 }
 

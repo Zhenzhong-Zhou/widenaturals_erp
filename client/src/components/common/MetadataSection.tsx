@@ -16,14 +16,28 @@ const isSimpleValue = (value: any): boolean =>
 
 interface MetadataSectionProps {
   data: Record<string, any>;
+  title?: string;
   sx?: SxProps<Theme>;
 }
 
-const MetadataSection: FC<MetadataSectionProps> = ({ data, sx }) => {
+const MetadataSection: FC<MetadataSectionProps> = ({ data, title, sx }) => {
   const { theme } = useThemeContext();
 
   return (
     <Box sx={{ mt: theme.spacing(2), ...sx }}>
+      {title && (
+        <Typography
+          variant="subtitle1"
+          sx={{
+            mb: theme.spacing(1),
+            fontWeight: 600,
+            color: theme.palette.text.primary,
+          }}
+        >
+          {title}
+        </Typography>
+      )}
+      
       {Object.entries(data).map(([key, value]) => {
         if (shouldExcludeKey(key)) return null;
 

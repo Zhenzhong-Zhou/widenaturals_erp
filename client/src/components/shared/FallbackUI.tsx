@@ -1,10 +1,10 @@
 import { type FC, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import CustomTypography from '@components/common/CustomTypography';
 import ErrorMessage from '@components/common/ErrorMessage';
 import CustomButton from '@components/common/CustomButton';
-import GoBackButton from '@components/common/GoBackButton.tsx';
+import GoBackButton from '@components/common/GoBackButton';
+import { useThemeContext } from '@context/ThemeContext';
 
 interface FallbackUIProps {
   title?: string;
@@ -15,78 +15,91 @@ interface FallbackUIProps {
 }
 
 const FallbackUI: FC<FallbackUIProps> = ({
-  title = 'Oops! Something went wrong.',
-  description = 'Please try again later or contact support.',
-  errorCode,
-  errorLog,
-  onRetry,
-}) => {
+                                           title = 'Oops! Something went wrong.',
+                                           description = 'Please try again later or contact support.',
+                                           errorCode,
+                                           errorLog,
+                                           onRetry,
+                                         }) => {
+  const { theme } = useThemeContext();
   const [showDetails, setShowDetails] = useState(false);
-  const navigate = useNavigate();
-
-  const handleGoHome = () => navigate('/');
-
+  
+  const handleGoHome = () => {
+    window.location.replace('/');
+  };
+  
+  const retryHandler = onRetry ?? (() => window.location.reload());
+  
   return (
     <Box
       sx={{
         maxWidth: 600,
-        margin: '0 auto',
-        padding: 4,
+        mx: 'auto',
+        p: 4,
         borderRadius: 2,
         textAlign: 'center',
-        backgroundColor: '#fdfdfd', // Avoid theme eval
-        color: '#111',
-        boxShadow: 2,
+        backgroundColor: theme.palette.background.paper,
+        color: theme.palette.text.primary,
+        boxShadow: theme.shadows[3],
+        border: errorCode
+          ? `1px solid ${theme.palette.error.main}`
+          : `1px solid ${theme.palette.divider}`,
       }}
     >
-      {/* Error Title */}
       <CustomTypography
         variant="h4"
-        sx={{ fontWeight: 700, color: '#d32f2f' }}
+        sx={{
+          fontWeight: 700,
+          color: theme.palette.error.main,
+        }}
         gutterBottom
       >
         {title}
       </CustomTypography>
-
-      {/* Error Description */}
-      <CustomTypography variant="body1" sx={{ color: '#444', marginBottom: 2 }}>
+      
+      <CustomTypography
+        variant="body1"
+        sx={{
+          color: theme.palette.text.secondary,
+          mb: 2,
+        }}
+      >
         {description}
       </CustomTypography>
-
-      {/* Optional Error Code */}
+      
       {errorCode && (
         <ErrorMessage
           message={`Error Code: ${errorCode}`}
           severity="info"
-          sx={{ marginBottom: 2 }}
+          sx={{ mb: 2 }}
         />
       )}
-
-      {/* Expandable Error Log */}
+      
       {errorLog && (
         <Box>
           <CustomButton
             variant="text"
             size="small"
             onClick={() => setShowDetails((prev) => !prev)}
-            sx={{ marginBottom: 1 }}
+            sx={{ mb: 1 }}
           >
             {showDetails ? 'Hide Details' : 'Show Details'}
           </CustomButton>
-
+          
           {showDetails && (
             <Box
               component="pre"
               sx={{
                 textAlign: 'left',
-                backgroundColor: '#fafafa',
-                color: '#555',
-                padding: 2,
+                backgroundColor: theme.palette.stack,
+                color: theme.palette.text.secondary,
+                p: 2,
                 borderRadius: 1,
                 maxHeight: 200,
                 overflowY: 'auto',
                 whiteSpace: 'pre-wrap',
                 fontSize: '0.875rem',
+                border: `1px solid ${theme.palette.divider}`,
               }}
             >
               {errorLog}
@@ -94,39 +107,29 @@ const FallbackUI: FC<FallbackUIProps> = ({
           )}
         </Box>
       )}
-
-      {/* Actions */}
+      
       <Box
         sx={{
           mt: 4,
           display: 'flex',
           flexWrap: 'wrap',
           justifyContent: 'center',
-          alignItems: 'center',
-          columnGap: 2,
-          rowGap: 2,
+          gap: 2,
         }}
       >
         {/* Retry Button */}
         {onRetry && (
           <CustomButton
             variant="contained"
-            color="primary"
-            onClick={onRetry}
-            sx={{
-              minWidth: 120,
-              px: 3,
-              fontWeight: 600,
-            }}
+            onClick={retryHandler}
+            sx={{ minWidth: 120, fontWeight: 600 }}
           >
             Retry
           </CustomButton>
         )}
-
-        {/* Go Back */}
+        
+        {/* Keep only if GoBackButton does NOT use router hooks */}
         <GoBackButton
-          color="success"
-          variant="contained"
           sx={{
             minWidth: 120,
             px: 3,
@@ -135,17 +138,12 @@ const FallbackUI: FC<FallbackUIProps> = ({
             mt: 0, // override default spacing
           }}
         />
-
-        {/* Go Home */}
+        
         <CustomButton
           variant="outlined"
           color="secondary"
           onClick={handleGoHome}
-          sx={{
-            minWidth: 120,
-            px: 3,
-            fontWeight: 600,
-          }}
+          sx={{ minWidth: 120, fontWeight: 600 }}
         >
           Go Home
         </CustomButton>
