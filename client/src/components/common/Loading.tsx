@@ -7,7 +7,7 @@ import type { Theme, SxProps } from '@mui/material/styles';
 import { useThemeContext } from '@context/ThemeContext';
 
 interface LoadingProps {
-  /** Size for circular loaders */
+  /** Size for circular or dotted loaders */
   size?: number;
   
   /** Optional user-facing loading message */
@@ -47,20 +47,30 @@ const Loading: FC<LoadingProps> = ({
   const { theme } = useThemeContext();
   
   /* ----------------------------------------
-   * Full-page overlay styles (optional)
+   * Base container styles (inline by default)
    * -------------------------------------- */
-  const fullPageStyles: SxProps<Theme> | undefined = fullPage
-    ? (theme) => ({
-      position: 'fixed',
-      inset: 0,
-      zIndex: theme.zIndex.modal,
-      backgroundColor: alpha(
-        theme.palette.background.default,
-        0.85
-      ),
-      backdropFilter: 'blur(2px)',
-    })
-    : undefined;
+  const containerSx: SxProps<Theme> = {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: fullPage ? '100vh' : 64,
+    px: 2,
+  };
+  
+  /* ----------------------------------------
+   * Full-page overlay styles (explicit opt-in)
+   * -------------------------------------- */
+  const fullPageOverlaySx: SxProps<Theme> = {
+    position: 'fixed',
+    inset: 0,
+    zIndex: theme.zIndex.modal,
+    backgroundColor: alpha(
+      theme.palette.background.default,
+      0.85
+    ),
+    backdropFilter: 'blur(2px)',
+  };
   
   /* ----------------------------------------
    * Dotted loader (custom)
@@ -92,8 +102,10 @@ const Loading: FC<LoadingProps> = ({
             <LinearProgress color={color} />
           </Box>
         );
+      
       case 'dotted':
         return dottedLoader;
+      
       case 'spinner':
       default:
         return <CircularProgress size={size} color={color} />;
@@ -105,15 +117,7 @@ const Loading: FC<LoadingProps> = ({
       role="status"
       aria-busy="true"
       aria-live="polite"
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: fullPage ? '100vh' : 64,
-        px: 2,
-        ...fullPageStyles,
-      }}
+      sx={fullPage ? [containerSx, fullPageOverlaySx] : containerSx}
     >
       {renderLoader()}
       
@@ -124,6 +128,7 @@ const Loading: FC<LoadingProps> = ({
             fontSize: theme.typography.body2.fontSize,
             color: theme.palette.text.secondary,
             textAlign: 'center',
+            maxWidth: 360,
           }}
         >
           {message}
