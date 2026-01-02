@@ -1,4 +1,5 @@
-import type { FC } from 'react';
+import { FC, useMemo } from 'react';
+import { NavLink } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Drawer from '@mui/material/Drawer';
@@ -10,43 +11,45 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBars, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { sidebarStyles } from './sidebarStyles';
 import { useThemeContext } from '@context/ThemeContext';
+import { usePermissionsContext } from '@context/PermissionsContext';
 import logoDark from '@assets/wide-logo-dark.png';
 import logoLight from '@assets/wide-logo-light.png';
-import { routes } from '@routes/index';
+import { navigationItems } from '@routes/index';
 import { hasPermission } from '@utils/permissionUtils';
 
 interface SidebarProps {
   isOpen: boolean;
   toggleSidebar: () => void;
-  roleName: string;
-  permissions: string[];
 }
 
-const Sidebar: FC<SidebarProps> = ({
-  isOpen,
-  toggleSidebar,
-  roleName,
-  permissions,
-}) => {
+/**
+ * Sidebar
+ *
+ * Responsibilities:
+ * - Render navigation links
+ * - Filter routes based on permissions
+ * - Handle responsive open / close
+ *
+ * MUST NOT:
+ * - Fetch data
+ * - Control auth lifecycle
+ */
+const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
   const { theme } = useThemeContext();
+  const { roleName, permissions } = usePermissionsContext();
+  
   const logo = theme.palette.mode === 'dark' ? logoDark : logoLight;
-
-  // Filter routes for sidebar
-  const menuItems = routes.filter((route) => {
-    // Ensure requiredPermission is always a string
-    const requiredPermission =
-      typeof route.meta?.requiredPermission === 'string'
-        ? route.meta.requiredPermission
-        : '';
-    
-    return (
-      route.meta?.showInSidebar &&
-      !route.path.includes('*') &&
-      (requiredPermission === '' ||
-        hasPermission(requiredPermission, permissions, roleName))
-    );
-  });
-
+  
+  // --------------------------------------------------
+  // Filter routes once per permission change
+  // --------------------------------------------------
+  const menuItems = useMemo(() => {
+    return navigationItems.filter((item) => {
+      if (!item.requiredPermission) return true;
+      return hasPermission(item.requiredPermission, permissions, roleName);
+    });
+  }, [permissions, roleName]);
+  
   return (
     <>
       {/* Sidebar Drawer */}
@@ -57,85 +60,84 @@ const Sidebar: FC<SidebarProps> = ({
         variant="persistent"
         sx={sidebarStyles(theme, isOpen)}
       >
-        {/* Header with logo and close */}
+        {/* Header */}
         <Box
           sx={{
+            position: 'relative',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             height: 80,
             padding: theme.spacing(2),
-            backgroundColor: theme.palette.background.paper,
+            px: 2,
             borderBottom: `1px solid ${theme.palette.divider}`,
           }}
         >
           <Box
             sx={{
-              height: '100%',
-              width: '100%',
               display: 'flex',
-              alignItems: 'center',
               justifyContent: 'center',
+              position: 'absolute',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              alignItems: 'center',
             }}
           >
             <img
               src={logo}
               alt="WIDE Naturals Inc."
-              loading="eager" // LCP optimization
-              style={{
-                height: '50px',
-                objectFit: 'contain',
-                fontFamily: "'Roboto', sans-serif", // FOUT prevention
-              }}
+              loading="eager"
+              style={{ height: 50, objectFit: 'contain' }}
             />
           </Box>
-
+          
           {isOpen && (
             <IconButton
               onClick={toggleSidebar}
-              aria-label="Close Sidebar"
+              aria-label="Close sidebar"
               sx={{ ml: 'auto' }}
-            >
+              >
               <FontAwesomeIcon icon={faTimes} />
             </IconButton>
           )}
         </Box>
-
-        {/* Sidebar links */}
+        
+        {/* Navigation */}
         <Box
           sx={{
             p: 2,
-            backgroundColor: theme.palette.background.default,
-            height: '100%',
-            width: 240,
-            color: theme.palette.text.primary,
-            display: 'flex',
-            flexDirection: 'column',
+            flex: 1,
+            overflowY: 'auto',
           }}
         >
           <List>
             {menuItems.map((item) => (
               <ListItem key={item.path} disablePadding>
                 <ListItemButton
-                  component="a"
-                  href={item.path}
+                  component={NavLink}
+                  to={item.path}
+                  end={item.exact}
+                  onClick={toggleSidebar}
                   sx={{
                     borderRadius: theme.shape.borderRadius,
                     px: 2,
                     py: 1.2,
                     color: theme.palette.text.primary,
+                    '&.active': {
+                      backgroundColor: theme.palette.action.selected,
+                      fontWeight: 600,
+                    },
                     '&:hover': {
                       backgroundColor: theme.palette.action.hover,
                     },
                   }}
                 >
                   <ListItemText
-                    primary={item.meta?.title}
+                    primary={item.title}
                     slotProps={{
                       primary: {
                         sx: {
                           fontSize: '0.95rem',
-                          fontWeight: 500,
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
@@ -149,24 +151,23 @@ const Sidebar: FC<SidebarProps> = ({
           </List>
         </Box>
       </Drawer>
-
+      
       {/* Mobile open button */}
       {!isOpen && (
         <IconButton
           onClick={toggleSidebar}
+          aria-label="Open sidebar"
           sx={{
             position: 'fixed',
             top: 16,
             left: 16,
             zIndex: theme.zIndex.drawer + 1,
             backgroundColor: theme.palette.background.paper,
-            color: theme.palette.text.primary,
             boxShadow: theme.shadows[1],
             '&:hover': {
               backgroundColor: theme.palette.action.hover,
             },
           }}
-          aria-label="Open Sidebar"
         >
           <FontAwesomeIcon icon={faBars} />
         </IconButton>

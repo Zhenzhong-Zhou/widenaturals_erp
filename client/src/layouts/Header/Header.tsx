@@ -12,20 +12,27 @@ import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import { HealthStatus } from '@features/health/components';
 import { useThemeContext } from '@context/ThemeContext';
+import { useLogout, useSession } from '@hooks/index';
 import { headerStyles, typographyStyles } from '@layouts/Header/headerStyles';
 
-interface HeaderProps {
-  fullName?: string;
-  onLogout: () => void;
-}
-
-const Header: FC<HeaderProps> = ({ fullName, onLogout }) => {
+/**
+ * Application header.
+ *
+ * Displays branding, system health, theme toggle,
+ * and user profile actions.
+ */
+const Header: FC = () => {
   const { theme, toggleTheme } = useThemeContext();
+  const { user } = useSession();
+  const { logout } = useLogout();
   const navigate = useNavigate();
+  
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   
+  const fullName = user?.fullName ?? 'Guest';
+  
   const initial = useMemo(
-    () => fullName?.charAt(0).toUpperCase() ?? 'G',
+    () => fullName.charAt(0).toUpperCase(),
     [fullName]
   );
   
@@ -35,13 +42,23 @@ const Header: FC<HeaderProps> = ({ fullName, onLogout }) => {
   
   const handleMenuClose = () => setAnchorEl(null);
   
+  const handleProfileClick = () => {
+    handleMenuClose();
+    navigate('/profile');
+  };
+  
+  const handleLogoutClick = () => {
+    handleMenuClose();
+    void logout();
+  };
+  
   return (
     <Box
       sx={{
         ...headerStyles(theme),
         display: 'flex',
         alignItems: 'center',
-        height: 64,
+        height: 80,
         px: 5,
         py: 1.5,
         gap: 2,
@@ -61,11 +78,10 @@ const Header: FC<HeaderProps> = ({ fullName, onLogout }) => {
       </CustomTypography>
       
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 'auto' }}>
-        <HealthStatus sx={{ ml: 'auto' }} />
+        <HealthStatus />
         
         <CustomButton
           variant="outlined"
-          aria-label="Toggle theme"
           onClick={toggleTheme}
           sx={{ minWidth: 120, gap: 1, mr: 2 }}
         >
@@ -77,8 +93,7 @@ const Header: FC<HeaderProps> = ({ fullName, onLogout }) => {
         
         <IconButton
           onClick={handleMenuOpen}
-          aria-label="User menu"
-          title={fullName ?? 'Guest'}
+          title={fullName}
           size="small"
           sx={{ border: `2px solid ${theme.palette.primary.main}` }}
         >
@@ -97,26 +112,20 @@ const Header: FC<HeaderProps> = ({ fullName, onLogout }) => {
         >
           <MenuItem disabled>
             <CustomTypography variant="body1">
-              {fullName || 'Guest'}
+              {fullName}
             </CustomTypography>
           </MenuItem>
           
           <Divider />
           
           <MenuItem
-            onClick={() => {
-              handleMenuClose();
-              navigate('/profile');
-            }}
+            onClick={handleProfileClick}
           >
             Profile
           </MenuItem>
           
           <MenuItem
-            onClick={() => {
-              handleMenuClose();
-              onLogout();
-            }}
+            onClick={handleLogoutClick}
           >
             Logout
           </MenuItem>
