@@ -4,6 +4,7 @@ import { ThemeProviderWrapper, LoadingProvider } from '@context/index';
 import GlobalErrorBoundary from '@components/shared/GlobalErrorBoundary';
 import FallbackUI from '@components/shared/FallbackUI';
 import AppContent from '@core/AppContent';
+import { AppBootstrapGate } from '@routes/index';
 
 /**
  * App
@@ -63,7 +64,9 @@ const App: FC = () => {
             fallback={errorFallback}
             onError={handleGlobalError}
           >
-            <AppContent />
+            <AppBootstrapGate>
+              <AppContent />
+            </AppBootstrapGate>
           </GlobalErrorBoundary>
         </LoadingProvider>
       </ThemeProviderWrapper>

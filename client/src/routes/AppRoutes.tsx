@@ -1,35 +1,30 @@
-import { Suspense, lazy } from 'react';
-import { matchPath, Route, Routes } from 'react-router-dom';
-import { Navigate } from 'react-router';
-import { routes } from '@routes/index';
-import ProtectedRoutes from '@routes/ProtectedRoutes';
-import GuestRoute from '@routes/GuestRoute';
-import useSession from '@hooks/useSession';
-import usePermissions from '@hooks/usePermissions';
+import { Suspense } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import {
+  appRoutes,
+  GuestRoute,
+  PermissionGuard,
+  ProtectedRoutes
+} from '@routes/index';
+import MainLayout from '@layouts/MainLayout/MainLayout';
+import Loading from '@components/common/Loading';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
+import usePermissions from '@hooks/usePermissions';
 import { PermissionsProvider } from '@context/PermissionsContext';
-import Loading from '@components/common/Loading';
-import MainLayout from '@layouts/MainLayout/MainLayout';
-import { hasPermission } from '@utils/permissionUtils';
-import { resolvePermission } from '@utils/routeUtils';
 
-const LazyNotFoundPage = lazy(() =>
-  import('@pages/NotFoundPage').then((module) => ({
-    default: module.default,
-  }))
-);
-
-const LazyAccessDeniedPage = lazy(() =>
-  import('@pages/AccessDeniedPage').then((module) => ({
-    default: module.default,
-  }))
-);
-
+/**
+ * Application routing entry point.
+ *
+ * - Initializes permission context
+ * - Applies auth, guest, and permission guards
+ * - Wraps protected routes with the main layout
+ * - Handles global routing fallback and lazy loading
+ */
 const AppRoutes = () => {
-  const { isAuthenticated } = useSession(); // Fetch authentication state
-  const { roleName, permissions, error } = usePermissions(); // Fetch permissions
-
+  // Resolve permissions once before route rendering
+  const { roleName, permissions, error } = usePermissions();
+  
   if (error) {
     return (
       <ErrorDisplay>
@@ -37,95 +32,52 @@ const AppRoutes = () => {
       </ErrorDisplay>
     );
   }
-
+  
   return (
-    <PermissionsProvider
-      roleName={roleName}
-      permissions={permissions}
-      error={error}
-    >
-      <Suspense fallback={<Loading fullPage message="Loading page..." />}>
+    <PermissionsProvider roleName={roleName} permissions={permissions} error={error}>
+      <Suspense fallback={<Loading size={24} variant="spinner" message="Loading…" />}>
         <Routes>
-          {routes.map(({ path, component: LazyComponent, meta }, index) => {
-            const isProtected = meta?.requiresAuth;
-            const isAccessDeniedRoute = path === '/access-denied';
-
-            const match = matchPath(path, window.location.pathname); // Get params
-            const routeParams = match?.params ?? {};
-            const resolvedPermission = resolvePermission(
-              meta?.requiredPermission,
-              routeParams
-            );
-
-            // Block direct access to /access-denied for non-root_admin/admin
-            if (roleName && isAccessDeniedRoute && roleName !== 'root_admin') {
+          {appRoutes.map(({ path, component: Component, meta }) => {
+            const requiresAuth = meta?.requiresAuth === true;
+            // Guest-only
+            if (path === '/' || path === '/login') {
               return (
                 <Route
-                  key={index}
+                  key={path}
                   path={path}
-                  element={<Navigate to="/" replace />}
+                  element={
+                    <GuestRoute>
+                      <Component />
+                    </GuestRoute>
+                  }
                 />
               );
             }
-
-            // Protected route
-            if (isProtected) {
-              if (!hasPermission(resolvedPermission, permissions, roleName)) {
-                return (
-                  <Route
-                    key={index}
-                    path={path}
-                    element={
-                      <MainLayout>
-                        <LazyAccessDeniedPage />
-                      </MainLayout>
-                    }
-                  />
-                );
-              }
-
+            
+            // Protected
+            if (requiresAuth) {
               return (
                 <Route
-                  key={index}
+                  key={path}
                   path={path}
                   element={
                     <ProtectedRoutes>
                       <MainLayout>
-                        <LazyComponent />
+                        <PermissionGuard requiredPermission={meta?.requiredPermission}>
+                          <Component />
+                        </PermissionGuard>
                       </MainLayout>
                     </ProtectedRoutes>
                   }
                 />
               );
             }
-
-            // Guest routes
-            if (path === '/login' || path === '/') {
-              // Wrap login and homepage with GuestRoute
-              return (
-                <Route
-                  key={index}
-                  path={path}
-                  element={
-                    <GuestRoute>
-                      <LazyComponent />
-                    </GuestRoute>
-                  }
-                />
-              );
-            }
-
-            // Render other public routes directly
-            return (
-              <Route key={index} path={path} element={<LazyComponent />} />
-            );
+            
+            // Public
+            return <Route key={path} path={path} element={<Component />} />;
           })}
-
-          {/* 404 Page for Invalid Routes */}
-          <Route
-            path="*"
-            element={<LazyNotFoundPage isAuthenticated={isAuthenticated} />}
-          />
+          
+          <Route path="*" element={<Navigate to="/404" replace />} />
         </Routes>
       </Suspense>
     </PermissionsProvider>

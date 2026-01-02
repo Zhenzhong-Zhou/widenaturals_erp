@@ -1,27 +1,48 @@
-import type { ReactNode, FC } from 'react';
+import type { FC, ReactNode } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import useSession from '@hooks/useSession';
-import Loading from '@components/common/Loading';
 
-// Define props explicitly
 interface GuestRouteProps {
+  /** Optional children; defaults to <Outlet /> for nested routes */
   children?: ReactNode;
 }
 
-const GuestRoute: FC<GuestRouteProps> = ({ children = <Outlet /> }) => {
-  const { isAuthenticated, isLoading } = useSession(); // Fetch authentication status
-
-  // While checking session, show full-page loading to avoid layout shift
-  if (isLoading) {
-    return <Loading fullPage message="Checking session..." />;
-  }
-
-  // Redirect to dashboard if authenticated
+/**
+ * GuestRoute
+ *
+ * Route guard for unauthenticated users only.
+ *
+ * Responsibilities:
+ * - Allow access only when the user is NOT authenticated
+ * - Redirect authenticated users to the dashboard
+ * - Show a full-page loader while session state is resolving
+ *
+ * Common use cases:
+ * - Login page
+ * - Forgot password
+ * - Reset password
+ */
+const GuestRoute: FC<GuestRouteProps> = ({
+                                           children = <Outlet />,
+                                         }) => {
+  const { isAuthenticated } = useSession();
+  
+  /* ----------------------------------------
+   * Authenticated users cannot access guest routes
+   * -------------------------------------- */
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return (
+      <Navigate
+        to="/dashboard"
+        replace
+      />
+    );
   }
-
-  return children;
+  
+  /* ----------------------------------------
+   * Guest access granted
+   * -------------------------------------- */
+  return <>{children}</>;
 };
 
 export default GuestRoute;
