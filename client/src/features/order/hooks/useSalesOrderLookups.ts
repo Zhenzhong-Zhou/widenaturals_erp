@@ -1,13 +1,15 @@
-import useOrderTypeLookup from '@hooks/useOrderTypeLookup';
-import useCustomerLookup from '@hooks/useCustomerLookup';
-import useCustomerAddressesLookup from '@hooks/useCustomerAddressesLookup';
-import usePaymentMethodLookup from '@hooks/usePaymentMethodLookup';
-import useDiscountLookup from '@hooks/useDiscountLookup';
-import useTaxRateLookup from '@hooks/useTaxRateLookup';
-import useDeliveryMethodLookup from '@hooks/useDeliveryMethodLookup';
-import useSkuLookup from '@hooks/useSkuLookup';
-import usePricingLookup from '@hooks/usePricingLookup';
-import usePackagingMaterialLookup from '@hooks/usePackagingMaterialLookup';
+import {
+  useCustomerAddressesLookup,
+  useCustomerLookup,
+  useDeliveryMethodLookup,
+  useDiscountLookup,
+  useOrderTypeLookup,
+  usePackagingMaterialLookup,
+  usePaymentMethodLookup,
+  usePricingLookup,
+  useSkuLookup,
+  useTaxRateLookup,
+} from '@hooks/index';
 
 /**
  * Aggregates all lookups needed for the Sales Order form.

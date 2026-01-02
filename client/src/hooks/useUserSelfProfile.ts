@@ -9,8 +9,8 @@ import {
   selectSelfUserEmail,
   selectIsSelfSystemUser,
   fetchUserSelfProfileThunk,
-  resetUserSelfProfile,
 } from '@features/user';
+import { resetUserSelfProfile } from '@features/user/state/userSelfProfileSlice';
 
 /**
  * Hook: Access and control the logged-in user's profile state.
