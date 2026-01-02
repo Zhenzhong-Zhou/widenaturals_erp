@@ -23,7 +23,7 @@ const resetPassword = async (
   if (!newPassword) {
     throw AppError.validation('New password is required');
   }
-  
+
   return postRequest<
     { currentPassword: string | null; newPassword: string },
     ResetPasswordResponse

@@ -1,7 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import {
-  fetchDiscountLookupThunk,
-} from '@features/lookup/state';
+import { fetchDiscountLookupThunk } from '@features/lookup/state';
 import { createInitialOffsetPaginatedState } from '@store/pagination';
 import type {
   DiscountLookupItem,

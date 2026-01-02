@@ -4,9 +4,7 @@ import type {
   TaxRateLookupState,
 } from '@features/lookup/state';
 import { createInitialOffsetPaginatedState } from '@store/pagination';
-import {
-  fetchTaxRateLookupThunk,
-} from '@features/lookup/state';
+import { fetchTaxRateLookupThunk } from '@features/lookup/state';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 
 const initialState: TaxRateLookupState =

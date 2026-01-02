@@ -35,7 +35,7 @@ const App: FC = () => {
       errorLog="Critical application failure during initialization."
     />
   );
-  
+
   /**
    * Global error handler.
    *
@@ -51,11 +51,10 @@ const App: FC = () => {
       // TODO: Integrate with monitoring service
       // reportError(error, errorInfo);
     } else {
-      // eslint-disable-next-line no-console
       console.error('Global Error:', error, errorInfo);
     }
   };
-  
+
   return (
     <BrowserRouter>
       <ThemeProviderWrapper>

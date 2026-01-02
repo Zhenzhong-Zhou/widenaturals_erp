@@ -11,25 +11,25 @@ const SORTABLE_FIELDS = {
     firstname: `LOWER(u.firstname)`,
     lastname: `LOWER(u.lastname)`,
     email: `LOWER(u.email)`,
-    
+
     // ----------------------------
     // Role / Status
     // ----------------------------
     roleName: `LOWER(r.name)`,
     statusName: `LOWER(s.name)`,
-    
+
     // ----------------------------
     // Job / Contact
     // ----------------------------
     jobTitle: `LOWER(u.job_title)`,
     phoneNumber: `u.phone_number`,
-    
+
     // ----------------------------
     // Audit
     // ----------------------------
     createdAt: `u.created_at`,
     updatedAt: `u.updated_at`,
-    
+
     // ----------------------------
     // Fallback
     // ----------------------------

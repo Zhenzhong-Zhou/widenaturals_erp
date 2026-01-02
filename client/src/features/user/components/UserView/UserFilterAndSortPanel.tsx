@@ -1,29 +1,26 @@
 import type { FC } from 'react';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
-import {
-  UserFilters,
-  UserSortField,
-} from '@features/user/state';
+import { UserFilters, UserSortField } from '@features/user/state';
 import {
   UserFiltersPanel,
   UserSortControls,
 } from '@features/user/components/UserView';
 import {
   UserFiltersPanelLookups,
-  UserLookupHandlers
+  UserLookupHandlers,
 } from '@features/user/components/UserView/UserFiltersPanel';
 
 interface UserFilterAndSortPanelProps {
   filters: UserFilters;
   /** Lookup data & state */
   lookups: UserFiltersPanelLookups;
-  
+
   /** Lookup UI handlers */
   lookupHandlers: UserLookupHandlers;
   sortBy: UserSortField;
   sortOrder: '' | 'ASC' | 'DESC';
-  
+
   onFiltersChange: (filters: UserFilters) => void;
   onSortByChange: (field: UserSortField) => void;
   onSortOrderChange: (order: '' | 'ASC' | 'DESC') => void;
@@ -31,16 +28,16 @@ interface UserFilterAndSortPanelProps {
 }
 
 const UserFilterAndSortPanel: FC<UserFilterAndSortPanelProps> = ({
-                                                                   filters,
-                                                                   lookups,
-                                                                   lookupHandlers,
-                                                                   sortBy,
-                                                                   sortOrder,
-                                                                   onFiltersChange,
-                                                                   onSortByChange,
-                                                                   onSortOrderChange,
-                                                                   onReset,
-                                                                 }) => {
+  filters,
+  lookups,
+  lookupHandlers,
+  sortBy,
+  sortOrder,
+  onFiltersChange,
+  onSortByChange,
+  onSortOrderChange,
+  onReset,
+}) => {
   return (
     <Card sx={{ p: 3, mb: 4, borderRadius: 2, minHeight: 200 }}>
       <Grid container spacing={2}>
@@ -54,7 +51,7 @@ const UserFilterAndSortPanel: FC<UserFilterAndSortPanelProps> = ({
             onReset={onReset}
           />
         </Grid>
-        
+
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <UserSortControls
             sortBy={sortBy}

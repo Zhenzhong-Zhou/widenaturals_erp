@@ -19,13 +19,13 @@ import bomProductionReadinessReducer from './bomProductionReadinessSlice';
 export const bomReducers = {
   /** Paginated BOM list, filters, and pagination metadata */
   paginatedBoms: paginatedBomsReducer,
-  
+
   /** Single BOM details, including header and related entities */
   bomDetails: bomDetailsReducer,
-  
+
   /** Material supply and availability information for a BOM */
   bomMaterialSupplyDetails: bomMaterialSupplyDetailsReducer,
-  
+
   /** Production readiness and validation status for a BOM */
   bomProductionReadiness: bomProductionReadinessReducer,
 };

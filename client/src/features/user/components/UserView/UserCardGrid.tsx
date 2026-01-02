@@ -11,13 +11,13 @@ import { FlattenedUserRecord } from '@features/user/state';
 interface UserCardGridProps {
   /** Users to render as cards */
   users: FlattenedUserRecord[];
-  
+
   /** Loading state */
   loading: boolean;
-  
+
   /** Error message, if any */
   error?: string | null;
-  
+
   /**
    * Optional action invoked when the user chooses to
    * clear all active filters and retry the query.
@@ -43,34 +43,32 @@ interface UserCardGridProps {
  * - Card-based user list layouts
  */
 const UserCardGrid: FC<UserCardGridProps> = ({
-                                               users,
-                                               loading,
-                                               error,
-                                               onResetFilters,
-                                             }) => {
+  users,
+  loading,
+  error,
+  onResetFilters,
+}) => {
   if (loading) {
     return <Loading variant="dotted" message="Loading users..." />;
   }
-  
+
   if (error) {
-    return <ErrorMessage message={error}/>
+    return <ErrorMessage message={error} />;
   }
-  
+
   if (!users.length) {
     return (
       <NoDataFound
         message="No users found."
         action={
           onResetFilters ? (
-            <CustomButton onClick={onResetFilters}>
-              Reset
-            </CustomButton>
+            <CustomButton onClick={onResetFilters}>Reset</CustomButton>
           ) : undefined
         }
       />
     );
   }
-  
+
   return (
     <Box>
       <Grid container spacing={3}>

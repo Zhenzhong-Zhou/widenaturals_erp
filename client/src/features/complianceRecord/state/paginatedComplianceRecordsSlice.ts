@@ -7,7 +7,8 @@ import type {
 import { createInitialPaginatedState } from '@store/pagination';
 import { fetchComplianceRecordsThunk } from './complianceRecordThunks';
 
-const initialState: ComplianceRecordsState = createInitialPaginatedState<ComplianceRecord>()
+const initialState: ComplianceRecordsState =
+  createInitialPaginatedState<ComplianceRecord>();
 
 const paginatedComplianceRecordsSlice = createSlice({
   name: 'paginatedComplianceRecords',
@@ -27,18 +28,21 @@ const paginatedComplianceRecordsSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      
+
       // --------------------------------------------------
       // Fulfilled
       // --------------------------------------------------
-      .addCase(fetchComplianceRecordsThunk.fulfilled, (state, action: PayloadAction<PaginatedComplianceRecordResponse>) => {
-        const { data, pagination } = action.payload;
-        
-        state.loading = false;
-        state.data = data;
-        state.pagination = pagination;
-      })
-      
+      .addCase(
+        fetchComplianceRecordsThunk.fulfilled,
+        (state, action: PayloadAction<PaginatedComplianceRecordResponse>) => {
+          const { data, pagination } = action.payload;
+
+          state.loading = false;
+          state.data = data;
+          state.pagination = pagination;
+        }
+      )
+
       // --------------------------------------------------
       // Rejected
       // --------------------------------------------------
@@ -52,6 +56,7 @@ const paginatedComplianceRecordsSlice = createSlice({
   },
 });
 
-export const { resetPaginatedComplianceRecords, } = paginatedComplianceRecordsSlice.actions;
+export const { resetPaginatedComplianceRecords } =
+  paginatedComplianceRecordsSlice.actions;
 
 export default paginatedComplianceRecordsSlice.reducer;

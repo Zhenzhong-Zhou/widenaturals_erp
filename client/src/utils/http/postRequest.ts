@@ -10,7 +10,7 @@ export interface PostRequestOptions {
    * Defaults to WRITE.
    */
   policy?: WritePolicy;
-  
+
   /**
    * Optional Axios request configuration.
    */
@@ -45,7 +45,7 @@ export const postRequest = async <T, R>(
   options: PostRequestOptions = {}
 ): Promise<R> => {
   const { policy = 'WRITE', config } = options;
-  
+
   try {
     const response = await requestWithNamedPolicy(
       (signal) =>
@@ -55,7 +55,7 @@ export const postRequest = async <T, R>(
         }),
       policy
     );
-    
+
     return response.data;
   } catch (error: unknown) {
     // Transport boundary: normalize EVERYTHING

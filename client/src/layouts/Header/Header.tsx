@@ -26,32 +26,29 @@ const Header: FC = () => {
   const { user } = useSession();
   const { logout } = useLogout();
   const navigate = useNavigate();
-  
+
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-  
+
   const fullName = user?.fullName ?? 'Guest';
-  
-  const initial = useMemo(
-    () => fullName.charAt(0).toUpperCase(),
-    [fullName]
-  );
-  
+
+  const initial = useMemo(() => fullName.charAt(0).toUpperCase(), [fullName]);
+
   const handleMenuOpen = (event: MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
-  
+
   const handleMenuClose = () => setAnchorEl(null);
-  
+
   const handleProfileClick = () => {
     handleMenuClose();
     navigate('/profile');
   };
-  
+
   const handleLogoutClick = () => {
     handleMenuClose();
     void logout();
   };
-  
+
   return (
     <Box
       sx={{
@@ -76,10 +73,10 @@ const Header: FC = () => {
       >
         WIDE Naturals Inc.
       </CustomTypography>
-      
+
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 'auto' }}>
         <HealthStatus />
-        
+
         <CustomButton
           variant="outlined"
           onClick={toggleTheme}
@@ -90,7 +87,7 @@ const Header: FC = () => {
           />
           {theme.palette.mode === 'dark' ? 'Light' : 'Dark'} Mode
         </CustomButton>
-        
+
         <IconButton
           onClick={handleMenuOpen}
           title={fullName}
@@ -101,7 +98,7 @@ const Header: FC = () => {
             {initial}
           </Avatar>
         </IconButton>
-        
+
         <Menu
           anchorEl={anchorEl}
           open={Boolean(anchorEl)}
@@ -111,24 +108,14 @@ const Header: FC = () => {
           }}
         >
           <MenuItem disabled>
-            <CustomTypography variant="body1">
-              {fullName}
-            </CustomTypography>
+            <CustomTypography variant="body1">{fullName}</CustomTypography>
           </MenuItem>
-          
+
           <Divider />
-          
-          <MenuItem
-            onClick={handleProfileClick}
-          >
-            Profile
-          </MenuItem>
-          
-          <MenuItem
-            onClick={handleLogoutClick}
-          >
-            Logout
-          </MenuItem>
+
+          <MenuItem onClick={handleProfileClick}>Profile</MenuItem>
+
+          <MenuItem onClick={handleLogoutClick}>Logout</MenuItem>
         </Menu>
       </Box>
     </Box>

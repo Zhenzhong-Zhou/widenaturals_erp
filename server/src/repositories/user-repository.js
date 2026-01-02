@@ -1,8 +1,4 @@
-const {
-  query,
-  retry,
-  paginateResults,
-} = require('../database/db');
+const { query, retry, paginateResults } = require('../database/db');
 const { buildUserFilter } = require('../utils/sql/build-user-filters');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const { logError, logWarn } = require('../utils/logger-helper');
@@ -102,19 +98,19 @@ const insertUser = async (client, userDetails) => {
  * @returns {Promise<{ data: Object[], pagination: Object }>}
  */
 const getPaginatedUsers = async ({
-                                   filters = {},
-                                   page = 1,
-                                   limit = 10,
-                                   sortBy = 'created_at',
-                                   sortOrder = 'DESC',
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'created_at',
+  sortOrder = 'DESC',
 }) => {
   const context = 'user-repository/getPaginatedUsers';
-  
+
   // ------------------------------------
   // 1. Build WHERE clause from filters
   // ------------------------------------
   const { whereClause, params } = buildUserFilter(filters);
-  
+
   // ------------------------------------
   // 2. Construct base query
   // ------------------------------------
@@ -167,7 +163,7 @@ const getPaginatedUsers = async ({
       limit,
       meta: { context },
     });
-    
+
     // ------------------------------------
     // 5. Success logging
     // ------------------------------------
@@ -178,7 +174,7 @@ const getPaginatedUsers = async ({
       sorting: { sortBy, sortOrder },
       count: result.data.length,
     });
-    
+
     return result;
   } catch (error) {
     // ------------------------------------
@@ -190,7 +186,7 @@ const getPaginatedUsers = async ({
       pagination: { page, limit },
       sorting: { sortBy, sortOrder },
     });
-    
+
     throw AppError.databaseError('Failed to fetch paginated user records.', {
       context,
     });
@@ -229,7 +225,7 @@ const getPaginatedUsers = async ({
  */
 const getUserProfileById = async (userId, activeStatusId) => {
   const context = 'user-repository/getUserProfileById';
-  
+
   const queryText = `
     WITH role_permissions_agg AS (
       SELECT
@@ -286,10 +282,10 @@ const getUserProfileById = async (userId, activeStatusId) => {
     LEFT JOIN users uu ON uu.id = u.updated_by
     WHERE u.id = $1
   `;
-  
+
   try {
     const { rows } = await query(queryText, [userId, activeStatusId]);
-    
+
     if (rows.length === 0) {
       logSystemInfo('No user profile found for given ID', {
         context,
@@ -297,12 +293,12 @@ const getUserProfileById = async (userId, activeStatusId) => {
       });
       return null;
     }
-    
+
     logSystemInfo('Fetched user profile successfully', {
       context,
       userId,
     });
-    
+
     return rows[0];
   } catch (error) {
     logSystemException(error, 'Failed to fetch user profile', {
@@ -310,7 +306,7 @@ const getUserProfileById = async (userId, activeStatusId) => {
       userId,
       error: error.message,
     });
-    
+
     throw AppError.databaseError('Failed to fetch user profile', {
       context,
       details: error.message,

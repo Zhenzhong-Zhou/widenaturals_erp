@@ -6,9 +6,7 @@ import {
   selectOrderTypeLoading,
   selectOrderTypeOptions,
 } from '@features/lookup/state';
-import type {
-  OrderTypeLookupQueryParams,
-} from '@features/lookup/state';
+import type { OrderTypeLookupQueryParams } from '@features/lookup/state';
 import { resetOrderTypeLookup } from '@features/lookup/state/orderTypeLookupSlice';
 
 /**

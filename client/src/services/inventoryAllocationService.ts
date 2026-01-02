@@ -32,7 +32,7 @@ const allocateInventoryForOrderService = async (
   body: AllocateInventoryBody
 ): Promise<AllocateInventoryResponse> => {
   const { orderId } = params;
-  
+
   return postRequest<AllocateInventoryBody, AllocateInventoryResponse>(
     API_ENDPOINTS.INVENTORY_ALLOCATIONS.ALLOCATE_ORDER(orderId),
     body
@@ -57,10 +57,7 @@ const fetchInventoryAllocationReview = async (
   return postRequest<
     AllocationReviewRequest,
     InventoryAllocationReviewResponse
-  >(
-    API_ENDPOINTS.INVENTORY_ALLOCATIONS.REVIEW_ALLOCATION(orderId),
-    body
-  );
+  >(API_ENDPOINTS.INVENTORY_ALLOCATIONS.REVIEW_ALLOCATION(orderId), body);
 };
 
 /**
@@ -81,15 +78,15 @@ const fetchPaginatedInventoryAllocations = async (
   params: FetchPaginatedInventoryAllocationsParams = {}
 ): Promise<InventoryAllocationResponse> => {
   const { filters = {}, ...rest } = params;
-  
+
   const flatParams = {
     ...rest,
     ...filters,
   };
-  
+
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.INVENTORY_ALLOCATIONS.ALL_ALLOCATIONS}${queryString}`;
-  
+
   return getRequest<InventoryAllocationResponse>(url);
 };
 

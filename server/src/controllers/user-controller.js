@@ -27,46 +27,40 @@ const { fetchPermissions } = require('../services/role-permission-service');
 const getPaginatedUsersController = wrapAsync(async (req, res) => {
   const context = 'user-controller/getPaginatedUsersController';
   const startTime = Date.now();
-  
+
   // -------------------------------
   // 1. Extract normalized query params
   // -------------------------------
   // Parameters are normalized and schema-validated by upstream middleware
-  const {
-    page,
-    limit,
-    sortBy,
-    sortOrder,
-    filters,
-    options,
-  } = req.normalizedQuery;
-  
+  const { page, limit, sortBy, sortOrder, filters, options } =
+    req.normalizedQuery;
+
   // -------------------------------
   // 1.1 View-mode permission enforcement
   // -------------------------------
   const permissions = req.permissions; // populated by authorize middleware (route-level)
-  
+
   if (!permissions) {
     throw AppError.authorizationError('Permission context missing');
   }
-  
+
   // UI-only view hint; defaults to list presentation
   const viewMode = options?.viewMode ?? 'list';
-  
+
   // Defensive validation at controller boundary:
   // viewMode is UI-driven and validated separately from query schema
   const allowedViewModes = new Set(['list', 'card']);
   if (!allowedViewModes.has(viewMode)) {
     throw AppError.validationError('Invalid viewMode');
   }
-  
+
   // Authenticated requester (populated by auth middleware)
   const user = req.user;
-  
+
   // Trace identifier for correlating logs across controller,
   // service, and repository layers for this request lifecycle
   const traceId = `user-list-${Date.now().toString(36)}`;
-  
+
   // -------------------------------
   // 2. Incoming request log
   // -------------------------------
@@ -81,7 +75,7 @@ const getPaginatedUsersController = wrapAsync(async (req, res) => {
     viewMode,
     filters,
   });
-  
+
   // -------------------------------
   // 3. Execute service layer
   // -------------------------------
@@ -96,9 +90,9 @@ const getPaginatedUsersController = wrapAsync(async (req, res) => {
     viewMode,
     user,
   });
-  
+
   const elapsedMs = Date.now() - startTime;
-  
+
   // -------------------------------
   // 4. Completion log
   // -------------------------------
@@ -112,7 +106,7 @@ const getPaginatedUsersController = wrapAsync(async (req, res) => {
     count: data.length,
     elapsedMs,
   });
-  
+
   // -------------------------------
   // 5. Send response
   // -------------------------------
@@ -151,18 +145,18 @@ const getPaginatedUsersController = wrapAsync(async (req, res) => {
  */
 const getUserProfileController = wrapAsync(async (req, res) => {
   const context = 'user-controller/getUserProfileController';
-  
+
   // Resolve target user ID:
   // - /users/me/profile        → req.user.id
   // - /users/:userId/profile   → req.params.userId
   const targetUserId = req.params.userId ?? req.user.id;
-  
+
   // Authenticated requester context (set by verifyToken + verifySession)
   const requester = req.user;
-  
+
   // Unique trace ID for request correlation
   const traceId = `user-profile-${Date.now().toString(36)}`;
-  
+
   // -----------------------------
   // 1. Incoming request log
   // -----------------------------
@@ -173,15 +167,12 @@ const getUserProfileController = wrapAsync(async (req, res) => {
     requesterId: requester?.id,
     isSelf: requester?.id === targetUserId,
   });
-  
+
   // -----------------------------
   // 2. Execute service layer
   // -----------------------------
-  const userProfile = await fetchUserProfileService(
-    targetUserId,
-    requester
-  );
-  
+  const userProfile = await fetchUserProfileService(targetUserId, requester);
+
   // -----------------------------
   // 3. Send response
   // -----------------------------

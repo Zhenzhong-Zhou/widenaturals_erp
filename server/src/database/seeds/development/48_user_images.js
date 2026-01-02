@@ -22,9 +22,9 @@ exports.seed = async function (knex) {
     console.log('[SEED:user-images] Skipped in production');
     return;
   }
-  
+
   console.log('[SEED:user-images] Assigning avatars to seed users...');
-  
+
   // --------------------------------------------------
   // 1. Seed user emails (SOURCE OF TRUTH)
   // --------------------------------------------------
@@ -59,7 +59,7 @@ exports.seed = async function (knex) {
     'director2@erp.local',
     'user@erp.local',
   ];
-  
+
   // --------------------------------------------------
   // 2. HARD SKIP if avatars already exist
   // --------------------------------------------------
@@ -68,42 +68,43 @@ exports.seed = async function (knex) {
     .whereIn('users.email', SEED_USER_EMAILS)
     .where('user_images.is_primary', true)
     .count();
-  
+
   if (Number(count) > 0) {
-    console.log(
-      `[SEED:user-images] Skipped: ${count} avatar(s) already exist`
-    );
+    console.log(`[SEED:user-images] Skipped: ${count} avatar(s) already exist`);
     return;
   }
-  
+
   // --------------------------------------------------
   // 3. Resolve system user (uploader)
   // --------------------------------------------------
   const systemUser = await knex('users')
     .where({ email: 'system@erp.local' })
     .first();
-  
+
   if (!systemUser) {
     throw new Error('[SEED:user-images] System user not found');
   }
-  
+
   // --------------------------------------------------
   // 4. Fetch target users WITHOUT primary avatar
   // --------------------------------------------------
   const users = await knex('users')
     .leftJoin('user_images', function () {
-      this.on('users.id', '=', 'user_images.user_id')
-        .andOn('user_images.is_primary', '=', knex.raw('true'));
+      this.on('users.id', '=', 'user_images.user_id').andOn(
+        'user_images.is_primary',
+        '=',
+        knex.raw('true')
+      );
     })
     .whereIn('users.email', SEED_USER_EMAILS)
     .whereNull('user_images.id')
     .select('users.id', 'users.email');
-  
+
   if (users.length === 0) {
     console.log('[SEED:user-images] All seed users already have avatars');
     return;
   }
-  
+
   // --------------------------------------------------
   // 5. Avatar source pool
   // --------------------------------------------------
@@ -114,18 +115,15 @@ exports.seed = async function (knex) {
     'src/assets/user-images/user_4.jpg',
     'src/assets/user-images/user_5.jpg',
   ];
-  
-  const pickRandom = (arr) =>
-    arr[Math.floor(Math.random() * arr.length)];
-  
+
+  const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
   // --------------------------------------------------
   // 6. Ensure public upload directory
   // --------------------------------------------------
-  const PUBLIC_AVATAR_DIR = path.resolve(
-    'public/uploads/user-images'
-  );
+  const PUBLIC_AVATAR_DIR = path.resolve('public/uploads/user-images');
   fs.mkdirSync(PUBLIC_AVATAR_DIR, { recursive: true });
-  
+
   // --------------------------------------------------
   // 7. Build insert rows + copy files
   // --------------------------------------------------
@@ -134,14 +132,14 @@ exports.seed = async function (knex) {
     const sourcePath = path.resolve(sourceRelative);
     const fileName = path.basename(sourceRelative);
     const targetPath = path.join(PUBLIC_AVATAR_DIR, fileName);
-    
+
     // Copy once (idempotent)
     if (!fs.existsSync(targetPath)) {
       fs.copyFileSync(sourcePath, targetPath);
     }
-    
+
     const meta = getImageMetadata(sourcePath);
-    
+
     return {
       id: knex.raw('uuid_generate_v4()'),
       user_id: user.id,
@@ -156,7 +154,7 @@ exports.seed = async function (knex) {
       uploaded_by: systemUser.id,
     };
   });
-  
+
   // --------------------------------------------------
   // 8. Insert safely
   // --------------------------------------------------
@@ -164,8 +162,6 @@ exports.seed = async function (knex) {
     .insert(rows)
     .onConflict(['user_id', 'image_url'])
     .ignore();
-  
-  console.log(
-    `[SEED:user-images] Assigned avatars to ${rows.length} users`
-  );
+
+  console.log(`[SEED:user-images] Assigned avatars to ${rows.length} users`);
 };

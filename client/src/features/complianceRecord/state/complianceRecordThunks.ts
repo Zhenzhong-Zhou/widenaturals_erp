@@ -57,12 +57,14 @@ export const fetchComplianceRecordsThunk = createAsyncThunk<
   'compliance/fetchPaginatedRecords',
   async (params = {}, { rejectWithValue }) => {
     try {
-      return await complianceRecordService.fetchPaginatedComplianceRecords(params);
+      return await complianceRecordService.fetchPaginatedComplianceRecords(
+        params
+      );
     } catch (error: any) {
       return rejectWithValue(
         error?.response?.data?.message ??
-        error?.message ??
-        'Failed to fetch compliance records'
+          error?.message ??
+          'Failed to fetch compliance records'
       );
     }
   }

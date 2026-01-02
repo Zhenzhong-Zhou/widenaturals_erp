@@ -5,9 +5,7 @@ import {
   resetConfirmOutboundFulfillment,
   selectConfirmFulfillmentSummary,
 } from '@features/outboundFulfillment/state';
-import type {
-  ConfirmOutboundFulfillmentRequest,
-} from '@features/outboundFulfillment/state';
+import type { ConfirmOutboundFulfillmentRequest } from '@features/outboundFulfillment/state';
 
 /**
  * Hook: useConfirmOutboundFulfillment

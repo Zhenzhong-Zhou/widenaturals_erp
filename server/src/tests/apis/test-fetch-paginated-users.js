@@ -21,10 +21,10 @@ const { fetchPaginatedUsersService } = require('../../services/user-service');
   const client = await pool.connect();
   const logContext = chalk.cyan('[Test: Paginated Users]');
   const startTime = Date.now();
-  
+
   try {
     console.log(`${logContext} 🚀 Starting user pagination test...\n`);
-    
+
     // ------------------------------------------------------------
     // Step 1: Load test user (requester)
     // ------------------------------------------------------------
@@ -33,42 +33,39 @@ const { fetchPaginatedUsersService } = require('../../services/user-service');
       // ['root@widenaturals.com']
       ['jp@widenaturals.com']
     );
-    
+
     if (rows.length === 0) {
-      console.error(
-        `${logContext} ❌ ${chalk.red('Test user not found')}`
-      );
+      console.error(`${logContext} ❌ ${chalk.red('Test user not found')}`);
       return;
     }
-    
+
     const { id: userId, role_id: roleId } = rows[0];
-    
+
     const authUser = {
       id: userId,
       role: roleId,
     };
-    
+
     console.log(
       `${logContext} 👤 Loaded auth user: ${chalk.green(
         JSON.stringify(authUser)
       )}\n`
     );
-    
+
     // ------------------------------------------------------------
     // Step 2: Sorting setup
     // ------------------------------------------------------------
     const sortMap = getSortMapForModule('userSortMap');
     const logicalSortKey = 'createdAt'; // try: fullName, email, roleName, status
-    
-    const sortByColumn =
-      sortMap[logicalSortKey] || sortMap.defaultNaturalSort;
-    
+
+    const sortByColumn = sortMap[logicalSortKey] || sortMap.defaultNaturalSort;
+
     console.log(
       `${logContext} 🧮 Sorting by ${chalk.yellow(logicalSortKey)} → ${chalk.green(
         sortByColumn
       )}\n`
     );
-    
+
     // ------------------------------------------------------------
     // Step 3: Filters & pagination
     // ------------------------------------------------------------
@@ -77,22 +74,22 @@ const { fetchPaginatedUsersService } = require('../../services/user-service');
       // roleIds: ['uuid-role-example'],
       // statusIds: ['uuid-status-example'],
     };
-    
+
     const pagination = { page: 1, limit: 50 };
     // const viewMode = 'list'; // try: 'card'
     const viewMode = 'card'; // try: 'card'
-    
+
     console.log(`${logContext} 🔍 Filters:`);
     console.table(filters);
     console.log();
-    
+
     // ------------------------------------------------------------
     // Step 4: Execute user pagination service
     // ------------------------------------------------------------
     console.log(
       `${logContext} ▶️ Calling ${chalk.green('fetchPaginatedUsersService')}...\n`
     );
-    
+
     const result = await fetchPaginatedUsersService({
       filters,
       page: pagination.page,
@@ -100,32 +97,32 @@ const { fetchPaginatedUsersService } = require('../../services/user-service');
       sortBy: sortByColumn,
       sortOrder: 'DESC',
       viewMode,
-      user: authUser
+      user: authUser,
     });
-    
+
     // ------------------------------------------------------------
     // Step 5: Display results
     // ------------------------------------------------------------
     const elapsedMs = Date.now() - startTime;
     const elapsedSec = (elapsedMs / 1000).toFixed(2);
-    
+
     console.log(
       `${logContext} ✅ Completed in ${chalk.green(`${elapsedMs}ms`)} (${chalk.green(
         `${elapsedSec}s`
       )})\n`
     );
-    
+
     console.log(`${logContext} 📄 Pagination Info:`);
     console.table(result.pagination);
-    
+
     console.log(`\n${logContext} 👤 First Row Preview:`);
     console.log(result.data?.[0] || chalk.yellow('No data'));
-    
+
     console.log(`\n${logContext} 📜 Full JSON Output:`);
     console.log(chalk.gray(JSON.stringify(result, null, 2)));
-    
+
     console.log(`\n${logContext} 📊 User Table View`);
-    
+
     if (result.data?.length > 0) {
       console.table(
         result.data.map((user) => {
@@ -140,7 +137,7 @@ const { fetchPaginatedUsersService } = require('../../services/user-service');
               [chalk.magenta('avatar_url')]: user.avatarUrl,
             };
           }
-          
+
           // ------------------------------
           // List view (full)
           // ------------------------------
@@ -159,7 +156,7 @@ const { fetchPaginatedUsersService } = require('../../services/user-service');
         chalk.yellow(`${logContext} ⚠ No users available to display.`)
       );
     }
-    
+
     console.log(
       `\n${logContext} 🎉 ${chalk.green('User pagination test completed successfully!')}`
     );

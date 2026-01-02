@@ -22,40 +22,40 @@ import { resetUserViewedProfile } from '@features/user/state/userViewedProfileSl
  */
 const useUserViewedProfile = () => {
   const dispatch = useAppDispatch();
-  
+
   // ----------------------------
   // Selectors
   // ----------------------------
-  
+
   const profile = useAppSelector(selectUserViewedProfile);
   const loading = useAppSelector(selectUserViewedProfileLoading);
   const error = useAppSelector(selectUserViewedProfileError);
   const viewedUserId = useAppSelector(selectViewedUserId);
-  
+
   const fullName = useAppSelector(selectViewedUserFullName);
   const email = useAppSelector(selectViewedUserEmail);
   const isSystem = useAppSelector(selectIsViewedSystemUser);
   const isLoadingEmpty = useAppSelector(selectIsViewedProfileLoadingEmpty);
-  
+
   // ----------------------------
   // Actions
   // ----------------------------
-  
+
   const fetchViewedProfile = useCallback(
     (userId: string) => {
       dispatch(fetchUserViewedProfileThunk(userId));
     },
     [dispatch]
   );
-  
+
   const reset = useCallback(() => {
     dispatch(resetUserViewedProfile());
   }, [dispatch]);
-  
+
   // ----------------------------
   // Memoized shape
   // ----------------------------
-  
+
   const combined = useMemo(
     () => ({
       profile,
@@ -66,18 +66,18 @@ const useUserViewedProfile = () => {
     }),
     [profile, fullName, email, isSystem, viewedUserId]
   );
-  
+
   // ----------------------------
   // Public API
   // ----------------------------
-  
+
   return {
     // state
     ...combined,
     loading,
     error,
     isLoadingEmpty,
-    
+
     // actions
     fetchViewedProfile,
     reset,

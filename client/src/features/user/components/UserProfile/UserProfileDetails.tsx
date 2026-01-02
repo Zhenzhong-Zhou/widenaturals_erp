@@ -24,9 +24,9 @@ interface UserProfileDetailsProps {
 }
 
 const UserProfileDetails: FC<UserProfileDetailsProps> = ({
-                                                           user,
-                                                           lastLogin,
-                                                         }) => {
+  user,
+  lastLogin,
+}) => {
   const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
   const permissionsButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -39,7 +39,7 @@ const UserProfileDetails: FC<UserProfileDetailsProps> = ({
     permissionsButtonRef,
     () => showPermissionsDialog
   );
-  
+
   const {
     jobTitle,
     isSystem,
@@ -56,9 +56,9 @@ const UserProfileDetails: FC<UserProfileDetailsProps> = ({
     updatedAt,
     updatedByName,
   } = user;
-  
+
   const formattedRoleName = formatLabel(roleName);
-  
+
   return (
     <>
       {/* Business details */}
@@ -73,15 +73,11 @@ const UserProfileDetails: FC<UserProfileDetailsProps> = ({
             label: 'Permissions',
             value: permissions.length,
             format: () => (
-              <Box
-                display="flex"
-                alignItems="baseline"
-                gap={0.5}
-              >
+              <Box display="flex" alignItems="baseline" gap={0.5}>
                 <CustomTypography variant="body2">
                   {permissions.length} permissions
                 </CustomTypography>
-                
+
                 <Tooltip title="View permissions">
                   <IconButton
                     size="small"
@@ -118,7 +114,7 @@ const UserProfileDetails: FC<UserProfileDetailsProps> = ({
         ]}
         columns={2}
       />
-      
+
       {/* Permissions dialog */}
       <PermissionDialog
         open={showPermissionsDialog}
@@ -126,13 +122,13 @@ const UserProfileDetails: FC<UserProfileDetailsProps> = ({
         permissions={permissions}
         roleName={formattedRoleName}
       />
-      
+
       {/* Audit */}
       <Accordion sx={{ mt: 3 }}>
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
           Audit Information
         </AccordionSummary>
-        
+
         <AccordionDetails>
           <Box
             display="grid"
@@ -141,7 +137,7 @@ const UserProfileDetails: FC<UserProfileDetailsProps> = ({
             rowGap={2}
           >
             <MetadataSection
-              title={"Audit"}
+              title={'Audit'}
               data={{
                 createdAt: formatDateTime(createdAt),
                 createdBy: createdByName,
@@ -149,7 +145,7 @@ const UserProfileDetails: FC<UserProfileDetailsProps> = ({
                 updatedBy: updatedByName,
               }}
             />
-            
+
             {(avatarFormat || avatarUploadedAt) && (
               <MetadataSection
                 title="Avatar"

@@ -27,25 +27,25 @@ const userSortOptions: { label: string; value: UserSortField }[] = [
   { label: 'Email', value: 'email' },
   { label: 'Phone Number', value: 'phoneNumber' },
   { label: 'Job Title', value: 'jobTitle' },
-  
+
   // ---- Role / status ----
   { label: 'Role', value: 'roleName' },
   { label: 'Status', value: 'statusName' },
-  
+
   // ---- Audit fields ----
   { label: 'Created At', value: 'createdAt' },
   { label: 'Updated At', value: 'updatedAt' },
-  
+
   // ---- Default fallback ----
   { label: 'Default (Natural Sort)', value: 'defaultNaturalSort' },
 ];
 
 const UserSortControls: FC<UserSortControlsProps> = ({
-                                                       sortBy,
-                                                       sortOrder,
-                                                       onSortByChange,
-                                                       onSortOrderChange,
-                                                     }) => {
+  sortBy,
+  sortOrder,
+  onSortByChange,
+  onSortOrderChange,
+}) => {
   return (
     <SortControls
       sortBy={sortBy}

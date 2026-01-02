@@ -14,11 +14,10 @@ import { AppError } from '@utils/error';
  * Used during application bootstrap and diagnostics.
  */
 const fetchPublicHealthStatus = async (): Promise<HealthState> => {
-  const data = await getRequest<HealthState>(
-    API_ENDPOINTS.PUBLIC.HEALTH,
-    { policy: 'READ' }
-  );
-  
+  const data = await getRequest<HealthState>(API_ENDPOINTS.PUBLIC.HEALTH, {
+    policy: 'READ',
+  });
+
   /**
    * Defensive validation is intentional here.
    *
@@ -27,12 +26,11 @@ const fetchPublicHealthStatus = async (): Promise<HealthState> => {
    * A malformed response should fail fast.
    */
   if (!data || typeof data !== 'object') {
-    throw AppError.server(
-      'Invalid public health status response',
-      { response: data }
-    );
+    throw AppError.server('Invalid public health status response', {
+      response: data,
+    });
   }
-  
+
   return data;
 };
 

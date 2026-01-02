@@ -20,16 +20,16 @@ import warehouseInventoryAdjustReducer from './warehouseInventoryAdjustSlice';
 export const warehouseInventoryReducers = {
   /** Aggregated item-level inventory summary */
   warehouseInventoryItemSummary: warehouseInventoryItemSummaryReducer,
-  
+
   /** Detailed inventory summary for a specific SKU / batch */
   warehouseInventorySummaryDetail: warehouseInventorySummaryDetailReducer,
-  
+
   /** Core warehouse inventory records */
   warehouseInventory: warehouseInventoryReducer,
-  
+
   /** Warehouse inventory creation workflow */
   createWarehouseInventory: warehouseInventoryCreateReducer,
-  
+
   /** Inventory adjustment workflow */
   warehouseInventoryAdjust: warehouseInventoryAdjustReducer,
 };

@@ -96,12 +96,13 @@ const buildUserFilter = (filters = {}) => {
     const conditions = ['1=1'];
     const params = [];
     let idx = 1;
-    
+
     const includeSystemUsers = filters.includeSystemUsers === true;
     const includeRootUsers = filters.includeRootUsers === true;
     const enforceActiveOnly = filters.enforceActiveOnly === true;
-    const hasStatusFilter = Array.isArray(filters.statusIds) && filters.statusIds.length > 0;
-    
+    const hasStatusFilter =
+      Array.isArray(filters.statusIds) && filters.statusIds.length > 0;
+
     // ------------------------------------
     // Visibility rules (service-controlled, SQL-enforced)
     // ------------------------------------
@@ -123,18 +124,18 @@ const buildUserFilter = (filters = {}) => {
         )
       `);
     }
-    
+
     // ------------------------------------
     // Status visibility rules
     // ------------------------------------
-    
+
     // ACTIVE-only visibility (applied when enforceActiveOnly is true)
     if (enforceActiveOnly && !hasStatusFilter && filters.activeStatusId) {
       conditions.push(`u.status_id = $${idx}`);
       params.push(filters.activeStatusId);
       idx++;
     }
-    
+
     // ------------------------------
     // User-level filters
     // ------------------------------
@@ -143,43 +144,43 @@ const buildUserFilter = (filters = {}) => {
       params.push(filters.statusIds);
       idx++;
     }
-    
+
     if (filters.roleIds?.length) {
       conditions.push(`u.role_id = ANY($${idx}::uuid[])`);
       params.push(filters.roleIds);
       idx++;
     }
-    
+
     if (filters.email) {
       conditions.push(`u.email ILIKE $${idx}`);
       params.push(`%${filters.email}%`);
       idx++;
     }
-    
+
     if (filters.firstname) {
       conditions.push(`u.firstname ILIKE $${idx}`);
       params.push(`%${filters.firstname}%`);
       idx++;
     }
-    
+
     if (filters.lastname) {
       conditions.push(`u.lastname ILIKE $${idx}`);
       params.push(`%${filters.lastname}%`);
       idx++;
     }
-    
+
     if (filters.phoneNumber) {
       conditions.push(`u.phone_number ILIKE $${idx}`);
       params.push(`%${filters.phoneNumber}%`);
       idx++;
     }
-    
+
     if (filters.jobTitle) {
       conditions.push(`u.job_title ILIKE $${idx}`);
       params.push(`%${filters.jobTitle}%`);
       idx++;
     }
-    
+
     // ------------------------------
     // Audit filters
     // ------------------------------
@@ -188,46 +189,70 @@ const buildUserFilter = (filters = {}) => {
       params.push(filters.createdBy);
       idx++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`u.updated_by = $${idx}`);
       params.push(filters.updatedBy);
       idx++;
     }
-    
+
     if (filters.createdAfter) {
       conditions.push(`u.created_at >= $${idx}`);
       params.push(filters.createdAfter);
       idx++;
     }
-    
+
     if (filters.createdBefore) {
       conditions.push(`u.created_at <= $${idx}`);
       params.push(filters.createdBefore);
       idx++;
     }
-    
+
     if (filters.updatedAfter) {
       conditions.push(`u.updated_at >= $${idx}`);
       params.push(filters.updatedAfter);
       idx++;
     }
-    
+
     if (filters.updatedBefore) {
       conditions.push(`u.updated_at <= $${idx}`);
       params.push(filters.updatedBefore);
       idx++;
     }
-    
+
     // ------------------------------
     // Text filters (ILIKE)
     // ------------------------------
-    idx = addIlikeFilter(conditions, params, idx, filters.firstname, 'u.firstname');
-    idx = addIlikeFilter(conditions, params, idx, filters.lastname, 'u.lastname');
+    idx = addIlikeFilter(
+      conditions,
+      params,
+      idx,
+      filters.firstname,
+      'u.firstname'
+    );
+    idx = addIlikeFilter(
+      conditions,
+      params,
+      idx,
+      filters.lastname,
+      'u.lastname'
+    );
     idx = addIlikeFilter(conditions, params, idx, filters.email, 'u.email');
-    idx = addIlikeFilter(conditions, params, idx, filters.phoneNumber, 'u.phone_number');
-    idx = addIlikeFilter(conditions, params, idx, filters.jobTitle, 'u.job_title');
-    
+    idx = addIlikeFilter(
+      conditions,
+      params,
+      idx,
+      filters.phoneNumber,
+      'u.phone_number'
+    );
+    idx = addIlikeFilter(
+      conditions,
+      params,
+      idx,
+      filters.jobTitle,
+      'u.job_title'
+    );
+
     // ------------------------------
     // Keyword fuzzy search
     // ------------------------------ (grouped)
@@ -243,7 +268,7 @@ const buildUserFilter = (filters = {}) => {
       params.push(`%${filters.keyword}%`);
       idx++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,

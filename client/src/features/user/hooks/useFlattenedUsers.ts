@@ -24,9 +24,7 @@ import type { UserCardView, UserListView } from '@features/user/state';
  * @param users - Raw user records returned by the API
  * @returns A memoized array of flattened user records
  */
-const useFlattenedUsers = (
-  users: Array<UserCardView | UserListView>
-) =>
+const useFlattenedUsers = (users: Array<UserCardView | UserListView>) =>
   useMemo(() => flattenUserRecords(users), [users]);
 
 export default useFlattenedUsers;

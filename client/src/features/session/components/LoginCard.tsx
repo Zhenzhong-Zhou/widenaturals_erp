@@ -22,24 +22,24 @@ const LoginCard: FC<LoginCardProps> = ({
   const navigate = useNavigate();
   const { showLoading, hideLoading } = useLoading(); // Use correct functions from the context
   const loginError = useAppSelector(selectLoginError);
-  
+
   const handleSubmit = async (data: { email: string; password: string }) => {
     try {
       showLoading('Logging in...', 'spinner');
-      
+
       await dispatch(loginThunk(data)).unwrap();
-      
+
       navigate('/dashboard');
     } catch (error: unknown) {
       handleError(error);
-      
+
       const message =
         error instanceof AppError
           ? error.message
           : error instanceof Error
             ? error.message
             : 'Login failed. Please try again.';
-      
+
       console.error('Login failed:', message);
       dispatch(setMessage(message));
     } finally {

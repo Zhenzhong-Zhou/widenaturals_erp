@@ -22,9 +22,7 @@ export type RouteParams = Record<string, string | undefined>;
  * - a string → required permission
  * - `null` → invalid route state (e.g. bad param), typically treated as 404
  */
-export type DynamicPermissionResolver = (
-  params: RouteParams
-) => string | null;
+export type DynamicPermissionResolver = (params: RouteParams) => string | null;
 
 // todo ddocsting and adjsut order fo placmenment
 export type NavigationItem = {

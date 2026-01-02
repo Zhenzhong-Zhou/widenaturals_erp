@@ -192,13 +192,11 @@ export const getStatusColor = (
   type: StatusType = 'order'
 ): StatusColor => {
   if (!status) return 'default';
-  
+
   const map = statusMaps[type];
-  
+
   const normalized =
-    type === 'inventory' || type === 'health'
-      ? status
-      : status.toUpperCase();
-  
+    type === 'inventory' || type === 'health' ? status : status.toUpperCase();
+
   return (map as Record<string, StatusColor>)[normalized] ?? 'default';
 };

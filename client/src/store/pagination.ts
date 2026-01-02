@@ -1,4 +1,7 @@
-import type { PaginatedLookupState, ReduxPaginatedState } from '@shared-types/api';
+import type {
+  PaginatedLookupState,
+  ReduxPaginatedState,
+} from '@shared-types/api';
 
 /**
  * Returns a standardized initial state object for any Redux slice that uses
@@ -39,7 +42,9 @@ export const createInitialPaginatedState = <T>(): ReduxPaginatedState<T> => ({
  * @returns A default-initialized paginated state with empty data,
  *          no error, and pagination metadata.
  */
-export const createInitialOffsetPaginatedState = <T>(): PaginatedLookupState<T> => {
+export const createInitialOffsetPaginatedState = <
+  T,
+>(): PaginatedLookupState<T> => {
   return {
     data: [],
     loading: false,

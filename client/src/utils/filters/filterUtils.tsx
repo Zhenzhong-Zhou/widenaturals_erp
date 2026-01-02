@@ -63,9 +63,7 @@ export const renderInputField = <
  * @param label - Display label for the date picker
  * @returns JSX element wrapped in a responsive Grid cell
  */
-export const renderDateField = <
-  TFieldValues extends FieldValues = FieldValues
->(
+export const renderDateField = <TFieldValues extends FieldValues = FieldValues>(
   control: Control<TFieldValues>,
   name: Path<TFieldValues>,
   label: string

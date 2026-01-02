@@ -6,10 +6,10 @@ import CustomTypography from '@components/common/CustomTypography.tsx';
 interface PageShellProps {
   /** Page title displayed in the header */
   title: string;
-  
+
   /** Optional action elements (buttons, menus, filters) rendered in the header */
   actions?: ReactNode;
-  
+
   /** Main page content */
   children: ReactNode;
 }
@@ -48,12 +48,12 @@ const PageShell: FC<PageShellProps> = ({ title, actions, children }) => {
         <CustomTypography variant="h5" fontWeight={700}>
           {title}
         </CustomTypography>
-        
+
         {actions}
       </Box>
-      
+
       <Divider sx={{ mb: 3 }} />
-      
+
       {children}
     </Box>
   );

@@ -2,7 +2,7 @@ import { type FC } from 'react';
 import PageShell from '@features/user/layouts/PageShell.tsx';
 import {
   UserFilterAndSortPanel,
-  UserListTable
+  UserListTable,
 } from '@features/user/components/UserView';
 import useFlattenedUsers from '@features/user/hooks/useFlattenedUsers';
 import { UserListPageController } from '@features/user/types/hookTypes';
@@ -23,8 +23,8 @@ import { UserListPageController } from '@features/user/types/hookTypes';
  * - This component is list-view specific
  */
 const UserListLayout: FC<{ controller: UserListPageController }> = ({
-                                                                      controller,
-                                                                    }) => {
+  controller,
+}) => {
   const {
     data,
     filters,
@@ -41,12 +41,12 @@ const UserListLayout: FC<{ controller: UserListPageController }> = ({
     paginationHandlers,
     expandedRowId,
     handleDrillDownToggle,
-    refresh
+    refresh,
   } = controller;
   const { page, limit, totalPages, totalRecords } = pageInfo;
   const { handlePageChange, handleRowsPerPageChange } = paginationHandlers;
   const flattenedUsers = useFlattenedUsers(data);
-  
+
   return (
     <PageShell title="User Management">
       <UserFilterAndSortPanel
@@ -60,7 +60,7 @@ const UserListLayout: FC<{ controller: UserListPageController }> = ({
         onSortOrderChange={setSortOrder}
         onReset={handleResetFilters}
       />
-      
+
       <UserListTable
         data={flattenedUsers}
         loading={loading}

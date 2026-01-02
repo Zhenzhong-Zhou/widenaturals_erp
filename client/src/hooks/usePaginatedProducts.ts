@@ -10,9 +10,7 @@ import {
   selectPaginatedProductsIsEmpty,
   resetPaginatedProducts,
 } from '@features/product/state';
-import type {
-  FetchProductParams,
-} from '@features/product/state';
+import type { FetchProductParams } from '@features/product/state';
 
 /**
  * React hook that provides access to paginated Product list state and actions.

@@ -25,18 +25,16 @@ interface InitializeAppOptions {
  * - Mutate Axios headers
  * - Perform UI side effects
  */
-const useInitializeApp = (
-  { delayMs = 0 }: InitializeAppOptions = {}
-) => {
+const useInitializeApp = ({ delayMs = 0 }: InitializeAppOptions = {}) => {
   const dispatch = useAppDispatch();
-  
+
   const csrfStatus = useAppSelector(selectCsrfStatus);
   const csrfError = useAppSelector(selectCsrfError);
-  
+
   const [isInitializing, setIsInitializing] = useState(false);
   const [initializationError, setInitializationError] =
     useState<AppError | null>(null);
-  
+
   // Prevent setState after unmount
   const isMountedRef = useRef(true);
   useEffect(() => {
@@ -45,7 +43,7 @@ const useInitializeApp = (
       isMountedRef.current = false;
     };
   }, []);
-  
+
   /**
    * Step 1: Initialize CSRF token.
    * Transport retries / errors are handled centrally.
@@ -53,7 +51,7 @@ const useInitializeApp = (
   const initializeCsrfToken = useCallback(async () => {
     await csrfService.initializeCsrfToken(dispatch);
   }, [dispatch]);
-  
+
   /**
    * Step 2: Optional app bootstrap logic.
    */
@@ -62,12 +60,12 @@ const useInitializeApp = (
       await sleep(delayMs);
     }
   }, [delayMs]);
-  
+
   useEffect(() => {
     const run = async () => {
       setIsInitializing(true);
       setInitializationError(null);
-      
+
       try {
         await initializeCsrfToken();
         await initializeAppCore();
@@ -75,19 +73,14 @@ const useInitializeApp = (
         const appError =
           error instanceof AppError
             ? error
-            : AppError.server(
-              'Error during application initialization',
-              {
+            : AppError.server('Error during application initialization', {
                 originalError:
-                  error instanceof Error
-                    ? error.message
-                    : String(error),
-              }
-            );
-        
+                  error instanceof Error ? error.message : String(error),
+              });
+
         // Local recovery: reset CSRF state
         dispatch(resetCsrfToken());
-        
+
         if (isMountedRef.current) {
           setInitializationError(appError);
         }
@@ -97,19 +90,19 @@ const useInitializeApp = (
         }
       }
     };
-    
+
     run().catch(() => {
       // Errors are handled inside `run`
     });
   }, [dispatch, initializeCsrfToken, initializeAppCore]);
-  
+
   /**
    * Monitor CSRF state changes separately to avoid race conditions.
    */
   useEffect(() => {
     monitorCsrfStatus(csrfStatus, csrfError);
   }, [csrfStatus, csrfError]);
-  
+
   return {
     isInitializing,
     hasError: Boolean(initializationError),

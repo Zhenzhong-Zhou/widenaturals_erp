@@ -9,9 +9,7 @@ import {
   selectSkuProductCardsIsEmpty,
   resetSkuProductCards,
 } from '@features/sku/state';
-import type {
-  SkuProductCardQueryParams,
-} from '@features/sku/state';
+import type { SkuProductCardQueryParams } from '@features/sku/state';
 
 /**
  * React hook exposing SKU Product-Card list state + actions.

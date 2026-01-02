@@ -23,10 +23,7 @@ import { buildQueryString } from '@utils/buildQueryString';
 const createAddresses = async (
   addresses: AddressInputArray
 ): Promise<CreateAddressApiResponse> => {
-  return postRequest(
-    API_ENDPOINTS.ADDRESSES.ADD_NEW_ADDRESSES,
-    addresses
-  );
+  return postRequest(API_ENDPOINTS.ADDRESSES.ADD_NEW_ADDRESSES, addresses);
 };
 
 /**
@@ -44,9 +41,7 @@ const fetchPaginatedAddresses = async (
   queryParams?: AddressQueryParams
 ): Promise<PaginatedAddressResponse> => {
   const queryString = buildQueryString(queryParams);
-  return getRequest(
-    `${API_ENDPOINTS.ADDRESSES.ALL_RECORDS}${queryString}`
-  );
+  return getRequest(`${API_ENDPOINTS.ADDRESSES.ALL_RECORDS}${queryString}`);
 };
 
 export const addressService = {

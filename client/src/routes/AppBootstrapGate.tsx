@@ -31,18 +31,11 @@ interface AppBootstrapGateProps {
  */
 const AppBootstrapGate: FC<AppBootstrapGateProps> = ({ children }) => {
   const { isLoading: sessionLoading } = useSession();
-  
-  const {
-    isInitializing,
-    hasError,
-    initializationError,
-  } = useInitializeApp();
-  
+
+  const { isInitializing, hasError, initializationError } = useInitializeApp();
+
   // Fatal initialization failure
-  if (
-    hasError &&
-    initializationError?.type === ErrorType.Server
-  ) {
+  if (hasError && initializationError?.type === ErrorType.Server) {
     return (
       <ErrorDisplay
         message="The server is currently unavailable. Please try again later."
@@ -50,18 +43,14 @@ const AppBootstrapGate: FC<AppBootstrapGateProps> = ({ children }) => {
       />
     );
   }
-  
+
   // Global bootstrap loading
   if (sessionLoading || isInitializing) {
     return (
-      <Loading
-        fullPage
-        variant="linear"
-        message="Preparing application…"
-      />
+      <Loading fullPage variant="linear" message="Preparing application…" />
     );
   }
-  
+
   return <>{children}</>;
 };
 

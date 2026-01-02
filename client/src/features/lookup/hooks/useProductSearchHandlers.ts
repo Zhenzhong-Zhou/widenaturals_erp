@@ -22,7 +22,6 @@ export type ProductLookupBundle = {
  * Mirrors the existing Status search handler design.
  */
 const useProductSearchHandlers = (bundle: ProductLookupBundle) => {
-  
   return {
     /**
      * Debounced handler for product keyword searches.
@@ -31,9 +30,7 @@ const useProductSearchHandlers = (bundle: ProductLookupBundle) => {
      *   const { handleProductSearch } = useProductSearchHandlers(productLookup);
      *   handleProductSearch(keyword);
      */
-    handleProductSearch: useDebouncedSearch<ProductLookupParams>(
-      bundle.fetch
-    ),
+    handleProductSearch: useDebouncedSearch<ProductLookupParams>(bundle.fetch),
   };
 };
 

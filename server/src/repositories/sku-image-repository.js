@@ -33,7 +33,7 @@ const AppError = require('../utils/AppError');
  */
 const hasPrimaryMainImage = async (skuId, client) => {
   const context = 'sku-image-service/hasPrimaryMainImage';
-  
+
   const sql = `
     SELECT EXISTS (
       SELECT 1
@@ -43,29 +43,34 @@ const hasPrimaryMainImage = async (skuId, client) => {
         AND is_primary = TRUE
     ) AS has_primary;
   `;
-  
+
   try {
     const { rows } = await query(sql, [skuId], client);
-    
+
     const hasPrimary = Boolean(rows[0]?.has_primary);
-    
+
     logSystemInfo('Primary main image existence check complete.', {
       context,
       skuId,
       hasPrimaryMain: hasPrimary,
     });
-    
+
     return hasPrimary;
   } catch (error) {
-    logSystemException(error, 'Failed to query sku_images for primary main image.', {
-      context,
-      skuId,
-    });
-    
-    throw AppError.databaseError(
-      'Failed to check primary main image state.',
-      { cause: error, skuId, context }
+    logSystemException(
+      error,
+      'Failed to query sku_images for primary main image.',
+      {
+        context,
+        skuId,
+      }
     );
+
+    throw AppError.databaseError('Failed to check primary main image state.', {
+      cause: error,
+      skuId,
+      context,
+    });
   }
 };
 
@@ -99,35 +104,36 @@ const hasPrimaryMainImage = async (skuId, client) => {
  */
 const getSkuImageDisplayOrderBase = async (skuId, client) => {
   const context = 'sku-image-service/getSkuImageDisplayOrderBase';
-  
+
   const sql = `
     SELECT COALESCE(MAX(display_order), 0) AS max_order
     FROM sku_images
     WHERE sku_id = $1;
   `;
-  
+
   try {
     const result = await query(sql, [skuId], client);
-    
+
     const count = Number(result.rows?.[0]?.count ?? 0);
-    
+
     logSystemInfo('Counted existing SKU images.', {
       context,
       skuId,
       count,
     });
-    
+
     return count;
   } catch (error) {
     logSystemException(error, 'Failed to count SKU images.', {
       context,
       skuId,
     });
-    
-    throw AppError.databaseError(
-      'Failed to count existing SKU images.',
-      { cause: error, skuId, context }
-    );
+
+    throw AppError.databaseError('Failed to count existing SKU images.', {
+      cause: error,
+      skuId,
+      context,
+    });
   }
 };
 
@@ -180,8 +186,8 @@ const getSkuImageDisplayOrderBase = async (skuId, client) => {
  */
 const insertSkuImagesBulk = async (skuId, images, createdBy, client) => {
   if (!Array.isArray(images) || images.length === 0) return [];
-  
-  const payload = images.map(img => ({
+
+  const payload = images.map((img) => ({
     image_url: img.image_url,
     image_type: img.image_type,
     display_order: img.display_order,
@@ -192,11 +198,11 @@ const insertSkuImagesBulk = async (skuId, images, createdBy, client) => {
     uploaded_by: img.uploaded_by || createdBy,
     group_id: img.group_id,
   }));
-  
-  if (payload.some(p => !p.group_id)) {
+
+  if (payload.some((p) => !p.group_id)) {
     throw AppError.validationError('group_id is required for SKU image insert');
   }
-  
+
   const sql = `
     INSERT INTO sku_images (
       sku_id,
@@ -241,16 +247,16 @@ const insertSkuImagesBulk = async (skuId, images, createdBy, client) => {
       uploaded_at = NOW()
     RETURNING *;
   `;
-  
+
   try {
     const { rows } = await query(sql, [skuId, JSON.stringify(payload)], client);
-    
+
     logSystemInfo('Successfully inserted or updated SKU images', {
       context: 'sku-image-repository/insertSkuImagesBulk',
       skuId,
       affectedCount: rows.length,
     });
-    
+
     return rows;
   } catch (error) {
     logSystemException(error, 'Failed to insert SKU images', {
@@ -258,7 +264,7 @@ const insertSkuImagesBulk = async (skuId, images, createdBy, client) => {
       skuId,
       imageCount: images.length,
     });
-    
+
     throw AppError.databaseError('Failed to insert SKU images', {
       cause: error,
     });

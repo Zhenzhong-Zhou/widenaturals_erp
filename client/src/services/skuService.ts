@@ -11,11 +11,7 @@ import type {
 } from '@features/sku/state/skuTypes';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { sanitizeString } from '@utils/stringUtils';
-import {
-  getRequest,
-  patchRequest,
-  postRequest
-} from '@utils/http';
+import { getRequest, patchRequest, postRequest } from '@utils/http';
 import { buildQueryString } from '@utils/buildQueryString';
 
 /* =========================================================
@@ -31,12 +27,12 @@ const fetchPaginatedSkuProductCards = (
   params: SkuProductCardQueryParams = {}
 ): Promise<GetSkuProductCardsResponse> => {
   const { filters = {}, ...rest } = params;
-  
+
   const queryString = buildQueryString({
     ...rest,
     ...filters,
   });
-  
+
   return getRequest<GetSkuProductCardsResponse>(
     `${API_ENDPOINTS.SKUS.SKU_PRODUCT_CARDS}${queryString}`,
     { policy: 'READ' }
@@ -52,11 +48,9 @@ const fetchPaginatedSkuProductCards = (
  *
  * READ-only.
  */
-const fetchSkuDetailById = (
-  skuId: string
-): Promise<GetSkuDetailResponse> => {
+const fetchSkuDetailById = (skuId: string): Promise<GetSkuDetailResponse> => {
   const cleanId = sanitizeString(skuId);
-  
+
   return getRequest<GetSkuDetailResponse>(
     API_ENDPOINTS.SKUS.SKU_DETAILS(cleanId),
     { policy: 'READ' }
@@ -76,12 +70,12 @@ const fetchPaginatedSkus = (
   params: FetchSkusParams = {}
 ): Promise<GetSkuListResponse> => {
   const { filters = {}, ...rest } = params;
-  
+
   const queryString = buildQueryString({
     ...rest,
     ...filters,
   });
-  
+
   return getRequest<GetSkuListResponse>(
     `${API_ENDPOINTS.SKUS.ALL_RECORDS}${queryString}`,
     { policy: 'READ' }
@@ -97,9 +91,7 @@ const fetchPaginatedSkus = (
  *
  * WRITE operation.
  */
-const createSkus = (
-  payload: CreateSkuBulkInput
-): Promise<CreateSkuResponse> =>
+const createSkus = (payload: CreateSkuBulkInput): Promise<CreateSkuResponse> =>
   postRequest<CreateSkuBulkInput, CreateSkuResponse>(
     API_ENDPOINTS.SKUS.ADD_NEW_RECORD,
     payload

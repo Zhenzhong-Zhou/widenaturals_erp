@@ -1,7 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import type {
-  WarehouseInventoryItemSummaryState,
-} from '@features/warehouseInventory/state';
+import type { WarehouseInventoryItemSummaryState } from '@features/warehouseInventory/state';
 import { fetchWarehouseInventoryItemSummaryThunk } from './warehouseInventoryThunks';
 
 const initialState: WarehouseInventoryItemSummaryState = {

@@ -4,9 +4,7 @@ import type {
   CustomerLookupState,
 } from '@features/lookup/state';
 import { createInitialOffsetPaginatedState } from '@store/pagination';
-import {
-  fetchCustomerLookupThunk,
-} from '@features/lookup/state';
+import { fetchCustomerLookupThunk } from '@features/lookup/state';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 
 const initialState: CustomerLookupState =

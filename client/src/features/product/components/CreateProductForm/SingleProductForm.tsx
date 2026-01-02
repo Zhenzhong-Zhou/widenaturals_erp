@@ -1,9 +1,7 @@
 import { type FC, useMemo } from 'react';
 import CustomForm, { FieldConfig } from '@components/common/CustomForm';
 import type { CreateProductInput } from '@features/product/state/productTypes';
-import {
-  buildProductInfoFields,
-} from '@features/product/utils/productFieldFactory';
+import { buildProductInfoFields } from '@features/product/utils/productFieldFactory';
 
 interface SingleProductFormProps {
   loading?: boolean;
@@ -14,7 +12,6 @@ const SingleProductForm: FC<SingleProductFormProps> = ({
   loading,
   onSubmit,
 }) => {
-  
   const productFormFields = useMemo<FieldConfig[]>(
     () => buildProductInfoFields({ isUpdate: false }),
     []

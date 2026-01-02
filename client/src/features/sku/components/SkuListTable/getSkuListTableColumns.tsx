@@ -33,9 +33,11 @@ export const getSkuListTableColumns = (
       renderCell: (row) => (
         <CardMedia
           component="img"
-          image={row.primaryImageUrl
-            ? formatImageUrl(row.primaryImageUrl)
-            : NO_IMAGE_PLACEHOLDER}
+          image={
+            row.primaryImageUrl
+              ? formatImageUrl(row.primaryImageUrl)
+              : NO_IMAGE_PLACEHOLDER
+          }
           loading="lazy"
           alt={row.displayProductName ?? 'SKU image'}
           sx={{
@@ -49,7 +51,7 @@ export const getSkuListTableColumns = (
         />
       ),
     },
-    
+
     // ------------------------------
     // Product Info
     // ------------------------------
@@ -84,7 +86,7 @@ export const getSkuListTableColumns = (
       sortable: true,
       renderCell: (row) => row.category ?? '—',
     },
-    
+
     // ------------------------------
     // SKU Info
     // ------------------------------
@@ -118,7 +120,7 @@ export const getSkuListTableColumns = (
       sortable: true,
       renderCell: (row) => row.language ?? '—',
     },
-    
+
     // ------------------------------
     // Status Info
     // ------------------------------
@@ -129,7 +131,7 @@ export const getSkuListTableColumns = (
       renderCell: (row) => formatLabel(row.statusName) ?? '—',
     },
   ];
-  
+
   // ------------------------------
   // Drill-down Expansion Column
   // ------------------------------
@@ -141,6 +143,6 @@ export const getSkuListTableColumns = (
       )
     );
   }
-  
+
   return columns;
 };

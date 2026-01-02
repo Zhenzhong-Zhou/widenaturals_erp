@@ -1,7 +1,9 @@
 import { FC } from 'react';
 import Paper from '@mui/material/Paper';
 import CustomTypography from '@components/common/CustomTypography';
-import DetailsSection, { DetailsSectionField } from '@components/common/DetailsSection';
+import DetailsSection, {
+  DetailsSectionField,
+} from '@components/common/DetailsSection';
 import { FlattenedProductDetail } from '@features/product/state';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils.ts';
@@ -39,7 +41,7 @@ const ProductDetailAuditSection: FC<Props> = ({ product }) => {
       <CustomTypography variant="h6" fontWeight={600} gutterBottom>
         Audit Information
       </CustomTypography>
-      
+
       <DetailsSection fields={buildAuditFields(product)} />
     </Paper>
   );

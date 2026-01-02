@@ -5,11 +5,7 @@
 /**
  * Core error model
  */
-export {
-  AppError,
-  ErrorType,
-  ErrorSeverity,
-} from './AppError';
+export { AppError, ErrorType, ErrorSeverity } from './AppError';
 
 /**
  * Error normalization (transport → domain)
@@ -24,10 +20,7 @@ export { isAxiosLikeError } from './isAxiosLikeError';
 /**
  * UI-facing helpers
  */
-export {
-  extractErrorMessage,
-  extractUiErrorPayload,
-} from './uiErrorUtils';
+export { extractErrorMessage, extractUiErrorPayload } from './uiErrorUtils';
 
 /**
  * Global error handling & categorization

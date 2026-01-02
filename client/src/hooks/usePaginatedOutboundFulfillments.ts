@@ -10,9 +10,7 @@ import {
   selectPaginatedOutboundFulfillmentsTotalRecords,
   resetPaginatedOutboundFulfillments,
 } from '@features/outboundFulfillment/state';
-import type {
-  OutboundFulfillmentQuery,
-} from '@features/outboundFulfillment/state';
+import type { OutboundFulfillmentQuery } from '@features/outboundFulfillment/state';
 
 /**
  * Hook for accessing and managing paginated outbound fulfillment state.

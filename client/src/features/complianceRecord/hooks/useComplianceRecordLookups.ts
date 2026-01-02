@@ -12,7 +12,7 @@ const useComplianceRecordLookups = () => {
   const product = useProductLookup();
   const sku = useSkuLookup();
   const status = useStatusLookup();
-  
+
   return {
     product,
     sku,

@@ -5,9 +5,7 @@ import type {
   SkuLookupState,
 } from '@features/lookup/state';
 import { createInitialOffsetPaginatedState } from '@store/pagination';
-import {
-  fetchSkuLookupThunk,
-} from '@features/lookup/state';
+import { fetchSkuLookupThunk } from '@features/lookup/state';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 
 const initialState: SkuLookupState =

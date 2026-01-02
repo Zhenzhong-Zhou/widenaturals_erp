@@ -8,9 +8,7 @@ import {
   selectPaginationMeta,
   resetPaginatedAddresses,
 } from '@features/address/state';
-import type {
-  AddressQueryParams,
-} from '@features/address/state';
+import type { AddressQueryParams } from '@features/address/state';
 
 /**
  * React hook for accessing and controlling paginated addresses state.

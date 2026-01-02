@@ -34,7 +34,7 @@ export const REQUEST_POLICIES = {
     retries: 0,
     timeoutMs: 5000,
   },
-  
+
   /**
    * Safe, idempotent read operations.
    *
@@ -46,7 +46,7 @@ export const REQUEST_POLICIES = {
     delayMs: 500,
     timeoutMs: 3000,
   },
-  
+
   /**
    * State-changing write operations.
    *
@@ -58,7 +58,7 @@ export const REQUEST_POLICIES = {
     delayMs: 1000,
     timeoutMs: 5000,
   },
-  
+
   /**
    * System-critical or bootstrap requests.
    *

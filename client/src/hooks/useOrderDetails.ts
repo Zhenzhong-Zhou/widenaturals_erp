@@ -13,9 +13,7 @@ import {
   selectOrderTotals,
   resetOrderDetails,
 } from '@features/order/state';
-import type {
-  OrderRouteParams,
-} from '@features/order/state';
+import type { OrderRouteParams } from '@features/order/state';
 
 /**
  * useOrderDetails

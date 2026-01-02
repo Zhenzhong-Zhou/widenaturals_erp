@@ -22,26 +22,21 @@ import { sanitizeString } from '@utils/stringUtils';
  */
 const fetchPaginatedUsers = (
   params: GetPaginatedUsersParams & { viewMode?: UserViewMode } = {}
-): Promise<
-  PaginatedUserCardListResponse | PaginatedUserListResponse
-> => {
-  const {
-    filters = {},
-    viewMode = 'list',
-    ...paginationAndSort
-  } = params;
-  
+): Promise<PaginatedUserCardListResponse | PaginatedUserListResponse> => {
+  const { filters = {}, viewMode = 'list', ...paginationAndSort } = params;
+
   const queryString = buildQueryString({
     ...paginationAndSort,
     viewMode,
     ...filters,
   });
-  
-  return getRequest<
-    PaginatedUserCardListResponse | PaginatedUserListResponse
-  >(`${API_ENDPOINTS.USERS.ALL_RECORDS}${queryString}`, {
-    policy: 'READ',
-  });
+
+  return getRequest<PaginatedUserCardListResponse | PaginatedUserListResponse>(
+    `${API_ENDPOINTS.USERS.ALL_RECORDS}${queryString}`,
+    {
+      policy: 'READ',
+    }
+  );
 };
 
 /* =========================================================
@@ -54,21 +49,18 @@ const fetchPaginatedUsers = (
  * READ-only.
  */
 const fetchUserProfileSelf = (): Promise<UserProfileResponse> =>
-  getRequest<UserProfileResponse>(
-    API_ENDPOINTS.USERS.PROFILE.SELF,
-    { policy: 'READ' }
-  );
+  getRequest<UserProfileResponse>(API_ENDPOINTS.USERS.PROFILE.SELF, {
+    policy: 'READ',
+  });
 
 /**
  * Fetch a user's profile by ID.
  *
  * READ-only, permission-sliced server-side.
  */
-const fetchUserProfileById = (
-  userId: string
-): Promise<UserProfileResponse> => {
+const fetchUserProfileById = (userId: string): Promise<UserProfileResponse> => {
   const cleanId = sanitizeString(userId);
-  
+
   return getRequest<UserProfileResponse>(
     API_ENDPOINTS.USERS.PROFILE.BY_ID(cleanId),
     { policy: 'READ' }

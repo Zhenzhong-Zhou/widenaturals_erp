@@ -5,9 +5,7 @@ import type {
   ProductLookupState,
 } from '@features/lookup/state';
 import { createInitialOffsetPaginatedState } from '@store/pagination';
-import {
-  fetchProductLookupThunk,
-} from '@features/lookup/state';
+import { fetchProductLookupThunk } from '@features/lookup/state';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 
 // -----------------------------

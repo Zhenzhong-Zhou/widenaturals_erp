@@ -1,6 +1,6 @@
 import {
   FlattenedProductDetail,
-  ProductResponse
+  ProductResponse,
 } from '@features/product/state';
 
 /**
@@ -32,22 +32,22 @@ export const flattenProductDetail = (
   product: ProductResponse
 ): FlattenedProductDetail | null => {
   if (!product) return null;
-  
+
   const { status, audit, ...rest } = product;
-  
+
   return {
     ...rest,
-    
+
     // Status
     statusId: status?.id ?? null,
     statusName: status?.name ?? null,
     statusDate: status?.date ?? null,
-    
+
     // Audit
     createdAt: audit?.createdAt ?? null,
     createdById: audit?.createdBy?.id ?? null,
     createdByName: audit?.createdBy?.name ?? null,
-    
+
     updatedAt: audit?.updatedAt ?? null,
     updatedById: audit?.updatedBy?.id ?? null,
     updatedByName: audit?.updatedBy?.name ?? null,

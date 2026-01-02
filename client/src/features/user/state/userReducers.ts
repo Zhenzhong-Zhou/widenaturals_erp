@@ -24,10 +24,10 @@ import userViewedProfileReducer from './userViewedProfileSlice';
 export const userReducers = {
   /** Paginated user list with filters and pagination metadata */
   paginatedUsers: paginatedUsersReducer,
-  
+
   /** Authenticated user's own profile state */
   userSelfProfile: userSelfProfileReducer,
-  
+
   /** HR/Admin viewed user profile state */
   userViewedProfile: userViewedProfileReducer,
 };

@@ -6,9 +6,7 @@ import {
   selectLotAdjustmentTypeItems,
   selectLotAdjustmentTypeLoading,
 } from '@features/lookup/state';
-import type {
-  LotAdjustmentLookupQueryParams,
-} from '@features/lookup/state';
+import type { LotAdjustmentLookupQueryParams } from '@features/lookup/state';
 import { formatLabel } from '@utils/textUtils';
 import { resetLotAdjustmentTypeLookup } from '@features/lookup/state/lotAdjustmentTypeLookupSlice';
 

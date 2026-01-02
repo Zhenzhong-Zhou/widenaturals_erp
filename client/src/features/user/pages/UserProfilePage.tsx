@@ -29,26 +29,20 @@ const UserProfilePage: FC = () => {
   const [isModalOpen, setModalOpen] = useState(false);
   const dispatch = useAppDispatch();
   const { isLoading: isLogoutLoading } = useLogout();
-  
-  const {
-    isAllowed: canChangeOwnPassword,
-    permLoading,
-  } = usePagePermissionGuard([
-    'user.password.change.self',
-  ]);
-  
-  const {
-    isAllowed: canResetOthersPassword,
-  } = usePagePermissionGuard([
+
+  const { isAllowed: canChangeOwnPassword, permLoading } =
+    usePagePermissionGuard(['user.password.change.self']);
+
+  const { isAllowed: canResetOthersPassword } = usePagePermissionGuard([
     'user.password.reset.any',
     'user.password.force_reset.any',
   ]);
-  
+
   // ----------------------------
   // SELF PROFILE (My Profile)
   // ----------------------------
   const selfProfile = useUserSelfProfile();
-  
+
   // ----------------------------
   // VIEWED PROFILE (HR/Admin)
   // ----------------------------
@@ -56,12 +50,12 @@ const UserProfilePage: FC = () => {
 
   // Auto-fetch only when viewing another user (HR/Admin context)
   useUserViewedProfileAuto(userId ?? null);
-  
+
   // ----------------------------
   // Decide which profile to use
   // ----------------------------
   const isViewingSelf = !userId;
-  
+
   // ----------------------------
   // Normalize refresh action
   // ----------------------------
@@ -77,7 +71,7 @@ const UserProfilePage: FC = () => {
     selfProfile.fetchSelfProfile,
     viewedProfile.fetchViewedProfile,
   ]);
-  
+
   // Select profile source based on route context
   const {
     profile: userProfile,
@@ -88,9 +82,9 @@ const UserProfilePage: FC = () => {
     error: profileError,
     isLoadingEmpty: isInitialProfileLoading,
   } = isViewingSelf ? selfProfile : viewedProfile;
-  
+
   const isOwnProfile = isViewingSelf;
-  
+
   // ----------------------------
   // Derived data
   // ----------------------------
@@ -98,9 +92,9 @@ const UserProfilePage: FC = () => {
     () => (userProfile ? flattenUserProfile(userProfile) : null),
     [userProfile]
   );
-  
+
   const avatarSrc = flattenedUserProfile?.avatarUrl ?? USER_DEFAULT_PLACEHOLDER;
-  
+
   /**
    * Handles the password reset process and triggers a logout on success.
    */
@@ -129,7 +123,7 @@ const UserProfilePage: FC = () => {
       console.error('Error resetting password:', error);
     }
   };
-  
+
   return (
     <DetailPage
       title="User Profile"
@@ -143,8 +137,8 @@ const UserProfilePage: FC = () => {
         alignItems="center"
         mb={2}
       >
-      <GoBackButton/>
-        
+        <GoBackButton />
+
         <CustomButton
           variant="outlined"
           startIcon={<RefreshIcon />}
@@ -153,7 +147,7 @@ const UserProfilePage: FC = () => {
           Refresh
         </CustomButton>
       </Box>
-      
+
       {flattenedUserProfile ? (
         <>
           <DetailHeader
@@ -162,26 +156,23 @@ const UserProfilePage: FC = () => {
             name={fullName}
             subtitle={email}
           />
-          
+
           <UserProfileDetails
             user={flattenedUserProfile}
             lastLogin={lastLogin}
           />
-          
+
           {!isSystem &&
             !permLoading &&
-            (
-              // Regular user: own profile only
-              (isOwnProfile && canChangeOwnPassword) ||
-              
+            // Regular user: own profile only
+            ((isOwnProfile && canChangeOwnPassword) ||
               // Privileged user: can reset others
-              (!isOwnProfile && canResetOthersPassword)
-            ) && (
-            <CustomButton sx={{ mt: 3 }} onClick={() => setModalOpen(true)}>
-              {isOwnProfile ? 'Change Password' : 'Reset Password'}
-            </CustomButton>
-          )}
-          
+              (!isOwnProfile && canResetOthersPassword)) && (
+              <CustomButton sx={{ mt: 3 }} onClick={() => setModalOpen(true)}>
+                {isOwnProfile ? 'Change Password' : 'Reset Password'}
+              </CustomButton>
+            )}
+
           {isModalOpen && (
             <ResetPasswordModal
               open={isModalOpen}

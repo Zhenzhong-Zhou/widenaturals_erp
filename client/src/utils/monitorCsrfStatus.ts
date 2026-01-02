@@ -33,7 +33,7 @@ export const monitorCsrfStatus = (
       error ? { reason: error } : undefined
     );
   }
-  
+
   if (status === 'succeeded') {
     // Non-intrusive confirmation only (no side effects)
     console.info('[CSRF] Token initialized successfully');

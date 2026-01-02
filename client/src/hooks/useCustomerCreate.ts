@@ -8,9 +8,7 @@ import {
   createCustomersThunk,
   resetCustomerCreate,
 } from '@features/customer/state';
-import type {
-  CreateCustomersRequest,
-} from '@features/customer/state';
+import type { CreateCustomersRequest } from '@features/customer/state';
 
 /**
  * Custom hook to access memoized customer creation state.

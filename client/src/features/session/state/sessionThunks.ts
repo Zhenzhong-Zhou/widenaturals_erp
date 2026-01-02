@@ -70,32 +70,27 @@ export const refreshTokenThunk = createAsyncThunk<
      * 1. Refresh access token
      * ---------------------------------- */
     const { accessToken } = await sessionService.refreshToken();
-    
+
     dispatch(updateAccessToken(accessToken));
-    
+
     /* ----------------------------------
      * 2. Refresh CSRF token
      * ---------------------------------- */
     const csrfToken = await csrfService.fetchCsrfToken();
-    
+
     if (!csrfToken) {
-      throw AppError.server(
-        'Failed to refresh CSRF token'
-      );
+      throw AppError.server('Failed to refresh CSRF token');
     }
-    
+
     dispatch(updateCsrfToken(csrfToken));
-    
+
     return { accessToken, csrfToken };
   } catch (error: unknown) {
     const appError =
       error instanceof AppError
         ? error
-        : AppError.unknown(
-          'Token refresh failed',
-          error
-        );
-    
+        : AppError.unknown('Token refresh failed', error);
+
     /* ----------------------------------
      * Authentication failures → logout
      * ---------------------------------- */
@@ -105,7 +100,7 @@ export const refreshTokenThunk = createAsyncThunk<
       handleError(appError);
       dispatch(logoutThunk());
     }
-    
+
     return rejectWithValue('Token refresh failed');
   }
 });

@@ -164,23 +164,20 @@ export const formatPhoneNumber = (
     fallback?: string;
   }
 ): string => {
-  const {
-    defaultCountry = 'CA',
-    fallback = '—',
-  } = options ?? {};
-  
+  const { defaultCountry = 'CA', fallback = '—' } = options ?? {};
+
   if (!phoneNumber) return fallback;
-  
+
   const normalized = phoneNumber.trim().replace(/[^\d+]/g, '');
-  
+
   if (!normalized) return fallback;
-  
+
   const parsedPhone = parsePhoneNumberFromString(normalized);
-  
+
   if (parsedPhone?.isValid()) {
     return parsedPhone.formatInternational();
   }
-  
+
   try {
     const typed = new AsYouType(defaultCountry).input(normalized);
     return typed || fallback;

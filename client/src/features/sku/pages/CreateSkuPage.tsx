@@ -63,7 +63,7 @@ const CreateSkuPage = () => {
     },
     [canCreateSku, submitCreateSkus]
   );
-  
+
   return (
     <Box sx={{ p: 3 }}>
       {/* ----------------------------------------- */}

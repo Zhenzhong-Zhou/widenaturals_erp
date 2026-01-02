@@ -37,50 +37,45 @@ interface State {
  */
 class GlobalErrorBoundary extends Component<Props, State> {
   state: State = { hasError: false };
-  
+
   static getDerivedStateFromError(): State {
     return { hasError: true };
   }
-  
+
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     const appError =
       error instanceof AppError
         ? error
         : AppError.unknown('A global application error occurred', {
-          originalMessage: error.message,
-          componentStack: errorInfo.componentStack,
-        });
-    
+            originalMessage: error.message,
+            componentStack: errorInfo.componentStack,
+          });
+
     this.setState({ error: appError });
-    
+
     if (this.props.onError) {
       this.props.onError(appError, errorInfo);
     } else {
       handleError(appError);
     }
   }
-  
+
   private resetError = () => {
     this.setState({ hasError: false, error: undefined });
   };
-  
+
   render() {
     const { hasError, error } = this.state;
     const { fallback, children } = this.props;
-    
+
     if (!hasError) {
       return children;
     }
-    
+
     const message = mapErrorMessage(error);
-    
+
     return (
-      fallback ?? (
-        <ErrorDisplay
-          message={message}
-          onRetry={this.resetError}
-        />
-      )
+      fallback ?? <ErrorDisplay message={message} onRetry={this.resetError} />
     );
   }
 }

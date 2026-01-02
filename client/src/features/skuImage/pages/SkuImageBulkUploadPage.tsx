@@ -30,9 +30,9 @@ const SkuImageBulkUploadPage = () => {
   const navigate = useNavigate();
   const { state } = useLocation();
   const selectedSkus = state?.selectedSkus ?? [];
-  
+
   const { isAllowed } = usePagePermissionGuard(['create_skus_images']);
-  
+
   // ---------------------------------------------------------------------------
   // 2. Local State – upload items
   // ---------------------------------------------------------------------------
@@ -40,22 +40,22 @@ const SkuImageBulkUploadPage = () => {
     selectedSkus.map((sku: SelectedSku) => ({
       skuId: sku.skuId,
       skuCode: sku.skuCode,
-      displayProductName: sku.displayProductName ?? "",
+      displayProductName: sku.displayProductName ?? '',
       images: [],
     }))
   );
-  
+
   // ---------------------------------------------------------------------------
   // 3. Dialog Visibility State
   // ---------------------------------------------------------------------------
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [showErrorDialog, setShowErrorDialog] = useState(false);
-  
+
   // ---------------------------------------------------------------------------
   // 4. Refs (for focus restore)
   // ---------------------------------------------------------------------------
   const uploadImageButtonRef = useRef<HTMLButtonElement | null>(null);
-  
+
   // ---------------------------------------------------------------------------
   // 5. Upload Hook (data, statuses, results)
   // ---------------------------------------------------------------------------
@@ -71,28 +71,28 @@ const SkuImageBulkUploadPage = () => {
     uploadImages: submitSkuImageUpload,
     reset: resetUploadState,
   } = useSkuImageUpload();
-  
+
   // ---------------------------------------------------------------------------
   // 6. Derived Booleans
   // ---------------------------------------------------------------------------
   const isHardFailure = !uploadLoading && uploadError && !isSuccess;
-  
+
   // ---------------------------------------------------------------------------
   // 7. Utility: Build FormData
   // ---------------------------------------------------------------------------
   const buildFormData = (items: BulkSkuImageUploadItem[]) => {
     const form = new FormData();
-    form.append("skus", JSON.stringify(serializeBulkSkuImageUpload(items)));
-    
-    items.forEach(item => {
-      item.images.forEach(img => {
-        if (img.file) form.append("files", img.file);
+    form.append('skus', JSON.stringify(serializeBulkSkuImageUpload(items)));
+
+    items.forEach((item) => {
+      item.images.forEach((img) => {
+        if (img.file) form.append('files', img.file);
       });
     });
-    
+
     return form;
   };
-  
+
   // ---------------------------------------------------------------------------
   // 8. Handlers
   // ---------------------------------------------------------------------------
@@ -101,22 +101,22 @@ const SkuImageBulkUploadPage = () => {
       const formData = buildFormData(items);
       await submitSkuImageUpload(formData);
     } catch (err) {
-      console.error("Upload error:", err);
+      console.error('Upload error:', err);
       openUploadErrorDialogWithFocus();
     }
   };
-  
+
   const handleCloseDialogs = () => {
     closeUploadDialogWithFocus();
     resetUploadState();
     navigate('/skus', { replace: true });
   };
-  
+
   const handleCloseUploadError = () => {
     closeUploadErrorDialogWithFocus();
     resetUploadState();
   };
-  
+
   // ---------------------------------------------------------------------------
   // 9. Focus Handlers for Dialogs
   // ---------------------------------------------------------------------------
@@ -128,7 +128,7 @@ const SkuImageBulkUploadPage = () => {
     uploadImageButtonRef,
     () => showSuccessDialog
   );
-  
+
   const {
     handleOpenDialog: openUploadErrorDialogWithFocus,
     handleCloseDialog: closeUploadErrorDialogWithFocus,
@@ -137,7 +137,7 @@ const SkuImageBulkUploadPage = () => {
     uploadImageButtonRef,
     () => showErrorDialog
   );
-  
+
   // ---------------------------------------------------------------------------
   // 10. Side Effects – open success or error dialogs after upload finishes
   // ---------------------------------------------------------------------------
@@ -146,26 +146,30 @@ const SkuImageBulkUploadPage = () => {
       openUploadErrorDialogWithFocus();
       return;
     }
-    
+
     if (uploadHasResults) {
       if (uploadFailedCount > 0) openUploadErrorDialogWithFocus();
       else openUploadDialogWithFocus();
     }
-    
-  }, [isHardFailure, uploadHasResults, uploadFailedCount, uploadSucceededCount]);
-  
+  }, [
+    isHardFailure,
+    uploadHasResults,
+    uploadFailedCount,
+    uploadSucceededCount,
+  ]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => resetUploadState();
   }, []);
-  
+
   // ---------------------------------------------------------------------------
   // 11. Early Returns — must come *after all hooks*
   // ---------------------------------------------------------------------------
   if (!isAllowed || selectedSkus.length === 0) {
     return <NotFoundPage />;
   }
-  
+
   if (isHardFailure) {
     return (
       <SkuImageUploadErrorDialog
@@ -177,7 +181,7 @@ const SkuImageBulkUploadPage = () => {
       />
     );
   }
-  
+
   if (!uploadLoading && isSuccess) {
     return (
       <SkuImageUploadSuccessDialog
@@ -189,7 +193,7 @@ const SkuImageBulkUploadPage = () => {
       />
     );
   }
-  
+
   // ---------------------------------------------------------------------------
   // 12. Render Page
   // ---------------------------------------------------------------------------
@@ -205,16 +209,20 @@ const SkuImageBulkUploadPage = () => {
         }}
       >
         <GoBackButton sx={{ mb: 2 }} />
-        
+
         <CustomTypography variant="h5" fontWeight={700}>
           Bulk Upload SKU Images
         </CustomTypography>
-        
-        <CustomTypography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+
+        <CustomTypography
+          variant="body2"
+          color="text.secondary"
+          sx={{ mt: 0.5 }}
+        >
           Upload images for multiple SKUs in a single batch.
         </CustomTypography>
       </Box>
-      
+
       {/* Content */}
       <Box sx={{ px: 3 }}>
         {items.map((item: SkuImageUploadCardData, idx: number) => (
@@ -229,19 +237,19 @@ const SkuImageBulkUploadPage = () => {
           />
         ))}
       </Box>
-      
+
       {/* Sticky Bottom Bar */}
       <Box
         sx={{
-          position: "fixed",
+          position: 'fixed',
           bottom: 0,
           left: 0,
           right: 0,
           p: 2,
-          bgcolor: "background.paper",
-          borderTop: "1px solid #ddd",
-          display: "flex",
-          justifyContent: "flex-end",
+          bgcolor: 'background.paper',
+          borderTop: '1px solid #ddd',
+          display: 'flex',
+          justifyContent: 'flex-end',
           gap: 2,
         }}
       >

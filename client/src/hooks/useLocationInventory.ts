@@ -7,9 +7,7 @@ import {
   selectLocationInventoryPagination,
   selectLocationInventoryRecords,
 } from '@features/locationInventory/state';
-import type {
-  LocationInventoryFilters,
-} from '@features/locationInventory/state';
+import type { LocationInventoryFilters } from '@features/locationInventory/state';
 import type { PaginationParams, SortConfig } from '@shared-types/api';
 
 /**

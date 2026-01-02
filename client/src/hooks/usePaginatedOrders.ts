@@ -10,9 +10,7 @@ import {
   resetPaginatedOrders,
   setOrderListFilters,
 } from '@features/order/state';
-import type {
-  OrderQueryParams,
-} from '@features/order/state';
+import type { OrderQueryParams } from '@features/order/state';
 
 /**
  * Custom hook to access paginated order list state from the Redux store,

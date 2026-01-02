@@ -9,7 +9,7 @@ export { orderReducers } from './orderReducers';
 export { resetSalesOrderCreation } from './salesOrderCreationSlice';
 export {
   resetPaginatedOrders,
-  setOrderListFilters
+  setOrderListFilters,
 } from './paginatedOrdersSlice';
 export { resetOrderDetails } from './orderDetailsSlice';
 export { resetUpdateOrderStatus } from './updateOrderStatusSlice';

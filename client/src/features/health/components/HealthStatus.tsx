@@ -19,7 +19,7 @@ interface HealthStatusProps {
 
 const HealthStatus: FC<HealthStatusProps> = ({ sx }) => {
   const { theme } = useThemeContext();
-  
+
   const {
     healthStatus,
     loading,
@@ -29,21 +29,17 @@ const HealthStatus: FC<HealthStatusProps> = ({ sx }) => {
     refreshHealthStatus,
     error,
   } = useHealthStatus();
-  
+
   const status: HealthStatus = useMemo(
     () =>
       loading
         ? 'loading'
-        : (healthStatus?.server?.toLowerCase() as HealthStatus) ??
-        'unknown',
+        : ((healthStatus?.server?.toLowerCase() as HealthStatus) ?? 'unknown'),
     [loading, healthStatus]
   );
-  
-  const statusColor = useMemo(
-    () => getStatusColor(status, 'health'),
-    [status]
-  );
-  
+
+  const statusColor = useMemo(() => getStatusColor(status, 'health'), [status]);
+
   const tooltipContent = useMemo(
     () => (
       <Box
@@ -84,7 +80,7 @@ const HealthStatus: FC<HealthStatusProps> = ({ sx }) => {
     ),
     [healthStatus, databaseStatus, poolStatus, timestamp, error]
   );
-  
+
   return (
     <Box
       sx={{

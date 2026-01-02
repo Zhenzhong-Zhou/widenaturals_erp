@@ -9,9 +9,7 @@ import {
   selectSalesOrderCreationLoading,
   resetSalesOrderCreation,
 } from '@features/order/state';
-import type {
-  CreateSalesOrderInput,
-} from '@features/order/state';
+import type { CreateSalesOrderInput } from '@features/order/state';
 
 /**
  * Hook for managing the sales order creation lifecycle.

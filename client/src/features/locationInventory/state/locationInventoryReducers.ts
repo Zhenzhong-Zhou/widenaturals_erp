@@ -20,13 +20,13 @@ import locationInventoryReducer from './locationInventorySlice';
 export const locationInventoryReducers = {
   /** KPI-level inventory summary per location */
   locationInventoryKpiSummary: locationInventoryKpiSummaryReducer,
-  
+
   /** Aggregated inventory summary per location */
   locationInventorySummary: locationInventorySummaryReducer,
-  
+
   /** Detailed inventory breakdown for a specific location */
   locationInventorySummaryDetail: locationInventorySummaryDetailReducer,
-  
+
   /** Core location inventory records */
   locationInventory: locationInventoryReducer,
 };

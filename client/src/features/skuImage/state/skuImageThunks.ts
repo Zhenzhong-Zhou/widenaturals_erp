@@ -1,7 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import type {
-  BulkSkuImageUploadResponse
-} from '@features/skuImage/state';
+import type { BulkSkuImageUploadResponse } from '@features/skuImage/state';
 import { skuImageService } from '@services/skuImageService';
 
 /**
@@ -36,23 +34,20 @@ import { skuImageService } from '@services/skuImageService';
  */
 export const uploadSkuImagesThunk = createAsyncThunk<
   BulkSkuImageUploadResponse, // Success payload
-  FormData,                   // Thunk argument
+  FormData, // Thunk argument
   {
     rejectValue: {
       message: string;
       traceId?: string;
     };
   }
->(
-  'skuImage/upload',
-  async (formData, { rejectWithValue }) => {
-    try {
-      return await skuImageService.uploadSkuImages(formData);
-    } catch (err: any) {
-      return rejectWithValue({
-        message: err?.message ?? 'Failed to upload SKU images.',
-        traceId: err?.traceId
-      });
-    }
+>('skuImage/upload', async (formData, { rejectWithValue }) => {
+  try {
+    return await skuImageService.uploadSkuImages(formData);
+  } catch (err: any) {
+    return rejectWithValue({
+      message: err?.message ?? 'Failed to upload SKU images.',
+      traceId: err?.traceId,
+    });
   }
-);
+});

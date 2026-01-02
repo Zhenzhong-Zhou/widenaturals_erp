@@ -9,9 +9,7 @@ import {
   updateProductStatusByIdThunk,
   resetProductStatusUpdate,
 } from '@features/product/state';
-import type {
-  UpdateProductStatusThunkArgs,
-} from '@features/product/state';
+import type { UpdateProductStatusThunkArgs } from '@features/product/state';
 
 /**
  * Hook providing a clean interface for updating a product's status.
@@ -25,14 +23,14 @@ import type {
  */
 const useProductStatusUpdate = () => {
   const dispatch = useAppDispatch();
-  
+
   // --- Selectors ---
   const data = useAppSelector(selectProductStatusUpdateData);
   const loading = useAppSelector(selectProductStatusUpdateLoading);
   const error = useAppSelector(selectProductStatusUpdateError);
   const isSuccess = useAppSelector(selectProductStatusUpdateSuccess);
   const updatedProductId = useAppSelector(selectUpdatedProductStatusId);
-  
+
   // --- Action: Update status ---
   const updateStatus = useCallback(
     async (args: UpdateProductStatusThunkArgs) => {
@@ -40,12 +38,12 @@ const useProductStatusUpdate = () => {
     },
     [dispatch]
   );
-  
+
   // --- Action: Reset slice ---
   const reset = useCallback(() => {
     dispatch(resetProductStatusUpdate());
   }, [dispatch]);
-  
+
   // --- Public API ---
   return useMemo(
     () => ({
@@ -54,19 +52,11 @@ const useProductStatusUpdate = () => {
       error,
       isSuccess,
       updatedProductId,
-      
+
       updateStatus,
       reset,
     }),
-    [
-      data,
-      loading,
-      error,
-      isSuccess,
-      updatedProductId,
-      updateStatus,
-      reset,
-    ]
+    [data, loading, error, isSuccess, updatedProductId, updateStatus, reset]
   );
 };
 

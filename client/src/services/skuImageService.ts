@@ -1,6 +1,4 @@
-import type {
-  BulkSkuImageUploadResponse,
-} from '@features/skuImage/state';
+import type { BulkSkuImageUploadResponse } from '@features/skuImage/state';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { postFormDataRequest } from '@utils/http';
 

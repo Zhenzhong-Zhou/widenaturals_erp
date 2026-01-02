@@ -31,15 +31,15 @@ const fetchPaginatedBoms = async (
   params: FetchBomsParams = {}
 ): Promise<FetchPaginatedBomsResponse> => {
   const { filters = {}, ...rest } = params;
-  
+
   const flatParams = {
     ...rest,
     ...filters,
   };
-  
+
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.BOMS.ALL_RECORDS}${queryString}`;
-  
+
   return getRequest<FetchPaginatedBomsResponse>(url);
 };
 
@@ -52,12 +52,8 @@ const fetchPaginatedBoms = async (
  * @returns Detailed BOM data.
  * @throws {AppError} When the request fails.
  */
-const fetchBomDetails = async (
-  bomId: string
-): Promise<BomDetailsResponse> => {
-  return getRequest<BomDetailsResponse>(
-    API_ENDPOINTS.BOMS.BOM_DETAILS(bomId)
-  );
+const fetchBomDetails = async (bomId: string): Promise<BomDetailsResponse> => {
+  return getRequest<BomDetailsResponse>(API_ENDPOINTS.BOMS.BOM_DETAILS(bomId));
 };
 
 /**

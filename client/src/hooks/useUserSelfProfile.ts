@@ -21,36 +21,36 @@ import { resetUserSelfProfile } from '@features/user/state/userSelfProfileSlice'
  */
 const useUserSelfProfile = () => {
   const dispatch = useAppDispatch();
-  
+
   // ----------------------------
   // Selectors
   // ----------------------------
-  
+
   const profile = useAppSelector(selectUserSelfProfile);
   const loading = useAppSelector(selectUserSelfProfileLoading);
   const error = useAppSelector(selectUserSelfProfileError);
-  
+
   const fullName = useAppSelector(selectSelfUserFullName);
   const email = useAppSelector(selectSelfUserEmail);
   const isSystem = useAppSelector(selectIsSelfSystemUser);
   const isLoadingEmpty = useAppSelector(selectIsSelfProfileLoadingEmpty);
-  
+
   // ----------------------------
   // Actions
   // ----------------------------
-  
+
   const fetchSelfProfile = useCallback(() => {
     dispatch(fetchUserSelfProfileThunk());
   }, [dispatch]);
-  
+
   const reset = useCallback(() => {
     dispatch(resetUserSelfProfile());
   }, [dispatch]);
-  
+
   // ----------------------------
   // Memoized shape
   // ----------------------------
-  
+
   const combined = useMemo(
     () => ({
       profile,
@@ -60,18 +60,18 @@ const useUserSelfProfile = () => {
     }),
     [profile, fullName, email, isSystem]
   );
-  
+
   // ----------------------------
   // Public API
   // ----------------------------
-  
+
   return {
     // state
     ...combined,
     loading,
     error,
     isLoadingEmpty,
-    
+
     // actions
     fetchSelfProfile,
     reset,

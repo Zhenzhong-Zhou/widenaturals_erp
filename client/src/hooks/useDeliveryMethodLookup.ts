@@ -7,9 +7,7 @@ import {
   selectDeliveryMethodLookupLoading,
   selectDeliveryMethodLookupMeta,
 } from '@features/lookup/state';
-import type {
-  DeliveryMethodLookupQueryParams,
-} from '@features/lookup/state';
+import type { DeliveryMethodLookupQueryParams } from '@features/lookup/state';
 import { resetDeliveryMethodLookup } from '@features/lookup/state/deliveryMethodLookupSlice.ts';
 
 /**

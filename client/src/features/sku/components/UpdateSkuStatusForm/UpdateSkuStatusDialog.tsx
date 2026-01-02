@@ -8,7 +8,8 @@ import {
   UpdateSkuStatusSuccessDialog,
 } from '@features/sku/components/UpdateSkuStatusForm';
 import {
-  StatusLookupController, StatusPayload,
+  StatusLookupController,
+  StatusPayload,
 } from '@features/lookup/hooks/useStatusFieldController';
 
 /**
@@ -42,7 +43,7 @@ interface UpdateSkuStatusDialogProps {
 
   /** Human-readable SKU code (for UI display) */
   skuCode: string;
-  
+
   /** Fully controlled dropdown lookup handler (hook object) */
   statusLookup: StatusLookupController;
 }
@@ -56,15 +57,15 @@ interface UpdateSkuStatusDialogProps {
  *   - Status selection form otherwise
  */
 const UpdateSkuStatusDialog = ({
-                                 open,
-                                 onClose,
-                                 onSuccess,
-                                 skuId,
-                                 skuCode,
-                                 statusLookup,
+  open,
+  onClose,
+  onSuccess,
+  skuId,
+  skuCode,
+  statusLookup,
 }: UpdateSkuStatusDialogProps) => {
-  const [selectedStatusLabel, setSelectedStatusLabel] = useState<string>("");
-  
+  const [selectedStatusLabel, setSelectedStatusLabel] = useState<string>('');
+
   /**
    * Internal slice-based status update state + actions
    */
@@ -93,7 +94,7 @@ const UpdateSkuStatusDialog = ({
   const handleSubmit = useCallback(
     async (formData: StatusPayload) => {
       setSelectedStatusLabel(formData.statusLabel);
-      
+
       await updateStatus({
         skuId,
         statusId: formData.statusId,
@@ -101,7 +102,7 @@ const UpdateSkuStatusDialog = ({
     },
     [skuId, updateStatus]
   );
-  
+
   // ---------------------------------------------------------------------------
   // UI STATE 1: Success Mode
   // ---------------------------------------------------------------------------

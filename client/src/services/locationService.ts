@@ -34,17 +34,14 @@ const fetchAllLocations = async (
       },
     }
   );
-  
+
   // ----------------------------------
   // Defensive response validation
   // ----------------------------------
   if (!data || typeof data !== 'object') {
-    throw AppError.server(
-      'Invalid locations response',
-      { page, limit }
-    );
+    throw AppError.server('Invalid locations response', { page, limit });
   }
-  
+
   return data;
 };
 

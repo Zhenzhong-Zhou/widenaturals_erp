@@ -12,57 +12,53 @@ import {
 } from '@features/user/components/UserView';
 import type { FlattenedUserRecord } from '@features/user/state';
 
-interface UserListTableProps
-  extends Omit<
-    CustomTableProps<FlattenedUserRecord>,
-    | 'columns'
-    | 'rowsPerPageOptions'
-    | 'initialRowsPerPage'
-    | 'getRowId'
-    | 'expandable'
-    | 'expandedContent'
-  > {
+interface UserListTableProps extends Omit<
+  CustomTableProps<FlattenedUserRecord>,
+  | 'columns'
+  | 'rowsPerPageOptions'
+  | 'initialRowsPerPage'
+  | 'getRowId'
+  | 'expandable'
+  | 'expandedContent'
+> {
   /** Controlled rows-per-page value */
   rowsPerPage: number;
-  
+
   /** Currently expanded user row id */
   expandedRowId?: string | null;
-  
+
   /** Toggle user drilldown panel */
   onDrillDownToggle?: (rowId: string) => void;
-  
+
   /** Manual refresh trigger */
   onRefresh: () => void;
 }
 
 const UserListTable = ({
-                         data,
-                         loading,
-                         page,
-                         totalPages,
-                         totalRecords,
-                         rowsPerPage,
-                         onPageChange,
-                         onRowsPerPageChange,
-                         expandedRowId,
-                         onDrillDownToggle,
-                         onRefresh,
-                       }: UserListTableProps) => {
+  data,
+  loading,
+  page,
+  totalPages,
+  totalRecords,
+  rowsPerPage,
+  onPageChange,
+  onRowsPerPageChange,
+  expandedRowId,
+  onDrillDownToggle,
+  onRefresh,
+}: UserListTableProps) => {
   // Permission guard (adjust permission key if needed)
   const { isAllowed } = usePagePermissionGuard(['create_users']);
-  
+
   /* -------------------------------------------------------
    * Memoize column definitions
    * ------------------------------------------------------- */
   const columns = useMemo(
     () =>
-      getUserListTableColumns(
-        expandedRowId ?? undefined,
-        onDrillDownToggle
-      ),
+      getUserListTableColumns(expandedRowId ?? undefined, onDrillDownToggle),
     [expandedRowId, onDrillDownToggle]
   );
-  
+
   /* -------------------------------------------------------
    * Expanded row content (lazy-loaded)
    * ------------------------------------------------------- */
@@ -83,7 +79,7 @@ const UserListTable = ({
     ),
     []
   );
-  
+
   return (
     <Box>
       {/* ----------------------------------------- */}
@@ -98,7 +94,7 @@ const UserListTable = ({
         <CustomTypography variant="h6" fontWeight={600}>
           User List
         </CustomTypography>
-        
+
         <Box display="flex" gap={2}>
           {isAllowed && (
             <CustomButton
@@ -110,7 +106,7 @@ const UserListTable = ({
               Add New
             </CustomButton>
           )}
-          
+
           <CustomButton
             onClick={onRefresh}
             variant="outlined"
@@ -120,7 +116,7 @@ const UserListTable = ({
           </CustomButton>
         </Box>
       </Box>
-      
+
       {/* ----------------------------------------- */}
       {/* MAIN TABLE */}
       {/* ----------------------------------------- */}

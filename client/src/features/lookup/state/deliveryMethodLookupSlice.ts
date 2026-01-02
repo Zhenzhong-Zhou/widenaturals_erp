@@ -4,9 +4,7 @@ import type {
   DeliveryMethodLookupState,
 } from '@features/lookup/state';
 import { createInitialOffsetPaginatedState } from '@store/pagination';
-import {
-  fetchDeliveryMethodLookupThunk,
-} from '@features/lookup/state';
+import { fetchDeliveryMethodLookupThunk } from '@features/lookup/state';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 
 const initialState: DeliveryMethodLookupState =

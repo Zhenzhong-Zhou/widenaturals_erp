@@ -3,7 +3,7 @@ import {
   AppError,
   ErrorType,
   handleError,
-  mapErrorMessage
+  mapErrorMessage,
 } from '@utils/error';
 
 interface ErrorHandler {
@@ -27,27 +27,27 @@ interface ErrorHandler {
  */
 const useErrorHandler = (): ErrorHandler => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  
+
   const handle = (error: unknown) => {
     const appError =
       error instanceof AppError
         ? error
         : new AppError('A recoverable error occurred', {
-          type: ErrorType.Unknown,
-          cause: error,
-        });
-    
+            type: ErrorType.Unknown,
+            cause: error,
+          });
+
     // Centralized logging / reporting
     handleError(appError);
-    
+
     // UI-safe message extraction (last step only)
     setErrorMessage(mapErrorMessage(appError));
   };
-  
+
   const clearError = () => {
     setErrorMessage(null);
   };
-  
+
   return {
     errorMessage,
     handle,

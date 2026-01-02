@@ -68,19 +68,15 @@ const UserCard: FC<UserCardProps> = ({ user }) => {
         >
           {user.fullName?.charAt(0) ?? '?'}
         </Avatar>
-        
+
         {/* --------------------------------
          * Name + Job Title
          * -------------------------------- */}
         <Stack spacing={0.5} alignItems="center">
-          <CustomTypography
-            variant="h6"
-            fontWeight={700}
-            align="center"
-          >
+          <CustomTypography variant="h6" fontWeight={700} align="center">
             {formatLabel(user.fullName)}
           </CustomTypography>
-          
+
           {user.jobTitle && (
             <CustomTypography
               variant="body2"
@@ -91,7 +87,7 @@ const UserCard: FC<UserCardProps> = ({ user }) => {
             </CustomTypography>
           )}
         </Stack>
-        
+
         {/* --------------------------------
          * Divider
          * -------------------------------- */}
@@ -101,7 +97,7 @@ const UserCard: FC<UserCardProps> = ({ user }) => {
             opacity: 0.8,
           }}
         />
-        
+
         {/* --------------------------------
          * Identity Details
          * -------------------------------- */}
@@ -123,8 +119,7 @@ const UserCard: FC<UserCardProps> = ({ user }) => {
             {
               label: 'Phone',
               value: user.phoneNumber,
-              format: (value) =>
-                formatPhoneNumber(value, { fallback: '—' }),
+              format: (value) => formatPhoneNumber(value, { fallback: '—' }),
             },
             {
               label: 'Role',

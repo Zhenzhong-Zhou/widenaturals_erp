@@ -5,9 +5,5 @@ export type AxiosLikeError = {
   };
 };
 
-export const isAxiosLikeError = (
-  error: unknown
-): error is AxiosLikeError =>
-  typeof error === 'object' &&
-  error !== null &&
-  'response' in error;
+export const isAxiosLikeError = (error: unknown): error is AxiosLikeError =>
+  typeof error === 'object' && error !== null && 'response' in error;

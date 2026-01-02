@@ -10,15 +10,15 @@ interface UpdateSkuStatusSuccessDialogProps {
   onClose: () => void;
   skuCode: string;
   newStatusName?: string;
-  responseData: UpdateSkuStatusResponse
+  responseData: UpdateSkuStatusResponse;
 }
 
 const UpdateSkuStatusSuccessDialog: FC<UpdateSkuStatusSuccessDialogProps> = ({
-                                                                               open,
-                                                                               onClose,
-                                                                               skuCode,
-                                                                               newStatusName,
-                                                                               responseData,
+  open,
+  onClose,
+  skuCode,
+  newStatusName,
+  responseData,
 }) => {
   return (
     <CustomDialog

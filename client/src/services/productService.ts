@@ -9,12 +9,7 @@ import type {
   UpdateProductApiResponse,
 } from '@features/product/state';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import {
-  getRequest,
-  postRequest,
-  putRequest,
-  patchRequest
-} from '@utils/http';
+import { getRequest, postRequest, putRequest, patchRequest } from '@utils/http';
 import { buildQueryString } from '@utils/buildQueryString';
 import { sanitizeString } from '@utils/stringUtils';
 
@@ -31,12 +26,12 @@ const fetchPaginatedProducts = (
   params: FetchProductParams = {}
 ): Promise<ProductListResponse> => {
   const { filters = {}, ...rest } = params;
-  
+
   const queryString = buildQueryString({
     ...rest,
     ...filters,
   });
-  
+
   return getRequest<ProductListResponse>(
     `${API_ENDPOINTS.PRODUCTS.ALL_RECORDS}${queryString}`,
     { policy: 'READ' }
@@ -65,7 +60,7 @@ const fetchProductDetailById = (
   productId: string
 ): Promise<GetProductApiResponse> => {
   const cleanId = sanitizeString(productId);
-  
+
   return getRequest<GetProductApiResponse>(
     API_ENDPOINTS.PRODUCTS.PRODUCT_DETAILS(cleanId),
     { policy: 'READ' }

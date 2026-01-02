@@ -7,9 +7,7 @@ import {
   selectProductLookupLoading,
   selectProductLookupMeta,
 } from '@features/lookup/state';
-import type {
-  ProductLookupParams,
-} from '@features/lookup/state';
+import type { ProductLookupParams } from '@features/lookup/state';
 import { resetProductLookup } from '@features/lookup/state/productLookupSlice';
 
 /**

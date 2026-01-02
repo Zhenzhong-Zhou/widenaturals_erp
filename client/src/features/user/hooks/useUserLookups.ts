@@ -10,7 +10,7 @@ import useStatusLookup from '@hooks/useStatusLookup';
 const useUserLookups = () => {
   // const role = useRoleLookup();
   const status = useStatusLookup();
-  
+
   return {
     // role,
     status,

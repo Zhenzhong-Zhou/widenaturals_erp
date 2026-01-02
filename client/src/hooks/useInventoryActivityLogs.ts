@@ -11,9 +11,7 @@ import {
   selectPaginatedLogsLoading,
   selectPaginatedLogsPagination,
 } from '@features/report/state';
-import type {
-  InventoryActivityLogQueryParams,
-} from '@features/report/state';
+import type { InventoryActivityLogQueryParams } from '@features/report/state';
 
 /**
  * Hook to get base (non-paginated) inventory activity logs and trigger fetch.

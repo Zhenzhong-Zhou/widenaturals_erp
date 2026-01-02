@@ -5,9 +5,7 @@ import type {
   PackagingMaterialLookupState,
 } from '@features/lookup/state';
 import { createInitialOffsetPaginatedState } from '@store/pagination';
-import {
-  fetchPackagingMaterialLookupThunk,
-} from '@features/lookup/state';
+import { fetchPackagingMaterialLookupThunk } from '@features/lookup/state';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 
 const initialState: PackagingMaterialLookupState =

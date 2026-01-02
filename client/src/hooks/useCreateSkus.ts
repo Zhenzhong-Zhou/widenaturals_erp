@@ -9,9 +9,7 @@ import {
   createSkusThunk,
   resetCreateSkus,
 } from '@features/sku/state';
-import type {
-  CreateSkuBulkInput,
-} from '@features/sku/state';
+import type { CreateSkuBulkInput } from '@features/sku/state';
 
 /**
  * Hook providing a complete interface for creating SKUs.

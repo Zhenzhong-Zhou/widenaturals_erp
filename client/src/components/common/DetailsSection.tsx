@@ -24,14 +24,14 @@ interface DetailsSectionProps {
   fields: DetailsSectionField[];
   sectionTitle?: string;
   sx?: SxProps<Theme>;
-  
+
   /**
    * Number of columns to display fields in.
    * - 1: stacked (card / mobile / compact views)
    * - 2: default (detail / expanded / desktop views)
    */
   columns?: 1 | 2;
-  
+
   /**
    * Content alignment for label + value.
    * - 'left': default (tables, expanded rows)
@@ -43,11 +43,11 @@ interface DetailsSectionProps {
 const INLINE_DISPLAY_LENGTH = 40;
 
 const DetailsSection: FC<DetailsSectionProps> = ({
-                                                   fields,
-                                                   sectionTitle,
-                                                   sx,
-                                                   columns,
-                                                   align = 'left',
+  fields,
+  sectionTitle,
+  sx,
+  columns,
+  align = 'left',
 }) => {
   const { theme } = useThemeContext();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
@@ -66,15 +66,12 @@ const DetailsSection: FC<DetailsSectionProps> = ({
   );
 
   if (filteredFields.length === 0) return null;
-  
-  const columnSize =
-    columns === 1
-      ? { xs: 12 }
-      : { xs: 12, md: 6 };
-  
+
+  const columnSize = columns === 1 ? { xs: 12 } : { xs: 12, md: 6 };
+
   const textAlign = align === 'center' ? 'center' : 'left';
   const alignItems = align === 'center' ? 'center' : 'flex-start';
-  
+
   return (
     <Box sx={{ mt: theme.spacing(2), ...sx }}>
       {sectionTitle && (
@@ -113,7 +110,7 @@ const DetailsSection: FC<DetailsSectionProps> = ({
                     fontWeight: 600,
                     color: theme.palette.text.primary,
                     textAlign,
-                }}
+                  }}
                 >
                   {label}:
                 </CustomTypography>

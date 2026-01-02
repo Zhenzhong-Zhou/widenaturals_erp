@@ -75,24 +75,22 @@ const processQueue = (error: unknown, token: string | null) => {
  * Request interceptor
  * ======================================================= */
 
-axiosInstance.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    const state = store.getState();
-    
-    const accessToken = selectAccessToken(state);
-    const csrfToken = selectCsrfToken(state);
-    
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
-    }
-    
-    if (csrfToken) {
-      config.headers['X-CSRF-Token'] = csrfToken;
-    }
-    
-    return config;
+axiosInstance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  const state = store.getState();
+
+  const accessToken = selectAccessToken(state);
+  const csrfToken = selectCsrfToken(state);
+
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
   }
-);
+
+  if (csrfToken) {
+    config.headers['X-CSRF-Token'] = csrfToken;
+  }
+
+  return config;
+});
 
 /* =========================================================
  * Response interceptor
@@ -104,11 +102,11 @@ axiosInstance.interceptors.response.use(
     const originalRequest = error.config as AxiosRequestConfig & {
       _retry?: boolean;
     };
-    
+
     /* ----------------------------------
      * 401 → refresh & replay
      * ---------------------------------- */
-    
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
@@ -123,26 +121,26 @@ axiosInstance.interceptors.response.use(
           });
         });
       }
-      
+
       originalRequest._retry = true;
       isRefreshing = true;
-      
+
       try {
         const { accessToken } = await sessionService.refreshToken();
         store.dispatch(updateAccessToken(accessToken));
-        
+
         processQueue(null, accessToken);
-        
+
         if (originalRequest.headers) {
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         }
-        
+
         return axiosInstance(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
         store.dispatch(logoutThunk());
         window.location.href = '/login';
-        
+
         return Promise.reject(
           AppError.authentication('Session expired. Please log in again.')
         );
@@ -150,37 +148,32 @@ axiosInstance.interceptors.response.use(
         isRefreshing = false;
       }
     }
-    
+
     /* ----------------------------------
      * HTTP → AppError normalization
      * ---------------------------------- */
-    
+
     const status = error.response?.status;
     const message = error.response?.data?.message;
-    
+
     if (status === 400) {
       return Promise.reject(
         AppError.validation('Validation failed', error.response?.data)
       );
     }
-    
+
     if (status === 429) {
-      return Promise.reject(
-        AppError.rateLimit('Too many requests')
-      );
+      return Promise.reject(AppError.rateLimit('Too many requests'));
     }
-    
+
     if (status && status >= 500) {
       return Promise.reject(
         AppError.server('Server error occurred', error.response?.data)
       );
     }
-    
+
     return Promise.reject(
-      AppError.unknown(
-        message || 'Unexpected error occurred',
-        error
-      )
+      AppError.unknown(message || 'Unexpected error occurred', error)
     );
   }
 );

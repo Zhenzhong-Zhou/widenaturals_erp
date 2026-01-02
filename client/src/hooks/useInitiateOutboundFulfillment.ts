@@ -8,9 +8,7 @@ import {
   initiateOutboundFulfillmentThunk,
   resetInitiateOutboundFulfillment,
 } from '@features/outboundFulfillment/state';
-import type {
-  InitiateFulfillmentRequest,
-} from '@features/outboundFulfillment/state';
+import type { InitiateFulfillmentRequest } from '@features/outboundFulfillment/state';
 
 /**
  * Custom hook to manage outbound fulfillment initiation.

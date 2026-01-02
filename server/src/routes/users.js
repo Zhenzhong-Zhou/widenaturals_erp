@@ -9,7 +9,7 @@ const PERMISSIONS = require('../utils/constants/domain/permissions');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 const {
   userQuerySchema,
-  userIdParamSchema
+  userIdParamSchema,
 } = require('../validators/user-validators');
 const validate = require('../middlewares/validate');
 const { sanitizeFields } = require('../middlewares/sanitize');
@@ -67,22 +67,19 @@ const router = express.Router();
 router.get(
   '/',
   authorize([PERMISSIONS.USERS.VIEW_USERS]),
-  authorizeAny([
-    PERMISSIONS.USERS.VIEW_LIST,
-    PERMISSIONS.USERS.VIEW_CARD,
-  ]),
+  authorizeAny([PERMISSIONS.USERS.VIEW_LIST, PERMISSIONS.USERS.VIEW_CARD]),
   createQueryNormalizationMiddleware(
     'userSortMap',
-    ['statusIds', 'roleIds'],       // array filters
-    [],                           // boolean filters (none at filter level)
-    userQuerySchema,                         // filter schema
+    ['statusIds', 'roleIds'], // array filters
+    [], // boolean filters (none at filter level)
+    userQuerySchema, // filter schema
     {},
-    [],                      // option-level booleans
-    ['viewMode']              // option-level strings (UI-only)
+    [], // option-level booleans
+    ['viewMode'] // option-level strings (UI-only)
   ),
   sanitizeFields(['keyword']),
   validate(userQuerySchema, 'query', {
-    allowUnknown: true
+    allowUnknown: true,
   }),
   getPaginatedUsersController
 );

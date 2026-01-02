@@ -7,7 +7,7 @@ const {
   validateUUIDOrUUIDArrayOptional,
   validateOptionalString,
   validateOptionalUUID,
-  validateUUID
+  validateUUID,
 } = require('./general-validators');
 
 /**
@@ -58,19 +58,19 @@ const userQuerySchema = paginationSchema
     // -----------------------------------
     statusIds: validateUUIDOrUUIDArrayOptional('User Status IDs'),
     roleIds: validateUUIDOrUUIDArrayOptional('Role IDs'),
-    
+
     firstname: validateOptionalString('First Name'),
     lastname: validateOptionalString('Last Name'),
     email: validateOptionalString('Email'),
     phoneNumber: validateOptionalString('Phone Number'),
     jobTitle: validateOptionalString('Job Title'),
-    
+
     // -----------------------------------
     // Audit filters
     // -----------------------------------
     createdBy: validateOptionalUUID('Created By User ID'),
     updatedBy: validateOptionalUUID('Updated By User ID'),
-    
+
     // -----------------------------------
     // Keyword search
     // -----------------------------------

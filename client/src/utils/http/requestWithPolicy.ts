@@ -1,25 +1,21 @@
-import {
-  defaultRetryPredicate,
-  withRetry,
-  withTimeout
-} from '@utils/async';
+import { defaultRetryPredicate, withRetry, withTimeout } from '@utils/async';
 
 export interface RequestPolicyOptions {
   /** Number of retry attempts (idempotent requests only) */
   retries?: number;
-  
+
   /** Initial delay between retries (milliseconds) */
   delayMs?: number;
-  
+
   /** Hard timeout for EACH request attempt (milliseconds) */
   timeoutMs?: number;
-  
+
   /** Exponential backoff multiplier */
   backoffFactor?: number;
-  
+
   /** Optional retry predicate override */
   shouldRetry?: (error: unknown) => boolean;
-  
+
   /** Error message used when a request attempt times out */
   timeoutMessage?: string;
 }
@@ -51,28 +47,19 @@ export const requestWithPolicy = async <T>(
     shouldRetry = defaultRetryPredicate,
     timeoutMessage = 'Request timed out',
   } = options;
-  
+
   /**
    * Single request attempt with timeout + abort support
    */
   const attempt = () =>
-    withTimeout(
-      (signal) => requestFn(signal),
-      {
-        timeoutMs,
-        timeoutMessage,
-      }
-    );
-  
+    withTimeout((signal) => requestFn(signal), {
+      timeoutMs,
+      timeoutMessage,
+    });
+
   if (retries > 0) {
-    return withRetry(
-      attempt,
-      retries,
-      delayMs,
-      backoffFactor,
-      shouldRetry
-    );
+    return withRetry(attempt, retries, delayMs, backoffFactor, shouldRetry);
   }
-  
+
   return attempt();
 };

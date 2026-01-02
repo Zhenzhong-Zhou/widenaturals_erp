@@ -31,13 +31,13 @@ export interface UserLookupHandlers {
 
 interface Props {
   filters: UserFilters;
-  
+
   /** Lookup data & state */
   lookups: UserFiltersPanelLookups;
-  
+
   /** Lookup UI handlers */
   lookupHandlers: UserLookupHandlers;
-  
+
   onChange: (filters: UserFilters) => void;
   onApply: () => void;
   onReset: () => void;
@@ -93,30 +93,30 @@ export const USER_DATE_FIELDS: UserDateField[] = [
 /* ------------------------------------------------------------------ */
 
 const UserFiltersPanel: FC<Props> = ({
-                                       filters,
-                                       lookups,
-                                       lookupHandlers,
-                                       onChange,
-                                       onApply,
-                                       onReset,
-                                     }) => {
+  filters,
+  lookups,
+  lookupHandlers,
+  onChange,
+  onApply,
+  onReset,
+}) => {
   const { control, handleSubmit, reset, watch, setValue } =
     useForm<UserFilters>({
       defaultValues: filters,
     });
-  
+
   const {
     // role,
-    status
+    status,
   } = lookups;
-  
+
   /* -----------------------------
    * Sync external state
    * ----------------------------- */
   useEffect(() => {
     reset(filters);
   }, [filters, reset]);
-  
+
   /* -----------------------------
    * Submit / Reset
    * ----------------------------- */
@@ -124,12 +124,12 @@ const UserFiltersPanel: FC<Props> = ({
     onChange(data);
     onApply();
   };
-  
+
   const resetFilters = () => {
     reset(emptyFilters);
     onReset();
   };
-  
+
   /* -----------------------------
    * Multi-select bindings
    * ----------------------------- */
@@ -142,7 +142,7 @@ const UserFiltersPanel: FC<Props> = ({
   //   fieldName: 'roleIds',
   //   options: role.options,
   // });
-  
+
   const {
     selectedOptions: selectedStatusOptions,
     handleSelect: handleStatusSelect,
@@ -152,7 +152,7 @@ const UserFiltersPanel: FC<Props> = ({
     fieldName: 'statusIds',
     options: status.options,
   });
-  
+
   /* -----------------------------
    * Derived lookup options
    * ----------------------------- */
@@ -160,12 +160,12 @@ const UserFiltersPanel: FC<Props> = ({
   //   role.options,
   //   formatLabel
   // );
-  
+
   const formattedStatusOptions = useFormattedOptions(
     status.options,
     formatLabel
   );
-  
+
   /* -----------------------------
    * Render
    * ----------------------------- */
@@ -185,7 +185,7 @@ const UserFiltersPanel: FC<Props> = ({
           {/*    loading={role.loading}*/}
           {/*  />*/}
           {/*</Grid>*/}
-          
+
           <Grid size={{ xs: 12, md: 4 }}>
             <StatusMultiSelectDropdown
               options={formattedStatusOptions}
@@ -194,14 +194,14 @@ const UserFiltersPanel: FC<Props> = ({
               onOpen={lookupHandlers.onOpen.status}
             />
           </Grid>
-          
+
           {/* ------------------------------------
            * Text filters
            * ------------------------------------ */}
           {TEXT_FIELDS.map(({ name, label, placeholder }) =>
             renderInputField(control, name, label, placeholder)
           )}
-          
+
           {/* ------------------------------------
            * Date range filters
            * ------------------------------------ */}

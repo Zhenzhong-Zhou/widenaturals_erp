@@ -15,7 +15,7 @@ import useUserSelfProfile from './useUserSelfProfile';
  */
 const useUserSelfProfileAuto = () => {
   const { fetchSelfProfile } = useUserSelfProfile();
-  
+
   useEffect(() => {
     fetchSelfProfile();
   }, [fetchSelfProfile]);

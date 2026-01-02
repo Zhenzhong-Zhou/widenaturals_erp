@@ -7,9 +7,7 @@ import {
   updateOrderStatusThunk,
   resetUpdateOrderStatus,
 } from '@features/order/state';
-import type {
-  OrderRouteParams,
-} from '@features/order/state';
+import type { OrderRouteParams } from '@features/order/state';
 
 /**
  * Hook to access and control the update order status logic.

@@ -35,16 +35,13 @@ export const fetchPaginatedUsersThunk = createAsyncThunk<
   PaginatedUserCardListResponse | PaginatedUserListResponse,
   GetPaginatedUsersParams & { viewMode?: UserViewMode },
   { rejectValue: { message: string; traceId?: string } }
->(
-  'users/fetchPaginatedUsers',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await userService.fetchPaginatedUsers(params);
-    } catch (error) {
-      return rejectWithValue(extractUiErrorPayload(error));
-    }
+>('users/fetchPaginatedUsers', async (params, { rejectWithValue }) => {
+  try {
+    return await userService.fetchPaginatedUsers(params);
+  } catch (error) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});
 
 /**
  * Fetch the authenticated user's own profile.

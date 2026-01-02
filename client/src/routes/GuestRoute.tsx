@@ -22,23 +22,16 @@ interface GuestRouteProps {
  * - Forgot password
  * - Reset password
  */
-const GuestRoute: FC<GuestRouteProps> = ({
-                                           children = <Outlet />,
-                                         }) => {
+const GuestRoute: FC<GuestRouteProps> = ({ children = <Outlet /> }) => {
   const { isAuthenticated } = useSession();
-  
+
   /* ----------------------------------------
    * Authenticated users cannot access guest routes
    * -------------------------------------- */
   if (isAuthenticated) {
-    return (
-      <Navigate
-        to="/dashboard"
-        replace
-      />
-    );
+    return <Navigate to="/dashboard" replace />;
   }
-  
+
   /* ----------------------------------------
    * Guest access granted
    * -------------------------------------- */

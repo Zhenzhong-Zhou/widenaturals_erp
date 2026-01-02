@@ -24,13 +24,13 @@ export const defaultRetryPredicate = (error: unknown): boolean => {
   if (!(error instanceof AppError)) {
     return false;
   }
-  
+
   switch (error.type) {
     case ErrorType.Network:
     case ErrorType.Timeout:
     case ErrorType.Server:
       return true;
-    
+
     default:
       return false;
   }

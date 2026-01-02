@@ -733,43 +733,43 @@ export type GetSkuListResponse = PaginatedResponse<SkuListItem>;
 export interface SkuListItem {
   /** Unique identifier for the SKU */
   id: string;
-  
+
   /** Foreign key reference to the parent product */
   productId: string;
-  
+
   /** SKU code */
   sku: string;
-  
+
   /** Barcode associated with the SKU */
   barcode: string;
-  
+
   /** Language code (e.g., "en-fr") */
   language: string;
-  
+
   /** Country code (e.g., "CA", "US", "UN") */
   countryCode: string;
-  
+
   /** Market region (e.g., "Universe", "Canada", etc.) */
   marketRegion: string;
-  
+
   /** Size label (e.g., "60 Softgels", "120 Capsules") */
   sizeLabel: string;
-  
+
   /** Friendly label for frontend display */
   displayLabel: string;
-  
+
   /**
    * Primary or "best" image URL (from LATERAL join).
    * Null when the SKU has no images.
    */
   primaryImageUrl: string | null;
-  
+
   /** Related product information */
   product: SkuListProduct;
-  
+
   /** Current SKU status and timestamp */
   status: SkuStatusRecord;
-  
+
   /** Standardized audit metadata (createdBy, updatedBy, timestamps) */
   audit: GenericAudit;
 }
@@ -942,88 +942,88 @@ export interface FlattenedSkuRecord {
   // --------------------------
   // Product Metadata
   // --------------------------
-  
+
   /** Unique identifier of the parent product; may be null if product is missing. */
   productId: string | null;
-  
+
   /** Human-friendly product name from the Product table. */
   productName: string;
-  
+
   /** Brand name for categorization and display (e.g., "WIDE Naturals"). */
   brand: string;
-  
+
   /** Product series such as “WIDE Collection”, “Marine Oil”, etc. */
   series: string;
-  
+
   /** Product category (e.g., "Marine Oil", "Vitamins", etc.). */
   category: string;
-  
+
   /**
    * Preformatted display name combining product + variant info,
    * suitable for table output.
    */
   displayProductName: string;
-  
+
   // --------------------------
   // SKU Metadata
   // --------------------------
-  
+
   /** SKU unique identifier. */
   skuId: string | null;
-  
+
   /** SKU code (e.g., "WN-MO411-L-UN"). */
   skuCode: string;
-  
+
   /** Barcode associated with this SKU. */
   barcode: string;
-  
+
   /** Language code such as "en-fr". */
   language: string;
-  
+
   /** Country code for this SKU (e.g., "CA", "US", "UN"). */
   countryCode: string;
-  
+
   /** Market region label (e.g., "Universe", "Canada"). */
   marketRegion: string;
-  
+
   /** Packaging or count size, such as “60 Softgels”. */
   sizeLabel: string;
-  
+
   /**
    * Formatted SKU label for UI display, often includes product title
    * plus variant attributes (e.g., size, language).
    */
   displayLabel: string;
-  
+
   /**
    * Primary or "best" image for this SKU.
    * Null when no image exists.
    */
   primaryImageUrl: string | null;
-  
+
   // --------------------------
   // Status
   // --------------------------
-  
+
   /** Current SKU status (e.g., "active", "inactive"). */
   statusName: string;
-  
+
   /** ISO timestamp of the latest status change. */
   statusDate: string;
-  
+
   // --------------------------
   // Audit Metadata
   // --------------------------
-  
+
   /** ISO timestamp when the SKU was created. */
   createdAt: string;
-  
+
   /** Display name of the user/system who created the SKU. */
   createdBy: string;
-  
+
   /** ISO timestamp when the SKU was last updated. */
   updatedAt: string;
-  
+
   /** Display name of the user/system who last updated the SKU. */
   updatedBy: string;
 }
@@ -1218,13 +1218,13 @@ export interface SelectedSku {
    * Used as the primary reference for all SKU-level operations.
    */
   skuId: string;
-  
+
   /**
    * Human-readable SKU code used for product labeling,
    * warehouse operations, and UI display.
    */
   skuCode: string;
-  
+
   /**
    * Display-friendly product name associated with the SKU.
    * Used to show context to users without requiring the full product record.

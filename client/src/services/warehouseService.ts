@@ -24,21 +24,15 @@ const fetchAllWarehouses = async (
   limit = 20
 ): Promise<WarehouseResponse> => {
   if (page <= 0 || limit <= 0) {
-    throw AppError.validation(
-      'Invalid pagination parameters',
-      { page, limit }
-    );
+    throw AppError.validation('Invalid pagination parameters', { page, limit });
   }
-  
-  return getRequest<WarehouseResponse>(
-    API_ENDPOINTS.WAREHOUSES.ALL_RECORDS,
-    {
-      policy: 'READ',
-      config: {
-        params: { page, limit },
-      },
-    }
-  );
+
+  return getRequest<WarehouseResponse>(API_ENDPOINTS.WAREHOUSES.ALL_RECORDS, {
+    policy: 'READ',
+    config: {
+      params: { page, limit },
+    },
+  });
 };
 
 /**
@@ -54,7 +48,7 @@ const fetchWarehouseDetails = async (
   if (!warehouseId) {
     throw AppError.validation('Warehouse ID is required');
   }
-  
+
   return getRequest<WarehouseDetailsResponse>(
     API_ENDPOINTS.WAREHOUSES.WAREHOUSE_DETAILS(warehouseId),
     { policy: 'READ' }

@@ -26,7 +26,7 @@ export const handleError = (
   logCallback?: (error: AppError | Error) => void
 ): void => {
   const shouldReport = import.meta.env.MODE === 'production';
-  
+
   // ----------------------------------
   // Normalized AppError
   // ----------------------------------
@@ -35,15 +35,15 @@ export const handleError = (
       `[AppError] type=${error.type} severity=${error.severity} status=${error.status}`,
       error.details
     );
-    
+
     logCallback?.(error);
-    
+
     if (shouldReport) {
       // Future: send AppError to backend or monitoring service
     }
     return;
   }
-  
+
   // ----------------------------------
   // Native runtime error (unexpected)
   // ----------------------------------
@@ -52,9 +52,9 @@ export const handleError = (
       `[Unhandled Error] ${error.name}: ${error.message}`,
       error.stack
     );
-    
+
     logCallback?.(error);
-    
+
     // Future: wrap and forward as AppError.unknown(...)
     if (shouldReport) {
       // const wrapped = AppError.unknown(error.message, error);
@@ -62,12 +62,12 @@ export const handleError = (
     }
     return;
   }
-  
+
   // ----------------------------------
   // Truly unknown thrown value
   // ----------------------------------
   console.error('[Unknown thrown value]', error);
-  
+
   if (shouldReport) {
     // const wrapped = AppError.unknown('Unknown error thrown', error);
     // send wrapped error
@@ -93,7 +93,7 @@ export const mapErrorMessage = (error: unknown): string => {
   if (error instanceof AppError) {
     return error.message;
   }
-  
+
   if (isAxiosError(error)) {
     const apiMessage = (error.response?.data as any)?.message;
     if (typeof apiMessage === 'string') {
@@ -101,11 +101,11 @@ export const mapErrorMessage = (error: unknown): string => {
     }
     return 'Network request failed. Please try again.';
   }
-  
+
   if (error instanceof Error) {
     return error.message;
   }
-  
+
   return defaultMessage();
 };
 
@@ -143,13 +143,13 @@ export const categorizeError = (
         return 'info';
     }
   }
-  
+
   if (isAxiosError(error)) {
     const status = error.response?.status ?? 0;
     if (status >= 500) return 'critical';
     if (status >= 400) return 'warning';
   }
-  
+
   return 'info';
 };
 
@@ -162,9 +162,7 @@ export const categorizeError = (
  */
 const isAxiosError = (error: unknown): error is AxiosError =>
   Boolean(
-    error &&
-    typeof error === 'object' &&
-    (error as any).isAxiosError === true
+    error && typeof error === 'object' && (error as any).isAxiosError === true
   );
 
 /**
@@ -177,7 +175,5 @@ export const getErrorLog = (
   details: string | Record<string, unknown> | undefined
 ): string | undefined => {
   if (!details) return undefined;
-  return typeof details === 'string'
-    ? details
-    : JSON.stringify(details);
+  return typeof details === 'string' ? details : JSON.stringify(details);
 };

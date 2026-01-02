@@ -5,9 +5,7 @@ import {
   resetConfirmOutboundFulfillment,
   selectCompleteManualFulfillmentCombined,
 } from '@features/outboundFulfillment/state';
-import type {
-  CompleteManualFulfillmentParams,
-} from '@features/outboundFulfillment/state';
+import type { CompleteManualFulfillmentParams } from '@features/outboundFulfillment/state';
 
 /**
  * Hook to interact with the completeManualFulfillment state and actions.

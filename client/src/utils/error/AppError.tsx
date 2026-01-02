@@ -11,19 +11,19 @@ export enum ErrorType {
   Authorization = 'Authorization',
   NotFound = 'NotFound',
   RateLimit = 'RateLimit',
-  
+
   // ------------------------------
   // Transport / Infrastructure
   // ------------------------------
   Network = 'Network',
   Timeout = 'Timeout',
-  
+
   // ------------------------------
   // Server / Domain
   // ------------------------------
   Service = 'Service',
   Server = 'Server',
-  
+
   // ------------------------------
   // Fallback
   // ------------------------------
@@ -68,13 +68,13 @@ const ERROR_STATUS_MAP: Record<ErrorType, number> = {
   [ErrorType.Authorization]: 403,
   [ErrorType.NotFound]: 404,
   [ErrorType.RateLimit]: 429,
-  
+
   [ErrorType.Network]: 503,
   [ErrorType.Timeout]: 504,
-  
+
   [ErrorType.Service]: 502,
   [ErrorType.Server]: 500,
-  
+
   [ErrorType.Unknown]: 500,
 };
 
@@ -89,10 +89,10 @@ export class AppError extends Error {
   readonly details?: AppErrorDetails;
   readonly correlationId?: string;
   readonly cause?: unknown;
-  
+
   constructor(message: string, options: AppErrorOptions) {
     super(message);
-    
+
     this.name = 'AppError';
     this.type = options.type;
     this.severity = options.severity ?? ErrorSeverity.Medium;
@@ -100,57 +100,51 @@ export class AppError extends Error {
     this.details = options.details;
     this.correlationId = options.correlationId;
     this.cause = options.cause;
-    
+
     Object.setPrototypeOf(this, AppError.prototype);
   }
-  
+
   /* =====================================================
    * Factory helpers (recommended usage)
    * =================================================== */
-  
-  static validation(
-    message = 'Validation failed',
-    details?: AppErrorDetails
-  ) {
+
+  static validation(message = 'Validation failed', details?: AppErrorDetails) {
     return new AppError(message, {
       type: ErrorType.Validation,
       severity: ErrorSeverity.Low,
       details,
     });
   }
-  
+
   static authentication(message = 'Authentication required') {
     return new AppError(message, {
       type: ErrorType.Authentication,
       severity: ErrorSeverity.Medium,
     });
   }
-  
+
   static authorization(message = 'Access denied') {
     return new AppError(message, {
       type: ErrorType.Authorization,
       severity: ErrorSeverity.Medium,
     });
   }
-  
+
   static notFound(message = 'Resource not found') {
     return new AppError(message, {
       type: ErrorType.NotFound,
       severity: ErrorSeverity.Low,
     });
   }
-  
-  static rateLimit(
-    message = 'Too many requests',
-    details?: AppErrorDetails
-  ) {
+
+  static rateLimit(message = 'Too many requests', details?: AppErrorDetails) {
     return new AppError(message, {
       type: ErrorType.RateLimit,
       severity: ErrorSeverity.Medium,
       details,
     });
   }
-  
+
   static network(details?: AppErrorDetails) {
     return new AppError('Network error occurred', {
       type: ErrorType.Network,
@@ -158,7 +152,7 @@ export class AppError extends Error {
       details,
     });
   }
-  
+
   static timeout(details?: AppErrorDetails) {
     return new AppError('Request timed out', {
       type: ErrorType.Timeout,
@@ -166,7 +160,7 @@ export class AppError extends Error {
       details,
     });
   }
-  
+
   static service(
     message = 'Upstream service error',
     details?: AppErrorDetails
@@ -177,33 +171,27 @@ export class AppError extends Error {
       details,
     });
   }
-  
-  static server(
-    message = 'Internal server error',
-    details?: AppErrorDetails
-  ) {
+
+  static server(message = 'Internal server error', details?: AppErrorDetails) {
     return new AppError(message, {
       type: ErrorType.Server,
       severity: ErrorSeverity.Critical,
       details,
     });
   }
-  
-  static unknown(
-    message = 'Unexpected error occurred',
-    cause?: unknown
-  ) {
+
+  static unknown(message = 'Unexpected error occurred', cause?: unknown) {
     return new AppError(message, {
       type: ErrorType.Unknown,
       severity: ErrorSeverity.Critical,
       cause,
     });
   }
-  
+
   /* =====================================================
    * Serialization (API-safe)
    * =================================================== */
-  
+
   toJSON() {
     return {
       message: this.message,
@@ -217,11 +205,11 @@ export class AppError extends Error {
       correlationId: this.correlationId,
     };
   }
-  
+
   /* =====================================================
    * UI-safe recovery hints (optional)
    * =================================================== */
-  
+
   getRecoveryHint(): string | undefined {
     switch (this.type) {
       case ErrorType.Network:

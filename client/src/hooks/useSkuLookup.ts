@@ -12,9 +12,7 @@ import usePermissions from '@hooks/usePermissions';
 import useHasPermission from '@features/authorize/hooks/useHasPermission';
 import { SKU_CONSTANTS } from '@utils/constants/skuConstants';
 import { dedupeByValuePreserveOrder } from '@utils/dedupeHelpers';
-import type {
-  SkuLookupQueryParams,
-} from '@features/lookup/state';
+import type { SkuLookupQueryParams } from '@features/lookup/state';
 import { resetSkuLookup } from '@features/lookup/state/skuLookupSlice';
 
 /**

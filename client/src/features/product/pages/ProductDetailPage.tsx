@@ -29,7 +29,7 @@ const ProductDetailPage = () => {
   // 1. Route Params (Early Exit)
   // --------------------------------------
   const { productId } = useParams<{ productId: string }>();
-  
+
   if (!productId) {
     return <NotFoundPage />;
   }
@@ -45,7 +45,7 @@ const ProductDetailPage = () => {
     fetchProductDetail: fetchProductDetailById,
     resetProductDetailState,
   } = useProductDetail();
-  
+
   const statusLookup = useStatusLookup();
 
   // --------------------------------------
@@ -77,7 +77,7 @@ const ProductDetailPage = () => {
     updateInfoButtonRef,
     () => showUpdateInfoDialog
   );
-  
+
   const {
     handleOpenDialog: openStatusDialogWithFocus,
     handleCloseDialog: closeStatusDialogWithFocus,
@@ -86,7 +86,7 @@ const ProductDetailPage = () => {
     updateStatusButtonRef,
     () => showUpdateStatusDialog
   );
-  
+
   // --------------------------------------
   // 7. Derived Values & Callbacks
   // --------------------------------------
@@ -94,11 +94,11 @@ const ProductDetailPage = () => {
     () => flattenProductDetail(selectedProduct),
     [selectedProduct]
   );
-  
+
   const refreshProductDetails = useCallback(() => {
     if (productId) fetchProductDetailById(productId);
   }, [productId, fetchProductDetailById]);
-  
+
   // --------------------------------------
   // 8. Effects
   // --------------------------------------
@@ -123,11 +123,8 @@ const ProductDetailPage = () => {
       >
         {/* LEFT: Back Navigation + Product Title */}
         <Stack direction="row" spacing={2} alignItems="center">
-          <GoBackButton
-            label="Back to Product List"
-            fallbackTo="/products"
-          />
-          
+          <GoBackButton label="Back to Product List" fallbackTo="/products" />
+
           {/* Render product name when detail is loaded */}
           {flattenProductDetails && (
             <CustomTypography variant="h5" fontWeight={700}>
@@ -135,7 +132,7 @@ const ProductDetailPage = () => {
             </CustomTypography>
           )}
         </Stack>
-        
+
         {/* RIGHT: Page Action Buttons */}
         <Stack direction="row" spacing={1}>
           {/* Always available Refresh button */}
@@ -146,7 +143,7 @@ const ProductDetailPage = () => {
           >
             Refresh
           </CustomButton>
-          
+
           {/* Actions depend on permission + data availability */}
           {!isProductDetailEmpty && !isLoadingProductDetail && (
             <>
@@ -161,7 +158,7 @@ const ProductDetailPage = () => {
                   Update Info
                 </CustomButton>
               )}
-              
+
               {/* Update Status Button (permission-protected) */}
               {!canUpdateStatus.permLoading && canUpdateStatus.isAllowed && (
                 <CustomButton
@@ -177,24 +174,24 @@ const ProductDetailPage = () => {
           )}
         </Stack>
       </Stack>
-      
+
       {/* --------------------------------------------- */}
       {/* PAGE CONTENT: Loading / Error / Empty / Detail */}
       {/* --------------------------------------------- */}
-      
+
       {/* Loading state */}
       {isLoadingProductDetail && (
         <Loading variant="dotted" message="Loading Product Details..." />
       )}
-      
+
       {/* Error state */}
       {productDetailError && <ErrorMessage message={productDetailError} />}
-      
+
       {/* Empty state */}
       {isProductDetailEmpty && (
         <NoDataFound message="No product details found." />
       )}
-      
+
       {/* Main product detail sections */}
       {flattenProductDetails && (
         <>
@@ -203,7 +200,7 @@ const ProductDetailPage = () => {
           <ProductDetailAuditSection product={flattenProductDetails} />
         </>
       )}
-      
+
       {/* --------------------------------------------- */}
       {/* UPDATE INFO DIALOG (controlled with focus)     */}
       {/* --------------------------------------------- */}
@@ -216,7 +213,7 @@ const ProductDetailPage = () => {
           productDetails={flattenProductDetails}
         />
       )}
-      
+
       {/* --------------------------------------------- */}
       {/* UPDATE STATUS DIALOG (controlled with focus)   */}
       {/* --------------------------------------------- */}

@@ -26,14 +26,14 @@ export const isTokenValid = (accessToken: string): boolean => {
     if (!accessToken) {
       return false;
     }
-    
+
     const decoded = jwtDecode<{ exp?: number }>(accessToken);
-    
+
     // Missing or invalid exp → treat as invalid
     if (typeof decoded.exp !== 'number') {
       return false;
     }
-    
+
     // JWT exp is in seconds
     return decoded.exp * 1000 > Date.now();
   } catch {
@@ -56,6 +56,8 @@ export const isTokenValid = (accessToken: string): boolean => {
  */
 export const assertTokenValid = (accessToken: string): void => {
   if (!isTokenValid(accessToken)) {
-    throw AppError.authentication('Access token is missing, invalid, or expired');
+    throw AppError.authentication(
+      'Access token is missing, invalid, or expired'
+    );
   }
 };

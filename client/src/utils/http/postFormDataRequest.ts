@@ -10,7 +10,7 @@ export interface PostFormDataRequestOptions {
    * Defaults to WRITE.
    */
   policy?: WritePolicy;
-  
+
   /**
    * Optional Axios request configuration.
    *
@@ -47,11 +47,8 @@ export const postFormDataRequest = async <R>(
   formData: FormData,
   options: PostFormDataRequestOptions = {}
 ): Promise<R> => {
-  const {
-    policy = 'WRITE',
-    config,
-  } = options;
-  
+  const { policy = 'WRITE', config } = options;
+
   try {
     const response = await requestWithNamedPolicy(
       (signal) =>
@@ -66,7 +63,7 @@ export const postFormDataRequest = async <R>(
         }),
       policy
     );
-    
+
     return response.data;
   } catch (error: unknown) {
     throw mapHttpError(error);

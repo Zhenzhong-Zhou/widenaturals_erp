@@ -18,26 +18,22 @@ export const withRetry = async <T>(
   shouldRetry?: RetryPredicate
 ): Promise<T> => {
   let lastError: unknown;
-  
+
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       return await fn();
     } catch (error) {
       lastError = error;
-      
-      if (
-        attempt === retries ||
-        shouldRetry?.(error) === false
-      ) {
+
+      if (attempt === retries || shouldRetry?.(error) === false) {
         throw error;
       }
-      
-      const delayMs =
-        initialDelayMs * Math.pow(backoffFactor, attempt - 1);
-      
+
+      const delayMs = initialDelayMs * Math.pow(backoffFactor, attempt - 1);
+
       await sleep(delayMs);
     }
   }
-  
+
   throw lastError;
 };

@@ -18,22 +18,21 @@ interface PermissionDialogProps {
 }
 
 const PermissionDialog: FC<PermissionDialogProps> = ({
-                                                       open,
-                                                       onClose,
-                                                       permissions,
-                                                       roleName,
-                                                     }) => {
+  open,
+  onClose,
+  permissions,
+  roleName,
+}) => {
   const { theme } = useThemeContext();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Split permissions into 1–2 columns depending on screen size and list length
-  const columnCount =
-    isSmallScreen || permissions.length <= 10 ? 1 : 2;
-  
+  const columnCount = isSmallScreen || permissions.length <= 10 ? 1 : 2;
+
   const columns = Array.from({ length: columnCount }, (_, colIndex) =>
     permissions.filter((_, index) => index % columnCount === colIndex)
   );
-  
+
   return (
     <CustomDialog
       open={open}
@@ -48,9 +47,9 @@ const PermissionDialog: FC<PermissionDialogProps> = ({
         >
           This user has {permissions.length} permissions assigned.
         </CustomTypography>
-        
+
         <Divider sx={{ mb: 2 }} />
-        
+
         <Box
           sx={{
             maxHeight: 400,
@@ -59,7 +58,7 @@ const PermissionDialog: FC<PermissionDialogProps> = ({
         >
           <Grid container spacing={2}>
             {columns.map((column, idx) => (
-              <Grid size={{ xs:12, md: 6 }} key={idx}>
+              <Grid size={{ xs: 12, md: 6 }} key={idx}>
                 <List dense>
                   {column.map((permission) => (
                     <ListItem key={permission} disableGutters>

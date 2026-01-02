@@ -7,9 +7,7 @@ import {
   selectTaxRateLookupLoading,
   selectTaxRateLookupMeta,
 } from '@features/lookup/state';
-import type {
-  TaxRateLookupQueryParams,
-} from '@features/lookup/state';
+import type { TaxRateLookupQueryParams } from '@features/lookup/state';
 import { resetTaxRateLookup } from '@features/lookup/state/taxRateLookupSlice';
 
 /**

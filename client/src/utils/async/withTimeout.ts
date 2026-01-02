@@ -5,13 +5,13 @@ export interface TimeoutOptions {
    * Maximum execution time in milliseconds.
    */
   timeoutMs: number;
-  
+
   /**
    * Message used when the timeout is exceeded.
    * This message is user-facing and should be human-readable.
    */
   timeoutMessage: string;
-  
+
   /**
    * Optional AbortController for external cancellation.
    * If not provided, a local controller is created.
@@ -43,19 +43,19 @@ export interface TimeoutOptions {
 export const withTimeout = async <T>(
   promiseFn: (signal?: AbortSignal) => Promise<T>,
   options: TimeoutOptions
-): Promise<T>=> {
+): Promise<T> => {
   const {
     timeoutMs,
     timeoutMessage,
     controller = new AbortController(),
   } = options;
-  
+
   const { signal } = controller;
-  
+
   const timer = setTimeout(() => {
     controller.abort();
   }, timeoutMs);
-  
+
   try {
     return await promiseFn(signal);
   } catch (error) {
@@ -64,7 +64,7 @@ export const withTimeout = async <T>(
         type: ErrorType.Timeout,
       });
     }
-    
+
     throw error;
   } finally {
     clearTimeout(timer);

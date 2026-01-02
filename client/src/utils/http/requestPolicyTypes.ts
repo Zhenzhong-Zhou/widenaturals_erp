@@ -4,11 +4,7 @@
  * These represent semantic intent, not behavior.
  * Concrete retry/timeout behavior is defined separately.
  */
-export type RequestPolicyKey =
-  | 'READ'
-  | 'WRITE'
-  | 'AUTH'
-  | 'CRITICAL';
+export type RequestPolicyKey = 'READ' | 'WRITE' | 'AUTH' | 'CRITICAL';
 
 /**
  * Policies allowed for idempotent read requests.

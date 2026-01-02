@@ -18,7 +18,7 @@ import paginatedCustomersReducer from './paginatedCustomersSlice';
 export const customerReducers = {
   /** State and workflow for creating a new customer */
   customerCreate: customerCreateReducer,
-  
+
   /** Paginated customer list, filters, and pagination metadata */
   paginatedCustomers: paginatedCustomersReducer,
 };

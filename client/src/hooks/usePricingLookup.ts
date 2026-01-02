@@ -7,9 +7,7 @@ import {
   selectPricingLookupError,
   selectPricingLookupMeta,
 } from '@features/lookup/state';
-import type {
-  PricingLookupQueryParams,
-} from '@features/lookup/state';
+import type { PricingLookupQueryParams } from '@features/lookup/state';
 import { resetPricingLookup } from '@features/lookup/state/pricingLookupSlice';
 
 /**

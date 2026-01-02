@@ -17,7 +17,7 @@ import locationTypeReducer from './locationTypeDetailSlice';
 export const locationTypeReducers = {
   /** List and pagination of location types */
   locationTypes: locationTypesReducer,
-  
+
   /** Single location type detail state */
   locationType: locationTypeReducer,
 };

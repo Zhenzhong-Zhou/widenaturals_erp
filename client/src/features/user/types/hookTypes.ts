@@ -19,7 +19,7 @@ import useStatusLookup from '@hooks/useStatusLookup';
 export interface UserFiltersPanelLookups {
   /** Status lookup (active, inactive, suspended, etc.) */
   status: ReturnType<typeof useStatusLookup>;
-  
+
   // role?: ReturnType<typeof useRoleLookup>;
 }
 
@@ -54,8 +54,7 @@ export interface BasePaginationHandlers {
  *
  * Extends base pagination with row-count control.
  */
-export interface TablePaginationHandlers
-  extends BasePaginationHandlers {
+export interface TablePaginationHandlers extends BasePaginationHandlers {
   /** Change number of rows displayed per page */
   handleRowsPerPageChange: (limit: number) => void;
 }
@@ -89,23 +88,23 @@ export interface TablePaginationHandlers
 export interface UserPageController {
   /** Current view mode */
   viewMode: 'card' | 'list';
-  
+
   /** Raw user records returned by the API */
   data: Array<UserCardView | UserListView>;
-  
+
   /** Loading state */
   loading: boolean;
-  
+
   /** Error message, if any */
   error?: string | null;
-  
+
   /** Trigger a refetch using the current query state */
   refresh: () => void;
-  
+
   // -----------------------------
   // Pagination (shared)
   // -----------------------------
-  
+
   /** Pagination metadata */
   pageInfo: {
     page: number;
@@ -113,45 +112,45 @@ export interface UserPageController {
     totalPages: number;
     totalRecords: number;
   };
-  
+
   /** Page-based pagination handlers */
   paginationHandlers: BasePaginationHandlers;
-  
+
   // -----------------------------
   // Filters & sorting (shared)
   // -----------------------------
-  
+
   /** Active user filters */
   filters: UserFilters;
-  
+
   /** Active sort field */
   sortBy: UserSortField;
-  
+
   /** Active sort order */
   sortOrder: 'ASC' | 'DESC' | '';
-  
+
   /** Update active filters */
   setFilters: (filters: UserFilters) => void;
-  
+
   /** Update sort field */
   setSortBy: (sortBy: UserSortField) => void;
-  
+
   /** Update sort order */
   setSortOrder: (order: 'ASC' | 'DESC' | '') => void;
-  
+
   /**
    * Reset filters, sorting, and pagination
    * back to their default state.
    */
   handleResetFilters: () => void;
-  
+
   // -----------------------------
   // Lookups (shared)
   // -----------------------------
-  
+
   /** Lookup data & state used by filter UI */
   lookups: UserFiltersPanelLookups;
-  
+
   /** Lookup lifecycle handlers */
   lookupHandlers: UserLookupHandlers;
 }
@@ -162,19 +161,17 @@ export interface UserPageController {
  * Extends the base controller with table-only concerns
  * such as row expansion and page-size control.
  */
-export interface UserListPageController
-  extends UserPageController {
-  
+export interface UserListPageController extends UserPageController {
   // -----------------------------
   // Table-only concerns
   // -----------------------------
-  
+
   /** Currently expanded row ID */
   expandedRowId: string | null;
-  
+
   /** Toggle row expansion */
   handleDrillDownToggle: (id: string) => void;
-  
+
   /** Table-specific pagination handlers */
   paginationHandlers: TablePaginationHandlers;
 }

@@ -21,25 +21,25 @@ import { ErrorType } from '@utils/error';
 interface Props {
   /** Primary user-facing error message */
   message?: string;
-  
+
   /** Optional error classification (for display/debug only) */
   errorType?: ErrorType;
-  
+
   /** Optional recovery hint (e.g. AppError.getRecoveryHint()) */
   recoveryHint?: string;
-  
+
   /** Retry callback provided by the boundary or caller */
   onRetry: () => void;
 }
 
 const ThemeAwareErrorUI: FC<Props> = ({
-                                        message,
-                                        errorType,
-                                        recoveryHint,
-                                        onRetry,
-                                      }) => {
+  message,
+  errorType,
+  recoveryHint,
+  onRetry,
+}) => {
   const { theme } = useThemeContext();
-  
+
   return (
     <ErrorDisplay
       message={message || 'Module crashed. Try again later.'}
@@ -64,12 +64,11 @@ const ThemeAwareErrorUI: FC<Props> = ({
         >
           Module Error
         </CustomTypography>
-        
+
         <CustomTypography variant="body1" gutterBottom>
-          {message ||
-            'Something went wrong in this module. Please try again.'}
+          {message || 'Something went wrong in this module. Please try again.'}
         </CustomTypography>
-        
+
         {recoveryHint && (
           <CustomTypography
             variant="body2"
@@ -82,12 +81,9 @@ const ThemeAwareErrorUI: FC<Props> = ({
             {recoveryHint}
           </CustomTypography>
         )}
-        
+
         {errorType && (
-          <CustomTypography
-            variant="caption"
-            sx={{ mt: 1, display: 'block' }}
-          >
+          <CustomTypography variant="caption" sx={{ mt: 1, display: 'block' }}>
             Error Type: {errorType}
           </CustomTypography>
         )}

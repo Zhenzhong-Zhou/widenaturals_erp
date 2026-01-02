@@ -18,7 +18,7 @@ import pricingListByTypeReducer from './pricingListByTypeSlice';
 export const pricingReducers = {
   /** Paginated pricing list and base pricing data */
   pricingList: pricingListReducer,
-  
+
   /** Pricing list grouped and filtered by pricing type */
   pricingListByType: pricingListByTypeReducer,
 };

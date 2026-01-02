@@ -33,15 +33,15 @@ const fetchCsrfToken = async (): Promise<string> => {
       config: { withCredentials: true },
     }
   );
-  
+
   const token = response?.csrfToken;
-  
+
   if (!token) {
     throw AppError.server('Invalid CSRF token response', {
       response,
     });
   }
-  
+
   return token;
 };
 
@@ -58,21 +58,17 @@ const fetchCsrfToken = async (): Promise<string> => {
  * @throws {AppError}
  * Propagates initialization failures to caller
  */
-const initializeCsrfToken = async (
-  dispatch: AppDispatch
-): Promise<void> => {
+const initializeCsrfToken = async (dispatch: AppDispatch): Promise<void> => {
   try {
     const csrfToken = await fetchCsrfToken();
     dispatch(updateCsrfToken(csrfToken));
   } catch (error) {
     // Defensive reset on persistent failure
     dispatch(resetCsrfToken());
-    
+
     throw AppError.server(
       'CSRF initialization failed',
-      error instanceof AppError
-        ? { cause: error.message }
-        : undefined
+      error instanceof AppError ? { cause: error.message } : undefined
     );
   }
 };

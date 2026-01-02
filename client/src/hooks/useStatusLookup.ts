@@ -7,9 +7,7 @@ import {
   selectStatusLookupLoading,
   selectStatusLookupMeta,
 } from '@features/lookup/state';
-import type {
-  StatusLookupParams,
-} from '@features/lookup/state';
+import type { StatusLookupParams } from '@features/lookup/state';
 import { resetStatusLookup } from '@features/lookup/state/statusLookupSlice';
 
 /**

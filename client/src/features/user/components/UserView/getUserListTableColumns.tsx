@@ -53,7 +53,7 @@ export const getUserListTableColumns = (
         </Avatar>
       ),
     },
-    
+
     // ------------------------------
     // Identity Info
     // ------------------------------
@@ -88,7 +88,7 @@ export const getUserListTableColumns = (
       sortable: true,
       renderCell: (row) => formatLabel(row.jobTitle) ?? '—',
     },
-    
+
     // ------------------------------
     // Role Info
     // ------------------------------
@@ -98,7 +98,7 @@ export const getUserListTableColumns = (
       sortable: true,
       renderCell: (row) => formatLabel(row.roleName) ?? '—',
     },
-    
+
     // ------------------------------
     // Status Info
     // ------------------------------
@@ -108,7 +108,7 @@ export const getUserListTableColumns = (
       sortable: true,
       renderCell: (row) => formatLabel(row.statusName) ?? '—',
     },
-    
+
     // ------------------------------
     // Audit Info
     // ------------------------------
@@ -123,12 +123,10 @@ export const getUserListTableColumns = (
       label: 'Created At',
       sortable: true,
       renderCell: (row) =>
-        row.createdAt
-          ? formatDateTime(row.createdAt)
-          : '—',
+        row.createdAt ? formatDateTime(row.createdAt) : '—',
     },
   ];
-  
+
   // ------------------------------
   // Drill-down Expansion Column
   // ------------------------------
@@ -140,6 +138,6 @@ export const getUserListTableColumns = (
       )
     );
   }
-  
+
   return columns;
 };

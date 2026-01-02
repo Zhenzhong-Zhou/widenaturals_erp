@@ -17,7 +17,7 @@ import warehouseDetailReducer from './warehouseDetailSlice';
 export const warehouseReducers = {
   /** Warehouse list and core warehouse data */
   warehouses: warehouseReducer,
-  
+
   /** Single warehouse detail view */
   warehouseDetails: warehouseDetailReducer,
 };

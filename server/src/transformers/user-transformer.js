@@ -65,7 +65,7 @@ const { transformPaginatedResult } = require('../utils/transformer-utils');
 const transformUserForView = (userRow, viewMode) => {
   // Card view → minimal identity summary for compact layouts
   if (viewMode === 'card') {
-    return cleanObject( {
+    return cleanObject({
       id: userRow.id,
       fullName: getFullName(userRow.firstname, userRow.lastname),
       email: userRow.email,
@@ -84,14 +84,14 @@ const transformUserForView = (userRow, viewMode) => {
     email: userRow.email,
     phoneNumber: userRow.phone_number,
     jobTitle: userRow.job_title,
-    
+
     roleId: userRow.role_id,
     roleName: userRow.role_name,
-    
+
     status: makeStatus(userRow),
-    
+
     audit: compactAudit(makeAudit(userRow)),
-    
+
     avatarUrl: userRow.avatar_url,
   });
 };
@@ -112,9 +112,8 @@ const transformUserForView = (userRow, viewMode) => {
  * @returns {Object} Paginated response with transformed rows
  */
 const transformPaginatedUserForViewResults = (paginatedResult, viewMode) => {
-  return transformPaginatedResult(
-    paginatedResult,
-    (row) => transformUserForView(row, viewMode)
+  return transformPaginatedResult(paginatedResult, (row) =>
+    transformUserForView(row, viewMode)
   );
 };
 
@@ -247,40 +246,38 @@ const transformPaginatedUserForViewResults = (paginatedResult, viewMode) => {
  */
 const transformUserProfileRow = (row) => {
   if (!row) return null;
-  
+
   return cleanObject({
     id: row.id,
     email: row.email,
-    
+
     fullName: getFullName(row.firstname, row.lastname),
-    
+
     phoneNumber: row.phone_number || null,
     jobTitle: row.job_title || null,
-    
+
     isSystem: row.is_system,
-    
+
     status: makeStatus(row),
-    
+
     role: row.role_id
       ? {
-        id: row.role_id,
-        name: row.role_name,
-        roleGroup: row.role_group || null,
-        hierarchyLevel: row.hierarchy_level || null,
-        permissions: Array.isArray(row.permissions)
-          ? row.permissions
-          : [],
-      }
+          id: row.role_id,
+          name: row.role_name,
+          roleGroup: row.role_group || null,
+          hierarchyLevel: row.hierarchy_level || null,
+          permissions: Array.isArray(row.permissions) ? row.permissions : [],
+        }
       : null,
-    
+
     avatar: row.avatar_url
       ? {
-        url: row.avatar_url,
-        format: row.avatar_format || null,
-        uploadedAt: row.avatar_uploaded_at || null,
-      }
+          url: row.avatar_url,
+          format: row.avatar_format || null,
+          uploadedAt: row.avatar_uploaded_at || null,
+        }
       : null,
-    
+
     audit: compactAudit(makeAudit(row)),
   });
 };

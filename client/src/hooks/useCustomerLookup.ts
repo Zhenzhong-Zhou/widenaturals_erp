@@ -1,8 +1,6 @@
 import { useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
-import type {
-  CustomerLookupQuery,
-} from '@features/lookup/state';
+import type { CustomerLookupQuery } from '@features/lookup/state';
 import {
   fetchCustomerLookupThunk,
   selectCustomerLookupLoading,

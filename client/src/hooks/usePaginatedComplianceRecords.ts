@@ -10,9 +10,7 @@ import {
   selectPaginatedComplianceRecordsIsEmpty,
   resetPaginatedComplianceRecords,
 } from '@features/complianceRecord/state';
-import type {
-  GetPaginatedComplianceRecordsParams,
-} from '@features/complianceRecord/state';
+import type { GetPaginatedComplianceRecordsParams } from '@features/complianceRecord/state';
 
 /**
  * React hook for accessing paginated compliance records state and actions.
@@ -27,7 +25,7 @@ import type {
  */
 const usePaginatedComplianceRecords = () => {
   const dispatch = useAppDispatch();
-  
+
   // ---------------------------
   // Selectors (memoized via Reselect)
   // ---------------------------
@@ -35,9 +33,11 @@ const usePaginatedComplianceRecords = () => {
   const pagination = useAppSelector(selectPaginatedComplianceRecordsPagination);
   const loading = useAppSelector(selectPaginatedComplianceRecordsLoading);
   const error = useAppSelector(selectPaginatedComplianceRecordsError);
-  const totalRecords = useAppSelector(selectPaginatedComplianceRecordsTotalRecords);
+  const totalRecords = useAppSelector(
+    selectPaginatedComplianceRecordsTotalRecords
+  );
   const isEmpty = useAppSelector(selectPaginatedComplianceRecordsIsEmpty);
-  
+
   // ---------------------------
   // Actions
   // ---------------------------
@@ -52,14 +52,14 @@ const usePaginatedComplianceRecords = () => {
     },
     [dispatch]
   );
-  
+
   /**
    * Reset compliance records state back to the initial empty paginated form.
    */
   const resetComplianceRecords = useCallback(() => {
     dispatch(resetPaginatedComplianceRecords());
   }, [dispatch]);
-  
+
   // ---------------------------
   // Derived memoized values
   // ---------------------------
@@ -67,7 +67,7 @@ const usePaginatedComplianceRecords = () => {
     const { totalPages, totalRecords } = pagination;
     return { totalPages, totalRecords };
   }, [pagination]);
-  
+
   return {
     data,
     pagination,
@@ -75,9 +75,9 @@ const usePaginatedComplianceRecords = () => {
     error,
     totalRecords,
     isEmpty,
-    
+
     pageInfo, // { page, limit }
-    
+
     fetchComplianceRecords,
     resetComplianceRecords,
   };

@@ -4,7 +4,10 @@ import PageShell from '@features/user/layouts/PageShell';
 import CustomButton from '@components/common/CustomButton';
 import GoBackButton from '@components/common/GoBackButton';
 import CustomPagination from '@components/common/CustomPagination';
-import { UserCardGrid, UserFilterAndSortPanel } from '@features/user/components/UserView';
+import {
+  UserCardGrid,
+  UserFilterAndSortPanel,
+} from '@features/user/components/UserView';
 import useFlattenedUsers from '@features/user/hooks/useFlattenedUsers';
 import { UserPageController } from '@features/user/types/hookTypes';
 
@@ -27,8 +30,8 @@ const PAGE_ACTION_BUTTON_SX = {
  * - This layout is specific to the card view
  */
 const UserCardLayout: FC<{ controller: UserPageController }> = ({
-                                                                  controller
-                                                                }) => {
+  controller,
+}) => {
   const {
     data,
     filters,
@@ -48,22 +51,18 @@ const UserCardLayout: FC<{ controller: UserPageController }> = ({
   } = controller;
   const { page, limit, totalPages, totalRecords } = pageInfo;
   const flattenedUsers = useFlattenedUsers(data);
-  
+
   return (
     <PageShell
       title="Users"
       actions={
-        <Stack
-          direction="row"
-          spacing={1}
-          alignItems="center"
-        >
+        <Stack direction="row" spacing={1} alignItems="center">
           <GoBackButton
             size="small"
             variant="outlined"
             sx={PAGE_ACTION_BUTTON_SX}
           />
-          
+
           <CustomButton
             size="small"
             variant="contained"
@@ -86,19 +85,19 @@ const UserCardLayout: FC<{ controller: UserPageController }> = ({
         onSortOrderChange={setSortOrder}
         onReset={handleResetFilters}
       />
-    {/* -----------------------------------------
-     * Card Grid
-     * ----------------------------------------- */}
+      {/* -----------------------------------------
+       * Card Grid
+       * ----------------------------------------- */}
       <UserCardGrid
         users={flattenedUsers}
         loading={loading}
         error={error}
         onResetFilters={handleResetFilters}
       />
-      
+
       {/* -----------------------------------------
-     * Pagination
-     * ----------------------------------------- */}
+       * Pagination
+       * ----------------------------------------- */}
       {!loading && totalRecords > 0 && (
         <CustomPagination
           page={page}

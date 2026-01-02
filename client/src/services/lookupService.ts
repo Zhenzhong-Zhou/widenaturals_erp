@@ -49,10 +49,7 @@ import type {
  *
  * @internal
  */
-const getLookup = <T>(
-  endpoint: string,
-  params?: object
-): Promise<T> => {
+const getLookup = <T>(endpoint: string, params?: object): Promise<T> => {
   const queryString = buildQueryString(params);
   return getRequest<T>(`${endpoint}${queryString}`);
 };
@@ -149,8 +146,7 @@ const fetchPricingLookup = (
 /** Fetch SKU lookup items. */
 const fetchSkuLookup = (
   params?: SkuLookupQueryParams
-): Promise<SkuLookupResponse> =>
-  getLookup(API_ENDPOINTS.LOOKUPS.SKUS, params);
+): Promise<SkuLookupResponse> => getLookup(API_ENDPOINTS.LOOKUPS.SKUS, params);
 
 /** Fetch packaging material lookup items. */
 const fetchPackagingMaterialLookup = (

@@ -80,9 +80,9 @@ const skuImageSchema = Joi.object({
     .valid('main', 'thumbnail', 'zoom', 'gallery', 'unknown')
     .default('unknown')
     .insensitive(),
-  
+
   alt_text: Joi.string().allow('', null).max(255),
-  
+
   uploaded_at: Joi.date()
     .optional()
     .default(() => new Date()),

@@ -11,30 +11,30 @@ interface GoBackButtonProps extends ButtonProps {
    * Defaults to `"Back"`.
    */
   label?: string;
-  
+
   /**
    * Route to navigate to when browser history cannot be used (e.g., direct page load).
    * Defaults to the application root `/`.
    */
   fallbackTo?: string;
-  
+
   /**
    * Additional MUI `sx` styling overrides for the button.
    */
   sx?: SxProps<Theme>;
-  
+
   /**
    * MUI button variant for styling purposes.
    * Defaults to `"outlined"`.
    */
-  variant?: "contained" | "outlined" | "text";
-  
+  variant?: 'contained' | 'outlined' | 'text';
+
   /**
    * Optional callback executed immediately before navigation occurs.
    * Useful for cleanup tasks (resetting forms, clearing state, etc.).
    */
   beforeNavigate?: () => void;
-  
+
   /**
    * Optional button icon. Defaults to the standard arrow-back icon.
    */
@@ -58,27 +58,27 @@ interface GoBackButtonProps extends ButtonProps {
  *   to prevent layout shifts (CLS) and support UX guidelines.
  */
 const GoBackButton: FC<GoBackButtonProps> = ({
-                                               label = "Back",
-                                               fallbackTo,
-                                               sx,
-                                               variant = "outlined",
-                                               icon = <ArrowBackIcon />,
-                                               beforeNavigate,
-                                             }) => {
+  label = 'Back',
+  fallbackTo,
+  sx,
+  variant = 'outlined',
+  icon = <ArrowBackIcon />,
+  beforeNavigate,
+}) => {
   const navigate = useNavigate();
-  
+
   const handleBack = () => {
     beforeNavigate?.();
-    
+
     if (fallbackTo) {
       navigate(fallbackTo, { replace: true });
     } else if (window.history.length > 1) {
       navigate(-1);
     } else {
-      navigate("/", { replace: true });
+      navigate('/', { replace: true });
     }
   };
-  
+
   return (
     <CustomButton
       onClick={handleBack}

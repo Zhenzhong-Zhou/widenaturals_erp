@@ -17,53 +17,50 @@ const useTokenRefresh = (): void => {
   const dispatch = useAppDispatch();
   const accessToken = useAppSelector(selectAccessToken);
   const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  
+
   /**
    * Dispatch refresh thunk (single responsibility).
    */
   const refreshAccessToken = useCallback(async () => {
     await dispatch(refreshTokenThunk()).unwrap();
   }, [dispatch]);
-  
+
   /**
    * Schedule refresh based on token expiry.
    */
   const scheduleRefresh = useCallback(async () => {
     if (!accessToken) return;
-    
+
     // If token already invalid → refresh immediately
     if (!isTokenValid(accessToken)) {
       await refreshAccessToken();
       return;
     }
-    
+
     try {
       const { exp } = jwtDecode<{ exp: number }>(accessToken);
-      
+
       // JWT exp is seconds
       const expiresAt = exp * 1000;
-      
+
       // Refresh 5 minutes before expiry
       const refreshAt = expiresAt - Date.now() - 5 * 60 * 1000;
-      
+
       if (refreshAt <= 0) {
         await refreshAccessToken();
         return;
       }
-      
-      refreshTimeoutRef.current = setTimeout(
-        refreshAccessToken,
-        refreshAt
-      );
+
+      refreshTimeoutRef.current = setTimeout(refreshAccessToken, refreshAt);
     } catch {
       // Decoding failed → force refresh
       await refreshAccessToken();
     }
   }, [accessToken, refreshAccessToken]);
-  
+
   useEffect(() => {
     scheduleRefresh();
-    
+
     return () => {
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);

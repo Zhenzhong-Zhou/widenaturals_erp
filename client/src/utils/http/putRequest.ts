@@ -10,7 +10,7 @@ export interface PutRequestOptions {
    * Defaults to WRITE.
    */
   policy?: WritePolicy;
-  
+
   /**
    * Optional Axios request configuration.
    */
@@ -43,11 +43,8 @@ export const putRequest = async <T, R>(
   data: T,
   options: PutRequestOptions = {}
 ): Promise<R> => {
-  const {
-    policy = 'WRITE',
-    config,
-  } = options;
-  
+  const { policy = 'WRITE', config } = options;
+
   try {
     const response = await requestWithNamedPolicy(
       (signal) =>
@@ -57,7 +54,7 @@ export const putRequest = async <T, R>(
         }),
       policy
     );
-    
+
     return response.data;
   } catch (error: unknown) {
     throw mapHttpError(error);

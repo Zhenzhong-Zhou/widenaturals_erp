@@ -48,28 +48,28 @@ const validateDate = (input: string | Date): void => {
       type: ErrorType.Validation,
     });
   }
-  
+
   let date: Date | null = null;
-  
+
   /* ----------------------------------
    * Native Date input
    * ---------------------------------- */
   if (input instanceof Date) {
     date = input;
   }
-  
+
   /* ----------------------------------
    * String input parsing
    * ---------------------------------- */
   if (typeof input === 'string') {
     const trimmed = input.trim();
-    
+
     if (!trimmed) {
       throw new AppError('Invalid date: empty string', {
         type: ErrorType.Validation,
       });
     }
-    
+
     const formats = [
       'yyyy-MM-dd',
       'MM/dd/yyyy',
@@ -78,17 +78,17 @@ const validateDate = (input: string | Date): void => {
       'yyyy/MM/dd',
       'MM-dd-yyyy',
     ];
-    
+
     for (const format of formats) {
       const parsed = parse(trimmed, format, new Date());
-      
+
       if (isValid(parsed)) {
         date = parsed;
         break;
       }
     }
   }
-  
+
   /* ----------------------------------
    * Final validation
    * ---------------------------------- */

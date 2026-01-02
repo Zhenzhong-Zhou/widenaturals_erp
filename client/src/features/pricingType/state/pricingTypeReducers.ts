@@ -17,7 +17,7 @@ import pricingTypeMetadataReducer from './pricingTypeMetadataSlice';
 export const pricingTypeReducers = {
   /** Paginated and searchable pricing type list */
   pricingTypes: pricingTypesReducer,
-  
+
   /** Metadata and configuration for a single pricing type */
   pricingTypeMetadata: pricingTypeMetadataReducer,
 };

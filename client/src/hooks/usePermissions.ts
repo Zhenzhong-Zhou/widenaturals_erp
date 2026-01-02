@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
-import type {
-  UsePermissions,
-} from '@features/authorize/state';
+import type { UsePermissions } from '@features/authorize/state';
 import {
   fetchPermissionsThunk,
   selectPermissions,

@@ -7,9 +7,7 @@ import {
   selectPackagingMaterialLookupLoading,
   selectPackagingMaterialLookupMeta,
 } from '@features/lookup/state';
-import type {
-  PackagingMaterialLookupQueryParams,
-} from '@features/lookup/state';
+import type { PackagingMaterialLookupQueryParams } from '@features/lookup/state';
 import { resetPackagingMaterialLookup } from '@features/lookup/state/packagingMaterialLookupSlice';
 
 /**

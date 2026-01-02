@@ -21,16 +21,16 @@ import completeManualFulfillmentReducer from './completeManualFulfillmentSlice';
 export const outboundFulfillmentReducers = {
   /** Initiation of outbound fulfillment workflows */
   initiateOutboundFulfillment: initiateOutboundFulfillmentReducer,
-  
+
   /** Paginated list of outbound fulfillments */
   paginatedOutboundFulfillments: paginatedOutboundFulfillmentsReducer,
-  
+
   /** Outbound shipment detail view */
   outboundShipmentDetails: outboundShipmentDetailsReducer,
-  
+
   /** Confirmation step for outbound fulfillment */
   confirmOutboundFulfillment: confirmOutboundFulfillmentReducer,
-  
+
   /** Manual completion of outbound fulfillment */
   completeManualFulfillment: completeManualFulfillmentReducer,
 };

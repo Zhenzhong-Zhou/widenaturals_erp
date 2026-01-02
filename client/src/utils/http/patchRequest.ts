@@ -10,7 +10,7 @@ export interface PatchRequestOptions {
    * Defaults to WRITE.
    */
   policy?: WritePolicy;
-  
+
   /**
    * Optional Axios request configuration.
    */
@@ -44,7 +44,7 @@ export const patchRequest = async <T, R>(
   options: PatchRequestOptions = {}
 ): Promise<R> => {
   const { policy = 'WRITE', config } = options;
-  
+
   try {
     const response = await requestWithNamedPolicy(
       (signal) =>
@@ -54,7 +54,7 @@ export const patchRequest = async <T, R>(
         }),
       policy
     );
-    
+
     return response.data;
   } catch (error: unknown) {
     throw mapHttpError(error);

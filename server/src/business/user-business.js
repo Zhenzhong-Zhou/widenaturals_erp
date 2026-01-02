@@ -1,4 +1,6 @@
-const { resolveUserPermissionContext } = require('../services/role-permission-service');
+const {
+  resolveUserPermissionContext,
+} = require('../services/role-permission-service');
 const { USER_CONSTANTS } = require('../utils/constants/domain/user-constants');
 const { logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
@@ -34,31 +36,33 @@ const { getStatusId } = require('../config/status-cache');
 const evaluateUserVisibilityAccessControl = async (user) => {
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     // Can view system / automation users
     const canViewSystemUsers =
       isRoot ||
       permissions.includes(USER_CONSTANTS.PERMISSIONS.VIEW_SYSTEM_USERS);
-    
+
     // Can view root-level users
     const canViewRootUsers =
       isRoot ||
       permissions.includes(USER_CONSTANTS.PERMISSIONS.VIEW_ROOT_USERS);
-    
+
     const canViewInactiveUsers =
       isRoot ||
       permissions.includes(USER_CONSTANTS.PERMISSIONS.VIEW_INACTIVE_USERS);
-    
+
     // Full override → can see all users regardless of category
     const canViewAllUsers =
       isRoot ||
-      permissions.includes(USER_CONSTANTS.PERMISSIONS.VIEW_USERS_ALL_VISIBILITY);
-    
+      permissions.includes(
+        USER_CONSTANTS.PERMISSIONS.VIEW_USERS_ALL_VISIBILITY
+      );
+
     // Derived rule:
     // Default to ACTIVE-only visibility unless explicitly permitted
     // to view inactive users or granted full visibility override
     const enforceActiveOnly = !canViewInactiveUsers && !canViewAllUsers;
-    
+
     return {
       canViewSystemUsers,
       canViewRootUsers,
@@ -67,11 +71,15 @@ const evaluateUserVisibilityAccessControl = async (user) => {
       enforceActiveOnly,
     };
   } catch (err) {
-    logSystemException(err, 'Failed to evaluate user visibility access control', {
-      context: 'user-business/evaluateUserVisibilityAccessControl',
-      userId: user?.id,
-    });
-    
+    logSystemException(
+      err,
+      'Failed to evaluate user visibility access control',
+      {
+        context: 'user-business/evaluateUserVisibilityAccessControl',
+        userId: user?.id,
+      }
+    );
+
     throw AppError.businessError(
       'Unable to evaluate user visibility access control.',
       { details: err.message }
@@ -110,7 +118,7 @@ const evaluateUserVisibilityAccessControl = async (user) => {
 const applyUserListVisibilityRules = (filters, acl) => {
   const adjusted = { ...filters };
   const ACTIVE_USER_STATUS_ID = getStatusId('general_active');
-  
+
   // -------------------------------------------------------------
   // 1. Full override → no visibility restrictions
   // -------------------------------------------------------------
@@ -122,7 +130,7 @@ const applyUserListVisibilityRules = (filters, acl) => {
     delete adjusted.activeStatusId;
     return adjusted;
   }
-  
+
   // -------------------------------------------------------------
   // 2. Status visibility (ACTIVE-only enforced unless permitted)
   // -------------------------------------------------------------
@@ -134,17 +142,17 @@ const applyUserListVisibilityRules = (filters, acl) => {
     delete adjusted.enforceActiveOnly;
     delete adjusted.activeStatusId;
   }
-  
+
   // -------------------------------------------------------------
   // 3. System user visibility
   // -------------------------------------------------------------
   adjusted.includeSystemUsers = acl.canViewSystemUsers === true;
-  
+
   // -------------------------------------------------------------
   // 4. Root user visibility
   // -------------------------------------------------------------
   adjusted.includeRootUsers = acl.canViewRootUsers === true;
-  
+
   return adjusted;
 };
 
@@ -174,15 +182,12 @@ const sliceUserForUser = (userRow, access) => {
     // this is defensive only
     return null;
   }
-  
+
   // Status visibility (ACTIVE-only)
-  if (
-    access.enforceActiveOnly &&
-    userRow.status_name !== 'active'
-  ) {
+  if (access.enforceActiveOnly && userRow.status_name !== 'active') {
     return null;
   }
-  
+
   return userRow;
 };
 
@@ -206,18 +211,15 @@ const sliceUserForUser = (userRow, access) => {
  */
 const evaluateUserProfileAccessControl = async (requester, targetUserId) => {
   const isSelf = requester?.id === targetUserId;
-  
-  const { permissions, isRoot } =
-    await resolveUserPermissionContext(requester);
-  
+
+  const { permissions, isRoot } = await resolveUserPermissionContext(requester);
+
   return {
     isSelf,
     canViewProfile:
       isSelf ||
       isRoot ||
-      permissions.includes(
-        USER_CONSTANTS.PERMISSIONS.VIEW_ANY_USER_PROFILE
-      ),
+      permissions.includes(USER_CONSTANTS.PERMISSIONS.VIEW_ANY_USER_PROFILE),
   };
 };
 
@@ -249,16 +251,13 @@ const sliceUserProfileForUser = (row, access) => {
  * }>}
  */
 const evaluateUserRoleViewAccessControl = async (requester, profileAccess) => {
-  const { permissions, isRoot } =
-    await resolveUserPermissionContext(requester);
-  
+  const { permissions, isRoot } = await resolveUserPermissionContext(requester);
+
   return {
     canViewRole:
       profileAccess.isSelf ||
       isRoot ||
-      permissions.includes(
-        USER_CONSTANTS.PERMISSIONS.VIEW_USER_ROLES
-      ),
+      permissions.includes(USER_CONSTANTS.PERMISSIONS.VIEW_USER_ROLES),
   };
 };
 

@@ -1,6 +1,9 @@
 import { renderBaseInputField } from '@utils/form/FieldRenderers';
 import { getSeriesBrandCategoryHelperText } from '@features/product/utils/productFieldValidators';
-import type { CustomRenderParams, FieldConfig } from '@components/common/CustomForm';
+import type {
+  CustomRenderParams,
+  FieldConfig,
+} from '@components/common/CustomForm';
 import type { RowAwareComponentProps } from '@components/common/MultiItemForm';
 
 /**
@@ -109,9 +112,11 @@ export const makeSeriesBrandCategoryField = (
  * // Update Product Info form
  * const fields = buildProductInfoFields({ isUpdate: true });
  */
-export const buildProductInfoFields = (options?: { isUpdate?: boolean }): FieldConfig[] => {
+export const buildProductInfoFields = (options?: {
+  isUpdate?: boolean;
+}): FieldConfig[] => {
   const isUpdate = options?.isUpdate ?? false;
-  
+
   return [
     {
       id: 'name',

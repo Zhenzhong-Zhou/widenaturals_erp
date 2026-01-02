@@ -7,9 +7,7 @@ import {
   selectBatchRegistryLookupLoading,
   selectBatchRegistryLookupMeta,
 } from '@features/lookup/state';
-import type {
-  GetBatchRegistryLookupParams,
-} from '@features/lookup/state';
+import type { GetBatchRegistryLookupParams } from '@features/lookup/state';
 import { resetBatchRegistryLookup } from '@features/lookup/state/batchRegistryLookupSlice';
 
 /**

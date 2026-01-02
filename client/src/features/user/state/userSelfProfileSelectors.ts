@@ -4,8 +4,7 @@ import type { RootState } from '@store/store';
 /**
  * Root selector for the self user profile slice.
  */
-const selectUserSelfProfileState = (state: RootState) =>
-  state.userSelfProfile;
+const selectUserSelfProfileState = (state: RootState) => state.userSelfProfile;
 
 /**
  * Loading status for self profile.

@@ -17,7 +17,7 @@ export const flattenUserProfile = (
   profile: UserProfile | null
 ): FlattenedUserProfile | null => {
   if (!profile) return null;
-  
+
   return {
     // ----------------------------
     // Core identity
@@ -27,16 +27,14 @@ export const flattenUserProfile = (
     email: profile.email,
     jobTitle: profile.jobTitle,
     isSystem: profile.isSystem,
-    
+
     // ----------------------------
     // Avatar
     // ----------------------------
-    avatarUrl: profile.avatar?.url
-      ? formatImageUrl(profile.avatar.url)
-      : null,
+    avatarUrl: profile.avatar?.url ? formatImageUrl(profile.avatar.url) : null,
     avatarFormat: profile.avatar?.format ?? null,
     avatarUploadedAt: profile.avatar?.uploadedAt ?? null,
-    
+
     // ----------------------------
     // Role & permissions
     // ----------------------------
@@ -44,15 +42,15 @@ export const flattenUserProfile = (
     roleName: profile.role?.name ?? null,
     roleGroup: profile.role?.roleGroup ?? null,
     hierarchyLevel: profile.role?.hierarchyLevel ?? null,
-    permissions: profile.role?.permissions?.map(p => p.name) ?? [],
-    
+    permissions: profile.role?.permissions?.map((p) => p.name) ?? [],
+
     // ----------------------------
     // Status
     // ----------------------------
     statusId: profile.status?.id ?? null,
     statusName: profile.status?.name ?? null,
     statusDate: profile.status?.date ?? null,
-    
+
     // ----------------------------
     // Audit
     // ----------------------------

@@ -29,9 +29,10 @@ import { buildQueryString } from '@utils/buildQueryString';
 const initiateOutboundFulfillment = (
   request: InitiateFulfillmentRequest
 ): Promise<InitiateFulfillmentResponse> => {
-  const url =
-    API_ENDPOINTS.OUTBOUND_FULFILLMENTS.INITIATE_FULFILLMENT(request.orderId);
-  
+  const url = API_ENDPOINTS.OUTBOUND_FULFILLMENTS.INITIATE_FULFILLMENT(
+    request.orderId
+  );
+
   return postRequest<InitiateFulfillmentBody, InitiateFulfillmentResponse>(
     url,
     request.body
@@ -47,12 +48,12 @@ const fetchPaginatedOutboundFulfillment = (
   params: OutboundFulfillmentQuery = {}
 ): Promise<PaginatedOutboundFulfillmentResponse> => {
   const { filters = {}, ...rest } = params;
-  
+
   const queryString = buildQueryString({
     ...rest,
     ...filters,
   });
-  
+
   return getRequest<PaginatedOutboundFulfillmentResponse>(
     `${API_ENDPOINTS.OUTBOUND_FULFILLMENTS.ALL_RECORDS}${queryString}`,
     { policy: 'READ' }
@@ -69,7 +70,7 @@ const fetchOutboundShipmentDetails = (
 ): Promise<ShipmentDetailsResponse> => {
   const url =
     API_ENDPOINTS.OUTBOUND_FULFILLMENTS.OUTBOUND_SHIPMENT_DETAILS(shipmentId);
-  
+
   return getRequest<ShipmentDetailsResponse>(url, { policy: 'READ' });
 };
 
@@ -83,9 +84,8 @@ const confirmOutboundFulfillment = (
   request: ConfirmOutboundFulfillmentRequest
 ): Promise<ConfirmOutboundFulfillmentResponse> => {
   const { orderId, ...body } = request;
-  const url =
-    API_ENDPOINTS.OUTBOUND_FULFILLMENTS.CONFIRM_FULFILLMENT(orderId);
-  
+  const url = API_ENDPOINTS.OUTBOUND_FULFILLMENTS.CONFIRM_FULFILLMENT(orderId);
+
   return postRequest<
     ConfirmOutboundFulfillmentBody,
     ConfirmOutboundFulfillmentResponse
@@ -104,7 +104,7 @@ const completeManualFulfillment = (
   const { shipmentId, body } = params;
   const url =
     API_ENDPOINTS.OUTBOUND_FULFILLMENTS.COMPLETE_MANUAL_FULFILLMENT(shipmentId);
-  
+
   return postRequest<
     CompleteManualFulfillmentBody,
     CompleteManualFulfillmentResponse

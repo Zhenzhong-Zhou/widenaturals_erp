@@ -30,22 +30,22 @@ const complianceSortOptions: {
 }[] = [
   // ---- Core compliance fields ----
   { label: 'Compliance Number', value: 'complianceNumber' },
-  
+
   // ---- Product / SKU context ----
   { label: 'Product Name', value: 'productName' },
   { label: 'SKU Code', value: 'skuCode' },
-  
+
   // ---- Status ----
   { label: 'Status', value: 'status' },
-  
+
   // ---- Compliance dates ----
   { label: 'Issued Date', value: 'issuedDate' },
   { label: 'Expiry Date', value: 'expiryDate' },
-  
+
   // ---- Audit fields ----
   { label: 'Created At', value: 'createdAt' },
   { label: 'Updated At', value: 'updatedAt' },
-  
+
   // ---- Default fallback ----
   { label: 'Default (Natural Sort)', value: 'defaultNaturalSort' },
 ];
@@ -56,19 +56,17 @@ const complianceSortOptions: {
  * Thin semantic wrapper around the shared <SortControls /> component.
  */
 const ComplianceSortControls: FC<ComplianceSortControlsProps> = ({
-                                                                   sortBy,
-                                                                   sortOrder,
-                                                                   onSortByChange,
-                                                                   onSortOrderChange,
-                                                                 }) => {
+  sortBy,
+  sortOrder,
+  onSortByChange,
+  onSortOrderChange,
+}) => {
   return (
     <SortControls
       sortBy={sortBy}
       sortOrder={sortOrder}
       sortOptions={complianceSortOptions}
-      onSortByChange={(val) =>
-        onSortByChange(val as ComplianceRecordSortField)
-      }
+      onSortByChange={(val) => onSortByChange(val as ComplianceRecordSortField)}
       onSortOrderChange={onSortOrderChange}
     />
   );

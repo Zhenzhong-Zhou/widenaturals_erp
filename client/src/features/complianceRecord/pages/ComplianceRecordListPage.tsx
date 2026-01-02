@@ -23,7 +23,10 @@ import {
   ComplianceSortControls,
 } from '@features/complianceRecord/components/ComplianceRecordListTable';
 
-const ComplianceListTable = lazy(() => import('@features/complianceRecord/components/ComplianceRecordListTable/ComplianceRecordListTable'));
+const ComplianceListTable = lazy(
+  () =>
+    import('@features/complianceRecord/components/ComplianceRecordListTable/ComplianceRecordListTable')
+);
 
 const ComplianceRecordListPage = () => {
   // -----------------------------
@@ -36,7 +39,7 @@ const ComplianceRecordListPage = () => {
   const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
   const [filters, setFilters] = useState<ComplianceFilters>({});
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-  
+
   // -----------------------------
   // Data sources
   // -----------------------------
@@ -50,14 +53,13 @@ const ComplianceRecordListPage = () => {
     fetchComplianceRecords,
     resetComplianceRecords,
   } = usePaginatedComplianceRecords();
-  
+
   const lookups = useComplianceRecordLookups();
 
   // -----------------------------
   // Derived data
   // -----------------------------
-  const flattenListData =
-    flattenComplianceRecordsToRows(complianceRecords);
+  const flattenListData = flattenComplianceRecordsToRows(complianceRecords);
 
   // -----------------------------
   // Query model (shared)
@@ -72,14 +74,14 @@ const ComplianceRecordListPage = () => {
     }),
     [page, limit, sortBy, sortOrder, filters]
   );
-  
+
   // -----------------------------
   // Refresh action
   // -----------------------------
   const refreshComplianceList = useCallback(() => {
     fetchComplianceRecords(fullQuery);
   }, [fullQuery, fetchComplianceRecords]);
-  
+
   // -----------------------------
   // Params for filtering/sorting engine
   // -----------------------------
@@ -90,16 +92,15 @@ const ComplianceRecordListPage = () => {
     }),
     [fullQuery, refreshComplianceList]
   );
-  
+
   // -----------------------------
   // Debounced fetch
   // -----------------------------
   useEffect(() => {
-    const timeout = setTimeout(
-      () => applyFiltersAndSorting(queryParams), 200);
+    const timeout = setTimeout(() => applyFiltersAndSorting(queryParams), 200);
     return () => clearTimeout(timeout);
   }, [queryParams]);
-  
+
   // Reset filters on unmount
   useEffect(() => {
     return () => {
@@ -110,19 +111,22 @@ const ComplianceRecordListPage = () => {
   // -----------------------------
   // Lookup handlers (lazy fetch, reset)
   // -----------------------------
-  const lookupHandlers = useMemo(() => ({
-    resetAll: () => {
-      lookups.status.reset();
-    },
-    
-    onOpen: {
-      status: createLazyOpenHandler(
-        lookups.status.options,
-        lookups.status.fetch
-      ),
-    },
-  }), [lookups]);
-  
+  const lookupHandlers = useMemo(
+    () => ({
+      resetAll: () => {
+        lookups.status.reset();
+      },
+
+      onOpen: {
+        status: createLazyOpenHandler(
+          lookups.status.options,
+          lookups.status.fetch
+        ),
+      },
+    }),
+    [lookups]
+  );
+
   // -----------------------------
   // Event handlers
   // -----------------------------
@@ -132,21 +136,20 @@ const ComplianceRecordListPage = () => {
     lookupHandlers.resetAll();
     setPage(1);
   }, [resetComplianceRecords, lookupHandlers]);
-  
+
   const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(
     setPage,
     setLimit
   );
-  
+
   const handleDrillDownToggle = (rowId: string) => {
     setExpandedRowId((current) => (current === rowId ? null : rowId));
   };
-  
+
   // Show empty state only when data is truly empty (avoid flashing during loading)
   const showEmpty =
-    isComplianceEmpty ||
-    (!isComplianceLoading && flattenListData.length === 0);
-  
+    isComplianceEmpty || (!isComplianceLoading && flattenListData.length === 0);
+
   return (
     <Box sx={{ px: 4, py: 3 }}>
       {/* Header */}
@@ -162,9 +165,9 @@ const ComplianceRecordListPage = () => {
           Compliance Records Management
         </CustomTypography>
       </Box>
-      
+
       <Divider sx={{ mb: 3 }} />
-      
+
       {/* Filter + Sort Controls */}
       <Card sx={{ p: 3, mb: 4, borderRadius: 2, minHeight: 200 }}>
         <Grid container spacing={2}>
@@ -188,7 +191,7 @@ const ComplianceRecordListPage = () => {
           </Grid>
         </Grid>
       </Card>
-      
+
       {isComplianceLoading ? (
         <Loading variant="dotted" message="Loading Compliance Records..." />
       ) : complianceError ? (

@@ -3,8 +3,10 @@ import MultiSelectDropdown, {
   MultiSelectDropdownProps,
 } from '@components/common/MultiSelectDropdown';
 
-type SkuMultiSelectDropdownProps =
-  Omit<MultiSelectDropdownProps, 'label' | 'placeholder'> & {
+type SkuMultiSelectDropdownProps = Omit<
+  MultiSelectDropdownProps,
+  'label' | 'placeholder'
+> & {
   label?: string;
   placeholder?: string;
 };
@@ -16,21 +18,21 @@ type SkuMultiSelectDropdownProps =
  * for consistent API and usage.
  */
 const SkuMultiSelectDropdown: FC<SkuMultiSelectDropdownProps> = ({
-                                                                   label = 'Select SKU',
-                                                                   options,
-                                                                   selectedOptions,
-                                                                   onChange,
-                                                                   onOpen,
-                                                                   loading,
-                                                                   disabled,
-                                                                   error,
-                                                                   helperText,
-                                                                   sx,
-                                                                   placeholder = 'Choose SKU…',
-                                                                   paginationMeta,
-                                                                   inputValue,
-                                                                   onInputChange,
-                                                                 }) => {
+  label = 'Select SKU',
+  options,
+  selectedOptions,
+  onChange,
+  onOpen,
+  loading,
+  disabled,
+  error,
+  helperText,
+  sx,
+  placeholder = 'Choose SKU…',
+  paginationMeta,
+  inputValue,
+  onInputChange,
+}) => {
   return (
     <MultiSelectDropdown
       label={label}

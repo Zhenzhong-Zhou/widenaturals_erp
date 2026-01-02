@@ -6,7 +6,7 @@ export const sidebarStyles = (
 ): SxProps<Theme> => ({
   width: isOpen ? '240px' : '80px',
   flexShrink: 0,
-  
+
   '& .MuiDrawer-paper': {
     width: isOpen ? '240px' : '80px',
     height: '100vh',
@@ -17,7 +17,7 @@ export const sidebarStyles = (
     transition: 'width 0.3s ease',
     overflow: 'hidden',
   },
-  
+
   [theme.breakpoints.down('md')]: {
     '& .MuiDrawer-paper': {
       width: isOpen ? '240px' : '0px',
@@ -25,7 +25,7 @@ export const sidebarStyles = (
       zIndex: 1300,
     },
   },
-  
+
   [theme.breakpoints.down('sm')]: {
     '& .MuiDrawer-paper': {
       width: isOpen ? '100%' : '0px',

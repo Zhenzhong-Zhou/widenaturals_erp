@@ -4,7 +4,7 @@ import {
   appRoutes,
   GuestRoute,
   PermissionGuard,
-  ProtectedRoutes
+  ProtectedRoutes,
 } from '@routes/index';
 import MainLayout from '@layouts/MainLayout/MainLayout';
 import Loading from '@components/common/Loading';
@@ -24,7 +24,7 @@ import { PermissionsProvider } from '@context/PermissionsContext';
 const AppRoutes = () => {
   // Resolve permissions once before route rendering
   const { roleName, permissions, error } = usePermissions();
-  
+
   if (error) {
     return (
       <ErrorDisplay>
@@ -32,10 +32,16 @@ const AppRoutes = () => {
       </ErrorDisplay>
     );
   }
-  
+
   return (
-    <PermissionsProvider roleName={roleName} permissions={permissions} error={error}>
-      <Suspense fallback={<Loading size={24} variant="spinner" message="Loading…" />}>
+    <PermissionsProvider
+      roleName={roleName}
+      permissions={permissions}
+      error={error}
+    >
+      <Suspense
+        fallback={<Loading size={24} variant="spinner" message="Loading…" />}
+      >
         <Routes>
           {appRoutes.map(({ path, component: Component, meta }) => {
             const requiresAuth = meta?.requiresAuth === true;
@@ -53,7 +59,7 @@ const AppRoutes = () => {
                 />
               );
             }
-            
+
             // Protected
             if (requiresAuth) {
               return (
@@ -63,7 +69,9 @@ const AppRoutes = () => {
                   element={
                     <ProtectedRoutes>
                       <MainLayout>
-                        <PermissionGuard requiredPermission={meta?.requiredPermission}>
+                        <PermissionGuard
+                          requiredPermission={meta?.requiredPermission}
+                        >
                           <Component />
                         </PermissionGuard>
                       </MainLayout>
@@ -72,11 +80,11 @@ const AppRoutes = () => {
                 />
               );
             }
-            
+
             // Public
             return <Route key={path} path={path} element={<Component />} />;
           })}
-          
+
           <Route path="*" element={<Navigate to="/404" replace />} />
         </Routes>
       </Suspense>

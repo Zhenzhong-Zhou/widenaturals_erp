@@ -27,30 +27,33 @@ type PermissionGuardProps = {
  * - Redirects to 404 if permission cannot be resolved
  * - Redirects to access-denied if permission check fails
  */
-const PermissionGuard = ({ requiredPermission, children }: PermissionGuardProps) => {
+const PermissionGuard = ({
+  requiredPermission,
+  children,
+}: PermissionGuardProps) => {
   const { roleName, permissions } = usePermissions();
   const params = useParams();
-  
+
   // Resolve permission once per route/param change
   const resolvedPermission = useMemo(() => {
     return resolvePermission(requiredPermission, params);
   }, [requiredPermission, params]);
-  
+
   if (!requiredPermission) {
     return <>{children}</>;
   }
-  
+
   if (resolvedPermission === null) {
     return <Navigate to="/404" replace />;
   }
-  
+
   if (
     resolvedPermission !== undefined &&
     !hasPermission(resolvedPermission, permissions, roleName)
   ) {
     return <Navigate to="/access-denied" replace />;
   }
-  
+
   return <>{children}</>;
 };
 

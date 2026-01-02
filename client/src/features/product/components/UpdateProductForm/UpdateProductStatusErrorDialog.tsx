@@ -11,12 +11,9 @@ interface UpdateProductStatusErrorDialogProps {
   productName?: string;
 }
 
-const UpdateProductStatusErrorDialog: FC<UpdateProductStatusErrorDialogProps> = ({
-                                                                                   open,
-                                                                                   onClose,
-                                                                                   error,
-                                                                                   productName,
-                                                                                 }) => {
+const UpdateProductStatusErrorDialog: FC<
+  UpdateProductStatusErrorDialogProps
+> = ({ open, onClose, error, productName }) => {
   return (
     <CustomDialog
       open={open}
@@ -36,7 +33,7 @@ const UpdateProductStatusErrorDialog: FC<UpdateProductStatusErrorDialogProps> = 
                 <strong>Product:</strong> {productName}
               </Box>
             )}
-            
+
             {error ? (
               <Box sx={{ mt: 1 }}>{error}</Box>
             ) : (

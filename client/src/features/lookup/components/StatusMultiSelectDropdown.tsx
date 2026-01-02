@@ -9,8 +9,10 @@ import MultiSelectDropdown, {
  * Thin semantic wrapper around MultiSelectDropdown.
  * Allows defaults and future status-only extensions.
  */
-type StatusMultiSelectDropdownProps =
-  Omit<MultiSelectDropdownProps, 'label' | 'placeholder'> & {
+type StatusMultiSelectDropdownProps = Omit<
+  MultiSelectDropdownProps,
+  'label' | 'placeholder'
+> & {
   label?: string;
   placeholder?: string;
 };
@@ -20,20 +22,20 @@ type StatusMultiSelectDropdownProps =
  * Mirrors the structure and behavior of LotAdjustmentTypeMultiSelectDropdown.
  */
 const StatusMultiSelectDropdown: FC<StatusMultiSelectDropdownProps> = ({
-                                                                         label = 'Select Status',
-                                                                         options,
-                                                                         selectedOptions,
-                                                                         onChange,
-                                                                         onOpen,
-                                                                         loading,
-                                                                         disabled,
-                                                                         error,
-                                                                         helperText,
-                                                                         sx,
-                                                                         placeholder = 'Choose status…',
-                                                                         paginationMeta,
-                                                                         inputValue,
-                                                                         onInputChange,
+  label = 'Select Status',
+  options,
+  selectedOptions,
+  onChange,
+  onOpen,
+  loading,
+  disabled,
+  error,
+  helperText,
+  sx,
+  placeholder = 'Choose status…',
+  paginationMeta,
+  inputValue,
+  onInputChange,
 }) => {
   return (
     <MultiSelectDropdown

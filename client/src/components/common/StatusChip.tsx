@@ -11,12 +11,12 @@ interface StatusChipProps {
 }
 
 const StatusChip = ({
-                      label,
-                      color = 'default',
-                      variant = color === 'default' ? 'outlined' : 'filled',
-                      size = 'small',
-                      sx,
-                    }: StatusChipProps) => {
+  label,
+  color = 'default',
+  variant = color === 'default' ? 'outlined' : 'filled',
+  size = 'small',
+  sx,
+}: StatusChipProps) => {
   const baseSx: SxProps<Theme> = (theme) => ({
     textTransform: 'uppercase',
     fontWeight: 700,
@@ -36,11 +36,11 @@ const StatusChip = ({
         color: theme.palette[color]?.contrastText,
       }),
   });
-  
+
   const mergedSx: SxProps<Theme> = sx
     ? [baseSx, ...(Array.isArray(sx) ? sx : [sx])]
     : baseSx;
-  
+
   return (
     <Chip
       label={label}

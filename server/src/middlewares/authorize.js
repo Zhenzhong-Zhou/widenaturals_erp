@@ -30,29 +30,29 @@ const resolvePermissions = async (req) => {
   if (!req.user) {
     throw AppError.authenticationError('Unauthorized: User not authenticated.');
   }
-  
+
   // Reuse permissions if already resolved earlier in the pipeline
   if (Array.isArray(req.permissions)) {
     return req.permissions;
   }
-  
+
   const { role } = req.user;
   const cacheKey = `role_permissions:${role}`;
-  
+
   let rolePermissions;
   const cached = await redisClient.get(cacheKey);
-  
+
   if (cached) {
     rolePermissions = JSON.parse(cached);
   } else {
     rolePermissions = await getRolePermissionsByRoleId(role);
-    
+
     if (!rolePermissions || !Array.isArray(rolePermissions.permissions)) {
       throw AppError.authorizationError('Role permissions not found.', {
         details: { role },
       });
     }
-    
+
     await redisClient.set(
       cacheKey,
       JSON.stringify(rolePermissions),
@@ -60,7 +60,7 @@ const resolvePermissions = async (req) => {
       3600 // 1 hour
     );
   }
-  
+
   req.permissions = rolePermissions.permissions;
   return req.permissions;
 };
@@ -83,15 +83,15 @@ const authorize = (requiredPermissions = []) => {
   return async (req, res, next) => {
     try {
       const permissions = await resolvePermissions(req);
-      
+
       if (permissions.includes('root_access')) {
         return next();
       }
-      
+
       const hasAll = requiredPermissions.every((perm) =>
         permissions.includes(perm)
       );
-      
+
       if (!hasAll) {
         throw AppError.authorizationError(
           'Forbidden: Insufficient permissions.',
@@ -102,7 +102,7 @@ const authorize = (requiredPermissions = []) => {
           }
         );
       }
-      
+
       next();
     } catch (err) {
       logError(err, req, { middleware: 'authorize' });
@@ -129,15 +129,15 @@ const authorizeAny = (requiredPermissions = []) => {
   return async (req, res, next) => {
     try {
       const permissions = await resolvePermissions(req);
-      
+
       if (permissions.includes('root_access')) {
         return next();
       }
-      
+
       const hasAny = requiredPermissions.some((perm) =>
         permissions.includes(perm)
       );
-      
+
       if (!hasAny) {
         throw AppError.authorizationError(
           'Forbidden: Insufficient permissions.',
@@ -146,7 +146,7 @@ const authorizeAny = (requiredPermissions = []) => {
           }
         );
       }
-      
+
       next();
     } catch (err) {
       logError(err, req, { middleware: 'authorizeAny' });

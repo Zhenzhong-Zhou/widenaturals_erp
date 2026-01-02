@@ -107,7 +107,8 @@ export default defineConfig(({ mode }) => ({
             if (id.includes('jwt-decode')) return 'jwt-vendor';
             if (id.includes('styled-components')) return 'styled-vendor';
             if (id.includes('i18n-iso-countries')) return 'i18n-vendor';
-            if (id.includes('react-medium-image-zoom')) return 'image-zoom-vendor';
+            if (id.includes('react-medium-image-zoom'))
+              return 'image-zoom-vendor';
             if (id.includes('react-zoom-pan-pinch')) return 'zoom-vendor';
             if (id.includes('react-toastify')) return 'toast-vendor';
             if (id.includes('react-phone-input-2')) return 'phone-input-vendor';
@@ -122,7 +123,7 @@ export default defineConfig(({ mode }) => ({
             if (id.includes('immer')) return 'immer-vendor';
             if (id.includes('js-cookie')) return 'cookie-vendor';
             if (id.includes('axios-retry')) return 'axios-retry-vendor';
-            
+
             return 'misc-vendor'; // fallback for unclassified external deps
           }
 

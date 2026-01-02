@@ -32,27 +32,28 @@ const login = async (
       passwordProvided: Boolean(password),
     });
   }
-  
-  const data =await postRequest<{ email: string; password: string }, LoginResponse>(
+
+  const data = await postRequest<
+    { email: string; password: string },
+    LoginResponse
+  >(
     API_ENDPOINTS.SECURITY.SESSION.LOGIN,
     { email, password },
     { policy: 'AUTH' }
   );
-  
+
   const { accessToken, csrfToken } = data;
-  
+
   if (!accessToken || !csrfToken) {
     throw AppError.server('Invalid login response payload', {
       receivedKeys: Object.keys(data ?? {}),
     });
   }
-  
+
   // Explicit auth side effects (intentional)
-  axiosInstance.defaults.headers.common.Authorization =
-    `Bearer ${accessToken}`;
-  axiosInstance.defaults.headers.common['X-CSRF-Token'] =
-    csrfToken;
-  
+  axiosInstance.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
+  axiosInstance.defaults.headers.common['X-CSRF-Token'] = csrfToken;
+
   return data;
 };
 
@@ -65,16 +66,14 @@ const MAX_REFRESH_ATTEMPTS = 3;
 
 const refreshToken = async (): Promise<{ accessToken: string }> => {
   if (refreshAttemptCount >= MAX_REFRESH_ATTEMPTS) {
-    throw AppError.authentication(
-      'Session expired. Please log in again.'
-    );
+    throw AppError.authentication('Session expired. Please log in again.');
   }
-  
+
   refreshAttemptCount += 1;
-  
+
   try {
     const csrfToken = selectCsrfToken(store.getState());
-    
+
     const { accessToken } = await postRequest<void, { accessToken: string }>(
       API_ENDPOINTS.SECURITY.SESSION.REFRESH,
       undefined,
@@ -89,18 +88,17 @@ const refreshToken = async (): Promise<{ accessToken: string }> => {
         },
       }
     );
-    
-    axiosInstance.defaults.headers.common.Authorization =
-      `Bearer ${accessToken}`;
-    
+
+    axiosInstance.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
+
     refreshAttemptCount = 0;
     return { accessToken };
   } catch {
     refreshAttemptCount = 0;
-    
+
     store.dispatch(logoutThunk());
     window.location.href = '/login?expired=true';
-    
+
     throw AppError.authentication('Token refresh failed');
   }
 };

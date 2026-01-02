@@ -13,7 +13,7 @@ export interface UiErrorPayload {
    * Safe to display directly in the UI.
    */
   message: string;
-  
+
   /**
    * Optional diagnostic trace identifier.
    *
@@ -45,27 +45,20 @@ export const extractUiErrorPayload = (error: unknown): UiErrorPayload => {
       traceId: error.correlationId,
     };
   }
-  
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'response' in error
-  ) {
+
+  if (typeof error === 'object' && error !== null && 'response' in error) {
     const resp = (error as any).response;
-    
+
     return {
-      message:
-        resp?.data?.message ??
-        resp?.statusText ??
-        'Request failed',
+      message: resp?.data?.message ?? resp?.statusText ?? 'Request failed',
       traceId: resp?.data?.traceId,
     };
   }
-  
+
   if (error instanceof Error) {
     return { message: error.message };
   }
-  
+
   return { message: 'An unexpected error occurred. Please try again.' };
 };
 
@@ -87,11 +80,11 @@ export const extractErrorMessage = (error: unknown): string => {
   if (error instanceof AppError) {
     return error.message;
   }
-  
+
   if (error instanceof Error) {
     return error.message;
   }
-  
+
   if (
     typeof error === 'object' &&
     error !== null &&
@@ -100,6 +93,6 @@ export const extractErrorMessage = (error: unknown): string => {
   ) {
     return (error as any).response.data.message;
   }
-  
+
   return 'An unexpected error occurred. Please try again.';
 };

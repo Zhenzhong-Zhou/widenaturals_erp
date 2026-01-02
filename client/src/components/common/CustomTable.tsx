@@ -1,9 +1,4 @@
-import {
-  Fragment,
-  type ReactNode,
-  useMemo,
-  useState
-} from 'react';
+import { Fragment, type ReactNode, useMemo, useState } from 'react';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -111,7 +106,7 @@ const CustomTable = <T extends Record<string, any>>({
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(columnId);
   };
-  
+
   const selectableRows = useMemo(
     () =>
       data.filter((row, idx) => {
@@ -120,7 +115,7 @@ const CustomTable = <T extends Record<string, any>>({
       }),
     [data, isRowSelectable, getRowProps]
   );
-  
+
   const sortedData = orderBy
     ? [...data].sort((a, b) => {
         const aVal = a[orderBy as keyof typeof a];
@@ -138,7 +133,7 @@ const CustomTable = <T extends Record<string, any>>({
   const safePage = Math.min(page, Math.max(0, (totalPages || 1) - 1));
 
   const totalColCount = finalColumns.length + (showCheckboxes ? 2 : 1);
-  
+
   return (
     <Paper
       sx={{
@@ -176,18 +171,18 @@ const CustomTable = <T extends Record<string, any>>({
                     }
                     onChange={(e) => {
                       if (!onSelectionChange) return;
-                      
+
                       const shouldSelectAll = e.target.checked;
                       const allIds = selectableRows.map(
                         (r) => getRowId?.(r) ?? r.id
                       );
-                      
+
                       onSelectionChange(shouldSelectAll ? allIds : []);
                     }}
                   />
                 </TableCell>
               )}
-              
+
               <TableCell
                 align="center"
                 sx={{
@@ -309,7 +304,9 @@ const CustomTable = <T extends Record<string, any>>({
                               }}
                               disabled={
                                 getRowProps?.(row, rowIndex)?.isGroupHeader ||
-                                (isRowSelectable ? !isRowSelectable(row, rowIndex) : false)
+                                (isRowSelectable
+                                  ? !isRowSelectable(row, rowIndex)
+                                  : false)
                               }
                               checked={selectedRowIds?.includes(rowId)}
                               onChange={(e) => {

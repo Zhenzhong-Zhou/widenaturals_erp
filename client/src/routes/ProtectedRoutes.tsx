@@ -20,26 +20,20 @@ interface ProtectedRoutesProps {
  * - Infer public paths
  */
 const ProtectedRoutes: FC<ProtectedRoutesProps> = ({
-                                                     children = <Outlet />,
-                                                   }) => {
+  children = <Outlet />,
+}) => {
   const { isAuthenticated, isLoading } = useSession();
   const location = useLocation();
-  
+
   // Optional: block while session is resolving
   if (isLoading) {
     return null;
   }
-  
+
   if (!isAuthenticated) {
-    return (
-      <Navigate
-        to="/login"
-        state={{ from: location }}
-        replace
-      />
-    );
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
-  
+
   return <>{children}</>;
 };
 

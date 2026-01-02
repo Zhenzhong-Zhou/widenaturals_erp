@@ -16,13 +16,13 @@ const { fetchUserProfileService } = require('../../services/user-service');
 (async () => {
   const client = await pool.connect();
   const logContext = '[Test: fetchUserProfile]';
-  
+
   try {
     // -----------------------------------------------------
     // 0. Ensure status cache is ready
     // -----------------------------------------------------
     await initStatusCache();
-    
+
     // -----------------------------------------------------
     // 1. Resolve a test requester (authenticated user)
     // -----------------------------------------------------
@@ -31,21 +31,21 @@ const { fetchUserProfileService } = require('../../services/user-service');
       // ['root@widenaturals.com']
       ['jp@widenaturals.com']
     );
-    
+
     if (rows.length === 0) {
       console.error(`${logContext} Test requester not found.`);
       return;
     }
-    
+
     const { id: requesterId, role_id: requesterRoleId } = rows[0];
-    
+
     const requester = {
       id: requesterId,
       role: requesterRoleId,
     };
-    
+
     console.log(`${logContext} Requester resolved:`, requester);
-    
+
     // -----------------------------------------------------
     // 2. Resolve a target user profile
     // -----------------------------------------------------
@@ -55,23 +55,20 @@ const { fetchUserProfileService } = require('../../services/user-service');
     //
     // *** Replace with a real user ID from your DB ***
     const targetUserId = requesterId; // self-profile test
-    
+
     console.log(`${logContext} Target User ID:`, targetUserId);
-    
+
     // -----------------------------------------------------
     // 3. Execute Service
     // -----------------------------------------------------
-    const result = await fetchUserProfileService(
-      targetUserId,
-      requester
-    );
-    
+    const result = await fetchUserProfileService(targetUserId, requester);
+
     // -----------------------------------------------------
     // 4. Logging
     // -----------------------------------------------------
     console.log(`${logContext} Result Object:`);
     console.dir(result, { depth: null, colors: true });
-    
+
     console.log(`${logContext} JSON Preview:\n`);
     console.log(JSON.stringify(result, null, 2));
   } catch (error) {

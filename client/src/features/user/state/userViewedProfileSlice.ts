@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type {
   UserProfileResponse,
-  UserViewedProfileState
+  UserViewedProfileState,
 } from '@features/user';
 import { fetchUserViewedProfileThunk } from '@features/user';
 
@@ -45,13 +45,11 @@ const userViewedProfileSlice = createSlice({
       )
       .addCase(fetchUserViewedProfileThunk.rejected, (state, action) => {
         state.loading = false;
-        state.error =
-          action.payload || 'Failed to load user profile.';
+        state.error = action.payload || 'Failed to load user profile.';
       });
   },
 });
 
-export const { resetUserViewedProfile } =
-  userViewedProfileSlice.actions;
+export const { resetUserViewedProfile } = userViewedProfileSlice.actions;
 
 export default userViewedProfileSlice.reducer;

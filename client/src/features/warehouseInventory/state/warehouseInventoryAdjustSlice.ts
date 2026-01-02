@@ -44,6 +44,5 @@ const warehouseInventoryAdjustSlice = createSlice({
   },
 });
 
-export const { resetAdjustInventory } =
-  warehouseInventoryAdjustSlice.actions;
+export const { resetAdjustInventory } = warehouseInventoryAdjustSlice.actions;
 export default warehouseInventoryAdjustSlice.reducer;

@@ -27,7 +27,7 @@ export const productInfoUpdateSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      
+
       .addCase(
         updateProductInfoByIdThunk.fulfilled,
         (state, action: PayloadAction<UpdateProductApiResponse>) => {
@@ -36,7 +36,7 @@ export const productInfoUpdateSlice = createSlice({
           state.error = null;
         }
       )
-      
+
       .addCase(updateProductInfoByIdThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload ?? 'Failed to update product information';

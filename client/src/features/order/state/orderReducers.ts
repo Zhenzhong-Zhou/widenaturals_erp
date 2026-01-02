@@ -20,13 +20,13 @@ import updateOrderStatusReducer from './updateOrderStatusSlice';
 export const orderReducers = {
   /** Sales order creation and editing workflow */
   salesOrderCreation: salesOrderCreationReducer,
-  
+
   /** Paginated order list, filters, and pagination metadata */
   paginatedOrders: paginatedOrdersReducer,
-  
+
   /** Order detail view including items and metadata */
   orderDetails: orderDetailsReducer,
-  
+
   /** Order status update workflow */
   updateOrderStatus: updateOrderStatusReducer,
 };

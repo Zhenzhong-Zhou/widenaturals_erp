@@ -14,7 +14,10 @@ const {
   getUserProfileById,
 } = require('../repositories/user-repository');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
-const { transformPaginatedUserForViewResults, transformUserProfileRow } = require('../transformers/user-transformer');
+const {
+  transformPaginatedUserForViewResults,
+  transformUserProfileRow,
+} = require('../transformers/user-transformer');
 const AppError = require('../utils/AppError');
 const { insertUserAuth } = require('../repositories/user-auth-repository');
 const { logError } = require('../utils/logger-helper');
@@ -69,27 +72,27 @@ const { getStatusId } = require('../config/status-cache');
  * }>}
  */
 const fetchPaginatedUsersService = async ({
-                                            filters = {},
-                                            page = 1,
-                                            limit = 10,
-                                            sortBy = 'u.created_at',
-                                            sortOrder = 'DESC',
-                                            viewMode = 'list',
-                                            user,
-                                          }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'u.created_at',
+  sortOrder = 'DESC',
+  viewMode = 'list',
+  user,
+}) => {
   const context = 'user-service/fetchPaginatedUsersService';
-  
+
   try {
     // ---------------------------------------------------------
     // Step 0 — Resolve visibility access control
     // ---------------------------------------------------------
     const access = await evaluateUserVisibilityAccessControl(user);
-    
+
     // ---------------------------------------------------------
     // Step 1 — Apply visibility rules to filters (CRITICAL)
     // ---------------------------------------------------------
     const adjustedFilters = applyUserListVisibilityRules(filters, access);
-    
+
     // ---------------------------------------------------------
     // Step 2 — Query raw data from repository
     // ---------------------------------------------------------
@@ -100,7 +103,7 @@ const fetchPaginatedUsersService = async ({
       sortBy,
       sortOrder,
     });
-    
+
     // ---------------------------------------------------------
     // Step 3 — Handle empty result
     // ---------------------------------------------------------
@@ -112,7 +115,7 @@ const fetchPaginatedUsersService = async ({
         sort: { sortBy, sortOrder },
         viewMode,
       });
-      
+
       return {
         data: [],
         pagination: {
@@ -123,14 +126,14 @@ const fetchPaginatedUsersService = async ({
         },
       };
     }
-    
+
     // ---------------------------------------------------------
     // Step 4 — Defensive per-row visibility (minimal)
     // ---------------------------------------------------------
     const visibleRows = rawResult.data
       .map((row) => sliceUserForUser(row, access))
       .filter(Boolean);
-    
+
     // ---------------------------------------------------------
     // Step 5 — Transform for UI consumption
     // ---------------------------------------------------------
@@ -141,7 +144,7 @@ const fetchPaginatedUsersService = async ({
       },
       viewMode
     );
-    
+
     // ---------------------------------------------------------
     // Step 6 — Log success
     // ---------------------------------------------------------
@@ -153,7 +156,7 @@ const fetchPaginatedUsersService = async ({
       viewMode,
       count: result.data?.length,
     });
-    
+
     return result;
   } catch (error) {
     // ---------------------------------------------------------
@@ -167,7 +170,7 @@ const fetchPaginatedUsersService = async ({
       viewMode,
       userId: user?.id,
     });
-    
+
     throw AppError.serviceError(
       'Unable to retrieve user records at this time. Please try again later.',
       { context }
@@ -228,51 +231,53 @@ const createUser = async (userDetails) => {
 const fetchUserProfileService = async (userId, requester) => {
   const context = 'user-service/fetchUserProfileService';
   const traceId = `user-profile-${Date.now().toString(36)}`;
-  
+
   try {
     const activeId = getStatusId('general_active');
-    
+
     // --------------------------------------------------------
     // 1. Fetch base user profile record (ACTIVE users only)
     // --------------------------------------------------------
     // Inactive users are not directly accessible by profile ID.
     const userRow = await getUserProfileById(userId, activeId);
-    
+
     if (!userRow) {
       throw AppError.notFoundError(`User not found: ${userId}`, { context });
     }
-    
+
     // --------------------------------------------------------
     // 2. Profile-level visibility (block entire page if denied)
     // --------------------------------------------------------
-    const profileAccess =
-      await evaluateUserProfileAccessControl(requester, userId);
-    
-    const safeProfileRow =
-      sliceUserProfileForUser(userRow, profileAccess);
-    
+    const profileAccess = await evaluateUserProfileAccessControl(
+      requester,
+      userId
+    );
+
+    const safeProfileRow = sliceUserProfileForUser(userRow, profileAccess);
+
     if (!safeProfileRow) {
       throw AppError.authorizationError(
         'You are not authorized to view this user profile.',
         { context, userId }
       );
     }
-    
+
     // --------------------------------------------------------
     // 3. Role visibility (self OR permission)
     // --------------------------------------------------------
-    const roleAccess =
-      await evaluateUserRoleViewAccessControl(requester, profileAccess);
-    
-    const withRole =
-      sliceUserRoleForUser(safeProfileRow, roleAccess);
-    
+    const roleAccess = await evaluateUserRoleViewAccessControl(
+      requester,
+      profileAccess
+    );
+
+    const withRole = sliceUserRoleForUser(safeProfileRow, roleAccess);
+
     // --------------------------------------------------------
     // 4. Transform → API DTO
     // --------------------------------------------------------
     // Avatar visibility is intentionally public for all users.
     const response = transformUserProfileRow(withRole);
-    
+
     // --------------------------------------------------------
     // 5. Structured logging
     // --------------------------------------------------------
@@ -286,7 +291,7 @@ const fetchUserProfileService = async (userId, requester) => {
       avatarVisible: Boolean(response?.avatar),
       permissionCount: response?.role?.permissions?.length ?? 0,
     });
-    
+
     return response;
   } catch (error) {
     logSystemException(error, 'Failed to fetch user profile', {
@@ -295,7 +300,7 @@ const fetchUserProfileService = async (userId, requester) => {
       targetUserId: userId,
       requesterId: requester?.id,
     });
-    
+
     throw AppError.serviceError('Failed to fetch user profile', {
       details: error.message,
       context,

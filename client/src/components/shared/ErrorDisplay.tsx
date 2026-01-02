@@ -9,13 +9,13 @@ import GoBackButton from '@components/common/GoBackButton';
 interface ErrorDisplayProps {
   /** Primary user-facing error message */
   message?: string;
-  
+
   /** Optional recovery hint (non-fatal guidance) */
   hint?: string;
-  
+
   /** Optional retry handler */
   onRetry?: () => void;
-  
+
   /** Optional diagnostic or contextual content */
   children?: ReactNode;
 }
@@ -35,14 +35,14 @@ interface ErrorDisplayProps {
  * - Inspect application state
  */
 const ErrorDisplay: FC<ErrorDisplayProps> = ({
-                                               message,
-                                               hint,
-                                               onRetry,
-                                               children,
-                                             }) => {
+  message,
+  hint,
+  onRetry,
+  children,
+}) => {
   const { theme } = useThemeContext();
   const navigate = useNavigate();
-  
+
   return (
     <Box
       role="alert"
@@ -71,7 +71,7 @@ const ErrorDisplay: FC<ErrorDisplayProps> = ({
       >
         {message ?? 'An unexpected error occurred.'}
       </CustomTypography>
-      
+
       {/* Optional recovery hint */}
       {hint && (
         <CustomTypography
@@ -85,7 +85,7 @@ const ErrorDisplay: FC<ErrorDisplayProps> = ({
           {hint}
         </CustomTypography>
       )}
-      
+
       {/* Optional contextual content */}
       {children && (
         <Box
@@ -103,21 +103,17 @@ const ErrorDisplay: FC<ErrorDisplayProps> = ({
           {children}
         </Box>
       )}
-      
+
       {/* Actions */}
       <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
         {onRetry && (
-          <CustomButton
-            variant="contained"
-            color="primary"
-            onClick={onRetry}
-          >
+          <CustomButton variant="contained" color="primary" onClick={onRetry}>
             Retry
           </CustomButton>
         )}
-        
+
         <GoBackButton />
-        
+
         <CustomButton
           variant="outlined"
           color="secondary"

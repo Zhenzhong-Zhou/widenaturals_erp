@@ -1,8 +1,5 @@
 import type { RequestPolicyKey } from '@utils/http';
-import {
-  REQUEST_POLICIES,
-  requestWithPolicy
-} from '@utils/http/';
+import { REQUEST_POLICIES, requestWithPolicy } from '@utils/http/';
 
 /**
  * Executes a request using a named transport policy.
@@ -14,8 +11,5 @@ export const requestWithNamedPolicy = async <T>(
   requestFn: (signal?: AbortSignal) => Promise<T>,
   policyKey: RequestPolicyKey
 ): Promise<T> => {
-  return requestWithPolicy(
-    requestFn,
-    REQUEST_POLICIES[policyKey]
-  );
+  return requestWithPolicy(requestFn, REQUEST_POLICIES[policyKey]);
 };

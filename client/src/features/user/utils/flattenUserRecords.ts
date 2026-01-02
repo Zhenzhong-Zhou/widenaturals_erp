@@ -1,12 +1,9 @@
 import type {
   FlattenedUserRecord,
   UserCardView,
-  UserListView
+  UserListView,
 } from '@features/user/state';
-import type {
-  GenericAudit,
-  GenericStatus
-} from '@shared-types/api';
+import type { GenericAudit, GenericStatus } from '@shared-types/api';
 
 /**
  * Flattens user list records into a table-friendly structure.
@@ -30,13 +27,13 @@ export const flattenUserRecords = (
   records: Array<UserCardView | UserListView>
 ): FlattenedUserRecord[] => {
   if (!Array.isArray(records)) return [];
-  
+
   return records.map((record) => {
     // ---------------------------
     // Normalize status
     // ---------------------------
     let status: GenericStatus | undefined;
-    
+
     if ('status' in record && record.status) {
       status = record.status;
     } else if ('statusName' in record && record.statusName) {
@@ -44,42 +41,42 @@ export const flattenUserRecords = (
         name: record.statusName,
       } as GenericStatus;
     }
-    
+
     // ---------------------------
     // Normalize audit
     // ---------------------------
     let audit: GenericAudit | undefined;
-    
+
     if ('audit' in record && record.audit) {
       audit = record.audit;
     }
-    
+
     return {
       // ------------------------------
       // Identity Info
       // ------------------------------
       userId: record.id ?? null,
       fullName: record.fullName ?? '—',
-      email: 'email' in record ? record.email ?? '—' : '—',
+      email: 'email' in record ? (record.email ?? '—') : '—',
       phoneNumber: record.phoneNumber ?? '-',
       jobTitle: record.jobTitle ?? '—',
-      
+
       // ------------------------------
       // Role Info
       // ------------------------------
       roleName: record.roleName ?? '—',
-      
+
       // ------------------------------
       // Avatar
       // ------------------------------
       avatarUrl: record.avatarUrl ?? null,
-      
+
       // ------------------------------
       // Status Info
       // ------------------------------
       statusName: status?.name ?? '—',
       statusDate: status?.date ?? '',
-      
+
       // ------------------------------
       // Audit Info
       // ------------------------------

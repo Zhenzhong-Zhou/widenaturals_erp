@@ -7,9 +7,7 @@ import {
   selectDiscountLookupLoading,
   selectDiscountLookupMeta,
 } from '@features/lookup/state';
-import type {
-  DiscountLookupQueryParams,
-} from '@features/lookup/state';
+import type { DiscountLookupQueryParams } from '@features/lookup/state';
 import { resetDiscountLookup } from '@features/lookup/state/discountLookupSlice';
 
 /**

@@ -22,7 +22,7 @@ const UserExpandedContent: FC<UserExpandedContentProps> = ({ row }) => {
       <CustomTypography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
         User Information Overview
       </CustomTypography>
-      
+
       {/* ------------------------------------
        * Identity Information
        * ------------------------------------ */}
@@ -36,7 +36,7 @@ const UserExpandedContent: FC<UserExpandedContentProps> = ({ row }) => {
           },
         ]}
       />
-      
+
       {/* ------------------------------------
        * Status
        * ------------------------------------ */}
@@ -55,7 +55,7 @@ const UserExpandedContent: FC<UserExpandedContentProps> = ({ row }) => {
           },
         ]}
       />
-      
+
       {/* ------------------------------------
        * Audit
        * ------------------------------------ */}

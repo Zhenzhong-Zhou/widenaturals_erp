@@ -15,7 +15,7 @@ import useUserViewedProfile from './useUserViewedProfile';
  */
 const useUserViewedProfileAuto = (userId: string | null) => {
   const { fetchViewedProfile } = useUserViewedProfile();
-  
+
   useEffect(() => {
     if (!userId) return;
     fetchViewedProfile(userId);

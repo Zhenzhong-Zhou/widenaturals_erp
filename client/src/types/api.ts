@@ -424,13 +424,13 @@ export interface UpdateStatusIdRequest {
 export interface BatchProcessStats {
   /** Total number of items processed in this batch */
   total: number;
-  
+
   /** Number of items that completed successfully */
   successCount: number;
-  
+
   /** Number of items that failed */
   failureCount: number;
-  
+
   /** Execution time in milliseconds */
   elapsedMs: number;
 }
@@ -447,7 +447,7 @@ export interface DateRange {
    * Records with a date greater than or equal to this value are included.
    */
   from?: string;
-  
+
   /**
    * Inclusive end date (ISO 8601 string).
    * Records with a date less than or equal to this value are included.
@@ -458,11 +458,7 @@ export interface DateRange {
 /**
  * Generic image display roles used across the system.
  */
-export type ImageType =
-  | 'main'
-  | 'thumbnail'
-  | 'zoom'
-  | 'unknown';
+export type ImageType = 'main' | 'thumbnail' | 'zoom' | 'unknown';
 
 /**
  * Supported image file formats for uploads and stored media.
@@ -488,12 +484,12 @@ export interface GenericAvatar {
    * Publicly accessible image URL.
    */
   url: string;
-  
+
   /**
    * File format (e.g. 'jpg', 'png', 'webp').
    */
   format: ImageFileFormat | null;
-  
+
   /**
    * Timestamp when the avatar was uploaded.
    */

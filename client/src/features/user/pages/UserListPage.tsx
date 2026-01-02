@@ -15,7 +15,7 @@ import UserListLayout from '@features/user/layouts/UserListLayout';
  */
 const UserListPage = () => {
   const controller = useUserPageController({ viewMode: 'list' });
-  
+
   return <UserListLayout controller={controller} />;
 };
 

@@ -9,16 +9,16 @@ export { bomReducers } from './bomReducers';
 export {
   resetPaginatedBoms,
   setBomFilters,
-  setBomPagination
+  setBomPagination,
 } from './paginatedBomsSlice';
 export { resetBomDetails } from './bomDetailsSlice';
 export {
   resetBomMaterialSupplyDetails,
-  setSelectedSupplySelectedBomId
+  setSelectedSupplySelectedBomId,
 } from './bomMaterialSupplyDetailsSlice';
 export {
   resetBomProductionReadiness,
-  setProductionReadinessSelectedBomId
+  setProductionReadinessSelectedBomId,
 } from './bomProductionReadinessSlice';
 
 // ------------------------------------------------------------------

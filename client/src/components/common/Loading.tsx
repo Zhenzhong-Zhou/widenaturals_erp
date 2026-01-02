@@ -9,16 +9,16 @@ import { useThemeContext } from '@context/ThemeContext';
 interface LoadingProps {
   /** Size for circular or dotted loaders */
   size?: number;
-  
+
   /** Optional user-facing loading message */
   message?: string;
-  
+
   /** MUI color token */
   color?: 'primary' | 'secondary' | 'inherit';
-  
+
   /** Loader style */
   variant?: 'spinner' | 'linear' | 'dotted';
-  
+
   /** Whether to render as a full-page overlay */
   fullPage?: boolean;
 }
@@ -38,14 +38,14 @@ interface LoadingProps {
  * - Perform state changes
  */
 const Loading: FC<LoadingProps> = ({
-                                     size = 40,
-                                     message,
-                                     color = 'primary',
-                                     variant = 'spinner',
-                                     fullPage = false,
-                                   }) => {
+  size = 40,
+  message,
+  color = 'primary',
+  variant = 'spinner',
+  fullPage = false,
+}) => {
   const { theme } = useThemeContext();
-  
+
   /* ----------------------------------------
    * Base container styles (inline by default)
    * -------------------------------------- */
@@ -57,7 +57,7 @@ const Loading: FC<LoadingProps> = ({
     minHeight: fullPage ? '100vh' : 64,
     px: 2,
   };
-  
+
   /* ----------------------------------------
    * Full-page overlay styles (explicit opt-in)
    * -------------------------------------- */
@@ -65,13 +65,10 @@ const Loading: FC<LoadingProps> = ({
     position: 'fixed',
     inset: 0,
     zIndex: theme.zIndex.modal,
-    backgroundColor: alpha(
-      theme.palette.background.default,
-      0.85
-    ),
+    backgroundColor: alpha(theme.palette.background.default, 0.85),
     backdropFilter: 'blur(2px)',
   };
-  
+
   /* ----------------------------------------
    * Dotted loader (custom)
    * -------------------------------------- */
@@ -90,7 +87,7 @@ const Loading: FC<LoadingProps> = ({
       }}
     />
   );
-  
+
   /* ----------------------------------------
    * Loader renderer
    * -------------------------------------- */
@@ -102,16 +99,16 @@ const Loading: FC<LoadingProps> = ({
             <LinearProgress color={color} />
           </Box>
         );
-      
+
       case 'dotted':
         return dottedLoader;
-      
+
       case 'spinner':
       default:
         return <CircularProgress size={size} color={color} />;
     }
   };
-  
+
   return (
     <Box
       role="status"
@@ -120,7 +117,7 @@ const Loading: FC<LoadingProps> = ({
       sx={fullPage ? [containerSx, fullPageOverlaySx] : containerSx}
     >
       {renderLoader()}
-      
+
       {message && (
         <Box
           mt={2}

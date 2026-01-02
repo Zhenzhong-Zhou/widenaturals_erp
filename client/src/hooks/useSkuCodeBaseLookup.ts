@@ -8,9 +8,7 @@ import {
   selectSkuCodeBaseLookupMeta,
   selectSkuCodeBaseLookupRawItems,
 } from '@features/lookup/state';
-import type {
-  SkuCodeBaseLookupParams,
-} from '@features/lookup/state';
+import type { SkuCodeBaseLookupParams } from '@features/lookup/state';
 import { resetSkuCodeBaseLookup } from '@features/lookup/state/skuCodeBaseLookupSlice';
 
 /**

@@ -103,20 +103,20 @@ const parseSkuImageJson = (req, res, next) => {
 const attachUploadedFilesToSkus = (req, res, next) => {
   const files = normalizeToArray(req.files);
   const skus = normalizeToArray(req.body?.skus);
-  
+
   if (!files.length || !skus.length) {
     return next();
   }
-  
+
   let fileIndex = 0;
-  
+
   for (const sku of skus) {
     const images = normalizeToArray(sku.images);
-    
+
     for (const img of images) {
       if (img.file_uploaded) {
         const file = files[fileIndex];
-        
+
         if (!file) {
           return next(
             AppError.validationError(
@@ -124,17 +124,17 @@ const attachUploadedFilesToSkus = (req, res, next) => {
             )
           );
         }
-        
+
         img.image_url = file.path;
         img.alt_text = img.alt_text || file.originalname;
         img.source = 'uploaded';
         img.uploaded_at = new Date().toISOString();
-        
+
         fileIndex++;
       }
     }
   }
-  
+
   if (fileIndex !== files.length) {
     return next(
       AppError.validationError(
@@ -142,7 +142,7 @@ const attachUploadedFilesToSkus = (req, res, next) => {
       )
     );
   }
-  
+
   next();
 };
 

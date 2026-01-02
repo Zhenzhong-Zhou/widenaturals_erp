@@ -16,13 +16,13 @@ import {
 export interface ComplianceSku {
   /** SKU unique identifier (UUID) */
   id: string;
-  
+
   /** SKU code (e.g. CH-HN100-R-CN) */
   sku: string;
-  
+
   /** Human-readable size label (e.g. "60 Capsules") */
   sizeLabel: string;
-  
+
   /** Market region the SKU is registered for (e.g. "China") */
   marketRegion: string;
 }
@@ -35,19 +35,19 @@ export interface ComplianceSku {
 export interface ComplianceProduct {
   /** Product unique identifier (UUID) */
   id: string;
-  
+
   /** Base product name */
   name: string;
-  
+
   /** Brand name (e.g. Canaherb) */
   brand: string;
-  
+
   /** Product series or line */
   series: string;
-  
+
   /** Product category */
   category: string;
-  
+
   /** Pre-formatted display name for UI usage */
   displayName: string;
 }
@@ -61,30 +61,30 @@ export interface ComplianceProduct {
 export interface ComplianceRecord {
   /** Compliance record unique identifier (UUID) */
   id: string;
-  
+
   /** Compliance type (e.g. "NPN") */
   type: string;
-  
+
   /** Official document or registration number */
   documentNumber: string;
-  
+
   /** Date the compliance document was issued (ISO 8601) */
   issuedDate: string;
-  
+
   /**
    * Current compliance status.
    * Example values: active, inactive, archived
    */
   status: GenericStatus;
-  
+
   /**
    * Audit metadata for creation and last update.
    */
   audit: GenericAudit;
-  
+
   /** Associated SKU snapshot */
   sku: ComplianceSku;
-  
+
   /** Associated product snapshot */
   product: ComplianceProduct;
 }
@@ -103,13 +103,13 @@ export type PaginatedComplianceRecordResponse =
 export interface ComplianceDateRanges {
   /** Filter by record creation date */
   created?: DateRange;
-  
+
   /** Filter by last update date */
   updated?: DateRange;
-  
+
   /** Filter by issued date */
   issued?: DateRange;
-  
+
   /** Filter by expiry date */
   expiry?: DateRange;
 }
@@ -123,50 +123,50 @@ export interface ComplianceFilters {
   // --------------------------------------------------
   // Compliance-level filters
   // --------------------------------------------------
-  
+
   /** Filter by one or more status IDs */
   statusIds?: string[];
-  
+
   /** Compliance document number */
   complianceId?: string;
-  
+
   /** User ID who created the record */
   createdBy?: string;
-  
+
   /** User ID who last updated the record */
   updatedBy?: string;
-  
+
   // --------------------------------------------------
   // SKU-level filters
   // --------------------------------------------------
-  
+
   /** Filter by one or more SKU IDs */
   skuIds?: string[];
-  
+
   /** SKU size label */
   sizeLabel?: string;
-  
+
   /** Market region */
   marketRegion?: string;
-  
+
   // --------------------------------------------------
   // Product-level filters
   // --------------------------------------------------
-  
+
   /** Filter by one or more product IDs */
   productIds?: string[];
-  
+
   // --------------------------------------------------
   // Keyword search
   // --------------------------------------------------
-  
+
   /** Fuzzy keyword search across supported fields */
   keyword?: string;
-  
+
   // --------------------------------------------------
   // Date range filters
   // --------------------------------------------------
-  
+
   /** Grouped date range filters */
   dateRanges?: ComplianceDateRanges;
 }
@@ -195,7 +195,6 @@ export type ComplianceRecordSortField =
  */
 export interface GetPaginatedComplianceRecordsParams
   extends PaginationParams, SortConfig {
-  
   /** Optional filter object */
   filters?: ComplianceFilters;
 }
@@ -205,8 +204,7 @@ export interface GetPaginatedComplianceRecordsParams
  *
  * Used by list pages and table-driven components.
  */
-export type ComplianceRecordsState =
-  ReduxPaginatedState<ComplianceRecord>;
+export type ComplianceRecordsState = ReduxPaginatedState<ComplianceRecord>;
 
 /**
  * Flat compliance record row for table/list views.
@@ -219,21 +217,21 @@ export interface ComplianceRecordTableRow {
   // Identity
   // --------------------------------------------------
   id: string;
-  
+
   // --------------------------------------------------
   // Compliance
   // --------------------------------------------------
   type: string;
   documentNumber: string;
   issuedDate: string;
-  
+
   // --------------------------------------------------
   // Status
   // --------------------------------------------------
   statusId: string;
   statusName: string;
   statusDate: string;
-  
+
   // --------------------------------------------------
   // SKU
   // --------------------------------------------------
@@ -241,7 +239,7 @@ export interface ComplianceRecordTableRow {
   skuCode: string;
   sizeLabel: string;
   marketRegion: string;
-  
+
   // --------------------------------------------------
   // Product
   // --------------------------------------------------
@@ -251,7 +249,7 @@ export interface ComplianceRecordTableRow {
   series: string;
   category: string;
   productDisplayName: string;
-  
+
   // --------------------------------------------------
   // Audit
   // --------------------------------------------------

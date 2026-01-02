@@ -50,5 +50,6 @@ const addressByCustomerLookupSlice = createSlice({
   },
 });
 
-export const { resetAddressByCustomerLookup } = addressByCustomerLookupSlice.actions;
+export const { resetAddressByCustomerLookup } =
+  addressByCustomerLookupSlice.actions;
 export default addressByCustomerLookupSlice.reducer;

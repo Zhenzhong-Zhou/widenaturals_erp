@@ -31,7 +31,7 @@ export const productDetailSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      
+
       // --- Fulfilled ---
       .addCase(
         fetchProductDetailByIdThunk.fulfilled,
@@ -40,7 +40,7 @@ export const productDetailSlice = createSlice({
           state.data = action.payload.data; // unwrap API envelope
         }
       )
-      
+
       // --- Rejected ---
       .addCase(fetchProductDetailByIdThunk.rejected, (state, action) => {
         state.loading = false;

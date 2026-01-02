@@ -37,7 +37,7 @@ const MetadataSection: FC<MetadataSectionProps> = ({ data, title, sx }) => {
           {title}
         </Typography>
       )}
-      
+
       {Object.entries(data).map(([key, value]) => {
         if (shouldExcludeKey(key)) return null;
 

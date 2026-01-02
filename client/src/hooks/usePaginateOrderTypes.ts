@@ -8,9 +8,7 @@ import {
   selectOrderTypesLoading,
   resetPaginatedOrderTypes,
 } from '@features/orderType/state';
-import type {
-  FetchPaginatedOrderTypesParams,
-} from '@features/orderType/state';
+import type { FetchPaginatedOrderTypesParams } from '@features/orderType/state';
 
 /**
  * Hook to access paginated order types data and utilities.

@@ -62,14 +62,14 @@ const fetchLocationInventorySummary = async (
       config: { params },
     }
   );
-  
+
   // Domain invariant: response must exist
   if (!data || typeof data !== 'object') {
     throw AppError.server('Invalid location inventory summary response', {
       params,
     });
   }
-  
+
   return data;
 };
 
@@ -87,7 +87,7 @@ const fetchLocationInventorySummaryByItemId = async (
   params: InventorySummaryDetailByItemIdParams
 ): Promise<LocationInventorySummaryDetailResponse> => {
   const { itemId, page = 1, limit = 10 } = params;
-  
+
   return getRequest<LocationInventorySummaryDetailResponse>(
     API_ENDPOINTS.LOCATION_INVENTORY.SUMMARY_DETAIL(itemId),
     {
@@ -118,7 +118,7 @@ const fetchLocationInventoryRecords = async (
   const { page = 1, limit = 10 } = pagination;
   const filters = buildLocationInventoryFilters(rawFilters);
   const { sortBy, sortOrder } = rawSortConfig;
-  
+
   return getRequest<LocationInventoryRecordsResponse>(
     API_ENDPOINTS.LOCATION_INVENTORY.ALL_RECORDS,
     {

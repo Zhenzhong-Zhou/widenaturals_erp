@@ -1,8 +1,6 @@
 import { useCallback, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
-import type {
-  HealthState,
-} from '@features/health/state';
+import type { HealthState } from '@features/health/state';
 import {
   selectHealthState,
   selectDatabaseStatus,

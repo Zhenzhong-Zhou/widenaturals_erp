@@ -1,3 +1,1 @@
-export const deliveryMethodReducers = {
-
-};
+export const deliveryMethodReducers = {};

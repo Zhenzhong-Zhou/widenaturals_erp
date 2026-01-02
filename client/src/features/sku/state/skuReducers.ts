@@ -20,16 +20,16 @@ import skuStatusReducer from './skuStatusSlice';
 export const skuReducers = {
   /** SKU product card list and summary data */
   skuProductCards: skuProductCardsReducer,
-  
+
   /** SKU detail view and metadata */
   skuDetail: skuDetailReducer,
-  
+
   /** Paginated SKU list with filters and pagination metadata */
   paginatedSkus: paginatedSkusReducer,
-  
+
   /** SKU creation workflow */
   createSkus: createSkusReducer,
-  
+
   /** SKU status update workflow */
   skuStatus: skuStatusReducer,
 };

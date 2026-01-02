@@ -9,7 +9,7 @@ interface UpdateProductInfoErrorDialogProps {
   onClose: () => void;
   error?: string | null;
   productName?: string;
-  
+
   /**
    * Optional list of fields that were being updated
    * Useful for debugging and explaining what failed.
@@ -18,12 +18,12 @@ interface UpdateProductInfoErrorDialogProps {
 }
 
 const UpdateProductInfoErrorDialog: FC<UpdateProductInfoErrorDialogProps> = ({
-                                                                               open,
-                                                                               onClose,
-                                                                               error,
-                                                                               productName,
-                                                                               fields,
-                                                                             }) => {
+  open,
+  onClose,
+  error,
+  productName,
+  fields,
+}) => {
   return (
     <CustomDialog
       open={open}
@@ -44,22 +44,21 @@ const UpdateProductInfoErrorDialog: FC<UpdateProductInfoErrorDialogProps> = ({
                 <strong>Product:</strong> {productName}
               </Box>
             )}
-            
+
             {/* Updated fields if provided */}
             {fields && fields.length > 0 && (
               <Box sx={{ mt: 1 }}>
-                <strong>Fields attempted:</strong>{' '}
-                {fields.join(', ')}
+                <strong>Fields attempted:</strong> {fields.join(', ')}
               </Box>
             )}
-            
+
             {/* Error message */}
             {error ? (
               <Box sx={{ mt: 1 }}>{error}</Box>
             ) : (
               <Box sx={{ mt: 1 }}>
-                An unexpected error occurred while updating this product.
-                Please try again.
+                An unexpected error occurred while updating this product. Please
+                try again.
               </Box>
             )}
           </>

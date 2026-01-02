@@ -17,10 +17,8 @@ const fetchPaginatedOrderTypes = (
   params: FetchPaginatedOrderTypesParams
 ): Promise<OrderTypeListResponse> => {
   const queryString = buildQueryString(params);
-  
-  return getRequest(
-    `${API_ENDPOINTS.ORDER_TYPES.ALL_RECORDS}${queryString}`
-  );
+
+  return getRequest(`${API_ENDPOINTS.ORDER_TYPES.ALL_RECORDS}${queryString}`);
 };
 
 export const orderTypeService = {

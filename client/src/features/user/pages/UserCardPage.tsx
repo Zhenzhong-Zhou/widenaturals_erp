@@ -15,7 +15,7 @@ import UserCardLayout from '@features/user/layouts/UserCardLayout';
  */
 const UserCardPage = () => {
   const controller = useUserPageController({ viewMode: 'card' });
-  
+
   return <UserCardLayout controller={controller} />;
 };
 

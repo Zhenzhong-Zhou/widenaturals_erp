@@ -22,25 +22,25 @@ import { NullableNumber, NullableString } from '@shared-types/shared';
 export interface UserBaseView {
   /** Unique user identifier */
   id: string;
-  
+
   /** Derived display name (firstname + lastname) */
   fullName: string;
-  
+
   /** Contact email (maybe omitted in lightweight responses) */
   email?: string;
-  
+
   /** Contact phone number (optional / may be omitted) */
   phoneNumber?: string;
-  
+
   /** Job title or position */
   jobTitle?: string;
-  
+
   /** Role identifier (UUID) */
   roleId?: string;
-  
+
   /** Human-readable role name */
   roleName?: string;
-  
+
   /** Avatar image URL (nullable if not set) */
   avatarUrl?: NullableString;
 }
@@ -66,7 +66,7 @@ export interface UserCardView extends UserBaseView {
 export interface UserListView extends UserBaseView {
   /** Current status metadata */
   status?: GenericStatus;
-  
+
   /** Audit trail (created / updated info) */
   audit?: GenericAudit;
 }
@@ -82,14 +82,12 @@ export type UserViewMode = 'card' | 'list';
 /**
  * Paginated response for card-based user lists.
  */
-export type PaginatedUserCardListResponse =
-  PaginatedResponse<UserCardView>;
+export type PaginatedUserCardListResponse = PaginatedResponse<UserCardView>;
 
 /**
  * Paginated response for full user lists.
  */
-export type PaginatedUserListResponse =
-  PaginatedResponse<UserListView>;
+export type PaginatedUserListResponse = PaginatedResponse<UserListView>;
 
 /**
  * Date range filter using ISO strings for API safety.
@@ -97,7 +95,7 @@ export type PaginatedUserListResponse =
 export interface UserDateRanges {
   /** Filter by creation timestamp */
   created?: DateRange;
-  
+
   /** Filter by last update timestamp */
   updated?: DateRange;
 }
@@ -111,24 +109,24 @@ export interface UserFilters {
   // ----------------------------
   statusIds?: string | string[];
   roleIds?: string | string[];
-  
+
   firstname?: string;
   lastname?: string;
   email?: string;
   phoneNumber?: string;
   jobTitle?: string;
-  
+
   // ----------------------------
   // Audit filters
   // ----------------------------
   createdBy?: string;
   updatedBy?: string;
-  
+
   // ----------------------------
   // Keyword search
   // ----------------------------
   keyword?: string;
-  
+
   /** Grouped date range filters */
   dateRanges?: UserDateRanges;
 }
@@ -155,9 +153,7 @@ export type UserSortField =
 /**
  * Parameters for retrieving a paginated list of users.
  */
-export interface GetPaginatedUsersParams
-  extends PaginationParams,
-    SortConfig {
+export interface GetPaginatedUsersParams extends PaginationParams, SortConfig {
   /** Optional filtering configuration */
   filters?: UserFilters;
 }
@@ -180,8 +176,9 @@ export interface GetPaginatedUsersParams
  *
  * Pagination metadata is preserved regardless of view.
  */
-export type PaginatedUsersState =
-  ReduxPaginatedState<UserCardView | UserListView>;
+export type PaginatedUsersState = ReduxPaginatedState<
+  UserCardView | UserListView
+>;
 
 /**
  * Flattened user record for table rendering, CSV export,
@@ -199,23 +196,23 @@ export interface FlattenedUserRecord {
   email: string;
   jobTitle: string;
   phoneNumber: string;
-  
+
   // ----------------------------
   // Role
   // ----------------------------
   roleName: string;
-  
+
   // ----------------------------
   // Avatar
   // ----------------------------
   avatarUrl: NullableString;
-  
+
   // ----------------------------
   // Status
   // ----------------------------
   statusName: string;
   statusDate: string;
-  
+
   // ----------------------------
   // Audit
   // ----------------------------
@@ -259,14 +256,14 @@ export interface UserProfile {
    * Unique user identifier (UUID).
    */
   id: string;
-  
+
   /**
    * User email address.
    *
    * Guaranteed to be unique within the system at all times.
    */
   email: string;
-  
+
   /**
    * Human-readable full name.
    *
@@ -274,14 +271,14 @@ export interface UserProfile {
    * depending on system configuration or locale.
    */
   fullName: string;
-  
+
   /**
    * Optional job title or role description.
    *
    * May be null for system-seeded, service, or automation users.
    */
   jobTitle: NullableString;
-  
+
   /**
    * User avatar information.
    *
@@ -289,7 +286,7 @@ export interface UserProfile {
    * Presentation-only field with no security implications.
    */
   avatar: GenericAvatar | null;
-  
+
   /**
    * Indicates whether the user is a system-level account.
    *
@@ -297,7 +294,7 @@ export interface UserProfile {
    * enforced exclusively by backend business logic.
    */
   isSystem: boolean;
-  
+
   /**
    * Current lifecycle status of the user.
    *
@@ -305,7 +302,7 @@ export interface UserProfile {
    * and the effective date of the status.
    */
   status: GenericStatus;
-  
+
   /**
    * Role assignment and associated permissions.
    *
@@ -315,7 +312,7 @@ export interface UserProfile {
    * It must not be treated as an authorization source.
    */
   role: UserRole;
-  
+
   /**
    * Audit metadata related to user creation and modification.
    *
@@ -336,19 +333,19 @@ export interface UserRole {
    * Unique role identifier.
    */
   id: string;
-  
+
   /**
    * Role name (e.g. "root_admin", "inventory_manager").
    */
   name: string;
-  
+
   /**
    * Optional role grouping or classification.
    *
    * May be null if the role does not belong to a defined group.
    */
   roleGroup: NullableString;
-  
+
   /**
    * Optional hierarchy level used for ordering or comparison.
    *
@@ -356,7 +353,7 @@ export interface UserRole {
    * should be inferred on the client.
    */
   hierarchyLevel: NullableNumber;
-  
+
   /**
    * List of permissions granted to this role.
    *
@@ -383,7 +380,7 @@ export interface RolePermission {
    * Unique permission identifier.
    */
   id: string;
-  
+
   /**
    * Machine-readable permission key.
    *
@@ -391,7 +388,7 @@ export interface RolePermission {
    * forward compatibility and backend-driven changes.
    */
   key: string;
-  
+
   /**
    * Human-readable permission name.
    *
@@ -455,14 +452,14 @@ export interface FlattenedUserProfile {
   email: string;
   jobTitle: NullableString;
   isSystem: boolean;
-  
+
   // -------------------------------------------------
   // Avatar (flattened projection)
   // -------------------------------------------------
   avatarUrl: NullableString;
   avatarFormat: ImageFileFormat | null;
   avatarUploadedAt: NullableString;
-  
+
   // -------------------------------------------------
   // Role & permissions
   // -------------------------------------------------
@@ -470,7 +467,7 @@ export interface FlattenedUserProfile {
   roleName: NullableString;
   roleGroup: NullableString;
   hierarchyLevel: NullableNumber;
-  
+
   /**
    * Flattened list of permission keys.
    *
@@ -478,21 +475,21 @@ export interface FlattenedUserProfile {
    * Intended solely for UI feature toggling.
    */
   permissions: string[];
-  
+
   // -------------------------------------------------
   // Status
   // -------------------------------------------------
   statusId: NullableString;
   statusName: NullableString;
   statusDate: NullableString;
-  
+
   // -------------------------------------------------
   // Audit (flattened for UI)
   // -------------------------------------------------
   createdAt: NullableString;
   createdById: NullableString;
   createdByName: NullableString;
-  
+
   updatedAt: NullableString;
   updatedById: NullableString;
   updatedByName: NullableString;

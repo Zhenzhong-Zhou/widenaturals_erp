@@ -9,9 +9,7 @@ import {
   createProductsThunk,
   resetCreateProducts,
 } from '@features/product/state';
-import type {
-  CreateProductBulkInput,
-} from '@features/product/state';
+import type { CreateProductBulkInput } from '@features/product/state';
 
 /**
  * Hook providing a complete interface for creating Products.

@@ -6,9 +6,7 @@ import {
   selectAddressCreationLoading,
   selectAddressCreationSuccessMessage,
 } from '@features/address/state';
-import type {
-  AddressInputArray,
-} from '@features/address/state';
+import type { AddressInputArray } from '@features/address/state';
 import { resetAddressCreation } from '@features/address/state/addressCreationSlice';
 
 /**

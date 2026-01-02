@@ -9,9 +9,7 @@ import {
   updateSkuStatusThunk,
   resetSkuStatus,
 } from '@features/sku/state';
-import type {
-  UpdateSkuStatusThunkArgs,
-} from '@features/sku/state';
+import type { UpdateSkuStatusThunkArgs } from '@features/sku/state';
 
 /**
  * Hook providing a clean interface for updating SKU status.

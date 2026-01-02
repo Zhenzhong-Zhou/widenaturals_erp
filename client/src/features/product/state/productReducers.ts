@@ -20,16 +20,16 @@ import productInfoUpdateReducer from './productInfoUpdateSlice';
 export const productReducers = {
   /** Paginated product list with filters and pagination metadata */
   paginatedProducts: paginatedProductsReducer,
-  
+
   /** Product creation workflow */
   createProducts: createProductsReducer,
-  
+
   /** Product detail view */
   productDetail: productDetailReducer,
-  
+
   /** Product status update workflow */
   productStatusUpdate: productStatusUpdateReducer,
-  
+
   /** Product information update workflow */
   productInfoUpdate: productInfoUpdateReducer,
 };

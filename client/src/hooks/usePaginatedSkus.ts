@@ -10,9 +10,7 @@ import {
   selectPaginatedSkusIsEmpty,
   resetPaginatedSkus,
 } from '@features/sku/state';
-import type {
-  FetchSkusParams,
-} from '@features/sku/state';
+import type { FetchSkusParams } from '@features/sku/state';
 
 /**
  * React hook for accessing paginated SKU list state and actions.

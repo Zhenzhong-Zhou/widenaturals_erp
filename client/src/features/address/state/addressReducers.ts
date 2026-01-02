@@ -17,7 +17,7 @@ import paginateAddressReducer from './paginateAddressSlice';
 export const addressReducers = {
   /** Handles address creation and mutation state */
   addressCreation: addressCreationReducer,
-  
+
   /** Handles paginated address listing state */
   paginatedAddress: paginateAddressReducer,
 };

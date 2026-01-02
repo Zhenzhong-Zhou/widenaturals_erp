@@ -14,8 +14,7 @@ import {
 } from '@features/user/state';
 import { resetPaginatedUsers } from '@features/user/state/paginatedUsersSlice';
 
-type FetchUsersParams =
-  GetPaginatedUsersParams & { viewMode?: UserViewMode };
+type FetchUsersParams = GetPaginatedUsersParams & { viewMode?: UserViewMode };
 
 /**
  * React hook for accessing paginated users state and actions.
@@ -33,7 +32,7 @@ type FetchUsersParams =
  */
 const usePaginatedUsers = () => {
   const dispatch = useAppDispatch();
-  
+
   // ---------------------------
   // Selectors (memoized via Reselect)
   // ---------------------------
@@ -42,7 +41,7 @@ const usePaginatedUsers = () => {
   const loading = useAppSelector(selectPaginatedUsersLoading);
   const error = useAppSelector(selectPaginatedUsersError);
   const isEmpty = useAppSelector(selectPaginatedUsersIsEmpty);
-  
+
   // ---------------------------
   // Actions
   // ---------------------------
@@ -58,7 +57,7 @@ const usePaginatedUsers = () => {
     },
     [dispatch]
   );
-  
+
   /**
    * Reset paginated users state back to the initial empty form.
    *
@@ -70,7 +69,7 @@ const usePaginatedUsers = () => {
   const resetUsers = useCallback(() => {
     dispatch(resetPaginatedUsers());
   }, [dispatch]);
-  
+
   // ---------------------------
   // Derived memoized values
   // ---------------------------
@@ -83,16 +82,16 @@ const usePaginatedUsers = () => {
     }),
     [pagination]
   );
-  
+
   return {
     data,
     pagination,
     loading,
     error,
     isEmpty,
-    
+
     pageInfo, // { page, limit }
-    
+
     fetchUsers,
     resetUsers,
   };

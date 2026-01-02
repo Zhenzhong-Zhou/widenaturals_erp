@@ -35,7 +35,7 @@ const makeStatus = (
   }
 ) => {
   if (!row) return null;
-  
+
   return {
     id: row[map.id] ?? null,
     name: row[map.name] ?? null,

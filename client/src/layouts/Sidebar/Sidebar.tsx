@@ -37,9 +37,9 @@ interface SidebarProps {
 const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
   const { theme } = useThemeContext();
   const { roleName, permissions } = usePermissionsContext();
-  
+
   const logo = theme.palette.mode === 'dark' ? logoDark : logoLight;
-  
+
   // --------------------------------------------------
   // Filter routes once per permission change
   // --------------------------------------------------
@@ -49,7 +49,7 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
       return hasPermission(item.requiredPermission, permissions, roleName);
     });
   }, [permissions, roleName]);
-  
+
   return (
     <>
       {/* Sidebar Drawer */}
@@ -90,18 +90,18 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
               style={{ height: 50, objectFit: 'contain' }}
             />
           </Box>
-          
+
           {isOpen && (
             <IconButton
               onClick={toggleSidebar}
               aria-label="Close sidebar"
               sx={{ ml: 'auto' }}
-              >
+            >
               <FontAwesomeIcon icon={faTimes} />
             </IconButton>
           )}
         </Box>
-        
+
         {/* Navigation */}
         <Box
           sx={{
@@ -151,7 +151,7 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
           </List>
         </Box>
       </Drawer>
-      
+
       {/* Mobile open button */}
       {!isOpen && (
         <IconButton

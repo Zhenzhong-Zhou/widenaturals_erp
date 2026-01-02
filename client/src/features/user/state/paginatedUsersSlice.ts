@@ -12,8 +12,9 @@ import {
 // ---------------------------
 // Initial State
 // ---------------------------
-const initialState: PaginatedUsersState =
-  createInitialPaginatedState<UserCardView | UserListView>();
+const initialState: PaginatedUsersState = createInitialPaginatedState<
+  UserCardView | UserListView
+>();
 
 // ---------------------------
 // Slice
@@ -21,7 +22,7 @@ const initialState: PaginatedUsersState =
 const paginatedUsersSlice = createSlice({
   name: 'paginatedUsers',
   initialState,
-  
+
   reducers: {
     /**
      * Reset the entire paginated users state back to its
@@ -34,7 +35,7 @@ const paginatedUsersSlice = createSlice({
      */
     resetPaginatedUsers: () => initialState,
   },
-  
+
   // ---------------------------
   // Extra reducers (async thunk lifecycle)
   // ---------------------------
@@ -45,7 +46,7 @@ const paginatedUsersSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      
+
       // ---- fulfilled ----
       .addCase(
         fetchPaginatedUsersThunk.fulfilled,
@@ -56,10 +57,10 @@ const paginatedUsersSlice = createSlice({
           >
         ) => {
           const payload = action.payload;
-          
+
           state.loading = false;
           state.data = payload.data; // UserCardView[] or UserListView[]
-          
+
           state.pagination = {
             page: payload.pagination.page,
             limit: payload.pagination.limit,
@@ -68,7 +69,7 @@ const paginatedUsersSlice = createSlice({
           };
         }
       )
-      
+
       // ---- rejected ----
       .addCase(fetchPaginatedUsersThunk.rejected, (state, action) => {
         state.loading = false;

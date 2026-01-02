@@ -20,13 +20,13 @@ import inventoryAllocationConfirmationReducer from './inventoryAllocationConfirm
 export const inventoryAllocationReducers = {
   /** Inventory allocation creation and editing workflow */
   allocateInventory: allocateInventoryReducer,
-  
+
   /** Review and validation of inventory allocations */
   inventoryAllocationReview: inventoryAllocationReviewReducer,
-  
+
   /** Paginated inventory allocation list and filters */
   paginatedInventoryAllocations: paginatedInventoryAllocationsReducer,
-  
+
   /** Confirmation and finalization of inventory allocations */
   inventoryAllocationConfirmation: inventoryAllocationConfirmationReducer,
 };

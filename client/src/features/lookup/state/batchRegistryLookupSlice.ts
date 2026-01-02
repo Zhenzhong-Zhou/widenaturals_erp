@@ -1,10 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
-import {
-  fetchBatchRegistryLookupThunk,
-} from '@features/lookup/state';
-import type {
-  BatchRegistryLookupState,
-} from '@features/lookup/state';
+import { fetchBatchRegistryLookupThunk } from '@features/lookup/state';
+import type { BatchRegistryLookupState } from '@features/lookup/state';
 
 const initialState: BatchRegistryLookupState = {
   loading: false,
@@ -56,6 +52,5 @@ const batchRegistryLookupSlice = createSlice({
   },
 });
 
-export const { resetBatchRegistryLookup } =
-  batchRegistryLookupSlice.actions;
+export const { resetBatchRegistryLookup } = batchRegistryLookupSlice.actions;
 export default batchRegistryLookupSlice.reducer;

@@ -10,9 +10,7 @@ import {
   selectPaginatedCustomersLimit,
   fetchPaginatedCustomersThunk,
 } from '@features/customer/state';
-import type {
-  FetchPaginatedCustomersParams,
-} from '@features/customer/state';
+import type { FetchPaginatedCustomersParams } from '@features/customer/state';
 
 /**
  * Hook to access paginated customer data and metadata.

@@ -17,13 +17,13 @@ interface ThumbnailListProps {
 const THUMB_SIZE = 150;
 
 const ThumbnailList: FC<ThumbnailListProps> = ({
-                                                 images,
-                                                 selectedId,
-                                                 isMobile,
-                                                 onSelect,
-                                               }) => {
+  images,
+  selectedId,
+  isMobile,
+  onSelect,
+}) => {
   const { theme } = useThemeContext();
-  
+
   return (
     <Stack
       role="listbox"
@@ -38,7 +38,7 @@ const ThumbnailList: FC<ThumbnailListProps> = ({
     >
       {images.map((img) => {
         const isSelected = img.id === selectedId;
-        
+
         return (
           <Box
             key={img.id}

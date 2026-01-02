@@ -13,20 +13,20 @@ interface StatusFieldParams {
   /** Current keyword text inside the dropdown */
   inputValue: string;
   setInputValue: (v: string) => void;
-  
+
   /** Pagination + query state */
   fetchParams: StatusLookupParams;
   setFetchParams: Dispatch<SetStateAction<LookupQuery>>;
-  
+
   /** Lookup results */
   options?: StatusLookupOption[];
   loading?: boolean;
   error?: string | null;
   meta?: LookupPaginationMeta;
-  
+
   /** Trigger backend search */
   fetchStatusDropdownOptions?: (params?: StatusLookupParams) => void;
-  
+
   /** Optional callback for keyword changes */
   onKeywordChange?: (keyword: string) => void;
 }
@@ -47,17 +47,17 @@ interface StatusFieldParams {
  * - Any form requiring a reusable Status dropdown field
  */
 export const createStatusField = ({
-                                    inputValue,
-                                    setInputValue,
-                                    fetchParams,
-                                    setFetchParams,
-                                    options = [],
-                                    loading,
-                                    error,
-                                    meta,
-                                    fetchStatusDropdownOptions,
-                                    onKeywordChange,
-                                  }: StatusFieldParams): FieldConfig => {
+  inputValue,
+  setInputValue,
+  fetchParams,
+  setFetchParams,
+  options = [],
+  loading,
+  error,
+  meta,
+  fetchStatusDropdownOptions,
+  onKeywordChange,
+}: StatusFieldParams): FieldConfig => {
   return {
     id: 'statusId',
     label: 'SKU Status',
@@ -69,14 +69,13 @@ export const createStatusField = ({
         label="SKU Status"
         value={value ?? ''}
         onChange={(id) => onChange?.(id)}
-        
         // Keyword input
         inputValue={inputValue}
         onInputChange={(_e, newValue, reason) => {
           setInputValue(newValue);
-          
+
           if (reason !== 'input') return;
-          
+
           setFetchParams((prev) =>
             normalizeLookupParams({
               ...prev,
@@ -84,24 +83,19 @@ export const createStatusField = ({
               offset: 0,
             })
           );
-          
+
           onKeywordChange?.(newValue);
         }}
-        
         options={options}
         loading={loading}
         error={error}
         paginationMeta={meta}
-        
         /** Pagination + fetch state */
         fetchParams={fetchParams}
         setFetchParams={setFetchParams}
-        
         /** Manual reload button */
         onRefresh={(params) =>
-          fetchStatusDropdownOptions?.(
-            normalizeLookupParams(params ?? {})
-          )
+          fetchStatusDropdownOptions?.(normalizeLookupParams(params ?? {}))
         }
       />
     ),

@@ -1,24 +1,24 @@
 import { type FC } from 'react';
 import CustomForm from '@components/common/CustomForm';
 import { createStatusField } from '@features/sku/components/UpdateSkuStatusForm';
-import
-  useStatusFieldController, {
-  StatusLookupController, StatusPayload,
+import useStatusFieldController, {
+  StatusLookupController,
+  StatusPayload,
 } from '@features/lookup/hooks/useStatusFieldController';
 
 interface UpdateSkuStatusFormProps {
   loading?: boolean;
   onSubmit: (data: StatusPayload) => void | Promise<void>;
-  
+
   skuId: string;
   statusLookup: StatusLookupController;
 }
 
 const UpdateSkuStatusForm: FC<UpdateSkuStatusFormProps> = ({
-                                                             loading,
-                                                             onSubmit,
-                                                             statusLookup,
-                                                           }) => {
+  loading,
+  onSubmit,
+  statusLookup,
+}) => {
   // -------------------------------
   // Use shared lookup + field logic
   // -------------------------------
@@ -26,14 +26,14 @@ const UpdateSkuStatusForm: FC<UpdateSkuStatusFormProps> = ({
     lookup: statusLookup,
     createField: createStatusField,
   });
-  
+
   // -------------------------------
   // Submit handler
   // -------------------------------
   const handleSubmit = (data: Record<string, any>) => {
     onSubmit(buildSubmitPayload(data));
   };
-  
+
   // -------------------------------------------------------
   // Render form
   // -------------------------------------------------------

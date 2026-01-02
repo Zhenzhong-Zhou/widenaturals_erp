@@ -49,15 +49,15 @@ const fetchPaginatedCustomers = async (
   params: FetchPaginatedCustomersParams = {}
 ): Promise<PaginatedCustomerListResponse> => {
   const { filters = {}, ...rest } = params;
-  
+
   const flatParams = {
     ...rest,
     ...filters,
   };
-  
+
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.CUSTOMERS.ALL_CUSTOMERS}${queryString}`;
-  
+
   return getRequest<PaginatedCustomerListResponse>(url);
 };
 

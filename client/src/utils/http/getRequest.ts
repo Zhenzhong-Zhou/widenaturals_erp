@@ -14,7 +14,7 @@ export interface GetRequestOptions {
    * Defaults to READ.
    */
   policy?: ReadPolicy;
-  
+
   /**
    * Optional Axios request configuration.
    *
@@ -47,11 +47,8 @@ export const getRequest = async <R>(
   url: string,
   options: GetRequestOptions = {}
 ): Promise<R> => {
-  const {
-    policy = 'READ',
-    config,
-  } = options;
-  
+  const { policy = 'READ', config } = options;
+
   try {
     const response = await requestWithNamedPolicy(
       (signal) =>
@@ -61,7 +58,7 @@ export const getRequest = async <R>(
         }),
       policy
     );
-    
+
     return response.data;
   } catch (error: unknown) {
     throw mapHttpError(error);
