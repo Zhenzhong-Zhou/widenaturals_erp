@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   normalizeLookupParams,
-  createLookupParams
+  createLookupParams,
 } from '@features/lookup/utils/lookupUtils';
 import useStatusSearchHandlers from '@features/lookup/hooks/useStatusSearchHandlers';
 import { formatLabel } from '@utils/textUtils';
@@ -32,18 +32,11 @@ export type StatusPayload = {
 };
 
 const useStatusFieldController = ({
-                                    lookup,
-                                    createField,
-                                  }: UseStatusFieldControllerArgs) => {
-  const {
-    options,
-    loading,
-    error,
-    meta,
-    fetch,
-    reset,
-  } = lookup;
-  
+  lookup,
+  createField,
+}: UseStatusFieldControllerArgs) => {
+  const { options, loading, error, meta, fetch, reset } = lookup;
+
   const formattedStatusOptions = useMemo(
     () =>
       options.map((opt) => ({
@@ -52,15 +45,15 @@ const useStatusFieldController = ({
       })),
     [options]
   );
-  
+
   // keyword + pagination state
   const [inputValue, setInputValue] = useState('');
   const [fetchParams, setFetchParams] =
     useState(createLookupParams<StatusLookupParams>());
-  
+
   // debounced search handler
   const { handleStatusSearch } = useStatusSearchHandlers({ fetch });
-  
+
   const handleKeyword = (keyword: string) => {
     setInputValue(keyword);
     setFetchParams((prev) =>
@@ -72,7 +65,7 @@ const useStatusFieldController = ({
     );
     handleStatusSearch(keyword);
   };
-  
+
   // reset on unmount
   const handleResetLookup = useCallback(() => {
     setInputValue('');
@@ -81,11 +74,11 @@ const useStatusFieldController = ({
     reset();
     fetch(resetParams);
   }, [reset, fetch]);
-  
+
   useEffect(() => {
     return () => handleResetLookup();
   }, [handleResetLookup]);
-  
+
   // FieldConfig for CustomForm
   const formFields = useMemo<FieldConfig[]>(
     () => [
@@ -113,23 +106,23 @@ const useStatusFieldController = ({
       handleKeyword,
     ]
   );
-  
+
   // -----------------------------------------
   // Always return `{ statusId, statusLabel }`
   // -----------------------------------------
   const buildSubmitPayload = (data: Record<string, any>): StatusPayload => {
     const statusId = data.statusId;
-    
+
     const selected = formattedStatusOptions.find(
       (opt) => opt.value === statusId
     );
-    
+
     return {
       statusId,
       statusLabel: selected?.label ?? '',
     };
   };
-  
+
   return {
     formFields,
     formattedStatusOptions,

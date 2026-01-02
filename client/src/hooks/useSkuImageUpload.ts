@@ -12,11 +12,11 @@ import {
   uploadSkuImagesThunk,
   selectSkuImageUploadSuccess,
 } from '@features/skuImage/state';
-import { resetUploadState } from '@features/skuImage/state/skuImageUploadSlice';
+import { resetSkuImageUpload } from '@features/skuImage/state/skuImageUploadSlice';
 
 const useSkuImageUpload = () => {
   const dispatch = useAppDispatch();
-  
+
   // Primitive selectors (memoized via RTK's createSelector)
   const loading = useAppSelector(selectSkuImageUploadLoading);
   const error = useAppSelector(selectSkuImageUploadError);
@@ -27,7 +27,7 @@ const useSkuImageUpload = () => {
   const failedCount = useAppSelector(selectSkuImageUploadFailedCount);
   const hasResults = useAppSelector(selectSkuImageUploadHasResults);
   const isSuccess = useAppSelector(selectSkuImageUploadSuccess);
-  
+
   // Stable upload function
   const uploadImages = useCallback(
     async (formData: FormData) => {
@@ -35,12 +35,12 @@ const useSkuImageUpload = () => {
     },
     [dispatch]
   );
-  
+
   // Stable reset function
   const reset = useCallback(() => {
-    dispatch(resetUploadState());
+    dispatch(resetSkuImageUpload());
   }, [dispatch]);
-  
+
   // Grouped memoized return object (stable reference for components)
   const state = useMemo(
     () => ({
@@ -66,12 +66,12 @@ const useSkuImageUpload = () => {
       isSuccess,
     ]
   );
-  
+
   // Expose actions + memoized state
   return {
     ...state,
     uploadImages,
-    reset
+    reset,
   };
 };
 

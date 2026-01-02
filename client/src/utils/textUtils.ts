@@ -135,33 +135,54 @@ export const toUpperCase = (str: string | null | undefined): string => {
 };
 
 /**
- * Formats a phone number dynamically by detecting its country.
+ * Formats a phone number for display using best-effort international rules.
  *
- * @param phoneNumber - The raw phone number from the database.
- * @param defaultCountry - Fallback country code if detection fails (default: "CA").
- * @returns Formatted phone number or fallback message.
+ * Behavior:
+ * - Normalizes the input by stripping whitespace and non-numeric characters
+ *   (except leading `+`)
+ * - Attempts to parse and validate the number using libphonenumber
+ * - If valid, returns the international format (e.g. `+1 604 123 4567`)
+ * - If invalid or incomplete, falls back to incremental formatting
+ *   via `AsYouType` using a default country
+ * - Returns a fallback value when formatting is not possible
+ *
+ * This utility is intended for **UI display only** and should not be used
+ * for validation or persistence.
+ *
+ * @param phoneNumber - Raw phone number string from the database or API
+ * @param options - Optional formatting configuration
+ * @param options.defaultCountry - Country used for fallback formatting
+ *                                  when no country code is present (default: `'CA'`)
+ * @param options.fallback - Value returned when formatting fails (default: `'—'`)
+ *
+ * @returns A human-readable phone number string suitable for display
  */
 export const formatPhoneNumber = (
-  phoneNumber: string | null,
-  defaultCountry: CountryCode = 'CA'
+  phoneNumber: string | null | undefined,
+  options?: {
+    defaultCountry?: CountryCode;
+    fallback?: string;
+  }
 ): string => {
-  if (!phoneNumber) return 'N/A';
+  const { defaultCountry = 'CA', fallback = '—' } = options ?? {};
 
-  // Normalize: remove all non-numeric except leading +
+  if (!phoneNumber) return fallback;
+
   const normalized = phoneNumber.trim().replace(/[^\d+]/g, '');
+
+  if (!normalized) return fallback;
 
   const parsedPhone = parsePhoneNumberFromString(normalized);
 
-  if (parsedPhone && parsedPhone.isValid()) {
-    return parsedPhone.formatInternational(); // e.g. +1 234 567 8901
+  if (parsedPhone?.isValid()) {
+    return parsedPhone.formatInternational();
   }
 
   try {
-    // Fallback with AsYouType (doesn't validate but formats nicely)
     const typed = new AsYouType(defaultCountry).input(normalized);
-    return typed || normalized;
+    return typed || fallback;
   } catch {
-    return normalized;
+    return fallback;
   }
 };
 

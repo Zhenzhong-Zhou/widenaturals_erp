@@ -9,195 +9,108 @@ import type {
   InventoryAllocationReviewResponse,
 } from '@features/inventoryAllocation/state';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import { getRequest, postRequest } from '@utils/apiRequest';
-import { buildQueryString } from '@utils/buildQueryString.ts';
+import { getRequest, postRequest } from '@utils/http';
+import { buildQueryString } from '@utils/buildQueryString';
 
 /**
- * Allocates inventory for a specific order using a selected strategy and optional warehouse ID.
+ * Allocates inventory for a specific order.
  *
- * Sends a `POST` request to `/inventory-allocations/allocate/:orderId` to initiate allocation.
+ * Issues:
+ *   POST /inventory-allocations/allocate/:orderId
  *
- * ### Behavior:
- * - The allocation strategy can be one of: `fifo`, `fefo`, `lifo`, `custom`, or any future string.
- * - If `warehouseId` is provided, allocation is scoped to that warehouse.
- * - Returns an object containing the order ID and an array of successfully allocated inventory IDs.
+ * Notes:
+ * - Allocation strategy and warehouse scope are provided in the request body.
+ * - Errors are propagated as normalized AppError instances by the transport layer.
  *
- * ### Failure:
- * - Throws if allocation fails due to validation, network error, or internal server issues.
- * - Logs detailed request context including orderId and payload on error.
- *
- * @param params - Object containing the order ID as a route parameter.
- * @param body - Object with optional `strategy` and `warehouseId` fields in the request body.
- * @returns A promise resolving to an `ApiSuccessResponse` with `{ orderId, allocationIds }` payload.
- *
- * @throws - Rethrows any error encountered (use in try/catch or thunk with `rejectWithValue`).
- *
- * @example
- * const res = await allocateInventoryForOrderService(
- *   { orderId: 'abc-123' },
- *   { strategy: 'fefo', warehouseId: 'xyz-789' }
- * );
- * console.log(res.data.allocationIds); // ['inv-1', 'inv-2', ...]
+ * @param params - Route parameters containing the order ID.
+ * @param body - Allocation options (strategy, warehouseId).
+ * @returns Allocation result including orderId and allocationIds.
+ * @throws {AppError} When the request fails.
  */
 const allocateInventoryForOrderService = async (
   params: AllocateInventoryParams,
   body: AllocateInventoryBody
 ): Promise<AllocateInventoryResponse> => {
   const { orderId } = params;
-  const url = API_ENDPOINTS.INVENTORY_ALLOCATIONS.ALLOCATE_ORDER(orderId);
 
-  try {
-    return await postRequest<AllocateInventoryBody, AllocateInventoryResponse>(
-      url,
-      body
-    );
-  } catch (error) {
-    console.error('Failed to allocate inventory for order:', {
-      orderId,
-      body,
-      error,
-    });
-    throw error;
-  }
+  return postRequest<AllocateInventoryBody, AllocateInventoryResponse>(
+    API_ENDPOINTS.INVENTORY_ALLOCATIONS.ALLOCATE_ORDER(orderId),
+    body
+  );
 };
 
 /**
- * Fetches the inventory allocation review details for a specific order.
+ * Fetches allocation review details for a specific order.
  *
- * This function calls the backend API endpoint to retrieve a detailed
- * summary of allocation records (header and item-level data) for the given
- * order ID and allocation ID list.
+ * Issues:
+ *   POST /inventory-allocations/review/:orderId
  *
- * Intended for use in review workflows such as pre-confirmation validation
- * or audit UI rendering.
- *
- * @async
- * @param {string} orderId - The UUID of the order to review allocations for.
- * @param {AllocationReviewRequest} body - Request payload containing an array of allocation IDs.
- * @returns {Promise<InventoryAllocationReviewResponse>} A typed response containing review header and allocation items.
- * @throws {Error} If the request fails due to network issues or server errors. Error should be handled upstream.
+ * @param orderId - Order identifier.
+ * @param body - Allocation IDs to review.
+ * @returns Allocation review header and item-level details.
+ * @throws {AppError} When the request fails.
  */
 const fetchInventoryAllocationReview = async (
   orderId: string,
   body: AllocationReviewRequest
 ): Promise<InventoryAllocationReviewResponse> => {
-  const url = API_ENDPOINTS.INVENTORY_ALLOCATIONS.REVIEW_ALLOCATION(orderId);
-
-  try {
-    return await postRequest<
-      AllocationReviewRequest,
-      InventoryAllocationReviewResponse
-    >(url, body);
-  } catch (error) {
-    console.error('Failed to fetch inventory allocation review', {
-      orderId,
-      error,
-    });
-    throw error;
-  }
+  return postRequest<
+    AllocationReviewRequest,
+    InventoryAllocationReviewResponse
+  >(API_ENDPOINTS.INVENTORY_ALLOCATIONS.REVIEW_ALLOCATION(orderId), body);
 };
 
 /**
- * Fetches a paginated list of inventory allocations from the API.
+ * Fetches a paginated list of inventory allocations.
  *
- * This function supports:
- * - Pagination: `page`, `limit`
- * - Sorting: `sortBy`, `sortOrder`
- * - Filtering: via `filters` object (flattened into query params)
+ * Issues:
+ *   GET /inventory-allocations with pagination, sorting, and filters.
  *
- * ### How it Works
- * - Extracts `filters` from the provided params
- * - Flattens filters and other query parameters into a flat key-value object
- * - Converts the flat object into a query string via `buildQueryString`
- * - Sends a typed GET request to the `ALL_ALLOCATIONS` endpoint
- * - Returns a structured, typed response
+ * Notes:
+ * - Filters are flattened into top-level query parameters.
+ * - Errors are propagated as normalized AppError instances.
  *
- * ### Query Parameters
- * - Pagination: `page`, `limit`
- * - Sorting: `sortBy`, `sortOrder`
- * - Filters (flattened): `warehouseId`, `statusId`, `orderNumber`, `keyword`, etc.
- *
- * @param {FetchPaginatedInventoryAllocationsParams} params
- *   - Pagination: `page`, `limit`
- *   - Sorting: `sortBy`, `sortOrder`
- *   - Filtering: `filters` object with allocation/order-level filters
- *
- * @returns {Promise<InventoryAllocationResponse>}
- *   A typed paginated response containing:
- *   - `data`: inventory allocation summaries
- *   - `pagination`: page info (`page`, `limit`, `totalRecords`, `totalPages`)
- *
- * @throws {Error} If the request fails or the API returns an error
+ * @param params - Pagination, sorting, and filter options.
+ * @returns Paginated allocation summaries.
+ * @throws {AppError} When the request fails.
  */
 const fetchPaginatedInventoryAllocations = async (
   params: FetchPaginatedInventoryAllocationsParams = {}
 ): Promise<InventoryAllocationResponse> => {
-  try {
-    const { filters = {}, ...rest } = params;
+  const { filters = {}, ...rest } = params;
 
-    // Flatten nested filters into top-level query keys
-    const flatParams = {
-      ...rest,
-      ...filters,
-    };
+  const flatParams = {
+    ...rest,
+    ...filters,
+  };
 
-    const queryString = buildQueryString(flatParams);
-    const url = `${API_ENDPOINTS.INVENTORY_ALLOCATIONS.ALL_ALLOCATIONS}${queryString}`;
+  const queryString = buildQueryString(flatParams);
+  const url = `${API_ENDPOINTS.INVENTORY_ALLOCATIONS.ALL_ALLOCATIONS}${queryString}`;
 
-    return await getRequest<InventoryAllocationResponse>(url);
-  } catch (error) {
-    console.error('Failed to fetch inventory allocations:', error);
-    throw error;
-  }
+  return getRequest<InventoryAllocationResponse>(url);
 };
 
 /**
- * Confirms all inventory allocations associated with a specific order.
+ * Confirms all inventory allocations for a specific order.
  *
- * This service function calls the backend API to finalize allocations for the given
- * `orderId`. It triggers updates to:
- * - Allocation statuses (e.g., from PENDING → ALLOCATED)
- * - Warehouse inventory quantities
- * - Order item statuses
- * - System-level audit and inventory activity logs
+ * Issues:
+ *   POST /inventory-allocations/confirm/:orderId
  *
- * The backend endpoint does not require a request body — only the `orderId` as a
- * path parameter. The response includes the full API envelope, containing:
- * - `success`: boolean indicating operation success
- * - `message`: a status message from the backend
- * - `data`: confirmed allocation details (allocation IDs, updated inventory IDs, log IDs, item-level status changes)
+ * Notes:
+ * - Finalizes allocation lifecycle and updates inventory and order state.
+ * - Errors are propagated as normalized AppError instances.
  *
- * Intended to be called within Redux thunks or directly in services that need
- * to finalize the allocation lifecycle for an order.
- *
- * @async
- * @function confirmInventoryAllocation
- * @param {string} orderId - The UUID of the order for which inventory allocations should be confirmed.
- * @returns {Promise<InventoryAllocationConfirmationResponse>} - Full API response containing confirmation result and payload.
- *
- * @throws {Error} If the request fails (e.g., network issue, server error).
- *
- * @example
- * const response = await confirmInventoryAllocation(orderId);
- * if (response.success) {
- *   console.log('Confirmation message:', response.message);
- *   console.log('Confirmed allocation IDs:', response.data.allocationIds);
- * }
+ * @param orderId - Order identifier.
+ * @returns Confirmation result and affected allocation details.
+ * @throws {AppError} When the request fails.
  */
 const confirmInventoryAllocation = async (
   orderId: string
 ): Promise<InventoryAllocationConfirmationResponse> => {
-  const url = API_ENDPOINTS.INVENTORY_ALLOCATIONS.CONFIRM_ALLOCATION(orderId);
-
-  try {
-    return await postRequest<void, InventoryAllocationConfirmationResponse>(
-      url,
-      undefined
-    );
-  } catch (error) {
-    console.error('Failed to confirm inventory allocation', { orderId, error });
-    throw error;
-  }
+  return postRequest<void, InventoryAllocationConfirmationResponse>(
+    API_ENDPOINTS.INVENTORY_ALLOCATIONS.CONFIRM_ALLOCATION(orderId),
+    undefined
+  );
 };
 
 export const inventoryAllocationService = {

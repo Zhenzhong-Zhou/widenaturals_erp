@@ -86,14 +86,13 @@ export const normalizeLookupParams = <T extends LookupQuery>(
  * @param fetch - Fetch function to load lookup options
  * @returns A memo-safe `onOpen` callback
  */
-export const createLazyOpenHandler = <T>(
-  options: T[],
-  fetch: () => void
-) => () => {
-  if (options.length === 0) {
-    fetch();
-  }
-};
+export const createLazyOpenHandler =
+  <T>(options: T[], fetch: () => void) =>
+  () => {
+    if (options.length === 0) {
+      fetch();
+    }
+  };
 
 /**
  * Returns a memoized copy of lookup options with formatted labels.
@@ -112,6 +111,6 @@ export const useFormattedOptions = (
   formatLabel: (label: string) => string
 ) =>
   useMemo(
-    () => options.map(o => ({ ...o, label: formatLabel(o.label) })),
+    () => options.map((o) => ({ ...o, label: formatLabel(o.label) })),
     [options, formatLabel]
   );

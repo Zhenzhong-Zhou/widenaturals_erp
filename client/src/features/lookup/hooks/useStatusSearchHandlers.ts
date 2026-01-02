@@ -29,9 +29,7 @@ const useStatusSearchHandlers = (bundle: StatusLookupBundle) => {
      *   const { handleStatusSearch } = useStatusSearchHandlers(statusLookup);
      *   handleStatusSearch(keyword);
      */
-    handleStatusSearch: useDebouncedSearch<StatusLookupParams>(
-      bundle.fetch
-    ),
+    handleStatusSearch: useDebouncedSearch<StatusLookupParams>(bundle.fetch),
   };
 };
 

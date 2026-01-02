@@ -4,12 +4,12 @@
  */
 
 const express = require('express');
+const { authorize } = require('../middlewares/authorize');
 const {
   getAllPriceTypesController,
   getPricingTypeMetadataController,
   getPricingTypesForDropdownController,
 } = require('../controllers/pricing-type-controller');
-const authorize = require('../middlewares/authorize');
 
 const router = express.Router();
 

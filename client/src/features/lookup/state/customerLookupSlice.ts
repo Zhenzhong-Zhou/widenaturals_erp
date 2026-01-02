@@ -1,14 +1,14 @@
 import { createSlice } from '@reduxjs/toolkit';
-import {
-  createInitialPaginatedLookupState,
-  type CustomerLookupItem,
-  type CustomerLookupState,
-} from './lookupTypes';
-import { fetchCustomerLookupThunk } from './lookupThunks';
+import type {
+  CustomerLookupItem,
+  CustomerLookupState,
+} from '@features/lookup/state';
+import { createInitialOffsetPaginatedState } from '@store/pagination';
+import { fetchCustomerLookupThunk } from '@features/lookup/state';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 
 const initialState: CustomerLookupState =
-  createInitialPaginatedLookupState<CustomerLookupItem>();
+  createInitialOffsetPaginatedState<CustomerLookupItem>();
 
 const customerLookupSlice = createSlice({
   name: 'customerLookup',

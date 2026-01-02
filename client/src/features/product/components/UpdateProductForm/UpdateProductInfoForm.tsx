@@ -10,11 +10,10 @@ interface UpdateProductInfoFormProps {
 }
 
 const UpdateProductInfoForm: FC<UpdateProductInfoFormProps> = ({
-                                                                 loading,
-                                                                 onSubmit,
-                                                                 initialValues,
-                                                               }) => {
-  
+  loading,
+  onSubmit,
+  initialValues,
+}) => {
   /**
    * Use the shared field factory in update mode.
    * All fields become optional, matching backend schema.
@@ -23,7 +22,7 @@ const UpdateProductInfoForm: FC<UpdateProductInfoFormProps> = ({
     () => buildProductInfoFields({ isUpdate: true }),
     []
   );
-  
+
   return (
     <CustomForm
       fields={productFormFields}

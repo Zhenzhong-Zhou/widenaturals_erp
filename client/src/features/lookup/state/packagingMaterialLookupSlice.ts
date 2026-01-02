@@ -1,15 +1,15 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import {
-  createInitialPaginatedLookupState,
-  type PackagingMaterialOnlyLookupItem,
-  type PackagingMaterialLookupResponse,
-  type PackagingMaterialLookupState,
-} from '@features/lookup/state/lookupTypes';
-import { fetchPackagingMaterialLookupThunk } from './lookupThunks';
+import type {
+  PackagingMaterialOnlyLookupItem,
+  PackagingMaterialLookupResponse,
+  PackagingMaterialLookupState,
+} from '@features/lookup/state';
+import { createInitialOffsetPaginatedState } from '@store/pagination';
+import { fetchPackagingMaterialLookupThunk } from '@features/lookup/state';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 
 const initialState: PackagingMaterialLookupState =
-  createInitialPaginatedLookupState<PackagingMaterialOnlyLookupItem>();
+  createInitialOffsetPaginatedState<PackagingMaterialOnlyLookupItem>();
 
 const packagingMaterialLookupSlice = createSlice({
   name: 'packagingMaterialLookup',
@@ -22,7 +22,7 @@ const packagingMaterialLookupSlice = createSlice({
     resetPackagingMaterialLookup: (state) => {
       Object.assign(
         state,
-        createInitialPaginatedLookupState<PackagingMaterialOnlyLookupItem>()
+        createInitialOffsetPaginatedState<PackagingMaterialOnlyLookupItem>()
       );
     },
   },

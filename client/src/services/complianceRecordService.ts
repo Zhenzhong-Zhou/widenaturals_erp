@@ -1,52 +1,34 @@
-import {
+import type {
   GetPaginatedComplianceRecordsParams,
-  PaginatedComplianceRecordResponse
+  PaginatedComplianceRecordResponse,
 } from '@features/complianceRecord/state';
 import { buildQueryString } from '@utils/buildQueryString';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import { getRequest } from '@utils/apiRequest';
+import { getRequest } from '@utils/http';
 
 /**
  * Fetch a paginated list of compliance records.
  *
  * Issues:
- *   GET /compliance-records?page={page}&limit={limit}&sortBy={col}&sortOrder={order}&...
- *
- * Standard response:
- *   PaginatedResponse<ComplianceRecord>
+ *   GET /compliance-records with pagination, sorting, and filter parameters.
  *
  * Notes:
  * - Filters are provided in `params.filters`
- * - Date ranges are flattened into top-level query params
- *   (e.g. issuedFrom / issuedTo)
+ * - Nested date ranges are flattened into top-level query parameters
+ *   (e.g. issued.from → issuedFrom, issued.to → issuedTo)
+ * - Errors are propagated as normalized AppError instances by the transport layer
  *
- * @param params - Pagination, sorting, and compliance filter options
- * @returns A promise resolving to paginated compliance records
- * @throws Rethrows any request helper error
- *
- * @example
- * const res = await fetchPaginatedComplianceRecords({
- *   page: 1,
- *   limit: 10,
- *   filters: {
- *     type: 'NPN',
- *     keyword: '8010',
- *     dateRanges: {
- *       issued: { from: '2025-01-01', to: '2025-12-31' }
- *     }
- *   }
- * });
+ * @param params - Pagination, sorting, and compliance filter options.
+ * @returns A paginated list of compliance records with metadata.
+ * @throws {AppError} When the request fails.
  */
 const fetchPaginatedComplianceRecords = async (
   params: GetPaginatedComplianceRecordsParams = {}
 ): Promise<PaginatedComplianceRecordResponse> => {
   const { filters = {}, ...rest } = params;
-  
-  const {
-    dateRanges,
-    ...otherFilters
-  } = filters;
-  
+
+  const { dateRanges, ...otherFilters } = filters;
+
   /**
    * Flatten dateRanges → query params
    * issued.from → issuedFrom
@@ -54,37 +36,28 @@ const fetchPaginatedComplianceRecords = async (
    */
   const flatDateParams = dateRanges
     ? Object.entries(dateRanges).reduce<Record<string, string>>(
-      (acc, [key, range]) => {
-        if (!range) return acc;
-        
-        if (range.from) acc[`${key}From`] = range.from;
-        if (range.to) acc[`${key}To`] = range.to;
-        
-        return acc;
-      },
-      {}
-    )
+        (acc, [key, range]) => {
+          if (!range) return acc;
+
+          if (range.from) acc[`${key}From`] = range.from;
+          if (range.to) acc[`${key}To`] = range.to;
+
+          return acc;
+        },
+        {}
+      )
     : {};
-  
-  // Merge everything into top-level query params
+
   const flatParams = {
     ...rest,
     ...otherFilters,
     ...flatDateParams,
   };
-  
+
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.COMPLIANCE_RECORDS.ALL_RECORDS}${queryString}`;
-  
-  try {
-    return await getRequest<PaginatedComplianceRecordResponse>(url);
-  } catch (error) {
-    console.error('Failed to fetch compliance records:', {
-      params,
-      error,
-    });
-    throw error;
-  }
+
+  return getRequest<PaginatedComplianceRecordResponse>(url);
 };
 
 export const complianceRecordService = {

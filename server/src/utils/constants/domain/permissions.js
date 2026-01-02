@@ -6,6 +6,11 @@ const PERMISSIONS = {
     VIEW: 'view_admin',
   },
   USERS: {
+    VIEW_USERS: 'view_users',
+    VIEW_LIST: 'view_user_list',
+    VIEW_CARD: 'view_user_card',
+    VIEW_SELF_PROFILE: 'view_self_profile',
+    VIEW_ANY_USER_PROFILE: 'view_any_user_profile',
     MANAGE: 'manage_users',
     DELETE: 'delete_user',
     EDIT: 'edit_profile',

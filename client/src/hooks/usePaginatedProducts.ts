@@ -1,16 +1,16 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
+  fetchPaginatedProductsThunk,
   selectPaginatedProductsData,
   selectPaginatedProductsPagination,
   selectPaginatedProductsLoading,
   selectPaginatedProductsError,
   selectPaginatedProductsTotalRecords,
   selectPaginatedProductsIsEmpty,
-  type FetchProductParams,
-  fetchPaginatedProductsThunk,
+  resetPaginatedProducts,
 } from '@features/product/state';
-import { resetPaginatedProductsState } from '@features/product/state/paginatedProductsSlice';
+import type { FetchProductParams } from '@features/product/state';
 
 /**
  * React hook that provides access to paginated Product list state and actions.
@@ -56,7 +56,7 @@ const usePaginatedProducts = () => {
    * Reset product state back to initial empty paginated state.
    */
   const resetProducts = useCallback(() => {
-    dispatch(resetPaginatedProductsState());
+    dispatch(resetPaginatedProducts());
   }, [dispatch]);
 
   // ---------------------------

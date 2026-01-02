@@ -1,1 +1,1 @@
-export { locationInventoryReducers } from './state';
+export * from './state';

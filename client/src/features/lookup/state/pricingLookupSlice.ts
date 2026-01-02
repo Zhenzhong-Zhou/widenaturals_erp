@@ -1,18 +1,18 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import {
-  createInitialPaginatedLookupState,
-  type PricingLookupItem,
-  type PricingLookupResponse,
-  type PricingLookupState,
-} from '@features/lookup/state/lookupTypes';
-import { fetchPricingLookupThunk } from './lookupThunks';
+import type {
+  PricingLookupItem,
+  PricingLookupResponse,
+  PricingLookupState,
+} from '@features/lookup/state';
+import { createInitialOffsetPaginatedState } from '@store/pagination';
+import { fetchPricingLookupThunk } from '@features/lookup/state';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 
 /**
  * Initial state for the pricing lookup slice.
  */
 const initialState: PricingLookupState =
-  createInitialPaginatedLookupState<PricingLookupItem>();
+  createInitialOffsetPaginatedState<PricingLookupItem>();
 
 /**
  * Redux slice to manage pricing lookup state for dropdowns and autocomplete fields.

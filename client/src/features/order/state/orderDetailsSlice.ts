@@ -15,11 +15,7 @@ const orderDetailsSlice = createSlice({
   name: 'orderDetails',
   initialState,
   reducers: {
-    clearOrderDetails(state) {
-      state.data = null;
-      state.error = null;
-      state.loading = false;
-    },
+    resetOrderDetails: () => initialState,
   },
   extraReducers: (builder) => {
     builder
@@ -41,5 +37,5 @@ const orderDetailsSlice = createSlice({
   },
 });
 
-export const { clearOrderDetails } = orderDetailsSlice.actions;
+export const { resetOrderDetails } = orderDetailsSlice.actions;
 export default orderDetailsSlice.reducer;

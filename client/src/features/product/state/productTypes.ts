@@ -303,25 +303,25 @@ export interface FlattenedProductRecord {
 export interface ProductResponse {
   /** Unique product identifier (UUID) */
   id: string;
-  
+
   /** Human-readable product name */
   name: string;
-  
+
   /** Product series/category grouping */
   series: string;
-  
+
   /** Brand associated with this product */
   brand: string;
-  
+
   /** Product category label (e.g., "NMN", "Omega") */
   category: string;
-  
+
   /** Marketing or descriptive text for UI display */
   description: string;
-  
+
   /** Status object containing the id, name, and last status update timestamp */
   status: GenericStatus;
-  
+
   /** Audit metadata: created/updated timestamps and user references */
   audit: GenericAudit;
 }
@@ -372,54 +372,54 @@ export type ProductDetailState = AsyncState<ProductResponse | null>;
 export interface FlattenedProductDetail {
   /** Unique product identifier */
   id: string;
-  
+
   /** Human-readable product name */
   name: string;
-  
+
   /** Product series grouping */
   series: string;
-  
+
   /** Associated brand */
   brand: string;
-  
+
   /** Product category label */
   category: string;
-  
+
   /** Marketing or descriptive text */
   description: string;
-  
+
   // -----------------------------
   // Flattened Status Metadata
   // -----------------------------
-  
+
   /** Status ID (UUID) from the backend */
   statusId: string | null;
-  
+
   /** Status name such as "active" or "inactive" */
   statusName: string | null;
-  
+
   /** Timestamp of the last status change */
   statusDate: string | null;
-  
+
   // -----------------------------
   // Flattened Audit Metadata
   // -----------------------------
-  
+
   /** Timestamp when the product was created */
   createdAt: string | null;
-  
+
   /** User ID of who created the product */
   createdById: string | null;
-  
+
   /** Full name of who created the product */
   createdByName: string | null;
-  
+
   /** Timestamp when the product was last updated (null if never) */
   updatedAt: string | null;
-  
+
   /** User ID of who last updated the product */
   updatedById: string | null;
-  
+
   /** Full name of who last updated the product */
   updatedByName: string | null;
 }
@@ -461,16 +461,16 @@ export type UpdateProductApiResponse =
 export interface ProductUpdateRequest {
   /** Product Name (max 150 chars) */
   name?: string;
-  
+
   /** Series grouping (max 100 chars) */
   series?: string;
-  
+
   /** Brand name (max 100 chars) */
   brand?: string;
-  
+
   /** Category name (max 100 chars) */
   category?: string;
-  
+
   /** Optional description text (empty string allowed) */
   description?: string;
 }
@@ -496,7 +496,7 @@ export type ProductStatusUpdateRequest = UpdateStatusIdRequest;
 export interface UpdateProductStatusThunkArgs {
   /** The ID of the product whose status is being updated */
   productId: string;
-  
+
   /** The new status to assign */
   statusId: string;
 }
@@ -509,8 +509,7 @@ export interface UpdateProductStatusThunkArgs {
  *  - `loading`: request lifecycle flag
  *  - `error`  : user-facing error message
  */
-export type ProductUpdateState =
-  AsyncState<UpdateProductApiResponse | null>;
+export type ProductUpdateState = AsyncState<UpdateProductApiResponse | null>;
 
 /**
  * Async state wrapper used by the product status update slice.

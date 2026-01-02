@@ -1,6 +1,10 @@
 import { useState } from 'react';
-import { handleError, mapErrorMessage } from '@utils/errorUtils';
-import { AppError, ErrorType } from '@utils/AppError';
+import {
+  AppError,
+  ErrorType,
+  handleError,
+  mapErrorMessage,
+} from '@utils/error';
 
 interface ErrorHandler {
   errorMessage: string | null;
@@ -9,48 +13,46 @@ interface ErrorHandler {
 }
 
 /**
- * Custom hook for centralized error handling in React components.
+ * UI-only hook for recoverable, non-fatal errors.
  *
- * @returns {object} An object containing:
- * - `errorMessage`: The current user-friendly error message.
- * - `handle`: A function to handle and log errors.
- * - `clearError`: A function to reset the error state.
+ * Responsibilities:
+ * - Normalize unknown errors into AppError (if needed)
+ * - Delegate logging/reporting to centralized handler
+ * - Expose a user-facing message for inline UI display
+ *
+ * IMPORTANT:
+ * - Component-level errors ONLY
+ * - Must NOT replace Error Boundaries
+ * - Must NOT be used for navigation, auth, or module failures
  */
 const useErrorHandler = (): ErrorHandler => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  /**
-   * Handles an error by logging it, wrapping it in an AppError if necessary,
-   * and extracting a user-friendly message.
-   *
-   * @param {unknown} error - The error to handle. It can be of any type.
-   */
   const handle = (error: unknown) => {
-    try {
-      const appError =
-        error instanceof AppError
-          ? error
-          : AppError.create(
-              ErrorType.UnknownError,
-              mapErrorMessage(error),
-              500,
-              { details: error }
-            );
+    const appError =
+      error instanceof AppError
+        ? error
+        : new AppError('A recoverable error occurred', {
+            type: ErrorType.Unknown,
+            cause: error,
+          });
 
-      handleError(appError); // Log the error using a centralized logging utility
-      setErrorMessage(appError.message); // Update error message state
-    } catch (internalError) {
-      console.error('Error in useErrorHandler:', internalError);
-      setErrorMessage('An unexpected error occurred. Please try again.');
-    }
+    // Centralized logging / reporting
+    handleError(appError);
+
+    // UI-safe message extraction (last step only)
+    setErrorMessage(mapErrorMessage(appError));
   };
 
-  /**
-   * Clears the current error message.
-   */
-  const clearError = () => setErrorMessage(null);
+  const clearError = () => {
+    setErrorMessage(null);
+  };
 
-  return { errorMessage, handle, clearError };
+  return {
+    errorMessage,
+    handle,
+    clearError,
+  };
 };
 
 export default useErrorHandler;

@@ -7,24 +7,20 @@ import ResultBody from '@components/common/ResultBody';
 interface UpdateProductInfoSuccessDialogProps {
   open: boolean;
   onClose: () => void;
-  
+
   /** Product name to display */
   productName: string;
-  
+
   /** Optional: list of fields that were updated */
   updatedFields?: string[];
-  
+
   /** Optional: API response payload (audit id, timestamps, etc.) */
   responseData?: any;
 }
 
-const UpdateProductInfoSuccessDialog: FC<UpdateProductInfoSuccessDialogProps> = ({
-                                                                                   open,
-                                                                                   onClose,
-                                                                                   productName,
-                                                                                   updatedFields,
-                                                                                   responseData,
-                                                                                 }) => {
+const UpdateProductInfoSuccessDialog: FC<
+  UpdateProductInfoSuccessDialogProps
+> = ({ open, onClose, productName, updatedFields, responseData }) => {
   return (
     <CustomDialog
       open={open}
@@ -43,12 +39,11 @@ const UpdateProductInfoSuccessDialog: FC<UpdateProductInfoSuccessDialogProps> = 
             <Box>
               <strong>Product:</strong> {productName}
             </Box>
-            
+
             {/* Updated fields */}
             {updatedFields && updatedFields.length > 0 && (
               <Box sx={{ mt: 1 }}>
-                <strong>Updated Fields:</strong>{' '}
-                {updatedFields.join(', ')}
+                <strong>Updated Fields:</strong> {updatedFields.join(', ')}
               </Box>
             )}
           </>

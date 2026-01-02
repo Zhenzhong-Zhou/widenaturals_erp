@@ -1,1 +1,1 @@
-export { lookupReducers } from './state';
+export * from './state';

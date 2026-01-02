@@ -154,26 +154,23 @@ export const fetchProductDetailByIdThunk = createAsyncThunk<
   GetProductApiResponse,
   string,
   { rejectValue: string }
->(
-  'products/fetchProductDetailById',
-  async (productId, { rejectWithValue }) => {
-    try {
-      return await productService.fetchProductDetailById(productId);
-    } catch (error: any) {
-      console.error('fetchProductDetailByIdThunk failed:', {
-        productId,
-        error,
-      });
-      
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Failed to fetch product details';
-      
-      return rejectWithValue(message);
-    }
+>('products/fetchProductDetailById', async (productId, { rejectWithValue }) => {
+  try {
+    return await productService.fetchProductDetailById(productId);
+  } catch (error: any) {
+    console.error('fetchProductDetailByIdThunk failed:', {
+      productId,
+      error,
+    });
+
+    const message =
+      error?.response?.data?.message ||
+      error?.message ||
+      'Failed to fetch product details';
+
+    return rejectWithValue(message);
   }
-);
+});
 
 /**
  * Thunk: Update a product's core information fields by ID.
@@ -218,12 +215,12 @@ export const updateProductInfoByIdThunk = createAsyncThunk<
         payload,
         error,
       });
-      
+
       const message =
         error?.response?.data?.message ||
         error?.message ||
         'Failed to update product information.';
-      
+
       return rejectWithValue(message);
     }
   }
@@ -271,12 +268,12 @@ export const updateProductStatusByIdThunk = createAsyncThunk<
         productId,
         error,
       });
-      
+
       const message =
         error?.response?.data?.message ||
         error?.message ||
         'Failed to update product status.';
-      
+
       return rejectWithValue(message);
     }
   }

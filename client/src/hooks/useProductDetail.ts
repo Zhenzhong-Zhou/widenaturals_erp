@@ -6,8 +6,8 @@ import {
   selectProductDetailError,
   selectProductDetailIsEmpty,
   fetchProductDetailByIdThunk,
+  resetProductDetail,
 } from '@features/product/state';
-import { resetProductDetailState } from '@features/product/state/productDetailSlice';
 
 /**
  * Hook: Provides typed selectors and dispatchable actions
@@ -20,20 +20,20 @@ import { resetProductDetailState } from '@features/product/state/productDetailSl
  */
 const useProductDetail = () => {
   const dispatch = useAppDispatch();
-  
+
   // ----------------------------
   // Selectors
   // ----------------------------
-  
+
   const product = useAppSelector(selectProductDetailData);
   const loading = useAppSelector(selectProductDetailLoading);
   const error = useAppSelector(selectProductDetailError);
   const isEmpty = useAppSelector(selectProductDetailIsEmpty);
-  
+
   // ----------------------------
   // Actions
   // ----------------------------
-  
+
   /**
    * Fetch Product detail by ID (dispatch thunk).
    */
@@ -44,18 +44,18 @@ const useProductDetail = () => {
     },
     [dispatch]
   );
-  
+
   /**
    * Reset Product detail slice state (useful on unmount).
    */
-  const resetProductDetail = useCallback(() => {
-    dispatch(resetProductDetailState());
+  const resetProductDetailState = useCallback(() => {
+    dispatch(resetProductDetail());
   }, [dispatch]);
-  
+
   // ----------------------------
   // Memoized combined result
   // ----------------------------
-  
+
   const combined = useMemo(
     () => ({
       product,
@@ -63,22 +63,22 @@ const useProductDetail = () => {
     }),
     [product, isEmpty]
   );
-  
+
   // ----------------------------
   // Hook Return API
   // ----------------------------
-  
+
   return {
     // combined state
     ...combined,
-    
+
     // simple state flags
     loading,
     error,
-    
+
     // actions
     fetchProductDetail,
-    resetProductDetail,
+    resetProductDetailState,
   };
 };
 

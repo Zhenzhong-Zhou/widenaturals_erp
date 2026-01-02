@@ -33,9 +33,9 @@ const getFileHashStream = (filePath) =>
   new Promise((resolve, reject) => {
     const hash = crypto.createHash('sha256');
     const stream = fs.createReadStream(filePath);
-    
+
     let settled = false;
-    
+
     const fail = (err) => {
       if (settled) return;
       settled = true;
@@ -45,9 +45,9 @@ const getFileHashStream = (filePath) =>
         })
       );
     };
-    
+
     stream.on('error', fail);
-    
+
     stream.on('data', (chunk) => {
       try {
         hash.update(chunk);
@@ -55,7 +55,7 @@ const getFileHashStream = (filePath) =>
         fail(err);
       }
     });
-    
+
     stream.on('end', () => {
       if (settled) return;
       settled = true;

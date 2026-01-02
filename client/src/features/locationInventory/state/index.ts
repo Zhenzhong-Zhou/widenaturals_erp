@@ -1,18 +1,18 @@
-import locationInventoryKpiSummaryReducer from './locationInventoryKpiSummarySlice';
-import locationInventorySummaryReducer from './locationInventorySummarySlice';
-import locationInventorySummaryDetailReducer from './locationInventorySummaryDetailSlice';
-import locationInventoryReducer from './locationInventorySlice';
+// --------------------------------------------------
+// Reducers (store integration point ONLY)
+// --------------------------------------------------
+export { locationInventoryReducers } from './locationInventoryReducers';
 
-export const locationInventoryReducers = {
-  locationInventoryKpiSummary: locationInventoryKpiSummaryReducer,
-  locationInventorySummary: locationInventorySummaryReducer,
-  locationInventorySummaryDetail: locationInventorySummaryDetailReducer,
-  locationInventory: locationInventoryReducer,
-};
-
-// Optional: Export selectors, thunks, and types
+// --------------------------------------------------
+// Selectors
+// --------------------------------------------------
 export * from './locationInventoryKpiSummarySelectors';
+export * from './locationInventorySelectors';
 export * from './locationInventorySummarySelectors';
 export * from './locationInventorySummaryDetailSelectors';
+
+// --------------------------------------------------
+// Thunks & Types
+// --------------------------------------------------
 export * from './locationInventoryThunks';
 export * from './locationInventoryTypes';

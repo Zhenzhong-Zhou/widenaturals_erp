@@ -1,22 +1,28 @@
-import initiateOutboundFulfillmentReducer from './initiateOutboundFulfillmentSlice';
-import paginatedOutboundFulfillmentsReducer from './paginatedOutboundFulfillmentsSlice';
-import outboundShipmentDetailsReducer from './outboundShipmentDetailsSlice';
-import confirmOutboundFulfillmentReducer from './confirmOutboundFulfillmentSlice';
-import completeManualFulfillmentReducer from './completeManualFulfillmentSlice';
+// --------------------------------------------------
+// Reducers (explicit, store-only)
+// --------------------------------------------------
+export { outboundFulfillmentReducers } from './outboundFulfillmentReducers';
 
-export const outboundFulfillmentReducers = {
-  initiateOutboundFulfillment: initiateOutboundFulfillmentReducer,
-  paginatedOutboundFulfillments: paginatedOutboundFulfillmentsReducer,
-  outboundShipmentDetails: outboundShipmentDetailsReducer,
-  confirmOutboundFulfillment: confirmOutboundFulfillmentReducer,
-  completeManualFulfillment: completeManualFulfillmentReducer,
-};
+// --------------------------------------------------
+// Reset Actions (explicit public lifecycle API)
+// --------------------------------------------------
+export { resetInitiateOutboundFulfillment } from './initiateOutboundFulfillmentSlice';
+export { resetPaginatedOutboundFulfillments } from './paginatedOutboundFulfillmentsSlice';
+export { resetOutboundShipmentDetails } from './outboundShipmentDetailsSlice';
+export { resetConfirmOutboundFulfillment } from './confirmOutboundFulfillmentSlice';
+export { resetCompleteManualFulfillment } from './completeManualFulfillmentSlice';
 
-// Optional exports for thunks, selectors, types
+// --------------------------------------------------
+// Selectors
+// --------------------------------------------------
 export * from './initiateOutboundFulfillmentSelectors';
 export * from './paginatedOutboundFulfillmentsSelectors';
 export * from './outboundShipmentDetailsSelectors';
 export * from './confirmOutboundFulfillmentSelectors';
 export * from './completeManualFulfillmentSelectors';
+
+// --------------------------------------------------
+// Thunks & Types
+// --------------------------------------------------
 export * from './outboundFulfillmentThunks';
 export * from './outboundFulfillmentTypes';

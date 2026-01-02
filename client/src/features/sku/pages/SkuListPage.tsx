@@ -45,7 +45,7 @@ const SkuListPage = () => {
   const [selectedSkus, setSelectedSkus] = useState<{
     [skuId: string]: SelectedSku;
   }>({});
-  
+
   // SKU list hook
   const {
     data: skuData,
@@ -58,16 +58,16 @@ const SkuListPage = () => {
   } = usePaginatedSkus();
 
   const flattenData = flattenSkuRecords(skuData);
-  
+
   const updateSelectedSkus = (
     prev: Record<string, SelectedSku>,
     ids: string[],
     flattenData: FlattenedSkuRecord[]
   ) => {
     const updated = { ...prev };
-    
-    ids.forEach(id => {
-      const row = flattenData.find(r => r.skuId === id);
+
+    ids.forEach((id) => {
+      const row = flattenData.find((r) => r.skuId === id);
       if (row) {
         updated[id] = {
           skuId: row.skuId ?? '',
@@ -76,17 +76,17 @@ const SkuListPage = () => {
         };
       }
     });
-    
+
     // Remove deselected IDs
-    Object.keys(updated).forEach(id => {
+    Object.keys(updated).forEach((id) => {
       if (!ids.includes(id)) {
         delete updated[id];
       }
     });
-    
+
     return updated;
   };
-  
+
   // -----------------------------
   // Shared query object
   // -----------------------------
@@ -148,16 +148,14 @@ const SkuListPage = () => {
   const handleDrillDownToggle = (rowId: string) => {
     setExpandedRowId((current) => (current === rowId ? null : rowId));
   };
-  
+
   const handleSelectionChange = useCallback(
     (ids: string[]) => {
-      setSelectedSkus(prev =>
-        updateSelectedSkus(prev, ids, flattenData)
-      );
+      setSelectedSkus((prev) => updateSelectedSkus(prev, ids, flattenData));
     },
     [flattenData]
   );
-  
+
   return (
     <Box sx={{ px: 4, py: 3 }}>
       {/* Header */}

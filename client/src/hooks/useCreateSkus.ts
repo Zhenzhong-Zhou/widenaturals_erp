@@ -6,10 +6,10 @@ import {
   selectCreateSkusLoading,
   selectCreateSkusSuccess,
   selectCreatedSkuCodes,
-  type CreateSkuBulkInput,
   createSkusThunk,
+  resetCreateSkus,
 } from '@features/sku/state';
-import { resetCreateSkusState } from '@features/sku/state/createSkusSlice';
+import type { CreateSkuBulkInput } from '@features/sku/state';
 
 /**
  * Hook providing a complete interface for creating SKUs.
@@ -45,7 +45,7 @@ const useCreateSkus = () => {
   // Reset handler
   // -----------------------------
   const reset = useCallback(() => {
-    dispatch(resetCreateSkusState());
+    dispatch(resetCreateSkus());
   }, [dispatch]);
 
   // -----------------------------

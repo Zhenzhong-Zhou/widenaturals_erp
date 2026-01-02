@@ -2,12 +2,12 @@ import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchLocationInventorySummaryThunk,
-  type LocationInventoryQueryParams,
   selectLocationInventorySummaryData,
   selectLocationInventorySummaryError,
   selectLocationInventorySummaryLoading,
   selectLocationInventorySummaryPagination,
 } from '@features/locationInventory/state';
+import type { LocationInventoryQueryParams } from '@features/locationInventory/state';
 
 /**
  * Custom hook to access and fetch location inventory summary data.

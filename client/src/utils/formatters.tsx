@@ -43,6 +43,24 @@ export const formatStatus = (
   return <StatusChip label={label} color={color} />;
 };
 
+export const formatGeneralStatus = (
+  code?: string | null,
+  labelOverride?: string | null
+): ReactNode => {
+  if (!code) return '—';
+
+  const normalized = code.toUpperCase();
+  const color = getStatusColor(normalized, 'general');
+  const label =
+    labelOverride ??
+    normalized
+      .toLowerCase()
+      .replace(/_/g, ' ')
+      .replace(/(^|\s)\S/g, (s) => s.toUpperCase());
+
+  return <StatusChip label={label} color={color} />;
+};
+
 export const formatOrderStatus = (
   code?: string | null,
   label?: string | null

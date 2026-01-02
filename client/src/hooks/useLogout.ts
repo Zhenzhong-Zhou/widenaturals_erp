@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useAppDispatch } from '@store/storeHooks';
-import { clearTokens } from '@utils/tokenManager';
+import { clearTokens } from '@utils/auth';
 import { logoutThunk } from '@features/session/state/sessionThunks';
 
 /**

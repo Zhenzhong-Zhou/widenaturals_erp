@@ -38,14 +38,14 @@ interface Props {
 }
 
 const SkuImageGallery: FC<Props> = ({
-                                      images,
-                                      thumbnails,
-                                      primaryImage,
-                                      maxThumbsDesktop,
+  images,
+  thumbnails,
+  primaryImage,
+  maxThumbsDesktop,
 }) => {
   // Number of thumbnails visible in desktop rail before paging
   const VISIBLE_THUMBS = maxThumbsDesktop ?? 5;
-  
+
   /* ----------------------------------------------------------------------- */
   /* LOCAL STATE                                                             */
   /* ----------------------------------------------------------------------- */
@@ -54,7 +54,7 @@ const SkuImageGallery: FC<Props> = ({
 
   // Thumbnail paging (desktop)
   const [thumbStart, setThumbStart] = useState(0);
-  
+
   // Zoom dialog state
   const [zoomOpen, setZoomOpen] = useState(false);
 
@@ -99,7 +99,7 @@ const SkuImageGallery: FC<Props> = ({
   const [selected, setSelected] = useState<SkuImage | null>(
     mainImage ?? primaryImage
   );
-  
+
   /**
    * Re-sync selected image when SKU changes or images are replaced.
    * Does NOT run on user thumbnail clicks.
@@ -109,7 +109,7 @@ const SkuImageGallery: FC<Props> = ({
       setSelected(mainImage ?? primaryImage);
     }
   }, [mainImage, primaryImage]);
-  
+
   // Determine final image displayed on the large preview
   const displayImage = selected ?? mainImage ?? primaryImage;
 
@@ -146,23 +146,17 @@ const SkuImageGallery: FC<Props> = ({
   const handleThumbClick = useCallback((img: SkuImage) => {
     setSelected(img);
   }, []);
-  
+
   const visibleThumbs = useMemo(
-    () =>
-      thumbnailsToUse.slice(
-        thumbStart,
-        thumbStart + VISIBLE_THUMBS
-      ),
+    () => thumbnailsToUse.slice(thumbStart, thumbStart + VISIBLE_THUMBS),
     [thumbnailsToUse, thumbStart]
   );
-  
+
   const canScrollUp = thumbStart > 0;
-  const canScrollDown =
-    thumbStart + VISIBLE_THUMBS < thumbnailsToUse.length;
-  
-  const scrollUp = () =>
-    setThumbStart((v) => Math.max(0, v - VISIBLE_THUMBS));
-  
+  const canScrollDown = thumbStart + VISIBLE_THUMBS < thumbnailsToUse.length;
+
+  const scrollUp = () => setThumbStart((v) => Math.max(0, v - VISIBLE_THUMBS));
+
   const scrollDown = () =>
     setThumbStart((v) =>
       Math.min(
@@ -170,7 +164,7 @@ const SkuImageGallery: FC<Props> = ({
         v + VISIBLE_THUMBS
       )
     );
-  
+
   return (
     <Box
       display="flex"
@@ -181,21 +175,17 @@ const SkuImageGallery: FC<Props> = ({
       {/* DESKTOP: LEFT THUMBNAIL RAIL */}
       {!isMobile && (
         <Stack alignItems="center" spacing={1}>
-          <IconButton
-            size="small"
-            disabled={!canScrollUp}
-            onClick={scrollUp}
-          >
+          <IconButton size="small" disabled={!canScrollUp} onClick={scrollUp}>
             <KeyboardArrowUpIcon />
           </IconButton>
-          
+
           <ThumbnailList
             images={visibleThumbs}
             selectedId={displayImage?.id}
             isMobile={false}
             onSelect={handleThumbClick}
           />
-          
+
           <IconButton
             size="small"
             disabled={!canScrollDown}
@@ -205,13 +195,9 @@ const SkuImageGallery: FC<Props> = ({
           </IconButton>
         </Stack>
       )}
-      
+
       {/* MAIN IMAGE */}
-      <Box
-        flex={1}
-        textAlign="center"
-        sx={{ position: 'relative' }}
-      >
+      <Box flex={1} textAlign="center" sx={{ position: 'relative' }}>
         <Tooltip title="Image Metadata">
           <IconButton
             size="small"
@@ -234,7 +220,7 @@ const SkuImageGallery: FC<Props> = ({
             <InfoOutlinedIcon fontSize="small" />
           </IconButton>
         </Tooltip>
-        
+
         <CardMedia
           component="img"
           image={displayUrl}
@@ -248,7 +234,7 @@ const SkuImageGallery: FC<Props> = ({
             cursor: zoomImage ? 'zoom-in' : 'default',
           }}
         />
-        
+
         <CustomTypography
           variant="caption"
           color="text.secondary"
@@ -258,18 +244,14 @@ const SkuImageGallery: FC<Props> = ({
           Click image to zoom
         </CustomTypography>
       </Box>
-      
+
       {/* MOBILE: BOTTOM THUMBNAILS */}
       {isMobile && (
         <Box>
-          <CustomTypography
-            variant="caption"
-            color="text.secondary"
-            mb={1}
-          >
+          <CustomTypography variant="caption" color="text.secondary" mb={1}>
             Swipe to view images
           </CustomTypography>
-          
+
           <ThumbnailList
             images={thumbnailsToUse}
             selectedId={displayImage?.id}
@@ -278,14 +260,14 @@ const SkuImageGallery: FC<Props> = ({
           />
         </Box>
       )}
-      
+
       <ZoomImageDialog
         open={zoomOpen}
         onClose={() => setZoomOpen(false)}
         imageUrl={zoomUrl}
         altText={zoomImage?.altText ?? displayImage?.altText}
       />
-      
+
       <ImageMetadataPopover
         anchorEl={metaAnchorEl}
         open={metaOpen}

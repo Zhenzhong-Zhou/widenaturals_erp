@@ -5,8 +5,7 @@ import type { RootState } from '@store/store';
  * Base selector for the Product detail slice.
  * Extracts the entire `productDetail` state from Redux.
  */
-const selectProductDetailState = (state: RootState) =>
-  state.productDetail;
+const selectProductDetailState = (state: RootState) => state.productDetail;
 
 /**
  * Selector: Returns the Product detail object (`ProductResponse | null`).

@@ -1,9 +1,11 @@
 import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
-import { selectAdjustedInventoryRecords } from '@features/warehouseInventory/state/warehouseInventoryAdjustSelectors';
+import {
+  adjustWarehouseInventoryQuantitiesThunk,
+  resetAdjustInventory,
+  selectAdjustedInventoryRecords,
+} from '@features/warehouseInventory/state';
 import type { AdjustInventoryRequestBody } from '@features/inventoryShared/types/InventorySharedType';
-import { adjustWarehouseInventoryQuantitiesThunk } from '@features/warehouseInventory/state';
-import { resetAdjustInventoryState } from '@features/warehouseInventory/state/warehouseInventoryAdjustSlice';
 
 /**
  * Custom hook for managing adjusted warehouse inventory.
@@ -27,7 +29,7 @@ const useAdjustWarehouseInventory = () => {
   );
 
   const resetState = useCallback(() => {
-    dispatch(resetAdjustInventoryState());
+    dispatch(resetAdjustInventory());
   }, [dispatch]);
 
   return {

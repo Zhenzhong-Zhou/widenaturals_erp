@@ -1,7 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import type {
-  WarehouseInventoryItemSummaryState,
-} from '@features/warehouseInventory/state';
+import type { WarehouseInventoryItemSummaryState } from '@features/warehouseInventory/state';
 import { fetchWarehouseInventoryItemSummaryThunk } from './warehouseInventoryThunks';
 
 const initialState: WarehouseInventoryItemSummaryState = {
@@ -15,7 +13,7 @@ const warehouseInventoryItemSummarySlice = createSlice({
   name: 'warehouseInventory/itemSummary',
   initialState,
   reducers: {
-    clearWarehouseInventoryItemSummary: (state) => {
+    resetWarehouseInventoryItemSummary: (state) => {
       state.data = [];
       state.pagination = null;
       state.error = null;
@@ -40,14 +38,13 @@ const warehouseInventoryItemSummarySlice = createSlice({
         (state, action) => {
           state.loading = false;
           state.error =
-            typeof action.payload === 'string'
-              ? action.payload
-              : 'Failed to fetch warehouse inventory summary.';
+            (action.payload as string) ??
+            'Failed to fetch warehouse inventory summary.';
         }
       );
   },
 });
 
-export const { clearWarehouseInventoryItemSummary } =
+export const { resetWarehouseInventoryItemSummary } =
   warehouseInventoryItemSummarySlice.actions;
 export default warehouseInventoryItemSummarySlice.reducer;

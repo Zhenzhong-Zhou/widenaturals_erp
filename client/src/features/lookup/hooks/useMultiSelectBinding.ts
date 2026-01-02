@@ -4,7 +4,7 @@ import type {
   UseFormSetValue,
   PathValue,
   FieldValues,
-  Path
+  Path,
 } from 'react-hook-form';
 import type { MultiSelectOption } from '@components/common/MultiSelectDropdown';
 
@@ -18,29 +18,31 @@ import type { MultiSelectOption } from '@components/common/MultiSelectDropdown';
  */
 const useMultiSelectBinding = <
   TFormValues extends FieldValues,
-  TFieldName extends Path<TFormValues>
+  TFieldName extends Path<TFormValues>,
 >({
-    watch,
-    setValue,
-    fieldName,
-    options,
-  }: {
+  watch,
+  setValue,
+  fieldName,
+  options,
+}: {
   watch: UseFormWatch<TFormValues>;
   setValue: UseFormSetValue<TFormValues>;
   fieldName: TFieldName;
   options: MultiSelectOption[];
 }) => {
   // RHF-safe read
-  const ids = watch(fieldName) as PathValue<TFormValues, TFieldName> | undefined;
-  
+  const ids = watch(fieldName) as
+    | PathValue<TFormValues, TFieldName>
+    | undefined;
+
   const selectedOptions = useMemo<MultiSelectOption[]>(() => {
     if (!Array.isArray(ids)) return [];
-    return options.filter(opt => ids.includes(opt.value));
+    return options.filter((opt) => ids.includes(opt.value));
   }, [ids, options]);
-  
+
   const handleSelect = (selected: MultiSelectOption[]) => {
-    const values = selected.map(o => o.value);
-    
+    const values = selected.map((o) => o.value);
+
     setValue(
       fieldName,
       (values.length ? values : undefined) as PathValue<
@@ -50,7 +52,7 @@ const useMultiSelectBinding = <
       { shouldDirty: true }
     );
   };
-  
+
   return {
     selectedOptions,
     handleSelect,

@@ -22,7 +22,7 @@ export const skuDetailSlice = createSlice({
      * Optional: Allows manual reset of the detail state
      * (e.g., when unmounting a details page).
      */
-    resetSkuDetailState: () => initialState,
+    resetSkuDetail: () => initialState,
   },
   extraReducers: (builder) => {
     builder
@@ -52,6 +52,6 @@ export const skuDetailSlice = createSlice({
   },
 });
 
-export const { resetSkuDetailState } = skuDetailSlice.actions;
+export const { resetSkuDetail } = skuDetailSlice.actions;
 
 export default skuDetailSlice.reducer;

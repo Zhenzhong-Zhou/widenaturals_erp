@@ -17,8 +17,10 @@ const {
 const { processWithConcurrencyLimit } = require('../utils/concurrency-utils');
 const { getFileHashStream } = require('../utils/file-hash-utils');
 const AppError = require('../utils/AppError');
-const { normalizeSkuImageForInsert, } = require('../business/sku-image-buiness');
-const { transformSkuImageResults, } = require('../transformers/sku-image-transformer');
+const { normalizeSkuImageForInsert } = require('../business/sku-image-buiness');
+const {
+  transformSkuImageResults,
+} = require('../transformers/sku-image-transformer');
 const { lockRow, withTransaction, retry } = require('../database/db');
 
 /**
@@ -90,68 +92,70 @@ const processAndUploadSkuImages = async (
   const context = 'sku-image-service/processAndUploadSkuImages';
   const processed = [];
   const brandFolder = sku.slice(0, 2).toUpperCase();
-  
+
   // Group ID guarantees ordering even with retries / batching
   const groupId = crypto.randomUUID();
-  
+
   const tempDir = path.join(
     'temp',
     `${sku}-${Date.now()}-${Math.random().toString(36).slice(2)}`
   );
-  
+
   if (!Array.isArray(images) || images.length === 0) {
     logSystemInfo('No images passed', { context, sku });
     return [];
   }
-  
+
   const concurrencyLimit = Math.min(os.cpus().length * 2, 8);
   await fsp.mkdir(tempDir, { recursive: true });
-  
+
   // ---------------------------------------------------------------------------
   // 1) Normalize input
   // ---------------------------------------------------------------------------
   const normalizedImages = images
-    .filter(img => img?.url || img?.image_url)
+    .filter((img) => img?.url || img?.image_url)
     .map((img, index) => ({
       src: img.image_url ?? img.url ?? null,
       alt_text: img.alt_text || '',
       requestedType: img.image_type === 'main' ? 'main' : 'auto',
       index,
     }));
-  
+
   if (!normalizedImages.length) {
     logSystemInfo('All images missing URLs', { context, sku });
     return [];
   }
-  
-  if (!normalizedImages.some(i => i.requestedType === 'main')) {
+
+  if (!normalizedImages.some((i) => i.requestedType === 'main')) {
     normalizedImages[0].requestedType = 'main';
   }
-  
+
   // Concurrency-safe primary determination
   const primaryIndex = alreadyHasPrimary
     ? -1
-    : normalizedImages.findIndex(({ requestedType }) => requestedType === 'main');
-  
+    : normalizedImages.findIndex(
+        ({ requestedType }) => requestedType === 'main'
+      );
+
   /**
    * Process one image
    */
   const processSingleImage = async (img) => {
     let localPath;
-    
+
     try {
       const { src, alt_text, index } = img;
       if (!src) {
         throw AppError.validationError('Missing image source');
       }
-      
+
       // ---------------------------------------------------------------------
       // Resolve source
       // ---------------------------------------------------------------------
       if (src.startsWith('http')) {
         const filename = path.basename(new URL(src).pathname);
         const tempFile = path.join(tempDir, filename);
-        
+
         const response = await retry(() => fetch(src), 3);
         if (!response.ok || !response.body) {
           throw AppError.fileSystemError('Failed to fetch image', {
@@ -161,36 +165,36 @@ const processAndUploadSkuImages = async (
             sku,
           });
         }
-        
+
         await new Promise((resolve, reject) => {
           const stream = fs.createWriteStream(tempFile);
           response.body.pipe(stream);
           stream.on('finish', resolve);
           stream.on('error', reject);
         });
-        
+
         localPath = tempFile;
       } else {
         localPath = path.isAbsolute(src)
           ? src
           : path.resolve(__dirname, '../../', src);
       }
-      
+
       await fsp.access(localPath);
-      
+
       // ---------------------------------------------------------------------
       // Streaming hash (memory-safe)
       // ---------------------------------------------------------------------
       const hash = await getFileHashStream(localPath);
       const ext = path.extname(localPath).replace('.', '').toLowerCase();
       const baseName = path.basename(localPath, path.extname(localPath));
-      
+
       const isPrimary = index === primaryIndex && primaryIndex !== -1;
-      
+
       // display_order is absolute across SKU images; baseOrder ensures
       // this batch occupies a contiguous range without collisions
       const baseOrder = index * 3;
-      
+
       // ---------------------------------------------------------------------
       // Cache reuse (prod only)
       // ---------------------------------------------------------------------
@@ -199,19 +203,22 @@ const processAndUploadSkuImages = async (
         const mainKey = `${keyPrefix}/${baseName}_main.webp`;
         const thumbKey = `${keyPrefix}/${baseName}_thumb.webp`;
         const zoomKey = `${keyPrefix}/${path.basename(localPath)}`;
-        
+
         const checks = await Promise.allSettled([
           s3ObjectExists(bucketName, mainKey),
           s3ObjectExists(bucketName, thumbKey),
           s3ObjectExists(bucketName, zoomKey),
         ]);
-        
+
         const [mainCheck, thumbCheck, zoomCheck] = checks;
-        
+
         if (
-          mainCheck.status === 'fulfilled' && mainCheck.value &&
-          thumbCheck.status === 'fulfilled' && thumbCheck.value &&
-          zoomCheck.status === 'fulfilled' && zoomCheck.value
+          mainCheck.status === 'fulfilled' &&
+          mainCheck.value &&
+          thumbCheck.status === 'fulfilled' &&
+          thumbCheck.value &&
+          zoomCheck.status === 'fulfilled' &&
+          zoomCheck.value
         ) {
           return [
             {
@@ -244,29 +251,44 @@ const processAndUploadSkuImages = async (
           ];
         }
       }
-      
+
       // ---------------------------------------------------------------------
       // Resize
       // ---------------------------------------------------------------------
       const resizedMain = path.join(tempDir, `${baseName}_main.webp`);
       const resizedThumb = path.join(tempDir, `${baseName}_thumb.webp`);
-      
+
       await Promise.all([
         resizeImage(localPath, resizedMain, 800, 70, 5),
         resizeImage(localPath, resizedThumb, 200, 60, 4),
       ]);
-      
+
       // ---------------------------------------------------------------------
       // Upload
       // ---------------------------------------------------------------------
       let mainUrl, thumbUrl, zoomUrl;
       const keyPrefix = `sku-images/${brandFolder}/${hash}`;
-      
+
       if (isProd) {
         [mainUrl, thumbUrl, zoomUrl] = await Promise.all([
-          uploadSkuImageToS3(bucketName, resizedMain, keyPrefix, `${baseName}_main.webp`),
-          uploadSkuImageToS3(bucketName, resizedThumb, keyPrefix, `${baseName}_thumb.webp`),
-          uploadSkuImageToS3(bucketName, localPath, keyPrefix, path.basename(localPath)),
+          uploadSkuImageToS3(
+            bucketName,
+            resizedMain,
+            keyPrefix,
+            `${baseName}_main.webp`
+          ),
+          uploadSkuImageToS3(
+            bucketName,
+            resizedThumb,
+            keyPrefix,
+            `${baseName}_thumb.webp`
+          ),
+          uploadSkuImageToS3(
+            bucketName,
+            localPath,
+            keyPrefix,
+            path.basename(localPath)
+          ),
         ]);
       } else {
         const devDir = path.resolve(
@@ -274,23 +296,26 @@ const processAndUploadSkuImages = async (
           '../../public/uploads/sku-images',
           brandFolder
         );
-        
+
         await fsp.mkdir(devDir, { recursive: true });
-        
+
         const zoomFileName = path.basename(localPath);
-        
+
         await Promise.all([
           fsp.copyFile(resizedMain, path.join(devDir, `${baseName}_main.webp`)),
-          fsp.copyFile(resizedThumb, path.join(devDir, `${baseName}_thumb.webp`)),
+          fsp.copyFile(
+            resizedThumb,
+            path.join(devDir, `${baseName}_thumb.webp`)
+          ),
           fsp.copyFile(localPath, path.join(devDir, zoomFileName)),
         ]);
-        
+
         const base = `/uploads/sku-images/${brandFolder}/${baseName}`;
         mainUrl = `${base}_main.webp`;
         thumbUrl = `${base}_thumb.webp`;
         zoomUrl = `/uploads/sku-images/${brandFolder}/${zoomFileName}`;
       }
-      
+
       return [
         {
           group_id: groupId,
@@ -325,7 +350,7 @@ const processAndUploadSkuImages = async (
       return null;
     }
   };
-  
+
   // ---------------------------------------------------------------------------
   // Execute
   // ---------------------------------------------------------------------------
@@ -335,14 +360,14 @@ const processAndUploadSkuImages = async (
       concurrencyLimit,
       processSingleImage
     );
-    
+
     for (const r of results) {
       if (Array.isArray(r)) processed.push(...r);
     }
   } finally {
     await fsp.rm(tempDir, { recursive: true, force: true }).catch(() => {});
   }
-  
+
   return processed;
 };
 
@@ -440,7 +465,7 @@ const saveSkuImagesService = async (
       mode: isProd ? 'production' : 'development',
       traceId,
     });
-    
+
     // --- Step 1: Lock SKU row to prevent concurrent image edits for the same SKU ---
     const sku = await lockRow(client, 'skus', skuId, 'FOR UPDATE', {
       context,
@@ -456,13 +481,13 @@ const saveSkuImagesService = async (
     }
 
     const { id: verifiedSkuId, sku: verifiedSkuCode } = sku;
-    
+
     // --- Step 2: Read current image state (append base + primary presence) ---
     const [baseDisplayOrder, alreadyHasPrimary] = await Promise.all([
       getSkuImageDisplayOrderBase(verifiedSkuId, client),
       hasPrimaryMainImage(verifiedSkuId, client),
     ]);
-    
+
     // --- Step 3: Process and upload images (build variants + assign ordering metadata) ---
     const processedImages = await processAndUploadSkuImages(
       images,
@@ -480,7 +505,7 @@ const saveSkuImagesService = async (
       });
       return [];
     }
-    
+
     // --- Step 4: Normalize processed metadata into DB insert payload ---
     const rows = processedImages.map((img, index) =>
       normalizeSkuImageForInsert(img, verifiedSkuId, userId, index)
@@ -503,7 +528,7 @@ const saveSkuImagesService = async (
       processedCount: rows.length,
       elapsedMs,
     });
-    
+
     // --- Step 6: Transform and return API-friendly response ---
     return transformSkuImageResults(result ?? []);
   } catch (error) {

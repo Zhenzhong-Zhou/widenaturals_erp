@@ -9,8 +9,10 @@ import MultiSelectDropdown, {
  * - Inherits all base multi-select behavior
  * - Allows product-specific defaults and future extensions
  */
-type ProductMultiSelectDropdownProps =
-  Omit<MultiSelectDropdownProps, 'label' | 'placeholder'> & {
+type ProductMultiSelectDropdownProps = Omit<
+  MultiSelectDropdownProps,
+  'label' | 'placeholder'
+> & {
   label?: string;
   placeholder?: string;
 };
@@ -22,21 +24,21 @@ type ProductMultiSelectDropdownProps =
  * semantic clarity and future extension points.
  */
 const ProductMultiSelectDropdown: FC<ProductMultiSelectDropdownProps> = ({
-                                                                           label = 'Select Product',
-                                                                           options,
-                                                                           selectedOptions,
-                                                                           onChange,
-                                                                           onOpen,
-                                                                           loading,
-                                                                           disabled,
-                                                                           error,
-                                                                           helperText,
-                                                                           sx,
-                                                                           placeholder = 'Choose product…',
-                                                                           paginationMeta,
-                                                                           inputValue,
-                                                                           onInputChange,
-                                                                         }) => {
+  label = 'Select Product',
+  options,
+  selectedOptions,
+  onChange,
+  onOpen,
+  loading,
+  disabled,
+  error,
+  helperText,
+  sx,
+  placeholder = 'Choose product…',
+  paginationMeta,
+  inputValue,
+  onInputChange,
+}) => {
   return (
     <MultiSelectDropdown
       label={label}

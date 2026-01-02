@@ -1,5 +1,5 @@
 const express = require('express');
-const authorize = require('../middlewares/authorize');
+const { authorize } = require('../middlewares/authorize');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 const {

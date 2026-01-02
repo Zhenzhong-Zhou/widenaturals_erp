@@ -6,8 +6,8 @@ import {
   selectWarehouseInventoryLoading,
   selectWarehouseInventoryPagination,
   selectWarehouseInventoryRecords,
-  type WarehouseInventoryFilters,
 } from '@features/warehouseInventory/state';
+import type { WarehouseInventoryFilters } from '@features/warehouseInventory/state';
 import type { PaginationParams, SortConfig } from '@shared-types/api';
 
 const useWarehouseInventory = () => {

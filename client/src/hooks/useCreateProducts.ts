@@ -6,10 +6,10 @@ import {
   selectCreateProductsError,
   selectCreateProductsSuccess,
   selectCreatedProductIds,
-  type CreateProductBulkInput,
   createProductsThunk,
+  resetCreateProducts,
 } from '@features/product/state';
-import { resetCreateProductsState } from '@features/product/state/createProductsSlice';
+import type { CreateProductBulkInput } from '@features/product/state';
 
 /**
  * Hook providing a complete interface for creating Products.
@@ -45,7 +45,7 @@ const useCreateProducts = () => {
   // Reset handler
   // -----------------------------
   const reset = useCallback(() => {
-    dispatch(resetCreateProductsState());
+    dispatch(resetCreateProducts());
   }, [dispatch]);
 
   // -----------------------------

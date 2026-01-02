@@ -42,7 +42,7 @@ export const getComplianceRecordListTableColumns = (
       sortable: true,
       renderCell: (row) => row.brand ?? '—',
     },
-    
+
     // --------------------------------------------------
     // SKU Info
     // --------------------------------------------------
@@ -58,7 +58,7 @@ export const getComplianceRecordListTableColumns = (
       sortable: true,
       renderCell: (row) => row.marketRegion ?? '—',
     },
-    
+
     // --------------------------------------------------
     // Compliance Info
     // --------------------------------------------------
@@ -91,12 +91,9 @@ export const getComplianceRecordListTableColumns = (
       id: 'issuedDate',
       label: 'Issued Date',
       sortable: true,
-      renderCell: (row) =>
-        row.issuedDate
-          ? formatDate(row.issuedDate)
-          : '—',
+      renderCell: (row) => (row.issuedDate ? formatDate(row.issuedDate) : '—'),
     },
-    
+
     // --------------------------------------------------
     // Status
     // --------------------------------------------------
@@ -106,7 +103,7 @@ export const getComplianceRecordListTableColumns = (
       sortable: true,
       renderCell: (row) => formatLabel(row.statusName) ?? '—',
     },
-    
+
     // --------------------------------------------------
     // Audit
     // --------------------------------------------------
@@ -114,10 +111,7 @@ export const getComplianceRecordListTableColumns = (
       id: 'createdAt',
       label: 'Created',
       sortable: true,
-      renderCell: (row) =>
-        row.createdAt
-          ? formatDate(row.createdAt)
-          : '—',
+      renderCell: (row) => (row.createdAt ? formatDate(row.createdAt) : '—'),
     },
     {
       id: 'createdByName',
@@ -126,7 +120,7 @@ export const getComplianceRecordListTableColumns = (
       renderCell: (row) => formatLabel(row.createdByName) ?? '—',
     },
   ];
-  
+
   // --------------------------------------------------
   // Drill-down Expansion Column
   // --------------------------------------------------
@@ -138,6 +132,6 @@ export const getComplianceRecordListTableColumns = (
       )
     );
   }
-  
+
   return columns;
 };

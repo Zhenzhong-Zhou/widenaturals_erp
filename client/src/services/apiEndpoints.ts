@@ -1,14 +1,33 @@
 export const API_ENDPOINTS = {
-  CSRF_TOKEN: '/csrf/token',
+  SECURITY: {
+    CSRF: {
+      TOKEN: '/csrf/token',
+    },
+    SESSION: {
+      LOGIN: '/session/login',
+      LOGOUT: '/auth/logout',
+      REFRESH: '/session/refresh',
+    },
+    AUTH: {
+      RESET_PASSWORD: '/auth/reset-password',
+    },
+    PERMISSIONS: {
+      SELF: '/users/me/permissions',
+    },
+  },
+  PUBLIC: {
+    HEALTH: '/public/health',
+  },
   USER_PERMISSION: '/users/me/permissions',
-  PUBLIC_HEALTH: '/public/health',
-  LOGIN: '/session/login',
-  RESET_PASSWORD: '/auth/reset-password',
   REFRESH_TOKEN: '/session/refresh',
-  LOGOUT: '/auth/logout',
-  ALL_USERS: '/users',
+  USERS: {
+    ALL_RECORDS: '/users',
+    PROFILE: {
+      SELF: '/users/me/profile',
+      BY_ID: (userId: string) => `/users/${userId}/profile`,
+    },
+  },
   STATUSES: {},
-  USER_PROFILE: '/users/me',
   COMPLIANCE_RECORDS: {
     ALL_RECORDS: '/compliance-records',
   },
@@ -19,7 +38,9 @@ export const API_ENDPOINTS = {
   PRICING_DETAILS_BY_TYPE: '/pricings/by-type/:id/details',
   ALL_LOCATION_TYPES: '/location-types',
   LOCATION_TYPE_DETAILS: '/location-types/:id',
-  ALL_LOCATIONS: '/locations',
+  LOCATIONS: {
+    ALL_RECORDS: '/locations',
+  },
   PRODUCTS: {
     ADD_NEW_RECORD: '/products/create',
     ALL_RECORDS: '/products',
@@ -52,8 +73,11 @@ export const API_ENDPOINTS = {
     SUMMARY_DETAIL: (itemId: string) =>
       `/location-inventory/summary/${itemId}/details`,
   },
-  ALL_WAREHOUSES: '/warehouses',
-  WAREHOUSE_DETAILS: '/warehouses/details/:id',
+  WAREHOUSES: {
+    ALL_RECORDS: '/warehouses',
+    WAREHOUSE_DETAILS: (warehouseId: string) =>
+      `/warehouses/${warehouseId}/details`,
+  },
   WAREHOUSE_INVENTORY: {
     ALL_RECORDS: '/warehouse-inventory',
     SUMMARY: '/warehouse-inventory/summary',

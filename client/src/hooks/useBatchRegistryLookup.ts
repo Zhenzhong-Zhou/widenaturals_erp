@@ -6,9 +6,9 @@ import {
   selectBatchRegistryLookupItems,
   selectBatchRegistryLookupLoading,
   selectBatchRegistryLookupMeta,
-  type GetBatchRegistryLookupParams,
 } from '@features/lookup/state';
-import { resetBatchRegistryLookupState } from '@features/lookup/state/batchRegistryLookupSlice';
+import type { GetBatchRegistryLookupParams } from '@features/lookup/state';
+import { resetBatchRegistryLookup } from '@features/lookup/state/batchRegistryLookupSlice';
 
 /**
  * Custom hook to access batch registry lookup state and actions.
@@ -32,7 +32,7 @@ const useBatchRegistryLookup = () => {
   );
 
   const resetLookup = useCallback(
-    () => dispatch(resetBatchRegistryLookupState()),
+    () => dispatch(resetBatchRegistryLookup()),
     [dispatch]
   );
 

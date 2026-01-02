@@ -2,11 +2,11 @@ import { useMemo, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchLotAdjustmentTypeLookupThunk,
-  type LotAdjustmentLookupQueryParams,
   selectLotAdjustmentTypeError,
   selectLotAdjustmentTypeItems,
   selectLotAdjustmentTypeLoading,
 } from '@features/lookup/state';
+import type { LotAdjustmentLookupQueryParams } from '@features/lookup/state';
 import { formatLabel } from '@utils/textUtils';
 import { resetLotAdjustmentTypeLookup } from '@features/lookup/state/lotAdjustmentTypeLookupSlice';
 

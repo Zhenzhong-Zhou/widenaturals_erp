@@ -7,8 +7,7 @@ import { RootState } from '@store/store';
  * @param state - The Redux root state.
  * @returns The skuImageUpload slice of state.
  */
-const selectSkuImageUploadState = (state: RootState) =>
-  state.skuImageUpload;
+const selectSkuImageUploadState = (state: RootState) => state.skuImageUpload;
 
 /**
  * Whether the SKU image upload request is currently loading.

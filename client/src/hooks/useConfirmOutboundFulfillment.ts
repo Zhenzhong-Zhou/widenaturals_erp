@@ -1,11 +1,11 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  type ConfirmOutboundFulfillmentRequest,
   confirmOutboundFulfillmentThunk,
+  resetConfirmOutboundFulfillment,
   selectConfirmFulfillmentSummary,
 } from '@features/outboundFulfillment/state';
-import { resetConfirmationState } from '@features/outboundFulfillment/state/confirmOutboundFulfillmentSlice';
+import type { ConfirmOutboundFulfillmentRequest } from '@features/outboundFulfillment/state';
 
 /**
  * Hook: useConfirmOutboundFulfillment
@@ -36,7 +36,7 @@ const useConfirmOutboundFulfillment = () => {
 
   // Reset state handler
   const resetConfirmation = useCallback(() => {
-    dispatch(resetConfirmationState());
+    dispatch(resetConfirmOutboundFulfillment());
   }, [dispatch]);
 
   // Memoized return value for stable reference

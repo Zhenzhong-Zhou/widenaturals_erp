@@ -107,8 +107,8 @@ export default defineConfig(({ mode }) => ({
             if (id.includes('jwt-decode')) return 'jwt-vendor';
             if (id.includes('styled-components')) return 'styled-vendor';
             if (id.includes('i18n-iso-countries')) return 'i18n-vendor';
-            if (id.includes('currency-codes')) return 'currency-vendor';
-            if (id.includes('react-medium-image-zoom')) return 'image-zoom-vendor';
+            if (id.includes('react-medium-image-zoom'))
+              return 'image-zoom-vendor';
             if (id.includes('react-zoom-pan-pinch')) return 'zoom-vendor';
             if (id.includes('react-toastify')) return 'toast-vendor';
             if (id.includes('react-phone-input-2')) return 'phone-input-vendor';
@@ -116,7 +116,14 @@ export default defineConfig(({ mode }) => ({
             if (id.includes('file-saver')) return 'file-saver-vendor';
             if (id.includes('path-browserify')) return 'path-browserify-vendor';
             if (id.includes('qs')) return 'qs-vendor';
-            
+            if (id.includes('notistack')) return 'notistack-vendor';
+            if (id.includes('react-dropzone')) return 'dropzone-vendor';
+            if (id.includes('react-router')) return 'router-vendor';
+            if (id.includes('@reduxjs/toolkit')) return 'rtk-vendor';
+            if (id.includes('immer')) return 'immer-vendor';
+            if (id.includes('js-cookie')) return 'cookie-vendor';
+            if (id.includes('axios-retry')) return 'axios-retry-vendor';
+
             return 'misc-vendor'; // fallback for unclassified external deps
           }
 
@@ -136,25 +143,6 @@ export default defineConfig(({ mode }) => ({
             }
             return 'components'; // fallback for other common components
           }
-
-          // --- Feature Chunks ---
-          if (id.includes('src/features/inventoryShared'))
-            return 'inventory-shared';
-          if (id.includes('src/features/inventoryOverview'))
-            return 'inventory-overview';
-          if (id.includes('src/features/warehouseInventory'))
-            return 'warehouse-inventory';
-          if (id.includes('src/features/order')) return 'order';
-          if (id.includes('src/features/report')) return 'report';
-
-          // --- Internal Code Splits ---
-          if (id.includes('src/features/')) return 'features';
-          if (id.includes('src/layouts/')) return 'layouts';
-          if (id.includes('src/pages/')) return 'pages';
-          if (id.includes('src/hooks/')) return 'hooks';
-          if (id.includes('src/services/')) return 'services';
-          if (id.includes('src/store/')) return 'store';
-          if (id.includes('src/utils/')) return 'utils';
 
           return undefined; // fallback
         },

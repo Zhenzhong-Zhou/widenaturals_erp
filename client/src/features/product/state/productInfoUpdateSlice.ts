@@ -16,7 +16,7 @@ export const productInfoUpdateSlice = createSlice({
   initialState,
   reducers: {
     /** Reset back to initial async state */
-    resetProductInfoUpdateState: () => initialState,
+    resetProductInfoUpdate: () => initialState,
   },
   extraReducers: (builder) => {
     builder
@@ -27,7 +27,7 @@ export const productInfoUpdateSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      
+
       .addCase(
         updateProductInfoByIdThunk.fulfilled,
         (state, action: PayloadAction<UpdateProductApiResponse>) => {
@@ -36,7 +36,7 @@ export const productInfoUpdateSlice = createSlice({
           state.error = null;
         }
       )
-      
+
       .addCase(updateProductInfoByIdThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload ?? 'Failed to update product information';
@@ -44,6 +44,6 @@ export const productInfoUpdateSlice = createSlice({
   },
 });
 
-export const { resetProductInfoUpdateState } = productInfoUpdateSlice.actions;
+export const { resetProductInfoUpdate } = productInfoUpdateSlice.actions;
 
 export default productInfoUpdateSlice.reducer;

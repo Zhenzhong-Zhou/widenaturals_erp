@@ -52,8 +52,10 @@ const ProductListTable = ({
   onRefresh,
   onAddNew,
 }: ProductListTableProps) => {
-  const { permLoading, isAllowed } = usePagePermissionGuard(['create_products']);
-  
+  const { permLoading, isAllowed } = usePagePermissionGuard([
+    'create_products',
+  ]);
+
   // -------------------------------------------------------
   // Memoize Column Definitions
   // -------------------------------------------------------

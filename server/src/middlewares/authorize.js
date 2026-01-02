@@ -6,88 +6,156 @@ const AppError = require('../utils/AppError');
 const redisClient = require('../utils/redis-client');
 
 /**
- * Middleware to authorize users based on their role and required permissions.
+ * Resolve and attach permissions for the authenticated user.
  *
- * @param {string[]} requiredPermissions - Array of permissions required for the route.
- * @returns {function} - Middleware function for authorization.
+ * Internal authorization helper.
+ *
+ * Responsibilities:
+ * - Ensure the request is authenticated
+ * - Resolve role-based permissions via cache or repository
+ * - Attach resolved permissions to req.permissions for downstream checks
+ *
+ * Guarantees:
+ * - Throws AppError if authentication or permission resolution fails
+ * - On success, req.permissions is a normalized array of permission strings
+ *
+ * Intended usage:
+ * - Used internally by authorize / authorizeAny middleware only
+ * - Must NOT be invoked directly by controllers or services
+ *
+ * @param {Object} req - Express request object
+ * @returns {Promise<string[]>} Array of permission identifiers
+ */
+const resolvePermissions = async (req) => {
+  if (!req.user) {
+    throw AppError.authenticationError('Unauthorized: User not authenticated.');
+  }
+
+  // Reuse permissions if already resolved earlier in the pipeline
+  if (Array.isArray(req.permissions)) {
+    return req.permissions;
+  }
+
+  const { role } = req.user;
+  const cacheKey = `role_permissions:${role}`;
+
+  let rolePermissions;
+  const cached = await redisClient.get(cacheKey);
+
+  if (cached) {
+    rolePermissions = JSON.parse(cached);
+  } else {
+    rolePermissions = await getRolePermissionsByRoleId(role);
+
+    if (!rolePermissions || !Array.isArray(rolePermissions.permissions)) {
+      throw AppError.authorizationError('Role permissions not found.', {
+        details: { role },
+      });
+    }
+
+    await redisClient.set(
+      cacheKey,
+      JSON.stringify(rolePermissions),
+      'EX',
+      3600 // 1 hour
+    );
+  }
+
+  req.permissions = rolePermissions.permissions;
+  return req.permissions;
+};
+
+/**
+ * AND-based authorization middleware.
+ *
+ * The request is allowed ONLY IF the user has ALL required permissions.
+ *
+ * Root override:
+ * - Users with `root_access` automatically pass
+ *
+ * Typical usage:
+ *   authorize(['USER_VIEW', 'USER_EDIT'])
+ *
+ * @param {string[]} requiredPermissions
+ * @returns {Function} Express middleware
  */
 const authorize = (requiredPermissions = []) => {
   return async (req, res, next) => {
     try {
-      // Ensure the user is authenticated
-      if (!req.user) {
-        throw AppError.authenticationError(
-          'Unauthorized: User not authenticated.'
-        );
-      }
+      const permissions = await resolvePermissions(req);
 
-      const { role } = req.user;
-
-      // Try to fetch permissions from cache
-      let rolePermissions;
-      const cacheKey = `role_permissions:${role}`;
-      const cachedPermissions = await redisClient.get(cacheKey);
-
-      if (cachedPermissions) {
-        rolePermissions = JSON.parse(cachedPermissions);
-      } else {
-        // Fetch permissions from the database if not in cache
-        rolePermissions = await getRolePermissionsByRoleId(role);
-        if (!rolePermissions) {
-          throw AppError.authorizationError('Role permissions not found.', {
-            details: { role },
-          });
-        }
-
-        // Cache the permissions with a 1-hour expiration time
-        await redisClient.set(
-          cacheKey,
-          JSON.stringify(rolePermissions),
-          'EX',
-          3600
-        );
-      }
-
-      const userPermissions = rolePermissions.permissions.map((perm) => perm);
-
-      // Allow if the user has `root_access`
-      if (userPermissions.includes('root_access')) {
+      if (permissions.includes('root_access')) {
         return next();
       }
 
-      // Check if the user has all required permissions
-      const hasPermission = requiredPermissions.every((perm) =>
-        userPermissions.includes(perm)
+      const hasAll = requiredPermissions.every((perm) =>
+        permissions.includes(perm)
       );
 
-      if (!hasPermission) {
+      if (!hasAll) {
         throw AppError.authorizationError(
           'Forbidden: Insufficient permissions.',
           {
-            details: {
-              missingPermissions: requiredPermissions.filter(
-                (perm) => !userPermissions.includes(perm)
-              ),
-            },
+            missingPermissions: requiredPermissions.filter(
+              (p) => !permissions.includes(p)
+            ),
           }
         );
       }
 
-      // User is authorized, proceed to the next middleware or controller
       next();
-    } catch (error) {
-      if (!(error instanceof AppError)) {
-        logError(error, req, { middleware: 'authorize' });
-
-        return next(
-          AppError.authorizationError(
-            'An unexpected error occurred during authorization.'
-          )
-        );
-      }
-      next(error); // Pass AppError to error handlers
+    } catch (err) {
+      logError(err, req, { middleware: 'authorize' });
+      next(err);
     }
   };
 };
 
-module.exports = authorize;
+/**
+ * OR-based authorization middleware.
+ *
+ * The request is allowed IF the user has AT LEAST ONE required permission.
+ *
+ * Root override:
+ * - Users with `root_access` automatically pass
+ *
+ * Typical usage:
+ *   authorizeAny(['USER_VIEW_CARD', 'USER_VIEW_LIST'])
+ *
+ * @param {string[]} requiredPermissions
+ * @returns {Function} Express middleware
+ */
+const authorizeAny = (requiredPermissions = []) => {
+  return async (req, res, next) => {
+    try {
+      const permissions = await resolvePermissions(req);
+
+      if (permissions.includes('root_access')) {
+        return next();
+      }
+
+      const hasAny = requiredPermissions.some((perm) =>
+        permissions.includes(perm)
+      );
+
+      if (!hasAny) {
+        throw AppError.authorizationError(
+          'Forbidden: Insufficient permissions.',
+          {
+            requiredAnyOf: requiredPermissions,
+          }
+        );
+      }
+
+      next();
+    } catch (err) {
+      logError(err, req, { middleware: 'authorizeAny' });
+      next(err);
+    }
+  };
+};
+
+module.exports = {
+  authorize,
+  authorizeAny,
+};

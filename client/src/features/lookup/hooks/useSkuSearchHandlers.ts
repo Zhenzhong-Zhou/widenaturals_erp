@@ -30,9 +30,7 @@ const useSkuSearchHandlers = (bundle: SkuLookupBundle) => {
      *   const { handleSkuSearch } = useSkuSearchHandlers(skuLookup);
      *   handleSkuSearch(keyword);
      */
-    handleSkuSearch: useDebouncedSearch<SkuLookupQueryParams>(
-      bundle.fetch
-    ),
+    handleSkuSearch: useDebouncedSearch<SkuLookupQueryParams>(bundle.fetch),
   };
 };
 

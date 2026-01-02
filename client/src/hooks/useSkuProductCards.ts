@@ -1,15 +1,15 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
+  fetchPaginatedSkuProductCardsThunk,
   selectSkuProductCardViewItems,
   selectSkuProductCardPagination,
   selectSkuProductCardLoading,
   selectSkuProductCardError,
   selectSkuProductCardsIsEmpty,
+  resetSkuProductCards,
 } from '@features/sku/state';
-import { fetchPaginatedSkuProductCardsThunk } from '@features/sku/state/skuThunks';
-import type { SkuProductCardQueryParams } from '@features/sku/state/skuTypes';
-import { resetSkuProductCards } from '@features/sku/state/skuProductCardsSlice';
+import type { SkuProductCardQueryParams } from '@features/sku/state';
 
 /**
  * React hook exposing SKU Product-Card list state + actions.

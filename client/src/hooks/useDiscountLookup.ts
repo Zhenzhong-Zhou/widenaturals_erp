@@ -1,14 +1,14 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  type DiscountLookupQueryParams,
   fetchDiscountLookupThunk,
   selectDiscountDropdownOptions,
   selectDiscountLookupError,
   selectDiscountLookupLoading,
   selectDiscountLookupMeta,
 } from '@features/lookup/state';
-import { clearDiscountLookup } from '@features/lookup/state/discountLookupSlice';
+import type { DiscountLookupQueryParams } from '@features/lookup/state';
+import { resetDiscountLookup } from '@features/lookup/state/discountLookupSlice';
 
 /**
  * Hook for accessing discount lookup state and actions.
@@ -32,7 +32,7 @@ const useDiscountLookup = () => {
   );
 
   const reset = useCallback(() => {
-    dispatch(clearDiscountLookup());
+    dispatch(resetDiscountLookup());
   }, [dispatch]);
 
   return useMemo(

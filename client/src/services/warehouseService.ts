@@ -1,42 +1,63 @@
-import axiosInstance from '@utils/axiosConfig';
-import { API_ENDPOINTS } from '@services/apiEndpoints';
 import type {
   WarehouseDetailsResponse,
   WarehouseResponse,
 } from '@features/warehouse';
-import { AppError } from '@utils/AppError';
+import { AppError } from '@utils/error';
+import { getRequest } from '@utils/http';
+import { API_ENDPOINTS } from '@services/apiEndpoints';
 
+/* =========================================================
+ * Warehouses
+ * ======================================================= */
+
+/**
+ * Fetch a paginated list of warehouses.
+ *
+ * GET /warehouses?page=&limit=
+ *
+ * - Read-only
+ * - Idempotent
+ * - Adds pagination via query params
+ */
 const fetchAllWarehouses = async (
-  page: number,
-  limit: number
+  page = 1,
+  limit = 20
 ): Promise<WarehouseResponse> => {
-  try {
-    const response = await axiosInstance.get<WarehouseResponse>(
-      `${API_ENDPOINTS.ALL_WAREHOUSES}?page=${page}&limit=${limit}`
-    );
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching warehouses:', error);
-    throw new AppError('Failed to fetch warehouses');
+  if (page <= 0 || limit <= 0) {
+    throw AppError.validation('Invalid pagination parameters', { page, limit });
   }
+
+  return getRequest<WarehouseResponse>(API_ENDPOINTS.WAREHOUSES.ALL_RECORDS, {
+    policy: 'READ',
+    config: {
+      params: { page, limit },
+    },
+  });
 };
 
+/**
+ * Fetch warehouse details by ID.
+ *
+ * GET /warehouses/:warehouseId/details
+ *
+ * @param warehouseId - Warehouse UUID
+ */
 const fetchWarehouseDetails = async (
   warehouseId: string
-): Promise<WarehouseDetailsResponse | null> => {
-  try {
-    const endpoint = API_ENDPOINTS.WAREHOUSE_DETAILS.replace(
-      ':id',
-      warehouseId
-    );
-    const response =
-      await axiosInstance.get<WarehouseDetailsResponse>(endpoint);
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching warehouse details:', error);
-    throw new AppError('Failed to fetch warehouse details');
+): Promise<WarehouseDetailsResponse> => {
+  if (!warehouseId) {
+    throw AppError.validation('Warehouse ID is required');
   }
+
+  return getRequest<WarehouseDetailsResponse>(
+    API_ENDPOINTS.WAREHOUSES.WAREHOUSE_DETAILS(warehouseId),
+    { policy: 'READ' }
+  );
 };
+
+/* =========================================================
+ * Public API
+ * ======================================================= */
 
 export const warehouseService = {
   fetchAllWarehouses,

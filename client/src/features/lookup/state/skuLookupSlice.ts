@@ -1,15 +1,15 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import {
-  createInitialPaginatedLookupState,
-  type SkuLookupItem,
-  type SkuLookupResponse,
-  type SkuLookupState,
-} from '@features/lookup/state/lookupTypes';
-import { fetchSkuLookupThunk } from './lookupThunks';
+import type {
+  SkuLookupItem,
+  SkuLookupResponse,
+  SkuLookupState,
+} from '@features/lookup/state';
+import { createInitialOffsetPaginatedState } from '@store/pagination';
+import { fetchSkuLookupThunk } from '@features/lookup/state';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 
 const initialState: SkuLookupState =
-  createInitialPaginatedLookupState<SkuLookupItem>();
+  createInitialOffsetPaginatedState<SkuLookupItem>();
 
 const skuLookupSlice = createSlice({
   name: 'skuLookup',

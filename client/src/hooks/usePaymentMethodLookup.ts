@@ -6,8 +6,8 @@ import {
   selectPaymentMethodLookupLoading,
   selectPaymentMethodLookupError,
   selectPaymentMethodLookupMeta,
-  type PaymentMethodLookupQueryParams,
 } from '@features/lookup/state';
+import type { PaymentMethodLookupQueryParams } from '@features/lookup/state';
 import { resetPaymentMethodLookup } from '@features/lookup/state/paymentMethodLookupSlice';
 
 /**

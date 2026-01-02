@@ -204,9 +204,9 @@ const transformSkuListRecord = (row) => {
     sizeLabel: row.size_label,
 
     displayLabel,
-    
+
     primaryImageUrl: row.primary_image_url || null,
-    
+
     product: {
       id: row.product_id,
       name: row.product_name,

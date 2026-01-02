@@ -53,7 +53,7 @@
 
     /* === Type Declarations === */
     "types": ["vite/client", "@vitejs/plugin-react"],
-    
+
     /* === Compatibility & Performance === */
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true

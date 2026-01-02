@@ -1,16 +1,14 @@
 import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
+  fetchLocationInventoryRecordsThunk,
   selectLocationInventoryError,
   selectLocationInventoryLoading,
   selectLocationInventoryPagination,
   selectLocationInventoryRecords,
-} from '@features/locationInventory/state/locationInventorySelectors';
-import type { PaginationParams, SortConfig } from '@shared-types/api';
-import {
-  fetchLocationInventoryRecordsThunk,
-  type LocationInventoryFilters,
 } from '@features/locationInventory/state';
+import type { LocationInventoryFilters } from '@features/locationInventory/state';
+import type { PaginationParams, SortConfig } from '@shared-types/api';
 
 /**
  * Custom hook to access and fetch location inventory records with optional filters and sorting.

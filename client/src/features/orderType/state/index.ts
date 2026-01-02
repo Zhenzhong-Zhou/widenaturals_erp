@@ -1,10 +1,20 @@
-import paginatedOrderTypesReducer from './paginatedOrderTypesSlice';
+// -----------------------------------------------------
+// Reducers (explicit)
+// -----------------------------------------------------
+export { orderTypeReducers } from './orderTypeReducers';
 
-export const orderTypeReducers = {
-  paginatedOrderTypes: paginatedOrderTypesReducer,
-};
+// -----------------------------------------------------
+// Reset Actions (explicit public lifecycle API)
+// -----------------------------------------------------
+export { resetPaginatedOrderTypes } from './paginatedOrderTypesSlice';
 
-// Optional: export thunks, selectors, and types
-export * from './paginatedOrderTypesSelectors.ts';
+// -----------------------------------------------------
+// Selectors
+// -----------------------------------------------------
+export * from './paginatedOrderTypesSelectors';
+
+// -----------------------------------------------------
+// Thunks & Types
+// -----------------------------------------------------
 export * from './orderTypeThunks';
 export * from './orderTypeTypes';

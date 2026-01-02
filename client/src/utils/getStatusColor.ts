@@ -1,6 +1,21 @@
 import type { OverridableStringUnion } from '@mui/types';
 import type { ChipPropsColorOverrides } from '@mui/material';
 
+export type HealthStatus =
+  | 'healthy'
+  | 'maintenance'
+  | 'unhealthy'
+  | 'loading'
+  | 'unknown';
+
+const healthStatusMap = {
+  healthy: 'success',
+  maintenance: 'warning',
+  unhealthy: 'error',
+  loading: 'info',
+  unknown: 'default',
+} as const satisfies Record<HealthStatus, StatusColor>;
+
 export type StatusColor = OverridableStringUnion<
   | 'default'
   | 'primary'
@@ -12,6 +27,21 @@ export type StatusColor = OverridableStringUnion<
   | 'neutral',
   ChipPropsColorOverrides
 >;
+
+export type GeneralStatus =
+  | 'ACTIVE'
+  | 'INACTIVE'
+  | 'PENDING'
+  | 'DISCONTINUED'
+  | 'ARCHIVED';
+
+const generalStatusMap = {
+  ACTIVE: 'success',
+  INACTIVE: 'secondary',
+  PENDING: 'warning',
+  DISCONTINUED: 'error',
+  ARCHIVED: 'default',
+} as const satisfies Record<GeneralStatus, StatusColor>;
 
 const orderStatusMap = {
   ORDER_PENDING: 'default',
@@ -34,6 +64,8 @@ const orderStatusMap = {
 } as const;
 
 const statusMaps = {
+  health: healthStatusMap,
+  general: generalStatusMap,
   order: orderStatusMap,
   payment: {
     PAID: 'success',
@@ -160,8 +192,11 @@ export const getStatusColor = (
   type: StatusType = 'order'
 ): StatusColor => {
   if (!status) return 'default';
-  const normalized = type === 'inventory' ? status : status.toUpperCase();
+
   const map = statusMaps[type];
+
+  const normalized =
+    type === 'inventory' || type === 'health' ? status : status.toUpperCase();
 
   return (map as Record<string, StatusColor>)[normalized] ?? 'default';
 };

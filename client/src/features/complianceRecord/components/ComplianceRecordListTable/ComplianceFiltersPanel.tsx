@@ -31,13 +31,13 @@ interface ComplianceLookupHandlers {
 
 interface Props {
   filters: ComplianceFilters;
-  
+
   /** Lookup data & state (options, loading, etc.) */
   lookups: ComplianceFiltersPanelLookups;
-  
+
   /** Lookup UI handlers (lazy fetch on open, etc.) */
   lookupHandlers: ComplianceLookupHandlers;
-  
+
   onChange: (filters: ComplianceFilters) => void;
   onApply: () => void;
   onReset: () => void;
@@ -51,12 +51,7 @@ interface Props {
  */
 const emptyFilters: ComplianceFilters = {
   keyword: '',
-  type: '',
   complianceId: '',
-  sku: '',
-  productName: '',
-  brand: '',
-  category: '',
   sizeLabel: '',
   marketRegion: '',
   dateRanges: undefined,
@@ -72,7 +67,7 @@ const TEXT_FIELDS: FilterField<ComplianceFilters>[] = [
     placeholder: 'Compliance #, Product, SKU…',
   },
   { name: 'complianceId', label: 'Compliance Number' },
-  
+
   // SKU
   { name: 'sizeLabel', label: 'Size Label' },
   { name: 'marketRegion', label: 'Market Region' },
@@ -90,15 +85,15 @@ export const COMPLIANCE_DATE_FIELDS: ComplianceDateField[] = [
   // Issued date
   { name: 'dateRanges.issued.from', label: 'Issued Date ≥' },
   { name: 'dateRanges.issued.to', label: 'Issued Date ≤' },
-  
+
   // Created date
   { name: 'dateRanges.created.from', label: 'Created Date ≥' },
   { name: 'dateRanges.created.to', label: 'Created Date ≤' },
-  
+
   // Updated date
   { name: 'dateRanges.updated.from', label: 'Updated Date ≥' },
   { name: 'dateRanges.updated.to', label: 'Updated Date ≤' },
-  
+
   // Expiry date
   { name: 'dateRanges.expiry.from', label: 'Expiry Date ≥' },
   { name: 'dateRanges.expiry.to', label: 'Expiry Date ≤' },
@@ -111,28 +106,28 @@ export const COMPLIANCE_DATE_FIELDS: ComplianceDateField[] = [
  * and other list filter panels.
  */
 const ComplianceFiltersPanel: FC<Props> = ({
-                                             filters,
-                                             lookups,
-                                             lookupHandlers,
-                                             onChange,
-                                             onApply,
-                                             onReset,
-                                           }) => {
+  filters,
+  lookups,
+  lookupHandlers,
+  onChange,
+  onApply,
+  onReset,
+}) => {
   const { control, handleSubmit, reset, watch, setValue } =
     useForm<ComplianceFilters>({
-    defaultValues: filters,
-  });
-  
+      defaultValues: filters,
+    });
+
   const [productKeyword, setProductKeyword] = useState('');
   const [skuKeyword, setSkuKeyword] = useState('');
-  
+
   const { product, sku, status } = lookups;
-  
+
   /** Keep external changes in sync */
   useEffect(() => {
     reset(filters);
   }, [filters, reset]);
-  
+
   // -------------------------------
   // Reset search keywords when options reset
   // -------------------------------
@@ -141,13 +136,13 @@ const ComplianceFiltersPanel: FC<Props> = ({
       setProductKeyword('');
     }
   }, [product.options.length]);
-  
+
   useEffect(() => {
     if (!sku.options.length) {
       setSkuKeyword('');
     }
   }, [sku.options.length]);
-  
+
   // ---------------------------------------
   // Submit handler
   // ---------------------------------------
@@ -155,14 +150,14 @@ const ComplianceFiltersPanel: FC<Props> = ({
     onChange(data);
     onApply();
   };
-  
+
   const resetFilters = () => {
     reset(emptyFilters);
     setProductKeyword('');
     setSkuKeyword('');
     onReset();
   };
-  
+
   // -------------------------------
   // Multi-select bindings (RHF ↔ UI)
   // -------------------------------
@@ -175,17 +170,15 @@ const ComplianceFiltersPanel: FC<Props> = ({
     fieldName: 'productIds',
     options: product.options,
   });
-  
-  const {
-    selectedOptions: selectedSkuOptions,
-    handleSelect: handleSkuSelect,
-  } = useMultiSelectBinding({
-    watch,
-    setValue,
-    fieldName: 'skuIds',
-    options: sku.options,
-  });
-  
+
+  const { selectedOptions: selectedSkuOptions, handleSelect: handleSkuSelect } =
+    useMultiSelectBinding({
+      watch,
+      setValue,
+      fieldName: 'skuIds',
+      options: sku.options,
+    });
+
   const {
     selectedOptions: selectedStatusOptions,
     handleSelect: handleStatusSelect,
@@ -203,7 +196,7 @@ const ComplianceFiltersPanel: FC<Props> = ({
     status.options,
     formatLabel
   );
-  
+
   // -------------------------------
   // Product lookup search & pagination
   // -------------------------------
@@ -212,7 +205,7 @@ const ComplianceFiltersPanel: FC<Props> = ({
       product.fetch({ keyword: productKeyword, offset: 0 });
     }
   }, [product.fetch, product.options.length, productKeyword]);
-  
+
   const handleFetchMoreProducts = useCallback(
     (next?: { limit?: number; offset?: number }) => {
       product.fetch({
@@ -223,9 +216,9 @@ const ComplianceFiltersPanel: FC<Props> = ({
     },
     [product.fetch, productKeyword]
   );
-  
+
   const { handleProductSearch } = useProductSearchHandlers(product);
-  
+
   const handleProductInputChange = useCallback(
     (value: string) => {
       setProductKeyword(value);
@@ -242,7 +235,7 @@ const ComplianceFiltersPanel: FC<Props> = ({
       sku.fetch({ keyword: skuKeyword, offset: 0 });
     }
   }, [sku.fetch, sku.options.length, skuKeyword]);
-  
+
   const handleFetchMoreSkus = useCallback(
     (next?: { limit?: number; offset?: number }) => {
       sku.fetch({
@@ -253,9 +246,9 @@ const ComplianceFiltersPanel: FC<Props> = ({
     },
     [sku.fetch, skuKeyword]
   );
-  
+
   const { handleSkuSearch } = useSkuSearchHandlers(sku);
-  
+
   const handleSkuInputChange = useCallback(
     (value: string) => {
       setSkuKeyword(value);
@@ -263,7 +256,7 @@ const ComplianceFiltersPanel: FC<Props> = ({
     },
     [handleSkuSearch]
   );
-  
+
   return (
     <form onSubmit={handleSubmit(submitFilters)}>
       <FilterPanelLayout onReset={resetFilters}>
@@ -284,7 +277,7 @@ const ComplianceFiltersPanel: FC<Props> = ({
               onInputChange={handleProductInputChange}
             />
           </Grid>
-          
+
           <Grid size={{ xs: 12, md: 3 }}>
             <SkuMultiSelectDropdown
               options={sku.options}
@@ -300,7 +293,7 @@ const ComplianceFiltersPanel: FC<Props> = ({
               onInputChange={handleSkuInputChange}
             />
           </Grid>
-          
+
           <Grid size={{ xs: 12, md: 3 }}>
             <StatusMultiSelectDropdown
               options={formattedStatusOptions}
@@ -309,14 +302,14 @@ const ComplianceFiltersPanel: FC<Props> = ({
               onOpen={lookupHandlers.onOpen.status}
             />
           </Grid>
-          
+
           {/* ------------------------------------
            * Text-based filters
            * ------------------------------------ */}
           {TEXT_FIELDS.map(({ name, label, placeholder }) =>
             renderInputField(control, name, label, placeholder)
           )}
-          
+
           {/* ------------------------------------
            * Date range filters (optional, grouped)
            * ------------------------------------ */}

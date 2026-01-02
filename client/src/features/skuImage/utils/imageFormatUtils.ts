@@ -19,9 +19,9 @@
 import type {
   BulkSkuImageUploadItem,
   BulkSkuImageUploadResult,
-  ImageFileFormat,
   SkuImageUploadCardData,
 } from '../state';
+import { ImageFileFormat } from '@shared-types/api';
 
 /**
  * Extract the file extension (format) from a given image File object.
@@ -35,21 +35,19 @@ import type {
  * @param file - The uploaded File object from the client.
  * @returns The validated ImageFileFormat, or undefined if unsupported.
  */
-export const getImageFileFormat = (
-  file: File
-): ImageFileFormat | undefined => {
-  const ext = file.type.split("/")[1]?.toLowerCase();
-  
+export const getImageFileFormat = (file: File): ImageFileFormat | undefined => {
+  const ext = file.type.split('/')[1]?.toLowerCase();
+
   switch (ext) {
-    case "jpg":
-    case "jpeg":
-    case "png":
-    case "gif":
-    case "webp":
-    case "tiff":
-    case "svg":
+    case 'jpg':
+    case 'jpeg':
+    case 'png':
+    case 'gif':
+    case 'webp':
+    case 'tiff':
+    case 'svg':
       return ext as ImageFileFormat;
-    
+
     default:
       return undefined;
   }
@@ -72,15 +70,15 @@ export const getImageFileFormat = (
 export const serializeBulkSkuImageUpload = (
   items: BulkSkuImageUploadItem[]
 ) => {
-  return items.map(item => ({
+  return items.map((item) => ({
     skuId: item.skuId,
     skuCode: item.skuCode,
-    images: item.images.map(img => ({
+    images: item.images.map((img) => ({
       image_url: img.image_url ?? null,
       file_uploaded: Boolean(img.file),
-      image_type: img.image_type ?? "thumbnail",
-      alt_text: img.alt_text ?? "",
-    }))
+      image_type: img.image_type ?? 'thumbnail',
+      alt_text: img.alt_text ?? '',
+    })),
   }));
 };
 
@@ -116,14 +114,14 @@ export const enrichBulkSkuUploadResults = (
   items: SkuImageUploadCardData[]
 ) => {
   if (!Array.isArray(results)) return [];
-  
+
   return results.map((r) => {
     const match = items.find((i) => i.skuId === r.skuId);
-    
+
     return {
       ...r,
       skuCode: match?.skuCode ?? r.skuId,
-      productName: match?.displayProductName ?? "Unknown Product",
+      productName: match?.displayProductName ?? 'Unknown Product',
     };
   });
 };

@@ -16,7 +16,7 @@ const warehouseInventoryAdjustSlice = createSlice({
     /**
      * Resets the inventory adjustment state to initial.
      */
-    resetAdjustInventoryState: () => initialState,
+    resetAdjustInventory: () => initialState,
   },
   extraReducers: (builder) => {
     builder
@@ -44,6 +44,5 @@ const warehouseInventoryAdjustSlice = createSlice({
   },
 });
 
-export const { resetAdjustInventoryState } =
-  warehouseInventoryAdjustSlice.actions;
+export const { resetAdjustInventory } = warehouseInventoryAdjustSlice.actions;
 export default warehouseInventoryAdjustSlice.reducer;

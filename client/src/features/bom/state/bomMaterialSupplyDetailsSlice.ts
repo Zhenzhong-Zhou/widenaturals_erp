@@ -17,7 +17,7 @@ export const bomMaterialSupplyDetailsSlice = createSlice({
   initialState,
   reducers: {
     resetBomMaterialSupplyDetails: () => initialState,
-    setSelectedBomId: (state, action) => {
+    setSelectedSupplySelectedBomId: (state, action) => {
       state.selectedBomId = action.payload;
     },
   },
@@ -43,7 +43,7 @@ export const bomMaterialSupplyDetailsSlice = createSlice({
   },
 });
 
-export const { resetBomMaterialSupplyDetails, setSelectedBomId } =
+export const { resetBomMaterialSupplyDetails, setSelectedSupplySelectedBomId } =
   bomMaterialSupplyDetailsSlice.actions;
 
 export default bomMaterialSupplyDetailsSlice.reducer;

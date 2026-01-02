@@ -88,7 +88,6 @@ export const selectPaginatedComplianceRecordsTotalRecords = createSelector(
  * const record = useSelector(selectComplianceRecordById(recordId));
  */
 export const selectComplianceRecordById = (id: string) =>
-  createSelector(
-    [selectPaginatedComplianceRecordsData],
-    (records) => records.find((r: ComplianceRecord) => r.id === id)
+  createSelector([selectPaginatedComplianceRecordsData], (records) =>
+    records.find((r: ComplianceRecord) => r.id === id)
   );

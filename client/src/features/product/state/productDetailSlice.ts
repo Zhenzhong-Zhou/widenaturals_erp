@@ -22,7 +22,7 @@ export const productDetailSlice = createSlice({
      * Optional: Allows manual reset of the detail state
      * (e.g., when navigating away from the Product Detail page).
      */
-    resetProductDetailState: () => initialState,
+    resetProductDetail: () => initialState,
   },
   extraReducers: (builder) => {
     builder
@@ -31,7 +31,7 @@ export const productDetailSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      
+
       // --- Fulfilled ---
       .addCase(
         fetchProductDetailByIdThunk.fulfilled,
@@ -40,7 +40,7 @@ export const productDetailSlice = createSlice({
           state.data = action.payload.data; // unwrap API envelope
         }
       )
-      
+
       // --- Rejected ---
       .addCase(fetchProductDetailByIdThunk.rejected, (state, action) => {
         state.loading = false;
@@ -52,6 +52,6 @@ export const productDetailSlice = createSlice({
   },
 });
 
-export const { resetProductDetailState } = productDetailSlice.actions;
+export const { resetProductDetail } = productDetailSlice.actions;
 
 export default productDetailSlice.reducer;

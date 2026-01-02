@@ -5,12 +5,10 @@ import CustomTypography from '@components/common/CustomTypography';
 
 const CustomerDetailsPage: FC = () => {
   const { customerId } = useParams<{ customerId: string }>();
-  
+
   return (
     <Box sx={{ display: 'flex', gap: 4, p: 3, flexWrap: 'wrap' }}>
-      <CustomTypography>
-        {customerId}
-      </CustomTypography>
+      <CustomTypography>{customerId}</CustomTypography>
     </Box>
   );
 };

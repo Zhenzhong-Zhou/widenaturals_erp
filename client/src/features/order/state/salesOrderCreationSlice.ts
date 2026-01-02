@@ -15,7 +15,7 @@ export const salesOrderCreationSlice = createSlice({
   name: 'salesOrderCreation',
   initialState,
   reducers: {
-    resetSalesOrderCreationState: () => initialState,
+    resetSalesOrderCreation: () => initialState,
   },
   extraReducers: (builder) => {
     builder
@@ -38,5 +38,5 @@ export const salesOrderCreationSlice = createSlice({
   },
 });
 
-export const { resetSalesOrderCreationState } = salesOrderCreationSlice.actions;
+export const { resetSalesOrderCreation } = salesOrderCreationSlice.actions;
 export default salesOrderCreationSlice.reducer;

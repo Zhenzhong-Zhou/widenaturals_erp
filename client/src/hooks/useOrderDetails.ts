@@ -3,7 +3,6 @@ import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   getOrderDetailsByIdThunk,
   makeSelectOrderItemById,
-  type OrderRouteParams,
   selectHasOrder,
   selectOrderDetailsData,
   selectOrderDetailsError,
@@ -12,8 +11,9 @@ import {
   selectOrderItemCount,
   selectOrderItems,
   selectOrderTotals,
+  resetOrderDetails,
 } from '@features/order/state';
-import { clearOrderDetails } from '@features/order/state/orderDetailsSlice';
+import type { OrderRouteParams } from '@features/order/state';
 
 /**
  * useOrderDetails
@@ -45,7 +45,7 @@ export const useOrderDetails = () => {
   );
 
   const reset = useCallback(() => {
-    dispatch(clearOrderDetails());
+    dispatch(resetOrderDetails());
   }, [dispatch]);
 
   return {

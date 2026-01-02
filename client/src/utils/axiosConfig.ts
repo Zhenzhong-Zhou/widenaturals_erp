@@ -4,10 +4,9 @@ import axios, {
   type AxiosResponse,
   type InternalAxiosRequestConfig,
 } from 'axios';
+import * as axiosRetry from 'axios-retry';
 import { store } from '@store/store';
-import { AppError, ErrorType } from '@utils/AppError';
-import { handleError } from '@utils/errorUtils';
-import { withRetry } from '@utils/retryUtils';
+import { AppError } from '@utils/error';
 import { selectAccessToken } from '@features/session/state/sessionSelectors';
 import { updateAccessToken } from '@features/session/state/sessionSlice';
 import { logoutThunk } from '@features/session/state/sessionThunks';
@@ -16,183 +15,166 @@ import { sessionService } from '@services/sessionService';
 
 interface ErrorResponse {
   message?: string;
-  [key: string]: any; // Optional for additional properties
+  [key: string]: unknown;
 }
 
 const baseURL = import.meta.env.VITE_BASE_URL;
 
-// Create Axios instance
+/* =========================================================
+ * Axios instance
+ * ======================================================= */
+
 const axiosInstance = axios.create({
   baseURL,
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  timeout: 10_000,
+  headers: { 'Content-Type': 'application/json' },
   withCredentials: true,
 });
 
-// Refreshing tokens and retry logic
+/* =========================================================
+ * Retry (transport-level only)
+ * ======================================================= */
+
+axiosRetry.default(axiosInstance, {
+  retries: 3,
+  retryDelay: (retryCount, error) => {
+    const retryAfter = error.response?.headers?.['retry-after'];
+    if (retryAfter) {
+      const seconds = Number(retryAfter);
+      if (!Number.isNaN(seconds)) {
+        return seconds * 1000;
+      }
+    }
+    return axiosRetry.exponentialDelay(retryCount);
+  },
+  retryCondition: (error) =>
+    axiosRetry.isNetworkError(error) ||
+    error.response?.status === 429 ||
+    (error.response?.status ?? 0) >= 500,
+});
+
+/* =========================================================
+ * Refresh token single-flight
+ * ======================================================= */
+
 let isRefreshing = false;
+
 let failedQueue: {
-  resolve: (value: unknown) => void;
-  reject: (reason?: any) => void;
+  resolve: (token: string) => void;
+  reject: (error: unknown) => void;
 }[] = [];
 
-// Process queued requests during token refresh
-const processQueue = (error: AxiosError | null, token: string | null) => {
-  failedQueue.forEach((promise) => {
-    if (error) {
-      promise.reject(error);
-    } else {
-      promise.resolve(token);
-    }
+const processQueue = (error: unknown, token: string | null) => {
+  failedQueue.forEach(({ resolve, reject }) => {
+    error ? reject(error) : resolve(token as string);
   });
   failedQueue = [];
 };
 
-// Request interceptor
-axiosInstance.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    try {
-      const state = store.getState();
-      const csrfToken = selectCsrfToken(state);
-      const accessToken = selectAccessToken(state);
+/* =========================================================
+ * Request interceptor
+ * ======================================================= */
 
-      if (accessToken && config.headers) {
-        config.headers.Authorization = `Bearer ${accessToken}`;
-      }
-      if (csrfToken && config.headers) {
-        config.headers['X-CSRF-Token'] = csrfToken;
-      }
+axiosInstance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  const state = store.getState();
 
-      return config;
-    } catch (error) {
-      handleError(error); // Log error using handleError
-      throw new AppError('Error in request interceptor', 500, {
-        type: ErrorType.NetworkError,
-        details: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
-  },
-  (error: AxiosError<ErrorResponse>) => {
-    handleError(error);
-    return Promise.reject(
-      new AppError('Request interceptor error', 500, {
-        type: ErrorType.NetworkError,
-        details: error.message,
-      })
-    );
+  const accessToken = selectAccessToken(state);
+  const csrfToken = selectCsrfToken(state);
+
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
   }
-);
 
-// Response interceptor
+  if (csrfToken) {
+    config.headers['X-CSRF-Token'] = csrfToken;
+  }
+
+  return config;
+});
+
+/* =========================================================
+ * Response interceptor
+ * ======================================================= */
+
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError<ErrorResponse>) => {
     const originalRequest = error.config as AxiosRequestConfig & {
       _retry?: boolean;
     };
-    const state = store.getState();
-    const csrfToken = selectCsrfToken(state);
 
-    try {
-      // Handle token expiration (401)
-      if (error.response?.status === 401 && !originalRequest._retry) {
-        if (isRefreshing) {
-          // Add the failed request to the queue while refreshing is in progress
-          return new Promise((resolve, reject) => {
-            failedQueue.push({ resolve, reject });
-          }).then((token) => {
-            if (originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
-              originalRequest.headers['X-CSRF-Token'] = csrfToken;
-            }
-            return axiosInstance(originalRequest);
+    /* ----------------------------------
+     * 401 → refresh & replay
+     * ---------------------------------- */
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({
+            resolve: (token) => {
+              if (originalRequest.headers) {
+                originalRequest.headers.Authorization = `Bearer ${token}`;
+              }
+              resolve(axiosInstance(originalRequest));
+            },
+            reject,
           });
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const { accessToken } = await sessionService.refreshToken();
+        store.dispatch(updateAccessToken(accessToken));
+
+        processQueue(null, accessToken);
+
+        if (originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         }
 
-        originalRequest._retry = true;
-        isRefreshing = true;
+        return axiosInstance(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        store.dispatch(logoutThunk());
+        window.location.href = '/login';
 
-        try {
-          // Request a new access token
-          const { accessToken } = await sessionService.refreshToken();
-          store.dispatch(updateAccessToken(accessToken));
-
-          // Replay queued requests with the new token
-          processQueue(null, accessToken);
-
-          // Retry the original request with updated tokens
-          if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-            originalRequest.headers['X-CSRF-Token'] = csrfToken;
-          }
-
-          return axiosInstance(originalRequest);
-        } catch (refreshError) {
-          if (axios.isAxiosError(refreshError)) {
-            processQueue(refreshError, null); // Pass the AxiosError to processQueue
-          } else {
-            console.error(
-              'Unexpected error during token refresh:',
-              refreshError
-            );
-            processQueue(null, null); // Handle non-AxiosError scenarios gracefully
-          }
-
-          store.dispatch(logoutThunk()); // Log out the user
-          window.location.href = '/login';
-          throw new AppError('Token refresh failed. Please log in again.', 401);
-        } finally {
-          isRefreshing = false; // Reset the refreshing flag
-        }
-      }
-
-      // Retry logic for rate-limiting or network errors
-      if (error.response?.status === 429 || !error.response) {
-        const retryAfter = parseInt(
-          error.response?.headers?.['retry-after'] || '1000',
-          10
+        return Promise.reject(
+          AppError.authentication('Session expired. Please log in again.')
         );
-        return withRetry(
-          () => axiosInstance(originalRequest),
-          5,
-          retryAfter,
-          'Rate-limited or network error. Retrying...'
-        );
+      } finally {
+        isRefreshing = false;
       }
-
-      // Convert server errors (500+) to AppError
-      if (error.response?.status >= 500) {
-        throw AppError.create(
-          ErrorType.ServerError,
-          'Server error occurred',
-          error.response.status,
-          { details: error.response.data }
-        );
-      }
-
-      // Handle validation errors (400)
-      if (error.response?.status === 400) {
-        throw AppError.create(
-          ErrorType.ValidationError,
-          'Validation failed',
-          400,
-          { details: error.response.data }
-        );
-      }
-
-      // Convert unknown errors to AppError
-      throw AppError.create(
-        ErrorType.UnknownError,
-        error.response?.data.message || 'An unknown error occurred',
-        error.response?.status || 500,
-        { details: error.response?.data || error.message }
-      );
-    } catch (appError) {
-      handleError(appError);
-      return Promise.reject(appError);
     }
+
+    /* ----------------------------------
+     * HTTP → AppError normalization
+     * ---------------------------------- */
+
+    const status = error.response?.status;
+    const message = error.response?.data?.message;
+
+    if (status === 400) {
+      return Promise.reject(
+        AppError.validation('Validation failed', error.response?.data)
+      );
+    }
+
+    if (status === 429) {
+      return Promise.reject(AppError.rateLimit('Too many requests'));
+    }
+
+    if (status && status >= 500) {
+      return Promise.reject(
+        AppError.server('Server error occurred', error.response?.data)
+      );
+    }
+
+    return Promise.reject(
+      AppError.unknown(message || 'Unexpected error occurred', error)
+    );
   }
 );
 

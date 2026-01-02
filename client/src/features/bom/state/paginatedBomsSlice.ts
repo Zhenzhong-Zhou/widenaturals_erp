@@ -26,7 +26,7 @@ const paginatedBomSlice = createSlice({
     /**
      * Reset all filters and pagination back to default.
      */
-    resetBomListState: () => initialState,
+    resetPaginatedBoms: () => initialState,
 
     /**
      * Manually set pagination (useful for table page changes).
@@ -77,7 +77,7 @@ const paginatedBomSlice = createSlice({
   },
 });
 
-export const { resetBomListState, setBomFilters, setBomPagination } =
+export const { resetPaginatedBoms, setBomFilters, setBomPagination } =
   paginatedBomSlice.actions;
 
 export default paginatedBomSlice.reducer;

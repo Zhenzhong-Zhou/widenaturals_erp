@@ -10,7 +10,7 @@ const {
   createAddressController,
   getPaginatedAddressesController,
 } = require('../controllers/address-controller');
-const authorize = require('../middlewares/authorize');
+const { authorize } = require('../middlewares/authorize');
 const validate = require('../middlewares/validate');
 const {
   addressArraySchema,

@@ -1,4 +1,4 @@
-import { type FC, type MouseEvent, useState } from 'react';
+import { type FC, type MouseEvent, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Avatar from '@mui/material/Avatar';
@@ -9,21 +9,29 @@ import Divider from '@mui/material/Divider';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSun, faMoon } from '@fortawesome/free-solid-svg-icons';
 import CustomTypography from '@components/common/CustomTypography';
-import HealthStatus from '@features/health/components/HealthStatus';
 import CustomButton from '@components/common/CustomButton';
+import { HealthStatus } from '@features/health/components';
 import { useThemeContext } from '@context/ThemeContext';
-import type { UserProfile } from '@features/user';
+import { useLogout, useSession } from '@hooks/index';
 import { headerStyles, typographyStyles } from '@layouts/Header/headerStyles';
 
-interface HeaderProps {
-  user?: UserProfile;
-  onLogout: () => void;
-}
-
-const Header: FC<HeaderProps> = ({ user, onLogout }) => {
+/**
+ * Application header.
+ *
+ * Displays branding, system health, theme toggle,
+ * and user profile actions.
+ */
+const Header: FC = () => {
   const { theme, toggleTheme } = useThemeContext();
+  const { user } = useSession();
+  const { logout } = useLogout();
   const navigate = useNavigate();
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+
+  const fullName = user?.fullName ?? 'Guest';
+
+  const initial = useMemo(() => fullName.charAt(0).toUpperCase(), [fullName]);
 
   const handleMenuOpen = (event: MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -31,21 +39,14 @@ const Header: FC<HeaderProps> = ({ user, onLogout }) => {
 
   const handleMenuClose = () => setAnchorEl(null);
 
-  const getStatusColor = (
-    status: string
-  ): 'success' | 'warning' | 'error' | 'info' | 'default' => {
-    switch (status.toLowerCase()) {
-      case 'healthy':
-        return 'success';
-      case 'maintenance':
-        return 'warning';
-      case 'unhealthy':
-        return 'error';
-      case 'loading':
-        return 'info'; // optional, or 'default'
-      default:
-        return 'default';
-    }
+  const handleProfileClick = () => {
+    handleMenuClose();
+    navigate('/profile');
+  };
+
+  const handleLogoutClick = () => {
+    handleMenuClose();
+    void logout();
   };
 
   return (
@@ -53,20 +54,19 @@ const Header: FC<HeaderProps> = ({ user, onLogout }) => {
       sx={{
         ...headerStyles(theme),
         display: 'flex',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        px: 5, // Padding for spacing from sidebar
+        height: 80,
+        px: 5,
         py: 1.5,
         gap: 2,
       }}
     >
-      {/* Left: Brand */}
+      {/* Brand */}
       <CustomTypography
         variant="h6"
         sx={{
           ...typographyStyles(theme),
           fontWeight: 700,
-          fontFamily: "'Roboto', sans-serif",
           color: theme.palette.primary.main,
           minWidth: 200,
         }}
@@ -74,34 +74,13 @@ const Header: FC<HeaderProps> = ({ user, onLogout }) => {
         WIDE Naturals Inc.
       </CustomTypography>
 
-      {/* Right: Status, Theme, Avatar */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2,
-          ml: 'auto',
-        }}
-      >
-        {/* Server Health */}
-        <HealthStatus getStatusColor={getStatusColor} sx={{ ml: 'auto' }} />
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 'auto' }}>
+        <HealthStatus />
 
-        {/* Theme Toggle */}
         <CustomButton
           variant="outlined"
-          aria-label="Toggle theme"
           onClick={toggleTheme}
-          sx={{
-            fontWeight: 500,
-            fontSize: '0.875rem',
-            minWidth: 120,
-            px: 2,
-            textTransform: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            mr: 2,
-          }}
+          sx={{ minWidth: 120, gap: 1, mr: 2 }}
         >
           <FontAwesomeIcon
             icon={theme.palette.mode === 'dark' ? faSun : faMoon}
@@ -109,68 +88,34 @@ const Header: FC<HeaderProps> = ({ user, onLogout }) => {
           {theme.palette.mode === 'dark' ? 'Light' : 'Dark'} Mode
         </CustomButton>
 
-        {/* Avatar & Menu */}
         <IconButton
           onClick={handleMenuOpen}
-          aria-label="User menu"
+          title={fullName}
           size="small"
-          sx={{
-            ml: 0,
-            border: `2px solid ${theme.palette.primary.main}`,
-          }}
+          sx={{ border: `2px solid ${theme.palette.primary.main}` }}
         >
-          <Avatar
-            alt={user?.firstname || 'Guest'}
-            src={''}
-            sx={{
-              bgcolor: theme.palette.primary.main,
-              width: 36,
-              height: 36,
-              fontWeight: 600,
-              fontFamily: "'Roboto', sans-serif",
-            }}
-          >
-            {user?.firstname?.charAt(0).toUpperCase() || 'G'}
+          <Avatar sx={{ bgcolor: theme.palette.primary.main }}>
+            {initial}
           </Avatar>
         </IconButton>
 
-        {/* Dropdown Menu */}
         <Menu
           anchorEl={anchorEl}
           open={Boolean(anchorEl)}
           onClose={handleMenuClose}
           slotProps={{
-            paper: {
-              elevation: 3,
-              sx: { width: 200, borderRadius: 2 },
-            },
+            paper: { elevation: 3, sx: { width: 200, borderRadius: 2 } },
           }}
         >
           <MenuItem disabled>
-            <CustomTypography variant="body1">
-              {user?.firstname || 'Guest'}
-            </CustomTypography>
+            <CustomTypography variant="body1">{fullName}</CustomTypography>
           </MenuItem>
 
           <Divider />
 
-          <MenuItem
-            onClick={() => {
-              handleMenuClose();
-              navigate('/profile');
-            }}
-          >
-            Profile
-          </MenuItem>
+          <MenuItem onClick={handleProfileClick}>Profile</MenuItem>
 
-          <MenuItem
-            onClick={() => {
-              handleMenuClose();
-              onLogout();
-            }}
-          >
-            Logout
-          </MenuItem>
+          <MenuItem onClick={handleLogoutClick}>Logout</MenuItem>
         </Menu>
       </Box>
     </Box>

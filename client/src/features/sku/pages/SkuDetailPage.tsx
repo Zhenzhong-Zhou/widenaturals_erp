@@ -52,14 +52,14 @@ const SkuDetailPage: FC = () => {
    * --------------------------------------------------------- */
   const { skuId } = useParams<{ skuId: string }>();
   const { permissions } = usePermissions();
-  
+
   const location = useLocation();
   const cameFromUpload = location.state?.fromUpload === true;
-  
+
   if (!skuId) {
     return <NotFoundPage />;
   }
-  
+
   /* ---------------------------------------------------------
    * SKU detail hook (provides all data & fetch helpers)
    * --------------------------------------------------------- */
@@ -74,11 +74,11 @@ const SkuDetailPage: FC = () => {
     loading: skuDetailLoading,
     error: skuDetailError,
     fetchSkuDetail,
-    resetSkuDetail,
+    resetSkuDetailState,
   } = useSkuDetail();
 
   const createButtonRef = useRef<HTMLButtonElement>(null);
-  
+
   const statusLookup = useStatusLookup();
 
   /* ---------------------------------------------------------
@@ -105,8 +105,8 @@ const SkuDetailPage: FC = () => {
 
   useEffect(() => {
     refresh();
-    return () => resetSkuDetail();
-  }, [refresh, resetSkuDetail]);
+    return () => resetSkuDetailState();
+  }, [refresh, resetSkuDetailState]);
 
   /* ---------------------------------------------------------
    * Flattened structures for UI components
@@ -116,7 +116,7 @@ const SkuDetailPage: FC = () => {
     () => (sku ? flattenSkuInfo(sku) : null),
     [sku]
   );
-  
+
   const flattenedComplianceInfo = useMemo(
     () =>
       complianceRecords ? flattenComplianceRecords(complianceRecords) : null,
@@ -225,7 +225,7 @@ const SkuDetailPage: FC = () => {
             height: 44, // SAME HEIGHT HERE
             borderRadius: 22,
           }}
-          fallbackTo={cameFromUpload ? "/skus" : undefined}
+          fallbackTo={cameFromUpload ? '/skus' : undefined}
         />
       </Stack>
 

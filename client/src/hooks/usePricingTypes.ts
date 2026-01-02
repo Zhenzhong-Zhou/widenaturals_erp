@@ -1,15 +1,17 @@
 import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
+import type {
+  FetchPricingTypesParams,
+  PricingType,
+} from '@features/pricingType/state';
+import type { Pagination } from '@shared-types/api';
 import {
   fetchAllPricingTypesThunk,
   selectError,
   selectIsLoading,
   selectPagination,
   selectPricingTypes,
-  type FetchPricingTypesParams,
 } from '@features/pricingType/state';
-import type { PricingType } from '@features/pricingType';
-import type { Pagination } from '@shared-types/api';
 
 interface UsePricingTypesReturn {
   data: PricingType[];

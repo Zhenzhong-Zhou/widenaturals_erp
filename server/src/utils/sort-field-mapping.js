@@ -3,6 +3,38 @@
  * organized by table/module for reuse across service and repository layers.
  */
 const SORTABLE_FIELDS = {
+  userSortMap: {
+    // ----------------------------
+    // Identity
+    // ----------------------------
+    fullName: `LOWER(COALESCE(u.firstname, '') || ' ' || COALESCE(u.lastname, ''))`,
+    firstname: `LOWER(u.firstname)`,
+    lastname: `LOWER(u.lastname)`,
+    email: `LOWER(u.email)`,
+
+    // ----------------------------
+    // Role / Status
+    // ----------------------------
+    roleName: `LOWER(r.name)`,
+    statusName: `LOWER(s.name)`,
+
+    // ----------------------------
+    // Job / Contact
+    // ----------------------------
+    jobTitle: `LOWER(u.job_title)`,
+    phoneNumber: `u.phone_number`,
+
+    // ----------------------------
+    // Audit
+    // ----------------------------
+    createdAt: `u.created_at`,
+    updatedAt: `u.updated_at`,
+
+    // ----------------------------
+    // Fallback
+    // ----------------------------
+    defaultNaturalSort: `u.created_at`,
+  },
   productSortMap: {
     // Product-level fields (FROM products p)
     productName: 'p.name',

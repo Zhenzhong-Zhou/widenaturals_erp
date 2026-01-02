@@ -1,7 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  type SkuCodeBaseLookupParams,
   fetchSkuCodeBaseLookupThunk,
   selectSkuCodeBaseLookupOptions,
   selectSkuCodeBaseLookupError,
@@ -9,6 +8,7 @@ import {
   selectSkuCodeBaseLookupMeta,
   selectSkuCodeBaseLookupRawItems,
 } from '@features/lookup/state';
+import type { SkuCodeBaseLookupParams } from '@features/lookup/state';
 import { resetSkuCodeBaseLookup } from '@features/lookup/state/skuCodeBaseLookupSlice';
 
 /**

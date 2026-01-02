@@ -1,9 +1,9 @@
 const express = require('express');
+const { authorize } = require('../middlewares/authorize');
 const {
   getLocationTypesController,
   getLocationTypeDetailController,
 } = require('../controllers/location-type-controller');
-const authorize = require('../middlewares/authorize');
 
 const router = express.Router();
 

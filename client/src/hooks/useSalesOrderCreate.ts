@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  type CreateSalesOrderInput,
   createSalesOrderThunk,
   selectCreatedSalesOrderId,
   selectSalesOrderCreationError,
   selectSalesOrderCreationLoading,
+  resetSalesOrderCreation,
 } from '@features/order/state';
-import { resetSalesOrderCreationState } from '@features/order/state/salesOrderCreationSlice.ts';
+import type { CreateSalesOrderInput } from '@features/order/state';
 
 /**
  * Hook for managing the sales order creation lifecycle.
@@ -56,7 +56,7 @@ const useSalesOrderCreate = () => {
     error,
     orderId,
     handleSubmitSalesOrder,
-    resetState: () => dispatch(resetSalesOrderCreationState()),
+    resetState: () => dispatch(resetSalesOrderCreation()),
   };
 };
 

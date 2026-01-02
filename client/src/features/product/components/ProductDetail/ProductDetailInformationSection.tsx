@@ -1,11 +1,15 @@
 import { FC } from 'react';
 import Paper from '@mui/material/Paper';
 import CustomTypography from '@components/common/CustomTypography';
-import DetailsSection, { DetailsSectionField } from '@components/common/DetailsSection';
+import DetailsSection, {
+  DetailsSectionField,
+} from '@components/common/DetailsSection';
 import { FlattenedProductDetail } from '@features/product/state';
 import { formatLabel } from '@utils/textUtils';
 
-const buildProductInfoFields = (p: FlattenedProductDetail): DetailsSectionField[] => [
+const buildProductInfoFields = (
+  p: FlattenedProductDetail
+): DetailsSectionField[] => [
   {
     label: 'Name',
     value: p.name,
@@ -42,7 +46,7 @@ const ProductDetailInformationSection: FC<Props> = ({ product }) => {
       <CustomTypography variant="h6" fontWeight={600} gutterBottom>
         Product Information
       </CustomTypography>
-      
+
       <DetailsSection fields={buildProductInfoFields(product)} />
     </Paper>
   );

@@ -1,6 +1,6 @@
 import {
   FlattenedProductDetail,
-  ProductUpdateRequest
+  ProductUpdateRequest,
 } from '@features/product/state';
 
 /**
@@ -26,13 +26,12 @@ import {
 export const buildInitialInfoValues = (
   product: FlattenedProductDetail
 ): ProductUpdateRequest => ({
-  name: product.name ?? "",
-  series: product.series ?? "",
-  brand: product.brand ?? "",
-  category: product.category ?? "",
-  description: product.description ?? "",
+  name: product.name ?? '',
+  series: product.series ?? '',
+  brand: product.brand ?? '',
+  category: product.category ?? '',
+  description: product.description ?? '',
 });
-
 
 /**
  * Computes the delta (difference) between the initial values and the updated
@@ -63,12 +62,12 @@ export const buildProductUpdateDelta = (
   current: ProductUpdateRequest
 ): ProductUpdateRequest => {
   const delta: ProductUpdateRequest = {};
-  
+
   for (const key of Object.keys(current) as (keyof ProductUpdateRequest)[]) {
     if (current[key] !== initial[key]) {
       delta[key] = current[key];
     }
   }
-  
+
   return delta;
 };

@@ -24,7 +24,7 @@ const ComplianceRecordExpandedContent: FC<
       <CustomTypography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
         Compliance Record Overview
       </CustomTypography>
-      
+
       {/* ------------------------------------
        * Product Information
        * ------------------------------------ */}
@@ -35,17 +35,15 @@ const ComplianceRecordExpandedContent: FC<
           { label: 'Category', value: row.category, format: formatLabel },
         ]}
       />
-      
+
       {/* ------------------------------------
        * SKU Information
        * ------------------------------------ */}
       <DetailsSection
         sectionTitle="SKU Information"
-        fields={[
-          { label: 'Size', value: row.sizeLabel, format: formatLabel },
-        ]}
+        fields={[{ label: 'Size', value: row.sizeLabel, format: formatLabel }]}
       />
-      
+
       {/* ------------------------------------
        * Status
        * ------------------------------------ */}
@@ -60,7 +58,7 @@ const ComplianceRecordExpandedContent: FC<
           },
         ]}
       />
-      
+
       {/* ------------------------------------
        * Audit
        * ------------------------------------ */}

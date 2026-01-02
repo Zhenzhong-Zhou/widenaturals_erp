@@ -1,12 +1,21 @@
-import addressCreationReducer from './addressCreationSlice';
-import paginatedAddressReducer from './paginateAddressSlice';
+// --------------------------------------------------
+// Reducers (store-level, explicit)
+// --------------------------------------------------
+export { addressReducers } from './addressReducers';
 
-export const addressReducers = {
-  addressCreation: addressCreationReducer,
-  paginatedAddress: paginatedAddressReducer,
-};
+// --------------------------------------------------
+// Actions (explicit public surface)
+// --------------------------------------------------
+export { resetPaginatedAddresses } from './paginateAddressSlice';
 
+// --------------------------------------------------
+// Selectors
+// --------------------------------------------------
 export * from './addressCreationSelectors';
 export * from './paginateAddressSelectors';
+
+// --------------------------------------------------
+// Thunks & Types
+// --------------------------------------------------
 export * from './addressThunks';
 export * from './addressTypes';

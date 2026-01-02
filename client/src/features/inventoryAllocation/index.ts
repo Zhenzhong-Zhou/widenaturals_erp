@@ -1,1 +1,1 @@
-export { inventoryAllocationReducers } from './state';
+export * from './state';

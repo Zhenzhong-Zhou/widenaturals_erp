@@ -1,13 +1,13 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  type PackagingMaterialLookupQueryParams,
   fetchPackagingMaterialLookupThunk,
   selectPackagingMaterialLookupOptions,
   selectPackagingMaterialLookupError,
   selectPackagingMaterialLookupLoading,
   selectPackagingMaterialLookupMeta,
 } from '@features/lookup/state';
+import type { PackagingMaterialLookupQueryParams } from '@features/lookup/state';
 import { resetPackagingMaterialLookup } from '@features/lookup/state/packagingMaterialLookupSlice';
 
 /**

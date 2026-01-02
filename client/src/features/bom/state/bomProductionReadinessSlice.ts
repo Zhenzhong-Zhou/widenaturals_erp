@@ -40,7 +40,10 @@ export const bomProductionReadinessSlice = createSlice({
      * Sets the currently selected BOM ID manually.
      * Allows the UI to track which BOM context is active.
      */
-    setSelectedBomId: (state, action: PayloadAction<string | null>) => {
+    setProductionReadinessSelectedBomId: (
+      state,
+      action: PayloadAction<string | null>
+    ) => {
       state.selectedBomId = action.payload;
     },
   },
@@ -71,8 +74,10 @@ export const bomProductionReadinessSlice = createSlice({
 });
 
 // Export actions
-export const { resetBomProductionReadiness, setSelectedBomId } =
-  bomProductionReadinessSlice.actions;
+export const {
+  resetBomProductionReadiness,
+  setProductionReadinessSelectedBomId,
+} = bomProductionReadinessSlice.actions;
 
 // Export reducer
 export default bomProductionReadinessSlice.reducer;

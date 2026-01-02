@@ -18,13 +18,13 @@ import { enrichBulkSkuUploadResults } from '@features/skuImage/utils/imageFormat
 interface Props {
   open: boolean;
   onClose: () => void;
-  
+
   /** Upload summary statistics */
   stats: BatchProcessStats | null;
-  
+
   /** Per-SKU result array */
   results: BulkSkuImageUploadResult[] | null;
-  
+
   items: SkuImageUploadCardData[];
 }
 
@@ -33,12 +33,12 @@ interface Props {
  * Shows a summary (success/failure) plus detailed per-SKU results.
  */
 const SkuImageUploadSuccessDialog: FC<Props> = ({
-                                                  open,
-                                                  onClose,
-                                                  stats,
-                                                  results,
-                                                  items,
-                                                }) => {
+  open,
+  onClose,
+  stats,
+  results,
+  items,
+}) => {
   // Prevent crash when stats is null
   if (!stats) {
     return (
@@ -56,15 +56,15 @@ const SkuImageUploadSuccessDialog: FC<Props> = ({
       </CustomDialog>
     );
   }
-  
+
   const message =
     stats?.failureCount === 0
       ? 'All SKU images uploaded successfully.'
       : 'SKU image upload completed with some errors.';
-  
+
   // Join result with original skuCode + productName
   const enrichedResults = enrichBulkSkuUploadResults(results, items);
-  
+
   return (
     <CustomDialog
       open={open}
@@ -99,7 +99,7 @@ const SkuImageUploadSuccessDialog: FC<Props> = ({
                 <strong>Time:</strong> {stats.elapsedMs} ms
               </Box>
             </Box>
-            
+
             {/* If results missing */}
             {!results || results.length === 0 ? (
               <Box>No individual results available.</Box>
@@ -115,14 +115,29 @@ const SkuImageUploadSuccessDialog: FC<Props> = ({
                       border: '1px solid',
                       borderColor: r.success ? 'success.light' : 'error.light',
                       bgcolor: r.success ? 'success.light' : 'error.light',
-                      color: r.success ? 'success.contrastText' : 'error.contrastText',
+                      color: r.success
+                        ? 'success.contrastText'
+                        : 'error.contrastText',
                     }}
                   >
-                    <Box><strong>Product Name:</strong> {r.productName ?? r.skuId}</Box>
-                    <Box><strong>SKU:</strong> {r.skuCode ?? r.skuId}</Box>
-                    <Box><strong>Result:</strong> {r.success ? 'Success' : 'Failed'}</Box>
-                    {r.error && <Box><strong>Error:</strong> {r.error}</Box>}
-                    <Box><strong>Images Uploaded:</strong> {r.images?.length ?? 0}</Box>
+                    <Box>
+                      <strong>Product Name:</strong> {r.productName ?? r.skuId}
+                    </Box>
+                    <Box>
+                      <strong>SKU:</strong> {r.skuCode ?? r.skuId}
+                    </Box>
+                    <Box>
+                      <strong>Result:</strong>{' '}
+                      {r.success ? 'Success' : 'Failed'}
+                    </Box>
+                    {r.error && (
+                      <Box>
+                        <strong>Error:</strong> {r.error}
+                      </Box>
+                    )}
+                    <Box>
+                      <strong>Images Uploaded:</strong> {r.images?.length ?? 0}
+                    </Box>
                     {r.success && (
                       <Box
                         sx={{
@@ -141,7 +156,7 @@ const SkuImageUploadSuccessDialog: FC<Props> = ({
                             fontWeight: 600,
                             backgroundColor: 'primary.main',
                             color: 'primary.contrastText',
-                            '&:hover': { backgroundColor: 'primary.dark' }
+                            '&:hover': { backgroundColor: 'primary.dark' },
                           }}
                         >
                           View Details
@@ -152,9 +167,14 @@ const SkuImageUploadSuccessDialog: FC<Props> = ({
                 ))}
               </Box>
             )}
-            
+
             {/* Footer Buttons */}
-            <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mt: 3 }}>
+            <Stack
+              direction="row"
+              spacing={2}
+              justifyContent="flex-end"
+              sx={{ mt: 3 }}
+            >
               <CustomButton
                 variant="outlined"
                 color="primary"
@@ -162,11 +182,8 @@ const SkuImageUploadSuccessDialog: FC<Props> = ({
               >
                 Close
               </CustomButton>
-              
-              <GoBackButton
-                label="Back to SKU List"
-                fallbackTo="/skus"
-              />
+
+              <GoBackButton label="Back to SKU List" fallbackTo="/skus" />
             </Stack>
           </Box>
         }

@@ -1,6 +1,6 @@
 import {
   ComplianceRecord,
-  ComplianceRecordTableRow
+  ComplianceRecordTableRow,
 } from '@features/complianceRecord/state';
 
 /**
@@ -12,37 +12,29 @@ import {
 export const flattenComplianceRecordToRow = (
   record: ComplianceRecord
 ): ComplianceRecordTableRow => {
-  const {
-    id,
-    type,
-    documentNumber,
-    issuedDate,
-    status,
-    sku,
-    product,
-    audit,
-  } = record;
-  
+  const { id, type, documentNumber, issuedDate, status, sku, product, audit } =
+    record;
+
   return {
     // Identity
     id,
-    
+
     // Compliance
     type,
     documentNumber,
     issuedDate,
-    
+
     // Status
     statusId: status.id,
     statusName: status.name,
     statusDate: status.date,
-    
+
     // SKU
     skuId: sku.id,
     skuCode: sku.sku,
     sizeLabel: sku.sizeLabel,
     marketRegion: sku.marketRegion,
-    
+
     // Product
     productId: product.id,
     productName: product.name,
@@ -50,7 +42,7 @@ export const flattenComplianceRecordToRow = (
     series: product.series,
     category: product.category,
     productDisplayName: product.displayName,
-    
+
     // Audit
     createdAt: audit.createdAt ?? null,
     createdById: audit.createdBy?.id ?? null,
@@ -73,6 +65,6 @@ export const flattenComplianceRecordsToRows = (
   if (!Array.isArray(records) || records.length === 0) {
     return [];
   }
-  
+
   return records.map(flattenComplianceRecordToRow);
 };

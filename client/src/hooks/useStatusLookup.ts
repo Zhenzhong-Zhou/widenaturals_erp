@@ -1,13 +1,13 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  type StatusLookupParams,
   fetchStatusLookupThunk,
   selectStatusLookupOptions,
   selectStatusLookupError,
   selectStatusLookupLoading,
   selectStatusLookupMeta,
 } from '@features/lookup/state';
+import type { StatusLookupParams } from '@features/lookup/state';
 import { resetStatusLookup } from '@features/lookup/state/statusLookupSlice';
 
 /**

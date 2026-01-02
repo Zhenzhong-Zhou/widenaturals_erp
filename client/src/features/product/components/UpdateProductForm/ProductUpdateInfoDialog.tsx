@@ -9,76 +9,70 @@ import {
 import useProductInfoUpdate from '@hooks/useProductInfoUpdate';
 import type {
   FlattenedProductDetail,
-  ProductUpdateRequest
+  ProductUpdateRequest,
 } from '@features/product/state/productTypes';
 import {
   buildInitialInfoValues,
-  buildProductUpdateDelta
+  buildProductUpdateDelta,
 } from '@features/product/utils/productFormUtils';
 
 interface ProductUpdateInfoDialogProps {
   open: boolean;
   productId: string;
   onClose: () => void;
-  onSuccess?: () => void;  // optional refresh callback
-  productDetails: FlattenedProductDetail
+  onSuccess?: () => void; // optional refresh callback
+  productDetails: FlattenedProductDetail;
 }
 
 const ProductUpdateInfoDialog = ({
-                                   open,
-                                   productId,
-                                   onClose,
-                                   onSuccess,
-                                   productDetails,
-                                 }: ProductUpdateInfoDialogProps) => {
+  open,
+  productId,
+  onClose,
+  onSuccess,
+  productDetails,
+}: ProductUpdateInfoDialogProps) => {
   const productName = productDetails?.name ?? '';
   const [updatedFields, setUpdatedFields] = useState<string[]>([]);
-  
-  const {
-    data,
-    loading,
-    error,
-    isSuccess,
-    updateInfo,
-    reset,
-  } = useProductInfoUpdate();
-  
+
+  const { data, loading, error, isSuccess, updateInfo, reset } =
+    useProductInfoUpdate();
+
   const initialValues = useMemo(
     () => buildInitialInfoValues(productDetails),
     [productDetails]
   );
-  
+
   /** Close + cleanup */
   const handleClose = () => {
     reset();
     setUpdatedFields([]);
     onClose();
   };
-  
+
   /** Submit handler */
   const handleSubmit = useCallback(
     async (formData: ProductUpdateRequest) => {
       const delta = buildProductUpdateDelta(initialValues, formData);
-      
+
       // Track which fields were modified (optional)
       setUpdatedFields(Object.keys(delta));
-      
+
       // No changes? Do nothing:
       if (Object.keys(delta).length === 0) {
         onClose(); // or show a toast "No changes detected"
         return;
       }
-      
+
       await updateInfo({
         productId,
         payload: delta,
       });
-      
+
       onSuccess?.();
     },
     [productId, updateInfo, onSuccess, initialValues]
   );
-  
+
   // ----------------------------------------------------------
   // SUCCESS STATE — mirror UpdateProductStatusDialog behavior
   // ----------------------------------------------------------
@@ -93,7 +87,7 @@ const ProductUpdateInfoDialog = ({
       />
     );
   }
-  
+
   // ----------------------------------------------------------
   // ERROR STATE
   // ----------------------------------------------------------
@@ -108,7 +102,7 @@ const ProductUpdateInfoDialog = ({
       />
     );
   }
-  
+
   // ----------------------------------------------------------
   // FORM STATE (default)
   // ----------------------------------------------------------
@@ -126,7 +120,7 @@ const ProductUpdateInfoDialog = ({
       <CustomTypography variant="body2" sx={{ mb: 2 }}>
         Updating information for product: <strong>{productName}</strong>
       </CustomTypography>
-      
+
       <UpdateProductInfoForm
         loading={loading}
         onSubmit={handleSubmit}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
-import { fetchHealthStatus } from '@features/health/state/healthStatusThunk';
+import type { HealthState } from '@features/health/state';
 import {
   selectHealthState,
   selectDatabaseStatus,
@@ -9,8 +9,8 @@ import {
   selectIsServerHealthy,
   selectIsHealthLoading,
   selectHealthError,
-} from '@features/health/state/healthStatusSelectors';
-import type { HealthState } from '@features/health/state/healthStatusState';
+  fetchHealthStatus,
+} from '@features/health/state';
 
 interface UseHealthStatusResult {
   healthStatus: HealthState | null;

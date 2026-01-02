@@ -1,105 +1,93 @@
-import axiosInstance from '@utils/axiosConfig';
+import type {
+  GetPaginatedUsersParams,
+  PaginatedUserCardListResponse,
+  PaginatedUserListResponse,
+  UserProfileResponse,
+  UserProfileTarget,
+  UserViewMode,
+} from '@features/user/state';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import { clearTokens } from '@utils/tokenManager';
-import { handleError, mapErrorMessage } from '@utils/errorUtils';
-import { AppError, ErrorType } from '@utils/AppError';
-import type { UserProfileResponse, UseUsersResponse } from '@features/user';
-import { isCustomAxiosError } from '@utils/axiosUtils';
-import { withTimeout } from '@utils/timeoutUtils';
-import { withRetry } from '@utils/retryUtils';
+import { buildQueryString } from '@utils/buildQueryString';
+import { getRequest } from '@utils/http';
+import { sanitizeString } from '@utils/stringUtils';
+
+/* =========================================================
+ * Users
+ * ======================================================= */
 
 /**
- * Fetches a list of all users from the API.
+ * Fetch paginated users with optional filters and view mode.
  *
- * @async
- * @function fetchUsers
- * @returns {Promise<User[] | null>} - A promise that resolves to an array of user objects if successful, or null if an error occurs.
- * @throws {Error} - Throws an error if the API request fails and cannot be handled.
+ * READ-only.
  */
-const fetchUsers = async ({
-  page = 1,
-  limit = 10,
-  sortBy = 'u.created_at',
-  sortOrder = 'ASC',
-}: {
-  page?: number;
-  limit?: number;
-  sortBy?: string;
-  sortOrder?: string;
-}): Promise<UseUsersResponse> => {
-  try {
-    const response = await axiosInstance.get(API_ENDPOINTS.ALL_USERS, {
-      params: { page, limit, sortBy, sortOrder }, // Send query parameters
-    });
+const fetchPaginatedUsers = (
+  params: GetPaginatedUsersParams & { viewMode?: UserViewMode } = {}
+): Promise<PaginatedUserCardListResponse | PaginatedUserListResponse> => {
+  const { filters = {}, viewMode = 'list', ...paginationAndSort } = params;
 
-    const { data, pagination } = response.data;
-    return {
-      data,
-      pagination: {
-        totalRecords: pagination.totalRecords,
-        page: pagination.page,
-        limit: pagination.limit,
-        totalPages: pagination.totalPages,
-      },
-    };
-  } catch (error: any) {
-    console.error('Error fetching users:', error.message);
-    throw error; // Re-throw the error for thunk to handle
-  }
+  const queryString = buildQueryString({
+    ...paginationAndSort,
+    viewMode,
+    ...filters,
+  });
+
+  return getRequest<PaginatedUserCardListResponse | PaginatedUserListResponse>(
+    `${API_ENDPOINTS.USERS.ALL_RECORDS}${queryString}`,
+    {
+      policy: 'READ',
+    }
+  );
 };
 
+/* =========================================================
+ * User Profiles
+ * ======================================================= */
+
 /**
- * Fetches the authenticated user's profile.
+ * Fetch the authenticated user's profile.
  *
- * @returns {Promise<UserProfileResponse>} - The user's profile data.
- * @throws {AppError} - If the request fails or returns an unexpected response.
+ * READ-only.
  */
-const fetchUserProfile = async (): Promise<UserProfileResponse> => {
-  try {
-    const fetchProfile = () =>
-      axiosInstance.get<UserProfileResponse>(API_ENDPOINTS.USER_PROFILE);
+const fetchUserProfileSelf = (): Promise<UserProfileResponse> =>
+  getRequest<UserProfileResponse>(API_ENDPOINTS.USERS.PROFILE.SELF, {
+    policy: 'READ',
+  });
 
-    // Add retry and timeout logic
-    const response = await withTimeout(
-      withRetry(
-        fetchProfile,
-        3,
-        1000,
-        'Failed to fetch user profile after retries'
-      ), // Retry with delay
-      5000, // Timeout in milliseconds
-      'Fetching user profile timed out'
-    );
+/**
+ * Fetch a user's profile by ID.
+ *
+ * READ-only, permission-sliced server-side.
+ */
+const fetchUserProfileById = (userId: string): Promise<UserProfileResponse> => {
+  const cleanId = sanitizeString(userId);
 
-    // Validate response structure
-    if (!response.data || typeof response.data !== 'object') {
-      throw new AppError('Unexpected response format', 400, {
-        type: ErrorType.ValidationError,
-        details: response.data,
-      });
-    }
-
-    return response.data;
-  } catch (err: unknown) {
-    // Handle 401 Unauthorized
-    if (isCustomAxiosError(err) && err.response?.status === 401) {
-      clearTokens(); // Clear tokens for unauthorized errors
-      throw new AppError('Unauthorized. Please log in again.', 401, {
-        type: ErrorType.AuthenticationError,
-      });
-    }
-
-    // Handle all other errors
-    const mappedError = mapErrorMessage(err);
-    handleError(mappedError);
-    throw mappedError;
-  }
+  return getRequest<UserProfileResponse>(
+    API_ENDPOINTS.USERS.PROFILE.BY_ID(cleanId),
+    { policy: 'READ' }
+  );
 };
 
+/* =========================================================
+ * Core Profile Resolver
+ * ======================================================= */
+
 /**
- * Exported user service object.
+ * Resolve and fetch a user profile based on target type.
+ *
+ * Used by async thunks to centralize profile access logic.
  */
+const fetchUserProfileCore = (
+  target: UserProfileTarget
+): Promise<UserProfileResponse> =>
+  target.type === 'self'
+    ? fetchUserProfileSelf()
+    : fetchUserProfileById(target.userId);
+
+/* =========================================================
+ * Public API
+ * ======================================================= */
+
 export const userService = {
-  fetchUsers,
-  fetchUserProfile,
+  fetchPaginatedUsers,
+  fetchUserProfileCore,
 };

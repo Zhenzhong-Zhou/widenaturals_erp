@@ -1,14 +1,14 @@
 import { createSlice } from '@reduxjs/toolkit';
-import {
-  createInitialPaginatedLookupState,
-  type DeliveryMethodLookupItem,
-  type DeliveryMethodLookupState,
-} from '@features/lookup/state/lookupTypes';
-import { fetchDeliveryMethodLookupThunk } from './lookupThunks';
+import type {
+  DeliveryMethodLookupItem,
+  DeliveryMethodLookupState,
+} from '@features/lookup/state';
+import { createInitialOffsetPaginatedState } from '@store/pagination';
+import { fetchDeliveryMethodLookupThunk } from '@features/lookup/state';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 
 const initialState: DeliveryMethodLookupState =
-  createInitialPaginatedLookupState<DeliveryMethodLookupItem>();
+  createInitialOffsetPaginatedState<DeliveryMethodLookupItem>();
 
 const deliveryMethodLookupSlice = createSlice({
   name: 'deliveryMethodLookup',
@@ -17,7 +17,7 @@ const deliveryMethodLookupSlice = createSlice({
     /**
      * Clears the current delivery method lookup state.
      */
-    clearDeliveryMethodLookup: (state) => {
+    resetDeliveryMethodLookup: (state) => {
       state.data = [];
       state.loading = false;
       state.error = null;
@@ -41,5 +41,5 @@ const deliveryMethodLookupSlice = createSlice({
   },
 });
 
-export const { clearDeliveryMethodLookup } = deliveryMethodLookupSlice.actions;
+export const { resetDeliveryMethodLookup } = deliveryMethodLookupSlice.actions;
 export default deliveryMethodLookupSlice.reducer;

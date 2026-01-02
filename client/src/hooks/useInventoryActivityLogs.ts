@@ -1,6 +1,8 @@
 import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
+  fetchBaseInventoryActivityLogsThunk,
+  fetchPaginatedInventoryActivityLogsThunk,
   selectBaseInventoryLogs,
   selectBaseLogsError,
   selectBaseLogsLoading,
@@ -8,10 +10,6 @@ import {
   selectPaginatedLogsError,
   selectPaginatedLogsLoading,
   selectPaginatedLogsPagination,
-} from '@features/report/state';
-import {
-  fetchBaseInventoryActivityLogsThunk,
-  fetchPaginatedInventoryActivityLogsThunk,
 } from '@features/report/state';
 import type { InventoryActivityLogQueryParams } from '@features/report/state';
 

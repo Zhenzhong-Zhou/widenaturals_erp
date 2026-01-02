@@ -1,18 +1,18 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
-import { allocateInventoryThunk } from '@features/inventoryAllocation/state/inventoryAllocationThunks';
 import {
   selectAllocationData,
   selectAllocationLoading,
   selectAllocationError,
   selectAllocationOrderId,
   selectAllocatedIds,
-} from '@features/inventoryAllocation/state/allocateInventorySelectors';
-import { resetAllocationState } from '@features/inventoryAllocation/state/allocateInventorySlice';
+  allocateInventoryThunk,
+} from '@features/inventoryAllocation/state';
 import type {
   AllocateInventoryBody,
   AllocateInventoryParams,
 } from '@features/inventoryAllocation/state';
+import { resetAllocateInventory } from '@features/inventoryAllocation/state/allocateInventorySlice';
 
 /**
  * Custom hook for inventory allocation state and actions.
@@ -43,7 +43,7 @@ const useAllocateInventory = () => {
    * Reset allocation state to initial.
    */
   const reset = useCallback(() => {
-    dispatch(resetAllocationState());
+    dispatch(resetAllocateInventory());
   }, [dispatch]);
 
   /**
