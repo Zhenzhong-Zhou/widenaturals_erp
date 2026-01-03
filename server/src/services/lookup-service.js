@@ -126,7 +126,7 @@ const { getStatusLookup } = require('../repositories/status-repository');
 const {
   evaluateUserVisibilityAccessControl,
   applyUserLookupVisibilityRules,
-  enrichUserLookupWithActiveFlag
+  enrichUserLookupWithActiveFlag, evaluateUserLookupSearchCapabilities
 } = require('../business/user-business');
 const { getUserLookup } = require('../repositories/user-repository');
 
@@ -1403,40 +1403,59 @@ const fetchStatusLookupService = async (
 };
 
 /**
- * Fetches filtered and paginated User records for lookup UI components
- * (dropdowns, autocomplete inputs, assignment selectors).
+ * Fetches a filtered, paginated list of Users for lookup UI components
+ * such as dropdowns, autocomplete inputs, and assignment selectors.
  *
- * Supports:
+ * This service enforces **permission-aware visibility** and **search
+ * capability constraints** before executing the repository lookup.
+ *
+ * ### Supported behavior
  * - Keyword-based fuzzy matching (name, email)
- * - Pagination via limit + offset
- * - Permission-aware visibility enforcement
- * - Conditional UI enrichment (`isActive` only when inactive users are visible)
+ * - Offset-based pagination
+ * - SQL-authoritative visibility enforcement
+ * - Conditional enrichment for UI-only flags
  *
- * Internal flow:
- * 1. Resolve user visibility permissions
- * 2. Apply enforced user visibility rules (SQL-authoritative)
- * 3. Execute repository-level lookup query
- * 4. Enrich rows with UI flags ONLY when meaningful
- * 5. Transform into UI-optimized paginated structure
+ * ### Internal flow
+ * 1. Resolve user visibility permissions (row-level access)
+ * 2. Resolve lookup search capabilities (query-shaping access)
+ * 3. Apply enforced visibility rules to incoming filters
+ * 4. Execute repository-level lookup query
+ * 5. Enrich rows with UI-only metadata when meaningful
+ * 6. Transform into UI-optimized paginated response
  *
- * Notes:
- * - `isActive` is included only for privileged users who may see inactive users
+ * ### Notes
+ * - Lookup queries are intentionally lightweight by default
+ * - Role / status joins are enabled only when explicitly permitted
+ * - `isActive` is included only when inactive users may be visible
  * - Active-only lookups omit `isActive` to keep payload minimal
  *
- * @param {object} user - Authenticated user object.
- * @param {object} options - Lookup query options.
- * @param {object} [options.filters={}] - Optional user filters (keyword, role, status).
- * @param {number} [options.limit=50] - Max number of items to return.
- * @param {number} [options.offset=0] - Pagination offset.
+ * @param {Object} user
+ *   Authenticated user context
+ *
+ * @param {Object} args
+ * @param {Object} [args.filters={}]
+ *   Optional row-level user filters (keyword, role, status, etc.)
+ *
+ * @param {number} [args.limit=50]
+ *   Maximum number of records to return
+ *
+ * @param {number} [args.offset=0]
+ *   Number of records to skip
  *
  * @returns {Promise<{
- *   items: Array<{ id: string, label: string, subLabel?: string, isActive?: boolean }>,
+ *   items: Array<{
+ *     id: string,
+ *     label: string,
+ *     subLabel?: string,
+ *     isActive?: boolean
+ *   }>,
  *   offset: number,
  *   limit: number,
  *   hasMore: boolean
  * }>}
  *
- * @throws {AppError} When permission evaluation or repository query fails.
+ * @throws {AppError}
+ *   When permission evaluation or repository query fails
  */
 const fetchUserLookupService = async (
   user,
@@ -1446,7 +1465,7 @@ const fetchUserLookupService = async (
   
   try {
     // ---------------------------------------------------------
-    // Step 1 — Log entry
+    // Step 1 — Log request entry
     // ---------------------------------------------------------
     logSystemInfo('Fetching User lookup from service', {
       context,
@@ -1454,13 +1473,19 @@ const fetchUserLookupService = async (
     });
     
     // ---------------------------------------------------------
-    // Step 2 — Resolve visibility permissions
+    // Step 2 — Resolve user visibility permissions (row-level)
     // ---------------------------------------------------------
     const userAccess = await evaluateUserVisibilityAccessControl(user);
     const activeStatusId = getStatusId('general_active');
     
     // ---------------------------------------------------------
-    // Step 3 — Apply enforced visibility rules
+    // Step 3 — Resolve lookup search capabilities (query shaping)
+    // ---------------------------------------------------------
+    const searchCapabilities =
+      await evaluateUserLookupSearchCapabilities(user);
+    
+    // ---------------------------------------------------------
+    // Step 4 — Apply enforced visibility rules to filters
     // ---------------------------------------------------------
     const adjustedFilters = applyUserLookupVisibilityRules(
       filters,
@@ -1469,16 +1494,18 @@ const fetchUserLookupService = async (
     );
     
     // ---------------------------------------------------------
-    // Step 4 — Query repository
+    // Step 5 — Execute repository lookup query
     // ---------------------------------------------------------
     const { data = [], pagination = {} } = await getUserLookup({
       filters: adjustedFilters,
+      options: searchCapabilities,
       limit,
       offset,
     });
-
+    
     // ---------------------------------------------------------
-    // Step 5 — Enrich rows (only when inactive users are visible)
+    // Step 6 — Enrich rows with UI-only flags
+    // Applied only when inactive users may be visible
     // ---------------------------------------------------------
     let enrichedRows = data;
     
@@ -1489,7 +1516,7 @@ const fetchUserLookupService = async (
     }
     
     // ---------------------------------------------------------
-    // Step 6 — Transform to UI-friendly paginated payload
+    // Step 7 — Transform into UI-friendly paginated payload
     // ---------------------------------------------------------
     return transformUserPaginatedLookupResult(
       { data: enrichedRows, pagination },

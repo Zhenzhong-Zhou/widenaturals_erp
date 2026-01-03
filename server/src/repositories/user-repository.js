@@ -360,25 +360,41 @@ const userExists = async (field, value, status = 'active') => {
  * Fetches a lightweight, paginated list of users for use in
  * dropdowns, autocomplete fields, or assignment workflows.
  *
- * This function intentionally returns a minimal payload to improve
- * performance in UI lookup scenarios. Only essential identifying
- * fields are selected.
+ * This repository function intentionally returns a minimal payload
+ * to optimize performance for UI lookup scenarios.
  *
- * Supports:
- * - Exact and fuzzy filtering via buildUserFilter()
- * - Keyword search (email / firstname / lastname / job_title)
- * - Stable sorting (firstname → lastname → email)
- * - Efficient offset-based pagination
+ * ### Design principles
+ * - Lookup endpoints must remain lightweight by default
+ * - Avoid joins unless explicitly required and permitted
+ * - Select only index-friendly, identifying fields
  *
- * Best practice:
- * - Keep lookup endpoints lightweight
- * - Avoid heavy joins
- * - Select only index-friendly fields
+ * ### Supported features
+ * - Row-level filtering via `buildUserFilter`
+ * - Keyword search on basic user fields
+ * - Stable, deterministic sorting
+ * - Offset-based pagination
  *
- * @param {Object} options - Lookup query options.
- * @param {Object} [options.filters={}] - Filters passed to buildUserFilter().
- * @param {number} [options.limit=50] - Max number of rows to return.
- * @param {number} [options.offset=0] - Number of rows to skip.
+ * ### Permission-aware behavior
+ * - Role and status joins are applied only when explicitly enabled
+ *   via `options` (resolved by the service / ACL layer)
+ *
+ * @param {Object} [filters={}]
+ *   Row-level filters passed to `buildUserFilter`
+ *
+ * @param {Object} [options={}]
+ *   Query capability flags resolved by business / ACL logic
+ *
+ * @param {boolean} [options.canSearchRole=false]
+ *   Allow keyword search against role name (requires role join)
+ *
+ * @param {boolean} [options.canSearchStatus=false]
+ *   Allow keyword search against status name (requires status join)
+ *
+ * @param {number} [limit=50]
+ *   Maximum number of rows to return
+ *
+ * @param {number} [offset=0]
+ *   Number of rows to skip
  *
  * @returns {Promise<{
  *   data: Array<{
@@ -386,7 +402,7 @@ const userExists = async (field, value, status = 'active') => {
  *     email: string,
  *     firstname: string | null,
  *     lastname: string | null,
- *     statusId: string
+ *     status_id: string
  *   }>,
  *   pagination: {
  *     offset: number,
@@ -396,13 +412,39 @@ const userExists = async (field, value, status = 'active') => {
  *   }
  * }>}
  *
- * @throws {AppError} Database error if the lookup query fails.
+ * @throws {AppError} If the database query fails
  */
-const getUserLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
+const getUserLookup = async ({
+                               filters = {},
+                               options = {},
+                               limit = 50,
+                               offset = 0,
+                             }) => {
   const context = 'user-repository/getUserLookup';
   const tableName = 'users u';
   
-  const { whereClause, params } = buildUserFilter(filters);
+  // Query capability flags (resolved by service / ACL layer)
+  const {
+    canSearchRole = false,
+    canSearchStatus = false,
+  } = options;
+  
+  // Lookup queries avoid joins unless explicitly required
+  const joins = [];
+  
+  if (canSearchRole) {
+    joins.push('LEFT JOIN roles r ON r.id = u.role_id');
+  }
+  
+  if (canSearchStatus) {
+    joins.push('LEFT JOIN status s ON s.id = u.status_id');
+  }
+  
+  // Build WHERE clause with awareness of enabled capabilities
+  const { whereClause, params } = buildUserFilter(filters, {
+    canSearchRole,
+    canSearchStatus,
+  });
   
   const queryText = `
     SELECT
@@ -412,12 +454,14 @@ const getUserLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
       u.lastname,
       u.status_id
     FROM ${tableName}
+    ${joins.join('\n')}
     WHERE ${whereClause}
   `;
   
   try {
     const result = await paginateQueryByOffset({
       tableName,
+      joins,
       whereClause,
       queryText,
       params,
@@ -433,6 +477,7 @@ const getUserLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
       offset,
       limit,
       filters,
+      options,
     });
     
     return result;
@@ -442,6 +487,7 @@ const getUserLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
       offset,
       limit,
       filters,
+      options,
     });
     throw AppError.databaseError('Failed to fetch user lookup.');
   }

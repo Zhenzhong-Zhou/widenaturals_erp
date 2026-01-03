@@ -13,12 +13,20 @@ const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
 /**
- * Build WHERE clause + params for User list / card queries.
+ * Build SQL WHERE clause and parameter list for User list / lookup queries.
  *
- * Visibility rules (service-controlled):
+ * This helper is used by repository-layer queries and is responsible for
+ * constructing **row-level filtering conditions only**. It does not perform
+ * permission checks itself; all visibility and capability decisions must be
+ * resolved by the service / ACL layer and passed in explicitly.
+ *
+ * @param {Object} [filters={}]
+ *   Row-level filter values applied to the users table
+ *
+ * ### Visibility rules (service-controlled, SQL-enforced)
  * - System users (`u.is_system = TRUE`) are excluded by default
- * - Users whose role has `root_access` permission are excluded by default
- * - Both exclusions can be overridden by explicit filter flags
+ * - Root-level users (roles with `root_access`) are excluded by default
+ * - Both exclusions may be overridden by explicit filter flags
  *
  * ### Visibility Flags
  * @param {boolean} [filters.includeSystemUsers=false]
@@ -78,10 +86,20 @@ const AppError = require('../AppError');
  * @param {string} [filters.updatedBefore]
  *   - ISO timestamp (<=)
  *
- * ### Keyword Fuzzy Search
+ * ### Keyword fuzzy search
  * @param {string} [filters.keyword]
- *   - Matches first name, last name, email, job title,
- *     role name, or status name
+ *   Performs ILIKE-based fuzzy search across permitted fields
+ *
+ * ### Query capability options (resolved by ACL / business logic)
+ * @param {Object} [options]
+ *
+ * @param {boolean} [options.canSearchRole=false]
+ *   When TRUE, keyword search may include role name (`roles.name`)
+ *   Requires the calling query to JOIN the roles table
+ *
+ * @param {boolean} [options.canSearchStatus=false]
+ *   When TRUE, keyword search may include status name (`statuses.name`)
+ *   Requires the calling query to JOIN the statuses table
  *
  * ### Return
  * {
@@ -91,7 +109,7 @@ const AppError = require('../AppError');
  *
  * @returns {{ whereClause: string, params: any[] }}
  */
-const buildUserFilter = (filters = {}) => {
+const buildUserFilter = (filters = {}, options = {}) => {
   try {
     const conditions = ['1=1'];
     const params = [];
@@ -102,6 +120,11 @@ const buildUserFilter = (filters = {}) => {
     const enforceActiveOnly = filters.enforceActiveOnly === true;
     const hasStatusFilter =
       Array.isArray(filters.statusIds) && filters.statusIds.length > 0;
+    
+    const {
+      canSearchRole = false,
+      canSearchStatus = false,
+    } = options;
 
     // ------------------------------------
     // Visibility rules (service-controlled, SQL-enforced)
@@ -252,23 +275,33 @@ const buildUserFilter = (filters = {}) => {
       filters.jobTitle,
       'u.job_title'
     );
-
+    
     // ------------------------------
-    // Keyword fuzzy search
-    // ------------------------------ (grouped)
+    // Keyword fuzzy search (permission-aware)
+    // ------------------------------
     if (filters.keyword) {
-      conditions.push(`(
-        u.firstname ILIKE $${idx} OR
-        u.lastname  ILIKE $${idx} OR
-        u.email     ILIKE $${idx} OR
-        u.job_title ILIKE $${idx} OR
-        r.name      ILIKE $${idx} OR
-        s.name      ILIKE $${idx}
-      )`);
+      const keywordConditions = [
+        `u.firstname ILIKE $${idx}`,
+        `u.lastname  ILIKE $${idx}`,
+        `u.email     ILIKE $${idx}`,
+        `u.job_title ILIKE $${idx}`,
+      ];
+      
+      // Role name search (privileged)
+      if (canSearchRole) {
+        keywordConditions.push(`r.name ILIKE $${idx}`);
+      }
+      
+      // Status name search (privileged)
+      if (canSearchStatus) {
+        keywordConditions.push(`s.name ILIKE $${idx}`);
+      }
+      
+      conditions.push(`(${keywordConditions.join(' OR ')})`);
       params.push(`%${filters.keyword}%`);
       idx++;
     }
-
+    
     return {
       whereClause: conditions.join(' AND '),
       params,

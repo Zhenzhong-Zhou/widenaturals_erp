@@ -311,6 +311,76 @@ const sliceUserRoleForUser = (row, access) => {
 };
 
 /**
+ * Evaluates which lookup search dimensions are available to the user
+ * when performing user lookup queries (e.g. dropdowns, autocomplete).
+ *
+ * This function determines **query capabilities**, not row visibility.
+ * It does NOT decide which users are visible — only which metadata
+ * fields are allowed to participate in keyword search.
+ *
+ * ### Responsibilities
+ * - Resolve permission-based search capabilities
+ * - Control whether role or status metadata may be searched
+ * - Prevent unauthorized JOIN expansion in lookup queries
+ *
+ * ### Notes
+ * - These flags are intended for repository query shaping only
+ * - They must be resolved by the business / ACL layer
+ * - They should never be derived from client input
+ *
+ * ### Derived Capabilities
+ * - `canSearchRole`   → enables role name search (roles JOIN)
+ * - `canSearchStatus` → enables status name search (statuses JOIN)
+ *
+ * @param {Object} user
+ *   Authenticated user context
+ *
+ * @returns {Promise<{
+ *   canSearchRole: boolean,
+ *   canSearchStatus: boolean
+ * }>}
+ *
+ * @throws {AppError}
+ *   If permission context resolution fails
+ */
+const evaluateUserLookupSearchCapabilities = async (user) => {
+  try {
+    const { permissions, isRoot } = await resolveUserPermissionContext(user);
+    
+    const canSearchRole =
+      isRoot ||
+      permissions.includes(
+        USER_CONSTANTS.PERMISSIONS.SEARCH_USERS_BY_ROLE
+      );
+    
+    const canSearchStatus =
+      isRoot ||
+      permissions.includes(
+        USER_CONSTANTS.PERMISSIONS.SEARCH_USERS_BY_STATUS
+      );
+    
+    return {
+      canSearchRole,
+      canSearchStatus,
+    };
+  } catch (err) {
+    logSystemException(
+      err,
+      'Failed to evaluate user lookup search capabilities',
+      {
+        context: 'user-business/evaluateUserLookupSearchCapabilities',
+        userId: user?.id,
+      }
+    );
+    
+    throw AppError.businessError(
+      'Unable to evaluate user lookup search capabilities.',
+      { details: err.message }
+    );
+  }
+};
+
+/**
  * Business: applyUserLookupVisibilityRules
  *
  * Purpose:
@@ -372,7 +442,7 @@ const applyUserLookupVisibilityRules = (filters, acl, activeStatusId) => {
   // ---------------------------------------------------------
   // ACTIVE-only enforcement (default)
   // ---------------------------------------------------------
-  if (!acl.canViewInactiveUsers) {
+  if (!acl.canViewAllUsers) {
     adjusted.enforceActiveOnly = true;
     adjusted.activeStatusId = activeStatusId;
     delete adjusted.statusIds;
@@ -446,6 +516,7 @@ module.exports = {
   sliceUserProfileForUser,
   evaluateUserRoleViewAccessControl,
   sliceUserRoleForUser,
+  evaluateUserLookupSearchCapabilities,
   applyUserLookupVisibilityRules,
   enrichUserLookupWithActiveFlag,
 };

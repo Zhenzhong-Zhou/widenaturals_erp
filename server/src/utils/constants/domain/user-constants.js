@@ -26,7 +26,19 @@ const USER_CONSTANTS = {
 
     VIEW_USER_AVATARS: 'view_user_avatars',
     // Allows viewing avatars of other users
-
+    
+    // -------------------------------------------------
+    // Lookup & search capabilities (read-only, scoped)
+    // -------------------------------------------------
+    
+    SEARCH_USERS_BY_ROLE: 'search_users_by_role',
+    // Allows keyword search against role name in user lookups
+    // Enables JOIN on roles table for lookup queries only
+    
+    SEARCH_USERS_BY_STATUS: 'search_users_by_status',
+    // Allows keyword search against status name in user lookups
+    // Enables JOIN on statuses table for lookup queries only
+    
     // -------------------------------------------------
     // Administrative capabilities (mutating actions)
     // -------------------------------------------------
