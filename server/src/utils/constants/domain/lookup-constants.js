@@ -19,6 +19,7 @@ const LOOKUPS = {
     VIEW_SKU_CODE_BASE: 'view_sku_code_bases_lookup',
     VIEW_PRODUCT: 'view_product_lookup',
     VIEW_STATUS: 'view_status_lookup',
+    VIEW_USER: 'view_user_lookup',
   },
 };
 

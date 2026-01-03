@@ -282,6 +282,134 @@ const sliceUserRoleForUser = (row, access) => {
   return row;
 };
 
+/**
+ * Business: applyUserLookupVisibilityRules
+ *
+ * Purpose:
+ * - Translate evaluated ACL decisions into repository-safe lookup filters
+ * - Enforce conservative visibility rules for USER LOOKUPS
+ *
+ * Lookup-specific behavior:
+ * - Lookups are intentionally MORE restrictive than full user lists
+ * - Designed for dropdowns, autocomplete, and assignment selectors
+ *
+ * Enforced rules (in order of precedence):
+ * 1. Full visibility override:
+ *    - Includes system users
+ *    - Includes root users
+ *    - Disables ACTIVE-only enforcement
+ *
+ * 2. Default visibility (non-privileged users):
+ *    - ACTIVE users only
+ *    - System users hidden
+ *    - Root users hidden
+ *
+ * 3. Privileged visibility (partial):
+ *    - Inactive users allowed ONLY when explicitly permitted by ACL
+ *    - System/root users still hidden unless full override
+ *
+ * IMPORTANT:
+ * - This function does NOT evaluate permissions.
+ * - It assumes ACL has already been resolved by
+ *   `evaluateUserVisibilityAccessControl`.
+ * - All enforcement happens at the SQL/repository level.
+ *
+ * @param {Object} filters
+ *   - Original lookup filters provided by the caller.
+ *
+ * @param {Object} acl
+ *   - Result of `evaluateUserVisibilityAccessControl()`.
+ *
+ * @param {string} activeStatusId
+ *   - Status ID representing the ACTIVE user state.
+ *   - Must be resolved by the service layer and passed explicitly.
+ *
+ * @returns {Object}
+ *   - Repository-safe filters suitable for user lookup queries.
+ */
+const applyUserLookupVisibilityRules = (filters, acl, activeStatusId) => {
+  const adjusted = { ...filters };
+  
+  // ---------------------------------------------------------
+  // Full visibility override
+  // ---------------------------------------------------------
+  if (acl.canViewAllUsers) {
+    adjusted.includeSystemUsers = true;
+    adjusted.includeRootUsers = true;
+    delete adjusted.enforceActiveOnly;
+    delete adjusted.activeStatusId;
+    return adjusted;
+  }
+  
+  // ---------------------------------------------------------
+  // ACTIVE-only enforcement (default)
+  // ---------------------------------------------------------
+  if (!acl.canViewInactiveUsers) {
+    adjusted.enforceActiveOnly = true;
+    adjusted.activeStatusId = activeStatusId;
+    delete adjusted.statusIds;
+  }
+  
+  // ---------------------------------------------------------
+  // System users — never shown unless full override
+  // ---------------------------------------------------------
+  adjusted.includeSystemUsers = false;
+  
+  // ---------------------------------------------------------
+  // Root users — never shown unless full override
+  // ---------------------------------------------------------
+  adjusted.includeRootUsers = false;
+  
+  return adjusted;
+};
+
+/**
+ * Enrich a User lookup row with an explicit active-state flag.
+ *
+ * Purpose:
+ * - Expose a simple boolean (`isActive`) for UI rendering logic
+ * - Allow user lookup UIs to visually differentiate active vs inactive users
+ *   (e.g. disabled options, muted styling, warning icons)
+ *
+ * IMPORTANT:
+ * - This function does NOT change visibility rules.
+ * - Inactive users must already be permitted by ACL and SQL filters.
+ * - This is a pure UI-enrichment helper.
+ *
+ * Usage guidance:
+ * - Attach `isActive` ONLY when inactive users may appear in the result set
+ *   (e.g. admin / manager views).
+ * - Omit this enrichment for active-only lookups to keep payload minimal.
+ *
+ * @param {object} row - A User lookup row from the repository.
+ *   Expected to include `status_id`.
+ *
+ * @param {string} activeStatusId - Status ID representing the ACTIVE user state.
+ *
+ * @returns {object} User lookup row with:
+ *   - `isActive: boolean`
+ *
+ * @throws {AppError} If input validation fails.
+ */
+const enrichUserLookupWithActiveFlag = (row, activeStatusId) => {
+  if (!row || typeof row !== 'object') {
+    throw AppError.validationError(
+      '[enrichUserLookupWithActiveFlag] Invalid `row`.'
+    );
+  }
+  
+  if (typeof activeStatusId !== 'string' || !activeStatusId) {
+    throw AppError.validationError(
+      '[enrichUserLookupWithActiveFlag] Missing or invalid activeStatusId.'
+    );
+  }
+  
+  return {
+    ...row,
+    isActive: row.status_id === activeStatusId,
+  };
+};
+
 module.exports = {
   evaluateUserVisibilityAccessControl,
   applyUserListVisibilityRules,
@@ -290,4 +418,6 @@ module.exports = {
   sliceUserProfileForUser,
   evaluateUserRoleViewAccessControl,
   sliceUserRoleForUser,
+  applyUserLookupVisibilityRules,
+  enrichUserLookupWithActiveFlag,
 };

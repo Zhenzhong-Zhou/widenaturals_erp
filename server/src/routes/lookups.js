@@ -16,7 +16,7 @@ const {
   getPackagingMaterialLookupController,
   getSkuCodeBaseLookupController,
   getProductLookupController,
-  getStatusLookupController,
+  getStatusLookupController, getUserLookupController,
 } = require('../controllers/lookup-controller');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 const { sanitizeFields } = require('../middlewares/sanitize');
@@ -37,7 +37,7 @@ const {
   packagingMaterialLookupQuerySchema,
   skuCodeBaseLookupQuerySchema,
   productLookupQuerySchema,
-  statusLookupQuerySchema,
+  statusLookupQuerySchema, userLookupQuerySchema,
 } = require('../validators/lookup-validators');
 const { PERMISSIONS } = require('../utils/constants/domain/lookup-constants');
 
@@ -948,6 +948,96 @@ router.get(
     'Invalid Status lookup query parameters.'
   ),
   getStatusLookupController
+);
+
+/**
+ * @route GET /users
+ * @description
+ * Endpoint to fetch paginated **User** lookup options for dropdowns,
+ * autocomplete inputs, or assignment selectors.
+ *
+ * This lookup endpoint is intentionally lightweight and optimized for UI usage.
+ * It applies:
+ * - User permission checks
+ * - Query normalization (filters, pagination)
+ * - Field sanitization (e.g., trimming user input)
+ * - Joi validation for safe filter/pagination values
+ * - Service-level visibility rules (active-only, system/root exclusion)
+ *
+ * Middleware chain includes:
+ *
+ * 1. `authorize`
+ *    Ensures the user has permission to load user lookup lists.
+ *
+ * 2. `createQueryNormalizationMiddleware`
+ *    Extracts raw query parameters and normalizes them into:
+ *    {
+ *      filters: { keyword },
+ *      limit,
+ *      offset
+ *    }
+ *
+ * 3. `sanitizeFields`
+ *    Cleans input fields (e.g., trims whitespace).
+ *
+ * 4. `validate(userLookupQuerySchema)`
+ *    Application-level validation ensuring predictable filter/pagination structure.
+ *
+ * 5. `getUserLookupController`
+ *    Service-driven lookup returning:
+ *    - `{ id, label, subLabel?, isActive? }` items
+ *    - pagination metadata
+ *
+ *
+ * ### Query Parameters (after normalization)
+ * - `filters.keyword` — Optional fuzzy match on name or email
+ * - `limit`           — Page size (default: 50)
+ * - `offset`          — Pagination offset
+ *
+ *
+ * ### Response: 200 OK
+ * ```json
+ * {
+ *   "success": true,
+ *   "message": "Successfully retrieved User lookup",
+ *   "items": [
+ *     {
+ *       "id": "...",
+ *       "label": "John Doe",
+ *       "subLabel": "john@company.com",
+ *       "isActive": true
+ *     }
+ *   ],
+ *   "limit": 50,
+ *   "offset": 0,
+ *   "hasMore": true
+ * }
+ * ```
+ *
+ * @access Protected
+ * @permission Requires `view_user_lookup` permission
+ */
+router.get(
+  '/users',
+  authorize([PERMISSIONS.VIEW_USER]),
+  createQueryNormalizationMiddleware(
+    '', // moduleKey not required for lookups
+    [], // arrayKeys none
+    [], // booleanKeys none
+    ['keyword'], // filterKeys
+    { includePagination: true, includeSorting: false }
+  ),
+  sanitizeFields(['keyword']),
+  validate(
+    userLookupQuerySchema,
+    'query',
+    {
+      abortEarly: false,
+      convert: true,
+    },
+    'Invalid User lookup query parameters.'
+  ),
+  getUserLookupController
 );
 
 module.exports = router;

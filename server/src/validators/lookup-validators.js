@@ -381,6 +381,28 @@ const statusLookupQuerySchema = Joi.object({
   name: validateOptionalString('Status name', 50),
 });
 
+/**
+ * Joi validation schema for User lookup query parameters.
+ *
+ * Validates GET requests to the `/lookups/users` endpoint.
+ *
+ * Supports:
+ * - `filters`: Optional object for lookup filtering (e.g. keyword)
+ * - `limit`: Optional number for pagination (default 50)
+ * - `offset`: Optional number for pagination offset (default 0)
+ *
+ * All fields are inherited from `baseLookupQuerySchema`.
+ *
+ * NOTE:
+ * - Visibility (active-only, system/root exclusion) is enforced in the service layer.
+ * - This schema validates request shape only, not access rules.
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const userLookupQuerySchema = Joi.object({
+  ...baseLookupQuerySchema,
+});
+
 module.exports = {
   batchRegistryLookupQuerySchema,
   warehouseLookupQuerySchema,
@@ -398,4 +420,5 @@ module.exports = {
   skuCodeBaseLookupQuerySchema,
   productLookupQuerySchema,
   statusLookupQuerySchema,
+  userLookupQuerySchema,
 };

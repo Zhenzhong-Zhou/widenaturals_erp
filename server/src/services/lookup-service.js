@@ -20,6 +20,7 @@ const {
   transformSkuCodeBasePaginatedLookupResult,
   transformProductPaginatedLookupResult,
   transformStatusPaginatedLookupResult,
+  transformUserPaginatedLookupResult,
 } = require('../transformers/lookup-transformer');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const {
@@ -122,6 +123,12 @@ const {
   enrichStatusLookupOption,
 } = require('../business/status-business');
 const { getStatusLookup } = require('../repositories/status-repository');
+const {
+  evaluateUserVisibilityAccessControl,
+  applyUserLookupVisibilityRules,
+  enrichUserLookupWithActiveFlag
+} = require('../business/user-business');
+const { getUserLookup } = require('../repositories/user-repository');
 
 /**
  * Service to fetch filtered and paginated batch registry records for lookup UI.
@@ -1395,6 +1402,115 @@ const fetchStatusLookupService = async (
   }
 };
 
+/**
+ * Fetches filtered and paginated User records for lookup UI components
+ * (dropdowns, autocomplete inputs, assignment selectors).
+ *
+ * Supports:
+ * - Keyword-based fuzzy matching (name, email)
+ * - Pagination via limit + offset
+ * - Permission-aware visibility enforcement
+ * - Conditional UI enrichment (`isActive` only when inactive users are visible)
+ *
+ * Internal flow:
+ * 1. Resolve user visibility permissions
+ * 2. Apply enforced user visibility rules (SQL-authoritative)
+ * 3. Execute repository-level lookup query
+ * 4. Enrich rows with UI flags ONLY when meaningful
+ * 5. Transform into UI-optimized paginated structure
+ *
+ * Notes:
+ * - `isActive` is included only for privileged users who may see inactive users
+ * - Active-only lookups omit `isActive` to keep payload minimal
+ *
+ * @param {object} user - Authenticated user object.
+ * @param {object} options - Lookup query options.
+ * @param {object} [options.filters={}] - Optional user filters (keyword, role, status).
+ * @param {number} [options.limit=50] - Max number of items to return.
+ * @param {number} [options.offset=0] - Pagination offset.
+ *
+ * @returns {Promise<{
+ *   items: Array<{ id: string, label: string, subLabel?: string, isActive?: boolean }>,
+ *   offset: number,
+ *   limit: number,
+ *   hasMore: boolean
+ * }>}
+ *
+ * @throws {AppError} When permission evaluation or repository query fails.
+ */
+const fetchUserLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
+  const context = 'lookup-service/fetchUserLookupService';
+  
+  try {
+    // ---------------------------------------------------------
+    // Step 1 — Log entry
+    // ---------------------------------------------------------
+    logSystemInfo('Fetching User lookup from service', {
+      context,
+      metadata: { filters, limit, offset },
+    });
+    
+    // ---------------------------------------------------------
+    // Step 2 — Resolve visibility permissions
+    // ---------------------------------------------------------
+    const userAccess = await evaluateUserVisibilityAccessControl(user);
+    const activeStatusId = getStatusId('general_active');
+    
+    // ---------------------------------------------------------
+    // Step 3 — Apply enforced visibility rules
+    // ---------------------------------------------------------
+    const adjustedFilters = applyUserLookupVisibilityRules(
+      filters,
+      userAccess,
+      activeStatusId
+    );
+    
+    // ---------------------------------------------------------
+    // Step 4 — Query repository
+    // ---------------------------------------------------------
+    const { data = [], pagination = {} } = await getUserLookup({
+      filters: adjustedFilters,
+      limit,
+      offset,
+    });
+
+    // ---------------------------------------------------------
+    // Step 5 — Enrich rows (only when inactive users are visible)
+    // ---------------------------------------------------------
+    let enrichedRows = data;
+    
+    if (userAccess.canViewInactiveUsers) {
+      enrichedRows = data.map((row) =>
+        enrichUserLookupWithActiveFlag(row, activeStatusId)
+      );
+    }
+    
+    // ---------------------------------------------------------
+    // Step 6 — Transform to UI-friendly paginated payload
+    // ---------------------------------------------------------
+    return transformUserPaginatedLookupResult(
+      { data: enrichedRows, pagination },
+      userAccess
+    );
+  } catch (err) {
+    logSystemException(err, 'Failed to fetch User lookup in service', {
+      context,
+      userId: user?.id,
+      filters,
+      limit,
+      offset,
+    });
+    
+    throw AppError.serviceError('Failed to fetch user lookup list.', {
+      details: err.message,
+      stage: context,
+    });
+  }
+};
+
 module.exports = {
   fetchBatchRegistryLookupService,
   fetchWarehouseLookupService,
@@ -1412,4 +1528,5 @@ module.exports = {
   fetchSkuCodeBaseLookupService,
   fetchProductLookupService,
   fetchStatusLookupService,
+  fetchUserLookupService,
 };

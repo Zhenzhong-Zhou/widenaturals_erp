@@ -1,4 +1,4 @@
-const { query, retry, paginateResults } = require('../database/db');
+const { query, retry, paginateResults, paginateQueryByOffset } = require('../database/db');
 const { buildUserFilter } = require('../utils/sql/build-user-filters');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const { logError, logWarn } = require('../utils/logger-helper');
@@ -356,9 +356,101 @@ const userExists = async (field, value, status = 'active') => {
   }
 };
 
+/**
+ * Fetches a lightweight, paginated list of users for use in
+ * dropdowns, autocomplete fields, or assignment workflows.
+ *
+ * This function intentionally returns a minimal payload to improve
+ * performance in UI lookup scenarios. Only essential identifying
+ * fields are selected.
+ *
+ * Supports:
+ * - Exact and fuzzy filtering via buildUserFilter()
+ * - Keyword search (email / firstname / lastname / job_title)
+ * - Stable sorting (firstname → lastname → email)
+ * - Efficient offset-based pagination
+ *
+ * Best practice:
+ * - Keep lookup endpoints lightweight
+ * - Avoid heavy joins
+ * - Select only index-friendly fields
+ *
+ * @param {Object} options - Lookup query options.
+ * @param {Object} [options.filters={}] - Filters passed to buildUserFilter().
+ * @param {number} [options.limit=50] - Max number of rows to return.
+ * @param {number} [options.offset=0] - Number of rows to skip.
+ *
+ * @returns {Promise<{
+ *   data: Array<{
+ *     id: string,
+ *     email: string,
+ *     firstname: string | null,
+ *     lastname: string | null,
+ *     statusId: string
+ *   }>,
+ *   pagination: {
+ *     offset: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     hasMore: boolean
+ *   }
+ * }>}
+ *
+ * @throws {AppError} Database error if the lookup query fails.
+ */
+const getUserLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
+  const context = 'user-repository/getUserLookup';
+  const tableName = 'users u';
+  
+  const { whereClause, params } = buildUserFilter(filters);
+  
+  const queryText = `
+    SELECT
+      u.id,
+      u.email,
+      u.firstname,
+      u.lastname,
+      u.status_id
+    FROM ${tableName}
+    WHERE ${whereClause}
+  `;
+  
+  try {
+    const result = await paginateQueryByOffset({
+      tableName,
+      whereClause,
+      queryText,
+      params,
+      offset,
+      limit,
+      sortBy: 'u.firstname',
+      sortOrder: 'ASC',
+      additionalSort: 'u.lastname ASC, u.email ASC',
+    });
+    
+    logSystemInfo('Fetched user lookup data', {
+      context,
+      offset,
+      limit,
+      filters,
+    });
+    
+    return result;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch user lookup', {
+      context,
+      offset,
+      limit,
+      filters,
+    });
+    throw AppError.databaseError('Failed to fetch user lookup.');
+  }
+};
+
 module.exports = {
   insertUser,
   getPaginatedUsers,
   getUserProfileById,
   userExists,
+  getUserLookup,
 };
