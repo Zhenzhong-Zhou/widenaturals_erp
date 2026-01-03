@@ -57,5 +57,5 @@ export const selectUserLookupMeta = createLookupMetaSelector(
 export const selectUserLookupOptions = createSelector(
   [selectUserLookupItems],
   (items: UserLookupItem[]): LookupOption[] =>
-    mapLookupItems(items, ['isActive', 'isValidToday'])
+    mapLookupItems(items, ['isActive', 'subLabel'])
 );

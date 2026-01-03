@@ -27,6 +27,7 @@ import { useThemeContext } from '@context/ThemeContext';
 export interface OptionType {
   value: string | null;
   label: string | JSX.Element;
+  displayLabel?: JSX.Element;
   type?: string; // e.g., 'product' | 'material' | etc.
   icon?: IconProp | JSX.Element;
   iconColor?: string;
@@ -325,7 +326,9 @@ const Dropdown: FC<DropdownProps> = ({
                     )}
                   </Box>
                 )}
-                {typeof option.label === 'string' ? (
+                {option.displayLabel ? (
+                  option.displayLabel
+                ) : typeof option.label === 'string' ? (
                   <span>{option.label}</span>
                 ) : (
                   option.label
