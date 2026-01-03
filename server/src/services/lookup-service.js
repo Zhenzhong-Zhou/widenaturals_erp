@@ -1482,7 +1482,7 @@ const fetchUserLookupService = async (
     // ---------------------------------------------------------
     let enrichedRows = data;
     
-    if (userAccess.canViewInactiveUsers) {
+    if (userAccess.canViewAllStatuses) {
       enrichedRows = data.map((row) =>
         enrichUserLookupWithActiveFlag(row, activeStatusId)
       );

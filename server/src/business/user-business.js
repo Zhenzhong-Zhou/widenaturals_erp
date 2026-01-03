@@ -7,28 +7,53 @@ const AppError = require('../utils/AppError');
 const { getStatusId } = require('../config/status-cache');
 
 /**
- * Business: Determine what categories of users the requester
- * is allowed to view in user list pages, directory views, or dropdowns.
+ * Business: Determine which categories of users the requester
+ * is allowed to view in user list pages, directory views, or lookup dropdowns.
  *
- * This function resolves visibility authority only.
+ * This function resolves USER VISIBILITY AUTHORITY ONLY.
  * It does NOT inspect filters, modify data, or apply query logic.
  *
- * Controls visibility of:
- *   ✔ Regular human users
+ * Visibility categories covered:
+ *   ✔ Regular (active) users
+ *   ✔ Inactive users
  *   ✔ System / automation users
  *   ✔ Root-level users
- *   ✔ Full visibility override for privileged users
  *
- * Permission meanings:
- *   VIEW_SYSTEM_USERS          → Allows viewing system / automation users
- *   VIEW_ROOT_USERS            → Allows viewing root-level users
- *   VIEW_USERS_ALL_VISIBILITY  → Overrides all visibility restrictions
+ * Permission semantics:
  *
- * @param {Object} user - Authenticated user context
+ *   - VIEW_SYSTEM_USERS
+ *       Allows viewing system / automation users.
+ *
+ *   - VIEW_ROOT_USERS
+ *       Allows viewing root-level users.
+ *
+ *   - VIEW_INACTIVE_USERS
+ *       Allows viewing inactive users.
+ *
+ *   - VIEW_USERS_ALL_VISIBILITY
+ *       VIEW ALL USERS (FULL VISIBILITY OVERRIDE).
+ *
+ *       This permission implicitly allows viewing:
+ *         • active users
+ *         • inactive users
+ *         • system / automation users
+ *         • root-level users
+ *
+ *       It supersedes all other user visibility permissions.
+ *
+ * Root users (`isRoot === true`) implicitly bypass all user visibility restrictions.
+ *
+ * Derived rule:
+ *   - ACTIVE-only visibility is enforced by default.
+ *   - `enforceActiveOnly` is true ONLY when the requester cannot view inactive users
+ *     and does not have full user visibility.
+ *
+ * @param {Object} user - Authenticated user context.
+ *
  * @returns {Promise<{
  *   canViewSystemUsers: boolean,
  *   canViewRootUsers: boolean,
- *   canViewInactiveUsers: boolean,
+ *   canViewAllStatuses: boolean,
  *   canViewAllUsers: boolean,
  *   enforceActiveOnly: boolean
  * }>}
@@ -47,26 +72,29 @@ const evaluateUserVisibilityAccessControl = async (user) => {
       isRoot ||
       permissions.includes(USER_CONSTANTS.PERMISSIONS.VIEW_ROOT_USERS);
 
-    const canViewInactiveUsers =
-      isRoot ||
-      permissions.includes(USER_CONSTANTS.PERMISSIONS.VIEW_INACTIVE_USERS);
-
-    // Full override → can see all users regardless of category
+    // Full visibility override:
+    // implies inactive + system + root visibility
     const canViewAllUsers =
       isRoot ||
       permissions.includes(
         USER_CONSTANTS.PERMISSIONS.VIEW_USERS_ALL_VISIBILITY
       );
+    
+    // Inactive users are visible either via explicit permission
+    // or via full visibility override
+    const canViewAllStatuses =
+      canViewAllUsers ||
+      permissions.includes(USER_CONSTANTS.PERMISSIONS.VIEW_INACTIVE_USERS);
 
     // Derived rule:
     // Default to ACTIVE-only visibility unless explicitly permitted
     // to view inactive users or granted full visibility override
-    const enforceActiveOnly = !canViewInactiveUsers && !canViewAllUsers;
+    const enforceActiveOnly = !canViewAllStatuses && !canViewAllUsers;
 
     return {
       canViewSystemUsers,
       canViewRootUsers,
-      canViewInactiveUsers,
+      canViewAllStatuses,
       canViewAllUsers,
       enforceActiveOnly,
     };
