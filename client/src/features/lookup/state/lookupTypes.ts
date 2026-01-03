@@ -30,6 +30,14 @@ export interface LookupItem {
 }
 
 /**
+ * Lookup item with an optional secondary label (e.g. email, code, description).
+ */
+export interface LookupItemWithSubLabel extends LookupItem {
+  /** Optional secondary display label */
+  subLabel?: string;
+}
+
+/**
  * Common structure for lookup-style query inputs (e.g., dropdowns, autocomplete).
  */
 export interface LookupQuery extends LookupPagination {
@@ -72,6 +80,12 @@ export interface ActiveValidFilter {
  * Represents a lookup item with common status flags.
  */
 export type LookupItemWithStatus = LookupItem & ActiveValidFilter;
+
+/**
+ * Lookup item with optional subLabel and common status flags.
+ */
+export type LookupItemWithSubLabelAndStatus =
+  LookupItemWithSubLabel & ActiveValidFilter;
 
 /**
  * Query parameters for fetching batch registry lookup data.
@@ -876,3 +890,42 @@ export interface StatusLookupOption extends LookupOption {
   /** Whether this status is considered active in business logic. */
   isActive: boolean;
 }
+
+/**
+ * Lookup item representing a User entity.
+ *
+ * Extends the base lookup shape with:
+ * - Optional `subLabel` (e.g. email address)
+ * - Optional status flags (`isActive`, `isValidToday`)
+ *
+ * Used by user dropdowns, selectors, and assignment flows.
+ */
+export type UserLookupItem = LookupItemWithSubLabelAndStatus;
+
+/**
+ * Successful API response for User lookup requests.
+ *
+ * Contains a paginated list of {@link UserLookupItem} entries
+ * along with standard pagination metadata.
+ */
+export type UserLookupResponse = LookupSuccessResponse<UserLookupItem>;
+
+/**
+ * Query parameters for fetching User lookup data.
+ *
+ * Supports:
+ * - Keyword search
+ * - Pagination (limit, offset)
+ * - Common status filters (e.g. `isActive`, `isValidToday`)
+ */
+export type UserLookupParams = LookupQuery;
+
+/**
+ * Redux state shape for the User lookup slice.
+ *
+ * Stores:
+ * - Paginated {@link UserLookupItem} data
+ * - Loading and error states
+ * - Pagination metadata for incremental fetching
+ */
+export type UserLookupState = PaginatedLookupState<UserLookupItem>;

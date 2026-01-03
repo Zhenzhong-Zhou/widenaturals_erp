@@ -14,6 +14,7 @@ import packagingMaterialLookupReducer from './packagingMaterialLookupSlice';
 import skuCodeBaseLookupReducer from './skuCodeBaseLookupSlice';
 import productLookupReducer from './productLookupSlice';
 import statusLookupReducer from './statusLookupSlice';
+import userLookupReducer from './userLookupSlice';
 
 /**
  * Reducer map for Lookup / Dropdown reference data.
@@ -45,4 +46,5 @@ export const lookupReducers = {
   skuCodeBaseLookup: skuCodeBaseLookupReducer,
   productLookup: productLookupReducer,
   statusLookup: statusLookupReducer,
+  userLookup: userLookupReducer,
 };

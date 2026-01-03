@@ -143,6 +143,7 @@ export { default as usePaymentMethodLookup } from './usePaymentMethodLookup';
 export { default as useDiscountLookup } from './useDiscountLookup';
 export { default as useTaxRateLookup } from './useTaxRateLookup';
 export { default as useStatusLookup } from './useStatusLookup';
+export { default as useUserLookup } from './useUserLookup';
 
 /* =====================================================
  * Misc

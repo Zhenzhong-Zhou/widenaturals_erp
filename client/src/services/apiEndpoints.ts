@@ -103,6 +103,7 @@ export const API_ENDPOINTS = {
     SKU_CODE_BASES: '/lookups/sku-code-bases',
     PRODUCTS: '/lookups/products',
     STATUSES: '/lookups/statuses',
+    USERS: '/lookups/users',
   },
   REPORTS: {
     INVENTORY_ACTIVITY_LOGS: 'reports/inventory-activity-logs',

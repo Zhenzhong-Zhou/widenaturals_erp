@@ -30,8 +30,11 @@ import type {
   StatusLookupResponse,
   TaxRateLookupQueryParams,
   TaxRateLookupResponse,
+  UserLookupParams,
+  UserLookupResponse,
 } from '@features/lookup/state/lookupTypes';
 import { lookupService } from '@services/lookupService';
+import { extractErrorMessage } from '@utils/error';
 
 /**
  * Thunk to fetch batch registry items for lookup use.
@@ -497,6 +500,7 @@ export const fetchProductLookupThunk = createAsyncThunk<
  * @returns A typed thunk action resolving to `StatusLookupResponse`
  *          or rejecting with `rejectValue: string`.
  */
+// todo: refactor with extar message
 export const fetchStatusLookupThunk = createAsyncThunk<
   StatusLookupResponse, // fulfilled type
   StatusLookupParams | undefined, // argument type
@@ -507,5 +511,38 @@ export const fetchStatusLookupThunk = createAsyncThunk<
   } catch (err: any) {
     console.error('thunkFetchStatusLookup error:', err);
     return rejectWithValue(err?.message ?? 'Failed to fetch status lookup.');
+  }
+});
+
+/**
+ * Thunk: Fetch paginated **User lookup** items for dropdowns/selectors.
+ *
+ * Calls `lookupService.fetchUserLookup`, which hits `GET /lookups/users`
+ * and returns a typed {@link UserLookupResponse}.
+ *
+ * ## Behavior
+ * - Accepts optional params such as:
+ *   - keyword
+ *   - isActive
+ *   - isValidToday
+ *   - limit / offset
+ * - Resolves with User lookup data
+ * - Rejects with a user-friendly error message
+ *
+ * @param params Optional {@link UserLookupParams} for filtering and pagination.
+ *
+ * @returns A typed thunk action resolving to `UserLookupResponse`
+ *          or rejecting with `rejectValue: string`.
+ */
+export const fetchUserLookupThunk = createAsyncThunk<
+  UserLookupResponse,                 // fulfilled type
+  UserLookupParams | undefined,        // argument type
+  { rejectValue: string }              // rejection payload type
+>('lookups/fetchUserLookup', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchUserLookup(params);
+  } catch (error: unknown) {
+    console.error('fetchUserLookupThunk error:', error);
+    return rejectWithValue(extractErrorMessage(error));
   }
 });

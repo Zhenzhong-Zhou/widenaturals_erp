@@ -31,7 +31,7 @@ import type {
   StatusLookupParams,
   StatusLookupResponse,
   TaxRateLookupQueryParams,
-  TaxRateLookupResponse,
+  TaxRateLookupResponse, UserLookupParams, UserLookupResponse,
 } from '@features/lookup/state/lookupTypes';
 
 /* =========================================================
@@ -172,6 +172,13 @@ const fetchStatusLookup = (
 ): Promise<StatusLookupResponse> =>
   getLookup(API_ENDPOINTS.LOOKUPS.STATUSES, params);
 
+/** Fetch user lookup items. */
+const fetchUserLookup = (
+  params?: UserLookupParams
+): Promise<UserLookupResponse> =>
+  getLookup(API_ENDPOINTS.LOOKUPS.USERS, params);
+
+
 /* =========================================================
  * Public API
  * ======================================================= */
@@ -193,4 +200,5 @@ export const lookupService = {
   fetchSkuCodeBaseLookup,
   fetchProductLookup,
   fetchStatusLookup,
+  fetchUserLookup,
 };
