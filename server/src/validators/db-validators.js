@@ -1,64 +1,7 @@
-const { getRoleIdByField } = require('../repositories/role-repository');
 const { getStatusIdByName } = require('../repositories/status-repository');
 const { logError, logInfo } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 const { checkProductExists } = require('../repositories/product-repository');
-
-/**
- * Validates the existence of a role by its name.
- * @param {string} roleName - The name of the role.
- * @returns {Promise<uuid>} - The role ID if valid.
- * @throws {AppError} - If the role does not exist or database operation fails.
- */
-const validateRoleByName = async (roleName) => {
-  try {
-    const roleId = await getRoleIdByField('name', roleName);
-    if (!roleId) {
-      throw AppError.validationError(`Invalid role: "${roleName}"`, {
-        details: { roleName },
-      });
-    }
-    return roleId;
-  } catch (error) {
-    logError(`Error validating role by name "${roleName}":`, {
-      error: error.message,
-      stack: error.stack,
-    });
-    throw error instanceof AppError
-      ? error
-      : AppError.databaseError('Failed to validate role by name', {
-          details: { roleName },
-        });
-  }
-};
-
-/**
- * Validates the existence of a role by its ID.
- * @param {uuid} roleId - The ID of the role.
- * @returns {Promise<uuid>} - The role ID if valid.
- * @throws {AppError} - If the role does not exist or database operation fails.
- */
-const validateRoleById = async (roleId) => {
-  try {
-    const validRoleId = await getRoleIdByField('id', roleId);
-    if (!validRoleId) {
-      throw AppError.validationError(`Invalid role ID: "${roleId}"`, {
-        details: { roleId },
-      });
-    }
-    return validRoleId;
-  } catch (error) {
-    logError(`Error validating role by ID "${roleId}":`, {
-      error: error.message,
-      stack: error.stack,
-    });
-    throw error instanceof AppError
-      ? error
-      : AppError.databaseError('Failed to validate role by ID', {
-          details: { roleId },
-        });
-  }
-};
 
 /**
  * Validates the existence of a status by name.
@@ -125,8 +68,6 @@ const validateProductExistence = async (
 };
 
 module.exports = {
-  validateRoleByName,
-  validateRoleById,
   validateStatus,
   validateProductExistence,
 };

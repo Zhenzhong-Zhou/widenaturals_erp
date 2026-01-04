@@ -8,8 +8,8 @@ const {
 const {
   userExistsByField,
 } = require('../repositories/user-repository');
+const { resolveRoleIdByName } = require('../repositories/role-repository');
 const {
-  validateRoleByName,
   validateStatus,
 } = require('../validators/db-validators');
 const {
@@ -62,7 +62,7 @@ const initializeRootAdmin = async () => {
     // ------------------------------------------------------------
     // 2. Resolve role & status (must exist)
     // ------------------------------------------------------------
-    const roleId = await validateRoleByName(ROOT_ADMIN_ROLE);
+    const roleId = await resolveRoleIdByName(ROOT_ADMIN_ROLE);
     const statusId = await validateStatus(ACTIVE_STATUS);
     
     // ------------------------------------------------------------

@@ -7,9 +7,6 @@ const AppError = require('../utils/AppError');
 const {
   userExistsByField,
 } = require('../repositories/user-repository');
-const {
-  validateRoleById,
-} = require('../validators/db-validators');
 
 /**
  * Middleware to authenticate users using JWT tokens.
@@ -53,15 +50,7 @@ const authenticate = () => {
           );
         }
         
-        // ------------------------------------------------------------
-        // Validate role reference
-        // ------------------------------------------------------------
-        const validatedRoleId = await validateRoleById(payload.role);
-        
-        req.user = {
-          ...payload,
-          role: validatedRoleId,
-        };
+        req.user = payload;
         
         return next();
       } catch (error) {
