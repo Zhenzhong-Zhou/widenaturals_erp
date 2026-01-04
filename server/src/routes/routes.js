@@ -17,7 +17,6 @@ const systemRoute = require('./system');
 const sessionRoute = require('./session');
 const authRoutes = require('./auth');
 const userRoutes = require('./users');
-const adminRoutes = require('./admin');
 const productRoutes = require('./products');
 const skuRoutes = require('./skus');
 const skuImageRoutes = require('./sku-images');
@@ -84,7 +83,6 @@ router.use('/auth', authenticate(), authRoutes);
  * User and admin account management
  */
 router.use('/users', authenticate(), userRoutes);
-router.use('/admin', authenticate(), adminRoutes);
 
 /**
  * Product and SKU catalog management
