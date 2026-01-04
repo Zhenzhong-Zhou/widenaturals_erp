@@ -7,8 +7,8 @@ const {
   resetFailedAttemptsAndUpdateLastLogin,
 } = require('../repositories/user-auth-repository');
 const { verifyPassword } = require('../business/user-auth-business');
-const { logSystemException, logSystemWarn } = require('../utils/system-logger');
-const { signToken } = require('../utils/token-helper');
+const { logSystemException, logSystemWarn, logSystemInfo } = require('../utils/system-logger');
+const { signToken, verifyToken } = require('../utils/token-helper');
 
 /**
  * Authenticates a user using email and password.
@@ -158,6 +158,101 @@ const loginUserService = async (email, password) => {
   });
 };
 
+/**
+ * Refreshes authentication tokens using a valid refresh token.
+ *
+ * This service represents the domain-level refresh operation. It is responsible
+ * for validating the provided refresh token, rotating it, and issuing a new
+ * access token. All token semantics and error conditions are enforced here,
+ * not at the controller layer.
+ *
+ * Responsibilities:
+ * - Assert presence of a refresh token
+ * - Cryptographically verify the refresh token
+ * - Translate token verification failures into domain-specific auth errors
+ * - Rotate the refresh token
+ * - Issue a new access token
+ * - Emit structured audit / security logs
+ *
+ * Security model:
+ * - This service does NOT depend on access-token authentication.
+ * - Missing, expired, or invalid refresh tokens are treated as expected
+ *   authentication failures and surfaced as domain errors.
+ * - Logging is intentional and represents successful token rotation only.
+ *
+ * Notes:
+ * - This operation is idempotent with respect to client behavior; callers
+ *   may safely retry as needed.
+ * - HTTP concerns (cookies, headers, status codes) are handled by controllers.
+ *
+ * @param {string | undefined | null} refreshToken
+ *   Refresh token extracted from an HTTP-only cookie.
+ *
+ * @returns {Promise<{ accessToken: string, refreshToken: string }>}
+ *   Newly issued access token and rotated refresh token.
+ *
+ * @throws {AppError}
+ *   - refreshTokenError: refresh token missing
+ *   - refreshTokenExpiredError: refresh token expired
+ *   - tokenRevokedError: refresh token invalid
+ */
+const refreshTokenService = async (refreshToken) => {
+  const context = 'auth-service/refreshTokenService';
+  
+  // Refresh token presence is a domain requirement, not an HTTP concern
+  if (!refreshToken) {
+    throw AppError.refreshTokenError(
+      'Refresh token is required. Please log in again.',
+      { logLevel: 'warn' }
+    );
+  }
+  
+  let payload;
+  
+  // Verify refresh token and map low-level token errors to domain errors
+  try {
+    payload = verifyToken(refreshToken, true);
+  } catch (error) {
+    if (error.name === 'RefreshTokenExpiredError') {
+      throw AppError.refreshTokenExpiredError(
+        'Refresh token expired. Please log in again.'
+      );
+    }
+    
+    if (error.name === 'JsonWebTokenError') {
+      throw AppError.tokenRevokedError(
+        'Invalid refresh token. Please log in again.'
+      );
+    }
+    
+    // Unexpected verification failure — allow centralized error handling
+    throw error;
+  }
+  
+  // Rotate refresh token and issue a new access token
+  const newRefreshToken = signToken(
+    { id: payload.id, role: payload.role },
+    true
+  );
+  
+  const newAccessToken = signToken({
+    id: payload.id,
+    role: payload.role,
+  });
+  
+  // Successful rotation is a security-relevant event worth auditing
+  logSystemInfo('Refresh token rotated', {
+    context,
+    userId: payload.id,
+  });
+  
+  return {
+    accessToken: newAccessToken,
+    refreshToken: newRefreshToken,
+  };
+};
+
 module.exports = {
   loginUserService,
+  refreshTokenService,
 };

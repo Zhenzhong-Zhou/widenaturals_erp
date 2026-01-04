@@ -89,8 +89,30 @@ router.post(
   loginController
 );
 
-// Refresh token route
-router.post('/refresh', createRefreshRateLimiter(), refreshTokenController);
+/**
+ * Refresh access token endpoint.
+ *
+ * This endpoint issues a new access token using a valid refresh token
+ * stored in an HTTP-only cookie. It is designed to recover authentication
+ * when the access token has expired or is no longer present.
+ *
+ * Security model:
+ * - Does NOT require access-token authentication.
+ * - Relies on a refresh token stored in a secure, HTTP-only cookie.
+ * - Protected by CSRF middleware to prevent cross-site token refresh.
+ * - Protected by rate limiting to mitigate brute-force and replay attacks.
+ *
+ * Notes:
+ * - No request-body validation is required; input is read from cookies.
+ * - Refresh-token validation, rotation, and error handling are enforced
+ *   by the service layer (`refreshTokenService`).
+ */
+router.post(
+  '/refresh',
+  csrfMiddleware,
+  createRefreshRateLimiter(),
+  refreshTokenController
+);
 
 // Placeholder for session tracking routes
 // To track an active session (e.g., metadata like IP, device).
