@@ -5,7 +5,7 @@ const {
   isPasswordReused,
   verifyCurrentPassword,
 } = require('../repositories/user-auth-repository');
-const { hashPasswordWithSalt } = require('../utils/password-helper');
+const { hashPassword } = require('../business/user-auth-business');
 const AppError = require('../utils/AppError');
 const { validateUserExists } = require('../validators/db-validators');
 const { logError } = require('../utils/logger-helper');
@@ -52,10 +52,10 @@ const resetPassword = async (userId, currentPassword, newPassword) => {
           'New password cannot be the same as a previously used password.'
         );
       }
-
+      
       // Hash the new password
-      const { passwordHash, passwordSalt } =
-        await hashPasswordWithSalt(newPassword);
+      const { passwordHash } =
+        await hashPassword(newPassword);
 
       // Fetch the existing password history
       const passwordHistory = await fetchPasswordHistory(client, userId);
@@ -63,7 +63,6 @@ const resetPassword = async (userId, currentPassword, newPassword) => {
       // Prepare the new password entry
       const newPasswordEntry = {
         password_hash: passwordHash,
-        password_salt: passwordSalt,
         timestamp: new Date().toISOString(),
       };
 
@@ -78,7 +77,6 @@ const resetPassword = async (userId, currentPassword, newPassword) => {
         client,
         userId,
         passwordHash,
-        passwordSalt
       );
 
       return { success: true };
