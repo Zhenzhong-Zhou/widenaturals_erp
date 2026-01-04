@@ -93,6 +93,7 @@ const changePasswordService = async (userId, currentPassword, newPassword) => {
         logSystemWarn('Password reset failed: invalid current password', {
           context,
           userId,
+          hint: 'Current password does not match stored hash',
         });
         
         throw AppError.authenticationError('Invalid credentials.');
