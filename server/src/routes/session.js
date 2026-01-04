@@ -98,9 +98,10 @@ router.post(
  *
  * Security model:
  * - Does NOT require access-token authentication.
- * - Relies on a refresh token stored in a secure, HTTP-only cookie.
- * - Protected by CSRF middleware to prevent cross-site token refresh.
- * - Protected by rate limiting to mitigate brute-force and replay attacks.
+ * - Relies on a refresh token stored in an HTTP-only cookie.
+ * - Protected by rate limiting.
+ * - CSRF protection is intentionally omitted to allow token recovery
+ *   when no valid CSRF token is available.
  *
  * Notes:
  * - No request-body validation is required; input is read from cookies.
@@ -109,7 +110,6 @@ router.post(
  */
 router.post(
   '/refresh',
-  csrfMiddleware,
   createRefreshRateLimiter(),
   refreshTokenController
 );

@@ -1,9 +1,6 @@
 const wrapAsync = require('../utils/wrap-async');
 const { loginUserService, refreshTokenService } = require('../services/session-service');
 const { transformLoginResponse } = require('../transformers/session-transformer');
-const { logError, logWarn } = require('../utils/logger-helper');
-const AppError = require('../utils/AppError');
-const { signToken, verifyToken } = require('../utils/token-helper');
 
 /**
  * Handles user authentication and session initialization.
@@ -11,24 +8,36 @@ const { signToken, verifyToken } = require('../utils/token-helper');
  * This controller implements the HTTP boundary for user login.
  * It validates request input, enforces the pre-authentication CSRF model,
  * delegates credential verification and transactional state updates to
- * the service layer, and constructs the final API response.
+ * the service layer, and constructs a stable API response.
  *
  * Security model:
  * - Login requests are protected by CSRF middleware (pre-auth CSRF).
  * - A valid CSRF token MUST be present before authentication is attempted.
- * - Refresh tokens are issued and stored in secure, HTTP-only cookies.
+ * - Refresh tokens are issued by the service layer and persisted in
+ *   secure, HTTP-only cookies at the transport layer.
  *
  * Workflow:
  * 1. Extract credentials from the request body.
- * 2. Generate / validate the CSRF token (required before login).
+ * 2. Retrieve the CSRF token (required before login).
  * 3. Invoke the authentication service to:
  *    - Verify credentials
  *    - Enforce lockout rules
  *    - Update login metadata
  *    - Issue access and refresh tokens
- * 4. Normalize the domain result into a stable API response.
+ * 4. Normalize the domain result into a stable API response shape.
  * 5. Persist the refresh token in a secure cookie.
  * 6. Return a successful authentication response.
+ *
+ * Response shape:
+ * {
+ *   success: boolean,
+ *   message: string,
+ *   data: {
+ *     accessToken: string,
+ *     csrfToken: string,
+ *     lastLogin: string | null
+ *   }
+ * }
  *
  * Error handling:
  * - Expected authentication and validation errors are propagated
@@ -46,7 +55,7 @@ const { signToken, verifyToken } = require('../utils/token-helper');
 const loginController = wrapAsync(async (req, res) => {
   const { email, password } = req.body;
   
-  // CSRF token MUST exist before login (pre-auth CSRF model)
+  // Retrieve CSRF token (required before login under pre-auth CSRF model)
   const csrfToken = req.csrfToken();
 
   // 1. Domain login (transactional, concurrency-safe)
@@ -54,8 +63,8 @@ const loginController = wrapAsync(async (req, res) => {
   
   // 2. Normalize domain result into API response
   const response = transformLoginResponse(result);
-  
-  // 3. Set refresh token cookie (transport concern)
+
+  // 3. Persist refresh token in secure cookie (transport concern)
   res.cookie('refreshToken', result.refreshToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -65,10 +74,13 @@ const loginController = wrapAsync(async (req, res) => {
 
   // 4. Send response
   res.status(200).json({
+    success: true,
     message: 'Login successful',
-    accessToken: response.accessToken,
-    csrfToken,
-    lastLogin: response.lastLogin,
+    data: {
+      accessToken: response.accessToken,
+      csrfToken,
+      lastLogin: response.lastLogin,
+    },
   });
 });
 
