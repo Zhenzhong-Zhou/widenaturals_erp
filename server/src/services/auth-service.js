@@ -1,6 +1,6 @@
 const { withTransaction } = require('../database/db');
 const {
-  getAndLockUserAuthByUserId, // or equivalent fetch+lock by userId
+  getAndLockUserAuthByUserId,
 } = require('../repositories/user-auth-repository');
 const {
   hashPassword,
@@ -8,10 +8,38 @@ const {
 } = require('../business/user-auth-business');
 const {
   logSystemWarn,
-  logSystemException,
+  logSystemException, logSystemInfo,
 } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 const { validatePasswordStrength } = require('../security/password-policy');
+
+/**
+ * Handles user logout intent.
+ *
+ * Responsibilities:
+ * - Record logout intent for auditing
+ * - Prepare for future session / token revocation
+ *
+ * Notes:
+ * - This operation is intentionally idempotent
+ * - Absence of an active session is not an error
+ *
+ * @param {object|null} user - Authenticated user context, if available.
+ *
+ * @returns {Promise<void>}
+ */
+const logoutService = async (user) => {
+  const context = 'auth-service/logoutService';
+  
+  if (!user) {
+    return;
+  }
+  
+  logSystemInfo('User logged out', {
+    context,
+    userId: user.id,
+  });
+};
 
 const PASSWORD_HISTORY_LIMIT = 5;
 
@@ -177,5 +205,6 @@ const changePasswordService = async (userId, currentPassword, newPassword) => {
 };
 
 module.exports = {
+  logoutService,
   changePasswordService,
 };

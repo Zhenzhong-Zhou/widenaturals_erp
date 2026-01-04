@@ -17,8 +17,22 @@ const {
 
 const router = express.Router();
 
-// Logout route
-router.post('/logout', csrfMiddleware, logoutController);
+/**
+ * Logout endpoint.
+ *
+ * Security:
+ * - Protected by CSRF middleware.
+ * - Clears authentication cookies and terminates the current session.
+ *
+ * Notes:
+ * - Logout is idempotent and always returns success.
+ * - Absence of an active session is not treated as an error.
+ */
+router.post(
+  '/logout',
+  csrfMiddleware,
+  logoutController
+);
 
 /**
  * POST /auth/change-password
