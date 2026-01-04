@@ -1,74 +1,75 @@
-const { loginUser } = require('../services/session-service');
+const wrapAsync = require('../utils/wrap-async');
+const { loginUserService } = require('../services/session-service');
+const { transformLoginResponse } = require('../transformers/session-transformer');
 const { logError, logWarn } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 const { signToken, verifyToken } = require('../utils/token-helper');
-const wrapAsync = require('../utils/wrap-async');
 
 /**
- * Handles user login by validating credentials and issuing tokens.
+ * Handles user authentication and session initialization.
+ *
+ * This controller implements the HTTP boundary for user login.
+ * It validates request input, enforces the pre-authentication CSRF model,
+ * delegates credential verification and transactional state updates to
+ * the service layer, and constructs the final API response.
+ *
+ * Security model:
+ * - Login requests are protected by CSRF middleware (pre-auth CSRF).
+ * - A valid CSRF token MUST be present before authentication is attempted.
+ * - Refresh tokens are issued and stored in secure, HTTP-only cookies.
  *
  * Workflow:
- * 1. Extracts email and password from the request body.
- * 2. Delegates business logic to the service layer (`loginUser`).
- * 3. If successful:
- *    - Issues access and refresh tokens.
- *    - Sets refresh token in secure HTTP-only cookies.
- *    - Returns a success response.
- * 4. If unsuccessful:
- *    - Returns appropriate error messages for invalid credentials or server errors.
+ * 1. Extract credentials from the request body.
+ * 2. Generate / validate the CSRF token (required before login).
+ * 3. Invoke the authentication service to:
+ *    - Verify credentials
+ *    - Enforce lockout rules
+ *    - Update login metadata
+ *    - Issue access and refresh tokens
+ * 4. Normalize the domain result into a stable API response.
+ * 5. Persist the refresh token in a secure cookie.
+ * 6. Return a successful authentication response.
  *
- * @param {object} req - Express request object.
- * @param {object} req.body - Request body containing email and password.
- * @param {string} req.body.email - User's email for login.
- * @param {string} req.body.password - User's password for login.
- * @param {object} res - Express response object.
- * @param {function} next - Express next middleware function.
- * @returns {void} - Sends HTTP response with success or error message.
- * @throws {Error} - Logs and handles unexpected server errors.
+ * Error handling:
+ * - Expected authentication and validation errors are propagated
+ *   via centralized error middleware.
+ * - Unexpected system errors are captured and reported consistently.
+ *
+ * @param {import('express').Request} req
+ *   Express request object. Expects `email` and `password` in `req.body`.
+ * @param {import('express').Response} res
+ *   Express response object used to set cookies and return the API payload.
+ *
+ * @returns {Promise<void>}
+ *   Resolves after the HTTP response has been sent.
  */
-const loginController = wrapAsync(async (req, res, next) => {
+const loginController = wrapAsync(async (req, res) => {
   const { email, password } = req.body;
+  
+  // CSRF token MUST exist before login (pre-auth CSRF model)
   const csrfToken = req.csrfToken();
 
-  try {
-    // Call the service layer for business logic
-    const { accessToken, refreshToken, last_login } = await loginUser(
-      email,
-      password
-    );
+  // 1. Domain login (transactional, concurrency-safe)
+  const result = await loginUserService(email, password);
+  
+  // 2. Normalize domain result into API response
+  const response = transformLoginResponse(result);
+  
+  // 3. Set refresh token cookie (transport concern)
+  res.cookie('refreshToken', result.refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
 
-    // Set tokens in cookies
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
-
-    // Return success response
-    res.status(200).json({
-      message: 'Login successful',
-      accessToken,
-      csrfToken,
-      lastLogin: last_login || null,
-    });
-  } catch (error) {
-    // Log unexpected errors
-    if (!(error instanceof AppError)) {
-      logError('Unexpected error during login:', error);
-      return next(
-        new AppError('Internal server error', 500, {
-          type: 'UnexpectedError',
-          isExpected: false,
-        })
-      );
-    }
-
-    // Log expected errors for debugging (if necessary)
-    logError('Handled error during login:', error);
-
-    // Return structured error response
-    res.status(error.status).json(error.toJSON());
-  }
+  // 4. Send response
+  res.status(200).json({
+    message: 'Login successful',
+    accessToken: response.accessToken,
+    csrfToken,
+    lastLogin: response.lastLogin,
+  });
 });
 
 /**

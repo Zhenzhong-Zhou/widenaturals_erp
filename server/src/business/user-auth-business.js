@@ -1,6 +1,10 @@
 const argon2 = require('argon2');
+const { loadEnv } = require('../config/env');
 const AppError = require('../utils/AppError');
 const { logSystemException } = require('../utils/system-logger');
+
+// Load environment variables
+loadEnv();
 
 const PEPPER = process.env.PASSWORD_PEPPER;
 

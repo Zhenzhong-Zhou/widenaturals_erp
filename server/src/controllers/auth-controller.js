@@ -3,10 +3,10 @@
  * @description Contains the logic for authentication routes.
  */
 
-const { logError, logInfo } = require('../utils/logger-helper');
-const { authenticationError, validationError } = require('../utils/AppError');
-const { resetPassword } = require('../services/auth-service');
 const wrapAsync = require('../utils/wrap-async');
+const { changePasswordService } = require('../services/auth-service');
+const { authenticationError } = require('../utils/AppError');
+const { logInfo } = require('../utils/logger-helper');
 
 /**
  * Handles user logout by clearing authentication cookies and invalidating tokens.
@@ -51,41 +51,64 @@ const logoutController = (req, res, next) => {
 };
 
 /**
- * POST /auth/reset-password
- * Handles password reset requests.
- * @param {Object} req - Express request object.
- * @param {Object} res - Express response object.
- * @param {Function} next - Express next middleware function.
+ * POST /auth/change-password
+ *
+ * Changes the password of the currently authenticated user.
+ *
+ * This endpoint performs an authenticated password change and
+ * invalidates existing refresh tokens to force re-authentication
+ * on subsequent requests.
+ *
+ * ─────────────────────────────────────────────────────────────
+ * Security characteristics
+ * ─────────────────────────────────────────────────────────────
+ * - Requires prior authentication
+ * - Verifies the user's current password
+ * - Enforces the configured password policy
+ * - Prevents password reuse based on history
+ * - Invalidates existing refresh tokens
+ *
+ * ─────────────────────────────────────────────────────────────
+ * Request body
+ * ─────────────────────────────────────────────────────────────
+ * {
+ *   currentPassword: string, // Existing password
+ *   newPassword: string      // New password (policy-enforced)
+ * }
+ *
+ * ─────────────────────────────────────────────────────────────
+ * Successful response (200)
+ * ─────────────────────────────────────────────────────────────
+ * {
+ *   success: true,
+ *   changedAt: string,       // ISO timestamp
+ *   message: string
+ * }
  */
-const resetPasswordController = wrapAsync(async (req, res, next) => {
-  try {
-    const userId = req.user.id;
-    const { currentPassword, newPassword } = req.body;
-
-    if (!userId || !newPassword) {
-      throw validationError('User ID and new password are required.');
-    }
-
-    // Call the service layer to reset the password
-    await resetPassword(userId, currentPassword, newPassword);
-
-    // Clear the refresh token cookie
-    res.clearCookie('refreshToken', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-    });
-
-    res.status(200).json({
-      success: true,
-      message: 'Password reset successfully.',
-    });
-  } catch (error) {
-    logError('Error resetting password:', error);
-    next(error); // Pass to global error handler
-  }
+const changePasswordController = wrapAsync(async (req, res) => {
+  const userId = req.user.id;
+  const { currentPassword, newPassword } = req.body;
+  
+  // All security invariants are enforced within the service layer
+  await changePasswordService(userId, currentPassword, newPassword);
+  
+  // Invalidate existing refresh tokens to force re-authentication
+  res.clearCookie('refreshToken', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+  });
+  
+  return res.status(200).json({
+    success: true,
+    changedAt: new Date().toISOString(),
+    message: 'Password changed successfully.',
+  });
 });
 
 // todo /auth/forgot-password
 
-module.exports = { logoutController, resetPasswordController };
+module.exports = {
+  logoutController,
+  changePasswordController,
+};
