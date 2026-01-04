@@ -9,9 +9,7 @@ const {
   userExistsByField,
 } = require('../repositories/user-repository');
 const { resolveRoleIdByName } = require('../repositories/role-repository');
-const {
-  validateStatus,
-} = require('../validators/db-validators');
+const { resolveStatusIdByName } = require('../repositories/status-repository');
 const {
   ROOT_ADMIN_ROLE,
   ACTIVE_STATUS,
@@ -63,7 +61,7 @@ const initializeRootAdmin = async () => {
     // 2. Resolve role & status (must exist)
     // ------------------------------------------------------------
     const roleId = await resolveRoleIdByName(ROOT_ADMIN_ROLE);
-    const statusId = await validateStatus(ACTIVE_STATUS);
+    const statusId = await resolveStatusIdByName(ACTIVE_STATUS);
     
     // ------------------------------------------------------------
     // 3. Bootstrap actor (explicit system context)

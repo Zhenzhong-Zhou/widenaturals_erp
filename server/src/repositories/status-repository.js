@@ -10,54 +10,63 @@ const {
 } = require('../utils/sql/build-status-filters');
 
 /**
- * Fetches the ID of a status by its name.
+ * Resolves a status ID by name.
  *
- * @param {string} statusName - The name of the status.
- * @returns {Promise<uuid|null>} - The status ID or null if not found.
- * @throws {AppError} - Throws an error if the name is missing or the query fails.
+ * Bootstrap / infrastructure only.
+ * - No ACL
+ * - No business semantics
+ * - No status-state interpretation
+ *
+ * Intended usage:
+ * - Root admin initialization
+ * - Seed scripts
+ * - Migration / bootstrap utilities
+ *
+ * @param {string} statusName - Human-readable status name (e.g. "active")
+ * @param {object} [client] - Optional transaction client
+ * @returns {Promise<string>} statusId
+ *
+ * @throws {AppError}
+ * - validationError if name missing
+ * - databaseError if status does not exist or query fails
  */
-const getStatusIdByName = async (statusName) => {
+const resolveStatusIdByName = async (statusName, client) => {
+  const context = 'status-repository/resolveStatusIdByName';
+  
   if (!statusName) {
-    throw AppError('Status name is required');
+    throw AppError.validationError('Status name is required.', { context });
   }
-  const result = await queryStatus('LOWER(name) = LOWER($1)', [statusName]);
-  return result ? result.id : null;
-};
-
-/**
- * Fetches the ID and name of a status by its ID.
- *
- * @param {uuid} id - The ID of the status.
- * @returns {Promise<{ id: uuid, name: string } | null>} - The status object (ID and name) or null if not found.
- * @throws {AppError} - Throws an error if the ID is missing or the query fails.
- */
-const getStatusNameById = async (id) => {
-  if (!id) {
-    throw AppError.validationError('Status ID is required');
-  }
-  return queryStatus('id = $1', [id]);
-};
-
-/**
- * Generalized query to fetch a status by a condition.
- *
- * @param {string} whereClause - SQL condition for the query.
- * @param {Array} params - Parameters for the query.
- * @returns {Promise<{ id: uuid, name: string } | null>} - The status object or null if not found.
- * @throws {AppError} - Throws an error if the query fails.
- */
-const queryStatus = async (whereClause, params) => {
-  const text = `
-    SELECT id, name
+  
+  const sql = `
+    SELECT id
     FROM status
-    WHERE ${whereClause}
-    LIMIT 1;
+    WHERE name = LOWER($1)
+    LIMIT 1
   `;
+  
   try {
-    const result = await query(text, params);
-    return result.rows[0] || null;
+    const { rows } = await query(sql, [statusName], client);
+    
+    if (!rows.length) {
+      throw AppError.databaseError(
+        `Required status "${statusName}" not found.`,
+        { context }
+      );
+    }
+    
+    return rows[0].id;
   } catch (error) {
-    throw AppError.databaseError('Database query error while fetching status');
+    logSystemException(error, 'Failed to resolve status ID by name', {
+      context,
+      statusName,
+    });
+    
+    throw error instanceof AppError
+      ? error
+      : AppError.databaseError('Failed to resolve status ID.', {
+        context,
+        cause: error,
+      });
   }
 };
 
@@ -402,8 +411,7 @@ const getStatusLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
 };
 
 module.exports = {
-  getStatusIdByName,
-  getStatusNameById,
+  resolveStatusIdByName,
   getPaginatedStatuses,
   getStatusById,
   checkStatusExists,
