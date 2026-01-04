@@ -1,106 +1,138 @@
 const { verifyToken, signToken } = require('../utils/token-helper');
-const { logWarn, logError } = require('../utils/logger-helper');
+const {
+  logSystemWarn,
+  logSystemException,
+} = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 const {
-  validateUserExists,
+  userExistsByField,
+} = require('../repositories/user-repository');
+const {
   validateRoleById,
 } = require('../validators/db-validators');
 
 /**
  * Middleware to authenticate users using JWT tokens.
- * Automatically refreshes access tokens if expired and a valid refresh token is provided.
  *
- * @returns {function} - Middleware function for authentication.
+ * Responsibilities:
+ * - Verify access token
+ * - Ensure referenced user still exists
+ * - Refresh access token when expired (if refresh token is valid)
+ *
+ * NOTE:
+ * This middleware performs authentication only.
+ * Authorization and status checks are handled elsewhere.
  */
 const authenticate = () => {
   return async (req, res, next) => {
     try {
-      // Access token should come from the Authorization header
       const accessToken = req.headers.authorization?.split(' ')[1];
-      const refreshToken = req.cookies?.refreshToken; // Refresh token remains in the cookies
-
+      const refreshToken = req.cookies?.refreshToken;
+      
       if (!accessToken) {
-        logWarn('Access token is missing. Please log in.', req);
+        logSystemWarn('Access token missing', { path: req.path });
         return next(
           AppError.accessTokenError('Access token is missing. Please log in.')
         );
       }
-
+      
       try {
-        // Verify the access token
-        const user = verifyToken(accessToken); // Throws if the token is invalid or expired
-
-        // Validate if the user exists in the database
-        await validateUserExists('id', user.id);
-
-        // Validate the role ID and get the validated value
-        const validatedRoleId = await validateRoleById(user.role);
-
+        // ------------------------------------------------------------
+        // Verify access token
+        // ------------------------------------------------------------
+        const payload = verifyToken(accessToken);
+        
+        // ------------------------------------------------------------
+        // Structural existence check (no status semantics)
+        // ------------------------------------------------------------
+        const exists = await userExistsByField('id', payload.id);
+        
+        if (!exists) {
+          throw AppError.authenticationError(
+            'User associated with this token no longer exists.'
+          );
+        }
+        
+        // ------------------------------------------------------------
+        // Validate role reference
+        // ------------------------------------------------------------
+        const validatedRoleId = await validateRoleById(payload.role);
+        
         req.user = {
-          ...user, // Attach validated user to the request
+          ...payload,
           role: validatedRoleId,
         };
+        
         return next();
       } catch (error) {
-        // If the access token is expired and a refresh token is available
+        // ------------------------------------------------------------
+        // Attempt refresh flow if access token expired
+        // ------------------------------------------------------------
         if (error.name === 'TokenExpiredError' && refreshToken) {
-          logWarn(
-            'Access token expired. Attempting to refresh with a valid refresh token.',
-            req
-          );
-
+          logSystemWarn('Access token expired, attempting refresh', {
+            path: req.path,
+          });
+          
           try {
-            // Verify the refresh token
-            const refreshPayload = verifyToken(refreshToken, true); // `true` indicates it's a refresh token
-
-            // Issue a new access token
+            const refreshPayload = verifyToken(refreshToken, true);
+            
+            const exists = await userExistsByField(
+              'id',
+              refreshPayload.id
+            );
+            
+            if (!exists) {
+              throw AppError.authenticationError(
+                'User associated with refresh token no longer exists.'
+              );
+            }
+            
             const newAccessToken = signToken({
               id: refreshPayload.id,
               role: refreshPayload.role,
             });
-
-            // Send the new access token to the client in the response body
+            
             res.setHeader('X-New-Access-Token', newAccessToken);
-
-            req.user = refreshPayload; // Attach refreshed user details
+            
+            req.user = refreshPayload;
             return next();
           } catch (refreshError) {
-            logError('Invalid or expired refresh token encountered.', req, {
-              error: refreshError.message,
-            });
-
-            // Handle refresh token expiration or invalidation
+            logSystemException(
+              refreshError,
+              'Refresh token validation failed'
+            );
+            
             if (refreshError.name === 'TokenExpiredError') {
               throw AppError.refreshTokenExpiredError(
                 'Refresh token expired. Please log in again.'
               );
-            } else {
-              throw AppError.refreshTokenError(
-                'Invalid refresh token. Please log in again.'
-              );
             }
+            
+            throw AppError.refreshTokenError(
+              'Invalid refresh token. Please log in again.'
+            );
           }
         }
-
-        // Handle other access token errors
-        logError('Invalid or expired access token encountered.', req, {
-          error: error.message,
-        });
-
+        
+        // ------------------------------------------------------------
+        // Other token errors
+        // ------------------------------------------------------------
+        logSystemException(error, 'Access token validation failed');
+        
         throw AppError.accessTokenExpiredError(
-          'Access token expired. Please use your refresh token.'
+          'Access token expired. Please log in again.'
         );
       }
     } catch (error) {
-      logError(error, req);
-
-      if (!(error instanceof AppError)) {
-        error = AppError.authenticationError(
-          error.message || 'Authentication failed.'
-        );
-      }
-
-      return next(error); // Pass to the global error handler
+      logSystemException(error, 'Authentication middleware failed');
+      
+      return next(
+        error instanceof AppError
+          ? error
+          : AppError.authenticationError(
+            error.message || 'Authentication failed.'
+          )
+      );
     }
   };
 };

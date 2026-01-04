@@ -1,94 +1,124 @@
 const {
+  fetchUserAuthForPasswordReset,
+  updatePasswordHash,
   updatePasswordHistory,
-  updatePasswordHashAndSalt,
   fetchPasswordHistory,
-  isPasswordReused,
-  verifyCurrentPassword,
 } = require('../repositories/user-auth-repository');
-const { hashPassword } = require('../business/user-auth-business');
+const {
+  hashPassword,
+  verifyPassword,
+} = require('../business/user-auth-business');
+const { validatePasswordStrength } = require('../security/password-policy');
 const AppError = require('../utils/AppError');
-const { validateUserExists } = require('../validators/db-validators');
-const { logError } = require('../utils/logger-helper');
+const {
+  logSystemWarn,
+  logSystemException,
+} = require('../utils/system-logger');
 const { withTransaction } = require('../database/db');
 
 /**
- * Resets the password for a user.
+ * Resets a user's password.
  *
- * This function ensures secure password reset by validating the user, verifying the
- * current password, checking for password reuse, and updating both the password
- * and password history in the database. The operation is executed within a
- * transaction to maintain atomicity.
+ * Security guarantees:
+ * - Verifies current password
+ * - Enforces password strength
+ * - Prevents password reuse
+ * - Updates auth + history atomically
  *
- * @param {string} userId - The ID of the user whose password is being reset.
- * @param {string} currentPassword - The user's current password for validation.
- * @param {string} newPassword - The new password to set for the user.
- * @throws {AppError} - Throws an error if:
- *                      - The user does not exist.
- *                      - The current password is invalid.
- *                      - The new password matches a previous password.
- *                      - Any database operation fails.
+ * @param {string} userId
+ * @param {string} currentPassword
+ * @param {string} newPassword
+ * @returns {Promise<{ success: true }>}
  */
 const resetPassword = async (userId, currentPassword, newPassword) => {
-  try {
-    return await withTransaction(async (client) => {
-      // Validate the user exists
-      await validateUserExists('id', userId);
-
-      // Verify the current password
-      const isMath = await verifyCurrentPassword(
-        client,
-        userId,
-        currentPassword
-      );
-
-      if (!isMath) {
-        throw AppError.notFoundError('Current password cannot be matched');
-      }
-
-      // Validate password reuse
-      const isReused = await isPasswordReused(client, userId, newPassword);
-      if (isReused) {
-        throw AppError.notFoundError(
-          'New password cannot be the same as a previously used password.'
-        );
+  const context = 'auth-service/resetPassword';
+  
+  return withTransaction(async (client) => {
+    try {
+      // ------------------------------------------------------------
+      // 1. Fetch auth record (single source of truth)
+      // ------------------------------------------------------------
+      const auth = await fetchUserAuthForPasswordReset(client, userId);
+      
+      if (!auth) {
+        throw AppError.authenticationError('Invalid credentials.');
       }
       
-      // Hash the new password
-      const { passwordHash } =
-        await hashPassword(newPassword);
-
-      // Fetch the existing password history
-      const passwordHistory = await fetchPasswordHistory(client, userId);
-
-      // Prepare the new password entry
-      const newPasswordEntry = {
-        password_hash: passwordHash,
-        timestamp: new Date().toISOString(),
-      };
-
-      // Limit history to the latest 4 entries + the new entry
-      const updatedHistory = [newPasswordEntry, ...passwordHistory].slice(0, 5);
-
-      // Update the password history
-      await updatePasswordHistory(client, userId, updatedHistory);
-
-      // Update the password hash and salt
-      await updatePasswordHashAndSalt(
-        client,
-        userId,
-        passwordHash,
+      const { password_hash } = auth;
+      
+      // ------------------------------------------------------------
+      // 2. Verify current password
+      // ------------------------------------------------------------
+      const isValid = await verifyPassword(
+        password_hash,
+        currentPassword
       );
-
-      return { success: true };
-    });
-  } catch (error) {
-    logError('Error resetting password:', error);
-    throw error instanceof AppError
-      ? error
-      : new AppError('Failed to reset password', 500, {
-          type: 'DatabaseError',
+      
+      if (!isValid) {
+        logSystemWarn('Password reset failed: invalid current password', {
+          context,
+          userId,
         });
-  }
+        
+        throw AppError.authenticationError('Invalid credentials.');
+      }
+      
+      // ------------------------------------------------------------
+      // 3. Validate new password strength
+      // ------------------------------------------------------------
+      validatePasswordStrength(newPassword);
+      
+      // ------------------------------------------------------------
+      // 4. Prevent password reuse
+      // ------------------------------------------------------------
+      const history = await fetchPasswordHistory(client, userId);
+      
+      for (const entry of history) {
+        const reused = await verifyPassword(
+          entry.password_hash,
+          newPassword
+        );
+        
+        if (reused) {
+          throw AppError.validationError(
+            'New password cannot match a previously used password.'
+          );
+        }
+      }
+      
+      // ------------------------------------------------------------
+      // 5. Hash & persist new password
+      // ------------------------------------------------------------
+      const passwordHash = await hashPassword(newPassword);
+      
+      await updatePasswordHash(client, userId, passwordHash);
+      
+      const newHistoryEntry = {
+        password_hash: passwordHash,
+        changed_at: new Date(),
+      };
+      
+      const updatedHistory = [
+        newHistoryEntry,
+        ...history,
+      ].slice(0, 5);
+      
+      await updatePasswordHistory(client, userId, updatedHistory);
+      
+      return { success: true };
+    } catch (error) {
+      if (!(error instanceof AppError)) {
+        logSystemException(error, 'Unexpected password reset failure', {
+          context,
+          userId,
+        });
+      }
+      
+      throw error instanceof AppError
+        ? error
+        : AppError.generalError('Failed to reset password.');
+    }
+  });
 };
 
 module.exports = { resetPassword };

@@ -5,7 +5,9 @@ const {
   logSystemWarn,
   logSystemException,
 } = require('../utils/system-logger');
-const { userExists } = require('../repositories/user-repository');
+const {
+  userExistsByField,
+} = require('../repositories/user-repository');
 const {
   validateRoleByName,
   validateStatus,
@@ -24,8 +26,8 @@ const { validatePasswordStrength } = require('../security/password-policy');
  *
  * Bootstrap-only operation:
  * - Runs before permissions or users exist
- * - Uses a system-level actor context
- * - Terminates process on failure
+ * - Bypasses standard ACL checks via explicit bootstrap actor
+ * - Terminates the process on failure
  */
 const initializeRootAdmin = async () => {
   const context = 'root-admin-init';
@@ -44,7 +46,11 @@ const initializeRootAdmin = async () => {
   try {
     logSystemInfo('Initializing root admin account...', { context });
     
-    const exists = await userExists('email', email);
+    // ------------------------------------------------------------
+    // 1. Check existence (structural, no status semantics)
+    // ------------------------------------------------------------
+    const exists = await userExistsByField('email', email);
+    
     if (exists) {
       logSystemWarn('Root admin already exists. Skipping initialization.', {
         context,
@@ -54,13 +60,13 @@ const initializeRootAdmin = async () => {
     }
     
     // ------------------------------------------------------------
-    // Resolve role & status (must exist)
+    // 2. Resolve role & status (must exist)
     // ------------------------------------------------------------
     const roleId = await validateRoleByName(ROOT_ADMIN_ROLE);
     const statusId = await validateStatus(ACTIVE_STATUS);
     
     // ------------------------------------------------------------
-    // Bootstrap actor (explicit system context)
+    // 3. Bootstrap actor (explicit system context)
     // ------------------------------------------------------------
     const bootstrapActor = {
       isBootstrap: true,
@@ -68,15 +74,18 @@ const initializeRootAdmin = async () => {
       isSystem: true,
     };
     
+    // ------------------------------------------------------------
+    // 4. Validate password strength (bootstrap-only)
+    // ------------------------------------------------------------
     validatePasswordStrength(password);
     
     // ------------------------------------------------------------
-    // Create root admin (service handles hashing & ACL)
+    // 5. Create root admin (service handles hashing & auth)
     // ------------------------------------------------------------
     const user = await createUserService(
       {
         email,
-        password, // plaintext — hashed in service
+        password, // plaintext; hashed inside service
         roleId,
         statusId,
         firstname: 'Root',
@@ -97,12 +106,15 @@ const initializeRootAdmin = async () => {
   } catch (error) {
     logSystemException(error, 'Root admin initialization failed', { context });
     
-    logSystemFatal('Root admin initialization failed — terminating process', {
-      context,
-      errorMessage: error.message,
-      stack:
-        process.env.NODE_ENV !== 'production' ? error.stack : undefined,
-    });
+    logSystemFatal(
+      'Root admin initialization failed — terminating process',
+      {
+        context,
+        errorMessage: error.message,
+        stack:
+          process.env.NODE_ENV !== 'production' ? error.stack : undefined,
+      }
+    );
     
     await handleExit(1);
   }

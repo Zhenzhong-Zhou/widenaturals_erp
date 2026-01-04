@@ -8,22 +8,32 @@ const { signToken } = require('../utils/token-helper');
 const AppError = require('../utils/AppError');
 const { logSystemException, logSystemWarn } = require('../utils/system-logger');
 const { withTransaction } = require('../database/db');
-const { validateUserExists } = require('../validators/db-validators');
 
 /**
- * Handles user login business logic.
+ * Authenticates a user using email and password.
  *
- * @param {string} email - The user's email.
- * @param {string} password - The user's password.
- * @returns {Promise<object>} - Access and refresh tokens.
- * @throws {AppError} - If authentication fails or account is locked.
+ * Responsibilities:
+ * - Verify credentials
+ * - Enforce lockout rules
+ * - Update login counters
+ * - Issue access & refresh tokens
+ *
+ * @param {string} email
+ * @param {string} password
+ * @returns {Promise<{ accessToken: string, refreshToken: string, last_login: Date }>}
  */
 const loginUser = async (email, password) => {
   return withTransaction(async (client) => {
+    const context = 'auth-service/loginUser';
+    
     try {
-      await validateUserExists('email', email);
-      
+      // ------------------------------------------------------------
+      // 1. Fetch auth record (single source of truth)
+      // ------------------------------------------------------------
       const user = await getUserAuthByEmail(client, email);
+      
+      // IMPORTANT:
+      // Do NOT distinguish between "email not found" and "wrong password"
       if (!user) {
         throw AppError.authenticationError('Invalid email or password.');
       }
@@ -38,7 +48,9 @@ const loginUser = async (email, password) => {
         lockout_time,
       } = user;
       
-      // Check lockout
+      // ------------------------------------------------------------
+      // 2. Lockout check
+      // ------------------------------------------------------------
       if (lockout_time && new Date(lockout_time) > new Date()) {
         throw AppError.accountLockedError(
           'Account locked. Try again later.',
@@ -46,7 +58,9 @@ const loginUser = async (email, password) => {
         );
       }
       
-      // Correct password verification
+      // ------------------------------------------------------------
+      // 3. Verify password
+      // ------------------------------------------------------------
       const isValidPassword = await verifyPassword(
         password_hash,
         password
@@ -55,7 +69,10 @@ const loginUser = async (email, password) => {
       const newTotalAttempts = attempts + 1;
       
       if (!isValidPassword) {
-        logSystemWarn('Password verification failed.');
+        logSystemWarn('Login failed: invalid credentials', {
+          context,
+          email,
+        });
         
         await incrementFailedAttempts(
           client,
@@ -67,22 +84,34 @@ const loginUser = async (email, password) => {
         throw AppError.authenticationError('Invalid email or password.');
       }
       
-      // Successful login
+      // ------------------------------------------------------------
+      // 4. Successful login
+      // ------------------------------------------------------------
       await resetFailedAttemptsAndUpdateLastLogin(
         client,
         user_id,
         newTotalAttempts
       );
       
+      // ------------------------------------------------------------
+      // 5. Issue tokens
+      // ------------------------------------------------------------
       const accessToken = signToken({ id: user_id, role: role_id });
       const refreshToken = signToken({ id: user_id, role: role_id }, true);
       
-      return { accessToken, refreshToken, last_login };
+      return {
+        accessToken,
+        refreshToken,
+        last_login,
+      };
     } catch (error) {
-      logSystemException(error,'Error during user login', {
-        email,
-        error: error.message,
-      });
+      // Only log unexpected errors as system exceptions
+      if (!(error instanceof AppError)) {
+        logSystemException(error, 'Unexpected login failure', {
+          context,
+          email,
+        });
+      }
       
       throw error instanceof AppError
         ? error

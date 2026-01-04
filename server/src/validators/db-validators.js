@@ -2,33 +2,7 @@ const { getRoleIdByField } = require('../repositories/role-repository');
 const { getStatusIdByName } = require('../repositories/status-repository');
 const { logError, logInfo } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
-const { userExists } = require('../repositories/user-repository');
 const { checkProductExists } = require('../repositories/product-repository');
-
-/**
- * Validates if a user exists by a specific field and value.
- *
- * @param {string} field - The field to check (e.g., 'id', 'email').
- * @param {string} value - The value of the field to validate.
- * @returns {Promise<Object>} - The user record if it exists.
- * @throws {AppError} - If the user does not exist.
- */
-const validateUserExists = async (field, value) => {
-  // Validate input
-  if (!field || !value) {
-    throw AppError.validationError(
-      'Both field and value are required for user validation.'
-    );
-  }
-
-  // Check if the user exists
-  const user = await userExists(field, value);
-
-  if (!user) {
-    throw AppError.notFoundError(`User with ${value} not found.`);
-  }
-  return user;
-};
 
 /**
  * Validates the existence of a role by its name.
@@ -151,7 +125,6 @@ const validateProductExistence = async (
 };
 
 module.exports = {
-  validateUserExists,
   validateRoleByName,
   validateRoleById,
   validateStatus,
