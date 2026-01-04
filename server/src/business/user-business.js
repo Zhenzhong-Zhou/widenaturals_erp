@@ -7,6 +7,79 @@ const AppError = require('../utils/AppError');
 const { getStatusId } = require('../config/status-cache');
 
 /**
+ * Business: Determine whether the requester is allowed to create users
+ * and which privilege tiers they may assign.
+ *
+ * This function evaluates USER CREATION AUTHORITY ONLY.
+ * It does NOT validate input shape or perform persistence logic.
+ *
+ * Root users implicitly bypass all creation restrictions.
+ *
+ * @param {Object} user - Authenticated user context.
+ *
+ * @returns {Promise<{
+ *   canCreateUsers: boolean,
+ *   canCreateAdminUsers: boolean,
+ *   canCreateSystemUsers: boolean,
+ *   canCreateRootUsers: boolean
+ * }>}
+ */
+const evaluateUserCreationAccessControl = async (user) => {
+  try {
+    // ------------------------------------------------------------
+    // Bootstrap bypass (explicit and auditable)
+    // ------------------------------------------------------------
+    if (user?.isBootstrap === true) {
+      return {
+        canCreateUsers: true,
+        canCreateAdminUsers: true,
+        canCreateSystemUsers: true,
+        canCreateRootUsers: true,
+      };
+    }
+    
+    const { permissions, isRoot } = await resolveUserPermissionContext(user);
+    
+    const canCreateUsers =
+      isRoot ||
+      permissions.includes(USER_CONSTANTS.PERMISSIONS.CREATE_USERS);
+    
+    const canCreateAdminUsers =
+      isRoot ||
+      permissions.includes(USER_CONSTANTS.PERMISSIONS.CREATE_ADMIN_USERS);
+    
+    const canCreateSystemUsers =
+      isRoot ||
+      permissions.includes(USER_CONSTANTS.PERMISSIONS.CREATE_SYSTEM_USERS);
+    
+    const canCreateRootUsers =
+      isRoot ||
+      permissions.includes(USER_CONSTANTS.PERMISSIONS.CREATE_ROOT_USERS);
+    
+    return {
+      canCreateUsers,
+      canCreateAdminUsers,
+      canCreateSystemUsers,
+      canCreateRootUsers,
+    };
+  } catch (err) {
+    logSystemException(
+      err,
+      'Failed to evaluate user creation access control',
+      {
+        context: 'user-business/evaluateUserCreationAccessControl',
+        userId: user?.id,
+      }
+    );
+    
+    throw AppError.businessError(
+      'Unable to evaluate user creation access control.',
+      { details: err.message }
+    );
+  }
+};
+
+/**
  * Business: Determine which categories of users the requester
  * is allowed to view in user list pages, directory views, or lookup dropdowns.
  *
@@ -509,6 +582,7 @@ const enrichUserLookupWithActiveFlag = (row, activeStatusId) => {
 };
 
 module.exports = {
+  evaluateUserCreationAccessControl,
   evaluateUserVisibilityAccessControl,
   applyUserListVisibilityRules,
   sliceUserForUser,

@@ -1,6 +1,48 @@
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
 const { query, getFieldsById } = require('../database/db');
+const { logSystemException } = require('../utils/system-logger');
+
+/**
+ * Fetch a role by its ID.
+ *
+ * Repository-layer function:
+ * - Fetches raw role data
+ * - Does NOT enforce business rules (e.g. active/inactive)
+ * - Throws raw database errors
+ *
+ * @param {string} roleId
+ * @param {object} client - Optional transaction client
+ * @returns {Promise<Object|null>} Role row or null if not found
+ */
+const getRoleById = async (roleId, client) => {
+  const context = 'role-repository/getRoleById';
+  
+  const sql = `
+    SELECT
+      id,
+      name,
+      role_group,
+      parent_role_id,
+      hierarchy_level,
+      is_active,
+      status_id
+    FROM roles
+    WHERE id = $1
+    LIMIT 1;
+  `;
+  
+  try {
+    const { rows } = await query(sql, [roleId], client);
+    return rows[0] || null;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch role by ID', {
+      context,
+      roleId,
+    });
+    throw error; // raw error only
+  }
+};
 
 /**
  * Fetches the ID of a role by its name or ID.
@@ -65,6 +107,7 @@ const getRoleNameById = async (id, client) => {
 };
 
 module.exports = {
+  getRoleById,
   getRoleIdByField,
   getRoleNameById,
 };

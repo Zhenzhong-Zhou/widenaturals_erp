@@ -1,7 +1,7 @@
-const { query, retry, paginateResults, paginateQueryByOffset } = require('../database/db');
+const { query, paginateResults, paginateQueryByOffset } = require('../database/db');
 const { buildUserFilter } = require('../utils/sql/build-user-filters');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
-const { logError, logWarn } = require('../utils/logger-helper');
+const { logError } = require('../utils/logger-helper');
 const {
   maskSensitiveInfo,
   maskField,
@@ -9,14 +9,31 @@ const {
 const AppError = require('../utils/AppError');
 
 /**
- * Inserts a new user into the `users` table with retry logic for transient errors.
+ * Inserts a new user record into the `users` table.
  *
- * @param {object} client - The database client.
- * @param {object} userDetails - User details to be inserted.
- * @returns {Promise<object>} - The inserted user details.
- * @throws {AppError} - Throws an error if the insertion fails or user already exists.
+ * Repository-layer function:
+ * - Executes a single INSERT statement
+ * - Relies on database constraints for integrity (UNIQUE, FK)
+ * - Does NOT handle conflict resolution, retries, ACL, or business rules
+ * - Throws raw database errors to preserve full error context
+ *
+ * User creation conflicts (e.g. duplicate email) are exceptional and
+ * MUST be handled explicitly in the service / business layer.
+ *
+ * @param {Object} user - User data to insert.
+ *
+ * @param {Object} client - Database client or transaction.
+ *
+ * @returns {Promise<Object>} Inserted user summary.
+ *
+ * @throws {Error} Raw database errors:
+ * - Unique constraint violations (email, phone)
+ * - Foreign key violations (role, status)
+ * - Other database-level failures
  */
-const insertUser = async (client, userDetails) => {
+const insertUser = async ( user, client) => {
+  const context = 'user-repository/insertUser';
+  
   const {
     email,
     roleId,
@@ -28,17 +45,34 @@ const insertUser = async (client, userDetails) => {
     note,
     statusDate,
     createdBy,
-  } = userDetails;
-
-  const sql = `
+    updatedBy = null,
+    updatedAt = null,
+  } = user;
+  
+  const queryText = `
     INSERT INTO users (
-      email, role_id, status_id, firstname, lastname, phone_number,
-      job_title, note, status_date, created_by
+      email,
+      role_id,
+      status_id,
+      firstname,
+      lastname,
+      phone_number,
+      job_title,
+      note,
+      status_date,
+      created_by,
+      updated_by,
+      updated_at
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-    ON CONFLICT (email) DO NOTHING
-    RETURNING id, email, role_id, status_id, created_at;
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+    RETURNING
+      id,
+      email,
+      role_id,
+      status_id,
+      created_at;
   `;
+  
   const params = [
     email,
     roleId,
@@ -50,23 +84,27 @@ const insertUser = async (client, userDetails) => {
     note,
     statusDate,
     createdBy,
+    updatedBy,
+    updatedAt,
   ];
-
+  
   try {
-    return await retry(async () => {
-      const result = await client.query(sql, params);
-
-      if (result.rows.length === 0) {
-        const maskedEmail = maskSensitiveInfo(email, 'email');
-        logWarn(`User with email ${maskedEmail} already exists.`);
-        throw AppError.conflictError('User already exists');
-      }
-
-      return result.rows[0];
+    const { rows } = await query(queryText, params, client);
+    
+    logSystemInfo('User inserted successfully', {
+      context,
+      userId: rows[0]?.id,
     });
+    
+    return rows[0];
   } catch (error) {
-    logError('Error inserting user:', error);
-    throw AppError.databaseError('Failed to insert user');
+    logSystemException(error, 'Failed to insert user', {
+      context,
+      email: maskSensitiveInfo(email, 'email'),
+      error: error.message,
+    });
+    
+    throw error;
   }
 };
 

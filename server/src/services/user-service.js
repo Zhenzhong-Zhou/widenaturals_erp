@@ -1,5 +1,6 @@
 const { withTransaction } = require('../database/db');
 const {
+  evaluateUserCreationAccessControl,
   evaluateUserVisibilityAccessControl,
   applyUserListVisibilityRules,
   sliceUserForUser,
@@ -17,12 +18,161 @@ const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const {
   transformPaginatedUserForViewResults,
   transformUserProfileRow,
+  transformUserInsertResult,
 } = require('../transformers/user-transformer');
 const AppError = require('../utils/AppError');
 const { insertUserAuth } = require('../repositories/user-auth-repository');
-const { logError } = require('../utils/logger-helper');
-const { hashPasswordWithSalt } = require('../utils/password-helper');
 const { getStatusId } = require('../config/status-cache');
+const { hashPassword } = require('../business/user-auth-business');
+const { classifyRole } = require('../business/roles/role-semantics');
+const { getRoleById } = require('../repositories/role-repository');
+
+/**
+ * Creates a new user with authentication credentials.
+ *
+ * Service-layer orchestration function.
+ *
+ * Responsibilities:
+ * - Enforces user-creation ACL and role assignment rules
+ * - Resolves and validates target role semantics
+ * - Hashes plaintext password securely before persistence
+ * - Creates user and authentication records atomically
+ * - Emits structured audit logs
+ *
+ * Transactional guarantees:
+ * - User and user_auth records are created in the same transaction
+ * - Partial writes are impossible (all-or-nothing)
+ *
+ * Explicitly NOT handled here:
+ * - Input shape validation (handled by route schema / Joi)
+ * - Role hierarchy traversal (pending hierarchy_level implementation)
+ * - Conflict resolution (delegated to DB constraints)
+ * - Presentation-layer transformation beyond insert result mapping
+ *
+ * Security notes:
+ * - Role semantics are resolved via `classifyRole` only
+ * - Privilege escalation is prevented via ACL checks
+ * - Passwords are never persisted or logged in plaintext
+ *
+ * @param {Object} input - User creation payload (validated upstream)
+ * @param {Object} actor - Authenticated user performing the action
+ *
+ * @returns {Promise<Object>} Newly created user record (DB truth)
+ *
+ * @throws {AppError}
+ * - validationError: invalid or inactive role
+ * - authorizationError: insufficient permission to create target role
+ * - databaseError: unexpected persistence failure
+ */
+const createUserService = async (input, actor) => {
+  const context = 'user-service/createUserService';
+  
+  return withTransaction(async (client) => {
+    try {
+      // ------------------------------------------------------------
+      // 1. Resolve target role (single source of truth)
+      // ------------------------------------------------------------
+      const targetRole = await getRoleById(input.roleId, client);
+      
+      if (!targetRole || !targetRole.is_active) {
+        throw AppError.validationError('Invalid or inactive role.');
+      }
+      
+      const { isRootRole, isAdminRole, isSystemRole } =
+        classifyRole(targetRole);
+      
+      // ------------------------------------------------------------
+      // 2. ACL / permission check
+      // ------------------------------------------------------------
+      const access = await evaluateUserCreationAccessControl(actor);
+      
+      if (!access.canCreateUsers) {
+        throw AppError.authorizationError(
+          'You are not allowed to create users.'
+        );
+      }
+      
+      if (isSystemRole && !access.canCreateSystemUsers) {
+        throw AppError.authorizationError(
+          'You are not allowed to create system users.'
+        );
+      }
+      
+      if (isRootRole && !access.canCreateRootUsers) {
+        throw AppError.authorizationError(
+          'You are not allowed to create root users.'
+        );
+      }
+      
+      if (isAdminRole && !access.canCreateAdminUsers) {
+        throw AppError.authorizationError(
+          'You are not allowed to create admin users.'
+        );
+      }
+      
+      // TODO(role-hierarchy):
+      // Replace name-based role semantics with hierarchy-based checks
+      // once `hierarchy_level` and `parent_role_id` are finalized.
+      // This MUST be implemented inside `classifyRole()` only.
+      // Do not add inline hierarchy checks here.
+      
+      // ------------------------------------------------------------
+      // 3. Hash password (outside DB write)
+      // ------------------------------------------------------------
+      const passwordHash = await hashPassword(input.password);
+      
+      // ------------------------------------------------------------
+      // 4. Insert user
+      // ------------------------------------------------------------
+      const userRecord = await insertUser(
+        {
+          email: input.email,
+          roleId: input.roleId,
+          statusId: input.statusId,
+          firstname: input.firstname,
+          lastname: input.lastname,
+          phoneNumber: input.phoneNumber,
+          jobTitle: input.jobTitle,
+          note: input.note,
+          statusDate: input.statusDate,
+          createdBy: actor.id,
+        },
+        client
+      );
+      
+      // ------------------------------------------------------------
+      // 5. Insert auth (same transaction)
+      // ------------------------------------------------------------
+      await insertUserAuth({
+        userId: userRecord.id,
+        passwordHash,
+      }, client);
+      
+      // ------------------------------------------------------------
+      // 6. Transform & audit
+      // ------------------------------------------------------------
+      const transformed = transformUserInsertResult(userRecord);
+      
+      logSystemInfo('User created successfully', {
+        context,
+        userId: userRecord.id,
+        createdBy: actor.id,
+        roleId: targetRole.id,
+      });
+      
+      return transformed;
+    } catch (error) {
+      logSystemException(error, 'Failed to create user', { context });
+      
+      throw error instanceof AppError
+        ? error
+        : AppError.databaseError('Failed to create user.', {
+          cause: error,
+          context,
+        });
+    }
+  });
+};
 
 /**
  * Service: Fetch paginated users for UI consumption.
@@ -179,40 +329,6 @@ const fetchPaginatedUsersService = async ({
 };
 
 /**
- * Creates a new user with authentication details.
- *
- * @param {object} userDetails - Details of the user to create.
- * @returns {Promise<object>} - The created user object.
- * @throws {AppError} - Throws an error if user creation fails.
- */
-const createUser = async (userDetails) => {
-  return await withTransaction(async (client) => {
-    try {
-      // Insert the user into the database
-      const user = await insertUser(client, userDetails);
-      const { passwordHash, passwordSalt } = await hashPasswordWithSalt(
-        userDetails.password
-      );
-
-      // Insert authentication details for the user
-      await insertUserAuth(client, {
-        userId: user.id,
-        passwordHash,
-        passwordSalt,
-      });
-
-      // Return the created user
-      return user;
-    } catch (error) {
-      logError('Error creating user:', error);
-      throw error instanceof AppError
-        ? error
-        : new AppError('Failed to create user', 500, { type: 'DatabaseError' });
-    }
-  });
-};
-
-/**
  * Service: Fetch complete user profile with permission filtering.
  *
  * Root entry point for the User Profile page.
@@ -309,7 +425,7 @@ const fetchUserProfileService = async (userId, requester) => {
 };
 
 module.exports = {
+  createUserService,
   fetchPaginatedUsersService,
-  createUser,
   fetchUserProfileService,
 };

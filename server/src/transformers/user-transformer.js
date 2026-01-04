@@ -18,6 +18,24 @@ const { compactAudit, makeAudit } = require('../utils/audit-utils');
 const { transformPaginatedResult } = require('../utils/transformer-utils');
 
 /**
+ * Transforms a raw user insert DB row into a service-level user object.
+ *
+ * @param {Object} row - Raw database row returned from INSERT ... RETURNING
+ * @returns {Object} Transformed user object
+ */
+const transformUserInsertResult = (row) => {
+  if (!row) return null;
+  
+  return cleanObject({
+    id: row.id,
+    email: row.email,
+    roleId: row.role_id,
+    statusId: row.status_id,
+    createdAt: row.created_at,
+  });
+};
+
+/**
  * @typedef {Object} UserRow
  *
  * Core identity
@@ -283,6 +301,7 @@ const transformUserProfileRow = (row) => {
 };
 
 module.exports = {
+  transformUserInsertResult,
   transformPaginatedUserForViewResults,
   transformUserProfileRow,
 };

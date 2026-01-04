@@ -1,6 +1,22 @@
 const USER_CONSTANTS = {
   PERMISSIONS: {
     // -------------------------------------------------
+    // User creation & provisioning (mutating actions)
+    // -------------------------------------------------
+    
+    CREATE_USERS: 'create_users',
+    // Allows creating standard (non-system, non-root) users
+    
+    CREATE_ADMIN_USERS: 'create_admin_users',
+    // Allows creating admin-level users (excluding root)
+    
+    CREATE_SYSTEM_USERS: 'create_system_users',
+    // Allows creating system / automation users (is_system = true)
+    
+    CREATE_ROOT_USERS: 'create_root_users',
+    // Allows creating root-level users (highest privilege accounts)
+    
+    // -------------------------------------------------
     // Visibility controls (read-only access)
     // -------------------------------------------------
 

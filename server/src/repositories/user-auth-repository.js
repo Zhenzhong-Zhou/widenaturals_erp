@@ -1,45 +1,60 @@
-const AppError = require('../utils/AppError');
 const { query, retry, lockRow } = require('../database/db');
+const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const { logError } = require('../utils/logger-helper');
-const { verifyPassword } = require('../utils/password-helper');
+const { verifyPassword } = require('../business/user-auth-business');
+const AppError = require('../utils/AppError');
 
 /**
- * Inserts authentication details into the `user_auth` table with retry and optional row locking.
+ * Inserts authentication credentials for a user.
  *
- * @async
- * @function
- * @param {object} client - The database client used for executing queries.
- * @param {object} authDetails - Authentication details.
- * @param {string} authDetails.userId - The user ID.
- * @param {string} authDetails.passwordHash - The hashed password.
- * @param {string} authDetails.passwordSalt - The salt used for hashing the password.
- * @returns {Promise<void>} Resolves when the insertion is successful.
- * @throws {AppError} If the query fails due to a database error or row locking issues.
+ * Repository-layer function:
+ * - Inserts a single user_auth record
+ * - Relies on database constraints for integrity
+ * - Does NOT handle retries, conflict resolution, or business logic
+ * - Throws raw database errors to preserve error context
+ *
+ * Must be called within the same transaction as user creation.
+ *
+ * @param {Object} auth
+ * @param {string} auth.userId - User ID (FK to users).
+ * @param {string} auth.passwordHash - Hashed password.
+ * @param {Object} client - Database client or transaction.
+ *
+ * @returns {Promise<void>}
+ *
+ * @throws {Error} Raw database errors:
+ * - Unique constraint violation (user already has auth)
+ * - Foreign key violation (user does not exist)
+ * - Other database-level errors
  */
-const insertUserAuth = async (
-  client,
-  { userId, passwordHash, passwordSalt }
-) => {
-  const sql = `
-    INSERT INTO user_auth (user_id, password_hash, password_salt)
-    VALUES ($1, $2, $3);
+const insertUserAuth = async ( { userId, passwordHash }, client) => {
+  const context = 'user-auth-repository/insertUserAuth';
+  
+  const queryText = `
+    INSERT INTO user_auth (
+      user_id,
+      password_hash
+    )
+    VALUES ($1, $2);
   `;
-  const params = [userId, passwordHash, passwordSalt];
-
+  
+  const params = [userId, passwordHash];
+  
   try {
-    // Lock the row in the `users` table to ensure consistency
-    await lockRow(client, 'users', userId, 'FOR UPDATE');
-
-    // Perform the insertion
-    await query(sql, params, client);
+    await query(queryText, params, client);
+    
+    logSystemInfo('User auth inserted successfully', {
+      context,
+      userId,
+    });
   } catch (error) {
-    logError(
-      `Database error inserting user auth for user ID ${userId}:`,
-      error
-    );
-    throw AppError.databaseError(
-      'Failed to insert user authentication details'
-    );
+    logSystemException(error, 'Failed to insert user auth', {
+      context,
+      userId,
+      error: error.message,
+    });
+    
+    throw error;
   }
 };
 
@@ -98,8 +113,7 @@ const getUserAuthByEmail = async (client, email) => {
       u.id AS user_id,
       u.email,
       u.role_id,
-      ua.password_hash AS passwordHash,
-      ua.password_salt AS passwordSalt,
+      ua.password_hash,
       ua.last_login,
       ua.attempts,
       ua.failed_attempts,
@@ -323,7 +337,7 @@ const fetchPasswordHistory = async (client, userId) => {
       await lockRow(client, 'user_auth', authId);
 
       // Execute the query to fetch password history
-      const result = await client.query(sql, [userId]);
+      const result = await query(sql, [userId], client);
 
       // Return the limited history or an empty array if none exists
       return result.rows[0]?.limited_history || [];
@@ -353,7 +367,7 @@ const fetchPasswordHistory = async (client, userId) => {
  */
 const verifyCurrentPassword = async (client, userId, plainPassword) => {
   const sql = `
-    SELECT password_hash, password_salt
+    SELECT password_hash
     FROM user_auth
     WHERE user_id = $1
   `;
@@ -365,20 +379,19 @@ const verifyCurrentPassword = async (client, userId, plainPassword) => {
       await lockRow(client, 'user_auth', authId);
 
       // Fetch the current password hash and salt from the database
-      const result = await client.query(sql, [userId]);
+      const result = await query(sql, [userId], client);
 
       if (result.rows.length === 0) {
         throw AppError.notFoundError('User not found', { isExpected: true });
       }
 
-      const { password_hash: passwordHash, password_salt: passwordSalt } =
+      const { password_hash: passwordHash } =
         result.rows[0];
 
       // Verify the plain-text password against the stored hash and salt
       const isMatch = await verifyPassword(
         plainPassword,
-        passwordHash,
-        passwordSalt
+        passwordHash
       );
 
       if (!isMatch) {
@@ -496,7 +509,6 @@ const updatePasswordHistory = async (client, userId, updatedHistory) => {
  * @param {object} client - The database client used in the transaction.
  * @param {string} userId - The unique identifier of the user whose password is being updated.
  * @param {string} hashedPassword - The newly hashed password to store.
- * @param {string} passwordSalt - The salt used to hash the new password.
  * @returns {Promise<boolean>} - Resolves to `true` if the update was successful, otherwise `false`.
  * @throws {AppError} - Throws a structured `AppError` if the update fails.
  */
@@ -504,15 +516,13 @@ const updatePasswordHashAndSalt = async (
   client,
   userId,
   hashedPassword,
-  passwordSalt
 ) => {
   const sql = `
     UPDATE user_auth
     SET
       password_hash = $1,
-      password_salt = $2,
       updated_at = NOW()
-    WHERE user_id = $3
+    WHERE user_id = $2
   `;
 
   try {
@@ -522,7 +532,7 @@ const updatePasswordHashAndSalt = async (
       await lockRow(client, 'user_auth', authId, 'FOR UPDATE');
       const result = await query(
         sql,
-        [hashedPassword, passwordSalt, userId],
+        [hashedPassword, userId],
         client
       );
       if (result.rowCount === 0) {
