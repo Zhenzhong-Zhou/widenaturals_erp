@@ -1,78 +1,64 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  selectAccessToken,
+  selectLoginData,
+  selectLoginLoading,
+  selectLoginError,
   selectIsAuthenticated,
-  selectLoading,
-  selectUser,
-} from '@features/session/state/sessionSelectors';
-import { selectCsrfToken } from '@features/csrf/state/csrfSelector';
-import { refreshTokenThunk } from '@features/session/state/sessionThunks';
-import axiosInstance from '@utils/axiosConfig';
+} from '@features/session/state/loginSelectors';
+import { loginThunk } from '@features/session';
+import type { LoginRequestBody } from '@features/session';
 
 /**
- * Custom hook for session management.
- * Focuses on login status, token synchronization, and token refreshing.
+ * Hook dedicated to login behavior and UI state.
+ *
+ * Responsibilities:
+ * - Expose login async state (data, loading, error)
+ * - Expose derived authentication status
+ * - Provide actions to trigger login and reset login state
+ *
+ * Notes:
+ * - Authentication side effects (tokens, headers, cookies)
+ *   are handled outside Redux and are intentionally not exposed here.
+ * - This hook is UI-focused and safe to use in any component.
  */
-const useSession = () => {
+const useLogin = () => {
   const dispatch = useAppDispatch();
+  
+  // -----------------------------
+  // Selectors
+  // -----------------------------
+  const data = useAppSelector(selectLoginData);
+  const loading = useAppSelector(selectLoginLoading);
+  const error = useAppSelector(selectLoginError);
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
-  const isLoading = useAppSelector(selectLoading);
-  const user = useAppSelector(selectUser);
-  const accessToken = useAppSelector(selectAccessToken);
-  const csrfToken = useAppSelector(selectCsrfToken);
-
-  /**
-   * Refresh the tokens (accessToken and csrfToken).
-   * Updates the Redux state and Axios instance headers.
-   */
-  const refreshToken = useCallback(async () => {
-    try {
-      // Dispatch the refreshTokenThunk and unwrap its result
-      const { accessToken: newAccessToken, csrfToken: newCsrfToken } =
-        await dispatch(refreshTokenThunk()).unwrap();
-
-      console.log('Tokens refreshed successfully.');
-
-      // Update Axios instance with the new tokens
-      axiosInstance.defaults.headers.Authorization = `Bearer ${newAccessToken}`;
-      axiosInstance.defaults.headers['X-CSRF-Token'] = newCsrfToken;
-
-      return { accessToken: newAccessToken, csrfToken: newCsrfToken };
-    } catch (error) {
-      console.error('Failed to refresh tokens:', error);
-      throw error;
-    }
-  }, [dispatch]);
-
-  /**
-   * Synchronize the current accessToken and csrfToken with Axios on token change.
-   */
-  useEffect(() => {
-    // Sync accessToken
-    if (accessToken) {
-      axiosInstance.defaults.headers.Authorization = `Bearer ${accessToken}`;
-    } else {
-      delete axiosInstance.defaults.headers.Authorization;
-    }
-
-    // Sync csrfToken
-    if (csrfToken) {
-      axiosInstance.defaults.headers['X-CSRF-Token'] = csrfToken;
-    } else {
-      delete axiosInstance.defaults.headers['X-CSRF-Token'];
-    }
-  }, [accessToken, csrfToken]);
-
-  // Return the session state and actions
-  return {
-    isAuthenticated,
-    isLoading,
-    user,
-    accessToken,
-    csrfToken,
-    refreshToken,
-  };
+  
+  // -----------------------------
+  // Login action
+  // -----------------------------
+  const submit = useCallback(
+    (credentials: LoginRequestBody) => {
+      return dispatch(loginThunk(credentials));
+    },
+    [dispatch]
+  );
+  
+  // -----------------------------
+  // Memoized API
+  // -----------------------------
+  return useMemo(
+    () => ({
+      // state
+      data,
+      loading,
+      error,
+      isAuthenticated,
+      
+      // actions
+      submit,
+    }),
+    [data, loading, error, isAuthenticated, submit]
+  );
 };
 
-export default useSession;
+export default useLogin;

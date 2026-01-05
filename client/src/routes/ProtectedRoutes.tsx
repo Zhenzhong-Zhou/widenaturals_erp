@@ -1,6 +1,6 @@
 import type { FC, ReactNode } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import useSession from '@hooks/useSession';
+import { useLogin } from '@hooks/index';
 
 interface ProtectedRoutesProps {
   children?: ReactNode;
@@ -22,7 +22,7 @@ interface ProtectedRoutesProps {
 const ProtectedRoutes: FC<ProtectedRoutesProps> = ({
   children = <Outlet />,
 }) => {
-  const { isAuthenticated, isLoading } = useSession();
+  const { isAuthenticated, loading: isLoading } = useLogin();
   const location = useLocation();
 
   // Optional: block while session is resolving

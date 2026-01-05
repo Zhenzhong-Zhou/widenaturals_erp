@@ -1,6 +1,6 @@
 import type { FC, ReactNode } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import useSession from '@hooks/useSession';
+import { useLogin } from '@hooks/index';
 
 interface GuestRouteProps {
   /** Optional children; defaults to <Outlet /> for nested routes */
@@ -23,7 +23,7 @@ interface GuestRouteProps {
  * - Reset password
  */
 const GuestRoute: FC<GuestRouteProps> = ({ children = <Outlet /> }) => {
-  const { isAuthenticated } = useSession();
+  const { isAuthenticated } = useLogin();
 
   /* ----------------------------------------
    * Authenticated users cannot access guest routes

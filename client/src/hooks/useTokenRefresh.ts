@@ -2,7 +2,11 @@ import { useCallback, useEffect, useRef } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import { refreshTokenThunk } from '@features/session/state/sessionThunks';
-import { selectAccessToken } from '@features/session/state/sessionSelectors';
+import {
+  selectAccessToken,
+  selectIsAuthenticated,
+} from '@features/session/state/loginSelectors';
+import { selectIsRefreshingSession } from '@features/session/state/refreshSessionSelectors';
 import { isTokenValid } from '@utils/auth';
 
 /**
@@ -11,56 +15,70 @@ import { isTokenValid } from '@utils/auth';
  * Design principles:
  * - Proactive refresh ONLY (not reactive error handling)
  * - Silent operation (no UI, no logging)
- * - Axios interceptors handle reactive refresh on 401
+ * - Login slice remains the single source of truth
  */
 const useTokenRefresh = (): void => {
   const dispatch = useAppDispatch();
+  
+  // -----------------------------
+  // Selectors
+  // -----------------------------
   const accessToken = useAppSelector(selectAccessToken);
-  const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  /**
-   * Dispatch refresh thunk (single responsibility).
-   */
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const isRefreshing = useAppSelector(selectIsRefreshingSession);
+  
+  const refreshTimeoutRef =
+    useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  // -----------------------------
+  // Refresh action
+  // -----------------------------
   const refreshAccessToken = useCallback(async () => {
+    if (isRefreshing) return;
+    
     await dispatch(refreshTokenThunk()).unwrap();
-  }, [dispatch]);
-
-  /**
-   * Schedule refresh based on token expiry.
-   */
+  }, [dispatch, isRefreshing]);
+  
+  // -----------------------------
+  // Scheduling logic
+  // -----------------------------
   const scheduleRefresh = useCallback(async () => {
-    if (!accessToken) return;
-
-    // If token already invalid → refresh immediately
+    if (!isAuthenticated || !accessToken) return;
+    
+    // Token already invalid → refresh immediately
     if (!isTokenValid(accessToken)) {
       await refreshAccessToken();
       return;
     }
-
+    
     try {
       const { exp } = jwtDecode<{ exp: number }>(accessToken);
-
-      // JWT exp is seconds
+      
       const expiresAt = exp * 1000;
-
+      
       // Refresh 5 minutes before expiry
-      const refreshAt = expiresAt - Date.now() - 5 * 60 * 1000;
-
+      const refreshAt =
+        expiresAt - Date.now() - 5 * 60 * 1000;
+      
       if (refreshAt <= 0) {
         await refreshAccessToken();
         return;
       }
-
-      refreshTimeoutRef.current = setTimeout(refreshAccessToken, refreshAt);
+      
+      refreshTimeoutRef.current =
+        setTimeout(refreshAccessToken, refreshAt);
     } catch {
       // Decoding failed → force refresh
       await refreshAccessToken();
     }
-  }, [accessToken, refreshAccessToken]);
-
+  }, [accessToken, isAuthenticated, refreshAccessToken]);
+  
+  // -----------------------------
+  // Effect lifecycle
+  // -----------------------------
   useEffect(() => {
     scheduleRefresh();
-
+    
     return () => {
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);

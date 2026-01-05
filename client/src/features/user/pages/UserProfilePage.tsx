@@ -5,7 +5,6 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import { selectLastLogin } from '@features/session/state';
 import { clearTokens } from '@utils/auth';
-import useLogout from '@hooks/useLogout';
 import usePagePermissionGuard from '@features/authorize/hooks/usePagePermissionGuard';
 import { resetPasswordThunk } from '@features/resetPassword';
 import {
@@ -28,7 +27,6 @@ const UserProfilePage: FC = () => {
   const lastLogin = useAppSelector(selectLastLogin);
   const [isModalOpen, setModalOpen] = useState(false);
   const dispatch = useAppDispatch();
-  const { isLoading: isLogoutLoading } = useLogout();
 
   const { isAllowed: canChangeOwnPassword, permLoading } =
     usePagePermissionGuard(['user.password.change.self']);
@@ -127,7 +125,8 @@ const UserProfilePage: FC = () => {
   return (
     <DetailPage
       title="User Profile"
-      isLoading={isProfileLoading || isLogoutLoading}
+      // isLoading={isProfileLoading || isLogoutLoading}
+      isLoading={isProfileLoading}
       error={profileError}
       sx={{ maxWidth: 1100 }}
     >

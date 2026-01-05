@@ -1,24 +1,44 @@
 import { useEffect } from 'react';
+import { useAppSelector } from '@store/storeHooks';
+import { selectIsAuthenticated } from '@features/session';
+import { selectHasSelfUserProfile } from '@features/user';
 import useUserSelfProfile from './useUserSelfProfile';
 
 /**
- * Automatically fetches the authenticated user's profile on mount.
+ * useUserSelfProfileAuto
  *
- * This hook is a thin convenience wrapper around `useUserSelfProfile`
- * and is intended for pages where the self profile should be loaded
- * immediately without manual triggers.
+ * Automatically ensures the authenticated user's profile
+ * is loaded into Redux.
+ *
+ * Responsibilities:
+ * - Trigger profile fetch when authentication becomes valid
+ * - Avoid duplicate or premature fetches
+ * - Remain side effect only (no returned state)
+ *
+ * Behavior:
+ * - Does nothing while unauthenticated
+ * - Fetches once after login if profile is not present
+ * - Safe to call at global/layout level (e.g. AppBootstrapGate)
  *
  * Notes:
- * - Performs a single fetch on mount
- * - Does not expose state or return values
- * - Should not be combined with other auto-fetch profile hooks
+ * - This hook does NOT expose data or loading state
+ * - Consumers must read profile data via selectors
+ * - Must not be combined with other auto-fetch profile hooks
  */
-const useUserSelfProfileAuto = () => {
+const useUserSelfProfileAuto = (): void => {
   const { fetchSelfProfile } = useUserSelfProfile();
-
+  
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const hasProfile = useAppSelector(
+    (state) => Boolean(selectHasSelfUserProfile(state))
+  );
+  
   useEffect(() => {
+    if (!isAuthenticated) return;
+    if (hasProfile) return;
+    
     fetchSelfProfile();
-  }, [fetchSelfProfile]);
+  }, [isAuthenticated, hasProfile, fetchSelfProfile]);
 };
 
 export default useUserSelfProfileAuto;

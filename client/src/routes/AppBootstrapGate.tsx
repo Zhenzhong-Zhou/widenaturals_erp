@@ -1,7 +1,7 @@
 import type { FC, ReactNode } from 'react';
 import Loading from '@components/common/Loading';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
-import useSession from '@hooks/useSession';
+import { useLogin, useUserSelfProfileAuto } from '@hooks/index';
 import useInitializeApp from '@hooks/useInitializeApp';
 import { ErrorType } from '@utils/error';
 
@@ -30,8 +30,11 @@ interface AppBootstrapGateProps {
  * - Be side effect free (besides hooks)
  */
 const AppBootstrapGate: FC<AppBootstrapGateProps> = ({ children }) => {
-  const { isLoading: sessionLoading } = useSession();
-
+  const { loading: loginLoading } = useLogin();
+  
+  // Bootstrap user identity (side effect only)
+  useUserSelfProfileAuto();
+  
   const { isInitializing, hasError, initializationError } = useInitializeApp();
 
   // Fatal initialization failure
@@ -45,7 +48,7 @@ const AppBootstrapGate: FC<AppBootstrapGateProps> = ({ children }) => {
   }
 
   // Global bootstrap loading
-  if (sessionLoading || isInitializing) {
+  if (loginLoading || isInitializing) {
     return (
       <Loading fullPage variant="linear" message="Preparing application…" />
     );

@@ -61,3 +61,31 @@ export const selectIsSelfProfileLoadingEmpty = createSelector(
   [selectUserSelfProfileLoading, selectUserSelfProfile],
   (loading, data) => loading && !data
 );
+
+/**
+ * Selector: indicates whether the authenticated user's
+ * self profile has been loaded.
+ *
+ * Returns `true` when profile data exists in the store,
+ * and `false` when:
+ * - the user is not authenticated
+ * - the profile has not been fetched yet
+ * - the profile was cleared during logout
+ *
+ * This selector is intentionally derived to:
+ * - provide a stable boolean for effect guards
+ * - prevent duplicate or premature profile fetches
+ * - avoid inline selector logic inside components or hooks
+ *
+ * Common use cases:
+ * - guarding auto-fetch hooks (e.g. `useUserSelfProfileAuto`)
+ * - conditional rendering based on profile readiness
+ *
+ * Note:
+ * - This selector does NOT imply authentication validity
+ * - Authentication state must be checked separately
+ */
+export const selectHasSelfUserProfile = createSelector(
+  [selectUserSelfProfile],
+  (profile) => Boolean(profile)
+);

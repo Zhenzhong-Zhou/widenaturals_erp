@@ -3,19 +3,29 @@ import Box from '@mui/material/Box';
 import CustomTypography from '@components/common/CustomTypography';
 import LoginCard from '@features/session/components/LoginCard';
 import { useThemeContext } from '@context/ThemeContext';
+import { useLogin } from '@hooks/index';
 import logoDark from '@assets/wide-logo-dark.png';
 import logoLight from '@assets/wide-logo-light.png';
 
 const LoginPage: FC = () => {
   const { theme } = useThemeContext();
   const logo = theme.palette.mode === 'dark' ? logoDark : logoLight;
-
+  
+  // -----------------------------
+  // Feature hook (page owns logic)
+  // -----------------------------
+  const {
+    loading: isLoggingIn,
+    error: loginError,
+    submit: login,
+  } = useLogin();
+  
   return (
     <Box
       sx={{
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'flex-start', // Push content closer to the top
+        justifyContent: 'flex-start',
         alignItems: 'center',
         height: '100vh',
         background:
@@ -47,15 +57,18 @@ const LoginPage: FC = () => {
           Manage your inventory, sales, and operations efficiently.
         </CustomTypography>
       </Box>
-
-      {/* Login Card */}
+      
+      {/* Login Card (presentation only) */}
       <Box sx={{ width: '100%', maxWidth: 400 }}>
         <LoginCard
           title="Sign In"
           subtitle="Access your dashboard to streamline operations."
+          loading={isLoggingIn}
+          error={loginError}
+          onSubmit={login}
         />
       </Box>
-
+      
       {/* Support Links */}
       <Box sx={{ mt: 3, textAlign: 'center' }}>
         <CustomTypography variant="body2" sx={{ color: 'text.secondary' }}>

@@ -1,49 +1,70 @@
 import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
+import type { LoginResponseData } from '@features/session';
 
-// Base Selector: Select the session state from the RootState
-export const selectSessionState = (state: RootState) => state.session;
+/**
+ * Base selector — retrieves the full `login` slice.
+ */
+const selectLoginState = (state: RootState) => state.login;
 
-// Memoized Selectors
-
-// Selector: Check if the user is authenticated
-export const selectIsAuthenticated = createSelector(
-  selectSessionState,
-  (session) => session?.isAuthenticated ?? false
+/**
+ * Selector: returns the login response data or null.
+ */
+export const selectLoginData = createSelector(
+  [selectLoginState],
+  (state): LoginResponseData | null => state.data
 );
 
-// Selector: Retrieve the access token
-export const selectAccessToken = createSelector(
-  selectSessionState,
-  (session) => session?.accessToken ?? null
+/**
+ * Selector: indicates whether a login request is in progress.
+ */
+export const selectLoginLoading = createSelector(
+  [selectLoginState],
+  (state) => state.loading
 );
 
-// Selector: Retrieve the user information
-export const selectUser = createSelector(
-  selectSessionState,
-  (session) => session?.user ?? null
-);
-
-// Selector: Retrieve the last login timestamp
-export const selectLastLogin = createSelector(
-  selectSessionState,
-  (session) => session?.lastLogin ?? null
-);
-
-// Selector: Retrieve the current message
-export const selectMessage = createSelector(
-  selectSessionState,
-  (session) => session?.message ?? ''
-);
-
-// Selector: Retrieve the current login error
+/**
+ * Selector: returns the current login error message (if any).
+ */
 export const selectLoginError = createSelector(
-  selectSessionState,
-  (session) => session?.loginError ?? null
+  [selectLoginState],
+  (state) => state.error
 );
 
-// Selector: Retrieve the loading state
-export const selectLoading = createSelector(
-  selectSessionState,
-  (session) => session?.loading ?? false
+/**
+ * Derived selector: returns `true` if the user is authenticated.
+ */
+export const selectIsAuthenticated = createSelector(
+  [selectLoginData],
+  (data) => Boolean(data)
+);
+
+/**
+ * Selector: returns the last login timestamp (if available).
+ */
+export const selectLastLogin = createSelector(
+  [selectLoginData],
+  (data) => data?.lastLogin ?? null
+);
+
+/* =========================================================
+ * AUTH TOKEN SELECTORS (NEW — REQUIRED FOR AXIOS)
+ * ======================================================= */
+
+/**
+ * Selector: returns the current access token or null.
+ *
+ * This is the single source of truth for authenticated requests.
+ */
+export const selectAccessToken = createSelector(
+  [selectLoginData],
+  (data) => data?.accessToken ?? null
+);
+
+/**
+ * Selector: returns the current CSRF token or null.
+ */
+export const selectCsrfToken = createSelector(
+  [selectLoginData],
+  (data) => data?.csrfToken ?? null
 );

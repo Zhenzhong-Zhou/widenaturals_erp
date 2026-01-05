@@ -12,7 +12,9 @@ import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import { HealthStatus } from '@features/health/components';
 import { useThemeContext } from '@context/ThemeContext';
-import { useLogout, useSession } from '@hooks/index';
+import { useLogout } from '@hooks/index';
+import { useAppSelector } from '@store/storeHooks';
+import { selectSelfUserFullName } from '@features/user';
 import { headerStyles, typographyStyles } from '@layouts/Header/headerStyles';
 
 /**
@@ -23,15 +25,22 @@ import { headerStyles, typographyStyles } from '@layouts/Header/headerStyles';
  */
 const Header: FC = () => {
   const { theme, toggleTheme } = useThemeContext();
-  const { user } = useSession();
   const { logout } = useLogout();
   const navigate = useNavigate();
+  
+  const fullName = useAppSelector(selectSelfUserFullName);
 
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-
-  const fullName = user?.fullName ?? 'Guest';
-
-  const initial = useMemo(() => fullName.charAt(0).toUpperCase(), [fullName]);
+  
+  const displayName = useMemo(() => {
+    if (!fullName) return 'Guest';
+    return fullName;
+  }, [fullName]);
+  
+  const avatarInitial = useMemo(() => {
+    if (!displayName) return '?';
+    return displayName.charAt(0).toUpperCase();
+  }, [displayName]);
 
   const handleMenuOpen = (event: MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -95,7 +104,7 @@ const Header: FC = () => {
           sx={{ border: `2px solid ${theme.palette.primary.main}` }}
         >
           <Avatar sx={{ bgcolor: theme.palette.primary.main }}>
-            {initial}
+            {avatarInitial}
           </Avatar>
         </IconButton>
 

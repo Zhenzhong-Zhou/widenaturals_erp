@@ -9,7 +9,7 @@ export const API_ENDPOINTS = {
       REFRESH: '/session/refresh',
     },
     AUTH: {
-      RESET_PASSWORD: '/auth/reset-password',
+      CHANGE_PASSWORD: '/auth/change-password',
     },
     PERMISSIONS: {
       SELF: '/users/me/permissions',

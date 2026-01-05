@@ -1,5 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import { LoginApiResponse, LoginState, loginThunk } from '@features/session';
+import type { LoginResponseData, LoginState } from '@features/session';
+import { loginThunk } from '@features/session';
 
 // ---------------------------
 // Initial State
@@ -39,7 +40,7 @@ const loginSlice = createSlice({
       // -------------------------
       // Login: Fulfilled
       // -------------------------
-      .addCase(loginThunk.fulfilled, (state, action: PayloadAction<LoginApiResponse>) => {
+      .addCase( loginThunk.fulfilled, (state, action: PayloadAction<LoginResponseData>) => {
         state.loading = false;
         state.data = action.payload;
         state.error = null;
@@ -60,5 +61,5 @@ const loginSlice = createSlice({
 // ---------------------------
 // Exports
 // ---------------------------
-export const { resetSession } = loginSlice.actions;
+export const { resetLogin } = loginSlice.actions;
 export default loginSlice.reducer;
