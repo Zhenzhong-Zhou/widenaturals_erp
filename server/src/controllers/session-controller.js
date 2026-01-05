@@ -130,7 +130,10 @@ const refreshTokenController = wrapAsync(async (req, res) => {
   // Return new access token for subsequent authenticated requests
   res.status(200).json({
     success: true,
-    accessToken,
+    message: 'Token refreshed successfully',
+    data: {
+      accessToken,
+    },
   });
 });
 
