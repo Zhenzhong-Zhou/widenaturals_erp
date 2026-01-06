@@ -34,7 +34,8 @@ const permissionSlice = createSlice({
       })
       .addCase(fetchPermissionsThunk.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || 'Failed to fetch permissions.';
+        state.error =
+          action.payload?.message ?? 'Failed to fetch permissions.';
       });
   },
 });

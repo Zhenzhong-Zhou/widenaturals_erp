@@ -110,6 +110,15 @@ export const appRoutes: AppRoute[] = [
       menu: { title: 'SKU Management', order: 6 },
     },
   }),
+  
+  defineRoute({
+    path: '/skus/:skuId',
+    component: lazy(() => import('@features/sku/pages/SkuDetailPage')),
+    meta: {
+      requiresAuth: true,
+      menu: { title: 'SKU Management', order: 6 },
+    },
+  }),
 
   defineRoute({
     path: '/boms',
