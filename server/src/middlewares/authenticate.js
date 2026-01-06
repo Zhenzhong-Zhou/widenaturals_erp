@@ -1,4 +1,4 @@
-const { verifyToken, signToken } = require('../utils/token-helper');
+const { verifyToken } = require('../utils/token-helper');
 const {
   logSystemWarn,
   logSystemException,
@@ -9,111 +9,54 @@ const {
 } = require('../repositories/user-repository');
 
 /**
- * Middleware to authenticate users using JWT tokens.
+ * Middleware to authenticate requests using an access token.
  *
  * Responsibilities:
  * - Verify access token
  * - Ensure referenced user still exists
- * - Refresh access token when expired (if refresh token is valid)
+ * - Attach user payload to request
  *
- * NOTE:
- * This middleware performs authentication only.
- * Authorization and status checks are handled elsewhere.
+ * Explicitly does NOT:
+ * - Refresh tokens
+ * - Retry requests
+ * - Mutate session state
+ *
+ * Session recovery is handled by the client via /session/refresh.
  */
 const authenticate = () => {
   return async (req, res, next) => {
     try {
       const accessToken = req.headers.authorization?.split(' ')[1];
-      const refreshToken = req.cookies?.refreshToken;
       
       if (!accessToken) {
         logSystemWarn('Access token missing', { path: req.path });
         return next(
-          AppError.accessTokenError('Access token is missing. Please log in.')
+          AppError.accessTokenError(
+            'Access token is missing. Please log in.'
+          )
         );
       }
       
-      try {
-        // ------------------------------------------------------------
-        // Verify access token
-        // ------------------------------------------------------------
-        const payload = verifyToken(accessToken);
-        
-        // ------------------------------------------------------------
-        // Structural existence check (no status semantics)
-        // ------------------------------------------------------------
-        const exists = await userExistsByField('id', payload.id);
-        
-        if (!exists) {
-          throw AppError.authenticationError(
-            'User associated with this token no longer exists.'
-          );
-        }
-        
-        req.user = payload;
-        
-        return next();
-      } catch (error) {
-        // ------------------------------------------------------------
-        // Attempt refresh flow if access token expired
-        // ------------------------------------------------------------
-        if (error.name === 'TokenExpiredError' && refreshToken) {
-          logSystemWarn('Access token expired, attempting refresh', {
-            path: req.path,
-          });
-          
-          try {
-            const refreshPayload = verifyToken(refreshToken, true);
-            
-            const exists = await userExistsByField(
-              'id',
-              refreshPayload.id
-            );
-            
-            if (!exists) {
-              throw AppError.authenticationError(
-                'User associated with refresh token no longer exists.'
-              );
-            }
-            
-            const newAccessToken = signToken({
-              id: refreshPayload.id,
-              role: refreshPayload.role,
-            });
-            
-            res.setHeader('X-New-Access-Token', newAccessToken);
-            
-            req.user = refreshPayload;
-            return next();
-          } catch (refreshError) {
-            logSystemException(
-              refreshError,
-              'Refresh token validation failed'
-            );
-            
-            if (refreshError.name === 'TokenExpiredError') {
-              throw AppError.refreshTokenExpiredError(
-                'Refresh token expired. Please log in again.'
-              );
-            }
-            
-            throw AppError.refreshTokenError(
-              'Invalid refresh token. Please log in again.'
-            );
-          }
-        }
-        
-        // ------------------------------------------------------------
-        // Other token errors
-        // ------------------------------------------------------------
-        logSystemException(error, 'Access token validation failed');
-        
-        throw AppError.accessTokenExpiredError(
-          'Access token expired. Please log in again.'
+      // ------------------------------------------------------------
+      // Verify access token
+      // ------------------------------------------------------------
+      const payload = verifyToken(accessToken);
+      
+      // ------------------------------------------------------------
+      // Structural existence check (no status semantics)
+      // ------------------------------------------------------------
+      const exists = await userExistsByField('id', payload.id);
+      
+      if (!exists) {
+        throw AppError.authenticationError(
+          'User associated with this token no longer exists.'
         );
       }
+      
+      req.user = payload;
+      return next();
     } catch (error) {
-      logSystemException(error, 'Authentication middleware failed');
+      logSystemException(error, 'Authentication failed');
       
       return next(
         error instanceof AppError
