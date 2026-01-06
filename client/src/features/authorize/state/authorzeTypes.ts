@@ -54,7 +54,7 @@ export type PermissionResponse = ApiSuccessResponse<PermissionPayload>;
  */
 export interface UsePermissions {
   /** Current role name, if available */
-  roleName: string;
+  roleName: string | null;
   
   /** Effective permission set derived from the role */
   permissions: string[];
@@ -99,3 +99,45 @@ export type PermissionCheckOptions = {
    */
   bypassPermissions?: string[];
 };
+
+/**
+ * PermissionsState
+ *
+ * Represents the in-memory authorization context for the
+ * currently authenticated user.
+ *
+ * This state describes *resolved permissions*, not identity.
+ * It is derived from the active session and must be treated
+ * as transient and non-durable.
+ *
+ * Lifecycle notes:
+ * - Initialized empty on application start
+ * - Reset automatically when the session is reset or invalidated
+ * - Rehydrated only in memory (must NOT be persisted)
+ *
+ * Semantics:
+ * - `roleName === null` indicates permissions have not yet
+ *   been resolved or the user is unauthenticated
+ * - `permissions` contains granted permission identifiers
+ *   once resolved
+ * - `loading` reflects an in-flight permission fetch
+ * - `error` represents a recoverable fetch or resolution error
+ *
+ * Usage:
+ * - Consumed by route guards, layouts, and permission-aware UI
+ * - Must NOT be used as a source of truth for authentication
+ * - Must NOT be persisted across reloads
+ */
+export interface PermissionsState {
+  /** Resolved role name for the current user, or null if unknown */
+  roleName: string | null;
+  
+  /** List of granted permission identifiers */
+  permissions: string[];
+  
+  /** Indicates an in-flight permission fetch */
+  loading: boolean;
+  
+  /** Recoverable permission resolution error (non-fatal) */
+  error: string | null;
+}

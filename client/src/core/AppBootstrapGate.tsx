@@ -1,8 +1,12 @@
 import type { FC, ReactNode } from 'react';
+import Box from '@mui/material/Box';
 import Loading from '@components/common/Loading';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
-import { useLogin, useUserSelfProfileAuto } from '@hooks/index';
-import useInitializeApp from '@hooks/useInitializeApp';
+import {
+  useInitializeApp,
+  useLogin,
+  useUserSelfProfileAuto
+} from '@hooks/index';
 import { ErrorType } from '@utils/error';
 
 /**
@@ -50,7 +54,12 @@ const AppBootstrapGate: FC<AppBootstrapGateProps> = ({ children }) => {
   // Global bootstrap loading
   if (loginLoading || isInitializing) {
     return (
-      <Loading fullPage variant="linear" message="Preparing application…" />
+      <Box sx={{ py: 4 }}>
+        <Loading
+          variant="linear"
+          message="Preparing application…"
+        />
+      </Box>
     );
   }
 

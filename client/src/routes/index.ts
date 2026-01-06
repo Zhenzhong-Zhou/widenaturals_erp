@@ -5,7 +5,6 @@
 
 // Main routing entry points
 export { default as AppRoutes } from './AppRoutes';
-export { default as AppBootstrapGate } from './AppBootstrapGate';
 
 // Route guards
 export { default as ProtectedRoutes } from './ProtectedRoutes';

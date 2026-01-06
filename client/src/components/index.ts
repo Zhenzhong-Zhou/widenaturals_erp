@@ -1,5 +1,7 @@
 export { default as GlobalErrorBoundary } from './shared/GlobalErrorBoundary';
+export { default as GlobalErrorBoundaryWithReset } from './shared/GlobalErrorBoundaryWithReset';
 export { default as ModuleErrorBoundary } from './shared/ModuleErrorBoundary';
+export { default as ThemeAwareErrorUI } from './shared/ThemeAwareErrorUI';
 export { default as ModuleErrorBoundaryWrapper } from './shared/ModuleErrorBoundaryWrapper';
 export { default as FallbackUI } from './shared/FallbackUI';
 export { default as ErrorDisplay } from './shared/ErrorDisplay';

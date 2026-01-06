@@ -1,10 +1,15 @@
 import type { ErrorInfo, FC } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { ThemeProviderWrapper, LoadingProvider } from '@context/index';
-import GlobalErrorBoundary from '@components/shared/GlobalErrorBoundary';
-import FallbackUI from '@components/shared/FallbackUI';
-import AppContent from '@core/AppContent';
-import { AppBootstrapGate } from '@routes/index';
+import {
+  FallbackUI,
+  GlobalErrorBoundaryWithReset
+} from '@components/index';
+import {
+  AppBootstrapGate,
+  AppContent,
+  AppShell
+} from '@core/index';
 
 /**
  * App
@@ -13,8 +18,13 @@ import { AppBootstrapGate } from '@routes/index';
  *
  * Responsibilities:
  * - Compose global providers (theme, loading)
- * - Initialize routing
+ * - Initialize client-side routing
  * - Provide a global error boundary
+ *
+ * MUST NOT:
+ * - Perform application bootstrap logic
+ * - Read authentication or permission state
+ * - Render feature-level UI
  *
  * Notes:
  * - Providers are ordered intentionally to ensure
@@ -59,14 +69,16 @@ const App: FC = () => {
     <BrowserRouter>
       <ThemeProviderWrapper>
         <LoadingProvider>
-          <GlobalErrorBoundary
+          <GlobalErrorBoundaryWithReset
             fallback={errorFallback}
             onError={handleGlobalError}
           >
-            <AppBootstrapGate>
-              <AppContent />
-            </AppBootstrapGate>
-          </GlobalErrorBoundary>
+            <AppShell>
+              <AppBootstrapGate>
+                <AppContent />
+              </AppBootstrapGate>
+            </AppShell>
+          </GlobalErrorBoundaryWithReset>
         </LoadingProvider>
       </ThemeProviderWrapper>
     </BrowserRouter>

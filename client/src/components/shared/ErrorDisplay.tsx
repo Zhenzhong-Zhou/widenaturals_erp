@@ -15,6 +15,8 @@ interface ErrorDisplayProps {
 
   /** Optional retry handler */
   onRetry?: () => void;
+  
+  onHardReset?: () => void;
 
   /** Optional diagnostic or contextual content */
   children?: ReactNode;
@@ -35,10 +37,11 @@ interface ErrorDisplayProps {
  * - Inspect application state
  */
 const ErrorDisplay: FC<ErrorDisplayProps> = ({
-  message,
-  hint,
-  onRetry,
-  children,
+                                               message,
+                                               hint,
+                                               onRetry,
+                                               onHardReset,
+                                               children,
 }) => {
   const { theme } = useThemeContext();
   const navigate = useNavigate();
@@ -111,12 +114,24 @@ const ErrorDisplay: FC<ErrorDisplayProps> = ({
             Retry
           </CustomButton>
         )}
-
-        <GoBackButton />
+        
+        {onHardReset && (
+          <CustomButton
+            variant="outlined"
+            color="error"
+            sx={{ mt: 1, minWidth: 160 }}
+            onClick={onHardReset}
+          >
+            Reset Session
+          </CustomButton>
+        )}
+        
+        <GoBackButton sx={{ mt: 1, minWidth: 160 }} />
 
         <CustomButton
           variant="outlined"
           color="secondary"
+          sx={{ mt: 1, minWidth: 160 }}
           onClick={() => navigate('/')}
         >
           Go to Home
