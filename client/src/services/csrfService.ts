@@ -1,11 +1,6 @@
-import type { AppDispatch } from '@store/store';
 import { getRequest } from '@utils/http';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { AppError } from '@utils/error';
-import {
-  resetCsrfToken,
-  updateCsrfToken,
-} from '@features/csrf/state/csrfSlice';
 
 /**
  * Fetches a CSRF token from the backend.
@@ -46,37 +41,8 @@ const fetchCsrfToken = async (): Promise<string> => {
 };
 
 /**
- * Initializes CSRF token and synchronizes it into Redux state.
- *
- * Responsibilities:
- * - Fetch CSRF token via service
- * - Update Redux store
- * - Reset CSRF state on failure
- *
- * @param dispatch - Redux dispatch function
- *
- * @throws {AppError}
- * Propagates initialization failures to caller
- */
-const initializeCsrfToken = async (dispatch: AppDispatch): Promise<void> => {
-  try {
-    const csrfToken = await fetchCsrfToken();
-    dispatch(updateCsrfToken(csrfToken));
-  } catch (error) {
-    // Defensive reset on persistent failure
-    dispatch(resetCsrfToken());
-
-    throw AppError.server(
-      'CSRF initialization failed',
-      error instanceof AppError ? { cause: error.message } : undefined
-    );
-  }
-};
-
-/**
  * CSRF service.
  */
 export const csrfService = {
   fetchCsrfToken,
-  initializeCsrfToken,
 };

@@ -26,7 +26,7 @@ const useLogin = () => {
   const dispatch = useAppDispatch();
   
   // -----------------------------
-  // Selectors
+  // Login UI state
   // -----------------------------
   const data = useAppSelector(selectLoginData);
   const loading = useAppSelector(selectLoginLoading);
@@ -48,10 +48,12 @@ const useLogin = () => {
   // -----------------------------
   return useMemo(
     () => ({
-      // state
+      // login state
       data,
       loading,
       error,
+      
+      // derived auth state
       isAuthenticated,
       
       // actions

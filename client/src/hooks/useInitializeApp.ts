@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
-import { csrfService } from '@services/csrfService';
+import { bootstrapCsrf } from '../app/bootstrap/bootstrapCsrf';
 import { selectCsrfStatus, selectCsrfError } from '@features/csrf/state';
 import { resetCsrfToken } from '@features/csrf/state/csrfSlice';
 import { AppError } from '@utils/error';
@@ -49,7 +49,7 @@ const useInitializeApp = ({ delayMs = 0 }: InitializeAppOptions = {}) => {
    * Transport retries / errors are handled centrally.
    */
   const initializeCsrfToken = useCallback(async () => {
-    await csrfService.initializeCsrfToken(dispatch);
+    await bootstrapCsrf(dispatch);
   }, [dispatch]);
 
   /**
@@ -70,21 +70,18 @@ const useInitializeApp = ({ delayMs = 0 }: InitializeAppOptions = {}) => {
         await initializeCsrfToken();
         await initializeAppCore();
       } catch (error: unknown) {
+        // Only treat REAL server bootstrap failures as fatal
         const appError =
-          error instanceof AppError
+          error instanceof AppError && error.type === 'Server'
             ? error
-            : AppError.server('Error during application initialization', {
-                originalError:
-                  error instanceof Error ? error.message : String(error),
-              });
-
-        // Local recovery: reset CSRF state
+            : null;
+        
         dispatch(resetCsrfToken());
-
-        if (isMountedRef.current) {
+        
+        if (isMountedRef.current && appError) {
           setInitializationError(appError);
         }
-      } finally {
+      }finally {
         if (isMountedRef.current) {
           setIsInitializing(false);
         }

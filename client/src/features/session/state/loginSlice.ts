@@ -1,6 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { LoginResponseData, LoginState } from '@features/session';
-import { loginThunk } from '@features/session';
+import { loginThunk } from './sessionThunks';
 
 // ---------------------------
 // Initial State

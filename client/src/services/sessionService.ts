@@ -6,12 +6,12 @@ import {
   RefreshTokenApiResponse,
   RefreshTokenResponseData,
 } from '@features/session';
-import { postRequest } from '@utils/http';
+import { postRequest, rawAxios } from '@utils/http';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { AppError } from '@utils/error';
-import { getToken } from '@utils/auth';
 import { selectCsrfToken } from '@features/csrf/state';
 import { store } from '@store/store';
+import { getToken } from '@utils/auth';
 
 /* =========================================================
  * Login
@@ -147,26 +147,24 @@ const refreshToken = async (): Promise<RefreshTokenResponseData> => {
     // CSRF token is read synchronously from Redux state
     const csrfToken = selectCsrfToken(store.getState());
     
-    const response = await postRequest<
-      void,
-      RefreshTokenApiResponse
-    >(
+    if (!csrfToken) {
+      throw AppError.authentication('Missing CSRF token');
+    }
+    
+    const response = await rawAxios.post<RefreshTokenApiResponse>(
       API_ENDPOINTS.SECURITY.SESSION.REFRESH,
       undefined,
       {
-        policy: 'AUTH',
-        config: {
-          withCredentials: true,
-          headers: {
-            Authorization: `Bearer ${getToken('accessToken')}`,
-            'X-CSRF-Token': csrfToken,
-          },
+        headers: {
+          Authorization: `Bearer ${getToken('accessToken')}`,
+          'X-CSRF-Token': csrfToken,
         },
+        withCredentials: true,
       }
     );
     
     // Validate response payload
-    if (!response?.success || !response.data?.accessToken) {
+    if (!response?.data.success || !response.data?.data.accessToken) {
       throw AppError.server('Invalid refresh token response payload', {
         receivedKeys: Object.keys(response ?? {}),
       });
@@ -175,7 +173,7 @@ const refreshToken = async (): Promise<RefreshTokenResponseData> => {
     // Reset retry counter on success
     refreshAttemptCount = 0;
     
-    return response.data;
+    return response.data.data;
   } catch {
     // Reset retry counter to avoid poisoning future attempts
     refreshAttemptCount = 0;

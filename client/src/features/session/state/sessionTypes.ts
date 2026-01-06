@@ -108,15 +108,6 @@ export interface RefreshTokenResponseData {
 export type RefreshTokenApiResponse =
   ApiSuccessResponse<RefreshTokenResponseData>;
 
-/**
- * Redux state shape for refresh-session async operations.
- *
- * This state is transient and is not used to derive
- * authentication status directly.
- */
-export type RefreshSessionState =
-  AsyncState<RefreshTokenResponseData | null>;
-
 /* =========================================================
  * LOGOUT
  * ======================================================= */

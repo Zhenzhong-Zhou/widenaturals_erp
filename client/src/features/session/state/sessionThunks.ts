@@ -1,8 +1,7 @@
-import { sessionService } from '@services/sessionService';
-import { csrfService } from '@services/csrfService';
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { AppError, extractUiErrorPayload } from '@utils/error';
 import { persistor } from '@store/store';
+import { sessionService } from '@services/sessionService';
+import { AppError, extractUiErrorPayload } from '@utils/error';
 import { LoginRequestBody, LoginResponseData } from '@features/session';
 import { UiErrorPayload } from '@utils/error/uiErrorUtils';
 import { resetLogin } from '@features/session/state/loginSlice';
@@ -38,50 +37,6 @@ export const loginThunk = createAsyncThunk<
     }
   }
 );
-
-/* =========================================================
- * Refresh Access Token Thunk
- * ======================================================= */
-
-/**
- * Refreshes the user's access token and synchronizes CSRF state.
- *
- * Responsibilities:
- * - Refresh access token via refresh-token endpoint
- * - Fetch a fresh CSRF token
- * - Return updated auth payload for Redux
- *
- * Failure behavior:
- * - Any authentication failure triggers a global logout
- * - Errors are normalized for UI consumption
- */
-export const refreshTokenThunk = createAsyncThunk<
-  LoginResponseData,
-  void,
-  { rejectValue: UiErrorPayload }
->('session/refreshToken', async (_, { dispatch, rejectWithValue }) => {
-  try {
-    const { accessToken } = await sessionService.refreshToken();
-    const csrfToken = await csrfService.fetchCsrfToken();
-    
-    if (!csrfToken) {
-      throw AppError.server('Failed to refresh CSRF token');
-    }
-    
-    return {
-      accessToken,
-      csrfToken,
-      lastLogin: null,
-    };
-  } catch (error) {
-    const uiError = extractUiErrorPayload(error);
-    
-    // Refresh failure indicates an unrecoverable session state
-    dispatch(logoutThunk());
-    
-    return rejectWithValue(uiError);
-  }
-});
 
 /* =========================================================
  * Logout
