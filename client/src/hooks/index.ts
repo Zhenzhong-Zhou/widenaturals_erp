@@ -12,7 +12,6 @@
  * App Initialization & Global Utilities
  * ===================================================== */
 
-export { default as useInitializeApp } from './useInitializeApp';
 export { default as useHealthStatus } from './useHealthStatus';
 export { default as useErrorHandler } from './useErrorHandler';
 export { default as useThemeMode } from './useThemeMode';

@@ -6,7 +6,7 @@ import {
   GlobalErrorBoundaryWithReset
 } from '@components/index';
 import {
-  AppBootstrapGate,
+  AppBootstrapErrorBoundary,
   AppContent,
   AppShell
 } from '@core/index';
@@ -17,20 +17,20 @@ import {
  * Root application component.
  *
  * Responsibilities:
- * - Compose global providers (theme, loading)
+ * - Compose global infrastructure providers (theme, loading)
  * - Initialize client-side routing
- * - Provide a global error boundary
+ * - Establish global error and bootstrap error boundaries
  *
  * MUST NOT:
- * - Perform application bootstrap logic
+ * - Perform blocking application bootstrap logic
  * - Read authentication or permission state
  * - Render feature-level UI
  *
  * Notes:
- * - Providers are ordered intentionally to ensure
- *   theming and routing remain available in error states.
- * - Error logging is environment-aware to avoid noisy
- *   production console output.
+ * - Bootstrap execution is delegated to a non-blocking boundary component
+ * - Providers are ordered intentionally to ensure theming and routing
+ *   remain available during error states
+ * - Error logging is environment-aware to avoid noisy production output
  */
 const App: FC = () => {
   /**
@@ -74,9 +74,9 @@ const App: FC = () => {
             onError={handleGlobalError}
           >
             <AppShell>
-              <AppBootstrapGate>
+              <AppBootstrapErrorBoundary>
                 <AppContent />
-              </AppBootstrapGate>
+              </AppBootstrapErrorBoundary>
             </AppShell>
           </GlobalErrorBoundaryWithReset>
         </LoadingProvider>

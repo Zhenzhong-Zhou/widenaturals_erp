@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
-import { bootstrapCsrf } from '../app/bootstrap/bootstrapCsrf';
+import { bootstrapCsrf } from '@core/bootstrap/bootstrapCsrf';
 import { selectCsrfStatus, selectCsrfError } from '@features/csrf/state';
 import { resetCsrfToken } from '@features/csrf/state/csrfSlice';
 import { AppError } from '@utils/error';
@@ -13,29 +13,33 @@ interface InitializeAppOptions {
 }
 
 /**
- * Performs one-time application bootstrap.
+ * Performs one-time, non-blocking application bootstrap.
  *
  * Responsibilities:
- * - Initialize CSRF token
- * - Run optional app-level bootstrap logic
- * - Surface fatal initialization errors to AppContent
+ * - Initialize CSRF token required for mutating requests
+ * - Execute optional application-level bootstrap tasks
+ * - Detect and expose fatal initialization failures
+ *
+ * Characteristics:
+ * - Runs asynchronously after first paint
+ * - Does NOT block rendering or gate application readiness
+ * - Exposes error state for consumption by a boundary component
  *
  * MUST NOT:
- * - Refresh access tokens
- * - Mutate Axios headers
- * - Perform UI side effects
+ * - Refresh access tokens or session state
+ * - Mutate Axios headers directly
+ * - Control UI rendering or loading states
  */
 const useInitializeApp = ({ delayMs = 0 }: InitializeAppOptions = {}) => {
   const dispatch = useAppDispatch();
 
   const csrfStatus = useAppSelector(selectCsrfStatus);
   const csrfError = useAppSelector(selectCsrfError);
-
-  const [isInitializing, setIsInitializing] = useState(false);
+  
   const [initializationError, setInitializationError] =
     useState<AppError | null>(null);
-
-  // Prevent setState after unmount
+  
+  // Prevent state updates after unmount during async bootstrap
   const isMountedRef = useRef(true);
   useEffect(() => {
     isMountedRef.current = true;
@@ -60,17 +64,15 @@ const useInitializeApp = ({ delayMs = 0 }: InitializeAppOptions = {}) => {
       await sleep(delayMs);
     }
   }, [delayMs]);
-
+  
   useEffect(() => {
+    let cancelled = false;
+    
     const run = async () => {
-      setIsInitializing(true);
-      setInitializationError(null);
-
       try {
         await initializeCsrfToken();
         await initializeAppCore();
-      } catch (error: unknown) {
-        // Only treat REAL server bootstrap failures as fatal
+      } catch (error) {
         const appError =
           error instanceof AppError && error.type === 'Server'
             ? error
@@ -78,21 +80,18 @@ const useInitializeApp = ({ delayMs = 0 }: InitializeAppOptions = {}) => {
         
         dispatch(resetCsrfToken());
         
-        if (isMountedRef.current && appError) {
+        if (!cancelled && appError) {
           setInitializationError(appError);
-        }
-      }finally {
-        if (isMountedRef.current) {
-          setIsInitializing(false);
         }
       }
     };
-
-    run().catch(() => {
-      // Errors are handled inside `run`
-    });
-  }, [dispatch, initializeCsrfToken, initializeAppCore]);
-
+    
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  
   /**
    * Monitor CSRF state changes separately to avoid race conditions.
    */
@@ -101,7 +100,6 @@ const useInitializeApp = ({ delayMs = 0 }: InitializeAppOptions = {}) => {
   }, [csrfStatus, csrfError]);
 
   return {
-    isInitializing,
     hasError: Boolean(initializationError),
     initializationError,
   };

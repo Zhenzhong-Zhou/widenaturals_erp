@@ -16,10 +16,17 @@ import { PermissionsProvider } from '@context/PermissionsContext';
 /**
  * Application routing entry point.
  *
- * - Initializes permission context
- * - Applies auth, guest, and permission guards
- * - Wraps protected routes with the main layout
- * - Handles global routing fallback and lazy loading
+ * Responsibilities:
+ * - Resolve and provide permission state to the application
+ * - Define route structure and access semantics
+ * - Apply authentication and permission guards at the route level
+ * - Render layout shells before guard evaluation for improved LCP
+ * - Handle lazy-loaded routes and global routing fallbacks
+ *
+ * Notes:
+ * - Permission resolution is non-blocking and does NOT gate initial rendering
+ * - Layout components are rendered eagerly to avoid delaying first paint
+ * - Guards are responsible for access control, not UI blocking
  */
 const AppRoutes = () => {
   // Resolve permissions once before route rendering
@@ -67,15 +74,15 @@ const AppRoutes = () => {
                   key={path}
                   path={path}
                   element={
-                    <ProtectedRoutes>
-                      <MainLayout>
+                    <MainLayout>
+                      <ProtectedRoutes>
                         <PermissionGuard
                           requiredPermission={meta?.requiredPermission}
                         >
                           <Component />
                         </PermissionGuard>
-                      </MainLayout>
-                    </ProtectedRoutes>
+                      </ProtectedRoutes>
+                    </MainLayout>
                   }
                 />
               );
