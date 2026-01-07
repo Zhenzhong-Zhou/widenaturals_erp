@@ -10,7 +10,7 @@ import {
 import CustomButton from '@components/common/CustomButton';
 import NotFoundPage from '@pages/NotFoundPage';
 import GoBackButton from '@components/common/GoBackButton';
-import usePagePermissionGuard from '@features/authorize/hooks/usePagePermissionGuard';
+import { usePagePermissionState } from '@features/authorize/hooks';
 import useSkuImageUpload from '@hooks/useSkuImageUpload';
 import { useDialogFocusHandlers } from '@utils/hooks/useDialogFocusHandlers';
 import { SelectedSku } from '@features/sku/state';
@@ -31,7 +31,7 @@ const SkuImageBulkUploadPage = () => {
   const { state } = useLocation();
   const selectedSkus = state?.selectedSkus ?? [];
 
-  const { isAllowed } = usePagePermissionGuard(['create_skus_images']);
+  const { isAllowed } = usePagePermissionState(['create_skus_images']);
 
   // ---------------------------------------------------------------------------
   // 2. Local State – upload items

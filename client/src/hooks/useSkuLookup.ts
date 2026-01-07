@@ -8,8 +8,7 @@ import {
   selectSkuLookupError,
   selectSkuLookupMeta,
 } from '@features/lookup/state';
-import usePermissions from '@hooks/usePermissions';
-import useHasPermission from '@features/authorize/hooks/useHasPermission';
+import { usePagePermissionState } from '@features/authorize/hooks';
 import { SKU_CONSTANTS } from '@utils/constants/skuConstants';
 import { dedupeByValuePreserveOrder } from '@utils/dedupeHelpers';
 import type { SkuLookupQueryParams } from '@features/lookup/state';
@@ -36,15 +35,13 @@ const useSkuLookup = () => {
     () => abnormalOptions.length > 0,
     [abnormalOptions]
   );
-
-  const { permissions } = usePermissions();
-  const hasPermission = useHasPermission(permissions);
-
-  const hasSkuAdminPermission = hasPermission([
-    SKU_CONSTANTS.PERMISSIONS.ALLOW_BACKORDER_SKUS,
-    SKU_CONSTANTS.PERMISSIONS.ALLOW_INTERNAL_ORDER_SKUS,
-    SKU_CONSTANTS.PERMISSIONS.ADMIN_OVERRIDE_SKU_FILTERS,
-  ]);
+  
+  const { isAllowed: hasSkuAdminPermission } =
+    usePagePermissionState([
+      SKU_CONSTANTS.PERMISSIONS.ALLOW_BACKORDER_SKUS,
+      SKU_CONSTANTS.PERMISSIONS.ALLOW_INTERNAL_ORDER_SKUS,
+      SKU_CONSTANTS.PERMISSIONS.ADMIN_OVERRIDE_SKU_FILTERS,
+    ]);
 
   const options = useMemo(() => {
     const combined = hasSkuAdminPermission

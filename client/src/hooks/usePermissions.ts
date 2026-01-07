@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import type { UsePermissions } from '@features/authorize/state';
 import {
@@ -9,46 +9,44 @@ import {
   selectRoleName,
 } from '@features/authorize/state';
 import { selectIsAuthenticated } from '@features/session/state';
-import { getEffectivePermissions } from '@utils/permissionUtils';
 import { ErrorType } from '@utils/error';
-import { hardLogout } from '@features/session/utils/hardLogout';
 
 /**
  * usePermissions
  *
  * System-level hook responsible for hydrating and exposing
- * the authenticated user's role and effective permission set.
+ * the authenticated user's role and permission state.
  *
  * Responsibilities:
  * - Automatically load permissions once the session is authenticated
- * - Expose derived (effective) permissions for UI and route guards
- * - Provide a controlled escape hatch to explicitly refresh permissions
+ * - Expose raw permission data for guards and permission hooks
+ * - Provide a stable readiness signal for permission evaluation
  *
  * Lifecycle:
- * - Permission loading is triggered automatically after authentication.
- * - Fetching is blocked when the user is not authenticated.
+ * - Permission loading is triggered automatically after authentication
+ * - Fetching is skipped when the user is not authenticated
+ *
+ * Readiness semantics:
+ * - `ready` indicates that permission data has been resolved
+ * - Consumers must defer permission decisions until `ready === true`
  *
  * Error semantics:
- * - Initial load:
- *   - Authentication / authorization errors are intentionally ignored
- *     to allow token refresh and retry mechanisms to resolve them.
- *   - Non-auth errors are logged and treated as unrecoverable.
- * - Explicit refresh (`refreshPermissions`):
- *   - Authentication / authorization errors trigger a hard logout.
- *   - Other errors are logged but do not crash the application.
+ * - Authentication / authorization errors during initial load are ignored
+ *   to allow token refresh and retry mechanisms to resolve them
+ * - Non-authentication errors are logged and surfaced via `error`
  *
  * Architectural notes:
- * - This hook performs no navigation or UI side effects.
- * - It must not expose a generic "fetch" API to feature components.
- * - Permission derivation is memoized and stable across renders.
- * - Intended for use by route guards, layouts, and permission-aware UI.
+ * - This hook performs no navigation or UI side effects
+ * - It does NOT expose a generic "fetch permissions" API
+ * - Permission evaluation is delegated to `useHasPermission`
+ * - Intended for route guards, layouts, and permission-aware logic
  *
  * @returns {UsePermissions}
- *   roleName           - Current role name (if available)
- *   permissions        - Effective permission set
- *   loading            - Permission fetch loading state
- *   error              - Last permission fetch error (if any)
- *   refreshPermissions - Explicit permission revalidation (rare use)
+ *   roleName    - Current role name (if available)
+ *   permissions - Raw permission identifiers
+ *   loading     - Permission loading state
+ *   error       - Last unrecoverable permission error, if any
+ *   ready       - Indicates whether permission data is resolved
  */
 const usePermissions = (): UsePermissions => {
   const dispatch = useAppDispatch();
@@ -59,17 +57,19 @@ const usePermissions = (): UsePermissions => {
   const loading = useAppSelector(selectPermissionsLoading);
   const error = useAppSelector(selectPermissionsError);
   
-  const effectivePermissions = useMemo(
-    () => getEffectivePermissions(roleName, permissions),
-    [roleName, permissions]
-  );
+  /**
+   * Permissions are considered "ready" once:
+   * - the user is authenticated
+   * - permission loading has completed
+   */
+  const ready = isAuthenticated && !loading;
   
   const loadPermissions = useCallback(async () => {
     if (!isAuthenticated) return;
     
     const result = await dispatch(fetchPermissionsThunk());
     
-    // DO NOT THROW refreshable auth errors
+    // Do NOT throw refreshable auth errors
     if (fetchPermissionsThunk.rejected.match(result)) {
       const payload = result.payload;
       
@@ -77,7 +77,7 @@ const usePermissions = (): UsePermissions => {
         payload?.type === ErrorType.Authentication ||
         payload?.type === ErrorType.Authorization
       ) {
-        // Allow Axios refresh / retry mechanisms to resolve this
+        // Allow refresh / retry mechanisms to resolve this
         return;
       }
       
@@ -92,43 +92,13 @@ const usePermissions = (): UsePermissions => {
     }
   }, [loadPermissions, isAuthenticated]);
   
-  /**
-   * Explicit permission refresh.
-   *
-   * Intended for rare system flows such as:
-   * - Role changes during an active session
-   * - Privilege mutations
-   * - Tenant or organization switching
-   *
-   * Auth failures during refresh are considered unrecoverable
-   * and will force a hard logout.
-   */
-  const refreshPermissions = async () => {
-    if (!isAuthenticated) return;
-    
-    const result = await dispatch(fetchPermissionsThunk());
-    
-    if (fetchPermissionsThunk.rejected.match(result)) {
-      const payload = result.payload;
-      
-      if (
-        payload?.type === ErrorType.Authentication ||
-        payload?.type === ErrorType.Authorization
-      ) {
-        await hardLogout();
-        return;
-      }
-      
-      console.error('Non-fatal permission refresh error:', payload);
-    }
-  };
-  
   return {
     roleName,
-    permissions: effectivePermissions,
+    permissions,
     loading,
     error,
-    refreshPermissions,
+    ready,
+    refreshPermissions: loadPermissions,
   };
 };
 

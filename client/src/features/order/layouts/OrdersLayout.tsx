@@ -5,28 +5,31 @@ import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import Card from '@mui/material/Card';
 import CustomTypography from '@components/common/CustomTypography';
-import { getVisibleOrderModes } from '@features/order/utils/orderModeUtils';
+import useVisibleOrderModes from '@features/order/hooks/useVisibleOrderModes';
 
 const OrdersLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
-
-  const visibleModes = getVisibleOrderModes(); // includes permission logic
-
+  
+  const visibleModes = useVisibleOrderModes();
+  
   // Redirect to first visible mode if user is on base path (/orders)
   useEffect(() => {
     if (location.pathname !== '/orders') return;
-
-    const firstMode = visibleModes[0];
-    if (!firstMode || !firstMode.key) return;
-
+    
     if (visibleModes.length === 0) {
       navigate('/access-denied', { replace: true });
-    } else if (visibleModes.length === 1) {
+      return;
+    }
+    
+    const [firstMode] = visibleModes;
+    if (!firstMode) return;
+    
+    if (visibleModes.length === 1) {
       navigate(`/orders/${firstMode.key}/all`, { replace: true });
     }
   }, [location.pathname, visibleModes, navigate]);
-
+  
   // Determine the active tab index based on current location
   const activeTabIndex = useMemo(() => {
     return visibleModes.findIndex((mode) =>

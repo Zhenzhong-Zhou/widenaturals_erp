@@ -1,7 +1,6 @@
 import { ReactNode, useMemo } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
-import usePermissions from '@hooks/usePermissions';
-import { hasPermission } from '@utils/permissionUtils';
+import { useHasPermission } from '@features/authorize/hooks';
 import type { DynamicPermissionResolver } from '@routes/index';
 import { resolvePermission } from '@routes/index';
 
@@ -20,40 +19,67 @@ type PermissionGuardProps = {
 };
 
 /**
- * Guards child routes based on resolved permissions.
+ * PermissionGuard
  *
- * - Supports static permission strings
- * - Supports dynamic resolvers based on route params
- * - Redirects to 404 if permission cannot be resolved
- * - Redirects to access-denied if permission check fails
+ * Route-level access control wrapper.
+ *
+ * Responsibilities:
+ * - Resolve static or dynamic permission requirements
+ * - Enforce access via centralized permission hook
+ *
+ * Behavior:
+ * - No required permission → allow access
+ * - Resolver returns null → invalid route → redirect to 404
+ * - Permission pending → render nothing (non-blocking)
+ * - Permission denied → redirect to access-denied
+ * - Permission granted → render children
+ *
+ * Notes:
+ * - Does NOT fetch permissions
+ * - Does NOT inspect roles
+ * - Does NOT block initial rendering
+ * - Delegates all permission logic to `useHasPermission`
  */
 const PermissionGuard = ({
-  requiredPermission,
-  children,
-}: PermissionGuardProps) => {
-  const { roleName, permissions } = usePermissions();
+                           requiredPermission,
+                           children,
+                         }: PermissionGuardProps) => {
   const params = useParams();
-
-  // Resolve permission once per route/param change
-  const resolvedPermission = useMemo(() => {
-    return resolvePermission(requiredPermission, params);
-  }, [requiredPermission, params]);
-
+  const hasPermission = useHasPermission();
+  
+  const resolvedPermission = useMemo(
+    () => resolvePermission(requiredPermission, params),
+    [requiredPermission, params]
+  );
+  
+  // No permission required → allow
   if (!requiredPermission) {
     return <>{children}</>;
   }
-
+  
+  // Invalid route state → 404
   if (resolvedPermission === null) {
     return <Navigate to="/404" replace />;
   }
-
-  if (
-    resolvedPermission !== undefined &&
-    !hasPermission(resolvedPermission, permissions, roleName)
-  ) {
+  
+  // Permission not required after resolution → allow
+  if (resolvedPermission === undefined) {
+    return <>{children}</>;
+  }
+  
+  const result = hasPermission(resolvedPermission);
+  
+  // Permission state not resolved yet → do nothing
+  if (result === 'pending') {
+    return null; // or a skeleton if desired
+  }
+  
+  // Permission explicitly denied → access denied
+  if (!result) {
     return <Navigate to="/access-denied" replace />;
   }
-
+  
+  // Permission granted → allow
   return <>{children}</>;
 };
 

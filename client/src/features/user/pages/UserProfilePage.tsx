@@ -5,7 +5,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import { selectLastLogin } from '@features/session/state';
 import { clearTokens } from '@utils/auth';
-import usePagePermissionGuard from '@features/authorize/hooks/usePagePermissionGuard';
+import { usePagePermissionState } from '@features/authorize/hooks';
 import { resetPasswordThunk } from '@features/resetPassword';
 import {
   useUserSelfProfile,
@@ -27,14 +27,15 @@ const UserProfilePage: FC = () => {
   const lastLogin = useAppSelector(selectLastLogin);
   const [isModalOpen, setModalOpen] = useState(false);
   const dispatch = useAppDispatch();
-
-  const { isAllowed: canChangeOwnPassword, permLoading } =
-    usePagePermissionGuard(['user.password.change.self']);
-
-  const { isAllowed: canResetOthersPassword } = usePagePermissionGuard([
-    'user.password.reset.any',
-    'user.password.force_reset.any',
-  ]);
+  
+  const { isAllowed: canChangeOwnPassword } =
+    usePagePermissionState('user.password.change.self');
+  
+  const { isAllowed: canResetOthersPassword } =
+    usePagePermissionState([
+      'user.password.reset.any',
+      'user.password.force_reset.any',
+    ]);
 
   // ----------------------------
   // SELF PROFILE (My Profile)
@@ -162,7 +163,6 @@ const UserProfilePage: FC = () => {
           />
 
           {!isSystem &&
-            !permLoading &&
             // Regular user: own profile only
             ((isOwnProfile && canChangeOwnPassword) ||
               // Privileged user: can reset others

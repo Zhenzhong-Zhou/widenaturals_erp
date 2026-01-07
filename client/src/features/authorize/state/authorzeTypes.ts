@@ -33,46 +33,81 @@ export type PermissionResponse = ApiSuccessResponse<PermissionPayload>;
 /**
  * Client-side permissions hook contract.
  *
- * Defines the public interface exposed by `usePermissions`,
- * intended for consumption by permission-aware components,
- * route guards, and layout-level logic.
+ * Defines the public interface exposed by `usePermissions`.
+ * Intended for consumption by permission-aware components,
+ * route guards, and layout-level orchestration.
  *
  * Semantics:
- * - `roleName` and `permissions` reflect the currently
- *   authenticated user's effective access level.
- * - `loading` indicates whether permission hydration is in progress.
- * - `error` contains the last non-recoverable permission error, if any.
- * - `refreshPermissions` provides an explicit, system-level escape hatch
- *   for revalidating permissions in rare scenarios.
+ * - `roleName` and `permissions` represent the resolved
+ *   effective access state of the authenticated user.
+ * - Permission resolution is non-blocking and lifecycle-driven.
+ * - Consumers MUST tolerate transient unresolved states.
+ *
+ * Lifecycle:
+ * - Initial render may occur before permissions are ready
+ * - Permission hydration occurs asynchronously
+ * - Consumers should rely on `ready` to distinguish
+ *   unresolved vs resolved permission state
  *
  * Architectural notes:
- * - This interface intentionally does not expose a generic
- *   "fetch permissions" function.
- * - Permission loading is automatic and lifecycle-driven.
+ * - This interface intentionally does NOT expose a generic
+ *   "fetch permissions" API
+ * - Permission loading is automatic and centralized
  * - Consumers must treat `refreshPermissions` as a privileged,
- *   non-routine operation.
+ *   non-routine operation
  */
 export interface UsePermissions {
-  /** Current role name, if available */
+  /**
+   * Resolved role name.
+   *
+   * `null` indicates that permission resolution has not
+   * completed yet or the user is unauthenticated.
+   */
   roleName: string | null;
   
-  /** Effective permission set derived from the role */
+  /**
+   * Effective permission identifiers.
+   *
+   * Empty during initial resolution or when the user
+   * has no explicit permissions.
+   */
   permissions: string[];
   
-  /** Indicates whether permissions are currently being loaded */
+  /**
+   * Indicates whether permission hydration is currently in progress.
+   *
+   * Intended for diagnostic or transitional UI states only.
+   * Most consumers should rely on `ready` instead.
+   */
   loading: boolean;
   
-  /** Last non-recoverable permission error, if any */
+  /**
+   * Indicates whether permission resolution has completed.
+   *
+   * `true` means permission state is stable and safe
+   * for access control decisions.
+   *
+   * This is the PRIMARY readiness signal for guards and UI logic.
+   */
+  ready: boolean;
+  
+  /**
+   * Last non-recoverable permission error, if any.
+   *
+   * Recoverable or transient errors must not be surfaced here.
+   */
   error: string | null;
   
   /**
    * Explicit permission revalidation.
    *
-   * Intended for rare system flows such as role changes,
-   * privilege mutations, or tenant switches.
+   * Intended ONLY for exceptional system flows such as:
+   * - Role changes
+   * - Privilege mutations
+   * - Tenant or organization switches
    *
-   * Auth or authorization failures during refresh are treated
-   * as unrecoverable and may result in a forced logout.
+   * Authorization failures during refresh are treated
+   * as fatal and may trigger a forced logout.
    */
   refreshPermissions: () => Promise<void>;
 }

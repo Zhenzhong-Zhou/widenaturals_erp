@@ -14,7 +14,7 @@ import DetailPage from '@components/common/DetailPage';
 import CustomButton from '@components/common/CustomButton';
 import GoBackButton from '@components/common/GoBackButton';
 import NotFoundPage from '@pages/NotFoundPage';
-import usePermissions from '@hooks/usePermissions';
+import { useHasPermission } from '@features/authorize/hooks';
 import useSkuDetail from '@hooks/useSkuDetail';
 import useStatusLookup from '@hooks/useStatusLookup';
 import { useDialogFocusHandlers } from '@utils/hooks/useDialogFocusHandlers';
@@ -51,7 +51,6 @@ const SkuDetailPage: FC = () => {
    * Router + Context Hooks
    * --------------------------------------------------------- */
   const { skuId } = useParams<{ skuId: string }>();
-  const { permissions } = usePermissions();
 
   const location = useLocation();
   const cameFromUpload = location.state?.fromUpload === true;
@@ -131,13 +130,15 @@ const SkuDetailPage: FC = () => {
   /* ---------------------------------------------------------
    * Permission logic
    * --------------------------------------------------------- */
-  const canViewInactive =
-    permissions.includes('root_access') ||
-    permissions.includes('view_all_product_statuses');
-
-  const canUpdateStatus =
-    permissions.includes('root_access') ||
-    permissions.includes('update_sku_status');
+  const hasPermission = useHasPermission();
+  
+  const canViewInactive = hasPermission(
+    'view_all_product_statuses'
+  );
+  
+  const canUpdateStatus = hasPermission(
+    'update_sku_status'
+  );
 
   /* ---------------------------------------------------------
    * Page title (memoized)

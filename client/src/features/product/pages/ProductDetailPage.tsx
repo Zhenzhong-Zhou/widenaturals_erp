@@ -11,7 +11,7 @@ import NoDataFound from '@components/common/NoDataFound';
 import NotFoundPage from '@pages/NotFoundPage';
 import useProductDetail from '@hooks/useProductDetail';
 import useStatusLookup from '@hooks/useStatusLookup';
-import usePagePermissionGuard from '@features/authorize/hooks/usePagePermissionGuard';
+import { usePagePermissionState } from '@features/authorize/hooks';
 import { useDialogFocusHandlers } from '@utils/hooks/useDialogFocusHandlers';
 import { flattenProductDetail } from '@features/product/utils/flattenProductDetail';
 import {
@@ -51,8 +51,8 @@ const ProductDetailPage = () => {
   // --------------------------------------
   // 3. Permission Hooks
   // --------------------------------------
-  const canUpdateStatus = usePagePermissionGuard(['update_product_status']);
-  const canUpdateInfo = usePagePermissionGuard(['update_product_info']);
+  const canUpdateStatus = usePagePermissionState(['update_product_status']);
+  const canUpdateInfo = usePagePermissionState(['update_product_info']);
 
   // --------------------------------------
   // 4. UI State (Dialogs)
@@ -148,7 +148,7 @@ const ProductDetailPage = () => {
           {!isProductDetailEmpty && !isLoadingProductDetail && (
             <>
               {/* Update Info Button (permission-protected) */}
-              {!canUpdateInfo.permLoading && canUpdateInfo.isAllowed && (
+              {canUpdateInfo.isAllowed && (
                 <CustomButton
                   variant="contained"
                   color="primary"
@@ -160,7 +160,7 @@ const ProductDetailPage = () => {
               )}
 
               {/* Update Status Button (permission-protected) */}
-              {!canUpdateStatus.permLoading && canUpdateStatus.isAllowed && (
+              {canUpdateStatus.isAllowed && (
                 <CustomButton
                   variant="contained"
                   color="secondary"

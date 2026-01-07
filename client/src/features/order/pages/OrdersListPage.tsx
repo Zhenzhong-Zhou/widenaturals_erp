@@ -1,43 +1,38 @@
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import {
-  lazy,
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
-import usePermissions from '@hooks/usePermissions';
-import { isValidOrderCategory } from '@features/order/utils/orderCategoryUtils';
 import { ORDER_VIEW_MODES } from '@features/order/constants/orderViewModes';
+import { isValidOrderCategory } from '@features/order/utils/orderCategoryUtils';
 import {
   type OrderCategory,
   toPermissionValue,
 } from '@utils/constants/orderPermissions';
-import Loading from '@components/common/Loading';
-import AccessDeniedPage from '@pages/AccessDeniedPage';
-import CustomButton from '@components/common/CustomButton';
-import { hasPermission } from '@utils/permissionUtils';
-import useIsRootUser from '@features/authorize/hooks/useIsRootUser';
+import {
+  useHasPermission,
+  usePagePermissionState,
+} from '@features/authorize/hooks';
 import usePaginatedOrders from '@hooks/usePaginatedOrders';
+import { usePaginationHandlers } from '@utils/hooks/usePaginationHandlers';
+import { applyFiltersAndSorting } from '@utils/queryUtils';
 import type {
   OrderListFilters,
   OrderListSortField,
+  OrderPermissionContext,
 } from '@features/order/state';
-import { usePaginationHandlers } from '@utils/hooks/usePaginationHandlers';
-import { applyFiltersAndSorting } from '@utils/queryUtils';
+import Loading from '@components/common/Loading';
+import AccessDeniedPage from '@pages/AccessDeniedPage';
+import CustomButton from '@components/common/CustomButton';
+import GoBackButton from '@components/common/GoBackButton';
+import NoDataFound from '@components/common/NoDataFound';
+import CustomTypography from '@components/common/CustomTypography';
+import {
+  OrderFiltersPanel,
+  OrderSortControls,
+} from '@features/order/components/OrdersTable';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
 import Skeleton from '@mui/material/Skeleton';
-import CustomTypography from '@components/common/CustomTypography';
-import GoBackButton from '@components/common/GoBackButton';
-import NoDataFound from '@components/common/NoDataFound';
-import {
-  OrderFiltersPanel,
-  OrderSortControls,
-} from '@features/order/components/OrdersTable';
 
 const OrdersTable = lazy(
   () => import('@features/order/components/OrdersTable/OrdersTable')
@@ -55,10 +50,27 @@ const OrdersListPage = () => {
     {} as OrderListFilters
   );
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-
-  const isRoot = useIsRootUser();
-  const { roleName, permissions, loading } = usePermissions();
-
+  
+  // UI permissions
+  const { isAllowed: canCreateSalesOrder } =
+    usePagePermissionState(
+      toPermissionValue('CREATE', 'sales')
+    );
+  
+  const canCreateSalesOrderInSalesMode =
+    mode === 'sales' && canCreateSalesOrder;
+  
+  // Config permissions
+  const hasPermission = useHasPermission();
+  
+  const permissionCtx = useMemo<OrderPermissionContext>(
+    () => ({
+      has: (perm) => hasPermission(perm) === true,
+      hasAny: (perms) => hasPermission(perms) === true,
+    }),
+    [hasPermission]
+  );
+  
   const {
     orders,
     pagination,
@@ -73,26 +85,21 @@ const OrdersListPage = () => {
     ? ORDER_VIEW_MODES[mode as OrderCategory]
     : undefined;
 
-  const ctx = useMemo(
-    () => ({
-      isRoot,
-      has: (perm: string) => hasPermission(perm, permissions, roleName),
-      hasAny: (perms: string[]) =>
-        isRoot || perms.some((p) => hasPermission(p, permissions, roleName)),
-    }),
-    [isRoot, permissions, roleName]
-  );
-
   // Build base filters from config
   useEffect(() => {
-    if (modeConfig) {
-      let baseFilters = modeConfig.buildBaseFilters(ctx);
-      if (modeConfig.applyAllocationVisibility) {
-        baseFilters = modeConfig.applyAllocationVisibility(ctx, baseFilters);
-      }
-      setFilters(baseFilters);
+    if (!modeConfig) return;
+    
+    let baseFilters = modeConfig.buildBaseFilters(permissionCtx);
+    
+    if (modeConfig.applyAllocationVisibility) {
+      baseFilters = modeConfig.applyAllocationVisibility(
+        permissionCtx,
+        baseFilters
+      );
     }
-  }, [modeConfig, ctx]);
+    
+    setFilters(baseFilters);
+  }, [modeConfig, permissionCtx]);
 
   // Memoize the query parameters to avoid unnecessary re-renders or function calls
   const queryParams = useMemo(
@@ -129,27 +136,32 @@ const OrdersListPage = () => {
   const handleRefresh = useCallback(() => {
     applyFiltersAndSorting(queryParams);
   }, [queryParams]);
-
+  
   const handleResetFilters = () => {
     resetOrders();
+    
     if (modeConfig) {
-      let baseFilters = modeConfig.buildBaseFilters(ctx);
+      let baseFilters = modeConfig.buildBaseFilters(permissionCtx);
+      
       if (modeConfig.applyAllocationVisibility) {
-        baseFilters = modeConfig.applyAllocationVisibility(ctx, baseFilters);
+        baseFilters = modeConfig.applyAllocationVisibility(
+          permissionCtx,
+          baseFilters
+        );
       }
+      
       setFilters(baseFilters);
     }
+    
     setPage(1);
   };
-
+  
   const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(
     setPage,
     setLimit
   );
-
-  if (loading) return <Loading variant={'dotted'} />;
-
-  if (!modeConfig || !modeConfig.canSee(ctx)) {
+  
+  if (!modeConfig || !modeConfig.canSee(permissionCtx)) {
     return <AccessDeniedPage />;
   }
 
@@ -169,7 +181,7 @@ const OrdersListPage = () => {
       >
         <CustomTypography variant="h5">Order Management</CustomTypography>
         <GoBackButton sx={{ borderRadius: 20 }} />
-        {mode === 'sales' && ctx.has(toPermissionValue('CREATE', 'sales')) && (
+        {canCreateSalesOrderInSalesMode && (
           <CustomButton
             variant="contained"
             onClick={() => navigate(`/orders/${mode}/new`)}
