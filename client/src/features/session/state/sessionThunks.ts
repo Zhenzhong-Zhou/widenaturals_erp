@@ -1,7 +1,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { persistor } from '@store/store';
 import { sessionService } from '@services/sessionService';
-import { AppError, extractUiErrorPayload } from '@utils/error';
+import { extractErrorMessage, extractUiErrorPayload } from '@utils/error';
 import { LoginRequestBody, LoginResponseData } from '@features/session';
 import { UiErrorPayload } from '@utils/error/uiErrorUtils';
 import { resetLogin } from '@features/session/state/loginSlice';
@@ -31,9 +31,7 @@ export const loginThunk = createAsyncThunk<
     try {
       return await sessionService.login(email, password);
     } catch (error) {
-      return rejectWithValue(
-        error instanceof AppError ? error.message : 'Login failed'
-      );
+      return rejectWithValue(extractErrorMessage(error));
     }
   }
 );

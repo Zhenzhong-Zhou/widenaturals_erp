@@ -143,6 +143,14 @@ axiosInstance.interceptors.response.use(
       );
     }
     
+    if (status === 404) {
+      return Promise.reject(
+        AppError.notFound(
+          error.response?.data?.message ?? 'Resource not found'
+        )
+      );
+    }
+    
     if (status === 429) {
       return Promise.reject(AppError.rateLimit('Too many requests'));
     }

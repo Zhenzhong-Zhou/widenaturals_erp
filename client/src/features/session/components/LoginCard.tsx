@@ -1,6 +1,5 @@
 import type { FC } from 'react';
-import CustomCard from '@components/common/CustomCard';
-import ErrorDisplay from '@components/shared/ErrorDisplay';
+import { CustomCard, ErrorMessage } from '@components/index';
 import LoginForm from '@features/session/components/LoginForm';
 import type { LoginRequestBody } from '@features/session';
 
@@ -9,23 +8,34 @@ interface LoginCardProps {
   subtitle?: string;
   loading: boolean;
   error: string | null;
-  onSubmit: (data: LoginRequestBody) => void;
+  
+  formValues: LoginRequestBody;
+  formErrors: Partial<LoginRequestBody>;
+  onFormChange: (field: keyof LoginRequestBody, value: string) => void;
+  onFormSubmit: () => void;
 }
 
 const LoginCard: FC<LoginCardProps> = ({
-                                         title = 'Login',
+                                         title = 'Sign In',
                                          subtitle = 'Sign in to your account.',
                                          loading,
                                          error,
-                                         onSubmit,
+                                         formValues,
+                                         formErrors,
+                                         onFormChange,
+                                         onFormSubmit,
                                        }) => {
   return (
     <CustomCard title={title} subtitle={subtitle}>
-      {error && <ErrorDisplay message={error} />}
+      {error && <ErrorMessage message={error} />}
       
       <LoginForm
         loading={loading}
-        onSubmit={onSubmit}
+        error={error}
+        formValues={formValues}
+        formErrors={formErrors}
+        onFormChange={onFormChange}
+        onFormSubmit={onFormSubmit}
       />
     </CustomCard>
   );

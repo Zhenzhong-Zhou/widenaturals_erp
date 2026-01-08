@@ -52,8 +52,7 @@ const loginSlice = createSlice({
       .addCase(loginThunk.rejected, (state, action) => {
         state.loading = false;
         state.data = null;
-        state.error =
-          action.payload || action.error?.message || 'Login failed.';
+        state.error = action.payload ?? null;
       });
   },
 });

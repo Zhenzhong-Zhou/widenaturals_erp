@@ -27,6 +27,10 @@ import { isAxiosLikeError } from './isAxiosLikeError.ts';
  * @returns Normalized AppError instance
  */
 export const mapHttpError = (error: unknown): AppError => {
+  if (error instanceof AppError) {
+    return error;
+  }
+  
   if (isAxiosLikeError(error)) {
     const status = error.response?.status;
 

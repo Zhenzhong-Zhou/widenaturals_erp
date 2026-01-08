@@ -24,11 +24,49 @@ export type RouteParams = Record<string, string | undefined>;
  */
 export type DynamicPermissionResolver = (params: RouteParams) => string | null;
 
-// todo ddocsting and adjsut order fo placmenment
+/**
+ * Navigation item definition.
+ *
+ * Represents a single entry in the application navigation tree.
+ *
+ * Design notes:
+ * - Navigation visibility is permission-aware
+ * - Permission evaluation is handled externally via permission hooks
+ * - This type is framework-agnostic and contains no logic
+ *
+ * Semantics:
+ * - If `requiredPermission` is undefined, the item is always visible
+ * - If defined, visibility is determined by the caller using permission hooks
+ */
 export type NavigationItem = {
+  /**
+   * Route path for the navigation item.
+   *
+   * Must match a valid application route.
+   */
   path: string;
+  
+  /**
+   * Human-readable label for display in the UI.
+   */
   title: string;
-  requiredPermission?: string;
+  
+  /**
+   * Permission required to display this navigation item.
+   *
+   * When provided, the item should only be rendered if
+   * the current user satisfies the permission.
+   *
+   * This is a declarative requirement; enforcement is handled
+   * by the navigation renderer, not by this type.
+   */
+  requiredPermission?: string | readonly string[];
+  
+  /**
+   * Whether the route match should be exact.
+   *
+   * Defaults to false when omitted.
+   */
   exact?: boolean;
 };
 
