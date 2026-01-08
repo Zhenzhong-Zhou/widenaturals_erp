@@ -10,6 +10,7 @@ import {
   AppContent,
   AppShell
 } from '@core/index';
+import { AppBootstrapGate } from '@core/bootstrap';
 
 /**
  * App
@@ -73,11 +74,13 @@ const App: FC = () => {
             fallback={errorFallback}
             onError={handleGlobalError}
           >
-            <AppShell>
-              <AppBootstrapErrorBoundary>
-                <AppContent />
-              </AppBootstrapErrorBoundary>
-            </AppShell>
+            <AppBootstrapGate>
+              <AppShell>
+                <AppBootstrapErrorBoundary>
+                  <AppContent />
+                </AppBootstrapErrorBoundary>
+              </AppShell>
+            </AppBootstrapGate>
           </GlobalErrorBoundaryWithReset>
         </LoadingProvider>
       </ThemeProviderWrapper>

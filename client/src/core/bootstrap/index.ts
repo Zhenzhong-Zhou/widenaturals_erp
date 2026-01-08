@@ -21,3 +21,4 @@
 
 export { bootstrapCsrf } from './bootstrapCsrf';
 export { default as useInitializeApp } from './useInitializeApp';
+export { default as AppBootstrapGate } from './AppBootstrapGate';

@@ -4,7 +4,6 @@ import {
   selectLoginData,
   selectLoginLoading,
   selectLoginError,
-  selectIsAuthenticated,
 } from '@features/session/state/loginSelectors';
 import { loginThunk } from '@features/session';
 import type { LoginRequestBody } from '@features/session';
@@ -14,13 +13,12 @@ import type { LoginRequestBody } from '@features/session';
  *
  * Responsibilities:
  * - Expose login async state (data, loading, error)
- * - Expose derived authentication status
- * - Provide actions to trigger login and reset login state
+ * - Provide an action to trigger login
  *
  * Notes:
- * - Authentication side effects (tokens, headers, cookies)
- *   are handled outside Redux and are intentionally not exposed here.
- * - This hook is UI-focused and safe to use in any component.
+ * - Authentication state is owned by `session`
+ * - This hook MUST NOT expose auth truth
+ * - Safe for UI-only usage
  */
 const useLogin = () => {
   const dispatch = useAppDispatch();
@@ -31,7 +29,6 @@ const useLogin = () => {
   const data = useAppSelector(selectLoginData);
   const loading = useAppSelector(selectLoginLoading);
   const error = useAppSelector(selectLoginError);
-  const isAuthenticated = useAppSelector(selectIsAuthenticated);
   
   // -----------------------------
   // Login action
@@ -48,18 +45,12 @@ const useLogin = () => {
   // -----------------------------
   return useMemo(
     () => ({
-      // login state
       data,
       loading,
       error,
-      
-      // derived auth state
-      isAuthenticated,
-      
-      // actions
       submit,
     }),
-    [data, loading, error, isAuthenticated, submit]
+    [data, loading, error, submit]
   );
 };
 

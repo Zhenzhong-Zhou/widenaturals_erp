@@ -8,89 +8,97 @@ import {
   selectPermissionsLoading,
   selectRoleName,
 } from '@features/authorize/state';
-import { selectIsAuthenticated } from '@features/session/state';
+import {
+  selectIsAuthenticated,
+  selectSessionResolving,
+} from '@features/session/state/sessionSelectors';
 import { ErrorType } from '@utils/error';
 
 /**
  * usePermissions
  *
- * System-level hook responsible for hydrating and exposing
- * the authenticated user's role and permission state.
+ * Canonical hook for resolving and exposing authorization context.
  *
  * Responsibilities:
- * - Automatically load permissions once the session is authenticated
- * - Expose raw permission data for guards and permission hooks
- * - Provide a stable readiness signal for permission evaluation
+ * - Fetch permission data for the authenticated user
+ * - Expose role name, permission list, and resolution state
+ * - Coordinate permission loading with session bootstrap lifecycle
  *
- * Lifecycle:
- * - Permission loading is triggered automatically after authentication
- * - Fetching is skipped when the user is not authenticated
+ * Resolution semantics:
+ * - Permission fetching is gated by successful session resolution
+ * - Permissions are fetched only for authenticated users
+ * - The `ready` flag indicates permission evaluation is complete
+ *   and safe for authorization checks
  *
- * Readiness semantics:
- * - `ready` indicates that permission data has been resolved
- * - Consumers must defer permission decisions until `ready === true`
+ * Error handling:
+ * - Authentication and authorization errors are treated as
+ *   recoverable and silently ignored
+ * - Non-auth errors are surfaced via `error` and logged defensively
  *
- * Error semantics:
- * - Authentication / authorization errors during initial load are ignored
- *   to allow token refresh and retry mechanisms to resolve them
- * - Non-authentication errors are logged and surfaced via `error`
+ * Explicitly out of scope:
+ * - Authentication or session bootstrap logic
+ * - Route guarding or redirect decisions
+ * - Permission enforcement (delegated to guards/components)
  *
- * Architectural notes:
- * - This hook performs no navigation or UI side effects
- * - It does NOT expose a generic "fetch permissions" API
- * - Permission evaluation is delegated to `useHasPermission`
- * - Intended for route guards, layouts, and permission-aware logic
- *
- * @returns {UsePermissions}
- *   roleName    - Current role name (if available)
- *   permissions - Raw permission identifiers
- *   loading     - Permission loading state
- *   error       - Last unrecoverable permission error, if any
- *   ready       - Indicates whether permission data is resolved
+ * Notes:
+ * - This hook is safe to mount globally (e.g., routing layer)
+ * - Permission state may be temporarily undefined during bootstrap
+ * - Consumers must tolerate transient loading states
  */
 const usePermissions = (): UsePermissions => {
   const dispatch = useAppDispatch();
-  const isAuthenticated = useAppSelector(selectIsAuthenticated);
   
+  // Session state
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const resolvingSession = useAppSelector(selectSessionResolving);
+  
+  // Permission state
   const roleName = useAppSelector(selectRoleName);
   const permissions = useAppSelector(selectPermissions);
   const loading = useAppSelector(selectPermissionsLoading);
   const error = useAppSelector(selectPermissionsError);
   
   /**
-   * Permissions are considered "ready" once:
-   * - the user is authenticated
+   * Permissions are considered ready once:
+   * - session bootstrap has completed
+   * - user is authenticated
    * - permission loading has completed
    */
-  const ready = isAuthenticated && !loading;
+  const ready =
+    !resolvingSession &&
+    isAuthenticated &&
+    !loading;
   
   const loadPermissions = useCallback(async () => {
+    // Wait for session bootstrap
+    if (resolvingSession) return;
+    
+    // Only fetch for authenticated users
     if (!isAuthenticated) return;
     
     const result = await dispatch(fetchPermissionsThunk());
     
-    // Do NOT throw refreshable auth errors
     if (fetchPermissionsThunk.rejected.match(result)) {
       const payload = result.payload;
       
+      // Ignore refreshable auth errors
       if (
         payload?.type === ErrorType.Authentication ||
         payload?.type === ErrorType.Authorization
       ) {
-        // Allow refresh / retry mechanisms to resolve this
         return;
       }
       
       // Truly unrecoverable
       console.error('Permission load failed:', payload);
     }
-  }, [dispatch, isAuthenticated]);
+  }, [dispatch, isAuthenticated, resolvingSession]);
   
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!resolvingSession && isAuthenticated) {
       void loadPermissions();
     }
-  }, [loadPermissions, isAuthenticated]);
+  }, [loadPermissions, resolvingSession, isAuthenticated]);
   
   return {
     roleName,

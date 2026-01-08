@@ -1,44 +1,52 @@
 import { useEffect } from 'react';
 import { useAppSelector } from '@store/storeHooks';
-import { selectIsAuthenticated } from '@features/session';
+import {
+  selectIsAuthenticated,
+  selectSessionResolving,
+} from '@features/session/state/sessionSelectors';
 import { selectHasSelfUserProfile } from '@features/user';
 import useUserSelfProfile from './useUserSelfProfile';
 
 /**
  * useUserSelfProfileAuto
  *
- * Automatically ensures the authenticated user's profile
- * is loaded into Redux.
+ * Lifecycle hook that automatically ensures the authenticated
+ * user's own profile is loaded into client state.
  *
  * Responsibilities:
- * - Trigger profile fetch when authentication becomes valid
- * - Avoid duplicate or premature fetches
- * - Remain side effect only (no returned state)
+ * - Trigger self-profile fetch once authentication is confirmed
+ * - Defer execution until session resolution completes
+ * - Prevent duplicate profile fetches
  *
- * Behavior:
- * - Does nothing while unauthenticated
- * - Fetches once after login if profile is not present
- * - Safe to call at global/layout level (e.g. AppBootstrapGate)
+ * Explicitly out of scope:
+ * - Authentication or session bootstrap logic
+ * - Profile mutation or refresh semantics
+ * - Error handling or retry policies
  *
  * Notes:
- * - This hook does NOT expose data or loading state
- * - Consumers must read profile data via selectors
- * - Must not be combined with other auto-fetch profile hooks
+ * - This hook is intentionally side-effect–only and returns no value
+ * - It is safe to mount globally (e.g., in layouts or root components)
+ * - Profile loading is skipped for unauthenticated users
  */
 const useUserSelfProfileAuto = (): void => {
   const { fetchSelfProfile } = useUserSelfProfile();
   
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
-  const hasProfile = useAppSelector(
-    (state) => Boolean(selectHasSelfUserProfile(state))
-  );
+  const resolving = useAppSelector(selectSessionResolving);
+  const hasProfile = useAppSelector(selectHasSelfUserProfile);
   
   useEffect(() => {
+    // Wait for session bootstrap to complete
+    if (resolving) return;
+    
+    // Only fetch for authenticated users
     if (!isAuthenticated) return;
+    
+    // Avoid duplicate fetches
     if (hasProfile) return;
     
     fetchSelfProfile();
-  }, [isAuthenticated, hasProfile, fetchSelfProfile]);
+  }, [resolving, isAuthenticated, hasProfile, fetchSelfProfile]);
 };
 
 export default useUserSelfProfileAuto;

@@ -1,25 +1,41 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { persistor } from '@store/store';
 import { sessionService } from '@services/sessionService';
-import { extractErrorMessage, extractUiErrorPayload } from '@utils/error';
+import {
+  AppError,
+  extractErrorMessage,
+  extractUiErrorPayload
+} from '@utils/error';
 import { LoginRequestBody, LoginResponseData } from '@features/session';
 import { UiErrorPayload } from '@utils/error/uiErrorUtils';
 import { resetLogin } from '@features/session/state/loginSlice';
+import {
+  markBootstrapComplete,
+  resetSession,
+  setAccessToken
+} from '@features/session/state/sessionSlice';
 
 /* =========================================================
  * Login
  * ======================================================= */
 
 /**
- * Authenticates the user and initializes client-side auth state.
+ * Authenticates a user and establishes the client-side session state.
  *
  * Responsibilities:
- * - Invoke credential-based login service
- * - Surface authentication failures to the UI
+ * - Invoke the credential-based login service
+ * - Persist the access token into client session state
+ * - Surface authentication failures in a UI-safe form
+ *
+ * Explicitly out of scope:
+ * - Token storage mechanism (cookies, HttpOnly, refresh lifecycle)
+ * - CSRF token acquisition and rotation
+ * - Post-login navigation or UI side effects
  *
  * Notes:
- * - Token persistence and CSRF setup are handled by the service
- * - Redux state updates occur in reducers, not here
+ * - Network and authentication errors are normalized via rejectWithValue
+ * - This thunk performs minimal orchestration and delegates
+ *   side effects to reducers and service utilities
  */
 export const loginThunk = createAsyncThunk<
   LoginResponseData,
@@ -27,11 +43,66 @@ export const loginThunk = createAsyncThunk<
   { rejectValue: string }
 >(
   'session/login',
-  async ({ email, password }, { rejectWithValue }) => {
+  async ({ email, password }, { dispatch, rejectWithValue }) => {
     try {
-      return await sessionService.login(email, password);
+      const response = await sessionService.login(email, password);
+      
+      dispatch(setAccessToken(response.accessToken));
+      return response;
     } catch (error) {
       return rejectWithValue(extractErrorMessage(error));
+    }
+  }
+);
+
+/* =========================================================
+ * Session Bootstrap
+ * ======================================================= */
+
+/**
+ * Bootstraps the client-side session state on application startup.
+ *
+ * Responsibilities:
+ * - Attempt to restore an existing authenticated session via refresh token
+ * - Hydrate in-memory access token state when a valid session exists
+ * - Resolve the bootstrap lifecycle regardless of authentication outcome
+ *
+ * Explicitly out of scope:
+ * - Credential-based login flows
+ * - UI navigation or redirect logic
+ * - Permission or authorization evaluation
+ *
+ * Notes:
+ * - A missing or invalid refresh token is treated as a valid unauthenticated state
+ * - Authentication failures during bootstrap do not surface to the UI
+ * - The bootstrap lifecycle is always completed via `markBootstrapComplete`
+ */
+export const bootstrapSessionThunk = createAsyncThunk<
+  void,
+  void
+>(
+  'session/bootstrap',
+  async (_, { dispatch }) => {
+    try {
+      const result = await sessionService.refreshToken();
+      
+      if (!result || !result.accessToken) {
+        throw AppError.authentication('No access token returned from refresh');
+      }
+      
+      dispatch(setAccessToken(result.accessToken));
+    } catch (error) {
+      // Expected case: user is not logged in
+      if (error instanceof AppError && error.type === 'Authentication') {
+        dispatch(resetSession());
+        return;
+      }
+      
+      // Defensive fallback
+      dispatch(resetSession());
+      throw error;
+    } finally {
+      dispatch(markBootstrapComplete());
     }
   }
 );

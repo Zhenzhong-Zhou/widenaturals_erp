@@ -6,23 +6,19 @@ import axios, {
 import * as axiosRetry from 'axios-retry';
 import { rawAxios } from '@utils/http';
 import { AppError } from '@utils/error';
+import { AppErrorDetails } from '@utils/error/AppError';
 import { store } from '@store/store';
-import { selectAccessToken } from '@features/session/state/loginSelectors';
+import { selectAccessToken } from '@features/session/state/sessionSelectors';
 import { selectCsrfToken } from '@features/csrf/state/csrfSelector';
-import { sessionService } from '@services/sessionService';
 import { setAccessToken } from '@features/session/state/sessionSlice';
+import { sessionService } from '@services/sessionService';
 import { hardLogout } from '@features/session/utils/hardLogout';
 
-let refreshPromise: Promise<string> | null = null;
-
 /* =========================================================
- * Types
+ * Refresh control (single-flight)
  * ======================================================= */
 
-interface ErrorResponse {
-  message?: string;
-  [key: string]: unknown;
-}
+let refreshPromise: Promise<string> | null = null;
 
 /* =========================================================
  * Axios instance
@@ -40,7 +36,7 @@ const axiosInstance = axios.create({
 });
 
 /* =========================================================
- * Retry (transport-level only)
+ * Retry — transport-level only
  * ======================================================= */
 
 axiosRetry.default(axiosInstance, {
@@ -76,12 +72,13 @@ axiosInstance.interceptors.request.use(
 );
 
 /* =========================================================
- * Response interceptor — error normalization only
+ * Response interceptor — auth-safe error handling
  * ======================================================= */
 
 axiosInstance.interceptors.response.use(
   (response) => response,
-  async (error: AxiosError<ErrorResponse>) => {
+  
+  async (error: AxiosError) => {
     if (!error.config) {
       return Promise.reject(
         AppError.network('Request failed before reaching the server')
@@ -94,7 +91,10 @@ axiosInstance.interceptors.response.use(
     
     const status = error.response?.status;
     
-    // AUTH RECOVERY (highest priority)
+    /* -------------------------------------------------------
+     * 401 — attempt refresh (single-flight)
+     * ----------------------------------------------------- */
+    
     if (status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       
@@ -102,9 +102,13 @@ axiosInstance.interceptors.response.use(
         if (!refreshPromise) {
           refreshPromise = sessionService
             .refreshToken()
-            .then(({ accessToken }) => {
-              store.dispatch(setAccessToken(accessToken));
-              return accessToken;
+            .then((data) => {
+              if (!data?.accessToken) {
+                throw AppError.authentication('Session expired');
+              }
+              
+              store.dispatch(setAccessToken(data.accessToken));
+              return data.accessToken;
             })
             .finally(() => {
               refreshPromise = null;
@@ -122,13 +126,14 @@ axiosInstance.interceptors.response.use(
         return rawAxios.request(originalRequest);
       } catch {
         await hardLogout();
-        return Promise.reject(
-          AppError.authentication('Session expired. Please log in again.')
-        );
+        return Promise.reject(error);
       }
     }
     
-    // PERMISSION REVOKED
+    /* -------------------------------------------------------
+     * 403 — permission revoked (runtime only)
+     * ----------------------------------------------------- */
+    
     if (status === 403) {
       await hardLogout();
       return Promise.reject(
@@ -136,17 +141,23 @@ axiosInstance.interceptors.response.use(
       );
     }
     
-    // NORMALIZATION (final)
+    /* -------------------------------------------------------
+     * Normalization (non-auth)
+     * ----------------------------------------------------- */
+    
     if (status === 400) {
       return Promise.reject(
-        AppError.validation('Validation failed', error.response?.data)
+        AppError.validation(
+          'Validation failed',
+          error.response?.data as Record<string, unknown> | undefined
+        )
       );
     }
     
     if (status === 404) {
       return Promise.reject(
         AppError.notFound(
-          error.response?.data?.message ?? 'Resource not found'
+          (error.response?.data as any)?.message ?? 'Resource not found'
         )
       );
     }
@@ -157,13 +168,17 @@ axiosInstance.interceptors.response.use(
     
     if (status && status >= 500) {
       return Promise.reject(
-        AppError.server('Server error occurred', error.response?.data)
+        AppError.server(
+          'Server error occurred',
+          error.response?.data as AppErrorDetails | undefined
+        )
       );
     }
     
     return Promise.reject(
       AppError.unknown(
-        error.response?.data?.message || 'Unexpected error occurred',
+        (error.response?.data as any)?.message ||
+        'Unexpected error occurred',
         error
       )
     );

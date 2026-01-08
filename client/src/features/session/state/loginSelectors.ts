@@ -32,39 +32,9 @@ export const selectLoginError = createSelector(
 );
 
 /**
- * Derived selector: returns `true` if the user is authenticated.
- */
-export const selectIsAuthenticated = createSelector(
-  [selectLoginData],
-  (data) => Boolean(data)
-);
-
-/**
  * Selector: returns the last login timestamp (if available).
  */
 export const selectLastLogin = createSelector(
   [selectLoginData],
   (data) => data?.lastLogin ?? null
-);
-
-/* =========================================================
- * AUTH TOKEN SELECTORS (NEW — REQUIRED FOR AXIOS)
- * ======================================================= */
-
-/**
- * Selector: returns the current access token or null.
- *
- * This is the single source of truth for authenticated requests.
- */
-export const selectAccessToken = createSelector(
-  [selectLoginData],
-  (data) => data?.accessToken ?? null
-);
-
-/**
- * Selector: returns the current CSRF token or null.
- */
-export const selectCsrfToken = createSelector(
-  [selectLoginData],
-  (data) => data?.csrfToken ?? null
 );

@@ -11,7 +11,6 @@ import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { AppError } from '@utils/error';
 import { selectCsrfToken } from '@features/csrf/state';
 import { store } from '@store/store';
-import { getToken } from '@utils/auth';
 
 /* =========================================================
  * Login
@@ -108,37 +107,44 @@ let refreshAttemptCount = 0;
 const MAX_REFRESH_ATTEMPTS = 3;
 
 /**
- * Requests a new access token using the refresh token
+ * Attempts to obtain a new access token using the refresh token
  * stored in an HTTP-only cookie.
  *
  * Responsibilities:
- * - Enforce a strict retry limit
- * - Attach required CSRF and Authorization headers
+ * - Enforce a strict, module-scoped retry limit
+ * - Attach the required CSRF header for refresh requests
  * - Validate refresh response integrity
+ * - Normalize expected unauthenticated outcomes
+ *
+ * Expected outcomes:
+ * - Returns refreshed token data when a valid session exists
+ * - Returns null when the user is unauthenticated or refresh is not possible
  *
  * Security notes:
- * - The refresh token itself is never accessible to JavaScript
- * - Failure indicates an unrecoverable session state
+ * - The refresh token is never accessible to JavaScript
+ * - This function does not attach an Authorization header
+ * - A null return value represents a valid unauthenticated state
  *
  * Side effects:
- * - Mutates in-memory retry counter
+ * - Mutates a module-scoped refresh retry counter
  *
- * Explicitly NOT responsible for:
+ * Explicitly out of scope:
  * - Updating Redux session state
- * - Redirecting the user
- * - Clearing persisted auth artifacts
+ * - Triggering logout or redirects
+ * - Clearing cookies or persisted auth artifacts
  *
- * @returns {Promise<RefreshTokenResponseData>}
- *   Object containing the newly issued access token.
+ * @returns {Promise<RefreshTokenResponseData | null>}
+ *   Refresh response data when successful; null when unauthenticated
+ *   or when refresh cannot be performed safely.
  *
  * @throws {AppError}
- *   Authentication error when refresh fails or retry limit is exceeded.
+ *   Thrown only when the retry limit is exceeded or when an
+ *   unexpected system-level failure occurs.
  */
-const refreshToken = async (): Promise<RefreshTokenResponseData> => {
+const refreshToken = async (): Promise<RefreshTokenResponseData | null> => {
   if (refreshAttemptCount >= MAX_REFRESH_ATTEMPTS) {
-    throw AppError.authentication(
-      'Session expired. Please log in again.'
-    );
+    // Hard stop — session truly expired
+    throw AppError.authentication('Session expired. Please log in again.');
   }
   
   refreshAttemptCount += 1;
@@ -148,7 +154,8 @@ const refreshToken = async (): Promise<RefreshTokenResponseData> => {
     const csrfToken = selectCsrfToken(store.getState());
     
     if (!csrfToken) {
-      throw AppError.authentication('Missing CSRF token');
+      // CSRF missing is NOT logout-worthy during bootstrap
+      return null;
     }
     
     const response = await rawAxios.post<RefreshTokenApiResponse>(
@@ -156,30 +163,36 @@ const refreshToken = async (): Promise<RefreshTokenResponseData> => {
       undefined,
       {
         headers: {
-          Authorization: `Bearer ${getToken('accessToken')}`,
           'X-CSRF-Token': csrfToken,
         },
         withCredentials: true,
       }
     );
     
-    // Validate response payload
-    if (!response?.data.success || !response.data?.data.accessToken) {
-      throw AppError.server('Invalid refresh token response payload', {
-        receivedKeys: Object.keys(response ?? {}),
-      });
+    if (!response?.data?.success) {
+      return null;
     }
     
-    // Reset retry counter on success
+    const accessToken = response.data.data?.accessToken;
+    
+    if (!accessToken) {
+      return null;
+    }
+    
     refreshAttemptCount = 0;
     
     return response.data.data;
-  } catch {
-    // Reset retry counter to avoid poisoning future attempts
+  } catch (error: any) {
     refreshAttemptCount = 0;
     
-    // Surface a single, stable authentication failure signal
-    throw AppError.authentication('Token refresh failed');
+    // IMPORTANT: distinguish auth vs system failure
+    if (error?.response?.status === 401) {
+      // Expected unauthenticated state
+      return null;
+    }
+    
+    // Unexpected failure (network, 5xx, etc.)
+    throw error;
   }
 };
 

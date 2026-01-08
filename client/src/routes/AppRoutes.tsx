@@ -10,33 +10,51 @@ import MainLayout from '@layouts/MainLayout/MainLayout';
 import Loading from '@components/common/Loading';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
+import { useSession } from '@features/session/hooks';
 import { usePermissions } from '@hooks/index';
 import { PermissionsProvider } from '@context/PermissionsContext';
 
 /**
- * Application routing entry point.
+ * AppRoutes
+ *
+ * Application routing composition and access orchestration layer.
  *
  * Responsibilities:
- * - Fetch and provide permission state to the application
- * - Define route structure and access semantics
- * - Apply authentication and permission guards at the route level
- * - Render layout shells eagerly to improve LCP
- * - Handle lazy-loaded routes and global routing fallbacks
+ * - Define the full application route structure
+ * - Apply authentication, guest, and permission guards at the route level
+ * - Mount global providers required for route evaluation
+ * - Coordinate lazy-loaded routes and global fallbacks
  *
  * Permission model:
- * - Permission fetching is asynchronous and non-blocking
- * - Initial renders may occur before permissions are fully resolved
- * - Permission readiness is exposed via `ready`
- * - Route guards are responsible for handling pending vs denied access
+ * - Permission resolution is asynchronous and non-blocking
+ * - Permission state is fetched once and provided via context
+ * - Initial renders may occur before permissions are fully ready
+ * - Access enforcement is delegated to PermissionGuard
+ *
+ * Session model:
+ * - Route rendering is deferred until session resolution completes
+ * - Authentication decisions are handled by route guards, not here
+ *
+ * Explicitly out of scope:
+ * - Session bootstrap or refresh logic
+ * - Redirect decisions based on business rules
+ * - UI loading or skeleton strategies beyond Suspense
  *
  * Notes:
  * - This component MUST be the only place that calls `usePermissions`
- * - Providers are always mounted, even in error states
- * - UI components must not assume permissions are resolved on first render
+ * - Providers are always mounted, even in permission error states
+ * - Route components must tolerate permissions not being ready on first render
  */
 const AppRoutes = () => {
+  const { resolving } = useSession();
+  
   // Resolve permissions once before route rendering
   const { roleName, permissions, error, ready } = usePermissions();
+  
+  // DO NOT render routes until session is resolved
+  if (resolving) {
+    return null; // or splash loader
+  }
 
   return (
     <PermissionsProvider
@@ -58,7 +76,7 @@ const AppRoutes = () => {
               const requiresAuth = meta?.requiresAuth === true;
               
               // Guest-only
-              if (path === '/' || path === '/login') {
+              if (path === '/login') {
                 return (
                   <Route
                     key={path}
