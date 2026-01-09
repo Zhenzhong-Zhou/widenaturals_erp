@@ -5,7 +5,7 @@
  * authentication requirements, permission guards,
  * and optional navigation menu metadata.
  */
-import type { LazyExoticComponent, ComponentType } from 'react';
+import type { LazyExoticComponent, ComponentType, ReactNode } from 'react';
 
 /**
  * Route parameter map passed to dynamic permission resolvers.
@@ -73,17 +73,38 @@ export type NavigationItem = {
 /**
  * Metadata associated with a route.
  *
- * - `requiresAuth` indicates the route requires authentication
+ * Semantics:
+ * - `requiresAuth` indicates the route requires an authenticated session
  * - `requiredPermission` may be static or dynamically resolved from route params
- * - `menu` controls navigation visibility and ordering
+ * - `menu` controls sidebar visibility, labeling, and ordering (list routes only)
+ * - `parent` links detail routes to their list/section route for hierarchy
+ * - `hidden` explicitly prevents a route from appearing in navigation
+ *
+ * Rules:
+ * - Only list routes should define `menu`
+ * - Detail and nested routes should define `parent`
+ * - Routes without `menu` never appear in the sidebar
+ * - `hidden` overrides `menu` visibility when present
  */
 export type RouteMeta = {
+  /** Route requires authenticated session */
   requiresAuth?: boolean;
+  
+  /** Permission required to access the route */
   requiredPermission?: string | DynamicPermissionResolver;
+  
+  /** Sidebar / navigation menu config (list routes only) */
   menu?: {
     title: string;
     order?: number;
+    icon?: ReactNode;
   };
+  
+  /** Parent route path for hierarchy, breadcrumbs, and active menu */
+  parent?: string;
+  
+  /** Explicitly prevent route from appearing in menus */
+  hidden?: boolean;
 };
 
 /**

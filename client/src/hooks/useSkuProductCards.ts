@@ -22,7 +22,7 @@ import type { SkuProductCardQueryParams } from '@features/sku/state';
  *  - fetch() function (memoized)
  *  - reset() function
  */
-export const useSkuProductCards = () => {
+const useSkuProductCards = () => {
   const dispatch = useAppDispatch();
 
   // -------------------------------------

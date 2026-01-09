@@ -101,35 +101,50 @@ export const appRoutes: AppRoute[] = [
     component: lazy(() => import('@features/product/pages/ProductDetailPage')),
     meta: { requiresAuth: true },
   }),
-
+  
   defineRoute({
     path: '/skus',
     component: lazy(() => import('@features/sku/pages/SkuListPage')),
     meta: {
       requiresAuth: true,
-      menu: { title: 'SKU Management', order: 6 },
+      menu: {
+        title: 'SKU Management',
+        order: 6,
+      },
     },
   }),
-  
+
   defineRoute({
     path: '/skus/:skuId',
     component: lazy(() => import('@features/sku/pages/SkuDetailPage')),
     meta: {
       requiresAuth: true,
-      menu: { title: 'SKU Management', order: 6 },
+      parent: '/skus',
     },
   }),
-
+  
   defineRoute({
     path: '/boms',
     component: lazy(() => import('@features/bom/pages/BomsListPage')),
     meta: {
       requiresAuth: true,
-      menu: { title: 'BOM Management', order: 7 },
+      menu: {
+        title: 'BOM Management',
+        order: 7,
+      },
+    },
+  }),
+  
+  defineRoute({
+    path: '/boms/:bomId',
+    component: lazy(() => import('@features/bom/pages/BomOverviewPage')),
+    meta: {
+      requiresAuth: true,
+      parent: '/boms',
     },
   }),
 
-  /* ---------- Orders ---------- */
+/* ---------- Orders ---------- */
 
   defineRoute({
     path: '/orders',
