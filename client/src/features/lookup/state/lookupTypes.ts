@@ -1,11 +1,13 @@
 import type {
   ApiSuccessResponse,
   AsyncState,
-  LookupPagination,
   LookupSuccessResponse,
   PaginatedLookupState,
-  PaginationLookupInfo,
 } from '@shared-types/api';
+import type {
+  LookupPagination,
+  PaginationLookupInfo,
+} from '@shared-types/pagination';
 
 /**
  * Represents a generic option item used in lookup components.

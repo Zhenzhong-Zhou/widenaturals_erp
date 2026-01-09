@@ -10,7 +10,7 @@ import ErrorMessage from '@components/common/ErrorMessage';
 import NoDataFound from '@components/common/NoDataFound';
 import usePaginatedSkus from '@hooks/usePaginatedSkus';
 import { applyFiltersAndSorting } from '@utils/queryUtils';
-import { usePaginationHandlers } from '@utils/hooks/usePaginationHandlers';
+import { usePaginationHandlers } from '@utils/hooks';
 import SkuListTable, {
   SkuFiltersPanel,
   SkuSortControls,

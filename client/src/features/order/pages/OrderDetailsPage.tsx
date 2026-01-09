@@ -40,7 +40,7 @@ import { useOrderDetails } from '@hooks/useOrderDetails';
 import { flattenSalesOrderHeader } from '@features/order/utils/transformOrderHeader';
 import useUpdateOrderStatus from '@hooks/useUpdateOrderStatus';
 import { getShortOrderNumber } from '@features/order/utils/orderUtils';
-import { useDialogFocusHandlers } from '@utils/hooks/useDialogFocusHandlers';
+import { useDialogFocusHandlers } from '@utils/hooks';
 
 const OrderDetailsPage: FC = () => {
   // Get the `orderType` and `orderId` from the URL

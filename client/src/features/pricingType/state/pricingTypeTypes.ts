@@ -1,8 +1,10 @@
 import type {
   ApiSuccessResponse,
   PaginatedResponse,
-  Pagination,
 } from '@shared-types/api';
+import type {
+  Pagination
+} from '@shared-types/pagination';
 
 export interface FetchPricingTypesParams {
   page?: number;

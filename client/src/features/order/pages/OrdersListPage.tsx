@@ -11,7 +11,7 @@ import {
   usePagePermissionState,
 } from '@features/authorize/hooks';
 import usePaginatedOrders from '@hooks/usePaginatedOrders';
-import { usePaginationHandlers } from '@utils/hooks/usePaginationHandlers';
+import { usePaginationHandlers } from '@utils/hooks';
 import { applyFiltersAndSorting } from '@utils/queryUtils';
 import type {
   OrderListFilters,

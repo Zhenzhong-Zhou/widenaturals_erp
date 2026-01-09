@@ -11,6 +11,7 @@ import {
   resetPaginatedSkus,
 } from '@features/sku/state';
 import type { FetchSkusParams } from '@features/sku/state';
+import { normalizePagination } from '@utils/pagination/normalizePagination';
 
 /**
  * React hook for accessing paginated SKU list state and actions.
@@ -62,14 +63,10 @@ const usePaginatedSkus = () => {
   // Derived memoized values
   // ---------------------------
   const pageInfo = useMemo(() => {
-    if (!pagination) {
-      return { page: 1, limit: 25 };
-    }
-    
-    const { page, limit } = pagination;
+    const { page, limit } = normalizePagination(pagination);
     return { page, limit };
   }, [pagination]);
-
+  
   return {
     data,
     pagination,

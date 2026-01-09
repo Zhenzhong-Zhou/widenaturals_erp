@@ -12,7 +12,7 @@ import NotFoundPage from '@pages/NotFoundPage';
 import GoBackButton from '@components/common/GoBackButton';
 import { usePagePermissionState } from '@features/authorize/hooks';
 import useSkuImageUpload from '@hooks/useSkuImageUpload';
-import { useDialogFocusHandlers } from '@utils/hooks/useDialogFocusHandlers';
+import { useDialogFocusHandlers } from '@utils/hooks';
 import { SelectedSku } from '@features/sku/state';
 import {
   BulkSkuImageUploadItem,

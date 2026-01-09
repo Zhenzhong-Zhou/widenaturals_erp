@@ -18,7 +18,7 @@ import Loading from '@components/common/Loading';
 import { useHasPermission } from '@features/authorize/hooks';
 import useSkuDetail from '@hooks/useSkuDetail';
 import useStatusLookup from '@hooks/useStatusLookup';
-import { useDialogFocusHandlers } from '@utils/hooks/useDialogFocusHandlers';
+import { useDialogFocusHandlers } from '@utils/hooks';
 import {
   flattenComplianceRecords,
   flattenPricingRecords,

@@ -15,7 +15,7 @@ import BomListTable, {
 } from '@features/bom/components/BomListTables';
 import type { BomListFilters, BomSortField } from '@features/bom/state';
 import { applyFiltersAndSorting } from '@utils/queryUtils';
-import { usePaginationHandlers } from '@utils/hooks/usePaginationHandlers';
+import { usePaginationHandlers } from '@utils/hooks';
 import { flattenBomRecords } from '@features/bom/utils/flattenBomData';
 
 /**

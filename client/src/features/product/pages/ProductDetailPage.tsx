@@ -12,7 +12,7 @@ import NotFoundPage from '@pages/NotFoundPage';
 import useProductDetail from '@hooks/useProductDetail';
 import useStatusLookup from '@hooks/useStatusLookup';
 import { usePagePermissionState } from '@features/authorize/hooks';
-import { useDialogFocusHandlers } from '@utils/hooks/useDialogFocusHandlers';
+import { useDialogFocusHandlers } from '@utils/hooks';
 import { flattenProductDetail } from '@features/product/utils/flattenProductDetail';
 import {
   ProductDetailAuditSection,

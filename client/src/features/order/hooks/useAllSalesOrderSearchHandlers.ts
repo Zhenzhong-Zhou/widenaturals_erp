@@ -1,4 +1,4 @@
-import useDebouncedSearch from '@utils/hooks/useDebouncedSearch';
+import { useDebouncedSearch } from '@utils/hooks';
 import type {
   CustomerLookupQuery,
   DeliveryMethodLookupQueryParams,

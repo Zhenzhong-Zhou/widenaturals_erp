@@ -1,3 +1,4 @@
+import { NullableNumber, NullableString } from '@shared-types/shared';
 import {
   ApiSuccessResponse,
   AsyncState,
@@ -8,10 +9,9 @@ import {
   ImageFileFormat,
   PaginatedResponse,
   PaginationParams,
-  ReduxPaginatedState,
   SortConfig,
 } from '@shared-types/api';
-import { NullableNumber, NullableString } from '@shared-types/shared';
+import { ReduxPaginatedState } from '@shared-types/pagination';
 
 /**
  * Base user view shared by all UI representations.

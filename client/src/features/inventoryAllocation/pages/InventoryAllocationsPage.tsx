@@ -11,7 +11,7 @@ import InventoryAllocationTable, {
   InventoryAllocationSortControls,
 } from '@features/inventoryAllocation/components/InventoryAllocationTable';
 import { usePaginatedInventoryAllocations } from '@hooks/usePaginatedInventoryAllocations';
-import { usePaginationHandlers } from '@utils/hooks/usePaginationHandlers';
+import { usePaginationHandlers } from '@utils/hooks';
 import { applyFiltersAndSorting } from '@utils/queryUtils';
 import type {
   InventoryAllocationFilters,

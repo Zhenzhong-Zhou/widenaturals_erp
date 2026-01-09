@@ -4,7 +4,7 @@ import type {
   FetchPricingTypesParams,
   PricingType,
 } from '@features/pricingType/state';
-import type { Pagination } from '@shared-types/api';
+import { Pagination } from '@shared-types/pagination';
 import {
   fetchAllPricingTypesThunk,
   selectError,

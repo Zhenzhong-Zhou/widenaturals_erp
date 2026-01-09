@@ -19,7 +19,7 @@ import type {
 } from '@features/orderType/state';
 import type { SortOrder } from '@shared-types/api';
 import { applyFiltersAndSorting } from '@utils/queryUtils';
-import { usePaginationHandlers } from '@utils/hooks/usePaginationHandlers';
+import { usePaginationHandlers } from '@utils/hooks';
 
 const OrderTypesPage: FC = () => {
   const [page, setPage] = useState(1);

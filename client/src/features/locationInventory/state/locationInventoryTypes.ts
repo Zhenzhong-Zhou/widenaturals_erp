@@ -12,10 +12,10 @@ import type {
   ApiSuccessResponse,
   AsyncState,
   PaginatedResponse,
-  ReduxPaginatedState,
   PaginationParams,
   SortConfig,
 } from '@shared-types/api';
+import type { ReduxPaginatedState } from '@shared-types/pagination';
 
 export type LocationInventorySummaryResponse =
   PaginatedResponse<LocationInventorySummary>;

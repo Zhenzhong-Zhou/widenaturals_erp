@@ -7,10 +7,10 @@ import {
   OperationStats,
   PaginatedResponse,
   PaginationParams,
-  ReduxPaginatedState,
   SortConfig,
   UpdateStatusIdRequest,
 } from '@shared-types/api';
+import { ReduxPaginatedState } from '@shared-types/pagination';
 
 /**
  * Input payload for creating a single product.

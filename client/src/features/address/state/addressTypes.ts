@@ -5,9 +5,9 @@ import type {
   MutationState,
   PaginatedResponse,
   PaginationParams,
-  ReduxPaginatedState,
   SortConfig,
 } from '@shared-types/api';
+import type { ReduxPaginatedState } from '@shared-types/pagination';
 
 /**
  * Represents a single address input record for creation or update.

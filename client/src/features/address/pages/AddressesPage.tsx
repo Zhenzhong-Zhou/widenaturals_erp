@@ -20,8 +20,7 @@ import AddressFiltersPanel from '@features/address/components/AddressFiltersPane
 import AddressSortControls from '@features/address/components/AddressSortControls';
 import usePaginateAddresses from '@hooks/usePaginateAddresses';
 import type { AddressFilterConditions, AddressSortField } from '../state';
-import { useDialogFocusHandlers } from '@utils/hooks/useDialogFocusHandlers';
-import { usePaginationHandlers } from '@utils/hooks/usePaginationHandlers';
+import { useDialogFocusHandlers, usePaginationHandlers } from '@utils/hooks';
 import type { SortOrder } from '@shared-types/api';
 import useCustomerLookup from '@hooks/useCustomerLookup';
 import type { CustomerLookupQuery } from '@features/lookup/state';

@@ -31,7 +31,7 @@ type PaginationMode = 'table' | 'page';
  *
  * @returns Pagination handler callbacks
  */
-export const usePaginationHandlers = (
+const usePaginationHandlers = (
   setPage: (page: number) => void,
   setLimit: (limit: number) => void,
   mode: PaginationMode = 'table'
@@ -59,3 +59,5 @@ export const usePaginationHandlers = (
 
   return { handlePageChange, handleRowsPerPageChange };
 };
+
+export default usePaginationHandlers;

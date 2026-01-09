@@ -1,10 +1,10 @@
 import type {
   PaginatedResponse,
-  ReduxPaginatedState,
   PaginationParams,
   SortConfig,
   MutationState,
 } from '@shared-types/api';
+import { ReduxPaginatedState } from '@shared-types/pagination';
 import type {
   BaseFlatInventoryRow,
   BaseInventoryFilters,

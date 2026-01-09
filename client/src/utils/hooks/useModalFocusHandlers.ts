@@ -6,7 +6,7 @@ import { useCallback, useRef, useState } from 'react';
  *
  * @param transitionDuration - Dialog transition duration (ms) to wait before restoring focus
  */
-export const useModalFocusHandlers = (transitionDuration: number = 300) => {
+const useModalFocusHandlers = (transitionDuration: number = 300) => {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
@@ -34,3 +34,5 @@ export const useModalFocusHandlers = (transitionDuration: number = 300) => {
     handleClose,
   };
 };
+
+export default useModalFocusHandlers;

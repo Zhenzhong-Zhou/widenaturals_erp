@@ -3,9 +3,9 @@ import type {
   AsyncState,
   PaginatedResponse,
   PaginationParams,
-  ReduxPaginatedState,
   SortConfig,
 } from '@shared-types/api';
+import type { ReduxPaginatedState } from '@shared-types/pagination';
 
 /**
  * Represents a single item in a sales order.

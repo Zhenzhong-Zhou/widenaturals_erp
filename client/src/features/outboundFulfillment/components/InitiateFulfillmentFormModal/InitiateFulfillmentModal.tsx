@@ -7,7 +7,7 @@ import CustomButton from '@components/common/CustomButton';
 import CustomTypography from '@components/common/CustomTypography';
 import { InitiateFulfillmentForm } from '@features/outboundFulfillment/components/InitiateFulfillmentFormModal';
 import type { InitiateFulfillmentBody } from '@features/outboundFulfillment/state';
-import { useModalFocusHandlers } from '@utils/hooks/useModalFocusHandlers';
+import { useModalFocusHandlers } from '@utils/hooks';
 
 interface InitiateFulfillmentModalProps {
   orderId: string;

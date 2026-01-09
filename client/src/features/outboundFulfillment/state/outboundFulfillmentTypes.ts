@@ -3,9 +3,9 @@ import type {
   AsyncState,
   PaginatedResponse,
   PaginationParams,
-  ReduxPaginatedState,
   SortConfig,
 } from '@shared-types/api';
+import type { ReduxPaginatedState } from '@shared-types/pagination';
 
 /**
  * Request body payload for initiating outbound fulfillment.

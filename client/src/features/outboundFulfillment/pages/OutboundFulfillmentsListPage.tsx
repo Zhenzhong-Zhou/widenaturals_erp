@@ -20,7 +20,7 @@ import {
   OutboundFulfillmentFiltersPanel,
   OutboundFulfillmentSortControls,
 } from '@features/outboundFulfillment/components/OutboundFulfillmentTable';
-import { usePaginationHandlers } from '@utils/hooks/usePaginationHandlers';
+import { usePaginationHandlers } from '@utils/hooks';
 import usePaginatedOutboundFulfillments from '@hooks/usePaginatedOutboundFulfillments';
 import type {
   OutboundFulfillmentFilters,

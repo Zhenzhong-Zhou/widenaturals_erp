@@ -18,8 +18,10 @@ import {
   useStatusLookup,
   useUserLookup,
 } from '@hooks/index';
-import { useDialogFocusHandlers } from '@utils/hooks/useDialogFocusHandlers';
-import { usePaginationHandlers } from '@utils/hooks/usePaginationHandlers';
+import {
+  useDialogFocusHandlers,
+  usePaginationHandlers
+} from '@utils/hooks';
 import type {
   ProductListFilters,
   ProductSortField,
