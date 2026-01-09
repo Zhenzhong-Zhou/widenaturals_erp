@@ -1,11 +1,13 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 
 /**
  * Base selector to access the allocateInventory slice from the global state.
  */
-const selectAllocateInventoryState = (state: RootState) =>
-  state.allocateInventory;
+const selectAllocateInventoryState = createSelector(
+  [selectRuntime],
+  (runtime) => runtime.allocateInventory
+);
 
 /**
  * Selector to retrieve the full allocation data (orderId + allocationIds).

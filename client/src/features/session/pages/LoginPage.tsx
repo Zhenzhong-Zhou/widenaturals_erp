@@ -1,8 +1,8 @@
 import { FC, useEffect } from 'react';
+import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import CustomTypography from '@components/common/CustomTypography';
 import LoginCard from '@features/session/components/LoginCard';
-import { useThemeContext } from '@context/ThemeContext';
 import { useLogin } from '@hooks/index';
 import { useLoginForm } from '@features/session/hooks';
 import logoDark from '@assets/wide-logo-dark.png';
@@ -11,7 +11,7 @@ import { useAppDispatch } from '@store/storeHooks';
 import { resetLogin } from '@features/session/state/loginSlice';
 
 const LoginPage: FC = () => {
-  const { theme } = useThemeContext();
+  const theme = useTheme();
   const logo = theme.palette.mode === 'dark' ? logoDark : logoLight;
   const dispatch = useAppDispatch();
   

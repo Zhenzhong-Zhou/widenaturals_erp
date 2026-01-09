@@ -1,5 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 import {
   createLookupMetaSelector,
   mapLookupItems,
@@ -12,8 +12,10 @@ import type {
 /**
  * Base selector for the payment method lookup slice.
  */
-const selectPaymentMethodLookupState = (state: RootState) =>
-  state.paymentMethodLookup;
+const selectPaymentMethodLookupState= createSelector(
+  [selectRuntime],
+  (runtime) => runtime.paymentMethodLookup
+);
 
 /**
  * Selector for retrieving the list of payment method lookup items.

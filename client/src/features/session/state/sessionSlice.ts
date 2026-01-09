@@ -47,7 +47,9 @@ const sessionSlice = createSlice({
      */
     setAccessToken: (state, action: PayloadAction<string>) => {
       if (!action.payload) return;
+      
       state.accessToken = action.payload;
+      state.resolving = false;
     },
     
     /**

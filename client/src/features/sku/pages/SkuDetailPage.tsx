@@ -14,6 +14,7 @@ import DetailPage from '@components/common/DetailPage';
 import CustomButton from '@components/common/CustomButton';
 import GoBackButton from '@components/common/GoBackButton';
 import NotFoundPage from '@pages/NotFoundPage';
+import Loading from '@components/common/Loading';
 import { useHasPermission } from '@features/authorize/hooks';
 import useSkuDetail from '@hooks/useSkuDetail';
 import useStatusLookup from '@hooks/useStatusLookup';
@@ -154,12 +155,20 @@ const SkuDetailPage: FC = () => {
    * If both SKU and parent product are inactive → deny access
    * unless user has explicit permission
    * --------------------------------------------------------- */
-  const isInactive =
-    sku?.status?.name !== 'active' || sku?.product?.status?.name !== 'active';
+  const isInactive = sku?.status?.name !== 'active';
 
   // Prevent access to inactive SKUs unless user has proper permissions
   if (sku && isInactive && !canViewInactive) {
     return <Navigate to="/404" replace />;
+  }
+  
+  if (!product) {
+    return (
+      <Loading
+        variant="dotted"
+        message="Loading product details..."
+      />
+    );
   }
 
   /* ---------------------------------------------------------

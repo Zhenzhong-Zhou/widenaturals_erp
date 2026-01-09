@@ -1,10 +1,13 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 
 /**
  * Base selector to access the paginate address slice state.
  */
-const selectPaginateAddressState = (state: RootState) => state.paginatedAddress;
+const selectPaginateAddressState= createSelector(
+  [selectRuntime],
+  (runtime) => runtime.paginatedAddress
+);
 
 /**
  * Selector to get the list of paginated address records.

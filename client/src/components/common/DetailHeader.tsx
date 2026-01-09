@@ -1,9 +1,9 @@
 import type { FC } from 'react';
+import { useTheme } from '@mui/material';
+import type { SxProps, Theme } from '@mui/system';
 import Box from '@mui/material/Box';
 import Avatar from '@mui/material/Avatar';
 import CustomTypography from '@components/common/CustomTypography';
-import { useThemeContext } from '@context/ThemeContext';
-import type { SxProps, Theme } from '@mui/system';
 
 interface DetailHeaderProps {
   avatarSrc?: string;
@@ -20,7 +20,7 @@ const DetailHeader: FC<DetailHeaderProps> = ({
   subtitle,
   sx,
 }) => {
-  const { theme } = useThemeContext();
+  const theme = useTheme();
 
   return (
     <Box

@@ -1,12 +1,14 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 import type { CustomerListItem } from './customerTypes';
 
 /**
  * Base selector for the paginatedCustomers slice.
  */
-const selectPaginatedCustomersState = (state: RootState) =>
-  state.paginatedCustomers;
+const selectPaginatedCustomersState= createSelector(
+  [selectRuntime],
+  (runtime) => runtime.paginatedCustomers
+);
 
 /**
  * Selector for the list of customers.
@@ -53,7 +55,7 @@ export const selectPaginatedCustomersError = createSelector(
  */
 export const selectPaginatedCustomersPage = createSelector(
   [selectPaginatedCustomersPagination],
-  (pagination) => pagination.page
+  (pagination) => pagination?.page ?? 1
 );
 
 /**
@@ -65,7 +67,7 @@ export const selectPaginatedCustomersPage = createSelector(
  */
 export const selectPaginatedCustomersLimit = createSelector(
   [selectPaginatedCustomersPagination],
-  (pagination) => pagination.limit
+  (pagination) => pagination?.limit ?? 10
 );
 
 /**
@@ -75,7 +77,7 @@ export const selectPaginatedCustomersLimit = createSelector(
  */
 export const selectPaginatedCustomersTotalRecords = createSelector(
   [selectPaginatedCustomersPagination],
-  (pagination) => pagination.totalRecords
+  (pagination) => pagination?.totalRecords ?? 0
 );
 
 /**
@@ -85,5 +87,5 @@ export const selectPaginatedCustomersTotalRecords = createSelector(
  */
 export const selectPaginatedCustomersTotalPages = createSelector(
   [selectPaginatedCustomersPagination],
-  (pagination) => pagination.totalPages
+  (pagination) => pagination?.totalPages ?? 1
 );

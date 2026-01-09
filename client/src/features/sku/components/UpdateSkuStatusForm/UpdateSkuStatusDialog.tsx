@@ -106,7 +106,7 @@ const UpdateSkuStatusDialog = ({
   // ---------------------------------------------------------------------------
   // UI STATE 1: Success Mode
   // ---------------------------------------------------------------------------
-  if (updateStatusSuccess) {
+  if (updateStatusSuccess && updateStatusData) {
     return (
       <UpdateSkuStatusSuccessDialog
         open={open}

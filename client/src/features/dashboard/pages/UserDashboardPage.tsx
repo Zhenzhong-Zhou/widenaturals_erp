@@ -22,7 +22,7 @@ const UserDashboardPage: FC<DashboardPageProps> = ({
   
   return (
     <DashboardLayout
-      fullName={fullName}
+      fullName={fullName ?? undefined}
       header={
         <>
           <CustomTypography variant="body1" gutterBottom>

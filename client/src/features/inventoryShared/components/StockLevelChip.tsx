@@ -1,15 +1,15 @@
-import { memo, type FC, useMemo } from 'react';
-import Chip from '@mui/material/Chip';
+import { type FC, memo, useMemo } from 'react';
+import { useTheme } from '@mui/material/styles';
 import type { Palette, PaletteColor } from '@mui/material';
-import { useThemeContext } from '@context/ThemeContext.tsx';
-import { formatLabel } from '@utils/textUtils.ts';
+import Chip from '@mui/material/Chip';
+import { formatLabel } from '@utils/textUtils';
 
 export interface StockLevelChipProps {
   stockLevel: 'none' | 'low_stock' | 'critical' | 'normal' | 'expired';
 }
 
 const StockLevelChip: FC<StockLevelChipProps> = ({ stockLevel }) => {
-  const { theme } = useThemeContext();
+  const theme = useTheme();
 
   const getPaletteColor = (chipColor: keyof Palette): string => {
     const paletteEntry = theme.palette[chipColor as keyof Palette] as

@@ -137,15 +137,17 @@ const BomListPage = () => {
       </Card>
 
       {/* BOM Table Section */}
-      {bomLoading ? (
+      {bomLoading || !bomPagination ? (
         <Loading variant="dotted" message="Loading boms..." />
       ) : bomError ? (
-        <ErrorMessage message={bomError} showNavigation={true} />
-      ) : (isBomListEmpty ?? flattenData.length === 0) ? (
+        <ErrorMessage message={bomError} showNavigation />
+      ) : isBomListEmpty || flattenData.length === 0 ? (
         <NoDataFound
           message="No boms found."
           action={
-            <CustomButton onClick={handleResetFilters}>Reset</CustomButton>
+            <CustomButton onClick={handleResetFilters}>
+              Reset
+            </CustomButton>
           }
         />
       ) : (
@@ -154,8 +156,8 @@ const BomListPage = () => {
           loading={bomLoading}
           page={page - 1}
           rowsPerPage={limit}
-          totalRecords={bomPagination.totalRecords || 0}
-          totalPages={bomPagination.totalPages || 0}
+          totalRecords={bomPagination.totalRecords}
+          totalPages={bomPagination.totalPages}
           onPageChange={handlePageChange}
           onRowsPerPageChange={handleRowsPerPageChange}
           expandedRowId={expandedRowId}

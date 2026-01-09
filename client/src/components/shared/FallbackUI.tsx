@@ -1,10 +1,10 @@
 import { type FC, useState } from 'react';
+import { useTheme } from '@mui/material';
 import Box from '@mui/material/Box';
 import CustomTypography from '@components/common/CustomTypography';
 import ErrorMessage from '@components/common/ErrorMessage';
 import CustomButton from '@components/common/CustomButton';
 import GoBackButton from '@components/common/GoBackButton';
-import { useThemeContext } from '@context/ThemeContext';
 
 interface FallbackUIProps {
   title?: string;
@@ -21,7 +21,7 @@ const FallbackUI: FC<FallbackUIProps> = ({
   errorLog,
   onRetry,
 }) => {
-  const { theme } = useThemeContext();
+  const theme = useTheme();
   const [showDetails, setShowDetails] = useState(false);
 
   const handleGoHome = () => {

@@ -31,7 +31,7 @@ import BaseInput from '@components/common/BaseInput';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import CustomPhoneInput from '@components/common/CustomPhoneInput';
-import { useThemeContext } from '@context/ThemeContext';
+import { useTheme } from '@mui/material';
 import type { SxProps, Theme } from '@mui/system';
 
 export type CustomRenderParams = {
@@ -105,8 +105,8 @@ const CustomFormInner = <TFieldValues extends FieldValues = FieldValues>(
     sx,
     formInstance,
   } = props;
-
-  const { theme } = useThemeContext();
+  
+  const theme = useTheme();
 
   const defaultedInitialValues =
     initialValues ?? ({} as DefaultValues<TFieldValues>);

@@ -1,5 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 import {
   createLookupMetaSelector,
   mapLookupItems,
@@ -12,8 +12,10 @@ import type {
 /**
  * Base selector for the delivery method lookup slice.
  */
-const selectDeliveryMethodLookupState = (state: RootState) =>
-  state.deliveryMethodLookup;
+const selectDeliveryMethodLookupState= createSelector(
+  [selectRuntime],
+  (runtime) => runtime.deliveryMethodLookup
+);
 
 /**
  * Selector for retrieving the list of delivery method lookup items.

@@ -65,7 +65,7 @@ const UpdateProductStatusDialog = ({
   // ----------------------------------------------------------
   // SUCCESS
   // ----------------------------------------------------------
-  if (updateStatusSuccess) {
+  if (updateStatusSuccess && updateStatusData) {
     return (
       <UpdateProductStatusSuccessDialog
         open={open}

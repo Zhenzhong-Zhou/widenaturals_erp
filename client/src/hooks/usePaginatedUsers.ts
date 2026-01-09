@@ -73,14 +73,21 @@ const usePaginatedUsers = () => {
   // ---------------------------
   // Derived memoized values
   // ---------------------------
+  const normalizedPagination = pagination ?? {
+    page: 1,
+    limit: 25,
+    totalPages: 0,
+    totalRecords: 0,
+  };
+  
   const pageInfo = useMemo(
     () => ({
-      page: pagination.page,
-      limit: pagination.limit,
-      totalPages: pagination.totalPages,
-      totalRecords: pagination.totalRecords,
+      page: normalizedPagination.page,
+      limit: normalizedPagination.limit,
+      totalPages: normalizedPagination.totalPages,
+      totalRecords: normalizedPagination.totalRecords,
     }),
-    [pagination]
+    [normalizedPagination]
   );
 
   return {

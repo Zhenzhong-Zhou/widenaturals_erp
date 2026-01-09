@@ -1,7 +1,7 @@
 import type { FC, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from '@mui/material';
 import Box from '@mui/material/Box';
-import { useThemeContext } from '@context/ThemeContext';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import GoBackButton from '@components/common/GoBackButton';
@@ -43,7 +43,7 @@ const ErrorDisplay: FC<ErrorDisplayProps> = ({
                                                onHardReset,
                                                children,
 }) => {
-  const { theme } = useThemeContext();
+  const theme = useTheme();
   const navigate = useNavigate();
 
   return (

@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useThemeContext } from '@context/ThemeContext';
+import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import CustomTypography from '@components/common/CustomTypography';
@@ -31,7 +31,7 @@ import type { CreateSkuInput } from '@features/sku/state';
  */
 const CreateSkuPage = () => {
   const navigate = useNavigate();
-  const { theme } = useThemeContext();
+  const theme = useTheme();
 
   /** Single or bulk create mode */
   const [mode, setMode] = useState<'single' | 'bulk'>('single');

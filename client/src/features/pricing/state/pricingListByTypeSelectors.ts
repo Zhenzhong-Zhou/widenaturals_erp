@@ -1,11 +1,13 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 
 /**
  * Base selector to access the pricingListByType slice from the root state.
  */
-const selectPricingListByTypeState = (state: RootState) =>
-  state.pricingListByType;
+const selectPricingListByTypeState= createSelector(
+  [selectRuntime],
+  (runtime) => runtime.pricingListByType
+);
 
 /**
  * Selector to retrieve the list of pricing detail records.

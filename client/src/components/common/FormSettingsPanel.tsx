@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import { useThemeContext } from '@context/ThemeContext';
+import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import FormGroup from '@mui/material/FormGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -18,7 +18,7 @@ interface FormSettingsPanelProps {
 }
 
 const FormSettingsPanel: FC<FormSettingsPanelProps> = ({ settings }) => {
-  const { theme } = useThemeContext();
+  const theme = useTheme();
 
   return (
     <Box

@@ -2,7 +2,6 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import { persistor } from '@store/store';
 import { sessionService } from '@services/sessionService';
 import {
-  AppError,
   extractErrorMessage,
   extractUiErrorPayload
 } from '@utils/error';
@@ -63,45 +62,41 @@ export const loginThunk = createAsyncThunk<
  * Bootstraps the client-side session state on application startup.
  *
  * Responsibilities:
- * - Attempt to restore an existing authenticated session via refresh token
- * - Hydrate in-memory access token state when a valid session exists
- * - Resolve the bootstrap lifecycle regardless of authentication outcome
+ * - Attempt to restore an existing session using the refresh-token flow
+ * - Hydrate in-memory access token state when refresh succeeds
+ * - Normalize unauthenticated outcomes by resetting session state
+ * - Always finalize the bootstrap lifecycle
  *
  * Explicitly out of scope:
  * - Credential-based login flows
- * - UI navigation or redirect logic
- * - Permission or authorization evaluation
+ * - UI navigation, redirects, or routing decisions
+ * - Permission loading or authorization evaluation
+ *
+ * Behavioral guarantees:
+ * - Missing, expired, or invalid refresh tokens are treated as unauthenticated states
+ * - Refresh failures do not surface errors to the UI
+ * - The bootstrap lifecycle is always completed via `markBootstrapComplete`
  *
  * Notes:
- * - A missing or invalid refresh token is treated as a valid unauthenticated state
- * - Authentication failures during bootstrap do not surface to the UI
- * - The bootstrap lifecycle is always completed via `markBootstrapComplete`
+ * - Access tokens are stored in memory only
+ * - A successful refresh is defined strictly by the presence of an access token
  */
-export const bootstrapSessionThunk = createAsyncThunk<
-  void,
-  void
->(
+export const bootstrapSessionThunk = createAsyncThunk(
   'session/bootstrap',
   async (_, { dispatch }) => {
     try {
       const result = await sessionService.refreshToken();
       
-      if (!result || !result.accessToken) {
-        throw AppError.authentication('No access token returned from refresh');
-      }
-      
-      dispatch(setAccessToken(result.accessToken));
-    } catch (error) {
-      // Expected case: user is not logged in
-      if (error instanceof AppError && error.type === 'Authentication') {
+      if (result?.accessToken) {
+        dispatch(setAccessToken(result.accessToken));
+      } else {
         dispatch(resetSession());
-        return;
       }
-      
-      // Defensive fallback
+    } catch {
+      // System-level failure only (network, 5xx, etc.)
       dispatch(resetSession());
-      throw error;
     } finally {
+      // Always mark bootstrap as complete
       dispatch(markBootstrapComplete());
     }
   }

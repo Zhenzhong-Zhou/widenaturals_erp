@@ -1,5 +1,6 @@
 import { type FC, type MouseEvent, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Avatar from '@mui/material/Avatar';
 import IconButton from '@mui/material/IconButton';
@@ -11,8 +12,7 @@ import { faSun, faMoon } from '@fortawesome/free-solid-svg-icons';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import { HealthStatus } from '@features/health/components';
-import { useThemeContext } from '@context/ThemeContext';
-import { useLogout } from '@hooks/index';
+import { useLogout, useThemeMode } from '@hooks/index';
 import { useAppSelector } from '@store/storeHooks';
 import { selectSelfUserFullName } from '@features/user';
 import { headerStyles, typographyStyles } from '@layouts/Header/headerStyles';
@@ -24,7 +24,8 @@ import { headerStyles, typographyStyles } from '@layouts/Header/headerStyles';
  * and user profile actions.
  */
 const Header: FC = () => {
-  const { theme, toggleTheme } = useThemeContext();
+  const theme = useTheme();
+  const { toggleTheme } = useThemeMode();
   const { logout } = useLogout();
   const navigate = useNavigate();
   
@@ -96,10 +97,10 @@ const Header: FC = () => {
           />
           {theme.palette.mode === 'dark' ? 'Light' : 'Dark'} Mode
         </CustomButton>
-
+        
         <IconButton
           onClick={handleMenuOpen}
-          title={fullName}
+          title={fullName ?? undefined}
           size="small"
           sx={{ border: `2px solid ${theme.palette.primary.main}` }}
         >

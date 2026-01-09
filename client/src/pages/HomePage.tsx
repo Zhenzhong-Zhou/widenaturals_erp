@@ -1,12 +1,12 @@
 import type { FC } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import CustomButton from '@components/common//CustomButton';
 import CustomTypography from '@components/common/CustomTypography';
-import { useThemeContext } from '@context/ThemeContext';
 
 const HomePage: FC = () => {
-  const { theme } = useThemeContext(); // Get theme from context
+  const theme = useTheme();
   const navigate = useNavigate();
 
   const handleRedirect = () => {

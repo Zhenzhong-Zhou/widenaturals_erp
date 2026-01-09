@@ -293,7 +293,7 @@ const InventoryOverviewPage = () => {
           returnFocusRef={openButtonRef}
           data={mergedData}
           loading={logLoading}
-          error={logError}
+          error={logError ?? ''}
           page={logPage}
           totalPages={pagination?.totalPages ?? 1}
           totalRecords={pagination?.totalRecords ?? 0}

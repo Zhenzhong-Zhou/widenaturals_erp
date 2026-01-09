@@ -7,7 +7,7 @@ import {
   useEffect,
 } from 'react';
 import { alpha, useMediaQuery } from '@mui/material';
-import { useThemeContext } from '@context/ThemeContext';
+import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import CardMedia from '@mui/material/CardMedia';
 import Stack from '@mui/material/Stack';
@@ -49,7 +49,7 @@ const SkuImageGallery: FC<Props> = ({
   /* ----------------------------------------------------------------------- */
   /* LOCAL STATE                                                             */
   /* ----------------------------------------------------------------------- */
-  const { theme } = useThemeContext();
+  const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Thumbnail paging (desktop)

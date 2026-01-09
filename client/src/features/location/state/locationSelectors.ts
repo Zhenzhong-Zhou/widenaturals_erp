@@ -1,10 +1,13 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 
 /**
  * Select the entire locations state.
  */
-const selectLocationState = (state: RootState) => state.locations;
+const selectLocationState= createSelector(
+  [selectRuntime],
+  (runtime) => runtime.locations
+);
 
 /**
  * Select the list of locations.

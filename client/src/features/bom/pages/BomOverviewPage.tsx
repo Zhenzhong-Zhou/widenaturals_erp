@@ -169,6 +169,10 @@ const BomOverviewPage = () => {
   if (isPageLoading) {
     return <Loading message="Loading BOM overview..." />;
   }
+  
+  if (!supplySummary) {
+    return null; // or a defensive fallback
+  }
 
   return (
     <Box sx={{ p: 3 }}>

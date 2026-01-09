@@ -1,8 +1,11 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 
 // Base Selector
-const selectWarehouseState = (state: RootState) => state.warehouses;
+const selectWarehouseState = createSelector(
+  [selectRuntime],
+  (runtime) => runtime.warehouses
+);
 
 // Memoized Selectors
 export const selectWarehouses = createSelector(

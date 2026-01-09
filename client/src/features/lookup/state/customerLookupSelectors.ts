@@ -1,5 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 import {
   createLookupMetaSelector,
   mapLookupItems,
@@ -11,7 +11,10 @@ import {
  * @param state - The root Redux state
  * @returns The customer lookup state slice
  */
-const selectCustomerLookupState = (state: RootState) => state.customerLookup;
+const selectCustomerLookupState = createSelector(
+  [selectRuntime],
+  (runtime) => runtime.customerLookup
+);
 
 /**
  * Selector to retrieve the raw customer lookup items.

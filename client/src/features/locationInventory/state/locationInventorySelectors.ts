@@ -1,12 +1,13 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 
 /**
  * Base selector to access the locationInventory slice from the root state.
  */
-const selectLocationInventoryState = (state: RootState) => {
-  return state.locationInventory;
-};
+const selectLocationInventoryState= createSelector(
+  [selectRuntime],
+  (runtime) => runtime.locationInventory
+);
 
 /**
  * Selector to get the inventory record list.

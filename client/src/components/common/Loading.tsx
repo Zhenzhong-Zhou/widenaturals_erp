@@ -2,9 +2,8 @@ import type { FC } from 'react';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import LinearProgress from '@mui/material/LinearProgress';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material';
 import type { Theme, SxProps } from '@mui/material/styles';
-import { useThemeContext } from '@context/ThemeContext';
 
 interface LoadingProps {
   /** Size for circular or dotted loaders */
@@ -44,7 +43,7 @@ const Loading: FC<LoadingProps> = ({
   variant = 'spinner',
   fullPage = false,
 }) => {
-  const { theme } = useThemeContext();
+  const theme = useTheme();
 
   /* ----------------------------------------
    * Base container styles (inline by default)

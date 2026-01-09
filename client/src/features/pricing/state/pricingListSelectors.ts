@@ -1,8 +1,11 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 
 // Base selector
-const selectPricingListState = (state: RootState) => state.pricingList;
+const selectPricingListState = createSelector(
+  [selectRuntime],
+  (runtime) => runtime.pricingList
+);
 
 /**
  * Selector to get pricing records.
@@ -41,7 +44,7 @@ export const selectPricingError = createSelector(
  */
 export const selectPricingTotalCount = createSelector(
   [selectPricingListState],
-  (state) => state.pagination.totalRecords
+  (state) => state.pagination?.totalRecords ?? 0
 );
 
 /**

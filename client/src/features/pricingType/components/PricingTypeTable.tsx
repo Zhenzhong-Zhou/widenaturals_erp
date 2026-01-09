@@ -1,10 +1,10 @@
 import type { FC } from 'react';
 import { Link } from 'react-router-dom';
+import { useTheme } from '@mui/material/styles';
 import type { PricingType } from '@features/pricingType';
 import CustomTable, { type Column } from '@components/common/CustomTable';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import { formatNullable } from '@utils/textUtils';
-import { useThemeContext } from '@context/ThemeContext.tsx';
 import type { PricingTypeTableProps } from '../state';
 
 const PricingTypeTable: FC<PricingTypeTableProps> = ({
@@ -16,7 +16,7 @@ const PricingTypeTable: FC<PricingTypeTableProps> = ({
   onPageChange,
   onRowsPerPageChange,
 }) => {
-  const { theme } = useThemeContext();
+  const theme = useTheme();
 
   const columns: Column<PricingType>[] = [
     {

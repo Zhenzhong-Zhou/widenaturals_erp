@@ -62,6 +62,10 @@ const usePaginatedSkus = () => {
   // Derived memoized values
   // ---------------------------
   const pageInfo = useMemo(() => {
+    if (!pagination) {
+      return { page: 1, limit: 25 };
+    }
+    
     const { page, limit } = pagination;
     return { page, limit };
   }, [pagination]);

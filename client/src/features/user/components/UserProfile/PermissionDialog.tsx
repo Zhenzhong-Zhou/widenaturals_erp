@@ -1,4 +1,5 @@
 import type { FC } from 'react';
+import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 import Grid from '@mui/material/Grid';
@@ -8,7 +9,6 @@ import ListItemText from '@mui/material/ListItemText';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import CustomDialog from '@components/common/CustomDialog';
 import CustomTypography from '@components/common/CustomTypography';
-import { useThemeContext } from '@context/ThemeContext';
 
 interface PermissionDialogProps {
   open: boolean;
@@ -23,7 +23,7 @@ const PermissionDialog: FC<PermissionDialogProps> = ({
   permissions,
   roleName,
 }) => {
-  const { theme } = useThemeContext();
+  const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Split permissions into 1–2 columns depending on screen size and list length

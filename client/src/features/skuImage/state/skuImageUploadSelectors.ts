@@ -1,5 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 
 /**
  * Base selector for the SKU image upload slice.
@@ -7,7 +7,10 @@ import { RootState } from '@store/store';
  * @param state - The Redux root state.
  * @returns The skuImageUpload slice of state.
  */
-const selectSkuImageUploadState = (state: RootState) => state.skuImageUpload;
+const selectSkuImageUploadState= createSelector(
+  [selectRuntime],
+  (runtime) => runtime.skuImageUpload
+);
 
 /**
  * Whether the SKU image upload request is currently loading.
@@ -56,8 +59,8 @@ export const selectSkuImageUploadResults = createSelector(
  * Falls back to 0 if no stats exist yet.
  */
 export const selectSkuImageUploadSucceededCount = createSelector(
-  selectSkuImageUploadStats,
-  (stats) => stats?.succeeded ?? 0
+  [selectSkuImageUploadStats],
+  (stats) => stats?.successCount ?? 0
 );
 
 /**
@@ -66,8 +69,8 @@ export const selectSkuImageUploadSucceededCount = createSelector(
  * Falls back to 0 if no stats exist yet.
  */
 export const selectSkuImageUploadFailedCount = createSelector(
-  selectSkuImageUploadStats,
-  (stats) => stats?.failed ?? 0
+  [selectSkuImageUploadStats],
+  (stats) => stats?.failureCount ?? 0
 );
 
 /**

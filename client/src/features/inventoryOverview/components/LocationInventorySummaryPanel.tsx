@@ -4,6 +4,7 @@ import CustomButton from '@components/common/CustomButton';
 import CustomTypography from '@components/common/CustomTypography';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
+import Loading from '@components/common/Loading';
 import useLocationInventorySummary from '@hooks/useLocationInventorySummary';
 import useLocationInventorySummaryByItemId from '@hooks/useLocationInventorySummaryByItemId';
 import { useExpandableDetailPanel } from '@features/inventoryOverview/hook/useExpandableDetailPanel';
@@ -156,7 +157,17 @@ const LocationInventorySummaryPanel: FC<Props> = ({
       </CustomTypography>
     );
   }
-
+  
+  const isPageLoading =
+    summaryLoading ||
+    detailLoading ||
+    !summaryPagination ||
+    !detailsPagination;
+  
+  if (isPageLoading) {
+    return <Loading message="Loading inventory summary..." />;
+  }
+  
   return (
     <>
       <Suspense
@@ -189,7 +200,7 @@ const LocationInventorySummaryPanel: FC<Props> = ({
           showActionsWhenAll={true}
           requireBatchTypeForActions={true}
         />
-
+        
         <LocationInventorySummaryTable
           data={summaryData}
           page={page - 1}

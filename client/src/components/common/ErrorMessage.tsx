@@ -1,8 +1,8 @@
 import type { FC } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTheme } from '@mui/material';
 import Box, { type BoxProps } from '@mui/material/Box';
 import CustomButton from '@components/common/CustomButton';
-import { useThemeContext } from '@context/ThemeContext';
-import { useNavigate } from 'react-router-dom';
 
 interface ErrorMessageProps extends BoxProps {
   message: string | null;
@@ -21,7 +21,7 @@ const ErrorMessage: FC<ErrorMessageProps> = ({
   sx,
   ...props
 }) => {
-  const { theme } = useThemeContext();
+  const theme = useTheme();
   const navigate = useNavigate();
 
   const colorMap = {

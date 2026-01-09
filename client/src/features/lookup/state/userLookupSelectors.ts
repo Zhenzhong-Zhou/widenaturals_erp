@@ -1,5 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 import {
   createLookupMetaSelector,
   mapLookupItems,
@@ -12,8 +12,10 @@ import type {
 /**
  * Base selector for the User lookup slice.
  */
-export const selectUserLookupState = (state: RootState) =>
-  state.userLookup;
+const selectUserLookupState= createSelector(
+  [selectRuntime],
+  (runtime) => runtime.userLookup
+);
 
 /**
  * Retrieves user lookup items.

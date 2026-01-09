@@ -231,25 +231,25 @@ const OrdersListPage = () => {
         {!ordersLoading && !ordersError && orders.length === 0 && (
           <NoDataFound message="No addresses found." />
         )}
-
-        {!ordersLoading && !ordersError && orders.length > 0 && (
-          <Suspense fallback={<Skeleton height={300} />}>
-            <OrdersTable
-              category={mode || 'sales'}
-              data={orders}
-              loading={ordersLoading}
-              page={page - 1}
-              rowsPerPage={limit}
-              totalRecords={pagination.totalRecords || 0}
-              totalPages={pagination.totalPages || 0}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-              expandedRowId={expandedRowId}
-              onDrillDownToggle={handleDrillDownToggle}
-              onRefresh={handleRefresh}
-            />
-          </Suspense>
-        )}
+        
+        {!ordersLoading && !ordersError && pagination && orders.length > 0 && (
+            <Suspense fallback={<Skeleton height={300} />}>
+              <OrdersTable
+                category={mode || 'sales'}
+                data={orders}
+                loading={ordersLoading}
+                page={page - 1}
+                rowsPerPage={limit}
+                totalRecords={pagination.totalRecords}
+                totalPages={pagination.totalPages}
+                onPageChange={handlePageChange}
+                onRowsPerPageChange={handleRowsPerPageChange}
+                expandedRowId={expandedRowId}
+                onDrillDownToggle={handleDrillDownToggle}
+                onRefresh={handleRefresh}
+              />
+            </Suspense>
+          )}
       </Box>
     </Box>
   );

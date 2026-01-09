@@ -1,8 +1,6 @@
-import type { FC, ReactNode } from 'react';
-import { useEffect, useState } from 'react';
-import Box from '@mui/material/Box';
+import { FC, ReactNode, useEffect, useState } from 'react';
 import { useMediaQuery, useTheme } from '@mui/material';
-import { useThemeContext } from '@context/ThemeContext';
+import Box from '@mui/material/Box';
 import Sidebar from '@layouts/Sidebar/Sidebar';
 import Header from '@layouts/Header/Header';
 import Footer from '@layouts/Footer/Footer';
@@ -33,9 +31,8 @@ interface MainLayoutProps {
  * - Inject props into children
  */
 const MainLayout: FC<MainLayoutProps> = ({ children }) => {
-  const { theme } = useThemeContext();
-  const muiTheme = useTheme();
-  const isSmallScreen = useMediaQuery(muiTheme.breakpoints.down('md'));
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
 
   const [isSidebarOpen, setSidebarOpen] = useState(!isSmallScreen);
 

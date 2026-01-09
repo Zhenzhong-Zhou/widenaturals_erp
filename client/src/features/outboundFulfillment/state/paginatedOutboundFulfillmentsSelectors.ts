@@ -1,12 +1,14 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 
 /**
  * Base selector to access the paginated outbound fulfillments slice
  * from the Redux store.
  */
-const selectPaginatedOutboundFulfillmentsState = (state: RootState) =>
-  state.paginatedOutboundFulfillments;
+const selectPaginatedOutboundFulfillmentsState= createSelector(
+  [selectRuntime],
+  (runtime) => runtime.paginatedOutboundFulfillments
+);
 
 /**
  * Selector to get the loading state of outbound fulfillments.

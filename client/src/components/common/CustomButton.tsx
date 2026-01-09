@@ -1,10 +1,10 @@
 import type { FC, ReactNode } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
+import { useTheme } from '@mui/material';
+import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import type { ButtonProps } from '@mui/material/Button';
-import { Link as RouterLink } from 'react-router-dom';
-import { useThemeContext } from '@context/ThemeContext';
 import Loading from '@components/common/Loading';
-import Box from '@mui/material/Box';
 
 interface CustomButtonProps extends ButtonProps {
   to?: string; // Optional 'to' prop for routing
@@ -28,7 +28,7 @@ const CustomButton: FC<CustomButtonProps> = ({
   loading,
   ...props
 }) => {
-  const { theme } = useThemeContext();
+  const theme = useTheme();
 
   const borderRadius = theme.shape?.borderRadius ?? 6; // fallback if isn't defined
   const spacing = theme.spacing?.(1, 2) ?? '8px 16px';

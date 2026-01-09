@@ -1,13 +1,13 @@
 import { memo, type FC, useMemo } from 'react';
+import { useTheme } from '@mui/material/styles';
 import Chip from '@mui/material/Chip';
-import { useThemeContext } from '@context/ThemeContext.tsx';
 
 interface Props {
   isExpired: boolean;
 }
 
 const IsExpiredChip: FC<Props> = ({ isExpired }) => {
-  const { theme } = useThemeContext();
+  const theme = useTheme();
 
   const { label, color } = useMemo(() => {
     return isExpired

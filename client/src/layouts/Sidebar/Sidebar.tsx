@@ -1,5 +1,6 @@
 import { FC, useMemo } from 'react';
 import { NavLink } from 'react-router-dom';
+import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Drawer from '@mui/material/Drawer';
@@ -10,7 +11,6 @@ import ListItemText from '@mui/material/ListItemText';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBars, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { sidebarStyles } from './sidebarStyles';
-import { useThemeContext } from '@context/ThemeContext';
 import { useHasPermission } from '@features/authorize/hooks';
 import logoDark from '@assets/wide-logo-dark.png';
 import logoLight from '@assets/wide-logo-light.png';
@@ -34,7 +34,7 @@ interface SidebarProps {
  * - Control auth lifecycle
  */
 const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
-  const { theme } = useThemeContext();
+  const theme = useTheme();
   const hasPermission = useHasPermission();
 
   const logo = theme.palette.mode === 'dark' ? logoDark : logoLight;

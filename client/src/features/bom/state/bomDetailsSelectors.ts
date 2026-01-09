@@ -1,8 +1,11 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 
 /** Base selector to access the BOM details slice state. */
-export const selectBomDetailsState = (state: RootState) => state.bomDetails;
+const selectBomDetailsState= createSelector(
+  [selectRuntime],
+  (runtime) => runtime.bomDetails
+);
 
 /** Selects the BOM details data object (header, parts, and summary). */
 export const selectBomDetailsData = createSelector(

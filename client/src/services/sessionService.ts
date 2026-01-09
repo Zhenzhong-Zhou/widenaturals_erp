@@ -118,7 +118,8 @@ const MAX_REFRESH_ATTEMPTS = 3;
  *
  * Expected outcomes:
  * - Returns refreshed token data when a valid session exists
- * - Returns null when the user is unauthenticated or refresh is not possible
+ * - Returns null when the user is unauthenticated, refresh is not possible,
+ *   or the retry limit has been reached
  *
  * Security notes:
  * - The refresh token is never accessible to JavaScript
@@ -133,18 +134,22 @@ const MAX_REFRESH_ATTEMPTS = 3;
  * - Triggering logout or redirects
  * - Clearing cookies or persisted auth artifacts
  *
+ * Error semantics:
+ * - Authentication-related failures (401, missing tokens) are normalized
+ *   to a null return value
+ * - Only unexpected system-level failures (network, 5xx) throw errors
+ *
  * @returns {Promise<RefreshTokenResponseData | null>}
  *   Refresh response data when successful; null when unauthenticated
  *   or when refresh cannot be performed safely.
  *
  * @throws {AppError}
- *   Thrown only when the retry limit is exceeded or when an
- *   unexpected system-level failure occurs.
+ *   Thrown only for unexpected system-level failures.
  */
 const refreshToken = async (): Promise<RefreshTokenResponseData | null> => {
   if (refreshAttemptCount >= MAX_REFRESH_ATTEMPTS) {
-    // Hard stop — session truly expired
-    throw AppError.authentication('Session expired. Please log in again.');
+    // Retry budget exhausted — treat as unauthenticated
+    return null;
   }
   
   refreshAttemptCount += 1;
@@ -154,18 +159,17 @@ const refreshToken = async (): Promise<RefreshTokenResponseData | null> => {
     const csrfToken = selectCsrfToken(store.getState());
     
     if (!csrfToken) {
-      // CSRF missing is NOT logout-worthy during bootstrap
-      return null;
+      return null; // bootstrap-safe
     }
     
     const response = await rawAxios.post<RefreshTokenApiResponse>(
       API_ENDPOINTS.SECURITY.SESSION.REFRESH,
       undefined,
       {
+        withCredentials: true,
         headers: {
           'X-CSRF-Token': csrfToken,
         },
-        withCredentials: true,
       }
     );
     
@@ -174,25 +178,20 @@ const refreshToken = async (): Promise<RefreshTokenResponseData | null> => {
     }
     
     const accessToken = response.data.data?.accessToken;
-    
     if (!accessToken) {
       return null;
     }
     
     refreshAttemptCount = 0;
-    
-    return response.data.data;
+    return { accessToken };
   } catch (error: any) {
     refreshAttemptCount = 0;
     
-    // IMPORTANT: distinguish auth vs system failure
     if (error?.response?.status === 401) {
-      // Expected unauthenticated state
-      return null;
+      return null; // expected unauthenticated
     }
     
-    // Unexpected failure (network, 5xx, etc.)
-    throw error;
+    throw AppError.network('Session refresh failed');
   }
 };
 

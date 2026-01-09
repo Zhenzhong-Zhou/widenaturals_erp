@@ -1,11 +1,13 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 
 /**
  * Base selector for the inventory allocation slice of the Redux store.
  */
-const selectInventoryAllocationsSlice = (state: RootState) =>
-  state.paginatedInventoryAllocations;
+const selectInventoryAllocationsSlice= createSelector(
+  [selectRuntime],
+  (runtime) => runtime.paginatedInventoryAllocations
+);
 
 /**
  * Selector to retrieve the list of inventory allocation summaries.
@@ -46,7 +48,7 @@ export const selectInventoryAllocationsError = createSelector(
  */
 export const selectInventoryAllocationsPage = createSelector(
   [selectInventoryAllocationsPagination],
-  (pagination) => pagination.page
+  (pagination) => pagination?.page ?? 1
 );
 
 /**
@@ -58,7 +60,7 @@ export const selectInventoryAllocationsPage = createSelector(
  */
 export const selectInventoryAllocationsLimit = createSelector(
   [selectInventoryAllocationsPagination],
-  (pagination) => pagination.limit
+  (pagination) => pagination?.limit ?? 10
 );
 
 /**
@@ -68,7 +70,7 @@ export const selectInventoryAllocationsLimit = createSelector(
  */
 export const selectInventoryAllocationsTotalRecords = createSelector(
   [selectInventoryAllocationsPagination],
-  (pagination) => pagination.totalRecords
+  (pagination) => pagination?.totalRecords ?? 0
 );
 
 /**
@@ -78,7 +80,7 @@ export const selectInventoryAllocationsTotalRecords = createSelector(
  */
 export const selectInventoryAllocationsTotalPages = createSelector(
   [selectInventoryAllocationsPagination],
-  (pagination) => pagination.totalPages
+  (pagination) => pagination?.totalPages ?? 1
 );
 
 /**
@@ -86,7 +88,11 @@ export const selectInventoryAllocationsTotalPages = createSelector(
  */
 export const selectInventoryAllocationsHasMore = createSelector(
   [selectInventoryAllocationsSlice],
-  (slice) =>
-    slice.pagination.page * slice.pagination.limit <
-    slice.pagination.totalRecords
+  (slice) => {
+    const page = slice.pagination?.page ?? 0;
+    const limit = slice.pagination?.limit ?? 0;
+    const total = slice.pagination?.totalRecords ?? 0;
+    
+    return page * limit < total;
+  }
 );

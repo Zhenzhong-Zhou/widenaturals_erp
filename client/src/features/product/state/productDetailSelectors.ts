@@ -1,11 +1,14 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 
 /**
  * Base selector for the Product detail slice.
  * Extracts the entire `productDetail` state from Redux.
  */
-const selectProductDetailState = (state: RootState) => state.productDetail;
+const selectProductDetailState= createSelector(
+  [selectRuntime],
+  (runtime) => runtime.productDetail
+);
 
 /**
  * Selector: Returns the Product detail object (`ProductResponse | null`).

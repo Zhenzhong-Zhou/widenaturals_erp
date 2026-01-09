@@ -1,8 +1,8 @@
 import type { FC, ReactNode } from 'react';
+import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import CustomTypography from '@components/common/CustomTypography';
 import Loading from '@components/common/Loading';
-import { useThemeContext } from '@context/ThemeContext';
 
 interface DetailPageProps {
   title: string;
@@ -19,7 +19,7 @@ const DetailPage: FC<DetailPageProps> = ({
   children,
   sx,
 }) => {
-  const { theme } = useThemeContext();
+  const theme = useTheme();
 
   if (isLoading) {
     return (

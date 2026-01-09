@@ -1,11 +1,39 @@
-import { combineReducers, type PayloadAction } from '@reduxjs/toolkit';
-import { createReducerMap } from '@utils/reducerUtils';
+/**
+ * Root Redux reducer.
+ *
+ * Architecture overview:
+ * - Runtime state contains all server-authoritative and security-sensitive data
+ *   (authentication, session, permissions, domain data).
+ * - Persisted state contains UX-only preferences (e.g. theme).
+ *
+ * Authentication model:
+ * - Authentication is NOT persisted in Redux or localStorage.
+ * - Access tokens live in memory only.
+ * - Session continuity across page reloads is restored via an
+ *   explicit bootstrap refresh-token flow.
+ *
+ * Logout semantics:
+ * - Dispatching `auth/logout` resets all runtime state immediately.
+ * - Persisted UX state is preserved.
+ *
+ * Security guarantees:
+ * - No credentials or permissions are ever stored in persistent storage.
+ * - A page reload always starts from a known unauthenticated runtime state
+ *   until the bootstrap refresh-token flow completes.
+ */
 
-// Reducer groups
-import { addressReducers } from '@features/address';
+import { combineReducers, type PayloadAction } from '@reduxjs/toolkit';
+import { persistedReducer } from './persistedReducer.ts';
+
+// ===== Import reducer MAPS =====
 import { authorizeReducers } from '@features/authorize';
-import { complianceRecordReducers } from '@features/complianceRecord';
+import { sessionReducers } from '@features/session';
 import { csrfReducers } from '@features/csrf';
+import { resetPasswordReducers } from '@features/resetPassword';
+import { userReducers } from '@features/user';
+
+import { addressReducers } from '@features/address';
+import { complianceRecordReducers } from '@features/complianceRecord';
 import { customerReducers } from '@features/customer';
 import { deliveryMethodReducers } from '@features/deliveryMethod';
 import { discountReducers } from '@features/discount';
@@ -22,77 +50,72 @@ import { skuReducers } from '@features/sku';
 import { bomReducers } from '@features/bom';
 import { reportReducers } from '@features/report';
 import { lookupReducers } from '@features/lookup';
-import { resetPasswordReducers } from '@features/resetPassword';
-import { sessionReducers } from '@features/session';
 import { taxRateReducers } from '@features/taxRate';
-import { userReducers } from '@features/user';
 import { warehouseReducers } from '@features/warehouse';
 import { warehouseInventoryReducers } from '@features/warehouseInventory';
 import { inventoryAllocationReducers } from '@features/inventoryAllocation';
 import { outboundFulfillmentReducers } from '@features/outboundFulfillment';
 import { skuImageReducers } from '@features/skuImage';
 
-// Use helper to combine
-const appReducer = combineReducers(
-  createReducerMap(
-    // Auth
-    authorizeReducers,
-    sessionReducers,
-    csrfReducers,
-    resetPasswordReducers,
+// ===== Runtime reducer (flattened maps) =====
+const runtimeReducer = combineReducers({
+  // Auth / identity (runtime only)
+  ...authorizeReducers,
+  ...sessionReducers,
+  ...csrfReducers,
+  ...resetPasswordReducers,
+  ...userReducers,
+  
+  // Product & Pricing
+  ...productReducers,
+  ...skuReducers,
+  ...skuImageReducers,
+  ...complianceRecordReducers,
+  ...bomReducers,
+  ...pricingTypeReducers,
+  ...pricingReducers,
+  
+  // Inventory & Warehouse
+  ...locationTypeReducers,
+  ...locationReducers,
+  ...locationInventoryReducers,
+  ...warehouseReducers,
+  ...warehouseInventoryReducers,
+  
+  // Orders & Process
+  ...customerReducers,
+  ...addressReducers,
+  ...orderTypeReducers,
+  ...orderReducers,
+  ...inventoryAllocationReducers,
+  ...outboundFulfillmentReducers,
+  
+  // Reporting & Misc
+  ...reportReducers,
+  ...lookupReducers,
+  ...discountReducers,
+  ...taxRateReducers,
+  ...deliveryMethodReducers,
+  ...healthReducers,
+});
 
-    // User
-    userReducers,
+// ===== App reducer =====
+const appReducer = combineReducers({
+  runtime: runtimeReducer,
+  persisted: persistedReducer,
+});
 
-    // Product & Pricing
-    productReducers,
-    skuReducers,
-    skuImageReducers,
-    complianceRecordReducers,
-    bomReducers,
-    pricingTypeReducers,
-    pricingReducers,
-
-    // Inventory & Warehouse
-    locationTypeReducers,
-    locationReducers,
-    locationInventoryReducers,
-    warehouseReducers,
-    warehouseInventoryReducers,
-
-    // Orders && Process
-    customerReducers,
-    addressReducers,
-    orderTypeReducers,
-    orderReducers,
-    inventoryAllocationReducers,
-    outboundFulfillmentReducers,
-
-    // Reporting
-    reportReducers,
-
-    // Dropdown
-    lookupReducers,
-
-    // Misc
-    discountReducers,
-    taxRateReducers,
-    deliveryMethodReducers,
-    healthReducers
-  )
-);
-
-// Root reducer with logout handling
+// ===== Root reducer with logout reset =====
 const rootReducer = (
   state: ReturnType<typeof appReducer> | undefined,
   action: PayloadAction<any>
 ) => {
   if (action.type === 'auth/logout') {
-    console.info('Resetting state on logout...');
-    // Reset the entire state except for specific slices, if needed
-    state = undefined;
+    // Full runtime reset; UX state remains persisted
+    console.info('Resetting runtime state on logout');
+    return appReducer(undefined, action);
   }
-
+  
   return appReducer(state, action);
 };
 

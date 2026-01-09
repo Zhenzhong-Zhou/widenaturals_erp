@@ -1,4 +1,5 @@
 import type { FC } from 'react';
+import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Alert from '@mui/material/Alert';
@@ -7,7 +8,6 @@ import CustomTypography from '@components/common/CustomTypography';
 import ResetPasswordForm from '@features/resetPassword/components/ResetPasswordForm';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { useThemeContext } from '@context/ThemeContext';
 
 interface ResetPasswordModalProps {
   open: boolean;
@@ -24,7 +24,7 @@ const ResetPasswordModal: FC<ResetPasswordModalProps> = ({
   onClose,
   onSubmit,
 }) => {
-  const { theme } = useThemeContext();
+  const theme = useTheme();
 
   return (
     <CustomModal

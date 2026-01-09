@@ -194,7 +194,16 @@ const OrderDetailsPage: FC = () => {
       />
     );
   }
-
+  
+  if (!orderData) {
+    return (
+      <Loading
+        variant="dotted"
+        message="Loading sales order details..."
+      />
+    );
+  }
+  
   const flattened = flattenSalesOrderHeader(orderData);
 
   return (

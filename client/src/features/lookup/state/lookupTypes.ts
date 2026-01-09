@@ -230,7 +230,7 @@ export interface BatchLookupOption extends LookupOption {
  */
 export type CustomerLookupQuery = LookupQuery;
 
-export interface CustomerLookupItem extends LookupItem {
+export interface CustomerLookupItem extends LookupItemWithStatus {
   hasAddress: boolean;
 }
 

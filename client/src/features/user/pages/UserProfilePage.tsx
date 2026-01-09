@@ -18,6 +18,7 @@ import DetailHeader from '@components/common/DetailHeader';
 import CustomButton from '@components/common/CustomButton';
 import GoBackButton from '@components/common/GoBackButton';
 import NoDataFound from '@components/common/NoDataFound';
+import Loading from '@components/common/Loading';
 import { UserProfileDetails } from '@features/user/components/UserProfile';
 import ResetPasswordModal from '@features/resetPassword/components/ResetPasswordModal';
 import { USER_DEFAULT_PLACEHOLDER } from '@utils/constants/assets';
@@ -122,7 +123,16 @@ const UserProfilePage: FC = () => {
       console.error('Error resetting password:', error);
     }
   };
-
+  
+  if (!fullName) {
+    return (
+      <Loading
+        variant="dotted"
+        message="Loading profile..."
+      />
+    );
+  }
+  
   return (
     <DetailPage
       title="User Profile"
@@ -154,7 +164,7 @@ const UserProfilePage: FC = () => {
             avatarSrc={avatarSrc}
             avatarFallback={fullName?.charAt(0)}
             name={fullName}
-            subtitle={email}
+            subtitle={email ?? undefined}
           />
 
           <UserProfileDetails

@@ -51,7 +51,10 @@ const AdminDashboardPage: FC<DashboardPageProps> = ( ) => {
   );
   
   return (
-    <DashboardLayout fullName={fullName} header={headerContent}>
+    <DashboardLayout
+      fullName={fullName ?? undefined}
+      header={headerContent}
+    >
       {canShowInventoryOverview && <InventoryOverviewHeaderSection />}
       {canShowWarehouseSummary && <SkuWarehouseInventorySummarySection />}
     </DashboardLayout>

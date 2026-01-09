@@ -3,13 +3,16 @@
  * @description Selectors for CSRF infrastructure state.
  */
 
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 import { createSelector } from '@reduxjs/toolkit';
 
 /**
  * Selects the CSRF slice state.
  */
-export const selectCsrfState = (state: RootState) => state.csrf;
+const selectCsrfState = createSelector(
+  [selectRuntime],
+  (runtime) => runtime.csrf
+);
 
 /**
  * Selects the current CSRF token.

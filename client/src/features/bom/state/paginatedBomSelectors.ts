@@ -1,10 +1,13 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 
 /**
  * Base selector for the BOM slice state.
  */
-export const selectBomState = (state: RootState) => state.paginatedBoms;
+const selectBomState= createSelector(
+  [selectRuntime],
+  (runtime) => runtime.paginatedBoms
+);
 
 /**
  * Selects the current BOM list data.

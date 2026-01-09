@@ -200,8 +200,8 @@ const SkuListPage = () => {
       {skuLoading ? (
         <Loading variant="dotted" message="Loading SKUs..." />
       ) : skuError ? (
-        <ErrorMessage message={skuError} showNavigation={true} />
-      ) : (isSkuListEmpty ?? flattenData.length === 0) ? (
+        <ErrorMessage message={skuError} showNavigation />
+      ) : !skuPagination || isSkuListEmpty || flattenData.length === 0 ? (
         <NoDataFound
           message="No SKUs found."
           action={
@@ -214,8 +214,8 @@ const SkuListPage = () => {
           loading={skuLoading}
           page={page - 1}
           rowsPerPage={limit}
-          totalRecords={skuPagination.totalRecords || 0}
-          totalPages={skuPagination.totalPages || 0}
+          totalRecords={skuPagination.totalRecords}
+          totalPages={skuPagination.totalPages}
           onPageChange={handlePageChange}
           onRowsPerPageChange={handleRowsPerPageChange}
           expandedRowId={expandedRowId}

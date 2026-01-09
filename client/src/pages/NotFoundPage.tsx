@@ -1,17 +1,17 @@
 import type { FC } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from '@mui/material/styles';
 import Container from '@mui/material/Container';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import GoBackButton from '@components/common/GoBackButton';
-import { useThemeContext } from '@context/ThemeContext';
 
 interface NotFoundPageProps {
   isAuthenticated?: boolean;
 }
 
 const NotFoundPage: FC<NotFoundPageProps> = ({ isAuthenticated }) => {
-  const { theme } = useThemeContext(); // Get theme from context
+  const theme = useTheme();
   const navigate = useNavigate();
 
   const handleRedirect = () => {

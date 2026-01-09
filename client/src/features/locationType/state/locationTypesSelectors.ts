@@ -1,13 +1,14 @@
-import type { RootState } from '@store/store';
-import type { LocationTypesState } from '@features/locationType/state/locationTypesSlice';
 import { createSelector } from '@reduxjs/toolkit';
+import { selectRuntime } from '@store/selectors';
+import type { LocationTypesState } from '@features/locationType/state/locationTypesSlice';
 
 /**
  * Base selector for the locationTypes slice.
  */
-export const selectLocationTypesState = (
-  state: RootState
-): LocationTypesState => state.locationTypes as LocationTypesState;
+const selectLocationTypesState= createSelector(
+  [selectRuntime],
+  (runtime) => runtime.locationTypes as LocationTypesState
+);
 
 /**
  * Selects the list of location types.

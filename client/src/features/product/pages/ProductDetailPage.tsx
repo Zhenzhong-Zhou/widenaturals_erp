@@ -47,7 +47,16 @@ const ProductDetailPage = () => {
   } = useProductDetail();
 
   const statusLookup = useStatusLookup();
-
+  
+  if (!selectedProduct) {
+    return (
+      <Loading
+        variant="dotted"
+        message="Loading product details..."
+      />
+    );
+  }
+  
   // --------------------------------------
   // 3. Permission Hooks
   // --------------------------------------

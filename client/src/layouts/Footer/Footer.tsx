@@ -1,10 +1,10 @@
 import type { FC } from 'react';
+import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
-import { useThemeContext } from '@context/ThemeContext';
 
 const Footer: FC = () => {
-  const { theme } = useThemeContext(); // From context
+  const theme = useTheme();
   const currentYear = new Date().getFullYear();
 
   return (

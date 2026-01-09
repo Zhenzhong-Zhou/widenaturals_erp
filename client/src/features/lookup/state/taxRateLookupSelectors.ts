@@ -1,5 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 import {
   createLookupMetaSelector,
   mapLookupItems,
@@ -12,7 +12,10 @@ import type {
 /**
  * Base selector for the tax rate lookup slice.
  */
-const selectTaxRateLookupState = (state: RootState) => state.taxRateLookup;
+const selectTaxRateLookupState= createSelector(
+  [selectRuntime],
+  (runtime) => runtime.taxRateLookup
+);
 
 /**
  * Selector for retrieving the list of tax rate lookup items.

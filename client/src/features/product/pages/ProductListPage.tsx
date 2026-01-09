@@ -283,7 +283,7 @@ const ProductListPage = () => {
         <Loading variant="dotted" message="Loading Products..." />
       ) : productError ? (
         <ErrorMessage message={productError} showNavigation />
-      ) : isProductListEmpty ? (
+      ) : isProductListEmpty || !productPagination ? (
         <NoDataFound
           message="No Products found."
           action={
@@ -296,8 +296,8 @@ const ProductListPage = () => {
           loading={isProductLoading}
           page={page - 1}
           rowsPerPage={limit}
-          totalRecords={productTotalRecords || 0}
-          totalPages={productPagination.totalPages || 0}
+          totalRecords={productTotalRecords}
+          totalPages={productPagination.totalPages}
           onPageChange={handlePageChange}
           onRowsPerPageChange={handleRowsPerPageChange}
           expandedRowId={expandedRowId}
