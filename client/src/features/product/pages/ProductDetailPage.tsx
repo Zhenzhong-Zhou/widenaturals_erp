@@ -8,7 +8,7 @@ import GoBackButton from '@components/common/GoBackButton';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import NoDataFound from '@components/common/NoDataFound';
-import NotFoundPage from '@pages/NotFoundPage';
+import { NotFoundPage } from '@pages/system';
 import useProductDetail from '@hooks/useProductDetail';
 import useStatusLookup from '@hooks/useStatusLookup';
 import { usePagePermissionState } from '@features/authorize/hooks';

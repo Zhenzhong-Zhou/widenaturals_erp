@@ -6,7 +6,7 @@ export { default as ModuleErrorBoundaryWrapper } from './shared/ModuleErrorBound
 export { default as FallbackUI } from './shared/FallbackUI';
 export { default as ErrorDisplay } from './shared/ErrorDisplay';
 export { default as ErrorMessage } from './common/ErrorMessage';
-export { default as Typography } from './common/CustomTypography';
+export { default as CustomTypography } from './common/CustomTypography';
 export { default as CustomButton } from './common/CustomButton';
 export { default as BaseInput } from './common/BaseInput';
 export { default as PasswordInput } from './common/PasswordInput';

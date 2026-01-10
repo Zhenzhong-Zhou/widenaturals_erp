@@ -27,7 +27,7 @@ export const appRoutes: AppRoute[] = [
 
   defineRoute({
     path: '/',
-    component: lazy(() => import('@pages/HomePage')),
+    component: lazy(() => import('@pages/home/PublicHomePage')),
   }),
 
   defineRoute({
@@ -374,12 +374,12 @@ export const appRoutes: AppRoute[] = [
 
   defineRoute({
     path: '/access-denied',
-    component: lazy(() => import('@pages/AccessDeniedPage')),
+    component: lazy(() => import('@pages/system/AccessDeniedPage')),
     meta: { requiresAuth: true },
   }),
 
   defineRoute({
     path: '*',
-    component: lazy(() => import('@pages/NotFoundPage')),
+    component: lazy(() => import('@pages/system/NotFoundPage')),
   }),
 ];

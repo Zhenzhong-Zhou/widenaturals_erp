@@ -8,7 +8,7 @@ import {
   SkuImageUploadSuccessDialog,
 } from '@features/skuImage/components/UploadImageForm';
 import CustomButton from '@components/common/CustomButton';
-import NotFoundPage from '@pages/NotFoundPage';
+import { NotFoundPage } from '@pages/system';
 import GoBackButton from '@components/common/GoBackButton';
 import { usePagePermissionState } from '@features/authorize/hooks';
 import useSkuImageUpload from '@hooks/useSkuImageUpload';

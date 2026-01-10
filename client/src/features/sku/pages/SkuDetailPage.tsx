@@ -13,7 +13,7 @@ import Grid from '@mui/material/Grid';
 import DetailPage from '@components/common/DetailPage';
 import CustomButton from '@components/common/CustomButton';
 import GoBackButton from '@components/common/GoBackButton';
-import NotFoundPage from '@pages/NotFoundPage';
+import { NotFoundPage } from '@pages/system';
 import Loading from '@components/common/Loading';
 import { useHasPermission } from '@features/authorize/hooks';
 import useSkuDetail from '@hooks/useSkuDetail';

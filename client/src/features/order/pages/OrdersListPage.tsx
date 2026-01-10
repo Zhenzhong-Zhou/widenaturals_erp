@@ -19,7 +19,7 @@ import type {
   OrderPermissionContext,
 } from '@features/order/state';
 import Loading from '@components/common/Loading';
-import AccessDeniedPage from '@pages/AccessDeniedPage';
+import { AccessDeniedPage } from '@pages/system';
 import CustomButton from '@components/common/CustomButton';
 import GoBackButton from '@components/common/GoBackButton';
 import NoDataFound from '@components/common/NoDataFound';
