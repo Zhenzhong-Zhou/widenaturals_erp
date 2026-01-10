@@ -11,5 +11,4 @@ export * from './themeSelectors';
 // --------------------------------------------------
 // Thunks & Types
 // --------------------------------------------------
-// export * from './sessionThunks';
 // export * from './sessionTypes';

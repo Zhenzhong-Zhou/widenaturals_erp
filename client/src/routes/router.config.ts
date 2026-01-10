@@ -75,6 +75,12 @@ export const appRoutes: AppRoute[] = [
     component: lazy(() => import('@features/user/pages/UserProfilePage')),
     meta: { requiresAuth: true },
   }),
+  
+  defineRoute({
+    path: '/settings',
+    component: lazy(() => import('@features/settings/pages/SettingsPage')),
+    meta: { requiresAuth: true },
+  }),
 
   /* ---------- Products ---------- */
 

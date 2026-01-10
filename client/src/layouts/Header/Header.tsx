@@ -25,7 +25,7 @@ import { headerStyles, typographyStyles } from '@layouts/Header/headerStyles';
  */
 const Header: FC = () => {
   const theme = useTheme();
-  const { toggleTheme } = useThemeMode();
+  const { actions } = useThemeMode();
   const { logout } = useLogout();
   const navigate = useNavigate();
   
@@ -53,12 +53,17 @@ const Header: FC = () => {
     handleMenuClose();
     navigate('/profile');
   };
+  
+  const handleSettingsClick = () => {
+    handleMenuClose();
+    navigate('/settings');
+  };
 
   const handleLogoutClick = () => {
     handleMenuClose();
     void logout();
   };
-
+  
   return (
     <Box
       sx={{
@@ -89,7 +94,7 @@ const Header: FC = () => {
 
         <CustomButton
           variant="outlined"
-          onClick={toggleTheme}
+          onClick={actions.toggleTheme}
           sx={{ minWidth: 120, gap: 1, mr: 2 }}
         >
           <FontAwesomeIcon
@@ -124,7 +129,9 @@ const Header: FC = () => {
           <Divider />
 
           <MenuItem onClick={handleProfileClick}>Profile</MenuItem>
-
+          <MenuItem onClick={handleSettingsClick}>Settings</MenuItem>
+          
+          <Divider />
           <MenuItem onClick={handleLogoutClick}>Logout</MenuItem>
         </Menu>
       </Box>

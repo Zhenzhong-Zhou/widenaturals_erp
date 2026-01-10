@@ -1,28 +1,43 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
 /**
- * Theme slice.
+ * User-configurable theme preference.
  *
- * Responsibility:
- * - Manages UI theme preference (light / dark).
- *
- * Architectural classification:
- * - UX-only state
- * - Safe to persist via redux-persist
- *
- * Explicitly NOT responsible for:
- * - Reading from localStorage directly
- * - Authentication or identity concerns
- * - Server-authoritative state
- *
- * Persistence model:
- * - Initial mode is derived from system preference
- * - Persisted value (if present) will override this on rehydration
+ * - `light` / `dark`: explicit user choice
+ * - `system`: follow OS preference
+ * - `time`: resolve via sunrise / sunset
  */
+export type ThemePreference = 'light' | 'dark' | 'system' | 'time';
 
+/**
+ * Concrete theme mode used for rendering.
+ *
+ * Always resolved to a deterministic value.
+ */
 export type ThemeMode = 'light' | 'dark';
 
+/**
+ * ThemeState
+ *
+ * Internal Redux state for the theme domain.
+ *
+ * Notes:
+ * - `preference` is persisted and represents user intent
+ * - `mode` is derived but cached for MUI + SSR stability
+ */
 interface ThemeState {
+  /**
+   * Persisted user preference (intent).
+   */
+  preference: ThemePreference;
+  
+  /**
+   * Resolved theme mode used by the UI.
+   *
+   * This value is derived externally and cached here to:
+   * - Avoid recomputation during render
+   * - Ensure stable hydration for SSR / MUI
+   */
   mode: ThemeMode;
 }
 
@@ -30,7 +45,7 @@ interface ThemeState {
  * Determines the user's system-preferred theme.
  *
  * Notes:
- * - Evaluated only on initial load
+ * - Evaluated only during initial state creation
  * - Safe for SSR (defaults to 'light')
  * - Persisted Redux state will override this value after rehydration
  */
@@ -43,36 +58,79 @@ const getSystemThemeMode = (): ThemeMode => {
 };
 
 const initialState: ThemeState = {
+  preference: 'system',
   mode: getSystemThemeMode(),
 };
 
+/**
+ * Theme slice
+ *
+ * Domain:
+ * - UI / appearance (UX-only state)
+ *
+ * Responsibilities:
+ * - Store the user's theme *preference* (intent)
+ * - Cache the resolved theme *mode* for rendering stability
+ *
+ * Architectural classification:
+ * - Client-only
+ * - Safe to persist via redux-persist
+ *
+ * Explicitly NOT responsible for:
+ * - Reading from localStorage
+ * - Resolving system or time-based themes
+ * - Handling geolocation or environment signals
+ * - Authentication or identity concerns
+ *
+ * Resolution model:
+ * - `preference` represents user intent
+ * - `mode` represents the resolved, concrete theme (`light | dark`)
+ * - Resolution is performed externally (e.g. in `useThemeMode`)
+ */
 const themeSlice = createSlice({
   name: 'theme',
   initialState,
   
   reducers: {
     /**
-     * Explicitly sets the theme mode.
+     * Sets the user's theme preference explicitly.
      *
-     * Intended for:
-     * - Manual user selection
-     * - Programmatic preference restoration
+     * Intended usage:
+     * - Settings UI
+     * - Programmatic preference updates
+     *
+     * Note:
+     * - Does NOT resolve the final theme mode
      */
-    setThemeMode: (state, action: PayloadAction<ThemeMode>) => {
-      state.mode = action.payload;
+    setThemePreference: (
+      state,
+      action: PayloadAction<ThemePreference>
+    ) => {
+      state.preference = action.payload;
     },
     
     /**
-     * Toggles between light and dark modes.
+     * Internal resolver for the final theme mode.
      *
-     * Intended for:
-     * - UI toggle controls
+     * Intended usage:
+     * - Called by hooks or listeners after resolving
+     *   system or time-based preferences.
+     *
+     * Note:
+     * - Should not be dispatched directly by UI components.
      */
-    toggleTheme: (state) => {
-      state.mode = state.mode === 'dark' ? 'light' : 'dark';
+    resolveThemeMode: (
+      state,
+      action: PayloadAction<ThemeMode>
+    ) => {
+      state.mode = action.payload;
     },
   },
 });
 
-export const { setThemeMode, toggleTheme } = themeSlice.actions;
+export const {
+  setThemePreference,
+  resolveThemeMode,
+} = themeSlice.actions;
+
 export default themeSlice.reducer;
