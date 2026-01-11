@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import type { UsePermissions } from '@features/authorize/state';
 import {
@@ -8,70 +8,105 @@ import {
   selectPermissionsLoading,
   selectRoleName,
 } from '@features/authorize/state';
-import { selectIsAuthenticated } from '@features/session/state';
-import { getEffectivePermissions } from '@utils/permissionUtils';
+import {
+  selectIsAuthenticated,
+  selectSessionResolving,
+} from '@features/session/state/sessionSelectors';
+import { ErrorType } from '@utils/error';
 
+/**
+ * usePermissions
+ *
+ * Canonical hook for resolving and exposing authorization context.
+ *
+ * Responsibilities:
+ * - Fetch permission data for the authenticated user
+ * - Expose role name, permission list, and resolution state
+ * - Coordinate permission loading with session bootstrap lifecycle
+ *
+ * Resolution semantics:
+ * - Permission fetching is gated by successful session resolution
+ * - Permissions are fetched only for authenticated users
+ * - The `ready` flag indicates permission evaluation is complete
+ *   and safe for authorization checks
+ *
+ * Error handling:
+ * - Authentication and authorization errors are treated as
+ *   recoverable and silently ignored
+ * - Non-auth errors are surfaced via `error` and logged defensively
+ *
+ * Explicitly out of scope:
+ * - Authentication or session bootstrap logic
+ * - Route guarding or redirect decisions
+ * - Permission enforcement (delegated to guards/components)
+ *
+ * Notes:
+ * - This hook is safe to mount globally (e.g., routing layer)
+ * - Permission state may be temporarily undefined during bootstrap
+ * - Consumers must tolerate transient loading states
+ */
 const usePermissions = (): UsePermissions => {
   const dispatch = useAppDispatch();
-
-  // Select authentication state
+  
+  // Session state
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
-
-  // Select permission-related state
+  const resolvingSession = useAppSelector(selectSessionResolving);
+  
+  // Permission state
   const roleName = useAppSelector(selectRoleName);
   const permissions = useAppSelector(selectPermissions);
   const loading = useAppSelector(selectPermissionsLoading);
   const error = useAppSelector(selectPermissionsError);
-
-  // Compute effective permissions
-  const effectivePermissions = useMemo(
-    () => getEffectivePermissions(roleName, permissions),
-    [roleName, permissions]
-  );
-
-  // Fetch permissions
+  
+  /**
+   * Permissions are considered ready once:
+   * - session bootstrap has completed
+   * - user is authenticated
+   * - permission loading has completed
+   */
+  const ready =
+    !resolvingSession &&
+    isAuthenticated &&
+    !loading;
+  
   const loadPermissions = useCallback(async () => {
-    if (!isAuthenticated) {
-      console.warn('User is not authenticated. Skipping permission loading.');
-      return; // Skip fetching permissions if not authenticated
+    // Wait for session bootstrap
+    if (resolvingSession) return;
+    
+    // Only fetch for authenticated users
+    if (!isAuthenticated) return;
+    
+    const result = await dispatch(fetchPermissionsThunk());
+    
+    if (fetchPermissionsThunk.rejected.match(result)) {
+      const payload = result.payload;
+      
+      // Ignore refreshable auth errors
+      if (
+        payload?.type === ErrorType.Authentication ||
+        payload?.type === ErrorType.Authorization
+      ) {
+        return;
+      }
+      
+      // Truly unrecoverable
+      console.error('Permission load failed:', payload);
     }
-
-    try {
-      await dispatch(fetchPermissionsThunk()).unwrap();
-    } catch (err: any) {
-      console.error('Failed to load permissions:', err.message || err);
-    }
-  }, [dispatch, isAuthenticated]);
-
-  // Fetch permissions on mount when authenticated
+  }, [dispatch, isAuthenticated, resolvingSession]);
+  
   useEffect(() => {
-    if (isAuthenticated) {
-      (async () => {
-        await loadPermissions();
-      })();
+    if (!resolvingSession && isAuthenticated) {
+      void loadPermissions();
     }
-  }, [loadPermissions, isAuthenticated]);
-
-  // Provide a way to refresh permissions manually
-  const refreshPermissions = async () => {
-    if (!isAuthenticated) {
-      console.warn('User is not authenticated. Skipping permission refresh.');
-      return;
-    }
-
-    try {
-      await dispatch(fetchPermissionsThunk()).unwrap();
-    } catch (err: any) {
-      console.error('Failed to refresh permissions:', err.message || err);
-    }
-  };
-
+  }, [loadPermissions, resolvingSession, isAuthenticated]);
+  
   return {
     roleName,
-    permissions: effectivePermissions,
+    permissions,
     loading,
     error,
-    refreshPermissions,
+    ready,
+    refreshPermissions: loadPermissions,
   };
 };
 

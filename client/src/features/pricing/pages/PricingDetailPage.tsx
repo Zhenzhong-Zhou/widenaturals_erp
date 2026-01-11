@@ -22,10 +22,10 @@ const PricingDetailPage = () => {
 
   // Fetch data on mount or when pricingTypeId changes
   useEffect(() => {
-    if (pricingTypeId) {
-      fetchPricingList(pricingTypeId, pagination.page, 1000);
-    }
-  }, [pricingTypeId]);
+    if (!pricingTypeId || !pagination) return;
+    
+    fetchPricingList(pricingTypeId, pagination.page, 1000);
+  }, [pricingTypeId, pagination, fetchPricingList]);
 
   if (!data) {
     return <NoDataFound message="No pricing detail list data found." />;

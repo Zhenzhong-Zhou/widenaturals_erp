@@ -110,40 +110,59 @@ const OutboundShipmentDetailsPage: FC = () => {
 
     return allFulfillmentsValid && shipmentValid;
   }, [shipmentHeader, shipmentFulfillments]);
-
+  
   const canCompleteManualFulfillment = useMemo(() => {
-    if (!shipmentHeader || !shipmentFulfillments?.length) return false;
-
-    const deliveryMethodName = shipmentHeader.deliveryMethod.name ?? '';
-    const isPickupLocation = Boolean(shipmentHeader.deliveryMethod.isPickup);
-
+    if (
+      !shipmentHeader ||
+      !shipmentHeader.deliveryMethod ||
+      !shipmentFulfillments?.length
+    ) {
+      return false;
+    }
+    
+    const { deliveryMethod } = shipmentHeader;
+    
+    const deliveryMethodName = deliveryMethod.name ?? '';
+    const isPickupLocation = Boolean(deliveryMethod.isPickup);
+    
     const shipmentCode = shipmentHeader.status?.code ?? '';
-    const fulfillmentCodes: string[] = shipmentFulfillments.map(
-      (f: { status?: { code?: string } }) => f.status?.code ?? ''
+    const fulfillmentCodes = shipmentFulfillments.map(
+      (f) => f.status?.code ?? ''
     );
-
+    
     const ALLOWED = {
       deliveryMethods: ['In-Store Pickup', 'Personal Driver Delivery'],
       fulfillment: ['FULFILLMENT_PACKED', 'FULFILLMENT_PARTIAL'],
-      shipment: ['SHIPMENT_READY', 'SHIPMENT_DISPATCHED'], // optionally support partials
+      shipment: ['SHIPMENT_READY', 'SHIPMENT_DISPATCHED'],
     };
-
+    
     const deliveryMethodAllowed =
       isPickupLocation || ALLOWED.deliveryMethods.includes(deliveryMethodName);
-
+    
     const allFulfillmentsCompletable = fulfillmentCodes.every((code) =>
       ALLOWED.fulfillment.includes(code)
     );
-
+    
     const shipmentCompletable = ALLOWED.shipment.includes(shipmentCode);
-
+    
     return (
-      allFulfillmentsCompletable && shipmentCompletable && deliveryMethodAllowed
+      allFulfillmentsCompletable &&
+      shipmentCompletable &&
+      deliveryMethodAllowed
     );
   }, [shipmentHeader, shipmentFulfillments]);
-
+  
   // === Render ===
-  if (!shipmentDetails || shipmentDetails.length === 0) {
+  if (!shipmentHeader) {
+    return (
+      <Loading
+        variant="dotted"
+        message="Loading shipment details..."
+      />
+    );
+  }
+  
+  if (!shipmentDetails || shipmentDetails.fulfillments.length === 0) {
     return (
       <NoDataFound
         message="Shipment details not found."
@@ -217,14 +236,14 @@ const OutboundShipmentDetailsPage: FC = () => {
               >
                 {shipmentDetailsLoading ? 'Refreshing' : 'Refresh Data'}
               </CustomButton>
-
+              
               {canConfirmFulfillment && (
                 <ConfirmFulfillmentButton
                   orderId={shipmentHeader.orderId}
                   refresh={refresh}
                 />
               )}
-
+              
               {canCompleteManualFulfillment && (
                 <CompleteManualFulfillmentButton
                   shipmentId={shipmentId}

@@ -1,6 +1,6 @@
 import type { FC } from 'react';
+import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
-import { useThemeContext } from '@context/ThemeContext';
 import GoBackButton from '@components/common/GoBackButton';
 import CustomTypography from '@components/common/CustomTypography';
 
@@ -11,7 +11,7 @@ interface CustomerDetailHeaderProps {
 const CustomerDetailHeader: FC<CustomerDetailHeaderProps> = ({
   customerName,
 }) => {
-  const { theme } = useThemeContext();
+  const theme = useTheme();
 
   return (
     <Box sx={{ textAlign: 'center', marginBottom: theme.spacing(3) }}>

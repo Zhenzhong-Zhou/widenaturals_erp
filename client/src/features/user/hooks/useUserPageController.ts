@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { UserFilters, UserSortField, UserViewMode } from '@features/user/state';
 import usePaginatedUsers from '@hooks/usePaginatedUsers';
 import { applyFiltersAndSorting } from '@utils/queryUtils';
-import { usePaginationHandlers } from '@utils/hooks/usePaginationHandlers';
+import { usePaginationHandlers } from '@utils/hooks';
 import useUserLookups from '@features/user/hooks/useUserLookups';
 import { createLazyOpenHandler } from '@features/lookup/utils/lookupUtils';
 

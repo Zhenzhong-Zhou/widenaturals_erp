@@ -1,11 +1,13 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 
 /**
  * Root selector to access the location inventory summary by item slice state.
  */
-const selectLocationInventorySummaryDetailState = (state: RootState) =>
-  state.locationInventorySummaryDetail;
+const selectLocationInventorySummaryDetailState= createSelector(
+  [selectRuntime],
+  (runtime) => runtime.locationInventorySummaryDetail
+);
 
 /**
  * Selector to get the inventory summary detail data array.

@@ -5,8 +5,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import { selectLastLogin } from '@features/session/state';
 import { clearTokens } from '@utils/auth';
-import useLogout from '@hooks/useLogout';
-import usePagePermissionGuard from '@features/authorize/hooks/usePagePermissionGuard';
+import { usePagePermissionState } from '@features/authorize/hooks';
 import { resetPasswordThunk } from '@features/resetPassword';
 import {
   useUserSelfProfile,
@@ -19,6 +18,7 @@ import DetailHeader from '@components/common/DetailHeader';
 import CustomButton from '@components/common/CustomButton';
 import GoBackButton from '@components/common/GoBackButton';
 import NoDataFound from '@components/common/NoDataFound';
+import Loading from '@components/common/Loading';
 import { UserProfileDetails } from '@features/user/components/UserProfile';
 import ResetPasswordModal from '@features/resetPassword/components/ResetPasswordModal';
 import { USER_DEFAULT_PLACEHOLDER } from '@utils/constants/assets';
@@ -28,15 +28,15 @@ const UserProfilePage: FC = () => {
   const lastLogin = useAppSelector(selectLastLogin);
   const [isModalOpen, setModalOpen] = useState(false);
   const dispatch = useAppDispatch();
-  const { isLoading: isLogoutLoading } = useLogout();
-
-  const { isAllowed: canChangeOwnPassword, permLoading } =
-    usePagePermissionGuard(['user.password.change.self']);
-
-  const { isAllowed: canResetOthersPassword } = usePagePermissionGuard([
-    'user.password.reset.any',
-    'user.password.force_reset.any',
-  ]);
+  
+  const { isAllowed: canChangeOwnPassword } =
+    usePagePermissionState('user.password.change.self');
+  
+  const { isAllowed: canResetOthersPassword } =
+    usePagePermissionState([
+      'user.password.reset.any',
+      'user.password.force_reset.any',
+    ]);
 
   // ----------------------------
   // SELF PROFILE (My Profile)
@@ -123,11 +123,21 @@ const UserProfilePage: FC = () => {
       console.error('Error resetting password:', error);
     }
   };
-
+  
+  if (!fullName) {
+    return (
+      <Loading
+        variant="dotted"
+        message="Loading profile..."
+      />
+    );
+  }
+  
   return (
     <DetailPage
       title="User Profile"
-      isLoading={isProfileLoading || isLogoutLoading}
+      // isLoading={isProfileLoading || isLogoutLoading}
+      isLoading={isProfileLoading}
       error={profileError}
       sx={{ maxWidth: 1100 }}
     >
@@ -154,7 +164,7 @@ const UserProfilePage: FC = () => {
             avatarSrc={avatarSrc}
             avatarFallback={fullName?.charAt(0)}
             name={fullName}
-            subtitle={email}
+            subtitle={email ?? undefined}
           />
 
           <UserProfileDetails
@@ -163,7 +173,6 @@ const UserProfilePage: FC = () => {
           />
 
           {!isSystem &&
-            !permLoading &&
             // Regular user: own profile only
             ((isOwnProfile && canChangeOwnPassword) ||
               // Privileged user: can reset others

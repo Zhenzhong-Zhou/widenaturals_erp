@@ -1,16 +1,14 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { fetchPermissionsThunk } from '@features/authorize/state/authorizeThunk';
-
-// Initial state
-export interface PermissionsState {
-  roleName: string;
-  permissions: string[];
-  loading: boolean;
-  error: string | null;
-}
+import { REHYDRATE } from 'redux-persist';
+import type { PermissionsState } from '@features/authorize';
+import { fetchPermissionsThunk } from '@features/authorize';
+import {
+  invalidateSession,
+  resetSession
+} from '@features/session/state/sessionSlice';
 
 const initialState: PermissionsState = {
-  roleName: '',
+  roleName: null,
   permissions: [],
   loading: false,
   error: null,
@@ -20,9 +18,17 @@ const initialState: PermissionsState = {
 const permissionSlice = createSlice({
   name: 'permissions',
   initialState,
-  reducers: {},
+  reducers: {
+    resetPermissions: () => initialState,
+  },
   extraReducers: (builder) => {
     builder
+      .addCase(resetSession, () => initialState)
+      .addCase(invalidateSession, () => initialState)
+      .addCase(REHYDRATE, (state) => {
+        state.error = null;
+        state.loading = false;
+      })
       .addCase(fetchPermissionsThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -34,9 +40,11 @@ const permissionSlice = createSlice({
       })
       .addCase(fetchPermissionsThunk.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || 'Failed to fetch permissions.';
+        state.error =
+          action.payload?.message ?? 'Failed to fetch permissions.';
       });
   },
 });
 
+export const { resetPermissions } = permissionSlice.actions;
 export default permissionSlice.reducer;

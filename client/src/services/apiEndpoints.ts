@@ -9,7 +9,7 @@ export const API_ENDPOINTS = {
       REFRESH: '/session/refresh',
     },
     AUTH: {
-      RESET_PASSWORD: '/auth/reset-password',
+      CHANGE_PASSWORD: '/auth/change-password',
     },
     PERMISSIONS: {
       SELF: '/users/me/permissions',
@@ -103,6 +103,7 @@ export const API_ENDPOINTS = {
     SKU_CODE_BASES: '/lookups/sku-code-bases',
     PRODUCTS: '/lookups/products',
     STATUSES: '/lookups/statuses',
+    USERS: '/lookups/users',
   },
   REPORTS: {
     INVENTORY_ACTIVITY_LOGS: 'reports/inventory-activity-logs',

@@ -3,9 +3,9 @@ import type {
   AsyncState,
   PaginatedResponse,
   PaginationParams,
-  ReduxPaginatedState,
   SortConfig,
 } from '@shared-types/api';
+import type { ReduxPaginatedState } from '@shared-types/pagination';
 
 /**
  * Represents a single item in a sales order.
@@ -318,10 +318,45 @@ export interface PaginatedOrderStateWithFilters extends ReduxPaginatedState<Orde
   filters: OrderQueryParams;
 }
 
-export interface PermissionContext {
-  isRoot: boolean;
-  has: (perm: string) => boolean;
-  hasAny: (perms: string[]) => boolean;
+/**
+ * Runtime permission evaluation contract for order-related logic.
+ *
+ * This interface is passed into order view-mode configuration
+ * functions to enable permission-aware behavior without
+ * coupling configs to React hooks, context, or components.
+ *
+ * Design principles:
+ * - This is NOT a React context
+ * - This contract is synchronous and boolean-only
+ * - Permission resolution timing is handled upstream
+ * - Root / superuser behavior is normalized by permission hooks
+ *
+ * Semantics:
+ * - `true`  → permission explicitly granted
+ * - `false` → permission denied or not yet resolved
+ *
+ * Notes:
+ * - Tri-state permission results (`pending`) MUST be normalized
+ *   before constructing this object
+ * - Consumers must treat this contract as read-only
+ */
+export interface OrderPermissionContext {
+  /**
+   * Evaluates whether the user satisfies a permission requirement.
+   *
+   * @param permission A single permission or a list (OR semantics)
+   * @returns `true` if allowed, `false` otherwise
+   */
+  has: (permission: string | string[]) => boolean;
+  
+  /**
+   * Evaluates whether the user satisfies at least one permission
+   * from the provided list.
+   *
+   * @param permissions A list of permission identifiers
+   * @returns `true` if any permission is satisfied
+   */
+  hasAny: (permissions: readonly string[]) => boolean;
 }
 
 /**

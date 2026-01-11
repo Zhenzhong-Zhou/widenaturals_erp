@@ -1,20 +1,20 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import usePermissions from '@hooks/usePermissions';
-import useHasPermission from '@features/authorize/hooks/useHasPermission';
-import useSkuCodeBaseLookup from '@hooks/useSkuCodeBaseLookup';
-import useProductLookup from '@hooks/useProductLookup';
-import useCreateSkus from '@hooks/useCreateSkus';
+import { usePagePermissionState } from '@features/authorize/hooks';
 import useSkuFormSearchHandlers from '@features/sku/hook/useSkuFormSearchHandlers';
 import {
   createDropdownBundle,
   fetchLookups,
   resetLookups,
 } from '@utils/lookupHelpers';
+import {
+  useCreateSkus,
+  useProductLookup,
+  useSkuCodeBaseLookup
+} from '@hooks/index';
 
 interface CreateSkuSharedLogic {
   // permissions
-  permLoading: boolean;
   canCreateSku: boolean;
 
   // lookups
@@ -50,20 +50,15 @@ const useCreateSkuSharedLogic = (): CreateSkuSharedLogic => {
   // ---------------------------------------------------------------------------
   // 1. Permissions
   // ---------------------------------------------------------------------------
-  const { loading: permLoading, permissions } = usePermissions();
-  const hasPermission = useHasPermission(permissions);
-
-  const canCreateSku = useMemo(
-    () => hasPermission(['create_skus']),
-    [hasPermission]
-  );
+  const { isAllowed: canCreateSku } =
+    usePagePermissionState('create_skus');
 
   // redirect if not allowed
   useEffect(() => {
-    if (!permLoading && !canCreateSku) {
+    if (!canCreateSku) {
       navigate('/access-denied', { replace: true });
     }
-  }, [permLoading, canCreateSku, navigate]);
+  }, [canCreateSku, navigate]);
 
   // ---------------------------------------------------------------------------
   // 2. Lookups
@@ -127,7 +122,6 @@ const useCreateSkuSharedLogic = (): CreateSkuSharedLogic => {
 
   return {
     // permissions
-    permLoading,
     canCreateSku,
 
     // lookups

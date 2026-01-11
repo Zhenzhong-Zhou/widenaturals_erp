@@ -1,12 +1,14 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 
 /**
  * Base selector for the paginated users slice.
  * Extracts the entire `paginatedUsers` state from the Redux store.
  */
-export const selectPaginatedUsersState = (state: RootState) =>
-  state.paginatedUsers;
+export const selectPaginatedUsersState= createSelector(
+  [selectRuntime],
+  (runtime) => runtime.paginatedUsers
+);
 
 /**
  * Selector: Returns the array of user records.

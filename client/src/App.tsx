@@ -1,10 +1,16 @@
 import type { ErrorInfo, FC } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { ThemeProviderWrapper, LoadingProvider } from '@context/index';
-import GlobalErrorBoundary from '@components/shared/GlobalErrorBoundary';
-import FallbackUI from '@components/shared/FallbackUI';
-import AppContent from '@core/AppContent';
-import { AppBootstrapGate } from '@routes/index';
+import {
+  FallbackUI,
+  GlobalErrorBoundaryWithReset
+} from '@components/index';
+import {
+  AppBootstrapErrorBoundary,
+  AppContent,
+  AppShell
+} from '@core/index';
+import { AppBootstrapGate } from '@core/bootstrap';
 
 /**
  * App
@@ -12,15 +18,20 @@ import { AppBootstrapGate } from '@routes/index';
  * Root application component.
  *
  * Responsibilities:
- * - Compose global providers (theme, loading)
- * - Initialize routing
- * - Provide a global error boundary
+ * - Compose global infrastructure providers (theme, loading)
+ * - Initialize client-side routing
+ * - Establish global error and bootstrap error boundaries
+ *
+ * MUST NOT:
+ * - Perform blocking application bootstrap logic
+ * - Read authentication or permission state
+ * - Render feature-level UI
  *
  * Notes:
- * - Providers are ordered intentionally to ensure
- *   theming and routing remain available in error states.
- * - Error logging is environment-aware to avoid noisy
- *   production console output.
+ * - Bootstrap execution is delegated to a non-blocking boundary component
+ * - Providers are ordered intentionally to ensure theming and routing
+ *   remain available during error states
+ * - Error logging is environment-aware to avoid noisy production output
  */
 const App: FC = () => {
   /**
@@ -59,14 +70,18 @@ const App: FC = () => {
     <BrowserRouter>
       <ThemeProviderWrapper>
         <LoadingProvider>
-          <GlobalErrorBoundary
+          <GlobalErrorBoundaryWithReset
             fallback={errorFallback}
             onError={handleGlobalError}
           >
             <AppBootstrapGate>
-              <AppContent />
+              <AppShell>
+                <AppBootstrapErrorBoundary>
+                  <AppContent />
+                </AppBootstrapErrorBoundary>
+              </AppShell>
             </AppBootstrapGate>
-          </GlobalErrorBoundary>
+          </GlobalErrorBoundaryWithReset>
         </LoadingProvider>
       </ThemeProviderWrapper>
     </BrowserRouter>

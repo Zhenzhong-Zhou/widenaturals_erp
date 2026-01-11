@@ -3,9 +3,9 @@ import type {
   AsyncState,
   PaginatedResponse,
   PaginationParams,
-  ReduxPaginatedState,
-} from '@shared-types/api.ts';
-import type { ItemType } from '@features/inventoryShared/types/InventorySharedType.ts';
+} from '@shared-types/api';
+import { ReduxPaginatedState } from '@shared-types/pagination';
+import type { ItemType } from '@features/inventoryShared/types/InventorySharedType';
 
 export interface InventoryActivityLogEntry {
   id: string;

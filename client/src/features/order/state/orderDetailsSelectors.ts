@@ -1,12 +1,15 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 import type {
   OrderItem,
   TransformedOrder,
 } from '@features/order/state/orderTypes';
 
 /** Base selector: the whole orderDetails slice */
-export const selectOrderDetailsState = (state: RootState) => state.orderDetails;
+export const selectOrderDetailsState= createSelector(
+  [selectRuntime],
+  (runtime) => runtime.orderDetails
+);
 
 /** Is the details request in-flight? */
 export const selectOrderDetailsLoading = createSelector(

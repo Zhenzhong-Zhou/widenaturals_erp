@@ -19,8 +19,7 @@ import CustomTypography from '@components/common/CustomTypography';
 import ItemTypeTabs from '@features/inventoryShared/components/ItemTypeTabs';
 import type { ItemType } from '@features/inventoryShared/types/InventorySharedType';
 import InventoryOverviewHeaderSection from '@features/inventoryOverview/components/InventoryOverviewHeaderSection';
-import usePermissions from '@hooks/usePermissions';
-import useHasPermission from '@features/authorize/hooks/useHasPermission';
+import { usePagePermissionState } from '@features/authorize/hooks';
 import type {
   InventoryActivityLogEntry,
   InventoryActivityLogQueryParams,
@@ -83,21 +82,15 @@ const InventoryOverviewPage = () => {
       : itemTypeTab === 2
         ? 'packaging_material'
         : undefined;
-
-  const { permissions } = usePermissions();
-  const hasPermission = useHasPermission(permissions);
-
-  // Memoize permission checks
-  const canViewBasicLogs = useMemo(
-    () => hasPermission(['view_inventory_logs']),
-    [hasPermission]
-  );
-
-  const canViewInventoryLogs = useMemo(
-    () =>
-      hasPermission(['view_all_sku_logs', 'view_all_packing_material_logs']),
-    [hasPermission]
-  );
+  
+  const { isAllowed: canViewBasicLogs } =
+    usePagePermissionState('view_inventory_logs');
+  
+  const { isAllowed: canViewInventoryLogs } =
+    usePagePermissionState([
+      'view_all_sku_logs',
+      'view_all_packing_material_logs',
+    ]);
 
   const {
     data: logData,
@@ -300,7 +293,7 @@ const InventoryOverviewPage = () => {
           returnFocusRef={openButtonRef}
           data={mergedData}
           loading={logLoading}
-          error={logError}
+          error={logError ?? ''}
           page={logPage}
           totalPages={pagination?.totalPages ?? 1}
           totalRecords={pagination?.totalRecords ?? 0}

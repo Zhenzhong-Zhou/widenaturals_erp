@@ -1,11 +1,14 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 import type { CustomerResponse } from '@features/customer/state/customerTypes';
 
 /**
  * Base selector for accessing the customer creation slice state.
  */
-const selectCustomerCreateState = (state: RootState) => state.customerCreate;
+const selectCustomerCreateState = createSelector(
+  [selectRuntime],
+  (runtime) => runtime.customerCreate
+);
 
 /**
  * Selector to get the loading status of the customer creation request.

@@ -1,5 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 import type {
   LookupOption,
   OrderTypeLookupItem,
@@ -9,7 +9,10 @@ import { mapLookupItems } from '../utils/lookupSelectorUtils';
 /**
  * Base selector to access the order type lookup slice from the Redux store.
  */
-const selectOrderTypeLookupState = (state: RootState) => state.orderTypeLookup;
+const selectOrderTypeLookupState = createSelector(
+  [selectRuntime],
+  (runtime) => runtime.orderTypeLookup
+);
 
 /**
  * Selector to retrieve a raw list of order type items from the lookup state.

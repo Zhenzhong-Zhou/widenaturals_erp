@@ -17,7 +17,6 @@ const systemRoute = require('./system');
 const sessionRoute = require('./session');
 const authRoutes = require('./auth');
 const userRoutes = require('./users');
-const adminRoutes = require('./admin');
 const productRoutes = require('./products');
 const skuRoutes = require('./skus');
 const skuImageRoutes = require('./sku-images');
@@ -71,12 +70,22 @@ router.use('/internal', authenticate(), internalRoute);
 router.use('/system', authenticate(), systemRoute);
 
 /**
- * Session management (login/logout, session refresh)
+ * Session lifecycle routes.
+ *
+ * These routes are used to establish or recover authentication
+ * and MUST NOT require access-token authentication.
+ *
+ * Examples:
+ * - Login
+ * - Refresh access token
  */
-router.use('/session', sessionRoute); // Login/logout
+router.use('/session', sessionRoute);
 
 /**
- * Authenticated user profile and token validation routes
+ * Authenticated user routes.
+ *
+ * These routes require a valid access token and operate
+ * on an already authenticated user context.
  */
 router.use('/auth', authenticate(), authRoutes);
 
@@ -84,7 +93,6 @@ router.use('/auth', authenticate(), authRoutes);
  * User and admin account management
  */
 router.use('/users', authenticate(), userRoutes);
-router.use('/admin', authenticate(), adminRoutes);
 
 /**
  * Product and SKU catalog management

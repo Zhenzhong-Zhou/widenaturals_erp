@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  fetchPaymentMethodLookup,
+  fetchPaymentMethodLookupThunk,
   selectPaymentMethodDropdownOptions,
   selectPaymentMethodLookupLoading,
   selectPaymentMethodLookupError,
@@ -26,7 +26,7 @@ const usePaymentMethodLookup = () => {
 
   const fetch = useCallback(
     (params?: PaymentMethodLookupQueryParams) => {
-      dispatch(fetchPaymentMethodLookup(params));
+      dispatch(fetchPaymentMethodLookupThunk(params));
     },
     [dispatch]
   );

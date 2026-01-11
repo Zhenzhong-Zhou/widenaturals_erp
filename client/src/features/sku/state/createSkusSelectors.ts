@@ -1,5 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 import type { CreatedSkuRecord } from '@features/sku/state/skuTypes';
 
 /**
@@ -11,7 +11,10 @@ import type { CreatedSkuRecord } from '@features/sku/state/skuTypes';
  * @example
  * const state = useSelector(selectCreateSkusState);
  */
-const selectCreateSkusState = (state: RootState) => state.createSkus;
+const selectCreateSkusState= createSelector(
+  [selectRuntime],
+  (runtime) => runtime.createSkus
+);
 
 /**
  * Selector: returns the full API response (`CreateSkuResponse`) or null

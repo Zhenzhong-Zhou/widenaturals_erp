@@ -1,7 +1,7 @@
-const { query, retry, paginateResults } = require('../database/db');
+const { query, paginateResults, paginateQueryByOffset } = require('../database/db');
 const { buildUserFilter } = require('../utils/sql/build-user-filters');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
-const { logError, logWarn } = require('../utils/logger-helper');
+const { logError } = require('../utils/logger-helper');
 const {
   maskSensitiveInfo,
   maskField,
@@ -9,14 +9,31 @@ const {
 const AppError = require('../utils/AppError');
 
 /**
- * Inserts a new user into the `users` table with retry logic for transient errors.
+ * Inserts a new user record into the `users` table.
  *
- * @param {object} client - The database client.
- * @param {object} userDetails - User details to be inserted.
- * @returns {Promise<object>} - The inserted user details.
- * @throws {AppError} - Throws an error if the insertion fails or user already exists.
+ * Repository-layer function:
+ * - Executes a single INSERT statement
+ * - Relies on database constraints for integrity (UNIQUE, FK)
+ * - Does NOT handle conflict resolution, retries, ACL, or business rules
+ * - Throws raw database errors to preserve full error context
+ *
+ * User creation conflicts (e.g. duplicate email) are exceptional and
+ * MUST be handled explicitly in the service / business layer.
+ *
+ * @param {Object} user - User data to insert.
+ *
+ * @param {Object} client - Database client or transaction.
+ *
+ * @returns {Promise<Object>} Inserted user summary.
+ *
+ * @throws {Error} Raw database errors:
+ * - Unique constraint violations (email, phone)
+ * - Foreign key violations (role, status)
+ * - Other database-level failures
  */
-const insertUser = async (client, userDetails) => {
+const insertUser = async ( user, client) => {
+  const context = 'user-repository/insertUser';
+  
   const {
     email,
     roleId,
@@ -28,17 +45,34 @@ const insertUser = async (client, userDetails) => {
     note,
     statusDate,
     createdBy,
-  } = userDetails;
-
-  const sql = `
+    updatedBy = null,
+    updatedAt = null,
+  } = user;
+  
+  const queryText = `
     INSERT INTO users (
-      email, role_id, status_id, firstname, lastname, phone_number,
-      job_title, note, status_date, created_by
+      email,
+      role_id,
+      status_id,
+      firstname,
+      lastname,
+      phone_number,
+      job_title,
+      note,
+      status_date,
+      created_by,
+      updated_by,
+      updated_at
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-    ON CONFLICT (email) DO NOTHING
-    RETURNING id, email, role_id, status_id, created_at;
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+    RETURNING
+      id,
+      email,
+      role_id,
+      status_id,
+      created_at;
   `;
+  
   const params = [
     email,
     roleId,
@@ -50,23 +84,124 @@ const insertUser = async (client, userDetails) => {
     note,
     statusDate,
     createdBy,
+    updatedBy,
+    updatedAt,
   ];
-
+  
   try {
-    return await retry(async () => {
-      const result = await client.query(sql, params);
-
-      if (result.rows.length === 0) {
-        const maskedEmail = maskSensitiveInfo(email, 'email');
-        logWarn(`User with email ${maskedEmail} already exists.`);
-        throw AppError.conflictError('User already exists');
-      }
-
-      return result.rows[0];
+    const { rows } = await query(queryText, params, client);
+    
+    logSystemInfo('User inserted successfully', {
+      context,
+      userId: rows[0]?.id,
     });
+    
+    return rows[0];
   } catch (error) {
-    logError('Error inserting user:', error);
-    throw AppError.databaseError('Failed to insert user');
+    logSystemException(error, 'Failed to insert user', {
+      context,
+      email: maskSensitiveInfo(email, 'email'),
+      error: error.message,
+    });
+    
+    throw error;
+  }
+};
+
+/**
+ * Checks whether a user exists by a unique field, regardless of status.
+ *
+ * Repository-layer function:
+ * - Performs a structural existence check only
+ * - Does NOT apply status, visibility, or business rules
+ * - Intended for conflict detection and bootstrap logic
+ *
+ * @param {'id'|'email'} field - Field to check uniqueness against.
+ * @param {string} value - Field value to look up.
+ * @param {Object} [client] - Optional DB client for transactional context.
+ *
+ * @returns {Promise<boolean>} True if a matching user exists.
+ *
+ * @throws {AppError} If the field is invalid or the query fails.
+ */
+const userExistsByField = async (field, value, client) => {
+  const context = 'user-repository/userExistsByField';
+  
+  if (!['id', 'email'].includes(field)) {
+    throw AppError.validationError(
+      'Invalid field for user existence check.',
+      { context, field }
+    );
+  }
+  
+  const queryText = `
+    SELECT 1
+    FROM users
+    WHERE ${field} = $1
+    LIMIT 1
+  `;
+  
+  try {
+    const { rowCount } = await query(queryText, [value], client);
+    return rowCount > 0;
+  } catch (error) {
+    logSystemException(error, 'Failed to check user existence', {
+      context,
+      field,
+    });
+    
+    throw AppError.databaseError('Failed to check user existence.', {
+      cause: error,
+      context,
+    });
+  }
+};
+
+/**
+ * Checks whether an active user exists for the given email.
+ *
+ * Repository-layer function:
+ * - Performs a structural existence check scoped by status_id
+ * - Assumes status semantics are resolved by the caller
+ * - Avoids JOINs and string-based status checks
+ *
+ * @param {string} email - User email to check.
+ * @param {string} activeStatusId - Status ID representing "active".
+ * @param {Object} [client] - Optional DB client for transactional context.
+ *
+ * @returns {Promise<boolean>} True if an active user exists.
+ *
+ * @throws {AppError} If the query fails.
+ */
+const activeUserExistsByEmail = async (email, activeStatusId, client) => {
+  const context = 'user-repository/activeUserExistsByEmail';
+  
+  const queryText = `
+    SELECT 1
+    FROM users
+    WHERE email = $1
+      AND status_id = $2
+    LIMIT 1
+  `;
+  
+  try {
+    const { rowCount } = await query(
+      queryText,
+      [email, activeStatusId],
+      client
+    );
+    
+    return rowCount > 0;
+  } catch (error) {
+    logSystemException(error, 'Failed to check active user existence', {
+      context,
+      email,
+    });
+    
+    throw AppError.databaseError(
+      'Failed to check active user existence.',
+      { cause: error, context }
+    );
   }
 };
 
@@ -315,50 +450,147 @@ const getUserProfileById = async (userId, activeStatusId) => {
 };
 
 /**
- * Checks if a user exists in the database by a specific field and value.
+ * Fetches a lightweight, paginated list of users for use in
+ * dropdowns, autocomplete fields, or assignment workflows.
  *
- * The function filters by the user's status (default is 'active').
+ * This repository function intentionally returns a minimal payload
+ * to optimize performance for UI lookup scenarios.
  *
- * @param {string} field - The field to search by (e.g., 'id' or 'email').
- * @param {string} value - The value of the field.
- * @param {string} [status='active'] - The status to filter by (default is 'active').
- * @returns {Promise<boolean>} - True if the user exists and matches the status, false otherwise.
- * @throws {AppError} - If the field is invalid or the query fails.
+ * ### Design principles
+ * - Lookup endpoints must remain lightweight by default
+ * - Avoid joins unless explicitly required and permitted
+ * - Select only index-friendly, identifying fields
+ *
+ * ### Supported features
+ * - Row-level filtering via `buildUserFilter`
+ * - Keyword search on basic user fields
+ * - Stable, deterministic sorting
+ * - Offset-based pagination
+ *
+ * ### Permission-aware behavior
+ * - Role and status joins are applied only when explicitly enabled
+ *   via `options` (resolved by the service / ACL layer)
+ *
+ * @param {Object} [filters={}]
+ *   Row-level filters passed to `buildUserFilter`
+ *
+ * @param {Object} [options={}]
+ *   Query capability flags resolved by business / ACL logic
+ *
+ * @param {boolean} [options.canSearchRole=false]
+ *   Allow keyword search against role name (requires role join)
+ *
+ * @param {boolean} [options.canSearchStatus=false]
+ *   Allow keyword search against status name (requires status join)
+ *
+ * @param {number} [limit=50]
+ *   Maximum number of rows to return
+ *
+ * @param {number} [offset=0]
+ *   Number of rows to skip
+ *
+ * @returns {Promise<{
+ *   data: Array<{
+ *     id: string,
+ *     email: string,
+ *     firstname: string | null,
+ *     lastname: string | null,
+ *     status_id: string
+ *   }>,
+ *   pagination: {
+ *     offset: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     hasMore: boolean
+ *   }
+ * }>}
+ *
+ * @throws {AppError} If the database query fails
  */
-const userExists = async (field, value, status = 'active') => {
-  const maskedField = maskField(field, value);
-
-  // Validate the field
-  if (!['id', 'email'].includes(field)) {
-    throw AppError.validationError('Invalid field for user existence check');
+const getUserLookup = async ({
+                               filters = {},
+                               options = {},
+                               limit = 50,
+                               offset = 0,
+                             }) => {
+  const context = 'user-repository/getUserLookup';
+  const tableName = 'users u';
+  
+  // Query capability flags (resolved by service / ACL layer)
+  const {
+    canSearchRole = false,
+    canSearchStatus = false,
+  } = options;
+  
+  // Lookup queries avoid joins unless explicitly required
+  const joins = [];
+  
+  if (canSearchRole) {
+    joins.push('LEFT JOIN roles r ON r.id = u.role_id');
   }
-
-  // SQL query with dynamic field and status filter
-  const sql = `
-    SELECT 1
-    FROM users u
-    INNER JOIN status s ON u.status_id = s.id
-    WHERE u.${field} = $1
-      AND s.name = $2
-    LIMIT 1
+  
+  if (canSearchStatus) {
+    joins.push('LEFT JOIN status s ON s.id = u.status_id');
+  }
+  
+  // Build WHERE clause with awareness of enabled capabilities
+  const { whereClause, params } = buildUserFilter(filters, {
+    canSearchRole,
+    canSearchStatus,
+  });
+  
+  const queryText = `
+    SELECT
+      u.id,
+      u.email,
+      u.firstname,
+      u.lastname,
+      u.status_id
+    FROM ${tableName}
+    ${joins.join('\n')}
+    WHERE ${whereClause}
   `;
-
-  const params = [value, status];
-
+  
   try {
-    const result = await query(sql, params);
-    return result.rowCount > 0; // Return true if the user exists and matches the status
+    const result = await paginateQueryByOffset({
+      tableName,
+      joins,
+      whereClause,
+      queryText,
+      params,
+      offset,
+      limit,
+      sortBy: 'u.firstname',
+      sortOrder: 'ASC',
+      additionalSort: 'u.lastname ASC, u.email ASC',
+    });
+    
+    logSystemInfo('Fetched user lookup data', {
+      context,
+      offset,
+      limit,
+      filters,
+      options,
+    });
+    
+    return result;
   } catch (error) {
-    logError(`Error checking user existence by ${maskedField}:`, error);
-    throw AppError.databaseError(
-      `Failed to check user existence by ${maskedField}`
-    );
+    logSystemException(error, 'Failed to fetch user lookup', {
+      context,
+      offset,
+      limit,
+      filters,
+      options,
+    });
+    throw AppError.databaseError('Failed to fetch user lookup.');
   }
 };
 
 module.exports = {
   insertUser,
+  userExistsByField,
+  activeUserExistsByEmail,
   getPaginatedUsers,
   getUserProfileById,
-  userExists,
+  getUserLookup,
 };

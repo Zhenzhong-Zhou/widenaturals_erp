@@ -46,7 +46,7 @@ export interface Location {
 
 // Location Type Detail Interface (Represents details of a location type)
 export interface LocationTypeDetail extends LocationType {
-  locations: Location[];
+  data: Location[];
 }
 
 // API Response Interface (Represents the full response structure)

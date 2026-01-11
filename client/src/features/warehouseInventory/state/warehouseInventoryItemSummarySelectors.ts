@@ -1,12 +1,14 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 import type { WarehouseInventoryItemSummary } from './warehouseInventoryTypes';
 
 /**
  * Root selector for the warehouse inventory item summary slice.
  */
-const selectWarehouseInventoryItemSummaryState = (state: RootState) =>
-  state.warehouseInventoryItemSummary;
+const selectWarehouseInventoryItemSummaryState = createSelector(
+  [selectRuntime],
+  (runtime) => runtime.warehouseInventoryItemSummary
+);
 
 /**
  * Selects the full inventory summary data array (products and materials).

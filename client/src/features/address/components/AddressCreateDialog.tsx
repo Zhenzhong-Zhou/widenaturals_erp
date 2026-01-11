@@ -109,7 +109,7 @@ const AddressCreateDialog = ({
             onSuccess?.();
           }}
           message={creationMessage}
-          addresses={createdAddresses}
+          addresses={createdAddresses ?? undefined}
         />
       ) : (
         <CustomDialog

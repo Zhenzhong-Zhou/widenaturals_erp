@@ -1,13 +1,15 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 import type {
   BomReadinessPart,
   BomReadinessSummary,
 } from '@features/bom/state/bomTypes';
 
 /** Base selector for the BOM Production Readiness slice */
-export const selectBomProductionReadinessState = (state: RootState) =>
-  state.bomProductionReadiness;
+const selectBomProductionReadinessState = createSelector(
+  [selectRuntime],
+  (runtime) => runtime.bomProductionReadiness
+);
 
 /** Returns the full readiness summary data object */
 export const selectBomReadinessData = createSelector(

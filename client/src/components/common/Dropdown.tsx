@@ -7,6 +7,7 @@ import {
   isValidElement,
   type ReactNode,
 } from 'react';
+import { useTheme } from '@mui/material';
 import Autocomplete, {
   type AutocompleteProps,
 } from '@mui/material/Autocomplete';
@@ -22,11 +23,11 @@ import CustomTypography from '@components/common/CustomTypography';
 import BaseInput from '@components/common/BaseInput';
 import Loading from '@components/common/Loading';
 import ErrorMessage from '@components/common/ErrorMessage';
-import { useThemeContext } from '@context/ThemeContext';
 
 export interface OptionType {
   value: string | null;
   label: string | JSX.Element;
+  displayLabel?: JSX.Element;
   type?: string; // e.g., 'product' | 'material' | etc.
   icon?: IconProp | JSX.Element;
   iconColor?: string;
@@ -92,7 +93,7 @@ const Dropdown: FC<DropdownProps> = ({
   onInputChange,
   noOptionsMessage,
 }) => {
-  const { theme } = useThemeContext();
+  const theme = useTheme();
 
   // Modified options array with special items at the top
   const modifiedOptions = useMemo(() => {
@@ -325,7 +326,9 @@ const Dropdown: FC<DropdownProps> = ({
                     )}
                   </Box>
                 )}
-                {typeof option.label === 'string' ? (
+                {option.displayLabel ? (
+                  option.displayLabel
+                ) : typeof option.label === 'string' ? (
                   <span>{option.label}</span>
                 ) : (
                   option.label

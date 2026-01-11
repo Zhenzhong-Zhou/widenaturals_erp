@@ -1,7 +1,7 @@
 import type { FC } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import { useThemeContext } from '@context/ThemeContext';
+import { useTheme } from '@mui/material/styles';
 import type { SxProps, Theme } from '@mui/system';
 import { formatLabel } from '@utils/textUtils';
 
@@ -21,8 +21,8 @@ interface MetadataSectionProps {
 }
 
 const MetadataSection: FC<MetadataSectionProps> = ({ data, title, sx }) => {
-  const { theme } = useThemeContext();
-
+  const theme = useTheme();
+  
   return (
     <Box sx={{ mt: theme.spacing(2), ...sx }}>
       {title && (

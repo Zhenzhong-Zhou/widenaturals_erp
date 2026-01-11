@@ -1,9 +1,9 @@
 import type { FC } from 'react';
+import { useTheme } from '@mui/material/styles';
 import { Link } from 'react-router-dom';
 import { formatCurrency } from '@utils/textUtils';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import CustomTable, { type Column } from '@components/common/CustomTable';
-import { useThemeContext } from '@context/ThemeContext.tsx';
 
 interface PricingRow {
   pricingId: string;
@@ -40,7 +40,7 @@ const PricingListTable: FC<PricingTableProps> = ({
   onPageChange,
   onRowsPerPageChange,
 }) => {
-  const { theme } = useThemeContext();
+  const theme = useTheme();
   const columns: Column<PricingRow>[] = [
     {
       id: 'sku',

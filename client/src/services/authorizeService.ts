@@ -1,39 +1,37 @@
-import axiosInstance from '@utils/axiosConfig';
+import { getRequest } from '@utils/http';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import type { PermissionResponse } from '@features/authorize/state/authorzeTypes';
+import type { PermissionResponse } from '@features/authorize';
 
 /**
- * Fetch permissions and role name for the authenticated user.
+ * Fetches the authenticated user's role name and permission list.
  *
- * @returns {Promise<UsePermissions>} - Object containing role name, permissions, and helper methods.
- * @throws {Error} - Throws if the API call fails.
+ * Responsibilities:
+ * - Calls the permission endpoint using the standardized HTTP layer
+ * - Validates and returns a normalized permission payload
+ *
+ * Error handling:
+ * - Transport, network, and HTTP errors are normalized by `getRequest`
+ * - This function only validates business-level response shape
+ *
+ * @returns Promise resolving to the user's role name and permissions
  */
-const fetchPermissions = async (): Promise<{
+export const fetchPermissions = async (): Promise<{
   roleName: string;
   permissions: string[];
 }> => {
-  try {
-    // Fetch the raw response from the backend
-    const response = await axiosInstance.get<PermissionResponse>(
-      API_ENDPOINTS.USER_PERMISSION
-    );
-
-    // Extract and transform data to match the expected return type
-    const { roleName, permissions } = response.data.data;
-
-    if (!roleName || !permissions) {
-      throw new Error(
-        'Invalid response format: Missing roleName or permissions.'
-      );
-    }
-
-    return { roleName, permissions }; // Transform the response to the expected format
-  } catch (error: any) {
-    console.error('Error fetching permissions:', error.message);
+  const response = await getRequest<PermissionResponse>(
+    API_ENDPOINTS.USER_PERMISSION
+  );
+  
+  const { roleName, permissions } = response.data;
+  
+  if (!roleName || !permissions) {
     throw new Error(
-      error.response?.data?.message || 'Failed to fetch permissions'
+      'Invalid permission response: roleName or permissions missing.'
     );
   }
+  
+  return { roleName, permissions };
 };
 
 export const authorizeService = {

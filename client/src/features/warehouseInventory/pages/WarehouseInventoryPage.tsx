@@ -1,7 +1,7 @@
 import { lazy } from 'react';
 import WarehouseIcon from '@mui/icons-material/Warehouse';
 import BaseInventoryPage from '@features/inventoryShared/pages/InventoryListPageBase';
-import useWarehouseInventory from '@hooks/useWarehouseInventory';
+import useWarehouseInventoryAdapter from '@features/warehouseInventory/hooks/useWarehouseInventoryAdapter';
 import { WAREHOUSE_INVENTORY_SORT_OPTIONS } from '../constants/sortOptions';
 import WarehouseInventoryExpandedRow from '../components/WarehouseInventoryExpandedRow';
 import WarehouseInventoryFilterPanel from '../components/WarehouseInventoryFilterPanel';
@@ -15,7 +15,7 @@ const WarehouseInventoryPage = () => {
     <BaseInventoryPage
       title="All Warehouse Inventory"
       Icon={<WarehouseIcon fontSize="medium" color="primary" />}
-      useInventoryHook={useWarehouseInventory}
+      useInventoryHook={useWarehouseInventoryAdapter}
       FilterPanel={WarehouseInventoryFilterPanel}
       TableComponent={WarehouseInventoryTable}
       ExpandedRowComponent={WarehouseInventoryExpandedRow}

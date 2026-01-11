@@ -28,7 +28,7 @@ const resetPassword = async (
     { currentPassword: string | null; newPassword: string },
     ResetPasswordResponse
   >(
-    API_ENDPOINTS.SECURITY.AUTH.RESET_PASSWORD,
+    API_ENDPOINTS.SECURITY.AUTH.CHANGE_PASSWORD,
     { currentPassword, newPassword },
     { policy: 'AUTH' }
   );

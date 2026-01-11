@@ -12,7 +12,7 @@ import MetadataSection from '@components/common/MetadataSection';
 import StatusChip from '@components/common/StatusChip';
 import CustomTypography from '@components/common/CustomTypography';
 import { PermissionDialog } from '@features/user/components/UserProfile';
-import { useDialogFocusHandlers } from '@utils/hooks/useDialogFocusHandlers';
+import { useDialogFocusHandlers } from '@utils/hooks';
 import { formatLabel } from '@utils/textUtils';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import { formatGeneralStatus } from '@utils/formatters';

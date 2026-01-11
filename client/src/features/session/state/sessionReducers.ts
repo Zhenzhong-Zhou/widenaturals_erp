@@ -1,19 +1,35 @@
+import loginReducer from './loginSlice';
 import sessionReducer from './sessionSlice';
 
 /**
- * Reducer map for the Session feature.
+ * Session feature reducer map.
  *
- * This reducer group is consumed exclusively by the root reducer
- * to compose the `session` state subtree.
+ * Defines the reducer composition for the `session` state subtree.
+ * This object is consumed exclusively by the root reducer and must
+ * remain a thin, declarative mapping of slice reducers.
  *
- * Design principles:
- * - Slice reducers are imported locally to avoid circular
- *   ES module initialization (TDZ) issues.
- * - Slice reducers are private implementation details.
- * - Reducer aggregators must NEVER import feature or state
- *   index (barrel) files.
+ * Architectural guarantees:
+ * - Slice reducers are imported directly to avoid ES module
+ *   initialization order (TDZ) issues.
+ * - Slice reducers are treated as private implementation details
+ *   of the Session feature.
+ * - This module MUST NOT import feature-level or state barrel
+ *   (`index.ts`) files.
+ *
+ * Invariants:
+ * - No side effects
+ * - No cross-feature imports
+ * - Stable reducer keys
+ *
+ * Rationale:
+ * - Prevents hidden dependency graphs
+ * - Preserves predictable reducer initialization order
+ * - Keeps feature boundaries explicit and enforceable
  */
 export const sessionReducers = {
-  /** Authenticated session state (tokens, expiry, metadata) */
+  /** Authentication and login-related session state */
+  login: loginReducer,
+  
+  /** Persistent session metadata (lifecycle, expiry, status) */
   session: sessionReducer,
 };

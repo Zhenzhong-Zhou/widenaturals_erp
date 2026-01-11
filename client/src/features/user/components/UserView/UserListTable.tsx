@@ -1,7 +1,6 @@
 import { Suspense, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import Box from '@mui/material/Box';
-import usePagePermissionGuard from '@features/authorize/hooks/usePagePermissionGuard';
 import CustomTable, { CustomTableProps } from '@components/common/CustomTable';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
@@ -10,6 +9,7 @@ import {
   getUserListTableColumns,
   UserExpandedContent,
 } from '@features/user/components/UserView';
+import { usePagePermissionState } from '@features/authorize/hooks';
 import type { FlattenedUserRecord } from '@features/user/state';
 
 interface UserListTableProps extends Omit<
@@ -47,8 +47,8 @@ const UserListTable = ({
   onDrillDownToggle,
   onRefresh,
 }: UserListTableProps) => {
-  // Permission guard (adjust permission key if needed)
-  const { isAllowed } = usePagePermissionGuard(['create_users']);
+  // Permission state (UI-only decision)
+  const { isAllowed } = usePagePermissionState('create_users');
 
   /* -------------------------------------------------------
    * Memoize column definitions

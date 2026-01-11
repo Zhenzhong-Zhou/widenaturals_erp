@@ -1,5 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 import {
   createLookupMetaSelector,
   mapLookupItems,
@@ -12,8 +12,10 @@ import type {
 /**
  * Base selector for the packaging-material lookup slice.
  */
-export const selectPackagingMaterialLookupState = (state: RootState) =>
-  state.packagingMaterialLookup;
+const selectPackagingMaterialLookupState = createSelector(
+  [selectRuntime],
+  (runtime) => runtime.packagingMaterialLookup
+);
 
 /**
  * Selector for retrieving the list of packaging-material lookup items.

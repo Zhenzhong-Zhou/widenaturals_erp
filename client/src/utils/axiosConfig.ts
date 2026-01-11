@@ -1,52 +1,47 @@
 import axios, {
-  AxiosError,
-  type AxiosRequestConfig,
-  type AxiosResponse,
+  AxiosHeaders,
+  type AxiosError,
   type InternalAxiosRequestConfig,
 } from 'axios';
 import * as axiosRetry from 'axios-retry';
-import { store } from '@store/store';
+import { rawAxios } from '@utils/http';
 import { AppError } from '@utils/error';
+import { AppErrorDetails } from '@utils/error/AppError';
+import { store } from '@store/store';
 import { selectAccessToken } from '@features/session/state/sessionSelectors';
-import { updateAccessToken } from '@features/session/state/sessionSlice';
-import { logoutThunk } from '@features/session/state/sessionThunks';
 import { selectCsrfToken } from '@features/csrf/state/csrfSelector';
+import { setAccessToken } from '@features/session/state/sessionSlice';
 import { sessionService } from '@services/sessionService';
+import { hardLogout } from '@features/session/utils/hardLogout';
 
-interface ErrorResponse {
-  message?: string;
-  [key: string]: unknown;
-}
+/* =========================================================
+ * Refresh control (single-flight)
+ * ======================================================= */
 
-const baseURL = import.meta.env.VITE_BASE_URL;
+let refreshPromise: Promise<string> | null = null;
 
 /* =========================================================
  * Axios instance
  * ======================================================= */
 
+const baseURL = import.meta.env.VITE_BASE_URL;
+
 const axiosInstance = axios.create({
   baseURL,
   timeout: 10_000,
-  headers: { 'Content-Type': 'application/json' },
   withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
 /* =========================================================
- * Retry (transport-level only)
+ * Retry — transport-level only
  * ======================================================= */
 
 axiosRetry.default(axiosInstance, {
   retries: 3,
-  retryDelay: (retryCount, error) => {
-    const retryAfter = error.response?.headers?.['retry-after'];
-    if (retryAfter) {
-      const seconds = Number(retryAfter);
-      if (!Number.isNaN(seconds)) {
-        return seconds * 1000;
-      }
-    }
-    return axiosRetry.exponentialDelay(retryCount);
-  },
+  retryDelay: axiosRetry.exponentialDelay,
   retryCondition: (error) =>
     axiosRetry.isNetworkError(error) ||
     error.response?.status === 429 ||
@@ -54,126 +49,138 @@ axiosRetry.default(axiosInstance, {
 });
 
 /* =========================================================
- * Refresh token single-flight
+ * Request interceptor — attach auth headers
  * ======================================================= */
 
-let isRefreshing = false;
-
-let failedQueue: {
-  resolve: (token: string) => void;
-  reject: (error: unknown) => void;
-}[] = [];
-
-const processQueue = (error: unknown, token: string | null) => {
-  failedQueue.forEach(({ resolve, reject }) => {
-    error ? reject(error) : resolve(token as string);
-  });
-  failedQueue = [];
-};
+axiosInstance.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    const state = store.getState();
+    
+    const accessToken = selectAccessToken(state);
+    const csrfToken = selectCsrfToken(state);
+    
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
+    }
+    
+    if (csrfToken) {
+      config.headers['X-CSRF-Token'] = csrfToken;
+    }
+    
+    return config;
+  }
+);
 
 /* =========================================================
- * Request interceptor
- * ======================================================= */
-
-axiosInstance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const state = store.getState();
-
-  const accessToken = selectAccessToken(state);
-  const csrfToken = selectCsrfToken(state);
-
-  if (accessToken) {
-    config.headers.Authorization = `Bearer ${accessToken}`;
-  }
-
-  if (csrfToken) {
-    config.headers['X-CSRF-Token'] = csrfToken;
-  }
-
-  return config;
-});
-
-/* =========================================================
- * Response interceptor
+ * Response interceptor — auth-safe error handling
  * ======================================================= */
 
 axiosInstance.interceptors.response.use(
-  (response: AxiosResponse) => response,
-  async (error: AxiosError<ErrorResponse>) => {
-    const originalRequest = error.config as AxiosRequestConfig & {
-      _retry?: boolean;
-    };
-
-    /* ----------------------------------
-     * 401 → refresh & replay
-     * ---------------------------------- */
-
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({
-            resolve: (token) => {
-              if (originalRequest.headers) {
-                originalRequest.headers.Authorization = `Bearer ${token}`;
-              }
-              resolve(axiosInstance(originalRequest));
-            },
-            reject,
-          });
-        });
-      }
-
-      originalRequest._retry = true;
-      isRefreshing = true;
-
-      try {
-        const { accessToken } = await sessionService.refreshToken();
-        store.dispatch(updateAccessToken(accessToken));
-
-        processQueue(null, accessToken);
-
-        if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-        }
-
-        return axiosInstance(originalRequest);
-      } catch (refreshError) {
-        processQueue(refreshError, null);
-        store.dispatch(logoutThunk());
-        window.location.href = '/login';
-
-        return Promise.reject(
-          AppError.authentication('Session expired. Please log in again.')
-        );
-      } finally {
-        isRefreshing = false;
-      }
-    }
-
-    /* ----------------------------------
-     * HTTP → AppError normalization
-     * ---------------------------------- */
-
-    const status = error.response?.status;
-    const message = error.response?.data?.message;
-
-    if (status === 400) {
+  (response) => response,
+  
+  async (error: AxiosError) => {
+    if (!error.config) {
       return Promise.reject(
-        AppError.validation('Validation failed', error.response?.data)
+        AppError.network('Request failed before reaching the server')
       );
     }
-
+    
+    const originalRequest = error.config as InternalAxiosRequestConfig & {
+      _retry?: boolean;
+    };
+    
+    const status = error.response?.status;
+    
+    /* -------------------------------------------------------
+     * 401 — attempt refresh (single-flight)
+     * ----------------------------------------------------- */
+    
+    if (status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      try {
+        if (!refreshPromise) {
+          refreshPromise = sessionService
+            .refreshToken()
+            .then((data) => {
+              if (!data?.accessToken) {
+                throw AppError.authentication('Session expired');
+              }
+              
+              store.dispatch(setAccessToken(data.accessToken));
+              return data.accessToken;
+            })
+            .finally(() => {
+              refreshPromise = null;
+            });
+        }
+        
+        const accessToken = await refreshPromise;
+        
+        originalRequest.headers = new AxiosHeaders(originalRequest.headers);
+        originalRequest.headers.set(
+          'Authorization',
+          `Bearer ${accessToken}`
+        );
+        
+        return rawAxios.request(originalRequest);
+      } catch {
+        await hardLogout();
+        return Promise.reject(error);
+      }
+    }
+    
+    /* -------------------------------------------------------
+     * 403 — permission revoked (runtime only)
+     * ----------------------------------------------------- */
+    
+    if (status === 403) {
+      await hardLogout();
+      return Promise.reject(
+        AppError.authorization('Access revoked. Please log in again.')
+      );
+    }
+    
+    /* -------------------------------------------------------
+     * Normalization (non-auth)
+     * ----------------------------------------------------- */
+    
+    if (status === 400) {
+      return Promise.reject(
+        AppError.validation(
+          'Validation failed',
+          error.response?.data as Record<string, unknown> | undefined
+        )
+      );
+    }
+    
+    if (status === 404) {
+      return Promise.reject(
+        AppError.notFound(
+          (error.response?.data as any)?.message ?? 'Resource not found'
+        )
+      );
+    }
+    
     if (status === 429) {
       return Promise.reject(AppError.rateLimit('Too many requests'));
     }
-
+    
     if (status && status >= 500) {
       return Promise.reject(
-        AppError.server('Server error occurred', error.response?.data)
+        AppError.server(
+          'Server error occurred',
+          error.response?.data as AppErrorDetails | undefined
+        )
       );
     }
-
+    
     return Promise.reject(
-      AppError.unknown(message || 'Unexpected error occurred', error)
+      AppError.unknown(
+        (error.response?.data as any)?.message ||
+        'Unexpected error occurred',
+        error
+      )
     );
   }
 );

@@ -1,4 +1,5 @@
 import { Fragment, type ReactNode, useMemo, useState } from 'react';
+import { useTheme } from '@mui/material';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -10,9 +11,8 @@ import TableSortLabel from '@mui/material/TableSortLabel';
 import Paper from '@mui/material/Paper';
 import Skeleton from '@mui/material/Skeleton';
 import Collapse from '@mui/material/Collapse';
-import NoDataFound from '@components/common/NoDataFound';
-import { useThemeContext } from '@context/ThemeContext';
 import Checkbox from '@mui/material/Checkbox';
+import NoDataFound from '@components/common/NoDataFound';
 
 export interface Column<T = any> {
   id: string;
@@ -82,7 +82,7 @@ const CustomTable = <T extends Record<string, any>>({
   showActionsColumn = false,
   renderActions,
 }: CustomTableProps<T>) => {
-  const { theme } = useThemeContext();
+  const theme = useTheme();
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
   const [orderBy, setOrderBy] = useState<string | undefined>(undefined);
   const finalColumns = [...columns];

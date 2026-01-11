@@ -2,7 +2,6 @@ import {
   type FC,
   useEffect,
   useState,
-  useMemo,
   useCallback,
   useRef,
 } from 'react';
@@ -12,8 +11,7 @@ import Box from '@mui/material/Box';
 import { type CustomFormRef } from '@components/common/CustomForm';
 import { type MultiItemFormRef } from '@components/common/MultiItemForm';
 import CustomButton from '@components/common/CustomButton';
-import usePermissions from '@hooks/usePermissions';
-import useHasPermission from '@features/authorize/hooks/useHasPermission';
+import { usePagePermissionState } from '@features/authorize/hooks';
 import { PERMISSIONS } from '@utils/constants/orderPermissions';
 import useSalesOrderCreate from '@hooks/useSalesOrderCreate';
 import type {
@@ -56,15 +54,9 @@ import {
 const CreateSaleOrderForm: FC = () => {
   const navigate = useNavigate();
   const { category } = useParams();
-
-  const { loading, permissions } = usePermissions();
-  const hasPermission = useHasPermission(permissions);
-
-  // Memoize permission checks
-  const canCreateSalesOrder = useMemo(
-    () => hasPermission([PERMISSIONS.CREATE_SALES_ORDER]),
-    [hasPermission]
-  );
+  
+  const { isAllowed: canCreateSalesOrder } =
+    usePagePermissionState(PERMISSIONS.CREATE_SALES_ORDER);
 
   // Server-backed lookup bundles
   const {
@@ -196,7 +188,7 @@ const CreateSaleOrderForm: FC = () => {
   }, [selectedCustomerId]);
 
   useEffect(() => {
-    if (!loading && !canCreateSalesOrder) {
+    if (!canCreateSalesOrder) {
       navigate('/access-denied', { replace: true });
     }
   }, [canCreateSalesOrder, navigate]);

@@ -64,7 +64,7 @@ const ProductsCreateDialog = ({
 
   return (
     <>
-      {showSuccessDialog ? (
+      {showSuccessDialog && createdProducts ? (
         <CreateProductSuccessDialog
           open={showSuccessDialog}
           onClose={() => {

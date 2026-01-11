@@ -13,16 +13,23 @@ import ProductListTable, {
   ProductFiltersPanel,
   ProductSortControls,
 } from '@features/product/components/ProductListTable';
-import usePaginatedProducts from '@hooks/usePaginatedProducts';
-import useStatusLookup from '@hooks/useStatusLookup';
-import { useDialogFocusHandlers } from '@utils/hooks/useDialogFocusHandlers';
-import { usePaginationHandlers } from '@utils/hooks/usePaginationHandlers';
+import {
+  usePaginatedProducts,
+  useStatusLookup,
+  useUserLookup,
+} from '@hooks/index';
+import {
+  useDialogFocusHandlers,
+  usePaginationHandlers
+} from '@utils/hooks';
 import type {
   ProductListFilters,
   ProductSortField,
 } from '@features/product/state';
+import type { UserLookupParams } from '@features/lookup';
 import { applyFiltersAndSorting } from '@utils/queryUtils';
 import { flattenProductRecords } from '@features/product/utils/flattenProductListData';
+import { createDropdownBundle } from '@utils/lookupHelpers';
 
 const ProductListPage = () => {
   // -------------------------------------------------------------
@@ -62,7 +69,35 @@ const ProductListPage = () => {
     fetch: fetchStatusOptions,
     reset: resetStatusOptions,
   } = useStatusLookup();
+  
+  // -------------------------------------------------------------
+  // User lookup
+  // -------------------------------------------------------------
+  const {
+    options: userOptions,
+    loading: isUserLookupLoading,
+    error: userLookupError,
+    meta: userLookupMeta,
+    fetch: fetchUserLookup,
+    reset: resetUserLookup,
+  } = useUserLookup();
 
+  // -------------------------------------------------------------
+  // User dropdown query state
+  // -------------------------------------------------------------
+  const createdByDropdown = createDropdownBundle<UserLookupParams>({});
+  const updatedByDropdown = createDropdownBundle<UserLookupParams>({});
+  
+  const {
+    fetchParams: createdByFetchParams,
+    setFetchParams: setCreatedByFetchParams,
+  } = createdByDropdown;
+  
+  const {
+    fetchParams: updatedByFetchParams,
+    setFetchParams: setUpdatedByFetchParams,
+  } = updatedByDropdown;
+  
   // -------------------------------------------------------------
   // Derived flattened rows
   // -------------------------------------------------------------
@@ -93,7 +128,8 @@ const ProductListPage = () => {
   }, [fullQuery, fetchPaginatedProductsList]);
 
   // -------------------------------------------------------------
-  // Params for debounced filtering/sorting engine
+  // Debounced query execution payload
+  // (used by applyFiltersAndSorting)
   // -------------------------------------------------------------
   const queryParams = useMemo(
     () => ({
@@ -125,14 +161,27 @@ const ProductListPage = () => {
     resetProductList();
     setFilters({});
     resetStatusOptions();
+    resetUserLookup();
     setPage(1);
-  }, [resetProductList, resetStatusOptions]);
-
-  const handleDropdownOpen = useCallback(() => {
-    if (statusOptions.length === 0) {
+  }, [resetProductList, resetStatusOptions, resetUserLookup]);
+  
+  const handleStatusDropdownOpen = useCallback(() => {
+    if (!statusOptions.length) {
       fetchStatusOptions();
     }
   }, [statusOptions.length, fetchStatusOptions]);
+  
+  const handleCreatedByOpen = useCallback(() => {
+    if (!userOptions.length) {
+      fetchUserLookup(createdByFetchParams);
+    }
+  }, [userOptions.length, fetchUserLookup, createdByFetchParams]);
+  
+  const handleUpdatedByOpen = useCallback(() => {
+    if (!userOptions.length) {
+      fetchUserLookup(updatedByFetchParams);
+    }
+  }, [userOptions.length, fetchUserLookup, updatedByFetchParams]);
 
   const { handleOpenDialog, handleCloseDialog } = useDialogFocusHandlers(
     setDialogOpen,
@@ -190,12 +239,31 @@ const ProductListPage = () => {
             <ProductFiltersPanel
               filters={filters}
               onChange={setFilters}
-              onOpen={handleDropdownOpen}
               onApply={() => setPage(1)}
               onReset={handleResetFilters}
+              
+              // Status lookup
+              onStatusOpen={handleStatusDropdownOpen}
               statusOptions={statusOptions}
               statusLoading={isStatusLoading}
               statusError={statusError}
+              
+              // Shared user lookup
+              userOptions={userOptions}
+              userLoading={isUserLookupLoading}
+              userError={userLookupError}
+              userMeta={userLookupMeta}
+              fetchUserLookup={fetchUserLookup}
+              
+              // Created By
+              onCreatedByOpen={handleCreatedByOpen}
+              createdByFetchParams={createdByFetchParams}
+              setCreatedByFetchParams={setCreatedByFetchParams}
+              
+              // Updated By
+              onUpdatedByOpen={handleUpdatedByOpen}
+              updatedByFetchParams={updatedByFetchParams}
+              setUpdatedByFetchParams={setUpdatedByFetchParams}
             />
           </Grid>
 
@@ -217,7 +285,7 @@ const ProductListPage = () => {
         <Loading variant="dotted" message="Loading Products..." />
       ) : productError ? (
         <ErrorMessage message={productError} showNavigation />
-      ) : isProductListEmpty ? (
+      ) : isProductListEmpty || !productPagination ? (
         <NoDataFound
           message="No Products found."
           action={
@@ -230,8 +298,8 @@ const ProductListPage = () => {
           loading={isProductLoading}
           page={page - 1}
           rowsPerPage={limit}
-          totalRecords={productTotalRecords || 0}
-          totalPages={productPagination.totalPages || 0}
+          totalRecords={productTotalRecords}
+          totalPages={productPagination.totalPages}
           onPageChange={handlePageChange}
           onRowsPerPageChange={handleRowsPerPageChange}
           expandedRowId={expandedRowId}

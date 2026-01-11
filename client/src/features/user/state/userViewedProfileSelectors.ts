@@ -1,11 +1,13 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 
 /**
  * Root selector for the viewed user profile slice.
  */
-const selectUserViewedProfileState = (state: RootState) =>
-  state.userViewedProfile;
+const selectUserViewedProfileState= createSelector(
+  [selectRuntime],
+  (runtime) => runtime.userViewedProfile
+);
 
 /**
  * Loading status for viewed profile.

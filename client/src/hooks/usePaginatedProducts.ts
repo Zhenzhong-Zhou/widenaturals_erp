@@ -11,6 +11,7 @@ import {
   resetPaginatedProducts,
 } from '@features/product/state';
 import type { FetchProductParams } from '@features/product/state';
+import { normalizePagination } from '@utils/pagination/normalizePagination';
 
 /**
  * React hook that provides access to paginated Product list state and actions.
@@ -63,7 +64,7 @@ const usePaginatedProducts = () => {
   // Derived memoized values
   // ---------------------------
   const pageInfo = useMemo(() => {
-    const { page, limit } = pagination;
+    const { page, limit } = normalizePagination(pagination);
     return { page, limit };
   }, [pagination]);
 

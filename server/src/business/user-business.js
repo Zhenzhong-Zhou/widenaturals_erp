@@ -7,28 +7,126 @@ const AppError = require('../utils/AppError');
 const { getStatusId } = require('../config/status-cache');
 
 /**
- * Business: Determine what categories of users the requester
- * is allowed to view in user list pages, directory views, or dropdowns.
+ * Business: Determine whether the requester is allowed to create users
+ * and which privilege tiers they may assign.
  *
- * This function resolves visibility authority only.
+ * This function evaluates USER CREATION AUTHORITY ONLY.
+ * It does NOT validate input shape or perform persistence logic.
+ *
+ * Root users implicitly bypass all creation restrictions.
+ *
+ * @param {Object} user - Authenticated user context.
+ *
+ * @returns {Promise<{
+ *   canCreateUsers: boolean,
+ *   canCreateAdminUsers: boolean,
+ *   canCreateSystemUsers: boolean,
+ *   canCreateRootUsers: boolean
+ * }>}
+ */
+const evaluateUserCreationAccessControl = async (user) => {
+  try {
+    // ------------------------------------------------------------
+    // Bootstrap bypass (explicit and auditable)
+    // ------------------------------------------------------------
+    if (user?.isBootstrap === true) {
+      return {
+        canCreateUsers: true,
+        canCreateAdminUsers: true,
+        canCreateSystemUsers: true,
+        canCreateRootUsers: true,
+      };
+    }
+    
+    const { permissions, isRoot } = await resolveUserPermissionContext(user);
+    
+    const canCreateUsers =
+      isRoot ||
+      permissions.includes(USER_CONSTANTS.PERMISSIONS.CREATE_USERS);
+    
+    const canCreateAdminUsers =
+      isRoot ||
+      permissions.includes(USER_CONSTANTS.PERMISSIONS.CREATE_ADMIN_USERS);
+    
+    const canCreateSystemUsers =
+      isRoot ||
+      permissions.includes(USER_CONSTANTS.PERMISSIONS.CREATE_SYSTEM_USERS);
+    
+    const canCreateRootUsers =
+      isRoot ||
+      permissions.includes(USER_CONSTANTS.PERMISSIONS.CREATE_ROOT_USERS);
+    
+    return {
+      canCreateUsers,
+      canCreateAdminUsers,
+      canCreateSystemUsers,
+      canCreateRootUsers,
+    };
+  } catch (err) {
+    logSystemException(
+      err,
+      'Failed to evaluate user creation access control',
+      {
+        context: 'user-business/evaluateUserCreationAccessControl',
+        userId: user?.id,
+      }
+    );
+    
+    throw AppError.businessError(
+      'Unable to evaluate user creation access control.',
+      { details: err.message }
+    );
+  }
+};
+
+/**
+ * Business: Determine which categories of users the requester
+ * is allowed to view in user list pages, directory views, or lookup dropdowns.
+ *
+ * This function resolves USER VISIBILITY AUTHORITY ONLY.
  * It does NOT inspect filters, modify data, or apply query logic.
  *
- * Controls visibility of:
- *   ✔ Regular human users
+ * Visibility categories covered:
+ *   ✔ Regular (active) users
+ *   ✔ Inactive users
  *   ✔ System / automation users
  *   ✔ Root-level users
- *   ✔ Full visibility override for privileged users
  *
- * Permission meanings:
- *   VIEW_SYSTEM_USERS          → Allows viewing system / automation users
- *   VIEW_ROOT_USERS            → Allows viewing root-level users
- *   VIEW_USERS_ALL_VISIBILITY  → Overrides all visibility restrictions
+ * Permission semantics:
  *
- * @param {Object} user - Authenticated user context
+ *   - VIEW_SYSTEM_USERS
+ *       Allows viewing system / automation users.
+ *
+ *   - VIEW_ROOT_USERS
+ *       Allows viewing root-level users.
+ *
+ *   - VIEW_INACTIVE_USERS
+ *       Allows viewing inactive users.
+ *
+ *   - VIEW_USERS_ALL_VISIBILITY
+ *       VIEW ALL USERS (FULL VISIBILITY OVERRIDE).
+ *
+ *       This permission implicitly allows viewing:
+ *         • active users
+ *         • inactive users
+ *         • system / automation users
+ *         • root-level users
+ *
+ *       It supersedes all other user visibility permissions.
+ *
+ * Root users (`isRoot === true`) implicitly bypass all user visibility restrictions.
+ *
+ * Derived rule:
+ *   - ACTIVE-only visibility is enforced by default.
+ *   - `enforceActiveOnly` is true ONLY when the requester cannot view inactive users
+ *     and does not have full user visibility.
+ *
+ * @param {Object} user - Authenticated user context.
+ *
  * @returns {Promise<{
  *   canViewSystemUsers: boolean,
  *   canViewRootUsers: boolean,
- *   canViewInactiveUsers: boolean,
+ *   canViewAllStatuses: boolean,
  *   canViewAllUsers: boolean,
  *   enforceActiveOnly: boolean
  * }>}
@@ -47,26 +145,29 @@ const evaluateUserVisibilityAccessControl = async (user) => {
       isRoot ||
       permissions.includes(USER_CONSTANTS.PERMISSIONS.VIEW_ROOT_USERS);
 
-    const canViewInactiveUsers =
-      isRoot ||
-      permissions.includes(USER_CONSTANTS.PERMISSIONS.VIEW_INACTIVE_USERS);
-
-    // Full override → can see all users regardless of category
+    // Full visibility override:
+    // implies inactive + system + root visibility
     const canViewAllUsers =
       isRoot ||
       permissions.includes(
         USER_CONSTANTS.PERMISSIONS.VIEW_USERS_ALL_VISIBILITY
       );
+    
+    // Inactive users are visible either via explicit permission
+    // or via full visibility override
+    const canViewAllStatuses =
+      canViewAllUsers ||
+      permissions.includes(USER_CONSTANTS.PERMISSIONS.VIEW_INACTIVE_USERS);
 
     // Derived rule:
     // Default to ACTIVE-only visibility unless explicitly permitted
     // to view inactive users or granted full visibility override
-    const enforceActiveOnly = !canViewInactiveUsers && !canViewAllUsers;
+    const enforceActiveOnly = !canViewAllStatuses && !canViewAllUsers;
 
     return {
       canViewSystemUsers,
       canViewRootUsers,
-      canViewInactiveUsers,
+      canViewAllStatuses,
       canViewAllUsers,
       enforceActiveOnly,
     };
@@ -282,7 +383,206 @@ const sliceUserRoleForUser = (row, access) => {
   return row;
 };
 
+/**
+ * Evaluates which lookup search dimensions are available to the user
+ * when performing user lookup queries (e.g. dropdowns, autocomplete).
+ *
+ * This function determines **query capabilities**, not row visibility.
+ * It does NOT decide which users are visible — only which metadata
+ * fields are allowed to participate in keyword search.
+ *
+ * ### Responsibilities
+ * - Resolve permission-based search capabilities
+ * - Control whether role or status metadata may be searched
+ * - Prevent unauthorized JOIN expansion in lookup queries
+ *
+ * ### Notes
+ * - These flags are intended for repository query shaping only
+ * - They must be resolved by the business / ACL layer
+ * - They should never be derived from client input
+ *
+ * ### Derived Capabilities
+ * - `canSearchRole`   → enables role name search (roles JOIN)
+ * - `canSearchStatus` → enables status name search (statuses JOIN)
+ *
+ * @param {Object} user
+ *   Authenticated user context
+ *
+ * @returns {Promise<{
+ *   canSearchRole: boolean,
+ *   canSearchStatus: boolean
+ * }>}
+ *
+ * @throws {AppError}
+ *   If permission context resolution fails
+ */
+const evaluateUserLookupSearchCapabilities = async (user) => {
+  try {
+    const { permissions, isRoot } = await resolveUserPermissionContext(user);
+    
+    const canSearchRole =
+      isRoot ||
+      permissions.includes(
+        USER_CONSTANTS.PERMISSIONS.SEARCH_USERS_BY_ROLE
+      );
+    
+    const canSearchStatus =
+      isRoot ||
+      permissions.includes(
+        USER_CONSTANTS.PERMISSIONS.SEARCH_USERS_BY_STATUS
+      );
+    
+    return {
+      canSearchRole,
+      canSearchStatus,
+    };
+  } catch (err) {
+    logSystemException(
+      err,
+      'Failed to evaluate user lookup search capabilities',
+      {
+        context: 'user-business/evaluateUserLookupSearchCapabilities',
+        userId: user?.id,
+      }
+    );
+    
+    throw AppError.businessError(
+      'Unable to evaluate user lookup search capabilities.',
+      { details: err.message }
+    );
+  }
+};
+
+/**
+ * Business: applyUserLookupVisibilityRules
+ *
+ * Purpose:
+ * - Translate evaluated ACL decisions into repository-safe lookup filters
+ * - Enforce conservative visibility rules for USER LOOKUPS
+ *
+ * Lookup-specific behavior:
+ * - Lookups are intentionally MORE restrictive than full user lists
+ * - Designed for dropdowns, autocomplete, and assignment selectors
+ *
+ * Enforced rules (in order of precedence):
+ * 1. Full visibility override:
+ *    - Includes system users
+ *    - Includes root users
+ *    - Disables ACTIVE-only enforcement
+ *
+ * 2. Default visibility (non-privileged users):
+ *    - ACTIVE users only
+ *    - System users hidden
+ *    - Root users hidden
+ *
+ * 3. Privileged visibility (partial):
+ *    - Inactive users allowed ONLY when explicitly permitted by ACL
+ *    - System/root users still hidden unless full override
+ *
+ * IMPORTANT:
+ * - This function does NOT evaluate permissions.
+ * - It assumes ACL has already been resolved by
+ *   `evaluateUserVisibilityAccessControl`.
+ * - All enforcement happens at the SQL/repository level.
+ *
+ * @param {Object} filters
+ *   - Original lookup filters provided by the caller.
+ *
+ * @param {Object} acl
+ *   - Result of `evaluateUserVisibilityAccessControl()`.
+ *
+ * @param {string} activeStatusId
+ *   - Status ID representing the ACTIVE user state.
+ *   - Must be resolved by the service layer and passed explicitly.
+ *
+ * @returns {Object}
+ *   - Repository-safe filters suitable for user lookup queries.
+ */
+const applyUserLookupVisibilityRules = (filters, acl, activeStatusId) => {
+  const adjusted = { ...filters };
+  
+  // ---------------------------------------------------------
+  // Full visibility override
+  // ---------------------------------------------------------
+  if (acl.canViewAllUsers) {
+    adjusted.includeSystemUsers = true;
+    adjusted.includeRootUsers = true;
+    delete adjusted.enforceActiveOnly;
+    delete adjusted.activeStatusId;
+    return adjusted;
+  }
+  
+  // ---------------------------------------------------------
+  // ACTIVE-only enforcement (default)
+  // ---------------------------------------------------------
+  if (!acl.canViewAllUsers) {
+    adjusted.enforceActiveOnly = true;
+    adjusted.activeStatusId = activeStatusId;
+    delete adjusted.statusIds;
+  }
+  
+  // ---------------------------------------------------------
+  // System users — never shown unless full override
+  // ---------------------------------------------------------
+  adjusted.includeSystemUsers = false;
+  
+  // ---------------------------------------------------------
+  // Root users — never shown unless full override
+  // ---------------------------------------------------------
+  adjusted.includeRootUsers = false;
+  
+  return adjusted;
+};
+
+/**
+ * Enrich a User lookup row with an explicit active-state flag.
+ *
+ * Purpose:
+ * - Expose a simple boolean (`isActive`) for UI rendering logic
+ * - Allow user lookup UIs to visually differentiate active vs inactive users
+ *   (e.g. disabled options, muted styling, warning icons)
+ *
+ * IMPORTANT:
+ * - This function does NOT change visibility rules.
+ * - Inactive users must already be permitted by ACL and SQL filters.
+ * - This is a pure UI-enrichment helper.
+ *
+ * Usage guidance:
+ * - Attach `isActive` ONLY when inactive users may appear in the result set
+ *   (e.g. admin / manager views).
+ * - Omit this enrichment for active-only lookups to keep payload minimal.
+ *
+ * @param {object} row - A User lookup row from the repository.
+ *   Expected to include `status_id`.
+ *
+ * @param {string} activeStatusId - Status ID representing the ACTIVE user state.
+ *
+ * @returns {object} User lookup row with:
+ *   - `isActive: boolean`
+ *
+ * @throws {AppError} If input validation fails.
+ */
+const enrichUserLookupWithActiveFlag = (row, activeStatusId) => {
+  if (!row || typeof row !== 'object') {
+    throw AppError.validationError(
+      '[enrichUserLookupWithActiveFlag] Invalid `row`.'
+    );
+  }
+  
+  if (typeof activeStatusId !== 'string' || !activeStatusId) {
+    throw AppError.validationError(
+      '[enrichUserLookupWithActiveFlag] Missing or invalid activeStatusId.'
+    );
+  }
+  
+  return {
+    ...row,
+    isActive: row.status_id === activeStatusId,
+  };
+};
+
 module.exports = {
+  evaluateUserCreationAccessControl,
   evaluateUserVisibilityAccessControl,
   applyUserListVisibilityRules,
   sliceUserForUser,
@@ -290,4 +590,7 @@ module.exports = {
   sliceUserProfileForUser,
   evaluateUserRoleViewAccessControl,
   sliceUserRoleForUser,
+  evaluateUserLookupSearchCapabilities,
+  applyUserLookupVisibilityRules,
+  enrichUserLookupWithActiveFlag,
 };

@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useTheme } from '@mui/material/styles';
 import type {
   FetchPricingParams,
   PricingRecord,
@@ -16,15 +17,14 @@ import Stack from '@mui/material/Stack';
 import CustomModal from '@components/common/CustomModal';
 import ExportPricingForm from '../components/ExportPricingForm';
 import { extractPricingFilterOptions } from '../utils/extractPricingFilterOptions';
-import { useThemeContext } from '@context/ThemeContext';
 
 const PricingListPage = () => {
+  const theme = useTheme();
   const [params, setParams] = useState<FetchPricingParams>({
     page: 1,
     limit: 25,
   });
   const [exportOpen, setExportOpen] = useState(false);
-  const { theme } = useThemeContext();
 
   const {
     data: pricingData,
@@ -141,15 +141,15 @@ const PricingListPage = () => {
       >
         <ExportPricingForm onClose={() => setExportOpen(false)} />
       </CustomModal>
-
-      {isEmpty ? (
-        <CustomTypography variant={'h6'}>
+      
+      {isEmpty || !pagination ? (
+        <CustomTypography variant="h6">
           No pricing records found.
         </CustomTypography>
       ) : (
         <PricingListTable
           data={flattened}
-          page={(pagination.page ?? 1) - 1}
+          page={pagination.page - 1}
           rowsPerPage={pagination.limit}
           totalRecords={pagination.totalRecords}
           totalPages={pagination.totalPages}

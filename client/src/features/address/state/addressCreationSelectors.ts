@@ -1,10 +1,13 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 
 /**
  * Base selector to access the address creation slice of state.
  */
-const selectAddressCreationState = (state: RootState) => state.addressCreation;
+const selectAddressCreationState= createSelector(
+  [selectRuntime],
+  (runtime) => runtime.addressCreation
+);
 
 /**
  * Selects the loading state for address creation.

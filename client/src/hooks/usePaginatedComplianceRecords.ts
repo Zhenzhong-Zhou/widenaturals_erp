@@ -64,6 +64,10 @@ const usePaginatedComplianceRecords = () => {
   // Derived memoized values
   // ---------------------------
   const pageInfo = useMemo(() => {
+    if (!pagination) {
+      return { totalPages: 0, totalRecords: 0 };
+    }
+    
     const { totalPages, totalRecords } = pagination;
     return { totalPages, totalRecords };
   }, [pagination]);

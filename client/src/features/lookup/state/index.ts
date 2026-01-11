@@ -22,6 +22,7 @@ export * from './packagingMaterialLookupSelectors';
 export * from './skuCodeBaseLookupSelectors';
 export * from './productLookupSelectors';
 export * from './statusLookupSelectors';
+export * from './userLookupSelectors';
 
 // --------------------------------------------------
 // Thunks & Types

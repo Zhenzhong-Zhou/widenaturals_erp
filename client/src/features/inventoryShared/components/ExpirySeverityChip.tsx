@@ -1,8 +1,8 @@
 import { memo, type FC } from 'react';
-import Chip from '@mui/material/Chip';
-import { formatLabel } from '@utils/textUtils.ts';
-import { useThemeContext } from '@context/ThemeContext.tsx';
+import { useTheme } from '@mui/material/styles';
 import type { Theme } from '@mui/material';
+import Chip from '@mui/material/Chip';
+import { formatLabel } from '@utils/textUtils';
 
 export interface ExpirySeverityChipProps {
   severity:
@@ -35,7 +35,7 @@ const getSeverityColor = (
 };
 
 const ExpirySeverityChip: FC<ExpirySeverityChipProps> = ({ severity }) => {
-  const { theme } = useThemeContext(); // more idiomatic than custom context if only palette is used
+  const theme = useTheme();
   const color = getSeverityColor(severity, theme);
 
   return (

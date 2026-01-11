@@ -1,7 +1,7 @@
 import { lazy } from 'react';
 import StoreIcon from '@mui/icons-material/Store';
 import BaseInventoryPage from '@features/inventoryShared/pages/InventoryListPageBase';
-import useLocationInventory from '@hooks/useLocationInventory';
+import useLocationInventoryAdapter from '@features/locationInventory/hooks/useLocationInventoryAdapter';
 import { LOCATION_INVENTORY_SORT_OPTIONS } from '../constants/sortOptions';
 import LocationInventoryExpandedRow from '../components/LocationInventoryExpandedRow';
 import LocationInventoryFilterPanel from '../components/LocationInventoryFilterPanel';
@@ -17,7 +17,7 @@ const LocationInventoryPage = () => {
       Icon={<StoreIcon fontSize="medium" color="primary" />}
       showAddButton={false}
       showAdjustButton={false}
-      useInventoryHook={useLocationInventory}
+      useInventoryHook={useLocationInventoryAdapter}
       FilterPanel={LocationInventoryFilterPanel}
       TableComponent={LocationInventoryTable}
       ExpandedRowComponent={LocationInventoryExpandedRow}

@@ -12,7 +12,6 @@
  * App Initialization & Global Utilities
  * ===================================================== */
 
-export { default as useInitializeApp } from './useInitializeApp';
 export { default as useHealthStatus } from './useHealthStatus';
 export { default as useErrorHandler } from './useErrorHandler';
 export { default as useThemeMode } from './useThemeMode';
@@ -21,9 +20,8 @@ export { default as useThemeMode } from './useThemeMode';
  * Auth, Session & Permissions
  * ===================================================== */
 
-export { default as useSession } from './useSession';
+export { default as useLogin } from './useLogin';
 export { default as useLogout } from './useLogout';
-export { default as useTokenRefresh } from './useTokenRefresh';
 export { default as useUserSelfProfile } from './useUserSelfProfile';
 export { default as useUserSelfProfileAuto } from './useUserSelfProfileAuto';
 export { default as useUserViewedProfile } from './useUserViewedProfile';
@@ -143,6 +141,7 @@ export { default as usePaymentMethodLookup } from './usePaymentMethodLookup';
 export { default as useDiscountLookup } from './useDiscountLookup';
 export { default as useTaxRateLookup } from './useTaxRateLookup';
 export { default as useStatusLookup } from './useStatusLookup';
+export { default as useUserLookup } from './useUserLookup';
 
 /* =====================================================
  * Misc

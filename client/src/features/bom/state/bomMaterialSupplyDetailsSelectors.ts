@@ -1,11 +1,13 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 
 /**
  * Base selector to access the entire BOM Material Supply Details slice state.
  */
-export const selectBomMaterialSupplyDetailsState = (state: RootState) =>
-  state.bomMaterialSupplyDetails;
+const selectBomMaterialSupplyDetailsState= createSelector(
+  [selectRuntime],
+  (runtime) => runtime.bomMaterialSupplyDetails
+);
 
 /**
  * Selects the full data payload (summary + details) from the slice.

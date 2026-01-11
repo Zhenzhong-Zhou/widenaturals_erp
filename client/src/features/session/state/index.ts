@@ -6,9 +6,10 @@ export { sessionReducers } from './sessionReducers';
 // --------------------------------------------------
 // Selectors
 // --------------------------------------------------
-export * from './sessionSelectors';
+export * from './loginSelectors';
 
 // --------------------------------------------------
-// Thunks
+// Thunks & Types
 // --------------------------------------------------
 export * from './sessionThunks';
+export * from './sessionTypes';

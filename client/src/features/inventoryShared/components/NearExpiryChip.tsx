@@ -1,15 +1,15 @@
-import { memo, type FC } from 'react';
+import { type FC, memo } from 'react';
+import { useTheme } from '@mui/material/styles';
 import Chip from '@mui/material/Chip';
 import ErrorIcon from '@mui/icons-material/Error';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { useThemeContext } from '@context/ThemeContext.tsx';
 
 interface Props {
   isNearExpiry: boolean;
 }
 
 const NearExpiryChip: FC<Props> = ({ isNearExpiry }) => {
-  const { theme } = useThemeContext();
+  const theme = useTheme();
 
   const statusConfig = isNearExpiry
     ? {

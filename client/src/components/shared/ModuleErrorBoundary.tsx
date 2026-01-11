@@ -1,7 +1,7 @@
 import { Component, type ReactNode, type ErrorInfo } from 'react';
 import type { NavigateFunction } from 'react-router-dom';
 import { AppError, handleError, mapErrorMessage } from '@utils/error';
-import ThemeAwareErrorUI from '@components/shared/ThemeAwareErrorUI';
+import { ThemeAwareErrorUI } from '@components/index';
 
 export interface ModuleErrorBoundaryProps {
   children: ReactNode;

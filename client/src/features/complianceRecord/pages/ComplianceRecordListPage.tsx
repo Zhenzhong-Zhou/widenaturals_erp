@@ -15,7 +15,7 @@ import {
 import usePaginatedComplianceRecords from '@hooks/usePaginatedComplianceRecords';
 import useComplianceRecordLookups from '@features/complianceRecord/hooks/useComplianceRecordLookups';
 import { applyFiltersAndSorting } from '@utils/queryUtils';
-import { usePaginationHandlers } from '@utils/hooks/usePaginationHandlers';
+import { usePaginationHandlers } from '@utils/hooks';
 import { flattenComplianceRecordsToRows } from '@features/complianceRecord/utils/flattenComlianceListData';
 import { createLazyOpenHandler } from '@features/lookup/utils/lookupUtils';
 import {

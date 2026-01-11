@@ -1,53 +1,8 @@
 import { NullableString } from '@shared-types/shared';
-
-/**
- * Interface representing pagination metadata used in paginated API responses.
- */
-export interface Pagination {
-  /** Current page number (1-based index) */
-  page: number;
-
-  /** Number of records per page */
-  limit: number;
-
-  /** Total number of records available across all pages */
-  totalRecords: number;
-
-  /** Total number of pages based on the current limit and totalRecords */
-  totalPages: number;
-}
-
-/**
- * Query parameters for paginated lookup-style API requests.
- *
- * Intended for lightweight, infinite-scroll or autocomplete use cases
- * where total record count is not required.
- */
-export interface LookupPagination {
-  /**
-   * Maximum number of records to return.
-   * Used to limit the page size.
-   */
-  limit?: number;
-
-  /**
-   * Number of records to skip before starting to return results.
-   * Used for pagination offset (typically: (page - 1) * limit).
-   */
-  offset?: number;
-}
-
-/**
- * Pagination metadata returned with lookup-style API responses.
- *
- * Can also be used in frontend state to support infinite scroll or load-more patterns.
- */
-export interface PaginationLookupInfo extends LookupPagination {
-  /**
-   * Indicates whether more items are available for fetching.
-   */
-  hasMore: boolean;
-}
+import {
+  Pagination,
+  PaginationLookupInfo
+} from '@shared-types/pagination';
 
 /**
  * Generic interface for a paginated API response.
@@ -93,25 +48,6 @@ export interface ApiSuccessResponse<T> {
    * Unique request identifier for tracing/logging.
    */
   traceId: string;
-}
-
-/**
- * Represents the Redux-managed state for paginated data.
- *
- * @template T - Type of each item in the paginated list.
- */
-export interface ReduxPaginatedState<T> {
-  /** Fetched data items. */
-  data: T[];
-
-  /** Pagination info for current view. */
-  pagination: Pagination | null;
-
-  /** Whether data is currently being loaded. */
-  loading: boolean;
-
-  /** Error message if fetching fails. */
-  error: string | null;
 }
 
 /**

@@ -7,10 +7,10 @@ import {
   OperationStats,
   PaginatedResponse,
   PaginationParams,
-  ReduxPaginatedState,
   SortConfig,
   UpdateStatusIdRequest,
 } from '@shared-types/api';
+import { ReduxPaginatedState } from '@shared-types/pagination';
 
 /**
  * Root API response for fetching paginated SKU product cards.

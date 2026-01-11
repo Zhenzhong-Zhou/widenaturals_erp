@@ -1,6 +1,6 @@
 import type { FC, ReactNode } from 'react';
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import useSession from '@hooks/useSession';
+import { Navigate, Outlet } from 'react-router-dom';
+import { useSession } from '@features/session/hooks';
 
 interface ProtectedRoutesProps {
   children?: ReactNode;
@@ -9,29 +9,36 @@ interface ProtectedRoutesProps {
 /**
  * ProtectedRoutes
  *
- * Authentication guard only.
+ * Authentication-only route guard.
  *
  * Responsibilities:
- * - Redirect unauthenticated users to /login
+ * - Prevent rendering of protected routes when the user is unauthenticated
+ * - Redirect unauthenticated users to the login page
+ * - Defer rendering until session bootstrap is complete
  *
- * MUST NOT:
- * - Know about routes
- * - Know about permissions
- * - Infer public paths
+ * Explicitly out of scope:
+ * - Authorization or permission checks
+ * - Route ownership or path inference
+ * - Redirect logic based on user role or context
+ *
+ * Notes:
+ * - This guard assumes session state is managed externally
+ *   via the session bootstrap layer
+ * - While resolving or before bootstrap completion, no UI
+ *   is rendered to avoid redirect flicker
  */
 const ProtectedRoutes: FC<ProtectedRoutesProps> = ({
   children = <Outlet />,
 }) => {
-  const { isAuthenticated, isLoading } = useSession();
-  const location = useLocation();
+  const { isAuthenticated, resolving, bootstrapped } = useSession();
 
-  // Optional: block while session is resolving
-  if (isLoading) {
+  // Block rendering until session bootstrap completes to avoid redirect flicker
+  if (!bootstrapped || resolving) {
     return null;
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return <>{children}</>;

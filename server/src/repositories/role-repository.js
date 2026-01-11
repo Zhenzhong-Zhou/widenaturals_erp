@@ -1,70 +1,125 @@
+const { query } = require('../database/db');
+const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
-const { logError } = require('../utils/logger-helper');
-const { query, getFieldsById } = require('../database/db');
 
 /**
- * Fetches the ID of a role by its name or ID.
+ * Fetch a role by its ID.
  *
- * @param {string} field - The field to search by ('name' or 'id').
- * @param {string} value - The value to search for (role name or ID).
- * @returns {Promise<uuid>} - The role ID if found.
- * @throws {AppError} - Throws an error if the role is not found or if the field is invalid.
+ * Repository-layer function:
+ * - Fetches raw role data
+ * - Does NOT enforce business rules (e.g. active/inactive)
+ * - Throws raw database errors
+ *
+ * @param {string} roleId
+ * @param {object} client - Optional transaction client
+ * @returns {Promise<Object|null>} Role row or null if not found
  */
-const getRoleIdByField = async (field, value) => {
-  const validFields = ['name', 'id'];
-
-  if (!validFields.includes(field)) {
-    const errorMessage = `Invalid field: '${field}'. Must be one of ${validFields.join(', ')}`;
-    logError(errorMessage, { field, value });
-    throw AppError.validationError(errorMessage);
-  }
-
-  const text = `
-    SELECT r.id
-    FROM roles r
-    INNER JOIN status s ON r.status_id = s.id
-    WHERE r.${field} = $1
-      AND s.name = 'active'
+const getRoleById = async (roleId, client) => {
+  const context = 'role-repository/getRoleById';
+  
+  const sql = `
+    SELECT
+      id,
+      name,
+      role_group,
+      parent_role_id,
+      hierarchy_level,
+      is_active,
+      status_id
+    FROM roles
+    WHERE id = $1
     LIMIT 1;
   `;
-
-  const params = [field === 'name' ? value.toLowerCase() : value];
-
+  
   try {
-    const result = await query(text, params);
-
-    if (result.rows.length === 0) {
-      throw AppError.notFoundError(`Role with ${field} '${value}' not found.`);
-    }
-
-    return result.rows[0].id;
+    const { rows } = await query(sql, [roleId], client);
+    return rows[0] || null;
   } catch (error) {
-    logError('Error fetching role ID by field:', {
-      field,
-      value,
-      error: error.message,
+    logSystemException(error, 'Failed to fetch role by ID', {
+      context,
+      roleId,
     });
-    throw AppError.databaseError('Failed to fetch role ID.');
+    throw error; // raw error only
   }
 };
 
 /**
- * Retrieves the name of a role by its ID.
+ * Resolves a role ID by role name.
  *
- * This function fetches the `name` field from the `roles` table for the given role ID.
- * Delegates to the generic `getFieldsById` helper.
+ * Repository-layer function.
  *
- * @param {string} id - UUID of the role to fetch.
- * @param {object} client - PostgreSQL client for transactional context.
- * @returns {Promise<{ name: string }>} - An object containing the role name.
+ * Characteristics:
+ * - Bootstrap-safe (no status or permission enforcement)
+ * - Case-insensitive role name matching
+ * - Single-responsibility: ID resolution only
  *
- * @throws {AppError} - If the role is not found or the query fails.
+ * Intended usage:
+ * - Root admin initialization
+ * - Database seeding
+ * - System bootstrap flows
+ *
+ * NOT intended for:
+ * - Authorization checks
+ * - Active/inactive role validation
+ *
+ * @param {string} roleName - Role name to resolve
+ * @param {object} [client] - Optional transaction client
+ *
+ * @returns {Promise<string>} Role ID
+ *
+ * @throws {AppError} If role does not exist or query fails
  */
-const getRoleNameById = async (id, client) => {
-  return await getFieldsById('roles', id, ['name'], client);
+const resolveRoleIdByName = async (roleName, client) => {
+  const context = 'role-repository/resolveRoleIdByName';
+  
+  if (!roleName || typeof roleName !== 'string') {
+    throw AppError.validationError('Role name is required.', {
+      context,
+    });
+  }
+  
+  const sql = `
+    SELECT id
+    FROM roles
+    WHERE LOWER(name) = LOWER($1)
+    LIMIT 1
+  `;
+  
+  try {
+    const { rows } = await query(sql, [roleName], client);
+    
+    if (!rows.length) {
+      throw AppError.notFoundError(`Required role "${roleName}" not found.`, {
+        context,
+        roleName,
+      });
+    }
+    
+    logSystemInfo('Resolved role ID by name', {
+      context,
+      roleName,
+      roleId: rows[0].id,
+    });
+    
+    return rows[0].id;
+  } catch (error) {
+    if (error instanceof AppError) {
+      throw error;
+    }
+    
+    logSystemException(error, 'Failed to resolve role ID by name', {
+      context,
+      roleName,
+    });
+    
+    throw AppError.databaseError('Failed to resolve role ID.', {
+      context,
+      cause: error,
+    });
+  }
 };
 
 module.exports = {
-  getRoleIdByField,
-  getRoleNameById,
+  getRoleById,
+  resolveRoleIdByName,
 };

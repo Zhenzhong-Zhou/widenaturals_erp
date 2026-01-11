@@ -3,9 +3,9 @@ import type {
   MutationState,
   PaginatedResponse,
   PaginationParams,
-  ReduxPaginatedState,
   SortConfig,
 } from '@shared-types/api';
+import type { ReduxPaginatedState } from '@shared-types/pagination';
 
 // Represents a single customer creation request payload
 export interface CustomerRequest {

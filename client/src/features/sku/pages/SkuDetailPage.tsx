@@ -13,11 +13,12 @@ import Grid from '@mui/material/Grid';
 import DetailPage from '@components/common/DetailPage';
 import CustomButton from '@components/common/CustomButton';
 import GoBackButton from '@components/common/GoBackButton';
-import NotFoundPage from '@pages/NotFoundPage';
-import usePermissions from '@hooks/usePermissions';
+import { NotFoundPage } from '@pages/system';
+import Loading from '@components/common/Loading';
+import { useHasPermission } from '@features/authorize/hooks';
 import useSkuDetail from '@hooks/useSkuDetail';
 import useStatusLookup from '@hooks/useStatusLookup';
-import { useDialogFocusHandlers } from '@utils/hooks/useDialogFocusHandlers';
+import { useDialogFocusHandlers } from '@utils/hooks';
 import {
   flattenComplianceRecords,
   flattenPricingRecords,
@@ -51,7 +52,6 @@ const SkuDetailPage: FC = () => {
    * Router + Context Hooks
    * --------------------------------------------------------- */
   const { skuId } = useParams<{ skuId: string }>();
-  const { permissions } = usePermissions();
 
   const location = useLocation();
   const cameFromUpload = location.state?.fromUpload === true;
@@ -131,13 +131,15 @@ const SkuDetailPage: FC = () => {
   /* ---------------------------------------------------------
    * Permission logic
    * --------------------------------------------------------- */
-  const canViewInactive =
-    permissions.includes('root_access') ||
-    permissions.includes('view_all_product_statuses');
-
-  const canUpdateStatus =
-    permissions.includes('root_access') ||
-    permissions.includes('update_sku_status');
+  const hasPermission = useHasPermission();
+  
+  const canViewInactive = hasPermission(
+    'view_all_product_statuses'
+  );
+  
+  const canUpdateStatus = hasPermission(
+    'update_sku_status'
+  );
 
   /* ---------------------------------------------------------
    * Page title (memoized)
@@ -153,12 +155,20 @@ const SkuDetailPage: FC = () => {
    * If both SKU and parent product are inactive → deny access
    * unless user has explicit permission
    * --------------------------------------------------------- */
-  const isInactive =
-    sku?.status?.name !== 'active' || sku?.product?.status?.name !== 'active';
+  const isInactive = sku?.status?.name !== 'active';
 
   // Prevent access to inactive SKUs unless user has proper permissions
   if (sku && isInactive && !canViewInactive) {
     return <Navigate to="/404" replace />;
+  }
+  
+  if (!product) {
+    return (
+      <Loading
+        variant="dotted"
+        message="Loading product details..."
+      />
+    );
   }
 
   /* ---------------------------------------------------------

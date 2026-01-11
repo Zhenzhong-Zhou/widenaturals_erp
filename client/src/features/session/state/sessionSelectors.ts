@@ -1,49 +1,74 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 
-// Base Selector: Select the session state from the RootState
-export const selectSessionState = (state: RootState) => state.session;
-
-// Memoized Selectors
-
-// Selector: Check if the user is authenticated
-export const selectIsAuthenticated = createSelector(
-  selectSessionState,
-  (session) => session?.isAuthenticated ?? false
+/**
+ * Base selector — returns the full session slice.
+ *
+ * Intended for composition only.
+ * This selector should not be consumed directly by UI components.
+ */
+const selectSessionState = createSelector(
+  [selectRuntime],
+  (runtime) => runtime.session
 );
 
-// Selector: Retrieve the access token
+/**
+ * Selector: returns the current in-memory access token, if present.
+ *
+ * Semantics:
+ * - A non-null value indicates authenticated capability
+ * - A null value indicates no authenticated capability
+ *
+ * Notes:
+ * - The access token is ephemeral and not persisted across reloads
+ * - Token presence does not imply permission readiness
+ */
 export const selectAccessToken = createSelector(
-  selectSessionState,
-  (session) => session?.accessToken ?? null
+  [selectSessionState],
+  (state) => state.accessToken
 );
 
-// Selector: Retrieve the user information
-export const selectUser = createSelector(
-  selectSessionState,
-  (session) => session?.user ?? null
+/**
+ * Selector: returns whether the client currently has authenticated capability.
+ *
+ * Authentication semantics:
+ * - true  → a valid in-memory access token is present
+ * - false → no authenticated capability
+ *
+ * IMPORTANT:
+ * - This selector reflects authentication capability only
+ * - It MUST NOT infer bootstrap or resolution state
+ * - Callers are responsible for gating usage via bootstrap flags
+ */
+export const selectIsAuthenticated = createSelector(
+  [selectAccessToken],
+  (accessToken) => Boolean(accessToken)
 );
 
-// Selector: Retrieve the last login timestamp
-export const selectLastLogin = createSelector(
-  selectSessionState,
-  (session) => session?.lastLogin ?? null
+/**
+ * Selector: returns whether the session is currently resolving.
+ *
+ * Resolution semantics:
+ * - true  → session bootstrap or refresh is in progress
+ * - false → no session mutation is currently occurring
+ */
+export const selectSessionResolving = createSelector(
+  [selectSessionState],
+  (state) => state.resolving
 );
 
-// Selector: Retrieve the current message
-export const selectMessage = createSelector(
-  selectSessionState,
-  (session) => session?.message ?? ''
-);
-
-// Selector: Retrieve the current login error
-export const selectLoginError = createSelector(
-  selectSessionState,
-  (session) => session?.loginError ?? null
-);
-
-// Selector: Retrieve the loading state
-export const selectLoading = createSelector(
-  selectSessionState,
-  (session) => session?.loading ?? false
+/**
+ * Selector: returns whether the session bootstrap lifecycle has completed.
+ *
+ * Bootstrap semantics:
+ * - true  → initial session evaluation has finished
+ * - false → session state may still be indeterminate
+ *
+ * Notes:
+ * - A false value does not imply unauthenticated state
+ * - Consumers must not infer authentication from this selector alone
+ */
+export const selectSessionBootstrapped = createSelector(
+  [selectSessionState],
+  (state) => state.bootstrapped
 );

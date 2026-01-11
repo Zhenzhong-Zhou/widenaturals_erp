@@ -1,13 +1,15 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 import type { AllocationReviewItem } from '@features/inventoryAllocation/state/inventoryAllocationTypes';
-import { isPackagingBatch, isProductBatch } from '@utils/batchTypeGuards.ts';
+import { isPackagingBatch, isProductBatch } from '@utils/batchTypeGuards';
 
 /**
  * Root selector for the inventory allocation review slice.
  */
-const selectInventoryAllocationReviewState = (state: RootState) =>
-  state.inventoryAllocationReview;
+const selectInventoryAllocationReviewState = createSelector(
+  [selectRuntime],
+  (runtime) => runtime.inventoryAllocationReview
+);
 
 /* =======================
    Primitive field selectors

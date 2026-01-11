@@ -37,7 +37,7 @@ const RecentInventoryActivitySection = () => {
           <PermissionLogMiniTable
             data={mergedData}
             loading={logLoading}
-            error={logError}
+            error={logError ?? ''}
           />
         )}
       </Suspense>

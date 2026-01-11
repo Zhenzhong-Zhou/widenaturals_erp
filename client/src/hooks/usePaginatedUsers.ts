@@ -13,6 +13,7 @@ import {
   fetchPaginatedUsersThunk,
 } from '@features/user/state';
 import { resetPaginatedUsers } from '@features/user/state/paginatedUsersSlice';
+import { normalizePagination } from '@utils/pagination/normalizePagination';
 
 type FetchUsersParams = GetPaginatedUsersParams & { viewMode?: UserViewMode };
 
@@ -74,12 +75,7 @@ const usePaginatedUsers = () => {
   // Derived memoized values
   // ---------------------------
   const pageInfo = useMemo(
-    () => ({
-      page: pagination.page,
-      limit: pagination.limit,
-      totalPages: pagination.totalPages,
-      totalRecords: pagination.totalRecords,
-    }),
+    () => normalizePagination(pagination),
     [pagination]
   );
 

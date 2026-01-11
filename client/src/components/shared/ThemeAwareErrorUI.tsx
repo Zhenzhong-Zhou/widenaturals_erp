@@ -1,8 +1,8 @@
 import type { FC } from 'react';
+import { useTheme } from '@mui/material';
 import Box from '@mui/material/Box';
 import CustomTypography from '@components/common/CustomTypography';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
-import { useThemeContext } from '@context/ThemeContext';
 import { ErrorType } from '@utils/error';
 
 /**
@@ -38,7 +38,7 @@ const ThemeAwareErrorUI: FC<Props> = ({
   recoveryHint,
   onRetry,
 }) => {
-  const { theme } = useThemeContext();
+  const theme = useTheme();
 
   return (
     <ErrorDisplay

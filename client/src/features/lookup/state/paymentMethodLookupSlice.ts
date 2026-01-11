@@ -5,7 +5,7 @@ import type {
   PaymentMethodLookupState,
 } from '@features/lookup/state';
 import { createInitialOffsetPaginatedState } from '@store/pagination';
-import { fetchPaymentMethodLookup } from '@features/lookup/state';
+import { fetchPaymentMethodLookupThunk } from '@features/lookup/state';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 
 const initialState: PaymentMethodLookupState =
@@ -22,17 +22,17 @@ export const paymentMethodLookupSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchPaymentMethodLookup.pending, (state) => {
+      .addCase(fetchPaymentMethodLookupThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(
-        fetchPaymentMethodLookup.fulfilled,
+        fetchPaymentMethodLookupThunk.fulfilled,
         (state, action: PayloadAction<PaymentMethodLookupResponse>) => {
           applyPaginatedFulfilled(state, action.payload);
         }
       )
-      .addCase(fetchPaymentMethodLookup.rejected, (state, action) => {
+      .addCase(fetchPaymentMethodLookupThunk.rejected, (state, action) => {
         state.loading = false;
         state.error =
           (action.payload as string) || 'Failed to load payment methods';

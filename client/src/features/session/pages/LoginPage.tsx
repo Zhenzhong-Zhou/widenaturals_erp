@@ -1,28 +1,58 @@
-import type { FC } from 'react';
+import { FC, useEffect } from 'react';
+import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import CustomTypography from '@components/common/CustomTypography';
 import LoginCard from '@features/session/components/LoginCard';
-import { useThemeContext } from '@context/ThemeContext';
+import { useLogin } from '@hooks/index';
+import { useLoginForm } from '@features/session/hooks';
 import logoDark from '@assets/wide-logo-dark.png';
 import logoLight from '@assets/wide-logo-light.png';
+import { useAppDispatch } from '@store/storeHooks';
+import { resetLogin } from '@features/session/state/loginSlice';
 
 const LoginPage: FC = () => {
-  const { theme } = useThemeContext();
+  const theme = useTheme();
   const logo = theme.palette.mode === 'dark' ? logoDark : logoLight;
-
+  const dispatch = useAppDispatch();
+  
+  // -----------------------------
+  // Async login state
+  // -----------------------------
+  const {
+    loading: isLoggingIn,
+    error: loginError,
+    submit: login,
+  } = useLogin();
+  
+  // -----------------------------
+  // Form state + validation
+  // -----------------------------
+  const {
+    values: formValues,
+    errors: formErrors,
+    handleChange: handleFormChange,
+    handleSubmit: handleFormSubmit,
+  } = useLoginForm(login);
+  
+  useEffect(() => {
+    dispatch(resetLogin());
+  }, [dispatch]);
+  
   return (
     <Box
       sx={{
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'flex-start', // Push content closer to the top
+        justifyContent: 'flex-start',
         alignItems: 'center',
-        height: '100vh',
+        minHeight: '100dvh',
         background:
           theme.palette.mode === 'dark'
-            ? 'linear-gradient(135deg, #1c1c1c, #333333)'
-            : 'linear-gradient(135deg, #f9f9f9, #e0e0e0)',
-        padding: { xs: '10px', sm: '50px 20px' },
+            ? 'linear-gradient(135deg, #161616, #262626)'
+            : 'linear-gradient(135deg, #fafafa, #eaeaea)',
+        px: 2,
+        pt: { xs: 2, sm: 6 },
+        pb: { xs: 4, sm: 6 },
         animation: 'fadeIn 0.5s ease-in-out',
       }}
     >
@@ -47,25 +77,39 @@ const LoginPage: FC = () => {
           Manage your inventory, sales, and operations efficiently.
         </CustomTypography>
       </Box>
-
-      {/* Login Card */}
+      
+      {/* Login Card (presentation only) */}
       <Box sx={{ width: '100%', maxWidth: 400 }}>
         <LoginCard
           title="Sign In"
           subtitle="Access your dashboard to streamline operations."
+          loading={isLoggingIn}
+          error={loginError}
+          formValues={formValues}
+          formErrors={formErrors}
+          onFormChange={handleFormChange}
+          onFormSubmit={handleFormSubmit}
         />
       </Box>
-
+      
       {/* Support Links */}
       <Box sx={{ mt: 3, textAlign: 'center' }}>
-        <CustomTypography variant="body2" sx={{ color: 'text.secondary' }}>
+        <CustomTypography variant="body2" color="text.secondary">
           Forgot your password?{' '}
-          <a
+          <Box
+            component="a"
             href="/reset-password"
-            style={{ color: 'primary.main', fontWeight: 'bold' }}
+            sx={{
+              color: 'primary.main',
+              fontWeight: 600,
+              textDecoration: 'none',
+              '&:hover': {
+                textDecoration: 'underline',
+              },
+            }}
           >
             Reset it here
-          </a>
+          </Box>
         </CustomTypography>
       </Box>
     </Box>

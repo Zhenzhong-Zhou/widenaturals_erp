@@ -1,9 +1,9 @@
 import type {
   PaginatedResponse,
   PaginationParams,
-  ReduxPaginatedState,
   SortConfig,
-} from '@shared-types/api.ts';
+} from '@shared-types/api';
+import type { ReduxPaginatedState } from '@shared-types/pagination';
 
 /**
  * Filter parameters for querying order types.

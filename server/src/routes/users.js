@@ -169,4 +169,7 @@ router.get(
 
 router.get('/me/permissions', getPermissions);
 
+
+// todo: create user
+
 module.exports = router;

@@ -1,10 +1,10 @@
 import { type FC, isValidElement, memo, ReactNode } from 'react';
+import { useTheme } from '@mui/material';
+import type { SxProps, Theme } from '@mui/system';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import type { SxProps, Theme } from '@mui/system';
 import CustomTypography from '@components/common/CustomTypography';
-import { useThemeContext } from '@context/ThemeContext';
 
 type DisplayValue =
   | string
@@ -49,7 +49,7 @@ const DetailsSection: FC<DetailsSectionProps> = ({
   columns,
   align = 'left',
 }) => {
-  const { theme } = useThemeContext();
+  const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
   const filteredFields = fields.filter(

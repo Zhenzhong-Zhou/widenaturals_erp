@@ -1,11 +1,13 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 
 /**
  * Base selector for the inventory allocation confirmation slice state.
  */
-const selectInventoryAllocationConfirmation = (state: RootState) =>
-  state.inventoryAllocationConfirmation;
+const selectInventoryAllocationConfirmation= createSelector(
+  [selectRuntime],
+  (runtime) => runtime.inventoryAllocationConfirmation
+);
 
 /**
  * Selects the loading state of the inventory allocation confirmation process.

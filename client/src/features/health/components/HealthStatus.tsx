@@ -1,12 +1,12 @@
 import { type FC, useMemo } from 'react';
+import { useTheme } from '@mui/material/styles';
+import type { SxProps, Theme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Badge from '@mui/material/Badge';
 import Tooltip from '@mui/material/Tooltip';
-import type { SxProps, Theme } from '@mui/material/styles';
 import HealthStatusChip from './HealthStatusChip';
 import CustomTypography from '@components/common/CustomTypography';
 import useHealthStatus from '@hooks/useHealthStatus';
-import { useThemeContext } from '@context/ThemeContext';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
 import type { HealthStatus } from '@utils/getStatusColor';
@@ -18,7 +18,7 @@ interface HealthStatusProps {
 }
 
 const HealthStatus: FC<HealthStatusProps> = ({ sx }) => {
-  const { theme } = useThemeContext();
+  const theme = useTheme();
 
   const {
     healthStatus,

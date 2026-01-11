@@ -1,7 +1,7 @@
 import type { FC } from 'react';
+import { useTheme } from '@mui/material';
 import TextField from '@mui/material/TextField';
 import type { TextFieldProps } from '@mui/material/TextField';
-import { useThemeContext } from '@context/ThemeContext';
 
 /**
  * BaseInput wraps MUI's TextField with default styling.
@@ -9,8 +9,8 @@ import { useThemeContext } from '@context/ThemeContext';
  * - Supports custom sx overrides and slotProps
  */
 const BaseInput: FC<TextFieldProps> = ({ sx = {}, slotProps, ...props }) => {
-  const { theme } = useThemeContext();
-
+  const theme = useTheme();
+  
   return (
     <TextField
       {...props}

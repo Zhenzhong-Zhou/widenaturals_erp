@@ -226,15 +226,17 @@ const ProductCatalogPage = () => {
         </Box>
 
         {/* Pagination */}
-        <Box mt={4} display="flex" justifyContent="center">
-          <CustomPagination
-            page={page}
-            itemsPerPage={limit}
-            totalRecords={catalogPagination.totalRecords || 0}
-            totalPages={catalogPagination.totalPages || 0}
-            onPageChange={handlePageChange}
-          />
-        </Box>
+        {catalogPagination && (
+          <Box mt={4} display="flex" justifyContent="center">
+            <CustomPagination
+              page={page}
+              itemsPerPage={limit}
+              totalRecords={catalogPagination.totalRecords}
+              totalPages={catalogPagination.totalPages}
+              onPageChange={handlePageChange}
+            />
+          </Box>
+        )}
       </Stack>
     </Container>
   );

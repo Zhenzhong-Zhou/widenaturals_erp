@@ -22,6 +22,7 @@ const loadAndValidateEnv = () => {
         { envVar: 'LOG_LEVEL', required: true, defaultValue: 'debug' },
         { envVar: 'POOL_MONITOR_INTERVAL', required: false },
         { envVar: 'SLOW_QUERY_THRESHOLD', required: false },
+        { envVar: 'PASSWORD_PEPPER', required: true },
       ],
       jwt: [
         {

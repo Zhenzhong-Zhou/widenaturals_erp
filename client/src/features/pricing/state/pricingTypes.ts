@@ -1,4 +1,5 @@
-import type { PaginatedResponse, ReduxPaginatedState } from '@shared-types/api';
+import type { PaginatedResponse } from '@shared-types/api';
+import type { ReduxPaginatedState } from '@shared-types/pagination';
 
 // Define the Pricing Record structure
 export interface PricingRecord {

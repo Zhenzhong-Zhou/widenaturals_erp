@@ -1,5 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 import {
   createLookupMetaSelector,
   mapLookupItems,
@@ -12,7 +12,10 @@ import type {
 /**
  * Base selector for the discount lookup slice.
  */
-const selectDiscountLookupState = (state: RootState) => state.discountLookup;
+const selectDiscountLookupState= createSelector(
+  [selectRuntime],
+  (runtime) => runtime.discountLookup
+);
 
 /**
  * Selector for retrieving the list of discount lookup items.

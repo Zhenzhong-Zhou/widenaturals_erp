@@ -1052,7 +1052,7 @@ const transformProductPaginatedLookupResult = (paginatedResult, userAccess) =>
  * Constructs a `label` primarily using the status name, with optional description
  * appended for more clarity depending on your UI needs.
  *
- * Also conditionally appends UI flags (e.g., `isActive`) based on the user's access level.
+ * Also, conditionally appends UI flags (e.g., `isActive`) based on the user's access level.
  *
  * @param {{
  *   id: string,
@@ -1123,6 +1123,97 @@ const transformStatusPaginatedLookupResult = (paginatedResult, userAccess) =>
     { includeLoadMore: true }
   );
 
+/**
+ * Transforms a raw User row into a lookup-friendly object.
+ *
+ * Pattern-aligned with `transformStatusLookup`.
+ *
+ * Responsibilities:
+ * - Build a human-readable primary label (full name preferred, fallback: email)
+ * - Provide a secondary disambiguation field (`subLabel`) when applicable
+ * - Optionally merge UI flags derived from `userAccess`
+ * - Return a minimal, UI-oriented lookup object
+ *
+ * IMPORTANT:
+ * - This function does NOT decide visibility or permissions.
+ * - Visibility must already be enforced by SQL + service-level rules.
+ * - Any flags included are purely for UI rendering purposes.
+ *
+ * @param {object} row - Raw DB row for a user.
+ * @param {string} row.id - User ID (required).
+ * @param {string} row.email - User email (required).
+ * @param {string} [row.firstname] - Optional; used to build display label.
+ * @param {string} [row.lastname]  - Optional; used to build display label.
+ *
+ * @param {object} userAccess - Access flags resolved by the service layer.
+ *   Passed through to `includeFlagsBasedOnAccess()` for conditional UI flags.
+ *
+ * @returns {{
+ *   id: string,
+ *   label: string,
+ *   subLabel?: string,
+ *   [key: string]: any
+ * } | null}
+ */
+const transformUserLookup = (row, userAccess) => {
+  if (!row || typeof row !== 'object') return null;
+  if (!row.id || !row.email) return null;
+  
+  const fullName = getFullName(row.firstname, row.lastname);
+  const label = fullName || row.email;
+  const subLabel = fullName ? row.email : undefined;
+  
+  const baseObj = {
+    id: row.id,
+    label,
+    subLabel,
+  };
+  
+  const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
+  
+  return cleanObject({
+    ...baseObj,
+    ...flagSubset,
+  });
+};
+
+/**
+ * Transforms a paginated repository result of User rows into a
+ * lookup-ready payload for dropdowns / autocomplete UIs.
+ *
+ * Pattern-aligned with `transformStatusPaginatedLookupResult`.
+ *
+ * @param {{
+ *   data: Array<object>,
+ *   pagination: {
+ *     offset: number,
+ *     limit: number,
+ *     totalRecords: number
+ *   }
+ * }} paginatedResult - Raw paginated result from the repository.
+ *
+ * @param {object} userAccess - Access flags forwarded to the row transformer
+ *   for conditional UI flag enrichment.
+ *
+ * @returns {{
+ *   items: Array<{
+ *     id: string,
+ *     label: string,
+ *     subLabel?: string,
+ *     [key: string]: any
+ *   }>,
+ *   offset: number,
+ *   limit: number,
+ *   hasMore: boolean
+ * }}
+ */
+const transformUserPaginatedLookupResult = (paginatedResult, userAccess) =>
+  transformPaginatedResult(
+    paginatedResult,
+    (row) => transformUserLookup(row, userAccess),
+    { includeLoadMore: true }
+  );
+
 module.exports = {
   transformBatchRegistryPaginatedLookupResult,
   transformWarehouseLookupRows,
@@ -1140,4 +1231,5 @@ module.exports = {
   transformSkuCodeBasePaginatedLookupResult,
   transformProductPaginatedLookupResult,
   transformStatusPaginatedLookupResult,
+  transformUserPaginatedLookupResult,
 };

@@ -2,7 +2,7 @@ import { Suspense, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import useCreateSkuSharedLogic from '@features/sku/hook/useCreateSkuSharedLogic';
-import usePagePermissionGuard from '@features/authorize/hooks/usePagePermissionGuard';
+import { usePagePermissionState } from '@features/authorize/hooks';
 import CustomTable, { CustomTableProps } from '@components/common/CustomTable';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
@@ -62,7 +62,7 @@ const SkuListTable = ({
 }: SkuListTableProps) => {
   // Shared logic used for permission checks (e.g. canCreateSku)
   const shared = useCreateSkuSharedLogic();
-  const { isAllowed } = usePagePermissionGuard(['create_skus_images']);
+  const { isAllowed } = usePagePermissionState(['create_skus_images']);
 
   const getSelectedSkuCount = (
     selectedSkus?: Record<string, SelectedSku>

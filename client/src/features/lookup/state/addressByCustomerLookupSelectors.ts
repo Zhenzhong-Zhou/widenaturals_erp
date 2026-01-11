@@ -1,11 +1,13 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store.ts';
+import { selectRuntime } from '@store/selectors';
 
 /**
  * Base selector to access the addressByCustomerLookup slice from the root state.
  */
-const selectAddressByCustomerLookupState = (state: RootState) =>
-  state.addressByCustomer;
+const selectAddressByCustomerLookupState= createSelector(
+  [selectRuntime],
+  (runtime) => runtime.addressByCustomer
+);
 
 /**
  * Selector to retrieve the list of addresses from the customer-address lookup.

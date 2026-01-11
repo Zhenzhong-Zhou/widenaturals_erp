@@ -1,15 +1,14 @@
-import type { FC } from 'react';
-import { memo, useMemo } from 'react';
+import { type FC, memo, useMemo } from 'react';
+import { useTheme } from '@mui/material/styles';
 import Chip from '@mui/material/Chip';
-import { formatLabel } from '@utils/textUtils.ts';
-import { useThemeContext } from '@context/ThemeContext.tsx';
+import { formatLabel } from '@utils/textUtils';
 
 interface Props {
   status: string;
 }
 
 const InventoryStatusChip: FC<Props> = ({ status }) => {
-  const { theme } = useThemeContext();
+  const theme = useTheme();
 
   const statusKeys = [
     'in_stock',

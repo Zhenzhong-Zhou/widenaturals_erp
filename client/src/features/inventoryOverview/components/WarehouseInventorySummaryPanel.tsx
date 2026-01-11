@@ -4,6 +4,7 @@ import CustomButton from '@components/common/CustomButton';
 import CustomTypography from '@components/common/CustomTypography';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
+import Loading from '@components/common/Loading';
 import useWarehouseInventoryItemSummary from '@hooks/useWarehouseInventoryItemSummary';
 import useWarehouseInventorySummaryByItemId from '@hooks/useWarehouseInventorySummaryByItemId';
 import { useExpandableDetailPanel } from '@features/inventoryOverview/hook/useExpandableDetailPanel';
@@ -118,7 +119,17 @@ const WarehouseInventorySummaryPanel: FC<Props> = ({
       </CustomTypography>
     );
   }
-
+  
+  const isPageLoading =
+    summaryLoading ||
+    detailLoading ||
+    !summaryPagination ||
+    !detailsPagination;
+  
+  if (isPageLoading) {
+    return <Loading message="Loading inventory details..." />;
+  }
+  
   return (
     <>
       <Suspense

@@ -23,8 +23,7 @@ import type {
   CustomerFilters,
   CustomerSortField,
 } from '@features/customer/state';
-import { useDialogFocusHandlers } from '@utils/hooks/useDialogFocusHandlers';
-import { usePaginationHandlers } from '@utils/hooks/usePaginationHandlers';
+import { useDialogFocusHandlers, usePaginationHandlers } from '@utils/hooks';
 import { applyFiltersAndSorting } from '@utils/queryUtils';
 
 const CustomersPage: FC = () => {

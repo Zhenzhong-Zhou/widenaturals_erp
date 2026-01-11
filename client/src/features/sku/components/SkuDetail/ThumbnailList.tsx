@@ -1,9 +1,9 @@
 import { FC } from 'react';
+import { useTheme } from '@mui/material/styles';
+import { alpha } from '@mui/material';
 import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
 import CardMedia from '@mui/material/CardMedia';
-import { alpha } from '@mui/material';
-import { useThemeContext } from '@context/ThemeContext';
 import { SkuImage } from '@features/sku/state';
 import { formatImageUrl } from '@utils/formatImageUrl';
 
@@ -22,7 +22,7 @@ const ThumbnailList: FC<ThumbnailListProps> = ({
   isMobile,
   onSelect,
 }) => {
-  const { theme } = useThemeContext();
+  const theme = useTheme();
 
   return (
     <Stack

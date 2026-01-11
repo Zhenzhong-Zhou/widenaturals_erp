@@ -1,5 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 import type { CreatedProduct } from '@features/product/state/productTypes';
 
 /**
@@ -10,7 +10,10 @@ import type { CreatedProduct } from '@features/product/state/productTypes';
  * @example
  * const state = useSelector(selectCreateProductsState);
  */
-const selectCreateProductsState = (state: RootState) => state.createProducts;
+const selectCreateProductsState= createSelector(
+  [selectRuntime],
+  (runtime) => runtime.createProducts
+);
 
 /**
  * Selector: returns the full API response (`CreateProductResponse`) or null.

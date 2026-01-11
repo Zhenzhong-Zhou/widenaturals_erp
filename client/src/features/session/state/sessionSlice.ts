@@ -1,86 +1,109 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
+/**
+ * Session state slice.
+ *
+ * Represents the minimal client-side session state required
+ * to determine authenticated capability and bootstrap lifecycle.
+ *
+ * Notes:
+ * - This slice intentionally stores only the in-memory access token
+ * - Persistent authentication is cookie-based and server-managed
+ * - Session lifecycle flags are explicitly modeled to support
+ *   bootstrap-safe routing and guard logic
+ */
 interface SessionState {
-  isAuthenticated: boolean;
-  user: { id: string; name: string } | null; // User details
-  accessToken: string | null; // Access token
-  lastLogin: string | null; // Last login timestamp
-  message: string | null; // Success or error messages
-  loginError: string | null; // Error message for login failures
-  loading: boolean; // Loading state
+  /** In-memory access token used for authenticated requests */
+  accessToken: string | null;
+  
+  /** Indicates whether session evaluation or mutation is in progress */
+  resolving: boolean;
+  
+  /** Indicates whether initial session bootstrap has completed */
+  bootstrapped: boolean;
 }
 
 const initialState: SessionState = {
-  isAuthenticated: false,
-  user: null,
   accessToken: null,
-  lastLogin: null,
-  message: null,
-  loginError: null,
-  loading: false,
+  resolving: true,
+  bootstrapped: false,
 };
 
 const sessionSlice = createSlice({
   name: 'session',
   initialState,
+  
   reducers: {
-    loginStart(state) {
-      state.loading = true;
-      state.loginError = null;
-      state.message = null;
-    },
-    loginSuccess(
-      state,
-      action: PayloadAction<{
-        user: SessionState['user'];
-        accessToken: string;
-        lastLogin: string;
-        message: string;
-      }>
-    ) {
-      state.isAuthenticated = true;
-      state.user = action.payload.user;
-      state.accessToken = action.payload.accessToken;
-      state.lastLogin = action.payload.lastLogin;
-      state.message = action.payload.message;
-      state.loading = false;
-    },
-    loginFailure(state, action: PayloadAction<string>) {
-      state.isAuthenticated = false;
-      state.loginError = action.payload;
-      state.loading = false;
-    },
-    logout(state) {
-      Object.assign(state, initialState); // Resets state to initial
-    },
-    updateAccessToken(state, action: PayloadAction<string>) {
+    /**
+     * Sets or updates the in-memory access token.
+     *
+     * Used during:
+     * - Successful login
+     * - Successful token refresh
+     *
+     * Notes:
+     * - This reducer performs no validation
+     * - Token integrity is assumed to be verified upstream
+     */
+    setAccessToken: (state, action: PayloadAction<string>) => {
+      if (!action.payload) return;
+      
       state.accessToken = action.payload;
+      state.resolving = false;
     },
-    sessionExpired(state) {
-      state.isAuthenticated = false;
-      state.accessToken = null;
-      state.message = 'Session has expired. Please log in again.';
-    },
-    setMessage(state, action: PayloadAction<string | null>) {
-      state.message = action.payload;
-    },
-    refreshTokenFailure(state, action: PayloadAction<string>) {
-      state.isAuthenticated = false;
-      state.accessToken = null;
-      state.loginError = action.payload;
+    
+    /**
+     * Resets the session to a known unauthenticated state.
+     *
+     * Intended for:
+     * - Explicit user logout
+     * - User-initiated session termination
+     *
+     * Semantics:
+     * - Session is considered resolved
+     * - Bootstrap is marked complete
+     */
+    resetSession: () => ({
+      accessToken: null,
+      resolving: false,
+      bootstrapped: true,
+    }),
+    
+    /**
+     * Invalidates the current session due to authentication failure.
+     *
+     * Semantically similar to `resetSession`, but intended to
+     * communicate session invalidation caused by system or
+     * authorization failures rather than user intent.
+     *
+     * Semantics:
+     * - Session is marked as resolved
+     * - Bootstrap is preserved
+     * - Callers may choose to re-attempt recovery flows
+     */
+    invalidateSession: () => ({
+      accessToken: null,
+      resolving: true,
+      bootstrapped: true,
+    }),
+    
+    /**
+     * Marks the session bootstrap lifecycle as complete.
+     *
+     * This action must be dispatched exactly once after
+     * initial session evaluation, regardless of outcome.
+     */
+    markBootstrapComplete: (state) => {
+      state.resolving = false;
+      state.bootstrapped = true;
     },
   },
 });
 
 export const {
-  loginStart,
-  loginSuccess,
-  loginFailure,
-  logout,
-  updateAccessToken,
-  sessionExpired,
-  setMessage,
-  refreshTokenFailure,
+  setAccessToken,
+  resetSession,
+  invalidateSession,
+  markBootstrapComplete
 } = sessionSlice.actions;
-
 export default sessionSlice.reducer;

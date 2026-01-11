@@ -48,9 +48,9 @@ exports.seed = async function (knex) {
     status_id: statusIds.active, // Use named lookup for clarity
     status_date: now,
     created_at: now,
-    updated_at: now, // Set to `now` instead of `null` for consistency
+    updated_at: null,
     created_by: systemUserId,
-    updated_by: systemUserId, // Also set to systemUserId for traceability
+    updated_by: null,
   };
 
   const seedUsers = [

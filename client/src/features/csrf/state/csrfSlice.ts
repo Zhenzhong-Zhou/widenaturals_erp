@@ -1,62 +1,47 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { createSlice } from '@reduxjs/toolkit';
 import { getCsrfTokenThunk } from '@features/csrf/state/csrfThunk';
 
-// Define a type for the state
-interface CSRFState {
+interface CsrfState {
   token: string | null;
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
   error: string | null;
 }
 
-// Strictly type the initial state
-const initialState: CSRFState = {
+const initialState: CsrfState = {
   token: null,
   status: 'idle',
   error: null,
 };
 
-// Create the CSRF slice
 const csrfSlice = createSlice({
   name: 'csrf',
   initialState,
   reducers: {
     /**
-     * Resets the CSRF token state to its initial values.
+     * Clears CSRF state.
+     * Intended for logout or full app reset only.
      */
-    resetCsrfToken: () => initialState, // Resets state to the initial state
-
-    /**
-     * Manually updates the CSRF token in the Redux state.
-     */
-    updateCsrfToken: (state, action: PayloadAction<string>) => {
-      state.token = action.payload; // Update the token
-      state.status = 'succeeded'; // Mark status as succeeded
-      state.error = null; // Clear any previous errors
-    },
+    resetCsrfToken: () => ({ ...initialState }),
   },
   extraReducers: (builder) => {
     builder
-      // Handle pending state when the CSRF token is being fetched
       .addCase(getCsrfTokenThunk.pending, (state) => {
         state.status = 'loading';
-        state.error = null; // Clear any previous errors
+        state.error = null;
       })
-      // Handle fulfilled state when the CSRF token is successfully fetched
-      .addCase(
-        getCsrfTokenThunk.fulfilled,
-        (state, action: PayloadAction<string>) => {
-          state.status = 'succeeded';
-          state.token = action.payload;
-        }
-      )
-      // Handle rejected state when fetching the CSRF token fails
+      .addCase(getCsrfTokenThunk.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.token = action.payload;
+      })
       .addCase(getCsrfTokenThunk.rejected, (state, action) => {
         state.status = 'failed';
-        state.error = action.payload || 'An unknown error occurred';
+        state.error =
+          typeof action.payload === 'string'
+            ? action.payload
+            : 'Failed to fetch CSRF token';
       });
   },
 });
 
-export const { resetCsrfToken, updateCsrfToken } = csrfSlice.actions;
-
+export const { resetCsrfToken } = csrfSlice.actions;
 export default csrfSlice.reducer;

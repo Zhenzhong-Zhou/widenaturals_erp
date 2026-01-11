@@ -1,12 +1,14 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 import type { LocationInventoryKpiSummaryItem } from '@features/locationInventory/state/locationInventoryTypes';
 
 /**
  * Root selector to access the KPI summary state slice.
  */
-const selectKpiSummaryState = (state: RootState) =>
-  state.locationInventoryKpiSummary;
+const selectKpiSummaryState= createSelector(
+  [selectRuntime],
+  (runtime) => runtime.locationInventoryKpiSummary
+);
 
 /**
  * Selector to retrieve all KPI summary rows.

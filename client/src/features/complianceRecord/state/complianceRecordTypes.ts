@@ -4,9 +4,9 @@ import {
   GenericStatus,
   PaginatedResponse,
   PaginationParams,
-  ReduxPaginatedState,
   SortConfig,
 } from '@shared-types/api';
+import type { ReduxPaginatedState } from '@shared-types/pagination';
 
 /**
  * Lightweight SKU snapshot associated with a compliance record.

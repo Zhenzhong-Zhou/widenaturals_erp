@@ -12,7 +12,6 @@ exports.up = function (knex) {
       .inTable('users')
       .unique();
     table.text('password_hash').notNullable();
-    table.string('password_salt', 255).nullable();
     table.integer('attempts').defaultTo(0);
     table.integer('failed_attempts').defaultTo(0);
     table.timestamp('lockout_time', { useTz: true }).nullable();

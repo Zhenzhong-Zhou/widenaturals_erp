@@ -34,14 +34,13 @@ import {
   ShippingInfoSection,
 } from '@features/order/components/SalesOrderDetails';
 import AllocateInventoryDialog from '@features/inventoryAllocation/components/AllocateInventoryDialog';
-import usePermissions from '@hooks/usePermissions';
-import useHasPermission from '@features/authorize/hooks/useHasPermission';
+import { useActionPermission } from '@features/authorize/hooks';
 import { ORDER_CONSTANTS } from '@utils/constants/orderPermissions';
 import { useOrderDetails } from '@hooks/useOrderDetails';
 import { flattenSalesOrderHeader } from '@features/order/utils/transformOrderHeader';
 import useUpdateOrderStatus from '@hooks/useUpdateOrderStatus';
 import { getShortOrderNumber } from '@features/order/utils/orderUtils';
-import { useDialogFocusHandlers } from '@utils/hooks/useDialogFocusHandlers';
+import { useDialogFocusHandlers } from '@utils/hooks';
 
 const OrderDetailsPage: FC = () => {
   // Get the `orderType` and `orderId` from the URL
@@ -61,9 +60,7 @@ const OrderDetailsPage: FC = () => {
   }
 
   const isAllocatableCategory = category === 'allocatable';
-  const { loading, permissions } = usePermissions();
-  const hasPermission = useHasPermission(permissions);
-
+  
   const createButtonRef = useRef<HTMLButtonElement>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -141,33 +138,24 @@ const OrderDetailsPage: FC = () => {
   ];
 
   const allocatableStatusCodes = ['ORDER_CONFIRMED'];
-
-  const canConfirmStatusUpdate = useMemo(() => {
-    if (loading) return false;
-
-    return (
-      hasPermission(ORDER_CONSTANTS.PERMISSIONS.ACTIONS.CONFIRM_SALES_ORDER) &&
-      confirmableStatusCodes.includes(statusCode)
-    );
-  }, [loading, hasPermission, statusCode]);
-
-  const canCancelOrder = useMemo(() => {
-    if (loading) return false;
-
-    return (
-      hasPermission(ORDER_CONSTANTS.PERMISSIONS.ACTIONS.CANCEL_SALES_ORDER) &&
-      cancelableStatusCodes.includes(statusCode)
-    );
-  }, [loading, hasPermission, statusCode]);
-
-  const canAllocateOrder = useMemo(() => {
-    if (loading) return false;
-
-    return (
-      hasPermission(ORDER_CONSTANTS.PERMISSIONS.ACTIONS.ALLOCATE_ORDER) &&
-      allocatableStatusCodes.includes(statusCode)
-    );
-  }, [loading, hasPermission, statusCode]);
+  
+  const canConfirmStatusUpdate = useActionPermission(
+    ORDER_CONSTANTS.PERMISSIONS.ACTIONS.CONFIRM_SALES_ORDER,
+    statusCode,
+    confirmableStatusCodes
+  );
+  
+  const canCancelOrder = useActionPermission(
+    ORDER_CONSTANTS.PERMISSIONS.ACTIONS.CANCEL_SALES_ORDER,
+    statusCode,
+    cancelableStatusCodes
+  );
+  
+  const canAllocateOrder = useActionPermission(
+    ORDER_CONSTANTS.PERMISSIONS.ACTIONS.ALLOCATE_ORDER,
+    statusCode,
+    allocatableStatusCodes
+  );
 
   const handleStatusUpdate = async (statusCode: string) => {
     if (!orderId || !category) {
@@ -206,7 +194,16 @@ const OrderDetailsPage: FC = () => {
       />
     );
   }
-
+  
+  if (!orderData) {
+    return (
+      <Loading
+        variant="dotted"
+        message="Loading sales order details..."
+      />
+    );
+  }
+  
   const flattened = flattenSalesOrderHeader(orderData);
 
   return (
@@ -259,7 +256,7 @@ const OrderDetailsPage: FC = () => {
                   variant="contained"
                   color="primary"
                   onClick={() => handleStatusUpdate('ORDER_CONFIRMED')}
-                  disabled={updateStatusLoading || loading}
+                  disabled={updateStatusLoading}
                 >
                   {updateStatusLoading ? 'Confirming...' : 'Confirm Order'}
                 </CustomButton>
@@ -269,7 +266,7 @@ const OrderDetailsPage: FC = () => {
                   variant="contained"
                   color="primary"
                   onClick={handleOpenDialog}
-                  disabled={updateStatusLoading || loading}
+                  disabled={updateStatusLoading}
                 >
                   {updateStatusLoading ? 'Allocating...' : 'Allocate Order'}
                 </CustomButton>
@@ -285,7 +282,7 @@ const OrderDetailsPage: FC = () => {
                   variant="contained"
                   color="error"
                   onClick={() => handleStatusUpdate('ORDER_CANCELED')}
-                  disabled={updateStatusLoading || loading}
+                  disabled={updateStatusLoading}
                 >
                   {updateStatusLoading ? 'Canceling...' : 'Cancel Order'}
                 </CustomButton>

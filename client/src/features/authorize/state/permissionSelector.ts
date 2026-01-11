@@ -1,9 +1,11 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
-import type { PermissionsState } from './permissionSlice';
+import { selectRuntime } from '@store/selectors';
+import type { PermissionsState } from '@features/authorize';
 
-const getPermissionsState = (state: RootState): PermissionsState =>
-  state.permissions as PermissionsState;
+const getPermissionsState =  createSelector(
+  [selectRuntime],
+  (runtime) => runtime.permissions as PermissionsState
+);
 
 /**
  * Select the permissions array.

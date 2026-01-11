@@ -1,11 +1,13 @@
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '@store/store';
+import { selectRuntime } from '@store/selectors';
 
 /**
  * Base selector to access the warehouseInventory slice from the root state.
  */
-const selectWarehouseInventoryState = (state: RootState) =>
-  state.warehouseInventory;
+const selectWarehouseInventoryState = createSelector(
+  [selectRuntime],
+  (runtime) => runtime.warehouseInventory
+);
 
 /**
  * Selector to get the inventory record list.
@@ -40,7 +42,7 @@ export const selectWarehouseInventoryError = createSelector(
 /**
  * Selector to get the pagination info for warehouse inventory.
  *
- * @returns {PaginationInfo | null} Pagination metadata (page, limit, totalRecords, etc.)
+ * @returns {Pagination | null} Pagination metadata (page, limit, totalRecords, etc.)
  */
 export const selectWarehouseInventoryPagination = createSelector(
   [selectWarehouseInventoryState],
