@@ -4,15 +4,20 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from 'axios';
 import * as axiosRetry from 'axios-retry';
-import { rawAxios } from '@utils/http';
 import { AppError } from '@utils/error';
 import { AppErrorDetails } from '@utils/error/AppError';
 import { store } from '@store/store';
 import { selectAccessToken } from '@features/session/state/sessionSelectors';
+import { getCsrfTokenThunk } from '@features/csrf';
 import { selectCsrfToken } from '@features/csrf/state/csrfSelector';
 import { setAccessToken } from '@features/session/state/sessionSlice';
 import { sessionService } from '@services/sessionService';
 import { hardLogout } from '@features/session/utils/hardLogout';
+
+type RetryableRequest = InternalAxiosRequestConfig & {
+  _retryAuth?: boolean;
+  _retryCsrf?: boolean;
+};
 
 /* =========================================================
  * Refresh control (single-flight)
@@ -85,18 +90,41 @@ axiosInstance.interceptors.response.use(
       );
     }
     
-    const originalRequest = error.config as InternalAxiosRequestConfig & {
-      _retry?: boolean;
-    };
-    
+    const originalRequest = error.config as RetryableRequest;
     const status = error.response?.status;
+    const errorCode = (error.response?.data as any)?.code;
     
-    /* -------------------------------------------------------
-     * 401 — attempt refresh (single-flight)
-     * ----------------------------------------------------- */
+    /* =====================================================
+     * CSRF failure — retry once (MUST COME FIRST)
+     * =================================================== */
     
-    if (status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
+    if (
+      status === 403 &&
+      errorCode === 'CSRF_INVALID' &&
+      !originalRequest._retryCsrf
+    ) {
+      originalRequest._retryCsrf = true;
+      
+      try {
+        const token = await store
+          .dispatch(getCsrfTokenThunk())
+          .unwrap();
+        
+        originalRequest.headers = new AxiosHeaders(originalRequest.headers);
+        originalRequest.headers.set('X-CSRF-Token', token);
+        
+        return axiosInstance.request(originalRequest);
+      } catch (csrfError) {
+        return Promise.reject(csrfError);
+      }
+    }
+    
+    /* =====================================================
+     * 401 — refresh access token (single-flight)
+     * =================================================== */
+    
+    if (status === 401 && !originalRequest._retryAuth) {
+      originalRequest._retryAuth = true;
       
       try {
         if (!refreshPromise) {
@@ -123,16 +151,16 @@ axiosInstance.interceptors.response.use(
           `Bearer ${accessToken}`
         );
         
-        return rawAxios.request(originalRequest);
+        return axiosInstance.request(originalRequest);
       } catch {
         await hardLogout();
         return Promise.reject(error);
       }
     }
     
-    /* -------------------------------------------------------
-     * 403 — permission revoked (runtime only)
-     * ----------------------------------------------------- */
+    /* =====================================================
+     * 403 — authorization (NOT CSRF)
+     * =================================================== */
     
     if (status === 403) {
       await hardLogout();
@@ -141,9 +169,9 @@ axiosInstance.interceptors.response.use(
       );
     }
     
-    /* -------------------------------------------------------
-     * Normalization (non-auth)
-     * ----------------------------------------------------- */
+    /* =====================================================
+     * Normalization (unchanged)
+     * =================================================== */
     
     if (status === 400) {
       return Promise.reject(

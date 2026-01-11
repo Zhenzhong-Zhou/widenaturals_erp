@@ -12,7 +12,6 @@ const { loadEnv } = require('../config/env');
 const csrf = require('@dr.pogodin/csurf');
 const { logError } = require('../utils/logger-helper');
 const { logSystemInfo } = require('../utils/system-logger');
-const { ONE_HOUR } = require('../utils/constants/general/time');
 const AppError = require('../utils/AppError');
 
 loadEnv();
@@ -28,7 +27,6 @@ const createCsrfMiddleware = () => {
     httpOnly: true, // Prevent client-side access to the cookie (enhances security)
     secure: process.env.COOKIE_SECURE === 'true', // Use secure cookies in production
     sameSite: process.env.COOKIE_SAMESITE || 'strict', // Enforce same-site policy
-    maxAge: parseInt(process.env.CSRF_COOKIE_MAXAGE, 10) || ONE_HOUR, // Set cookie expiration
   };
 
   // Log the resolved CSRF cookie configuration for traceability and debugging
