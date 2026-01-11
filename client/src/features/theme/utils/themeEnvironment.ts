@@ -22,6 +22,19 @@ export const loadStoredCoords = (): Coordinates | null => {
 };
 
 /**
+ * Normalize coordinates to reduce precision before persisting or using.
+ * ~0.1° ≈ 11km accuracy, sufficient for sun-based theme logic.
+ */
+export const normalizeCoords = (coords: Coordinates): Coordinates => {
+  const PRECISION = 10; // one decimal place
+  return {
+    latitude: Math.round(coords.latitude * PRECISION) / PRECISION,
+    longitude: Math.round(coords.longitude * PRECISION) / PRECISION,
+  };
+};
+
+
+/**
  * Determines theme mode based on real sunrise/sunset times.
  */
 export const getSunBasedTheme = (

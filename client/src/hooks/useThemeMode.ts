@@ -11,6 +11,7 @@ import {
 } from '@features/theme/state/themeSlice';
 import {
   loadStoredCoords,
+  normalizeCoords,
   getSunBasedTheme,
   getSystemTheme,
 } from '@features/theme/utils';
@@ -58,10 +59,12 @@ const useThemeMode = () => {
     
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
-        setCoords({
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-        });
+        setCoords(
+          normalizeCoords({
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+          })
+        );
       },
       () => {
         // Silent fallback to system theme
@@ -95,9 +98,12 @@ const useThemeMode = () => {
         break;
       
       case 'time':
-        resolved = coords
-          ? getSunBasedTheme(coords.latitude, coords.longitude)
-          : getSystemTheme();
+        if (coords) {
+          const normalized = normalizeCoords(coords);
+          resolved = getSunBasedTheme(normalized.latitude, normalized.longitude);
+        } else {
+          resolved = getSystemTheme();
+        }
         break;
       
       case 'system':
