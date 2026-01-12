@@ -179,6 +179,26 @@ const validatePhoneNumber = Joi.string()
   });
 
 /**
+ * Optional international phone number validator (E.164).
+ *
+ * Accepts:
+ * - Valid E.164 phone numbers (e.g. "+1234567890")
+ * - null (explicitly unset)
+ * - empty string ("") for form compatibility
+ *
+ * Notes:
+ * - Empty strings SHOULD be normalized to null before persistence
+ * - This validator is transport-layer only and does not imply existence or ownership
+ */
+const optionalE164PhoneNumber = Joi.string()
+  .pattern(/^\+?[1-9]\d{1,14}$/)
+  .allow(null, '')
+  .messages({
+    'string.pattern.base':
+      'Phone number must be in international format (e.g., +1234567890)',
+  });
+
+/**
  * Reusable Joi validator for order numbers.
  */
 const validateOrderNumber = Joi.string()
@@ -515,6 +535,47 @@ const createArraySchema = (itemSchema, minItems = 1, label = 'Items') =>
       'any.required': `${label} is required`,
     });
 
+/**
+ * Optional ISO-8601 date value.
+ *
+ * Accepts:
+ * - Valid ISO-8601 date strings (e.g. "2026-01-12", "2026-01-12T10:30:00Z")
+ * - null (explicitly unset)
+ *
+ * Notes:
+ * - Intended for transport-layer validation only
+ * - Persistence layer should treat null as "no value"
+ */
+const optionalIsoDate = () =>
+  Joi.date()
+    .iso()
+    .allow(null)
+    .messages({
+      'date.base': 'Date must be a valid ISO-8601 value',
+      'date.format': 'Date must be in ISO-8601 format',
+    });
+
+/**
+ * Required ISO-8601 date value.
+ *
+ * Accepts:
+ * - Valid ISO-8601 date strings only
+ *
+ * Rejects:
+ * - null
+ * - empty string
+ * - invalid formats
+ */
+const requiredIsoDate = () =>
+  Joi.date()
+    .iso()
+    .required()
+    .messages({
+      'any.required': 'Date is required',
+      'date.base': 'Date must be a valid ISO-8601 value',
+      'date.format': 'Date must be in ISO-8601 format',
+    });
+
 module.exports = {
   validateEmail,
   validateUUID,
@@ -524,6 +585,7 @@ module.exports = {
   validatePositiveInteger,
   validateString,
   validatePhoneNumber,
+  optionalE164PhoneNumber,
   validateOrderNumber,
   safeString,
   allowedSortOrders,
@@ -541,4 +603,6 @@ module.exports = {
   validateKeyword,
   validateOptionalString,
   createArraySchema,
+  optionalIsoDate,
+  requiredIsoDate,
 };

@@ -134,7 +134,6 @@ const createUserService = async (input, actor) => {
           phoneNumber: input.phoneNumber,
           jobTitle: input.jobTitle,
           note: input.note,
-          statusDate: input.statusDate,
           createdBy: actor.id,
         },
         client
