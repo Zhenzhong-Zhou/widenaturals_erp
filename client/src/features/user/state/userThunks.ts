@@ -1,5 +1,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import {
+  CreateUserRequest,
+  CreateUserResponse,
   GetPaginatedUsersParams,
   PaginatedUserCardListResponse,
   PaginatedUserListResponse,
@@ -8,6 +10,46 @@ import {
 } from '@features/user/state';
 import { userService } from '@services/userService';
 import { extractUiErrorPayload, extractErrorMessage } from '@utils/error';
+
+/**
+ * createUserThunk
+ *
+ * Dispatches a POST /users request to create a new user.
+ *
+ * Responsibilities:
+ * - Invoke the client API write operation
+ * - Return transport-safe response data on success
+ * - Surface normalized, UI-safe error payloads to reducers
+ *
+ * Error contract:
+ * - On failure, rejects with a UI-safe error payload produced by
+ *   `extractUiErrorPayload`
+ * - Reducers should not assume raw Error or Axios shapes
+ *
+ * Side effects:
+ * - Non-idempotent (creates a new server-side resource)
+ *
+ * MUST NOT:
+ * - Perform request validation
+ * - Perform authorization or permission checks
+ * - Transform or interpret domain/business logic
+ */
+export const createUserThunk = createAsyncThunk<
+  CreateUserResponse,
+  CreateUserRequest,
+  {
+    rejectValue: ReturnType<typeof extractUiErrorPayload>;
+  }
+>(
+  'users/createUser',
+  async (payload, { rejectWithValue }) => {
+    try {
+      return await userService.createUser(payload);
+    } catch (error: unknown) {
+      return rejectWithValue(extractUiErrorPayload(error));
+    }
+  }
+);
 
 /**
  * Fetch a paginated list of users from the backend.

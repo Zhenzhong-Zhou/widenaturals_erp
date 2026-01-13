@@ -21,6 +21,7 @@ export const API_ENDPOINTS = {
   USER_PERMISSION: '/users/me/permissions',
   REFRESH_TOKEN: '/session/refresh',
   USERS: {
+    ADD_NEW_RECORD: '/users',
     ALL_RECORDS: '/users',
     PROFILE: {
       SELF: '/users/me/profile',

@@ -14,6 +14,110 @@ import {
 import { ReduxPaginatedState } from '@shared-types/pagination';
 
 /**
+ * CreateUserRequest
+ *
+ * Transport-layer request payload for `POST /users`.
+ *
+ * Represents the minimum information required to create
+ * a new user account in the system.
+ *
+ * Notes:
+ * - All validation (format, constraints, permissions) is enforced server-side
+ * - This interface does NOT imply authorization to create specific roles
+ * - Optional fields may be omitted or explicitly set to null
+ * - `roleId` and `statusId` must reference valid, active records
+ *
+ * Security:
+ * - `password` is plain text at transport boundary and MUST be hashed server-side
+ */
+export interface CreateUserRequest {
+  /** User's primary email address (unique identifier) */
+  email: string;
+  
+  /** Plain-text password; hashed and persisted by the server */
+  password: string;
+  
+  /** Target role identifier (UUID) */
+  roleId: string;
+  
+  /** Initial user status identifier (UUID) */
+  statusId: string;
+  
+  /** User's first name */
+  firstname: string;
+  
+  /** User's last name */
+  lastname: string;
+  
+  /** Optional E.164-formatted phone number */
+  phoneNumber?: string | null;
+  
+  /** Optional job title or position */
+  jobTitle?: string | null;
+  
+  /** Optional internal note or comment */
+  note?: string | null;
+}
+
+/**
+ * CreateUserResponseData
+ *
+ * Transport-safe user summary returned after a successful
+ * `POST /users` operation.
+ *
+ * Design principles:
+ * - Minimal surface area
+ * - No sensitive or internal-only fields
+ * - Stable shape suitable for immediate UI consumption
+ *
+ * Notes:
+ * - This is NOT a full user profile
+ * - Additional details must be fetched via read endpoints
+ */
+export interface CreateUserResponseData {
+  /** System-generated user identifier */
+  id: string;
+  
+  /** User email address */
+  email: string;
+  
+  /** Assigned role identifier */
+  roleId: string;
+  
+  /** Assigned status identifier */
+  statusId: string;
+  
+  /** ISO-8601 timestamp indicating when the user was created */
+  createdAt: string;
+}
+
+/**
+ * CreateUserResponse
+ *
+ * Standard API success response wrapper for `POST /users`.
+ *
+ * Conforms to the global API response contract.
+ */
+export type CreateUserResponse =
+  ApiSuccessResponse<CreateUserResponseData>;
+
+/**
+ * CreateUserState
+ *
+ * Async mutation state for the create-user operation.
+ *
+ * Lifecycle semantics:
+ * - `data` is null before submission or after reset
+ * - `loading` is true while the request is in flight
+ * - `error` contains a UI-safe message on failure
+ *
+ * This state represents a WRITE operation and MUST NOT
+ * be treated as cached or queryable user data.
+ */
+export type CreateUserState =
+  AsyncState<CreateUserResponseData | null>;
+
+/**
  * Base user view shared by all UI representations.
  *
  * Contains identity and common display fields that are safe to

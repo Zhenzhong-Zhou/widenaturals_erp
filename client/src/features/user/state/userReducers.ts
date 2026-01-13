@@ -1,3 +1,4 @@
+import createUserReducer from './createUserSlice';
 import paginatedUsersReducer from './paginatedUsersSlice';
 import userSelfProfileReducer from './userSelfProfileSlice';
 import userViewedProfileReducer from './userViewedProfileSlice';
@@ -17,17 +18,34 @@ import userViewedProfileReducer from './userViewedProfileSlice';
  *   barrel (`index.ts`) files.
  *
  * State composition:
+ * - `createUser`         → Create-user mutation state (POST /users)
  * - `paginatedUsers`     → Admin/list views with pagination & filters
  * - `userSelfProfile`    → Authenticated user's own profile
  * - `userViewedProfile`  → Privileged (HR/Admin) viewed user profile
  */
 export const userReducers = {
+  /**
+   * Create-user mutation state.
+   *
+   * Represents the lifecycle of the POST /users operation.
+   *
+   * Semantics:
+   * - WRITE-only mutation state
+   * - Not cached or queryable user data
+   * - Safe to reset after success or form unmount
+   *
+   * MUST NOT:
+   * - Be used as a source of truth for user profiles
+   * - Be merged into list or profile slices
+   */
+  createUser: createUserReducer,
+  
   /** Paginated user list with filters and pagination metadata */
   paginatedUsers: paginatedUsersReducer,
-
+  
   /** Authenticated user's own profile state */
   userSelfProfile: userSelfProfileReducer,
-
+  
   /** HR/Admin viewed user profile state */
   userViewedProfile: userViewedProfileReducer,
 };
