@@ -37,6 +37,7 @@ const { getRoleById } = require('../repositories/role-repository');
  * - Resolves and validates target role semantics
  * - Hashes plaintext password securely before persistence
  * - Creates user and authentication records atomically
+ * - Initializes newly created users in an inactive status
  * - Emits structured audit logs
  *
  * Transactional guarantees:
@@ -53,6 +54,7 @@ const { getRoleById } = require('../repositories/role-repository');
  * - Role semantics are resolved via `classifyRole` only
  * - Privilege escalation is prevented via ACL checks
  * - Passwords are never persisted or logged in plaintext
+ * - Newly created users are inactive until explicitly activated
  *
  * @param {Object} input - User creation payload (validated upstream)
  * @param {Object} actor - Authenticated user performing the action
@@ -121,6 +123,8 @@ const createUserService = async (input, actor) => {
       // ------------------------------------------------------------
       const passwordHash = await hashPassword(input.password);
       
+      const inactiveStatusId = getStatusId('general_inactive');
+      
       // ------------------------------------------------------------
       // 4. Insert user
       // ------------------------------------------------------------
@@ -128,7 +132,7 @@ const createUserService = async (input, actor) => {
         {
           email: input.email,
           roleId: input.roleId,
-          statusId: input.statusId,
+          statusId: inactiveStatusId,
           firstname: input.firstname,
           lastname: input.lastname,
           phoneNumber: input.phoneNumber,

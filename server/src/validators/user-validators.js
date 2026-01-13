@@ -68,8 +68,6 @@ const createUserSchema = Joi.object({
     
     roleId: validateUUID('Role ID').required(),
     
-    statusId: validateUUID('Status ID').required(),
-    
     firstname: validateString('First Name', 2, 100).required(),
     
     lastname: validateString('Last Name', 2, 100).required(),

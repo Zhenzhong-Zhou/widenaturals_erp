@@ -38,7 +38,6 @@ const createUserController = wrapAsync(async (req, res) => {
     email: req.body.email,
     password: req.body.password,
     roleId: req.body.roleId,
-    statusId: req.body.statusId,
     firstname: req.body.firstname,
     lastname: req.body.lastname,
     phoneNumber: req.body.phoneNumber,
