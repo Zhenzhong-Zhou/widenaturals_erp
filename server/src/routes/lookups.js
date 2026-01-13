@@ -16,7 +16,9 @@ const {
   getPackagingMaterialLookupController,
   getSkuCodeBaseLookupController,
   getProductLookupController,
-  getStatusLookupController, getUserLookupController,
+  getStatusLookupController,
+  getUserLookupController,
+  getRoleLookupController,
 } = require('../controllers/lookup-controller');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 const { sanitizeFields } = require('../middlewares/sanitize');
@@ -37,7 +39,9 @@ const {
   packagingMaterialLookupQuerySchema,
   skuCodeBaseLookupQuerySchema,
   productLookupQuerySchema,
-  statusLookupQuerySchema, userLookupQuerySchema,
+  statusLookupQuerySchema,
+  userLookupQuerySchema,
+  roleLookupQuerySchema,
 } = require('../validators/lookup-validators');
 const { PERMISSIONS } = require('../utils/constants/domain/lookup-constants');
 
@@ -1038,6 +1042,74 @@ router.get(
     'Invalid User lookup query parameters.'
   ),
   getUserLookupController
+);
+
+/**
+ * @route GET /lookups/roles
+ * @description
+ * Endpoint to fetch paginated **Role** lookup options for dropdowns,
+ * assignment selectors, and admin configuration UIs.
+ *
+ * This endpoint is intentionally lightweight and permission-aware.
+ * It applies:
+ * - Role visibility ACL (active-only / full visibility)
+ * - Query normalization (filters + pagination)
+ * - Input sanitization
+ * - Joi validation
+ * - Service-driven lookup + UI transformation
+ *
+ * ### Query Parameters (after normalization)
+ * - `filters.keyword` — Optional fuzzy match (name / description / role group)
+ * - `limit`           — Page size (default: 50)
+ * - `offset`          — Pagination offset
+ *
+ * ### Response: 200 OK
+ * ```json
+ * {
+ *   "success": true,
+ *   "message": "Successfully retrieved Role lookup",
+ *   "items": [
+ *     {
+ *       "id": "...",
+ *       "label": "Admin • System",
+ *       "isActive": true
+ *     }
+ *   ],
+ *   "limit": 50,
+ *   "offset": 0,
+ *   "hasMore": true
+ * }
+ * ```
+ *
+ * NOTE:
+ * - Role lifecycle visibility (active vs inactive) and hierarchy scope
+ *   are enforced exclusively in the service layer.
+ * - Client-provided filters cannot override ACL rules.
+ *
+ * @access Protected
+ * @permission Requires `view_role_lookup`
+ */
+router.get(
+  '/roles',
+  authorize([PERMISSIONS.VIEW_ROLE]),
+  createQueryNormalizationMiddleware(
+    '',
+    [], // arrayKeys
+    [], // booleanKeys
+    ['keyword'], // filterKeys (keyword ONLY)
+    { includePagination: true, includeSorting: false }
+  ),
+  sanitizeFields(['keyword']),
+  validate(
+    roleLookupQuerySchema,
+    'query',
+    {
+      abortEarly: false,
+      convert: true,
+    },
+    'Invalid Role lookup query parameters.'
+  ),
+  getRoleLookupController
 );
 
 module.exports = router;

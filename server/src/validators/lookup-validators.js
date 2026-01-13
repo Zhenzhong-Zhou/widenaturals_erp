@@ -403,6 +403,29 @@ const userLookupQuerySchema = Joi.object({
   ...baseLookupQuerySchema,
 });
 
+/**
+ * Joi validation schema for Role lookup query parameters.
+ *
+ * Validates GET requests to the `/lookups/roles` endpoint.
+ *
+ * Supports:
+ * - `filters`: Optional object for lookup filtering (e.g. keyword, role_group)
+ * - `limit`: Optional number for pagination (default 50)
+ * - `offset`: Optional number for pagination offset (default 0)
+ *
+ * All fields are inherited from `baseLookupQuerySchema`.
+ *
+ * NOTE:
+ * - Role visibility (active-only, inactive inclusion, hierarchy scope)
+ *   is enforced in the service layer via ACL.
+ * - This schema validates request shape only, not access rules.
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const roleLookupQuerySchema = Joi.object({
+  ...baseLookupQuerySchema,
+});
+
 module.exports = {
   batchRegistryLookupQuerySchema,
   warehouseLookupQuerySchema,
@@ -421,4 +444,5 @@ module.exports = {
   productLookupQuerySchema,
   statusLookupQuerySchema,
   userLookupQuerySchema,
+  roleLookupQuerySchema,
 };

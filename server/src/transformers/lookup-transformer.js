@@ -1214,6 +1214,104 @@ const transformUserPaginatedLookupResult = (paginatedResult, userAccess) =>
     { includeLoadMore: true }
   );
 
+/**
+ * Transforms a single raw Role record into a lookup-friendly object.
+ *
+ * Produces:
+ * - `label` (e.g., "Admin • System", "Inventory Manager")
+ * - Optional UI flags (e.g., `isActive`) depending on access rules
+ *
+ * Used in:
+ * - Role dropdowns
+ * - User creation / assignment
+ * - Permission configuration
+ * - Admin role management UIs
+ *
+ * @param {{
+ *   id: string,
+ *   name: string,
+ *   role_group?: string,
+ *   hierarchy_level?: number,
+ *   status_id?: string
+ * }} row - Raw Role row from the repository.
+ *
+ * @param userAccess
+ *   activeStatusId?: string
+ * }} access - Role visibility / enrichment context
+ *             (e.g. from evaluateRoleVisibilityAccessControl()).
+ *
+ * @returns {{
+ *   id: string,
+ *   label: string,
+ *   isActive?: boolean,
+ *   hierarchyLevel?: number,
+ *   [key: string]: any
+ * }} A lookup-optimized role object.
+ */
+const transformRoleLookup = (row, userAccess) => {
+  if (!row || typeof row !== 'object') return null;
+  
+  const name = row.name ?? 'Unnamed Role';
+  const roleGroup = row.role_group ?? '';
+  
+  /**
+   * Example label patterns:
+   * - "Admin • System"
+   * - "Inventory Manager • Operations"
+   * - "Viewer"
+   */
+  const labelParts = [name];
+  
+  if (roleGroup) {
+    labelParts.push(`• ${roleGroup}`);
+  }
+  
+  const label = labelParts.join(' ');
+  
+  // Base lookup object: { id, label }
+  const baseObj = transformIdNameToIdLabel({ ...row, name: label });
+  
+  const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
+  
+  return {
+    ...baseObj,
+    ...flagSubset,
+  };
+};
+
+/**
+ * Transforms a paginated set of Role records into a UI-friendly lookup format.
+ *
+ * Applies:
+ * - Row-by-row transformation via `transformRoleLookup`
+ * - Pagination metadata rewrite
+ * - Optional "Load more" support for infinite scroll UIs
+ *
+ * @param {{
+ *   data: Array<object>,
+ *   pagination: {
+ *     offset: number,
+ *     limit: number,
+ *     totalRecords: number
+ *   }
+ * }} paginatedResult - Raw repository output.
+ *
+ * @param {object} access - Role visibility / enrichment context.
+ *
+ * @returns {{
+ *   items: Array<{ id: string, label: string, [key: string]: any }>,
+ *   offset: number,
+ *   limit: number,
+ *   hasMore: boolean
+ * }} Transformed lookup result.
+ */
+const transformRolePaginatedLookupResult = (paginatedResult, access) =>
+  transformPaginatedResult(
+    paginatedResult,
+    (row) => transformRoleLookup(row, access),
+    { includeLoadMore: true }
+  );
+
 module.exports = {
   transformBatchRegistryPaginatedLookupResult,
   transformWarehouseLookupRows,
@@ -1232,4 +1330,5 @@ module.exports = {
   transformProductPaginatedLookupResult,
   transformStatusPaginatedLookupResult,
   transformUserPaginatedLookupResult,
+  transformRolePaginatedLookupResult,
 };

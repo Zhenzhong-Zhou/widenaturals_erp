@@ -20,6 +20,7 @@ const LOOKUPS = {
     VIEW_PRODUCT: 'view_product_lookup',
     VIEW_STATUS: 'view_status_lookup',
     VIEW_USER: 'view_user_lookup',
+    VIEW_ROLE: 'view_role_lookup',
   },
 };
 
