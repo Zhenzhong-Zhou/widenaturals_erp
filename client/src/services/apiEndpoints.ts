@@ -105,6 +105,7 @@ export const API_ENDPOINTS = {
     PRODUCTS: '/lookups/products',
     STATUSES: '/lookups/statuses',
     USERS: '/lookups/users',
+    ROLES: '/lookups/roles',
   },
   REPORTS: {
     INVENTORY_ACTIVITY_LOGS: 'reports/inventory-activity-logs',

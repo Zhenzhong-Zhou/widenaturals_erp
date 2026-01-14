@@ -23,6 +23,7 @@ export * from './skuCodeBaseLookupSelectors';
 export * from './productLookupSelectors';
 export * from './statusLookupSelectors';
 export * from './userLookupSelectors';
+export * from './roleLookupSelectors';
 
 // --------------------------------------------------
 // Thunks & Types
