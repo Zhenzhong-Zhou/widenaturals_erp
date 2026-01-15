@@ -1,17 +1,23 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 import type { LocationInventoryKpiSummaryItem } from '@features/locationInventory/state/locationInventoryTypes';
 
 /**
- * Root selector to access the KPI summary state slice.
+ * Base selector for the location inventory KPI summary state slice.
+ *
+ * Responsibilities:
+ * - Extract the KPI summary state from the Redux runtime tree
+ *
+ * Design notes:
+ * - Plain function only (no `createSelector`)
+ * - Internal implementation detail
  */
-const selectKpiSummaryState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.locationInventoryKpiSummary
-);
+const selectKpiSummaryState = (state: RootState) =>
+  selectRuntime(state).locationInventoryKpiSummary;
 
 /**
- * Selector to retrieve all KPI summary rows.
+ * Selects all KPI summary rows.
  */
 export const selectKpiSummaryData = createSelector(
   [selectKpiSummaryState],
@@ -19,7 +25,7 @@ export const selectKpiSummaryData = createSelector(
 );
 
 /**
- * Selector to retrieve loading status of KPI summary fetch.
+ * Selects whether the KPI summary request is currently loading.
  */
 export const selectKpiSummaryLoading = createSelector(
   [selectKpiSummaryState],
@@ -27,7 +33,7 @@ export const selectKpiSummaryLoading = createSelector(
 );
 
 /**
- * Selector to retrieve an error message from KPI summary fetch, if any.
+ * Selects any error message from the KPI summary request.
  */
 export const selectKpiSummaryError = createSelector(
   [selectKpiSummaryState],
@@ -35,29 +41,37 @@ export const selectKpiSummaryError = createSelector(
 );
 
 /**
- * Selector to retrieve the total KPI summary row (batchType = 'total').
+ * Selects the total KPI summary row.
+ *
+ * Returns `undefined` if the total row is not present.
  */
 export const selectKpiSummaryTotalRow = createSelector(
   [selectKpiSummaryData],
   (data) =>
     data.find(
-      (item: LocationInventoryKpiSummaryItem) => item.batchType === 'total'
+      (item: LocationInventoryKpiSummaryItem) =>
+        item.batchType === 'total'
     )
 );
 
 /**
- * Selector to retrieve the product KPI summary row (batchType = 'product').
+ * Selects the product KPI summary row.
+ *
+ * Returns `undefined` if the product row is not present.
  */
 export const selectKpiSummaryProductRow = createSelector(
   [selectKpiSummaryData],
   (data) =>
     data.find(
-      (item: LocationInventoryKpiSummaryItem) => item.batchType === 'product'
+      (item: LocationInventoryKpiSummaryItem) =>
+        item.batchType === 'product'
     )
 );
 
 /**
- * Selector to retrieve the packaging material KPI summary row (batchType = 'packaging_material').
+ * Selects the packaging material KPI summary row.
+ *
+ * Returns `undefined` if the material row is not present.
  */
 export const selectKpiSummaryMaterialRow = createSelector(
   [selectKpiSummaryData],

@@ -1,4 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
@@ -7,10 +8,8 @@ import { selectRuntime } from '@store/selectors';
  * @param state - The Redux root state.
  * @returns The state slice for create warehouse inventory.
  */
-const selectCreateWarehouseInventorySlice = createSelector(
-  [selectRuntime],
-  (runtime) => runtime.createWarehouseInventory
-);
+const selectCreateWarehouseInventorySlice = (state: RootState) =>
+  selectRuntime(state).createWarehouseInventory;
 
 /**
  * Selector for extracting relevant state from the createWarehouseInventory slice.

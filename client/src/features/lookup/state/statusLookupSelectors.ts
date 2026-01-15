@@ -1,4 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 import {
   createLookupMetaSelector,
@@ -8,10 +9,8 @@ import {
 /**
  * Base selector for the Status lookup slice.
  */
-const selectStatusLookupState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.statusLookup
-);
+const selectStatusLookupState= (state: RootState) =>
+  selectRuntime(state).statusLookup;
 
 /**
  * Retrieves Status lookup items.

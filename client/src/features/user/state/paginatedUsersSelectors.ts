@@ -1,14 +1,24 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
+ * selectPaginatedUsersState
+ *
  * Base selector for the paginated users slice.
- * Extracts the entire `paginatedUsers` state from the Redux store.
+ *
+ * Responsibilities:
+ * - Extract the `paginatedUsers` state from runtime
+ *
+ * Design notes:
+ * - MUST be a plain function
+ * - MUST NOT use `createSelector`
+ * - This avoids identity-selector warnings
+ *
+ * @param state Root redux state
  */
-export const selectPaginatedUsersState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.paginatedUsers
-);
+const selectPaginatedUsersState = (state: RootState) =>
+  selectRuntime(state).paginatedUsers;
 
 /**
  * Selector: Returns the array of user records.

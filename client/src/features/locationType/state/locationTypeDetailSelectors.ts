@@ -1,11 +1,10 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 // Select raw state
-const selectLocationTypeState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.locationType
-);
+const selectLocationTypeState = (state: RootState) =>
+  selectRuntime(state).locationType;
 
 /**
  * Selects the location type details.

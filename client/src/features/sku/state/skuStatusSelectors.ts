@@ -1,14 +1,13 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 import type { UpdateSkuStatusResponse } from '@features/sku/state/skuTypes';
 
 /**
  * Base selector — retrieves the full `skuStatus` slice.
  */
-export const selectSkuStatusState = createSelector(
-  [selectRuntime],
-  (runtime) => runtime.skuStatus
-);
+const selectSkuStatusState = (state: RootState) =>
+  selectRuntime(state).skuStatus;
 
 /**
  * Selector: returns the full API response (`UpdateSkuStatusResponse`) or null.

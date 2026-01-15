@@ -1,14 +1,13 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 import type { WarehouseLookupItem } from '@features/lookup/state/lookupTypes';
 
 /**
  * Selects the entire warehouse lookup state slice.
  */
-const selectWarehouseLookupState = createSelector(
-  [selectRuntime],
-  (runtime) => runtime.warehouseLookup
-);
+const selectWarehouseLookupState = (state: RootState) =>
+  selectRuntime(state).warehouseLookup;
 
 /**
  * Memoized selector for warehouse lookup items.

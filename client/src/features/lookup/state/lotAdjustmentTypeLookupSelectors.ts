@@ -1,4 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 import type { LotAdjustmentTypeLookupItem } from './lookupTypes';
 
@@ -8,10 +9,8 @@ import type { LotAdjustmentTypeLookupItem } from './lookupTypes';
  * @param state - The root Redux store state.
  * @returns The lot adjustment type lookup state.
  */
-const selectLotAdjustmentTypeLookupState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.lotAdjustmentTypeLookup
-);
+const selectLotAdjustmentTypeLookupState = (state: RootState) =>
+  selectRuntime(state).lotAdjustmentTypeLookup;
 
 /**
  * Selector to retrieve the list of lot adjustment type lookup items.

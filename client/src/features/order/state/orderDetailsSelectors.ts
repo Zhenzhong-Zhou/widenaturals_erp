@@ -1,4 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 import type {
   OrderItem,
@@ -6,10 +7,8 @@ import type {
 } from '@features/order/state/orderTypes';
 
 /** Base selector: the whole orderDetails slice */
-export const selectOrderDetailsState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.orderDetails
-);
+const selectOrderDetailsState = (state: RootState) =>
+  selectRuntime(state).orderDetails;
 
 /** Is the details request in-flight? */
 export const selectOrderDetailsLoading = createSelector(

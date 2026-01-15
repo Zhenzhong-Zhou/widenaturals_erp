@@ -1,16 +1,22 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
- * Base selector for the BOM slice state.
+ * Base selector for the paginated BOM list state slice.
+ *
+ * Responsibilities:
+ * - Extract the paginated BOM state from the Redux runtime tree
+ *
+ * Design notes:
+ * - Plain function only (no `createSelector`)
+ * - No memoization or transformation
  */
-const selectBomState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.paginatedBoms
-);
+const selectBomState = (state: RootState) =>
+  selectRuntime(state).paginatedBoms;
 
 /**
- * Selects the current BOM list data.
+ * Selects the current list of BOM records.
  */
 export const selectBomData = createSelector(
   [selectBomState],
@@ -18,7 +24,9 @@ export const selectBomData = createSelector(
 );
 
 /**
- * Selects the current pagination metadata.
+ * Selects pagination metadata for the BOM list.
+ *
+ * Includes page, limit, totalRecords, and totalPages.
  */
 export const selectBomPagination = createSelector(
   [selectBomState],
@@ -26,7 +34,7 @@ export const selectBomPagination = createSelector(
 );
 
 /**
- * Selects the current filter set applied to BOM queries.
+ * Selects the active filter set applied to BOM queries.
  */
 export const selectBomFilters = createSelector(
   [selectBomState],
@@ -34,7 +42,7 @@ export const selectBomFilters = createSelector(
 );
 
 /**
- * Selects the loading state of the BOM list.
+ * Selects whether the BOM list request is currently loading.
  */
 export const selectBomLoading = createSelector(
   [selectBomState],
@@ -42,7 +50,7 @@ export const selectBomLoading = createSelector(
 );
 
 /**
- * Selects the error message, if any.
+ * Selects any error message from the BOM list state.
  */
 export const selectBomError = createSelector(
   [selectBomState],
@@ -50,7 +58,9 @@ export const selectBomError = createSelector(
 );
 
 /**
- * Selects total record count (fallback to 0 if missing).
+ * Selects the total number of BOM records available.
+ *
+ * Defaults to 0 when pagination metadata is missing.
  */
 export const selectBomTotalRecords = createSelector(
   [selectBomPagination],
@@ -58,7 +68,7 @@ export const selectBomTotalRecords = createSelector(
 );
 
 /**
- * Derived selector: whether BOM data is empty and not currently loading.
+ * Returns true when the BOM list is loaded and contains no records.
  */
 export const selectIsBomListEmpty = createSelector(
   [selectBomData, selectBomLoading],
@@ -66,19 +76,13 @@ export const selectIsBomListEmpty = createSelector(
 );
 
 /**
- * Derived selector that determines whether there are more BOM pages
- * available for pagination.
+ * Returns true if additional BOM pages are available for pagination.
  *
- * This is typically used in infinite scroll or paginated table views
- * to decide whether to load the next page.
- *
- * @example
- * const hasMore = useAppSelector(selectHasMoreBomPages);
- * if (hasMore) dispatch(fetchPaginatedBomsThunk({ page: nextPage }));
- *
- * @returns {boolean} `true` if more pages are available; otherwise `false`.
+ * Commonly used by infinite-scroll and paginated table views.
  */
 export const selectHasMoreBomPages = createSelector(
   [selectBomPagination],
-  (pagination) => !!pagination && pagination.page < pagination.totalPages
+  (pagination) =>
+    pagination !== null &&
+    pagination.page < pagination.totalPages
 );

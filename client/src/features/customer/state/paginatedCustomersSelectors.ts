@@ -1,19 +1,23 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 import type { CustomerListItem } from './customerTypes';
 
 /**
- * Base selector for the paginatedCustomers slice.
+ * Base selector for the paginated customers state slice.
+ *
+ * Responsibilities:
+ * - Extract the paginated customers state from the Redux runtime tree
+ *
+ * Design notes:
+ * - Plain function only (no `createSelector`)
+ * - No memoization or transformation
  */
-const selectPaginatedCustomersState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.paginatedCustomers
-);
+const selectPaginatedCustomersState = (state: RootState) =>
+  selectRuntime(state).paginatedCustomers;
 
 /**
- * Selector for the list of customers.
- *
- * @returns {CustomerListItem[]} - The currently visible customer data.
+ * Selects the list of customers for the current page.
  */
 export const selectPaginatedCustomers = createSelector(
   [selectPaginatedCustomersState],
@@ -21,7 +25,9 @@ export const selectPaginatedCustomers = createSelector(
 );
 
 /**
- * Selector for the pagination metadata (page, limit, totalRecords, totalPages).
+ * Selects pagination metadata for the customer list.
+ *
+ * Includes page, limit, totalRecords, and totalPages.
  */
 export const selectPaginatedCustomersPagination = createSelector(
   [selectPaginatedCustomersState],
@@ -29,9 +35,7 @@ export const selectPaginatedCustomersPagination = createSelector(
 );
 
 /**
- * Selector for the loading state of the customer fetch operation.
- *
- * @returns {boolean} - True if fetch is in progress.
+ * Selects whether the customer fetch request is currently loading.
  */
 export const selectPaginatedCustomersLoading = createSelector(
   [selectPaginatedCustomersState],
@@ -39,9 +43,7 @@ export const selectPaginatedCustomersLoading = createSelector(
 );
 
 /**
- * Selector for the error message if fetching customers failed.
- *
- * @returns {string | null} - Error message or null if no error.
+ * Selects any error message from the customer fetch request.
  */
 export const selectPaginatedCustomersError = createSelector(
   [selectPaginatedCustomersState],
@@ -49,9 +51,9 @@ export const selectPaginatedCustomersError = createSelector(
 );
 
 /**
- * Selector for the current page number.
+ * Selects the current page number.
  *
- * @returns {number} - Current page.
+ * Defaults to 1 when pagination metadata is unavailable.
  */
 export const selectPaginatedCustomersPage = createSelector(
   [selectPaginatedCustomersPagination],
@@ -59,11 +61,9 @@ export const selectPaginatedCustomersPage = createSelector(
 );
 
 /**
- * Selector for the current pagination limit (number of customers per page).
+ * Selects the current page size (customers per page).
  *
- * Useful for determining how many records are shown per page in paginated views.
- *
- * @returns {number} - Number of customers per page.
+ * Defaults to 10 when pagination metadata is unavailable.
  */
 export const selectPaginatedCustomersLimit = createSelector(
   [selectPaginatedCustomersPagination],
@@ -71,9 +71,7 @@ export const selectPaginatedCustomersLimit = createSelector(
 );
 
 /**
- * Selector for the total number of customer records available.
- *
- * @returns {number} - Total records count.
+ * Selects the total number of customer records available.
  */
 export const selectPaginatedCustomersTotalRecords = createSelector(
   [selectPaginatedCustomersPagination],
@@ -81,9 +79,7 @@ export const selectPaginatedCustomersTotalRecords = createSelector(
 );
 
 /**
- * Selector for the total number of pages available.
- *
- * @returns {number} - Total page count.
+ * Selects the total number of pages available.
  */
 export const selectPaginatedCustomersTotalPages = createSelector(
   [selectPaginatedCustomersPagination],

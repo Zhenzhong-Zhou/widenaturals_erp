@@ -1,4 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 import {
   type LookupOption,
@@ -15,10 +16,8 @@ import {
  * @param state - The global Redux store state.
  * @returns The `skuLookup` slice state.
  */
-const selectSkuLookupState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.skuLookup
-);
+const selectSkuLookupState = (state: RootState) =>
+  selectRuntime(state).skuLookup;
 
 /**
  * Selector to retrieve the full list of SKU lookup items.

@@ -1,14 +1,13 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 import { createLookupMetaSelector } from '@features/lookup/utils/lookupSelectorUtils';
 
 /**
  * Base selector to access the batch registry lookup state slice.
  */
-const selectBatchRegistryLookupSlice= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.batchRegistryLookup
-);
+const selectBatchRegistryLookupSlice = (state: RootState) =>
+  selectRuntime(state).batchRegistryLookup;
 
 /**
  * Selector to get loading state of the lookup.

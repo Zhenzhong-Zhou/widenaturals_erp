@@ -1,4 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 import {
   createLookupMetaSelector,
@@ -10,12 +11,22 @@ import type {
 } from '@features/lookup/state/lookupTypes';
 
 /**
- * Base selector for the User lookup slice.
+ * selectUserLookupState
+ *
+ * Base selector for the user lookup slice.
+ *
+ * Responsibilities:
+ * - Extract the `userLookup` state from runtime
+ *
+ * Design notes:
+ * - MUST be a plain function
+ * - MUST NOT use `createSelector`
+ * - Avoids identity-selector warnings
+ *
+ * @param state Root redux state
  */
-const selectUserLookupState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.userLookup
-);
+const selectUserLookupState = (state: RootState) =>
+  selectRuntime(state).userLookup;
 
 /**
  * Retrieves user lookup items.

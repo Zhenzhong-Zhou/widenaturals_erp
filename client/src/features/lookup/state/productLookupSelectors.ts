@@ -1,4 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 import {
   createLookupMetaSelector,
@@ -12,10 +13,8 @@ import type {
 /**
  * Base selector for the Product lookup slice.
  */
-const selectProductLookupState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.productLookup
-);
+const selectProductLookupState = (state: RootState) =>
+  selectRuntime(state).productLookup;
 
 /**
  * Retrieves product lookup items.

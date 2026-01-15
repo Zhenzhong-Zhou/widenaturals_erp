@@ -1,16 +1,22 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
- * Base selector for the inventory allocation slice of the Redux store.
+ * Base selector for the paginated inventory allocations state slice.
+ *
+ * Responsibilities:
+ * - Extract the paginated inventory allocations state from the Redux runtime tree
+ *
+ * Design notes:
+ * - Plain function only (no `createSelector`)
+ * - Internal implementation detail
  */
-const selectInventoryAllocationsSlice= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.paginatedInventoryAllocations
-);
+const selectInventoryAllocationsSlice = (state: RootState) =>
+  selectRuntime(state).paginatedInventoryAllocations;
 
 /**
- * Selector to retrieve the list of inventory allocation summaries.
+ * Selects the list of inventory allocation summaries.
  */
 export const selectInventoryAllocations = createSelector(
   [selectInventoryAllocationsSlice],
@@ -18,7 +24,7 @@ export const selectInventoryAllocations = createSelector(
 );
 
 /**
- * Selector to retrieve pagination information for inventory allocations.
+ * Selects pagination metadata for inventory allocations.
  */
 export const selectInventoryAllocationsPagination = createSelector(
   [selectInventoryAllocationsSlice],
@@ -26,7 +32,7 @@ export const selectInventoryAllocationsPagination = createSelector(
 );
 
 /**
- * Selector to check if inventory allocations are currently loading.
+ * Selects whether inventory allocations are currently loading.
  */
 export const selectInventoryAllocationsLoading = createSelector(
   [selectInventoryAllocationsSlice],
@@ -34,7 +40,7 @@ export const selectInventoryAllocationsLoading = createSelector(
 );
 
 /**
- * Selector to get the last error message (if any) from fetching inventory allocations.
+ * Selects the last error message (if any) from fetching inventory allocations.
  */
 export const selectInventoryAllocationsError = createSelector(
   [selectInventoryAllocationsSlice],
@@ -42,9 +48,9 @@ export const selectInventoryAllocationsError = createSelector(
 );
 
 /**
- * Selector for the current page number in paginated inventory allocations.
+ * Selects the current page number.
  *
- * @returns {number} - Current page number.
+ * Returns `1` when pagination is not yet available.
  */
 export const selectInventoryAllocationsPage = createSelector(
   [selectInventoryAllocationsPagination],
@@ -52,11 +58,9 @@ export const selectInventoryAllocationsPage = createSelector(
 );
 
 /**
- * Selector for the current pagination limit (number of inventory allocations per page).
+ * Selects the current pagination limit (records per page).
  *
- * Useful for controlling how many allocations are shown per page in list views.
- *
- * @returns {number} - Number of records per page.
+ * Returns `10` when pagination is not yet available.
  */
 export const selectInventoryAllocationsLimit = createSelector(
   [selectInventoryAllocationsPagination],
@@ -64,9 +68,7 @@ export const selectInventoryAllocationsLimit = createSelector(
 );
 
 /**
- * Selector for the total number of inventory allocation records.
- *
- * @returns {number} - Total record count.
+ * Selects the total number of inventory allocation records.
  */
 export const selectInventoryAllocationsTotalRecords = createSelector(
   [selectInventoryAllocationsPagination],
@@ -74,9 +76,9 @@ export const selectInventoryAllocationsTotalRecords = createSelector(
 );
 
 /**
- * Selector for the total number of pages in the paginated inventory allocations result.
+ * Selects the total number of pages available.
  *
- * @returns {number} - Total number of pages.
+ * Returns `1` when pagination is not yet available.
  */
 export const selectInventoryAllocationsTotalPages = createSelector(
   [selectInventoryAllocationsPagination],
@@ -84,15 +86,14 @@ export const selectInventoryAllocationsTotalPages = createSelector(
 );
 
 /**
- * Selector to determine if more pages of inventory allocations are available.
+ * Determines whether more pages of inventory allocations are available.
+ *
+ * Computed as: `page * limit < totalRecords`.
  */
 export const selectInventoryAllocationsHasMore = createSelector(
   [selectInventoryAllocationsSlice],
   (slice) => {
-    const page = slice.pagination?.page ?? 0;
-    const limit = slice.pagination?.limit ?? 0;
-    const total = slice.pagination?.totalRecords ?? 0;
-    
-    return page * limit < total;
+    const { page = 0, limit = 0, totalRecords = 0 } = slice.pagination ?? {};
+    return page * limit < totalRecords;
   }
 );

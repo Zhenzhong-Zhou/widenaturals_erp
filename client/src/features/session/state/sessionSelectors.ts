@@ -1,4 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
@@ -7,10 +8,8 @@ import { selectRuntime } from '@store/selectors';
  * Intended for composition only.
  * This selector should not be consumed directly by UI components.
  */
-const selectSessionState = createSelector(
-  [selectRuntime],
-  (runtime) => runtime.session
-);
+const selectSessionState = (state: RootState) =>
+  selectRuntime(state).session;
 
 /**
  * Selector: returns the current in-memory access token, if present.

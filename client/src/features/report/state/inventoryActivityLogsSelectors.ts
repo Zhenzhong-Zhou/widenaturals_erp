@@ -1,13 +1,12 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
  * Root selector to access the inventory activity logs slice.
  */
-const selectInventoryActivityLogsState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.inventoryActivityLogs
-);
+const selectInventoryActivityLogsState = (state: RootState) =>
+  selectRuntime(state).inventoryActivityLogs;
 
 //
 // Base (non-paginated) log selectors

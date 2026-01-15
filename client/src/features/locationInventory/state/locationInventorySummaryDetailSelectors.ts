@@ -1,16 +1,22 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
- * Root selector to access the location inventory summary by item slice state.
+ * Base selector for the location inventory summary detail state slice.
+ *
+ * Responsibilities:
+ * - Extract the location inventory summary detail state from the Redux runtime tree
+ *
+ * Design notes:
+ * - Plain function only (no `createSelector`)
+ * - Internal implementation detail
  */
-const selectLocationInventorySummaryDetailState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.locationInventorySummaryDetail
-);
+const selectLocationInventorySummaryDetailState = (state: RootState) =>
+  selectRuntime(state).locationInventorySummaryDetail;
 
 /**
- * Selector to get the inventory summary detail data array.
+ * Selects the inventory summary detail data array.
  */
 export const selectLocationInventorySummaryDetailData = createSelector(
   [selectLocationInventorySummaryDetailState],
@@ -18,7 +24,7 @@ export const selectLocationInventorySummaryDetailData = createSelector(
 );
 
 /**
- * Selector to get the pagination metadata for location inventory summary detail.
+ * Selects pagination metadata for the location inventory summary detail view.
  */
 export const selectLocationInventorySummaryDetailPagination = createSelector(
   [selectLocationInventorySummaryDetailState],
@@ -26,7 +32,7 @@ export const selectLocationInventorySummaryDetailPagination = createSelector(
 );
 
 /**
- * Selector to get the loading state for the summary detail fetch operation.
+ * Selects whether the inventory summary detail request is currently loading.
  */
 export const selectLocationInventorySummaryDetailLoading = createSelector(
   [selectLocationInventorySummaryDetailState],
@@ -34,7 +40,7 @@ export const selectLocationInventorySummaryDetailLoading = createSelector(
 );
 
 /**
- * Selector to get any error message from the location inventory summary detail fetch.
+ * Selects any error message from the inventory summary detail request.
  */
 export const selectLocationInventorySummaryDetailError = createSelector(
   [selectLocationInventorySummaryDetailState],

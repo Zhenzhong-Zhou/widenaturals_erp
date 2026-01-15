@@ -1,25 +1,27 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
- * Base selector for the create-user mutation slice.
+ * Base selector for the create-user state slice.
  *
- * Extracts the entire `createUser` async state from the runtime store.
+ * Responsibilities:
+ * - Extract the create-user state from the Redux runtime tree
  *
- * This slice represents a WRITE operation (POST /users),
- * not cached or queryable user data.
+ * Design notes:
+ * - Plain function only (no `createSelector`)
+ * - Internal implementation detail
+ * - Prevents identity-selector warnings
  */
-export const selectCreateUserState = createSelector(
-  [selectRuntime],
-  (runtime) => runtime.createUser
-);
+const selectCreateUserState = (state: RootState) =>
+  selectRuntime(state).createUser;
 
 /**
- * Selector: Returns the newly created user data.
+ * Selects the newly created user data.
  *
  * Semantics:
- * - `null` → no submission yet or state has been reset
- * - non-null → user was successfully created
+ * - `null`: no submission yet or state has been reset
+ * - non-null: user was successfully created
  */
 export const selectCreateUserData = createSelector(
   [selectCreateUserState],
@@ -27,7 +29,7 @@ export const selectCreateUserData = createSelector(
 );
 
 /**
- * Selector: Indicates whether the create-user request is currently in progress.
+ * Selects whether the create-user request is currently in progress.
  *
  * Useful for:
  * - Disabling submit buttons
@@ -39,10 +41,7 @@ export const selectCreateUserLoading = createSelector(
 );
 
 /**
- * Selector: Returns the UI-safe error message, if any.
- *
- * Error value is normalized via `extractErrorMessage`
- * and is safe for direct display.
+ * Selects any UI-safe error message from the create-user request.
  */
 export const selectCreateUserError = createSelector(
   [selectCreateUserState],
@@ -50,10 +49,10 @@ export const selectCreateUserError = createSelector(
 );
 
 /**
- * Selector: Indicates whether the create-user operation completed successfully.
+ * Determines whether the create-user operation completed successfully.
  *
- * Returns true only when:
- * - Request is not loading
+ * Returns `true` only when:
+ * - The request is not loading
  * - No error is present
  * - Created user data exists
  *
@@ -66,15 +65,4 @@ export const selectCreateUserSuccess = createSelector(
   [selectCreateUserData, selectCreateUserLoading, selectCreateUserError],
   (data, loading, error) =>
     !loading && !error && data !== null
-);
-
-/**
- * Selector: Signals that the create-user state can be safely reset.
- *
- * This is intentionally derived from success to avoid
- * premature state clearing during retries.
- */
-export const selectCreateUserShouldReset = createSelector(
-  [selectCreateUserSuccess],
-  (success) => success
 );

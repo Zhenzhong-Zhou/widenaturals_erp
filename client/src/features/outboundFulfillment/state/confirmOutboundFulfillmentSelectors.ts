@@ -1,13 +1,12 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
  * Base selector — gets the confirmOutboundFulfillment slice state.
  */
-const selectConfirmOutboundFulfillmentState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.confirmOutboundFulfillment
-);
+const selectConfirmOutboundFulfillmentState = (state: RootState) =>
+  selectRuntime(state).confirmOutboundFulfillment;
 
 /**
  * Selector: data

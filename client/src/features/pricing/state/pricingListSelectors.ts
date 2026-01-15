@@ -1,11 +1,10 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 // Base selector
-const selectPricingListState = createSelector(
-  [selectRuntime],
-  (runtime) => runtime.pricingList
-);
+const selectPricingListState = (state: RootState) =>
+  selectRuntime(state).pricingList;
 
 /**
  * Selector to get pricing records.

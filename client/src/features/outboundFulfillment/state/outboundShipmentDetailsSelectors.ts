@@ -1,13 +1,12 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
  * Base selector to access the outbound shipment details slice.
  */
-const selectOutboundShipmentDetailsState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.outboundShipmentDetails
-);
+const selectOutboundShipmentDetailsState = (state: RootState) =>
+  selectRuntime(state).outboundShipmentDetails;
 
 /**
  * Selector: Fetches the shipment details data (ShipmentDetails or null).

@@ -1,14 +1,13 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
  * Base selector for the paginated Product slice.
  * Extracts the entire `paginatedProducts` state from the Redux store.
  */
-const selectPaginatedProductsState = createSelector(
-  [selectRuntime],
-  (runtime) => runtime.paginatedProducts
-);
+const selectPaginatedProductsState = (state: RootState) =>
+  selectRuntime(state).paginatedProducts;
 
 /**
  * Selector: Returns the array of Product list items.

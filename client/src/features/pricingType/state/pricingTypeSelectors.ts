@@ -1,14 +1,13 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 import type { PricingTypesState } from './pricingTypeTypes';
 
 /**
  * Base selector for the pricingTypes slices with type assertion.
  */
-const selectPricingTypesState = createSelector(
-  [selectRuntime],
-  (runtime) => runtime.pricingTypes as PricingTypesState
-);
+const selectPricingTypesState = (state: RootState) =>
+  selectRuntime(state).pricingTypes as PricingTypesState;
 
 /**
  * Selects the array of pricing types.

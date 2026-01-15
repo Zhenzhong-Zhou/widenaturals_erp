@@ -1,13 +1,12 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
  * Base selector for the warehouse inventory adjustment slice.
  */
-const selectAdjustInventorySlice = createSelector(
-  [selectRuntime],
-  (runtime) => runtime.warehouseInventoryAdjust
-);
+const selectAdjustInventorySlice = (state: RootState) =>
+  selectRuntime(state).warehouseInventoryAdjust;
 
 /**
  * Memoized selector for the adjusted warehouse inventory state.

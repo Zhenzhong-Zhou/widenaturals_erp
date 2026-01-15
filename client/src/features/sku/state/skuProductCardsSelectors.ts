@@ -1,4 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 import { mapSkuProductCardToViewItem } from '@features/sku/utils/skuProductCardUtils';
 
@@ -9,10 +10,8 @@ import { mapSkuProductCardToViewItem } from '@features/sku/utils/skuProductCardU
  * Returns the entire SKU Product Cards slice.
  * Used as the root selector for all derived selectors below.
  */
-export const selectSkuProductCardsState = createSelector(
-  [selectRuntime],
-  (runtime) => runtime.skuProductCards
-);
+const selectSkuProductCardsState = (state: RootState) =>
+  selectRuntime(state).skuProductCards;
 
 /**
  * ---------------------------------------------------------------------
