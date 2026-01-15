@@ -4,13 +4,16 @@ import { selectRuntime } from '@store/selectors';
 import { createLookupMetaSelector } from '@features/lookup/utils/lookupSelectorUtils';
 
 /**
- * Base selector to access the batch registry lookup state slice.
+ * Base selector for the batch registry lookup slice.
+ *
+ * Internal-only extraction selector.
+ * MUST remain a plain function.
  */
 const selectBatchRegistryLookupSlice = (state: RootState) =>
   selectRuntime(state).batchRegistryLookup;
 
 /**
- * Selector to get loading state of the lookup.
+ * Selects loading state for the batch registry lookup request.
  */
 export const selectBatchRegistryLookupLoading = createSelector(
   [selectBatchRegistryLookupSlice],
@@ -18,7 +21,7 @@ export const selectBatchRegistryLookupLoading = createSelector(
 );
 
 /**
- * Selector to get error state of the lookup.
+ * Selects error message from the batch registry lookup slice, if any.
  */
 export const selectBatchRegistryLookupError = createSelector(
   [selectBatchRegistryLookupSlice],
@@ -26,7 +29,7 @@ export const selectBatchRegistryLookupError = createSelector(
 );
 
 /**
- * Selector to get lookup items.
+ * Selects lookup result items for batch registry.
  */
 export const selectBatchRegistryLookupItems = createSelector(
   [selectBatchRegistryLookupSlice],
@@ -34,9 +37,9 @@ export const selectBatchRegistryLookupItems = createSelector(
 );
 
 /**
- * Selector for batch registry lookup metadata (pagination and availability).
+ * Selects lookup metadata (pagination and availability flags).
  *
- * Returns `{ hasMore, limit, offset }` from the lookup slice.
+ * Returns `{ hasMore, limit, offset }`.
  */
 export const selectBatchRegistryLookupMeta = createLookupMetaSelector(
   selectBatchRegistryLookupSlice

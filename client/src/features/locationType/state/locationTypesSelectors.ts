@@ -5,6 +5,9 @@ import type { LocationTypesState } from '@features/locationType/state/locationTy
 
 /**
  * Base selector for the locationTypes slice.
+ *
+ * Internal extraction selector.
+ * MUST remain a plain function.
  */
 const selectLocationTypesState = (state: RootState) =>
   selectRuntime(state).locationTypes as LocationTypesState;
@@ -13,30 +16,30 @@ const selectLocationTypesState = (state: RootState) =>
  * Selects the list of location types.
  */
 export const selectLocationTypes = createSelector(
-  selectLocationTypesState,
+  [selectLocationTypesState],
   (state) => state.data
 );
 
 /**
- * Selects pagination details.
+ * Selects pagination metadata for location types.
  */
 export const selectLocationTypesPagination = createSelector(
-  selectLocationTypesState,
+  [selectLocationTypesState],
   (state) => state.pagination
 );
 
 /**
- * Selects loading state.
+ * Selects loading state for location type requests.
  */
 export const selectLocationTypesLoading = createSelector(
-  selectLocationTypesState,
+  [selectLocationTypesState],
   (state) => state.loading
 );
 
 /**
- * Selects error message.
+ * Selects error message from the location types slice, if any.
  */
 export const selectLocationTypesError = createSelector(
-  selectLocationTypesState,
+  [selectLocationTypesState],
   (state) => state.error
 );

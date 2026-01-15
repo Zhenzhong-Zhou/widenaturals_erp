@@ -3,8 +3,8 @@ import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchPaginatedAddressesThunk,
   selectPaginatedAddresses,
-  selectPaginateError,
-  selectPaginateLoading,
+  selectPaginatedAddressError,
+  selectPaginatedAddressLoading,
   selectPaginationMeta,
   resetPaginatedAddresses,
 } from '@features/address/state';
@@ -22,8 +22,8 @@ const usePaginateAddresses = () => {
   // Selectors
   const data = useAppSelector(selectPaginatedAddresses);
   const pagination = useAppSelector(selectPaginationMeta);
-  const loading = useAppSelector(selectPaginateLoading);
-  const error = useAppSelector(selectPaginateError);
+  const loading = useAppSelector(selectPaginatedAddressLoading);
+  const error = useAppSelector(selectPaginatedAddressError);
 
   // Dispatch fetch thunk with query parameters
   const fetchAddresses = useCallback(

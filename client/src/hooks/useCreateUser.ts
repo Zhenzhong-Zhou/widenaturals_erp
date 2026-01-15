@@ -5,7 +5,6 @@ import {
   selectCreateUserLoading,
   selectCreateUserError,
   selectCreateUserSuccess,
-  selectCreateUserShouldReset,
   createUserThunk,
 } from '@features/user';
 import type { CreateUserRequest } from '@features/user';
@@ -33,7 +32,6 @@ const useCreateUser = () => {
   const loading = useAppSelector(selectCreateUserLoading);
   const error = useAppSelector(selectCreateUserError);
   const success = useAppSelector(selectCreateUserSuccess);
-  const shouldReset = useAppSelector(selectCreateUserShouldReset);
   
   /**
    * Dispatches the thunk to create a user.
@@ -64,7 +62,6 @@ const useCreateUser = () => {
     loading,
     error,
     success,
-    shouldReset,
     createUser,
     resetCreateUser,
   };
