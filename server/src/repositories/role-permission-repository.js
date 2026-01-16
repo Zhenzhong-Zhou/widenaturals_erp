@@ -6,7 +6,7 @@ const { logError } = require('../utils/logger-helper');
  * Fetches all permissions for a given role ID with optional row locking and retry mechanism.
  *
  * @param {string} roleId - The UUID of the role to fetch permissions for.
- * @returns {Promise<string[]>} - Array of permission keys associated with the role.
+ * @returns {Promise<{ role_name: string, permissions: string[] }>} - Array of permission keys associated with the role.
  * @throws {AppError} - Throws an error if the query fails or no permissions are found.
  *
  * @example

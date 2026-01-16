@@ -9,10 +9,8 @@ const {
   userExistsByField,
 } = require('../repositories/user-repository');
 const { resolveRoleIdByName } = require('../repositories/role-repository');
-const { resolveStatusIdByName } = require('../repositories/status-repository');
 const {
   ROOT_ADMIN_ROLE,
-  ACTIVE_STATUS,
   JOB_TITLE,
 } = require('../utils/constants/general/root-admin');
 const { createUserService } = require('../services/user-service');
@@ -61,7 +59,6 @@ const initializeRootAdmin = async () => {
     // 2. Resolve role & status (must exist)
     // ------------------------------------------------------------
     const roleId = await resolveRoleIdByName(ROOT_ADMIN_ROLE);
-    const statusId = await resolveStatusIdByName(ACTIVE_STATUS);
     
     // ------------------------------------------------------------
     // 3. Bootstrap actor (explicit system context)
@@ -85,7 +82,6 @@ const initializeRootAdmin = async () => {
         email,
         password, // plaintext; hashed inside service
         roleId,
-        statusId,
         firstname: 'Root',
         lastname: 'Admin',
         phoneNumber: null,

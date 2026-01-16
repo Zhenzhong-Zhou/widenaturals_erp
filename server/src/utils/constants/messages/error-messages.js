@@ -5,6 +5,8 @@ const ERROR_MESSAGES = {
   RATE_LIMIT_SIGNUP: 'Too many signup attempts. Please try again later.',
   RATE_LIMIT_AUTHENTICATION: 'Too many login attempts. Please try again later.',
   RATE_LIMIT_AUTHORIZATION: 'Too many authorization requests. Please wait.',
+  RATE_LIMIT_PASSWORD_CHANGE:
+    'Too many password change attempts. Please try again later.',
   RATE_LIMIT_PASSWORD_RESET:
     'Too many password reset requests. Please try again later.',
   RATE_LIMIT_ADMIN: 'Too many admin requests. Please try again later.',

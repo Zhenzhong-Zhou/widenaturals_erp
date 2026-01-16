@@ -8,10 +8,11 @@ const MAX_LIMITS = {
   RATE_LIMIT_MAX: {
     GLOBAL: 700, // Maximum requests for global rate limiting
     API: 200, // Maximum API requests per minute
-    LOGIN: 20, // Maximum login attempts per window
+    LOGIN: 10, // Maximum login attempts per window
     AUTHENTICATION: 150, // Maximum authentication attempts
     AUTHORIZATION: 150, // Maximum authorization attempts
-    PASSWORD_RESET: 20, // Maximum password reset requests
+    PASSWORD_CHANGE: 5, // Maximum password change requests
+    PASSWORD_RESET: 5, // Maximum password reset requests
     SIGNUP: 5, // Maximum signup attempts
     ADMIN: 20, // Maximum admin requests
     FILE_UPLOAD: 10, // Maximum file uploads
