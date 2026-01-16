@@ -1,10 +1,10 @@
-import type { HealthState } from '@features/health/state';
+import type { HealthApiResponse } from '@features/systemHealth';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { getRequest } from '@utils/http';
 import { AppError } from '@utils/error';
 
 /* =========================================================
- * Public Health
+ * Public Health (API Layer)
  * ======================================================= */
 
 /**
@@ -12,12 +12,17 @@ import { AppError } from '@utils/error';
  *
  * Public, unauthenticated, READ-only endpoint.
  * Used during application bootstrap and diagnostics.
+ *
+ * NOTE:
+ * - Returns raw API data only
+ * - Does NOT include UI state (loading / error)
  */
-const fetchPublicHealthStatus = async (): Promise<HealthState> => {
-  const data = await getRequest<HealthState>(API_ENDPOINTS.PUBLIC.HEALTH, {
-    policy: 'READ',
-  });
-
+const fetchPublicHealthStatus = async (): Promise<HealthApiResponse> => {
+  const data = await getRequest<HealthApiResponse>(
+    API_ENDPOINTS.PUBLIC.HEALTH,
+    { policy: 'READ' }
+  );
+  
   /**
    * Defensive validation is intentional here.
    *
@@ -30,14 +35,13 @@ const fetchPublicHealthStatus = async (): Promise<HealthState> => {
       response: data,
     });
   }
-
+  
   return data;
 };
 
 /* =========================================================
  * Public API
  * ======================================================= */
-
-export const publicHealthStatusService = {
+export const systemHealthService = {
   fetchPublicHealthStatus,
 };

@@ -41,6 +41,11 @@ const RATE_LIMIT = {
     MAX: RATE_LIMIT_MAX.CSRF,
     MESSAGE: RATE_LIMIT_CSRF_TOKEN,
   },
+  
+  HEALTH: {
+    WINDOW_MS: ONE_MINUTE, // 1 minute
+    MAX: 300,             // safe for LB + monitors
+  },
 
   LOGIN: {
     WINDOW_MS: FIVE_MINUTES,
@@ -55,7 +60,7 @@ const RATE_LIMIT = {
   },
 
   AUTHORIZATION: {
-    WINDOW_MS: ONE_MINUTE, // 1 minute window for authorization checks
+    WINDOW_MS: ONE_MINUTE, // 1-minute window for authorization checks
     MAX: RATE_LIMIT_MAX.AUTHORIZATION, // 50 authorization requests per minute
     MESSAGE: RATE_LIMIT_AUTHORIZATION,
   },

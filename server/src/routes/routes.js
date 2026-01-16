@@ -45,14 +45,14 @@ const authenticate = require('../middlewares/authenticate');
 
 const router = express.Router();
 
-// API-specific rate-limiting middleware
-const apiRateLimiter = createApiRateLimiter();
-router.use(apiRateLimiter);
-
 /**
  * Public routes (no auth required)
  */
 router.use('/public', publicRoute);
+
+// API-specific rate-limiting middleware
+const apiRateLimiter = createApiRateLimiter();
+router.use(apiRateLimiter);
 
 /**
  * CSRF token and protection utilities

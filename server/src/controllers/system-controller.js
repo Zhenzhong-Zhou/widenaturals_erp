@@ -1,4 +1,4 @@
-const { checkServerHealth } = require('../monitors/server-health');
+const { checkServerHealthService } = require('../services/server-health-service');
 const { healthCheckError } = require('../utils/AppError');
 
 /**
@@ -14,7 +14,7 @@ const { healthCheckError } = require('../utils/AppError');
 const getSystemStatus = async (req, res, next) => {
   try {
     const startTime = Date.now(); // Track start time
-    const status = await checkServerHealth();
+    const status = await checkServerHealthService();
     const duration = Date.now() - startTime; // Calculate duration
 
     const statusCode = status.server === 'healthy' ? 200 : 503; // Set appropriate status code
