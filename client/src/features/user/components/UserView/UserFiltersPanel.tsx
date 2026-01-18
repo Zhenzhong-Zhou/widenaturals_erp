@@ -7,7 +7,7 @@ import type { FilterField } from '@shared-types/shared';
 import type { UserFilters } from '@features/user/state';
 // import useRoleLookup from '@hooks/useRoleLookup';
 import useStatusLookup from '@hooks/useStatusLookup';
-import useMultiSelectBinding from '@features/lookup/hooks/useMultiSelectBinding';
+import { useMultiSelectBinding } from '@features/lookup/hooks';
 import StatusMultiSelectDropdown from '@features/lookup/components/StatusMultiSelectDropdown';
 // import RoleMultiSelectDropdown from '@features/lookup/components/RoleMultiSelectDropdown';
 import { formatLabel } from '@utils/textUtils';

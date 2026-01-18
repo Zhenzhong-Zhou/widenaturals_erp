@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { LookupQuery } from '@features/lookup/state';
-import usePaginatedDropdown from '@features/lookup/hooks/usePaginatedDropdown';
+import { usePaginatedDropdown } from '@features/lookup/hooks';
 
 /**
  * Extracts the return type of `usePaginatedDropdown` hook for a given `LookupQuery` type.
