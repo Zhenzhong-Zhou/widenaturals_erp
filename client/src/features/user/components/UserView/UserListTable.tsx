@@ -48,8 +48,8 @@ const UserListTable = ({
   onRefresh,
 }: UserListTableProps) => {
   // Permission state (UI-only decision)
-  const { isAllowed } = usePagePermissionState('create_users');
-
+  const { isAllowed } = usePagePermissionState(['create_users']);
+  
   /* -------------------------------------------------------
    * Memoize column definitions
    * ------------------------------------------------------- */

@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { UserFilters, UserSortField, UserViewMode } from '@features/user/state';
+import type { UserFilters, UserSortField, UserViewMode } from '@features/user/state';
 import usePaginatedUsers from '@hooks/usePaginatedUsers';
 import { applyFiltersAndSorting } from '@utils/queryUtils';
 import { usePaginationHandlers } from '@utils/hooks';
 import useUserLookups from '@features/user/hooks/useUserLookups';
 import { createLazyOpenHandler } from '@features/lookup/utils/lookupUtils';
+import { getInitialUserLimit } from '@features/user/utils';
+import { UserTablePageSize } from '@features/user/config/userTableConfig';
 
 interface UseUserPageControllerOptions {
   viewMode: UserViewMode;
@@ -15,7 +17,9 @@ const useUserPageController = ({ viewMode }: UseUserPageControllerOptions) => {
   // UI state (page-scoped)
   // -----------------------------
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(viewMode === 'card' ? 20 : 25);
+  const [limit, setLimit] = useState<UserTablePageSize>(
+    () => getInitialUserLimit(viewMode)
+  );
   const [sortBy, setSortBy] = useState<UserSortField>('defaultNaturalSort');
   const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
   const [filters, setFilters] = useState<UserFilters>({});

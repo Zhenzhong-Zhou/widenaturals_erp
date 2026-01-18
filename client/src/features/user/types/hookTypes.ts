@@ -54,9 +54,10 @@ export interface BasePaginationHandlers {
  *
  * Extends base pagination with row-count control.
  */
-export interface TablePaginationHandlers extends BasePaginationHandlers {
+export interface TablePaginationHandlers<Limit extends number = number>
+  extends BasePaginationHandlers {
   /** Change number of rows displayed per page */
-  handleRowsPerPageChange: (limit: number) => void;
+  handleRowsPerPageChange: (limit: Limit) => void;
 }
 
 /**
@@ -161,17 +162,19 @@ export interface UserPageController {
  * Extends the base controller with table-only concerns
  * such as row expansion and page-size control.
  */
-export interface UserListPageController extends UserPageController {
+export interface UserListPageController<
+  Limit extends number = number
+> extends UserPageController {
   // -----------------------------
   // Table-only concerns
   // -----------------------------
-
+  
   /** Currently expanded row ID */
   expandedRowId: string | null;
-
+  
   /** Toggle row expansion */
   handleDrillDownToggle: (id: string) => void;
-
+  
   /** Table-specific pagination handlers */
-  paginationHandlers: TablePaginationHandlers;
+  paginationHandlers: TablePaginationHandlers<Limit>;
 }
