@@ -4,7 +4,12 @@ import Grid from '@mui/material/Grid';
 import { FilterPanelLayout } from '@components/index';
 import type { UserFilters } from '@features/user/state';
 import type { FilterField } from '@shared-types/shared';
-import { useMultiSelectBinding } from '@features/lookup/hooks';
+import {
+  useLookupSearchBinding,
+  useMultiSelectBinding,
+  useRoleSearchHandlers,
+  useStatusSearchHandlers,
+} from '@features/lookup/hooks';
 import {
   RoleMultiSelectDropdown,
   StatusMultiSelectDropdown,
@@ -140,6 +145,15 @@ const UserFiltersPanel: FC<Props> = ({
     fieldName: 'statusIds',
     options: status.options,
   });
+  
+  /* -----------------------------
+   * Lookup search bindings
+   * ----------------------------- */
+  const { handleRoleSearch } = useRoleSearchHandlers(role);
+  const { handleStatusSearch } = useStatusSearchHandlers(status);
+  
+  const roleSearch = useLookupSearchBinding(handleRoleSearch);
+  const statusSearch = useLookupSearchBinding(handleStatusSearch);
 
   /* -----------------------------
    * Derived lookup options
@@ -166,6 +180,7 @@ const UserFiltersPanel: FC<Props> = ({
            * ------------------------------------ */}
           <Grid size={{ xs: 12, md: 6 }}>
             <RoleMultiSelectDropdown
+              {...roleSearch}
               options={formattedRoleOptions}
               selectedOptions={selectedRoleOptions}
               onChange={handleRoleSelect}
@@ -176,6 +191,7 @@ const UserFiltersPanel: FC<Props> = ({
 
           <Grid size={{ xs: 12, md: 6 }}>
             <StatusMultiSelectDropdown
+              {...statusSearch}
               options={formattedStatusOptions}
               selectedOptions={selectedStatusOptions}
               onChange={handleStatusSelect}
