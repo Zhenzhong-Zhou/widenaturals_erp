@@ -49,6 +49,7 @@ const LoginForm: FC<LoginFormProps> = ({
       
       <PasswordInput
         label="Password"
+        intent="login"
         value={formValues.password}
         onChange={(e) => onFormChange('password', e.target.value)}
         errorText={formErrors.password}

@@ -40,9 +40,6 @@ export interface CreateUserRequest {
   /** Target role identifier (UUID) */
   roleId: string;
   
-  /** Initial user status identifier (UUID) */
-  statusId: string;
-  
   /** User's first name */
   firstname: string;
   

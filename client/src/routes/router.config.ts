@@ -45,7 +45,16 @@ export const appRoutes: AppRoute[] = [
       menu: { title: 'Dashboard', order: 1 },
     },
   }),
-
+  
+  defineRoute({
+    path: '/users/new',
+    component: lazy(() => import('@features/user/pages/CreateUserPage')),
+    meta: {
+      requiresAuth: true,
+      parent: '/users',
+    },
+  }),
+  
   defineRoute({
     path: '/users',
     component: lazy(() => import('@features/user/pages/UserCardPage')),
@@ -117,6 +126,15 @@ export const appRoutes: AppRoute[] = [
         title: 'SKU Management',
         order: 6,
       },
+    },
+  }),
+  
+  defineRoute({
+    path: '/skus/new',
+    component: lazy(() => import('@features/sku/pages/CreateSkuPage')),
+    meta: {
+      requiresAuth: true,
+      parent: '/skus',
     },
   }),
 

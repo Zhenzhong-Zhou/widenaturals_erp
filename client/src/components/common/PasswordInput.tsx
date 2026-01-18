@@ -1,53 +1,108 @@
-import { type FC, useState } from 'react';
-import TypeRestrictedInput from '@components/common/TypeRestrictedInput';
+import { type FC, type ReactNode, useState } from 'react';
 import InputAdornment from '@mui/material/InputAdornment';
 import IconButton from '@mui/material/IconButton';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
+import { TypeRestrictedInput } from '@components/index';
 import type { TextFieldProps } from '@mui/material/TextField';
 
+/**
+ * Determines the semantic usage context of a password field.
+ *
+ * - `login`     → current password (login forms)
+ * - `create`    → new password (user creation / reset)
+ * - `temporary` → one-time or system-generated passwords
+ */
+type PasswordIntent =
+  | 'login'
+  | 'create'
+  | 'temporary';
+
 interface PasswordInputProps extends Omit<TextFieldProps, 'type'> {
+  /** Field label displayed to the user */
   label: string;
+  
+  /** Usage intent used to resolve autocomplete behavior */
+  intent?: PasswordIntent;
+  
+  /** Validation error message (error state if present) */
   errorText?: string;
-  helperText?: string; // Add helperText as an optional prop
+  
+  /** Non-error helper or status content */
+  helperText?: ReactNode;
 }
 
+/**
+ * Resolve the appropriate `autocomplete` value based on password intent.
+ *
+ * This improves UX and prevents browser autofill issues.
+ */
+const resolvePasswordAutoComplete = (intent?: PasswordIntent) => {
+  switch (intent) {
+    case 'login':
+      return 'current-password';
+    case 'create':
+      return 'new-password';
+    case 'temporary':
+    default:
+      return 'off';
+  }
+};
+
+/**
+ * PasswordInput
+ *
+ * Controlled password input with visibility toggle.
+ *
+ * Responsibilities:
+ * - Render a password field with show/hide support
+ * - Apply correct autocomplete semantics
+ * - Delegate validation rendering to `TypeRestrictedInput`
+ *
+ * MUST NOT:
+ * - Perform validation logic
+ * - Manage form state
+ * - Enforce password rules
+ */
 const PasswordInput: FC<PasswordInputProps> = ({
-  label,
-  errorText,
-  helperText,
-  ...props
-}) => {
+                                                 label,
+                                                 intent = 'temporary',
+                                                 errorText,
+                                                 helperText,
+                                                 name,
+                                                 ...props
+                                               }) => {
   const [showPassword, setShowPassword] = useState(false);
-
-  // Toggle password visibility
-  const toggleVisibility = () => setShowPassword((prev) => !prev);
-
+  
+  const autoComplete = resolvePasswordAutoComplete(intent);
+  
   return (
     <TypeRestrictedInput
       label={label}
-      type={showPassword ? 'text' : 'password'} // Toggle type dynamically
-      errorText={errorText || ''} // Only show errorText when it exists
-      helperText={errorText ? '' : helperText} // Show helperText only if no error
-      error={!!errorText}
+      type={showPassword ? 'text' : 'password'}
+      autoComplete={autoComplete}
+      name={name ?? `password-${intent}`} // stable default name
+      errorText={errorText}
+      helperText={helperText}
       slotProps={{
         input: {
           endAdornment: (
             <InputAdornment position="end">
               <IconButton
-                onClick={toggleVisibility}
-                edge="end"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
+                onClick={() => setShowPassword((v) => !v)}
+                edge="end"
                 size="small"
-                sx={{ minWidth: 40 }}
               >
-                <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+                <FontAwesomeIcon
+                  icon={showPassword ? faEyeSlash : faEye}
+                />
               </IconButton>
             </InputAdornment>
           ),
         },
       }}
-      {...props} // Spread additional props
+      {...props}
     />
   );
 };
