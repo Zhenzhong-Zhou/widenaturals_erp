@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { UserFilters, UserSortField, UserViewMode } from '@features/user/state';
-import usePaginatedUsers from '@hooks/usePaginatedUsers';
-import { applyFiltersAndSorting } from '@utils/queryUtils';
-import { usePaginationHandlers } from '@utils/hooks';
+import type {
+  UserFilters,
+  UserSortField,
+  UserViewMode,
+} from '@features/user/state';
 import useUserLookups from '@features/user/hooks/useUserLookups';
-import { createLazyOpenHandler } from '@features/lookup/utils/lookupUtils';
+import { usePaginatedUsers } from '@hooks/index';
+import { usePaginationHandlers } from '@utils/hooks';
 import { getInitialUserLimit } from '@features/user/utils';
+import { applyFiltersAndSorting } from '@utils/queryUtils';
+import { createLazyOpenHandler } from '@features/lookup/utils/lookupUtils';
 import { UserTablePageSize } from '@features/user/config/userTableConfig';
 
 interface UseUserPageControllerOptions {
@@ -77,11 +81,16 @@ const useUserPageController = ({ viewMode }: UseUserPageControllerOptions) => {
     () => ({
       resetAll: () => {
         lookups.status.reset();
+        lookups.role.reset();
       },
       onOpen: {
         status: createLazyOpenHandler(
           lookups.status.options,
           lookups.status.fetch
+        ),
+        role: createLazyOpenHandler(
+          lookups.role.options,
+          lookups.role.fetch
         ),
       },
     }),
