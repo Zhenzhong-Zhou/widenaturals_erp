@@ -21,6 +21,7 @@ const {
   transformProductPaginatedLookupResult,
   transformStatusPaginatedLookupResult,
   transformUserPaginatedLookupResult,
+  enrichRoleOption,
   transformRolePaginatedLookupResult,
 } = require('../transformers/lookup-transformer');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
@@ -130,12 +131,11 @@ const {
   enrichUserLookupWithActiveFlag, evaluateUserLookupSearchCapabilities
 } = require('../business/user-business');
 const { getUserLookup } = require('../repositories/user-repository');
+const { getRoleLookup } = require('../repositories/role-repository');
 const {
   evaluateRoleVisibilityAccessControl,
-  applyRoleVisibilityRules
-} = require('../business/acl/role-acl');
-const { getRoleLookup } = require('../repositories/role-repository');
-const { enrichRoleOption } = require('../business/role-business');
+  applyRoleVisibilityRules,
+} = require('../business/role-business');
 
 /**
  * Service to fetch filtered and paginated batch registry records for lookup UI.

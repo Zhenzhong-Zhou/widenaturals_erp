@@ -13,6 +13,7 @@ const {
 const { formatAddress } = require('../utils/address-utils');
 const { formatDiscount } = require('../utils/discount-utils');
 const { formatTaxRateLabel } = require('../utils/tax-rate-utils');
+const AppError = require('../utils/AppError');
 
 /**
  * Transforms a raw batch registry row into a lookup-friendly shape.
@@ -1215,6 +1216,45 @@ const transformUserPaginatedLookupResult = (paginatedResult, userAccess) =>
   );
 
 /**
+ * Transforms a raw role record into a UI-friendly option.
+ *
+ * Adds derived fields that simplify consumption by
+ * presentation layers (e.g. dropdowns, selectors).
+ *
+ * NOTE:
+ * - This function does NOT apply business rules.
+ * - It assumes all visibility and access decisions
+ *   have already been enforced upstream.
+ *
+ * @param {Object} row
+ *   Raw role record from the repository layer
+ *
+ * @param {string} activeStatusId
+ *   Status ID representing the ACTIVE lifecycle state
+ *
+ * @returns {Object}
+ *   Enriched role option with derived fields
+ */
+const enrichRoleOption = (row, activeStatusId) => {
+  if (!row || typeof row !== 'object') {
+    throw AppError.validationError(
+      '[enrichRoleOption] Invalid `row`'
+    );
+  }
+  
+  if (!activeStatusId || typeof activeStatusId !== 'string') {
+    throw AppError.validationError(
+      '[enrichRoleOption] Invalid `activeStatusId`'
+    );
+  }
+  
+  return {
+    ...row,
+    isActive: row.status_id === activeStatusId,
+  };
+};
+
+/**
  * Transforms a single raw Role record into a lookup-friendly object.
  *
  * Produces:
@@ -1330,5 +1370,6 @@ module.exports = {
   transformProductPaginatedLookupResult,
   transformStatusPaginatedLookupResult,
   transformUserPaginatedLookupResult,
+  enrichRoleOption,
   transformRolePaginatedLookupResult,
 };

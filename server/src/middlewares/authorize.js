@@ -1,5 +1,6 @@
 const AppError = require('../utils/AppError');
 const { tryCacheRead, tryCacheWrite } = require('../utils/cache-utils');
+const { getStatusId } = require('../config/status-cache');
 const {
   getRolePermissionsByRoleId,
 } = require('../repositories/role-permission-repository');
@@ -45,8 +46,9 @@ const resolvePermissions = async (req) => {
   /* ----------------------------------------
    * DB fallback (SOURCE OF TRUTH)
    * -------------------------------------- */
+  const activeStatusId = getStatusId('general_active')
   if (!rolePermissions) {
-    rolePermissions = await getRolePermissionsByRoleId(role);
+    rolePermissions = await getRolePermissionsByRoleId(role, activeStatusId);
     
     if (
       !rolePermissions ||

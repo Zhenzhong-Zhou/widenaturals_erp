@@ -1,95 +1,73 @@
-const { query, retry } = require('../database/db');
+const { query } = require('../database/db');
 const AppError = require('../utils/AppError');
-const { logError } = require('../utils/logger-helper');
+const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 
 /**
- * Fetches all permissions for a given role ID with optional row locking and retry mechanism.
+ * Fetches permission keys assigned to a role using a resolved status ID.
  *
- * @param {string} roleId - The UUID of the role to fetch permissions for.
- * @returns {Promise<{ role_name: string, permissions: string[] }>} - Array of permission keys associated with the role.
- * @throws {AppError} - Throws an error if the query fails or no permissions are found.
+ * Intended for authorization resolution and permission hydration
+ * during authentication or runtime permission checks.
  *
- * @example
- * // Fetch permissions with default lock mode
- * const permissions = await getRolePermissionsByRoleId('role-id-123', dbClient);
+ * Constraints:
+ * - Role must match the provided status
+ * - Permissions must match the provided status
+ * - Role-permission links must match the provided status
  *
- * @example
- * // Fetch permissions with 'FOR UPDATE' lock mode
- * const permissions = await getRolePermissionsByRoleId('role-id-123', dbClient, 'FOR UPDATE');
+ * @param {string} roleId
+ * @param {string} statusId - Resolved status ID (e.g. ACTIVE)
+ *
+ * @returns {Promise<{
+ *   role_name: string,
+ *   permissions: string[]
+ * }>}
  */
-const getRolePermissionsByRoleId = async (roleId) => {
-  const sql = `
+const getRolePermissionsByRoleId = async (roleId, statusId) => {
+  const context = 'role-permission-repository/getRolePermissionsByRoleId';
+  
+  const queryText = `
     SELECT
-      r.name as role_name,
-      ARRAY_AGG(p.key) AS permissions
+      r.name AS role_name,
+      ARRAY_AGG(p.key ORDER BY p.key) AS permissions
     FROM role_permissions rp
-    INNER JOIN roles r ON rp.role_id = r.id
-    INNER JOIN permissions p ON rp.permission_id = p.id
-    INNER JOIN status srp ON rp.status_id = srp.id
-    INNER JOIN status sr ON r.status_id = sr.id
-    INNER JOIN status sp ON p.status_id = sp.id
+    INNER JOIN roles r ON r.id = rp.role_id
+    INNER JOIN permissions p ON p.id = rp.permission_id
     WHERE rp.role_id = $1
-      AND sr.name = 'active'
-      AND sp.name = 'active'
-      AND srp.name = 'active'
+      AND rp.status_id = $2
+      AND r.status_id = $2
+      AND p.status_id = $2
     GROUP BY r.name
   `;
-
-  const params = [roleId];
-
+  
   try {
-    return await retry(async () => {
-      const result = await query(sql, params);
-
-      if (!result.rows.length || !result.rows[0].permissions) {
-        throw AppError.notFoundError(
-          `No permissions found for the specified role: ${roleId}`
-        );
-      }
-
-      return result.rows[0];
-    });
-  } catch (error) {
-    logError('Error fetching permissions for role:', {
+    const result = await query(queryText, [roleId, statusId]);
+    
+    if (!result.rows.length) {
+      throw AppError.notFoundError(
+        `No permissions found for role: ${roleId}`
+      );
+    }
+    
+    logSystemInfo('Fetched role permissions', {
+      context,
       roleId,
-      query: sql,
-      error: error.message,
+      statusId,
+      permissionCount: result.rows[0].permissions?.length ?? 0,
     });
+    
+    return result.rows[0];
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch role permissions', {
+      context,
+      roleId,
+      statusId,
+    });
+    
     throw AppError.databaseError(
       'Failed to fetch permissions for the specified role.'
     );
   }
 };
 
-/**
- * Adds a permission to a role.
- *
- * @param {uuid} roleId - The ID of the role.
- * @param {uuid} permissionId - The ID of the permission to add.
- * @returns {Promise<void>}
- * @throws {AppError} - Throws an error if the query fails.
- */
-const addPermissionToRole = async (roleId, permissionId) => {
-  const text = `
-    INSERT INTO role_permissions (role_id, permission_id, status_id, created_at, updated_at)
-    VALUES ($1, $2, (SELECT id FROM status WHERE name = 'active'), NOW(), NOW())
-    ON CONFLICT DO NOTHING;
-  `;
-
-  try {
-    const params = [roleId, permissionId];
-    await query(text, params);
-  } catch (error) {
-    logError('Error adding permission to role:', {
-      roleId,
-      permissionId,
-      error: error.message,
-    });
-    throw AppError.databaseError('Failed to add permission to the role.');
-  }
-};
-
 module.exports = {
   getRolePermissionsByRoleId,
-  addPermissionToRole,
 };

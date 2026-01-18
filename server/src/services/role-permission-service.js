@@ -1,25 +1,41 @@
 const { tryCacheRead, tryCacheWrite } = require('../utils/cache-utils');
-const AppError = require('../utils/AppError');
+const { getStatusId } = require('../config/status-cache');
 const {
   getRolePermissionsByRoleId,
 } = require('../repositories/role-permission-repository');
 const {
   getAccessibleOrderCategoriesFromPermissions,
 } = require('../utils/permission-utils');
+const AppError = require('../utils/AppError');
 const {
   ORDER_CATEGORIES,
 } = require('../utils/constants/domain/order-type-constants');
 
 /**
- * Fetch permissions for a role (cache-first, DB fallback).
+ * Fetches permissions assigned to a role.
+ *
+ * This function performs a cache-first lookup with a
+ * database fallback, ensuring authentication remains
+ * reliable even if caching infrastructure is unavailable.
  *
  * Guarantees:
- * - Redis is OPTIONAL
- * - DB is the source of truth
- * - Cache failures NEVER break auth
+ * - Redis is OPTIONAL and treated as a best-effort optimization
+ * - The database is the source of truth
+ * - Cache read/write failures NEVER block authentication
+ * - Returned permissions are normalized and validated
+ *
+ * Failure semantics:
+ * - Throws an authorization error if the role does not exist
+ *   or has no active permissions
  *
  * @param {string} roleId
- * @returns {Promise<{ roleName: string, permissions: string[] }>}
+ *   Role identifier used to resolve permissions
+ *
+ * @returns {Promise<{
+ *   roleName: string,
+ *   permissions: string[]
+ * }>}
+ *   Normalized role permission payload
  */
 const fetchPermissions = async (roleId) => {
   // Cache key versioned for safe schema evolution
@@ -36,7 +52,8 @@ const fetchPermissions = async (roleId) => {
   /* ----------------------------------------
    * DB fallback (SOURCE OF TRUTH)
    * -------------------------------------- */
-  const result = await getRolePermissionsByRoleId(roleId);
+  const activeStatusId = getStatusId('general_active');
+  const result = await getRolePermissionsByRoleId(roleId, activeStatusId);
   
   if (!result) {
     throw AppError.authorizationError(
@@ -78,10 +95,29 @@ const hasRootAccessSync = (permissions = []) =>
   Array.isArray(permissions) && permissions.includes('root_access');
 
 /**
- * Resolve permission context for a user.
+ * Resolves the authorization context for an authenticated user.
+ *
+ * This function hydrates permission-related runtime data
+ * derived from the user's assigned role.
+ *
+ * It acts as a shared foundation for:
+ * - ACL evaluation
+ * - Business-level visibility rules
+ * - Permission-based feature gating
+ *
+ * IMPORTANT:
+ * - This function does NOT enforce access control.
+ * - It ONLY resolves identity and permission context.
  *
  * @param {{ id?: string, role: string }} user
- * @returns {Promise<{ permissions: string[], isRoot: boolean }>}
+ *   Authenticated user context containing a role identifier
+ *
+ * @returns {Promise<{
+ *   roleName: string,
+ *   permissions: string[],
+ *   isRoot: boolean
+ * }>}
+ *   Normalized permission context for downstream logic
  */
 const resolveUserPermissionContext = async (user) => {
   if (!user?.role) {
@@ -90,9 +126,10 @@ const resolveUserPermissionContext = async (user) => {
     );
   }
   
-  const { permissions } = await fetchPermissions(user.role);
+  const { permissions, roleName } = await fetchPermissions(user.role);
   
   return {
+    roleName,
     permissions,
     isRoot: hasRootAccessSync(permissions),
   };

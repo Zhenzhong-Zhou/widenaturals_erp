@@ -10,9 +10,11 @@
  * - SQL-injection safety via positional parameters
  * - Consistent filtering semantics across repositories
  *
- * NOTE:
- * Role-relative and permission-scoped filtering is NOT finalized yet.
- * Explicit TODO markers indicate where future logic will be enforced.
+ * SECURITY CONTRACT:
+ * - Permission and role-visibility decisions are made upstream
+ *   (ACL + business layer).
+ * - This builder ONLY enforces constraints via internal flags.
+ * - Internal flags MUST NOT originate from client input.
  */
 
 const { logSystemException } = require('../system-logger');
@@ -26,17 +28,25 @@ const AppError = require('../AppError');
  * 2. `status_id` (single UUID)
  * 3. `_activeStatusId` (permission-enforced fallback)
  *
- * ## Supported Filters
+ * ## Supported Filters (SAFE INPUT ONLY)
  * | Field                | Type         | Description                                              |
  * |----------------------|--------------|----------------------------------------------------------|
  * | `statusIds`          | string[]     | Filter by multiple role status IDs                       |
  * | `status_id`          | string       | Filter by a single status ID                             |
  * | `_activeStatusId`    | string       | Forced fallback when caller lacks permission             |
  * | `role_group`         | string       | Exact role group match                                   |
- * | `is_active`          | boolean      | Active flag                                              |
+ * | `is_active`          | boolean      | Operational active flag                                  |
  * | `parent_role_id`     | string       | Parent role reference                                    |
  * | `hierarchy_level`    | number       | Exact hierarchy level                                    |
  * | `keyword`            | string       | Fuzzy search (name / description / role_group)           |
+ *
+ * ## INTERNAL SECURITY FLAGS (BUSINESS-INJECTED)
+ * | Field                   | Description                                      |
+ * |-------------------------|--------------------------------------------------|
+ * | `_excludeSystemRoles`   | Hide system roles                                |
+ * | `_excludeRootRoles`     | Hide root_admin roles                            |
+ * | `_excludeAdminRoles`    | Hide admin roles                                 |
+ * | `_maxHierarchyLevel`    | Prevent viewing roles above caller’s level       |
  *
  * ## TODO (Future Enhancements)
  * - Enforce role-visibility based on caller permissions
@@ -52,13 +62,9 @@ const buildRoleFilter = (filters = {}) => {
     const params = [];
     let idx = 1;
     
-    /**
-     * Status filtering (priority-based)
-     *
-     * TODO:
-     * `_activeStatusId` should be injected by the service layer
-     * when caller lacks permission to view inactive roles.
-     */
+    // ---------------------------------------------------------
+    // 1. STATUS VISIBILITY (SECURITY / LIFECYCLE)
+    // ---------------------------------------------------------
     const statusFilterValue = filters.statusIds?.length
       ? filters.statusIds
       : filters.status_id
@@ -76,41 +82,63 @@ const buildRoleFilter = (filters = {}) => {
       idx++;
     }
     
-    // Exact role group match
+    // ---------------------------------------------------------
+    // 2. INTERNAL ACL ENFORCEMENT (NON-CLIENT FLAGS)
+    // ---------------------------------------------------------
+    /**
+     * These constraints are injected by the business layer based on ACL
+     * decisions. They MUST NOT come from client input.
+     */
+    
+    if (filters._excludeSystemRoles) {
+      conditions.push(`r.name <> 'system'`);
+    }
+    
+    if (filters._excludeRootRoles) {
+      conditions.push(`r.name <> 'root_admin'`);
+    }
+    
+    if (filters._excludeAdminRoles) {
+      conditions.push(`r.name <> 'admin'`);
+    }
+    
+    if (filters._maxHierarchyLevel !== undefined) {
+      conditions.push(`r.hierarchy_level > $${idx}`);
+      params.push(filters._maxHierarchyLevel);
+      idx++;
+    }
+    
+    // ---------------------------------------------------------
+    // 3. STRUCTURAL / BUSINESS FILTERS
+    // ---------------------------------------------------------
+    
     if (filters.role_group) {
       conditions.push(`r.role_group = $${idx}`);
       params.push(filters.role_group);
       idx++;
     }
-
-    // Operational flag (service-gated; NOT lifecycle visibility)
+    
     if (filters.is_active !== undefined) {
       conditions.push(`r.is_active = $${idx}`);
       params.push(filters.is_active);
       idx++;
     }
     
-    // Parent role
     if (filters.parent_role_id) {
       conditions.push(`r.parent_role_id = $${idx}`);
       params.push(filters.parent_role_id);
       idx++;
     }
     
-    // Hierarchy level
     if (filters.hierarchy_level !== undefined) {
       conditions.push(`r.hierarchy_level = $${idx}`);
       params.push(filters.hierarchy_level);
       idx++;
     }
     
-    /**
-     * Keyword search (fuzzy)
-     *
-     * NOTE:
-     * Uses a single placeholder shared across all searchable fields.
-     * This matches keyword semantics and avoids param duplication.
-     */
+    // ---------------------------------------------------------
+    // 4. KEYWORD SEARCH (UX / CONVENIENCE)
+    // ---------------------------------------------------------
     if (filters.keyword) {
       const keywordConditions = [
         `r.name ILIKE $${idx}`,
