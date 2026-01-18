@@ -1,6 +1,6 @@
 import type { FC } from 'react';
 import { CustomCard, ErrorMessage } from '@components/index';
-import LoginForm from '@features/session/components/LoginForm';
+import { LoginForm } from '@features/session/components';
 import type { LoginRequestBody } from '@features/session';
 
 interface LoginCardProps {
@@ -15,6 +15,19 @@ interface LoginCardProps {
   onFormSubmit: () => void;
 }
 
+/**
+ * Authentication card wrapper for the login flow.
+ *
+ * Responsibilities:
+ * - Presents login context (title and subtitle)
+ * - Displays authentication-level errors (e.g. invalid credentials)
+ * - Delegates input handling to LoginForm
+ *
+ * Design note:
+ * - Auth errors are intentionally handled here rather than
+ *   inside LoginForm to keep form components stateless
+ *   and reusable.
+ */
 const LoginCard: FC<LoginCardProps> = ({
                                          title = 'Sign In',
                                          subtitle = 'Sign in to your account.',
@@ -31,7 +44,6 @@ const LoginCard: FC<LoginCardProps> = ({
       
       <LoginForm
         loading={loading}
-        error={error}
         formValues={formValues}
         formErrors={formErrors}
         onFormChange={onFormChange}
