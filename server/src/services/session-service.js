@@ -9,14 +9,13 @@ const {
 const { verifyPassword } = require('../business/user-auth-business');
 const { logSystemException, logSystemWarn, logSystemInfo } = require('../utils/system-logger');
 const { signToken, verifyToken } = require('../utils/token-helper');
+const { transformLoginResponse } = require('../transformers/session-transformer');
 
 /**
  * Authenticates a user using email and password.
  *
  * This service performs a complete, transactional login flow with
- * concurrency safety and security hardening. All authentication state
- * mutations occur within a single database transaction to ensure
- * correctness under concurrent login attempts.
+ * concurrency safety and security hardening.
  *
  * Responsibilities:
  * - Fetch and lock the user authentication record
@@ -24,30 +23,26 @@ const { signToken, verifyToken } = require('../utils/token-helper');
  * - Verify credentials without leaking user existence
  * - Update login attempt counters (success or failure)
  * - Record successful login metadata
- * - Issue access and refresh tokens upon success
+ * - Issue access and refresh tokens
+ * - Normalize and validate the authentication result
  *
- * Security guarantees:
- * - Prevents user enumeration by returning a uniform error message
- *   for invalid credentials.
- * - Enforces account lockout windows deterministically.
- * - Ensures login counters remain consistent under concurrency.
+ * Architectural guarantees:
+ * - All authentication state mutations occur within a single transaction
+ * - Returned data is API-ready and controller-safe
+ * - Persistence-layer naming and formatting are fully encapsulated
  *
- * Transactional guarantees:
- * - All database operations are executed within a single transaction.
- * - Row-level locking is applied during authentication state evaluation.
- * - Partial updates are not possible; the operation is atomic.
+ * Controllers MUST:
+ * - Treat the returned object as final
+ * - NOT rename, format, or interpret authentication fields
  *
- * @param {string} email - User email address used for authentication.
- * @param {string} password - Plaintext password provided by the user.
+ * @param {string} email
+ * @param {string} password
  *
  * @returns {Promise<{
  *   accessToken: string,
  *   refreshToken: string,
- *   last_login: Date
- * }>} Authentication tokens and the previous successful login timestamp.
- *
- * @throws {AppError} If authentication fails, the account is locked,
- *                    or a system error occurs.
+ *   lastLogin: string | null
+ * }>}
  */
 const loginUserService = async (email, password) => {
   const context = 'auth-service/loginUserService';
@@ -113,13 +108,11 @@ const loginUserService = async (email, password) => {
           client
         );
         
-        // IMPORTANT:
-        // Do NOT distinguish between "email not found" and "wrong password"
         throw AppError.authenticationError('Invalid email or password.');
       }
       
       // ------------------------------------------------------------
-      // 4. Successful login
+      // 4. Successful login bookkeeping
       // ------------------------------------------------------------
       await resetFailedAttemptsAndUpdateLastLogin(
         auth_id,
@@ -136,13 +129,15 @@ const loginUserService = async (email, password) => {
         true
       );
       
-      return {
+      // ------------------------------------------------------------
+      // 6. Normalize service result (controller-ready)
+      // ------------------------------------------------------------
+      return transformLoginResponse({
         accessToken,
         refreshToken,
         last_login,
-      };
+      });
     } catch (error) {
-      // Only log unexpected errors
       if (!error.isExpected) {
         logSystemException(error, 'Unexpected login failure', {
           context,
