@@ -1,16 +1,26 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
- * Base selector to access the entire BOM Material Supply Details slice state.
+ * Base selector for the BOM Material Supply Details state slice.
+ *
+ * Responsibilities:
+ * - Extract the BOM material supply details slice from the Redux runtime tree
+ *
+ * Design notes:
+ * - Plain function only (no `createSelector`)
+ * - No memoization or transformation
  */
-const selectBomMaterialSupplyDetailsState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.bomMaterialSupplyDetails
-);
+const selectBomMaterialSupplyDetailsState = (state: RootState) =>
+  selectRuntime(state).bomMaterialSupplyDetails;
 
 /**
- * Selects the full data payload (summary + details) from the slice.
+ * Selects the full BOM material supply data payload.
+ *
+ * Includes:
+ * - summary
+ * - detailed BOM material supply items
  */
 export const selectBomMaterialSupplyData = createSelector(
   [selectBomMaterialSupplyDetailsState],
@@ -18,7 +28,7 @@ export const selectBomMaterialSupplyData = createSelector(
 );
 
 /**
- * Selects the loading status for the BOM Material Supply Details request.
+ * Selects whether the BOM material supply details request is currently loading.
  */
 export const selectBomMaterialSupplyLoading = createSelector(
   [selectBomMaterialSupplyDetailsState],
@@ -26,7 +36,7 @@ export const selectBomMaterialSupplyLoading = createSelector(
 );
 
 /**
- * Selects the error message from the slice, if any.
+ * Selects any error message from the BOM material supply details slice.
  */
 export const selectBomMaterialSupplyError = createSelector(
   [selectBomMaterialSupplyDetailsState],
@@ -34,7 +44,7 @@ export const selectBomMaterialSupplyError = createSelector(
 );
 
 /**
- * Selects the currently selected BOM ID being viewed or fetched.
+ * Selects the currently selected BOM ID associated with the material supply view.
  */
 export const selectSelectedBomId = createSelector(
   [selectBomMaterialSupplyDetailsState],
@@ -42,8 +52,9 @@ export const selectSelectedBomId = createSelector(
 );
 
 /**
- * Selects the summary section of the BOM Material Supply Details,
- * including total costs, suppliers, and parts breakdown.
+ * Selects the summary section of the BOM material supply details.
+ *
+ * Includes cost totals, supplier aggregation, and part-level breakdowns.
  */
 export const selectBomMaterialSupplySummary = createSelector(
   [selectBomMaterialSupplyData],
@@ -51,8 +62,9 @@ export const selectBomMaterialSupplySummary = createSelector(
 );
 
 /**
- * Selects the detailed list of BOM items, including
- * part, material, supplier, and batch information.
+ * Selects the detailed list of BOM material supply items.
+ *
+ * Includes part, material, supplier, and batch information.
  */
 export const selectBomMaterialSupplyDetails = createSelector(
   [selectBomMaterialSupplyData],
@@ -60,35 +72,34 @@ export const selectBomMaterialSupplyDetails = createSelector(
 );
 
 /**
- * Determines whether the BOM Material Supply Details slice
- * currently holds any detailed BOM item data.
+ * Returns true if the BOM material supply response contains
+ * at least one detailed BOM item.
  *
- * Returns `true` if the response contains a non-empty details array,
- * otherwise `false`. Useful for conditional UI rendering (e.g., showing
- * empty states or hiding tables before data is loaded).
- *
- * @example
- * const hasData = useSelector(selectHasBomMaterialSupplyData);
- * if (!hasData) return <EmptyState message="No BOM data available" />;
+ * Useful for conditional UI rendering (e.g., empty states).
  */
 export const selectHasBomMaterialSupplyData = createSelector(
   [selectBomMaterialSupplyData],
-  (data) => !!data?.data.details?.length
+  (data) => Boolean(data?.data.details?.length)
 );
 
 /**
- * Computes the total estimated vs actual cost variance from the summary.
- * Returns a simplified object for quick cost overview.
+ * Selects a summarized cost overview derived from the BOM material supply summary.
+ *
+ * Returns:
+ * - totalEstimated
+ * - totalActual
+ * - variance
+ * - variancePercentage
  */
 export const selectBomMaterialSupplyCostOverview = createSelector(
   [selectBomMaterialSupplySummary],
   (summary) =>
     summary
       ? {
-          totalEstimated: summary.totals.totalEstimatedCost,
-          totalActual: summary.totals.totalActualCost,
-          variance: summary.totals.variance,
-          variancePercentage: summary.totals.variancePercentage,
-        }
+        totalEstimated: summary.totals.totalEstimatedCost,
+        totalActual: summary.totals.totalActualCost,
+        variance: summary.totals.variance,
+        variancePercentage: summary.totals.variancePercentage,
+      }
       : null
 );

@@ -1,4 +1,5 @@
 import type {
+  CreateUserRequest, CreateUserResponse,
   GetPaginatedUsersParams,
   PaginatedUserCardListResponse,
   PaginatedUserListResponse,
@@ -8,12 +9,37 @@ import type {
 } from '@features/user/state';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { buildQueryString } from '@utils/buildQueryString';
-import { getRequest } from '@utils/http';
+import { getRequest, postRequest } from '@utils/http';
 import { sanitizeString } from '@utils/stringUtils';
 
 /* =========================================================
  * Users
  * ======================================================= */
+
+/**
+ * Create a new user.
+ *
+ * WRITE operation.
+ *
+ * Responsibilities:
+ * - Send validated user creation payload to the API
+ * - Return the created user summary
+ *
+ * Notes:
+ * - Authorization and business rules are enforced server-side
+ * - Errors are propagated to the caller for handling
+ */
+const createUser = (
+  payload: CreateUserRequest
+): Promise<CreateUserResponse> => {
+  return postRequest<CreateUserRequest, CreateUserResponse>(
+    API_ENDPOINTS.USERS.ADD_NEW_RECORD,
+    payload,
+    {
+      policy: 'WRITE',
+    }
+  );
+};
 
 /**
  * Fetch paginated users with optional filters and view mode.
@@ -88,6 +114,7 @@ const fetchUserProfileCore = (
  * ======================================================= */
 
 export const userService = {
+  createUser,
   fetchPaginatedUsers,
   fetchUserProfileCore,
 };

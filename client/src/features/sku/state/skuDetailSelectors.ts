@@ -1,4 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 import type { SkuImage, SkuPricing } from '@features/sku/state/skuTypes';
 
@@ -7,10 +8,8 @@ import type { SkuImage, SkuPricing } from '@features/sku/state/skuTypes';
  *
  * @returns The full state object for the SKU detail module.
  */
-const selectSkuDetailState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.skuDetail
-);
+const selectSkuDetailState = (state: RootState) =>
+  selectRuntime(state).skuDetail;
 
 /**
  * Selector: Loading status for the SKU detail request.

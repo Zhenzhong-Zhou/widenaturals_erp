@@ -4,9 +4,9 @@ import type { SxProps, Theme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Badge from '@mui/material/Badge';
 import Tooltip from '@mui/material/Tooltip';
-import HealthStatusChip from './HealthStatusChip';
 import CustomTypography from '@components/common/CustomTypography';
-import useHealthStatus from '@hooks/useHealthStatus';
+import { HealthStatusChip } from '@features/systemHealth/components/index';
+import { useSystemHealth } from '@hooks/index';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
 import type { HealthStatus } from '@utils/getStatusColor';
@@ -17,29 +17,50 @@ interface HealthStatusProps {
   sx?: SxProps<Theme>;
 }
 
+/**
+ * HealthStatus
+ *
+ * Displays a compact, interactive system health indicator with
+ * detailed status information available via tooltip.
+ *
+ * Responsibilities:
+ * - Reflect current server and dependent service health
+ * - Allow manual refresh via click or keyboard
+ * - Surface error state when present
+ *
+ * Accessibility:
+ * - Clickable via mouse and keyboard (Enter / Space)
+ *
+ * Design notes:
+ * - Consumes health data exclusively via `useSystemHealth`
+ * - Treats health snapshot as read-only domain data
+ */
 const HealthStatus: FC<HealthStatusProps> = ({ sx }) => {
   const theme = useTheme();
-
+  
   const {
-    healthStatus,
-    loading,
+    serverStatus,
     databaseStatus,
     poolStatus,
     timestamp,
-    refreshHealthStatus,
+    loading,
     error,
-  } = useHealthStatus();
-
-  const status: HealthStatus = useMemo(
-    () =>
-      loading
-        ? 'loading'
-        : ((healthStatus?.server?.toLowerCase() as HealthStatus) ?? 'unknown'),
-    [loading, healthStatus]
+    refresh,
+  } = useSystemHealth();
+  
+  /**
+   * Normalized health status used for color + chip rendering.
+   */
+  const healthStatusKey: HealthStatus = useMemo(() => {
+    if (loading) return 'loading';
+    return (serverStatus as HealthStatus) ?? 'unknown';
+  }, [loading, serverStatus]);
+  
+  const statusColor = useMemo(
+    () => getStatusColor(healthStatusKey, 'health'),
+    [healthStatusKey]
   );
-
-  const statusColor = useMemo(() => getStatusColor(status, 'health'), [status]);
-
+  
   const tooltipContent = useMemo(
     () => (
       <Box
@@ -47,30 +68,34 @@ const HealthStatus: FC<HealthStatusProps> = ({ sx }) => {
           minWidth: 220,
           p: 1.5,
           borderRadius: 1,
-          backgroundColor: (theme) =>
+          backgroundColor:
             theme.palette.mode === 'dark'
               ? theme.palette.grey[800]
               : theme.palette.background.paper,
-          boxShadow: (theme) => theme.shadows[6],
+          boxShadow: theme.shadows[6],
           lineHeight: 1.6,
           color: 'text.primary',
         }}
       >
         <CustomTypography variant="body2" fontWeight={600}>
-          Server: {formatLabel(healthStatus?.server) || 'Unknown'}
+          Server: {formatLabel(serverStatus) || 'Unknown'}
         </CustomTypography>
+        
         <CustomTypography variant="body2">
           Database: {formatLabel(databaseStatus) || 'Unknown'}
         </CustomTypography>
+        
         <CustomTypography variant="body2">
           Pool: {formatLabel(poolStatus) || 'Unknown'}
         </CustomTypography>
+        
         <CustomTypography variant="body2">
           Last Updated:{' '}
           <Box component="span" color="text.secondary">
             {timestamp ? formatDateTime(timestamp) : 'N/A'}
           </Box>
         </CustomTypography>
+        
         {error && (
           <CustomTypography variant="body2" color="error">
             Error: {error}
@@ -78,9 +103,9 @@ const HealthStatus: FC<HealthStatusProps> = ({ sx }) => {
         )}
       </Box>
     ),
-    [healthStatus, databaseStatus, poolStatus, timestamp, error]
+    [theme, serverStatus, databaseStatus, poolStatus, timestamp, error]
   );
-
+  
   return (
     <Box
       sx={{
@@ -111,10 +136,10 @@ const HealthStatus: FC<HealthStatusProps> = ({ sx }) => {
           <Box
             role="button"
             tabIndex={0}
-            onClick={refreshHealthStatus}
+            onClick={refresh}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
-                void refreshHealthStatus();
+                void refresh();
               }
             }}
             sx={{
@@ -125,7 +150,7 @@ const HealthStatus: FC<HealthStatusProps> = ({ sx }) => {
               alignItems: 'center',
             }}
           >
-            <HealthStatusChip status={status} />
+            <HealthStatusChip status={healthStatusKey} />
           </Box>
         </Badge>
       </Tooltip>

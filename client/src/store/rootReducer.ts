@@ -37,7 +37,7 @@ import { complianceRecordReducers } from '@features/complianceRecord';
 import { customerReducers } from '@features/customer';
 import { deliveryMethodReducers } from '@features/deliveryMethod';
 import { discountReducers } from '@features/discount';
-import { healthReducers } from '@features/health';
+import { systemHealthReducers } from '@features/systemHealth';
 import { locationInventoryReducers } from '@features/locationInventory';
 import { locationReducers } from '@features/location';
 import { locationTypeReducers } from '@features/locationType';
@@ -96,7 +96,7 @@ const runtimeReducer = combineReducers({
   ...discountReducers,
   ...taxRateReducers,
   ...deliveryMethodReducers,
-  ...healthReducers,
+  ...systemHealthReducers,
 });
 
 // ===== App reducer =====

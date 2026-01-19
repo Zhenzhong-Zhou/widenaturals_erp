@@ -1,14 +1,13 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 import type { OrderTypeListItem } from './orderTypeTypes';
 
 /**
  * Root selector for the paginated order types slice.
  */
-const selectOrderTypesState = createSelector(
-  [selectRuntime],
-  (runtime) => runtime.paginatedOrderTypes
-);
+const selectOrderTypesState = (state: RootState) =>
+  selectRuntime(state).paginatedOrderTypes;
 
 /**
  * Selector for the paginated order types data.

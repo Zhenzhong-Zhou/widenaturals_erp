@@ -1,6 +1,7 @@
-const { query } = require('../database/db');
+const { query, paginateQueryByOffset } = require('../database/db');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
+const { buildRoleFilter } = require('../utils/sql/build-role-filters');
 
 /**
  * Fetch a role by its ID.
@@ -119,7 +120,95 @@ const resolveRoleIdByName = async (roleName, client) => {
   }
 };
 
+/**
+ * Fetches a lightweight, paginated list of roles for use in
+ * dropdowns, permission assignment, and admin configuration screens.
+ *
+ * Returns only identity and classification fields required for UI lookup.
+ *
+ * Supports:
+ * - Keyword search (name / description / role_group)
+ * - Hierarchy and parent filtering
+ * - Active and status-based filtering
+ * - Stable sorting by hierarchy → name
+ * - Offset-based pagination
+ *
+ * @param {Object} options
+ * @param {Object} [options.filters={}]
+ * @param {number} [options.limit=50]
+ * @param {number} [options.offset=0]
+ *
+ * @returns {Promise<{
+ *   data: Array<{
+ *     id: string,
+ *     name: string,
+ *     role_group: string | null,
+ *     hierarchy_level: number | null,
+ *     parent_role_id: string | null,
+ *     is_active: boolean
+ *   }>,
+ *   pagination: {
+ *     offset: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     hasMore: boolean
+ *   }
+ * }>}
+ */
+const getRoleLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
+  const context = 'role-repository/getRoleLookup';
+  const tableName = 'roles r';
+  
+  const { whereClause, params } = buildRoleFilter(filters);
+  
+  const queryText = `
+    SELECT
+      r.id,
+      r.name,
+      r.role_group,
+      r.hierarchy_level,
+      r.parent_role_id,
+      r.is_active,
+      r.status_id
+    FROM ${tableName}
+    LEFT JOIN status s ON s.id = r.status_id
+    WHERE ${whereClause}
+  `;
+  
+  try {
+    const result = await paginateQueryByOffset({
+      tableName,
+      whereClause,
+      queryText,
+      params,
+      offset,
+      limit,
+      sortBy: 'r.hierarchy_level',
+      sortOrder: 'ASC',
+      additionalSort: 'r.name ASC',
+    });
+    
+    logSystemInfo('Fetched role lookup data', {
+      context,
+      offset,
+      limit,
+      filters,
+    });
+    
+    return result;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch role lookup', {
+      context,
+      offset,
+      limit,
+      filters,
+    });
+    throw AppError.databaseError('Failed to fetch role lookup.');
+  }
+};
+
 module.exports = {
   getRoleById,
   resolveRoleIdByName,
+  getRoleLookup,
 };

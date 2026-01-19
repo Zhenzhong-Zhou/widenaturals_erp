@@ -931,3 +931,62 @@ export type UserLookupParams = LookupQuery;
  * - Pagination metadata for incremental fetching
  */
 export type UserLookupState = PaginatedLookupState<UserLookupItem>;
+
+/**
+ * A single Role lookup item returned from the lookup API.
+ *
+ * Extends {@link LookupItemWithStatus} and includes:
+ * - `id`        — Role identifier
+ * - `label`     — Display name for UI components
+ * - `isActive`  — Derived UI flag (true if role is active)
+ *
+ * NOTE:
+ * `isActive` is a UI convenience flag only.
+ * Role lifecycle state is authoritatively determined by `status_id` on the backend.
+ */
+export type RoleLookupItem = LookupItemWithStatus;
+
+/**
+ * API response shape for Role lookup requests.
+ *
+ * Returned by:
+ * - `GET /lookups/roles`
+ * - `fetchRoleLookup()`
+ * - `fetchRoleLookupThunk`
+ *
+ * Includes:
+ * - `items`   — Array of {@link RoleLookupItem}
+ * - `limit`   — Page size
+ * - `offset`  — Pagination offset
+ * - `hasMore` — Whether more results are available
+ */
+export type RoleLookupResponse = LookupSuccessResponse<RoleLookupItem>;
+
+/**
+ * Query parameters supported by the Role lookup API.
+ *
+ * Extends the shared {@link LookupQuery} contract and supports:
+ * - `keyword` — Fuzzy match on role name or description
+ * - `limit`   — Pagination size
+ * - `offset`  — Pagination offset
+ *
+ * NOTE:
+ * Role visibility and lifecycle filtering are enforced server-side
+ * based on the requester’s permissions.
+ */
+export type RoleLookupParams = LookupQuery;
+
+/**
+ * Redux slice state for Role lookup data.
+ *
+ * Uses offset-based pagination and stores:
+ * - `data`        — Loaded {@link RoleLookupItem} records
+ * - `loading`     — Request-in-flight flag
+ * - `error`       — Error message (if any)
+ * - `pagination`  — Offset pagination metadata
+ *
+ * Managed by:
+ * - `fetchRoleLookupThunk`
+ * - `roleLookupSlice`
+ */
+export type RoleLookupState = PaginatedLookupState<RoleLookupItem>;

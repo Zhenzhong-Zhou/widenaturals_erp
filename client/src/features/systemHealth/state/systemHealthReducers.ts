@@ -1,10 +1,10 @@
-import healthReducer from './healthStatusSlice';
+import systemHealthReducer from './systemHealthSlice';
 
 /**
- * Reducer map for the Health feature.
+ * Reducer map for the System Health feature.
  *
  * This reducer group is consumed exclusively by the root reducer
- * to compose the `health` state subtree.
+ * to compose the `systemHealth` state subtree.
  *
  * Design principles:
  * - Slice reducers are imported locally to avoid circular
@@ -12,9 +12,9 @@ import healthReducer from './healthStatusSlice';
  * - Slice reducers are private implementation details and
  *   must not be imported via feature or state index files.
  * - Only this reducer map is exposed as the public store
- *   integration point for the Health feature.
+ *   integration point for the System Health feature.
  */
-export const healthReducers = {
+export const systemHealthReducers = {
   /** Application and system health status */
-  health: healthReducer,
+  systemHealth: systemHealthReducer,
 };

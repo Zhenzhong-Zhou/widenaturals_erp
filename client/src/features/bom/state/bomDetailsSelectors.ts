@@ -1,43 +1,72 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
-/** Base selector to access the BOM details slice state. */
-const selectBomDetailsState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.bomDetails
-);
+/**
+ * Base selector for the BOM details state slice.
+ *
+ * Responsibilities:
+ * - Extract the BOM details state from the Redux runtime tree
+ *
+ * Design notes:
+ * - Plain function only (no `createSelector`)
+ * - No memoization or transformation
+ */
+const selectBomDetailsState = (state: RootState) =>
+  selectRuntime(state).bomDetails;
 
-/** Selects the BOM details data object (header, parts, and summary). */
+/**
+ * Selects the BOM details data object.
+ *
+ * Includes:
+ * - header
+ * - parts / details
+ * - summary
+ */
 export const selectBomDetailsData = createSelector(
   [selectBomDetailsState],
-  (s) => s.data
+  (state) => state.data
 );
 
-/** Selects the loading status of the BOM details fetch request. */
+/**
+ * Selects whether the BOM details fetch request is currently loading.
+ */
 export const selectBomDetailsLoading = createSelector(
   [selectBomDetailsState],
-  (s) => s.loading
+  (state) => state.loading
 );
 
-/** Selects the error message from the BOM details state (if any). */
+/**
+ * Selects any error message from the BOM details state.
+ */
 export const selectBomDetailsError = createSelector(
   [selectBomDetailsState],
-  (s) => s.error
+  (state) => state.error
 );
 
-/** Returns `true` if BOM details are available and not loading. */
+/**
+ * Returns true when BOM details are available and not loading.
+ */
 export const selectHasBomDetails = createSelector(
   [selectBomDetailsData, selectBomDetailsLoading],
-  (data, loading) => !!data && !loading
+  (data, loading) => Boolean(data) && !loading
 );
 
-/** Returns the total part count in the BOM, or 0 if none. */
+/**
+ * Returns the total number of parts in the BOM.
+ *
+ * Defaults to 0 when details are not available.
+ */
 export const selectBomPartCount = createSelector(
   [selectBomDetailsData],
   (data) => data?.details?.length ?? 0
 );
 
-/** Returns the total estimated cost in CAD, or 0 if missing. */
+/**
+ * Returns the total estimated BOM cost in CAD.
+ *
+ * Defaults to 0 when summary data is missing.
+ */
 export const selectBomTotalEstimatedCost = createSelector(
   [selectBomDetailsData],
   (data) => data?.summary?.totalEstimatedCost ?? 0

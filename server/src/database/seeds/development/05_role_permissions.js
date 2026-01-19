@@ -76,7 +76,7 @@ exports.seed = async function (knex) {
 
   // Define role-permission mapping
   const rolePermissionsData = {
-    root_admin: Object.keys(permissionMap), // All permissions
+    root_admin: ['root_access'], // All permissions
     admin: [
       'manage_users',
       'view_prices',

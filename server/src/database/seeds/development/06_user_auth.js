@@ -16,7 +16,6 @@ exports.seed = async function (knex) {
   }
   
   const users = await knex('users').select('id', 'email', 'role_id');
-  
   if (!users.length) {
     console.warn('[SEED] No users found. Seed users first.');
     return;
@@ -30,30 +29,25 @@ exports.seed = async function (knex) {
     'id'
   );
   
-  const basePasswords = [
-    'Passw0rd!@#',
-    'Secur3P@$$!!',
-    'Str0ngP@$$w0rD!!',
-    'P@$$word2023!!',
-    'Adm!n12345!!',
-    'TestP@$$!!',
-    'S@mpleP@$$word!!',
-    'HelloW0rld!!@',
-    'P@$$wordMagic!!',
-    'SeCurE!@12345',
-  ];
-  
   const userAuthData = [];
-  let index = 0;
   
   for (const user of users) {
+    // System user never gets interactive auth
     if (user.role_id === systemRoleId) continue;
     
-    const password =
-      basePasswords[index % basePasswords.length] +
-      `_${index + 1}`;
+    const emailPrefix = user.email.split('@')[0];
     
-    // Enforce policy even in seeds
+    /**
+     * DEV PASSWORD STRATEGY
+     * ---------------------
+     * - Deterministic
+     * - Policy-compliant
+     * - Unique per user
+     * - Requires reset on first login
+     */
+    const password = `${process.env.DEV_ONLY_PASSWORD}${emailPrefix}`;
+    
+    // Enforce password policy even in seeds
     validatePasswordStrength(password);
     
     const passwordHash = await hashPassword(password);
@@ -69,13 +63,12 @@ exports.seed = async function (knex) {
       metadata: JSON.stringify({
         seeded: true,
         requirePasswordReset: true,
+        passwordStrategy: 'dev-deterministic-email',
       }),
       created_at: knex.fn.now(),
       updated_at: null,
       last_changed_at: knex.fn.now(),
     });
-    
-    index++;
   }
   
   if (userAuthData.length) {

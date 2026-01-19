@@ -10,6 +10,7 @@ const {
   RATE_LIMIT_LOGIN,
   RATE_LIMIT_AUTHENTICATION,
   RATE_LIMIT_AUTHORIZATION,
+  RATE_LIMIT_PASSWORD_CHANGE,
   RATE_LIMIT_PASSWORD_RESET,
   RATE_LIMIT_SIGNUP,
   RATE_LIMIT_ADMIN,
@@ -41,6 +42,11 @@ const RATE_LIMIT = {
     MAX: RATE_LIMIT_MAX.CSRF,
     MESSAGE: RATE_LIMIT_CSRF_TOKEN,
   },
+  
+  HEALTH: {
+    WINDOW_MS: ONE_MINUTE, // 1 minute
+    MAX: 300,             // safe for LB + monitors
+  },
 
   LOGIN: {
     WINDOW_MS: FIVE_MINUTES,
@@ -55,7 +61,7 @@ const RATE_LIMIT = {
   },
 
   AUTHORIZATION: {
-    WINDOW_MS: ONE_MINUTE, // 1 minute window for authorization checks
+    WINDOW_MS: ONE_MINUTE, // 1-minute window for authorization checks
     MAX: RATE_LIMIT_MAX.AUTHORIZATION, // 50 authorization requests per minute
     MESSAGE: RATE_LIMIT_AUTHORIZATION,
   },
@@ -65,7 +71,13 @@ const RATE_LIMIT = {
     MAX: RATE_LIMIT_MAX.REFRESH,
     MESSAGE: '',
   },
-
+  
+  PASSWORD_CHANGE: {
+    WINDOW_MS: TEN_MINUTES,
+    MAX: RATE_LIMIT_MAX.PASSWORD_CHANGE,
+    MESSAGE: RATE_LIMIT_PASSWORD_CHANGE,
+  },
+  
   PASSWORD_RESET: {
     WINDOW_MS: TEN_MINUTES,
     MAX: RATE_LIMIT_MAX.PASSWORD_RESET,

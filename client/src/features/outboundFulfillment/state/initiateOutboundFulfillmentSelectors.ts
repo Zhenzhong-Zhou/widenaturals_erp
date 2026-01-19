@@ -1,13 +1,12 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
  * Base selector to access the entire initiateOutboundFulfillment slice state.
  */
-const selectInitiateOutboundFulfillmentState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.initiateOutboundFulfillment
-);
+const selectInitiateOutboundFulfillmentState = (state: RootState) =>
+  selectRuntime(state).initiateOutboundFulfillment;
 
 /**
  * Selector to get the loading state of outbound fulfillment initiation.

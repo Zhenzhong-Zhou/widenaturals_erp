@@ -1,13 +1,12 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
  * Base selector to access the warehouse inventory summary detail slice.
  */
-const selectWarehouseInventorySummaryDetailState = createSelector(
-  [selectRuntime],
-  (runtime) => runtime.warehouseInventorySummaryDetail
-);
+const selectWarehouseInventorySummaryDetailState = (state: RootState) =>
+  selectRuntime(state).warehouseInventorySummaryDetail;
 
 /**
  * Selector for retrieving the list of warehouse inventory summary items.

@@ -1,16 +1,26 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
- * Base selector to access the allocateInventory slice from the global state.
+ * Base selector for the allocate-inventory state slice.
+ *
+ * Responsibilities:
+ * - Extract the allocate-inventory state from the Redux runtime tree
+ *
+ * Design notes:
+ * - Plain function only (no `createSelector`)
+ * - Internal implementation detail
  */
-const selectAllocateInventoryState = createSelector(
-  [selectRuntime],
-  (runtime) => runtime.allocateInventory
-);
+const selectAllocateInventoryState = (state: RootState) =>
+  selectRuntime(state).allocateInventory;
 
 /**
- * Selector to retrieve the full allocation data (orderId + allocationIds).
+ * Selects the full allocation response payload.
+ *
+ * Includes:
+ * - orderId
+ * - allocationIds
  */
 export const selectAllocationData = createSelector(
   [selectAllocateInventoryState],
@@ -18,7 +28,7 @@ export const selectAllocationData = createSelector(
 );
 
 /**
- * Selector to determine if the allocation request is currently loading.
+ * Selects whether the inventory allocation request is currently loading.
  */
 export const selectAllocationLoading = createSelector(
   [selectAllocateInventoryState],
@@ -26,7 +36,7 @@ export const selectAllocationLoading = createSelector(
 );
 
 /**
- * Selector to retrieve the error message from a failed allocation request.
+ * Selects any error message from a failed inventory allocation request.
  */
 export const selectAllocationError = createSelector(
   [selectAllocateInventoryState],
@@ -34,17 +44,21 @@ export const selectAllocationError = createSelector(
 );
 
 /**
- * Selector to extract the allocated order ID (if available).
+ * Selects the allocated order ID.
+ *
+ * Returns `null` when allocation data is not yet available.
  */
 export const selectAllocationOrderId = createSelector(
   [selectAllocateInventoryState],
-  (state) => state.data?.orderId || null
+  (state) => state.data?.orderId ?? null
 );
 
 /**
- * Selector to extract the list of allocated inventory IDs (if available).
+ * Selects the list of allocated inventory IDs.
+ *
+ * Returns an empty array when allocation data is not yet available.
  */
 export const selectAllocatedIds = createSelector(
   [selectAllocateInventoryState],
-  (state) => state.data?.allocationIds || []
+  (state) => state.data?.allocationIds ?? []
 );

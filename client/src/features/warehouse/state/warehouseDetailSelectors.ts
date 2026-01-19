@@ -1,10 +1,9 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
-const selectWarehouseState = createSelector(
-  [selectRuntime],
-  (runtime) => runtime.warehouseDetails
-);
+const selectWarehouseState = (state: RootState) =>
+  selectRuntime(state).warehouseDetails;
 
 export const selectWarehouseDetails = createSelector(
   [selectWarehouseState],

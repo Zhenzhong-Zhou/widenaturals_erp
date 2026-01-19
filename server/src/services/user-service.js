@@ -37,6 +37,8 @@ const { getRoleById } = require('../repositories/role-repository');
  * - Resolves and validates target role semantics
  * - Hashes plaintext password securely before persistence
  * - Creates user and authentication records atomically
+ * - Initializes newly created users in an inactive status
+ *   (except initial bootstrap root user)
  * - Emits structured audit logs
  *
  * Transactional guarantees:
@@ -53,6 +55,7 @@ const { getRoleById } = require('../repositories/role-repository');
  * - Role semantics are resolved via `classifyRole` only
  * - Privilege escalation is prevented via ACL checks
  * - Passwords are never persisted or logged in plaintext
+ * - Newly created users are inactive until explicitly activated
  *
  * @param {Object} input - User creation payload (validated upstream)
  * @param {Object} actor - Authenticated user performing the action
@@ -117,31 +120,46 @@ const createUserService = async (input, actor) => {
       // Do not add inline hierarchy checks here.
       
       // ------------------------------------------------------------
-      // 3. Hash password (outside DB write)
+      // 3. Determine initial status (SERVICE-OWNED RULE)
+      // ------------------------------------------------------------
+      // IMPORTANT:
+      // Activation state is a service invariant.
+      // Callers MUST NOT control initial user status.
+      let statusId;
+      
+      if (actor?.isBootstrap === true && actor?.isRoot === true) {
+        // Bootstrap-only exception: initial root admin starts ACTIVE
+        statusId = getStatusId('general_active');
+      } else {
+        // All normal API-created users start INACTIVE
+        statusId = getStatusId('general_inactive');
+      }
+      
+      // ------------------------------------------------------------
+      // 4. Hash password (outside DB write)
       // ------------------------------------------------------------
       const passwordHash = await hashPassword(input.password);
       
       // ------------------------------------------------------------
-      // 4. Insert user
+      // 5. Insert user
       // ------------------------------------------------------------
       const userRecord = await insertUser(
         {
           email: input.email,
           roleId: input.roleId,
-          statusId: input.statusId,
+          statusId,
           firstname: input.firstname,
           lastname: input.lastname,
           phoneNumber: input.phoneNumber,
           jobTitle: input.jobTitle,
           note: input.note,
-          statusDate: input.statusDate,
           createdBy: actor.id,
         },
         client
       );
       
       // ------------------------------------------------------------
-      // 5. Insert auth (same transaction)
+      // 6. Insert auth (same transaction)
       // ------------------------------------------------------------
       await insertUserAuth({
         userId: userRecord.id,
@@ -149,7 +167,7 @@ const createUserService = async (input, actor) => {
       }, client);
       
       // ------------------------------------------------------------
-      // 6. Transform & audit
+      // 7. Transform & audit
       // ------------------------------------------------------------
       const transformed = transformUserInsertResult(userRecord);
       

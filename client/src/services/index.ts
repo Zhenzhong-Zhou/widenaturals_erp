@@ -1,4 +1,4 @@
-export { publicHealthStatusService } from './publicHealthStatusService';
+export { systemHealthService } from './systemHealthService.ts';
 export { sessionService } from './sessionService';
 export { csrfService } from './csrfService';
 export { resetPasswordService } from './resetPasswordService';

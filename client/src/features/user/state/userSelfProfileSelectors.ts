@@ -1,13 +1,12 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
  * Root selector for the self user profile slice.
  */
-const selectUserSelfProfileState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.userSelfProfile
-);
+const selectUserSelfProfileState= (state: RootState) =>
+  selectRuntime(state).userSelfProfile;
 
 /**
  * Loading status for self profile.

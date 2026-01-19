@@ -1,14 +1,13 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 import type { UpdateProductApiResponse } from '@features/product/state/productTypes';
 
 /**
  * Base selector — retrieves the full `productInfoUpdate` slice.
  */
-export const selectProductInfoUpdateState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.productInfoUpdate
-);
+const selectProductInfoUpdateState = (state: RootState) =>
+  selectRuntime(state).productInfoUpdate;
 
 /**
  * Selector: returns the full API response or null.

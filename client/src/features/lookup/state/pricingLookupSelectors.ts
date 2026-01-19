@@ -1,4 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 import {
   type PricingLookupItem,
@@ -15,10 +16,8 @@ import {
  * @param state - The global Redux store state.
  * @returns The `pricingLookup` slice state.
  */
-const selectPricingLookupState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.pricingLookup
-);
+const selectPricingLookupState = (state: RootState) =>
+  selectRuntime(state).pricingLookup;
 
 /**
  * Selector to retrieve the full list of pricing lookup items.

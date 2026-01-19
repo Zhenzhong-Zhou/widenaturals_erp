@@ -1,77 +1,123 @@
-const redisClient = require('../utils/redis-client');
+const { tryCacheRead, tryCacheWrite } = require('../utils/cache-utils');
+const { getStatusId } = require('../config/status-cache');
 const {
   getRolePermissionsByRoleId,
 } = require('../repositories/role-permission-repository');
-const AppError = require('../utils/AppError');
-const { logSystemException } = require('../utils/system-logger');
 const {
   getAccessibleOrderCategoriesFromPermissions,
 } = require('../utils/permission-utils');
+const AppError = require('../utils/AppError');
 const {
   ORDER_CATEGORIES,
 } = require('../utils/constants/domain/order-type-constants');
 
 /**
- * Fetches the permissions and role name for a given role ID, with Redis caching.
+ * Fetches permissions assigned to a role.
  *
- * - Checks Redis first to avoid unnecessary DB calls
- * - Caches the result for 1 hour if fetched from the database
- * - Logs and throws on failure with context
+ * This function performs a cache-first lookup with a
+ * database fallback, ensuring authentication remains
+ * reliable even if caching infrastructure is unavailable.
  *
- * @param {string} roleId - The ID of the role to fetch.
- * @returns {Promise<{ roleName: string, permissions: string[] }>} Object containing role name and permissions.
- * @throws {AppError} If fetching from cache or database fails.
+ * Guarantees:
+ * - Redis is OPTIONAL and treated as a best-effort optimization
+ * - The database is the source of truth
+ * - Cache read/write failures NEVER block authentication
+ * - Returned permissions are normalized and validated
+ *
+ * Failure semantics:
+ * - Throws an authorization error if the role does not exist
+ *   or has no active permissions
+ *
+ * @param {string} roleId
+ *   Role identifier used to resolve permissions
+ *
+ * @returns {Promise<{
+ *   roleName: string,
+ *   permissions: string[]
+ * }>}
+ *   Normalized role permission payload
  */
 const fetchPermissions = async (roleId) => {
-  const cacheKey = `role_permissions:${roleId}`;
-
-  try {
-    const cachedData = await redisClient.get(cacheKey);
-    if (cachedData) {
-      const parsed = JSON.parse(cachedData);
-
-      // Normalize to match expected shape
-      return {
-        roleName: parsed.roleName ?? parsed.role_name,
-        permissions: parsed.permissions,
-      };
-    }
-
-    // Fetch from DB/service if cache misses
-    const { role_name, permissions } = await getRolePermissionsByRoleId(roleId);
-
-    const dataToCache = { roleName: role_name, permissions };
-    await redisClient.set(cacheKey, JSON.stringify(dataToCache), 'EX', 3600); // 1-hour TTL
-
-    return dataToCache;
-  } catch (error) {
-    logSystemException(error, 'Failed to fetch role permissions', {
-      context: 'permission-service/fetchPermissions',
-      roleId,
-    });
-
-    throw AppError.serviceError('Failed to fetch permissions and role name.', {
-      roleId,
-      cause: error,
-    });
+  // Cache key versioned for safe schema evolution
+  const cacheKey = `role_permissions:v1:${roleId}`;
+  
+  /* ----------------------------------------
+   * Cache-first lookup (BEST-EFFORT)
+   * -------------------------------------- */
+  const cached = await tryCacheRead(cacheKey);
+  if (cached?.permissions) {
+    return cached;
   }
+  
+  /* ----------------------------------------
+   * DB fallback (SOURCE OF TRUTH)
+   * -------------------------------------- */
+  const activeStatusId = getStatusId('general_active');
+  const result = await getRolePermissionsByRoleId(roleId, activeStatusId);
+  
+  if (!result) {
+    throw AppError.authorizationError(
+      'Role permissions not found.',
+      { roleId }
+    );
+  }
+  
+  // Defensive normalization (ultra-safe)
+  const permissions = Array.isArray(result.permissions)
+    ? result.permissions
+    : [];
+  
+  if (!permissions.length) {
+    throw AppError.authorizationError(
+      'User has no assigned permissions.',
+      { roleId }
+    );
+  }
+  
+  const normalized = {
+    roleName: result.role_name,
+    permissions,
+  };
+  
+  // Best-effort cache write
+  await tryCacheWrite(cacheKey, normalized, 3600);
+  
+  return normalized;
 };
 
 /**
- * Determines if the provided permission list includes root access.
+ * Determines if permission list includes root access.
  *
- * @param {string[]} permissions - List of user permissions.
- * @returns {boolean} True if the user has 'root_access'.
+ * @param {string[]} permissions
+ * @returns {boolean}
  */
 const hasRootAccessSync = (permissions = []) =>
   Array.isArray(permissions) && permissions.includes('root_access');
 
 /**
- * Resolves user permissions and whether the user has root access.
+ * Resolves the authorization context for an authenticated user.
  *
- * @param {Object} user - The user object. Must include a valid `role`.
- * @returns {Promise<{ permissions: string[], isRoot: boolean }>}
- * @throws {AppError} If the user has no role or no permissions assigned.
+ * This function hydrates permission-related runtime data
+ * derived from the user's assigned role.
+ *
+ * It acts as a shared foundation for:
+ * - ACL evaluation
+ * - Business-level visibility rules
+ * - Permission-based feature gating
+ *
+ * IMPORTANT:
+ * - This function does NOT enforce access control.
+ * - It ONLY resolves identity and permission context.
+ *
+ * @param {{ id?: string, role: string }} user
+ *   Authenticated user context containing a role identifier
+ *
+ * @returns {Promise<{
+ *   roleName: string,
+ *   permissions: string[],
+ *   isRoot: boolean
+ * }>}
+ *   Normalized permission context for downstream logic
  */
 const resolveUserPermissionContext = async (user) => {
   if (!user?.role) {
@@ -79,82 +125,74 @@ const resolveUserPermissionContext = async (user) => {
       'User role is required for permission check.'
     );
   }
-
-  const { permissions = [] } = await fetchPermissions(user.role);
-
-  if (permissions.length === 0) {
-    throw AppError.authorizationError('User has no assigned permissions.');
-  }
-
-  const isRoot = hasRootAccessSync(permissions);
-
-  return { permissions, isRoot };
+  
+  const { permissions, roleName } = await fetchPermissions(user.role);
+  
+  return {
+    roleName,
+    permissions,
+    isRoot: hasRootAccessSync(permissions),
+  };
 };
 
 /**
- * Checks whether the user has the required permissions.
+ * Check whether user satisfies permission requirements.
  *
- * - Supports `requireAll` to enforce a full permission set.
- * - Supports `allowRootAccess` to bypass checks if the user has `root_access`.
- *
- * @param {Object} user - The user object. Must include `id` and `role`.
- * @param {string[]} requiredPermissions - Array of required permission codes.
- * @param {Object} [options] - Additional options.
- * @param {boolean} [options.requireAll=false] - Require all permissions instead of any.
- * @param {boolean} [options.allowRootAccess=true] - Allow bypass for users with `root_access`.
- * @returns {Promise<boolean>} True if the user passes the permission check.
+ * @param {{ id: string, role: string }} user
+ * @param {string[]} requiredPermissions
+ * @param {{ requireAll?: boolean, allowRootAccess?: boolean }} options
+ * @returns {Promise<boolean>}
  */
 const checkPermissions = async (
   user,
   requiredPermissions = [],
   { requireAll = false, allowRootAccess = true } = {}
 ) => {
-  if (!user || !user.id || !user.role) return false;
-
-  const { permissions, isRoot } = await resolveUserPermissionContext(user);
-
-  // Root override
+  if (!user?.id || !user.role) return false;
+  
+  const { permissions, isRoot } =
+    await resolveUserPermissionContext(user);
+  
   if (allowRootAccess && isRoot) {
     return true;
   }
-
+  
   return requireAll
-    ? requiredPermissions.every((perm) => permissions.includes(perm))
-    : requiredPermissions.some((perm) => permissions.includes(perm));
+    ? requiredPermissions.every((p) => permissions.includes(p))
+    : requiredPermissions.some((p) => permissions.includes(p));
 };
 
 /**
- * Resolve which order categories the user may access for a given action.
+ * Resolve accessible order categories for a user/action.
  *
- * - Root users bypass checks and can access all categories.
- * - Non-root users must have either the generic action permission
- *   (e.g., "view_order") or category-specific ones
- *   (e.g., "view_sales_order", "view_purchase_order", ...).
- *
- * @param {User} user
- * @param {{ action?: 'VIEW'|'CREATE'|'UPDATE'|'DELETE' }} [opts]
- * @returns {Promise<{ isRoot: boolean, accessibleCategories: string[], action: 'VIEW'|'CREATE'|'UPDATE'|'DELETE' }>}
- * @throws {AppError} authorizationError if no access for the requested action
+ * @param {{ id: string, role: string }} user
+ * @param {{ action?: 'VIEW'|'CREATE'|'UPDATE'|'DELETE' }} opts
+ * @returns {Promise<{ isRoot: boolean, accessibleCategories: string[], action: string }>}
  */
-const resolveOrderAccessContext = async (user, { action = 'VIEW' } = {}) => {
-  const { permissions, isRoot } = await resolveUserPermissionContext(user);
-
-  // Root: full access
+const resolveOrderAccessContext = async (
+  user,
+  { action = 'VIEW' } = {}
+) => {
+  const { permissions, isRoot } =
+    await resolveUserPermissionContext(user);
+  
   if (isRoot) {
-    return { isRoot, accessibleCategories: [...ORDER_CATEGORIES], action };
+    return {
+      isRoot,
+      accessibleCategories: [...ORDER_CATEGORIES],
+      action,
+    };
   }
-
-  const accessibleCategories = getAccessibleOrderCategoriesFromPermissions(
-    permissions,
-    { action }
-  );
-
-  if (accessibleCategories.length === 0) {
+  
+  const accessibleCategories =
+    getAccessibleOrderCategoriesFromPermissions(permissions, { action });
+  
+  if (!accessibleCategories.length) {
     throw AppError.authorizationError(
       `You do not have permission to ${action.toLowerCase()} any order types`
     );
   }
-
+  
   return { isRoot, accessibleCategories, action };
 };
 

@@ -1,4 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
@@ -7,10 +8,8 @@ import { selectRuntime } from '@store/selectors';
  * @param state - The Redux root state.
  * @returns The skuImageUpload slice of state.
  */
-const selectSkuImageUploadState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.skuImageUpload
-);
+const selectSkuImageUploadState = (state: RootState) =>
+  selectRuntime(state).skuImageUpload;
 
 /**
  * Whether the SKU image upload request is currently loading.

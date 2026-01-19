@@ -4,23 +4,31 @@ import {
   UserListView,
   UserSortField,
 } from '@features/user/state';
-import useStatusLookup from '@hooks/useStatusLookup';
+import {
+  useRoleLookup,
+  useStatusLookup
+} from '@hooks/index';
 
 /**
- * Lookup state exposed to the user filter panel.
+ * Lookup data contract consumed by the User filter panel.
  *
- * Represents lookup-backed filter data required by
- * user list and card views (e.g. status, role).
+ * Defines the lookup-backed datasets required to render
+ * user list and card view filters (e.g. status, role).
  *
- * Note:
- * - Each lookup is responsible for its own loading,
+ * Design notes:
+ * - This interface represents a UI-facing contract, not
+ *   hook implementation details.
+ * - Each lookup encapsulates its own loading, pagination,
  *   options, and error state.
+ * - Lookups are expected to be present and ready for use
+ *   when the filter panel is rendered.
  */
 export interface UserFiltersPanelLookups {
-  /** Status lookup (active, inactive, suspended, etc.) */
+  /** User status lookup (active, inactive, suspended, etc.) */
   status: ReturnType<typeof useStatusLookup>;
-
-  // role?: ReturnType<typeof useRoleLookup>;
+  
+  /** User role lookup (admin, manager, staff, etc.) */
+  role: ReturnType<typeof useRoleLookup>;
 }
 
 /**
@@ -30,11 +38,11 @@ export interface UserFiltersPanelLookups {
  * - lazily fetch lookup data on open
  * - reset lookup state when filters are cleared
  */
-interface UserLookupHandlers {
+export interface UserLookupHandlers {
   /** Handlers triggered when lookup UI elements open */
   onOpen: {
     status: () => void;
-    // role?: () => void;
+    role: () => void;
   };
 }
 
@@ -54,9 +62,10 @@ export interface BasePaginationHandlers {
  *
  * Extends base pagination with row-count control.
  */
-export interface TablePaginationHandlers extends BasePaginationHandlers {
+export interface TablePaginationHandlers<Limit extends number = number>
+  extends BasePaginationHandlers {
   /** Change number of rows displayed per page */
-  handleRowsPerPageChange: (limit: number) => void;
+  handleRowsPerPageChange: (limit: Limit) => void;
 }
 
 /**
@@ -161,17 +170,19 @@ export interface UserPageController {
  * Extends the base controller with table-only concerns
  * such as row expansion and page-size control.
  */
-export interface UserListPageController extends UserPageController {
+export interface UserListPageController<
+  Limit extends number = number
+> extends UserPageController {
   // -----------------------------
   // Table-only concerns
   // -----------------------------
-
+  
   /** Currently expanded row ID */
   expandedRowId: string | null;
-
+  
   /** Toggle row expansion */
   handleDrillDownToggle: (id: string) => void;
-
+  
   /** Table-specific pagination handlers */
-  paginationHandlers: TablePaginationHandlers;
+  paginationHandlers: TablePaginationHandlers<Limit>;
 }

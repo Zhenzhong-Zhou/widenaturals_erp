@@ -1,5 +1,4 @@
-import useStatusLookup from '@hooks/useStatusLookup';
-// import useRoleLookup from '@hooks/useRoleLookup';
+import { useRoleLookup, useStatusLookup } from '@hooks/index';
 
 /**
  * Lookup bundle used by User pages.
@@ -8,11 +7,11 @@ import useStatusLookup from '@hooks/useStatusLookup';
  * and dropdown components.
  */
 const useUserLookups = () => {
-  // const role = useRoleLookup();
+  const role = useRoleLookup();
   const status = useStatusLookup();
 
   return {
-    // role,
+    role,
     status,
   };
 };

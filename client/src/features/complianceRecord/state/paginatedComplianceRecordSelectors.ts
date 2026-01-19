@@ -1,19 +1,23 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 import { ComplianceRecord } from '@features/complianceRecord/state';
 
 /**
- * Base selector for the paginated compliance records slice.
- * Extracts the entire `paginatedComplianceRecords` state from the Redux store.
+ * Base selector for the paginated compliance records state slice.
+ *
+ * Responsibilities:
+ * - Extract the paginated compliance records state from the Redux runtime tree
+ *
+ * Design notes:
+ * - Plain function only (no `createSelector`)
+ * - No memoization or transformation
  */
-const selectPaginatedComplianceRecordsState = createSelector(
-  [selectRuntime],
-  (runtime) => runtime.paginatedComplianceRecords
-);
+const selectPaginatedComplianceRecordsState = (state: RootState) =>
+  selectRuntime(state).paginatedComplianceRecords;
 
 /**
- * Selector: Returns the array of compliance records.
- * Memoized using `createSelector`.
+ * Selects the list of compliance records for the current page.
  */
 export const selectPaginatedComplianceRecordsData = createSelector(
   [selectPaginatedComplianceRecordsState],
@@ -21,7 +25,7 @@ export const selectPaginatedComplianceRecordsData = createSelector(
 );
 
 /**
- * Selector: Indicates whether the compliance records request is currently loading.
+ * Selects whether the compliance records request is currently loading.
  */
 export const selectPaginatedComplianceRecordsLoading = createSelector(
   [selectPaginatedComplianceRecordsState],
@@ -29,7 +33,7 @@ export const selectPaginatedComplianceRecordsLoading = createSelector(
 );
 
 /**
- * Selector: Returns the error message from the compliance records state, if any.
+ * Selects any error message from the compliance records state.
  */
 export const selectPaginatedComplianceRecordsError = createSelector(
   [selectPaginatedComplianceRecordsState],
@@ -37,7 +41,7 @@ export const selectPaginatedComplianceRecordsError = createSelector(
 );
 
 /**
- * Selector: Returns the pagination metadata for compliance records.
+ * Selects pagination metadata for the compliance records list.
  */
 export const selectPaginatedComplianceRecordsPagination = createSelector(
   [selectPaginatedComplianceRecordsState],
@@ -45,7 +49,7 @@ export const selectPaginatedComplianceRecordsPagination = createSelector(
 );
 
 /**
- * Selector: Returns `true` only if the compliance records list is loaded and empty.
+ * Returns true when the compliance records list is loaded and empty.
  */
 export const selectPaginatedComplianceRecordsIsEmpty = createSelector(
   [
@@ -56,7 +60,9 @@ export const selectPaginatedComplianceRecordsIsEmpty = createSelector(
 );
 
 /**
- * Selector: Returns the total number of compliance records across all pages.
+ * Selects the total number of compliance records across all pages.
+ *
+ * Defaults to 0 when pagination metadata is unavailable.
  */
 export const selectPaginatedComplianceRecordsTotalRecords = createSelector(
   [selectPaginatedComplianceRecordsPagination],
@@ -64,32 +70,28 @@ export const selectPaginatedComplianceRecordsTotalRecords = createSelector(
 );
 
 /**
- * Selector factory: Returns a memoized selector that retrieves
+ * Selector factory that returns a memoized selector for retrieving
  * a single compliance record by its unique identifier.
  *
  * Behavior:
  * - Searches only within the currently loaded paginated records
- * - Does NOT trigger data fetching
- * - Returns `undefined` if the record is not present in the current page
+ * - Does not trigger data fetching
+ * - Returns `undefined` if the record is not present on the current page
  *
  * Performance notes:
- * - Memoized per `id` via selector factory pattern
- * - Safe to use in components rendering detail panels or drawers
+ * - Memoized per `id` via selector-factory pattern
+ * - Suitable for detail panels, drawers, and inline record views
  *
  * Usage considerations:
- * - If records are paginated, this selector will only find records
- *   from the active page
- * - For guaranteed access across pages, a dedicated entity store
- *   or fetch-by-id endpoint should be used
+ * - Pagination limits lookup scope to the active page
+ * - For cross-page access, use a normalized entity store or fetch-by-id API
  *
- * @param id - Compliance record UUID
- * @returns A memoized selector resolving to the matching compliance record,
+ * @param id Compliance record UUID
+ * @returns Memoized selector resolving to the matching compliance record,
  *          or `undefined` if not found
- *
- * @example
- * const record = useSelector(selectComplianceRecordById(recordId));
  */
 export const selectComplianceRecordById = (id: string) =>
-  createSelector([selectPaginatedComplianceRecordsData], (records) =>
-    records.find((r: ComplianceRecord) => r.id === id)
+  createSelector(
+    [selectPaginatedComplianceRecordsData],
+    (records) => records.find((r: ComplianceRecord) => r.id === id)
   );

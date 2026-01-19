@@ -6,10 +6,12 @@
 const express = require('express');
 const { authorize, authorizeAny } = require('../middlewares/authorize');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
+const { createUserProfileRateLimiter } = require('../middlewares/rate-limiter');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 const {
   userQuerySchema,
   userIdParamSchema,
+  createUserSchema,
 } = require('../validators/user-validators');
 const validate = require('../middlewares/validate');
 const { sanitizeFields } = require('../middlewares/sanitize');
@@ -17,10 +19,51 @@ const {
   getPermissions,
   getPaginatedUsersController,
   getUserProfileController,
+  createUserController,
 } = require('../controllers/user-controller');
-const { createUserProfileRateLimiter } = require('../middlewares/rate-limiter');
 
 const router = express.Router();
+
+/**
+ * POST /users
+ *
+ * Create a new user profile.
+ *
+ * Responsibilities by layer:
+ *
+ * - **Route Middleware**:
+ *   - Enforces module-level access control (`USERS.CREATE_USER`)
+ *   - Applies rate limiting to protect against abuse
+ *   - Validates request body shape and primitive constraints
+ *   - Rejects unknown or malformed fields
+ *
+ * - **Controller**:
+ *   - Validates authenticated actor presence
+ *   - Coordinates logging and request lifecycle
+ *   - Delegates all authorization, role semantics, and persistence
+ *     to the service layer
+ *
+ * - **Service / Business Layer**:
+ *   - Enforces ACL and role-creation rules
+ *   - Validates role activity and hierarchy
+ *   - Hashes credentials
+ *   - Executes transactional inserts
+ *   - Emits audit and system logs
+ *
+ * This route does NOT:
+ * - Enforce role hierarchy or system-user rules
+ * - Perform password hashing
+ * - Perform database operations
+ */
+router.post(
+  '/',
+  authorize([PERMISSIONS.USERS.CREATE_USER]),
+  createUserProfileRateLimiter(),
+  validate(createUserSchema, 'body', {
+    allowUnknown: false,
+  }),
+  createUserController
+);
 
 /**
  * GET /users

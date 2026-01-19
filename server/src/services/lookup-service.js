@@ -21,6 +21,8 @@ const {
   transformProductPaginatedLookupResult,
   transformStatusPaginatedLookupResult,
   transformUserPaginatedLookupResult,
+  enrichRoleOption,
+  transformRolePaginatedLookupResult,
 } = require('../transformers/lookup-transformer');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const {
@@ -129,6 +131,11 @@ const {
   enrichUserLookupWithActiveFlag, evaluateUserLookupSearchCapabilities
 } = require('../business/user-business');
 const { getUserLookup } = require('../repositories/user-repository');
+const { getRoleLookup } = require('../repositories/role-repository');
+const {
+  evaluateRoleVisibilityAccessControl,
+  applyRoleVisibilityRules,
+} = require('../business/role-business');
 
 /**
  * Service to fetch filtered and paginated batch registry records for lookup UI.
@@ -1538,6 +1545,103 @@ const fetchUserLookupService = async (
   }
 };
 
+/**
+ * Fetches filtered and paginated Role records for lookup UI components
+ * (dropdowns, role assignment dialogs, permission configuration).
+ *
+ * Supports:
+ * - Keyword-based fuzzy matching (name, role_group, description)
+ * - Pagination via limit + offset
+ * - Permission-aware visibility enforcement (active-only, hierarchy restriction)
+ * - Row-level UI enrichment (e.g., `isActive` flag)
+ *
+ * Internal flow:
+ * 1. Resolve role visibility permissions
+ * 2. Apply role visibility rules (status + hierarchy)
+ * 3. Execute repository-level role lookup query
+ * 4. Enrich each role row with UI flags
+ * 5. Transform into UI-optimized paginated structure
+ *
+ * @param {object} user - Authenticated user object.
+ * @param {object} options - Lookup query options.
+ * @param {object} [options.filters={}] - Optional role filters (keyword, role_group).
+ * @param {number} [options.limit=50] - Max number of items to return.
+ * @param {number} [options.offset=0] - Pagination offset.
+ *
+ * @returns {Promise<{
+ *   items: Array<{ id: string, label: string, isActive?: boolean }>,
+ *   offset: number,
+ *   limit: number,
+ *   hasMore: boolean
+ * }>}
+ *
+ * @throws {AppError} When permission evaluation or repository query fails.
+ */
+const fetchRoleLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
+  const context = 'lookup-service/fetchRoleLookupService';
+  
+  try {
+    // ------------------------------------------------------------
+    // Step 1: Log entry
+    // ------------------------------------------------------------
+    logSystemInfo('Fetching Role lookup from service', {
+      context,
+      metadata: { filters, limit, offset },
+    });
+    
+    // ------------------------------------------------------------
+    // Step 2: Permission evaluation
+    // ------------------------------------------------------------
+    const userAccess = await evaluateRoleVisibilityAccessControl(user);
+    const activeStatusId = getStatusId('general_active');
+    
+    // ------------------------------------------------------------
+    // Step 3: Apply enforced visibility rules
+    // ------------------------------------------------------------
+    const adjustedFilters = applyRoleVisibilityRules(filters, userAccess, activeStatusId);
+    
+    // ------------------------------------------------------------
+    // Step 4: Query repository
+    // ------------------------------------------------------------
+    const { data = [], pagination = {} } = await getRoleLookup({
+      filters: adjustedFilters,
+      limit,
+      offset,
+    });
+    
+    // ------------------------------------------------------------
+    // Step 5: Enrich rows (UI flags only)
+    // ------------------------------------------------------------
+    const enrichedRows = data.map((row) =>
+      enrichRoleOption(row, activeStatusId)
+    );
+    
+    // ------------------------------------------------------------
+    // Step 6: Transform to UI-friendly paginated payload
+    // ------------------------------------------------------------
+    return transformRolePaginatedLookupResult(
+      { data: enrichedRows, pagination },
+      userAccess
+    );
+  } catch (err) {
+    logSystemException(err, 'Failed to fetch Role lookup in service', {
+      context,
+      userId: user?.id,
+      filters,
+      limit,
+      offset,
+    });
+    
+    throw AppError.serviceError('Failed to fetch role lookup list.', {
+      details: err.message,
+      stage: context,
+    });
+  }
+};
+
 module.exports = {
   fetchBatchRegistryLookupService,
   fetchWarehouseLookupService,
@@ -1556,4 +1660,5 @@ module.exports = {
   fetchProductLookupService,
   fetchStatusLookupService,
   fetchUserLookupService,
+  fetchRoleLookupService,
 };

@@ -1,42 +1,56 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
- * Base selector to access the paginate address slice state.
+ * Base selector for the paginated address state slice.
+ *
+ * Responsibilities:
+ * - Extract the paginated address state from the Redux runtime tree
+ *
+ * Design notes:
+ * - Plain function only (no `createSelector`)
+ * - No memoization or transformation
  */
-const selectPaginateAddressState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.paginatedAddress
-);
+const selectPaginatedAddressState = (state: RootState) =>
+  selectRuntime(state).paginatedAddress;
 
 /**
- * Selector to get the list of paginated address records.
+ * Selects the list of paginated address records.
+ *
+ * Returns an empty array when data is not yet available.
  */
 export const selectPaginatedAddresses = createSelector(
-  selectPaginateAddressState,
+  [selectPaginatedAddressState],
   (state) => state?.data ?? []
 );
 
 /**
- * Selector to get the pagination metadata (e.g., page, limit, totalRecords, totalPages).
+ * Selects pagination metadata for the address list.
+ *
+ * Includes:
+ * - page
+ * - limit
+ * - totalRecords
+ * - totalPages
  */
 export const selectPaginationMeta = createSelector(
-  selectPaginateAddressState,
+  [selectPaginatedAddressState],
   (state) => state?.pagination ?? null
 );
 
 /**
- * Selector to determine if a paginated address request is currently loading.
+ * Selects whether the paginated address request is currently loading.
  */
-export const selectPaginateLoading = createSelector(
-  selectPaginateAddressState,
+export const selectPaginatedAddressLoading = createSelector(
+  [selectPaginatedAddressState],
   (state) => state?.loading ?? false
 );
 
 /**
- * Selector to get any error message from the paginated address request.
+ * Selects any error message from the paginated address request.
  */
-export const selectPaginateError = createSelector(
-  selectPaginateAddressState,
+export const selectPaginatedAddressError = createSelector(
+  [selectPaginatedAddressState],
   (state) => state?.error ?? null
 );

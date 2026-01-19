@@ -1,18 +1,24 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
- * Base selector to access the locationInventory slice from the root state.
+ * Base selector for the location inventory state slice.
+ *
+ * Responsibilities:
+ * - Extract the location inventory state from the Redux runtime tree
+ *
+ * Design notes:
+ * - Plain function only (no `createSelector`)
+ * - Internal implementation detail
  */
-const selectLocationInventoryState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.locationInventory
-);
+const selectLocationInventoryState = (state: RootState) =>
+  selectRuntime(state).locationInventory;
 
 /**
- * Selector to get the inventory record list.
+ * Selects the list of location inventory records.
  *
- * @returns {LocationInventoryRecord[]} Array of location inventory records.
+ * @returns Array of location inventory records.
  */
 export const selectLocationInventoryRecords = createSelector(
   [selectLocationInventoryState],
@@ -20,9 +26,9 @@ export const selectLocationInventoryRecords = createSelector(
 );
 
 /**
- * Selector to get the loading state for location inventory.
+ * Selects whether the location inventory request is currently loading.
  *
- * @returns {boolean} True if data is being fetched.
+ * @returns `true` if data is being fetched.
  */
 export const selectLocationInventoryLoading = createSelector(
   [selectLocationInventoryState],
@@ -30,9 +36,9 @@ export const selectLocationInventoryLoading = createSelector(
 );
 
 /**
- * Selector to get the error state for location inventory.
+ * Selects any error message from the location inventory request.
  *
- * @returns {string | null} Error message if request failed.
+ * @returns Error message if the request failed, otherwise `null`.
  */
 export const selectLocationInventoryError = createSelector(
   [selectLocationInventoryState],
@@ -40,9 +46,10 @@ export const selectLocationInventoryError = createSelector(
 );
 
 /**
- * Selector to get the pagination info for location inventory.
+ * Selects pagination metadata for location inventory.
  *
- * @returns {PaginationInfo | null} Pagination metadata (page, limit, totalRecords, etc.)
+ * @returns Pagination information such as page, limit, and totalRecords,
+ *          or `null` if pagination is not yet available.
  */
 export const selectLocationInventoryPagination = createSelector(
   [selectLocationInventoryState],

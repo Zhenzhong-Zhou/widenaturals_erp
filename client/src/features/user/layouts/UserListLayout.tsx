@@ -5,7 +5,8 @@ import {
   UserListTable,
 } from '@features/user/components/UserView';
 import useFlattenedUsers from '@features/user/hooks/useFlattenedUsers';
-import { UserListPageController } from '@features/user/types/hookTypes';
+import type { UserListPageController } from '@features/user/types/hookTypes';
+import type { UserTablePageSize } from '@features/user/config/userTableConfig';
 
 /**
  * List (table) layout for the Users page.
@@ -22,9 +23,9 @@ import { UserListPageController } from '@features/user/types/hookTypes';
  *   to the user page controller
  * - This component is list-view specific
  */
-const UserListLayout: FC<{ controller: UserListPageController }> = ({
-  controller,
-}) => {
+const UserListLayout: FC<{
+  controller: UserListPageController<UserTablePageSize>;
+}> = ({ controller }) => {
   const {
     data,
     filters,
@@ -69,7 +70,9 @@ const UserListLayout: FC<{ controller: UserListPageController }> = ({
         totalRecords={totalRecords}
         totalPages={totalPages}
         onPageChange={handlePageChange}
-        onRowsPerPageChange={handleRowsPerPageChange}
+        onRowsPerPageChange={(value: number) =>
+          handleRowsPerPageChange(value as UserTablePageSize)
+        }
         expandedRowId={expandedRowId}
         onDrillDownToggle={handleDrillDownToggle}
         onRefresh={refresh}

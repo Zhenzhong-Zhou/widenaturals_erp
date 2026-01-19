@@ -1,15 +1,15 @@
 import type { FC } from 'react';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
-import { UserFilters, UserSortField } from '@features/user/state';
+import type { UserFilters, UserSortField } from '@features/user/state';
 import {
   UserFiltersPanel,
   UserSortControls,
 } from '@features/user/components/UserView';
-import {
+import type {
   UserFiltersPanelLookups,
   UserLookupHandlers,
-} from '@features/user/components/UserView/UserFiltersPanel';
+} from '@features/user/types/hookTypes';
 
 interface UserFilterAndSortPanelProps {
   filters: UserFilters;

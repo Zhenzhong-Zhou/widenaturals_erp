@@ -1,14 +1,13 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 import type { OrderQueryParams } from '@features/order/state/orderTypes';
 
 /**
  * Base selector to retrieve the entire paginated orders slice from the Redux state.
  */
-const selectPaginatedOrdersState = createSelector(
-  [selectRuntime],
-  (runtime) => runtime.paginatedOrders
-);
+const selectPaginatedOrdersState = (state: RootState) =>
+  selectRuntime(state).paginatedOrders;
 
 /**
  * Selector to retrieve the current list of paginated orders.

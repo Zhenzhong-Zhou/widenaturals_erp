@@ -21,7 +21,7 @@ import type {
   PricingLookupQueryParams,
   PricingLookupResponse,
   ProductLookupParams,
-  ProductLookupResponse,
+  ProductLookupResponse, RoleLookupParams, RoleLookupResponse,
   SkuCodeBaseLookupParams,
   SkuCodeBaseLookupResponse,
   SkuLookupQueryParams,
@@ -577,6 +577,37 @@ export const fetchUserLookupThunk = createAsyncThunk<
     return await lookupService.fetchUserLookup(params);
   } catch (error: unknown) {
     console.error('fetchUserLookupThunk error:', error);
+    return rejectWithValue(extractErrorMessage(error));
+  }
+});
+
+/**
+ * Thunk: Fetch paginated **Role lookup** items for dropdowns/selectors.
+ *
+ * Calls `lookupService.fetchRoleLookup`, which hits `GET /lookups/roles`
+ * and returns a typed {@link RoleLookupResponse}.
+ *
+ * ## Behavior
+ * - Accepts optional params such as:
+ *   - keyword
+ *   - limit / offset
+ * - Resolves with Role lookup data
+ * - Rejects with a user-friendly error message
+ *
+ * @param params Optional {@link RoleLookupParams} for filtering and pagination.
+ *
+ * @returns A typed thunk action resolving to `RoleLookupResponse`
+ *          or rejecting with `rejectValue: string`.
+ */
+export const fetchRoleLookupThunk = createAsyncThunk<
+  RoleLookupResponse,                 // fulfilled type
+  RoleLookupParams | undefined,        // argument type
+  { rejectValue: string }              // rejection payload type
+>('lookups/fetchRoleLookup', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchRoleLookup(params);
+  } catch (error: unknown) {
+    console.error('fetchRoleLookupThunk error:', error);
     return rejectWithValue(extractErrorMessage(error));
   }
 });

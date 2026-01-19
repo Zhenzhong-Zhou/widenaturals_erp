@@ -1,13 +1,12 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
  * Base selector to access the completeManualFulfillment slice.
  */
-export const selectCompleteManualFulfillmentState = createSelector(
-  [selectRuntime],
-  (runtime) => runtime.completeManualFulfillment
-);
+const selectCompleteManualFulfillmentState = (state: RootState) =>
+  selectRuntime(state).completeManualFulfillment;
 
 /**
  * Selector for the loading state of manual fulfillment completion.

@@ -10,67 +10,6 @@ const {
 } = require('../utils/sql/build-status-filters');
 
 /**
- * Resolves a status ID by name.
- *
- * Bootstrap / infrastructure only.
- * - No ACL
- * - No business semantics
- * - No status-state interpretation
- *
- * Intended usage:
- * - Root admin initialization
- * - Seed scripts
- * - Migration / bootstrap utilities
- *
- * @param {string} statusName - Human-readable status name (e.g. "active")
- * @param {object} [client] - Optional transaction client
- * @returns {Promise<string>} statusId
- *
- * @throws {AppError}
- * - validationError if name missing
- * - databaseError if status does not exist or query fails
- */
-const resolveStatusIdByName = async (statusName, client) => {
-  const context = 'status-repository/resolveStatusIdByName';
-  
-  if (!statusName) {
-    throw AppError.validationError('Status name is required.', { context });
-  }
-  
-  const sql = `
-    SELECT id
-    FROM status
-    WHERE name = LOWER($1)
-    LIMIT 1
-  `;
-  
-  try {
-    const { rows } = await query(sql, [statusName], client);
-    
-    if (!rows.length) {
-      throw AppError.databaseError(
-        `Required status "${statusName}" not found.`,
-        { context }
-      );
-    }
-    
-    return rows[0].id;
-  } catch (error) {
-    logSystemException(error, 'Failed to resolve status ID by name', {
-      context,
-      statusName,
-    });
-    
-    throw error instanceof AppError
-      ? error
-      : AppError.databaseError('Failed to resolve status ID.', {
-        context,
-        cause: error,
-      });
-  }
-};
-
-/**
  * Repository: Get Paginated Statuses
  *
  * Retrieves statuses with pagination, dynamic filtering, safe sorting,
@@ -411,7 +350,6 @@ const getStatusLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
 };
 
 module.exports = {
-  resolveStatusIdByName,
   getPaginatedStatuses,
   getStatusById,
   checkStatusExists,

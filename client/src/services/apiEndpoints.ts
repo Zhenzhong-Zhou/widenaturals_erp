@@ -21,6 +21,7 @@ export const API_ENDPOINTS = {
   USER_PERMISSION: '/users/me/permissions',
   REFRESH_TOKEN: '/session/refresh',
   USERS: {
+    ADD_NEW_RECORD: '/users',
     ALL_RECORDS: '/users',
     PROFILE: {
       SELF: '/users/me/profile',
@@ -104,6 +105,7 @@ export const API_ENDPOINTS = {
     PRODUCTS: '/lookups/products',
     STATUSES: '/lookups/statuses',
     USERS: '/lookups/users',
+    ROLES: '/lookups/roles',
   },
   REPORTS: {
     INVENTORY_ACTIVITY_LOGS: 'reports/inventory-activity-logs',

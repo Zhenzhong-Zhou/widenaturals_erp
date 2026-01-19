@@ -15,19 +15,27 @@ import skuCodeBaseLookupReducer from './skuCodeBaseLookupSlice';
 import productLookupReducer from './productLookupSlice';
 import statusLookupReducer from './statusLookupSlice';
 import userLookupReducer from './userLookupSlice';
+import roleLookupReducer from './roleLookupSlice';
 
 /**
  * Reducer map for Lookup / Dropdown reference data.
  *
- * This reducer group is consumed exclusively by the root reducer
- * to compose the `lookup` state subtree.
+ * This reducer group is composed into the root reducer
+ * under the `lookup` state subtree.
+ *
+ * Lookup reducers are:
+ * - Read-heavy, reference-oriented slices
+ * - Used exclusively for dropdowns, selectors, and autocomplete inputs
+ * - NOT authoritative domain state
+ * - Safe to reset or refresh at any time
  *
  * Design principles:
- * - Slice reducers are imported locally to avoid circular
+ * - Slice reducers are imported directly to avoid circular
  *   ES module initialization (TDZ) issues.
- * - Slice reducers are private implementation details.
- * - Reducer aggregators must NEVER import feature or state
- *   index (barrel) files.
+ * - Lookup slices are private implementation details and must
+ *   not be accessed via feature or state barrel files.
+ * - Reducer aggregators must NEVER import feature-level logic.
+ * - No domain mutations or side effects belong in lookup slices.
  */
 export const lookupReducers = {
   batchRegistryLookup: batchRegistryLookupReducer,
@@ -47,4 +55,5 @@ export const lookupReducers = {
   productLookup: productLookupReducer,
   statusLookup: statusLookupReducer,
   userLookup: userLookupReducer,
+  roleLookup: roleLookupReducer,
 };

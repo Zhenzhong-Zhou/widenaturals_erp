@@ -1,22 +1,28 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 import type { AllocationReviewItem } from '@features/inventoryAllocation/state/inventoryAllocationTypes';
 import { isPackagingBatch, isProductBatch } from '@utils/batchTypeGuards';
 
 /**
- * Root selector for the inventory allocation review slice.
+ * Base selector for the inventory allocation review state slice.
+ *
+ * Responsibilities:
+ * - Extract the inventory allocation review state from the Redux runtime tree
+ *
+ * Design notes:
+ * - Plain function only (no `createSelector`)
+ * - Internal implementation detail
  */
-const selectInventoryAllocationReviewState = createSelector(
-  [selectRuntime],
-  (runtime) => runtime.inventoryAllocationReview
-);
+const selectInventoryAllocationReviewState = (state: RootState) =>
+  selectRuntime(state).inventoryAllocationReview;
 
 /* =======================
    Primitive field selectors
    ======================= */
 
 /**
- * Selector for loading state of inventory allocation review.
+ * Selects whether the inventory allocation review request is loading.
  */
 export const selectReviewLoading = createSelector(
   selectInventoryAllocationReviewState,
@@ -24,7 +30,7 @@ export const selectReviewLoading = createSelector(
 );
 
 /**
- * Selector for error message (if any).
+ * Selects any error message from the inventory allocation review request.
  */
 export const selectReviewError = createSelector(
   selectInventoryAllocationReviewState,
@@ -32,7 +38,7 @@ export const selectReviewError = createSelector(
 );
 
 /**
- * Selector for human-readable message from the server.
+ * Selects the human-readable message returned by the server.
  */
 export const selectReviewMessage = createSelector(
   selectInventoryAllocationReviewState,
@@ -40,7 +46,7 @@ export const selectReviewMessage = createSelector(
 );
 
 /**
- * Selector for the last successful fetch timestamp.
+ * Selects the timestamp of the last successful review fetch.
  */
 export const selectReviewLastFetchedAt = createSelector(
   selectInventoryAllocationReviewState,
@@ -48,7 +54,7 @@ export const selectReviewLastFetchedAt = createSelector(
 );
 
 /**
- * Selector for the raw API response data.
+ * Selects the raw inventory allocation review response data.
  */
 export const selectReviewData = createSelector(
   selectInventoryAllocationReviewState,
@@ -60,7 +66,7 @@ export const selectReviewData = createSelector(
    ======================= */
 
 /**
- * Selector for order header details.
+ * Selects the order header details from the review response.
  */
 export const selectReviewHeader = createSelector(
   selectReviewData,
@@ -68,21 +74,23 @@ export const selectReviewHeader = createSelector(
 );
 
 /**
- * Selector for list of allocation review items.
+ * Selects the list of allocation review items.
  */
 export const selectReviewItems = createSelector(
   selectReviewData,
   (data) => data?.items ?? []
 );
 
-/** Item count (stable number for badges, etc.) */
+/**
+ * Selects the total number of allocation review items.
+ */
 export const selectReviewItemCount = createSelector(
   [selectReviewItems],
   (items) => items.length
 );
 
 /**
- * Selector for the name of the salesperson or creator.
+ * Selects the name of the salesperson or creator associated with the order.
  */
 export const selectReviewCreatedBy = createSelector(
   selectReviewHeader,
@@ -90,7 +98,7 @@ export const selectReviewCreatedBy = createSelector(
 );
 
 /**
- * Selector for the list of allocation IDs present in the review.
+ * Selects the list of allocation IDs present in the review.
  */
 export const selectReviewAllocationIds = createSelector(
   selectReviewItems,
@@ -98,23 +106,22 @@ export const selectReviewAllocationIds = createSelector(
 );
 
 /**
- * Selector that maps allocation review items into flattened display rows.
+ * Maps allocation review items into flattened, display-ready rows.
  *
- * This supports multiple batch types (product and packaging material),
- * and returns relevant fields (e.g., SKU code, material label, lot number,
- * expiry date, allocated quantity) depending on the batch type.
+ * Supports both product batches and packaging material batches,
+ * normalizing their fields for table rendering.
  *
- * @returns An array of normalized review rows for table rendering.
- * - Product rows include: type, skuCode, displayName, lot, expiryDate, allocated.
- * - Packaging material rows include: type, materialCode, materialLabel, lot, expiryDate, allocated.
- * - Unknown types fallback to type: 'unknown'.
+ * Returns:
+ * - Product rows: type, skuCode, displayName, lot, expiryDate, allocated
+ * - Packaging rows: type, materialCode, materialLabel, lot, expiryDate, allocated
+ * - Unknown rows: type = 'unknown', allocated
  */
 export const selectReviewAllocations = createSelector(
   selectReviewItems,
   (items) =>
     items.map((item: AllocationReviewItem) => {
       const { batch, product, packagingMaterial, allocatedQuantity } = item;
-
+      
       if (isProductBatch(batch)) {
         return {
           type: 'product' as const,
@@ -125,7 +132,7 @@ export const selectReviewAllocations = createSelector(
           allocated: allocatedQuantity,
         };
       }
-
+      
       if (isPackagingBatch(batch)) {
         return {
           type: 'packaging_material' as const,
@@ -136,7 +143,7 @@ export const selectReviewAllocations = createSelector(
           allocated: allocatedQuantity,
         };
       }
-
+      
       return {
         type: 'unknown' as const,
         allocated: allocatedQuantity,

@@ -1,14 +1,13 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 import type { LoginResponseData } from '@features/session';
 
 /**
  * Base selector — retrieves the full `login` slice.
  */
-const selectLoginState = createSelector(
-  [selectRuntime],
-  (runtime) => runtime.login
-);
+const selectLoginState = (state: RootState) =>
+  selectRuntime(state).login;
 
 /**
  * Selector: returns the login response data or null.

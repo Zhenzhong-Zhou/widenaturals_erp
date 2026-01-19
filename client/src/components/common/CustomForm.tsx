@@ -27,10 +27,12 @@ import InputLabel from '@mui/material/InputLabel';
 import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
 import FormHelperText from '@mui/material/FormHelperText';
-import BaseInput from '@components/common/BaseInput';
-import CustomTypography from '@components/common/CustomTypography';
-import CustomButton from '@components/common/CustomButton';
-import CustomPhoneInput from '@components/common/CustomPhoneInput';
+import {
+  BaseInput,
+  CustomButton,
+  CustomPhoneInput,
+  CustomTypography
+} from '@components/index';
 import { useTheme } from '@mui/material';
 import type { SxProps, Theme } from '@mui/system';
 
@@ -38,6 +40,7 @@ export type CustomRenderParams = {
   value?: any;
   onChange?: (val: any) => void;
   required?: boolean;
+  formValues: Record<string, any>;
   watch?: UseFormWatch<any>;
 };
 
@@ -117,6 +120,7 @@ const CustomFormInner = <TFieldValues extends FieldValues = FieldValues>(
     formState: { errors },
     reset,
     watch,
+    getValues,
   } = formInstance ??
   useForm<TFieldValues>({
     mode: 'onChange',
@@ -193,6 +197,7 @@ const CustomFormInner = <TFieldValues extends FieldValues = FieldValues>(
                   value: controllerField.value,
                   onChange: controllerField.onChange,
                   required: field.required,
+                  formValues: getValues(),
                   watch,
                 });
 

@@ -1,13 +1,19 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
- * Base selector to access the address creation slice of state.
+ * Base selector for the address creation state slice.
+ *
+ * Responsibilities:
+ * - Extract the address creation slice from the Redux state tree
+ *
+ * Design notes:
+ * - Plain function only (no `createSelector`)
+ * - No memoization or transformation
  */
-const selectAddressCreationState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.addressCreation
-);
+const selectAddressCreationState = (state: RootState) =>
+  selectRuntime(state).addressCreation;
 
 /**
  * Selects the loading state for address creation.
@@ -34,7 +40,11 @@ export const selectAddressCreationData = createSelector(
 );
 
 /**
- * Selects the success flag and message from address creation.
+ * Selects the address creation result metadata.
+ *
+ * Returns:
+ * - success: boolean
+ * - message: string | null
  */
 export const selectAddressCreationSuccessMessage = createSelector(
   [selectAddressCreationState],

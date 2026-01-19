@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchLocationTypeDetailsThunk,
-  selectLocations,
+  selectLocationTypeLocations,
   selectLocationTypeDetail,
   selectLocationTypeError,
   selectLocationTypeLoading,
@@ -26,7 +26,7 @@ const useLocationTypeDetail = (
 
   // Selectors for Redux state
   const locationType = useAppSelector(selectLocationTypeDetail);
-  const locations = useAppSelector(selectLocations);
+  const locations = useAppSelector(selectLocationTypeLocations);
   const pagination = useAppSelector(selectLocationTypePagination);
   const loading = useAppSelector(selectLocationTypeLoading);
   const error = useAppSelector(selectLocationTypeError);

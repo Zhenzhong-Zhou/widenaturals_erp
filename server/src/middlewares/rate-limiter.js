@@ -33,6 +33,21 @@ const createCsrfTokenRateLimiter = () =>
   });
 
 /**
+ * Creates a rate limiter to control public health check requests.
+ *
+ * Purpose:
+ * - Protects the health endpoint from abuse
+ * - Allows frequent polling by load balancers and monitors
+ * - Prevents accidental denial of service during deployments
+ */
+const createHealthRateLimiter = () =>
+  createRateLimiter({
+    windowMs: RATE_LIMIT.HEALTH.WINDOW_MS,
+    max: RATE_LIMIT.HEALTH.MAX,
+    context: 'health-rate-limiter',
+  });
+
+/**
  * Creates a rate limiter to control login attempts.
  */
 const createLoginRateLimiter = () =>
@@ -86,6 +101,7 @@ module.exports = {
   createGlobalRateLimiter,
   createApiRateLimiter,
   createCsrfTokenRateLimiter,
+  createHealthRateLimiter,
   createLoginRateLimiter,
   createRefreshRateLimiter,
   createUserProfileRateLimiter,

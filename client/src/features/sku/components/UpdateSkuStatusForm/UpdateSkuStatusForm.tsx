@@ -1,7 +1,8 @@
 import { type FC } from 'react';
 import CustomForm from '@components/common/CustomForm';
 import { createStatusField } from '@features/sku/components/UpdateSkuStatusForm';
-import useStatusFieldController, {
+import { useStatusFieldController } from '@features/lookup/hooks';
+import type {
   StatusLookupController,
   StatusPayload,
 } from '@features/lookup/hooks/useStatusFieldController';

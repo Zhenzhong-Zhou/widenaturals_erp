@@ -1,33 +1,26 @@
 import { type FC, useEffect } from 'react';
 import { Path, useForm } from 'react-hook-form';
 import Grid from '@mui/material/Grid';
-import FilterPanelLayout from '@components/common/FilterPanelLayout';
-import { renderDateField, renderInputField } from '@utils/filters/filterUtils';
-import type { FilterField } from '@shared-types/shared';
+import { FilterPanelLayout } from '@components/index';
 import type { UserFilters } from '@features/user/state';
-// import useRoleLookup from '@hooks/useRoleLookup';
-import useStatusLookup from '@hooks/useStatusLookup';
-import useMultiSelectBinding from '@features/lookup/hooks/useMultiSelectBinding';
-import StatusMultiSelectDropdown from '@features/lookup/components/StatusMultiSelectDropdown';
-// import RoleMultiSelectDropdown from '@features/lookup/components/RoleMultiSelectDropdown';
-import { formatLabel } from '@utils/textUtils';
+import type { FilterField } from '@shared-types/shared';
+import {
+  useLookupSearchBinding,
+  useMultiSelectBinding,
+  useRoleSearchHandlers,
+  useStatusSearchHandlers,
+} from '@features/lookup/hooks';
+import {
+  RoleMultiSelectDropdown,
+  StatusMultiSelectDropdown,
+} from '@features/lookup/components';
 import { useFormattedOptions } from '@features/lookup/utils/lookupUtils';
-
-/* ------------------------------------------------------------------ */
-/* Interfaces                                                          */
-/* ------------------------------------------------------------------ */
-
-export interface UserFiltersPanelLookups {
-  // role: ReturnType<typeof useRoleLookup>;
-  status: ReturnType<typeof useStatusLookup>;
-}
-
-export interface UserLookupHandlers {
-  onOpen: {
-    // role: () => void;
-    status: () => void;
-  };
-}
+import { renderDateField, renderInputField } from '@utils/filters/filterUtils';
+import { formatLabel } from '@utils/textUtils';
+import type {
+  UserFiltersPanelLookups,
+  UserLookupHandlers,
+} from '@features/user/types/hookTypes';
 
 interface Props {
   filters: UserFilters;
@@ -106,7 +99,7 @@ const UserFiltersPanel: FC<Props> = ({
     });
 
   const {
-    // role,
+    role,
     status,
   } = lookups;
 
@@ -133,15 +126,15 @@ const UserFiltersPanel: FC<Props> = ({
   /* -----------------------------
    * Multi-select bindings
    * ----------------------------- */
-  // const {
-  //   selectedOptions: selectedRoleOptions,
-  //   handleSelect: handleRoleSelect,
-  // } = useMultiSelectBinding({
-  //   watch,
-  //   setValue,
-  //   fieldName: 'roleIds',
-  //   options: role.options,
-  // });
+  const {
+    selectedOptions: selectedRoleOptions,
+    handleSelect: handleRoleSelect,
+  } = useMultiSelectBinding({
+    watch,
+    setValue,
+    fieldName: 'roleIds',
+    options: role.options,
+  });
 
   const {
     selectedOptions: selectedStatusOptions,
@@ -152,14 +145,23 @@ const UserFiltersPanel: FC<Props> = ({
     fieldName: 'statusIds',
     options: status.options,
   });
+  
+  /* -----------------------------
+   * Lookup search bindings
+   * ----------------------------- */
+  const { handleRoleSearch } = useRoleSearchHandlers(role);
+  const { handleStatusSearch } = useStatusSearchHandlers(status);
+  
+  const roleSearch = useLookupSearchBinding(handleRoleSearch);
+  const statusSearch = useLookupSearchBinding(handleStatusSearch);
 
   /* -----------------------------
    * Derived lookup options
    * ----------------------------- */
-  // const formattedRoleOptions = useFormattedOptions(
-  //   role.options,
-  //   formatLabel
-  // );
+  const formattedRoleOptions = useFormattedOptions(
+    role.options,
+    formatLabel
+  );
 
   const formattedStatusOptions = useFormattedOptions(
     status.options,
@@ -176,18 +178,20 @@ const UserFiltersPanel: FC<Props> = ({
           {/* ------------------------------------
            * Lookup filters
            * ------------------------------------ */}
-          {/*<Grid size={{ xs: 12, md: 4 }}>*/}
-          {/*  <RoleMultiSelectDropdown*/}
-          {/*    options={formattedRoleOptions}*/}
-          {/*    selectedOptions={selectedRoleOptions}*/}
-          {/*    onChange={handleRoleSelect}*/}
-          {/*    onOpen={lookupHandlers.onOpen.role}*/}
-          {/*    loading={role.loading}*/}
-          {/*  />*/}
-          {/*</Grid>*/}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <RoleMultiSelectDropdown
+              {...roleSearch}
+              options={formattedRoleOptions}
+              selectedOptions={selectedRoleOptions}
+              onChange={handleRoleSelect}
+              onOpen={lookupHandlers.onOpen.role}
+              loading={role.loading}
+            />
+          </Grid>
 
-          <Grid size={{ xs: 12, md: 4 }}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <StatusMultiSelectDropdown
+              {...statusSearch}
               options={formattedStatusOptions}
               selectedOptions={selectedStatusOptions}
               onChange={handleStatusSelect}

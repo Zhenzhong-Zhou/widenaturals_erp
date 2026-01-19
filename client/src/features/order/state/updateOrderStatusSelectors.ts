@@ -1,13 +1,12 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
  * Base selector to access the update order status slice from the Redux state.
  */
-const selectUpdateOrderStatusState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.updateOrderStatus
-);
+const selectUpdateOrderStatusState = (state: RootState) =>
+  selectRuntime(state).updateOrderStatus;
 
 /**
  * Selector to retrieve the loading state of the update order status operation.

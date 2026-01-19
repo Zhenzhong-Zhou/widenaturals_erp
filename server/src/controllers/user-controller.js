@@ -1,11 +1,64 @@
 const wrapAsync = require('../utils/wrap-async');
 const { logInfo } = require('../utils/logger-helper');
 const {
+  createUserService,
   fetchPaginatedUsersService,
   fetchUserProfileService,
 } = require('../services/user-service');
 const AppError = require('../utils/AppError');
 const { fetchPermissions } = require('../services/role-permission-service');
+
+/**
+ * Create User Controller
+ *
+ * Handles HTTP request lifecycle for user creation.
+ *
+ * Responsibilities:
+ * - Extract and normalize request input
+ * - Assert authenticated actor presence
+ * - Delegate all business logic to the service layer
+ * - Shape and return HTTP response
+ * - Emit request-level system logs
+ *
+ * MUST NOT:
+ * - Perform authorization or ACL checks
+ * - Interpret role semantics or hierarchy
+ * - Perform database, transactional, or hashing logic
+ * - Enforce business invariants
+ *
+ * All authorization, validation beyond shape,
+ * and persistence logic are handled in the service layer.
+ */
+const createUserController = wrapAsync(async (req, res) => {
+  const context = 'user-controller/createUser';
+  
+  const actor = req.user;
+  
+  const input = {
+    email: req.body.email,
+    password: req.body.password,
+    roleId: req.body.roleId,
+    firstname: req.body.firstname,
+    lastname: req.body.lastname,
+    phoneNumber: req.body.phoneNumber,
+    jobTitle: req.body.jobTitle,
+    note: req.body.note,
+  };
+  
+  const result = await createUserService(input, actor);
+  
+  logInfo('User created successfully', req, {
+    context,
+    userId: result.id,
+    createdBy: actor.id,
+  });
+  
+  res.status(201).json({
+    success: true,
+    message: 'User created successfully',
+    data: result,
+  });
+});
 
 /**
  * Controller: Fetch paginated users (list or card view).
@@ -211,6 +264,7 @@ const getPermissions = wrapAsync(async (req, res, next) => {
 });
 
 module.exports = {
+  createUserController,
   getPaginatedUsersController,
   getUserProfileController,
   getPermissions,

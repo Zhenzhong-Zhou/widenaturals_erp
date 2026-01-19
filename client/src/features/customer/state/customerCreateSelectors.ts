@@ -1,17 +1,23 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 import type { CustomerResponse } from '@features/customer/state/customerTypes';
 
 /**
- * Base selector for accessing the customer creation slice state.
+ * Base selector for the customer creation state slice.
+ *
+ * Responsibilities:
+ * - Extract the customer creation state from the Redux runtime tree
+ *
+ * Design notes:
+ * - Plain function only (no `createSelector`)
+ * - No memoization or transformation
  */
-const selectCustomerCreateState = createSelector(
-  [selectRuntime],
-  (runtime) => runtime.customerCreate
-);
+const selectCustomerCreateState = (state: RootState) =>
+  selectRuntime(state).customerCreate;
 
 /**
- * Selector to get the loading status of the customer creation request.
+ * Selects whether the customer creation request is currently loading.
  */
 export const selectCustomerCreateLoading = createSelector(
   [selectCustomerCreateState],
@@ -19,7 +25,7 @@ export const selectCustomerCreateLoading = createSelector(
 );
 
 /**
- * Selector to get any error message from the customer creation request.
+ * Selects any error message from the customer creation request.
  */
 export const selectCustomerCreateError = createSelector(
   [selectCustomerCreateState],
@@ -27,8 +33,12 @@ export const selectCustomerCreateError = createSelector(
 );
 
 /**
- * Selector to retrieve the full response after customer creation.
- * Includes success flag, message, and created customer data.
+ * Selects the normalized customer creation response.
+ *
+ * Returns an object containing:
+ * - success: boolean
+ * - message: string
+ * - data: CustomerResponse[]
  */
 export const selectCustomerCreateResponse = createSelector(
   [selectCustomerCreateState],
@@ -40,8 +50,10 @@ export const selectCustomerCreateResponse = createSelector(
 );
 
 /**
- * Selector to derive and memoize the full names of created customers.
- * Returns an array of formatted strings: "Firstname Lastname".
+ * Selects and memoizes the full names of created customers.
+ *
+ * Each entry is formatted as "Firstname Lastname".
+ * Defaults to an empty array when no customers are present.
  */
 export const selectCreatedCustomerNames = createSelector(
   [selectCustomerCreateState],
@@ -49,5 +61,5 @@ export const selectCreatedCustomerNames = createSelector(
     customerCreate.data?.map(
       (customer: CustomerResponse) =>
         `${customer.firstname} ${customer.lastname}`
-    ) || []
+    ) ?? []
 );

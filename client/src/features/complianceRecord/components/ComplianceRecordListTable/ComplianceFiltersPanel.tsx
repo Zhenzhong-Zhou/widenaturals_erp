@@ -5,12 +5,16 @@ import FilterPanelLayout from '@components/common/FilterPanelLayout';
 import { renderDateField, renderInputField } from '@utils/filters/filterUtils';
 import { ComplianceFilters } from '@features/complianceRecord/state';
 import type { FilterField } from '@shared-types/shared';
-import useProductLookup from '@hooks/useProductLookup';
-import useSkuLookup from '@hooks/useSkuLookup';
-import useStatusLookup from '@hooks/useStatusLookup';
-import useMultiSelectBinding from '@features/lookup/hooks/useMultiSelectBinding';
-import useProductSearchHandlers from '@features/lookup/hooks/useProductSearchHandlers';
-import useSkuSearchHandlers from '@features/lookup/hooks/useSkuSearchHandlers';
+import {
+  useProductLookup,
+  useSkuLookup,
+  useStatusLookup }
+  from '@hooks/index';
+import {
+  useMultiSelectBinding,
+  useProductSearchHandlers,
+  useSkuSearchHandlers
+} from '@features/lookup/hooks';
 import StatusMultiSelectDropdown from '@features/lookup/components/StatusMultiSelectDropdown';
 import ProductMultiSelectDropdown from '@features/lookup/components/ProductMultiSelectDropdown';
 import SkuMultiSelectDropdown from '@features/lookup/components/SkuMultiSelectDropdown';

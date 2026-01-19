@@ -23,7 +23,7 @@ import type {
   PricingLookupQueryParams,
   PricingLookupResponse,
   ProductLookupParams,
-  ProductLookupResponse,
+  ProductLookupResponse, RoleLookupParams, RoleLookupResponse,
   SkuCodeBaseLookupParams,
   SkuCodeBaseLookupResponse,
   SkuLookupQueryParams,
@@ -31,7 +31,9 @@ import type {
   StatusLookupParams,
   StatusLookupResponse,
   TaxRateLookupQueryParams,
-  TaxRateLookupResponse, UserLookupParams, UserLookupResponse,
+  TaxRateLookupResponse,
+  UserLookupParams,
+  UserLookupResponse,
 } from '@features/lookup/state/lookupTypes';
 
 /* =========================================================
@@ -178,6 +180,12 @@ const fetchUserLookup = (
 ): Promise<UserLookupResponse> =>
   getLookup(API_ENDPOINTS.LOOKUPS.USERS, params);
 
+/** Fetch role lookup items. */
+const fetchRoleLookup = (
+  params?: RoleLookupParams
+): Promise<RoleLookupResponse> =>
+  getLookup(API_ENDPOINTS.LOOKUPS.ROLES, params);
+
 
 /* =========================================================
  * Public API
@@ -201,4 +209,5 @@ export const lookupService = {
   fetchProductLookup,
   fetchStatusLookup,
   fetchUserLookup,
+  fetchRoleLookup,
 };

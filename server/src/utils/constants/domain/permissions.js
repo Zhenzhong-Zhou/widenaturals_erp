@@ -6,6 +6,7 @@ const PERMISSIONS = {
     VIEW: 'view_admin',
   },
   USERS: {
+    CREATE_USER: 'create_user',
     VIEW_USERS: 'view_users',
     VIEW_LIST: 'view_user_list',
     VIEW_CARD: 'view_user_card',

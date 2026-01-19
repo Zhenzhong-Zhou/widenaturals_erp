@@ -1,4 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 import {
   createLookupMetaSelector,
@@ -6,20 +7,16 @@ import {
 } from '@features/lookup/utils/lookupSelectorUtils';
 
 /**
- * Root selector to access the customer lookup slice from the Redux state.
+ * Base selector for the customer lookup slice.
  *
- * @param state - The root Redux state
- * @returns The customer lookup state slice
+ * Internal-only extraction selector.
+ * MUST remain a plain function.
  */
-const selectCustomerLookupState = createSelector(
-  [selectRuntime],
-  (runtime) => runtime.customerLookup
-);
+const selectCustomerLookupState = (state: RootState) =>
+  selectRuntime(state).customerLookup;
 
 /**
- * Selector to retrieve the raw customer lookup items.
- *
- * @returns An array of customer lookup items
+ * Selects raw customer lookup items.
  */
 export const selectCustomerLookupItems = createSelector(
   [selectCustomerLookupState],
@@ -27,9 +24,7 @@ export const selectCustomerLookupItems = createSelector(
 );
 
 /**
- * Selector to retrieve the loading status of the customer lookup request.
- *
- * @returns A boolean indicating loading state
+ * Selects loading state for the customer lookup request.
  */
 export const selectCustomerLookupLoading = createSelector(
   [selectCustomerLookupState],
@@ -37,9 +32,7 @@ export const selectCustomerLookupLoading = createSelector(
 );
 
 /**
- * Selector to retrieve any error message from the customer lookup request.
- *
- * @returns A string error message or null if no error
+ * Selects error message from the customer lookup slice, if any.
  */
 export const selectCustomerLookupError = createSelector(
   [selectCustomerLookupState],
@@ -47,21 +40,22 @@ export const selectCustomerLookupError = createSelector(
 );
 
 /**
- * Selector to retrieve pagination metadata for the customer lookup.
+ * Selects lookup pagination metadata.
  *
- * Returns an object containing `hasMore`, `limit`, and `offset`.
+ * Returns `{ hasMore, limit, offset }`.
  */
 export const selectCustomerLookupMeta = createLookupMetaSelector(
   selectCustomerLookupState
 );
 
 /**
- * Selector to transform customer lookup items into `{ label, value, hasAddress }` format.
+ * Maps customer lookup items into dropdown-ready options.
  *
- * This is useful for dropdowns or autocomplete components that need to display
- * whether a customer has an associated address.
- *
- * @returns An array of customer options with `label`, `value`, and `hasAddress` fields
+ * Each option includes:
+ * - `label`
+ * - `value`
+ * - `hasAddress`
+ * - `isActive`
  */
 export const selectCustomerLookupOptions = createSelector(
   [selectCustomerLookupItems],

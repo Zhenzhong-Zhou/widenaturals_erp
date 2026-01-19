@@ -1,16 +1,22 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
- * Select the entire locations state.
+ * Base selector for the locations state slice.
+ *
+ * Responsibilities:
+ * - Extract the locations state from the Redux runtime tree
+ *
+ * Design notes:
+ * - Plain function only (no `createSelector`)
+ * - Internal implementation detail
  */
-const selectLocationState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.locations
-);
+const selectLocationState = (state: RootState) =>
+  selectRuntime(state).locations;
 
 /**
- * Select the list of locations.
+ * Selects the list of locations.
  */
 export const selectLocations = createSelector(
   [selectLocationState],
@@ -18,7 +24,7 @@ export const selectLocations = createSelector(
 );
 
 /**
- * Select pagination details.
+ * Selects pagination metadata for locations.
  */
 export const selectLocationPagination = createSelector(
   [selectLocationState],
@@ -26,7 +32,7 @@ export const selectLocationPagination = createSelector(
 );
 
 /**
- * Select loading state.
+ * Selects whether the locations request is currently loading.
  */
 export const selectLocationLoading = createSelector(
   [selectLocationState],
@@ -34,7 +40,7 @@ export const selectLocationLoading = createSelector(
 );
 
 /**
- * Select error message.
+ * Selects any error message from the locations request.
  */
 export const selectLocationError = createSelector(
   [selectLocationState],

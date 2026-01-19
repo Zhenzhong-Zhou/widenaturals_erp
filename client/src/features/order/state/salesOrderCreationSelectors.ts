@@ -1,13 +1,12 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
  * Root selector for accessing the sales order creation slice of the Redux state.
  */
-const selectSalesOrderCreationState = createSelector(
-  [selectRuntime],
-  (runtime) => runtime.salesOrderCreation
-);
+const selectSalesOrderCreationState = (state: RootState) =>
+  selectRuntime(state).salesOrderCreation;
 
 /**
  * Selector for checking if a sales order is currently being created.

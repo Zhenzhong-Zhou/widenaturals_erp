@@ -6,7 +6,7 @@ import type {
 import {
   getDefaultPaginatedDropdownState,
   extractPaginatedHandlers,
-} from '@utils/lookupHelpers.ts';
+} from '@utils/lookupHelpers';
 
 const usePaginatedDropdown = <TParams extends LookupQuery>(
   initialParams?: Partial<TParams>

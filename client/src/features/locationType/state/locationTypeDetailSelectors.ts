@@ -1,48 +1,57 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
-// Select raw state
-const selectLocationTypeState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.locationType
-);
+/**
+ * Base selector for the locationType slice.
+ *
+ * Internal-only extraction selector.
+ * MUST remain a plain function.
+ */
+const selectLocationTypeState = (state: RootState) =>
+  selectRuntime(state).locationType;
 
 /**
- * Selects the location type details.
+ * Selects the location type detail payload.
+ *
+ * This represents the resolved location type entity
+ * returned from the API.
  */
 export const selectLocationTypeDetail = createSelector(
-  selectLocationTypeState,
+  [selectLocationTypeState],
   (locationTypeState) => locationTypeState.data
 );
 
 /**
- * Selects the list of locations within the location type.
+ * Selects the list of locations belonging to the current location type.
+ *
+ * Returns an empty array if no data is available yet.
  */
-export const selectLocations = createSelector(
-  selectLocationTypeDetail,
-  (locationType) => locationType?.data || []
+export const selectLocationTypeLocations = createSelector(
+  [selectLocationTypeDetail],
+  (locationType) => locationType?.data ?? []
 );
 
 /**
- * Selects pagination details.
+ * Selects pagination metadata for the location type detail view.
  */
 export const selectLocationTypePagination = createSelector(
-  selectLocationTypeState,
+  [selectLocationTypeState],
   (locationTypeState) => locationTypeState.pagination
 );
 
 /**
- * Selects loading state.
+ * Selects loading state for location type requests.
  */
 export const selectLocationTypeLoading = createSelector(
-  selectLocationTypeState,
+  [selectLocationTypeState],
   (locationTypeState) => locationTypeState.loading
 );
 
 /**
- * Selects error message.
+ * Selects error message from the location type slice, if any.
  */
 export const selectLocationTypeError = createSelector(
-  selectLocationTypeState,
+  [selectLocationTypeState],
   (locationTypeState) => locationTypeState.error
 );

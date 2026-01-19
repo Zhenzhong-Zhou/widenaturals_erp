@@ -13,6 +13,7 @@ const {
 const { formatAddress } = require('../utils/address-utils');
 const { formatDiscount } = require('../utils/discount-utils');
 const { formatTaxRateLabel } = require('../utils/tax-rate-utils');
+const AppError = require('../utils/AppError');
 
 /**
  * Transforms a raw batch registry row into a lookup-friendly shape.
@@ -1214,6 +1215,143 @@ const transformUserPaginatedLookupResult = (paginatedResult, userAccess) =>
     { includeLoadMore: true }
   );
 
+/**
+ * Transforms a raw role record into a UI-friendly option.
+ *
+ * Adds derived fields that simplify consumption by
+ * presentation layers (e.g. dropdowns, selectors).
+ *
+ * NOTE:
+ * - This function does NOT apply business rules.
+ * - It assumes all visibility and access decisions
+ *   have already been enforced upstream.
+ *
+ * @param {Object} row
+ *   Raw role record from the repository layer
+ *
+ * @param {string} activeStatusId
+ *   Status ID representing the ACTIVE lifecycle state
+ *
+ * @returns {Object}
+ *   Enriched role option with derived fields
+ */
+const enrichRoleOption = (row, activeStatusId) => {
+  if (!row || typeof row !== 'object') {
+    throw AppError.validationError(
+      '[enrichRoleOption] Invalid `row`'
+    );
+  }
+  
+  if (!activeStatusId || typeof activeStatusId !== 'string') {
+    throw AppError.validationError(
+      '[enrichRoleOption] Invalid `activeStatusId`'
+    );
+  }
+  
+  return {
+    ...row,
+    isActive: row.status_id === activeStatusId,
+  };
+};
+
+/**
+ * Transforms a single raw Role record into a lookup-friendly object.
+ *
+ * Produces:
+ * - `label` (e.g., "Admin • System", "Inventory Manager")
+ * - Optional UI flags (e.g., `isActive`) depending on access rules
+ *
+ * Used in:
+ * - Role dropdowns
+ * - User creation / assignment
+ * - Permission configuration
+ * - Admin role management UIs
+ *
+ * @param {{
+ *   id: string,
+ *   name: string,
+ *   role_group?: string,
+ *   hierarchy_level?: number,
+ *   status_id?: string
+ * }} row - Raw Role row from the repository.
+ *
+ * @param userAccess
+ *   activeStatusId?: string
+ * }} access - Role visibility / enrichment context
+ *             (e.g. from evaluateRoleVisibilityAccessControl()).
+ *
+ * @returns {{
+ *   id: string,
+ *   label: string,
+ *   isActive?: boolean,
+ *   hierarchyLevel?: number,
+ *   [key: string]: any
+ * }} A lookup-optimized role object.
+ */
+const transformRoleLookup = (row, userAccess) => {
+  if (!row || typeof row !== 'object') return null;
+  
+  const name = row.name ?? 'Unnamed Role';
+  const roleGroup = row.role_group ?? '';
+  
+  /**
+   * Example label patterns:
+   * - "Admin • System"
+   * - "Inventory Manager • Operations"
+   * - "Viewer"
+   */
+  const labelParts = [name];
+  
+  if (roleGroup) {
+    labelParts.push(`• ${roleGroup}`);
+  }
+  
+  const label = labelParts.join(' ');
+  
+  // Base lookup object: { id, label }
+  const baseObj = transformIdNameToIdLabel({ ...row, name: label });
+  
+  const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
+  
+  return {
+    ...baseObj,
+    ...flagSubset,
+  };
+};
+
+/**
+ * Transforms a paginated set of Role records into a UI-friendly lookup format.
+ *
+ * Applies:
+ * - Row-by-row transformation via `transformRoleLookup`
+ * - Pagination metadata rewrite
+ * - Optional "Load more" support for infinite scroll UIs
+ *
+ * @param {{
+ *   data: Array<object>,
+ *   pagination: {
+ *     offset: number,
+ *     limit: number,
+ *     totalRecords: number
+ *   }
+ * }} paginatedResult - Raw repository output.
+ *
+ * @param {object} access - Role visibility / enrichment context.
+ *
+ * @returns {{
+ *   items: Array<{ id: string, label: string, [key: string]: any }>,
+ *   offset: number,
+ *   limit: number,
+ *   hasMore: boolean
+ * }} Transformed lookup result.
+ */
+const transformRolePaginatedLookupResult = (paginatedResult, access) =>
+  transformPaginatedResult(
+    paginatedResult,
+    (row) => transformRoleLookup(row, access),
+    { includeLoadMore: true }
+  );
+
 module.exports = {
   transformBatchRegistryPaginatedLookupResult,
   transformWarehouseLookupRows,
@@ -1232,4 +1370,6 @@ module.exports = {
   transformProductPaginatedLookupResult,
   transformStatusPaginatedLookupResult,
   transformUserPaginatedLookupResult,
+  enrichRoleOption,
+  transformRolePaginatedLookupResult,
 };

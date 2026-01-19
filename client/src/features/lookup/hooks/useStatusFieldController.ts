@@ -3,7 +3,7 @@ import {
   normalizeLookupParams,
   createLookupParams,
 } from '@features/lookup/utils/lookupUtils';
-import useStatusSearchHandlers from '@features/lookup/hooks/useStatusSearchHandlers';
+import { useStatusSearchHandlers } from '@features/lookup/hooks';
 import { formatLabel } from '@utils/textUtils';
 import type {
   StatusLookupParams,

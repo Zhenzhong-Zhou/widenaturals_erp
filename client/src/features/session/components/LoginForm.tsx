@@ -7,13 +7,18 @@ import type { LoginRequestBody } from '@features/session';
 
 interface LoginFormProps {
   loading: boolean;
-  error: string | null; // keep for future inline use
   formValues: LoginRequestBody;
   formErrors: Partial<LoginRequestBody>;
   onFormChange: (field: keyof LoginRequestBody, value: string) => void;
   onFormSubmit: () => void;
 }
 
+/**
+ * Login form for user authentication.
+ *
+ * Intentionally kept lightweight and independent of
+ * generic form abstractions due to security and UX needs.
+ */
 const LoginForm: FC<LoginFormProps> = ({
                                          loading,
                                          formValues,
@@ -49,6 +54,7 @@ const LoginForm: FC<LoginFormProps> = ({
       
       <PasswordInput
         label="Password"
+        intent="login"
         value={formValues.password}
         onChange={(e) => onFormChange('password', e.target.value)}
         errorText={formErrors.password}

@@ -12,7 +12,7 @@
  * App Initialization & Global Utilities
  * ===================================================== */
 
-export { default as useHealthStatus } from './useHealthStatus';
+export { default as useSystemHealth } from './useSystemHealth';
 export { default as useErrorHandler } from './useErrorHandler';
 export { default as useThemeMode } from './useThemeMode';
 
@@ -28,6 +28,12 @@ export { default as useUserViewedProfile } from './useUserViewedProfile';
 export { default as useUserViewedProfileAuto } from './useUserViewedProfileAuto';
 export { default as usePermissions } from './usePermissions';
 export { default as usePaginatedUsers } from './usePaginatedUsers';
+
+/* =====================================================
+ * Users
+ * ===================================================== */
+
+export { default as useCreateUser } from './useCreateUser';
 
 /* =====================================================
  * Product & SKU
@@ -142,6 +148,7 @@ export { default as useDiscountLookup } from './useDiscountLookup';
 export { default as useTaxRateLookup } from './useTaxRateLookup';
 export { default as useStatusLookup } from './useStatusLookup';
 export { default as useUserLookup } from './useUserLookup';
+export { default as useRoleLookup } from './useRoleLookup';
 
 /* =====================================================
  * Misc

@@ -1,16 +1,22 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
- * Base selector for the inventory allocation confirmation slice state.
+ * Base selector for the inventory allocation confirmation state slice.
+ *
+ * Responsibilities:
+ * - Extract the inventory allocation confirmation state from the Redux runtime tree
+ *
+ * Design notes:
+ * - Plain function only (no `createSelector`)
+ * - Internal implementation detail
  */
-const selectInventoryAllocationConfirmation= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.inventoryAllocationConfirmation
-);
+const selectInventoryAllocationConfirmation = (state: RootState) =>
+  selectRuntime(state).inventoryAllocationConfirmation;
 
 /**
- * Selects the loading state of the inventory allocation confirmation process.
+ * Selects whether the inventory allocation confirmation request is currently loading.
  */
 export const selectAllocationConfirmLoading = createSelector(
   [selectInventoryAllocationConfirmation],
@@ -18,7 +24,7 @@ export const selectAllocationConfirmLoading = createSelector(
 );
 
 /**
- * Selects the error message, if any, from the inventory allocation confirmation process.
+ * Selects any error message from the inventory allocation confirmation process.
  */
 export const selectAllocationConfirmError = createSelector(
   [selectInventoryAllocationConfirmation],
@@ -27,7 +33,11 @@ export const selectAllocationConfirmError = createSelector(
 
 /**
  * Selects the full API response from the inventory allocation confirmation.
- * This includes `success`, `message`, and `data`.
+ *
+ * Includes:
+ * - success
+ * - message
+ * - data
  */
 export const selectAllocationConfirmResponse = createSelector(
   [selectInventoryAllocationConfirmation],
@@ -35,12 +45,9 @@ export const selectAllocationConfirmResponse = createSelector(
 );
 
 /**
- * Selects the `success` flag from the inventory allocation confirmation response.
+ * Selects the `success` flag from the allocation confirmation response.
  *
- * This indicates whether the inventory allocation confirmation API call
- * was successful, based on the server's response payload.
- *
- * @returns {boolean} `true` if the confirmation succeeded, otherwise `false`.
+ * Returns `false` when the response is not yet available.
  */
 export const selectAllocationConfirmSuccess = createSelector(
   [selectAllocationConfirmResponse],
@@ -48,7 +55,7 @@ export const selectAllocationConfirmSuccess = createSelector(
 );
 
 /**
- * Selects only the `message` from the inventory allocation confirmation response.
+ * Selects the confirmation message from the allocation confirmation response.
  */
 export const selectAllocationConfirmMessage = createSelector(
   [selectAllocationConfirmResponse],
@@ -56,8 +63,9 @@ export const selectAllocationConfirmMessage = createSelector(
 );
 
 /**
- * Selects only the confirmed payload data (`orderId`, `allocationIds`, etc.)
- * from the inventory allocation confirmation response.
+ * Selects the confirmed allocation payload from the response.
+ *
+ * Includes fields such as `orderId` and `allocationIds`.
  */
 export const selectAllocationConfirmPayload = createSelector(
   [selectAllocationConfirmResponse],

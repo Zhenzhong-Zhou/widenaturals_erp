@@ -1,18 +1,20 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
- * Base selector to access the addressByCustomerLookup slice from the root state.
+ * Base selector for the address-by-customer lookup slice.
+ *
+ * Internal-only extraction selector.
+ * MUST remain a plain function.
  */
-const selectAddressByCustomerLookupState= createSelector(
-  [selectRuntime],
-  (runtime) => runtime.addressByCustomer
-);
+const selectAddressByCustomerLookupState = (state: RootState) =>
+  selectRuntime(state).addressByCustomer;
 
 /**
- * Selector to retrieve the list of addresses from the customer-address lookup.
+ * Selects the list of addresses returned by the customer-address lookup.
  *
- * @returns {AddressByCustomerLookup[]} Array of transformed address objects
+ * @returns Array of address lookup records
  */
 export const selectCustomerAddressLookupData = createSelector(
   [selectAddressByCustomerLookupState],
@@ -20,9 +22,9 @@ export const selectCustomerAddressLookupData = createSelector(
 );
 
 /**
- * Selector to determine if the customer-address lookup is in progress.
+ * Selects loading state for the customer-address lookup request.
  *
- * @returns {boolean} True if loading, false otherwise
+ * @returns `true` if the lookup request is in progress
  */
 export const selectCustomerAddressLookupLoading = createSelector(
   [selectAddressByCustomerLookupState],
@@ -30,9 +32,9 @@ export const selectCustomerAddressLookupLoading = createSelector(
 );
 
 /**
- * Selector to retrieve the error message from customer-address lookup.
+ * Selects error message from the customer-address lookup slice, if any.
  *
- * @returns {string | null} Error message or null if no error
+ * @returns Error message string or `null`
  */
 export const selectCustomerAddressLookupError = createSelector(
   [selectAddressByCustomerLookupState],

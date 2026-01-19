@@ -1,14 +1,13 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
  * Base selector for the paginated SKU slice.
  * Extracts the entire `paginatedSkus` state from the Redux store.
  */
-export const selectPaginatedSkusState = createSelector(
-  [selectRuntime],
-  (runtime) => runtime.paginatedSkus
-);
+export const selectPaginatedSkusState = (state: RootState) =>
+  selectRuntime(state).paginatedSkus;
 
 /**
  * Selector: Returns the array of SKU list items.

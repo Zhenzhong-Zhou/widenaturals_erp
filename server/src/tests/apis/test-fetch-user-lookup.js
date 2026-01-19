@@ -1,5 +1,5 @@
 const { pool } = require('../../database/db');
-const { initStatusCache, getStatusId } = require('../../config/status-cache');
+const { initStatusCache } = require('../../config/status-cache');
 const {
   fetchUserLookupService,
 } = require('../../services/lookup-service');

@@ -1,40 +1,72 @@
 import { createSelector } from '@reduxjs/toolkit';
+import type { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 import type { PermissionsState } from '@features/authorize';
 
-const getPermissionsState =  createSelector(
-  [selectRuntime],
-  (runtime) => runtime.permissions as PermissionsState
-);
+/**
+ * selectPermissionsState
+ *
+ * Base selector for the permissions runtime slice.
+ *
+ * Responsibilities:
+ * - Extract the permissions slice from runtime state
+ *
+ * Design notes:
+ * - This selector MUST be a plain function
+ * - Base selectors must NOT use `createSelector`
+ * - Memoization at this level provides no benefit and breaks
+ *   React-Redux selector validation
+ *
+ * @param state Root redux state
+ * @returns PermissionsState
+ */
+const selectPermissionsState = (state: RootState) =>
+  selectRuntime(state).permissions as PermissionsState;
 
 /**
- * Select the permissions array.
+ * selectPermissions
+ *
+ * Select the resolved permission keys for the current user.
+ *
+ * @returns string[]
  */
 export const selectPermissions = createSelector(
-  getPermissionsState,
+  [selectPermissionsState],
   (state) => state.permissions
 );
 
 /**
- * Select loading status.
+ * selectPermissionsLoading
+ *
+ * Select whether permission data is currently being resolved.
+ *
+ * @returns boolean
  */
 export const selectPermissionsLoading = createSelector(
-  getPermissionsState,
+  [selectPermissionsState],
   (state) => state.loading
 );
 
 /**
- * Select error state.
+ * selectPermissionsError
+ *
+ * Select any permission resolution error.
+ *
+ * @returns string | null
  */
 export const selectPermissionsError = createSelector(
-  getPermissionsState,
+  [selectPermissionsState],
   (state) => state.error
 );
 
 /**
- * Select the current role name.
+ * selectRoleName
+ *
+ * Select the current resolved role name.
+ *
+ * @returns string | null
  */
 export const selectRoleName = createSelector(
-  getPermissionsState,
+  [selectPermissionsState],
   (state) => state.roleName
 );

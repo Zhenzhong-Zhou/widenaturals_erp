@@ -1,11 +1,7 @@
 const { query, paginateResults, paginateQueryByOffset } = require('../database/db');
 const { buildUserFilter } = require('../utils/sql/build-user-filters');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
-const { logError } = require('../utils/logger-helper');
-const {
-  maskSensitiveInfo,
-  maskField,
-} = require('../utils/sensitive-data-utils');
+const { maskSensitiveInfo, } = require('../utils/sensitive-data-utils');
 const AppError = require('../utils/AppError');
 
 /**
@@ -43,7 +39,6 @@ const insertUser = async ( user, client) => {
     phoneNumber,
     jobTitle,
     note,
-    statusDate,
     createdBy,
     updatedBy = null,
     updatedAt = null,
@@ -59,12 +54,11 @@ const insertUser = async ( user, client) => {
       phone_number,
       job_title,
       note,
-      status_date,
       created_by,
       updated_by,
       updated_at
     )
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
     RETURNING
       id,
       email,
@@ -82,7 +76,6 @@ const insertUser = async ( user, client) => {
     phoneNumber,
     jobTitle,
     note,
-    statusDate,
     createdBy,
     updatedBy,
     updatedAt,

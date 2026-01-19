@@ -1,19 +1,20 @@
-import { useCallback } from 'react';
+import { useCallback, type Dispatch, type SetStateAction } from 'react';
 
 type PaginationMode = 'table' | 'page';
 
 /**
- * Pagination handler utility for bridging different pagination conventions.
+ * Pagination handler utility for normalizing pagination behavior
+ * across different UI components and pagination conventions.
  *
- * This hook normalizes page-change behavior between:
+ * This hook bridges the differences between:
  * - **Table-based pagination** (e.g. MUI `TablePagination`)
- *   → 0-based page index
+ *   → 0-based page indices
  * - **Page-based pagination** (e.g. MUI `Pagination`)
- *   → 1-based page index
+ *   → 1-based page indices
  *
  * Responsibilities:
  * - Converts UI page indices into API-friendly 1-based pages
- * - Resets page index when rows-per-page changes
+ * - Resets the current page when the page size changes
  * - Centralizes pagination logic to avoid duplication across layouts
  *
  * Usage:
@@ -23,17 +24,18 @@ type PaginationMode = 'table' | 'page';
  * Design notes:
  * - The API and backend are assumed to be **1-based**
  * - UI components may vary in index convention
- * - This hook prevents off-by-one bugs at call sites
+ * - Page size is fully controlled by the caller
  *
- * @param setPage - State setter for the current page (1-based)
- * @param setLimit - State setter for the page size / rows per page
+ * @template Limit - Numeric page-size type (e.g. `number` or a constrained union)
+ * @param setPage - React state dispatcher for the current page (1-based)
+ * @param setLimit - React state dispatcher for the page size / rows per page
  * @param mode - Pagination mode (`'table'` or `'page'`)
  *
- * @returns Pagination handler callbacks
+ * @returns Pagination handler callbacks for page and page-size changes
  */
-const usePaginationHandlers = (
-  setPage: (page: number) => void,
-  setLimit: (limit: number) => void,
+const usePaginationHandlers = <Limit extends number>(
+  setPage: Dispatch<SetStateAction<number>>,
+  setLimit: Dispatch<SetStateAction<Limit>>,
   mode: PaginationMode = 'table'
 ) => {
   const handlePageChange = useCallback(
@@ -48,15 +50,15 @@ const usePaginationHandlers = (
     },
     [setPage, mode]
   );
-
+  
   const handleRowsPerPageChange = useCallback(
-    (newLimit: number) => {
+    (newLimit: Limit) => {
       setLimit(newLimit);
       setPage(1);
     },
     [setLimit, setPage]
   );
-
+  
   return { handlePageChange, handleRowsPerPageChange };
 };
 

@@ -1,13 +1,12 @@
 import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /**
  * Root selector to access the pricingTypeMetadata slice of state.
  */
-const selectPricingTypeMetadataState = createSelector(
-  [selectRuntime],
-  (runtime) => runtime.pricingTypeMetadata
-);
+const selectPricingTypeMetadataState = (state: RootState) =>
+  selectRuntime(state).pricingTypeMetadata;
 
 /**
  * Selector to retrieve the pricing type metadata object.

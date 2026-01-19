@@ -4,7 +4,7 @@ import Grid from '@mui/material/Grid';
 import FilterPanelLayout from '@components/common/FilterPanelLayout';
 import StatusMultiSelectDropdown from '@features/lookup/components/StatusMultiSelectDropdown';
 import UserDropdown from '@features/lookup/components/UserDropdown';
-import useMultiSelectBinding from '@features/lookup/hooks/useMultiSelectBinding';
+import { useMultiSelectBinding } from '@features/lookup/hooks';
 import { renderInputField } from '@utils/filters/filterUtils';
 import { useFormattedOptions } from '@features/lookup/utils/lookupUtils';
 import { formatLabel } from '@utils/textUtils';
