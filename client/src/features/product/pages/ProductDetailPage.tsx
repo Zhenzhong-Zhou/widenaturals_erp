@@ -45,17 +45,8 @@ const ProductDetailPage = () => {
     fetchProductDetail: fetchProductDetailById,
     resetProductDetailState,
   } = useProductDetail();
-
-  const statusLookup = useStatusLookup();
   
-  if (!selectedProduct) {
-    return (
-      <Loading
-        variant="dotted"
-        message="Loading product details..."
-      />
-    );
-  }
+  const statusLookup = useStatusLookup();
   
   // --------------------------------------
   // 3. Permission Hooks
@@ -99,10 +90,10 @@ const ProductDetailPage = () => {
   // --------------------------------------
   // 7. Derived Values & Callbacks
   // --------------------------------------
-  const flattenProductDetails = useMemo(
-    () => flattenProductDetail(selectedProduct),
-    [selectedProduct]
-  );
+  const flattenProductDetails = useMemo(() => {
+    if (!selectedProduct) return null;
+    return flattenProductDetail(selectedProduct);
+  }, [selectedProduct]);
 
   const refreshProductDetails = useCallback(() => {
     if (productId) fetchProductDetailById(productId);
