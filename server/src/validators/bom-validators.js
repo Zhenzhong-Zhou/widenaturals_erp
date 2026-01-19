@@ -58,7 +58,7 @@ const {
  * Used in `createQueryNormalizationMiddleware()` and `validate()` middleware
  * before calling the BOM controller.
  *
- * @type {Joi.ObjectSchema<BOMQueryParams>}
+ * @type {Joi.ObjectSchema}
  *
  * @example
  * // Example: GET /api/v1/boms?page=2&limit=20&isActive=true&keyword=Capsule

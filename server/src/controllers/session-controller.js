@@ -1,85 +1,60 @@
 const wrapAsync = require('../utils/wrap-async');
 const { loginUserService, refreshTokenService } = require('../services/session-service');
-const { transformLoginResponse } = require('../transformers/session-transformer');
 
 /**
  * Handles user authentication and session initialization.
  *
  * This controller implements the HTTP boundary for user login.
- * It validates request input, enforces the pre-authentication CSRF model,
- * delegates credential verification and transactional state updates to
- * the service layer, and constructs a stable API response.
+ * It enforces transport-level security requirements and delegates
+ * authentication logic entirely to the service layer.
  *
- * Security model:
- * - Login requests are protected by CSRF middleware (pre-auth CSRF).
- * - A valid CSRF token MUST be present before authentication is attempted.
- * - Refresh tokens are issued by the service layer and persisted in
- *   secure, HTTP-only cookies at the transport layer.
+ * Responsibilities:
+ * - Enforce pre-authentication CSRF requirements
+ * - Extract credentials from the request body
+ * - Invoke the authentication service
+ * - Persist refresh token via secure HTTP-only cookie
+ * - Return a stable authentication API response
  *
- * Workflow:
- * 1. Extract credentials from the request body.
- * 2. Retrieve the CSRF token (required before login).
- * 3. Invoke the authentication service to:
- *    - Verify credentials
- *    - Enforce lockout rules
- *    - Update login metadata
- *    - Issue access and refresh tokens
- * 4. Normalize the domain result into a stable API response shape.
- * 5. Persist the refresh token in a secure cookie.
- * 6. Return a successful authentication response.
- *
- * Response shape:
- * {
- *   success: boolean,
- *   message: string,
- *   data: {
- *     accessToken: string,
- *     csrfToken: string,
- *     lastLogin: string | null
- *   }
- * }
- *
- * Error handling:
- * - Expected authentication and validation errors are propagated
- *   via centralized error middleware.
- * - Unexpected system errors are captured and reported consistently.
+ * Architectural note:
+ * - This controller MUST NOT transform authentication data.
+ * - The service layer returns API-ready authentication payloads.
  *
  * @param {import('express').Request} req
- *   Express request object. Expects `email` and `password` in `req.body`.
  * @param {import('express').Response} res
- *   Express response object used to set cookies and return the API payload.
  *
  * @returns {Promise<void>}
- *   Resolves after the HTTP response has been sent.
  */
 const loginController = wrapAsync(async (req, res) => {
   const { email, password } = req.body;
   
-  // Retrieve CSRF token (required before login under pre-auth CSRF model)
+  // Pre-auth CSRF token (required before login)
   const csrfToken = req.csrfToken();
-
-  // 1. Domain login (transactional, concurrency-safe)
+  
+  // ------------------------------------------------------------
+  // 1. Authenticate user (domain + normalization handled by service)
+  // ------------------------------------------------------------
   const result = await loginUserService(email, password);
   
-  // 2. Normalize domain result into API response
-  const response = transformLoginResponse(result);
-
-  // 3. Persist refresh token in secure cookie (transport concern)
+  // ------------------------------------------------------------
+  // 2. Persist refresh token (transport concern only)
+  // ------------------------------------------------------------
   res.cookie('refreshToken', result.refreshToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
-
-  // 4. Send response
+  
+  // ------------------------------------------------------------
+  // 3. Send response
+  // ------------------------------------------------------------
   res.status(200).json({
     success: true,
     message: 'Login successful',
     data: {
-      accessToken: response.accessToken,
+      accessToken: result.accessToken,
       csrfToken,
-      lastLogin: response.lastLogin,
+      lastLogin: result.lastLogin,
     },
   });
 });
