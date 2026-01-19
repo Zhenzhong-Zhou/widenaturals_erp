@@ -47,6 +47,7 @@ exports.up = async function (knex) {
       'idx_packaging_material_suppliers'
     );
     table.index(['lot_number'], 'idx_packaging_batch_lot');
+    table.index(['status_id', 'expiry_date'], 'idx_packaging_batches_status');
 
     table.unique(['packaging_material_supplier_id', 'lot_number'], {
       indexName: 'uq_material_batch_lot_per_supplier',
