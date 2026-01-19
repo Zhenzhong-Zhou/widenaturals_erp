@@ -43,6 +43,9 @@ const PERMISSIONS = {
     VIEW_BOM_DETAILS: 'view_bom_details',
     VIEW_BOM_PRODUCTION_SUMMARY: 'view_bom_production_summary',
   },
+  BATCH_REGISTRY: {
+    VIEW_LIST: 'view_batch_registry',
+  },
   REPORTS: {
     VIEW: 'view_reports',
   },
