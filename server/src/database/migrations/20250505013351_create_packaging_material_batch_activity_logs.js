@@ -12,26 +12,28 @@ exports.up = async function (knex) {
         .notNullable()
         .references('id')
         .inTable('packaging_material_batches');
-
+      
       table
-        .uuid('lot_adjustment_type_id')
+        .uuid('batch_activity_type_id')
         .notNullable()
         .references('id')
-        .inTable('lot_adjustment_types');
+        .inTable('batch_activity_types');
+      
       table.jsonb('previous_value');
       table.jsonb('new_value');
       table.text('change_summary');
-
+      
       table.uuid('changed_by').references('id').inTable('users');
       table.timestamp('changed_at', { useTz: true }).defaultTo(knex.fn.now());
-
+      
       table.index(
         ['packaging_material_batch_id'],
         'idx_packaging_material_batch_activity_log_batch_id'
       );
+      
       table.index(
-        ['lot_adjustment_type_id'],
-        'idx_packaging_material_batch_activity_log_action'
+        ['batch_activity_type_id'],
+        'idx_packaging_material_batch_activity_log_activity_type'
       );
     }
   );
