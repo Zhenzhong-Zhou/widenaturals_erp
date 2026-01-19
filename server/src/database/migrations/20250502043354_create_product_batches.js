@@ -38,6 +38,7 @@ exports.up = async function (knex) {
     table.uuid('updated_by').references('id').inTable('users');
 
     table.index(['lot_number', 'sku_id'], 'idx_batches_batch_sku');
+    table.index(['status_id', 'expiry_date'], 'idx_product_batches_status');
     table.unique(['lot_number', 'sku_id'], {
       indexName: 'uq_batch_per_sku',
     });
