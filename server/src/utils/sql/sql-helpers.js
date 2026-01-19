@@ -67,7 +67,66 @@ const addIlikeFilter = (conditions, params, idx, value, field) => {
   return idx + 1;
 };
 
+/**
+ * Add permission-aware keyword ILIKE conditions as a grouped OR clause.
+ *
+ * Responsibility:
+ * - Append a single grouped `(field ILIKE $n OR ...)` condition
+ * - Bind ONE SQL parameter for the keyword
+ * - Fail closed when no searchable fields are permitted
+ *
+ * Behavior:
+ * - Uses a single placeholder index for all OR conditions
+ * - Pushes exactly ONE parameter to `params`
+ * - Advances the parameter index by exactly ONE
+ *
+ * Fail-closed semantics:
+ * - If `keyword` is falsy OR `fields` is empty,
+ *   an impossible condition (`1 = 0`) is appended
+ *   to guarantee zero results.
+ *
+ * IMPORTANT:
+ * - This function MUTATES `conditions` and `params`
+ * - This function OWNS placeholder index advancement
+ * - Callers MUST NOT increment `idx` again
+ *
+ * @param {string[]} conditions
+ *   Mutable array of SQL WHERE clause fragments
+ *
+ * @param {any[]} params
+ *   Mutable array of bound SQL parameters
+ *
+ * @param {number} idx
+ *   Current positional parameter index
+ *
+ * @param {string} keyword
+ *   Raw keyword value (will be wrapped in `%…%`)
+ *
+ * @param {string[]} fields
+ *   List of SQL field expressions eligible for keyword search
+ *
+ * @returns {number}
+ *   The next available SQL parameter index
+ */
+const addKeywordIlikeGroup = (conditions, params, idx, keyword, fields) => {
+  if (!keyword || !Array.isArray(fields) || fields.length === 0) {
+    // Fail closed: no searchable fields permitted
+    conditions.push('1 = 0');
+    return idx;
+  }
+  
+  const orConditions = fields.map(
+    (field) => `${field} ILIKE $${idx}`
+  );
+  
+  conditions.push(`(${orConditions.join(' OR ')})`);
+  params.push(`%${keyword}%`);
+  
+  return idx + 1;
+};
+
 module.exports = {
   minUuid,
   addIlikeFilter,
+  addKeywordIlikeGroup,
 };

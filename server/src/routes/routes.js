@@ -23,6 +23,7 @@ const skuImageRoutes = require('./sku-images');
 const bomRoutes = require('./boms');
 const bomItemRoutes = require('./bom-items');
 const complianceRecordRoutes = require('./compliance-records');
+const batchRegistryRoutes = require('./batch-registry');
 const priceTypeRoutes = require('./pricing-types');
 const pricingRoutes = require('./pricings');
 const locationTypeRoutes = require('./locations-types');
@@ -101,6 +102,8 @@ router.use('/products', authenticate(), productRoutes);
 router.use('/skus', authenticate(), skuRoutes);
 router.use('/sku-images', authenticate(), skuImageRoutes);
 router.use('/compliance-records', authenticate(), complianceRecordRoutes);
+
+router.use('/batch-registry', authenticate(), batchRegistryRoutes);
 
 /**
  * @route /boms
