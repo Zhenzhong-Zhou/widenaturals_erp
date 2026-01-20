@@ -264,11 +264,13 @@ export const flattenBomMaterialSupplyDetail = (
         materialNote: bomItemMaterial.note ?? null,
         bomItemMaterialStatusName: bomItemMaterial.status.name,
         bomItemMaterialStatusDate: bomItemMaterial.status.date,
-        bomItemMaterialCreatedAt: bomItemMaterial.createdAt,
-        bomItemMaterialCreatedBy: bomItemMaterial.createdBy?.name,
-        bomItemMaterialUpdatedAt: bomItemMaterial.updatedAt,
-        bomItemMaterialUpdatedBy: bomItemMaterial.updatedBy
-          ? bomItemMaterial.updatedBy.name
+        bomItemMaterialCreatedAt: bomItemMaterial.audit.createdAt,
+        bomItemMaterialCreatedBy: bomItemMaterial.audit.createdBy
+          ? bomItemMaterial.audit.createdBy.name
+          : null,
+        bomItemMaterialUpdatedAt: bomItemMaterial.audit.updatedAt,
+        bomItemMaterialUpdatedBy: bomItemMaterial.audit.updatedBy
+          ? bomItemMaterial.audit.updatedBy.name
           : null,
 
         // --- Packaging Material Info ---
@@ -295,7 +297,9 @@ export const flattenBomMaterialSupplyDetail = (
         packagingMaterialStatusName: materialStatus.name,
         packagingMaterialStatusDate: materialStatus.date,
         packagingMaterialCreatedAt: materialAudit.createdAt,
-        packagingMaterialCreatedBy: materialAudit.createdBy.name,
+        packagingMaterialCreatedBy: materialAudit.createdBy
+          ? materialAudit.createdBy.name
+          : null,
         packagingMaterialUpdatedAt: materialAudit.updatedAt,
         packagingMaterialUpdatedBy: materialAudit.updatedBy
           ? materialAudit.updatedBy.name
@@ -313,7 +317,9 @@ export const flattenBomMaterialSupplyDetail = (
         supplierPreferred: contract.isPreferred,
         supplierNote: contract.note ?? null,
         supplierCreatedAt: supplierAudit.createdAt,
-        supplierCreatedBy: supplierAudit.createdBy.name,
+        supplierCreatedBy: supplierAudit.createdBy
+          ? supplierAudit.createdBy.name
+          : null,
         supplierUpdatedAt: supplierAudit.updatedAt,
         supplierUpdatedBy: supplierAudit.updatedBy
           ? supplierAudit.updatedBy.name
@@ -335,7 +341,9 @@ export const flattenBomMaterialSupplyDetail = (
         batchStatusName: batchStatus.name,
         batchStatusDate: batchStatus.date,
         batchCreatedAt: batchAudit.createdAt,
-        batchCreatedBy: batchAudit.createdBy.name,
+        batchCreatedBy: batchAudit.createdBy
+          ? batchAudit.createdBy.name
+          : null,
         batchUpdatedAt: batchAudit.updatedAt,
         batchUpdatedBy: batchAudit.updatedBy ? batchAudit.updatedBy.name : null,
       });
