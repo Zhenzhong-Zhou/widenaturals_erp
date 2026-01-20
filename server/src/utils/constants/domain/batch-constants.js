@@ -1,14 +1,16 @@
 /**
- * Batch Registry permission constants.
+ * Batch permission constants.
  *
  * Scope:
  * - Batch registry visibility
- * - Batch metadata access
- * - Batch creation & lifecycle management (future)
+ * - Product batch & packaging batch operational views
+ * - Batch metadata exposure
+ * - Search and audit tooling
  *
  * Design principles:
- * - READ visibility permissions are separate from MUTATING permissions
- * - Full visibility override exists for audit / admin tooling
+ * - Single authority domain for all batch-related permissions
+ * - READ visibility is separate from MUTATING actions
+ * - Registry-level permissions are reused by model-specific views
  * - Root users implicitly bypass all restrictions
  */
 
@@ -31,28 +33,38 @@ const BATCH_CONSTANTS = {
     // Allows archiving or soft-removing batches from active views
     
     // -------------------------------------------------
-    // Visibility controls (read-only access)
+    // Visibility controls (read-only)
     // -------------------------------------------------
     
     VIEW_PRODUCT_BATCHES: 'view_product_batches',
-    // Allows viewing product batches in batch registry
+    // Can view product batches (registry + product batch pages)
     
     VIEW_PACKAGING_BATCHES: 'view_packaging_batches',
-    // Allows viewing packaging material batches in batch registry
+    // Can view packaging material batches
     
     VIEW_BATCH_MANUFACTURER: 'view_batch_manufacturer',
-    // Allows viewing manufacturer metadata linked to product batches
+    // Can view manufacturer metadata linked to product batches
     
     VIEW_BATCH_SUPPLIER: 'view_batch_supplier',
-    // Allows viewing supplier metadata linked to packaging batches
+    // Can view supplier metadata linked to packaging batches
     
     VIEW_BATCH_ALL_VISIBILITY: 'view_all_batches_visibility',
-    // Full visibility override (read-only):
-    // Can view all batch types and all related metadata
-    // Supersedes all other batch visibility permissions
+    // Full read-only visibility override across ALL batch views
     
     // -------------------------------------------------
-    // Lookup & search capabilities (read-only, scoped)
+    // Product batch–specific search & metadata exposure
+    // (used by product batch list pages)
+    // -------------------------------------------------
+    
+    SEARCH_PRODUCT_BATCH_BY_SKU: 'search_product_batch_by_sku',
+    // Allows keyword search on SKU code
+    
+    SEARCH_PRODUCT_BATCH_BY_MANUFACTURER:
+      'search_product_batch_by_manufacturer',
+    // Allows keyword search on manufacturer name
+    
+    // -------------------------------------------------
+    // Registry / cross-batch search capabilities
     // -------------------------------------------------
     
     SEARCH_BATCH_BY_LOT: 'search_batch_by_lot',
@@ -68,12 +80,11 @@ const BATCH_CONSTANTS = {
     // Allows keyword search on supplier name
     
     // -------------------------------------------------
-    // Administrative overrides (read-only, high privilege)
+    // Administrative overrides
     // -------------------------------------------------
     
     ADMIN_OVERRIDE_BATCH_FILTERS: 'admin_override_batch_filters',
-    // Allows bypassing batch registry visibility constraints
-    // Intended for audit, investigation, or support tooling only
+    // Allows bypassing visibility constraints (audit / support)
   },
 };
 

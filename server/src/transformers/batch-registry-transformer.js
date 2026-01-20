@@ -1,6 +1,7 @@
 const { cleanObject } = require('../utils/object-utils');
+const { makeStatus } = require('../utils/status-utils');
+const { makeActor } = require('../utils/actor-utils');
 const { transformPaginatedResult } = require('../utils/transformer-utils');
-const { getFullName } = require('../utils/name-utils');
 
 /**
  * @typedef {Object} BatchRegistryRow
@@ -97,20 +98,18 @@ const transformBatchRegistryRow = (row) => {
         }),
       },
       
-      status: cleanObject({
-        id: row.product_batch_status_id,
-        name: row.product_batch_status_name,
-        date: row.product_batch_status_date,
+      status: makeStatus(row, {
+        id: 'product_batch_status_id',
+        name: 'product_batch_status_name',
+        date: 'product_batch_status_date',
       }),
       
       registeredAt: row.registered_at,
-      registeredBy: cleanObject({
-        id: row.registered_by,
-        fullName: getFullName(
-          row.registered_by_firstname,
-          row.registered_by_lastname
-        ),
-      }),
+      registeredBy: makeActor(
+        row.registered_by,
+        row.registered_by_firstname,
+        row.registered_by_lastname
+      ),
       
       note: row.note,
     });
@@ -137,20 +136,18 @@ const transformBatchRegistryRow = (row) => {
         }),
       },
       
-      status: cleanObject({
-        id: row.packaging_batch_status_id,
-        name: row.packaging_batch_status_name,
-        date: row.packaging_batch_status_date,
+      status: makeStatus(row, {
+        id: 'packaging_batch_status_id',
+        name: 'packaging_batch_status_name',
+        date: 'packaging_batch_status_date',
       }),
       
       registeredAt: row.registered_at,
-      registeredBy: cleanObject({
-        id: row.registered_by,
-        fullName: getFullName(
-          row.registered_by_firstname,
-          row.registered_by_lastname
-        ),
-      }),
+      registeredBy: makeActor(
+        row.registered_by,
+        row.registered_by_firstname,
+        row.registered_by_lastname
+      ),
       
       note: row.note,
     });
