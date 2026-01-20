@@ -153,6 +153,70 @@ const SORTABLE_FIELDS = {
       s.created_at
     `,
   },
+  batchRegistrySortMap: {
+    // --------------------------------------------------
+    // Core registry identity (SAFE, always present)
+    // --------------------------------------------------
+    registeredAt: `br.registered_at`,
+    batchType: `br.batch_type`,
+    
+    // --------------------------------------------------
+    // Lot number (polymorphic)
+    // --------------------------------------------------
+    lotNumber: `
+      LOWER(
+        COALESCE(pb.lot_number, pmb.lot_number)
+      )
+    `,
+    
+    // --------------------------------------------------
+    // Expiry date (polymorphic, NULL-safe)
+    // --------------------------------------------------
+    expiryDate: `
+      COALESCE(pb.expiry_date, pmb.expiry_date)
+    `,
+    
+    // --------------------------------------------------
+    // Status (polymorphic)
+    // --------------------------------------------------
+    statusName: `
+      LOWER(
+        COALESCE(bs_pb.name, bs_pmb.name)
+      )
+    `,
+    
+    statusDate: `
+      COALESCE(pb.status_date, pmb.status_date)
+    `,
+    
+    // --------------------------------------------------
+    // Product-side metadata
+    // --------------------------------------------------
+    productName: `LOWER(p.name)`,
+    skuCode: `LOWER(s.sku)`,
+    manufacturerName: `LOWER(m.name)`,
+    
+    // --------------------------------------------------
+    // Packaging-side metadata
+    // --------------------------------------------------
+    packagingMaterialName: `LOWER(pm.name)`,
+    supplierName: `LOWER(sup.name)`,
+    
+    // --------------------------------------------------
+    // Audit
+    // --------------------------------------------------
+    registeredBy: `
+      LOWER(
+        COALESCE(u_reg.firstname, '') || ' ' ||
+        COALESCE(u_reg.lastname, '')
+      )
+    `,
+    
+    // --------------------------------------------------
+    // Fallback (required)
+    // --------------------------------------------------
+    defaultNaturalSort: `br.registered_at`,
+  },
   pricingRecords: {
     productName: 'pr.name',
     brand: 'pr.brand',

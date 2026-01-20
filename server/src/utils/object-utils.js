@@ -1,12 +1,17 @@
 /**
- * Removes all keys from an object whose values are `null` or `undefined`.
+ * Remove keys whose values are `null` or `undefined` from an object.
  *
- * This is useful for cleaning up transformed data structures before sending
- * them to the client or storing them, especially when you want to omit
- * irrelevant or empty fields based on type (e.g., product vs. material).
+ * This utility preserves the original object shape and key types,
+ * returning a shallow copy with only defined values.
  *
- * @param {Object} obj - The object to clean.
- * @returns {Object} A new object with only defined, non-null values.
+ * Notes:
+ * - Only top-level properties are inspected (no deep traversal).
+ * - Keys with falsy values such as `0`, `false`, or `''` are preserved.
+ * - The returned object has the same type as the input object.
+ *
+ * @template T
+ * @param {T} obj - The source object.
+ * @returns {T} A new object with `null` and `undefined` keys removed.
  */
 const cleanObject = (obj) => {
   return Object.fromEntries(
