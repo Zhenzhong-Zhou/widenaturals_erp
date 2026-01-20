@@ -1,25 +1,30 @@
 const express = require('express');
 const { authorize } = require('../middlewares/authorize');
-const { BATCH_REGISTRY } = require('../utils/constants/domain/permissions');
+const {
+  PACKAGING_BATCH,
+} = require('../utils/constants/domain/permissions');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
-const { batchRegistryQuerySchema } = require('../validators/batch-registry-validators');
+const {
+  packagingMaterialBatchQuerySchema,
+} = require('../validators/packaging-material-batch-validators');
 const { sanitizeFields } = require('../middlewares/sanitize');
 const validate = require('../middlewares/validate');
-const { getPaginatedBatchRegistryController } = require('../controllers/batch-registry-controller');
+const {
+  getPaginatedPackagingMaterialBatchesController,
+} = require('../controllers/packaging-material-batch-controller');
 
 const router = express.Router();
 
 /**
- * GET /batch-registry
+ * GET /packaging-material-batches
  *
- * Fetch a paginated list of batch registry records with optional
- * filtering, sorting, and keyword search.
+ * Fetch a paginated list of PACKAGING MATERIAL batch records.
  *
  * Responsibilities by layer:
  *
  * - **Route Middleware**:
- *   - Enforces module-level access control (`BATCH_REGISTRY.VIEW`)
- *   - Normalizes query parameters (pagination, sorting, filters, options)
+ *   - Enforces module-level access control (`PACKAGING_BATCH.VIEW_LIST`)
+ *   - Normalizes query parameters (pagination, sorting, filters)
  *   - Sanitizes free-text inputs
  *   - Validates query shape and types (schema-level only)
  *
@@ -28,20 +33,20 @@ const router = express.Router();
  *   - Delegates visibility resolution and pagination to the service layer
  *
  * - **Service / Business Layer**:
- *   - Evaluates batch visibility rules (product vs packaging)
+ *   - Evaluates packaging material batch visibility rules
  *   - Applies visibility constraints to filters (fail-closed)
- *   - Executes paginated batch registry queries
- *   - Applies defensive row slicing (non-broadening)
+ *   - Executes paginated PMB queries
  *   - Delegates data normalization to the transformer layer
  *
  * Query behavior:
- * - `batchType`
- *   → optional client hint (`product` | `packaging_material`)
- *   → intersected with visibility rules in business layer
- *
- * - `statusIds`, `skuIds`, `productIds`, `manufacturerIds`,
- *   `packagingMaterialIds`, `supplierIds`
+ * - `statusIds`, `packagingMaterialIds`, `supplierIds`
  *   → normalized as UUID arrays
+ *
+ * - `lotNumber`
+ *   → explicit lot filter (ILIKE)
+ *
+ * - Date filters
+ *   → expiry / manufacture / received / created ranges
  *
  * - Pagination & sorting
  *   → normalized and SQL-safe via upstream middleware
@@ -52,35 +57,32 @@ const router = express.Router();
  *
  * This route does NOT:
  * - Perform business logic
- * - Enforce visibility rules directly
+ * - Enforce row-level visibility
  * - Shape response data
  * - Decide keyword search scope
  */
 router.get(
   '/',
-  authorize([BATCH_REGISTRY.VIEW_LIST]),
+  authorize([PACKAGING_BATCH.VIEW_LIST]),
   createQueryNormalizationMiddleware(
-    'batchRegistrySortMap',
+    'packagingMaterialBatchSortMap',
     [
       // array-style filters
       'statusIds',
-      'skuIds',
-      'productIds',
-      'manufacturerIds',
       'packagingMaterialIds',
       'supplierIds',
     ],
     [], // boolean filters (none client-controlled)
-    batchRegistryQuerySchema, // query schema
+    packagingMaterialBatchQuerySchema, // query schema
     {},
-    [], // option-level booleans (none)
-    []  // option-level strings (none; no UI viewMode here)
+    [], // option-level booleans
+    []  // option-level strings
   ),
-  sanitizeFields(['keyword']),
-  validate(batchRegistryQuerySchema, 'query', {
+  sanitizeFields(['keyword', 'lotNumber']),
+  validate(packagingMaterialBatchQuerySchema, 'query', {
     allowUnknown: true,
   }),
-  getPaginatedBatchRegistryController
+  getPaginatedPackagingMaterialBatchesController
 );
 
 module.exports = router;
