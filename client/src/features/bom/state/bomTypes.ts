@@ -1,11 +1,14 @@
 import type {
   ApiSuccessResponse,
   AsyncState,
+  GenericAudit,
+  GenericStatus,
   PaginatedResponse,
   PaginationParams,
   SortConfig,
 } from '@shared-types/api';
 import type { ReduxPaginatedState } from '@shared-types/pagination';
+import type { NullableString } from '@shared-types/shared';
 
 /**
  * Root response shape for the paginated BOM list API.
@@ -60,7 +63,7 @@ export interface ComplianceInfo {
   number: string;
   status: string; // e.g., 'active'
   issuedDate: string; // ISO timestamp
-  expiryDate?: string | null; // optional future-proofing
+  expiryDate?: NullableString; // optional future-proofing
 }
 
 /**
@@ -73,36 +76,9 @@ export interface BomRow {
   revision: number;
   isActive: boolean;
   isDefault: boolean;
-  description: string | null;
-  status: BomStatus;
-  audit: AuditRecord;
-}
-
-/**
- * BOM status and last updated info.
- */
-export interface BomStatus {
-  id: string;
-  name: string; // e.g., 'active', 'inactive'
-  date: string; // ISO timestamp
-}
-
-/**
- * Created/updated audit info for a BOM.
- */
-export interface AuditRecord {
-  createdAt: string;
-  createdBy: BasicUserRef;
-  updatedAt: string | null;
-  updatedBy: BasicUserRef | null;
-}
-
-/**
- * Lightweight user reference for audit info.
- */
-export interface BasicUserRef {
-  id: string;
-  name: string;
+  description: NullableString;
+  status: GenericStatus;
+  audit: GenericAudit;
 }
 
 /**
@@ -131,7 +107,7 @@ export type BomSortField =
 export interface BomListFilters {
   // --- Core Filters ---
   showBarcode?: boolean;
-  skuId?: string | null;
+  skuId?: NullableString;
 
   // --- Compliance Filters ---
   complianceStatusId?: string;
@@ -214,8 +190,8 @@ export interface FlattenedBomRecord {
   // Compliance Info
   npnNumber: string;
   complianceType: string;
-  complianceIssuedDate: string | null;
-  complianceExpiryDate: string | null;
+  complianceIssuedDate: NullableString;
+  complianceExpiryDate: NullableString;
 
   // Audit Info
   createdAt: string;
@@ -270,10 +246,10 @@ export interface BomCompliance {
   id: string;
   type: string; // e.g., 'NPN'
   number: string;
-  issuedDate: string | null;
-  expiryDate: string | null;
+  issuedDate: NullableString;
+  expiryDate: NullableString;
   description: string;
-  status: BomStatus;
+  status: GenericStatus;
 }
 
 /** Describes the Bill of Materials record itself. */
@@ -285,19 +261,8 @@ export interface BomInfo {
   isActive: boolean;
   isDefault: boolean;
   description: string;
-  status: BomStatusWithDate;
-  audit: AuditRecord;
-}
-
-/** Represents the current status of the BOM or compliance record. */
-export interface BomStatus {
-  id: string;
-  name: string; // e.g., 'active'
-}
-
-/** Extends status with the date of the last update. */
-export interface BomStatusWithDate extends BomStatus {
-  date: string;
+  status: GenericStatus;
+  audit: GenericAudit;
 }
 
 /** Represents a specific part and its usage within the BOM. */
@@ -305,13 +270,13 @@ export interface BomPartDetail {
   id: string;
   partQtyPerProduct: number;
   unit: string;
-  specifications: string | null;
+  specifications: NullableString;
   estimatedUnitCost: number;
   currency: string; // e.g., 'CAD', 'USD', etc.
   exchangeRate: number; // rate relative to CAD
-  note: string | null;
+  note: NullableString;
   part: BomPart;
-  audit: AuditRecord;
+  audit: GenericAudit;
 }
 
 /** Defines a reusable part or material in the BOM structure. */
@@ -345,45 +310,45 @@ export type BomDetailsState = AsyncState<BomDetailsData | null>;
  */
 export interface FlattenedBomHeader {
   // --- Product Info ---
-  productId: string | null;
-  productName: string | null;
-  productBrand: string | null;
-  productSeries: string | null;
-  productCategory: string | null;
+  productId: NullableString;
+  productName: NullableString;
+  productBrand: NullableString;
+  productSeries: NullableString;
+  productCategory: NullableString;
 
   // --- SKU Info ---
-  skuId: string | null;
-  skuCode: string | null;
-  skuBarcode: string | null;
-  skuLanguage: string | null;
-  skuCountryCode: string | null;
-  skuMarketRegion: string | null;
-  skuSizeLabel: string | null;
-  skuDescription: string | null;
+  skuId: NullableString;
+  skuCode: NullableString;
+  skuBarcode: NullableString;
+  skuLanguage: NullableString;
+  skuCountryCode: NullableString;
+  skuMarketRegion: NullableString;
+  skuSizeLabel: NullableString;
+  skuDescription: NullableString;
 
   // --- Compliance Info ---
-  complianceId: string | null;
-  complianceType: string | null;
-  complianceNumber: string | null;
-  complianceIssuedDate: string | null;
-  complianceExpiryDate: string | null;
-  complianceDescription: string | null;
-  complianceStatus: string | null;
+  complianceId: NullableString;
+  complianceType: NullableString;
+  complianceNumber: NullableString;
+  complianceIssuedDate: NullableString;
+  complianceExpiryDate: NullableString;
+  complianceDescription: NullableString;
+  complianceStatus: NullableString;
 
   // --- BOM Info ---
-  bomId: string | null;
-  bomCode: string | null;
-  bomName: string | null;
+  bomId: NullableString;
+  bomCode: NullableString;
+  bomName: NullableString;
   bomRevision: number | null;
   bomIsActive: boolean | null;
   bomIsDefault: boolean | null;
-  bomDescription: string | null;
-  bomStatus: string | null;
-  bomStatusDate: string | null;
-  bomCreatedAt: string | null;
-  bomCreatedBy: string | null;
-  bomUpdatedAt: string | null;
-  bomUpdatedBy: string | null;
+  bomDescription: NullableString;
+  bomStatus: NullableString;
+  bomStatusDate: NullableString;
+  bomCreatedAt: NullableString;
+  bomCreatedBy: NullableString;
+  bomUpdatedAt: NullableString;
+  bomUpdatedBy: NullableString;
 }
 
 /**
@@ -392,16 +357,16 @@ export interface FlattenedBomHeader {
  */
 export interface FlattenedBomSummary {
   /** Summary type, e.g. "ESTIMATED" or "ACTUAL". */
-  summaryType: string | null;
+  summaryType: NullableString;
 
   /** Description of how the summary was calculated. */
-  summaryDescription: string | null;
+  summaryDescription: NullableString;
 
   /** Total cost normalized to CAD or a standard currency. */
   summaryTotalEstimatedCost: number | null;
 
   /** The currency used for total cost (e.g. "CAD"). */
-  summaryCurrency: string | null;
+  summaryCurrency: NullableString;
 
   /** Total count of items in the BOM. */
   summaryItemCount: number | null;
@@ -413,24 +378,24 @@ export interface FlattenedBomSummary {
  */
 export interface FlattenedBomDetailRow {
   bomItemId: string;
-  partId: string | null;
-  partCode: string | null;
-  partName: string | null;
-  partType: string | null;
+  partId: NullableString;
+  partCode: NullableString;
+  partName: NullableString;
+  partType: NullableString;
   partQtyPerProduct: number | null;
-  unit: string | null;
-  partUnitOfMeasure: string | null;
-  partDescription: string | null;
+  unit: NullableString;
+  partUnitOfMeasure: NullableString;
+  partDescription: NullableString;
   estimatedUnitCost: number | null;
-  currency: string | null;
+  currency: NullableString;
   exchangeRate: number | null;
-  specifications: string | null;
-  note: string | null;
+  specifications: NullableString;
+  note: NullableString;
   estimatedCostCAD: number | null;
-  createdAt: string | null;
-  createdBy: string | null;
-  updatedAt: string | null;
-  updatedBy: string | null;
+  createdAt: NullableString;
+  createdBy: NullableString;
+  updatedAt: NullableString;
+  updatedBy: NullableString;
 }
 
 /**
@@ -508,7 +473,7 @@ export interface BomPartSummary {
    */
   materialName: string;
   /** Optional alias or material name for UI display (e.g., “250ml Plastic Bottle”) */
-  displayName?: string | null;
+  displayName?: NullableString;
   /** Total contract or actual cost (in base currency) for this part */
   partTotalContractCost: number;
 }
@@ -540,11 +505,8 @@ export interface BomItemMaterial {
   requiredQtyPerProduct: number;
   unit: string;
   note: string;
-  status: StatusRecord;
-  createdBy: BasicUserRef;
-  updatedBy: BasicUserRef | null;
-  createdAt: string;
-  updatedAt: string | null;
+  status: GenericStatus;
+  audit: GenericAudit;
 }
 
 /**
@@ -554,10 +516,10 @@ export interface PackagingMaterial {
   id: string;
   name: string;
   code: string;
-  color: string | null;
-  size: string | null;
-  grade: string | null;
-  materialComposition: string | null;
+  color: NullableString;
+  size: NullableString;
+  grade: NullableString;
+  materialComposition: NullableString;
   unit: string;
   category: string;
   isVisibleForSalesOrder: boolean;
@@ -565,8 +527,8 @@ export interface PackagingMaterial {
   currency: string;
   exchangeRate: number;
   dimensions: MaterialDimensions;
-  status: StatusRecord;
-  audit: AuditRecord;
+  status: GenericStatus;
+  audit: GenericAudit;
   supplier: SupplierDetail;
 }
 
@@ -591,7 +553,7 @@ export interface SupplierDetail {
   id: string;
   name: string;
   contract: SupplierContract;
-  audit: AuditRecord;
+  audit: GenericAudit;
   batches: PackagingMaterialBatch[];
 }
 
@@ -606,7 +568,7 @@ export interface SupplierContract {
   validTo: string;
   isPreferred: boolean;
   leadTimeDays: number;
-  note: string | null;
+  note: NullableString;
 }
 
 /**
@@ -625,17 +587,8 @@ export interface PackagingMaterialBatch {
   currency: string;
   exchangeRate: number;
   totalCost: number;
-  status: StatusRecord;
-  audit: AuditRecord;
-}
-
-/**
- * Status record with ID, name, and effective date.
- */
-export interface StatusRecord {
-  id: string;
-  name: string;
-  date: string;
+  status: GenericStatus;
+  audit: GenericAudit;
 }
 
 /**
@@ -653,7 +606,7 @@ export interface BomMaterialSupplyDetailsState extends AsyncState<BomMaterialSup
    * The currently selected BOM ID whose supply details are loaded.
    * Useful for tracking active context between different BOM views.
    */
-  selectedBomId: string | null;
+  selectedBomId: NullableString;
 }
 
 /**
@@ -708,23 +661,23 @@ export interface FlattenedBomSupplyRow {
   bomItemMaterialId: string;
   requiredQtyPerProduct: number;
   bomUnit: string;
-  materialNote: string | null;
+  materialNote: NullableString;
   bomItemMaterialStatusName: string;
   bomItemMaterialStatusDate: string;
   bomItemMaterialCreatedAt: string;
-  bomItemMaterialCreatedBy: string;
-  bomItemMaterialUpdatedAt: string | null;
-  bomItemMaterialUpdatedBy: string | null;
+  bomItemMaterialCreatedBy: NullableString;
+  bomItemMaterialUpdatedAt: NullableString;
+  bomItemMaterialUpdatedBy: NullableString;
 
   // --- Packaging Material Info ---
   packagingMaterialId: string;
   packagingMaterialName: string;
   packagingMaterialCode: string;
-  materialComposition: string | null;
+  materialComposition: NullableString;
   category: string;
-  color: string | null;
-  size: string | null;
-  grade: string | null;
+  color: NullableString;
+  size: NullableString;
+  grade: NullableString;
   estimatedUnitCost: number;
   materialCurrency: string;
   materialExchangeRate: number;
@@ -740,9 +693,9 @@ export interface FlattenedBomSupplyRow {
   packagingMaterialStatusName: string;
   packagingMaterialStatusDate: string;
   packagingMaterialCreatedAt: string;
-  packagingMaterialCreatedBy: string;
-  packagingMaterialUpdatedAt: string | null;
-  packagingMaterialUpdatedBy: string | null;
+  packagingMaterialCreatedBy: NullableString;
+  packagingMaterialUpdatedAt: NullableString;
+  packagingMaterialUpdatedBy: NullableString;
 
   // --- Supplier Info ---
   supplierId: string;
@@ -754,11 +707,11 @@ export interface FlattenedBomSupplyRow {
   supplierContractValidFrom: string;
   supplierContractValidTo: string;
   supplierPreferred: boolean;
-  supplierNote: string | null;
+  supplierNote: NullableString;
   supplierCreatedAt: string;
-  supplierCreatedBy: string;
-  supplierUpdatedAt: string | null;
-  supplierUpdatedBy: string | null;
+  supplierCreatedBy: NullableString;
+  supplierUpdatedAt: NullableString;
+  supplierUpdatedBy: NullableString;
 
   // --- Batch Info ---
   batchId: string;
@@ -776,9 +729,9 @@ export interface FlattenedBomSupplyRow {
   batchStatusName: string;
   batchStatusDate: string;
   batchCreatedAt: string;
-  batchCreatedBy: string;
-  batchUpdatedAt: string | null;
-  batchUpdatedBy: string | null;
+  batchCreatedBy: NullableString;
+  batchUpdatedAt: NullableString;
+  batchUpdatedBy: NullableString;
 }
 
 /**
@@ -867,10 +820,10 @@ export interface BomBottleneckPart {
   partName: string;
 
   /** Related packaging material name, if available (e.g., "250ml Plastic Bottle") */
-  packagingMaterialName: string | null;
+  packagingMaterialName: NullableString;
 
   /** Snapshot or version name of the material record, if applicable */
-  materialSnapshotName: string | null;
+  materialSnapshotName: NullableString;
 
   /** Human-readable display label, typically from received label or fallback to partName */
   displayLabel: string;
@@ -947,7 +900,7 @@ export interface BomProductionReadinessState extends AsyncState<BomProductionRea
    * The currently selected BOM ID whose readiness summary is being viewed.
    * Helps maintain UI context between BOM overview and readiness pages.
    */
-  selectedBomId: string | null;
+  selectedBomId: NullableString;
 
   /**
    * Indicates whether the current BOM is production-ready,
@@ -1007,7 +960,7 @@ export interface UnifiedBatchRow {
   reservedQuantity?: number;
 
   /** Date when batch was received or recorded inbound */
-  inboundDate?: string | null;
+  inboundDate?: NullableString;
 
   /** Current inventory status (e.g., 'in_stock', 'inactive', 'reserved') */
   inventoryStatus?: string;
@@ -1016,7 +969,7 @@ export interface UnifiedBatchRow {
   unitCost?: number | null;
 
   /** Currency of the unit cost (e.g., 'CAD', 'USD') */
-  currency?: string | null;
+  currency?: NullableString;
 
   /** Related BOM part identifier */
   partId?: string;
@@ -1055,7 +1008,7 @@ export interface UnifiedBatchRow {
  */
 export interface FlattenedBomReadinessMetadata {
   /** ISO timestamp when readiness was last calculated */
-  readinessGeneratedAt: string | null;
+  readinessGeneratedAt: NullableString;
 
   /** Indicates whether all parts are sufficient to begin production */
   readinessStatus: boolean | null;
@@ -1067,16 +1020,16 @@ export interface FlattenedBomReadinessMetadata {
   readinessShortageCount: number | null;
 
   /** Aggregated stock health summary in text form (e.g., "usable: 9850, inactive: 0") */
-  readinessStockHealthSummary: string | null;
+  readinessStockHealthSummary: NullableString;
 
   /** Comma-separated list of bottleneck part names */
-  readinessBottleneckPartNames: string | null;
+  readinessBottleneckPartNames: NullableString;
 
   /** Comma-separated list of bottleneck material names */
-  readinessBottleneckMaterialName: string | null;
+  readinessBottleneckMaterialName: NullableString;
 
   /** Comma-separated list of bottleneck material snapshot names */
-  readinessBottleneckMaterialSnapshotName: string | null;
+  readinessBottleneckMaterialSnapshotName: NullableString;
 
   /** Optional count of bottleneck parts limiting production output */
   readinessBottleneckCount?: number | null;
