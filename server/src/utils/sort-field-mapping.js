@@ -217,6 +217,71 @@ const SORTABLE_FIELDS = {
     // --------------------------------------------------
     defaultNaturalSort: `br.registered_at`,
   },
+  packagingMaterialBatchSortMap: {
+    // --------------------------------------------------
+    // Core identity (SAFE, always present)
+    // --------------------------------------------------
+    receivedAt: `pmb.received_at`,
+    lotNumber: `LOWER(pmb.lot_number)`,
+    
+    // --------------------------------------------------
+    // Snapshot identity (PRIMARY display fields)
+    // --------------------------------------------------
+    materialInternalName: `
+      LOWER(pmb.material_snapshot_name)
+    `,
+    
+    supplierLabelName: `
+      LOWER(pmb.received_label_name)
+    `,
+    
+    // --------------------------------------------------
+    // Lifecycle
+    // --------------------------------------------------
+    manufactureDate: `pmb.manufacture_date`,
+    expiryDate: `pmb.expiry_date`,
+    
+    // --------------------------------------------------
+    // Status
+    // --------------------------------------------------
+    statusName: `LOWER(bs.name)`,
+    statusDate: `pmb.status_date`,
+    
+    // --------------------------------------------------
+    // Quantity
+    // --------------------------------------------------
+    quantity: `pmb.quantity`,
+    
+    // --------------------------------------------------
+    // Packaging material (REFERENCE ONLY)
+    // --------------------------------------------------
+    packagingMaterialCode: `LOWER(pm.code)`,
+    packagingMaterialCategory: `LOWER(pm.category)`,
+    
+    // --------------------------------------------------
+    // Supplier
+    // --------------------------------------------------
+    supplierName: `LOWER(s.name)`,
+    isPreferredSupplier: `pms.is_preferred`,
+    supplierLeadTime: `pms.lead_time_days`,
+    
+    // --------------------------------------------------
+    // Audit / Intake
+    // --------------------------------------------------
+    receivedBy: `
+      LOWER(
+        COALESCE(rb.firstname, '') || ' ' ||
+        COALESCE(rb.lastname, '')
+      )
+    `,
+    
+    createdAt: `pmb.created_at`,
+    
+    // --------------------------------------------------
+    // Fallback (REQUIRED)
+    // --------------------------------------------------
+    defaultNaturalSort: `pmb.received_at`,
+  },
   pricingRecords: {
     productName: 'pr.name',
     brand: 'pr.brand',

@@ -49,6 +49,9 @@ const PERMISSIONS = {
   PRODUCT_BATCH: {
     VIEW_LIST: 'view_product_batches',
   },
+  PACKAGING_BATCH: {
+    VIEW_LIST: 'view_packaging_material_batches',
+  },
   REPORTS: {
     VIEW: 'view_reports',
   },
