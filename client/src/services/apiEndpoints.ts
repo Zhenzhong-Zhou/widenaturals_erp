@@ -67,6 +67,9 @@ export const API_ENDPOINTS = {
     BOM_PRODUCTION_SUMMARY: (bomId: string) =>
       `/boms/${bomId}/production-summary`,
   },
+  BATCH_REGISTRY: {
+    ALL_RECORDS: '/batch-registry',
+  },
   LOCATION_INVENTORY: {
     ALL_RECORDS: '/location-inventory',
     KPI_SUMMARY: '/location-inventory/kpi-summary',

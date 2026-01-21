@@ -12,15 +12,21 @@ import {
 export interface PaginatedResponse<T> {
   /** Indicates whether the request was successful */
   success: boolean;
-
+  
   /** Human-readable message associated with the response */
   message: string;
-
+  
   /** Array of data items of type T */
   data: T[];
-
+  
   /** Pagination metadata for the current response */
   pagination: Pagination;
+  
+  /**
+   * Optional trace identifier for request correlation and debugging.
+   * Present when backend tracing/logging is enabled.
+   */
+  traceId?: string;
 }
 
 /**
@@ -257,15 +263,22 @@ export interface CreatedUpdatedByFilter {
 }
 
 /**
- * Represents a user associated with an audit action
- * (e.g., createdBy, updatedBy).
+ * Minimal identity reference used across the system.
+ * Represents a resolved actor identity.
  */
-export interface AuditUser {
-  /** Unique user identifier (can be null for system actions). */
-  id: string | null;
-
-  /** Display name of the user (e.g., "System Action"). */
+export interface ActorIdentity {
+  id: string;
   name: string;
+}
+
+/**
+ * Represents an actor associated with an audit action
+ * (e.g. createdBy, updatedBy, registeredBy).
+ *
+ * `id` may be null for system-initiated actions.
+ */
+export interface AuditUser extends Omit<ActorIdentity, 'id'> {
+  id: NullableString;
 }
 
 /**
