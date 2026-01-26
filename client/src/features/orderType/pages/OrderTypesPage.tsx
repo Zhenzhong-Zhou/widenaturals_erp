@@ -4,15 +4,18 @@ import Divider from '@mui/material/Divider';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
-import usePaginateOrderTypes from '@hooks/usePaginateOrderTypes';
-import Loading from '@components/common/Loading';
-import ErrorDisplay from '@components/shared/ErrorDisplay';
-import ErrorMessage from '@components/common/ErrorMessage';
-import CustomTypography from '@components/common/CustomTypography';
-import OrderTypeFiltersPanel from '@features/orderType/components/OrderTypeFiltersPanel';
-import OrderTypeSortControls from '@features/orderType/components/OrderTypeSortControls';
-import OrderTypesTable from '@features/orderType/components/OrderTypesTable';
-import NoDataFound from '@components/common/NoDataFound';
+import { usePaginateOrderTypes } from '@hooks/index';
+import {
+  CustomTypography,
+  ErrorMessage,
+  Loading,
+  NoDataFound
+} from '@components/index';
+import {
+  OrderTypeFiltersPanel,
+  OrderTypeSortControls,
+  OrderTypesTable
+} from '@features/orderType/components';
 import type {
   OrderTypeFilters,
   OrderTypeSortBy,
@@ -20,6 +23,8 @@ import type {
 import type { SortOrder } from '@shared-types/api';
 import { applyFiltersAndSorting } from '@utils/queryUtils';
 import { usePaginationHandlers } from '@utils/hooks';
+import { flattenOrderTypeRecords } from '@features/orderType/utils';
+import CustomButton from '@components/common/CustomButton.tsx';
 
 const OrderTypesPage: FC = () => {
   const [page, setPage] = useState(1);
@@ -33,10 +38,19 @@ const OrderTypesPage: FC = () => {
     pagination: orderTypePagination,
     loading: isOrderTypeLoading,
     error: orderTypeError,
+    isEmpty: isOrderTypesEmpty,
     fetchData: fetchOrderTypes,
     reset: resetOrderTypes,
   } = usePaginateOrderTypes();
-
+  
+  // -----------------------------
+  // Derived data
+  // -----------------------------
+  const flattenedOrderTypeData = useMemo(
+    () => flattenOrderTypeRecords(orderTypes),
+    [orderTypes]
+  );
+  
   const queryParams = useMemo(
     () => ({
       page,
@@ -69,7 +83,11 @@ const OrderTypesPage: FC = () => {
     setSortOrder('');
     setPage(1);
   };
-
+  
+  // Show empty state only when data is truly empty (avoid flashing during loading)
+  const showEmpty =
+    isOrderTypesEmpty || (!isOrderTypeLoading && flattenedOrderTypeData.length === 0);
+  
   return (
     <Box sx={{ px: 4, py: 3 }}>
       {/* Page Header */}
@@ -119,13 +137,20 @@ const OrderTypesPage: FC = () => {
         {isOrderTypeLoading ? (
           <Loading message="Loading Order Types..." />
         ) : orderTypeError ? (
-          <ErrorDisplay>
-            <ErrorMessage message={orderTypeError} />
-          </ErrorDisplay>
-        ) : orderTypes.length > 0 ? (
+          <ErrorMessage message={orderTypeError} />
+        ) : showEmpty ? (
+          <NoDataFound
+            message="No order type records found."
+            action={
+              <CustomButton onClick={handleResetFilters}>
+                Reset
+              </CustomButton>
+            }
+          />
+        ) : (
           <OrderTypesTable
             loading={isOrderTypeLoading}
-            data={orderTypes}
+            data={flattenedOrderTypeData}
             page={page - 1}
             rowsPerPage={limit}
             totalRecords={orderTypePagination?.totalRecords || 0}
@@ -134,8 +159,6 @@ const OrderTypesPage: FC = () => {
             onRowsPerPageChange={handleRowsPerPageChange}
             onRefresh={handleRefresh}
           />
-        ) : (
-          <NoDataFound message="No order types found." />
         )}
       </Box>
     </Box>

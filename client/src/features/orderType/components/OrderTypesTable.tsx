@@ -1,20 +1,18 @@
-import type { FC } from 'react';
+import { type FC, useMemo } from 'react';
 import Box from '@mui/material/Box';
-import CustomTable, { type Column } from '@components/common/CustomTable';
-import CustomButton from '@components/common/CustomButton';
-import Tooltip from '@mui/material/Tooltip';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  faCheckCircle,
-  faTimesCircle,
-} from '@fortawesome/free-solid-svg-icons';
-import type { OrderTypeListItem } from '@features/orderType/state';
-import { formatLabel } from '@utils/textUtils';
-import { formatDate } from '@utils/dateTimeUtils';
-import CustomTypography from '@components/common/CustomTypography.tsx';
+import { CustomButton, CustomTable, CustomTypography } from '@components/index';
+import type { FlattenedOrderTypeRecord } from '@features/orderType/state';
+import { getOrderTypeTableColumns } from '@features/orderType/components/index';
 
+/**
+ * OrderTypesTable
+ *
+ * Presentational table component for displaying a paginated list of
+ * order types. Handles rendering, pagination, and refresh actions
+ * without owning data-fetching or transformation logic.
+ */
 interface OrderTypesTableProps {
-  data: OrderTypeListItem[];
+  data: FlattenedOrderTypeRecord[];
   page: number;
   loading: boolean;
   totalRecords: number;
@@ -25,109 +23,23 @@ interface OrderTypesTableProps {
   onRefresh: () => void;
 }
 
-// Define columns outside to avoid re-creation on every render
-const orderTypeColumns: Column<OrderTypeListItem>[] = [
-  {
-    id: 'name',
-    label: 'Order Type',
-    minWidth: 170,
-    sortable: true,
-    format: (value: string | boolean) => formatLabel(String(value)),
-  },
-  {
-    id: 'code',
-    label: 'Code',
-    minWidth: 150,
-    sortable: true,
-  },
-  {
-    id: 'category',
-    label: 'Category',
-    minWidth: 150,
-    sortable: true,
-    format: (value: string | boolean) => formatLabel(String(value)),
-  },
-  {
-    id: 'description',
-    label: 'Description',
-    minWidth: 250,
-  },
-  {
-    id: 'requiresPayment',
-    label: 'Requires Payment',
-    sortable: true,
-    renderCell: (row) => {
-      const requiresPayment = row.requiresPayment;
-      return (
-        <Tooltip
-          title={requiresPayment ? 'Payment required' : 'No payment required'}
-        >
-          <span>
-            <FontAwesomeIcon
-              icon={requiresPayment ? faCheckCircle : faTimesCircle}
-              color={requiresPayment ? 'green' : 'gray'}
-            />
-          </span>
-        </Tooltip>
-      );
-    },
-  },
-  {
-    id: 'statusName',
-    label: 'Status',
-    minWidth: 100,
-    sortable: true,
-    format: (value: string | boolean) => formatLabel(String(value)),
-  },
-  {
-    id: 'statusDate',
-    label: 'Status Date',
-    minWidth: 100,
-    sortable: true,
-    format: (value: string | boolean) =>
-      value && value !== 'Invalid Date' ? formatDate(String(value)) : '—',
-  },
-  {
-    id: 'createdAt',
-    label: 'Created At',
-    minWidth: 100,
-    sortable: true,
-    format: (value: string | boolean) =>
-      value && value !== 'Invalid Date' ? formatDate(String(value)) : '—',
-  },
-  {
-    id: 'createdBy',
-    label: 'Created By',
-    minWidth: 150,
-    sortable: true,
-  },
-  {
-    id: 'updatedBy',
-    label: 'Updated By',
-    minWidth: 150,
-    sortable: true,
-  },
-  {
-    id: 'updatedAt',
-    label: 'Updated At',
-    minWidth: 100,
-    sortable: true,
-    format: (value: string | boolean) =>
-      value && value !== 'Invalid Date' ? formatDate(String(value)) : '—',
-  },
-];
-
 const OrderTypesTable: FC<OrderTypesTableProps> = ({
-  data,
-  page,
-  rowsPerPage,
-  totalRecords,
-  totalPages,
-  loading,
-  onPageChange,
-  onRowsPerPageChange,
-  onRefresh,
-}) => {
+                                                     data,
+                                                     page,
+                                                     rowsPerPage,
+                                                     totalRecords,
+                                                     totalPages,
+                                                     loading,
+                                                     onPageChange,
+                                                     onRowsPerPageChange,
+                                                     onRefresh,
+                                                   }) => {
+  // Column configuration is memoized to avoid re-creation across renders
+  const orderTypeColumns = useMemo(
+    () => getOrderTypeTableColumns(),
+    []
+  );
+  
   return (
     <Box>
       <Box
@@ -145,7 +57,7 @@ const OrderTypesTable: FC<OrderTypesTableProps> = ({
           Refresh Data
         </CustomButton>
       </Box>
-
+      
       <CustomTable
         columns={orderTypeColumns}
         data={data}
