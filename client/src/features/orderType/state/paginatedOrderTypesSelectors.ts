@@ -40,3 +40,21 @@ export const selectOrderTypesError = createSelector(
   [selectOrderTypesState],
   (state) => state.error
 );
+
+/**
+ * Selector indicating whether the Order Type list is empty.
+ *
+ * Returns `true` only when:
+ * - loading has finished
+ * - and there are zero order type records
+ *
+ * This selector is intended for UI empty-state messaging only.
+ * It should NOT be used to conditionally unmount tables.
+ */
+export const selectOrderTypesIsEmpty = createSelector(
+  [
+    selectOrderTypeList,
+    selectOrderTypesLoading,
+  ],
+  (data, loading) => !loading && data.length === 0
+);

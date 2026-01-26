@@ -7,6 +7,7 @@ import {
   selectOrderTypesError,
   selectOrderTypesLoading,
   resetPaginatedOrderTypes,
+  selectOrderTypesIsEmpty,
 } from '@features/orderType/state';
 import type { FetchPaginatedOrderTypesParams } from '@features/orderType/state';
 
@@ -28,6 +29,7 @@ const usePaginateOrderTypes = () => {
   const pagination = useAppSelector(selectOrderTypePagination);
   const loading = useAppSelector(selectOrderTypesLoading);
   const error = useAppSelector(selectOrderTypesError);
+  const isEmpty = useAppSelector(selectOrderTypesIsEmpty);
 
   const fetchData = useCallback(
     (params: FetchPaginatedOrderTypesParams) => {
@@ -46,6 +48,7 @@ const usePaginateOrderTypes = () => {
       pagination,
       loading,
       error,
+      isEmpty,
       fetchData,
       reset,
     }),

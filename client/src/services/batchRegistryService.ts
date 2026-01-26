@@ -7,38 +7,69 @@ import { getRequest } from '@utils/http';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 
 /**
- * Fetch a paginated list of batch registry records from the backend.
+ * Fetch a paginated list of batch registry records.
  *
  * Responsibilities:
- * - Delegates query parameter serialization to `buildQueryString`
+ * - Serializes pagination, sorting, and filter parameters into a query string
  * - Issues a READ-only HTTP request to the batch registry endpoint
  * - Preserves backend pagination metadata without transformation
  * - Returns a typed, paginated batch registry response
  *
- * This service function is intentionally:
- * - Stateless
- * - Side-effect free
- * - UI-agnostic
+ * Notes:
+ * - Filters are provided in `params.filters`
+ * - Date range filters are flattened into top-level query parameters:
+ *   - expiryAfter, expiryBefore
+ *   - registeredAfter, registeredBefore
+ * - Multi-select filters (IDs) may be passed as arrays or comma-separated values
+ * - Errors are normalized and propagated by the transport layer
  *
- * It is safe to be called by:
- * - Redux thunks
- * - Server-side data loaders
- * - Background refresh workflows
+ * Guarantees:
+ * - Stateless and side-effect free
+ * - Safe for concurrent calls
+ * - UI-agnostic and reusable across thunks and loaders
  *
- * @param params - Pagination, sorting, and batch registry filter parameters
- * @returns A paginated batch registry response
+ * @param params - Pagination, sorting, and batch registry filter options
+ * @returns A paginated batch registry response with pagination metadata
+ * @throws {AppError} When the request fails
  */
-const fetchPaginatedBatchRegistry = (
+const fetchPaginatedBatchRegistry = async (
   params: BatchRegistryQueryParams = {}
 ): Promise<PaginatedBatchRegistryListResponse> => {
-  const queryString = buildQueryString(params);
+  const { filters = {}, ...rest } = params;
   
-  return getRequest<PaginatedBatchRegistryListResponse>(
-    `${API_ENDPOINTS.BATCH_REGISTRY.ALL_RECORDS}${queryString}`,
-    {
-      policy: 'READ',
-    }
-  );
+  const {
+    expiryAfter,
+    expiryBefore,
+    registeredAfter,
+    registeredBefore,
+    ...otherFilters
+  } = filters;
+  
+  /**
+   * Flatten date filters → query params
+   */
+  const flatDateParams: Record<string, string> = {};
+  
+  if (expiryAfter) flatDateParams.expiryAfter = expiryAfter;
+  if (expiryBefore) flatDateParams.expiryBefore = expiryBefore;
+  if (registeredAfter) flatDateParams.registeredAfter = registeredAfter;
+  if (registeredBefore) flatDateParams.registeredBefore = registeredBefore;
+  
+  /**
+   * Final flattened params
+   */
+  const flatParams = {
+    ...rest,
+    ...otherFilters,
+    ...flatDateParams,
+  };
+  
+  const queryString = buildQueryString(flatParams);
+  const url = `${API_ENDPOINTS.BATCH_REGISTRY.ALL_RECORDS}${queryString}`;
+  
+  return getRequest<PaginatedBatchRegistryListResponse>(url, {
+    policy: 'READ',
+  });
 };
 
 /* =========================================================
