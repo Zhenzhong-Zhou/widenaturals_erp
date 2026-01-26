@@ -76,9 +76,9 @@ interface UserDateField {
 
 export const USER_DATE_FIELDS: UserDateField[] = [
   { name: 'dateRanges.created.from', label: 'Created Date ≥' },
-  { name: 'dateRanges.created.to', label: 'Created Date ≤' },
+  { name: 'dateRanges.created.to', label: 'Created Date <' },
   { name: 'dateRanges.updated.from', label: 'Updated Date ≥' },
-  { name: 'dateRanges.updated.to', label: 'Updated Date ≤' },
+  { name: 'dateRanges.updated.to', label: 'Updated Date <' },
 ];
 
 /* ------------------------------------------------------------------ */

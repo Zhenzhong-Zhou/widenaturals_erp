@@ -4,7 +4,7 @@ import Grid from '@mui/material/Grid';
 import CustomButton from '@components/common/CustomButton';
 import { useForm } from 'react-hook-form';
 import type { OrderListFilters } from '@features/order/state';
-import { adjustBeforeDateInclusive } from '@utils/dateTimeUtils';
+import { toISODate } from '@utils/dateTimeUtils';
 import { renderDateField, renderInputField } from '@utils/filters/filterUtils';
 
 interface Props {
@@ -41,8 +41,8 @@ const OrderFiltersPanel: FC<Props> = ({
   const submitFilters = (data: OrderListFilters) => {
     const adjusted: OrderListFilters = {
       ...data,
-      createdBefore: adjustBeforeDateInclusive(data.createdBefore),
-      statusDateBefore: adjustBeforeDateInclusive(data.statusDateBefore),
+      createdBefore: toISODate(data.createdBefore),
+      statusDateBefore: toISODate(data.statusDateBefore),
     };
     onChange(adjusted);
     onApply();

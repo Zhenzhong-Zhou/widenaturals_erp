@@ -8,10 +8,7 @@ import type { MultiSelectOption } from '@components/common/MultiSelectDropdown';
 import WarehouseMultiSelectDropdown from '@features/lookup/components/WarehouseMultiSelectDropdown';
 import BatchRegistryMultiSelectDropdown from '@features/lookup/components/BatchRegistryMultiSelectDropdown';
 import { renderDateField, renderInputField } from '@utils/filters/filterUtils';
-import {
-  adjustAfterDate,
-  adjustBeforeDateInclusive,
-} from '@utils/dateTimeUtils';
+import { toISODate } from '@utils/dateTimeUtils';
 import useBatchRegistryLookup from '@hooks/useBatchRegistryLookup.ts';
 import type {
   BatchLookupOption,
@@ -175,14 +172,14 @@ const InventoryAllocationFiltersPanel: FC<Props> = ({
   const submitFilters = (data: InventoryAllocationFilters) => {
     const adjusted: InventoryAllocationFilters = {
       ...data,
-      aggregatedAllocatedBefore: adjustBeforeDateInclusive(
+      aggregatedAllocatedBefore: toISODate(
         data.aggregatedAllocatedBefore
       ),
-      aggregatedAllocatedAfter: adjustAfterDate(data.aggregatedAllocatedAfter),
-      aggregatedCreatedBefore: adjustBeforeDateInclusive(
+      aggregatedAllocatedAfter: toISODate(data.aggregatedAllocatedAfter),
+      aggregatedCreatedBefore: toISODate(
         data.aggregatedCreatedBefore
       ),
-      aggregatedCreatedAfter: adjustAfterDate(data.aggregatedCreatedAfter),
+      aggregatedCreatedAfter: toISODate(data.aggregatedCreatedAfter),
     };
 
     onChange(adjusted);
