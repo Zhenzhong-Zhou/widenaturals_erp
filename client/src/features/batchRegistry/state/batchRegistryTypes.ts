@@ -31,13 +31,28 @@ export type BatchRegistryRecord =
   | PackagingMaterialBatchRegistryRecord;
 
 /**
- * Base fields shared by all batch registry records.
+ * BaseBatchRegistryRecord
+ *
+ * Base interface defining fields shared by all batch registry records,
+ * regardless of underlying batch entity type.
+ *
+ * This interface represents a **domain-level batch registry record**
+ * and preserves normalized relationships and typed metadata.
+ *
+ * Intended usage:
+ * - Service and business layer data contracts
+ * - API responses for detail views
+ * - Inputs to transformers (e.g. flattening for UI)
+ *
+ * Not intended for:
+ * - Direct Redux storage
+ * - Table/list rendering without transformation
  */
 interface BaseBatchRegistryRecord {
   /** Unique batch registry identifier */
   id: string;
   
-  /** Domain-level batch entity type */
+  /** Discriminator for the underlying batch entity type */
   type: BatchEntityType;
   
   /** Batch lot number */
@@ -46,34 +61,60 @@ interface BaseBatchRegistryRecord {
   /** Expiry date (ISO string) or null if not applicable */
   expiryDate: NullableString;
   
-  /** Current batch status */
+  /** Current batch status (id, name, effective date) */
   status: GenericStatus;
+  
+  /** Optional registry note */
+  note: NullableString;
   
   /** Timestamp when the batch was registered */
   registeredAt: string;
   
-  /** Actor who registered the batch */
+  /** Actor identity who registered the batch */
   registeredBy: ActorIdentity;
 }
 
 /**
- * Batch registry record for packaging material batches.
+ * PackagingMaterialBatchRegistryRecord
+ *
+ * Domain-level batch registry record for **packaging material batches**.
+ *
+ * Extends the base registry fields with packaging-specific metadata,
+ * preserving normalized relationships to packaging material and supplier
+ * entities.
+ *
+ * Notes:
+ * - `type` is a strict discriminator and always `'packaging_material'`
+ * - This structure is intentionally nested and should be flattened
+ *   before use in table-based UI or Redux state
  */
 export interface PackagingMaterialBatchRegistryRecord
   extends BaseBatchRegistryRecord {
+  /** Discriminator for packaging material batch records */
   type: 'packaging_material';
   
-  /** Packaging batch identifier */
+  /** Packaging material batch identifier */
   packagingBatchId: string;
   
-  /** Packaging material metadata */
+  /** Human-readable display name for the packaging batch */
+  packagingDisplayName: string;
+  
+  /** Packaging material reference */
   packagingMaterial: {
+    /** Packaging material identifier */
     id: string;
+    
+    /** Packaging material code */
+    code: string;
+  };
+  
+  /** Supplier reference */
+  supplier: {
+    /** Supplier identifier */
+    id: string;
+    
+    /** Supplier display name */
     name: string;
-    supplier: {
-      id: string;
-      name: string;
-    };
   };
 }
 
@@ -193,7 +234,6 @@ export interface BatchRegistryFilters {
 export type BatchRegistrySortField =
   // Core registry identity
   | 'registeredAt'
-  | 'batchType'
   
   // Lot & expiry
   | 'lotNumber'
@@ -231,11 +271,108 @@ export interface BatchRegistryQueryParams
 }
 
 /* =========================================================
- * REDUX STATE
+ * REDUX STATE — BATCH REGISTRY
  * ======================================================= */
 
 /**
- * Redux paginated state for batch registry records.
+ * Redux paginated state for Batch Registry domain records.
+ *
+ * This state stores normalized batch registry records as returned
+ * by the API. These records preserve entity relationships and are
+ * intended to be transformed before UI rendering.
  */
+// todo: use flatten
 export type PaginatedBatchRegistryState =
   ReduxPaginatedState<BatchRegistryRecord>;
+
+/**
+ * FlattenedBatchRegistryRecord
+ *
+ * A **flattened, presentation-layer representation** of a batch registry entry.
+ *
+ * This interface intentionally denormalizes data from multiple backend sources
+ * (batch registry, status, product/SKU, packaging material, manufacturer/supplier)
+ * into a single, table-friendly structure.
+ *
+ * Design goals:
+ * - Optimized for Redux storage
+ * - Easy table rendering (no nested access)
+ * - Stable keys for sorting, filtering, and pagination
+ * - Supports both product batches and packaging-material batches
+ *
+ * Notes:
+ * - Fields not applicable to the current `batchType` will be null or empty.
+ * - This is NOT a domain entity and should not be used for write operations.
+ */
+export interface FlattenedBatchRegistryRecord {
+  /* -------------------------------------------------------
+   * Core registry identity
+   * ----------------------------------------------------- */
+  
+  /** Unique registry record identifier */
+  id: string;
+  
+  /** Type of batch registered */
+  batchType: BatchEntityType;
+  
+  /** Lot or batch number (product or packaging) */
+  lotNumber: string;
+  
+  /** Expiry date (ISO string); null if not applicable */
+  expiryDate: NullableString;
+  
+  /* -------------------------------------------------------
+   * Status
+   * ----------------------------------------------------- */
+  
+  /** Human-readable batch status */
+  status: string;
+  
+  /** Status effective date (ISO string) */
+  statusDate: string;
+  
+  /* -------------------------------------------------------
+   * Registry audit metadata
+   * ----------------------------------------------------- */
+  
+  /** Timestamp when the batch was registered */
+  registeredAt: string;
+  
+  /** Display name of the user who registered the batch */
+  registeredBy: string;
+  
+  /** Optional registry note */
+  note: NullableString;
+  
+  /* -------------------------------------------------------
+   * Product batch fields (batchType === 'product')
+   * ----------------------------------------------------- */
+  
+  /** Product identifier */
+  productId: NullableString;
+  
+  /** Product display name */
+  productName: string;
+  
+  /** SKU code associated with the batch */
+  skuCode: string;
+  
+  /** Manufacturer name */
+  manufacturerName: string;
+  
+  /* -------------------------------------------------------
+   * Packaging material batch fields (batchType === 'packaging_material')
+   * ----------------------------------------------------- */
+  
+  /** Packaging material batch identifier */
+  packagingBatchId: NullableString;
+  
+  /** Display name for packaging material */
+  packagingDisplayName: string;
+  
+  /** Packaging material code */
+  packagingMaterialCode: string;
+  
+  /** Supplier name */
+  supplierName: string;
+}

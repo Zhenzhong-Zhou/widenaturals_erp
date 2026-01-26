@@ -5,11 +5,9 @@ import { differenceInDays } from 'date-fns/differenceInDays';
 import { differenceInMinutes } from 'date-fns/differenceInMinutes';
 import { isValid } from 'date-fns/isValid';
 import {
-  addDays,
   differenceInHours,
   differenceInMonths,
   differenceInSeconds,
-  startOfDay,
 } from 'date-fns';
 
 /* =========================================================
@@ -282,60 +280,39 @@ export const formatToISODate = (
 };
 
 /**
- * Adjusts a "before" date to make filtering inclusive:
- * Adds 1 day and sets time to start of day (00:00),
- * so dates like '2025-07-08' include the full day in filtering.
+ * Normalize a date-like value into an ISO 8601 **date-only** string (`YYYY-MM-DD`).
  *
- * @param input - Date string (e.g., '2025-07-08') or undefined
- * @returns ISO string for start of the next day (e.g., '2025-07-09T00:00:00.000Z'), or '' if invalid
+ * Intended for API filter parameters that represent **date ranges**
+ * (e.g. expiryAfter, expiryBefore, registeredAfter, registeredBefore),
+ * not audit timestamps.
+ *
+ * Behavior:
+ * - Accepts a `Date` object or date-like string
+ * - Returns a valid ISO 8601 date string (`YYYY-MM-DD`)
+ * - Returns `undefined` for null, empty, or invalid inputs
+ *
+ * Design notes:
+ * - Always returns a date-only value (no time component)
+ * - Avoids empty strings and sentinel values
+ * - Safe to spread directly into query parameter objects
+ *
+ * @param value - A Date object or date-like string
+ * @returns ISO 8601 date string (`YYYY-MM-DD`) or `undefined`
+ *
+ * @example
+ * toISODate('2026-01-19')           // '2026-01-19'
+ * toISODate(new Date('2026-01-19')) // '2026-01-19'
+ * toISODate(undefined)              // undefined
  */
-export const adjustBeforeDateInclusive = (input?: string): string => {
-  const date = input ? new Date(input) : null;
-  return date && isValid(date)
-    ? startOfDay(addDays(date, 1)).toISOString()
-    : '';
-};
-
-/**
- * Adjusts a date string to the start of that day (00:00:00)
- * and returns it as a full ISO 8601 timestamp.
- *
- * Typically used for `>=` filters in SQL queries to include
- * all events on the selected "after" date.
- *
- * Example:
- *   Input: '2025-09-04' → Output: '2025-09-04T00:00:00.000Z'
- *
- * @param input - A date string in 'YYYY-MM-DD' or ISO format
- * @returns ISO 8601 timestamp string starting at 00:00:00 of the given day,
- *          or an empty string if the input is invalid.
- */
-export const adjustAfterDate = (input?: string): string => {
-  const date = input ? new Date(input) : null;
-  return date && isValid(date) ? startOfDay(date).toISOString() : '';
-};
-
-/**
- * Safely converts a date-like input to an ISO 8601 string (`YYYY-MM-DDTHH:mm:ss.sssZ`).
- *
- * Accepts a `Date` object or a valid date string and returns its ISO string representation.
- * Returns `undefined` if the input is invalid, empty, or not parseable.
- *
- * This function is useful for transforming client-side date inputs
- * (e.g., from a date picker or filter form) into valid ISO strings for backend query parameters.
- *
- * @param value - The input value to convert (Date, ISO string, or null/undefined).
- * @returns A valid ISO 8601 string or `undefined` if the input is invalid.
- */
-export const toISO = (
+export const toISODate = (
   value: string | Date | null | undefined
 ): string | undefined => {
-  if (value instanceof Date && !isNaN(value.getTime())) {
-    return value.toISOString();
-  }
-  if (typeof value === 'string' && value.trim()) {
-    const parsed = new Date(value);
-    return !isNaN(parsed.getTime()) ? parsed.toISOString() : undefined;
-  }
-  return undefined;
+  if (!value) return undefined;
+  
+  const date =
+    value instanceof Date ? value : new Date(value);
+  
+  return !isNaN(date.getTime())
+    ? date.toISOString().slice(0, 10) // YYYY-MM-DD
+    : undefined;
 };

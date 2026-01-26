@@ -55,6 +55,12 @@ export { default as useSkuCodeBaseLookup } from './useSkuCodeBaseLookup';
 export { default as useSkuImageUpload } from './useSkuImageUpload';
 
 /* =====================================================
+ * Batch
+ * ===================================================== */
+
+export { default as usePaginatedBatchRegistry } from './usePaginatedBatchRegistry';
+
+/* =====================================================
  * BOM (Bill of Materials)
  * ===================================================== */
 
@@ -84,6 +90,12 @@ export { default as useCustomerAddressesLookup } from './useCustomerAddressesLoo
 
 export { default as useAddressCreation } from './useAddressCreation';
 export { default as usePaginateAddresses } from './usePaginateAddresses';
+
+/* =====================================================
+ * Orders Types
+ * ===================================================== */
+
+export { default as usePaginateOrderTypes } from './usePaginateOrderTypes';
 
 /* =====================================================
  * Orders & Fulfillment

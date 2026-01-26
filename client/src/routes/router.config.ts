@@ -44,7 +44,6 @@ export const appRoutes: AppRoute[] = [
     component: lazy(() => import('@features/dashboard/pages/DashboardPage')),
     meta: {
       requiresAuth: true,
-      menu: { title: 'Dashboard', order: 1 },
     },
   }),
   
@@ -67,7 +66,6 @@ export const appRoutes: AppRoute[] = [
     component: lazy(() => import('@features/user/pages/UserCardPage')),
     meta: {
       requiresAuth: true,
-      menu: { title: 'Users', order: 2 },
     },
   }),
   
@@ -76,7 +74,6 @@ export const appRoutes: AppRoute[] = [
     component: lazy(() => import('@features/user/pages/UserListPage')),
     meta: {
       requiresAuth: true,
-      menu: { title: 'User Management', order: 3 },
     },
   }),
   
@@ -102,7 +99,6 @@ export const appRoutes: AppRoute[] = [
     component: lazy(() => import('@features/product/pages/ProductListPage')),
     meta: {
       requiresAuth: true,
-      menu: { title: 'Product Management', order: 4 },
     },
   }),
   
@@ -111,7 +107,6 @@ export const appRoutes: AppRoute[] = [
     component: lazy(() => import('@features/sku/pages/ProductCatalogPage')),
     meta: {
       requiresAuth: true,
-      menu: { title: 'Product Catalog', order: 5 },
     },
   }),
   
@@ -126,7 +121,6 @@ export const appRoutes: AppRoute[] = [
     component: lazy(() => import('@features/sku/pages/SkuListPage')),
     meta: {
       requiresAuth: true,
-      menu: { title: 'SKU Management', order: 6 },
     },
   }),
   
@@ -153,7 +147,6 @@ export const appRoutes: AppRoute[] = [
     component: lazy(() => import('@features/bom/pages/BomsListPage')),
     meta: {
       requiresAuth: true,
-      menu: { title: 'BOM Management', order: 7 },
     },
   }),
   
@@ -163,6 +156,15 @@ export const appRoutes: AppRoute[] = [
     meta: {
       requiresAuth: true,
       parent: '/boms',
+    },
+  }),
+  
+  // batch
+  defineRoute({
+    path: '/batch-registry',
+    component: lazy(() => import('@features/batchRegistry/pages/BatchRegistryListPage')),
+    meta: {
+      requiresAuth: true,
     },
   }),
   
@@ -227,7 +229,6 @@ export const appRoutes: AppRoute[] = [
     meta: {
       requiresAuth: true,
       requiredPermission: 'view_inventory_overview',
-      menu: { title: 'Inventory Overview', order: 8 },
     },
   }),
   
@@ -237,7 +238,6 @@ export const appRoutes: AppRoute[] = [
     meta: {
       requiresAuth: true,
       requiredPermission: 'view_warehouses',
-      menu: { title: 'Warehouses', order: 9 },
     },
   }),
   
@@ -249,7 +249,6 @@ export const appRoutes: AppRoute[] = [
     meta: {
       requiresAuth: true,
       requiredPermission: 'view_warehouses',
-      menu: { title: 'Warehouse Inventory', order: 10 },
     },
   }),
   
@@ -262,7 +261,6 @@ export const appRoutes: AppRoute[] = [
     meta: {
       requiresAuth: true,
       requiredPermission: 'view_inventory_allocations',
-      menu: { title: 'Inventory Allocation', order: 11 },
     },
   }),
   
@@ -283,7 +281,6 @@ export const appRoutes: AppRoute[] = [
     ),
     meta: {
       requiresAuth: true,
-      menu: { title: 'Compliance Management', order: 12 },
     },
   }),
   
@@ -295,7 +292,6 @@ export const appRoutes: AppRoute[] = [
     meta: {
       requiresAuth: true,
       requiredPermission: 'view_prices',
-      menu: { title: 'Pricing Types', order: 13 },
     },
   }),
   
@@ -305,7 +301,6 @@ export const appRoutes: AppRoute[] = [
     meta: {
       requiresAuth: true,
       requiredPermission: 'view_locations',
-      menu: { title: 'Locations', order: 14 },
     },
   }),
   
@@ -319,7 +314,6 @@ export const appRoutes: AppRoute[] = [
     meta: {
       requiresAuth: true,
       requiredPermission: 'view_inventory_logs',
-      menu: { title: 'Inventory Activity Logs', order: 15 },
     },
   }),
   
@@ -330,7 +324,6 @@ export const appRoutes: AppRoute[] = [
     component: lazy(() => import('@features/customer/pages/CustomersPage')),
     meta: {
       requiresAuth: true,
-      menu: { title: 'Customers', order: 16 },
     },
   }),
   
@@ -339,7 +332,6 @@ export const appRoutes: AppRoute[] = [
     component: lazy(() => import('@features/address/pages/AddressesPage')),
     meta: {
       requiresAuth: true,
-      menu: { title: 'Addresses', order: 17 },
     },
   }),
   
@@ -348,7 +340,6 @@ export const appRoutes: AppRoute[] = [
     component: lazy(() => import('@features/orderType/pages/OrderTypesPage')),
     meta: {
       requiresAuth: true,
-      menu: { title: 'Order Types', order: 18 },
     },
   }),
   
@@ -361,7 +352,6 @@ export const appRoutes: AppRoute[] = [
     meta: {
       requiresAuth: true,
       requiredPermission: 'view_outbound_fulfillments',
-      menu: { title: 'Fulfillment', order: 19 },
     },
   }),
   
