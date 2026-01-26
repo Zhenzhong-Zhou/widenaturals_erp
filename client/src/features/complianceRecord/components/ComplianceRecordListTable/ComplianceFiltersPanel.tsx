@@ -1,9 +1,12 @@
-import { type FC, useCallback, useEffect, useState } from 'react';
+import { type FC, useEffect } from 'react';
 import { Path, useForm } from 'react-hook-form';
 import Grid from '@mui/material/Grid';
-import FilterPanelLayout from '@components/common/FilterPanelLayout';
-import { renderDateField, renderInputField } from '@utils/filters/filterUtils';
-import { ComplianceFilters } from '@features/complianceRecord/state';
+import { FilterPanelLayout } from '@components/index';
+import {
+  renderDateField,
+  renderInputField
+} from '@utils/filters/filterUtils';
+import type { ComplianceFilters } from '@features/complianceRecord/state';
 import type { FilterField } from '@shared-types/shared';
 import {
   useProductLookup,
@@ -11,13 +14,16 @@ import {
   useStatusLookup }
   from '@hooks/index';
 import {
+  useFilterLookup,
   useMultiSelectBinding,
   useProductSearchHandlers,
-  useSkuSearchHandlers
+  useSkuSearchHandlers,
 } from '@features/lookup/hooks';
-import StatusMultiSelectDropdown from '@features/lookup/components/StatusMultiSelectDropdown';
-import ProductMultiSelectDropdown from '@features/lookup/components/ProductMultiSelectDropdown';
-import SkuMultiSelectDropdown from '@features/lookup/components/SkuMultiSelectDropdown';
+import {
+  ProductMultiSelectDropdown,
+  SkuMultiSelectDropdown,
+  StatusMultiSelectDropdown,
+} from '@features/lookup/components';
 import { formatLabel } from '@utils/textUtils';
 import { useFormattedOptions } from '@features/lookup/utils/lookupUtils';
 
@@ -88,19 +94,19 @@ interface ComplianceDateField {
 export const COMPLIANCE_DATE_FIELDS: ComplianceDateField[] = [
   // Issued date
   { name: 'dateRanges.issued.from', label: 'Issued Date ≥' },
-  { name: 'dateRanges.issued.to', label: 'Issued Date ≤' },
+  { name: 'dateRanges.issued.to', label: 'Issued Date <' },
 
   // Created date
   { name: 'dateRanges.created.from', label: 'Created Date ≥' },
-  { name: 'dateRanges.created.to', label: 'Created Date ≤' },
+  { name: 'dateRanges.created.to', label: 'Created Date <' },
 
   // Updated date
   { name: 'dateRanges.updated.from', label: 'Updated Date ≥' },
-  { name: 'dateRanges.updated.to', label: 'Updated Date ≤' },
+  { name: 'dateRanges.updated.to', label: 'Updated Date <' },
 
   // Expiry date
   { name: 'dateRanges.expiry.from', label: 'Expiry Date ≥' },
-  { name: 'dateRanges.expiry.to', label: 'Expiry Date ≤' },
+  { name: 'dateRanges.expiry.to', label: 'Expiry Date <' },
 ];
 
 /**
@@ -122,30 +128,12 @@ const ComplianceFiltersPanel: FC<Props> = ({
       defaultValues: filters,
     });
 
-  const [productKeyword, setProductKeyword] = useState('');
-  const [skuKeyword, setSkuKeyword] = useState('');
-
   const { product, sku, status } = lookups;
 
   /** Keep external changes in sync */
   useEffect(() => {
     reset(filters);
   }, [filters, reset]);
-
-  // -------------------------------
-  // Reset search keywords when options reset
-  // -------------------------------
-  useEffect(() => {
-    if (!product.options.length) {
-      setProductKeyword('');
-    }
-  }, [product.options.length]);
-
-  useEffect(() => {
-    if (!sku.options.length) {
-      setSkuKeyword('');
-    }
-  }, [sku.options.length]);
 
   // ---------------------------------------
   // Submit handler
@@ -157,32 +145,15 @@ const ComplianceFiltersPanel: FC<Props> = ({
 
   const resetFilters = () => {
     reset(emptyFilters);
-    setProductKeyword('');
-    setSkuKeyword('');
+    productFilter.reset();
+    skuFilter.reset();
+    
     onReset();
   };
 
   // -------------------------------
   // Multi-select bindings (RHF ↔ UI)
   // -------------------------------
-  const {
-    selectedOptions: selectedProductOptions,
-    handleSelect: handleProductSelect,
-  } = useMultiSelectBinding({
-    watch,
-    setValue,
-    fieldName: 'productIds',
-    options: product.options,
-  });
-
-  const { selectedOptions: selectedSkuOptions, handleSelect: handleSkuSelect } =
-    useMultiSelectBinding({
-      watch,
-      setValue,
-      fieldName: 'skuIds',
-      options: sku.options,
-    });
-
   const {
     selectedOptions: selectedStatusOptions,
     handleSelect: handleStatusSelect,
@@ -200,67 +171,26 @@ const ComplianceFiltersPanel: FC<Props> = ({
     status.options,
     formatLabel
   );
-
-  // -------------------------------
-  // Product lookup search & pagination
-  // -------------------------------
-  const handleProductOpen = useCallback(() => {
-    if (!product.options.length) {
-      product.fetch({ keyword: productKeyword, offset: 0 });
-    }
-  }, [product.fetch, product.options.length, productKeyword]);
-
-  const handleFetchMoreProducts = useCallback(
-    (next?: { limit?: number; offset?: number }) => {
-      product.fetch({
-        keyword: productKeyword || '',
-        limit: next?.limit,
-        offset: next?.offset,
-      });
-    },
-    [product.fetch, productKeyword]
-  );
-
-  const { handleProductSearch } = useProductSearchHandlers(product);
-
-  const handleProductInputChange = useCallback(
-    (value: string) => {
-      setProductKeyword(value);
-      handleProductSearch(value); // debounced
-    },
-    [handleProductSearch]
-  );
-
-  // -------------------------------
-  // SKU lookup search & pagination
-  // -------------------------------
-  const handleSkuOpen = useCallback(() => {
-    if (!sku.options.length) {
-      sku.fetch({ keyword: skuKeyword, offset: 0 });
-    }
-  }, [sku.fetch, sku.options.length, skuKeyword]);
-
-  const handleFetchMoreSkus = useCallback(
-    (next?: { limit?: number; offset?: number }) => {
-      sku.fetch({
-        keyword: skuKeyword || '',
-        limit: next?.limit,
-        offset: next?.offset,
-      });
-    },
-    [sku.fetch, skuKeyword]
-  );
-
-  const { handleSkuSearch } = useSkuSearchHandlers(sku);
-
-  const handleSkuInputChange = useCallback(
-    (value: string) => {
-      setSkuKeyword(value);
-      handleSkuSearch(value); // debounced
-    },
-    [handleSkuSearch]
-  );
-
+  
+  // ----------------------------------------
+  // Product lookup controller
+  // ----------------------------------------
+  const productFilter = useFilterLookup({
+    fieldName: 'productIds',
+    lookup: product,
+    watch,
+    setValue,
+    useSearchHandlers: useProductSearchHandlers,
+  });
+  
+  const skuFilter = useFilterLookup({
+    fieldName: 'skuIds',
+    lookup: sku,
+    watch,
+    setValue,
+    useSearchHandlers: useSkuSearchHandlers,
+  });
+  
   return (
     <form onSubmit={handleSubmit(submitFilters)}>
       <FilterPanelLayout onReset={resetFilters}>
@@ -269,32 +199,32 @@ const ComplianceFiltersPanel: FC<Props> = ({
             {/* Lookup filters */}
             <ProductMultiSelectDropdown
               options={product.options}
-              selectedOptions={selectedProductOptions}
-              onChange={handleProductSelect}
-              onOpen={handleProductOpen}
+              selectedOptions={productFilter.selectedOptions}
+              onChange={productFilter.handleSelect}
+              onOpen={productFilter.onOpen}
               loading={product.loading}
               paginationMeta={{
                 ...product.meta,
-                onFetchMore: handleFetchMoreProducts,
+                onFetchMore: productFilter.onFetchMore,
               }}
-              inputValue={productKeyword}
-              onInputChange={handleProductInputChange}
+              inputValue={productFilter.keyword}
+              onInputChange={productFilter.onInputChange}
             />
           </Grid>
 
           <Grid size={{ xs: 12, md: 3 }}>
             <SkuMultiSelectDropdown
               options={sku.options}
-              selectedOptions={selectedSkuOptions}
-              onChange={handleSkuSelect}
-              onOpen={handleSkuOpen}
+              selectedOptions={skuFilter.selectedOptions}
+              onChange={skuFilter.handleSelect}
+              onOpen={skuFilter.onOpen}
               loading={sku.loading}
               paginationMeta={{
                 ...sku.meta,
-                onFetchMore: handleFetchMoreSkus,
+                onFetchMore: skuFilter.onFetchMore,
               }}
-              inputValue={skuKeyword}
-              onInputChange={handleSkuInputChange}
+              inputValue={skuFilter.keyword}
+              onInputChange={skuFilter.onInputChange}
             />
           </Grid>
 
