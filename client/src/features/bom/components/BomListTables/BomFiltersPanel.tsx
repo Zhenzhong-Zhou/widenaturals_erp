@@ -108,7 +108,7 @@ const BomFiltersPanel: FC<Props> = ({
       placeholder: 'BOM name, code or description',
     },
     { name: 'revisionMin', label: 'Revision ≥' },
-    { name: 'revisionMax', label: 'Revision ≤' },
+    { name: 'revisionMax', label: 'Revision <' },
     // { name: 'createdBy', label: 'Created By' },
     // { name: 'updatedBy', label: 'Updated By' },
   ];

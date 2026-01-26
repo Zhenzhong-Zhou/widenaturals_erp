@@ -4,7 +4,7 @@ import Grid from '@mui/material/Grid';
 import CustomButton from '@components/common/CustomButton';
 import { useForm } from 'react-hook-form';
 import type { OutboundFulfillmentFilters } from '@features/outboundFulfillment/state';
-import { adjustBeforeDateInclusive } from '@utils/dateTimeUtils';
+import { toISODate } from '@utils/dateTimeUtils';
 import { renderDateField, renderInputField } from '@utils/filters/filterUtils';
 
 interface Props {
@@ -50,8 +50,8 @@ const OutboundFulfillmentFiltersPanel: FC<Props> = ({
   const submitFilters = (data: OutboundFulfillmentFilters) => {
     const adjusted: OutboundFulfillmentFilters = {
       ...data,
-      createdBefore: adjustBeforeDateInclusive(data.createdBefore),
-      shippedBefore: adjustBeforeDateInclusive(data.shippedBefore),
+      createdBefore: toISODate(data.createdBefore),
+      shippedBefore: toISODate(data.shippedBefore),
     };
     onChange(adjusted);
     onApply();
