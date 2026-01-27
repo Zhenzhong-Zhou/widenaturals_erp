@@ -40,13 +40,14 @@ const { transformPaginatedResult } = require('../utils/transformer-utils');
  * ─────────────────────────────────────────────
  * @property {string|null} packaging_batch_id
  * @property {string|null} packaging_lot_number
+ * @property {string|null} packaging_display_name
  * @property {string|null} packaging_expiry_date
  * @property {string|null} packaging_batch_status_id
  * @property {string|null} packaging_batch_status_name
  * @property {string|null} packaging_batch_status_date
  *
  * @property {string|null} packaging_material_id
- * @property {string|null} packaging_material_name
+ * @property {string|null} packaging_material_code
  *
  * @property {string|null} supplier_id
  * @property {string|null} supplier_name
@@ -88,15 +89,22 @@ const transformBatchRegistryRow = (row) => {
       lotNumber: row.product_lot_number,
       expiryDate: row.product_expiry_date,
       
-      product: {
+      // Product is a reference, not the producer
+      product: cleanObject({
         id: row.product_id,
         name: row.product_name,
-        sku: row.sku_code,
-        manufacturer: cleanObject({
-          id: row.manufacturer_id,
-          name: row.manufacturer_name,
-        }),
+      }),
+      
+      sku: {
+        id: row.sku_id,
+        code: row.sku_code,
       },
+      
+      // Manufacturer is the PRODUCER of the batch
+      manufacturer: cleanObject({
+        id: row.manufacturer_id,
+        name: row.manufacturer_name,
+      }),
       
       status: makeStatus(row, {
         id: 'product_batch_status_id',
@@ -125,16 +133,19 @@ const transformBatchRegistryRow = (row) => {
       
       packagingBatchId: row.packaging_batch_id,
       lotNumber: row.packaging_lot_number,
+      packagingDisplayName: row.packaging_display_name,
       expiryDate: row.packaging_expiry_date,
       
-      packagingMaterial: {
+      packagingMaterial: cleanObject({
         id: row.packaging_material_id,
-        name: row.packaging_material_name,
-        supplier: cleanObject({
-          id: row.supplier_id,
-          name: row.supplier_name,
-        }),
-      },
+        code: row.packaging_material_code,
+      }),
+      
+      // Supplier produces / provides the batch
+      supplier: cleanObject({
+        id: row.supplier_id,
+        name: row.supplier_name,
+      }),
       
       status: makeStatus(row, {
         id: 'packaging_batch_status_id',
