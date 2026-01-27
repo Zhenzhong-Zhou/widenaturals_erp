@@ -16,6 +16,7 @@
  * are enforced upstream.
  */
 
+const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
 const { addKeywordIlikeGroup } = require('./sql-helpers');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
@@ -77,9 +78,14 @@ const AppError = require('../AppError');
  */
 const buildProductBatchFilter = (filters = {}) => {
   try {
+    // -------------------------------------------------------------
+    // Normalize date-only filters
+    // -------------------------------------------------------------
+    filters = normalizeDateRangeFilters(filters, 'expiryAfter', 'expiryBefore');
+    
     const conditions = ['1=1'];
     const params = [];
-    let idx = 1;
+    const paramIndexRef = { value: 1 };
     
     // -------------------------------------------------------------
     // Hard fail-closed
@@ -95,55 +101,54 @@ const buildProductBatchFilter = (filters = {}) => {
     // Status
     // ------------------------------
     if (filters.statusIds?.length) {
-      conditions.push(`pb.status_id = ANY($${idx}::uuid[])`);
+      conditions.push(`pb.status_id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.statusIds);
-      idx++;
+      paramIndexRef.value++;
     }
     
     // ------------------------------
     // SKU / Product / Manufacturer
     // ------------------------------
     if (filters.skuIds?.length) {
-      conditions.push(`pb.sku_id = ANY($${idx}::uuid[])`);
+      conditions.push(`pb.sku_id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.skuIds);
-      idx++;
+      paramIndexRef.value++;
     }
     
     if (filters.productIds?.length) {
-      conditions.push(`p.id = ANY($${idx}::uuid[])`);
+      conditions.push(`p.id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.productIds);
-      idx++;
+      paramIndexRef.value++;
     }
     
     if (filters.manufacturerIds?.length) {
-      conditions.push(`pb.manufacturer_id = ANY($${idx}::uuid[])`);
+      conditions.push(
+        `pb.manufacturer_id = ANY($${paramIndexRef.value}::uuid[])`
+      );
       params.push(filters.manufacturerIds);
-      idx++;
+      paramIndexRef.value++;
     }
     
     // ------------------------------
     // Lot number (ILIKE)
     // ------------------------------
     if (filters.lotNumber) {
-      conditions.push(`pb.lot_number ILIKE $${idx}`);
+      conditions.push(`pb.lot_number ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.lotNumber}%`);
-      idx++;
+      paramIndexRef.value++;
     }
     
     // ------------------------------
-    // Expiry date filters
+    // Expiry date filters (date-only, half-open)
     // ------------------------------
-    if (filters.expiryAfter) {
-      conditions.push(`pb.expiry_date >= $${idx}`);
-      params.push(filters.expiryAfter);
-      idx++;
-    }
-    
-    if (filters.expiryBefore) {
-      conditions.push(`pb.expiry_date <= $${idx}`);
-      params.push(filters.expiryBefore);
-      idx++;
-    }
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'pb.expiry_date',
+      after: filters.expiryAfter,
+      before: filters.expiryBefore,
+      paramIndexRef,
+    });
     
     // ------------------------------
     // Keyword fuzzy search (permission-aware)
@@ -172,7 +177,7 @@ const buildProductBatchFilter = (filters = {}) => {
       addKeywordIlikeGroup(
         conditions,
         params,
-        idx,
+        paramIndexRef.value,
         filters.keyword,
         searchableFields
       );

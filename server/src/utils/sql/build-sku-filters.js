@@ -4,6 +4,7 @@
  * Used in repository layers to support paginated list views or dropdowns with flexible filtering and optional stock checks.
  */
 
+const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
 const { SORTABLE_FIELDS } = require('../sort-field-mapping');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
@@ -443,212 +444,138 @@ const skuDropdownKeywordHandler = (keyword, paramIndex) => {
  */
 const buildSkuFilter = (filters = {}) => {
   try {
+    // -------------------------------------------------------------
+    // Normalize date-only filters
+    // -------------------------------------------------------------
+    filters = normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore');
+    filters = normalizeDateRangeFilters(filters, 'updatedAfter', 'updatedBefore');
+    
     const conditions = ['1=1'];
     const params = [];
-    let idx = 1;
-
+    const paramIndexRef = { value: 1 };
+    
     // ------------------------------
     // SKU-level filters
     // ------------------------------
     if (filters.statusIds?.length) {
-      conditions.push(`s.status_id = ANY($${idx}::uuid[])`);
+      conditions.push(`s.status_id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.statusIds);
-      idx++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.productIds?.length) {
-      conditions.push(`s.product_id = ANY($${idx}::uuid[])`);
+      conditions.push(`s.product_id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.productIds);
-      idx++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.marketRegion) {
-      conditions.push(`s.market_region ILIKE $${idx}`);
+      conditions.push(`s.market_region ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.marketRegion}%`);
-      idx++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.sizeLabel) {
-      conditions.push(`s.size_label ILIKE $${idx}`);
+      conditions.push(`s.size_label ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.sizeLabel}%`);
-      idx++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.sku) {
-      conditions.push(`s.sku ILIKE $${idx}`);
+      conditions.push(`s.sku ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.sku}%`);
-      idx++;
+      paramIndexRef.value++;
     }
-
-    // Dimensional filters
+    
     // ----------------------------------------------------
-    // Length (cm / inch)
+    // Dimensional filters (unchanged semantics)
     // ----------------------------------------------------
-    if (filters.minLengthCm) {
-      conditions.push(`s.length_cm >= $${idx}`);
-      params.push(filters.minLengthCm);
-      idx++;
+    const rangeFilters = [
+      ['minLengthCm', 's.length_cm >='],
+      ['maxLengthCm', 's.length_cm <='],
+      ['minLengthIn', 's.length_inch >='],
+      ['maxLengthIn', 's.length_inch <='],
+      ['minWidthCm', 's.width_cm >='],
+      ['maxWidthCm', 's.width_cm <='],
+      ['minWidthIn', 's.width_inch >='],
+      ['maxWidthIn', 's.width_inch <='],
+      ['minHeightCm', 's.height_cm >='],
+      ['maxHeightCm', 's.height_cm <='],
+      ['minHeightIn', 's.height_inch >='],
+      ['maxHeightIn', 's.height_inch <='],
+      ['minWeightG', 's.weight_g >='],
+      ['maxWeightG', 's.weight_g <='],
+      ['minWeightLb', 's.weight_lb >='],
+      ['maxWeightLb', 's.weight_lb <='],
+    ];
+    
+    for (const [key, sql] of rangeFilters) {
+      if (filters[key] !== undefined) {
+        conditions.push(`${sql} $${paramIndexRef.value}`);
+        params.push(filters[key]);
+        paramIndexRef.value++;
+      }
     }
-
-    if (filters.maxLengthCm) {
-      conditions.push(`s.length_cm <= $${idx}`);
-      params.push(filters.maxLengthCm);
-      idx++;
-    }
-
-    if (filters.minLengthIn) {
-      conditions.push(`s.length_inch >= $${idx}`);
-      params.push(filters.minLengthIn);
-      idx++;
-    }
-
-    if (filters.maxLengthIn) {
-      conditions.push(`s.length_inch <= $${idx}`);
-      params.push(filters.maxLengthIn);
-      idx++;
-    }
-
-    // ----------------------------------------------------
-    // Width (cm / inch)
-    // ----------------------------------------------------
-    if (filters.minWidthCm) {
-      conditions.push(`s.width_cm >= $${idx}`);
-      params.push(filters.minWidthCm);
-      idx++;
-    }
-
-    if (filters.maxWidthCm) {
-      conditions.push(`s.width_cm <= $${idx}`);
-      params.push(filters.maxWidthCm);
-      idx++;
-    }
-
-    if (filters.minWidthIn) {
-      conditions.push(`s.width_inch >= $${idx}`);
-      params.push(filters.minWidthIn);
-      idx++;
-    }
-
-    if (filters.maxWidthIn) {
-      conditions.push(`s.width_inch <= $${idx}`);
-      params.push(filters.maxWidthIn);
-      idx++;
-    }
-
-    // ----------------------------------------------------
-    // Height (cm / inch)
-    // ----------------------------------------------------
-    if (filters.minHeightCm) {
-      conditions.push(`s.height_cm >= $${idx}`);
-      params.push(filters.minHeightCm);
-      idx++;
-    }
-
-    if (filters.maxHeightCm) {
-      conditions.push(`s.height_cm <= $${idx}`);
-      params.push(filters.maxHeightCm);
-      idx++;
-    }
-
-    if (filters.minHeightIn) {
-      conditions.push(`s.height_inch >= $${idx}`);
-      params.push(filters.minHeightIn);
-      idx++;
-    }
-
-    if (filters.maxHeightIn) {
-      conditions.push(`s.height_inch <= $${idx}`);
-      params.push(filters.maxHeightIn);
-      idx++;
-    }
-
-    // ----------------------------------------------------
-    // Weight (g / lb)
-    // ----------------------------------------------------
-    if (filters.minWeightG) {
-      conditions.push(`s.weight_g >= $${idx}`);
-      params.push(filters.minWeightG);
-      idx++;
-    }
-
-    if (filters.maxWeightG) {
-      conditions.push(`s.weight_g <= $${idx}`);
-      params.push(filters.maxWeightG);
-      idx++;
-    }
-
-    if (filters.minWeightLb) {
-      conditions.push(`s.weight_lb >= $${idx}`);
-      params.push(filters.minWeightLb);
-      idx++;
-    }
-
-    if (filters.maxWeightLb) {
-      conditions.push(`s.weight_lb <= $${idx}`);
-      params.push(filters.maxWeightLb);
-      idx++;
-    }
-
+    
+    // ------------------------------
     // Audit filters
+    // ------------------------------
     if (filters.createdBy) {
-      conditions.push(`s.created_by = $${idx}`);
+      conditions.push(`s.created_by = $${paramIndexRef.value}`);
       params.push(filters.createdBy);
-      idx++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.updatedBy) {
-      conditions.push(`s.updated_by = $${idx}`);
+      conditions.push(`s.updated_by = $${paramIndexRef.value}`);
       params.push(filters.updatedBy);
-      idx++;
+      paramIndexRef.value++;
     }
-
-    if (filters.createdAfter) {
-      conditions.push(`s.created_at >= $${idx}`);
-      params.push(filters.createdAfter);
-      idx++;
-    }
-
-    if (filters.createdBefore) {
-      conditions.push(`s.created_at <= $${idx}`);
-      params.push(filters.createdBefore);
-      idx++;
-    }
-
-    if (filters.updatedAfter) {
-      conditions.push(`s.updated_at >= $${idx}`);
-      params.push(filters.updatedAfter);
-      idx++;
-    }
-
-    if (filters.updatedBefore) {
-      conditions.push(`s.updated_at <= $${idx}`);
-      params.push(filters.updatedBefore);
-      idx++;
-    }
-
+    
+    // ------------------------------
+    // Created / Updated date filters
+    // ------------------------------
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 's.created_at',
+      after: filters.createdAfter,
+      before: filters.createdBefore,
+      paramIndexRef,
+    });
+    
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 's.updated_at',
+      after: filters.updatedAfter,
+      before: filters.updatedBefore,
+      paramIndexRef,
+    });
+    
     // ------------------------------
     // Product-level filters
     // ------------------------------
     if (filters.productName) {
-      conditions.push(`p.name ILIKE $${idx}`);
+      conditions.push(`p.name ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.productName}%`);
-      idx++;
+      paramIndexRef.value++;
     }
-
+    
     // ------------------------------
     // Keyword fuzzy search
     // ------------------------------
     if (filters.keyword) {
       conditions.push(`(
-        s.sku ILIKE $${idx} OR
-        p.name ILIKE $${idx} OR
-        p.brand ILIKE $${idx} OR
-        p.category ILIKE $${idx}
+        s.sku ILIKE $${paramIndexRef.value} OR
+        p.name ILIKE $${paramIndexRef.value} OR
+        p.brand ILIKE $${paramIndexRef.value} OR
+        p.category ILIKE $${paramIndexRef.value}
       )`);
       params.push(`%${filters.keyword}%`);
-      idx++;
+      paramIndexRef.value++;
     }
-
+    
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -658,6 +585,7 @@ const buildSkuFilter = (filters = {}) => {
       context: 'sku-repository/buildSkuFilter',
       filters,
     });
+    
     throw AppError.databaseError('Failed to prepare SKU filter', {
       details: err.message,
     });

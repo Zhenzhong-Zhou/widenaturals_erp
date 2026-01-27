@@ -4,6 +4,7 @@
  * for filtering discount records (e.g., for dropdowns or admin tables).
  */
 
+const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
@@ -37,93 +38,101 @@ const AppError = require('../AppError');
  */
 const buildDiscountFilter = (filters = {}) => {
   try {
+    // -------------------------------------------------------------
+    // Normalize date range filters FIRST
+    // -------------------------------------------------------------
+    filters = normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore');
+    
     const conditions = ['1=1'];
     const params = [];
-    let paramIndex = 1;
-
+    const paramIndexRef = { value: 1 };
+    
     if (filters.name) {
-      conditions.push(`d.name = $${paramIndex}`);
+      conditions.push(`d.name = $${paramIndexRef.value}`);
       params.push(filters.name);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.discountType) {
-      conditions.push(`d.discount_type = $${paramIndex}`);
+      conditions.push(`d.discount_type = $${paramIndexRef.value}`);
       params.push(filters.discountType);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
+    // ------------------------------
+    // Validity window filters
+    // ------------------------------
     if (filters.validFrom) {
-      conditions.push(`d.valid_from >= $${paramIndex}`);
+      conditions.push(`d.valid_from >= $${paramIndexRef.value}`);
       params.push(filters.validFrom);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.validTo) {
-      conditions.push(`d.valid_to <= $${paramIndex}`);
+      conditions.push(`d.valid_to <= $${paramIndexRef.value}`);
       params.push(filters.validTo);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.validOn) {
       conditions.push(`(
-        d.valid_from <= $${paramIndex} AND
-        (d.valid_to IS NULL OR d.valid_to >= $${paramIndex})
+        d.valid_from <= $${paramIndexRef.value} AND
+        (d.valid_to IS NULL OR d.valid_to >= $${paramIndexRef.value})
       )`);
       params.push(filters.validOn);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.createdBy) {
-      conditions.push(`d.created_by = $${paramIndex}`);
+      conditions.push(`d.created_by = $${paramIndexRef.value}`);
       params.push(filters.createdBy);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.updatedBy) {
-      conditions.push(`d.updated_by = $${paramIndex}`);
+      conditions.push(`d.updated_by = $${paramIndexRef.value}`);
       params.push(filters.updatedBy);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.keyword) {
       const keywordParam = `%${filters.keyword}%`;
       conditions.push(
-        `(d.name ILIKE $${paramIndex} OR d.description ILIKE $${paramIndex})`
+        `(d.name ILIKE $${paramIndexRef.value} OR d.description ILIKE $${paramIndexRef.value})`
       );
       params.push(keywordParam);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
-    // Apply visibility restrictions independently (even if not keyword-based in future)
+    
+    // Apply visibility restrictions independently
     if (filters._restrictKeywordToValidOnly) {
       conditions.push(`d.valid_from <= NOW()`);
       conditions.push(`(d.valid_to IS NULL OR d.valid_to >= NOW())`);
     }
-
+    
+    // Status filter with fallback
     if (filters.statusId) {
-      conditions.push(`d.status_id = $${paramIndex}`);
+      conditions.push(`d.status_id = $${paramIndexRef.value}`);
       params.push(filters.statusId);
-      paramIndex++;
+      paramIndexRef.value++;
     } else if (filters._activeStatusId) {
-      // fallback if statusId was removed due to access restrictions
-      conditions.push(`d.status_id = $${paramIndex}`);
+      conditions.push(`d.status_id = $${paramIndexRef.value}`);
       params.push(filters._activeStatusId);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
-    if (filters.createdAfter) {
-      conditions.push(`d.created_at >= $${paramIndex}`);
-      params.push(filters.createdAfter);
-      paramIndex++;
-    }
-
-    if (filters.createdBefore) {
-      conditions.push(`d.created_at <= $${paramIndex}`);
-      params.push(filters.createdBefore);
-      paramIndex++;
-    }
-
+    
+    // ------------------------------
+    // Created date filters (via helper)
+    // ------------------------------
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'd.created_at',
+      after: filters.createdAfter,
+      before: filters.createdBefore,
+      paramIndexRef,
+    });
+    
     return {
       whereClause: conditions.join(' AND '),
       params,

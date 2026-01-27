@@ -7,6 +7,7 @@
  * temporal validity checks, and product/SKU enrichment metadata.
  */
 
+const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
@@ -78,135 +79,130 @@ const AppError = require('../AppError');
  */
 const buildPricingFilters = (filters = {}) => {
   try {
+    // -------------------------------------------------------------
+    // Normalize date-only filters (metadata dates only)
+    // -------------------------------------------------------------
+    filters = normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore');
+    
     const conditions = ['1=1'];
     const params = [];
-    let paramIndex = 1;
-
+    const paramIndexRef = { value: 1 };
+    
     const keywordStr = String(filters.keyword ?? '').trim();
     const keywordUsed = keywordStr.length > 0;
-
-    // === 1. Standard filters ===
-
+    
+    // =============================================================
+    // 1. Standard filters
+    // =============================================================
     if (filters.skuId) {
-      conditions.push(`p.sku_id = $${paramIndex}`);
+      conditions.push(`p.sku_id = $${paramIndexRef.value}`);
       params.push(filters.skuId);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.priceTypeId) {
-      conditions.push(`p.price_type_id = $${paramIndex}`);
+      conditions.push(`p.price_type_id = $${paramIndexRef.value}`);
       params.push(filters.priceTypeId);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.locationId) {
-      conditions.push(`p.location_id = $${paramIndex}`);
+      conditions.push(`p.location_id = $${paramIndexRef.value}`);
       params.push(filters.locationId);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.statusId) {
-      conditions.push(`p.status_id = $${paramIndex}`);
+      conditions.push(`p.status_id = $${paramIndexRef.value}`);
       params.push(filters.statusId);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.brand) {
       params.push(filters.brand);
       conditions.push(`pr.brand = $${params.length}`);
     }
-
+    
     if (filters.pricingType) {
       params.push(filters.pricingType);
       conditions.push(`pt.name = $${params.length}`);
     }
-
+    
     if (filters.countryCode) {
       params.push(filters.countryCode);
       conditions.push(`s.country_code = $${params.length}`);
     }
-
+    
     if (filters.sizeLabel) {
       params.push(filters.sizeLabel);
       conditions.push(`s.size_label = $${params.length}`);
     }
-
+    
+    // =============================================================
+    // 2. Pricing validity ranges (DO NOT normalize)
+    // =============================================================
+    // These are business-meaningful timestamps, not date-only UI filters
     if (filters.validFrom && filters.validTo) {
       params.push(filters.validFrom);
       conditions.push(`p.valid_from >= $${params.length}`);
-
+      
       params.push(filters.validTo);
       conditions.push(`p.valid_to <= $${params.length}`);
     }
-
-    // === 2. Keyword filter ===
-
+    
+    if (filters.validOn) {
+      conditions.push(`(
+        p.valid_from <= $${paramIndexRef.value} AND
+        (p.valid_to IS NULL OR p.valid_to >= $${paramIndexRef.value})
+      )`);
+      params.push(filters.validOn);
+      paramIndexRef.value++;
+    }
+    
+    // =============================================================
+    // 3. Keyword filter
+    // =============================================================
     if (keywordUsed) {
-      const keywordParam = `%${filters.keyword.trim()}%`;
-      params.push(keywordParam);
+      params.push(`%${keywordStr}%`);
       conditions.push(`(
         pr.name ILIKE $${params.length} OR
         s.sku ILIKE $${params.length} OR
         pt.name ILIKE $${params.length}
       )`);
     }
-
-    // === 3. Enforced validity (via _restrictKeywordToValidOnly or filters.currentlyValid) ===
-
+    
+    // =============================================================
+    // 4. Enforced validity
+    // =============================================================
     if (filters._restrictKeywordToValidOnly || filters.currentlyValid) {
       conditions.push(`p.valid_from <= NOW()`);
       conditions.push(`(p.valid_to IS NULL OR p.valid_to >= NOW())`);
     }
-
-    // === 4. Optional date range filters ===
-
-    if (filters.validFrom) {
-      conditions.push(`p.valid_from >= $${paramIndex}`);
-      params.push(filters.validFrom);
-      paramIndex++;
-    }
-
-    if (filters.validTo) {
-      conditions.push(`p.valid_to <= $${paramIndex}`);
-      params.push(filters.validTo);
-      paramIndex++;
-    }
-
-    if (filters.validOn) {
-      conditions.push(`(
-        p.valid_from <= $${paramIndex} AND
-        (p.valid_to IS NULL OR p.valid_to >= $${paramIndex})
-      )`);
-      params.push(filters.validOn);
-      paramIndex++;
-    }
-
-    // === 5. Metadata ===
-
-    if (filters.createdAfter) {
-      conditions.push(`p.created_at >= $${paramIndex}`);
-      params.push(filters.createdAfter);
-      paramIndex++;
-    }
-
-    if (filters.createdBefore) {
-      conditions.push(`p.created_at <= $${paramIndex}`);
-      params.push(filters.createdBefore);
-      paramIndex++;
-    }
-
+    
+    // =============================================================
+    // 5. Metadata (created/updated)
+    // =============================================================
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'p.created_at',
+      after: filters.createdAfter,
+      before: filters.createdBefore,
+      paramIndexRef,
+    });
+    
     if (filters.createdBy) {
-      conditions.push(`p.created_by = $${paramIndex}`);
+      conditions.push(`p.created_by = $${paramIndexRef.value}`);
       params.push(filters.createdBy);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.updatedBy) {
-      conditions.push(`p.updated_by = $${paramIndex}`);
+      conditions.push(`p.updated_by = $${paramIndexRef.value}`);
       params.push(filters.updatedBy);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -217,6 +213,7 @@ const buildPricingFilters = (filters = {}) => {
       error: err.message,
       filters,
     });
+    
     throw AppError.databaseError('Failed to prepare pricing filter', {
       details: err.message,
       stage: 'build-pricing-where-clause',

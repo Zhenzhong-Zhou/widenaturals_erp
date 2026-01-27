@@ -4,6 +4,7 @@
  * for filtering tax rate records (e.g., for admin UIs or dropdowns).
  */
 
+const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
@@ -39,101 +40,116 @@ const AppError = require('../AppError');
  */
 const buildTaxRateFilter = (filters = {}) => {
   try {
+    // -------------------------------------------------------------
+    // Normalize date-only filters (UI intent)
+    // -------------------------------------------------------------
+    filters = normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore');
+    
     const conditions = ['1=1'];
     const params = [];
-    let paramIndex = 1;
-
+    const paramIndexRef = { value: 1 };
+    
+    // ------------------------------
+    // Exact-match filters
+    // ------------------------------
     if (filters.name) {
-      conditions.push(`tr.name = $${paramIndex}`);
+      conditions.push(`tr.name = $${paramIndexRef.value}`);
       params.push(filters.name);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.region) {
-      conditions.push(`tr.region = $${paramIndex}`);
+      conditions.push(`tr.region = $${paramIndexRef.value}`);
       params.push(filters.region);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.province) {
-      conditions.push(`tr.province = $${paramIndex}`);
+      conditions.push(`tr.province = $${paramIndexRef.value}`);
       params.push(filters.province);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.isActive !== undefined) {
-      conditions.push(`tr.is_active = $${paramIndex}`);
+      conditions.push(`tr.is_active = $${paramIndexRef.value}`);
       params.push(filters.isActive);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
+    // ------------------------------
+    // Audit fields
+    // ------------------------------
     if (filters.createdBy) {
-      conditions.push(`tr.created_by = $${paramIndex}`);
+      conditions.push(`tr.created_by = $${paramIndexRef.value}`);
       params.push(filters.createdBy);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.updatedBy) {
-      conditions.push(`tr.updated_by = $${paramIndex}`);
+      conditions.push(`tr.updated_by = $${paramIndexRef.value}`);
       params.push(filters.updatedBy);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
+    // ------------------------------
+    // Keyword search (with restrictions)
+    // ------------------------------
     if (filters.keyword) {
-      const keywordParam = `%${filters.keyword}%`;
       const keywordConditions = [
-        `(tr.name ILIKE $${paramIndex} OR tr.province ILIKE $${paramIndex})`,
+        `(tr.name ILIKE $${paramIndexRef.value} OR tr.province ILIKE $${paramIndexRef.value})`,
       ];
-      params.push(keywordParam);
-      paramIndex++;
-
+      params.push(`%${filters.keyword}%`);
+      paramIndexRef.value++;
+      
       if (filters._restrictKeywordToValidOnly) {
         keywordConditions.push(`tr.valid_from <= NOW()`);
         keywordConditions.push(`(tr.valid_to IS NULL OR tr.valid_to >= NOW())`);
         keywordConditions.push(`tr.is_active = TRUE`);
       } else if (filters.isActive !== undefined) {
-        // Only apply outside _restrictKeywordToValidOnly
-        keywordConditions.push(`tr.is_active = $${paramIndex}`);
+        keywordConditions.push(`tr.is_active = $${paramIndexRef.value}`);
         params.push(filters.isActive);
-        paramIndex++;
+        paramIndexRef.value++;
       }
-
+      
       conditions.push(`(${keywordConditions.join(' AND ')})`);
     }
-
+    
+    // ------------------------------
+    // Validity windows (business timestamps — NOT normalized)
+    // ------------------------------
     if (filters.validFrom) {
-      conditions.push(`tr.valid_from >= $${paramIndex}`);
+      conditions.push(`tr.valid_from >= $${paramIndexRef.value}`);
       params.push(filters.validFrom);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.validTo) {
-      conditions.push(`tr.valid_to <= $${paramIndex}`);
+      conditions.push(`tr.valid_to <= $${paramIndexRef.value}`);
       params.push(filters.validTo);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.validOn) {
       conditions.push(`(
-        tr.valid_from <= $${paramIndex} AND
-        (tr.valid_to IS NULL OR tr.valid_to >= $${paramIndex})
+        tr.valid_from <= $${paramIndexRef.value} AND
+        (tr.valid_to IS NULL OR tr.valid_to >= $${paramIndexRef.value})
       )`);
       params.push(filters.validOn);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
-    if (filters.createdAfter) {
-      conditions.push(`tr.created_at >= $${paramIndex}`);
-      params.push(filters.createdAfter);
-      paramIndex++;
-    }
-
-    if (filters.createdBefore) {
-      conditions.push(`tr.created_at <= $${paramIndex}`);
-      params.push(filters.createdBefore);
-      paramIndex++;
-    }
-
+    
+    // ------------------------------
+    // Created date range (UI date filter)
+    // ------------------------------
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'tr.created_at',
+      after: filters.createdAfter,
+      before: filters.createdBefore,
+      paramIndexRef,
+    });
+    
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -144,6 +160,7 @@ const buildTaxRateFilter = (filters = {}) => {
       error: err.message,
       filters,
     });
+    
     throw AppError.databaseError('Failed to prepare tax rate filter', {
       details: err.message,
       stage: 'build-tax-rate-where-clause',
