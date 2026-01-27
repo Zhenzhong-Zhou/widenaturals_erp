@@ -11,6 +11,7 @@
  * - Fallback status enforcement for permission-based filtering
  */
 
+const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
@@ -34,74 +35,87 @@ const AppError = require('../AppError');
  */
 const buildSkuCodeBaseFilter = (filters = {}) => {
   try {
+    // -------------------------------------------------------------
+    // Normalize date-only filters
+    // -------------------------------------------------------------
+    filters = normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore');
+    filters = normalizeDateRangeFilters(
+      filters,
+      'statusDateAfter',
+      'statusDateBefore'
+    );
+    
     const conditions = ['1=1'];
     const params = [];
-    let paramIndex = 1;
-
-    // ----- brand_code -----
+    const paramIndexRef = { value: 1 };
+    
+    // ------------------------------
+    // Brand code
+    // ------------------------------
     if (filters.brand_code) {
-      conditions.push(`scb.brand_code = $${paramIndex}`);
+      conditions.push(`scb.brand_code = $${paramIndexRef.value}`);
       params.push(filters.brand_code);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
-    // ----- category_code -----
+    
+    // ------------------------------
+    // Category code
+    // ------------------------------
     if (filters.category_code) {
-      conditions.push(`scb.category_code = $${paramIndex}`);
+      conditions.push(`scb.category_code = $${paramIndexRef.value}`);
       params.push(filters.category_code);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
-    // ----- keyword search (brand_code / category_code) -----
+    
+    // ------------------------------
+    // Keyword search (brand_code / category_code)
+    // ------------------------------
     if (filters.keyword) {
-      const fuzzy = `%${filters.keyword}%`;
-      conditions.push(`
-        (
-          scb.brand_code ILIKE $${paramIndex}
-          OR scb.category_code ILIKE $${paramIndex}
-        )
-      `);
-      params.push(fuzzy);
-      paramIndex++;
+      conditions.push(`(
+        scb.brand_code ILIKE $${paramIndexRef.value}
+        OR scb.category_code ILIKE $${paramIndexRef.value}
+      )`);
+      params.push(`%${filters.keyword}%`);
+      paramIndexRef.value++;
     }
-
-    // ----- status filters -----
+    
+    // ------------------------------
+    // Status filters (with fallback)
+    // ------------------------------
     if (filters.status_id) {
-      conditions.push(`scb.status_id = $${paramIndex}`);
+      conditions.push(`scb.status_id = $${paramIndexRef.value}`);
       params.push(filters.status_id);
-      paramIndex++;
+      paramIndexRef.value++;
     } else if (filters._activeStatusId) {
-      // fallback enforcement
-      conditions.push(`scb.status_id = $${paramIndex}`);
+      conditions.push(`scb.status_id = $${paramIndexRef.value}`);
       params.push(filters._activeStatusId);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
-    // ----- date filters -----
-    if (filters.createdAfter) {
-      conditions.push(`scb.created_at >= $${paramIndex}`);
-      params.push(filters.createdAfter);
-      paramIndex++;
-    }
-
-    if (filters.createdBefore) {
-      conditions.push(`scb.created_at <= $${paramIndex}`);
-      params.push(filters.createdBefore);
-      paramIndex++;
-    }
-
-    if (filters.statusDateAfter) {
-      conditions.push(`scb.status_date >= $${paramIndex}`);
-      params.push(filters.statusDateAfter);
-      paramIndex++;
-    }
-
-    if (filters.statusDateBefore) {
-      conditions.push(`scb.status_date <= $${paramIndex}`);
-      params.push(filters.statusDateBefore);
-      paramIndex++;
-    }
-
+    
+    // ------------------------------
+    // Created date range (UI date filter)
+    // ------------------------------
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'scb.created_at',
+      after: filters.createdAfter,
+      before: filters.createdBefore,
+      paramIndexRef,
+    });
+    
+    // ------------------------------
+    // Status date range (UI date filter)
+    // ------------------------------
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'scb.status_date',
+      after: filters.statusDateAfter,
+      before: filters.statusDateBefore,
+      paramIndexRef,
+    });
+    
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -112,7 +126,7 @@ const buildSkuCodeBaseFilter = (filters = {}) => {
       filters,
       error: err.message,
     });
-
+    
     throw AppError.databaseError('Failed to prepare SKU code base filter', {
       details: err.message,
       stage: 'build-sku-code-base-where-clause',

@@ -13,6 +13,7 @@
  * - Address presence logic (has/hasn't addresses)
  */
 
+const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
@@ -54,64 +55,84 @@ const AppError = require('../AppError');
  */
 const buildCustomerFilter = (filters = {}) => {
   try {
+    // -------------------------------------------------------------
+    // Normalize date range filters FIRST
+    // -------------------------------------------------------------
+    filters = normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore');
+    filters = normalizeDateRangeFilters(filters, 'statusDateAfter', 'statusDateBefore');
+    
     const conditions = ['1=1'];
     const params = [];
-    let paramIndex = 1;
-
+    const paramIndexRef = { value: 1 };
+    
+    // ------------------------------
+    // Created by
+    // ------------------------------
     if (filters.createdBy) {
-      conditions.push(`c.created_by = $${paramIndex}`);
+      conditions.push(`c.created_by = $${paramIndexRef.value}`);
       params.push(filters.createdBy);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
+    // ------------------------------
+    // Keyword search
+    // ------------------------------
     if (filters.keyword) {
       const keywordParam1 = `${filters.keyword}%`;
       const keywordParam2 = `%${filters.keyword}%`;
+      
       conditions.push(`(
-        c.firstname ILIKE $${paramIndex} OR
-        c.lastname ILIKE $${paramIndex} OR
-        c.email ILIKE $${paramIndex + 1} OR
-        c.phone_number ILIKE $${paramIndex + 1}
+        c.firstname ILIKE $${paramIndexRef.value} OR
+        c.lastname ILIKE $${paramIndexRef.value} OR
+        c.email ILIKE $${paramIndexRef.value + 1} OR
+        c.phone_number ILIKE $${paramIndexRef.value + 1}
       )`);
+      
       params.push(keywordParam1, keywordParam2);
-      paramIndex += 2;
+      paramIndexRef.value += 2;
     }
-
+    
+    // ------------------------------
+    // Status filter (with fallback)
+    // ------------------------------
     if (filters.statusId) {
-      conditions.push(`c.status_id = $${paramIndex}`);
+      conditions.push(`c.status_id = $${paramIndexRef.value}`);
       params.push(filters.statusId);
-      paramIndex++;
+      paramIndexRef.value++;
     } else if (filters._activeStatusId) {
       // fallback status enforcement if user access is restricted
-      conditions.push(`c.status_id = $${paramIndex}`);
+      conditions.push(`c.status_id = $${paramIndexRef.value}`);
       params.push(filters._activeStatusId);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
-    if (filters.createdAfter) {
-      conditions.push(`c.created_at >= $${paramIndex}`);
-      params.push(filters.createdAfter);
-      paramIndex++;
-    }
-
-    if (filters.createdBefore) {
-      conditions.push(`c.created_at <= $${paramIndex}`);
-      params.push(filters.createdBefore);
-      paramIndex++;
-    }
-
-    if (filters.statusDateAfter) {
-      conditions.push(`c.status_date >= $${paramIndex}`);
-      params.push(filters.statusDateAfter);
-      paramIndex++;
-    }
-
-    if (filters.statusDateBefore) {
-      conditions.push(`c.status_date <= $${paramIndex}`);
-      params.push(filters.statusDateBefore);
-      paramIndex++;
-    }
-
+    
+    // ------------------------------
+    // Created date filters (via helper)
+    // ------------------------------
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'c.created_at',
+      after: filters.createdAfter,
+      before: filters.createdBefore,
+      paramIndexRef,
+    });
+    
+    // ------------------------------
+    // Status date filters (via helper)
+    // ------------------------------
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'c.status_date',
+      after: filters.statusDateAfter,
+      before: filters.statusDateBefore,
+      paramIndexRef,
+    });
+    
+    // ------------------------------
+    // Address existence filters
+    // ------------------------------
     if (filters.onlyWithAddress === true) {
       conditions.push(
         `EXISTS (SELECT 1 FROM addresses a WHERE a.customer_id = c.id)`
@@ -121,7 +142,7 @@ const buildCustomerFilter = (filters = {}) => {
         `NOT EXISTS (SELECT 1 FROM addresses a WHERE a.customer_id = c.id)`
       );
     }
-
+    
     return {
       whereClause: conditions.join(' AND '),
       params,

@@ -4,6 +4,7 @@
  * Used in report repositories for paginated log queries.
  */
 
+const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 const { toPgArray } = require('../query/query-utils');
@@ -41,88 +42,111 @@ const { toPgArray } = require('../query/query-utils');
  */
 const buildInventoryLogWhereClause = (filters = {}) => {
   try {
+    // -------------------------------------------------------------
+    // Normalize date-only filters FIRST
+    // -------------------------------------------------------------
+    filters = normalizeDateRangeFilters(filters, 'fromDate', 'toDate');
+    
     const conditions = [];
     const params = [];
-    let paramIndex = 1;
-
+    const paramIndexRef = { value: 1 };
+    
     if (filters.warehouseIds?.length) {
-      conditions.push(`wi.warehouse_id = ANY($${paramIndex++})`);
+      conditions.push(`wi.warehouse_id = ANY($${paramIndexRef.value})`);
       params.push(toPgArray(filters.warehouseIds));
+      paramIndexRef.value++;
     }
-
+    
     if (filters.locationIds?.length) {
-      conditions.push(`li.location_id = ANY($${paramIndex++})`);
+      conditions.push(`li.location_id = ANY($${paramIndexRef.value})`);
       params.push(toPgArray(filters.locationIds));
+      paramIndexRef.value++;
     }
-
+    
     if (filters.productIds?.length) {
-      conditions.push(`p.id = ANY($${paramIndex++})`);
+      conditions.push(`p.id = ANY($${paramIndexRef.value})`);
       params.push(toPgArray(filters.productIds));
+      paramIndexRef.value++;
     }
-
+    
     if (filters.skuIds?.length) {
-      conditions.push(`s.id = ANY($${paramIndex++})`);
+      conditions.push(`s.id = ANY($${paramIndexRef.value})`);
       params.push(toPgArray(filters.skuIds));
+      paramIndexRef.value++;
     }
-
+    
     if (filters.batchIds?.length) {
-      conditions.push(`br.id = ANY($${paramIndex++})`);
+      conditions.push(`br.id = ANY($${paramIndexRef.value})`);
       params.push(toPgArray(filters.batchIds));
+      paramIndexRef.value++;
     }
-
+    
     if (filters.packagingMaterialIds?.length) {
-      conditions.push(`pm.id = ANY($${paramIndex++})`);
+      conditions.push(`pm.id = ANY($${paramIndexRef.value})`);
       params.push(toPgArray(filters.packagingMaterialIds));
+      paramIndexRef.value++;
     }
-
+    
     if (filters.actionTypeIds?.length) {
-      conditions.push(`ial.inventory_action_type_id = ANY($${paramIndex++})`);
+      conditions.push(
+        `ial.inventory_action_type_id = ANY($${paramIndexRef.value})`
+      );
       params.push(toPgArray(filters.actionTypeIds));
+      paramIndexRef.value++;
     }
-
+    
     if (filters.adjustmentTypeIds?.length) {
-      conditions.push(`ial.adjustment_type_id = ANY($${paramIndex++})`);
+      conditions.push(`ial.adjustment_type_id = ANY($${paramIndexRef.value})`);
       params.push(filters.adjustmentTypeIds);
+      paramIndexRef.value++;
     }
-
+    
     if (filters.orderId) {
-      conditions.push(`o.id = $${paramIndex++}`);
+      conditions.push(`o.id = $${paramIndexRef.value}`);
       params.push(filters.orderId);
+      paramIndexRef.value++;
     }
-
+    
     if (filters.statusId) {
-      conditions.push(`ial.status_id = $${paramIndex++}`);
+      conditions.push(`ial.status_id = $${paramIndexRef.value}`);
       params.push(filters.statusId);
+      paramIndexRef.value++;
     }
-
+    
     if (filters.performedBy) {
-      conditions.push(`ial.performed_by = $${paramIndex++}`);
+      conditions.push(`ial.performed_by = $${paramIndexRef.value}`);
       params.push(filters.performedBy);
+      paramIndexRef.value++;
     }
-
+    
     if (filters.sourceType) {
-      conditions.push(`ial.source_type = $${paramIndex++}`);
+      conditions.push(`ial.source_type = $${paramIndexRef.value}`);
       params.push(filters.sourceType);
+      paramIndexRef.value++;
     }
-
+    
     if (filters.batchType) {
-      conditions.push(`br.batch_type = $${paramIndex++}`);
+      conditions.push(`br.batch_type = $${paramIndexRef.value}`);
       params.push(filters.batchType);
+      paramIndexRef.value++;
     }
-
-    if (filters.fromDate) {
-      conditions.push(`ial.action_timestamp >= $${paramIndex++}`);
-      params.push(filters.fromDate);
-    }
-
-    if (filters.toDate) {
-      conditions.push(`ial.action_timestamp <= $${paramIndex++}`);
-      params.push(filters.toDate);
-    }
-
+    
+    // ------------------------------
+    // Action timestamp date filters
+    // ------------------------------
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'ial.action_timestamp',
+      after: filters.fromDate,
+      before: filters.toDate,
+      paramIndexRef,
+    });
+    
     const whereClause = conditions.length
-      ? `${conditions.join(' AND ')}`
+      ? conditions.join(' AND ')
       : '1=1';
+    
     return { whereClause, params };
   } catch (err) {
     logSystemException(
@@ -133,6 +157,7 @@ const buildInventoryLogWhereClause = (filters = {}) => {
         filters,
       }
     );
+    
     throw AppError.transformerError(
       'Error building filter conditions for inventory log report',
       {

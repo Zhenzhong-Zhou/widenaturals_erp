@@ -17,6 +17,7 @@
  * are enforced upstream.
  */
 
+const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
 const { addKeywordIlikeGroup } = require('./sql-helpers');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
@@ -81,9 +82,15 @@ const AppError = require('../AppError');
  */
 const buildPackagingMaterialBatchFilter = (filters = {}) => {
   try {
+    // -------------------------------------------------------------
+    // Normalize date-only filters (ONCE)
+    // -------------------------------------------------------------
+    filters = normalizeDateRangeFilters(filters, 'expiryAfter', 'expiryBefore');
+    filters = normalizeDateRangeFilters(filters, 'receivedAfter', 'receivedBefore');
+    
     const conditions = ['1=1'];
     const params = [];
-    let idx = 1;
+    const paramIndexRef = { value: 1 };
     
     // -------------------------------------------------------------
     // Hard fail-closed
@@ -99,24 +106,26 @@ const buildPackagingMaterialBatchFilter = (filters = {}) => {
     // Status
     // ------------------------------
     if (filters.statusIds?.length) {
-      conditions.push(`pmb.status_id = ANY($${idx}::uuid[])`);
+      conditions.push(
+        `pmb.status_id = ANY($${paramIndexRef.value}::uuid[])`
+      );
       params.push(filters.statusIds);
-      idx++;
+      paramIndexRef.value++;
     }
     
     // ------------------------------
     // Packaging material / Supplier
     // ------------------------------
     if (filters.packagingMaterialIds?.length) {
-      conditions.push(`pm.id = ANY($${idx}::uuid[])`);
+      conditions.push(`pm.id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.packagingMaterialIds);
-      idx++;
+      paramIndexRef.value++;
     }
     
     if (filters.supplierIds?.length) {
-      conditions.push(`s.id = ANY($${idx}::uuid[])`);
+      conditions.push(`s.id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.supplierIds);
-      idx++;
+      paramIndexRef.value++;
     }
     
     if (filters.preferredSupplierOnly === true) {
@@ -127,40 +136,34 @@ const buildPackagingMaterialBatchFilter = (filters = {}) => {
     // Lot number (ILIKE)
     // ------------------------------
     if (filters.lotNumber) {
-      conditions.push(`pmb.lot_number ILIKE $${idx}`);
+      conditions.push(`pmb.lot_number ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.lotNumber}%`);
-      idx++;
+      paramIndexRef.value++;
     }
     
     // ------------------------------
     // Expiry date filters
     // ------------------------------
-    if (filters.expiryAfter) {
-      conditions.push(`pmb.expiry_date >= $${idx}`);
-      params.push(filters.expiryAfter);
-      idx++;
-    }
-    
-    if (filters.expiryBefore) {
-      conditions.push(`pmb.expiry_date <= $${idx}`);
-      params.push(filters.expiryBefore);
-      idx++;
-    }
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'pmb.expiry_date',
+      after: filters.expiryAfter,
+      before: filters.expiryBefore,
+      paramIndexRef,
+    });
     
     // ------------------------------
     // Received date filters
     // ------------------------------
-    if (filters.receivedAfter) {
-      conditions.push(`pmb.received_at >= $${idx}`);
-      params.push(filters.receivedAfter);
-      idx++;
-    }
-    
-    if (filters.receivedBefore) {
-      conditions.push(`pmb.received_at <= $${idx}`);
-      params.push(filters.receivedBefore);
-      idx++;
-    }
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'pmb.received_at',
+      after: filters.receivedAfter,
+      before: filters.receivedBefore,
+      paramIndexRef,
+    });
     
     // ------------------------------
     // Keyword fuzzy search (permission-aware)
@@ -198,7 +201,7 @@ const buildPackagingMaterialBatchFilter = (filters = {}) => {
       addKeywordIlikeGroup(
         conditions,
         params,
-        idx,
+        paramIndexRef.value,
         filters.keyword,
         searchableFields
       );

@@ -61,7 +61,6 @@ const buildWarehouseInventoryWhereClause = (filters = {}) => {
   const { conditions, params } = buildInventoryFilterConditions(filters, {
     prefix: 'wi',
     warehouseName: 'wh.name',
-    createdAt: 'created_at',
   });
 
   return {

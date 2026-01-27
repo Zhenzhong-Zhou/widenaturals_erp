@@ -17,6 +17,7 @@
  * Output is designed for safe use with parameterized queries (e.g., `pg.query`).
  */
 
+const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
@@ -85,148 +86,186 @@ const AppError = require('../AppError');
  */
 const buildBomFilter = (filters = {}) => {
   try {
+    // -------------------------------------------------------------
+    // Normalize date range filters FIRST
+    // -------------------------------------------------------------
+    filters = normalizeDateRangeFilters(
+      filters,
+      'complianceIssuedAfter',
+      'complianceExpiredBefore'
+    );
+    filters = normalizeDateRangeFilters(
+      filters,
+      'createdAfter',
+      'createdBefore'
+    );
+    
     const conditions = ['1=1'];
     const params = [];
-    let i = 1;
-
+    const paramIndexRef = { value: 1 };
+    
+    // ------------------------------
     // SKU ID(s)
+    // ------------------------------
     if (filters.skuId) {
       if (Array.isArray(filters.skuId)) {
-        const placeholders = filters.skuId.map(() => `$${i++}`).join(', ');
+        const placeholders = filters.skuId
+          .map(() => `$${paramIndexRef.value++}`)
+          .join(', ');
         conditions.push(`b.sku_id IN (${placeholders})`);
         params.push(...filters.skuId);
       } else {
-        conditions.push(`b.sku_id = $${i}`);
+        conditions.push(`b.sku_id = $${paramIndexRef.value}`);
         params.push(filters.skuId);
-        i++;
+        paramIndexRef.value++;
       }
     }
-
+    
+    // ------------------------------
     // Product ID(s)
+    // ------------------------------
     if (filters.productId) {
       if (Array.isArray(filters.productId)) {
-        const placeholders = filters.productId.map(() => `$${i++}`).join(', ');
+        const placeholders = filters.productId
+          .map(() => `$${paramIndexRef.value++}`)
+          .join(', ');
         conditions.push(`p.id IN (${placeholders})`);
         params.push(...filters.productId);
       } else {
-        conditions.push(`p.id = $${i}`);
+        conditions.push(`p.id = $${paramIndexRef.value}`);
         params.push(filters.productId);
-        i++;
+        paramIndexRef.value++;
       }
     }
-
+    
     // Product name (partial)
     if (filters.productName) {
-      conditions.push(`p.name ILIKE $${i}`);
+      conditions.push(`p.name ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.productName}%`);
-      i++;
+      paramIndexRef.value++;
     }
-
+    
     // SKU code (partial)
     if (filters.skuCode) {
-      conditions.push(`s.sku ILIKE $${i}`);
+      conditions.push(`s.sku ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.skuCode}%`);
-      i++;
+      paramIndexRef.value++;
     }
-
+    
+    // ------------------------------
     // Compliance filters
+    // ------------------------------
     if (filters.complianceType) {
-      conditions.push(`cr.type ILIKE $${i}`);
+      conditions.push(`cr.type ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.complianceType}%`);
-      i++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.complianceStatusId) {
-      conditions.push(`cr.status_id = $${i}`);
+      conditions.push(`cr.status_id = $${paramIndexRef.value}`);
       params.push(filters.complianceStatusId);
-      i++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.onlyActiveCompliance === true) {
       conditions.push(`LOWER(st_compliance.name) = 'active'`);
     }
-
-    if (filters.complianceIssuedAfter) {
-      conditions.push(`cr.issued_date >= $${i}`);
-      params.push(filters.complianceIssuedAfter);
-      i++;
-    }
-
-    if (filters.complianceExpiredBefore) {
-      conditions.push(`cr.expiry_date <= $${i}`);
-      params.push(filters.complianceExpiredBefore);
-      i++;
-    }
-
+    
+    // ------------------------------
+    // Compliance date filters (via helper)
+    // ------------------------------
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'cr.issued_date',
+      after: filters.complianceIssuedAfter,
+      before: undefined,
+      paramIndexRef,
+    });
+    
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'cr.expiry_date',
+      after: undefined,
+      before: filters.complianceExpiredBefore,
+      paramIndexRef,
+    });
+    
+    // ------------------------------
     // BOM status filters
+    // ------------------------------
     if (filters.statusId) {
-      conditions.push(`b.status_id = $${i}`);
+      conditions.push(`b.status_id = $${paramIndexRef.value}`);
       params.push(filters.statusId);
-      i++;
+      paramIndexRef.value++;
     }
-
+    
     // Is Active / Default
     if (typeof filters.isActive === 'boolean') {
-      conditions.push(`b.is_active = $${i}`);
+      conditions.push(`b.is_active = $${paramIndexRef.value}`);
       params.push(filters.isActive);
-      i++;
+      paramIndexRef.value++;
     }
-
+    
     if (typeof filters.isDefault === 'boolean') {
-      conditions.push(`b.is_default = $${i}`);
+      conditions.push(`b.is_default = $${paramIndexRef.value}`);
       params.push(filters.isDefault);
-      i++;
+      paramIndexRef.value++;
     }
-
+    
     // Revision range
     if (filters.revisionMin) {
-      conditions.push(`b.revision >= $${i}`);
+      conditions.push(`b.revision >= $${paramIndexRef.value}`);
       params.push(filters.revisionMin);
-      i++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.revisionMax) {
-      conditions.push(`b.revision <= $${i}`);
+      conditions.push(`b.revision <= $${paramIndexRef.value}`);
       params.push(filters.revisionMax);
-      i++;
+      paramIndexRef.value++;
     }
-
-    // Created/Updated by
+    
+    // Created / Updated by
     if (filters.createdBy) {
-      conditions.push(`b.created_by = $${i}`);
+      conditions.push(`b.created_by = $${paramIndexRef.value}`);
       params.push(filters.createdBy);
-      i++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.updatedBy) {
-      conditions.push(`b.updated_by = $${i}`);
+      conditions.push(`b.updated_by = $${paramIndexRef.value}`);
       params.push(filters.updatedBy);
-      i++;
+      paramIndexRef.value++;
     }
-
-    // Date ranges
-    if (filters.createdAfter) {
-      conditions.push(`b.created_at >= $${i}`);
-      params.push(filters.createdAfter);
-      i++;
-    }
-
-    if (filters.createdBefore) {
-      conditions.push(`b.created_at <= $${i}`);
-      params.push(filters.createdBefore);
-      i++;
-    }
-
+    
+    // ------------------------------
+    // Record creation date filters (via helper)
+    // ------------------------------
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'b.created_at',
+      after: filters.createdAfter,
+      before: filters.createdBefore,
+      paramIndexRef,
+    });
+    
+    // ------------------------------
     // Keyword
+    // ------------------------------
     if (filters.keyword) {
       const kw = `%${filters.keyword.trim().replace(/\s+/g, ' ')}%`;
       conditions.push(
-        `(b.name ILIKE $${i} OR b.code ILIKE $${i} OR b.description ILIKE $${i})`
+        `(b.name ILIKE $${paramIndexRef.value} OR
+          b.code ILIKE $${paramIndexRef.value} OR
+          b.description ILIKE $${paramIndexRef.value})`
       );
       params.push(kw);
-      i++;
+      paramIndexRef.value++;
     }
-
+    
     return {
       whereClause: conditions.join(' AND '),
       params,
