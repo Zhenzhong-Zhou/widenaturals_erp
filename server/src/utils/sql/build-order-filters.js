@@ -15,6 +15,7 @@
  * Output is designed to be safely used with `pg` parameterized queries (e.g., `pg.query`).
  */
 
+const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
@@ -57,101 +58,117 @@ const AppError = require('../AppError');
  */
 const buildOrderFilter = (filters = {}) => {
   try {
+    // -------------------------------------------------------------
+    // Normalize date-only filters FIRST
+    // -------------------------------------------------------------
+    filters = normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore');
+    filters = normalizeDateRangeFilters(filters, 'statusAfter', 'statusBefore');
+    
     const conditions = ['1=1'];
     const params = [];
-    let paramIndex = 1;
-
+    const paramIndexRef = { value: 1 };
+    
     if (filters.orderNumber) {
-      conditions.push(`o.order_number ILIKE $${paramIndex}`);
+      conditions.push(`o.order_number ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.orderNumber}%`);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
+    // ------------------------------
+    // Order type (single or multiple)
+    // ------------------------------
     if (filters.orderTypeId) {
       if (Array.isArray(filters.orderTypeId)) {
-        const placeholders = filters.orderTypeId
-          .map(() => `$${paramIndex++}`)
-          .join(', ');
-        conditions.push(`o.order_type_id IN (${placeholders})`);
+        const placeholders = filters.orderTypeId.map(
+          () => `$${paramIndexRef.value++}`
+        );
+        conditions.push(`o.order_type_id IN (${placeholders.join(', ')})`);
         params.push(...filters.orderTypeId);
       } else {
-        conditions.push(`o.order_type_id = $${paramIndex}`);
+        conditions.push(`o.order_type_id = $${paramIndexRef.value}`);
         params.push(filters.orderTypeId);
-        paramIndex++;
+        paramIndexRef.value++;
       }
     }
-
+    
+    // ------------------------------
+    // Status enforcement / fallback
+    // ------------------------------
     if (filters._activeStatusId) {
-      conditions.push(`o.order_status_id = $${paramIndex}`);
+      conditions.push(`o.order_status_id = $${paramIndexRef.value}`);
       params.push(filters._activeStatusId);
-      paramIndex++;
+      paramIndexRef.value++;
     } else if (filters.orderStatusId) {
-      conditions.push(`o.order_status_id = $${paramIndex}`);
+      conditions.push(`o.order_status_id = $${paramIndexRef.value}`);
       params.push(filters.orderStatusId);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
+    // ------------------------------
+    // Explicit status list override
+    // ------------------------------
     if (filters.orderStatusIds !== undefined) {
       if (Array.isArray(filters.orderStatusIds)) {
-        conditions.push(`o.order_status_id = ANY($${paramIndex})`);
+        conditions.push(`o.order_status_id = ANY($${paramIndexRef.value})`);
       } else {
-        conditions.push(`o.order_status_id = $${paramIndex}`);
+        conditions.push(`o.order_status_id = $${paramIndexRef.value}`);
       }
       params.push(filters.orderStatusIds);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.createdBy) {
-      conditions.push(`o.created_by = $${paramIndex}`);
+      conditions.push(`o.created_by = $${paramIndexRef.value}`);
       params.push(filters.createdBy);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.updatedBy) {
-      conditions.push(`o.updated_by = $${paramIndex}`);
+      conditions.push(`o.updated_by = $${paramIndexRef.value}`);
       params.push(filters.updatedBy);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
-    if (filters.createdAfter) {
-      conditions.push(`o.created_at >= $${paramIndex}`);
-      params.push(filters.createdAfter);
-      paramIndex++;
-    }
-
-    if (filters.createdBefore) {
-      conditions.push(`o.created_at <= $${paramIndex}`);
-      params.push(filters.createdBefore);
-      paramIndex++;
-    }
-
-    if (filters.statusAfter) {
-      conditions.push(`o.status_date >= $${paramIndex}`);
-      params.push(filters.statusAfter);
-      paramIndex++;
-    }
-
-    if (filters.statusBefore) {
-      conditions.push(`o.status_date <= $${paramIndex}`);
-      params.push(filters.statusBefore);
-      paramIndex++;
-    }
-
+    
+    // ------------------------------
+    // Created / Status date filters
+    // ------------------------------
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'o.created_at',
+      after: filters.createdAfter,
+      before: filters.createdBefore,
+      paramIndexRef,
+    });
+    
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'o.status_date',
+      after: filters.statusAfter,
+      before: filters.statusBefore,
+      paramIndexRef,
+    });
+    
+    // ------------------------------
+    // Keyword search
+    // ------------------------------
     if (filters.keyword) {
       const keyword = `%${filters.keyword.trim().replace(/\s+/g, ' ')}%`;
+      
       if (filters._restrictKeywordToOrderNumberOnly) {
-        conditions.push(`o.order_number ILIKE $${paramIndex}`);
+        conditions.push(`o.order_number ILIKE $${paramIndexRef.value}`);
         params.push(keyword);
-        paramIndex++;
+        paramIndexRef.value++;
       } else {
         conditions.push(
-          `(o.order_number ILIKE $${paramIndex} OR o.note ILIKE $${paramIndex})`
+          `(o.order_number ILIKE $${paramIndexRef.value} OR o.note ILIKE $${paramIndexRef.value})`
         );
         params.push(keyword);
-        paramIndex++;
+        paramIndexRef.value++;
       }
     }
-
+    
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -162,7 +179,7 @@ const buildOrderFilter = (filters = {}) => {
       error: err.message,
       filters,
     });
-
+    
     throw AppError.databaseError('Failed to prepare order filter', {
       details: err.message,
       stage: 'build-order-where-clause',

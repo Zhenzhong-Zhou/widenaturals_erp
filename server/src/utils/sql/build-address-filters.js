@@ -6,6 +6,7 @@
  * Supports filtering by status, region, customer, and dates.
  */
 
+const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
@@ -31,82 +32,81 @@ const AppError = require('../AppError');
  */
 const buildAddressFilter = (filters = {}, includeUnassigned = false) => {
   try {
+    // Normalize date ranges once
+    filters = normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore');
+    filters = normalizeDateRangeFilters(filters, 'updatedAfter', 'updatedBefore');
+    
     const conditions = ['1=1'];
     const params = [];
-    let paramIndex = 1;
-
+    const paramIndexRef = { value: 1 };
+    
     if (filters.customerId) {
       if (includeUnassigned) {
         conditions.push(
-          `(a.customer_id = $${paramIndex} OR a.customer_id IS NULL)`
+          `(a.customer_id = $${paramIndexRef.value} OR a.customer_id IS NULL)`
         );
       } else {
-        conditions.push(`a.customer_id = $${paramIndex}`);
+        conditions.push(`a.customer_id = $${paramIndexRef.value}`);
       }
       params.push(filters.customerId);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.createdBy) {
-      conditions.push(`a.created_by = $${paramIndex}`);
+      conditions.push(`a.created_by = $${paramIndexRef.value}`);
       params.push(filters.createdBy);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.updatedBy) {
-      conditions.push(`a.updated_by = $${paramIndex}`);
+      conditions.push(`a.updated_by = $${paramIndexRef.value}`);
       params.push(filters.updatedBy);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.region) {
-      conditions.push(`a.region = $${paramIndex}`);
+      conditions.push(`a.region = $${paramIndexRef.value}`);
       params.push(filters.region);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.country) {
-      conditions.push(`a.country = $${paramIndex}`);
+      conditions.push(`a.country = $${paramIndexRef.value}`);
       params.push(filters.country);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.keyword) {
       conditions.push(`(
-        a.label ILIKE $${paramIndex} OR
-        a.full_name ILIKE $${paramIndex} OR
-        a.email ILIKE $${paramIndex} OR
-        a.phone ILIKE $${paramIndex} OR
-        a.city ILIKE $${paramIndex}
+        a.label ILIKE $${paramIndexRef.value} OR
+        a.full_name ILIKE $${paramIndexRef.value} OR
+        a.email ILIKE $${paramIndexRef.value} OR
+        a.phone ILIKE $${paramIndexRef.value} OR
+        a.city ILIKE $${paramIndexRef.value}
       )`);
       params.push(`%${filters.keyword}%`);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
-    if (filters.createdAfter) {
-      conditions.push(`a.created_at >= $${paramIndex}`);
-      params.push(filters.createdAfter);
-      paramIndex++;
-    }
-
-    if (filters.createdBefore) {
-      conditions.push(`a.created_at <= $${paramIndex}`);
-      params.push(filters.createdBefore);
-      paramIndex++;
-    }
-
-    if (filters.updatedAfter) {
-      conditions.push(`a.updated_at >= $${paramIndex}`);
-      params.push(filters.updatedAfter);
-      paramIndex++;
-    }
-
-    if (filters.updatedBefore) {
-      conditions.push(`a.updated_at <= $${paramIndex}`);
-      params.push(filters.updatedBefore);
-      paramIndex++;
-    }
-
+    
+    // Generic date range handling
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'a.created_at',
+      after: filters.createdAfter,
+      before: filters.createdBefore,
+      paramIndexRef,
+    });
+    
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'a.updated_at',
+      after: filters.updatedAfter,
+      before: filters.updatedBefore,
+      paramIndexRef,
+    });
+    
     return {
       whereClause: conditions.join(' AND '),
       params,

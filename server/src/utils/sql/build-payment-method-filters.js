@@ -6,6 +6,7 @@
  * Supports filtering by name, code, status, creation metadata, and keyword-based fuzzy search.
  */
 
+const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
@@ -41,66 +42,83 @@ const AppError = require('../AppError');
  */
 const buildPaymentMethodFilter = (filters = {}) => {
   try {
+    // -------------------------------------------------------------
+    // Normalize date-only filters
+    // -------------------------------------------------------------
+    filters = normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore');
+    
     const conditions = ['1=1'];
     const params = [];
-    let paramIndex = 1;
-
+    const paramIndexRef = { value: 1 };
+    
+    // ------------------------------
+    // Exact match filters
+    // ------------------------------
     if (filters.name) {
-      conditions.push(`pm.name = $${paramIndex}`);
+      conditions.push(`pm.name = $${paramIndexRef.value}`);
       params.push(filters.name);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.code) {
-      conditions.push(`pm.code = $${paramIndex}`);
+      conditions.push(`pm.code = $${paramIndexRef.value}`);
       params.push(filters.code);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
+    // ------------------------------
+    // Audit fields
+    // ------------------------------
     if (filters.createdBy) {
-      conditions.push(`pm.created_by = $${paramIndex}`);
+      conditions.push(`pm.created_by = $${paramIndexRef.value}`);
       params.push(filters.createdBy);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.updatedBy) {
-      conditions.push(`pm.updated_by = $${paramIndex}`);
+      conditions.push(`pm.updated_by = $${paramIndexRef.value}`);
       params.push(filters.updatedBy);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
+    // ------------------------------
+    // Keyword search
+    // ------------------------------
     if (filters.keyword) {
       const keywordClause = filters._restrictKeywordToNameOnly
-        ? `pm.name ILIKE $${paramIndex}`
-        : `(pm.name ILIKE $${paramIndex} OR pm.code ILIKE $${paramIndex} OR pm.description ILIKE $${paramIndex})`;
+        ? `pm.name ILIKE $${paramIndexRef.value}`
+        : `(pm.name ILIKE $${paramIndexRef.value}
+            OR pm.code ILIKE $${paramIndexRef.value}
+            OR pm.description ILIKE $${paramIndexRef.value})`;
+      
       conditions.push(keywordClause);
-      params.push(`${filters.keyword.trim().replace(/\s+/g, ' ')}%`);
-      paramIndex++;
+      params.push(`%${filters.keyword.trim().replace(/\s+/g, ' ')}%`);
+      paramIndexRef.value++;
     }
-
-    // Enforce is_active filter
-    if (filters._restrictToActiveOnly) {
-      // Force active filter
+    
+    // ------------------------------
+    // Active / visibility enforcement
+    // ------------------------------
+    if (filters._restrictToActiveOnly === true) {
       conditions.push(`pm.is_active = true`);
     } else if (filters.isActive !== undefined) {
-      // Allow dynamic filtering by isActive only when not restricted
-      conditions.push(`pm.is_active = $${paramIndex}`);
+      conditions.push(`pm.is_active = $${paramIndexRef.value}`);
       params.push(filters.isActive);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
-    if (filters.createdAfter) {
-      conditions.push(`pm.created_at >= $${paramIndex}`);
-      params.push(filters.createdAfter);
-      paramIndex++;
-    }
-
-    if (filters.createdBefore) {
-      conditions.push(`pm.created_at <= $${paramIndex}`);
-      params.push(filters.createdBefore);
-      paramIndex++;
-    }
-
+    
+    // ------------------------------
+    // Created date filters
+    // ------------------------------
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'pm.created_at',
+      after: filters.createdAfter,
+      before: filters.createdBefore,
+      paramIndexRef,
+    });
+    
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -111,6 +129,7 @@ const buildPaymentMethodFilter = (filters = {}) => {
       error: err.message,
       filters,
     });
+    
     throw AppError.databaseError('Failed to prepare payment method filter', {
       details: err.message,
       stage: 'build-payment-method-where-clause',

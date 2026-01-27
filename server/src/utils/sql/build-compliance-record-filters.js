@@ -1,3 +1,4 @@
+const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
@@ -61,155 +62,159 @@ const AppError = require('../AppError');
  */
 const buildComplianceRecordFilter = (filters = {}) => {
   try {
+    // -------------------------------------------------------------
+    // Normalize date range filters FIRST
+    // -------------------------------------------------------------
+    filters = normalizeDateRangeFilters(filters, 'issuedAfter', 'issuedBefore');
+    filters = normalizeDateRangeFilters(filters, 'expiringAfter', 'expiringBefore');
+    filters = normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore');
+    filters = normalizeDateRangeFilters(filters, 'updatedAfter', 'updatedBefore');
+    
     const conditions = ['1=1'];
     const params = [];
-    let i = 1;
-
+    const paramIndexRef = { value: 1 };
+    
     // ----------------------------------------
     // Compliance-level filters (cr.*)
     // ----------------------------------------
     if (filters.type) {
-      conditions.push(`cr.type = $${i}`);
+      conditions.push(`cr.type = $${paramIndexRef.value}`);
       params.push(filters.type);
-      i++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.statusIds?.length) {
-      conditions.push(`cr.status_id = ANY($${i}::uuid[])`);
+      conditions.push(`cr.status_id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.statusIds);
-      i++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.complianceId) {
-      conditions.push(`cr.compliance_id ILIKE $${i}`);
+      conditions.push(`cr.compliance_id ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.complianceId}%`);
-      i++;
+      paramIndexRef.value++;
     }
-
-    if (filters.issuedAfter) {
-      conditions.push(`cr.issued_date >= $${i}`);
-      params.push(filters.issuedAfter);
-      i++;
-    }
-
-    if (filters.issuedBefore) {
-      conditions.push(`cr.issued_date <= $${i}`);
-      params.push(filters.issuedBefore);
-      i++;
-    }
-
-    if (filters.expiringAfter) {
-      conditions.push(`cr.expiry_date >= $${i}`);
-      params.push(filters.expiringAfter);
-      i++;
-    }
-
-    if (filters.expiringBefore) {
-      conditions.push(`cr.expiry_date <= $${i}`);
-      params.push(filters.expiringBefore);
-      i++;
-    }
-
-    // Audit: who created/updated the compliance record
+    
+    // ----------------------------------------
+    // Compliance issued / expiry date filters
+    // ----------------------------------------
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'cr.issued_date',
+      after: filters.issuedAfter,
+      before: filters.issuedBefore,
+      paramIndexRef,
+    });
+    
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'cr.expiry_date',
+      after: filters.expiringAfter,
+      before: filters.expiringBefore,
+      paramIndexRef,
+    });
+    
+    // ----------------------------------------
+    // Audit: who created / updated
+    // ----------------------------------------
     if (filters.createdBy) {
-      conditions.push(`cr.created_by = $${i}`);
+      conditions.push(`cr.created_by = $${paramIndexRef.value}`);
       params.push(filters.createdBy);
-      i++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.updatedBy) {
-      conditions.push(`cr.updated_by = $${i}`);
+      conditions.push(`cr.updated_by = $${paramIndexRef.value}`);
       params.push(filters.updatedBy);
-      i++;
+      paramIndexRef.value++;
     }
-
-    if (filters.createdAfter) {
-      conditions.push(`cr.created_at >= $${i}`);
-      params.push(filters.createdAfter);
-      i++;
-    }
-
-    if (filters.createdBefore) {
-      conditions.push(`cr.created_at <= $${i}`);
-      params.push(filters.createdBefore);
-      i++;
-    }
-
-    if (filters.updatedAfter) {
-      conditions.push(`cr.updated_at >= $${i}`);
-      params.push(filters.updatedAfter);
-      i++;
-    }
-
-    if (filters.updatedBefore) {
-      conditions.push(`cr.updated_at <= $${i}`);
-      params.push(filters.updatedBefore);
-      i++;
-    }
-
+    
+    // ----------------------------------------
+    // Record created / updated date filters
+    // ----------------------------------------
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'cr.created_at',
+      after: filters.createdAfter,
+      before: filters.createdBefore,
+      paramIndexRef,
+    });
+    
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'cr.updated_at',
+      after: filters.updatedAfter,
+      before: filters.updatedBefore,
+      paramIndexRef,
+    });
+    
     // ----------------------------------------
     // SKU-level filters (s.*)
     // ----------------------------------------
     if (filters.skuIds?.length > 0) {
-      conditions.push(`s.id = ANY($${i})`);
+      conditions.push(`s.id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.skuIds);
-      i++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.sku) {
-      conditions.push(`s.sku ILIKE $${i}`);
+      conditions.push(`s.sku ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.sku}%`);
-      i++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.sizeLabel) {
-      conditions.push(`s.size_label ILIKE $${i}`);
+      conditions.push(`s.size_label ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.sizeLabel}%`);
-      i++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.marketRegion) {
-      conditions.push(`s.market_region ILIKE $${i}`);
+      conditions.push(`s.market_region ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.marketRegion}%`);
-      i++;
+      paramIndexRef.value++;
     }
-
+    
     // ----------------------------------------
     // Product-level filters (p.*)
     // ----------------------------------------
     if (filters.productName) {
-      conditions.push(`p.name ILIKE $${i}`);
+      conditions.push(`p.name ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.productName}%`);
-      i++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.brand) {
-      conditions.push(`p.brand ILIKE $${i}`);
+      conditions.push(`p.brand ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.brand}%`);
-      i++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.category) {
-      conditions.push(`p.category ILIKE $${i}`);
+      conditions.push(`p.category ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.category}%`);
-      i++;
+      paramIndexRef.value++;
     }
-
+    
     // ----------------------------------------
     // Keyword search (multi-field fuzzy)
     // ----------------------------------------
     if (filters.keyword) {
       conditions.push(`(
-        cr.compliance_id ILIKE $${i} OR
-        s.sku ILIKE $${i} OR
-        p.name ILIKE $${i} OR
-        p.brand ILIKE $${i} OR
-        p.category ILIKE $${i}
+        cr.compliance_id ILIKE $${paramIndexRef.value} OR
+        s.sku ILIKE $${paramIndexRef.value} OR
+        p.name ILIKE $${paramIndexRef.value} OR
+        p.brand ILIKE $${paramIndexRef.value} OR
+        p.category ILIKE $${paramIndexRef.value}
       )`);
       params.push(`%${filters.keyword}%`);
-      i++;
+      paramIndexRef.value++;
     }
-
+    
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -219,7 +224,7 @@ const buildComplianceRecordFilter = (filters = {}) => {
       context: 'compliance-record-repository/buildComplianceRecordFilter',
       filters,
     });
-
+    
     throw AppError.databaseError('Failed to prepare compliance filter', {
       details: err.message,
     });

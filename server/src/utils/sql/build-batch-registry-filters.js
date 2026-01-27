@@ -15,6 +15,7 @@
  * - Manufacturer or SKU
  */
 
+const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 const { addKeywordIlikeGroup } = require('./sql-helpers');
@@ -176,9 +177,15 @@ const buildBatchRegistryInventoryScopeFilter = (filters = {}) => {
  */
 const buildBatchRegistryFilter = (filters = {}) => {
   try {
+    // -------------------------------------------------------------
+    // Normalize date range filters FIRST (single source of truth)
+    // -------------------------------------------------------------
+    filters = normalizeDateRangeFilters(filters, 'expiryAfter', 'expiryBefore');
+    filters = normalizeDateRangeFilters(filters, 'registeredAfter', 'registeredBefore');
+    
     const conditions = ['1=1'];
     const params = [];
-    let idx = 1;
+    const paramIndexRef = { value: 1 };
     
     // -------------------------------------------------------------
     // Hard fail-closed: no visibility → empty result set
@@ -196,9 +203,9 @@ const buildBatchRegistryFilter = (filters = {}) => {
     // Core batch registry filters
     // ------------------------------
     if (filters.batchType) {
-      conditions.push(`br.batch_type = $${idx}`);
+      conditions.push(`br.batch_type = $${paramIndexRef.value}`);
       params.push(filters.batchType);
-      idx++;
+      paramIndexRef.value++;
     }
     
     // ------------------------------
@@ -207,48 +214,48 @@ const buildBatchRegistryFilter = (filters = {}) => {
     if (filters.statusIds?.length) {
       conditions.push(`
         (
-          pb.status_id = ANY($${idx}::uuid[])
-          OR pmb.status_id = ANY($${idx}::uuid[])
+          pb.status_id = ANY($${paramIndexRef.value}::uuid[])
+          OR pmb.status_id = ANY($${paramIndexRef.value}::uuid[])
         )
       `);
       params.push(filters.statusIds);
-      idx++;
+      paramIndexRef.value++;
     }
     
     // ------------------------------
     // Product batch filters
     // ------------------------------
     if (filters.skuIds?.length) {
-      conditions.push(`s.id = ANY($${idx}::uuid[])`);
+      conditions.push(`s.id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.skuIds);
-      idx++;
+      paramIndexRef.value++;
     }
     
     if (filters.productIds?.length) {
-      conditions.push(`p.id = ANY($${idx}::uuid[])`);
+      conditions.push(`p.id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.productIds);
-      idx++;
+      paramIndexRef.value++;
     }
     
     if (filters.manufacturerIds?.length) {
-      conditions.push(`m.id = ANY($${idx}::uuid[])`);
+      conditions.push(`m.id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.manufacturerIds);
-      idx++;
+      paramIndexRef.value++;
     }
     
     // ------------------------------
     // Packaging batch filters
     // ------------------------------
     if (filters.packagingMaterialIds?.length) {
-      conditions.push(`pm.id = ANY($${idx}::uuid[])`);
+      conditions.push(`pm.id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.packagingMaterialIds);
-      idx++;
+      paramIndexRef.value++;
     }
     
     if (filters.supplierIds?.length) {
-      conditions.push(`sup.id = ANY($${idx}::uuid[])`);
+      conditions.push(`sup.id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.supplierIds);
-      idx++;
+      paramIndexRef.value++;
     }
     
     // ------------------------------
@@ -257,53 +264,48 @@ const buildBatchRegistryFilter = (filters = {}) => {
     if (filters.lotNumber) {
       conditions.push(`
         (
-          pb.lot_number ILIKE $${idx}
-          OR pmb.lot_number ILIKE $${idx}
+          pb.lot_number ILIKE $${paramIndexRef.value}
+          OR pmb.lot_number ILIKE $${paramIndexRef.value}
         )
       `);
       params.push(`%${filters.lotNumber}%`);
-      idx++;
+      paramIndexRef.value++;
     }
     
     // ------------------------------
-    // Expiry date filters (polymorphic)
+    // Expiry date filters (polymorphic, via helper)
     // ------------------------------
-    if (filters.expiryAfter) {
-      conditions.push(`
-        (
-          pb.expiry_date >= $${idx}
-          OR pmb.expiry_date >= $${idx}
-        )
-      `);
-      params.push(filters.expiryAfter);
-      idx++;
-    }
-    
-    if (filters.expiryBefore) {
-      conditions.push(`
-        (
-          pb.expiry_date <= $${idx}
-          OR pmb.expiry_date <= $${idx}
-        )
-      `);
-      params.push(filters.expiryBefore);
-      idx++;
+    if (filters.expiryAfter || filters.expiryBefore) {
+      applyDateRangeConditions({
+        conditions,
+        params,
+        column: 'pb.expiry_date',
+        after: filters.expiryAfter,
+        before: filters.expiryBefore,
+        paramIndexRef,
+      });
+      
+      applyDateRangeConditions({
+        conditions,
+        params,
+        column: 'pmb.expiry_date',
+        after: filters.expiryAfter,
+        before: filters.expiryBefore,
+        paramIndexRef,
+      });
     }
     
     // ------------------------------
     // Registry-level date filters
     // ------------------------------
-    if (filters.registeredAfter) {
-      conditions.push(`br.registered_at >= $${idx}`);
-      params.push(filters.registeredAfter);
-      idx++;
-    }
-    
-    if (filters.registeredBefore) {
-      conditions.push(`br.registered_at <= $${idx}`);
-      params.push(filters.registeredBefore);
-      idx++;
-    }
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'br.registered_at',
+      after: filters.registeredAfter,
+      before: filters.registeredBefore,
+      paramIndexRef,
+    });
     
     // ------------------------------
     // Keyword fuzzy search (permission-aware)
@@ -341,7 +343,7 @@ const buildBatchRegistryFilter = (filters = {}) => {
       addKeywordIlikeGroup(
         conditions,
         params,
-        idx,
+        paramIndexRef,
         filters.keyword,
         searchableFields
       );

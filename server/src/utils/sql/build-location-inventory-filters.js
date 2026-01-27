@@ -20,6 +20,7 @@
  * summary tables, detail views, export operations, or monitoring.
  */
 
+const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
 const {
   buildInventoryFilterConditions,
 } = require('./build-inventory-filter-conditions');
@@ -57,8 +58,6 @@ const buildLocationInventoryWhereClause = (filters = {}) => {
   const { conditions, params } = buildInventoryFilterConditions(filters, {
     prefix: 'li',
     locationName: 'loc.name',
-    inboundDate: 'inbound_date',
-    createdAt: 'created_at',
   });
 
   return {
