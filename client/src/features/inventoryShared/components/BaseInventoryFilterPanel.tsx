@@ -1,18 +1,21 @@
-import { useId, type BaseSyntheticEvent } from 'react';
+import { type BaseSyntheticEvent, useId } from 'react';
+import { Controller, type FieldValues, type UseFormReset } from 'react-hook-form';
 import Paper from '@mui/material/Paper';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
 import MenuItem from '@mui/material/MenuItem';
-import CustomTypography from '@components/common/CustomTypography';
-import CustomButton from '@components/common/CustomButton';
-import { Controller } from 'react-hook-form';
-import { formatISO } from 'date-fns';
-import BaseInput from '@components/common/BaseInput';
-import CustomDatePicker from '@components/common/CustomDatePicker';
+import {
+  BaseInput,
+  CustomButton,
+  CustomDatePicker,
+  CustomTypography
+} from '@components/index';
+import { toISODate } from '@utils/dateTimeUtils';
+import { BatchEntityType } from '@shared-types/batch';
 
 interface BaseInventoryFilters {
-  batchType?: string;
+  batchType?: BatchEntityType;
   [key: string]: any;
 }
 
@@ -23,54 +26,72 @@ export interface InventoryFilterFieldConfig {
   options?: { label: string; value: string }[];
 }
 
-interface Props<T> {
+interface Props<T extends FieldValues> {
   control: any;
   handleSubmit: (
     callback: (values: T) => void
   ) => (e?: BaseSyntheticEvent) => void;
   onApply: (filters: T) => void;
   onReset?: () => void;
-  reset: (values?: T) => void;
+  reset: UseFormReset<T>;
   watch: (field: keyof T) => any;
-  initialFilters?: T;
+  initialFilters: T;
   fields: InventoryFilterFieldConfig[];
   visibleFields?: (keyof T)[];
   showActionsWhenAll?: boolean;
   requireBatchTypeForActions?: boolean;
 }
 
+/**
+ * BaseInventoryFilterPanel
+ *
+ * Shared filter panel for inventory-related pages.
+ *
+ * Design notes:
+ * - Stores Date objects in form state (never formatted strings)
+ * - Date normalization is expected to happen at submit time
+ * - Avoids timezone drift by never calling `new Date(YYYY-MM-DD)`
+ * - Keeps UI logic separate from API formatting concerns
+ */
 const BaseInventoryFilterPanel = <T extends BaseInventoryFilters>({
-  control,
-  handleSubmit,
-  onApply,
-  onReset,
-  reset,
-  watch,
-  initialFilters,
-  fields,
-  visibleFields,
-  showActionsWhenAll,
-  requireBatchTypeForActions,
-}: Props<T>) => {
+                                                                    control,
+                                                                    handleSubmit,
+                                                                    onApply,
+                                                                    onReset,
+                                                                    reset,
+                                                                    watch,
+                                                                    initialFilters,
+                                                                    fields,
+                                                                    visibleFields,
+                                                                    showActionsWhenAll,
+                                                                    requireBatchTypeForActions,
+                                                                  }: Props<T>) => {
   const batchType = watch('batchType');
-
+  
   const showField = (name: string) => {
     if (visibleFields && !visibleFields.includes(name as keyof T)) return false;
+    
     if (
       (name.startsWith('product') || name === 'sku') &&
       batchType !== 'product'
-    )
+    ) {
       return false;
-    return !(
-      (name.startsWith('material') || name.startsWith('part')) &&
-      batchType !== 'packaging_material'
-    );
+    }
+    
+    return !((name.startsWith('material') || name.startsWith('part')) &&
+      batchType !== 'packaging_material');
   };
-
+  
   const handleApply = (values: T) => {
-    onApply(values);
+    const normalized = Object.fromEntries(
+      Object.entries(values).map(([key, value]) => [
+        key,
+        value instanceof Date ? toISODate(value) : value,
+      ])
+    ) as T;
+    onApply(normalized);
   };
-
+  
   return (
     <Paper
       elevation={1}
@@ -84,7 +105,7 @@ const BaseInventoryFilterPanel = <T extends BaseInventoryFilters>({
       <CustomTypography variant="body1" sx={{ mb: 2 }}>
         Filters
       </CustomTypography>
-
+      
       <Box component="form" onSubmit={handleSubmit(handleApply)} sx={{ mb: 2 }}>
         <Grid container spacing={2}>
           {fields.map(({ name, label, type = 'text', options }) =>
@@ -98,18 +119,13 @@ const BaseInventoryFilterPanel = <T extends BaseInventoryFilters>({
                       return (
                         <CustomDatePicker
                           label={label}
-                          value={field.value ? new Date(field.value) : null}
-                          onChange={(date) =>
-                            field.onChange(
-                              date
-                                ? formatISO(date, { representation: 'date' })
-                                : ''
-                            )
-                          }
+                          value={field.value ?? null}
+                          onChange={field.onChange}
                           sx={{ size: 'small', fullWidth: true }}
                         />
                       );
                     }
+                    
                     if (type === 'select') {
                       const fieldId = useId();
                       return (
@@ -133,6 +149,7 @@ const BaseInventoryFilterPanel = <T extends BaseInventoryFilters>({
                         </BaseInput>
                       );
                     }
+                    
                     return (
                       <BaseInput
                         {...field}
@@ -147,10 +164,10 @@ const BaseInventoryFilterPanel = <T extends BaseInventoryFilters>({
               </Grid>
             ) : null
           )}
-
+          
           {showActionsWhenAll &&
             (!requireBatchTypeForActions ||
-              (batchType !== undefined && batchType !== '')) && (
+              (batchType !== undefined)) && (
               <Grid size={{ xs: 12, sm: 6 }}>
                 <Stack direction="row" spacing={2}>
                   <CustomButton type="submit" variant="contained">
@@ -159,7 +176,17 @@ const BaseInventoryFilterPanel = <T extends BaseInventoryFilters>({
                   <CustomButton
                     variant="outlined"
                     onClick={() => {
-                      reset(initialFilters);
+                      const uiResetValues = Object.fromEntries(
+                        Object.entries(initialFilters).map(([k, v]) => [
+                          k,
+                          v instanceof Date ? null : v,
+                        ])
+                      ) as T;
+                      
+                      reset(uiResetValues, {
+                        keepDefaultValues: true,
+                      });
+                      
                       onReset?.();
                     }}
                   >
