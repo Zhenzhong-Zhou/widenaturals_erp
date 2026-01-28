@@ -48,7 +48,7 @@ const PricingListTable: FC<PricingTableProps> = ({
       sortable: true,
       renderCell: (row: PricingRow) => (
         <Link
-          to={`/pricings/${row.pricingTypeSlug}/${row.pricingTypeId}`}
+          to={`/prices/${row.pricingTypeSlug}/${row.pricingTypeId}`}
           style={{
             textDecoration: 'none',
             color: theme.palette.primary.main,

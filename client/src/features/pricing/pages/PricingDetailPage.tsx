@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Loading from '@components/common/Loading';
-import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
 import NoDataFound from '@components/common/NoDataFound';
 import GoBackButton from '@components/common/GoBackButton';
@@ -14,7 +13,6 @@ const PricingDetailPage = () => {
   const { id: pricingTypeId } = useParams<{ id: string }>();
   const {
     data,
-    pagination,
     loading,
     error,
     fetchData: fetchPricingList,
@@ -22,10 +20,10 @@ const PricingDetailPage = () => {
 
   // Fetch data on mount or when pricingTypeId changes
   useEffect(() => {
-    if (!pricingTypeId || !pagination) return;
+    if (!pricingTypeId) return;
     
-    fetchPricingList(pricingTypeId, pagination.page, 1000);
-  }, [pricingTypeId, pagination, fetchPricingList]);
+    fetchPricingList(pricingTypeId, 1, 1000);
+  }, [pricingTypeId]);
 
   if (!data) {
     return <NoDataFound message="No pricing detail list data found." />;
@@ -37,10 +35,12 @@ const PricingDetailPage = () => {
 
   if (error) {
     return (
-      <ErrorDisplay>
-        <ErrorMessage message={error} />
-      </ErrorDisplay>
+      <ErrorMessage message={error} />
     );
+  }
+  
+  if (!data || data.length === 0) {
+    return <NoDataFound message="No pricing detail list data found." />;
   }
 
   const groupPricingByTypeAndPrice = (records: PricingDetail[]) => {

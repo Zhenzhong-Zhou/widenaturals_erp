@@ -291,7 +291,39 @@ export const appRoutes: AppRoute[] = [
     ),
     meta: {
       requiresAuth: true,
+      requiredPermission: 'view_price_types',
+    },
+  }),
+  defineRoute({
+    path: '/pricing-types/:slug/:id',
+    component: lazy(
+      () => import('@features/pricingType/pages/PricingTypeDetailsPage')
+    ),
+    meta: {
+      requiresAuth: true,
+      requiredPermission: 'view_price_type_details',
+    },
+  }),
+  
+  defineRoute({
+    path: '/prices',
+    component: lazy(
+      () => import('@features/pricing/pages/PricingListPage')
+    ),
+    meta: {
+      requiresAuth: true,
       requiredPermission: 'view_prices',
+    },
+  }),
+  
+  defineRoute({
+    path: '/prices/:sku/:id',
+    component: lazy(
+      () => import('@features/pricing/pages/PricingDetailPage')
+    ),
+    meta: {
+      requiresAuth: true,
+      requiredPermission: 'view_price_details',
     },
   }),
   
