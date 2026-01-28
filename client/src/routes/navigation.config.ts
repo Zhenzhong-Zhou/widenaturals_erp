@@ -22,6 +22,11 @@ export const navigationItems: NavigationItem[] = [
   {
     path: '/pricing-types',
     title: 'Pricing Types',
+    requiredPermission: 'view_price_types',
+  },
+  {
+    path: '/prices',
+    title: 'Prices',
     requiredPermission: 'view_prices',
   },
   {
