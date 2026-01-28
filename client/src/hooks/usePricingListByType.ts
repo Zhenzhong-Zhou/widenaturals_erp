@@ -6,6 +6,7 @@ import {
   selectPricingListByTypeLoading,
   selectPricingListByTypePagination,
 } from '@features/pricing/state';
+import { useCallback } from 'react';
 
 /**
  * Custom hook to access and fetch a pricing list by pricing type ID.
@@ -26,9 +27,12 @@ const usePricingListByType = () => {
    * @param page - Optional page number
    * @param limit - Optional limit per page
    */
-  const fetchData = (pricingTypeId: string, page = 1, limit = 10) => {
-    dispatch(fetchPricingDetailsByTypeThunk({ pricingTypeId, page, limit }));
-  };
+  const fetchData = useCallback(
+    (pricingTypeId: string, page = 1, limit = 10) => {
+      dispatch(fetchPricingDetailsByTypeThunk({ pricingTypeId, page, limit }));
+    },
+    [dispatch]
+  );
 
   return {
     data,

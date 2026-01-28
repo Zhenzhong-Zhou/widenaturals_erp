@@ -6,9 +6,6 @@ const {
 const { logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 const { logSystemInfo, logSystemError } = require('../utils/system-logger');
-const {
-  getPricingDetailsByPricingTypeId,
-} = require('../repositories/pricing-repository');
 const { canViewPricingTypes } = require('../business/pricing-type-business');
 const {
   transformPaginatedPricingTypeResult,
@@ -81,8 +78,8 @@ const fetchAllPriceTypes = async ({
       canViewAllStatuses,
     });
 
-    const result = transformPaginatedPricingTypeResult(rawResult);
-
+    const result = await transformPaginatedPricingTypeResult(rawResult);
+    
     logSystemInfo('Successfully fetched pricing types', {
       context: 'pricing-type-service',
       resultCount: result.data.length,
