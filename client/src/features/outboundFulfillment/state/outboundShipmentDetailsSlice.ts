@@ -1,7 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type {
   OutboundShipmentDetailsState,
-  ShipmentDetailsResponse,
+  FetchShipmentDetailsUiResponse,
 } from './outboundFulfillmentTypes';
 import { fetchOutboundShipmentDetailsThunk } from '@features/outboundFulfillment/state/outboundFulfillmentThunks';
 
@@ -29,15 +29,18 @@ const outboundShipmentDetailsSlice = createSlice({
       })
       .addCase(
         fetchOutboundShipmentDetailsThunk.fulfilled,
-        (state, action: PayloadAction<ShipmentDetailsResponse>) => {
+        (state, action: PayloadAction<FetchShipmentDetailsUiResponse>) => {
           state.loading = false;
           state.data = action.payload.data;
         }
       )
       .addCase(fetchOutboundShipmentDetailsThunk.rejected, (state, action) => {
         state.loading = false;
+        
         state.error =
-          (action.payload as string) || action.error.message || 'Unknown error';
+          action.payload?.message ??
+          action.error.message ??
+          'Unknown error';
       });
   },
 });

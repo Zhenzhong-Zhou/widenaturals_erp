@@ -3,20 +3,21 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
 import Divider from '@mui/material/Divider';
-import CustomButton from '@components/common/CustomButton';
-import CustomTypography from '@components/common/CustomTypography';
-import usePaginatedBoms from '@hooks/usePaginatedBoms';
-import Loading from '@components/common/Loading';
-import ErrorMessage from '@components/common/ErrorMessage';
-import NoDataFound from '@components/common/NoDataFound';
+import {
+  CustomButton,
+  CustomTypography,
+  ErrorMessage,
+  Loading,
+  NoDataFound
+} from '@components/index';
 import BomListTable, {
   BomFiltersPanel,
   BomSortControls,
 } from '@features/bom/components/BomListTables';
+import { usePaginatedBoms } from '@hooks/index';
 import type { BomListFilters, BomSortField } from '@features/bom/state';
 import { applyFiltersAndSorting } from '@utils/queryUtils';
 import { usePaginationHandlers } from '@utils/hooks';
-import { flattenBomRecords } from '@features/bom/utils/flattenBomData';
 
 /**
  * Page component displaying a paginated and filterable list of BOMs.
@@ -46,8 +47,6 @@ const BomListPage = () => {
     fetchBoms: fetchPaginatedBomsList,
     resetFilters: resetBomFilters,
   } = usePaginatedBoms();
-
-  const flattenData = flattenBomRecords(bomData);
 
   const queryParams = useMemo(
     () => ({
@@ -141,7 +140,7 @@ const BomListPage = () => {
         <Loading variant="dotted" message="Loading boms..." />
       ) : bomError ? (
         <ErrorMessage message={bomError} showNavigation />
-      ) : isBomListEmpty || flattenData.length === 0 ? (
+      ) : isBomListEmpty ? (
         <NoDataFound
           message="No boms found."
           action={
@@ -152,7 +151,7 @@ const BomListPage = () => {
         />
       ) : (
         <BomListTable
-          data={flattenData}
+          data={bomData}
           loading={bomLoading}
           page={page - 1}
           rowsPerPage={limit}

@@ -5,6 +5,26 @@ import BaseInventoryFilterPanel, {
   type InventoryFilterFieldConfig,
 } from '@features/inventoryShared/components/BaseInventoryFilterPanel';
 
+const DEFAULT_LOCATION_INVENTORY_FILTERS: LocationInventoryFilters = {
+  batchType: undefined,
+  locationName: '',
+  productName: '',
+  sku: '',
+  materialName: '',
+  materialCode: '',
+  partName: '',
+  partCode: '',
+  partType: '',
+  lotNumber: '',
+  status: '',
+  inboundAfter: undefined,
+  inboundBefore: undefined,
+  expiryAfter: undefined,
+  expiryBefore: undefined,
+  createdAfter: undefined,
+  createdBefore: undefined,
+};
+
 const fields: InventoryFilterFieldConfig[] = [
   {
     name: 'batchType',
@@ -38,15 +58,21 @@ const LocationInventoryFilterPanel: FC<{
   visibleFields?: (keyof LocationInventoryFilters)[];
   showActionsWhenAll?: boolean;
   requireBatchTypeForActions?: boolean;
-}> = (props) => {
+}> = ({
+        initialFilters,
+        ...rest
+      }) => {
+  const resolvedInitialFilters = initialFilters ?? DEFAULT_LOCATION_INVENTORY_FILTERS;
+  
   const { control, handleSubmit, reset, watch } =
     useForm<LocationInventoryFilters>({
-      defaultValues: { ...props.initialFilters, batchType: undefined },
+      defaultValues: resolvedInitialFilters,
     });
 
   return (
     <BaseInventoryFilterPanel
-      {...props}
+      {...rest}
+      initialFilters={resolvedInitialFilters}
       control={control}
       handleSubmit={handleSubmit}
       reset={reset}
