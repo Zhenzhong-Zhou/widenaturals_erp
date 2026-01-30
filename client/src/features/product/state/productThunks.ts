@@ -1,69 +1,56 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import {
+import type {
   CreateProductBulkInput,
   CreateProductResponse,
   FetchProductParams,
   GetProductApiResponse,
-  ProductListResponse,
+  PaginatedProductListUiResponse,
   ProductStatusUpdateRequest,
   ProductUpdateRequest,
   UpdateProductApiResponse,
   UpdateProductStatusThunkArgs,
 } from '@features/product/state/productTypes';
 import { productService } from '@services/productService';
+import { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import { extractUiErrorPayload } from '@utils/error';
+import { flattenProductRecords } from '@features/product/utils';
 
 /**
- * Fetch a paginated list of products with optional sorting and filter criteria.
+ * Thunk to fetch a paginated list of products.
  *
- * This thunk wraps the `productService.fetchPaginatedProducts` API helper and:
- * - Merges pagination, sorting, and filter options
- * - Sends them as flattened query parameters to the backend
- * - Returns a strongly typed `ProductListResponse` on success
- * - Normalizes and serializes API errors into a clean `rejectValue` message
+ * This thunk performs a one-time transformation at the ingestion boundary:
+ * - Fetches raw product records from the API
+ * - Flattens them into UI-safe `FlattenedProductRecord`
+ * - Stores only flattened data in Redux
  *
- * Typical usage:
- * ```ts
- * dispatch(fetchPaginatedProductsThunk({
- *   page: 1,
- *   limit: 20,
- *   sortBy: 'createdAt',
- *   sortOrder: 'DESC',
- *   filters: {
- *     keyword: 'omega',
- *     brand: 'Herbal Natural',
- *   },
- * }));
- * ```
+ * ### Behavior
+ * - `pending`   → sets loading state
+ * - `fulfilled` → stores flattened products + pagination metadata
+ * - `rejected`  → stores a normalized error message
  *
- * The caller (slice or component) will receive:
- * - `fulfilled` → `ProductListResponse`
- * - `rejected` → serialized error string
+ * ### Design guarantees
+ * - Raw API models never enter Redux
+ * - Flattening happens exactly once
+ * - UI consumes `FlattenedProductRecord` only
  *
- * @param params - Pagination, sorting, and product filter options.
- *
- * @returns A promise resolving to `ProductListResponse` on success,
- *          or a rejected action with a string error message.
- *
- * @see ProductListResponse
- * @see FetchProductParams
- * @see productService.fetchPaginatedProducts
+ * @param params Pagination, sorting, and filter options
+ * @returns PaginatedProductListUiResponse
  */
 export const fetchPaginatedProductsThunk = createAsyncThunk<
-  ProductListResponse,
+  PaginatedProductListUiResponse,
   FetchProductParams,
-  { rejectValue: string }
+  { rejectValue: UiErrorPayload }
 >('products/fetchPaginated', async (params, { rejectWithValue }) => {
   try {
-    return await productService.fetchPaginatedProducts(params);
-  } catch (error: any) {
-    console.error('fetchProductsThunk failed:', error);
-
-    const message =
-      error?.response?.data?.message ||
-      error?.message ||
-      'Failed to fetch product list';
-
-    return rejectWithValue(message);
+    const response = await productService.fetchPaginatedProducts(params);
+    
+    return {
+      ...response,
+      data: flattenProductRecords(response.data),
+    };
+  } catch (error) {
+    
+    return rejectWithValue(extractUiErrorPayload(error));
   }
 });
 

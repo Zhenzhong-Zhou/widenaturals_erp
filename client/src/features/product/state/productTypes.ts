@@ -157,7 +157,7 @@ export interface ProductListItem {
  * - message
  * - pagination metadata
  */
-export type ProductListResponse = PaginatedResponse<ProductListItem>;
+export type ProductListsApiResponse = PaginatedResponse<ProductListItem>;
 
 /**
  * Supported filter options for fetching paginated product lists.
@@ -232,7 +232,7 @@ export interface FetchProductParams extends PaginationParams, SortConfig {
  * - loading flag
  * - error message (if any)
  */
-export type ProductListState = ReduxPaginatedState<ProductListItem>;
+export type ProductListState = ReduxPaginatedState<FlattenedProductRecord>;
 
 /**
  * Represents a normalized, table-friendly version of a product record.
@@ -291,6 +291,14 @@ export interface FlattenedProductRecord {
   /** Name of the user who last updated the product (nullable) */
   updatedBy: NullableString;
 }
+
+/**
+ * Paginated UI response for product list pages.
+ *
+ * Returned by thunks after flattening API records.
+ */
+export type PaginatedProductListUiResponse =
+  PaginatedResponse<FlattenedProductRecord>;
 
 /**
  * Represents a fully transformed Product record returned by the backend.

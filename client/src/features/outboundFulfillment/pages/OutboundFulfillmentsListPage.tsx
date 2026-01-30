@@ -12,16 +12,18 @@ import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
-import CustomTypography from '@components/common/CustomTypography';
-import NoDataFound from '@components/common/NoDataFound';
-import Loading from '@components/common/Loading';
-import GoBackButton from '@components/common/GoBackButton';
+import {
+  CustomTypography,
+  GoBackButton,
+  Loading,
+  NoDataFound
+} from '@components/index';
 import {
   OutboundFulfillmentFiltersPanel,
   OutboundFulfillmentSortControls,
 } from '@features/outboundFulfillment/components/OutboundFulfillmentTable';
 import { usePaginationHandlers } from '@utils/hooks';
-import usePaginatedOutboundFulfillments from '@hooks/usePaginatedOutboundFulfillments';
+import { usePaginatedOutboundFulfillments } from '@hooks/index';
 import type {
   OutboundFulfillmentFilters,
   OutboundFulfillmentSortKey,

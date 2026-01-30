@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ORDER_VIEW_MODES } from '@features/order/constants/orderViewModes';
-import { isValidOrderCategory } from '@features/order/utils/orderCategoryUtils';
+import { isValidOrderCategory } from '@features/order/utils';
 import {
   type OrderCategory,
   toPermissionValue,
@@ -18,12 +18,14 @@ import type {
   OrderListSortField,
   OrderPermissionContext,
 } from '@features/order/state';
-import Loading from '@components/common/Loading';
+import {
+  CustomButton,
+  CustomTypography,
+  GoBackButton,
+  Loading,
+  NoDataFound
+} from '@components/index';
 import { AccessDeniedPage } from '@pages/system';
-import CustomButton from '@components/common/CustomButton';
-import GoBackButton from '@components/common/GoBackButton';
-import NoDataFound from '@components/common/NoDataFound';
-import CustomTypography from '@components/common/CustomTypography';
 import {
   OrderFiltersPanel,
   OrderSortControls,
@@ -233,23 +235,23 @@ const OrdersListPage = () => {
         )}
         
         {!ordersLoading && !ordersError && pagination && orders.length > 0 && (
-            <Suspense fallback={<Skeleton height={300} />}>
-              <OrdersTable
-                category={mode || 'sales'}
-                data={orders}
-                loading={ordersLoading}
-                page={page - 1}
-                rowsPerPage={limit}
-                totalRecords={pagination.totalRecords}
-                totalPages={pagination.totalPages}
-                onPageChange={handlePageChange}
-                onRowsPerPageChange={handleRowsPerPageChange}
-                expandedRowId={expandedRowId}
-                onDrillDownToggle={handleDrillDownToggle}
-                onRefresh={handleRefresh}
-              />
-            </Suspense>
-          )}
+          <Suspense fallback={<Skeleton height={300} />}>
+            <OrdersTable
+              category={mode || 'sales'}
+              data={orders}
+              loading={ordersLoading}
+              page={page - 1}
+              rowsPerPage={limit}
+              totalRecords={pagination.totalRecords}
+              totalPages={pagination.totalPages}
+              onPageChange={handlePageChange}
+              onRowsPerPageChange={handleRowsPerPageChange}
+              expandedRowId={expandedRowId}
+              onDrillDownToggle={handleDrillDownToggle}
+              onRefresh={handleRefresh}
+            />
+          </Suspense>
+        )}
       </Box>
     </Box>
   );

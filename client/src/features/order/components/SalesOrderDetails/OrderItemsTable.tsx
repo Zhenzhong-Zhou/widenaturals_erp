@@ -1,11 +1,13 @@
 import { type FC, useState } from 'react';
 import CustomTable from '@components/common/CustomTable';
-import { OrderItemDetailSection } from '@features/order/components/SalesOrderDetails/index';
-import type { OrderItem } from '@features/order/state';
-import { getOrderItemColumns } from '@features/order/utils/orderItemsTableColumns';
+import {
+  getOrderItemColumns,
+  OrderItemDetailSection
+} from '@features/order/components/SalesOrderDetails/index';
+import { FlattenedOrderItemRow } from '@features/order/state';
 
 interface OrderItemsTableProps {
-  items: OrderItem[];
+  items: FlattenedOrderItemRow[];
   itemCount: number;
 }
 
@@ -19,15 +21,17 @@ const OrderItemsTable: FC<OrderItemsTableProps> = ({ items, itemCount }) => {
   const columns = getOrderItemColumns(expandedRowId, handleDrillDownToggle);
 
   return (
-    <CustomTable<OrderItem>
+    <CustomTable<FlattenedOrderItemRow>
       columns={columns}
       data={items}
       page={0}
       totalRecords={itemCount}
-      getRowId={(row) => row.id}
+      getRowId={(row) => row.orderItemId}
       expandable
       expandedRowId={expandedRowId}
-      expandedContent={(row) => <OrderItemDetailSection row={row} />}
+      expandedContent={(row) => (
+        <OrderItemDetailSection itemId={row.orderItemId} />
+      )}
       onPageChange={() => {}} // No pagination handling for now
       onRowsPerPageChange={() => {}} // No pagination handling for now
       initialRowsPerPage={itemCount} // Display all items by default

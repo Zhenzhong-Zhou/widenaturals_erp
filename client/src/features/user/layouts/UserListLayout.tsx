@@ -1,10 +1,9 @@
 import { type FC } from 'react';
-import PageShell from '@features/user/layouts/PageShell.tsx';
+import PageShell from '@features/user/layouts/PageShell';
 import {
   UserFilterAndSortPanel,
   UserListTable,
 } from '@features/user/components/UserView';
-import useFlattenedUsers from '@features/user/hooks/useFlattenedUsers';
 import type { UserListPageController } from '@features/user/types/hookTypes';
 import type { UserTablePageSize } from '@features/user/config/userTableConfig';
 
@@ -46,7 +45,6 @@ const UserListLayout: FC<{
   } = controller;
   const { page, limit, totalPages, totalRecords } = pageInfo;
   const { handlePageChange, handleRowsPerPageChange } = paginationHandlers;
-  const flattenedUsers = useFlattenedUsers(data);
 
   return (
     <PageShell title="User Management">
@@ -63,7 +61,7 @@ const UserListLayout: FC<{
       />
 
       <UserListTable
-        data={flattenedUsers}
+        data={data}
         loading={loading}
         page={page - 1}
         rowsPerPage={limit}

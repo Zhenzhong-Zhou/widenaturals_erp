@@ -1,5 +1,5 @@
 import { renderBaseInputField } from '@utils/form/FieldRenderers';
-import { getSeriesBrandCategoryHelperText } from '@features/product/utils/productFieldValidators';
+import { getSeriesBrandCategoryHelperText } from '@features/product/utils';
 import type {
   CustomRenderParams,
   FieldConfig,

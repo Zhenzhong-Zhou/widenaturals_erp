@@ -1,19 +1,28 @@
 import { Link } from 'react-router-dom';
 import type { Column } from '@components/common/CustomTable';
+import type {
+  FlattenedInventoryAllocationSummary
+} from '@features/inventoryAllocation/state';
+import { getShortOrderNumber } from '@features/order/utils';
 import { formatDate } from '@utils/dateTimeUtils';
-import { getShortOrderNumber } from '@features/order/utils/orderUtils';
-import type { InventoryAllocationSummary } from '@features/inventoryAllocation/state';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
 import {
   formatAllocationStatus,
   formatOrderStatus,
   formatPaymentStatus,
-} from '@utils/formatters.tsx';
+} from '@utils/formatters';
 
+/**
+ * Builds column definitions for the inventory allocation summary table.
+ *
+ * - Uses flattened allocation summary records as the data source
+ * - Supports optional drill-down expansion via a toggle column
+ * - Intended for list and overview table views
+ */
 export const getInventoryAllocationColumns = (
   expandedRowId?: string | null,
   handleDrillDownToggle?: (id: string) => void
-): Column<InventoryAllocationSummary>[] => {
+): Column<FlattenedInventoryAllocationSummary>[] => {
   return [
     {
       id: 'orderNumber',
@@ -21,13 +30,11 @@ export const getInventoryAllocationColumns = (
       sortable: true,
       renderCell: (row) => (
         <Link
-          to={{
-            pathname: `/inventory-allocations/review/${row.orderId}`,
-          }}
+          to={`/inventory-allocations/review/${row.orderId}`}
           state={{
-            warehouseIds: row.warehouses.ids, // from your table row
-            allocationIds: row.allocationIds, // from your table row
-            category: row.orderCategory, // or derive dynamically
+            warehouseIds: row.warehouseIds,
+            allocationIds: row.allocationIds,
+            category: row.orderCategory,
           }}
           style={{
             textDecoration: 'none',
@@ -50,13 +57,13 @@ export const getInventoryAllocationColumns = (
       label: 'Status',
       sortable: true,
       renderCell: (row) =>
-        formatOrderStatus(row.orderStatus.code, row.orderStatus.name),
+        formatOrderStatus(row.orderStatusCode, row.orderStatusName),
     },
     {
       id: 'customer',
       label: 'Customer',
       sortable: true,
-      renderCell: (row) => row.customer.fullName,
+      renderCell: (row) => row.customerName,
     },
     {
       id: 'paymentMethod',
@@ -69,7 +76,10 @@ export const getInventoryAllocationColumns = (
       label: 'Payment Status',
       sortable: true,
       renderCell: (row) =>
-        formatPaymentStatus(row.paymentStatus.code, row.paymentStatus.name),
+        formatPaymentStatus(
+          row.paymentStatusCode,
+          row.paymentStatusName
+        ),
     },
     {
       id: 'deliveryMethod',
@@ -82,13 +92,13 @@ export const getInventoryAllocationColumns = (
       label: 'Allocated / Total Items',
       sortable: false,
       renderCell: (row) =>
-        `${row.itemCount.allocated} / ${row.itemCount.total}`,
+        `${row.allocatedItemCount} / ${row.totalItemCount}`,
     },
     {
       id: 'warehouses',
       label: 'Warehouses',
       sortable: false,
-      renderCell: (row) => row.warehouses.names,
+      renderCell: (row) => row.warehouseNames,
     },
     {
       id: 'allocationStatus',
@@ -96,15 +106,16 @@ export const getInventoryAllocationColumns = (
       sortable: false,
       renderCell: (row) =>
         formatAllocationStatus(
-          row.allocationStatus.codes,
-          row.allocationStatus.summary
+          row.allocationStatusCodes,
+          row.allocationSummaryStatus
         ),
     },
     {
       id: 'orderCreatedAt',
       label: 'Order Date',
       sortable: true,
-      format: (value) => (typeof value === 'string' ? formatDate(value) : '—'),
+      format: (value) =>
+        typeof value === 'string' ? formatDate(value) : '—',
     },
     {
       id: 'orderCreatedBy',
@@ -113,11 +124,11 @@ export const getInventoryAllocationColumns = (
     },
     ...(handleDrillDownToggle
       ? [
-          createDrillDownColumn<InventoryAllocationSummary>(
-            (row) => handleDrillDownToggle(row.orderId),
-            (row) => expandedRowId === row.orderId
-          ),
-        ]
+        createDrillDownColumn<FlattenedInventoryAllocationSummary>(
+          (row) => handleDrillDownToggle(row.orderId),
+          (row) => expandedRowId === row.orderId
+        ),
+      ]
       : []),
   ];
 };

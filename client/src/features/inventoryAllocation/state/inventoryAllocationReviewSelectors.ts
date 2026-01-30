@@ -1,63 +1,47 @@
 import { createSelector } from '@reduxjs/toolkit';
 import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
-import type { AllocationReviewItem } from '@features/inventoryAllocation/state/inventoryAllocationTypes';
-import { isPackagingBatch, isProductBatch } from '@utils/batchTypeGuards';
+import type {
+  FlattenedAllocationReviewItem,
+  FlattenedAllocationOrderHeader,
+} from '@features/inventoryAllocation/state';
 
 /**
- * Base selector for the inventory allocation review state slice.
+ * Root selector for the inventory allocation review runtime slice.
  *
- * Responsibilities:
- * - Extract the inventory allocation review state from the Redux runtime tree
- *
- * Design notes:
- * - Plain function only (no `createSelector`)
- * - Internal implementation detail
+ * NOTE:
+ * - This selector exposes raw slice state only.
+ * - No data normalization or domain assumptions are applied here.
  */
 const selectInventoryAllocationReviewState = (state: RootState) =>
   selectRuntime(state).inventoryAllocationReview;
 
 /* =======================
-   Primitive field selectors
+   Primitive selectors
    ======================= */
 
-/**
- * Selects whether the inventory allocation review request is loading.
- */
 export const selectReviewLoading = createSelector(
-  selectInventoryAllocationReviewState,
+  [selectInventoryAllocationReviewState],
   (state) => state.loading
 );
 
-/**
- * Selects any error message from the inventory allocation review request.
- */
 export const selectReviewError = createSelector(
-  selectInventoryAllocationReviewState,
+  [selectInventoryAllocationReviewState],
   (state) => state.error
 );
 
-/**
- * Selects the human-readable message returned by the server.
- */
 export const selectReviewMessage = createSelector(
-  selectInventoryAllocationReviewState,
+  [selectInventoryAllocationReviewState],
   (state) => state.message
 );
 
-/**
- * Selects the timestamp of the last successful review fetch.
- */
 export const selectReviewLastFetchedAt = createSelector(
-  selectInventoryAllocationReviewState,
+  [selectInventoryAllocationReviewState],
   (state) => state.lastFetchedAt
 );
 
-/**
- * Selects the raw inventory allocation review response data.
- */
 export const selectReviewData = createSelector(
-  selectInventoryAllocationReviewState,
+  [selectInventoryAllocationReviewState],
   (state) => state.data
 );
 
@@ -66,87 +50,82 @@ export const selectReviewData = createSelector(
    ======================= */
 
 /**
- * Selects the order header details from the review response.
+ * Returns the flattened order header for the allocation review.
+ *
+ * Falls back to `null` when review data is unavailable.
  */
 export const selectReviewHeader = createSelector(
-  selectReviewData,
-  (data) => data?.header ?? null
+  [selectReviewData],
+  (data): FlattenedAllocationOrderHeader | null =>
+    data?.header ?? null
 );
 
 /**
- * Selects the list of allocation review items.
+ * Returns flattened allocation items for the review.
+ *
+ * Always returns an array to simplify UI consumption.
  */
 export const selectReviewItems = createSelector(
-  selectReviewData,
-  (data) => data?.items ?? []
+  [selectReviewData],
+  (data): FlattenedAllocationReviewItem[] =>
+    data?.items ?? []
 );
 
-/**
- * Selects the total number of allocation review items.
- */
 export const selectReviewItemCount = createSelector(
   [selectReviewItems],
   (items) => items.length
 );
 
-/**
- * Selects the name of the salesperson or creator associated with the order.
- */
 export const selectReviewCreatedBy = createSelector(
-  selectReviewHeader,
-  (header) => header?.salesperson?.fullName ?? '—'
+  [selectReviewHeader],
+  (header) => header?.salespersonName ?? '—'
 );
 
-/**
- * Selects the list of allocation IDs present in the review.
- */
 export const selectReviewAllocationIds = createSelector(
-  selectReviewItems,
-  (items) => items.map((item: AllocationReviewItem) => item.allocationId)
+  [selectReviewItems],
+  (items) => items.map((item) => item.allocationId)
 );
 
 /**
- * Maps allocation review items into flattened, display-ready rows.
+ * UI-ready allocation rows for display.
  *
- * Supports both product batches and packaging material batches,
- * normalizing their fields for table rendering.
+ * Characteristics:
+ * - Derived strictly from flattened backend fields
+ * - No domain validation, status resolution, or business rules
+ * - Safe defaults applied for missing display fields
  *
- * Returns:
- * - Product rows: type, skuCode, displayName, lot, expiryDate, allocated
- * - Packaging rows: type, materialCode, materialLabel, lot, expiryDate, allocated
- * - Unknown rows: type = 'unknown', allocated
+ * This selector is presentation-focused and should remain logic-light.
  */
 export const selectReviewAllocations = createSelector(
-  selectReviewItems,
+  [selectReviewItems],
   (items) =>
-    items.map((item: AllocationReviewItem) => {
-      const { batch, product, packagingMaterial, allocatedQuantity } = item;
-      
-      if (isProductBatch(batch)) {
+    items.map((item) => {
+      if (item.batchType === 'product') {
         return {
           type: 'product' as const,
-          skuCode: product?.skuCode ?? '—',
-          displayName: product?.displayName ?? 'Unnamed Product',
-          lot: batch.lotNumber ?? '—',
-          expiryDate: batch.expiryDate ?? null,
-          allocated: allocatedQuantity,
+          skuCode: item.skuCode ?? '—',
+          displayName: item.productName ?? 'Unnamed Product',
+          lot: item.batchLotNumber ?? '—',
+          expiryDate: item.batchExpiryDate ?? null,
+          allocated: item.allocatedQuantity,
         };
       }
       
-      if (isPackagingBatch(batch)) {
+      if (item.batchType === 'packaging_material') {
         return {
           type: 'packaging_material' as const,
-          materialCode: packagingMaterial?.code ?? '—',
-          materialLabel: packagingMaterial?.label ?? 'Unnamed Material',
-          lot: batch.lotNumber ?? '—',
-          expiryDate: batch.expiryDate ?? null,
-          allocated: allocatedQuantity,
+          materialCode: item.packagingMaterialCode ?? '—',
+          materialLabel:
+            item.packagingMaterialLabel ?? 'Unnamed Material',
+          lot: item.batchLotNumber ?? '—',
+          expiryDate: item.batchExpiryDate ?? null,
+          allocated: item.allocatedQuantity,
         };
       }
       
       return {
         type: 'unknown' as const,
-        allocated: allocatedQuantity,
+        allocated: item.allocatedQuantity,
       };
     })
 );

@@ -48,6 +48,16 @@ export const selectInventoryAllocationsError = createSelector(
 );
 
 /**
+ * Indicates whether the inventory allocation list is empty.
+ *
+ * Returns true when data is loaded and contains no records.
+ */
+export const selectInventoryAllocationsIsEmpty = createSelector(
+  [selectInventoryAllocationsSlice],
+  (slice) => Array.isArray(slice.data) && slice.data.length === 0
+);
+
+/**
  * Selects the current page number.
  *
  * Returns `1` when pagination is not yet available.

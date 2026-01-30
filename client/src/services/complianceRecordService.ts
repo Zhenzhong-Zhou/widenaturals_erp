@@ -1,6 +1,6 @@
 import type {
   GetPaginatedComplianceRecordsParams,
-  PaginatedComplianceRecordResponse,
+  PaginatedComplianceRecordApiResponse,
 } from '@features/complianceRecord/state';
 import { buildQueryString } from '@utils/buildQueryString';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
@@ -24,7 +24,7 @@ import { getRequest } from '@utils/http';
  */
 const fetchPaginatedComplianceRecords = async (
   params: GetPaginatedComplianceRecordsParams = {}
-): Promise<PaginatedComplianceRecordResponse> => {
+): Promise<PaginatedComplianceRecordApiResponse> => {
   const { filters = {}, ...rest } = params;
 
   const { dateRanges, ...otherFilters } = filters;
@@ -57,7 +57,7 @@ const fetchPaginatedComplianceRecords = async (
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.COMPLIANCE_RECORDS.ALL_RECORDS}${queryString}`;
 
-  return getRequest<PaginatedComplianceRecordResponse>(url);
+  return getRequest<PaginatedComplianceRecordApiResponse>(url);
 };
 
 export const complianceRecordService = {

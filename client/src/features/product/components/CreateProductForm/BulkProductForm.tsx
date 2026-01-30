@@ -3,7 +3,7 @@ import MultiItemForm, {
   type MultiItemFieldConfig,
 } from '@components/common/MultiItemForm';
 import type { CreateProductInput } from '@features/product/state/productTypes';
-import { makeSeriesBrandCategoryField } from '@features/product/utils/productFieldFactory';
+import { makeSeriesBrandCategoryField } from '@features/product/utils';
 
 export interface BulkProductFormProps {
   defaultValues?: Partial<CreateProductInput>[];

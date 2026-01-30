@@ -13,18 +13,20 @@ import {
 import { normalizePagination } from '@utils/pagination/normalizePagination';
 
 /**
- * React hook for accessing paginated batch registry state and actions.
+ * usePaginatedBatchRegistry
  *
- * Provides:
- * - batch registry list data
- * - loading and error states
- * - pagination metadata
- * - actions to fetch and reset data
+ * Returns paginated batch registry data that is already flattened
+ * and UI-ready. No additional transformation is required at the
+ * hook or component level.
  *
- * Recommended for:
- * - batch registry pages
- * - batch registry tables
- * - inventory / compliance batch views
+ * Responsibilities:
+ * - Exposes flattened batch registry records from Redux state
+ * - Provides pagination, loading, and error state
+ * - Encapsulates fetch/reset actions for the batch registry list
+ *
+ * Design notes:
+ * - Data returned from this hook is presentation-ready
+ * - Consumers MUST NOT re-flatten or re-map records
  */
 const usePaginatedBatchRegistry = () => {
   const dispatch = useAppDispatch();

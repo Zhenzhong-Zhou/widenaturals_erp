@@ -5,8 +5,10 @@ import type {
   CreateSkuForm,
   CreateSkuFormProps,
 } from '@features/sku/types/skuFormTypes';
-import { buildSingleSkuFields } from '@features/sku/utils/skuFieldFactory';
-import { buildSingleSkuPayload } from '@features/sku/utils/buildSingleSkuPayload';
+import {
+  buildSingleSkuFields,
+  buildSingleSkuPayload
+} from '@features/sku/utils';
 
 const CreateSkuSingleForm: FC<CreateSkuFormProps> = ({
   allowManualBrandCategory,

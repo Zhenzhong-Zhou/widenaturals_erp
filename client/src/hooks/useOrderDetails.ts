@@ -1,7 +1,7 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  getOrderDetailsByIdThunk,
+  fetchOrderDetailsByIdThunk,
   makeSelectOrderItemById,
   selectHasOrder,
   selectOrderDetailsData,
@@ -40,7 +40,7 @@ export const useOrderDetails = () => {
   const totals = useAppSelector(selectOrderTotals);
 
   const fetchById = useCallback(
-    (params: OrderRouteParams) => dispatch(getOrderDetailsByIdThunk(params)),
+    (params: OrderRouteParams) => dispatch(fetchOrderDetailsByIdThunk(params)),
     [dispatch]
   );
 
@@ -72,5 +72,10 @@ export const useOrderDetails = () => {
  * const item = useOrderItemById(itemId);
  */
 export const useOrderItemById = (itemId: string) => {
-  return useAppSelector(makeSelectOrderItemById(itemId));
+  const selector = useMemo(
+    () => makeSelectOrderItemById(itemId),
+    [itemId]
+  );
+  
+  return useAppSelector(selector);
 };

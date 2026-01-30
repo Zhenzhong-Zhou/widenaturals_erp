@@ -2,10 +2,31 @@ import { Link } from 'react-router-dom';
 import type { Column } from '@components/common/CustomTable';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
 import type { OrderListItem } from '@features/order/state';
-import { getShortOrderNumber } from '@features/order/utils/orderUtils';
+import { getShortOrderNumber } from '@features/order/utils';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import { formatOrderStatus, formatPaymentStatus } from '@utils/formatters';
 
+/**
+ * getOrdersTableColumns
+ *
+ * Factory function that builds column definitions for the Orders list table.
+ * Designed for reuse across different order categories (sales, purchase,
+ * allocatable, etc.) with optional expandable row support.
+ *
+ * Responsibilities:
+ * - Define presentation and formatting for order list fields
+ * - Generate category-aware order detail links
+ * - Optionally inject a drill-down (expand/collapse) column
+ *
+ * Notes:
+ * - Assumes `OrderListItem` is already UI-normalized
+ * - Does not perform data transformation or filtering
+ *
+ * @param category - Order category used to construct the detail page route
+ * @param expandedRowId - Currently expanded order row ID (if any)
+ * @param onDrillDownToggle - Optional callback to toggle row expansion
+ * @returns Column definitions for the Orders table
+ */
 export const getOrdersTableColumns = (
   category: string,
   expandedRowId?: string,
@@ -51,7 +72,10 @@ export const getOrdersTableColumns = (
       id: 'paymentStatus',
       label: 'Payment Status',
       renderCell: (row) =>
-        formatPaymentStatus(row.paymentStatus.code, row.paymentStatus.name),
+        formatPaymentStatus(
+          row.paymentStatus.code,
+          row.paymentStatus.name
+        ),
     },
     {
       id: 'deliveryMethod',
@@ -72,7 +96,8 @@ export const getOrdersTableColumns = (
       label: 'Created By',
     },
   ];
-
+  
+  // Optionally append a drill-down column for expandable row layouts
   if (onDrillDownToggle) {
     columns.push(
       createDrillDownColumn<OrderListItem>(
@@ -81,6 +106,6 @@ export const getOrdersTableColumns = (
       )
     );
   }
-
+  
   return columns;
 };

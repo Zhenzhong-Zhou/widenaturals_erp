@@ -4,9 +4,9 @@ import type {
   AllocateInventoryResponse,
   AllocationReviewRequest,
   FetchPaginatedInventoryAllocationsParams,
+  InventoryAllocationApiResponse,
   InventoryAllocationConfirmationResponse,
-  InventoryAllocationResponse,
-  InventoryAllocationReviewResponse,
+  InventoryAllocationReviewApiResponse,
 } from '@features/inventoryAllocation/state';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { getRequest, postRequest } from '@utils/http';
@@ -53,10 +53,10 @@ const allocateInventoryForOrderService = async (
 const fetchInventoryAllocationReview = async (
   orderId: string,
   body: AllocationReviewRequest
-): Promise<InventoryAllocationReviewResponse> => {
+): Promise<InventoryAllocationReviewApiResponse> => {
   return postRequest<
     AllocationReviewRequest,
-    InventoryAllocationReviewResponse
+    InventoryAllocationReviewApiResponse
   >(API_ENDPOINTS.INVENTORY_ALLOCATIONS.REVIEW_ALLOCATION(orderId), body);
 };
 
@@ -76,7 +76,7 @@ const fetchInventoryAllocationReview = async (
  */
 const fetchPaginatedInventoryAllocations = async (
   params: FetchPaginatedInventoryAllocationsParams = {}
-): Promise<InventoryAllocationResponse> => {
+): Promise<InventoryAllocationApiResponse> => {
   const { filters = {}, ...rest } = params;
 
   const flatParams = {
@@ -87,7 +87,7 @@ const fetchPaginatedInventoryAllocations = async (
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.INVENTORY_ALLOCATIONS.ALL_ALLOCATIONS}${queryString}`;
 
-  return getRequest<InventoryAllocationResponse>(url);
+  return getRequest<InventoryAllocationApiResponse>(url);
 };
 
 /**

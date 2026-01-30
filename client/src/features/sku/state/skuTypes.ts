@@ -723,7 +723,7 @@ export interface FlattenedPricingRecord {
  * Response type for the paginated SKU list API.
  * Wraps a list of SKU items inside a standard `PaginatedResponse<T>` envelope.
  */
-export type GetSkuListResponse = PaginatedResponse<SkuListItem>;
+export type GetSkuListApiResponse = PaginatedResponse<SkuListItem>;
 
 /**
  * Represents a single SKU row in the paginated SKU list response.
@@ -922,7 +922,7 @@ export interface FetchSkusParams extends PaginationParams, SortConfig {
  * Redux state type for storing a paginated SKU list.
  * Extends a generic paginated Redux structure with SKU item payloads.
  */
-export type SkuListState = ReduxPaginatedState<SkuListItem>;
+export type SkuListState = ReduxPaginatedState<FlattenedSkuRecord>;
 
 /**
  * A flattened, table-ready representation of a SKU list record.
@@ -1027,6 +1027,15 @@ export interface FlattenedSkuRecord {
   /** Display name of the user/system who last updated the SKU. */
   updatedBy: string;
 }
+
+/**
+ * Paginated UI response for SKU list views.
+ *
+ * Represents a UI-ready paginated payload where each item
+ * is a flattened SKU record.
+ */
+export type GetSkuListUiResponse =
+  PaginatedResponse<FlattenedSkuRecord>;
 
 /**
  * Input payload for creating a single SKU.

@@ -11,7 +11,7 @@ import {
   getBomDetailsTableColumns,
   BomItemSupplyMiniTable,
 } from '@features/bom/components/BomOverview';
-import { mergeBatchesForDisplay } from '@features/bom/utils/mergeBomOverviewData';
+import { mergeBatchesForDisplay } from '@features/bom/utils';
 
 /**
  * Props for the BOM Details Table component.

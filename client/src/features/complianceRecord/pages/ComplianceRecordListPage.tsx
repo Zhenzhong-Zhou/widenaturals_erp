@@ -3,20 +3,21 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Divider from '@mui/material/Divider';
 import Grid from '@mui/material/Grid';
-import CustomButton from '@components/common/CustomButton';
-import CustomTypography from '@components/common/CustomTypography';
-import ErrorMessage from '@components/common/ErrorMessage';
-import Loading from '@components/common/Loading';
-import NoDataFound from '@components/common/NoDataFound';
+import {
+  CustomButton,
+  CustomTypography,
+  ErrorMessage,
+  Loading,
+  NoDataFound
+} from '@components/index';
 import {
   ComplianceFilters,
   ComplianceRecordSortField,
 } from '@features/complianceRecord/state';
-import usePaginatedComplianceRecords from '@hooks/usePaginatedComplianceRecords';
-import useComplianceRecordLookups from '@features/complianceRecord/hooks/useComplianceRecordLookups';
+import { usePaginatedComplianceRecords } from '@hooks/index';
+import { useComplianceRecordLookups } from '@features/complianceRecord/hooks';
 import { applyFiltersAndSorting } from '@utils/queryUtils';
 import { usePaginationHandlers } from '@utils/hooks';
-import { flattenComplianceRecordsToRows } from '@features/complianceRecord/utils/flattenComlianceListData';
 import { createLazyOpenHandler } from '@features/lookup/utils/lookupUtils';
 import {
   ComplianceFiltersPanel,
@@ -55,12 +56,7 @@ const ComplianceRecordListPage = () => {
   } = usePaginatedComplianceRecords();
 
   const lookups = useComplianceRecordLookups();
-
-  // -----------------------------
-  // Derived data
-  // -----------------------------
-  const flattenListData = flattenComplianceRecordsToRows(complianceRecords);
-
+  
   // -----------------------------
   // Query model (shared)
   // -----------------------------
@@ -145,11 +141,7 @@ const ComplianceRecordListPage = () => {
   const handleDrillDownToggle = (rowId: string) => {
     setExpandedRowId((current) => (current === rowId ? null : rowId));
   };
-
-  // Show empty state only when data is truly empty (avoid flashing during loading)
-  const showEmpty =
-    isComplianceEmpty || (!isComplianceLoading && flattenListData.length === 0);
-
+  
   return (
     <Box sx={{ px: 4, py: 3 }}>
       {/* Header */}
@@ -196,7 +188,7 @@ const ComplianceRecordListPage = () => {
         <Loading variant="dotted" message="Loading Compliance Records..." />
       ) : complianceError ? (
         <ErrorMessage message={complianceError} showNavigation={true} />
-      ) : showEmpty ? (
+      ) : isComplianceEmpty ? (
         <NoDataFound
           message="No Compliance Records found."
           action={
@@ -205,7 +197,7 @@ const ComplianceRecordListPage = () => {
         />
       ) : (
         <ComplianceListTable
-          data={flattenListData}
+          data={complianceRecords}
           loading={isComplianceLoading}
           page={page - 1}
           rowsPerPage={limit}

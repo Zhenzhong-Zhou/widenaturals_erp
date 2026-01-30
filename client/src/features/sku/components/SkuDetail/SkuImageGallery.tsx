@@ -26,9 +26,9 @@ import { formatLabel } from '@utils/textUtils';
 import type { SkuImage } from '@features/sku/state/skuTypes';
 import {
   buildImageMetadataFields,
+  flattenImageMetadata,
   normalizeSkuImages,
-} from '@features/sku/utils/skuImageUtils';
-import { flattenImageMetadata } from '@features/sku/utils/flattenSkuDetailData';
+} from '@features/sku/utils';
 
 interface Props {
   images: SkuImage[];

@@ -3,11 +3,13 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
 import Divider from '@mui/material/Divider';
-import CustomButton from '@components/common/CustomButton';
-import CustomTypography from '@components/common/CustomTypography';
-import Loading from '@components/common/Loading';
-import ErrorMessage from '@components/common/ErrorMessage';
-import NoDataFound from '@components/common/NoDataFound';
+import {
+  CustomButton,
+  CustomTypography,
+  ErrorMessage,
+  Loading,
+  NoDataFound
+} from '@components/index';
 import { ProductsCreateDialog } from '@features/product/components/CreateProductForm';
 import ProductListTable, {
   ProductFiltersPanel,
@@ -28,7 +30,6 @@ import type {
 } from '@features/product/state';
 import type { UserLookupParams } from '@features/lookup';
 import { applyFiltersAndSorting } from '@utils/queryUtils';
-import { flattenProductRecords } from '@features/product/utils/flattenProductListData';
 import { createDropdownBundle } from '@utils/lookupHelpers';
 
 const ProductListPage = () => {
@@ -97,14 +98,6 @@ const ProductListPage = () => {
     fetchParams: updatedByFetchParams,
     setFetchParams: setUpdatedByFetchParams,
   } = updatedByDropdown;
-  
-  // -------------------------------------------------------------
-  // Derived flattened rows
-  // -------------------------------------------------------------
-  const flattenProductListData = useMemo(
-    () => flattenProductRecords(products),
-    [products]
-  );
 
   // -------------------------------------------------------------
   // Combined query object
@@ -294,7 +287,7 @@ const ProductListPage = () => {
         />
       ) : (
         <ProductListTable
-          data={flattenProductListData}
+          data={products}
           loading={isProductLoading}
           page={page - 1}
           rowsPerPage={limit}

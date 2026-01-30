@@ -3,14 +3,16 @@ import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Card from '@mui/material/Card';
 import Divider from '@mui/material/Divider';
-import CustomTypography from '@components/common/CustomTypography';
-import NoDataFound from '@components/common/NoDataFound';
-import Loading from '@components/common/Loading';
+import {
+  CustomTypography,
+  Loading,
+  NoDataFound
+} from '@components/index';
 import InventoryAllocationTable, {
   InventoryAllocationFiltersPanel,
   InventoryAllocationSortControls,
 } from '@features/inventoryAllocation/components/InventoryAllocationTable';
-import { usePaginatedInventoryAllocations } from '@hooks/usePaginatedInventoryAllocations';
+import { usePaginatedInventoryAllocations } from '@hooks/index';
 import { usePaginationHandlers } from '@utils/hooks';
 import { applyFiltersAndSorting } from '@utils/queryUtils';
 import type {
@@ -35,6 +37,7 @@ const InventoryAllocationsPage: FC = () => {
     data: inventoryAllocations,
     loading: allocationsLoading,
     error: allocationsError,
+    isEmpty: isInventoryAllocationEmpty,
     totalRecords: totalAllocationRecords,
     totalPages: totalAllocationPages,
     reset: resetInventoryAllocations,
@@ -120,7 +123,7 @@ const InventoryAllocationsPage: FC = () => {
           />
         ) : allocationsError ? (
           <CustomTypography color="error">{allocationsError}</CustomTypography>
-        ) : inventoryAllocations.length === 0 ? (
+        ) : isInventoryAllocationEmpty ? (
           <NoDataFound message="No inventory allocations found." />
         ) : (
           <InventoryAllocationTable

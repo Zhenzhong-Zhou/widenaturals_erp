@@ -23,7 +23,7 @@ import {
   flattenComplianceRecords,
   flattenPricingRecords,
   flattenSkuInfo,
-} from '@features/sku/utils/flattenSkuDetailData';
+} from '@features/sku/utils';
 import {
   SkuDetailRightPanel,
   SkuImageGallery,

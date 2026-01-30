@@ -1,8 +1,8 @@
 import type {
   CreateUserRequest, CreateUserResponse,
   GetPaginatedUsersParams,
-  PaginatedUserCardListResponse,
-  PaginatedUserListResponse,
+  PaginatedUserCardListsApiResponse,
+  PaginatedUserListsApiResponse,
   UserProfileResponse,
   UserProfileTarget,
   UserViewMode,
@@ -42,13 +42,18 @@ const createUser = (
 };
 
 /**
- * Fetch paginated users with optional filters and view mode.
+ * Fetch paginated users from the backend.
  *
- * READ-only.
+ * READ-only API call.
+ * The response shape depends on `viewMode` and is intentionally
+ * not normalized at this layer.
  */
 const fetchPaginatedUsers = (
   params: GetPaginatedUsersParams & { viewMode?: UserViewMode } = {}
-): Promise<PaginatedUserCardListResponse | PaginatedUserListResponse> => {
+): Promise<
+  PaginatedUserCardListsApiResponse |
+  PaginatedUserListsApiResponse
+> => {
   const { filters = {}, viewMode = 'list', ...paginationAndSort } = params;
 
   const queryString = buildQueryString({
@@ -57,7 +62,10 @@ const fetchPaginatedUsers = (
     ...filters,
   });
 
-  return getRequest<PaginatedUserCardListResponse | PaginatedUserListResponse>(
+  return getRequest<
+    PaginatedUserCardListsApiResponse |
+    PaginatedUserListsApiResponse
+  >(
     `${API_ENDPOINTS.USERS.ALL_RECORDS}${queryString}`,
     {
       policy: 'READ',
