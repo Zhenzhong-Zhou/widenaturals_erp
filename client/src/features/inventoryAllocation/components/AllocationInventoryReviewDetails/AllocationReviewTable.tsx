@@ -1,6 +1,6 @@
 import { type FC, useState } from 'react';
-import CustomTable from '@components/common/CustomTable';
-import type { FlattenedAllocationReviewItem } from '@features/inventoryAllocation/utils/flattenAllocationReviewData';
+import { CustomTable } from '@components/index';
+import type { FlattenedAllocationReviewItem } from '@features/inventoryAllocation';
 import {
   getAllocationReviewColumns,
   InventoryAllocationExpandableContent,

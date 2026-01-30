@@ -8,9 +8,13 @@ import {
   selectPaginatedComplianceRecordsError,
   selectPaginatedComplianceRecordsTotalRecords,
   selectPaginatedComplianceRecordsIsEmpty,
+  selectComplianceRecordById,
   resetPaginatedComplianceRecords,
 } from '@features/complianceRecord/state';
-import type { GetPaginatedComplianceRecordsParams } from '@features/complianceRecord/state';
+import type {
+  GetPaginatedComplianceRecordsParams,
+  ComplianceRecordTableRow
+} from '@features/complianceRecord/state';
 
 /**
  * React hook for accessing paginated compliance records state and actions.
@@ -19,15 +23,16 @@ import type { GetPaginatedComplianceRecordsParams } from '@features/complianceRe
  * - compliance records list data
  * - loading and error states
  * - pagination metadata
+ * - lookup helpers
  * - actions to fetch and reset data
  *
  * Recommended for all compliance list pages and table-driven components.
  */
 const usePaginatedComplianceRecords = () => {
   const dispatch = useAppDispatch();
-
+  
   // ---------------------------
-  // Selectors (memoized via Reselect)
+  // Selectors
   // ---------------------------
   const data = useAppSelector(selectPaginatedComplianceRecordsData);
   const pagination = useAppSelector(selectPaginatedComplianceRecordsPagination);
@@ -37,7 +42,23 @@ const usePaginatedComplianceRecords = () => {
     selectPaginatedComplianceRecordsTotalRecords
   );
   const isEmpty = useAppSelector(selectPaginatedComplianceRecordsIsEmpty);
-
+  
+  // ---------------------------
+  // Lookup helpers
+  // ---------------------------
+  /**
+   * Retrieve a compliance record by ID from the current page.
+   *
+   * Note:
+   * - Scope is limited to the currently loaded page
+   * - Returns undefined if the record is not present
+   */
+  const getById = useCallback(
+    (id: string): ComplianceRecordTableRow | undefined =>
+      useAppSelector(selectComplianceRecordById(id)),
+    []
+  );
+  
   // ---------------------------
   // Actions
   // ---------------------------
@@ -59,9 +80,9 @@ const usePaginatedComplianceRecords = () => {
   const resetComplianceRecords = useCallback(() => {
     dispatch(resetPaginatedComplianceRecords());
   }, [dispatch]);
-
+  
   // ---------------------------
-  // Derived memoized values
+  // Derived values
   // ---------------------------
   const pageInfo = useMemo(() => {
     if (!pagination) {
@@ -71,17 +92,23 @@ const usePaginatedComplianceRecords = () => {
     const { totalPages, totalRecords } = pagination;
     return { totalPages, totalRecords };
   }, [pagination]);
-
+  
   return {
+    // data
     data,
-    pagination,
     loading,
     error,
-    totalRecords,
     isEmpty,
-
-    pageInfo, // { page, limit }
-
+    
+    // pagination
+    pagination,
+    totalRecords,
+    pageInfo,
+    
+    // lookup
+    getById,
+    
+    // actions
     fetchComplianceRecords,
     resetComplianceRecords,
   };

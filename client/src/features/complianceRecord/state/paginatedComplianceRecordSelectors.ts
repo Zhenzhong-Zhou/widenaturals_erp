@@ -1,7 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit';
 import { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
-import { ComplianceRecord } from '@features/complianceRecord/state';
 
 /**
  * Base selector for the paginated compliance records state slice.
@@ -93,5 +92,6 @@ export const selectPaginatedComplianceRecordsTotalRecords = createSelector(
 export const selectComplianceRecordById = (id: string) =>
   createSelector(
     [selectPaginatedComplianceRecordsData],
-    (records) => records.find((r: ComplianceRecord) => r.id === id)
+    (records) =>
+      records.find((r) => r.id === id)
   );

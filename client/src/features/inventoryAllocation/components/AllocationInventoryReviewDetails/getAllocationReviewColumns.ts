@@ -1,5 +1,5 @@
 import { type Column } from '@components/common/CustomTable';
-import type { FlattenedAllocationReviewItem } from '@features/inventoryAllocation/utils/flattenAllocationReviewData';
+import type { FlattenedAllocationReviewItem } from '@features/inventoryAllocation';
 import { formatDate } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
 import {
