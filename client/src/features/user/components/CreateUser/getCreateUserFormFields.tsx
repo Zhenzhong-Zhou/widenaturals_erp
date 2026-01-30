@@ -1,13 +1,13 @@
 import type { Dispatch, SetStateAction } from 'react';
-import type { CustomRenderParams, FieldConfig } from '@components/common/CustomForm';
-import { emailValidator } from '@utils/validation';
-import { PasswordInput } from '@components/index';
-import FieldStatusHelper from '@components/common/FieldStatusHelper';
-import RoleDropdown from '@features/lookup/components/RoleDropdown';
-import { normalizeLookupParams } from '@features/lookup/utils/lookupUtils';
+import type { CustomRenderParams, FieldConfig } from '@components/common/CustomForm.tsx';
+import { emailValidator } from '@utils/validation.ts';
+import { PasswordInput } from '@components/index.ts';
+import FieldStatusHelper from '@components/common/FieldStatusHelper.tsx';
+import RoleDropdown from '@features/lookup/components/RoleDropdown.tsx';
+import { normalizeLookupParams } from '@features/lookup/utils/lookupUtils.ts';
 import type { LookupOption, LookupPaginationMeta, LookupQuery } from '@features/lookup';
-import { validatePasswordStrength } from '@features/auth/utils/validatePassword';
-import { formatLabel } from '@utils/textUtils';
+import { validatePasswordStrength } from '@features/auth/utils/validatePassword.ts';
+import { formatLabel } from '@utils/textUtils.ts';
 
 /**
  * External dependencies required by the Create User form.

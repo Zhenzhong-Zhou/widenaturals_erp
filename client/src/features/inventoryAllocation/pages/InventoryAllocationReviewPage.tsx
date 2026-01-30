@@ -5,24 +5,23 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Stack from '@mui/material/Stack';
 import Divider from '@mui/material/Divider';
-import CustomButton from '@components/common/CustomButton';
-import ErrorMessage from '@components/common/ErrorMessage';
-import CustomTypography from '@components/common/CustomTypography';
-import GoBackButton from '@components/common/GoBackButton';
-import Loading from '@components/common/Loading';
+import {
+  CustomButton,
+  CustomTypography,
+  ErrorMessage,
+  GoBackButton,
+  Loading
+} from '@components/index';
 import {
   AllocationOrderHeaderSection,
   AllocationReviewTable,
 } from '@features/inventoryAllocation/components/AllocationInventoryReviewDetails';
 import { InitiateFulfillmentModal } from '@features/outboundFulfillment/components/InitiateFulfillmentFormModal';
-import { getShortOrderNumber } from '@features/order/utils/orderUtils';
+import { getShortOrderNumber } from '@features/order/utils';
 import {
-  flattenAllocationOrderHeader,
-  flattenInventoryAllocationReviewItems,
-} from '@features/inventoryAllocation/utils/flattenAllocationReviewData';
-import useInventoryAllocationReview from '@hooks/useInventoryAllocationReview';
-import useInventoryAllocationConfirmation from '@hooks/useInventoryAllocationConfirmation';
-import type { AllocationReviewItem } from '@features/inventoryAllocation/state';
+  useInventoryAllocationConfirmation,
+  useInventoryAllocationReview
+} from '@hooks/index';
 
 interface LocationState {
   warehouseIds?: string[];
@@ -117,18 +116,6 @@ const InventoryAllocationReviewPage = () => {
     [allocationReviewHeader]
   );
 
-  const flattenedHeader = useMemo(() => {
-    return allocationReviewHeader
-      ? flattenAllocationOrderHeader(allocationReviewHeader)
-      : null;
-  }, [allocationReviewHeader]);
-
-  const flattenedItems = useMemo(() => {
-    return allocationReviewItems
-      ? flattenInventoryAllocationReviewItems(allocationReviewItems)
-      : [];
-  }, [allocationReviewItems]);
-
   const confirmableStatusCodes = ['ALLOC_PENDING'];
 
   const canConfirm = useMemo(() => {
@@ -136,19 +123,18 @@ const InventoryAllocationReviewPage = () => {
       return false;
 
     return allocationReviewItems.some(
-      (item: AllocationReviewItem) =>
-        confirmableStatusCodes.includes(item.allocationStatusCode) ||
-        confirmableStatusCodes.includes(item.orderItem?.statusCode ?? '')
+      (item) =>
+        confirmableStatusCodes.includes(item.allocationStatusCode)
     );
   }, [allocationReviewItems]);
-
+  
   const canInitiateFulfillment = useMemo(() => {
-    if (!allocationReviewItems || allocationReviewItems.length === 0)
+    if (!allocationReviewItems || allocationReviewItems.length === 0) {
       return false;
-
+    }
+    
     return allocationReviewItems.some(
-      (item: AllocationReviewItem) =>
-        item.allocationStatusCode === 'ALLOC_CONFIRMED'
+      (item) => item.allocationStatusCode === 'ALLOC_CONFIRMED'
     );
   }, [allocationReviewItems]);
 
@@ -163,15 +149,12 @@ const InventoryAllocationReviewPage = () => {
   };
 
   // === Loading State ===
-  if (
-    isReviewLoading ||
-    isConfirming ||
-    !allocationReviewHeader ||
-    !allocationReviewItems?.length ||
-    !flattenedHeader ||
-    !flattenedItems?.length
-  ) {
+  if (isReviewLoading || isConfirming) {
     return <Loading message="Loading allocation review..." />;
+  }
+  
+  if (!allocationReviewHeader) {
+    return <ErrorMessage message="Allocation review not found." />;
   }
 
   // === Render actual content (omitted) ===
@@ -233,8 +216,8 @@ const InventoryAllocationReviewPage = () => {
                     orderId={orderId}
                     allocationIds={allocationIds}
                     defaultValues={{
-                      fulfillmentNotes: `Fulfillment initiated for Order ${allocationReviewHeader?.orderNumber ?? ''} — created by ${allocationReviewHeader?.salesperson?.fullName ?? 'Unknown User'}`,
-                      shipmentNotes: `Prepare shipment for Order ${allocationReviewHeader?.orderNumber ?? ''} (Status: ${allocationReviewHeader?.orderStatus?.name ?? 'N/A'})`,
+                      fulfillmentNotes: `Fulfillment initiated for Order ${allocationReviewHeader?.orderNumber ?? ''} — created by ${allocationReviewHeader?.salespersonName ?? 'Unknown User'}`,
+                      shipmentNotes: `Prepare shipment for Order ${allocationReviewHeader?.orderNumber ?? ''} (Status: ${allocationReviewHeader?.orderStatus ?? 'N/A'})`,
                       shipmentBatchNote: 'No additional batch notes provided.',
                     }}
                     onSuccess={refresh}
@@ -254,11 +237,11 @@ const InventoryAllocationReviewPage = () => {
           <Divider sx={{ mb: 3 }} />
 
           {/* Allocation Order Header Info */}
-          <AllocationOrderHeaderSection flattened={flattenedHeader} />
+          <AllocationOrderHeaderSection flattened={allocationReviewHeader} />
 
           {/* Allocation Items */}
           <AllocationReviewTable
-            items={flattenedItems}
+            items={allocationReviewItems}
             itemCount={allocationItemCount}
           />
 

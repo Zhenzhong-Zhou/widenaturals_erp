@@ -8,8 +8,7 @@ import {
   UserCardGrid,
   UserFilterAndSortPanel,
 } from '@features/user/components/UserView';
-import useFlattenedUsers from '@features/user/hooks/useFlattenedUsers';
-import { UserPageController } from '@features/user/types/hookTypes';
+import type { UserPageController } from '@features/user/types/hookTypes';
 
 const PAGE_ACTION_BUTTON_SX = {
   width: 150,
@@ -50,7 +49,6 @@ const UserCardLayout: FC<{ controller: UserPageController }> = ({
     paginationHandlers,
   } = controller;
   const { page, limit, totalPages, totalRecords } = pageInfo;
-  const flattenedUsers = useFlattenedUsers(data);
 
   return (
     <PageShell
@@ -89,7 +87,7 @@ const UserCardLayout: FC<{ controller: UserPageController }> = ({
        * Card Grid
        * ----------------------------------------- */}
       <UserCardGrid
-        users={flattenedUsers}
+        users={data}
         loading={loading}
         error={error}
         onResetFilters={handleResetFilters}

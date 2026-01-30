@@ -1,20 +1,16 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { createSlice } from '@reduxjs/toolkit';
 import { createInitialPaginatedState } from '@store/pagination';
-import {
+import type {
   PaginatedUsersState,
-  PaginatedUserCardListResponse,
-  PaginatedUserListResponse,
-  UserCardView,
-  UserListView,
-  fetchPaginatedUsersThunk,
+  FlattenedUserRecord,
 } from '@features/user/state';
+import { fetchPaginatedUsersThunk } from '@features/user/state';
 
 // ---------------------------
 // Initial State
 // ---------------------------
-const initialState: PaginatedUsersState = createInitialPaginatedState<
-  UserCardView | UserListView
->();
+const initialState: PaginatedUsersState =
+  createInitialPaginatedState<FlattenedUserRecord>();
 
 // ---------------------------
 // Slice
@@ -22,7 +18,7 @@ const initialState: PaginatedUsersState = createInitialPaginatedState<
 const paginatedUsersSlice = createSlice({
   name: 'paginatedUsers',
   initialState,
-
+  
   reducers: {
     /**
      * Reset the entire paginated users state back to its
@@ -35,7 +31,7 @@ const paginatedUsersSlice = createSlice({
      */
     resetPaginatedUsers: () => initialState,
   },
-
+  
   // ---------------------------
   // Extra reducers (async thunk lifecycle)
   // ---------------------------
@@ -46,36 +42,23 @@ const paginatedUsersSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-
+      
       // ---- fulfilled ----
-      .addCase(
-        fetchPaginatedUsersThunk.fulfilled,
-        (
-          state,
-          action: PayloadAction<
-            PaginatedUserCardListResponse | PaginatedUserListResponse
-          >
-        ) => {
-          const payload = action.payload;
-
-          state.loading = false;
-          state.data = payload.data; // UserCardView[] or UserListView[]
-
-          state.pagination = {
-            page: payload.pagination.page,
-            limit: payload.pagination.limit,
-            totalRecords: payload.pagination.totalRecords,
-            totalPages: payload.pagination.totalPages,
-          };
-        }
-      )
-
+      .addCase(fetchPaginatedUsersThunk.fulfilled, (state, action) => {
+        const { data, pagination } = action.payload;
+        
+        state.loading = false;
+        state.data = data; // FlattenedUserRecord[]
+        state.pagination = pagination;
+        state.error = null;
+      })
+      
       // ---- rejected ----
       .addCase(fetchPaginatedUsersThunk.rejected, (state, action) => {
         state.loading = false;
         state.error =
-          (action.payload as any)?.message ??
-          action.error?.message ??
+          action.payload?.message ??
+          action.error.message ??
           'Failed to fetch users.';
       });
   },

@@ -13,13 +13,15 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Divider from '@mui/material/Divider';
 import SearchOffIcon from '@mui/icons-material/SearchOff';
-import Loading from '@components/common/Loading';
-import ErrorMessage from '@components/common/ErrorMessage';
-import CustomButton from '@components/common/CustomButton';
-import CustomTypography from '@components/common/CustomTypography';
-import ErrorDisplay from '@components/shared/ErrorDisplay';
-import GoBackButton from '@components/common/GoBackButton';
-import NoDataFound from '@components/common/NoDataFound';
+import {
+  CustomButton,
+  CustomTypography,
+  ErrorDisplay,
+  ErrorMessage,
+  GoBackButton,
+  Loading,
+  NoDataFound,
+} from '@components/index';
 import {
   AuditInfoSection,
   BillingInfoSection,
@@ -33,13 +35,16 @@ import {
   PriceOverrideSection,
   ShippingInfoSection,
 } from '@features/order/components/SalesOrderDetails';
-import AllocateInventoryDialog from '@features/inventoryAllocation/components/AllocateInventoryDialog';
+import {
+  AllocateInventoryDialog
+} from '@features/inventoryAllocation/components/AllocateInventoryDialog';
 import { useActionPermission } from '@features/authorize/hooks';
 import { ORDER_CONSTANTS } from '@utils/constants/orderPermissions';
 import { useOrderDetails } from '@hooks/useOrderDetails';
-import { flattenSalesOrderHeader } from '@features/order/utils/transformOrderHeader';
-import useUpdateOrderStatus from '@hooks/useUpdateOrderStatus';
-import { getShortOrderNumber } from '@features/order/utils/orderUtils';
+import {
+  getShortOrderNumber,
+} from '@features/order/utils';
+import { useUpdateOrderStatus } from '@hooks/index';
 import { useDialogFocusHandlers } from '@utils/hooks';
 
 const OrderDetailsPage: FC = () => {
@@ -51,11 +56,9 @@ const OrderDetailsPage: FC = () => {
 
   if (!category || !orderId) {
     return (
-      <ErrorDisplay>
-        <ErrorMessage
-          message={'Invalid URL. Please check the link and try again.'}
-        />
-      </ErrorDisplay>
+      <ErrorMessage
+        message={'Invalid URL. Please check the link and try again.'}
+      />
     );
   }
 
@@ -71,7 +74,6 @@ const OrderDetailsPage: FC = () => {
   );
 
   const {
-    data: orderData,
     header,
     items,
     itemCount,
@@ -82,7 +84,7 @@ const OrderDetailsPage: FC = () => {
     fetchById,
     reset: resetOrderDetails,
   } = useOrderDetails();
-
+  
   const {
     data: updateStatusData,
     loading: updateStatusLoading,
@@ -123,7 +125,7 @@ const OrderDetailsPage: FC = () => {
     }
   }, [updateStatusError]);
 
-  const statusCode = header?.status?.code ?? '';
+  const statusCode = header?.orderStatus?.code ?? '';
 
   const confirmableStatusCodes = [
     'ORDER_PENDING',
@@ -195,7 +197,7 @@ const OrderDetailsPage: FC = () => {
     );
   }
   
-  if (!orderData) {
+  if (!header || !items) {
     return (
       <Loading
         variant="dotted"
@@ -203,8 +205,6 @@ const OrderDetailsPage: FC = () => {
       />
     );
   }
-  
-  const flattened = flattenSalesOrderHeader(orderData);
 
   return (
     <Box sx={{ p: 3 }}>
@@ -293,47 +293,47 @@ const OrderDetailsPage: FC = () => {
           <Divider sx={{ mb: 3 }} />
 
           {/* Order Header Info */}
-          <OrderHeaderSection flattened={flattened} />
+          <OrderHeaderSection flattened={header} />
 
           {/* Customer Info */}
-          <CustomerInfoSection flattened={flattened} />
+          <CustomerInfoSection flattened={header} />
 
           {/* Discount Info */}
-          <DiscountInfoSection flattened={flattened} />
+          <DiscountInfoSection flattened={header} />
 
           {/* Override Info */}
-          <PriceOverrideSection flattened={flattened} />
+          <PriceOverrideSection flattened={header} />
 
           {/* Order Note */}
-          <OrderNoteSection flattened={flattened} />
+          <OrderNoteSection flattened={header} />
 
           {/* Shipping Info */}
-          <ShippingInfoSection flattened={flattened} />
+          <ShippingInfoSection flattened={header} />
 
           {/* Billing Info */}
-          <BillingInfoSection flattened={flattened} />
+          <BillingInfoSection flattened={header} />
 
           {/* Order Items */}
           <OrderItemsTable items={items} itemCount={itemCount} />
 
           {/* Currency Info */}
-          <CurrencyInfoSection flattened={flattened} />
+          <CurrencyInfoSection flattened={header} />
 
           {/* Order Totals */}
           <OrderTotalsSection
-            subtotal={Number(flattened.subtotal ?? 0)}
-            discount={Number(flattened.discountAmount ?? 0)}
-            taxRate={String(flattened.taxRate ?? '')}
-            tax={Number(flattened.taxAmount ?? 0)}
+            subtotal={Number(header.subtotal ?? 0)}
+            discount={Number(header.discountAmount ?? 0)}
+            taxRate={String(header.taxRate ?? '')}
+            tax={Number(header.taxAmount ?? 0)}
             shipping={Number(totals.shippingFee ?? 0)}
             total={Number(totals.totalAmount ?? 0)}
             baseCurrencyAmount={Number(
-              flattened.paymentInfo?.baseCurrencyAmount ?? 0
+              header.paymentInfo?.baseCurrencyAmount ?? 0
             )}
           />
 
           {/* Audit Info */}
-          <AuditInfoSection flattened={flattened} />
+          <AuditInfoSection flattened={header} />
         </CardContent>
       </Card>
     </Box>

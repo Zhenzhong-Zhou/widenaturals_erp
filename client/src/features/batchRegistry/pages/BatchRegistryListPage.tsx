@@ -3,11 +3,13 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
 import Divider from '@mui/material/Divider';
-import CustomButton from '@components/common/CustomButton';
-import CustomTypography from '@components/common/CustomTypography';
-import Loading from '@components/common/Loading';
-import ErrorMessage from '@components/common/ErrorMessage';
-import NoDataFound from '@components/common/NoDataFound';
+import {
+  CustomButton,
+  CustomTypography,
+  ErrorMessage,
+  Loading,
+  NoDataFound
+} from '@components/index';
 import { usePaginatedBatchRegistry } from '@hooks/index';
 import { useBatchRegistryLookups } from '@features/batchRegistry/hook';
 import BatchRegistryListTable, {
@@ -21,7 +23,6 @@ import type {
 import { applyFiltersAndSorting } from '@utils/queryUtils';
 import { usePaginationHandlers } from '@utils/hooks';
 import { createLazyOpenHandler } from '@features/lookup/utils/lookupUtils';
-import { flattenBatchRegistryRecords } from '@features/batchRegistry/utils';
 
 /**
  * Page-level container for displaying a paginated, sortable, and filterable
@@ -57,14 +58,6 @@ const BatchRegistryListPage = () => {
   } = usePaginatedBatchRegistry();
   
   const lookups = useBatchRegistryLookups();
-  
-  // -----------------------------
-  // Derived data
-  // -----------------------------
-  const flattenedBatchRegistryData = useMemo(
-    () => flattenBatchRegistryRecords(batchRegistryData),
-    [batchRegistryData]
-  );
   
   // -----------------------------
   // Query model (shared)
@@ -157,10 +150,6 @@ const BatchRegistryListPage = () => {
     );
   };
   
-  // Show empty state only when data is truly empty (avoid flashing during loading)
-  const showEmpty =
-    isBatchRegistryEmpty || (!batchRegistryLoading && flattenedBatchRegistryData.length === 0);
-  
   // ----------------------------------------
   // Render
   // ----------------------------------------
@@ -214,7 +203,7 @@ const BatchRegistryListPage = () => {
         />
       ) : batchRegistryError ? (
         <ErrorMessage message={batchRegistryError} showNavigation />
-      ) : showEmpty ? (
+      ) : isBatchRegistryEmpty ? (
         <NoDataFound
           message="No batch registry records found."
           action={
@@ -225,7 +214,7 @@ const BatchRegistryListPage = () => {
         />
       ) : (
         <BatchRegistryListTable
-          data={flattenedBatchRegistryData}
+          data={batchRegistryData}
           loading={batchRegistryLoading}
           page={page - 1}
           rowsPerPage={limit}

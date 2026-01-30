@@ -9,8 +9,8 @@ import type {
   InitiateFulfillmentRequest,
   InitiateFulfillmentResponse,
   OutboundFulfillmentQuery,
-  PaginatedOutboundFulfillmentResponse,
-  ShipmentDetailsResponse,
+  PaginatedOutboundFulfillmentApiResponse,
+  ShipmentDetailsApiResponse,
 } from '@features/outboundFulfillment/state';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { getRequest, postRequest } from '@utils/http';
@@ -46,7 +46,7 @@ const initiateOutboundFulfillment = (
  */
 const fetchPaginatedOutboundFulfillment = (
   params: OutboundFulfillmentQuery = {}
-): Promise<PaginatedOutboundFulfillmentResponse> => {
+): Promise<PaginatedOutboundFulfillmentApiResponse> => {
   const { filters = {}, ...rest } = params;
 
   const queryString = buildQueryString({
@@ -54,7 +54,7 @@ const fetchPaginatedOutboundFulfillment = (
     ...filters,
   });
 
-  return getRequest<PaginatedOutboundFulfillmentResponse>(
+  return getRequest<PaginatedOutboundFulfillmentApiResponse>(
     `${API_ENDPOINTS.OUTBOUND_FULFILLMENTS.ALL_RECORDS}${queryString}`,
     { policy: 'READ' }
   );
@@ -67,11 +67,11 @@ const fetchPaginatedOutboundFulfillment = (
  */
 const fetchOutboundShipmentDetails = (
   shipmentId: string
-): Promise<ShipmentDetailsResponse> => {
+): Promise<ShipmentDetailsApiResponse> => {
   const url =
     API_ENDPOINTS.OUTBOUND_FULFILLMENTS.OUTBOUND_SHIPMENT_DETAILS(shipmentId);
 
-  return getRequest<ShipmentDetailsResponse>(url, { policy: 'READ' });
+  return getRequest<ShipmentDetailsApiResponse>(url, { policy: 'READ' });
 };
 
 /**

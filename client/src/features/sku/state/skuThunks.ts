@@ -4,7 +4,7 @@ import type {
   CreateSkuResponse,
   FetchSkusParams,
   GetSkuDetailResponse,
-  GetSkuListResponse,
+  GetSkuListUiResponse,
   GetSkuProductCardsResponse,
   SkuProductCardQueryParams,
   UpdateSkuStatusRequestBody,
@@ -12,6 +12,11 @@ import type {
   UpdateSkuStatusThunkArgs,
 } from '@features/sku/state/skuTypes';
 import { skuService } from '@services/skuService';
+import {
+  extractUiErrorPayload,
+  type UiErrorPayload
+} from '@utils/error/uiErrorUtils';
+import { flattenSkuRecords } from '@features/sku/utils';
 
 /**
  * Thunk: Fetch paginated SKU product cards.
@@ -81,58 +86,49 @@ export const getSkuDetailByIdThunk = createAsyncThunk<
 });
 
 /**
- * Redux Toolkit Thunk — Fetch paginated SKUs with full support for
- * pagination, sorting, and advanced filter options.
+ * Redux Toolkit Thunk — Fetch paginated SKUs (UI-normalized).
  *
  * This thunk issues a GET request to the SKU list endpoint:
  *
- *    GET /skus?page={page}&limit={limit}&sortBy={col}&sortOrder={order}&...
+ *   GET /skus?page={page}&limit={limit}&sortBy={col}&sortOrder={order}&...
  *
- * The request parameters are normalized into a flat query string and passed
- * directly to the backend, which performs a server-side filtered and sorted
- * query. The response returns a standard paginated envelope:
+ * Query parameters are flattened and passed directly to the backend, which
+ * performs server-side filtering, sorting, and pagination. The backend returns
+ * a standard paginated response containing raw SKU records.
  *
- *    {
- *      success: true,
- *      message: "...",
- *      data: SkuListItem[],
- *      pagination: {
- *        page,
- *        limit,
- *        totalRecords,
- *        totalPages
- *      }
- *    }
+ * The thunk then transforms each raw SKU record into a
+ * `FlattenedSkuRecord` at the API → UI boundary before storing the result
+ * in Redux.
  *
- * The thunk populates the Redux `paginatedSkus` slice with:
- *   - `data`: array of SKU list items
- *   - `pagination`: updated paging metadata
+ * The Redux `paginatedSkus` slice is populated with:
+ *   - `data`: array of flattened, UI-ready SKU rows
+ *   - `pagination`: paging metadata (page, limit, totals)
  *   - `loading`: request status
- *   - `error`: error message, if any
+ *   - `error`: UI-safe error payload, if any
  *
- * @param params - Query options for the SKU list request. Includes:
+ * @param params - Query options for the SKU list request, including:
  *   - Pagination (page, limit)
  *   - Sorting (sortBy, sortOrder)
  *   - Filters (keyword, brand, category, dimensions, audit fields, etc.)
  *
- * @returns A promise resolving to the typed `GetSkuListResponse`.
+ * @returns A promise resolving to a typed `GetSkuListUiResponse`.
  *
- * @throws {Error} Re-throws request exceptions (network/server/API errors).
+ * @throws Will reject with a UI-safe error payload if the request fails.
  */
 export const fetchPaginatedSkusThunk = createAsyncThunk<
-  GetSkuListResponse, // Return type
-  FetchSkusParams, // Argument type
-  { rejectValue: string } // Error payload
+  GetSkuListUiResponse,
+  FetchSkusParams,
+  { rejectValue: UiErrorPayload }
 >('skus/fetchList', async (params, { rejectWithValue }) => {
   try {
-    return await skuService.fetchPaginatedSkus(params);
-  } catch (err: any) {
-    console.error('fetchSkusThunk error:', err);
-
-    const message =
-      err?.response?.data?.message || err?.message || 'Failed to fetch SKUs';
-
-    return rejectWithValue(message);
+    const response = await skuService.fetchPaginatedSkus(params);
+    
+    return {
+      ...response,
+      data: flattenSkuRecords(response.data),
+    };
+  } catch (error) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
 });
 

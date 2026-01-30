@@ -55,6 +55,13 @@ export { default as useSkuCodeBaseLookup } from './useSkuCodeBaseLookup';
 export { default as useSkuImageUpload } from './useSkuImageUpload';
 
 /* =====================================================
+ * Compliance
+ * ===================================================== */
+
+export { default as usePaginatedComplianceRecords } from './usePaginatedComplianceRecords';
+
+
+/* =====================================================
  * Batch
  * ===================================================== */
 
@@ -103,7 +110,7 @@ export { default as usePaginateOrderTypes } from './usePaginateOrderTypes';
 
 export { default as useSalesOrderCreate } from './useSalesOrderCreate';
 export { default as usePaginatedOrders } from './usePaginatedOrders';
-export { useOrderDetails } from './useOrderDetails';
+export { useOrderDetails, useOrderItemById } from './useOrderDetails';
 export { default as useUpdateOrderStatus } from './useUpdateOrderStatus';
 
 export { default as useInitiateOutboundFulfillment } from './useInitiateOutboundFulfillment';
@@ -119,7 +126,7 @@ export { default as useCompleteManualFulfillment } from './useCompleteManualFulf
 export { default as useAllocateInventory } from './useAllocateInventory';
 export { default as useInventoryAllocationReview } from './useInventoryAllocationReview';
 export { default as useInventoryAllocationConfirmation } from './useInventoryAllocationConfirmation';
-export { usePaginatedInventoryAllocations } from './usePaginatedInventoryAllocations';
+export { default as usePaginatedInventoryAllocations } from './usePaginatedInventoryAllocations';
 
 export { useBaseInventoryActivityLogs } from './useInventoryActivityLogs';
 

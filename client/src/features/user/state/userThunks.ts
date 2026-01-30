@@ -1,14 +1,15 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import {
+import type {
   CreateUserRequest,
   CreateUserResponse,
   GetPaginatedUsersParams,
-  PaginatedUserCardListResponse,
-  PaginatedUserListResponse,
+  PaginatedUsersUiResponse,
   UserProfileResponse,
   UserViewMode,
 } from '@features/user/state';
 import { userService } from '@services/userService';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import { flattenUserRecords } from '@features/user/utils';
 import { extractUiErrorPayload, extractErrorMessage } from '@utils/error';
 
 /**
@@ -52,34 +53,33 @@ export const createUserThunk = createAsyncThunk<
 );
 
 /**
- * Fetch a paginated list of users from the backend.
+ * Redux Toolkit Thunk — Fetch paginated users (UI-normalized).
  *
- * Supports both `card` and `list` view modes, allowing the backend
- * to return either:
- * - a lightweight identity projection (card view), or
- * - a full audit-enabled table projection (list view)
+ * Fetches users from the backend using the requested view mode
+ * (`card` or `list`), then flattens the result into a single,
+ * UI-ready user record shape before storing it in Redux.
  *
  * Responsibilities:
- * - Delegates data fetching to the user service layer
- * - Supports pagination, sorting, filtering, and view mode selection
- * - Preserves backend pagination metadata without transformation
- * - Normalizes API errors into a structured UI-safe payload
- *   containing `message` and optional `traceId`
- *
- * Concurrency:
- * - Safe for concurrent dispatches; request lifecycle is managed
- *   by Redux Toolkit.
+ * - Delegate data fetching to the user service layer
+ * - Support pagination, sorting, filtering, and view mode selection
+ * - Transform API user views into `FlattenedUserRecord`
+ * - Return a stable, UI-safe paginated response
  *
  * @param params - Pagination, sorting, filters, and optional view mode
- * @returns A paginated user response whose shape is determined by `viewMode`
+ * @returns Paginated UI response with flattened user records
  */
 export const fetchPaginatedUsersThunk = createAsyncThunk<
-  PaginatedUserCardListResponse | PaginatedUserListResponse,
+  PaginatedUsersUiResponse,
   GetPaginatedUsersParams & { viewMode?: UserViewMode },
-  { rejectValue: { message: string; traceId?: string } }
+  { rejectValue: UiErrorPayload }
 >('users/fetchPaginatedUsers', async (params, { rejectWithValue }) => {
   try {
-    return await userService.fetchPaginatedUsers(params);
+    const response = await userService.fetchPaginatedUsers(params);
+    
+    return {
+      ...response,
+      data: flattenUserRecords(response.data),
+    };
   } catch (error) {
     return rejectWithValue(extractUiErrorPayload(error));
   }

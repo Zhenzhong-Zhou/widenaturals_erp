@@ -13,7 +13,7 @@ import useProductDetail from '@hooks/useProductDetail';
 import useStatusLookup from '@hooks/useStatusLookup';
 import { usePagePermissionState } from '@features/authorize/hooks';
 import { useDialogFocusHandlers } from '@utils/hooks';
-import { flattenProductDetail } from '@features/product/utils/flattenProductDetail';
+import { flattenProductDetail } from '@features/product/utils';
 import {
   ProductDetailAuditSection,
   ProductDetailInformationSection,

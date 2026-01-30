@@ -1,15 +1,17 @@
 import { type FC } from 'react';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
-import CustomTypography from '@components/common/CustomTypography';
-import DetailsSection from '@components/common/DetailsSection';
-import { formatDate } from '@utils/dateTimeUtils';
-import type { OrderItem } from '@features/order/state';
-import { formatLabel } from '@utils/textUtils';
 import Stack from '@mui/material/Stack';
+import {
+  CustomTypography,
+  DetailsSection
+} from '@components/index';
+import { formatDate } from '@utils/dateTimeUtils';
+import { formatLabel } from '@utils/textUtils';
+import { useOrderItemById } from '@hooks/index';
 
 interface Props {
-  row: OrderItem;
+  itemId: string;
 }
 
 interface ConflictNote {
@@ -24,14 +26,19 @@ interface OrderItemMetadata {
   conflictNote?: ConflictNote;
 }
 
-const OrderItemDetailSection: FC<Props> = ({ row }) => {
+const OrderItemDetailSection: FC<Props> = ({ itemId }) => {
+  const row = useOrderItemById(itemId);
+  
+  if (!row) return null;
+  
   const transformMetadata = (raw: any): OrderItemMetadata | null => {
     if (!raw) return null;
-
+    
     const { reason, db_price, submitted_price, data, timestamp } = raw;
-
-    const conflictNote = data && timestamp ? { timestamp, data } : undefined;
-
+    
+    const conflictNote =
+      data && timestamp ? { timestamp, data } : undefined;
+    
     return {
       reason,
       db_price,
@@ -39,50 +46,50 @@ const OrderItemDetailSection: FC<Props> = ({ row }) => {
       conflictNote,
     };
   };
-
-  const metadata = transformMetadata(row?.metadata);
-
+  
+  const metadata = transformMetadata(row.metadata);
+  
   return (
     <Box sx={{ px: 3, py: 2 }}>
       <CustomTypography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
         Item Metadata
       </CustomTypography>
-
+      
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, md: 6 }}>
           <DetailsSection
             fields={[
               {
                 label: 'Created At',
-                value: row.audit?.createdAt,
+                value: row.createdAt,
                 format: formatDate,
               },
               {
                 label: 'Created By',
-                value: row.audit?.createdBy?.name,
+                value: row.createdBy,
                 format: formatLabel,
               },
             ]}
           />
         </Grid>
-
+        
         <Grid size={{ xs: 12, md: 6 }}>
           <DetailsSection
             fields={[
               {
                 label: 'Updated At',
-                value: row.audit?.updatedAt,
+                value: row.updatedAt,
                 format: formatDate,
               },
               {
                 label: 'Updated By',
-                value: row.audit?.updatedBy?.name,
+                value: row.updatedBy,
                 format: formatLabel,
               },
             ]}
           />
         </Grid>
-
+        
         <Grid size={{ xs: 12 }}>
           <DetailsSection
             fields={[

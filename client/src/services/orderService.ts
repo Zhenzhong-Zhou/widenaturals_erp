@@ -1,7 +1,7 @@
 import type {
   CreateSalesOrderInput,
   CreateSalesOrderResponse,
-  GetOrderDetailsResponse,
+  GetOrderDetailsApiResponse,
   OrderListResponse,
   OrderQueryParams,
   OrderRouteParams,
@@ -56,23 +56,32 @@ const fetchOrdersByCategory = (
 };
 
 /**
- * Fetch order details (header + items) by ID.
+ * Fetches raw order details from the backend API.
+ *
+ * This function:
+ * - Sanitizes route parameters
+ * - Performs strict validation
+ * - Throws domain-level AppError on invalid input
+ * - Returns the canonical API response (no UI transformation)
+ *
+ * NOTE:
+ * - UI normalization must NOT happen here
+ * - This function is consumed by Redux thunks only
  */
-const fetchOrderDetailsById = ({
-  category,
-  orderId,
-}: OrderRouteParams): Promise<GetOrderDetailsResponse> => {
-  const cleanCategory = sanitizeString(category);
-  const cleanOrderId = sanitizeString(orderId);
-
+const fetchOrderDetailsById = (
+  params: OrderRouteParams
+): Promise<GetOrderDetailsApiResponse> => {
+  const cleanCategory = sanitizeString(params.category);
+  const cleanOrderId = sanitizeString(params.orderId);
+  
   if (!cleanCategory || !cleanOrderId) {
     throw AppError.validation('Invalid category or orderId', {
-      category,
-      orderId,
+      category: params.category,
+      orderId: params.orderId,
     });
   }
-
-  return getRequest(
+  
+  return getRequest<GetOrderDetailsApiResponse>(
     API_ENDPOINTS.ORDERS.ORDER_DETAILS(cleanCategory, cleanOrderId)
   );
 };

@@ -21,7 +21,8 @@ const selectPaginatedBatchRegistryState = (state: RootState) =>
   selectRuntime(state).paginatedBatchRegistry;
 
 /**
- * Selector: Returns the array of batch registry records.
+ * Selector: Returns the array of flattened, UI-ready
+ * batch registry records.
  */
 export const selectPaginatedBatchRegistryData = createSelector(
   [selectPaginatedBatchRegistryState],

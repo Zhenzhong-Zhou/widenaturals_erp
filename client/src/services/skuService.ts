@@ -3,7 +3,7 @@ import type {
   CreateSkuResponse,
   FetchSkusParams,
   GetSkuDetailResponse,
-  GetSkuListResponse,
+  GetSkuListApiResponse,
   GetSkuProductCardsResponse,
   SkuProductCardQueryParams,
   UpdateSkuStatusRequestBody,
@@ -68,7 +68,7 @@ const fetchSkuDetailById = (skuId: string): Promise<GetSkuDetailResponse> => {
  */
 const fetchPaginatedSkus = (
   params: FetchSkusParams = {}
-): Promise<GetSkuListResponse> => {
+): Promise<GetSkuListApiResponse> => {
   const { filters = {}, ...rest } = params;
 
   const queryString = buildQueryString({
@@ -76,7 +76,7 @@ const fetchPaginatedSkus = (
     ...filters,
   });
 
-  return getRequest<GetSkuListResponse>(
+  return getRequest<GetSkuListApiResponse>(
     `${API_ENDPOINTS.SKUS.ALL_RECORDS}${queryString}`,
     { policy: 'READ' }
   );

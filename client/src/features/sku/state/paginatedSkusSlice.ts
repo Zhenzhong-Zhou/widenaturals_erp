@@ -1,8 +1,7 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { createSlice } from '@reduxjs/toolkit';
 import { createInitialPaginatedState } from '@store/pagination';
 import type {
-  GetSkuListResponse,
-  SkuListItem,
+  FlattenedSkuRecord,
   SkuListState,
 } from '@features/sku/state/skuTypes';
 import { fetchPaginatedSkusThunk } from '@features/sku/state/skuThunks';
@@ -10,7 +9,8 @@ import { fetchPaginatedSkusThunk } from '@features/sku/state/skuThunks';
 // ---------------------------
 // Initial State
 // ---------------------------
-const initialState: SkuListState = createInitialPaginatedState<SkuListItem>();
+const initialState: SkuListState =
+  createInitialPaginatedState<FlattenedSkuRecord>();
 
 // ---------------------------
 // Slice
@@ -18,16 +18,17 @@ const initialState: SkuListState = createInitialPaginatedState<SkuListItem>();
 const paginatedSkusSlice = createSlice({
   name: 'paginatedSkus',
   initialState,
+  
   reducers: {
     /**
-     * Reset the entire paginated SKU state back to clean initial
-     * (e.g., when leaving SKU page)
+     * Reset the entire paginated SKU state back to its initial,
+     * empty state (e.g. when leaving the SKU list page).
      */
     resetPaginatedSkus: () => initialState,
   },
-
+  
   // ---------------------------
-  // Extra reducers (pending / fulfilled / rejected)
+  // Extra reducers
   // ---------------------------
   extraReducers: (builder) => {
     builder
@@ -36,30 +37,26 @@ const paginatedSkusSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-
+      
       // ---- fulfilled ----
-      .addCase(
-        fetchPaginatedSkusThunk.fulfilled,
-        (state, action: PayloadAction<GetSkuListResponse>) => {
-          const payload = action.payload;
-
-          state.loading = false;
-          state.data = payload.data;
-
-          state.pagination = {
-            page: payload.pagination.page,
-            limit: payload.pagination.limit,
-            totalRecords: payload.pagination.totalRecords,
-            totalPages: payload.pagination.totalPages,
-          };
-        }
-      )
-
+      .addCase(fetchPaginatedSkusThunk.fulfilled, (state, action) => {
+        const { data, pagination } = action.payload;
+        
+        state.loading = false;
+        state.data = data;
+        state.pagination = pagination;
+        state.error = null;
+      })
+      
       // ---- rejected ----
       .addCase(fetchPaginatedSkusThunk.rejected, (state, action) => {
         state.loading = false;
+        
+        // rejectWithValue(UiErrorPayload) OR fallback error
         state.error =
-          action.payload || action.error?.message || 'Failed to fetch SKUs.';
+          action.payload?.message ??
+          action.error.message ??
+          'Failed to fetch SKUs.';
       });
   },
 });

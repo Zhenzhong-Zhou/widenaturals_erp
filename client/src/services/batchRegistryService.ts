@@ -1,6 +1,6 @@
-import {
+import type {
   BatchRegistryQueryParams,
-  PaginatedBatchRegistryListResponse,
+  PaginatedBatchRegistryApiResponse,
 } from '@features/batchRegistry';
 import { buildQueryString } from '@utils/buildQueryString';
 import { getRequest } from '@utils/http';
@@ -34,7 +34,7 @@ import { API_ENDPOINTS } from '@services/apiEndpoints';
  */
 const fetchPaginatedBatchRegistry = async (
   params: BatchRegistryQueryParams = {}
-): Promise<PaginatedBatchRegistryListResponse> => {
+): Promise<PaginatedBatchRegistryApiResponse> => {
   const { filters = {}, ...rest } = params;
   
   const {
@@ -67,7 +67,7 @@ const fetchPaginatedBatchRegistry = async (
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.BATCH_REGISTRY.ALL_RECORDS}${queryString}`;
   
-  return getRequest<PaginatedBatchRegistryListResponse>(url, {
+  return getRequest<PaginatedBatchRegistryApiResponse>(url, {
     policy: 'READ',
   });
 };

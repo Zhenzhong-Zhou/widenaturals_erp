@@ -27,7 +27,7 @@ import {
   flattenAllBomMaterialSupplyDetails,
   flattenAllBomReadinessParts,
   flattenBomReadinessMetadata,
-} from '@features/bom/utils/flattenBomOverview';
+} from '@features/bom/utils';
 import { mergeBomDetailsWithSupplyAndReadiness } from '@features/bom/utils/mergeBomOverviewData';
 import useBomProductionReadiness from '@hooks/useBomProductionReadiness';
 

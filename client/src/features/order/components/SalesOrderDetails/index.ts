@@ -12,3 +12,4 @@ export { default as OrderTotalsSection } from './OrderTotalsSection';
 export { default as OverrideSummaryFormatter } from './OverrideSummaryFormatter';
 export { default as PriceOverrideSection } from './PriceOverrideSection';
 export { default as ShippingInfoSection } from './ShippingInfoSection';
+export { getOrderItemColumns } from './orderItemsTableColumns';
