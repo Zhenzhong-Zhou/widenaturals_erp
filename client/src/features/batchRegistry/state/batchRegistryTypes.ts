@@ -16,10 +16,29 @@ import { ReduxPaginatedState } from '@shared-types/pagination';
 /**
  * Paginated API response for batch registry records.
  *
- * Preserves backend pagination metadata without transformation.
+ * Represents the raw, domain-level response returned by the backend.
+ * Records preserve relational structure and are not UI-optimized.
+ *
+ * Pagination metadata is passed through without transformation.
+ */
+export type PaginatedBatchRegistryApiResponse =
+  PaginatedResponse<BatchRegistryRecord>;
+
+/**
+ * Paginated UI response for batch registry records.
+ *
+ * Contains **flattened, presentation-ready batch registry records**
+ * produced by the thunk transformer layer.
+ *
+ * Responsibilities:
+ * - Uses flattened records optimized for tables, filtering, and export
+ * - Preserves backend pagination metadata without transformation
+ *
+ * This type represents the data shape consumed by Redux state
+ * and UI components — not the raw API contract.
  */
 export type PaginatedBatchRegistryListResponse =
-  PaginatedResponse<BatchRegistryRecord>;
+  PaginatedResponse<FlattenedBatchRegistryRecord>;
 
 /**
  * Discriminated union representing a batch registry record.
@@ -277,13 +296,23 @@ export interface BatchRegistryQueryParams
 /**
  * Redux paginated state for Batch Registry domain records.
  *
- * This state stores normalized batch registry records as returned
- * by the API. These records preserve entity relationships and are
- * intended to be transformed before UI rendering.
+ * This state stores **flattened, UI-ready batch registry records**
+ * derived from the API response via a transformer layer.
+ *
+ * Records in this slice are optimized for list rendering,
+ * pagination, filtering, and sorting. They intentionally
+ * trade relational structure for a stable, display-oriented shape.
+ *
+ * Raw API records and entity relationships should not be stored
+ * directly in this state.
+ *
+ * NOTE:
+ * - API responses → BatchRegistryRow (relational)
+ * - Transformer → FlattenedBatchRegistryRecord
+ * - Redux paginated state → stores flattened records only
  */
-// todo: use flatten
 export type PaginatedBatchRegistryState =
-  ReduxPaginatedState<BatchRegistryRecord>;
+  ReduxPaginatedState<FlattenedBatchRegistryRecord>;
 
 /**
  * FlattenedBatchRegistryRecord

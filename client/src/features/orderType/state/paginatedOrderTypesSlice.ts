@@ -1,24 +1,20 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type {
+  FlattenedOrderTypeRecord,
   OrderTypeListResponse,
   PaginatedOrderTypeListState,
 } from '@features/orderType/state/orderTypeTypes';
 import { fetchPaginatedOrderTypesThunk } from '@features/orderType/state/orderTypeThunks';
+import { createInitialPaginatedState } from '@store/pagination';
 
-const initialState: PaginatedOrderTypeListState = {
-  data: [],
-  pagination: { page: 1, limit: 10, totalRecords: 0, totalPages: 1 },
-  loading: false,
-  error: null,
-};
+const initialState: PaginatedOrderTypeListState =
+  createInitialPaginatedState<FlattenedOrderTypeRecord>();
 
-const orderTypesSlice = createSlice({
+const paginatedOrderTypesSlice = createSlice({
   name: 'paginatedOrderTypes',
   initialState,
   reducers: {
-    /**
-     * Resets the paginated order type state to initial.
-     */
+    /** Reset paginated order types to initial state */
     resetPaginatedOrderTypes: () => initialState,
   },
   extraReducers: (builder) => {
@@ -37,10 +33,13 @@ const orderTypesSlice = createSlice({
       )
       .addCase(fetchPaginatedOrderTypesThunk.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || 'Something went wrong';
+        state.error =
+          action.payload?.message ?? 'Failed to fetch order types';
       });
   },
 });
 
-export const { resetPaginatedOrderTypes } = orderTypesSlice.actions;
-export default orderTypesSlice.reducer;
+export const { resetPaginatedOrderTypes } =
+  paginatedOrderTypesSlice.actions;
+
+export default paginatedOrderTypesSlice.reducer;

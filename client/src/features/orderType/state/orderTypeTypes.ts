@@ -106,15 +106,23 @@ export interface OrderTypeListItem {
 }
 
 /**
- * Paginated response for order type list queries.
+ * API response returned by the backend for order type listing.
+ * This mirrors the server payload shape.
  */
-export type OrderTypeListResponse = PaginatedResponse<OrderTypeListItem>;
+export type OrderTypeListApiResponse =
+  PaginatedResponse<OrderTypeListItem>;
+
+/**
+ * Flattened response used by Redux and UI.
+ */
+export type OrderTypeListResponse =
+  PaginatedResponse<FlattenedOrderTypeRecord>;
 
 /**
  * Redux state for a paginated order type list.
  */
 export type PaginatedOrderTypeListState =
-  ReduxPaginatedState<OrderTypeListItem>;
+  ReduxPaginatedState<FlattenedOrderTypeRecord>;
 
 /**
  * FlattenedOrderTypeRecord

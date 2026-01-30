@@ -198,15 +198,82 @@ export interface OutboundShipmentRecord {
 /**
  * Paginated response for outbound fulfillment shipments.
  */
-export type PaginatedOutboundFulfillmentResponse =
+export type PaginatedOutboundFulfillmentApiResponse =
   PaginatedResponse<OutboundShipmentRecord>;
 
 /**
- * Outbound fulfillment list state.
- * Extends generic ReduxPaginatedState with OutboundShipmentRecord type.
+ * Flattened outbound shipment record for UI consumption.
+ * Derived from OutboundShipmentRecord.
+ *
+ * Rules:
+ * - No nested objects
+ * - No optional object access in UI
+ * - Stable, table-friendly fields
+ */
+export interface FlattenedOutboundShipmentRow {
+  /** Shipment */
+  shipmentId: string;
+  
+  /** Order */
+  orderId: string;
+  orderNumber: string;
+  
+  /** Warehouse */
+  warehouseId: string;
+  warehouseName: string | null;
+  
+  /** Delivery method */
+  deliveryMethodId: string | null;
+  deliveryMethodName: string | null;
+  
+  /** Tracking */
+  trackingId: string | null;
+  trackingNumber: string | null;
+  
+  /** Status */
+  statusId: string;
+  statusCode: string;
+  statusName: string;
+  
+  /** Dates */
+  shippedAt: string | null;
+  expectedDelivery: string | null;
+  
+  /** Notes & metadata */
+  notes: string | null;
+  shipmentDetails: Record<string, any> | null;
+  
+  /** Audit */
+  createdAt: string;
+  createdById: string;
+  createdByName: string;
+  updatedAt: string | null;
+  updatedById: string | null;
+  updatedByName: string;
+}
+
+/**
+ * Paginated UI response for outbound fulfillment shipments.
+ *
+ * Represents a UI-ready paginated payload where each item is a
+ * flattened outbound shipment row (no nested domain objects).
+ * Intended to be returned from thunks/services after transformation.
+ */
+export type PaginatedOutboundFulfillmentsResponse =
+  PaginatedResponse<FlattenedOutboundShipmentRow>;
+
+/**
+ * Redux state for the outbound fulfillment list view.
+ *
+ * Extends the generic `ReduxPaginatedState` using
+ * `FlattenedOutboundShipmentRow` as the row type.
+ *
+ * Notes:
+ * - Stores UI-normalized (flattened) shipment rows only
+ * - Raw API shipment records should never be stored in this state
  */
 export type PaginatedOutboundFulfillmentsState =
-  ReduxPaginatedState<OutboundShipmentRecord>;
+  ReduxPaginatedState<FlattenedOutboundShipmentRow>;
 
 /** Shipment details response (data property) */
 export interface ShipmentDetails {
@@ -341,23 +408,54 @@ export interface ShipmentBatch {
 }
 
 /**
- * API response type for fetching shipment details
- * via GET /api/v1/outbound-shipments/:shipmentId/details
+ * Raw API response type for fetching shipment details.
+ *
+ * Returned by:
+ *   GET /api/v1/outbound-shipments/:shipmentId/details
+ *
+ * Layer:
+ * - API / service layer only
+ *
+ * Notes:
+ * - This type represents the backend response shape exactly
+ * - It should NOT be consumed directly by UI components
+ * - Thunks are responsible for transforming this payload into
+ *   flattened, UI-ready structures before storing in Redux
  */
-export type ShipmentDetailsResponse = ApiSuccessResponse<ShipmentDetails>;
+export type ShipmentDetailsApiResponse =
+  ApiSuccessResponse<ShipmentDetails>;
+
+/**
+ * UI-ready shipment details after flattening.
+ *
+ * This is the shape stored in Redux and consumed by components.
+ */
+export interface ShipmentDetailsUiData {
+  shipment: FlattenedShipmentHeader | null;
+  fulfillments: FlattenedFulfillmentRow[];
+}
+
+/**
+ * Thunk response type for fetching shipment details.
+ *
+ * Wraps flattened shipment data in the standard API success envelope.
+ */
+export type FetchShipmentDetailsUiResponse =
+  ApiSuccessResponse<ShipmentDetailsUiData>;
+
 
 /**
  * Redux state slice for storing detailed outbound shipment information.
  *
  * This leverages the generic `AsyncState<T>` pattern, where:
- * - `data` holds the fetched `ShipmentDetails` object (or null if not loaded)
+ * - `data` holds the fetched `ShipmentDetailsUiData` object (or null if not loaded)
  * - `loading` indicates whether a fetch request is in progress
  * - `error` contains any error message from a failed fetch
  *
  * Used in combination with `fetchOutboundShipmentDetailsThunk`
  * to manage the lifecycle of fetching a single shipment’s details.
  */
-export type OutboundShipmentDetailsState = AsyncState<ShipmentDetails | null>;
+export type OutboundShipmentDetailsState = AsyncState<ShipmentDetailsUiData | null>;
 
 /**
  * Represents a **flattened outbound shipment header** for display and data binding.

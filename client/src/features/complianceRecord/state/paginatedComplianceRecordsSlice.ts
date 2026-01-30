@@ -1,14 +1,14 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type {
-  ComplianceRecord,
+import {
   ComplianceRecordsState,
-  PaginatedComplianceRecordResponse,
+  ComplianceRecordTableRow,
+  PaginatedComplianceListResponse,
 } from './complianceRecordTypes';
 import { createInitialPaginatedState } from '@store/pagination';
-import { fetchComplianceRecordsThunk } from './complianceRecordThunks';
+import { fetchComplianceRecordsThunk } from '@features/complianceRecord';
 
 const initialState: ComplianceRecordsState =
-  createInitialPaginatedState<ComplianceRecord>();
+  createInitialPaginatedState<ComplianceRecordTableRow>();
 
 const paginatedComplianceRecordsSlice = createSlice({
   name: 'paginatedComplianceRecords',
@@ -34,23 +34,24 @@ const paginatedComplianceRecordsSlice = createSlice({
       // --------------------------------------------------
       .addCase(
         fetchComplianceRecordsThunk.fulfilled,
-        (state, action: PayloadAction<PaginatedComplianceRecordResponse>) => {
+        (state, action: PayloadAction<PaginatedComplianceListResponse>) => {
           const { data, pagination } = action.payload;
-
+          
           state.loading = false;
-          state.data = data;
+          state.data = data;           // ComplianceRecordTableRow[]
           state.pagination = pagination;
         }
       )
-
+      
       // --------------------------------------------------
       // Rejected
       // --------------------------------------------------
       .addCase(fetchComplianceRecordsThunk.rejected, (state, action) => {
         state.loading = false;
+        
         state.error =
-          (action.payload as string) ??
-          action.error.message ??
+          action.payload?.message ||
+          action.error.message ||
           'Failed to fetch compliance records';
       });
   },

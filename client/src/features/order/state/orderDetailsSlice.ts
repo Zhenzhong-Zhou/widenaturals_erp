@@ -1,9 +1,9 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type {
-  GetOrderDetailsResponse,
+  GetOrderDetailsUiResponse,
   OrderDetailsState,
 } from '@features/order/state/orderTypes';
-import { getOrderDetailsByIdThunk } from './orderThunks';
+import { fetchOrderDetailsByIdThunk } from '@features/order';
 
 const initialState: OrderDetailsState = {
   data: null,
@@ -19,20 +19,32 @@ const orderDetailsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(getOrderDetailsByIdThunk.pending, (state) => {
+      .addCase(fetchOrderDetailsByIdThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(
-        getOrderDetailsByIdThunk.fulfilled,
-        (state, action: PayloadAction<GetOrderDetailsResponse>) => {
+        fetchOrderDetailsByIdThunk.fulfilled,
+        (
+          state,
+          action: PayloadAction<GetOrderDetailsUiResponse>
+        ) => {
           state.loading = false;
           state.data = action.payload.data;
+          state.error = null;
         }
       )
-      .addCase(getOrderDetailsByIdThunk.rejected, (state, action) => {
+      .addCase(fetchOrderDetailsByIdThunk.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload ?? 'Failed to fetch order details';
+        
+        const payload = action.payload as
+          | { message: string }
+          | undefined;
+        
+        state.error =
+          payload?.message ??
+          action.error.message ??
+          'Failed to fetch sales order details';
       });
   },
 });

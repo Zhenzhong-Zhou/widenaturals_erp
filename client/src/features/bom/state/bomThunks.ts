@@ -7,36 +7,49 @@ import type {
   FetchPaginatedBomsResponse,
 } from '@features/bom/state/bomTypes';
 import { bomService } from '@services/bomService';
+import { flattenBomRecords } from '@features/bom/utils/flattenBomData';
+import { extractUiErrorPayload } from '@utils/error';
 
 /**
  * Redux async thunk to fetch a paginated and filtered list of BOMs.
  *
- * This wraps `bomService.fetchPaginatedBoms` to handle:
- * - Pending/loading state
- * - Success with payload
- * - Rejection with error message
+ * Responsibilities:
+ * - Delegates data fetching to the BOM service layer
+ * - Applies canonical BOM list flattening at the thunk boundary
+ * - Preserves backend pagination metadata without transformation
+ * - Normalizes API errors into a UI-safe payload
+ *
+ * This thunk ensures that Redux state only ever stores
+ * flattened, UI-ready BOM list records.
  *
  * @param params - Pagination, sorting, and filter parameters.
  *
  * @example
- * dispatch(fetchPaginatedBomsThunk({ page: 1, limit: 10, filters: { isActive: true } }));
+ * dispatch(fetchPaginatedBomsThunk({
+ *   page: 1,
+ *   limit: 10,
+ *   filters: { isActive: true }
+ * }));
  */
 export const fetchPaginatedBomsThunk = createAsyncThunk<
-  FetchPaginatedBomsResponse, // Return type
-  FetchBomsParams, // Argument type
-  { rejectValue: string } // Error payload type
->('boms/fetchPaginatedBoms', async (params, { rejectWithValue }) => {
-  try {
-    return await bomService.fetchPaginatedBoms(params);
-  } catch (error: any) {
-    console.error('Thunk: Failed to fetch BOM list:', error);
-    return rejectWithValue(
-      error?.response?.data?.message ||
-        error?.message ||
-        'Failed to fetch BOMs.'
-    );
+  FetchPaginatedBomsResponse,
+  FetchBomsParams,
+  { rejectValue: { message: string; traceId?: string } }
+>(
+  'boms/fetchPaginatedBoms',
+  async (params, { rejectWithValue }) => {
+    try {
+      const response = await bomService.fetchPaginatedBoms(params);
+      
+      return {
+        ...response,
+        data: flattenBomRecords(response.data),
+      };
+    } catch (error) {
+      return rejectWithValue(extractUiErrorPayload(error));
+    }
   }
-});
+);
 
 /**
  * Thunk to fetch detailed information for a specific BOM.

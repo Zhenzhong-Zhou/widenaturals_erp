@@ -568,9 +568,13 @@ export interface OrderItem {
 }
 
 /**
- * Represents a transformed order with all details included.
+ * Canonical order aggregate containing header, customer,
+ * payment, addresses, audit metadata, and line items.
+ *
+ * This structure is used as the source for normalization
+ * and UI-specific flattening utilities.
  */
-export interface TransformedOrder {
+export interface OrderAggregate {
   /** Unique identifier for the order */
   id: string;
   /** Order number string */
@@ -622,9 +626,30 @@ export interface TransformedOrder {
 }
 
 /**
- * Successful API response wrapper for fetching order details.
+ * Successful API response wrapper for fetching full order details.
+ *
+ * Contains the canonical order aggregate as returned by the backend.
  */
-export type GetOrderDetailsResponse = ApiSuccessResponse<TransformedOrder>;
+export type GetOrderDetailsApiResponse =
+  ApiSuccessResponse<OrderAggregate>;
+
+/**
+ * UI-ready order details structure derived from OrderAggregate.
+ *
+ * Used by order detail pages and components.
+ */
+export interface OrderDetailsUiData {
+  header: FlattenedOrderHeader;
+  items: FlattenedOrderItemRow[];
+}
+
+/**
+ * UI-ready response for order details after normalization.
+ *
+ * Produced at the thunk boundary.
+ */
+export type GetOrderDetailsUiResponse =
+  ApiSuccessResponse<OrderDetailsUiData>;
 
 /**
  * Redux state shape for the order details feature.
@@ -643,7 +668,7 @@ export type GetOrderDetailsResponse = ApiSuccessResponse<TransformedOrder>;
  *   error: null,
  * };
  */
-export type OrderDetailsState = AsyncState<TransformedOrder | null>;
+export type OrderDetailsState = AsyncState<OrderDetailsUiData | null>;
 
 /**
  * Route parameters used in order-related routes.
@@ -730,6 +755,12 @@ export interface FlattenedOrderHeader {
 
   /** Total tax amount applied */
   taxAmount: number | null;
+  
+  /** Shipping fee amount */
+  shippingFee: number | null;
+  
+  /** Total order amount */
+  totalAmount: number | null;
 
   /** Delivery method info (e.g., Pickup, Courier) */
   deliveryInfo: {
@@ -793,6 +824,61 @@ export interface FlattenedOrderHeader {
 
   /** Additional order-level metadata for custom logic or display */
   orderMetadata: Record<string, any>;
+}
+
+/**
+ * UI-ready flattened order item row.
+ *
+ * Normalized to support both SKU and packaging material lines
+ * with a consistent shape for tables, exports, and allocation flows.
+ */
+export interface FlattenedOrderItemRow {
+  /** Order item ID */
+  orderItemId: string;
+  
+  /** Parent order ID */
+  orderId: string;
+  
+  /** Line type discriminator */
+  itemType: 'sku' | 'packaging_material';
+  
+  /** Display name shown in UI */
+  itemName: string;
+  
+  /** SKU code (SKU lines only) */
+  skuCode: string | null;
+  
+  /** Barcode (SKU lines only) */
+  barcode: string | null;
+  
+  /** Packaging material code (packaging lines only) */
+  packagingMaterialCode: string | null;
+  
+  /** Quantity ordered */
+  quantityOrdered: number;
+  
+  /** Unit price (normalized number) */
+  unitPrice: number | null;
+  
+  /** Subtotal (normalized number) */
+  subtotal: number | null;
+  
+  /** Price type label */
+  priceTypeName: string | null;
+  
+  /** Order item status */
+  statusName: string;
+  statusCode: string;
+  statusDate: string;
+  
+  /** Audit */
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  updatedBy: string;
+  
+  /** Raw metadata for UI interpretation */
+  metadata: Record<string, unknown> | null;
 }
 
 /**

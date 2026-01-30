@@ -11,12 +11,24 @@ import type { ReduxPaginatedState } from '@shared-types/pagination';
 import type { NullableString } from '@shared-types/shared';
 
 /**
- * Root response shape for the paginated BOM list API.
+ * Paginated API response for the BOM list endpoint.
  *
- * Extends the generic `PaginatedResponse<T>` for consistency
- * with all paginated ERP endpoints.
+ * Represents the raw, domain-level response returned by the backend.
+ * Records preserve nested product, SKU, and BOM relationships.
  */
-export type FetchPaginatedBomsResponse = PaginatedResponse<BomListItem>;
+export type FetchPaginatedBomsApiResponse =
+  PaginatedResponse<BomListItem>;
+
+/**
+ * Paginated UI response for the BOM list.
+ *
+ * Contains flattened, UI-ready BOM list records produced
+ * by the thunk transformer layer.
+ *
+ * Pagination metadata is preserved without transformation.
+ */
+export type FetchPaginatedBomsResponse =
+  PaginatedResponse<FlattenedBomRecord>;
 
 /**
  * Represents one row in the BOM list.
@@ -147,8 +159,11 @@ export interface FetchBomsParams extends PaginationParams, SortConfig {
  * Extends the generic `ReduxPaginatedState<T>` for standardized pagination,
  * loading, and error handling, while adding module-specific fields
  * like filters and sort configuration.
+ *
+ * This state stores **flattened, UI-ready BOM list records**.
  */
-export interface PaginatedBomStateWithFilters extends ReduxPaginatedState<BomListItem> {
+export interface PaginatedBomStateWithFilters
+  extends ReduxPaginatedState<FlattenedBomRecord> {
   /** Current applied filters for the BOM list (e.g., status, brand, productName). */
   filters: FetchBomsParams['filters'];
 }

@@ -1,16 +1,15 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type {
   PaginatedOutboundFulfillmentsState,
-  PaginatedOutboundFulfillmentResponse,
+  PaginatedOutboundFulfillmentsResponse,
+  FlattenedOutboundShipmentRow,
 } from '@features/outboundFulfillment/state';
 import { fetchPaginatedOutboundFulfillmentThunk } from './outboundFulfillmentThunks';
+import { createInitialPaginatedState } from '@store/pagination';
+import { UiErrorPayload } from '@utils/error/uiErrorUtils';
 
-const initialState: PaginatedOutboundFulfillmentsState = {
-  loading: false,
-  error: null,
-  data: [],
-  pagination: null,
-};
+const initialState: PaginatedOutboundFulfillmentsState =
+  createInitialPaginatedState<FlattenedOutboundShipmentRow>();
 
 /**
  * Slice to manage state for paginated outbound fulfillments.
@@ -31,7 +30,7 @@ const paginatedOutboundFulfillmentsSlice = createSlice({
         fetchPaginatedOutboundFulfillmentThunk.fulfilled,
         (
           state,
-          action: PayloadAction<PaginatedOutboundFulfillmentResponse>
+          action: PayloadAction<PaginatedOutboundFulfillmentsResponse>
         ) => {
           state.loading = false;
           state.data = action.payload.data;
@@ -42,9 +41,14 @@ const paginatedOutboundFulfillmentsSlice = createSlice({
         fetchPaginatedOutboundFulfillmentThunk.rejected,
         (state, action) => {
           state.loading = false;
+          
+          const error = action.payload as UiErrorPayload | undefined;
+          
           state.error =
-            (action.payload as string) ||
-            'Failed to fetch paginated outbound fulfillments';
+            error?.message ?? 'Failed to fetch paginated outbound fulfillments';
+          
+          // Optional but recommended if your state supports it
+          state.traceId = error?.traceId ?? null;
         }
       );
   },

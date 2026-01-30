@@ -3,19 +3,13 @@ import type {
   OrderQueryParams,
   OrderListResponse,
   PaginatedOrderStateWithFilters,
+  OrderListItem,
 } from '@features/order/state/orderTypes';
 import { fetchOrdersByCategoryThunk } from '@features/order/state/orderThunks';
+import { createInitialPaginatedState } from '@store/pagination';
 
 const initialState: PaginatedOrderStateWithFilters = {
-  data: [],
-  pagination: {
-    page: 1,
-    limit: 10,
-    totalRecords: 0,
-    totalPages: 0,
-  },
-  loading: false,
-  error: null,
+  ...createInitialPaginatedState<OrderListItem>(),
   filters: {},
 };
 

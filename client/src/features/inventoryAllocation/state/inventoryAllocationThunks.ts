@@ -6,10 +6,16 @@ import type {
   AllocationReviewRequest,
   FetchPaginatedInventoryAllocationsParams,
   InventoryAllocationConfirmationResponse,
-  InventoryAllocationResponse,
+  InventoryAllocationListResponse,
   InventoryAllocationReviewResponse,
-} from '@features/inventoryAllocation/state/inventoryAllocationTypes.ts';
-import { inventoryAllocationService } from '@services/inventoryAllocationService.ts';
+} from '@features/inventoryAllocation/state/inventoryAllocationTypes';
+import { inventoryAllocationService } from '@services/inventoryAllocationService';
+import {
+  flattenAllocationOrderHeader,
+  flattenInventoryAllocationReviewItems,
+  flattenInventoryAllocationSummary,
+} from '@features/inventoryAllocation/utils';
+import { extractUiErrorPayload } from '@utils/error';
 
 /**
  * Thunk to allocate inventory for a given order.
@@ -70,37 +76,48 @@ export const allocateInventoryThunk = createAsyncThunk<
 /**
  * Thunk to fetch the inventory allocation review for a specific order.
  *
- * This thunk dispatches the `pending`, `fulfilled`, and `rejected` action types
- * automatically using Redux Toolkit's `createAsyncThunk`. It invokes the
- * `fetchInventoryAllocationReview` API function to retrieve detailed allocation
- * data, including order header and allocation item rows.
+ * Responsibilities:
+ * - Delegates data fetching to the inventory allocation service layer
+ * - Applies canonical flattening to the allocation review payload
+ *   (order header + allocation items) at the thunk ingestion boundary
+ * - Preserves the API success envelope while transforming inner data
+ * - Normalizes API errors into a UI-safe reject payload
  *
- * Can be consumed by React components or other logic to trigger data loading
- * into the inventory allocation review slice.
+ * Design notes:
+ * - Thunk intentionally contains no domain or business logic
+ * - Returned data is flattened and UI-ready
+ * - Redux state never stores raw allocation review entities
  *
- * @param {Object} args - Argument object containing parameters for the API call.
- * @param {string} args.orderId - UUID of the order to review.
- * @param {AllocationReviewRequest} args.body - Request payload containing allocation IDs to fetch.
- * @returns {Promise<InventoryAllocationReviewResponse>} - Resolves with a typed response containing review data.
- * @throws {any} The thunk will reject with an error payload if the API call fails.
+ * @param args - Parameters for fetching the allocation review
+ * @param args.orderId - UUID of the order to review
+ * @param args.body - Request payload containing allocation IDs to fetch
+ *
+ * @returns A fulfilled action containing flattened allocation review data
+ *          (order header and allocation item rows)
  */
 export const fetchInventoryAllocationReviewThunk = createAsyncThunk<
-  InventoryAllocationReviewResponse, // Return type
-  { orderId: string; body: AllocationReviewRequest } // Argument type
+  InventoryAllocationReviewResponse,
+  { orderId: string; body: AllocationReviewRequest },
+  { rejectValue: { message: string; traceId?: string } }
 >(
   'inventoryAllocations/fetchReview',
   async ({ orderId, body }, { rejectWithValue }) => {
     try {
-      return await inventoryAllocationService.fetchInventoryAllocationReview(
-        orderId,
-        body
-      );
-    } catch (error: any) {
-      console.error('Thunk: Failed to fetch inventory allocation review', {
-        orderId,
-        error,
-      });
-      return rejectWithValue(error?.response?.data ?? error.message);
+      const response =
+        await inventoryAllocationService.fetchInventoryAllocationReview(
+          orderId,
+          body
+        );
+      
+      return {
+        ...response,
+        data: {
+          header: flattenAllocationOrderHeader(response.data.header),
+          items: flattenInventoryAllocationReviewItems(response.data.items),
+        },
+      };
+    } catch (error) {
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );
@@ -108,44 +125,43 @@ export const fetchInventoryAllocationReviewThunk = createAsyncThunk<
 /**
  * Async thunk to fetch a paginated list of inventory allocation summaries.
  *
- * This thunk handles fetching inventory allocations from the backend API
- * based on the provided pagination, sorting, and filtering parameters.
- * It is typically used to power paginated list views in the UI.
+ * Responsibilities:
+ * - Delegates data fetching to the inventory allocation service layer
+ * - Applies canonical flattening to allocation summary records at the
+ *   thunk ingestion boundary
+ * - Preserves pagination metadata without transformation
+ * - Normalizes API errors into a UI-safe reject payload
  *
- * Usage example:
- * ```ts
- * dispatch(fetchPaginatedInventoryAllocationsThunk({
- *   page: 1,
- *   limit: 20,
- *   filters: {
- *     keyword: 'NMN',
- *     warehouseId: '1234-uuid',
- *     allocationCreatedBy: '5678-uuid',
- *     allocatedAfter: '2025-09-01T00:00:00.000Z',
- *   },
- *   sortBy: 'orderDate',
- *   sortOrder: 'DESC',
- * }))
- * ```
+ * Design notes:
+ * - Thunk contains no domain or business logic
+ * - Returned data is flattened and UI-ready
+ * - Redux state never stores raw API allocation summary entities
  *
- * @param params - Pagination, sorting, and filtering options for the request.
- * @returns A promise that resolves with a paginated list of inventory allocations.
- *
- * @throws Returns a rejected thunk action with error payload if the API call fails.
+ * @param params - Pagination, sorting, and filtering options
+ * @returns A fulfilled action containing flattened allocation summary rows
  */
 export const fetchPaginatedInventoryAllocationsThunk = createAsyncThunk<
-  InventoryAllocationResponse, // Returned response type
-  FetchPaginatedInventoryAllocationsParams // Input params
->('inventoryAllocations/fetch', async (params, { rejectWithValue }) => {
-  try {
-    return await inventoryAllocationService.fetchPaginatedInventoryAllocations(
-      params
-    );
-  } catch (error) {
-    console.error('Thunk failed: fetchInventoryAllocationsThunk', error);
-    return rejectWithValue(error);
+  InventoryAllocationListResponse,
+  FetchPaginatedInventoryAllocationsParams,
+  { rejectValue: { message: string; traceId?: string } }
+>(
+  'inventoryAllocations/fetch',
+  async (params, { rejectWithValue }) => {
+    try {
+      const response =
+        await inventoryAllocationService.fetchPaginatedInventoryAllocations(
+          params
+        );
+      
+      return {
+        ...response,
+        data: response.data.map(flattenInventoryAllocationSummary),
+      };
+    } catch (error) {
+      return rejectWithValue(extractUiErrorPayload(error));
+    }
   }
-});
+);
 
 /**
  * Thunk to confirm inventory allocations for a given order.

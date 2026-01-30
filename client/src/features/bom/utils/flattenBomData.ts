@@ -9,16 +9,13 @@ import type {
 import { GenericAudit, GenericStatus } from '@shared-types/api';
 
 /**
- * Flattens an array of nested BOM records into a flat structure
- * suitable for table display, export, or lightweight data handling.
+ * Flattens BOM list records into a canonical, UI-ready shape.
  *
- * Includes:
- *  - Product info (name, brand, series, category)
- *  - SKU info (code, barcode, region, language, sizeLabel)
- *  - BOM info (code, name, revision, description, active flags)
- *  - Status info (status name + date)
- *  - Compliance info (type, number, issuedDate)
- *  - Audit info (createdBy, createdAt, updatedBy, updatedAt)
+ * The resulting records combine product, SKU, BOM, status,
+ * compliance, and audit metadata into a single flat structure.
+ *
+ * This transformation is intended to be applied once at the
+ * thunk/ingestion boundary before data enters Redux state.
  */
 export const flattenBomRecords = (
   records: BomListItem[]

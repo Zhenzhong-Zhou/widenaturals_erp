@@ -1,18 +1,13 @@
 import { createSlice } from '@reduxjs/toolkit';
-import type { PaginatedCustomerState } from './customerTypes';
-import { fetchPaginatedCustomersThunk } from './customerThunks';
+import type {
+  CustomerListItem,
+  PaginatedCustomerState
+} from '@features/customer/state';
+import { fetchPaginatedCustomersThunk } from '@features/customer/state';
+import { createInitialPaginatedState } from '@store/pagination';
 
-const initialState: PaginatedCustomerState = {
-  data: [],
-  pagination: {
-    page: 1,
-    limit: 10,
-    totalRecords: 0,
-    totalPages: 0,
-  },
-  loading: false,
-  error: null,
-};
+const initialState: PaginatedCustomerState =
+  createInitialPaginatedState<CustomerListItem>();
 
 const paginatedCustomersSlice = createSlice({
   name: 'paginatedCustomers',

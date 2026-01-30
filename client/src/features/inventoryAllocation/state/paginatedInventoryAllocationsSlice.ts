@@ -1,20 +1,13 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { createSlice } from '@reduxjs/toolkit';
 import type {
-  InventoryAllocationResponse,
+  FlattenedInventoryAllocationSummary,
   PaginatedInventoryAllocationState,
 } from '@features/inventoryAllocation/state/inventoryAllocationTypes';
+import { createInitialPaginatedState } from '@store/pagination';
 import { fetchPaginatedInventoryAllocationsThunk } from '@features/inventoryAllocation/state';
 
 const initialState: PaginatedInventoryAllocationState = {
-  data: [],
-  pagination: {
-    page: 1,
-    limit: 10,
-    totalPages: 0,
-    totalRecords: 0,
-  },
-  loading: false,
-  error: null,
+  ...createInitialPaginatedState<FlattenedInventoryAllocationSummary>(),
 };
 
 const paginatedInventoryAllocations = createSlice({
@@ -31,7 +24,7 @@ const paginatedInventoryAllocations = createSlice({
       })
       .addCase(
         fetchPaginatedInventoryAllocationsThunk.fulfilled,
-        (state, action: PayloadAction<InventoryAllocationResponse>) => {
+        (state, action) => {
           state.loading = false;
           state.data = action.payload.data;
           state.pagination = action.payload.pagination;
@@ -42,7 +35,9 @@ const paginatedInventoryAllocations = createSlice({
         (state, action) => {
           state.loading = false;
           state.error =
-            action.error?.message || 'Failed to fetch inventory allocations';
+            action.payload?.message ||
+            action.error.message ||
+            'Failed to fetch inventory allocations';
         }
       );
   },
