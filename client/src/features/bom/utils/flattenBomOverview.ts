@@ -1,3 +1,13 @@
+/**
+ * BOM transformer utilities.
+ *
+ * Contains pure functions that convert nested BOM domain responses
+ * into flattened, UI-friendly data structures.
+ *
+ * These utilities are intentionally kept outside Redux slices
+ * and should be invoked by thunks or page-level composition logic.
+ */
+
 import type {
   BomHeader,
   BomMaterialSupplyDetail,

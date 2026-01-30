@@ -90,10 +90,23 @@ export interface ComplianceRecord {
 }
 
 /**
- * Standard paginated API response for compliance records.
+ * Paginated API response for compliance records.
+ *
+ * Represents the raw, domain-level response returned by the backend.
  */
-export type PaginatedComplianceRecordResponse =
+export type PaginatedComplianceRecordApiResponse =
   PaginatedResponse<ComplianceRecord>;
+
+/**
+ * Paginated UI response for compliance records.
+ *
+ * Contains flattened, table-ready compliance rows produced
+ * by the thunk transformer layer.
+ *
+ * Pagination metadata is preserved without transformation.
+ */
+export type PaginatedComplianceListResponse =
+  PaginatedResponse<ComplianceRecordTableRow>;
 
 /**
  * Date range filters applicable to compliance records.
@@ -202,9 +215,14 @@ export interface GetPaginatedComplianceRecordsParams
 /**
  * Redux state shape for paginated compliance records.
  *
- * Used by list pages and table-driven components.
+ * Stores **flattened, UI-ready compliance table rows** produced
+ * by the thunk transformer layer.
+ *
+ * This state is optimized for list pages and table-driven components
+ * and intentionally does not store raw API compliance entities.
  */
-export type ComplianceRecordsState = ReduxPaginatedState<ComplianceRecord>;
+export type ComplianceRecordsState =
+  ReduxPaginatedState<ComplianceRecordTableRow>;
 
 /**
  * Flat compliance record row for table/list views.

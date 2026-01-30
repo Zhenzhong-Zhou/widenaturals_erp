@@ -1,21 +1,19 @@
-import {
-  type AllocationReviewItem,
-  type BatchReview,
-  type OrderHeaderReview,
-} from '../state';
+import type {
+  AllocationReviewItem,
+  BatchReview,
+  FlattenedAllocationOrderHeader,
+  FlattenedAllocationReviewItem,
+  OrderHeaderReview,
+} from '@features/inventoryAllocation';
 import { isPackagingBatch, isProductBatch } from '@utils/batchTypeGuards';
 
-export interface FlattenedAllocationOrderHeader {
-  orderNumber: string;
-  note: string | null;
-  createdBy: string;
-  orderStatus: string;
-  orderStatusCode: string;
-  orderStatusId: string;
-  salespersonId: string;
-  salespersonName: string;
-}
-
+/**
+ * Flattens the allocation order header into a UI-safe structure.
+ *
+ * - Extracts normalized status fields
+ * - Resolves salesperson identity
+ * - Removes nested domain objects
+ */
 export const flattenAllocationOrderHeader = (
   header: OrderHeaderReview
 ): FlattenedAllocationOrderHeader => ({
@@ -29,47 +27,15 @@ export const flattenAllocationOrderHeader = (
   salespersonName: header.salesperson.fullName,
 });
 
-export interface FlattenedAllocationReviewItem {
-  allocationId: string;
-  allocationStatus: string;
-  allocationStatusCode: string;
-  allocatedQuantity: number;
-  createdAt: string;
-  updatedAt: string;
-
-  orderItemId: string;
-  orderId: string;
-  orderItemStatusName: string;
-  orderItemStatusCode: string;
-  orderItemStatusDate: string;
-  quantityOrdered: number;
-
-  skuCode: string | null;
-  barcode: string | null;
-  productName: string | null;
-
-  packagingMaterialCode: string | null;
-  packagingMaterialLabel: string | null;
-
-  batchLotNumber: string | null;
-  batchExpiryDate: string | null;
-  manufactureDate: string | null;
-  batchType: 'product' | 'packaging_material' | 'unknown';
-
-  createdByName: string;
-  updatedByName: string;
-
-  warehouseInventoryList: {
-    id: string;
-    warehouseQuantity: number;
-    reservedQuantity: number;
-    statusName: string;
-    statusDate: string;
-    warehouseName: string;
-    inboundDate: string;
-  }[];
-}
-
+/**
+ * Normalizes batch information across product and packaging material batches.
+ *
+ * - Resolves batch type via runtime guards
+ * - Extracts common batch fields
+ * - Falls back to `unknown` when batch data is missing or unrecognized
+ *
+ * Internal helper – not exported.
+ */
 export const parseBatch = (
   batch: BatchReview | null | undefined
 ): {
@@ -78,6 +44,7 @@ export const parseBatch = (
   manufactureDate: string | null;
   batchType: 'product' | 'packaging_material' | 'unknown';
 } => {
+  // --- No batch provided ---
   if (!batch) {
     return {
       batchLotNumber: null,
@@ -86,8 +53,9 @@ export const parseBatch = (
       batchType: 'unknown',
     };
   }
-
-  if (isProductBatch(batch)) {
+  
+  // --- Valid domain batch (product or packaging material) ---
+  if (isProductBatch(batch) || isPackagingBatch(batch)) {
     return {
       batchLotNumber: batch.lotNumber ?? null,
       batchExpiryDate: batch.expiryDate ?? null,
@@ -95,16 +63,8 @@ export const parseBatch = (
       batchType: batch.type,
     };
   }
-
-  if (isPackagingBatch(batch)) {
-    return {
-      batchLotNumber: batch.lotNumber ?? null,
-      batchExpiryDate: batch.expiryDate ?? null,
-      manufactureDate: batch.manufactureDate ?? null,
-      batchType: batch.type,
-    };
-  }
-
+  
+  // --- Fallback (defensive) ---
   return {
     batchLotNumber: null,
     batchExpiryDate: null,
@@ -113,6 +73,17 @@ export const parseBatch = (
   };
 };
 
+/**
+ * Flattens allocation review items into a UI-ready structure.
+ *
+ * Responsibilities:
+ * - Normalize nullable backend fields
+ * - Resolve batch, product, and packaging material data
+ * - Apply safe defaults for display and calculations
+ *
+ * This function intentionally contains no domain validation
+ * or business rule enforcement.
+ */
 export const flattenInventoryAllocationReviewItems = (
   items: AllocationReviewItem[]
 ): FlattenedAllocationReviewItem[] => {

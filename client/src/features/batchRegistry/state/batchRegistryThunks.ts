@@ -4,6 +4,7 @@ import {
   PaginatedBatchRegistryListResponse
 } from '@features/batchRegistry';
 import { batchRegistryService } from '@services/batchRegistryService';
+import { flattenBatchRegistryRecords } from '@features/batchRegistry/utils';
 import { extractUiErrorPayload } from '@utils/error';
 
 /**
@@ -12,6 +13,8 @@ import { extractUiErrorPayload } from '@utils/error';
  * Responsibilities:
  * - Delegates data fetching to the batch registry service layer
  * - Supports pagination, sorting, and filtering
+ * - Transforms domain-level batch registry records into
+ *   flattened, UI-ready structures
  * - Preserves backend pagination metadata without transformation
  * - Normalizes API errors into a structured UI-safe payload
  *   containing `message` and optional `traceId`
@@ -21,7 +24,7 @@ import { extractUiErrorPayload } from '@utils/error';
  *   by Redux Toolkit.
  *
  * @param params - Pagination, sorting, and batch registry filters
- * @returns A paginated batch registry response
+ * @returns A paginated batch registry response with flattened records
  */
 export const fetchPaginatedBatchRegistryThunk = createAsyncThunk<
   PaginatedBatchRegistryListResponse,
@@ -31,9 +34,13 @@ export const fetchPaginatedBatchRegistryThunk = createAsyncThunk<
   'batchRegistry/fetchPaginatedBatchRegistry',
   async (params, { rejectWithValue }) => {
     try {
-      return await batchRegistryService.fetchPaginatedBatchRegistry(
-        params
-      );
+      const response =
+        await batchRegistryService.fetchPaginatedBatchRegistry(params);
+      
+      return {
+        ...response,
+        data: flattenBatchRegistryRecords(response.data),
+      };
     } catch (error) {
       return rejectWithValue(extractUiErrorPayload(error));
     }

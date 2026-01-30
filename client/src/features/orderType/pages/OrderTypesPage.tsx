@@ -6,10 +6,11 @@ import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
 import { usePaginateOrderTypes } from '@hooks/index';
 import {
+  CustomButton,
   CustomTypography,
   ErrorMessage,
   Loading,
-  NoDataFound
+  NoDataFound,
 } from '@components/index';
 import {
   OrderTypeFiltersPanel,
@@ -23,8 +24,6 @@ import type {
 import type { SortOrder } from '@shared-types/api';
 import { applyFiltersAndSorting } from '@utils/queryUtils';
 import { usePaginationHandlers } from '@utils/hooks';
-import { flattenOrderTypeRecords } from '@features/orderType/utils';
-import CustomButton from '@components/common/CustomButton.tsx';
 
 const OrderTypesPage: FC = () => {
   const [page, setPage] = useState(1);
@@ -42,14 +41,6 @@ const OrderTypesPage: FC = () => {
     fetchData: fetchOrderTypes,
     reset: resetOrderTypes,
   } = usePaginateOrderTypes();
-  
-  // -----------------------------
-  // Derived data
-  // -----------------------------
-  const flattenedOrderTypeData = useMemo(
-    () => flattenOrderTypeRecords(orderTypes),
-    [orderTypes]
-  );
   
   const queryParams = useMemo(
     () => ({
@@ -83,10 +74,6 @@ const OrderTypesPage: FC = () => {
     setSortOrder('');
     setPage(1);
   };
-  
-  // Show empty state only when data is truly empty (avoid flashing during loading)
-  const showEmpty =
-    isOrderTypesEmpty || (!isOrderTypeLoading && flattenedOrderTypeData.length === 0);
   
   return (
     <Box sx={{ px: 4, py: 3 }}>
@@ -138,7 +125,7 @@ const OrderTypesPage: FC = () => {
           <Loading message="Loading Order Types..." />
         ) : orderTypeError ? (
           <ErrorMessage message={orderTypeError} />
-        ) : showEmpty ? (
+        ) : isOrderTypesEmpty ? (
           <NoDataFound
             message="No order type records found."
             action={
@@ -150,7 +137,7 @@ const OrderTypesPage: FC = () => {
         ) : (
           <OrderTypesTable
             loading={isOrderTypeLoading}
-            data={flattenedOrderTypeData}
+            data={orderTypes}
             page={page - 1}
             rowsPerPage={limit}
             totalRecords={orderTypePagination?.totalRecords || 0}

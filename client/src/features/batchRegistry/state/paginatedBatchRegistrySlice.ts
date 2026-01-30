@@ -5,7 +5,7 @@ import {
 } from '@features/batchRegistry';
 import type {
   PaginatedBatchRegistryState,
-  BatchRegistryRecord,
+  FlattenedBatchRegistryRecord,
   PaginatedBatchRegistryListResponse,
 } from '@features/batchRegistry';
 
@@ -13,7 +13,7 @@ import type {
 // Initial State
 // ---------------------------
 const initialState: PaginatedBatchRegistryState =
-  createInitialPaginatedState<BatchRegistryRecord>();
+  createInitialPaginatedState<FlattenedBatchRegistryRecord>();
 
 // ---------------------------
 // Slice
