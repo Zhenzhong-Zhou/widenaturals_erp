@@ -30,7 +30,7 @@ export const getBatchRegistryTableColumns = (
           text={row.lotNumber}
           maxLength={20}
           variant="body2"
-          sx={{ fontWeight: 600 }}
+          sx={{ fontWeight: 400 }}
         />
       </Link>
       ),
@@ -52,7 +52,9 @@ export const getBatchRegistryTableColumns = (
               ? row.productName
               : row.packagingDisplayName
           }
-          maxLength={30}
+          maxLength={20}
+          variant="body2"
+          sx={{ fontWeight: 400 }}
         />
       ),
     },
@@ -96,7 +98,9 @@ export const getBatchRegistryTableColumns = (
               ? row.manufacturerName
               : row.supplierName
           }
-          maxLength={30}
+          maxLength={20}
+          variant="body2"
+          sx={{ fontWeight: 400 }}
         />
       ),
     },
