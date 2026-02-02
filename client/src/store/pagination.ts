@@ -4,20 +4,22 @@ import type {
 import { ReduxPaginatedState } from '@shared-types/pagination';
 
 /**
- * Returns a standardized initial state object for any Redux slice that uses
- * page/limit style pagination.
+ * Creates a standardized initial Redux state for paginated slices.
  *
- * This helper ensures every paginated slice (tables, card lists, reports, etc.)
- * starts with the same structure:
- *   - empty data array
- *   - pagination metadata (page, limit, totals)
- *   - loading + error flags
+ * This helper ensures every paginated feature (tables, lists, reports)
+ * starts with a consistent, UI-safe structure:
  *
- * Keeping this definition centralized guarantees consistency across features
- * and avoids duplicated boilerplate in slices.
+ * - `data`        → empty array (never null)
+ * - `pagination`  → initialized page/limit metadata
+ * - `loading`     → false
+ * - `error`       → null
+ * - `traceId`     → null (for backend error correlation)
  *
- * @template T - The type of each item stored in the paginated list.
- * @returns {ReduxPaginatedState<T>} A fully initialized paginated slice state.
+ * Centralizing this logic prevents pagination drift across slices
+ * and eliminates repetitive boilerplate.
+ *
+ * @template T - Flattened, UI-ready row type stored in the list
+ * @returns {ReduxPaginatedState<T>} Initialized paginated slice state
  */
 export const createInitialPaginatedState = <T>(): ReduxPaginatedState<T> => ({
   data: [],
@@ -29,6 +31,7 @@ export const createInitialPaginatedState = <T>(): ReduxPaginatedState<T> => ({
   },
   loading: false,
   error: null,
+  traceId: null,
 });
 
 /**
