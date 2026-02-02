@@ -30,6 +30,11 @@ export const navigationItems: NavigationItem[] = [
     requiredPermission: 'view_prices',
   },
   {
+    path: '/location-types',
+    title: 'Location Types',
+    requiredPermission: 'view_location_types',
+  },
+  {
     path: '/locations',
     title: 'Locations',
     requiredPermission: 'view_locations',

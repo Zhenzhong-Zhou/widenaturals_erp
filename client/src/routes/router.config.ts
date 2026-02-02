@@ -20,7 +20,7 @@ import {
   ORDER_CONSTANTS,
   toPermissionValue,
 } from '@utils/constants/orderPermissions';
-import { isValidOrderCategory } from '@features/order/utils/orderCategoryUtils';
+import { isValidOrderCategory } from '@features/order/utils';
 
 /* ==================== ROUTES ==================== */
 
@@ -324,6 +324,15 @@ export const appRoutes: AppRoute[] = [
     meta: {
       requiresAuth: true,
       requiredPermission: 'view_price_details',
+    },
+  }),
+  
+  defineRoute({
+    path: '/location-types',
+    component: lazy(() => import('@features/locationType/pages/LocationTypePage')),
+    meta: {
+      requiresAuth: true,
+      requiredPermission: 'view_location_types',
     },
   }),
   
