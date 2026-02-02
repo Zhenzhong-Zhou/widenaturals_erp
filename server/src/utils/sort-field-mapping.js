@@ -217,6 +217,71 @@ const SORTABLE_FIELDS = {
     // --------------------------------------------------
     defaultNaturalSort: `br.registered_at`,
   },
+  productBatchSortMap: {
+    // --------------------------------------------------
+    // Core identity (SAFE, always present)
+    // --------------------------------------------------
+    createdAt: `pb.created_at`,
+    lotNumber: `LOWER(pb.lot_number)`,
+    
+    // --------------------------------------------------
+    // SKU (PRIMARY operational identity)
+    // --------------------------------------------------
+    skuCode: `LOWER(sk.sku)`,
+    sizeLabel: `LOWER(sk.size_label)`,
+    countryCode: `LOWER(sk.country_code)`,
+    
+    // --------------------------------------------------
+    // Product (PRIMARY display fields)
+    // --------------------------------------------------
+    productName: `LOWER(p.name)`,
+    productBrand: `LOWER(p.brand)`,
+    productCategory: `LOWER(p.category)`,
+    
+    // --------------------------------------------------
+    // Manufacturer (REFERENCE, permission-gated)
+    // --------------------------------------------------
+    manufacturerName: `LOWER(m.name)`,
+    
+    // --------------------------------------------------
+    // Lifecycle
+    // --------------------------------------------------
+    manufactureDate: `pb.manufacture_date`,
+    expiryDate: `pb.expiry_date`,
+    receivedDate: `pb.received_date`,
+    
+    // --------------------------------------------------
+    // Quantity (manufactured amount)
+    // --------------------------------------------------
+    initialQuantity: `pb.initial_quantity`,
+    
+    // --------------------------------------------------
+    // Status
+    // --------------------------------------------------
+    statusName: `LOWER(bs.name)`,
+    statusDate: `pb.status_date`,
+    
+    // --------------------------------------------------
+    // Release / approval
+    // --------------------------------------------------
+    releasedAt: `pb.released_at`,
+    releasedBy: `
+    LOWER(
+      COALESCE(rb.firstname, '') || ' ' ||
+      COALESCE(rb.lastname, '')
+    )
+  `,
+    
+    // --------------------------------------------------
+    // Audit
+    // --------------------------------------------------
+    updatedAt: `pb.updated_at`,
+    
+    // --------------------------------------------------
+    // Fallback (REQUIRED)
+    // --------------------------------------------------
+    defaultNaturalSort: `pb.created_at`,
+  },
   packagingMaterialBatchSortMap: {
     // --------------------------------------------------
     // Core identity (SAFE, always present)
