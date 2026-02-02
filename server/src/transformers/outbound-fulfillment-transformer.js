@@ -250,8 +250,8 @@ const transformOutboundShipmentRow = (row) => {
  *   pagination: { page: number; limit: number; totalRecords: number; totalPages: number };
  * }} Cleaned paginated outbound shipment results
  */
-const transformPaginatedOutboundShipmentResults = (paginatedResult) => {
-  return transformPaginatedResult(paginatedResult, (row) =>
+const transformPaginatedOutboundShipmentResults = async (paginatedResult) => {
+  return await transformPaginatedResult(paginatedResult, (row) =>
     transformOutboundShipmentRow(row)
   );
 };

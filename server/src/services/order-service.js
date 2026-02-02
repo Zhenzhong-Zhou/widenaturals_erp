@@ -37,7 +37,7 @@ const {
   transformOrderStatusWithMetadata,
   transformPaginatedOrderTypes,
 } = require('../transformers/order-transformer');
-const { getRoleNameById } = require('../repositories/role-repository');
+const { getRoleById } = require('../repositories/role-repository');
 const {
   getOrderTypeIdsByCategory,
 } = require('../repositories/order-type-repository');
@@ -404,7 +404,7 @@ const updateOrderStatusService = async (
     const userId = user.id;
 
     // Step 0: Attach roleName (e.g., "admin", "sales") to user for downstream permission checks
-    const { name: roleName } = await getRoleNameById(user.role, client);
+    const { name: roleName } = await getRoleById(user.role, client);
     user.roleName = roleName;
 
     // Step 1: Validate that the order exists
