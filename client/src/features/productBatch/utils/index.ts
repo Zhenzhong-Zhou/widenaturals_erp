@@ -1,0 +1,1 @@
+export { flattenProductBatchRecords } from './flattenProductBatchRecords';
