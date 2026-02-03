@@ -284,7 +284,7 @@ export type BatchRegistrySortField =
  * into a single API-ready contract.
  */
 export interface BatchRegistryQueryParams
-  extends PaginationParams, PaginationParams, SortConfig {
+  extends PaginationParams, SortConfig {
   /** Optional domain filters */
   filters?: BatchRegistryFilters;
 }

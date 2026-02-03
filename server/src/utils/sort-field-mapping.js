@@ -266,11 +266,11 @@ const SORTABLE_FIELDS = {
     // --------------------------------------------------
     releasedAt: `pb.released_at`,
     releasedBy: `
-    LOWER(
-      COALESCE(rb.firstname, '') || ' ' ||
-      COALESCE(rb.lastname, '')
-    )
-  `,
+      LOWER(
+        COALESCE(rb.firstname, '') || ' ' ||
+        COALESCE(rb.lastname, '')
+      )
+    `,
     
     // --------------------------------------------------
     // Audit
