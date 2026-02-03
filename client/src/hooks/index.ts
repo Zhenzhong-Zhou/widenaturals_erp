@@ -66,6 +66,7 @@ export { default as usePaginatedComplianceRecords } from './usePaginatedComplian
  * ===================================================== */
 
 export { default as usePaginatedBatchRegistry } from './usePaginatedBatchRegistry';
+export { default as usePaginatedProductBatches } from './usePaginatedProductBatches';
 
 /* =====================================================
  * BOM (Bill of Materials)
