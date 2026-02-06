@@ -1,271 +1,135 @@
-# WIDE Naturals Inc. - ERP
+# WIDE Naturals Inc. – ERP
 
-A web-based ERP system designed to streamline the management of inventory, orders, users, and permissions efficiently.
-
----
-
-## **Table of Contents**
-
-1. [Getting Started](#getting-started)
-2. [Prerequisites](#prerequisites)
-3. [Installation](#installation)
-4. [Development Commands](#development-commands)
-5. [License](#license)
+Internal web-based ERP system providing inventory management, 
+order processing, role-based access control, 
+and operational workflow support.
 
 ---
 
-## **Getting Started**
+## Prerequisites
 
-Follow these instructions to set up the project on your local machine for development and testing.
+Required for local development:
 
----
+*  Node.js >= 20.x (LTS)
+*  npm >= 10.x
+*   PostgreSQL >= 17
+*   Redis >= 7 (required for caching, sessions, and background coordination)
+*   Git >= 2.40
+*   Docker (optional, for containerized environments)
 
-## **Prerequisites**
-
-Before starting, ensure you have the following installed:
-
-- **Node.js** (v14 or later)
-- **PostgreSQL** (Database)
-- **npm** or **yarn** (Package Manager)
-- [Knex.js CLI](https://knexjs.org/) (for database migrations and seeds)
-- [Docker](https://www.docker.com/) (optional, for running the project with containers)
+macOS users are recommended to install dependencies via Homebrew
 
 ---
 
-## **Installation**
+## Getting Started
 
-1. **Clone the repository**:
-   ```bash
-   git clone git@github.com:Zhenzhong-Zhou/widenaturals_erp.git
-   cd widenaturals_erp
-   ```
-2. **Install dependencies**:
-   - Server
-   ```bash
-   cd server
-   npm install
-   ```
-3. **Set up environment variables**:
-   - Create `.env` files for each environment (e.g., `.env.development`, `.env.test`).
-   - Add the following variables to each file:
-     ```env
-     NODE_ENV=development
-     DEV_DB_HOST=localhost
-     DEV_DB_PORT=5432
-     DEV_DB_USER=your_database_user
-     DEV_DB_PASSWORD=your_database_password
-     DEV_DB_NAME=your_database_name
-     ```
-   - For the test environment, use:
-     ```env
-     NODE_ENV=test
-     TEST_DB_HOST=localhost
-     TEST_DB_PORT=5432
-     TEST_DB_USER=your_test_database_user
-     TEST_DB_PASSWORD=your_test_database_password
-     TEST_DB_NAME=your_test_database_name
-     ```
-4. **Initialize the database**:
-   - Run the following command to create the database, apply migrations, and seed data:
-     ```bash
-     npm run setup
-     ```
-   - If needed, run individual steps:
-     - Create the database:
-       ```bash
-       npm run create-db
-       ```
-     - Run migrations:
-       ```bash
-       npm run migrate
-       ```
-     - Seed the database:
-       ```bash
-       npm run seed
-       ```
-5. **Running the Project**:
-   ```bash
-   npm run devStart
-   ```
-6. **Running Tests**:
-   - Ensure you have a `.env.test` file configured for the test database.
-   - Run the entire test suite:
-     ```bash
-     npm test
-     ```
-   - Run specific tests:
-     ```bash
-     npm test -- path/to/your/test-file.test.js
-     ```
-7. **Directory Structure**:
-   ```plaintext
-     project root/
-      ├── client/             # Frontend application (if applicable)
-      ├── env/                # Environment-specific configurations
-      ├── secrets/            # Sensitive files (excluded from version control)
-      ├── server/             # Backend application
-      ├── migrations/         # Knex.js migrations
-      ├── seeds/              # Knex.js seed files
-      ├── tests/              # Test files for the application
-      ├── .env                # Environment variable configuration
-      ├── knexfile.js         # Knex configuration
-      └── README.md           # Project documentation
-   ```
-
----
-
-## **Development Commands**
-
-**Code Quality**
-
-- Lint the codebase:
-  ```bash
-  npx eslint .
-  npx eslint . --fix
-  ```
-- Format the codebase:
-  ```bash
-  npx prettier --write .
-  ```
-
-**Database Management**
-
-**Knex Commands**
-
-1.  **Initialize Knex Configuration**:
-    ```bash
-    npx knex init
-    ```
-2.  **Common Knex Operations**:
-    - Create a migration:
-      ```bash
-      npx knex migrate:make create_entity_types --env development
-      ```
-    - Run migrations:
-      ```bash
-      npm run migrate
-      ```
-    - Rollback the last migration::
-      ```bash
-      npm run rollback
-      ```
-    - Rollback all migrations:
-      ```bash
-      npx knex migrate:rollback --all --env development
-      ```
-3.  **Seeds**:
-
-- Create a seed file:
-  ```bash
-  npx knex seed:make seed_name
-  ```
-- Run seed files:
-  ```bash
-  npm run seed
-  ```
-
-**Cron**:
-
-- Backup Database:
-  **Test the Backup Process Manually**:
-  ```bash
-  node /path/to/backup-scheduler.js
-  ```
-  **Find the absolute path**:
-  ```bash
-  realpath /path/to/backup-scheduler.js
-  realpath /path/to/backup.log
-  ```
-  **Node.js Path:**:
-  ```bash
-  which node
-  ```
-  **For system-wide crontab:**:
-  ```bash
-  sudo crontab -e
-  crontab -e
-  ```
-  \*Update Cron Job:\*\*:
-  ```bash
-  PATH=/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin
-  NODE_ENV=development
-  TZ=UTC
-  0 2 * * * NODE_ENV=development /usr/bin/node /home/user/project/src/tasks/schedulers/backup-scheduler.js >> /home/user/project/dev_logs/backup.log 2>&1
-  ```
-  **Test the Cron Job Run the script manually to ensure it works:**:
-  ```bash
-  /usr/bin/node /path/to/backup-scheduler.js
-  ```
-  **Run the following command to see if cron is restricted for your user:**:
-  ```bash
-    sudo crontab -l
-    crontab -l
-  ```
-  **Monitor Logs:**:
-
+1. Clone the Repository
 ```bash
-tail -f /path/to/backup.log
+git clone git@github.com:Zhenzhong-Zhou/widenaturals_erp.git
+```
+2. Install Dependencies
+```bash
+cd widenaturals_erp
+npm install
+
+cd server
+npm install
+
+cd ../client
+npm install
 ```
 
-**Redis**
+---
 
-1. **Using Homebrew (macOS):**
-   ```bash
-   brew install redis
-   brew services start redis
-   ```
-2. **Using APT (Ubuntu/Debian):**
-   ```bash
-   sudo apt update
-   sudo apt install redis-server
-   sudo systemctl start redis
-   ```
-3. **Verify Redis Installation:**
-   ```bash
-   redis-cli ping
-   ```
-4. **Start Redis Locally:**
-   ```bash
-   redis-server
-   ```
-5. **Stop Redis (macOS):**
-   ```bash
-   brew services stop redis
-   ```
-6. **Stop Redis (Ubuntu/Debian):**
-   ```bash
-   sudo systemctl stop redis
-   ```
-7. **Edit the Redis Configuration:**
-   ```bash
-   /etc/redis/redis.conf
-   /opt/homebrew/var/db/redis
-   ```
-8. **Open the configuration file for editing:**
-   ```bash
-   sudo nano /etc/redis/redis.conf
-   ```
-9. **Add a user with a password and permissions:**
-   ```bash
-   user myuser on >my_secure_password ~* +@all
-   ```
-10. **Restart the Redis server to apply the changes:**
-    ```bash
-    sudo systemctl restart redis
-    brew services restart redis
-    ```
-11. **Connect to Redis::**
-    ```bash
-    redis-cli
-    ```
-12. **Authenticate with the password:**
-    ```bash
-     redis-cli
-    ```
-13. **Authenticate with the password:**
-    ```bash
-    AUTH your_secure_password
-    ```
+## Environment & Configuration
+
+⚠️ Important
+
+This project does NOT use a root .env file.
+
+Configuration is layered and environment-specific.
+
+### Environment Structure
+```text
+env/
+├─ .env.defaults
+├─ development/
+│  ├─ .env.server
+│  └─ .env.database
+├─ staging/
+└─ production/
+```
+* .env.defaults → shared safe defaults
+* .env.server → app / API config
+* .env.database → database connection
+* Files are loaded automatically based on NODE_ENV
+
+### Local Development Setup
+```bash
+cp env/.env.defaults.example env/.env.defaults
+cp env/development/.env.server.example env/development/.env.server
+cp env/development/.env.database.example env/development/.env.database
+```
+Fill in required values before starting the server.
+
+### Secrets (Docker / Production Only)
+
+* File-based secrets are supported via Docker:
+```arduino
+/run/secrets/<secret_name>
+```
+* Local development does NOT require secrets
+* Never commit secret files to git
+
+See:
+
+* env/README.md
+* secrets/README.md
+
+
+##  Running the Application
+
+#### Backend (Server / API)
+> The backend automatically initializes and migrates the development database on startup.
+```bash
+cd server
+npm run devStart
+```
+
+#### Frontend (Client)
+```bash
+cd client
+npm run dev
+```
+
+#### Backend (Server) Commands
+> These commands are project-level scripts.  
+> Additional database and maintenance scripts are available in `package.json`
+> and documented under `/docs`.
+
+| Command           | Description              |
+| ----------------- | ------------------------ |
+| `npm run devStart`     | Start development server |
+| `npm run migrate` | Run database migrations  |
+| `npm run seed`    | Seed development data    |
+| `npm run lint`    | Lint codebase            |
+| `npm run test`    | Run tests                |
+
+### Frontend (Client) Commands
+
+| Command | Description |
+|------|------------|
+| `npm run dev` | Start frontend development server |
+| `npm run build` | Build frontend for production |
+| `npm run preview` | Preview production build locally |
+
+---
+
+## **License**
+
+This project is licensed under the MIT License.
+
+
 
 **Run with Docker**
 
@@ -288,11 +152,7 @@ tail -f /path/to/backup.log
        docker compose down -v
    ```
 
----
 
-## **License**
-
-This project is licensed under the MIT License.
 
 ## Logging Results
 
