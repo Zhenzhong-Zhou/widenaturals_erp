@@ -9,6 +9,7 @@ import {
   selectPaginatedProductBatchIsEmpty,
   fetchPaginatedProductBatchThunk,
   resetPaginatedProductBatches,
+  makeSelectProductBatchById,
 } from '@features/productBatch';
 import { normalizePagination } from '@utils/pagination/normalizePagination';
 
@@ -28,7 +29,7 @@ import { normalizePagination } from '@utils/pagination/normalizePagination';
  * - Data returned from this hook is presentation-ready
  * - Consumers MUST NOT re-flatten or re-map records
  */
-const usePaginatedProductBatches = () => {
+export const usePaginatedProductBatches = () => {
   const dispatch = useAppDispatch();
   
   // ---------------------------
@@ -89,4 +90,21 @@ const usePaginatedProductBatches = () => {
   };
 };
 
-export default usePaginatedProductBatches;
+/**
+ * useProductBatchById
+ *
+ * Returns a single product batch record by ID.
+ *
+ * Intended for:
+ * - expanded table rows
+ * - detail drawers
+ * - side panels
+ */
+export const useProductBatchById = (id: string) => {
+  const selector = useMemo(
+    () => makeSelectProductBatchById(),
+    []
+  );
+  
+  return useAppSelector((state) => selector(state, id));
+};

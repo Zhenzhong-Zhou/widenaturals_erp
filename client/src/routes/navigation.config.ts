@@ -19,6 +19,7 @@ export const navigationItems: NavigationItem[] = [
   { path: '/compliance-records', title: 'Compliance Management' },
   { path: '/boms', title: 'BOM Management' },
   { path: '/batch-registry', title: 'Batch Registry' },
+  { path: '/product-batches', title: 'Product Batches' },
   {
     path: '/pricing-types',
     title: 'Pricing Types',

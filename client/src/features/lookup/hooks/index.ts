@@ -9,3 +9,4 @@ export { default as useRoleSearchHandlers } from './useRoleSearchHandlers';
 export { default as usePackagingMaterialSearchHandlers } from './usePackagingMaterialSearchHandlers';
 export { default as useLookupController } from './useLookupController';
 export { default as useFilterLookup } from './useFilterLookup';
+export { default as useCommonProductLookups } from './useCommonProductLookups';

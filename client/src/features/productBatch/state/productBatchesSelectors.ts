@@ -63,3 +63,20 @@ export const selectPaginatedProductBatchIsEmpty = createSelector(
   ],
   (data, loading) => !loading && data.length === 0
 );
+
+/**
+ * Selector factory: Returns a selector that resolves
+ * a single product batch record by ID.
+ *
+ * Must be used as a factory to avoid selector cache collisions
+ * when multiple rows are rendered concurrently.
+ */
+export const makeSelectProductBatchById = () =>
+  createSelector(
+    [
+      selectPaginatedProductBatchData,
+      (_: RootState, id: string) => id,
+    ],
+    (records, id) =>
+      records.find((record) => record.id === id) ?? null
+  );

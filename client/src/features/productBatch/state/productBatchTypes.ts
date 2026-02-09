@@ -1,4 +1,5 @@
 import type {
+  ActorIdentity,
   GenericAudit,
   GenericStatus,
   PaginatedResponse,
@@ -43,6 +44,9 @@ export interface ProductBatchRecord {
   
   /** Timestamp when batch was released/approved for use */
   releasedAt: NullableString;
+  
+  /** Actor identity who registered the batch */
+  registeredBy: ActorIdentity;
   
   /** Audit metadata (created/updated) */
   audit: GenericAudit;
@@ -220,6 +224,7 @@ export interface FlattenedProductBatchRecord {
   
   /** Release */
   releasedAt: string | null;
+  releasedByName: string;
   
   /** Audit */
   createdAt: string;

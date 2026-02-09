@@ -168,6 +168,14 @@ export const appRoutes: AppRoute[] = [
     },
   }),
   
+  defineRoute({
+    path: '/product-batches',
+    component: lazy(() => import('@features/productBatch/pages/ProductBatchListPage')),
+    meta: {
+      requiresAuth: true,
+    },
+  }),
+  
   /* ---------- Orders ---------- */
   
   defineRoute({

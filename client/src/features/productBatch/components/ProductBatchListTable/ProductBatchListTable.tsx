@@ -7,15 +7,15 @@ import {
   SkeletonExpandedRow
 } from '@components/index';
 import type {
-  FlattenedBatchRegistryRecord,
-} from '@features/batchRegistry/state';
+  FlattenedProductBatchRecord,
+} from '@features/productBatch/state';
 import {
-  BatchRegistryExpandedContent,
-  getBatchRegistryTableColumns,
-} from '@features/batchRegistry/components/BatchRegistry';
+  getProductBatchTableColumns,
+  ProductBatchExpandedContent,
+} from '@features/productBatch/components/ProductBatchListTable';
 
-interface BatchRegistryListTableProps {
-  data: FlattenedBatchRegistryRecord[];
+interface ProductBatchListTableProps {
+  data: FlattenedProductBatchRecord[];
   loading: boolean;
   page: number;
   rowsPerPage: number;
@@ -31,7 +31,7 @@ interface BatchRegistryListTableProps {
 }
 
 /**
- * Table component for displaying batch registry records.
+ * Table component for displaying product batch records.
  *
  * Provides:
  * - paginated table rendering
@@ -39,27 +39,27 @@ interface BatchRegistryListTableProps {
  * - expandable rows with lazy-loaded detail content
  * - refresh and selection support
  */
-const BatchRegistryListTable = ({
-                                  data,
-                                  loading,
-                                  page,
-                                  totalPages,
-                                  totalRecords,
-                                  rowsPerPage,
-                                  onPageChange,
-                                  onRowsPerPageChange,
-                                  expandedRowId,
-                                  onDrillDownToggle,
-                                  selectedRowIds,
-                                  onSelectionChange,
-                                  onRefresh,
-                                }: BatchRegistryListTableProps) => {
+const ProductBatchListTable = ({
+                                 data,
+                                 loading,
+                                 page,
+                                 totalPages,
+                                 totalRecords,
+                                 rowsPerPage,
+                                 onPageChange,
+                                 onRowsPerPageChange,
+                                 expandedRowId,
+                                 onDrillDownToggle,
+                                 selectedRowIds,
+                                 onSelectionChange,
+                                 onRefresh,
+                               }: ProductBatchListTableProps) => {
   // ----------------------------------------
   // Column definitions
   // ----------------------------------------
   const columns = useMemo(
     () =>
-      getBatchRegistryTableColumns(
+      getProductBatchTableColumns(
         expandedRowId ?? undefined,
         onDrillDownToggle
       ),
@@ -70,7 +70,7 @@ const BatchRegistryListTable = ({
   // Expanded row renderer (lazy)
   // ----------------------------------------
   const renderExpandedContent = useCallback(
-    (row: FlattenedBatchRegistryRecord) => (
+    (row: FlattenedProductBatchRecord) => (
       <Suspense
         fallback={
           <SkeletonExpandedRow
@@ -81,7 +81,7 @@ const BatchRegistryListTable = ({
           />
         }
       >
-        <BatchRegistryExpandedContent row={row} />
+        <ProductBatchExpandedContent row={row} />
       </Suspense>
     ),
     []
@@ -100,7 +100,7 @@ const BatchRegistryListTable = ({
         mb={2}
       >
         <CustomTypography variant="h6" fontWeight={600}>
-          Batch Registry
+          Product Batches
         </CustomTypography>
         
         <CustomButton
@@ -129,10 +129,10 @@ const BatchRegistryListTable = ({
         getRowId={(row) => row.id}
         selectedRowIds={selectedRowIds}
         onSelectionChange={onSelectionChange}
-        emptyMessage="No batch registry records found"
+        emptyMessage="No product batch records found"
       />
     </Box>
   );
 };
 
-export default BatchRegistryListTable;
+export default ProductBatchListTable;
