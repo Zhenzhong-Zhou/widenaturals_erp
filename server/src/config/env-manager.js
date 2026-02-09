@@ -14,14 +14,8 @@ const loadAndValidateEnv = () => {
       general: [
         { envVar: 'NODE_ENV', required: true },
         { envVar: 'PORT', required: true },
-        {
-          envVar: 'LOGS_DIR',
-          required: true,
-          defaultValue: '../../../dev_logs',
-        },
-        { envVar: 'LOG_LEVEL', required: true, defaultValue: 'debug' },
-        { envVar: 'POOL_MONITOR_INTERVAL', required: false },
-        { envVar: 'SLOW_QUERY_THRESHOLD', required: false },
+        { envVar: 'LOGS_DIR', required: true },
+        { envVar: 'LOG_LEVEL', required: true },
         { envVar: 'PASSWORD_PEPPER', required: true },
       ],
       jwt: [
@@ -48,10 +42,18 @@ const loadAndValidateEnv = () => {
           secret: () => loadSecret('db_password', 'DB_PASSWORD'),
           required: true,
         },
-        { envVar: 'BACKUP_DIR', required: false },
+        
+        // Tooling
         { envVar: 'PG_DUMP_PATH', required: false },
+        
+        // Backup
+        { envVar: 'BACKUP_DIR', required: false },
         { envVar: 'MAX_BACKUPS', required: false },
-        { envVar: 'BACKUP_ENCRYPTION_KEY', required: false },
+        { envVar: 'BACKUP_ENCRYPTION_KEY', required: true },
+        
+        // Monitoring
+        { envVar: 'POOL_MONITOR_INTERVAL', required: false },
+        { envVar: 'SLOW_QUERY_THRESHOLD', required: false },
       ],
       rootAdmin: [
         { envVar: 'ROOT_ADMIN_EMAIL', required: true },
@@ -74,7 +76,6 @@ const loadAndValidateEnv = () => {
         { envVar: 'CSRF_TESTING', required: false },
         { envVar: 'COOKIE_SECURE', required: true },
         { envVar: 'COOKIE_SAMESITE', required: true },
-        { envVar: 'CSRF_COOKIE_MAXAGE', required: false },
       ],
       rateLimit: [
         { envVar: 'RATE_LIMIT_WINDOW_MS', required: false },
