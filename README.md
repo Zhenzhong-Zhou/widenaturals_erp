@@ -130,53 +130,6 @@ npm run dev
 This project is licensed under the MIT License.
 
 
-
-**Run with Docker**
-
-1. **Build and start the containers**:
-   ```bash
-    docker compose up --build
-   ```
-2. **Start the containers (without rebuild)**:
-   ```bash
-   docker compose up
-   docker compose up -d
-   ```
-3. **Run the development environment in Docker**:
-   ```bash
-   NODE_ENV=development docker compose up
-   ```
-4. **Rebuild Docker Containers**
-   ```bash
-       docker compose down
-       docker compose down -v
-   ```
-
-
-
-## Logging Results
-
-**Save test results to a file for later analysis**:
-
-```
-artillery run real-time-test.yaml -o results.json
-```
-
-**You can then generate a detailed HTML report**:
-
-```
-artillery report -o report.html results.json
-```
-
-**generates a 32-byte hexadecimal key:**
-
-```bash
-    openssl rand -hex 32
-    head -c 32 /dev/urandom | xxd -p -c 64
-```
-
-**Set Up .pgpass in Production**
-
 **Prevent Storing Passwords in Bash History**:
 
 ```bash
@@ -190,19 +143,6 @@ set +o history
 pg_dump -U your_user -h localhost -d your_db -f backup.sql
 set -o history
 ```
-
-1. **Create .pgpass file**:
-   ```bash
-     nano ~/.pgpass
-   ```
-2. **Add database credentials**:
-   ```bash
-     localhost:5432:widenaturals_erp_production:your_user:your_password
-   ```
-3. **Set strict permissions**:
-   ```bash
-    chmod 600 ~/.pgpass
-   ```
 
 Set correct permissions:
 chmod 400 your-key.pem
