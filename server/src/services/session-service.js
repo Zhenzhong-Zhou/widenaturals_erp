@@ -7,150 +7,212 @@ const {
   resetFailedAttemptsAndUpdateLastLogin,
 } = require('../repositories/user-auth-repository');
 const { verifyPassword } = require('../business/user-auth-business');
-const { logSystemException, logSystemWarn, logSystemInfo } = require('../utils/system-logger');
-const { signToken, verifyToken } = require('../utils/token-helper');
+const { logSystemWarn, logSystemInfo } = require('../utils/system-logger');
+const { signToken, verifyToken } = require('../utils/auth/jwt-utils');
 const { transformLoginResponse } = require('../transformers/session-transformer');
+const { issueSessionWithTokens, revokeAllSessionsForUser } = require('../business/auth/session-lifecycle');
+const { insertLoginHistory } = require('../repositories/login-history-repository');
+const { insertTokenActivityLog } = require('../repositories/token-activity-log-repository');
 
 /**
  * Authenticates a user using email and password.
  *
- * This service performs a complete, transactional login flow with
- * concurrency safety and security hardening.
+ * Guarantees:
+ * - All authentication state mutations occur within a single database transaction
+ * - Enforces a single-session policy (previous sessions and tokens are revoked)
+ * - Returns a finalized, API-ready response on success
+ * - Throws on authentication or validation failure
+ * - Audit logging is best-effort and never affects control flow
  *
- * Responsibilities:
- * - Fetch and lock the user authentication record
- * - Validate account status and enforce lockout rules
- * - Verify credentials without leaking user existence
- * - Update login attempt counters (success or failure)
- * - Record successful login metadata
- * - Issue access and refresh tokens
- * - Normalize and validate the authentication result
+ * Authentication model:
+ * - Password-based authentication only
+ * - Latest successful login invalidates all prior sessions and refresh tokens
+ * - Access tokens are short-lived and stateless; refresh tokens are stateful
  *
- * Architectural guarantees:
- * - All authentication state mutations occur within a single transaction
- * - Returned data is API-ready and controller-safe
- * - Persistence-layer naming and formatting are fully encapsulated
+ * Security properties:
+ * - Does NOT leak user existence or account status
+ * - Does NOT expose session or token identifiers to callers
+ ugerAgent
+ * - Does NOT persist raw tokens (hashes only)
  *
- * Controllers MUST:
- * - Treat the returned object as final
- * - NOT rename, format, or interpret authentication fields
+ * Notes:
+ * - `deviceId` and `note` are optional metadata for auditing and future policy enforcement
+ * - Session and token lifecycle management is handled internally
  *
  * @param {string} email
  * @param {string} password
+ * @param {Object} context
+ * @param {string|null} context.ipAddress  - Client IP address (optional)
+ * @param {string|null} context.userAgent  - Client user agent (optional)
+ * @param {string|null} context.deviceId   - Client device identifier (optional)
+ * @param {string|null} context.note       - Optional audit note
  *
  * @returns {Promise<{
  *   accessToken: string,
  *   refreshToken: string,
  *   lastLogin: string | null
  * }>}
+ *
+ * @throws {AppError}
+ * - authenticationError   (invalid credentials)
+ * - accountLockedError    (lockout enforced)
+ * - validationError       (invalid input or state)
+ * - generalError          (unexpected failures)
  */
-const loginUserService = async (email, password) => {
+const loginUserService = async (
+  email,
+  password,
+  {
+    ipAddress = null,
+    userAgent = null,
+    deviceId = null,
+    note = null,
+  } = {}
+) => {
   const context = 'auth-service/loginUserService';
   
-  return withTransaction(async (client) => {
-    try {
-      const activeStatusId = getStatusId('general_active');
-      
-      if (!activeStatusId) {
-        throw AppError.validationError('Active status ID is required.');
-      }
-      
-      // ------------------------------------------------------------
-      // 1. Fetch & lock auth record (single source of truth)
-      // ------------------------------------------------------------
-      const auth = await getAndLockUserAuthByEmail(
-        email,
-        activeStatusId,
-        client
+  let issued;     // used for post-commit logging
+  let userId;     // used for post-commit logging
+  
+  // ------------------------------------------------------------
+  // Transactional auth flow
+  // ------------------------------------------------------------
+  const response = await withTransaction(async (client) => {
+    const activeStatusId = getStatusId('general_active');
+    if (!activeStatusId) {
+      throw AppError.validationError('Active status ID is required.');
+    }
+    
+    // 1. Fetch & lock auth record
+    const auth = await getAndLockUserAuthByEmail(
+      email,
+      activeStatusId,
+      client
+    );
+    
+    if (!auth) {
+      // Do NOT reveal whether email exists or account is inactive
+      throw AppError.authenticationError('Invalid email or password.');
+    }
+    
+    const {
+      user_id,
+      auth_id,
+      role_id,
+      password_hash,
+      last_login,
+      attempts,
+      failed_attempts,
+      lockout_time,
+    } = auth;
+    
+    userId = user_id;
+    
+    // 2. Lockout check
+    if (lockout_time && new Date(lockout_time) > new Date()) {
+      throw AppError.accountLockedError(
+        'Account locked. Try again later.',
+        { lockoutEndsAt: lockout_time }
       );
-      
-      const {
-        user_id,
-        auth_id,
-        role_id,
-        password_hash,
-        last_login,
-        attempts,
-        failed_attempts,
-        lockout_time,
-      } = auth;
-      
-      // ------------------------------------------------------------
-      // 2. Lockout check
-      // ------------------------------------------------------------
-      if (lockout_time && new Date(lockout_time) > new Date()) {
-        throw AppError.accountLockedError(
-          'Account locked. Try again later.',
-          { lockoutEndsAt: lockout_time }
-        );
-      }
-      
-      // ------------------------------------------------------------
-      // 3. Verify password
-      // ------------------------------------------------------------
-      const isValidPassword = await verifyPassword(
-        password_hash,
-        password
-      );
-      
-      const newTotalAttempts = attempts + 1;
-      
-      if (!isValidPassword) {
-        logSystemWarn('Login failed: invalid credentials', {
-          context,
-          email,
-        });
-        
-        await incrementFailedAttempts(
-          auth_id,
-          newTotalAttempts,
-          failed_attempts,
-          client
-        );
-        
-        throw AppError.authenticationError('Invalid email or password.');
-      }
-      
-      // ------------------------------------------------------------
-      // 4. Successful login bookkeeping
-      // ------------------------------------------------------------
-      await resetFailedAttemptsAndUpdateLastLogin(
+    }
+    
+    // 3. Verify password
+    if (!password_hash) {
+      throw AppError.serviceError('Authentication state is invalid.');
+    }
+    
+    const isValidPassword = await verifyPassword(password_hash, password);
+    const newTotalAttempts = attempts + 1;
+    
+    if (!isValidPassword) {
+      await incrementFailedAttempts(
         auth_id,
         newTotalAttempts,
+        failed_attempts,
         client
       );
-      
-      // ------------------------------------------------------------
-      // 5. Issue tokens
-      // ------------------------------------------------------------
-      const accessToken = signToken({ id: user_id, role: role_id });
-      const refreshToken = signToken(
-        { id: user_id, role: role_id },
-        true
-      );
-      
-      // ------------------------------------------------------------
-      // 6. Normalize service result (controller-ready)
-      // ------------------------------------------------------------
-      return transformLoginResponse({
-        accessToken,
-        refreshToken,
-        last_login,
-      });
-    } catch (error) {
-      if (!error.isExpected) {
-        logSystemException(error, 'Unexpected login failure', {
-          context,
-          email,
-          error: error.message,
-        });
-      }
-      
-      throw error instanceof AppError
-        ? error
-        : AppError.generalError('Login failed.');
+      throw AppError.authenticationError('Invalid email or password.');
     }
+    
+    // 4. Successful login bookkeeping
+    await resetFailedAttemptsAndUpdateLastLogin(
+      auth_id,
+      newTotalAttempts,
+      client
+    );
+    
+    // Enforce single-session policy: revoke all existing sessions and refresh tokens
+    await revokeAllSessionsForUser(user_id, client);
+    
+    // 5. Issue session + tokens
+    issued = await issueSessionWithTokens(
+      {
+        userId: user_id,
+        roleId: role_id,
+        ipAddress,
+        userAgent,
+        deviceId,
+        note,
+      },
+      client
+    );
+    
+    if (!issued) {
+      throw AppError.generalError('Login succeeded but no tokens were issued.');
+    }
+    
+    // 6. Return finalized response
+    return transformLoginResponse({
+      accessToken: issued.accessToken,
+      refreshToken: issued.refreshToken,
+      last_login,
+    });
   });
+  
+  // ------------------------------------------------------------
+  // Post-commit audit logging (best effort)
+  // ------------------------------------------------------------
+  try {
+    const loginSuccessActionId = getStatusId('login_success');
+    
+    await insertLoginHistory({
+      userId,
+      sessionId: issued.sessionId,
+      tokenId: issued.accessTokenId,
+      authActionTypeId: loginSuccessActionId,
+      status: 'success',
+      ipAddress,
+      userAgent,
+    }, null);
+    
+    await insertTokenActivityLog({
+      userId,
+      tokenId: issued.accessTokenId,
+      eventType: 'generate',
+      status: 'success',
+      tokenType: 'access',
+      ipAddress,
+      userAgent,
+    }, null);
+    
+    await insertTokenActivityLog({
+      userId,
+      tokenId: issued.refreshTokenId,
+      eventType: 'generate',
+      status: 'success',
+      tokenType: 'refresh',
+      ipAddress,
+      userAgent,
+    }, null);
+  } catch (logError) {
+    logSystemWarn('Post-login audit logging failed', {
+      context,
+      userId,
+      error: logError.message,
+    });
+  }
+  
+  return response;
 };
 
 /**

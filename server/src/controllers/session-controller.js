@@ -1,5 +1,6 @@
 const wrapAsync = require('../utils/wrap-async');
 const { loginUserService, refreshTokenService } = require('../services/session-service');
+const { parseUserAgent } = require('../utils/user-agent-utils');
 
 /**
  * Handles user authentication and session initialization.
@@ -30,10 +31,36 @@ const loginController = wrapAsync(async (req, res) => {
   // Pre-auth CSRF token (required before login)
   const csrfToken = req.csrfToken();
   
+  // Extract request context
+  const ipAddress =
+    req.headers['x-forwarded-for']?.split(',')[0]?.trim()
+    || req.socket.remoteAddress
+    || null;
+  
+  const userAgent = req.headers['user-agent'] || null;
+  
+  const deviceId =
+    typeof req.headers['x-device-id'] === 'string' &&
+    req.headers['x-device-id'].length >= 16 &&
+    req.headers['x-device-id'].length <= 128
+      ? req.headers['x-device-id']
+      : null;
+  
+  const uaInfo = parseUserAgent(userAgent);
+  
+  const note = uaInfo
+    ? `${uaInfo.os || 'Device'} (${uaInfo.browser || 'browser'})`
+    : null;
+  
   // ------------------------------------------------------------
   // 1. Authenticate user (domain + normalization handled by service)
   // ------------------------------------------------------------
-  const result = await loginUserService(email, password);
+  const result = await loginUserService(email, password, {
+    ipAddress,
+    userAgent,
+    deviceId,
+    note,
+  });
   
   // ------------------------------------------------------------
   // 2. Persist refresh token (transport concern only)
@@ -43,7 +70,11 @@ const loginController = wrapAsync(async (req, res) => {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
     maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: '/',
   });
+  
+  // Prevent caching of auth response
+  res.set('Cache-Control', 'no-store');
   
   // ------------------------------------------------------------
   // 3. Send response

@@ -120,6 +120,11 @@ const STATUS_KEY_LOOKUP = [
     table: 'fulfillment_status',
     name: 'pending',
   },
+  {
+    key: 'login_success',
+    table: 'auth_action_types',
+    name: 'Login Success',
+  },
 ];
 
 /**
