@@ -1,38 +1,51 @@
 import { type ReactNode, useEffect, useRef } from 'react';
-import { useAppDispatch } from '@store/storeHooks';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import { bootstrapSessionThunk } from '@features/session/state/sessionThunks';
+import { selectSessionBootstrapped } from '@features/session/state/sessionSelectors';
 
 /**
  * AppBootstrapGate
  *
- * One-time application bootstrap orchestrator.
+ * Root-level application bootstrap coordinator.
  *
  * Responsibilities:
- * - Trigger session bootstrap exactly once on initial app mount
- * - Delegate all bootstrap logic to Redux thunks
+ * - Triggers the session bootstrap flow exactly once on initial app mount
+ * - Ensures the client resolves authentication state before rendering routes
+ * - Delegates all bootstrap logic to Redux (no side effects here)
  *
  * Explicitly out of scope:
- * - Rendering loading states or fallback UI
- * - Blocking child rendering
- * - Authentication, authorization, or routing decisions
+ * - Rendering authentication UI or loading indicators
+ * - Making routing or authorization decisions
+ * - Handling login, logout, or token refresh logic
  *
- * Notes:
- * - A ref is used to guarantee idempotent execution, including
- *   under React 18 Strict Mode double-invocation of effects
- * - This component must be mounted at the root of the app
+ * Behavioral guarantees:
+ * - Children are rendered only after session bootstrap completes
+ * - Prevents premature route guards from redirecting during reload
+ *
+ * Implementation notes:
+ * - Uses a ref to guarantee idempotent execution, including under
+ *   React 18 Strict Mode double-invocation of effects
+ * - Must be mounted ABOVE the router and all route guards
  */
 const AppBootstrapGate = ({ children }: { children: ReactNode }) => {
   const dispatch = useAppDispatch();
-  // Guard against double execution in React 18 Strict Mode
-  const bootstrapped = useRef(false);
+  const bootstrapped = useAppSelector(selectSessionBootstrapped);
+  
+  // Guards against duplicate bootstrap in React 18 Strict Mode
+  const started = useRef(false);
   
   useEffect(() => {
-    // Ensure bootstrap runs only once, even under Strict Mode
-    if (bootstrapped.current) return;
-    bootstrapped.current = true;
+    if (started.current) return;
+    started.current = true;
     
+    // Bootstrap resolves auth state via refresh-token flow
     dispatch(bootstrapSessionThunk());
   }, [dispatch]);
+  
+  // Block rendering until session state is fully resolved
+  if (!bootstrapped) {
+    return null; // Optionally replace with splash / skeleton
+  }
   
   return <>{children}</>;
 };
