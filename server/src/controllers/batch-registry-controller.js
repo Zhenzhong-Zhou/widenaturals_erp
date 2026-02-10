@@ -32,7 +32,7 @@ const getPaginatedBatchRegistryController = wrapAsync(async (req, res) => {
     req.normalizedQuery;
   
   // Authenticated requester (populated by auth middleware)
-  const user = req.user;
+  const user = req.auth.user;
   
   if (!user) {
     throw AppError.authorizationError('Authenticated user missing');

@@ -37,7 +37,7 @@ const logoutController = wrapAsync(async (req, res) => {
   const isProduction = process.env.NODE_ENV === 'production';
   
   // Record logout intent (audit / future revocation handled in service)
-  await logoutService(req.user);
+  await logoutService(req.auth.user);
   
   // Clear refresh token cookie (idempotent)
   res.clearCookie('refreshToken', {
@@ -90,7 +90,7 @@ const logoutController = wrapAsync(async (req, res) => {
  * }
  */
 const changePasswordController = wrapAsync(async (req, res) => {
-  const userId = req.user.id;
+  const userId = req.auth.user.id;
   const { currentPassword, newPassword } = req.body;
   
   // All security invariants are enforced within the service layer

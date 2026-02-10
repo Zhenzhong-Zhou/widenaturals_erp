@@ -36,7 +36,7 @@ const uploadSkuImagesController = wrapAsync(async (req, res) => {
   const startTime = Date.now();
 
   const { skus } = req.body;
-  const user = req.user;
+  const user = req.auth.user;
 
   const isProd = process.env.NODE_ENV === 'production';
   const bucketName = process.env.S3_BUCKET_NAME;

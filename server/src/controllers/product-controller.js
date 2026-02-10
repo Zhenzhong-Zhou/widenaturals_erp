@@ -198,7 +198,7 @@ const updateProductStatusController = wrapAsync(async (req, res) => {
   // Step 1: Extract and validate inputs
   const { productId } = req.params;
   const { statusId } = req.body;
-  const user = req.user;
+  const user = req.auth.user;
 
   // Step 2: Execute service
   const result = await updateProductStatusService({
@@ -246,7 +246,7 @@ const updateProductStatusController = wrapAsync(async (req, res) => {
 const updateProductInfoController = wrapAsync(async (req, res) => {
   const { productId } = req.params;
   const updates = req.body;
-  const user = req.user; // injected by auth middleware
+  const user = req.auth.user; // injected by auth middleware
 
   // Basic input validation
   if (!productId) {
@@ -296,7 +296,7 @@ const createProductsController = wrapAsync(async (req, res) => {
   const traceId = `create-products-${Date.now().toString(36)}`;
 
   const { products } = req.body; // validated by Joi beforehand
-  const user = req.user; // populated by auth middleware
+  const user = req.auth.user; // populated by auth middleware
 
   if (!Array.isArray(products) || products.length === 0) {
     throw AppError.validationError('No products provided.', {

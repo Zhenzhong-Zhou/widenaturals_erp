@@ -35,7 +35,7 @@ const {
 const getPaginatedWarehouseInventorySummaryController = wrapAsync(
   async (req, res) => {
     const { page, limit, itemType } = req.query;
-    const user = req.user;
+    const user = req.auth.user;
 
     const { data, pagination } =
       await fetchPaginatedWarehouseInventoryItemSummary({
@@ -185,7 +185,7 @@ const createWarehouseInventoryRecordController = wrapAsync(
       );
     }
 
-    const user_id = req.user?.id;
+    const user_id = req.auth.user?.id;
     if (!user_id) {
       return next(AppError.validationError('Missing authenticated user.'));
     }
@@ -234,7 +234,7 @@ const adjustInventoryQuantitiesController = wrapAsync(
   async (req, res, next) => {
     const updates = req.body?.updates;
     const lock = req.body?.lock !== false; // defaults to true if undefined
-    const user_id = req.user?.id;
+    const user_id = req.auth.user?.id;
 
     if (!Array.isArray(updates) || updates.length === 0 || !user_id) {
       return next(AppError.validationError('Missing or invalid input data.'));

@@ -22,7 +22,7 @@ const wrapAsync = require('../utils/wrap-async');
  */
 const getAllPriceTypesController = wrapAsync(async (req, res, next) => {
   const { page = 1, limit = 10, name, startDate, endDate } = req.query;
-  const user = req.user;
+  const user = req.auth.user;
 
   logInfo('Request received for fetching pricing types', req, {
     context: 'pricing-type-controller',

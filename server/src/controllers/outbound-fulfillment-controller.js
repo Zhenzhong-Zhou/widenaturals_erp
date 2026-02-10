@@ -37,7 +37,7 @@ const { logInfo } = require('../utils/logger-helper');
  * @returns {Promise<import('express').Response>} JSON response with fulfillment result
  */
 const fulfillOutboundShipmentController = wrapAsync(async (req, res) => {
-  const user = req.user;
+  const user = req.auth.user;
   const { orderId } = req.params;
   const requestData = {
     ...req.body,
@@ -96,7 +96,7 @@ const fulfillOutboundShipmentController = wrapAsync(async (req, res) => {
  * @returns {Promise<import('express').Response>} JSON response with fulfillment confirmation result
  */
 const confirmOutboundFulfillmentController = wrapAsync(async (req, res) => {
-  const user = req.user;
+  const user = req.auth.user;
   const { orderId } = req.params;
 
   // Merge path param and request body
@@ -248,7 +248,7 @@ const getShipmentDetailsController = wrapAsync(async (req, res) => {
  * @returns {Promise<import('express').Response>} JSON response with manual fulfillment result
  */
 const completeManualFulfillmentController = wrapAsync(async (req, res) => {
-  const user = req.user;
+  const user = req.auth.user;
   const { shipmentId } = req.params;
 
   // Merge route param and request body into a single payload

@@ -24,7 +24,7 @@ const {
  */
 const createAddressController = wrapAsync(async (req, res) => {
   const addresses = req.body;
-  const user = req.user;
+  const user = req.auth.user;
 
   logInfo('Creating address record(s)', req, {
     context: 'address-controller/createAddressController',
@@ -74,7 +74,7 @@ const getPaginatedAddressesController = wrapAsync(async (req, res) => {
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
 
   const { data, pagination } = await fetchPaginatedAddressesService({
-    user: req.user,
+    user: req.auth.user,
     filters,
     page,
     limit,

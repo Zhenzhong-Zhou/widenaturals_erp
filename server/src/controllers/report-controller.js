@@ -8,7 +8,7 @@ const {
  *
  * This controller:
  * - Extracts normalized query parameters from `req.normalizedQuery` (provided by middleware)
- * - Extracts authenticated user from `req.user` for access control
+ * - Extracts authenticated user from `req.auth.user` for access control
  * - Passes filters, pagination, and sorting options to the service layer
  * - Returns the transformed logs along with pagination metadata
  *
@@ -19,8 +19,8 @@ const {
  */
 const getInventoryActivityLogsController = wrapAsync(async (req, res) => {
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
-
-  const user = req.user;
+  
+  const user = req.auth.user;
 
   const { data, pagination } = await fetchInventoryActivityLogsService(
     {

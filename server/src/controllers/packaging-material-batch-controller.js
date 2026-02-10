@@ -35,7 +35,7 @@ const getPaginatedPackagingMaterialBatchesController = wrapAsync(
       req.normalizedQuery;
     
     // Authenticated requester
-    const user = req.user;
+    const user = req.auth.user;
     
     if (!user) {
       throw AppError.authorizationError('Authenticated user missing');

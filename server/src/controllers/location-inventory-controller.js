@@ -79,7 +79,7 @@ const getLocationInventorySummaryController = wrapAsync(async (req, res) => {
 
   logInfo('Location inventory summary requested', req, {
     context: 'getLocationInventorySummaryController',
-    userId: req.user?.id || 'anonymous',
+    userId: req.auth.user?.id || 'anonymous',
     page,
     limit,
     sortBy,

@@ -44,7 +44,7 @@ const { logInfo } = require('../utils/logger-helper');
 const allocateInventoryForOrderController = wrapAsync(async (req, res) => {
   const { orderId } = req.params;
   const { strategy, warehouseId } = req.body;
-  const user = req.user;
+  const user = req.auth.user;
 
   const result = await allocateInventoryForOrderService(user, orderId, {
     strategy,
@@ -100,7 +100,7 @@ const reviewInventoryAllocationController = wrapAsync(async (req, res) => {
     context: 'inventory/reviewInventoryAllocationController',
     orderId,
     allocationIds,
-    user: req.user?.id,
+    user: req.auth.user?.id,
   };
 
   const reviewData = await reviewInventoryAllocationService(
@@ -205,7 +205,7 @@ const getPaginatedInventoryAllocationsController = wrapAsync(
  *
  * Expected input:
  * - `req.params.orderId`: UUID of the order to confirm allocation for.
- * - `req.user`: Authenticated user object injected by auth middleware.
+ * - `req.auth.user`: Authenticated user object injected by auth middleware.
  *
  * Success Response (200 OK):
  * {
@@ -226,7 +226,7 @@ const getPaginatedInventoryAllocationsController = wrapAsync(
  */
 const confirmInventoryAllocationController = wrapAsync(async (req, res) => {
   const rawOrderId = req.params.orderId;
-  const user = req.user;
+  const user = req.auth.user;
 
   logInfo('Received inventory allocation confirmation request', req, {
     context:

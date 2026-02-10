@@ -37,7 +37,7 @@ const { cleanObject } = require('../utils/object-utils');
 const createOrderController = wrapAsync(async (req, res, next) => {
   const { category } = req.params;
   const orderData = req.body;
-  const user = req.user;
+  const user = req.auth.user;
   const userId = user?.id;
 
   if (!category) {
@@ -73,7 +73,7 @@ const createOrderController = wrapAsync(async (req, res, next) => {
   });
 
   // Business entrypoint — transaction + domain rules live beneath
-  const result = await createOrderService(payload, cleanCategory, req.user);
+  const result = await createOrderService(payload, cleanCategory, req.auth.user);
 
   logInfo('Order created successfully', req, {
     context: 'order-controller/createOrderController',
@@ -104,7 +104,7 @@ const createOrderController = wrapAsync(async (req, res, next) => {
  * - `req.query` (object): Optional filters and pagination parameters.
  * - `req.normalizedQuery` (object): Normalized and parsed version of query params,
  *     including `filters`, `page`, `limit`, `sortBy`, `sortOrder`.
- * - `req.user` (object): Authenticated user with permissions context.
+ * - `req.auth.user` (object): Authenticated user with permissions context.
  *
  * Supported Query Parameters:
  * - Pagination: `page`, `limit`
@@ -136,7 +136,7 @@ const createOrderController = wrapAsync(async (req, res, next) => {
  */
 const fetchPaginatedOrdersController = wrapAsync(async (req, res) => {
   const category = req.params.category;
-  const user = req.user;
+  const user = req.auth.user;
 
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
 
@@ -217,7 +217,7 @@ const fetchPaginatedOrdersController = wrapAsync(async (req, res) => {
  */
 const getOrderDetailsByIdController = wrapAsync(async (req, res) => {
   const { category, orderId } = req.params;
-  const user = req.user;
+  const user = req.auth.user;
 
   // Normalize category
   const cleanCategory = category.toLowerCase();
@@ -279,7 +279,7 @@ const getOrderDetailsByIdController = wrapAsync(async (req, res) => {
  *   - Logging includes contextual metadata for traceability.
  */
 const updateOrderStatusController = wrapAsync(async (req, res) => {
-  const user = req.user; // must be injected by auth middleware
+  const user = req.auth.user; // must be injected by auth middleware
   const categoryParam = String(req.params.category || '')
     .trim()
     .toLowerCase();

@@ -143,7 +143,7 @@ router.get(
  *      - Granted to all authenticated user roles.
  *
  * 2. getUserProfileController
- *      - Resolves target user as req.user.id
+ *      - Resolves target user as req.auth.user.id
  *      - Delegates visibility enforcement to the service layer
  *      - Returns a fully transformed UserProfileDTO
  *
