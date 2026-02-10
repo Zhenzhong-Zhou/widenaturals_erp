@@ -8,21 +8,26 @@ exports.up = async function (knex) {
     table.uuid('user_id').notNullable().references('id').inTable('users');
 
     table.text('session_token_hash').notNullable(); // Store hash only
-    table.timestamp('created_at').defaultTo(knex.fn.now()); // Login time
-    table.timestamp('last_activity_at').defaultTo(knex.fn.now()); // Updated per action
-    table.timestamp('revoked_at').nullable(); // Set when session is killed or expired
+    table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(knex.fn.now()); // Login time
+    table.timestamp('last_activity_at', { useTz: true }).notNullable().defaultTo(knex.fn.now()); // Updated per action
+    table.timestamp('expires_at', { useTz: true }).notNullable();
+  
+    table.timestamp('revoked_at', { useTz: true }).nullable(); // Set when session is killed or expired
+    table.timestamp('logout_at', { useTz: true }).nullable();
 
     table.string('ip_address', 45).nullable(); // IPv4 or IPv6
     table.text('user_agent').nullable();
     table.string('device_id').nullable(); // Optional per-device ID
 
-    table.timestamp('login_at', { useTz: true }).defaultTo(knex.fn.now());
-    table.timestamp('logout_at', { useTz: true }).nullable();
-    table.boolean('is_active').defaultTo(true);
-
     table.text('note').nullable();
-
-    table.index(['user_id', 'is_active']);
+    
+    table.index(['user_id', 'expires_at', 'revoked_at']);
+    table.index(['expires_at']);
+    table.index(['session_token_hash']);
+    
+    table.unique(['session_token_hash'], {
+      indexName: 'sessions_token_hash_unique',
+    });
   });
 };
 

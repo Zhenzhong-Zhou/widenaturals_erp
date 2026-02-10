@@ -26,6 +26,7 @@ exports.up = async function (knex) {
     table.text('user_agent').nullable();
     table
       .timestamp('event_timestamp', { useTz: true })
+      .notNullable()
       .defaultTo(knex.fn.now());
 
     table.index(['user_id', 'event_timestamp']);
