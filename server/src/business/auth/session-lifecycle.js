@@ -1,8 +1,16 @@
 const { signToken } = require('../../utils/auth/jwt-utils');
 const { hashToken } = require('../../utils/auth/token-hash');
 const { getTokenExpiry } = require('../../utils/auth/token-expiry');
-const { insertSession, revokeSessionsByUserId } = require('../../repositories/session-repository');
-const { insertToken, revokeTokensByUserId } = require('../../repositories/token-repository');
+const {
+  insertSession,
+  revokeSessionsByUserId,
+  revokeSessionRowById
+} = require('../../repositories/session-repository');
+const {
+  insertToken,
+  revokeTokensByUserId,
+  revokeAllTokensBySessionId
+} = require('../../repositories/token-repository');
 const { logSystemInfo, logSystemException } = require('../../utils/system-logger');
 
 /**
@@ -185,7 +193,33 @@ const revokeAllSessionsForUser = async (userId, client = null) => {
   }
 };
 
+/**
+ * Fully revokes a session and all associated tokens.
+ *
+ * BUSINESS INVARIANT:
+ * - A revoked session MUST NOT have active tokens.
+ * - These operations must remain coupled.
+ *
+ * @param {string} sessionId
+ * @param {Object|null} client
+ */
+const revokeSession = async (sessionId, client = null) => {
+  const context = 'session-service/revokeSession';
+  
+  try {
+    await revokeSessionRowById(sessionId, client);
+    await revokeAllTokensBySessionId(sessionId, client);
+  } catch (error) {
+    logSystemException(error, 'Failed to revoke session', {
+      context,
+      sessionId,
+    });
+    throw error;
+  }
+};
+
 module.exports = {
   issueSessionWithTokens,
   revokeAllSessionsForUser,
+  revokeSession,
 };

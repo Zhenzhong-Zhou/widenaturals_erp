@@ -1,6 +1,7 @@
 const wrapAsync = require('../utils/wrap-async');
 const { loginUserService, refreshTokenService } = require('../services/session-service');
 const { parseUserAgent } = require('../utils/user-agent-utils');
+const { getTtlMs } = require('../utils/auth/jwt-utils');
 
 /**
  * Handles user authentication and session initialization.
@@ -115,7 +116,7 @@ const loginController = wrapAsync(async (req, res) => {
  * @param {import('express').Response} res
  *   Express response object. Sets rotated refresh token cookie and returns access token.
  *
- * @returns {Promise<void>}
+ * @returns {Promise<void>} Resolves after issuing new tokens and setting cookies
  */
 const refreshTokenController = wrapAsync(async (req, res) => {
   // Refresh tokens are stored in HTTP-only cookies
@@ -130,8 +131,11 @@ const refreshTokenController = wrapAsync(async (req, res) => {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+    maxAge: getTtlMs('REFRESH_TOKEN_TTL_SECONDS'),
+    path: '/',
   });
+  
+  res.set('Cache-Control', 'no-store');
   
   // Return new access token for subsequent authenticated requests
   res.status(200).json({
@@ -139,6 +143,9 @@ const refreshTokenController = wrapAsync(async (req, res) => {
     message: 'Token refreshed successfully',
     data: {
       accessToken,
+    },
+    meta: {
+      rotatedAt: new Date().toISOString(),
     },
   });
 });

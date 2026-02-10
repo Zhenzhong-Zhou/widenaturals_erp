@@ -239,9 +239,54 @@ const updateSessionLastActivityAt = async (sessionId, client = null) => {
   }
 };
 
+/**
+ * Marks a session as revoked.
+ *
+ * Repository guarantees:
+ * - Safe to call multiple times (idempotent)
+ * - Performs a single, bounded UPDATE
+ * - No validation or business logic
+ *
+ * Semantics:
+ * - Permanently invalidates the session
+ * - Does NOT revoke tokens (handled by business layer)
+ * - Does NOT affect logout timestamps
+ *
+ * @param {string} sessionId
+ * @param {Object|null} client
+ *
+ * @returns {Promise<boolean>} true if session was revoked, false if already revoked
+ */
+const revokeSessionRowById = async (sessionId, client = null) => {
+  const context = 'session-repository/revokeSessionRowById';
+  
+  const sql = `
+    UPDATE sessions
+    SET
+      revoked_at = NOW(),
+      updated_at = NOW()
+    WHERE id = $1
+      AND revoked_at IS NULL
+    RETURNING id;
+  `;
+  
+  try {
+    const { rowCount } = await query(sql, [sessionId], client);
+    
+    return rowCount > 0;
+  } catch (error) {
+    logSystemException(error, 'Failed to revoke session', {
+      context,
+      sessionId,
+    });
+    throw error;
+  }
+};
+
 module.exports = {
   insertSession,
   getSessionById,
   revokeSessionsByUserId,
   updateSessionLastActivityAt,
+  revokeSessionRowById,
 };

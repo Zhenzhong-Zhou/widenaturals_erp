@@ -13,6 +13,11 @@ const { transformLoginResponse } = require('../transformers/session-transformer'
 const { issueSessionWithTokens, revokeAllSessionsForUser } = require('../business/auth/session-lifecycle');
 const { insertLoginHistory } = require('../repositories/login-history-repository');
 const { insertTokenActivityLog } = require('../repositories/token-activity-log-repository');
+const { validateRefreshTokenState } = require('../utils/auth/validate-token');
+const { validateSessionState } = require('../utils/auth/validate-session');
+const { revokeTokenById, insertToken, revokeTokensBySessionAndType } = require('../repositories/token-repository');
+const { hashToken } = require('../utils/auth/token-hash');
+const { getTokenExpiry } = require('../utils/auth/token-expiry');
 
 /**
  * Authenticates a user using email and password.
@@ -218,40 +223,42 @@ const loginUserService = async (
 /**
  * Refreshes authentication tokens using a valid refresh token.
  *
- * This service represents the domain-level refresh operation. It is responsible
- * for validating the provided refresh token, rotating it, and issuing a new
- * access token. All token semantics and error conditions are enforced here,
- * not at the controller layer.
+ * This service implements the domain-level refresh-token rotation flow.
+ * It validates the provided refresh token, enforces persistence and session
+ * state, revokes prior credentials, and issues a new access/refresh token pair.
  *
  * Responsibilities:
  * - Assert presence of a refresh token
- * - Cryptographically verify the refresh token
- * - Translate token verification failures into domain-specific auth errors
- * - Rotate the refresh token
- * - Issue a new access token
- * - Emit structured audit / security logs
+ * - Cryptographically verify the refresh token (JWT signature & claims)
+ * - Validate refresh token persistence state (existence, type, expiry, revocation)
+ * - Validate the associated session lifecycle state
+ * - Detect refresh-token reuse and revoke compromised sessions
+ * - Rotate refresh token and issue a new access token
+ * - Persist newly issued tokens securely (hashed only)
+ * - Emit structured audit logs on successful rotation
  *
  * Security model:
  * - This service does NOT depend on access-token authentication.
- * - Missing, expired, or invalid refresh tokens are treated as expected
- *   authentication failures and surfaced as domain errors.
- * - Logging is intentional and represents successful token rotation only.
+ * - Refresh tokens are single-use and MUST be rotated on every invocation.
+ * - Reuse of a revoked refresh token is treated as a session compromise.
  *
  * Notes:
- * - This operation is idempotent with respect to client behavior; callers
- *   may safely retry as needed.
+ * - This operation is intentionally NOT idempotent.
+ * - Clients MUST replace stored refresh tokens after a successful response.
  * - HTTP concerns (cookies, headers, status codes) are handled by controllers.
  *
  * @param {string | undefined | null} refreshToken
- *   Refresh token extracted from an HTTP-only cookie.
+ *   Raw refresh token extracted from an HTTP-only cookie.
  *
- * @returns {Promise<{ accessToken: string, refreshToken: string }>}
- *   Newly issued access token and rotated refresh token.
+ * @returns {Promise<{
+ *   accessToken: string,
+ *   refreshToken: string
+ * }>}
  *
  * @throws {AppError}
- *   - refreshTokenError: refresh token missing
- *   - refreshTokenExpiredError: refresh token expired
- *   - tokenRevokedError: refresh token invalid
+ *   - refreshTokenError: missing or invalid refresh token
+ *   - refreshTokenExpiredError: expired refresh token
+ *   - authenticationError: session invalid or compromised
  */
 const refreshTokenService = async (refreshToken) => {
   const context = 'auth-service/refreshTokenService';
@@ -259,54 +266,95 @@ const refreshTokenService = async (refreshToken) => {
   // Refresh token presence is a domain requirement, not an HTTP concern
   if (!refreshToken) {
     throw AppError.refreshTokenError(
-      'Refresh token is required. Please log in again.',
-      { logLevel: 'warn' }
+      'Refresh token is required. Please log in again.'
     );
   }
   
-  let payload;
+  // ------------------------------------------------------------
+  // 1. Verify JWT cryptographically
+  // ------------------------------------------------------------
+  // JWT verification proves cryptographic validity only.
+  // Persistence, revocation, and session state are enforced below.
+  const payload = verifyToken(refreshToken, true);
   
-  // Verify refresh token and map low-level token errors to domain errors
-  try {
-    payload = verifyToken(refreshToken, true);
-  } catch (error) {
-    if (error.name === 'RefreshTokenExpiredError') {
-      throw AppError.refreshTokenExpiredError(
-        'Refresh token expired. Please log in again.'
-      );
-    }
+  return withTransaction(async (client) => {
+    // ------------------------------------------------------------
+    // 2. Validate refresh token persistence state
+    // ------------------------------------------------------------
+    const token = await validateRefreshTokenState(refreshToken, client);
     
-    if (error.name === 'JsonWebTokenError') {
-      throw AppError.tokenRevokedError(
-        'Invalid refresh token. Please log in again.'
-      );
-    }
+    // ------------------------------------------------------------
+    // 3. Validate associated session
+    // ------------------------------------------------------------
+    const session = await validateSessionState(token.session_id, client);
     
-    // Unexpected verification failure — allow centralized error handling
-    throw error;
-  }
-  
-  // Rotate refresh token and issue a new access token
-  const newRefreshToken = signToken(
-    { id: payload.id, role: payload.role },
-    true
-  );
-  
-  const newAccessToken = signToken({
-    id: payload.id,
-    role: payload.role,
+    // ------------------------------------------------------------
+    // 4. Rotate refresh token (revoke old)
+    // ------------------------------------------------------------
+    await revokeTokenById(token.id, client);
+    
+    // Enforce single active access token per session
+    // and prevent token replay during refresh rotation
+    await revokeTokensBySessionAndType(
+      session.id,
+      'access',
+      client
+    );
+    
+    // ------------------------------------------------------------
+    // 5. Issue new tokens
+    // ------------------------------------------------------------
+    const newAccessToken = signToken({
+      id: payload.id,
+      role: payload.role,
+    });
+    
+    const newRefreshToken = signToken(
+      { id: payload.id, role: payload.role },
+      true
+    );
+    
+    // ------------------------------------------------------------
+    // 6. Persist new tokens
+    // ------------------------------------------------------------
+    const accessTokenHash = hashToken(newAccessToken);
+    const refreshTokenHash = hashToken(newRefreshToken);
+    
+    await insertToken(
+      {
+        userId: payload.id,
+        sessionId: session.id,
+        tokenType: 'access',
+        tokenHash: accessTokenHash,
+        expiresAt: getTokenExpiry(false),
+        context: 'refresh',
+      },
+      client
+    );
+    
+    await insertToken(
+      {
+        userId: payload.id,
+        sessionId: session.id,
+        tokenType: 'refresh',
+        tokenHash: refreshTokenHash,
+        expiresAt: getTokenExpiry(true),
+        context: 'refresh',
+      },
+      client
+    );
+    
+    logSystemInfo('Refresh token rotated', {
+      context,
+      userId: payload.id,
+      sessionId: session.id,
+    });
+    
+    return {
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+    };
   });
-  
-  // Successful rotation is a security-relevant event worth auditing
-  logSystemInfo('Refresh token rotated', {
-    context,
-    userId: payload.id,
-  });
-  
-  return {
-    accessToken: newAccessToken,
-    refreshToken: newRefreshToken,
-  };
 };
 
 module.exports = {

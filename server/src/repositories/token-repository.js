@@ -212,8 +212,149 @@ const revokeTokensByUserId = async (
   }
 };
 
+/**
+ * Revokes a token by ID.
+ *
+ * Repository guarantees:
+ * - Safe to call multiple times (idempotent)
+ * - Performs a single bounded UPDATE
+ * - No validation or business logic
+ *
+ * Semantics:
+ * - Marks the token as revoked
+ * - Does NOT affect session state
+ *
+ * @param {string} tokenId
+ * @param {Object|null} client
+ *
+ * @returns {Promise<boolean>} true if token was revoked, false if already revoked
+ */
+const revokeTokenById = async (tokenId, client = null) => {
+  const context = 'token-repository/revokeTokenById';
+  
+  const sql = `
+    UPDATE tokens
+    SET
+      is_revoked = TRUE,
+      updated_at = NOW()
+    WHERE id = $1
+      AND is_revoked = FALSE
+    RETURNING id;
+  `;
+  
+  try {
+    const { rowCount } = await query(sql, [tokenId], client);
+    return rowCount > 0;
+  } catch (error) {
+    logSystemException(error, 'Failed to revoke token', {
+      context,
+      tokenId,
+    });
+    throw error;
+  }
+};
+
+/**
+ * Revokes all active tokens of a given type for a session.
+ *
+ * Repository guarantees:
+ * - Safe to call multiple times (idempotent)
+ * - Performs a bounded bulk UPDATE
+ * - No validation or business logic
+ *
+ * Semantics:
+ * - Revokes only tokens of the specified type
+ * - Does NOT affect session state
+ *
+ * @param {string} sessionId
+ * @param {'access' | 'refresh'} tokenType
+ * @param {Object|null} client
+ *
+ * @returns {Promise<boolean>} true if any tokens were revoked, false otherwise
+ */
+const revokeTokensBySessionAndType = async (
+  sessionId,
+  tokenType,
+  client = null
+) => {
+  const context = 'token-repository/revokeTokensBySessionAndType';
+  
+  const sql = `
+    UPDATE tokens
+    SET
+      is_revoked = TRUE,
+      updated_at = NOW()
+    WHERE session_id = $1
+      AND token_type = $2
+      AND is_revoked = FALSE
+    RETURNING id;
+  `;
+  
+  try {
+    const { rowCount } = await query(
+      sql,
+      [sessionId, tokenType],
+      client
+    );
+    
+    return rowCount > 0;
+  } catch (error) {
+    logSystemException(error, 'Failed to revoke tokens by session and type', {
+      context,
+      sessionId,
+      tokenType,
+    });
+    throw error;
+  }
+};
+
+/**
+ * Revokes all active tokens associated with a session.
+ *
+ * Repository guarantees:
+ * - Safe to call multiple times (idempotent)
+ * - Performs a bounded bulk UPDATE
+ * - No validation or business logic
+ *
+ * Semantics:
+ * - Revokes all tokens under the session
+ * - Does NOT modify session lifecycle fields
+ *
+ * @param {string} sessionId
+ * @param {Object|null} client
+ *
+ * @returns {Promise<boolean>} true if any tokens were revoked, false otherwise
+ */
+const revokeAllTokensBySessionId = async (sessionId, client = null) => {
+  const context = 'token-repository/revokeAllTokensBySessionId';
+  
+  const sql = `
+    UPDATE tokens
+    SET
+      is_revoked = TRUE,
+      updated_at = NOW()
+    WHERE session_id = $1
+      AND is_revoked = FALSE
+    RETURNING id;
+  `;
+  
+  try {
+    const { rowCount } = await query(sql, [sessionId], client);
+    return rowCount > 0;
+  } catch (error) {
+    logSystemException(error, 'Failed to revoke all tokens for session', {
+      context,
+      sessionId,
+    });
+    throw error;
+  }
+};
+
 module.exports = {
   insertToken,
   getTokenByHash,
   revokeTokensByUserId,
+  revokeTokenById,
+  revokeTokensBySessionAndType,
+  revokeAllTokensBySessionId,
 };

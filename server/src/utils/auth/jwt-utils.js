@@ -25,6 +25,22 @@ const getTtlSeconds = (envKey) => {
 };
 
 /**
+ * Returns token TTL in milliseconds for cookie usage.
+ *
+ * @param {string} envKey
+ * @returns {number}
+ */
+const getTtlMs = (envKey) => {
+  const seconds = getTtlSeconds(envKey);
+  
+  if (!Number.isInteger(seconds) || seconds <= 0) {
+    throw new Error(`${envKey} must be a positive integer (seconds)`);
+  }
+  
+  return seconds * 1000;
+};
+
+/**
  * Signs a JWT access or refresh token.
  *
  * Security guarantees:
@@ -120,6 +136,7 @@ const verifyToken = (token, isRefresh = false) => {
 
 module.exports = {
   getTtlSeconds,
+  getTtlMs,
   signToken,
   verifyToken,
 };
