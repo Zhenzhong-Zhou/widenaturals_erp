@@ -11,6 +11,7 @@ import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { AppError } from '@utils/error';
 import { selectCsrfToken } from '@features/csrf/state';
 import { store } from '@store/store';
+import { getOrCreateDeviceId } from '@utils/deviceId.ts';
 
 /* =========================================================
  * Login
@@ -19,19 +20,19 @@ import { store } from '@store/store';
 /**
  * Performs credential-based authentication against the session API.
  *
- * This service is responsible for executing the login request and
- * validating the returned authentication payload. It does NOT
- * mutate Redux state directly; state updates are handled by the
- * calling thunk or controller.
+ * This service executes the login request and validates the returned
+ * authentication payload. It does NOT mutate Redux state directly;
+ * state updates are handled by the calling thunk or controller.
  *
  * Responsibilities:
  * - Enforce defensive guards against invalid invocation
+ * - Generate and attach a stable device identifier
  * - Invoke the login endpoint using the AUTH HTTP policy
  * - Validate the response envelope and payload shape
  *
  * Explicitly NOT responsible for:
- * - Persisting tokens
- * - Updating Redux session state
+ * - Persisting tokens or cookies
+ * - Updating Redux authentication or session state
  * - Triggering navigation or redirects
  *
  * @param email
@@ -64,13 +65,22 @@ const login = async (
   
   const payload: LoginRequestBody = { email, password };
   
+  const deviceId = getOrCreateDeviceId();
+  
   const response = await postRequest<
     LoginRequestBody,
     LoginApiResponse
   >(
     API_ENDPOINTS.SECURITY.SESSION.LOGIN,
     payload,
-    { policy: 'AUTH' }
+    {
+      policy: 'AUTH',
+      config: {
+        headers: {
+          'X-Device-Id': deviceId,
+        },
+      },
+    },
   );
   
   // Validate response envelope
