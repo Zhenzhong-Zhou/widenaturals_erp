@@ -5,6 +5,7 @@
 
 const wrapAsync = require('../utils/wrap-async');
 const { logoutService, changePasswordService  } = require('../services/auth-service');
+const AppError = require('../utils/AppError');
 
 /**
  * Handles user logout.
@@ -83,18 +84,19 @@ const logoutController = wrapAsync(async (req, res) => {
  *
  * Changes the password of the currently authenticated user.
  *
- * This endpoint performs an authenticated password change and
- * invalidates existing refresh tokens to force re-authentication
- * on subsequent requests.
+ * This endpoint performs a security-critical password mutation and
+ * revokes all active sessions and tokens associated with the user.
  *
  * ─────────────────────────────────────────────────────────────
  * Security characteristics
  * ─────────────────────────────────────────────────────────────
  * - Requires prior authentication
  * - Verifies the user's current password
- * - Enforces the configured password policy
- * - Prevents password reuse based on history
- * - Invalidates existing refresh tokens
+ * - Enforces the configured password strength policy
+ * - Prevents password reuse based on stored history
+ * - Revokes all active sessions
+ * - Revokes all access and refresh tokens
+ * - Forces re-authentication across all devices
  *
  * ─────────────────────────────────────────────────────────────
  * Request body
@@ -109,28 +111,44 @@ const logoutController = wrapAsync(async (req, res) => {
  * ─────────────────────────────────────────────────────────────
  * {
  *   success: true,
- *   changedAt: string,       // ISO timestamp
+ *   changedAt: string,       // ISO 8601 timestamp
  *   message: string
  * }
+ *
+ * Notes:
+ * - After a successful password change, the client must log in again.
+ * - Any existing refresh token cookie is cleared by the controller.
  */
 const changePasswordController = wrapAsync(async (req, res) => {
   const userId = req.auth.user.id;
   const { currentPassword, newPassword } = req.body;
   
-  // All security invariants are enforced within the service layer
-  await changePasswordService(userId, currentPassword, newPassword);
+  // Transport-level validation
+  if (!currentPassword || !newPassword) {
+    throw AppError.validationError(
+      'Both current and new passwords are required.'
+    );
+  }
   
-  // Invalidate existing refresh tokens to force re-authentication
+  // All security invariants handled in service
+  await changePasswordService(
+    userId,
+    currentPassword,
+    newPassword
+  );
+  
+  // Clear refresh token cookie (force re-auth)
   res.clearCookie('refreshToken', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+    sameSite: 'strict',
+    path: '/',
   });
   
   return res.status(200).json({
     success: true,
     changedAt: new Date().toISOString(),
-    message: 'Password changed successfully.',
+    message: 'Password changed successfully. Please log in again.',
   });
 });
 

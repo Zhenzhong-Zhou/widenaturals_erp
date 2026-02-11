@@ -1,5 +1,9 @@
 const { query } = require('../database/db');
-const { logSystemInfo, logSystemException } = require('../utils/system-logger');
+const {
+  logSystemInfo,
+  logSystemException,
+  logSystemWarn
+} = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
 /**
@@ -379,10 +383,84 @@ const resetFailedAttemptsAndUpdateLastLogin = async (
   }
 };
 
+/**
+ * Updates a user's password hash and password history.
+ *
+ * Repository guarantees:
+ * - Performs a single UPDATE statement
+ * - Does not contain business logic
+ * - Does not validate password policy
+ * - Throws on database failure
+ *
+ * @param {string} authId
+ * @param {string} newPasswordHash
+ * @param {Array<Object>} updatedHistory
+ * @param {Object|null} client
+ *
+ * @returns {Promise<void>}
+ */
+const updatePasswordAndHistory = async (
+  authId,
+  newPasswordHash,
+  updatedHistory,
+  client = null
+) => {
+  const context = 'user-auth-repository/updatePasswordAndHistory';
+  
+  const sql = `
+    UPDATE user_auth
+    SET
+      password_hash = $1,
+      metadata = jsonb_set(
+        COALESCE(metadata, '{}'),
+        '{password_history}',
+        $2::jsonb
+      ),
+      updated_at = NOW()
+    WHERE id = $3
+    RETURNING id;
+  `;
+  
+  const params = [
+    newPasswordHash,
+    JSON.stringify(updatedHistory),
+    authId,
+  ];
+  
+  try {
+    const { rows } = await query(sql, params, client);
+    
+    if (!rows.length) {
+      logSystemWarn('Password update affected no rows', {
+        context,
+        authId,
+      });
+      
+      return null;
+    }
+    
+    logSystemInfo('Password and history updated', {
+      context,
+      authId,
+    });
+    
+    return rows[0] || null;
+  } catch (error) {
+    logSystemException(error, 'Failed to update password and history', {
+      context,
+      authId,
+      error: error.message,
+    });
+    
+    throw error;
+  }
+};
+
 module.exports = {
   insertUserAuth,
   getAndLockUserAuthByEmail,
   getAndLockUserAuthByUserId,
   incrementFailedAttempts,
   resetFailedAttemptsAndUpdateLastLogin,
+  updatePasswordAndHistory,
 };
