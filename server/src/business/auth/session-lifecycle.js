@@ -4,7 +4,7 @@ const { getTokenExpiry } = require('../../utils/auth/token-expiry');
 const {
   insertSession,
   revokeSessionsByUserId,
-  revokeSessionRowById
+  revokeSessionRowById, logoutSessionRowById
 } = require('../../repositories/session-repository');
 const {
   insertToken,
@@ -218,8 +218,44 @@ const revokeSession = async (sessionId, client = null) => {
   }
 };
 
+/**
+ * Logs out a session and revokes all associated tokens.
+ *
+ * BUSINESS INVARIANTS:
+ * - A logged-out session MUST NOT have active tokens
+ * - Logout represents explicit user intent (not a security revocation)
+ * - Token revocation is mandatory and coupled to logout
+ *
+ * Notes:
+ * - Idempotent by design
+ * - Safe to call even if session is already logged out or revoked
+ *
+ * @param {string} sessionId
+ * @param {Object|null} client
+ *
+ * @returns {Promise<void>}
+ */
+const logoutSession = async (sessionId, client = null) => {
+  const context = 'session-service/logoutSession';
+  
+  try {
+    // Record explicit user logout intent + invalidate session
+    await logoutSessionRowById(sessionId, client);
+    
+    // Revoke all tokens tied to this session
+    await revokeAllTokensBySessionId(sessionId, client);
+  } catch (error) {
+    logSystemException(error, 'Failed to log out session', {
+      context,
+      sessionId,
+    });
+    throw error;
+  }
+};
+
 module.exports = {
   issueSessionWithTokens,
   revokeAllSessionsForUser,
   revokeSession,
+  logoutSession,
 };

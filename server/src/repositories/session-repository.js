@@ -263,8 +263,7 @@ const revokeSessionRowById = async (sessionId, client = null) => {
   const sql = `
     UPDATE sessions
     SET
-      revoked_at = NOW(),
-      updated_at = NOW()
+      revoked_at = NOW()
     WHERE id = $1
       AND revoked_at IS NULL
     RETURNING id;
@@ -283,10 +282,53 @@ const revokeSessionRowById = async (sessionId, client = null) => {
   }
 };
 
+/**
+ * Marks a session as logged out by the user.
+ *
+ * Repository guarantees:
+ * - Safe to call multiple times (idempotent)
+ * - Performs a single, bounded UPDATE
+ * - No validation or business logic
+ *
+ * Semantics:
+ * - Records explicit user logout intent
+ * - Invalidates the session
+ * - Distinguishes voluntary logout from security revocation
+ *
+ * @param {string} sessionId
+ * @param {Object|null} client
+ *
+ * @returns {Promise<boolean>} true if session was updated
+ */
+const logoutSessionRowById = async (sessionId, client = null) => {
+  const context = 'session-repository/logoutSessionRowById';
+  
+  const sql = `
+    UPDATE sessions
+    SET
+      logout_at  = COALESCE(logout_at, NOW()),
+      revoked_at = COALESCE(revoked_at, NOW())
+    WHERE id = $1
+    RETURNING id;
+  `;
+  
+  try {
+    const { rowCount } = await query(sql, [sessionId], client);
+    return rowCount > 0;
+  } catch (error) {
+    logSystemException(error, 'Failed to log out session', {
+      context,
+      sessionId,
+    });
+    throw error;
+  }
+};
+
 module.exports = {
   insertSession,
   getSessionById,
   revokeSessionsByUserId,
   updateSessionLastActivityAt,
   revokeSessionRowById,
+  logoutSessionRowById,
 };

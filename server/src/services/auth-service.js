@@ -12,33 +12,57 @@ const {
 } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 const { validatePasswordStrength } = require('../security/password-policy');
+const { logoutSession } = require('../business/auth/session-lifecycle');
 
 /**
- * Handles user logout intent.
+ * Logs out a user by fully revoking the active session.
  *
  * Responsibilities:
- * - Record logout intent for auditing
- * - Prepare for future session / token revocation
+ * - Revoke the current session
+ * - Revoke all tokens associated with that session
+ * - Record logout intent for audit purposes
  *
- * Notes:
- * - This operation is intentionally idempotent
- * - Absence of an active session is not an error
+ * Security semantics:
+ * - After this operation, refresh and access tokens MUST NOT be usable
+ * - Safe to call multiple times (idempotent)
+ * - Absence of an active session is NOT an error
  *
- * @param {object|null} user - Authenticated user context, if available.
+ * @param {{
+ *   userId: string,
+ *   sessionId: string | null
+ * }} params
+ *
+ * @param {Object|null} client
  *
  * @returns {Promise<void>}
  */
-const logoutService = async (user) => {
+const logoutService = async (
+  { userId, sessionId },
+  client = null
+) => {
   const context = 'auth-service/logoutService';
   
-  if (!user) {
+  // No active session — nothing to revoke
+  if (!userId || !sessionId) {
     return;
   }
   
-  logSystemInfo('User logged out', {
-    context,
-    userId: user.id,
-  });
+  try {
+    await logoutSession(sessionId, client);
+    
+    logSystemInfo('User logged out', {
+      context,
+      userId,
+      sessionId,
+    });
+  } catch (error) {
+    logSystemException(error, 'Failed to logout user', {
+      context,
+      userId,
+      sessionId,
+    });
+    throw error;
+  }
 };
 
 const PASSWORD_HISTORY_LIMIT = 5;
