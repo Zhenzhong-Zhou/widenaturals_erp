@@ -88,6 +88,25 @@ const signToken = (payload, isRefreshToken = false) => {
 };
 
 /**
+ * Performs a lightweight structural check to determine
+ * whether a token resembles a JWT.
+ *
+ * Security utility:
+ * - Ensures token is a string
+ * - Ensures token has exactly 3 dot-separated segments
+ * - Does NOT verify signature
+ * - Does NOT validate expiry
+ *
+ * @param {string} token
+ * @returns {boolean} True if token appears structurally valid
+ */
+const isLikelyJwt = (token) => {
+  if (typeof token !== 'string') return false;
+  const parts = token.split('.');
+  return parts.length === 3 && parts.every(Boolean);
+};
+
+/**
  * Verifies a JWT access or refresh token.
  *
  * Verification guarantees:
@@ -134,9 +153,66 @@ const verifyToken = (token, isRefresh = false) => {
   }
 };
 
+/**
+ * Verifies an access token cryptographically.
+ *
+ * Security-layer function:
+ * - Performs lightweight format validation
+ * - Verifies JWT signature and expiry
+ * - Does NOT validate session state
+ * - Does NOT check persistence or revocation
+ *
+ * @param {string} token - Raw access token
+ *
+ * @returns {object} Decoded JWT payload
+ *
+ * @throws {AppError.validationError}
+ *   If token format is invalid
+ *
+ * @throws {AppError.authenticationError}
+ *   If signature verification fails or token is expired
+ */
+const verifyAccessJwt = (token) => {
+  if (!isLikelyJwt(token)) {
+    throw AppError.validationError('Invalid token format');
+  }
+  
+  return verifyToken(token, false);
+};
+
+/**
+ * Verifies a refresh token cryptographically.
+ *
+ * Security-layer function:
+ * - Performs lightweight format validation
+ * - Verifies JWT signature and expiry
+ * - Does NOT validate persistence state
+ * - Does NOT enforce session revocation rules
+ *
+ * @param {string} token - Raw refresh token
+ *
+ * @returns {object} Decoded JWT payload
+ *
+ * @throws {AppError.validationError}
+ *   If token format is invalid
+ *
+ * @throws {AppError.authenticationError}
+ *   If signature verification fails or token is expired
+ */
+const verifyRefreshJwt = (token) => {
+  if (!isLikelyJwt(token)) {
+    throw AppError.validationError('Invalid token format');
+  }
+  
+  return verifyToken(token, true);
+};
+
 module.exports = {
   getTtlSeconds,
   getTtlMs,
   signToken,
+  isLikelyJwt,
   verifyToken,
+  verifyAccessJwt,
+  verifyRefreshJwt,
 };

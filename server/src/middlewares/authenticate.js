@@ -1,67 +1,59 @@
-const { verifyToken } = require('../utils/auth/jwt-utils');
-const { logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
+const { getAccessTokenFromHeader } = require('../utils/auth-header-utils');
+const { validateAccessToken } = require('../utils/auth/validate-token');
 const { userExistsByField } = require('../repositories/user-repository');
-const { validateAccessTokenState } = require('../utils/auth/validate-token');
-const { validateSessionState } = require('../utils/auth/validate-session');
 const { updateSessionLastActivityAt } = require('../repositories/session-repository');
+const { logSystemException } = require('../utils/system-logger');
 
 /**
  * Authentication middleware for protected routes.
  *
+ * Guarantees (on success):
+ * - Access token (JWT) is cryptographically valid
+ * - Token persistence state is valid (not revoked / not expired)
+ * - Associated session is active and not revoked
+ * - Referenced user still exists
+ * - Immutable authentication context is attached as `req.auth`
+ *
  * Responsibilities:
- * - Extract and verify access token (JWT)
- * - Validate token persistence state (revoked / expired)
- * - Validate associated session state
- * - Ensure referenced user still exists
- * - Update session last-activity timestamp
- * - Attach immutable authentication context to the request
+ * - Extract and validate access token from request
+ * - Enforce token + session lifecycle invariants
+ * - Perform structural user existence check
+ * - Update session last-activity timestamp (best-effort)
  *
  * Explicitly does NOT:
  * - Refresh tokens
  * - Rotate or revoke tokens
  * - Create or destroy sessions
+ * - Perform authorization checks (handled separately)
  *
- * Token refresh is handled exclusively by `/auth/refresh`.
+ * Security properties:
+ * - Fails closed on any validation error
+ * - Does not expose internal token or session identifiers
+ * - Normalizes unexpected errors into authentication errors
  *
- * Notes:
- * - Session activity updates are lightweight and non-failing
- * - Failure to update activity MUST NOT block request execution
- * - Authentication context is attached as `req.auth`
+ * Operational notes:
+ * - Session activity updates are intended to be non-blocking
+ * - Token refresh is handled exclusively by `/auth/refresh`
  *
  * @returns {import('express').RequestHandler}
  */
 const authenticate = () => {
   return async (req, res, next) => {
     try {
-      const authHeader = req.headers.authorization;
-      const accessToken = authHeader?.startsWith('Bearer ')
-        ? authHeader.slice(7)
-        : null;
+      const accessToken = getAccessTokenFromHeader(req);
       
       if (!accessToken) {
-        return next(
-          AppError.accessTokenError('Access token is missing.')
-        );
+        throw AppError.accessTokenError('Access token is missing.');
       }
       
       // ------------------------------------------------------------
-      // 1. Verify JWT cryptographically (signature + exp)
+      // 1. Validate access token (JWT + session)
       // ------------------------------------------------------------
-      const payload = verifyToken(accessToken);
+      const payload = await validateAccessToken(accessToken);
       
       // ------------------------------------------------------------
-      // 2. Validate token persistence state
-      // ------------------------------------------------------------
-      const token = await validateAccessTokenState(accessToken);
-      
-      // ------------------------------------------------------------
-      // 3. Validate session state
-      // ------------------------------------------------------------
-      const session = await validateSessionState(token.session_id);
-      
-      // ------------------------------------------------------------
-      // 4. Structural user existence check (no status semantics)
+      // 2. Structural user existence check
       // ------------------------------------------------------------
       const userExists = await userExistsByField('id', payload.id);
       if (!userExists) {
@@ -70,16 +62,20 @@ const authenticate = () => {
         );
       }
       
-      // Update session activity (best-effort, non-blocking)
-      await updateSessionLastActivityAt(session.id);
+      // ------------------------------------------------------------
+      // 3. Update session activity
+      // ------------------------------------------------------------
+      await updateSessionLastActivityAt(payload.sessionId);
       
       // ------------------------------------------------------------
-      // 5. Attach immutable auth context
+      // 4. Attach auth context
       // ------------------------------------------------------------
       req.auth = {
-        user: payload,
-        sessionId: session.id,
-        tokenId: token.id,
+        user: {
+          id: payload.id,
+          role: payload.role,
+        },
+        sessionId: payload.sessionId,
       };
       
       return next();
