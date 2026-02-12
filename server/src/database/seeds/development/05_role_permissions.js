@@ -106,6 +106,7 @@ exports.seed = async function (knex) {
       'create_orders',
       'create_sales_order',
       'view_allocation_stage',
+      'view_self_profile',
       ...salesOrderRequiredPermissions,
     ],
     sales: [
@@ -153,7 +154,9 @@ exports.seed = async function (knex) {
       'view_shipping_stage',
       ...salesOrderRequiredPermissions,
     ],
-    user: [],
+    user: [
+      'view_self_profile',
+    ],
   };
 
   let insertedCount = 0;

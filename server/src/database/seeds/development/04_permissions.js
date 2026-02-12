@@ -53,6 +53,11 @@ exports.seed = async function (knex) {
 
   const permissions = [
     {
+      name: 'View Self Profile',
+      key: 'view_self_profile',
+      description: 'Allows managing user accounts',
+    },
+    {
       name: 'Manage Users',
       key: 'manage_users',
       description: 'Allows managing user accounts',

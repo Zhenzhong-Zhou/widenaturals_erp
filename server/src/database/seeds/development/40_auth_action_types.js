@@ -27,10 +27,17 @@ exports.seed = async function (knex) {
   const authActions = [
     { name: 'Login Success', description: 'User successfully logged in.' },
     { name: 'Logout', description: 'User logged out.' },
-    { name: 'Login Failure', description: 'Login attempt failed.' },
+    {
+      name: 'Invalid Credentials',
+      description: 'Login failed due to incorrect email or password.',
+    },
     {
       name: 'Account Locked',
       description: 'Account locked due to security policy.',
+    },
+    {
+      name: 'Account Inactive',
+      description: 'Login failed because the account is inactive or disabled.',
     },
     {
       name: 'Password Reset Request',
