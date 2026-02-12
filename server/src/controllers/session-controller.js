@@ -1,23 +1,25 @@
 const wrapAsync = require('../utils/wrap-async');
 const { loginUserService, refreshTokenService } = require('../services/session-service');
-const { parseUserAgent } = require('../utils/user-agent-utils');
+const { extractRequestContext } = require('../utils/request-context');
 const { getTtlMs } = require('../utils/auth/jwt-utils');
 
 /**
  * Handles user authentication and session initialization.
  *
- * This controller implements the HTTP boundary for user login.
- * It enforces transport-level security requirements and delegates
+ * HTTP boundary for user login.
+ * Enforces transport-level security requirements and delegates
  * authentication logic entirely to the service layer.
  *
  * Responsibilities:
  * - Enforce pre-authentication CSRF requirements
  * - Extract credentials from the request body
+ * - Extract request metadata via request context utility
  * - Invoke the authentication service
  * - Persist refresh token via secure HTTP-only cookie
  * - Return a stable authentication API response
  *
- * Architectural note:
+ * Architectural notes:
+ * - Request metadata normalization is delegated to extractRequestContext().
  * - This controller MUST NOT transform authentication data.
  * - The service layer returns API-ready authentication payloads.
  *
@@ -32,26 +34,12 @@ const loginController = wrapAsync(async (req, res) => {
   // Pre-auth CSRF token (required before login)
   const csrfToken = req.csrfToken();
   
-  // Extract request context
-  const ipAddress =
-    req.headers['x-forwarded-for']?.split(',')[0]?.trim()
-    || req.socket.remoteAddress
-    || null;
-  
-  const userAgent = req.headers['user-agent'] || null;
-  
-  const deviceId =
-    typeof req.headers['x-device-id'] === 'string' &&
-    req.headers['x-device-id'].length >= 16 &&
-    req.headers['x-device-id'].length <= 128
-      ? req.headers['x-device-id']
-      : null;
-  
-  const uaInfo = parseUserAgent(userAgent);
-  
-  const note = uaInfo
-    ? `${uaInfo.os || 'Device'} (${uaInfo.browser || 'browser'})`
-    : null;
+  const {
+    ipAddress,
+    userAgent,
+    deviceId,
+    note,
+  } = extractRequestContext(req);
   
   // ------------------------------------------------------------
   // 1. Authenticate user (domain + normalization handled by service)
