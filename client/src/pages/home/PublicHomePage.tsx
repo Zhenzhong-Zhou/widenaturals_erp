@@ -1,6 +1,7 @@
 import type { FC } from 'react';
 import { Box, Link, Stack } from '@mui/material';
 import { CustomButton, CustomTypography } from '@components/index';
+import { useSession } from '@features/session/hooks';
 import {
   Header,
   Hero,
@@ -22,6 +23,7 @@ import {
  * - Keep this page free of sensitive auth/session logic.
  */
 const PublicHomePage: FC = () => {
+  const { isAuthenticated } = useSession();
   const ERP_LOGIN_URL =
     import.meta?.env?.VITE_ERP_LOGIN_URL ?? '/login';
   
@@ -42,7 +44,7 @@ const PublicHomePage: FC = () => {
   
   return (
     <Box>
-      <Header onStaffLogin={onStaffLogin} />
+      <Header onStaffLogin={!isAuthenticated ? onStaffLogin : undefined} />
       
       <Box component="main">
         <Hero
@@ -262,16 +264,17 @@ const PublicHomePage: FC = () => {
               >
                 Contact Us
               </CustomButton>
-              
-              <CustomButton variant="outlined" onClick={onStaffLogin}>
-                Staff Login
-              </CustomButton>
+              {!isAuthenticated ? (
+                <CustomButton variant="outlined" onClick={onStaffLogin}>
+                  Staff Login
+                </CustomButton>
+              ) : null}
             </Stack>
           </Box>
         </Section>
       </Box>
       
-      <Footer onStaffLogin={onStaffLogin} />
+      <Footer onStaffLogin={!isAuthenticated ? onStaffLogin : undefined} />
     </Box>
   );
 };

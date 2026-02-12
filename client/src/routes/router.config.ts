@@ -30,11 +30,17 @@ export const appRoutes: AppRoute[] = [
   defineRoute({
     path: '/',
     component: lazy(() => import('@pages/home/PublicHomePage')),
+    meta: {
+      guestOnly: true,
+    },
   }),
   
   defineRoute({
     path: '/login',
     component: lazy(() => import('@features/session/pages/LoginPage')),
+    meta: {
+      guestOnly: true,
+    },
   }),
   
   /* ---------- Core ---------- */

@@ -75,6 +75,7 @@ export type NavigationItem = {
  *
  * Semantics:
  * - `requiresAuth` indicates the route requires an authenticated session
+ * - `guestOnly` indicates the route is only for unauthenticated users
  * - `requiredPermission` may be static or dynamically resolved from route params
  * - `menu` controls sidebar visibility, labeling, and ordering (list routes only)
  * - `parent` links detail routes to their list/section route for hierarchy
@@ -89,6 +90,9 @@ export type NavigationItem = {
 export type RouteMeta = {
   /** Route requires authenticated session */
   requiresAuth?: boolean;
+
+  /** Route is only available to unauthenticated users (e.g. login/register) */
+  guestOnly?: boolean;
   
   /** Permission required to access the route */
   requiredPermission?: string | DynamicPermissionResolver;

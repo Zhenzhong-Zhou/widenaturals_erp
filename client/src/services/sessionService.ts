@@ -176,7 +176,6 @@ const refreshToken = async (): Promise<RefreshTokenResponseData | null> => {
       API_ENDPOINTS.SECURITY.SESSION.REFRESH,
       undefined,
       {
-        withCredentials: true,
         headers: {
           'X-CSRF-Token': csrfToken,
         },
