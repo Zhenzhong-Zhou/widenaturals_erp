@@ -98,15 +98,15 @@ const AppRoutes = () => {
                     key={path}
                     path={path}
                     element={
-                      <MainLayout>
-                        <ProtectedRoutes>
+                      <ProtectedRoutes>
+                        <MainLayout>
                           <PermissionGuard
                             requiredPermission={meta?.requiredPermission}
                           >
                             <Component />
                           </PermissionGuard>
-                        </ProtectedRoutes>
-                      </MainLayout>
+                        </MainLayout>
+                      </ProtectedRoutes>
                     }
                   />
                 );
