@@ -8,10 +8,14 @@ exports.up = async function (knex) {
     table.uuid('user_id').notNullable().references('id').inTable('users');
     table.uuid('session_id').nullable().references('id').inTable('sessions');
     
-    table.enu('token_type', ['access', 'refresh', 'email_verification', 'password_reset'], {
-      useNative: true,
-      enumName: 'token_type_enum'
-    }).notNullable();
+    table.enu(
+      'token_type',
+      ['refresh', 'email_verification', 'password_reset'],
+      {
+        useNative: true,
+        enumName: 'token_type_enum'
+      }
+    ).notNullable();
     
     table.text('token_hash').notNullable(); // Store hash only (never raw token)
 

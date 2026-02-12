@@ -6,8 +6,7 @@ exports.up = async function (knex) {
   await knex.schema.createTable('sessions', (table) => {
     table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
     table.uuid('user_id').notNullable().references('id').inTable('users');
-
-    table.text('session_token_hash').notNullable(); // Store hash only
+    
     table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(knex.fn.now()); // Login time
     table.timestamp('last_activity_at', { useTz: true }).notNullable().defaultTo(knex.fn.now()); // Updated per action
     table.timestamp('expires_at', { useTz: true }).notNullable();
@@ -23,11 +22,6 @@ exports.up = async function (knex) {
     
     table.index(['user_id', 'expires_at', 'revoked_at']);
     table.index(['expires_at']);
-    table.index(['session_token_hash']);
-    
-    table.unique(['session_token_hash'], {
-      indexName: 'sessions_token_hash_unique',
-    });
   });
 };
 

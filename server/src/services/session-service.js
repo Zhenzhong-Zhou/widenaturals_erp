@@ -7,50 +7,53 @@ const {
   resetFailedAttemptsAndUpdateLastLogin,
 } = require('../repositories/user-auth-repository');
 const { verifyPassword } = require('../business/user-auth-business');
-const { logSystemWarn, logSystemInfo } = require('../utils/system-logger');
-const { signToken, verifyToken } = require('../utils/auth/jwt-utils');
+const { logSystemWarn, logSystemInfo, logSystemError } = require('../utils/system-logger');
+const { signToken, verifyRefreshJwt } = require('../utils/auth/jwt-utils');
 const { transformLoginResponse } = require('../transformers/session-transformer');
 const { issueSessionWithTokens, revokeAllSessionsForUser } = require('../business/auth/session-lifecycle');
 const { insertLoginHistory } = require('../repositories/login-history-repository');
 const { insertTokenActivityLog } = require('../repositories/token-activity-log-repository');
 const { validateRefreshTokenState } = require('../utils/auth/validate-token');
 const { validateSessionState } = require('../utils/auth/validate-session');
-const { revokeTokenById, insertToken, revokeTokensBySessionAndType } = require('../repositories/token-repository');
+const { revokeTokenById, insertToken } = require('../repositories/token-repository');
 const { hashToken } = require('../utils/auth/token-hash');
 const { getTokenExpiry } = require('../utils/auth/token-expiry');
+const { getAuthUserById } = require('../repositories/user-repository');
 
 /**
  * Authenticates a user using email and password.
  *
  * Guarantees:
  * - All authentication state mutations occur within a single database transaction
- * - Enforces a single-session policy (previous sessions and tokens are revoked)
+ * - Session revocation and new session issuance are atomic
+ * - Enforces a strict single-session policy (all prior sessions revoked across devices)
  * - Returns a finalized, API-ready response on success
- * - Throws on authentication or validation failure
- * - Audit logging is best-effort and never affects control flow
+ * - Post-commit audit logging is best-effort and never affects control flow
  *
  * Authentication model:
  * - Password-based authentication only
  * - Latest successful login invalidates all prior sessions and refresh tokens
- * - Access tokens are short-lived and stateless; refresh tokens are stateful
+ * - Access tokens are short-lived and stateless
+ * - Refresh tokens are stateful and persisted as secure hashes
  *
  * Security properties:
- * - Does NOT leak user existence or account status
- * - Does NOT expose session or token identifiers to callers
- ugerAgent
+ * - Does NOT reveal whether an email exists or is inactive
+ * - May reveal lockout state only after valid account identification
+ * - Does NOT expose session identifiers or token identifiers
  * - Does NOT persist raw tokens (hashes only)
  *
  * Notes:
- * - `deviceId` and `note` are optional metadata for auditing and future policy enforcement
- * - Session and token lifecycle management is handled internally
+ * - deviceId and note are optional metadata for auditing and future policy enforcement
+ * - Lockout duration and failed-attempt thresholds are enforced at the auth layer
+ * - Audit logging after commit is intentionally non-blocking
  *
  * @param {string} email
  * @param {string} password
  * @param {Object} context
- * @param {string|null} context.ipAddress  - Client IP address (optional)
- * @param {string|null} context.userAgent  - Client user agent (optional)
- * @param {string|null} context.deviceId   - Client device identifier (optional)
- * @param {string|null} context.note       - Optional audit note
+ * @param {string|null} context.ipAddress
+ * @param {string|null} context.userAgent
+ * @param {string|null} context.deviceId
+ * @param {string|null} context.note
  *
  * @returns {Promise<{
  *   accessToken: string,
@@ -59,10 +62,10 @@ const { getTokenExpiry } = require('../utils/auth/token-expiry');
  * }>}
  *
  * @throws {AppError}
- * - authenticationError   (invalid credentials)
- * - accountLockedError    (lockout enforced)
- * - validationError       (invalid input or state)
- * - generalError          (unexpected failures)
+ * - authenticationError
+ * - accountLockedError
+ * - validationError
+ * - generalError
  */
 const loginUserService = async (
   email,
@@ -96,6 +99,16 @@ const loginUserService = async (
     );
     
     if (!auth) {
+      await insertLoginHistory({
+        userId: null,   // unknown user
+        sessionId: null,
+        tokenId: null,
+        authActionTypeId: getStatusId('Invalid Credentials'),
+        status: 'failure',
+        ipAddress,
+        userAgent,
+      }, client);
+      
       // Do NOT reveal whether email exists or account is inactive
       throw AppError.authenticationError('Invalid email or password.');
     }
@@ -114,7 +127,17 @@ const loginUserService = async (
     userId = user_id;
     
     // 2. Lockout check
-    if (lockout_time && new Date(lockout_time) > new Date()) {
+    if (lockout_time && lockout_time > new Date()) {
+      await insertLoginHistory({
+        userId: user_id,
+        sessionId: null,
+        tokenId: null,
+        authActionTypeId: getStatusId('Account Locked'),
+        status: 'failure',
+        ipAddress,
+        userAgent,
+      }, client);
+      
       throw AppError.accountLockedError(
         'Account locked. Try again later.',
         { lockoutEndsAt: lockout_time }
@@ -123,7 +146,15 @@ const loginUserService = async (
     
     // 3. Verify password
     if (!password_hash) {
-      throw AppError.serviceError('Authentication state is invalid.');
+      logSystemError('Missing password hash during login', {
+        context,
+        userId: user_id,
+        authId: auth_id,
+        email,
+      });
+      
+      // Do not expose internal state to client
+      throw AppError.authenticationError('Invalid email or password.');
     }
     
     const isValidPassword = await verifyPassword(password_hash, password);
@@ -136,6 +167,17 @@ const loginUserService = async (
         failed_attempts,
         client
       );
+      
+      await insertLoginHistory({
+        userId: user_id,
+        sessionId: null,
+        tokenId: null,
+        authActionTypeId: getStatusId('Invalid Credentials'),
+        status: 'failure',
+        ipAddress,
+        userAgent,
+      }, client);
+      
       throw AppError.authenticationError('Invalid email or password.');
     }
     
@@ -183,29 +225,9 @@ const loginUserService = async (
     await insertLoginHistory({
       userId,
       sessionId: issued.sessionId,
-      tokenId: issued.accessTokenId,
+      tokenId: issued.refreshTokenId,
       authActionTypeId: loginSuccessActionId,
       status: 'success',
-      ipAddress,
-      userAgent,
-    }, null);
-    
-    await insertTokenActivityLog({
-      userId,
-      tokenId: issued.accessTokenId,
-      eventType: 'generate',
-      status: 'success',
-      tokenType: 'access',
-      ipAddress,
-      userAgent,
-    }, null);
-    
-    await insertTokenActivityLog({
-      userId,
-      tokenId: issued.refreshTokenId,
-      eventType: 'generate',
-      status: 'success',
-      tokenType: 'refresh',
       ipAddress,
       userAgent,
     }, null);
@@ -223,44 +245,54 @@ const loginUserService = async (
 /**
  * Refreshes authentication tokens using a valid refresh token.
  *
- * This service implements the domain-level refresh-token rotation flow.
- * It validates the provided refresh token, enforces persistence and session
- * state, revokes prior credentials, and issues a new access/refresh token pair.
+ * Domain-level refresh-token rotation flow.
+ *
+ * Guarantees:
+ * - All state mutations occur within a single transaction
+ * - Refresh tokens are single-use and rotated on every invocation
+ * - Old refresh tokens are revoked before new ones are issued
+ * - Refresh token reuse invalidates the associated session
+ * - Access tokens are stateless; refresh tokens are stateful and persisted as hashes
  *
  * Responsibilities:
- * - Assert presence of a refresh token
- * - Cryptographically verify the refresh token (JWT signature & claims)
- * - Validate refresh token persistence state (existence, type, expiry, revocation)
- * - Validate the associated session lifecycle state
- * - Detect refresh-token reuse and revoke compromised sessions
- * - Rotate refresh token and issue a new access token
- * - Persist newly issued tokens securely (hashed only)
- * - Emit structured audit logs on successful rotation
+ * - Assert refresh token presence
+ * - Verify JWT cryptographically
+ * - Validate token persistence state (existence, type, expiry, revocation)
+ * - Validate associated session lifecycle state
+ * - Detect refresh-token reuse
+ * - Rotate refresh token
+ * - Persist new refresh token securely (hash only)
+ * - Emit structured audit logs
  *
  * Security model:
- * - This service does NOT depend on access-token authentication.
- * - Refresh tokens are single-use and MUST be rotated on every invocation.
- * - Reuse of a revoked refresh token is treated as a session compromise.
+ * - Does NOT depend on access-token authentication
+ * - Reuse of a revoked refresh token is treated as session compromise
+ * - This operation is NOT idempotent
+ * - Multiple uses of the same refresh token invalidate the session
  *
  * Notes:
- * - This operation is intentionally NOT idempotent.
- * - Clients MUST replace stored refresh tokens after a successful response.
- * - HTTP concerns (cookies, headers, status codes) are handled by controllers.
+ * - Clients MUST replace stored refresh tokens after successful response
+ * - HTTP concerns (cookies, headers, status codes) are handled by controllers
  *
  * @param {string | undefined | null} refreshToken
- *   Raw refresh token extracted from an HTTP-only cookie.
+ * @param {Object} context
+ * @param {string|null} context.ipAddress
+ * @param {string|null} context.userAgent
  *
- * @returns {Promise<{
- *   accessToken: string,
- *   refreshToken: string
- * }>}
+ * @returns {Promise<{ accessToken: string, refreshToken: string }>}
  *
  * @throws {AppError}
- *   - refreshTokenError: missing or invalid refresh token
- *   - refreshTokenExpiredError: expired refresh token
- *   - authenticationError: session invalid or compromised
+ * - refreshTokenError
+ * - refreshTokenExpiredError
+ * - authenticationError
  */
-const refreshTokenService = async (refreshToken) => {
+const refreshTokenService = async (
+  refreshToken,
+  {
+    ipAddress = null,
+    userAgent = null,
+  } = {},
+) => {
   const context = 'auth-service/refreshTokenService';
   
   // Refresh token presence is a domain requirement, not an HTTP concern
@@ -275,9 +307,23 @@ const refreshTokenService = async (refreshToken) => {
   // ------------------------------------------------------------
   // JWT verification proves cryptographic validity only.
   // Persistence, revocation, and session state are enforced below.
-  const payload = verifyToken(refreshToken, true);
+  const payload = verifyRefreshJwt(refreshToken);
+  
+  if (!payload?.id || !payload?.sessionId) {
+    throw AppError.refreshTokenError('Invalid refresh token payload');
+  }
   
   return withTransaction(async (client) => {
+    const user = await getAuthUserById(payload.id, client);
+    
+    if (!user) {
+      throw AppError.authenticationError('User not found');
+    }
+    
+    if (user.status_name !== 'active') {
+      throw AppError.authenticationError('User account is inactive');
+    }
+    
     // ------------------------------------------------------------
     // 2. Validate refresh token persistence state
     // ------------------------------------------------------------
@@ -291,48 +337,44 @@ const refreshTokenService = async (refreshToken) => {
     // ------------------------------------------------------------
     // 4. Rotate refresh token (revoke old)
     // ------------------------------------------------------------
+    // Revoke current refresh token and any other outstanding refresh tokens
+    // to prevent race-condition replay during concurrent refresh attempts
     await revokeTokenById(token.id, client);
     
-    // Enforce single active access token per session
-    // and prevent token replay during refresh rotation
-    await revokeTokensBySessionAndType(
-      session.id,
-      'access',
-      client
-    );
+    await insertTokenActivityLog({
+      userId: payload.id,
+      tokenId: token.id,
+      eventType: 'revoke',
+      status: 'success',
+      tokenType: 'refresh',
+      ipAddress,
+      userAgent,
+    }, client);
     
     // ------------------------------------------------------------
     // 5. Issue new tokens
     // ------------------------------------------------------------
     const newAccessToken = signToken({
       id: payload.id,
-      role: payload.role,
+      role: user.role_id,
+      sessionId: session.id,
     });
     
     const newRefreshToken = signToken(
-      { id: payload.id, role: payload.role },
+      {
+        id: payload.id,
+        sessionId: session.id,
+        jti: crypto.randomUUID(),
+      },
       true
     );
     
     // ------------------------------------------------------------
     // 6. Persist new tokens
     // ------------------------------------------------------------
-    const accessTokenHash = hashToken(newAccessToken);
     const refreshTokenHash = hashToken(newRefreshToken);
     
-    await insertToken(
-      {
-        userId: payload.id,
-        sessionId: session.id,
-        tokenType: 'access',
-        tokenHash: accessTokenHash,
-        expiresAt: getTokenExpiry(false),
-        context: 'refresh',
-      },
-      client
-    );
-    
-    await insertToken(
+    const newTokenRow = await insertToken(
       {
         userId: payload.id,
         sessionId: session.id,
@@ -343,6 +385,16 @@ const refreshTokenService = async (refreshToken) => {
       },
       client
     );
+    
+    await insertTokenActivityLog({
+      userId: payload.id,
+      tokenId: newTokenRow.id,
+      eventType: 'refresh',
+      status: 'success',
+      tokenType: 'refresh',
+      ipAddress,
+      userAgent,
+    }, client);
     
     logSystemInfo('Refresh token rotated', {
       context,

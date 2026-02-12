@@ -92,6 +92,17 @@ const insertToken = async (token, client) => {
 };
 
 /**
+ * @typedef {Object} TokenRow
+ * @property {string} id
+ * @property {string} user_id
+ * @property {string|null} session_id
+ * @property {string} token_type
+ * @property {Date} issued_at
+ * @property {Date} expires_at
+ * @property {boolean} is_revoked
+ */
+
+/**
  * Fetches a token row by its hash.
  *
  * Repository-layer function:
@@ -156,22 +167,33 @@ const getTokenByHash = async (tokenHash, client = null) => {
 };
 
 /**
- * Revokes tokens for a user.
+ * Revokes active tokens for a user.
  *
- * Repository guarantees:
+ * Repository-layer function:
  * - Operates ONLY on the `tokens` table
  * - Supports optional token type filtering
+ * - Executes a bounded bulk UPDATE
+ * - Idempotent (safe to call multiple times)
  * - Does NOT enforce business policy
- * - Safe to call multiple times (idempotent)
+ * - Preserves raw database errors
+ *
+ * Semantics:
+ * - Marks matching non-revoked tokens as revoked
+ * - Does NOT modify session lifecycle fields
  *
  * @param {string} userId
  * @param {Object} [options]
- * @param {string|null} [options.tokenType] - e.g. 'refresh' | 'access'
- * @param {Object|null} client
+ * @param {string|null} [options.tokenType] - Optional token type filter (e.g. 'refresh')
+ * @param {Object|null} client - Transaction client
  *
- * @returns {Promise<number>} Number of revoked tokens
+ * @returns {Promise<Array<{
+ *   id: string,
+ *   token_type: string
+ * }>>}
+ *   Array of revoked token identifiers (empty if none were updated)
  *
- * @throws {Error} Raw database errors
+ * @throws {Error}
+ *   Raw database errors are propagated to the caller
  */
 const revokeTokensByUserId = async (
   userId,
@@ -186,7 +208,7 @@ const revokeTokensByUserId = async (
     WHERE user_id = $1
       AND is_revoked = false
       ${tokenType ? 'AND token_type = $2' : ''}
-    RETURNING id;
+    RETURNING id, token_type;
   `;
   
   const params = tokenType ? [userId, tokenType] : [userId];
@@ -201,7 +223,7 @@ const revokeTokensByUserId = async (
       revokedCount: rows.length,
     });
     
-    return rows.length;
+    return rows;
   } catch (error) {
     logSystemException(error, 'Failed to revoke tokens for user', {
       context,
@@ -255,75 +277,31 @@ const revokeTokenById = async (tokenId, client = null) => {
 };
 
 /**
- * Revokes all active tokens of a given type for a session.
- *
- * Repository guarantees:
- * - Safe to call multiple times (idempotent)
- * - Performs a bounded bulk UPDATE
- * - No validation or business logic
- *
- * Semantics:
- * - Revokes only tokens of the specified type
- * - Does NOT affect session state
- *
- * @param {string} sessionId
- * @param {'access' | 'refresh'} tokenType
- * @param {Object|null} client
- *
- * @returns {Promise<boolean>} true if any tokens were revoked, false otherwise
- */
-const revokeTokensBySessionAndType = async (
-  sessionId,
-  tokenType,
-  client = null
-) => {
-  const context = 'token-repository/revokeTokensBySessionAndType';
-  
-  const sql = `
-    UPDATE tokens
-    SET
-      is_revoked = TRUE,
-      updated_at = NOW()
-    WHERE session_id = $1
-      AND token_type = $2
-      AND is_revoked = FALSE
-    RETURNING id;
-  `;
-  
-  try {
-    const { rowCount } = await query(
-      sql,
-      [sessionId, tokenType],
-      client
-    );
-    
-    return rowCount > 0;
-  } catch (error) {
-    logSystemException(error, 'Failed to revoke tokens by session and type', {
-      context,
-      sessionId,
-      tokenType,
-    });
-    throw error;
-  }
-};
-
-/**
  * Revokes all active tokens associated with a session.
  *
- * Repository guarantees:
- * - Safe to call multiple times (idempotent)
- * - Performs a bounded bulk UPDATE
- * - No validation or business logic
+ * Repository-layer function:
+ * - Executes a bounded bulk UPDATE
+ * - Idempotent (safe to call multiple times)
+ * - Does NOT enforce business logic
+ * - Does NOT modify session lifecycle fields
+ * - Preserves raw database errors
  *
  * Semantics:
- * - Revokes all tokens under the session
- * - Does NOT modify session lifecycle fields
+ * - Marks all non-revoked tokens under the session as revoked
+ * - Updates updated_at timestamp
  *
  * @param {string} sessionId
  * @param {Object|null} client
  *
- * @returns {Promise<boolean>} true if any tokens were revoked, false otherwise
+ * @returns {Promise<Array<{
+ *   id: string,
+ *   user_id: string,
+ *   token_type: string
+ * }>>}
+ *   Array of revoked token identifiers (empty if none were updated)
+ *
+ * @throws {Error}
+ *   Raw database errors are propagated to the caller
  */
 const revokeAllTokensBySessionId = async (sessionId, client = null) => {
   const context = 'token-repository/revokeAllTokensBySessionId';
@@ -335,12 +313,19 @@ const revokeAllTokensBySessionId = async (sessionId, client = null) => {
       updated_at = NOW()
     WHERE session_id = $1
       AND is_revoked = FALSE
-    RETURNING id;
+    RETURNING id, user_id, token_type;
   `;
   
   try {
-    const { rowCount } = await query(sql, [sessionId], client);
-    return rowCount > 0;
+    const { rows } = await query(sql, [sessionId], client);
+    
+    logSystemInfo('Tokens revoked for session', {
+      context,
+      sessionId,
+      revokedCount: rows.length,
+    });
+    
+    return rows;
   } catch (error) {
     logSystemException(error, 'Failed to revoke all tokens for session', {
       context,
@@ -355,6 +340,5 @@ module.exports = {
   getTokenByHash,
   revokeTokensByUserId,
   revokeTokenById,
-  revokeTokensBySessionAndType,
   revokeAllTokensBySessionId,
 };

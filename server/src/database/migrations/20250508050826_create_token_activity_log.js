@@ -27,7 +27,7 @@ exports.up = async function (knex) {
       })
       .notNullable();
 
-    table.string('token_type', 20).notNullable(); // 'access' | 'refresh' | 'magic_link' etc.
+    table.string('token_type', 20).notNullable(); // 'refresh' | 'magic_link' etc.
     
     table
       .timestamp('event_at', { useTz: true })

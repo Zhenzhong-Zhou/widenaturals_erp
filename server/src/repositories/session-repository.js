@@ -8,20 +8,33 @@ const { logSystemInfo, logSystemException } = require('../utils/system-logger');
  * - Executes a single INSERT statement
  * - Assumes one session per call (NO bulk inserts)
  * - Relies on database constraints for integrity
- * - Does NOT handle session revocation, rotation, or limits
- * - Throws raw database errors to preserve full error context
+ * - Does NOT create or manage tokens
+ * - Does NOT enforce session limits or revocation rules
+ * - Preserves raw database errors
  *
- * Session lifecycle decisions (single-session, multi-device, revocation)
- * MUST be handled in the service / business layer.
+ * IMPORTANT:
+ * Session lifecycle decisions (single-session policy, multi-device handling,
+ * token issuance, revocation, rotation) MUST be handled in the service layer.
  *
  * @param {Object} session - Session data to insert
+ * @param {string} session.userId
+ * @param {Date} session.expiresAt
+ * @param {string|null} [session.ipAddress]
+ * @param {string|null} [session.userAgent]
+ * @param {string|null} [session.deviceId]
+ * @param {string|null} [session.note]
  * @param {Object} client - Database client or transaction
  *
- * @returns {Promise<Object>} Inserted session summary
+ * @returns {Promise<{
+ *   id: string,
+ *   user_id: string,
+ *   created_at: Date,
+ *   last_activity_at: Date,
+ *   expires_at: Date
+ * }>}
  *
- * @throws {Error} Raw database errors:
+ * @throws {Error} Raw database errors such as:
  * - Foreign key violations (user_id)
- * - Unique constraint violations (session_token_hash)
  * - Other database-level failures
  */
 const insertSession = async (session, client) => {
@@ -29,7 +42,6 @@ const insertSession = async (session, client) => {
   
   const {
     userId,
-    sessionTokenHash,
     expiresAt,
     ipAddress = null,
     userAgent = null,
@@ -40,14 +52,13 @@ const insertSession = async (session, client) => {
   const queryText = `
     INSERT INTO sessions (
       user_id,
-      session_token_hash,
       expires_at,
       ip_address,
       user_agent,
       device_id,
       note
     )
-    VALUES ($1,$2,$3,$4,$5,$6,$7)
+    VALUES ($1,$2,$3,$4,$5,$6)
     RETURNING
       id,
       user_id,
@@ -58,7 +69,6 @@ const insertSession = async (session, client) => {
   
   const params = [
     userId,
-    sessionTokenHash,
     expiresAt,
     ipAddress,
     userAgent,
@@ -151,17 +161,22 @@ const getSessionById = async (sessionId, client = null) => {
  * Revokes all active sessions for a user.
  *
  * Repository guarantees:
- * - Operates ONLY on the `sessions` table
- * - Marks sessions as revoked via `revoked_at`
- * - Does NOT revoke tokens
- * - Safe to call multiple times (idempotent)
+ * - Operates exclusively on the `sessions` table
+ * - Marks non-revoked sessions as revoked by setting `revoked_at`
+ * - Does NOT revoke associated tokens (caller responsibility)
+ * - Idempotent: calling multiple times will not re-revoke sessions
  *
- * @param {string} userId
- * @param {Object|null} client
+ * Behavior:
+ * - Only sessions with `revoked_at IS NULL` are affected
+ * - Returns identifiers of sessions revoked during this call
  *
- * @returns {Promise<number>} Number of revoked sessions
+ * @param {string} userId - Target user identifier
+ * @param {Object|null} client - Optional transaction client
  *
- * @throws {Error} Raw database errors
+ * @returns {Promise<Array<{ id: string }>>}
+ *   Array of session rows that were revoked in this operation.
+ *
+ * @throws {Error} Propagates raw database errors
  */
 const revokeSessionsByUserId = async (userId, client = null) => {
   const context = 'session-repository/revokeSessionsByUserId';
@@ -183,7 +198,7 @@ const revokeSessionsByUserId = async (userId, client = null) => {
       revokedCount: rows.length,
     });
     
-    return rows.length;
+    return rows;
   } catch (error) {
     logSystemException(error, 'Failed to revoke sessions for user', {
       context,
@@ -283,24 +298,29 @@ const revokeSessionRowById = async (sessionId, client = null) => {
 };
 
 /**
- * Marks a session as logged out by the user.
+ * Marks a session as explicitly logged out by the user.
  *
- * Repository guarantees:
- * - Safe to call multiple times (idempotent)
- * - Performs a single, bounded UPDATE
- * - No validation or business logic
+ * Repository-layer function:
+ * - Executes a single, bounded UPDATE
+ * - Idempotent (safe to call multiple times)
+ * - Does NOT enforce business logic
+ * - Preserves raw database errors
  *
  * Semantics:
- * - Records explicit user logout intent
- * - Invalidates the session
- * - Distinguishes voluntary logout from security revocation
+ * - Records voluntary user logout
+ * - Sets logout_at and revoked_at if not already set
+ * - Distinguishes user logout from security-triggered revocation
  *
  * @param {string} sessionId
- * @param {Object|null} client
+ * @param {Object|null} client - Optional transaction client
  *
- * @returns {Promise<boolean>} true if session was updated
+ * @returns {Promise<{
+ *   id: string,
+ *   user_id: string
+ * } | null>}
+ *   Updated session identifiers, or null if no active session was updated
  */
-const logoutSessionRowById = async (sessionId, client = null) => {
+const logoutSessionRowById = async (sessionId, client) => {
   const context = 'session-repository/logoutSessionRowById';
   
   const sql = `
@@ -309,12 +329,13 @@ const logoutSessionRowById = async (sessionId, client = null) => {
       logout_at  = COALESCE(logout_at, NOW()),
       revoked_at = COALESCE(revoked_at, NOW())
     WHERE id = $1
-    RETURNING id;
+      AND logout_at IS NULL
+    RETURNING id, user_id;
   `;
   
   try {
-    const { rowCount } = await query(sql, [sessionId], client);
-    return rowCount > 0;
+    const { rows } = await query(sql, [sessionId], client);
+    return rows[0] ?? null;
   } catch (error) {
     logSystemException(error, 'Failed to log out session', {
       context,
