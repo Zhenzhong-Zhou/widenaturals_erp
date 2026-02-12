@@ -6,6 +6,7 @@
 const wrapAsync = require('../utils/wrap-async');
 const { logoutService, changePasswordService  } = require('../services/auth-service');
 const AppError = require('../utils/AppError');
+const { extractRequestContext } = require('../utils/request-context');
 
 /**
  * Handles user logout.
@@ -43,6 +44,11 @@ const AppError = require('../utils/AppError');
 const logoutController = wrapAsync(async (req, res) => {
   const isProduction = process.env.NODE_ENV === 'production';
   
+  const {
+    ipAddress,
+    userAgent,
+  } = extractRequestContext(req);
+  
   /**
    * Delegate logout semantics to the service layer.
    *
@@ -56,7 +62,7 @@ const logoutController = wrapAsync(async (req, res) => {
   await logoutService({
     userId: req.auth?.user?.id ?? null,
     sessionId: req.auth?.sessionId ?? null,
-  });
+  },{ ipAddress, userAgent });
   
   /**
    * Clear refresh-token cookie (transport-level concern).

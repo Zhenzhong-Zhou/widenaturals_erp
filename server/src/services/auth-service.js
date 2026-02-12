@@ -43,7 +43,7 @@ const {
  */
 const logoutService = async (
   { userId, sessionId },
-  client = null
+  { ipAddress, userAgent }
 ) => {
   const context = 'auth-service/logoutService';
   
@@ -53,7 +53,11 @@ const logoutService = async (
   }
   
   try {
-    await logoutSession(sessionId, client);
+    await logoutSession({
+      sessionId,
+      ipAddress,
+      userAgent
+    });
     
     logSystemInfo('User logged out', {
       context,
