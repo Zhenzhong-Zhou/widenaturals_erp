@@ -133,28 +133,58 @@ const getAndLockUserAuthByEmail = async (email, activeStatusId, client) => {
 };
 
 /**
- * Fetches user authentication details by user ID and acquires
- * a row-level lock on the corresponding user_auth record.
+ * Fetches and locks the authentication record for a user.
  *
- * This function is intended for authenticated flows that perform
- * stateful mutations (e.g. password changes, admin resets) and
- * must be executed within an explicit transaction.
+ * Guarantees (on success):
+ * - Returns the user's authentication state
+ * - Acquires a row-level lock on `user_auth` via `FOR UPDATE`
+ * - Prevents concurrent mutation of authentication state
  *
- * Locking is applied at SELECT time using `FOR UPDATE` to ensure
- * serializable updates to authentication state.
+ * Concurrency contract:
+ * - MUST be executed within an active transaction
+ * - Lock is held until transaction commit or rollback
+ * - Ensures serialized updates to password, lockout, and attempt counters
  *
- * @param {string} userId - The authenticated user's ID.
- * @param {object} client - Transaction-scoped database client.
+ * Scope:
+ * - Locks only the `user_auth` row
+ * - Does NOT lock the `users` table
+ * - Does NOT perform business validation
  *
- * @returns {Promise<object>} Locked user authentication record.
+ * @param {string} userId - Target user identifier
+ * @param {Object} client - Transaction-scoped database client (required)
  *
- * @throws {AppError} If the user does not exist or a database error occurs.
+ * @returns {Promise<{
+ *   user_id: string,
+ *   email: string,
+ *   role_id: string,
+ *   auth_id: string,
+ *   password_hash: string,
+ *   last_login: Date | null,
+ *   attempts: number,
+ *   failed_attempts: number,
+ *   lockout_time: Date | null,
+ *   metadata: {
+ *     password_history?: Array<{
+ *       password_hash: string,
+ *       changed_at: string
+ *     }>,
+ *     lastSuccessfulLogin?: string,
+ *     lastLockout?: string,
+ *     notes?: string
+ *   } | null
+ * }>}
+ *
+ * @throws {AppError}
  */
 const getAndLockUserAuthByUserId = async (userId, client) => {
   const context = 'user-auth-repository/getAndLockUserAuthByUserId';
   
   if (!userId) {
     throw AppError.validationError('User ID is required.');
+  }
+  
+  if (!client) {
+    throw AppError.serviceError('Transaction client is required.');
   }
   
   const sql = `
