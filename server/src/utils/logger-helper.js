@@ -5,6 +5,7 @@
 
 const { sanitizeMessage } = require('./sensitive-data-utils');
 const AppError = require('./AppError');
+const { getClientIp } = require('./request-context');
 
 let logger; // Lazy-loaded logger instance
 
@@ -42,11 +43,11 @@ const extractRequestMeta = (req) => {
   return {
     method: req.method || 'N/A',
     url: req.originalUrl || req.url || 'N/A',
-    ip: req.ip || req.socket?.remoteAddress || 'N/A',
-    userAgent: req.headers?.['user-agent'] || 'N/A',
+    ip: getClientIp(req),
+    userAgent: req.get('user-agent') || null,
+    referer: req.get('referer') || null,
     timestamp: new Date().toISOString(),
-    traceId: req.traceId || global.traceId || 'unknown',
-    referer: req.headers?.referer || null,
+    traceId: req.traceId || 'unknown',
   };
 };
 

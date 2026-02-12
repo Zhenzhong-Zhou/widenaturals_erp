@@ -7,6 +7,7 @@ const wrapAsync = require('../utils/wrap-async');
 const { logInfo } = require('../utils/logger-helper');
 const { version } = require('../../package.json');
 const { checkServerHealthService } = require('../services/server-health-service');
+const { getClientIp } = require('../utils/request-context');
 
 /**
  * Controller: Public API welcome / discovery endpoint.
@@ -33,8 +34,8 @@ const getWelcomeMessageController = wrapAsync(async (req, res) => {
   logInfo('Serving public welcome message', req, {
     context,
     traceId,
-    ip: req.ip,
-    userAgent: req.headers['user-agent'],
+    ip: getClientIp(req),
+    userAgent: req.get('user-agent') || 'Unknown',
   });
   
   // -------------------------------
@@ -81,8 +82,8 @@ const getHealthStatusController = wrapAsync(async (req, res) => {
   logInfo('Incoming health check request', req, {
     context,
     traceId,
-    ip: req.ip,
-    userAgent: req.headers['user-agent'],
+    ip: getClientIp(req),
+    userAgent: req.get('user-agent') || 'Unknown',
   });
   
   // -------------------------------

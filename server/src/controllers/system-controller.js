@@ -21,7 +21,7 @@ const getSystemStatus = async (req, res, next) => {
 
     res.status(statusCode).json({
       ...status,
-      requestId: req.headers['x-request-id'] || null, // Optional request context
+      requestId: req.traceId,    // Optional request context
       responseTime: `${duration}ms`, // Optional response time
     });
   } catch (error) {

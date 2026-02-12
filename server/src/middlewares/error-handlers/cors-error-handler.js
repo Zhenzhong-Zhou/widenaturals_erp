@@ -21,7 +21,7 @@ const corsErrorHandler = (err, req, res, next) => {
   if (!isCorsError) return next(err);
 
   const enrichedDetails = {
-    origin: req.headers.origin || 'Unknown',
+    origin: req.get('origin') || null,
     method: req.method,
     route: req.originalUrl,
   };

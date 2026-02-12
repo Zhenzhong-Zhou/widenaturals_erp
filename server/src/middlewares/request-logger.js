@@ -3,48 +3,47 @@
  * @description Middleware for logging HTTP requests with structured logging and correlation ID support.
  */
 
-const { v4: uuidv4 } = require('uuid');
 const {
   logSystemInfo,
   logSystemWarn,
   logSystemException,
 } = require('../utils/system-logger');
+const { getClientIp } = require('../utils/request-context');
 
 /**
  * Middleware for logging incoming HTTP requests and responses.
  */
 const requestLogger = (req, res, next) => {
-  const startTime = process.hrtime(); // Start timer for response time
+  const startTime = process.hrtime();
+  
   const ignoredRoutes = (
-    process.env.LOG_IGNORED_ROUTES || `${process.env.API_PREFIX}/public/health`
+    process.env.LOG_IGNORED_ROUTES ||
+    `${process.env.API_PREFIX}/public/health`
   ).split(',');
 
   // Skip logging for ignored routes
   if (ignoredRoutes.includes(req.originalUrl)) {
     return next();
   }
-
-  // Set and propagate correlation ID
-  const correlationId = req.headers['x-correlation-id'] || uuidv4();
-  req.correlationId = correlationId;
-  global.traceId = correlationId;
-  res.setHeader('X-Correlation-ID', correlationId);
-
+  
+  const traceId = req.traceId;
+  
   // Hook into the response finish event to log details
   res.on('finish', () => {
     const [sec, nano] = process.hrtime(startTime);
     const responseTime = (sec * 1000 + nano / 1e6).toFixed(2);
-
+    
     const statusCode = res.statusCode;
+    
     const logMeta = {
+      traceId,
       method: req.method,
       route: req.originalUrl,
-      ip: req.ip,
-      userAgent: req.headers['user-agent'] || 'unknown',
+      ip: getClientIp(req),
+      userAgent: req.get('user-agent') || 'Unknown',
       statusCode,
       responseTime: `${responseTime}ms`,
       queryParams: req.query,
-      correlationId,
     };
 
     // Redact sensitive fields if needed
@@ -55,9 +54,9 @@ const requestLogger = (req, res, next) => {
       if (clone.token) clone.token = '***';
       return clone;
     };
-
+    
     const error = res.locals?.error;
-
+    
     if (statusCode >= 500) {
       if (error) {
         logSystemException(error, 'Internal server error during request', {
@@ -80,7 +79,7 @@ const requestLogger = (req, res, next) => {
       logSystemInfo('Request handled successfully', logMeta);
     }
   });
-
+  
   next();
 };
 

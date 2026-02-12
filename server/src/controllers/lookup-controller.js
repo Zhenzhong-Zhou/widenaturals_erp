@@ -18,6 +18,7 @@ const {
   fetchStatusLookupService, fetchUserLookupService, fetchRoleLookupService,
 } = require('../services/lookup-service');
 const { logInfo } = require('../utils/logger-helper');
+const { getClientIp } = require('../utils/request-context');
 
 /**
  * Controller to handle batch registry lookup requests.
@@ -36,7 +37,7 @@ const getBatchRegistryLookupController = wrapAsync(async (req, res) => {
     metadata: {
       query: req.query,
       user: req.auth.user?.id,
-      ip: req.ip,
+      ip: getClientIp(req),
     },
   });
 
