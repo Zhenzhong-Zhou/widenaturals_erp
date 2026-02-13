@@ -110,9 +110,14 @@ const refreshTokenController = wrapAsync(async (req, res) => {
   // Refresh tokens are stored in HTTP-only cookies
   const refreshToken = req.cookies?.refreshToken;
   
+  const {
+    ipAddress,
+    userAgent,
+  } = extractRequestContext(req);
+  
   // Service validates refresh token, rotates it, and issues a new access token
   const { accessToken, refreshToken: newRefreshToken } =
-    await refreshTokenService(refreshToken);
+    await refreshTokenService(refreshToken, { ipAddress, userAgent });
   
   // Persist rotated refresh token (transport concern)
   res.cookie('refreshToken', newRefreshToken, {
