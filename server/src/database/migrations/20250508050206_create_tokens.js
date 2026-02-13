@@ -48,6 +48,9 @@ exports.up = async function (knex) {
  * @param { import("knex").Knex } knex
  * @returns { Promise<void> }
  */
-exports.down = function (knex) {
-  return knex.schema.dropTableIfExists('tokens');
+exports.down = async function (knex) {
+  await knex.schema.dropTableIfExists('tokens');
+  await knex.raw(`
+    DROP TYPE IF EXISTS token_type_enum;
+  `);
 };

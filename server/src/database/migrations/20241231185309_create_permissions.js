@@ -7,9 +7,7 @@ exports.up = function (knex) {
     table.uuid('id').defaultTo(knex.raw('uuid_generate_v4()')).primary(); // Primary key with UUID
     table
       .string('name', 100)
-      .notNullable()
-      .unique()
-      .comment('Unique name of the permission');
+      .notNullable();
     table
       .string('key', 100)
       .notNullable()
