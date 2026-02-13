@@ -1,5 +1,4 @@
 import { type FC, useMemo } from 'react';
-import { validatePassword } from '@utils/validation';
 import { CustomForm } from '@components/index';
 import { buildChangePasswordFields } from '@features/auth/password/components';
 
@@ -57,21 +56,12 @@ const ChangePasswordForm: FC<PasswordUpdateFormProps> = ({
    * Normalizes form data and performs client-side password validation
    * before delegating submission upward.
    */
-  const handleValidatedSubmit = (formData: Record<string, unknown>) => {
+  const handleValidatedSubmit = (
+    formData: Record<string, unknown>,
+  ) => {
     const currentPassword = String(formData.currentPassword ?? '');
     const newPassword = String(formData.newPassword ?? '');
     const confirmPassword = String(formData.confirmPassword ?? '');
-    
-    const validationErrors = validatePassword({
-      currentPassword,
-      newPassword,
-      confirmPassword,
-    });
-    
-    if (validationErrors) {
-      // Allow CustomForm to map structured validation errors to fields
-      throw validationErrors;
-    }
     
     onSubmit({
       currentPassword,
