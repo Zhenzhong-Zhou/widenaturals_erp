@@ -31,7 +31,6 @@
 
 const ROUTE_PERMISSIONS = {
   USERS: {
-    VIEW_USERS: 'view_users',
     VIEW_LIST: 'view_user_list',
     VIEW_CARD: 'view_user_card',
   },

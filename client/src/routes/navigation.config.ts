@@ -25,7 +25,7 @@ export const navigationItems: NavigationItem[] = [
     path: '/users',
     title: 'Users',
     exact: true,
-    requiredPermission: ROUTE_PERMISSIONS.USERS.VIEW_USERS,
+    requiredPermission: ROUTE_PERMISSIONS.USERS.VIEW_CARD,
   },
   {
     path: '/users/list',
