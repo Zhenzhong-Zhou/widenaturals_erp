@@ -15,6 +15,7 @@
  * - CTE subqueries joined with orders, batches, and customers
  */
 
+const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
@@ -102,117 +103,129 @@ const AppError = require('../AppError');
  */
 const buildInventoryAllocationFilter = (filters = {}) => {
   try {
+    // -------------------------------------------------------------
+    // Normalize ALL date-only filters FIRST
+    // -------------------------------------------------------------
+    filters = normalizeDateRangeFilters(filters, 'allocatedAfter', 'allocatedBefore');
+    filters = normalizeDateRangeFilters(
+      filters,
+      'aggregatedAllocatedAfter',
+      'aggregatedAllocatedBefore'
+    );
+    filters = normalizeDateRangeFilters(
+      filters,
+      'aggregatedCreatedAfter',
+      'aggregatedCreatedBefore'
+    );
+    
     const rawAllocConditions = ['1=1'];
     const outerConditions = ['1=1'];
+    
     const rawAllocParams = [];
     const outerParams = [];
-
-    // --- RAW allocation-level filters ---
-    let rawIndex = 1;
-
+    
+    const rawIndexRef = { value: 1 };
+    const outerIndexRef = { value: 1 };
+    
+    // -------------------------------------------------------------
+    // RAW allocation-level filters (ia.*)
+    // -------------------------------------------------------------
     if (filters.statusIds?.length) {
-      rawAllocConditions.push(`ia.status_id = ANY($${rawIndex}::uuid[])`);
+      rawAllocConditions.push(`ia.status_id = ANY($${rawIndexRef.value}::uuid[])`);
       rawAllocParams.push(filters.statusIds);
-      rawIndex++;
+      rawIndexRef.value++;
     }
-
+    
     if (filters.warehouseIds?.length) {
-      rawAllocConditions.push(`ia.warehouse_id = ANY($${rawIndex}::uuid[])`);
+      rawAllocConditions.push(`ia.warehouse_id = ANY($${rawIndexRef.value}::uuid[])`);
       rawAllocParams.push(filters.warehouseIds);
-      rawIndex++;
+      rawIndexRef.value++;
     }
-
+    
     if (filters.batchIds?.length) {
-      rawAllocConditions.push(`ia.batch_id = ANY($${rawIndex}::uuid[])`);
+      rawAllocConditions.push(`ia.batch_id = ANY($${rawIndexRef.value}::uuid[])`);
       rawAllocParams.push(filters.batchIds);
-      rawIndex++;
+      rawIndexRef.value++;
     }
-
+    
     if (filters.allocationCreatedBy) {
-      rawAllocConditions.push(`ia.created_by = $${rawIndex}`);
+      rawAllocConditions.push(`ia.created_by = $${rawIndexRef.value}`);
       rawAllocParams.push(filters.allocationCreatedBy);
-      rawIndex++;
+      rawIndexRef.value++;
     }
-
-    if (filters.allocatedAfter) {
-      rawAllocConditions.push(`ia.allocated_at >= $${rawIndex}`);
-      rawAllocParams.push(filters.allocatedAfter);
-      rawIndex++;
-    }
-
-    if (filters.allocatedBefore) {
-      rawAllocConditions.push(`ia.allocated_at <= $${rawIndex}`);
-      rawAllocParams.push(filters.allocatedBefore);
-      rawIndex++;
-    }
-
-    // --- OUTER order-level filters ---
-    // Start outerIndex *after* rawAllocParams
-    let outerIndex = rawIndex;
-
-    if (filters.aggregatedAllocatedAfter) {
-      outerConditions.push(`aa.allocated_at >= $${outerIndex}`);
-      outerParams.push(filters.aggregatedAllocatedAfter);
-      outerIndex++;
-    }
-
-    if (filters.aggregatedAllocatedBefore) {
-      outerConditions.push(`aa.allocated_at <= $${outerIndex}`);
-      outerParams.push(filters.aggregatedAllocatedBefore);
-      outerIndex++;
-    }
-
-    if (filters.aggregatedCreatedAfter) {
-      outerConditions.push(`aa.allocated_created_at >= $${outerIndex}`);
-      outerParams.push(filters.aggregatedCreatedAfter);
-      outerIndex++;
-    }
-
-    if (filters.aggregatedCreatedBefore) {
-      outerConditions.push(`aa.allocated_created_at <= $${outerIndex}`);
-      outerParams.push(filters.aggregatedCreatedBefore);
-      outerIndex++;
-    }
-
+    
+    // ------------------------------
+    // Allocation timestamp filters (via helper)
+    // ------------------------------
+    applyDateRangeConditions({
+      conditions: rawAllocConditions,
+      params: rawAllocParams,
+      column: 'ia.allocated_at',
+      after: filters.allocatedAfter,
+      before: filters.allocatedBefore,
+      paramIndexRef: rawIndexRef,
+    });
+    
+    // -------------------------------------------------------------
+    // OUTER / aggregated order-level filters
+    // -------------------------------------------------------------
+    applyDateRangeConditions({
+      conditions: outerConditions,
+      params: outerParams,
+      column: 'aa.allocated_at',
+      after: filters.aggregatedAllocatedAfter,
+      before: filters.aggregatedAllocatedBefore,
+      paramIndexRef: outerIndexRef,
+    });
+    
+    applyDateRangeConditions({
+      conditions: outerConditions,
+      params: outerParams,
+      column: 'aa.allocated_created_at',
+      after: filters.aggregatedCreatedAfter,
+      before: filters.aggregatedCreatedBefore,
+      paramIndexRef: outerIndexRef,
+    });
+    
     if (filters.orderNumber) {
-      outerConditions.push(`o.order_number ILIKE $${outerIndex}`);
+      outerConditions.push(`o.order_number ILIKE $${outerIndexRef.value}`);
       outerParams.push(`%${filters.orderNumber}%`);
-      outerIndex++;
+      outerIndexRef.value++;
     }
-
+    
     if (filters.orderStatusId) {
-      outerConditions.push(`o.order_status_id = $${outerIndex}`);
+      outerConditions.push(`o.order_status_id = $${outerIndexRef.value}`);
       outerParams.push(filters.orderStatusId);
-      outerIndex++;
+      outerIndexRef.value++;
     }
-
+    
     if (filters.orderTypeId) {
-      outerConditions.push(`o.order_type_id = $${outerIndex}`);
+      outerConditions.push(`o.order_type_id = $${outerIndexRef.value}`);
       outerParams.push(filters.orderTypeId);
-      outerIndex++;
+      outerIndexRef.value++;
     }
-
+    
     if (filters.orderCreatedBy) {
-      outerConditions.push(`o.created_by = $${outerIndex}`);
+      outerConditions.push(`o.created_by = $${outerIndexRef.value}`);
       outerParams.push(filters.orderCreatedBy);
-      outerIndex++;
+      outerIndexRef.value++;
     }
-
+    
     if (filters.paymentStatusId) {
-      outerConditions.push(`so.payment_status_id = $${outerIndex}`);
+      outerConditions.push(`so.payment_status_id = $${outerIndexRef.value}`);
       outerParams.push(filters.paymentStatusId);
-      outerIndex++;
+      outerIndexRef.value++;
     }
-
+    
     if (filters.keyword) {
       outerConditions.push(`(
-      o.order_number ILIKE $${outerIndex} OR
-      COALESCE(c.firstname || ' ' || c.lastname, '') ILIKE $${outerIndex}
-    )`);
+        o.order_number ILIKE $${outerIndexRef.value} OR
+        COALESCE(c.firstname || ' ' || c.lastname, '') ILIKE $${outerIndexRef.value}
+      )`);
       outerParams.push(`%${filters.keyword}%`);
-      outerIndex++;
+      outerIndexRef.value++;
     }
-
+    
     return {
       rawAllocWhereClause: rawAllocConditions.join(' AND '),
       rawAllocParams,
@@ -225,6 +238,7 @@ const buildInventoryAllocationFilter = (filters = {}) => {
       error: err.message,
       filters,
     });
+    
     throw AppError.databaseError(
       'Failed to prepare inventory allocation filter',
       {

@@ -1,37 +1,43 @@
 import { type FC } from 'react';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
-import CustomTypography from '@components/common/CustomTypography';
-import DetailsSection from '@components/common/DetailsSection';
+import {
+  CustomTypography,
+  DetailsSection
+} from '@components/index';
+import type {
+  FlattenedInventoryAllocationSummary
+} from '@features/inventoryAllocation/state';
 import { formatLabel } from '@utils/textUtils';
 import { formatDate } from '@utils/dateTimeUtils';
-import type { InventoryAllocationSummary } from '@features/inventoryAllocation/state';
 
 interface Props {
-  row: InventoryAllocationSummary;
+  row: FlattenedInventoryAllocationSummary;
 }
 
+/**
+ * Expanded row renderer for inventory allocation summary tables.
+ *
+ * Displays allocation- and order-level metadata derived from
+ * a flattened allocation summary record.
+ */
 const InventoryAllocationTableExpandedRow: FC<Props> = ({ row }) => {
   const {
     orderCategory,
-    allocationStatus,
+    allocationStatusNames,
     allocatedAt,
     allocatedCreatedAt,
     orderCreatedAt,
     orderUpdatedAt,
     orderUpdatedBy,
   } = row;
-
-  const nameLabel = Array.isArray(allocationStatus?.names)
-    ? allocationStatus.names.join(', ')
-    : (allocationStatus?.names ?? '—');
-
+  
   return (
     <Box sx={{ px: 3, py: 2 }}>
       <CustomTypography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
         Order Allocation Metadata
       </CustomTypography>
-
+      
       <Grid container spacing={2}>
         <Grid size={{ xs: 12 }}>
           <DetailsSection
@@ -43,10 +49,14 @@ const InventoryAllocationTableExpandedRow: FC<Props> = ({ row }) => {
               },
               {
                 label: 'Allocation Statuses',
-                value: nameLabel,
+                value: allocationStatusNames || '—',
                 format: formatLabel,
               },
-              { label: 'Allocated At', value: allocatedAt, format: formatDate },
+              {
+                label: 'Allocated At',
+                value: allocatedAt,
+                format: formatDate,
+              },
               {
                 label: 'Allocation Created At',
                 value: allocatedCreatedAt,

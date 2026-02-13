@@ -24,7 +24,7 @@ const { logError } = require('../utils/logger-helper');
  * @returns {Promise<string[]>}
  */
 const resolvePermissions = async (req) => {
-  if (!req.user) {
+  if (!req.auth.user) {
     throw AppError.authenticationError(
       'Unauthorized: User not authenticated.'
     );
@@ -35,7 +35,7 @@ const resolvePermissions = async (req) => {
     return req.permissions;
   }
   
-  const { role } = req.user;
+  const { role } = req.auth.user;
   const cacheKey = `role_permissions:${role}`;
   
   /* ----------------------------------------

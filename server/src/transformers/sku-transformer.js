@@ -4,6 +4,7 @@ const { cleanObject } = require('../utils/object-utils');
 const { transformSkuImage } = require('./sku-image-transformer');
 const { transformSkuPricing } = require('./pricing-transformer');
 const { transformComplianceRecord } = require('./compliance-record-transfomer');
+const { makeStatus } = require('../utils/status-utils');
 const { compactAudit, makeAudit } = require('../utils/audit-utils');
 
 /**
@@ -215,12 +216,8 @@ const transformSkuListRecord = (row) => {
       category: row.category,
       displayName: getProductDisplayName(row),
     },
-
-    status: {
-      id: row.status_id,
-      name: row.status_name,
-      date: row.status_date,
-    },
+    
+    status: makeStatus(row),
 
     audit: compactAudit(makeAudit(row)),
   });
@@ -356,7 +353,14 @@ const transformSkuDetail = ({ sku, images, pricing, complianceRecords }) => {
       series: sku.product_series,
       brand: sku.product_brand,
       category: sku.product_category,
-      displayName: getProductDisplayName(sku),
+      displayName: getProductDisplayName({
+        product_name: sku.product_name,
+        brand: sku.brand,
+        sku: sku.sku_code,
+        country_code: sku.country_code,
+        size_label: sku.size_label,
+        display_name: sku.display_name,
+      }),
     },
 
     // --- Dimensions ---
@@ -376,13 +380,13 @@ const transformSkuDetail = ({ sku, images, pricing, complianceRecords }) => {
         lb: sku.weight_lb,
       },
     },
-
-    status: {
-      id: sku.sku_status_id,
-      name: sku.sku_status_name,
-      date: sku.sku_status_date,
-    },
-
+    
+    status: makeStatus(sku, {
+      id: 'sku_status_id',
+      name: 'sku_status_name',
+      date: 'sku_status_date',
+    }),
+    
     audit: compactAudit(makeAudit(sku)),
 
     // --- Lists with transformers applied ---

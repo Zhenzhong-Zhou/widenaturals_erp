@@ -4,14 +4,14 @@ import CustomButton from '@components/common/CustomButton';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomTable from '@components/common/CustomTable';
 import SkeletonExpandedRow from '@components/common/SkeletonExpandedRow';
-import type { OutboundShipmentRecord } from '@features/outboundFulfillment/state';
+import type { FlattenedOutboundShipmentRow } from '@features/outboundFulfillment/state';
 import {
   getOutboundFulfillmentTableColumns,
   OutboundFulfillmentExpandedContent,
 } from '@features/outboundFulfillment/components/OutboundFulfillmentTable';
 
 interface OutboundFulfillmentsTableProps {
-  data: OutboundShipmentRecord[];
+  data: FlattenedOutboundShipmentRow[];
   loading: boolean;
   page: number;
   rowsPerPage: number;
@@ -53,7 +53,7 @@ const OutboundFulfillmentsTable: FC<OutboundFulfillmentsTableProps> = ({
   }, [expandedRowId, onDrillDownToggle]);
 
   const renderOutboundFulfillmentExpandedContent = useCallback(
-    (row: OutboundShipmentRecord) => (
+    (row: FlattenedOutboundShipmentRow) => (
       <Suspense
         fallback={
           <SkeletonExpandedRow
@@ -91,7 +91,7 @@ const OutboundFulfillmentsTable: FC<OutboundFulfillmentsTableProps> = ({
         </CustomButton>
       </Box>
 
-      <CustomTable<OutboundShipmentRecord>
+      <CustomTable<FlattenedOutboundShipmentRow>
         loading={loading}
         data={data}
         columns={columns}

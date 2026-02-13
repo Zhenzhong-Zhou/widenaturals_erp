@@ -21,7 +21,7 @@ const csrfErrorHandler = (err, req, res, next) => {
   const enrichedDetails = {
     message: err.message,
     code: err.code,
-    origin: req.headers.origin || 'Unknown',
+    origin: req.get('origin') || null,
   };
 
   // Normalize the error
@@ -36,7 +36,8 @@ const csrfErrorHandler = (err, req, res, next) => {
   // Log the CSRF error with context and request metadata
   logError(normalizedError, req, {
     context: 'csrf-error-handler',
-    referrer: req.headers?.referer || 'None',
+    traceId: req.traceId,
+    referrer: req.get('referer') || null,
   });
 
   // Respond with a structured error response

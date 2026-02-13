@@ -1,5 +1,6 @@
 const express = require('express');
 const { authorize } = require('../middlewares/authorize');
+const PERMISSIONS = require('../utils/constants/domain/permissions');
 const {
   getPaginatedWarehouseInventorySummaryController,
   getWarehouseInventorySummaryDetailsController,
@@ -27,11 +28,7 @@ const router = express.Router();
  */
 router.get(
   '/summary',
-  authorize([
-    'view_inventory',
-    'view_warehouse_inventory',
-    'view_inventory_summary',
-  ]),
+  authorize([PERMISSIONS.WAREHOUSE_INVENTORY.VIEW_SUMMARY]),
   getPaginatedWarehouseInventorySummaryController
 );
 
@@ -50,12 +47,7 @@ router.get(
  */
 router.get(
   '/summary/:itemId/details',
-  authorize([
-    'view_inventory',
-    'view_warehouse_inventory',
-    'view_product_inventory',
-    'view_material_inventory',
-  ]),
+  authorize([PERMISSIONS.WAREHOUSE_INVENTORY.VIEW_SUMMARY_ITEM_DETAILS]),
   getWarehouseInventorySummaryDetailsController
 );
 
@@ -67,12 +59,7 @@ router.get(
  *
  * @permissions
  * Requires one of the following permissions:
- * - view_warehouses
- * - manage_warehouses
- * - view_inventory
  * - view_warehouse_inventory
- * - view_product_inventory
- * - view_material_inventory
  *
  * @queryparam {number} [page=1] - Page number for pagination (1-based)
  * @queryparam {number} [limit=20] - Number of records per page
@@ -92,14 +79,7 @@ router.get(
  */
 router.get(
   '/',
-  authorize([
-    'view_warehouses',
-    'manage_warehouses',
-    'view_inventory',
-    'view_warehouse_inventory',
-    'view_product_inventory',
-    'view_material_inventory',
-  ]),
+  authorize([PERMISSIONS.WAREHOUSE_INVENTORY.VIEW]),
   getWarehouseInventoryRecordController
 );
 
@@ -135,7 +115,7 @@ router.get(
 router.post(
   '/',
   csrfMiddleware,
-  authorize(['manage_warehouse_inventory']), // Suggested permission
+  authorize([PERMISSIONS.WAREHOUSE_INVENTORY.CREATE]),
   createWarehouseInventoryRecordController
 );
 
@@ -167,12 +147,7 @@ router.post(
 router.patch(
   '/adjust-quantities',
   csrfMiddleware,
-  authorize([
-    'manage_inventory',
-    'adjust_inventory',
-    'manage_warehouses',
-    'manage_warehouse_inventory',
-  ]),
+  authorize([PERMISSIONS.WAREHOUSE_INVENTORY.ADJUST]),
   adjustInventoryQuantitiesController
 );
 

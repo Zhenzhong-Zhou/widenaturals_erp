@@ -8,6 +8,7 @@
  * Also supports internal access control flags such as `_activeStatusId` and `_restrictKeywordToValidOnly`.
  */
 
+const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
@@ -50,98 +51,110 @@ const AppError = require('../AppError');
  */
 const buildOrderTypeFilter = (filters = {}) => {
   try {
+    // -------------------------------------------------------------
+    // Normalize date-only filters FIRST
+    // -------------------------------------------------------------
+    filters = normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore');
+    filters = normalizeDateRangeFilters(filters, 'updatedAfter', 'updatedBefore');
+    
     const conditions = ['1=1'];
     const params = [];
-    let paramIndex = 1;
-
+    const paramIndexRef = { value: 1 };
+    
     if (filters.name) {
-      conditions.push(`ot.name ILIKE $${paramIndex}`);
+      conditions.push(`ot.name ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.name}%`);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.code) {
-      conditions.push(`ot.code ILIKE $${paramIndex}`);
+      conditions.push(`ot.code ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.code}%`);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
-    // Handle single or multiple categories
+    
+    // ------------------------------
+    // Category (single or multiple)
+    // ------------------------------
     if (filters.category) {
       if (Array.isArray(filters.category)) {
-        const placeholders = filters.category.map(() => `$${paramIndex++}`);
+        const placeholders = filters.category.map(
+          () => `$${paramIndexRef.value++}`
+        );
         conditions.push(`ot.category IN (${placeholders.join(', ')})`);
         params.push(...filters.category);
       } else {
-        conditions.push(`ot.category = $${paramIndex}`);
+        conditions.push(`ot.category = $${paramIndexRef.value}`);
         params.push(filters.category);
-        paramIndex++;
+        paramIndexRef.value++;
       }
     }
-
-    // Enforce `_activeStatusId` if present
+    
+    // ------------------------------
+    // Status enforcement
+    // ------------------------------
     if (filters._activeStatusId) {
-      conditions.push(`ot.status_id = $${paramIndex}`);
+      conditions.push(`ot.status_id = $${paramIndexRef.value}`);
       params.push(filters._activeStatusId);
-      paramIndex++;
+      paramIndexRef.value++;
     } else if (filters.statusId) {
-      conditions.push(`ot.status_id = $${paramIndex}`);
+      conditions.push(`ot.status_id = $${paramIndexRef.value}`);
       params.push(filters.statusId);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.requiresPayment !== undefined) {
-      conditions.push(`ot.requires_payment = $${paramIndex}`);
+      conditions.push(`ot.requires_payment = $${paramIndexRef.value}`);
       params.push(filters.requiresPayment);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.createdBy) {
-      conditions.push(`ot.created_by = $${paramIndex}`);
+      conditions.push(`ot.created_by = $${paramIndexRef.value}`);
       params.push(filters.createdBy);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.updatedBy) {
-      conditions.push(`ot.updated_by = $${paramIndex}`);
+      conditions.push(`ot.updated_by = $${paramIndexRef.value}`);
       params.push(filters.updatedBy);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
-    if (filters.createdAfter) {
-      conditions.push(`ot.created_at >= $${paramIndex}`);
-      params.push(filters.createdAfter);
-      paramIndex++;
-    }
-
-    if (filters.createdBefore) {
-      conditions.push(`ot.created_at <= $${paramIndex}`);
-      params.push(filters.createdBefore);
-      paramIndex++;
-    }
-
-    if (filters.updatedAfter) {
-      conditions.push(`ot.updated_at >= $${paramIndex}`);
-      params.push(filters.updatedAfter);
-      paramIndex++;
-    }
-
-    if (filters.updatedBefore) {
-      conditions.push(`ot.updated_at <= $${paramIndex}`);
-      params.push(filters.updatedBefore);
-      paramIndex++;
-    }
-
-    // Adjust keyword search scope
+    
+    // ------------------------------
+    // Created / Updated date filters
+    // ------------------------------
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'ot.created_at',
+      after: filters.createdAfter,
+      before: filters.createdBefore,
+      paramIndexRef,
+    });
+    
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'ot.updated_at',
+      after: filters.updatedAfter,
+      before: filters.updatedBefore,
+      paramIndexRef,
+    });
+    
+    // ------------------------------
+    // Keyword search
+    // ------------------------------
     if (filters.keyword) {
       const keywordClause = filters._restrictKeywordToValidOnly
-        ? `ot.name ILIKE $${paramIndex}`
-        : `(ot.name ILIKE $${paramIndex} OR ot.code ILIKE $${paramIndex})`;
+        ? `ot.name ILIKE $${paramIndexRef.value}`
+        : `(ot.name ILIKE $${paramIndexRef.value} OR ot.code ILIKE $${paramIndexRef.value})`;
+      
       conditions.push(keywordClause);
       params.push(`%${filters.keyword.trim().replace(/\s+/g, ' ')}%`);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -152,6 +165,7 @@ const buildOrderTypeFilter = (filters = {}) => {
       error: err.message,
       filters,
     });
+    
     throw AppError.databaseError('Failed to prepare order type filter', {
       details: err.message,
       stage: 'build-order-type-where-clause',

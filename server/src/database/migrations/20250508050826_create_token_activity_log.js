@@ -27,9 +27,12 @@ exports.up = async function (knex) {
       })
       .notNullable();
 
-    table.string('token_type', 20).notNullable(); // 'access' | 'refresh' | 'magic_link' etc.
-
-    table.timestamp('event_at', { useTz: true }).defaultTo(knex.fn.now());
+    table.string('token_type', 20).notNullable(); // 'refresh' | 'magic_link' etc.
+    
+    table
+      .timestamp('event_at', { useTz: true })
+      .notNullable()
+      .defaultTo(knex.fn.now());
 
     table.string('ip_address', 45).nullable();
     table.text('user_agent').nullable();
@@ -41,6 +44,7 @@ exports.up = async function (knex) {
       ['user_id', 'token_type', 'event_at'],
       'idx_token_activity_user_event'
     );
+    table.index(['token_id']);
   });
 };
 

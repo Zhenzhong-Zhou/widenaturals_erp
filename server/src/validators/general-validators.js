@@ -540,19 +540,19 @@ const createArraySchema = (itemSchema, minItems = 1, label = 'Items') =>
  *
  * Accepts:
  * - Valid ISO-8601 date strings (e.g. "2026-01-12", "2026-01-12T10:30:00Z")
- * - null (explicitly unset)
+ * - undefined (parameter omitted)
  *
  * Notes:
  * - Intended for transport-layer validation only
- * - Persistence layer should treat null as "no value"
+ * - Absence of the value implies no date constraint
  */
-const optionalIsoDate = () =>
+const optionalIsoDate = (label = 'Date') =>
   Joi.date()
     .iso()
-    .allow(null)
+    .optional()
     .messages({
-      'date.base': 'Date must be a valid ISO-8601 value',
-      'date.format': 'Date must be in ISO-8601 format',
+      'date.base': `${label} must be a valid date`,
+      'date.iso': `${label} must be in ISO-8601 format`,
     });
 
 /**

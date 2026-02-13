@@ -4,6 +4,7 @@
  * for filtering packaging materials, especially for sales order lookup.
  */
 
+const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
@@ -30,6 +31,10 @@ const AppError = require('../AppError');
  * @param {boolean} [filters.restrictToUnarchived=true] - If true, exclude archived materials (is_archived = false)
  * @param {boolean} [filters.restrictToActiveStatus=true] - If true, apply active status filtering using statusId or _activeStatusId
  * @param {string} [filters._activeStatusId] - Optional fallback value used when no explicit statusId is passed
+ * @param {string} [filters.createdAfter]
+ * @param {string} [filters.createdBefore]
+ * @param {string} [filters.updatedAfter]
+ * @param {string} [filters.updatedBefore]
  *
  * @returns {{ whereClause: string, params: any[] }} - SQL WHERE clause and parameter list
  *
@@ -37,58 +42,97 @@ const AppError = require('../AppError');
  */
 const buildPackagingMaterialsFilter = (filters = {}) => {
   try {
+    // -------------------------------------------------------------
+    // Normalize date-only filters
+    // -------------------------------------------------------------
+    filters = normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore');
+    filters = normalizeDateRangeFilters(filters, 'updatedAfter', 'updatedBefore');
+    
     const conditions = ['1=1'];
     const params = [];
-    let paramIndex = 1;
-
+    const paramIndexRef = { value: 1 };
+    
+    // ------------------------------
     // Visibility for sales
+    // ------------------------------
     if (filters.visibleOnly === true) {
       conditions.push(`pm.is_visible_for_sales_order = true`);
     }
-
+    
+    // ------------------------------
     // Only unarchived by default
+    // ------------------------------
     if (filters.restrictToUnarchived !== false) {
       conditions.push(`pm.is_archived = false`);
     }
-
+    
+    // ------------------------------
     // Status
+    // ------------------------------
     if (filters.statusId) {
-      conditions.push(`pm.status_id = $${paramIndex}`);
+      conditions.push(`pm.status_id = $${paramIndexRef.value}`);
       params.push(filters.statusId);
-      paramIndex++;
+      paramIndexRef.value++;
     } else if (filters._activeStatusId) {
-      conditions.push(`pm.status_id = $${paramIndex}`);
+      conditions.push(`pm.status_id = $${paramIndexRef.value}`);
       params.push(filters._activeStatusId);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
+    // ------------------------------
     // Keyword search
+    // ------------------------------
     if (filters.keyword) {
-      const keywordParam = `%${filters.keyword}%`;
       conditions.push(`(
-        pm.name ILIKE $${paramIndex} OR
-        pm.color ILIKE $${paramIndex} OR
-        pm.size ILIKE $${paramIndex} OR
-        pm.grade ILIKE $${paramIndex} OR
-        pm.material_composition ILIKE $${paramIndex}
+        pm.name ILIKE $${paramIndexRef.value} OR
+        pm.color ILIKE $${paramIndexRef.value} OR
+        pm.size ILIKE $${paramIndexRef.value} OR
+        pm.grade ILIKE $${paramIndexRef.value} OR
+        pm.material_composition ILIKE $${paramIndexRef.value}
       )`);
-      params.push(keywordParam);
-      paramIndex++;
+      params.push(`%${filters.keyword}%`);
+      paramIndexRef.value++;
     }
-
-    // Created/updated by
+    
+    // ------------------------------
+    // Created / Updated by
+    // ------------------------------
     if (filters.createdBy) {
-      conditions.push(`pm.created_by = $${paramIndex}`);
+      conditions.push(`pm.created_by = $${paramIndexRef.value}`);
       params.push(filters.createdBy);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.updatedBy) {
-      conditions.push(`pm.updated_by = $${paramIndex}`);
+      conditions.push(`pm.updated_by = $${paramIndexRef.value}`);
       params.push(filters.updatedBy);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
+    // ------------------------------
+    // Created date filters
+    // ------------------------------
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'pm.created_at',
+      after: filters.createdAfter,
+      before: filters.createdBefore,
+      paramIndexRef,
+    });
+    
+    // ------------------------------
+    // Updated date filters
+    // ------------------------------
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'pm.updated_at',
+      after: filters.updatedAfter,
+      before: filters.updatedBefore,
+      paramIndexRef,
+    });
+    
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -99,6 +143,7 @@ const buildPackagingMaterialsFilter = (filters = {}) => {
       filters,
       error: err.message,
     });
+    
     throw AppError.databaseError(
       'Failed to prepare packaging material filter',
       {

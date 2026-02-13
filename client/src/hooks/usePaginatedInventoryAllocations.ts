@@ -5,6 +5,7 @@ import {
   selectInventoryAllocations,
   selectInventoryAllocationsError,
   selectInventoryAllocationsHasMore,
+  selectInventoryAllocationsIsEmpty,
   selectInventoryAllocationsLimit,
   selectInventoryAllocationsLoading,
   selectInventoryAllocationsPage,
@@ -13,7 +14,7 @@ import {
   selectInventoryAllocationsTotalRecords,
 } from '@features/inventoryAllocation/state';
 import type { FetchPaginatedInventoryAllocationsParams } from '@features/inventoryAllocation/state';
-import { resetPaginatedInventoryAllocations } from '@features/inventoryAllocation/state/paginatedInventoryAllocationsSlice.ts';
+import { resetPaginatedInventoryAllocations } from '@features/inventoryAllocation/state/paginatedInventoryAllocationsSlice';
 
 /**
  * Custom hook to access and manage paginated inventory allocation data from the Redux store.
@@ -25,13 +26,14 @@ import { resetPaginatedInventoryAllocations } from '@features/inventoryAllocatio
  * - reset() → resets state
  * - fetch(params) → fetches paginated inventory allocation data
  */
-export const usePaginatedInventoryAllocations = () => {
+const usePaginatedInventoryAllocations = () => {
   const dispatch = useAppDispatch();
 
   const data = useAppSelector(selectInventoryAllocations);
   const pagination = useAppSelector(selectInventoryAllocationsPagination);
   const loading = useAppSelector(selectInventoryAllocationsLoading);
   const error = useAppSelector(selectInventoryAllocationsError);
+  const isEmpty = useAppSelector(selectInventoryAllocationsIsEmpty);
   const hasMore = useAppSelector(selectInventoryAllocationsHasMore);
   const page = useAppSelector(selectInventoryAllocationsPage);
   const limit = useAppSelector(selectInventoryAllocationsLimit);
@@ -61,6 +63,7 @@ export const usePaginatedInventoryAllocations = () => {
       pagination,
       loading,
       error,
+      isEmpty,
       hasMore,
       page,
       limit,
@@ -74,6 +77,7 @@ export const usePaginatedInventoryAllocations = () => {
       pagination,
       loading,
       error,
+      isEmpty,
       hasMore,
       page,
       limit,
@@ -84,3 +88,5 @@ export const usePaginatedInventoryAllocations = () => {
     ]
   );
 };
+
+export default usePaginatedInventoryAllocations;

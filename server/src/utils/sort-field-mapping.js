@@ -153,6 +153,200 @@ const SORTABLE_FIELDS = {
       s.created_at
     `,
   },
+  batchRegistrySortMap: {
+    // --------------------------------------------------
+    // Core registry identity (SAFE, always present)
+    // --------------------------------------------------
+    registeredAt: `br.registered_at`,
+    batchType: `br.batch_type`,
+    
+    // --------------------------------------------------
+    // Lot number (polymorphic)
+    // --------------------------------------------------
+    lotNumber: `
+      LOWER(
+        COALESCE(pb.lot_number, pmb.lot_number)
+      )
+    `,
+    
+    // --------------------------------------------------
+    // Expiry date (polymorphic, NULL-safe)
+    // --------------------------------------------------
+    expiryDate: `
+      COALESCE(pb.expiry_date, pmb.expiry_date)
+    `,
+    
+    // --------------------------------------------------
+    // Status (polymorphic)
+    // --------------------------------------------------
+    statusName: `
+      LOWER(
+        COALESCE(bs_pb.name, bs_pmb.name)
+      )
+    `,
+    
+    statusDate: `
+      COALESCE(pb.status_date, pmb.status_date)
+    `,
+    
+    // --------------------------------------------------
+    // Product-side metadata
+    // --------------------------------------------------
+    productName: `LOWER(p.name)`,
+    skuCode: `LOWER(s.sku)`,
+    manufacturerName: `LOWER(m.name)`,
+    
+    // --------------------------------------------------
+    // Packaging-side metadata
+    // --------------------------------------------------
+    packagingMaterialName: `LOWER(pm.name)`,
+    supplierName: `LOWER(sup.name)`,
+    
+    // --------------------------------------------------
+    // Audit
+    // --------------------------------------------------
+    registeredBy: `
+      LOWER(
+        COALESCE(u_reg.firstname, '') || ' ' ||
+        COALESCE(u_reg.lastname, '')
+      )
+    `,
+    
+    // --------------------------------------------------
+    // Fallback (required)
+    // --------------------------------------------------
+    defaultNaturalSort: `br.registered_at`,
+  },
+  productBatchSortMap: {
+    // --------------------------------------------------
+    // Core identity (SAFE, always present)
+    // --------------------------------------------------
+    createdAt: `pb.created_at`,
+    lotNumber: `LOWER(pb.lot_number)`,
+    
+    // --------------------------------------------------
+    // SKU (PRIMARY operational identity)
+    // --------------------------------------------------
+    skuCode: `LOWER(sk.sku)`,
+    sizeLabel: `LOWER(sk.size_label)`,
+    countryCode: `LOWER(sk.country_code)`,
+    
+    // --------------------------------------------------
+    // Product (PRIMARY display fields)
+    // --------------------------------------------------
+    productName: `LOWER(p.name)`,
+    productBrand: `LOWER(p.brand)`,
+    productCategory: `LOWER(p.category)`,
+    
+    // --------------------------------------------------
+    // Manufacturer (REFERENCE, permission-gated)
+    // --------------------------------------------------
+    manufacturerName: `LOWER(m.name)`,
+    
+    // --------------------------------------------------
+    // Lifecycle
+    // --------------------------------------------------
+    manufactureDate: `pb.manufacture_date`,
+    expiryDate: `pb.expiry_date`,
+    receivedDate: `pb.received_date`,
+    
+    // --------------------------------------------------
+    // Quantity (manufactured amount)
+    // --------------------------------------------------
+    initialQuantity: `pb.initial_quantity`,
+    
+    // --------------------------------------------------
+    // Status
+    // --------------------------------------------------
+    statusName: `LOWER(bs.name)`,
+    statusDate: `pb.status_date`,
+    
+    // --------------------------------------------------
+    // Release / approval
+    // --------------------------------------------------
+    releasedAt: `pb.released_at`,
+    releasedBy: `
+      LOWER(
+        COALESCE(rb.firstname, '') || ' ' ||
+        COALESCE(rb.lastname, '')
+      )
+    `,
+    
+    // --------------------------------------------------
+    // Audit
+    // --------------------------------------------------
+    updatedAt: `pb.updated_at`,
+    
+    // --------------------------------------------------
+    // Fallback (REQUIRED)
+    // --------------------------------------------------
+    defaultNaturalSort: `pb.created_at`,
+  },
+  packagingMaterialBatchSortMap: {
+    // --------------------------------------------------
+    // Core identity (SAFE, always present)
+    // --------------------------------------------------
+    receivedAt: `pmb.received_at`,
+    lotNumber: `LOWER(pmb.lot_number)`,
+    
+    // --------------------------------------------------
+    // Snapshot identity (PRIMARY display fields)
+    // --------------------------------------------------
+    materialInternalName: `
+      LOWER(pmb.material_snapshot_name)
+    `,
+    
+    supplierLabelName: `
+      LOWER(pmb.received_label_name)
+    `,
+    
+    // --------------------------------------------------
+    // Lifecycle
+    // --------------------------------------------------
+    manufactureDate: `pmb.manufacture_date`,
+    expiryDate: `pmb.expiry_date`,
+    
+    // --------------------------------------------------
+    // Status
+    // --------------------------------------------------
+    statusName: `LOWER(bs.name)`,
+    statusDate: `pmb.status_date`,
+    
+    // --------------------------------------------------
+    // Quantity
+    // --------------------------------------------------
+    quantity: `pmb.quantity`,
+    
+    // --------------------------------------------------
+    // Packaging material (REFERENCE ONLY)
+    // --------------------------------------------------
+    packagingMaterialCode: `LOWER(pm.code)`,
+    packagingMaterialCategory: `LOWER(pm.category)`,
+    
+    // --------------------------------------------------
+    // Supplier
+    // --------------------------------------------------
+    supplierName: `LOWER(s.name)`,
+    isPreferredSupplier: `pms.is_preferred`,
+    supplierLeadTime: `pms.lead_time_days`,
+    
+    // --------------------------------------------------
+    // Audit / Intake
+    // --------------------------------------------------
+    receivedBy: `
+      LOWER(
+        COALESCE(rb.firstname, '') || ' ' ||
+        COALESCE(rb.lastname, '')
+      )
+    `,
+    
+    createdAt: `pmb.created_at`,
+    
+    // --------------------------------------------------
+    // Fallback (REQUIRED)
+    // --------------------------------------------------
+    defaultNaturalSort: `pmb.received_at`,
+  },
   pricingRecords: {
     productName: 'pr.name',
     brand: 'pr.brand',

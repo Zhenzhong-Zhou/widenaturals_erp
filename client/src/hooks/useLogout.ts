@@ -25,7 +25,7 @@ const useLogout = () => {
        * Always redirect after logout.
        * Client session is already destroyed by the thunk.
        */
-      window.location.href = '/login';
+      window.location.replace('/login');
     }
   }, [dispatch]);
   

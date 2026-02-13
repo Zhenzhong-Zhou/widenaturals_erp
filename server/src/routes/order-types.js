@@ -1,5 +1,6 @@
 const express = require('express');
 const { authorize } = require('../middlewares/authorize');
+const PERMISSIONS = require('../utils/constants/domain/permissions');
 const { sanitizeFields } = require('../middlewares/sanitize');
 const validate = require('../middlewares/validate');
 const { orderTypeQuerySchema } = require('../validators/order-type-validators');
@@ -57,7 +58,7 @@ const router = express.Router();
  */
 router.get(
   '/',
-  authorize(['view_order_type']),
+  authorize([PERMISSIONS.ORDER_TYPES.VIEW]),
   createQueryNormalizationMiddleware(
     'orderTypeSortMap',
     ['statusId', 'createdBy', 'updatedBy'],

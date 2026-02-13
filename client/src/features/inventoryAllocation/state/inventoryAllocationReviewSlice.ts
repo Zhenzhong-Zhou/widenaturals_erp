@@ -31,33 +31,20 @@ const inventoryAllocationReviewSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(
-        fetchInventoryAllocationReviewThunk.fulfilled,
-        (state, action: PayloadAction<InventoryAllocationReviewResponse>) => {
-          state.loading = false;
-          state.data = action.payload.data; // AsyncState<T>
-          state.message = action.payload.message ?? null;
-          state.error = null;
-          state.lastFetchedAt = Date.now();
-        }
-      )
-      .addCase(
-        fetchInventoryAllocationReviewThunk.rejected,
-        (state, action) => {
-          state.loading = false;
-
-          const payload = action.payload as unknown;
-          state.error =
-            (typeof payload === 'string' && payload) ||
-            (payload &&
-              typeof payload === 'object' &&
-              ((payload as any).message ??
-                (payload as any).error ??
-                (payload as any)?.data?.message)) ||
-            action.error.message ||
-            'Failed to fetch allocation review';
-        }
-      );
+      .addCase(fetchInventoryAllocationReviewThunk.fulfilled, (state, action: PayloadAction<InventoryAllocationReviewResponse>) => {
+        state.loading = false;
+        state.data = action.payload.data;
+        state.message = action.payload.message ?? null;
+        state.error = null;
+        state.lastFetchedAt = Date.now();
+      })
+      .addCase(fetchInventoryAllocationReviewThunk.rejected, (state, action) => {
+        state.loading = false;
+        state.error =
+          action.payload?.message ||
+          action.error.message ||
+          'Failed to fetch allocation review';
+      });
   },
 });
 

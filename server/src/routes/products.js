@@ -336,7 +336,7 @@ router.put(
  * Pipeline:
  *   1. **Authorization**
  *        - Requires `PRODUCTS.CREATE` permission.
- *        - User object is attached to `req.user`.
+ *        - User object is attached to `req.auth.user`.
  *
  *   2. **Field Sanitization**
  *        - Optional sanitization for specific free-text fields (e.g., description).

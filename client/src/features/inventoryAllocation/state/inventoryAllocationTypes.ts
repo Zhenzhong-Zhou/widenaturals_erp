@@ -309,30 +309,119 @@ export interface InventoryAllocationReviewData {
   items: AllocationReviewItem[];
 }
 
-/** Generic API success wrapper (assumes your shared type exists). */
-export type InventoryAllocationReviewResponse =
+/**
+ * API success response for inventory allocation review requests.
+ *
+ * Wraps allocation review data using the standard success response contract.
+ */
+export type InventoryAllocationReviewApiResponse =
   ApiSuccessResponse<InventoryAllocationReviewData>;
 
 /**
- * State shape for inventory allocation review slice.
+ * Flattened order-level metadata for an inventory allocation review.
  *
- * Combines generic async state fields (data, loading, error) with
- * additional metadata specific to the inventory allocation review feature.
+ * Derived from the order domain model and normalized for UI consumption.
+ */
+export interface FlattenedAllocationOrderHeader {
+  orderNumber: string;
+  note: string | null;
+  createdBy: string;
+  orderStatus: string;
+  orderStatusCode: string;
+  orderStatusId: string;
+  salespersonId: string;
+  salespersonName: string;
+}
+
+/**
+ * Flattened allocation item used in inventory allocation review screens.
+ *
+ * Combines allocation, order item, product / packaging material,
+ * batch, and warehouse inventory data into a single UI-friendly structure.
+ *
+ * All nested domain objects are resolved and normalized at the
+ * transformer layer.
+ */
+export interface FlattenedAllocationReviewItem {
+  allocationId: string;
+  allocationStatus: string;
+  allocationStatusCode: string;
+  allocatedQuantity: number;
+  createdAt: string;
+  updatedAt: string;
+  
+  orderItemId: string;
+  orderId: string;
+  orderItemStatusName: string;
+  orderItemStatusCode: string;
+  orderItemStatusDate: string;
+  quantityOrdered: number;
+  
+  skuCode: string | null;
+  barcode: string | null;
+  productName: string | null;
+  
+  packagingMaterialCode: string | null;
+  packagingMaterialLabel: string | null;
+  
+  batchLotNumber: string | null;
+  batchExpiryDate: string | null;
+  manufactureDate: string | null;
+  batchType: 'product' | 'packaging_material' | 'unknown';
+  
+  createdByName: string;
+  updatedByName: string;
+  
+  warehouseInventoryList: {
+    id: string;
+    warehouseQuantity: number;
+    reservedQuantity: number;
+    statusName: string;
+    statusDate: string;
+    warehouseName: string;
+    inboundDate: string;
+  }[];
+}
+
+/**
+ * Payload structure for inventory allocation review data.
+ *
+ * Includes order-level metadata and a list of flattened allocation items.
+ */
+export interface InventoryAllocationReviewListData {
+  header: FlattenedAllocationOrderHeader;
+  items: FlattenedAllocationReviewItem[];
+}
+
+/**
+ * Thunk and UI response for inventory allocation review requests.
+ *
+ * Contains flattened, UI-ready allocation review data returned
+ * from the backend.
+ */
+export type InventoryAllocationReviewResponse =
+  ApiSuccessResponse<InventoryAllocationReviewListData>;
+
+/**
+ * Redux state shape for the inventory allocation review feature.
+ *
+ * Extends the generic async state with additional metadata
+ * specific to allocation review behavior.
  */
 export type InventoryAllocationReviewState =
-  AsyncState<InventoryAllocationReviewData | null> & {
-    /**
-     * Human-readable message returned from the backend (e.g., success message).
-     * Useful for displaying toasts, alerts, or UI status.
-     */
-    message: string | null;
-
-    /**
-     * Timestamp (in milliseconds since epoch) of the last successful fetch.
-     * Useful for caching, freshness checks, or display purposes.
-     */
-    lastFetchedAt: number | null;
-  };
+  AsyncState<InventoryAllocationReviewListData | null> & {
+  /**
+   * Human-readable message returned from the backend (e.g. success message).
+   * Used for UI notifications such as toasts or alerts.
+   */
+  message: string | null;
+  
+  /**
+   * Timestamp (milliseconds since epoch) of the last successful fetch.
+   * Used for caching, freshness checks, or display.
+   */
+  lastFetchedAt: number | null;
+};
 
 /**
  * High-level allocation summary status derived from raw allocation codes.
@@ -434,10 +523,74 @@ export interface InventoryAllocationSummary {
 }
 
 /**
- * Standard paginated response for inventory allocation listings.
+ * Paginated API response for inventory allocation list endpoints.
+ *
+ * Wraps `InventoryAllocationSummary` records using the standard
+ * pagination contract.
  */
-export type InventoryAllocationResponse =
+export type InventoryAllocationApiResponse =
   PaginatedResponse<InventoryAllocationSummary>;
+
+/**
+ * Flattened, UI-ready inventory allocation summary row.
+ *
+ * Produced at the thunk ingestion boundary and stored in Redux
+ * for paginated lists, tables, and dashboards.
+ */
+export interface FlattenedInventoryAllocationSummary {
+  // --- Order ---
+  orderId: string;
+  orderNumber: string;
+  orderType: string | null;
+  orderCategory: string | null;
+  
+  // --- Order status ---
+  orderStatusName: string;
+  orderStatusCode: string;
+  
+  // --- Customer ---
+  customerName: string;
+  
+  // --- Payment ---
+  paymentMethod: string | null;
+  paymentStatusName: string;
+  paymentStatusCode: string;
+  
+  // --- Delivery ---
+  deliveryMethod: string | null;
+  
+  // --- Audit ---
+  orderCreatedAt: string;
+  orderCreatedBy: string;
+  orderUpdatedAt: string;
+  orderUpdatedBy: string;
+  
+  // --- Item counts ---
+  totalItemCount: number;
+  allocatedItemCount: number;
+  
+  // --- Warehouses ---
+  warehouseIds: string[];
+  warehouseNames: string; // pre-joined display string
+  
+  // --- Allocation status ---
+  allocationStatusCodes: string[];
+  allocationStatusNames: string; // comma-joined
+  allocationSummaryStatus: AllocationSummaryStatus;
+  
+  // --- Allocation metadata ---
+  allocationIds: string[];
+  allocatedAt: string | null;
+  allocatedCreatedAt: string | null;
+}
+
+/**
+ * Thunk/UI response for inventory allocation list.
+ *
+ * Contains flattened, UI-ready allocation summary rows.
+ */
+export type InventoryAllocationListResponse =
+  PaginatedResponse<FlattenedInventoryAllocationSummary>;
 
 /**
  * Filters used when fetching paginated inventory allocations.
@@ -526,10 +679,13 @@ export type InventoryAllocationSortField =
   | 'defaultNaturalSort';
 
 /**
- * Redux state slice for paginated inventory allocations.
+ * Redux state slice for paginated inventory allocation summaries.
+ *
+ * Stores flattened, UI-ready allocation summary records
+ * along with standard pagination metadata.
  */
 export type PaginatedInventoryAllocationState =
-  ReduxPaginatedState<InventoryAllocationSummary>;
+  ReduxPaginatedState<FlattenedInventoryAllocationSummary>;
 
 /** Represents the allocation status update for a single order item */
 export interface AllocationItemStatusUpdate {

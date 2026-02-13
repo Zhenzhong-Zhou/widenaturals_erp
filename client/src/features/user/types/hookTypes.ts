@@ -1,7 +1,6 @@
-import {
-  UserCardView,
+import type {
+  FlattenedUserRecord,
   UserFilters,
-  UserListView,
   UserSortField,
 } from '@features/user/state';
 import {
@@ -71,15 +70,15 @@ export interface TablePaginationHandlers<Limit extends number = number>
 /**
  * Public controller contract for user pages.
  *
- * This interface defines the **stable, view-facing API**
+ * This interface defines the **stable, UI-facing API**
  * exposed by `useUserPageController` and consumed by
  * layout components such as `UserCardLayout` and
  * `UserListLayout`.
  *
  * Design principles:
- * - Describes **what the UI can use**, not how data is produced
- * - Abstracts away internal hook state (effects, debouncing, Redux)
- * - Supports both card and list representations via one contract
+ * - Exposes **what the UI can use**, not how data is fetched or transformed
+ * - Hides Redux, effects, debouncing, and API view-mode differences
+ * - Provides a single, consistent data shape across layouts
  *
  * Scope:
  * - Page-level concerns only:
@@ -90,30 +89,30 @@ export interface TablePaginationHandlers<Limit extends number = number>
  *   - lookup state
  *
  * Notes:
- * - `data` contains raw API records in either
- *   `UserCardView` or `UserListView` shape
- * - Consumers must treat records as view-appropriate
+ * - `data` contains UI-normalized `FlattenedUserRecord` entries
+ * - Card vs list layout differences are handled at the presentation layer
+ * - No raw API view models are exposed through this contract
  */
 export interface UserPageController {
-  /** Current view mode */
+  /** Current UI layout mode */
   viewMode: 'card' | 'list';
-
-  /** Raw user records returned by the API */
-  data: Array<UserCardView | UserListView>;
-
+  
+  /** UI-ready, flattened user records */
+  data: FlattenedUserRecord[];
+  
   /** Loading state */
   loading: boolean;
-
+  
   /** Error message, if any */
   error?: string | null;
-
+  
   /** Trigger a refetch using the current query state */
   refresh: () => void;
-
+  
   // -----------------------------
   // Pagination (shared)
   // -----------------------------
-
+  
   /** Pagination metadata */
   pageInfo: {
     page: number;
@@ -121,45 +120,45 @@ export interface UserPageController {
     totalPages: number;
     totalRecords: number;
   };
-
+  
   /** Page-based pagination handlers */
   paginationHandlers: BasePaginationHandlers;
-
+  
   // -----------------------------
   // Filters & sorting (shared)
   // -----------------------------
-
+  
   /** Active user filters */
   filters: UserFilters;
-
+  
   /** Active sort field */
   sortBy: UserSortField;
-
+  
   /** Active sort order */
   sortOrder: 'ASC' | 'DESC' | '';
-
+  
   /** Update active filters */
   setFilters: (filters: UserFilters) => void;
-
+  
   /** Update sort field */
   setSortBy: (sortBy: UserSortField) => void;
-
+  
   /** Update sort order */
   setSortOrder: (order: 'ASC' | 'DESC' | '') => void;
-
+  
   /**
    * Reset filters, sorting, and pagination
    * back to their default state.
    */
   handleResetFilters: () => void;
-
+  
   // -----------------------------
   // Lookups (shared)
   // -----------------------------
-
+  
   /** Lookup data & state used by filter UI */
   lookups: UserFiltersPanelLookups;
-
+  
   /** Lookup lifecycle handlers */
   lookupHandlers: UserLookupHandlers;
 }

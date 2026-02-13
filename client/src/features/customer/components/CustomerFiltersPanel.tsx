@@ -9,10 +9,7 @@ import {
   renderDateField,
   renderInputField,
 } from '@utils/filters/filterUtils';
-import {
-  adjustAfterDate,
-  adjustBeforeDateInclusive,
-} from '@utils/dateTimeUtils';
+import { toISODate } from '@utils/dateTimeUtils';
 
 interface Props {
   filters: CustomerFilters;
@@ -76,10 +73,10 @@ const CustomerFiltersPanel: FC<Props> = ({
   const submitFilters = (data: CustomerFilters) => {
     const adjusted: CustomerFilters = {
       ...data,
-      createdAfter: adjustAfterDate(data.createdAfter),
-      createdBefore: adjustBeforeDateInclusive(data.createdBefore),
-      statusDateAfter: adjustAfterDate(data.statusDateAfter),
-      statusDateBefore: adjustBeforeDateInclusive(data.statusDateBefore),
+      createdAfter: toISODate(data.createdAfter),
+      createdBefore: toISODate(data.createdBefore),
+      statusDateAfter: toISODate(data.statusDateAfter),
+      statusDateBefore: toISODate(data.statusDateBefore),
     };
 
     onChange(adjusted);

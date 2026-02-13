@@ -4,15 +4,19 @@ import Divider from '@mui/material/Divider';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
-import usePaginateOrderTypes from '@hooks/usePaginateOrderTypes';
-import Loading from '@components/common/Loading';
-import ErrorDisplay from '@components/shared/ErrorDisplay';
-import ErrorMessage from '@components/common/ErrorMessage';
-import CustomTypography from '@components/common/CustomTypography';
-import OrderTypeFiltersPanel from '@features/orderType/components/OrderTypeFiltersPanel';
-import OrderTypeSortControls from '@features/orderType/components/OrderTypeSortControls';
-import OrderTypesTable from '@features/orderType/components/OrderTypesTable';
-import NoDataFound from '@components/common/NoDataFound';
+import { usePaginateOrderTypes } from '@hooks/index';
+import {
+  CustomButton,
+  CustomTypography,
+  ErrorMessage,
+  Loading,
+  NoDataFound,
+} from '@components/index';
+import {
+  OrderTypeFiltersPanel,
+  OrderTypeSortControls,
+  OrderTypesTable
+} from '@features/orderType/components';
 import type {
   OrderTypeFilters,
   OrderTypeSortBy,
@@ -33,10 +37,11 @@ const OrderTypesPage: FC = () => {
     pagination: orderTypePagination,
     loading: isOrderTypeLoading,
     error: orderTypeError,
+    isEmpty: isOrderTypesEmpty,
     fetchData: fetchOrderTypes,
     reset: resetOrderTypes,
   } = usePaginateOrderTypes();
-
+  
   const queryParams = useMemo(
     () => ({
       page,
@@ -69,7 +74,7 @@ const OrderTypesPage: FC = () => {
     setSortOrder('');
     setPage(1);
   };
-
+  
   return (
     <Box sx={{ px: 4, py: 3 }}>
       {/* Page Header */}
@@ -119,10 +124,17 @@ const OrderTypesPage: FC = () => {
         {isOrderTypeLoading ? (
           <Loading message="Loading Order Types..." />
         ) : orderTypeError ? (
-          <ErrorDisplay>
-            <ErrorMessage message={orderTypeError} />
-          </ErrorDisplay>
-        ) : orderTypes.length > 0 ? (
+          <ErrorMessage message={orderTypeError} />
+        ) : isOrderTypesEmpty ? (
+          <NoDataFound
+            message="No order type records found."
+            action={
+              <CustomButton onClick={handleResetFilters}>
+                Reset
+              </CustomButton>
+            }
+          />
+        ) : (
           <OrderTypesTable
             loading={isOrderTypeLoading}
             data={orderTypes}
@@ -134,8 +146,6 @@ const OrderTypesPage: FC = () => {
             onRowsPerPageChange={handleRowsPerPageChange}
             onRefresh={handleRefresh}
           />
-        ) : (
-          <NoDataFound message="No order types found." />
         )}
       </Box>
     </Box>

@@ -5,7 +5,7 @@ import CustomTypography from '@components/common/CustomTypography';
 import DetailsSection from '@components/common/DetailsSection';
 import { formatDate } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
-import type { FlattenedAllocationReviewItem } from '@features/inventoryAllocation/utils/flattenAllocationReviewData';
+import type { FlattenedAllocationReviewItem } from '@features/inventoryAllocation';
 
 interface Props {
   row: FlattenedAllocationReviewItem;

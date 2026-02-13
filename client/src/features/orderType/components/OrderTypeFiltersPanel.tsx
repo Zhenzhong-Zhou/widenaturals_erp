@@ -2,7 +2,7 @@ import type { FC } from 'react';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import FilterPanelLayout from '@components/common/FilterPanelLayout';
-import { adjustBeforeDateInclusive, toISO } from '@utils/dateTimeUtils';
+import { toISODate } from '@utils/dateTimeUtils';
 import type { OrderTypeFilters } from '@features/orderType/state';
 import {
   renderBooleanSelectField,
@@ -70,11 +70,12 @@ const OrderTypeFiltersPanel: FC<Props> = ({
   const submitFilters = (data: OrderTypeFilters) => {
     const adjusted: OrderTypeFilters = {
       ...data,
-      createdAfter: toISO(data.createdAfter),
-      createdBefore: toISO(adjustBeforeDateInclusive(data.createdBefore)),
-      updatedAfter: toISO(data.updatedAfter),
-      updatedBefore: toISO(adjustBeforeDateInclusive(data.updatedBefore)),
+      createdAfter: toISODate(data.createdAfter),
+      createdBefore: toISODate(data.createdBefore),
+      updatedAfter: toISODate(data.updatedAfter),
+      updatedBefore: toISODate(data.updatedBefore),
     };
+    
     onChange(adjusted);
     onApply();
   };

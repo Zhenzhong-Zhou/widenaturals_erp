@@ -1,8 +1,8 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { createInitialPaginatedState } from '@store/pagination';
 import type {
-  ProductListItem,
-  ProductListResponse,
+  FlattenedProductRecord,
+  PaginatedProductListUiResponse,
   ProductListState,
 } from '@features/product/state/productTypes';
 import { fetchPaginatedProductsThunk } from '@features/product/state/productThunks';
@@ -11,7 +11,7 @@ import { fetchPaginatedProductsThunk } from '@features/product/state/productThun
 // Initial State
 // ---------------------------
 const initialState: ProductListState =
-  createInitialPaginatedState<ProductListItem>();
+  createInitialPaginatedState<FlattenedProductRecord>();
 
 // ---------------------------
 // Slice
@@ -41,7 +41,7 @@ const paginatedProductsSlice = createSlice({
       // ---- fulfilled ----
       .addCase(
         fetchPaginatedProductsThunk.fulfilled,
-        (state, action: PayloadAction<ProductListResponse>) => {
+        (state, action: PayloadAction<PaginatedProductListUiResponse>) => {
           const payload = action.payload;
 
           state.loading = false;
@@ -59,10 +59,14 @@ const paginatedProductsSlice = createSlice({
       // ---- rejected ----
       .addCase(fetchPaginatedProductsThunk.rejected, (state, action) => {
         state.loading = false;
-        state.error =
-          action.payload ||
-          action.error?.message ||
-          'Failed to fetch products.';
+        
+        if (action.payload) {
+          state.error = action.payload.message;
+          state.traceId = action.payload.traceId;
+        } else {
+          state.error = action.error?.message ?? 'Failed to fetch products.';
+          state.traceId = undefined;
+        }
       });
   },
 });

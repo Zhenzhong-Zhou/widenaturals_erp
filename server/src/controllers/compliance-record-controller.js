@@ -55,7 +55,7 @@ const getPaginatedComplianceRecordsController = wrapAsync(async (req, res) => {
     filters,
     pagination: { page, limit },
     sort: { sortBy, sortOrder },
-    userId: req.user?.id,
+    userId: req.auth.user?.id,
   });
 
   // --------------------------------------

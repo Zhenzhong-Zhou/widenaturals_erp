@@ -11,7 +11,7 @@ import { NavLink } from '@pages/home/components/index';
 import logoLight from '@assets/wide-logo-light.png';
 
 export interface HeaderProps {
-  onStaffLogin: () => void;
+  onStaffLogin?: () => void;
 }
 
 const Header: FC<HeaderProps> = ({ onStaffLogin }) => {
@@ -87,18 +87,20 @@ const Header: FC<HeaderProps> = ({ onStaffLogin }) => {
           <NavLink href="#brands">Brands</NavLink>
           <NavLink href="#contact">Contact</NavLink>
           
-          <CustomButton
-            variant="contained"
-            size="small"
-            onClick={onStaffLogin}
-            sx={{
-              ml: 1,
-              textTransform: 'none',
-              fontWeight: 600,
-            }}
-          >
-            Staff Login
-          </CustomButton>
+          {onStaffLogin ? (
+            <CustomButton
+              variant="contained"
+              size="small"
+              onClick={onStaffLogin}
+              sx={{
+                ml: 1,
+                textTransform: 'none',
+                fontWeight: 600,
+              }}
+            >
+              Staff Login
+            </CustomButton>
+          ) : null}
         </Stack>
       </Toolbar>
     </AppBar>

@@ -1,6 +1,7 @@
-const { getFullName } = require('../utils/name-utils');
 const { cleanObject } = require('../utils/object-utils');
 const { transformPaginatedResult } = require('../utils/transformer-utils');
+const { makeStatus } = require('../utils/status-utils');
+const { compactAudit, makeAudit } = require('../utils/audit-utils');
 
 /**
  * Transforms a raw `order_types` SQL row into a clean, client-facing object.
@@ -42,14 +43,8 @@ const transformOrderTypeRow = (row) => {
     code: row.code,
     category: row.category,
     requiresPayment: row.requires_payment,
-    description: row.description,
-    statusId: row.status_id,
-    statusName: row.status_name,
-    statusDate: row.status_date,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    createdBy: getFullName(row.created_by_firstname, row.created_by_lastname),
-    updatedBy: getFullName(row.updated_by_firstname, row.updated_by_lastname),
+    status: makeStatus(row),
+    audit: compactAudit(makeAudit(row)),
   };
 
   return cleanObject(result);

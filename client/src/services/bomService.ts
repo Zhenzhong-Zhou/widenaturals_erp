@@ -10,7 +10,7 @@ import type {
   BomMaterialSupplyDetailsResponse,
   BomProductionReadinessResponse,
   FetchBomsParams,
-  FetchPaginatedBomsResponse,
+  FetchPaginatedBomsApiResponse,
 } from '@features/bom/state/bomTypes';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { buildQueryString } from '@utils/buildQueryString';
@@ -29,7 +29,7 @@ import { getRequest } from '@utils/http';
  */
 const fetchPaginatedBoms = async (
   params: FetchBomsParams = {}
-): Promise<FetchPaginatedBomsResponse> => {
+): Promise<FetchPaginatedBomsApiResponse> => {
   const { filters = {}, ...rest } = params;
 
   const flatParams = {
@@ -40,7 +40,7 @@ const fetchPaginatedBoms = async (
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.BOMS.ALL_RECORDS}${queryString}`;
 
-  return getRequest<FetchPaginatedBomsResponse>(url);
+  return getRequest<FetchPaginatedBomsApiResponse>(url);
 };
 
 /**

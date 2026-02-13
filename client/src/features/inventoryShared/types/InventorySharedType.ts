@@ -83,26 +83,43 @@ export interface BaseFlatInventoryRow {
 
 export interface BaseInventoryFilters {
   batchType?: ItemType;
-
+  
+  // ─────────────────────────────
   // Product-related
+  // ─────────────────────────────
   productName?: string;
   sku?: string;
-
+  
+  // ─────────────────────────────
   // Material-related
+  // ─────────────────────────────
   materialName?: string;
   materialCode?: string;
-
+  
+  // ─────────────────────────────
   // Part-related
+  // ─────────────────────────────
   partName?: string;
   partCode?: string;
   partType?: string;
-
+  
+  // ─────────────────────────────
   // Common
+  // ─────────────────────────────
   lotNumber?: string;
   status?: string;
-  inboundDate?: string; // yyyy-mm-dd
-  expiryDate?: string; // yyyy-mm-dd
-  createdAt?: string; // yyyy-mm-dd
+  
+  // ─────────────────────────────
+  // Date ranges (ISO yyyy-mm-dd)
+  // ─────────────────────────────
+  inboundAfter?: string;
+  inboundBefore?: string;
+  
+  expiryAfter?: string;
+  expiryBefore?: string;
+  
+  createdAfter?: string;
+  createdBefore?: string;
 }
 
 export interface BaseInventoryRecord {

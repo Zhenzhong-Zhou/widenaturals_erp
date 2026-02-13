@@ -55,7 +55,7 @@ const fetchPaginatedOrderTypesService = async ({
 
     const filteredRows = await filterOrderTypeRowsByPermission(rawResult, user);
 
-    const result = transformPaginatedOrderTypes(filteredRows, user);
+    const result = await transformPaginatedOrderTypes(filteredRows);
 
     logSystemInfo('Fetched paginated order types', {
       context: 'order-type-service/fetchPaginatedOrderTypesService',

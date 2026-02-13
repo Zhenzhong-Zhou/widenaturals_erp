@@ -183,12 +183,22 @@ export type UserViewMode = 'card' | 'list';
 /**
  * Paginated response for card-based user lists.
  */
-export type PaginatedUserCardListResponse = PaginatedResponse<UserCardView>;
+export type PaginatedUserCardListsApiResponse = PaginatedResponse<UserCardView>;
 
 /**
  * Paginated response for full user lists.
  */
-export type PaginatedUserListResponse = PaginatedResponse<UserListView>;
+export type PaginatedUserListsApiResponse = PaginatedResponse<UserListView>;
+
+/**
+ * Paginated UI response for user list views.
+ *
+ * Represents a UI-ready paginated payload where each item
+ * is a flattened user record, regardless of whether the
+ * source API returned card or list user views.
+ */
+export type PaginatedUsersUiResponse =
+  PaginatedResponse<FlattenedUserRecord>;
 
 /**
  * Date range filter using ISO strings for API safety.
@@ -260,26 +270,20 @@ export interface GetPaginatedUsersParams extends PaginationParams, SortConfig {
 }
 
 /**
- * Redux state slice for paginated users.
+ * Redux state for paginated user lists.
  *
- * Stores raw API user records in either card-view or list-view
- * shape, depending on the query.
+ * Stores UI-normalized (flattened) user records only.
+ * Raw API user views (card / list) are transformed at the
+ * API → UI boundary and must NOT be stored in Redux.
  *
  * Design notes:
- * - This state intentionally stores domain data only
- * - UI-only concerns (view mode, layout, selection)
- *   are handled at the component or selector level
- * - Prevents reducer conflicts and keeps state reusable
- *
- * Usage:
- * - Card view → data contains `UserCardView[]`
- * - List view → data contains `UserListView[]`
- *
- * Pagination metadata is preserved regardless of view.
+ * - Eliminates union types in Redux state
+ * - Ensures consistent row shape across all user list views
+ * - Simplifies selectors, tables, and exports
+ * - Aligns with SKU, Order, and Outbound Fulfillment patterns
  */
-export type PaginatedUsersState = ReduxPaginatedState<
-  UserCardView | UserListView
->;
+export type PaginatedUsersState =
+  ReduxPaginatedState<FlattenedUserRecord>;
 
 /**
  * Flattened user record for table rendering, CSV export,

@@ -483,7 +483,7 @@ const getUserProfileById = async (userId, activeStatusId) => {
  *   Number of rows to skip
  *
  * @returns {Promise<{
- *   data: Array<{
+ *   data: Record<{
  *     id: string,
  *     email: string,
  *     firstname: string | null,
@@ -579,6 +579,66 @@ const getUserLookup = async ({
   }
 };
 
+/**
+ * Fetches minimal authentication user data by ID.
+ *
+ * Repository-layer function:
+ * - Executes a single SELECT
+ * - Returns user row or null
+ * - Does NOT enforce auth semantics
+ * - Preserves raw database errors
+ *
+ * @param {string} userId
+ * @param {Object|null} client
+ *
+ * @returns {Promise<{
+ *   id: string,
+ *   role_id: string,
+ *   status_id: string,
+ *   status_name: string
+ * } | null>}
+ */
+const getAuthUserById = async (userId, client = null) => {
+  const context = 'user-repository/getAuthUserById';
+  
+  const queryText = `
+    SELECT
+      u.id,
+      u.role_id,
+      u.status_id,
+      s.name AS status_name
+    FROM users u
+    LEFT JOIN status s ON s.id = u.status_id
+    WHERE u.id = $1
+    LIMIT 1;
+  `;
+  
+  try {
+    const { rows } = await query(queryText, [userId], client);
+    
+    if (!rows[0]) {
+      return null;
+    }
+    
+    logSystemInfo('Auth user fetched by ID', {
+      context,
+      userId: rows[0].id,
+      roleId: rows[0].role_id,
+      status: rows[0].status_name,
+    });
+    
+    return rows[0];
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch auth user by ID', {
+      context,
+      userId,
+      error: error.message,
+    });
+    
+    throw error;
+  }
+};
+
 module.exports = {
   insertUser,
   userExistsByField,
@@ -586,4 +646,5 @@ module.exports = {
   getPaginatedUsers,
   getUserProfileById,
   getUserLookup,
+  getAuthUserById,
 };

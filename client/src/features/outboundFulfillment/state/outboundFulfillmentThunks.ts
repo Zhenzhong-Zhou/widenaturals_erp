@@ -4,13 +4,20 @@ import type {
   CompleteManualFulfillmentResponse,
   ConfirmOutboundFulfillmentRequest,
   ConfirmOutboundFulfillmentResponse,
+  FetchShipmentDetailsUiResponse,
   InitiateFulfillmentRequest,
   InitiateFulfillmentResponse,
   OutboundFulfillmentQuery,
-  PaginatedOutboundFulfillmentResponse,
-  ShipmentDetailsResponse,
-} from '@features/outboundFulfillment/state/outboundFulfillmentTypes';
+  PaginatedOutboundFulfillmentsResponse,
+} from '@features/outboundFulfillment/state';
 import { outboundFulfillmentService } from '@services/outboundFulfillmentService';
+import {
+  flattenFulfillments,
+  flattenShipmentHeader
+} from '@features/outboundFulfillment/utils';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import { extractUiErrorPayload } from '@utils/error';
+import { flattenOutboundShipment } from '@features/outboundFulfillment/utils/flattenOutboundShipment.ts';
 
 /**
  * Async thunk to initiate outbound fulfillment for a specific order.
@@ -71,88 +78,108 @@ export const initiateOutboundFulfillmentThunk = createAsyncThunk<
 /**
  * Thunk to fetch a paginated list of outbound fulfillment (shipment) records.
  *
+ * This thunk applies a one-time transformation at the ingestion boundary,
+ * converting raw API shipment records into flattened, UI-ready rows before
+ * storing them in Redux state.
+ *
  * ### Behavior
  * - Dispatches lifecycle actions automatically:
  *   - `pending`   → sets `loading = true`, clears previous errors
- *   - `fulfilled` → stores API response (data + pagination) in the slice
- *   - `rejected`  → captures error message in the slice
+ *   - `fulfilled` → stores flattened data + pagination metadata
+ *   - `rejected`  → stores a normalized error message
+ *
+ * ### Design notes
+ * - Raw API models MUST NOT leak into Redux or UI layers
+ * - Flattening is performed exactly once in this thunk
+ * - UI components consume `FlattenedOutboundShipmentRow` only
  *
  * ### Usage
  * ```ts
- * const query: OutboundFulfillmentQuery = {
+ * dispatch(fetchPaginatedOutboundFulfillmentThunk({
  *   page: 1,
  *   limit: 20,
  *   sortBy: 'createdAt',
  *   sortOrder: 'DESC',
  *   filters: { statusIds: ['uuid-status'] },
- * };
- *
- * dispatch(fetchPaginatedOutboundFulfillmentThunk(query));
+ * }));
  * ```
  *
- * ### Returns
- * - On success: `PaginatedOutboundFulfillmentResponse`
- *   - `data`: Array of outbound shipment records
- *   - `pagination`: Metadata (`page`, `limit`, `totalRecords`, `totalPages`)
- * - On failure: rejects with a string error message (from backend or fallback)
- *
- * @param {OutboundFulfillmentQuery} queryParams
- *   Pagination, sorting, and filtering options
- *
- * @returns {Promise<PaginatedOutboundFulfillmentResponse>}
- *
- * @throws {string} rejectValue with error message when API call fails
+ * @param queryParams Pagination, sorting, and filtering options
+ * @returns PaginatedOutboundFulfillmentsResponse
  */
 export const fetchPaginatedOutboundFulfillmentThunk = createAsyncThunk<
-  PaginatedOutboundFulfillmentResponse, // return type
-  OutboundFulfillmentQuery, // argument type
-  { rejectValue: string } // error type
+  PaginatedOutboundFulfillmentsResponse,
+  OutboundFulfillmentQuery,
+  { rejectValue: UiErrorPayload }
 >(
   'outboundFulfillment/fetchPaginated',
   async (queryParams, { rejectWithValue }) => {
     try {
-      return await outboundFulfillmentService.fetchPaginatedOutboundFulfillment(
-        queryParams
-      );
-    } catch (error: any) {
-      console.error('Thunk error: fetchPaginatedOutboundFulfillment', error);
-
-      // Use backend-provided message if available
-      const message =
-        error?.response?.data?.message ||
-        error.message ||
-        'Failed to fetch outbound fulfillments';
-
-      return rejectWithValue(message);
+      const response =
+        await outboundFulfillmentService.fetchPaginatedOutboundFulfillment(
+          queryParams
+        );
+      
+      return {
+        ...response,
+        data: response.data.map(flattenOutboundShipment),
+      };
+    } catch (error) {
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );
 
 /**
- * Thunk: Fetch outbound shipment details by ID.
+ * Thunk: Fetch outbound shipment details by shipment ID.
  *
- * Dispatches pending/fulfilled/rejected actions automatically.
+ * Responsibilities:
+ * - Calls the outbound shipment details API
+ * - Transforms the raw API response into a UI-ready structure
+ * - Dispatches pending / fulfilled / rejected lifecycle actions
  *
- * @param {string} shipmentId - The UUID of the outbound shipment
- * @returns {Promise<ShipmentDetailsResponse>} Shipment details response
+ * Design notes:
+ * - Raw API types are NOT exposed to Redux or UI
+ * - Flattening occurs at the thunk boundary
+ * - Errors are normalized via `extractUiErrorPayload`
+ *
+ * @param shipmentId - UUID of the outbound shipment
+ * @returns UI-ready shipment details payload
  *
  * @example
- * dispatch(fetchOutboundShipmentDetailsThunk("844f3d53-a102-46aa-8644-90b3a3b35fd7"));
+ * dispatch(fetchOutboundShipmentDetailsThunk(
+ *   '844f3d53-a102-46aa-8644-90b3a3b35fd7'
+ * ));
  */
 export const fetchOutboundShipmentDetailsThunk = createAsyncThunk<
-  ShipmentDetailsResponse, // return type
-  string, // argument type
-  { rejectValue: string } // optional reject payload
->('outboundShipments/fetchDetails', async (shipmentId, { rejectWithValue }) => {
-  try {
-    return await outboundFulfillmentService.fetchOutboundShipmentDetails(
-      shipmentId
-    );
-  } catch (error: any) {
-    console.error('Thunk error (fetchOutboundShipmentDetails):', error);
-    return rejectWithValue(error.message || 'Failed to fetch shipment details');
+  FetchShipmentDetailsUiResponse,
+  string,
+  { rejectValue: { message: string; traceId?: string } }
+>(
+  'outboundShipments/fetchDetails',
+  async (shipmentId, { rejectWithValue }) => {
+    try {
+      const response =
+        await outboundFulfillmentService.fetchOutboundShipmentDetails(
+          shipmentId
+        );
+      
+      const uiResponse: FetchShipmentDetailsUiResponse = {
+        success: response.success,
+        message: response.message,
+        traceId: response.traceId,
+        data: {
+          shipment: flattenShipmentHeader(response.data.shipment),
+          fulfillments: flattenFulfillments(response.data.fulfillments),
+        },
+      };
+      
+      return uiResponse;
+    } catch (error) {
+      return rejectWithValue(extractUiErrorPayload(error));
+    }
   }
-});
+);
 
 /**
  * Thunk: confirmOutboundFulfillmentThunk

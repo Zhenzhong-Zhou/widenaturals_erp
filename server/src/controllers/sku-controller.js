@@ -49,7 +49,7 @@ const getPaginatedSkuProductCardsController = wrapAsync(async (req, res) => {
   const context = 'sku-controller/getPaginatedSkuProductCardsController';
 
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
-  const user = req.user;
+  const user = req.auth.user;
 
   logInfo('Fetching SKU product cards', req, {
     context,
@@ -177,7 +177,7 @@ const getSkuDetailsController = wrapAsync(async (req, res) => {
   const { skuId } = req.params;
 
   // Authenticated user context (set by verifyToken + verifySession)
-  const user = req.user;
+  const user = req.auth.user;
 
   // Unique trace for monitoring distributed logs
   const traceId = `sku-detail-${Date.now().toString(36)}`;
@@ -221,7 +221,7 @@ const getSkuDetailsController = wrapAsync(async (req, res) => {
  *
  * Responsibilities:
  *  - Extract validated SKU array from `req.body.skus`
- *  - Retrieve authenticated user from `req.user`
+ *  - Retrieve authenticated user from `req.auth.user`
  *  - Log request lifecycle and metrics
  *  - Delegate SKU creation to `createSkusService`
  *  - Return standardized success response with creation results
@@ -247,7 +247,7 @@ const createSkusController = wrapAsync(async (req, res) => {
   const traceId = `create-sku-${Date.now().toString(36)}`;
 
   const { skus } = req.body; // validated by Joi prior to controller
-  const user = req.user; // set by auth middleware
+  const user = req.auth.user; // set by auth middleware
 
   if (!Array.isArray(skus) || skus.length === 0) {
     throw AppError.validationError('No SKUs provided.', { context, traceId });
@@ -323,7 +323,7 @@ const updateSkuStatusController = wrapAsync(async (req, res) => {
   // -------------------------------------------------
   const { skuId } = req.params;
   const { statusId } = req.body;
-  const user = req.user;
+  const user = req.auth.user;
 
   // -------------------------------------------------
   // 2. Execute business logic (transactional)

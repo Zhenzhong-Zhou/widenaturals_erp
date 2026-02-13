@@ -124,6 +124,14 @@ axiosInstance.interceptors.response.use(
      * =================================================== */
     
     if (status === 401 && !originalRequest._retryAuth) {
+      // Don't refresh until bootstrap is finished
+      const state = store.getState();
+      if (!state.runtime.session.bootstrapped) {
+        return Promise.reject(
+          AppError.authentication('Session not initialized')
+        );
+      }
+      
       originalRequest._retryAuth = true;
       
       try {

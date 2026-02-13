@@ -3,19 +3,13 @@ import type {
   FetchPaginatedBomsResponse,
   FetchBomsParams,
   PaginatedBomStateWithFilters,
+  FlattenedBomRecord,
 } from '@features/bom/state/bomTypes';
+import { createInitialPaginatedState } from '@store/pagination';
 import { fetchPaginatedBomsThunk } from '@features/bom/state/bomThunks';
 
 const initialState: PaginatedBomStateWithFilters = {
-  data: [],
-  pagination: {
-    page: 1,
-    limit: 10,
-    totalRecords: 0,
-    totalPages: 0,
-  },
-  loading: false,
-  error: null,
+  ...createInitialPaginatedState<FlattenedBomRecord>(),
   filters: {},
 };
 
@@ -70,7 +64,7 @@ const paginatedBomSlice = createSlice({
       .addCase(fetchPaginatedBomsThunk.rejected, (state, action) => {
         state.loading = false;
         state.error =
-          (action.payload as string) ||
+          action.payload?.message ||
           action.error.message ||
           'Failed to fetch BOM list.';
       });

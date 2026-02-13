@@ -1,5 +1,6 @@
 const { getProductDisplayName } = require('../utils/display-name-utils');
-const { getFullName } = require('../utils/name-utils');
+const { makeStatus } = require('../utils/status-utils');
+const { compactAudit, makeAudit } = require('../utils/audit-utils');
 const { cleanObject } = require('../utils/object-utils');
 const { transformPaginatedResult } = require('../utils/transformer-utils');
 const { logSystemException } = require('../utils/system-logger');
@@ -161,31 +162,14 @@ const transformBomRow = (row) => {
       isActive: row.is_active,
       isDefault: row.is_default,
       description: row.bom_description,
-      status: {
-        id: row.bom_status_id,
-        name: row.bom_status,
-        date: row.bom_status_date,
-      },
-      audit: {
-        createdAt: row.bom_created_at,
-        createdBy: {
-          id: row.bom_created_by,
-          name: getFullName(
-            row.bom_created_by_firstname,
-            row.bom_created_by_lastname
-          ),
-        },
-        updatedAt: row.bom_updated_at,
-        updatedBy: row.bom_updated_by
-          ? {
-              id: row.bom_updated_by,
-              name: getFullName(
-                row.bom_updated_by_firstname,
-                row.bom_updated_by_lastname
-              ),
-            }
-          : null,
-      },
+      status: makeStatus(row, {
+        id: 'bom_status_id',
+        name: 'bom_status',
+        date: 'bom_status_date',
+      }),
+      audit: compactAudit(
+        makeAudit(row, { prefix: 'bom_' })
+      ),
     },
   };
 
@@ -338,29 +322,15 @@ const transformBomDetails = (rows = []) => {
         isActive: Boolean(headerRow.bom_is_active),
         isDefault: Boolean(headerRow.bom_is_default),
         description: headerRow.bom_description,
-        status: {
-          id: headerRow.bom_status_id,
-          name: headerRow.bom_status,
-          date: headerRow.bom_status_date,
-        },
-        audit: {
-          createdAt: headerRow.bom_created_at,
-          createdBy: {
-            id: headerRow.bom_created_by,
-            name: getFullName(
-              headerRow.bom_created_by_firstname,
-              headerRow.bom_created_by_lastname
-            ),
-          },
-          updatedAt: headerRow.bom_updated_at,
-          updatedBy: {
-            id: headerRow.bom_updated_by,
-            name: getFullName(
-              headerRow.bom_updated_by_firstname,
-              headerRow.bom_updated_by_lastname
-            ),
-          },
-        },
+        status: makeStatus(headerRow, {
+          id: 'bom_status_id',
+          name: 'bom_status',
+          date: 'bom_status_date',
+        }),
+        
+        audit: compactAudit(
+          makeAudit(headerRow, { prefix: 'bom_' })
+        ),
       },
     };
 
@@ -388,24 +358,9 @@ const transformBomDetails = (rows = []) => {
           unitOfMeasure: r.unit_of_measure,
           description: r.part_description,
         },
-        audit: {
-          createdAt: r.bom_item_created_at,
-          createdBy: {
-            id: r.bom_item_created_by,
-            name: getFullName(
-              r.bom_item_created_by_firstname,
-              r.bom_item_created_by_lastname
-            ),
-          },
-          updatedAt: r.bom_item_updated_at,
-          updatedBy: {
-            id: r.bom_item_updated_by,
-            name: getFullName(
-              r.bom_item_updated_by_firstname,
-              r.bom_item_updated_by_lastname
-            ),
-          },
-        },
+        audit: compactAudit(
+          makeAudit(r, { prefix: 'bom_item_' })
+        ),
       }));
 
     return { header, details };

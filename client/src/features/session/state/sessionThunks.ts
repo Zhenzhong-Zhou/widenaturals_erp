@@ -11,8 +11,9 @@ import { resetLogin } from '@features/session/state/loginSlice';
 import {
   markBootstrapComplete,
   resetSession,
-  setAccessToken
+  setAccessToken,
 } from '@features/session/state/sessionSlice';
+import { getCsrfTokenThunk } from '@features/csrf';
 
 /* =========================================================
  * Login
@@ -59,44 +60,53 @@ export const loginThunk = createAsyncThunk<
  * ======================================================= */
 
 /**
- * Bootstraps the client-side session state on application startup.
+ * Bootstraps client-side session state on application startup.
  *
  * Responsibilities:
- * - Attempt to restore an existing session using the refresh-token flow
+ * - Acquire a valid CSRF token required for authenticated requests
+ * - Attempt to restore an existing server-side session via refresh-token flow
  * - Hydrate in-memory access token state when refresh succeeds
- * - Normalize unauthenticated outcomes by resetting session state
- * - Always finalize the bootstrap lifecycle
+ * - Normalize unauthenticated outcomes into a resolved session state
+ * - Always finalize the bootstrap lifecycle deterministically
  *
  * Explicitly out of scope:
- * - Credential-based login flows
- * - UI navigation, redirects, or routing decisions
+ * - Credential-based login or logout flows
+ * - UI navigation, redirects, or route guarding
  * - Permission loading or authorization evaluation
  *
  * Behavioral guarantees:
- * - Missing, expired, or invalid refresh tokens are treated as unauthenticated states
- * - Refresh failures do not surface errors to the UI
- * - The bootstrap lifecycle is always completed via `markBootstrapComplete`
+ * - Missing, expired, or invalid refresh tokens are treated as unauthenticated
+ * - Expected authentication failures do not surface errors to the UI
+ * - Bootstrap completion is guaranteed via `markBootstrapComplete`
+ *   regardless of success or failure
  *
- * Notes:
- * - Access tokens are stored in memory only
+ * Operational notes:
+ * - Access tokens are stored in memory only (never persisted)
  * - A successful refresh is defined strictly by the presence of an access token
+ * - This thunk is safe to invoke exactly once during app initialization
  */
 export const bootstrapSessionThunk = createAsyncThunk(
   'session/bootstrap',
   async (_, { dispatch }) => {
     try {
+      // Ensure CSRF token is available before any auth-bound requests
+      await dispatch(getCsrfTokenThunk()).unwrap();
+      
+      // Attempt refresh-token–based session restoration
       const result = await sessionService.refreshToken();
       
       if (result?.accessToken) {
+        // Authenticated capability restored
         dispatch(setAccessToken(result.accessToken));
       } else {
+        // No valid session — normalize to unauthenticated
         dispatch(resetSession());
       }
     } catch {
-      // System-level failure only (network, 5xx, etc.)
+      // System-level failures only (network errors, 5xx, etc.)
       dispatch(resetSession());
     } finally {
-      // Always mark bootstrap as complete
+      // Bootstrap lifecycle must always resolve
       dispatch(markBootstrapComplete());
     }
   }

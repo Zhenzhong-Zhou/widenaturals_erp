@@ -1,4 +1,6 @@
-import type {
+import {
+  GenericAudit,
+  GenericStatus,
   PaginatedResponse,
   PaginationParams,
   SortConfig,
@@ -81,48 +83,103 @@ export interface OrderTypeListItem {
 
   /** Display name of the order type */
   name: string;
+  
+  /** Unique code of the order type (used for system integration or lookup) */
+  code: string;
 
   /** Category of the order type (e.g., 'logistics') */
   category: string;
 
   /** Whether this order type requires payment */
   requiresPayment: boolean;
-
-  /** Description of the order type */
-  description: string;
-
-  /** Status ID (foreign key to statuses table) */
-  statusId: string;
-
-  /** Human-readable name of the status */
-  statusName: string;
-
-  /** Timestamp when the status was last updated (ISO 8601) */
-  statusDate: string;
-
-  /** Timestamp when the record was created (ISO 8601) */
-  createdAt: string;
-
-  /** Name or ID of the user who created the record */
-  createdBy: string;
-
-  /** Timestamp when the record was updated (ISO 8601) */
-  updatedAt: string;
-
-  /** Name or ID of the user who last updated the record */
-  updatedBy: string;
-
-  /** Unique code of the order type (used for system integration or lookup) */
-  code: string;
+  
+  /**
+   * Current compliance status.
+   * Example values: active, inactive, archived
+   */
+  status: GenericStatus;
+  
+  /**
+   * Audit metadata for creation and last update.
+   */
+  audit: GenericAudit;
 }
 
 /**
- * Paginated response for order type list queries.
+ * API response returned by the backend for order type listing.
+ * This mirrors the server payload shape.
  */
-export type OrderTypeListResponse = PaginatedResponse<OrderTypeListItem>;
+export type OrderTypeListApiResponse =
+  PaginatedResponse<OrderTypeListItem>;
+
+/**
+ * Flattened response used by Redux and UI.
+ */
+export type OrderTypeListResponse =
+  PaginatedResponse<FlattenedOrderTypeRecord>;
 
 /**
  * Redux state for a paginated order type list.
  */
 export type PaginatedOrderTypeListState =
-  ReduxPaginatedState<OrderTypeListItem>;
+  ReduxPaginatedState<FlattenedOrderTypeRecord>;
+
+/**
+ * FlattenedOrderTypeRecord
+ *
+ * UI-optimized, flat representation of an order type.
+ *
+ * Intended for:
+ * - table and list rendering
+ * - client-side sorting and filtering
+ * - CSV / Excel export
+ * - Redux paginated state
+ *
+ * This interface is **presentation-only** and intentionally
+ * denormalized. It should NOT be used for write operations.
+ */
+export interface FlattenedOrderTypeRecord {
+  /** Unique identifier */
+  id: string;
+  
+  /** Display name of the order type */
+  name: string;
+  
+  /** System code (used for integration / lookup) */
+  code: string;
+  
+  /** Business category (e.g. logistics, sales, procurement) */
+  category: string;
+  
+  /** Whether payment is required for this order type */
+  requiresPayment: boolean;
+  
+  // ─────────────────────────────
+  // Status (flattened)
+  // ─────────────────────────────
+  
+  /** Status identifier */
+  statusId: string | null;
+  
+  /** Status display name (e.g. Active, Inactive) */
+  statusName: string;
+  
+  /** Status effective date (ISO string) */
+  statusDate: string | null;
+  
+  // ─────────────────────────────
+  // Audit (flattened)
+  // ─────────────────────────────
+  
+  /** Created timestamp (ISO string) */
+  createdAt: string | null;
+  
+  /** Creator identifier or name */
+  createdBy: string | null;
+  
+  /** Last updated timestamp (ISO string) */
+  updatedAt: string | null;
+  
+  /** Last updater identifier or name */
+  updatedBy: string | null;
+}

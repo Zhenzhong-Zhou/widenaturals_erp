@@ -3,25 +3,26 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
 import Divider from '@mui/material/Divider';
-import CustomButton from '@components/common/CustomButton';
-import CustomTypography from '@components/common/CustomTypography';
-import Loading from '@components/common/Loading';
-import ErrorMessage from '@components/common/ErrorMessage';
-import NoDataFound from '@components/common/NoDataFound';
-import usePaginatedSkus from '@hooks/usePaginatedSkus';
+import {
+  CustomButton,
+  CustomTypography,
+  ErrorMessage,
+  Loading,
+  NoDataFound
+} from '@components/index';
+import { usePaginatedSkus } from '@hooks/index';
 import { applyFiltersAndSorting } from '@utils/queryUtils';
 import { usePaginationHandlers } from '@utils/hooks';
 import SkuListTable, {
   SkuFiltersPanel,
   SkuSortControls,
 } from '@features/sku/components/SkuListTable';
-import {
+import type {
   FlattenedSkuRecord,
   SelectedSku,
   SkuListFilters,
   SkuSortField,
 } from '@features/sku/state/skuTypes';
-import { flattenSkuRecords } from '@features/sku/utils/flattenSkuData';
 
 /**
  * Page component displaying a paginated, filterable, and sortable list of SKUs.
@@ -56,8 +57,6 @@ const SkuListPage = () => {
     fetchSkus: fetchPaginatedSkusList,
     resetSkus: resetSkuState,
   } = usePaginatedSkus();
-
-  const flattenData = flattenSkuRecords(skuData);
 
   const updateSelectedSkus = (
     prev: Record<string, SelectedSku>,
@@ -151,9 +150,9 @@ const SkuListPage = () => {
 
   const handleSelectionChange = useCallback(
     (ids: string[]) => {
-      setSelectedSkus((prev) => updateSelectedSkus(prev, ids, flattenData));
+      setSelectedSkus((prev) => updateSelectedSkus(prev, ids, skuData));
     },
-    [flattenData]
+    [skuData]
   );
 
   return (
@@ -201,7 +200,7 @@ const SkuListPage = () => {
         <Loading variant="dotted" message="Loading SKUs..." />
       ) : skuError ? (
         <ErrorMessage message={skuError} showNavigation />
-      ) : !skuPagination || isSkuListEmpty || flattenData.length === 0 ? (
+      ) : !skuPagination || isSkuListEmpty ? (
         <NoDataFound
           message="No SKUs found."
           action={
@@ -210,7 +209,7 @@ const SkuListPage = () => {
         />
       ) : (
         <SkuListTable
-          data={flattenData}
+          data={skuData}
           loading={skuLoading}
           page={page - 1}
           rowsPerPage={limit}

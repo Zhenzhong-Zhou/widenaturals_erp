@@ -23,6 +23,9 @@ const skuImageRoutes = require('./sku-images');
 const bomRoutes = require('./boms');
 const bomItemRoutes = require('./bom-items');
 const complianceRecordRoutes = require('./compliance-records');
+const batchRegistryRoutes = require('./batch-registry');
+const productBatchRoutes = require('./product-batches');
+const packagingMaterialBatchRoutes = require('./packaging-material-batches');
 const priceTypeRoutes = require('./pricing-types');
 const pricingRoutes = require('./pricings');
 const locationTypeRoutes = require('./locations-types');
@@ -101,6 +104,10 @@ router.use('/products', authenticate(), productRoutes);
 router.use('/skus', authenticate(), skuRoutes);
 router.use('/sku-images', authenticate(), skuImageRoutes);
 router.use('/compliance-records', authenticate(), complianceRecordRoutes);
+
+router.use('/batch-registry', authenticate(), batchRegistryRoutes);
+router.use('/product-batches', authenticate(), productBatchRoutes);
+router.use('/packaging-material-batches', authenticate(), packagingMaterialBatchRoutes);
 
 /**
  * @route /boms

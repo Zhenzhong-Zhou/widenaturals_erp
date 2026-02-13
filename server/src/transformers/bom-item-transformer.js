@@ -11,7 +11,8 @@
  *  - Cost and status enrichment for reporting and analytics
  */
 
-const { getFullName } = require('../utils/name-utils');
+const { makeStatus } = require('../utils/status-utils');
+const { compactAudit, makeAudit } = require('../utils/audit-utils');
 
 /**
  * @typedef {Object} RawBOMRow
@@ -142,27 +143,14 @@ const transformBomMaterialSupplyDetails = (rows = []) => {
           requiredQtyPerProduct: Number(row.bom_required_qty ?? 0),
           unit: row.bom_item_material_unit,
           note: row.bom_item_material_note,
-          status: {
-            id: row.bom_item_material_status_id,
-            name: row.bom_item_material_status,
-            date: row.bom_item_material_status_date,
-          },
-          createdBy: {
-            id: row.bom_item_material_created_by,
-            name: getFullName(
-              row.bom_item_material_created_firstname,
-              row.bom_item_material_created_lastname
-            ),
-          },
-          updatedBy: {
-            id: row.bom_item_material_updated_by,
-            name: getFullName(
-              row.bom_item_material_updated_firstname,
-              row.bom_item_material_updated_lastname
-            ),
-          },
-          createdAt: row.bom_item_material_created_at,
-          updatedAt: row.bom_item_material_updated_at,
+          status: makeStatus(row, {
+            id: 'bom_item_material_status_id',
+            name: 'bom_item_material_status',
+            date: 'bom_item_material_status_date',
+          }),
+          audit: compactAudit(
+            makeAudit(row, { prefix: 'bom_item_material_' })
+          ),
         },
         packagingMaterials: [],
       });
@@ -193,29 +181,14 @@ const transformBomMaterialSupplyDetails = (rows = []) => {
         height_inch: Number(row.height_inch ?? 0),
         weight_lb: Number(row.weight_lb ?? 0),
       },
-      status: {
-        id: row.packaging_material_status_id,
-        name: row.packaging_material_status,
-        date: row.packaging_material_status_date,
-      },
-      audit: {
-        createdBy: {
-          id: row.packaging_material_created_by,
-          name: getFullName(
-            row.packaging_material_created_firstname,
-            row.packaging_material_created_lastname
-          ),
-        },
-        updatedBy: {
-          id: row.packaging_material_updated_by,
-          name: getFullName(
-            row.packaging_material_updated_firstname,
-            row.packaging_material_updated_lastname
-          ),
-        },
-        createdAt: row.packaging_material_created_at,
-        updatedAt: row.packaging_material_updated_at,
-      },
+      status: makeStatus(row, {
+        id: 'packaging_material_status_id',
+        name: 'packaging_material_status',
+        date: 'packaging_material_status_date',
+      }),
+      audit: compactAudit(
+        makeAudit(row, { prefix: 'packaging_material_' })
+      ),
       supplier: row.supplier_id
         ? {
             id: row.supplier_id,
@@ -232,26 +205,11 @@ const transformBomMaterialSupplyDetails = (rows = []) => {
                 : null,
               note: row.supplier_note,
             },
-            audit: {
-              createdBy: {
-                id: row.supplier_link_created_by,
-                name: getFullName(
-                  row.supplier_link_created_firstname,
-                  row.supplier_link_created_lastname
-                ),
-              },
-              updatedBy: {
-                id: row.supplier_link_updated_by,
-                name: getFullName(
-                  row.supplier_link_updated_firstname,
-                  row.supplier_link_updated_lastname
-                ),
-              },
-              createdAt: row.supplier_link_created_at,
-              updatedAt: row.supplier_link_updated_at,
-            },
-            batches: [],
-          }
+          audit: compactAudit(
+            makeAudit(row, { prefix: 'supplier_link_' })
+          ),
+          batches: [],
+        }
         : null,
     };
 
@@ -270,29 +228,14 @@ const transformBomMaterialSupplyDetails = (rows = []) => {
         currency: row.batch_currency,
         exchangeRate: Number(row.batch_exchange_rate ?? 1),
         totalCost: Number(row.batch_total_cost ?? 0),
-        status: {
-          id: row.batch_status_id,
-          name: row.batch_status,
-          date: row.batch_status_date,
-        },
-        audit: {
-          createdBy: {
-            id: row.batch_created_by,
-            name: getFullName(
-              row.batch_created_firstname,
-              row.batch_created_lastname
-            ),
-          },
-          updatedBy: {
-            id: row.batch_updated_by,
-            name: getFullName(
-              row.batch_updated_firstname,
-              row.batch_updated_lastname
-            ),
-          },
-          createdAt: row.batch_created_at,
-          updatedAt: row.batch_updated_at,
-        },
+        status: makeStatus(row, {
+          id: 'batch_status_id',
+          name: 'batch_status',
+          date: 'batch_status_date',
+        }),
+        audit: compactAudit(
+          makeAudit(row, { prefix: 'batch_' })
+        ),
       });
     }
 

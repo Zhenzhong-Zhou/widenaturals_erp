@@ -4,6 +4,7 @@ const {
   getLocationTypesController,
   getLocationTypeDetailController,
 } = require('../controllers/location-type-controller');
+const PERMISSIONS = require('../utils/constants/domain/permissions');
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ const router = express.Router();
  */
 router.get(
   '/',
-  authorize(['manage_locations', 'view_locations']),
+  authorize([PERMISSIONS.LOCATIONS_TYPES.VIEW]),
   getLocationTypesController
 );
 
@@ -24,7 +25,7 @@ router.get(
  */
 router.get(
   '/:id',
-  authorize(['manage_locations', 'view_locations']),
+  authorize([PERMISSIONS.LOCATIONS_TYPES.VIEW_DETAILS]),
   getLocationTypeDetailController
 );
 

@@ -1,16 +1,20 @@
 import { type FC, useState } from 'react';
 import Box from '@mui/material/Box';
-import CustomTypography from '@components/common/CustomTypography';
-import CustomTable from '@components/common/CustomTable';
-import CustomButton from '@components/common/CustomButton';
-import type { InventoryAllocationSummary } from '@features/inventoryAllocation/state';
+import {
+  CustomButton,
+  CustomTable,
+  CustomTypography
+} from '@components/index';
+import type {
+  FlattenedInventoryAllocationSummary
+} from '@features/inventoryAllocation/state';
 import {
   getInventoryAllocationColumns,
   InventoryAllocationTableExpandedRow,
 } from '@features/inventoryAllocation/components/InventoryAllocationTable';
 
 interface InventoryAllocationTableProps {
-  data: InventoryAllocationSummary[];
+  data: FlattenedInventoryAllocationSummary[];
   page: number;
   rowsPerPage: number;
   totalPages: number;
@@ -20,6 +24,14 @@ interface InventoryAllocationTableProps {
   onRefresh: () => void;
 }
 
+/**
+ * Inventory allocation summary table.
+ *
+ * Renders a paginated table of flattened allocation summaries with
+ * expandable rows for detailed allocation metadata.
+ *
+ * Pagination and refresh actions are controlled externally.
+ */
 const InventoryAllocationTable: FC<InventoryAllocationTableProps> = ({
   data,
   page,

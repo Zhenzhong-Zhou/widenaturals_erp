@@ -4,7 +4,7 @@ import { CustomButton, CustomTypography } from '@components/index';
 import { FooterLinks } from '@pages/home/components';
 
 export interface FooterProps {
-  onStaffLogin: () => void;
+  onStaffLogin?: () => void;
 }
 
 const Footer: FC<FooterProps> = ({ onStaffLogin }) => {
@@ -55,19 +55,21 @@ const Footer: FC<FooterProps> = ({ onStaffLogin }) => {
           
           <Divider sx={{ my: 1.5 }} />
           
-          <CustomButton
-            variant="outlined"
-            size="small"
-            onClick={onStaffLogin}
-            sx={{
-              textTransform: 'none',
-              fontWeight: 700,
-              borderRadius: 2,
-              px: 1.5,
-            }}
-          >
-            Staff Login
-          </CustomButton>
+          {onStaffLogin ? (
+            <CustomButton
+              variant="outlined"
+              size="small"
+              onClick={onStaffLogin}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 700,
+                borderRadius: 2,
+                px: 1.5,
+              }}
+            >
+              Staff Login
+            </CustomButton>
+          ) : null}
         </Box>
       </Box>
     </Box>

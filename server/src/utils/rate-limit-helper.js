@@ -1,6 +1,7 @@
 const { loadEnv } = require('../config/env');
 const rateLimit = require('express-rate-limit');
 const { ipKeyGenerator } = require('express-rate-limit');
+const { getClientIp } = require('./request-context');
 const { logError } = require('./logger-helper');
 const { logSystemInfo } = require('./system-logger');
 const AppError = require('./AppError');
@@ -23,7 +24,9 @@ const trustedIPs = process.env.TRUSTED_IPS
  */
 const defaultRateLimitHandler = (req, res, next, options) => {
   const retryAfter = Math.ceil(options.windowMs / 1000);
-  const clientKey = options.keyGenerator ? options.keyGenerator(req) : req.ip;
+  const clientKey = options.keyGenerator
+    ? options.keyGenerator(req)
+    : getClientIp(req);
 
   // Set Retry-After header (in seconds)
   res.set('Retry-After', retryAfter.toString());
@@ -40,13 +43,12 @@ const defaultRateLimitHandler = (req, res, next, options) => {
   next(
     AppError.rateLimitError(
       'You have exceeded the allowed number of requests. Please try again later.',
-      retryAfter,
       {
         details: {
-          ip: req.ip,
+          ip: getClientIp(req),
           method: req.method,
           route: req.originalUrl,
-          userAgent: req.headers['user-agent'] || 'Unknown',
+          userAgent: req.get('user-agent') || 'Unknown',
           retryAfter,
           clientKey,
         },
@@ -67,7 +69,9 @@ const defaultRateLimitHandler = (req, res, next, options) => {
  * @param {Function} [options.skip=() => false] - Function to skip rate limiting for certain requests.
  * @param {Function} [options.handler=defaultRateLimitHandler] - Custom handler for rate-limited responses.
  * @param {boolean} [options.disableInDev=false] - Disable rate limiting in development mode.
- * @returns {Function} - Middleware for rate limiting.
+ * @param {string} [options.context]
+ *
+ * @returns {import('express-rate-limit').RateLimitRequestHandler}
  */
 const createRateLimiter = ({
   windowMs = process.env.RATE_LIMIT_WINDOW_MS
@@ -79,7 +83,10 @@ const createRateLimiter = ({
   headers = true,
   statusCode = 429,
   keyGenerator = ipKeyGenerator,
-  skip = (req) => trustedIPs.includes(req.ip),
+  skip = (req) => {
+    const ip = getClientIp(req);
+    return trustedIPs.includes(ip);
+  },
   handler = defaultRateLimitHandler, // Use the default handler if none is provided
   disableInDev = false,
   context = 'rate-limiter',
@@ -90,8 +97,13 @@ const createRateLimiter = ({
       windowMs,
       max,
     });
-    // Bypass rate limiting in development mode
-    return (req, res, next) => next();
+    
+    return rateLimit({
+      windowMs,
+      max: Number.MAX_SAFE_INTEGER,
+      standardHeaders: headers,
+      legacyHeaders: false,
+    });
   }
 
   logSystemInfo('Rate limiter initialized.', {

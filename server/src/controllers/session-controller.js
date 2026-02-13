@@ -1,85 +1,80 @@
 const wrapAsync = require('../utils/wrap-async');
 const { loginUserService, refreshTokenService } = require('../services/session-service');
-const { transformLoginResponse } = require('../transformers/session-transformer');
+const { extractRequestContext } = require('../utils/request-context');
+const { getTtlMs } = require('../utils/auth/jwt-utils');
 
 /**
  * Handles user authentication and session initialization.
  *
- * This controller implements the HTTP boundary for user login.
- * It validates request input, enforces the pre-authentication CSRF model,
- * delegates credential verification and transactional state updates to
- * the service layer, and constructs a stable API response.
+ * HTTP boundary for user login.
+ * Enforces transport-level security requirements and delegates
+ * authentication logic entirely to the service layer.
  *
- * Security model:
- * - Login requests are protected by CSRF middleware (pre-auth CSRF).
- * - A valid CSRF token MUST be present before authentication is attempted.
- * - Refresh tokens are issued by the service layer and persisted in
- *   secure, HTTP-only cookies at the transport layer.
+ * Responsibilities:
+ * - Enforce pre-authentication CSRF requirements
+ * - Extract credentials from the request body
+ * - Extract request metadata via request context utility
+ * - Invoke the authentication service
+ * - Persist refresh token via secure HTTP-only cookie
+ * - Return a stable authentication API response
  *
- * Workflow:
- * 1. Extract credentials from the request body.
- * 2. Retrieve the CSRF token (required before login).
- * 3. Invoke the authentication service to:
- *    - Verify credentials
- *    - Enforce lockout rules
- *    - Update login metadata
- *    - Issue access and refresh tokens
- * 4. Normalize the domain result into a stable API response shape.
- * 5. Persist the refresh token in a secure cookie.
- * 6. Return a successful authentication response.
- *
- * Response shape:
- * {
- *   success: boolean,
- *   message: string,
- *   data: {
- *     accessToken: string,
- *     csrfToken: string,
- *     lastLogin: string | null
- *   }
- * }
- *
- * Error handling:
- * - Expected authentication and validation errors are propagated
- *   via centralized error middleware.
- * - Unexpected system errors are captured and reported consistently.
+ * Architectural notes:
+ * - Request metadata normalization is delegated to extractRequestContext().
+ * - This controller MUST NOT transform authentication data.
+ * - The service layer returns API-ready authentication payloads.
  *
  * @param {import('express').Request} req
- *   Express request object. Expects `email` and `password` in `req.body`.
  * @param {import('express').Response} res
- *   Express response object used to set cookies and return the API payload.
  *
  * @returns {Promise<void>}
- *   Resolves after the HTTP response has been sent.
  */
 const loginController = wrapAsync(async (req, res) => {
   const { email, password } = req.body;
   
-  // Retrieve CSRF token (required before login under pre-auth CSRF model)
+  // Pre-auth CSRF token (required before login)
   const csrfToken = req.csrfToken();
-
-  // 1. Domain login (transactional, concurrency-safe)
-  const result = await loginUserService(email, password);
   
-  // 2. Normalize domain result into API response
-  const response = transformLoginResponse(result);
-
-  // 3. Persist refresh token in secure cookie (transport concern)
+  const {
+    ipAddress,
+    userAgent,
+    deviceId,
+    note,
+  } = extractRequestContext(req);
+  
+  // ------------------------------------------------------------
+  // 1. Authenticate user (domain + normalization handled by service)
+  // ------------------------------------------------------------
+  const result = await loginUserService(email, password, {
+    ipAddress,
+    userAgent,
+    deviceId,
+    note,
+  });
+  
+  // ------------------------------------------------------------
+  // 2. Persist refresh token (transport concern only)
+  // ------------------------------------------------------------
   res.cookie('refreshToken', result.refreshToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
     maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: '/',
   });
-
-  // 4. Send response
+  
+  // Prevent caching of auth response
+  res.set('Cache-Control', 'no-store');
+  
+  // ------------------------------------------------------------
+  // 3. Send response
+  // ------------------------------------------------------------
   res.status(200).json({
     success: true,
     message: 'Login successful',
     data: {
-      accessToken: response.accessToken,
+      accessToken: result.accessToken,
       csrfToken,
-      lastLogin: response.lastLogin,
+      lastLogin: result.lastLogin,
     },
   });
 });
@@ -109,7 +104,7 @@ const loginController = wrapAsync(async (req, res) => {
  * @param {import('express').Response} res
  *   Express response object. Sets rotated refresh token cookie and returns access token.
  *
- * @returns {Promise<void>}
+ * @returns {Promise<void>} Resolves after issuing new tokens and setting cookies
  */
 const refreshTokenController = wrapAsync(async (req, res) => {
   // Refresh tokens are stored in HTTP-only cookies
@@ -124,8 +119,11 @@ const refreshTokenController = wrapAsync(async (req, res) => {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+    maxAge: getTtlMs('REFRESH_TOKEN_TTL_SECONDS'),
+    path: '/',
   });
+  
+  res.set('Cache-Control', 'no-store');
   
   // Return new access token for subsequent authenticated requests
   res.status(200).json({
@@ -133,6 +131,9 @@ const refreshTokenController = wrapAsync(async (req, res) => {
     message: 'Token refreshed successfully',
     data: {
       accessToken,
+    },
+    meta: {
+      rotatedAt: new Date().toISOString(),
     },
   });
 });

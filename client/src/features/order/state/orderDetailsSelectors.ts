@@ -1,89 +1,82 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '@store/store';
+import type { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 import type {
-  OrderItem,
-  TransformedOrder,
-} from '@features/order/state/orderTypes';
+  OrderDetailsUiData,
+  FlattenedOrderHeader,
+  FlattenedOrderItemRow,
+} from '@features/order/state';
 
-/** Base selector: the whole orderDetails slice */
+// ---------------------------
+// Base selector (MUST be plain function)
+// ---------------------------
 const selectOrderDetailsState = (state: RootState) =>
   selectRuntime(state).orderDetails;
 
-/** Is the details request in-flight? */
+// ---------------------------
+// Primitive selectors
+// ---------------------------
 export const selectOrderDetailsLoading = createSelector(
   [selectOrderDetailsState],
   (s) => s.loading
 );
 
-/** Last error message (if any) */
 export const selectOrderDetailsError = createSelector(
   [selectOrderDetailsState],
   (s) => s.error
 );
 
-/** Full `TransformedOrder` payload (or null) */
 export const selectOrderDetailsData = createSelector(
   [selectOrderDetailsState],
-  (s) => s.data
+  (s): OrderDetailsUiData | null => s.data
 );
 
-/**
- * Header-only view of the order (everything except `items`).
- * Useful for pages that render meta without subscribing to the items array.
- */
+// ---------------------------
+// Header + items
+// ---------------------------
 export const selectOrderHeader = createSelector(
   [selectOrderDetailsData],
-  (data): Omit<TransformedOrder, 'items'> | null => {
-    if (!data) return null;
-    // Return a new object only when `data` reference changes (memoized by createSelector)
-    // so consumers won’t re-render unless the order payload updates.
-    const { items, ...header } = data;
-    return header;
-  }
+  (data): FlattenedOrderHeader | null => data?.header ?? null
 );
 
-/** Order items array (defaults to empty array for convenient mapping) */
 export const selectOrderItems = createSelector(
   [selectOrderDetailsData],
-  (data) => data?.items ?? []
+  (data): FlattenedOrderItemRow[] => data?.items ?? []
 );
 
-/** Item count (stable number for badges, etc.) */
 export const selectOrderItemCount = createSelector(
   [selectOrderItems],
   (items) => items.length
 );
 
-/**
- * Factory selector: get a single item by ID.
- * Use inside components to subscribe to just one item.
- *
- * @example
- * const selectItem = makeSelectOrderItemById(itemId);
- * const item = useAppSelector(selectItem);
- */
-export const makeSelectOrderItemById = (itemId: string) =>
-  createSelector(
-    [selectOrderItems],
-    (items) => items.find((it: OrderItem) => it.id === itemId) ?? null
-  );
+// ---------------------------
+// Factories
+// ---------------------------
+export const makeSelectOrderItemById = (orderItemId: string) =>
+  createSelector([selectOrderItems], (items) => {
+    return items.find((it) => it.orderItemId === orderItemId) ?? null;
+  });
 
-/** Quick boolean for route guards / skeletons */
-export const selectHasOrder = createSelector([selectOrderDetailsData], (data) =>
-  Boolean(data)
-);
-
-/**
- * (Optional) Numeric totals derived from string fields.
- * Keeps parsing out of components and memoizes the result.
- */
-export const selectOrderTotals = createSelector(
+// ---------------------------
+// Convenience booleans / derived values
+// ---------------------------
+export const selectHasOrder = createSelector(
   [selectOrderDetailsData],
-  (data) => {
-    if (!data) return { shippingFee: 0, totalAmount: 0 };
-    const shippingFee = parseFloat(data.shippingFee ?? '0') || 0;
-    const totalAmount = parseFloat(data.totalAmount ?? '0') || 0;
-    return { shippingFee, totalAmount };
-  }
+  (data) => Boolean(data)
 );
+
+/**
+ * (Optional) Numeric totals derived from header fields.
+ * Keeps parsing out of components and memoizes the result.
+ *
+ * Assumes FlattenedOrderHeader contains `shippingFee` and `totalAmount`
+ * as strings or nullable strings.
+ */
+export const selectOrderTotals = createSelector([selectOrderHeader], (header) => {
+  if (!header) return { shippingFee: 0, totalAmount: 0 };
+  
+  const shippingFee = Number(header.shippingFee ?? 0) || 0;
+  const totalAmount = Number(header.totalAmount ?? 0) || 0;
+  
+  return { shippingFee, totalAmount };
+});

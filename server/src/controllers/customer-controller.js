@@ -15,7 +15,7 @@ const { logInfo } = require('../utils/logger-helper');
  */
 const createCustomerController = wrapAsync(async (req, res) => {
   const customers = req.body;
-  const user = req.user;
+  const user = req.auth.user;
 
   logInfo('Creating customer record(s)', req, {
     context: 'customer-controller/createCustomerController',
@@ -63,7 +63,7 @@ const getPaginatedCustomersController = wrapAsync(async (req, res) => {
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
 
   const { data, pagination } = await fetchPaginatedCustomersService({
-    user: req.user,
+    user: req.auth.user,
     filters,
     page,
     limit,

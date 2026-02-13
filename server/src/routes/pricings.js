@@ -5,6 +5,7 @@
 
 const express = require('express');
 const { authorize } = require('../middlewares/authorize');
+const PERMISSIONS = require('../utils/constants/domain/permissions');
 const {
   getPaginatedPricingRecordsController,
   getPricingDetailsController,
@@ -16,19 +17,19 @@ const router = express.Router();
 // Route for getting all users
 router.get(
   '/',
-  authorize(['view_prices', 'manage_prices']),
+  authorize([PERMISSIONS.PRICING.VIEW]),
   getPaginatedPricingRecordsController
 );
 
 router.get(
   '/export',
-  authorize(['export_pricing', 'manage_prices']),
+  authorize([PERMISSIONS.PRICING.EXPORT_DATA]),
   exportPricingRecordsController
 );
 
 router.get(
   '/by-type/:id/details',
-  authorize(['view_prices', 'manage_prices']),
+  authorize([PERMISSIONS.PRICING.VIEW_DETAILS]),
   getPricingDetailsController
 );
 

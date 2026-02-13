@@ -74,9 +74,10 @@ const AppRoutes = () => {
           <Routes>
             {appRoutes.map(({ path, component: Component, meta }) => {
               const requiresAuth = meta?.requiresAuth === true;
+              const guestOnly = meta?.guestOnly === true;
               
               // Guest-only
-              if (path === '/login') {
+              if (guestOnly) {
                 return (
                   <Route
                     key={path}
@@ -97,15 +98,15 @@ const AppRoutes = () => {
                     key={path}
                     path={path}
                     element={
-                      <MainLayout>
-                        <ProtectedRoutes>
+                      <ProtectedRoutes>
+                        <MainLayout>
                           <PermissionGuard
                             requiredPermission={meta?.requiredPermission}
                           >
                             <Component />
                           </PermissionGuard>
-                        </ProtectedRoutes>
-                      </MainLayout>
+                        </MainLayout>
+                      </ProtectedRoutes>
                     }
                   />
                 );

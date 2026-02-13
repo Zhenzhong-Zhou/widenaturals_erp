@@ -1,5 +1,9 @@
 const { query } = require('../database/db');
-const { logSystemInfo, logSystemException } = require('../utils/system-logger');
+const {
+  logSystemInfo,
+  logSystemException,
+  logSystemWarn
+} = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
 /**
@@ -129,28 +133,58 @@ const getAndLockUserAuthByEmail = async (email, activeStatusId, client) => {
 };
 
 /**
- * Fetches user authentication details by user ID and acquires
- * a row-level lock on the corresponding user_auth record.
+ * Fetches and locks the authentication record for a user.
  *
- * This function is intended for authenticated flows that perform
- * stateful mutations (e.g. password changes, admin resets) and
- * must be executed within an explicit transaction.
+ * Guarantees (on success):
+ * - Returns the user's authentication state
+ * - Acquires a row-level lock on `user_auth` via `FOR UPDATE`
+ * - Prevents concurrent mutation of authentication state
  *
- * Locking is applied at SELECT time using `FOR UPDATE` to ensure
- * serializable updates to authentication state.
+ * Concurrency contract:
+ * - MUST be executed within an active transaction
+ * - Lock is held until transaction commit or rollback
+ * - Ensures serialized updates to password, lockout, and attempt counters
  *
- * @param {string} userId - The authenticated user's ID.
- * @param {object} client - Transaction-scoped database client.
+ * Scope:
+ * - Locks only the `user_auth` row
+ * - Does NOT lock the `users` table
+ * - Does NOT perform business validation
  *
- * @returns {Promise<object>} Locked user authentication record.
+ * @param {string} userId - Target user identifier
+ * @param {Object} client - Transaction-scoped database client (required)
  *
- * @throws {AppError} If the user does not exist or a database error occurs.
+ * @returns {Promise<{
+ *   user_id: string,
+ *   email: string,
+ *   role_id: string,
+ *   auth_id: string,
+ *   password_hash: string,
+ *   last_login: Date | null,
+ *   attempts: number,
+ *   failed_attempts: number,
+ *   lockout_time: Date | null,
+ *   metadata: {
+ *     password_history?: Array<{
+ *       password_hash: string,
+ *       changed_at: string
+ *     }>,
+ *     lastSuccessfulLogin?: string,
+ *     lastLockout?: string,
+ *     notes?: string
+ *   } | null
+ * }>}
+ *
+ * @throws {AppError}
  */
 const getAndLockUserAuthByUserId = async (userId, client) => {
   const context = 'user-auth-repository/getAndLockUserAuthByUserId';
   
   if (!userId) {
     throw AppError.validationError('User ID is required.');
+  }
+  
+  if (!client) {
+    throw AppError.serviceError('Transaction client is required.');
   }
   
   const sql = `
@@ -379,10 +413,84 @@ const resetFailedAttemptsAndUpdateLastLogin = async (
   }
 };
 
+/**
+ * Updates a user's password hash and password history.
+ *
+ * Repository guarantees:
+ * - Performs a single UPDATE statement
+ * - Does not contain business logic
+ * - Does not validate password policy
+ * - Throws on database failure
+ *
+ * @param {string} authId
+ * @param {string} newPasswordHash
+ * @param {Array<Object>} updatedHistory
+ * @param {Object|null} client
+ *
+ * @returns {Promise<void>}
+ */
+const updatePasswordAndHistory = async (
+  authId,
+  newPasswordHash,
+  updatedHistory,
+  client = null
+) => {
+  const context = 'user-auth-repository/updatePasswordAndHistory';
+  
+  const sql = `
+    UPDATE user_auth
+    SET
+      password_hash = $1,
+      metadata = jsonb_set(
+        COALESCE(metadata, '{}'),
+        '{password_history}',
+        $2::jsonb
+      ),
+      updated_at = NOW()
+    WHERE id = $3
+    RETURNING id;
+  `;
+  
+  const params = [
+    newPasswordHash,
+    JSON.stringify(updatedHistory),
+    authId,
+  ];
+  
+  try {
+    const { rows } = await query(sql, params, client);
+    
+    if (!rows.length) {
+      logSystemWarn('Password update affected no rows', {
+        context,
+        authId,
+      });
+      
+      return null;
+    }
+    
+    logSystemInfo('Password and history updated', {
+      context,
+      authId,
+    });
+    
+    return rows[0] || null;
+  } catch (error) {
+    logSystemException(error, 'Failed to update password and history', {
+      context,
+      authId,
+      error: error.message,
+    });
+    
+    throw error;
+  }
+};
+
 module.exports = {
   insertUserAuth,
   getAndLockUserAuthByEmail,
   getAndLockUserAuthByUserId,
   incrementFailedAttempts,
   resetFailedAttemptsAndUpdateLastLogin,
+  updatePasswordAndHistory,
 };

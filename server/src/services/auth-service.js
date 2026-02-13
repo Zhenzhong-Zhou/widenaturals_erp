@@ -1,6 +1,7 @@
 const { withTransaction } = require('../database/db');
 const {
   getAndLockUserAuthByUserId,
+  updatePasswordAndHistory,
 } = require('../repositories/user-auth-repository');
 const {
   hashPassword,
@@ -8,37 +9,69 @@ const {
 } = require('../business/user-auth-business');
 const {
   logSystemWarn,
-  logSystemException, logSystemInfo,
+  logSystemException,
+  logSystemInfo,
 } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 const { validatePasswordStrength } = require('../security/password-policy');
+const {
+  logoutSession,
+  revokeAllSessionsForUser
+} = require('../business/auth/session-lifecycle');
 
 /**
- * Handles user logout intent.
+ * Logs out a user by fully revoking the active session.
  *
  * Responsibilities:
- * - Record logout intent for auditing
- * - Prepare for future session / token revocation
+ * - Revoke the current session
+ * - Revoke all tokens associated with that session
+ * - Record logout intent for audit purposes
  *
- * Notes:
- * - This operation is intentionally idempotent
- * - Absence of an active session is not an error
+ * Security semantics:
+ * - After this operation, refresh and access tokens MUST NOT be usable
+ * - Safe to call multiple times (idempotent)
+ * - Absence of an active session is NOT an error
  *
- * @param {object|null} user - Authenticated user context, if available.
+ * @param {{
+ *   userId: string,
+ *   sessionId: string | null
+ * }} params
+ *
+ * @param {Object|null} client
  *
  * @returns {Promise<void>}
  */
-const logoutService = async (user) => {
+const logoutService = async (
+  { userId, sessionId },
+  { ipAddress, userAgent }
+) => {
   const context = 'auth-service/logoutService';
   
-  if (!user) {
+  // No active session — nothing to revoke
+  if (!userId || !sessionId) {
     return;
   }
   
-  logSystemInfo('User logged out', {
-    context,
-    userId: user.id,
-  });
+  try {
+    await logoutSession({
+      sessionId,
+      ipAddress,
+      userAgent
+    });
+    
+    logSystemInfo('User logged out', {
+      context,
+      userId,
+      sessionId,
+    });
+  } catch (error) {
+    logSystemException(error, 'Failed to logout user', {
+      context,
+      userId,
+      sessionId,
+    });
+    throw error;
+  }
 };
 
 const PASSWORD_HISTORY_LIMIT = 5;
@@ -46,35 +79,33 @@ const PASSWORD_HISTORY_LIMIT = 5;
 /**
  * Changes an authenticated user's password.
  *
- * This operation performs a security-critical, stateful mutation of
- * the user's authentication record and MUST be executed within an
- * explicit database transaction.
- *
- * The service enforces multiple security invariants before persisting
- * any changes and guarantees atomic updates under concurrent access.
+ * This operation performs a security-critical mutation of the user's
+ * authentication record and MUST execute within a single database
+ * transaction.
  *
  * ─────────────────────────────────────────────────────────────
  * Security guarantees
  * ─────────────────────────────────────────────────────────────
- * - Requires verification of the user's current password.
+ * - Requires verification of the current password.
  * - Enforces configured password strength requirements.
- * - Prevents reuse of recently used passwords based on policy.
+ * - Prevents reuse of recently used passwords.
+ * - Revokes all active sessions and tokens upon successful update.
  * - Does not leak credential validity through differentiated errors.
  *
  * ─────────────────────────────────────────────────────────────
  * Transactional guarantees
  * ─────────────────────────────────────────────────────────────
- * - Acquires a row-level lock on the `user_auth` record at the start
- *   of execution to prevent concurrent password mutations.
+ * - Acquires a row-level lock on the `user_auth` record.
  * - Applies password and password history updates atomically.
- * - Ensures password reuse checks observe a consistent history snapshot.
+ * - Revokes sessions and tokens within the same transaction.
+ * - Ensures password reuse checks observe a consistent snapshot.
  *
  * ─────────────────────────────────────────────────────────────
  * Architectural guarantees
  * ─────────────────────────────────────────────────────────────
- * - Password mutation is centralized in this service and cannot be
- *   performed through standalone repository helpers.
- * - All security invariants are enforced by construction, not convention.
+ * - Password mutation logic is centralized in this service.
+ * - Repository layer performs persistence only.
+ * - All security invariants are enforced by construction.
  *
  * @param {string} userId
  *   ID of the authenticated user requesting the password change.
@@ -89,8 +120,9 @@ const PASSWORD_HISTORY_LIMIT = 5;
  *   Resolves when the password change completes successfully.
  *
  * @throws {AppError}
- *   - authenticationError → current password is invalid
- *   - validationError     → password policy or reuse violation
+ *   - authenticationError → invalid credentials
+ *   - validationError     → password policy violation
+ *   - notFoundError       → inconsistent authentication state
  *   - generalError        → unexpected system failure
  */
 const changePasswordService = async (userId, currentPassword, newPassword) => {
@@ -169,25 +201,23 @@ const changePasswordService = async (userId, currentPassword, newPassword) => {
       // ------------------------------------------------------------
       // 6. Persist password + history atomically
       // ------------------------------------------------------------
-      await client.query(
-        `
-        UPDATE user_auth
-        SET
-          password_hash = $1,
-          metadata = jsonb_set(
-            COALESCE(metadata, '{}'),
-            '{password_history}',
-            $2::jsonb
-          ),
-          updated_at = NOW()
-        WHERE id = $3;
-        `,
-        [
-          newPasswordHash,
-          JSON.stringify(updatedHistory),
-          authId,
-        ]
+      const result = await updatePasswordAndHistory(
+        authId,
+        newPasswordHash,
+        updatedHistory,
+        client
       );
+      
+      if (!result) {
+        throw AppError.notFoundError(
+          'Authentication record not found.'
+        );
+      }
+      
+      // ------------------------------------------------------------
+      // 7. Revoke all active sessions and tokens (security boundary)
+      // ------------------------------------------------------------
+      await revokeAllSessionsForUser(userId, client);
     } catch (error) {
       if (!error.isExpected) {
         logSystemException(error, 'Unexpected password reset failure', {

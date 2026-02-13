@@ -32,7 +32,7 @@ const getPaginatedOrderTypesController = wrapAsync(async (req, res) => {
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
 
   const { data, pagination } = await fetchPaginatedOrderTypesService({
-    user: req.user,
+    user: req.auth.user,
     filters,
     page,
     limit,

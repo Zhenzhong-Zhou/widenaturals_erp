@@ -3,7 +3,7 @@ import type {
   CreateProductResponse,
   FetchProductParams,
   GetProductApiResponse,
-  ProductListResponse,
+  ProductListsApiResponse,
   ProductStatusUpdateRequest,
   ProductUpdateRequest,
   UpdateProductApiResponse,
@@ -24,7 +24,7 @@ import { sanitizeString } from '@utils/stringUtils';
  */
 const fetchPaginatedProducts = (
   params: FetchProductParams = {}
-): Promise<ProductListResponse> => {
+): Promise<ProductListsApiResponse> => {
   const { filters = {}, ...rest } = params;
 
   const queryString = buildQueryString({
@@ -32,7 +32,7 @@ const fetchPaginatedProducts = (
     ...filters,
   });
 
-  return getRequest<ProductListResponse>(
+  return getRequest<ProductListsApiResponse>(
     `${API_ENDPOINTS.PRODUCTS.ALL_RECORDS}${queryString}`,
     { policy: 'READ' }
   );

@@ -6,22 +6,22 @@ import Stack from '@mui/material/Stack';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Divider from '@mui/material/Divider';
-import CustomTypography from '@components/common/CustomTypography';
-import GoBackButton from '@components/common/GoBackButton';
-import ErrorMessage from '@components/common/ErrorMessage';
-import CustomButton from '@components/common/CustomButton';
-import Loading from '@components/common/Loading';
-import useOutboundShipmentDetails from '@hooks/useOutboundShipmentDetails';
-import { getShortOrderNumber } from '@features/order/utils/orderUtils';
 import {
-  flattenFulfillments,
-  flattenShipmentHeader,
-} from '@features/outboundFulfillment/utils/flattenOutboundShipmenDetails';
-import { OutboundShipmentHeaderSection } from '@features/outboundFulfillment/components/OutboundShipmentDetails';
-import SkeletonExpandedRow from '@components/common/SkeletonExpandedRow';
-import NoDataFound from '@components/common/NoDataFound';
+  CustomButton,
+  CustomTypography,
+  ErrorMessage,
+  GoBackButton,
+  Loading,
+  NoDataFound,
+  SkeletonExpandedRow,
+} from '@components/index';
+import {
+  OutboundShipmentHeaderSection
+} from '@features/outboundFulfillment/components/OutboundShipmentDetails';
 import ConfirmFulfillmentButton from '@features/outboundFulfillment/components/ConfirmFulfillmentButton';
 import CompleteManualFulfillmentButton from '@features/outboundFulfillment/components/CompleteManualFulfillmentButton';
+import { useOutboundShipmentDetails } from '@hooks/index';
+import { getShortOrderNumber } from '@features/order/utils';
 
 const FulfillmentDetailsTable = lazy(
   () => import('../components/OutboundShipmentDetails/FulfillmentDetailsTable')
@@ -38,7 +38,6 @@ const OutboundShipmentDetailsPage: FC = () => {
   }
 
   const {
-    data: shipmentDetails,
     loading: shipmentDetailsLoading,
     error: shipmentDetailsError,
     header: shipmentHeader,
@@ -71,25 +70,16 @@ const OutboundShipmentDetailsPage: FC = () => {
     [orderNumber]
   );
 
-  const flattenedHeader = useMemo(() => {
-    return shipmentHeader ? flattenShipmentHeader(shipmentHeader) : null;
-  }, [shipmentHeader]);
-
-  const flattenedFulfillments = useMemo(() => {
-    return shipmentFulfillments
-      ? flattenFulfillments(shipmentFulfillments)
-      : null;
-  }, [shipmentFulfillments]);
-
   // === Determine Confirm Button Visibility ===
   const canConfirmFulfillment = useMemo(() => {
     if (!shipmentHeader || !shipmentFulfillments?.length) return false;
-
-    const shipmentCode = shipmentHeader.status?.code ?? '';
-    const fulfillmentCodes: string[] = shipmentFulfillments.map(
-      (f: { status?: { code?: string } }) => f.status?.code ?? ''
+    
+    const shipmentCode = shipmentHeader.statusCode ?? '';
+    
+    const fulfillmentCodes = shipmentFulfillments.map(
+      (f) => f.fulfillmentStatusCode ?? ''
     );
-
+    
     const ALLOWED = {
       order: ['ORDER_PROCESSING', 'ORDER_FULFILLED'], // optional if you add order status later
       fulfillment: [
@@ -99,35 +89,30 @@ const OutboundShipmentDetailsPage: FC = () => {
       ],
       shipment: ['SHIPMENT_PENDING'],
     };
-
-    // All fulfillments must be confirmable
-    const allFulfillmentsValid = fulfillmentCodes.every((code: string) =>
+    
+    const allFulfillmentsValid = fulfillmentCodes.every((code) =>
       ALLOWED.fulfillment.includes(code)
     );
 
     // Shipment must be in confirmable state
     const shipmentValid = ALLOWED.shipment.includes(shipmentCode);
-
+    
     return allFulfillmentsValid && shipmentValid;
   }, [shipmentHeader, shipmentFulfillments]);
   
   const canCompleteManualFulfillment = useMemo(() => {
-    if (
-      !shipmentHeader ||
-      !shipmentHeader.deliveryMethod ||
-      !shipmentFulfillments?.length
-    ) {
-      return false;
-    }
+    if (!shipmentHeader || !shipmentFulfillments?.length) return false;
     
-    const { deliveryMethod } = shipmentHeader;
+    const isPickupLocation = Boolean(
+      shipmentHeader.deliveryMethodIsPickup
+    );
     
-    const deliveryMethodName = deliveryMethod.name ?? '';
-    const isPickupLocation = Boolean(deliveryMethod.isPickup);
+    if (!isPickupLocation) return false;
     
-    const shipmentCode = shipmentHeader.status?.code ?? '';
+    const shipmentCode = shipmentHeader.statusCode ?? '';
+    
     const fulfillmentCodes = shipmentFulfillments.map(
-      (f) => f.status?.code ?? ''
+      (f) => f.fulfillmentStatusCode ?? ''
     );
     
     const ALLOWED = {
@@ -136,21 +121,15 @@ const OutboundShipmentDetailsPage: FC = () => {
       shipment: ['SHIPMENT_READY', 'SHIPMENT_DISPATCHED'],
     };
     
-    const deliveryMethodAllowed =
-      isPickupLocation || ALLOWED.deliveryMethods.includes(deliveryMethodName);
-    
-    const allFulfillmentsCompletable = fulfillmentCodes.every((code) =>
+    const allFulfillmentsConfirmed = fulfillmentCodes.every((code) =>
       ALLOWED.fulfillment.includes(code)
     );
     
-    const shipmentCompletable = ALLOWED.shipment.includes(shipmentCode);
+    const shipmentValid = ALLOWED.shipment.includes(shipmentCode);
     
-    return (
-      allFulfillmentsCompletable &&
-      shipmentCompletable &&
-      deliveryMethodAllowed
-    );
+    return allFulfillmentsConfirmed && shipmentValid;
   }, [shipmentHeader, shipmentFulfillments]);
+  
   
   // === Render ===
   if (!shipmentHeader) {
@@ -162,7 +141,7 @@ const OutboundShipmentDetailsPage: FC = () => {
     );
   }
   
-  if (!shipmentDetails || shipmentDetails.fulfillments.length === 0) {
+  if (!shipmentHeader || !shipmentFulfillments) {
     return (
       <NoDataFound
         message="Shipment details not found."
@@ -179,11 +158,11 @@ const OutboundShipmentDetailsPage: FC = () => {
     return <ErrorMessage message={shipmentDetailsError} />;
   }
 
-  if (!flattenedHeader) {
+  if (!shipmentHeader) {
     return <ErrorMessage message="No shipment header available." />;
   }
 
-  if (!flattenedFulfillments) {
+  if (!shipmentFulfillments) {
     return <ErrorMessage message="No shipment fulfimment details available." />;
   }
 
@@ -258,7 +237,7 @@ const OutboundShipmentDetailsPage: FC = () => {
           {/* Outbound Shipment Details Header Info */}
           <OutboundShipmentHeaderSection
             orderNumber={orderNumber}
-            flattened={flattenedHeader}
+            flattened={shipmentHeader}
           />
 
           {/* Fulfillment Items */}
@@ -272,7 +251,7 @@ const OutboundShipmentDetailsPage: FC = () => {
             />
           ) : (
             <FulfillmentDetailsTable
-              data={flattenedFulfillments}
+              data={shipmentFulfillments}
               itemCount={fulfillmentsItemCount}
             />
           )}

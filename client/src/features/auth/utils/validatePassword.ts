@@ -1,4 +1,4 @@
-import { PASSWORD_POLICY } from '../policies/passwordPolicy';
+import { PASSWORD_POLICY } from '@features/auth';
 
 /**
  * Validates password strength for client-side UX.

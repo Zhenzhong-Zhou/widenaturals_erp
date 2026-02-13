@@ -22,6 +22,7 @@ export { default as useThemeMode } from './useThemeMode';
 
 export { default as useLogin } from './useLogin';
 export { default as useLogout } from './useLogout';
+export { default as useChangePassword } from './useChangePassword';
 export { default as useUserSelfProfile } from './useUserSelfProfile';
 export { default as useUserSelfProfileAuto } from './useUserSelfProfileAuto';
 export { default as useUserViewedProfile } from './useUserViewedProfile';
@@ -55,6 +56,20 @@ export { default as useSkuCodeBaseLookup } from './useSkuCodeBaseLookup';
 export { default as useSkuImageUpload } from './useSkuImageUpload';
 
 /* =====================================================
+ * Compliance
+ * ===================================================== */
+
+export { default as usePaginatedComplianceRecords } from './usePaginatedComplianceRecords';
+
+
+/* =====================================================
+ * Batch
+ * ===================================================== */
+
+export { default as usePaginatedBatchRegistry } from './usePaginatedBatchRegistry';
+export { usePaginatedProductBatches, useProductBatchById } from './usePaginatedProductBatches';
+
+/* =====================================================
  * BOM (Bill of Materials)
  * ===================================================== */
 
@@ -86,12 +101,18 @@ export { default as useAddressCreation } from './useAddressCreation';
 export { default as usePaginateAddresses } from './usePaginateAddresses';
 
 /* =====================================================
+ * Orders Types
+ * ===================================================== */
+
+export { default as usePaginateOrderTypes } from './usePaginateOrderTypes';
+
+/* =====================================================
  * Orders & Fulfillment
  * ===================================================== */
 
 export { default as useSalesOrderCreate } from './useSalesOrderCreate';
 export { default as usePaginatedOrders } from './usePaginatedOrders';
-export { useOrderDetails } from './useOrderDetails';
+export { useOrderDetails, useOrderItemById } from './useOrderDetails';
 export { default as useUpdateOrderStatus } from './useUpdateOrderStatus';
 
 export { default as useInitiateOutboundFulfillment } from './useInitiateOutboundFulfillment';
@@ -107,7 +128,7 @@ export { default as useCompleteManualFulfillment } from './useCompleteManualFulf
 export { default as useAllocateInventory } from './useAllocateInventory';
 export { default as useInventoryAllocationReview } from './useInventoryAllocationReview';
 export { default as useInventoryAllocationConfirmation } from './useInventoryAllocationConfirmation';
-export { usePaginatedInventoryAllocations } from './usePaginatedInventoryAllocations';
+export { default as usePaginatedInventoryAllocations } from './usePaginatedInventoryAllocations';
 
 export { useBaseInventoryActivityLogs } from './useInventoryActivityLogs';
 

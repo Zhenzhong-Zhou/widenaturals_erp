@@ -63,7 +63,6 @@ const getPaginatedOrderTypes = async ({
       ot.code,
       ot.category,
       ot.requires_payment,
-      ot.description,
       ot.status_id,
       s.name AS status_name,
       ot.status_date,

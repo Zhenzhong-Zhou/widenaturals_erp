@@ -4,6 +4,7 @@
  * for filtering delivery method records in the database.
  */
 
+const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
@@ -37,66 +38,71 @@ const AppError = require('../AppError');
  */
 const buildDeliveryMethodFilter = (filters = {}) => {
   try {
+    // -------------------------------------------------------------
+    // Normalize date range filters FIRST
+    // -------------------------------------------------------------
+    filters = normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore');
+    
     const conditions = ['1=1'];
     const params = [];
-    let paramIndex = 1;
-
+    const paramIndexRef = { value: 1 };
+    
     if (filters.methodName) {
-      conditions.push(`dm.method_name = $${paramIndex}`);
+      conditions.push(`dm.method_name = $${paramIndexRef.value}`);
       params.push(filters.methodName);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.isPickupLocation !== undefined) {
-      conditions.push(`dm.is_pickup_location = $${paramIndex}`);
+      conditions.push(`dm.is_pickup_location = $${paramIndexRef.value}`);
       params.push(filters.isPickupLocation);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.createdBy) {
-      conditions.push(`dm.created_by = $${paramIndex}`);
+      conditions.push(`dm.created_by = $${paramIndexRef.value}`);
       params.push(filters.createdBy);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.updatedBy) {
-      conditions.push(`dm.updated_by = $${paramIndex}`);
+      conditions.push(`dm.updated_by = $${paramIndexRef.value}`);
       params.push(filters.updatedBy);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.keyword) {
       const keywordParam = `%${filters.keyword}%`;
       conditions.push(
-        `(dm.method_name ILIKE $${paramIndex} OR dm.description ILIKE $${paramIndex})`
+        `(dm.method_name ILIKE $${paramIndexRef.value} OR dm.description ILIKE $${paramIndexRef.value})`
       );
       params.push(keywordParam);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
+    
     // Enforce status filter by user access (always applied regardless of keyword)
     if (filters.statusId) {
-      conditions.push(`dm.status_id = $${paramIndex}`);
+      conditions.push(`dm.status_id = $${paramIndexRef.value}`);
       params.push(filters.statusId);
-      paramIndex++;
+      paramIndexRef.value++;
     } else if (filters._activeStatusId) {
-      conditions.push(`dm.status_id = $${paramIndex}`);
+      conditions.push(`dm.status_id = $${paramIndexRef.value}`);
       params.push(filters._activeStatusId);
-      paramIndex++;
+      paramIndexRef.value++;
     }
-
-    if (filters.createdAfter) {
-      conditions.push(`dm.created_at >= $${paramIndex}`);
-      params.push(filters.createdAfter);
-      paramIndex++;
-    }
-
-    if (filters.createdBefore) {
-      conditions.push(`dm.created_at <= $${paramIndex}`);
-      params.push(filters.createdBefore);
-      paramIndex++;
-    }
-
+    
+    // ------------------------------
+    // Created date filters (via helper)
+    // ------------------------------
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'dm.created_at',
+      after: filters.createdAfter,
+      before: filters.createdBefore,
+      paramIndexRef,
+    });
+    
     return {
       whereClause: conditions.join(' AND '),
       params,

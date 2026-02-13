@@ -5,6 +5,7 @@
 
 const express = require('express');
 const { authorize } = require('../middlewares/authorize');
+const PERMISSIONS = require('../utils/constants/domain/permissions');
 const {
   getAllPriceTypesController,
   getPricingTypeMetadataController,
@@ -22,14 +23,7 @@ const router = express.Router();
  */
 router.get(
   '/',
-  authorize([
-    'view_prices',
-    'view_pricing_types',
-    'view_pricing_config',
-    'manage_pricing',
-    'manage_catalog',
-    'root_access',
-  ]),
+  authorize([PERMISSIONS.PRICING_TYPES.VIEW]),
   getAllPriceTypesController
 );
 
@@ -44,14 +38,7 @@ router.get(
  */
 router.get(
   '/metadata/:id',
-  authorize([
-    'view_prices',
-    'view_pricing_types',
-    'view_pricing_config',
-    'manage_pricing',
-    'manage_catalog',
-    'root_access',
-  ]),
+  authorize([PERMISSIONS.PRICING_TYPES.VIEW_PRICING_TYPES_DETAILS]),
   getPricingTypeMetadataController
 );
 

@@ -7,249 +7,406 @@ const {
   resetFailedAttemptsAndUpdateLastLogin,
 } = require('../repositories/user-auth-repository');
 const { verifyPassword } = require('../business/user-auth-business');
-const { logSystemException, logSystemWarn, logSystemInfo } = require('../utils/system-logger');
-const { signToken, verifyToken } = require('../utils/token-helper');
+const { logSystemWarn, logSystemInfo, logSystemError } = require('../utils/system-logger');
+const { signToken, verifyRefreshJwt } = require('../utils/auth/jwt-utils');
+const { transformLoginResponse } = require('../transformers/session-transformer');
+const { issueSessionWithTokens, revokeAllSessionsForUser } = require('../business/auth/session-lifecycle');
+const { insertLoginHistory } = require('../repositories/login-history-repository');
+const { insertTokenActivityLog } = require('../repositories/token-activity-log-repository');
+const { validateRefreshTokenState } = require('../utils/auth/validate-token');
+const { validateSessionState } = require('../utils/auth/validate-session');
+const { revokeTokenById, insertToken } = require('../repositories/token-repository');
+const { hashToken } = require('../utils/auth/token-hash');
+const { getTokenExpiry } = require('../utils/auth/token-expiry');
+const { getAuthUserById } = require('../repositories/user-repository');
 
 /**
  * Authenticates a user using email and password.
  *
- * This service performs a complete, transactional login flow with
- * concurrency safety and security hardening. All authentication state
- * mutations occur within a single database transaction to ensure
- * correctness under concurrent login attempts.
+ * Guarantees:
+ * - All authentication state mutations occur within a single database transaction
+ * - Session revocation and new session issuance are atomic
+ * - Enforces a strict single-session policy (all prior sessions revoked across devices)
+ * - Returns a finalized, API-ready response on success
+ * - Post-commit audit logging is best-effort and never affects control flow
  *
- * Responsibilities:
- * - Fetch and lock the user authentication record
- * - Validate account status and enforce lockout rules
- * - Verify credentials without leaking user existence
- * - Update login attempt counters (success or failure)
- * - Record successful login metadata
- * - Issue access and refresh tokens upon success
+ * Authentication model:
+ * - Password-based authentication only
+ * - Latest successful login invalidates all prior sessions and refresh tokens
+ * - Access tokens are short-lived and stateless
+ * - Refresh tokens are stateful and persisted as secure hashes
  *
- * Security guarantees:
- * - Prevents user enumeration by returning a uniform error message
- *   for invalid credentials.
- * - Enforces account lockout windows deterministically.
- * - Ensures login counters remain consistent under concurrency.
+ * Security properties:
+ * - Does NOT reveal whether an email exists or is inactive
+ * - May reveal lockout state only after valid account identification
+ * - Does NOT expose session identifiers or token identifiers
+ * - Does NOT persist raw tokens (hashes only)
  *
- * Transactional guarantees:
- * - All database operations are executed within a single transaction.
- * - Row-level locking is applied during authentication state evaluation.
- * - Partial updates are not possible; the operation is atomic.
+ * Notes:
+ * - deviceId and note are optional metadata for auditing and future policy enforcement
+ * - Lockout duration and failed-attempt thresholds are enforced at the auth layer
+ * - Audit logging after commit is intentionally non-blocking
  *
- * @param {string} email - User email address used for authentication.
- * @param {string} password - Plaintext password provided by the user.
+ * @param {string} email
+ * @param {string} password
+ * @param {Object} context
+ * @param {string|null} context.ipAddress
+ * @param {string|null} context.userAgent
+ * @param {string|null} context.deviceId
+ * @param {string|null} context.note
  *
  * @returns {Promise<{
  *   accessToken: string,
  *   refreshToken: string,
- *   last_login: Date
- * }>} Authentication tokens and the previous successful login timestamp.
+ *   lastLogin: string | null
+ * }>}
  *
- * @throws {AppError} If authentication fails, the account is locked,
- *                    or a system error occurs.
+ * @throws {AppError}
+ * - authenticationError
+ * - accountLockedError
+ * - validationError
+ * - generalError
  */
-const loginUserService = async (email, password) => {
+const loginUserService = async (
+  email,
+  password,
+  {
+    ipAddress = null,
+    userAgent = null,
+    deviceId = null,
+    note = null,
+  } = {}
+) => {
   const context = 'auth-service/loginUserService';
   
-  return withTransaction(async (client) => {
-    try {
-      const activeStatusId = getStatusId('general_active');
+  let issued;     // used for post-commit logging
+  let userId;     // used for post-commit logging
+  
+  // ------------------------------------------------------------
+  // Transactional auth flow
+  // ------------------------------------------------------------
+  const response = await withTransaction(async (client) => {
+    const activeStatusId = getStatusId('general_active');
+    if (!activeStatusId) {
+      throw AppError.validationError('Active status ID is required.');
+    }
+    
+    // 1. Fetch & lock auth record
+    const auth = await getAndLockUserAuthByEmail(
+      email,
+      activeStatusId,
+      client
+    );
+    
+    if (!auth) {
+      await insertLoginHistory({
+        userId: null,   // unknown user
+        sessionId: null,
+        tokenId: null,
+        authActionTypeId: getStatusId('Invalid Credentials'),
+        status: 'failure',
+        ipAddress,
+        userAgent,
+      }, client);
       
-      if (!activeStatusId) {
-        throw AppError.validationError('Active status ID is required.');
-      }
+      // Do NOT reveal whether email exists or account is inactive
+      throw AppError.authenticationError('Invalid email or password.');
+    }
+    
+    const {
+      user_id,
+      auth_id,
+      role_id,
+      password_hash,
+      last_login,
+      attempts,
+      failed_attempts,
+      lockout_time,
+    } = auth;
+    
+    userId = user_id;
+    
+    // 2. Lockout check
+    if (lockout_time && lockout_time > new Date()) {
+      await insertLoginHistory({
+        userId: user_id,
+        sessionId: null,
+        tokenId: null,
+        authActionTypeId: getStatusId('Account Locked'),
+        status: 'failure',
+        ipAddress,
+        userAgent,
+      }, client);
       
-      // ------------------------------------------------------------
-      // 1. Fetch & lock auth record (single source of truth)
-      // ------------------------------------------------------------
-      const auth = await getAndLockUserAuthByEmail(
+      throw AppError.accountLockedError(
+        'Account locked. Try again later.',
+        { lockoutEndsAt: lockout_time }
+      );
+    }
+    
+    // 3. Verify password
+    if (!password_hash) {
+      logSystemError('Missing password hash during login', {
+        context,
+        userId: user_id,
+        authId: auth_id,
         email,
-        activeStatusId,
-        client
-      );
+      });
       
-      const {
-        user_id,
-        auth_id,
-        role_id,
-        password_hash,
-        last_login,
-        attempts,
-        failed_attempts,
-        lockout_time,
-      } = auth;
-      
-      // ------------------------------------------------------------
-      // 2. Lockout check
-      // ------------------------------------------------------------
-      if (lockout_time && new Date(lockout_time) > new Date()) {
-        throw AppError.accountLockedError(
-          'Account locked. Try again later.',
-          { lockoutEndsAt: lockout_time }
-        );
-      }
-      
-      // ------------------------------------------------------------
-      // 3. Verify password
-      // ------------------------------------------------------------
-      const isValidPassword = await verifyPassword(
-        password_hash,
-        password
-      );
-      
-      const newTotalAttempts = attempts + 1;
-      
-      if (!isValidPassword) {
-        logSystemWarn('Login failed: invalid credentials', {
-          context,
-          email,
-        });
-        
-        await incrementFailedAttempts(
-          auth_id,
-          newTotalAttempts,
-          failed_attempts,
-          client
-        );
-        
-        // IMPORTANT:
-        // Do NOT distinguish between "email not found" and "wrong password"
-        throw AppError.authenticationError('Invalid email or password.');
-      }
-      
-      // ------------------------------------------------------------
-      // 4. Successful login
-      // ------------------------------------------------------------
-      await resetFailedAttemptsAndUpdateLastLogin(
+      // Do not expose internal state to client
+      throw AppError.authenticationError('Invalid email or password.');
+    }
+    
+    const isValidPassword = await verifyPassword(password_hash, password);
+    const newTotalAttempts = attempts + 1;
+    
+    if (!isValidPassword) {
+      await incrementFailedAttempts(
         auth_id,
         newTotalAttempts,
+        failed_attempts,
         client
       );
       
-      // ------------------------------------------------------------
-      // 5. Issue tokens
-      // ------------------------------------------------------------
-      const accessToken = signToken({ id: user_id, role: role_id });
-      const refreshToken = signToken(
-        { id: user_id, role: role_id },
-        true
-      );
+      await insertLoginHistory({
+        userId: user_id,
+        sessionId: null,
+        tokenId: null,
+        authActionTypeId: getStatusId('Invalid Credentials'),
+        status: 'failure',
+        ipAddress,
+        userAgent,
+      }, client);
       
-      return {
-        accessToken,
-        refreshToken,
-        last_login,
-      };
-    } catch (error) {
-      // Only log unexpected errors
-      if (!error.isExpected) {
-        logSystemException(error, 'Unexpected login failure', {
-          context,
-          email,
-          error: error.message,
-        });
-      }
-      
-      throw error instanceof AppError
-        ? error
-        : AppError.generalError('Login failed.');
+      throw AppError.authenticationError('Invalid email or password.');
     }
+    
+    // 4. Successful login bookkeeping
+    await resetFailedAttemptsAndUpdateLastLogin(
+      auth_id,
+      newTotalAttempts,
+      client
+    );
+    
+    // Enforce single-session policy: revoke all existing sessions and refresh tokens
+    await revokeAllSessionsForUser(user_id, client);
+    
+    // 5. Issue session + tokens
+    issued = await issueSessionWithTokens(
+      {
+        userId: user_id,
+        roleId: role_id,
+        ipAddress,
+        userAgent,
+        deviceId,
+        note,
+      },
+      client
+    );
+    
+    if (!issued) {
+      throw AppError.generalError('Login succeeded but no tokens were issued.');
+    }
+    
+    // 6. Return finalized response
+    return transformLoginResponse({
+      accessToken: issued.accessToken,
+      refreshToken: issued.refreshToken,
+      last_login,
+    });
   });
+  
+  // ------------------------------------------------------------
+  // Post-commit audit logging (best effort)
+  // ------------------------------------------------------------
+  try {
+    const loginSuccessActionId = getStatusId('login_success');
+    
+    await insertLoginHistory({
+      userId,
+      sessionId: issued.sessionId,
+      tokenId: issued.refreshTokenId,
+      authActionTypeId: loginSuccessActionId,
+      status: 'success',
+      ipAddress,
+      userAgent,
+    }, null);
+  } catch (logError) {
+    logSystemWarn('Post-login audit logging failed', {
+      context,
+      userId,
+      error: logError.message,
+    });
+  }
+  
+  return response;
 };
 
 /**
  * Refreshes authentication tokens using a valid refresh token.
  *
- * This service represents the domain-level refresh operation. It is responsible
- * for validating the provided refresh token, rotating it, and issuing a new
- * access token. All token semantics and error conditions are enforced here,
- * not at the controller layer.
+ * Domain-level refresh-token rotation flow.
+ *
+ * Guarantees:
+ * - All state mutations occur within a single transaction
+ * - Refresh tokens are single-use and rotated on every invocation
+ * - Old refresh tokens are revoked before new ones are issued
+ * - Refresh token reuse invalidates the associated session
+ * - Access tokens are stateless; refresh tokens are stateful and persisted as hashes
  *
  * Responsibilities:
- * - Assert presence of a refresh token
- * - Cryptographically verify the refresh token
- * - Translate token verification failures into domain-specific auth errors
- * - Rotate the refresh token
- * - Issue a new access token
- * - Emit structured audit / security logs
+ * - Assert refresh token presence
+ * - Verify JWT cryptographically
+ * - Validate token persistence state (existence, type, expiry, revocation)
+ * - Validate associated session lifecycle state
+ * - Detect refresh-token reuse
+ * - Rotate refresh token
+ * - Persist new refresh token securely (hash only)
+ * - Emit structured audit logs
  *
  * Security model:
- * - This service does NOT depend on access-token authentication.
- * - Missing, expired, or invalid refresh tokens are treated as expected
- *   authentication failures and surfaced as domain errors.
- * - Logging is intentional and represents successful token rotation only.
+ * - Does NOT depend on access-token authentication
+ * - Reuse of a revoked refresh token is treated as session compromise
+ * - This operation is NOT idempotent
+ * - Multiple uses of the same refresh token invalidate the session
  *
  * Notes:
- * - This operation is idempotent with respect to client behavior; callers
- *   may safely retry as needed.
- * - HTTP concerns (cookies, headers, status codes) are handled by controllers.
+ * - Clients MUST replace stored refresh tokens after successful response
+ * - HTTP concerns (cookies, headers, status codes) are handled by controllers
  *
  * @param {string | undefined | null} refreshToken
- *   Refresh token extracted from an HTTP-only cookie.
+ * @param {Object} context
+ * @param {string|null} context.ipAddress
+ * @param {string|null} context.userAgent
  *
  * @returns {Promise<{ accessToken: string, refreshToken: string }>}
- *   Newly issued access token and rotated refresh token.
  *
  * @throws {AppError}
- *   - refreshTokenError: refresh token missing
- *   - refreshTokenExpiredError: refresh token expired
- *   - tokenRevokedError: refresh token invalid
+ * - refreshTokenError
+ * - refreshTokenExpiredError
+ * - authenticationError
  */
-const refreshTokenService = async (refreshToken) => {
+const refreshTokenService = async (
+  refreshToken,
+  {
+    ipAddress = null,
+    userAgent = null,
+  } = {},
+) => {
   const context = 'auth-service/refreshTokenService';
   
   // Refresh token presence is a domain requirement, not an HTTP concern
   if (!refreshToken) {
     throw AppError.refreshTokenError(
-      'Refresh token is required. Please log in again.',
-      { logLevel: 'warn' }
+      'Refresh token is required. Please log in again.'
     );
   }
   
-  let payload;
+  // ------------------------------------------------------------
+  // 1. Verify JWT cryptographically
+  // ------------------------------------------------------------
+  // JWT verification proves cryptographic validity only.
+  // Persistence, revocation, and session state are enforced below.
+  const payload = verifyRefreshJwt(refreshToken);
   
-  // Verify refresh token and map low-level token errors to domain errors
-  try {
-    payload = verifyToken(refreshToken, true);
-  } catch (error) {
-    if (error.name === 'RefreshTokenExpiredError') {
-      throw AppError.refreshTokenExpiredError(
-        'Refresh token expired. Please log in again.'
-      );
-    }
-    
-    if (error.name === 'JsonWebTokenError') {
-      throw AppError.tokenRevokedError(
-        'Invalid refresh token. Please log in again.'
-      );
-    }
-    
-    // Unexpected verification failure — allow centralized error handling
-    throw error;
+  if (!payload?.id || !payload?.sessionId) {
+    throw AppError.refreshTokenError('Invalid refresh token payload');
   }
   
-  // Rotate refresh token and issue a new access token
-  const newRefreshToken = signToken(
-    { id: payload.id, role: payload.role },
-    true
-  );
-  
-  const newAccessToken = signToken({
-    id: payload.id,
-    role: payload.role,
+  return withTransaction(async (client) => {
+    const user = await getAuthUserById(payload.id, client);
+    
+    if (!user) {
+      throw AppError.authenticationError('User not found');
+    }
+    
+    if (user.status_name !== 'active') {
+      throw AppError.authenticationError('User account is inactive');
+    }
+    
+    // ------------------------------------------------------------
+    // 2. Validate refresh token persistence state
+    // ------------------------------------------------------------
+    const token = await validateRefreshTokenState(refreshToken, client);
+    
+    // ------------------------------------------------------------
+    // 3. Validate associated session
+    // ------------------------------------------------------------
+    const session = await validateSessionState(token.session_id, client);
+    
+    // ------------------------------------------------------------
+    // 4. Rotate refresh token (revoke old)
+    // ------------------------------------------------------------
+    // Revoke current refresh token and any other outstanding refresh tokens
+    // to prevent race-condition replay during concurrent refresh attempts
+    await revokeTokenById(token.id, client);
+    
+    await insertTokenActivityLog({
+      userId: payload.id,
+      tokenId: token.id,
+      eventType: 'revoke',
+      status: 'success',
+      tokenType: 'refresh',
+      ipAddress,
+      userAgent,
+    }, client);
+    
+    // ------------------------------------------------------------
+    // 5. Issue new tokens
+    // ------------------------------------------------------------
+    const newAccessToken = signToken({
+      id: payload.id,
+      role: user.role_id,
+      sessionId: session.id,
+    });
+    
+    const newRefreshToken = signToken(
+      {
+        id: payload.id,
+        sessionId: session.id,
+        jti: crypto.randomUUID(),
+      },
+      true
+    );
+    
+    // ------------------------------------------------------------
+    // 6. Persist new tokens
+    // ------------------------------------------------------------
+    const refreshTokenHash = hashToken(newRefreshToken);
+    
+    const newTokenRow = await insertToken(
+      {
+        userId: payload.id,
+        sessionId: session.id,
+        tokenType: 'refresh',
+        tokenHash: refreshTokenHash,
+        expiresAt: getTokenExpiry(true),
+        context: 'refresh',
+      },
+      client
+    );
+    
+    await insertTokenActivityLog({
+      userId: payload.id,
+      tokenId: newTokenRow.id,
+      eventType: 'refresh',
+      status: 'success',
+      tokenType: 'refresh',
+      ipAddress,
+      userAgent,
+    }, client);
+    
+    logSystemInfo('Refresh token rotated', {
+      context,
+      userId: payload.id,
+      sessionId: session.id,
+    });
+    
+    return {
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+    };
   });
-  
-  // Successful rotation is a security-relevant event worth auditing
-  logSystemInfo('Refresh token rotated', {
-    context,
-    userId: payload.id,
-  });
-  
-  return {
-    accessToken: newAccessToken,
-    refreshToken: newRefreshToken,
-  };
 };
 
 module.exports = {

@@ -30,5 +30,6 @@ export { default as TaxRateDropdown } from './TaxRateDropdown';
 export { default as WarehouseDropdown } from './WarehouseDropdown';
 export { default as WarehouseMultiSelectDropdown } from './WarehouseMultiSelectDropdown';
 export { default as PackagingMaterialDropdown } from './PackagingMaterialDropdown';
+export { default as PackagingMaterialMultiSelectDropdown } from './PackagingMaterialMultiSelectDropdown';
 export { default as StatusDropdown } from './StatusDropdown';
 export { default as StatusMultiSelectDropdown } from './StatusMultiSelectDropdown';

@@ -32,7 +32,7 @@ const { fetchPermissions } = require('../services/role-permission-service');
 const createUserController = wrapAsync(async (req, res) => {
   const context = 'user-controller/createUser';
   
-  const actor = req.user;
+  const actor = req.auth.user;
   
   const input = {
     email: req.body.email,
@@ -108,7 +108,7 @@ const getPaginatedUsersController = wrapAsync(async (req, res) => {
   }
 
   // Authenticated requester (populated by auth middleware)
-  const user = req.user;
+  const user = req.auth.user;
 
   // Trace identifier for correlating logs across controller,
   // service, and repository layers for this request lifecycle
@@ -200,12 +200,12 @@ const getUserProfileController = wrapAsync(async (req, res) => {
   const context = 'user-controller/getUserProfileController';
 
   // Resolve target user ID:
-  // - /users/me/profile        → req.user.id
+  // - /users/me/profile        → req.auth.user.id
   // - /users/:userId/profile   → req.params.userId
-  const targetUserId = req.params.userId ?? req.user.id;
+  const targetUserId = req.params.userId ?? req.auth.user.id;
 
   // Authenticated requester context (set by verifyToken + verifySession)
-  const requester = req.user;
+  const requester = req.auth.user;
 
   // Unique trace ID for request correlation
   const traceId = `user-profile-${Date.now().toString(36)}`;
@@ -247,7 +247,7 @@ const getUserProfileController = wrapAsync(async (req, res) => {
  * @throws {AppError} - Throws if validation fails or if there's an error in fetching permissions.
  */
 const getPermissions = wrapAsync(async (req, res, next) => {
-  const { role } = req.user;
+  const { role } = req.auth.user;
 
   if (!role) {
     return next(AppError.notFoundError('Role ID is required'));

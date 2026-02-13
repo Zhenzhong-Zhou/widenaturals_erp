@@ -1,4 +1,5 @@
 import type { FC } from 'react';
+import { parse, isValid } from 'date-fns';
 import Box from '@mui/material/Box';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -39,7 +40,14 @@ const CustomDatePicker: FC<CustomDatePickerProps> = ({
   helperText,
 }) => {
   const parsedValue =
-    value instanceof Date ? value : value ? new Date(value) : null;
+    value instanceof Date
+      ? value
+      : typeof value === 'string'
+        ? (() => {
+          const parsed = parse(value, 'yyyy-MM-dd', new Date());
+          return isValid(parsed) ? parsed : null;
+        })()
+        : null;
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>

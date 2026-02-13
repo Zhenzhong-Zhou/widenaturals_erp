@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import usePricingTypeMetadata from '@hooks/usePricingTypeMetadata';
 import Box from '@mui/material/Box';
-import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
 import CustomTypography from '@components/common/CustomTypography';
 import NoDataFound from '@components/common/NoDataFound';
@@ -18,9 +17,7 @@ const PricingTypeDetailPage = () => {
 
   if (!id) {
     return (
-      <ErrorDisplay>
-        <ErrorMessage message="Pricing Type ID is required." />
-      </ErrorDisplay>
+      <ErrorMessage message="Pricing Type ID is required." />
     );
   }
 
@@ -31,12 +28,12 @@ const PricingTypeDetailPage = () => {
     if (id) {
       fetchData(id);
     }
-  }, [id, fetchData]);
+  }, [id]);
 
   if (!data) {
     return <NoDataFound />;
   }
-
+  
   const flattenedData = {
     name: data.name,
     code: data.code,
@@ -46,7 +43,7 @@ const PricingTypeDetailPage = () => {
     statusDate: formatDate(data.status.statusDate),
     createdBy: data.createdBy.fullName,
     createdAt: formatDateTime(data.createdAt),
-    updatedBy: formatNullable(data.updatedBy.fullName),
+    updatedBy: formatNullable(data.updatedBy?.fullName),
     updatedAt: formatDateTime(data.updatedAt),
   };
 
@@ -54,9 +51,7 @@ const PricingTypeDetailPage = () => {
 
   if (error) {
     return (
-      <ErrorDisplay>
-        <ErrorMessage message={error} />
-      </ErrorDisplay>
+      <ErrorMessage message={error} />
     );
   }
 

@@ -8,6 +8,7 @@
  * accounts, and supports optional filtering on user and audit fields.
  */
 
+const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
 const { addIlikeFilter } = require('./sql-helpers');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
@@ -111,10 +112,16 @@ const AppError = require('../AppError');
  */
 const buildUserFilter = (filters = {}, options = {}) => {
   try {
+    // -------------------------------------------------------------
+    // Normalize UI date filters
+    // -------------------------------------------------------------
+    filters = normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore');
+    filters = normalizeDateRangeFilters(filters, 'updatedAfter', 'updatedBefore');
+    
     const conditions = ['1=1'];
     const params = [];
-    let idx = 1;
-
+    const paramIndexRef = { value: 1 };
+    
     const includeSystemUsers = filters.includeSystemUsers === true;
     const includeRootUsers = filters.includeRootUsers === true;
     const enforceActiveOnly = filters.enforceActiveOnly === true;
@@ -125,9 +132,9 @@ const buildUserFilter = (filters = {}, options = {}) => {
       canSearchRole = false,
       canSearchStatus = false,
     } = options;
-
+    
     // ------------------------------------
-    // Visibility rules (service-controlled, SQL-enforced)
+    // Visibility rules (service-controlled)
     // ------------------------------------
 
     // Hide system users unless explicitly included
@@ -147,131 +154,101 @@ const buildUserFilter = (filters = {}, options = {}) => {
         )
       `);
     }
-
+    
     // ------------------------------------
     // Status visibility rules
     // ------------------------------------
 
     // ACTIVE-only visibility (applied when enforceActiveOnly is true)
     if (enforceActiveOnly && !hasStatusFilter && filters.activeStatusId) {
-      conditions.push(`u.status_id = $${idx}`);
+      conditions.push(`u.status_id = $${paramIndexRef.value}`);
       params.push(filters.activeStatusId);
-      idx++;
+      paramIndexRef.value++;
     }
-
+    
     // ------------------------------
     // User-level filters
     // ------------------------------
     if (filters.statusIds?.length) {
-      conditions.push(`u.status_id = ANY($${idx}::uuid[])`);
+      conditions.push(`u.status_id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.statusIds);
-      idx++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.roleIds?.length) {
-      conditions.push(`u.role_id = ANY($${idx}::uuid[])`);
+      conditions.push(`u.role_id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.roleIds);
-      idx++;
+      paramIndexRef.value++;
     }
-
-    if (filters.email) {
-      conditions.push(`u.email ILIKE $${idx}`);
-      params.push(`%${filters.email}%`);
-      idx++;
-    }
-
-    if (filters.firstname) {
-      conditions.push(`u.firstname ILIKE $${idx}`);
-      params.push(`%${filters.firstname}%`);
-      idx++;
-    }
-
-    if (filters.lastname) {
-      conditions.push(`u.lastname ILIKE $${idx}`);
-      params.push(`%${filters.lastname}%`);
-      idx++;
-    }
-
-    if (filters.phoneNumber) {
-      conditions.push(`u.phone_number ILIKE $${idx}`);
-      params.push(`%${filters.phoneNumber}%`);
-      idx++;
-    }
-
-    if (filters.jobTitle) {
-      conditions.push(`u.job_title ILIKE $${idx}`);
-      params.push(`%${filters.jobTitle}%`);
-      idx++;
-    }
-
-    // ------------------------------
-    // Audit filters
-    // ------------------------------
+    
     if (filters.createdBy) {
-      conditions.push(`u.created_by = $${idx}`);
+      conditions.push(`u.created_by = $${paramIndexRef.value}`);
       params.push(filters.createdBy);
-      idx++;
+      paramIndexRef.value++;
     }
-
+    
     if (filters.updatedBy) {
-      conditions.push(`u.updated_by = $${idx}`);
+      conditions.push(`u.updated_by = $${paramIndexRef.value}`);
       params.push(filters.updatedBy);
-      idx++;
+      paramIndexRef.value++;
     }
-
-    if (filters.createdAfter) {
-      conditions.push(`u.created_at >= $${idx}`);
-      params.push(filters.createdAfter);
-      idx++;
-    }
-
-    if (filters.createdBefore) {
-      conditions.push(`u.created_at <= $${idx}`);
-      params.push(filters.createdBefore);
-      idx++;
-    }
-
-    if (filters.updatedAfter) {
-      conditions.push(`u.updated_at >= $${idx}`);
-      params.push(filters.updatedAfter);
-      idx++;
-    }
-
-    if (filters.updatedBefore) {
-      conditions.push(`u.updated_at <= $${idx}`);
-      params.push(filters.updatedBefore);
-      idx++;
-    }
-
+    
     // ------------------------------
-    // Text filters (ILIKE)
+    // Created / Updated date filters
     // ------------------------------
-    idx = addIlikeFilter(
+    applyDateRangeConditions({
       conditions,
       params,
-      idx,
+      column: 'u.created_at',
+      after: filters.createdAfter,
+      before: filters.createdBefore,
+      paramIndexRef,
+    });
+    
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'u.updated_at',
+      after: filters.updatedAfter,
+      before: filters.updatedBefore,
+      paramIndexRef,
+    });
+    
+    // ------------------------------
+    // Text filters (ILIKE helpers)
+    // ------------------------------
+    paramIndexRef.value = addIlikeFilter(
+      conditions,
+      params,
+      paramIndexRef.value,
       filters.firstname,
       'u.firstname'
     );
-    idx = addIlikeFilter(
+    paramIndexRef.value = addIlikeFilter(
       conditions,
       params,
-      idx,
+      paramIndexRef.value,
       filters.lastname,
       'u.lastname'
     );
-    idx = addIlikeFilter(conditions, params, idx, filters.email, 'u.email');
-    idx = addIlikeFilter(
+    paramIndexRef.value = addIlikeFilter(
       conditions,
       params,
-      idx,
+      paramIndexRef.value,
+      filters.email,
+      'u.email'
+    );
+    paramIndexRef.value = addIlikeFilter(
+      conditions,
+      params,
+      paramIndexRef.value,
       filters.phoneNumber,
       'u.phone_number'
     );
-    idx = addIlikeFilter(
+    paramIndexRef.value = addIlikeFilter(
       conditions,
       params,
-      idx,
+      paramIndexRef.value,
       filters.jobTitle,
       'u.job_title'
     );
@@ -281,25 +258,25 @@ const buildUserFilter = (filters = {}, options = {}) => {
     // ------------------------------
     if (filters.keyword) {
       const keywordConditions = [
-        `u.firstname ILIKE $${idx}`,
-        `u.lastname  ILIKE $${idx}`,
-        `u.email     ILIKE $${idx}`,
-        `u.job_title ILIKE $${idx}`,
+        `u.firstname ILIKE $${paramIndexRef.value}`,
+        `u.lastname  ILIKE $${paramIndexRef.value}`,
+        `u.email     ILIKE $${paramIndexRef.value}`,
+        `u.job_title ILIKE $${paramIndexRef.value}`,
       ];
       
       // Role name search (privileged)
       if (canSearchRole) {
-        keywordConditions.push(`r.name ILIKE $${idx}`);
+        keywordConditions.push(`r.name ILIKE $${paramIndexRef.value}`);
       }
       
       // Status name search (privileged)
       if (canSearchStatus) {
-        keywordConditions.push(`s.name ILIKE $${idx}`);
+        keywordConditions.push(`s.name ILIKE $${paramIndexRef.value}`);
       }
       
       conditions.push(`(${keywordConditions.join(' OR ')})`);
       params.push(`%${filters.keyword}%`);
-      idx++;
+      paramIndexRef.value++;
     }
     
     return {
@@ -311,6 +288,7 @@ const buildUserFilter = (filters = {}, options = {}) => {
       context: 'user-repository/buildUserFilter',
       filters,
     });
+    
     throw AppError.databaseError('Failed to prepare user filter', {
       details: err.message,
     });

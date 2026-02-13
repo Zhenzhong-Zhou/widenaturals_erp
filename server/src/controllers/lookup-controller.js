@@ -18,6 +18,7 @@ const {
   fetchStatusLookupService, fetchUserLookupService, fetchRoleLookupService,
 } = require('../services/lookup-service');
 const { logInfo } = require('../utils/logger-helper');
+const { getClientIp } = require('../utils/request-context');
 
 /**
  * Controller to handle batch registry lookup requests.
@@ -35,8 +36,8 @@ const getBatchRegistryLookupController = wrapAsync(async (req, res) => {
     context: 'lookup-controller/getBatchRegistryLookup',
     metadata: {
       query: req.query,
-      user: req.user?.id,
-      ip: req.ip,
+      user: req.auth.user?.id,
+      ip: getClientIp(req),
     },
   });
 
@@ -83,7 +84,7 @@ const getBatchRegistryLookupController = wrapAsync(async (req, res) => {
  * @returns {Promise<void>}
  */
 const getWarehouseLookupController = wrapAsync(async (req, res) => {
-  const user = req.user;
+  const user = req.auth.user;
   const { warehouseTypeId } = req.normalizedQuery.filters ?? {};
 
   const filters = {
@@ -113,7 +114,7 @@ const getWarehouseLookupController = wrapAsync(async (req, res) => {
  * - `actionTypeId`: associated inventory action type ID.
  */
 const getLotAdjustmentLookupController = wrapAsync(async (req, res) => {
-  const user = req.user;
+  const user = req.auth.user;
   const filters = ({ excludeInternal, restrictToQtyAdjustment } =
     req.normalizedQuery.filters);
 
@@ -138,7 +139,7 @@ const getLotAdjustmentLookupController = wrapAsync(async (req, res) => {
  * @returns {Promise<void>} Sends JSON response with customer lookup data.
  */
 const fetchCustomerLookupController = wrapAsync(async (req, res) => {
-  const user = req.user;
+  const user = req.auth.user;
   const { filters = {}, limit, offset } = req.normalizedQuery;
   const { keyword = '' } = filters;
 
@@ -206,12 +207,12 @@ const getCustomerAddressLookupController = wrapAsync(async (req, res) => {
  *
  * @function
  * @async
- * @param {import('express').Request} req - Express request object, expects `req.user` and `req.normalizedQuery.filters`
+ * @param {import('express').Request} req - Express request object, expects `req.auth.user` and `req.normalizedQuery.filters`
  * @param {import('express').Response} res - Express response object used to send JSON response
  * @returns {Promise<void>} JSON response with transformed order type lookup data
  */
 const getOrderTypeLookupController = wrapAsync(async (req, res) => {
-  const user = req.user;
+  const user = req.auth.user;
   const { filters = {} } = req.normalizedQuery;
 
   const result = await fetchOrderTypeLookupService(user, { filters });
@@ -245,11 +246,11 @@ const getOrderTypeLookupController = wrapAsync(async (req, res) => {
  * }
  *
  * Access Control:
- * - Requires authenticated user (req.user)
+ * - Requires authenticated user (req.auth.user)
  * - Results and filtering may be adjusted based on permissions (e.g., view_all_payment_methods, view_payment_code)
  */
 const getPaymentMethodLookupController = wrapAsync(async (req, res) => {
-  const user = req.user;
+  const user = req.auth.user;
   const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
 
   const dropdownResult = await fetchPaginatedPaymentMethodLookupService(user, {
@@ -307,7 +308,7 @@ const getPaymentMethodLookupController = wrapAsync(async (req, res) => {
  *  }
  */
 const getDiscountLookupController = wrapAsync(async (req, res) => {
-  const user = req.user;
+  const user = req.auth.user;
   const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
 
   const dropdownResult = await fetchPaginatedDiscountLookupService(user, {
@@ -365,7 +366,7 @@ const getDiscountLookupController = wrapAsync(async (req, res) => {
  *  }
  */
 const getTaxRateLookupController = wrapAsync(async (req, res) => {
-  const user = req.user;
+  const user = req.auth.user;
   const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
 
   const dropdownResult = await fetchPaginatedTaxRateLookupService(user, {
@@ -423,7 +424,7 @@ const getTaxRateLookupController = wrapAsync(async (req, res) => {
  *  }
  */
 const getDeliveryMethodLookupController = wrapAsync(async (req, res) => {
-  const user = req.user;
+  const user = req.auth.user;
   const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
 
   const dropdownResult = await fetchPaginatedDeliveryMethodLookupService(user, {
@@ -481,7 +482,7 @@ const getDeliveryMethodLookupController = wrapAsync(async (req, res) => {
  *  }
  */
 const getSkuLookupController = wrapAsync(async (req, res) => {
-  const user = req.user;
+  const user = req.auth.user;
   const {
     filters = {},
     options = {},
@@ -558,7 +559,7 @@ const getSkuLookupController = wrapAsync(async (req, res) => {
  *  }
  */
 const getPricingLookupController = wrapAsync(async (req, res) => {
-  const user = req.user;
+  const user = req.auth.user;
   const {
     filters = {},
     options = {},
@@ -611,7 +612,7 @@ const getPricingLookupController = wrapAsync(async (req, res) => {
  * @access Protected
  * @permission view_packaging_material_lookup (enforced in service layer)
  *
- * @param {import('express').Request} req  - Express request (expects `req.user` and `req.normalizedQuery`)
+ * @param {import('express').Request} req  - Express request (expects `req.auth.user` and `req.normalizedQuery`)
  * @param {import('express').Response} res - Express response
  * @returns {Promise<void>} Sends JSON:
  *  {
@@ -636,7 +637,7 @@ const getPricingLookupController = wrapAsync(async (req, res) => {
  * // }
  */
 const getPackagingMaterialLookupController = wrapAsync(async (req, res) => {
-  const user = req.user;
+  const user = req.auth.user;
   const {
     filters = {},
     options = {},
@@ -702,7 +703,7 @@ const getPackagingMaterialLookupController = wrapAsync(async (req, res) => {
  *  }
  */
 const getSkuCodeBaseLookupController = wrapAsync(async (req, res) => {
-  const user = req.user;
+  const user = req.auth.user;
   const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
 
   const dropdownResult = await fetchSkuCodeBaseLookupService(user, {
@@ -755,7 +756,7 @@ const getSkuCodeBaseLookupController = wrapAsync(async (req, res) => {
  *  }
  */
 const getProductLookupController = wrapAsync(async (req, res) => {
-  const user = req.user;
+  const user = req.auth.user;
   const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
 
   const dropdownResult = await fetchProductLookupService(user, {
@@ -808,7 +809,7 @@ const getProductLookupController = wrapAsync(async (req, res) => {
  *  }
  */
 const getStatusLookupController = wrapAsync(async (req, res) => {
-  const user = req.user;
+  const user = req.auth.user;
   const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
 
   // Service handles filtering, ACL enforcement, enrichment, pagination
@@ -866,7 +867,7 @@ const getStatusLookupController = wrapAsync(async (req, res) => {
  *  }
  */
 const getUserLookupController = wrapAsync(async (req, res) => {
-  const user = req.user;
+  const user = req.auth.user;
   const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
   
   const dropdownResult = await fetchUserLookupService(user, {
@@ -923,7 +924,7 @@ const getUserLookupController = wrapAsync(async (req, res) => {
  *  }
  */
 const getRoleLookupController = wrapAsync(async (req, res) => {
-  const user = req.user;
+  const user = req.auth.user;
   const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
   
   const dropdownResult = await fetchRoleLookupService(user, {

@@ -18,10 +18,22 @@ export const navigationItems: NavigationItem[] = [
   { path: '/skus', title: 'SKU Management' },
   { path: '/compliance-records', title: 'Compliance Management' },
   { path: '/boms', title: 'BOM Management' },
+  { path: '/batch-registry', title: 'Batch Registry' },
+  { path: '/product-batches', title: 'Product Batches' },
   {
     path: '/pricing-types',
     title: 'Pricing Types',
+    requiredPermission: 'view_price_types',
+  },
+  {
+    path: '/prices',
+    title: 'Prices',
     requiredPermission: 'view_prices',
+  },
+  {
+    path: '/location-types',
+    title: 'Location Types',
+    requiredPermission: 'view_location_types',
   },
   {
     path: '/locations',

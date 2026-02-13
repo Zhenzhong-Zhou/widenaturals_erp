@@ -10,7 +10,10 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 logs/
-dev_logs/
+server/dev_logs/*
+dev_logs/*
+!devl_logs/.gitkeep
+!server/dev_logs/.gitkeep
 
 # Build outputs
 dist/
@@ -20,12 +23,26 @@ build/
 .next/
 
 # Secrets
-secrets/
+secrets/*
+!secrets/.gitignore
+!secrets/.gitkeep
 
-# Environment files
+# Allow example files (documentation only)
+!secrets/**/*.example
+
+# Root env (never commit)
 .env
-env/
 .env.*
+
+# Structured envs (server)
+env/*.env
+env/.env.*
+
+# Allow server example envs
+!env/.env.*.example
+
+# Allow client env example
+!client/.env.example
 
 # Docker
 .dockerignore

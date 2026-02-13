@@ -29,7 +29,7 @@ import { persistedReducer } from './persistedReducer.ts';
 import { authorizeReducers } from '@features/authorize';
 import { sessionReducers } from '@features/session';
 import { csrfReducers } from '@features/csrf';
-import { resetPasswordReducers } from '@features/resetPassword';
+import { authReducers } from '@features/auth/password';
 import { userReducers } from '@features/user';
 
 import { addressReducers } from '@features/address';
@@ -56,6 +56,8 @@ import { warehouseInventoryReducers } from '@features/warehouseInventory';
 import { inventoryAllocationReducers } from '@features/inventoryAllocation';
 import { outboundFulfillmentReducers } from '@features/outboundFulfillment';
 import { skuImageReducers } from '@features/skuImage';
+import { batchRegistryReducers } from '@features/batchRegistry';
+import { productBatchReducers } from '@features/productBatch';
 
 // ===== Runtime reducer (flattened maps) =====
 const runtimeReducer = combineReducers({
@@ -63,7 +65,7 @@ const runtimeReducer = combineReducers({
   ...authorizeReducers,
   ...sessionReducers,
   ...csrfReducers,
-  ...resetPasswordReducers,
+  ...authReducers,
   ...userReducers,
   
   // Product & Pricing
@@ -74,6 +76,10 @@ const runtimeReducer = combineReducers({
   ...bomReducers,
   ...pricingTypeReducers,
   ...pricingReducers,
+  
+  // Batch
+  ...batchRegistryReducers,
+  ...productBatchReducers,
   
   // Inventory & Warehouse
   ...locationTypeReducers,

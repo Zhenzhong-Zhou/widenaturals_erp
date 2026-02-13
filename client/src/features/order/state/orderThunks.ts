@@ -2,13 +2,18 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
   CreateSalesOrderInput,
   CreateSalesOrderResponse,
-  GetOrderDetailsResponse,
+  GetOrderDetailsUiResponse,
   OrderListResponse,
   OrderQueryParams,
   OrderRouteParams,
   UpdateOrderStatusResponse,
 } from '@features/order/state/orderTypes';
 import { orderService } from '@services/orderService';
+import {
+  flattenOrderItems,
+  normalizeSalesOrderHeader
+} from '@features/order/utils';
+import { extractUiErrorPayload } from '@utils/error';
 
 /**
  * Thunk to create a new sales order under a given category.
@@ -79,36 +84,55 @@ export const fetchOrdersByCategoryThunk = createAsyncThunk<
 /**
  * Redux thunk to fetch detailed information for a single order by ID.
  *
- * This thunk:
- * - Sends a GET request to the backend using the given `orderId` and category.
- * - Dispatches `pending`, `fulfilled`, and `rejected` actions automatically.
- * - Handles both order header and associated order items in the response.
+ * Responsibilities:
+ * - Fetches the order aggregate from the backend
+ * - Normalizes order header and items at the thunk boundary
+ * - Emits UI-ready data into Redux state
+ * - Standardizes error handling via `rejectWithValue`
  *
- * Expected Behavior:
- * - Trims and sanitizes the `orderId` and `category` internally before calling the API.
- * - Returns a structured payload on success, matching `GetOrderDetailsResponse`.
- * - Throws and logs errors to the console on failure.
+ * Design notes:
+ * - No domain logic lives in reducers or components
+ * - Header and items are flattened separately for reuse
  *
- * @param {Object} params - The route parameters.
- * @param {string} params.category - Order category (e.g., 'sales', 'transfer').
- * @param {string} params.orderId - Order UUID string.
- * @returns {Promise<GetOrderDetailsResponse>} - The fetched order details payload.
+ * @param params.category - Order category (e.g. "sales", "transfer")
+ * @param params.orderId  - Order UUID
  *
- * Example usage:
- *   dispatch(getOrderDetailsByIdThunk({ category: 'sales', orderId: '550e8400-e29b-41d4-a716-446655440000' }));
+ * @returns UI-ready order details payload
  */
-export const getOrderDetailsByIdThunk = createAsyncThunk<
-  GetOrderDetailsResponse, // Return type
-  OrderRouteParams, // Argument type
-  { rejectValue: string } // Optional reject payload type
+export const fetchOrderDetailsByIdThunk = createAsyncThunk<
+  GetOrderDetailsUiResponse,
+  OrderRouteParams,
+  { rejectValue: { message: string; traceId?: string } }
 >(
-  'orders/getOrderDetailsById',
+  'orders/fetchOrderDetailsById',
   async ({ category, orderId }, { rejectWithValue }) => {
     try {
-      return await orderService.fetchOrderDetailsById({ category, orderId });
-    } catch (err: any) {
-      console.error('Failed to fetch order details:', err);
-      return rejectWithValue(err?.message || 'Failed to fetch order details');
+      if (!orderId) {
+        return rejectWithValue({
+          message: 'Missing orderId for order details request',
+        });
+      }
+      
+      if (!category) {
+        return rejectWithValue({
+          message: 'Missing order category for order details request',
+        });
+      }
+      
+      const response = await orderService.fetchOrderDetailsById({
+        category: category.trim(),
+        orderId: orderId.trim(),
+      });
+      
+      return {
+        ...response,
+        data: {
+          header: normalizeSalesOrderHeader(response.data),
+          items: flattenOrderItems(response.data.items),
+        },
+      };
+    } catch (error) {
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );

@@ -15,6 +15,11 @@
  * - Manufacturer or SKU
  */
 
+const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
+const { logSystemException } = require('../system-logger');
+const AppError = require('../AppError');
+const { addKeywordIlikeGroup } = require('./sql-helpers');
+
 /**
  * Builds an SQL WHERE clause and parameter list for querying `batch_registry` records.
  *
@@ -34,7 +39,7 @@
  *
  * @returns {{ whereClause: string, params: any[] }} - An object containing the SQL WHERE clause string and the parameter bindings array.
  */
-const buildBatchRegistryWhereClause = (filters = {}) => {
+const buildBatchRegistryInventoryScopeFilter = (filters = {}) => {
   const whereClauses = ['1=1'];
   const params = [];
 
@@ -69,6 +74,298 @@ const buildBatchRegistryWhereClause = (filters = {}) => {
   };
 };
 
+/**
+ * Build SQL WHERE clause and parameter list for Batch Registry queries.
+ *
+ * Responsibilities:
+ * - Construct row-level filters for batch registry LIST queries
+ * - Support polymorphic filtering across product and packaging batches
+ * - Express permission-adjusted search intent as SQL-safe conditions
+ * - Remain repository-only and side effect free
+ *
+ * Does NOT:
+ * - Interpret permissions or evaluate ACL
+ * - Transform, group, or normalize batch data
+ * - Apply pagination, sorting, or inventory placement logic
+ *
+ * @param {Object} [filters={}]
+ *
+ * ------------------------------------------------------------------
+ * Enforcement Flags (business-injected, NOT user-controlled)
+ * ------------------------------------------------------------------
+ *
+ * @param {boolean} [filters.forceEmptyResult]
+ *   When TRUE, forces the query to return zero rows (`1=0`).
+ *   Used to fail closed when the requester has no batch visibility.
+ *   This flag MUST only be injected by the business layer.
+ *
+ * ------------------------------------------------------------------
+ * Core Batch Registry Filters
+ * ------------------------------------------------------------------
+ *
+ * @param {'product'|'packaging_material'} [filters.batchType]
+ *   Restrict results to a single batch category.
+ *
+ * @param {string[]} [filters.statusIds]
+ *   Filter by batch status UUID(s).
+ *   Applied polymorphically to:
+ *     - product_batches.status_id
+ *     - packaging_material_batches.status_id
+ *
+ * ------------------------------------------------------------------
+ * Product Batch Filters (applied when joined)
+ * ------------------------------------------------------------------
+ *
+ * @param {string[]} [filters.skuIds]
+ *   Filter by SKU UUID(s).
+ *
+ * @param {string[]} [filters.productIds]
+ *   Filter by Product UUID(s).
+ *
+ * @param {string[]} [filters.manufacturerIds]
+ *   Filter by Manufacturer UUID(s).
+ *
+ * ------------------------------------------------------------------
+ * Packaging Batch Filters (applied when joined)
+ * ------------------------------------------------------------------
+ *
+ * @param {string[]} [filters.packagingMaterialIds]
+ *   Filter by Packaging Material UUID(s).
+ *
+ * @param {string[]} [filters.supplierIds]
+ *   Filter by Supplier UUID(s).
+ *
+ * ------------------------------------------------------------------
+ * Lot & Date Filters (polymorphic)
+ * ------------------------------------------------------------------
+ *
+ * @param {string} [filters.lotNumber]
+ *   ILIKE filter applied to both product and packaging lot numbers.
+ *
+ * @param {string} [filters.expiryAfter]
+ * @param {string} [filters.expiryBefore]
+ *
+ * @param {string} [filters.registeredAfter]
+ * @param {string} [filters.registeredBefore]
+ *
+ * ------------------------------------------------------------------
+ * Keyword Search (permission-aware, polymorphic)
+ * ------------------------------------------------------------------
+ *
+ * @param {string} [filters.keyword]
+ *   Free-text search applied across permitted fields only.
+ *
+ * @param {Object} [filters.keywordCapabilities]
+ *   Capability flags injected by the business layer to control
+ *   which joined fields are eligible for keyword search.
+ *
+ *   Supported capabilities:
+ *     - canSearchProduct              → products.name
+ *     - canSearchSku                  → skus.sku
+ *     - canSearchManufacturer         → manufacturers.name
+ *     - canSearchPackagingMaterial    → packaging_materials.name
+ *     - canSearchSupplier             → suppliers.name
+ *
+ *   Lot number search is always allowed.
+ *
+ *   If no searchable fields are permitted, the keyword filter
+ *   FAILS CLOSED and produces an empty result set.
+ *
+ *   Visibility of joined fields is enforced upstream by ACL.
+ *
+ * @returns {{ whereClause: string, params: any[] }}
+ */
+const buildBatchRegistryFilter = (filters = {}) => {
+  try {
+    // -------------------------------------------------------------
+    // Normalize date range filters FIRST (single source of truth)
+    // -------------------------------------------------------------
+    filters = normalizeDateRangeFilters(filters, 'expiryAfter', 'expiryBefore');
+    filters = normalizeDateRangeFilters(filters, 'registeredAfter', 'registeredBefore');
+    
+    const conditions = ['1=1'];
+    const params = [];
+    const paramIndexRef = { value: 1 };
+    
+    // -------------------------------------------------------------
+    // Hard fail-closed: no visibility → empty result set
+    // -------------------------------------------------------------
+    // Injected by business layer ONLY.
+    // Guarantees zero rows without invalid enum or SQL errors.
+    if (filters.forceEmptyResult === true) {
+      return {
+        whereClause: '1=1 AND 1=0',
+        params: [],
+      };
+    }
+    
+    // ------------------------------
+    // Core batch registry filters
+    // ------------------------------
+    if (filters.batchType) {
+      conditions.push(`br.batch_type = $${paramIndexRef.value}`);
+      params.push(filters.batchType);
+      paramIndexRef.value++;
+    }
+    
+    // ------------------------------
+    // Status filters (polymorphic)
+    // ------------------------------
+    if (filters.statusIds?.length) {
+      conditions.push(`
+        (
+          pb.status_id = ANY($${paramIndexRef.value}::uuid[])
+          OR pmb.status_id = ANY($${paramIndexRef.value}::uuid[])
+        )
+      `);
+      params.push(filters.statusIds);
+      paramIndexRef.value++;
+    }
+    
+    // ------------------------------
+    // Product batch filters
+    // ------------------------------
+    if (filters.skuIds?.length) {
+      conditions.push(`s.id = ANY($${paramIndexRef.value}::uuid[])`);
+      params.push(filters.skuIds);
+      paramIndexRef.value++;
+    }
+    
+    if (filters.productIds?.length) {
+      conditions.push(`p.id = ANY($${paramIndexRef.value}::uuid[])`);
+      params.push(filters.productIds);
+      paramIndexRef.value++;
+    }
+    
+    if (filters.manufacturerIds?.length) {
+      conditions.push(`m.id = ANY($${paramIndexRef.value}::uuid[])`);
+      params.push(filters.manufacturerIds);
+      paramIndexRef.value++;
+    }
+    
+    // ------------------------------
+    // Packaging batch filters
+    // ------------------------------
+    if (filters.packagingMaterialIds?.length) {
+      conditions.push(`pm.id = ANY($${paramIndexRef.value}::uuid[])`);
+      params.push(filters.packagingMaterialIds);
+      paramIndexRef.value++;
+    }
+    
+    if (filters.supplierIds?.length) {
+      conditions.push(`sup.id = ANY($${paramIndexRef.value}::uuid[])`);
+      params.push(filters.supplierIds);
+      paramIndexRef.value++;
+    }
+    
+    // ------------------------------
+    // Lot number (ILIKE, polymorphic)
+    // ------------------------------
+    if (filters.lotNumber) {
+      conditions.push(`
+        (
+          pb.lot_number ILIKE $${paramIndexRef.value}
+          OR pmb.lot_number ILIKE $${paramIndexRef.value}
+        )
+      `);
+      params.push(`%${filters.lotNumber}%`);
+      paramIndexRef.value++;
+    }
+    
+    // ------------------------------
+    // Expiry date filters (polymorphic, via helper)
+    // ------------------------------
+    if (filters.expiryAfter || filters.expiryBefore) {
+      applyDateRangeConditions({
+        conditions,
+        params,
+        column: 'pb.expiry_date',
+        after: filters.expiryAfter,
+        before: filters.expiryBefore,
+        paramIndexRef,
+      });
+      
+      applyDateRangeConditions({
+        conditions,
+        params,
+        column: 'pmb.expiry_date',
+        after: filters.expiryAfter,
+        before: filters.expiryBefore,
+        paramIndexRef,
+      });
+    }
+    
+    // ------------------------------
+    // Registry-level date filters
+    // ------------------------------
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'br.registered_at',
+      after: filters.registeredAfter,
+      before: filters.registeredBefore,
+      paramIndexRef,
+    });
+    
+    // ------------------------------
+    // Keyword fuzzy search (permission-aware)
+    // ------------------------------
+    if (filters.keyword && filters.keywordCapabilities) {
+      const {
+        canSearchProduct,
+        canSearchSku,
+        canSearchManufacturer,
+        canSearchPackagingMaterial,
+        canSearchSupplier,
+      } = filters.keywordCapabilities;
+      
+      const searchableFields = [
+        'pb.lot_number',
+        'pmb.lot_number',
+      ];
+      
+      if (canSearchProduct) searchableFields.push('p.name');
+      if (canSearchSku) searchableFields.push('s.sku');
+      if (canSearchManufacturer) searchableFields.push('m.name');
+      if (canSearchPackagingMaterial) searchableFields.push('pm.name');
+      if (canSearchSupplier) searchableFields.push('sup.name');
+      
+      /**
+       * addKeywordIlikeGroup:
+       * - Appends a grouped `(field ILIKE $n OR ...)` condition
+       * - Pushes the keyword parameter internally
+       * - Consumes placeholder indices internally
+       *
+       * IMPORTANT:
+       * - `idx` is intentionally NOT reassigned here
+       * - This helper is the sole owner of index advancement
+       */
+      addKeywordIlikeGroup(
+        conditions,
+        params,
+        paramIndexRef,
+        filters.keyword,
+        searchableFields
+      );
+    }
+    
+    return {
+      whereClause: conditions.join(' AND '),
+      params,
+    };
+  } catch (err) {
+    logSystemException(err, 'Failed to build batch registry filter', {
+      context: 'batch-registry-repository/buildBatchRegistryFilter',
+      filters,
+    });
+    
+    throw AppError.databaseError('Failed to prepare batch registry filter', {
+      details: err.message,
+    });
+  }
+};
+
 module.exports = {
-  buildBatchRegistryWhereClause,
+  buildBatchRegistryInventoryScopeFilter,
+  buildBatchRegistryFilter,
 };
