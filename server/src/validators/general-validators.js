@@ -493,8 +493,8 @@ const expiryDateRangeSchema = Joi.object({
  */
 const createBooleanFlag = (fieldName) =>
   Joi.boolean()
-    .truthy('true')
-    .falsy('false')
+    .truthy('true', 'TRUE', '1', 1)
+    .falsy('false', 'FALSE', '0', 0)
     .optional()
     .allow(null)
     .label(fieldName);
