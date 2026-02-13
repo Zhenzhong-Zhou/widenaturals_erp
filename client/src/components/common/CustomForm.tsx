@@ -42,6 +42,7 @@ export type CustomRenderParams = {
   required?: boolean;
   formValues: Record<string, any>;
   watch?: UseFormWatch<any>;
+  error?: any;
 };
 
 export interface FieldConfig {
@@ -199,6 +200,7 @@ const CustomFormInner = <TFieldValues extends FieldValues = FieldValues>(
                   required: field.required,
                   formValues: getValues(),
                   watch,
+                  error: errors[field.id],
                 });
 
                 if (!rendered || typeof rendered === 'boolean') {

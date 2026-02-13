@@ -1,15 +1,15 @@
 // --------------------------------------------------
 // Reducers (store-level, explicit)
 // --------------------------------------------------
-export { resetPasswordReducers } from './resetPasswordReducers';
+export { authReducers } from './authReducers';
 
 // --------------------------------------------------
 // Selectors
 // --------------------------------------------------
-export * from './resetPasswordSelectors';
+export * from './changePasswordSelectors';
 
 // --------------------------------------------------
 // Thunks & Types
 // --------------------------------------------------
-export * from './resetPasswordThunk';
-export * from './resetPasswordTypes';
+export * from './authThunks';
+export * from './authTypes';

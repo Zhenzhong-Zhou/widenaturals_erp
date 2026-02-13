@@ -29,7 +29,7 @@ import { persistedReducer } from './persistedReducer.ts';
 import { authorizeReducers } from '@features/authorize';
 import { sessionReducers } from '@features/session';
 import { csrfReducers } from '@features/csrf';
-import { resetPasswordReducers } from '@features/resetPassword';
+import { authReducers } from '@features/auth/password';
 import { userReducers } from '@features/user';
 
 import { addressReducers } from '@features/address';
@@ -65,7 +65,7 @@ const runtimeReducer = combineReducers({
   ...authorizeReducers,
   ...sessionReducers,
   ...csrfReducers,
-  ...resetPasswordReducers,
+  ...authReducers,
   ...userReducers,
   
   // Product & Pricing
