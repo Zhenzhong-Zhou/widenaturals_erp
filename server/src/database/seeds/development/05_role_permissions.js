@@ -1,26 +1,25 @@
 const { fetchDynamicValue } = require('../03_utils');
 
 /**
- * Seed the `role_permissions` table with initial data.
- * Assigns relevant permissions to each role based on modern ERP access control.
- *
- * @param {import('knex').Knex} knex
+ * Seed role_permissions with structured ACL hierarchy.
  */
 exports.seed = async function (knex) {
   const [{ count }] = await knex('role_permissions').count('id');
-  const total = Number(count) || 0;
-
-  if (total > 0) {
+  if (Number(count) > 0) {
     console.log(
-      `[${new Date().toISOString()}] [SEED] Skipping seed for [role_permissions] table: ${total} records found.`
+      `[${new Date().toISOString()}] [SEED] role_permissions already seeded. Skipping.`
     );
     return;
   }
-
+  
   console.log(
-    `[${new Date().toISOString()}] [SEED] Inserting role-permission mappings into [role_permissions] table...`
+    `[${new Date().toISOString()}] [SEED] Seeding role_permissions...`
   );
-
+  
+  // --------------------------------------------------
+  // Resolve system metadata
+  // --------------------------------------------------
+  
   const systemUserId = await fetchDynamicValue(
     knex,
     'users',
@@ -28,33 +27,50 @@ exports.seed = async function (knex) {
     'system@internal.local',
     'id'
   );
-
+  
   if (!systemUserId) {
-    throw new Error(
-      '[SEED][permissions] System user not found: system@internal.local'
-    );
+    throw new Error('[SEED][role_permissions] System user not found.');
   }
-
+  
   const activeStatusId = await knex('status')
-    .select('id')
-    .where('name', 'active')
+    .where({ name: 'active' })
     .first()
-    .then((row) => row?.id);
-
+    .then((r) => r?.id);
+  
   if (!activeStatusId) {
-    console.error('[SEED] Active status ID not found. Aborting.');
-    return;
+    throw new Error('[SEED][role_permissions] Active status not found.');
   }
-
+  
   const roles = await knex('roles').select('id', 'name');
   const roleMap = Object.fromEntries(roles.map((r) => [r.name, r.id]));
-
+  
   const permissions = await knex('permissions').select('id', 'key');
   const permissionMap = Object.fromEntries(
     permissions.map((p) => [p.key, p.id])
   );
-
-  const salesOrderLookups = [
+  
+  // --------------------------------------------------
+  // Base permissions (ALL authenticated users)
+  // --------------------------------------------------
+  
+  const BASE_AUTH_PERMISSIONS = [
+    'view_self_profile',
+    'change_self_password',
+    'view_user_card',
+    'view_dashboard',
+    'view_sku_cards',
+    'view_sku_details',
+    'view_compliance_records',
+  ];
+  
+  // --------------------------------------------------
+  // Shared helper groups
+  // --------------------------------------------------
+  const ORDERS = [
+    'view_orders',
+  ];
+  
+  const SALES_LOOKUPS = [
     'view_customer_lookup',
     'view_customer_address_lookup',
     'view_order_type_lookup',
@@ -66,119 +82,111 @@ exports.seed = async function (knex) {
     'view_pricing_lookup',
     'view_packaging_material_lookup',
   ];
-
-  const salesOrderRequiredPermissions = [
-    'view_orders',
+  
+  const SALES_CORE = [
+    ...ORDERS,
     'view_sales_order',
     'create_sales_order',
-    ...salesOrderLookups,
+    ...SALES_LOOKUPS,
   ];
-
-  // Define role-permission mapping
-  const rolePermissionsData = {
-    root_admin: ['root_access'], // All permissions
+  
+  // --------------------------------------------------
+  // Role definitions (composed from base)
+  // --------------------------------------------------
+  
+  const ROLE_DEFINITIONS = {
+    root_admin: ['root_access'],
+    
     admin: [
-      'manage_users',
-      'view_prices',
-      'manage_prices',
-      'view_inventory',
-      'manage_inventory',
-      'view_warehouses',
-      'manage_warehouses',
-      'view_locations',
-      'manage_locations',
-      'manage_catalog',
-      'manage_pricing',
-      'export_pricing',
+      ...BASE_AUTH_PERMISSIONS,
+      'export_prices',
       'view_system',
       'view_system_status',
     ],
+    
     manager: [
-      'view_prices',
-      'manage_prices',
+      ...BASE_AUTH_PERMISSIONS,
       'view_inventory',
       'view_inventory_summary',
       'view_warehouses',
       'view_locations',
-      'view_customer',
       'view_active_customers',
       'create_customer',
-      'create_orders',
-      'create_sales_order',
       'view_allocation_stage',
-      'view_self_profile',
-      ...salesOrderRequiredPermissions,
+      ...SALES_CORE,
     ],
+    
     sales: [
-      'view_prices',
-      'view_customer',
-      'create_customer',
-      'create_orders',
-      'create_sales_order',
-      ...salesOrderRequiredPermissions,
+      ...BASE_AUTH_PERMISSIONS,
+      'view_customers',
+      'create_customers',
+      ...SALES_CORE,
     ],
+    
     marketing: [
-      'view_prices',
-      'manage_catalog',
-      'view_customer',
-      'create_customer',
+      ...BASE_AUTH_PERMISSIONS,
+      'view_customers',
+      'create_customers',
     ],
+    
     qa: [
-      'view_inventory',
-      'view_product_inventory',
-      'view_material_inventory',
-      'view_inventory_log',
+      ...BASE_AUTH_PERMISSIONS,
+      'view_batch_registry',
+      'view_product_batches',
+      'view_packaging_material_batches',
+      'view_warehouse_inventory',
+      'view_inventory_logs',
     ],
+    
     product_manager: [
-      'view_prices',
-      'manage_catalog',
+      ...BASE_AUTH_PERMISSIONS,
       'view_inventory_summary',
       'view_batch_registry_lookup',
     ],
+    
     account: [
-      'view_prices',
-      'manage_prices',
+      ...BASE_AUTH_PERMISSIONS,
       'view_pricing_types',
-      'manage_pricing',
     ],
+    
     inventory: [
-      'view_inventory',
-      'manage_inventory',
-      'adjust_inventory',
+      ...BASE_AUTH_PERMISSIONS,
       'view_warehouse_inventory',
-      'manage_warehouse_inventory',
+      'adjust_warehouse_inventory',
       'view_locations',
-      'manage_locations',
       'view_allocation_stage',
       'view_fulfillment_stage',
       'view_shipping_stage',
-      ...salesOrderRequiredPermissions,
+      ...SALES_CORE,
     ],
+    
     user: [
-      'view_self_profile',
+      ...BASE_AUTH_PERMISSIONS,
     ],
   };
-
+  
+  // --------------------------------------------------
+  // Insert mappings
+  // --------------------------------------------------
+  
   let insertedCount = 0;
-
-  for (const [roleKey, permissionKeys] of Object.entries(rolePermissionsData)) {
+  
+  for (const [roleKey, permissionKeys] of Object.entries(ROLE_DEFINITIONS)) {
     const roleId = roleMap[roleKey];
-
     if (!roleId) {
       console.warn(`[SEED] Role '${roleKey}' not found. Skipping.`);
       continue;
     }
-
+    
     for (const permissionKey of permissionKeys) {
       const permissionId = permissionMap[permissionKey];
-
       if (!permissionId) {
         console.warn(
           `[SEED] Permission '${permissionKey}' not found. Skipping.`
         );
         continue;
       }
-
+      
       await knex('role_permissions')
         .insert({
           id: knex.raw('uuid_generate_v4()'),
@@ -192,10 +200,10 @@ exports.seed = async function (knex) {
         })
         .onConflict(['role_id', 'permission_id'])
         .ignore();
-
+      
       insertedCount++;
     }
   }
-
+  
   console.log(`[SEED] Inserted ${insertedCount} role-permission mappings.`);
 };
