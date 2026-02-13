@@ -109,7 +109,6 @@ router.post(
  */
 router.get(
   '/',
-  authorize([PERMISSIONS.USERS.VIEW_USERS]),
   authorizeAny([PERMISSIONS.USERS.VIEW_LIST, PERMISSIONS.USERS.VIEW_CARD]),
   createQueryNormalizationMiddleware(
     'userSortMap',
