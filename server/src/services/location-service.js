@@ -1,54 +1,149 @@
-const { getLocations } = require('../repositories/location-repository');
-const { AppError } = require('../utils/AppError');
-const { logError } = require('../utils/logger-helper');
+const {
+  getPaginatedLocations,
+} = require('../repositories/location-repository');
+const {
+  transformPaginatedLocationResults,
+} = require('../transformers/location-transformer');
+const {
+  logSystemInfo,
+  logSystemException,
+} = require('../utils/system-logger');
+const AppError = require('../utils/AppError');
 
 /**
- * Service function to fetch locations with pagination, sorting, and business logic.
- * @param {Object} options - Query parameters
- * @param {number} options.page - Current page number
- * @param {number} options.limit - Number of results per page
- * @param {string} [options.sortBy='name'] - Column to sort by
- * @param {string} [options.sortOrder='ASC'] - Sorting order (ASC/DESC)
- * @returns {Promise<{ data: Array, pagination: Object }>} Processed locations with pagination
+ * Service: Fetch Paginated Locations
+ *
+ * Provides a service-level abstraction over repository queries for locations.
+ * Handles pagination, filtering, transformation, and structured logging.
+ *
+ * ─────────────────────────────────────────────────────────────
+ * Flow
+ * ─────────────────────────────────────────────────────────────
+ * 1. Delegates to `getPaginatedLocations` in repository layer.
+ * 2. If no results:
+ *    - Logs informational event
+ *    - Returns normalized empty result set.
+ * 3. If results exist:
+ *    - Transforms raw SQL rows into API-ready DTO objects.
+ *    - Logs success with metadata.
+ * 4. On error:
+ *    - Logs structured exception.
+ *    - Throws service-level AppError.
+ *
+ * ─────────────────────────────────────────────────────────────
+ * Intended Usage
+ * ─────────────────────────────────────────────────────────────
+ * - Location list page
+ * - Admin dashboards
+ * - Expandable table rows (summary metadata only)
+ *
+ * Heavy detail fields should be retrieved via:
+ *   `fetchLocationByIdService`
+ *
+ * ─────────────────────────────────────────────────────────────
+ * @param {Object} options
+ * @param {Object} [options.filters={}] - Location filter criteria
+ * @param {number} [options.page=1] - Page number (1-based)
+ * @param {number} [options.limit=10] - Page size
+ * @param {string} [options.sortBy='created_at'] - Sort column (validated upstream)
+ * @param {'ASC'|'DESC'} [options.sortOrder='DESC'] - Sort direction
+ *
+ * @returns {Promise<{
+ *   data: any[];
+ *   pagination: {
+ *     page: number;
+ *     limit: number;
+ *     totalRecords: number;
+ *     totalPages: number;
+ *   };
+ * }>}
+ *
+ * @throws {AppError}
  */
-const fetchAllLocations = async ({ page, limit, sortBy, sortOrder }) => {
+const fetchPaginatedLocationsService = async ({
+                                                filters = {},
+                                                page = 1,
+                                                limit = 10,
+                                                sortBy = 'created_at',
+                                                sortOrder = 'DESC',
+                                              }) => {
+  const context = 'location-service/fetchPaginatedLocationsService';
+  
   try {
-    // Ensure pagination values are positive integers
-    page = Number(page);
-    limit = Number(limit);
-    if (page < 1 || limit < 1) {
-      throw AppError.validationError(
-        'Page and limit must be positive integers.'
-      );
-    }
-
-    // Fetch data from repository
-    const { data, pagination } = await getLocations({
+    // ----------------------------------------------------------
+    // Step 1: Query raw paginated rows
+    // ----------------------------------------------------------
+    const rawResult = await getPaginatedLocations({
+      filters,
       page,
       limit,
       sortBy,
       sortOrder,
     });
-
-    // Apply business logic (e.g., flagging high-fee warehouses)
-    const processedData = data.map((location) => ({
-      ...location,
-      is_high_fee_warehouse: location.warehouse_fee > 500, // Example: Mark as high-fee if over $500
-    }));
-
-    return {
-      locations: processedData,
-      pagination,
-    };
+    
+    // ----------------------------------------------------------
+    // Step 2: Handle empty result
+    // ----------------------------------------------------------
+    if (!rawResult || rawResult.data.length === 0) {
+      logSystemInfo('No locations found', {
+        context,
+        filters,
+        pagination: { page, limit },
+        sort: { sortBy, sortOrder },
+      });
+      
+      return {
+        data: [],
+        pagination: {
+          page,
+          limit,
+          totalRecords: 0,
+          totalPages: 0,
+        },
+      };
+    }
+    
+    // ----------------------------------------------------------
+    // Step 3: Transform SQL rows → API DTO
+    // ----------------------------------------------------------
+    const result = transformPaginatedLocationResults(rawResult);
+    
+    // ----------------------------------------------------------
+    // Step 4: Log success
+    // ----------------------------------------------------------
+    logSystemInfo('Fetched paginated location records successfully', {
+      context,
+      filters,
+      pagination: result.pagination,
+      sort: { sortBy, sortOrder },
+    });
+    
+    return result;
   } catch (error) {
-    logError('Error fetching locations in service:', error);
+    // ----------------------------------------------------------
+    // Step 5: Log exception and rethrow
+    // ----------------------------------------------------------
+    logSystemException(
+      error,
+      'Failed to fetch paginated location records',
+      {
+        context,
+        filters,
+        pagination: { page, limit },
+        sort: { sortBy, sortOrder },
+      }
+    );
+    
     throw AppError.serviceError(
-      error.message || 'Failed to fetch locations',
-      error
+      'Could not fetch locations. Please try again later.',
+      {
+        context,
+        details: error.message,
+      }
     );
   }
 };
 
 module.exports = {
-  fetchAllLocations,
+  fetchPaginatedLocationsService,
 };
