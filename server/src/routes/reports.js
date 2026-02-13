@@ -1,5 +1,6 @@
 const express = require('express');
 const { authorize } = require('../middlewares/authorize');
+const PERMISSIONS = require('../utils/constants/domain/permissions');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 const { sanitizeFields } = require('../middlewares/sanitize');
 const validate = require('../middlewares/validate');
@@ -36,7 +37,7 @@ const router = express.Router();
  */
 router.get(
   '/inventory-activity-logs',
-  authorize(['view_inventory_log']),
+  authorize([PERMISSIONS.REPORTS.VIEW_INVENTORY_LOGS]),
   createQueryNormalizationMiddleware(
     'inventoryActivityLogSortMap',
     [

@@ -60,7 +60,7 @@ const router = express.Router();
  */
 router.post(
   '/orders/:orderId/fulfillment/initiate',
-  authorize([PERMISSIONS.OUTBOUND_FULFILLMENT.INITIATE]),
+  authorize([PERMISSIONS.OUTBOUND_FULFILLMENTS.INITIATE]),
   validate(orderIdParamSchema, 'params'),
   validate(fulfillOutboundShipmentBodySchema, 'body'),
   fulfillOutboundShipmentController
@@ -115,7 +115,7 @@ router.post(
  */
 router.post(
   '/orders/:orderId/fulfillment/confirm',
-  authorize([PERMISSIONS.OUTBOUND_FULFILLMENT.CONFIRM]),
+  authorize([PERMISSIONS.OUTBOUND_FULFILLMENTS.CONFIRM]),
   validate(orderIdParamSchema, 'params'),
   validate(fulfillAdjustmentBodySchema, 'body'),
   confirmOutboundFulfillmentController
@@ -155,7 +155,7 @@ router.post(
  */
 router.get(
   '/',
-  authorize([PERMISSIONS.OUTBOUND_FULFILLMENT.VIEW]),
+  authorize([PERMISSIONS.OUTBOUND_FULFILLMENTS.VIEW]),
   createQueryNormalizationMiddleware(
     'outboundShipmentSortMap',
     ['statusIds', 'warehouseIds', 'deliveryMethodIds'], // array filters
@@ -211,7 +211,7 @@ router.get(
  */
 router.get(
   '/:shipmentId/details',
-  authorize([PERMISSIONS.OUTBOUND_FULFILLMENT.VIEW]),
+  authorize([PERMISSIONS.OUTBOUND_FULFILLMENTS.VIEW]),
   validate(shipmentIdParamSchema, 'params'), // validate shipmentId as UUID
   getShipmentDetailsController
 );
@@ -266,7 +266,7 @@ router.get(
  */
 router.post(
   '/manual/:shipmentId/complete',
-  authorize([PERMISSIONS.OUTBOUND_FULFILLMENT.COMPLETE_MANUAL]),
+  authorize([PERMISSIONS.OUTBOUND_FULFILLMENTS.COMPLETE_MANUAL]),
   validate(shipmentIdParamSchema, 'params'),
   validate(manualFulfillmentBodySchema, 'body'),
   completeManualFulfillmentController

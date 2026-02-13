@@ -1,5 +1,6 @@
 const express = require('express');
 const { authorize } = require('../middlewares/authorize');
+const PERMISSIONS = require('../utils/constants/domain/permissions');
 const {
   getAllLocationsController,
 } = require('../controllers/location-controller');
@@ -13,7 +14,7 @@ const router = express.Router();
  */
 router.get(
   '/',
-  authorize(['manage_locations', 'view_locations']),
+  authorize([PERMISSIONS.LOCATIONS.VIEW]),
   getAllLocationsController
 );
 

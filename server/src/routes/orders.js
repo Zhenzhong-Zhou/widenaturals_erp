@@ -89,7 +89,7 @@ const schemaMap = {
  */
 router.post(
   '/create/:category',
-  authorize([PERMISSIONS.ORDER.CREATE]),
+  authorize([PERMISSIONS.ORDERS.CREATE]),
   (req, res, next) => {
     const category = req.params.category.toLowerCase();
     const schema = schemaMap[category];
@@ -147,7 +147,7 @@ router.post(
  */
 router.get(
   '/:category',
-  authorize([PERMISSIONS.ORDER.VIEW]),
+  authorize([PERMISSIONS.ORDERS.VIEW]),
   createQueryNormalizationMiddleware('orderSortMap', [], [], orderQuerySchema),
   sanitizeFields(['category', 'keyword']),
   validate(orderCategorySchema, 'params'),
@@ -198,7 +198,7 @@ router.get(
  */
 router.get(
   '/:category/:orderId',
-  authorize([PERMISSIONS.ORDER.VIEW]),
+  authorize([PERMISSIONS.ORDERS.VIEW]),
   sanitizeFields(['orderId']),
   validate(orderIdentifierSchema, 'params'),
   getOrderDetailsByIdController
@@ -243,7 +243,7 @@ router.get(
  */
 router.patch(
   '/:category/:orderId/status',
-  authorize([PERMISSIONS.ORDER.UPDATE_STATUS]),
+  authorize([PERMISSIONS.ORDERS.UPDATE_STATUS]),
   sanitizeFields(['orderId', 'category', 'statusCode']),
   validate(orderIdentifierSchema, 'params'),
   validate(updateOrderStatusSchema, 'body'),

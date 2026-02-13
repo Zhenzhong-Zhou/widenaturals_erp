@@ -11,6 +11,7 @@ const {
   getPaginatedAddressesController,
 } = require('../controllers/address-controller');
 const { authorize } = require('../middlewares/authorize');
+const PERMISSIONS = require('../utils/constants/domain/permissions');
 const validate = require('../middlewares/validate');
 const {
   addressArraySchema,
@@ -42,7 +43,7 @@ const router = express.Router();
  */
 router.post(
   '/add-new-addresses',
-  authorize(['create_addresses']),
+  authorize([PERMISSIONS.ADDRESSES.CREATE]),
   sanitizeFields([
     'full_name',
     'label',
@@ -104,7 +105,7 @@ router.post(
  */
 router.get(
   '/',
-  authorize(['view_address']),
+  authorize([PERMISSIONS.ADDRESSES.VIEW]),
   createQueryNormalizationMiddleware(
     'addressSortMap',
     [],

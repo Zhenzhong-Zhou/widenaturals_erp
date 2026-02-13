@@ -1,10 +1,4 @@
 const PERMISSIONS = {
-  ADMIN: {
-    MANAGE: 'manage_admin',
-    CREATE: 'create_admin',
-    DELETE: 'delete_admin',
-    VIEW: 'view_admin',
-  },
   USERS: {
     CREATE_USER: 'create_user',
     VIEW_USERS: 'view_users',
@@ -15,9 +9,6 @@ const PERMISSIONS = {
     MANAGE: 'manage_users',
     DELETE: 'delete_user',
     EDIT: 'edit_profile',
-  },
-  DASHBOARD: {
-    VIEW: 'view_dashboard',
   },
   PRODUCTS: {
     VIEW: 'view_products',
@@ -35,6 +26,15 @@ const PERMISSIONS = {
     UPDATE_INFO: 'update_sku_info',
     UPDATE_IMAGE: 'update_sku_images',
   },
+  PRICING_TYPES: {
+    VIEW: 'view_pricing_types',
+    VIEW_PRICING_TYPES_DETAILS: 'view_pricing_type_details',
+  },
+  PRICING: {
+    VIEW: 'view_prices',
+    EXPORT_DATA: 'export_prices',
+    VIEW_DETAILS: 'view_price_details',
+  },
   COMPLIANCE_RECORDS: {
     VIEW_LIST: 'view_compliance_records',
   },
@@ -42,6 +42,13 @@ const PERMISSIONS = {
     VIEW_LIST: 'view_boms',
     VIEW_BOM_DETAILS: 'view_bom_details',
     VIEW_BOM_PRODUCTION_SUMMARY: 'view_bom_production_summary',
+  },
+  LOCATIONS_TYPES: {
+    VIEW: 'view_location_types',
+    VIEW_DETAILS: 'view_location_type_details',
+  },
+  LOCATIONS: {
+    VIEW: 'view_locations',
   },
   BATCH_REGISTRY: {
     VIEW_LIST: 'view_batch_registry',
@@ -52,10 +59,28 @@ const PERMISSIONS = {
   PACKAGING_BATCH: {
     VIEW_LIST: 'view_packaging_material_batches',
   },
-  REPORTS: {
-    VIEW: 'view_reports',
+  WAREHOUSE_INVENTORY: {
+    CREATE: 'create_warehouse_inventory',
+    VIEW: 'view_warehouse_inventory',
+    ADJUST: 'adjust_warehouse_inventory',
+    VIEW_SUMMARY: 'view_warehouse_inventory_summary',
+    VIEW_SUMMARY_ITEM_DETAILS: 'view_warehouse_inventory_summary_item_details',
   },
-  ORDER: {
+  REPORTS: {
+    VIEW_INVENTORY_LOGS: 'view_inventory_logs',
+  },
+  CUSTOMERS: {
+    CREATE: 'create_customers',
+    VIEW: 'view_customers',
+  },
+  ADDRESSES: {
+    CREATE: 'create_addresses',
+    VIEW: 'view_addresses',
+  },
+  ORDER_TYPES: {
+    VIEW: 'view_order_types',
+  },
+  ORDERS: {
     CREATE: 'create_orders',
     VIEW: 'view_orders',
     UPDATE_STATUS: 'update_order_status',
@@ -66,7 +91,7 @@ const PERMISSIONS = {
     VIEW: 'view_inventory_allocations',
     CONFIRM: 'confirm_allocation',
   },
-  OUTBOUND_FULFILLMENT: {
+  OUTBOUND_FULFILLMENTS: {
     INITIATE: 'initiate_outbound_fulfillment',
     CONFIRM: 'confirm_outbound_fulfillment',
     VIEW: 'view_outbound_fulfillments',

@@ -4,6 +4,7 @@ const {
   getPaginatedCustomersController,
 } = require('../controllers/customer-controller');
 const { authorize } = require('../middlewares/authorize');
+const PERMISSIONS = require('../utils/constants/domain/permissions');
 const validate = require('../middlewares/validate');
 const {
   customerArraySchema,
@@ -37,7 +38,7 @@ const router = express.Router();
  */
 router.post(
   '/add-new-customers',
-  authorize(['create_customer']),
+  authorize([PERMISSIONS.CUSTOMERS.CREATE]),
   sanitizeFields(['note']),
   validate(customerArraySchema, 'body'),
   createCustomerController
@@ -80,7 +81,7 @@ router.post(
  */
 router.get(
   '/',
-  authorize(['view_customer']),
+  authorize([PERMISSIONS.CUSTOMERS.VIEW]),
   createQueryNormalizationMiddleware(
     'customerSortMap', // sort map module
     ['createdBy', 'updatedBy'], // array keys

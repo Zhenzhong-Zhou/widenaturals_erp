@@ -153,8 +153,10 @@ const changePasswordController = wrapAsync(async (req, res) => {
   
   return res.status(200).json({
     success: true,
-    changedAt: new Date().toISOString(),
     message: 'Password changed successfully. Please log in again.',
+    data: {
+      changedAt: new Date().toISOString(),
+    },
   });
 });
 

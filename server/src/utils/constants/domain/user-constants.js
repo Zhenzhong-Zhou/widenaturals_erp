@@ -56,6 +56,19 @@ const USER_CONSTANTS = {
     // Enables JOIN on statuses table for lookup queries only
     
     // -------------------------------------------------
+    // Password & Credential Management
+    // -------------------------------------------------
+    
+    CHANGE_SELF_PASSWORD: 'change_self_password',
+    // Allows authenticated user to change their own password
+    
+    RESET_ANY_USER_PASSWORD: 'reset_any_user_password',
+    // Allows resetting another user's password (admin-level action)
+    
+    FORCE_RESET_ANY_USER_PASSWORD: 'force_reset_any_user_password',
+    // Allows forcing password reset flag (require change on next login)
+    
+    // -------------------------------------------------
     // Administrative capabilities (mutating actions)
     // -------------------------------------------------
 
