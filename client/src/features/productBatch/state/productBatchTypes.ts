@@ -46,7 +46,7 @@ export interface ProductBatchRecord {
   releasedAt: NullableString;
   
   /** Actor identity who registered the batch */
-  registeredBy: ActorIdentity;
+  releasedBy: ActorIdentity;
   
   /** Audit metadata (created/updated) */
   audit: GenericAudit;

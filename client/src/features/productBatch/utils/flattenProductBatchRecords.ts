@@ -79,6 +79,7 @@ export const flattenProductBatchRecords = (
       
       // --- Release ---
       releasedAt: record.releasedAt ?? null,
+      releasedByName: record.releasedBy?.name ?? '—',
       
       // --- Audit ---
       createdAt: audit.createdAt ?? '',
