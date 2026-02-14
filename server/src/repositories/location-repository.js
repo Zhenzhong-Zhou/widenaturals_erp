@@ -111,6 +111,8 @@ const getPaginatedLocations = async ({
         l.status_date,
         l.created_at,
         l.updated_at,
+        l.created_by,
+        l.updated_by,
         u1.firstname AS created_by_firstname,
         u1.lastname AS created_by_lastname,
         u2.firstname AS updated_by_firstname,

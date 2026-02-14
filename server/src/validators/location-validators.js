@@ -4,7 +4,8 @@ const {
   validateUUIDOrUUIDArrayOptional,
   validateOptionalUUID,
   validateOptionalString,
-  createBooleanFlag, createdDateRangeSchema
+  createBooleanFlag,
+  createdDateRangeSchema
 } = require('./general-validators');
 
 /**

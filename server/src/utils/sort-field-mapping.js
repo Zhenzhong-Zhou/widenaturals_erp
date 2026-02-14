@@ -153,6 +153,52 @@ const SORTABLE_FIELDS = {
       s.created_at
     `,
   },
+  locationSortMap: {
+    // --------------------------------------------------
+    // Core identity
+    // --------------------------------------------------
+    name: `LOWER(l.name)`,
+    
+    // --------------------------------------------------
+    // Location type
+    // --------------------------------------------------
+    locationTypeName: `LOWER(lt.name)`,
+    
+    // --------------------------------------------------
+    // Address / Geography
+    // --------------------------------------------------
+    city: `LOWER(l.city)`,
+    provinceOrState: `LOWER(l.province_or_state)`,
+    country: `LOWER(l.country)`,
+    
+    // --------------------------------------------------
+    // Archive
+    // --------------------------------------------------
+    isArchived: `l.is_archived`,
+    
+    // --------------------------------------------------
+    // Status
+    // --------------------------------------------------
+    statusName: `LOWER(s.name)`,
+    statusDate: `l.status_date`,
+    
+    // --------------------------------------------------
+    // Audit timestamps
+    // --------------------------------------------------
+    createdAt: `l.created_at`,
+    updatedAt: `l.updated_at`,
+    
+    // --------------------------------------------------
+    // Audit users (optional for sorting)
+    // --------------------------------------------------
+    createdBy: `l.created_by`,
+    updatedBy: `l.updated_by`,
+    
+    // --------------------------------------------------
+    // Required fallback
+    // --------------------------------------------------
+    defaultNaturalSort: `l.created_at`,
+  },
   batchRegistrySortMap: {
     // --------------------------------------------------
     // Core registry identity (SAFE, always present)
