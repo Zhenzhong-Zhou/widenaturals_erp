@@ -1,6 +1,10 @@
-import type { LocationResponse } from '@features/location';
+import type {
+  LocationListQueryParams,
+  PaginatedLocationApiResponse,
+} from '@features/location';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { getRequest } from '@utils/http';
+import { buildQueryString } from '@utils/buildQueryString';
 import { AppError } from '@utils/error';
 
 /* =========================================================
@@ -8,44 +12,81 @@ import { AppError } from '@utils/error';
  * ======================================================= */
 
 /**
- * Fetches paginated locations from the backend.
+ * Fetch a paginated list of locations.
  *
- * Transport guarantees:
- * - GET request (idempotent, retryable)
- * - Centralized timeout + retry policy
- * - Errors normalized into `AppError`
+ * Responsibilities:
+ * - Serializes pagination, sorting, and filter parameters into a query string
+ * - Flattens nested filters into top-level query parameters
+ * - Issues a READ-only HTTP request
+ * - Preserves backend pagination metadata without transformation
  *
- * @param page - Current page number (1-based)
- * @param limit - Number of results per page
+ * Notes:
+ * - Filters are provided via `params.filters`
+ * - Date range filters are flattened into:
+ *     - createdFrom
+ *     - createdTo
+ * - Multi-select filters (statusIds) may be arrays or comma-separated values
+ *
+ * Guarantees:
+ * - Stateless and side-effect free
+ * - Safe for concurrent calls
+ * - UI-agnostic and reusable across thunks and loaders
+ *
+ * @param params - Pagination, sorting, and location filter options
  * @returns Paginated location response
- *
  * @throws {AppError}
  */
-const fetchAllLocations = async (
-  page: number,
-  limit: number
-): Promise<LocationResponse> => {
-  const data = await getRequest<LocationResponse>(
-    API_ENDPOINTS.LOCATIONS.ALL_RECORDS,
-    {
-      policy: 'READ',
-      config: {
-        params: { page, limit },
-      },
-    }
-  );
-
-  // ----------------------------------
-  // Defensive response validation
-  // ----------------------------------
-  if (!data || typeof data !== 'object') {
-    throw AppError.server('Invalid locations response', { page, limit });
+const fetchPaginatedLocations = async (
+  params: LocationListQueryParams = {}
+): Promise<PaginatedLocationApiResponse> => {
+  const { filters = {}, ...rest } = params;
+  
+  const {
+    createdFrom,
+    createdTo,
+    ...otherFilters
+  } = filters;
+  
+  /**
+   * Flatten date filters → query params
+   */
+  const flatDateParams: Record<string, string> = {};
+  
+  if (createdFrom) flatDateParams.createdFrom = createdFrom;
+  if (createdTo) flatDateParams.createdTo = createdTo;
+  
+  /**
+   * Final flattened params
+   */
+  const flatParams = {
+    ...rest,
+    ...otherFilters,
+    ...flatDateParams,
+  };
+  
+  const queryString = buildQueryString(flatParams);
+  const url = `${API_ENDPOINTS.LOCATIONS.ALL_RECORDS}${queryString}`;
+  
+  const data = await getRequest<PaginatedLocationApiResponse>(url, {
+    policy: 'READ',
+  });
+  
+  /**
+   * Defensive validation
+   */
+  if (!data || typeof data !== 'object' || !Array.isArray(data.data)) {
+    throw AppError.server('Invalid paginated locations response', {
+      params,
+    });
   }
-
+  
   return data;
 };
 
-// Export the location service with structured API calls
+/**
+ * Structured location service export.
+ * Keeps feature boundary clean and explicit.
+ */
 export const locationService = {
-  fetchAllLocations,
+  fetchPaginatedLocations,
 };

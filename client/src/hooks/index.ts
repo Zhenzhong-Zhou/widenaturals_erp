@@ -136,7 +136,7 @@ export { useBaseInventoryActivityLogs } from './useInventoryActivityLogs';
  * Location & Warehouse
  * ===================================================== */
 
-export { default as useLocations } from './useLocations';
+export { usePaginatedLocations, useLocationById } from './usePaginatedLocations';
 export { default as useLocationTypes } from './useLocationTypes';
 export { default as useLocationTypeDetail } from './useLocationTypeDetail';
 
