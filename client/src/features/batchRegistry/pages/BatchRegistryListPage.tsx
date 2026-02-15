@@ -165,7 +165,7 @@ const BatchRegistryListPage = () => {
         gap={2}
       >
         <CustomTypography variant="h5" fontWeight={700}>
-          Batch Registry
+          Batch Registry Management
         </CustomTypography>
       </Box>
       

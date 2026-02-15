@@ -169,7 +169,7 @@ const ProductBatchListPage = () => {
         gap={2}
       >
         <CustomTypography variant="h5" fontWeight={700}>
-          Product Batches
+          Product Batch Management
         </CustomTypography>
       </Box>
       
