@@ -33,10 +33,10 @@ interface AppBootstrapErrorBoundaryProps {
  * - This component does not enforce readiness or session state
  */
 const AppBootstrapErrorBoundary: FC<AppBootstrapErrorBoundaryProps> = ({
-                                                                         children,
-                                                                       }) => {
+  children,
+}) => {
   const { hasError, initializationError } = useInitializeApp();
-  
+
   // Fatal initialization failure
   if (hasError && initializationError?.type === ErrorType.Server) {
     return (
@@ -46,7 +46,7 @@ const AppBootstrapErrorBoundary: FC<AppBootstrapErrorBoundaryProps> = ({
       />
     );
   }
-  
+
   return <>{children}</>;
 };
 

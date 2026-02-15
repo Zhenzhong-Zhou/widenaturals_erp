@@ -57,24 +57,22 @@ axiosRetry.default(axiosInstance, {
  * Request interceptor — attach auth headers
  * ======================================================= */
 
-axiosInstance.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    const state = store.getState();
-    
-    const accessToken = selectAccessToken(state);
-    const csrfToken = selectCsrfToken(state);
-    
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
-    }
-    
-    if (csrfToken) {
-      config.headers['X-CSRF-Token'] = csrfToken;
-    }
-    
-    return config;
+axiosInstance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  const state = store.getState();
+
+  const accessToken = selectAccessToken(state);
+  const csrfToken = selectCsrfToken(state);
+
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
   }
-);
+
+  if (csrfToken) {
+    config.headers['X-CSRF-Token'] = csrfToken;
+  }
+
+  return config;
+});
 
 /* =========================================================
  * Response interceptor — auth-safe error handling
@@ -82,47 +80,45 @@ axiosInstance.interceptors.request.use(
 
 axiosInstance.interceptors.response.use(
   (response) => response,
-  
+
   async (error: AxiosError) => {
     if (!error.config) {
       return Promise.reject(
         AppError.network('Request failed before reaching the server')
       );
     }
-    
+
     const originalRequest = error.config as RetryableRequest;
     const status = error.response?.status;
     const errorCode = (error.response?.data as any)?.code;
-    
+
     /* =====================================================
      * CSRF failure — retry once (MUST COME FIRST)
      * =================================================== */
-    
+
     if (
       status === 403 &&
       errorCode === 'CSRF_INVALID' &&
       !originalRequest._retryCsrf
     ) {
       originalRequest._retryCsrf = true;
-      
+
       try {
-        const token = await store
-          .dispatch(getCsrfTokenThunk())
-          .unwrap();
-        
+        const token = await store.dispatch(getCsrfTokenThunk()).unwrap();
+
         originalRequest.headers = new AxiosHeaders(originalRequest.headers);
         originalRequest.headers.set('X-CSRF-Token', token);
-        
+
         return axiosInstance.request(originalRequest);
       } catch (csrfError) {
         return Promise.reject(csrfError);
       }
     }
-    
+
     /* =====================================================
      * 401 — refresh access token (single-flight)
      * =================================================== */
-    
+
     if (status === 401 && !originalRequest._retryAuth) {
       // Don't refresh until bootstrap is finished
       const state = store.getState();
@@ -131,9 +127,9 @@ axiosInstance.interceptors.response.use(
           AppError.authentication('Session not initialized')
         );
       }
-      
+
       originalRequest._retryAuth = true;
-      
+
       try {
         if (!refreshPromise) {
           refreshPromise = sessionService
@@ -142,7 +138,7 @@ axiosInstance.interceptors.response.use(
               if (!data?.accessToken) {
                 throw AppError.authentication('Session expired');
               }
-              
+
               store.dispatch(setAccessToken(data.accessToken));
               return data.accessToken;
             })
@@ -150,37 +146,34 @@ axiosInstance.interceptors.response.use(
               refreshPromise = null;
             });
         }
-        
+
         const accessToken = await refreshPromise;
-        
+
         originalRequest.headers = new AxiosHeaders(originalRequest.headers);
-        originalRequest.headers.set(
-          'Authorization',
-          `Bearer ${accessToken}`
-        );
-        
+        originalRequest.headers.set('Authorization', `Bearer ${accessToken}`);
+
         return axiosInstance.request(originalRequest);
       } catch {
         await hardLogout();
         return Promise.reject(error);
       }
     }
-    
+
     /* =====================================================
      * 403 — authorization (NOT CSRF)
      * =================================================== */
-    
+
     if (status === 403) {
       await hardLogout();
       return Promise.reject(
         AppError.authorization('Access revoked. Please log in again.')
       );
     }
-    
+
     /* =====================================================
      * Normalization (unchanged)
      * =================================================== */
-    
+
     if (status === 400) {
       return Promise.reject(
         AppError.validation(
@@ -189,7 +182,7 @@ axiosInstance.interceptors.response.use(
         )
       );
     }
-    
+
     if (status === 404) {
       return Promise.reject(
         AppError.notFound(
@@ -197,11 +190,11 @@ axiosInstance.interceptors.response.use(
         )
       );
     }
-    
+
     if (status === 429) {
       return Promise.reject(AppError.rateLimit('Too many requests'));
     }
-    
+
     if (status && status >= 500) {
       return Promise.reject(
         AppError.server(
@@ -210,11 +203,10 @@ axiosInstance.interceptors.response.use(
         )
       );
     }
-    
+
     return Promise.reject(
       AppError.unknown(
-        (error.response?.data as any)?.message ||
-        'Unexpected error occurred',
+        (error.response?.data as any)?.message || 'Unexpected error occurred',
         error
       )
     );

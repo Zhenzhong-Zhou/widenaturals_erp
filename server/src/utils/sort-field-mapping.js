@@ -158,42 +158,42 @@ const SORTABLE_FIELDS = {
     // Core identity
     // --------------------------------------------------
     name: `LOWER(l.name)`,
-    
+
     // --------------------------------------------------
     // Location type
     // --------------------------------------------------
     locationTypeName: `LOWER(lt.name)`,
-    
+
     // --------------------------------------------------
     // Address / Geography
     // --------------------------------------------------
     city: `LOWER(l.city)`,
     provinceOrState: `LOWER(l.province_or_state)`,
     country: `LOWER(l.country)`,
-    
+
     // --------------------------------------------------
     // Archive
     // --------------------------------------------------
     isArchived: `l.is_archived`,
-    
+
     // --------------------------------------------------
     // Status
     // --------------------------------------------------
     statusName: `LOWER(s.name)`,
     statusDate: `l.status_date`,
-    
+
     // --------------------------------------------------
     // Audit timestamps
     // --------------------------------------------------
     createdAt: `l.created_at`,
     updatedAt: `l.updated_at`,
-    
+
     // --------------------------------------------------
     // Audit users (optional for sorting)
     // --------------------------------------------------
     createdBy: `l.created_by`,
     updatedBy: `l.updated_by`,
-    
+
     // --------------------------------------------------
     // Required fallback
     // --------------------------------------------------
@@ -205,7 +205,7 @@ const SORTABLE_FIELDS = {
     // --------------------------------------------------
     registeredAt: `br.registered_at`,
     batchType: `br.batch_type`,
-    
+
     // --------------------------------------------------
     // Lot number (polymorphic)
     // --------------------------------------------------
@@ -214,14 +214,14 @@ const SORTABLE_FIELDS = {
         COALESCE(pb.lot_number, pmb.lot_number)
       )
     `,
-    
+
     // --------------------------------------------------
     // Expiry date (polymorphic, NULL-safe)
     // --------------------------------------------------
     expiryDate: `
       COALESCE(pb.expiry_date, pmb.expiry_date)
     `,
-    
+
     // --------------------------------------------------
     // Status (polymorphic)
     // --------------------------------------------------
@@ -230,24 +230,24 @@ const SORTABLE_FIELDS = {
         COALESCE(bs_pb.name, bs_pmb.name)
       )
     `,
-    
+
     statusDate: `
       COALESCE(pb.status_date, pmb.status_date)
     `,
-    
+
     // --------------------------------------------------
     // Product-side metadata
     // --------------------------------------------------
     productName: `LOWER(p.name)`,
     skuCode: `LOWER(s.sku)`,
     manufacturerName: `LOWER(m.name)`,
-    
+
     // --------------------------------------------------
     // Packaging-side metadata
     // --------------------------------------------------
     packagingMaterialName: `LOWER(pm.name)`,
     supplierName: `LOWER(sup.name)`,
-    
+
     // --------------------------------------------------
     // Audit
     // --------------------------------------------------
@@ -257,7 +257,7 @@ const SORTABLE_FIELDS = {
         COALESCE(u_reg.lastname, '')
       )
     `,
-    
+
     // --------------------------------------------------
     // Fallback (required)
     // --------------------------------------------------
@@ -269,44 +269,44 @@ const SORTABLE_FIELDS = {
     // --------------------------------------------------
     createdAt: `pb.created_at`,
     lotNumber: `LOWER(pb.lot_number)`,
-    
+
     // --------------------------------------------------
     // SKU (PRIMARY operational identity)
     // --------------------------------------------------
     skuCode: `LOWER(sk.sku)`,
     sizeLabel: `LOWER(sk.size_label)`,
     countryCode: `LOWER(sk.country_code)`,
-    
+
     // --------------------------------------------------
     // Product (PRIMARY display fields)
     // --------------------------------------------------
     productName: `LOWER(p.name)`,
     productBrand: `LOWER(p.brand)`,
     productCategory: `LOWER(p.category)`,
-    
+
     // --------------------------------------------------
     // Manufacturer (REFERENCE, permission-gated)
     // --------------------------------------------------
     manufacturerName: `LOWER(m.name)`,
-    
+
     // --------------------------------------------------
     // Lifecycle
     // --------------------------------------------------
     manufactureDate: `pb.manufacture_date`,
     expiryDate: `pb.expiry_date`,
     receivedDate: `pb.received_date`,
-    
+
     // --------------------------------------------------
     // Quantity (manufactured amount)
     // --------------------------------------------------
     initialQuantity: `pb.initial_quantity`,
-    
+
     // --------------------------------------------------
     // Status
     // --------------------------------------------------
     statusName: `LOWER(bs.name)`,
     statusDate: `pb.status_date`,
-    
+
     // --------------------------------------------------
     // Release / approval
     // --------------------------------------------------
@@ -317,12 +317,12 @@ const SORTABLE_FIELDS = {
         COALESCE(rb.lastname, '')
       )
     `,
-    
+
     // --------------------------------------------------
     // Audit
     // --------------------------------------------------
     updatedAt: `pb.updated_at`,
-    
+
     // --------------------------------------------------
     // Fallback (REQUIRED)
     // --------------------------------------------------
@@ -334,48 +334,48 @@ const SORTABLE_FIELDS = {
     // --------------------------------------------------
     receivedAt: `pmb.received_at`,
     lotNumber: `LOWER(pmb.lot_number)`,
-    
+
     // --------------------------------------------------
     // Snapshot identity (PRIMARY display fields)
     // --------------------------------------------------
     materialInternalName: `
       LOWER(pmb.material_snapshot_name)
     `,
-    
+
     supplierLabelName: `
       LOWER(pmb.received_label_name)
     `,
-    
+
     // --------------------------------------------------
     // Lifecycle
     // --------------------------------------------------
     manufactureDate: `pmb.manufacture_date`,
     expiryDate: `pmb.expiry_date`,
-    
+
     // --------------------------------------------------
     // Status
     // --------------------------------------------------
     statusName: `LOWER(bs.name)`,
     statusDate: `pmb.status_date`,
-    
+
     // --------------------------------------------------
     // Quantity
     // --------------------------------------------------
     quantity: `pmb.quantity`,
-    
+
     // --------------------------------------------------
     // Packaging material (REFERENCE ONLY)
     // --------------------------------------------------
     packagingMaterialCode: `LOWER(pm.code)`,
     packagingMaterialCategory: `LOWER(pm.category)`,
-    
+
     // --------------------------------------------------
     // Supplier
     // --------------------------------------------------
     supplierName: `LOWER(s.name)`,
     isPreferredSupplier: `pms.is_preferred`,
     supplierLeadTime: `pms.lead_time_days`,
-    
+
     // --------------------------------------------------
     // Audit / Intake
     // --------------------------------------------------
@@ -385,9 +385,9 @@ const SORTABLE_FIELDS = {
         COALESCE(rb.lastname, '')
       )
     `,
-    
+
     createdAt: `pmb.created_at`,
-    
+
     // --------------------------------------------------
     // Fallback (REQUIRED)
     // --------------------------------------------------

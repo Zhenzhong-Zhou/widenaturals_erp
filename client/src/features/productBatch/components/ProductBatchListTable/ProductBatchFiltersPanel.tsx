@@ -2,10 +2,7 @@ import { type FC, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import Grid from '@mui/material/Grid';
 import { FilterPanelLayout } from '@components/index';
-import {
-  renderDateField,
-  renderInputField,
-} from '@utils/filters/filterUtils';
+import { renderDateField, renderInputField } from '@utils/filters/filterUtils';
 import { formatLabel } from '@utils/textUtils';
 import { toISODate } from '@utils/dateTimeUtils';
 import type { ProductBatchFilters } from '@features/productBatch/state';
@@ -94,15 +91,15 @@ export const PRODUCT_BATCH_DATE_FIELDS: ProductBatchDateField[] = [
   // --- Expiry ---
   { name: 'expiryAfter', label: 'Expiry Date ≥' },
   { name: 'expiryBefore', label: 'Expiry Date <' },
-  
+
   // --- Manufacture ---
   { name: 'manufactureAfter', label: 'Manufacture Date ≥' },
   { name: 'manufactureBefore', label: 'Manufacture Date <' },
-  
+
   // --- Received ---
   { name: 'receivedAfter', label: 'Received Date ≥' },
   { name: 'receivedBefore', label: 'Received Date <' },
-  
+
   // --- Audit ---
   { name: 'createdAfter', label: 'Created Date ≥' },
   { name: 'createdBefore', label: 'Created Date <' },
@@ -124,29 +121,29 @@ export const PRODUCT_BATCH_DATE_FIELDS: ProductBatchDateField[] = [
  * - keyword search
  */
 const ProductBatchFiltersPanel: FC<Props> = ({
-                                               filters,
-                                               lookups,
-                                               lookupHandlers,
-                                               onChange,
-                                               onApply,
-                                               onReset,
-                                             }) => {
+  filters,
+  lookups,
+  lookupHandlers,
+  onChange,
+  onApply,
+  onReset,
+}) => {
   const { control, handleSubmit, reset, watch, setValue } =
     useForm<ProductBatchFilters>({
       defaultValues: filters,
     });
-  
+
   const {
     product,
     sku,
     // manufacturer,
-    status
+    status,
   } = lookups;
-  
+
   /* -----------------------------
    * Lookup bindings
    * --------------------------- */
-  
+
   const productFilter = useFilterLookup({
     fieldName: 'productIds',
     lookup: product,
@@ -154,7 +151,7 @@ const ProductBatchFiltersPanel: FC<Props> = ({
     setValue,
     useSearchHandlers: useProductSearchHandlers,
   });
-  
+
   const skuFilter = useFilterLookup({
     fieldName: 'skuIds',
     lookup: sku,
@@ -162,7 +159,7 @@ const ProductBatchFiltersPanel: FC<Props> = ({
     setValue,
     useSearchHandlers: useSkuSearchHandlers,
   });
-  
+
   // const manufacturerFilter = useFilterLookup({
   //   fieldName: 'manufacturerIds',
   //   lookup: manufacturer,
@@ -170,25 +167,25 @@ const ProductBatchFiltersPanel: FC<Props> = ({
   //   setValue,
   //   useSearchHandlers: useManufacturerSearchHandlers,
   // });
-  
+
   /* -----------------------------
    * Sync external filters
    * --------------------------- */
-  
+
   useEffect(() => {
     reset(filters);
   }, [filters, reset]);
-  
+
   /* -----------------------------
    * Submit / Reset
    * --------------------------- */
-  
+
   const submitFilters = (data: ProductBatchFilters) => {
     const adjusted: ProductBatchFilters = {
       ...data,
       lotNumber: data.lotNumber || undefined,
       keyword: data.keyword || undefined,
-      
+
       expiryAfter: toISODate(data.expiryAfter),
       expiryBefore: toISODate(data.expiryBefore),
       manufactureAfter: toISODate(data.manufactureAfter),
@@ -198,25 +195,25 @@ const ProductBatchFiltersPanel: FC<Props> = ({
       createdAfter: toISODate(data.createdAfter),
       createdBefore: toISODate(data.createdBefore),
     };
-    
+
     onChange(adjusted);
     onApply();
   };
-  
+
   const resetFilters = () => {
     reset(emptyFilters);
-    
+
     productFilter.reset();
     skuFilter.reset();
     // manufacturerFilter.reset();
-    
+
     onReset();
   };
-  
+
   /* -----------------------------
    * Status multiselect
    * --------------------------- */
-  
+
   const {
     selectedOptions: selectedStatusOptions,
     handleSelect: handleStatusSelect,
@@ -226,16 +223,16 @@ const ProductBatchFiltersPanel: FC<Props> = ({
     fieldName: 'statusIds',
     options: status.options,
   });
-  
+
   const formattedStatusOptions = useFormattedOptions(
     status.options,
     formatLabel
   );
-  
+
   /* -----------------------------
    * Render
    * --------------------------- */
-  
+
   return (
     <form onSubmit={handleSubmit(submitFilters)}>
       <FilterPanelLayout onReset={resetFilters}>
@@ -255,7 +252,7 @@ const ProductBatchFiltersPanel: FC<Props> = ({
               onInputChange={productFilter.onInputChange}
             />
           </Grid>
-          
+
           <Grid size={{ xs: 12, md: 6 }}>
             <SkuMultiSelectDropdown
               options={sku.options}
@@ -271,7 +268,7 @@ const ProductBatchFiltersPanel: FC<Props> = ({
               onInputChange={skuFilter.onInputChange}
             />
           </Grid>
-          
+
           <Grid size={{ xs: 12, md: 6 }}>
             {/*<ManufacturerMultiSelectDropdown*/}
             {/*  options={manufacturer.options}*/}
@@ -287,7 +284,7 @@ const ProductBatchFiltersPanel: FC<Props> = ({
             {/*  onInputChange={manufacturerFilter.onInputChange}*/}
             {/*/>*/}
           </Grid>
-          
+
           <Grid size={{ xs: 12, md: 6 }}>
             <StatusMultiSelectDropdown
               options={formattedStatusOptions}
@@ -296,7 +293,7 @@ const ProductBatchFiltersPanel: FC<Props> = ({
               onOpen={lookupHandlers.onOpen.status}
             />
           </Grid>
-          
+
           {/* --- Keyword --- */}
           {renderInputField(
             control,
@@ -304,10 +301,10 @@ const ProductBatchFiltersPanel: FC<Props> = ({
             'Keyword',
             'Lot, product, SKU, manufacturer'
           )}
-          
+
           {/* --- Lot --- */}
           {renderInputField(control, 'lotNumber', 'Lot Number')}
-          
+
           {/* --- Date ranges --- */}
           {PRODUCT_BATCH_DATE_FIELDS.map(({ name, label }) =>
             renderDateField(control, name, label)

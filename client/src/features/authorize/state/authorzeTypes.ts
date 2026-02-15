@@ -15,7 +15,7 @@ import { ApiSuccessResponse } from '@shared-types/api';
 export interface PermissionPayload {
   /** Canonical role name assigned to the user */
   roleName: string;
-  
+
   /** List of permission keys granted to the role */
   permissions: string[];
 }
@@ -64,7 +64,7 @@ export interface UsePermissions {
    * completed yet or the user is unauthenticated.
    */
   roleName: string | null;
-  
+
   /**
    * Effective permission identifiers.
    *
@@ -72,7 +72,7 @@ export interface UsePermissions {
    * has no explicit permissions.
    */
   permissions: string[];
-  
+
   /**
    * Indicates whether permission hydration is currently in progress.
    *
@@ -80,7 +80,7 @@ export interface UsePermissions {
    * Most consumers should rely on `ready` instead.
    */
   loading: boolean;
-  
+
   /**
    * Indicates whether permission resolution has completed.
    *
@@ -90,14 +90,14 @@ export interface UsePermissions {
    * This is the PRIMARY readiness signal for guards and UI logic.
    */
   ready: boolean;
-  
+
   /**
    * Last non-recoverable permission error, if any.
    *
    * Recoverable or transient errors must not be surfaced here.
    */
   error: string | null;
-  
+
   /**
    * Explicit permission revalidation.
    *
@@ -166,10 +166,10 @@ export type PermissionCheckOptions = {
 export interface PermissionsState {
   /** Resolved role name for the current user, or null if unknown */
   roleName: string | null;
-  
+
   /** List of granted permission identifiers */
   permissions: string[];
-  
+
   /** Indicates an in-flight permission fetch */
   loading: boolean;
 
@@ -180,7 +180,7 @@ export interface PermissionsState {
    * finalized authorization decision during app bootstrap.
    */
   resolved: boolean;
-  
+
   /** Recoverable permission resolution error (non-fatal) */
   error: string | null;
 }

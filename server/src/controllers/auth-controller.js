@@ -4,7 +4,10 @@
  */
 
 const wrapAsync = require('../utils/wrap-async');
-const { logoutService, changePasswordService  } = require('../services/auth-service');
+const {
+  logoutService,
+  changePasswordService,
+} = require('../services/auth-service');
 const AppError = require('../utils/AppError');
 const { extractRequestContext } = require('../utils/request-context');
 
@@ -43,12 +46,9 @@ const { extractRequestContext } = require('../utils/request-context');
  */
 const logoutController = wrapAsync(async (req, res) => {
   const isProduction = process.env.NODE_ENV === 'production';
-  
-  const {
-    ipAddress,
-    userAgent,
-  } = extractRequestContext(req);
-  
+
+  const { ipAddress, userAgent } = extractRequestContext(req);
+
   /**
    * Delegate logout semantics to the service layer.
    *
@@ -59,11 +59,14 @@ const logoutController = wrapAsync(async (req, res) => {
    *
    * Absence of auth context is treated as a no-op.
    */
-  await logoutService({
-    userId: req.auth?.user?.id ?? null,
-    sessionId: req.auth?.sessionId ?? null,
-  },{ ipAddress, userAgent });
-  
+  await logoutService(
+    {
+      userId: req.auth?.user?.id ?? null,
+      sessionId: req.auth?.sessionId ?? null,
+    },
+    { ipAddress, userAgent }
+  );
+
   /**
    * Clear refresh-token cookie (transport-level concern).
    *
@@ -76,7 +79,7 @@ const logoutController = wrapAsync(async (req, res) => {
     sameSite: isProduction ? 'strict' : 'lax',
     path: '/',
   });
-  
+
   // Deterministic success response
   res.status(200).json({
     success: true,
@@ -128,21 +131,17 @@ const logoutController = wrapAsync(async (req, res) => {
 const changePasswordController = wrapAsync(async (req, res) => {
   const userId = req.auth.user.id;
   const { currentPassword, newPassword } = req.body;
-  
+
   // Transport-level validation
   if (!currentPassword || !newPassword) {
     throw AppError.validationError(
       'Both current and new passwords are required.'
     );
   }
-  
+
   // All security invariants handled in service
-  await changePasswordService(
-    userId,
-    currentPassword,
-    newPassword
-  );
-  
+  await changePasswordService(userId, currentPassword, newPassword);
+
   // Clear refresh token cookie (force re-auth)
   res.clearCookie('refreshToken', {
     httpOnly: true,
@@ -150,7 +149,7 @@ const changePasswordController = wrapAsync(async (req, res) => {
     sameSite: 'strict',
     path: '/',
   });
-  
+
   return res.status(200).json({
     success: true,
     message: 'Password changed successfully. Please log in again.',

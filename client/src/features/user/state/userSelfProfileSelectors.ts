@@ -5,7 +5,7 @@ import { selectRuntime } from '@store/selectors';
 /**
  * Root selector for the self user profile slice.
  */
-const selectUserSelfProfileState= (state: RootState) =>
+const selectUserSelfProfileState = (state: RootState) =>
   selectRuntime(state).userSelfProfile;
 
 /**

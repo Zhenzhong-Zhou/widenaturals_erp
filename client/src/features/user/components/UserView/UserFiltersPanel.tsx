@@ -98,10 +98,7 @@ const UserFiltersPanel: FC<Props> = ({
       defaultValues: filters,
     });
 
-  const {
-    role,
-    status,
-  } = lookups;
+  const { role, status } = lookups;
 
   /* -----------------------------
    * Sync external state
@@ -145,23 +142,20 @@ const UserFiltersPanel: FC<Props> = ({
     fieldName: 'statusIds',
     options: status.options,
   });
-  
+
   /* -----------------------------
    * Lookup search bindings
    * ----------------------------- */
   const { handleRoleSearch } = useRoleSearchHandlers(role);
   const { handleStatusSearch } = useStatusSearchHandlers(status);
-  
+
   const roleSearch = useLookupSearchBinding(handleRoleSearch);
   const statusSearch = useLookupSearchBinding(handleStatusSearch);
 
   /* -----------------------------
    * Derived lookup options
    * ----------------------------- */
-  const formattedRoleOptions = useFormattedOptions(
-    role.options,
-    formatLabel
-  );
+  const formattedRoleOptions = useFormattedOptions(role.options, formatLabel);
 
   const formattedStatusOptions = useFormattedOptions(
     status.options,

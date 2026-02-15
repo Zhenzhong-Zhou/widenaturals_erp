@@ -1,8 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { createInitialPaginatedState } from '@store/pagination';
-import {
-  fetchPaginatedProductBatchThunk,
-} from '@features/productBatch';
+import { fetchPaginatedProductBatchThunk } from '@features/productBatch';
 import type {
   PaginatedProductBatchState,
   FlattenedProductBatchRecord,
@@ -21,7 +19,7 @@ const initialState: PaginatedProductBatchState =
 const paginatedProductBatchesSlice = createSlice({
   name: 'paginatedProductBatches',
   initialState,
-  
+
   reducers: {
     /**
      * Reset the entire paginated product batch state back to its
@@ -34,7 +32,7 @@ const paginatedProductBatchesSlice = createSlice({
      */
     resetPaginatedProductBatches: () => initialState,
   },
-  
+
   // ---------------------------
   // Extra reducers (async thunk lifecycle)
   // ---------------------------
@@ -45,19 +43,16 @@ const paginatedProductBatchesSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      
+
       // ---- fulfilled ----
       .addCase(
         fetchPaginatedProductBatchThunk.fulfilled,
-        (
-          state,
-          action: PayloadAction<PaginatedProductBatchListResponse>
-        ) => {
+        (state, action: PayloadAction<PaginatedProductBatchListResponse>) => {
           const payload = action.payload;
-          
+
           state.loading = false;
           state.data = payload.data;
-          
+
           state.pagination = {
             page: payload.pagination.page,
             limit: payload.pagination.limit,
@@ -66,7 +61,7 @@ const paginatedProductBatchesSlice = createSlice({
           };
         }
       )
-      
+
       // ---- rejected ----
       .addCase(fetchPaginatedProductBatchThunk.rejected, (state, action) => {
         state.loading = false;
@@ -78,8 +73,7 @@ const paginatedProductBatchesSlice = createSlice({
   },
 });
 
-export const {
-  resetPaginatedProductBatches,
-} = paginatedProductBatchesSlice.actions;
+export const { resetPaginatedProductBatches } =
+  paginatedProductBatchesSlice.actions;
 
 export default paginatedProductBatchesSlice.reducer;

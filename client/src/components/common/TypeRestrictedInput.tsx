@@ -12,13 +12,13 @@ type InputType = 'text' | 'email' | 'tel' | 'number' | 'password';
 interface RestrictedInputProps {
   /** Input label displayed to the user */
   label: string;
-  
+
   /** Allowed input types */
   type: InputType;
-  
+
   /** Optional placeholder text */
   placeholder?: string;
-  
+
   /**
    * Validation error message.
    *
@@ -27,7 +27,7 @@ interface RestrictedInputProps {
    * - Takes precedence over helperText
    */
   errorText?: string;
-  
+
   /**
    * Non-error helper or status content.
    *
@@ -47,8 +47,8 @@ interface RestrictedInputProps {
  * We intentionally omit `type` from TextFieldProps to enforce
  * a constrained set of allowed input types.
  */
-type TypeRestrictedInputProps =
-  Omit<TextFieldProps, 'type'> & RestrictedInputProps;
+type TypeRestrictedInputProps = Omit<TextFieldProps, 'type'> &
+  RestrictedInputProps;
 
 /**
  * TypeRestrictedInput
@@ -67,16 +67,16 @@ type TypeRestrictedInputProps =
  * It only renders state derived from upstream logic.
  */
 const TypeRestrictedInput: FC<TypeRestrictedInputProps> = ({
-                                                             label,
-                                                             type = 'text',
-                                                             placeholder,
-                                                             errorText,
-                                                             helperText,
-                                                             slotProps,
-                                                             ...props
-                                                           }) => {
+  label,
+  type = 'text',
+  placeholder,
+  errorText,
+  helperText,
+  slotProps,
+  ...props
+}) => {
   const resolvedHelperText = errorText ?? helperText;
-  
+
   return (
     <BaseInput
       label={label}

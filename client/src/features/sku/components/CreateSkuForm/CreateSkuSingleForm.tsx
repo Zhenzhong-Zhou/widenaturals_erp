@@ -7,7 +7,7 @@ import type {
 } from '@features/sku/types/skuFormTypes';
 import {
   buildSingleSkuFields,
-  buildSingleSkuPayload
+  buildSingleSkuPayload,
 } from '@features/sku/utils';
 
 const CreateSkuSingleForm: FC<CreateSkuFormProps> = ({

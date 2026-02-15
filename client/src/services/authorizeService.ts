@@ -22,15 +22,15 @@ export const fetchPermissions = async (): Promise<{
   const response = await getRequest<PermissionResponse>(
     API_ENDPOINTS.USER_PERMISSION
   );
-  
+
   const { roleName, permissions } = response.data;
-  
+
   if (!roleName || !permissions) {
     throw new Error(
       'Invalid permission response: roleName or permissions missing.'
     );
   }
-  
+
   return { roleName, permissions };
 };
 

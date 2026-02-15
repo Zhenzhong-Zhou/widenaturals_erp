@@ -75,7 +75,7 @@ const OrderTypeFiltersPanel: FC<Props> = ({
       updatedAfter: toISODate(data.updatedAfter),
       updatedBefore: toISODate(data.updatedBefore),
     };
-    
+
     onChange(adjusted);
     onApply();
   };

@@ -71,29 +71,29 @@ const AppError = require('../utils/AppError');
  * @throws {AppError.databaseError} If query execution fails
  */
 const getPaginatedLocations = async ({
-                                       filters = {},
-                                       page = 1,
-                                       limit = 10,
-                                       sortBy = 'created_at',
-                                       sortOrder = 'DESC',
-                                     }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'created_at',
+  sortOrder = 'DESC',
+}) => {
   const context = 'location-repository/getPaginatedLocations';
-  
+
   try {
     const tableName = 'locations l';
-    
-    const joins =  [
+
+    const joins = [
       'LEFT JOIN status s ON l.status_id = s.id',
       'LEFT JOIN location_types lt ON l.location_type_id = lt.id',
       'LEFT JOIN users u1 ON l.created_by = u1.id',
       'LEFT JOIN users u2 ON l.updated_by = u2.id',
-    ]
-    
+    ];
+
     // -------------------------------------------------------------
     // Build WHERE clause
     // -------------------------------------------------------------
     const { whereClause, params } = buildLocationFilter(filters);
-    
+
     // -------------------------------------------------------------
     // Base SELECT query (NO ORDER BY here)
     // -------------------------------------------------------------
@@ -121,11 +121,11 @@ const getPaginatedLocations = async ({
         ${joins.join('\n')}
         WHERE ${whereClause}
     `;
-    
+
     // -------------------------------------------------------------
     // Paginated execution
     // -------------------------------------------------------------
-    const result =  await paginateQuery({
+    const result = await paginateQuery({
       tableName: 'locations l',
       joins,
       whereClause,
@@ -144,7 +144,7 @@ const getPaginatedLocations = async ({
         sortOrder,
       },
     });
-    
+
     logSystemInfo('Paginated locations query executed', {
       context,
       filters,
@@ -159,7 +159,7 @@ const getPaginatedLocations = async ({
         sortOrder,
       },
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch paginated locations', {
@@ -168,7 +168,7 @@ const getPaginatedLocations = async ({
       pagination: { page, limit },
       sorting: { sortBy, sortOrder },
     });
-    
+
     throw AppError.databaseError('Failed to fetch locations', {
       context,
       details: error.message,

@@ -57,9 +57,6 @@ export const selectPaginatedBatchRegistryPagination = createSelector(
  * Selector: Returns `true` only if the batch registry list is loaded and empty.
  */
 export const selectPaginatedBatchRegistryIsEmpty = createSelector(
-  [
-    selectPaginatedBatchRegistryData,
-    selectPaginatedBatchRegistryLoading,
-  ],
+  [selectPaginatedBatchRegistryData, selectPaginatedBatchRegistryLoading],
   (data, loading) => !loading && data.length === 0
 );

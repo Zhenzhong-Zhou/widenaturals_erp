@@ -6,9 +6,7 @@ export { batchRegistryReducers } from './batchRegistryReducers';
 // ------------------------------------------------------------------
 // Reset Actions (explicit public API)
 // ------------------------------------------------------------------
-export {
-  resetPaginatedBatchRegistry
-} from './paginatedBatchRegistrySlice';
+export { resetPaginatedBatchRegistry } from './paginatedBatchRegistrySlice';
 
 // ------------------------------------------------------------------
 // Selectors

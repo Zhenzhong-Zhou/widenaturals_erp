@@ -17,7 +17,10 @@
  * Output is designed for safe use with parameterized queries (e.g., `pg.query`).
  */
 
-const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
+const {
+  normalizeDateRangeFilters,
+  applyDateRangeConditions,
+} = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
@@ -99,11 +102,11 @@ const buildBomFilter = (filters = {}) => {
       'createdAfter',
       'createdBefore'
     );
-    
+
     const conditions = ['1=1'];
     const params = [];
     const paramIndexRef = { value: 1 };
-    
+
     // ------------------------------
     // SKU ID(s)
     // ------------------------------
@@ -120,7 +123,7 @@ const buildBomFilter = (filters = {}) => {
         paramIndexRef.value++;
       }
     }
-    
+
     // ------------------------------
     // Product ID(s)
     // ------------------------------
@@ -137,21 +140,21 @@ const buildBomFilter = (filters = {}) => {
         paramIndexRef.value++;
       }
     }
-    
+
     // Product name (partial)
     if (filters.productName) {
       conditions.push(`p.name ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.productName}%`);
       paramIndexRef.value++;
     }
-    
+
     // SKU code (partial)
     if (filters.skuCode) {
       conditions.push(`s.sku ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.skuCode}%`);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Compliance filters
     // ------------------------------
@@ -160,17 +163,17 @@ const buildBomFilter = (filters = {}) => {
       params.push(`%${filters.complianceType}%`);
       paramIndexRef.value++;
     }
-    
+
     if (filters.complianceStatusId) {
       conditions.push(`cr.status_id = $${paramIndexRef.value}`);
       params.push(filters.complianceStatusId);
       paramIndexRef.value++;
     }
-    
+
     if (filters.onlyActiveCompliance === true) {
       conditions.push(`LOWER(st_compliance.name) = 'active'`);
     }
-    
+
     // ------------------------------
     // Compliance date filters (via helper)
     // ------------------------------
@@ -182,7 +185,7 @@ const buildBomFilter = (filters = {}) => {
       before: undefined,
       paramIndexRef,
     });
-    
+
     applyDateRangeConditions({
       conditions,
       params,
@@ -191,7 +194,7 @@ const buildBomFilter = (filters = {}) => {
       before: filters.complianceExpiredBefore,
       paramIndexRef,
     });
-    
+
     // ------------------------------
     // BOM status filters
     // ------------------------------
@@ -200,46 +203,46 @@ const buildBomFilter = (filters = {}) => {
       params.push(filters.statusId);
       paramIndexRef.value++;
     }
-    
+
     // Is Active / Default
     if (typeof filters.isActive === 'boolean') {
       conditions.push(`b.is_active = $${paramIndexRef.value}`);
       params.push(filters.isActive);
       paramIndexRef.value++;
     }
-    
+
     if (typeof filters.isDefault === 'boolean') {
       conditions.push(`b.is_default = $${paramIndexRef.value}`);
       params.push(filters.isDefault);
       paramIndexRef.value++;
     }
-    
+
     // Revision range
     if (filters.revisionMin) {
       conditions.push(`b.revision >= $${paramIndexRef.value}`);
       params.push(filters.revisionMin);
       paramIndexRef.value++;
     }
-    
+
     if (filters.revisionMax) {
       conditions.push(`b.revision <= $${paramIndexRef.value}`);
       params.push(filters.revisionMax);
       paramIndexRef.value++;
     }
-    
+
     // Created / Updated by
     if (filters.createdBy) {
       conditions.push(`b.created_by = $${paramIndexRef.value}`);
       params.push(filters.createdBy);
       paramIndexRef.value++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`b.updated_by = $${paramIndexRef.value}`);
       params.push(filters.updatedBy);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Record creation date filters (via helper)
     // ------------------------------
@@ -251,7 +254,7 @@ const buildBomFilter = (filters = {}) => {
       before: filters.createdBefore,
       paramIndexRef,
     });
-    
+
     // ------------------------------
     // Keyword
     // ------------------------------
@@ -265,7 +268,7 @@ const buildBomFilter = (filters = {}) => {
       params.push(kw);
       paramIndexRef.value++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,

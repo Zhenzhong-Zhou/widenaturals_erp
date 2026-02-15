@@ -6,8 +6,7 @@ import { selectSelfUserFullName } from '@features/user';
 import { useHasPermission } from '@features/authorize/hooks';
 import CustomTypography from '@components/common/CustomTypography';
 import InventoryOverviewHeaderSection from '@features/inventoryOverview/components/InventoryOverviewHeaderSection';
-import SkuWarehouseInventorySummarySection
-  from '@features/warehouseInventory/components/SkuWarehouseInventorySummarySection';
+import SkuWarehouseInventorySummarySection from '@features/warehouseInventory/components/SkuWarehouseInventorySummarySection';
 
 /**
  * AdminDashboardPage
@@ -28,33 +27,26 @@ import SkuWarehouseInventorySummarySection
  * - All permission checks are localized to this page
  * - Layout remains purely presentational
  */
-const AdminDashboardPage: FC<DashboardPageProps> = ( ) => {
+const AdminDashboardPage: FC<DashboardPageProps> = () => {
   const fullName = useAppSelector(selectSelfUserFullName);
   const hasPermission = useHasPermission();
-  
+
   const canShowInventoryOverview =
     hasPermission('inventory.overview.view') === true;
-  
+
   const canShowWarehouseSummary =
     hasPermission('warehouse.inventory.view') === true;
-  
+
   const headerContent = (
     <>
-      <CustomTypography
-        variant="h6"
-        sx={{ fontWeight: 600 }}
-        gutterBottom
-      >
+      <CustomTypography variant="h6" sx={{ fontWeight: 600 }} gutterBottom>
         Administrative Overview
       </CustomTypography>
     </>
   );
-  
+
   return (
-    <DashboardLayout
-      fullName={fullName ?? undefined}
-      header={headerContent}
-    >
+    <DashboardLayout fullName={fullName ?? undefined} header={headerContent}>
       {canShowInventoryOverview && <InventoryOverviewHeaderSection />}
       {canShowWarehouseSummary && <SkuWarehouseInventorySummarySection />}
     </DashboardLayout>

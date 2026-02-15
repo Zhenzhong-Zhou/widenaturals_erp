@@ -40,7 +40,7 @@ const useActionPermission = (
   allowedStates: readonly string[]
 ): boolean => {
   const hasPermission = useHasPermission();
-  
+
   return canPerformAction({
     /**
      * Normalize tri-state permission into strict boolean.

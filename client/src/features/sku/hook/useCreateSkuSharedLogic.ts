@@ -10,7 +10,7 @@ import {
 import {
   useCreateSkus,
   useProductLookup,
-  useSkuCodeBaseLookup
+  useSkuCodeBaseLookup,
 } from '@hooks/index';
 
 interface CreateSkuSharedLogic {
@@ -50,8 +50,7 @@ const useCreateSkuSharedLogic = (): CreateSkuSharedLogic => {
   // ---------------------------------------------------------------------------
   // 1. Permissions
   // ---------------------------------------------------------------------------
-  const { isAllowed: canCreateSku } =
-    usePagePermissionState('create_skus');
+  const { isAllowed: canCreateSku } = usePagePermissionState('create_skus');
 
   // redirect if not allowed
   useEffect(() => {

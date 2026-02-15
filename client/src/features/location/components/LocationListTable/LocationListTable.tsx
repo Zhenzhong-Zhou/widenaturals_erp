@@ -1,6 +1,11 @@
 import { FC, Suspense, useCallback, useMemo } from 'react';
 import Box from '@mui/material/Box';
-import { CustomButton, CustomTable, CustomTypography, SkeletonExpandedRow } from '@components/index';
+import {
+  CustomButton,
+  CustomTable,
+  CustomTypography,
+  SkeletonExpandedRow,
+} from '@components/index';
 import { FlattenedLocationListRecord } from '@features/location';
 import {
   getLocationTableColumns,
@@ -24,32 +29,29 @@ interface LocationTableProps {
 }
 
 const LocationListTable: FC<LocationTableProps> = ({
-                                                     data,
-                                                     loading,
-                                                     page,
-                                                     totalPages,
-                                                     totalRecords,
-                                                     rowsPerPage,
-                                                     onPageChange,
-                                                     onRowsPerPageChange,
-                                                     expandedRowId,
-                                                     onDrillDownToggle,
-                                                     selectedRowIds,
-                                                     onSelectionChange,
-                                                     onRefresh,
-                                                   }: LocationTableProps) => {
+  data,
+  loading,
+  page,
+  totalPages,
+  totalRecords,
+  rowsPerPage,
+  onPageChange,
+  onRowsPerPageChange,
+  expandedRowId,
+  onDrillDownToggle,
+  selectedRowIds,
+  onSelectionChange,
+  onRefresh,
+}: LocationTableProps) => {
   // ----------------------------------------
   // Column definitions
   // ----------------------------------------
   const columns = useMemo(
     () =>
-      getLocationTableColumns(
-        expandedRowId ?? undefined,
-        onDrillDownToggle
-      ),
+      getLocationTableColumns(expandedRowId ?? undefined, onDrillDownToggle),
     [expandedRowId, onDrillDownToggle]
   );
-  
+
   // ----------------------------------------
   // Expanded row renderer (lazy)
   // ----------------------------------------
@@ -70,7 +72,7 @@ const LocationListTable: FC<LocationTableProps> = ({
     ),
     []
   );
-  
+
   return (
     <Box>
       {/* Table Header */}
@@ -83,7 +85,7 @@ const LocationListTable: FC<LocationTableProps> = ({
         <CustomTypography variant="h6" fontWeight={600}>
           Locations
         </CustomTypography>
-        
+
         <CustomButton
           onClick={onRefresh}
           variant="outlined"
@@ -92,7 +94,7 @@ const LocationListTable: FC<LocationTableProps> = ({
           Refresh
         </CustomButton>
       </Box>
-      
+
       <CustomTable
         data={data}
         columns={columns}

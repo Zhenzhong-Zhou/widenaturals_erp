@@ -3,8 +3,12 @@ const {
 } = require('../repositories/batch-registry-repository');
 const AppError = require('../utils/AppError');
 const { logSystemException } = require('../utils/system-logger');
-const { resolveUserPermissionContext } = require('../services/role-permission-service');
-const { BATCH_CONSTANTS } = require('../utils/constants/domain/batch-constants');
+const {
+  resolveUserPermissionContext,
+} = require('../services/role-permission-service');
+const {
+  BATCH_CONSTANTS,
+} = require('../utils/constants/domain/batch-constants');
 
 /**
  * Validates that a given batch_registry ID exists and matches the specified batch type.
@@ -105,51 +109,41 @@ const validateBatchRegistryEntryById = async (
  * }>}
  */
 const evaluateBatchRegistryVisibility = async (user) => {
-  const context =
-    'batch-registry-business/evaluateBatchRegistryVisibility';
-  
+  const context = 'batch-registry-business/evaluateBatchRegistryVisibility';
+
   try {
-    const { permissions, isRoot } =
-      await resolveUserPermissionContext(user);
-    
+    const { permissions, isRoot } = await resolveUserPermissionContext(user);
+
     // Full visibility override
     const canViewAllBatches =
       isRoot ||
       permissions.includes(
         BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_ALL_VISIBILITY
       );
-    
+
     const canViewProductBatches =
       canViewAllBatches ||
-      permissions.includes(
-        BATCH_CONSTANTS.PERMISSIONS.VIEW_PRODUCT_BATCHES
-      );
-    
+      permissions.includes(BATCH_CONSTANTS.PERMISSIONS.VIEW_PRODUCT_BATCHES);
+
     const canViewPackagingBatches =
       canViewAllBatches ||
-      permissions.includes(
-        BATCH_CONSTANTS.PERMISSIONS.VIEW_PACKAGING_BATCHES
-      );
-    
+      permissions.includes(BATCH_CONSTANTS.PERMISSIONS.VIEW_PACKAGING_BATCHES);
+
     const canViewManufacturer =
       canViewAllBatches ||
-      permissions.includes(
-        BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_MANUFACTURER
-      );
-    
+      permissions.includes(BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_MANUFACTURER);
+
     const canViewSupplier =
       canViewAllBatches ||
-      permissions.includes(
-        BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_SUPPLIER
-      );
-    
+      permissions.includes(BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_SUPPLIER);
+
     return {
       canViewProductBatches,
       canViewPackagingBatches,
       canViewManufacturer,
       canViewSupplier,
       canViewAllBatches,
-      
+
       // Derived keyword search capabilities (visibility-driven)
       canSearchProduct: canViewProductBatches,
       canSearchSku: canViewProductBatches,
@@ -158,15 +152,11 @@ const evaluateBatchRegistryVisibility = async (user) => {
       canSearchSupplier: canViewSupplier,
     };
   } catch (err) {
-    logSystemException(
-      err,
-      'Failed to evaluate batch registry visibility',
-      {
-        context,
-        userId: user?.id,
-      }
-    );
-    
+    logSystemException(err, 'Failed to evaluate batch registry visibility', {
+      context,
+      userId: user?.id,
+    });
+
     throw AppError.businessError(
       'Unable to evaluate batch registry visibility.',
       { details: err.message }
@@ -207,13 +197,13 @@ const evaluateBatchRegistryVisibility = async (user) => {
  */
 const applyBatchRegistryVisibilityRules = (filters, acl) => {
   const adjusted = { ...filters };
-  
+
   const requestedType = filters.batchType;
-  
+
   const canViewProduct = acl.canViewProductBatches === true;
   const canViewPackaging = acl.canViewPackagingBatches === true;
   const canViewAll = acl.canViewAllBatches === true;
-  
+
   // -------------------------------------------------------------
   // 1. Full visibility override → respect user intent entirely
   // -------------------------------------------------------------
@@ -227,7 +217,7 @@ const applyBatchRegistryVisibilityRules = (filters, acl) => {
     };
     return adjusted;
   }
-  
+
   // -------------------------------------------------------------
   // 2. User explicitly requested a batch type
   // -------------------------------------------------------------
@@ -237,14 +227,14 @@ const applyBatchRegistryVisibilityRules = (filters, acl) => {
       return adjusted;
     }
   }
-  
+
   if (requestedType === 'packaging_material') {
     if (!canViewPackaging) {
       adjusted.forceEmptyResult = true;
       return adjusted;
     }
   }
-  
+
   // -------------------------------------------------------------
   // 3. No batchType requested → restrict to allowed scope
   // -------------------------------------------------------------
@@ -258,7 +248,7 @@ const applyBatchRegistryVisibilityRules = (filters, acl) => {
       return adjusted;
     }
   }
-  
+
   // -------------------------------------------------------------
   // 4. Inject keyword search capabilities (CRITICAL)
   // -------------------------------------------------------------
@@ -269,7 +259,7 @@ const applyBatchRegistryVisibilityRules = (filters, acl) => {
     canSearchPackagingMaterial: canViewPackaging,
     canSearchSupplier: acl.canViewSupplier === true,
   };
-  
+
   return adjusted;
 };
 
@@ -298,17 +288,14 @@ const sliceBatchRegistryRow = (row, access) => {
   if (access.canViewAllBatches) {
     return row;
   }
-  
+
   // ---------------------------------------------------------
   // 2. Product batch visibility
   // ---------------------------------------------------------
-  if (
-    row.batch_type === 'product' &&
-    access.canViewProductBatches !== true
-  ) {
+  if (row.batch_type === 'product' && access.canViewProductBatches !== true) {
     return null;
   }
-  
+
   // ---------------------------------------------------------
   // 3. Packaging material batch visibility
   // ---------------------------------------------------------
@@ -318,7 +305,7 @@ const sliceBatchRegistryRow = (row, access) => {
   ) {
     return null;
   }
-  
+
   return row;
 };
 

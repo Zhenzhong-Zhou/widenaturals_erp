@@ -42,10 +42,10 @@ const RATE_LIMIT = {
     MAX: RATE_LIMIT_MAX.CSRF,
     MESSAGE: RATE_LIMIT_CSRF_TOKEN,
   },
-  
+
   HEALTH: {
     WINDOW_MS: ONE_MINUTE, // 1 minute
-    MAX: 300,             // safe for LB + monitors
+    MAX: 300, // safe for LB + monitors
   },
 
   LOGIN: {
@@ -71,13 +71,13 @@ const RATE_LIMIT = {
     MAX: RATE_LIMIT_MAX.REFRESH,
     MESSAGE: '',
   },
-  
+
   PASSWORD_CHANGE: {
     WINDOW_MS: TEN_MINUTES,
     MAX: RATE_LIMIT_MAX.PASSWORD_CHANGE,
     MESSAGE: RATE_LIMIT_PASSWORD_CHANGE,
   },
-  
+
   PASSWORD_RESET: {
     WINDOW_MS: TEN_MINUTES,
     MAX: RATE_LIMIT_MAX.PASSWORD_RESET,

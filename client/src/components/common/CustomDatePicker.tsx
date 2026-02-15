@@ -44,9 +44,9 @@ const CustomDatePicker: FC<CustomDatePickerProps> = ({
       ? value
       : typeof value === 'string'
         ? (() => {
-          const parsed = parse(value, 'yyyy-MM-dd', new Date());
-          return isValid(parsed) ? parsed : null;
-        })()
+            const parsed = parse(value, 'yyyy-MM-dd', new Date());
+            return isValid(parsed) ? parsed : null;
+          })()
         : null;
 
   return (

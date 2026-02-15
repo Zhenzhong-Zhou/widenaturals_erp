@@ -4,11 +4,9 @@ import {
   CustomButton,
   CustomTable,
   CustomTypography,
-  SkeletonExpandedRow
+  SkeletonExpandedRow,
 } from '@components/index';
-import type {
-  FlattenedProductBatchRecord,
-} from '@features/productBatch/state';
+import type { FlattenedProductBatchRecord } from '@features/productBatch/state';
 import {
   getProductBatchTableColumns,
   ProductBatchExpandedContent,
@@ -40,20 +38,20 @@ interface ProductBatchListTableProps {
  * - refresh and selection support
  */
 const ProductBatchListTable = ({
-                                 data,
-                                 loading,
-                                 page,
-                                 totalPages,
-                                 totalRecords,
-                                 rowsPerPage,
-                                 onPageChange,
-                                 onRowsPerPageChange,
-                                 expandedRowId,
-                                 onDrillDownToggle,
-                                 selectedRowIds,
-                                 onSelectionChange,
-                                 onRefresh,
-                               }: ProductBatchListTableProps) => {
+  data,
+  loading,
+  page,
+  totalPages,
+  totalRecords,
+  rowsPerPage,
+  onPageChange,
+  onRowsPerPageChange,
+  expandedRowId,
+  onDrillDownToggle,
+  selectedRowIds,
+  onSelectionChange,
+  onRefresh,
+}: ProductBatchListTableProps) => {
   // ----------------------------------------
   // Column definitions
   // ----------------------------------------
@@ -65,7 +63,7 @@ const ProductBatchListTable = ({
       ),
     [expandedRowId, onDrillDownToggle]
   );
-  
+
   // ----------------------------------------
   // Expanded row renderer (lazy)
   // ----------------------------------------
@@ -86,7 +84,7 @@ const ProductBatchListTable = ({
     ),
     []
   );
-  
+
   // ----------------------------------------
   // Render
   // ----------------------------------------
@@ -102,7 +100,7 @@ const ProductBatchListTable = ({
         <CustomTypography variant="h6" fontWeight={600}>
           Product Batches
         </CustomTypography>
-        
+
         <CustomButton
           onClick={onRefresh}
           variant="outlined"
@@ -111,7 +109,7 @@ const ProductBatchListTable = ({
           Refresh
         </CustomButton>
       </Box>
-      
+
       <CustomTable
         data={data}
         columns={columns}

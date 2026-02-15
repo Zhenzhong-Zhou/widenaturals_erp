@@ -4,10 +4,7 @@ import { TruncatedText } from '@components/index';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
 import { formatLabel } from '@utils/textUtils';
 import type { FlattenedProductBatchRecord } from '@features/productBatch/state';
-import {
-  formatDate,
-  formatDateTime,
-} from '@utils/dateTimeUtils';
+import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
 
 /**
  * Returns table column definitions for the Product Batch list view.
@@ -38,7 +35,7 @@ export const getProductBatchTableColumns = (
         </Link>
       ),
     },
-    
+
     // --------------------------------------------------
     // Product context
     // --------------------------------------------------
@@ -74,7 +71,7 @@ export const getProductBatchTableColumns = (
         />
       ),
     },
-    
+
     // --------------------------------------------------
     // Lifecycle (time-critical)
     // --------------------------------------------------
@@ -96,7 +93,7 @@ export const getProductBatchTableColumns = (
       sortable: true,
       renderCell: (row) => formatDate(row.expiryDate),
     },
-    
+
     // --------------------------------------------------
     // Quantity
     // --------------------------------------------------
@@ -106,7 +103,7 @@ export const getProductBatchTableColumns = (
       sortable: true,
       renderCell: (row) => row.initialQuantity,
     },
-    
+
     // --------------------------------------------------
     // Status & release
     // --------------------------------------------------
@@ -135,6 +132,6 @@ export const getProductBatchTableColumns = (
       )
     );
   }
-  
+
   return columns;
 };

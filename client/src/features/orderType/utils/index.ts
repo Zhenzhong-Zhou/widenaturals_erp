@@ -1,1 +1,1 @@
-export { flattenOrderTypeRecords } from  './flattenOrderTypeRecords';
+export { flattenOrderTypeRecords } from './flattenOrderTypeRecords';

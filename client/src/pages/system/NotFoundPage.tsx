@@ -5,7 +5,7 @@ import Container from '@mui/material/Container';
 import {
   CustomButton,
   CustomTypography,
-  GoBackButton
+  GoBackButton,
 } from '@components/index';
 import { useSession } from '@features/session/hooks';
 
@@ -13,16 +13,16 @@ const NotFoundPage: FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const { isAuthenticated, bootstrapped } = useSession();
-  
+
   // Prevent incorrect redirect target before bootstrap completes
   if (!bootstrapped) {
     return null;
   }
-  
+
   const handleRedirect = () => {
     navigate(isAuthenticated ? '/dashboard' : '/');
   };
-  
+
   return (
     <Container
       maxWidth="md"
@@ -46,7 +46,7 @@ const NotFoundPage: FC = () => {
       >
         404
       </CustomTypography>
-      
+
       <CustomTypography
         variant="h4"
         sx={{
@@ -58,7 +58,7 @@ const NotFoundPage: FC = () => {
           ? 'Sorry, we couldn’t find the page you’re looking for.'
           : 'Oops! The page you are looking for doesn’t exist.'}
       </CustomTypography>
-      
+
       <CustomButton
         variant="contained"
         size="large"
@@ -74,7 +74,7 @@ const NotFoundPage: FC = () => {
       >
         {isAuthenticated ? 'Go Back to Dashboard' : 'Go Back to Home'}
       </CustomButton>
-      
+
       <GoBackButton />
     </Container>
   );

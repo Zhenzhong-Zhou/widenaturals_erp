@@ -216,7 +216,7 @@ const transformSkuListRecord = (row) => {
       category: row.category,
       displayName: getProductDisplayName(row),
     },
-    
+
     status: makeStatus(row),
 
     audit: compactAudit(makeAudit(row)),
@@ -380,13 +380,13 @@ const transformSkuDetail = ({ sku, images, pricing, complianceRecords }) => {
         lb: sku.weight_lb,
       },
     },
-    
+
     status: makeStatus(sku, {
       id: 'sku_status_id',
       name: 'sku_status_name',
       date: 'sku_status_date',
     }),
-    
+
     audit: compactAudit(makeAudit(sku)),
 
     // --- Lists with transformers applied ---

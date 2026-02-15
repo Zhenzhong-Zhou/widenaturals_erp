@@ -41,44 +41,44 @@ type PermissionGuardProps = {
  * - Delegates all permission logic to `useHasPermission`
  */
 const PermissionGuard = ({
-                           requiredPermission,
-                           children,
-                         }: PermissionGuardProps) => {
+  requiredPermission,
+  children,
+}: PermissionGuardProps) => {
   const params = useParams();
   const hasPermission = useHasPermission();
-  
+
   const resolvedPermission = useMemo(
     () => resolvePermission(requiredPermission, params),
     [requiredPermission, params]
   );
-  
+
   // No permission required → allow
   if (!requiredPermission) {
     return <>{children}</>;
   }
-  
+
   // Invalid route state → 404
   if (resolvedPermission === null) {
     return <Navigate to="/404" replace />;
   }
-  
+
   // Permission not required after resolution → allow
   if (resolvedPermission === undefined) {
     return <>{children}</>;
   }
-  
+
   const result = hasPermission(resolvedPermission);
-  
+
   // Permission state not resolved yet → do nothing
   if (result === 'pending') {
     return null; // or a skeleton if desired
   }
-  
+
   // Permission explicitly denied → access denied
   if (!result) {
     return <Navigate to="/access-denied" replace />;
   }
-  
+
   // Permission granted → allow
   return <>{children}</>;
 };

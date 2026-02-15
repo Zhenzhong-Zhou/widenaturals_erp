@@ -49,7 +49,7 @@ const Hero: FC<HeroProps> = ({ onPrimary, onSecondary }) => {
           >
             WIDE Naturals Inc.
           </CustomTypography>
-          
+
           {/* Headline */}
           <CustomTypography
             variant="h2"
@@ -63,7 +63,7 @@ const Hero: FC<HeroProps> = ({ onPrimary, onSecondary }) => {
           >
             Crafted Natural Health Products, Built for Global Markets
           </CustomTypography>
-          
+
           {/* Description */}
           <CustomTypography
             variant="body1"
@@ -78,7 +78,7 @@ const Hero: FC<HeroProps> = ({ onPrimary, onSecondary }) => {
             products—supported by Canadian cGMP operations and compliance-first
             execution.
           </CustomTypography>
-          
+
           {/* Actions */}
           <Stack
             direction="row"
@@ -100,7 +100,7 @@ const Hero: FC<HeroProps> = ({ onPrimary, onSecondary }) => {
             >
               Contact Us
             </CustomButton>
-            
+
             <CustomButton
               variant="outlined"
               size="medium"
@@ -119,20 +119,16 @@ const Hero: FC<HeroProps> = ({ onPrimary, onSecondary }) => {
               Explore Capabilities
             </CustomButton>
           </Stack>
-          
+
           {/* Meta pills */}
-          <Stack
-            direction="row"
-            spacing={1}
-            sx={{ mt: 2.5, flexWrap: 'wrap' }}
-          >
+          <Stack direction="row" spacing={1} sx={{ mt: 2.5, flexWrap: 'wrap' }}>
             <MetaPill label="R&D + Formulation" />
             <MetaPill label="cGMP Manufacturing" />
             <MetaPill label="Regulatory Readiness" />
             <MetaPill label="Global Distribution" />
           </Stack>
         </Box>
-        
+
         {/* RIGHT */}
         <Box aria-hidden>
           <Paper
@@ -154,12 +150,17 @@ const Hero: FC<HeroProps> = ({ onPrimary, onSecondary }) => {
             >
               Capabilities Snapshot
             </CustomTypography>
-            
-            <Box component="ul" sx={{ pl: 2, mt: 1, color: 'rgba(255,255,255,0.85)' }}>
+
+            <Box
+              component="ul"
+              sx={{ pl: 2, mt: 1, color: 'rgba(255,255,255,0.85)' }}
+            >
               <HeroListItem>Capsules • Tablets • Gummies</HeroListItem>
               <HeroListItem>Softgels • Tinctures</HeroListItem>
               <HeroListItem>QA/QC and compliance alignment</HeroListItem>
-              <HeroListItem>Online + offline distribution channels</HeroListItem>
+              <HeroListItem>
+                Online + offline distribution channels
+              </HeroListItem>
             </Box>
           </Paper>
         </Box>

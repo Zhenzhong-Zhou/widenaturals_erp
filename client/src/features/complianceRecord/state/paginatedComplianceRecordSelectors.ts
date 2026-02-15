@@ -90,8 +90,6 @@ export const selectPaginatedComplianceRecordsTotalRecords = createSelector(
  *          or `undefined` if not found
  */
 export const selectComplianceRecordById = (id: string) =>
-  createSelector(
-    [selectPaginatedComplianceRecordsData],
-    (records) =>
-      records.find((r) => r.id === id)
+  createSelector([selectPaginatedComplianceRecordsData], (records) =>
+    records.find((r) => r.id === id)
   );

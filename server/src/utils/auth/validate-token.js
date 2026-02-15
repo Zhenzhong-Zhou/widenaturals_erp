@@ -5,7 +5,9 @@ const { hashToken } = require('../../utils/auth/token-hash');
 const { getTokenByHash } = require('../../repositories/token-repository');
 const { revokeSession } = require('../../business/auth/session-lifecycle');
 const { logSystemWarn, logSystemInfo } = require('../system-logger');
-const { insertTokenActivityLog } = require('../../repositories/token-activity-log-repository');
+const {
+  insertTokenActivityLog,
+} = require('../../repositories/token-activity-log-repository');
 
 /**
  * Validates an access token and enforces session state integrity.
@@ -35,13 +37,13 @@ const { insertTokenActivityLog } = require('../../repositories/token-activity-lo
  */
 const validateAccessToken = async (rawAccessToken, client = null) => {
   const payload = verifyAccessJwt(rawAccessToken);
-  
+
   if (!payload.sessionId) {
     throw AppError.authenticationError('Invalid access token payload.');
   }
-  
+
   await validateSessionState(payload.sessionId, client);
-  
+
   return payload;
 };
 
@@ -88,26 +90,23 @@ const validateAccessToken = async (rawAccessToken, client = null) => {
  */
 const validateRefreshTokenState = async (
   refreshToken,
-  {
-    ipAddress = null,
-    userAgent = null,
-  } = {},
+  { ipAddress = null, userAgent = null } = {},
   client = null
 ) => {
   const context = 'validate-token/validateRefreshTokenState';
-  
+
   if (!refreshToken) {
     throw AppError.refreshTokenError('Refresh token is missing.');
   }
-  
+
   const tokenHash = hashToken(refreshToken);
   const token = await getTokenByHash(tokenHash, client);
-  
+
   if (!token) {
     // Do not reveal whether token ever existed
     throw AppError.refreshTokenError('Refresh token is invalid.');
   }
-  
+
   if (token.token_type !== 'refresh') {
     logSystemWarn('Non-refresh token used in refresh flow', {
       context,
@@ -115,10 +114,10 @@ const validateRefreshTokenState = async (
       userId: token.user_id,
       tokenType: token.token_type,
     });
-    
+
     throw AppError.refreshTokenError('Invalid token type.');
   }
-  
+
   // ------------------------------------------------------------
   // Reuse Detection (Revoked Token)
   // ------------------------------------------------------------
@@ -129,27 +128,30 @@ const validateRefreshTokenState = async (
       userId: token.user_id,
       sessionId: token.session_id,
     });
-    
+
     // Record security incident in token activity log
-    await insertTokenActivityLog({
-      userId: token.user_id,
-      tokenId: token.id,
-      eventType: 'reuse_detected',
-      status: 'compromised',
-      tokenType: 'refresh',
-      ipAddress,
-      userAgent,
-    }, client);
-    
+    await insertTokenActivityLog(
+      {
+        userId: token.user_id,
+        tokenId: token.id,
+        eventType: 'reuse_detected',
+        status: 'compromised',
+        tokenType: 'refresh',
+        ipAddress,
+        userAgent,
+      },
+      client
+    );
+
     if (token.session_id) {
       await revokeSession(token.session_id, client);
     }
-    
+
     throw AppError.authenticationError(
       'Refresh token reuse detected. Session has been revoked.'
     );
   }
-  
+
   // ------------------------------------------------------------
   // Expiry Detection
   // ------------------------------------------------------------
@@ -160,27 +162,30 @@ const validateRefreshTokenState = async (
       userId: token.user_id,
       sessionId: token.session_id,
     });
-    
+
     // Audit expired refresh token attempt
-    await insertTokenActivityLog({
-      userId: token.user_id,
-      tokenId: token.id,
-      eventType: 'expired_attempt',
-      status: 'failed',
-      tokenType: 'refresh',
-      ipAddress,
-      userAgent,
-    }, client);
-    
+    await insertTokenActivityLog(
+      {
+        userId: token.user_id,
+        tokenId: token.id,
+        eventType: 'expired_attempt',
+        status: 'failed',
+        tokenType: 'refresh',
+        ipAddress,
+        userAgent,
+      },
+      client
+    );
+
     if (token.session_id) {
       await revokeSession(token.session_id, client);
     }
-    
+
     throw AppError.refreshTokenExpiredError(
       'Refresh token expired. Session has been revoked.'
     );
   }
-  
+
   return token;
 };
 

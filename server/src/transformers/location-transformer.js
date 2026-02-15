@@ -12,26 +12,26 @@ const transformLocationRow = (row) => {
   const base = {
     id: row.id,
     name: row.name,
-    
+
     locationType: row.location_type_name ?? null,
-    
+
     address: {
       city: row.city ?? null,
       provinceOrState: row.province_or_state ?? null,
       country: row.country ?? null,
     },
-    
+
     isArchived: row.is_archived ?? false,
-    
+
     status: {
       id: row.status_id ?? null,
       name: row.status_name ?? null,
       date: row.status_date ?? null,
     },
-    
+
     audit: compactAudit(makeAudit(row)),
   };
-  
+
   return cleanObject(base);
 };
 

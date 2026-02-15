@@ -19,7 +19,7 @@ const {
  */
 const getInventoryActivityLogsController = wrapAsync(async (req, res) => {
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
-  
+
   const user = req.auth.user;
 
   const { data, pagination } = await fetchInventoryActivityLogsService(

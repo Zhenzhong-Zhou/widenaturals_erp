@@ -1,6 +1,6 @@
 import type {
   FlattenedOutboundShipmentRow,
-  OutboundShipmentRecord
+  OutboundShipmentRecord,
 } from '@features/outboundFulfillment';
 
 /**
@@ -23,29 +23,29 @@ export const flattenOutboundShipment = (
   raw: OutboundShipmentRecord
 ): FlattenedOutboundShipmentRow => ({
   shipmentId: raw.shipmentId,
-  
+
   orderId: raw.order.id,
   orderNumber: raw.order.number,
-  
+
   warehouseId: raw.warehouse.id,
   warehouseName: raw.warehouse.name,
-  
+
   deliveryMethodId: raw.deliveryMethod?.id ?? null,
   deliveryMethodName: raw.deliveryMethod?.name ?? null,
-  
+
   trackingId: raw.trackingNumber?.id ?? null,
   trackingNumber: raw.trackingNumber?.number ?? null,
-  
+
   statusId: raw.status.id,
   statusCode: raw.status.code,
   statusName: raw.status.name,
-  
+
   shippedAt: raw.dates.shippedAt,
   expectedDelivery: raw.dates.expectedDelivery,
-  
+
   notes: raw.notes,
   shipmentDetails: raw.shipmentDetails,
-  
+
   createdAt: raw.audit.createdAt,
   createdById: raw.audit.createdBy.id,
   createdByName: raw.audit.createdBy.fullName,

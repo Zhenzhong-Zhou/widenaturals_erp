@@ -1,8 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { createInitialPaginatedState } from '@store/pagination';
-import {
-  fetchPaginatedLocationThunk,
-} from '@features/location';
+import { fetchPaginatedLocationThunk } from '@features/location';
 import type {
   PaginatedLocationState,
   FlattenedLocationListRecord,
@@ -28,7 +26,7 @@ const initialState: PaginatedLocationState =
 const paginatedLocationsSlice = createSlice({
   name: 'paginatedLocations',
   initialState,
-  
+
   reducers: {
     /**
      * Reset the entire paginated location state
@@ -41,7 +39,7 @@ const paginatedLocationsSlice = createSlice({
      */
     resetPaginatedLocations: () => initialState,
   },
-  
+
   /* ============================================================
      Async lifecycle handling
      ============================================================ */
@@ -52,19 +50,16 @@ const paginatedLocationsSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      
+
       // ---- fulfilled ----
       .addCase(
         fetchPaginatedLocationThunk.fulfilled,
-        (
-          state,
-          action: PayloadAction<PaginatedLocationListUiResponse>
-        ) => {
+        (state, action: PayloadAction<PaginatedLocationListUiResponse>) => {
           const payload = action.payload;
-          
+
           state.loading = false;
           state.data = payload.data;
-          
+
           state.pagination = {
             page: payload.pagination.page,
             limit: payload.pagination.limit,
@@ -73,11 +68,11 @@ const paginatedLocationsSlice = createSlice({
           };
         }
       )
-      
+
       // ---- rejected ----
       .addCase(fetchPaginatedLocationThunk.rejected, (state, action) => {
         state.loading = false;
-        
+
         state.error =
           (action.payload as any)?.message ??
           action.error?.message ??
@@ -86,8 +81,6 @@ const paginatedLocationsSlice = createSlice({
   },
 });
 
-export const {
-  resetPaginatedLocations,
-} = paginatedLocationsSlice.actions;
+export const { resetPaginatedLocations } = paginatedLocationsSlice.actions;
 
 export default paginatedLocationsSlice.reducer;

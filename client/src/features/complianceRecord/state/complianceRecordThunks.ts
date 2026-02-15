@@ -33,7 +33,7 @@ export const fetchComplianceRecordsThunk = createAsyncThunk<
     try {
       const response =
         await complianceRecordService.fetchPaginatedComplianceRecords(params);
-      
+
       return {
         ...response,
         data: flattenComplianceRecordsToRows(response.data),

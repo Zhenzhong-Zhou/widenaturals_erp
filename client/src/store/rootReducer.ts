@@ -67,7 +67,7 @@ const runtimeReducer = combineReducers({
   ...csrfReducers,
   ...authReducers,
   ...userReducers,
-  
+
   // Product & Pricing
   ...productReducers,
   ...skuReducers,
@@ -76,18 +76,18 @@ const runtimeReducer = combineReducers({
   ...bomReducers,
   ...pricingTypeReducers,
   ...pricingReducers,
-  
+
   // Batch
   ...batchRegistryReducers,
   ...productBatchReducers,
-  
+
   // Inventory & Warehouse
   ...locationTypeReducers,
   ...locationReducers,
   ...locationInventoryReducers,
   ...warehouseReducers,
   ...warehouseInventoryReducers,
-  
+
   // Orders & Process
   ...customerReducers,
   ...addressReducers,
@@ -95,7 +95,7 @@ const runtimeReducer = combineReducers({
   ...orderReducers,
   ...inventoryAllocationReducers,
   ...outboundFulfillmentReducers,
-  
+
   // Reporting & Misc
   ...reportReducers,
   ...lookupReducers,
@@ -121,7 +121,7 @@ const rootReducer = (
     console.info('Resetting runtime state on logout');
     return appReducer(undefined, action);
   }
-  
+
   return appReducer(state, action);
 };
 

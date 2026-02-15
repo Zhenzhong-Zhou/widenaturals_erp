@@ -4,11 +4,9 @@ import {
   CustomButton,
   CustomTable,
   CustomTypography,
-  SkeletonExpandedRow
+  SkeletonExpandedRow,
 } from '@components/index';
-import type {
-  FlattenedBatchRegistryRecord,
-} from '@features/batchRegistry/state';
+import type { FlattenedBatchRegistryRecord } from '@features/batchRegistry/state';
 import {
   BatchRegistryExpandedContent,
   getBatchRegistryTableColumns,
@@ -40,20 +38,20 @@ interface BatchRegistryListTableProps {
  * - refresh and selection support
  */
 const BatchRegistryListTable = ({
-                                  data,
-                                  loading,
-                                  page,
-                                  totalPages,
-                                  totalRecords,
-                                  rowsPerPage,
-                                  onPageChange,
-                                  onRowsPerPageChange,
-                                  expandedRowId,
-                                  onDrillDownToggle,
-                                  selectedRowIds,
-                                  onSelectionChange,
-                                  onRefresh,
-                                }: BatchRegistryListTableProps) => {
+  data,
+  loading,
+  page,
+  totalPages,
+  totalRecords,
+  rowsPerPage,
+  onPageChange,
+  onRowsPerPageChange,
+  expandedRowId,
+  onDrillDownToggle,
+  selectedRowIds,
+  onSelectionChange,
+  onRefresh,
+}: BatchRegistryListTableProps) => {
   // ----------------------------------------
   // Column definitions
   // ----------------------------------------
@@ -65,7 +63,7 @@ const BatchRegistryListTable = ({
       ),
     [expandedRowId, onDrillDownToggle]
   );
-  
+
   // ----------------------------------------
   // Expanded row renderer (lazy)
   // ----------------------------------------
@@ -86,7 +84,7 @@ const BatchRegistryListTable = ({
     ),
     []
   );
-  
+
   // ----------------------------------------
   // Render
   // ----------------------------------------
@@ -102,7 +100,7 @@ const BatchRegistryListTable = ({
         <CustomTypography variant="h6" fontWeight={600}>
           Batch Registry
         </CustomTypography>
-        
+
         <CustomButton
           onClick={onRefresh}
           variant="outlined"
@@ -111,7 +109,7 @@ const BatchRegistryListTable = ({
           Refresh
         </CustomButton>
       </Box>
-      
+
       <CustomTable
         data={data}
         columns={columns}

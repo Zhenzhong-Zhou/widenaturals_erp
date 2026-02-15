@@ -58,12 +58,10 @@ const LocationInventoryFilterPanel: FC<{
   visibleFields?: (keyof LocationInventoryFilters)[];
   showActionsWhenAll?: boolean;
   requireBatchTypeForActions?: boolean;
-}> = ({
-        initialFilters,
-        ...rest
-      }) => {
-  const resolvedInitialFilters = initialFilters ?? DEFAULT_LOCATION_INVENTORY_FILTERS;
-  
+}> = ({ initialFilters, ...rest }) => {
+  const resolvedInitialFilters =
+    initialFilters ?? DEFAULT_LOCATION_INVENTORY_FILTERS;
+
   const { control, handleSubmit, reset, watch } =
     useForm<LocationInventoryFilters>({
       defaultValues: resolvedInitialFilters,

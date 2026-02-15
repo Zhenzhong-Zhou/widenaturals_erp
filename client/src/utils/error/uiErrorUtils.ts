@@ -1,7 +1,4 @@
-import {
-  AppError,
-  ErrorType
-} from '@utils/error';
+import { AppError, ErrorType } from '@utils/error';
 
 /**
  * Structured UI-safe error payload.
@@ -16,10 +13,10 @@ export interface UiErrorPayload {
    * Safe to display directly in the UI.
    */
   message: string;
-  
+
   /** Error classification */
   type: ErrorType;
-  
+
   /**
    * Optional diagnostic trace identifier.
    *
@@ -52,24 +49,24 @@ export const extractUiErrorPayload = (error: unknown): UiErrorPayload => {
       traceId: error.correlationId,
     };
   }
-  
+
   if (typeof error === 'object' && error !== null && 'response' in error) {
     const resp = (error as any).response;
-    
+
     return {
       message: resp?.data?.message ?? resp?.statusText ?? 'Request failed',
       type: ErrorType.Server,
       traceId: resp?.data?.traceId,
     };
   }
-  
+
   if (error instanceof Error) {
     return {
       message: error.message,
       type: ErrorType.Unknown,
     };
   }
-  
+
   return {
     message: 'An unexpected error occurred. Please try again.',
     type: ErrorType.Unknown,

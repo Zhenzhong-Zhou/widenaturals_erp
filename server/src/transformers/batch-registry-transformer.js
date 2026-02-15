@@ -84,45 +84,45 @@ const transformBatchRegistryRow = (row) => {
     return cleanObject({
       id: row.batch_registry_id,
       type: row.batch_type,
-      
+
       productBatchId: row.product_batch_id,
       lotNumber: row.product_lot_number,
       expiryDate: row.product_expiry_date,
-      
+
       // Product is a reference, not the producer
       product: cleanObject({
         id: row.product_id,
         name: row.product_name,
       }),
-      
+
       sku: {
         id: row.sku_id,
         code: row.sku_code,
       },
-      
+
       // Manufacturer is the PRODUCER of the batch
       manufacturer: cleanObject({
         id: row.manufacturer_id,
         name: row.manufacturer_name,
       }),
-      
+
       status: makeStatus(row, {
         id: 'product_batch_status_id',
         name: 'product_batch_status_name',
         date: 'product_batch_status_date',
       }),
-      
+
       registeredAt: row.registered_at,
       registeredBy: makeActor(
         row.registered_by,
         row.registered_by_firstname,
         row.registered_by_lastname
       ),
-      
+
       note: row.note,
     });
   }
-  
+
   // ------------------------------
   // Packaging material batch
   // ------------------------------
@@ -130,40 +130,40 @@ const transformBatchRegistryRow = (row) => {
     return cleanObject({
       id: row.batch_registry_id,
       type: row.batch_type,
-      
+
       packagingBatchId: row.packaging_batch_id,
       lotNumber: row.packaging_lot_number,
       packagingDisplayName: row.packaging_display_name,
       expiryDate: row.packaging_expiry_date,
-      
+
       packagingMaterial: cleanObject({
         id: row.packaging_material_id,
         code: row.packaging_material_code,
       }),
-      
+
       // Supplier produces / provides the batch
       supplier: cleanObject({
         id: row.supplier_id,
         name: row.supplier_name,
       }),
-      
+
       status: makeStatus(row, {
         id: 'packaging_batch_status_id',
         name: 'packaging_batch_status_name',
         date: 'packaging_batch_status_date',
       }),
-      
+
       registeredAt: row.registered_at,
       registeredBy: makeActor(
         row.registered_by,
         row.registered_by_firstname,
         row.registered_by_lastname
       ),
-      
+
       note: row.note,
     });
   }
-  
+
   // Defensive fallback — should never occur
   return null;
 };

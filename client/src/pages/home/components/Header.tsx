@@ -1,11 +1,5 @@
 import type { FC } from 'react';
-import {
-  AppBar,
-  Toolbar,
-  Box,
-  Stack,
-  useTheme,
-} from '@mui/material';
+import { AppBar, Toolbar, Box, Stack, useTheme } from '@mui/material';
 import { CustomButton, CustomTypography } from '@components/index';
 import { NavLink } from '@pages/home/components/index';
 import logoLight from '@assets/wide-logo-light.png';
@@ -16,7 +10,7 @@ export interface HeaderProps {
 
 const Header: FC<HeaderProps> = ({ onStaffLogin }) => {
   const theme = useTheme();
-  
+
   return (
     <AppBar
       position="sticky"
@@ -55,13 +49,9 @@ const Header: FC<HeaderProps> = ({ onStaffLogin }) => {
               }}
             />
           </Box>
-          
+
           <Box sx={{ lineHeight: 1.1 }}>
-            <CustomTypography
-              variant="h6"
-              fontWeight={700}
-              color="#0f172a"
-            >
+            <CustomTypography variant="h6" fontWeight={700} color="#0f172a">
               WIDE Naturals
             </CustomTypography>
             <CustomTypography
@@ -72,7 +62,7 @@ const Header: FC<HeaderProps> = ({ onStaffLogin }) => {
             </CustomTypography>
           </Box>
         </Stack>
-        
+
         {/* Navigation */}
         <Stack
           direction="row"
@@ -86,7 +76,7 @@ const Header: FC<HeaderProps> = ({ onStaffLogin }) => {
           <NavLink href="#capabilities">Capabilities</NavLink>
           <NavLink href="#brands">Brands</NavLink>
           <NavLink href="#contact">Contact</NavLink>
-          
+
           {onStaffLogin ? (
             <CustomButton
               variant="contained"

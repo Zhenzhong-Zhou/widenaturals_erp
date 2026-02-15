@@ -9,19 +9,14 @@ import { SortConfig } from '@shared-types/api';
  * Temporary bridge until the hook is refactored to be compliant.
  */
 const useWarehouseInventoryAdapter = () => {
-  const {
-    records,
-    loading,
-    error,
-    pagination,
-    fetchRecords,
-  } = useWarehouseInventory();
-  
+  const { records, loading, error, pagination, fetchRecords } =
+    useWarehouseInventory();
+
   const normalizedPagination = pagination ?? {
     totalPages: 0,
     totalRecords: 0,
   };
-  
+
   const fetchRecordsAdapter = useCallback(
     (
       paginationParams: { page: number; limit: number },
@@ -32,7 +27,7 @@ const useWarehouseInventoryAdapter = () => {
     },
     [fetchRecords]
   );
-  
+
   return {
     records,
     loading,

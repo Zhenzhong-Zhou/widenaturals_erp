@@ -1,6 +1,4 @@
-import type {
-  PaginatedLookupState,
-} from '@shared-types/api';
+import type { PaginatedLookupState } from '@shared-types/api';
 import { ReduxPaginatedState } from '@shared-types/pagination';
 
 /**

@@ -30,14 +30,14 @@ export const getOrderItemColumns = (
       label: 'Code',
       renderCell: (row) =>
         row.itemType === 'sku'
-          ? row.skuCode ?? '—'
-          : row.packagingMaterialCode ?? '—',
+          ? (row.skuCode ?? '—')
+          : (row.packagingMaterialCode ?? '—'),
     },
     {
       id: 'barcode',
       label: 'Barcode',
       renderCell: (row) =>
-        row.itemType === 'sku' ? row.barcode ?? '—' : '—',
+        row.itemType === 'sku' ? (row.barcode ?? '—') : '—',
     },
     {
       id: 'quantityOrdered',
@@ -65,8 +65,7 @@ export const getOrderItemColumns = (
     {
       id: 'status',
       label: 'Status',
-      renderCell: (row) =>
-        formatItemStatus(row.statusCode, row.statusName),
+      renderCell: (row) => formatItemStatus(row.statusCode, row.statusName),
     },
     {
       id: 'statusDate',
@@ -80,11 +79,11 @@ export const getOrderItemColumns = (
     },
     ...(handleDrillDownToggle
       ? [
-        createDrillDownColumn<FlattenedOrderItemRow>(
-          (row) => handleDrillDownToggle(row.orderItemId),
-          (row) => expandedRowId === row.orderItemId
-        ),
-      ]
+          createDrillDownColumn<FlattenedOrderItemRow>(
+            (row) => handleDrillDownToggle(row.orderItemId),
+            (row) => expandedRowId === row.orderItemId
+          ),
+        ]
       : []),
   ];
 };

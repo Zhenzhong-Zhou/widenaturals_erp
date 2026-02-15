@@ -46,7 +46,4 @@ const uiPersistConfig = {
 };
 
 // Export persisted UX reducer
-export const persistedReducer = persistReducer(
-  uiPersistConfig,
-  uiReducer
-);
+export const persistedReducer = persistReducer(uiPersistConfig, uiReducer);

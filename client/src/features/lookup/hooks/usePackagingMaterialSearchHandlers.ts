@@ -33,9 +33,10 @@ export type PackagingMaterialLookupBundle = {
 const usePackagingMaterialSearchHandlers = (
   bundle: PackagingMaterialLookupBundle
 ) => {
-  const handleSearch =
-    useDebouncedSearch<PackagingMaterialLookupQueryParams>(bundle.fetch);
-  
+  const handleSearch = useDebouncedSearch<PackagingMaterialLookupQueryParams>(
+    bundle.fetch
+  );
+
   return {
     /**
      * Debounced handler for packaging material keyword searches.

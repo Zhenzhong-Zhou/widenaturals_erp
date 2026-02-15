@@ -17,7 +17,10 @@
  * are enforced upstream.
  */
 
-const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
+const {
+  normalizeDateRangeFilters,
+  applyDateRangeConditions,
+} = require('./date-range-utils');
 const { addKeywordIlikeGroup } = require('./sql-helpers');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
@@ -86,12 +89,16 @@ const buildPackagingMaterialBatchFilter = (filters = {}) => {
     // Normalize date-only filters (ONCE)
     // -------------------------------------------------------------
     filters = normalizeDateRangeFilters(filters, 'expiryAfter', 'expiryBefore');
-    filters = normalizeDateRangeFilters(filters, 'receivedAfter', 'receivedBefore');
-    
+    filters = normalizeDateRangeFilters(
+      filters,
+      'receivedAfter',
+      'receivedBefore'
+    );
+
     const conditions = ['1=1'];
     const params = [];
     const paramIndexRef = { value: 1 };
-    
+
     // -------------------------------------------------------------
     // Hard fail-closed
     // -------------------------------------------------------------
@@ -101,18 +108,16 @@ const buildPackagingMaterialBatchFilter = (filters = {}) => {
         params: [],
       };
     }
-    
+
     // ------------------------------
     // Status
     // ------------------------------
     if (filters.statusIds?.length) {
-      conditions.push(
-        `pmb.status_id = ANY($${paramIndexRef.value}::uuid[])`
-      );
+      conditions.push(`pmb.status_id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.statusIds);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Packaging material / Supplier
     // ------------------------------
@@ -121,17 +126,17 @@ const buildPackagingMaterialBatchFilter = (filters = {}) => {
       params.push(filters.packagingMaterialIds);
       paramIndexRef.value++;
     }
-    
+
     if (filters.supplierIds?.length) {
       conditions.push(`s.id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.supplierIds);
       paramIndexRef.value++;
     }
-    
+
     if (filters.preferredSupplierOnly === true) {
       conditions.push(`pms.is_preferred = true`);
     }
-    
+
     // ------------------------------
     // Lot number (ILIKE)
     // ------------------------------
@@ -140,7 +145,7 @@ const buildPackagingMaterialBatchFilter = (filters = {}) => {
       params.push(`%${filters.lotNumber}%`);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Expiry date filters
     // ------------------------------
@@ -152,7 +157,7 @@ const buildPackagingMaterialBatchFilter = (filters = {}) => {
       before: filters.expiryBefore,
       paramIndexRef,
     });
-    
+
     // ------------------------------
     // Received date filters
     // ------------------------------
@@ -164,7 +169,7 @@ const buildPackagingMaterialBatchFilter = (filters = {}) => {
       before: filters.receivedBefore,
       paramIndexRef,
     });
-    
+
     // ------------------------------
     // Keyword fuzzy search (permission-aware)
     // ------------------------------
@@ -175,23 +180,21 @@ const buildPackagingMaterialBatchFilter = (filters = {}) => {
         canSearchMaterialCode,
         canSearchSupplier,
       } = filters.keywordCapabilities;
-      
+
       const searchableFields = [
         'pmb.lot_number', // always allowed
       ];
-      
+
       if (canSearchInternalName)
         searchableFields.push('pmb.material_snapshot_name');
-      
+
       if (canSearchSupplierLabel)
         searchableFields.push('pmb.received_label_name');
-      
-      if (canSearchMaterialCode)
-        searchableFields.push('pm.code');
-      
-      if (canSearchSupplier)
-        searchableFields.push('s.name');
-      
+
+      if (canSearchMaterialCode) searchableFields.push('pm.code');
+
+      if (canSearchSupplier) searchableFields.push('s.name');
+
       /**
        * addKeywordIlikeGroup:
        * - Appends `(field ILIKE $n OR ...)`
@@ -206,7 +209,7 @@ const buildPackagingMaterialBatchFilter = (filters = {}) => {
         searchableFields
       );
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -217,7 +220,7 @@ const buildPackagingMaterialBatchFilter = (filters = {}) => {
         'packaging-material-batch-repository/buildPackagingMaterialBatchFilter',
       filters,
     });
-    
+
     throw AppError.databaseError(
       'Failed to prepare packaging material batch filter',
       {

@@ -18,15 +18,15 @@ const { parseUserAgent } = require('./user-agent-utils');
  */
 const getClientIp = (req) => {
   if (!req) return null;
-  
+
   let ip = req.ip || null;
   if (!ip) return null;
-  
+
   // Normalize IPv6-mapped IPv4 (::ffff:127.0.0.1)
   if (ip.startsWith('::ffff:')) {
     ip = ip.substring(7);
   }
-  
+
   return ip;
 };
 
@@ -63,11 +63,11 @@ const extractRequestContext = (req) => {
       note: null,
     };
   }
-  
+
   const ipAddress = getClientIp(req);
-  
+
   const userAgent = req.get('user-agent') || null;
-  
+
   const rawDeviceId = req.get('x-device-id');
   const deviceId =
     typeof rawDeviceId === 'string' &&
@@ -75,13 +75,13 @@ const extractRequestContext = (req) => {
     rawDeviceId.length <= 128
       ? rawDeviceId
       : null;
-  
+
   const uaInfo = userAgent ? parseUserAgent(userAgent) : null;
-  
+
   const note = uaInfo
     ? `${uaInfo.os || 'Device'} (${uaInfo.browser || 'browser'})`
     : null;
-  
+
   return {
     ipAddress,
     userAgent,

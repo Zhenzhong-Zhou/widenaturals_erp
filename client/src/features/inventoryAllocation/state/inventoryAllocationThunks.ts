@@ -108,7 +108,7 @@ export const fetchInventoryAllocationReviewThunk = createAsyncThunk<
           orderId,
           body
         );
-      
+
       return {
         ...response,
         data: {
@@ -144,24 +144,21 @@ export const fetchPaginatedInventoryAllocationsThunk = createAsyncThunk<
   InventoryAllocationListResponse,
   FetchPaginatedInventoryAllocationsParams,
   { rejectValue: { message: string; traceId?: string } }
->(
-  'inventoryAllocations/fetch',
-  async (params, { rejectWithValue }) => {
-    try {
-      const response =
-        await inventoryAllocationService.fetchPaginatedInventoryAllocations(
-          params
-        );
-      
-      return {
-        ...response,
-        data: response.data.map(flattenInventoryAllocationSummary),
-      };
-    } catch (error) {
-      return rejectWithValue(extractUiErrorPayload(error));
-    }
+>('inventoryAllocations/fetch', async (params, { rejectWithValue }) => {
+  try {
+    const response =
+      await inventoryAllocationService.fetchPaginatedInventoryAllocations(
+        params
+      );
+
+    return {
+      ...response,
+      data: response.data.map(flattenInventoryAllocationSummary),
+    };
+  } catch (error) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});
 
 /**
  * Thunk to confirm inventory allocations for a given order.

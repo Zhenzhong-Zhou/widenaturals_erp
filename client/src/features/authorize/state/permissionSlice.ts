@@ -4,7 +4,7 @@ import type { PermissionsState } from '@features/authorize';
 import { fetchPermissionsThunk } from '@features/authorize';
 import {
   invalidateSession,
-  resetSession
+  resetSession,
 } from '@features/session/state/sessionSlice';
 
 const initialState: PermissionsState = {
@@ -42,8 +42,7 @@ const permissionSlice = createSlice({
       .addCase(fetchPermissionsThunk.rejected, (state, action) => {
         state.loading = false;
         state.resolved = true;
-        state.error =
-          action.payload?.message ?? 'Failed to fetch permissions.';
+        state.error = action.payload?.message ?? 'Failed to fetch permissions.';
       });
   },
 });

@@ -26,7 +26,7 @@ const Section: FC<SectionProps> = ({ id, title, subtitle, children }) => {
           >
             {title}
           </CustomTypography>
-          
+
           {subtitle && (
             <CustomTypography
               variant="body2"
@@ -41,7 +41,7 @@ const Section: FC<SectionProps> = ({ id, title, subtitle, children }) => {
             </CustomTypography>
           )}
         </Box>
-        
+
         {children}
       </Box>
     </Box>

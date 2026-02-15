@@ -38,11 +38,11 @@ export const flattenBatchRegistryRecords = (
   records: BatchRegistryRecord[]
 ): FlattenedBatchRegistryRecord[] => {
   if (!Array.isArray(records)) return [];
-  
+
   return records.map((record) => {
     const status = record.status ?? {};
     const registeredBy = record.registeredBy ?? {};
-    
+
     // Base flattened structure with UI-safe defaults.
     // Values will be selectively overridden per batch type.
     const base = {
@@ -51,30 +51,30 @@ export const flattenBatchRegistryRecords = (
       batchType: record.type,
       lotNumber: record.lotNumber ?? '—',
       expiryDate: record.expiryDate ?? null,
-      
+
       // --- Status ---
       status: status.name ?? '—',
       statusDate: status.date ?? '',
-      
+
       // --- Registry audit ---
       registeredAt: record.registeredAt ?? '',
       registeredBy: registeredBy.name ?? '—',
-      
+
       note: record.note ?? '-',
-      
+
       // --- Product-side defaults ---
       productId: null,
       productName: '—',
       skuCode: '—',
       manufacturerName: '—',
-      
+
       // --- Packaging-side defaults ---
       packagingBatchId: null,
       packagingDisplayName: '-',
       packagingMaterialCode: '—',
       supplierName: '—',
     };
-    
+
     if (record.type === 'product') {
       return {
         ...base,
@@ -84,16 +84,14 @@ export const flattenBatchRegistryRecords = (
         manufacturerName: record.manufacturer?.name ?? '—',
       };
     }
-    
+
     // packaging_material
     return {
       ...base,
       packagingBatchId: record.packagingBatchId ?? null,
       packagingDisplayName: record.packagingDisplayName ?? '-',
-      packagingMaterialCode:
-        record.packagingMaterial?.code ?? '—',
-      supplierName:
-        record.supplier?.name ?? '—',
+      packagingMaterialCode: record.packagingMaterial?.code ?? '—',
+      supplierName: record.supplier?.name ?? '—',
     };
   });
 };

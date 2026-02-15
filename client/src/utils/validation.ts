@@ -27,8 +27,6 @@ import validator from 'validator';
  */
 export const emailValidator = (value: string): string | undefined => {
   if (!value) return undefined; // required handled separately
-  
-  return validator.isEmail(value)
-    ? undefined
-    : 'Invalid email address';
+
+  return validator.isEmail(value) ? undefined : 'Invalid email address';
 };

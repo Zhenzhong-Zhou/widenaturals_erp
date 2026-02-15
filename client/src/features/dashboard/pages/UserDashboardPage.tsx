@@ -6,20 +6,18 @@ import { useAppSelector } from '@store/storeHooks';
 import { selectSelfUserFullName } from '@features/user';
 import { useHasPermission } from '@features/authorize/hooks';
 import InventoryOverviewHeaderSection from '@features/inventoryOverview/components/InventoryOverviewHeaderSection';
-import SkuWarehouseInventorySummarySection
-  from '@features/warehouseInventory/components/SkuWarehouseInventorySummarySection';
+import SkuWarehouseInventorySummarySection from '@features/warehouseInventory/components/SkuWarehouseInventorySummarySection';
 
-const UserDashboardPage: FC<DashboardPageProps> = ({
-}) => {
+const UserDashboardPage: FC<DashboardPageProps> = ({}) => {
   const fullName = useAppSelector(selectSelfUserFullName);
   const hasPermission = useHasPermission();
-  
+
   const canShowInventoryOverview =
     hasPermission('inventory.overview.view') === true;
-  
+
   const canShowWarehouseSummary =
     hasPermission('warehouse.inventory.view') === true;
-  
+
   return (
     <DashboardLayout
       fullName={fullName ?? undefined}

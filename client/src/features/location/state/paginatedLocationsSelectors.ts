@@ -65,10 +65,7 @@ export const selectPaginatedLocationPagination = createSelector(
  * is loaded and empty.
  */
 export const selectPaginatedLocationIsEmpty = createSelector(
-  [
-    selectPaginatedLocationData,
-    selectPaginatedLocationLoading,
-  ],
+  [selectPaginatedLocationData, selectPaginatedLocationLoading],
   (data, loading) => !loading && data.length === 0
 );
 
@@ -85,10 +82,6 @@ export const selectPaginatedLocationIsEmpty = createSelector(
  */
 export const makeSelectLocationById = () =>
   createSelector(
-    [
-      selectPaginatedLocationData,
-      (_: RootState, id: string) => id,
-    ],
-    (records, id) =>
-      records.find((record) => record.id === id) ?? null
+    [selectPaginatedLocationData, (_: RootState, id: string) => id],
+    (records, id) => records.find((record) => record.id === id) ?? null
   );

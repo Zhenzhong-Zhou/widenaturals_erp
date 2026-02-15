@@ -14,16 +14,12 @@ const LoginPage: FC = () => {
   const theme = useTheme();
   const logo = theme.palette.mode === 'dark' ? logoDark : logoLight;
   const dispatch = useAppDispatch();
-  
+
   // -----------------------------
   // Async login state
   // -----------------------------
-  const {
-    loading: isLoggingIn,
-    error: loginError,
-    submit: login,
-  } = useLogin();
-  
+  const { loading: isLoggingIn, error: loginError, submit: login } = useLogin();
+
   // -----------------------------
   // Form state + validation
   // -----------------------------
@@ -33,11 +29,11 @@ const LoginPage: FC = () => {
     handleChange: handleFormChange,
     handleSubmit: handleFormSubmit,
   } = useLoginForm(login);
-  
+
   useEffect(() => {
     dispatch(resetLogin());
   }, [dispatch]);
-  
+
   return (
     <Box
       sx={{
@@ -77,7 +73,7 @@ const LoginPage: FC = () => {
           Manage your inventory, sales, and operations efficiently.
         </CustomTypography>
       </Box>
-      
+
       {/* Login Card (presentation only) */}
       <Box sx={{ width: '100%', maxWidth: 400 }}>
         <LoginCard
@@ -91,7 +87,7 @@ const LoginPage: FC = () => {
           onFormSubmit={handleFormSubmit}
         />
       </Box>
-      
+
       {/* Support Links */}
       <Box sx={{ mt: 3, textAlign: 'center' }}>
         <CustomTypography variant="body2" color="text.secondary">

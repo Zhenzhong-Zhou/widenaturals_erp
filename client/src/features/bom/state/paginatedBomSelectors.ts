@@ -12,8 +12,7 @@ import { selectRuntime } from '@store/selectors';
  * - Plain function only (no `createSelector`)
  * - No memoization or transformation
  */
-const selectBomState = (state: RootState) =>
-  selectRuntime(state).paginatedBoms;
+const selectBomState = (state: RootState) => selectRuntime(state).paginatedBoms;
 
 /**
  * Selects the current list of BOM records.
@@ -82,7 +81,5 @@ export const selectIsBomListEmpty = createSelector(
  */
 export const selectHasMoreBomPages = createSelector(
   [selectBomPagination],
-  (pagination) =>
-    pagination !== null &&
-    pagination.page < pagination.totalPages
+  (pagination) => pagination !== null && pagination.page < pagination.totalPages
 );

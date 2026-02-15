@@ -17,8 +17,7 @@ import { selectRuntime } from '@store/selectors';
  * - Plain function only (no `createSelector`)
  * - No memoization or transformation
  */
-const selectCsrfState = (state: RootState) =>
-  selectRuntime(state).csrf;
+const selectCsrfState = (state: RootState) => selectRuntime(state).csrf;
 
 /**
  * Selects the current CSRF token value.

@@ -51,35 +51,33 @@ const userIdParamSchema = Joi.object({
  * All business rules are enforced in the service layer.
  */
 const createUserSchema = Joi.object({
-    email: Joi.string()
-      .email({ tlds: { allow: false } })
-      .max(255)
-      .required()
-      .messages({
-        'string.email': 'Email must be a valid email address',
-        'any.required': 'Email is required',
-      }),
-    
-    password: passwordWithPolicy
-      .required()
-      .messages({
-        'any.required': 'Password is required',
-      }),
-    
-    roleId: validateUUID('Role ID').required(),
-    
-    firstname: validateString('First Name', 2, 100).required(),
-    
-    lastname: validateString('Last Name', 2, 100).required(),
-    
-    phoneNumber: optionalE164PhoneNumber,
-    
-    jobTitle: validateOptionalString('Job Title', 100),
-    
-    note: validateOptionalString('Note', 1000),
-    
-    statusDate: optionalIsoDate(),
-  })
+  email: Joi.string()
+    .email({ tlds: { allow: false } })
+    .max(255)
+    .required()
+    .messages({
+      'string.email': 'Email must be a valid email address',
+      'any.required': 'Email is required',
+    }),
+
+  password: passwordWithPolicy.required().messages({
+    'any.required': 'Password is required',
+  }),
+
+  roleId: validateUUID('Role ID').required(),
+
+  firstname: validateString('First Name', 2, 100).required(),
+
+  lastname: validateString('Last Name', 2, 100).required(),
+
+  phoneNumber: optionalE164PhoneNumber,
+
+  jobTitle: validateOptionalString('Job Title', 100),
+
+  note: validateOptionalString('Note', 1000),
+
+  statusDate: optionalIsoDate(),
+})
   .required()
   .unknown(false);
 

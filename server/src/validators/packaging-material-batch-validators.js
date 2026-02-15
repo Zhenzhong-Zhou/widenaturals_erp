@@ -41,47 +41,41 @@ const packagingMaterialBatchQuerySchema = paginationSchema
     statusIds: validateUUIDOrUUIDArrayOptional(
       'Packaging Material Batch Status IDs'
     ),
-    
+
     // --------------------------------------------------
     // Packaging material & supplier identity filters
     // --------------------------------------------------
     packagingMaterialIds: validateUUIDOrUUIDArrayOptional(
       'Packaging Material IDs'
     ),
-    
-    supplierIds: validateUUIDOrUUIDArrayOptional(
-      'Supplier IDs'
-    ),
-    
+
+    supplierIds: validateUUIDOrUUIDArrayOptional('Supplier IDs'),
+
     // --------------------------------------------------
     // Lot number (explicit, non-keyword)
     // --------------------------------------------------
     lotNumber: validateOptionalString('Lot Number'),
-    
+
     // --------------------------------------------------
     // Expiry date filters
     // --------------------------------------------------
     expiryAfter: optionalIsoDate('Expiry Date After'),
     expiryBefore: optionalIsoDate('Expiry Date Before'),
-    
+
     // --------------------------------------------------
     // Manufacturing / receiving lifecycle filters
     // --------------------------------------------------
-    manufactureAfter: optionalIsoDate(
-      'Manufacture Date After'
-    ),
-    manufactureBefore: optionalIsoDate(
-      'Manufacture Date Before'
-    ),
+    manufactureAfter: optionalIsoDate('Manufacture Date After'),
+    manufactureBefore: optionalIsoDate('Manufacture Date Before'),
     receivedAfter: optionalIsoDate('Received Date After'),
     receivedBefore: optionalIsoDate('Received Date Before'),
-    
+
     // --------------------------------------------------
     // Creation audit filters
     // --------------------------------------------------
     createdAfter: optionalIsoDate('Created After'),
     createdBefore: optionalIsoDate('Created Before'),
-    
+
     // --------------------------------------------------
     // Keyword search (ACL-governed upstream)
     // --------------------------------------------------

@@ -1,6 +1,4 @@
-import {
-  useStatusLookup,
-} from '@hooks/index';
+import { useStatusLookup } from '@hooks/index';
 
 /**
  * Lookup bundle used by Location pages.
@@ -15,7 +13,7 @@ import {
  */
 const useLocationLookups = () => {
   const status = useStatusLookup();
-  
+
   return {
     status,
   };

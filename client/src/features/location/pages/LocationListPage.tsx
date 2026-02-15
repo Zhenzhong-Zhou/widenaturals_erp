@@ -8,7 +8,7 @@ import {
   CustomTypography,
   ErrorMessage,
   Loading,
-  NoDataFound
+  NoDataFound,
 } from '@components/index';
 import {
   LocationFiltersPanel,
@@ -17,12 +17,9 @@ import {
 } from '@features/location/components/LocationListTable';
 import type {
   LocationListFilters,
-  LocationSortField
+  LocationSortField,
 } from '@features/location';
-import {
-  usePaginatedLocations,
-  useUserLookup
-} from '@hooks/index';
+import { usePaginatedLocations, useUserLookup } from '@hooks/index';
 import { useLocationLookups } from '@features/location/hooks';
 import { applyFiltersAndSorting } from '@utils/queryUtils';
 import { createLazyOpenHandler } from '@features/lookup/utils/lookupUtils';
@@ -31,13 +28,11 @@ import { usePaginationHandlers } from '@utils/hooks';
 const LocationListPage = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
-  const [sortBy, setSortBy] =
-    useState<LocationSortField>('defaultNaturalSort');
+  const [sortBy, setSortBy] = useState<LocationSortField>('defaultNaturalSort');
   const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
   const [filters, setFilters] = useState<LocationListFilters>({});
-  const [expandedRowId, setExpandedRowId] =
-    useState<string | null>(null);
-  
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+
   const {
     data: locations,
     pagination: locationPagination,
@@ -47,7 +42,7 @@ const LocationListPage = () => {
     fetchLocations,
     resetLocations,
   } = usePaginatedLocations();
-  
+
   // -------------------------------------------------------------
   // User lookup
   // -------------------------------------------------------------
@@ -59,9 +54,9 @@ const LocationListPage = () => {
     fetch: fetchUserLookup,
     reset: resetUserLookup,
   } = useUserLookup();
-  
+
   const lookups = useLocationLookups();
-  
+
   // -----------------------------
   // Query model (shared)
   // -----------------------------
@@ -75,14 +70,14 @@ const LocationListPage = () => {
     }),
     [page, limit, sortBy, sortOrder, filters]
   );
-  
+
   // -----------------------------
   // Refresh action
   // -----------------------------
   const refreshLocationList = useCallback(() => {
     fetchLocations(fullQuery);
   }, [fullQuery, fetchLocations]);
-  
+
   // -----------------------------
   // Params for filtering/sorting engine
   // -----------------------------
@@ -93,18 +88,15 @@ const LocationListPage = () => {
     }),
     [fullQuery, refreshLocationList]
   );
-  
+
   // -----------------------------
   // Debounced fetch
   // -----------------------------
   useEffect(() => {
-    const timeout = setTimeout(
-      () => applyFiltersAndSorting(queryParams),
-      200
-    );
+    const timeout = setTimeout(() => applyFiltersAndSorting(queryParams), 200);
     return () => clearTimeout(timeout);
   }, [queryParams]);
-  
+
   // ----------------------------------------
   // Cleanup on unmount
   // ----------------------------------------
@@ -113,7 +105,7 @@ const LocationListPage = () => {
       resetLocations();
     };
   }, [resetLocations]);
-  
+
   // -----------------------------
   // Lookup handlers (lazy fetch, reset)
   // -----------------------------
@@ -132,14 +124,14 @@ const LocationListPage = () => {
     }),
     [lookups]
   );
-  
+
   // -----------------------------
   // Event handlers
   // -----------------------------
   const handleRefresh = useCallback(() => {
     applyFiltersAndSorting(queryParams);
   }, [queryParams]);
-  
+
   const handleResetFilters = () => {
     resetLocations();
     setFilters({});
@@ -147,16 +139,16 @@ const LocationListPage = () => {
     resetUserLookup();
     setPage(1);
   };
-  
-  const { handlePageChange, handleRowsPerPageChange } =
-    usePaginationHandlers(setPage, setLimit);
-  
+
+  const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(
+    setPage,
+    setLimit
+  );
+
   const handleDrillDownToggle = (rowId: string) => {
-    setExpandedRowId((current) =>
-      current === rowId ? null : rowId
-    );
+    setExpandedRowId((current) => (current === rowId ? null : rowId));
   };
-  
+
   // ----------------------------------------
   // Render
   // ----------------------------------------
@@ -175,9 +167,9 @@ const LocationListPage = () => {
           Location Management
         </CustomTypography>
       </Box>
-      
+
       <Divider sx={{ mb: 3 }} />
-      
+
       {/* Filter + Sort Controls */}
       <Card sx={{ p: 3, mb: 4, borderRadius: 2, minHeight: 200 }}>
         <Grid container spacing={2}>
@@ -189,7 +181,6 @@ const LocationListPage = () => {
               onChange={setFilters}
               onApply={() => setPage(1)}
               onReset={handleResetFilters}
-              
               // Shared user lookup
               userOptions={userOptions}
               userLoading={isUserLookupLoading}
@@ -198,7 +189,7 @@ const LocationListPage = () => {
               fetchUserLookup={fetchUserLookup}
             />
           </Grid>
-          
+
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <LocationSortControls
               sortBy={sortBy}
@@ -209,22 +200,17 @@ const LocationListPage = () => {
           </Grid>
         </Grid>
       </Card>
-      
+
       {/* Product Batch Table Section */}
       {isLocationLoading || !locationPagination ? (
-        <Loading
-          variant="dotted"
-          message="Loading product batches..."
-        />
+        <Loading variant="dotted" message="Loading product batches..." />
       ) : locationError ? (
         <ErrorMessage message={locationError} showNavigation />
       ) : isLocationEmpty ? (
         <NoDataFound
           message="No location records found."
           action={
-            <CustomButton onClick={handleResetFilters}>
-              Reset
-            </CustomButton>
+            <CustomButton onClick={handleResetFilters}>Reset</CustomButton>
           }
         />
       ) : (

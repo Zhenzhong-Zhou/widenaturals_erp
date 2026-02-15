@@ -1,5 +1,7 @@
 const wrapAsync = require('../utils/wrap-async');
-const { fetchPaginatedLocationsService } = require('../services/location-service');
+const {
+  fetchPaginatedLocationsService,
+} = require('../services/location-service');
 const { logInfo } = require('../utils/logger-helper');
 
 /**
@@ -28,7 +30,7 @@ const { logInfo } = require('../utils/logger-helper');
  */
 const getPaginatedLocationsController = wrapAsync(async (req, res) => {
   const logContext = 'locations-controller/getPaginatedLocationsController';
-  
+
   const {
     page = 1,
     limit = 10,
@@ -36,7 +38,7 @@ const getPaginatedLocationsController = wrapAsync(async (req, res) => {
     sortOrder = 'DESC',
     filters = {},
   } = req.normalizedQuery ?? {};
-  
+
   // ------------------------------------------------------------
   // Step 1: Delegate to service layer
   // ------------------------------------------------------------
@@ -47,12 +49,12 @@ const getPaginatedLocationsController = wrapAsync(async (req, res) => {
     sortBy,
     sortOrder,
   });
-  
+
   const { data, pagination } = result ?? {
     data: [],
     pagination: { page, limit, totalRecords: 0, totalPages: 0 },
   };
-  
+
   // ------------------------------------------------------------
   // Step 2: Handle empty result
   // ------------------------------------------------------------
@@ -64,7 +66,7 @@ const getPaginatedLocationsController = wrapAsync(async (req, res) => {
       sorting: { sortBy, sortOrder },
       userId: req.user?.id,
     });
-    
+
     return res.status(200).json({
       success: true,
       message: 'No locations found for the given criteria.',
@@ -77,7 +79,7 @@ const getPaginatedLocationsController = wrapAsync(async (req, res) => {
       },
     });
   }
-  
+
   // ------------------------------------------------------------
   // Step 3: Return success response
   // ------------------------------------------------------------
@@ -88,7 +90,7 @@ const getPaginatedLocationsController = wrapAsync(async (req, res) => {
     sorting: { sortBy, sortOrder },
     userId: req.user?.id,
   });
-  
+
   return res.status(200).json({
     success: true,
     message: 'Locations fetched successfully.',

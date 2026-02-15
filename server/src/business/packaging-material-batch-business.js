@@ -1,7 +1,9 @@
 const {
   resolveUserPermissionContext,
 } = require('../services/role-permission-service');
-const { BATCH_CONSTANTS } = require('../utils/constants/domain/batch-constants');
+const {
+  BATCH_CONSTANTS,
+} = require('../utils/constants/domain/batch-constants');
 const { logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
@@ -23,40 +25,35 @@ const AppError = require('../utils/AppError');
 const evaluatePackagingMaterialBatchVisibility = async (user) => {
   const context =
     'packaging-material-batch-business/evaluatePackagingMaterialBatchVisibility';
-  
+
   try {
-    const { permissions, isRoot } =
-      await resolveUserPermissionContext(user);
-    
+    const { permissions, isRoot } = await resolveUserPermissionContext(user);
+
     const canViewAllPackagingBatches =
       isRoot ||
       permissions.includes(
         BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_ALL_VISIBILITY
       );
-    
+
     const canViewPackagingBatches =
       canViewAllPackagingBatches ||
-      permissions.includes(
-        BATCH_CONSTANTS.PERMISSIONS.VIEW_PACKAGING_BATCHES
-      );
-    
+      permissions.includes(BATCH_CONSTANTS.PERMISSIONS.VIEW_PACKAGING_BATCHES);
+
     const canViewSupplier =
       canViewAllPackagingBatches ||
-      permissions.includes(
-        BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_SUPPLIER
-      );
-    
+      permissions.includes(BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_SUPPLIER);
+
     return {
       canViewPackagingBatches,
       canViewSupplier,
       canViewAllPackagingBatches,
-      
+
       // Derived keyword capabilities
       canSearchMaterial:
         permissions.includes(
           BATCH_CONSTANTS.PERMISSIONS.SEARCH_BATCH_BY_MATERIAL
         ) || canViewAllPackagingBatches,
-      
+
       canSearchSupplier:
         permissions.includes(
           BATCH_CONSTANTS.PERMISSIONS.SEARCH_BATCH_BY_SUPPLIER
@@ -68,7 +65,7 @@ const evaluatePackagingMaterialBatchVisibility = async (user) => {
       'Failed to evaluate packaging material batch visibility',
       { context, userId: user?.id }
     );
-    
+
     throw AppError.businessError(
       'Unable to evaluate packaging material batch visibility.',
       { details: err.message }
@@ -87,7 +84,7 @@ const evaluatePackagingMaterialBatchVisibility = async (user) => {
  */
 const applyPackagingMaterialBatchVisibilityRules = (filters, acl) => {
   const adjusted = { ...filters };
-  
+
   // -----------------------------------------
   // 1. Full visibility override
   // -----------------------------------------
@@ -100,7 +97,7 @@ const applyPackagingMaterialBatchVisibilityRules = (filters, acl) => {
     };
     return adjusted;
   }
-  
+
   // -----------------------------------------
   // 2. No permission → fail closed
   // -----------------------------------------
@@ -108,7 +105,7 @@ const applyPackagingMaterialBatchVisibilityRules = (filters, acl) => {
     adjusted.forceEmptyResult = true;
     return adjusted;
   }
-  
+
   // -----------------------------------------
   // 3. Inject keyword search capabilities
   // -----------------------------------------
@@ -118,7 +115,7 @@ const applyPackagingMaterialBatchVisibilityRules = (filters, acl) => {
     canSearchMaterialCode: acl.canSearchMaterial,
     canSearchSupplier: acl.canSearchSupplier,
   };
-  
+
   return adjusted;
 };
 

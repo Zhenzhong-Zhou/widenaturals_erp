@@ -20,7 +20,10 @@
  * summary tables, detail views, export operations, or monitoring.
  */
 
-const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
+const {
+  normalizeDateRangeFilters,
+  applyDateRangeConditions,
+} = require('./date-range-utils');
 const {
   buildInventoryFilterConditions,
 } = require('./build-inventory-filter-conditions');

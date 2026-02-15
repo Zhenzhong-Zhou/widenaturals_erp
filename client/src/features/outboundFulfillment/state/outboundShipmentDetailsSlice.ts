@@ -36,11 +36,9 @@ const outboundShipmentDetailsSlice = createSlice({
       )
       .addCase(fetchOutboundShipmentDetailsThunk.rejected, (state, action) => {
         state.loading = false;
-        
+
         state.error =
-          action.payload?.message ??
-          action.error.message ??
-          'Unknown error';
+          action.payload?.message ?? action.error.message ?? 'Unknown error';
       });
   },
 });

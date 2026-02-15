@@ -8,14 +8,12 @@ const isValidTraceId = (value) =>
 
 const traceIdMiddleware = (req, res, next) => {
   const incoming = req.get('x-request-id');
-  
-  const traceId = isValidTraceId(incoming)
-    ? incoming
-    : crypto.randomUUID();
-  
+
+  const traceId = isValidTraceId(incoming) ? incoming : crypto.randomUUID();
+
   req.traceId = traceId;
   res.setHeader('x-request-id', traceId);
-  
+
   next();
 };
 

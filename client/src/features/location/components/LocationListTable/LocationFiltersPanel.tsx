@@ -20,7 +20,7 @@ import type { LocationListFilters } from '@features/location/state';
 import type {
   LookupOption,
   LookupPaginationMeta,
-  UserLookupParams
+  UserLookupParams,
 } from '@features/lookup';
 import { formatLabel } from '@utils/textUtils';
 import { toISODate } from '@utils/dateTimeUtils';
@@ -47,13 +47,13 @@ interface Props {
   onChange: (filters: LocationListFilters) => void;
   onApply: () => void;
   onReset: () => void;
-  
+
   // Shared user lookup
   userOptions: LookupOption[];
   userLoading?: boolean;
   userError?: string | null;
   userMeta: LookupPaginationMeta;
-  
+
   fetchUserLookup: (params?: UserLookupParams) => void;
 }
 
@@ -96,11 +96,7 @@ export const LOCATION_TEXT_FIELDS: LocationTextField[] = [
 ];
 
 export type LocationDateField = {
-  name:
-    | 'createdAfter'
-    | 'createdBefore'
-    | 'updatedAfter'
-    | 'updatedBefore';
+  name: 'createdAfter' | 'createdBefore' | 'updatedAfter' | 'updatedBefore';
   label: string;
 };
 
@@ -108,7 +104,7 @@ export const LOCATION_DATE_FIELDS: LocationDateField[] = [
   // --- Created ---
   { name: 'createdAfter', label: 'Created Date ≥' },
   { name: 'createdBefore', label: 'Created Date <' },
-  
+
   // --- Updated ---
   { name: 'updatedAfter', label: 'Updated Date ≥' },
   { name: 'updatedBefore', label: 'Updated Date <' },
@@ -131,49 +127,49 @@ export const LOCATION_DATE_FIELDS: LocationDateField[] = [
  * - keyword search
  */
 const LocationFiltersPanel: FC<Props> = ({
-                                           filters,
-                                           lookups,
-                                           lookupHandlers,
-                                           onChange,
-                                           onApply,
-                                           onReset,
-  
-                                           // -------------------
-                                           // Shared user lookup
-                                           // -------------------
-                                           userOptions,
-                                           userLoading,
-                                           userError,
-                                           userMeta,
-                                           fetchUserLookup,
-                                         }) => {
+  filters,
+  lookups,
+  lookupHandlers,
+  onChange,
+  onApply,
+  onReset,
+
+  // -------------------
+  // Shared user lookup
+  // -------------------
+  userOptions,
+  userLoading,
+  userError,
+  userMeta,
+  fetchUserLookup,
+}) => {
   const { control, handleSubmit, reset, watch, setValue } =
     useForm<LocationListFilters>({
       defaultValues: filters,
     });
-  
+
   const { status } = lookups;
-  
+
   const createdByLookup = useUserLookupBinding({
     fetchUserLookup,
   });
-  
+
   const updatedByLookup = useUserLookupBinding({
     fetchUserLookup,
   });
-  
+
   /* -----------------------------
    * Sync external filters
    * --------------------------- */
-  
+
   useEffect(() => {
     reset(filters);
   }, [filters, reset]);
-  
+
   /* -----------------------------
    * Status multiselect
    * --------------------------- */
-  
+
   const {
     selectedOptions: selectedStatusOptions,
     handleSelect: handleStatusSelect,
@@ -183,16 +179,16 @@ const LocationFiltersPanel: FC<Props> = ({
     fieldName: 'statusIds',
     options: status.options,
   });
-  
+
   const formattedStatusOptions = useFormattedOptions(
     status.options,
     formatLabel
   );
-  
+
   /* -----------------------------
    * Submit / Reset
    * --------------------------- */
-  
+
   const submitFilters = (data: LocationListFilters) => {
     const adjusted: LocationListFilters = {
       ...data,
@@ -200,45 +196,44 @@ const LocationFiltersPanel: FC<Props> = ({
       city: data.city || undefined,
       province_or_state: data.province_or_state || undefined,
       country: data.country || undefined,
-      
+
       includeArchived: data.includeArchived || undefined,
-      
+
       createdAfter: toISODate(data.createdAfter),
       createdBefore: toISODate(data.createdBefore),
       updatedAfter: toISODate(data.updatedAfter),
       updatedBefore: toISODate(data.updatedBefore),
     };
-    
+
     onChange(adjusted);
     onApply();
   };
-  
+
   const resetFilters = () => {
     reset(emptyFilters);
     onReset();
   };
-  
+
   const handleCreatedByOpen = () => {
     if (!userOptions.length) {
       createdByLookup.handleRefresh();
     }
   };
-  
+
   const handleUpdatedByOpen = () => {
     if (!userOptions.length) {
       updatedByLookup.handleRefresh();
     }
   };
-  
+
   /* -----------------------------
    * Render
    * --------------------------- */
-  
+
   return (
     <form onSubmit={handleSubmit(submitFilters)}>
       <FilterPanelLayout onReset={resetFilters}>
         <Grid container spacing={2}>
-          
           {/* --- Status --- */}
           <Grid size={{ xs: 12, md: 6 }}>
             <StatusMultiSelectDropdown
@@ -248,7 +243,7 @@ const LocationFiltersPanel: FC<Props> = ({
               onOpen={lookupHandlers.onOpen.status}
             />
           </Grid>
-          
+
           {/* --- Location Type --- */}
           <Grid size={{ xs: 12, md: 6 }}>
             {/*<LocationTypeDropdown*/}
@@ -258,19 +253,19 @@ const LocationFiltersPanel: FC<Props> = ({
             {/*  onChange={(value) => setValue('locationTypeId', value)}*/}
             {/*/>*/}
           </Grid>
-          
+
           {/* --- Geography --- */}
           {LOCATION_TEXT_FIELDS.map(({ name, label, placeholder }) =>
             renderInputField(control, name, label, placeholder)
           )}
-          
+
           {/* --- Archived --- */}
           {renderBooleanSelectField(
             control,
             'includeArchived',
             'Include Archived'
           )}
-          
+
           {/* --- Audit Users --- */}
           <Grid size={{ xs: 12, md: 4 }}>
             <UserDropdown
@@ -290,7 +285,7 @@ const LocationFiltersPanel: FC<Props> = ({
               onInputChange={createdByLookup.handleInputChange}
             />
           </Grid>
-          
+
           <Grid size={{ xs: 12, md: 4 }}>
             <UserDropdown
               label="Updated By"
@@ -309,12 +304,12 @@ const LocationFiltersPanel: FC<Props> = ({
               onInputChange={updatedByLookup.handleInputChange}
             />
           </Grid>
-          
+
           {/* --- Date Range --- */}
           {LOCATION_DATE_FIELDS.map(({ name, label }) =>
             renderDateField(control, name, label)
           )}
-          
+
           {/* --- Keyword --- */}
           {renderInputField(
             control,
@@ -322,7 +317,6 @@ const LocationFiltersPanel: FC<Props> = ({
             'Keyword',
             'Name, city, province, country'
           )}
-        
         </Grid>
       </FilterPanelLayout>
     </form>

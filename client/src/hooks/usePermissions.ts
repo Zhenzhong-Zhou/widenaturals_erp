@@ -48,42 +48,38 @@ import { ErrorType } from '@utils/error';
  */
 const usePermissions = (): UsePermissions => {
   const dispatch = useAppDispatch();
-  
+
   // Session state
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const resolvingSession = useAppSelector(selectSessionResolving);
-  
+
   // Permission state
   const roleName = useAppSelector(selectRoleName);
   const permissions = useAppSelector(selectPermissions);
   const loading = useAppSelector(selectPermissionsLoading);
   const resolved = useAppSelector(selectPermissionsResolved);
   const error = useAppSelector(selectPermissionsError);
-  
+
   /**
    * Permissions are considered ready once:
    * - session bootstrap has completed
    * - user is authenticated
    * - permission loading has completed
    */
-  const ready =
-    !resolvingSession &&
-    isAuthenticated &&
-    resolved &&
-    !loading;
-  
+  const ready = !resolvingSession && isAuthenticated && resolved && !loading;
+
   const loadPermissions = useCallback(async () => {
     // Wait for session bootstrap
     if (resolvingSession) return;
-    
+
     // Only fetch for authenticated users
     if (!isAuthenticated) return;
-    
+
     const result = await dispatch(fetchPermissionsThunk());
-    
+
     if (fetchPermissionsThunk.rejected.match(result)) {
       const payload = result.payload;
-      
+
       // Ignore refreshable auth errors
       if (
         payload?.type === ErrorType.Authentication ||
@@ -91,18 +87,18 @@ const usePermissions = (): UsePermissions => {
       ) {
         return;
       }
-      
+
       // Truly unrecoverable
       console.error('Permission load failed:', payload);
     }
   }, [dispatch, isAuthenticated, resolvingSession]);
-  
+
   useEffect(() => {
     if (!resolvingSession && isAuthenticated) {
       void loadPermissions();
     }
   }, [loadPermissions, resolvingSession, isAuthenticated]);
-  
+
   return {
     roleName,
     permissions,

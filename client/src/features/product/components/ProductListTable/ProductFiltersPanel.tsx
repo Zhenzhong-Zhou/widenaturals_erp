@@ -4,11 +4,11 @@ import Grid from '@mui/material/Grid';
 import { FilterPanelLayout } from '@components/index';
 import {
   StatusMultiSelectDropdown,
-  UserDropdown
+  UserDropdown,
 } from '@features/lookup/components';
 import {
   useMultiSelectBinding,
-  useUserLookupBinding
+  useUserLookupBinding,
 } from '@features/lookup/hooks';
 import { renderInputField } from '@utils/filters/filterUtils';
 import { useFormattedOptions } from '@features/lookup/utils/lookupUtils';
@@ -24,10 +24,10 @@ import type {
 interface ProductFiltersPanelProps {
   filters: ProductListFilters;
   onChange: (filters: ProductListFilters) => void;
-  
+
   onApply: () => void;
   onReset: () => void;
-  
+
   // -------------------
   // Status lookup
   // -------------------
@@ -35,7 +35,7 @@ interface ProductFiltersPanelProps {
   statusOptions: LookupOption[];
   statusLoading?: boolean;
   statusError?: string | null;
-  
+
   // -------------------
   // Shared user lookup data
   // -------------------
@@ -43,7 +43,7 @@ interface ProductFiltersPanelProps {
   userLoading?: boolean;
   userError?: string | null;
   userMeta: LookupPaginationMeta;
-  
+
   // -------------------
   // User lookup fetcher
   // -------------------
@@ -79,37 +79,37 @@ const TEXT_FIELDS: FilterField<ProductListFilters>[] = [
  * Mirrors the UX and architecture of SkuFiltersPanel.
  */
 const ProductFiltersPanel: FC<ProductFiltersPanelProps> = ({
-                                                             filters,
-                                                             onChange,
-                                                             onApply,
-                                                             onReset,
-                                                             
-                                                             // -------------------
-                                                             // Status lookup
-                                                             // -------------------
-                                                             onStatusOpen,
-                                                             statusOptions,
-                                                             statusLoading,
-                                                             statusError,
-                                                             
-                                                             // -------------------
-                                                             // Shared user lookup
-                                                             // -------------------
-                                                             userOptions,
-                                                             userLoading,
-                                                             userError,
-                                                             userMeta,
-                                                             fetchUserLookup,
-                                                           }) => {
+  filters,
+  onChange,
+  onApply,
+  onReset,
+
+  // -------------------
+  // Status lookup
+  // -------------------
+  onStatusOpen,
+  statusOptions,
+  statusLoading,
+  statusError,
+
+  // -------------------
+  // Shared user lookup
+  // -------------------
+  userOptions,
+  userLoading,
+  userError,
+  userMeta,
+  fetchUserLookup,
+}) => {
   const { control, handleSubmit, reset, watch, setValue } =
     useForm<ProductListFilters>({
       defaultValues: filters,
     });
-  
+
   const createdByLookup = useUserLookupBinding({
     fetchUserLookup,
   });
-  
+
   const updatedByLookup = useUserLookupBinding({
     fetchUserLookup,
   });
@@ -149,13 +149,13 @@ const ProductFiltersPanel: FC<ProductFiltersPanelProps> = ({
     reset(emptyFilters);
     onReset();
   };
-  
+
   const handleCreatedByOpen = () => {
     if (!userOptions.length) {
       createdByLookup.handleRefresh();
     }
   };
-  
+
   const handleUpdatedByOpen = () => {
     if (!userOptions.length) {
       updatedByLookup.handleRefresh();
@@ -170,7 +170,7 @@ const ProductFiltersPanel: FC<ProductFiltersPanelProps> = ({
           {TEXT_FIELDS.map(({ name, label, placeholder }) =>
             renderInputField(control, name, label, placeholder)
           )}
-          
+
           <Grid size={{ xs: 4 }}>
             {/* --- Status filter --- */}
             <StatusMultiSelectDropdown
@@ -183,7 +183,7 @@ const ProductFiltersPanel: FC<ProductFiltersPanelProps> = ({
               placeholder="Select one or more statuses..."
             />
           </Grid>
-          
+
           <Grid size={{ xs: 4 }}>
             {/* --- User filter --- */}
             <UserDropdown
@@ -203,7 +203,7 @@ const ProductFiltersPanel: FC<ProductFiltersPanelProps> = ({
               onInputChange={createdByLookup.handleInputChange}
             />
           </Grid>
-          
+
           <Grid size={{ xs: 4 }}>
             <UserDropdown
               label="Updated By"

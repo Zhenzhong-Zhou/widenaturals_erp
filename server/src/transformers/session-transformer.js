@@ -32,18 +32,16 @@ const transformLoginResponse = (result) => {
   if (!result || typeof result !== 'object') {
     throw AppError.validationError('Invalid login response payload.');
   }
-  
+
   const { accessToken, refreshToken, last_login } = result;
-  
+
   if (typeof accessToken !== 'string' || typeof refreshToken !== 'string') {
     throw AppError.validationError('Invalid token payload.');
   }
-  
+
   const lastLogin =
-    last_login == null
-      ? null
-      : new Date(last_login).toISOString();
-  
+    last_login == null ? null : new Date(last_login).toISOString();
+
   return {
     accessToken,
     refreshToken,

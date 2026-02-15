@@ -19,7 +19,10 @@
  * are consistent across repositories/services.
  */
 
-const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
+const {
+  normalizeDateRangeFilters,
+  applyDateRangeConditions,
+} = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
@@ -80,13 +83,21 @@ const buildOutboundShipmentFilter = (filters = {}) => {
     // -------------------------------------------------------------
     // Normalize date-only filters FIRST
     // -------------------------------------------------------------
-    filters = normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore');
-    filters = normalizeDateRangeFilters(filters, 'shippedAfter', 'shippedBefore');
-    
+    filters = normalizeDateRangeFilters(
+      filters,
+      'createdAfter',
+      'createdBefore'
+    );
+    filters = normalizeDateRangeFilters(
+      filters,
+      'shippedAfter',
+      'shippedBefore'
+    );
+
     const conditions = ['1=1'];
     const params = [];
     const paramIndexRef = { value: 1 };
-    
+
     // ------------------------------
     // Shipment-level filters
     // ------------------------------
@@ -95,13 +106,13 @@ const buildOutboundShipmentFilter = (filters = {}) => {
       params.push(filters.statusIds);
       paramIndexRef.value++;
     }
-    
+
     if (filters.warehouseIds?.length) {
       conditions.push(`os.warehouse_id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.warehouseIds);
       paramIndexRef.value++;
     }
-    
+
     if (filters.deliveryMethodIds?.length) {
       conditions.push(
         `os.delivery_method_id = ANY($${paramIndexRef.value}::uuid[])`
@@ -109,19 +120,19 @@ const buildOutboundShipmentFilter = (filters = {}) => {
       params.push(filters.deliveryMethodIds);
       paramIndexRef.value++;
     }
-    
+
     if (filters.createdBy) {
       conditions.push(`os.created_by = $${paramIndexRef.value}`);
       params.push(filters.createdBy);
       paramIndexRef.value++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`os.updated_by = $${paramIndexRef.value}`);
       params.push(filters.updatedBy);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Shipment date filters
     // ------------------------------
@@ -133,7 +144,7 @@ const buildOutboundShipmentFilter = (filters = {}) => {
       before: filters.createdBefore,
       paramIndexRef,
     });
-    
+
     applyDateRangeConditions({
       conditions,
       params,
@@ -142,7 +153,7 @@ const buildOutboundShipmentFilter = (filters = {}) => {
       before: filters.shippedBefore,
       paramIndexRef,
     });
-    
+
     // ------------------------------
     // Order-level filters
     // ------------------------------
@@ -151,13 +162,13 @@ const buildOutboundShipmentFilter = (filters = {}) => {
       params.push(filters.orderId);
       paramIndexRef.value++;
     }
-    
+
     if (filters.orderNumber) {
       conditions.push(`o.order_number ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.orderNumber}%`);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Keyword search (fuzzy)
     // ------------------------------
@@ -170,7 +181,7 @@ const buildOutboundShipmentFilter = (filters = {}) => {
       params.push(`%${filters.keyword}%`);
       paramIndexRef.value++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -181,7 +192,7 @@ const buildOutboundShipmentFilter = (filters = {}) => {
       error: err.message,
       filters,
     });
-    
+
     throw AppError.databaseError('Failed to prepare outbound shipment filter', {
       details: err.message,
       stage: 'build-outbound-shipment-where-clause',

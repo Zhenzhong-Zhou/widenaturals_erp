@@ -47,10 +47,10 @@ import { PermissionsProvider } from '@context/PermissionsContext';
  */
 const AppRoutes = () => {
   const { resolving } = useSession();
-  
+
   // Resolve permissions once before route rendering
   const { roleName, permissions, error, ready } = usePermissions();
-  
+
   // DO NOT render routes until session is resolved
   if (resolving) {
     return null; // or splash loader
@@ -75,7 +75,7 @@ const AppRoutes = () => {
             {appRoutes.map(({ path, component: Component, meta }) => {
               const requiresAuth = meta?.requiresAuth === true;
               const guestOnly = meta?.guestOnly === true;
-              
+
               // Guest-only
               if (guestOnly) {
                 return (
@@ -90,7 +90,7 @@ const AppRoutes = () => {
                   />
                 );
               }
-              
+
               // Protected
               if (requiresAuth) {
                 return (
@@ -111,16 +111,10 @@ const AppRoutes = () => {
                   />
                 );
               }
-              
-              return (
-                <Route
-                  key={path}
-                  path={path}
-                  element={<Component />}
-                />
-              );
+
+              return <Route key={path} path={path} element={<Component />} />;
             })}
-            
+
             {/* Public */}
             <Route path="*" element={<Navigate to="/404" replace />} />
           </Routes>

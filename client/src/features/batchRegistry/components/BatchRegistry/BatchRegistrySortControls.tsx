@@ -31,27 +31,27 @@ const batchRegistrySortOptions: {
 }[] = [
   // ---- Core registry identity ----
   { label: 'Registered At', value: 'registeredAt' },
-  
+
   // ---- Lot & expiry ----
   { label: 'Lot Number', value: 'lotNumber' },
   { label: 'Expiry Date', value: 'expiryDate' },
-  
+
   // ---- Status ----
   { label: 'Status', value: 'statusName' },
   { label: 'Status Date', value: 'statusDate' },
-  
+
   // ---- Product metadata ----
   { label: 'Product Name', value: 'productName' },
   { label: 'SKU Code', value: 'skuCode' },
   { label: 'Manufacturer', value: 'manufacturerName' },
-  
+
   // ---- Packaging metadata ----
   { label: 'Packaging Material', value: 'packagingMaterialName' },
   { label: 'Supplier', value: 'supplierName' },
-  
+
   // ---- Audit ----
   { label: 'Registered By', value: 'registeredBy' },
-  
+
   // ---- Default fallback ----
   { label: 'Default (Natural Sort)', value: 'defaultNaturalSort' },
 ];
@@ -63,19 +63,17 @@ const batchRegistrySortOptions: {
  * Keeps Batch Registry–specific sort semantics isolated and explicit.
  */
 const BatchRegistrySortControls: FC<BatchRegistrySortControlsProps> = ({
-                                                                         sortBy,
-                                                                         sortOrder,
-                                                                         onSortByChange,
-                                                                         onSortOrderChange,
-                                                                       }) => {
+  sortBy,
+  sortOrder,
+  onSortByChange,
+  onSortOrderChange,
+}) => {
   return (
     <SortControls
       sortBy={sortBy}
       sortOrder={sortOrder}
       sortOptions={batchRegistrySortOptions}
-      onSortByChange={(val) =>
-        onSortByChange(val as BatchRegistrySortField)
-      }
+      onSortByChange={(val) => onSortByChange(val as BatchRegistrySortField)}
       onSortOrderChange={onSortOrderChange}
     />
   );

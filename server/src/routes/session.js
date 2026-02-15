@@ -108,11 +108,7 @@ router.post(
  * - Refresh-token validation, rotation, and error handling are enforced
  *   by the service layer (`refreshTokenService`).
  */
-router.post(
-  '/refresh',
-  createRefreshRateLimiter(),
-  refreshTokenController
-);
+router.post('/refresh', createRefreshRateLimiter(), refreshTokenController);
 
 // Placeholder for session tracking routes
 // To track an active session (e.g., metadata like IP, device).

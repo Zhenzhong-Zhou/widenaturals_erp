@@ -72,10 +72,7 @@ export const getOrdersTableColumns = (
       id: 'paymentStatus',
       label: 'Payment Status',
       renderCell: (row) =>
-        formatPaymentStatus(
-          row.paymentStatus.code,
-          row.paymentStatus.name
-        ),
+        formatPaymentStatus(row.paymentStatus.code, row.paymentStatus.name),
     },
     {
       id: 'deliveryMethod',
@@ -96,7 +93,7 @@ export const getOrdersTableColumns = (
       label: 'Created By',
     },
   ];
-  
+
   // Optionally append a drill-down column for expandable row layouts
   if (onDrillDownToggle) {
     columns.push(
@@ -106,6 +103,6 @@ export const getOrdersTableColumns = (
       )
     );
   }
-  
+
   return columns;
 };

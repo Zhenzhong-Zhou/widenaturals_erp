@@ -141,7 +141,7 @@ const PricingListPage = () => {
       >
         <ExportPricingForm onClose={() => setExportOpen(false)} />
       </CustomModal>
-      
+
       {isEmpty || !pagination ? (
         <CustomTypography variant="h6">
           No pricing records found.

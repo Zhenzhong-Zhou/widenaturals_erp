@@ -29,7 +29,7 @@ exports.up = async function (knex) {
 
     table.index('batch_type', 'idx_batch_registry_type');
     table.index(['registered_at'], 'idx_batch_registry_registered_at');
-    
+
     table.check(
       `(product_batch_id IS NOT NULL AND packaging_material_batch_id IS NULL) OR
        (product_batch_id IS NULL AND packaging_material_batch_id IS NOT NULL)`

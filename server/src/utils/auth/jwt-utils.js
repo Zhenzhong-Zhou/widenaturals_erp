@@ -16,11 +16,11 @@ const { logSystemError } = require('../system-logger');
  */
 const getTtlSeconds = (envKey) => {
   const value = Number(process.env[envKey]);
-  
+
   if (!value || Number.isNaN(value)) {
     throw new Error(`${envKey} is not configured correctly`);
   }
-  
+
   return value;
 };
 
@@ -32,11 +32,11 @@ const getTtlSeconds = (envKey) => {
  */
 const getTtlMs = (envKey) => {
   const seconds = getTtlSeconds(envKey);
-  
+
   if (!Number.isInteger(seconds) || seconds <= 0) {
     throw new Error(`${envKey} must be a positive integer (seconds)`);
   }
-  
+
   return seconds * 1000;
 };
 
@@ -64,24 +64,20 @@ const signToken = (payload, isRefreshToken = false) => {
   const secret = isRefreshToken
     ? process.env.JWT_REFRESH_SECRET
     : process.env.JWT_ACCESS_SECRET;
-  
+
   if (!secret) {
     logSystemError('JWT secret missing', {
       isRefreshToken,
-      secretName: isRefreshToken
-        ? 'JWT_REFRESH_SECRET'
-        : 'JWT_ACCESS_SECRET',
+      secretName: isRefreshToken ? 'JWT_REFRESH_SECRET' : 'JWT_ACCESS_SECRET',
     });
-    
+
     throw AppError.serviceError('JWT secret not configured');
   }
-  
+
   const ttlSeconds = getTtlSeconds(
-    isRefreshToken
-      ? 'REFRESH_TOKEN_TTL_SECONDS'
-      : 'ACCESS_TOKEN_TTL_SECONDS'
+    isRefreshToken ? 'REFRESH_TOKEN_TTL_SECONDS' : 'ACCESS_TOKEN_TTL_SECONDS'
   );
-  
+
   return jwt.sign(payload, secret, {
     expiresIn: `${ttlSeconds}s`,
   });
@@ -129,11 +125,11 @@ const verifyToken = (token, isRefresh = false) => {
     const secret = isRefresh
       ? process.env.JWT_REFRESH_SECRET
       : process.env.JWT_ACCESS_SECRET;
-    
+
     if (!secret) {
       throw AppError.serviceError('JWT secret not configured');
     }
-    
+
     return jwt.verify(token, secret);
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
@@ -141,13 +137,13 @@ const verifyToken = (token, isRefresh = false) => {
         ? AppError.refreshTokenExpiredError('Refresh token expired')
         : AppError.accessTokenExpiredError('Access token expired');
     }
-    
+
     if (error.name === 'JsonWebTokenError') {
       throw isRefresh
         ? AppError.refreshTokenError('Invalid refresh token')
         : AppError.accessTokenError('Invalid access token');
     }
-    
+
     logError('Unexpected JWT verification error', error);
     throw AppError.generalError('Token verification failed');
   }
@@ -176,7 +172,7 @@ const verifyAccessJwt = (token) => {
   if (!isLikelyJwt(token)) {
     throw AppError.validationError('Invalid token format');
   }
-  
+
   return verifyToken(token, false);
 };
 
@@ -203,7 +199,7 @@ const verifyRefreshJwt = (token) => {
   if (!isLikelyJwt(token)) {
     throw AppError.validationError('Invalid token format');
   }
-  
+
   return verifyToken(token, true);
 };
 

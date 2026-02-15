@@ -1,7 +1,4 @@
-import {
-  ApiSuccessResponse,
-  AsyncState,
-} from '@shared-types/api';
+import { ApiSuccessResponse, AsyncState } from '@shared-types/api';
 
 /* =========================================================
  * LOGIN
@@ -23,7 +20,7 @@ export interface LoginResponseData {
    * dynamically to outgoing requests via Axios interceptors.
    */
   accessToken: string;
-  
+
   /**
    * CSRF token required for all state-changing requests
    * following authentication.
@@ -32,7 +29,7 @@ export interface LoginResponseData {
    * must be included in all non-idempotent requests.
    */
   csrfToken: string;
-  
+
   /**
    * ISO 8601 timestamp of the user's previous successful login.
    *
@@ -48,8 +45,7 @@ export interface LoginResponseData {
  * This follows the standard `ApiSuccessResponse<T>` contract,
  * where `T` represents the authentication payload.
  */
-export type LoginApiResponse =
-  ApiSuccessResponse<LoginResponseData>;
+export type LoginApiResponse = ApiSuccessResponse<LoginResponseData>;
 
 /**
  * Request body expected by the login endpoint.
@@ -62,7 +58,7 @@ export interface LoginRequestBody {
    * User email address used for authentication.
    */
   email: string;
-  
+
   /**
    * Plaintext password provided by the user.
    *
@@ -79,8 +75,7 @@ export interface LoginRequestBody {
  * - `loading` reflects an in-flight login request
  * - `error` contains a user-safe error message, if any
  */
-export type LoginState =
-  AsyncState<LoginResponseData | null>;
+export type LoginState = AsyncState<LoginResponseData | null>;
 
 /* =========================================================
  * TOKEN REFRESH
@@ -129,5 +124,4 @@ export type LogoutResponseData = null;
  * Client-side session cleanup is handled independently
  * of this response.
  */
-export type LogoutApiResponse =
-  ApiSuccessResponse<LogoutResponseData>;
+export type LogoutApiResponse = ApiSuccessResponse<LogoutResponseData>;

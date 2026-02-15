@@ -19,7 +19,7 @@ import ROUTE_PERMISSIONS from '@utils/constants/routePermissionConstants';
  */
 export const navigationItems: NavigationItem[] = [
   { path: '/dashboard', title: 'Dashboard', exact: true },
-  
+
   // USERS
   {
     path: '/users',
@@ -32,7 +32,7 @@ export const navigationItems: NavigationItem[] = [
     title: 'User Management',
     requiredPermission: ROUTE_PERMISSIONS.USERS.VIEW_LIST,
   },
-  
+
   // PRODUCTS
   {
     path: '/products',
@@ -45,28 +45,28 @@ export const navigationItems: NavigationItem[] = [
     title: 'Product Catalog',
     requiredPermission: ROUTE_PERMISSIONS.SKUS.VIEW_CARDS,
   },
-  
+
   // SKU
   {
     path: '/skus',
     title: 'SKU Management',
     requiredPermission: ROUTE_PERMISSIONS.SKUS.VIEW_LIST,
   },
-  
+
   // COMPLIANCE
   {
     path: '/compliance-records',
     title: 'Compliance Management',
     requiredPermission: ROUTE_PERMISSIONS.COMPLIANCE_RECORDS.VIEW_LIST,
   },
-  
+
   // BOM
   {
     path: '/boms',
     title: 'BOM Management',
     requiredPermission: ROUTE_PERMISSIONS.BOMS.VIEW_LIST,
   },
-  
+
   // BATCH
   {
     path: '/batch-registry',
@@ -78,7 +78,7 @@ export const navigationItems: NavigationItem[] = [
     title: 'Product Batches',
     requiredPermission: ROUTE_PERMISSIONS.PRODUCT_BATCH.VIEW_LIST,
   },
-  
+
   // PRICING
   {
     path: '/pricing-types',
@@ -90,7 +90,7 @@ export const navigationItems: NavigationItem[] = [
     title: 'Prices',
     requiredPermission: ROUTE_PERMISSIONS.PRICING.VIEW,
   },
-  
+
   // LOCATION
   {
     path: '/location-types',
@@ -102,7 +102,7 @@ export const navigationItems: NavigationItem[] = [
     title: 'Locations',
     requiredPermission: ROUTE_PERMISSIONS.LOCATIONS.VIEW,
   },
-  
+
   // INVENTORY
   {
     path: '/inventory-overview',
@@ -119,14 +119,14 @@ export const navigationItems: NavigationItem[] = [
     title: 'Warehouse Inventory',
     requiredPermission: ROUTE_PERMISSIONS.WAREHOUSE_INVENTORY.VIEW,
   },
-  
+
   // REPORTS
   {
     path: '/reports/inventory-activity-logs',
     title: 'Inventory Activity Logs',
     requiredPermission: ROUTE_PERMISSIONS.REPORTS.VIEW_INVENTORY_LOGS,
   },
-  
+
   // CUSTOMERS
   {
     path: '/customers',
@@ -138,7 +138,7 @@ export const navigationItems: NavigationItem[] = [
     title: 'Addresses',
     requiredPermission: ROUTE_PERMISSIONS.ADDRESSES.VIEW,
   },
-  
+
   // ORDERS
   {
     path: '/orders',
@@ -151,14 +151,14 @@ export const navigationItems: NavigationItem[] = [
     title: 'Order Types',
     requiredPermission: ROUTE_PERMISSIONS.ORDER_TYPES.VIEW,
   },
-  
+
   // INVENTORY ALLOCATION
   {
     path: '/inventory-allocations',
     title: 'Inventory Allocation',
     requiredPermission: ROUTE_PERMISSIONS.INVENTORY_ALLOCATION.VIEW,
   },
-  
+
   // FULFILLMENT
   {
     path: '/fulfillments',

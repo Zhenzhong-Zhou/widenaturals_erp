@@ -45,12 +45,12 @@ export type NavigationItem = {
    * Must match a valid application route.
    */
   path: string;
-  
+
   /**
    * Human-readable label for display in the UI.
    */
   title: string;
-  
+
   /**
    * Permission required to display this navigation item.
    *
@@ -61,7 +61,7 @@ export type NavigationItem = {
    * by the navigation renderer, not by this type.
    */
   requiredPermission?: string | readonly string[];
-  
+
   /**
    * Whether the route match should be exact.
    *
@@ -93,20 +93,20 @@ export type RouteMeta = {
 
   /** Route is only available to unauthenticated users (e.g. login/register) */
   guestOnly?: boolean;
-  
+
   /** Permission required to access the route */
   requiredPermission?: string | DynamicPermissionResolver;
-  
+
   /** Sidebar / navigation menu config (list routes only) */
   menu?: {
     title: string;
     order?: number;
     icon?: ReactNode;
   };
-  
+
   /** Parent route path for hierarchy, breadcrumbs, and active menu */
   parent?: string;
-  
+
   /** Explicitly prevent route from appearing in menus */
   hidden?: boolean;
 };

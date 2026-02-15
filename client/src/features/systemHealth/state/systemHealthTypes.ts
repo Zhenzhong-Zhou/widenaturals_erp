@@ -18,7 +18,7 @@ export interface HealthApiResponse {
    * the aggregated health of critical dependencies.
    */
   server: 'healthy' | 'unhealthy';
-  
+
   /**
    * Health status of critical system services.
    */
@@ -26,7 +26,7 @@ export interface HealthApiResponse {
     database: ServiceStatus;
     pool: ServiceStatus;
   };
-  
+
   /**
    * ISO 8601 timestamp representing when the health
    * snapshot was generated.

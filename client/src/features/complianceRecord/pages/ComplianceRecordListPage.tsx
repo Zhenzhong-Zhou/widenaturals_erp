@@ -8,7 +8,7 @@ import {
   CustomTypography,
   ErrorMessage,
   Loading,
-  NoDataFound
+  NoDataFound,
 } from '@components/index';
 import {
   ComplianceFilters,
@@ -56,7 +56,7 @@ const ComplianceRecordListPage = () => {
   } = usePaginatedComplianceRecords();
 
   const lookups = useComplianceRecordLookups();
-  
+
   // -----------------------------
   // Query model (shared)
   // -----------------------------
@@ -141,7 +141,7 @@ const ComplianceRecordListPage = () => {
   const handleDrillDownToggle = (rowId: string) => {
     setExpandedRowId((current) => (current === rowId ? null : rowId));
   };
-  
+
   return (
     <Box sx={{ px: 4, py: 3 }}>
       {/* Header */}

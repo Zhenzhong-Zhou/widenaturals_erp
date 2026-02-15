@@ -2,7 +2,7 @@ import { type FC, useState } from 'react';
 import CustomTable from '@components/common/CustomTable';
 import {
   getOrderItemColumns,
-  OrderItemDetailSection
+  OrderItemDetailSection,
 } from '@features/order/components/SalesOrderDetails/index';
 import { FlattenedOrderItemRow } from '@features/order/state';
 

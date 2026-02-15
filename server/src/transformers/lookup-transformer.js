@@ -1159,19 +1159,19 @@ const transformStatusPaginatedLookupResult = (paginatedResult, userAccess) =>
 const transformUserLookup = (row, userAccess) => {
   if (!row || typeof row !== 'object') return null;
   if (!row.id || !row.email) return null;
-  
+
   const fullName = getFullName(row.firstname, row.lastname);
   const label = fullName || row.email;
   const subLabel = fullName ? row.email : undefined;
-  
+
   const baseObj = {
     id: row.id,
     label,
     subLabel,
   };
-  
+
   const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
-  
+
   return cleanObject({
     ...baseObj,
     ...flagSubset,
@@ -1237,17 +1237,15 @@ const transformUserPaginatedLookupResult = (paginatedResult, userAccess) =>
  */
 const enrichRoleOption = (row, activeStatusId) => {
   if (!row || typeof row !== 'object') {
-    throw AppError.validationError(
-      '[enrichRoleOption] Invalid `row`'
-    );
+    throw AppError.validationError('[enrichRoleOption] Invalid `row`');
   }
-  
+
   if (!activeStatusId || typeof activeStatusId !== 'string') {
     throw AppError.validationError(
       '[enrichRoleOption] Invalid `activeStatusId`'
     );
   }
-  
+
   return {
     ...row,
     isActive: row.status_id === activeStatusId,
@@ -1290,10 +1288,10 @@ const enrichRoleOption = (row, activeStatusId) => {
  */
 const transformRoleLookup = (row, userAccess) => {
   if (!row || typeof row !== 'object') return null;
-  
+
   const name = row.name ?? 'Unnamed Role';
   const roleGroup = row.role_group ?? '';
-  
+
   /**
    * Example label patterns:
    * - "Admin • System"
@@ -1301,18 +1299,18 @@ const transformRoleLookup = (row, userAccess) => {
    * - "Viewer"
    */
   const labelParts = [name];
-  
+
   if (roleGroup) {
     labelParts.push(`• ${roleGroup}`);
   }
-  
+
   const label = labelParts.join(' ');
-  
+
   // Base lookup object: { id, label }
   const baseObj = transformIdNameToIdLabel({ ...row, name: label });
-  
+
   const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
-  
+
   return {
     ...baseObj,
     ...flagSubset,

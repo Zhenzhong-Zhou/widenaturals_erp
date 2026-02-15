@@ -82,15 +82,15 @@ const InventoryOverviewPage = () => {
       : itemTypeTab === 2
         ? 'packaging_material'
         : undefined;
-  
-  const { isAllowed: canViewBasicLogs } =
-    usePagePermissionState('view_inventory_logs');
-  
-  const { isAllowed: canViewInventoryLogs } =
-    usePagePermissionState([
-      'view_all_sku_logs',
-      'view_all_packing_material_logs',
-    ]);
+
+  const { isAllowed: canViewBasicLogs } = usePagePermissionState(
+    'view_inventory_logs'
+  );
+
+  const { isAllowed: canViewInventoryLogs } = usePagePermissionState([
+    'view_all_sku_logs',
+    'view_all_packing_material_logs',
+  ]);
 
   const {
     data: logData,

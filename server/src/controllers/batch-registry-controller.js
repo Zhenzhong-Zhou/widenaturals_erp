@@ -1,7 +1,9 @@
 const wrapAsync = require('../utils/wrap-async');
 const AppError = require('../utils/AppError');
 const { logInfo } = require('../utils/logger-helper');
-const { fetchPaginatedBatchRegistryService } = require('../services/batch-registry-service');
+const {
+  fetchPaginatedBatchRegistryService,
+} = require('../services/batch-registry-service');
 
 /**
  * Controller: Fetch paginated batch registry records.
@@ -23,25 +25,24 @@ const getPaginatedBatchRegistryController = wrapAsync(async (req, res) => {
   const context =
     'batch-registry-controller/getPaginatedBatchRegistryController';
   const startTime = Date.now();
-  
+
   // -------------------------------
   // 1. Extract normalized query params
   // -------------------------------
   // Parameters are normalized and schema-validated by upstream middleware
-  const { page, limit, sortBy, sortOrder, filters } =
-    req.normalizedQuery;
-  
+  const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
+
   // Authenticated requester (populated by auth middleware)
   const user = req.auth.user;
-  
+
   if (!user) {
     throw AppError.authorizationError('Authenticated user missing');
   }
-  
+
   // Trace identifier for correlating logs across controller,
   // service, and repository layers
   const traceId = `batch-registry-${Date.now().toString(36)}`;
-  
+
   // -------------------------------
   // 2. Incoming request log
   // -------------------------------
@@ -53,24 +54,23 @@ const getPaginatedBatchRegistryController = wrapAsync(async (req, res) => {
     sorting: { sortBy, sortOrder },
     filters,
   });
-  
+
   // -------------------------------
   // 3. Execute service layer
   // -------------------------------
   // Visibility enforcement, keyword permissions,
   // and transformation occur in the service layer
-  const { data, pagination } =
-    await fetchPaginatedBatchRegistryService({
-      filters,
-      page,
-      limit,
-      sortBy,
-      sortOrder,
-      user,
-    });
-  
+  const { data, pagination } = await fetchPaginatedBatchRegistryService({
+    filters,
+    page,
+    limit,
+    sortBy,
+    sortOrder,
+    user,
+  });
+
   const elapsedMs = Date.now() - startTime;
-  
+
   // -------------------------------
   // 4. Completion log
   // -------------------------------
@@ -82,7 +82,7 @@ const getPaginatedBatchRegistryController = wrapAsync(async (req, res) => {
     count: data.length,
     elapsedMs,
   });
-  
+
   // -------------------------------
   // 5. Send response
   // -------------------------------

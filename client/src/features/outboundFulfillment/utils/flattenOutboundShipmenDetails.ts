@@ -26,13 +26,13 @@ export const flattenShipmentHeader = (
   header: ShipmentHeader | null | undefined
 ): FlattenedShipmentHeader | null => {
   if (!header) return null;
-  
+
   return {
     shipmentId: header.shipmentId,
     orderId: header.orderId,
     warehouseId: header.warehouse?.id ?? null,
     warehouseName: header.warehouse?.name ?? null,
-    
+
     // delivery method
     deliveryMethodId: header.deliveryMethod?.id ?? null,
     deliveryMethodName: header.deliveryMethod?.name ?? null,
@@ -42,23 +42,23 @@ export const flattenShipmentHeader = (
         ? `${header.deliveryMethod.estimatedTime.days} days`
         : String(header.deliveryMethod.estimatedTime)
       : null,
-    
+
     // shipment status
     statusId: header.status?.id ?? null,
     statusCode: header.status?.code ?? null,
     statusName: header.status?.name ?? null,
-    
+
     shippedAt: header.shippedAt,
     expectedDeliveryDate: header.expectedDeliveryDate,
     notes: header.notes,
     details: header.details,
-    
+
     // audit
     createdAt: header.audit?.createdAt ?? null,
     createdByName: header.audit?.createdBy?.name ?? null,
     updatedAt: header.audit?.updatedAt ?? null,
     updatedByName: header.audit?.updatedBy?.name ?? null,
-    
+
     // tracking
     trackingId: header.tracking?.id ?? null,
     trackingNumber: header.tracking?.number ?? null,
@@ -95,7 +95,7 @@ export const flattenFulfillments = (
   fulfillments: Fulfillment[] | null | undefined
 ): FlattenedFulfillmentRow[] => {
   if (!fulfillments || fulfillments.length === 0) return [];
-  
+
   return fulfillments.map((f) => ({
     fulfillmentId: f.fulfillmentId,
     fulfillmentStatusCode: f.status?.code ?? null,
@@ -103,14 +103,14 @@ export const flattenFulfillments = (
     quantityFulfilled: f.quantityFulfilled ?? null,
     fulfilledAt: f.fulfilledAt ?? null,
     fulfillmentNote: f.notes ?? null,
-    
+
     // audit
     createdAt: f.audit?.createdAt ?? null,
     createdByName: f.audit?.createdBy?.name ?? null,
     updatedAt: f.audit?.updatedAt ?? null,
     updatedByName: f.audit?.updatedBy?.name ?? null,
     fulfilledByName: f.audit?.fulfilledBy?.name ?? null,
-    
+
     // order item snapshot
     orderItemId: f.orderItem?.id ?? null,
     orderItemQuantity: f.orderItem?.quantityOrdered ?? null,
@@ -122,7 +122,7 @@ export const flattenFulfillments = (
     sizeLabel: f.orderItem?.sku?.sizeLabel ?? null,
     packagingMaterialCode: f.orderItem?.packagingMaterial?.code ?? null,
     packagingMaterialLabel: f.orderItem?.packagingMaterial?.label ?? null,
-    
+
     // shipment batches
     batches: f.batches.map((b) => ({
       shipmentBatchId: b.shipmentBatchId,

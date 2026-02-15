@@ -20,17 +20,17 @@ interface LoginFormProps {
  * generic form abstractions due to security and UX needs.
  */
 const LoginForm: FC<LoginFormProps> = ({
-                                         loading,
-                                         formValues,
-                                         formErrors,
-                                         onFormChange,
-                                         onFormSubmit,
-                                       }) => {
+  loading,
+  formValues,
+  formErrors,
+  onFormChange,
+  onFormSubmit,
+}) => {
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     onFormSubmit();
   };
-  
+
   return (
     <Box
       component="form"
@@ -51,7 +51,7 @@ const LoginForm: FC<LoginFormProps> = ({
         disabled={loading}
         fullWidth
       />
-      
+
       <PasswordInput
         label="Password"
         intent="login"
@@ -61,7 +61,7 @@ const LoginForm: FC<LoginFormProps> = ({
         disabled={loading}
         fullWidth
       />
-      
+
       <CustomButton
         type="submit"
         variant="contained"

@@ -2,7 +2,9 @@ const AppError = require('../utils/AppError');
 const { getAccessTokenFromHeader } = require('../utils/auth-header-utils');
 const { validateAccessToken } = require('../utils/auth/validate-token');
 const { userExistsByField } = require('../repositories/user-repository');
-const { updateSessionLastActivityAt } = require('../repositories/session-repository');
+const {
+  updateSessionLastActivityAt,
+} = require('../repositories/session-repository');
 const { logSystemException } = require('../utils/system-logger');
 
 /**
@@ -42,16 +44,16 @@ const authenticate = () => {
   return async (req, res, next) => {
     try {
       const accessToken = getAccessTokenFromHeader(req);
-      
+
       if (!accessToken) {
         throw AppError.accessTokenError('Access token is missing.');
       }
-      
+
       // ------------------------------------------------------------
       // 1. Validate access token (JWT + session)
       // ------------------------------------------------------------
       const payload = await validateAccessToken(accessToken);
-      
+
       // ------------------------------------------------------------
       // 2. Structural user existence check
       // ------------------------------------------------------------
@@ -61,12 +63,12 @@ const authenticate = () => {
           'User associated with this token no longer exists.'
         );
       }
-      
+
       // ------------------------------------------------------------
       // 3. Update session activity
       // ------------------------------------------------------------
       await updateSessionLastActivityAt(payload.sessionId);
-      
+
       // ------------------------------------------------------------
       // 4. Attach auth context
       // ------------------------------------------------------------
@@ -77,11 +79,11 @@ const authenticate = () => {
         },
         sessionId: payload.sessionId,
       };
-      
+
       return next();
     } catch (error) {
       logSystemException(error, 'Authentication failed');
-      
+
       return next(
         error instanceof AppError
           ? error

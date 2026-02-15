@@ -1,8 +1,6 @@
 const express = require('express');
 const { authorize } = require('../middlewares/authorize');
-const {
-  PACKAGING_BATCH,
-} = require('../utils/constants/domain/permissions');
+const { PACKAGING_BATCH } = require('../utils/constants/domain/permissions');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 const {
   packagingMaterialBatchQuerySchema,
@@ -76,7 +74,7 @@ router.get(
     packagingMaterialBatchQuerySchema, // query schema
     {},
     [], // option-level booleans
-    []  // option-level strings
+    [] // option-level strings
   ),
   sanitizeFields(['keyword', 'lotNumber']),
   validate(packagingMaterialBatchQuerySchema, 'query', {

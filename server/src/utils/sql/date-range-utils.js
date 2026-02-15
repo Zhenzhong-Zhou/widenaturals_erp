@@ -20,8 +20,7 @@ const isValidDate = (value) => {
  * @param {string} date
  * @returns {Date}
  */
-const startOfDayUtc = (date) =>
-  new Date(`${date}T00:00:00.000Z`);
+const startOfDayUtc = (date) => new Date(`${date}T00:00:00.000Z`);
 
 /**
  * Convert a date string (YYYY-MM-DD) to the start of the next day in UTC.
@@ -59,15 +58,15 @@ const startOfNextDayUtc = (date) => {
  */
 const normalizeDateRangeFilters = (filters, afterKey, beforeKey) => {
   const out = { ...filters };
-  
+
   if (filters[afterKey] && isValidDate(filters[afterKey])) {
     out[afterKey] = startOfDayUtc(filters[afterKey]).toISOString();
   }
-  
+
   if (filters[beforeKey] && isValidDate(filters[beforeKey])) {
     out[beforeKey] = startOfNextDayUtc(filters[beforeKey]).toISOString();
   }
-  
+
   return out;
 };
 
@@ -94,19 +93,19 @@ const normalizeDateRangeFilters = (filters, afterKey, beforeKey) => {
  * @param {{ value: number }} options.paramIndexRef - Mutable parameter index reference
  */
 const applyDateRangeConditions = ({
-                                    conditions,
-                                    params,
-                                    column,
-                                    after,
-                                    before,
-                                    paramIndexRef,
-                                  }) => {
+  conditions,
+  params,
+  column,
+  after,
+  before,
+  paramIndexRef,
+}) => {
   if (after) {
     conditions.push(`${column} >= $${paramIndexRef.value}`);
     params.push(after);
     paramIndexRef.value++;
   }
-  
+
   if (before) {
     conditions.push(`${column} < $${paramIndexRef.value}`);
     params.push(before);

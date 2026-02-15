@@ -37,25 +37,24 @@ const evaluateUserCreationAccessControl = async (user) => {
         canCreateRootUsers: true,
       };
     }
-    
+
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     const canCreateUsers =
-      isRoot ||
-      permissions.includes(USER_CONSTANTS.PERMISSIONS.CREATE_USERS);
-    
+      isRoot || permissions.includes(USER_CONSTANTS.PERMISSIONS.CREATE_USERS);
+
     const canCreateAdminUsers =
       isRoot ||
       permissions.includes(USER_CONSTANTS.PERMISSIONS.CREATE_ADMIN_USERS);
-    
+
     const canCreateSystemUsers =
       isRoot ||
       permissions.includes(USER_CONSTANTS.PERMISSIONS.CREATE_SYSTEM_USERS);
-    
+
     const canCreateRootUsers =
       isRoot ||
       permissions.includes(USER_CONSTANTS.PERMISSIONS.CREATE_ROOT_USERS);
-    
+
     return {
       canCreateUsers,
       canCreateAdminUsers,
@@ -63,15 +62,11 @@ const evaluateUserCreationAccessControl = async (user) => {
       canCreateRootUsers,
     };
   } catch (err) {
-    logSystemException(
-      err,
-      'Failed to evaluate user creation access control',
-      {
-        context: 'user-business/evaluateUserCreationAccessControl',
-        userId: user?.id,
-      }
-    );
-    
+    logSystemException(err, 'Failed to evaluate user creation access control', {
+      context: 'user-business/evaluateUserCreationAccessControl',
+      userId: user?.id,
+    });
+
     throw AppError.businessError(
       'Unable to evaluate user creation access control.',
       { details: err.message }
@@ -152,7 +147,7 @@ const evaluateUserVisibilityAccessControl = async (user) => {
       permissions.includes(
         USER_CONSTANTS.PERMISSIONS.VIEW_USERS_ALL_VISIBILITY
       );
-    
+
     // Inactive users are visible either via explicit permission
     // or via full visibility override
     const canViewAllStatuses =
@@ -419,19 +414,15 @@ const sliceUserRoleForUser = (row, access) => {
 const evaluateUserLookupSearchCapabilities = async (user) => {
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
+
     const canSearchRole =
       isRoot ||
-      permissions.includes(
-        USER_CONSTANTS.PERMISSIONS.SEARCH_USERS_BY_ROLE
-      );
-    
+      permissions.includes(USER_CONSTANTS.PERMISSIONS.SEARCH_USERS_BY_ROLE);
+
     const canSearchStatus =
       isRoot ||
-      permissions.includes(
-        USER_CONSTANTS.PERMISSIONS.SEARCH_USERS_BY_STATUS
-      );
-    
+      permissions.includes(USER_CONSTANTS.PERMISSIONS.SEARCH_USERS_BY_STATUS);
+
     return {
       canSearchRole,
       canSearchStatus,
@@ -445,7 +436,7 @@ const evaluateUserLookupSearchCapabilities = async (user) => {
         userId: user?.id,
       }
     );
-    
+
     throw AppError.businessError(
       'Unable to evaluate user lookup search capabilities.',
       { details: err.message }
@@ -500,7 +491,7 @@ const evaluateUserLookupSearchCapabilities = async (user) => {
  */
 const applyUserLookupVisibilityRules = (filters, acl, activeStatusId) => {
   const adjusted = { ...filters };
-  
+
   // ---------------------------------------------------------
   // Full visibility override
   // ---------------------------------------------------------
@@ -511,7 +502,7 @@ const applyUserLookupVisibilityRules = (filters, acl, activeStatusId) => {
     delete adjusted.activeStatusId;
     return adjusted;
   }
-  
+
   // ---------------------------------------------------------
   // ACTIVE-only enforcement (default)
   // ---------------------------------------------------------
@@ -520,17 +511,17 @@ const applyUserLookupVisibilityRules = (filters, acl, activeStatusId) => {
     adjusted.activeStatusId = activeStatusId;
     delete adjusted.statusIds;
   }
-  
+
   // ---------------------------------------------------------
   // System users — never shown unless full override
   // ---------------------------------------------------------
   adjusted.includeSystemUsers = false;
-  
+
   // ---------------------------------------------------------
   // Root users — never shown unless full override
   // ---------------------------------------------------------
   adjusted.includeRootUsers = false;
-  
+
   return adjusted;
 };
 
@@ -568,13 +559,13 @@ const enrichUserLookupWithActiveFlag = (row, activeStatusId) => {
       '[enrichUserLookupWithActiveFlag] Invalid `row`.'
     );
   }
-  
+
   if (typeof activeStatusId !== 'string' || !activeStatusId) {
     throw AppError.validationError(
       '[enrichUserLookupWithActiveFlag] Missing or invalid activeStatusId.'
     );
   }
-  
+
   return {
     ...row,
     isActive: row.status_id === activeStatusId,

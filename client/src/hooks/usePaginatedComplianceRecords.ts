@@ -13,7 +13,7 @@ import {
 } from '@features/complianceRecord/state';
 import type {
   GetPaginatedComplianceRecordsParams,
-  ComplianceRecordTableRow
+  ComplianceRecordTableRow,
 } from '@features/complianceRecord/state';
 
 /**
@@ -30,7 +30,7 @@ import type {
  */
 const usePaginatedComplianceRecords = () => {
   const dispatch = useAppDispatch();
-  
+
   // ---------------------------
   // Selectors
   // ---------------------------
@@ -42,7 +42,7 @@ const usePaginatedComplianceRecords = () => {
     selectPaginatedComplianceRecordsTotalRecords
   );
   const isEmpty = useAppSelector(selectPaginatedComplianceRecordsIsEmpty);
-  
+
   // ---------------------------
   // Lookup helpers
   // ---------------------------
@@ -58,7 +58,7 @@ const usePaginatedComplianceRecords = () => {
       useAppSelector(selectComplianceRecordById(id)),
     []
   );
-  
+
   // ---------------------------
   // Actions
   // ---------------------------
@@ -80,7 +80,7 @@ const usePaginatedComplianceRecords = () => {
   const resetComplianceRecords = useCallback(() => {
     dispatch(resetPaginatedComplianceRecords());
   }, [dispatch]);
-  
+
   // ---------------------------
   // Derived values
   // ---------------------------
@@ -88,26 +88,26 @@ const usePaginatedComplianceRecords = () => {
     if (!pagination) {
       return { totalPages: 0, totalRecords: 0 };
     }
-    
+
     const { totalPages, totalRecords } = pagination;
     return { totalPages, totalRecords };
   }, [pagination]);
-  
+
   return {
     // data
     data,
     loading,
     error,
     isEmpty,
-    
+
     // pagination
     pagination,
     totalRecords,
     pageInfo,
-    
+
     // lookup
     getById,
-    
+
     // actions
     fetchComplianceRecords,
     resetComplianceRecords,

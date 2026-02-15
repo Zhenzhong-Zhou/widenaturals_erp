@@ -26,7 +26,7 @@ import { isValidOrderCategory } from '@features/order/utils';
 
 export const appRoutes: AppRoute[] = [
   /* ---------- Public ---------- */
-  
+
   defineRoute({
     path: '/',
     component: lazy(() => import('@pages/home/PublicHomePage')),
@@ -34,7 +34,7 @@ export const appRoutes: AppRoute[] = [
       guestOnly: true,
     },
   }),
-  
+
   defineRoute({
     path: '/login',
     component: lazy(() => import('@features/session/pages/LoginPage')),
@@ -42,9 +42,9 @@ export const appRoutes: AppRoute[] = [
       guestOnly: true,
     },
   }),
-  
+
   /* ---------- Core ---------- */
-  
+
   defineRoute({
     path: '/dashboard',
     component: lazy(() => import('@features/dashboard/pages/DashboardPage')),
@@ -52,21 +52,21 @@ export const appRoutes: AppRoute[] = [
       requiresAuth: true,
     },
   }),
-  
+
   defineRoute({
     path: '/profile',
     component: lazy(() => import('@features/user/pages/UserProfilePage')),
     meta: { requiresAuth: true },
   }),
-  
+
   defineRoute({
     path: '/settings',
     component: lazy(() => import('@features/settings/pages/SettingsPage')),
     meta: { requiresAuth: true },
   }),
-  
+
   /* ---------- Users ---------- */
-  
+
   defineRoute({
     path: '/users',
     component: lazy(() => import('@features/user/pages/UserCardPage')),
@@ -74,7 +74,7 @@ export const appRoutes: AppRoute[] = [
       requiresAuth: true,
     },
   }),
-  
+
   defineRoute({
     path: '/users/list',
     component: lazy(() => import('@features/user/pages/UserListPage')),
@@ -82,7 +82,7 @@ export const appRoutes: AppRoute[] = [
       requiresAuth: true,
     },
   }),
-  
+
   defineRoute({
     path: '/users/new',
     component: lazy(() => import('@features/user/pages/CreateUserPage')),
@@ -91,15 +91,15 @@ export const appRoutes: AppRoute[] = [
       parent: '/users',
     },
   }),
-  
+
   defineRoute({
     path: '/users/:userId/profile',
     component: lazy(() => import('@features/user/pages/UserProfilePage')),
     meta: { requiresAuth: true },
   }),
-  
+
   /* ---------- Products & Catalog ---------- */
-  
+
   defineRoute({
     path: '/products',
     component: lazy(() => import('@features/product/pages/ProductListPage')),
@@ -107,7 +107,7 @@ export const appRoutes: AppRoute[] = [
       requiresAuth: true,
     },
   }),
-  
+
   defineRoute({
     path: '/product-catalog',
     component: lazy(() => import('@features/sku/pages/ProductCatalogPage')),
@@ -115,13 +115,13 @@ export const appRoutes: AppRoute[] = [
       requiresAuth: true,
     },
   }),
-  
+
   defineRoute({
     path: '/products/:productId',
     component: lazy(() => import('@features/product/pages/ProductDetailPage')),
     meta: { requiresAuth: true },
   }),
-  
+
   defineRoute({
     path: '/skus',
     component: lazy(() => import('@features/sku/pages/SkuListPage')),
@@ -129,7 +129,7 @@ export const appRoutes: AppRoute[] = [
       requiresAuth: true,
     },
   }),
-  
+
   defineRoute({
     path: '/skus/new',
     component: lazy(() => import('@features/sku/pages/CreateSkuPage')),
@@ -138,7 +138,7 @@ export const appRoutes: AppRoute[] = [
       parent: '/skus',
     },
   }),
-  
+
   defineRoute({
     path: '/skus/:skuId',
     component: lazy(() => import('@features/sku/pages/SkuDetailPage')),
@@ -147,7 +147,7 @@ export const appRoutes: AppRoute[] = [
       parent: '/skus',
     },
   }),
-  
+
   defineRoute({
     path: '/boms',
     component: lazy(() => import('@features/bom/pages/BomsListPage')),
@@ -155,7 +155,7 @@ export const appRoutes: AppRoute[] = [
       requiresAuth: true,
     },
   }),
-  
+
   defineRoute({
     path: '/boms/:bomId',
     component: lazy(() => import('@features/bom/pages/BomOverviewPage')),
@@ -164,26 +164,30 @@ export const appRoutes: AppRoute[] = [
       parent: '/boms',
     },
   }),
-  
+
   // batch
   defineRoute({
     path: '/batch-registry',
-    component: lazy(() => import('@features/batchRegistry/pages/BatchRegistryListPage')),
+    component: lazy(
+      () => import('@features/batchRegistry/pages/BatchRegistryListPage')
+    ),
     meta: {
       requiresAuth: true,
     },
   }),
-  
+
   defineRoute({
     path: '/product-batches',
-    component: lazy(() => import('@features/productBatch/pages/ProductBatchListPage')),
+    component: lazy(
+      () => import('@features/productBatch/pages/ProductBatchListPage')
+    ),
     meta: {
       requiresAuth: true,
     },
   }),
-  
+
   /* ---------- Orders ---------- */
-  
+
   defineRoute({
     path: '/orders',
     component: lazy(() => import('@features/order/layouts/OrdersLayout')),
@@ -192,7 +196,7 @@ export const appRoutes: AppRoute[] = [
       requiredPermission: 'view_orders',
     },
   }),
-  
+
   defineRoute({
     path: '/orders/:mode/all',
     component: lazy(() => import('@features/order/pages/OrdersListPage')),
@@ -204,7 +208,7 @@ export const appRoutes: AppRoute[] = [
           : null) satisfies DynamicPermissionResolver,
     },
   }),
-  
+
   defineRoute({
     path: '/orders/:category/new',
     component: lazy(() => import('@features/order/pages/OrderBasePage')),
@@ -217,7 +221,7 @@ export const appRoutes: AppRoute[] = [
       }) satisfies DynamicPermissionResolver,
     },
   }),
-  
+
   defineRoute({
     path: ':mode/:category/details/:orderId',
     component: lazy(() => import('@features/order/pages/OrderDetailsPage')),
@@ -232,9 +236,9 @@ export const appRoutes: AppRoute[] = [
       }) satisfies DynamicPermissionResolver,
     },
   }),
-  
+
   /* ---------- Inventory & Warehousing ---------- */
-  
+
   defineRoute({
     path: '/inventory-overview',
     component: lazy(
@@ -245,7 +249,7 @@ export const appRoutes: AppRoute[] = [
       requiredPermission: 'view_inventory_overview',
     },
   }),
-  
+
   defineRoute({
     path: '/warehouses',
     component: lazy(() => import('@features/warehouse/pages/WarehousesPage')),
@@ -254,7 +258,7 @@ export const appRoutes: AppRoute[] = [
       requiredPermission: 'view_warehouses',
     },
   }),
-  
+
   defineRoute({
     path: '/warehouse-inventory',
     component: lazy(
@@ -265,7 +269,7 @@ export const appRoutes: AppRoute[] = [
       requiredPermission: 'view_warehouses',
     },
   }),
-  
+
   defineRoute({
     path: '/inventory-allocations',
     component: lazy(
@@ -277,17 +281,18 @@ export const appRoutes: AppRoute[] = [
       requiredPermission: 'view_inventory_allocations',
     },
   }),
-  
+
   defineRoute({
     path: '/inventory-allocations/review/:orderId',
     component: lazy(
-      () => import('@features/inventoryAllocation/pages/InventoryAllocationReviewPage')
+      () =>
+        import('@features/inventoryAllocation/pages/InventoryAllocationReviewPage')
     ),
     meta: { requiresAuth: true },
   }),
-  
+
   /* ---------- Compliance & Admin ---------- */
-  
+
   defineRoute({
     path: '/compliance-records',
     component: lazy(
@@ -297,7 +302,7 @@ export const appRoutes: AppRoute[] = [
       requiresAuth: true,
     },
   }),
-  
+
   defineRoute({
     path: '/pricing-types',
     component: lazy(
@@ -318,38 +323,36 @@ export const appRoutes: AppRoute[] = [
       requiredPermission: 'view_price_type_details',
     },
   }),
-  
+
   defineRoute({
     path: '/prices',
-    component: lazy(
-      () => import('@features/pricing/pages/PricingListPage')
-    ),
+    component: lazy(() => import('@features/pricing/pages/PricingListPage')),
     meta: {
       requiresAuth: true,
       requiredPermission: 'view_prices',
     },
   }),
-  
+
   defineRoute({
     path: '/prices/:sku/:id',
-    component: lazy(
-      () => import('@features/pricing/pages/PricingDetailPage')
-    ),
+    component: lazy(() => import('@features/pricing/pages/PricingDetailPage')),
     meta: {
       requiresAuth: true,
       requiredPermission: 'view_price_details',
     },
   }),
-  
+
   defineRoute({
     path: '/location-types',
-    component: lazy(() => import('@features/locationType/pages/LocationTypePage')),
+    component: lazy(
+      () => import('@features/locationType/pages/LocationTypePage')
+    ),
     meta: {
       requiresAuth: true,
       requiredPermission: 'view_location_types',
     },
   }),
-  
+
   defineRoute({
     path: '/locations',
     component: lazy(() => import('@features/location/pages/LocationListPage')),
@@ -358,9 +361,9 @@ export const appRoutes: AppRoute[] = [
       requiredPermission: 'view_locations',
     },
   }),
-  
+
   /* ---------- Reports ---------- */
-  
+
   defineRoute({
     path: '/reports/inventory-activity-logs',
     component: lazy(
@@ -371,9 +374,9 @@ export const appRoutes: AppRoute[] = [
       requiredPermission: 'view_inventory_logs',
     },
   }),
-  
+
   /* ---------- Customers & CRM ---------- */
-  
+
   defineRoute({
     path: '/customers',
     component: lazy(() => import('@features/customer/pages/CustomersPage')),
@@ -381,7 +384,7 @@ export const appRoutes: AppRoute[] = [
       requiresAuth: true,
     },
   }),
-  
+
   defineRoute({
     path: '/addresses',
     component: lazy(() => import('@features/address/pages/AddressesPage')),
@@ -389,7 +392,7 @@ export const appRoutes: AppRoute[] = [
       requiresAuth: true,
     },
   }),
-  
+
   defineRoute({
     path: '/order-types',
     component: lazy(() => import('@features/orderType/pages/OrderTypesPage')),
@@ -397,7 +400,7 @@ export const appRoutes: AppRoute[] = [
       requiresAuth: true,
     },
   }),
-  
+
   defineRoute({
     path: '/fulfillments',
     component: lazy(
@@ -409,7 +412,7 @@ export const appRoutes: AppRoute[] = [
       requiredPermission: 'view_outbound_fulfillments',
     },
   }),
-  
+
   defineRoute({
     path: '/fulfillments/outbound-shipment/:shipmentId',
     component: lazy(
@@ -421,15 +424,15 @@ export const appRoutes: AppRoute[] = [
       requiredPermission: 'view_outbound_fulfillments',
     },
   }),
-  
+
   /* ---------- System ---------- */
-  
+
   defineRoute({
     path: '/access-denied',
     component: lazy(() => import('@pages/system/AccessDeniedPage')),
     meta: { requiresAuth: true },
   }),
-  
+
   defineRoute({
     path: '*',
     component: lazy(() => import('@pages/system/NotFoundPage')),

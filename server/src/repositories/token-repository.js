@@ -27,7 +27,7 @@ const { logSystemInfo, logSystemException } = require('../utils/system-logger');
  */
 const insertToken = async (token, client) => {
   const context = 'token-repository/insertToken';
-  
+
   const {
     userId,
     sessionId = null,
@@ -36,7 +36,7 @@ const insertToken = async (token, client) => {
     expiresAt,
     context: tokenContext = null,
   } = token;
-  
+
   const queryText = `
     INSERT INTO tokens (
       user_id,
@@ -56,7 +56,7 @@ const insertToken = async (token, client) => {
       expires_at,
       is_revoked;
   `;
-  
+
   const params = [
     userId,
     sessionId,
@@ -65,10 +65,10 @@ const insertToken = async (token, client) => {
     expiresAt,
     tokenContext,
   ];
-  
+
   try {
     const { rows } = await query(queryText, params, client);
-    
+
     logSystemInfo('Token inserted successfully', {
       context,
       tokenId: rows[0]?.id,
@@ -76,7 +76,7 @@ const insertToken = async (token, client) => {
       tokenType,
       sessionId,
     });
-    
+
     return rows[0];
   } catch (error) {
     logSystemException(error, 'Failed to insert token', {
@@ -86,7 +86,7 @@ const insertToken = async (token, client) => {
       sessionId,
       error: error.message,
     });
-    
+
     throw error;
   }
 };
@@ -126,7 +126,7 @@ const insertToken = async (token, client) => {
  */
 const getTokenByHash = async (tokenHash, client = null) => {
   const context = 'token-repository/getTokenByHash';
-  
+
   const queryText = `
     SELECT
       id,
@@ -140,20 +140,20 @@ const getTokenByHash = async (tokenHash, client = null) => {
     WHERE token_hash = $1
     LIMIT 1;
   `;
-  
+
   try {
     const { rows } = await query(queryText, [tokenHash], client);
-    
+
     if (!rows[0]) {
       return null;
     }
-    
+
     logSystemInfo('Token fetched by hash', {
       context,
       tokenId: rows[0].id,
       tokenType: rows[0].token_type,
     });
-    
+
     return rows[0];
   } catch (error) {
     logSystemException(error, 'Failed to fetch token by hash', {
@@ -161,7 +161,7 @@ const getTokenByHash = async (tokenHash, client = null) => {
       tokenHash,
       error: error.message,
     });
-    
+
     throw error;
   }
 };
@@ -201,7 +201,7 @@ const revokeTokensByUserId = async (
   client = null
 ) => {
   const context = 'token-repository/revokeTokensByUserId';
-  
+
   const sql = `
     UPDATE tokens
     SET is_revoked = true
@@ -210,19 +210,19 @@ const revokeTokensByUserId = async (
       ${tokenType ? 'AND token_type = $2' : ''}
     RETURNING id, token_type;
   `;
-  
+
   const params = tokenType ? [userId, tokenType] : [userId];
-  
+
   try {
     const { rows } = await query(sql, params, client);
-    
+
     logSystemInfo('Tokens revoked for user', {
       context,
       userId,
       tokenType,
       revokedCount: rows.length,
     });
-    
+
     return rows;
   } catch (error) {
     logSystemException(error, 'Failed to revoke tokens for user', {
@@ -253,7 +253,7 @@ const revokeTokensByUserId = async (
  */
 const revokeTokenById = async (tokenId, client = null) => {
   const context = 'token-repository/revokeTokenById';
-  
+
   const sql = `
     UPDATE tokens
     SET
@@ -263,7 +263,7 @@ const revokeTokenById = async (tokenId, client = null) => {
       AND is_revoked = FALSE
     RETURNING id;
   `;
-  
+
   try {
     const { rowCount } = await query(sql, [tokenId], client);
     return rowCount > 0;
@@ -305,7 +305,7 @@ const revokeTokenById = async (tokenId, client = null) => {
  */
 const revokeAllTokensBySessionId = async (sessionId, client = null) => {
   const context = 'token-repository/revokeAllTokensBySessionId';
-  
+
   const sql = `
     UPDATE tokens
     SET
@@ -315,16 +315,16 @@ const revokeAllTokensBySessionId = async (sessionId, client = null) => {
       AND is_revoked = FALSE
     RETURNING id, user_id, token_type;
   `;
-  
+
   try {
     const { rows } = await query(sql, [sessionId], client);
-    
+
     logSystemInfo('Tokens revoked for session', {
       context,
       sessionId,
       revokedCount: rows.length,
     });
-    
+
     return rows;
   } catch (error) {
     logSystemException(error, 'Failed to revoke all tokens for session', {

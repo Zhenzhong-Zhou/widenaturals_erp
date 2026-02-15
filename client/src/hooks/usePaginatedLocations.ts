@@ -36,7 +36,7 @@ import { normalizePagination } from '@utils/pagination/normalizePagination';
  */
 export const usePaginatedLocations = () => {
   const dispatch = useAppDispatch();
-  
+
   // ---------------------------
   // Selectors (memoized via Reselect)
   // ---------------------------
@@ -45,11 +45,11 @@ export const usePaginatedLocations = () => {
   const loading = useAppSelector(selectPaginatedLocationLoading);
   const error = useAppSelector(selectPaginatedLocationError);
   const isEmpty = useAppSelector(selectPaginatedLocationIsEmpty);
-  
+
   // ---------------------------
   // Actions
   // ---------------------------
-  
+
   /**
    * Fetch paginated locations using Redux thunk.
    *
@@ -61,31 +61,28 @@ export const usePaginatedLocations = () => {
     },
     [dispatch]
   );
-  
+
   /**
    * Reset paginated location state back to initial empty form.
    */
   const resetLocations = useCallback(() => {
     dispatch(resetPaginatedLocations());
   }, [dispatch]);
-  
+
   // ---------------------------
   // Derived memoized values
   // ---------------------------
-  const pageInfo = useMemo(
-    () => normalizePagination(pagination),
-    [pagination]
-  );
-  
+  const pageInfo = useMemo(() => normalizePagination(pagination), [pagination]);
+
   return {
     data,
     pagination,
     loading,
     error,
     isEmpty,
-    
+
     pageInfo, // { page, limit }
-    
+
     fetchLocations,
     resetLocations,
   };
@@ -107,6 +104,6 @@ export const usePaginatedLocations = () => {
  */
 export const useLocationById = (id: string) => {
   const selector = useMemo(() => makeSelectLocationById(), []);
-  
+
   return useAppSelector((state) => selector(state, id));
 };

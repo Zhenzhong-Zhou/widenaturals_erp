@@ -22,11 +22,9 @@ const { passwordWithPolicy } = require('./password-policy');
  */
 const changePasswordSchema = Joi.object({
   currentPassword: passwordWithPolicy,
-  newPassword: passwordWithPolicy
-    .invalid(Joi.ref('currentPassword'))
-    .messages({
-      'any.invalid': 'New password cannot be the same as the current password.',
-    }),
+  newPassword: passwordWithPolicy.invalid(Joi.ref('currentPassword')).messages({
+    'any.invalid': 'New password cannot be the same as the current password.',
+  }),
 }).required();
 
 module.exports = {

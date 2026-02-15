@@ -1,4 +1,8 @@
-const { query, paginateQueryByOffset, paginateResults } = require('../database/db');
+const {
+  query,
+  paginateQueryByOffset,
+  paginateResults,
+} = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const {
@@ -57,7 +61,8 @@ const getBatchRegistryLookup = async ({ filters, limit = 50, offset = 0 }) => {
     'LEFT JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id',
   ];
 
-  const { whereClause, params } = buildBatchRegistryInventoryScopeFilter(filters);
+  const { whereClause, params } =
+    buildBatchRegistryInventoryScopeFilter(filters);
 
   const queryText = `
     SELECT
@@ -131,19 +136,19 @@ const getBatchRegistryLookup = async ({ filters, limit = 50, offset = 0 }) => {
  * @returns {Promise<{ data: Object[], pagination: Object }>}
  */
 const getPaginatedBatchRegistry = async ({
-                                           filters = {},
-                                           page = 1,
-                                           limit = 20,
-                                           sortBy = 'registered_at',
-                                           sortOrder = 'DESC',
-                                         }) => {
+  filters = {},
+  page = 1,
+  limit = 20,
+  sortBy = 'registered_at',
+  sortOrder = 'DESC',
+}) => {
   const context = 'batch-registry-repository/getPaginatedBatchRegistry';
-  
+
   // ------------------------------------
   // 1. Build WHERE clause from filters
   // ------------------------------------
   const { whereClause, params } = buildBatchRegistryFilter(filters);
-  
+
   // ------------------------------------
   // 2. Construct base query (flat, explicit)
   // ------------------------------------
@@ -200,7 +205,7 @@ const getPaginatedBatchRegistry = async ({
     WHERE ${whereClause}
     ORDER BY ${sortBy} ${sortOrder};
   `;
-  
+
   try {
     // ------------------------------------
     // 3. Execute paginated query
@@ -212,7 +217,7 @@ const getPaginatedBatchRegistry = async ({
       limit,
       meta: { context },
     });
-    
+
     // ------------------------------------
     // 4. Success logging
     // ------------------------------------
@@ -223,7 +228,7 @@ const getPaginatedBatchRegistry = async ({
       sorting: { sortBy, sortOrder },
       count: result.data.length,
     });
-    
+
     return result;
   } catch (error) {
     // ------------------------------------
@@ -235,7 +240,7 @@ const getPaginatedBatchRegistry = async ({
       pagination: { page, limit },
       sorting: { sortBy, sortOrder },
     });
-    
+
     throw AppError.databaseError('Failed to fetch batch registry.', {
       context,
     });

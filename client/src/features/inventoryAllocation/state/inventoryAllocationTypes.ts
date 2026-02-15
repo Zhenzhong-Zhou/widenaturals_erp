@@ -349,29 +349,29 @@ export interface FlattenedAllocationReviewItem {
   allocatedQuantity: number;
   createdAt: string;
   updatedAt: string;
-  
+
   orderItemId: string;
   orderId: string;
   orderItemStatusName: string;
   orderItemStatusCode: string;
   orderItemStatusDate: string;
   quantityOrdered: number;
-  
+
   skuCode: string | null;
   barcode: string | null;
   productName: string | null;
-  
+
   packagingMaterialCode: string | null;
   packagingMaterialLabel: string | null;
-  
+
   batchLotNumber: string | null;
   batchExpiryDate: string | null;
   manufactureDate: string | null;
   batchType: 'product' | 'packaging_material' | 'unknown';
-  
+
   createdByName: string;
   updatedByName: string;
-  
+
   warehouseInventoryList: {
     id: string;
     warehouseQuantity: number;
@@ -410,18 +410,18 @@ export type InventoryAllocationReviewResponse =
  */
 export type InventoryAllocationReviewState =
   AsyncState<InventoryAllocationReviewListData | null> & {
-  /**
-   * Human-readable message returned from the backend (e.g. success message).
-   * Used for UI notifications such as toasts or alerts.
-   */
-  message: string | null;
-  
-  /**
-   * Timestamp (milliseconds since epoch) of the last successful fetch.
-   * Used for caching, freshness checks, or display.
-   */
-  lastFetchedAt: number | null;
-};
+    /**
+     * Human-readable message returned from the backend (e.g. success message).
+     * Used for UI notifications such as toasts or alerts.
+     */
+    message: string | null;
+
+    /**
+     * Timestamp (milliseconds since epoch) of the last successful fetch.
+     * Used for caching, freshness checks, or display.
+     */
+    lastFetchedAt: number | null;
+  };
 
 /**
  * High-level allocation summary status derived from raw allocation codes.
@@ -543,41 +543,41 @@ export interface FlattenedInventoryAllocationSummary {
   orderNumber: string;
   orderType: string | null;
   orderCategory: string | null;
-  
+
   // --- Order status ---
   orderStatusName: string;
   orderStatusCode: string;
-  
+
   // --- Customer ---
   customerName: string;
-  
+
   // --- Payment ---
   paymentMethod: string | null;
   paymentStatusName: string;
   paymentStatusCode: string;
-  
+
   // --- Delivery ---
   deliveryMethod: string | null;
-  
+
   // --- Audit ---
   orderCreatedAt: string;
   orderCreatedBy: string;
   orderUpdatedAt: string;
   orderUpdatedBy: string;
-  
+
   // --- Item counts ---
   totalItemCount: number;
   allocatedItemCount: number;
-  
+
   // --- Warehouses ---
   warehouseIds: string[];
   warehouseNames: string; // pre-joined display string
-  
+
   // --- Allocation status ---
   allocationStatusCodes: string[];
   allocationStatusNames: string; // comma-joined
   allocationSummaryStatus: AllocationSummaryStatus;
-  
+
   // --- Allocation metadata ---
   allocationIds: string[];
   allocatedAt: string | null;

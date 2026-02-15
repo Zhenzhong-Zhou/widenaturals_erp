@@ -8,7 +8,10 @@
  * Also supports internal access control flags such as `_activeStatusId` and `_restrictKeywordToValidOnly`.
  */
 
-const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
+const {
+  normalizeDateRangeFilters,
+  applyDateRangeConditions,
+} = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
@@ -54,25 +57,33 @@ const buildOrderTypeFilter = (filters = {}) => {
     // -------------------------------------------------------------
     // Normalize date-only filters FIRST
     // -------------------------------------------------------------
-    filters = normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore');
-    filters = normalizeDateRangeFilters(filters, 'updatedAfter', 'updatedBefore');
-    
+    filters = normalizeDateRangeFilters(
+      filters,
+      'createdAfter',
+      'createdBefore'
+    );
+    filters = normalizeDateRangeFilters(
+      filters,
+      'updatedAfter',
+      'updatedBefore'
+    );
+
     const conditions = ['1=1'];
     const params = [];
     const paramIndexRef = { value: 1 };
-    
+
     if (filters.name) {
       conditions.push(`ot.name ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.name}%`);
       paramIndexRef.value++;
     }
-    
+
     if (filters.code) {
       conditions.push(`ot.code ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.code}%`);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Category (single or multiple)
     // ------------------------------
@@ -89,7 +100,7 @@ const buildOrderTypeFilter = (filters = {}) => {
         paramIndexRef.value++;
       }
     }
-    
+
     // ------------------------------
     // Status enforcement
     // ------------------------------
@@ -102,25 +113,25 @@ const buildOrderTypeFilter = (filters = {}) => {
       params.push(filters.statusId);
       paramIndexRef.value++;
     }
-    
+
     if (filters.requiresPayment !== undefined) {
       conditions.push(`ot.requires_payment = $${paramIndexRef.value}`);
       params.push(filters.requiresPayment);
       paramIndexRef.value++;
     }
-    
+
     if (filters.createdBy) {
       conditions.push(`ot.created_by = $${paramIndexRef.value}`);
       params.push(filters.createdBy);
       paramIndexRef.value++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`ot.updated_by = $${paramIndexRef.value}`);
       params.push(filters.updatedBy);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Created / Updated date filters
     // ------------------------------
@@ -132,7 +143,7 @@ const buildOrderTypeFilter = (filters = {}) => {
       before: filters.createdBefore,
       paramIndexRef,
     });
-    
+
     applyDateRangeConditions({
       conditions,
       params,
@@ -141,7 +152,7 @@ const buildOrderTypeFilter = (filters = {}) => {
       before: filters.updatedBefore,
       paramIndexRef,
     });
-    
+
     // ------------------------------
     // Keyword search
     // ------------------------------
@@ -149,12 +160,12 @@ const buildOrderTypeFilter = (filters = {}) => {
       const keywordClause = filters._restrictKeywordToValidOnly
         ? `ot.name ILIKE $${paramIndexRef.value}`
         : `(ot.name ILIKE $${paramIndexRef.value} OR ot.code ILIKE $${paramIndexRef.value})`;
-      
+
       conditions.push(keywordClause);
       params.push(`%${filters.keyword.trim().replace(/\s+/g, ' ')}%`);
       paramIndexRef.value++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -165,7 +176,7 @@ const buildOrderTypeFilter = (filters = {}) => {
       error: err.message,
       filters,
     });
-    
+
     throw AppError.databaseError('Failed to prepare order type filter', {
       details: err.message,
       stage: 'build-order-type-where-clause',

@@ -148,9 +148,7 @@ const transformBomMaterialSupplyDetails = (rows = []) => {
             name: 'bom_item_material_status',
             date: 'bom_item_material_status_date',
           }),
-          audit: compactAudit(
-            makeAudit(row, { prefix: 'bom_item_material_' })
-          ),
+          audit: compactAudit(makeAudit(row, { prefix: 'bom_item_material_' })),
         },
         packagingMaterials: [],
       });
@@ -186,9 +184,7 @@ const transformBomMaterialSupplyDetails = (rows = []) => {
         name: 'packaging_material_status',
         date: 'packaging_material_status_date',
       }),
-      audit: compactAudit(
-        makeAudit(row, { prefix: 'packaging_material_' })
-      ),
+      audit: compactAudit(makeAudit(row, { prefix: 'packaging_material_' })),
       supplier: row.supplier_id
         ? {
             id: row.supplier_id,
@@ -205,11 +201,9 @@ const transformBomMaterialSupplyDetails = (rows = []) => {
                 : null,
               note: row.supplier_note,
             },
-          audit: compactAudit(
-            makeAudit(row, { prefix: 'supplier_link_' })
-          ),
-          batches: [],
-        }
+            audit: compactAudit(makeAudit(row, { prefix: 'supplier_link_' })),
+            batches: [],
+          }
         : null,
     };
 
@@ -233,9 +227,7 @@ const transformBomMaterialSupplyDetails = (rows = []) => {
           name: 'batch_status',
           date: 'batch_status_date',
         }),
-        audit: compactAudit(
-          makeAudit(row, { prefix: 'batch_' })
-        ),
+        audit: compactAudit(makeAudit(row, { prefix: 'batch_' })),
       });
     }
 

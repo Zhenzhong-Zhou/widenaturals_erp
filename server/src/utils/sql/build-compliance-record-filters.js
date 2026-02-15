@@ -1,4 +1,7 @@
-const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
+const {
+  normalizeDateRangeFilters,
+  applyDateRangeConditions,
+} = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
@@ -66,14 +69,26 @@ const buildComplianceRecordFilter = (filters = {}) => {
     // Normalize date range filters FIRST
     // -------------------------------------------------------------
     filters = normalizeDateRangeFilters(filters, 'issuedAfter', 'issuedBefore');
-    filters = normalizeDateRangeFilters(filters, 'expiringAfter', 'expiringBefore');
-    filters = normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore');
-    filters = normalizeDateRangeFilters(filters, 'updatedAfter', 'updatedBefore');
-    
+    filters = normalizeDateRangeFilters(
+      filters,
+      'expiringAfter',
+      'expiringBefore'
+    );
+    filters = normalizeDateRangeFilters(
+      filters,
+      'createdAfter',
+      'createdBefore'
+    );
+    filters = normalizeDateRangeFilters(
+      filters,
+      'updatedAfter',
+      'updatedBefore'
+    );
+
     const conditions = ['1=1'];
     const params = [];
     const paramIndexRef = { value: 1 };
-    
+
     // ----------------------------------------
     // Compliance-level filters (cr.*)
     // ----------------------------------------
@@ -82,19 +97,19 @@ const buildComplianceRecordFilter = (filters = {}) => {
       params.push(filters.type);
       paramIndexRef.value++;
     }
-    
+
     if (filters.statusIds?.length) {
       conditions.push(`cr.status_id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.statusIds);
       paramIndexRef.value++;
     }
-    
+
     if (filters.complianceId) {
       conditions.push(`cr.compliance_id ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.complianceId}%`);
       paramIndexRef.value++;
     }
-    
+
     // ----------------------------------------
     // Compliance issued / expiry date filters
     // ----------------------------------------
@@ -106,7 +121,7 @@ const buildComplianceRecordFilter = (filters = {}) => {
       before: filters.issuedBefore,
       paramIndexRef,
     });
-    
+
     applyDateRangeConditions({
       conditions,
       params,
@@ -115,7 +130,7 @@ const buildComplianceRecordFilter = (filters = {}) => {
       before: filters.expiringBefore,
       paramIndexRef,
     });
-    
+
     // ----------------------------------------
     // Audit: who created / updated
     // ----------------------------------------
@@ -124,13 +139,13 @@ const buildComplianceRecordFilter = (filters = {}) => {
       params.push(filters.createdBy);
       paramIndexRef.value++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`cr.updated_by = $${paramIndexRef.value}`);
       params.push(filters.updatedBy);
       paramIndexRef.value++;
     }
-    
+
     // ----------------------------------------
     // Record created / updated date filters
     // ----------------------------------------
@@ -142,7 +157,7 @@ const buildComplianceRecordFilter = (filters = {}) => {
       before: filters.createdBefore,
       paramIndexRef,
     });
-    
+
     applyDateRangeConditions({
       conditions,
       params,
@@ -151,7 +166,7 @@ const buildComplianceRecordFilter = (filters = {}) => {
       before: filters.updatedBefore,
       paramIndexRef,
     });
-    
+
     // ----------------------------------------
     // SKU-level filters (s.*)
     // ----------------------------------------
@@ -160,25 +175,25 @@ const buildComplianceRecordFilter = (filters = {}) => {
       params.push(filters.skuIds);
       paramIndexRef.value++;
     }
-    
+
     if (filters.sku) {
       conditions.push(`s.sku ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.sku}%`);
       paramIndexRef.value++;
     }
-    
+
     if (filters.sizeLabel) {
       conditions.push(`s.size_label ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.sizeLabel}%`);
       paramIndexRef.value++;
     }
-    
+
     if (filters.marketRegion) {
       conditions.push(`s.market_region ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.marketRegion}%`);
       paramIndexRef.value++;
     }
-    
+
     // ----------------------------------------
     // Product-level filters (p.*)
     // ----------------------------------------
@@ -187,19 +202,19 @@ const buildComplianceRecordFilter = (filters = {}) => {
       params.push(`%${filters.productName}%`);
       paramIndexRef.value++;
     }
-    
+
     if (filters.brand) {
       conditions.push(`p.brand ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.brand}%`);
       paramIndexRef.value++;
     }
-    
+
     if (filters.category) {
       conditions.push(`p.category ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.category}%`);
       paramIndexRef.value++;
     }
-    
+
     // ----------------------------------------
     // Keyword search (multi-field fuzzy)
     // ----------------------------------------
@@ -214,7 +229,7 @@ const buildComplianceRecordFilter = (filters = {}) => {
       params.push(`%${filters.keyword}%`);
       paramIndexRef.value++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -224,7 +239,7 @@ const buildComplianceRecordFilter = (filters = {}) => {
       context: 'compliance-record-repository/buildComplianceRecordFilter',
       filters,
     });
-    
+
     throw AppError.databaseError('Failed to prepare compliance filter', {
       details: err.message,
     });

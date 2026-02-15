@@ -1,15 +1,15 @@
 const express = require('express');
 const { authorize } = require('../middlewares/authorize');
-const {
-  PRODUCT_BATCH,
-} = require('../utils/constants/domain/permissions');
+const { PRODUCT_BATCH } = require('../utils/constants/domain/permissions');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 const {
   productBatchQuerySchema,
 } = require('../validators/product-batch-validators');
 const { sanitizeFields } = require('../middlewares/sanitize');
 const validate = require('../middlewares/validate');
-const { getPaginatedProductBatchesController } = require('../controllers/product-batch-controller');
+const {
+  getPaginatedProductBatchesController,
+} = require('../controllers/product-batch-controller');
 
 const router = express.Router();
 
@@ -75,7 +75,7 @@ router.get(
     productBatchQuerySchema, // query schema
     {},
     [], // option-level booleans
-    []  // option-level strings
+    [] // option-level strings
   ),
   sanitizeFields(['keyword', 'lotNumber']),
   validate(productBatchQuerySchema, 'query', {

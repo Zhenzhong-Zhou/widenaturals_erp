@@ -16,7 +16,7 @@ const AppError = require('../utils/AppError');
 const PASSWORD_POLICY = {
   REGEX:
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=(?:.*[!@#$%^&*\-]){2,})(?=.{8,64})(?!.*(.)\1{2}).*$/,
-  
+
   ERROR_MESSAGE:
     'Password must include at least one uppercase letter, one lowercase letter, one number, and at least two special characters. It must be 8–64 characters long and must not contain more than two consecutive repeating characters.',
 };
@@ -31,7 +31,7 @@ const validatePasswordStrength = (password) => {
   if (!password || typeof password !== 'string') {
     throw AppError.validationError('Password is required.');
   }
-  
+
   if (!PASSWORD_POLICY.REGEX.test(password)) {
     throw AppError.validationError(PASSWORD_POLICY.ERROR_MESSAGE);
   }

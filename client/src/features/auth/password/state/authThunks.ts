@@ -40,13 +40,10 @@ export const changePasswordThunk = createAsyncThunk<
   ChangePasswordResponse,
   ChangePasswordRequest,
   { rejectValue: UiErrorPayload }
->(
-  'auth/changePassword',
-  async (payload, { rejectWithValue }) => {
-    try {
-      return await authenticateService.changePassword(payload);
-    } catch (error: unknown) {
-      return rejectWithValue(extractUiErrorPayload(error));
-    }
+>('auth/changePassword', async (payload, { rejectWithValue }) => {
+  try {
+    return await authenticateService.changePassword(payload);
+  } catch (error: unknown) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});

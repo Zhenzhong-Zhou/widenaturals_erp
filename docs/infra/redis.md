@@ -12,6 +12,7 @@ Staging and production may use managed or secured Redis services.
 ## Local Development
 
 #### macOS (Homebrew)
+
 ```bash
   brew install redis
   brew install redis
@@ -19,6 +20,7 @@ Staging and production may use managed or secured Redis services.
 ```
 
 #### Ubuntu / Debian
+
 ```bash
     sudo apt update
     sudo apt install redis-server
@@ -26,21 +28,27 @@ Staging and production may use managed or secured Redis services.
 ```
 
 #### Verify
+
 ```bash
 redis-cli ping
 ```
 
 ## Managing the Redis Service
+
 #### macOS
+
 ```bash
 brew services stop redis
-``` 
+```
+
 #### Ubuntu / Debian
+
 ```bash
 sudo systemctl stop redis
 ```
 
 ## Secured / Production Redis
+
 > These steps apply to staging and production environments only.
 > Local development does not require Redis authentication by default.
 

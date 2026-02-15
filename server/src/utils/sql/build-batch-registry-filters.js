@@ -15,7 +15,10 @@
  * - Manufacturer or SKU
  */
 
-const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
+const {
+  normalizeDateRangeFilters,
+  applyDateRangeConditions,
+} = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 const { addKeywordIlikeGroup } = require('./sql-helpers');
@@ -181,12 +184,16 @@ const buildBatchRegistryFilter = (filters = {}) => {
     // Normalize date range filters FIRST (single source of truth)
     // -------------------------------------------------------------
     filters = normalizeDateRangeFilters(filters, 'expiryAfter', 'expiryBefore');
-    filters = normalizeDateRangeFilters(filters, 'registeredAfter', 'registeredBefore');
-    
+    filters = normalizeDateRangeFilters(
+      filters,
+      'registeredAfter',
+      'registeredBefore'
+    );
+
     const conditions = ['1=1'];
     const params = [];
     const paramIndexRef = { value: 1 };
-    
+
     // -------------------------------------------------------------
     // Hard fail-closed: no visibility → empty result set
     // -------------------------------------------------------------
@@ -198,7 +205,7 @@ const buildBatchRegistryFilter = (filters = {}) => {
         params: [],
       };
     }
-    
+
     // ------------------------------
     // Core batch registry filters
     // ------------------------------
@@ -207,7 +214,7 @@ const buildBatchRegistryFilter = (filters = {}) => {
       params.push(filters.batchType);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Status filters (polymorphic)
     // ------------------------------
@@ -221,7 +228,7 @@ const buildBatchRegistryFilter = (filters = {}) => {
       params.push(filters.statusIds);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Product batch filters
     // ------------------------------
@@ -230,19 +237,19 @@ const buildBatchRegistryFilter = (filters = {}) => {
       params.push(filters.skuIds);
       paramIndexRef.value++;
     }
-    
+
     if (filters.productIds?.length) {
       conditions.push(`p.id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.productIds);
       paramIndexRef.value++;
     }
-    
+
     if (filters.manufacturerIds?.length) {
       conditions.push(`m.id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.manufacturerIds);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Packaging batch filters
     // ------------------------------
@@ -251,13 +258,13 @@ const buildBatchRegistryFilter = (filters = {}) => {
       params.push(filters.packagingMaterialIds);
       paramIndexRef.value++;
     }
-    
+
     if (filters.supplierIds?.length) {
       conditions.push(`sup.id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.supplierIds);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Lot number (ILIKE, polymorphic)
     // ------------------------------
@@ -271,7 +278,7 @@ const buildBatchRegistryFilter = (filters = {}) => {
       params.push(`%${filters.lotNumber}%`);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Expiry date filters (polymorphic, via helper)
     // ------------------------------
@@ -284,7 +291,7 @@ const buildBatchRegistryFilter = (filters = {}) => {
         before: filters.expiryBefore,
         paramIndexRef,
       });
-      
+
       applyDateRangeConditions({
         conditions,
         params,
@@ -294,7 +301,7 @@ const buildBatchRegistryFilter = (filters = {}) => {
         paramIndexRef,
       });
     }
-    
+
     // ------------------------------
     // Registry-level date filters
     // ------------------------------
@@ -306,7 +313,7 @@ const buildBatchRegistryFilter = (filters = {}) => {
       before: filters.registeredBefore,
       paramIndexRef,
     });
-    
+
     // ------------------------------
     // Keyword fuzzy search (permission-aware)
     // ------------------------------
@@ -318,18 +325,15 @@ const buildBatchRegistryFilter = (filters = {}) => {
         canSearchPackagingMaterial,
         canSearchSupplier,
       } = filters.keywordCapabilities;
-      
-      const searchableFields = [
-        'pb.lot_number',
-        'pmb.lot_number',
-      ];
-      
+
+      const searchableFields = ['pb.lot_number', 'pmb.lot_number'];
+
       if (canSearchProduct) searchableFields.push('p.name');
       if (canSearchSku) searchableFields.push('s.sku');
       if (canSearchManufacturer) searchableFields.push('m.name');
       if (canSearchPackagingMaterial) searchableFields.push('pm.name');
       if (canSearchSupplier) searchableFields.push('sup.name');
-      
+
       /**
        * addKeywordIlikeGroup:
        * - Appends a grouped `(field ILIKE $n OR ...)` condition
@@ -348,7 +352,7 @@ const buildBatchRegistryFilter = (filters = {}) => {
         searchableFields
       );
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -358,7 +362,7 @@ const buildBatchRegistryFilter = (filters = {}) => {
       context: 'batch-registry-repository/buildBatchRegistryFilter',
       filters,
     });
-    
+
     throw AppError.databaseError('Failed to prepare batch registry filter', {
       details: err.message,
     });

@@ -25,7 +25,7 @@ const CreateUserPage = () => {
         </CustomTypography>
         <GoBackButton />
       </Box>
-      
+
       <CreateUserForm />
     </Box>
   );

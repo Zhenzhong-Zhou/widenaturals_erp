@@ -1,7 +1,4 @@
-import {
-  ApiSuccessResponse,
-  AsyncState
-} from '@shared-types/api';
+import { ApiSuccessResponse, AsyncState } from '@shared-types/api';
 
 /**
  * Data payload returned after a successful password change.
@@ -39,8 +36,7 @@ export interface ChangePasswordData {
  * - On success, the backend invalidates active sessions.
  * - Client should redirect to login.
  */
-export type ChangePasswordResponse =
-  ApiSuccessResponse<ChangePasswordData>;
+export type ChangePasswordResponse = ApiSuccessResponse<ChangePasswordData>;
 
 /**
  * Request payload for authenticated password change.
@@ -61,7 +57,7 @@ export interface ChangePasswordRequest {
    * Required for verification before allowing change.
    */
   currentPassword: string;
-  
+
   /**
    * The new password to replace the current one.
    *
@@ -84,5 +80,4 @@ export interface ChangePasswordRequest {
  * - error: populated if request fails
  * - data: populated on success
  */
-export type ChangePasswordState =
-  AsyncState<ChangePasswordData | null>;
+export type ChangePasswordState = AsyncState<ChangePasswordData | null>;

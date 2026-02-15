@@ -2,7 +2,8 @@ import { useMemo } from 'react';
 import { useAppSelector } from '@store/storeHooks';
 import {
   selectAccessToken,
-  selectIsAuthenticated, selectSessionBootstrapped,
+  selectIsAuthenticated,
+  selectSessionBootstrapped,
   selectSessionResolving,
 } from '@features/session/state/sessionSelectors';
 
@@ -31,7 +32,7 @@ const useSession = () => {
   const resolving = useAppSelector(selectSessionResolving);
   const bootstrapped = useAppSelector(selectSessionBootstrapped);
   const accessToken = useAppSelector(selectAccessToken);
-  
+
   return useMemo(
     () => ({
       isAuthenticated,

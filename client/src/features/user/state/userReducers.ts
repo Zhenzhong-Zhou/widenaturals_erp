@@ -39,13 +39,13 @@ export const userReducers = {
    * - Be merged into list or profile slices
    */
   createUser: createUserReducer,
-  
+
   /** Paginated user list with filters and pagination metadata */
   paginatedUsers: paginatedUsersReducer,
-  
+
   /** Authenticated user's own profile state */
   userSelfProfile: userSelfProfileReducer,
-  
+
   /** HR/Admin viewed user profile state */
   userViewedProfile: userViewedProfileReducer,
 };

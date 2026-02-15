@@ -29,10 +29,12 @@ env/
    ├─ .env.server
    └─ .env.database
 ```
-Only *.example files are committed to Git.
+
+Only \*.example files are committed to Git.
 Real environment files are always ignored.
 
 ## 2. Load Order (Important)
+
 Environment files are loaded in the following order:
 
 env/.env.defaults
@@ -44,6 +46,7 @@ env/${NODE_ENV}/.env.server
 Later files override earlier ones.
 
 ## 3. File Responsibilities
+
 .env.defaults
 Purpose
 Shared, safe defaults used by all environments.
@@ -115,22 +118,24 @@ PostgreSQL host / port / database / user / password
 Redis host / port / auth / TLS flags
 
 ## 4. Secrets Handling
+
 High-impact secrets (encryption keys, private keys, credentials that must not
 rotate casually) are not stored in env files.
 
 They live in:
 
 secrets/
-Secrets are referenced from .env.server using *_FILE variables.
+Secrets are referenced from .env.server using \*\_FILE variables.
 
 See secrets/README.md for details.
 
 ## 5. Setup Checklist (New Developer)
+
 Copy example files:
 
-env/.env.defaults.example   → env/.env.defaults
-env/.env.server.example     → env/development/.env.server
-env/.env.database.example   → env/development/.env.database
+env/.env.defaults.example → env/.env.defaults
+env/.env.server.example → env/development/.env.server
+env/.env.database.example → env/development/.env.database
 Create required secrets as documented in secrets/README.md
 
 Ensure NODE_ENV=development
@@ -140,6 +145,7 @@ Start the application
 If required variables are missing, the application must fail fast at startup.
 
 ## 6. What NOT to Do
+
 ❌ Commit real .env files
 ❌ Put secrets in .env.defaults
 ❌ Mix database variables into server env
@@ -147,6 +153,7 @@ If required variables are missing, the application must fail fast at startup.
 ❌ Store backup encryption keys directly in env files
 
 ## 7. Design Principles
+
 Environment configuration is an application concern
 
 Container runtime (Docker / Podman) is an infrastructure concern

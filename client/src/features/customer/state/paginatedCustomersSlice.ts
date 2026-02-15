@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type {
   CustomerListItem,
-  PaginatedCustomerState
+  PaginatedCustomerState,
 } from '@features/customer/state';
 import { fetchPaginatedCustomersThunk } from '@features/customer/state';
 import { createInitialPaginatedState } from '@store/pagination';

@@ -6,7 +6,7 @@ const {
   validateOptionalString,
   createBooleanFlag,
   createdDateRangeSchema,
-  updatedDateRangeSchema
+  updatedDateRangeSchema,
 } = require('./general-validators');
 
 /**
@@ -60,12 +60,12 @@ const locationQuerySchema = paginationSchema
     // Status filtering
     // -------------------------------------------------------------
     statusIds: validateUUIDOrUUIDArrayOptional('Location Status IDs'),
-    
+
     // -------------------------------------------------------------
     // Location type
     // -------------------------------------------------------------
     locationTypeId: validateOptionalUUID('Location Type ID'),
-    
+
     // -------------------------------------------------------------
     // Geographic filters
     // -------------------------------------------------------------
@@ -74,19 +74,20 @@ const locationQuerySchema = paginationSchema
       'Province or State (partial match allowed)'
     ),
     country: validateOptionalString('Country (partial match allowed)'),
-    
+
     // -------------------------------------------------------------
     // Archive handling
     // -------------------------------------------------------------
-    includeArchived: createBooleanFlag('Include Archived')
-      .description('Whether to include archived locations'),
-    
+    includeArchived: createBooleanFlag('Include Archived').description(
+      'Whether to include archived locations'
+    ),
+
     // -------------------------------------------------------------
     // Audit filters
     // -------------------------------------------------------------
     createdBy: validateOptionalUUID('Location Created By User ID'),
     updatedBy: validateOptionalUUID('Location Updated By User ID'),
-    
+
     // -------------------------------------------------------------
     // Keyword search
     // -------------------------------------------------------------

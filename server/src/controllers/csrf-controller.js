@@ -33,13 +33,13 @@ const wrapAsync = require('../utils/wrap-async');
  */
 const generateCsrfTokenController = wrapAsync((req, res) => {
   const csrfToken = req.csrfToken();
-  
+
   res.set({
     'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
     Pragma: 'no-cache',
     Expires: '0',
   });
-  
+
   res.json({ csrfToken });
 });
 

@@ -74,10 +74,7 @@ const usePaginatedUsers = () => {
   // ---------------------------
   // Derived memoized values
   // ---------------------------
-  const pageInfo = useMemo(
-    () => normalizePagination(pagination),
-    [pagination]
-  );
+  const pageInfo = useMemo(() => normalizePagination(pagination), [pagination]);
 
   return {
     data,

@@ -21,7 +21,7 @@ import { useUserSelfProfileAuto } from '@hooks/index';
  */
 const AppContent: FC = () => {
   useUserSelfProfileAuto();
-  
+
   return (
     <Box
       className="app"

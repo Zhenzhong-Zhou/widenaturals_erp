@@ -24,15 +24,17 @@ const {
   const client = await pool.connect();
   const logContext = chalk.cyan('[Test: Batch Registry]');
   const startTime = Date.now();
-  
+
   try {
     // ---------------------------------------------------------
     // Init shared caches
     // ---------------------------------------------------------
     await initStatusCache();
-    
-    console.log(`${logContext} 🚀 Starting batch registry pagination test...\n`);
-    
+
+    console.log(
+      `${logContext} 🚀 Starting batch registry pagination test...\n`
+    );
+
     // ------------------------------------------------------------
     // Step 1: Load test user (requester)
     // ------------------------------------------------------------
@@ -41,40 +43,39 @@ const {
       ['root@widenaturals.com']
       // ['jp@widenaturals.com']
     );
-    
+
     if (rows.length === 0) {
       console.error(`${logContext} ❌ Test user not found`);
       return;
     }
-    
+
     const { id: userId, role_id: roleId } = rows[0];
-    
+
     const authUser = {
       id: userId,
       role: roleId,
     };
-    
+
     console.log(
       `${logContext} 👤 Loaded auth user: ${chalk.green(
         JSON.stringify(authUser)
       )}\n`
     );
-    
+
     // ------------------------------------------------------------
     // Step 2: Sorting setup
     // ------------------------------------------------------------
     const sortMap = getSortMapForModule('batchRegistrySortMap');
-    
+
     const logicalSortKey = 'registeredAt'; // try: expiryDate, lotNumber
-    const sortByColumn =
-      sortMap[logicalSortKey] || sortMap.defaultNaturalSort;
-    
+    const sortByColumn = sortMap[logicalSortKey] || sortMap.defaultNaturalSort;
+
     console.log(
       `${logContext} 🧮 Sorting by ${chalk.yellow(logicalSortKey)} → ${chalk.green(
         sortByColumn
       )}\n`
     );
-    
+
     // ------------------------------------------------------------
     // Step 3: Filters & pagination
     // ------------------------------------------------------------
@@ -83,13 +84,13 @@ const {
       // batchType: 'packaging_material',
       // keyword: 'gut',
     };
-    
+
     const pagination = { page: 1, limit: 25 };
-    
+
     console.log(`${logContext} 🔍 Filters:`);
     console.table(filters);
     console.log();
-    
+
     // ------------------------------------------------------------
     // Step 4: Execute batch registry pagination service
     // ------------------------------------------------------------
@@ -98,7 +99,7 @@ const {
         'fetchPaginatedBatchRegistryService'
       )}...\n`
     );
-    
+
     const result = await fetchPaginatedBatchRegistryService({
       filters,
       page: pagination.page,
@@ -107,30 +108,30 @@ const {
       sortOrder: 'DESC',
       user: authUser,
     });
-    
+
     // ------------------------------------------------------------
     // Step 5: Display results
     // ------------------------------------------------------------
     const elapsedMs = Date.now() - startTime;
     const elapsedSec = (elapsedMs / 1000).toFixed(2);
-    
+
     console.log(
       `${logContext} ✅ Completed in ${chalk.green(
         `${elapsedMs}ms`
       )} (${chalk.green(`${elapsedSec}s`)})\n`
     );
-    
+
     console.log(`${logContext} 📄 Pagination Info:`);
     console.table(result.pagination);
-    
+
     console.log(`\n${logContext} 🧾 First Row Preview:`);
     console.log(result.data?.[0] || chalk.yellow('No data'));
-    
+
     console.log(`\n${logContext} 📜 Full JSON Output:`);
     console.log(chalk.gray(JSON.stringify(result, null, 2)));
-    
+
     console.log(`\n${logContext} 📊 Batch Registry Table View`);
-    
+
     if (result.data?.length > 0) {
       console.table(
         result.data.map((batch) => {
@@ -150,7 +151,7 @@ const {
               registeredAt: batch.registeredAt,
             };
           }
-          
+
           // ------------------------------
           // Packaging material batch
           // ------------------------------
@@ -167,7 +168,7 @@ const {
         })
       );
     }
-    
+
     console.log(
       `\n${logContext} 🎉 ${chalk.green(
         'Batch registry pagination test completed successfully!'

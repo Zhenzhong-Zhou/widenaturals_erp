@@ -45,9 +45,9 @@ const ProductDetailPage = () => {
     fetchProductDetail: fetchProductDetailById,
     resetProductDetailState,
   } = useProductDetail();
-  
+
   const statusLookup = useStatusLookup();
-  
+
   // --------------------------------------
   // 3. Permission Hooks
   // --------------------------------------

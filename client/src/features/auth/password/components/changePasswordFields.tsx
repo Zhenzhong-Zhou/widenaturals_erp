@@ -21,11 +21,11 @@ export const buildChangePasswordFields = (): FieldConfig[] => [
     grid: { xs: 12 },
     placeholder: 'Enter your current password',
     customRender: ({
-                     value,
-                     onChange,
-                     required,
-                     error,
-                   }: CustomRenderParams) => (
+      value,
+      onChange,
+      required,
+      error,
+    }: CustomRenderParams) => (
       <PasswordInput
         label="Current Password"
         intent="login"
@@ -44,14 +44,9 @@ export const buildChangePasswordFields = (): FieldConfig[] => [
     required: true,
     grid: { xs: 12 },
     placeholder: 'Enter your new password',
-    customRender: ({
-                     value,
-                     onChange,
-                     required,
-                   }: CustomRenderParams) => {
-      const validationError =
-        value ? validatePasswordStrength(value) : null;
-      
+    customRender: ({ value, onChange, required }: CustomRenderParams) => {
+      const validationError = value ? validatePasswordStrength(value) : null;
+
       return (
         <PasswordInput
           label="New Password"
@@ -84,15 +79,14 @@ export const buildChangePasswordFields = (): FieldConfig[] => [
     grid: { xs: 12 },
     placeholder: 'Confirm your new password',
     customRender: ({
-                     value,
-                     onChange,
-                     required,
-                     formValues,
-                   }: CustomRenderParams) => {
+      value,
+      onChange,
+      required,
+      formValues,
+    }: CustomRenderParams) => {
       const password = formValues?.newPassword;
-      const mismatch =
-        value && password && value !== password;
-      
+      const mismatch = value && password && value !== password;
+
       return (
         <PasswordInput
           label="Confirm New Password"
@@ -101,9 +95,7 @@ export const buildChangePasswordFields = (): FieldConfig[] => [
           onChange={onChange}
           required={required}
           fullWidth
-          errorText={
-            mismatch ? 'Passwords do not match' : undefined
-          }
+          errorText={mismatch ? 'Passwords do not match' : undefined}
           helperText={
             !value && required ? (
               <FieldStatusHelper status="required" />

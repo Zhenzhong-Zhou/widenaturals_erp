@@ -53,7 +53,7 @@ export const parseBatch = (
       batchType: 'unknown',
     };
   }
-  
+
   // --- Valid domain batch (product or packaging material) ---
   if (isProductBatch(batch) || isPackagingBatch(batch)) {
     return {
@@ -63,7 +63,7 @@ export const parseBatch = (
       batchType: batch.type,
     };
   }
-  
+
   // --- Fallback (defensive) ---
   return {
     batchLotNumber: null,

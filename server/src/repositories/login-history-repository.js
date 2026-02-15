@@ -14,7 +14,7 @@ const { logSystemInfo, logSystemException } = require('../utils/system-logger');
  */
 const insertLoginHistory = async (entry, client) => {
   const context = 'login-history-repository/insertLoginHistory';
-  
+
   const {
     userId,
     sessionId = null,
@@ -24,7 +24,7 @@ const insertLoginHistory = async (entry, client) => {
     ipAddress = null,
     userAgent = null,
   } = entry;
-  
+
   const queryText = `
     INSERT INTO login_history (
       user_id,
@@ -37,7 +37,7 @@ const insertLoginHistory = async (entry, client) => {
     )
     VALUES ($1,$2,$3,$4,$5,$6,$7);
   `;
-  
+
   const params = [
     userId,
     sessionId,
@@ -47,10 +47,10 @@ const insertLoginHistory = async (entry, client) => {
     ipAddress,
     userAgent,
   ];
-  
+
   try {
     await query(queryText, params, client);
-    
+
     logSystemInfo('Login history recorded', {
       context,
       userId,

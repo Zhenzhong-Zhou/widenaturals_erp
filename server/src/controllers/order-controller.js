@@ -73,7 +73,11 @@ const createOrderController = wrapAsync(async (req, res, next) => {
   });
 
   // Business entrypoint — transaction + domain rules live beneath
-  const result = await createOrderService(payload, cleanCategory, req.auth.user);
+  const result = await createOrderService(
+    payload,
+    cleanCategory,
+    req.auth.user
+  );
 
   logInfo('Order created successfully', req, {
     context: 'order-controller/createOrderController',

@@ -35,15 +35,11 @@ import {
   PriceOverrideSection,
   ShippingInfoSection,
 } from '@features/order/components/SalesOrderDetails';
-import {
-  AllocateInventoryDialog
-} from '@features/inventoryAllocation/components/AllocateInventoryDialog';
+import { AllocateInventoryDialog } from '@features/inventoryAllocation/components/AllocateInventoryDialog';
 import { useActionPermission } from '@features/authorize/hooks';
 import { ORDER_CONSTANTS } from '@utils/constants/orderPermissions';
 import { useOrderDetails } from '@hooks/useOrderDetails';
-import {
-  getShortOrderNumber,
-} from '@features/order/utils';
+import { getShortOrderNumber } from '@features/order/utils';
 import { useUpdateOrderStatus } from '@hooks/index';
 import { useDialogFocusHandlers } from '@utils/hooks';
 
@@ -63,7 +59,7 @@ const OrderDetailsPage: FC = () => {
   }
 
   const isAllocatableCategory = category === 'allocatable';
-  
+
   const createButtonRef = useRef<HTMLButtonElement>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -84,7 +80,7 @@ const OrderDetailsPage: FC = () => {
     fetchById,
     reset: resetOrderDetails,
   } = useOrderDetails();
-  
+
   const {
     data: updateStatusData,
     loading: updateStatusLoading,
@@ -140,19 +136,19 @@ const OrderDetailsPage: FC = () => {
   ];
 
   const allocatableStatusCodes = ['ORDER_CONFIRMED'];
-  
+
   const canConfirmStatusUpdate = useActionPermission(
     ORDER_CONSTANTS.PERMISSIONS.ACTIONS.CONFIRM_SALES_ORDER,
     statusCode,
     confirmableStatusCodes
   );
-  
+
   const canCancelOrder = useActionPermission(
     ORDER_CONSTANTS.PERMISSIONS.ACTIONS.CANCEL_SALES_ORDER,
     statusCode,
     cancelableStatusCodes
   );
-  
+
   const canAllocateOrder = useActionPermission(
     ORDER_CONSTANTS.PERMISSIONS.ACTIONS.ALLOCATE_ORDER,
     statusCode,
@@ -196,13 +192,10 @@ const OrderDetailsPage: FC = () => {
       />
     );
   }
-  
+
   if (!header || !items) {
     return (
-      <Loading
-        variant="dotted"
-        message="Loading sales order details..."
-      />
+      <Loading variant="dotted" message="Loading sales order details..." />
     );
   }
 

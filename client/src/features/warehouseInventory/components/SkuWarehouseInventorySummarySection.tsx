@@ -12,7 +12,10 @@ import CustomButton from '@components/common/CustomButton';
 import { formatLabel } from '@utils/textUtils';
 import { formatDate } from '@utils/dateTimeUtils';
 import useWarehouseInventoryItemSummary from '@hooks/useWarehouseInventoryItemSummary.ts';
-import type { ProductWarehouseInventorySummary, WarehouseInventoryItemSummary } from '@features/warehouseInventory';
+import type {
+  ProductWarehouseInventorySummary,
+  WarehouseInventoryItemSummary,
+} from '@features/warehouseInventory';
 
 const SkuWarehouseInventorySummarySection = () => {
   const theme = useTheme();
@@ -23,13 +26,13 @@ const SkuWarehouseInventorySummarySection = () => {
 
   const { data, loading, error, fetchWarehouseInventorySummary } =
     useWarehouseInventoryItemSummary({ itemType: 'product' });
-  
+
   const isProductInventory = (
     item: WarehouseInventoryItemSummary
   ): item is ProductWarehouseInventorySummary => {
     return 'skuId' in item;
   };
-  
+
   const highlightedItems = useMemo(() => {
     return data
       .filter(isProductInventory)
@@ -67,46 +70,46 @@ const SkuWarehouseInventorySummarySection = () => {
       ) : (
         <>
           <Grid container spacing={2}>
-            {paginatedItems
-              .filter(isProductInventory)
-              .map((item) => (
-                <Grid key={item.itemId} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-                  <CustomCard
-                    title={item.productName}
-                    subtitle={`Status: ${formatLabel(item.displayStatus)}`}
-                    ariaLabel={`Inventory summary card for ${item.productName}`}
-                    sx={{ height: '100%' }}
-                  >
-                    <CustomTypography>
-                      Available: {item.availableQuantity}
+            {paginatedItems.filter(isProductInventory).map((item) => (
+              <Grid key={item.itemId} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                <CustomCard
+                  title={item.productName}
+                  subtitle={`Status: ${formatLabel(item.displayStatus)}`}
+                  ariaLabel={`Inventory summary card for ${item.productName}`}
+                  sx={{ height: '100%' }}
+                >
+                  <CustomTypography>
+                    Available: {item.availableQuantity}
+                  </CustomTypography>
+                  <CustomTypography>
+                    Reserved: {item.reservedQuantity}
+                  </CustomTypography>
+                  <CustomTypography>
+                    Total Lots: {item.totalLots}
+                  </CustomTypography>
+                  <CustomTypography>
+                    Nearest Expiry:{' '}
+                    {item.nearestExpiryDate
+                      ? formatDate(item.nearestExpiryDate)
+                      : 'N/A'}
+                  </CustomTypography>
+
+                  {['none', 'low', 'critical'].includes(item.stockLevel) && (
+                    <CustomTypography sx={{ color: 'warning.main' }}>
+                      Stock Level: {formatLabel(item.stockLevel)}
                     </CustomTypography>
-                    <CustomTypography>
-                      Reserved: {item.reservedQuantity}
+                  )}
+
+                  {['expired', 'warning', 'critical'].includes(
+                    item.expirySeverity
+                  ) && (
+                    <CustomTypography sx={{ color: 'error.main' }}>
+                      Expiry Risk: {formatLabel(item.expirySeverity)}
                     </CustomTypography>
-                    <CustomTypography>
-                      Total Lots: {item.totalLots}
-                    </CustomTypography>
-                    <CustomTypography>
-                      Nearest Expiry:{' '}
-                      {item.nearestExpiryDate
-                        ? formatDate(item.nearestExpiryDate)
-                        : 'N/A'}
-                    </CustomTypography>
-                    
-                    {['none', 'low', 'critical'].includes(item.stockLevel) && (
-                      <CustomTypography sx={{ color: 'warning.main' }}>
-                        Stock Level: {formatLabel(item.stockLevel)}
-                      </CustomTypography>
-                    )}
-                    
-                    {['expired', 'warning', 'critical'].includes(item.expirySeverity) && (
-                      <CustomTypography sx={{ color: 'error.main' }}>
-                        Expiry Risk: {formatLabel(item.expirySeverity)}
-                      </CustomTypography>
-                    )}
-                  </CustomCard>
-                </Grid>
-              ))}
+                  )}
+                </CustomCard>
+              </Grid>
+            ))}
           </Grid>
 
           <CustomPagination

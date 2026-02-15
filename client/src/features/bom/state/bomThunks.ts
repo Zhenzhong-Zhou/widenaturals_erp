@@ -35,21 +35,18 @@ export const fetchPaginatedBomsThunk = createAsyncThunk<
   FetchPaginatedBomsResponse,
   FetchBomsParams,
   { rejectValue: { message: string; traceId?: string } }
->(
-  'boms/fetchPaginatedBoms',
-  async (params, { rejectWithValue }) => {
-    try {
-      const response = await bomService.fetchPaginatedBoms(params);
-      
-      return {
-        ...response,
-        data: flattenBomRecords(response.data),
-      };
-    } catch (error) {
-      return rejectWithValue(extractUiErrorPayload(error));
-    }
+>('boms/fetchPaginatedBoms', async (params, { rejectWithValue }) => {
+  try {
+    const response = await bomService.fetchPaginatedBoms(params);
+
+    return {
+      ...response,
+      data: flattenBomRecords(response.data),
+    };
+  } catch (error) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});
 
 /**
  * Thunk to fetch detailed information for a specific BOM.

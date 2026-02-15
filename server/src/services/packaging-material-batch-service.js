@@ -5,10 +5,7 @@ const {
 const {
   getPaginatedPackagingMaterialBatches,
 } = require('../repositories/packaging-material-batch-repository');
-const {
-  logSystemInfo,
-  logSystemException,
-} = require('../utils/system-logger');
+const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const {
   transformPaginatedPackagingMaterialBatchResults,
 } = require('../transformers/packaging-material-batch-transformer');
@@ -39,20 +36,20 @@ const AppError = require('../utils/AppError');
  * @returns {Promise<{ data: Object[], pagination: Object }>}
  */
 const fetchPaginatedPackagingMaterialBatchesService = async ({
-                                                               filters = {},
-                                                               page = 1,
-                                                               limit = 20,
-                                                               user,
-                                                             }) => {
+  filters = {},
+  page = 1,
+  limit = 20,
+  user,
+}) => {
   const context =
     'packaging-material-batch-service/fetchPaginatedPackagingMaterialBatchesService';
-  
+
   try {
     // ---------------------------------------------------------
     // Step 0 — Resolve PMB visibility
     // ---------------------------------------------------------
     const access = await evaluatePackagingMaterialBatchVisibility(user);
-    
+
     // ---------------------------------------------------------
     // Step 1 — Apply visibility / scope rules (CRITICAL)
     // ---------------------------------------------------------
@@ -60,7 +57,7 @@ const fetchPaginatedPackagingMaterialBatchesService = async ({
       filters,
       access
     );
-    
+
     // ---------------------------------------------------------
     // Step 2 — Query raw PMB rows
     // ---------------------------------------------------------
@@ -69,7 +66,7 @@ const fetchPaginatedPackagingMaterialBatchesService = async ({
       page,
       limit,
     });
-    
+
     // ---------------------------------------------------------
     // Step 3 — Handle empty result
     // ---------------------------------------------------------
@@ -79,7 +76,7 @@ const fetchPaginatedPackagingMaterialBatchesService = async ({
         filters: adjustedFilters,
         pagination: { page, limit },
       });
-      
+
       return {
         data: [],
         pagination: {
@@ -90,16 +87,15 @@ const fetchPaginatedPackagingMaterialBatchesService = async ({
         },
       };
     }
-    
+
     // ---------------------------------------------------------
     // Step 4 — Transform for UI consumption
     // ---------------------------------------------------------
-    const result =
-      await transformPaginatedPackagingMaterialBatchResults(
-        rawResult,
-        access
-      );
-    
+    const result = await transformPaginatedPackagingMaterialBatchResults(
+      rawResult,
+      access
+    );
+
     // ---------------------------------------------------------
     // Step 5 — Log success
     // ---------------------------------------------------------
@@ -109,23 +105,19 @@ const fetchPaginatedPackagingMaterialBatchesService = async ({
       pagination: result.pagination,
       count: result.data?.length,
     });
-    
+
     return result;
   } catch (error) {
     // ---------------------------------------------------------
     // Step 6 — Log + rethrow
     // ---------------------------------------------------------
-    logSystemException(
-      error,
-      'Failed to fetch packaging material batches',
-      {
-        context,
-        filters,
-        pagination: { page, limit },
-        userId: user?.id,
-      }
-    );
-    
+    logSystemException(error, 'Failed to fetch packaging material batches', {
+      context,
+      filters,
+      pagination: { page, limit },
+      userId: user?.id,
+    });
+
     throw AppError.serviceError(
       'Unable to retrieve packaging material batches at this time.',
       { context }

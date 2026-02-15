@@ -15,26 +15,25 @@ const { getClientIp } = require('../utils/request-context');
  */
 const requestLogger = (req, res, next) => {
   const startTime = process.hrtime();
-  
+
   const ignoredRoutes = (
-    process.env.LOG_IGNORED_ROUTES ||
-    `${process.env.API_PREFIX}/public/health`
+    process.env.LOG_IGNORED_ROUTES || `${process.env.API_PREFIX}/public/health`
   ).split(',');
 
   // Skip logging for ignored routes
   if (ignoredRoutes.includes(req.originalUrl)) {
     return next();
   }
-  
+
   const traceId = req.traceId;
-  
+
   // Hook into the response finish event to log details
   res.on('finish', () => {
     const [sec, nano] = process.hrtime(startTime);
     const responseTime = (sec * 1000 + nano / 1e6).toFixed(2);
-    
+
     const statusCode = res.statusCode;
-    
+
     const logMeta = {
       traceId,
       method: req.method,
@@ -54,9 +53,9 @@ const requestLogger = (req, res, next) => {
       if (clone.token) clone.token = '***';
       return clone;
     };
-    
+
     const error = res.locals?.error;
-    
+
     if (statusCode >= 500) {
       if (error) {
         logSystemException(error, 'Internal server error during request', {
@@ -79,7 +78,7 @@ const requestLogger = (req, res, next) => {
       logSystemInfo('Request handled successfully', logMeta);
     }
   });
-  
+
   next();
 };
 

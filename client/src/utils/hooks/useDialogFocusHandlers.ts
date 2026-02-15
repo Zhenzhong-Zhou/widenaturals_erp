@@ -46,16 +46,16 @@ const useDialogFocusHandlers = (
     (e?: MouseEvent<HTMLButtonElement>) => {
       // Remove focus from trigger before dialog mount
       e?.currentTarget?.blur?.();
-      
+
       // Defer opening to avoid focus race conditions
       requestAnimationFrame(() => setDialogOpen(true));
     },
     [setDialogOpen]
   );
-  
+
   const handleCloseDialog = useCallback(() => {
     setDialogOpen(false);
-    
+
     // Restore focus only after dialog is fully closed
     setTimeout(() => {
       if (!getDialogOpen()) {
@@ -63,7 +63,7 @@ const useDialogFocusHandlers = (
       }
     }, 300); // must align with dialog transition duration
   }, [setDialogOpen, createButtonRef, getDialogOpen]);
-  
+
   return { handleOpenDialog, handleCloseDialog };
 };
 

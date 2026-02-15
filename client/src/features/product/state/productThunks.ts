@@ -43,13 +43,12 @@ export const fetchPaginatedProductsThunk = createAsyncThunk<
 >('products/fetchPaginated', async (params, { rejectWithValue }) => {
   try {
     const response = await productService.fetchPaginatedProducts(params);
-    
+
     return {
       ...response,
       data: flattenProductRecords(response.data),
     };
   } catch (error) {
-    
     return rejectWithValue(extractUiErrorPayload(error));
   }
 });

@@ -18,11 +18,9 @@ import { useState } from 'react';
  *
  *   <RoleMultiSelectDropdown {...roleSearch} />
  */
-const useLookupSearchBinding = (
-  handleSearch: (keyword: string) => void
-) => {
+const useLookupSearchBinding = (handleSearch: (keyword: string) => void) => {
   const [inputValue, setInputValue] = useState('');
-  
+
   return {
     inputValue,
     onInputChange: (value: string) => {

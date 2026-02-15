@@ -4,10 +4,7 @@ const {
 const {
   transformPaginatedLocationResults,
 } = require('../transformers/location-transformer');
-const {
-  logSystemInfo,
-  logSystemException,
-} = require('../utils/system-logger');
+const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
 /**
@@ -61,14 +58,14 @@ const AppError = require('../utils/AppError');
  * @throws {AppError}
  */
 const fetchPaginatedLocationsService = async ({
-                                                filters = {},
-                                                page = 1,
-                                                limit = 10,
-                                                sortBy = 'created_at',
-                                                sortOrder = 'DESC',
-                                              }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'created_at',
+  sortOrder = 'DESC',
+}) => {
   const context = 'location-service/fetchPaginatedLocationsService';
-  
+
   try {
     // ----------------------------------------------------------
     // Step 1: Query raw paginated rows
@@ -80,7 +77,7 @@ const fetchPaginatedLocationsService = async ({
       sortBy,
       sortOrder,
     });
-    
+
     // ----------------------------------------------------------
     // Step 2: Handle empty result
     // ----------------------------------------------------------
@@ -91,7 +88,7 @@ const fetchPaginatedLocationsService = async ({
         pagination: { page, limit },
         sort: { sortBy, sortOrder },
       });
-      
+
       return {
         data: [],
         pagination: {
@@ -102,12 +99,12 @@ const fetchPaginatedLocationsService = async ({
         },
       };
     }
-    
+
     // ----------------------------------------------------------
     // Step 3: Transform SQL rows → API DTO
     // ----------------------------------------------------------
     const result = transformPaginatedLocationResults(rawResult);
-    
+
     // ----------------------------------------------------------
     // Step 4: Log success
     // ----------------------------------------------------------
@@ -117,23 +114,19 @@ const fetchPaginatedLocationsService = async ({
       pagination: result.pagination,
       sort: { sortBy, sortOrder },
     });
-    
+
     return result;
   } catch (error) {
     // ----------------------------------------------------------
     // Step 5: Log exception and rethrow
     // ----------------------------------------------------------
-    logSystemException(
-      error,
-      'Failed to fetch paginated location records',
-      {
-        context,
-        filters,
-        pagination: { page, limit },
-        sort: { sortBy, sortOrder },
-      }
-    );
-    
+    logSystemException(error, 'Failed to fetch paginated location records', {
+      context,
+      filters,
+      pagination: { page, limit },
+      sort: { sortBy, sortOrder },
+    });
+
     throw AppError.serviceError(
       'Could not fetch locations. Please try again later.',
       {

@@ -13,6 +13,4 @@
  * - This type is intentionally strict (no `undefined`)
  * - Optional behavior should be handled at the feature or UI state level
  */
-export type BatchEntityType =
-  | 'product'
-  | 'packaging_material';
+export type BatchEntityType = 'product' | 'packaging_material';

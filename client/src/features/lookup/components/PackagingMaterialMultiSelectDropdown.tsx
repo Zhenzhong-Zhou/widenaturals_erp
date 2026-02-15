@@ -27,21 +27,21 @@ type PackagingMaterialMultiSelectDropdownProps = Omit<
 const PackagingMaterialMultiSelectDropdown: FC<
   PackagingMaterialMultiSelectDropdownProps
 > = ({
-       label = 'Select Packaging Material',
-       options,
-       selectedOptions,
-       onChange,
-       onOpen,
-       loading,
-       disabled,
-       error,
-       helperText,
-       sx,
-       placeholder = 'Choose packaging material…',
-       paginationMeta,
-       inputValue,
-       onInputChange,
-     }) => {
+  label = 'Select Packaging Material',
+  options,
+  selectedOptions,
+  onChange,
+  onOpen,
+  loading,
+  disabled,
+  error,
+  helperText,
+  sx,
+  placeholder = 'Choose packaging material…',
+  paginationMeta,
+  inputValue,
+  onInputChange,
+}) => {
   return (
     <MultiSelectDropdown
       label={label}

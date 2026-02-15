@@ -83,7 +83,7 @@ export interface OrderTypeListItem {
 
   /** Display name of the order type */
   name: string;
-  
+
   /** Unique code of the order type (used for system integration or lookup) */
   code: string;
 
@@ -92,13 +92,13 @@ export interface OrderTypeListItem {
 
   /** Whether this order type requires payment */
   requiresPayment: boolean;
-  
+
   /**
    * Current compliance status.
    * Example values: active, inactive, archived
    */
   status: GenericStatus;
-  
+
   /**
    * Audit metadata for creation and last update.
    */
@@ -109,14 +109,12 @@ export interface OrderTypeListItem {
  * API response returned by the backend for order type listing.
  * This mirrors the server payload shape.
  */
-export type OrderTypeListApiResponse =
-  PaginatedResponse<OrderTypeListItem>;
+export type OrderTypeListApiResponse = PaginatedResponse<OrderTypeListItem>;
 
 /**
  * Flattened response used by Redux and UI.
  */
-export type OrderTypeListResponse =
-  PaginatedResponse<FlattenedOrderTypeRecord>;
+export type OrderTypeListResponse = PaginatedResponse<FlattenedOrderTypeRecord>;
 
 /**
  * Redux state for a paginated order type list.
@@ -141,45 +139,45 @@ export type PaginatedOrderTypeListState =
 export interface FlattenedOrderTypeRecord {
   /** Unique identifier */
   id: string;
-  
+
   /** Display name of the order type */
   name: string;
-  
+
   /** System code (used for integration / lookup) */
   code: string;
-  
+
   /** Business category (e.g. logistics, sales, procurement) */
   category: string;
-  
+
   /** Whether payment is required for this order type */
   requiresPayment: boolean;
-  
+
   // ─────────────────────────────
   // Status (flattened)
   // ─────────────────────────────
-  
+
   /** Status identifier */
   statusId: string | null;
-  
+
   /** Status display name (e.g. Active, Inactive) */
   statusName: string;
-  
+
   /** Status effective date (ISO string) */
   statusDate: string | null;
-  
+
   // ─────────────────────────────
   // Audit (flattened)
   // ─────────────────────────────
-  
+
   /** Created timestamp (ISO string) */
   createdAt: string | null;
-  
+
   /** Creator identifier or name */
   createdBy: string | null;
-  
+
   /** Last updated timestamp (ISO string) */
   updatedAt: string | null;
-  
+
   /** Last updater identifier or name */
   updatedBy: string | null;
 }

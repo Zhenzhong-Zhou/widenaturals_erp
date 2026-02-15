@@ -32,9 +32,9 @@ const { getFullName } = require('./name-utils');
  */
 const makeActor = (id, firstName, lastName) => {
   if (!id && !firstName && !lastName) return null;
-  
+
   const name = getFullName(firstName, lastName) || null;
-  
+
   return cleanObject({
     id,
     name,

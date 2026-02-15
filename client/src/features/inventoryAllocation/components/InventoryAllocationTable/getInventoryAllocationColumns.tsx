@@ -1,8 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { Column } from '@components/common/CustomTable';
-import type {
-  FlattenedInventoryAllocationSummary
-} from '@features/inventoryAllocation/state';
+import type { FlattenedInventoryAllocationSummary } from '@features/inventoryAllocation/state';
 import { getShortOrderNumber } from '@features/order/utils';
 import { formatDate } from '@utils/dateTimeUtils';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
@@ -76,10 +74,7 @@ export const getInventoryAllocationColumns = (
       label: 'Payment Status',
       sortable: true,
       renderCell: (row) =>
-        formatPaymentStatus(
-          row.paymentStatusCode,
-          row.paymentStatusName
-        ),
+        formatPaymentStatus(row.paymentStatusCode, row.paymentStatusName),
     },
     {
       id: 'deliveryMethod',
@@ -91,8 +86,7 @@ export const getInventoryAllocationColumns = (
       id: 'itemCount',
       label: 'Allocated / Total Items',
       sortable: false,
-      renderCell: (row) =>
-        `${row.allocatedItemCount} / ${row.totalItemCount}`,
+      renderCell: (row) => `${row.allocatedItemCount} / ${row.totalItemCount}`,
     },
     {
       id: 'warehouses',
@@ -114,8 +108,7 @@ export const getInventoryAllocationColumns = (
       id: 'orderCreatedAt',
       label: 'Order Date',
       sortable: true,
-      format: (value) =>
-        typeof value === 'string' ? formatDate(value) : '—',
+      format: (value) => (typeof value === 'string' ? formatDate(value) : '—'),
     },
     {
       id: 'orderCreatedBy',
@@ -124,11 +117,11 @@ export const getInventoryAllocationColumns = (
     },
     ...(handleDrillDownToggle
       ? [
-        createDrillDownColumn<FlattenedInventoryAllocationSummary>(
-          (row) => handleDrillDownToggle(row.orderId),
-          (row) => expandedRowId === row.orderId
-        ),
-      ]
+          createDrillDownColumn<FlattenedInventoryAllocationSummary>(
+            (row) => handleDrillDownToggle(row.orderId),
+            (row) => expandedRowId === row.orderId
+          ),
+        ]
       : []),
   ];
 };

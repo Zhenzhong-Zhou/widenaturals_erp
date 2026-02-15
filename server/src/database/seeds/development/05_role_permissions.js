@@ -11,15 +11,15 @@ exports.seed = async function (knex) {
     );
     return;
   }
-  
+
   console.log(
     `[${new Date().toISOString()}] [SEED] Seeding role_permissions...`
   );
-  
+
   // --------------------------------------------------
   // Resolve system metadata
   // --------------------------------------------------
-  
+
   const systemUserId = await fetchDynamicValue(
     knex,
     'users',
@@ -27,32 +27,32 @@ exports.seed = async function (knex) {
     'system@internal.local',
     'id'
   );
-  
+
   if (!systemUserId) {
     throw new Error('[SEED][role_permissions] System user not found.');
   }
-  
+
   const activeStatusId = await knex('status')
     .where({ name: 'active' })
     .first()
     .then((r) => r?.id);
-  
+
   if (!activeStatusId) {
     throw new Error('[SEED][role_permissions] Active status not found.');
   }
-  
+
   const roles = await knex('roles').select('id', 'name');
   const roleMap = Object.fromEntries(roles.map((r) => [r.name, r.id]));
-  
+
   const permissions = await knex('permissions').select('id', 'key');
   const permissionMap = Object.fromEntries(
     permissions.map((p) => [p.key, p.id])
   );
-  
+
   // --------------------------------------------------
   // Base permissions (ALL authenticated users)
   // --------------------------------------------------
-  
+
   const BASE_AUTH_PERMISSIONS = [
     'view_self_profile',
     'change_self_password',
@@ -62,14 +62,12 @@ exports.seed = async function (knex) {
     'view_sku_details',
     'view_compliance_records',
   ];
-  
+
   // --------------------------------------------------
   // Shared helper groups
   // --------------------------------------------------
-  const ORDERS = [
-    'view_orders',
-  ];
-  
+  const ORDERS = ['view_orders'];
+
   const SALES_LOOKUPS = [
     'view_customer_lookup',
     'view_customer_address_lookup',
@@ -82,28 +80,28 @@ exports.seed = async function (knex) {
     'view_pricing_lookup',
     'view_packaging_material_lookup',
   ];
-  
+
   const SALES_CORE = [
     ...ORDERS,
     'view_sales_order',
     'create_sales_order',
     ...SALES_LOOKUPS,
   ];
-  
+
   // --------------------------------------------------
   // Role definitions (composed from base)
   // --------------------------------------------------
-  
+
   const ROLE_DEFINITIONS = {
     root_admin: ['root_access'],
-    
+
     admin: [
       ...BASE_AUTH_PERMISSIONS,
       'export_prices',
       'view_system',
       'view_system_status',
     ],
-    
+
     manager: [
       ...BASE_AUTH_PERMISSIONS,
       'view_inventory',
@@ -115,20 +113,16 @@ exports.seed = async function (knex) {
       'view_allocation_stage',
       ...SALES_CORE,
     ],
-    
+
     sales: [
       ...BASE_AUTH_PERMISSIONS,
       'view_customers',
       'create_customers',
       ...SALES_CORE,
     ],
-    
-    marketing: [
-      ...BASE_AUTH_PERMISSIONS,
-      'view_customers',
-      'create_customers',
-    ],
-    
+
+    marketing: [...BASE_AUTH_PERMISSIONS, 'view_customers', 'create_customers'],
+
     qa: [
       ...BASE_AUTH_PERMISSIONS,
       'view_batch_registry',
@@ -137,18 +131,15 @@ exports.seed = async function (knex) {
       'view_warehouse_inventory',
       'view_inventory_logs',
     ],
-    
+
     product_manager: [
       ...BASE_AUTH_PERMISSIONS,
       'view_inventory_summary',
       'view_batch_registry_lookup',
     ],
-    
-    account: [
-      ...BASE_AUTH_PERMISSIONS,
-      'view_pricing_types',
-    ],
-    
+
+    account: [...BASE_AUTH_PERMISSIONS, 'view_pricing_types'],
+
     inventory: [
       ...BASE_AUTH_PERMISSIONS,
       'view_warehouse_inventory',
@@ -159,25 +150,23 @@ exports.seed = async function (knex) {
       'view_shipping_stage',
       ...SALES_CORE,
     ],
-    
-    user: [
-      ...BASE_AUTH_PERMISSIONS,
-    ],
+
+    user: [...BASE_AUTH_PERMISSIONS],
   };
-  
+
   // --------------------------------------------------
   // Insert mappings
   // --------------------------------------------------
-  
+
   let insertedCount = 0;
-  
+
   for (const [roleKey, permissionKeys] of Object.entries(ROLE_DEFINITIONS)) {
     const roleId = roleMap[roleKey];
     if (!roleId) {
       console.warn(`[SEED] Role '${roleKey}' not found. Skipping.`);
       continue;
     }
-    
+
     for (const permissionKey of permissionKeys) {
       const permissionId = permissionMap[permissionKey];
       if (!permissionId) {
@@ -186,7 +175,7 @@ exports.seed = async function (knex) {
         );
         continue;
       }
-      
+
       await knex('role_permissions')
         .insert({
           id: knex.raw('uuid_generate_v4()'),
@@ -200,10 +189,10 @@ exports.seed = async function (knex) {
         })
         .onConflict(['role_id', 'permission_id'])
         .ignore();
-      
+
       insertedCount++;
     }
   }
-  
+
   console.log(`[SEED] Inserted ${insertedCount} role-permission mappings.`);
 };

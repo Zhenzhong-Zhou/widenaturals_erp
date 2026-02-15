@@ -72,10 +72,7 @@ export const useOrderDetails = () => {
  * const item = useOrderItemById(itemId);
  */
 export const useOrderItemById = (itemId: string) => {
-  const selector = useMemo(
-    () => makeSelectOrderItemById(itemId),
-    [itemId]
-  );
-  
+  const selector = useMemo(() => makeSelectOrderItemById(itemId), [itemId]);
+
   return useAppSelector(selector);
 };

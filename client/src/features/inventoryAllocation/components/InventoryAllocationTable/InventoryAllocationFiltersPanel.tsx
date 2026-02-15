@@ -172,13 +172,9 @@ const InventoryAllocationFiltersPanel: FC<Props> = ({
   const submitFilters = (data: InventoryAllocationFilters) => {
     const adjusted: InventoryAllocationFilters = {
       ...data,
-      aggregatedAllocatedBefore: toISODate(
-        data.aggregatedAllocatedBefore
-      ),
+      aggregatedAllocatedBefore: toISODate(data.aggregatedAllocatedBefore),
       aggregatedAllocatedAfter: toISODate(data.aggregatedAllocatedAfter),
-      aggregatedCreatedBefore: toISODate(
-        data.aggregatedCreatedBefore
-      ),
+      aggregatedCreatedBefore: toISODate(data.aggregatedCreatedBefore),
       aggregatedCreatedAfter: toISODate(data.aggregatedCreatedAfter),
     };
 

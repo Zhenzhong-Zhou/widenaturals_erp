@@ -6,7 +6,10 @@
  * Supports filtering by status, region, customer, and dates.
  */
 
-const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
+const {
+  normalizeDateRangeFilters,
+  applyDateRangeConditions,
+} = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
@@ -33,13 +36,21 @@ const AppError = require('../AppError');
 const buildAddressFilter = (filters = {}, includeUnassigned = false) => {
   try {
     // Normalize date ranges once
-    filters = normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore');
-    filters = normalizeDateRangeFilters(filters, 'updatedAfter', 'updatedBefore');
-    
+    filters = normalizeDateRangeFilters(
+      filters,
+      'createdAfter',
+      'createdBefore'
+    );
+    filters = normalizeDateRangeFilters(
+      filters,
+      'updatedAfter',
+      'updatedBefore'
+    );
+
     const conditions = ['1=1'];
     const params = [];
     const paramIndexRef = { value: 1 };
-    
+
     if (filters.customerId) {
       if (includeUnassigned) {
         conditions.push(
@@ -51,31 +62,31 @@ const buildAddressFilter = (filters = {}, includeUnassigned = false) => {
       params.push(filters.customerId);
       paramIndexRef.value++;
     }
-    
+
     if (filters.createdBy) {
       conditions.push(`a.created_by = $${paramIndexRef.value}`);
       params.push(filters.createdBy);
       paramIndexRef.value++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`a.updated_by = $${paramIndexRef.value}`);
       params.push(filters.updatedBy);
       paramIndexRef.value++;
     }
-    
+
     if (filters.region) {
       conditions.push(`a.region = $${paramIndexRef.value}`);
       params.push(filters.region);
       paramIndexRef.value++;
     }
-    
+
     if (filters.country) {
       conditions.push(`a.country = $${paramIndexRef.value}`);
       params.push(filters.country);
       paramIndexRef.value++;
     }
-    
+
     if (filters.keyword) {
       conditions.push(`(
         a.label ILIKE $${paramIndexRef.value} OR
@@ -87,7 +98,7 @@ const buildAddressFilter = (filters = {}, includeUnassigned = false) => {
       params.push(`%${filters.keyword}%`);
       paramIndexRef.value++;
     }
-    
+
     // Generic date range handling
     applyDateRangeConditions({
       conditions,
@@ -97,7 +108,7 @@ const buildAddressFilter = (filters = {}, includeUnassigned = false) => {
       before: filters.createdBefore,
       paramIndexRef,
     });
-    
+
     applyDateRangeConditions({
       conditions,
       params,
@@ -106,7 +117,7 @@ const buildAddressFilter = (filters = {}, includeUnassigned = false) => {
       before: filters.updatedBefore,
       paramIndexRef,
     });
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,

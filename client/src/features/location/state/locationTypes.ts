@@ -52,19 +52,19 @@ export interface FlattenedLocationListRecord {
   id: string;
   name: string;
   locationType: string;
-  
+
   city: string | null;
   provinceOrState: string | null;
   country: string | null;
-  
+
   isArchived: boolean;
-  
+
   statusName: string;
   statusDate: string;
-  
+
   createdAt: string;
   updatedAt: string | null;
-  
+
   createdByName: string;
   updatedByName: string | null;
 }
@@ -102,21 +102,21 @@ export type LocationSortField =
 export interface LocationListFilters {
   statusIds?: string | string[];
   locationTypeId?: string;
-  
+
   city?: string;
   province_or_state?: string;
   country?: string;
-  
+
   includeArchived?: boolean;
-  
+
   createdBy?: string;
   updatedBy?: string;
-  
+
   createdAfter?: string;
   createdBefore?: string;
   updatedAfter?: string;
   updatedBefore?: string;
-  
+
   keyword?: string;
 }
 
@@ -127,9 +127,7 @@ export interface LocationListFilters {
 /**
  * Complete query configuration for paginated location listing.
  */
-export interface LocationListQueryParams
-  extends PaginationParams,
-    SortConfig {
+export interface LocationListQueryParams extends PaginationParams, SortConfig {
   filters?: LocationListFilters;
 }
 
@@ -141,8 +139,7 @@ export interface LocationListQueryParams
  * Raw paginated response returned from the backend.
  * Uses canonical LocationRecord structure.
  */
-export type PaginatedLocationApiResponse =
-  PaginatedResponse<LocationRecord>;
+export type PaginatedLocationApiResponse = PaginatedResponse<LocationRecord>;
 
 /* ============================================================
    Redux State Types

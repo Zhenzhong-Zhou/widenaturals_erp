@@ -7,15 +7,31 @@ const {
   resetFailedAttemptsAndUpdateLastLogin,
 } = require('../repositories/user-auth-repository');
 const { verifyPassword } = require('../business/user-auth-business');
-const { logSystemWarn, logSystemInfo, logSystemError } = require('../utils/system-logger');
+const {
+  logSystemWarn,
+  logSystemInfo,
+  logSystemError,
+} = require('../utils/system-logger');
 const { signToken, verifyRefreshJwt } = require('../utils/auth/jwt-utils');
-const { transformLoginResponse } = require('../transformers/session-transformer');
-const { issueSessionWithTokens, revokeAllSessionsForUser } = require('../business/auth/session-lifecycle');
-const { insertLoginHistory } = require('../repositories/login-history-repository');
-const { insertTokenActivityLog } = require('../repositories/token-activity-log-repository');
+const {
+  transformLoginResponse,
+} = require('../transformers/session-transformer');
+const {
+  issueSessionWithTokens,
+  revokeAllSessionsForUser,
+} = require('../business/auth/session-lifecycle');
+const {
+  insertLoginHistory,
+} = require('../repositories/login-history-repository');
+const {
+  insertTokenActivityLog,
+} = require('../repositories/token-activity-log-repository');
 const { validateRefreshTokenState } = require('../utils/auth/validate-token');
 const { validateSessionState } = require('../utils/auth/validate-session');
-const { revokeTokenById, insertToken } = require('../repositories/token-repository');
+const {
+  revokeTokenById,
+  insertToken,
+} = require('../repositories/token-repository');
 const { hashToken } = require('../utils/auth/token-hash');
 const { getTokenExpiry } = require('../utils/auth/token-expiry');
 const { getAuthUserById } = require('../repositories/user-repository');
@@ -70,18 +86,13 @@ const { getAuthUserById } = require('../repositories/user-repository');
 const loginUserService = async (
   email,
   password,
-  {
-    ipAddress = null,
-    userAgent = null,
-    deviceId = null,
-    note = null,
-  } = {}
+  { ipAddress = null, userAgent = null, deviceId = null, note = null } = {}
 ) => {
   const context = 'auth-service/loginUserService';
-  
-  let issued;     // used for post-commit logging
-  let userId;     // used for post-commit logging
-  
+
+  let issued; // used for post-commit logging
+  let userId; // used for post-commit logging
+
   // ------------------------------------------------------------
   // Transactional auth flow
   // ------------------------------------------------------------
@@ -90,29 +101,28 @@ const loginUserService = async (
     if (!activeStatusId) {
       throw AppError.validationError('Active status ID is required.');
     }
-    
+
     // 1. Fetch & lock auth record
-    const auth = await getAndLockUserAuthByEmail(
-      email,
-      activeStatusId,
-      client
-    );
-    
+    const auth = await getAndLockUserAuthByEmail(email, activeStatusId, client);
+
     if (!auth) {
-      await insertLoginHistory({
-        userId: null,   // unknown user
-        sessionId: null,
-        tokenId: null,
-        authActionTypeId: getStatusId('Invalid Credentials'),
-        status: 'failure',
-        ipAddress,
-        userAgent,
-      }, client);
-      
+      await insertLoginHistory(
+        {
+          userId: null, // unknown user
+          sessionId: null,
+          tokenId: null,
+          authActionTypeId: getStatusId('Invalid Credentials'),
+          status: 'failure',
+          ipAddress,
+          userAgent,
+        },
+        client
+      );
+
       // Do NOT reveal whether email exists or account is inactive
       throw AppError.authenticationError('Invalid email or password.');
     }
-    
+
     const {
       user_id,
       auth_id,
@@ -123,27 +133,29 @@ const loginUserService = async (
       failed_attempts,
       lockout_time,
     } = auth;
-    
+
     userId = user_id;
-    
+
     // 2. Lockout check
     if (lockout_time && lockout_time > new Date()) {
-      await insertLoginHistory({
-        userId: user_id,
-        sessionId: null,
-        tokenId: null,
-        authActionTypeId: getStatusId('Account Locked'),
-        status: 'failure',
-        ipAddress,
-        userAgent,
-      }, client);
-      
-      throw AppError.accountLockedError(
-        'Account locked. Try again later.',
-        { lockoutEndsAt: lockout_time }
+      await insertLoginHistory(
+        {
+          userId: user_id,
+          sessionId: null,
+          tokenId: null,
+          authActionTypeId: getStatusId('Account Locked'),
+          status: 'failure',
+          ipAddress,
+          userAgent,
+        },
+        client
       );
+
+      throw AppError.accountLockedError('Account locked. Try again later.', {
+        lockoutEndsAt: lockout_time,
+      });
     }
-    
+
     // 3. Verify password
     if (!password_hash) {
       logSystemError('Missing password hash during login', {
@@ -152,14 +164,14 @@ const loginUserService = async (
         authId: auth_id,
         email,
       });
-      
+
       // Do not expose internal state to client
       throw AppError.authenticationError('Invalid email or password.');
     }
-    
+
     const isValidPassword = await verifyPassword(password_hash, password);
     const newTotalAttempts = attempts + 1;
-    
+
     if (!isValidPassword) {
       await incrementFailedAttempts(
         auth_id,
@@ -167,30 +179,33 @@ const loginUserService = async (
         failed_attempts,
         client
       );
-      
-      await insertLoginHistory({
-        userId: user_id,
-        sessionId: null,
-        tokenId: null,
-        authActionTypeId: getStatusId('Invalid Credentials'),
-        status: 'failure',
-        ipAddress,
-        userAgent,
-      }, client);
-      
+
+      await insertLoginHistory(
+        {
+          userId: user_id,
+          sessionId: null,
+          tokenId: null,
+          authActionTypeId: getStatusId('Invalid Credentials'),
+          status: 'failure',
+          ipAddress,
+          userAgent,
+        },
+        client
+      );
+
       throw AppError.authenticationError('Invalid email or password.');
     }
-    
+
     // 4. Successful login bookkeeping
     await resetFailedAttemptsAndUpdateLastLogin(
       auth_id,
       newTotalAttempts,
       client
     );
-    
+
     // Enforce single-session policy: revoke all existing sessions and refresh tokens
     await revokeAllSessionsForUser(user_id, client);
-    
+
     // 5. Issue session + tokens
     issued = await issueSessionWithTokens(
       {
@@ -203,11 +218,11 @@ const loginUserService = async (
       },
       client
     );
-    
+
     if (!issued) {
       throw AppError.generalError('Login succeeded but no tokens were issued.');
     }
-    
+
     // 6. Return finalized response
     return transformLoginResponse({
       accessToken: issued.accessToken,
@@ -215,22 +230,25 @@ const loginUserService = async (
       last_login,
     });
   });
-  
+
   // ------------------------------------------------------------
   // Post-commit audit logging (best effort)
   // ------------------------------------------------------------
   try {
     const loginSuccessActionId = getStatusId('login_success');
-    
-    await insertLoginHistory({
-      userId,
-      sessionId: issued.sessionId,
-      tokenId: issued.refreshTokenId,
-      authActionTypeId: loginSuccessActionId,
-      status: 'success',
-      ipAddress,
-      userAgent,
-    }, null);
+
+    await insertLoginHistory(
+      {
+        userId,
+        sessionId: issued.sessionId,
+        tokenId: issued.refreshTokenId,
+        authActionTypeId: loginSuccessActionId,
+        status: 'success',
+        ipAddress,
+        userAgent,
+      },
+      null
+    );
   } catch (logError) {
     logSystemWarn('Post-login audit logging failed', {
       context,
@@ -238,7 +256,7 @@ const loginUserService = async (
       error: logError.message,
     });
   }
-  
+
   return response;
 };
 
@@ -288,69 +306,69 @@ const loginUserService = async (
  */
 const refreshTokenService = async (
   refreshToken,
-  {
-    ipAddress = null,
-    userAgent = null,
-  } = {},
+  { ipAddress = null, userAgent = null } = {}
 ) => {
   const context = 'auth-service/refreshTokenService';
-  
+
   // Refresh token presence is a domain requirement, not an HTTP concern
   if (!refreshToken) {
     throw AppError.refreshTokenError(
       'Refresh token is required. Please log in again.'
     );
   }
-  
+
   // ------------------------------------------------------------
   // 1. Verify JWT cryptographically
   // ------------------------------------------------------------
   // JWT verification proves cryptographic validity only.
   // Persistence, revocation, and session state are enforced below.
   const payload = verifyRefreshJwt(refreshToken);
-  
+
   if (!payload?.id || !payload?.sessionId) {
     throw AppError.refreshTokenError('Invalid refresh token payload');
   }
-  
+
   return withTransaction(async (client) => {
     const user = await getAuthUserById(payload.id, client);
-    
+
     if (!user) {
       throw AppError.authenticationError('User not found');
     }
-    
+
     if (user.status_name !== 'active') {
       throw AppError.authenticationError('User account is inactive');
     }
-    
+
     // ------------------------------------------------------------
     // 2. Validate refresh token persistence state
     // ------------------------------------------------------------
     const token = await validateRefreshTokenState(refreshToken, client);
-    
+
     // ------------------------------------------------------------
     // 3. Validate associated session
     // ------------------------------------------------------------
     const session = await validateSessionState(token.session_id, client);
-    
+
     // ------------------------------------------------------------
     // 4. Rotate refresh token (revoke old)
     // ------------------------------------------------------------
     // Revoke current refresh token and any other outstanding refresh tokens
     // to prevent race-condition replay during concurrent refresh attempts
     await revokeTokenById(token.id, client);
-    
-    await insertTokenActivityLog({
-      userId: payload.id,
-      tokenId: token.id,
-      eventType: 'revoke',
-      status: 'success',
-      tokenType: 'refresh',
-      ipAddress,
-      userAgent,
-    }, client);
-    
+
+    await insertTokenActivityLog(
+      {
+        userId: payload.id,
+        tokenId: token.id,
+        eventType: 'revoke',
+        status: 'success',
+        tokenType: 'refresh',
+        ipAddress,
+        userAgent,
+      },
+      client
+    );
+
     // ------------------------------------------------------------
     // 5. Issue new tokens
     // ------------------------------------------------------------
@@ -359,7 +377,7 @@ const refreshTokenService = async (
       role: user.role_id,
       sessionId: session.id,
     });
-    
+
     const newRefreshToken = signToken(
       {
         id: payload.id,
@@ -368,12 +386,12 @@ const refreshTokenService = async (
       },
       true
     );
-    
+
     // ------------------------------------------------------------
     // 6. Persist new tokens
     // ------------------------------------------------------------
     const refreshTokenHash = hashToken(newRefreshToken);
-    
+
     const newTokenRow = await insertToken(
       {
         userId: payload.id,
@@ -385,23 +403,26 @@ const refreshTokenService = async (
       },
       client
     );
-    
-    await insertTokenActivityLog({
-      userId: payload.id,
-      tokenId: newTokenRow.id,
-      eventType: 'refresh',
-      status: 'success',
-      tokenType: 'refresh',
-      ipAddress,
-      userAgent,
-    }, client);
-    
+
+    await insertTokenActivityLog(
+      {
+        userId: payload.id,
+        tokenId: newTokenRow.id,
+        eventType: 'refresh',
+        status: 'success',
+        tokenType: 'refresh',
+        ipAddress,
+        userAgent,
+      },
+      client
+    );
+
     logSystemInfo('Refresh token rotated', {
       context,
       userId: payload.id,
       sessionId: session.id,
     });
-    
+
     return {
       accessToken: newAccessToken,
       refreshToken: newRefreshToken,

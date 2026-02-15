@@ -38,13 +38,13 @@ interface UseUserLookupBindingOptions {
  * at a higher abstraction layer to avoid hidden timing side effects.
  */
 const useUserLookupBinding = ({
-                                fetchUserLookup,
-                              }: UseUserLookupBindingOptions) => {
+  fetchUserLookup,
+}: UseUserLookupBindingOptions) => {
   const [fetchParams, setFetchParams] = useState<UserLookupParams>({
     offset: 0,
     limit: 10,
   });
-  
+
   /**
    * Handles keyword search input changes.
    * Resets pagination offset and immediately triggers lookup fetch.
@@ -52,19 +52,19 @@ const useUserLookupBinding = ({
   const handleInputChange = useCallback(
     (_: unknown, newValue: string, reason: string) => {
       if (reason !== 'input') return;
-      
+
       const nextParams = {
         ...fetchParams,
         keyword: newValue,
         offset: 0,
       };
-      
+
       setFetchParams(nextParams);
       fetchUserLookup(nextParams);
     },
     [fetchParams, fetchUserLookup]
   );
-  
+
   /**
    * Refreshes lookup results using either:
    * - Provided params override
@@ -76,7 +76,7 @@ const useUserLookupBinding = ({
     },
     [fetchUserLookup, fetchParams]
   );
-  
+
   return {
     fetchParams,
     setFetchParams,

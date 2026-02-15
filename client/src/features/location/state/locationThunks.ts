@@ -30,19 +30,15 @@ export const fetchPaginatedLocationThunk = createAsyncThunk<
   PaginatedLocationListUiResponse,
   LocationListQueryParams,
   { rejectValue: { message: string; traceId?: string } }
->(
-  'location/fetchPaginatedLocation',
-  async (params, { rejectWithValue }) => {
-    try {
-      const response =
-        await locationService.fetchPaginatedLocations(params);
-      
-      return {
-        ...response,
-        data: flattenLocationListRecord(response.data),
-      };
-    } catch (error) {
-      return rejectWithValue(extractUiErrorPayload(error));
-    }
+>('location/fetchPaginatedLocation', async (params, { rejectWithValue }) => {
+  try {
+    const response = await locationService.fetchPaginatedLocations(params);
+
+    return {
+      ...response,
+      data: flattenLocationListRecord(response.data),
+    };
+  } catch (error) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});

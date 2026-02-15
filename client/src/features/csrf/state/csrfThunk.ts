@@ -31,7 +31,7 @@ export const getCsrfTokenThunk = createAsyncThunk<
     if (!csrfToken) {
       throw new Error('CSRF token is missing or invalid.');
     }
-    
+
     return csrfToken;
   } catch (error) {
     return rejectWithValue(extractErrorMessage(error));

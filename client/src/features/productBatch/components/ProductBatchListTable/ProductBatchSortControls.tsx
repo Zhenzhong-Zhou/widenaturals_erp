@@ -33,38 +33,38 @@ const productBatchSortOptions: {
 }[] = [
   // ---- Core identity ----
   { label: 'Created At', value: 'createdAt' },
-  
+
   // ---- Lot & lifecycle ----
   { label: 'Lot Number', value: 'lotNumber' },
   { label: 'Manufacture Date', value: 'manufactureDate' },
   { label: 'Expiry Date', value: 'expiryDate' },
   { label: 'Received Date', value: 'receivedDate' },
-  
+
   // ---- Status & release ----
   { label: 'Status', value: 'statusName' },
   { label: 'Status Date', value: 'statusDate' },
   { label: 'Released At', value: 'releasedAt' },
-  
+
   // ---- Product metadata ----
   { label: 'Product Name', value: 'productName' },
   { label: 'Brand', value: 'productBrand' },
   { label: 'Category', value: 'productCategory' },
-  
+
   // ---- SKU metadata ----
   { label: 'SKU Code', value: 'skuCode' },
   { label: 'Size Label', value: 'sizeLabel' },
   { label: 'Country Code', value: 'countryCode' },
-  
+
   // ---- Manufacturer ----
   { label: 'Manufacturer', value: 'manufacturerName' },
-  
+
   // ---- Quantity ----
   { label: 'Initial Quantity', value: 'initialQuantity' },
-  
+
   // ---- Audit ----
   { label: 'Last Updated At', value: 'updatedAt' },
   { label: 'Released By', value: 'releasedBy' },
-  
+
   // ---- Default fallback ----
   { label: 'Default (Natural Sort)', value: 'defaultNaturalSort' },
 ];
@@ -76,19 +76,17 @@ const productBatchSortOptions: {
  * Keeps Product Batch–specific sort semantics isolated and explicit.
  */
 const ProductBatchSortControls: FC<ProductBatchSortControlsProps> = ({
-                                                                       sortBy,
-                                                                       sortOrder,
-                                                                       onSortByChange,
-                                                                       onSortOrderChange,
-                                                                     }) => {
+  sortBy,
+  sortOrder,
+  onSortByChange,
+  onSortOrderChange,
+}) => {
   return (
     <SortControls
       sortBy={sortBy}
       sortOrder={sortOrder}
       sortOptions={productBatchSortOptions}
-      onSortByChange={(val) =>
-        onSortByChange(val as ProductBatchSortField)
-      }
+      onSortByChange={(val) => onSortByChange(val as ProductBatchSortField)}
       onSortOrderChange={onSortOrderChange}
     />
   );

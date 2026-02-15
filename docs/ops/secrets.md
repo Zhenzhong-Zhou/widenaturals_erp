@@ -41,19 +41,22 @@ All real secret files are ignored by Git.
 The backup encryption key protects **all application backups**.
 
 ### Requirements
+
 - Minimum 32 bytes
 - Randomly generated
 - Stable (do NOT rotate casually)
 
 ### Generate (choose one)
 
-* Using OpenSSL:
+- Using OpenSSL:
+
 ```bash
 mkdir -p secrets/backup
 openssl rand -hex 32 > secrets/backup/encryption.key
 ```
 
-* Using system entropy:
+- Using system entropy:
+
 ```bash
 mkdir -p secrets/backup
 head -c 32 /dev/urandom | xxd -p -c 64 > secrets/backup/encryption.key
@@ -75,17 +78,20 @@ JWT secrets may be provided either via env variables or secret files.
 
 File-based secrets are recommended for:
 
-* production
-* containers
-* CI/CD
+- production
+- containers
+- CI/CD
 
 #### Generate JWT secrets
+
 ```bash
 mkdir -p secrets/jwt
 openssl rand -hex 32 > secrets/jwt/access.key
 openssl rand -hex 32 > secrets/jwt/refresh.key
 ```
+
 #### Reference from environment
+
 ```bash
 JWT_ACCESS_SECRET_FILE=/run/secrets/jwt/access.key
 JWT_REFRESH_SECRET_FILE=/run/secrets/jwt/refresh.key
@@ -99,8 +105,7 @@ JWT_REFRESH_SECRET_FILE=/run/secrets/jwt/refresh.key
 | CI          | Mounted secrets         |
 | Production  | File-based secrets only |
 
-
-##  What NOT to Do
+## What NOT to Do
 
 ❌ Commit secret values
 
@@ -111,10 +116,11 @@ JWT_REFRESH_SECRET_FILE=/run/secrets/jwt/refresh.key
 ❌ Reuse JWT secrets across environments
 
 ## Responsibility
+
 Secrets are an **operations concern**, not an application concern.
 
 Application code:
 
-* reads secrets
-* never defines them
-* never logs them
+- reads secrets
+- never defines them
+- never logs them

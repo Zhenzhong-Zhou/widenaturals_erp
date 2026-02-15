@@ -25,7 +25,7 @@ const { transformPaginatedResult } = require('../utils/transformer-utils');
  */
 const transformUserInsertResult = (row) => {
   if (!row) return null;
-  
+
   return cleanObject({
     id: row.id,
     email: row.email,

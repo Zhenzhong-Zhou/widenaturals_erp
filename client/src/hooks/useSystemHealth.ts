@@ -8,7 +8,8 @@ import {
   selectIsServerHealthy,
   selectSystemHealthLoading,
   selectSystemHealthError,
-  selectIsSystemHealthEmpty, fetchSystemHealthThunk,
+  selectIsSystemHealthEmpty,
+  fetchSystemHealthThunk,
 } from '@features/systemHealth';
 
 /**
@@ -45,17 +46,17 @@ interface UseSystemHealthResult {
  */
 const useSystemHealth = (): UseSystemHealthResult => {
   const dispatch = useAppDispatch();
-  
+
   const serverStatus = useAppSelector(selectServerStatus);
   const isHealthy = useAppSelector(selectIsServerHealthy);
   const databaseStatus = useAppSelector(selectDatabaseStatus);
   const poolStatus = useAppSelector(selectPoolStatus);
   const timestamp = useAppSelector(selectHealthTimestamp);
-  
+
   const loading = useAppSelector(selectSystemHealthLoading);
   const error = useAppSelector(selectSystemHealthError);
   const isEmpty = useAppSelector(selectIsSystemHealthEmpty);
-  
+
   /**
    * Fetches the latest system health snapshot.
    */
@@ -66,14 +67,14 @@ const useSystemHealth = (): UseSystemHealthResult => {
       // Error is handled via Redux state; no action needed here
     }
   }, [dispatch]);
-  
+
   // Fetch once on mount if no data exists
   useEffect(() => {
     if (isEmpty && !loading) {
       void refresh();
     }
   }, [isEmpty, loading, refresh]);
-  
+
   return {
     serverStatus,
     isHealthy,

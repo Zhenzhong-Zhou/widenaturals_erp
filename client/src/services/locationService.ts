@@ -40,21 +40,17 @@ const fetchPaginatedLocations = async (
   params: LocationListQueryParams = {}
 ): Promise<PaginatedLocationApiResponse> => {
   const { filters = {}, ...rest } = params;
-  
-  const {
-    createdFrom,
-    createdTo,
-    ...otherFilters
-  } = filters;
-  
+
+  const { createdFrom, createdTo, ...otherFilters } = filters;
+
   /**
    * Flatten date filters → query params
    */
   const flatDateParams: Record<string, string> = {};
-  
+
   if (createdFrom) flatDateParams.createdFrom = createdFrom;
   if (createdTo) flatDateParams.createdTo = createdTo;
-  
+
   /**
    * Final flattened params
    */
@@ -63,14 +59,14 @@ const fetchPaginatedLocations = async (
     ...otherFilters,
     ...flatDateParams,
   };
-  
+
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.LOCATIONS.ALL_RECORDS}${queryString}`;
-  
+
   const data = await getRequest<PaginatedLocationApiResponse>(url, {
     policy: 'READ',
   });
-  
+
   /**
    * Defensive validation
    */
@@ -79,7 +75,7 @@ const fetchPaginatedLocations = async (
       params,
     });
   }
-  
+
   return data;
 };
 

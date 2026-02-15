@@ -66,7 +66,7 @@ const usePaginatedSkus = () => {
     const { page, limit } = normalizePagination(pagination);
     return { page, limit };
   }, [pagination]);
-  
+
   return {
     data,
     pagination,

@@ -6,7 +6,9 @@
 const wrapAsync = require('../utils/wrap-async');
 const { logInfo } = require('../utils/logger-helper');
 const { version } = require('../../package.json');
-const { checkServerHealthService } = require('../services/server-health-service');
+const {
+  checkServerHealthService,
+} = require('../services/server-health-service');
 const { getClientIp } = require('../utils/request-context');
 
 /**
@@ -25,9 +27,9 @@ const { getClientIp } = require('../utils/request-context');
 const getWelcomeMessageController = wrapAsync(async (req, res) => {
   const context = 'system-controller/getWelcomeMessage';
   const traceId = `welcome-${Date.now().toString(36)}`;
-  
+
   const API_PREFIX = process.env.API_PREFIX ?? '';
-  
+
   // -------------------------------
   // Entry log
   // -------------------------------
@@ -37,7 +39,7 @@ const getWelcomeMessageController = wrapAsync(async (req, res) => {
     ip: getClientIp(req),
     userAgent: req.get('user-agent') || 'Unknown',
   });
-  
+
   // -------------------------------
   // Response
   // -------------------------------
@@ -75,7 +77,7 @@ const getHealthStatusController = wrapAsync(async (req, res) => {
   const context = 'system-controller/getHealthStatus';
   const startTime = Date.now();
   const traceId = `health-${Date.now().toString(36)}`;
-  
+
   // -------------------------------
   // 1. Entry log
   // -------------------------------
@@ -85,25 +87,27 @@ const getHealthStatusController = wrapAsync(async (req, res) => {
     ip: getClientIp(req),
     userAgent: req.get('user-agent') || 'Unknown',
   });
-  
+
   // -------------------------------
   // 2. Execute health check
   // -------------------------------
   const healthStatus = await checkServerHealthService();
-  
+
   // Sanitize response for public exposure
   const publicHealthStatus = {
     server: healthStatus?.server ?? 'unhealthy',
     services: {
-      database: { status: healthStatus?.services?.database?.status ?? 'unknown' },
+      database: {
+        status: healthStatus?.services?.database?.status ?? 'unknown',
+      },
       pool: { status: healthStatus?.services?.pool?.status ?? 'unknown' },
     },
     timestamp: healthStatus?.metrics?.timestamp ?? new Date().toISOString(),
   };
-  
+
   const statusCode = healthStatus.server === 'healthy' ? 200 : 503;
   const elapsedMs = Date.now() - startTime;
-  
+
   // -------------------------------
   // 3. Completion log
   // -------------------------------
@@ -113,7 +117,7 @@ const getHealthStatusController = wrapAsync(async (req, res) => {
     serverStatus: healthStatus.server,
     elapsedMs,
   });
-  
+
   // -------------------------------
   // 4. Response
   // -------------------------------

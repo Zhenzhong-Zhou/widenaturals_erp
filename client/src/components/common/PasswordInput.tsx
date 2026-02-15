@@ -13,21 +13,18 @@ import type { TextFieldProps } from '@mui/material/TextField';
  * - `create`    → new password (user creation / reset)
  * - `temporary` → one-time or system-generated passwords
  */
-type PasswordIntent =
-  | 'login'
-  | 'create'
-  | 'temporary';
+type PasswordIntent = 'login' | 'create' | 'temporary';
 
 interface PasswordInputProps extends Omit<TextFieldProps, 'type'> {
   /** Field label displayed to the user */
   label: string;
-  
+
   /** Usage intent used to resolve autocomplete behavior */
   intent?: PasswordIntent;
-  
+
   /** Validation error message (error state if present) */
   errorText?: string;
-  
+
   /** Non-error helper or status content */
   helperText?: ReactNode;
 }
@@ -65,17 +62,17 @@ const resolvePasswordAutoComplete = (intent?: PasswordIntent) => {
  * - Enforce password rules
  */
 const PasswordInput: FC<PasswordInputProps> = ({
-                                                 label,
-                                                 intent = 'temporary',
-                                                 errorText,
-                                                 helperText,
-                                                 name,
-                                                 ...props
-                                               }) => {
+  label,
+  intent = 'temporary',
+  errorText,
+  helperText,
+  name,
+  ...props
+}) => {
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const autoComplete = resolvePasswordAutoComplete(intent);
-  
+
   return (
     <TypeRestrictedInput
       label={label}
@@ -94,9 +91,7 @@ const PasswordInput: FC<PasswordInputProps> = ({
                 edge="end"
                 size="small"
               >
-                <FontAwesomeIcon
-                  icon={showPassword ? faEyeSlash : faEye}
-                />
+                <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
               </IconButton>
             </InputAdornment>
           ),

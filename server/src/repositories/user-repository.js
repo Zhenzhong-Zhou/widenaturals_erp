@@ -1,7 +1,11 @@
-const { query, paginateResults, paginateQueryByOffset } = require('../database/db');
+const {
+  query,
+  paginateResults,
+  paginateQueryByOffset,
+} = require('../database/db');
 const { buildUserFilter } = require('../utils/sql/build-user-filters');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
-const { maskSensitiveInfo, } = require('../utils/sensitive-data-utils');
+const { maskSensitiveInfo } = require('../utils/sensitive-data-utils');
 const AppError = require('../utils/AppError');
 
 /**
@@ -27,9 +31,9 @@ const AppError = require('../utils/AppError');
  * - Foreign key violations (role, status)
  * - Other database-level failures
  */
-const insertUser = async ( user, client) => {
+const insertUser = async (user, client) => {
   const context = 'user-repository/insertUser';
-  
+
   const {
     email,
     roleId,
@@ -43,7 +47,7 @@ const insertUser = async ( user, client) => {
     updatedBy = null,
     updatedAt = null,
   } = user;
-  
+
   const queryText = `
     INSERT INTO users (
       email,
@@ -66,7 +70,7 @@ const insertUser = async ( user, client) => {
       status_id,
       created_at;
   `;
-  
+
   const params = [
     email,
     roleId,
@@ -80,15 +84,15 @@ const insertUser = async ( user, client) => {
     updatedBy,
     updatedAt,
   ];
-  
+
   try {
     const { rows } = await query(queryText, params, client);
-    
+
     logSystemInfo('User inserted successfully', {
       context,
       userId: rows[0]?.id,
     });
-    
+
     return rows[0];
   } catch (error) {
     logSystemException(error, 'Failed to insert user', {
@@ -96,7 +100,7 @@ const insertUser = async ( user, client) => {
       email: maskSensitiveInfo(email, 'email'),
       error: error.message,
     });
-    
+
     throw error;
   }
 };
@@ -119,21 +123,21 @@ const insertUser = async ( user, client) => {
  */
 const userExistsByField = async (field, value, client) => {
   const context = 'user-repository/userExistsByField';
-  
+
   if (!['id', 'email'].includes(field)) {
-    throw AppError.validationError(
-      'Invalid field for user existence check.',
-      { context, field }
-    );
+    throw AppError.validationError('Invalid field for user existence check.', {
+      context,
+      field,
+    });
   }
-  
+
   const queryText = `
     SELECT 1
     FROM users
     WHERE ${field} = $1
     LIMIT 1
   `;
-  
+
   try {
     const { rowCount } = await query(queryText, [value], client);
     return rowCount > 0;
@@ -142,7 +146,7 @@ const userExistsByField = async (field, value, client) => {
       context,
       field,
     });
-    
+
     throw AppError.databaseError('Failed to check user existence.', {
       cause: error,
       context,
@@ -168,7 +172,7 @@ const userExistsByField = async (field, value, client) => {
  */
 const activeUserExistsByEmail = async (email, activeStatusId, client) => {
   const context = 'user-repository/activeUserExistsByEmail';
-  
+
   const queryText = `
     SELECT 1
     FROM users
@@ -176,25 +180,25 @@ const activeUserExistsByEmail = async (email, activeStatusId, client) => {
       AND status_id = $2
     LIMIT 1
   `;
-  
+
   try {
     const { rowCount } = await query(
       queryText,
       [email, activeStatusId],
       client
     );
-    
+
     return rowCount > 0;
   } catch (error) {
     logSystemException(error, 'Failed to check active user existence', {
       context,
       email,
     });
-    
-    throw AppError.databaseError(
-      'Failed to check active user existence.',
-      { cause: error, context }
-    );
+
+    throw AppError.databaseError('Failed to check active user existence.', {
+      cause: error,
+      context,
+    });
   }
 };
 
@@ -501,37 +505,34 @@ const getUserProfileById = async (userId, activeStatusId) => {
  * @throws {AppError} If the database query fails
  */
 const getUserLookup = async ({
-                               filters = {},
-                               options = {},
-                               limit = 50,
-                               offset = 0,
-                             }) => {
+  filters = {},
+  options = {},
+  limit = 50,
+  offset = 0,
+}) => {
   const context = 'user-repository/getUserLookup';
   const tableName = 'users u';
-  
+
   // Query capability flags (resolved by service / ACL layer)
-  const {
-    canSearchRole = false,
-    canSearchStatus = false,
-  } = options;
-  
+  const { canSearchRole = false, canSearchStatus = false } = options;
+
   // Lookup queries avoid joins unless explicitly required
   const joins = [];
-  
+
   if (canSearchRole) {
     joins.push('LEFT JOIN roles r ON r.id = u.role_id');
   }
-  
+
   if (canSearchStatus) {
     joins.push('LEFT JOIN status s ON s.id = u.status_id');
   }
-  
+
   // Build WHERE clause with awareness of enabled capabilities
   const { whereClause, params } = buildUserFilter(filters, {
     canSearchRole,
     canSearchStatus,
   });
-  
+
   const queryText = `
     SELECT
       u.id,
@@ -543,7 +544,7 @@ const getUserLookup = async ({
     ${joins.join('\n')}
     WHERE ${whereClause}
   `;
-  
+
   try {
     const result = await paginateQueryByOffset({
       tableName,
@@ -557,7 +558,7 @@ const getUserLookup = async ({
       sortOrder: 'ASC',
       additionalSort: 'u.lastname ASC, u.email ASC',
     });
-    
+
     logSystemInfo('Fetched user lookup data', {
       context,
       offset,
@@ -565,7 +566,7 @@ const getUserLookup = async ({
       filters,
       options,
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch user lookup', {
@@ -600,7 +601,7 @@ const getUserLookup = async ({
  */
 const getAuthUserById = async (userId, client = null) => {
   const context = 'user-repository/getAuthUserById';
-  
+
   const queryText = `
     SELECT
       u.id,
@@ -612,21 +613,21 @@ const getAuthUserById = async (userId, client = null) => {
     WHERE u.id = $1
     LIMIT 1;
   `;
-  
+
   try {
     const { rows } = await query(queryText, [userId], client);
-    
+
     if (!rows[0]) {
       return null;
     }
-    
+
     logSystemInfo('Auth user fetched by ID', {
       context,
       userId: rows[0].id,
       roleId: rows[0].role_id,
       status: rows[0].status_name,
     });
-    
+
     return rows[0];
   } catch (error) {
     logSystemException(error, 'Failed to fetch auth user by ID', {
@@ -634,7 +635,7 @@ const getAuthUserById = async (userId, client = null) => {
       userId,
       error: error.message,
     });
-    
+
     throw error;
   }
 };

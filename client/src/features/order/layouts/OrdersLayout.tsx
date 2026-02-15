@@ -10,26 +10,26 @@ import useVisibleOrderModes from '@features/order/hooks/useVisibleOrderModes';
 const OrdersLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   const visibleModes = useVisibleOrderModes();
-  
+
   // Redirect to first visible mode if user is on base path (/orders)
   useEffect(() => {
     if (location.pathname !== '/orders') return;
-    
+
     if (visibleModes.length === 0) {
       navigate('/access-denied', { replace: true });
       return;
     }
-    
+
     const [firstMode] = visibleModes;
     if (!firstMode) return;
-    
+
     if (visibleModes.length === 1) {
       navigate(`/orders/${firstMode.key}/all`, { replace: true });
     }
   }, [location.pathname, visibleModes, navigate]);
-  
+
   // Determine the active tab index based on current location
   const activeTabIndex = useMemo(() => {
     return visibleModes.findIndex((mode) =>

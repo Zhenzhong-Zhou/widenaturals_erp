@@ -1034,8 +1034,7 @@ export interface FlattenedSkuRecord {
  * Represents a UI-ready paginated payload where each item
  * is a flattened SKU record.
  */
-export type GetSkuListUiResponse =
-  PaginatedResponse<FlattenedSkuRecord>;
+export type GetSkuListUiResponse = PaginatedResponse<FlattenedSkuRecord>;
 
 /**
  * Input payload for creating a single SKU.

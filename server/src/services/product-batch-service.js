@@ -5,10 +5,7 @@ const {
 const {
   getPaginatedProductBatches,
 } = require('../repositories/product-batch-repository');
-const {
-  logSystemInfo,
-  logSystemException,
-} = require('../utils/system-logger');
+const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const {
   transformPaginatedProductBatchResults,
 } = require('../transformers/product-batch-transformer');
@@ -39,28 +36,24 @@ const AppError = require('../utils/AppError');
  * @returns {Promise<{ data: Object[], pagination: Object }>}
  */
 const fetchPaginatedProductBatchesService = async ({
-                                                     filters = {},
-                                                     page = 1,
-                                                     limit = 20,
-                                                     user,
-                                                   }) => {
-  const context =
-    'product-batch-service/fetchPaginatedProductBatchesService';
-  
+  filters = {},
+  page = 1,
+  limit = 20,
+  user,
+}) => {
+  const context = 'product-batch-service/fetchPaginatedProductBatchesService';
+
   try {
     // ---------------------------------------------------------
     // Step 0 — Resolve product batch visibility
     // ---------------------------------------------------------
     const access = await evaluateProductBatchVisibility(user);
-    
+
     // ---------------------------------------------------------
     // Step 1 — Apply visibility / scope rules (CRITICAL)
     // ---------------------------------------------------------
-    const adjustedFilters = applyProductBatchVisibilityRules(
-      filters,
-      access
-    );
-    
+    const adjustedFilters = applyProductBatchVisibilityRules(filters, access);
+
     // ---------------------------------------------------------
     // Step 2 — Query raw product batch rows
     // ---------------------------------------------------------
@@ -69,7 +62,7 @@ const fetchPaginatedProductBatchesService = async ({
       page,
       limit,
     });
-    
+
     // ---------------------------------------------------------
     // Step 3 — Handle empty result
     // ---------------------------------------------------------
@@ -79,7 +72,7 @@ const fetchPaginatedProductBatchesService = async ({
         filters: adjustedFilters,
         pagination: { page, limit },
       });
-      
+
       return {
         data: [],
         pagination: {
@@ -90,12 +83,15 @@ const fetchPaginatedProductBatchesService = async ({
         },
       };
     }
-    
+
     // ---------------------------------------------------------
     // Step 4 — Transform for UI consumption
     // ---------------------------------------------------------
-    const result = await transformPaginatedProductBatchResults(rawResult, access);
-    
+    const result = await transformPaginatedProductBatchResults(
+      rawResult,
+      access
+    );
+
     // ---------------------------------------------------------
     // Step 5 — Log success
     // ---------------------------------------------------------
@@ -105,7 +101,7 @@ const fetchPaginatedProductBatchesService = async ({
       pagination: result.pagination,
       count: result.data?.length,
     });
-    
+
     return result;
   } catch (error) {
     // ---------------------------------------------------------
@@ -117,7 +113,7 @@ const fetchPaginatedProductBatchesService = async ({
       pagination: { page, limit },
       userId: user?.id,
     });
-    
+
     throw AppError.serviceError(
       'Unable to retrieve product batches at this time.',
       { context }

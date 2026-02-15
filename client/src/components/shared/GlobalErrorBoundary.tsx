@@ -11,7 +11,7 @@ interface Props {
    * (e.g. analytics, Sentry boundary hook)
    */
   onError?: (error: AppError, errorInfo: ErrorInfo) => void;
-  
+
   /** Changing this value resets the boundary */
   resetKey?: unknown;
 }
@@ -69,7 +69,7 @@ class GlobalErrorBoundary extends Component<Props, State> {
   static getDerivedStateFromError(): State {
     return { hasError: true };
   }
-  
+
   componentDidUpdate(prevProps: Props) {
     if (prevProps.resetKey !== this.props.resetKey && this.state.hasError) {
       this.resetError();
@@ -109,14 +109,15 @@ class GlobalErrorBoundary extends Component<Props, State> {
     const message = mapErrorMessage(error);
 
     return (
-      fallback ??
-      <ErrorDisplay
-        message={message}
-        onRetry={this.resetError}
-        onHardReset={() => {
-          void hardLogout(); // clears session + reloads
-        }}
-      />
+      fallback ?? (
+        <ErrorDisplay
+          message={message}
+          onRetry={this.resetError}
+          onHardReset={() => {
+            void hardLogout(); // clears session + reloads
+          }}
+        />
+      )
     );
   }
 }

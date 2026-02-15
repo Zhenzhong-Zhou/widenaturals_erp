@@ -1,15 +1,8 @@
 import type { ErrorInfo, FC } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { ThemeProviderWrapper, LoadingProvider } from '@context/index';
-import {
-  FallbackUI,
-  GlobalErrorBoundaryWithReset
-} from '@components/index';
-import {
-  AppBootstrapErrorBoundary,
-  AppContent,
-  AppShell
-} from '@core/index';
+import { FallbackUI, GlobalErrorBoundaryWithReset } from '@components/index';
+import { AppBootstrapErrorBoundary, AppContent, AppShell } from '@core/index';
 import { AppBootstrapGate } from '@core/bootstrap';
 
 /**
@@ -51,7 +44,7 @@ const App: FC = () => {
       errorLog="Critical application failure during initialization."
     />
   );
-  
+
   /**
    * Global error handler invoked by the top-level error boundary.
    *
@@ -68,7 +61,7 @@ const App: FC = () => {
       console.error('Global Error:', error, errorInfo);
     }
   };
-  
+
   return (
     // Bootstrap gate MUST wrap routing to prevent premature redirects
     <AppBootstrapGate>

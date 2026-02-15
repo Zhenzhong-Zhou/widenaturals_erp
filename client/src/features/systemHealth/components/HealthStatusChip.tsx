@@ -40,7 +40,7 @@ interface HealthStatusChipProps {
  */
 const HealthStatusChip: FC<HealthStatusChipProps> = ({ status }) => {
   const color = getStatusColor(status, 'health');
-  
+
   return <StatusChip label={status} color={color} size="medium" />;
 };
 

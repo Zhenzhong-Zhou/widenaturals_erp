@@ -16,7 +16,7 @@ import { logoutThunk } from '@features/session/state/sessionThunks';
  */
 const useLogout = () => {
   const dispatch = useAppDispatch();
-  
+
   const logout = useCallback(async (): Promise<void> => {
     try {
       await dispatch(logoutThunk()).unwrap();
@@ -28,7 +28,7 @@ const useLogout = () => {
       window.location.replace('/login');
     }
   }, [dispatch]);
-  
+
   return { logout };
 };
 

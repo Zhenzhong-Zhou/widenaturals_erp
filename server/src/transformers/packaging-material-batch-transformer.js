@@ -106,17 +106,17 @@ const transformPackagingMaterialBatchRow = (row, access) => {
   return cleanObject({
     id: row.id,
     lotNumber: row.lot_number,
-    
+
     material: {
       internalName: row.material_snapshot_name,
       supplierLabel: row.received_label_name,
     },
-    
+
     quantity: {
       value: row.quantity,
       unit: row.unit,
     },
-    
+
     lifecycle: {
       manufactureDate: row.manufacture_date,
       expiryDate: row.expiry_date,
@@ -127,31 +127,31 @@ const transformPackagingMaterialBatchRow = (row, access) => {
         row.received_by_lastname
       ),
     },
-    
+
     cost: cleanObject({
       unitCost: row.unit_cost,
       currency: row.currency,
       exchangeRate: row.exchange_rate,
       totalCost: row.total_cost,
     }),
-    
+
     status: makeStatus(row),
-    
+
     packagingMaterial: cleanObject({
       id: row.packaging_material_id,
       code: row.packaging_material_code,
       category: row.packaging_material_category,
     }),
-    
+
     supplier: access.canViewSupplier
       ? cleanObject({
-        id: row.supplier_id,
-        name: row.supplier_name,
-        isPreferred: row.is_preferred,
-        leadTimeDays: row.lead_time_days,
-      })
+          id: row.supplier_id,
+          name: row.supplier_name,
+          isPreferred: row.is_preferred,
+          leadTimeDays: row.lead_time_days,
+        })
       : null,
-    
+
     audit: compactAudit(makeAudit(row)),
   });
 };
@@ -171,9 +171,8 @@ const transformPaginatedPackagingMaterialBatchResults = (
   paginatedResult,
   access
 ) => {
-  return transformPaginatedResult(
-    paginatedResult,
-    (row) => transformPackagingMaterialBatchRow(row, access)
+  return transformPaginatedResult(paginatedResult, (row) =>
+    transformPackagingMaterialBatchRow(row, access)
   );
 };
 

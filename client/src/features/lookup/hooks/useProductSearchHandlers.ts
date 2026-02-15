@@ -27,9 +27,8 @@ export type ProductLookupBundle = {
  * consistency across lookup modules.
  */
 const useProductSearchHandlers = (bundle: ProductLookupBundle) => {
-  const handleSearch =
-    useDebouncedSearch<ProductLookupParams>(bundle.fetch);
-  
+  const handleSearch = useDebouncedSearch<ProductLookupParams>(bundle.fetch);
+
   return {
     /**
      * Debounced handler for product keyword searches.

@@ -17,13 +17,13 @@ interface PasswordUpdateFormProps {
    * Server-side validation must still be enforced separately.
    */
   onSubmit: (data: PasswordUpdateSubmitData) => void;
-  
+
   /** Optional override for submit button label */
   submitButtonLabel?: string;
-  
+
   /** Loading state (typically tied to API mutation state) */
   loading?: boolean;
-  
+
   /** Disables entire form interaction */
   disabled?: boolean;
 }
@@ -42,41 +42,37 @@ interface PasswordUpdateFormProps {
  * - Perform server validation
  */
 const ChangePasswordForm: FC<PasswordUpdateFormProps> = ({
-                                                           onSubmit,
-                                                           submitButtonLabel = 'Update Password',
-                                                           loading,
-                                                           disabled,
-                                                         }) => {
+  onSubmit,
+  submitButtonLabel = 'Update Password',
+  loading,
+  disabled,
+}) => {
   /**
    * Memoized field configuration to prevent unnecessary re-renders.
    */
   const fields = useMemo(() => buildChangePasswordFields(), []);
-  
+
   /**
    * Normalizes form data and performs client-side password validation
    * before delegating submission upward.
    */
-  const handleValidatedSubmit = (
-    formData: Record<string, unknown>,
-  ) => {
+  const handleValidatedSubmit = (formData: Record<string, unknown>) => {
     const currentPassword = String(formData.currentPassword ?? '');
     const newPassword = String(formData.newPassword ?? '');
     const confirmPassword = String(formData.confirmPassword ?? '');
-    
+
     onSubmit({
       currentPassword,
       newPassword,
       confirmPassword,
     });
   };
-  
+
   return (
     <CustomForm
       fields={fields}
       onSubmit={handleValidatedSubmit}
-      submitButtonLabel={
-        loading ? 'Updating password...' : submitButtonLabel
-      }
+      submitButtonLabel={loading ? 'Updating password...' : submitButtonLabel}
       disabled={disabled}
     />
   );

@@ -26,10 +26,7 @@ const roleLookupSlice = createSlice({
      * Recreates the state from factory to avoid shared references.
      */
     resetRoleLookup: (state) => {
-      Object.assign(
-        state,
-        createInitialOffsetPaginatedState<RoleLookupItem>()
-      );
+      Object.assign(state, createInitialOffsetPaginatedState<RoleLookupItem>());
     },
   },
   extraReducers: (builder) => {

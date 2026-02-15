@@ -35,7 +35,7 @@ export const getLocationTableColumns = (
         </Link>
       ),
     },
-    
+
     // --------------------------------------------------
     // Classification
     // --------------------------------------------------
@@ -45,7 +45,7 @@ export const getLocationTableColumns = (
       sortable: true,
       renderCell: (row) => formatLabel(row.locationType),
     },
-    
+
     // --------------------------------------------------
     // Geography
     // --------------------------------------------------
@@ -67,7 +67,7 @@ export const getLocationTableColumns = (
       sortable: true,
       renderCell: (row) => formatLabel(row.country ?? '—'),
     },
-    
+
     // --------------------------------------------------
     // Status
     // --------------------------------------------------
@@ -77,7 +77,7 @@ export const getLocationTableColumns = (
       sortable: true,
       renderCell: (row) => formatLabel(row.statusName),
     },
-    
+
     // --------------------------------------------------
     // Archive
     // --------------------------------------------------
@@ -87,7 +87,7 @@ export const getLocationTableColumns = (
       sortable: true,
       renderCell: (row) => (row.isArchived ? 'Yes' : 'No'),
     },
-    
+
     // --------------------------------------------------
     // Audit
     // --------------------------------------------------
@@ -101,10 +101,10 @@ export const getLocationTableColumns = (
       id: 'createdByName',
       label: 'Created By',
       sortable: true,
-      renderCell: (row) =>formatLabel(row.createdByName ?? '—'),
+      renderCell: (row) => formatLabel(row.createdByName ?? '—'),
     },
   ];
-  
+
   // --------------------------------------------------
   // Drill-down
   // --------------------------------------------------
@@ -116,6 +116,6 @@ export const getLocationTableColumns = (
       )
     );
   }
-  
+
   return columns;
 };

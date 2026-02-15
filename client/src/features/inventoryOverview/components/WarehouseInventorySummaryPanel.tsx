@@ -119,17 +119,14 @@ const WarehouseInventorySummaryPanel: FC<Props> = ({
       </CustomTypography>
     );
   }
-  
+
   const isPageLoading =
-    summaryLoading ||
-    detailLoading ||
-    !summaryPagination ||
-    !detailsPagination;
-  
+    summaryLoading || detailLoading || !summaryPagination || !detailsPagination;
+
   if (isPageLoading) {
     return <Loading message="Loading inventory details..." />;
   }
-  
+
   return (
     <>
       <Suspense

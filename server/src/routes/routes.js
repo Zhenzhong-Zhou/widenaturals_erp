@@ -107,7 +107,11 @@ router.use('/compliance-records', authenticate(), complianceRecordRoutes);
 
 router.use('/batch-registry', authenticate(), batchRegistryRoutes);
 router.use('/product-batches', authenticate(), productBatchRoutes);
-router.use('/packaging-material-batches', authenticate(), packagingMaterialBatchRoutes);
+router.use(
+  '/packaging-material-batches',
+  authenticate(),
+  packagingMaterialBatchRoutes
+);
 
 /**
  * @route /boms

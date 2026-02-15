@@ -69,56 +69,56 @@ const { getRoleById } = require('../repositories/role-repository');
  */
 const createUserService = async (input, actor) => {
   const context = 'user-service/createUserService';
-  
+
   return withTransaction(async (client) => {
     try {
       // ------------------------------------------------------------
       // 1. Resolve target role (single source of truth)
       // ------------------------------------------------------------
       const targetRole = await getRoleById(input.roleId, client);
-      
+
       if (!targetRole || !targetRole.is_active) {
         throw AppError.validationError('Invalid or inactive role.');
       }
-      
+
       const { isRootRole, isAdminRole, isSystemRole } =
         classifyRole(targetRole);
-      
+
       // ------------------------------------------------------------
       // 2. ACL / permission check
       // ------------------------------------------------------------
       const access = await evaluateUserCreationAccessControl(actor);
-      
+
       if (!access.canCreateUsers) {
         throw AppError.authorizationError(
           'You are not allowed to create users.'
         );
       }
-      
+
       if (isSystemRole && !access.canCreateSystemUsers) {
         throw AppError.authorizationError(
           'You are not allowed to create system users.'
         );
       }
-      
+
       if (isRootRole && !access.canCreateRootUsers) {
         throw AppError.authorizationError(
           'You are not allowed to create root users.'
         );
       }
-      
+
       if (isAdminRole && !access.canCreateAdminUsers) {
         throw AppError.authorizationError(
           'You are not allowed to create admin users.'
         );
       }
-      
+
       // TODO(role-hierarchy):
       // Replace name-based role semantics with hierarchy-based checks
       // once `hierarchy_level` and `parent_role_id` are finalized.
       // This MUST be implemented inside `classifyRole()` only.
       // Do not add inline hierarchy checks here.
-      
+
       // ------------------------------------------------------------
       // 3. Determine initial status (SERVICE-OWNED RULE)
       // ------------------------------------------------------------
@@ -126,7 +126,7 @@ const createUserService = async (input, actor) => {
       // Activation state is a service invariant.
       // Callers MUST NOT control initial user status.
       let statusId;
-      
+
       if (actor?.isBootstrap === true && actor?.isRoot === true) {
         // Bootstrap-only exception: initial root admin starts ACTIVE
         statusId = getStatusId('general_active');
@@ -134,12 +134,12 @@ const createUserService = async (input, actor) => {
         // All normal API-created users start INACTIVE
         statusId = getStatusId('general_inactive');
       }
-      
+
       // ------------------------------------------------------------
       // 4. Hash password (outside DB write)
       // ------------------------------------------------------------
       const passwordHash = await hashPassword(input.password);
-      
+
       // ------------------------------------------------------------
       // 5. Insert user
       // ------------------------------------------------------------
@@ -157,37 +157,40 @@ const createUserService = async (input, actor) => {
         },
         client
       );
-      
+
       // ------------------------------------------------------------
       // 6. Insert auth (same transaction)
       // ------------------------------------------------------------
-      await insertUserAuth({
-        userId: userRecord.id,
-        passwordHash,
-      }, client);
-      
+      await insertUserAuth(
+        {
+          userId: userRecord.id,
+          passwordHash,
+        },
+        client
+      );
+
       // ------------------------------------------------------------
       // 7. Transform & audit
       // ------------------------------------------------------------
       const transformed = transformUserInsertResult(userRecord);
-      
+
       logSystemInfo('User created successfully', {
         context,
         userId: userRecord.id,
         createdBy: actor.id,
         roleId: targetRole.id,
       });
-      
+
       return transformed;
     } catch (error) {
       logSystemException(error, 'Failed to create user', { context });
-      
+
       throw error instanceof AppError
         ? error
         : AppError.databaseError('Failed to create user.', {
-          cause: error,
-          context,
-        });
+            cause: error,
+            context,
+          });
     }
   });
 };

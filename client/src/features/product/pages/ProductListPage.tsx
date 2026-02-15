@@ -8,11 +8,9 @@ import {
   CustomTypography,
   ErrorMessage,
   Loading,
-  NoDataFound
+  NoDataFound,
 } from '@components/index';
-import {
-  ProductsCreateDialog
-} from '@features/product/components/CreateProductForm';
+import { ProductsCreateDialog } from '@features/product/components/CreateProductForm';
 import ProductListTable, {
   ProductFiltersPanel,
   ProductSortControls,
@@ -22,10 +20,7 @@ import {
   useStatusLookup,
   useUserLookup,
 } from '@hooks/index';
-import {
-  useDialogFocusHandlers,
-  usePaginationHandlers
-} from '@utils/hooks';
+import { useDialogFocusHandlers, usePaginationHandlers } from '@utils/hooks';
 import type {
   ProductListFilters,
   ProductSortField,
@@ -70,7 +65,7 @@ const ProductListPage = () => {
     fetch: fetchStatusOptions,
     reset: resetStatusOptions,
   } = useStatusLookup();
-  
+
   // -------------------------------------------------------------
   // User lookup
   // -------------------------------------------------------------
@@ -141,7 +136,7 @@ const ProductListPage = () => {
     resetUserLookup();
     setPage(1);
   }, [resetProductList, resetStatusOptions, resetUserLookup]);
-  
+
   const handleStatusDropdownOpen = useCallback(() => {
     if (!statusOptions.length) {
       fetchStatusOptions();
@@ -206,13 +201,11 @@ const ProductListPage = () => {
               onChange={setFilters}
               onApply={() => setPage(1)}
               onReset={handleResetFilters}
-              
               // Status lookup
               onStatusOpen={handleStatusDropdownOpen}
               statusOptions={statusOptions}
               statusLoading={isStatusLoading}
               statusError={statusError}
-              
               // Shared user lookup
               userOptions={userOptions}
               userLoading={isUserLookupLoading}

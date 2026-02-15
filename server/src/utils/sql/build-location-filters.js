@@ -62,18 +62,18 @@ const buildLocationFilter = (filters = {}) => {
       'createdAfter',
       'createdBefore'
     );
-    
+
     const conditions = ['1=1'];
     const params = [];
     const paramIndexRef = { value: 1 };
-    
+
     // -------------------------------------------------------------
     // Archive handling (default: exclude archived)
     // -------------------------------------------------------------
     if (!filters.includeArchived) {
       conditions.push(`l.is_archived = false`);
     }
-    
+
     // -------------------------------------------------------------
     // Status resolution (same priority model as products)
     // -------------------------------------------------------------
@@ -82,20 +82,18 @@ const buildLocationFilter = (filters = {}) => {
       : filters.status_id
         ? filters.status_id
         : filters._activeStatusId;
-    
+
     if (statusFilterValue !== undefined && statusFilterValue !== null) {
       if (Array.isArray(statusFilterValue)) {
-        conditions.push(
-          `l.status_id = ANY($${paramIndexRef.value}::uuid[])`
-        );
+        conditions.push(`l.status_id = ANY($${paramIndexRef.value}::uuid[])`);
       } else {
         conditions.push(`l.status_id = $${paramIndexRef.value}`);
       }
-      
+
       params.push(statusFilterValue);
       paramIndexRef.value++;
     }
-    
+
     // -------------------------------------------------------------
     // Location type
     // -------------------------------------------------------------
@@ -104,7 +102,7 @@ const buildLocationFilter = (filters = {}) => {
       params.push(filters.locationTypeId);
       paramIndexRef.value++;
     }
-    
+
     // -------------------------------------------------------------
     // City / Province / Country
     // -------------------------------------------------------------
@@ -113,19 +111,19 @@ const buildLocationFilter = (filters = {}) => {
       params.push(`%${filters.city}%`);
       paramIndexRef.value++;
     }
-    
+
     if (filters.province_or_state) {
       conditions.push(`l.province_or_state ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.province_or_state}%`);
       paramIndexRef.value++;
     }
-    
+
     if (filters.country) {
       conditions.push(`l.country ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.country}%`);
       paramIndexRef.value++;
     }
-    
+
     // -------------------------------------------------------------
     // Created by
     // -------------------------------------------------------------
@@ -134,7 +132,7 @@ const buildLocationFilter = (filters = {}) => {
       params.push(filters.createdBy);
       paramIndexRef.value++;
     }
-    
+
     // -------------------------------------------------------------
     // Updated by
     // -------------------------------------------------------------
@@ -143,7 +141,7 @@ const buildLocationFilter = (filters = {}) => {
       params.push(filters.updatedBy);
       paramIndexRef.value++;
     }
-    
+
     // -------------------------------------------------------------
     // Created date range
     // -------------------------------------------------------------
@@ -155,7 +153,7 @@ const buildLocationFilter = (filters = {}) => {
       before: filters.createdBefore,
       paramIndexRef,
     });
-    
+
     // -------------------------------------------------------------
     // Updated date range
     // -------------------------------------------------------------
@@ -167,13 +165,13 @@ const buildLocationFilter = (filters = {}) => {
       before: filters.updatedBefore,
       paramIndexRef,
     });
-    
+
     // -------------------------------------------------------------
     // Keyword search
     // -------------------------------------------------------------
     if (filters.keyword) {
       const likeParam = `%${filters.keyword}%`;
-      
+
       const searchFields = [
         'l.name',
         'l.address_line1',
@@ -183,16 +181,16 @@ const buildLocationFilter = (filters = {}) => {
         'l.postal_code',
         'l.country',
       ];
-      
+
       const orConditions = searchFields
         .map((field) => `${field} ILIKE $${paramIndexRef.value}`)
         .join(' OR ');
-      
+
       conditions.push(`(${orConditions})`);
       params.push(likeParam);
       paramIndexRef.value++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -203,7 +201,7 @@ const buildLocationFilter = (filters = {}) => {
       error: err.message,
       filters,
     });
-    
+
     throw AppError.databaseError('Failed to prepare location filter', {
       details: err.message,
       stage: 'build-location-where-clause',

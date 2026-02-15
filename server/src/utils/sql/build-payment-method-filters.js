@@ -6,7 +6,10 @@
  * Supports filtering by name, code, status, creation metadata, and keyword-based fuzzy search.
  */
 
-const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
+const {
+  normalizeDateRangeFilters,
+  applyDateRangeConditions,
+} = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
@@ -45,12 +48,16 @@ const buildPaymentMethodFilter = (filters = {}) => {
     // -------------------------------------------------------------
     // Normalize date-only filters
     // -------------------------------------------------------------
-    filters = normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore');
-    
+    filters = normalizeDateRangeFilters(
+      filters,
+      'createdAfter',
+      'createdBefore'
+    );
+
     const conditions = ['1=1'];
     const params = [];
     const paramIndexRef = { value: 1 };
-    
+
     // ------------------------------
     // Exact match filters
     // ------------------------------
@@ -59,13 +66,13 @@ const buildPaymentMethodFilter = (filters = {}) => {
       params.push(filters.name);
       paramIndexRef.value++;
     }
-    
+
     if (filters.code) {
       conditions.push(`pm.code = $${paramIndexRef.value}`);
       params.push(filters.code);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Audit fields
     // ------------------------------
@@ -74,13 +81,13 @@ const buildPaymentMethodFilter = (filters = {}) => {
       params.push(filters.createdBy);
       paramIndexRef.value++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`pm.updated_by = $${paramIndexRef.value}`);
       params.push(filters.updatedBy);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Keyword search
     // ------------------------------
@@ -90,12 +97,12 @@ const buildPaymentMethodFilter = (filters = {}) => {
         : `(pm.name ILIKE $${paramIndexRef.value}
             OR pm.code ILIKE $${paramIndexRef.value}
             OR pm.description ILIKE $${paramIndexRef.value})`;
-      
+
       conditions.push(keywordClause);
       params.push(`%${filters.keyword.trim().replace(/\s+/g, ' ')}%`);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Active / visibility enforcement
     // ------------------------------
@@ -106,7 +113,7 @@ const buildPaymentMethodFilter = (filters = {}) => {
       params.push(filters.isActive);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Created date filters
     // ------------------------------
@@ -118,7 +125,7 @@ const buildPaymentMethodFilter = (filters = {}) => {
       before: filters.createdBefore,
       paramIndexRef,
     });
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -129,7 +136,7 @@ const buildPaymentMethodFilter = (filters = {}) => {
       error: err.message,
       filters,
     });
-    
+
     throw AppError.databaseError('Failed to prepare payment method filter', {
       details: err.message,
       stage: 'build-payment-method-where-clause',

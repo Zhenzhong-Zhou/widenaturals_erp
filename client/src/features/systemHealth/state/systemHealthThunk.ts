@@ -20,8 +20,8 @@ import { extractErrorMessage } from '@utils/error';
  *          or rejecting with `rejectValue: string`.
  */
 export const fetchSystemHealthThunk = createAsyncThunk<
-  HealthApiResponse,     // fulfilled type
-  void,                  // argument type
+  HealthApiResponse, // fulfilled type
+  void, // argument type
   { rejectValue: string }
 >('systemHealth/fetch', async (_, { rejectWithValue }) => {
   try {

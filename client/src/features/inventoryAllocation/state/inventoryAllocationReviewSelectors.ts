@@ -56,8 +56,7 @@ export const selectReviewData = createSelector(
  */
 export const selectReviewHeader = createSelector(
   [selectReviewData],
-  (data): FlattenedAllocationOrderHeader | null =>
-    data?.header ?? null
+  (data): FlattenedAllocationOrderHeader | null => data?.header ?? null
 );
 
 /**
@@ -67,8 +66,7 @@ export const selectReviewHeader = createSelector(
  */
 export const selectReviewItems = createSelector(
   [selectReviewData],
-  (data): FlattenedAllocationReviewItem[] =>
-    data?.items ?? []
+  (data): FlattenedAllocationReviewItem[] => data?.items ?? []
 );
 
 export const selectReviewItemCount = createSelector(
@@ -110,19 +108,18 @@ export const selectReviewAllocations = createSelector(
           allocated: item.allocatedQuantity,
         };
       }
-      
+
       if (item.batchType === 'packaging_material') {
         return {
           type: 'packaging_material' as const,
           materialCode: item.packagingMaterialCode ?? '—',
-          materialLabel:
-            item.packagingMaterialLabel ?? 'Unnamed Material',
+          materialLabel: item.packagingMaterialLabel ?? 'Unnamed Material',
           lot: item.batchLotNumber ?? '—',
           expiryDate: item.batchExpiryDate ?? null,
           allocated: item.allocatedQuantity,
         };
       }
-      
+
       return {
         type: 'unknown' as const,
         allocated: item.allocatedQuantity,

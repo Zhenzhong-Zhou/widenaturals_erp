@@ -24,14 +24,14 @@ const InfoCard: FC<InfoCardProps> = ({ title, body, bullets }) => {
       <CustomTypography variant="subtitle2" fontWeight={800}>
         {title}
       </CustomTypography>
-      
+
       <CustomTypography
         variant="body2"
         sx={{ mt: 1.25, color: 'text.secondary', lineHeight: 1.6 }}
       >
         {body}
       </CustomTypography>
-      
+
       {bullets?.length ? (
         <Box component="ul" sx={{ mt: 1.5, pl: 2 }}>
           {bullets.map((b) => (

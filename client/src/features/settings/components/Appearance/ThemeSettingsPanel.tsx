@@ -24,29 +24,27 @@ import type { ThemePreference } from '@features/theme/state/themeSlice';
  */
 const ThemeSettingsPanel: FC = () => {
   const { preference, actions } = useThemeMode();
-  
+
   const handleChange = (value: ThemePreference) => {
     actions.setPreference(value);
   };
-  
+
   return (
     <Box>
       <Typography variant="subtitle1" gutterBottom>
         Theme
       </Typography>
-      
+
       <RadioGroup
         value={preference}
-        onChange={(e) =>
-          handleChange(e.target.value as ThemePreference)
-        }
+        onChange={(e) => handleChange(e.target.value as ThemePreference)}
       >
         <FormControlLabel
           value="system"
           control={<Radio />}
           label="Follow system"
         />
-        
+
         <FormControlLabel
           value="time"
           control={<Radio />}

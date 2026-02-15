@@ -25,8 +25,7 @@ import {
   NoDataFound,
 } from '@components/index';
 import { USER_DEFAULT_PLACEHOLDER } from '@utils/constants/assets';
-import type { PasswordUpdateSubmitData }
-  from '@features/auth/password/components/ChangePasswordForm';
+import type { PasswordUpdateSubmitData } from '@features/auth/password/components/ChangePasswordForm';
 
 /**
  * UserProfilePage
@@ -48,67 +47,55 @@ import type { PasswordUpdateSubmitData }
  * UI logic is delegated to hooks and feature components.
  */
 const UserProfilePage: FC = () => {
-  
   // ----------------------------------------
   // Route Params
   // ----------------------------------------
   const { userId } = useParams<{ userId?: string }>();
-  
+
   // ----------------------------------------
   // Global Selectors
   // ----------------------------------------
   const lastLogin = useAppSelector(selectLastLogin);
-  
+
   // ----------------------------------------
   // Feature Hooks
   // ----------------------------------------
-  const {
-    loading,
-    error,
-    success,
-    changedAt,
-    changePassword,
-    reset,
-  } = useChangePassword();
-  
+  const { loading, error, success, changedAt, changePassword, reset } =
+    useChangePassword();
+
   const { logout } = useLogout();
-  
-  const {
-    open,
-    triggerRef,
-    handleOpen,
-    handleClose
-  } = useModalFocusHandlers();
-  
+
+  const { open, triggerRef, handleOpen, handleClose } = useModalFocusHandlers();
+
   // ----------------------------------------
   // Permission Checks
   // ----------------------------------------
-  const { isAllowed: canChangeOwnPassword } =
-    usePagePermissionState('change_self_password');
-  
-  const { isAllowed: canResetOthersPassword } =
-    usePagePermissionState([
-      'reset_any_user_password',
-      'force_reset_any_user_password',
-    ]);
-  
+  const { isAllowed: canChangeOwnPassword } = usePagePermissionState(
+    'change_self_password'
+  );
+
+  const { isAllowed: canResetOthersPassword } = usePagePermissionState([
+    'reset_any_user_password',
+    'force_reset_any_user_password',
+  ]);
+
   // ----------------------------------------
   // Profile Data Hooks
   // ----------------------------------------
   const selfProfile = useUserSelfProfile();
   const viewedProfile = useUserViewedProfile();
-  
+
   // Auto-fetch when viewing another user
   useUserViewedProfileAuto(userId ?? null);
-  
+
   // ----------------------------------------
   // View Context
   // ----------------------------------------
   const isViewingSelf = !userId;
   const isOwnProfile = isViewingSelf;
-  
+
   const profileSource = isViewingSelf ? selfProfile : viewedProfile;
-  
+
   const {
     profile: userProfile,
     fullName,
@@ -118,7 +105,7 @@ const UserProfilePage: FC = () => {
     error: profileError,
     isLoadingEmpty: isInitialProfileLoading,
   } = profileSource;
-  
+
   // ----------------------------------------
   // Derived Data
   // ----------------------------------------
@@ -126,14 +113,13 @@ const UserProfilePage: FC = () => {
     () => (userProfile ? flattenUserProfile(userProfile) : null),
     [userProfile]
   );
-  
-  const avatarSrc =
-    flattenedUserProfile?.avatarUrl ?? USER_DEFAULT_PLACEHOLDER;
-  
+
+  const avatarSrc = flattenedUserProfile?.avatarUrl ?? USER_DEFAULT_PLACEHOLDER;
+
   // ----------------------------------------
   // Handlers
   // ----------------------------------------
-  
+
   /**
    * Dispatch password change request.
    * Modal stays open until success.
@@ -144,7 +130,7 @@ const UserProfilePage: FC = () => {
       newPassword: data.newPassword,
     });
   };
-  
+
   /**
    * Refresh profile depending on view context.
    */
@@ -160,11 +146,11 @@ const UserProfilePage: FC = () => {
     selfProfile.fetchSelfProfile,
     viewedProfile.fetchViewedProfile,
   ]);
-  
+
   // ----------------------------------------
   // Side Effects
   // ----------------------------------------
-  
+
   /**
    * After successful password change:
    * - Delay briefly for UX feedback
@@ -173,27 +159,22 @@ const UserProfilePage: FC = () => {
    */
   useEffect(() => {
     if (!success) return;
-    
+
     const timeout = setTimeout(async () => {
       reset();
       await logout();
     }, 1500);
-    
+
     return () => clearTimeout(timeout);
   }, [success, reset, logout]);
-  
+
   // ----------------------------------------
   // Loading Guard
   // ----------------------------------------
   if (!fullName) {
-    return (
-      <Loading
-        variant="dotted"
-        message="Loading profile..."
-      />
-    );
+    return <Loading variant="dotted" message="Loading profile..." />;
   }
-  
+
   // ----------------------------------------
   // Render
   // ----------------------------------------
@@ -211,7 +192,7 @@ const UserProfilePage: FC = () => {
         mb={2}
       >
         <GoBackButton />
-        
+
         <CustomButton
           variant="outlined"
           startIcon={<RefreshIcon />}
@@ -220,7 +201,7 @@ const UserProfilePage: FC = () => {
           Refresh
         </CustomButton>
       </Box>
-      
+
       {flattenedUserProfile ? (
         <>
           <DetailHeader
@@ -229,12 +210,12 @@ const UserProfilePage: FC = () => {
             name={fullName}
             subtitle={email ?? undefined}
           />
-          
+
           <UserProfileDetails
             user={flattenedUserProfile}
             lastLogin={lastLogin}
           />
-          
+
           {!isSystem &&
             ((isOwnProfile && canChangeOwnPassword) ||
               (!isOwnProfile && canResetOthersPassword)) && (
@@ -243,12 +224,10 @@ const UserProfilePage: FC = () => {
                 sx={{ mt: 3 }}
                 onClick={handleOpen}
               >
-                {isOwnProfile
-                  ? 'Change Password'
-                  : 'Reset Password'}
+                {isOwnProfile ? 'Change Password' : 'Reset Password'}
               </CustomButton>
             )}
-          
+
           {open && (
             <ChangePasswordModal
               open={open}

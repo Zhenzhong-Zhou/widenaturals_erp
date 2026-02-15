@@ -14,7 +14,7 @@ import type {
 import { skuService } from '@services/skuService';
 import {
   extractUiErrorPayload,
-  type UiErrorPayload
+  type UiErrorPayload,
 } from '@utils/error/uiErrorUtils';
 import { flattenSkuRecords } from '@features/sku/utils';
 
@@ -122,7 +122,7 @@ export const fetchPaginatedSkusThunk = createAsyncThunk<
 >('skus/fetchList', async (params, { rejectWithValue }) => {
   try {
     const response = await skuService.fetchPaginatedSkus(params);
-    
+
     return {
       ...response,
       data: flattenSkuRecords(response.data),

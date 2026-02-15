@@ -24,56 +24,60 @@ import {
  */
 const PublicHomePage: FC = () => {
   const { isAuthenticated } = useSession();
-  const ERP_LOGIN_URL =
-    import.meta?.env?.VITE_ERP_LOGIN_URL ?? '/login';
-  
+  const ERP_LOGIN_URL = import.meta?.env?.VITE_ERP_LOGIN_URL ?? '/login';
+
   const CONTACT_EMAIL =
-    import.meta?.env?.VITE_PUBLIC_CONTACT_EMAIL ??
-    'info@widenaturals.com';
-  
+    import.meta?.env?.VITE_PUBLIC_CONTACT_EMAIL ?? 'info@widenaturals.com';
+
   const onStaffLogin = () => {
     window.location.assign(ERP_LOGIN_URL);
   };
-  
+
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({
       behavior: 'smooth',
       block: 'start',
     });
   };
-  
+
   return (
     <Box>
       <Header onStaffLogin={!isAuthenticated ? onStaffLogin : undefined} />
-      
+
       <Box component="main">
         <Hero
           onPrimary={() => scrollTo('contact')}
           onSecondary={() => scrollTo('capabilities')}
         />
-        
+
         <Section
           id="about"
           title="About Us"
           subtitle="Built for quality, compliance, and global scale."
         >
-          <CustomTypography variant="body2" sx={{ color: 'text.secondary', mt: 1.5 }}>
+          <CustomTypography
+            variant="body2"
+            sx={{ color: 'text.secondary', mt: 1.5 }}
+          >
             WIDE Naturals is a Canadian natural health company specializing in
             research, manufacturing, and global distribution of premium natural
-            health products. Operating from Health Canada–licensed cGMP facilities
-            in British Columbia, we deliver compliant, high-quality solutions for
-            brands and partners worldwide.
+            health products. Operating from Health Canada–licensed cGMP
+            facilities in British Columbia, we deliver compliant, high-quality
+            solutions for brands and partners worldwide.
           </CustomTypography>
-          
-          <CustomTypography variant="body2" sx={{ color: 'text.secondary', mt: 2 }}>
-            Our operations span the full product lifecycle—from scientific research
-            and formulation to large-scale manufacturing and international
-            distribution. We support both our own brands and strategic partners
-            through white-label manufacturing, private branding, and market entry
-            services.
+
+          <CustomTypography
+            variant="body2"
+            sx={{ color: 'text.secondary', mt: 2 }}
+          >
+            Our operations span the full product lifecycle—from scientific
+            research and formulation to large-scale manufacturing and
+            international distribution. We support both our own brands and
+            strategic partners through white-label manufacturing, private
+            branding, and market entry services.
           </CustomTypography>
         </Section>
-        
+
         <Section
           id="capabilities"
           title="Our Capabilities"
@@ -95,7 +99,7 @@ const PublicHomePage: FC = () => {
                 'Regulatory documentation readiness',
               ]}
             />
-            
+
             <InfoCard
               title="Manufacturing"
               body="Licensed Canadian cGMP manufacturing capacity across multiple delivery formats, supported by rigorous quality systems."
@@ -105,7 +109,7 @@ const PublicHomePage: FC = () => {
                 'Quality-controlled, scalable production',
               ]}
             />
-            
+
             <InfoCard
               title="Compliance & Qualifications"
               body="Compliance is embedded into every stage of operations, supporting market readiness and confidence."
@@ -115,7 +119,7 @@ const PublicHomePage: FC = () => {
                 'FDA registered; Free Sale certificates; CHFA membership',
               ]}
             />
-            
+
             <InfoCard
               title="Brand & Market Reach"
               body="Global distribution through online and offline channels, supporting modern commerce pathways."
@@ -127,7 +131,7 @@ const PublicHomePage: FC = () => {
             />
           </Box>
         </Section>
-        
+
         <Section
           id="brands"
           title="Our Brands"
@@ -154,7 +158,7 @@ const PublicHomePage: FC = () => {
             />
           </Box>
         </Section>
-        
+
         <Section
           id="why"
           title="Why WIDE Naturals"
@@ -179,7 +183,7 @@ const PublicHomePage: FC = () => {
             ))}
           </Box>
         </Section>
-        
+
         <Section
           id="services"
           title="Partnerships & Services"
@@ -202,7 +206,7 @@ const PublicHomePage: FC = () => {
                 'International market entrants',
               ]}
             />
-            
+
             <InfoCard
               title="What we provide"
               body="Execution support across product, compliance, and go-to-market."
@@ -216,7 +220,7 @@ const PublicHomePage: FC = () => {
             />
           </Box>
         </Section>
-        
+
         <Section
           id="contact"
           title="Contact Us"
@@ -256,7 +260,7 @@ const PublicHomePage: FC = () => {
                 </Link>
               </CustomTypography>
             </Box>
-            
+
             <Stack direction="row" spacing={1.5} flexWrap="wrap">
               <CustomButton
                 variant="contained"
@@ -273,7 +277,7 @@ const PublicHomePage: FC = () => {
           </Box>
         </Section>
       </Box>
-      
+
       <Footer onStaffLogin={!isAuthenticated ? onStaffLogin : undefined} />
     </Box>
   );

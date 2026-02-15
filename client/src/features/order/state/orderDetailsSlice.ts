@@ -25,10 +25,7 @@ const orderDetailsSlice = createSlice({
       })
       .addCase(
         fetchOrderDetailsByIdThunk.fulfilled,
-        (
-          state,
-          action: PayloadAction<GetOrderDetailsUiResponse>
-        ) => {
+        (state, action: PayloadAction<GetOrderDetailsUiResponse>) => {
           state.loading = false;
           state.data = action.payload.data;
           state.error = null;
@@ -36,11 +33,9 @@ const orderDetailsSlice = createSlice({
       )
       .addCase(fetchOrderDetailsByIdThunk.rejected, (state, action) => {
         state.loading = false;
-        
-        const payload = action.payload as
-          | { message: string }
-          | undefined;
-        
+
+        const payload = action.payload as { message: string } | undefined;
+
         state.error =
           payload?.message ??
           action.error.message ??

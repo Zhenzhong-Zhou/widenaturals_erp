@@ -16,7 +16,7 @@ import {
   CustomTypography,
   GoBackButton,
   Loading,
-  NoDataFound
+  NoDataFound,
 } from '@components/index';
 import {
   OutboundFulfillmentFiltersPanel,

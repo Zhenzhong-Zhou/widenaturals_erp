@@ -22,7 +22,7 @@ const fetchPublicHealthStatus = async (): Promise<HealthApiResponse> => {
     API_ENDPOINTS.PUBLIC.HEALTH,
     { policy: 'READ' }
   );
-  
+
   /**
    * Defensive validation is intentional here.
    *
@@ -35,7 +35,7 @@ const fetchPublicHealthStatus = async (): Promise<HealthApiResponse> => {
       response: data,
     });
   }
-  
+
   return data;
 };
 

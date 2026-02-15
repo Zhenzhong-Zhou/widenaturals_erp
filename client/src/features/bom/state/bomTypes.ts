@@ -16,8 +16,7 @@ import type { NullableString } from '@shared-types/shared';
  * Represents the raw, domain-level response returned by the backend.
  * Records preserve nested product, SKU, and BOM relationships.
  */
-export type FetchPaginatedBomsApiResponse =
-  PaginatedResponse<BomListItem>;
+export type FetchPaginatedBomsApiResponse = PaginatedResponse<BomListItem>;
 
 /**
  * Paginated UI response for the BOM list.
@@ -27,8 +26,7 @@ export type FetchPaginatedBomsApiResponse =
  *
  * Pagination metadata is preserved without transformation.
  */
-export type FetchPaginatedBomsResponse =
-  PaginatedResponse<FlattenedBomRecord>;
+export type FetchPaginatedBomsResponse = PaginatedResponse<FlattenedBomRecord>;
 
 /**
  * Represents one row in the BOM list.
@@ -162,8 +160,7 @@ export interface FetchBomsParams extends PaginationParams, SortConfig {
  *
  * This state stores **flattened, UI-ready BOM list records**.
  */
-export interface PaginatedBomStateWithFilters
-  extends ReduxPaginatedState<FlattenedBomRecord> {
+export interface PaginatedBomStateWithFilters extends ReduxPaginatedState<FlattenedBomRecord> {
   /** Current applied filters for the BOM list (e.g., status, brand, productName). */
   filters: FetchBomsParams['filters'];
 }

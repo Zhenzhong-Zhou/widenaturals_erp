@@ -21,8 +21,8 @@ const useUserPageController = ({ viewMode }: UseUserPageControllerOptions) => {
   // UI state (page-scoped)
   // -----------------------------
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState<UserTablePageSize>(
-    () => getInitialUserLimit(viewMode)
+  const [limit, setLimit] = useState<UserTablePageSize>(() =>
+    getInitialUserLimit(viewMode)
   );
   const [sortBy, setSortBy] = useState<UserSortField>('defaultNaturalSort');
   const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
@@ -88,10 +88,7 @@ const useUserPageController = ({ viewMode }: UseUserPageControllerOptions) => {
           lookups.status.options,
           lookups.status.fetch
         ),
-        role: createLazyOpenHandler(
-          lookups.role.options,
-          lookups.role.fetch
-        ),
+        role: createLazyOpenHandler(lookups.role.options, lookups.role.fetch),
       },
     }),
     [lookups]

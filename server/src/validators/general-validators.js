@@ -567,14 +567,11 @@ const optionalIsoDate = (label = 'Date') =>
  * - invalid formats
  */
 const requiredIsoDate = () =>
-  Joi.date()
-    .iso()
-    .required()
-    .messages({
-      'any.required': 'Date is required',
-      'date.base': 'Date must be a valid ISO-8601 value',
-      'date.format': 'Date must be in ISO-8601 format',
-    });
+  Joi.date().iso().required().messages({
+    'any.required': 'Date is required',
+    'date.base': 'Date must be a valid ISO-8601 value',
+    'date.format': 'Date must be in ISO-8601 format',
+  });
 
 module.exports = {
   validateEmail,

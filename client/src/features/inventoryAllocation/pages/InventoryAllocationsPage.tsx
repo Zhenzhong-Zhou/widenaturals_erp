@@ -3,11 +3,7 @@ import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Card from '@mui/material/Card';
 import Divider from '@mui/material/Divider';
-import {
-  CustomTypography,
-  Loading,
-  NoDataFound
-} from '@components/index';
+import { CustomTypography, Loading, NoDataFound } from '@components/index';
 import InventoryAllocationTable, {
   InventoryAllocationFiltersPanel,
   InventoryAllocationSortControls,

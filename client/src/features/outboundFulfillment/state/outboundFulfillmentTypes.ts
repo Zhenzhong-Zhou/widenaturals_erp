@@ -213,36 +213,36 @@ export type PaginatedOutboundFulfillmentApiResponse =
 export interface FlattenedOutboundShipmentRow {
   /** Shipment */
   shipmentId: string;
-  
+
   /** Order */
   orderId: string;
   orderNumber: string;
-  
+
   /** Warehouse */
   warehouseId: string;
   warehouseName: string | null;
-  
+
   /** Delivery method */
   deliveryMethodId: string | null;
   deliveryMethodName: string | null;
-  
+
   /** Tracking */
   trackingId: string | null;
   trackingNumber: string | null;
-  
+
   /** Status */
   statusId: string;
   statusCode: string;
   statusName: string;
-  
+
   /** Dates */
   shippedAt: string | null;
   expectedDelivery: string | null;
-  
+
   /** Notes & metadata */
   notes: string | null;
   shipmentDetails: Record<string, any> | null;
-  
+
   /** Audit */
   createdAt: string;
   createdById: string;
@@ -422,8 +422,7 @@ export interface ShipmentBatch {
  * - Thunks are responsible for transforming this payload into
  *   flattened, UI-ready structures before storing in Redux
  */
-export type ShipmentDetailsApiResponse =
-  ApiSuccessResponse<ShipmentDetails>;
+export type ShipmentDetailsApiResponse = ApiSuccessResponse<ShipmentDetails>;
 
 /**
  * UI-ready shipment details after flattening.
@@ -443,7 +442,6 @@ export interface ShipmentDetailsUiData {
 export type FetchShipmentDetailsUiResponse =
   ApiSuccessResponse<ShipmentDetailsUiData>;
 
-
 /**
  * Redux state slice for storing detailed outbound shipment information.
  *
@@ -455,7 +453,8 @@ export type FetchShipmentDetailsUiResponse =
  * Used in combination with `fetchOutboundShipmentDetailsThunk`
  * to manage the lifecycle of fetching a single shipment’s details.
  */
-export type OutboundShipmentDetailsState = AsyncState<ShipmentDetailsUiData | null>;
+export type OutboundShipmentDetailsState =
+  AsyncState<ShipmentDetailsUiData | null>;
 
 /**
  * Represents a **flattened outbound shipment header** for display and data binding.

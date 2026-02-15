@@ -8,7 +8,7 @@ interface LoginCardProps {
   subtitle?: string;
   loading: boolean;
   error: string | null;
-  
+
   formValues: LoginRequestBody;
   formErrors: Partial<LoginRequestBody>;
   onFormChange: (field: keyof LoginRequestBody, value: string) => void;
@@ -29,19 +29,19 @@ interface LoginCardProps {
  *   and reusable.
  */
 const LoginCard: FC<LoginCardProps> = ({
-                                         title = 'Sign In',
-                                         subtitle = 'Sign in to your account.',
-                                         loading,
-                                         error,
-                                         formValues,
-                                         formErrors,
-                                         onFormChange,
-                                         onFormSubmit,
-                                       }) => {
+  title = 'Sign In',
+  subtitle = 'Sign in to your account.',
+  loading,
+  error,
+  formValues,
+  formErrors,
+  onFormChange,
+  onFormSubmit,
+}) => {
   return (
     <CustomCard title={title} subtitle={subtitle}>
       {error && <ErrorMessage message={error} />}
-      
+
       <LoginForm
         loading={loading}
         formValues={formValues}

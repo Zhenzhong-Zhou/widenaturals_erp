@@ -33,7 +33,6 @@ export const normalizeCoords = (coords: Coordinates): Coordinates => {
   };
 };
 
-
 /**
  * Determines theme mode based on real sunrise/sunset times.
  */
@@ -43,16 +42,12 @@ export const getSunBasedTheme = (
 ): 'light' | 'dark' => {
   const now = new Date();
   const times = SunCalc.getTimes(now, latitude, longitude);
-  
-  return now >= times.sunrise && now < times.sunset
-    ? 'light'
-    : 'dark';
+
+  return now >= times.sunrise && now < times.sunset ? 'light' : 'dark';
 };
 
 /**
  * Determines theme mode based on OS preference.
  */
 export const getSystemTheme = (): 'light' | 'dark' =>
-  window.matchMedia('(prefers-color-scheme: dark)').matches
-    ? 'dark'
-    : 'light';
+  window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';

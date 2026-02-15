@@ -34,7 +34,10 @@
  * ```
  */
 
-const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
+const {
+  normalizeDateRangeFilters,
+  applyDateRangeConditions,
+} = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
@@ -96,12 +99,16 @@ const buildProductFilter = (filters = {}) => {
     // -------------------------------------------------------------
     // Normalize date-only filters
     // -------------------------------------------------------------
-    filters = normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore');
-    
+    filters = normalizeDateRangeFilters(
+      filters,
+      'createdAfter',
+      'createdBefore'
+    );
+
     const conditions = ['1=1'];
     const params = [];
     const paramIndexRef = { value: 1 };
-    
+
     // -------------------------------------------------------------
     // Status (priority resolution preserved)
     // -------------------------------------------------------------
@@ -110,18 +117,18 @@ const buildProductFilter = (filters = {}) => {
       : filters.status_id
         ? filters.status_id
         : filters._activeStatusId;
-    
+
     if (statusFilterValue !== undefined && statusFilterValue !== null) {
       if (Array.isArray(statusFilterValue)) {
         conditions.push(`p.status_id = ANY($${paramIndexRef.value}::uuid[])`);
       } else {
         conditions.push(`p.status_id = $${paramIndexRef.value}`);
       }
-      
+
       params.push(statusFilterValue);
       paramIndexRef.value++;
     }
-    
+
     // -------------------------------------------------------------
     // Brand / Category / Series
     // -------------------------------------------------------------
@@ -144,7 +151,7 @@ const buildProductFilter = (filters = {}) => {
       params.push(`%${filters.series}%`);
       paramIndexRef.value++;
     }
-    
+
     // -------------------------------------------------------------
     // Created / Updated by
     // -------------------------------------------------------------
@@ -153,13 +160,13 @@ const buildProductFilter = (filters = {}) => {
       params.push(filters.createdBy);
       paramIndexRef.value++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`p.updated_by = $${paramIndexRef.value}`);
       params.push(filters.updatedBy);
       paramIndexRef.value++;
     }
-    
+
     // -------------------------------------------------------------
     // Created date range (UI date filter)
     // -------------------------------------------------------------
@@ -171,24 +178,24 @@ const buildProductFilter = (filters = {}) => {
       before: filters.createdBefore,
       paramIndexRef,
     });
-    
+
     // -------------------------------------------------------------
     // Keyword search (fuzzy)
     // -------------------------------------------------------------
     if (filters.keyword) {
       const likeParam = `%${filters.keyword}%`;
-      
+
       const searchFields = ['p.name', 'p.brand', 'p.category'];
-      
+
       const orConditions = searchFields
         .map((field) => `${field} ILIKE $${paramIndexRef.value}`)
         .join(' OR ');
-      
+
       conditions.push(`(${orConditions})`);
       params.push(likeParam);
       paramIndexRef.value++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -199,7 +206,7 @@ const buildProductFilter = (filters = {}) => {
       error: err.message,
       filters,
     });
-    
+
     throw AppError.databaseError('Failed to prepare product filter', {
       details: err.message,
       stage: 'build-product-where-clause',

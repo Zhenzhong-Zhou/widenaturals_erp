@@ -8,7 +8,7 @@ import {
   CustomTypography,
   ErrorMessage,
   Loading,
-  NoDataFound
+  NoDataFound,
 } from '@components/index';
 import { usePaginatedSkus } from '@hooks/index';
 import { applyFiltersAndSorting } from '@utils/queryUtils';

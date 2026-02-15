@@ -5,7 +5,7 @@ import { selectRuntime } from '@store/selectors';
 /**
  * Root selector for the viewed user profile slice.
  */
-const selectUserViewedProfileState= (state: RootState) =>
+const selectUserViewedProfileState = (state: RootState) =>
   selectRuntime(state).userViewedProfile;
 
 /**

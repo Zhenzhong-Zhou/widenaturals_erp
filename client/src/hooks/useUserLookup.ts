@@ -18,23 +18,23 @@ import { resetUserLookup } from '@features/lookup/state/userLookupSlice';
  */
 const useUserLookup = () => {
   const dispatch = useAppDispatch();
-  
+
   const options = useAppSelector(selectUserLookupOptions);
   const loading = useAppSelector(selectUserLookupLoading);
   const error = useAppSelector(selectUserLookupError);
   const meta = useAppSelector(selectUserLookupMeta);
-  
+
   const fetch = useCallback(
     (params?: UserLookupParams) => {
       dispatch(fetchUserLookupThunk(params));
     },
     [dispatch]
   );
-  
+
   const reset = useCallback(() => {
     dispatch(resetUserLookup());
   }, [dispatch]);
-  
+
   return useMemo(
     () => ({
       options,

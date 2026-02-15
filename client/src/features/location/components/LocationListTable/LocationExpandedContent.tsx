@@ -23,18 +23,13 @@ interface LocationExpandedContentProps {
   row: FlattenedLocationListRecord;
 }
 
-const LocationExpandedContent: FC<LocationExpandedContentProps> = ({
-                                                                     row,
-                                                                   }) => {
+const LocationExpandedContent: FC<LocationExpandedContentProps> = ({ row }) => {
   return (
     <Box sx={{ px: 3, py: 2 }}>
-      <CustomTypography
-        variant="subtitle1"
-        sx={{ fontWeight: 600, mb: 2 }}
-      >
+      <CustomTypography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
         Location Metadata
       </CustomTypography>
-      
+
       {/* --------------------------------------------------
        * Status Lifecycle
        * -------------------------------------------------- */}
@@ -53,7 +48,7 @@ const LocationExpandedContent: FC<LocationExpandedContentProps> = ({
           },
         ]}
       />
-      
+
       {/* --------------------------------------------------
        * Audit & Governance
        * -------------------------------------------------- */}
