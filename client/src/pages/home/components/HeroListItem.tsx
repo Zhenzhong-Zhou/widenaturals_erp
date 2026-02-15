@@ -1,7 +1,7 @@
 import type { FC, PropsWithChildren } from 'react';
 import { CustomTypography } from '@components/index';
 
-export type HeroListItemProps = PropsWithChildren<{}>;
+export type HeroListItemProps = PropsWithChildren<Record<string, never>>;
 
 const HeroListItem: FC<HeroListItemProps> = ({ children }) => {
   return (
