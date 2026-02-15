@@ -41,15 +41,23 @@ const fetchPaginatedLocations = async (
 ): Promise<PaginatedLocationApiResponse> => {
   const { filters = {}, ...rest } = params;
 
-  const { createdFrom, createdTo, ...otherFilters } = filters;
+  const {
+    createdAfter,
+    createdBefore,
+    updatedAfter,
+    updatedBefore,
+    ...otherFilters
+  } = filters;
 
   /**
    * Flatten date filters → query params
    */
   const flatDateParams: Record<string, string> = {};
 
-  if (createdFrom) flatDateParams.createdFrom = createdFrom;
-  if (createdTo) flatDateParams.createdTo = createdTo;
+  if (createdAfter) flatDateParams.createdAfter = createdAfter;
+  if (createdBefore) flatDateParams.createdBefore = createdBefore;
+  if (updatedAfter) flatDateParams.updatedAfter = updatedAfter;
+  if (updatedBefore) flatDateParams.updatedBefore = updatedBefore;
 
   /**
    * Final flattened params
