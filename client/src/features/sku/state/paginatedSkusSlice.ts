@@ -18,7 +18,7 @@ const initialState: SkuListState =
 const paginatedSkusSlice = createSlice({
   name: 'paginatedSkus',
   initialState,
-  
+
   reducers: {
     /**
      * Reset the entire paginated SKU state back to its initial,
@@ -26,7 +26,7 @@ const paginatedSkusSlice = createSlice({
      */
     resetPaginatedSkus: () => initialState,
   },
-  
+
   // ---------------------------
   // Extra reducers
   // ---------------------------
@@ -37,21 +37,21 @@ const paginatedSkusSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      
+
       // ---- fulfilled ----
       .addCase(fetchPaginatedSkusThunk.fulfilled, (state, action) => {
         const { data, pagination } = action.payload;
-        
+
         state.loading = false;
         state.data = data;
         state.pagination = pagination;
         state.error = null;
       })
-      
+
       // ---- rejected ----
       .addCase(fetchPaginatedSkusThunk.rejected, (state, action) => {
         state.loading = false;
-        
+
         // rejectWithValue(UiErrorPayload) OR fallback error
         state.error =
           action.payload?.message ??

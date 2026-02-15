@@ -7,7 +7,7 @@ import { useCommonProductLookups } from '@features/lookup/hooks';
 const useBatchRegistryLookups = () => {
   const common = useCommonProductLookups();
   const packagingMaterial = usePackagingMaterialLookup();
-  
+
   return {
     ...common,
     packagingMaterial,

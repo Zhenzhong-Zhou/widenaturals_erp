@@ -1,8 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { createInitialPaginatedState } from '@store/pagination';
-import {
-  fetchPaginatedBatchRegistryThunk,
-} from '@features/batchRegistry';
+import { fetchPaginatedBatchRegistryThunk } from '@features/batchRegistry';
 import type {
   PaginatedBatchRegistryState,
   FlattenedBatchRegistryRecord,
@@ -21,7 +19,7 @@ const initialState: PaginatedBatchRegistryState =
 const paginatedBatchRegistrySlice = createSlice({
   name: 'paginatedBatchRegistry',
   initialState,
-  
+
   reducers: {
     /**
      * Reset the entire paginated batch registry state back to its
@@ -34,7 +32,7 @@ const paginatedBatchRegistrySlice = createSlice({
      */
     resetPaginatedBatchRegistry: () => initialState,
   },
-  
+
   // ---------------------------
   // Extra reducers (async thunk lifecycle)
   // ---------------------------
@@ -45,19 +43,16 @@ const paginatedBatchRegistrySlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      
+
       // ---- fulfilled ----
       .addCase(
         fetchPaginatedBatchRegistryThunk.fulfilled,
-        (
-          state,
-          action: PayloadAction<PaginatedBatchRegistryListResponse>
-        ) => {
+        (state, action: PayloadAction<PaginatedBatchRegistryListResponse>) => {
           const payload = action.payload;
-          
+
           state.loading = false;
           state.data = payload.data;
-          
+
           state.pagination = {
             page: payload.pagination.page,
             limit: payload.pagination.limit,
@@ -66,7 +61,7 @@ const paginatedBatchRegistrySlice = createSlice({
           };
         }
       )
-      
+
       // ---- rejected ----
       .addCase(fetchPaginatedBatchRegistryThunk.rejected, (state, action) => {
         state.loading = false;
@@ -78,8 +73,7 @@ const paginatedBatchRegistrySlice = createSlice({
   },
 });
 
-export const {
-  resetPaginatedBatchRegistry,
-} = paginatedBatchRegistrySlice.actions;
+export const { resetPaginatedBatchRegistry } =
+  paginatedBatchRegistrySlice.actions;
 
 export default paginatedBatchRegistrySlice.reducer;

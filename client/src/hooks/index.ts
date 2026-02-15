@@ -61,13 +61,15 @@ export { default as useSkuImageUpload } from './useSkuImageUpload';
 
 export { default as usePaginatedComplianceRecords } from './usePaginatedComplianceRecords';
 
-
 /* =====================================================
  * Batch
  * ===================================================== */
 
 export { default as usePaginatedBatchRegistry } from './usePaginatedBatchRegistry';
-export { usePaginatedProductBatches, useProductBatchById } from './usePaginatedProductBatches';
+export {
+  usePaginatedProductBatches,
+  useProductBatchById,
+} from './usePaginatedProductBatches';
 
 /* =====================================================
  * BOM (Bill of Materials)
@@ -136,7 +138,10 @@ export { useBaseInventoryActivityLogs } from './useInventoryActivityLogs';
  * Location & Warehouse
  * ===================================================== */
 
-export { default as useLocations } from './useLocations';
+export {
+  usePaginatedLocations,
+  useLocationById,
+} from './usePaginatedLocations';
 export { default as useLocationTypes } from './useLocationTypes';
 export { default as useLocationTypeDetail } from './useLocationTypeDetail';
 

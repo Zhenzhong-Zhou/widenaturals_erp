@@ -48,6 +48,18 @@ export const selectPermissionsLoading = createSelector(
 );
 
 /**
+ * selectPermissionsResolved
+ *
+ * Select whether permission state has completed initial resolution.
+ *
+ * @returns boolean
+ */
+export const selectPermissionsResolved = createSelector(
+  [selectPermissionsState],
+  (state) => state.resolved
+);
+
+/**
  * selectPermissionsError
  *
  * Select any permission resolution error.

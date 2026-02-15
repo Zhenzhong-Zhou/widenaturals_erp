@@ -10,10 +10,10 @@ import StockLevelChip, {
 import ExpirySeverityChip, {
   type ExpirySeverityChipProps,
 } from '@features/inventoryShared/components/ExpirySeverityChip';
-import type { FlatInventoryRowBase } from '@features/inventoryShared/types/InventorySharedType.ts';
+import type { FlatInventoryRowBase } from '@features/inventoryShared/types/InventorySharedType';
 import Tooltip from '@mui/material/Tooltip';
-import { getGroupedRowProps } from '@utils/table/tableRowPropsUtils.ts';
-import { formatLabel } from '@utils/textUtils.ts';
+import { getGroupedRowProps } from '@utils/table/tableRowPropsUtils';
+import { formatLabel } from '@utils/textUtils';
 
 interface BaseInventoryTableProps<T> {
   isLoading: boolean;

@@ -8,7 +8,7 @@ export {
   flattenAllBomMaterialSupplyDetails,
   flattenBomReadinessParts,
   flattenAllBomReadinessParts,
-  flattenBomReadinessMetadata
+  flattenBomReadinessMetadata,
 } from './flattenBomOverview';
 export {
   mergeBomDetailsWithSupplyAndReadiness,

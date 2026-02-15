@@ -30,7 +30,7 @@ const hashPassword = async (password) => {
   if (!password) {
     throw AppError.validationError('Password is required.');
   }
-  
+
   try {
     return await argon2.hash(password + PEPPER, {
       type: argon2.argon2id,
@@ -66,7 +66,7 @@ const verifyPassword = async (storedHash, inputPassword) => {
     if (typeof storedHash !== 'string' || typeof inputPassword !== 'string') {
       return false;
     }
-    
+
     return await argon2.verify(storedHash, inputPassword + PEPPER);
   } catch (error) {
     logSystemException(error, 'Password verification failed');

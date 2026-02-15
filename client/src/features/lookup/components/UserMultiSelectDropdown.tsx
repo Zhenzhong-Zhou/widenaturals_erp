@@ -25,21 +25,21 @@ type UserMultiSelectDropdownProps = Omit<
  * semantic clarity and future extension points.
  */
 const UserMultiSelectDropdown: FC<UserMultiSelectDropdownProps> = ({
-                                                                     label = 'Select User',
-                                                                     options,
-                                                                     selectedOptions,
-                                                                     onChange,
-                                                                     onOpen,
-                                                                     loading,
-                                                                     disabled,
-                                                                     error,
-                                                                     helperText,
-                                                                     sx,
-                                                                     placeholder = 'Choose user…',
-                                                                     paginationMeta,
-                                                                     inputValue,
-                                                                     onInputChange,
-                                                                   }) => {
+  label = 'Select User',
+  options,
+  selectedOptions,
+  onChange,
+  onOpen,
+  loading,
+  disabled,
+  error,
+  helperText,
+  sx,
+  placeholder = 'Choose user…',
+  paginationMeta,
+  inputValue,
+  onInputChange,
+}) => {
   return (
     <MultiSelectDropdown
       label={label}

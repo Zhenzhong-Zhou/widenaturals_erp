@@ -128,7 +128,8 @@ const { getStatusLookup } = require('../repositories/status-repository');
 const {
   evaluateUserVisibilityAccessControl,
   applyUserLookupVisibilityRules,
-  enrichUserLookupWithActiveFlag, evaluateUserLookupSearchCapabilities
+  enrichUserLookupWithActiveFlag,
+  evaluateUserLookupSearchCapabilities,
 } = require('../business/user-business');
 const { getUserLookup } = require('../repositories/user-repository');
 const { getRoleLookup } = require('../repositories/role-repository');
@@ -1469,7 +1470,7 @@ const fetchUserLookupService = async (
   { filters = {}, limit = 50, offset = 0 }
 ) => {
   const context = 'lookup-service/fetchUserLookupService';
-  
+
   try {
     // ---------------------------------------------------------
     // Step 1 — Log request entry
@@ -1478,19 +1479,18 @@ const fetchUserLookupService = async (
       context,
       metadata: { filters, limit, offset },
     });
-    
+
     // ---------------------------------------------------------
     // Step 2 — Resolve user visibility permissions (row-level)
     // ---------------------------------------------------------
     const userAccess = await evaluateUserVisibilityAccessControl(user);
     const activeStatusId = getStatusId('general_active');
-    
+
     // ---------------------------------------------------------
     // Step 3 — Resolve lookup search capabilities (query shaping)
     // ---------------------------------------------------------
-    const searchCapabilities =
-      await evaluateUserLookupSearchCapabilities(user);
-    
+    const searchCapabilities = await evaluateUserLookupSearchCapabilities(user);
+
     // ---------------------------------------------------------
     // Step 4 — Apply enforced visibility rules to filters
     // ---------------------------------------------------------
@@ -1499,7 +1499,7 @@ const fetchUserLookupService = async (
       userAccess,
       activeStatusId
     );
-    
+
     // ---------------------------------------------------------
     // Step 5 — Execute repository lookup query
     // ---------------------------------------------------------
@@ -1509,19 +1509,19 @@ const fetchUserLookupService = async (
       limit,
       offset,
     });
-    
+
     // ---------------------------------------------------------
     // Step 6 — Enrich rows with UI-only flags
     // Applied only when inactive users may be visible
     // ---------------------------------------------------------
     let enrichedRows = data;
-    
+
     if (userAccess.canViewAllStatuses) {
       enrichedRows = data.map((row) =>
         enrichUserLookupWithActiveFlag(row, activeStatusId)
       );
     }
-    
+
     // ---------------------------------------------------------
     // Step 7 — Transform into UI-friendly paginated payload
     // ---------------------------------------------------------
@@ -1537,7 +1537,7 @@ const fetchUserLookupService = async (
       limit,
       offset,
     });
-    
+
     throw AppError.serviceError('Failed to fetch user lookup list.', {
       details: err.message,
       stage: context,
@@ -1582,7 +1582,7 @@ const fetchRoleLookupService = async (
   { filters = {}, limit = 50, offset = 0 }
 ) => {
   const context = 'lookup-service/fetchRoleLookupService';
-  
+
   try {
     // ------------------------------------------------------------
     // Step 1: Log entry
@@ -1591,18 +1591,22 @@ const fetchRoleLookupService = async (
       context,
       metadata: { filters, limit, offset },
     });
-    
+
     // ------------------------------------------------------------
     // Step 2: Permission evaluation
     // ------------------------------------------------------------
     const userAccess = await evaluateRoleVisibilityAccessControl(user);
     const activeStatusId = getStatusId('general_active');
-    
+
     // ------------------------------------------------------------
     // Step 3: Apply enforced visibility rules
     // ------------------------------------------------------------
-    const adjustedFilters = applyRoleVisibilityRules(filters, userAccess, activeStatusId);
-    
+    const adjustedFilters = applyRoleVisibilityRules(
+      filters,
+      userAccess,
+      activeStatusId
+    );
+
     // ------------------------------------------------------------
     // Step 4: Query repository
     // ------------------------------------------------------------
@@ -1611,14 +1615,14 @@ const fetchRoleLookupService = async (
       limit,
       offset,
     });
-    
+
     // ------------------------------------------------------------
     // Step 5: Enrich rows (UI flags only)
     // ------------------------------------------------------------
     const enrichedRows = data.map((row) =>
       enrichRoleOption(row, activeStatusId)
     );
-    
+
     // ------------------------------------------------------------
     // Step 6: Transform to UI-friendly paginated payload
     // ------------------------------------------------------------
@@ -1634,7 +1638,7 @@ const fetchRoleLookupService = async (
       limit,
       offset,
     });
-    
+
     throw AppError.serviceError('Failed to fetch role lookup list.', {
       details: err.message,
       stage: context,

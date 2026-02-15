@@ -28,11 +28,7 @@ const router = express.Router();
  * - Logout is idempotent and always returns success.
  * - Absence of an active session is not treated as an error.
  */
-router.post(
-  '/logout',
-  csrfMiddleware,
-  logoutController
-);
+router.post('/logout', csrfMiddleware, logoutController);
 
 /**
  * POST /auth/change-password

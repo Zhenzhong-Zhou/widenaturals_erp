@@ -13,11 +13,11 @@ import type {
 import { outboundFulfillmentService } from '@services/outboundFulfillmentService';
 import {
   flattenFulfillments,
-  flattenShipmentHeader
+  flattenShipmentHeader,
 } from '@features/outboundFulfillment/utils';
 import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 import { extractUiErrorPayload } from '@utils/error';
-import { flattenOutboundShipment } from '@features/outboundFulfillment/utils/flattenOutboundShipment.ts';
+import { flattenOutboundShipment } from '@features/outboundFulfillment/utils/flattenOutboundShipment';
 
 /**
  * Async thunk to initiate outbound fulfillment for a specific order.
@@ -119,7 +119,7 @@ export const fetchPaginatedOutboundFulfillmentThunk = createAsyncThunk<
         await outboundFulfillmentService.fetchPaginatedOutboundFulfillment(
           queryParams
         );
-      
+
       return {
         ...response,
         data: response.data.map(flattenOutboundShipment),
@@ -155,31 +155,26 @@ export const fetchOutboundShipmentDetailsThunk = createAsyncThunk<
   FetchShipmentDetailsUiResponse,
   string,
   { rejectValue: { message: string; traceId?: string } }
->(
-  'outboundShipments/fetchDetails',
-  async (shipmentId, { rejectWithValue }) => {
-    try {
-      const response =
-        await outboundFulfillmentService.fetchOutboundShipmentDetails(
-          shipmentId
-        );
-      
-      const uiResponse: FetchShipmentDetailsUiResponse = {
-        success: response.success,
-        message: response.message,
-        traceId: response.traceId,
-        data: {
-          shipment: flattenShipmentHeader(response.data.shipment),
-          fulfillments: flattenFulfillments(response.data.fulfillments),
-        },
-      };
-      
-      return uiResponse;
-    } catch (error) {
-      return rejectWithValue(extractUiErrorPayload(error));
-    }
+>('outboundShipments/fetchDetails', async (shipmentId, { rejectWithValue }) => {
+  try {
+    const response =
+      await outboundFulfillmentService.fetchOutboundShipmentDetails(shipmentId);
+
+    const uiResponse: FetchShipmentDetailsUiResponse = {
+      success: response.success,
+      message: response.message,
+      traceId: response.traceId,
+      data: {
+        shipment: flattenShipmentHeader(response.data.shipment),
+        fulfillments: flattenFulfillments(response.data.fulfillments),
+      },
+    };
+
+    return uiResponse;
+  } catch (error) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});
 
 /**
  * Thunk: confirmOutboundFulfillmentThunk

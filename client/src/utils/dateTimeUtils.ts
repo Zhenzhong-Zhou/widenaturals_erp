@@ -308,10 +308,9 @@ export const toISODate = (
   value: string | Date | null | undefined
 ): string | undefined => {
   if (!value) return undefined;
-  
-  const date =
-    value instanceof Date ? value : new Date(value);
-  
+
+  const date = value instanceof Date ? value : new Date(value);
+
   return !isNaN(date.getTime())
     ? date.toISOString().slice(0, 10) // YYYY-MM-DD
     : undefined;

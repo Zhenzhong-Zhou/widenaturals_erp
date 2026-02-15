@@ -1,6 +1,6 @@
 import type {
   FlattenedInventoryAllocationSummary,
-  InventoryAllocationSummary
+  InventoryAllocationSummary,
 } from '@features/inventoryAllocation';
 
 /**
@@ -20,33 +20,33 @@ export const flattenInventoryAllocationSummary = (
   orderNumber: record.orderNumber,
   orderType: record.orderType,
   orderCategory: record.orderCategory,
-  
+
   orderStatusName: record.orderStatus.name,
   orderStatusCode: record.orderStatus.code,
-  
+
   customerName: record.customer.fullName,
-  
+
   paymentMethod: record.paymentMethod,
   paymentStatusName: record.paymentStatus.name,
   paymentStatusCode: record.paymentStatus.code,
-  
+
   deliveryMethod: record.deliveryMethod,
-  
+
   orderCreatedAt: record.orderCreatedAt,
   orderCreatedBy: record.orderCreatedBy,
   orderUpdatedAt: record.orderUpdatedAt,
   orderUpdatedBy: record.orderUpdatedBy,
-  
+
   totalItemCount: record.itemCount.total,
   allocatedItemCount: record.itemCount.allocated,
-  
+
   warehouseIds: record.warehouses.ids,
   warehouseNames: record.warehouses.names,
-  
+
   allocationStatusCodes: record.allocationStatus.codes,
   allocationStatusNames: record.allocationStatus.names,
   allocationSummaryStatus: record.allocationStatus.summary,
-  
+
   allocationIds: record.allocationIds,
   allocatedAt: record.allocatedAt,
   allocatedCreatedAt: record.allocatedCreatedAt,

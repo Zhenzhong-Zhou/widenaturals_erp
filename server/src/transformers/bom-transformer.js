@@ -167,9 +167,7 @@ const transformBomRow = (row) => {
         name: 'bom_status',
         date: 'bom_status_date',
       }),
-      audit: compactAudit(
-        makeAudit(row, { prefix: 'bom_' })
-      ),
+      audit: compactAudit(makeAudit(row, { prefix: 'bom_' })),
     },
   };
 
@@ -327,10 +325,8 @@ const transformBomDetails = (rows = []) => {
           name: 'bom_status',
           date: 'bom_status_date',
         }),
-        
-        audit: compactAudit(
-          makeAudit(headerRow, { prefix: 'bom_' })
-        ),
+
+        audit: compactAudit(makeAudit(headerRow, { prefix: 'bom_' })),
       },
     };
 
@@ -358,9 +354,7 @@ const transformBomDetails = (rows = []) => {
           unitOfMeasure: r.unit_of_measure,
           description: r.part_description,
         },
-        audit: compactAudit(
-          makeAudit(r, { prefix: 'bom_item_' })
-        ),
+        audit: compactAudit(makeAudit(r, { prefix: 'bom_item_' })),
       }));
 
     return { header, details };

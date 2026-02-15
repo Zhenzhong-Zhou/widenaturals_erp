@@ -1,7 +1,7 @@
 import { type FC, ReactNode } from 'react';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
-import CustomTypography from '@components/common/CustomTypography.tsx';
+import CustomTypography from '@components/common/CustomTypography';
 
 interface PageShellProps {
   /** Page title displayed in the header */

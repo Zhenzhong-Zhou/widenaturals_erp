@@ -3,9 +3,7 @@ import type {
   ChangePasswordResponse,
   ChangePasswordState,
 } from '@features/auth';
-import {
-  changePasswordThunk,
-} from '@features/auth';
+import { changePasswordThunk } from '@features/auth';
 
 // ----------------------------------------
 // Initial State
@@ -16,7 +14,6 @@ const initialState: ChangePasswordState = {
   loading: false,
   error: null,
 };
-
 
 // ----------------------------------------
 // Slice
@@ -34,7 +31,7 @@ const changePasswordSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      
+
       // -------------------------
       // Pending
       // -------------------------
@@ -42,7 +39,7 @@ const changePasswordSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      
+
       // -------------------------
       // Fulfilled
       // -------------------------
@@ -54,14 +51,14 @@ const changePasswordSlice = createSlice({
           state.data = action.payload.data; // { changedAt }
         }
       )
-      
+
       // -------------------------
       // Rejected
       // -------------------------
       .addCase(changePasswordThunk.rejected, (state, action) => {
         state.loading = false;
         state.data = null;
-        
+
         if (action.payload) {
           state.error = action.payload.message;
         } else {
@@ -71,12 +68,10 @@ const changePasswordSlice = createSlice({
   },
 });
 
-
 // ----------------------------------------
 // Exports
 // ----------------------------------------
 
-export const { resetChangePasswordState } =
-  changePasswordSlice.actions;
+export const { resetChangePasswordState } = changePasswordSlice.actions;
 
 export default changePasswordSlice.reducer;

@@ -23,14 +23,14 @@ const BrandCard: FC<BrandCardProps> = ({ title, body }) => {
       <CustomTypography variant="subtitle2" fontWeight={800}>
         {title}
       </CustomTypography>
-      
+
       <CustomTypography
         variant="body2"
         sx={{ mt: 1.25, color: 'text.secondary', lineHeight: 1.6 }}
       >
         {body}
       </CustomTypography>
-      
+
       <CustomTypography
         variant="caption"
         sx={{ mt: 1.5, display: 'block', color: 'text.disabled' }}

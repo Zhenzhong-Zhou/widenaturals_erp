@@ -1,13 +1,8 @@
 import { type FC } from 'react';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
-import {
-  CustomTypography,
-  DetailsSection
-} from '@components/index';
-import type {
-  FlattenedInventoryAllocationSummary
-} from '@features/inventoryAllocation/state';
+import { CustomTypography, DetailsSection } from '@components/index';
+import type { FlattenedInventoryAllocationSummary } from '@features/inventoryAllocation/state';
 import { formatLabel } from '@utils/textUtils';
 import { formatDate } from '@utils/dateTimeUtils';
 
@@ -31,13 +26,13 @@ const InventoryAllocationTableExpandedRow: FC<Props> = ({ row }) => {
     orderUpdatedAt,
     orderUpdatedBy,
   } = row;
-  
+
   return (
     <Box sx={{ px: 3, py: 2 }}>
       <CustomTypography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
         Order Allocation Metadata
       </CustomTypography>
-      
+
       <Grid container spacing={2}>
         <Grid size={{ xs: 12 }}>
           <DetailsSection

@@ -17,14 +17,10 @@ const Joi = require('joi');
  * - Password strength is enforced only at password creation or change time.
  * - This validator MUST NOT be reused for password reset or change flows.
  */
-const passwordForLogin = Joi.string()
-  .min(8)
-  .max(128)
-  .required()
-  .messages({
-    'string.min': 'Password is required.',
-    'any.required': 'Password is required.',
-  });
+const passwordForLogin = Joi.string().min(8).max(128).required().messages({
+  'string.min': 'Password is required.',
+  'any.required': 'Password is required.',
+});
 
 module.exports = {
   passwordForLogin,

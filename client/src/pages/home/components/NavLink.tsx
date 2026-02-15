@@ -9,7 +9,7 @@ interface NavLinkProps {
 
 const NavLink: FC<NavLinkProps> = ({ href, children }) => {
   const isActive = window.location.hash === href;
-  
+
   return (
     <Link
       href={href}
@@ -19,7 +19,7 @@ const NavLink: FC<NavLinkProps> = ({ href, children }) => {
         color: isActive ? '#2f8f46' : '#475569',
         position: 'relative',
         transition: 'color 0.15s ease',
-        
+
         '&::after': {
           content: '""',
           position: 'absolute',
@@ -30,7 +30,7 @@ const NavLink: FC<NavLinkProps> = ({ href, children }) => {
           borderRadius: 1,
           backgroundColor: isActive ? '#2f8f46' : 'transparent',
         },
-        
+
         '&:hover': {
           color: '#2f8f46',
         },

@@ -1,13 +1,20 @@
 import type { Dispatch, SetStateAction } from 'react';
-import type { CustomRenderParams, FieldConfig } from '@components/common/CustomForm.tsx';
-import { emailValidator } from '@utils/validation.ts';
-import { PasswordInput } from '@components/index.ts';
-import FieldStatusHelper from '@components/common/FieldStatusHelper.tsx';
-import RoleDropdown from '@features/lookup/components/RoleDropdown.tsx';
-import { normalizeLookupParams } from '@features/lookup/utils/lookupUtils.ts';
-import type { LookupOption, LookupPaginationMeta, LookupQuery } from '@features/lookup';
-import { validatePasswordStrength } from '@features/auth/utils/validatePassword.ts';
-import { formatLabel } from '@utils/textUtils.ts';
+import type {
+  CustomRenderParams,
+  FieldConfig,
+} from '@components/common/CustomForm';
+import { emailValidator } from '@utils/validation';
+import { PasswordInput } from '@components/index';
+import FieldStatusHelper from '@components/common/FieldStatusHelper';
+import RoleDropdown from '@features/lookup/components/RoleDropdown';
+import { normalizeLookupParams } from '@features/lookup/utils/lookupUtils';
+import type {
+  LookupOption,
+  LookupPaginationMeta,
+  LookupQuery,
+} from '@features/lookup';
+import { validatePasswordStrength } from '@features/auth/utils/validatePassword';
+import { formatLabel } from '@utils/textUtils';
 
 /**
  * External dependencies required by the Create User form.
@@ -52,15 +59,15 @@ export const getCreateUserFormFields = (
       onKeywordChange,
     },
   } = deps;
-  
+
   const mapRoleOptionsToUi = (options: LookupOption[]) =>
     options.map((opt) => ({
       label: formatLabel(opt.label),
       value: opt.value,
     }));
-  
+
   const roleOptionsUi = mapRoleOptionsToUi(options);
-  
+
   return [
     {
       id: 'email',
@@ -77,21 +84,16 @@ export const getCreateUserFormFields = (
       grid: { xs: 12, md: 6 },
       customRender: ({ value, onChange, required }: CustomRenderParams) => {
         if (!onChange) return null;
-        
-        const validationError =
-          value ? validatePasswordStrength(value) : null;
-        
+
+        const validationError = value ? validatePasswordStrength(value) : null;
+
         return (
           <PasswordInput
             label="Create Password"
             intent="create"
             value={value ?? ''}
             onChange={onChange}
-            errorText={
-              validationError
-                ? validationError
-                : ''
-            }
+            errorText={validationError ? validationError : ''}
             helperText={
               !value && required ? (
                 <FieldStatusHelper status="required" />
@@ -111,14 +113,11 @@ export const getCreateUserFormFields = (
       required: true,
       customRender: ({ value, onChange, required, formValues }) => {
         if (!onChange) return null;
-        
+
         const password = formValues.password;
-        
-        const mismatch =
-          value &&
-          password &&
-          value !== password;
-        
+
+        const mismatch = value && password && value !== password;
+
         return (
           <PasswordInput
             label="Confirm Password"
@@ -172,7 +171,6 @@ export const getCreateUserFormFields = (
             label="Role"
             value={value ?? ''}
             onChange={(id) => onChange(id)}
-            
             /**
              * Keyword search handler:
              * - Updates local keyword state
@@ -182,9 +180,9 @@ export const getCreateUserFormFields = (
             inputValue={inputValue}
             onInputChange={(_e, newInputValue, reason) => {
               setInputValue(newInputValue);
-              
+
               if (reason !== 'input') return;
-              
+
               setFetchParams((prev: LookupQuery) =>
                 normalizeLookupParams({
                   ...prev,
@@ -192,16 +190,14 @@ export const getCreateUserFormFields = (
                   offset: 0,
                 })
               );
-              
+
               onKeywordChange?.(newInputValue);
             }}
-            
             /** lookup state */
             options={roleOptionsUi}
             loading={loading}
             error={error}
             paginationMeta={meta}
-            
             /** pagination + reload */
             fetchParams={fetchParams}
             setFetchParams={setFetchParams}

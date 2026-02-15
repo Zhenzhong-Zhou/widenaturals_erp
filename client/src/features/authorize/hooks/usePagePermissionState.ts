@@ -29,13 +29,11 @@ import { useHasPermission } from '@features/authorize/hooks';
  *
  * @returns Object containing `isAllowed` boolean
  */
-const usePagePermissionState = (
-  requiredPermissions: string | string[]
-) => {
+const usePagePermissionState = (requiredPermissions: string | string[]) => {
   const hasPermission = useHasPermission();
-  
+
   const result = hasPermission(requiredPermissions);
-  
+
   return {
     isAllowed: result === true,
   };

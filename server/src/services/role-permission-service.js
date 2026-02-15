@@ -40,7 +40,7 @@ const {
 const fetchPermissions = async (roleId) => {
   // Cache key versioned for safe schema evolution
   const cacheKey = `role_permissions:v1:${roleId}`;
-  
+
   /* ----------------------------------------
    * Cache-first lookup (BEST-EFFORT)
    * -------------------------------------- */
@@ -48,40 +48,38 @@ const fetchPermissions = async (roleId) => {
   if (cached?.permissions) {
     return cached;
   }
-  
+
   /* ----------------------------------------
    * DB fallback (SOURCE OF TRUTH)
    * -------------------------------------- */
   const activeStatusId = getStatusId('general_active');
   const result = await getRolePermissionsByRoleId(roleId, activeStatusId);
-  
+
   if (!result) {
-    throw AppError.authorizationError(
-      'Role permissions not found.',
-      { roleId }
-    );
+    throw AppError.authorizationError('Role permissions not found.', {
+      roleId,
+    });
   }
-  
+
   // Defensive normalization (ultra-safe)
   const permissions = Array.isArray(result.permissions)
     ? result.permissions
     : [];
-  
+
   if (!permissions.length) {
-    throw AppError.authorizationError(
-      'User has no assigned permissions.',
-      { roleId }
-    );
+    throw AppError.authorizationError('User has no assigned permissions.', {
+      roleId,
+    });
   }
-  
+
   const normalized = {
     roleName: result.role_name,
     permissions,
   };
-  
+
   // Best-effort cache write
   await tryCacheWrite(cacheKey, normalized, 3600);
-  
+
   return normalized;
 };
 
@@ -125,9 +123,9 @@ const resolveUserPermissionContext = async (user) => {
       'User role is required for permission check.'
     );
   }
-  
+
   const { permissions, roleName } = await fetchPermissions(user.role);
-  
+
   return {
     roleName,
     permissions,
@@ -149,14 +147,13 @@ const checkPermissions = async (
   { requireAll = false, allowRootAccess = true } = {}
 ) => {
   if (!user?.id || !user.role) return false;
-  
-  const { permissions, isRoot } =
-    await resolveUserPermissionContext(user);
-  
+
+  const { permissions, isRoot } = await resolveUserPermissionContext(user);
+
   if (allowRootAccess && isRoot) {
     return true;
   }
-  
+
   return requireAll
     ? requiredPermissions.every((p) => permissions.includes(p))
     : requiredPermissions.some((p) => permissions.includes(p));
@@ -169,13 +166,9 @@ const checkPermissions = async (
  * @param {{ action?: 'VIEW'|'CREATE'|'UPDATE'|'DELETE' }} opts
  * @returns {Promise<{ isRoot: boolean, accessibleCategories: string[], action: string }>}
  */
-const resolveOrderAccessContext = async (
-  user,
-  { action = 'VIEW' } = {}
-) => {
-  const { permissions, isRoot } =
-    await resolveUserPermissionContext(user);
-  
+const resolveOrderAccessContext = async (user, { action = 'VIEW' } = {}) => {
+  const { permissions, isRoot } = await resolveUserPermissionContext(user);
+
   if (isRoot) {
     return {
       isRoot,
@@ -183,16 +176,18 @@ const resolveOrderAccessContext = async (
       action,
     };
   }
-  
-  const accessibleCategories =
-    getAccessibleOrderCategoriesFromPermissions(permissions, { action });
-  
+
+  const accessibleCategories = getAccessibleOrderCategoriesFromPermissions(
+    permissions,
+    { action }
+  );
+
   if (!accessibleCategories.length) {
     throw AppError.authorizationError(
       `You do not have permission to ${action.toLowerCase()} any order types`
     );
   }
-  
+
   return { isRoot, accessibleCategories, action };
 };
 

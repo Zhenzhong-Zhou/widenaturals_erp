@@ -25,6 +25,6 @@ export const getInitialUserLimit = (
   if (viewMode === 'card') {
     return USER_TABLE_PAGE_SIZES[0]; // 10
   }
-  
+
   return USER_TABLE_PAGE_SIZES[1]; // 25
 };

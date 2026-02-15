@@ -15,10 +15,10 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 interface SessionState {
   /** In-memory access token used for authenticated requests */
   accessToken: string | null;
-  
+
   /** Indicates whether session evaluation or mutation is in progress */
   resolving: boolean;
-  
+
   /** Indicates whether initial session bootstrap has completed */
   bootstrapped: boolean;
 }
@@ -32,7 +32,7 @@ const initialState: SessionState = {
 const sessionSlice = createSlice({
   name: 'session',
   initialState,
-  
+
   reducers: {
     /**
      * Sets or updates the in-memory access token.
@@ -47,11 +47,11 @@ const sessionSlice = createSlice({
      */
     setAccessToken: (state, action: PayloadAction<string>) => {
       if (!action.payload) return;
-      
+
       state.accessToken = action.payload;
       state.resolving = false;
     },
-    
+
     /**
      * Resets the session to a known unauthenticated state.
      *
@@ -68,7 +68,7 @@ const sessionSlice = createSlice({
       resolving: false,
       bootstrapped: true,
     }),
-    
+
     /**
      * Invalidates the current session due to authentication failure.
      *
@@ -86,7 +86,7 @@ const sessionSlice = createSlice({
       resolving: true,
       bootstrapped: true,
     }),
-    
+
     /**
      * Marks the session bootstrap lifecycle as complete.
      *
@@ -104,6 +104,6 @@ export const {
   setAccessToken,
   resetSession,
   invalidateSession,
-  markBootstrapComplete
+  markBootstrapComplete,
 } = sessionSlice.actions;
 export default sessionSlice.reducer;

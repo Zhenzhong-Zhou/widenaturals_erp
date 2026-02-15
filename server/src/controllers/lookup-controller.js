@@ -15,7 +15,9 @@ const {
   fetchPaginatedPackagingMaterialLookupService,
   fetchSkuCodeBaseLookupService,
   fetchProductLookupService,
-  fetchStatusLookupService, fetchUserLookupService, fetchRoleLookupService,
+  fetchStatusLookupService,
+  fetchUserLookupService,
+  fetchRoleLookupService,
 } = require('../services/lookup-service');
 const { logInfo } = require('../utils/logger-helper');
 const { getClientIp } = require('../utils/request-context');
@@ -869,15 +871,15 @@ const getStatusLookupController = wrapAsync(async (req, res) => {
 const getUserLookupController = wrapAsync(async (req, res) => {
   const user = req.auth.user;
   const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
-  
+
   const dropdownResult = await fetchUserLookupService(user, {
     filters,
     limit,
     offset,
   });
-  
+
   const { items, hasMore } = dropdownResult;
-  
+
   return res.status(200).json({
     success: true,
     message: 'Successfully retrieved User lookup',
@@ -926,15 +928,15 @@ const getUserLookupController = wrapAsync(async (req, res) => {
 const getRoleLookupController = wrapAsync(async (req, res) => {
   const user = req.auth.user;
   const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
-  
+
   const dropdownResult = await fetchRoleLookupService(user, {
     filters,
     limit,
     offset,
   });
-  
+
   const { items, hasMore } = dropdownResult;
-  
+
   return res.status(200).json({
     success: true,
     message: 'Successfully retrieved Role lookup',

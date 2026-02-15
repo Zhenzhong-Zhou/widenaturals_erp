@@ -12,7 +12,15 @@ exports.up = async function (knex) {
     table
       .enu(
         'event_type',
-        ['generate', 'refresh', 'revoke', 'verify', 'invalid', 'expired'],
+        [
+          'generate',
+          'refresh',
+          'revoke',
+          'verify',
+          'invalid',
+          'expired',
+          'reuse_detected',
+        ],
         {
           useNative: true,
           enumName: 'token_event_type',
@@ -21,14 +29,14 @@ exports.up = async function (knex) {
       .notNullable();
 
     table
-      .enu('status', ['success', 'failure'], {
+      .enu('status', ['success', 'failure', 'compromised', 'blocked'], {
         useNative: true,
         enumName: 'token_event_status',
       })
       .notNullable();
 
     table.string('token_type', 20).notNullable(); // 'refresh' | 'magic_link' etc.
-    
+
     table
       .timestamp('event_at', { useTz: true })
       .notNullable()

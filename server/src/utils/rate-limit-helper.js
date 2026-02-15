@@ -97,7 +97,7 @@ const createRateLimiter = ({
       windowMs,
       max,
     });
-    
+
     return rateLimit({
       windowMs,
       max: Number.MAX_SAFE_INTEGER,

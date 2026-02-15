@@ -38,50 +38,43 @@ const batchRegistryQuerySchema = paginationSchema
       .optional()
       .messages({
         'string.base': 'Batch Type must be a string',
-        'any.only':
-          'Batch Type must be one of: product, packaging_material',
+        'any.only': 'Batch Type must be one of: product, packaging_material',
       }),
-    
-    statusIds: validateUUIDOrUUIDArrayOptional(
-      'Batch Status IDs'
-    ),
-    
+
+    statusIds: validateUUIDOrUUIDArrayOptional('Batch Status IDs'),
+
     // --------------------------------------------------
     // Product batch filters
     // --------------------------------------------------
     skuIds: validateUUIDOrUUIDArrayOptional('SKU IDs'),
     productIds: validateUUIDOrUUIDArrayOptional('Product IDs'),
-    manufacturerIds: validateUUIDOrUUIDArrayOptional(
-      'Manufacturer IDs'
-    ),
-    
+    manufacturerIds: validateUUIDOrUUIDArrayOptional('Manufacturer IDs'),
+
     // --------------------------------------------------
     // Packaging batch filters
     // --------------------------------------------------
     packagingMaterialIds: validateUUIDOrUUIDArrayOptional(
       'Packaging Material IDs'
     ),
-    supplierIds: validateUUIDOrUUIDArrayOptional(
-      'Supplier IDs'
-    ),
-    
+    supplierIds: validateUUIDOrUUIDArrayOptional('Supplier IDs'),
+
     // --------------------------------------------------
     // Lot number (explicit, non-keyword)
     // --------------------------------------------------
     lotNumber: validateOptionalString('Lot Number'),
-    
+
     // --------------------------------------------------
     // Expiry date filters (polymorphic)
     // --------------------------------------------------
     expiryAfter: optionalIsoDate('Expiry Date After'),
     expiryBefore: optionalIsoDate('Expiry Date Before'),
-    
+
     // --------------------------------------------------
     // Registry-level audit date filters
     // --------------------------------------------------
     registeredAfter: optionalIsoDate('Registered After'),
     registeredBefore: optionalIsoDate('Registered Before'),
-    
+
     // --------------------------------------------------
     // Keyword search (ACL-governed upstream)
     // --------------------------------------------------

@@ -36,7 +36,7 @@ export const fetchPaginatedProductBatchThunk = createAsyncThunk<
     try {
       const response =
         await productBatchService.fetchPaginatedProductBatches(params);
-      
+
       return {
         ...response,
         data: flattenProductBatchRecords(response.data),

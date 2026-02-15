@@ -39,7 +39,7 @@ const Footer: FC<FooterProps> = ({ onStaffLogin }) => {
           >
             All rights reserved.
           </CustomTypography>
-          
+
           <CustomTypography
             variant="caption"
             sx={{ mt: 1.5, display: 'block', color: 'text.secondary' }}
@@ -47,14 +47,14 @@ const Footer: FC<FooterProps> = ({ onStaffLogin }) => {
             Vancouver, British Columbia, Canada
           </CustomTypography>
         </Box>
-        
+
         {/* OFFICIAL PRESENCE */}
         <Box>
           {/* LINKS */}
           <FooterLinks />
-          
+
           <Divider sx={{ my: 1.5 }} />
-          
+
           {onStaffLogin ? (
             <CustomButton
               variant="outlined"

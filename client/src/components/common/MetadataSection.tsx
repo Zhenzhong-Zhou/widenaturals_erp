@@ -22,7 +22,7 @@ interface MetadataSectionProps {
 
 const MetadataSection: FC<MetadataSectionProps> = ({ data, title, sx }) => {
   const theme = useTheme();
-  
+
   return (
     <Box sx={{ mt: theme.spacing(2), ...sx }}>
       {title && (

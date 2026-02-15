@@ -9,7 +9,7 @@ import {
 /**
  * Base selector for the Status lookup slice.
  */
-const selectStatusLookupState= (state: RootState) =>
+const selectStatusLookupState = (state: RootState) =>
   selectRuntime(state).statusLookup;
 
 /**

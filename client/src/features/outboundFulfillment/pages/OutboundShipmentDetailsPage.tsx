@@ -15,9 +15,7 @@ import {
   NoDataFound,
   SkeletonExpandedRow,
 } from '@components/index';
-import {
-  OutboundShipmentHeaderSection
-} from '@features/outboundFulfillment/components/OutboundShipmentDetails';
+import { OutboundShipmentHeaderSection } from '@features/outboundFulfillment/components/OutboundShipmentDetails';
 import ConfirmFulfillmentButton from '@features/outboundFulfillment/components/ConfirmFulfillmentButton';
 import CompleteManualFulfillmentButton from '@features/outboundFulfillment/components/CompleteManualFulfillmentButton';
 import { useOutboundShipmentDetails } from '@hooks/index';
@@ -73,13 +71,13 @@ const OutboundShipmentDetailsPage: FC = () => {
   // === Determine Confirm Button Visibility ===
   const canConfirmFulfillment = useMemo(() => {
     if (!shipmentHeader || !shipmentFulfillments?.length) return false;
-    
+
     const shipmentCode = shipmentHeader.statusCode ?? '';
-    
+
     const fulfillmentCodes = shipmentFulfillments.map(
       (f) => f.fulfillmentStatusCode ?? ''
     );
-    
+
     const ALLOWED = {
       order: ['ORDER_PROCESSING', 'ORDER_FULFILLED'], // optional if you add order status later
       fulfillment: [
@@ -89,58 +87,50 @@ const OutboundShipmentDetailsPage: FC = () => {
       ],
       shipment: ['SHIPMENT_PENDING'],
     };
-    
+
     const allFulfillmentsValid = fulfillmentCodes.every((code) =>
       ALLOWED.fulfillment.includes(code)
     );
 
     // Shipment must be in confirmable state
     const shipmentValid = ALLOWED.shipment.includes(shipmentCode);
-    
+
     return allFulfillmentsValid && shipmentValid;
   }, [shipmentHeader, shipmentFulfillments]);
-  
+
   const canCompleteManualFulfillment = useMemo(() => {
     if (!shipmentHeader || !shipmentFulfillments?.length) return false;
-    
-    const isPickupLocation = Boolean(
-      shipmentHeader.deliveryMethodIsPickup
-    );
-    
+
+    const isPickupLocation = Boolean(shipmentHeader.deliveryMethodIsPickup);
+
     if (!isPickupLocation) return false;
-    
+
     const shipmentCode = shipmentHeader.statusCode ?? '';
-    
+
     const fulfillmentCodes = shipmentFulfillments.map(
       (f) => f.fulfillmentStatusCode ?? ''
     );
-    
+
     const ALLOWED = {
       deliveryMethods: ['In-Store Pickup', 'Personal Driver Delivery'],
       fulfillment: ['FULFILLMENT_PACKED', 'FULFILLMENT_PARTIAL'],
       shipment: ['SHIPMENT_READY', 'SHIPMENT_DISPATCHED'],
     };
-    
+
     const allFulfillmentsConfirmed = fulfillmentCodes.every((code) =>
       ALLOWED.fulfillment.includes(code)
     );
-    
+
     const shipmentValid = ALLOWED.shipment.includes(shipmentCode);
-    
+
     return allFulfillmentsConfirmed && shipmentValid;
   }, [shipmentHeader, shipmentFulfillments]);
-  
-  
+
   // === Render ===
   if (!shipmentHeader) {
-    return (
-      <Loading
-        variant="dotted"
-        message="Loading shipment details..."
-      />
-    );
+    return <Loading variant="dotted" message="Loading shipment details..." />;
   }
-  
+
   if (!shipmentHeader || !shipmentFulfillments) {
     return (
       <NoDataFound
@@ -215,14 +205,14 @@ const OutboundShipmentDetailsPage: FC = () => {
               >
                 {shipmentDetailsLoading ? 'Refreshing' : 'Refresh Data'}
               </CustomButton>
-              
+
               {canConfirmFulfillment && (
                 <ConfirmFulfillmentButton
                   orderId={shipmentHeader.orderId}
                   refresh={refresh}
                 />
               )}
-              
+
               {canCompleteManualFulfillment && (
                 <CompleteManualFulfillmentButton
                   shipmentId={shipmentId}

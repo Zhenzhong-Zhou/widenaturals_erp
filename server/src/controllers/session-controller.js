@@ -1,5 +1,8 @@
 const wrapAsync = require('../utils/wrap-async');
-const { loginUserService, refreshTokenService } = require('../services/session-service');
+const {
+  loginUserService,
+  refreshTokenService,
+} = require('../services/session-service');
 const { extractRequestContext } = require('../utils/request-context');
 const { getTtlMs } = require('../utils/auth/jwt-utils');
 
@@ -30,17 +33,12 @@ const { getTtlMs } = require('../utils/auth/jwt-utils');
  */
 const loginController = wrapAsync(async (req, res) => {
   const { email, password } = req.body;
-  
+
   // Pre-auth CSRF token (required before login)
   const csrfToken = req.csrfToken();
-  
-  const {
-    ipAddress,
-    userAgent,
-    deviceId,
-    note,
-  } = extractRequestContext(req);
-  
+
+  const { ipAddress, userAgent, deviceId, note } = extractRequestContext(req);
+
   // ------------------------------------------------------------
   // 1. Authenticate user (domain + normalization handled by service)
   // ------------------------------------------------------------
@@ -50,7 +48,7 @@ const loginController = wrapAsync(async (req, res) => {
     deviceId,
     note,
   });
-  
+
   // ------------------------------------------------------------
   // 2. Persist refresh token (transport concern only)
   // ------------------------------------------------------------
@@ -61,10 +59,10 @@ const loginController = wrapAsync(async (req, res) => {
     maxAge: 7 * 24 * 60 * 60 * 1000,
     path: '/',
   });
-  
+
   // Prevent caching of auth response
   res.set('Cache-Control', 'no-store');
-  
+
   // ------------------------------------------------------------
   // 3. Send response
   // ------------------------------------------------------------
@@ -109,11 +107,13 @@ const loginController = wrapAsync(async (req, res) => {
 const refreshTokenController = wrapAsync(async (req, res) => {
   // Refresh tokens are stored in HTTP-only cookies
   const refreshToken = req.cookies?.refreshToken;
-  
+
+  const { ipAddress, userAgent } = extractRequestContext(req);
+
   // Service validates refresh token, rotates it, and issues a new access token
   const { accessToken, refreshToken: newRefreshToken } =
-    await refreshTokenService(refreshToken);
-  
+    await refreshTokenService(refreshToken, { ipAddress, userAgent });
+
   // Persist rotated refresh token (transport concern)
   res.cookie('refreshToken', newRefreshToken, {
     httpOnly: true,
@@ -122,9 +122,9 @@ const refreshTokenController = wrapAsync(async (req, res) => {
     maxAge: getTtlMs('REFRESH_TOKEN_TTL_SECONDS'),
     path: '/',
   });
-  
+
   res.set('Cache-Control', 'no-store');
-  
+
   // Return new access token for subsequent authenticated requests
   res.status(200).json({
     success: true,

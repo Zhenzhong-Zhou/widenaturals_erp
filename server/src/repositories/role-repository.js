@@ -17,7 +17,7 @@ const { buildRoleFilter } = require('../utils/sql/build-role-filters');
  */
 const getRoleById = async (roleId, client) => {
   const context = 'role-repository/getRoleById';
-  
+
   const sql = `
     SELECT
       id,
@@ -31,7 +31,7 @@ const getRoleById = async (roleId, client) => {
     WHERE id = $1
     LIMIT 1;
   `;
-  
+
   try {
     const { rows } = await query(sql, [roleId], client);
     return rows[0] || null;
@@ -72,47 +72,47 @@ const getRoleById = async (roleId, client) => {
  */
 const resolveRoleIdByName = async (roleName, client) => {
   const context = 'role-repository/resolveRoleIdByName';
-  
+
   if (!roleName || typeof roleName !== 'string') {
     throw AppError.validationError('Role name is required.', {
       context,
     });
   }
-  
+
   const sql = `
     SELECT id
     FROM roles
     WHERE LOWER(name) = LOWER($1)
     LIMIT 1
   `;
-  
+
   try {
     const { rows } = await query(sql, [roleName], client);
-    
+
     if (!rows.length) {
       throw AppError.notFoundError(`Required role "${roleName}" not found.`, {
         context,
         roleName,
       });
     }
-    
+
     logSystemInfo('Resolved role ID by name', {
       context,
       roleName,
       roleId: rows[0].id,
     });
-    
+
     return rows[0].id;
   } catch (error) {
     if (error instanceof AppError) {
       throw error;
     }
-    
+
     logSystemException(error, 'Failed to resolve role ID by name', {
       context,
       roleName,
     });
-    
+
     throw AppError.databaseError('Failed to resolve role ID.', {
       context,
       cause: error,
@@ -158,9 +158,9 @@ const resolveRoleIdByName = async (roleName, client) => {
 const getRoleLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
   const context = 'role-repository/getRoleLookup';
   const tableName = 'roles r';
-  
+
   const { whereClause, params } = buildRoleFilter(filters);
-  
+
   const queryText = `
     SELECT
       r.id,
@@ -174,7 +174,7 @@ const getRoleLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
     LEFT JOIN status s ON s.id = r.status_id
     WHERE ${whereClause}
   `;
-  
+
   try {
     const result = await paginateQueryByOffset({
       tableName,
@@ -187,14 +187,14 @@ const getRoleLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
       sortOrder: 'ASC',
       additionalSort: 'r.name ASC',
     });
-    
+
     logSystemInfo('Fetched role lookup data', {
       context,
       offset,
       limit,
       filters,
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch role lookup', {

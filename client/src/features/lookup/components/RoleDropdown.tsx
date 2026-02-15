@@ -21,31 +21,31 @@ type RoleDropdownProps = PaginatedDropdownProps<RoleLookupParams>;
  * - Permission management UIs
  */
 const RoleDropdown = ({
-                        options = [],
-                        fetchParams,
-                        onRefresh,
-                        ...rest
-                      }: RoleDropdownProps) => {
+  options = [],
+  fetchParams,
+  onRefresh,
+  ...rest
+}: RoleDropdownProps) => {
   const enrichedOptions = useMemo(() => {
     return Array.from(
       new Map(
         options.map((opt) => {
           const isInactive = opt.isActive === false;
-          
+
           const rawLabel = getRawLabel(opt.label);
-          
+
           const displayLabel = (
             <CustomTypography color={isInactive ? 'error' : 'inherit'}>
               {rawLabel}
             </CustomTypography>
           );
-          
+
           const icon = isInactive ? faBan : faCheck;
-          
+
           const tooltip = isInactive ? 'Inactive Role' : 'Active Role';
-          
+
           const iconColor = isInactive ? 'gray' : 'green';
-          
+
           return [
             opt.value ?? opt.id,
             {
@@ -61,7 +61,7 @@ const RoleDropdown = ({
       ).values()
     );
   }, [options]);
-  
+
   return (
     <PaginatedDropdown
       label="Select Role"

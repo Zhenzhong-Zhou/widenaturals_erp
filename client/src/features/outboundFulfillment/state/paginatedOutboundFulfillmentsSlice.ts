@@ -41,12 +41,12 @@ const paginatedOutboundFulfillmentsSlice = createSlice({
         fetchPaginatedOutboundFulfillmentThunk.rejected,
         (state, action) => {
           state.loading = false;
-          
+
           const error = action.payload as UiErrorPayload | undefined;
-          
+
           state.error =
             error?.message ?? 'Failed to fetch paginated outbound fulfillments';
-          
+
           // Optional but recommended if your state supports it
           state.traceId = error?.traceId ?? null;
         }

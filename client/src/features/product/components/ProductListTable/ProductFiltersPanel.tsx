@@ -1,10 +1,15 @@
-import { type Dispatch, type FC, type SetStateAction, useEffect } from 'react';
+import { type FC, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import Grid from '@mui/material/Grid';
-import FilterPanelLayout from '@components/common/FilterPanelLayout';
-import StatusMultiSelectDropdown from '@features/lookup/components/StatusMultiSelectDropdown';
-import UserDropdown from '@features/lookup/components/UserDropdown';
-import { useMultiSelectBinding } from '@features/lookup/hooks';
+import { FilterPanelLayout } from '@components/index';
+import {
+  StatusMultiSelectDropdown,
+  UserDropdown,
+} from '@features/lookup/components';
+import {
+  useMultiSelectBinding,
+  useUserLookupBinding,
+} from '@features/lookup/hooks';
 import { renderInputField } from '@utils/filters/filterUtils';
 import { useFormattedOptions } from '@features/lookup/utils/lookupUtils';
 import { formatLabel } from '@utils/textUtils';
@@ -19,10 +24,10 @@ import type {
 interface ProductFiltersPanelProps {
   filters: ProductListFilters;
   onChange: (filters: ProductListFilters) => void;
-  
+
   onApply: () => void;
   onReset: () => void;
-  
+
   // -------------------
   // Status lookup
   // -------------------
@@ -30,7 +35,7 @@ interface ProductFiltersPanelProps {
   statusOptions: LookupOption[];
   statusLoading?: boolean;
   statusError?: string | null;
-  
+
   // -------------------
   // Shared user lookup data
   // -------------------
@@ -38,25 +43,7 @@ interface ProductFiltersPanelProps {
   userLoading?: boolean;
   userError?: string | null;
   userMeta: LookupPaginationMeta;
-  
-  // -------------------
-  // Created By filter
-  // -------------------
-  onCreatedByOpen: () => void;
-  createdByFetchParams: UserLookupParams;
-  setCreatedByFetchParams: Dispatch<
-    SetStateAction<UserLookupParams>
-  >;
-  
-  // -------------------
-  // Updated By filter
-  // -------------------
-  onUpdatedByOpen: () => void;
-  updatedByFetchParams: UserLookupParams;
-  setUpdatedByFetchParams: Dispatch<
-    SetStateAction<UserLookupParams>
-  >;
-  
+
   // -------------------
   // User lookup fetcher
   // -------------------
@@ -92,46 +79,40 @@ const TEXT_FIELDS: FilterField<ProductListFilters>[] = [
  * Mirrors the UX and architecture of SkuFiltersPanel.
  */
 const ProductFiltersPanel: FC<ProductFiltersPanelProps> = ({
-                                                             filters,
-                                                             onChange,
-                                                             onApply,
-                                                             onReset,
-                                                             
-                                                             // -------------------
-                                                             // Status lookup
-                                                             // -------------------
-                                                             onStatusOpen,
-                                                             statusOptions,
-                                                             statusLoading,
-                                                             statusError,
-                                                             
-                                                             // -------------------
-                                                             // Shared user lookup
-                                                             // -------------------
-                                                             userOptions,
-                                                             userLoading,
-                                                             userError,
-                                                             userMeta,
-                                                             fetchUserLookup,
-                                                             
-                                                             // -------------------
-                                                             // Created By filter
-                                                             // -------------------
-                                                             onCreatedByOpen,
-                                                             createdByFetchParams,
-                                                             setCreatedByFetchParams,
-                                                             
-                                                             // -------------------
-                                                             // Updated By filter
-                                                             // -------------------
-                                                             onUpdatedByOpen,
-                                                             updatedByFetchParams,
-                                                             setUpdatedByFetchParams,
-                                                           }) => {
+  filters,
+  onChange,
+  onApply,
+  onReset,
+
+  // -------------------
+  // Status lookup
+  // -------------------
+  onStatusOpen,
+  statusOptions,
+  statusLoading,
+  statusError,
+
+  // -------------------
+  // Shared user lookup
+  // -------------------
+  userOptions,
+  userLoading,
+  userError,
+  userMeta,
+  fetchUserLookup,
+}) => {
   const { control, handleSubmit, reset, watch, setValue } =
     useForm<ProductListFilters>({
       defaultValues: filters,
     });
+
+  const createdByLookup = useUserLookupBinding({
+    fetchUserLookup,
+  });
+
+  const updatedByLookup = useUserLookupBinding({
+    fetchUserLookup,
+  });
 
   /** Keep external changes in sync */
   useEffect(() => {
@@ -169,6 +150,18 @@ const ProductFiltersPanel: FC<ProductFiltersPanelProps> = ({
     onReset();
   };
 
+  const handleCreatedByOpen = () => {
+    if (!userOptions.length) {
+      createdByLookup.handleRefresh();
+    }
+  };
+
+  const handleUpdatedByOpen = () => {
+    if (!userOptions.length) {
+      updatedByLookup.handleRefresh();
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit(submitFilters)}>
       <FilterPanelLayout onReset={resetFilters}>
@@ -177,7 +170,7 @@ const ProductFiltersPanel: FC<ProductFiltersPanelProps> = ({
           {TEXT_FIELDS.map(({ name, label, placeholder }) =>
             renderInputField(control, name, label, placeholder)
           )}
-          
+
           <Grid size={{ xs: 4 }}>
             {/* --- Status filter --- */}
             <StatusMultiSelectDropdown
@@ -190,7 +183,7 @@ const ProductFiltersPanel: FC<ProductFiltersPanelProps> = ({
               placeholder="Select one or more statuses..."
             />
           </Grid>
-          
+
           <Grid size={{ xs: 4 }}>
             {/* --- User filter --- */}
             <UserDropdown
@@ -200,35 +193,17 @@ const ProductFiltersPanel: FC<ProductFiltersPanelProps> = ({
               loading={userLoading}
               error={userError}
               paginationMeta={userMeta}
-              
-              fetchParams={createdByFetchParams}
-              setFetchParams={setCreatedByFetchParams}
-              
-              onChange={(val) => {
-                setValue('createdBy', val, { shouldDirty: true });
-              }}
-              
-              onRefresh={(params) => fetchUserLookup(params)}
-              onOpen={onCreatedByOpen}
-              
-              onInputChange={(_, newValue, reason) => {
-                if (reason !== 'input') return;
-                
-                setCreatedByFetchParams((prev) => ({
-                  ...prev,
-                  keyword: newValue,
-                  offset: 0,
-                }));
-                
-                fetchUserLookup({
-                  ...createdByFetchParams,
-                  keyword: newValue,
-                  offset: 0,
-                });
-              }}
+              fetchParams={createdByLookup.fetchParams}
+              setFetchParams={createdByLookup.setFetchParams}
+              onChange={(val) =>
+                setValue('createdBy', val, { shouldDirty: true })
+              }
+              onRefresh={createdByLookup.handleRefresh}
+              onOpen={handleCreatedByOpen}
+              onInputChange={createdByLookup.handleInputChange}
             />
           </Grid>
-          
+
           <Grid size={{ xs: 4 }}>
             <UserDropdown
               label="Updated By"
@@ -237,32 +212,14 @@ const ProductFiltersPanel: FC<ProductFiltersPanelProps> = ({
               loading={userLoading}
               error={userError}
               paginationMeta={userMeta}
-              
-              fetchParams={updatedByFetchParams}
-              setFetchParams={setUpdatedByFetchParams}
-              
-              onChange={(val) => {
-                setValue('updatedBy', val, { shouldDirty: true });
-              }}
-              
-              onRefresh={(params) => fetchUserLookup(params)}
-              onOpen={onUpdatedByOpen}
-              
-              onInputChange={(_, newValue, reason) => {
-                if (reason !== 'input') return;
-                
-                setUpdatedByFetchParams((prev) => ({
-                  ...prev,
-                  keyword: newValue,
-                  offset: 0,
-                }));
-                
-                fetchUserLookup({
-                  ...updatedByFetchParams,
-                  keyword: newValue,
-                  offset: 0,
-                });
-              }}
+              fetchParams={updatedByLookup.fetchParams}
+              setFetchParams={updatedByLookup.setFetchParams}
+              onChange={(val) =>
+                setValue('updatedBy', val, { shouldDirty: true })
+              }
+              onRefresh={updatedByLookup.handleRefresh}
+              onOpen={handleUpdatedByOpen}
+              onInputChange={updatedByLookup.handleInputChange}
             />
           </Grid>
         </Grid>

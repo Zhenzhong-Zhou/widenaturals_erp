@@ -31,9 +31,9 @@ const { fetchPermissions } = require('../services/role-permission-service');
  */
 const createUserController = wrapAsync(async (req, res) => {
   const context = 'user-controller/createUser';
-  
+
   const actor = req.auth.user;
-  
+
   const input = {
     email: req.body.email,
     password: req.body.password,
@@ -44,15 +44,15 @@ const createUserController = wrapAsync(async (req, res) => {
     jobTitle: req.body.jobTitle,
     note: req.body.note,
   };
-  
+
   const result = await createUserService(input, actor);
-  
+
   logInfo('User created successfully', req, {
     context,
     userId: result.id,
     createdBy: actor.id,
   });
-  
+
   res.status(201).json({
     success: true,
     message: 'User created successfully',

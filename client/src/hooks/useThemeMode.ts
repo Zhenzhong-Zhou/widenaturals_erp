@@ -42,12 +42,12 @@ type Coordinates = {
  */
 const useThemeMode = () => {
   const dispatch = useAppDispatch();
-  
+
   const mode = useAppSelector(selectThemeMode);
   const preference = useAppSelector(selectThemePreference);
-  
+
   const [coords, setCoords] = useState<Coordinates | null>(loadStoredCoords);
-  
+
   /**
    * Request geolocation ONLY when time-based mode is selected
    * and no cached coordinates exist.
@@ -56,7 +56,7 @@ const useThemeMode = () => {
     if (preference !== 'time') return;
     if (!('geolocation' in navigator)) return;
     if (coords) return;
-    
+
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         setCoords(
@@ -75,7 +75,7 @@ const useThemeMode = () => {
       }
     );
   }, [preference, coords]);
-  
+
   /**
    * Persist coordinates once granted.
    */
@@ -84,36 +84,39 @@ const useThemeMode = () => {
       localStorage.setItem('theme_coords', JSON.stringify(coords));
     }
   }, [coords]);
-  
+
   /**
    * Resolve final theme mode whenever preference or environment changes.
    */
   useEffect(() => {
     let resolved: 'light' | 'dark';
-    
+
     switch (preference) {
       case 'light':
       case 'dark':
         resolved = preference;
         break;
-      
+
       case 'time':
         if (coords) {
           const normalized = normalizeCoords(coords);
-          resolved = getSunBasedTheme(normalized.latitude, normalized.longitude);
+          resolved = getSunBasedTheme(
+            normalized.latitude,
+            normalized.longitude
+          );
         } else {
           resolved = getSystemTheme();
         }
         break;
-      
+
       case 'system':
       default:
         resolved = getSystemTheme();
     }
-    
+
     dispatch(resolveThemeMode(resolved));
   }, [preference, coords, dispatch]);
-  
+
   /**
    * Explicit preference setter.
    * Preferred over toggle for multi-mode systems.
@@ -121,7 +124,7 @@ const useThemeMode = () => {
   const setPreference = (p: ThemePreference) => {
     dispatch(setThemePreference(p));
   };
-  
+
   /**
    * Quick override toggle.
    * Forces explicit light/dark preference.
@@ -129,10 +132,10 @@ const useThemeMode = () => {
   const toggleTheme = () => {
     setPreference(mode === 'dark' ? 'light' : 'dark');
   };
-  
+
   return {
-    mode,        // resolved theme (for MUI)
-    preference,  // persisted user intent
+    mode, // resolved theme (for MUI)
+    preference, // persisted user intent
     actions: {
       setPreference,
       toggleTheme,

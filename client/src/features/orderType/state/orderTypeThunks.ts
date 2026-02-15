@@ -28,23 +28,18 @@ export const fetchPaginatedOrderTypesThunk = createAsyncThunk<
   OrderTypeListResponse,
   FetchPaginatedOrderTypesParams,
   { rejectValue: { message: string } }
->(
-  'orderTypes/fetchPaginated',
-  async (params, { rejectWithValue }) => {
-    try {
-      const response =
-        await orderTypeService.fetchPaginatedOrderTypes(params);
-      
-      return {
-        ...response,
-        data: flattenOrderTypeRecords(response.data),
-      };
-    } catch (error) {
-      return rejectWithValue({
-        message:
-          extractUiErrorPayload(error)?.message ??
-          'Failed to fetch order types',
-      });
-    }
+>('orderTypes/fetchPaginated', async (params, { rejectWithValue }) => {
+  try {
+    const response = await orderTypeService.fetchPaginatedOrderTypes(params);
+
+    return {
+      ...response,
+      data: flattenOrderTypeRecords(response.data),
+    };
+  } catch (error) {
+    return rejectWithValue({
+      message:
+        extractUiErrorPayload(error)?.message ?? 'Failed to fetch order types',
+    });
   }
-);
+});

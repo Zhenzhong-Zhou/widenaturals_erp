@@ -18,13 +18,13 @@ import { createContext, useContext, type ReactNode } from 'react';
 interface PermissionsContextValue {
   /** Current role name, or null if not yet resolved */
   roleName: string | null;
-  
+
   /** Raw permission identifiers assigned to the user */
   permissions: string[];
-  
+
   /** Last unrecoverable permission error, if any */
   error: string | null;
-  
+
   /** Indicates whether permission data has fully resolved */
   ready: boolean;
 }
@@ -44,8 +44,9 @@ interface PermissionsProviderProps extends PermissionsContextValue {
  * Initialized as `undefined` to allow strict runtime enforcement
  * via {@link usePermissionsContext}.
  */
-const PermissionsContext =
-  createContext<PermissionsContextValue | undefined>(undefined);
+const PermissionsContext = createContext<PermissionsContextValue | undefined>(
+  undefined
+);
 
 /**
  * PermissionsProvider
@@ -67,14 +68,16 @@ const PermissionsContext =
  * - Perform navigation or redirects
  */
 export const PermissionsProvider = ({
-                                      roleName,
-                                      permissions,
-                                      error,
-                                      ready,
-                                      children,
-                                    }: PermissionsProviderProps) => {
+  roleName,
+  permissions,
+  error,
+  ready,
+  children,
+}: PermissionsProviderProps) => {
   return (
-    <PermissionsContext.Provider value={{ roleName, permissions, error, ready }}>
+    <PermissionsContext.Provider
+      value={{ roleName, permissions, error, ready }}
+    >
       {children}
     </PermissionsContext.Provider>
   );
@@ -94,12 +97,12 @@ export const PermissionsProvider = ({
  */
 export const usePermissionsContext = (): PermissionsContextValue => {
   const context = useContext(PermissionsContext);
-  
+
   if (!context) {
     throw new Error(
       'usePermissionsContext must be used within PermissionsProvider'
     );
   }
-  
+
   return context;
 };

@@ -21,7 +21,7 @@ import { useRoleSearchHandlers } from '@features/lookup/hooks';
  */
 const CreateUserForm = () => {
   const navigate = useNavigate();
-  
+
   const {
     data: createdUser,
     loading: isCreatingUser,
@@ -30,20 +30,20 @@ const CreateUserForm = () => {
     createUser,
     resetCreateUser,
   } = useCreateUser();
-  
+
   const roleLookup = useRoleLookup();
-  
+
   // Controlled search input value for role dropdown
   const [inputValue, setInputValue] = useState('');
-  
+
   // Lookup query state (pagination + keyword)
-  const [fetchParams, setFetchParams] = useState<RoleLookupParams>(
-    () => createLookupParams<RoleLookupParams>({ limit: 10 })
+  const [fetchParams, setFetchParams] = useState<RoleLookupParams>(() =>
+    createLookupParams<RoleLookupParams>({ limit: 10 })
   );
-  
+
   // Debounced role keyword search handler
   const { handleRoleSearch } = useRoleSearchHandlers(roleLookup);
-  
+
   const fields = useMemo(
     () =>
       getCreateUserFormFields({
@@ -68,26 +68,26 @@ const CreateUserForm = () => {
       handleRoleSearch,
     ]
   );
-  
+
   const handleSubmit = async (data: Record<string, any>) => {
     const { password, confirmPassword, ...rest } = data;
-    
+
     await createUser({
       ...rest,
       password,
     } as CreateUserRequest);
   };
-  
+
   useEffect(() => {
     if (!isCreateUserSuccess || !createdUser) return;
-    
+
     // Navigate after successful creation
     navigate(`/users/${createdUser.id}/profile`);
-    
+
     // Reset mutation state to prevent stale success on remount
     resetCreateUser();
   }, [isCreateUserSuccess, createdUser, navigate, resetCreateUser]);
-  
+
   return (
     <CustomForm
       fields={fields}

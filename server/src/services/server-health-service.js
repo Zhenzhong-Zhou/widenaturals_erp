@@ -34,30 +34,30 @@ const checkServerHealthService = async () => {
     metrics: {
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
-      
+
       // Internal-only metrics (NEVER exposed via API)
       _internal: {
         memoryUsage: process.memoryUsage(),
       },
     },
   };
-  
+
   // -------------------------------
   // Database health
   // -------------------------------
   try {
     const dbStatus = await checkDatabaseHealth();
-    
+
     status.services.database = {
       status: dbStatus.status,
       _internal: dbStatus,
     };
-    
+
     logSystemInfo('Database health check passed', {
       context: 'health-check',
       service: 'database',
     });
-    
+
     // Dev-only diagnostics
     if (process.env.NODE_ENV === 'development') {
       logSystemInfo('Database health metrics (dev only)', {
@@ -69,29 +69,29 @@ const checkServerHealthService = async () => {
   } catch (error) {
     status.server = 'unhealthy';
     status.services.database = { status: 'unhealthy' };
-    
+
     logSystemException(error, 'Database health check failed', {
       context: 'health-check',
       service: 'database',
     });
   }
-  
+
   // -------------------------------
   // Pool health
   // -------------------------------
   try {
     const poolMetrics = await monitorPool();
-    
+
     status.services.pool = {
       status: 'healthy',
       _internal: poolMetrics,
     };
-    
+
     logSystemInfo('Pool health check passed', {
       context: 'health-check',
       service: 'pool',
     });
-    
+
     // Dev-only diagnostics
     if (process.env.NODE_ENV === 'development') {
       logSystemInfo('Pool metrics snapshot (dev only)', {
@@ -103,13 +103,13 @@ const checkServerHealthService = async () => {
   } catch (error) {
     status.server = 'unhealthy';
     status.services.pool = { status: 'unhealthy' };
-    
+
     logSystemException(error, 'Pool health check failed', {
       context: 'health-check',
       service: 'pool',
     });
   }
-  
+
   return status;
 };
 

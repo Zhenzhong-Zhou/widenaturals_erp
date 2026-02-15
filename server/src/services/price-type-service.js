@@ -79,7 +79,7 @@ const fetchAllPriceTypes = async ({
     });
 
     const result = await transformPaginatedPricingTypeResult(rawResult);
-    
+
     logSystemInfo('Successfully fetched pricing types', {
       context: 'pricing-type-service',
       resultCount: result.data.length,

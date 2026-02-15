@@ -35,15 +35,10 @@ export const canPerformAction = (params: {
   currentState: string;
   allowedStates: readonly string[];
 }): boolean => {
-  const {
-    hasPermission,
-    requiredPermission,
-    currentState,
-    allowedStates,
-  } = params;
-  
+  const { hasPermission, requiredPermission, currentState, allowedStates } =
+    params;
+
   return (
-    hasPermission(requiredPermission) &&
-    allowedStates.includes(currentState)
+    hasPermission(requiredPermission) && allowedStates.includes(currentState)
   );
 };

@@ -26,10 +26,7 @@ const userLookupSlice = createSlice({
      * Recreates the state from factory to avoid shared references.
      */
     resetUserLookup: (state) => {
-      Object.assign(
-        state,
-        createInitialOffsetPaginatedState<UserLookupItem>()
-      );
+      Object.assign(state, createInitialOffsetPaginatedState<UserLookupItem>());
     },
   },
   extraReducers: (builder) => {

@@ -10,7 +10,7 @@ import { useCommonProductLookups } from '@features/lookup/hooks';
 const useProductBatchLookups = () => {
   const common = useCommonProductLookups();
   // const manufacturer = useManufacturerLookup();
-  
+
   return {
     ...common,
     // manufacturer,

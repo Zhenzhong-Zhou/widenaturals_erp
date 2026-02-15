@@ -5,16 +5,23 @@ const {
   insertSession,
   revokeSessionsByUserId,
   revokeSessionRowById,
-  logoutSessionRowById
+  logoutSessionRowById,
 } = require('../../repositories/session-repository');
 const {
   insertToken,
   revokeTokensByUserId,
-  revokeAllTokensBySessionId
+  revokeAllTokensBySessionId,
 } = require('../../repositories/token-repository');
-const { insertTokenActivityLog } = require('../../repositories/token-activity-log-repository');
-const { logSystemInfo, logSystemException } = require('../../utils/system-logger');
-const { insertLoginHistory } = require('../../repositories/login-history-repository');
+const {
+  insertTokenActivityLog,
+} = require('../../repositories/token-activity-log-repository');
+const {
+  logSystemInfo,
+  logSystemException,
+} = require('../../utils/system-logger');
+const {
+  insertLoginHistory,
+} = require('../../repositories/login-history-repository');
 const { getStatusId } = require('../../config/status-cache');
 const { withTransaction } = require('../../database/db');
 
@@ -74,7 +81,7 @@ const issueSessionWithTokens = async (
   client
 ) => {
   const context = 'session-lifecycle/issueSessionWithTokens';
-  
+
   try {
     // ------------------------------------------------------------
     // 1. Create session FIRST
@@ -90,11 +97,11 @@ const issueSessionWithTokens = async (
       },
       client
     );
-    
+
     if (!session?.id) {
       throw new Error('Session creation failed unexpectedly');
     }
-    
+
     // ------------------------------------------------------------
     // 2. Sign tokens WITH sessionId
     // ------------------------------------------------------------
@@ -103,7 +110,7 @@ const issueSessionWithTokens = async (
       role: roleId,
       sessionId: session.id,
     });
-    
+
     const refreshToken = signToken(
       {
         id: userId,
@@ -112,17 +119,17 @@ const issueSessionWithTokens = async (
       },
       true
     );
-    
+
     // ------------------------------------------------------------
     // 3. Hash refresh token
     // ------------------------------------------------------------
     const refreshTokenHash = hashToken(refreshToken);
-    
+
     // ------------------------------------------------------------
     // 4. Persist refresh token
     // ------------------------------------------------------------
     let refreshTokenRow;
-    
+
     try {
       // Persist refresh token
       refreshTokenRow = await insertToken(
@@ -136,40 +143,45 @@ const issueSessionWithTokens = async (
         },
         client
       );
-      
+
       // Success log
-      await insertTokenActivityLog({
-        userId,
-        tokenId: refreshTokenRow.id,
-        eventType: 'generate',
-        status: 'success',
-        tokenType: 'refresh',
-        ipAddress,
-        userAgent,
-      }, client);
-      
+      await insertTokenActivityLog(
+        {
+          userId,
+          tokenId: refreshTokenRow.id,
+          eventType: 'generate',
+          status: 'success',
+          tokenType: 'refresh',
+          ipAddress,
+          userAgent,
+        },
+        client
+      );
     } catch (error) {
       // Only token persistence failure logged here
-      await insertTokenActivityLog({
-        userId,
-        tokenId: null,
-        eventType: 'generate',
-        status: 'failure',
-        tokenType: 'refresh',
-        ipAddress,
-        userAgent,
-        comments: error.message,
-      }, client);
-      
+      await insertTokenActivityLog(
+        {
+          userId,
+          tokenId: null,
+          eventType: 'generate',
+          status: 'failure',
+          tokenType: 'refresh',
+          ipAddress,
+          userAgent,
+          comments: error.message,
+        },
+        client
+      );
+
       throw error;
     }
-    
+
     logSystemInfo('Session and tokens issued successfully', {
       context,
       userId,
       sessionId: session.id,
     });
-    
+
     return {
       accessToken,
       refreshToken,
@@ -221,44 +233,44 @@ const issueSessionWithTokens = async (
  */
 const revokeAllSessionsForUser = async (
   userId,
-  {
-    ipAddress = null,
-    userAgent = null,
-  } = {},
+  { ipAddress = null, userAgent = null } = {},
   client = null
 ) => {
   const context = 'session-lifecycle/revokeAllSessionsForUser';
-  
+
   try {
     const revokedSessions = await revokeSessionsByUserId(userId, client);
-    
+
     const revokedTokens = await revokeTokensByUserId(
       userId,
       { tokenType: 'refresh' },
       client
     );
-    
+
     await Promise.all(
       revokedTokens.map((token) =>
-        insertTokenActivityLog({
-          userId,
-          tokenId: token.id,
-          eventType: 'revoke',
-          status: 'success',
-          tokenType: token.token_type,
-          ipAddress,
-          userAgent,
-        }, client)
+        insertTokenActivityLog(
+          {
+            userId,
+            tokenId: token.id,
+            eventType: 'revoke',
+            status: 'success',
+            tokenType: token.token_type,
+            ipAddress,
+            userAgent,
+          },
+          client
+        )
       )
     );
-    
+
     logSystemInfo('All sessions revoked for user', {
       context,
       userId,
       revokedSessionCount: revokedSessions.length,
       revokedTokenCount: revokedTokens.length,
     });
-    
+
     return {
       revokedSessions,
       revokedTokens,
@@ -309,45 +321,42 @@ const revokeAllSessionsForUser = async (
  */
 const revokeSession = async (
   sessionId,
-  {
-    ipAddress = null,
-    userAgent = null,
-  } = {},
+  { ipAddress = null, userAgent = null } = {},
   client = null
 ) => {
   const context = 'session-lifecycle/revokeSession';
-  
+
   try {
     // 1. Revoke session row (invalidates access tokens via session check)
     await revokeSessionRowById(sessionId, client);
-    
+
     // 2. Revoke all non-revoked tokens linked to the session
-    const revokedTokens = await revokeAllTokensBySessionId(
-      sessionId,
-      client
-    );
-    
+    const revokedTokens = await revokeAllTokensBySessionId(sessionId, client);
+
     // 3. Record token-level revocation events for audit purposes
     await Promise.all(
       revokedTokens.map((token) =>
-        insertTokenActivityLog({
-          userId: token.user_id,
-          tokenId: token.id,
-          eventType: 'revoke',
-          status: 'success',
-          tokenType: token.token_type,
-          ipAddress,
-          userAgent,
-        }, client)
+        insertTokenActivityLog(
+          {
+            userId: token.user_id,
+            tokenId: token.id,
+            eventType: 'revoke',
+            status: 'success',
+            tokenType: token.token_type,
+            ipAddress,
+            userAgent,
+          },
+          client
+        )
       )
     );
-    
+
     logSystemInfo('Session revoked successfully', {
       context,
       sessionId,
       revokedTokenCount: revokedTokens.length,
     });
-    
+
     return revokedTokens;
   } catch (error) {
     logSystemException(error, 'Failed to revoke session', {
@@ -387,60 +396,59 @@ const revokeSession = async (
  *   revokedTokenCount: number
  * }|null>}
  */
-const logoutSession = async ({
-                               sessionId,
-                               ipAddress,
-                               userAgent
-}) => {
+const logoutSession = async ({ sessionId, ipAddress, userAgent }) => {
   const context = 'session-lifecycle/logoutSession';
-  
+
   return withTransaction(async (client) => {
     try {
       // 1. Mark session as logged out (idempotent)
       const session = await logoutSessionRowById(sessionId, client);
-      
+
       if (!session) {
         return null; // Already logged out or not found
       }
-      
+
       // 2. Revoke all active tokens linked to this session
-      const revokedTokens = await revokeAllTokensBySessionId(
-        sessionId,
+      const revokedTokens = await revokeAllTokensBySessionId(sessionId, client);
+
+      // 3. Record explicit logout event
+      await insertLoginHistory(
+        {
+          userId: session.user_id,
+          sessionId,
+          tokenId: null,
+          authActionTypeId: getStatusId('logout'),
+          status: 'success',
+          ipAddress,
+          userAgent,
+        },
         client
       );
-      
-      // 3. Record explicit logout event
-      await insertLoginHistory({
-        userId: session.user_id,
-        sessionId,
-        tokenId: null,
-        authActionTypeId: getStatusId('logout'),
-        status: 'success',
-        ipAddress,
-        userAgent,
-      }, client);
-      
+
       // 4. Record token-level revocation events
       await Promise.all(
         revokedTokens.map((token) =>
-          insertTokenActivityLog({
-            userId: token.user_id,
-            tokenId: token.id,
-            eventType: 'revoke',
-            status: 'success',
-            tokenType: token.token_type,
-            ipAddress,
-            userAgent,
-          }, client)
+          insertTokenActivityLog(
+            {
+              userId: token.user_id,
+              tokenId: token.id,
+              eventType: 'revoke',
+              status: 'success',
+              tokenType: token.token_type,
+              ipAddress,
+              userAgent,
+            },
+            client
+          )
         )
       );
-      
+
       logSystemInfo('Session logged out successfully', {
         context,
         sessionId,
         revokedTokenCount: revokedTokens.length,
       });
-      
+
       return {
         sessionId,
         revokedTokenCount: revokedTokens.length,

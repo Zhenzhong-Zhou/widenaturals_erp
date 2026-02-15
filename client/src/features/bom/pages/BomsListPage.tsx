@@ -8,7 +8,7 @@ import {
   CustomTypography,
   ErrorMessage,
   Loading,
-  NoDataFound
+  NoDataFound,
 } from '@components/index';
 import BomListTable, {
   BomFiltersPanel,
@@ -144,9 +144,7 @@ const BomListPage = () => {
         <NoDataFound
           message="No boms found."
           action={
-            <CustomButton onClick={handleResetFilters}>
-              Reset
-            </CustomButton>
+            <CustomButton onClick={handleResetFilters}>Reset</CustomButton>
           }
         />
       ) : (

@@ -45,14 +45,13 @@ const classifyRole = (role = {}) => {
       isSystemRole: false,
     };
   }
-  
+
   const name = role.name.toLowerCase().trim();
-  
+
   const isRootRole = ROLE_TIERS.ROOT.includes(name);
-  const isAdminRole =
-    isRootRole || ROLE_TIERS.ADMIN.includes(name);
+  const isAdminRole = isRootRole || ROLE_TIERS.ADMIN.includes(name);
   const isSystemRole = ROLE_TIERS.SYSTEM.includes(name);
-  
+
   return {
     isRootRole,
     isAdminRole,

@@ -30,21 +30,21 @@ import useUserSelfProfile from './useUserSelfProfile';
  */
 const useUserSelfProfileAuto = (): void => {
   const { fetchSelfProfile } = useUserSelfProfile();
-  
+
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const resolving = useAppSelector(selectSessionResolving);
   const hasProfile = useAppSelector(selectHasSelfUserProfile);
-  
+
   useEffect(() => {
     // Wait for session bootstrap to complete
     if (resolving) return;
-    
+
     // Only fetch for authenticated users
     if (!isAuthenticated) return;
-    
+
     // Avoid duplicate fetches
     if (hasProfile) return;
-    
+
     fetchSelfProfile();
   }, [resolving, isAuthenticated, hasProfile, fetchSelfProfile]);
 };

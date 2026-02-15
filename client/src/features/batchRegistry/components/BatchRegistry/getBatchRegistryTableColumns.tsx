@@ -4,7 +4,7 @@ import TruncatedText from '@components/common/TruncatedText';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
 import { formatLabel } from '@utils/textUtils';
 import type { FlattenedBatchRegistryRecord } from '@features/batchRegistry/state';
-import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
+import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
 
 /**
  * Returns table column definitions for the Batch Registry list view.
@@ -25,14 +25,14 @@ export const getBatchRegistryTableColumns = (
       label: 'Lot Number',
       sortable: true,
       renderCell: (row) => (
-      <Link to={'#'}>
-        <TruncatedText
-          text={row.lotNumber}
-          maxLength={20}
-          variant="body2"
-          sx={{ fontWeight: 400 }}
-        />
-      </Link>
+        <Link to={'#'}>
+          <TruncatedText
+            text={row.lotNumber}
+            maxLength={20}
+            variant="body2"
+            sx={{ fontWeight: 400 }}
+          />
+        </Link>
       ),
     },
     {
@@ -58,7 +58,7 @@ export const getBatchRegistryTableColumns = (
         />
       ),
     },
-    
+
     // --------------------------------------------------
     // Usability
     // --------------------------------------------------
@@ -74,7 +74,7 @@ export const getBatchRegistryTableColumns = (
       sortable: true,
       renderCell: (row) => formatDate(row.expiryDate),
     },
-    
+
     // --------------------------------------------------
     // Context
     // --------------------------------------------------
@@ -84,8 +84,8 @@ export const getBatchRegistryTableColumns = (
       sortable: true,
       renderCell: (row) =>
         row.batchType === 'product'
-          ? row.skuCode ?? '—'
-          : row.packagingMaterialCode ?? '—',
+          ? (row.skuCode ?? '—')
+          : (row.packagingMaterialCode ?? '—'),
     },
     {
       id: 'sourceName',
@@ -104,7 +104,7 @@ export const getBatchRegistryTableColumns = (
         />
       ),
     },
-    
+
     // --------------------------------------------------
     // Audit
     // --------------------------------------------------
@@ -121,7 +121,7 @@ export const getBatchRegistryTableColumns = (
       renderCell: (row) => row.registeredBy,
     },
   ];
-  
+
   // --------------------------------------------------
   // Drill-down
   // --------------------------------------------------
@@ -133,6 +133,6 @@ export const getBatchRegistryTableColumns = (
       )
     );
   }
-  
+
   return columns;
 };

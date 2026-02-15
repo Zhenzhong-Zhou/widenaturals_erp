@@ -351,9 +351,7 @@ export const flattenBomMaterialSupplyDetail = (
         batchStatusName: batchStatus.name,
         batchStatusDate: batchStatus.date,
         batchCreatedAt: batchAudit.createdAt,
-        batchCreatedBy: batchAudit.createdBy
-          ? batchAudit.createdBy.name
-          : null,
+        batchCreatedBy: batchAudit.createdBy ? batchAudit.createdBy.name : null,
         batchUpdatedAt: batchAudit.updatedAt,
         batchUpdatedBy: batchAudit.updatedBy ? batchAudit.updatedBy.name : null,
       });

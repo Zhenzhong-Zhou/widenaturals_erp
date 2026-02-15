@@ -73,14 +73,14 @@ const fetchOrderDetailsById = (
 ): Promise<GetOrderDetailsApiResponse> => {
   const cleanCategory = sanitizeString(params.category);
   const cleanOrderId = sanitizeString(params.orderId);
-  
+
   if (!cleanCategory || !cleanOrderId) {
     throw AppError.validation('Invalid category or orderId', {
       category: params.category,
       orderId: params.orderId,
     });
   }
-  
+
   return getRequest<GetOrderDetailsApiResponse>(
     API_ENDPOINTS.ORDERS.ORDER_DETAILS(cleanCategory, cleanOrderId)
   );

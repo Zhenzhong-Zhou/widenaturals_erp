@@ -11,7 +11,7 @@ import type {
 import { orderService } from '@services/orderService';
 import {
   flattenOrderItems,
-  normalizeSalesOrderHeader
+  normalizeSalesOrderHeader,
 } from '@features/order/utils';
 import { extractUiErrorPayload } from '@utils/error';
 
@@ -112,18 +112,18 @@ export const fetchOrderDetailsByIdThunk = createAsyncThunk<
           message: 'Missing orderId for order details request',
         });
       }
-      
+
       if (!category) {
         return rejectWithValue({
           message: 'Missing order category for order details request',
         });
       }
-      
+
       const response = await orderService.fetchOrderDetailsById({
         category: category.trim(),
         orderId: orderId.trim(),
       });
-      
+
       return {
         ...response,
         data: {

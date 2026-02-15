@@ -3,7 +3,8 @@ import {
   type OrderCategory,
 } from '@utils/constants/orderPermissions';
 import type {
-  OrderListFilters, OrderPermissionContext,
+  OrderListFilters,
+  OrderPermissionContext,
 } from '@features/order/state';
 
 /**
@@ -19,27 +20,27 @@ import type {
 export interface OrderViewModeConfig {
   /** Unique mode key (matches route segment) */
   key: OrderCategory;
-  
+
   /** Human-readable label for navigation / tabs */
   label: string;
-  
+
   /** Route path for the mode */
   path: `/orders/${string}`;
-  
+
   /**
    * Determines whether the mode is visible to the user.
    *
    * Called with a resolved OrderPermissionContext.
    */
   canSee: (ctx: OrderPermissionContext) => boolean;
-  
+
   /**
    * Builds the base filter set for the mode.
    *
    * Executed when the mode is entered or filters are reset.
    */
   buildBaseFilters: (ctx: OrderPermissionContext) => OrderListFilters;
-  
+
   /**
    * Optional filter adjustment based on permission context.
    *
@@ -94,18 +95,16 @@ export const ORDER_VIEW_MODES: Record<OrderCategory, OrderViewModeConfig> = {
       const canViewSales = ctx.has(
         ORDER_CONSTANTS.PERMISSIONS.ORDER.get('VIEW', 'SALES')
       );
-      const canViewAlloc = ctx.has(
-        ORDER_CONSTANTS.PERMISSIONS.ALLOCATION.VIEW
-      );
-      
+      const canViewAlloc = ctx.has(ORDER_CONSTANTS.PERMISSIONS.ALLOCATION.VIEW);
+
       if (!canViewSales && canViewAlloc) {
         return { ...filters, minStatusCode: 'ORDER_CONFIRMED' };
       }
-      
+
       return filters;
     },
   },
-  
+
   purchase: {
     key: 'purchase',
     label: 'Purchase Orders',
@@ -117,7 +116,7 @@ export const ORDER_VIEW_MODES: Record<OrderCategory, OrderViewModeConfig> = {
       ]),
     buildBaseFilters: () => ({}),
   },
-  
+
   transfer: {
     key: 'transfer',
     label: 'Transfer Orders',
@@ -129,7 +128,7 @@ export const ORDER_VIEW_MODES: Record<OrderCategory, OrderViewModeConfig> = {
       ]),
     buildBaseFilters: () => ({}),
   },
-  
+
   return: {
     key: 'return',
     label: 'Return Orders',
@@ -137,7 +136,7 @@ export const ORDER_VIEW_MODES: Record<OrderCategory, OrderViewModeConfig> = {
     canSee: () => false,
     buildBaseFilters: () => ({}),
   },
-  
+
   manufacturing: {
     key: 'manufacturing',
     label: 'Manufacturing Orders',
@@ -145,7 +144,7 @@ export const ORDER_VIEW_MODES: Record<OrderCategory, OrderViewModeConfig> = {
     canSee: () => false,
     buildBaseFilters: () => ({}),
   },
-  
+
   logistics: {
     key: 'logistics',
     label: 'Logistics Orders',
@@ -153,7 +152,7 @@ export const ORDER_VIEW_MODES: Record<OrderCategory, OrderViewModeConfig> = {
     canSee: () => false,
     buildBaseFilters: () => ({}),
   },
-  
+
   adjustment: {
     key: 'adjustment',
     label: 'Adjustment Orders',
@@ -161,26 +160,21 @@ export const ORDER_VIEW_MODES: Record<OrderCategory, OrderViewModeConfig> = {
     canSee: () => false,
     buildBaseFilters: () => ({}),
   },
-  
+
   all: {
     key: 'all',
     label: 'All Orders',
     path: '/orders/all',
     canSee: (ctx) =>
-      ctx.has(
-        ORDER_CONSTANTS.PERMISSIONS.ORDER.get('VIEW', 'ALL')
-      ),
+      ctx.has(ORDER_CONSTANTS.PERMISSIONS.ORDER.get('VIEW', 'ALL')),
     buildBaseFilters: () => ({}),
   },
-  
+
   allocatable: {
     key: 'allocatable',
     label: 'Allocatable Orders',
     path: '/orders/allocatable',
-    canSee: (ctx) =>
-      ctx.has(
-        ORDER_CONSTANTS.PERMISSIONS.ALLOCATION.VIEW
-      ),
+    canSee: (ctx) => ctx.has(ORDER_CONSTANTS.PERMISSIONS.ALLOCATION.VIEW),
     buildBaseFilters: () => ({}),
   },
 };

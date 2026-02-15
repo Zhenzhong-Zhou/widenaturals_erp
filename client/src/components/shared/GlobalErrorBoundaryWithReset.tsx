@@ -22,18 +22,18 @@ interface Props {
  * This prevents users from being permanently trapped in an error state.
  */
 const GlobalErrorBoundaryWithReset: FC<Props> = ({
-                                                   children,
-                                                   fallback,
-                                                   onError,
-                                                 }) => {
+  children,
+  fallback,
+  onError,
+}) => {
   const location = useLocation();
-  
+
   /**
    * Reset key must change whenever the app enters
    * a potentially recoverable state.
    */
   const resetKey = `${location.pathname}${location.search}${location.hash}`;
-  
+
   return (
     <GlobalErrorBoundary
       fallback={fallback}

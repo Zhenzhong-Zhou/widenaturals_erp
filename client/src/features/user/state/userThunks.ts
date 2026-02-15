@@ -41,16 +41,13 @@ export const createUserThunk = createAsyncThunk<
   {
     rejectValue: ReturnType<typeof extractUiErrorPayload>;
   }
->(
-  'users/createUser',
-  async (payload, { rejectWithValue }) => {
-    try {
-      return await userService.createUser(payload);
-    } catch (error: unknown) {
-      return rejectWithValue(extractUiErrorPayload(error));
-    }
+>('users/createUser', async (payload, { rejectWithValue }) => {
+  try {
+    return await userService.createUser(payload);
+  } catch (error: unknown) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});
 
 /**
  * Redux Toolkit Thunk — Fetch paginated users (UI-normalized).
@@ -75,7 +72,7 @@ export const fetchPaginatedUsersThunk = createAsyncThunk<
 >('users/fetchPaginatedUsers', async (params, { rejectWithValue }) => {
   try {
     const response = await userService.fetchPaginatedUsers(params);
-    
+
     return {
       ...response,
       data: flattenUserRecords(response.data),

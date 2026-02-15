@@ -13,10 +13,6 @@ const router = express.Router();
  * The token must be included with subsequent state-changing
  * requests to satisfy CSRF protection.
  */
-router.get(
-  '/token',
-  createCsrfTokenRateLimiter(),
-  generateCsrfTokenController
-);
+router.get('/token', createCsrfTokenRateLimiter(), generateCsrfTokenController);
 
 module.exports = router;

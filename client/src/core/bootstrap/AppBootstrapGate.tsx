@@ -30,23 +30,23 @@ import { selectSessionBootstrapped } from '@features/session/state/sessionSelect
 const AppBootstrapGate = ({ children }: { children: ReactNode }) => {
   const dispatch = useAppDispatch();
   const bootstrapped = useAppSelector(selectSessionBootstrapped);
-  
+
   // Guards against duplicate bootstrap in React 18 Strict Mode
   const started = useRef(false);
-  
+
   useEffect(() => {
     if (started.current) return;
     started.current = true;
-    
+
     // Bootstrap resolves auth state via refresh-token flow
     dispatch(bootstrapSessionThunk());
   }, [dispatch]);
-  
+
   // Block rendering until session state is fully resolved
   if (!bootstrapped) {
     return null; // Optionally replace with splash / skeleton
   }
-  
+
   return <>{children}</>;
 };
 

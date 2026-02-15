@@ -39,11 +39,13 @@ TZ=UTC
 ### Validation
 
 #### List cron jobs:
+
 ```bash
 stdo crontab -l
 ```
 
 #### Monitor logs:
+
 ```bash
 tail -f /path/to/backup.log
 ```

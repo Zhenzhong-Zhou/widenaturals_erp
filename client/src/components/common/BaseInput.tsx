@@ -10,7 +10,7 @@ import type { TextFieldProps } from '@mui/material/TextField';
  */
 const BaseInput: FC<TextFieldProps> = ({ sx = {}, slotProps, ...props }) => {
   const theme = useTheme();
-  
+
   return (
     <TextField
       {...props}

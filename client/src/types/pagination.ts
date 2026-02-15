@@ -11,7 +11,7 @@
 export interface LookupPagination {
   /** Maximum number of records to return */
   limit?: number;
-  
+
   /** Number of records to skip */
   offset?: number;
 }
@@ -55,25 +55,25 @@ export interface ReduxPaginatedState<T> {
    * Must always be an array (never null) to simplify UI rendering.
    */
   data: T[];
-  
+
   /**
    * Pagination metadata returned from the backend.
    * Null before the first successful fetch.
    */
   pagination: Pagination | null;
-  
+
   /**
    * Indicates whether a paginated request is currently in flight.
    * Used for skeletons, spinners, and disabling controls.
    */
   loading: boolean;
-  
+
   /**
    * Human-readable error message for UI display.
    * Null when no error has occurred.
    */
   error: string | null;
-  
+
   /**
    * Optional backend trace ID associated with the last failed request.
    *

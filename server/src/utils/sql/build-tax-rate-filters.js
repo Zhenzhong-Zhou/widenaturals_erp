@@ -4,7 +4,10 @@
  * for filtering tax rate records (e.g., for admin UIs or dropdowns).
  */
 
-const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
+const {
+  normalizeDateRangeFilters,
+  applyDateRangeConditions,
+} = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
@@ -43,12 +46,16 @@ const buildTaxRateFilter = (filters = {}) => {
     // -------------------------------------------------------------
     // Normalize date-only filters (UI intent)
     // -------------------------------------------------------------
-    filters = normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore');
-    
+    filters = normalizeDateRangeFilters(
+      filters,
+      'createdAfter',
+      'createdBefore'
+    );
+
     const conditions = ['1=1'];
     const params = [];
     const paramIndexRef = { value: 1 };
-    
+
     // ------------------------------
     // Exact-match filters
     // ------------------------------
@@ -57,25 +64,25 @@ const buildTaxRateFilter = (filters = {}) => {
       params.push(filters.name);
       paramIndexRef.value++;
     }
-    
+
     if (filters.region) {
       conditions.push(`tr.region = $${paramIndexRef.value}`);
       params.push(filters.region);
       paramIndexRef.value++;
     }
-    
+
     if (filters.province) {
       conditions.push(`tr.province = $${paramIndexRef.value}`);
       params.push(filters.province);
       paramIndexRef.value++;
     }
-    
+
     if (filters.isActive !== undefined) {
       conditions.push(`tr.is_active = $${paramIndexRef.value}`);
       params.push(filters.isActive);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Audit fields
     // ------------------------------
@@ -84,13 +91,13 @@ const buildTaxRateFilter = (filters = {}) => {
       params.push(filters.createdBy);
       paramIndexRef.value++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`tr.updated_by = $${paramIndexRef.value}`);
       params.push(filters.updatedBy);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Keyword search (with restrictions)
     // ------------------------------
@@ -100,7 +107,7 @@ const buildTaxRateFilter = (filters = {}) => {
       ];
       params.push(`%${filters.keyword}%`);
       paramIndexRef.value++;
-      
+
       if (filters._restrictKeywordToValidOnly) {
         keywordConditions.push(`tr.valid_from <= NOW()`);
         keywordConditions.push(`(tr.valid_to IS NULL OR tr.valid_to >= NOW())`);
@@ -110,10 +117,10 @@ const buildTaxRateFilter = (filters = {}) => {
         params.push(filters.isActive);
         paramIndexRef.value++;
       }
-      
+
       conditions.push(`(${keywordConditions.join(' AND ')})`);
     }
-    
+
     // ------------------------------
     // Validity windows (business timestamps — NOT normalized)
     // ------------------------------
@@ -122,13 +129,13 @@ const buildTaxRateFilter = (filters = {}) => {
       params.push(filters.validFrom);
       paramIndexRef.value++;
     }
-    
+
     if (filters.validTo) {
       conditions.push(`tr.valid_to <= $${paramIndexRef.value}`);
       params.push(filters.validTo);
       paramIndexRef.value++;
     }
-    
+
     if (filters.validOn) {
       conditions.push(`(
         tr.valid_from <= $${paramIndexRef.value} AND
@@ -137,7 +144,7 @@ const buildTaxRateFilter = (filters = {}) => {
       params.push(filters.validOn);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Created date range (UI date filter)
     // ------------------------------
@@ -149,7 +156,7 @@ const buildTaxRateFilter = (filters = {}) => {
       before: filters.createdBefore,
       paramIndexRef,
     });
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -160,7 +167,7 @@ const buildTaxRateFilter = (filters = {}) => {
       error: err.message,
       filters,
     });
-    
+
     throw AppError.databaseError('Failed to prepare tax rate filter', {
       details: err.message,
       stage: 'build-tax-rate-where-clause',

@@ -35,13 +35,12 @@ const useSkuLookup = () => {
     () => abnormalOptions.length > 0,
     [abnormalOptions]
   );
-  
-  const { isAllowed: hasSkuAdminPermission } =
-    usePagePermissionState([
-      SKU_CONSTANTS.PERMISSIONS.ALLOW_BACKORDER_SKUS,
-      SKU_CONSTANTS.PERMISSIONS.ALLOW_INTERNAL_ORDER_SKUS,
-      SKU_CONSTANTS.PERMISSIONS.ADMIN_OVERRIDE_SKU_FILTERS,
-    ]);
+
+  const { isAllowed: hasSkuAdminPermission } = usePagePermissionState([
+    SKU_CONSTANTS.PERMISSIONS.ALLOW_BACKORDER_SKUS,
+    SKU_CONSTANTS.PERMISSIONS.ALLOW_INTERNAL_ORDER_SKUS,
+    SKU_CONSTANTS.PERMISSIONS.ADMIN_OVERRIDE_SKU_FILTERS,
+  ]);
 
   const options = useMemo(() => {
     const combined = hasSkuAdminPermission

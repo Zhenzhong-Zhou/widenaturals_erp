@@ -30,14 +30,14 @@ let isLoggingOut = false;
 export const hardLogout = async (): Promise<void> => {
   if (isLoggingOut) return;
   isLoggingOut = true;
-  
+
   // Reset volatile Redux auth/session state
   store.dispatch(resetSession());
   store.dispatch(resetLogin());
-  
+
   // Ensure persisted auth data is fully removed
   await persistor.purge();
-  
+
   // Force a clean navigation without history pollution
   window.location.replace('/login');
 };

@@ -7,7 +7,7 @@ import CustomTypography from '@components/common/CustomTypography';
 import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
 import type { AddressResponse } from '@features/address/state';
-import { formatDateTime } from '@utils/dateTimeUtils.ts';
+import { formatDateTime } from '@utils/dateTimeUtils';
 
 interface AddressSuccessDialogProps {
   open: boolean;

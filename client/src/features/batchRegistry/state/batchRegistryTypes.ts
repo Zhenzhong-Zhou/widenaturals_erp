@@ -70,25 +70,25 @@ export type BatchRegistryRecord =
 interface BaseBatchRegistryRecord {
   /** Unique batch registry identifier */
   id: string;
-  
+
   /** Discriminator for the underlying batch entity type */
   type: BatchEntityType;
-  
+
   /** Batch lot number */
   lotNumber: string;
-  
+
   /** Expiry date (ISO string) or null if not applicable */
   expiryDate: NullableString;
-  
+
   /** Current batch status (id, name, effective date) */
   status: GenericStatus;
-  
+
   /** Optional registry note */
   note: NullableString;
-  
+
   /** Timestamp when the batch was registered */
   registeredAt: string;
-  
+
   /** Actor identity who registered the batch */
   registeredBy: ActorIdentity;
 }
@@ -107,31 +107,30 @@ interface BaseBatchRegistryRecord {
  * - This structure is intentionally nested and should be flattened
  *   before use in table-based UI or Redux state
  */
-export interface PackagingMaterialBatchRegistryRecord
-  extends BaseBatchRegistryRecord {
+export interface PackagingMaterialBatchRegistryRecord extends BaseBatchRegistryRecord {
   /** Discriminator for packaging material batch records */
   type: 'packaging_material';
-  
+
   /** Packaging material batch identifier */
   packagingBatchId: string;
-  
+
   /** Human-readable display name for the packaging batch */
   packagingDisplayName: string;
-  
+
   /** Packaging material reference */
   packagingMaterial: {
     /** Packaging material identifier */
     id: string;
-    
+
     /** Packaging material code */
     code: string;
   };
-  
+
   /** Supplier reference */
   supplier: {
     /** Supplier identifier */
     id: string;
-    
+
     /** Supplier display name */
     name: string;
   };
@@ -140,25 +139,24 @@ export interface PackagingMaterialBatchRegistryRecord
 /**
  * Batch registry record for product batches.
  */
-export interface ProductBatchRegistryRecord
-  extends BaseBatchRegistryRecord {
+export interface ProductBatchRegistryRecord extends BaseBatchRegistryRecord {
   type: 'product';
-  
+
   /** Product batch identifier */
   productBatchId: string;
-  
+
   /** Product metadata */
   product: {
     id: string;
     name: string;
   };
-  
+
   /** SKU metadata */
   sku: {
     id: string;
     code: string;
   };
-  
+
   /** Manufacturer metadata */
   manufacturer: {
     id: string;
@@ -180,67 +178,67 @@ export interface BatchRegistryFilters {
   // ----------------------------------------
   // Core registry filters
   // ----------------------------------------
-  
+
   /** Batch entity type (product or packaging material) */
   batchType?: BatchEntityType;
-  
+
   /** Batch status ID(s) */
   statusIds?: string | string[];
-  
+
   // ----------------------------------------
   // Product batch filters
   // ----------------------------------------
-  
+
   /** SKU ID(s) */
   skuIds?: string | string[];
-  
+
   /** Product ID(s) */
   productIds?: string | string[];
-  
+
   /** Manufacturer ID(s) */
   manufacturerIds?: string | string[];
-  
+
   // ----------------------------------------
   // Packaging batch filters
   // ----------------------------------------
-  
+
   /** Packaging material ID(s) */
   packagingMaterialIds?: string | string[];
-  
+
   /** Supplier ID(s) */
   supplierIds?: string | string[];
-  
+
   // ----------------------------------------
   // Lot
   // ----------------------------------------
-  
+
   /** Exact lot number match */
   lotNumber?: string;
-  
+
   // ----------------------------------------
   // Expiry date filters
   // ----------------------------------------
-  
+
   /** Expiry date lower bound (ISO 8601 date) */
   expiryAfter?: string;
-  
+
   /** Expiry date upper bound (ISO 8601 date) */
   expiryBefore?: string;
-  
+
   // ----------------------------------------
   // Registry audit filters
   // ----------------------------------------
-  
+
   /** Registration date lower bound (ISO 8601 date) */
   registeredAfter?: string;
-  
+
   /** Registration date upper bound (ISO 8601 date) */
   registeredBefore?: string;
-  
+
   // ----------------------------------------
   // Keyword search
   // ----------------------------------------
-  
+
   /** Fuzzy search across lot, product, SKU, material, supplier */
   keyword?: string;
 }
@@ -253,27 +251,27 @@ export interface BatchRegistryFilters {
 export type BatchRegistrySortField =
   // Core registry identity
   | 'registeredAt'
-  
+
   // Lot & expiry
   | 'lotNumber'
   | 'expiryDate'
-  
+
   // Status
   | 'statusName'
   | 'statusDate'
-  
+
   // Product metadata
   | 'productName'
   | 'skuCode'
   | 'manufacturerName'
-  
+
   // Packaging metadata
   | 'packagingMaterialName'
   | 'supplierName'
-  
+
   // Audit
   | 'registeredBy'
-  
+
   // Fallback
   | 'defaultNaturalSort';
 
@@ -283,8 +281,7 @@ export type BatchRegistrySortField =
  * Combines pagination, sorting, and optional domain filters
  * into a single API-ready contract.
  */
-export interface BatchRegistryQueryParams
-  extends PaginationParams, SortConfig {
+export interface BatchRegistryQueryParams extends PaginationParams, SortConfig {
   /** Optional domain filters */
   filters?: BatchRegistryFilters;
 }
@@ -337,71 +334,71 @@ export interface FlattenedBatchRegistryRecord {
   /* -------------------------------------------------------
    * Core registry identity
    * ----------------------------------------------------- */
-  
+
   /** Unique registry record identifier */
   id: string;
-  
+
   /** Type of batch registered */
   batchType: BatchEntityType;
-  
+
   /** Lot or batch number (product or packaging) */
   lotNumber: string;
-  
+
   /** Expiry date (ISO string); null if not applicable */
   expiryDate: NullableString;
-  
+
   /* -------------------------------------------------------
    * Status
    * ----------------------------------------------------- */
-  
+
   /** Human-readable batch status */
   status: string;
-  
+
   /** Status effective date (ISO string) */
   statusDate: string;
-  
+
   /* -------------------------------------------------------
    * Registry audit metadata
    * ----------------------------------------------------- */
-  
+
   /** Timestamp when the batch was registered */
   registeredAt: string;
-  
+
   /** Display name of the user who registered the batch */
   registeredBy: string;
-  
+
   /** Optional registry note */
   note: NullableString;
-  
+
   /* -------------------------------------------------------
    * Product batch fields (batchType === 'product')
    * ----------------------------------------------------- */
-  
+
   /** Product identifier */
   productId: NullableString;
-  
+
   /** Product display name */
   productName: string;
-  
+
   /** SKU code associated with the batch */
   skuCode: string;
-  
+
   /** Manufacturer name */
   manufacturerName: string;
-  
+
   /* -------------------------------------------------------
    * Packaging material batch fields (batchType === 'packaging_material')
    * ----------------------------------------------------- */
-  
+
   /** Packaging material batch identifier */
   packagingBatchId: NullableString;
-  
+
   /** Display name for packaging material */
   packagingDisplayName: string;
-  
+
   /** Packaging material code */
   packagingMaterialCode: string;
-  
+
   /** Supplier name */
   supplierName: string;
 }

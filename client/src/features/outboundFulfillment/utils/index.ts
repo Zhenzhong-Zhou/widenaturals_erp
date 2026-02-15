@@ -1,4 +1,4 @@
 export {
   flattenShipmentHeader,
-  flattenFulfillments
+  flattenFulfillments,
 } from './flattenOutboundShipmenDetails';

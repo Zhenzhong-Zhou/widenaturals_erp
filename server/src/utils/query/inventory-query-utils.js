@@ -56,7 +56,7 @@ const normalizePaginationAndSortParams = (
 const sanitizeCommonInventoryFilters = (query, { type }) => {
   const isLocation = type === 'location';
   const isWarehouse = type === 'warehouse';
-  
+
   const filters = {
     batchType: query.batchType || undefined,
     productName: query.productName || undefined,
@@ -68,13 +68,13 @@ const sanitizeCommonInventoryFilters = (query, { type }) => {
     sku: query.sku || undefined,
     lotNumber: query.lotNumber || undefined,
     status: query.status || undefined,
-    
+
     // ─────────────────────────────
     // Date ranges (shared)
     // ─────────────────────────────
     createdAfter: query.createdAfter || undefined,
     createdBefore: query.createdBefore || undefined,
-    
+
     ...(isLocation && {
       locationName: query.locationName || undefined,
       inboundAfter: query.inboundAfter || undefined,
@@ -82,7 +82,7 @@ const sanitizeCommonInventoryFilters = (query, { type }) => {
       expiryAfter: query.expiryAfter || undefined,
       expiryBefore: query.expiryBefore || undefined,
     }),
-    
+
     ...(isWarehouse && {
       warehouseName: query.warehouseName || undefined,
       inboundAfter: query.inboundAfter || undefined,
@@ -91,7 +91,7 @@ const sanitizeCommonInventoryFilters = (query, { type }) => {
       expiryBefore: query.expiryBefore || undefined,
     }),
   };
-  
+
   // ─────────────────────────────
   // Batch-type–specific cleanup
   // ─────────────────────────────
@@ -105,7 +105,7 @@ const sanitizeCommonInventoryFilters = (query, { type }) => {
     delete filters.productName;
     delete filters.sku;
   }
-  
+
   return cleanObject(filters);
 };
 

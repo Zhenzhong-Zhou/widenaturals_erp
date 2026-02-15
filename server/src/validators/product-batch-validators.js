@@ -38,48 +38,40 @@ const productBatchQuerySchema = paginationSchema
     // --------------------------------------------------
     // Core product batch filters
     // --------------------------------------------------
-    statusIds: validateUUIDOrUUIDArrayOptional(
-      'Product Batch Status IDs'
-    ),
-    
+    statusIds: validateUUIDOrUUIDArrayOptional('Product Batch Status IDs'),
+
     // --------------------------------------------------
     // Product identity filters
     // --------------------------------------------------
     skuIds: validateUUIDOrUUIDArrayOptional('SKU IDs'),
     productIds: validateUUIDOrUUIDArrayOptional('Product IDs'),
-    manufacturerIds: validateUUIDOrUUIDArrayOptional(
-      'Manufacturer IDs'
-    ),
-    
+    manufacturerIds: validateUUIDOrUUIDArrayOptional('Manufacturer IDs'),
+
     // --------------------------------------------------
     // Lot number (explicit, non-keyword)
     // --------------------------------------------------
     lotNumber: validateOptionalString('Lot Number'),
-    
+
     // --------------------------------------------------
     // Expiry date filters
     // --------------------------------------------------
     expiryAfter: optionalIsoDate('Expiry Date After'),
     expiryBefore: optionalIsoDate('Expiry Date Before'),
-    
+
     // --------------------------------------------------
     // Manufacturing / receiving lifecycle filters
     // --------------------------------------------------
-    manufactureAfter: optionalIsoDate(
-      'Manufacture Date After'
-    ),
-    manufactureBefore: optionalIsoDate(
-      'Manufacture Date Before'
-    ),
+    manufactureAfter: optionalIsoDate('Manufacture Date After'),
+    manufactureBefore: optionalIsoDate('Manufacture Date Before'),
     receivedAfter: optionalIsoDate('Received Date After'),
     receivedBefore: optionalIsoDate('Received Date Before'),
-    
+
     // --------------------------------------------------
     // Creation audit filters
     // --------------------------------------------------
     createdAfter: optionalIsoDate('Created After'),
     createdBefore: optionalIsoDate('Created Before'),
-    
+
     // --------------------------------------------------
     // Keyword search (ACL-governed upstream)
     // --------------------------------------------------

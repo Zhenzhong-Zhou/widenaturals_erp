@@ -6,7 +6,11 @@ export interface FooterLinkProps extends PropsWithChildren {
   external?: boolean;
 }
 
-const FooterLink: FC<FooterLinkProps> = ({ href, external = false, children }) => {
+const FooterLink: FC<FooterLinkProps> = ({
+  href,
+  external = false,
+  children,
+}) => {
   return (
     <Link
       href={href}

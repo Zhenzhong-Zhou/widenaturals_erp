@@ -1,20 +1,38 @@
-import locationReducer from './locationSlice';
+import paginatedLocationsReducer from './paginatedLocationsSlice';
+
+/* ============================================================
+   Location Feature Reducer Map
+   ============================================================ */
 
 /**
- * Reducer map for the Location feature.
+ * Aggregated reducer map for the Location feature.
  *
- * This reducer group is consumed exclusively by the root reducer
- * to compose the `location` state subtree.
+ * This object defines the complete state subtree managed by
+ * the Location domain and is consumed exclusively by the
+ * application root reducer.
  *
- * Design principles:
- * - Slice reducers are imported locally to avoid circular
- *   ES module initialization (TDZ) issues.
- * - Slice reducers are private implementation details and
- *   must not be imported via feature or state index files.
- * - Only this reducer map is exposed as the public store
- *   integration point for the Location feature.
+ * Architectural boundaries:
+ * - Slice reducers are imported locally to prevent circular
+ *   module initialization (Temporal Dead Zone) issues.
+ * - Individual slice reducers are considered private
+ *   implementation details and must NOT be imported
+ *   outside this feature boundary.
+ * - The root reducer integrates this map under the `location`
+ *   namespace to compose the global store.
+ *
+ * State shape example:
+ * {
+ *   location: {
+ *     paginatedLocations: ReduxPaginatedState<FlattenedLocationRow>
+ *   }
+ * }
+ *
+ * Design goals:
+ * - Maintain strict feature encapsulation
+ * - Enable scalable multi-slice expansion (e.g. details, lookups)
+ * - Preserve predictable store structure across ERP modules
  */
 export const locationReducers = {
-  /** Location list and related metadata */
-  locations: locationReducer,
+  /** Paginated location list state */
+  paginatedLocations: paginatedLocationsReducer,
 };

@@ -8,7 +8,7 @@ import {
   CustomTypography,
   ErrorMessage,
   Loading,
-  NoDataFound
+  NoDataFound,
 } from '@components/index';
 import { usePaginatedBatchRegistry } from '@hooks/index';
 import { useBatchRegistryLookups } from '@features/batchRegistry/hook';
@@ -44,9 +44,8 @@ const BatchRegistryListPage = () => {
     useState<BatchRegistrySortField>('defaultNaturalSort');
   const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
   const [filters, setFilters] = useState<BatchRegistryFilters>({});
-  const [expandedRowId, setExpandedRowId] =
-    useState<string | null>(null);
-  
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+
   const {
     data: batchRegistryData,
     pagination: batchRegistryPagination,
@@ -56,9 +55,9 @@ const BatchRegistryListPage = () => {
     fetchBatchRegistry,
     resetBatchRegistry,
   } = usePaginatedBatchRegistry();
-  
+
   const lookups = useBatchRegistryLookups();
-  
+
   // -----------------------------
   // Query model (shared)
   // -----------------------------
@@ -72,14 +71,14 @@ const BatchRegistryListPage = () => {
     }),
     [page, limit, sortBy, sortOrder, filters]
   );
-  
+
   // -----------------------------
   // Refresh action
   // -----------------------------
   const refreshBatchRegistryList = useCallback(() => {
     fetchBatchRegistry(fullQuery);
   }, [fullQuery, fetchBatchRegistry]);
-  
+
   // -----------------------------
   // Params for filtering/sorting engine
   // -----------------------------
@@ -90,7 +89,7 @@ const BatchRegistryListPage = () => {
     }),
     [fullQuery, refreshBatchRegistryList]
   );
-  
+
   // -----------------------------
   // Debounced fetch
   // -----------------------------
@@ -98,7 +97,7 @@ const BatchRegistryListPage = () => {
     const timeout = setTimeout(() => applyFiltersAndSorting(queryParams), 200);
     return () => clearTimeout(timeout);
   }, [queryParams]);
-  
+
   // ----------------------------------------
   // Cleanup on unmount
   // ----------------------------------------
@@ -107,7 +106,7 @@ const BatchRegistryListPage = () => {
       resetBatchRegistry();
     };
   }, [resetBatchRegistry]);
-  
+
   // -----------------------------
   // Lookup handlers (lazy fetch, reset)
   // -----------------------------
@@ -116,7 +115,7 @@ const BatchRegistryListPage = () => {
       resetAll: () => {
         lookups.status.reset();
       },
-      
+
       onOpen: {
         status: createLazyOpenHandler(
           lookups.status.options,
@@ -126,30 +125,30 @@ const BatchRegistryListPage = () => {
     }),
     [lookups]
   );
-  
+
   // -----------------------------
   // Event handlers
   // -----------------------------
   const handleRefresh = useCallback(() => {
     applyFiltersAndSorting(queryParams);
   }, [queryParams]);
-  
+
   const handleResetFilters = () => {
     resetBatchRegistry();
     setFilters({});
     lookupHandlers.resetAll();
     setPage(1);
   };
-  
-  const { handlePageChange, handleRowsPerPageChange } =
-    usePaginationHandlers(setPage, setLimit);
-  
+
+  const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(
+    setPage,
+    setLimit
+  );
+
   const handleDrillDownToggle = (rowId: string) => {
-    setExpandedRowId((current) =>
-      current === rowId ? null : rowId
-    );
+    setExpandedRowId((current) => (current === rowId ? null : rowId));
   };
-  
+
   // ----------------------------------------
   // Render
   // ----------------------------------------
@@ -165,12 +164,12 @@ const BatchRegistryListPage = () => {
         gap={2}
       >
         <CustomTypography variant="h5" fontWeight={700}>
-          Batch Registry
+          Batch Registry Management
         </CustomTypography>
       </Box>
-      
+
       <Divider sx={{ mb: 3 }} />
-      
+
       {/* Filter + Sort Controls */}
       <Card sx={{ p: 3, mb: 4, borderRadius: 2, minHeight: 200 }}>
         <Grid container spacing={2}>
@@ -194,22 +193,17 @@ const BatchRegistryListPage = () => {
           </Grid>
         </Grid>
       </Card>
-      
+
       {/* Batch Registry Table Section */}
       {batchRegistryLoading || !batchRegistryPagination ? (
-        <Loading
-          variant="dotted"
-          message="Loading batch registry..."
-        />
+        <Loading variant="dotted" message="Loading batch registry..." />
       ) : batchRegistryError ? (
         <ErrorMessage message={batchRegistryError} showNavigation />
       ) : isBatchRegistryEmpty ? (
         <NoDataFound
           message="No batch registry records found."
           action={
-            <CustomButton onClick={handleResetFilters}>
-              Reset
-            </CustomButton>
+            <CustomButton onClick={handleResetFilters}>Reset</CustomButton>
           }
         />
       ) : (

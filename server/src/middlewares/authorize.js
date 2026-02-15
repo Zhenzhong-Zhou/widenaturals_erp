@@ -25,45 +25,39 @@ const { logError } = require('../utils/logger-helper');
  */
 const resolvePermissions = async (req) => {
   if (!req.auth.user) {
-    throw AppError.authenticationError(
-      'Unauthorized: User not authenticated.'
-    );
+    throw AppError.authenticationError('Unauthorized: User not authenticated.');
   }
-  
+
   // Reuse permissions if already resolved earlier
   if (Array.isArray(req.permissions)) {
     return req.permissions;
   }
-  
+
   const { role } = req.auth.user;
   const cacheKey = `role_permissions:${role}`;
-  
+
   /* ----------------------------------------
    * Cache-first lookup (BEST-EFFORT)
    * -------------------------------------- */
   let rolePermissions = await tryCacheRead(cacheKey);
-  
+
   /* ----------------------------------------
    * DB fallback (SOURCE OF TRUTH)
    * -------------------------------------- */
-  const activeStatusId = getStatusId('general_active')
+  const activeStatusId = getStatusId('general_active');
   if (!rolePermissions) {
     rolePermissions = await getRolePermissionsByRoleId(role, activeStatusId);
-    
-    if (
-      !rolePermissions ||
-      !Array.isArray(rolePermissions.permissions)
-    ) {
-      throw AppError.authorizationError(
-        'Role permissions not found.',
-        { details: { role } }
-      );
+
+    if (!rolePermissions || !Array.isArray(rolePermissions.permissions)) {
+      throw AppError.authorizationError('Role permissions not found.', {
+        details: { role },
+      });
     }
-    
+
     // Best-effort cache write (non-blocking)
     await tryCacheWrite(cacheKey, rolePermissions, 3600);
   }
-  
+
   req.permissions = rolePermissions.permissions;
   return req.permissions;
 };
@@ -77,15 +71,15 @@ const authorize = (requiredPermissions = []) => {
   return async (req, res, next) => {
     try {
       const permissions = await resolvePermissions(req);
-      
+
       if (permissions.includes('root_access')) {
         return next();
       }
-      
+
       const hasAll = requiredPermissions.every((perm) =>
         permissions.includes(perm)
       );
-      
+
       if (!hasAll) {
         throw AppError.authorizationError(
           'Forbidden: Insufficient permissions.',
@@ -96,7 +90,7 @@ const authorize = (requiredPermissions = []) => {
           }
         );
       }
-      
+
       next();
     } catch (err) {
       logError(err, req, { middleware: 'authorize' });
@@ -114,22 +108,22 @@ const authorizeAny = (requiredPermissions = []) => {
   return async (req, res, next) => {
     try {
       const permissions = await resolvePermissions(req);
-      
+
       if (permissions.includes('root_access')) {
         return next();
       }
-      
+
       const hasAny = requiredPermissions.some((perm) =>
         permissions.includes(perm)
       );
-      
+
       if (!hasAny) {
         throw AppError.authorizationError(
           'Forbidden: Insufficient permissions.',
           { requiredAnyOf: requiredPermissions }
         );
       }
-      
+
       next();
     } catch (err) {
       logError(err, req, { middleware: 'authorizeAny' });

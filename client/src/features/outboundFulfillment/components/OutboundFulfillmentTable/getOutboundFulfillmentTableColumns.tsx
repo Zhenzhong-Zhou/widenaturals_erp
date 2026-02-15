@@ -68,17 +68,14 @@ export const getOutboundFulfillmentTableColumns = (
       id: 'shippedAt',
       label: 'Shipped At',
       minWidth: 160,
-      renderCell: (row) =>
-        row.shippedAt ? formatDate(row.shippedAt) : '—',
+      renderCell: (row) => (row.shippedAt ? formatDate(row.shippedAt) : '—'),
     },
     {
       id: 'expectedDeliveryDate',
       label: 'Expected Delivery',
       minWidth: 160,
       renderCell: (row) =>
-        row.expectedDelivery
-          ? formatDate(row.expectedDelivery)
-          : '—',
+        row.expectedDelivery ? formatDate(row.expectedDelivery) : '—',
     },
     {
       id: 'createdByName',
@@ -87,7 +84,7 @@ export const getOutboundFulfillmentTableColumns = (
       renderCell: (row) => formatLabel(row.createdByName) ?? '—',
     },
   ];
-  
+
   if (onDrillDownToggle) {
     columns.push(
       createDrillDownColumn<FlattenedOutboundShipmentRow>(
@@ -96,6 +93,6 @@ export const getOutboundFulfillmentTableColumns = (
       )
     );
   }
-  
+
   return columns;
 };

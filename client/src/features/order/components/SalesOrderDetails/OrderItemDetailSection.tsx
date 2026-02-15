@@ -2,10 +2,7 @@ import { type FC } from 'react';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
-import {
-  CustomTypography,
-  DetailsSection
-} from '@components/index';
+import { CustomTypography, DetailsSection } from '@components/index';
 import { formatDate } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
 import { useOrderItemById } from '@hooks/index';
@@ -28,17 +25,16 @@ interface OrderItemMetadata {
 
 const OrderItemDetailSection: FC<Props> = ({ itemId }) => {
   const row = useOrderItemById(itemId);
-  
+
   if (!row) return null;
-  
+
   const transformMetadata = (raw: any): OrderItemMetadata | null => {
     if (!raw) return null;
-    
+
     const { reason, db_price, submitted_price, data, timestamp } = raw;
-    
-    const conflictNote =
-      data && timestamp ? { timestamp, data } : undefined;
-    
+
+    const conflictNote = data && timestamp ? { timestamp, data } : undefined;
+
     return {
       reason,
       db_price,
@@ -46,15 +42,15 @@ const OrderItemDetailSection: FC<Props> = ({ itemId }) => {
       conflictNote,
     };
   };
-  
+
   const metadata = transformMetadata(row.metadata);
-  
+
   return (
     <Box sx={{ px: 3, py: 2 }}>
       <CustomTypography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
         Item Metadata
       </CustomTypography>
-      
+
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, md: 6 }}>
           <DetailsSection
@@ -72,7 +68,7 @@ const OrderItemDetailSection: FC<Props> = ({ itemId }) => {
             ]}
           />
         </Grid>
-        
+
         <Grid size={{ xs: 12, md: 6 }}>
           <DetailsSection
             fields={[
@@ -89,7 +85,7 @@ const OrderItemDetailSection: FC<Props> = ({ itemId }) => {
             ]}
           />
         </Grid>
-        
+
         <Grid size={{ xs: 12 }}>
           <DetailsSection
             fields={[

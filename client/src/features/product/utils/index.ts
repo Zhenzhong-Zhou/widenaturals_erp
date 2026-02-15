@@ -2,10 +2,10 @@ export { flattenProductRecords } from './flattenProductListData';
 export { flattenProductDetail } from './flattenProductDetail';
 export {
   makeSeriesBrandCategoryField,
-  buildProductInfoFields
+  buildProductInfoFields,
 } from './productFieldFactory';
 export { getSeriesBrandCategoryHelperText } from './productFieldValidators';
 export {
   buildInitialInfoValues,
-  buildProductUpdateDelta
+  buildProductUpdateDelta,
 } from './productFormUtils';

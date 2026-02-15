@@ -33,21 +33,20 @@ const AppError = require('../utils/AppError');
  * @returns {Promise<{ data: Object[], pagination: Object }>}
  */
 const getPaginatedPackagingMaterialBatches = async ({
-                                                      filters = {},
-                                                      page = 1,
-                                                      limit = 20,
-                                                      sortBy = 'received_at',
-                                                      sortOrder = 'DESC',
-                                                    }) => {
+  filters = {},
+  page = 1,
+  limit = 20,
+  sortBy = 'received_at',
+  sortOrder = 'DESC',
+}) => {
   const context =
     'packaging-material-batch-repository/getPaginatedPackagingMaterialBatches';
-  
+
   // ------------------------------------
   // 1. Build WHERE clause
   // ------------------------------------
-  const { whereClause, params } =
-    buildPackagingMaterialBatchFilter(filters);
-  
+  const { whereClause, params } = buildPackagingMaterialBatchFilter(filters);
+
   // ------------------------------------
   // 2. Base query (flat, snapshot-first)
   // ------------------------------------
@@ -99,7 +98,7 @@ const getPaginatedPackagingMaterialBatches = async ({
     WHERE ${whereClause}
     ORDER BY ${sortBy} ${sortOrder}
   `;
-  
+
   try {
     // ------------------------------------
     // 3. Execute paginated query
@@ -111,18 +110,15 @@ const getPaginatedPackagingMaterialBatches = async ({
       limit,
       meta: { context },
     });
-    
-    logSystemInfo(
-      'Fetched paginated packaging material batches successfully',
-      {
-        context,
-        filters,
-        pagination: { page, limit },
-        sorting: { sortBy, sortOrder },
-        count: result.data.length,
-      }
-    );
-    
+
+    logSystemInfo('Fetched paginated packaging material batches successfully', {
+      context,
+      filters,
+      pagination: { page, limit },
+      sorting: { sortBy, sortOrder },
+      count: result.data.length,
+    });
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch packaging material batches', {
@@ -131,7 +127,7 @@ const getPaginatedPackagingMaterialBatches = async ({
       pagination: { page, limit },
       sorting: { sortBy, sortOrder },
     });
-    
+
     throw AppError.databaseError(
       'Failed to fetch packaging material batches.',
       { context }

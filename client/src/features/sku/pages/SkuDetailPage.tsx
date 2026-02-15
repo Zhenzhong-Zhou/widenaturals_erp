@@ -132,14 +132,10 @@ const SkuDetailPage: FC = () => {
    * Permission logic
    * --------------------------------------------------------- */
   const hasPermission = useHasPermission();
-  
-  const canViewInactive = hasPermission(
-    'view_all_product_statuses'
-  );
-  
-  const canUpdateStatus = hasPermission(
-    'update_sku_status'
-  );
+
+  const canViewInactive = hasPermission('view_all_product_statuses');
+
+  const canUpdateStatus = hasPermission('update_sku_status');
 
   /* ---------------------------------------------------------
    * Page title (memoized)
@@ -161,14 +157,9 @@ const SkuDetailPage: FC = () => {
   if (sku && isInactive && !canViewInactive) {
     return <Navigate to="/404" replace />;
   }
-  
+
   if (!product) {
-    return (
-      <Loading
-        variant="dotted"
-        message="Loading product details..."
-      />
-    );
+    return <Loading variant="dotted" message="Loading product details..." />;
   }
 
   /* ---------------------------------------------------------

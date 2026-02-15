@@ -7,15 +7,9 @@ import {
   selectChangePasswordSuccess,
   selectChangePasswordChangedAt,
 } from '@features/auth/password/state';
-import {
-  changePasswordThunk,
-} from '@features/auth';
-import {
-  resetChangePasswordState
-} from '@features/auth/password/state/changePasswordSlice';
-import type {
-  ChangePasswordRequest,
-} from '@features/auth';
+import { changePasswordThunk } from '@features/auth';
+import { resetChangePasswordState } from '@features/auth/password/state/changePasswordSlice';
+import type { ChangePasswordRequest } from '@features/auth';
 
 /**
  * React hook for authenticated password change workflow.
@@ -37,21 +31,21 @@ import type {
  */
 const useChangePassword = () => {
   const dispatch = useAppDispatch();
-  
+
   // ---------------------------
   // Selectors
   // ---------------------------
-  
+
   const data = useAppSelector(selectChangePasswordData);
   const loading = useAppSelector(selectChangePasswordLoading);
   const error = useAppSelector(selectChangePasswordError);
   const success = useAppSelector(selectChangePasswordSuccess);
   const changedAt = useAppSelector(selectChangePasswordChangedAt);
-  
+
   // ---------------------------
   // Actions
   // ---------------------------
-  
+
   /**
    * Dispatch password change request.
    */
@@ -61,7 +55,7 @@ const useChangePassword = () => {
     },
     [dispatch]
   );
-  
+
   /**
    * Reset slice state.
    * Useful when:
@@ -72,14 +66,14 @@ const useChangePassword = () => {
   const reset = useCallback(() => {
     dispatch(resetChangePasswordState());
   }, [dispatch]);
-  
+
   return {
     data,
     loading,
     error,
     success,
     changedAt,
-    
+
     changePassword,
     reset,
   };

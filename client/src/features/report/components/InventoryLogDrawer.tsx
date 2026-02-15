@@ -5,9 +5,9 @@ import LogHeader from './LogHeader';
 import InventoryLogMiniTable from './InventoryLogMiniTable';
 import type { InventoryLogSource } from '@features/report/state';
 import type { MergedInventoryActivityLogEntry } from '../utils/logUtils';
-import ErrorDisplay from '@components/shared/ErrorDisplay.tsx';
-import ErrorMessage from '@components/common/ErrorMessage.tsx';
-import CustomButton from '@components/common/CustomButton.tsx';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import ErrorMessage from '@components/common/ErrorMessage';
+import CustomButton from '@components/common/CustomButton';
 
 interface SidePanelDrawerProps {
   open: boolean;

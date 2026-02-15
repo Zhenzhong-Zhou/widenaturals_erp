@@ -34,13 +34,13 @@ const GuestRoute: FC<GuestRouteProps> = ({ children = <Outlet /> }) => {
   if (resolving) {
     return null;
   }
-  
+
   // Authenticated users cannot access guest routes
   if (isAuthenticated) {
     // Always send authenticated users to app entry
     return <Navigate to="/dashboard" replace />;
   }
-  
+
   // Guest access granted
   return <>{children}</>;
 };

@@ -1,4 +1,6 @@
-const { checkServerHealthService } = require('../services/server-health-service');
+const {
+  checkServerHealthService,
+} = require('../services/server-health-service');
 const AppError = require('../utils/AppError');
 const wrapAsync = require('../utils/wrap-async');
 
@@ -80,26 +82,22 @@ const getInternalStatus = wrapAsync(async (req, res, next) => {
 
 const cacheSession = async (sessionId, payload) => {
   const redis = getRedisClient();
-  
+
   if (!redis) {
     throw new Error('Redis not initialized');
   }
-  
-  await redis.setex(
-    `session:${sessionId}`,
-    3600,
-    JSON.stringify(payload)
-  );
+
+  await redis.setex(`session:${sessionId}`, 3600, JSON.stringify(payload));
 };
 
 // TODO: Admin health
 const checkRedisHealth = async () => {
   const redis = getRedisClient();
-  
+
   if (!redis) {
     return { status: 'unhealthy' };
   }
-  
+
   try {
     await redis.ping();
     return { status: 'healthy' };

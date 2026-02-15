@@ -27,19 +27,19 @@ export const getOrCreateDeviceId = (): string => {
   if (typeof window === 'undefined') {
     return 'server';
   }
-  
+
   try {
     let deviceId = localStorage.getItem('device_id');
-    
+
     if (!deviceId) {
       deviceId =
         typeof crypto?.randomUUID === 'function'
           ? crypto.randomUUID()
           : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      
+
       localStorage.setItem('device_id', deviceId);
     }
-    
+
     return deviceId;
   } catch {
     return 'unknown';

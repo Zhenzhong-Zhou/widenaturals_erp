@@ -23,7 +23,7 @@ const { logSystemException, logSystemInfo } = require('../utils/system-logger');
  */
 const getRolePermissionsByRoleId = async (roleId, statusId) => {
   const context = 'role-permission-repository/getRolePermissionsByRoleId';
-  
+
   const queryText = `
     SELECT
       r.name AS role_name,
@@ -37,23 +37,21 @@ const getRolePermissionsByRoleId = async (roleId, statusId) => {
       AND p.status_id = $2
     GROUP BY r.name
   `;
-  
+
   try {
     const result = await query(queryText, [roleId, statusId]);
-    
+
     if (!result.rows.length) {
-      throw AppError.notFoundError(
-        `No permissions found for role: ${roleId}`
-      );
+      throw AppError.notFoundError(`No permissions found for role: ${roleId}`);
     }
-    
+
     logSystemInfo('Fetched role permissions', {
       context,
       roleId,
       statusId,
       permissionCount: result.rows[0].permissions?.length ?? 0,
     });
-    
+
     return result.rows[0];
   } catch (error) {
     logSystemException(error, 'Failed to fetch role permissions', {
@@ -61,7 +59,7 @@ const getRolePermissionsByRoleId = async (roleId, statusId) => {
       roleId,
       statusId,
     });
-    
+
     throw AppError.databaseError(
       'Failed to fetch permissions for the specified role.'
     );

@@ -4,7 +4,7 @@ import TruncatedText from '@components/common/TruncatedText';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
 import { formatLabel } from '@utils/textUtils';
 import type { FlattenedProductRecord } from '@features/product/state/productTypes';
-import { formatDateTime } from '@utils/dateTimeUtils.ts';
+import { formatDateTime } from '@utils/dateTimeUtils';
 
 /**
  * Returns column definitions for the Product list table.

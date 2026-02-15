@@ -2,10 +2,7 @@ import { type FC, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import Grid from '@mui/material/Grid';
 import { FilterPanelLayout } from '@components/index';
-import {
-  renderDateField,
-  renderInputField,
-} from '@utils/filters/filterUtils';
+import { renderDateField, renderInputField } from '@utils/filters/filterUtils';
 import { formatLabel } from '@utils/textUtils';
 import { toISODate } from '@utils/dateTimeUtils';
 import type { BatchRegistryFilters } from '@features/batchRegistry/state';
@@ -47,7 +44,7 @@ interface Props {
   filters: BatchRegistryFilters;
   /** Lookup data & state (options, loading, etc.) */
   lookups: BatchRegistryFiltersPanelLookups;
-  
+
   /** Lookup UI handlers (lazy fetch on open, etc.) */
   lookupHandlers: BatchRegistryLookupHandlers;
   onChange: (filters: BatchRegistryFilters) => void;
@@ -73,11 +70,7 @@ const emptyFilters: BatchRegistryFilters = {
 };
 
 interface BatchRegistryDateField {
-  name:
-    | 'expiryAfter'
-    | 'expiryBefore'
-    | 'registeredAfter'
-    | 'registeredBefore';
+  name: 'expiryAfter' | 'expiryBefore' | 'registeredAfter' | 'registeredBefore';
   label: string;
 }
 
@@ -87,7 +80,7 @@ export const BATCH_REGISTRY_DATE_FIELDS: BatchRegistryDateField[] = [
   // ----------------------------------------
   { name: 'expiryAfter', label: 'Expiry Date ≥' },
   { name: 'expiryBefore', label: 'Expiry Date <' },
-  
+
   // ----------------------------------------
   // Registration date range
   // ----------------------------------------
@@ -109,20 +102,20 @@ export const BATCH_REGISTRY_DATE_FIELDS: BatchRegistryDateField[] = [
  * as BomFiltersPanel.
  */
 const BatchRegistryFiltersPanel: FC<Props> = ({
-                                                filters,
-                                                lookups,
-                                                lookupHandlers,
-                                                onChange,
-                                                onApply,
-                                                onReset,
-                                              }) => {
+  filters,
+  lookups,
+  lookupHandlers,
+  onChange,
+  onApply,
+  onReset,
+}) => {
   const { control, handleSubmit, reset, watch, setValue } =
     useForm<BatchRegistryFilters>({
       defaultValues: filters,
     });
-  
+
   const { product, sku, status } = lookups;
-  
+
   const productFilter = useFilterLookup({
     fieldName: 'productIds',
     lookup: product,
@@ -130,7 +123,7 @@ const BatchRegistryFiltersPanel: FC<Props> = ({
     setValue,
     useSearchHandlers: useProductSearchHandlers,
   });
-  
+
   const skuFilter = useFilterLookup({
     fieldName: 'skuIds',
     lookup: sku,
@@ -138,7 +131,7 @@ const BatchRegistryFiltersPanel: FC<Props> = ({
     setValue,
     useSearchHandlers: useSkuSearchHandlers,
   });
-  
+
   const packagingFilter = useFilterLookup({
     fieldName: 'packagingMaterialIds',
     lookup: lookups.packagingMaterial,
@@ -146,14 +139,14 @@ const BatchRegistryFiltersPanel: FC<Props> = ({
     setValue,
     useSearchHandlers: usePackagingMaterialSearchHandlers,
   });
-  
+
   // ----------------------------------------
   // Sync external filters
   // ----------------------------------------
   useEffect(() => {
     reset(filters);
   }, [filters, reset]);
-  
+
   // ----------------------------------------
   // Submit & reset handlers
   // ----------------------------------------
@@ -167,21 +160,21 @@ const BatchRegistryFiltersPanel: FC<Props> = ({
       registeredBefore: toISODate(data.registeredBefore),
       keyword: data.keyword || undefined,
     };
-    console.log('adjusted', adjusted)
+    console.log('adjusted', adjusted);
     onChange(adjusted);
     onApply();
   };
-  
+
   const resetFilters = () => {
     reset(emptyFilters);
-    
+
     productFilter.reset();
     skuFilter.reset();
     packagingFilter.reset();
-    
+
     onReset();
   };
-  
+
   // -------------------------------
   // Multi-select bindings (RHF ↔ UI)
   // -------------------------------
@@ -194,7 +187,7 @@ const BatchRegistryFiltersPanel: FC<Props> = ({
     fieldName: 'statusIds',
     options: status.options,
   });
-  
+
   // -------------------------------
   // Derived lookup options
   // -------------------------------
@@ -202,7 +195,7 @@ const BatchRegistryFiltersPanel: FC<Props> = ({
     status.options,
     formatLabel
   );
-  
+
   // ----------------------------------------
   // Render
   // ----------------------------------------
@@ -225,7 +218,7 @@ const BatchRegistryFiltersPanel: FC<Props> = ({
               onInputChange={productFilter.onInputChange}
             />
           </Grid>
-          
+
           <Grid size={{ xs: 12, md: 6 }}>
             <SkuMultiSelectDropdown
               options={sku.options}
@@ -241,7 +234,7 @@ const BatchRegistryFiltersPanel: FC<Props> = ({
               onInputChange={skuFilter.onInputChange}
             />
           </Grid>
-          
+
           <Grid size={{ xs: 12, md: 6 }}>
             <PackagingMaterialMultiSelectDropdown
               options={lookups.packagingMaterial.options}
@@ -257,7 +250,7 @@ const BatchRegistryFiltersPanel: FC<Props> = ({
               onInputChange={packagingFilter.onInputChange}
             />
           </Grid>
-          
+
           <Grid size={{ xs: 12, md: 6 }}>
             <StatusMultiSelectDropdown
               options={formattedStatusOptions}
@@ -266,7 +259,7 @@ const BatchRegistryFiltersPanel: FC<Props> = ({
               onOpen={lookupHandlers.onOpen.status}
             />
           </Grid>
-          
+
           {/* --- Keyword search --- */}
           {renderInputField(
             control,
@@ -274,14 +267,10 @@ const BatchRegistryFiltersPanel: FC<Props> = ({
             'Keyword',
             'Lot, product, SKU, material, supplier'
           )}
-          
+
           {/* --- Lot --- */}
-          {renderInputField(
-            control,
-            'lotNumber',
-            'Lot Number'
-          )}
-          
+          {renderInputField(control, 'lotNumber', 'Lot Number')}
+
           {/* ------------------------------------
            * Date range filters
            * ------------------------------------ */}

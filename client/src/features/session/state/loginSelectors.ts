@@ -6,8 +6,7 @@ import type { LoginResponseData } from '@features/session';
 /**
  * Base selector — retrieves the full `login` slice.
  */
-const selectLoginState = (state: RootState) =>
-  selectRuntime(state).login;
+const selectLoginState = (state: RootState) => selectRuntime(state).login;
 
 /**
  * Selector: returns the login response data or null.

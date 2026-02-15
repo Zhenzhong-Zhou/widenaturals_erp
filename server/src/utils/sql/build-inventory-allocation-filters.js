@@ -15,7 +15,10 @@
  * - CTE subqueries joined with orders, batches, and customers
  */
 
-const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
+const {
+  normalizeDateRangeFilters,
+  applyDateRangeConditions,
+} = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
@@ -106,7 +109,11 @@ const buildInventoryAllocationFilter = (filters = {}) => {
     // -------------------------------------------------------------
     // Normalize ALL date-only filters FIRST
     // -------------------------------------------------------------
-    filters = normalizeDateRangeFilters(filters, 'allocatedAfter', 'allocatedBefore');
+    filters = normalizeDateRangeFilters(
+      filters,
+      'allocatedAfter',
+      'allocatedBefore'
+    );
     filters = normalizeDateRangeFilters(
       filters,
       'aggregatedAllocatedAfter',
@@ -117,43 +124,49 @@ const buildInventoryAllocationFilter = (filters = {}) => {
       'aggregatedCreatedAfter',
       'aggregatedCreatedBefore'
     );
-    
+
     const rawAllocConditions = ['1=1'];
     const outerConditions = ['1=1'];
-    
+
     const rawAllocParams = [];
     const outerParams = [];
-    
+
     const rawIndexRef = { value: 1 };
     const outerIndexRef = { value: 1 };
-    
+
     // -------------------------------------------------------------
     // RAW allocation-level filters (ia.*)
     // -------------------------------------------------------------
     if (filters.statusIds?.length) {
-      rawAllocConditions.push(`ia.status_id = ANY($${rawIndexRef.value}::uuid[])`);
+      rawAllocConditions.push(
+        `ia.status_id = ANY($${rawIndexRef.value}::uuid[])`
+      );
       rawAllocParams.push(filters.statusIds);
       rawIndexRef.value++;
     }
-    
+
     if (filters.warehouseIds?.length) {
-      rawAllocConditions.push(`ia.warehouse_id = ANY($${rawIndexRef.value}::uuid[])`);
+      rawAllocConditions.push(
+        `ia.warehouse_id = ANY($${rawIndexRef.value}::uuid[])`
+      );
       rawAllocParams.push(filters.warehouseIds);
       rawIndexRef.value++;
     }
-    
+
     if (filters.batchIds?.length) {
-      rawAllocConditions.push(`ia.batch_id = ANY($${rawIndexRef.value}::uuid[])`);
+      rawAllocConditions.push(
+        `ia.batch_id = ANY($${rawIndexRef.value}::uuid[])`
+      );
       rawAllocParams.push(filters.batchIds);
       rawIndexRef.value++;
     }
-    
+
     if (filters.allocationCreatedBy) {
       rawAllocConditions.push(`ia.created_by = $${rawIndexRef.value}`);
       rawAllocParams.push(filters.allocationCreatedBy);
       rawIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Allocation timestamp filters (via helper)
     // ------------------------------
@@ -165,7 +178,7 @@ const buildInventoryAllocationFilter = (filters = {}) => {
       before: filters.allocatedBefore,
       paramIndexRef: rawIndexRef,
     });
-    
+
     // -------------------------------------------------------------
     // OUTER / aggregated order-level filters
     // -------------------------------------------------------------
@@ -177,7 +190,7 @@ const buildInventoryAllocationFilter = (filters = {}) => {
       before: filters.aggregatedAllocatedBefore,
       paramIndexRef: outerIndexRef,
     });
-    
+
     applyDateRangeConditions({
       conditions: outerConditions,
       params: outerParams,
@@ -186,37 +199,37 @@ const buildInventoryAllocationFilter = (filters = {}) => {
       before: filters.aggregatedCreatedBefore,
       paramIndexRef: outerIndexRef,
     });
-    
+
     if (filters.orderNumber) {
       outerConditions.push(`o.order_number ILIKE $${outerIndexRef.value}`);
       outerParams.push(`%${filters.orderNumber}%`);
       outerIndexRef.value++;
     }
-    
+
     if (filters.orderStatusId) {
       outerConditions.push(`o.order_status_id = $${outerIndexRef.value}`);
       outerParams.push(filters.orderStatusId);
       outerIndexRef.value++;
     }
-    
+
     if (filters.orderTypeId) {
       outerConditions.push(`o.order_type_id = $${outerIndexRef.value}`);
       outerParams.push(filters.orderTypeId);
       outerIndexRef.value++;
     }
-    
+
     if (filters.orderCreatedBy) {
       outerConditions.push(`o.created_by = $${outerIndexRef.value}`);
       outerParams.push(filters.orderCreatedBy);
       outerIndexRef.value++;
     }
-    
+
     if (filters.paymentStatusId) {
       outerConditions.push(`so.payment_status_id = $${outerIndexRef.value}`);
       outerParams.push(filters.paymentStatusId);
       outerIndexRef.value++;
     }
-    
+
     if (filters.keyword) {
       outerConditions.push(`(
         o.order_number ILIKE $${outerIndexRef.value} OR
@@ -225,7 +238,7 @@ const buildInventoryAllocationFilter = (filters = {}) => {
       outerParams.push(`%${filters.keyword}%`);
       outerIndexRef.value++;
     }
-    
+
     return {
       rawAllocWhereClause: rawAllocConditions.join(' AND '),
       rawAllocParams,
@@ -238,7 +251,7 @@ const buildInventoryAllocationFilter = (filters = {}) => {
       error: err.message,
       filters,
     });
-    
+
     throw AppError.databaseError(
       'Failed to prepare inventory allocation filter',
       {

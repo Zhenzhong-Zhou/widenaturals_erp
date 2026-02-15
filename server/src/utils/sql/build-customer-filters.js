@@ -13,7 +13,10 @@
  * - Address presence logic (has/hasn't addresses)
  */
 
-const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
+const {
+  normalizeDateRangeFilters,
+  applyDateRangeConditions,
+} = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
@@ -58,13 +61,21 @@ const buildCustomerFilter = (filters = {}) => {
     // -------------------------------------------------------------
     // Normalize date range filters FIRST
     // -------------------------------------------------------------
-    filters = normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore');
-    filters = normalizeDateRangeFilters(filters, 'statusDateAfter', 'statusDateBefore');
-    
+    filters = normalizeDateRangeFilters(
+      filters,
+      'createdAfter',
+      'createdBefore'
+    );
+    filters = normalizeDateRangeFilters(
+      filters,
+      'statusDateAfter',
+      'statusDateBefore'
+    );
+
     const conditions = ['1=1'];
     const params = [];
     const paramIndexRef = { value: 1 };
-    
+
     // ------------------------------
     // Created by
     // ------------------------------
@@ -73,25 +84,25 @@ const buildCustomerFilter = (filters = {}) => {
       params.push(filters.createdBy);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Keyword search
     // ------------------------------
     if (filters.keyword) {
       const keywordParam1 = `${filters.keyword}%`;
       const keywordParam2 = `%${filters.keyword}%`;
-      
+
       conditions.push(`(
         c.firstname ILIKE $${paramIndexRef.value} OR
         c.lastname ILIKE $${paramIndexRef.value} OR
         c.email ILIKE $${paramIndexRef.value + 1} OR
         c.phone_number ILIKE $${paramIndexRef.value + 1}
       )`);
-      
+
       params.push(keywordParam1, keywordParam2);
       paramIndexRef.value += 2;
     }
-    
+
     // ------------------------------
     // Status filter (with fallback)
     // ------------------------------
@@ -105,7 +116,7 @@ const buildCustomerFilter = (filters = {}) => {
       params.push(filters._activeStatusId);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Created date filters (via helper)
     // ------------------------------
@@ -117,7 +128,7 @@ const buildCustomerFilter = (filters = {}) => {
       before: filters.createdBefore,
       paramIndexRef,
     });
-    
+
     // ------------------------------
     // Status date filters (via helper)
     // ------------------------------
@@ -129,7 +140,7 @@ const buildCustomerFilter = (filters = {}) => {
       before: filters.statusDateBefore,
       paramIndexRef,
     });
-    
+
     // ------------------------------
     // Address existence filters
     // ------------------------------
@@ -142,7 +153,7 @@ const buildCustomerFilter = (filters = {}) => {
         `NOT EXISTS (SELECT 1 FROM addresses a WHERE a.customer_id = c.id)`
       );
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,

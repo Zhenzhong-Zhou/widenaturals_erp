@@ -8,7 +8,10 @@
  * accounts, and supports optional filtering on user and audit fields.
  */
 
-const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
+const {
+  normalizeDateRangeFilters,
+  applyDateRangeConditions,
+} = require('./date-range-utils');
 const { addIlikeFilter } = require('./sql-helpers');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
@@ -115,24 +118,29 @@ const buildUserFilter = (filters = {}, options = {}) => {
     // -------------------------------------------------------------
     // Normalize UI date filters
     // -------------------------------------------------------------
-    filters = normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore');
-    filters = normalizeDateRangeFilters(filters, 'updatedAfter', 'updatedBefore');
-    
+    filters = normalizeDateRangeFilters(
+      filters,
+      'createdAfter',
+      'createdBefore'
+    );
+    filters = normalizeDateRangeFilters(
+      filters,
+      'updatedAfter',
+      'updatedBefore'
+    );
+
     const conditions = ['1=1'];
     const params = [];
     const paramIndexRef = { value: 1 };
-    
+
     const includeSystemUsers = filters.includeSystemUsers === true;
     const includeRootUsers = filters.includeRootUsers === true;
     const enforceActiveOnly = filters.enforceActiveOnly === true;
     const hasStatusFilter =
       Array.isArray(filters.statusIds) && filters.statusIds.length > 0;
-    
-    const {
-      canSearchRole = false,
-      canSearchStatus = false,
-    } = options;
-    
+
+    const { canSearchRole = false, canSearchStatus = false } = options;
+
     // ------------------------------------
     // Visibility rules (service-controlled)
     // ------------------------------------
@@ -154,7 +162,7 @@ const buildUserFilter = (filters = {}, options = {}) => {
         )
       `);
     }
-    
+
     // ------------------------------------
     // Status visibility rules
     // ------------------------------------
@@ -165,7 +173,7 @@ const buildUserFilter = (filters = {}, options = {}) => {
       params.push(filters.activeStatusId);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // User-level filters
     // ------------------------------
@@ -174,25 +182,25 @@ const buildUserFilter = (filters = {}, options = {}) => {
       params.push(filters.statusIds);
       paramIndexRef.value++;
     }
-    
+
     if (filters.roleIds?.length) {
       conditions.push(`u.role_id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.roleIds);
       paramIndexRef.value++;
     }
-    
+
     if (filters.createdBy) {
       conditions.push(`u.created_by = $${paramIndexRef.value}`);
       params.push(filters.createdBy);
       paramIndexRef.value++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`u.updated_by = $${paramIndexRef.value}`);
       params.push(filters.updatedBy);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Created / Updated date filters
     // ------------------------------
@@ -204,7 +212,7 @@ const buildUserFilter = (filters = {}, options = {}) => {
       before: filters.createdBefore,
       paramIndexRef,
     });
-    
+
     applyDateRangeConditions({
       conditions,
       params,
@@ -213,7 +221,7 @@ const buildUserFilter = (filters = {}, options = {}) => {
       before: filters.updatedBefore,
       paramIndexRef,
     });
-    
+
     // ------------------------------
     // Text filters (ILIKE helpers)
     // ------------------------------
@@ -252,7 +260,7 @@ const buildUserFilter = (filters = {}, options = {}) => {
       filters.jobTitle,
       'u.job_title'
     );
-    
+
     // ------------------------------
     // Keyword fuzzy search (permission-aware)
     // ------------------------------
@@ -263,22 +271,22 @@ const buildUserFilter = (filters = {}, options = {}) => {
         `u.email     ILIKE $${paramIndexRef.value}`,
         `u.job_title ILIKE $${paramIndexRef.value}`,
       ];
-      
+
       // Role name search (privileged)
       if (canSearchRole) {
         keywordConditions.push(`r.name ILIKE $${paramIndexRef.value}`);
       }
-      
+
       // Status name search (privileged)
       if (canSearchStatus) {
         keywordConditions.push(`s.name ILIKE $${paramIndexRef.value}`);
       }
-      
+
       conditions.push(`(${keywordConditions.join(' OR ')})`);
       params.push(`%${filters.keyword}%`);
       paramIndexRef.value++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -288,7 +296,7 @@ const buildUserFilter = (filters = {}, options = {}) => {
       context: 'user-repository/buildUserFilter',
       filters,
     });
-    
+
     throw AppError.databaseError('Failed to prepare user filter', {
       details: err.message,
     });

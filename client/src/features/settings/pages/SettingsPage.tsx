@@ -24,9 +24,9 @@ const SettingsPage = () => {
       <Typography variant="h5" gutterBottom>
         Settings
       </Typography>
-      
+
       <Divider sx={{ my: 3 }} />
-      
+
       <ThemeSettingsPanel />
     </Box>
   );

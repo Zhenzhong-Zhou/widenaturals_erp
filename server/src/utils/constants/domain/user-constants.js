@@ -3,19 +3,19 @@ const USER_CONSTANTS = {
     // -------------------------------------------------
     // User creation & provisioning (mutating actions)
     // -------------------------------------------------
-    
+
     CREATE_USERS: 'create_users',
     // Allows creating standard (non-system, non-root) users
-    
+
     CREATE_ADMIN_USERS: 'create_admin_users',
     // Allows creating admin-level users (excluding root)
-    
+
     CREATE_SYSTEM_USERS: 'create_system_users',
     // Allows creating system / automation users (is_system = true)
-    
+
     CREATE_ROOT_USERS: 'create_root_users',
     // Allows creating root-level users (highest privilege accounts)
-    
+
     // -------------------------------------------------
     // Visibility controls (read-only access)
     // -------------------------------------------------
@@ -42,32 +42,32 @@ const USER_CONSTANTS = {
 
     VIEW_USER_AVATARS: 'view_user_avatars',
     // Allows viewing avatars of other users
-    
+
     // -------------------------------------------------
     // Lookup & search capabilities (read-only, scoped)
     // -------------------------------------------------
-    
+
     SEARCH_USERS_BY_ROLE: 'search_users_by_role',
     // Allows keyword search against role name in user lookups
     // Enables JOIN on roles table for lookup queries only
-    
+
     SEARCH_USERS_BY_STATUS: 'search_users_by_status',
     // Allows keyword search against status name in user lookups
     // Enables JOIN on statuses table for lookup queries only
-    
+
     // -------------------------------------------------
     // Password & Credential Management
     // -------------------------------------------------
-    
+
     CHANGE_SELF_PASSWORD: 'change_self_password',
     // Allows authenticated user to change their own password
-    
+
     RESET_ANY_USER_PASSWORD: 'reset_any_user_password',
     // Allows resetting another user's password (admin-level action)
-    
+
     FORCE_RESET_ANY_USER_PASSWORD: 'force_reset_any_user_password',
     // Allows forcing password reset flag (require change on next login)
-    
+
     // -------------------------------------------------
     // Administrative capabilities (mutating actions)
     // -------------------------------------------------

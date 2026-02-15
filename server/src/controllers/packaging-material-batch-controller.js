@@ -26,40 +26,35 @@ const getPaginatedPackagingMaterialBatchesController = wrapAsync(
     const context =
       'packaging-material-batch-controller/getPaginatedPackagingMaterialBatchesController';
     const startTime = Date.now();
-    
+
     // -------------------------------------------------
     // 1. Extract normalized query params
     // -------------------------------------------------
     // Normalized and schema-validated by upstream middleware
-    const { page, limit, sortBy, sortOrder, filters } =
-      req.normalizedQuery;
-    
+    const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
+
     // Authenticated requester
     const user = req.auth.user;
-    
+
     if (!user) {
       throw AppError.authorizationError('Authenticated user missing');
     }
-    
+
     // Trace identifier for cross-layer correlation
     const traceId = `packaging-material-batch-${Date.now().toString(36)}`;
-    
+
     // -------------------------------------------------
     // 2. Incoming request log
     // -------------------------------------------------
-    logInfo(
-      'Incoming request: fetch packaging material batches',
-      req,
-      {
-        context,
-        traceId,
-        userId: user.id,
-        pagination: { page, limit },
-        sorting: { sortBy, sortOrder },
-        filters,
-      }
-    );
-    
+    logInfo('Incoming request: fetch packaging material batches', req, {
+      context,
+      traceId,
+      userId: user.id,
+      pagination: { page, limit },
+      sorting: { sortBy, sortOrder },
+      filters,
+    });
+
     // -------------------------------------------------
     // 3. Execute service layer
     // -------------------------------------------------
@@ -74,25 +69,21 @@ const getPaginatedPackagingMaterialBatchesController = wrapAsync(
         sortOrder,
         user,
       });
-    
+
     const elapsedMs = Date.now() - startTime;
-    
+
     // -------------------------------------------------
     // 4. Completion log
     // -------------------------------------------------
-    logInfo(
-      'Completed fetch packaging material batches',
-      req,
-      {
-        context,
-        traceId,
-        pagination,
-        sorting: { sortBy, sortOrder },
-        count: data.length,
-        elapsedMs,
-      }
-    );
-    
+    logInfo('Completed fetch packaging material batches', req, {
+      context,
+      traceId,
+      pagination,
+      sorting: { sortBy, sortOrder },
+      count: data.length,
+      elapsedMs,
+    });
+
     // -------------------------------------------------
     // 5. Send response
     // -------------------------------------------------

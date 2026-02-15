@@ -6,7 +6,7 @@ export { productBatchReducers } from './productBatchReducers';
 // --------------------------------------------------
 // Reset Actions (explicit public lifecycle API)
 // --------------------------------------------------
-export { resetPaginatedProductBatches } from './paginatedProductBatchesSlice.ts';
+export { resetPaginatedProductBatches } from './paginatedProductBatchesSlice';
 
 // --------------------------------------------------
 // Selectors

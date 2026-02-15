@@ -1,8 +1,4 @@
-import {
-  useProductLookup,
-  useSkuLookup,
-  useStatusLookup,
-} from '@hooks/index';
+import { useProductLookup, useSkuLookup, useStatusLookup } from '@hooks/index';
 
 /**
  * useCommonProductLookups
@@ -21,7 +17,7 @@ const useCommonProductLookups = () => {
   const product = useProductLookup();
   const sku = useSkuLookup();
   const status = useStatusLookup();
-  
+
   return {
     product,
     sku,

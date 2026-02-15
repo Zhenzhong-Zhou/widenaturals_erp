@@ -1,5 +1,9 @@
 import { type BaseSyntheticEvent, useId } from 'react';
-import { Controller, type FieldValues, type UseFormReset } from 'react-hook-form';
+import {
+  Controller,
+  type FieldValues,
+  type UseFormReset,
+} from 'react-hook-form';
 import Paper from '@mui/material/Paper';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
@@ -9,7 +13,7 @@ import {
   BaseInput,
   CustomButton,
   CustomDatePicker,
-  CustomTypography
+  CustomTypography,
 } from '@components/index';
 import { toISODate } from '@utils/dateTimeUtils';
 import { BatchEntityType } from '@shared-types/batch';
@@ -54,34 +58,36 @@ interface Props<T extends FieldValues> {
  * - Keeps UI logic separate from API formatting concerns
  */
 const BaseInventoryFilterPanel = <T extends BaseInventoryFilters>({
-                                                                    control,
-                                                                    handleSubmit,
-                                                                    onApply,
-                                                                    onReset,
-                                                                    reset,
-                                                                    watch,
-                                                                    initialFilters,
-                                                                    fields,
-                                                                    visibleFields,
-                                                                    showActionsWhenAll,
-                                                                    requireBatchTypeForActions,
-                                                                  }: Props<T>) => {
+  control,
+  handleSubmit,
+  onApply,
+  onReset,
+  reset,
+  watch,
+  initialFilters,
+  fields,
+  visibleFields,
+  showActionsWhenAll,
+  requireBatchTypeForActions,
+}: Props<T>) => {
   const batchType = watch('batchType');
-  
+
   const showField = (name: string) => {
     if (visibleFields && !visibleFields.includes(name as keyof T)) return false;
-    
+
     if (
       (name.startsWith('product') || name === 'sku') &&
       batchType !== 'product'
     ) {
       return false;
     }
-    
-    return !((name.startsWith('material') || name.startsWith('part')) &&
-      batchType !== 'packaging_material');
+
+    return !(
+      (name.startsWith('material') || name.startsWith('part')) &&
+      batchType !== 'packaging_material'
+    );
   };
-  
+
   const handleApply = (values: T) => {
     const normalized = Object.fromEntries(
       Object.entries(values).map(([key, value]) => [
@@ -91,7 +97,7 @@ const BaseInventoryFilterPanel = <T extends BaseInventoryFilters>({
     ) as T;
     onApply(normalized);
   };
-  
+
   return (
     <Paper
       elevation={1}
@@ -105,7 +111,7 @@ const BaseInventoryFilterPanel = <T extends BaseInventoryFilters>({
       <CustomTypography variant="body1" sx={{ mb: 2 }}>
         Filters
       </CustomTypography>
-      
+
       <Box component="form" onSubmit={handleSubmit(handleApply)} sx={{ mb: 2 }}>
         <Grid container spacing={2}>
           {fields.map(({ name, label, type = 'text', options }) =>
@@ -125,7 +131,7 @@ const BaseInventoryFilterPanel = <T extends BaseInventoryFilters>({
                         />
                       );
                     }
-                    
+
                     if (type === 'select') {
                       const fieldId = useId();
                       return (
@@ -149,7 +155,7 @@ const BaseInventoryFilterPanel = <T extends BaseInventoryFilters>({
                         </BaseInput>
                       );
                     }
-                    
+
                     return (
                       <BaseInput
                         {...field}
@@ -164,10 +170,9 @@ const BaseInventoryFilterPanel = <T extends BaseInventoryFilters>({
               </Grid>
             ) : null
           )}
-          
+
           {showActionsWhenAll &&
-            (!requireBatchTypeForActions ||
-              (batchType !== undefined)) && (
+            (!requireBatchTypeForActions || batchType !== undefined) && (
               <Grid size={{ xs: 12, sm: 6 }}>
                 <Stack direction="row" spacing={2}>
                   <CustomButton type="submit" variant="contained">
@@ -182,11 +187,11 @@ const BaseInventoryFilterPanel = <T extends BaseInventoryFilters>({
                           v instanceof Date ? null : v,
                         ])
                       ) as T;
-                      
+
                       reset(uiResetValues, {
                         keepDefaultValues: true,
                       });
-                      
+
                       onReset?.();
                     }}
                   >

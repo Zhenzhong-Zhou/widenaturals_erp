@@ -27,12 +27,12 @@ import { resetCreateUserState } from '@features/user/state/createUserSlice';
  */
 const useCreateUser = () => {
   const dispatch = useAppDispatch();
-  
+
   const data = useAppSelector(selectCreateUserData);
   const loading = useAppSelector(selectCreateUserLoading);
   const error = useAppSelector(selectCreateUserError);
   const success = useAppSelector(selectCreateUserSuccess);
-  
+
   /**
    * Dispatches the thunk to create a user.
    *
@@ -44,7 +44,7 @@ const useCreateUser = () => {
     },
     [dispatch]
   );
-  
+
   /**
    * Resets the create-user state to its initial value.
    *
@@ -56,7 +56,7 @@ const useCreateUser = () => {
   const resetCreateUser = useCallback(() => {
     dispatch(resetCreateUserState());
   }, [dispatch]);
-  
+
   return {
     data,
     loading,

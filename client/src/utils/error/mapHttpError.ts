@@ -1,5 +1,5 @@
-import { AppError } from '@utils/error/AppError.tsx';
-import { isAxiosLikeError } from './isAxiosLikeError.ts';
+import { AppError } from '@utils/error/AppError';
+import { isAxiosLikeError } from './isAxiosLikeError';
 
 /* =========================================================
  * HTTP → Domain Error Mapper
@@ -30,7 +30,7 @@ export const mapHttpError = (error: unknown): AppError => {
   if (error instanceof AppError) {
     return error;
   }
-  
+
   if (isAxiosLikeError(error)) {
     const status = error.response?.status;
 

@@ -10,7 +10,7 @@ import {
   CustomTypography,
   ErrorMessage,
   GoBackButton,
-  Loading
+  Loading,
 } from '@components/index';
 import {
   AllocationOrderHeaderSection,
@@ -20,7 +20,7 @@ import { InitiateFulfillmentModal } from '@features/outboundFulfillment/componen
 import { getShortOrderNumber } from '@features/order/utils';
 import {
   useInventoryAllocationConfirmation,
-  useInventoryAllocationReview
+  useInventoryAllocationReview,
 } from '@hooks/index';
 
 interface LocationState {
@@ -122,17 +122,16 @@ const InventoryAllocationReviewPage = () => {
     if (!allocationReviewItems || allocationReviewItems.length === 0)
       return false;
 
-    return allocationReviewItems.some(
-      (item) =>
-        confirmableStatusCodes.includes(item.allocationStatusCode)
+    return allocationReviewItems.some((item) =>
+      confirmableStatusCodes.includes(item.allocationStatusCode)
     );
   }, [allocationReviewItems]);
-  
+
   const canInitiateFulfillment = useMemo(() => {
     if (!allocationReviewItems || allocationReviewItems.length === 0) {
       return false;
     }
-    
+
     return allocationReviewItems.some(
       (item) => item.allocationStatusCode === 'ALLOC_CONFIRMED'
     );
@@ -152,7 +151,7 @@ const InventoryAllocationReviewPage = () => {
   if (isReviewLoading || isConfirming) {
     return <Loading message="Loading allocation review..." />;
   }
-  
+
   if (!allocationReviewHeader) {
     return <ErrorMessage message="Allocation review not found." />;
   }

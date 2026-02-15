@@ -1,9 +1,9 @@
-import { type Column } from '@components/common/CustomTable.tsx';
+import { type Column } from '@components/common/CustomTable';
 import { type FlattenedOrderItemRow } from '@features/order/state';
-import { formatCurrency, formatLabel } from '@utils/textUtils.ts';
-import { formatDate } from '@utils/dateTimeUtils.ts';
-import { createDrillDownColumn } from '@utils/table/createDrillDownColumn.tsx';
-import { formatItemStatus } from '@utils/formatters.tsx';
+import { formatCurrency, formatLabel } from '@utils/textUtils';
+import { formatDate } from '@utils/dateTimeUtils';
+import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
+import { formatItemStatus } from '@utils/formatters';
 
 export const getOrderItemColumns = (
   expandedRowId: string | null,
@@ -30,14 +30,14 @@ export const getOrderItemColumns = (
       label: 'Code',
       renderCell: (row) =>
         row.itemType === 'sku'
-          ? row.skuCode ?? '—'
-          : row.packagingMaterialCode ?? '—',
+          ? (row.skuCode ?? '—')
+          : (row.packagingMaterialCode ?? '—'),
     },
     {
       id: 'barcode',
       label: 'Barcode',
       renderCell: (row) =>
-        row.itemType === 'sku' ? row.barcode ?? '—' : '—',
+        row.itemType === 'sku' ? (row.barcode ?? '—') : '—',
     },
     {
       id: 'quantityOrdered',
@@ -65,8 +65,7 @@ export const getOrderItemColumns = (
     {
       id: 'status',
       label: 'Status',
-      renderCell: (row) =>
-        formatItemStatus(row.statusCode, row.statusName),
+      renderCell: (row) => formatItemStatus(row.statusCode, row.statusName),
     },
     {
       id: 'statusDate',
@@ -80,11 +79,11 @@ export const getOrderItemColumns = (
     },
     ...(handleDrillDownToggle
       ? [
-        createDrillDownColumn<FlattenedOrderItemRow>(
-          (row) => handleDrillDownToggle(row.orderItemId),
-          (row) => expandedRowId === row.orderItemId
-        ),
-      ]
+          createDrillDownColumn<FlattenedOrderItemRow>(
+            (row) => handleDrillDownToggle(row.orderItemId),
+            (row) => expandedRowId === row.orderItemId
+          ),
+        ]
       : []),
   ];
 };

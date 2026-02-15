@@ -11,7 +11,7 @@ import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { AppError } from '@utils/error';
 import { selectCsrfToken } from '@features/csrf/state';
 import { store } from '@store/store';
-import { getOrCreateDeviceId } from '@utils/deviceId.ts';
+import { getOrCreateDeviceId } from '@utils/deviceId';
 
 /* =========================================================
  * Login
@@ -62,15 +62,12 @@ const login = async (
       passwordProvided: Boolean(password),
     });
   }
-  
+
   const payload: LoginRequestBody = { email, password };
-  
+
   const deviceId = getOrCreateDeviceId();
-  
-  const response = await postRequest<
-    LoginRequestBody,
-    LoginApiResponse
-  >(
+
+  const response = await postRequest<LoginRequestBody, LoginApiResponse>(
     API_ENDPOINTS.SECURITY.SESSION.LOGIN,
     payload,
     {
@@ -80,21 +77,21 @@ const login = async (
           'X-Device-Id': deviceId,
         },
       },
-    },
+    }
   );
-  
+
   // Validate response envelope
   if (!response?.success || !response.data) {
     throw AppError.server('Invalid login response envelope');
   }
-  
+
   const { accessToken, csrfToken } = response.data;
-  
+
   // Validate required authentication artifacts
   if (!accessToken || !csrfToken) {
     throw AppError.server('Invalid login response payload');
   }
-  
+
   return response.data;
 };
 
@@ -161,17 +158,17 @@ const refreshToken = async (): Promise<RefreshTokenResponseData | null> => {
     // Retry budget exhausted — treat as unauthenticated
     return null;
   }
-  
+
   refreshAttemptCount += 1;
-  
+
   try {
     // CSRF token is read synchronously from Redux state
     const csrfToken = selectCsrfToken(store.getState());
-    
+
     if (!csrfToken) {
       return null; // bootstrap-safe
     }
-    
+
     const response = await rawAxios.post<RefreshTokenApiResponse>(
       API_ENDPOINTS.SECURITY.SESSION.REFRESH,
       undefined,
@@ -181,25 +178,25 @@ const refreshToken = async (): Promise<RefreshTokenResponseData | null> => {
         },
       }
     );
-    
+
     if (!response?.data?.success) {
       return null;
     }
-    
+
     const accessToken = response.data.data?.accessToken;
     if (!accessToken) {
       return null;
     }
-    
+
     refreshAttemptCount = 0;
     return { accessToken };
   } catch (error: any) {
     refreshAttemptCount = 0;
-    
+
     if (error?.response?.status === 401) {
       return null; // expected unauthenticated
     }
-    
+
     throw AppError.network('Session refresh failed');
   }
 };

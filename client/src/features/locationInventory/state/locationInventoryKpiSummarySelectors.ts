@@ -49,8 +49,7 @@ export const selectKpiSummaryTotalRow = createSelector(
   [selectKpiSummaryData],
   (data) =>
     data.find(
-      (item: LocationInventoryKpiSummaryItem) =>
-        item.batchType === 'total'
+      (item: LocationInventoryKpiSummaryItem) => item.batchType === 'total'
     )
 );
 
@@ -63,8 +62,7 @@ export const selectKpiSummaryProductRow = createSelector(
   [selectKpiSummaryData],
   (data) =>
     data.find(
-      (item: LocationInventoryKpiSummaryItem) =>
-        item.batchType === 'product'
+      (item: LocationInventoryKpiSummaryItem) => item.batchType === 'product'
     )
 );
 

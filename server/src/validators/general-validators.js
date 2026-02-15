@@ -493,8 +493,8 @@ const expiryDateRangeSchema = Joi.object({
  */
 const createBooleanFlag = (fieldName) =>
   Joi.boolean()
-    .truthy('true')
-    .falsy('false')
+    .truthy('true', 'TRUE', '1', 1)
+    .falsy('false', 'FALSE', '0', 0)
     .optional()
     .allow(null)
     .label(fieldName);
@@ -567,14 +567,11 @@ const optionalIsoDate = (label = 'Date') =>
  * - invalid formats
  */
 const requiredIsoDate = () =>
-  Joi.date()
-    .iso()
-    .required()
-    .messages({
-      'any.required': 'Date is required',
-      'date.base': 'Date must be a valid ISO-8601 value',
-      'date.format': 'Date must be in ISO-8601 format',
-    });
+  Joi.date().iso().required().messages({
+    'any.required': 'Date is required',
+    'date.base': 'Date must be a valid ISO-8601 value',
+    'date.format': 'Date must be in ISO-8601 format',
+  });
 
 module.exports = {
   validateEmail,

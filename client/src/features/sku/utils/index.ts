@@ -5,10 +5,7 @@ export {
   flattenComplianceRecords,
   flattenPricingRecords,
 } from './flattenSkuDetailData';
-export {
-  buildSingleSkuFields,
-  buildBulkSkuFields
-} from './skuFieldFactory';
+export { buildSingleSkuFields, buildBulkSkuFields } from './skuFieldFactory';
 export {
   normalizeSkuImages,
   formatMetadataLabel,
@@ -16,7 +13,7 @@ export {
 } from './skuImageUtils';
 export {
   extractStatusFields,
-  mapSkuProductCardToViewItem
+  mapSkuProductCardToViewItem,
 } from './skuProductCardUtils';
 export {
   buildSingleSkuPayload,

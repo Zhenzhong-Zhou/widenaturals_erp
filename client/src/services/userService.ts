@@ -1,5 +1,6 @@
 import type {
-  CreateUserRequest, CreateUserResponse,
+  CreateUserRequest,
+  CreateUserResponse,
   GetPaginatedUsersParams,
   PaginatedUserCardListsApiResponse,
   PaginatedUserListsApiResponse,
@@ -51,8 +52,7 @@ const createUser = (
 const fetchPaginatedUsers = (
   params: GetPaginatedUsersParams & { viewMode?: UserViewMode } = {}
 ): Promise<
-  PaginatedUserCardListsApiResponse |
-  PaginatedUserListsApiResponse
+  PaginatedUserCardListsApiResponse | PaginatedUserListsApiResponse
 > => {
   const { filters = {}, viewMode = 'list', ...paginationAndSort } = params;
 
@@ -63,14 +63,10 @@ const fetchPaginatedUsers = (
   });
 
   return getRequest<
-    PaginatedUserCardListsApiResponse |
-    PaginatedUserListsApiResponse
-  >(
-    `${API_ENDPOINTS.USERS.ALL_RECORDS}${queryString}`,
-    {
-      policy: 'READ',
-    }
-  );
+    PaginatedUserCardListsApiResponse | PaginatedUserListsApiResponse
+  >(`${API_ENDPOINTS.USERS.ALL_RECORDS}${queryString}`, {
+    policy: 'READ',
+  });
 };
 
 /* =========================================================

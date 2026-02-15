@@ -1,10 +1,4 @@
-import {
-  type FC,
-  useEffect,
-  useState,
-  useCallback,
-  useRef,
-} from 'react';
+import { type FC, useEffect, useState, useCallback, useRef } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
@@ -54,9 +48,10 @@ import {
 const CreateSaleOrderForm: FC = () => {
   const navigate = useNavigate();
   const { category } = useParams();
-  
-  const { isAllowed: canCreateSalesOrder } =
-    usePagePermissionState(PERMISSIONS.CREATE_SALES_ORDER);
+
+  const { isAllowed: canCreateSalesOrder } = usePagePermissionState(
+    PERMISSIONS.CREATE_SALES_ORDER
+  );
 
   // Server-backed lookup bundles
   const {

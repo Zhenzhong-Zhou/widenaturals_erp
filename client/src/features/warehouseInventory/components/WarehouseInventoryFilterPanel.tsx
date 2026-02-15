@@ -65,7 +65,7 @@ const WarehouseInventoryFilterPanel: FC<{
     () => props.initialFilters ?? EMPTY_FILTERS,
     [props.initialFilters]
   );
-  
+
   const { control, handleSubmit, reset, watch } =
     useForm<WarehouseInventoryFilters>({
       defaultValues: normalizedInitialFilters,

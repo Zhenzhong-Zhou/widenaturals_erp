@@ -24,22 +24,19 @@ interface OrderTypesTableProps {
 }
 
 const OrderTypesTable: FC<OrderTypesTableProps> = ({
-                                                     data,
-                                                     page,
-                                                     rowsPerPage,
-                                                     totalRecords,
-                                                     totalPages,
-                                                     loading,
-                                                     onPageChange,
-                                                     onRowsPerPageChange,
-                                                     onRefresh,
-                                                   }) => {
+  data,
+  page,
+  rowsPerPage,
+  totalRecords,
+  totalPages,
+  loading,
+  onPageChange,
+  onRowsPerPageChange,
+  onRefresh,
+}) => {
   // Column configuration is memoized to avoid re-creation across renders
-  const orderTypeColumns = useMemo(
-    () => getOrderTypeTableColumns(),
-    []
-  );
-  
+  const orderTypeColumns = useMemo(() => getOrderTypeTableColumns(), []);
+
   return (
     <Box>
       <Box
@@ -57,7 +54,7 @@ const OrderTypesTable: FC<OrderTypesTableProps> = ({
           Refresh Data
         </CustomButton>
       </Box>
-      
+
       <CustomTable
         columns={orderTypeColumns}
         data={data}

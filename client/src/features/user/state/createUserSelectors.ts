@@ -63,6 +63,5 @@ export const selectCreateUserError = createSelector(
  */
 export const selectCreateUserSuccess = createSelector(
   [selectCreateUserData, selectCreateUserLoading, selectCreateUserError],
-  (data, loading, error) =>
-    !loading && !error && data !== null
+  (data, loading, error) => !loading && !error && data !== null
 );

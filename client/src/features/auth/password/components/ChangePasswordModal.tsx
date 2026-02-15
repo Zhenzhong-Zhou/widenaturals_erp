@@ -5,14 +5,9 @@ import IconButton from '@mui/material/IconButton';
 import Alert from '@mui/material/Alert';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  CustomModal,
-  CustomTypography,
-} from '@components/index';
+import { CustomModal, CustomTypography } from '@components/index';
 import { ChangePasswordForm } from '@features/auth/password/components';
-import type {
-  PasswordUpdateSubmitData
-} from '@features/auth/password/components/ChangePasswordForm';
+import type { PasswordUpdateSubmitData } from '@features/auth/password/components/ChangePasswordForm';
 
 interface ChangePasswordModalProps {
   open: boolean;
@@ -20,7 +15,7 @@ interface ChangePasswordModalProps {
   onSubmit: (data: PasswordUpdateSubmitData) => void;
   success?: boolean;
   loading?: boolean;
-  changedAt?: string | null ;
+  changedAt?: string | null;
   error?: string | null;
 }
 
@@ -38,20 +33,20 @@ interface ChangePasswordModalProps {
  * - Manage authentication state
  */
 const ChangePasswordModal: FC<ChangePasswordModalProps> = ({
-                                                             open,
-                                                             onClose,
-                                                             onSubmit,
-                                                             success,
-                                                             loading,
-                                                             changedAt,
-                                                             error,
-                                                           }) => {
+  open,
+  onClose,
+  onSubmit,
+  success,
+  loading,
+  changedAt,
+  error,
+}) => {
   const theme = useTheme();
-  
+
   const formattedChangedAt = changedAt
     ? new Date(changedAt).toLocaleString()
     : null;
-  
+
   return (
     <CustomModal
       open={open}
@@ -102,7 +97,7 @@ const ChangePasswordModal: FC<ChangePasswordModalProps> = ({
             >
               Change Password
             </CustomTypography>
-            
+
             <IconButton onClick={onClose} aria-label="close">
               <FontAwesomeIcon
                 icon={faTimes}
@@ -110,13 +105,13 @@ const ChangePasswordModal: FC<ChangePasswordModalProps> = ({
               />
             </IconButton>
           </Box>
-          
+
           {/* Info */}
           <Alert severity="info" sx={{ mb: 2 }}>
-            After changing your password, you will be logged out and required
-            to log in again.
+            After changing your password, you will be logged out and required to
+            log in again.
           </Alert>
-          
+
           {/* Feedback */}
           <Box sx={{ mb: 2 }}>
             {error && (
@@ -124,7 +119,7 @@ const ChangePasswordModal: FC<ChangePasswordModalProps> = ({
                 {error}
               </Alert>
             )}
-            
+
             {success && (
               <Alert severity="success" sx={{ mb: 1 }}>
                 Password updated successfully.
@@ -132,7 +127,7 @@ const ChangePasswordModal: FC<ChangePasswordModalProps> = ({
                 Redirecting to login…
               </Alert>
             )}
-            
+
             {formattedChangedAt && (
               <CustomTypography
                 variant="caption"
@@ -147,7 +142,7 @@ const ChangePasswordModal: FC<ChangePasswordModalProps> = ({
               </CustomTypography>
             )}
           </Box>
-          
+
           {/* Form */}
           <ChangePasswordForm
             onSubmit={onSubmit}

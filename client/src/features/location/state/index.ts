@@ -6,7 +6,7 @@ export { locationReducers } from './locationReducers';
 // --------------------------------------------------
 // Selectors
 // --------------------------------------------------
-export * from './locationSelectors';
+export * from './paginatedLocationsSelectors';
 
 // --------------------------------------------------
 // Thunks & Types

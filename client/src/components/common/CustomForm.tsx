@@ -31,7 +31,7 @@ import {
   BaseInput,
   CustomButton,
   CustomPhoneInput,
-  CustomTypography
+  CustomTypography,
 } from '@components/index';
 import { useTheme } from '@mui/material';
 import type { SxProps, Theme } from '@mui/system';
@@ -109,7 +109,7 @@ const CustomFormInner = <TFieldValues extends FieldValues = FieldValues>(
     sx,
     formInstance,
   } = props;
-  
+
   const theme = useTheme();
 
   const defaultedInitialValues =

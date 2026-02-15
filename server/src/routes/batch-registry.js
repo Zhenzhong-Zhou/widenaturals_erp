@@ -2,10 +2,14 @@ const express = require('express');
 const { authorize } = require('../middlewares/authorize');
 const { BATCH_REGISTRY } = require('../utils/constants/domain/permissions');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
-const { batchRegistryQuerySchema } = require('../validators/batch-registry-validators');
+const {
+  batchRegistryQuerySchema,
+} = require('../validators/batch-registry-validators');
 const { sanitizeFields } = require('../middlewares/sanitize');
 const validate = require('../middlewares/validate');
-const { getPaginatedBatchRegistryController } = require('../controllers/batch-registry-controller');
+const {
+  getPaginatedBatchRegistryController,
+} = require('../controllers/batch-registry-controller');
 
 const router = express.Router();
 
@@ -74,7 +78,7 @@ router.get(
     batchRegistryQuerySchema, // query schema
     {},
     [], // option-level booleans (none)
-    []  // option-level strings (none; no UI viewMode here)
+    [] // option-level strings (none; no UI viewMode here)
   ),
   sanitizeFields(['keyword']),
   validate(batchRegistryQuerySchema, 'query', {

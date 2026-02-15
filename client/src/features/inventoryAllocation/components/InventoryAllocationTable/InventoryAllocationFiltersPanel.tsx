@@ -9,7 +9,7 @@ import WarehouseMultiSelectDropdown from '@features/lookup/components/WarehouseM
 import BatchRegistryMultiSelectDropdown from '@features/lookup/components/BatchRegistryMultiSelectDropdown';
 import { renderDateField, renderInputField } from '@utils/filters/filterUtils';
 import { toISODate } from '@utils/dateTimeUtils';
-import useBatchRegistryLookup from '@hooks/useBatchRegistryLookup.ts';
+import useBatchRegistryLookup from '@hooks/useBatchRegistryLookup';
 import type {
   BatchLookupOption,
   GetBatchRegistryLookupParams,
@@ -172,13 +172,9 @@ const InventoryAllocationFiltersPanel: FC<Props> = ({
   const submitFilters = (data: InventoryAllocationFilters) => {
     const adjusted: InventoryAllocationFilters = {
       ...data,
-      aggregatedAllocatedBefore: toISODate(
-        data.aggregatedAllocatedBefore
-      ),
+      aggregatedAllocatedBefore: toISODate(data.aggregatedAllocatedBefore),
       aggregatedAllocatedAfter: toISODate(data.aggregatedAllocatedAfter),
-      aggregatedCreatedBefore: toISODate(
-        data.aggregatedCreatedBefore
-      ),
+      aggregatedCreatedBefore: toISODate(data.aggregatedCreatedBefore),
       aggregatedCreatedAfter: toISODate(data.aggregatedCreatedAfter),
     };
 

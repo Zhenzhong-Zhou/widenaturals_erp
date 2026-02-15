@@ -33,25 +33,25 @@ import { ReduxPaginatedState } from '@shared-types/pagination';
 export interface CreateUserRequest {
   /** User's primary email address (unique identifier) */
   email: string;
-  
+
   /** Plain-text password; hashed and persisted by the server */
   password: string;
-  
+
   /** Target role identifier (UUID) */
   roleId: string;
-  
+
   /** User's first name */
   firstname: string;
-  
+
   /** User's last name */
   lastname: string;
-  
+
   /** Optional E.164-formatted phone number */
   phoneNumber?: string | null;
-  
+
   /** Optional job title or position */
   jobTitle?: string | null;
-  
+
   /** Optional internal note or comment */
   note?: string | null;
 }
@@ -74,16 +74,16 @@ export interface CreateUserRequest {
 export interface CreateUserResponseData {
   /** System-generated user identifier */
   id: string;
-  
+
   /** User email address */
   email: string;
-  
+
   /** Assigned role identifier */
   roleId: string;
-  
+
   /** Assigned status identifier */
   statusId: string;
-  
+
   /** ISO-8601 timestamp indicating when the user was created */
   createdAt: string;
 }
@@ -95,8 +95,7 @@ export interface CreateUserResponseData {
  *
  * Conforms to the global API response contract.
  */
-export type CreateUserResponse =
-  ApiSuccessResponse<CreateUserResponseData>;
+export type CreateUserResponse = ApiSuccessResponse<CreateUserResponseData>;
 
 /**
  * CreateUserState
@@ -111,8 +110,7 @@ export type CreateUserResponse =
  * This state represents a WRITE operation and MUST NOT
  * be treated as cached or queryable user data.
  */
-export type CreateUserState =
-  AsyncState<CreateUserResponseData | null>;
+export type CreateUserState = AsyncState<CreateUserResponseData | null>;
 
 /**
  * Base user view shared by all UI representations.
@@ -197,8 +195,7 @@ export type PaginatedUserListsApiResponse = PaginatedResponse<UserListView>;
  * is a flattened user record, regardless of whether the
  * source API returned card or list user views.
  */
-export type PaginatedUsersUiResponse =
-  PaginatedResponse<FlattenedUserRecord>;
+export type PaginatedUsersUiResponse = PaginatedResponse<FlattenedUserRecord>;
 
 /**
  * Date range filter using ISO strings for API safety.
@@ -282,8 +279,7 @@ export interface GetPaginatedUsersParams extends PaginationParams, SortConfig {
  * - Simplifies selectors, tables, and exports
  * - Aligns with SKU, Order, and Outbound Fulfillment patterns
  */
-export type PaginatedUsersState =
-  ReduxPaginatedState<FlattenedUserRecord>;
+export type PaginatedUsersState = ReduxPaginatedState<FlattenedUserRecord>;
 
 /**
  * Flattened user record for table rendering, CSV export,

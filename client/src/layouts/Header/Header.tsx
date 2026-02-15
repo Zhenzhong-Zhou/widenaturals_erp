@@ -28,16 +28,16 @@ const Header: FC = () => {
   const { actions } = useThemeMode();
   const { logout } = useLogout();
   const navigate = useNavigate();
-  
+
   const fullName = useAppSelector(selectSelfUserFullName);
 
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-  
+
   const displayName = useMemo(() => {
     if (!fullName) return 'Guest';
     return fullName;
   }, [fullName]);
-  
+
   const avatarInitial = useMemo(() => {
     if (!displayName) return '?';
     return displayName.charAt(0).toUpperCase();
@@ -53,7 +53,7 @@ const Header: FC = () => {
     handleMenuClose();
     navigate('/profile');
   };
-  
+
   const handleSettingsClick = () => {
     handleMenuClose();
     navigate('/settings');
@@ -63,7 +63,7 @@ const Header: FC = () => {
     handleMenuClose();
     void logout();
   };
-  
+
   return (
     <Box
       sx={{
@@ -102,7 +102,7 @@ const Header: FC = () => {
           />
           {theme.palette.mode === 'dark' ? 'Light' : 'Dark'} Mode
         </CustomButton>
-        
+
         <IconButton
           onClick={handleMenuOpen}
           title={fullName ?? undefined}
@@ -130,7 +130,7 @@ const Header: FC = () => {
 
           <MenuItem onClick={handleProfileClick}>Profile</MenuItem>
           <MenuItem onClick={handleSettingsClick}>Settings</MenuItem>
-          
+
           <Divider />
           <MenuItem onClick={handleLogoutClick}>Logout</MenuItem>
         </Menu>

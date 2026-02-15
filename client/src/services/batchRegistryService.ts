@@ -36,7 +36,7 @@ const fetchPaginatedBatchRegistry = async (
   params: BatchRegistryQueryParams = {}
 ): Promise<PaginatedBatchRegistryApiResponse> => {
   const { filters = {}, ...rest } = params;
-  
+
   const {
     expiryAfter,
     expiryBefore,
@@ -44,17 +44,17 @@ const fetchPaginatedBatchRegistry = async (
     registeredBefore,
     ...otherFilters
   } = filters;
-  
+
   /**
    * Flatten date filters → query params
    */
   const flatDateParams: Record<string, string> = {};
-  
+
   if (expiryAfter) flatDateParams.expiryAfter = expiryAfter;
   if (expiryBefore) flatDateParams.expiryBefore = expiryBefore;
   if (registeredAfter) flatDateParams.registeredAfter = registeredAfter;
   if (registeredBefore) flatDateParams.registeredBefore = registeredBefore;
-  
+
   /**
    * Final flattened params
    */
@@ -63,10 +63,10 @@ const fetchPaginatedBatchRegistry = async (
     ...otherFilters,
     ...flatDateParams,
   };
-  
+
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.BATCH_REGISTRY.ALL_RECORDS}${queryString}`;
-  
+
   return getRequest<PaginatedBatchRegistryApiResponse>(url, {
     policy: 'READ',
   });

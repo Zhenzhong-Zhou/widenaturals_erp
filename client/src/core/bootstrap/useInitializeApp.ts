@@ -35,10 +35,10 @@ const useInitializeApp = ({ delayMs = 0 }: InitializeAppOptions = {}) => {
 
   const csrfStatus = useAppSelector(selectCsrfStatus);
   const csrfError = useAppSelector(selectCsrfError);
-  
+
   const [initializationError, setInitializationError] =
     useState<AppError | null>(null);
-  
+
   // Prevent state updates after unmount during async bootstrap
   const isMountedRef = useRef(true);
   useEffect(() => {
@@ -64,34 +64,32 @@ const useInitializeApp = ({ delayMs = 0 }: InitializeAppOptions = {}) => {
       await sleep(delayMs);
     }
   }, [delayMs]);
-  
+
   useEffect(() => {
     let cancelled = false;
-    
+
     const run = async () => {
       try {
         await initializeCsrfToken();
         await initializeAppCore();
       } catch (error) {
         const appError =
-          error instanceof AppError && error.type === 'Server'
-            ? error
-            : null;
-        
+          error instanceof AppError && error.type === 'Server' ? error : null;
+
         dispatch(resetCsrfToken());
-        
+
         if (!cancelled && appError) {
           setInitializationError(appError);
         }
       }
     };
-    
+
     void run();
     return () => {
       cancelled = true;
     };
   }, []);
-  
+
   /**
    * Monitor CSRF state changes separately to avoid race conditions.
    */

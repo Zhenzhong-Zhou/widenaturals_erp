@@ -4,7 +4,10 @@
  * for filtering delivery method records in the database.
  */
 
-const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
+const {
+  normalizeDateRangeFilters,
+  applyDateRangeConditions,
+} = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
@@ -41,36 +44,40 @@ const buildDeliveryMethodFilter = (filters = {}) => {
     // -------------------------------------------------------------
     // Normalize date range filters FIRST
     // -------------------------------------------------------------
-    filters = normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore');
-    
+    filters = normalizeDateRangeFilters(
+      filters,
+      'createdAfter',
+      'createdBefore'
+    );
+
     const conditions = ['1=1'];
     const params = [];
     const paramIndexRef = { value: 1 };
-    
+
     if (filters.methodName) {
       conditions.push(`dm.method_name = $${paramIndexRef.value}`);
       params.push(filters.methodName);
       paramIndexRef.value++;
     }
-    
+
     if (filters.isPickupLocation !== undefined) {
       conditions.push(`dm.is_pickup_location = $${paramIndexRef.value}`);
       params.push(filters.isPickupLocation);
       paramIndexRef.value++;
     }
-    
+
     if (filters.createdBy) {
       conditions.push(`dm.created_by = $${paramIndexRef.value}`);
       params.push(filters.createdBy);
       paramIndexRef.value++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`dm.updated_by = $${paramIndexRef.value}`);
       params.push(filters.updatedBy);
       paramIndexRef.value++;
     }
-    
+
     if (filters.keyword) {
       const keywordParam = `%${filters.keyword}%`;
       conditions.push(
@@ -79,7 +86,7 @@ const buildDeliveryMethodFilter = (filters = {}) => {
       params.push(keywordParam);
       paramIndexRef.value++;
     }
-    
+
     // Enforce status filter by user access (always applied regardless of keyword)
     if (filters.statusId) {
       conditions.push(`dm.status_id = $${paramIndexRef.value}`);
@@ -90,7 +97,7 @@ const buildDeliveryMethodFilter = (filters = {}) => {
       params.push(filters._activeStatusId);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Created date filters (via helper)
     // ------------------------------
@@ -102,7 +109,7 @@ const buildDeliveryMethodFilter = (filters = {}) => {
       before: filters.createdBefore,
       paramIndexRef,
     });
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,

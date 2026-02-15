@@ -61,7 +61,7 @@ const buildRoleFilter = (filters = {}) => {
     const conditions = ['1=1'];
     const params = [];
     let idx = 1;
-    
+
     // ---------------------------------------------------------
     // 1. STATUS VISIBILITY (SECURITY / LIFECYCLE)
     // ---------------------------------------------------------
@@ -70,18 +70,18 @@ const buildRoleFilter = (filters = {}) => {
       : filters.status_id
         ? filters.status_id
         : filters._activeStatusId;
-    
+
     if (statusFilterValue !== undefined && statusFilterValue !== null) {
       if (Array.isArray(statusFilterValue)) {
         conditions.push(`r.status_id = ANY($${idx}::uuid[])`);
       } else {
         conditions.push(`r.status_id = $${idx}`);
       }
-      
+
       params.push(statusFilterValue);
       idx++;
     }
-    
+
     // ---------------------------------------------------------
     // 2. INTERNAL ACL ENFORCEMENT (NON-CLIENT FLAGS)
     // ---------------------------------------------------------
@@ -89,53 +89,53 @@ const buildRoleFilter = (filters = {}) => {
      * These constraints are injected by the business layer based on ACL
      * decisions. They MUST NOT come from client input.
      */
-    
+
     if (filters._excludeSystemRoles) {
       conditions.push(`r.name <> 'system'`);
     }
-    
+
     if (filters._excludeRootRoles) {
       conditions.push(`r.name <> 'root_admin'`);
     }
-    
+
     if (filters._excludeAdminRoles) {
       conditions.push(`r.name <> 'admin'`);
     }
-    
+
     if (filters._maxHierarchyLevel !== undefined) {
       conditions.push(`r.hierarchy_level > $${idx}`);
       params.push(filters._maxHierarchyLevel);
       idx++;
     }
-    
+
     // ---------------------------------------------------------
     // 3. STRUCTURAL / BUSINESS FILTERS
     // ---------------------------------------------------------
-    
+
     if (filters.role_group) {
       conditions.push(`r.role_group = $${idx}`);
       params.push(filters.role_group);
       idx++;
     }
-    
+
     if (filters.is_active !== undefined) {
       conditions.push(`r.is_active = $${idx}`);
       params.push(filters.is_active);
       idx++;
     }
-    
+
     if (filters.parent_role_id) {
       conditions.push(`r.parent_role_id = $${idx}`);
       params.push(filters.parent_role_id);
       idx++;
     }
-    
+
     if (filters.hierarchy_level !== undefined) {
       conditions.push(`r.hierarchy_level = $${idx}`);
       params.push(filters.hierarchy_level);
       idx++;
     }
-    
+
     // ---------------------------------------------------------
     // 4. KEYWORD SEARCH (UX / CONVENIENCE)
     // ---------------------------------------------------------
@@ -145,19 +145,19 @@ const buildRoleFilter = (filters = {}) => {
         `r.description ILIKE $${idx}`,
         `r.role_group ILIKE $${idx}`,
       ];
-      
+
       conditions.push(`(${keywordConditions.join(' OR ')})`);
       params.push(`%${filters.keyword}%`);
       idx++;
     }
-    
+
     /**
      * TODO (Role-relative logic)
      * - Enforce hierarchy visibility
      * - Descendant-only access
      * - Recursive CTE support
      */
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -168,7 +168,7 @@ const buildRoleFilter = (filters = {}) => {
       error: err.message,
       filters,
     });
-    
+
     throw AppError.databaseError('Failed to prepare role filter', {
       details: err.message,
       stage: 'build-role-where-clause',

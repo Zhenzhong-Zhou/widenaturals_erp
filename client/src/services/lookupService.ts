@@ -23,7 +23,9 @@ import type {
   PricingLookupQueryParams,
   PricingLookupResponse,
   ProductLookupParams,
-  ProductLookupResponse, RoleLookupParams, RoleLookupResponse,
+  ProductLookupResponse,
+  RoleLookupParams,
+  RoleLookupResponse,
   SkuCodeBaseLookupParams,
   SkuCodeBaseLookupResponse,
   SkuLookupQueryParams,
@@ -185,7 +187,6 @@ const fetchRoleLookup = (
   params?: RoleLookupParams
 ): Promise<RoleLookupResponse> =>
   getLookup(API_ENDPOINTS.LOOKUPS.ROLES, params);
-
 
 /* =========================================================
  * Public API

@@ -1,8 +1,4 @@
-import {
-  useLayoutEffect,
-  type FC,
-  type ReactNode,
-} from 'react';
+import { useLayoutEffect, type FC, type ReactNode } from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { lightTheme, darkTheme } from '@styles/theme';
@@ -40,10 +36,10 @@ import useThemeMode from '@hooks/useThemeMode';
  */
 const ThemeProviderWrapper: FC<{ children: ReactNode }> = ({ children }) => {
   const { mode } = useThemeMode();
-  
+
   // Resolve concrete MUI theme
   const theme = mode === 'dark' ? darkTheme : lightTheme;
-  
+
   /**
    * Sync selected theme values to CSS variables.
    *
@@ -57,7 +53,7 @@ const ThemeProviderWrapper: FC<{ children: ReactNode }> = ({ children }) => {
    */
   useLayoutEffect(() => {
     const root = document.documentElement;
-    
+
     root.style.setProperty('--primary-color', theme.palette.primary.main);
     root.style.setProperty('--secondary-color', theme.palette.secondary.main);
     root.style.setProperty('--bg-default', theme.palette.background.default);
@@ -70,7 +66,7 @@ const ThemeProviderWrapper: FC<{ children: ReactNode }> = ({ children }) => {
       theme.palette.backgroundCustom?.customHover ?? '#eee'
     );
   }, [theme]);
-  
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />

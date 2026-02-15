@@ -57,10 +57,7 @@ export const selectPaginatedProductBatchPagination = createSelector(
  * Selector: Returns `true` only if the product batch list is loaded and empty.
  */
 export const selectPaginatedProductBatchIsEmpty = createSelector(
-  [
-    selectPaginatedProductBatchData,
-    selectPaginatedProductBatchLoading,
-  ],
+  [selectPaginatedProductBatchData, selectPaginatedProductBatchLoading],
   (data, loading) => !loading && data.length === 0
 );
 
@@ -73,10 +70,6 @@ export const selectPaginatedProductBatchIsEmpty = createSelector(
  */
 export const makeSelectProductBatchById = () =>
   createSelector(
-    [
-      selectPaginatedProductBatchData,
-      (_: RootState, id: string) => id,
-    ],
-    (records, id) =>
-      records.find((record) => record.id === id) ?? null
+    [selectPaginatedProductBatchData, (_: RootState, id: string) => id],
+    (records, id) => records.find((record) => record.id === id) ?? null
   );

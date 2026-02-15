@@ -11,7 +11,7 @@
 export const PASSWORD_POLICY = {
   REGEX:
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=(?:.*[!@#$%^&*\-]){2,})(?=.{8,64})(?!.*(.)\1{2}).*$/,
-  
+
   ERROR_MESSAGE:
     'Password must include at least one uppercase letter, one lowercase letter,' +
     ' one number, and at least two special characters. ' +

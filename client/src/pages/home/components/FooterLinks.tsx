@@ -5,10 +5,7 @@ import { FooterLink } from '@pages/home/components/index';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import InstagramIcon from '@mui/icons-material/Instagram';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  faWeixin,
-  faAmazon,
-} from '@fortawesome/free-brands-svg-icons';
+import { faWeixin, faAmazon } from '@fortawesome/free-brands-svg-icons';
 
 const FooterLinks: FC = () => {
   const footerIconSx = {
@@ -16,7 +13,7 @@ const FooterLinks: FC = () => {
     opacity: 0.7,
     flexShrink: 0,
   };
-  
+
   return (
     <Box
       sx={{
@@ -30,12 +27,15 @@ const FooterLinks: FC = () => {
         <CustomTypography variant="body2" fontWeight={700} gutterBottom>
           Official Presence
         </CustomTypography>
-        
+
         <Stack spacing={0.75}>
           <FooterLink href="https://www.widenaturals.com" external>
             WIDE Naturals Inc. (Official Website)
           </FooterLink>
-          <FooterLink href="https://www.linkedin.com/company/wide-naturals" external>
+          <FooterLink
+            href="https://www.linkedin.com/company/wide-naturals"
+            external
+          >
             <Stack direction="row" spacing={1} alignItems="center">
               <LinkedInIcon sx={footerIconSx} />
               <span>LinkedIn</span>
@@ -59,20 +59,24 @@ const FooterLinks: FC = () => {
           </FooterLink>
         </Stack>
       </Box>
-      
+
       {/* ONLINE PLATFORMS */}
       <Box>
         <CustomTypography variant="body2" fontWeight={700} gutterBottom>
           Online Platforms
         </CustomTypography>
-        
+
         <Stack spacing={0.75}>
-          <FooterLink href="https://www.amazon.ca/stores/WIDENaturalsInc/page/34DDF6DF-F58D-4B34-884E-A0DBF9F08144" external>
+          <FooterLink
+            href="https://www.amazon.ca/stores/WIDENaturalsInc/page/34DDF6DF-F58D-4B34-884E-A0DBF9F08144"
+            external
+          >
             <Stack direction="row" spacing={1} alignItems="center">
               <FontAwesomeIcon
                 icon={faAmazon}
                 style={footerIconSx}
-                aria-hidden />
+                aria-hidden
+              />
               <span>Amazon</span>
             </Stack>
           </FooterLink>

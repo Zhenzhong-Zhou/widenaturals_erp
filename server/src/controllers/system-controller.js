@@ -1,4 +1,6 @@
-const { checkServerHealthService } = require('../services/server-health-service');
+const {
+  checkServerHealthService,
+} = require('../services/server-health-service');
 const { healthCheckError } = require('../utils/AppError');
 
 /**
@@ -21,7 +23,7 @@ const getSystemStatus = async (req, res, next) => {
 
     res.status(statusCode).json({
       ...status,
-      requestId: req.traceId,    // Optional request context
+      requestId: req.traceId, // Optional request context
       responseTime: `${duration}ms`, // Optional response time
     });
   } catch (error) {

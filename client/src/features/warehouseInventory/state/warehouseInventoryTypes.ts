@@ -114,7 +114,8 @@ export interface FetchWarehouseInventoryArgs {
 export type WarehouseInventoryState =
   ReduxPaginatedState<WarehouseInventoryRecord>;
 
-export interface FlatWarehouseInventoryRow extends FlatInventoryRowBase<WarehouseInventoryRecord> {}
+export type FlatWarehouseInventoryRow =
+  FlatInventoryRowBase<WarehouseInventoryRecord>;
 
 export type WarehouseInventoryTableProps = BaseInventoryTableProps<
   WarehouseInventoryRecord,

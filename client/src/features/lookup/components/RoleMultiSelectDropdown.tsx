@@ -29,21 +29,21 @@ type RoleMultiSelectDropdownProps = Omit<
  * - Admin setup screens
  */
 const RoleMultiSelectDropdown: FC<RoleMultiSelectDropdownProps> = ({
-                                                                     label = 'Select Role',
-                                                                     options,
-                                                                     selectedOptions,
-                                                                     onChange,
-                                                                     onOpen,
-                                                                     loading,
-                                                                     disabled,
-                                                                     error,
-                                                                     helperText,
-                                                                     sx,
-                                                                     placeholder = 'Choose role…',
-                                                                     paginationMeta,
-                                                                     inputValue,
-                                                                     onInputChange,
-                                                                   }) => {
+  label = 'Select Role',
+  options,
+  selectedOptions,
+  onChange,
+  onOpen,
+  loading,
+  disabled,
+  error,
+  helperText,
+  sx,
+  placeholder = 'Choose role…',
+  paginationMeta,
+  inputValue,
+  onInputChange,
+}) => {
   return (
     <MultiSelectDropdown
       label={label}

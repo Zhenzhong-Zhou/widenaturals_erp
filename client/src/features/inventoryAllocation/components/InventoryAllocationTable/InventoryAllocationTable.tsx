@@ -1,13 +1,7 @@
 import { type FC, useState } from 'react';
 import Box from '@mui/material/Box';
-import {
-  CustomButton,
-  CustomTable,
-  CustomTypography
-} from '@components/index';
-import type {
-  FlattenedInventoryAllocationSummary
-} from '@features/inventoryAllocation/state';
+import { CustomButton, CustomTable, CustomTypography } from '@components/index';
+import type { FlattenedInventoryAllocationSummary } from '@features/inventoryAllocation/state';
 import {
   getInventoryAllocationColumns,
   InventoryAllocationTableExpandedRow,

@@ -1,8 +1,5 @@
 import { NullableString } from '@shared-types/shared';
-import {
-  Pagination,
-  PaginationLookupInfo
-} from '@shared-types/pagination';
+import { Pagination, PaginationLookupInfo } from '@shared-types/pagination';
 
 /**
  * Generic interface for a paginated API response.
@@ -12,16 +9,16 @@ import {
 export interface PaginatedResponse<T> {
   /** Indicates whether the request was successful */
   success: boolean;
-  
+
   /** Human-readable message associated with the response */
   message: string;
-  
+
   /** Array of data items of type T */
   data: T[];
-  
+
   /** Pagination metadata for the current response */
   pagination: Pagination;
-  
+
   /**
    * Optional trace identifier for request correlation and debugging.
    * Present when backend tracing/logging is enabled.

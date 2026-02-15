@@ -11,7 +11,10 @@
  * - Fallback status enforcement for permission-based filtering
  */
 
-const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
+const {
+  normalizeDateRangeFilters,
+  applyDateRangeConditions,
+} = require('./date-range-utils');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
@@ -38,17 +41,21 @@ const buildSkuCodeBaseFilter = (filters = {}) => {
     // -------------------------------------------------------------
     // Normalize date-only filters
     // -------------------------------------------------------------
-    filters = normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore');
+    filters = normalizeDateRangeFilters(
+      filters,
+      'createdAfter',
+      'createdBefore'
+    );
     filters = normalizeDateRangeFilters(
       filters,
       'statusDateAfter',
       'statusDateBefore'
     );
-    
+
     const conditions = ['1=1'];
     const params = [];
     const paramIndexRef = { value: 1 };
-    
+
     // ------------------------------
     // Brand code
     // ------------------------------
@@ -57,7 +64,7 @@ const buildSkuCodeBaseFilter = (filters = {}) => {
       params.push(filters.brand_code);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Category code
     // ------------------------------
@@ -66,7 +73,7 @@ const buildSkuCodeBaseFilter = (filters = {}) => {
       params.push(filters.category_code);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Keyword search (brand_code / category_code)
     // ------------------------------
@@ -78,7 +85,7 @@ const buildSkuCodeBaseFilter = (filters = {}) => {
       params.push(`%${filters.keyword}%`);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Status filters (with fallback)
     // ------------------------------
@@ -91,7 +98,7 @@ const buildSkuCodeBaseFilter = (filters = {}) => {
       params.push(filters._activeStatusId);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Created date range (UI date filter)
     // ------------------------------
@@ -103,7 +110,7 @@ const buildSkuCodeBaseFilter = (filters = {}) => {
       before: filters.createdBefore,
       paramIndexRef,
     });
-    
+
     // ------------------------------
     // Status date range (UI date filter)
     // ------------------------------
@@ -115,7 +122,7 @@ const buildSkuCodeBaseFilter = (filters = {}) => {
       before: filters.statusDateBefore,
       paramIndexRef,
     });
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -126,7 +133,7 @@ const buildSkuCodeBaseFilter = (filters = {}) => {
       filters,
       error: err.message,
     });
-    
+
     throw AppError.databaseError('Failed to prepare SKU code base filter', {
       details: err.message,
       stage: 'build-sku-code-base-where-clause',

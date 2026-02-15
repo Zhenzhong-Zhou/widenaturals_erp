@@ -19,7 +19,7 @@ import type { Column } from '@components/common/CustomTable';
 import { getFallbackValue } from '@utils/objectUtils';
 import { formatCurrency, formatLabel } from '@utils/textUtils';
 import type { FlattenedBomDetailRow } from '@features/bom/state';
-import { createDrillDownColumn } from '@utils/table/createDrillDownColumn.tsx';
+import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
 
 /**
  * Builds the column configuration for the **BOM Details Table**.

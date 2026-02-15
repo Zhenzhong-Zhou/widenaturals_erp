@@ -5,7 +5,7 @@ import { LookupPagination } from '@shared-types/pagination';
 interface LookupControllerOptions {
   /** Fetch function from lookup hook */
   fetch: (params: LookupQuery) => void;
-  
+
   /** Current options array */
   options: { id: string }[] | unknown[];
 }
@@ -29,18 +29,15 @@ interface LookupControllerOptions {
  * - Pair with useMultiSelectBinding
  * - Pair with debounced search handlers where needed
  */
-const useLookupController = ({
-                               fetch,
-                               options,
-                             }: LookupControllerOptions) => {
+const useLookupController = ({ fetch, options }: LookupControllerOptions) => {
   const [keyword, setKeyword] = useState('');
-  
+
   const handleOpen = useCallback(() => {
     if (!options.length) {
       fetch({ keyword, offset: 0 });
     }
   }, [fetch, options.length, keyword]);
-  
+
   const handleFetchNextPage = useCallback(
     (next?: LookupPagination) => {
       fetch({
@@ -51,16 +48,16 @@ const useLookupController = ({
     },
     [fetch, keyword]
   );
-  
+
   const handleInputChange = useCallback((value: string) => {
     setKeyword(value);
   }, []);
-  
+
   /** Reset lookup keyword only (does not clear options) */
   const reset = useCallback(() => {
     setKeyword('');
   }, []);
-  
+
   return {
     keyword,
     setKeyword,

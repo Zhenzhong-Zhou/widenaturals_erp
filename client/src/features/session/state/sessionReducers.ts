@@ -29,7 +29,7 @@ import sessionReducer from './sessionSlice';
 export const sessionReducers = {
   /** Authentication and login-related session state */
   login: loginReducer,
-  
+
   /** Persistent session metadata (lifecycle, expiry, status) */
   session: sessionReducer,
 };

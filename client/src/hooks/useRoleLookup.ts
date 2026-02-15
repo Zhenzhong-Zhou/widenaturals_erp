@@ -23,23 +23,23 @@ import { resetRoleLookup } from '@features/lookup/state/roleLookupSlice';
  */
 const useRoleLookup = () => {
   const dispatch = useAppDispatch();
-  
+
   const options = useAppSelector(selectRoleLookupOptions);
   const loading = useAppSelector(selectRoleLookupLoading);
   const error = useAppSelector(selectRoleLookupError);
   const meta = useAppSelector(selectRoleLookupMeta);
-  
+
   const fetch = useCallback(
     (params?: RoleLookupParams) => {
       dispatch(fetchRoleLookupThunk(params));
     },
     [dispatch]
   );
-  
+
   const reset = useCallback(() => {
     dispatch(resetRoleLookup());
   }, [dispatch]);
-  
+
   return useMemo(
     () => ({
       options,

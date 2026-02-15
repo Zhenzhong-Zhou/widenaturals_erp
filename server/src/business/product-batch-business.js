@@ -1,5 +1,9 @@
-const { resolveUserPermissionContext } = require('../services/role-permission-service');
-const { BATCH_CONSTANTS } = require('../utils/constants/domain/batch-constants');
+const {
+  resolveUserPermissionContext,
+} = require('../services/role-permission-service');
+const {
+  BATCH_CONSTANTS,
+} = require('../utils/constants/domain/batch-constants');
 const { logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
@@ -20,48 +24,41 @@ const AppError = require('../utils/AppError');
  * }>}
  */
 const evaluateProductBatchVisibility = async (user) => {
-  const context =
-    'product-batch-business/evaluateProductBatchVisibility';
-  
+  const context = 'product-batch-business/evaluateProductBatchVisibility';
+
   try {
-    const { permissions, isRoot } =
-      await resolveUserPermissionContext(user);
-    
+    const { permissions, isRoot } = await resolveUserPermissionContext(user);
+
     const canViewAllProductBatches =
       isRoot ||
       permissions.includes(
         BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_ALL_VISIBILITY
       );
-    
+
     const canViewProductBatches =
       canViewAllProductBatches ||
-      permissions.includes(
-        BATCH_CONSTANTS.PERMISSIONS.VIEW_PRODUCT_BATCHES
-      );
-    
+      permissions.includes(BATCH_CONSTANTS.PERMISSIONS.VIEW_PRODUCT_BATCHES);
+
     const canViewManufacturer =
       canViewAllProductBatches ||
-      permissions.includes(
-        BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_MANUFACTURER
-      );
-    
+      permissions.includes(BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_MANUFACTURER);
+
     return {
       canViewProductBatches,
       canViewManufacturer,
       canViewAllProductBatches,
-      
+
       // Derived keyword capabilities
       canSearchProduct: canViewProductBatches,
       canSearchSku: canViewProductBatches,
       canSearchManufacturer: canViewManufacturer,
     };
   } catch (err) {
-    logSystemException(
-      err,
-      'Failed to evaluate product batch visibility',
-      { context, userId: user?.id }
-    );
-    
+    logSystemException(err, 'Failed to evaluate product batch visibility', {
+      context,
+      userId: user?.id,
+    });
+
     throw AppError.businessError(
       'Unable to evaluate product batch visibility.',
       { details: err.message }
@@ -80,7 +77,7 @@ const evaluateProductBatchVisibility = async (user) => {
  */
 const applyProductBatchVisibilityRules = (filters, acl) => {
   const adjusted = { ...filters };
-  
+
   // -----------------------------------------
   // 1. Full visibility override
   // -----------------------------------------
@@ -92,7 +89,7 @@ const applyProductBatchVisibilityRules = (filters, acl) => {
     };
     return adjusted;
   }
-  
+
   // -----------------------------------------
   // 2. No permission → fail closed
   // -----------------------------------------
@@ -100,7 +97,7 @@ const applyProductBatchVisibilityRules = (filters, acl) => {
     adjusted.forceEmptyResult = true;
     return adjusted;
   }
-  
+
   // -----------------------------------------
   // 3. Inject keyword search capabilities
   // -----------------------------------------
@@ -109,7 +106,7 @@ const applyProductBatchVisibilityRules = (filters, acl) => {
     canSearchSku: acl.canSearchSku,
     canSearchManufacturer: acl.canSearchManufacturer,
   };
-  
+
   return adjusted;
 };
 

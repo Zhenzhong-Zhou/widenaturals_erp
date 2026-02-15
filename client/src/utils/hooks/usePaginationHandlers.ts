@@ -50,7 +50,7 @@ const usePaginationHandlers = <Limit extends number>(
     },
     [setPage, mode]
   );
-  
+
   const handleRowsPerPageChange = useCallback(
     (newLimit: Limit) => {
       setLimit(newLimit);
@@ -58,7 +58,7 @@ const usePaginationHandlers = <Limit extends number>(
     },
     [setLimit, setPage]
   );
-  
+
   return { handlePageChange, handleRowsPerPageChange };
 };
 

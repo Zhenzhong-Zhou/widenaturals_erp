@@ -16,9 +16,8 @@ import { DEFAULT_PAGINATION, type Pagination } from '@shared-types/pagination';
  * - Server-provided pagination must be normalized separately
  */
 const usePagination = () => {
-  const [pagination, setPagination] =
-    useState<Pagination>(DEFAULT_PAGINATION);
-  
+  const [pagination, setPagination] = useState<Pagination>(DEFAULT_PAGINATION);
+
   return { pagination, setPagination };
 };
 

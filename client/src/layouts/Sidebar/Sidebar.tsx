@@ -38,7 +38,7 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
   const hasPermission = useHasPermission();
 
   const logo = theme.palette.mode === 'dark' ? logoDark : logoLight;
-  
+
   // --------------------------------------------------
   // Filter routes once per permission change
   // --------------------------------------------------

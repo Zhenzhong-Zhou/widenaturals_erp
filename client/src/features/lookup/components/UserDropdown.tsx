@@ -20,46 +20,39 @@ type UserDropdownProps = PaginatedDropdownProps<UserLookupParams>;
  * @component
  */
 const UserDropdown = ({
-                        options = [],
-                        fetchParams,
-                        onRefresh,
-                        ...rest
-                      }: UserDropdownProps) => {
+  options = [],
+  fetchParams,
+  onRefresh,
+  ...rest
+}: UserDropdownProps) => {
   const enrichedOptions = useMemo(() => {
     return Array.from(
       new Map(
         options.map((opt) => {
           const isInactive = opt.isActive === false;
-          
+
           const rawLabel = getRawLabel(opt.label);
           const rawSubLabel = opt.subLabel;
-          
+
           const displayLabel = (
             <div>
-              <CustomTypography
-                color={isInactive ? 'error' : 'inherit'}
-              >
+              <CustomTypography color={isInactive ? 'error' : 'inherit'}>
                 {rawLabel}
               </CustomTypography>
-              
+
               {rawSubLabel && (
-                <CustomTypography
-                  variant="caption"
-                  color="text.secondary"
-                >
+                <CustomTypography variant="caption" color="text.secondary">
                   {rawSubLabel}
                 </CustomTypography>
               )}
             </div>
           );
-          
+
           const icon = isInactive ? faBan : faCheck;
-          const tooltip = isInactive
-            ? 'Inactive User'
-            : 'Active User';
-          
+          const tooltip = isInactive ? 'Inactive User' : 'Active User';
+
           const iconColor = isInactive ? 'gray' : 'green';
-          
+
           return [
             opt.value ?? opt.id,
             {
@@ -76,7 +69,7 @@ const UserDropdown = ({
       ).values()
     );
   }, [options]);
-  
+
   return (
     <PaginatedDropdown
       label="Select User"

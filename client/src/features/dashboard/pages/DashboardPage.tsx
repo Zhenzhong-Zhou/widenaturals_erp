@@ -19,7 +19,7 @@ const resolveDashboardComponent = (
   if (!roleName) {
     return UserDashboardPage;
   }
-  
+
   return roleComponentMap[roleName as RoleName] ?? UserDashboardPage;
 };
 
@@ -54,7 +54,7 @@ const resolveDashboardComponent = (
 const DashboardPage: FC<DashboardPageProps> = (props) => {
   const { roleName } = usePermissionsContext();
   const DashboardComponent = resolveDashboardComponent(roleName);
-  
+
   return <DashboardComponent {...props} />;
 };
 

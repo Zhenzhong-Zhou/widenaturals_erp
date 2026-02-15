@@ -35,10 +35,7 @@ const PersistFallback = () => <div style={{ height: 1 }} />;
 ReactDOM.createRoot(rootElement).render(
   <StrictMode>
     <Provider store={store}>
-      <PersistGate
-        persistor={persistor}
-        loading={<PersistFallback />}
-      >
+      <PersistGate persistor={persistor} loading={<PersistFallback />}>
         <App />
       </PersistGate>
     </Provider>

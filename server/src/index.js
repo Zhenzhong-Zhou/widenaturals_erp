@@ -57,14 +57,14 @@ let shuttingDown = false;
 const handleShutdown = async () => {
   if (shuttingDown) return;
   shuttingDown = true;
-  
+
   try {
     logSystemInfo('Initiating application shutdown...');
-    
+
     // Disconnect infrastructure dependencies first
     await disconnectRedis();
     await shutdownServer();
-    
+
     logSystemInfo('Application shutdown completed.');
     process.exit(0);
   } catch (error) {
@@ -89,32 +89,32 @@ const registerProcessHandlers = () => {
     logSystemInfo('SIGINT received');
     await handleShutdown();
   });
-  
+
   process.on('SIGTERM', async () => {
     logSystemInfo('SIGTERM received');
     await handleShutdown();
   });
-  
+
   process.on('unhandledRejection', (reason) => {
     logSystemError('Unhandled Rejection occurred', {
       traceId: 'unhandled-rejection',
       reasonMessage: reason?.message ?? String(reason),
       reasonStack: reason?.stack ?? null,
     });
-    
+
     // Fail fast in development to surface bugs early
     if (process.env.NODE_ENV === 'development') {
       setTimeout(() => process.exit(1), 50);
     }
   });
-  
+
   process.on('uncaughtException', (err) => {
     logSystemCrash(err, 'Uncaught Exception occurred', {
       traceId: 'uncaught-exception',
       errorMessage: err?.message ?? String(err),
       errorStack: err?.stack ?? null,
     });
-    
+
     // Exit after logging to avoid corrupted state
     setTimeout(() => process.exit(1), 50);
   });
@@ -137,7 +137,7 @@ const initializeApp = async () => {
   try {
     // Step 1: Protect the process first
     registerProcessHandlers();
-    
+
     // Step 2: Initialize Redis (optional dependency)
     try {
       logSystemInfo('Connecting to Redis...');
@@ -147,14 +147,14 @@ const initializeApp = async () => {
         message: error.message,
       });
     }
-    
+
     // Step 3: Start server
     logSystemInfo('Starting server...');
     const serverInstance = await startServer();
-    
+
     // Step 4: Register server reference for shutdown
     setServer(serverInstance);
-    
+
     logSystemInfo('Application started successfully.');
     return serverInstance;
   } catch (error) {

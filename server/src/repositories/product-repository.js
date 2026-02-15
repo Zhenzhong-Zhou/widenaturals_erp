@@ -37,7 +37,6 @@ const checkProductExists = async (filters, combineWith = 'OR') => {
   ) {
     throw AppError.validationError(
       'No valid filters provided for product existence check.',
-      400,
       { providedFilters: filters }
     );
   }

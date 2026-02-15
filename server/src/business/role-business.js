@@ -1,4 +1,6 @@
-const { resolveUserPermissionContext } = require('../services/role-permission-service');
+const {
+  resolveUserPermissionContext,
+} = require('../services/role-permission-service');
 const { ROLE_CONSTANTS } = require('../utils/constants/domain/role-constants');
 const { logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
@@ -36,25 +38,25 @@ const evaluateRoleVisibilityAccessControl = async (user) => {
   try {
     const { permissions, isRoot, roleName } =
       await resolveUserPermissionContext(user);
-    
+
     const isAdmin = roleName === 'admin';
     const isSystem = roleName === 'system';
-    
+
     const canViewAllStatuses =
       isRoot || permissions.includes(ROLE_CONSTANTS.PERMISSIONS.VIEW_ALL_ROLES);
-    
+
     const canViewInactiveRoles =
       canViewAllStatuses ||
       permissions.includes(ROLE_CONSTANTS.PERMISSIONS.VIEW_INACTIVE_ROLES);
-    
+
     const canQueryRoleHierarchy =
       isRoot || permissions.includes(ROLE_CONSTANTS.PERMISSIONS.MANAGE_ROLES);
-    
+
     return {
       canViewAllStatuses,
       canViewInactiveRoles,
       canQueryRoleHierarchy,
-      
+
       // ROLE VISIBILITY POLICY FLAGS
       excludeSystemRoles: !isRoot && !isSystem,
       excludeRootRoles: !isRoot,
@@ -65,7 +67,7 @@ const evaluateRoleVisibilityAccessControl = async (user) => {
       context: 'role-business/evaluateRoleVisibilityAccessControl',
       userId: user?.id,
     });
-    
+
     throw AppError.businessError(
       'Unable to evaluate role visibility access control.',
       { details: err.message }
@@ -141,33 +143,33 @@ const evaluateRoleVisibilityAccessControl = async (user) => {
  */
 const applyRoleVisibilityRules = (filters, acl, activeStatusId) => {
   const adjusted = { ...filters };
-  
+
   // 1. Status enforcement
   if (!acl.canViewInactiveRoles) {
     delete adjusted.statusIds;
     delete adjusted.status_id;
     adjusted._activeStatusId = activeStatusId;
   }
-  
+
   // 2. Hierarchy protection
   if (!acl.canQueryRoleHierarchy) {
     delete adjusted.parent_role_id;
     delete adjusted.hierarchy_level;
   }
-  
+
   // 3. ROLE VISIBILITY ENFORCEMENT (NEW)
   if (acl.excludeSystemRoles) {
     adjusted._excludeSystemRoles = true;
   }
-  
+
   if (acl.excludeRootRoles) {
     adjusted._excludeRootRoles = true;
   }
-  
+
   if (acl.excludeAdminRoles) {
     adjusted._excludeAdminRoles = true;
   }
-  
+
   return adjusted;
 };
 

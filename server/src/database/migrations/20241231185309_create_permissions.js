@@ -5,9 +5,7 @@
 exports.up = function (knex) {
   return knex.schema.createTable('permissions', (table) => {
     table.uuid('id').defaultTo(knex.raw('uuid_generate_v4()')).primary(); // Primary key with UUID
-    table
-      .string('name', 100)
-      .notNullable();
+    table.string('name', 100).notNullable();
     table
       .string('key', 100)
       .notNullable()

@@ -24,9 +24,6 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "format": "prettier --write .",
     "create-db": "NODE_ENV=${NODE_ENV:-development} dotenv -e .env node src/database/create-db.js",
     "migrate": "NODE_ENV=${NODE_ENV:-development} dotenv -e .env npx knex migrate:latest",
     "rollback": "NODE_ENV=${NODE_ENV:-development} dotenv -e .env npx knex migrate:rollback",

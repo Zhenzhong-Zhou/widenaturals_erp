@@ -30,7 +30,7 @@ interface ThemeState {
    * Persisted user preference (intent).
    */
   preference: ThemePreference;
-  
+
   /**
    * Resolved theme mode used by the UI.
    *
@@ -51,7 +51,7 @@ interface ThemeState {
  */
 const getSystemThemeMode = (): ThemeMode => {
   if (typeof window === 'undefined') return 'light';
-  
+
   return window.matchMedia('(prefers-color-scheme: dark)').matches
     ? 'dark'
     : 'light';
@@ -90,7 +90,7 @@ const initialState: ThemeState = {
 const themeSlice = createSlice({
   name: 'theme',
   initialState,
-  
+
   reducers: {
     /**
      * Sets the user's theme preference explicitly.
@@ -102,13 +102,10 @@ const themeSlice = createSlice({
      * Note:
      * - Does NOT resolve the final theme mode
      */
-    setThemePreference: (
-      state,
-      action: PayloadAction<ThemePreference>
-    ) => {
+    setThemePreference: (state, action: PayloadAction<ThemePreference>) => {
       state.preference = action.payload;
     },
-    
+
     /**
      * Internal resolver for the final theme mode.
      *
@@ -119,18 +116,12 @@ const themeSlice = createSlice({
      * Note:
      * - Should not be dispatched directly by UI components.
      */
-    resolveThemeMode: (
-      state,
-      action: PayloadAction<ThemeMode>
-    ) => {
+    resolveThemeMode: (state, action: PayloadAction<ThemeMode>) => {
       state.mode = action.payload;
     },
   },
 });
 
-export const {
-  setThemePreference,
-  resolveThemeMode,
-} = themeSlice.actions;
+export const { setThemePreference, resolveThemeMode } = themeSlice.actions;
 
 export default themeSlice.reducer;

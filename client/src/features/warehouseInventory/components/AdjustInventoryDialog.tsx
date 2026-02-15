@@ -1,14 +1,13 @@
 import { type FC } from 'react';
-import CustomDialog from '@components/common/CustomDialog';
-import AdjustInventoryForm from '@features/warehouseInventory/components/AdjustInventoryForm';
-import Loading from '@components/common/Loading';
 import Alert from '@mui/material/Alert';
+import { CustomDialog, Loading } from '@components/index';
 import InventorySuccessDialog from '@features/inventoryShared/components/InventorySuccessDialog';
+import AdjustInventoryForm from '@features/warehouseInventory/components/AdjustInventoryForm';
+import { useInventoryAdjustmentDialogLogic } from '@features/inventoryShared/utils/useInventoryAdjustmentDialogLogic';
 import type {
   InventoryAdjustmentFormData,
   InventoryRecord,
 } from '@features/inventoryShared/types/InventorySharedType';
-import { useInventoryAdjustmentDialogLogic } from '@features/inventoryShared/utils/useInventoryAdjustmentDialogLogic.ts';
 
 interface AdjustInventoryDialogProps {
   open: boolean;

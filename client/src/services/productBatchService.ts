@@ -38,7 +38,7 @@ const fetchPaginatedProductBatches = async (
   params: ProductBatchQueryParams = {}
 ): Promise<PaginatedProductBatchApiResponse> => {
   const { filters = {}, ...rest } = params;
-  
+
   const {
     expiryAfter,
     expiryBefore,
@@ -50,24 +50,24 @@ const fetchPaginatedProductBatches = async (
     createdBefore,
     ...otherFilters
   } = filters;
-  
+
   /**
    * Flatten date filters → query params
    */
   const flatDateParams: Record<string, string> = {};
-  
+
   if (expiryAfter) flatDateParams.expiryAfter = expiryAfter;
   if (expiryBefore) flatDateParams.expiryBefore = expiryBefore;
-  
+
   if (manufactureAfter) flatDateParams.manufactureAfter = manufactureAfter;
   if (manufactureBefore) flatDateParams.manufactureBefore = manufactureBefore;
-  
+
   if (receivedAfter) flatDateParams.receivedAfter = receivedAfter;
   if (receivedBefore) flatDateParams.receivedBefore = receivedBefore;
-  
+
   if (createdAfter) flatDateParams.createdAfter = createdAfter;
   if (createdBefore) flatDateParams.createdBefore = createdBefore;
-  
+
   /**
    * Final flattened params
    */
@@ -76,10 +76,10 @@ const fetchPaginatedProductBatches = async (
     ...otherFilters,
     ...flatDateParams,
   };
-  
+
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.PRODUCT_BATCHES.ALL_RECORDS}${queryString}`;
-  
+
   return getRequest<PaginatedProductBatchApiResponse>(url, {
     policy: 'READ',
   });

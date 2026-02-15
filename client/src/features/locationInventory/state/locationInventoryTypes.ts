@@ -126,7 +126,8 @@ export type LocationInventoryRecordsResponse =
 export type LocationInventoryState =
   ReduxPaginatedState<LocationInventoryRecord>;
 
-export interface FlatLocationInventoryRow extends FlatInventoryRowBase<LocationInventoryRecord> {}
+export type FlatLocationInventoryRow =
+  FlatInventoryRowBase<LocationInventoryRecord>;
 
 export type LocationInventoryTableProps = BaseInventoryTableProps<
   LocationInventoryRecord,

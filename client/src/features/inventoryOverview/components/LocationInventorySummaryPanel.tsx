@@ -157,17 +157,14 @@ const LocationInventorySummaryPanel: FC<Props> = ({
       </CustomTypography>
     );
   }
-  
+
   const isPageLoading =
-    summaryLoading ||
-    detailLoading ||
-    !summaryPagination ||
-    !detailsPagination;
-  
+    summaryLoading || detailLoading || !summaryPagination || !detailsPagination;
+
   if (isPageLoading) {
     return <Loading message="Loading inventory summary..." />;
   }
-  
+
   return (
     <>
       <Suspense
@@ -200,7 +197,7 @@ const LocationInventorySummaryPanel: FC<Props> = ({
           showActionsWhenAll={true}
           requireBatchTypeForActions={true}
         />
-        
+
         <LocationInventorySummaryTable
           data={summaryData}
           page={page - 1}

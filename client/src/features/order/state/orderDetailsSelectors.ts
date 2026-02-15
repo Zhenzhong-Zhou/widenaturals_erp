@@ -60,9 +60,8 @@ export const makeSelectOrderItemById = (orderItemId: string) =>
 // ---------------------------
 // Convenience booleans / derived values
 // ---------------------------
-export const selectHasOrder = createSelector(
-  [selectOrderDetailsData],
-  (data) => Boolean(data)
+export const selectHasOrder = createSelector([selectOrderDetailsData], (data) =>
+  Boolean(data)
 );
 
 /**
@@ -72,11 +71,14 @@ export const selectHasOrder = createSelector(
  * Assumes FlattenedOrderHeader contains `shippingFee` and `totalAmount`
  * as strings or nullable strings.
  */
-export const selectOrderTotals = createSelector([selectOrderHeader], (header) => {
-  if (!header) return { shippingFee: 0, totalAmount: 0 };
-  
-  const shippingFee = Number(header.shippingFee ?? 0) || 0;
-  const totalAmount = Number(header.totalAmount ?? 0) || 0;
-  
-  return { shippingFee, totalAmount };
-});
+export const selectOrderTotals = createSelector(
+  [selectOrderHeader],
+  (header) => {
+    if (!header) return { shippingFee: 0, totalAmount: 0 };
+
+    const shippingFee = Number(header.shippingFee ?? 0) || 0;
+    const totalAmount = Number(header.totalAmount ?? 0) || 0;
+
+    return { shippingFee, totalAmount };
+  }
+);

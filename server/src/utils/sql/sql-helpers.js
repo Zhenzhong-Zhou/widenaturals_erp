@@ -114,14 +114,12 @@ const addKeywordIlikeGroup = (conditions, params, idx, keyword, fields) => {
     conditions.push('1 = 0');
     return idx;
   }
-  
-  const orConditions = fields.map(
-    (field) => `${field} ILIKE $${idx}`
-  );
-  
+
+  const orConditions = fields.map((field) => `${field} ILIKE $${idx}`);
+
   conditions.push(`(${orConditions.join(' OR ')})`);
   params.push(`%${keyword}%`);
-  
+
   return idx + 1;
 };
 

@@ -3,7 +3,7 @@ import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Stack from '@mui/material/Stack';
 import CustomTypography from '@components/common/CustomTypography';
-import type { CreateMode } from '@shared-types/shared.ts';
+import type { CreateMode } from '@shared-types/shared';
 
 interface CreateModeToggleProps<T extends CreateMode = CreateMode> {
   value: T;

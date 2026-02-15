@@ -1,4 +1,11 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ORDER_VIEW_MODES } from '@features/order/constants/orderViewModes';
 import { isValidOrderCategory } from '@features/order/utils';
@@ -23,7 +30,7 @@ import {
   CustomTypography,
   GoBackButton,
   Loading,
-  NoDataFound
+  NoDataFound,
 } from '@components/index';
 import { AccessDeniedPage } from '@pages/system';
 import {
@@ -52,19 +59,18 @@ const OrdersListPage = () => {
     {} as OrderListFilters
   );
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-  
+
   // UI permissions
-  const { isAllowed: canCreateSalesOrder } =
-    usePagePermissionState(
-      toPermissionValue('CREATE', 'sales')
-    );
-  
+  const { isAllowed: canCreateSalesOrder } = usePagePermissionState(
+    toPermissionValue('CREATE', 'sales')
+  );
+
   const canCreateSalesOrderInSalesMode =
     mode === 'sales' && canCreateSalesOrder;
-  
+
   // Config permissions
   const hasPermission = useHasPermission();
-  
+
   const permissionCtx = useMemo<OrderPermissionContext>(
     () => ({
       has: (perm) => hasPermission(perm) === true,
@@ -72,7 +78,7 @@ const OrdersListPage = () => {
     }),
     [hasPermission]
   );
-  
+
   const {
     orders,
     pagination,
@@ -90,16 +96,16 @@ const OrdersListPage = () => {
   // Build base filters from config
   useEffect(() => {
     if (!modeConfig) return;
-    
+
     let baseFilters = modeConfig.buildBaseFilters(permissionCtx);
-    
+
     if (modeConfig.applyAllocationVisibility) {
       baseFilters = modeConfig.applyAllocationVisibility(
         permissionCtx,
         baseFilters
       );
     }
-    
+
     setFilters(baseFilters);
   }, [modeConfig, permissionCtx]);
 
@@ -138,31 +144,31 @@ const OrdersListPage = () => {
   const handleRefresh = useCallback(() => {
     applyFiltersAndSorting(queryParams);
   }, [queryParams]);
-  
+
   const handleResetFilters = () => {
     resetOrders();
-    
+
     if (modeConfig) {
       let baseFilters = modeConfig.buildBaseFilters(permissionCtx);
-      
+
       if (modeConfig.applyAllocationVisibility) {
         baseFilters = modeConfig.applyAllocationVisibility(
           permissionCtx,
           baseFilters
         );
       }
-      
+
       setFilters(baseFilters);
     }
-    
+
     setPage(1);
   };
-  
+
   const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(
     setPage,
     setLimit
   );
-  
+
   if (!modeConfig || !modeConfig.canSee(permissionCtx)) {
     return <AccessDeniedPage />;
   }
@@ -233,7 +239,7 @@ const OrdersListPage = () => {
         {!ordersLoading && !ordersError && orders.length === 0 && (
           <NoDataFound message="No addresses found." />
         )}
-        
+
         {!ordersLoading && !ordersError && pagination && orders.length > 0 && (
           <Suspense fallback={<Skeleton height={300} />}>
             <OrdersTable

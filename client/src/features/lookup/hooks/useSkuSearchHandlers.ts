@@ -27,9 +27,8 @@ export type SkuLookupBundle = {
  * Mirrors the Product and Status search handler design.
  */
 const useSkuSearchHandlers = (bundle: SkuLookupBundle) => {
-  const handleSearch =
-    useDebouncedSearch<SkuLookupQueryParams>(bundle.fetch);
-  
+  const handleSearch = useDebouncedSearch<SkuLookupQueryParams>(bundle.fetch);
+
   return {
     /**
      * Debounced handler for SKU keyword searches.

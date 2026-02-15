@@ -16,7 +16,10 @@
  * are enforced upstream.
  */
 
-const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
+const {
+  normalizeDateRangeFilters,
+  applyDateRangeConditions,
+} = require('./date-range-utils');
 const { addKeywordIlikeGroup } = require('./sql-helpers');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
@@ -82,11 +85,11 @@ const buildProductBatchFilter = (filters = {}) => {
     // Normalize date-only filters
     // -------------------------------------------------------------
     filters = normalizeDateRangeFilters(filters, 'expiryAfter', 'expiryBefore');
-    
+
     const conditions = ['1=1'];
     const params = [];
     const paramIndexRef = { value: 1 };
-    
+
     // -------------------------------------------------------------
     // Hard fail-closed
     // -------------------------------------------------------------
@@ -96,7 +99,7 @@ const buildProductBatchFilter = (filters = {}) => {
         params: [],
       };
     }
-    
+
     // ------------------------------
     // Status
     // ------------------------------
@@ -105,7 +108,7 @@ const buildProductBatchFilter = (filters = {}) => {
       params.push(filters.statusIds);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // SKU / Product / Manufacturer
     // ------------------------------
@@ -114,13 +117,13 @@ const buildProductBatchFilter = (filters = {}) => {
       params.push(filters.skuIds);
       paramIndexRef.value++;
     }
-    
+
     if (filters.productIds?.length) {
       conditions.push(`p.id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.productIds);
       paramIndexRef.value++;
     }
-    
+
     if (filters.manufacturerIds?.length) {
       conditions.push(
         `pb.manufacturer_id = ANY($${paramIndexRef.value}::uuid[])`
@@ -128,7 +131,7 @@ const buildProductBatchFilter = (filters = {}) => {
       params.push(filters.manufacturerIds);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Lot number (ILIKE)
     // ------------------------------
@@ -137,7 +140,7 @@ const buildProductBatchFilter = (filters = {}) => {
       params.push(`%${filters.lotNumber}%`);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Expiry date filters (date-only, half-open)
     // ------------------------------
@@ -149,25 +152,22 @@ const buildProductBatchFilter = (filters = {}) => {
       before: filters.expiryBefore,
       paramIndexRef,
     });
-    
+
     // ------------------------------
     // Keyword fuzzy search (permission-aware)
     // ------------------------------
     if (filters.keyword && filters.keywordCapabilities) {
-      const {
-        canSearchProduct,
-        canSearchSku,
-        canSearchManufacturer,
-      } = filters.keywordCapabilities;
-      
+      const { canSearchProduct, canSearchSku, canSearchManufacturer } =
+        filters.keywordCapabilities;
+
       const searchableFields = [
         'pb.lot_number', // always allowed
       ];
-      
+
       if (canSearchProduct) searchableFields.push('p.name');
       if (canSearchSku) searchableFields.push('sk.sku');
       if (canSearchManufacturer) searchableFields.push('m.name');
-      
+
       /**
        * addKeywordIlikeGroup:
        * - Appends `(field ILIKE $n OR ...)`
@@ -182,7 +182,7 @@ const buildProductBatchFilter = (filters = {}) => {
         searchableFields
       );
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -192,7 +192,7 @@ const buildProductBatchFilter = (filters = {}) => {
       context: 'product-batch-repository/buildProductBatchFilter',
       filters,
     });
-    
+
     throw AppError.databaseError('Failed to prepare product batch filter', {
       details: err.message,
     });

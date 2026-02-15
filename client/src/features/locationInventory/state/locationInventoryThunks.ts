@@ -7,7 +7,7 @@ import type {
   LocationInventorySummaryDetailResponse,
   LocationInventorySummaryResponse,
 } from './locationInventoryTypes';
-import { locationInventoryService } from '@services/locationInventoryService.ts';
+import { locationInventoryService } from '@services/locationInventoryService';
 import type {
   InventorySummaryDetailByItemIdParams,
   ItemType,

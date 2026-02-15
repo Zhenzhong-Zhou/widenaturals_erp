@@ -2,17 +2,10 @@ import { type FC, useEffect } from 'react';
 import { Path, useForm } from 'react-hook-form';
 import Grid from '@mui/material/Grid';
 import { FilterPanelLayout } from '@components/index';
-import {
-  renderDateField,
-  renderInputField
-} from '@utils/filters/filterUtils';
+import { renderDateField, renderInputField } from '@utils/filters/filterUtils';
 import type { ComplianceFilters } from '@features/complianceRecord/state';
 import type { FilterField } from '@shared-types/shared';
-import {
-  useProductLookup,
-  useSkuLookup,
-  useStatusLookup }
-  from '@hooks/index';
+import { useProductLookup, useSkuLookup, useStatusLookup } from '@hooks/index';
 import {
   useFilterLookup,
   useMultiSelectBinding,
@@ -147,7 +140,7 @@ const ComplianceFiltersPanel: FC<Props> = ({
     reset(emptyFilters);
     productFilter.reset();
     skuFilter.reset();
-    
+
     onReset();
   };
 
@@ -171,7 +164,7 @@ const ComplianceFiltersPanel: FC<Props> = ({
     status.options,
     formatLabel
   );
-  
+
   // ----------------------------------------
   // Product lookup controller
   // ----------------------------------------
@@ -182,7 +175,7 @@ const ComplianceFiltersPanel: FC<Props> = ({
     setValue,
     useSearchHandlers: useProductSearchHandlers,
   });
-  
+
   const skuFilter = useFilterLookup({
     fieldName: 'skuIds',
     lookup: sku,
@@ -190,7 +183,7 @@ const ComplianceFiltersPanel: FC<Props> = ({
     setValue,
     useSearchHandlers: useSkuSearchHandlers,
   });
-  
+
   return (
     <form onSubmit={handleSubmit(submitFilters)}>
       <FilterPanelLayout onReset={resetFilters}>

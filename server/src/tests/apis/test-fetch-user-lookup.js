@@ -1,18 +1,16 @@
 const { pool } = require('../../database/db');
 const { initStatusCache } = require('../../config/status-cache');
-const {
-  fetchUserLookupService,
-} = require('../../services/lookup-service');
+const { fetchUserLookupService } = require('../../services/lookup-service');
 
 (async () => {
   const client = await pool.connect();
-  
+
   try {
     // ---------------------------------------------------------
     // Init shared caches
     // ---------------------------------------------------------
     await initStatusCache();
-    
+
     // ---------------------------------------------------------
     // Load test user (change email to test ACL behavior)
     // ---------------------------------------------------------
@@ -27,18 +25,18 @@ const {
       // ['admin@widenaturals.com']
       ['jp@widenaturals.com']
     );
-    
+
     if (!rows.length) {
       throw new Error('Test user not found');
     }
-    
+
     const user = {
       id: rows[0].id,
       role: rows[0].role_id,
     };
-    
+
     console.log('Test user context:', user);
-    
+
     // ---------------------------------------------------------
     // Execute User Lookup (service-level)
     // ---------------------------------------------------------
@@ -50,10 +48,10 @@ const {
       limit: 20,
       offset: 0,
     });
-    
+
     console.log('User lookup service result:');
     console.dir(result, { depth: null });
-    
+
     /**
      * Expected behaviors to verify:
      *

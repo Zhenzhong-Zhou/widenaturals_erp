@@ -3,7 +3,7 @@ import type {
   AddressCreationState,
   CreateAddressApiResponse,
 } from './addressTypes';
-import { createAddressesThunk } from '@features/address/state/addressThunks.ts';
+import { createAddressesThunk } from '@features/address/state/addressThunks';
 
 const initialState: AddressCreationState = {
   data: null,

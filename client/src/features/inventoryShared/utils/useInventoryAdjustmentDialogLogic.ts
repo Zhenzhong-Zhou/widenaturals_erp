@@ -1,15 +1,15 @@
 import { useEffect, useMemo } from 'react';
-import useAdjustWarehouseInventory from '@hooks/useAdjustWarehouseInventory.ts';
-import useLotAdjustmentTypeLookup from '@hooks/useLotAdjustmentTypeLookup.ts';
+import useAdjustWarehouseInventory from '@hooks/useAdjustWarehouseInventory';
+import useLotAdjustmentTypeLookup from '@hooks/useLotAdjustmentTypeLookup';
 import {
   mapInventoryRecordToAdjustData,
   mapInventoryRecordsToAdjustData,
-} from '@features/inventoryShared/utils/adjustInventoryRecordMapper.ts';
+} from '@features/inventoryShared/utils/adjustInventoryRecordMapper';
 import type {
   InventoryRecord,
   InventoryAdjustmentInput,
   InventoryAdjustmentFormData,
-} from '@features/inventoryShared/types/InventorySharedType.ts';
+} from '@features/inventoryShared/types/InventorySharedType';
 
 type Mode = 'single' | 'bulk';
 

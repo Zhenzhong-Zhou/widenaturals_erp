@@ -21,7 +21,9 @@ import type {
   PricingLookupQueryParams,
   PricingLookupResponse,
   ProductLookupParams,
-  ProductLookupResponse, RoleLookupParams, RoleLookupResponse,
+  ProductLookupResponse,
+  RoleLookupParams,
+  RoleLookupResponse,
   SkuCodeBaseLookupParams,
   SkuCodeBaseLookupResponse,
   SkuLookupQueryParams,
@@ -46,8 +48,8 @@ import { extractErrorMessage } from '@utils/error';
  */
 export const fetchBatchRegistryLookupThunk = createAsyncThunk<
   GetBatchRegistryLookupResponse, // fulfilled type
-  GetBatchRegistryLookupParams,    // argument type
-  { rejectValue: string }          // rejection payload type
+  GetBatchRegistryLookupParams, // argument type
+  { rejectValue: string } // rejection payload type
 >('lookup/fetchBatchRegistryLookup', async (params, { rejectWithValue }) => {
   try {
     return await lookupService.fetchBatchRegistryLookup(params);
@@ -66,9 +68,9 @@ export const fetchBatchRegistryLookupThunk = createAsyncThunk<
  * @returns A fulfilled action with lookup items or a rejected action with a user-friendly error message.
  */
 export const fetchWarehouseLookupThunk = createAsyncThunk<
-  GetWarehouseLookupResponse,               // fulfilled type
+  GetWarehouseLookupResponse, // fulfilled type
   { warehouseTypeId?: string } | undefined, // argument type
-  { rejectValue: string }                   // rejection payload type
+  { rejectValue: string } // rejection payload type
 >('lookup/fetchWarehouseLookup', async (params, { rejectWithValue }) => {
   try {
     return await lookupService.fetchWarehouseLookup(params?.warehouseTypeId);
@@ -101,9 +103,9 @@ export const fetchWarehouseLookupThunk = createAsyncThunk<
  * dispatch(fetchLotAdjustmentTypeLookupThunk({ excludeInternal: false }));
  */
 export const fetchLotAdjustmentTypeLookupThunk = createAsyncThunk<
-  LotAdjustmentTypeLookupResponse,               // fulfilled type
-  LotAdjustmentLookupQueryParams | undefined,    // argument type
-  { rejectValue: string }                        // rejection payload type
+  LotAdjustmentTypeLookupResponse, // fulfilled type
+  LotAdjustmentLookupQueryParams | undefined, // argument type
+  { rejectValue: string } // rejection payload type
 >(
   'lookups/fetchLotAdjustmentTypeLookup',
   async (filters = {}, { rejectWithValue }) => {
@@ -126,20 +128,17 @@ export const fetchLotAdjustmentTypeLookupThunk = createAsyncThunk<
  * @returns A thunk action resolving to customer lookup data or error payload
  */
 export const fetchCustomerLookupThunk = createAsyncThunk<
-  CustomerLookupResponse,        // fulfilled type
+  CustomerLookupResponse, // fulfilled type
   CustomerLookupQuery | undefined,
   { rejectValue: string }
->(
-  'lookup/fetchCustomerLookup',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await lookupService.fetchCustomerLookup(params);
-    } catch (error: unknown) {
-      console.error('fetchCustomerLookupThunk error:', error);
-      return rejectWithValue(extractErrorMessage(error));
-    }
+>('lookup/fetchCustomerLookup', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchCustomerLookup(params);
+  } catch (error: unknown) {
+    console.error('fetchCustomerLookupThunk error:', error);
+    return rejectWithValue(extractErrorMessage(error));
   }
-);
+});
 
 /**
  * Thunk action to fetch all addresses associated with a given customer ID.
@@ -157,20 +156,17 @@ export const fetchCustomerLookupThunk = createAsyncThunk<
  * @returns {Promise<AddressByCustomerLookupResponse>} - Promise resolving with address data
  */
 export const fetchCustomerAddressesLookupThunk = createAsyncThunk<
-  AddressByCustomerLookupResponse,  // fulfilled type
-  string,                           // customerId
+  AddressByCustomerLookupResponse, // fulfilled type
+  string, // customerId
   { rejectValue: string }
->(
-  'addresses/fetchByCustomerId',
-  async (customerId, { rejectWithValue }) => {
-    try {
-      return await lookupService.fetchAddressesByCustomerId(customerId);
-    } catch (error: unknown) {
-      console.error('fetchCustomerAddressesLookupThunk error:', error);
-      return rejectWithValue(extractErrorMessage(error));
-    }
+>('addresses/fetchByCustomerId', async (customerId, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchAddressesByCustomerId(customerId);
+  } catch (error: unknown) {
+    console.error('fetchCustomerAddressesLookupThunk error:', error);
+    return rejectWithValue(extractErrorMessage(error));
   }
-);
+});
 
 /**
  * Thunk to fetch order type lookup data with optional query parameters.
@@ -192,17 +188,14 @@ export const fetchOrderTypeLookupThunk = createAsyncThunk<
   OrderTypeLookupResponse,
   OrderTypeLookupQueryParams | undefined,
   { rejectValue: string }
->(
-  'lookups/fetchOrderTypeLookup',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await lookupService.fetchOrderTypeLookup(params);
-    } catch (error: unknown) {
-      console.error('fetchOrderTypeLookupThunk error:', error);
-      return rejectWithValue(extractErrorMessage(error));
-    }
+>('lookups/fetchOrderTypeLookup', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchOrderTypeLookup(params);
+  } catch (error: unknown) {
+    console.error('fetchOrderTypeLookupThunk error:', error);
+    return rejectWithValue(extractErrorMessage(error));
   }
-);
+});
 
 /**
  * Thunk to fetch payment method lookup data for dropdowns or autocomplete components.
@@ -224,17 +217,14 @@ export const fetchPaymentMethodLookupThunk = createAsyncThunk<
   PaymentMethodLookupResponse,
   PaymentMethodLookupQueryParams | undefined,
   { rejectValue: string }
->(
-  'lookup/fetchPaymentMethodLookup',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await lookupService.fetchPaymentMethodLookup(params);
-    } catch (error: unknown) {
-      console.error('fetchPaymentMethodLookupThunk error:', error);
-      return rejectWithValue(extractErrorMessage(error));
-    }
+>('lookup/fetchPaymentMethodLookup', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchPaymentMethodLookup(params);
+  } catch (error: unknown) {
+    console.error('fetchPaymentMethodLookupThunk error:', error);
+    return rejectWithValue(extractErrorMessage(error));
   }
-);
+});
 
 /**
  * Thunk to fetch a list of discounts for lookup UIs such as dropdowns or autocompletes.
@@ -254,17 +244,14 @@ export const fetchDiscountLookupThunk = createAsyncThunk<
   DiscountLookupResponse,
   DiscountLookupQueryParams | undefined,
   { rejectValue: string }
->(
-  'lookup/fetchDiscounts',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await lookupService.fetchDiscountLookup(params);
-    } catch (error: unknown) {
-      console.error('fetchDiscountLookupThunk error:', error);
-      return rejectWithValue(extractErrorMessage(error));
-    }
+>('lookup/fetchDiscounts', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchDiscountLookup(params);
+  } catch (error: unknown) {
+    console.error('fetchDiscountLookupThunk error:', error);
+    return rejectWithValue(extractErrorMessage(error));
   }
-);
+});
 
 /**
  * Thunk to fetch a list of tax rates for use in lookup UIs such as dropdowns or configuration panels.
@@ -284,17 +271,14 @@ export const fetchTaxRateLookupThunk = createAsyncThunk<
   TaxRateLookupResponse,
   TaxRateLookupQueryParams | undefined,
   { rejectValue: string }
->(
-  'lookup/fetchTaxRates',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await lookupService.fetchTaxRateLookup(params);
-    } catch (error: unknown) {
-      console.error('fetchTaxRateLookupThunk error:', error);
-      return rejectWithValue(extractErrorMessage(error));
-    }
+>('lookup/fetchTaxRates', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchTaxRateLookup(params);
+  } catch (error: unknown) {
+    console.error('fetchTaxRateLookupThunk error:', error);
+    return rejectWithValue(extractErrorMessage(error));
   }
-);
+});
 
 /**
  * Thunk to fetch a list of delivery methods for lookup UIs (e.g., order forms, shipping setup).
@@ -314,17 +298,14 @@ export const fetchDeliveryMethodLookupThunk = createAsyncThunk<
   DeliveryMethodLookupResponse,
   DeliveryMethodLookupQueryParams | undefined,
   { rejectValue: string }
->(
-  'lookup/fetchDeliveryMethods',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await lookupService.fetchDeliveryMethodLookup(params);
-    } catch (error: unknown) {
-      console.error('fetchDeliveryMethodLookupThunk error:', error);
-      return rejectWithValue(extractErrorMessage(error));
-    }
+>('lookup/fetchDeliveryMethods', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchDeliveryMethodLookup(params);
+  } catch (error: unknown) {
+    console.error('fetchDeliveryMethodLookupThunk error:', error);
+    return rejectWithValue(extractErrorMessage(error));
   }
-);
+});
 
 /**
  * Thunk to fetch SKU lookup options for dropdowns or autocomplete fields.
@@ -344,17 +325,14 @@ export const fetchSkuLookupThunk = createAsyncThunk<
   SkuLookupResponse,
   SkuLookupQueryParams | undefined,
   { rejectValue: string }
->(
-  'lookup/fetchSkuLookup',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await lookupService.fetchSkuLookup(params);
-    } catch (error: unknown) {
-      console.error('fetchSkuLookupThunk error:', error);
-      return rejectWithValue(extractErrorMessage(error));
-    }
+>('lookup/fetchSkuLookup', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchSkuLookup(params);
+  } catch (error: unknown) {
+    console.error('fetchSkuLookupThunk error:', error);
+    return rejectWithValue(extractErrorMessage(error));
   }
-);
+});
 
 /**
  * Thunk to fetch pricing lookup options for dropdowns or autocomplete fields.
@@ -376,17 +354,14 @@ export const fetchPricingLookupThunk = createAsyncThunk<
   PricingLookupResponse,
   PricingLookupQueryParams | undefined,
   { rejectValue: string }
->(
-  'lookup/fetchPricingLookup',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await lookupService.fetchPricingLookup(params);
-    } catch (error: unknown) {
-      console.error('fetchPricingLookupThunk error:', error);
-      return rejectWithValue(extractErrorMessage(error));
-    }
+>('lookup/fetchPricingLookup', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchPricingLookup(params);
+  } catch (error: unknown) {
+    console.error('fetchPricingLookupThunk error:', error);
+    return rejectWithValue(extractErrorMessage(error));
   }
-);
+});
 
 /**
  * Thunk to fetch packaging-material lookup options for dropdowns/autocomplete.
@@ -449,17 +424,14 @@ export const fetchSkuCodeBaseLookupThunk = createAsyncThunk<
   SkuCodeBaseLookupResponse,
   SkuCodeBaseLookupParams | undefined,
   { rejectValue: string }
->(
-  'lookups/fetchSkuCodeBaseLookup',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await lookupService.fetchSkuCodeBaseLookup(params);
-    } catch (error: unknown) {
-      console.error('fetchSkuCodeBaseLookupThunk error:', error);
-      return rejectWithValue(extractErrorMessage(error));
-    }
+>('lookups/fetchSkuCodeBaseLookup', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchSkuCodeBaseLookup(params);
+  } catch (error: unknown) {
+    console.error('fetchSkuCodeBaseLookupThunk error:', error);
+    return rejectWithValue(extractErrorMessage(error));
   }
-);
+});
 
 /**
  * Thunk: Fetch paginated **Product lookup** items for dropdowns/selectors.
@@ -493,17 +465,14 @@ export const fetchProductLookupThunk = createAsyncThunk<
   ProductLookupResponse,
   ProductLookupParams | undefined,
   { rejectValue: string }
->(
-  'lookups/fetchProductLookup',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await lookupService.fetchProductLookup(params);
-    } catch (error: unknown) {
-      console.error('fetchProductLookupThunk error:', error);
-      return rejectWithValue(extractErrorMessage(error));
-    }
+>('lookups/fetchProductLookup', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchProductLookup(params);
+  } catch (error: unknown) {
+    console.error('fetchProductLookupThunk error:', error);
+    return rejectWithValue(extractErrorMessage(error));
   }
-);
+});
 
 /**
  * Thunk: Fetch paginated **Status lookup** items for dropdowns/selectors.
@@ -536,9 +505,9 @@ export const fetchProductLookupThunk = createAsyncThunk<
  *          or rejecting with `rejectValue: string`.
  */
 export const fetchStatusLookupThunk = createAsyncThunk<
-  StatusLookupResponse,              // fulfilled type
-  StatusLookupParams | undefined,     // argument type
-  { rejectValue: string }             // rejection payload type
+  StatusLookupResponse, // fulfilled type
+  StatusLookupParams | undefined, // argument type
+  { rejectValue: string } // rejection payload type
 >('lookups/fetchStatusLookup', async (params, { rejectWithValue }) => {
   try {
     return await lookupService.fetchStatusLookup(params);
@@ -569,9 +538,9 @@ export const fetchStatusLookupThunk = createAsyncThunk<
  *          or rejecting with `rejectValue: string`.
  */
 export const fetchUserLookupThunk = createAsyncThunk<
-  UserLookupResponse,                 // fulfilled type
-  UserLookupParams | undefined,        // argument type
-  { rejectValue: string }              // rejection payload type
+  UserLookupResponse, // fulfilled type
+  UserLookupParams | undefined, // argument type
+  { rejectValue: string } // rejection payload type
 >('lookups/fetchUserLookup', async (params, { rejectWithValue }) => {
   try {
     return await lookupService.fetchUserLookup(params);
@@ -600,9 +569,9 @@ export const fetchUserLookupThunk = createAsyncThunk<
  *          or rejecting with `rejectValue: string`.
  */
 export const fetchRoleLookupThunk = createAsyncThunk<
-  RoleLookupResponse,                 // fulfilled type
-  RoleLookupParams | undefined,        // argument type
-  { rejectValue: string }              // rejection payload type
+  RoleLookupResponse, // fulfilled type
+  RoleLookupParams | undefined, // argument type
+  { rejectValue: string } // rejection payload type
 >('lookups/fetchRoleLookup', async (params, { rejectWithValue }) => {
   try {
     return await lookupService.fetchRoleLookup(params);

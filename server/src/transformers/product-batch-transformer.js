@@ -102,13 +102,13 @@ const transformProductBatchRow = (row, access) => {
   return cleanObject({
     id: row.id,
     lotNumber: row.lot_number,
-    
+
     sku: cleanObject({
       id: row.sku_id,
       code: row.sku_code,
       sizeLabel: row.size_label,
     }),
-    
+
     product: cleanObject({
       id: row.product_id,
       name: row.product_name,
@@ -119,32 +119,32 @@ const transformProductBatchRow = (row, access) => {
         brand: row.brand,
         sku: row.sku_code,
         country_code: row.country_code,
-      })
+      }),
     }),
-    
+
     manufacturer: access.canViewManufacturer
       ? cleanObject({
-        id: row.manufacturer_id,
-        name: row.manufacturer_name,
-      })
+          id: row.manufacturer_id,
+          name: row.manufacturer_name,
+        })
       : null,
-    
+
     lifecycle: {
       manufactureDate: row.manufacture_date,
       expiryDate: row.expiry_date,
       receivedDate: row.received_date,
       initialQuantity: row.initial_quantity,
     },
-    
+
     status: makeStatus(row),
-    
+
     releasedAt: row.released_at,
     releasedBy: makeActor(
       row.released_by_id,
       row.released_by_firstname,
       row.released_by_lastname
     ),
-    
+
     audit: compactAudit(makeAudit(row)),
   });
 };
@@ -165,9 +165,8 @@ const transformProductBatchRow = (row, access) => {
  * @returns {Object} Paginated, transformed product batch result
  */
 const transformPaginatedProductBatchResults = (paginatedResult, access) => {
-  return transformPaginatedResult(
-    paginatedResult,
-    (row) => transformProductBatchRow(row, access)
+  return transformPaginatedResult(paginatedResult, (row) =>
+    transformProductBatchRow(row, access)
   );
 };
 

@@ -4,7 +4,10 @@
  * Used in repository layers to support paginated list views or dropdowns with flexible filtering and optional stock checks.
  */
 
-const { normalizeDateRangeFilters, applyDateRangeConditions } = require('./date-range-utils');
+const {
+  normalizeDateRangeFilters,
+  applyDateRangeConditions,
+} = require('./date-range-utils');
 const { SORTABLE_FIELDS } = require('../sort-field-mapping');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
@@ -447,13 +450,21 @@ const buildSkuFilter = (filters = {}) => {
     // -------------------------------------------------------------
     // Normalize date-only filters
     // -------------------------------------------------------------
-    filters = normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore');
-    filters = normalizeDateRangeFilters(filters, 'updatedAfter', 'updatedBefore');
-    
+    filters = normalizeDateRangeFilters(
+      filters,
+      'createdAfter',
+      'createdBefore'
+    );
+    filters = normalizeDateRangeFilters(
+      filters,
+      'updatedAfter',
+      'updatedBefore'
+    );
+
     const conditions = ['1=1'];
     const params = [];
     const paramIndexRef = { value: 1 };
-    
+
     // ------------------------------
     // SKU-level filters
     // ------------------------------
@@ -462,31 +473,31 @@ const buildSkuFilter = (filters = {}) => {
       params.push(filters.statusIds);
       paramIndexRef.value++;
     }
-    
+
     if (filters.productIds?.length) {
       conditions.push(`s.product_id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.productIds);
       paramIndexRef.value++;
     }
-    
+
     if (filters.marketRegion) {
       conditions.push(`s.market_region ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.marketRegion}%`);
       paramIndexRef.value++;
     }
-    
+
     if (filters.sizeLabel) {
       conditions.push(`s.size_label ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.sizeLabel}%`);
       paramIndexRef.value++;
     }
-    
+
     if (filters.sku) {
       conditions.push(`s.sku ILIKE $${paramIndexRef.value}`);
       params.push(`%${filters.sku}%`);
       paramIndexRef.value++;
     }
-    
+
     // ----------------------------------------------------
     // Dimensional filters (unchanged semantics)
     // ----------------------------------------------------
@@ -508,7 +519,7 @@ const buildSkuFilter = (filters = {}) => {
       ['minWeightLb', 's.weight_lb >='],
       ['maxWeightLb', 's.weight_lb <='],
     ];
-    
+
     for (const [key, sql] of rangeFilters) {
       if (filters[key] !== undefined) {
         conditions.push(`${sql} $${paramIndexRef.value}`);
@@ -516,7 +527,7 @@ const buildSkuFilter = (filters = {}) => {
         paramIndexRef.value++;
       }
     }
-    
+
     // ------------------------------
     // Audit filters
     // ------------------------------
@@ -525,13 +536,13 @@ const buildSkuFilter = (filters = {}) => {
       params.push(filters.createdBy);
       paramIndexRef.value++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`s.updated_by = $${paramIndexRef.value}`);
       params.push(filters.updatedBy);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Created / Updated date filters
     // ------------------------------
@@ -543,7 +554,7 @@ const buildSkuFilter = (filters = {}) => {
       before: filters.createdBefore,
       paramIndexRef,
     });
-    
+
     applyDateRangeConditions({
       conditions,
       params,
@@ -552,7 +563,7 @@ const buildSkuFilter = (filters = {}) => {
       before: filters.updatedBefore,
       paramIndexRef,
     });
-    
+
     // ------------------------------
     // Product-level filters
     // ------------------------------
@@ -561,7 +572,7 @@ const buildSkuFilter = (filters = {}) => {
       params.push(`%${filters.productName}%`);
       paramIndexRef.value++;
     }
-    
+
     // ------------------------------
     // Keyword fuzzy search
     // ------------------------------
@@ -575,7 +586,7 @@ const buildSkuFilter = (filters = {}) => {
       params.push(`%${filters.keyword}%`);
       paramIndexRef.value++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -585,7 +596,7 @@ const buildSkuFilter = (filters = {}) => {
       context: 'sku-repository/buildSkuFilter',
       filters,
     });
-    
+
     throw AppError.databaseError('Failed to prepare SKU filter', {
       details: err.message,
     });

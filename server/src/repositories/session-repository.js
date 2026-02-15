@@ -39,7 +39,7 @@ const { logSystemInfo, logSystemException } = require('../utils/system-logger');
  */
 const insertSession = async (session, client) => {
   const context = 'session-repository/insertSession';
-  
+
   const {
     userId,
     expiresAt,
@@ -48,7 +48,7 @@ const insertSession = async (session, client) => {
     deviceId = null,
     note = null,
   } = session;
-  
+
   const queryText = `
     INSERT INTO sessions (
       user_id,
@@ -66,25 +66,18 @@ const insertSession = async (session, client) => {
       last_activity_at,
       expires_at;
   `;
-  
-  const params = [
-    userId,
-    expiresAt,
-    ipAddress,
-    userAgent,
-    deviceId,
-    note,
-  ];
-  
+
+  const params = [userId, expiresAt, ipAddress, userAgent, deviceId, note];
+
   try {
     const { rows } = await query(queryText, params, client);
-    
+
     logSystemInfo('Session inserted successfully', {
       context,
       sessionId: rows[0]?.id,
       userId,
     });
-    
+
     return rows[0];
   } catch (error) {
     logSystemException(error, 'Failed to insert session', {
@@ -92,7 +85,7 @@ const insertSession = async (session, client) => {
       userId,
       error: error.message,
     });
-    
+
     throw error;
   }
 };
@@ -119,7 +112,7 @@ const insertSession = async (session, client) => {
  */
 const getSessionById = async (sessionId, client = null) => {
   const context = 'session-repository/getSessionById';
-  
+
   const queryText = `
     SELECT
       id,
@@ -131,20 +124,20 @@ const getSessionById = async (sessionId, client = null) => {
     WHERE id = $1
     LIMIT 1;
   `;
-  
+
   try {
     const { rows } = await query(queryText, [sessionId], client);
-    
+
     if (!rows[0]) {
       return null;
     }
-    
+
     logSystemInfo('Session fetched by id', {
       context,
       sessionId: rows[0].id,
       userId: rows[0].user_id,
     });
-    
+
     return rows[0];
   } catch (error) {
     logSystemException(error, 'Failed to fetch session by id', {
@@ -152,7 +145,7 @@ const getSessionById = async (sessionId, client = null) => {
       sessionId,
       error: error.message,
     });
-    
+
     throw error;
   }
 };
@@ -180,7 +173,7 @@ const getSessionById = async (sessionId, client = null) => {
  */
 const revokeSessionsByUserId = async (userId, client = null) => {
   const context = 'session-repository/revokeSessionsByUserId';
-  
+
   const sql = `
     UPDATE sessions
     SET revoked_at = NOW()
@@ -188,16 +181,16 @@ const revokeSessionsByUserId = async (userId, client = null) => {
       AND revoked_at IS NULL
     RETURNING id;
   `;
-  
+
   try {
     const { rows } = await query(sql, [userId], client);
-    
+
     logSystemInfo('Sessions revoked for user', {
       context,
       userId,
       revokedCount: rows.length,
     });
-    
+
     return rows;
   } catch (error) {
     logSystemException(error, 'Failed to revoke sessions for user', {
@@ -228,7 +221,7 @@ const revokeSessionsByUserId = async (userId, client = null) => {
  */
 const updateSessionLastActivityAt = async (sessionId, client = null) => {
   const context = 'session-repository/updateSessionLastActivityAt';
-  
+
   const sql = `
     UPDATE sessions
     SET last_activity_at = NOW()
@@ -240,10 +233,10 @@ const updateSessionLastActivityAt = async (sessionId, client = null) => {
       )
     RETURNING id;
   `;
-  
+
   try {
     const { rowCount } = await query(sql, [sessionId], client);
-    
+
     return rowCount > 0;
   } catch (error) {
     logSystemException(error, 'Failed to update session activity', {
@@ -274,7 +267,7 @@ const updateSessionLastActivityAt = async (sessionId, client = null) => {
  */
 const revokeSessionRowById = async (sessionId, client = null) => {
   const context = 'session-repository/revokeSessionRowById';
-  
+
   const sql = `
     UPDATE sessions
     SET
@@ -283,10 +276,10 @@ const revokeSessionRowById = async (sessionId, client = null) => {
       AND revoked_at IS NULL
     RETURNING id;
   `;
-  
+
   try {
     const { rowCount } = await query(sql, [sessionId], client);
-    
+
     return rowCount > 0;
   } catch (error) {
     logSystemException(error, 'Failed to revoke session', {
@@ -322,7 +315,7 @@ const revokeSessionRowById = async (sessionId, client = null) => {
  */
 const logoutSessionRowById = async (sessionId, client) => {
   const context = 'session-repository/logoutSessionRowById';
-  
+
   const sql = `
     UPDATE sessions
     SET
@@ -332,7 +325,7 @@ const logoutSessionRowById = async (sessionId, client) => {
       AND logout_at IS NULL
     RETURNING id, user_id;
   `;
-  
+
   try {
     const { rows } = await query(sql, [sessionId], client);
     return rows[0] ?? null;

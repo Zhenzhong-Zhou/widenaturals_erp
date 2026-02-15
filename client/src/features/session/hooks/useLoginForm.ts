@@ -30,9 +30,7 @@ import type { LoginRequestBody } from '@features/session';
  *
  * @returns Form state and handlers for controlled login forms.
  */
-const useLoginForm = (
-  onSubmit: (data: LoginRequestBody) => void
-) => {
+const useLoginForm = (onSubmit: (data: LoginRequestBody) => void) => {
   /**
    * Controlled form field values.
    */
@@ -40,13 +38,13 @@ const useLoginForm = (
     email: '',
     password: '',
   });
-  
+
   /**
    * Field-level validation errors.
    * Keys correspond to LoginRequestBody fields.
    */
   const [errors, setErrors] = useState<Partial<LoginRequestBody>>({});
-  
+
   /**
    * Validates current form values.
    *
@@ -59,23 +57,21 @@ const useLoginForm = (
    */
   const validate = useCallback(() => {
     const nextErrors: Partial<LoginRequestBody> = {};
-    
+
     if (!values.email) {
       nextErrors.email = 'Email is required';
-    } else if (
-      !/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(values.email)
-    ) {
+    } else if (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(values.email)) {
       nextErrors.email = 'Invalid email format';
     }
-    
+
     if (!values.password) {
       nextErrors.password = 'Password is required';
     }
-    
+
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   }, [values]);
-  
+
   /**
    * Updates a single form field.
    *
@@ -84,11 +80,11 @@ const useLoginForm = (
    */
   const handleChange = useCallback(
     (field: keyof LoginRequestBody, value: string) => {
-      setValues(prev => ({ ...prev, [field]: value }));
+      setValues((prev) => ({ ...prev, [field]: value }));
     },
     []
   );
-  
+
   /**
    * Submits the form after validation.
    *
@@ -104,7 +100,7 @@ const useLoginForm = (
       onSubmit(values);
     }
   }, [validate, values, onSubmit]);
-  
+
   return {
     values,
     errors,

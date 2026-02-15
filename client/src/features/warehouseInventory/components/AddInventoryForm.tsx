@@ -20,9 +20,9 @@ import type {
   GetBatchRegistryLookupParams,
   LookupPaginationMeta,
 } from '@features/lookup/state';
-import { useBatchTypeHandler } from '@features/warehouseInventory/hooks/useBatchTypeHandler.ts';
-import { getVisibleBatchOptions } from '@features/warehouseInventory/utils/getVisibleBatchOptions.ts';
-import type { BatchType } from '@features/inventoryShared/types/InventorySharedType.ts';
+import { useBatchTypeHandler } from '@features/warehouseInventory/hooks/useBatchTypeHandler';
+import { getVisibleBatchOptions } from '@features/warehouseInventory/utils/getVisibleBatchOptions';
+import type { BatchType } from '@features/inventoryShared/types/InventorySharedType';
 
 interface AddInventoryFormProps {
   onSubmit: (formData: Record<string, any>) => void;

@@ -16,7 +16,7 @@ const AppError = require('../utils/AppError');
 const { validatePasswordStrength } = require('../security/password-policy');
 const {
   logoutSession,
-  revokeAllSessionsForUser
+  revokeAllSessionsForUser,
 } = require('../business/auth/session-lifecycle');
 
 /**
@@ -46,19 +46,19 @@ const logoutService = async (
   { ipAddress, userAgent }
 ) => {
   const context = 'auth-service/logoutService';
-  
+
   // No active session — nothing to revoke
   if (!userId || !sessionId) {
     return;
   }
-  
+
   try {
     await logoutSession({
       sessionId,
       ipAddress,
-      userAgent
+      userAgent,
     });
-    
+
     logSystemInfo('User logged out', {
       context,
       userId,
@@ -127,77 +127,66 @@ const PASSWORD_HISTORY_LIMIT = 5;
  */
 const changePasswordService = async (userId, currentPassword, newPassword) => {
   const context = 'auth-service/changePasswordService';
-  
+
   return withTransaction(async (client) => {
     try {
       // ------------------------------------------------------------
       // 1. Fetch & lock auth record (single source of truth)
       // ------------------------------------------------------------
       const auth = await getAndLockUserAuthByUserId(userId, client);
-      
-      const {
-        auth_id: authId,
-        password_hash,
-        metadata,
-      } = auth;
-      
+
+      const { auth_id: authId, password_hash, metadata } = auth;
+
       // ------------------------------------------------------------
       // 2. Verify current password
       // ------------------------------------------------------------
-      const isValid = await verifyPassword(
-        password_hash,
-        currentPassword
-      );
-      
+      const isValid = await verifyPassword(password_hash, currentPassword);
+
       if (!isValid) {
         logSystemWarn('Password reset failed: invalid current password', {
           context,
           userId,
           hint: 'Current password does not match stored hash',
         });
-        
+
         throw AppError.authenticationError('Invalid credentials.');
       }
-      
+
       // ------------------------------------------------------------
       // 3. Validate new password strength
       // ------------------------------------------------------------
       validatePasswordStrength(newPassword);
-      
+
       // ------------------------------------------------------------
       // 4. Enforce password reuse policy (if enabled)
       // ------------------------------------------------------------
-      const passwordHistory =
-        metadata?.password_history ?? [];
-      
+      const passwordHistory = metadata?.password_history ?? [];
+
       for (const entry of passwordHistory) {
-        const reused = await verifyPassword(
-          entry.password_hash,
-          newPassword
-        );
-        
+        const reused = await verifyPassword(entry.password_hash, newPassword);
+
         if (reused) {
           throw AppError.validationError(
             'New password cannot match a previously used password.'
           );
         }
       }
-      
+
       // ------------------------------------------------------------
       // 5. Hash new password
       // ------------------------------------------------------------
       const newPasswordHash = await hashPassword(newPassword);
-      
+
       const newHistoryEntry = {
         password_hash: newPasswordHash,
         changed_at: new Date().toISOString(),
       };
-      
-      const updatedHistory = [
-        newHistoryEntry,
-        ...passwordHistory,
-      ].slice(0, PASSWORD_HISTORY_LIMIT);
-      
+
+      const updatedHistory = [newHistoryEntry, ...passwordHistory].slice(
+        0,
+        PASSWORD_HISTORY_LIMIT
+      );
+
       // ------------------------------------------------------------
       // 6. Persist password + history atomically
       // ------------------------------------------------------------
@@ -207,13 +196,11 @@ const changePasswordService = async (userId, currentPassword, newPassword) => {
         updatedHistory,
         client
       );
-      
+
       if (!result) {
-        throw AppError.notFoundError(
-          'Authentication record not found.'
-        );
+        throw AppError.notFoundError('Authentication record not found.');
       }
-      
+
       // ------------------------------------------------------------
       // 7. Revoke all active sessions and tokens (security boundary)
       // ------------------------------------------------------------
@@ -226,7 +213,7 @@ const changePasswordService = async (userId, currentPassword, newPassword) => {
           error: error.message,
         });
       }
-      
+
       throw error instanceof AppError
         ? error
         : AppError.generalError('Failed to reset password.');

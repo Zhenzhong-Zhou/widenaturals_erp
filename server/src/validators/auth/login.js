@@ -21,7 +21,9 @@ const { passwordForLogin } = require('./password-login');
  * - Credential verification and lockout logic are handled at the service layer.
  */
 const loginSchema = Joi.object({
-  email: Joi.string().email({ tlds: { allow: false } }).required(),
+  email: Joi.string()
+    .email({ tlds: { allow: false } })
+    .required(),
   password: passwordForLogin,
 }).required();
 

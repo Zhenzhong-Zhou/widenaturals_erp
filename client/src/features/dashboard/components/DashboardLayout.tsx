@@ -36,10 +36,10 @@ interface DashboardLayoutProps {
  * - Intended to be composable across different dashboard roles
  */
 const DashboardLayout: FC<DashboardLayoutProps> = ({
-                                                     fullName,
-                                                     header,
-                                                     children,
-                                                   }) => {
+  fullName,
+  header,
+  children,
+}) => {
   return (
     <Box sx={{ padding: 3 }}>
       {/* Greeting */}
@@ -54,10 +54,7 @@ const DashboardLayout: FC<DashboardLayoutProps> = ({
           }}
         >
           Welcome,&nbsp;
-          <Box
-            component="span"
-            sx={{ color: 'primary.main', fontWeight: 600 }}
-          >
+          <Box component="span" sx={{ color: 'primary.main', fontWeight: 600 }}>
             {fullName}
           </Box>
           !
@@ -65,10 +62,10 @@ const DashboardLayout: FC<DashboardLayoutProps> = ({
       ) : (
         <Skeleton variant="text" width={200} />
       )}
-      
+
       {/* Optional header / summary section */}
       {header && <Box sx={{ mt: 2 }}>{header}</Box>}
-      
+
       {/* Main content */}
       <Box sx={{ mt: 3 }}>{children}</Box>
     </Box>

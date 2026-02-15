@@ -16,9 +16,7 @@ const PricingTypeDetailPage = () => {
   const { id } = useParams<{ id: string }>();
 
   if (!id) {
-    return (
-      <ErrorMessage message="Pricing Type ID is required." />
-    );
+    return <ErrorMessage message="Pricing Type ID is required." />;
   }
 
   const { data, isLoading, error, fetchData, statusName } =
@@ -33,7 +31,7 @@ const PricingTypeDetailPage = () => {
   if (!data) {
     return <NoDataFound />;
   }
-  
+
   const flattenedData = {
     name: data.name,
     code: data.code,
@@ -50,9 +48,7 @@ const PricingTypeDetailPage = () => {
   if (isLoading) return <Loading message="Fetching pricing type metadata..." />;
 
   if (error) {
-    return (
-      <ErrorMessage message={error} />
-    );
+    return <ErrorMessage message={error} />;
   }
 
   return (

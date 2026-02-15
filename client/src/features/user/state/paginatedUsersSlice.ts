@@ -18,7 +18,7 @@ const initialState: PaginatedUsersState =
 const paginatedUsersSlice = createSlice({
   name: 'paginatedUsers',
   initialState,
-  
+
   reducers: {
     /**
      * Reset the entire paginated users state back to its
@@ -31,7 +31,7 @@ const paginatedUsersSlice = createSlice({
      */
     resetPaginatedUsers: () => initialState,
   },
-  
+
   // ---------------------------
   // Extra reducers (async thunk lifecycle)
   // ---------------------------
@@ -42,17 +42,17 @@ const paginatedUsersSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      
+
       // ---- fulfilled ----
       .addCase(fetchPaginatedUsersThunk.fulfilled, (state, action) => {
         const { data, pagination } = action.payload;
-        
+
         state.loading = false;
         state.data = data; // FlattenedUserRecord[]
         state.pagination = pagination;
         state.error = null;
       })
-      
+
       // ---- rejected ----
       .addCase(fetchPaginatedUsersThunk.rejected, (state, action) => {
         state.loading = false;

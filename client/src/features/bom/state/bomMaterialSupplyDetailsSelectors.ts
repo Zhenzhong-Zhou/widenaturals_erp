@@ -96,10 +96,10 @@ export const selectBomMaterialSupplyCostOverview = createSelector(
   (summary) =>
     summary
       ? {
-        totalEstimated: summary.totals.totalEstimatedCost,
-        totalActual: summary.totals.totalActualCost,
-        variance: summary.totals.variance,
-        variancePercentage: summary.totals.variancePercentage,
-      }
+          totalEstimated: summary.totals.totalEstimatedCost,
+          totalActual: summary.totals.totalActualCost,
+          variance: summary.totals.variance,
+          variancePercentage: summary.totals.variancePercentage,
+        }
       : null
 );

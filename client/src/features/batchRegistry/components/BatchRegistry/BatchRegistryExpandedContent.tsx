@@ -17,14 +17,14 @@ interface BatchRegistryExpandedContentProps {
 }
 
 const BatchRegistryExpandedContent: FC<BatchRegistryExpandedContentProps> = ({
-                                                                               row,
-                                                                             }) => {
+  row,
+}) => {
   return (
     <Box sx={{ px: 3, py: 2 }}>
       <CustomTypography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
         Batch Registry Details
       </CustomTypography>
-      
+
       {/* --------------------------------------------------
        * Batch Status
        * -------------------------------------------------- */}
@@ -39,7 +39,7 @@ const BatchRegistryExpandedContent: FC<BatchRegistryExpandedContentProps> = ({
           },
         ]}
       />
-      
+
       {/* --------------------------------------------------
        * Registry Notes
        * -------------------------------------------------- */}

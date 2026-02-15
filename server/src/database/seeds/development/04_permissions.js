@@ -1,10 +1,19 @@
 const { fetchDynamicValue } = require('../03_utils');
-const { USER_CONSTANTS } = require('../../../utils/constants/domain/user-constants');
-const { ROLE_CONSTANTS } = require('../../../utils/constants/domain/role-constants');
+const {
+  USER_CONSTANTS,
+} = require('../../../utils/constants/domain/user-constants');
+const {
+  ROLE_CONSTANTS,
+} = require('../../../utils/constants/domain/role-constants');
 const PRODUCT_CONSTANTS = require('../../../utils/constants/domain/product-constants');
-const { SKU_CONSTANTS, SKU_IMAGES_CONSTANTS } = require('../../../utils/constants/domain/sku-constants');
+const {
+  SKU_CONSTANTS,
+  SKU_IMAGES_CONSTANTS,
+} = require('../../../utils/constants/domain/sku-constants');
 const SKU_CODE_BASE_CONSTANTS = require('../../../utils/constants/domain/sku-code-base-constants');
-const { STATUS_CONSTANTS } = require('../../../utils/constants/domain/status-constants');
+const {
+  STATUS_CONSTANTS,
+} = require('../../../utils/constants/domain/status-constants');
 const COMPLIANCE_RECORD_CONSTANTS = require('../../../utils/constants/domain/compliance-record-constants');
 const CUSTOMER_CONSTANTS = require('../../../utils/constants/domain/customer-constants');
 const DELIVERY_METHOD_CONSTANTS = require('../../../utils/constants/domain/delivery-method-constants');
@@ -25,10 +34,10 @@ const {
 
 const collectPermissions = (constantsObj) => {
   const results = [];
-  
+
   const walk = (obj) => {
     if (!obj || typeof obj !== 'object') return;
-    
+
     for (const value of Object.values(obj)) {
       if (typeof value === 'string') {
         if (
@@ -42,9 +51,9 @@ const collectPermissions = (constantsObj) => {
       }
     }
   };
-  
+
   walk(constantsObj);
-  
+
   return [...new Set(results)];
 };
 
@@ -94,7 +103,7 @@ exports.seed = async function (knex) {
     updated_at: null,
     updated_by: null,
   };
-  
+
   const permissions = [
     {
       name: 'Root Access',
@@ -102,7 +111,7 @@ exports.seed = async function (knex) {
       description: 'Grants access to all routes and operations',
     },
   ];
-  
+
   const dynamicPermissionKeys = [
     ...collectPermissions(USER_CONSTANTS),
     ...collectPermissions(ROLE_CONSTANTS),
@@ -125,17 +134,15 @@ exports.seed = async function (knex) {
     ...collectPermissions(LOOKUPS),
     ...collectPermissions(PERMISSIONS),
   ];
-  
+
   for (const key of dynamicPermissionKeys) {
     permissions.push({
-      name: key
-        .replace(/_/g, ' ')
-        .replace(/\b\w/g, (c) => c.toUpperCase()),
+      name: key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
       key,
       description: `Auto-generated permission for ${key.replace(/_/g, ' ')}`,
     });
   }
-  
+
   // Add category-specific order permissions
   const ACTION_META = {
     view: { label: 'View', gerund: 'viewing', plural: true },
@@ -143,29 +150,29 @@ exports.seed = async function (knex) {
     update: { label: 'Update', gerund: 'updating', plural: false },
     delete: { label: 'Delete', gerund: 'deleting', plural: false },
   };
-  
+
   for (const category of ORDER_CATEGORIES) {
     const displayCategory =
       category.charAt(0).toUpperCase() + category.slice(1);
     const lcCategory = category.toLowerCase();
-    
+
     for (const action of Object.values(GENERIC_ORDER_PERMISSIONS)) {
       const verb = action.split('_')[0];
-      
+
       const meta = ACTION_META[verb] || {
         label: verb,
         gerund: `${verb}ing`,
         plural: true,
       };
-      
+
       const nameNoun = meta.plural
         ? `${displayCategory} Orders`
         : `${displayCategory} Order`;
-      
+
       const descNoun = meta.plural
         ? `${lcCategory} orders`
         : `a ${lcCategory} order`;
-      
+
       permissions.push({
         name: `${meta.label} ${nameNoun}`,
         key: `${verb}_${category}_order`,
@@ -173,20 +180,20 @@ exports.seed = async function (knex) {
       });
     }
   }
-  
+
   // Warn for duplicate keys
   const uniquePermissions = [];
   const seenKeys = new Set();
-  
+
   for (const p of permissions) {
     if (!seenKeys.has(p.key)) {
       seenKeys.add(p.key);
       uniquePermissions.push(p);
     }
   }
-  
+
   let insertedCount = 0;
-  
+
   for (const permission of uniquePermissions) {
     await knex('permissions')
       .insert({
@@ -196,10 +203,9 @@ exports.seed = async function (knex) {
       })
       .onConflict('key')
       .ignore();
-    
+
     insertedCount++;
   }
-
 
   console.log(
     `${insertedCount} permissions processed (duplicates ignored in DB if existed).`

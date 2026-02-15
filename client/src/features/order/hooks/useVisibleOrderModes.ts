@@ -35,7 +35,7 @@ import type { OrderPermissionContext } from '@features/order/state';
  */
 const useVisibleOrderModes = () => {
   const hasPermission = useHasPermission();
-  
+
   /**
    * Normalizes tri-state permission results into boolean.
    *
@@ -46,7 +46,7 @@ const useVisibleOrderModes = () => {
    */
   const normalizePermission = (result: boolean | 'pending'): boolean =>
     result === true;
-  
+
   const ctx = useMemo<OrderPermissionContext>(
     () => ({
       has: (perm) => normalizePermission(hasPermission(perm)),
@@ -54,12 +54,9 @@ const useVisibleOrderModes = () => {
     }),
     [hasPermission]
   );
-  
+
   return useMemo(
-    () =>
-      Object.values(ORDER_VIEW_MODES).filter((mode) =>
-        mode.canSee(ctx)
-      ),
+    () => Object.values(ORDER_VIEW_MODES).filter((mode) => mode.canSee(ctx)),
     [ctx]
   );
 };

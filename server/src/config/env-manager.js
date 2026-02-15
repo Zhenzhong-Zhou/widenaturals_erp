@@ -9,8 +9,7 @@ const { loadEnv, validateEnv, loadSecret } = require('./env');
 const loadAndValidateEnv = () => {
   try {
     const env = loadEnv();
-    
-    
+
     const environmentGroups = {
       // --------------------------------------------------
       // General runtime
@@ -22,7 +21,7 @@ const loadAndValidateEnv = () => {
         { envVar: 'LOG_LEVEL', required: true },
         { envVar: 'PASSWORD_PEPPER', required: true },
       ],
-      
+
       // --------------------------------------------------
       // JWT / Token configuration
       // --------------------------------------------------
@@ -39,7 +38,7 @@ const loadAndValidateEnv = () => {
             loadSecret('server_jwt_refresh_secret', 'JWT_REFRESH_SECRET'),
           required: true,
         },
-        
+
         // Token lifetimes (seconds)
         {
           envVar: 'ACCESS_TOKEN_TTL_SECONDS',
@@ -52,7 +51,7 @@ const loadAndValidateEnv = () => {
           validate: (v) => Number.isInteger(+v) && +v > 0,
         },
       ],
-      
+
       // --------------------------------------------------
       // Database
       // --------------------------------------------------
@@ -66,10 +65,10 @@ const loadAndValidateEnv = () => {
           secret: () => loadSecret('db_password', 'DB_PASSWORD'),
           required: true,
         },
-        
+
         // Tooling
         { envVar: 'PG_DUMP_PATH', required: false },
-        
+
         // Backup
         { envVar: 'BACKUP_DIR', required: false },
         { envVar: 'MAX_BACKUPS', required: false },
@@ -79,12 +78,12 @@ const loadAndValidateEnv = () => {
             loadSecret('backup_encryption_key', 'BACKUP_ENCRYPTION_KEY'),
           required: true,
         },
-        
+
         // Monitoring
         { envVar: 'POOL_MONITOR_INTERVAL', required: false },
         { envVar: 'SLOW_QUERY_THRESHOLD', required: false },
       ],
-      
+
       // --------------------------------------------------
       // Root admin bootstrap
       // --------------------------------------------------
@@ -97,7 +96,7 @@ const loadAndValidateEnv = () => {
           required: true,
         },
       ],
-      
+
       // --------------------------------------------------
       // AWS
       // --------------------------------------------------
@@ -112,7 +111,7 @@ const loadAndValidateEnv = () => {
         },
         { envVar: 'AWS_S3_BUCKET_NAME', required: true },
       ],
-      
+
       // --------------------------------------------------
       // CORS
       // --------------------------------------------------
@@ -123,7 +122,7 @@ const loadAndValidateEnv = () => {
         { envVar: 'ALLOW_CREDENTIALS', required: true },
         { envVar: 'OPTIONS_SUCCESS_STATUS', required: true },
       ],
-      
+
       // --------------------------------------------------
       // CSRF
       // --------------------------------------------------
@@ -132,7 +131,7 @@ const loadAndValidateEnv = () => {
         { envVar: 'COOKIE_SECURE', required: true },
         { envVar: 'COOKIE_SAMESITE', required: true },
       ],
-      
+
       // --------------------------------------------------
       // Rate limiting
       // --------------------------------------------------
@@ -141,7 +140,7 @@ const loadAndValidateEnv = () => {
         { envVar: 'RATE_LIMIT_MAX', required: false },
       ],
     };
-    
+
     validateEnv(environmentGroups);
     return env;
   } catch (error) {

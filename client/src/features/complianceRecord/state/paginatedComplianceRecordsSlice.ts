@@ -36,19 +36,19 @@ const paginatedComplianceRecordsSlice = createSlice({
         fetchComplianceRecordsThunk.fulfilled,
         (state, action: PayloadAction<PaginatedComplianceListResponse>) => {
           const { data, pagination } = action.payload;
-          
+
           state.loading = false;
-          state.data = data;           // ComplianceRecordTableRow[]
+          state.data = data; // ComplianceRecordTableRow[]
           state.pagination = pagination;
         }
       )
-      
+
       // --------------------------------------------------
       // Rejected
       // --------------------------------------------------
       .addCase(fetchComplianceRecordsThunk.rejected, (state, action) => {
         state.loading = false;
-        
+
         state.error =
           action.payload?.message ||
           action.error.message ||

@@ -1,7 +1,7 @@
 // --------------------------------------------------
 // Reducers (store integration point ONLY)
 // --------------------------------------------------
-export { systemHealthReducers } from './systemHealthReducers.ts';
+export { systemHealthReducers } from './systemHealthReducers';
 
 // --------------------------------------------------
 // Selectors

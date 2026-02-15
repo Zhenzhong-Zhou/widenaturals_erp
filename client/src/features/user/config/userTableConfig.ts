@@ -18,5 +18,4 @@ export const USER_TABLE_PAGE_SIZES = [10, 25, 50, 75] as const;
  *   const limit: UserTablePageSize = 25; // valid
  *   const limit: UserTablePageSize = 20; // compile-time error
  */
-export type UserTablePageSize =
-  (typeof USER_TABLE_PAGE_SIZES)[number];
+export type UserTablePageSize = (typeof USER_TABLE_PAGE_SIZES)[number];

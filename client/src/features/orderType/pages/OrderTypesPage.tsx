@@ -15,7 +15,7 @@ import {
 import {
   OrderTypeFiltersPanel,
   OrderTypeSortControls,
-  OrderTypesTable
+  OrderTypesTable,
 } from '@features/orderType/components';
 import type {
   OrderTypeFilters,
@@ -41,7 +41,7 @@ const OrderTypesPage: FC = () => {
     fetchData: fetchOrderTypes,
     reset: resetOrderTypes,
   } = usePaginateOrderTypes();
-  
+
   const queryParams = useMemo(
     () => ({
       page,
@@ -74,7 +74,7 @@ const OrderTypesPage: FC = () => {
     setSortOrder('');
     setPage(1);
   };
-  
+
   return (
     <Box sx={{ px: 4, py: 3 }}>
       {/* Page Header */}
@@ -129,9 +129,7 @@ const OrderTypesPage: FC = () => {
           <NoDataFound
             message="No order type records found."
             action={
-              <CustomButton onClick={handleResetFilters}>
-                Reset
-              </CustomButton>
+              <CustomButton onClick={handleResetFilters}>Reset</CustomButton>
             }
           />
         ) : (

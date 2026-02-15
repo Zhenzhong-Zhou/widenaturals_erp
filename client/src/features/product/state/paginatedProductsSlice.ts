@@ -59,7 +59,7 @@ const paginatedProductsSlice = createSlice({
       // ---- rejected ----
       .addCase(fetchPaginatedProductsThunk.rejected, (state, action) => {
         state.loading = false;
-        
+
         if (action.payload) {
           state.error = action.payload.message;
           state.traceId = action.payload.traceId;

@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
-import { useLocationInventory } from '@hooks/index.ts';
+import { useLocationInventory } from '@hooks/index';
 import { LocationInventoryFilters } from '@features/locationInventory';
-import { SortConfig } from '@shared-types/api.ts';
+import { SortConfig } from '@shared-types/api';
 
 /**
  * Adapter hook to align `useLocationInventory` with
@@ -16,14 +16,9 @@ import { SortConfig } from '@shared-types/api.ts';
  * once `useLocationInventory` is refactored to be compliant.
  */
 const useLocationInventoryAdapter = () => {
-  const {
-    records,
-    loading,
-    error,
-    pagination,
-    fetchRecords,
-  } = useLocationInventory();
-  
+  const { records, loading, error, pagination, fetchRecords } =
+    useLocationInventory();
+
   /**
    * BaseInventoryPage requires pagination to always exist.
    * Provide a safe default when underlying hook has not
@@ -33,7 +28,7 @@ const useLocationInventoryAdapter = () => {
     totalPages: 0,
     totalRecords: 0,
   };
-  
+
   /**
    * Normalize fetchRecords signature:
    * BaseInventoryPage expects (pagination, filters, sort)
@@ -49,7 +44,7 @@ const useLocationInventoryAdapter = () => {
     },
     [fetchRecords]
   );
-  
+
   return {
     records,
     loading,

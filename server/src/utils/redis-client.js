@@ -14,10 +14,7 @@
  */
 
 const Redis = require('ioredis');
-const {
-  logSystemInfo,
-  logSystemError,
-} = require('../utils/system-logger');
+const { logSystemInfo, logSystemError } = require('../utils/system-logger');
 
 let redisClient = null;
 let connectingPromise = null;
@@ -31,13 +28,13 @@ const createRedisClient = () => {
     port: Number(process.env.REDIS_PORT) || 6379,
     username: process.env.REDIS_USERNAME,
     password: process.env.REDIS_PASSWORD,
-    
+
     // Secure in production
     tls: process.env.NODE_ENV === 'production' ? {} : undefined,
-    
+
     // IMPORTANT: prevent implicit connection
     lazyConnect: true,
-    
+
     // Prevent infinite retry loops
     maxRetriesPerRequest: 3,
     enableOfflineQueue: false,
@@ -56,24 +53,24 @@ const connectRedis = async () => {
   if (redisClient?.status === 'ready') {
     return redisClient;
   }
-  
+
   if (connectingPromise) {
     return connectingPromise;
   }
-  
+
   redisClient = createRedisClient();
-  
+
   redisClient.on('connect', () => {
     logSystemInfo('Redis connected');
   });
-  
+
   redisClient.on('error', (err) => {
     logSystemError('Redis error', {
       message: err.message,
       stack: err.stack,
     });
   });
-  
+
   connectingPromise = (async () => {
     try {
       await redisClient.connect();
@@ -89,7 +86,7 @@ const connectRedis = async () => {
       connectingPromise = null;
     }
   })();
-  
+
   return connectingPromise;
 };
 
@@ -100,7 +97,7 @@ const connectRedis = async () => {
  */
 const disconnectRedis = async () => {
   if (!redisClient) return;
-  
+
   try {
     await redisClient.quit();
     logSystemInfo('Redis disconnected');
@@ -130,8 +127,7 @@ const getRedisClient = () => redisClient;
  * - feature gating
  * - diagnostics
  */
-const isRedisReady = () =>
-  redisClient?.status === 'ready';
+const isRedisReady = () => redisClient?.status === 'ready';
 
 module.exports = {
   connectRedis,

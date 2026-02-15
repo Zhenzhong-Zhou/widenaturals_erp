@@ -48,10 +48,10 @@ const truncate = (value, max = 64) =>
  */
 const parseUserAgent = (userAgent) => {
   if (!userAgent) return null;
-  
+
   const parser = new UAParser(userAgent);
   const result = parser.getResult();
-  
+
   return {
     deviceType: normalizeDeviceType(result.device.type),
     deviceModel: truncate(result.device.model),

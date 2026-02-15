@@ -36,7 +36,7 @@ import type { PermissionCheckOptions } from '@features/authorize/state/authorzeT
  */
 const useHasPermission = () => {
   const { permissions, ready } = usePermissionsContext();
-  
+
   return useCallback(
     (
       required: string | readonly string[],
@@ -44,12 +44,10 @@ const useHasPermission = () => {
     ): boolean | 'pending' => {
       // Permissions not yet resolved → defer decision
       if (!ready) return 'pending';
-      
-      const {
-        requireAll = false,
-        bypassPermissions = ['root_access'],
-      } = options;
-      
+
+      const { requireAll = false, bypassPermissions = ['root_access'] } =
+        options;
+
       /**
        * Root / superuser bypass.
        *
@@ -58,11 +56,11 @@ const useHasPermission = () => {
       if (permissions.some((p) => bypassPermissions.includes(p))) {
         return true;
       }
-      
+
       const requiredPermissions = Array.isArray(required)
         ? required
         : [required];
-      
+
       return requireAll
         ? requiredPermissions.every((p) => permissions.includes(p))
         : requiredPermissions.some((p) => permissions.includes(p));

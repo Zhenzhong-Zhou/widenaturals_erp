@@ -45,9 +45,8 @@ const ProductBatchListPage = () => {
     useState<ProductBatchSortField>('defaultNaturalSort');
   const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
   const [filters, setFilters] = useState<ProductBatchFilters>({});
-  const [expandedRowId, setExpandedRowId] =
-    useState<string | null>(null);
-  
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+
   const {
     data: productBatchData,
     pagination: productBatchPagination,
@@ -57,9 +56,9 @@ const ProductBatchListPage = () => {
     fetchProductBatches,
     resetProductBatches,
   } = usePaginatedProductBatches();
-  
+
   const lookups = useProductBatchLookups();
-  
+
   // -----------------------------
   // Query model (shared)
   // -----------------------------
@@ -73,14 +72,14 @@ const ProductBatchListPage = () => {
     }),
     [page, limit, sortBy, sortOrder, filters]
   );
-  
+
   // -----------------------------
   // Refresh action
   // -----------------------------
   const refreshProductBatchList = useCallback(() => {
     fetchProductBatches(fullQuery);
   }, [fullQuery, fetchProductBatches]);
-  
+
   // -----------------------------
   // Params for filtering/sorting engine
   // -----------------------------
@@ -91,18 +90,15 @@ const ProductBatchListPage = () => {
     }),
     [fullQuery, refreshProductBatchList]
   );
-  
+
   // -----------------------------
   // Debounced fetch
   // -----------------------------
   useEffect(() => {
-    const timeout = setTimeout(
-      () => applyFiltersAndSorting(queryParams),
-      200
-    );
+    const timeout = setTimeout(() => applyFiltersAndSorting(queryParams), 200);
     return () => clearTimeout(timeout);
   }, [queryParams]);
-  
+
   // ----------------------------------------
   // Cleanup on unmount
   // ----------------------------------------
@@ -111,7 +107,7 @@ const ProductBatchListPage = () => {
       resetProductBatches();
     };
   }, [resetProductBatches]);
-  
+
   // -----------------------------
   // Lookup handlers (lazy fetch, reset)
   // -----------------------------
@@ -120,7 +116,7 @@ const ProductBatchListPage = () => {
       resetAll: () => {
         lookups.status.reset();
       },
-      
+
       onOpen: {
         status: createLazyOpenHandler(
           lookups.status.options,
@@ -130,30 +126,30 @@ const ProductBatchListPage = () => {
     }),
     [lookups]
   );
-  
+
   // -----------------------------
   // Event handlers
   // -----------------------------
   const handleRefresh = useCallback(() => {
     applyFiltersAndSorting(queryParams);
   }, [queryParams]);
-  
+
   const handleResetFilters = () => {
     resetProductBatches();
     setFilters({});
     lookupHandlers.resetAll();
     setPage(1);
   };
-  
-  const { handlePageChange, handleRowsPerPageChange } =
-    usePaginationHandlers(setPage, setLimit);
-  
+
+  const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(
+    setPage,
+    setLimit
+  );
+
   const handleDrillDownToggle = (rowId: string) => {
-    setExpandedRowId((current) =>
-      current === rowId ? null : rowId
-    );
+    setExpandedRowId((current) => (current === rowId ? null : rowId));
   };
-  
+
   // ----------------------------------------
   // Render
   // ----------------------------------------
@@ -169,12 +165,12 @@ const ProductBatchListPage = () => {
         gap={2}
       >
         <CustomTypography variant="h5" fontWeight={700}>
-          Product Batches
+          Product Batch Management
         </CustomTypography>
       </Box>
-      
+
       <Divider sx={{ mb: 3 }} />
-      
+
       {/* Filter + Sort Controls */}
       <Card sx={{ p: 3, mb: 4, borderRadius: 2, minHeight: 200 }}>
         <Grid container spacing={2}>
@@ -198,22 +194,17 @@ const ProductBatchListPage = () => {
           </Grid>
         </Grid>
       </Card>
-      
+
       {/* Product Batch Table Section */}
       {productBatchLoading || !productBatchPagination ? (
-        <Loading
-          variant="dotted"
-          message="Loading product batches..."
-        />
+        <Loading variant="dotted" message="Loading product batches..." />
       ) : productBatchError ? (
         <ErrorMessage message={productBatchError} showNavigation />
       ) : isProductBatchEmpty ? (
         <NoDataFound
           message="No product batch records found."
           action={
-            <CustomButton onClick={handleResetFilters}>
-              Reset
-            </CustomButton>
+            <CustomButton onClick={handleResetFilters}>Reset</CustomButton>
           }
         />
       ) : (

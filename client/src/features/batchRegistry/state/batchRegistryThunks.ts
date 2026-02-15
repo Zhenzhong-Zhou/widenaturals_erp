@@ -1,7 +1,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import {
   BatchRegistryQueryParams,
-  PaginatedBatchRegistryListResponse
+  PaginatedBatchRegistryListResponse,
 } from '@features/batchRegistry';
 import { batchRegistryService } from '@services/batchRegistryService';
 import { flattenBatchRegistryRecords } from '@features/batchRegistry/utils';
@@ -36,7 +36,7 @@ export const fetchPaginatedBatchRegistryThunk = createAsyncThunk<
     try {
       const response =
         await batchRegistryService.fetchPaginatedBatchRegistry(params);
-      
+
       return {
         ...response,
         data: flattenBatchRegistryRecords(response.data),

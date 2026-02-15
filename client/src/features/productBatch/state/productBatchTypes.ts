@@ -23,31 +23,31 @@ export type PaginatedProductBatchApiResponse =
 export interface ProductBatchRecord {
   /** Unique batch identifier (UUID) */
   id: string;
-  
+
   /** Manufacturer-provided lot number */
   lotNumber: string;
-  
+
   /** SKU identity (operational unit) */
   sku: ProductBatchSku;
-  
+
   /** Product metadata (display + classification) */
   product: ProductBatchProduct;
-  
+
   /** Manufacturing source */
   manufacturer: ProductBatchManufacturer;
-  
+
   /** Manufacturing and lifecycle dates */
   lifecycle: ProductBatchLifecycle;
-  
+
   /** Current batch status (id, name, effective date) */
   status: GenericStatus;
-  
+
   /** Timestamp when batch was released/approved for use */
   releasedAt: NullableString;
-  
+
   /** Actor identity who registered the batch */
-  registeredBy: ActorIdentity;
-  
+  releasedBy: ActorIdentity;
+
   /** Audit metadata (created/updated) */
   audit: GenericAudit;
 }
@@ -89,7 +89,7 @@ export interface ProductBatchLifecycle {
   manufactureDate: NullableString;
   expiryDate: NullableString;
   receivedDate: NullableString;
-  
+
   /** Quantity produced at manufacturing time */
   initialQuantity: number;
 }
@@ -101,35 +101,35 @@ export interface ProductBatchLifecycle {
 export interface ProductBatchFilters {
   /** Filter by batch status IDs */
   statusIds?: string | string[];
-  
+
   /** Filter by SKU IDs */
   skuIds?: string | string[];
-  
+
   /** Filter by product IDs */
   productIds?: string | string[];
-  
+
   /** Filter by manufacturer IDs */
   manufacturerIds?: string | string[];
-  
+
   /** Exact lot number match */
   lotNumber?: string;
-  
+
   /** Expiry date range */
   expiryAfter?: string;
   expiryBefore?: string;
-  
+
   /** Manufacture date range */
   manufactureAfter?: string;
   manufactureBefore?: string;
-  
+
   /** Received date range */
   receivedAfter?: string;
   receivedBefore?: string;
-  
+
   /** Audit creation date range */
   createdAfter?: string;
   createdBefore?: string;
-  
+
   /** Keyword search (lot, product, SKU, manufacturer) */
   keyword?: string;
 }
@@ -141,39 +141,39 @@ export interface ProductBatchFilters {
 export type ProductBatchSortField =
   | 'createdAt'
   | 'lotNumber'
-  
+
   // SKU
   | 'skuCode'
   | 'sizeLabel'
   | 'countryCode'
-  
+
   // Product
   | 'productName'
   | 'productBrand'
   | 'productCategory'
-  
+
   // Manufacturer
   | 'manufacturerName'
-  
+
   // Lifecycle
   | 'manufactureDate'
   | 'expiryDate'
   | 'receivedDate'
-  
+
   // Quantity
   | 'initialQuantity'
-  
+
   // Status
   | 'statusName'
   | 'statusDate'
-  
+
   // Release
   | 'releasedAt'
   | 'releasedBy'
-  
+
   // Audit
   | 'updatedAt'
-  
+
   // Fallback
   | 'defaultNaturalSort';
 
@@ -181,9 +181,8 @@ export type ProductBatchSortField =
  * Query parameters for product batch listing API.
  * Combines pagination, sorting, and domain filters.
  */
-export interface ProductBatchQueryParams
-  extends PaginationParams, SortConfig {
-    filters?: ProductBatchFilters;
+export interface ProductBatchQueryParams extends PaginationParams, SortConfig {
+  filters?: ProductBatchFilters;
 }
 
 /**
@@ -194,38 +193,38 @@ export interface FlattenedProductBatchRecord {
   /** Batch identity */
   id: string;
   lotNumber: string;
-  
+
   /** SKU */
   skuId: string;
   skuCode: string;
   sizeLabel: string;
-  
+
   /** Product */
   productId: string;
   productName: string;
   productBrand: string;
   productCategory: string;
   productDisplayName: string;
-  
+
   /** Manufacturer */
   manufacturerId: string;
   manufacturerName: string;
-  
+
   /** Lifecycle */
   manufactureDate: string | null;
   expiryDate: string | null;
   receivedDate: string | null;
   initialQuantity: number;
-  
+
   /** Status */
   statusId: string;
   statusName: string;
   statusDate: string;
-  
+
   /** Release */
   releasedAt: string | null;
   releasedByName: string;
-  
+
   /** Audit */
   createdAt: string;
   createdByName: string;

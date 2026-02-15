@@ -14,7 +14,7 @@ const { logSystemInfo, logSystemException } = require('../utils/system-logger');
  */
 const insertTokenActivityLog = async (event, client) => {
   const context = 'token-activity-log-repository/insertTokenActivityLog';
-  
+
   const {
     userId,
     tokenId = null,
@@ -26,7 +26,7 @@ const insertTokenActivityLog = async (event, client) => {
     comments = null,
     metadata = null,
   } = event;
-  
+
   const queryText = `
     INSERT INTO token_activity_log (
       user_id,
@@ -41,7 +41,7 @@ const insertTokenActivityLog = async (event, client) => {
     )
     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9);
   `;
-  
+
   const params = [
     userId,
     tokenId,
@@ -53,10 +53,10 @@ const insertTokenActivityLog = async (event, client) => {
     comments,
     metadata,
   ];
-  
+
   try {
     await query(queryText, params, client);
-    
+
     logSystemInfo('Token activity logged', {
       context,
       userId,

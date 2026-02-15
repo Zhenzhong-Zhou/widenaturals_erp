@@ -22,9 +22,12 @@ exports.up = async function (knex) {
 
     table.uuid('changed_by').references('id').inTable('users');
     table.timestamp('changed_at', { useTz: true }).defaultTo(knex.fn.now());
-    
+
     table.index(['batch_id'], 'idx_product_batch_activity_log_batch_id');
-    table.index(['batch_activity_type_id'], 'idx_product_batch_activity_log_activity_type');
+    table.index(
+      ['batch_activity_type_id'],
+      'idx_product_batch_activity_log_activity_type'
+    );
   });
 };
 

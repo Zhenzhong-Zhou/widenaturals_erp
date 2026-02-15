@@ -23,16 +23,19 @@ const systemHealthSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      
+
       // -------------------------------
       // Fulfilled
       // -------------------------------
-      .addCase(fetchSystemHealthThunk.fulfilled, (state, action: PayloadAction<HealthApiResponse>) => {
-        state.loading = false;
-        state.data = action.payload;
-        state.error = null;
-      })
-      
+      .addCase(
+        fetchSystemHealthThunk.fulfilled,
+        (state, action: PayloadAction<HealthApiResponse>) => {
+          state.loading = false;
+          state.data = action.payload;
+          state.error = null;
+        }
+      )
+
       // -------------------------------
       // Rejected
       // -------------------------------

@@ -1,5 +1,5 @@
-import type { AppDispatch } from '@store/store.ts';
-import { getCsrfTokenThunk } from '@features/csrf/state/csrfThunk.ts';
+import type { AppDispatch } from '@store/store';
+import { getCsrfTokenThunk } from '@features/csrf/state/csrfThunk';
 import { AppError, ErrorType } from '@utils/error';
 
 /**
@@ -18,9 +18,7 @@ import { AppError, ErrorType } from '@utils/error';
  * Auth resolution is handled separately by auth bootstrap
  * (e.g. permissions / /me endpoints).
  */
-export const bootstrapCsrf = async (
-  dispatch: AppDispatch
-): Promise<void> => {
+export const bootstrapCsrf = async (dispatch: AppDispatch): Promise<void> => {
   try {
     await dispatch(getCsrfTokenThunk()).unwrap();
   } catch (error: unknown) {
@@ -28,10 +26,9 @@ export const bootstrapCsrf = async (
       error instanceof AppError
         ? error
         : AppError.server('CSRF initialization failed', {
-          cause:
-            error instanceof Error ? error.message : String(error),
-        });
-    
+            cause: error instanceof Error ? error.message : String(error),
+          });
+
     /**
      * CSRF failures are infrastructure failures.
      *
@@ -50,7 +47,7 @@ export const bootstrapCsrf = async (
     if (appError.type === ErrorType.Server) {
       throw appError;
     }
-    
+
     /**
      * Non-server CSRF errors are recoverable
      * and should not break app bootstrap.

@@ -17,7 +17,7 @@ const initialState: LoginState = {
 const loginSlice = createSlice({
   name: 'login',
   initialState,
-  
+
   reducers: {
     /**
      * Clears session state.
@@ -25,7 +25,7 @@ const loginSlice = createSlice({
      */
     resetLogin: () => initialState,
   },
-  
+
   extraReducers: (builder) => {
     builder
       // -------------------------
@@ -36,16 +36,19 @@ const loginSlice = createSlice({
         state.error = null;
         state.data = null;
       })
-      
+
       // -------------------------
       // Login: Fulfilled
       // -------------------------
-      .addCase( loginThunk.fulfilled, (state, action: PayloadAction<LoginResponseData>) => {
-        state.loading = false;
-        state.data = action.payload;
-        state.error = null;
-      })
-      
+      .addCase(
+        loginThunk.fulfilled,
+        (state, action: PayloadAction<LoginResponseData>) => {
+          state.loading = false;
+          state.data = action.payload;
+          state.error = null;
+        }
+      )
+
       // -------------------------
       // Login: Rejected
       // -------------------------

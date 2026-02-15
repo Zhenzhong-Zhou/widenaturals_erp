@@ -16,14 +16,14 @@ interface ProductBatchExpandedContentProps {
 }
 
 const ProductBatchExpandedContent: FC<ProductBatchExpandedContentProps> = ({
-                                                                             row,
-                                                                           }) => {
+  row,
+}) => {
   return (
     <Box sx={{ px: 3, py: 2 }}>
       <CustomTypography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
         Product Batch Details
       </CustomTypography>
-      
+
       {/* --------------------------------------------------
        * Product Metadata
        * -------------------------------------------------- */}
@@ -36,7 +36,7 @@ const ProductBatchExpandedContent: FC<ProductBatchExpandedContentProps> = ({
           { label: 'Category', value: row.productCategory },
         ]}
       />
-      
+
       {/* --------------------------------------------------
        * Status Metadata
        * -------------------------------------------------- */}
@@ -59,7 +59,7 @@ const ProductBatchExpandedContent: FC<ProductBatchExpandedContentProps> = ({
           },
         ]}
       />
-      
+
       {/* --------------------------------------------------
        * Audit
        * -------------------------------------------------- */}

@@ -1,10 +1,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { persistor } from '@store/store';
 import { sessionService } from '@services/sessionService';
-import {
-  extractErrorMessage,
-  extractUiErrorPayload
-} from '@utils/error';
+import { extractErrorMessage, extractUiErrorPayload } from '@utils/error';
 import { LoginRequestBody, LoginResponseData } from '@features/session';
 import { UiErrorPayload } from '@utils/error/uiErrorUtils';
 import { resetLogin } from '@features/session/state/loginSlice';
@@ -46,7 +43,7 @@ export const loginThunk = createAsyncThunk<
   async ({ email, password }, { dispatch, rejectWithValue }) => {
     try {
       const response = await sessionService.login(email, password);
-      
+
       dispatch(setAccessToken(response.accessToken));
       return response;
     } catch (error) {
@@ -91,10 +88,10 @@ export const bootstrapSessionThunk = createAsyncThunk(
     try {
       // Ensure CSRF token is available before any auth-bound requests
       await dispatch(getCsrfTokenThunk()).unwrap();
-      
+
       // Attempt refresh-token–based session restoration
       const result = await sessionService.refreshToken();
-      
+
       if (result?.accessToken) {
         // Authenticated capability restored
         dispatch(setAccessToken(result.accessToken));
@@ -139,7 +136,7 @@ export const logoutThunk = createAsyncThunk<
   { rejectValue: UiErrorPayload }
 >('session/logout', async (_, { dispatch, rejectWithValue }) => {
   let logoutError: UiErrorPayload | null = null;
-  
+
   try {
     // Best-effort server-side logout (cookie revocation, audit logging, etc.)
     await sessionService.logout();
@@ -156,11 +153,11 @@ export const logoutThunk = createAsyncThunk<
     dispatch(resetLogin());
     await persistor.purge();
   }
-  
+
   // Propagate error to UI if logout request failed
   if (logoutError) {
     return rejectWithValue(logoutError);
   }
-  
+
   return;
 });

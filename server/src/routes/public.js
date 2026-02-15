@@ -28,11 +28,7 @@ const router = express.Router();
  * - Not intended for automation or monitoring
  * - Responses are never cached
  */
-router.get(
-  '/welcome',
-  noStoreMiddleware,
-  getWelcomeMessageController
-);
+router.get('/welcome', noStoreMiddleware, getWelcomeMessageController);
 
 /**
  * GET /public/health

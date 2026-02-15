@@ -1,3 +1,4 @@
+import { defineConfig } from 'eslint/config';
 import tsEslint from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
 import eslintPluginReact from 'eslint-plugin-react';
@@ -5,19 +6,30 @@ import eslintPluginPrettier from 'eslint-plugin-prettier';
 import eslintPluginImport from 'eslint-plugin-import';
 
 const isDev = process.env.NODE_ENV !== 'production'; // fallback workaround
+const tsRecommendedConfig = tsEslint.configs.recommended;
+const tsJsxRuntimeConfig = tsEslint.configs['jsx-runtime'];
 
-/** @type {import('eslint').Linter.FlatConfig[]} */
-const config = [
+const tsRecommendedRules =
+  tsRecommendedConfig && 'rules' in tsRecommendedConfig
+    ? tsRecommendedConfig.rules
+    : {};
+
+const tsJsxRuntimeRules =
+  tsJsxRuntimeConfig && 'rules' in tsJsxRuntimeConfig
+    ? tsJsxRuntimeConfig.rules
+    : {};
+
+export default defineConfig([
   {
     ignores: [
-      'node_modules',
-      'dist',
-      'build',
-      '*.log',
-      '*.lock',
-      '*.config.js',
-      'coverage/',
-      '.next/',
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/build/**',
+      '**/coverage/**',
+      '**/*.log',
+      '**/*.lock',
+      '**/*.config.js',
+      '**/.next/**',
     ],
   },
   {
@@ -66,12 +78,18 @@ const config = [
       import: eslintPluginImport,
     },
     rules: {
-      ...((tsEslint.configs.recommended || {}).rules || {}),
-      ...((tsEslint.configs['jsx-runtime'] || {}).rules || {}),
+      ...tsRecommendedRules,
+      ...tsJsxRuntimeRules,
       'prettier/prettier': 'error',
       '@typescript-eslint/no-unused-vars': 'warn',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: ['*.ts', '*.tsx'],
+        },
+      ],
       'import/extensions': [
         'error',
         'ignorePackages',
@@ -99,6 +117,4 @@ const config = [
       'no-process-env': 'warn',
     },
   },
-];
-
-export default config;
+]);

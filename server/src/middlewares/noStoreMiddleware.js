@@ -20,7 +20,7 @@ const noStoreMiddleware = (req, res, next) => {
     Expires: '0',
     'Surrogate-Control': 'no-store', // for some CDNs (e.g. Fastly)
   });
-  
+
   next();
 };
 

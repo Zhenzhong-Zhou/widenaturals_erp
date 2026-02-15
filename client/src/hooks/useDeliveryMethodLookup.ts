@@ -8,7 +8,7 @@ import {
   selectDeliveryMethodLookupMeta,
 } from '@features/lookup/state';
 import type { DeliveryMethodLookupQueryParams } from '@features/lookup/state';
-import { resetDeliveryMethodLookup } from '@features/lookup/state/deliveryMethodLookupSlice.ts';
+import { resetDeliveryMethodLookup } from '@features/lookup/state/deliveryMethodLookupSlice';
 
 /**
  * Hook for accessing delivery method lookup state and actions.

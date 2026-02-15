@@ -1,4 +1,6 @@
-const { buildProductBatchFilter } = require('../utils/sql/build-product-batch-filters');
+const {
+  buildProductBatchFilter,
+} = require('../utils/sql/build-product-batch-filters');
 const { paginateResults } = require('../database/db');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
@@ -31,19 +33,19 @@ const AppError = require('../utils/AppError');
  * @returns {Promise<{ data: Object[], pagination: Object }>}
  */
 const getPaginatedProductBatches = async ({
-                                            filters = {},
-                                            page = 1,
-                                            limit = 20,
-                                            sortBy = 'expiry_date',
-                                            sortOrder = 'ASC',
-                                          }) => {
+  filters = {},
+  page = 1,
+  limit = 20,
+  sortBy = 'expiry_date',
+  sortOrder = 'ASC',
+}) => {
   const context = 'product-batch-repository/getPaginatedProductBatches';
-  
+
   // ------------------------------------
   // 1. Build WHERE clause
   // ------------------------------------
   const { whereClause, params } = buildProductBatchFilter(filters);
-  
+
   // ------------------------------------
   // 2. Base query (flat, explicit)
   // ------------------------------------
@@ -91,7 +93,7 @@ const getPaginatedProductBatches = async ({
     WHERE ${whereClause}
     ORDER BY ${sortBy} ${sortOrder}
   `;
-  
+
   try {
     // ------------------------------------
     // 3. Execute paginated query
@@ -103,7 +105,7 @@ const getPaginatedProductBatches = async ({
       limit,
       meta: { context },
     });
-    
+
     logSystemInfo('Fetched paginated product batches successfully', {
       context,
       filters,
@@ -111,7 +113,7 @@ const getPaginatedProductBatches = async ({
       sorting: { sortBy, sortOrder },
       count: result.data.length,
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch product batches', {
@@ -120,7 +122,7 @@ const getPaginatedProductBatches = async ({
       pagination: { page, limit },
       sorting: { sortBy, sortOrder },
     });
-    
+
     throw AppError.databaseError('Failed to fetch product batches.', {
       context,
     });

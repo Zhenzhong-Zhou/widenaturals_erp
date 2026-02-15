@@ -348,7 +348,7 @@ export interface OrderPermissionContext {
    * @returns `true` if allowed, `false` otherwise
    */
   has: (permission: string | string[]) => boolean;
-  
+
   /**
    * Evaluates whether the user satisfies at least one permission
    * from the provided list.
@@ -630,8 +630,7 @@ export interface OrderAggregate {
  *
  * Contains the canonical order aggregate as returned by the backend.
  */
-export type GetOrderDetailsApiResponse =
-  ApiSuccessResponse<OrderAggregate>;
+export type GetOrderDetailsApiResponse = ApiSuccessResponse<OrderAggregate>;
 
 /**
  * UI-ready order details structure derived from OrderAggregate.
@@ -648,8 +647,7 @@ export interface OrderDetailsUiData {
  *
  * Produced at the thunk boundary.
  */
-export type GetOrderDetailsUiResponse =
-  ApiSuccessResponse<OrderDetailsUiData>;
+export type GetOrderDetailsUiResponse = ApiSuccessResponse<OrderDetailsUiData>;
 
 /**
  * Redux state shape for the order details feature.
@@ -755,10 +753,10 @@ export interface FlattenedOrderHeader {
 
   /** Total tax amount applied */
   taxAmount: number | null;
-  
+
   /** Shipping fee amount */
   shippingFee: number | null;
-  
+
   /** Total order amount */
   totalAmount: number | null;
 
@@ -835,48 +833,48 @@ export interface FlattenedOrderHeader {
 export interface FlattenedOrderItemRow {
   /** Order item ID */
   orderItemId: string;
-  
+
   /** Parent order ID */
   orderId: string;
-  
+
   /** Line type discriminator */
   itemType: 'sku' | 'packaging_material';
-  
+
   /** Display name shown in UI */
   itemName: string;
-  
+
   /** SKU code (SKU lines only) */
   skuCode: string | null;
-  
+
   /** Barcode (SKU lines only) */
   barcode: string | null;
-  
+
   /** Packaging material code (packaging lines only) */
   packagingMaterialCode: string | null;
-  
+
   /** Quantity ordered */
   quantityOrdered: number;
-  
+
   /** Unit price (normalized number) */
   unitPrice: number | null;
-  
+
   /** Subtotal (normalized number) */
   subtotal: number | null;
-  
+
   /** Price type label */
   priceTypeName: string | null;
-  
+
   /** Order item status */
   statusName: string;
   statusCode: string;
   statusDate: string;
-  
+
   /** Audit */
   createdAt: string;
   createdBy: string;
   updatedAt: string;
   updatedBy: string;
-  
+
   /** Raw metadata for UI interpretation */
   metadata: Record<string, unknown> | null;
 }

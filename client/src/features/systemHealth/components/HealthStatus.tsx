@@ -37,7 +37,7 @@ interface HealthStatusProps {
  */
 const HealthStatus: FC<HealthStatusProps> = ({ sx }) => {
   const theme = useTheme();
-  
+
   const {
     serverStatus,
     databaseStatus,
@@ -47,7 +47,7 @@ const HealthStatus: FC<HealthStatusProps> = ({ sx }) => {
     error,
     refresh,
   } = useSystemHealth();
-  
+
   /**
    * Normalized health status used for color + chip rendering.
    */
@@ -55,12 +55,12 @@ const HealthStatus: FC<HealthStatusProps> = ({ sx }) => {
     if (loading) return 'loading';
     return (serverStatus as HealthStatus) ?? 'unknown';
   }, [loading, serverStatus]);
-  
+
   const statusColor = useMemo(
     () => getStatusColor(healthStatusKey, 'health'),
     [healthStatusKey]
   );
-  
+
   const tooltipContent = useMemo(
     () => (
       <Box
@@ -80,22 +80,22 @@ const HealthStatus: FC<HealthStatusProps> = ({ sx }) => {
         <CustomTypography variant="body2" fontWeight={600}>
           Server: {formatLabel(serverStatus) || 'Unknown'}
         </CustomTypography>
-        
+
         <CustomTypography variant="body2">
           Database: {formatLabel(databaseStatus) || 'Unknown'}
         </CustomTypography>
-        
+
         <CustomTypography variant="body2">
           Pool: {formatLabel(poolStatus) || 'Unknown'}
         </CustomTypography>
-        
+
         <CustomTypography variant="body2">
           Last Updated:{' '}
           <Box component="span" color="text.secondary">
             {timestamp ? formatDateTime(timestamp) : 'N/A'}
           </Box>
         </CustomTypography>
-        
+
         {error && (
           <CustomTypography variant="body2" color="error">
             Error: {error}
@@ -105,7 +105,7 @@ const HealthStatus: FC<HealthStatusProps> = ({ sx }) => {
     ),
     [theme, serverStatus, databaseStatus, poolStatus, timestamp, error]
   );
-  
+
   return (
     <Box
       sx={{

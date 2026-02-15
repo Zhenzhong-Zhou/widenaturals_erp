@@ -30,7 +30,7 @@ const { logSystemError } = require('./system-logger');
  */
 const tryCacheWrite = async (key, value, ttlSeconds = 3600) => {
   if (!isRedisReady()) return;
-  
+
   try {
     const redis = getRedisClient();
     await redis.set(key, JSON.stringify(value), 'EX', ttlSeconds);
@@ -58,12 +58,12 @@ const tryCacheWrite = async (key, value, ttlSeconds = 3600) => {
  */
 const tryCacheRead = async (key) => {
   if (!isRedisReady()) return null;
-  
+
   try {
     const redis = getRedisClient();
     const cached = await redis.get(key);
     if (!cached) return null;
-    
+
     return JSON.parse(cached);
   } catch (error) {
     logSystemError('Redis cache read failed (ignored)', {

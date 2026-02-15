@@ -46,7 +46,7 @@ export interface LookupQuery extends LookupPagination {
   /**
    * Optional keyword to filter or search items.
    */
-  keyword: string;
+  keyword?: string;
 }
 
 /**
@@ -86,8 +86,8 @@ export type LookupItemWithStatus = LookupItem & ActiveValidFilter;
 /**
  * Lookup item with optional subLabel and common status flags.
  */
-export type LookupItemWithSubLabelAndStatus =
-  LookupItemWithSubLabel & ActiveValidFilter;
+export type LookupItemWithSubLabelAndStatus = LookupItemWithSubLabel &
+  ActiveValidFilter;
 
 /**
  * Query parameters for fetching batch registry lookup data.

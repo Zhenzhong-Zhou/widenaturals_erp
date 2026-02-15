@@ -9,6 +9,7 @@ Most developers do not need to run Knex commands manually.
 The backend automatically applies migrations on startup in development.
 
 Use the commands below only when:
+
 - creating new schema changes
 - adding or modifying seed data
 - debugging migration issues
@@ -28,10 +29,13 @@ npm run migrate
 ## Rolling Back Migrations
 
 #### Rollback last migration:
+
 ```bash
 npm run rollback
 ```
+
 #### Rollback all migrations:
+
 ```bash
 npx knex migrate:rollback --all --env development
 ```
@@ -39,10 +43,13 @@ npx knex migrate:rollback --all --env development
 ## Seed Files
 
 #### Create a seed file:
+
 ```bash
 npx knex seed:make seed_name
 ```
+
 #### Run seeds:
+
 ```bash
 npm run seed
 ```

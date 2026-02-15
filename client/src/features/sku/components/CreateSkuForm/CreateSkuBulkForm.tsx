@@ -4,10 +4,7 @@ import type {
   BulkSkuRow,
   CreateSkuFormProps,
 } from '@features/sku/types/skuFormTypes';
-import {
-  buildBulkSkuFields,
-  buildBulkSkuPayload
-} from '@features/sku/utils';
+import { buildBulkSkuFields, buildBulkSkuPayload } from '@features/sku/utils';
 
 const CreateSkuBulkForm: FC<CreateSkuFormProps> = ({
   allowManualBrandCategory,

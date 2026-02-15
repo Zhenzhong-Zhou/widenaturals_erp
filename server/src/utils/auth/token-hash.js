@@ -30,12 +30,12 @@ const hashToken = (token) => {
   if (!token || typeof token !== 'string') {
     throw new Error('Token must be a non-empty string');
   }
-  
+
   const pepper = process.env.PASSWORD_PEPPER;
   if (!pepper) {
     throw new Error('PASSWORD_PEPPER is not configured');
   }
-  
+
   return crypto
     .createHash(TOKEN_HASH_ALGORITHM)
     .update(`${token}.${pepper}`)

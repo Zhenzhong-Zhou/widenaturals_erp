@@ -8,7 +8,7 @@ import {
   selectPaginatedBatchRegistryError,
   selectPaginatedBatchRegistryIsEmpty,
   fetchPaginatedBatchRegistryThunk,
-  resetPaginatedBatchRegistry
+  resetPaginatedBatchRegistry,
 } from '@features/batchRegistry';
 import { normalizePagination } from '@utils/pagination/normalizePagination';
 
@@ -30,7 +30,7 @@ import { normalizePagination } from '@utils/pagination/normalizePagination';
  */
 const usePaginatedBatchRegistry = () => {
   const dispatch = useAppDispatch();
-  
+
   // ---------------------------
   // Selectors (memoized via Reselect)
   // ---------------------------
@@ -39,7 +39,7 @@ const usePaginatedBatchRegistry = () => {
   const loading = useAppSelector(selectPaginatedBatchRegistryLoading);
   const error = useAppSelector(selectPaginatedBatchRegistryError);
   const isEmpty = useAppSelector(selectPaginatedBatchRegistryIsEmpty);
-  
+
   // ---------------------------
   // Actions
   // ---------------------------
@@ -54,7 +54,7 @@ const usePaginatedBatchRegistry = () => {
     },
     [dispatch]
   );
-  
+
   /**
    * Reset paginated batch registry state back to the initial empty form.
    *
@@ -66,24 +66,21 @@ const usePaginatedBatchRegistry = () => {
   const resetBatchRegistry = useCallback(() => {
     dispatch(resetPaginatedBatchRegistry());
   }, [dispatch]);
-  
+
   // ---------------------------
   // Derived memoized values
   // ---------------------------
-  const pageInfo = useMemo(
-    () => normalizePagination(pagination),
-    [pagination]
-  );
-  
+  const pageInfo = useMemo(() => normalizePagination(pagination), [pagination]);
+
   return {
     data,
     pagination,
     loading,
     error,
     isEmpty,
-    
+
     pageInfo, // { page, limit }
-    
+
     fetchBatchRegistry,
     resetBatchRegistry,
   };
