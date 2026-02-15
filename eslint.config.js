@@ -22,14 +22,14 @@ const tsJsxRuntimeRules =
 export default defineConfig([
   {
     ignores: [
-      'node_modules',
-      'dist',
-      'build',
-      '*.log',
-      '*.lock',
-      '*.config.js',
-      'coverage/',
-      '.next/',
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/build/**',
+      '**/coverage/**',
+      '**/*.log',
+      '**/*.lock',
+      '**/*.config.js',
+      '**/.next/**',
     ],
   },
   {
