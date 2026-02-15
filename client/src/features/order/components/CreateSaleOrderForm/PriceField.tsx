@@ -1,7 +1,7 @@
 import { useWatch } from 'react-hook-form';
 import { type FC, useMemo } from 'react';
-import BaseInput from '@components/common/BaseInput.tsx';
-import CustomTypography from '@components/common/CustomTypography.tsx';
+import BaseInput from '@components/common/BaseInput';
+import CustomTypography from '@components/common/CustomTypography';
 import type { LookupOption } from '@features/lookup/state';
 
 interface PriceFieldProps {

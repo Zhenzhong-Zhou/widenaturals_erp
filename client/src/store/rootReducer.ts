@@ -23,7 +23,7 @@
  */
 
 import { combineReducers, type PayloadAction } from '@reduxjs/toolkit';
-import { persistedReducer } from './persistedReducer.ts';
+import { persistedReducer } from './persistedReducer';
 
 // ===== Import reducer MAPS =====
 import { authorizeReducers } from '@features/authorize';

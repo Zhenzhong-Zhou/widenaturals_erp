@@ -7,7 +7,7 @@ import CustomTypography from '@components/common/CustomTypography';
 import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
 import type { CustomerResponse } from '@features/customer/state';
-import { formatLabel } from '@utils/textUtils.ts';
+import { formatLabel } from '@utils/textUtils';
 import AddAddressButton from '@features/address/components/AddAddressButton';
 
 interface CustomerSuccessDialogProps {

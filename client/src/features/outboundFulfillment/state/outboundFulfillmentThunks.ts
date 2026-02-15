@@ -17,7 +17,7 @@ import {
 } from '@features/outboundFulfillment/utils';
 import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 import { extractUiErrorPayload } from '@utils/error';
-import { flattenOutboundShipment } from '@features/outboundFulfillment/utils/flattenOutboundShipment.ts';
+import { flattenOutboundShipment } from '@features/outboundFulfillment/utils/flattenOutboundShipment';
 
 /**
  * Async thunk to initiate outbound fulfillment for a specific order.

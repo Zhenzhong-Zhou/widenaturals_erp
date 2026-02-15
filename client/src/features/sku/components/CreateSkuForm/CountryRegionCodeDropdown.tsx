@@ -1,6 +1,6 @@
 import { type FC, type ReactNode, useMemo } from 'react';
 import Dropdown, { type OptionType } from '@components/common/Dropdown';
-import { getCountryCodeItems } from '@utils/constants/skuConstants.ts';
+import { getCountryCodeItems } from '@utils/constants/skuConstants';
 
 interface CountryRegionCodeDropdownProps {
   /** Selected code (ISO country code or region code) */

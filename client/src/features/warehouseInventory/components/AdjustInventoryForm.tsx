@@ -7,7 +7,7 @@ import Paper from '@mui/material/Paper';
 import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import { formatDate } from '@utils/dateTimeUtils';
-import { formatLabel } from '@utils/textUtils.ts';
+import { formatLabel } from '@utils/textUtils';
 import type {
   InventoryAdjustmentSingleContext,
   InventoryAdjustmentFormData,

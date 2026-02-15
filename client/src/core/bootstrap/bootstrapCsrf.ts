@@ -1,5 +1,5 @@
-import type { AppDispatch } from '@store/store.ts';
-import { getCsrfTokenThunk } from '@features/csrf/state/csrfThunk.ts';
+import type { AppDispatch } from '@store/store';
+import { getCsrfTokenThunk } from '@features/csrf/state/csrfThunk';
 import { AppError, ErrorType } from '@utils/error';
 
 /**

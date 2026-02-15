@@ -1,7 +1,7 @@
 import { type FC } from 'react';
 import CustomDialog from '@components/common/CustomDialog';
 import AdjustBulkInventoryForm from '@features/warehouseInventory/components/AdjustBulkInventoryForm';
-import { useInventoryAdjustmentDialogLogic } from '@features/inventoryShared/utils/useInventoryAdjustmentDialogLogic.ts';
+import { useInventoryAdjustmentDialogLogic } from '@features/inventoryShared/utils/useInventoryAdjustmentDialogLogic';
 import InventorySuccessDialog from '@features/inventoryShared/components/InventorySuccessDialog';
 import Loading from '@components/common/Loading';
 import Alert from '@mui/material/Alert';

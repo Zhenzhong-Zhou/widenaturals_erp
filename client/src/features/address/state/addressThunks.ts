@@ -5,7 +5,7 @@ import type {
   CreateAddressApiResponse,
   PaginatedAddressResponse,
 } from './addressTypes';
-import { addressService } from '@services/addressService.ts';
+import { addressService } from '@services/addressService';
 
 /**
  * Redux thunk that creates address records via API and dispatches status actions.

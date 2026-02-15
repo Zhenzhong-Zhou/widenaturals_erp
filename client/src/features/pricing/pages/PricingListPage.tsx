@@ -9,7 +9,7 @@ import Loading from '@components/common/Loading';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
 import CustomButton from '@components/common/CustomButton';
-import PricingListTable from '@features/pricing/components/PricingListTable.tsx';
+import PricingListTable from '@features/pricing/components/PricingListTable';
 import usePricingList from '@hooks/usePricingList';
 import CustomTypography from '@components/common/CustomTypography';
 import PricingFilterPanel from '@features/pricing/components/PricingFilterPanel';

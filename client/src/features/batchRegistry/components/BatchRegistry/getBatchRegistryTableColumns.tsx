@@ -4,7 +4,7 @@ import TruncatedText from '@components/common/TruncatedText';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
 import { formatLabel } from '@utils/textUtils';
 import type { FlattenedBatchRegistryRecord } from '@features/batchRegistry/state';
-import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
+import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
 
 /**
  * Returns table column definitions for the Batch Registry list view.

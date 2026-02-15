@@ -2,8 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import Stack from '@mui/material/Stack';
-import CustomTypography from '@components/common/CustomTypography.tsx';
-import CustomButton from '@components/common/CustomButton.tsx';
+import CustomTypography from '@components/common/CustomTypography';
+import CustomButton from '@components/common/CustomButton';
 
 const AccessDeniedPage = () => {
   const navigate = useNavigate();

@@ -23,7 +23,7 @@ import type {
 } from '@features/lookup/state';
 import { PriceField } from '@features/order/components/CreateSaleOrderForm/index';
 import type { UsePaginatedDropdownReturn } from '@utils/lookupHelpers';
-import FieldStatusHelper from '@components/common/FieldStatusHelper.tsx';
+import FieldStatusHelper from '@components/common/FieldStatusHelper';
 
 type OrderItemSectionProps = {
   formRef: RefObject<MultiItemFormRef | null>;

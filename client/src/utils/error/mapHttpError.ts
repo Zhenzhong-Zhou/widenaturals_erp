@@ -1,5 +1,5 @@
-import { AppError } from '@utils/error/AppError.tsx';
-import { isAxiosLikeError } from './isAxiosLikeError.ts';
+import { AppError } from '@utils/error/AppError';
+import { isAxiosLikeError } from './isAxiosLikeError';
 
 /* =========================================================
  * HTTP → Domain Error Mapper

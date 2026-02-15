@@ -5,7 +5,7 @@ import IconButton from '@mui/material/IconButton';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import DeleteIcon from '@mui/icons-material/Delete';
-import CustomTypography from '@components/common/CustomTypography.tsx';
+import CustomTypography from '@components/common/CustomTypography';
 import type { SkuImageInput } from '../../state';
 
 interface Props {

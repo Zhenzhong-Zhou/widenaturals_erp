@@ -1,4 +1,4 @@
-import { cleanObject } from '@utils/objectUtils.ts';
+import { cleanObject } from '@utils/objectUtils';
 
 /**
  * Builds query parameters for paginated API requests.

@@ -9,7 +9,7 @@ import WarehouseMultiSelectDropdown from '@features/lookup/components/WarehouseM
 import BatchRegistryMultiSelectDropdown from '@features/lookup/components/BatchRegistryMultiSelectDropdown';
 import { renderDateField, renderInputField } from '@utils/filters/filterUtils';
 import { toISODate } from '@utils/dateTimeUtils';
-import useBatchRegistryLookup from '@hooks/useBatchRegistryLookup.ts';
+import useBatchRegistryLookup from '@hooks/useBatchRegistryLookup';
 import type {
   BatchLookupOption,
   GetBatchRegistryLookupParams,

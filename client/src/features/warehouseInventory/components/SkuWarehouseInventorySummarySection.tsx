@@ -11,7 +11,7 @@ import CustomPagination from '@components/common/CustomPagination';
 import CustomButton from '@components/common/CustomButton';
 import { formatLabel } from '@utils/textUtils';
 import { formatDate } from '@utils/dateTimeUtils';
-import useWarehouseInventoryItemSummary from '@hooks/useWarehouseInventoryItemSummary.ts';
+import useWarehouseInventoryItemSummary from '@hooks/useWarehouseInventoryItemSummary';
 import type {
   ProductWarehouseInventorySummary,
   WarehouseInventoryItemSummary,

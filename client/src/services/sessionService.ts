@@ -11,7 +11,7 @@ import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { AppError } from '@utils/error';
 import { selectCsrfToken } from '@features/csrf/state';
 import { store } from '@store/store';
-import { getOrCreateDeviceId } from '@utils/deviceId.ts';
+import { getOrCreateDeviceId } from '@utils/deviceId';
 
 /* =========================================================
  * Login

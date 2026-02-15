@@ -3,7 +3,7 @@ import Drawer from '@mui/material/Drawer';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
 import Box from '@mui/material/Box';
-import CustomTypography from '@components/common/CustomTypography.tsx';
+import CustomTypography from '@components/common/CustomTypography';
 
 interface SidePanelDrawerProps {
   open: boolean;

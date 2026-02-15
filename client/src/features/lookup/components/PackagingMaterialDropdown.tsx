@@ -2,7 +2,7 @@ import type { PackagingMaterialLookupQueryParams } from '@features/lookup/state'
 import type { PaginatedDropdownProps } from '@components/common/PaginatedDropdown';
 import PaginatedDropdown from '@components/common/PaginatedDropdown';
 import { useMemo } from 'react';
-import CustomTypography from '@components/common/CustomTypography.tsx';
+import CustomTypography from '@components/common/CustomTypography';
 import { faArchive, faBan, faBoxOpen } from '@fortawesome/free-solid-svg-icons';
 import { getRawLabel } from '@utils/labelHelpers';
 

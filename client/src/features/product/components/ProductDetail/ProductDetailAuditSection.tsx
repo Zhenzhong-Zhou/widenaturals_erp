@@ -6,7 +6,7 @@ import DetailsSection, {
 } from '@components/common/DetailsSection';
 import { FlattenedProductDetail } from '@features/product/state';
 import { formatDateTime } from '@utils/dateTimeUtils';
-import { formatLabel } from '@utils/textUtils.ts';
+import { formatLabel } from '@utils/textUtils';
 
 const buildAuditFields = (p: FlattenedProductDetail): DetailsSectionField[] => [
   {

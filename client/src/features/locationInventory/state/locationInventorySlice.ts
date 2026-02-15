@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type { LocationInventoryState } from './locationInventoryTypes';
-import { fetchLocationInventoryRecordsThunk } from '@features/locationInventory/state/locationInventoryThunks.ts';
+import { fetchLocationInventoryRecordsThunk } from '@features/locationInventory/state/locationInventoryThunks';
 
 const initialState: LocationInventoryState = {
   data: [],

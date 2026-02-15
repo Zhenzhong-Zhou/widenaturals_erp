@@ -4,7 +4,7 @@ import CustomTypography from '@components/common/CustomTypography';
 import DetailsSection from '@components/common/DetailsSection';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import type { FlattenedProductRecord } from '@features/product/state/productTypes';
-import { formatLabel } from '@utils/textUtils.ts';
+import { formatLabel } from '@utils/textUtils';
 
 /**
  * Expanded detail section for a Product list row.

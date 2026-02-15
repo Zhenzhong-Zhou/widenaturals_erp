@@ -1,4 +1,4 @@
-import { AppError, ErrorSeverity } from '@utils/error/AppError.tsx';
+import { AppError, ErrorSeverity } from '@utils/error/AppError';
 import type { AxiosError } from 'axios';
 
 /* =========================================================

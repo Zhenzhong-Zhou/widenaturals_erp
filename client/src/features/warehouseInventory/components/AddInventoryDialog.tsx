@@ -1,6 +1,6 @@
 import { type FC, useEffect, useMemo, useState } from 'react';
-import AddInventoryDialogWithModeToggle from '@features/warehouseInventory/components/AddInventoryDialogWithModeToggle.tsx';
-import useCreateWarehouseInventory from '@hooks/useCreateWarehouseInventory.ts';
+import AddInventoryDialogWithModeToggle from '@features/warehouseInventory/components/AddInventoryDialogWithModeToggle';
+import useCreateWarehouseInventory from '@hooks/useCreateWarehouseInventory';
 import type {
   GetBatchRegistryLookupParams,
   WarehouseLookupItem,
@@ -12,7 +12,7 @@ import type {
   ItemType,
 } from '@features/inventoryShared/types/InventorySharedType';
 import useWarehouseLookup from '@hooks/useWarehouseLookup';
-import { mapBatchLookupToOptions } from '@features/lookup/utils/batchRegistryUtils.ts';
+import { mapBatchLookupToOptions } from '@features/lookup/utils/batchRegistryUtils';
 
 interface AddInventoryDialogProps {
   open: boolean;

@@ -1,9 +1,9 @@
-import { type Column } from '@components/common/CustomTable.tsx';
+import { type Column } from '@components/common/CustomTable';
 import { type FlattenedOrderItemRow } from '@features/order/state';
-import { formatCurrency, formatLabel } from '@utils/textUtils.ts';
-import { formatDate } from '@utils/dateTimeUtils.ts';
-import { createDrillDownColumn } from '@utils/table/createDrillDownColumn.tsx';
-import { formatItemStatus } from '@utils/formatters.tsx';
+import { formatCurrency, formatLabel } from '@utils/textUtils';
+import { formatDate } from '@utils/dateTimeUtils';
+import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
+import { formatItemStatus } from '@utils/formatters';
 
 export const getOrderItemColumns = (
   expandedRowId: string | null,

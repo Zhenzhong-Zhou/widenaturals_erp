@@ -24,7 +24,7 @@ import type {
 } from '@features/lookup/state';
 import { useBatchTypeHandler } from '../hooks/useBatchTypeHandler';
 import { getVisibleBatchOptions } from '../utils/getVisibleBatchOptions';
-import type { BatchType } from '@features/inventoryShared/types/InventorySharedType.ts';
+import type { BatchType } from '@features/inventoryShared/types/InventorySharedType';
 
 interface AddBulkInventoryFormProps {
   onSubmit: (formData: Record<string, any>) => void;

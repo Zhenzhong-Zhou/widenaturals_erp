@@ -27,8 +27,8 @@ import type {
   WarehouseOption,
 } from '@features/lookup/state';
 import { mapBatchLookupToOptions } from '@features/lookup/utils/batchRegistryUtils';
-import useWarehouseLookup from '@hooks/useWarehouseLookup.ts';
-import useLotAdjustmentTypeLookup from '@hooks/useLotAdjustmentTypeLookup.ts';
+import useWarehouseLookup from '@hooks/useWarehouseLookup';
+import useLotAdjustmentTypeLookup from '@hooks/useLotAdjustmentTypeLookup';
 
 const InventoryActivityLogsTable = lazy(
   () => import('@features/report/components/InventoryActivityLogsTable')

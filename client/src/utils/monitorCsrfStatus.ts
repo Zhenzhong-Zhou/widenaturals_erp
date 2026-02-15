@@ -1,4 +1,4 @@
-import { AppError } from '@utils/error/AppError.tsx';
+import { AppError } from '@utils/error/AppError';
 
 /* =========================================================
  * CSRF status monitor
