@@ -352,7 +352,7 @@ export const appRoutes: AppRoute[] = [
   
   defineRoute({
     path: '/locations',
-    component: lazy(() => import('@features/location/pages/LocationPage')),
+    component: lazy(() => import('@features/location/pages/LocationListPage')),
     meta: {
       requiresAuth: true,
       requiredPermission: 'view_locations',
