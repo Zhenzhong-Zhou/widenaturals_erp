@@ -172,6 +172,14 @@ export interface PermissionsState {
   
   /** Indicates an in-flight permission fetch */
   loading: boolean;
+
+  /**
+   * Indicates at least one permission fetch attempt has completed.
+   *
+   * Prevents consumers from treating initial empty state as a
+   * finalized authorization decision during app bootstrap.
+   */
+  resolved: boolean;
   
   /** Recoverable permission resolution error (non-fatal) */
   error: string | null;

@@ -6,6 +6,7 @@ import {
   selectPermissions,
   selectPermissionsError,
   selectPermissionsLoading,
+  selectPermissionsResolved,
   selectRoleName,
 } from '@features/authorize/state';
 import {
@@ -56,6 +57,7 @@ const usePermissions = (): UsePermissions => {
   const roleName = useAppSelector(selectRoleName);
   const permissions = useAppSelector(selectPermissions);
   const loading = useAppSelector(selectPermissionsLoading);
+  const resolved = useAppSelector(selectPermissionsResolved);
   const error = useAppSelector(selectPermissionsError);
   
   /**
@@ -67,6 +69,7 @@ const usePermissions = (): UsePermissions => {
   const ready =
     !resolvingSession &&
     isAuthenticated &&
+    resolved &&
     !loading;
   
   const loadPermissions = useCallback(async () => {
