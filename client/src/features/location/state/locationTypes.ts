@@ -89,7 +89,8 @@ export type LocationSortField =
   | 'createdAt'
   | 'updatedAt'
   | 'createdBy'
-  | 'updatedBy';
+  | 'updatedBy'
+  | 'defaultNaturalSort';
 
 /* ============================================================
    Filters
@@ -111,8 +112,10 @@ export interface LocationListFilters {
   createdBy?: string;
   updatedBy?: string;
   
-  createdFrom?: string;
-  createdTo?: string;
+  createdAfter?: string;
+  createdBefore?: string;
+  updatedAfter?: string;
+  updatedBefore?: string;
   
   keyword?: string;
 }

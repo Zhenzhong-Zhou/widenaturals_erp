@@ -44,9 +44,12 @@ const AppError = require('../AppError');
  * @param {string} [filters.province_or_state]
  * @param {string} [filters.country]
  * @param {string} [filters.createdBy]
+ * @param {string} [filters.updatedBy]
  *
  * @param {string} [filters.createdAfter]
  * @param {string} [filters.createdBefore]
+ * @param {string} [filters.updatedAfter]
+ * @param {string} [filters.updatedBefore]
  *
  * @param {string} [filters.keyword]
  *
@@ -133,6 +136,15 @@ const buildLocationFilter = (filters = {}) => {
     }
     
     // -------------------------------------------------------------
+    // Updated by
+    // -------------------------------------------------------------
+    if (filters.updatedBy) {
+      conditions.push(`l.updated_by = $${paramIndexRef.value}`);
+      params.push(filters.updatedBy);
+      paramIndexRef.value++;
+    }
+    
+    // -------------------------------------------------------------
     // Created date range
     // -------------------------------------------------------------
     applyDateRangeConditions({
@@ -141,6 +153,18 @@ const buildLocationFilter = (filters = {}) => {
       column: 'l.created_at',
       after: filters.createdAfter,
       before: filters.createdBefore,
+      paramIndexRef,
+    });
+    
+    // -------------------------------------------------------------
+    // Updated date range
+    // -------------------------------------------------------------
+    applyDateRangeConditions({
+      conditions,
+      params,
+      column: 'l.updated_at',
+      after: filters.updatedAfter,
+      before: filters.updatedBefore,
       paramIndexRef,
     });
     

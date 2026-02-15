@@ -125,7 +125,7 @@ router.get(
   createQueryNormalizationMiddleware(
     'locationSortMap',
     ['statusIds', 'locationTypeIds'], // array filters
-    [],
+    ['includeArchived'],
     locationQuerySchema
   ),
   sanitizeFields(['keyword', 'city', 'province_or_state', 'country']),

@@ -5,7 +5,8 @@ const {
   validateOptionalUUID,
   validateOptionalString,
   createBooleanFlag,
-  createdDateRangeSchema
+  createdDateRangeSchema,
+  updatedDateRangeSchema
 } = require('./general-validators');
 
 /**
@@ -53,6 +54,7 @@ const locationQuerySchema = paginationSchema
   // default sort field must exist in locationSortMap
   .concat(createSortSchema('createdAt'))
   .concat(createdDateRangeSchema)
+  .concat(updatedDateRangeSchema)
   .keys({
     // -------------------------------------------------------------
     // Status filtering
