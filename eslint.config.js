@@ -84,6 +84,12 @@ export default defineConfig([
       '@typescript-eslint/no-unused-vars': 'warn',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: ['*.ts', '*.tsx'],
+        },
+      ],
       'import/extensions': [
         'error',
         'ignorePackages',
