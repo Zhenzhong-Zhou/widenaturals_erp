@@ -10,3 +10,4 @@ export { default as usePackagingMaterialSearchHandlers } from './usePackagingMat
 export { default as useLookupController } from './useLookupController';
 export { default as useFilterLookup } from './useFilterLookup';
 export { default as useCommonProductLookups } from './useCommonProductLookups';
+export { default as useUserLookupBinding } from './useUserLookupBinding';

@@ -46,7 +46,7 @@ export interface LookupQuery extends LookupPagination {
   /**
    * Optional keyword to filter or search items.
    */
-  keyword: string;
+  keyword?: string;
 }
 
 /**
