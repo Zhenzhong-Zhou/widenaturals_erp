@@ -10,7 +10,9 @@ import {
   Loading,
   NoDataFound
 } from '@components/index';
-import { ProductsCreateDialog } from '@features/product/components/CreateProductForm';
+import {
+  ProductsCreateDialog
+} from '@features/product/components/CreateProductForm';
 import ProductListTable, {
   ProductFiltersPanel,
   ProductSortControls,
@@ -28,9 +30,7 @@ import type {
   ProductListFilters,
   ProductSortField,
 } from '@features/product/state';
-import type { UserLookupParams } from '@features/lookup';
 import { applyFiltersAndSorting } from '@utils/queryUtils';
-import { createDropdownBundle } from '@utils/lookupHelpers';
 
 const ProductListPage = () => {
   // -------------------------------------------------------------
@@ -82,22 +82,6 @@ const ProductListPage = () => {
     fetch: fetchUserLookup,
     reset: resetUserLookup,
   } = useUserLookup();
-
-  // -------------------------------------------------------------
-  // User dropdown query state
-  // -------------------------------------------------------------
-  const createdByDropdown = createDropdownBundle<UserLookupParams>({});
-  const updatedByDropdown = createDropdownBundle<UserLookupParams>({});
-  
-  const {
-    fetchParams: createdByFetchParams,
-    setFetchParams: setCreatedByFetchParams,
-  } = createdByDropdown;
-  
-  const {
-    fetchParams: updatedByFetchParams,
-    setFetchParams: setUpdatedByFetchParams,
-  } = updatedByDropdown;
 
   // -------------------------------------------------------------
   // Combined query object
@@ -163,18 +147,6 @@ const ProductListPage = () => {
       fetchStatusOptions();
     }
   }, [statusOptions.length, fetchStatusOptions]);
-  
-  const handleCreatedByOpen = useCallback(() => {
-    if (!userOptions.length) {
-      fetchUserLookup(createdByFetchParams);
-    }
-  }, [userOptions.length, fetchUserLookup, createdByFetchParams]);
-  
-  const handleUpdatedByOpen = useCallback(() => {
-    if (!userOptions.length) {
-      fetchUserLookup(updatedByFetchParams);
-    }
-  }, [userOptions.length, fetchUserLookup, updatedByFetchParams]);
 
   const { handleOpenDialog, handleCloseDialog } = useDialogFocusHandlers(
     setDialogOpen,
@@ -247,16 +219,6 @@ const ProductListPage = () => {
               userError={userLookupError}
               userMeta={userLookupMeta}
               fetchUserLookup={fetchUserLookup}
-              
-              // Created By
-              onCreatedByOpen={handleCreatedByOpen}
-              createdByFetchParams={createdByFetchParams}
-              setCreatedByFetchParams={setCreatedByFetchParams}
-              
-              // Updated By
-              onUpdatedByOpen={handleUpdatedByOpen}
-              updatedByFetchParams={updatedByFetchParams}
-              setUpdatedByFetchParams={setUpdatedByFetchParams}
             />
           </Grid>
 
