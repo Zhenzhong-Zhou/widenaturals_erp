@@ -10,6 +10,7 @@ const PERMISSIONS = {
   },
   PRODUCTS: {
     VIEW: 'view_products',
+    VIEW_DETAILS: 'view_product_details',
     CREATE: 'create_products',
     UPDATE_STATUS: 'update_product_status',
     UPDATE_INFO: 'update_product_info',
@@ -41,7 +42,7 @@ const PERMISSIONS = {
     VIEW_BOM_DETAILS: 'view_bom_details',
     VIEW_BOM_PRODUCTION_SUMMARY: 'view_bom_production_summary',
   },
-  LOCATIONS_TYPES: {
+  LOCATION_TYPES: {
     VIEW: 'view_location_types',
     VIEW_DETAILS: 'view_location_type_details',
   },

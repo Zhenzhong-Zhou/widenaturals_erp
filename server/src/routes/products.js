@@ -183,7 +183,7 @@ router.get(
  * ```
  *
  * ### Permissions
- * - Requires: `PERMISSIONS.PRODUCTS.VIEW`
+ * - Requires: `PERMISSIONS.PRODUCTS.VIEW_DETAILS`
  *
  * ### Errors
  * - `400 Bad Request` → Invalid or missing productId
@@ -193,7 +193,7 @@ router.get(
  */
 router.get(
   '/:productId/details',
-  authorize([PERMISSIONS.PRODUCTS.VIEW]),
+  authorize([PERMISSIONS.PRODUCTS.VIEW_DETAILS]),
   validate(productIdParamSchema, 'params'),
   getProductDetailsController
 );

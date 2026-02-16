@@ -4,7 +4,7 @@ const PERMISSIONS = require('../utils/constants/domain/permissions');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 const {
   locationTypeQuerySchema,
-  // locationTypeIdParamSchema
+  locationTypeIdParamSchema
 } = require('../validators/location-type-validators');
 const { sanitizeFields } = require('../middlewares/sanitize');
 const validate = require('../middlewares/validate');

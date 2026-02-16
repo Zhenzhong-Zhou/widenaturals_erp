@@ -1,5 +1,9 @@
 const { buildLocationTypeFilter } = require('../utils/sql/build-location-type-filter');
-const { query, paginateQuery, paginateQueryByOffset } = require('../database/db');
+const {
+  query,
+  paginateQuery,
+  paginateQueryByOffset
+} = require('../database/db');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 

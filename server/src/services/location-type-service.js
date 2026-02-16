@@ -3,7 +3,8 @@ const {
   getLocationTypeById,
 } = require('../repositories/location-type-repository');
 const {
-  transformPaginatedLocationTypeResults, transformLocationTypeDetail,
+  transformPaginatedLocationTypeResults,
+  transformLocationTypeDetail,
 } = require('../transformers/location-type-transformer');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');

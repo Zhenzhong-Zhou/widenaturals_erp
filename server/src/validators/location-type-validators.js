@@ -1,13 +1,14 @@
 const Joi = require('joi');
-import {
-  createdDateRangeSchema,
-  createSortSchema,
+const {
   paginationSchema,
+  createSortSchema,
+  createdDateRangeSchema,
   updatedDateRangeSchema,
-  validateOptionalString,
-  validateOptionalUUID, validateUUID,
   validateUUIDOrUUIDArrayOptional,
-} from './general-validators';
+  validateOptionalString,
+  validateOptionalUUID,
+  validateUUID
+} = require('./general-validators');
 
 /**
  * Joi schema for validating location type list query parameters.
