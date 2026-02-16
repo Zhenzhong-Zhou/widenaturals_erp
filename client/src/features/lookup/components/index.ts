@@ -33,3 +33,11 @@ export { default as PackagingMaterialDropdown } from './PackagingMaterialDropdow
 export { default as PackagingMaterialMultiSelectDropdown } from './PackagingMaterialMultiSelectDropdown';
 export { default as StatusDropdown } from './StatusDropdown';
 export { default as StatusMultiSelectDropdown } from './StatusMultiSelectDropdown';
+
+// Manufacturer / Supplier / Location Type
+export { default as ManufacturerDropdown } from './ManufacturerDropdown';
+export { default as ManufacturerMultiSelectDropdown } from './ManufacturerMultiSelectDropdown';
+export { default as SupplierDropdown } from './SupplierDropdown';
+export { default as SupplierMultiSelectDropdown } from './SupplierMultiSelectDropdown';
+export { default as LocationTypeDropdown } from './LocationTypeDropdown';
+export { default as LocationTypeMultiSelectDropdown } from './LocationTypeMultiSelectDropdown';
