@@ -11,9 +11,9 @@ import type {
   DiscountLookupResponse,
   GetBatchRegistryLookupParams,
   GetBatchRegistryLookupResponse,
-  GetWarehouseLookupResponse,
+  GetWarehouseLookupResponse, LocationTypeLookupParams, LocationTypeLookupResponse,
   LotAdjustmentLookupQueryParams,
-  LotAdjustmentTypeLookupResponse,
+  LotAdjustmentTypeLookupResponse, ManufacturerLookupParams, ManufacturerLookupResponse,
   OrderTypeLookupQueryParams,
   OrderTypeLookupResponse,
   PackagingMaterialLookupQueryParams,
@@ -31,7 +31,7 @@ import type {
   SkuLookupQueryParams,
   SkuLookupResponse,
   StatusLookupParams,
-  StatusLookupResponse,
+  StatusLookupResponse, SupplierLookupParams, SupplierLookupResponse,
   TaxRateLookupQueryParams,
   TaxRateLookupResponse,
   UserLookupParams,
@@ -188,6 +188,24 @@ const fetchRoleLookup = (
 ): Promise<RoleLookupResponse> =>
   getLookup(API_ENDPOINTS.LOOKUPS.ROLES, params);
 
+/** Fetch manufacturer lookup items. */
+export const fetchManufacturerLookup = (
+  params?: ManufacturerLookupParams
+): Promise<ManufacturerLookupResponse> =>
+  getLookup(API_ENDPOINTS.LOOKUPS.MANUFACTURERS, params);
+
+/** Fetch supplier lookup items. */
+export const fetchSupplierLookup = (
+  params?: SupplierLookupParams
+): Promise<SupplierLookupResponse> =>
+  getLookup(API_ENDPOINTS.LOOKUPS.SUPPLIERS, params);
+
+/** Fetch location type lookup items. */
+export const fetchLocationTypeLookup = (
+  params?: LocationTypeLookupParams
+): Promise<LocationTypeLookupResponse> =>
+  getLookup(API_ENDPOINTS.LOOKUPS.LOCATION_TYPES, params);
+
 /* =========================================================
  * Public API
  * ======================================================= */
@@ -211,4 +229,7 @@ export const lookupService = {
   fetchStatusLookup,
   fetchUserLookup,
   fetchRoleLookup,
+  fetchManufacturerLookup,
+  fetchSupplierLookup,
+  fetchLocationTypeLookup,
 };
