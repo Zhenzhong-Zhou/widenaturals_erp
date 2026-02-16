@@ -1,4 +1,4 @@
-// import { useManufacturerLookup } from '@hooks/index';
+import { useManufacturerLookup } from '@hooks/index';
 import { useCommonProductLookups } from '@features/lookup/hooks';
 
 /**
@@ -9,11 +9,11 @@ import { useCommonProductLookups } from '@features/lookup/hooks';
  */
 const useProductBatchLookups = () => {
   const common = useCommonProductLookups();
-  // const manufacturer = useManufacturerLookup();
+  const manufacturer = useManufacturerLookup();
 
   return {
     ...common,
-    // manufacturer,
+    manufacturer,
   };
 };
 

@@ -10,20 +10,20 @@ import {
   ProductMultiSelectDropdown,
   SkuMultiSelectDropdown,
   StatusMultiSelectDropdown,
-  // ManufacturerMultiSelectDropdown,
+  ManufacturerMultiSelectDropdown,
 } from '@features/lookup/components';
 import {
   useProductLookup,
   useSkuLookup,
   useStatusLookup,
-  // useManufacturerLookup,
+  useManufacturerLookup,
 } from '@hooks/index';
 import {
   useFilterLookup,
   useMultiSelectBinding,
   useProductSearchHandlers,
   useSkuSearchHandlers,
-  // useManufacturerSearchHandlers,
+  useManufacturerSearchHandlers,
 } from '@features/lookup/hooks';
 import { useFormattedOptions } from '@features/lookup/utils/lookupUtils';
 
@@ -34,7 +34,7 @@ import { useFormattedOptions } from '@features/lookup/utils/lookupUtils';
 interface ProductBatchFiltersPanelLookups {
   product: ReturnType<typeof useProductLookup>;
   sku: ReturnType<typeof useSkuLookup>;
-  // manufacturer: ReturnType<typeof useManufacturerLookup>;
+  manufacturer: ReturnType<typeof useManufacturerLookup>;
   status: ReturnType<typeof useStatusLookup>;
 }
 
@@ -136,7 +136,7 @@ const ProductBatchFiltersPanel: FC<Props> = ({
   const {
     product,
     sku,
-    // manufacturer,
+    manufacturer,
     status,
   } = lookups;
 
@@ -160,13 +160,13 @@ const ProductBatchFiltersPanel: FC<Props> = ({
     useSearchHandlers: useSkuSearchHandlers,
   });
 
-  // const manufacturerFilter = useFilterLookup({
-  //   fieldName: 'manufacturerIds',
-  //   lookup: manufacturer,
-  //   watch,
-  //   setValue,
-  //   useSearchHandlers: useManufacturerSearchHandlers,
-  // });
+  const manufacturerFilter = useFilterLookup({
+    fieldName: 'manufacturerIds',
+    lookup: manufacturer,
+    watch,
+    setValue,
+    useSearchHandlers: useManufacturerSearchHandlers,
+  });
 
   /* -----------------------------
    * Sync external filters
@@ -205,7 +205,7 @@ const ProductBatchFiltersPanel: FC<Props> = ({
 
     productFilter.reset();
     skuFilter.reset();
-    // manufacturerFilter.reset();
+    manufacturerFilter.reset();
 
     onReset();
   };
@@ -270,19 +270,19 @@ const ProductBatchFiltersPanel: FC<Props> = ({
           </Grid>
 
           <Grid size={{ xs: 12, md: 6 }}>
-            {/*<ManufacturerMultiSelectDropdown*/}
-            {/*  options={manufacturer.options}*/}
-            {/*  selectedOptions={manufacturerFilter.selectedOptions}*/}
-            {/*  onChange={manufacturerFilter.handleSelect}*/}
-            {/*  onOpen={manufacturerFilter.onOpen}*/}
-            {/*  loading={manufacturer.loading}*/}
-            {/*  paginationMeta={{*/}
-            {/*    ...manufacturer.meta,*/}
-            {/*    onFetchMore: manufacturerFilter.onFetchMore,*/}
-            {/*  }}*/}
-            {/*  inputValue={manufacturerFilter.keyword}*/}
-            {/*  onInputChange={manufacturerFilter.onInputChange}*/}
-            {/*/>*/}
+            <ManufacturerMultiSelectDropdown
+              options={manufacturer.options}
+              selectedOptions={manufacturerFilter.selectedOptions}
+              onChange={manufacturerFilter.handleSelect}
+              onOpen={manufacturerFilter.onOpen}
+              loading={manufacturer.loading}
+              paginationMeta={{
+                ...manufacturer.meta,
+                onFetchMore: manufacturerFilter.onFetchMore,
+              }}
+              inputValue={manufacturerFilter.keyword}
+              onInputChange={manufacturerFilter.onInputChange}
+            />
           </Grid>
 
           <Grid size={{ xs: 12, md: 6 }}>
