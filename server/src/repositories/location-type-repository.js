@@ -1,187 +1,272 @@
-const { paginateQuery, retry, paginateQueryByOffset } = require('../database/db');
-const AppError = require('../utils/AppError');
-const { logError } = require('../utils/logger-helper');
 const { buildLocationTypeFilter } = require('../utils/sql/build-location-type-filter');
+const { query, paginateQuery, paginateQueryByOffset } = require('../database/db');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
+const AppError = require('../utils/AppError');
 
 /**
- * Fetches all location types from the database.
+ * Retrieves paginated Location Type summary records.
  *
- * @param {Object} options - Query options.
- * @param {number} [options.page=1] - The page number for pagination.
- * @param {number} [options.limit=10] - The number of records per page.
- * @param {string} [options.sortBy='name'] - Column to sort by.
- * @param {string} [options.sortOrder='ASC'] - Sort order ('ASC' or 'DESC').
- * @returns {Promise<Object>} - A paginated list of location types.
- * @throws {AppError} - Throws an error if the query fails.
+ * ─────────────────────────────────────────────────────────────
+ * Purpose
+ * ─────────────────────────────────────────────────────────────
+ * Provides a normalized, audit-aware list view of location types.
+ * This function is intended for configuration-level entities where:
+ *
+ * - Administrators manage available location classifications
+ * - Settings modules require structured type definitions
+ * - UI tables display metadata with status and audit information
+ *
+ * ─────────────────────────────────────────────────────────────
+ * Data Characteristics
+ * ─────────────────────────────────────────────────────────────
+ * Returns summary-level fields only (no relational aggregates).
+ *
+ * Included:
+ * - Core identity fields (id, code, name, description)
+ * - Status metadata (status_id, status_name, status_date)
+ * - Audit metadata (created_at, updated_at, created_by, updated_by)
+ * - Human-readable audit user names
+ *
+ * Excluded:
+ * - No heavy joins
+ * - No dependent entity counts
+ * - No computed business logic fields
+ *
+ * NOTE:
+ * This function is optimized for list/table rendering.
+ * For single-record detail retrieval, use `getLocationTypeById`.
+ *
+ * ─────────────────────────────────────────────────────────────
+ * Filtering
+ * ─────────────────────────────────────────────────────────────
+ * Filtering is delegated to `buildLocationTypeFilter`, which:
+ * - Generates safe, parameterized WHERE clauses
+ * - Supports keyword-based search (code/name)
+ * - Allows status-based filtering
+ * - Ensures consistent filter logic across modules
+ *
+ * ─────────────────────────────────────────────────────────────
+ * Pagination & Sorting
+ * ─────────────────────────────────────────────────────────────
+ * - Page is 1-based indexing
+ * - Limit controls page size
+ * - Sorting must map to validated database columns
+ * - Total record count is calculated separately via COUNT query
+ *
+ * ─────────────────────────────────────────────────────────────
+ * Observability
+ * ─────────────────────────────────────────────────────────────
+ * - Successful executions log pagination metrics
+ * - Failures log structured exception details with context
+ *
+ * ─────────────────────────────────────────────────────────────
+ * Architectural Notes
+ * ─────────────────────────────────────────────────────────────
+ * - Designed for consistency with other repository list functions
+ * - Keeps ORDER BY outside base query (handled by paginateQuery)
+ * - Maintains strict separation of filtering, pagination, and logging
+ *
+ * @param {Object} options
+ * @param {Object} [options.filters={}] - Structured filter criteria
+ * @param {number} [options.page=1] - Page number (1-based)
+ * @param {number} [options.limit=10] - Page size
+ * @param {string} [options.sortBy='created_at'] - Sort column (validated)
+ * @param {'ASC'|'DESC'} [options.sortOrder='DESC'] - Sort direction
+ *
+ * @returns {Promise<{
+ *   data: Array<Object>,
+ *   pagination: {
+ *     page: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     totalPages: number
+ *   }
+ * }>}
+ *
+ * @throws {AppError.databaseError}
+ *   If query execution fails or database interaction errors occur.
  */
-const getLocationTypes = async ({
-  page = 1,
-  limit = 10,
-  sortBy = 'name',
-  sortOrder = 'ASC',
-} = {}) => {
-  const tableName = 'location_types lt';
-  const joins = [
-    'LEFT JOIN status s ON lt.status_id = s.id',
-    'LEFT JOIN users u1 ON lt.created_by = u1.id',
-    'LEFT JOIN users u2 ON lt.updated_by = u2.id',
-  ];
-  const whereClause = '1=1';
-
-  // Validating sorting inputs
-  const validSortColumns = [
-    'name',
-    'code',
-    'status_date',
-    'created_at',
-    'updated_at',
-  ];
-  if (!validSortColumns.includes(sortBy)) {
-    throw AppError.validationError(`Invalid sort column: ${sortBy}`, 400);
-  }
-  if (!['ASC', 'DESC'].includes(sortOrder.toUpperCase())) {
-    throw AppError.validationError(`Invalid sort order: ${sortOrder}`, 400);
-  }
-
-  // SQL Queries
-  const dataQuery = `
-    SELECT
-      lt.id AS location_type_id,
-      lt.name AS location_type_name,
-      lt.description AS location_type_description,
-      s.id AS status_id,
-      s.name AS status_name,
-      lt.status_date,
-      lt.created_at,
-      lt.updated_at,
-      COALESCE(u1.firstname || ' ' || u1.lastname, 'Unknown') AS created_by,
-      COALESCE(u2.firstname || ' ' || u2.lastname, 'Unknown') AS updated_by
-    FROM ${tableName}
-    ${joins.join(' ')}
-    WHERE ${whereClause}
-  `;
-
+const getPaginatedLocationTypes = async ({
+                                           filters = {},
+                                           page = 1,
+                                           limit = 10,
+                                           sortBy = 'created_at',
+                                           sortOrder = 'DESC',
+                                         }) => {
+  const context = 'location-type-repository/getPaginatedLocationTypes';
+  
   try {
-    return await retry(async () => {
-      return await paginateQuery({
-        tableName,
-        joins,
-        whereClause,
-        queryText: dataQuery,
-        params: [],
+    const tableName = 'location_types lt';
+    
+    const joins = [
+      'LEFT JOIN status s ON lt.status_id = s.id',
+      'LEFT JOIN users u1 ON lt.created_by = u1.id',
+      'LEFT JOIN users u2 ON lt.updated_by = u2.id',
+    ];
+    
+    // -------------------------------------------------------------
+    // WHERE clause
+    // -------------------------------------------------------------
+    const { whereClause, params } = buildLocationTypeFilter(filters);
+    
+    // -------------------------------------------------------------
+    // Base SELECT (NO ORDER BY)
+    // -------------------------------------------------------------
+    const baseQueryText = `
+      SELECT
+        lt.id,
+        lt.code,
+        lt.name,
+        lt.description,
+        lt.status_id,
+        s.name AS status_name,
+        lt.status_date,
+        lt.created_at,
+        lt.updated_at,
+        lt.created_by,
+        lt.updated_by,
+        u1.firstname AS created_by_firstname,
+        u1.lastname AS created_by_lastname,
+        u2.firstname AS updated_by_firstname,
+        u2.lastname AS updated_by_lastname
+      FROM ${tableName}
+      ${joins.join('\n')}
+      WHERE ${whereClause}
+    `;
+    
+    // -------------------------------------------------------------
+    // Paginated execution
+    // -------------------------------------------------------------
+    const result = await paginateQuery({
+      tableName,
+      joins,
+      whereClause,
+      queryText: baseQueryText,
+      params,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      meta: {
+        context,
+        filters,
         page,
         limit,
-        sortBy: `lt.${sortBy}`,
+        sortBy,
         sortOrder,
-      });
+      },
     });
+    
+    logSystemInfo('Paginated location types query executed', {
+      context,
+      filters,
+      pagination: {
+        page,
+        limit,
+        returned: result.data.length,
+        total: result.pagination.totalRecords,
+      },
+      sorting: {
+        sortBy,
+        sortOrder,
+      },
+    });
+    
+    return result;
   } catch (error) {
-    logError('Error fetching location types:', error);
-    throw AppError.databaseError('Failed to fetch location types', 500, error);
+    logSystemException(error, 'Failed to fetch paginated location types', {
+      context,
+      filters,
+      pagination: { page, limit },
+      sorting: { sortBy, sortOrder },
+    });
+    
+    throw AppError.databaseError('Failed to fetch location types', {
+      context,
+      details: error.message,
+    });
   }
 };
 
 /**
- * Fetches detailed information of a location type by its ID.
+ * Retrieves a single Location Type record by ID.
  *
- * This function retrieves:
- * - Location type details (name, code, description, status).
- * - Associated locations (name, address, warehouse fee, status).
- * - Created and updated user details.
- * - Supports pagination and sorting for locations.
+ * ─────────────────────────────────────────────────────────────
+ * Query Scope
+ * ─────────────────────────────────────────────────────────────
+ * Returns full detail for a single configuration entity.
  *
- * @async
- * @function getLocationDetailById
- * @param {Object} params - Query parameters.
- * @param {string} params.id - The UUID of the location type to fetch.
- * @param {number} [params.page=1] - The page number for paginated location results.
- * @param {number} [params.limit=10] - The number of locations per page.
- * @param {string} [params.sortBy='created_at'] - Column name to sort the results.
- * @param {string} [params.sortOrder='ASC'] - Sort order (`ASC` or `DESC`).
- * @returns {Promise<Object>} - A Promise resolving to an object containing location type details.
- * @throws {AppError} - Throws an error if the query fails.
+ * Includes:
+ * - Core identity (id, code, name, description)
+ * - Status metadata
+ * - Audit metadata with user names
+ *
+ * NOTE:
+ * This function does not throw if record is not found.
+ * It returns `null`, allowing service layer to decide
+ * whether to return 404 or handle differently.
+ *
+ * @param {string} id - Location Type UUID
+ * @returns {Promise<Record<string, any> | null>}
+ *
+ * @throws {AppError.databaseError}
  */
-const getLocationDetailById = async ({
-  id,
-  page = 1,
-  limit = 10,
-  sortBy = 'created_at',
-  sortOrder = 'ASC',
-}) => {
-  const tableName = 'location_types lt';
-  const joins = [
-    'LEFT JOIN locations l ON lt.id = l.location_type_id',
-    'LEFT JOIN status s ON lt.status_id = s.id',
-    'LEFT JOIN status ls ON l.status_id = ls.id',
-    'LEFT JOIN users u1 ON lt.created_by = u1.id',
-    'LEFT JOIN users u2 ON lt.updated_by = u2.id',
-    'LEFT JOIN users u3 ON l.created_by = u3.id',
-    'LEFT JOIN users u4 ON l.updated_by = u4.id',
-  ];
-
-  const whereClause = 'lt.id = $1';
-
-  const baseQuery = `
-    SELECT
-      lt.id AS location_type_id,
-      lt.code AS location_type_code,
-      lt.name AS location_type_name,
-      lt.description AS location_type_description,
-      lt.status_id,
-      s.name AS status_name,
-      lt.status_date,
-      lt.created_at,
-      lt.updated_at,
-      COALESCE(
-          STRING_AGG(DISTINCT u1.firstname || ' ' || u1.lastname, ', '), 'Unknown'
-      ) AS created_by,
-      COALESCE(
-          STRING_AGG(DISTINCT u2.firstname || ' ' || u2.lastname, ', '), 'Unknown'
-      ) AS updated_by,
-      COALESCE(
-          JSON_AGG(
-              JSONB_BUILD_OBJECT(
-                  'location_id', l.id,
-                  'location_name', l.name,
-                  'address', l.address,
-                  'status_id', l.status_id,
-                  'status_name', ls.name,
-                  'status_date', l.status_date,
-                  'created_at', l.created_at,
-                  'updated_at', l.updated_at,
-                  'created_by', COALESCE(u3.firstname || ' ' || u3.lastname, 'Unknown'),
-                  'updated_by', COALESCE(u4.firstname || ' ' || u4.lastname, 'Unknown')
-              )
-          ) FILTER (WHERE l.id IS NOT NULL), '[]'
-      ) AS locations
-    FROM ${tableName}
-    ${joins.join(' ')}
-    WHERE ${whereClause}
-    GROUP BY lt.id, lt.code, lt.name, lt.description, lt.status_id, s.name, lt.status_date, lt.created_at, lt.updated_at
-  `;
-
+const getLocationTypeById = async (id) => {
+  const context = 'location-type-repository/getLocationTypeById';
+  
   try {
-    return await retry(async () => {
-      return await paginateQuery({
-        tableName,
-        joins,
-        whereClause,
-        queryText: baseQuery,
-        params: [id],
-        page,
-        limit,
-        sortBy: `lt.${sortBy}`,
-        sortOrder,
+    const queryText = `
+      SELECT
+        lt.id,
+        lt.code,
+        lt.name,
+        lt.description,
+        lt.status_id,
+        s.name AS status_name,
+        lt.status_date,
+        lt.created_at,
+        lt.updated_at,
+        lt.created_by,
+        lt.updated_by,
+        u1.firstname AS created_by_firstname,
+        u1.lastname AS created_by_lastname,
+        u2.firstname AS updated_by_firstname,
+        u2.lastname AS updated_by_lastname
+      FROM location_types lt
+      LEFT JOIN status s ON lt.status_id = s.id
+      LEFT JOIN users u1 ON lt.created_by = u1.id
+      LEFT JOIN users u2 ON lt.updated_by = u2.id
+      WHERE lt.id = $1
+      LIMIT 1
+    `;
+    
+    const { rows } = await query(queryText, [id]);
+    
+    if (!rows.length) {
+      logSystemInfo('Location type not found', {
+        context,
+        id,
       });
+      
+      return null;
+    }
+    
+    logSystemInfo('Location type fetched successfully', {
+      context,
+      id,
     });
+    
+    return rows[0];
   } catch (error) {
-    logError('Error fetching location type detail by ID:', error);
-    throw AppError.databaseError(
-      'Failed to fetch location detail by ID',
-      500,
-      error
-    );
+    logSystemException(error, 'Failed to fetch location type by id', {
+      context,
+      id,
+    });
+    
+    throw AppError.databaseError('Failed to fetch location type', {
+      context,
+      details: error.message,
+    });
   }
 };
 
@@ -306,7 +391,7 @@ const getLocationTypeLookup = async ({
 };
 
 module.exports = {
-  getLocationTypes,
-  getLocationDetailById,
+  getPaginatedLocationTypes,
+  getLocationTypeById,
   getLocationTypeLookup,
 };

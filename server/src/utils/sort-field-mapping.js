@@ -153,6 +153,30 @@ const SORTABLE_FIELDS = {
       s.created_at
     `,
   },
+  locationTypeSortMap: {
+    // --------------------------------------------------
+    // Core identity
+    // --------------------------------------------------
+    code: `LOWER(lt.code)`,
+    name: `LOWER(lt.name)`,
+    
+    // --------------------------------------------------
+    // Status
+    // --------------------------------------------------
+    statusName: `LOWER(s.name)`,
+    statusDate: `lt.status_date`,
+    
+    // --------------------------------------------------
+    // Audit timestamps
+    // --------------------------------------------------
+    createdAt: `lt.created_at`,
+    updatedAt: `lt.updated_at`,
+    
+    // --------------------------------------------------
+    // Required fallback
+    // --------------------------------------------------
+    defaultNaturalSort: `lt.created_at`,
+  },
   locationSortMap: {
     // --------------------------------------------------
     // Core identity
@@ -188,6 +212,7 @@ const SORTABLE_FIELDS = {
     createdAt: `l.created_at`,
     updatedAt: `l.updated_at`,
 
+    // todo : have to remove
     // --------------------------------------------------
     // Audit users (optional for sorting)
     // --------------------------------------------------
