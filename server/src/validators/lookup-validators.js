@@ -426,6 +426,54 @@ const roleLookupQuerySchema = Joi.object({
   ...baseLookupQuerySchema,
 });
 
+/**
+ * Joi validation schema for Manufacturer lookup query parameters.
+ *
+ * Validates GET requests to the `/lookups/manufacturers` endpoint.
+ *
+ * Supports:
+ * - `filters`: Optional object for lookup filtering
+ *     (e.g., keyword, statusIds, locationIds)
+ * - `limit`: Optional number for pagination (default 50)
+ * - `offset`: Optional number for pagination offset (default 0)
+ *
+ * All fields are inherited from `baseLookupQuerySchema`.
+ *
+ * NOTE:
+ * - Manufacturer visibility (active-only, inactive inclusion, archived inclusion)
+ *   is enforced in the service layer via ACL.
+ * - This schema validates request shape only, not access rules.
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const manufacturerLookupQuerySchema = Joi.object({
+  ...baseLookupQuerySchema,
+});
+
+/**
+ * Joi validation schema for Supplier lookup query parameters.
+ *
+ * Validates GET requests to the `/lookups/suppliers` endpoint.
+ *
+ * Supports:
+ * - `filters`: Optional object for lookup filtering
+ *     (e.g., keyword, statusIds, locationIds)
+ * - `limit`: Optional number for pagination (default 50)
+ * - `offset`: Optional number for pagination offset (default 0)
+ *
+ * All fields are inherited from `baseLookupQuerySchema`.
+ *
+ * NOTE:
+ * - Supplier visibility (active-only, inactive inclusion, archived inclusion)
+ *   is enforced in the service layer via ACL.
+ * - This schema validates request structure only.
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const supplierLookupQuerySchema = Joi.object({
+  ...baseLookupQuerySchema,
+});
+
 module.exports = {
   batchRegistryLookupQuerySchema,
   warehouseLookupQuerySchema,
@@ -445,4 +493,6 @@ module.exports = {
   statusLookupQuerySchema,
   userLookupQuerySchema,
   roleLookupQuerySchema,
+  manufacturerLookupQuerySchema,
+  supplierLookupQuerySchema,
 };

@@ -16,11 +16,13 @@ const LOOKUPS = {
     VIEW_SKU: 'view_sku_lookup',
     VIEW_PRICING: 'view_pricing_lookup',
     VIEW_PACKAGING_MATERIAL: 'view_packaging_material_lookup',
-    VIEW_SKU_CODE_BASE: 'view_sku_code_bases_lookup',
+    VIEW_SKU_CODE_BASE: 'view_sku_code_base_lookup',
     VIEW_PRODUCT: 'view_product_lookup',
     VIEW_STATUS: 'view_status_lookup',
     VIEW_USER: 'view_user_lookup',
     VIEW_ROLE: 'view_role_lookup',
+    VIEW_MANUFACTURER: 'view_manufacturer_lookup',
+    VIEW_SUPPLIER: 'view_supplier_lookup',
   },
 };
 

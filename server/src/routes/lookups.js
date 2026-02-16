@@ -19,6 +19,8 @@ const {
   getStatusLookupController,
   getUserLookupController,
   getRoleLookupController,
+  getManufacturerLookupController,
+  getSupplierLookupController,
 } = require('../controllers/lookup-controller');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 const { sanitizeFields } = require('../middlewares/sanitize');
@@ -42,6 +44,8 @@ const {
   statusLookupQuerySchema,
   userLookupQuerySchema,
   roleLookupQuerySchema,
+  manufacturerLookupQuerySchema,
+  supplierLookupQuerySchema,
 } = require('../validators/lookup-validators');
 const { PERMISSIONS } = require('../utils/constants/domain/lookup-constants');
 
@@ -1110,6 +1114,146 @@ router.get(
     'Invalid Role lookup query parameters.'
   ),
   getRoleLookupController
+);
+
+/**
+ * @route GET /lookups/manufacturers
+ * @description
+ * Endpoint to fetch paginated **Manufacturer** lookup options
+ * for dropdowns and assignment selectors.
+ *
+ * This endpoint is intentionally lightweight and permission-aware.
+ * It applies:
+ * - Manufacturer visibility ACL (active-only / archived inclusion / full visibility)
+ * - Query normalization (filters + pagination)
+ * - Input sanitization
+ * - Joi validation
+ * - Service-driven lookup + UI transformation
+ *
+ * ### Query Parameters (after normalization)
+ * - `filters.keyword` — Optional fuzzy match (name / contact / code)
+ * - `limit`           — Page size (default: 50)
+ * - `offset`          — Pagination offset
+ *
+ * ### Response: 200 OK
+ * ```json
+ * {
+ *   "success": true,
+ *   "message": "Successfully retrieved Manufacturer lookup",
+ *   "items": [
+ *     {
+ *       "id": "...",
+ *       "label": "ABC Labs",
+ *       "subLabel": "John Smith",
+ *       "code": "ABC-001",
+ *       "isActive": true
+ *     }
+ *   ],
+ *   "limit": 50,
+ *   "offset": 0,
+ *   "hasMore": true
+ * }
+ * ```
+ *
+ * NOTE:
+ * - Manufacturer lifecycle visibility (active / inactive / archived)
+ *   is enforced exclusively in the service layer.
+ * - Client-provided filters cannot override ACL rules.
+ *
+ * @access Protected
+ * @permission Requires `view_manufacturer_lookup`
+ */
+router.get(
+  '/manufacturers',
+  authorize([PERMISSIONS.VIEW_MANUFACTURER]),
+  createQueryNormalizationMiddleware(
+    '',
+    [], // arrayKeys
+    [], // booleanKeys
+    ['keyword'], // filterKeys (keyword ONLY)
+    { includePagination: true, includeSorting: false }
+  ),
+  sanitizeFields(['keyword']),
+  validate(
+    manufacturerLookupQuerySchema,
+    'query',
+    {
+      abortEarly: false,
+      convert: true,
+    },
+    'Invalid Manufacturer lookup query parameters.'
+  ),
+  getManufacturerLookupController
+);
+
+/**
+ * @route GET /lookups/suppliers
+ * @description
+ * Endpoint to fetch paginated **Supplier** lookup options
+ * for dropdowns and assignment selectors.
+ *
+ * This endpoint is intentionally lightweight and permission-aware.
+ * It applies:
+ * - Supplier visibility ACL (active-only / archived inclusion / full visibility)
+ * - Query normalization (filters + pagination)
+ * - Input sanitization
+ * - Joi validation
+ * - Service-driven lookup + UI transformation
+ *
+ * ### Query Parameters (after normalization)
+ * - `filters.keyword` — Optional fuzzy match (name / contact / code)
+ * - `limit`           — Page size (default: 50)
+ * - `offset`          — Pagination offset
+ *
+ * ### Response: 200 OK
+ * ```json
+ * {
+ *   "success": true,
+ *   "message": "Successfully retrieved Supplier lookup",
+ *   "items": [
+ *     {
+ *       "id": "...",
+ *       "label": "Global Supply Co",
+ *       "subLabel": "Jane Doe",
+ *       "code": "SUP-100",
+ *       "isActive": true
+ *     }
+ *   ],
+ *   "limit": 50,
+ *   "offset": 0,
+ *   "hasMore": true
+ * }
+ * ```
+ *
+ * NOTE:
+ * - Supplier lifecycle visibility (active / inactive / archived)
+ *   is enforced exclusively in the service layer.
+ * - Client-provided filters cannot override ACL rules.
+ *
+ * @access Protected
+ * @permission Requires `view_supplier_lookup`
+ */
+router.get(
+  '/suppliers',
+  authorize([PERMISSIONS.VIEW_SUPPLIER]),
+  createQueryNormalizationMiddleware(
+    '',
+    [], // arrayKeys
+    [], // booleanKeys
+    ['keyword'], // filterKeys (keyword ONLY)
+    { includePagination: true, includeSorting: false }
+  ),
+  sanitizeFields(['keyword']),
+  validate(
+    supplierLookupQuerySchema,
+    'query',
+    {
+      abortEarly: false,
+      convert: true,
+    },
+    'Invalid Supplier lookup query parameters.'
+  ),
+  getSupplierLookupController
 );
 
 module.exports = router;

@@ -23,6 +23,8 @@ const {
   transformUserPaginatedLookupResult,
   enrichRoleOption,
   transformRolePaginatedLookupResult,
+  transformManufacturerPaginatedLookupResult,
+  transformSupplierPaginatedLookupResult,
 } = require('../transformers/lookup-transformer');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const {
@@ -137,6 +139,19 @@ const {
   evaluateRoleVisibilityAccessControl,
   applyRoleVisibilityRules,
 } = require('../business/role-business');
+const {
+  evaluateManufacturerVisibilityAccessControl,
+  evaluateManufacturerLookupSearchCapabilities,
+  enrichManufacturerLookupWithActiveFlag
+} = require('../business/manufacturer-business');
+const { applyLookupVisibilityRules } = require('../business/visibility/apply-lookup-visibility');
+const { getManufacturerLookup } = require('../repositories/manufacturer-repository');
+const {
+  evaluateSupplierVisibilityAccessControl,
+  evaluateSupplierLookupSearchCapabilities,
+  enrichSupplierLookupWithActiveFlag
+} = require('../business/supplier-business');
+const { getSupplierLookup } = require('../repositories/supplier-repository');
 
 /**
  * Service to fetch filtered and paginated batch registry records for lookup UI.
@@ -1646,6 +1661,268 @@ const fetchRoleLookupService = async (
   }
 };
 
+/**
+ * Fetches a filtered, paginated list of Manufacturers
+ * for lookup UI components such as dropdowns and assignment selectors.
+ *
+ * This service enforces permission-aware visibility and
+ * query-shaping constraints before executing the repository lookup.
+ *
+ * ------------------------------------------------------------------
+ * Responsibilities
+ * ------------------------------------------------------------------
+ * - Resolve manufacturer visibility ACL (active / inactive / archived)
+ * - Resolve lookup search capabilities (status, location joins)
+ * - Translate ACL decisions into repository-safe filters
+ * - Prevent client filters from escalating visibility
+ * - Execute repository lookup query
+ * - Enrich rows with UI-only flags when applicable
+ * - Transform result into standardized lookup response
+ *
+ * ------------------------------------------------------------------
+ * Security Model
+ * ------------------------------------------------------------------
+ * - Client-provided filters cannot override ACL constraints.
+ * - Visibility enforcement happens at SQL level.
+ * - Search capability controls JOIN expansion only.
+ *
+ * ------------------------------------------------------------------
+ * Pagination Model
+ * ------------------------------------------------------------------
+ * - Offset-based pagination
+ * - Deterministic sorting
+ * - Lightweight payload optimized for lookup scenarios
+ *
+ * ------------------------------------------------------------------
+ * Returns
+ * ------------------------------------------------------------------
+ * {
+ *   items: Array<{
+ *     id: string,
+ *     label: string,
+ *     subLabel?: string,
+ *     code?: string,
+ *     isActive?: boolean
+ *   }>,
+ *   offset: number,
+ *   limit: number,
+ *   hasMore: boolean
+ * }
+ *
+ * @throws {AppError} If ACL resolution or repository query fails
+ */
+const fetchManufacturerLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
+  const context = 'lookup-service/fetchManufacturerLookupService';
+  
+  try {
+    // ---------------------------------------------------------
+    // Step 1 — Log request
+    // ---------------------------------------------------------
+    logSystemInfo('Fetching Manufacturer lookup from service', {
+      context,
+      metadata: { filters, limit, offset },
+    });
+    
+    // ---------------------------------------------------------
+    // Step 2 — Resolve visibility ACL
+    // ---------------------------------------------------------
+    const acl = await evaluateManufacturerVisibilityAccessControl(user);
+    const activeStatusId = getStatusId('general_active');
+    
+    // ---------------------------------------------------------
+    // Step 3 — Resolve search capabilities
+    // ---------------------------------------------------------
+    const searchCapabilities =
+      await evaluateManufacturerLookupSearchCapabilities(user);
+    
+    // ---------------------------------------------------------
+    // Step 4 — Apply lookup visibility rules (reusable)
+    // ---------------------------------------------------------
+    const adjustedFilters = applyLookupVisibilityRules({
+      filters,
+      acl,
+      activeStatusId,
+      fullVisibilityKey: 'canViewAllManufacturers',
+    });
+    
+    // ---------------------------------------------------------
+    // Step 5 — Repository lookup
+    // ---------------------------------------------------------
+    const { data = [], pagination = {} } =
+      await getManufacturerLookup({
+        filters: adjustedFilters,
+        options: searchCapabilities,
+        limit,
+        offset,
+      });
+    
+    // ---------------------------------------------------------
+    // Step 6 — Enrichment (only when inactive may appear)
+    // ---------------------------------------------------------
+    let enrichedRows = data;
+    
+    if (!acl.enforceActiveOnly) {
+      enrichedRows = data.map((row) =>
+        enrichManufacturerLookupWithActiveFlag(row, activeStatusId)
+      );
+    }
+    
+    // ---------------------------------------------------------
+    // Step 7 — Transform for UI
+    // ---------------------------------------------------------
+    return transformManufacturerPaginatedLookupResult(
+      { data: enrichedRows, pagination },
+      acl
+    );
+  } catch (err) {
+    logSystemException(
+      err,
+      'Failed to fetch Manufacturer lookup in service',
+      {
+        context,
+        userId: user?.id,
+        filters,
+        limit,
+        offset,
+      }
+    );
+    
+    throw AppError.serviceError(
+      'Failed to fetch manufacturer lookup list.',
+      {
+        details: err.message,
+        stage: context,
+      }
+    );
+  }
+};
+
+/**
+ * Fetches a filtered, paginated list of Suppliers
+ * for lookup UI components such as dropdowns and assignment selectors.
+ *
+ * This service applies permission-aware visibility enforcement
+ * and controlled query shaping prior to repository execution.
+ *
+ * ------------------------------------------------------------------
+ * Responsibilities
+ * ------------------------------------------------------------------
+ * - Resolve supplier visibility ACL (active / inactive / archived)
+ * - Resolve lookup search capabilities (status, location joins)
+ * - Translate ACL into repository-safe visibility flags
+ * - Prevent client-driven visibility escalation
+ * - Execute repository lookup query
+ * - Enrich rows with UI-only flags when permitted
+ * - Transform into standardized lookup response
+ *
+ * ------------------------------------------------------------------
+ * Security Model
+ * ------------------------------------------------------------------
+ * - Visibility decisions are resolved in business layer.
+ * - Repository receives sanitized filters only.
+ * - Client input cannot override archive or status rules.
+ *
+ * ------------------------------------------------------------------
+ * Pagination Model
+ * ------------------------------------------------------------------
+ * - Offset-based pagination
+ * - Deterministic sorting
+ * - Minimal payload optimized for dropdown usage
+ *
+ * @throws {AppError} If permission evaluation or database query fails
+ */
+const fetchSupplierLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
+  const context = 'lookup-service/fetchSupplierLookupService';
+  
+  try {
+    // ---------------------------------------------------------
+    // Step 1 — Log request
+    // ---------------------------------------------------------
+    logSystemInfo('Fetching Supplier lookup from service', {
+      context,
+      metadata: { filters, limit, offset },
+    });
+    
+    // ---------------------------------------------------------
+    // Step 2 — Resolve visibility ACL
+    // ---------------------------------------------------------
+    const acl = await evaluateSupplierVisibilityAccessControl(user);
+    const activeStatusId = getStatusId('general_active');
+    
+    // ---------------------------------------------------------
+    // Step 3 — Resolve search capabilities
+    // ---------------------------------------------------------
+    const searchCapabilities =
+      await evaluateSupplierLookupSearchCapabilities(user);
+    
+    // ---------------------------------------------------------
+    // Step 4 — Apply lookup visibility rules (reusable)
+    // ---------------------------------------------------------
+    const adjustedFilters = applyLookupVisibilityRules({
+      filters,
+      acl,
+      activeStatusId,
+      fullVisibilityKey: 'canViewAllSuppliers',
+    });
+    
+    // ---------------------------------------------------------
+    // Step 5 — Repository lookup
+    // ---------------------------------------------------------
+    const { data = [], pagination = {} } =
+      await getSupplierLookup({
+        filters: adjustedFilters,
+        options: searchCapabilities,
+        limit,
+        offset,
+      });
+    
+    // ---------------------------------------------------------
+    // Step 6 — Enrichment (only when inactive may appear)
+    // ---------------------------------------------------------
+    let enrichedRows = data;
+    
+    if (!acl.enforceActiveOnly) {
+      enrichedRows = data.map((row) =>
+        enrichSupplierLookupWithActiveFlag(row, activeStatusId)
+      );
+    }
+    
+    // ---------------------------------------------------------
+    // Step 7 — Transform for UI
+    // ---------------------------------------------------------
+    return transformSupplierPaginatedLookupResult(
+      { data: enrichedRows, pagination },
+      acl
+    );
+  } catch (err) {
+    logSystemException(
+      err,
+      'Failed to fetch Supplier lookup in service',
+      {
+        context,
+        userId: user?.id,
+        filters,
+        limit,
+        offset,
+      }
+    );
+    
+    throw AppError.serviceError(
+      'Failed to fetch supplier lookup list.',
+      {
+        details: err.message,
+        stage: context,
+      }
+    );
+  }
+};
+
 module.exports = {
   fetchBatchRegistryLookupService,
   fetchWarehouseLookupService,
@@ -1665,4 +1942,6 @@ module.exports = {
   fetchStatusLookupService,
   fetchUserLookupService,
   fetchRoleLookupService,
+  fetchManufacturerLookupService,
+  fetchSupplierLookupService,
 };

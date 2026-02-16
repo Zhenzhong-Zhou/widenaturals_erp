@@ -14,6 +14,7 @@ const { formatAddress } = require('../utils/address-utils');
 const { formatDiscount } = require('../utils/discount-utils');
 const { formatTaxRateLabel } = require('../utils/tax-rate-utils');
 const AppError = require('../utils/AppError');
+const { createEntityLookupTransformer } = require('./common/create-entity-lookup-transformer');
 
 /**
  * Transforms a raw batch registry row into a lookup-friendly shape.
@@ -1350,6 +1351,148 @@ const transformRolePaginatedLookupResult = (paginatedResult, access) =>
     { includeLoadMore: true }
   );
 
+/**
+ * Transforms a raw Manufacturer row into a lookup-friendly object.
+ *
+ * Pattern-aligned with `transformUserLookup`.
+ *
+ * Responsibilities:
+ * - Use manufacturer name as primary label
+ * - Use contact_name as secondary label (subLabel)
+ * - Optionally merge UI flags derived from ACL
+ * - Return a minimal, UI-oriented lookup object
+ *
+ * IMPORTANT:
+ * - This function does NOT decide visibility or permissions.
+ * - Visibility must already be enforced by SQL + service-level rules.
+ *
+ * @param {object} row - Raw DB row for a manufacturer.
+ * @param {string} row.id - Manufacturer ID (required).
+ * @param {string} row.name - Manufacturer name (required).
+ * @param {string} [row.contact_name] - Contact person name (optional).
+ * @param {string} [row.code] - Manufacturer code (optional).
+ * @param {string} row.status_id - Status ID.
+ *
+ * @param {object} acl - Visibility flags resolved by service layer.
+ *
+ * @returns {{
+ *   id: string,
+ *   label: string,
+ *   subLabel?: string,
+ *   code?: string,
+ *   [key: string]: any
+ * } | null}
+ */
+const transformManufacturerLookup =
+  createEntityLookupTransformer({
+    labelKey: 'name',
+    subLabelKey: 'contact_name',
+    codeKey: 'code',
+  });
+
+/**
+ * Transforms paginated Manufacturer lookup rows
+ * into a UI-ready lookup payload.
+ *
+ * @param {{
+ *   data: Array<object>,
+ *   pagination: {
+ *     offset: number,
+ *     limit: number,
+ *     totalRecords: number
+ *   }
+ * }} paginatedResult
+ *
+ * @param {object} acl
+ *
+ * @returns {{
+ *   items: Array<object>,
+ *   offset: number,
+ *   limit: number,
+ *   hasMore: boolean
+ * }}
+ */
+const transformManufacturerPaginatedLookupResult = (
+  paginatedResult,
+  acl
+) =>
+  transformPaginatedResult(
+    paginatedResult,
+    (row) => transformManufacturerLookup(row, acl),
+    { includeLoadMore: true }
+  );
+
+/**
+ * Transforms a raw Supplier row into a lookup-friendly object.
+ *
+ * Pattern-aligned with `transformUserLookup`.
+ *
+ * Responsibilities:
+ * - Use supplier name as primary label
+ * - Use contact_name as secondary label (subLabel)
+ * - Optionally merge UI flags derived from ACL
+ * - Return a minimal lookup object
+ *
+ * IMPORTANT:
+ * - Does NOT enforce visibility
+ * - Visibility must already be applied at SQL level
+ *
+ * @param {object} row - Raw DB row for a supplier.
+ * @param {string} row.id - Supplier ID (required).
+ * @param {string} row.name - Supplier name (required).
+ * @param {string} [row.contact_name] - Contact person name (optional).
+ * @param {string} [row.code] - Supplier code (optional).
+ * @param {string} row.status_id - Status ID.
+ *
+ * @param {object} acl - Visibility flags resolved by service layer.
+ *
+ * @returns {{
+ *   id: string,
+ *   label: string,
+ *   subLabel?: string,
+ *   code?: string,
+ *   [key: string]: any
+ * } | null}
+ */
+const transformSupplierLookup =
+  createEntityLookupTransformer({
+    labelKey: 'name',
+    subLabelKey: 'contact_name',
+    codeKey: 'code',
+  });
+
+/**
+ * Transforms paginated Supplier lookup rows
+ * into a UI-ready lookup payload.
+ *
+ * @param {{
+ *   data: Array<object>,
+ *   pagination: {
+ *     offset: number,
+ *     limit: number,
+ *     totalRecords: number
+ *   }
+ * }} paginatedResult
+ *
+ * @param {object} acl
+ *
+ * @returns {{
+ *   items: Array<object>,
+ *   offset: number,
+ *   limit: number,
+ *   hasMore: boolean
+ * }}
+ */
+const transformSupplierPaginatedLookupResult = (
+  paginatedResult,
+  acl
+) =>
+  transformPaginatedResult(
+    paginatedResult,
+    (row) => transformSupplierLookup(row, acl),
+    { includeLoadMore: true }
+  );
+
 module.exports = {
   transformBatchRegistryPaginatedLookupResult,
   transformWarehouseLookupRows,
@@ -1370,4 +1513,6 @@ module.exports = {
   transformUserPaginatedLookupResult,
   enrichRoleOption,
   transformRolePaginatedLookupResult,
+  transformManufacturerPaginatedLookupResult,
+  transformSupplierPaginatedLookupResult,
 };

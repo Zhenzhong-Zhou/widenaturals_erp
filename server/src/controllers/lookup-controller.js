@@ -17,7 +17,7 @@ const {
   fetchProductLookupService,
   fetchStatusLookupService,
   fetchUserLookupService,
-  fetchRoleLookupService,
+  fetchRoleLookupService, fetchManufacturerLookupService, fetchSupplierLookupService,
 } = require('../services/lookup-service');
 const { logInfo } = require('../utils/logger-helper');
 const { getClientIp } = require('../utils/request-context');
@@ -947,6 +947,122 @@ const getRoleLookupController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * Controller for retrieving paginated Manufacturer lookup options.
+ *
+ * Responsibilities:
+ * - Delegate visibility, ACL, and filtering logic to the service layer.
+ * - Support pagination via `limit` and `offset`.
+ * - Return results formatted for dropdowns / autocomplete components.
+ *
+ * Expected query structure from `req.normalizedQuery`:
+ * - filters: Optional object (e.g., { keyword, statusIds })
+ * - limit: Optional number (default 50)
+ * - offset: Optional number (default 0)
+ *
+ * @route GET /lookups/manufacturers
+ * @access Protected
+ * @permission `view_manufacturer_lookup` (enforced in service layer)
+ *
+ * @param {Express.Request} req
+ * @param {Express.Response} res
+ *
+ * @returns {void} Responds with JSON:
+ * {
+ *   success: boolean,
+ *   message: string,
+ *   items: Array<{
+ *     id: string,
+ *     label: string,
+ *     subLabel?: string,
+ *     code?: string,
+ *     isActive?: boolean
+ *   }>,
+ *   offset: number,
+ *   limit: number,
+ *   hasMore: boolean
+ * }
+ */
+const getManufacturerLookupController = wrapAsync(async (req, res) => {
+  const user = req.auth.user;
+  const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
+  
+  const dropdownResult = await fetchManufacturerLookupService(user, {
+    filters,
+    limit,
+    offset,
+  });
+  
+  const { items, hasMore } = dropdownResult;
+  
+  return res.status(200).json({
+    success: true,
+    message: 'Successfully retrieved Manufacturer lookup',
+    items,
+    offset,
+    limit,
+    hasMore,
+  });
+});
+
+/**
+ * Controller for retrieving paginated Supplier lookup options.
+ *
+ * Responsibilities:
+ * - Delegate visibility, ACL, and filtering logic to the service layer.
+ * - Support pagination via `limit` and `offset`.
+ * - Return results formatted for dropdowns / autocomplete components.
+ *
+ * Expected query structure from `req.normalizedQuery`:
+ * - filters: Optional object (e.g., { keyword, statusIds })
+ * - limit: Optional number (default 50)
+ * - offset: Optional number (default 0)
+ *
+ * @route GET /lookups/suppliers
+ * @access Protected
+ * @permission `view_supplier_lookup` (enforced in service layer)
+ *
+ * @param {Express.Request} req
+ * @param {Express.Response} res
+ *
+ * @returns {void} Responds with JSON:
+ * {
+ *   success: boolean,
+ *   message: string,
+ *   items: Array<{
+ *     id: string,
+ *     label: string,
+ *     subLabel?: string,
+ *     code?: string,
+ *     isActive?: boolean
+ *   }>,
+ *   offset: number,
+ *   limit: number,
+ *   hasMore: boolean
+ * }
+ */
+const getSupplierLookupController = wrapAsync(async (req, res) => {
+  const user = req.auth.user;
+  const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
+  
+  const dropdownResult = await fetchSupplierLookupService(user, {
+    filters,
+    limit,
+    offset,
+  });
+  
+  const { items, hasMore } = dropdownResult;
+  
+  return res.status(200).json({
+    success: true,
+    message: 'Successfully retrieved Supplier lookup',
+    items,
+    offset,
+    limit,
+    hasMore,
+  });
+});
+
 module.exports = {
   getBatchRegistryLookupController,
   getWarehouseLookupController,
@@ -966,4 +1082,6 @@ module.exports = {
   getStatusLookupController,
   getUserLookupController,
   getRoleLookupController,
+  getManufacturerLookupController,
+  getSupplierLookupController,
 };
