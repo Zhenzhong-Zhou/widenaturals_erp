@@ -44,8 +44,6 @@ const locationSortOptions: {
   // ---- Audit ----
   { label: 'Created At', value: 'createdAt' },
   { label: 'Updated At', value: 'updatedAt' },
-  { label: 'Created By', value: 'createdBy' },
-  { label: 'Updated By', value: 'updatedBy' },
 
   // ---- Default fallback ----
   { label: 'Default (Natural Sort)', value: 'defaultNaturalSort' },

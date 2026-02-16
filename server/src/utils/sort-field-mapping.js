@@ -212,13 +212,6 @@ const SORTABLE_FIELDS = {
     createdAt: `l.created_at`,
     updatedAt: `l.updated_at`,
 
-    // todo : have to remove
-    // --------------------------------------------------
-    // Audit users (optional for sorting)
-    // --------------------------------------------------
-    createdBy: `l.created_by`,
-    updatedBy: `l.updated_by`,
-
     // --------------------------------------------------
     // Required fallback
     // --------------------------------------------------

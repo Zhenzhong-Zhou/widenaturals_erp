@@ -88,8 +88,6 @@ export type LocationSortField =
   | 'statusDate'
   | 'createdAt'
   | 'updatedAt'
-  | 'createdBy'
-  | 'updatedBy'
   | 'defaultNaturalSort';
 
 /* ============================================================
