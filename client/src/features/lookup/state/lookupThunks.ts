@@ -10,8 +10,12 @@ import type {
   GetBatchRegistryLookupParams,
   GetBatchRegistryLookupResponse,
   GetWarehouseLookupResponse,
+  LocationTypeLookupParams,
+  LocationTypeLookupResponse,
   LotAdjustmentLookupQueryParams,
   LotAdjustmentTypeLookupResponse,
+  ManufacturerLookupParams,
+  ManufacturerLookupResponse,
   OrderTypeLookupQueryParams,
   OrderTypeLookupResponse,
   PackagingMaterialLookupQueryParams,
@@ -29,7 +33,7 @@ import type {
   SkuLookupQueryParams,
   SkuLookupResponse,
   StatusLookupParams,
-  StatusLookupResponse,
+  StatusLookupResponse, SupplierLookupParams, SupplierLookupResponse,
   TaxRateLookupQueryParams,
   TaxRateLookupResponse,
   UserLookupParams,
@@ -577,6 +581,108 @@ export const fetchRoleLookupThunk = createAsyncThunk<
     return await lookupService.fetchRoleLookup(params);
   } catch (error: unknown) {
     console.error('fetchRoleLookupThunk error:', error);
+    return rejectWithValue(extractErrorMessage(error));
+  }
+});
+
+/**
+ * Thunk: Fetch paginated **Manufacturer lookup** items for dropdowns/selectors.
+ *
+ * Calls `lookupService.fetchManufacturerLookup`, which hits
+ * `GET /lookups/manufacturers` and returns a typed
+ * {@link ManufacturerLookupResponse}.
+ *
+ * ## Behavior
+ * - Accepts optional params such as:
+ *   - keyword
+ *   - limit / offset
+ * - Resolves with Manufacturer lookup data
+ * - Rejects with a user-friendly error message
+ *
+ * @param params Optional {@link ManufacturerLookupParams}
+ *               for filtering and pagination.
+ *
+ * @returns A typed thunk action resolving to
+ *          `ManufacturerLookupResponse`
+ *          or rejecting with `rejectValue: string`.
+ */
+export const fetchManufacturerLookupThunk = createAsyncThunk<
+  ManufacturerLookupResponse,
+  ManufacturerLookupParams | undefined,
+  { rejectValue: string }
+>('lookups/fetchManufacturerLookup', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchManufacturerLookup(params);
+  } catch (error: unknown) {
+    console.error('fetchManufacturerLookupThunk error:', error);
+    return rejectWithValue(extractErrorMessage(error));
+  }
+});
+
+/**
+ * Thunk: Fetch paginated **Supplier lookup** items for dropdowns/selectors.
+ *
+ * Calls `lookupService.fetchSupplierLookup`, which hits
+ * `GET /lookups/suppliers` and returns a typed
+ * {@link SupplierLookupResponse}.
+ *
+ * ## Behavior
+ * - Accepts optional params such as:
+ *   - keyword
+ *   - limit / offset
+ * - Resolves with Supplier lookup data
+ * - Rejects with a user-friendly error message
+ *
+ * @param params Optional {@link SupplierLookupParams}
+ *               for filtering and pagination.
+ *
+ * @returns A typed thunk action resolving to
+ *          `SupplierLookupResponse`
+ *          or rejecting with `rejectValue: string`.
+ */
+export const fetchSupplierLookupThunk = createAsyncThunk<
+  SupplierLookupResponse,
+  SupplierLookupParams | undefined,
+  { rejectValue: string }
+>('lookups/fetchSupplierLookup', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchSupplierLookup(params);
+  } catch (error: unknown) {
+    console.error('fetchSupplierLookupThunk error:', error);
+    return rejectWithValue(extractErrorMessage(error));
+  }
+});
+
+/**
+ * Thunk: Fetch paginated **Location Type lookup** items for dropdowns/selectors.
+ *
+ * Calls `lookupService.fetchLocationTypeLookup`, which hits
+ * `GET /lookups/location-types` and returns a typed
+ * {@link LocationTypeLookupResponse}.
+ *
+ * ## Behavior
+ * - Accepts optional params such as:
+ *   - keyword
+ *   - limit / offset
+ * - Resolves with Location Type lookup data
+ * - Rejects with a user-friendly error message
+ *
+ * @param params Optional {@link LocationTypeLookupParams}
+ *               for filtering and pagination.
+ *
+ * @returns A typed thunk action resolving to
+ *          `LocationTypeLookupResponse`
+ *          or rejecting with `rejectValue: string`.
+ */
+export const fetchLocationTypeLookupThunk = createAsyncThunk<
+  LocationTypeLookupResponse,
+  LocationTypeLookupParams | undefined,
+  { rejectValue: string }
+>('lookups/fetchLocationTypeLookup', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchLocationTypeLookup(params);
+  } catch (error: unknown) {
+    console.error('fetchLocationTypeLookupThunk error:', error);
     return rejectWithValue(extractErrorMessage(error));
   }
 });

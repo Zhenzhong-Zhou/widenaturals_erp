@@ -24,6 +24,9 @@ export * from './productLookupSelectors';
 export * from './statusLookupSelectors';
 export * from './userLookupSelectors';
 export * from './roleLookupSelectors';
+export * from './manufacturerLookupSelectors';
+export * from './supplierLookupSelectors';
+export * from './locationTypeLookupSelectors';
 
 // --------------------------------------------------
 // Thunks & Types

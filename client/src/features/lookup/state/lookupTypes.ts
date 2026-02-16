@@ -990,3 +990,99 @@ export type RoleLookupParams = LookupQuery;
  * - `roleLookupSlice`
  */
 export type RoleLookupState = PaginatedLookupState<RoleLookupItem>;
+
+/**
+ * Manufacturer lookup item.
+ *
+ * Represents a selectable manufacturer entity in dropdowns.
+ * Includes optional sub-label and active status information.
+ */
+export type ManufacturerLookupItem = LookupItemWithSubLabelAndStatus;
+
+/**
+ * Successful API response for Manufacturer lookup requests.
+ *
+ * Contains a paginated list of {@link ManufacturerLookupItem}
+ * along with standard lookup pagination metadata.
+ */
+export type ManufacturerLookupResponse =
+  LookupSuccessResponse<ManufacturerLookupItem>;
+
+/**
+ * Query parameters for fetching Manufacturer lookup data.
+ *
+ * Supports:
+ * - Keyword search
+ * - Pagination (limit, offset)
+ * - Common status filters (e.g. `isActive`, `isValidToday`)
+ */
+export type ManufacturerLookupParams = LookupQuery;
+
+/**
+ * Redux state shape for the Manufacturer lookup slice.
+ *
+ * Stores:
+ * - Paginated {@link ManufacturerLookupItem} data
+ * - Loading and error states
+ * - Pagination metadata for incremental fetching
+ */
+export type ManufacturerLookupState =
+  PaginatedLookupState<ManufacturerLookupItem>;
+
+
+/**
+ * Supplier lookup item.
+ *
+ * Represents a selectable supplier entity.
+ * Includes optional sub-label (e.g. contact or internal role)
+ * and active status information.
+ */
+export type SupplierLookupItem = LookupItemWithSubLabelAndStatus;
+
+/**
+ * Successful API response for Supplier lookup requests.
+ */
+export type SupplierLookupResponse =
+  LookupSuccessResponse<SupplierLookupItem>;
+
+/**
+ * Query parameters for fetching Supplier lookup data.
+ *
+ * Supports:
+ * - Keyword search
+ * - Pagination
+ * - Active/valid filters
+ */
+export type SupplierLookupParams = LookupQuery;
+
+/**
+ * Redux state shape for the Supplier lookup slice.
+ */
+export type SupplierLookupState =
+  PaginatedLookupState<SupplierLookupItem>;
+
+/**
+ * Location Type lookup item.
+ *
+ * Represents a location classification
+ * (e.g. Distribution Center, Retail Store, Warehouse).
+ * Contains only label and status metadata.
+ */
+export type LocationTypeLookupItem = LookupItemWithStatus;
+
+/**
+ * Successful API response for Location Type lookup requests.
+ */
+export type LocationTypeLookupResponse =
+  LookupSuccessResponse<LocationTypeLookupItem>;
+
+/**
+ * Query parameters for fetching Location Type lookup data.
+ */
+export type LocationTypeLookupParams = LookupQuery;
+
+/**
+ * Redux state shape for the Location Type lookup slice.
+ */
+export type LocationTypeLookupState =
+  PaginatedLookupState<LocationTypeLookupItem>;
