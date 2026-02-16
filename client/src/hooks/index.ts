@@ -175,6 +175,9 @@ export { default as useTaxRateLookup } from './useTaxRateLookup';
 export { default as useStatusLookup } from './useStatusLookup';
 export { default as useUserLookup } from './useUserLookup';
 export { default as useRoleLookup } from './useRoleLookup';
+export { default as useManufacturerLookup } from './useManufacturerLookup';
+export { default as useSupplierLookup } from './useSupplierLookup';
+export { default as useLocationTypeLookup } from './useLocationTypeLookup';
 
 /* =====================================================
  * Misc
