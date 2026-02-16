@@ -42,7 +42,6 @@ const AppError = require('../utils/AppError');
  *     id: string,
  *     name: string,
  *     contact_name?: string,
- *     code?: string,
  *     status_id: string
  *   }>,
  *   pagination: {
@@ -89,7 +88,6 @@ const getManufacturerLookup = async ({
       m.id,
       m.name,
       m.contact_name,
-      m.code,
       m.status_id
     FROM ${tableName}
     ${joins.join('\n')}

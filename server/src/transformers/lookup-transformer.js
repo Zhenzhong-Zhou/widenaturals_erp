@@ -1387,7 +1387,6 @@ const transformManufacturerLookup =
   createEntityLookupTransformer({
     labelKey: 'name',
     subLabelKey: 'contact_name',
-    codeKey: 'code',
   });
 
 /**
