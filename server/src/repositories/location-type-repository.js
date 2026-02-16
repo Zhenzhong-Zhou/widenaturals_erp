@@ -1,6 +1,8 @@
-const { query, paginateQuery, retry } = require('../database/db');
+const { paginateQuery, retry, paginateQueryByOffset } = require('../database/db');
 const AppError = require('../utils/AppError');
-const { logInfo, logError } = require('../utils/logger-helper');
+const { logError } = require('../utils/logger-helper');
+const { buildLocationTypeFilter } = require('../utils/sql/build-location-type-filter');
+const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 
 /**
  * Fetches all location types from the database.
@@ -183,7 +185,128 @@ const getLocationDetailById = async ({
   }
 };
 
+/**
+ * Fetches a lightweight, paginated list of Location Types
+ * for use in dropdowns and configuration workflows.
+ *
+ * This repository function is optimized for lookup scenarios.
+ *
+ * ------------------------------------------------------------------
+ * Design Principles
+ * ------------------------------------------------------------------
+ * - Return minimal identifying fields only
+ * - Avoid unnecessary JOINs
+ * - Enforce SQL-level visibility constraints via sanitized filters
+ * - Use deterministic sorting for stable pagination
+ * - Support offset-based pagination
+ *
+ * ------------------------------------------------------------------
+ * Visibility & Security Model
+ * ------------------------------------------------------------------
+ * - Assumes visibility rules have already been resolved
+ *   by the business layer.
+ * - Does NOT evaluate permissions.
+ * - Trusts `filters.enforceActiveOnly` and `filters.statusIds`
+ *   to be ACL-safe and sanitized.
+ * - Client input must not directly control visibility flags.
+ *
+ * ------------------------------------------------------------------
+ * Supported Features
+ * ------------------------------------------------------------------
+ * - Keyword-based fuzzy search (code, name)
+ * - ACTIVE-only enforcement
+ * - Explicit status filtering
+ * - Offset + limit pagination
+ *
+ * ------------------------------------------------------------------
+ * Returns
+ * ------------------------------------------------------------------
+ * {
+ *   data: Array<{
+ *     id: string,
+ *     code: string,
+ *     name: string,
+ *     status_id: string
+ *   }>,
+ *   pagination: {
+ *     offset: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     hasMore: boolean
+ *   }
+ * }
+ *
+ * @throws {AppError} If database query fails
+ */
+const getLocationTypeLookup = async ({
+                                       filters = {},
+                                       options = {},
+                                       limit = 50,
+                                       offset = 0,
+                                     }) => {
+  const context = 'location-type-repository/getLocationTypeLookup';
+  const tableName = 'location_types lt';
+  
+  const {
+    canSearchStatus = false,
+  } = options;
+  
+  const joins = [];
+  
+  if (canSearchStatus) {
+    joins.push('LEFT JOIN status s ON s.id = lt.status_id');
+  }
+  
+  const { whereClause, params } = buildLocationTypeFilter(filters, { canSearchStatus });
+  
+  const queryText = `
+    SELECT
+      lt.id,
+      lt.name,
+      lt.status_id
+    FROM ${tableName}
+    ${joins.join('\n')}
+    WHERE ${whereClause}
+  `;
+  
+  try {
+    const result = await paginateQueryByOffset({
+      tableName,
+      joins,
+      whereClause,
+      queryText,
+      params,
+      offset,
+      limit,
+      sortBy: 'lt.name',
+      sortOrder: 'ASC',
+      additionalSort: 'lt.code ASC',
+    });
+    
+    logSystemInfo('Fetched location type lookup data', {
+      context,
+      offset,
+      limit,
+      filters,
+    });
+    
+    return result;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch location type lookup', {
+      context,
+      offset,
+      limit,
+      filters,
+    });
+    
+    throw AppError.databaseError(
+      'Failed to fetch location type lookup.'
+    );
+  }
+};
+
 module.exports = {
   getLocationTypes,
   getLocationDetailById,
+  getLocationTypeLookup,
 };

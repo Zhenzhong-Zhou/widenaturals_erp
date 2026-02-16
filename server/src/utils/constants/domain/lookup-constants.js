@@ -23,6 +23,7 @@ const LOOKUPS = {
     VIEW_ROLE: 'view_role_lookup',
     VIEW_MANUFACTURER: 'view_manufacturer_lookup',
     VIEW_SUPPLIER: 'view_supplier_lookup',
+    VIEW_LOCATION_TYPE: 'view_location_type_lookup',
   },
 };
 

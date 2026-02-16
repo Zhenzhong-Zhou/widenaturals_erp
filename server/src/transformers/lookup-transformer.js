@@ -1493,6 +1493,73 @@ const transformSupplierPaginatedLookupResult = (
     { includeLoadMore: true }
   );
 
+/**
+ * Transforms a raw Location Type row into a lookup-friendly object.
+ *
+ * Pattern-aligned with Supplier and Manufacturer lookup transformers
+ * via `createEntityLookupTransformer`.
+ *
+ * Responsibilities:
+ * - Use `name` as primary display label
+ * - Optionally merge ACL-derived UI flags (e.g. `isActive`)
+ * - Return a minimal, UI-oriented lookup object
+ *
+ * IMPORTANT:
+ * - Does NOT enforce visibility or permissions.
+ * - Visibility must already be enforced at SQL + service layer.
+ * - `isActive` enrichment is handled separately when applicable.
+ *
+ * Expected row shape:
+ * {
+ *   id: string,
+ *   name: string,
+ *   status_id: string
+ * }
+ *
+ * Output shape:
+ * {
+ *   id: string,
+ *   label: string,
+ *   isActive?: boolean
+ * }
+ */
+const transformLocationTypeLookup =
+  createEntityLookupTransformer({
+    labelKey: 'name',
+  });
+
+/**
+ * Transforms paginated Location Type lookup rows
+ * into a UI-ready lookup payload.
+ *
+ * @param {{
+ *   data: Array<object>,
+ *   pagination: {
+ *     offset: number,
+ *     limit: number,
+ *     totalRecords: number
+ *   }
+ * }} paginatedResult
+ *
+ * @param {object} acl
+ *
+ * @returns {{
+ *   items: Array<object>,
+ *   offset: number,
+ *   limit: number,
+ *   hasMore: boolean
+ * }}
+ */
+const transformLocationTypePaginatedLookupResult = (
+  paginatedResult,
+  acl
+) =>
+  transformPaginatedResult(
+    paginatedResult,
+    (row) => transformLocationTypeLookup(row, acl),
+    { includeLoadMore: true }
+  );
+
 module.exports = {
   transformBatchRegistryPaginatedLookupResult,
   transformWarehouseLookupRows,
@@ -1515,4 +1582,5 @@ module.exports = {
   transformRolePaginatedLookupResult,
   transformManufacturerPaginatedLookupResult,
   transformSupplierPaginatedLookupResult,
+  transformLocationTypePaginatedLookupResult,
 };

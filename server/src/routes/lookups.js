@@ -21,6 +21,7 @@ const {
   getRoleLookupController,
   getManufacturerLookupController,
   getSupplierLookupController,
+  getLocationTypeLookupController,
 } = require('../controllers/lookup-controller');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 const { sanitizeFields } = require('../middlewares/sanitize');
@@ -46,6 +47,7 @@ const {
   roleLookupQuerySchema,
   manufacturerLookupQuerySchema,
   supplierLookupQuerySchema,
+  locationTypeLookupQuerySchema,
 } = require('../validators/lookup-validators');
 const { PERMISSIONS } = require('../utils/constants/domain/lookup-constants');
 
@@ -1254,6 +1256,79 @@ router.get(
     'Invalid Supplier lookup query parameters.'
   ),
   getSupplierLookupController
+);
+
+/**
+ * @route GET /lookups/location-types
+ * @description
+ * Endpoint to fetch paginated **Location Type** lookup options
+ * for dropdowns, configuration selectors, and admin setup UIs.
+ *
+ * This endpoint is intentionally lightweight and permission-aware.
+ * It applies:
+ * - Location Type visibility ACL (active-only / full visibility)
+ * - Query normalization (filters + pagination)
+ * - Input sanitization
+ * - Joi validation
+ * - Service-driven lookup + UI transformation
+ *
+ * ------------------------------------------------------------------
+ * Query Parameters (after normalization)
+ * ------------------------------------------------------------------
+ * - `filters.keyword` — Optional fuzzy match (name / code)
+ * - `limit`           — Page size (default: 50)
+ * - `offset`          — Pagination offset
+ *
+ * ------------------------------------------------------------------
+ * Response: 200 OK
+ * ------------------------------------------------------------------
+ * ```json
+ * {
+ *   "success": true,
+ *   "message": "Successfully retrieved Location Type lookup",
+ *   "items": [
+ *     {
+ *       "id": "...",
+ *       "label": "Warehouse",
+ *       "code": "WH",
+ *       "isActive": true
+ *     }
+ *   ],
+ *   "limit": 50,
+ *   "offset": 0,
+ *   "hasMore": true
+ * }
+ * ```
+ *
+ * NOTE:
+ * - Location Type lifecycle visibility (active / inactive)
+ *   is enforced exclusively in the service layer.
+ * - Client-provided filters cannot override ACL rules.
+ *
+ * @access Protected
+ * @permission Requires `view_location_type_lookup`
+ */
+router.get(
+  '/location-types',
+  authorize([PERMISSIONS.VIEW_LOCATION_TYPE]),
+  createQueryNormalizationMiddleware(
+    '',
+    [], // arrayKeys
+    [], // booleanKeys
+    ['keyword'], // filterKeys (keyword ONLY)
+    { includePagination: true, includeSorting: false }
+  ),
+  sanitizeFields(['keyword']),
+  validate(
+    locationTypeLookupQuerySchema,
+    'query',
+    {
+      abortEarly: false,
+      convert: true,
+    },
+    'Invalid Location Type lookup query parameters.'
+  ),
+  getLocationTypeLookupController
 );
 
 module.exports = router;

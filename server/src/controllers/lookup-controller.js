@@ -17,7 +17,10 @@ const {
   fetchProductLookupService,
   fetchStatusLookupService,
   fetchUserLookupService,
-  fetchRoleLookupService, fetchManufacturerLookupService, fetchSupplierLookupService,
+  fetchRoleLookupService,
+  fetchManufacturerLookupService,
+  fetchSupplierLookupService,
+  fetchLocationTypeLookupService,
 } = require('../services/lookup-service');
 const { logInfo } = require('../utils/logger-helper');
 const { getClientIp } = require('../utils/request-context');
@@ -1063,6 +1066,68 @@ const getSupplierLookupController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * Controller for retrieving paginated Location Type lookup options.
+ *
+ * Responsibilities:
+ * - Delegate visibility, ACL, and filtering logic to the service layer.
+ * - Support pagination via `limit` and `offset`.
+ * - Return results formatted for dropdowns / autocomplete components.
+ *
+ * Expected query structure from `req.normalizedQuery`:
+ * - filters: Optional object (e.g., { keyword, statusIds })
+ * - limit: Optional number (default 50)
+ * - offset: Optional number (default 0)
+ *
+ * @route GET /lookups/location-types
+ * @access Protected
+ * @permission `view_location_type_lookup` (enforced in service layer)
+ *
+ * @param {Express.Request} req
+ * @param {Express.Response} res
+ *
+ * @returns {void} Responds with JSON:
+ * {
+ *   success: boolean,
+ *   message: string,
+ *   items: Array<{
+ *     id: string,
+ *     label: string,
+ *     code?: string,
+ *     isActive?: boolean
+ *   }>,
+ *   offset: number,
+ *   limit: number,
+ *   hasMore: boolean
+ * }
+ */
+const getLocationTypeLookupController = wrapAsync(
+  async (req, res) => {
+    const user = req.auth.user;
+    const { filters = {}, limit = 50, offset = 0 } =
+      req.normalizedQuery;
+    
+    const dropdownResult =
+      await fetchLocationTypeLookupService(user, {
+        filters,
+        limit,
+        offset,
+      });
+    
+    const { items, hasMore } = dropdownResult;
+    
+    return res.status(200).json({
+      success: true,
+      message:
+        'Successfully retrieved Location Type lookup',
+      items,
+      offset,
+      limit,
+      hasMore,
+    });
+  }
+);
+
 module.exports = {
   getBatchRegistryLookupController,
   getWarehouseLookupController,
@@ -1084,4 +1149,5 @@ module.exports = {
   getRoleLookupController,
   getManufacturerLookupController,
   getSupplierLookupController,
+  getLocationTypeLookupController,
 };

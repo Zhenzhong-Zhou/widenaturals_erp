@@ -25,6 +25,7 @@ const {
   transformRolePaginatedLookupResult,
   transformManufacturerPaginatedLookupResult,
   transformSupplierPaginatedLookupResult,
+  transformLocationTypePaginatedLookupResult,
 } = require('../transformers/lookup-transformer');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const {
@@ -152,6 +153,12 @@ const {
   enrichSupplierLookupWithActiveFlag
 } = require('../business/supplier-business');
 const { getSupplierLookup } = require('../repositories/supplier-repository');
+const {
+  evaluateLocationTypeVisibilityAccessControl,
+  evaluateLocationTypeLookupSearchCapabilities,
+  enrichLocationTypeLookupWithActiveFlag
+} = require('../business/location-type-business');
+const { getLocationTypeLookup } = require('../repositories/location-type-repository');
 
 /**
  * Service to fetch filtered and paginated batch registry records for lookup UI.
@@ -1923,6 +1930,134 @@ const fetchSupplierLookupService = async (
   }
 };
 
+/**
+ * Fetches a filtered, paginated list of Location Types
+ * for lookup UI components such as dropdowns and configuration selectors.
+ *
+ * This service applies permission-aware visibility enforcement
+ * and controlled query shaping prior to repository execution.
+ *
+ * ------------------------------------------------------------------
+ * Responsibilities
+ * ------------------------------------------------------------------
+ * - Resolve location type visibility ACL (active / inactive)
+ * - Resolve lookup search capabilities (status join)
+ * - Translate ACL into repository-safe visibility flags
+ * - Prevent client-driven visibility escalation
+ * - Execute repository lookup query
+ * - Enrich rows with UI-only flags when permitted
+ * - Transform into standardized lookup response
+ *
+ * ------------------------------------------------------------------
+ * Security Model
+ * ------------------------------------------------------------------
+ * - Visibility decisions are resolved in business layer.
+ * - Repository receives sanitized filters only.
+ * - Client input cannot override ACTIVE-only enforcement.
+ *
+ * ------------------------------------------------------------------
+ * Pagination Model
+ * ------------------------------------------------------------------
+ * - Offset-based pagination
+ * - Deterministic sorting
+ * - Minimal payload optimized for dropdown usage
+ *
+ * @throws {AppError} If permission evaluation or database query fails
+ */
+const fetchLocationTypeLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
+  const context = 'lookup-service/fetchLocationTypeLookupService';
+  
+  try {
+    // ---------------------------------------------------------
+    // Step 1 — Log request
+    // ---------------------------------------------------------
+    logSystemInfo('Fetching Location Type lookup from service', {
+      context,
+      metadata: { filters, limit, offset },
+    });
+    
+    // ---------------------------------------------------------
+    // Step 2 — Resolve visibility ACL
+    // ---------------------------------------------------------
+    const acl =
+      await evaluateLocationTypeVisibilityAccessControl(user);
+    
+    const activeStatusId = getStatusId('general_active');
+    
+    // ---------------------------------------------------------
+    // Step 3 — Resolve lookup search capabilities
+    // ---------------------------------------------------------
+    const searchCapabilities =
+      await evaluateLocationTypeLookupSearchCapabilities(user);
+    
+    // ---------------------------------------------------------
+    // Step 4 — Apply lookup visibility rules
+    // ---------------------------------------------------------
+    const adjustedFilters = applyLookupVisibilityRules({
+      filters,
+      acl,
+      activeStatusId,
+      fullVisibilityKey: 'canViewAllLocationTypes',
+    });
+    
+    // ---------------------------------------------------------
+    // Step 5 — Repository lookup
+    // ---------------------------------------------------------
+    const { data = [], pagination = {} } =
+      await getLocationTypeLookup({
+        filters: adjustedFilters,
+        options: searchCapabilities,
+        limit,
+        offset,
+      });
+    
+    // ---------------------------------------------------------
+    // Step 6 — Enrichment (only when inactive may appear)
+    // ---------------------------------------------------------
+    let enrichedRows = data;
+    
+    if (!acl.enforceActiveOnly) {
+      enrichedRows = data.map((row) =>
+        enrichLocationTypeLookupWithActiveFlag(
+          row,
+          activeStatusId
+        )
+      );
+    }
+    
+    // ---------------------------------------------------------
+    // Step 7 — Transform for UI
+    // ---------------------------------------------------------
+    return transformLocationTypePaginatedLookupResult(
+      { data: enrichedRows, pagination },
+      acl
+    );
+  } catch (err) {
+    logSystemException(
+      err,
+      'Failed to fetch Location Type lookup in service',
+      {
+        context,
+        userId: user?.id,
+        filters,
+        limit,
+        offset,
+      }
+    );
+    
+    throw AppError.serviceError(
+      'Failed to fetch location type lookup list.',
+      {
+        details: err.message,
+        stage: context,
+      }
+    );
+  }
+};
+
 module.exports = {
   fetchBatchRegistryLookupService,
   fetchWarehouseLookupService,
@@ -1944,4 +2079,5 @@ module.exports = {
   fetchRoleLookupService,
   fetchManufacturerLookupService,
   fetchSupplierLookupService,
+  fetchLocationTypeLookupService,
 };

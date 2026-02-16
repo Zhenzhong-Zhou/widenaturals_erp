@@ -474,6 +474,31 @@ const supplierLookupQuerySchema = Joi.object({
   ...baseLookupQuerySchema,
 });
 
+/**
+ * Joi validation schema for Location Type lookup query parameters.
+ *
+ * Validates GET requests to the `/lookups/location-types` endpoint.
+ *
+ * Supports:
+ * - `filters`: Optional object for lookup filtering
+ *     (e.g., keyword, statusIds)
+ * - `limit`: Optional number for pagination (default 50)
+ * - `offset`: Optional number for pagination offset (default 0)
+ *
+ * All fields are inherited from `baseLookupQuerySchema`.
+ *
+ * NOTE:
+ * - Location Type visibility (active-only / inactive inclusion)
+ *   is enforced in the service layer via ACL.
+ * - This schema validates request structure only.
+ * - Client input cannot override ACL-enforced visibility rules.
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const locationTypeLookupQuerySchema = Joi.object({
+  ...baseLookupQuerySchema,
+});
+
 module.exports = {
   batchRegistryLookupQuerySchema,
   warehouseLookupQuerySchema,
@@ -495,4 +520,5 @@ module.exports = {
   roleLookupQuerySchema,
   manufacturerLookupQuerySchema,
   supplierLookupQuerySchema,
+  locationTypeLookupQuerySchema,
 };
