@@ -1449,7 +1449,6 @@ const transformManufacturerPaginatedLookupResult = (
  *   id: string,
  *   label: string,
  *   subLabel?: string,
- *   code?: string,
  *   [key: string]: any
  * } | null}
  */
@@ -1457,7 +1456,6 @@ const transformSupplierLookup =
   createEntityLookupTransformer({
     labelKey: 'name',
     subLabelKey: 'contact_name',
-    codeKey: 'code',
   });
 
 /**

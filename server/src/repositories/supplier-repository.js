@@ -89,7 +89,6 @@ const getSupplierLookup = async ({
       s.id,
       s.name,
       s.contact_name,
-      s.code,
       s.status_id
     FROM ${tableName}
     ${joins.join('\n')}
