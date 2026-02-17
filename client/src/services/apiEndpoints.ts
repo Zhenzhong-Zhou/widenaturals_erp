@@ -37,8 +37,10 @@ export const API_ENDPOINTS = {
   PRICING_LIST: '/pricings',
   PRICING_LIST_EXPORT: '/pricings/export',
   PRICING_DETAILS_BY_TYPE: '/pricings/by-type/:id/details',
-  ALL_LOCATION_TYPES: '/location-types',
-  LOCATION_TYPE_DETAILS: '/location-types/:id',
+  LOCATION_TYPES: {
+    ALL_RECORDS: '/location-types',
+    LOCATION_TYPE_DETAILS: (locationTypeId: string) => `/location-types/${locationTypeId}/details`,
+  },
   LOCATIONS: {
     ALL_RECORDS: '/locations',
   },

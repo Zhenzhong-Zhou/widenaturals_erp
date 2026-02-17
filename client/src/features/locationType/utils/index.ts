@@ -1,0 +1,1 @@
+export { flattenLocationTypeListRecord } from './flattenLocationTypeListRecord';

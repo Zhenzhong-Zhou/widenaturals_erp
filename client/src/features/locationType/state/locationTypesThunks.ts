@@ -1,49 +1,48 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
-  LocationTypeResponse,
-  LocationTypesResponse,
+  LocationTypeListQueryParams,
+  PaginatedLocationTypeListUiResponse,
 } from '@features/locationType';
 import { locationTypeService } from '@services/locationTypeService';
+import { flattenLocationTypeListRecord } from '@features/locationType/utils';
+import { extractUiErrorPayload } from '@utils/error';
 
 /**
- * Async thunk for fetching location types with pagination.
+ * Fetch a paginated list of location types from the backend.
+ *
+ * Responsibilities:
+ * - Delegates data fetching to the location type service layer
+ * - Supports pagination, sorting, and filtering
+ * - Transforms domain-level LocationTypeRecord objects into
+ *   flattened UI-ready structures
+ * - Preserves backend pagination metadata without modification
+ * - Normalizes API errors into a structured UI-safe payload
+ *   containing `message` and optional `traceId`
+ *
+ * Concurrency:
+ * - Safe for concurrent dispatches; request lifecycle
+ *   managed by Redux Toolkit
+ *
+ * @param params - Pagination, sorting, and location type filters
+ * @returns A paginated location type response with flattened records
  */
-export const fetchLocationTypesThunk = createAsyncThunk<
-  LocationTypesResponse, // Return type
-  { page: number; limit: number }, // Argument type
-  { rejectValue: string } // Error type
->('locationTypes/fetchAll', async ({ page, limit }, { rejectWithValue }) => {
-  try {
-    return await locationTypeService.fetchAllLocationTypes(page, limit); // Pass page & limit
-  } catch (error: any) {
-    return rejectWithValue(error?.message || 'Failed to fetch location types'); // Dynamic error message
-  }
-});
-
-/**
- * Thunk to fetch location type details by ID.
- */
-export const fetchLocationTypeDetailsThunk = createAsyncThunk<
-  LocationTypeResponse, // Return type
-  {
-    id: string;
-    page?: number;
-    limit?: number;
-    sortBy?: string;
-    sortOrder?: string;
-  }, // Arguments type
-  { rejectValue: string } // Error type
+export const fetchPaginatedLocationTypeThunk = createAsyncThunk<
+  PaginatedLocationTypeListUiResponse,
+  LocationTypeListQueryParams,
+  { rejectValue: { message: string; traceId?: string } }
 >(
-  'locationType/fetchDetail',
-  async ({ id, page = 1, limit = 10 }, { rejectWithValue }) => {
+  'locationType/fetchPaginatedLocationType',
+  async (params, { rejectWithValue }) => {
     try {
-      return await locationTypeService.fetchLocationTypeDetailById(
-        id,
-        page,
-        limit
-      );
+      const response =
+        await locationTypeService.fetchPaginatedLocationTypes(params);
+      
+      return {
+        ...response,
+        data: flattenLocationTypeListRecord(response.data),
+      };
     } catch (error) {
-      return rejectWithValue('Failed to fetch location type details');
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );

@@ -4,6 +4,7 @@ import type {
 } from '@features/location';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { getRequest } from '@utils/http';
+import { flattenListQueryParams } from '@utils/query';
 import { buildQueryString } from '@utils/buildQueryString';
 import { AppError } from '@utils/error';
 
@@ -39,34 +40,7 @@ import { AppError } from '@utils/error';
 const fetchPaginatedLocations = async (
   params: LocationListQueryParams = {}
 ): Promise<PaginatedLocationApiResponse> => {
-  const { filters = {}, ...rest } = params;
-
-  const {
-    createdAfter,
-    createdBefore,
-    updatedAfter,
-    updatedBefore,
-    ...otherFilters
-  } = filters;
-
-  /**
-   * Flatten date filters → query params
-   */
-  const flatDateParams: Record<string, string> = {};
-
-  if (createdAfter) flatDateParams.createdAfter = createdAfter;
-  if (createdBefore) flatDateParams.createdBefore = createdBefore;
-  if (updatedAfter) flatDateParams.updatedAfter = updatedAfter;
-  if (updatedBefore) flatDateParams.updatedBefore = updatedBefore;
-
-  /**
-   * Final flattened params
-   */
-  const flatParams = {
-    ...rest,
-    ...otherFilters,
-    ...flatDateParams,
-  };
+  const flatParams = flattenListQueryParams(params);
 
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.LOCATIONS.ALL_RECORDS}${queryString}`;
@@ -78,7 +52,12 @@ const fetchPaginatedLocations = async (
   /**
    * Defensive validation
    */
-  if (!data || typeof data !== 'object' || !Array.isArray(data.data)) {
+  if (
+    !data ||
+    typeof data !== 'object' ||
+    !Array.isArray(data.data) ||
+    !data.pagination
+  ) {
     throw AppError.server('Invalid paginated locations response', {
       params,
     });

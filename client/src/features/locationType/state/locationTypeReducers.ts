@@ -1,23 +1,27 @@
-import locationTypesReducer from './locationTypesSlice';
-import locationTypeReducer from './locationTypeDetailSlice';
+import paginatedLocationTypesReducer from './paginatedLocationTypesSlice';
 
 /**
- * Reducer map for the Location Type feature.
+ * Location Type Feature Reducers
  *
- * This reducer group is consumed exclusively by the root reducer
- * to compose the `locationType` state subtree.
+ * Aggregates all slice reducers belonging to the Location Type feature.
  *
- * Design principles:
- * - Slice reducers are imported locally to avoid circular
- *   ES module initialization (TDZ) issues.
- * - Slice reducers are private implementation details.
- * - Reducer aggregators must NEVER import feature or state
- *   index (barrel) files.
+ * Purpose:
+ * - Provides a stable reducer map for composition inside the root reducer
+ * - Defines the `locationType` state subtree boundary
+ *
+ * Architectural Rules:
+ * - Slice reducers are imported locally to avoid circular ES module
+ *   initialization (TDZ) issues
+ * - Slice reducers are private implementation details of this feature
+ * - Reducer aggregators MUST NOT import feature-level barrel files
+ * - Root reducer is the only consumer of this reducer map
+ *
+ * State Structure (within runtime subtree):
+ * runtime.locationType.paginatedLocationTypes
  */
 export const locationTypeReducers = {
-  /** List and pagination of location types */
-  locationTypes: locationTypesReducer,
-
-  /** Single location type detail state */
-  locationType: locationTypeReducer,
+  /**
+   * Paginated list state for location types
+   */
+  paginatedLocationTypes: paginatedLocationTypesReducer,
 };

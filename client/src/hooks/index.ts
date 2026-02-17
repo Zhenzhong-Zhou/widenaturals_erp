@@ -142,7 +142,7 @@ export {
   usePaginatedLocations,
   useLocationById,
 } from './usePaginatedLocations';
-export { default as useLocationTypes } from './useLocationTypes';
+export { default as usePaginatedLocationTypes } from './usePaginatedLocationTypes';
 export { default as useLocationTypeDetail } from './useLocationTypeDetail';
 
 export { default as useLocationInventory } from './useLocationInventory';

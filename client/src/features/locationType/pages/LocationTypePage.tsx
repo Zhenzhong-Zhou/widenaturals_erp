@@ -1,5 +1,5 @@
 import Box from '@mui/material/Box';
-import useLocationTypes from '@hooks/useLocationTypes';
+import usePaginatedLocationTypes from '@hooks/usePaginatedLocationTypes';
 import Loading from '@components/common/Loading';
 import ErrorMessage from '@components/common/ErrorMessage';
 import CustomButton from '@components/common/CustomButton';
@@ -7,7 +7,7 @@ import LocationTypeTable from '@features/locationType/components/LocationTypeTab
 
 const LocationTypesPage = () => {
   const { locationTypes, pagination, loading, error, fetchLocations } =
-    useLocationTypes();
+    usePaginatedLocationTypes();
 
   const handlePageChange = (newPage: number) =>
     fetchLocations(newPage, pagination.limit);
