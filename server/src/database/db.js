@@ -210,7 +210,7 @@ const withTransaction = async (callback) => {
     await client.query('BEGIN');
     logDbTransactionEvent('BEGIN', txId);
 
-    const result = await callback(client);
+    const result = await callback(client, txId);
 
     await client.query('COMMIT');
     logDbTransactionEvent('COMMIT', txId);
