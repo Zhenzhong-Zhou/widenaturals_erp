@@ -345,7 +345,7 @@ export const appRoutes: AppRoute[] = [
   defineRoute({
     path: '/location-types',
     component: lazy(
-      () => import('@features/locationType/pages/LocationTypePage')
+      () => import('@features/locationType/pages/LocationTypeListPage')
     ),
     meta: {
       requiresAuth: true,
