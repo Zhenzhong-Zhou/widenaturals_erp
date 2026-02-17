@@ -2,7 +2,7 @@ import type {
   BatchRegistryQueryParams,
   PaginatedBatchRegistryApiResponse,
 } from '@features/batchRegistry';
-import { buildQueryString } from '@utils/buildQueryString';
+import { buildQueryString } from '@utils/query';
 import { getRequest } from '@utils/http';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 

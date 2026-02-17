@@ -5,7 +5,7 @@ import type {
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { getRequest } from '@utils/http';
 import { flattenListQueryParams } from '@utils/query/flattenListQueryParams';
-import { buildQueryString } from '@utils/buildQueryString';
+import { buildQueryString } from '@utils/query';
 import { AppError } from '@utils/error';
 
 /* =========================================================

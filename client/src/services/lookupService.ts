@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { getRequest } from '@utils/http';
-import { buildQueryString } from '@utils/buildQueryString';
+import { buildQueryString } from '@utils/query';
 import type {
   AddressByCustomerLookupResponse,
   CustomerLookupQuery,

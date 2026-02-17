@@ -13,7 +13,7 @@ import type {
   FetchPaginatedBomsApiResponse,
 } from '@features/bom/state/bomTypes';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import { buildQueryString } from '@utils/buildQueryString';
+import { buildQueryString } from '@utils/query';
 import { getRequest } from '@utils/http';
 
 /**

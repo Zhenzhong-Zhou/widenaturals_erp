@@ -10,7 +10,7 @@ import InventoryAllocationTable, {
 } from '@features/inventoryAllocation/components/InventoryAllocationTable';
 import { usePaginatedInventoryAllocations } from '@hooks/index';
 import { usePaginationHandlers } from '@utils/hooks';
-import { applyFiltersAndSorting } from '@utils/queryUtils';
+import { applyFiltersAndSorting } from '@utils/query';
 import type {
   InventoryAllocationFilters,
   InventoryAllocationSortField,

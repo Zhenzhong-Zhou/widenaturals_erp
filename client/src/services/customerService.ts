@@ -6,7 +6,7 @@ import type {
   PaginatedCustomerListResponse,
 } from '@features/customer/state';
 import { getRequest, postRequest } from '@utils/http';
-import { buildQueryString } from '@utils/buildQueryString';
+import { buildQueryString } from '@utils/query';
 
 /**
  * Creates one or more customers.

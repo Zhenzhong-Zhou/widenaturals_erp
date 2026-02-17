@@ -3,7 +3,7 @@ import type {
   OrderTypeListApiResponse,
 } from '@features/orderType/state';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import { buildQueryString } from '@utils/buildQueryString';
+import { buildQueryString } from '@utils/query';
 import { getRequest } from '@utils/http';
 
 /* =========================================================

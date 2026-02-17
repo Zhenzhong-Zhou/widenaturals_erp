@@ -9,7 +9,7 @@ import type {
   UserViewMode,
 } from '@features/user/state';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import { buildQueryString } from '@utils/buildQueryString';
+import { buildQueryString } from '@utils/query';
 import { getRequest, postRequest } from '@utils/http';
 import { sanitizeString } from '@utils/stringUtils';
 

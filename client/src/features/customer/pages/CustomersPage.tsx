@@ -24,7 +24,7 @@ import type {
   CustomerSortField,
 } from '@features/customer/state';
 import { useDialogFocusHandlers, usePaginationHandlers } from '@utils/hooks';
-import { applyFiltersAndSorting } from '@utils/queryUtils';
+import { applyFiltersAndSorting } from '@utils/query';
 
 const CustomersPage: FC = () => {
   const createButtonRef = useRef<HTMLButtonElement>(null);

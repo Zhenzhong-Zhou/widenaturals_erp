@@ -14,7 +14,7 @@ import type {
 } from '@features/outboundFulfillment/state';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { getRequest, postRequest } from '@utils/http';
-import { buildQueryString } from '@utils/buildQueryString';
+import { buildQueryString } from '@utils/query';
 
 /* =========================================================
  * Fulfillment lifecycle

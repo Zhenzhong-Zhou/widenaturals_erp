@@ -14,7 +14,7 @@ import NoDataFound from '@components/common/NoDataFound';
 import GoBackButton from '@components/common/GoBackButton';
 import BaseInput from '@components/common/BaseInput';
 import useSkuProductCards from '@hooks/useSkuProductCards';
-import { applyFiltersAndSorting } from '@utils/queryUtils';
+import { applyFiltersAndSorting } from '@utils/query';
 import type {
   SkuProductCardFilters,
   SkuProductCardSortField,

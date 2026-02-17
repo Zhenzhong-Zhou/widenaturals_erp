@@ -25,7 +25,7 @@ import type {
   ProductListFilters,
   ProductSortField,
 } from '@features/product/state';
-import { applyFiltersAndSorting } from '@utils/queryUtils';
+import { applyFiltersAndSorting } from '@utils/query';
 
 const ProductListPage = () => {
   // -------------------------------------------------------------

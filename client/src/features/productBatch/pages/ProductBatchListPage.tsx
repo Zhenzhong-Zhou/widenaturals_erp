@@ -20,7 +20,7 @@ import type {
   ProductBatchFilters,
   ProductBatchSortField,
 } from '@features/productBatch/state';
-import { applyFiltersAndSorting } from '@utils/queryUtils';
+import { applyFiltersAndSorting } from '@utils/query';
 import { usePaginationHandlers } from '@utils/hooks';
 import { useProductBatchLookups } from '@features/productBatch/hooks';
 import { createLazyOpenHandler } from '@features/lookup/utils/lookupUtils';

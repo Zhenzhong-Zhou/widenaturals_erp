@@ -19,7 +19,7 @@ import {
 } from '@features/authorize/hooks';
 import usePaginatedOrders from '@hooks/usePaginatedOrders';
 import { usePaginationHandlers } from '@utils/hooks';
-import { applyFiltersAndSorting } from '@utils/queryUtils';
+import { applyFiltersAndSorting } from '@utils/query';
 import type {
   OrderListFilters,
   OrderListSortField,

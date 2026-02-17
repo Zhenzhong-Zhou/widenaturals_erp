@@ -2,7 +2,7 @@ import type {
   ProductBatchQueryParams,
   PaginatedProductBatchApiResponse,
 } from '@features/productBatch';
-import { buildQueryString } from '@utils/buildQueryString';
+import { buildQueryString } from '@utils/query';
 import { getRequest } from '@utils/http';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 

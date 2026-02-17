@@ -16,7 +16,7 @@ import BomListTable, {
 } from '@features/bom/components/BomListTables';
 import { usePaginatedBoms } from '@hooks/index';
 import type { BomListFilters, BomSortField } from '@features/bom/state';
-import { applyFiltersAndSorting } from '@utils/queryUtils';
+import { applyFiltersAndSorting } from '@utils/query';
 import { usePaginationHandlers } from '@utils/hooks';
 
 /**

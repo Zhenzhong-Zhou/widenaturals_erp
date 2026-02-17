@@ -24,7 +24,7 @@ import { useDialogFocusHandlers, usePaginationHandlers } from '@utils/hooks';
 import type { SortOrder } from '@shared-types/api';
 import useCustomerLookup from '@hooks/useCustomerLookup';
 import type { CustomerLookupQuery } from '@features/lookup/state';
-import { applyFiltersAndSorting } from '@utils/queryUtils';
+import { applyFiltersAndSorting } from '@utils/query';
 
 const AddressesPage: FC = () => {
   const createButtonRef = useRef<HTMLButtonElement>(null);

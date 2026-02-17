@@ -2,7 +2,7 @@ import type {
   GetPaginatedComplianceRecordsParams,
   PaginatedComplianceRecordApiResponse,
 } from '@features/complianceRecord/state';
-import { buildQueryString } from '@utils/buildQueryString';
+import { buildQueryString } from '@utils/query';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { getRequest } from '@utils/http';
 

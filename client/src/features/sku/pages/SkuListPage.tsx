@@ -11,7 +11,7 @@ import {
   NoDataFound,
 } from '@components/index';
 import { usePaginatedSkus } from '@hooks/index';
-import { applyFiltersAndSorting } from '@utils/queryUtils';
+import { applyFiltersAndSorting } from '@utils/query';
 import { usePaginationHandlers } from '@utils/hooks';
 import SkuListTable, {
   SkuFiltersPanel,

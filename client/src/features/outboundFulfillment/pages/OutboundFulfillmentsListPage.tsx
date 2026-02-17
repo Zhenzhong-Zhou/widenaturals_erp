@@ -29,7 +29,7 @@ import type {
   OutboundFulfillmentSortKey,
 } from '@features/outboundFulfillment/state';
 import type { SortOrder } from '@shared-types/api';
-import { applyFiltersAndSorting } from '@utils/queryUtils';
+import { applyFiltersAndSorting } from '@utils/query';
 
 const OutboundFulfillmentsTable = lazy(
   () =>

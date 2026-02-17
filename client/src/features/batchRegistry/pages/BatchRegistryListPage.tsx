@@ -20,7 +20,7 @@ import type {
   BatchRegistryFilters,
   BatchRegistrySortField,
 } from '@features/batchRegistry/state';
-import { applyFiltersAndSorting } from '@utils/queryUtils';
+import { applyFiltersAndSorting } from '@utils/query';
 import { usePaginationHandlers } from '@utils/hooks';
 import { createLazyOpenHandler } from '@features/lookup/utils/lookupUtils';
 

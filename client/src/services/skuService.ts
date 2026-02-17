@@ -12,7 +12,7 @@ import type {
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { sanitizeString } from '@utils/stringUtils';
 import { getRequest, patchRequest, postRequest } from '@utils/http';
-import { buildQueryString } from '@utils/buildQueryString';
+import { buildQueryString } from '@utils/query';
 
 /* =========================================================
  * SKU Product Cards

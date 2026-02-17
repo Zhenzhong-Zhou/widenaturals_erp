@@ -10,7 +10,7 @@ import type {
 } from '@features/product/state';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { getRequest, postRequest, putRequest, patchRequest } from '@utils/http';
-import { buildQueryString } from '@utils/buildQueryString';
+import { buildQueryString } from '@utils/query';
 import { sanitizeString } from '@utils/stringUtils';
 
 /* =========================================================

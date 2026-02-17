@@ -6,7 +6,7 @@ import type {
 } from '@features/address/state/addressTypes';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { getRequest, postRequest } from '@utils/http';
-import { buildQueryString } from '@utils/buildQueryString';
+import { buildQueryString } from '@utils/query';
 
 /**
  * Submits one or more addresses to the API for creation.

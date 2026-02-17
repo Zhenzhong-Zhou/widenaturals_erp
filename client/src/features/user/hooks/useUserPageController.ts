@@ -8,7 +8,7 @@ import useUserLookups from '@features/user/hooks/useUserLookups';
 import { usePaginatedUsers } from '@hooks/index';
 import { usePaginationHandlers } from '@utils/hooks';
 import { getInitialUserLimit } from '@features/user/utils';
-import { applyFiltersAndSorting } from '@utils/queryUtils';
+import { applyFiltersAndSorting } from '@utils/query';
 import { createLazyOpenHandler } from '@features/lookup/utils/lookupUtils';
 import { UserTablePageSize } from '@features/user/config/userTableConfig';
 

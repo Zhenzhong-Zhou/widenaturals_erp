@@ -22,7 +22,7 @@ import type {
   OrderTypeSortBy,
 } from '@features/orderType/state';
 import type { SortOrder } from '@shared-types/api';
-import { applyFiltersAndSorting } from '@utils/queryUtils';
+import { applyFiltersAndSorting } from '@utils/query';
 import { usePaginationHandlers } from '@utils/hooks';
 
 const OrderTypesPage: FC = () => {

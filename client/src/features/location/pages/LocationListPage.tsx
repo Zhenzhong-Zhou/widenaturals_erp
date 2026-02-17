@@ -21,7 +21,7 @@ import type {
 } from '@features/location';
 import { usePaginatedLocations, useUserLookup } from '@hooks/index';
 import { useLocationLookups } from '@features/location/hooks';
-import { applyFiltersAndSorting } from '@utils/queryUtils';
+import { applyFiltersAndSorting } from '@utils/query';
 import { createLazyOpenHandler } from '@features/lookup/utils/lookupUtils';
 import { usePaginationHandlers } from '@utils/hooks';
 
