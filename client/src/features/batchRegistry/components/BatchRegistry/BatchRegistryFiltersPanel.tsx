@@ -74,7 +74,7 @@ interface BatchRegistryDateField {
   label: string;
 }
 
-export const BATCH_REGISTRY_DATE_FIELDS: BatchRegistryDateField[] = [
+const BATCH_REGISTRY_DATE_FIELDS: BatchRegistryDateField[] = [
   // ----------------------------------------
   // Expiry date range
   // ----------------------------------------

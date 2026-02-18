@@ -47,12 +47,12 @@ const emptyFilters: LocationTypeListFilters = {
   keyword: '',
 };
 
-export type LocationTypeDateField = {
+type LocationTypeDateField = {
   name: 'createdAfter' | 'createdBefore' | 'updatedAfter' | 'updatedBefore';
   label: string;
 };
 
-export const LOCATION_TYPE_DATE_FIELDS: LocationTypeDateField[] = [
+const LOCATION_TYPE_DATE_FIELDS: LocationTypeDateField[] = [
   { name: 'createdAfter', label: 'Created Date ≥' },
   { name: 'createdBefore', label: 'Created Date <' },
   { name: 'updatedAfter', label: 'Updated Date ≥' },

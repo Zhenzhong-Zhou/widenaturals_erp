@@ -24,7 +24,7 @@ import type {
   LookupPaginationMeta,
   UserLookupParams,
 } from '@features/lookup';
-import {
+import type {
   useLocationTypeLookup,
   useStatusLookup
 } from '@hooks/index';
@@ -84,7 +84,7 @@ const emptyFilters: LocationListFilters = {
   keyword: '',
 };
 
-export type LocationTextField = {
+type LocationTextField = {
   name: keyof Pick<
     LocationListFilters,
     'city' | 'province_or_state' | 'country'
@@ -93,7 +93,7 @@ export type LocationTextField = {
   placeholder?: string;
 };
 
-export const LOCATION_TEXT_FIELDS: LocationTextField[] = [
+const LOCATION_TEXT_FIELDS: LocationTextField[] = [
   { name: 'city', label: 'City' },
   {
     name: 'province_or_state',
@@ -102,12 +102,12 @@ export const LOCATION_TEXT_FIELDS: LocationTextField[] = [
   { name: 'country', label: 'Country' },
 ];
 
-export type LocationDateField = {
+type LocationDateField = {
   name: 'createdAfter' | 'createdBefore' | 'updatedAfter' | 'updatedBefore';
   label: string;
 };
 
-export const LOCATION_DATE_FIELDS: LocationDateField[] = [
+const LOCATION_DATE_FIELDS: LocationDateField[] = [
   // --- Created ---
   { name: 'createdAfter', label: 'Created Date ≥' },
   { name: 'createdBefore', label: 'Created Date <' },
@@ -155,10 +155,7 @@ const LocationFiltersPanel: FC<Props> = ({
       defaultValues: filters,
     });
 
-  const {
-    status,
-    locationType,
-  } = lookups;
+  const { status, locationType } = lookups;
 
   const createdByLookup = useUserLookupBinding({
     fetchUserLookup,
@@ -167,7 +164,7 @@ const LocationFiltersPanel: FC<Props> = ({
   const updatedByLookup = useUserLookupBinding({
     fetchUserLookup,
   });
-  
+
   const locationTypeFilter = useFilterLookup({
     fieldName: 'locationTypeIds',
     lookup: locationType,
@@ -283,7 +280,7 @@ const LocationFiltersPanel: FC<Props> = ({
           {LOCATION_TEXT_FIELDS.map(({ name, label, placeholder }) =>
             renderInputField(control, name, label, placeholder)
           )}
-          
+
           {/* --- Keyword --- */}
           {renderInputField(
             control,

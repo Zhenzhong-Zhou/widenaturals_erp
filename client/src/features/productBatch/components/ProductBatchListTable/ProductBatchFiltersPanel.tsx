@@ -87,7 +87,7 @@ interface ProductBatchDateField {
   label: string;
 }
 
-export const PRODUCT_BATCH_DATE_FIELDS: ProductBatchDateField[] = [
+const PRODUCT_BATCH_DATE_FIELDS: ProductBatchDateField[] = [
   // --- Expiry ---
   { name: 'expiryAfter', label: 'Expiry Date ≥' },
   { name: 'expiryBefore', label: 'Expiry Date <' },
@@ -264,7 +264,7 @@ const ProductBatchFiltersPanel: FC<Props> = ({
             />
           </Grid>
 
-          <Grid size={{ xs: 12, md: 6 }}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <ManufacturerMultiSelectDropdown
               options={manufacturer.options}
               selectedOptions={manufacturerFilter.selectedOptions}
@@ -280,7 +280,7 @@ const ProductBatchFiltersPanel: FC<Props> = ({
             />
           </Grid>
 
-          <Grid size={{ xs: 12, md: 6 }}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <StatusMultiSelectDropdown
               options={formattedStatusOptions}
               selectedOptions={selectedStatusOptions}

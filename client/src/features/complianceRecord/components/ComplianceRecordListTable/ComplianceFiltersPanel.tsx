@@ -89,7 +89,7 @@ interface ComplianceDateField {
 // ---------------------------------------
 // Compliance date range filters
 // ---------------------------------------
-export const COMPLIANCE_DATE_FIELDS: ComplianceDateField[] = [
+const COMPLIANCE_DATE_FIELDS: ComplianceDateField[] = [
   // Issued date
   { name: 'dateRanges.issued.from', label: 'Issued Date ≥' },
   { name: 'dateRanges.issued.to', label: 'Issued Date <' },
