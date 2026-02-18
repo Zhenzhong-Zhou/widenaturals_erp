@@ -1,4 +1,5 @@
 import type {
+  GetLocationTypeDetailsApiResponse,
   LocationTypeListQueryParams,
   PaginatedLocationTypeApiResponse,
 } from '@features/locationType';
@@ -7,6 +8,7 @@ import { getRequest } from '@utils/http';
 import { flattenListQueryParams } from '@utils/query/flattenListQueryParams';
 import { buildQueryString } from '@utils/query';
 import { AppError } from '@utils/error';
+import { sanitizeString } from '@utils/stringUtils';
 
 /* =========================================================
  * Location Types Service
@@ -67,9 +69,62 @@ const fetchPaginatedLocationTypes = async (
 };
 
 /**
+ * Fetch full Location Type details by ID.
+ *
+ * ─────────────────────────────────────────────────────────────
+ * Purpose
+ * ─────────────────────────────────────────────────────────────
+ * Retrieves the canonical LocationTypeDetails record
+ * from the backend using a validated identifier.
+ *
+ * This function operates at the API service layer and:
+ * - Performs input sanitization
+ * - Issues a typed GET request
+ * - Returns the raw, nested domain model
+ *
+ * ─────────────────────────────────────────────────────────────
+ * Layer Responsibilities
+ * ─────────────────────────────────────────────────────────────
+ * ✔ API layer only
+ * ✔ Does NOT perform UI transformation
+ * ✔ Does NOT flatten data
+ * ✔ Does NOT handle Redux logic
+ *
+ * Transformation into UI-ready structures must occur
+ * in the transformer layer (e.g. flattenLocationTypeDetails).
+ *
+ * ─────────────────────────────────────────────────────────────
+ * Security & Policy
+ * ─────────────────────────────────────────────────────────────
+ * - Enforces READ policy
+ * - Sanitizes identifier prior to request execution
+ * - Relies on centralized request wrapper for:
+ *   • auth headers
+ *   • CSRF handling
+ *   • error normalization
+ *
+ * ─────────────────────────────────────────────────────────────
+ * @param locationTypeId - UUID identifier of the Location Type
+ *
+ * @returns Promise resolving to:
+ * ApiSuccessResponse<LocationTypeDetails>
+ */
+const fetchLocationTypeDetailsById = (
+  locationTypeId: string
+): Promise<GetLocationTypeDetailsApiResponse> => {
+  const cleanId = sanitizeString(locationTypeId);
+  
+  return getRequest<GetLocationTypeDetailsApiResponse>(
+    API_ENDPOINTS.LOCATION_TYPES.LOCATION_TYPE_DETAILS(cleanId),
+    { policy: 'READ' }
+  );
+};
+
+/**
  * Structured service export.
  * Keeps feature boundary clean and explicit.
  */
 export const locationTypeService = {
   fetchPaginatedLocationTypes,
+  fetchLocationTypeDetailsById,
 };

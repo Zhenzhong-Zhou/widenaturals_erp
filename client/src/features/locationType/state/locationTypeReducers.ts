@@ -1,4 +1,5 @@
 import paginatedLocationTypesReducer from './paginatedLocationTypesSlice';
+import locationTypeDetailReducer from './locationTypeDetailSlice';
 
 /**
  * Location Type Feature Reducers
@@ -24,4 +25,9 @@ export const locationTypeReducers = {
    * Paginated list state for location types
    */
   paginatedLocationTypes: paginatedLocationTypesReducer,
+  
+  /**
+   * Detail state for a single Location Type.
+   */
+  locationTypeDetail: locationTypeDetailReducer,
 };

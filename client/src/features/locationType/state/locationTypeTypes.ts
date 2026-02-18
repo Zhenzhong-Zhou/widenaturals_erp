@@ -1,9 +1,11 @@
 import {
+  ApiSuccessResponse,
+  AsyncState,
   GenericAudit,
   GenericStatus,
   PaginatedResponse,
   PaginationParams,
-  SortConfig
+  SortConfig,
 } from '@shared-types/api';
 import { NullableString } from '@shared-types/shared';
 import { ReduxPaginatedState } from '@shared-types/pagination';
@@ -196,3 +198,84 @@ export type PaginatedLocationTypeState =
  */
 export type PaginatedLocationTypeListUiResponse =
   PaginatedResponse<FlattenedLocationTypeRecord>;
+
+/**
+ * Domain-level Location Type details.
+ *
+ * Represents the canonical API shape returned by the backend.
+ * This structure preserves nested domain modeling for:
+ * - status
+ * - audit metadata
+ *
+ * This type should NOT be directly consumed by UI tables.
+ */
+export interface LocationTypeDetails {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  status: GenericStatus;
+  audit: GenericAudit;
+}
+
+/**
+ * UI-optimized flattened Location Type details.
+ *
+ * This structure is derived from LocationTypeDetails and is intended for:
+ * - Table rendering
+ * - Sorting & filtering
+ * - Redux storage
+ * - Form prefill
+ *
+ * Flattening avoids deep property access in UI components
+ * and simplifies sort-field mapping.
+ */
+export interface FlattenedLocationTypeDetails {
+  id: string;
+  code: string;
+  name: string;
+  description: NullableString;
+  
+  // ────────────────────────────────────────────
+  // Status (flattened)
+  // ────────────────────────────────────────────
+  statusId: string;
+  statusName: string;
+  statusDate: string;
+  
+  // ────────────────────────────────────────────
+  // Audit metadata (flattened)
+  // ────────────────────────────────────────────
+  createdAt: string;
+  createdById: NullableString;
+  createdByName: string;
+  
+  updatedAt: NullableString;
+  updatedById: NullableString;
+  updatedByName: NullableString;
+}
+
+/**
+ * API response shape for fetching Location Type details.
+ *
+ * Returned directly from backend.
+ */
+export type GetLocationTypeDetailsApiResponse =
+  ApiSuccessResponse<LocationTypeDetails>;
+
+/**
+ * Redux async state for Location Type details page.
+ *
+ * Stores UI-ready flattened structure.
+ */
+export type LocationTypeDetailState =
+  AsyncState<FlattenedLocationTypeDetails | null>;
+
+/**
+ * UI response shape after transformation.
+ *
+ * Returned by UI layer service after
+ * transforming API response into flattened format.
+ */
+export type GetLocationTypeDetailsUiResponse =
+  ApiSuccessResponse<FlattenedLocationTypeDetails>;

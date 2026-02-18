@@ -1,11 +1,17 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
+  FlattenedLocationTypeDetails,
+  GetLocationTypeDetailsUiResponse,
   LocationTypeListQueryParams,
   PaginatedLocationTypeListUiResponse,
 } from '@features/locationType';
 import { locationTypeService } from '@services/locationTypeService';
-import { flattenLocationTypeListRecord } from '@features/locationType/utils';
+import {
+  flattenLocationTypeDetails,
+  flattenLocationTypeListRecord
+} from '@features/locationType/utils';
 import { extractUiErrorPayload } from '@utils/error';
+import { UiErrorPayload } from '@utils/error/uiErrorUtils';
 
 /**
  * Fetch a paginated list of location types from the backend.
@@ -40,6 +46,84 @@ export const fetchPaginatedLocationTypeThunk = createAsyncThunk<
       return {
         ...response,
         data: flattenLocationTypeListRecord(response.data),
+      };
+    } catch (error) {
+      return rejectWithValue(extractUiErrorPayload(error));
+    }
+  }
+);
+
+/**
+ * Fetch Location Type details by ID (Thunk).
+ *
+ * ─────────────────────────────────────────────────────────────
+ * Purpose
+ * ─────────────────────────────────────────────────────────────
+ * Orchestrates the full detail retrieval flow for a single
+ * Location Type entity.
+ *
+ * This thunk:
+ * 1. Calls the API service layer
+ * 2. Transforms the canonical domain model into a flattened
+ *    UI-ready structure
+ * 3. Returns a UI-safe response envelope
+ *
+ * ─────────────────────────────────────────────────────────────
+ * Data Flow
+ * ─────────────────────────────────────────────────────────────
+ * Service (nested domain model)
+ *        ↓
+ * Transformer (flattenLocationTypeDetails)
+ *        ↓
+ * UI-ready ApiSuccessResponse<FlattenedLocationTypeDetails>
+ *
+ * The thunk intentionally separates:
+ * - Domain modeling (service layer)
+ * - UI transformation (transformer layer)
+ * - Redux state management (slice layer)
+ *
+ * ─────────────────────────────────────────────────────────────
+ * Error Handling
+ * ─────────────────────────────────────────────────────────────
+ * - Normalizes all runtime and transport errors into
+ *   UiErrorPayload
+ * - Preserves:
+ *     • user-facing message
+ *     • error classification
+ *     • optional traceId for diagnostics
+ * - Ensures rejectValue typing consistency
+ *
+ * This guarantees predictable Redux error handling.
+ *
+ * ─────────────────────────────────────────────────────────────
+ * @param locationTypeId - UUID identifier of the Location Type
+ *
+ * @returns
+ * Fulfilled:
+ *   ApiSuccessResponse<FlattenedLocationTypeDetails>
+ *
+ * Rejected:
+ *   UiErrorPayload
+ */
+export const fetchLocationTypeDetailsThunk = createAsyncThunk<
+  GetLocationTypeDetailsUiResponse,
+  string,
+  { rejectValue: UiErrorPayload }
+>(
+  'locationType/fetchDetails',
+  async (locationTypeId, { rejectWithValue }) => {
+    try {
+      const response =
+        await locationTypeService.fetchLocationTypeDetailsById(
+          locationTypeId
+        );
+      
+      const flattened: FlattenedLocationTypeDetails =
+        flattenLocationTypeDetails(response.data);
+      
+      return {
+        ...response,
+        data: flattened,
       };
     } catch (error) {
       return rejectWithValue(extractUiErrorPayload(error));

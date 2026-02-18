@@ -1,47 +1,71 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type {
-  LocationTypeDetail,
-  Pagination,
+  GetLocationTypeDetailsUiResponse,
+  LocationTypeDetailState,
 } from '@features/locationType/state/locationTypeTypes';
-import { fetchLocationTypeDetailsThunk } from '@features/locationType/state/locationTypesThunks';
+import { fetchLocationTypeDetailsThunk } from '@features/locationType';
 
 /**
- * Defines the Redux state for location type details.
+ * Initial state for the Location Type detail slice.
  */
-interface LocationTypeState {
-  data: LocationTypeDetail | null;
-  pagination: Pagination;
-  loading: boolean;
-  error: string | null;
-}
-
-const initialState: LocationTypeState = {
+const initialState: LocationTypeDetailState = {
   data: null,
-  pagination: { page: 1, limit: 10, totalRecords: 0, totalPages: 1 },
   loading: false,
   error: null,
 };
 
-const locationTypeDetailSlice = createSlice({
-  name: 'locationType',
+export const locationTypeDetailSlice = createSlice({
+  name: 'locationTypeDetail',
   initialState,
-  reducers: {},
+  reducers: {
+    /**
+     * Allows manual reset of the detail state.
+     * Useful when navigating away from the detail page.
+     */
+    resetLocationTypeDetail: () => initialState,
+  },
   extraReducers: (builder) => {
     builder
+      // --------------------------------------------------
+      // Pending
+      // --------------------------------------------------
       .addCase(fetchLocationTypeDetailsThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchLocationTypeDetailsThunk.fulfilled, (state, action) => {
-        state.loading = false;
-        state.data = action.payload.locationTypeDetail;
-        state.pagination = action.payload.pagination;
-      })
+      
+      // --------------------------------------------------
+      // Fulfilled
+      // --------------------------------------------------
+      .addCase(
+        fetchLocationTypeDetailsThunk.fulfilled,
+        (
+          state,
+          action: PayloadAction<GetLocationTypeDetailsUiResponse>
+        ) => {
+          state.loading = false;
+          state.data = action.payload.data; // unwrap API envelope
+        }
+      )
+      
+      // --------------------------------------------------
+      // Rejected
+      // --------------------------------------------------
       .addCase(fetchLocationTypeDetailsThunk.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || 'Failed to fetch location type details';
+        
+        if (action.payload) {
+          state.error = action.payload.message;
+        } else {
+          state.error =
+            action.error?.message ??
+            'Failed to load location type details.';
+        }
       });
   },
 });
+
+export const { resetLocationTypeDetail } =
+  locationTypeDetailSlice.actions;
 
 export default locationTypeDetailSlice.reducer;
