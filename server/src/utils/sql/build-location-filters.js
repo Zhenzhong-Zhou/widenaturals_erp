@@ -39,6 +39,7 @@ const AppError = require('../AppError');
  * @param {string} [filters._activeStatusId]
  *
  * @param {boolean} [filters.includeArchived]
+ * @param {string[]} [filters.locationTypeIds]
  * @param {string} [filters.locationTypeId]
  * @param {string} [filters.city]
  * @param {string} [filters.province_or_state]
@@ -93,16 +94,32 @@ const buildLocationFilter = (filters = {}) => {
       params.push(statusFilterValue);
       paramIndexRef.value++;
     }
-
+    
     // -------------------------------------------------------------
-    // Location type
+    // Location type (supports single or multiple IDs)
     // -------------------------------------------------------------
-    if (filters.locationTypeId) {
-      conditions.push(`l.location_type_id = $${paramIndexRef.value}`);
-      params.push(filters.locationTypeId);
+    const locationTypeFilterValue = filters.locationTypeIds?.length
+      ? filters.locationTypeIds
+      : filters.locationTypeId;
+    
+    if (
+      locationTypeFilterValue !== undefined &&
+      locationTypeFilterValue !== null
+    ) {
+      if (Array.isArray(locationTypeFilterValue)) {
+        conditions.push(
+          `l.location_type_id = ANY($${paramIndexRef.value}::uuid[])`
+        );
+      } else {
+        conditions.push(
+          `l.location_type_id = $${paramIndexRef.value}`
+        );
+      }
+      
+      params.push(locationTypeFilterValue);
       paramIndexRef.value++;
     }
-
+    
     // -------------------------------------------------------------
     // City / Province / Country
     // -------------------------------------------------------------

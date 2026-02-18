@@ -64,7 +64,7 @@ const locationQuerySchema = paginationSchema
     // -------------------------------------------------------------
     // Location type
     // -------------------------------------------------------------
-    locationTypeId: validateOptionalUUID('Location Type ID'),
+    locationTypeIds: validateUUIDOrUUIDArrayOptional('Location Type IDs'),
 
     // -------------------------------------------------------------
     // Geographic filters
