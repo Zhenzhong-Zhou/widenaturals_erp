@@ -4,8 +4,8 @@ import Grid from '@mui/material/Grid';
 import { FilterPanelLayout } from '@components/index';
 import {
   StatusMultiSelectDropdown,
-  // LocationTypeDropdown,
   UserDropdown,
+  LocationTypeMultiSelectDropdown,
 } from '@features/lookup/components';
 import {
   renderBooleanSelectField,
@@ -13,6 +13,8 @@ import {
   renderInputField,
 } from '@utils/filters/filterUtils';
 import {
+  useFilterLookup,
+  useLocationTypeSearchHandlers,
   useMultiSelectBinding,
   useUserLookupBinding,
 } from '@features/lookup/hooks';
@@ -22,6 +24,10 @@ import type {
   LookupPaginationMeta,
   UserLookupParams,
 } from '@features/lookup';
+import {
+  useLocationTypeLookup,
+  useStatusLookup
+} from '@hooks/index';
 import { formatLabel } from '@utils/textUtils';
 import { toISODate } from '@utils/dateTimeUtils';
 import { useFormattedOptions } from '@features/lookup/utils/lookupUtils';
@@ -31,7 +37,8 @@ import { useFormattedOptions } from '@features/lookup/utils/lookupUtils';
  * ======================================================= */
 
 interface LocationFiltersPanelLookups {
-  status: ReturnType<any>;
+  status: ReturnType<typeof useStatusLookup>;
+  locationType: ReturnType<typeof useLocationTypeLookup>;
 }
 
 interface LocationLookupHandlers {
@@ -148,7 +155,10 @@ const LocationFiltersPanel: FC<Props> = ({
       defaultValues: filters,
     });
 
-  const { status } = lookups;
+  const {
+    status,
+    locationType,
+  } = lookups;
 
   const createdByLookup = useUserLookupBinding({
     fetchUserLookup,
@@ -156,6 +166,14 @@ const LocationFiltersPanel: FC<Props> = ({
 
   const updatedByLookup = useUserLookupBinding({
     fetchUserLookup,
+  });
+  
+  const locationTypeFilter = useFilterLookup({
+    fieldName: 'locationTypeIds',
+    lookup: locationType,
+    watch,
+    setValue,
+    useSearchHandlers: useLocationTypeSearchHandlers,
   });
 
   /* -----------------------------
@@ -246,17 +264,32 @@ const LocationFiltersPanel: FC<Props> = ({
 
           {/* --- Location Type --- */}
           <Grid size={{ xs: 12, md: 6 }}>
-            {/*<LocationTypeDropdown*/}
-            {/*  options={locationType.options}*/}
-            {/*  loading={locationType.loading}*/}
-            {/*  value={watch('locationTypeId')}*/}
-            {/*  onChange={(value) => setValue('locationTypeId', value)}*/}
-            {/*/>*/}
+            <LocationTypeMultiSelectDropdown
+              options={locationType.options}
+              selectedOptions={locationTypeFilter.selectedOptions}
+              onChange={locationTypeFilter.handleSelect}
+              onOpen={locationTypeFilter.onOpen}
+              loading={locationType.loading}
+              paginationMeta={{
+                ...locationType.meta,
+                onFetchMore: locationTypeFilter.onFetchMore,
+              }}
+              inputValue={locationTypeFilter.keyword}
+              onInputChange={locationTypeFilter.onInputChange}
+            />
           </Grid>
 
           {/* --- Geography --- */}
           {LOCATION_TEXT_FIELDS.map(({ name, label, placeholder }) =>
             renderInputField(control, name, label, placeholder)
+          )}
+          
+          {/* --- Keyword --- */}
+          {renderInputField(
+            control,
+            'keyword',
+            'Keyword',
+            'Name, city, province, country'
           )}
 
           {/* --- Archived --- */}
@@ -308,14 +341,6 @@ const LocationFiltersPanel: FC<Props> = ({
           {/* --- Date Range --- */}
           {LOCATION_DATE_FIELDS.map(({ name, label }) =>
             renderDateField(control, name, label)
-          )}
-
-          {/* --- Keyword --- */}
-          {renderInputField(
-            control,
-            'keyword',
-            'Keyword',
-            'Name, city, province, country'
           )}
         </Grid>
       </FilterPanelLayout>
