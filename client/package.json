@@ -15,7 +15,8 @@
     "build": "tsc -b && vite build --mode production",
     "build:dev": "tsc -b && vite build --mode development",
     "preview": "vite preview",
-    "start": "vite preview --host --port 5175"
+    "start": "vite preview --host --port 5175",
+    "install:legacy": "npm install --legacy-peer-deps"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
