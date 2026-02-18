@@ -2,7 +2,10 @@ import type {
   BatchRegistryQueryParams,
   PaginatedBatchRegistryApiResponse,
 } from '@features/batchRegistry';
-import { buildQueryString } from '@utils/query';
+import {
+  buildQueryString,
+  flattenListQueryParams
+} from '@utils/query';
 import { getRequest } from '@utils/http';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 
@@ -35,35 +38,13 @@ import { API_ENDPOINTS } from '@services/apiEndpoints';
 const fetchPaginatedBatchRegistry = async (
   params: BatchRegistryQueryParams = {}
 ): Promise<PaginatedBatchRegistryApiResponse> => {
-  const { filters = {}, ...rest } = params;
-
-  const {
-    expiryAfter,
-    expiryBefore,
-    registeredAfter,
-    registeredBefore,
-    ...otherFilters
-  } = filters;
-
-  /**
-   * Flatten date filters → query params
-   */
-  const flatDateParams: Record<string, string> = {};
-
-  if (expiryAfter) flatDateParams.expiryAfter = expiryAfter;
-  if (expiryBefore) flatDateParams.expiryBefore = expiryBefore;
-  if (registeredAfter) flatDateParams.registeredAfter = registeredAfter;
-  if (registeredBefore) flatDateParams.registeredBefore = registeredBefore;
-
-  /**
-   * Final flattened params
-   */
-  const flatParams = {
-    ...rest,
-    ...otherFilters,
-    ...flatDateParams,
-  };
-
+  const flatParams = flattenListQueryParams(params, [
+    'expiryAfter',
+    'expiryBefore',
+    'registeredAfter',
+    'registeredBefore',
+  ]);
+  
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.BATCH_REGISTRY.ALL_RECORDS}${queryString}`;
 

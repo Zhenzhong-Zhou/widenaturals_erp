@@ -40,7 +40,12 @@ import { AppError } from '@utils/error';
 const fetchPaginatedLocations = async (
   params: LocationListQueryParams = {}
 ): Promise<PaginatedLocationApiResponse> => {
-  const flatParams = flattenListQueryParams(params);
+  const flatParams = flattenListQueryParams(params, [
+    'createdAfter',
+    'createdBefore',
+    'updatedAfter',
+    'updatedBefore',
+  ]);
 
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.LOCATIONS.ALL_RECORDS}${queryString}`;

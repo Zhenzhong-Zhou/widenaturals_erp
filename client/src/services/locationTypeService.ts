@@ -42,7 +42,12 @@ import { sanitizeString } from '@utils/stringUtils';
 const fetchPaginatedLocationTypes = async (
   params: LocationTypeListQueryParams = {}
 ): Promise<PaginatedLocationTypeApiResponse> => {
-  const flatParams = flattenListQueryParams(params);
+  const flatParams = flattenListQueryParams(params, [
+    'createdAfter',
+    'createdBefore',
+    'updatedAfter',
+    'updatedBefore',
+  ]);
 
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.LOCATION_TYPES.ALL_RECORDS}${queryString}`;

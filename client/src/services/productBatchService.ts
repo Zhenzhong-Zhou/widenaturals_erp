@@ -2,7 +2,10 @@ import type {
   ProductBatchQueryParams,
   PaginatedProductBatchApiResponse,
 } from '@features/productBatch';
-import { buildQueryString } from '@utils/query';
+import {
+  buildQueryString,
+  flattenListQueryParams
+} from '@utils/query';
 import { getRequest } from '@utils/http';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 
@@ -37,46 +40,17 @@ import { API_ENDPOINTS } from '@services/apiEndpoints';
 const fetchPaginatedProductBatches = async (
   params: ProductBatchQueryParams = {}
 ): Promise<PaginatedProductBatchApiResponse> => {
-  const { filters = {}, ...rest } = params;
-
-  const {
-    expiryAfter,
-    expiryBefore,
-    manufactureAfter,
-    manufactureBefore,
-    receivedAfter,
-    receivedBefore,
-    createdAfter,
-    createdBefore,
-    ...otherFilters
-  } = filters;
-
-  /**
-   * Flatten date filters → query params
-   */
-  const flatDateParams: Record<string, string> = {};
-
-  if (expiryAfter) flatDateParams.expiryAfter = expiryAfter;
-  if (expiryBefore) flatDateParams.expiryBefore = expiryBefore;
-
-  if (manufactureAfter) flatDateParams.manufactureAfter = manufactureAfter;
-  if (manufactureBefore) flatDateParams.manufactureBefore = manufactureBefore;
-
-  if (receivedAfter) flatDateParams.receivedAfter = receivedAfter;
-  if (receivedBefore) flatDateParams.receivedBefore = receivedBefore;
-
-  if (createdAfter) flatDateParams.createdAfter = createdAfter;
-  if (createdBefore) flatDateParams.createdBefore = createdBefore;
-
-  /**
-   * Final flattened params
-   */
-  const flatParams = {
-    ...rest,
-    ...otherFilters,
-    ...flatDateParams,
-  };
-
+  const flatParams = flattenListQueryParams(params, [
+    'expiryAfter',
+    'expiryBefore',
+    'manufactureAfter',
+    'manufactureBefore',
+    'receivedAfter',
+    'receivedBefore',
+    'createdAfter',
+    'createdBefore',
+  ]);
+  
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.PRODUCT_BATCHES.ALL_RECORDS}${queryString}`;
 
