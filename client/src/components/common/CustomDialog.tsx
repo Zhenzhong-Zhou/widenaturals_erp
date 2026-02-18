@@ -53,6 +53,7 @@ const CustomDialog: FC<CustomDialogProps> = ({
       fullWidth
       maxWidth="md"
       aria-labelledby="custom-dialog-title"
+      disableRestoreFocus
       {...rest}
     >
       <DialogTitle id="custom-dialog-title">{title}</DialogTitle>

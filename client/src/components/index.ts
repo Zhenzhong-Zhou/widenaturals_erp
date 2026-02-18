@@ -34,3 +34,4 @@ export { default as CustomMiniTable } from './common/CustomMiniTable';
 export { default as FilterPanelLayout } from './common/FilterPanelLayout';
 export { default as TruncatedText } from './common/TruncatedText';
 export { default as FieldStatusHelper } from './common/FieldStatusHelper';
+export { default as RowActionMenu } from './common/RowActionMenu';

@@ -36,7 +36,7 @@ import { normalizePagination } from '@utils/pagination/normalizePagination';
  */
 export const usePaginatedLocationTypes = () => {
   const dispatch = useAppDispatch();
-  
+
   // ---------------------------
   // Selectors (memoized via Reselect)
   // ---------------------------
@@ -45,11 +45,11 @@ export const usePaginatedLocationTypes = () => {
   const loading = useAppSelector(selectPaginatedLocationTypeLoading);
   const error = useAppSelector(selectPaginatedLocationTypeError);
   const isEmpty = useAppSelector(selectPaginatedLocationTypeIsEmpty);
-  
+
   // ---------------------------
   // Actions
   // ---------------------------
-  
+
   /**
    * Fetch paginated location types using Redux thunk.
    *
@@ -61,31 +61,28 @@ export const usePaginatedLocationTypes = () => {
     },
     [dispatch]
   );
-  
+
   /**
    * Reset paginated location type state back to initial empty form.
    */
   const resetLocationTypes = useCallback(() => {
     dispatch(resetPaginatedLocationTypes());
   }, [dispatch]);
-  
+
   // ---------------------------
   // Derived memoized values
   // ---------------------------
-  const pageInfo = useMemo(
-    () => normalizePagination(pagination),
-    [pagination]
-  );
-  
+  const pageInfo = useMemo(() => normalizePagination(pagination), [pagination]);
+
   return {
     data,
     pagination,
     loading,
     error,
     isEmpty,
-    
+
     pageInfo, // { page, limit }
-    
+
     fetchLocationTypes,
     resetLocationTypes,
   };
@@ -105,8 +102,7 @@ export const usePaginatedLocationTypes = () => {
  * - detail drawers
  * - side panels
  */
-export const useLocationTypeById = (id: string) => {
+export const useLocationTypeById = (id: string | null) => {
   const selector = useMemo(() => makeSelectLocationTypeById(), []);
-  
-  return useAppSelector((state) => selector(state, id));
+  return useAppSelector((state) => (id ? selector(state, id) : null));
 };
