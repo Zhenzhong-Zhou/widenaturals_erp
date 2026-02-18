@@ -58,6 +58,7 @@ import { outboundFulfillmentReducers } from '@features/outboundFulfillment';
 import { skuImageReducers } from '@features/skuImage';
 import { batchRegistryReducers } from '@features/batchRegistry';
 import { productBatchReducers } from '@features/productBatch';
+import { packagingMaterialBatchReducers } from '@features/packagingMaterialBatch';
 
 // ===== Runtime reducer (flattened maps) =====
 const runtimeReducer = combineReducers({
@@ -80,6 +81,7 @@ const runtimeReducer = combineReducers({
   // Batch
   ...batchRegistryReducers,
   ...productBatchReducers,
+  ...packagingMaterialBatchReducers,
 
   // Inventory & Warehouse
   ...locationTypeReducers,

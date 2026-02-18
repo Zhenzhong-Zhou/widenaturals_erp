@@ -70,6 +70,10 @@ export {
   usePaginatedProductBatches,
   useProductBatchById,
 } from './usePaginatedProductBatches';
+export {
+  usePaginatedPackagingMaterialBatches,
+  usePackagingMaterialBatchById
+} from './usePaginatedPackagingMaterialBatches';
 
 /* =====================================================
  * BOM (Bill of Materials)

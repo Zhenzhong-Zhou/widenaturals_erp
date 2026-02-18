@@ -18,8 +18,6 @@ export const API_ENDPOINTS = {
   PUBLIC: {
     HEALTH: '/public/health',
   },
-  USER_PERMISSION: '/users/me/permissions',
-  REFRESH_TOKEN: '/session/refresh',
   USERS: {
     ADD_NEW_RECORD: '/users',
     ALL_RECORDS: '/users',
@@ -75,6 +73,9 @@ export const API_ENDPOINTS = {
   },
   PRODUCT_BATCHES: {
     ALL_RECORDS: '/product-batches',
+  },
+  PACKAGING_MATERIAL_BATCHES: {
+    ALL_RECORDS: '/packaging-material-batches',
   },
   LOCATION_INVENTORY: {
     ALL_RECORDS: '/location-inventory',
