@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import type { Column } from '@components/common/CustomTable';
 import { TruncatedText } from '@components/index';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
@@ -25,14 +24,12 @@ export const getLocationTypeTableColumns = (
       label: 'Type Name',
       sortable: true,
       renderCell: (row) => (
-        <Link to="#">
-          <TruncatedText
-            text={row.name}
-            maxLength={28}
-            variant="body2"
-            sx={{ fontWeight: 500 }}
-          />
-        </Link>
+        <TruncatedText
+          text={row.name}
+          maxLength={28}
+          variant="body2"
+          sx={{ fontWeight: 500 }}
+        />
       ),
     },
     {
@@ -41,7 +38,7 @@ export const getLocationTypeTableColumns = (
       sortable: true,
       renderCell: (row) => row.code,
     },
-    
+
     // --------------------------------------------------
     // Status
     // --------------------------------------------------
@@ -57,7 +54,7 @@ export const getLocationTypeTableColumns = (
       sortable: true,
       renderCell: (row) => formatDateTime(row.statusDate),
     },
-    
+
     // --------------------------------------------------
     // Audit
     // --------------------------------------------------
@@ -68,7 +65,7 @@ export const getLocationTypeTableColumns = (
       renderCell: (row) => formatDateTime(row.createdAt),
     },
   ];
-  
+
   // --------------------------------------------------
   // Drill-down
   // --------------------------------------------------
@@ -80,6 +77,6 @@ export const getLocationTypeTableColumns = (
       )
     );
   }
-  
+
   return columns;
 };

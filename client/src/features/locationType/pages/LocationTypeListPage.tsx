@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 import Card from '@mui/material/Card';
@@ -15,6 +15,7 @@ import {
   LocationTypeListTable,
   LocationTypeSortControls,
 } from '@features/locationType/components/LocationTypeListTable';
+import { ViewLocationTypeDialog } from '@features/locationType/components/LocationTypeDetail';
 import type {
   LocationTypeListFilters,
   LocationTypeSortField,
@@ -23,20 +24,22 @@ import { usePaginatedLocationTypes } from '@hooks/index';
 import { useLocationTypeLookups } from '@features/locationType/hooks';
 import { applyFiltersAndSorting } from '@utils/query';
 import { createLazyOpenHandler } from '@features/lookup/utils/lookupUtils';
-import { usePaginationHandlers } from '@utils/hooks';
+import { useDialogFocusHandlers, usePaginationHandlers } from '@utils/hooks';
 
 const LocationTypeListPage = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
   const [sortBy, setSortBy] =
     useState<LocationTypeSortField>('defaultNaturalSort');
-  const [sortOrder, setSortOrder] =
-    useState<'' | 'ASC' | 'DESC'>('');
-  const [filters, setFilters] =
-    useState<LocationTypeListFilters>({});
-  const [expandedRowId, setExpandedRowId] =
-    useState<string | null>(null);
-  
+  const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
+  const [filters, setFilters] = useState<LocationTypeListFilters>({});
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+  const [selectedLocationTypeId, setSelectedLocationTypeId] = useState<
+    string | null
+  >(null);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const viewActionButtonRef = useRef<HTMLButtonElement | null>(null);
+
   const {
     data: locationTypes,
     pagination: locationTypePagination,
@@ -46,12 +49,12 @@ const LocationTypeListPage = () => {
     fetchLocationTypes,
     resetLocationTypes,
   } = usePaginatedLocationTypes();
-  
+
   // -------------------------------------------------------------
   // Lookups
   // -------------------------------------------------------------
   const lookups = useLocationTypeLookups();
-  
+
   // -----------------------------
   // Query model
   // -----------------------------
@@ -65,14 +68,14 @@ const LocationTypeListPage = () => {
     }),
     [page, limit, sortBy, sortOrder, filters]
   );
-  
+
   // -----------------------------
   // Refresh action
   // -----------------------------
   const refreshLocationTypeList = useCallback(() => {
     fetchLocationTypes(fullQuery);
   }, [fullQuery, fetchLocationTypes]);
-  
+
   // -----------------------------
   // Query engine params
   // -----------------------------
@@ -83,18 +86,15 @@ const LocationTypeListPage = () => {
     }),
     [fullQuery, refreshLocationTypeList]
   );
-  
+
   // -----------------------------
   // Debounced fetch
   // -----------------------------
   useEffect(() => {
-    const timeout = setTimeout(
-      () => applyFiltersAndSorting(queryParams),
-      200
-    );
+    const timeout = setTimeout(() => applyFiltersAndSorting(queryParams), 200);
     return () => clearTimeout(timeout);
   }, [queryParams]);
-  
+
   // ----------------------------------------
   // Cleanup on unmount
   // ----------------------------------------
@@ -103,7 +103,7 @@ const LocationTypeListPage = () => {
       resetLocationTypes();
     };
   }, [resetLocationTypes]);
-  
+
   // -----------------------------
   // Lookup handlers
   // -----------------------------
@@ -112,7 +112,7 @@ const LocationTypeListPage = () => {
       resetAll: () => {
         lookups.status.reset();
       },
-      
+
       onOpen: {
         status: createLazyOpenHandler(
           lookups.status.options,
@@ -122,30 +122,44 @@ const LocationTypeListPage = () => {
     }),
     [lookups]
   );
-  
+
   // -----------------------------
   // Event handlers
   // -----------------------------
   const handleRefresh = useCallback(() => {
     applyFiltersAndSorting(queryParams);
   }, [queryParams]);
-  
+
   const handleResetFilters = () => {
     resetLocationTypes();
     setFilters({});
     lookupHandlers.resetAll();
     setPage(1);
   };
-  
-  const { handlePageChange, handleRowsPerPageChange } =
-    usePaginationHandlers(setPage, setLimit);
-  
+
+  const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(
+    setPage,
+    setLimit
+  );
+
   const handleDrillDownToggle = (rowId: string) => {
-    setExpandedRowId((current) =>
-      current === rowId ? null : rowId
-    );
+    setExpandedRowId((current) => (current === rowId ? null : rowId));
   };
-  
+
+  const { handleOpenDialog, handleCloseDialog } = useDialogFocusHandlers(
+    setViewDialogOpen,
+    viewActionButtonRef,
+    () => viewDialogOpen
+  );
+
+  const handleViewDetail = useCallback(
+    (rowId: string) => {
+      setSelectedLocationTypeId(rowId);
+      handleOpenDialog();
+    },
+    [handleOpenDialog]
+  );
+
   // ----------------------------------------
   // Render
   // ----------------------------------------
@@ -164,9 +178,9 @@ const LocationTypeListPage = () => {
           Location Type Management
         </CustomTypography>
       </Box>
-      
+
       <Divider sx={{ mb: 3 }} />
-      
+
       {/* Filter + Sort Controls */}
       <Card sx={{ p: 3, mb: 4, borderRadius: 2, minHeight: 200 }}>
         <Grid container spacing={2}>
@@ -180,7 +194,7 @@ const LocationTypeListPage = () => {
               onReset={handleResetFilters}
             />
           </Grid>
-          
+
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <LocationTypeSortControls
               sortBy={sortBy}
@@ -191,22 +205,17 @@ const LocationTypeListPage = () => {
           </Grid>
         </Grid>
       </Card>
-      
+
       {/* Table Section */}
       {isLocationTypeLoading || !locationTypePagination ? (
-        <Loading
-          variant="dotted"
-          message="Loading location types..."
-        />
+        <Loading variant="dotted" message="Loading location types..." />
       ) : locationTypeError ? (
         <ErrorMessage message={locationTypeError} showNavigation />
       ) : isLocationTypeEmpty ? (
         <NoDataFound
           message="No location type records found."
           action={
-            <CustomButton onClick={handleResetFilters}>
-              Reset
-            </CustomButton>
+            <CustomButton onClick={handleResetFilters}>Reset</CustomButton>
           }
         />
       ) : (
@@ -215,19 +224,22 @@ const LocationTypeListPage = () => {
           loading={isLocationTypeLoading}
           page={page - 1}
           rowsPerPage={limit}
-          totalRecords={
-            locationTypePagination.totalRecords
-          }
-          totalPages={
-            locationTypePagination.totalPages
-          }
+          totalRecords={locationTypePagination.totalRecords}
+          totalPages={locationTypePagination.totalPages}
           onPageChange={handlePageChange}
           onRowsPerPageChange={handleRowsPerPageChange}
           expandedRowId={expandedRowId}
           onDrillDownToggle={handleDrillDownToggle}
+          onViewDetail={handleViewDetail}
           onRefresh={handleRefresh}
         />
       )}
+
+      <ViewLocationTypeDialog
+        open={viewDialogOpen}
+        locationTypeId={selectedLocationTypeId}
+        onClose={handleCloseDialog}
+      />
     </Box>
   );
 };

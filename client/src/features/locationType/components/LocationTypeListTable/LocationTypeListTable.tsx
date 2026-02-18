@@ -4,6 +4,7 @@ import {
   CustomButton,
   CustomTable,
   CustomTypography,
+  RowActionMenu,
   SkeletonExpandedRow,
 } from '@components/index';
 import type { FlattenedLocationTypeRecord } from '@features/locationType';
@@ -25,24 +26,26 @@ interface LocationTypeTableProps {
   onSelectionChange?: (ids: string[]) => void;
   selectedRowIds?: string[];
   onDrillDownToggle?: (rowId: string) => void;
+  onViewDetail?: (rowId: string) => void;
   onRefresh: () => void;
 }
 
 const LocationTypeListTable: FC<LocationTypeTableProps> = ({
-                                                             data,
-                                                             loading,
-                                                             page,
-                                                             totalPages,
-                                                             totalRecords,
-                                                             rowsPerPage,
-                                                             onPageChange,
-                                                             onRowsPerPageChange,
-                                                             expandedRowId,
-                                                             onDrillDownToggle,
-                                                             selectedRowIds,
-                                                             onSelectionChange,
-                                                             onRefresh,
-                                                           }: LocationTypeTableProps) => {
+  data,
+  loading,
+  page,
+  totalPages,
+  totalRecords,
+  rowsPerPage,
+  onPageChange,
+  onRowsPerPageChange,
+  expandedRowId,
+  onDrillDownToggle,
+  onViewDetail,
+  selectedRowIds,
+  onSelectionChange,
+  onRefresh,
+}: LocationTypeTableProps) => {
   // ----------------------------------------
   // Column definitions
   // ----------------------------------------
@@ -54,7 +57,7 @@ const LocationTypeListTable: FC<LocationTypeTableProps> = ({
       ),
     [expandedRowId, onDrillDownToggle]
   );
-  
+
   // ----------------------------------------
   // Expanded row renderer (lazy)
   // ----------------------------------------
@@ -75,7 +78,7 @@ const LocationTypeListTable: FC<LocationTypeTableProps> = ({
     ),
     []
   );
-  
+
   return (
     <Box>
       {/* Table Header */}
@@ -88,7 +91,7 @@ const LocationTypeListTable: FC<LocationTypeTableProps> = ({
         <CustomTypography variant="h6" fontWeight={600}>
           Location Types
         </CustomTypography>
-        
+
         <CustomButton
           onClick={onRefresh}
           variant="outlined"
@@ -97,7 +100,7 @@ const LocationTypeListTable: FC<LocationTypeTableProps> = ({
           Refresh
         </CustomButton>
       </Box>
-      
+
       <CustomTable
         data={data}
         columns={columns}
@@ -116,6 +119,20 @@ const LocationTypeListTable: FC<LocationTypeTableProps> = ({
         selectedRowIds={selectedRowIds}
         onSelectionChange={onSelectionChange}
         emptyMessage="No location type records found"
+        showActionsColumn={Boolean(onViewDetail)}
+        renderActions={(row) =>
+          onViewDetail ? (
+            <RowActionMenu
+              row={row}
+              actions={[
+                {
+                  label: 'View Details',
+                  onClick: (r) => onViewDetail(r.id),
+                },
+              ]}
+            />
+          ) : null
+        }
       />
     </Box>
   );
