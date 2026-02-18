@@ -1,5 +1,9 @@
-const { resolveUserPermissionContext } = require('../services/role-permission-service');
-const { SUPPLIER_CONSTANTS } = require('../utils/constants/domain/supplier-constants');
+const {
+  resolveUserPermissionContext,
+} = require('../services/role-permission-service');
+const {
+  SUPPLIER_CONSTANTS,
+} = require('../utils/constants/domain/supplier-constants');
 const { logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
@@ -46,35 +50,34 @@ const AppError = require('../utils/AppError');
  */
 const evaluateSupplierVisibilityAccessControl = async (user) => {
   try {
-    const { permissions, isRoot } =
-      await resolveUserPermissionContext(user);
-    
+    const { permissions, isRoot } = await resolveUserPermissionContext(user);
+
     const canViewAllSuppliers =
       isRoot ||
       permissions.includes(
         SUPPLIER_CONSTANTS.PERMISSIONS.VIEW_ALL_SUPPLIERS_VISIBILITY
       );
-    
+
     const canViewArchived =
       canViewAllSuppliers ||
       permissions.includes(
         SUPPLIER_CONSTANTS.PERMISSIONS.VIEW_ARCHIVED_SUPPLIERS
       );
-    
+
     const canViewAllStatuses =
       canViewAllSuppliers ||
       permissions.includes(
         SUPPLIER_CONSTANTS.PERMISSIONS.VIEW_INACTIVE_SUPPLIERS
       );
-    
+
     const canViewInactive =
       canViewAllSuppliers ||
       permissions.includes(
         SUPPLIER_CONSTANTS.PERMISSIONS.VIEW_INACTIVE_SUPPLIERS
       );
-    
+
     const enforceActiveOnly = !canViewInactive;
-    
+
     return {
       canViewArchived,
       canViewInactive,
@@ -87,12 +90,11 @@ const evaluateSupplierVisibilityAccessControl = async (user) => {
       err,
       'Failed to evaluate supplier visibility access control',
       {
-        context:
-          'supplier-business/evaluateSupplierVisibilityAccessControl',
+        context: 'supplier-business/evaluateSupplierVisibilityAccessControl',
         userId: user?.id,
       }
     );
-    
+
     throw AppError.businessError(
       'Unable to evaluate supplier visibility access control.',
       { details: err.message }
@@ -120,21 +122,20 @@ const evaluateSupplierVisibilityAccessControl = async (user) => {
  */
 const evaluateSupplierLookupSearchCapabilities = async (user) => {
   try {
-    const { permissions, isRoot } =
-      await resolveUserPermissionContext(user);
-    
+    const { permissions, isRoot } = await resolveUserPermissionContext(user);
+
     const canSearchStatus =
       isRoot ||
       permissions.includes(
         SUPPLIER_CONSTANTS.PERMISSIONS.SEARCH_SUPPLIERS_BY_STATUS
       );
-    
+
     const canSearchLocation =
       isRoot ||
       permissions.includes(
         SUPPLIER_CONSTANTS.PERMISSIONS.SEARCH_SUPPLIERS_BY_LOCATION
       );
-    
+
     return {
       canSearchStatus,
       canSearchLocation,
@@ -144,12 +145,11 @@ const evaluateSupplierLookupSearchCapabilities = async (user) => {
       err,
       'Failed to evaluate supplier lookup search capabilities',
       {
-        context:
-          'supplier-business/evaluateSupplierLookupSearchCapabilities',
+        context: 'supplier-business/evaluateSupplierLookupSearchCapabilities',
         userId: user?.id,
       }
     );
-    
+
     throw AppError.businessError(
       'Unable to evaluate supplier lookup search capabilities.',
       { details: err.message }
@@ -191,22 +191,19 @@ const evaluateSupplierLookupSearchCapabilities = async (user) => {
  * @throws {AppError}
  *   If input validation fails.
  */
-const enrichSupplierLookupWithActiveFlag = (
-  row,
-  activeStatusId
-) => {
+const enrichSupplierLookupWithActiveFlag = (row, activeStatusId) => {
   if (!row || typeof row !== 'object') {
     throw AppError.validationError(
       '[enrichSupplierLookupWithActiveFlag] Invalid row.'
     );
   }
-  
+
   if (!activeStatusId) {
     throw AppError.validationError(
       '[enrichSupplierLookupWithActiveFlag] Missing activeStatusId.'
     );
   }
-  
+
   return {
     ...row,
     isActive: row.status_id === activeStatusId,

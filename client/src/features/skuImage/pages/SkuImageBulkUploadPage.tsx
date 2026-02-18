@@ -13,8 +13,8 @@ import GoBackButton from '@components/common/GoBackButton';
 import { usePagePermissionState } from '@features/authorize/hooks';
 import useSkuImageUpload from '@hooks/useSkuImageUpload';
 import { useDialogFocusHandlers } from '@utils/hooks';
-import { SelectedSku } from '@features/sku/state';
-import {
+import type { SelectedSku } from '@features/sku/state';
+import type {
   BulkSkuImageUploadItem,
   SkuImageUploadCardData,
 } from '@features/skuImage/state';

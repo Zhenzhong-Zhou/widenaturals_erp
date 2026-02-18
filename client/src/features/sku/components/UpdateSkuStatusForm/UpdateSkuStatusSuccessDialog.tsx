@@ -3,7 +3,7 @@ import Box from '@mui/material/Box';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CustomDialog from '@components/common/CustomDialog';
 import ResultBody from '@components/common/ResultBody';
-import { UpdateSkuStatusResponse } from '@features/sku/state';
+import type { UpdateSkuStatusResponse } from '@features/sku/state';
 
 interface UpdateSkuStatusSuccessDialogProps {
   open: boolean;

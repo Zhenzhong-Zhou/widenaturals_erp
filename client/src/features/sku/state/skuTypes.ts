@@ -1,4 +1,4 @@
-import {
+import type {
   ApiSuccessResponse,
   AsyncState,
   AuditUser,
@@ -10,7 +10,7 @@ import {
   SortConfig,
   UpdateStatusIdRequest,
 } from '@shared-types/api';
-import { ReduxPaginatedState } from '@shared-types/pagination';
+import type { ReduxPaginatedState } from '@shared-types/pagination';
 
 /**
  * Root API response for fetching paginated SKU product cards.

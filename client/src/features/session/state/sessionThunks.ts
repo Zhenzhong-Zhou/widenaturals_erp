@@ -2,8 +2,8 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import { persistor } from '@store/store';
 import { sessionService } from '@services/sessionService';
 import { extractErrorMessage, extractUiErrorPayload } from '@utils/error';
-import { LoginRequestBody, LoginResponseData } from '@features/session';
-import { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import type { LoginRequestBody, LoginResponseData } from '@features/session';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 import { resetLogin } from '@features/session/state/loginSlice';
 import {
   markBootstrapComplete,

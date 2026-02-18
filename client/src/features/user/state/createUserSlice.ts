@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { CreateUserState } from '@features/user';
+import type { CreateUserState } from '@features/user';
 import { createUserThunk } from '@features/user';
 import { extractErrorMessage } from '@utils/error';
 

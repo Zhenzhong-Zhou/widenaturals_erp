@@ -144,7 +144,7 @@ export {
 } from './usePaginatedLocations';
 export {
   usePaginatedLocationTypes,
-  useLocationTypeById
+  useLocationTypeById,
 } from './usePaginatedLocationTypes';
 export { default as useLocationTypeDetail } from './useLocationTypeDetail';
 

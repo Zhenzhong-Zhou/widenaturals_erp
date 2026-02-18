@@ -1,7 +1,6 @@
 import { type FC } from 'react';
-import MultiSelectDropdown, {
-  MultiSelectDropdownProps,
-} from '@components/common/MultiSelectDropdown';
+import type { MultiSelectDropdownProps } from '@components/common/MultiSelectDropdown';
+import MultiSelectDropdown from '@components/common/MultiSelectDropdown';
 
 /**
  * Supplier-specific multi-select dropdown props.
@@ -21,19 +20,13 @@ type SupplierMultiSelectDropdownProps = Omit<
  *
  * Thin semantic wrapper around <MultiSelectDropdown />.
  */
-const SupplierMultiSelectDropdown: FC<
-  SupplierMultiSelectDropdownProps
-> = ({
-       label = 'Select Supplier',
-       placeholder = 'Choose supplier…',
-       ...rest
-     }) => {
+const SupplierMultiSelectDropdown: FC<SupplierMultiSelectDropdownProps> = ({
+  label = 'Select Supplier',
+  placeholder = 'Choose supplier…',
+  ...rest
+}) => {
   return (
-    <MultiSelectDropdown
-      label={label}
-      placeholder={placeholder}
-      {...rest}
-    />
+    <MultiSelectDropdown label={label} placeholder={placeholder} {...rest} />
   );
 };
 

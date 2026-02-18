@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useLocationInventory } from '@hooks/index';
-import { LocationInventoryFilters } from '@features/locationInventory';
-import { SortConfig } from '@shared-types/api';
+import type { LocationInventoryFilters } from '@features/locationInventory';
+import type { SortConfig } from '@shared-types/api';
 
 /**
  * Adapter hook to align `useLocationInventory` with

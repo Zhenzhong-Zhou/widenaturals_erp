@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { LookupQuery } from '@features/lookup/state';
-import { MultiSelectOption } from '@components/common/MultiSelectDropdown';
+import type { MultiSelectOption } from '@components/common/MultiSelectDropdown';
 
 /**
  * Utility: Create lookup parameters with defaults.

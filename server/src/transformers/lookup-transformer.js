@@ -14,7 +14,9 @@ const { formatAddress } = require('../utils/address-utils');
 const { formatDiscount } = require('../utils/discount-utils');
 const { formatTaxRateLabel } = require('../utils/tax-rate-utils');
 const AppError = require('../utils/AppError');
-const { createEntityLookupTransformer } = require('./common/create-entity-lookup-transformer');
+const {
+  createEntityLookupTransformer,
+} = require('./common/create-entity-lookup-transformer');
 
 /**
  * Transforms a raw batch registry row into a lookup-friendly shape.
@@ -1383,11 +1385,10 @@ const transformRolePaginatedLookupResult = (paginatedResult, access) =>
  *   [key: string]: any
  * } | null}
  */
-const transformManufacturerLookup =
-  createEntityLookupTransformer({
-    labelKey: 'name',
-    subLabelKey: 'contact_name',
-  });
+const transformManufacturerLookup = createEntityLookupTransformer({
+  labelKey: 'name',
+  subLabelKey: 'contact_name',
+});
 
 /**
  * Transforms paginated Manufacturer lookup rows
@@ -1411,10 +1412,7 @@ const transformManufacturerLookup =
  *   hasMore: boolean
  * }}
  */
-const transformManufacturerPaginatedLookupResult = (
-  paginatedResult,
-  acl
-) =>
+const transformManufacturerPaginatedLookupResult = (paginatedResult, acl) =>
   transformPaginatedResult(
     paginatedResult,
     (row) => transformManufacturerLookup(row, acl),
@@ -1452,11 +1450,10 @@ const transformManufacturerPaginatedLookupResult = (
  *   [key: string]: any
  * } | null}
  */
-const transformSupplierLookup =
-  createEntityLookupTransformer({
-    labelKey: 'name',
-    subLabelKey: 'contact_name',
-  });
+const transformSupplierLookup = createEntityLookupTransformer({
+  labelKey: 'name',
+  subLabelKey: 'contact_name',
+});
 
 /**
  * Transforms paginated Supplier lookup rows
@@ -1480,10 +1477,7 @@ const transformSupplierLookup =
  *   hasMore: boolean
  * }}
  */
-const transformSupplierPaginatedLookupResult = (
-  paginatedResult,
-  acl
-) =>
+const transformSupplierPaginatedLookupResult = (paginatedResult, acl) =>
   transformPaginatedResult(
     paginatedResult,
     (row) => transformSupplierLookup(row, acl),
@@ -1520,10 +1514,9 @@ const transformSupplierPaginatedLookupResult = (
  *   isActive?: boolean
  * }
  */
-const transformLocationTypeLookup =
-  createEntityLookupTransformer({
-    labelKey: 'name',
-  });
+const transformLocationTypeLookup = createEntityLookupTransformer({
+  labelKey: 'name',
+});
 
 /**
  * Transforms paginated Location Type lookup rows
@@ -1547,10 +1540,7 @@ const transformLocationTypeLookup =
  *   hasMore: boolean
  * }}
  */
-const transformLocationTypePaginatedLookupResult = (
-  paginatedResult,
-  acl
-) =>
+const transformLocationTypePaginatedLookupResult = (paginatedResult, acl) =>
   transformPaginatedResult(
     paginatedResult,
     (row) => transformLocationTypeLookup(row, acl),

@@ -19,12 +19,11 @@ export type LocationTypeLookupBundle = {
  *  - Inventory location assignment
  *  - Warehouse configuration workflows
  */
-const useLocationTypeSearchHandlers = (
-  bundle: LocationTypeLookupBundle
-) => {
-  const handleSearch =
-    useDebouncedSearch<LocationTypeLookupParams>(bundle.fetch);
-  
+const useLocationTypeSearchHandlers = (bundle: LocationTypeLookupBundle) => {
+  const handleSearch = useDebouncedSearch<LocationTypeLookupParams>(
+    bundle.fetch
+  );
+
   return {
     /**
      * Debounced handler for location type keyword searches.

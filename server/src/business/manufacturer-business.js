@@ -1,5 +1,9 @@
-const { resolveUserPermissionContext } = require('../services/role-permission-service');
-const { MANUFACTURER_CONSTANTS } = require('../utils/constants/domain/manufacturer-constants');
+const {
+  resolveUserPermissionContext,
+} = require('../services/role-permission-service');
+const {
+  MANUFACTURER_CONSTANTS,
+} = require('../utils/constants/domain/manufacturer-constants');
 const { logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
@@ -46,35 +50,34 @@ const AppError = require('../utils/AppError');
  */
 const evaluateManufacturerVisibilityAccessControl = async (user) => {
   try {
-    const { permissions, isRoot } =
-      await resolveUserPermissionContext(user);
-    
+    const { permissions, isRoot } = await resolveUserPermissionContext(user);
+
     const canViewAllManufacturers =
       isRoot ||
       permissions.includes(
         MANUFACTURER_CONSTANTS.PERMISSIONS.VIEW_ALL_MANUFACTURERS_VISIBILITY
       );
-    
+
     const canViewArchived =
       canViewAllManufacturers ||
       permissions.includes(
         MANUFACTURER_CONSTANTS.PERMISSIONS.VIEW_ARCHIVED_MANUFACTURERS
       );
-    
+
     const canViewAllStatuses =
       canViewAllManufacturers ||
       permissions.includes(
         MANUFACTURER_CONSTANTS.PERMISSIONS.VIEW_INACTIVE_MANUFACTURERS
       );
-    
+
     const canViewInactive =
       canViewAllManufacturers ||
       permissions.includes(
         MANUFACTURER_CONSTANTS.PERMISSIONS.VIEW_INACTIVE_MANUFACTURERS
       );
-    
+
     const enforceActiveOnly = !canViewInactive;
-    
+
     return {
       canViewArchived,
       canViewInactive,
@@ -92,7 +95,7 @@ const evaluateManufacturerVisibilityAccessControl = async (user) => {
         userId: user?.id,
       }
     );
-    
+
     throw AppError.businessError(
       'Unable to evaluate manufacturer visibility access control.',
       { details: err.message }
@@ -120,21 +123,20 @@ const evaluateManufacturerVisibilityAccessControl = async (user) => {
  */
 const evaluateManufacturerLookupSearchCapabilities = async (user) => {
   try {
-    const { permissions, isRoot } =
-      await resolveUserPermissionContext(user);
-    
+    const { permissions, isRoot } = await resolveUserPermissionContext(user);
+
     const canSearchStatus =
       isRoot ||
       permissions.includes(
         MANUFACTURER_CONSTANTS.PERMISSIONS.SEARCH_MANUFACTURERS_BY_STATUS
       );
-    
+
     const canSearchLocation =
       isRoot ||
       permissions.includes(
         MANUFACTURER_CONSTANTS.PERMISSIONS.SEARCH_MANUFACTURERS_BY_LOCATION
       );
-    
+
     return {
       canSearchStatus,
       canSearchLocation,
@@ -149,7 +151,7 @@ const evaluateManufacturerLookupSearchCapabilities = async (user) => {
         userId: user?.id,
       }
     );
-    
+
     throw AppError.businessError(
       'Unable to evaluate manufacturer lookup search capabilities.',
       { details: err.message }
@@ -185,22 +187,19 @@ const evaluateManufacturerLookupSearchCapabilities = async (user) => {
  * @throws {AppError}
  *   If input validation fails.
  */
-const enrichManufacturerLookupWithActiveFlag = (
-  row,
-  activeStatusId
-) => {
+const enrichManufacturerLookupWithActiveFlag = (row, activeStatusId) => {
   if (!row || typeof row !== 'object') {
     throw AppError.validationError(
       '[enrichManufacturerLookupWithActiveFlag] Invalid row.'
     );
   }
-  
+
   if (!activeStatusId) {
     throw AppError.validationError(
       '[enrichManufacturerLookupWithActiveFlag] Missing activeStatusId.'
     );
   }
-  
+
   return {
     ...row,
     isActive: row.status_id === activeStatusId,

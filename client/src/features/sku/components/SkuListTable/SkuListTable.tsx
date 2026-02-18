@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import useCreateSkuSharedLogic from '@features/sku/hook/useCreateSkuSharedLogic';
 import { usePagePermissionState } from '@features/authorize/hooks';
-import CustomTable, { CustomTableProps } from '@components/common/CustomTable';
+import type { CustomTableProps } from '@components/common/CustomTable';
+import CustomTable from '@components/common/CustomTable';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import SkeletonExpandedRow from '@components/common/SkeletonExpandedRow';
@@ -11,7 +12,7 @@ import {
   getSkuListTableColumns,
   SkuExpandedContent,
 } from '@features/sku/components/SkuListTable';
-import { FlattenedSkuRecord, SelectedSku } from '@features/sku/state';
+import type { FlattenedSkuRecord, SelectedSku } from '@features/sku/state';
 
 interface SkuListTableProps extends Omit<
   CustomTableProps<FlattenedSkuRecord>,

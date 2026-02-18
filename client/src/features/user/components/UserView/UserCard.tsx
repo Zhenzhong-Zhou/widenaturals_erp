@@ -8,7 +8,7 @@ import DetailsSection from '@components/common/DetailsSection';
 import { formatLabel, formatPhoneNumber } from '@utils/textUtils';
 import { formatImageUrl } from '@utils/formatImageUrl';
 import { USER_DEFAULT_PLACEHOLDER } from '@utils/constants/assets';
-import { FlattenedUserRecord } from '@features/user/state';
+import type { FlattenedUserRecord } from '@features/user/state';
 
 interface UserCardProps {
   user: FlattenedUserRecord;

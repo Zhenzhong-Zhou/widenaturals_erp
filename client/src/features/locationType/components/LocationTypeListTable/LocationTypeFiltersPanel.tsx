@@ -3,10 +3,7 @@ import { useForm } from 'react-hook-form';
 import Grid from '@mui/material/Grid';
 import { FilterPanelLayout } from '@components/index';
 import { StatusMultiSelectDropdown } from '@features/lookup/components';
-import {
-  renderDateField,
-  renderInputField,
-} from '@utils/filters/filterUtils';
+import { renderDateField, renderInputField } from '@utils/filters/filterUtils';
 import { useMultiSelectBinding } from '@features/lookup/hooks';
 import type { LocationTypeListFilters } from '@features/locationType/state';
 import { formatLabel } from '@utils/textUtils';
@@ -81,32 +78,32 @@ export const LOCATION_TYPE_DATE_FIELDS: LocationTypeDateField[] = [
  * - archived flag
  */
 const LocationTypeFiltersPanel: FC<Props> = ({
-                                               filters,
-                                               lookups,
-                                               lookupHandlers,
-                                               onChange,
-                                               onApply,
-                                               onReset,
-                                             }) => {
+  filters,
+  lookups,
+  lookupHandlers,
+  onChange,
+  onApply,
+  onReset,
+}) => {
   const { control, handleSubmit, reset, watch, setValue } =
     useForm<LocationTypeListFilters>({
       defaultValues: filters,
     });
-  
+
   const { status } = lookups;
-  
+
   /* -----------------------------
    * Sync external filters
    * --------------------------- */
-  
+
   useEffect(() => {
     reset(filters);
   }, [filters, reset]);
-  
+
   /* -----------------------------
    * Status multiselect
    * --------------------------- */
-  
+
   const {
     selectedOptions: selectedStatusOptions,
     handleSelect: handleStatusSelect,
@@ -116,41 +113,41 @@ const LocationTypeFiltersPanel: FC<Props> = ({
     fieldName: 'statusIds',
     options: status.options,
   });
-  
+
   const formattedStatusOptions = useFormattedOptions(
     status.options,
     formatLabel
   );
-  
+
   /* -----------------------------
    * Submit / Reset
    * --------------------------- */
-  
+
   const submitFilters = (data: LocationTypeListFilters) => {
     const adjusted: LocationTypeListFilters = {
       ...data,
       keyword: data.keyword || undefined,
       name: data.name || undefined,
-      
+
       createdAfter: toISODate(data.createdAfter),
       createdBefore: toISODate(data.createdBefore),
       updatedAfter: toISODate(data.updatedAfter),
       updatedBefore: toISODate(data.updatedBefore),
     };
-    
+
     onChange(adjusted);
     onApply();
   };
-  
+
   const resetFilters = () => {
     reset(emptyFilters);
     onReset();
   };
-  
+
   /* -----------------------------
    * Render
    * --------------------------- */
-  
+
   return (
     <form onSubmit={handleSubmit(submitFilters)}>
       <FilterPanelLayout onReset={resetFilters}>
@@ -164,15 +161,10 @@ const LocationTypeFiltersPanel: FC<Props> = ({
               onOpen={lookupHandlers.onOpen.status}
             />
           </Grid>
-          
+
           {/* --- Name --- */}
-          {renderInputField(
-            control,
-            'name',
-            'Type Name',
-            'Search by name'
-          )}
-          
+          {renderInputField(control, 'name', 'Type Name', 'Search by name')}
+
           {/* --- Keyword --- */}
           {renderInputField(
             control,
@@ -180,7 +172,7 @@ const LocationTypeFiltersPanel: FC<Props> = ({
             'Keyword',
             'Name or description'
           )}
-          
+
           {/* --- Date Range --- */}
           {LOCATION_TYPE_DATE_FIELDS.map(({ name, label }) =>
             renderDateField(control, name, label)

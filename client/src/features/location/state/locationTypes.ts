@@ -1,11 +1,11 @@
-import {
+import type {
   GenericAudit,
   GenericStatus,
   PaginatedResponse,
   PaginationParams,
   SortConfig,
 } from '@shared-types/api';
-import { ReduxPaginatedState } from '@shared-types/pagination';
+import type { ReduxPaginatedState } from '@shared-types/pagination';
 
 /* ============================================================
    Address Structure

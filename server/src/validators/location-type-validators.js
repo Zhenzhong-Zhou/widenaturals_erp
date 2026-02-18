@@ -7,7 +7,7 @@ const {
   validateUUIDOrUUIDArrayOptional,
   validateOptionalString,
   validateOptionalUUID,
-  validateUUID
+  validateUUID,
 } = require('./general-validators');
 
 /**
@@ -62,28 +62,20 @@ const locationTypeQuerySchema = paginationSchema
     // -------------------------------------------------------------
     // Status filtering
     // -------------------------------------------------------------
-    statusIds: validateUUIDOrUUIDArrayOptional(
-      'Location Type Status IDs'
-    ),
-    
+    statusIds: validateUUIDOrUUIDArrayOptional('Location Type Status IDs'),
+
     // -------------------------------------------------------------
     // Core identity filters
     // -------------------------------------------------------------
-    name: validateOptionalString(
-      'Location Type Name (partial match allowed)'
-    ),
-    
+    name: validateOptionalString('Location Type Name (partial match allowed)'),
+
     // -------------------------------------------------------------
     // Audit filters
     // -------------------------------------------------------------
-    createdBy: validateOptionalUUID(
-      'Location Type Created By User ID'
-    ),
-    
-    updatedBy: validateOptionalUUID(
-      'Location Type Updated By User ID'
-    ),
-    
+    createdBy: validateOptionalUUID('Location Type Created By User ID'),
+
+    updatedBy: validateOptionalUUID('Location Type Updated By User ID'),
+
     // -------------------------------------------------------------
     // Keyword search
     // -------------------------------------------------------------

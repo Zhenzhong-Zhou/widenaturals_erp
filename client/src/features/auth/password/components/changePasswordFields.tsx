@@ -1,4 +1,7 @@
-import { CustomRenderParams, FieldConfig } from '@components/common/CustomForm';
+import type {
+  CustomRenderParams,
+  FieldConfig,
+} from '@components/common/CustomForm';
 import { validatePasswordStrength } from '@features/auth';
 import { FieldStatusHelper, PasswordInput } from '@components/index';
 

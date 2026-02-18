@@ -9,7 +9,7 @@ import {
   SkuImageDropzone,
   SkuImagePreviewItem,
 } from '@features/skuImage/components/UploadImageForm';
-import {
+import type {
   SkuImageInput,
   SkuImageUploadCardData,
 } from '@features/skuImage/state';

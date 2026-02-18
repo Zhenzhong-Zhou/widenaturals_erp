@@ -1,7 +1,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { authorizeService } from '@services/authorizeService';
 import { extractUiErrorPayload } from '@utils/error';
-import { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 
 /**
  * Fetches the current user's role and permission set.

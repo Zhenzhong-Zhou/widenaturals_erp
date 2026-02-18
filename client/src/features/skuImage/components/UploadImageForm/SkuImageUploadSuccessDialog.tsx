@@ -8,11 +8,11 @@ import CustomDialog from '@components/common/CustomDialog';
 import ResultBody from '@components/common/ResultBody';
 import CustomButton from '@components/common/CustomButton';
 import GoBackButton from '@components/common/GoBackButton';
-import {
+import type {
   BulkSkuImageUploadResult,
   SkuImageUploadCardData,
 } from '@features/skuImage/state';
-import { BatchProcessStats } from '@shared-types/api';
+import type { BatchProcessStats } from '@shared-types/api';
 import { enrichBulkSkuUploadResults } from '@features/skuImage/utils/imageFormatUtils';
 
 interface Props {

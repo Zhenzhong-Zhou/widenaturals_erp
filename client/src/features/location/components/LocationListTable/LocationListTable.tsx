@@ -1,4 +1,5 @@
-import { FC, Suspense, useCallback, useMemo } from 'react';
+import type { FC } from 'react';
+import { Suspense, useCallback, useMemo } from 'react';
 import Box from '@mui/material/Box';
 import {
   CustomButton,
@@ -6,7 +7,7 @@ import {
   CustomTypography,
   SkeletonExpandedRow,
 } from '@components/index';
-import { FlattenedLocationListRecord } from '@features/location';
+import type { FlattenedLocationListRecord } from '@features/location';
 import {
   getLocationTableColumns,
   LocationExpandedContent,

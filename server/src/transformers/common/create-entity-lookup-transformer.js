@@ -23,24 +23,19 @@ const { cleanObject } = require('../../utils/object-utils');
  *
  * @returns {(row: object, acl: object) => object | null}
  */
-const createEntityLookupTransformer = ({
-                                         labelKey,
-                                         subLabelKey,
-                                       }) => {
+const createEntityLookupTransformer = ({ labelKey, subLabelKey }) => {
   return (row, acl) => {
     if (!row || typeof row !== 'object') return null;
     if (!row.id || !row[labelKey]) return null;
-    
+
     const baseObj = {
       id: row.id,
       label: row[labelKey],
-      subLabel: subLabelKey
-        ? row[subLabelKey] || undefined
-        : undefined,
+      subLabel: subLabelKey ? row[subLabelKey] || undefined : undefined,
     };
-    
+
     const flagSubset = includeFlagsBasedOnAccess(row, acl);
-    
+
     return cleanObject({
       ...baseObj,
       ...flagSubset,

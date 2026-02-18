@@ -7,7 +7,7 @@ import type {
 } from '@shared-types/api';
 import type { BatchEntityType } from '@shared-types/batch';
 import type { NullableString } from '@shared-types/shared';
-import { ReduxPaginatedState } from '@shared-types/pagination';
+import type { ReduxPaginatedState } from '@shared-types/pagination';
 
 /* =========================================================
  * API RESPONSE TYPES

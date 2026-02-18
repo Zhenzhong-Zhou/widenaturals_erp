@@ -1,5 +1,6 @@
 import { type FC, useEffect } from 'react';
-import { Path, useForm } from 'react-hook-form';
+import type { Path } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import Grid from '@mui/material/Grid';
 import { FilterPanelLayout } from '@components/index';
 import type { UserFilters } from '@features/user/state';

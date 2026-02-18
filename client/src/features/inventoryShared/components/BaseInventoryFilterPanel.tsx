@@ -16,7 +16,7 @@ import {
   CustomTypography,
 } from '@components/index';
 import { toISODate } from '@utils/dateTimeUtils';
-import { BatchEntityType } from '@shared-types/batch';
+import type { BatchEntityType } from '@shared-types/batch';
 
 interface BaseInventoryFilters {
   batchType?: BatchEntityType;

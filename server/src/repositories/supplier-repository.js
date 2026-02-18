@@ -56,34 +56,31 @@ const AppError = require('../utils/AppError');
  * @throws {AppError} If database query fails
  */
 const getSupplierLookup = async ({
-                                   filters = {},
-                                   options = {},
-                                   limit = 50,
-                                   offset = 0,
-                                 }) => {
+  filters = {},
+  options = {},
+  limit = 50,
+  offset = 0,
+}) => {
   const context = 'supplier-repository/getSupplierLookup';
   const tableName = 'suppliers s';
-  
-  const {
-    canSearchStatus = false,
-    canSearchLocation = false,
-  } = options;
-  
+
+  const { canSearchStatus = false, canSearchLocation = false } = options;
+
   const joins = [];
-  
+
   if (canSearchStatus) {
     joins.push('LEFT JOIN status st ON st.id = s.status_id');
   }
-  
+
   if (canSearchLocation) {
     joins.push('LEFT JOIN locations l ON l.id = s.location_id');
   }
-  
+
   const { whereClause, params } = buildSupplierFilter(filters, {
     canSearchStatus,
     canSearchLocation,
   });
-  
+
   const queryText = `
     SELECT
       s.id,
@@ -94,7 +91,7 @@ const getSupplierLookup = async ({
     ${joins.join('\n')}
     WHERE ${whereClause}
   `;
-  
+
   try {
     const result = await paginateQueryByOffset({
       tableName,
@@ -108,7 +105,7 @@ const getSupplierLookup = async ({
       sortOrder: 'ASC',
       additionalSort: 's.code ASC',
     });
-    
+
     logSystemInfo('Fetched supplier lookup data', {
       context,
       offset,
@@ -116,7 +113,7 @@ const getSupplierLookup = async ({
       filters,
       options,
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch supplier lookup', {
@@ -126,10 +123,8 @@ const getSupplierLookup = async ({
       filters,
       options,
     });
-    
-    throw AppError.databaseError(
-      'Failed to fetch supplier lookup.'
-    );
+
+    throw AppError.databaseError('Failed to fetch supplier lookup.');
   }
 };
 

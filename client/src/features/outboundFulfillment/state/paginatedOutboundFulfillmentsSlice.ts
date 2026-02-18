@@ -6,7 +6,7 @@ import type {
 } from '@features/outboundFulfillment/state';
 import { fetchPaginatedOutboundFulfillmentThunk } from './outboundFulfillmentThunks';
 import { createInitialPaginatedState } from '@store/pagination';
-import { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 
 const initialState: PaginatedOutboundFulfillmentsState =
   createInitialPaginatedState<FlattenedOutboundShipmentRow>();

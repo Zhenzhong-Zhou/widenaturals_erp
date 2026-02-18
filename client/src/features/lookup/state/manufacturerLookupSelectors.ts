@@ -1,5 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '@store/store';
+import type { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 import {
   createLookupMetaSelector,
@@ -37,8 +37,9 @@ export const selectManufacturerLookupError = createSelector(
 // -----------------------------
 // Pagination Meta
 // -----------------------------
-export const selectManufacturerLookupMeta =
-  createLookupMetaSelector(selectManufacturerLookupState);
+export const selectManufacturerLookupMeta = createLookupMetaSelector(
+  selectManufacturerLookupState
+);
 
 // -----------------------------
 // Options Mapping

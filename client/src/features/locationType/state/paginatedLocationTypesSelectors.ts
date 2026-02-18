@@ -1,5 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '@store/store';
+import type { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 
 /* ============================================================
@@ -82,10 +82,6 @@ export const selectPaginatedLocationTypeIsEmpty = createSelector(
  */
 export const makeSelectLocationTypeById = () =>
   createSelector(
-    [
-      selectPaginatedLocationTypeData,
-      (_: RootState, id: string) => id,
-    ],
-    (records, id) =>
-      records.find((record) => record.id === id) ?? null
+    [selectPaginatedLocationTypeData, (_: RootState, id: string) => id],
+    (records, id) => records.find((record) => record.id === id) ?? null
   );

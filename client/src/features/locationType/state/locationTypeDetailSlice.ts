@@ -33,39 +33,34 @@ export const locationTypeDetailSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      
+
       // --------------------------------------------------
       // Fulfilled
       // --------------------------------------------------
       .addCase(
         fetchLocationTypeDetailsThunk.fulfilled,
-        (
-          state,
-          action: PayloadAction<GetLocationTypeDetailsUiResponse>
-        ) => {
+        (state, action: PayloadAction<GetLocationTypeDetailsUiResponse>) => {
           state.loading = false;
           state.data = action.payload.data; // unwrap API envelope
         }
       )
-      
+
       // --------------------------------------------------
       // Rejected
       // --------------------------------------------------
       .addCase(fetchLocationTypeDetailsThunk.rejected, (state, action) => {
         state.loading = false;
-        
+
         if (action.payload) {
           state.error = action.payload.message;
         } else {
           state.error =
-            action.error?.message ??
-            'Failed to load location type details.';
+            action.error?.message ?? 'Failed to load location type details.';
         }
       });
   },
 });
 
-export const { resetLocationTypeDetail } =
-  locationTypeDetailSlice.actions;
+export const { resetLocationTypeDetail } = locationTypeDetailSlice.actions;
 
 export default locationTypeDetailSlice.reducer;

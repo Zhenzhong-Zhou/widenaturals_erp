@@ -6,7 +6,7 @@ import type {
   ProductSummary,
   SkuSummary,
 } from '@features/bom/state';
-import { GenericAudit, GenericStatus } from '@shared-types/api';
+import type { GenericAudit, GenericStatus } from '@shared-types/api';
 
 /**
  * Flattens BOM list records into a canonical, UI-ready shape.

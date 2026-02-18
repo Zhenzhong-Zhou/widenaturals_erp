@@ -5,7 +5,7 @@ import axios, {
 } from 'axios';
 import * as axiosRetry from 'axios-retry';
 import { AppError } from '@utils/error';
-import { AppErrorDetails } from '@utils/error/AppError';
+import type { AppErrorDetails } from '@utils/error/AppError';
 import { store } from '@store/store';
 import { selectAccessToken } from '@features/session/state/sessionSelectors';
 import { getCsrfTokenThunk } from '@features/csrf';

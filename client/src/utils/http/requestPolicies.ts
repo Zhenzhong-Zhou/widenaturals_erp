@@ -1,4 +1,4 @@
-import { RequestPolicyOptions } from '@utils/http';
+import type { RequestPolicyOptions } from '@utils/http';
 
 /**
  * Canonical request policy definitions.

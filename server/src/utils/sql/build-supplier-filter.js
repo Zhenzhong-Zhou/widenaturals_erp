@@ -138,55 +138,52 @@ const buildSupplierFilter = (filters = {}, options = {}) => {
       'updatedAfter',
       'updatedBefore'
     );
-    
+
     const conditions = ['1=1'];
     const params = [];
     const paramIndexRef = { value: 1 };
-    
+
     const includeArchived = filters.includeArchived === true;
     const enforceActiveOnly = filters.enforceActiveOnly === true;
     const hasStatusFilter =
       Array.isArray(filters.statusIds) && filters.statusIds.length > 0;
-    
-    const {
-      canSearchStatus = false,
-      canSearchLocation = false,
-    } = options;
-    
+
+    const { canSearchStatus = false, canSearchLocation = false } = options;
+
     if (!includeArchived) {
       conditions.push('s.is_archived = FALSE');
     }
-    
+
     if (enforceActiveOnly && !hasStatusFilter && filters.activeStatusId) {
       conditions.push(`s.status_id = $${paramIndexRef.value}`);
       params.push(filters.activeStatusId);
       paramIndexRef.value++;
     }
-    
+
     if (filters.statusIds?.length) {
       conditions.push(`s.status_id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.statusIds);
       paramIndexRef.value++;
     }
-    
+
     if (filters.locationIds?.length) {
       conditions.push(`s.location_id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.locationIds);
       paramIndexRef.value++;
     }
-    
+
     if (filters.createdBy) {
       conditions.push(`s.created_by = $${paramIndexRef.value}`);
       params.push(filters.createdBy);
       paramIndexRef.value++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`s.updated_by = $${paramIndexRef.value}`);
       params.push(filters.updatedBy);
       paramIndexRef.value++;
     }
-    
+
     applyDateRangeConditions({
       conditions,
       params,
@@ -195,7 +192,7 @@ const buildSupplierFilter = (filters = {}, options = {}) => {
       before: filters.createdBefore,
       paramIndexRef,
     });
-    
+
     applyDateRangeConditions({
       conditions,
       params,
@@ -204,7 +201,7 @@ const buildSupplierFilter = (filters = {}, options = {}) => {
       before: filters.updatedBefore,
       paramIndexRef,
     });
-    
+
     paramIndexRef.value = addIlikeFilter(
       conditions,
       params,
@@ -212,7 +209,7 @@ const buildSupplierFilter = (filters = {}, options = {}) => {
       filters.name,
       's.name'
     );
-    
+
     paramIndexRef.value = addIlikeFilter(
       conditions,
       params,
@@ -220,7 +217,7 @@ const buildSupplierFilter = (filters = {}, options = {}) => {
       filters.code,
       's.code'
     );
-    
+
     paramIndexRef.value = addIlikeFilter(
       conditions,
       params,
@@ -228,7 +225,7 @@ const buildSupplierFilter = (filters = {}, options = {}) => {
       filters.contactName,
       's.contact_name'
     );
-    
+
     paramIndexRef.value = addIlikeFilter(
       conditions,
       params,
@@ -236,7 +233,7 @@ const buildSupplierFilter = (filters = {}, options = {}) => {
       filters.contactEmail,
       's.contact_email'
     );
-    
+
     if (filters.keyword) {
       const keywordConditions = [
         `s.name ILIKE $${paramIndexRef.value}`,
@@ -244,20 +241,20 @@ const buildSupplierFilter = (filters = {}, options = {}) => {
         `s.contact_name ILIKE $${paramIndexRef.value}`,
         `s.contact_email ILIKE $${paramIndexRef.value}`,
       ];
-      
+
       if (canSearchStatus) {
         keywordConditions.push(`st.name ILIKE $${paramIndexRef.value}`);
       }
-      
+
       if (canSearchLocation) {
         keywordConditions.push(`l.name ILIKE $${paramIndexRef.value}`);
       }
-      
+
       conditions.push(`(${keywordConditions.join(' OR ')})`);
       params.push(`%${filters.keyword}%`);
       paramIndexRef.value++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -267,11 +264,10 @@ const buildSupplierFilter = (filters = {}, options = {}) => {
       context: 'supplier-repository/buildSupplierFilter',
       filters,
     });
-    
-    throw AppError.databaseError(
-      'Failed to prepare supplier filter',
-      { details: err.message }
-    );
+
+    throw AppError.databaseError('Failed to prepare supplier filter', {
+      details: err.message,
+    });
   }
 };
 

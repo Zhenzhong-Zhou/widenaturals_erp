@@ -46,8 +46,7 @@ const supplierLookupSlice = createSlice({
       .addCase(fetchSupplierLookupThunk.rejected, (state, action) => {
         state.loading = false;
         state.error =
-          (action.payload as string) ??
-          'Failed to fetch supplier lookup';
+          (action.payload as string) ?? 'Failed to fetch supplier lookup';
       });
   },
 });
@@ -55,7 +54,6 @@ const supplierLookupSlice = createSlice({
 // -----------------------------
 // Exports
 // -----------------------------
-export const { resetSupplierLookup } =
-  supplierLookupSlice.actions;
+export const { resetSupplierLookup } = supplierLookupSlice.actions;
 
 export default supplierLookupSlice.reducer;

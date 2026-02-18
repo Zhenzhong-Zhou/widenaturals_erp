@@ -1,4 +1,5 @@
-import { FC, ReactNode, useEffect, useState } from 'react';
+import type { FC, ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { useMediaQuery, useTheme } from '@mui/material';
 import Box from '@mui/material/Box';
 import Sidebar from '@layouts/Sidebar/Sidebar';

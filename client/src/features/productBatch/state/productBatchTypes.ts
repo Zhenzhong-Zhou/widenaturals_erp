@@ -7,7 +7,7 @@ import type {
   SortConfig,
 } from '@shared-types/api';
 import type { NullableString } from '@shared-types/shared';
-import { ReduxPaginatedState } from '@shared-types/pagination';
+import type { ReduxPaginatedState } from '@shared-types/pagination';
 
 /**
  * Paginated API response for product batch listing.

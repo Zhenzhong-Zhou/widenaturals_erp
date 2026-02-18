@@ -15,23 +15,23 @@ import { resetLocationTypeLookup } from '@features/lookup/state/locationTypeLook
  */
 const useLocationTypeLookup = () => {
   const dispatch = useAppDispatch();
-  
+
   const options = useAppSelector(selectLocationTypeLookupOptions);
   const loading = useAppSelector(selectLocationTypeLookupLoading);
   const error = useAppSelector(selectLocationTypeLookupError);
   const meta = useAppSelector(selectLocationTypeLookupMeta);
-  
+
   const fetch = useCallback(
     (params?: LocationTypeLookupParams) => {
       dispatch(fetchLocationTypeLookupThunk(params));
     },
     [dispatch]
   );
-  
+
   const reset = useCallback(() => {
     dispatch(resetLocationTypeLookup());
   }, [dispatch]);
-  
+
   return useMemo(
     () => ({
       options,

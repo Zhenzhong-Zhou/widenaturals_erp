@@ -1,5 +1,5 @@
-import { NullableNumber, NullableString } from '@shared-types/shared';
-import {
+import type { NullableNumber, NullableString } from '@shared-types/shared';
+import type {
   ApiSuccessResponse,
   AsyncState,
   DateRange,
@@ -11,7 +11,7 @@ import {
   PaginationParams,
   SortConfig,
 } from '@shared-types/api';
-import { ReduxPaginatedState } from '@shared-types/pagination';
+import type { ReduxPaginatedState } from '@shared-types/pagination';
 
 /**
  * CreateUserRequest

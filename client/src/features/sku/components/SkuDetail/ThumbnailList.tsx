@@ -1,10 +1,10 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import { useTheme } from '@mui/material/styles';
 import { alpha } from '@mui/material';
 import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
 import CardMedia from '@mui/material/CardMedia';
-import { SkuImage } from '@features/sku/state';
+import type { SkuImage } from '@features/sku/state';
 import { formatImageUrl } from '@utils/formatImageUrl';
 
 interface ThumbnailListProps {

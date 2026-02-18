@@ -1,4 +1,4 @@
-import { ApiSuccessResponse, AsyncState } from '@shared-types/api';
+import type { ApiSuccessResponse, AsyncState } from '@shared-types/api';
 
 /**
  * Data payload returned after a successful password change.

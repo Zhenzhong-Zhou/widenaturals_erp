@@ -1,4 +1,6 @@
-const { buildManufacturerFilter } = require('../utils/sql/build-manufacturer-filter');
+const {
+  buildManufacturerFilter,
+} = require('../utils/sql/build-manufacturer-filter');
 const { paginateQueryByOffset } = require('../database/db');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
@@ -55,34 +57,31 @@ const AppError = require('../utils/AppError');
  * @throws {AppError} If database query fails
  */
 const getManufacturerLookup = async ({
-                                       filters = {},
-                                       options = {},
-                                       limit = 50,
-                                       offset = 0,
-                                     }) => {
+  filters = {},
+  options = {},
+  limit = 50,
+  offset = 0,
+}) => {
   const context = 'manufacturer-repository/getManufacturerLookup';
   const tableName = 'manufacturers m';
-  
-  const {
-    canSearchStatus = false,
-    canSearchLocation = false,
-  } = options;
-  
+
+  const { canSearchStatus = false, canSearchLocation = false } = options;
+
   const joins = [];
-  
+
   if (canSearchStatus) {
     joins.push('LEFT JOIN status s ON s.id = m.status_id');
   }
-  
+
   if (canSearchLocation) {
     joins.push('LEFT JOIN locations l ON l.id = m.location_id');
   }
-  
+
   const { whereClause, params } = buildManufacturerFilter(filters, {
     canSearchStatus,
     canSearchLocation,
   });
-  
+
   const queryText = `
     SELECT
       m.id,
@@ -93,7 +92,7 @@ const getManufacturerLookup = async ({
     ${joins.join('\n')}
     WHERE ${whereClause}
   `;
-  
+
   try {
     const result = await paginateQueryByOffset({
       tableName,
@@ -107,7 +106,7 @@ const getManufacturerLookup = async ({
       sortOrder: 'ASC',
       additionalSort: 'm.code ASC',
     });
-    
+
     logSystemInfo('Fetched manufacturer lookup data', {
       context,
       offset,
@@ -115,7 +114,7 @@ const getManufacturerLookup = async ({
       filters,
       options,
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch manufacturer lookup', {
@@ -125,10 +124,8 @@ const getManufacturerLookup = async ({
       filters,
       options,
     });
-    
-    throw AppError.databaseError(
-      'Failed to fetch manufacturer lookup.'
-    );
+
+    throw AppError.databaseError('Failed to fetch manufacturer lookup.');
   }
 };
 

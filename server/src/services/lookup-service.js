@@ -143,22 +143,28 @@ const {
 const {
   evaluateManufacturerVisibilityAccessControl,
   evaluateManufacturerLookupSearchCapabilities,
-  enrichManufacturerLookupWithActiveFlag
+  enrichManufacturerLookupWithActiveFlag,
 } = require('../business/manufacturer-business');
-const { applyLookupVisibilityRules } = require('../business/visibility/apply-lookup-visibility');
-const { getManufacturerLookup } = require('../repositories/manufacturer-repository');
+const {
+  applyLookupVisibilityRules,
+} = require('../business/visibility/apply-lookup-visibility');
+const {
+  getManufacturerLookup,
+} = require('../repositories/manufacturer-repository');
 const {
   evaluateSupplierVisibilityAccessControl,
   evaluateSupplierLookupSearchCapabilities,
-  enrichSupplierLookupWithActiveFlag
+  enrichSupplierLookupWithActiveFlag,
 } = require('../business/supplier-business');
 const { getSupplierLookup } = require('../repositories/supplier-repository');
 const {
   evaluateLocationTypeVisibilityAccessControl,
   evaluateLocationTypeLookupSearchCapabilities,
-  enrichLocationTypeLookupWithActiveFlag
+  enrichLocationTypeLookupWithActiveFlag,
 } = require('../business/location-type-business');
-const { getLocationTypeLookup } = require('../repositories/location-type-repository');
+const {
+  getLocationTypeLookup,
+} = require('../repositories/location-type-repository');
 
 /**
  * Service to fetch filtered and paginated batch registry records for lookup UI.
@@ -1723,7 +1729,7 @@ const fetchManufacturerLookupService = async (
   { filters = {}, limit = 50, offset = 0 }
 ) => {
   const context = 'lookup-service/fetchManufacturerLookupService';
-  
+
   try {
     // ---------------------------------------------------------
     // Step 1 — Log request
@@ -1732,19 +1738,19 @@ const fetchManufacturerLookupService = async (
       context,
       metadata: { filters, limit, offset },
     });
-    
+
     // ---------------------------------------------------------
     // Step 2 — Resolve visibility ACL
     // ---------------------------------------------------------
     const acl = await evaluateManufacturerVisibilityAccessControl(user);
     const activeStatusId = getStatusId('general_active');
-    
+
     // ---------------------------------------------------------
     // Step 3 — Resolve search capabilities
     // ---------------------------------------------------------
     const searchCapabilities =
       await evaluateManufacturerLookupSearchCapabilities(user);
-    
+
     // ---------------------------------------------------------
     // Step 4 — Apply lookup visibility rules (reusable)
     // ---------------------------------------------------------
@@ -1754,29 +1760,28 @@ const fetchManufacturerLookupService = async (
       activeStatusId,
       fullVisibilityKey: 'canViewAllManufacturers',
     });
-    
+
     // ---------------------------------------------------------
     // Step 5 — Repository lookup
     // ---------------------------------------------------------
-    const { data = [], pagination = {} } =
-      await getManufacturerLookup({
-        filters: adjustedFilters,
-        options: searchCapabilities,
-        limit,
-        offset,
-      });
-    
+    const { data = [], pagination = {} } = await getManufacturerLookup({
+      filters: adjustedFilters,
+      options: searchCapabilities,
+      limit,
+      offset,
+    });
+
     // ---------------------------------------------------------
     // Step 6 — Enrichment (only when inactive may appear)
     // ---------------------------------------------------------
     let enrichedRows = data;
-    
+
     if (!acl.enforceActiveOnly) {
       enrichedRows = data.map((row) =>
         enrichManufacturerLookupWithActiveFlag(row, activeStatusId)
       );
     }
-    
+
     // ---------------------------------------------------------
     // Step 7 — Transform for UI
     // ---------------------------------------------------------
@@ -1785,25 +1790,18 @@ const fetchManufacturerLookupService = async (
       acl
     );
   } catch (err) {
-    logSystemException(
-      err,
-      'Failed to fetch Manufacturer lookup in service',
-      {
-        context,
-        userId: user?.id,
-        filters,
-        limit,
-        offset,
-      }
-    );
-    
-    throw AppError.serviceError(
-      'Failed to fetch manufacturer lookup list.',
-      {
-        details: err.message,
-        stage: context,
-      }
-    );
+    logSystemException(err, 'Failed to fetch Manufacturer lookup in service', {
+      context,
+      userId: user?.id,
+      filters,
+      limit,
+      offset,
+    });
+
+    throw AppError.serviceError('Failed to fetch manufacturer lookup list.', {
+      details: err.message,
+      stage: context,
+    });
   }
 };
 
@@ -1846,7 +1844,7 @@ const fetchSupplierLookupService = async (
   { filters = {}, limit = 50, offset = 0 }
 ) => {
   const context = 'lookup-service/fetchSupplierLookupService';
-  
+
   try {
     // ---------------------------------------------------------
     // Step 1 — Log request
@@ -1855,19 +1853,19 @@ const fetchSupplierLookupService = async (
       context,
       metadata: { filters, limit, offset },
     });
-    
+
     // ---------------------------------------------------------
     // Step 2 — Resolve visibility ACL
     // ---------------------------------------------------------
     const acl = await evaluateSupplierVisibilityAccessControl(user);
     const activeStatusId = getStatusId('general_active');
-    
+
     // ---------------------------------------------------------
     // Step 3 — Resolve search capabilities
     // ---------------------------------------------------------
     const searchCapabilities =
       await evaluateSupplierLookupSearchCapabilities(user);
-    
+
     // ---------------------------------------------------------
     // Step 4 — Apply lookup visibility rules (reusable)
     // ---------------------------------------------------------
@@ -1877,29 +1875,28 @@ const fetchSupplierLookupService = async (
       activeStatusId,
       fullVisibilityKey: 'canViewAllSuppliers',
     });
-    
+
     // ---------------------------------------------------------
     // Step 5 — Repository lookup
     // ---------------------------------------------------------
-    const { data = [], pagination = {} } =
-      await getSupplierLookup({
-        filters: adjustedFilters,
-        options: searchCapabilities,
-        limit,
-        offset,
-      });
-    
+    const { data = [], pagination = {} } = await getSupplierLookup({
+      filters: adjustedFilters,
+      options: searchCapabilities,
+      limit,
+      offset,
+    });
+
     // ---------------------------------------------------------
     // Step 6 — Enrichment (only when inactive may appear)
     // ---------------------------------------------------------
     let enrichedRows = data;
-    
+
     if (!acl.enforceActiveOnly) {
       enrichedRows = data.map((row) =>
         enrichSupplierLookupWithActiveFlag(row, activeStatusId)
       );
     }
-    
+
     // ---------------------------------------------------------
     // Step 7 — Transform for UI
     // ---------------------------------------------------------
@@ -1908,25 +1905,18 @@ const fetchSupplierLookupService = async (
       acl
     );
   } catch (err) {
-    logSystemException(
-      err,
-      'Failed to fetch Supplier lookup in service',
-      {
-        context,
-        userId: user?.id,
-        filters,
-        limit,
-        offset,
-      }
-    );
-    
-    throw AppError.serviceError(
-      'Failed to fetch supplier lookup list.',
-      {
-        details: err.message,
-        stage: context,
-      }
-    );
+    logSystemException(err, 'Failed to fetch Supplier lookup in service', {
+      context,
+      userId: user?.id,
+      filters,
+      limit,
+      offset,
+    });
+
+    throw AppError.serviceError('Failed to fetch supplier lookup list.', {
+      details: err.message,
+      stage: context,
+    });
   }
 };
 
@@ -1969,7 +1959,7 @@ const fetchLocationTypeLookupService = async (
   { filters = {}, limit = 50, offset = 0 }
 ) => {
   const context = 'lookup-service/fetchLocationTypeLookupService';
-  
+
   try {
     // ---------------------------------------------------------
     // Step 1 — Log request
@@ -1978,21 +1968,20 @@ const fetchLocationTypeLookupService = async (
       context,
       metadata: { filters, limit, offset },
     });
-    
+
     // ---------------------------------------------------------
     // Step 2 — Resolve visibility ACL
     // ---------------------------------------------------------
-    const acl =
-      await evaluateLocationTypeVisibilityAccessControl(user);
-    
+    const acl = await evaluateLocationTypeVisibilityAccessControl(user);
+
     const activeStatusId = getStatusId('general_active');
-    
+
     // ---------------------------------------------------------
     // Step 3 — Resolve lookup search capabilities
     // ---------------------------------------------------------
     const searchCapabilities =
       await evaluateLocationTypeLookupSearchCapabilities(user);
-    
+
     // ---------------------------------------------------------
     // Step 4 — Apply lookup visibility rules
     // ---------------------------------------------------------
@@ -2002,32 +1991,28 @@ const fetchLocationTypeLookupService = async (
       activeStatusId,
       fullVisibilityKey: 'canViewAllLocationTypes',
     });
-    
+
     // ---------------------------------------------------------
     // Step 5 — Repository lookup
     // ---------------------------------------------------------
-    const { data = [], pagination = {} } =
-      await getLocationTypeLookup({
-        filters: adjustedFilters,
-        options: searchCapabilities,
-        limit,
-        offset,
-      });
-    
+    const { data = [], pagination = {} } = await getLocationTypeLookup({
+      filters: adjustedFilters,
+      options: searchCapabilities,
+      limit,
+      offset,
+    });
+
     // ---------------------------------------------------------
     // Step 6 — Enrichment (only when inactive may appear)
     // ---------------------------------------------------------
     let enrichedRows = data;
-    
+
     if (!acl.enforceActiveOnly) {
       enrichedRows = data.map((row) =>
-        enrichLocationTypeLookupWithActiveFlag(
-          row,
-          activeStatusId
-        )
+        enrichLocationTypeLookupWithActiveFlag(row, activeStatusId)
       );
     }
-    
+
     // ---------------------------------------------------------
     // Step 7 — Transform for UI
     // ---------------------------------------------------------
@@ -2036,25 +2021,18 @@ const fetchLocationTypeLookupService = async (
       acl
     );
   } catch (err) {
-    logSystemException(
-      err,
-      'Failed to fetch Location Type lookup in service',
-      {
-        context,
-        userId: user?.id,
-        filters,
-        limit,
-        offset,
-      }
-    );
-    
-    throw AppError.serviceError(
-      'Failed to fetch location type lookup list.',
-      {
-        details: err.message,
-        stage: context,
-      }
-    );
+    logSystemException(err, 'Failed to fetch Location Type lookup in service', {
+      context,
+      userId: user?.id,
+      filters,
+      limit,
+      offset,
+    });
+
+    throw AppError.serviceError('Failed to fetch location type lookup list.', {
+      details: err.message,
+      stage: context,
+    });
   }
 };
 

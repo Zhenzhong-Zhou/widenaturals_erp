@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import {
+import type {
   ProductStatusUpdateState,
   UpdateProductApiResponse,
 } from '@features/product/state/productTypes';

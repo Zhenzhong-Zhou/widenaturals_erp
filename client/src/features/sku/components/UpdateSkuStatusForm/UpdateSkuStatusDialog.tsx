@@ -7,7 +7,7 @@ import {
   UpdateSkuStatusForm,
   UpdateSkuStatusSuccessDialog,
 } from '@features/sku/components/UpdateSkuStatusForm';
-import {
+import type {
   StatusLookupController,
   StatusPayload,
 } from '@features/lookup/hooks/useStatusFieldController';

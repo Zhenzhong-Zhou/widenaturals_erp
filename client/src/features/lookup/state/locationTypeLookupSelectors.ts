@@ -1,5 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '@store/store';
+import type { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 import {
   createLookupMetaSelector,
@@ -37,8 +37,9 @@ export const selectLocationTypeLookupError = createSelector(
 // -----------------------------
 // Pagination Meta
 // -----------------------------
-export const selectLocationTypeLookupMeta =
-  createLookupMetaSelector(selectLocationTypeLookupState);
+export const selectLocationTypeLookupMeta = createLookupMetaSelector(
+  selectLocationTypeLookupState
+);
 
 // -----------------------------
 // Options Mapping

@@ -12,7 +12,7 @@ import {
   SkuMultiSelectDropdown,
   StatusMultiSelectDropdown,
 } from '@features/lookup/components';
-import {
+import type {
   usePackagingMaterialLookup,
   useProductLookup,
   useSkuLookup,

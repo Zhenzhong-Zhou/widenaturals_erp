@@ -1,7 +1,6 @@
 import { type FC } from 'react';
-import MultiSelectDropdown, {
-  MultiSelectDropdownProps,
-} from '@components/common/MultiSelectDropdown';
+import type { MultiSelectDropdownProps } from '@components/common/MultiSelectDropdown';
+import MultiSelectDropdown from '@components/common/MultiSelectDropdown';
 
 /**
  * Location Type-specific multi-select dropdown props.
@@ -24,16 +23,12 @@ type LocationTypeMultiSelectDropdownProps = Omit<
 const LocationTypeMultiSelectDropdown: FC<
   LocationTypeMultiSelectDropdownProps
 > = ({
-       label = 'Select Location Type',
-       placeholder = 'Choose location type…',
-       ...rest
-     }) => {
+  label = 'Select Location Type',
+  placeholder = 'Choose location type…',
+  ...rest
+}) => {
   return (
-    <MultiSelectDropdown
-      label={label}
-      placeholder={placeholder}
-      {...rest}
-    />
+    <MultiSelectDropdown label={label} placeholder={placeholder} {...rest} />
   );
 };
 

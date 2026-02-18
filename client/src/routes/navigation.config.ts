@@ -1,4 +1,4 @@
-import { NavigationItem } from '@routes/index';
+import type { NavigationItem } from '@routes/index';
 import ROUTE_PERMISSIONS from '@utils/constants/routePermissionConstants';
 
 /**

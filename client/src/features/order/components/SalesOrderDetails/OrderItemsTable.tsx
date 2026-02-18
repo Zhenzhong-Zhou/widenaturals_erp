@@ -4,7 +4,7 @@ import {
   getOrderItemColumns,
   OrderItemDetailSection,
 } from '@features/order/components/SalesOrderDetails/index';
-import { FlattenedOrderItemRow } from '@features/order/state';
+import type { FlattenedOrderItemRow } from '@features/order/state';
 
 interface OrderItemsTableProps {
   items: FlattenedOrderItemRow[];

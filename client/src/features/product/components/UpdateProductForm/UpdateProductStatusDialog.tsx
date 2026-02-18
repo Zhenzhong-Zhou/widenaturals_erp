@@ -7,7 +7,7 @@ import {
   UpdateProductStatusForm,
   UpdateProductStatusSuccessDialog,
 } from '@features/product/components/UpdateProductForm';
-import {
+import type {
   StatusLookupController,
   StatusPayload,
 } from '@features/lookup/hooks/useStatusFieldController';

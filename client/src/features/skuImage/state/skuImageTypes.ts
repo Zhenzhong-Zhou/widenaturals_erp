@@ -1,11 +1,11 @@
-import {
+import type {
   ApiSuccessResponse,
   AsyncState,
   BatchProcessStats,
   ImageFileFormat,
   ImageType,
 } from '@shared-types/api';
-import { NullableNumber, NullableString } from '@shared-types/shared';
+import type { NullableNumber, NullableString } from '@shared-types/shared';
 
 /**
  * Describes the origin of a SKU image record.

@@ -1,4 +1,5 @@
-import { type FC, ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import { type FC } from 'react';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 import CustomTypography from '@components/common/CustomTypography';

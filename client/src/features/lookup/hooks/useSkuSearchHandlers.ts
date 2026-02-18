@@ -1,5 +1,5 @@
 import { useDebouncedSearch } from '@utils/hooks';
-import { SkuLookupQueryParams } from '@features/lookup/state';
+import type { SkuLookupQueryParams } from '@features/lookup/state';
 
 /**
  * A generic interface representing any module's SKU lookup bundle.

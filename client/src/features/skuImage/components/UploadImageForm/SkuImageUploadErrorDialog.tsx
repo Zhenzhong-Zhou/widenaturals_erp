@@ -3,7 +3,7 @@ import Box from '@mui/material/Box';
 import ErrorIcon from '@mui/icons-material/Error';
 import CustomDialog from '@components/common/CustomDialog';
 import ResultBody from '@components/common/ResultBody';
-import {
+import type {
   BulkSkuImageUploadResult,
   SkuImageUploadCardData,
 } from '@features/skuImage/state';

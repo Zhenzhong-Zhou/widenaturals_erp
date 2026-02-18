@@ -1,7 +1,8 @@
 import { Suspense, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import Box from '@mui/material/Box';
-import CustomTable, { CustomTableProps } from '@components/common/CustomTable';
+import type { CustomTableProps } from '@components/common/CustomTable';
+import CustomTable from '@components/common/CustomTable';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import SkeletonExpandedRow from '@components/common/SkeletonExpandedRow';

@@ -1,4 +1,4 @@
-import {
+import type {
   ApiSuccessResponse,
   AsyncState,
   GenericAudit,
@@ -7,8 +7,8 @@ import {
   PaginationParams,
   SortConfig,
 } from '@shared-types/api';
-import { NullableString } from '@shared-types/shared';
-import { ReduxPaginatedState } from '@shared-types/pagination';
+import type { NullableString } from '@shared-types/shared';
+import type { ReduxPaginatedState } from '@shared-types/pagination';
 
 /**
  * Domain-level Location Type record
@@ -25,19 +25,19 @@ import { ReduxPaginatedState } from '@shared-types/pagination';
 export interface LocationTypeRecord {
   /** Unique identifier (UUID) */
   id: string;
-  
+
   /** Machine-readable facility type code */
   code: string;
-  
+
   /** Human-readable facility type name */
   name: string;
-  
+
   /** Optional description of the facility type */
   description: NullableString;
-  
+
   /** Current status metadata */
   status: GenericStatus;
-  
+
   /** Audit metadata (creation & update tracking) */
   audit: GenericAudit;
 }
@@ -56,51 +56,51 @@ export interface FlattenedLocationTypeRecord {
   // --------------------------------------------------
   // Core identity
   // --------------------------------------------------
-  
+
   /** Unique identifier (UUID) */
   id: string;
-  
+
   /** Machine-readable facility type code */
   code: string;
-  
+
   /** Human-readable facility type name */
   name: string;
-  
+
   /** Optional description */
   description: NullableString;
-  
+
   // --------------------------------------------------
   // Status (flattened)
   // --------------------------------------------------
-  
+
   /** Status ID */
   statusId: string;
-  
+
   /** Status display name */
   statusName: string;
-  
+
   /** Status effective date (ISO timestamp) */
   statusDate: string;
-  
+
   // --------------------------------------------------
   // Audit (flattened)
   // --------------------------------------------------
-  
+
   /** Record creation timestamp */
   createdAt: string;
-  
+
   /** Creator user ID */
   createdById: NullableString;
-  
+
   /** Creator display name */
   createdByName: string;
-  
+
   /** Last update timestamp */
   updatedAt: NullableString;
-  
+
   /** Last updater user ID */
   updatedById: NullableString;
-  
+
   /** Last updater display name */
   updatedByName: NullableString;
 }
@@ -131,28 +131,28 @@ export type LocationTypeSortField =
 export interface LocationTypeListFilters {
   /** Filter by one or multiple status IDs */
   statusIds?: string | string[];
-  
+
   /** Partial match on name */
   name?: string;
-  
+
   /** Filter by creator user ID */
   createdBy?: string;
-  
+
   /** Filter by updater user ID */
   updatedBy?: string;
-  
+
   /** Created date range start (inclusive) */
   createdAfter?: string;
-  
+
   /** Created date range end (inclusive) */
   createdBefore?: string;
-  
+
   /** Updated date range start (inclusive) */
   updatedAfter?: string;
-  
+
   /** Updated date range end (inclusive) */
   updatedBefore?: string;
-  
+
   /** Keyword search across code and name */
   keyword?: string;
 }
@@ -168,8 +168,7 @@ export interface LocationTypeListFilters {
  * and consistent with other ERP list modules.
  */
 export interface LocationTypeListQueryParams
-  extends PaginationParams,
-    SortConfig {
+  extends PaginationParams, SortConfig {
   filters?: LocationTypeListFilters;
 }
 
@@ -235,21 +234,21 @@ export interface FlattenedLocationTypeDetails {
   code: string;
   name: string;
   description: NullableString;
-  
+
   // ────────────────────────────────────────────
   // Status (flattened)
   // ────────────────────────────────────────────
   statusId: string;
   statusName: string;
   statusDate: string;
-  
+
   // ────────────────────────────────────────────
   // Audit metadata (flattened)
   // ────────────────────────────────────────────
   createdAt: string;
   createdById: NullableString;
   createdByName: string;
-  
+
   updatedAt: NullableString;
   updatedById: NullableString;
   updatedByName: NullableString;

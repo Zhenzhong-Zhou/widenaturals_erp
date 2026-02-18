@@ -12,7 +12,7 @@ import {
   StatusMultiSelectDropdown,
   ManufacturerMultiSelectDropdown,
 } from '@features/lookup/components';
-import {
+import type {
   useProductLookup,
   useSkuLookup,
   useStatusLookup,
@@ -133,12 +133,7 @@ const ProductBatchFiltersPanel: FC<Props> = ({
       defaultValues: filters,
     });
 
-  const {
-    product,
-    sku,
-    manufacturer,
-    status,
-  } = lookups;
+  const { product, sku, manufacturer, status } = lookups;
 
   /* -----------------------------
    * Lookup bindings

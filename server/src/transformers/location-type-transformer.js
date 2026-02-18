@@ -15,16 +15,16 @@ const transformLocationTypeRow = (row) => {
     code: row.code,
     name: row.name,
     description: row.description ?? null,
-    
+
     status: {
       id: row.status_id ?? null,
       name: row.status_name ?? null,
       date: row.status_date ?? null,
     },
-    
+
     audit: compactAudit(makeAudit(row)),
   };
-  
+
   return cleanObject(base);
 };
 
@@ -72,9 +72,8 @@ const transformLocationTypeRow = (row) => {
  * }}
  */
 const transformPaginatedLocationTypeResults = (paginatedResult) => {
-  return transformPaginatedResult(
-    paginatedResult,
-    (row) => transformLocationTypeRow(row)
+  return transformPaginatedResult(paginatedResult, (row) =>
+    transformLocationTypeRow(row)
   );
 };
 
@@ -109,16 +108,16 @@ const transformLocationTypeDetail = (row) => {
     code: row.code,
     name: row.name,
     description: row.description ?? null,
-    
+
     status: {
       id: row.status_id ?? null,
       name: row.status_name ?? null,
       date: row.status_date ?? null,
     },
-    
+
     audit: compactAudit(makeAudit(row)),
   };
-  
+
   return cleanObject(base);
 };
 

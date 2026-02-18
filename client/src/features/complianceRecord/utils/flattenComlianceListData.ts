@@ -1,4 +1,4 @@
-import {
+import type {
   ComplianceRecord,
   ComplianceRecordTableRow,
 } from '@features/complianceRecord/state';

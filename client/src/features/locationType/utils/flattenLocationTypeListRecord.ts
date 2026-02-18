@@ -27,21 +27,21 @@ export const flattenLocationTypeListRecord = (
     code: locationType.code,
     name: locationType.name,
     description: locationType.description ?? null,
-    
+
     // --------------------------------------------------
     // Status
     // --------------------------------------------------
     statusId: locationType.status.id,
     statusName: locationType.status.name,
     statusDate: locationType.status.date,
-    
+
     // --------------------------------------------------
     // Audit
     // --------------------------------------------------
     createdAt: locationType.audit.createdAt,
     createdById: locationType.audit.createdBy?.id ?? null,
     createdByName: locationType.audit.createdBy?.name ?? '—',
-    
+
     updatedAt: locationType.audit.updatedAt ?? null,
     updatedById: locationType.audit.updatedBy?.id ?? null,
     updatedByName: locationType.audit.updatedBy?.name ?? null,

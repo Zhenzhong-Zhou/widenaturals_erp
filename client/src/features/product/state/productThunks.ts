@@ -11,7 +11,7 @@ import type {
   UpdateProductStatusThunkArgs,
 } from '@features/product/state/productTypes';
 import { productService } from '@services/productService';
-import { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 import { extractUiErrorPayload } from '@utils/error';
 import { flattenProductRecords } from '@features/product/utils';
 

@@ -20,12 +20,11 @@ export type ManufacturerLookupBundle = {
  *  - Compliance manufacturer filters
  *  - Procurement workflows
  */
-const useManufacturerSearchHandlers = (
-  bundle: ManufacturerLookupBundle
-) => {
-  const handleSearch =
-    useDebouncedSearch<ManufacturerLookupParams>(bundle.fetch);
-  
+const useManufacturerSearchHandlers = (bundle: ManufacturerLookupBundle) => {
+  const handleSearch = useDebouncedSearch<ManufacturerLookupParams>(
+    bundle.fetch
+  );
+
   return {
     /**
      * Debounced handler for manufacturer keyword searches.

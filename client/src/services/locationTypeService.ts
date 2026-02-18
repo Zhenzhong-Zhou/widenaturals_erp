@@ -43,14 +43,14 @@ const fetchPaginatedLocationTypes = async (
   params: LocationTypeListQueryParams = {}
 ): Promise<PaginatedLocationTypeApiResponse> => {
   const flatParams = flattenListQueryParams(params);
-  
+
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.LOCATION_TYPES.ALL_RECORDS}${queryString}`;
-  
+
   const data = await getRequest<PaginatedLocationTypeApiResponse>(url, {
     policy: 'READ',
   });
-  
+
   /**
    * Defensive validation
    */
@@ -64,7 +64,7 @@ const fetchPaginatedLocationTypes = async (
       params,
     });
   }
-  
+
   return data;
 };
 
@@ -113,7 +113,7 @@ const fetchLocationTypeDetailsById = (
   locationTypeId: string
 ): Promise<GetLocationTypeDetailsApiResponse> => {
   const cleanId = sanitizeString(locationTypeId);
-  
+
   return getRequest<GetLocationTypeDetailsApiResponse>(
     API_ENDPOINTS.LOCATION_TYPES.LOCATION_TYPE_DETAILS(cleanId),
     { policy: 'READ' }

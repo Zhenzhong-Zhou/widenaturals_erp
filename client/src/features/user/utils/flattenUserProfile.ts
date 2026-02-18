@@ -1,4 +1,4 @@
-import { FlattenedUserProfile, UserProfile } from '@features/user';
+import type { FlattenedUserProfile, UserProfile } from '@features/user';
 import { formatImageUrl } from '@utils/formatImageUrl';
 
 /**

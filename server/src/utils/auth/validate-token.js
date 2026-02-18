@@ -144,9 +144,14 @@ const validateRefreshTokenState = async (
     );
 
     if (token.session_id) {
-      await revokeSession(token.session_id, {
-        ipAddress, userAgent,
-      }, client);
+      await revokeSession(
+        token.session_id,
+        {
+          ipAddress,
+          userAgent,
+        },
+        client
+      );
     }
 
     throw AppError.authenticationError(

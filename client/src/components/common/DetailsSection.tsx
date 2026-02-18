@@ -1,4 +1,4 @@
-import { type FC, isValidElement, memo, ReactNode } from 'react';
+import { type FC, type ReactNode, isValidElement, memo } from 'react';
 import { useTheme } from '@mui/material';
 import type { SxProps, Theme } from '@mui/system';
 import Box from '@mui/material/Box';

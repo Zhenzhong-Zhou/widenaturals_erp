@@ -46,8 +46,7 @@ const locationTypeLookupSlice = createSlice({
       .addCase(fetchLocationTypeLookupThunk.rejected, (state, action) => {
         state.loading = false;
         state.error =
-          (action.payload as string) ??
-          'Failed to fetch location type lookup';
+          (action.payload as string) ?? 'Failed to fetch location type lookup';
       });
   },
 });
@@ -55,7 +54,6 @@ const locationTypeLookupSlice = createSlice({
 // -----------------------------
 // Exports
 // -----------------------------
-export const { resetLocationTypeLookup } =
-  locationTypeLookupSlice.actions;
+export const { resetLocationTypeLookup } = locationTypeLookupSlice.actions;
 
 export default locationTypeLookupSlice.reducer;

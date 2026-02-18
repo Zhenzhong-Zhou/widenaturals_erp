@@ -146,28 +146,25 @@ const buildManufacturerFilter = (filters = {}, options = {}) => {
       'updatedAfter',
       'updatedBefore'
     );
-    
+
     const conditions = ['1=1'];
     const params = [];
     const paramIndexRef = { value: 1 };
-    
+
     const includeArchived = filters.includeArchived === true;
     const enforceActiveOnly = filters.enforceActiveOnly === true;
     const hasStatusFilter =
       Array.isArray(filters.statusIds) && filters.statusIds.length > 0;
-    
-    const {
-      canSearchStatus = false,
-      canSearchLocation = false,
-    } = options;
-    
+
+    const { canSearchStatus = false, canSearchLocation = false } = options;
+
     // -------------------------------------------------------------
     // Archive visibility
     // -------------------------------------------------------------
     if (!includeArchived) {
       conditions.push('m.is_archived = FALSE');
     }
-    
+
     // -------------------------------------------------------------
     // Status visibility
     // -------------------------------------------------------------
@@ -176,13 +173,13 @@ const buildManufacturerFilter = (filters = {}, options = {}) => {
       params.push(filters.activeStatusId);
       paramIndexRef.value++;
     }
-    
+
     if (filters.statusIds?.length) {
       conditions.push(`m.status_id = ANY($${paramIndexRef.value}::uuid[])`);
       params.push(filters.statusIds);
       paramIndexRef.value++;
     }
-    
+
     // -------------------------------------------------------------
     // Location filter
     // -------------------------------------------------------------
@@ -191,7 +188,7 @@ const buildManufacturerFilter = (filters = {}, options = {}) => {
       params.push(filters.locationIds);
       paramIndexRef.value++;
     }
-    
+
     // -------------------------------------------------------------
     // Audit filters
     // -------------------------------------------------------------
@@ -200,13 +197,13 @@ const buildManufacturerFilter = (filters = {}, options = {}) => {
       params.push(filters.createdBy);
       paramIndexRef.value++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`m.updated_by = $${paramIndexRef.value}`);
       params.push(filters.updatedBy);
       paramIndexRef.value++;
     }
-    
+
     // -------------------------------------------------------------
     // Date filters
     // -------------------------------------------------------------
@@ -218,7 +215,7 @@ const buildManufacturerFilter = (filters = {}, options = {}) => {
       before: filters.createdBefore,
       paramIndexRef,
     });
-    
+
     applyDateRangeConditions({
       conditions,
       params,
@@ -227,7 +224,7 @@ const buildManufacturerFilter = (filters = {}, options = {}) => {
       before: filters.updatedBefore,
       paramIndexRef,
     });
-    
+
     // -------------------------------------------------------------
     // Direct text filters
     // -------------------------------------------------------------
@@ -238,7 +235,7 @@ const buildManufacturerFilter = (filters = {}, options = {}) => {
       filters.name,
       'm.name'
     );
-    
+
     paramIndexRef.value = addIlikeFilter(
       conditions,
       params,
@@ -246,7 +243,7 @@ const buildManufacturerFilter = (filters = {}, options = {}) => {
       filters.code,
       'm.code'
     );
-    
+
     paramIndexRef.value = addIlikeFilter(
       conditions,
       params,
@@ -254,7 +251,7 @@ const buildManufacturerFilter = (filters = {}, options = {}) => {
       filters.contactName,
       'm.contact_name'
     );
-    
+
     paramIndexRef.value = addIlikeFilter(
       conditions,
       params,
@@ -262,7 +259,7 @@ const buildManufacturerFilter = (filters = {}, options = {}) => {
       filters.contactEmail,
       'm.contact_email'
     );
-    
+
     // -------------------------------------------------------------
     // Keyword search (permission-aware)
     // -------------------------------------------------------------
@@ -273,20 +270,20 @@ const buildManufacturerFilter = (filters = {}, options = {}) => {
         `m.contact_name ILIKE $${paramIndexRef.value}`,
         `m.contact_email ILIKE $${paramIndexRef.value}`,
       ];
-      
+
       if (canSearchStatus) {
         keywordConditions.push(`s.name ILIKE $${paramIndexRef.value}`);
       }
-      
+
       if (canSearchLocation) {
         keywordConditions.push(`l.name ILIKE $${paramIndexRef.value}`);
       }
-      
+
       conditions.push(`(${keywordConditions.join(' OR ')})`);
       params.push(`%${filters.keyword}%`);
       paramIndexRef.value++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -296,11 +293,10 @@ const buildManufacturerFilter = (filters = {}, options = {}) => {
       context: 'manufacturer-repository/buildManufacturerFilter',
       filters,
     });
-    
-    throw AppError.databaseError(
-      'Failed to prepare manufacturer filter',
-      { details: err.message }
-    );
+
+    throw AppError.databaseError('Failed to prepare manufacturer filter', {
+      details: err.message,
+    });
   }
 };
 

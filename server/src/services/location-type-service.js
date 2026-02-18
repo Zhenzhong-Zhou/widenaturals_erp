@@ -61,14 +61,14 @@ const AppError = require('../utils/AppError');
  * @throws {AppError}
  */
 const fetchPaginatedLocationTypesService = async ({
-                                                    filters = {},
-                                                    page = 1,
-                                                    limit = 10,
-                                                    sortBy = 'created_at',
-                                                    sortOrder = 'DESC',
-                                                  }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'created_at',
+  sortOrder = 'DESC',
+}) => {
   const context = 'location-type-service/fetchPaginatedLocationTypesService';
-  
+
   try {
     // ----------------------------------------------------------
     // Step 1: Query raw paginated rows
@@ -80,7 +80,7 @@ const fetchPaginatedLocationTypesService = async ({
       sortBy,
       sortOrder,
     });
-    
+
     // ----------------------------------------------------------
     // Step 2: Handle empty result
     // ----------------------------------------------------------
@@ -91,7 +91,7 @@ const fetchPaginatedLocationTypesService = async ({
         pagination: { page, limit },
         sort: { sortBy, sortOrder },
       });
-      
+
       return {
         data: [],
         pagination: {
@@ -102,12 +102,12 @@ const fetchPaginatedLocationTypesService = async ({
         },
       };
     }
-    
+
     // ----------------------------------------------------------
     // Step 3: Transform SQL rows → API DTO
     // ----------------------------------------------------------
     const result = transformPaginatedLocationTypeResults(rawResult);
-    
+
     // ----------------------------------------------------------
     // Step 4: Log success
     // ----------------------------------------------------------
@@ -117,7 +117,7 @@ const fetchPaginatedLocationTypesService = async ({
       pagination: result.pagination,
       sort: { sortBy, sortOrder },
     });
-    
+
     return result;
   } catch (error) {
     // ----------------------------------------------------------
@@ -133,7 +133,7 @@ const fetchPaginatedLocationTypesService = async ({
         sort: { sortBy, sortOrder },
       }
     );
-    
+
     throw AppError.serviceError(
       'Could not fetch location types. Please try again later.',
       {
@@ -183,15 +183,14 @@ const fetchPaginatedLocationTypesService = async ({
  * console.log(locationType.status.name); // "Active"
  */
 const fetchLocationTypeDetailsService = async (locationTypeId) => {
-  const logContext =
-    'location-type-service/fetchLocationTypeDetailsService';
-  
+  const logContext = 'location-type-service/fetchLocationTypeDetailsService';
+
   try {
     // ----------------------------------------------------------
     // Step 1: Fetch raw row from repository
     // ----------------------------------------------------------
     const rawLocationType = await getLocationTypeById(locationTypeId);
-    
+
     // ----------------------------------------------------------
     // Step 2: Handle not found
     // ----------------------------------------------------------
@@ -200,19 +199,18 @@ const fetchLocationTypeDetailsService = async (locationTypeId) => {
         context: logContext,
         locationTypeId,
       });
-      
+
       throw AppError.notFoundError('Location type not found', {
         context: logContext,
         locationTypeId,
       });
     }
-    
+
     // ----------------------------------------------------------
     // Step 3: Transform to API-ready format
     // ----------------------------------------------------------
-    const locationType =
-      transformLocationTypeDetail(rawLocationType);
-    
+    const locationType = transformLocationTypeDetail(rawLocationType);
+
     // ----------------------------------------------------------
     // Step 4: Log success
     // ----------------------------------------------------------
@@ -220,7 +218,7 @@ const fetchLocationTypeDetailsService = async (locationTypeId) => {
       context: logContext,
       locationTypeId,
     });
-    
+
     return locationType;
   } catch (error) {
     // ----------------------------------------------------------
@@ -231,7 +229,7 @@ const fetchLocationTypeDetailsService = async (locationTypeId) => {
       locationTypeId,
       error: error.message,
     });
-    
+
     throw AppError.serviceError(
       'Could not fetch location type details. Please try again later.',
       {

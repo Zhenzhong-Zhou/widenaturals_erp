@@ -1,4 +1,4 @@
-import {
+import type {
   FlattenedProductDetail,
   ProductUpdateRequest,
 } from '@features/product/state';

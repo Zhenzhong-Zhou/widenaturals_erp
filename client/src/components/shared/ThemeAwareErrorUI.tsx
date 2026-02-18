@@ -3,7 +3,7 @@ import { useTheme } from '@mui/material';
 import Box from '@mui/material/Box';
 import CustomTypography from '@components/common/CustomTypography';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
-import { ErrorType } from '@utils/error';
+import type { ErrorType } from '@utils/error';
 
 /**
  * Theme-aware UI wrapper for module-level errors.

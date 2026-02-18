@@ -1,10 +1,9 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import Paper from '@mui/material/Paper';
 import CustomTypography from '@components/common/CustomTypography';
-import DetailsSection, {
-  DetailsSectionField,
-} from '@components/common/DetailsSection';
-import { FlattenedProductDetail } from '@features/product/state';
+import type { DetailsSectionField } from '@components/common/DetailsSection';
+import DetailsSection from '@components/common/DetailsSection';
+import type { FlattenedProductDetail } from '@features/product/state';
 import { formatLabel } from '@utils/textUtils';
 
 const buildProductInfoFields = (

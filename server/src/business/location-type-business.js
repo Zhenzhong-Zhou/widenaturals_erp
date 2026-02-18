@@ -1,5 +1,9 @@
-const { resolveUserPermissionContext } = require('../services/role-permission-service');
-const { LOCATION_TYPE_CONSTANTS } = require('../utils/constants/domain/location-type-constants');
+const {
+  resolveUserPermissionContext,
+} = require('../services/role-permission-service');
+const {
+  LOCATION_TYPE_CONSTANTS,
+} = require('../utils/constants/domain/location-type-constants');
 const { logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
@@ -40,31 +44,28 @@ const AppError = require('../utils/AppError');
  */
 const evaluateLocationTypeVisibilityAccessControl = async (user) => {
   try {
-    const { permissions, isRoot } =
-      await resolveUserPermissionContext(user);
-    
+    const { permissions, isRoot } = await resolveUserPermissionContext(user);
+
     const canViewAllLocationTypes =
       isRoot ||
       permissions.includes(
-        LOCATION_TYPE_CONSTANTS.PERMISSIONS
-          .VIEW_ALL_LOCATION_TYPES_VISIBILITY
+        LOCATION_TYPE_CONSTANTS.PERMISSIONS.VIEW_ALL_LOCATION_TYPES_VISIBILITY
       );
-    
+
     const canViewAllStatuses =
       canViewAllLocationTypes ||
       permissions.includes(
         LOCATION_TYPE_CONSTANTS.PERMISSIONS.VIEW_INACTIVE_SUPPLIERS
       );
-    
+
     const canViewInactive =
       canViewAllLocationTypes ||
       permissions.includes(
-        LOCATION_TYPE_CONSTANTS.PERMISSIONS
-          .VIEW_INACTIVE_LOCATION_TYPES
+        LOCATION_TYPE_CONSTANTS.PERMISSIONS.VIEW_INACTIVE_LOCATION_TYPES
       );
-    
+
     const enforceActiveOnly = !canViewInactive;
-    
+
     return {
       canViewAllStatuses,
       canViewInactive,
@@ -81,14 +82,13 @@ const evaluateLocationTypeVisibilityAccessControl = async (user) => {
         userId: user?.id,
       }
     );
-    
+
     throw AppError.businessError(
       'Unable to evaluate location type visibility access control.',
       { details: err.message }
     );
   }
 };
-
 
 /**
  * Evaluates which lookup search dimensions are available
@@ -108,16 +108,14 @@ const evaluateLocationTypeVisibilityAccessControl = async (user) => {
  */
 const evaluateLocationTypeLookupSearchCapabilities = async (user) => {
   try {
-    const { permissions, isRoot } =
-      await resolveUserPermissionContext(user);
-    
+    const { permissions, isRoot } = await resolveUserPermissionContext(user);
+
     const canSearchStatus =
       isRoot ||
       permissions.includes(
-        LOCATION_TYPE_CONSTANTS.PERMISSIONS
-          .SEARCH_LOCATION_TYPES_BY_STATUS
+        LOCATION_TYPE_CONSTANTS.PERMISSIONS.SEARCH_LOCATION_TYPES_BY_STATUS
       );
-    
+
     return {
       canSearchStatus,
     };
@@ -131,14 +129,13 @@ const evaluateLocationTypeLookupSearchCapabilities = async (user) => {
         userId: user?.id,
       }
     );
-    
+
     throw AppError.businessError(
       'Unable to evaluate location type lookup search capabilities.',
       { details: err.message }
     );
   }
 };
-
 
 /**
  * Enrich a Location Type lookup row with an explicit active-state flag.
@@ -165,28 +162,24 @@ const evaluateLocationTypeLookupSearchCapabilities = async (user) => {
  *
  * @throws {AppError}
  */
-const enrichLocationTypeLookupWithActiveFlag = (
-  row,
-  activeStatusId
-) => {
+const enrichLocationTypeLookupWithActiveFlag = (row, activeStatusId) => {
   if (!row || typeof row !== 'object') {
     throw AppError.validationError(
       '[enrichLocationTypeLookupWithActiveFlag] Invalid row.'
     );
   }
-  
+
   if (!activeStatusId) {
     throw AppError.validationError(
       '[enrichLocationTypeLookupWithActiveFlag] Missing activeStatusId.'
     );
   }
-  
+
   return {
     ...row,
     isActive: row.status_id === activeStatusId,
   };
 };
-
 
 module.exports = {
   evaluateLocationTypeVisibilityAccessControl,

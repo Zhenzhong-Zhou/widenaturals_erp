@@ -1,5 +1,5 @@
 import type { WritePolicy } from '@utils/http';
-import { AxiosRequestConfig } from 'axios';
+import type { AxiosRequestConfig } from 'axios';
 import { requestWithNamedPolicy } from '@utils/http';
 import axiosInstance from '@utils/axiosConfig';
 import { mapHttpError } from '@utils/error';

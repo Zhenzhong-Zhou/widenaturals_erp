@@ -1,5 +1,8 @@
-import { NullableString } from '@shared-types/shared';
-import { Pagination, PaginationLookupInfo } from '@shared-types/pagination';
+import type { NullableString } from '@shared-types/shared';
+import type {
+  Pagination,
+  PaginationLookupInfo,
+} from '@shared-types/pagination';
 
 /**
  * Generic interface for a paginated API response.

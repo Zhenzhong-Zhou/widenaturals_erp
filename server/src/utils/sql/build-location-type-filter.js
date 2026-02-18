@@ -121,25 +121,23 @@ const buildLocationTypeFilter = (filters = {}, options = {}) => {
       'createdAfter',
       'createdBefore'
     );
-    
+
     filters = normalizeDateRangeFilters(
       filters,
       'updatedAfter',
       'updatedBefore'
     );
-    
+
     const conditions = ['1=1'];
     const params = [];
     const paramIndexRef = { value: 1 };
-    
+
     const enforceActiveOnly = filters.enforceActiveOnly === true;
     const hasStatusFilter =
       Array.isArray(filters.statusIds) && filters.statusIds.length > 0;
-    
-    const {
-      canSearchStatus = false,
-    } = options;
-    
+
+    const { canSearchStatus = false } = options;
+
     // -------------------------------------------------------------
     // ACTIVE-only enforcement
     // -------------------------------------------------------------
@@ -148,7 +146,7 @@ const buildLocationTypeFilter = (filters = {}, options = {}) => {
       params.push(filters.activeStatusId);
       paramIndexRef.value++;
     }
-    
+
     // -------------------------------------------------------------
     // Explicit status filter
     // -------------------------------------------------------------
@@ -157,7 +155,7 @@ const buildLocationTypeFilter = (filters = {}, options = {}) => {
       params.push(filters.statusIds);
       paramIndexRef.value++;
     }
-    
+
     // -------------------------------------------------------------
     // Audit filters
     // -------------------------------------------------------------
@@ -166,13 +164,13 @@ const buildLocationTypeFilter = (filters = {}, options = {}) => {
       params.push(filters.createdBy);
       paramIndexRef.value++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`lt.updated_by = $${paramIndexRef.value}`);
       params.push(filters.updatedBy);
       paramIndexRef.value++;
     }
-    
+
     // -------------------------------------------------------------
     // Date filters
     // -------------------------------------------------------------
@@ -184,7 +182,7 @@ const buildLocationTypeFilter = (filters = {}, options = {}) => {
       before: filters.createdBefore,
       paramIndexRef,
     });
-    
+
     applyDateRangeConditions({
       conditions,
       params,
@@ -193,7 +191,7 @@ const buildLocationTypeFilter = (filters = {}, options = {}) => {
       before: filters.updatedBefore,
       paramIndexRef,
     });
-    
+
     // -------------------------------------------------------------
     // Direct text filters
     // -------------------------------------------------------------
@@ -204,7 +202,7 @@ const buildLocationTypeFilter = (filters = {}, options = {}) => {
       filters.name,
       'lt.name'
     );
-    
+
     paramIndexRef.value = addIlikeFilter(
       conditions,
       params,
@@ -212,27 +210,27 @@ const buildLocationTypeFilter = (filters = {}, options = {}) => {
       filters.code,
       'lt.code'
     );
-    
+
     // -------------------------------------------------------------
     // Keyword search
     // -------------------------------------------------------------
     if (filters.keyword) {
       const keywordValue = `%${filters.keyword}%`;
-      
+
       const keywordConditions = [
         `lt.name ILIKE $${paramIndexRef.value}`,
         `lt.code ILIKE $${paramIndexRef.value}`,
       ];
-      
+
       if (canSearchStatus) {
         keywordConditions.push(`s.name ILIKE $${paramIndexRef.value}`);
       }
-      
+
       conditions.push(`(${keywordConditions.join(' OR ')})`);
       params.push(keywordValue);
       paramIndexRef.value++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -242,11 +240,10 @@ const buildLocationTypeFilter = (filters = {}, options = {}) => {
       context: 'location-type-repository/buildLocationTypeFilter',
       filters,
     });
-    
-    throw AppError.databaseError(
-      'Failed to prepare location type filter',
-      { details: err.message }
-    );
+
+    throw AppError.databaseError('Failed to prepare location type filter', {
+      details: err.message,
+    });
   }
 };
 

@@ -1,4 +1,4 @@
-import {
+import type {
   ChangePasswordRequest,
   ChangePasswordResponse,
 } from '@features/auth/password/state/authTypes';

@@ -8,10 +8,10 @@ import type {
 import { locationTypeService } from '@services/locationTypeService';
 import {
   flattenLocationTypeDetails,
-  flattenLocationTypeListRecord
+  flattenLocationTypeListRecord,
 } from '@features/locationType/utils';
 import { extractUiErrorPayload } from '@utils/error';
-import { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 
 /**
  * Fetch a paginated list of location types from the backend.
@@ -42,7 +42,7 @@ export const fetchPaginatedLocationTypeThunk = createAsyncThunk<
     try {
       const response =
         await locationTypeService.fetchPaginatedLocationTypes(params);
-      
+
       return {
         ...response,
         data: flattenLocationTypeListRecord(response.data),
@@ -109,24 +109,20 @@ export const fetchLocationTypeDetailsThunk = createAsyncThunk<
   GetLocationTypeDetailsUiResponse,
   string,
   { rejectValue: UiErrorPayload }
->(
-  'locationType/fetchDetails',
-  async (locationTypeId, { rejectWithValue }) => {
-    try {
-      const response =
-        await locationTypeService.fetchLocationTypeDetailsById(
-          locationTypeId
-        );
-      
-      const flattened: FlattenedLocationTypeDetails =
-        flattenLocationTypeDetails(response.data);
-      
-      return {
-        ...response,
-        data: flattened,
-      };
-    } catch (error) {
-      return rejectWithValue(extractUiErrorPayload(error));
-    }
+>('locationType/fetchDetails', async (locationTypeId, { rejectWithValue }) => {
+  try {
+    const response =
+      await locationTypeService.fetchLocationTypeDetailsById(locationTypeId);
+
+    const flattened: FlattenedLocationTypeDetails = flattenLocationTypeDetails(
+      response.data
+    );
+
+    return {
+      ...response,
+      data: flattened,
+    };
+  } catch (error) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});

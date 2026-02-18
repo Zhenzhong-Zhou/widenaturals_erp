@@ -1,4 +1,5 @@
-import { ReactNode, useMemo } from 'react';
+import type { ReactNode } from 'react';
+import { useMemo } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { useHasPermission } from '@features/authorize/hooks';
 import type { DynamicPermissionResolver } from '@routes/index';

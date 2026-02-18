@@ -19,12 +19,9 @@ export type SupplierLookupBundle = {
  *  - Packaging material supplier filters
  *  - Vendor assignment workflows
  */
-const useSupplierSearchHandlers = (
-  bundle: SupplierLookupBundle
-) => {
-  const handleSearch =
-    useDebouncedSearch<SupplierLookupParams>(bundle.fetch);
-  
+const useSupplierSearchHandlers = (bundle: SupplierLookupBundle) => {
+  const handleSearch = useDebouncedSearch<SupplierLookupParams>(bundle.fetch);
+
   return {
     /**
      * Debounced handler for supplier keyword searches.

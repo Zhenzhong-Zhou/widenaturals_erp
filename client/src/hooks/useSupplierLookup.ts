@@ -15,23 +15,23 @@ import { resetSupplierLookup } from '@features/lookup/state/supplierLookupSlice'
  */
 const useSupplierLookup = () => {
   const dispatch = useAppDispatch();
-  
+
   const options = useAppSelector(selectSupplierLookupOptions);
   const loading = useAppSelector(selectSupplierLookupLoading);
   const error = useAppSelector(selectSupplierLookupError);
   const meta = useAppSelector(selectSupplierLookupMeta);
-  
+
   const fetch = useCallback(
     (params?: SupplierLookupParams) => {
       dispatch(fetchSupplierLookupThunk(params));
     },
     [dispatch]
   );
-  
+
   const reset = useCallback(() => {
     dispatch(resetSupplierLookup());
   }, [dispatch]);
-  
+
   return useMemo(
     () => ({
       options,

@@ -25,7 +25,7 @@ export const locationTypeReducers = {
    * Paginated list state for location types
    */
   paginatedLocationTypes: paginatedLocationTypesReducer,
-  
+
   /**
    * Detail state for a single Location Type.
    */

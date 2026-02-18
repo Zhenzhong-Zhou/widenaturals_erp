@@ -1,8 +1,10 @@
-const { buildLocationTypeFilter } = require('../utils/sql/build-location-type-filter');
+const {
+  buildLocationTypeFilter,
+} = require('../utils/sql/build-location-type-filter');
 const {
   query,
   paginateQuery,
-  paginateQueryByOffset
+  paginateQueryByOffset,
 } = require('../database/db');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
@@ -91,28 +93,28 @@ const AppError = require('../utils/AppError');
  *   If query execution fails or database interaction errors occur.
  */
 const getPaginatedLocationTypes = async ({
-                                           filters = {},
-                                           page = 1,
-                                           limit = 10,
-                                           sortBy = 'created_at',
-                                           sortOrder = 'DESC',
-                                         }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'created_at',
+  sortOrder = 'DESC',
+}) => {
   const context = 'location-type-repository/getPaginatedLocationTypes';
-  
+
   try {
     const tableName = 'location_types lt';
-    
+
     const joins = [
       'LEFT JOIN status s ON lt.status_id = s.id',
       'LEFT JOIN users u1 ON lt.created_by = u1.id',
       'LEFT JOIN users u2 ON lt.updated_by = u2.id',
     ];
-    
+
     // -------------------------------------------------------------
     // WHERE clause
     // -------------------------------------------------------------
     const { whereClause, params } = buildLocationTypeFilter(filters);
-    
+
     // -------------------------------------------------------------
     // Base SELECT (NO ORDER BY)
     // -------------------------------------------------------------
@@ -137,7 +139,7 @@ const getPaginatedLocationTypes = async ({
       ${joins.join('\n')}
       WHERE ${whereClause}
     `;
-    
+
     // -------------------------------------------------------------
     // Paginated execution
     // -------------------------------------------------------------
@@ -160,7 +162,7 @@ const getPaginatedLocationTypes = async ({
         sortOrder,
       },
     });
-    
+
     logSystemInfo('Paginated location types query executed', {
       context,
       filters,
@@ -175,7 +177,7 @@ const getPaginatedLocationTypes = async ({
         sortOrder,
       },
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch paginated location types', {
@@ -184,7 +186,7 @@ const getPaginatedLocationTypes = async ({
       pagination: { page, limit },
       sorting: { sortBy, sortOrder },
     });
-    
+
     throw AppError.databaseError('Failed to fetch location types', {
       context,
       details: error.message,
@@ -217,7 +219,7 @@ const getPaginatedLocationTypes = async ({
  */
 const getLocationTypeById = async (id) => {
   const context = 'location-type-repository/getLocationTypeById';
-  
+
   try {
     const queryText = `
       SELECT
@@ -243,30 +245,30 @@ const getLocationTypeById = async (id) => {
       WHERE lt.id = $1
       LIMIT 1
     `;
-    
+
     const { rows } = await query(queryText, [id]);
-    
+
     if (!rows.length) {
       logSystemInfo('Location type not found', {
         context,
         id,
       });
-      
+
       return null;
     }
-    
+
     logSystemInfo('Location type fetched successfully', {
       context,
       id,
     });
-    
+
     return rows[0];
   } catch (error) {
     logSystemException(error, 'Failed to fetch location type by id', {
       context,
       id,
     });
-    
+
     throw AppError.databaseError('Failed to fetch location type', {
       context,
       details: error.message,
@@ -328,26 +330,26 @@ const getLocationTypeById = async (id) => {
  * @throws {AppError} If database query fails
  */
 const getLocationTypeLookup = async ({
-                                       filters = {},
-                                       options = {},
-                                       limit = 50,
-                                       offset = 0,
-                                     }) => {
+  filters = {},
+  options = {},
+  limit = 50,
+  offset = 0,
+}) => {
   const context = 'location-type-repository/getLocationTypeLookup';
   const tableName = 'location_types lt';
-  
-  const {
-    canSearchStatus = false,
-  } = options;
-  
+
+  const { canSearchStatus = false } = options;
+
   const joins = [];
-  
+
   if (canSearchStatus) {
     joins.push('LEFT JOIN status s ON s.id = lt.status_id');
   }
-  
-  const { whereClause, params } = buildLocationTypeFilter(filters, { canSearchStatus });
-  
+
+  const { whereClause, params } = buildLocationTypeFilter(filters, {
+    canSearchStatus,
+  });
+
   const queryText = `
     SELECT
       lt.id,
@@ -357,7 +359,7 @@ const getLocationTypeLookup = async ({
     ${joins.join('\n')}
     WHERE ${whereClause}
   `;
-  
+
   try {
     const result = await paginateQueryByOffset({
       tableName,
@@ -371,14 +373,14 @@ const getLocationTypeLookup = async ({
       sortOrder: 'ASC',
       additionalSort: 'lt.code ASC',
     });
-    
+
     logSystemInfo('Fetched location type lookup data', {
       context,
       offset,
       limit,
       filters,
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch location type lookup', {
@@ -387,10 +389,8 @@ const getLocationTypeLookup = async ({
       limit,
       filters,
     });
-    
-    throw AppError.databaseError(
-      'Failed to fetch location type lookup.'
-    );
+
+    throw AppError.databaseError('Failed to fetch location type lookup.');
   }
 };
 

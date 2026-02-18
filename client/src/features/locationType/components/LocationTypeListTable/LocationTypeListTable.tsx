@@ -1,4 +1,5 @@
-import { FC, Suspense, useCallback, useMemo } from 'react';
+import type { FC } from 'react';
+import { Suspense, useCallback, useMemo } from 'react';
 import Box from '@mui/material/Box';
 import {
   CustomButton,

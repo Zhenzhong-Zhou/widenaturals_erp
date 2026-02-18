@@ -1,8 +1,8 @@
 import type { FC } from 'react';
 import Paper from '@mui/material/Paper';
-import { DetailsSectionField } from '@components/common/DetailsSection';
+import type { DetailsSectionField } from '@components/common/DetailsSection';
 import { CustomTypography, DetailsSection } from '@components/index';
-import { FlattenedLocationTypeDetails } from '@features/locationType/state';
+import type { FlattenedLocationTypeDetails } from '@features/locationType/state';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
 

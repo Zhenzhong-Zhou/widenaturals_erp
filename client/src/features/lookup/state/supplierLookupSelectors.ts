@@ -1,14 +1,11 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '@store/store';
+import type { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
 import {
   createLookupMetaSelector,
   mapLookupItems,
 } from '@features/lookup/utils/lookupSelectorUtils';
-import type {
-  SupplierLookupItem,
-  LookupOption,
-} from '@features/lookup/state';
+import type { SupplierLookupItem, LookupOption } from '@features/lookup/state';
 
 // -----------------------------
 // Base Selector
@@ -37,8 +34,9 @@ export const selectSupplierLookupError = createSelector(
 // -----------------------------
 // Pagination Meta
 // -----------------------------
-export const selectSupplierLookupMeta =
-  createLookupMetaSelector(selectSupplierLookupState);
+export const selectSupplierLookupMeta = createLookupMetaSelector(
+  selectSupplierLookupState
+);
 
 // -----------------------------
 // Options Mapping

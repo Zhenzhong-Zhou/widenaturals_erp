@@ -1,4 +1,4 @@
-import {
+import type {
   FlattenedProductDetail,
   ProductResponse,
 } from '@features/product/state';

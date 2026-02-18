@@ -20,19 +20,19 @@ type ManufacturerDropdownProps =
  * - Procurement workflows
  */
 const ManufacturerDropdown = ({
-                                options = [],
-                                fetchParams,
-                                onRefresh,
-                                ...rest
-                              }: ManufacturerDropdownProps) => {
+  options = [],
+  fetchParams,
+  onRefresh,
+  ...rest
+}: ManufacturerDropdownProps) => {
   const enrichedOptions = useMemo(() => {
     return Array.from(
       new Map(
         options.map((opt) => {
           const isInactive = opt.isActive === false;
-          
+
           const rawLabel = getRawLabel(opt.label);
-          
+
           return [
             opt.value ?? opt.id,
             {
@@ -54,7 +54,7 @@ const ManufacturerDropdown = ({
       ).values()
     );
   }, [options]);
-  
+
   return (
     <PaginatedDropdown
       label="Select Manufacturer"

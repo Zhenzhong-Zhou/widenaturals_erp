@@ -26,21 +26,21 @@ export const flattenLocationTypeDetails = (
   code: details.code,
   name: details.name,
   description: details.description ?? null,
-  
+
   // --------------------------------------------------
   // Status
   // --------------------------------------------------
   statusId: details.status?.id ?? '',
   statusName: details.status?.name ?? '—',
   statusDate: details.status?.date ?? '',
-  
+
   // --------------------------------------------------
   // Audit
   // --------------------------------------------------
   createdAt: details.audit?.createdAt ?? '',
   createdById: details.audit?.createdBy?.id ?? null,
   createdByName: details.audit?.createdBy?.name ?? '—',
-  
+
   updatedAt: details.audit?.updatedAt ?? null,
   updatedById: details.audit?.updatedBy?.id ?? null,
   updatedByName: details.audit?.updatedBy?.name ?? null,

@@ -32,12 +32,12 @@
 export const flattenListQueryParams = <
   T extends {
     filters?: object;
-  }
+  },
 >(
   params: T = {} as T
 ): Record<string, unknown> => {
   const { filters = {}, ...rest } = params;
-  
+
   const {
     createdAfter,
     createdBefore,
@@ -45,14 +45,14 @@ export const flattenListQueryParams = <
     updatedBefore,
     ...otherFilters
   } = filters as Record<string, unknown>;
-  
+
   const flatDateParams: Record<string, unknown> = {};
-  
+
   if (createdAfter) flatDateParams.createdAfter = createdAfter;
   if (createdBefore) flatDateParams.createdBefore = createdBefore;
   if (updatedAfter) flatDateParams.updatedAfter = updatedAfter;
   if (updatedBefore) flatDateParams.updatedBefore = updatedBefore;
-  
+
   return {
     ...rest,
     ...otherFilters,

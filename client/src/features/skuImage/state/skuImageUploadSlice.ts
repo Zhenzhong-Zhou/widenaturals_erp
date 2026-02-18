@@ -1,9 +1,9 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import {
+import type {
   BulkSkuImageUploadResponse,
   SkuImageUploadState,
-  uploadSkuImagesThunk,
 } from '@features/skuImage/state';
+import { uploadSkuImagesThunk } from '@features/skuImage/state';
 
 const initialState: SkuImageUploadState = {
   data: null, // entire BulkSkuImageUploadResponse

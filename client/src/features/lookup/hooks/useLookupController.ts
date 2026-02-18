@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import type { LookupQuery } from '@features/lookup';
-import { LookupPagination } from '@shared-types/pagination';
+import type { LookupPagination } from '@shared-types/pagination';
 
 interface LookupControllerOptions {
   /** Fetch function from lookup hook */

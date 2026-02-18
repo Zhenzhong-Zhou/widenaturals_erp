@@ -1,4 +1,4 @@
-import { DynamicPermissionResolver, RouteParams } from '@routes/index';
+import type { DynamicPermissionResolver, RouteParams } from '@routes/index';
 
 /**
  * Resolves the effective permission required for a route.

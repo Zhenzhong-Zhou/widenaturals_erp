@@ -19,19 +19,19 @@ type LocationTypeDropdownProps =
  * - Warehouse configuration
  */
 const LocationTypeDropdown = ({
-                                options = [],
-                                fetchParams,
-                                onRefresh,
-                                ...rest
-                              }: LocationTypeDropdownProps) => {
+  options = [],
+  fetchParams,
+  onRefresh,
+  ...rest
+}: LocationTypeDropdownProps) => {
   const enrichedOptions = useMemo(() => {
     return Array.from(
       new Map(
         options.map((opt) => {
           const isInactive = opt.isActive === false;
-          
+
           const rawLabel = getRawLabel(opt.label);
-          
+
           return [
             opt.value ?? opt.id,
             {
@@ -53,7 +53,7 @@ const LocationTypeDropdown = ({
       ).values()
     );
   }, [options]);
-  
+
   return (
     <PaginatedDropdown
       label="Select Location Type"

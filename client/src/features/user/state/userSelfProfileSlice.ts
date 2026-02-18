@@ -1,4 +1,5 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import type { PayloadAction } from '@reduxjs/toolkit';
+import { createSlice } from '@reduxjs/toolkit';
 import type { UserProfileResponse, UserSelfProfileState } from '@features/user';
 import { fetchUserSelfProfileThunk } from '@features/user';
 

@@ -6,7 +6,7 @@ import NoDataFound from '@components/common/NoDataFound';
 import CustomButton from '@components/common/CustomButton';
 import ErrorMessage from '@components/common/ErrorMessage';
 import { UserCard } from '@features/user/components/UserView';
-import { FlattenedUserRecord } from '@features/user/state';
+import type { FlattenedUserRecord } from '@features/user/state';
 
 interface UserCardGridProps {
   /** Users to render as cards */

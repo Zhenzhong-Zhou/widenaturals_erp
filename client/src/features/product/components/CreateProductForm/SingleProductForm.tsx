@@ -1,5 +1,6 @@
 import { type FC, useMemo } from 'react';
-import CustomForm, { FieldConfig } from '@components/common/CustomForm';
+import type { FieldConfig } from '@components/common/CustomForm';
+import CustomForm from '@components/common/CustomForm';
 import type { CreateProductInput } from '@features/product/state/productTypes';
 import { buildProductInfoFields } from '@features/product/utils/productFieldFactory';
 

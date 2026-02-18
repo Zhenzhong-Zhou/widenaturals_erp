@@ -1,4 +1,4 @@
-import { ApiSuccessResponse } from '@shared-types/api';
+import type { ApiSuccessResponse } from '@shared-types/api';
 
 /**
  * Permission payload returned by the authorization endpoint.

@@ -37,13 +37,13 @@
  * @returns {Object} Adjusted, repository-safe filter object
  */
 const applyLookupVisibilityRules = ({
-                                      filters,
-                                      acl,
-                                      activeStatusId,
-                                      fullVisibilityKey,
-                                    }) => {
+  filters,
+  acl,
+  activeStatusId,
+  fullVisibilityKey,
+}) => {
   const adjusted = { ...filters };
-  
+
   // ---------------------------------------------------------
   // Full visibility override
   // ---------------------------------------------------------
@@ -53,12 +53,12 @@ const applyLookupVisibilityRules = ({
     delete adjusted.activeStatusId;
     return adjusted;
   }
-  
+
   // ---------------------------------------------------------
   // Archive visibility
   // ---------------------------------------------------------
   adjusted.includeArchived = !!acl.canViewArchived;
-  
+
   // ---------------------------------------------------------
   // ACTIVE-only enforcement
   // ---------------------------------------------------------
@@ -70,7 +70,7 @@ const applyLookupVisibilityRules = ({
     delete adjusted.enforceActiveOnly;
     delete adjusted.activeStatusId;
   }
-  
+
   return adjusted;
 };
 

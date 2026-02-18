@@ -1,4 +1,5 @@
-import { FC, useRef, useState } from 'react';
+import type { FC } from 'react';
+import { useRef, useState } from 'react';
 import Box from '@mui/material/Box';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';

@@ -1,7 +1,6 @@
 import { type FC } from 'react';
-import MultiSelectDropdown, {
-  MultiSelectDropdownProps,
-} from '@components/common/MultiSelectDropdown';
+import type { MultiSelectDropdownProps } from '@components/common/MultiSelectDropdown';
+import MultiSelectDropdown from '@components/common/MultiSelectDropdown';
 
 type SkuMultiSelectDropdownProps = Omit<
   MultiSelectDropdownProps,

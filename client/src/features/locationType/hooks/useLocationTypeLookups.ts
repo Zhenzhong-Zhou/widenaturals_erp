@@ -19,7 +19,7 @@ import { useStatusLookup } from '@hooks/index';
  */
 const useLocationTypeLookups = () => {
   const status = useStatusLookup();
-  
+
   return {
     status,
   };

@@ -1,7 +1,6 @@
 import { type FC } from 'react';
-import MultiSelectDropdown, {
-  MultiSelectDropdownProps,
-} from '@components/common/MultiSelectDropdown';
+import type { MultiSelectDropdownProps } from '@components/common/MultiSelectDropdown';
+import MultiSelectDropdown from '@components/common/MultiSelectDropdown';
 
 /**
  * Manufacturer-specific multi-select dropdown props.
@@ -24,16 +23,12 @@ type ManufacturerMultiSelectDropdownProps = Omit<
 const ManufacturerMultiSelectDropdown: FC<
   ManufacturerMultiSelectDropdownProps
 > = ({
-       label = 'Select Manufacturer',
-       placeholder = 'Choose manufacturer…',
-       ...rest
-     }) => {
+  label = 'Select Manufacturer',
+  placeholder = 'Choose manufacturer…',
+  ...rest
+}) => {
   return (
-    <MultiSelectDropdown
-      label={label}
-      placeholder={placeholder}
-      {...rest}
-    />
+    <MultiSelectDropdown label={label} placeholder={placeholder} {...rest} />
   );
 };
 

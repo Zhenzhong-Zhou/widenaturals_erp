@@ -1029,7 +1029,6 @@ export type ManufacturerLookupParams = LookupQuery;
 export type ManufacturerLookupState =
   PaginatedLookupState<ManufacturerLookupItem>;
 
-
 /**
  * Supplier lookup item.
  *
@@ -1042,8 +1041,7 @@ export type SupplierLookupItem = LookupItemWithSubLabelAndStatus;
 /**
  * Successful API response for Supplier lookup requests.
  */
-export type SupplierLookupResponse =
-  LookupSuccessResponse<SupplierLookupItem>;
+export type SupplierLookupResponse = LookupSuccessResponse<SupplierLookupItem>;
 
 /**
  * Query parameters for fetching Supplier lookup data.
@@ -1058,8 +1056,7 @@ export type SupplierLookupParams = LookupQuery;
 /**
  * Redux state shape for the Supplier lookup slice.
  */
-export type SupplierLookupState =
-  PaginatedLookupState<SupplierLookupItem>;
+export type SupplierLookupState = PaginatedLookupState<SupplierLookupItem>;
 
 /**
  * Location Type lookup item.

@@ -1,7 +1,7 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '@store/store';
+import type { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
-import { FlattenedOrderTypeRecord } from '@features/orderType';
+import type { FlattenedOrderTypeRecord } from '@features/orderType';
 
 /**
  * Root selector for the paginated order types slice.

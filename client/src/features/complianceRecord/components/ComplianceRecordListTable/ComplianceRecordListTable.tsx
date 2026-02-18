@@ -4,11 +4,12 @@ import {
   ComplianceRecordExpandedContent,
   getComplianceRecordListTableColumns,
 } from '@features/complianceRecord/components/ComplianceRecordListTable';
-import CustomTable, { CustomTableProps } from '@components/common/CustomTable';
+import type { CustomTableProps } from '@components/common/CustomTable';
+import CustomTable from '@components/common/CustomTable';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import SkeletonExpandedRow from '@components/common/SkeletonExpandedRow';
-import { ComplianceRecordTableRow } from '@features/complianceRecord/state';
+import type { ComplianceRecordTableRow } from '@features/complianceRecord/state';
 
 interface ComplianceListTableProps extends Omit<
   CustomTableProps<ComplianceRecordTableRow>,

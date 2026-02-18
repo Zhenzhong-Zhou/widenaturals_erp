@@ -1,5 +1,5 @@
 import type { NullableString } from '@shared-types/shared';
-import {
+import type {
   ApiSuccessResponse,
   AsyncState,
   GenericAudit,
@@ -10,7 +10,7 @@ import {
   SortConfig,
   UpdateStatusIdRequest,
 } from '@shared-types/api';
-import { ReduxPaginatedState } from '@shared-types/pagination';
+import type { ReduxPaginatedState } from '@shared-types/pagination';
 
 /**
  * Input payload for creating a single product.

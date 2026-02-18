@@ -28,15 +28,15 @@ const locationTypeSortOptions: {
 }[] = [
   // ---- Core identity ----
   { label: 'Name', value: 'name' },
-  
+
   // ---- Status ----
   { label: 'Status', value: 'statusName' },
   { label: 'Status Date', value: 'statusDate' },
-  
+
   // ---- Audit ----
   { label: 'Created At', value: 'createdAt' },
   { label: 'Updated At', value: 'updatedAt' },
-  
+
   // ---- Default fallback ----
   { label: 'Default (Natural Sort)', value: 'defaultNaturalSort' },
 ];
@@ -48,19 +48,17 @@ const locationTypeSortOptions: {
  * Keeps Location Type-specific sort semantics isolated and explicit.
  */
 const LocationTypeSortControls: FC<LocationTypeSortControlsProps> = ({
-                                                                       sortBy,
-                                                                       sortOrder,
-                                                                       onSortByChange,
-                                                                       onSortOrderChange,
-                                                                     }) => {
+  sortBy,
+  sortOrder,
+  onSortByChange,
+  onSortOrderChange,
+}) => {
   return (
     <SortControls
       sortBy={sortBy}
       sortOrder={sortOrder}
       sortOptions={locationTypeSortOptions}
-      onSortByChange={(val) =>
-        onSortByChange(val as LocationTypeSortField)
-      }
+      onSortByChange={(val) => onSortByChange(val as LocationTypeSortField)}
       onSortOrderChange={onSortOrderChange}
     />
   );

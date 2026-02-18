@@ -3,7 +3,7 @@ import type {
   UserFilters,
   UserSortField,
 } from '@features/user/state';
-import { useRoleLookup, useStatusLookup } from '@hooks/index';
+import type { useRoleLookup, useStatusLookup } from '@hooks/index';
 
 /**
  * Lookup data contract consumed by the User filter panel.

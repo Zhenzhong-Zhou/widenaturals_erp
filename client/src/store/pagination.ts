@@ -1,5 +1,5 @@
 import type { PaginatedLookupState } from '@shared-types/api';
-import { ReduxPaginatedState } from '@shared-types/pagination';
+import type { ReduxPaginatedState } from '@shared-types/pagination';
 
 /**
  * Creates a standardized initial Redux state for paginated slices.

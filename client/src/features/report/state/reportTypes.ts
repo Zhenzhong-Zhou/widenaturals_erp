@@ -4,7 +4,7 @@ import type {
   PaginatedResponse,
   PaginationParams,
 } from '@shared-types/api';
-import { ReduxPaginatedState } from '@shared-types/pagination';
+import type { ReduxPaginatedState } from '@shared-types/pagination';
 import type { ItemType } from '@features/inventoryShared/types/InventorySharedType';
 
 export interface InventoryActivityLogEntry {

@@ -6,12 +6,8 @@ import {
   selectLocationTypeDetailError,
   selectLocationTypeDetailIsEmpty,
 } from '@features/locationType/state';
-import {
-  fetchLocationTypeDetailsThunk,
-} from '@features/locationType/state';
-import {
-  resetLocationTypeDetail,
-} from '@features/locationType/state/locationTypeDetailSlice';
+import { fetchLocationTypeDetailsThunk } from '@features/locationType/state';
+import { resetLocationTypeDetail } from '@features/locationType/state/locationTypeDetailSlice';
 
 /**
  * Hook: Provides typed selectors and dispatchable actions
@@ -27,20 +23,20 @@ import {
  */
 const useLocationTypeDetail = () => {
   const dispatch = useAppDispatch();
-  
+
   // ----------------------------
   // Selectors
   // ----------------------------
-  
+
   const locationType = useAppSelector(selectLocationTypeDetailData);
   const loading = useAppSelector(selectLocationTypeDetailLoading);
   const error = useAppSelector(selectLocationTypeDetailError);
   const isEmpty = useAppSelector(selectLocationTypeDetailIsEmpty);
-  
+
   // ----------------------------
   // Actions
   // ----------------------------
-  
+
   /**
    * Fetch Location Type detail by ID (dispatch thunk).
    */
@@ -51,18 +47,18 @@ const useLocationTypeDetail = () => {
     },
     [dispatch]
   );
-  
+
   /**
    * Reset Location Type detail slice state (useful on unmount).
    */
   const resetLocationTypeDetailState = useCallback(() => {
     dispatch(resetLocationTypeDetail());
   }, [dispatch]);
-  
+
   // ----------------------------
   // Memoized combined result
   // ----------------------------
-  
+
   const combined = useMemo(
     () => ({
       locationType,
@@ -70,19 +66,19 @@ const useLocationTypeDetail = () => {
     }),
     [locationType, isEmpty]
   );
-  
+
   // ----------------------------
   // Hook Return API
   // ----------------------------
-  
+
   return {
     // combined state
     ...combined,
-    
+
     // simple state flags
     loading,
     error,
-    
+
     // actions
     fetchLocationTypeDetail,
     resetLocationTypeDetailState,

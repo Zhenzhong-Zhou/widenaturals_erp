@@ -26,7 +26,7 @@ const initialState: PaginatedLocationTypeState =
 const paginatedLocationTypesSlice = createSlice({
   name: 'paginatedLocationTypes',
   initialState,
-  
+
   reducers: {
     /**
      * Reset the entire paginated location type state
@@ -39,7 +39,7 @@ const paginatedLocationTypesSlice = createSlice({
      */
     resetPaginatedLocationTypes: () => initialState,
   },
-  
+
   /* ============================================================
      Async lifecycle handling
      ============================================================ */
@@ -50,19 +50,16 @@ const paginatedLocationTypesSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      
+
       // ---- fulfilled ----
       .addCase(
         fetchPaginatedLocationTypeThunk.fulfilled,
-        (
-          state,
-          action: PayloadAction<PaginatedLocationTypeListUiResponse>
-        ) => {
+        (state, action: PayloadAction<PaginatedLocationTypeListUiResponse>) => {
           const payload = action.payload;
-          
+
           state.loading = false;
           state.data = payload.data;
-          
+
           state.pagination = {
             page: payload.pagination.page,
             limit: payload.pagination.limit,
@@ -71,11 +68,11 @@ const paginatedLocationTypesSlice = createSlice({
           };
         }
       )
-      
+
       // ---- rejected ----
       .addCase(fetchPaginatedLocationTypeThunk.rejected, (state, action) => {
         state.loading = false;
-        
+
         state.error =
           (action.payload as any)?.message ??
           action.error?.message ??

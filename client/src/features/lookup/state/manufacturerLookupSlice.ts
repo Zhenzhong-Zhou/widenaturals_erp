@@ -46,8 +46,7 @@ const manufacturerLookupSlice = createSlice({
       .addCase(fetchManufacturerLookupThunk.rejected, (state, action) => {
         state.loading = false;
         state.error =
-          (action.payload as string) ??
-          'Failed to fetch manufacturer lookup';
+          (action.payload as string) ?? 'Failed to fetch manufacturer lookup';
       });
   },
 });
@@ -55,7 +54,6 @@ const manufacturerLookupSlice = createSlice({
 // -----------------------------
 // Exports
 // -----------------------------
-export const { resetManufacturerLookup } =
-  manufacturerLookupSlice.actions;
+export const { resetManufacturerLookup } = manufacturerLookupSlice.actions;
 
 export default manufacturerLookupSlice.reducer;

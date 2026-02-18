@@ -1,5 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import {
+import type {
   BatchRegistryQueryParams,
   PaginatedBatchRegistryListResponse,
 } from '@features/batchRegistry';

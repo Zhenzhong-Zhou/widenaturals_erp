@@ -18,23 +18,23 @@ import { resetManufacturerLookup } from '@features/lookup/state/manufacturerLook
  */
 const useManufacturerLookup = () => {
   const dispatch = useAppDispatch();
-  
+
   const options = useAppSelector(selectManufacturerLookupOptions);
   const loading = useAppSelector(selectManufacturerLookupLoading);
   const error = useAppSelector(selectManufacturerLookupError);
   const meta = useAppSelector(selectManufacturerLookupMeta);
-  
+
   const fetch = useCallback(
     (params?: ManufacturerLookupParams) => {
       dispatch(fetchManufacturerLookupThunk(params));
     },
     [dispatch]
   );
-  
+
   const reset = useCallback(() => {
     dispatch(resetManufacturerLookup());
   }, [dispatch]);
-  
+
   return useMemo(
     () => ({
       options,

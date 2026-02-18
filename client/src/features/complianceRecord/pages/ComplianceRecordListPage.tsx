@@ -10,7 +10,7 @@ import {
   Loading,
   NoDataFound,
 } from '@components/index';
-import {
+import type {
   ComplianceFilters,
   ComplianceRecordSortField,
 } from '@features/complianceRecord/state';

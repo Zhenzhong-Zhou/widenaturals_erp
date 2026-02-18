@@ -989,15 +989,15 @@ const getRoleLookupController = wrapAsync(async (req, res) => {
 const getManufacturerLookupController = wrapAsync(async (req, res) => {
   const user = req.auth.user;
   const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
-  
+
   const dropdownResult = await fetchManufacturerLookupService(user, {
     filters,
     limit,
     offset,
   });
-  
+
   const { items, hasMore } = dropdownResult;
-  
+
   return res.status(200).json({
     success: true,
     message: 'Successfully retrieved Manufacturer lookup',
@@ -1047,15 +1047,15 @@ const getManufacturerLookupController = wrapAsync(async (req, res) => {
 const getSupplierLookupController = wrapAsync(async (req, res) => {
   const user = req.auth.user;
   const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
-  
+
   const dropdownResult = await fetchSupplierLookupService(user, {
     filters,
     limit,
     offset,
   });
-  
+
   const { items, hasMore } = dropdownResult;
-  
+
   return res.status(200).json({
     success: true,
     message: 'Successfully retrieved Supplier lookup',
@@ -1101,32 +1101,27 @@ const getSupplierLookupController = wrapAsync(async (req, res) => {
  *   hasMore: boolean
  * }
  */
-const getLocationTypeLookupController = wrapAsync(
-  async (req, res) => {
-    const user = req.auth.user;
-    const { filters = {}, limit = 50, offset = 0 } =
-      req.normalizedQuery;
-    
-    const dropdownResult =
-      await fetchLocationTypeLookupService(user, {
-        filters,
-        limit,
-        offset,
-      });
-    
-    const { items, hasMore } = dropdownResult;
-    
-    return res.status(200).json({
-      success: true,
-      message:
-        'Successfully retrieved Location Type lookup',
-      items,
-      offset,
-      limit,
-      hasMore,
-    });
-  }
-);
+const getLocationTypeLookupController = wrapAsync(async (req, res) => {
+  const user = req.auth.user;
+  const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
+
+  const dropdownResult = await fetchLocationTypeLookupService(user, {
+    filters,
+    limit,
+    offset,
+  });
+
+  const { items, hasMore } = dropdownResult;
+
+  return res.status(200).json({
+    success: true,
+    message: 'Successfully retrieved Location Type lookup',
+    items,
+    offset,
+    limit,
+    hasMore,
+  });
+});
 
 module.exports = {
   getBatchRegistryLookupController,

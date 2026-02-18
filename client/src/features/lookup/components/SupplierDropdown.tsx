@@ -6,8 +6,7 @@ import CustomTypography from '@components/common/CustomTypography';
 import { faBan, faCheck } from '@fortawesome/free-solid-svg-icons';
 import { getRawLabel } from '@utils/labelHelpers';
 
-type SupplierDropdownProps =
-  PaginatedDropdownProps<SupplierLookupParams>;
+type SupplierDropdownProps = PaginatedDropdownProps<SupplierLookupParams>;
 
 /**
  * Dropdown component for selecting a supplier.
@@ -20,19 +19,19 @@ type SupplierDropdownProps =
  * - Packaging material sourcing
  */
 const SupplierDropdown = ({
-                            options = [],
-                            fetchParams,
-                            onRefresh,
-                            ...rest
-                          }: SupplierDropdownProps) => {
+  options = [],
+  fetchParams,
+  onRefresh,
+  ...rest
+}: SupplierDropdownProps) => {
   const enrichedOptions = useMemo(() => {
     return Array.from(
       new Map(
         options.map((opt) => {
           const isInactive = opt.isActive === false;
-          
+
           const rawLabel = getRawLabel(opt.label);
-          
+
           return [
             opt.value ?? opt.id,
             {
@@ -44,9 +43,7 @@ const SupplierDropdown = ({
                 </CustomTypography>
               ),
               icon: isInactive ? faBan : faCheck,
-              tooltip: isInactive
-                ? 'Inactive Supplier'
-                : 'Active Supplier',
+              tooltip: isInactive ? 'Inactive Supplier' : 'Active Supplier',
               iconColor: isInactive ? 'gray' : 'green',
             },
           ];
@@ -54,7 +51,7 @@ const SupplierDropdown = ({
       ).values()
     );
   }, [options]);
-  
+
   return (
     <PaginatedDropdown
       label="Select Supplier"

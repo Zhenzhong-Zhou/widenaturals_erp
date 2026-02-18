@@ -31,7 +31,7 @@ const { logInfo } = require('../utils/logger-helper');
 const getPaginatedLocationTypesController = wrapAsync(async (req, res) => {
   const logContext =
     'location-types-controller/getPaginatedLocationTypesController';
-  
+
   const {
     page = 1,
     limit = 10,
@@ -39,7 +39,7 @@ const getPaginatedLocationTypesController = wrapAsync(async (req, res) => {
     sortOrder = 'DESC',
     filters = {},
   } = req.normalizedQuery ?? {};
-  
+
   // ------------------------------------------------------------
   // Step 1: Delegate to service layer
   // ------------------------------------------------------------
@@ -50,12 +50,12 @@ const getPaginatedLocationTypesController = wrapAsync(async (req, res) => {
     sortBy,
     sortOrder,
   });
-  
+
   const { data, pagination } = result ?? {
     data: [],
     pagination: { page, limit, totalRecords: 0, totalPages: 0 },
   };
-  
+
   // ------------------------------------------------------------
   // Step 2: Handle empty result
   // ------------------------------------------------------------
@@ -67,7 +67,7 @@ const getPaginatedLocationTypesController = wrapAsync(async (req, res) => {
       sorting: { sortBy, sortOrder },
       userId: req.user?.id,
     });
-    
+
     return res.status(200).json({
       success: true,
       message: 'No location types found for the given criteria.',
@@ -80,7 +80,7 @@ const getPaginatedLocationTypesController = wrapAsync(async (req, res) => {
       },
     });
   }
-  
+
   // ------------------------------------------------------------
   // Step 3: Return success response
   // ------------------------------------------------------------
@@ -91,7 +91,7 @@ const getPaginatedLocationTypesController = wrapAsync(async (req, res) => {
     sorting: { sortBy, sortOrder },
     userId: req.user?.id,
   });
-  
+
   return res.status(200).json({
     success: true,
     message: 'Location types fetched successfully.',
@@ -159,15 +159,14 @@ const getPaginatedLocationTypesController = wrapAsync(async (req, res) => {
 const getLocationTypeDetailsController = wrapAsync(async (req, res) => {
   const logContext =
     'location-types-controller/getLocationTypeDetailsController';
-  
+
   const { locationTypeId } = req.params;
-  
+
   // ----------------------------------------------------------
   // Step 1: Fetch location type detail via service layer
   // ----------------------------------------------------------
-  const locationType =
-    await fetchLocationTypeDetailsService(locationTypeId);
-  
+  const locationType = await fetchLocationTypeDetailsService(locationTypeId);
+
   // ----------------------------------------------------------
   // Step 2: Log success
   // ----------------------------------------------------------
@@ -175,7 +174,7 @@ const getLocationTypeDetailsController = wrapAsync(async (req, res) => {
     context: logContext,
     locationTypeId,
   });
-  
+
   // ----------------------------------------------------------
   // Step 3: Return standardized response
   // ----------------------------------------------------------

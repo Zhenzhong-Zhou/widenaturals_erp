@@ -10,7 +10,7 @@ import { usePaginationHandlers } from '@utils/hooks';
 import { getInitialUserLimit } from '@features/user/utils';
 import { applyFiltersAndSorting } from '@utils/query';
 import { createLazyOpenHandler } from '@features/lookup/utils/lookupUtils';
-import { UserTablePageSize } from '@features/user/config/userTableConfig';
+import type { UserTablePageSize } from '@features/user/config/userTableConfig';
 
 interface UseUserPageControllerOptions {
   viewMode: UserViewMode;

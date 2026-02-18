@@ -1,4 +1,4 @@
-import { AsyncState } from '@shared-types/api';
+import type { AsyncState } from '@shared-types/api';
 
 /**
  * Health check API response.
