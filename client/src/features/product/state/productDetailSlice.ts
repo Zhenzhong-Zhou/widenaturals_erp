@@ -45,7 +45,7 @@ export const productDetailSlice = createSlice({
       .addCase(fetchProductDetailByIdThunk.rejected, (state, action) => {
         state.loading = false;
         state.error =
-          (action.payload as string) ||
+          action.payload?.message ||
           action.error.message ||
           'Failed to load product details';
       });

@@ -64,7 +64,7 @@ export const fetchPaginatedProductsThunk = createAsyncThunk<
  * - Dispatches pending → fulfilled/rejected lifecycle actions.
  * - Sends a payload containing one or more product definitions.
  * - Returns the API response (`CreateProductResponse`) on success.
- * - Normalizes backend and network errors into a clean string for slice handling.
+ * - Normalizes backend and network errors into a `UiErrorPayload` for slice handling.
  *
  * ## Usage
  * ```ts
@@ -84,29 +84,21 @@ export const fetchPaginatedProductsThunk = createAsyncThunk<
  * ## Error Handling
  * - Captures server-side validation errors
  * - Captures network issues (timeouts, connectivity failures)
- * - Falls back to a generic error message if none is provided
+ * - Converts unknown errors into a stable `UiErrorPayload` via `extractUiErrorPayload`
  *
  * @param payload - Bulk product creation input object.
  * @returns A Promise that resolves with `CreateProductResponse` on success,
- *          or rejects with a normalized error string via `rejectWithValue`.
+ *          or rejects with a normalized `UiErrorPayload` via `rejectWithValue`.
  */
 export const createProductsThunk = createAsyncThunk<
   CreateProductResponse,
   CreateProductBulkInput,
-  { rejectValue: string }
+  { rejectValue: UiErrorPayload }
 >('products/createProducts', async (payload, { rejectWithValue }) => {
   try {
     return await productService.createProducts(payload);
-  } catch (err: any) {
-    console.error('createProductsThunk error:', err);
-
-    // Normalize backend / network error message
-    const message =
-      err?.response?.data?.message ||
-      err?.message ||
-      'Failed to create products.';
-
-    return rejectWithValue(message);
+  } catch (error: unknown) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
 });
 
@@ -129,7 +121,7 @@ export const createProductsThunk = createAsyncThunk<
  *     - `message`
  *     - `data` (the `ProductResponse`)
  *     - `traceId`
- * - On failure, the thunk returns a human-readable message via `rejectWithValue`.
+ * - On failure, the thunk returns a normalized `UiErrorPayload` via `rejectWithValue`.
  * - No additional transformation is applied in this thunk; the response is returned
  *   exactly as delivered by the backend.
  *
@@ -139,22 +131,12 @@ export const createProductsThunk = createAsyncThunk<
 export const fetchProductDetailByIdThunk = createAsyncThunk<
   GetProductApiResponse,
   string,
-  { rejectValue: string }
+  { rejectValue: UiErrorPayload }
 >('products/fetchProductDetailById', async (productId, { rejectWithValue }) => {
   try {
     return await productService.fetchProductDetailById(productId);
-  } catch (error: any) {
-    console.error('fetchProductDetailByIdThunk failed:', {
-      productId,
-      error,
-    });
-
-    const message =
-      error?.response?.data?.message ||
-      error?.message ||
-      'Failed to fetch product details';
-
-    return rejectWithValue(message);
+  } catch (error: unknown) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
 });
 
@@ -169,7 +151,7 @@ export const fetchProductDetailByIdThunk = createAsyncThunk<
  * Behavior:
  * - Accepts a typed partial update payload (`ProductUpdateRequest`).
  * - Returns an `ApiSuccessResponse<{ id: string }>` containing the updated product ID.
- * - Uses `rejectWithValue` to surface human-readable API error messages to the UI.
+ * - Uses `rejectWithValue` with `extractUiErrorPayload` to provide a stable `UiErrorPayload`.
  * - Logs contextual metadata to help with debugging and monitoring.
  *
  * Typical Use Cases:
@@ -189,25 +171,14 @@ export const fetchProductDetailByIdThunk = createAsyncThunk<
 export const updateProductInfoByIdThunk = createAsyncThunk<
   UpdateProductApiResponse,
   { productId: string; payload: ProductUpdateRequest },
-  { rejectValue: string }
+  { rejectValue: UiErrorPayload }
 >(
   'products/updateProductInfoById',
   async ({ productId, payload }, { rejectWithValue }) => {
     try {
       return await productService.updateProductInfoById(productId, payload);
-    } catch (error: any) {
-      console.error('updateProductInfoByIdThunk failed:', {
-        productId,
-        payload,
-        error,
-      });
-
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Failed to update product information.';
-
-      return rejectWithValue(message);
+    } catch (error: unknown) {
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );
@@ -222,7 +193,7 @@ export const updateProductInfoByIdThunk = createAsyncThunk<
  * Behavior:
  * - Accepts a payload containing only `{ statusId: string }`.
  * - Returns an `ApiSuccessResponse<{ id: string }>` with the updated product ID.
- * - Uses `rejectWithValue` for clean error propagation to reducers/UI.
+ * - Uses `rejectWithValue` with `extractUiErrorPayload` for normalized error propagation.
  * - Logs request context to assist with error diagnosis.
  *
  * Typical Use Cases:
@@ -242,25 +213,15 @@ export const updateProductInfoByIdThunk = createAsyncThunk<
 export const updateProductStatusByIdThunk = createAsyncThunk<
   UpdateProductApiResponse,
   UpdateProductStatusThunkArgs,
-  { rejectValue: string }
+  { rejectValue: UiErrorPayload }
 >(
   'products/updateProductStatusById',
   async ({ productId, statusId }, { rejectWithValue }) => {
     try {
       const payload: ProductStatusUpdateRequest = { statusId };
       return await productService.updateProductStatusById(productId, payload);
-    } catch (error: any) {
-      console.error('updateProductStatusByIdThunk failed:', {
-        productId,
-        error,
-      });
-
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Failed to update product status.';
-
-      return rejectWithValue(message);
+    } catch (error: unknown) {
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );

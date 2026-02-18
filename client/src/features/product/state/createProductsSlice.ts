@@ -58,7 +58,7 @@ const createProductsSlice = createSlice({
         state.loading = false;
         state.data = null;
         state.error =
-          action.payload ||
+          action.payload?.message ||
           action.error?.message ||
           'Failed to create products.';
       });

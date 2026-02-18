@@ -39,7 +39,10 @@ export const productStatusUpdateSlice = createSlice({
 
       .addCase(updateProductStatusByIdThunk.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload ?? 'Failed to update product status';
+        state.error =
+          action.payload?.message ??
+          action.error?.message ??
+          'Failed to update product status';
       });
   },
 });
