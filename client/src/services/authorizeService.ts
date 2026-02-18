@@ -3,35 +3,43 @@ import { API_ENDPOINTS } from '@services/apiEndpoints';
 import type { PermissionResponse } from '@features/authorize';
 
 /**
- * Fetches the authenticated user's role name and permission list.
+ * Fetch the authenticated user's role name and permission list.
  *
  * Responsibilities:
- * - Calls the permission endpoint using the standardized HTTP layer
- * - Validates and returns a normalized permission payload
+ * - Calls the permissions endpoint using the standardized HTTP layer
+ * - Validates response structure
+ * - Returns a normalized permission payload
  *
- * Error handling:
- * - Transport, network, and HTTP errors are normalized by `getRequest`
- * - This function only validates business-level response shape
+ * Guarantees:
+ * - Stateless
+ * - Safe for concurrent calls
+ * - UI-agnostic
  *
- * @returns Promise resolving to the user's role name and permissions
+ * @returns The authenticated user's role name and permissions
+ * @throws {Error} If response shape is invalid
  */
 export const fetchPermissions = async (): Promise<{
   roleName: string;
   permissions: string[];
 }> => {
-  const response = await getRequest<PermissionResponse>(
-    API_ENDPOINTS.USER_PERMISSION
-  );
-
-  const { roleName, permissions } = response.data;
-
-  if (!roleName || !permissions) {
+  const url = API_ENDPOINTS.SECURITY.PERMISSIONS.SELF;
+  
+  const response = await getRequest<PermissionResponse>(url, {
+    policy: 'READ',
+  });
+  
+  const { roleName, permissions } = response.data ?? {};
+  
+  if (!Array.isArray(permissions)) {
     throw new Error(
       'Invalid permission response: roleName or permissions missing.'
     );
   }
-
-  return { roleName, permissions };
+  
+  return {
+    roleName,
+    permissions,
+  };
 };
 
 export const authorizeService = {
