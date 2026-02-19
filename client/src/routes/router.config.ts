@@ -21,6 +21,7 @@ import {
   toPermissionValue,
 } from '@utils/constants/orderPermissions';
 import { isValidOrderCategory } from '@features/order/utils';
+import ROUTE_PERMISSIONS from '@utils/constants/routePermissionConstants';
 
 /* ==================== ROUTES ==================== */
 
@@ -183,6 +184,17 @@ export const appRoutes: AppRoute[] = [
     ),
     meta: {
       requiresAuth: true,
+    },
+  }),
+  
+  defineRoute({
+    path: '/packaging-material-batches',
+    component: lazy(
+      () => import('@features/packagingMaterialBatch/pages/PackagingMaterialBatchListPage')
+    ),
+    meta: {
+      requiresAuth: true,
+      requiredPermission: ROUTE_PERMISSIONS.PACKAGING_MATERIAL_BATCHES.VIEW_LIST,
     },
   }),
 

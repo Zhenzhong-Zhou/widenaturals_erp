@@ -76,7 +76,12 @@ export const navigationItems: NavigationItem[] = [
   {
     path: '/product-batches',
     title: 'Product Batches',
-    requiredPermission: ROUTE_PERMISSIONS.PRODUCT_BATCH.VIEW_LIST,
+    requiredPermission: ROUTE_PERMISSIONS.PRODUCT_BATCHES.VIEW_LIST,
+  },
+  {
+    path: '/packaging-material-batches',
+    title: 'Packaging Material Batches',
+    requiredPermission: ROUTE_PERMISSIONS.PACKAGING_MATERIAL_BATCHES.VIEW_LIST,
   },
 
   // PRICING
