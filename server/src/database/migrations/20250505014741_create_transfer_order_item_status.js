@@ -13,11 +13,13 @@ exports.up = function (knex) {
     table.boolean('is_active').defaultTo(true).notNullable(); // Soft-disable logic
 
     table.timestamp('created_at').defaultTo(knex.fn.now()).notNullable();
-    table.timestamp('updated_at').defaultTo(knex.fn.now()).notNullable();
+    table.timestamp('updated_at').defaultTo(knex.fn.now()).nullable();
     table.timestamp('status_date').defaultTo(knex.fn.now()).notNullable();
 
     table.uuid('created_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');
+    
+    table.index(['is_active']);
   });
 };
 

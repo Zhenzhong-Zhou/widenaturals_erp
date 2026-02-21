@@ -46,6 +46,8 @@ const getOrderStatusIdByCode = async (code, client = null) => {
  * @throws {AppError} - If no matching status is found or if a database error occurs.
  */
 const getOrderStatusByCode = async (statusCode, client) => {
+  const context = 'order-status-repository/getOrderStatusByCode';
+  
   const sql = `
     SELECT id, code, category
     FROM order_status
@@ -72,7 +74,7 @@ const getOrderStatusByCode = async (statusCode, client) => {
     };
   } catch (error) {
     logSystemException(error, 'Failed to get order status by code', {
-      context: 'order-repository/getOrderStatusByCode',
+      context,
       statusCode,
     });
 
@@ -112,22 +114,22 @@ const getOrderStatusMetadataById = async (id, client) => {
  * @returns {Promise<Array<{ id: string, code: string, category: string }>>}
  */
 const getOrderStatusesByCodes = async (statusCodes, client) => {
+  const context = 'order-status-repository/getOrderStatusesByCodes';
+  
   if (!Array.isArray(statusCodes) || statusCodes.length === 0) return [];
-
-  const placeholders = statusCodes.map((_, i) => `$${i + 1}`).join(', ');
-
+  
   const sql = `
     SELECT id, code, category
     FROM order_status
-    WHERE code IN (${placeholders})
+    WHERE code = ANY($1::text[])
   `;
 
   try {
-    const result = await query(sql, statusCodes, client);
+    const result = await query(sql, [statusCodes], client);
     return result.rows;
   } catch (error) {
     logSystemException(error, 'Failed to get order statuses by codes', {
-      context: 'order-repository/getOrderStatusesByCodes',
+      context,
       statusCodes,
     });
 
