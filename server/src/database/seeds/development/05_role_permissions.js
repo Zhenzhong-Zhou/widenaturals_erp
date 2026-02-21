@@ -57,7 +57,6 @@ exports.seed = async function (knex) {
     'view_self_profile',
     'change_self_password',
     'view_user_card',
-    'view_dashboard',
     'view_sku_cards',
     'view_sku_details',
     'view_compliance_records',
@@ -98,18 +97,14 @@ exports.seed = async function (knex) {
     admin: [
       ...BASE_AUTH_PERMISSIONS,
       'export_prices',
-      'view_system',
-      'view_system_status',
     ],
 
     manager: [
       ...BASE_AUTH_PERMISSIONS,
-      'view_inventory',
-      'view_inventory_summary',
       'view_warehouses',
       'view_locations',
       'view_active_customers',
-      'create_customer',
+      'create_customers',
       'view_allocation_stage',
       ...SALES_CORE,
     ],

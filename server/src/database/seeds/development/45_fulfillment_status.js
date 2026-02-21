@@ -95,7 +95,10 @@ exports.seed = async function (knex) {
     updated_by: null,
   }));
 
-  await knex('fulfillment_status').insert(records);
+  await knex('fulfillment_status')
+    .insert(records)
+    .onConflict('code')
+    .ignore();
 
   console.log(`Seeded ${records.length} fulfillment statuses.`);
 };
