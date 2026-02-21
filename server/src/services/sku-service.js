@@ -7,6 +7,9 @@ const {
   getPaginatedSkus,
   getSkuDetailsById,
   checkBarcodeExists,
+  updateSkuMetadata,
+  updateSkuDimensions,
+  updateSkuIdentity,
 } = require('../repositories/sku-repository');
 const {
   transformPaginatedSkuProductCardResult,
@@ -23,6 +26,7 @@ const {
   evaluateSkuStatusAccessControl,
   sliceSkuForUser,
   applySkuProductCardVisibilityRules,
+  assertSkuEditAllowed,
 } = require('../business/sku-business');
 const { withTransaction, lockRows, lockRow } = require('../database/db');
 const { getOrCreateBaseCodesBulk } = require('./sku-code-base-service');
@@ -45,6 +49,7 @@ const {
   evaluatePricingViewAccessControl,
   slicePricingForUser,
 } = require('../business/pricing-business');
+const { SKU_EDIT_TYPE } = require('../utils/constants/domain/sku-constants');
 
 /**
  * Service: fetchPaginatedSkuProductCardsService
@@ -257,9 +262,9 @@ const fetchPaginatedSkusService = async ({
  * @param {Object} user - Authenticated user context
  * @returns {Promise<Object>} Fully transformed and permission-filtered SKU detail object
  *
- * @throws {AppError.NotFoundError} If SKU does not exist
- * @throws {AppError.AuthorizationError} If SKU is hidden by permission rules
- * @throws {AppError.ServiceError} For unexpected failures
+ * @throws {AppError.notFound} If SKU does not exist
+ * @throws {AppError.authenticationError} If SKU is hidden by permission rules
+ * @throws {AppError.serviceError} For unexpected failures
  */
 const fetchSkuDetailsService = async (skuId, user) => {
   const context = 'sku-service/fetchSkuDetailsService';
@@ -529,6 +534,83 @@ const createSkusService = async (skuList, user) => {
 };
 
 /**
+ * Updates editable metadata fields for a SKU.
+ *
+ * This service:
+ * - Runs inside a database transaction.
+ * - Locks the SKU row using FOR UPDATE to prevent concurrent writes.
+ * - Verifies that metadata edits are allowed under current SKU state.
+ * - Applies the metadata update.
+ * - Detects and prevents lost updates (concurrency protection).
+ *
+ * This operation does NOT modify operational fields such as pricing,
+ * inventory, or status — only metadata attributes.
+ *
+ * @param {Object} params
+ * @param {string} params.skuId - UUID of the SKU to update.
+ * @param {Object} params.payload - Metadata fields to update.
+ * @param {Object} params.user - Authenticated user performing the action.
+ *
+ * @returns {Promise<Object>} Updated SKU record.
+ *
+ * @throws {AppError.notFoundError}
+ *   If the SKU does not exist.
+ * @throws {AppError.conflictError}
+ *   If a concurrent update prevents modification.
+ * @throws {AppError.validationError}
+ *   If edit rules are violated.
+ */
+const updateSkuMetadataService = async ({
+                                          skuId,
+                                          payload,
+                                          user,
+                                        }) => {
+  return withTransaction(async (client) => {
+    const context = 'sku-service/updateSkuMetadataService';
+    const userId = user.id;
+    
+    // Lock the SKU row to ensure safe concurrent updates
+    const sku = await lockRow(client, 'skus', skuId, 'FOR UPDATE', { context });
+    
+    if (!sku) {
+      throw AppError.notFoundError('SKU not found.', { context, skuId });
+    }
+    
+    // Enforce business rules before modification
+    await assertSkuEditAllowed(
+      sku,
+      SKU_EDIT_TYPE.METADATA,
+      user,
+      client
+    );
+    
+    // Apply metadata update
+    const updated = await updateSkuMetadata(
+      skuId,
+      payload,
+      userId,
+      client
+    );
+    
+    // Defensive concurrency check
+    if (!updated) {
+      throw AppError.conflictError(
+        'Concurrent update detected — SKU metadata not updated.',
+        { context, skuId }
+      );
+    }
+    
+    logSystemInfo('Updated SKU metadata successfully', {
+      context,
+      skuId,
+      userId,
+    });
+    
+    return updated;
+  });
+};
+
+/**
  * Service: Update SKU Status
  *
  * Performs a transactional SKU status update with full concurrency protection,
@@ -624,10 +706,155 @@ const updateSkuStatusService = async ({ skuId, statusId, user }) => {
   });
 };
 
+/**
+ * Updates dimensional attributes of a SKU (e.g., weight, length, width, height).
+ *
+ * This service:
+ * - Executes inside a database transaction.
+ * - Locks the SKU row using FOR UPDATE to prevent concurrent writes.
+ * - Validates whether dimension edits are allowed under current SKU state.
+ * - Applies dimension updates.
+ * - Detects lost-update scenarios to prevent silent overwrites.
+ *
+ * This operation is restricted to dimensional data only and does not
+ * modify identity, pricing, inventory, or status fields.
+ *
+ * @param {Object} params
+ * @param {string} params.skuId - UUID of the SKU.
+ * @param {Object} params.payload - Dimension fields to update.
+ * @param {Object} params.user - Authenticated user performing the update.
+ *
+ * @returns {Promise<Object>} Updated SKU record.
+ *
+ * @throws {AppError.notFoundError}
+ * @throws {AppError.conflictError}
+ * @throws {AppError.validationError}
+ */
+const updateSkuDimensionsService = async ({
+                                            skuId,
+                                            payload,
+                                            user,
+                                          }) => {
+  return withTransaction(async (client) => {
+    const context = 'sku-service/updateSkuDimensionsService';
+    const userId = user.id;
+    
+    // Lock row to prevent concurrent modification
+    const sku = await lockRow(client, 'skus', skuId, 'FOR UPDATE', { context });
+    
+    if (!sku) {
+      throw AppError.notFoundError('SKU not found.', { context, skuId });
+    }
+    
+    // Enforce edit permissions and state rules
+    await assertSkuEditAllowed(
+      sku,
+      SKU_EDIT_TYPE.DIMENSIONS,
+      user,
+      client
+    );
+    
+    const updated = await updateSkuDimensions(
+      skuId,
+      payload,
+      userId,
+      client
+    );
+    
+    if (!updated) {
+      throw AppError.conflictError(
+        'Concurrent update detected — SKU dimensions not updated.',
+        { context, skuId }
+      );
+    }
+    
+    logSystemInfo('Updated SKU dimensions successfully', {
+      context,
+      skuId,
+      userId,
+    });
+    
+    return updated;
+  });
+};
+
+/**
+ * Updates identity-related attributes of a SKU (e.g., SKU code, barcode, labels).
+ *
+ * This service:
+ * - Runs within a database transaction.
+ * - Locks the SKU row using FOR UPDATE to ensure safe concurrency.
+ * - Validates whether identity edits are permitted under current SKU state.
+ * - Applies identity updates.
+ * - Guards against concurrent lost updates.
+ *
+ * Identity changes may impact integrations, references, and external systems,
+ * therefore strict validation and locking are enforced.
+ *
+ * @param {Object} params
+ * @param {string} params.skuId - UUID of the SKU.
+ * @param {Object} params.payload - Identity fields to update.
+ * @param {Object} params.user - Authenticated user performing the update.
+ *
+ * @returns {Promise<Object>} Updated SKU record.
+ *
+ * @throws {AppError.notFoundError}
+ * @throws {AppError.conflictError}
+ * @throws {AppError.validationError}
+ */
+const updateSkuIdentityService = async ({
+                                          skuId,
+                                          payload,
+                                          user,
+                                        }) => {
+  return withTransaction(async (client) => {
+    const context = 'sku-service/updateSkuIdentityService';
+    const userId = user.id;
+    
+    const sku = await lockRow(client, 'skus', skuId, 'FOR UPDATE', { context });
+    
+    if (!sku) {
+      throw AppError.notFoundError('SKU not found.', { context, skuId });
+    }
+    
+    await assertSkuEditAllowed(
+      sku,
+      SKU_EDIT_TYPE.IDENTITY,
+      user,
+      client
+    );
+    
+    const updated = await updateSkuIdentity(
+      skuId,
+      payload,
+      userId,
+      client
+    );
+    
+    if (!updated) {
+      throw AppError.conflictError(
+        'Concurrent update detected — SKU identity not updated.',
+        { context, skuId }
+      );
+    }
+    
+    logSystemInfo('Updated SKU identity successfully', {
+      context,
+      skuId,
+      userId,
+    });
+    
+    return updated;
+  });
+};
+
 module.exports = {
   fetchPaginatedSkuProductCardsService,
   fetchPaginatedSkusService,
   fetchSkuDetailsService,
   createSkusService,
+  updateSkuMetadataService,
   updateSkuStatusService,
+  updateSkuDimensionsService,
+  updateSkuIdentityService,
 };

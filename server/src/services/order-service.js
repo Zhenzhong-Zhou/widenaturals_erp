@@ -213,7 +213,7 @@ const fetchPaginatedOrdersService = async ({
     let allowedStatusIds = [];
     if (allowedStatusCodes.length > 0) {
       const allowedStatusRecords =
-        await getOrderStatusesByCodes(allowedStatusCodes);
+        await getOrderStatusesByCodes(allowedStatusCodes, null);
       allowedStatusIds = extractStatusIds(allowedStatusRecords);
     }
 

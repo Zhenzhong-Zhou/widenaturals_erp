@@ -19,8 +19,34 @@ const SKU_IMAGES_CONSTANTS = {
 
 const BARCODE_REGEX = /^[0-9A-Za-z\-._\/ ]{1,64}$/;
 
+const SKU_EDIT_TYPE = {
+  METADATA: 'METADATA',
+  DIMENSIONS: 'DIMENSIONS',
+  IDENTITY: 'IDENTITY'
+};
+
+const SKU_EDIT_POLICIES = {
+  METADATA: {
+    blockArchived: true,
+    blockOperational: false,
+    blockCommercial: false,
+  },
+  DIMENSIONS: {
+    blockArchived: true,
+    blockOperational: true,
+    blockCommercial: false,
+  },
+  IDENTITY: {
+    blockArchived: true,
+    blockOperational: true,
+    blockCommercial: true,
+  }
+};
+
 module.exports = {
   SKU_CONSTANTS,
   SKU_IMAGES_CONSTANTS,
   BARCODE_REGEX,
+  SKU_EDIT_TYPE,
+  SKU_EDIT_POLICIES,
 };

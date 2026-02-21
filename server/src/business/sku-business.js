@@ -7,8 +7,15 @@ const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const {
   SKU_CONSTANTS,
   BARCODE_REGEX,
+  SKU_EDIT_POLICIES,
 } = require('../utils/constants/domain/sku-constants');
 const { getGenericIssueReason } = require('../utils/enrich-utils');
+const { skuHasInventory } = require('../repositories/warehouse-inventory-repository');
+const { skuHasActiveOrders } = require('../repositories/order-item-repository');
+const { skuHasActiveAllocations } = require('../repositories/inventory-allocations-repository');
+const { skuHasActiveTransfers } = require('../repositories/transfer-order-item-repository');
+const { skuHasAnyHistory } = require('../repositories/sku-repository');
+const { getSkuOperationalStatusIds } = require('../config/sku-operational-status-cache');
 
 /**
  * Evaluates whether the user is allowed to bypass SKU stock and status filters
@@ -648,6 +655,191 @@ const applySkuProductCardVisibilityRules = (filters, acl) => {
   return adjusted;
 };
 
+/**
+ * Determines whether a SKU has any active operational dependencies.
+ *
+ * A SKU is considered to have active dependencies if it is currently:
+ * - Present in warehouse inventory
+ * - Referenced by active orders
+ * - Referenced by active inventory allocations
+ * - Referenced by active transfer order items
+ *
+ * The definition of "active" is determined by the provided
+ * status UUID arrays for each domain.
+ *
+ * This function is typically used by business-layer guards
+ * to prevent SKU archival or deletion while operational
+ * dependencies still exist.
+ *
+ * Note:
+ * - Database errors are not handled here and are allowed
+ *   to propagate from the repository layer.
+ *
+ * @param {string} skuId - UUID of the SKU.
+ * @param {string[]} activeOrderStatusIds - Active order status UUIDs.
+ * @param {string[]} activeAllocationStatusIds - Active allocation status UUIDs.
+ * @param {string[]} activeTransferStatusIds - Active transfer status UUIDs.
+ * @param {import('pg').PoolClient|null} [client]
+ *   Optional transactional client.
+ *
+ * @returns {Promise<boolean>}
+ *   Returns true if any active dependency exists.
+ */
+const skuHasActiveDependencies = async (
+  skuId,
+  activeOrderStatusIds,
+  activeAllocationStatusIds,
+  activeTransferStatusIds,
+  client = null
+) => {
+  
+  if (await skuHasInventory(skuId, client)) return true;
+  
+  if (
+    await skuHasActiveOrders(
+      skuId,
+      activeOrderStatusIds,
+      client
+    )
+  ) return true;
+  
+  if (
+    await skuHasActiveAllocations(
+      skuId,
+      activeAllocationStatusIds,
+      client
+    )
+  ) return true;
+  
+  if (
+    await skuHasActiveTransfers(
+      skuId,
+      activeTransferStatusIds,
+      client
+    )
+  ) return true;
+  
+  return false;
+};
+
+/**
+ * Business Guard: Assert SKU Edit Allowed
+ *
+ * Enforces business-level edit policies for SKU modifications.
+ *
+ * This guard evaluates whether a SKU can be modified based on:
+ *
+ *   1. User permission context (root bypass support)
+ *   2. SKU lifecycle state (e.g., ARCHIVED)
+ *   3. Operational dependencies (orders, allocations, transfers)
+ *   4. Commercial history (fulfilled orders, shipments, etc.)
+ *
+ * The enforcement logic is controlled by `SKU_EDIT_POLICIES`,
+ * which determines which constraints apply per edit type.
+ *
+ * ─────────────────────────────────────────────────────────────
+ * Edit Types
+ * ─────────────────────────────────────────────────────────────
+ * METADATA   → Blocks archived only
+ * DIMENSIONS → Blocks archived + operational
+ * IDENTITY   → Blocks archived + operational + commercial
+ *
+ * ─────────────────────────────────────────────────────────────
+ * Root Bypass
+ * ─────────────────────────────────────────────────────────────
+ * If the user has root privileges, business guards are bypassed.
+ *
+ * ─────────────────────────────────────────────────────────────
+ * Usage
+ * ─────────────────────────────────────────────────────────────
+ * await assertSkuEditAllowed(
+ *   sku,
+ *   SKU_EDIT_TYPE.DIMENSIONS,
+ *   user,
+ *   client
+ * );
+ *
+ * ─────────────────────────────────────────────────────────────
+ * @param {Object} sku
+ *   Locked SKU row including at minimum:
+ *     - id
+ *     - status_name (or statusName)
+ *
+ * @param {string} editType
+ *   One of SKU_EDIT_TYPE values.
+ *
+ * @param {Object} user
+ *   Authenticated user context (used to resolve permission).
+ *
+ * @param {import('pg').PoolClient} client
+ *   Active PostgreSQL transaction client.
+ *
+ * @returns {Promise<void>}
+ *
+ * @throws {AppError}
+ *   Throws businessError if edit is not allowed.
+ */
+const assertSkuEditAllowed = async (
+  sku,
+  editType,
+  user,
+  client
+) => {
+  const { isRoot } = await resolveUserPermissionContext(user);
+
+  if (isRoot) {
+    return; // bypass business guard
+  }
+  
+  const policy = SKU_EDIT_POLICIES[editType];
+  
+  if (!policy) {
+    throw AppError.businessError(
+      `Unknown SKU edit type: ${editType}`
+    );
+  }
+  
+  const ARCHIVED_STATUS_ID = getStatusId('general_archived');
+  if (policy.blockArchived && sku.status_id === ARCHIVED_STATUS_ID) {
+    throw AppError.businessError(
+      'Archived SKU cannot be modified.'
+    );
+  }
+  
+  if (policy.blockOperational) {
+    const {
+      order,
+      allocation,
+      transfer
+    } = getSkuOperationalStatusIds();
+    
+    const hasOperational = await skuHasActiveDependencies(
+      sku.id,
+      order,
+      allocation,
+      transfer,
+      client
+    );
+    
+    if (hasOperational) {
+      throw AppError.businessError(
+        'SKU has active operational dependencies.'
+      );
+    }
+  }
+  
+  if (policy.blockCommercial) {
+    const hasCommercial =
+      await skuHasAnyHistory(sku.id, client);
+    
+    if (hasCommercial) {
+      throw AppError.businessError(
+        'SKU has commercial history and cannot be modified.'
+      );
+    }
+  }
+};
+
 module.exports = {
   evaluateSkuFilterAccessControl,
   enforceSkuLookupVisibilityRules,
@@ -662,4 +854,5 @@ module.exports = {
   evaluateSkuStatusAccessControl,
   sliceSkuForUser,
   applySkuProductCardVisibilityRules,
+  assertSkuEditAllowed,
 };
