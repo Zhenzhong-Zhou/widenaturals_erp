@@ -17,6 +17,7 @@ const app = require('./app');
 const { createDatabaseAndInitialize } = require('./database/create-db');
 const { testConnection } = require('./database/db');
 const { initAllStatusCaches } = require('./config/status-cache');
+const { initSkuOperationalStatusCache } = require('./config/sku-operational-status-cache');
 const { initializeRootAdmin } = require('./config/initialize-root');
 const {
   startPoolMonitoring,
@@ -58,6 +59,7 @@ const startServer = async () => {
 
     logSystemInfo('Initializing all status caches...');
     await initAllStatusCaches();
+    await initSkuOperationalStatusCache();
     logSystemInfo('All status caches initialized successfully.');
 
     // Root admin initialization
@@ -72,7 +74,7 @@ const startServer = async () => {
     // Health check scheduling
     const healthCheckInterval =
       parseInt(process.env.HEALTH_CHECK_INTERVAL, 10) || ONE_MINUTE;
-    await startHealthCheck(healthCheckInterval);
+    startHealthCheck(healthCheckInterval);
 
     // Log health check at the same interval
     const healthCheckId = setInterval(() => {
