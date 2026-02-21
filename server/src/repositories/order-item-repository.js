@@ -1,6 +1,7 @@
 const { bulkInsert, query } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
+const { existsQuery } = require('./utils/repository-helper');
 
 /**
  * Inserts multiple order items in bulk for a given order.
@@ -46,6 +47,8 @@ const { logSystemException, logSystemInfo } = require('../utils/system-logger');
  * ], client);
  */
 const insertOrderItemsBulk = async (orderId, orderItems, client) => {
+  const context = 'order-item-repository/insertOrderItemsBulk';
+  
   if (!Array.isArray(orderItems) || orderItems.length === 0) return [];
 
   const columns = [
@@ -119,7 +122,7 @@ const insertOrderItemsBulk = async (orderId, orderItems, client) => {
         ['order_id', 'sku_id'], // Valid because packaging_material_id is null
         updateStrategies,
         client,
-        { context: 'order-item-repository/insertOrderItemsBulk:sku' }
+        { context: `${context}:sku` },
       );
       results.push(...result);
     }
@@ -134,7 +137,7 @@ const insertOrderItemsBulk = async (orderId, orderItems, client) => {
         ['order_id', 'packaging_material_id'], // Valid because sku_id is null
         updateStrategies,
         client,
-        { context: 'order-item-repository/insertOrderItemsBulk:packaging' }
+        { context: `${context}:packaging` }
       );
       results.push(...result);
     }
@@ -142,7 +145,7 @@ const insertOrderItemsBulk = async (orderId, orderItems, client) => {
     return results;
   } catch (error) {
     logSystemException(error, 'Failed to bulk insert order items', {
-      context: 'order-item-repository/insertOrderItemsBulk',
+      context,
       data: orderItems,
     });
 
@@ -236,7 +239,7 @@ const findOrderItemsByOrderId = async (orderId) => {
     logSystemInfo('Order items fetched', { ...logMeta, rowCount: rows.length });
     return rows;
   } catch (error) {
-    logSystemException('DB error fetching order items', error, {
+    logSystemException(error, 'DB error fetching order items', {
       ...logMeta,
       severity: 'ERROR',
     });
@@ -274,6 +277,8 @@ const updateOrderItemStatusesByOrderId = async (
   client,
   { orderId, newStatusId, updatedBy }
 ) => {
+  const context = 'order-item-repository/updateOrderItemStatusesByOrderId';
+  
   const sql = `
     UPDATE order_items
     SET
@@ -307,7 +312,7 @@ const updateOrderItemStatusesByOrderId = async (
     }
 
     logSystemInfo('Order item statuses updated successfully by orderId', {
-      context: 'order-item-repository/updateOrderItemStatusesByOrderId',
+      context,
       updateType: 'bulk_by_order_id',
       orderId,
       newStatusId,
@@ -319,7 +324,7 @@ const updateOrderItemStatusesByOrderId = async (
     return updatedRows;
   } catch (error) {
     logSystemException(error, 'Failed to update order item statuses', {
-      context: 'order-item-repository/updateOrderItemStatusesByOrderId',
+      context,
       orderId,
       newStatusId,
       updatedBy,
@@ -362,6 +367,8 @@ const updateOrderItemStatus = async (
   client,
   { orderItemId, newStatusId, updatedBy }
 ) => {
+  const context = 'order-item-repository/updateOrderItemStatus';
+  
   const sql = `
     UPDATE order_items
     SET
@@ -381,14 +388,14 @@ const updateOrderItemStatus = async (
 
     if (updatedRow) {
       logSystemInfo('Order item status updated successfully', {
-        context: 'order-item-repository/updateOrderItemStatus',
+        context,
         orderItemId,
         newStatusId,
         updatedBy,
       });
     } else {
       logSystemInfo('Order item status unchanged (already up-to-date)', {
-        context: 'order-item-repository/updateOrderItemStatus',
+        context,
         orderItemId,
         newStatusId,
         updatedBy,
@@ -399,7 +406,7 @@ const updateOrderItemStatus = async (
     return updatedRow;
   } catch (error) {
     logSystemException(error, 'Failed to update order item status', {
-      context: 'order-item-repository/updateOrderItemStatus',
+      context,
       orderItemId,
       newStatusId,
       updatedBy,
@@ -435,6 +442,8 @@ const updateOrderItemStatus = async (
  * @throws {AppError} If the query fails to execute.
  */
 const getOrderItemsByOrderId = async (orderId, client) => {
+  const context = 'order-item-repository/getOrderItemsByOrderId';
+  
   const sql = `
     SELECT
       oi.id AS order_item_id,
@@ -454,7 +463,7 @@ const getOrderItemsByOrderId = async (orderId, client) => {
     const result = await query(sql, [orderId], client);
 
     logSystemInfo('Fetched order items by order ID', {
-      context: 'order-item-repository/getOrderItemsByOrderId',
+      context,
       orderId,
       rowCount: result?.rows?.length ?? 0,
       severity: 'INFO',
@@ -463,7 +472,7 @@ const getOrderItemsByOrderId = async (orderId, client) => {
     return result.rows;
   } catch (error) {
     logSystemException(error, 'Failed to fetch order items by order ID', {
-      context: 'order-item-repository/getOrderItemsByOrderId',
+      context,
       orderId,
       severity: 'ERROR',
     });
@@ -510,6 +519,8 @@ const getOrderItemsByOrderId = async (orderId, client) => {
  * }
  */
 const validateFullAllocationForFulfillment = async (orderId, client = null) => {
+  const context = 'order-item-repository/validateFullAllocationForFulfillment';
+  
   const sql = `
     SELECT 1
     FROM order_items oi
@@ -530,7 +541,7 @@ const validateFullAllocationForFulfillment = async (orderId, client = null) => {
         ? 'All order items are fully allocated.'
         : 'Some order items are not fully allocated.',
       {
-        context: 'order-item-repository/validateFullAllocationForFulfillment',
+        context,
         orderId,
         rowCount: rows.length,
       }
@@ -542,7 +553,7 @@ const validateFullAllocationForFulfillment = async (orderId, client = null) => {
       error,
       'Failed to validate order item allocations for fulfillment.',
       {
-        context: 'order-item-repository/validateFullAllocationForFulfillment',
+        context,
         orderId,
       }
     );
@@ -557,6 +568,57 @@ const validateFullAllocationForFulfillment = async (orderId, client = null) => {
   }
 };
 
+/**
+ * Checks whether a SKU is referenced by any active orders.
+ *
+ * An active order is defined as an order whose status_id
+ * matches one of the provided operational order status UUIDs.
+ *
+ * This function is used by business-layer guards to prevent
+ * SKU archival or deletion when active orders exist.
+ *
+ * Relationships:
+ *   order_items → orders → SKU
+ *
+ * @param {string} skuId - UUID of the SKU.
+ * @param {string[]} activeOrderStatusIds
+ *   Array of order status UUIDs considered "active".
+ * @param {import('pg').PoolClient|null} [client]
+ *   Optional transactional client.
+ *
+ * @returns {Promise<boolean>}
+ *   Returns true if at least one active order references the SKU,
+ *   false otherwise.
+ *
+ * @throws {AppError.databaseError}
+ *   If the database query fails.
+ */
+const skuHasActiveOrders = async (
+  skuId,
+  activeOrderStatusIds,
+  client = null
+) => {
+  const context = 'order-item-repository/skuHasActiveOrders';
+  
+  const queryText = `
+    SELECT 1
+    FROM order_items oi
+    JOIN orders o
+      ON o.id = oi.order_id
+    WHERE oi.sku_id = $1
+      AND o.order_status_id = ANY($2::uuid[])
+    LIMIT 1
+  `;
+  
+  return existsQuery(
+    queryText,
+    [skuId, activeOrderStatusIds],
+    context,
+    'Failed to check SKU active order dependency',
+    client
+  );
+};
+
 module.exports = {
   insertOrderItemsBulk,
   findOrderItemsByOrderId,
@@ -564,4 +626,5 @@ module.exports = {
   updateOrderItemStatus,
   getOrderItemsByOrderId,
   validateFullAllocationForFulfillment,
+  skuHasActiveOrders,
 };

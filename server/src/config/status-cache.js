@@ -46,6 +46,11 @@ const STATUS_KEY_LOOKUP = [
     table: 'status',
     name: 'inactive',
   },
+  {
+    key: 'general_archived',
+    table: 'status',
+    name: 'archived',
+  },
   { key: 'pricing_type_active', table: 'status', name: 'active' },
   { key: 'pricing_active', table: 'status', name: 'active' },
   { key: 'warehouse_active', table: 'status', name: 'active' },

@@ -19,6 +19,7 @@ const {
 const {
   getStatusIdByQuantity,
 } = require('../utils/query/inventory-query-utils');
+const { existsQuery } = require('./utils/repository-helper');
 
 /**
  * Fetches a paginated summary of warehouse inventory items, including both product SKUs and packaging materials.
@@ -1139,6 +1140,51 @@ const getRecentInsertWarehouseInventoryRecords = async (warehouseLotIds) => {
   }
 };
 
+/**
+ * Checks whether a SKU currently has inventory records.
+ *
+ * Determines if any warehouse inventory entries exist that are
+ * linked to the given SKU via:
+ *
+ * warehouse_inventory → batch_registry → product_batches
+ *
+ * This is used by higher-level business guards to prevent
+ * destructive operations (e.g., archive/delete) when inventory exists.
+ *
+ * @param {string} skuId - UUID of the SKU.
+ * @param {import('pg').PoolClient|null} [client]
+ *   Optional transactional client.
+ *
+ * @returns {Promise<boolean>}
+ *   Returns true if at least one inventory record exists,
+ *   false otherwise.
+ *
+ * @throws {AppError.databaseError}
+ *   If the database query fails.
+ */
+const skuHasInventory = async (skuId, client = null) => {
+  const context = 'warehouse-inventory-repository/skuHasInventory';
+  
+  const queryText = `
+    SELECT 1
+    FROM warehouse_inventory wi
+    JOIN batch_registry br
+      ON wi.batch_id = br.id
+    JOIN product_batches pb
+      ON br.product_batch_id = pb.id
+    WHERE pb.sku_id = $1
+    LIMIT 1
+  `;
+  
+  return existsQuery(
+    queryText,
+    [skuId],
+    context,
+    'Failed to check SKU inventory dependency',
+    client
+  );
+};
+
 module.exports = {
   getPaginatedWarehouseInventoryItemSummary,
   getWarehouseInventorySummaryDetailsByItemId,
@@ -1151,4 +1197,5 @@ module.exports = {
   getWarehouseInventoryDetailsByWarehouseId,
   checkWarehouseInventoryBulk,
   getRecentInsertWarehouseInventoryRecords,
+  skuHasInventory,
 };

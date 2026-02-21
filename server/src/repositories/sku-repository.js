@@ -15,6 +15,7 @@ const {
 } = require('../utils/sql/build-sku-filters');
 const { minUuid } = require('../utils/sql/sql-helpers');
 const { getSortMapForModule } = require('../utils/sort-utils');
+const { existsQuery } = require('./utils/repository-helper');
 
 /**
  * Retrieves the most recent SKU string for a given brand and category combination.
@@ -890,6 +891,144 @@ const getSkuDetailsById = async (skuId) => {
 };
 
 /**
+ * Checks whether a SKU has any historical references in the system.
+ *
+ * A SKU is considered to have history if it has ever been referenced in:
+ * - order_items
+ * - product_batches
+ * - warehouse_inventory (via batch_registry → product_batches)
+ *
+ * This function is typically used to determine whether a SKU
+ * can be permanently deleted from the system.
+ *
+ * This check does NOT evaluate operational state — only historical existence.
+ *
+ * @param {string} skuId - UUID of the SKU.
+ * @param {import('pg').PoolClient|null} [client]
+ *   Optional transactional client.
+ *
+ * @returns {Promise<boolean>}
+ *   Returns true if any historical reference exists,
+ *   false otherwise.
+ *
+ * @throws {AppError.databaseError}
+ *   If the database query fails.
+ */
+const skuHasAnyHistory = async (skuId, client = null) => {
+  const context = 'sku-repository/skuHasAnyHistory';
+  
+  const queryText = `
+    SELECT 1
+    WHERE EXISTS (
+      SELECT 1
+      FROM order_items oi
+      WHERE oi.sku_id = $1
+    )
+    OR EXISTS (
+      SELECT 1
+      FROM product_batches pb
+      WHERE pb.sku_id = $1
+    )
+    OR EXISTS (
+      SELECT 1
+      FROM warehouse_inventory wi
+      JOIN batch_registry br
+        ON wi.batch_id = br.id
+      JOIN product_batches pb
+        ON br.product_batch_id = pb.id
+      WHERE pb.sku_id = $1
+    );
+  `;
+  
+  return existsQuery(
+    queryText,
+    [skuId],
+    context,
+    'Failed to check SKU historical references',
+    client
+  );
+};
+
+/**
+ * Repository: Update SKU Metadata (Safe Fields Only)
+ *
+ * Updates non-identity, non-dimensional metadata fields of a SKU.
+ *
+ * Scope:
+ * - Allowed fields: description, size_label, language, market_region
+ * - Disallowed fields: sku, barcode, product_id, dimensions, status
+ *
+ * Behavior:
+ * - Intended to be executed inside an existing transaction.
+ * - Assumes the SKU row has already been locked (FOR UPDATE) by the service layer.
+ * - Automatically updates audit fields (updated_at, updated_by).
+ *
+ * @param {string} skuId - UUID of the SKU to update.
+ * @param {{
+ *   description?: string,
+ *   size_label?: string,
+ *   language?: string,
+ *   market_region?: string
+ * }} payload - Partial metadata update fields.
+ * @param {string} userId - UUID of the user performing the update.
+ * @param {import('pg').PoolClient} client - Active transactional client.
+ *
+ * @returns {Promise<Object|null>}
+ *   Returns the updated SKU record, or null if no row was modified.
+ *
+ * @throws {AppError.databaseError}
+ *   If the update query fails.
+ */
+const updateSkuMetadata = async (skuId, payload, userId, client) => {
+  const context = 'sku-repository/updateSkuMetadata';
+  
+  try {
+    const allowedFields = [
+      'description',
+      'size_label',
+      'language',
+      'market_region',
+    ];
+    
+    const updates = {};
+    
+    for (const key of allowedFields) {
+      if (payload[key] !== undefined) {
+        updates[key] = payload[key];
+      }
+    }
+    
+    if (Object.keys(updates).length === 0) {
+      throw AppError.validationError('No valid metadata fields provided.', {
+        context,
+      });
+    }
+    
+    const result = await updateById('skus', skuId, updates, userId, client);
+    
+    logSystemInfo('Updated SKU metadata successfully', {
+      context,
+      skuId,
+      updatedBy: userId,
+      fieldsUpdated: Object.keys(updates),
+    });
+    
+    return result;
+  } catch (error) {
+    logSystemException(error, 'Failed to update SKU metadata', {
+      context,
+      skuId,
+      updatedBy: userId,
+    });
+    
+    throw AppError.databaseError('Failed to update SKU metadata.', {
+      context,
+      cause: error.message,
+    });
+  }
+};
+
+/**
  * Repository: Update SKU Status
  *
  * Updates the status of a SKU record by its ID. Automatically updates:
@@ -911,23 +1050,23 @@ const getSkuDetailsById = async (skuId) => {
  */
 const updateSkuStatus = async (skuId, statusId, userId, client) => {
   const context = 'sku-repository/updateSkuStatus';
-
+  
   try {
     const updates = {
       status_id: statusId,
       status_date: new Date(),
     };
-
+    
     // Reuse generic updateById helper for consistency
     const result = await updateById('skus', skuId, updates, userId, client);
-
+    
     logSystemInfo('Updated SKU status successfully', {
       context,
       skuId,
       statusId,
       updatedBy: userId,
     });
-
+    
     return result; // { id: '...' }
   } catch (error) {
     logSystemException(error, 'Failed to update SKU status', {
@@ -936,8 +1075,161 @@ const updateSkuStatus = async (skuId, statusId, userId, client) => {
       statusId,
       updatedBy: userId,
     });
-
+    
     throw AppError.databaseError('Failed to update SKU status.', {
+      context,
+      cause: error.message,
+    });
+  }
+};
+
+/**
+ * Repository: Update SKU Dimensions (Controlled Fields Only)
+ *
+ * Updates physical dimension attributes of a SKU.
+ *
+ * Scope:
+ * - Allowed fields: length_cm, width_cm, height_cm, weight_g
+ * - Does NOT modify identity, metadata, pricing, or status fields.
+ *
+ * Behavior:
+ * - Intended to be executed within an existing transaction.
+ * - Assumes the SKU row has already been locked (FOR UPDATE).
+ * - Audit fields (updated_at, updated_by) are updated automatically.
+ * - Derived unit fields (inch / lb columns) are generated by database logic.
+ *
+ * @param {string} skuId - UUID of the SKU to update.
+ * @param {{
+ *   length_cm?: number,
+ *   width_cm?: number,
+ *   height_cm?: number,
+ *   weight_g?: number
+ * }} payload - Partial dimension updates.
+ * @param {string} userId - UUID of the user performing the update.
+ * @param {import('pg').PoolClient} client - Active transactional client.
+ *
+ * @returns {Promise<Object|null>}
+ *   Returns updated SKU record or null if no row was modified.
+ *
+ * @throws {AppError.databaseError}
+ */
+const updateSkuDimensions = async (skuId, payload, userId, client) => {
+  const context = 'sku-repository/updateSkuDimensions';
+  
+  try {
+    const allowedFields = [
+      'length_cm',
+      'width_cm',
+      'height_cm',
+      'weight_g',
+    ];
+    
+    const updates = {};
+    
+    for (const key of allowedFields) {
+      if (payload[key] !== undefined) {
+        updates[key] = payload[key];
+      }
+    }
+    
+    if (Object.keys(updates).length === 0) {
+      throw AppError.validationError('No dimension fields provided.', {
+        context,
+      });
+    }
+    
+    const result = await updateById('skus', skuId, updates, userId, client);
+    
+    logSystemInfo('Updated SKU dimensions successfully', {
+      context,
+      skuId,
+      updatedBy: userId,
+      fieldsUpdated: Object.keys(updates),
+    });
+    
+    return result;
+  } catch (error) {
+    logSystemException(error, 'Failed to update SKU dimensions', {
+      context,
+      skuId,
+      updatedBy: userId,
+    });
+    
+    throw AppError.databaseError('Failed to update SKU dimensions.', {
+      context,
+      cause: error.message,
+    });
+  }
+};
+
+/**
+ * Repository: Update SKU Identity (Controlled Fields Only)
+ *
+ * Updates identity-related attributes of a SKU.
+ *
+ * Scope:
+ * - Allowed fields: sku, barcode
+ * - Does NOT modify metadata, dimensions, pricing, or status fields.
+ *
+ * Behavior:
+ * - Intended to be executed within an existing transaction.
+ * - Assumes the SKU row has already been locked (FOR UPDATE).
+ * - Audit fields (updated_at, updated_by) are updated automatically.
+ *
+ * Identity changes may impact references and integrations,
+ * but permission enforcement is handled at higher layers.
+ *
+ * @param {string} skuId - UUID of the SKU to update.
+ * @param {{
+ *   sku?: string,
+ *   barcode?: string
+ * }} payload - Partial identity updates.
+ * @param {string} userId - UUID of the user performing the update.
+ * @param {import('pg').PoolClient} client - Active transactional client.
+ *
+ * @returns {Promise<Object|null>}
+ *   Returns updated SKU record or null if no row was modified.
+ *
+ * @throws {AppError.databaseError}
+ */
+const updateSkuIdentity = async (skuId, payload, userId, client) => {
+  const context = 'sku-repository/updateSkuIdentity';
+  
+  try {
+    const allowedFields = ['sku', 'barcode'];
+    
+    const updates = {};
+    
+    for (const key of allowedFields) {
+      if (payload[key] !== undefined) {
+        updates[key] = payload[key];
+      }
+    }
+    
+    if (Object.keys(updates).length === 0) {
+      throw AppError.validationError('No identity fields provided.', {
+        context,
+      });
+    }
+    
+    const result = await updateById('skus', skuId, updates, userId, client);
+    
+    logSystemInfo('Updated SKU identity successfully', {
+      context,
+      skuId,
+      updatedBy: userId,
+      fieldsUpdated: Object.keys(updates),
+    });
+    
+    return result;
+  } catch (error) {
+    logSystemException(error, 'Failed to update SKU identity', {
+      context,
+      skuId,
+      updatedBy: userId,
+    });
+    
+    throw AppError.databaseError('Failed to update SKU identity.', {
       context,
       cause: error.message,
     });
@@ -953,5 +1245,9 @@ module.exports = {
   checkSkuExists,
   insertSkusBulk,
   getSkuDetailsById,
+  skuHasAnyHistory,
+  updateSkuMetadata,
   updateSkuStatus,
+  updateSkuDimensions,
+  updateSkuIdentity,
 };

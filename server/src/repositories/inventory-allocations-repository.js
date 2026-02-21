@@ -8,6 +8,7 @@ const AppError = require('../utils/AppError');
 const {
   buildInventoryAllocationFilter,
 } = require('../utils/sql/build-inventory-allocation-filters');
+const { existsQuery } = require('./utils/repository-helper');
 
 /**
  * Bulk inserts inventory allocation records into the `inventory_allocations` table.
@@ -891,6 +892,58 @@ const getAllocationStatuses = async (
   }
 };
 
+/**
+ * Checks whether a SKU has active inventory allocations.
+ *
+ * An active allocation is defined as an inventory allocation record
+ * whose status_id matches one of the provided operational allocation
+ * status UUIDs.
+ *
+ * This function is used by business-layer guards to prevent
+ * SKU modification, archival, or deletion when active allocations exist.
+ *
+ * Relationships:
+ *   inventory_allocations → order_items → SKU
+ *
+ * @param {string} skuId - UUID of the SKU.
+ * @param {string[]} activeAllocationStatusIds
+ *   Array of allocation status UUIDs considered "active".
+ * @param {import('pg').PoolClient|null} [client]
+ *   Optional transactional client.
+ *
+ * @returns {Promise<boolean>}
+ *   Returns true if at least one active allocation exists,
+ *   false otherwise.
+ *
+ * @throws {AppError.databaseError}
+ *   If the database query fails.
+ */
+const skuHasActiveAllocations = async (
+  skuId,
+  activeAllocationStatusIds,
+  client = null
+) => {
+  const context = 'inventory-allocations-repository/skuHasActiveAllocations';
+  
+  const queryText = `
+    SELECT 1
+    FROM inventory_allocations ia
+    JOIN order_items oi
+      ON ia.order_item_id = oi.id
+    WHERE oi.sku_id = $1
+      AND ia.status_id = ANY($2::uuid[])
+    LIMIT 1
+  `;
+  
+  return existsQuery(
+    queryText,
+    [skuId, activeAllocationStatusIds],
+    context,
+    'Failed to check SKU active allocation dependency',
+    client
+  );
+};
+
 module.exports = {
   insertInventoryAllocationsBulk,
   updateInventoryAllocationStatus,
@@ -899,4 +952,5 @@ module.exports = {
   getPaginatedInventoryAllocations,
   getAllocationsByOrderId,
   getAllocationStatuses,
+  skuHasActiveAllocations,
 };
