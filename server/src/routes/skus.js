@@ -2,13 +2,26 @@
  * @fileoverview
  * SKU API Routes — ERP Product Management Module
  *
- * These routes handle SKU retrieval, product card listing, and
- * associated BOM (Bill of Materials) composition fetching.
+ * This router defines all SKU-related HTTP endpoints, including:
  *
- * Includes:
- *   - Active SKU product cards
+ * Retrieval:
+ *   - Active SKU product card listing
  *   - Detailed SKU information
  *   - Active BOM composition with estimated cost
+ *
+ * Updates:
+ *   - Metadata updates
+ *   - Dimension updates
+ *   - Identity updates
+ *
+ * Design Principles:
+ *   - Fine-grained permission enforcement per operation
+ *   - Strict request validation (params + body)
+ *   - Separation of update domains (metadata, dimensions, identity)
+ *   - Delegation to service layer for business logic
+ *
+ * Base Path:
+ *   /api/skus
  */
 
 const express = require('express');
@@ -20,6 +33,9 @@ const {
   getSkuDetailsController,
   createSkusController,
   updateSkuStatusController,
+  updateSkuMetadataController,
+  updateSkuDimensionsController,
+  updateSkuIdentityController,
 } = require('../controllers/sku-controller');
 const validate = require('../middlewares/validate');
 const {
@@ -28,6 +44,9 @@ const {
   skuIdParamSchema,
   updateSkuStatusSchema,
   skuQuerySchema,
+  updateSkuMetadataSchema,
+  updateSkuDimensionsSchema,
+  updateSkuIdentitySchema,
 } = require('../validators/sku-validators');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 const { sanitizeFields } = require('../middlewares/sanitize');
@@ -258,6 +277,43 @@ router.post(
 );
 
 /**
+ * ────────────────────────────────────────────────
+ * SKU Section Update Routes
+ * ────────────────────────────────────────────────
+ *
+ * These PATCH endpoints allow partial updates to distinct SKU domains.
+ *
+ * Each route:
+ * - Requires a dedicated permission scope
+ * - Validates :skuId parameter
+ * - Validates request payload against domain-specific schema
+ * - Delegates business rules and transaction handling to service layer
+ *
+ * Rationale:
+ * SKU updates are intentionally segmented (metadata, dimensions, identity)
+ * to enforce fine-grained authorization and prevent over-posting of fields.
+ */
+
+/**
+ * PATCH /:skuId/metadata
+ *
+ * Updates editable metadata fields such as:
+ * - Display name
+ * - Description
+ * - Tags
+ * - Non-operational attributes
+ *
+ * Permission: SKUS.UPDATE_METADATA
+ */
+router.patch(
+  '/:skuId/metadata',
+  authorize(PERMISSIONS.SKUS.UPDATE_METADATA),
+  validate(skuIdParamSchema, 'params'),
+  validate(updateSkuMetadataSchema, 'body'),
+  updateSkuMetadataController
+);
+
+/**
  * @route PATCH /api/v1/skus/:skuId/status
  * @description
  * Updates the status of a specific SKU.
@@ -319,6 +375,46 @@ router.patch(
   validate(skuIdParamSchema, 'params'),
   validate(updateSkuStatusSchema, 'body'),
   updateSkuStatusController
+);
+
+/**
+ * PATCH /:skuId/dimensions
+ *
+ * Updates physical dimension attributes such as:
+ * - Weight
+ * - Length
+ * - Width
+ * - Height
+ *
+ * Permission: SKUS.UPDATE_DIMENSIONS
+ */
+router.patch(
+  '/:skuId/dimensions',
+  authorize(PERMISSIONS.SKUS.UPDATE_DIMENSIONS),
+  validate(skuIdParamSchema, 'params'),
+  validate(updateSkuDimensionsSchema, 'body'),
+  updateSkuDimensionsController
+);
+
+/**
+ * PATCH /:skuId/identity
+ *
+ * Updates identity-related attributes such as:
+ * - SKU code
+ * - Barcode
+ * - External identifiers
+ *
+ * Identity updates may impact integrations and references,
+ * therefore strict permission enforcement applies.
+ *
+ * Permission: SKUS.UPDATE_IDENTITY
+ */
+router.patch(
+  '/:skuId/identity',
+  authorize(PERMISSIONS.SKUS.UPDATE_IDENTITY),
+  validate(skuIdParamSchema, 'params'),
+  validate(updateSkuIdentitySchema, 'body'),
+  updateSkuIdentityController
 );
 
 module.exports = router;

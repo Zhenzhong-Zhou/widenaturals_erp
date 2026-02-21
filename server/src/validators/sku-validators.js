@@ -9,6 +9,7 @@ const {
   createdDateRangeSchema,
   updatedDateRangeSchema,
   validateUUIDArray,
+  validatePositiveDecimal,
 } = require('./general-validators');
 const { updateStatusIdSchema } = require('./status-validators');
 const { CODE_RULES } = require('../utils/validation/code-rules');
@@ -293,6 +294,40 @@ const createSkuBulkSchema = Joi.object({
 });
 
 /**
+ * Validation Schema: Update SKU Metadata
+ *
+ * Validates partial updates to non-operational SKU metadata fields.
+ *
+ * Rules:
+ * - All fields are optional individually.
+ * - At least one field must be provided (.min(1)).
+ * - Language must match alphabetic characters and hyphens only.
+ *
+ * Allowed Fields:
+ * - description (string, max 2000)
+ * - size_label (string, max 100)
+ * - language (string, max 10, pattern: letters + hyphen)
+ * - market_region (string, max 100)
+ *
+ * This schema is used by:
+ *   PATCH /api/skus/:skuId/metadata
+ */
+const updateSkuMetadataSchema = Joi.object({
+    description: validateOptionalString('Description',2000),
+
+    size_label: validateOptionalString('Size label', 100),
+
+    language: validateOptionalString('Language', 10)
+      .pattern(/^[a-zA-Z-]+$/),
+
+    market_region: validateOptionalString('Market Region', 100),
+  })
+  .min(1)
+  .messages({
+    'object.min': 'At least one metadata field must be provided.',
+  });
+
+/**
  * Alias: updateSkuStatusSchema
  *
  * Validation schema for updating an SKU's status.
@@ -310,10 +345,84 @@ const createSkuBulkSchema = Joi.object({
  */
 const updateSkuStatusSchema = updateStatusIdSchema;
 
+/**
+ * Validation Schema: Update SKU Dimensions
+ *
+ * Validates partial updates to physical dimension attributes of a SKU.
+ *
+ * Rules:
+ * - All fields are optional individually.
+ * - At least one dimension field must be provided (.min(1)).
+ * - All dimension values must be strictly positive decimals
+ *   with up to 2 decimal precision.
+ *
+ * Allowed Fields:
+ * - length_cm  (positive decimal)
+ * - width_cm   (positive decimal)
+ * - height_cm  (positive decimal)
+ * - weight_g   (positive decimal)
+ *
+ * Used by:
+ *   PATCH /api/skus/:skuId/dimensions
+ */
+const updateSkuDimensionsSchema = Joi.object({
+    length_cm: validatePositiveDecimal(),
+    width_cm: validatePositiveDecimal(),
+    height_cm: validatePositiveDecimal(),
+    weight_g: validatePositiveDecimal(),
+  })
+  .min(1)
+  .messages({
+    'object.min': 'At least one dimension field must be provided.',
+  });
+
+/**
+ * Validation Schema: Update SKU Identity
+ *
+ * Validates partial updates to identity-related attributes of a SKU.
+ *
+ * Rules:
+ * - All fields are optional individually.
+ * - At least one identity field must be provided (.min(1)).
+ * - SKU must contain only uppercase letters, numbers, and hyphens.
+ * - Barcode must contain numeric characters only.
+ *
+ * Allowed Fields:
+ * - sku     (string, max 100, pattern: /^[A-Z0-9-]+$/)
+ * - barcode (string, max 100, numeric only)
+ *
+ * Used by:
+ *   PATCH /api/skus/:skuId/identity
+ */
+const updateSkuIdentitySchema = Joi.object({
+    sku: Joi.string()
+      .max(100)
+      .pattern(/^[A-Z0-9-]+$/)
+      .messages({
+        'string.pattern.base':
+          'SKU must contain only uppercase letters, numbers, and hyphens.',
+      }),
+    
+    barcode: Joi.string()
+      .max(100)
+      .pattern(/^[0-9]+$/)
+      .messages({
+        'string.pattern.base':
+          'Barcode must contain only numeric characters.',
+      }),
+  })
+  .min(1)
+  .messages({
+    'object.min': 'At least one identity field must be provided.',
+  });
+
 module.exports = {
   getPaginatedSkuProductCardsSchema,
   skuIdParamSchema,
   skuQuerySchema,
   createSkuBulkSchema,
+  updateSkuMetadataSchema,
   updateSkuStatusSchema,
+  updateSkuDimensionsSchema,
+  updateSkuIdentitySchema,
 };

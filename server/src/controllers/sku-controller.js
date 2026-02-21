@@ -2,7 +2,10 @@ const wrapAsync = require('../utils/wrap-async');
 const {
   fetchPaginatedSkuProductCardsService,
   createSkusService,
+  updateSkuMetadataService,
   updateSkuStatusService,
+  updateSkuDimensionsService,
+  updateSkuIdentityService,
   fetchPaginatedSkusService,
   fetchSkuDetailsService,
 } = require('../services/sku-service');
@@ -286,6 +289,58 @@ const createSkusController = wrapAsync(async (req, res) => {
 });
 
 /**
+ * Controller: Update SKU Metadata
+ *
+ * Handles HTTP request for updating editable SKU metadata fields.
+ *
+ * Responsibilities:
+ * - Extract route parameters and request payload
+ * - Delegate business logic to service layer
+ * - Log request-level success event
+ * - Return standardized API response
+ *
+ * Error handling:
+ * - All errors are propagated to global error middleware via wrapAsync.
+ *
+ * Route:
+ * PATCH /api/skus/:skuId/metadata
+ */
+const updateSkuMetadataController = wrapAsync(async (req, res) => {
+  const context = 'sku-controller/updateSkuMetadataController';
+  
+  // -------------------------------------------------
+  // 1. Extract inputs
+  // -------------------------------------------------
+  const { skuId } = req.params;
+  const payload = req.body;
+  const user = req.auth.user;
+  
+  // -------------------------------------------------
+  // 2. Execute business logic
+  // -------------------------------------------------
+  const result = await updateSkuMetadataService({
+    skuId,
+    payload,
+    user,
+  });
+  
+  // -------------------------------------------------
+  // 3. Logging + response
+  // -------------------------------------------------
+  logInfo('SKU metadata updated successfully', req, {
+    context,
+    skuId,
+    userId: user.id,
+  });
+  
+  res.status(200).json({
+    success: true,
+    message: 'SKU metadata updated successfully.',
+    data: result,
+  });
+});
+
+/**
  * Controller: Update SKU Status
  *
  * Handles PATCH requests to update a SKU’s status.
@@ -351,10 +406,122 @@ const updateSkuStatusController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * Controller: Update SKU Dimensions
+ *
+ * Handles HTTP request for updating dimensional attributes of a SKU
+ * (e.g., weight, height, width, depth).
+ *
+ * Responsibilities:
+ * - Extract route parameters and request payload
+ * - Delegate dimension update logic to service layer
+ * - Log request-level success event
+ * - Return standardized API response
+ *
+ * Error handling:
+ * - All errors are automatically forwarded to global error middleware
+ *   via wrapAsync.
+ *
+ * Route:
+ * PATCH /api/skus/:skuId/dimensions
+ */
+const updateSkuDimensionsController = wrapAsync(async (req, res) => {
+  const context = 'sku-controller/updateSkuDimensionsController';
+  
+  // -------------------------------------------------
+  // 1. Extract inputs
+  // -------------------------------------------------
+  const { skuId } = req.params;
+  const payload = req.body;
+  const user = req.auth.user;
+  
+  // -------------------------------------------------
+  // 2. Execute business logic
+  // -------------------------------------------------
+  const result = await updateSkuDimensionsService({
+    skuId,
+    payload,
+    user,
+  });
+  
+  // -------------------------------------------------
+  // 3. Logging + response
+  // -------------------------------------------------
+  logInfo('SKU dimensions updated successfully', req, {
+    context,
+    skuId,
+    userId: user.id,
+  });
+  
+  res.status(200).json({
+    success: true,
+    message: 'SKU dimensions updated successfully.',
+    data: result,
+  });
+});
+
+/**
+ * Controller: Update SKU Identity
+ *
+ * Handles HTTP request for updating identity-related attributes of a SKU
+ * (e.g., SKU code, barcode, external identifiers).
+ *
+ * Responsibilities:
+ * - Extract route parameters and request payload
+ * - Delegate identity update logic to service layer
+ * - Log request-level success event including updated fields
+ * - Return standardized API response
+ *
+ * Error handling:
+ * - All errors are automatically forwarded to global error middleware
+ *   via wrapAsync.
+ *
+ * Route:
+ * PATCH /api/skus/:skuId/identity
+ */
+const updateSkuIdentityController = wrapAsync(async (req, res) => {
+  const context = 'sku-controller/updateSkuIdentityController';
+  
+  // -------------------------------------------------
+  // 1. Extract inputs
+  // -------------------------------------------------
+  const { skuId } = req.params;
+  const payload = req.body;
+  const user = req.auth.user;
+  
+  // -------------------------------------------------
+  // 2. Execute business logic
+  // -------------------------------------------------
+  const result = await updateSkuIdentityService({
+    skuId,
+    payload,
+    user,
+  });
+  
+  // -------------------------------------------------
+  // 3. Logging + response
+  // -------------------------------------------------
+  logInfo('SKU identity updated successfully', req, {
+    context,
+    skuId,
+    userId: user.id,
+    updatedFields: Object.keys(payload),
+  });
+  
+  res.status(200).json({
+    success: true,
+    message: 'SKU identity updated successfully.',
+    data: result,
+  });
+});
+
 module.exports = {
   getPaginatedSkuProductCardsController,
   getPaginatedSkusController,
   getSkuDetailsController,
   createSkusController,
+  updateSkuMetadataController,
   updateSkuStatusController,
+  updateSkuDimensionsController,
+  updateSkuIdentityController,
 };

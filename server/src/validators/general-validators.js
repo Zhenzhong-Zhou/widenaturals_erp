@@ -122,6 +122,33 @@ const validatePositiveInteger = (defaultValue = undefined) =>
   Joi.number().integer().min(1).default(defaultValue);
 
 /**
+ * Creates a Joi schema for validating a strictly positive decimal number.
+ *
+ * Rules:
+ * - Must be a number (no type coercion due to `.strict()`).
+ * - Must be greater than 0.
+ * - Must have a maximum of 2 decimal places.
+ *
+ * Commonly used for validating monetary values such as:
+ * - Unit price
+ * - Cost price
+ * - Discount amount
+ * - Tax amount
+ *
+ * @returns {Joi.NumberSchema}
+ *   A Joi number schema configured for positive decimal validation.
+ */
+const validatePositiveDecimal = () =>
+  Joi.number()
+    .strict()
+    .positive()
+    .precision(2)
+    .messages({
+      'number.base': 'Value must be a number.',
+      'number.positive': 'Value must be greater than 0.',
+    });
+
+/**
  * Creates a reusable Joi string validator with trimming, length constraints, and custom error messages.
  *
  * This validator:
@@ -580,6 +607,7 @@ module.exports = {
   validateUUIDOrUUIDArrayOptional,
   validateUUIDArray,
   validatePositiveInteger,
+  validatePositiveDecimal,
   validateString,
   validatePhoneNumber,
   optionalE164PhoneNumber,
