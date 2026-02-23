@@ -93,9 +93,6 @@ const processAndUploadSkuImages = async (
   const processed = [];
   const brandFolder = sku.slice(0, 2).toUpperCase();
 
-  // Group ID guarantees ordering even with retries / batching
-  const groupId = crypto.randomUUID();
-
   const tempDir = path.join(
     'temp',
     `${sku}-${Date.now()}-${Math.random().toString(36).slice(2)}`
@@ -141,6 +138,9 @@ const processAndUploadSkuImages = async (
    * Process one image
    */
   const processSingleImage = async (img) => {
+    // Group ID guarantees ordering even with retries / batching
+    const groupId = crypto.randomUUID();
+    
     let localPath;
 
     try {

@@ -239,11 +239,15 @@ const insertSkuImagesBulk = async (skuId, images, createdBy, client) => {
       group_id uuid
     )
     ORDER BY t.group_id, t.display_order
-    ON CONFLICT (sku_id, image_url)
+    ON CONFLICT (sku_id, group_id, image_type)
     DO UPDATE SET
+      image_url = EXCLUDED.image_url,
+      file_size_kb = EXCLUDED.file_size_kb,
+      file_format = EXCLUDED.file_format,
       alt_text = EXCLUDED.alt_text,
       display_order = EXCLUDED.display_order,
       is_primary = EXCLUDED.is_primary,
+      uploaded_by = EXCLUDED.uploaded_by,
       uploaded_at = NOW()
     RETURNING *;
   `;

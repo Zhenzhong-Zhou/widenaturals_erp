@@ -666,8 +666,9 @@ exports.seed = async function (knex) {
   if (rows.length) {
     await knex('sku_images')
       .insert(rows)
-      .onConflict(['sku_id', 'image_url'])
+      .onConflict(['sku_id', 'group_id', 'image_type'])
       .ignore();
+    
     console.log(`Inserted ${rows.length} sku_images`);
   } else {
     console.warn('No sku_images to insert.');
