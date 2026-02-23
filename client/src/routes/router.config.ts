@@ -148,7 +148,16 @@ export const appRoutes: AppRoute[] = [
       parent: '/skus',
     },
   }),
-
+  
+  defineRoute({
+    path: '/sku-images/upload',
+    component: lazy(() => import('@features/skuImage/pages/SkuImageBulkUploadPage')),
+    meta: {
+      requiresAuth: true,
+      parent: '/skus',
+    },
+  }),
+  
   defineRoute({
     path: '/boms',
     component: lazy(() => import('@features/bom/pages/BomsListPage')),
