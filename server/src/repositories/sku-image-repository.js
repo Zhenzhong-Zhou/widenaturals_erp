@@ -395,9 +395,281 @@ const getSkuImagesBySkuId = async (skuId) => {
   }
 };
 
+/**
+ * @async
+ * @function
+ * @description
+ * Retrieves image IDs belonging to a specific SKU.
+ *
+ * Used to validate that provided image IDs exist and
+ * are scoped to the correct SKU before update operations.
+ *
+ * @param {string} skuId
+ *   UUID of the SKU.
+ *
+ *   Array of image UUIDs to validate.
+ *
+ * @param groupIds
+ * @param {object} client
+ *   Transaction-bound PostgreSQL client.
+ *
+ * @returns {Promise<Array<string>>}
+ *   Array of matching image IDs found in DB.
+ *
+ * @throws {AppError}
+ *   Throws database error if query fails.
+ */
+const getSkuImageGroupIdsBySku = async (
+  skuId,
+  groupIds,
+  client
+) => {
+  if (!skuId) {
+    throw AppError.validationError('skuId is required');
+  }
+  
+  if (!Array.isArray(groupIds) || groupIds.length === 0) {
+    return [];
+  }
+  
+  try {
+    const sql = `
+      SELECT DISTINCT group_id
+      FROM sku_images
+      WHERE sku_id = $1
+        AND group_id = ANY($2::uuid[])
+    `;
+    
+    const { rows } = await query(sql, [skuId, groupIds], client);
+    
+    return rows.map(r => r.group_id);
+  } catch (error) {
+    logSystemException(error, 'Failed to validate SKU image groups', {
+      context: 'sku-image-repository/getSkuImageGroupIdsBySku',
+      skuId,
+      groupCount: groupIds.length,
+    });
+    
+    throw AppError.databaseError(
+      'Failed to validate SKU image groups',
+      { cause: error }
+    );
+  }
+};
+
+/**
+ * @async
+ * @function
+ * @description
+ * Unsets the current primary image for a given SKU.
+ *
+ * Ensures that no image remains marked as primary.
+ * Intended to be called before assigning a new primary image.
+ *
+ * @param {string} skuId
+ * @param {object} client
+ * @returns {Promise<number>} number of affected rows
+ */
+const unsetPrimaryForSku = async (skuId, client) => {
+  const context = 'sku-image-repository/unsetPrimaryForSku';
+  
+  if (!skuId) {
+    throw AppError.validationError('skuId is required');
+  }
+  
+  if (!client) {
+    throw AppError.validationError('Database client is required');
+  }
+  
+  try {
+    const { rowCount } = await query(
+      `
+      UPDATE sku_images
+      SET is_primary = FALSE,
+          uploaded_at = NOW()
+      WHERE sku_id = $1
+        AND is_primary = TRUE;
+      `,
+      [skuId],
+      client
+    );
+    
+    logSystemInfo('Primary image unset successfully', {
+      context,
+      skuId,
+      affectedRows: rowCount,
+    });
+    
+    return rowCount;
+  } catch (error) {
+    logSystemException(error, 'Failed to unset primary image', {
+      context,
+      skuId,
+    });
+    
+    throw AppError.databaseError('Failed to unset primary image', {
+      cause: error,
+    });
+  }
+};
+
+/**
+ * @async
+ * @function
+ * @description
+ * Bulk updates multiple SKU image records in a single atomic database operation.
+ *
+ * This function:
+ * - Updates mutable image metadata (URL, type, order, size, format, alt text)
+ * - Allows optional primary reassignment
+ * - Enforces single-primary rule per SKU
+ * - Operates in a set-based manner using JSONB recordset
+ * - Requires a transaction-bound PostgreSQL client
+ *
+ * Primary behavior:
+ * - If exactly one image in the update payload has `is_primary = true`,
+ *   the existing primary image (if any) is unset before applying updates.
+ * - If more than one image attempts to set `is_primary = true`,
+ *   a validation error is thrown.
+ * - If no image sets `is_primary`, primary state remains unchanged.
+ *
+ * Safety guarantees:
+ * - Updates are scoped to the provided `skuId`
+ * - Only images belonging to the SKU can be modified
+ * - Partial unique index (single primary per SKU) remains respected
+ *
+ * @param {string} skuId
+ *   UUID of the SKU whose images are being updated.
+ *
+ * @param {Array<Object>} updates
+ *   Array of image update objects. Each object must include:
+ *   - `id` (UUID of the image record)
+ *   Optional mutable fields:
+ *   - `image_url`
+ *   - `image_type`
+ *   - `display_order`
+ *   - `file_size_kb`
+ *   - `file_format`
+ *   - `alt_text`
+ *   - `is_primary`
+ *
+ * @param {string} updatedBy
+ *   UUID of the user performing the update.
+ *
+ * @param {object} client
+ *   Transaction-bound PostgreSQL client.
+ *
+ * @returns {Promise<Array<Object>>}
+ *   Returns the updated image rows.
+ *
+ * @throws {AppError}
+ *   Throws validation error for malformed input,
+ *   or database error if the update fails.
+ */
+const updateSkuImagesBulk = async (
+  skuId,
+  updates,
+  updatedBy,
+  client
+) => {
+  if (!Array.isArray(updates) || updates.length === 0) {
+    return [];
+  }
+  
+  if (!client) {
+    throw AppError.validationError('Database client is required');
+  }
+  
+  if (!skuId) {
+    throw AppError.validationError('skuId is required');
+  }
+  
+  // Validate group_id instead of id
+  if (updates.some(u => !u?.group_id)) {
+    throw AppError.validationError(
+      'Each image update must include a valid group_id'
+    );
+  }
+  
+  // ------------------------------------------------------------
+  // Validate single primary rule
+  // ------------------------------------------------------------
+  const primaryUpdates = updates.filter(u => u.is_primary === true);
+  
+  if (primaryUpdates.length > 1) {
+    throw AppError.validationError(
+      'Only one image group can be primary per SKU'
+    );
+  }
+  
+  try {
+    if (primaryUpdates.length === 1) {
+      await unsetPrimaryForSku(skuId, client);
+    }
+    
+    // ------------------------------------------------------------
+    // Bulk update by group_id
+    // ------------------------------------------------------------
+    const sql = `
+      UPDATE sku_images AS si
+      SET
+        image_url = COALESCE(
+          CASE si.image_type
+            WHEN 'main' THEN t.main_url
+            WHEN 'thumbnail' THEN t.thumb_url
+            WHEN 'zoom' THEN t.zoom_url
+          END,
+          si.image_url
+        ),
+        display_order = COALESCE(t.display_order, si.display_order),
+        alt_text = COALESCE(t.alt_text, si.alt_text),
+        is_primary = CASE
+          WHEN si.image_type = 'main'
+            THEN COALESCE(t.is_primary, si.is_primary)
+          ELSE FALSE
+        END,
+        uploaded_by = $3,
+        uploaded_at = NOW()
+      FROM jsonb_to_recordset($2::jsonb) AS t(
+        group_id uuid,
+        main_url text,
+        thumb_url text,
+        zoom_url text,
+        display_order int,
+        alt_text text,
+        is_primary boolean
+      )
+      WHERE si.group_id = t.group_id
+        AND si.sku_id = $1
+      RETURNING si.*;
+    `;
+    
+    const { rows } = await query(
+      sql,
+      [skuId, JSON.stringify(updates), updatedBy],
+      client
+    );
+    
+    return rows;
+  } catch (error) {
+    logSystemException(error, 'Bulk SKU image update failed', {
+      context: 'sku-image-repository/updateSkuImagesBulk',
+      skuId,
+    });
+    
+    throw AppError.databaseError(
+      'Failed to update SKU images',
+      { cause: error }
+    );
+  }
+};
+
 module.exports = {
   hasPrimaryMainImage,
   getSkuImageDisplayOrderBase,
   insertSkuImagesBulk,
   getSkuImagesBySkuId,
+  getSkuImageGroupIdsBySku,
+  unsetPrimaryForSku,
+  updateSkuImagesBulk,
 };

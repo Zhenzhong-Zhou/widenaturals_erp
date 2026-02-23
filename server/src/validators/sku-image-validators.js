@@ -164,8 +164,113 @@ const bulkSkuImageUploadSchema = Joi.object({
     }),
 });
 
+const updateSkuImageSchema = Joi.object({
+    group_id: validateUUID('Group ID').required(),
+    
+    file_uploaded: Joi.boolean().default(false),
+    
+    image_url: Joi.alternatives()
+      .try(
+        Joi.string().uri({ allowRelative: true }).max(500),
+        Joi.string()
+          .pattern(/^[\w\-./]+$/)
+          .max(500)
+      )
+      .allow(null, '')
+      .optional(),
+    
+    image_type: Joi.string()
+      .valid('main', 'thumbnail', 'zoom', 'gallery', 'unknown')
+      .insensitive()
+      .optional(),
+    
+    display_order: Joi.number()
+      .integer()
+      .min(0)
+      .optional(),
+    
+    alt_text: Joi.string()
+      .allow('', null)
+      .max(255)
+      .optional(),
+    
+    file_format: Joi.string()
+      .valid('jpg', 'jpeg', 'png', 'webp')
+      .optional(),
+    
+    file_size_kb: Joi.number()
+      .integer()
+      .min(0)
+      .optional(),
+    
+    is_primary: Joi.boolean().optional(),
+    
+    source: Joi.string()
+      .valid('uploaded', 'synced', 'migrated', 'api', 'imported')
+      .optional(),
+  })
+  .min(1)
+  .custom((value, helpers) => {
+    // Prevent empty update
+    const allowedFields = [
+      'image_url',
+      'image_type',
+      'display_order',
+      'alt_text',
+      'file_format',
+      'file_size_kb',
+      'is_primary',
+      'file_uploaded',
+      'source',
+    ];
+    
+    const hasUpdatableField = allowedFields.some(
+      (field) => value[field] !== undefined
+    );
+    
+    if (!hasUpdatableField) {
+      return helpers.error('any.invalid', {
+        message: 'At least one updatable field must be provided.',
+      });
+    }
+    
+    return value;
+  });
+
+const updateSkuImageArraySchema = Joi.array()
+  .items(updateSkuImageSchema)
+  .min(1)
+  .max(100)
+  .required()
+  .messages({
+    'array.min': 'At least one image update is required.',
+    'array.max': 'Cannot update more than 100 images per SKU.',
+  });
+
+const bulkSkuImageUpdateSchema = Joi.object({
+  skus: Joi.array()
+    .items(
+      Joi.object({
+        skuId: validateUUID('SKU ID'),
+        skuCode: Joi.string().trim().required().label('SKU Code'),
+        images: updateSkuImageArraySchema,
+      })
+    )
+    .min(1)
+    .max(50)
+    .required()
+    .messages({
+      'array.min': 'At least one SKU must be provided.',
+      'array.max':
+        'Cannot update images for more than 50 SKUs per request.',
+    }),
+});
+
 module.exports = {
   skuImageSchema,
   skuImageArraySchema,
   bulkSkuImageUploadSchema,
+  updateSkuImageSchema,
+  updateSkuImageArraySchema,
+  bulkSkuImageUpdateSchema,
 };

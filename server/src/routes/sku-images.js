@@ -15,10 +15,10 @@ const { authorize } = require('../middlewares/authorize');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
 const validate = require('../middlewares/validate');
 const {
-  bulkSkuImageUploadSchema,
+  bulkSkuImageUploadSchema, bulkSkuImageUpdateSchema,
 } = require('../validators/sku-image-validators');
 const {
-  uploadSkuImagesController,
+  uploadSkuImagesController, updateSkuImagesController,
 } = require('../controllers/sku-image-controller');
 const {
   parseSkuImageJson,
@@ -110,6 +110,16 @@ router.post(
   attachUploadedFilesToSkus,
   validate(bulkSkuImageUploadSchema, 'body'),
   uploadSkuImagesController
+);
+
+router.post(
+  '/update',
+  authorize([PERMISSIONS.SKUS.UPDATE_IMAGE]),
+  upload.array('files'),
+  parseSkuImageJson,
+  attachUploadedFilesToSkus,
+  validate(bulkSkuImageUpdateSchema, 'body'),
+  updateSkuImagesController
 );
 
 module.exports = router;

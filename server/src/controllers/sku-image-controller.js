@@ -7,7 +7,7 @@
 
 const wrapAsync = require('../utils/wrap-async');
 const { logInfo } = require('../utils/logger-helper');
-const { saveBulkSkuImagesService } = require('../services/sku-image-service');
+const { saveBulkSkuImagesService, updateBulkSkuImagesService } = require('../services/sku-image-service');
 
 /**
  * @async
@@ -79,6 +79,59 @@ const uploadSkuImagesController = wrapAsync(async (req, res) => {
   });
 });
 
+const updateSkuImagesController = wrapAsync(async (req, res) => {
+  const context = 'sku-image-controller/updateSkuImagesController';
+  const startTime = Date.now();
+  
+  const { skus } = req.body;
+  const user = req.auth.user;
+  
+  const isProd = process.env.NODE_ENV === 'production';
+  const bucketName = process.env.S3_BUCKET_NAME;
+  const traceId = `update-${Date.now().toString(36)}`;
+  
+  logInfo('Starting SKU image update request', req, {
+    context,
+    traceId,
+    userId: user.id,
+    skuCount: skus.length,
+    mode: isProd ? 'production' : 'development',
+  });
+  
+  const result = await updateBulkSkuImagesService(
+    skus,
+    user,
+    isProd,
+    bucketName
+  );
+  
+  const elapsedMs = Date.now() - startTime;
+  const successCount = result.filter(r => r.success).length;
+  const failureCount = result.length - successCount;
+  
+  logInfo('Completed SKU image update batch', req, {
+    context,
+    traceId,
+    total: result.length,
+    successCount,
+    failureCount,
+    elapsedMs,
+  });
+  
+  res.status(200).json({
+    success: true,
+    message: 'SKU image update batch completed successfully.',
+    stats: {
+      total: result.length,
+      successCount,
+      failureCount,
+      elapsedMs,
+    },
+    data: result,
+  });
+});
+
 module.exports = {
   uploadSkuImagesController,
+  updateSkuImagesController,
 };

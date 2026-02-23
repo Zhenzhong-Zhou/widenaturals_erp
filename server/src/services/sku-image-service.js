@@ -13,6 +13,8 @@ const {
   getSkuImageDisplayOrderBase,
   hasPrimaryMainImage,
   insertSkuImagesBulk,
+  getSkuImageGroupIdsBySku,
+  updateSkuImagesBulk,
 } = require('../repositories/sku-image-repository');
 const { processWithConcurrencyLimit } = require('../utils/concurrency-utils');
 const { getFileHashStream } = require('../utils/file-hash-utils');
@@ -694,8 +696,404 @@ const saveBulkSkuImagesService = async (
   }
 };
 
+const processImageFile = async (localPath, skuCode, isProd, bucketName) => {
+  const brandFolder = skuCode.slice(0, 2).toUpperCase();
+  const hash = await getFileHashStream(localPath);
+  const ext = path.extname(localPath).replace('.', '').toLowerCase();
+  const baseName = path.basename(localPath, path.extname(localPath));
+  
+  const resizedMain = `${localPath}_main.webp`;
+  const resizedThumb = `${localPath}_thumb.webp`;
+  
+  await Promise.all([
+    resizeImage(localPath, resizedMain, 800, 70, 5),
+    resizeImage(localPath, resizedThumb, 200, 60, 4),
+  ]);
+  
+  const keyPrefix = `sku-images/${brandFolder}/${hash}`;
+  
+  let mainUrl, thumbUrl, zoomUrl;
+  
+  if (isProd) {
+    [mainUrl, thumbUrl, zoomUrl] = await Promise.all([
+      uploadSkuImageToS3(bucketName, resizedMain, keyPrefix, `${baseName}_main.webp`),
+      uploadSkuImageToS3(bucketName, resizedThumb, keyPrefix, `${baseName}_thumb.webp`),
+      uploadSkuImageToS3(bucketName, localPath, keyPrefix, path.basename(localPath)),
+    ]);
+  } else {
+    const devDir = path.resolve(
+      __dirname,
+      '../../public/uploads/sku-images',
+      brandFolder
+    );
+    
+    await fsp.mkdir(devDir, { recursive: true });
+    
+    const zoomFileName = path.basename(localPath);
+    
+    await Promise.all([
+      fsp.copyFile(resizedMain, path.join(devDir, `${baseName}_main.webp`)),
+      fsp.copyFile(resizedThumb, path.join(devDir, `${baseName}_thumb.webp`)),
+      fsp.copyFile(localPath, path.join(devDir, zoomFileName)),
+    ]);
+    
+    const base = `/uploads/sku-images/${brandFolder}/${baseName}`;
+    mainUrl = `${base}_main.webp`;
+    thumbUrl = `${base}_thumb.webp`;
+    zoomUrl = `/uploads/sku-images/${brandFolder}/${zoomFileName}`;
+  }
+  
+  return { mainUrl, thumbUrl, zoomUrl, ext };
+}
+
+const resolveSource = async (src, skuCode) => {
+  if (!src || typeof src !== 'string') {
+    throw AppError.validationError('Invalid image source');
+  }
+  
+  // ------------------------------------------------------------
+  // Remote URL
+  // ------------------------------------------------------------
+  if (src.startsWith('http')) {
+    const tempDir = path.join(
+      'temp',
+      `${skuCode}-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    );
+    
+    await fsp.mkdir(tempDir, { recursive: true });
+    
+    const filename = path.basename(new URL(src).pathname);
+    const tempFile = path.join(tempDir, filename);
+    
+    const response = await retry(() => fetch(src), 3);
+    
+    if (!response.ok || !response.body) {
+      throw AppError.fileSystemError('Failed to fetch image', {
+        status: response.status,
+      });
+    }
+    
+    await new Promise((resolve, reject) => {
+      const stream = fs.createWriteStream(tempFile);
+      response.body.pipe(stream);
+      stream.on('finish', resolve);
+      stream.on('error', reject);
+    });
+    
+    return tempFile;
+  }
+  
+  // ------------------------------------------------------------
+  // Local path
+  // ------------------------------------------------------------
+  const resolvedPath = path.isAbsolute(src)
+    ? src
+    : path.resolve(__dirname, '../../', src);
+  
+  await fsp.access(resolvedPath);
+  
+  return resolvedPath;
+};
+
+const detectImageSource = (image) => {
+  if (image.file_uploaded && image.image_url) {
+    return image.image_url;
+  }
+  
+  if (
+    typeof image.image_url === 'string' &&
+    image.image_url.startsWith('http')
+  ) {
+    return image.image_url;
+  }
+  
+  return null;
+};
+
+const reprocessUpdatedSkuImages = async (
+  images,
+  skuCode,
+  isProd,
+  bucketName
+) => {
+  const context = 'sku-image-service/reprocessUpdatedSkuImages';
+  
+  if (!Array.isArray(images) || images.length === 0) {
+    return images;
+  }
+  
+  const processed = [];
+  
+  for (const image of images) {
+    let variantUrls = null;
+    
+    const sourcePath = detectImageSource(image);
+    
+    if (sourcePath) {
+      const localPath = await resolveSource(sourcePath, skuCode);
+      
+      const { mainUrl, thumbUrl, zoomUrl } =
+        await processImageFile(localPath, skuCode, isProd, bucketName);
+      
+      variantUrls = {
+        main_url: mainUrl,
+        thumb_url: thumbUrl,
+        zoom_url: zoomUrl,
+      };
+    }
+    
+    processed.push({
+      group_id: image.group_id,
+      main_url: variantUrls?.main_url ?? null,
+      thumb_url: variantUrls?.thumb_url ?? null,
+      zoom_url: variantUrls?.zoom_url ?? null,
+      display_order: image.display_order ?? null,
+      alt_text: image.alt_text ?? null,
+      is_primary: image.is_primary ?? null,
+    });
+  }
+  
+  return processed;
+};
+
+const updateSkuImagesService = async (
+  images,
+  skuId,
+  skuCode,
+  user,
+  isProd,
+  bucketName,
+  client = null
+) => {
+  const context = 'sku-image-service/updateSkuImagesService';
+  const userId = user?.id;
+  const traceId = crypto.randomUUID();
+  const startTime = Date.now();
+  
+  try {
+    // ------------------------------------------------------------
+    // Step 0: Validation
+    // ------------------------------------------------------------
+    if (!client) {
+      throw AppError.validationError('Database client is required.');
+    }
+    
+    if (!skuId) {
+      throw AppError.validationError('Missing skuId for update.');
+    }
+    
+    if (!Array.isArray(images) || images.length === 0) {
+      logSystemInfo('No image updates provided; skipping.', {
+        context,
+        skuId,
+        traceId,
+      });
+      return [];
+    }
+    
+    logSystemInfo('Starting SKU image update workflow', {
+      context,
+      skuId,
+      skuCode,
+      updateCount: images.length,
+      traceId,
+    });
+    
+    // ------------------------------------------------------------
+    // Step 1: Lock SKU row
+    // ------------------------------------------------------------
+    const sku = await lockRow(client, 'skus', skuId, 'FOR UPDATE', {
+      context,
+      traceId,
+    });
+    
+    if (!sku) {
+      throw AppError.notFoundError(`SKU not found: ${skuId}`);
+    }
+    
+    const { id: verifiedSkuId } = sku;
+    
+    // ------------------------------------------------------------
+    // Step 2: Validate ownership
+    // ------------------------------------------------------------
+    const groupIds = images.map(u => u.group_id);
+    
+    const existingGroupIds = await getSkuImageGroupIdsBySku(
+      verifiedSkuId,
+      groupIds,
+      client
+    );
+    
+    if (existingGroupIds.length !== groupIds.length) {
+      throw AppError.validationError(
+        'One or more image groups do not belong to this SKU'
+      );
+    }
+    
+    // ------------------------------------------------------------
+    // Step 3: File reprocessing if needed
+    // ------------------------------------------------------------
+    const processedUpdates = await reprocessUpdatedSkuImages(
+      images,
+      skuCode,
+      isProd,
+      bucketName
+    );
+
+    // Step 4: Bulk update (group-based)
+    const result = await updateSkuImagesBulk(
+      verifiedSkuId,
+      processedUpdates,
+      userId,
+      client
+    );
+    
+    const elapsedMs = Date.now() - startTime;
+    
+    logSystemInfo('SKU image update completed', {
+      context,
+      skuId: verifiedSkuId,
+      updatedCount: result.length,
+      traceId,
+      elapsedMs,
+    });
+    
+    return transformSkuImageResults(result ?? []);
+  } catch (error) {
+    logSystemException(error, 'Failed to update SKU images', {
+      context,
+      skuId,
+      skuCode,
+      traceId,
+    });
+    
+    if (!(error instanceof AppError)) {
+      throw AppError.serviceError(
+        'Unexpected error during updateSkuImagesService',
+        {
+          cause: error,
+          skuId,
+          skuCode,
+          traceId,
+        }
+      );
+    }
+    
+    throw error;
+  }
+};
+
+const updateBulkSkuImagesService = async (
+  skuUpdateSets,
+  user,
+  isProd,
+  bucketName
+) => {
+  const context = 'sku-image-service/updateBulkSkuImagesService';
+  const startTime = Date.now();
+  const limit = pLimit(3); // Controlled concurrency
+  
+  try {
+    if (!Array.isArray(skuUpdateSets) || skuUpdateSets.length === 0) {
+      logSystemInfo('No SKU update sets provided; nothing to process', {
+        context,
+      });
+      return [];
+    }
+    
+    logSystemInfo('Starting bulk SKU image update batch', {
+      context,
+      skuCount: skuUpdateSets.length,
+    });
+    
+    const results = await Promise.allSettled(
+      skuUpdateSets.map(({ skuId, skuCode, images }) =>
+        limit(() =>
+          withTransaction((client) =>
+            updateSkuImagesService(
+              images,
+              skuId,
+              skuCode,
+              user,
+              isProd,
+              bucketName,
+              client
+            )
+          )
+        )
+      )
+    );
+    
+    const normalized = results.map((res, i) => {
+      const { skuId } = skuUpdateSets[i];
+      
+      if (res.status === 'fulfilled') {
+        const data = res.value;
+        
+        logSystemInfo('SKU images updated successfully', {
+          context,
+          skuId,
+          count: data.length,
+        });
+        
+        return {
+          skuId,
+          success: true,
+          count: data.length,
+          images: data,
+          error: null,
+        };
+      }
+      
+      logSystemException(res.reason, 'Failed to update SKU images', {
+        context,
+        skuId,
+      });
+      
+      return {
+        skuId,
+        success: false,
+        count: 0,
+        images: [],
+        error: res.reason?.message || 'Unknown error',
+      };
+    });
+    
+    const totalElapsed = Date.now() - startTime;
+    
+    logSystemInfo('Completed bulk SKU image update batch', {
+      context,
+      skuCount: skuUpdateSets.length,
+      totalElapsedMs: totalElapsed,
+    });
+    
+    return normalized;
+  } catch (error) {
+    logSystemException(
+      error,
+      'Bulk SKU image update batch failed unexpectedly',
+      { context }
+    );
+    
+    if (!(error instanceof AppError)) {
+      throw AppError.serviceError(
+        'Failed to complete bulk SKU image update batch.',
+        {
+          cause: error,
+          context,
+        }
+      );
+    }
+    
+    throw error;
+  }
+};
+
 module.exports = {
   processAndUploadSkuImages,
+  // todo: remove
   saveSkuImagesService,
   saveBulkSkuImagesService,
+  updateSkuImagesService,
+  updateBulkSkuImagesService,
 };
