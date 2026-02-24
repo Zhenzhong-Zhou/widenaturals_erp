@@ -79,6 +79,33 @@ const uploadSkuImagesController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * @async
+ * @function
+ *
+ * @description
+ * Handles bulk SKU image update requests.
+ *
+ * Responsibilities:
+ *   • Extracts and validates request payload
+ *   • Determines runtime environment (S3 vs local storage)
+ *   • Delegates processing to updateBulkSkuImagesService()
+ *   • Logs batch-level metrics
+ *   • Returns aggregated result summary
+ *
+ * Behavior:
+ *   • Partial success is allowed (per-SKU isolation)
+ *   • Always returns HTTP 200 for processed batches
+ *   • System-level failures are handled by wrapAsync/global error middleware
+ *
+ * @route PUT /api/v1/skus/images/bulk
+ *
+ * @returns {Object} JSON response containing:
+ *   - success (boolean)
+ *   - message (string)
+ *   - stats (summary object)
+ *   - data (per-SKU results)
+ */
 const updateSkuImagesController = wrapAsync(async (req, res) => {
   const context = 'sku-image-controller/updateSkuImagesController';
   const startTime = Date.now();
@@ -86,18 +113,22 @@ const updateSkuImagesController = wrapAsync(async (req, res) => {
   const { skus } = req.body;
   const user = req.auth.user;
   
+  // Determine storage mode
   const isProd = process.env.NODE_ENV === 'production';
   const bucketName = process.env.S3_BUCKET_NAME;
+  
+  // Correlation identifier for batch tracing
   const traceId = `update-${Date.now().toString(36)}`;
   
   logInfo('Starting SKU image update request', req, {
     context,
     traceId,
     userId: user.id,
-    skuCount: skus.length,
+    skuCount: Array.isArray(skus) ? skus.length : 0,
     mode: isProd ? 'production' : 'development',
   });
   
+  // Delegate heavy logic to service layer
   const result = await updateBulkSkuImagesService(
     skus,
     user,
@@ -106,6 +137,7 @@ const updateSkuImagesController = wrapAsync(async (req, res) => {
   );
   
   const elapsedMs = Date.now() - startTime;
+  
   const successCount = result.filter(r => r.success).length;
   const failureCount = result.length - successCount;
   

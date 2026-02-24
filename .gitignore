@@ -84,6 +84,8 @@ backups/
 backup/
 temp/
 server/public/uploads/sku-images
+server/public/uploads/user-images
+!/server/public/uploads/.gitkeep
 server/src/tests/apis/public
 
 # Client

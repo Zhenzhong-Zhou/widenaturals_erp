@@ -112,6 +112,30 @@ router.post(
   uploadSkuImagesController
 );
 
+/**
+ * @route POST /api/v1/skus/images/update
+ *
+ * @description
+ * Handles bulk SKU image update requests.
+ *
+ * Pipeline:
+ *   • Authorization check (SKUS.UPDATE_IMAGE permission required)
+ *   • Multipart file parsing (multer)
+ *   • JSON payload normalization for SKU image structure
+ *   • Attachment of uploaded files to corresponding SKU objects
+ *   • Schema validation (bulkSkuImageUpdateSchema)
+ *   • Controller execution
+ *
+ * Behavior:
+ *   • Supports mixed JSON + multipart uploads
+ *   • Allows partial success per SKU
+ *   • Delegates transactional logic to service layer
+ *
+ * Security:
+ *   • Requires authenticated user
+ *   • Requires SKUS.UPDATE_IMAGE permission
+ *   • Validates request body before controller execution
+ */
 router.post(
   '/update',
   authorize([PERMISSIONS.SKUS.UPDATE_IMAGE]),

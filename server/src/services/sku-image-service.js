@@ -1,14 +1,6 @@
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const os = require('os');
-const path = require('path');
-const fs = require('fs');
-const fsp = require('fs/promises');
 const pLimit = require('p-limit').default;
-const { resizeImage } = require('../utils/image-utils');
-const {
-  s3ObjectExists,
-  uploadSkuImageToS3,
-} = require('../utils/aws-s3-service');
 const {
   getSkuImageDisplayOrderBase,
   hasPrimaryMainImage,
@@ -17,34 +9,49 @@ const {
   updateSkuImagesBulk,
 } = require('../repositories/sku-image-repository');
 const { processWithConcurrencyLimit } = require('../utils/concurrency-utils');
-const { getFileHashStream } = require('../utils/file-hash-utils');
 const AppError = require('../utils/AppError');
 const { normalizeSkuImageForInsert } = require('../business/sku-image-buiness');
 const {
-  transformSkuImageResults,
+  transformGroupedSkuImages,
 } = require('../transformers/sku-image-transformer');
-const { lockRow, withTransaction, retry } = require('../database/db');
+const { lockRow, withTransaction } = require('../database/db');
+const { resolveSource, detectImageSource } = require('../utils/media/image-source');
+const { processImageFile } = require('../utils/media/image-processing');
+
+const BULK_SKU_CONCURRENCY = 3;
 
 /**
  * @async
  * @function
- * @description
- * Processes and uploads one or more SKU images, generating three variants per input
- * image (main, thumbnail, zoom). Supports both local file paths and remote URLs,
- * applies bounded concurrency, and ensures deterministic ordering and primary
- * image selection.
  *
- * Key guarantees:
- *  - Deterministic ordering across batches using a shared group_id and display_order
- *  - At most one primary image per SKU (never overrides an existing primary)
- *  - Memory-safe streaming file hashing for deduplication
- *  - Reuses existing S3 objects when all variants already exist
- *  - Fault-tolerant: failures on individual images do not abort the batch
- *  - Automatic cleanup of temporary files on completion
+ * @description
+ * Processes and uploads one or more SKU images, generating three variants
+ * per input image:
+ *
+ *   • main       → 800px WebP
+ *   • thumbnail  → 200px WebP
+ *   • zoom       → original format
+ *
+ * Responsibilities:
+ *   • Normalizes incoming image payloads
+ *   • Determines primary image assignment
+ *   • Applies bounded concurrency for processing
+ *   • Delegates IO to resolveSource() and processImageFile()
+ *   • Ensures deterministic ordering via group_id and display_order
+ *   • Calculates file size per variant (KB)
+ *
+ * Primary rules:
+ *   • If no image is explicitly marked as 'main', the first image becomes main
+ *   • If the SKU already has a primary image, no new primary is assigned
+ *   • At most one image per batch will be marked as primary
  *
  * Storage behavior:
- *  - In production, uploads images to S3 under a hash-based directory
- *  - In non-production, writes images to the local public uploads directory
+ *   • Production → Uploads to S3
+ *   • Development → Stores in local public uploads directory
+ *
+ * Concurrency:
+ *   • Processing is executed with a bounded concurrency limit
+ *   • Failures in individual images do not abort the entire batch
  *
  * @param {Array<{
  *   url?: string,
@@ -52,37 +59,26 @@ const { lockRow, withTransaction, retry } = require('../database/db');
  *   alt_text?: string,
  *   image_type?: 'main' | 'auto'
  * }>} images
- *   Array of image inputs to process. At least one image will be treated as `main`
- *   if none is explicitly specified.
  *
  * @param {string} sku
- *   SKU code used for brand folder derivation and file naming.
- *
  * @param {boolean} isProd
- *   Whether to upload images to S3 (`true`) or store them locally (`false`).
- *
  * @param {string} bucketName
- *   S3 bucket name used when `isProd` is `true`.
- *
- * @param {Object} options
- * @param {number} options.baseDisplayOrder
- *   Current maximum display_order for the SKU. New images will be appended after
- *   this value.
- *
- * @param {boolean} options.alreadyHasPrimary
- *   Indicates whether the SKU already has a primary image. When `true`, no new
- *   primary image will be assigned.
+ * @param {{ baseDisplayOrder: number, alreadyHasPrimary: boolean }} options
  *
  * @returns {Promise<Array<{
+ *   group_id: string,
  *   image_url: string,
  *   image_type: 'main' | 'thumbnail' | 'zoom',
  *   display_order: number,
  *   file_format: string,
+ *   file_size_kb: number,
  *   alt_text: string,
- *   is_primary: boolean,
- *   group_id: string
+ *   is_primary: boolean
  * }>>}
- *   Array of processed image metadata entries ready for bulk database insertion.
+ *
+ * @throws {AppError}
+ *   ValidationError for malformed input
+ *   FileSystemError for processing or upload failures
  */
 const processAndUploadSkuImages = async (
   images,
@@ -93,24 +89,12 @@ const processAndUploadSkuImages = async (
 ) => {
   const context = 'sku-image-service/processAndUploadSkuImages';
   const processed = [];
-  const brandFolder = sku.slice(0, 2).toUpperCase();
-
-  const tempDir = path.join(
-    'temp',
-    `${sku}-${Date.now()}-${Math.random().toString(36).slice(2)}`
-  );
-
+  
   if (!Array.isArray(images) || images.length === 0) {
     logSystemInfo('No images passed', { context, sku });
     return [];
   }
-
-  const concurrencyLimit = Math.min(os.cpus().length * 2, 8);
-  await fsp.mkdir(tempDir, { recursive: true });
-
-  // ---------------------------------------------------------------------------
-  // 1) Normalize input
-  // ---------------------------------------------------------------------------
+  
   const normalizedImages = images
     .filter((img) => img?.url || img?.image_url)
     .map((img, index) => ({
@@ -119,205 +103,47 @@ const processAndUploadSkuImages = async (
       requestedType: img.image_type === 'main' ? 'main' : 'auto',
       index,
     }));
-
+  
   if (!normalizedImages.length) {
     logSystemInfo('All images missing URLs', { context, sku });
     return [];
   }
-
-  if (!normalizedImages.some((i) => i.requestedType === 'main')) {
+  
+  if (!normalizedImages.some(i => i.requestedType === 'main')) {
     normalizedImages[0].requestedType = 'main';
   }
-
-  // Concurrency-safe primary determination
+  
   const primaryIndex = alreadyHasPrimary
     ? -1
-    : normalizedImages.findIndex(
-        ({ requestedType }) => requestedType === 'main'
-      );
-
-  /**
-   * Process one image
-   */
+    : normalizedImages.findIndex(i => i.requestedType === 'main');
+  
+  const concurrencyLimit = Math.min(os.cpus().length * 2, 8);
+  
   const processSingleImage = async (img) => {
-    // Group ID guarantees ordering even with retries / batching
-    const groupId = crypto.randomUUID();
-    
-    let localPath;
 
     try {
       const { src, alt_text, index } = img;
+      
       if (!src) {
         throw AppError.validationError('Missing image source');
       }
 
-      // ---------------------------------------------------------------------
-      // Resolve source
-      // ---------------------------------------------------------------------
-      if (src.startsWith('http')) {
-        const filename = path.basename(new URL(src).pathname);
-        const tempFile = path.join(tempDir, filename);
-
-        const response = await retry(() => fetch(src), 3);
-        if (!response.ok || !response.body) {
-          throw AppError.fileSystemError('Failed to fetch image', {
-            status: response.status,
-            retryable: response.status >= 500,
-            context,
-            sku,
-          });
-        }
-
-        await new Promise((resolve, reject) => {
-          const stream = fs.createWriteStream(tempFile);
-          response.body.pipe(stream);
-          stream.on('finish', resolve);
-          stream.on('error', reject);
-        });
-
-        localPath = tempFile;
-      } else {
-        localPath = path.isAbsolute(src)
-          ? src
-          : path.resolve(__dirname, '../../', src);
-      }
-
-      await fsp.access(localPath);
-
-      // ---------------------------------------------------------------------
-      // Streaming hash (memory-safe)
-      // ---------------------------------------------------------------------
-      const hash = await getFileHashStream(localPath);
-      const ext = path.extname(localPath).replace('.', '').toLowerCase();
-      const baseName = path.basename(localPath, path.extname(localPath));
-
+      const localPath = await resolveSource(src, sku);
+      
+      const {
+        mainUrl,
+        thumbUrl,
+        zoomUrl,
+        mainSizeKb,
+        thumbSizeKb,
+        zoomSizeKb,
+        ext
+      } = await processImageFile(localPath, sku, isProd, bucketName);
+      
+      const groupId = crypto.randomUUID();
       const isPrimary = index === primaryIndex && primaryIndex !== -1;
-
-      // display_order is absolute across SKU images; baseOrder ensures
-      // this batch occupies a contiguous range without collisions
       const baseOrder = index * 3;
-
-      // ---------------------------------------------------------------------
-      // Cache reuse (prod only)
-      // ---------------------------------------------------------------------
-      if (isProd) {
-        const keyPrefix = `sku-images/${brandFolder}/${hash}`;
-        const mainKey = `${keyPrefix}/${baseName}_main.webp`;
-        const thumbKey = `${keyPrefix}/${baseName}_thumb.webp`;
-        const zoomKey = `${keyPrefix}/${path.basename(localPath)}`;
-
-        const checks = await Promise.allSettled([
-          s3ObjectExists(bucketName, mainKey),
-          s3ObjectExists(bucketName, thumbKey),
-          s3ObjectExists(bucketName, zoomKey),
-        ]);
-
-        const [mainCheck, thumbCheck, zoomCheck] = checks;
-
-        if (
-          mainCheck.status === 'fulfilled' &&
-          mainCheck.value &&
-          thumbCheck.status === 'fulfilled' &&
-          thumbCheck.value &&
-          zoomCheck.status === 'fulfilled' &&
-          zoomCheck.value
-        ) {
-          return [
-            {
-              group_id: groupId,
-              image_url: `https://${bucketName}.s3.amazonaws.com/${mainKey}`,
-              image_type: 'main',
-              display_order: baseDisplayOrder + baseOrder,
-              file_format: 'webp',
-              alt_text,
-              is_primary: isPrimary,
-            },
-            {
-              group_id: groupId,
-              image_url: `https://${bucketName}.s3.amazonaws.com/${thumbKey}`,
-              image_type: 'thumbnail',
-              display_order: baseDisplayOrder + baseOrder + 1,
-              file_format: 'webp',
-              alt_text,
-              is_primary: false,
-            },
-            {
-              group_id: groupId,
-              image_url: `https://${bucketName}.s3.amazonaws.com/${zoomKey}`,
-              image_type: 'zoom',
-              display_order: baseDisplayOrder + baseOrder + 2,
-              file_format: ext,
-              alt_text,
-              is_primary: false,
-            },
-          ];
-        }
-      }
-
-      // ---------------------------------------------------------------------
-      // Resize
-      // ---------------------------------------------------------------------
-      const resizedMain = path.join(tempDir, `${baseName}_main.webp`);
-      const resizedThumb = path.join(tempDir, `${baseName}_thumb.webp`);
-
-      await Promise.all([
-        resizeImage(localPath, resizedMain, 800, 70, 5),
-        resizeImage(localPath, resizedThumb, 200, 60, 4),
-      ]);
-
-      // ---------------------------------------------------------------------
-      // Upload
-      // ---------------------------------------------------------------------
-      let mainUrl, thumbUrl, zoomUrl;
-      const keyPrefix = `sku-images/${brandFolder}/${hash}`;
-
-      if (isProd) {
-        [mainUrl, thumbUrl, zoomUrl] = await Promise.all([
-          uploadSkuImageToS3(
-            bucketName,
-            resizedMain,
-            keyPrefix,
-            `${baseName}_main.webp`
-          ),
-          uploadSkuImageToS3(
-            bucketName,
-            resizedThumb,
-            keyPrefix,
-            `${baseName}_thumb.webp`
-          ),
-          uploadSkuImageToS3(
-            bucketName,
-            localPath,
-            keyPrefix,
-            path.basename(localPath)
-          ),
-        ]);
-      } else {
-        const devDir = path.resolve(
-          __dirname,
-          '../../public/uploads/sku-images',
-          brandFolder
-        );
-
-        await fsp.mkdir(devDir, { recursive: true });
-
-        const zoomFileName = path.basename(localPath);
-
-        await Promise.all([
-          fsp.copyFile(resizedMain, path.join(devDir, `${baseName}_main.webp`)),
-          fsp.copyFile(
-            resizedThumb,
-            path.join(devDir, `${baseName}_thumb.webp`)
-          ),
-          fsp.copyFile(localPath, path.join(devDir, zoomFileName)),
-        ]);
-
-        const base = `/uploads/sku-images/${brandFolder}/${baseName}`;
-        mainUrl = `${base}_main.webp`;
-        thumbUrl = `${base}_thumb.webp`;
-        zoomUrl = `/uploads/sku-images/${brandFolder}/${zoomFileName}`;
-      }
-
+      
       return [
         {
           group_id: groupId,
@@ -325,6 +151,7 @@ const processAndUploadSkuImages = async (
           image_type: 'main',
           display_order: baseDisplayOrder + baseOrder,
           file_format: 'webp',
+          file_size_kb: mainSizeKb,
           alt_text,
           is_primary: isPrimary,
         },
@@ -334,6 +161,7 @@ const processAndUploadSkuImages = async (
           image_type: 'thumbnail',
           display_order: baseDisplayOrder + baseOrder + 1,
           file_format: 'webp',
+          file_size_kb: thumbSizeKb,
           alt_text,
           is_primary: false,
         },
@@ -343,6 +171,7 @@ const processAndUploadSkuImages = async (
           image_type: 'zoom',
           display_order: baseDisplayOrder + baseOrder + 2,
           file_format: ext,
+          file_size_kb: zoomSizeKb,
           alt_text,
           is_primary: false,
         },
@@ -352,24 +181,17 @@ const processAndUploadSkuImages = async (
       return null;
     }
   };
-
-  // ---------------------------------------------------------------------------
-  // Execute
-  // ---------------------------------------------------------------------------
-  try {
-    const results = await processWithConcurrencyLimit(
-      normalizedImages,
-      concurrencyLimit,
-      processSingleImage
-    );
-
-    for (const r of results) {
-      if (Array.isArray(r)) processed.push(...r);
-    }
-  } finally {
-    await fsp.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+  
+  const results = await processWithConcurrencyLimit(
+    normalizedImages,
+    concurrencyLimit,
+    processSingleImage
+  );
+  
+  for (const r of results) {
+    if (Array.isArray(r)) processed.push(...r);
   }
-
+  
   return processed;
 };
 
@@ -532,7 +354,7 @@ const saveSkuImagesService = async (
     });
 
     // --- Step 6: Transform and return API-friendly response ---
-    return transformSkuImageResults(result ?? []);
+    return transformGroupedSkuImages(result ?? []);
   } catch (error) {
     logSystemException(error, 'Failed to save SKU images', {
       context,
@@ -606,7 +428,7 @@ const saveBulkSkuImagesService = async (
 ) => {
   const context = 'sku-image-service/saveBulkSkuImagesService';
   const startTime = Date.now();
-  const limit = pLimit(3); // Safe concurrent transaction cap
+  const limit = pLimit(BULK_SKU_CONCURRENCY); // Safe concurrent transaction cap
 
   try {
     if (!Array.isArray(skuImageSets) || skuImageSets.length === 0) {
@@ -640,7 +462,7 @@ const saveBulkSkuImagesService = async (
     );
 
     const normalized = results.map((res, i) => {
-      const { skuId } = skuImageSets[i];
+      const { skuId, skuCode } = skuImageSets[i];
       if (res.status === 'fulfilled') {
         const data = res.value;
         logSystemInfo('SKU images saved successfully', {
@@ -650,6 +472,7 @@ const saveBulkSkuImagesService = async (
         });
         return {
           skuId,
+          skuCode,
           success: true,
           count: data.length,
           images: data,
@@ -696,120 +519,32 @@ const saveBulkSkuImagesService = async (
   }
 };
 
-const processImageFile = async (localPath, skuCode, isProd, bucketName) => {
-  const brandFolder = skuCode.slice(0, 2).toUpperCase();
-  const hash = await getFileHashStream(localPath);
-  const ext = path.extname(localPath).replace('.', '').toLowerCase();
-  const baseName = path.basename(localPath, path.extname(localPath));
-  
-  const resizedMain = `${localPath}_main.webp`;
-  const resizedThumb = `${localPath}_thumb.webp`;
-  
-  await Promise.all([
-    resizeImage(localPath, resizedMain, 800, 70, 5),
-    resizeImage(localPath, resizedThumb, 200, 60, 4),
-  ]);
-  
-  const keyPrefix = `sku-images/${brandFolder}/${hash}`;
-  
-  let mainUrl, thumbUrl, zoomUrl;
-  
-  if (isProd) {
-    [mainUrl, thumbUrl, zoomUrl] = await Promise.all([
-      uploadSkuImageToS3(bucketName, resizedMain, keyPrefix, `${baseName}_main.webp`),
-      uploadSkuImageToS3(bucketName, resizedThumb, keyPrefix, `${baseName}_thumb.webp`),
-      uploadSkuImageToS3(bucketName, localPath, keyPrefix, path.basename(localPath)),
-    ]);
-  } else {
-    const devDir = path.resolve(
-      __dirname,
-      '../../public/uploads/sku-images',
-      brandFolder
-    );
-    
-    await fsp.mkdir(devDir, { recursive: true });
-    
-    const zoomFileName = path.basename(localPath);
-    
-    await Promise.all([
-      fsp.copyFile(resizedMain, path.join(devDir, `${baseName}_main.webp`)),
-      fsp.copyFile(resizedThumb, path.join(devDir, `${baseName}_thumb.webp`)),
-      fsp.copyFile(localPath, path.join(devDir, zoomFileName)),
-    ]);
-    
-    const base = `/uploads/sku-images/${brandFolder}/${baseName}`;
-    mainUrl = `${base}_main.webp`;
-    thumbUrl = `${base}_thumb.webp`;
-    zoomUrl = `/uploads/sku-images/${brandFolder}/${zoomFileName}`;
-  }
-  
-  return { mainUrl, thumbUrl, zoomUrl, ext };
-}
-
-const resolveSource = async (src, skuCode) => {
-  if (!src || typeof src !== 'string') {
-    throw AppError.validationError('Invalid image source');
-  }
-  
-  // ------------------------------------------------------------
-  // Remote URL
-  // ------------------------------------------------------------
-  if (src.startsWith('http')) {
-    const tempDir = path.join(
-      'temp',
-      `${skuCode}-${Date.now()}-${Math.random().toString(36).slice(2)}`
-    );
-    
-    await fsp.mkdir(tempDir, { recursive: true });
-    
-    const filename = path.basename(new URL(src).pathname);
-    const tempFile = path.join(tempDir, filename);
-    
-    const response = await retry(() => fetch(src), 3);
-    
-    if (!response.ok || !response.body) {
-      throw AppError.fileSystemError('Failed to fetch image', {
-        status: response.status,
-      });
-    }
-    
-    await new Promise((resolve, reject) => {
-      const stream = fs.createWriteStream(tempFile);
-      response.body.pipe(stream);
-      stream.on('finish', resolve);
-      stream.on('error', reject);
-    });
-    
-    return tempFile;
-  }
-  
-  // ------------------------------------------------------------
-  // Local path
-  // ------------------------------------------------------------
-  const resolvedPath = path.isAbsolute(src)
-    ? src
-    : path.resolve(__dirname, '../../', src);
-  
-  await fsp.access(resolvedPath);
-  
-  return resolvedPath;
-};
-
-const detectImageSource = (image) => {
-  if (image.file_uploaded && image.image_url) {
-    return image.image_url;
-  }
-  
-  if (
-    typeof image.image_url === 'string' &&
-    image.image_url.startsWith('http')
-  ) {
-    return image.image_url;
-  }
-  
-  return null;
-};
-
+/**
+ * @async
+ * @function
+ *
+ * @description
+ * Reprocesses SKU images when a new source is provided.
+ *
+ * For each image:
+ *   • Detects whether a new source requires reprocessing
+ *   • Resolves source path (remote or local)
+ *   • Generates image variants (main, thumbnail, zoom)
+ *   • Captures file sizes per variant
+ *   • Normalizes output for bulk repository update
+ *
+ * This function:
+ *   • Does NOT perform database operations
+ *   • Delegates IO and transformation to media utilities
+ *   • Preserves atomic behavior (throws on failure)
+ *
+ * @param {Array<Object>} images
+ * @param {string} skuCode
+ * @param {boolean} isProd
+ * @param {string} bucketName
+ *
+ * @returns {Promise<Array<Object>>}
+ */
 const reprocessUpdatedSkuImages = async (
   images,
   skuCode,
@@ -819,43 +554,112 @@ const reprocessUpdatedSkuImages = async (
   const context = 'sku-image-service/reprocessUpdatedSkuImages';
   
   if (!Array.isArray(images) || images.length === 0) {
-    return images;
+    return images ?? [];
   }
   
   const processed = [];
   
   for (const image of images) {
-    let variantUrls = null;
-    
-    const sourcePath = detectImageSource(image);
-    
-    if (sourcePath) {
-      const localPath = await resolveSource(sourcePath, skuCode);
+    try {
+      let variantData = null;
       
-      const { mainUrl, thumbUrl, zoomUrl } =
-        await processImageFile(localPath, skuCode, isProd, bucketName);
+      const sourcePath = detectImageSource(image);
       
-      variantUrls = {
-        main_url: mainUrl,
-        thumb_url: thumbUrl,
-        zoom_url: zoomUrl,
-      };
+      // Only reprocess if a new source is detected
+      if (sourcePath) {
+        const localPath = await resolveSource(sourcePath, skuCode);
+        
+        const {
+          mainUrl,
+          thumbUrl,
+          zoomUrl,
+          mainSizeKb,
+          thumbSizeKb,
+          zoomSizeKb
+        } = await processImageFile(localPath, skuCode, isProd, bucketName);
+        
+        variantData = {
+          main_url: mainUrl,
+          thumb_url: thumbUrl,
+          zoom_url: zoomUrl,
+          main_size_kb: mainSizeKb,
+          thumb_size_kb: thumbSizeKb,
+          zoom_size_kb: zoomSizeKb
+        };
+      }
+      
+      processed.push({
+        group_id: image.group_id,
+        
+        // URLs
+        main_url: variantData?.main_url ?? null,
+        thumb_url: variantData?.thumb_url ?? null,
+        zoom_url: variantData?.zoom_url ?? null,
+        
+        // File sizes
+        main_size_kb: variantData?.main_size_kb ?? null,
+        thumb_size_kb: variantData?.thumb_size_kb ?? null,
+        zoom_size_kb: variantData?.zoom_size_kb ?? null,
+        
+        // Metadata
+        display_order: image.display_order ?? null,
+        alt_text: image.alt_text ?? null,
+        is_primary: image.is_primary ?? null,
+      });
+    } catch (error) {
+      logSystemException(error, 'Image reprocessing failed', {
+        context,
+        skuCode,
+        groupId: image?.group_id,
+      });
+      
+      // Maintain SKU-level atomicity
+      throw error;
     }
-    
-    processed.push({
-      group_id: image.group_id,
-      main_url: variantUrls?.main_url ?? null,
-      thumb_url: variantUrls?.thumb_url ?? null,
-      zoom_url: variantUrls?.zoom_url ?? null,
-      display_order: image.display_order ?? null,
-      alt_text: image.alt_text ?? null,
-      is_primary: image.is_primary ?? null,
-    });
   }
   
   return processed;
 };
 
+/**
+ * @async
+ * @function
+ *
+ * @description
+ * Executes the complete SKU image update workflow within a transaction.
+ *
+ * Workflow:
+ *   1. Validates input and authenticated user
+ *   2. Locks the SKU row (FOR UPDATE) to prevent concurrent conflicts
+ *   3. Verifies image group ownership integrity
+ *   4. Reprocesses images if new sources are provided
+ *   5. Performs bulk group-based image update
+ *   6. Returns transformed result set
+ *
+ * Concurrency:
+ *   • Requires an active transaction-bound client
+ *   • Ensures row-level locking on SKU
+ *   • Maintains atomicity at SKU level
+ *
+ * Security:
+ *   • Validates image ownership before update
+ *   • Delegates SSRF protection to resolveSource()
+ *
+ * @param {Array<Object>} images
+ * @param {string} skuId
+ * @param {string} skuCode
+ * @param {Object} user
+ * @param {boolean} isProd
+ * @param {string} bucketName
+ * @param {Object} client - transaction-bound PostgreSQL client
+ *
+ * @returns {Promise<Array<Object>>}
+ *
+ * @throws {AppError}
+ *   ValidationError for invalid input
+ *   NotFoundError if SKU does not exist
+ *   ServiceError for unexpected system failures
+ */
 const updateSkuImagesService = async (
   images,
   skuId,
@@ -882,6 +686,11 @@ const updateSkuImagesService = async (
       throw AppError.validationError('Missing skuId for update.');
     }
     
+    // Ensure authenticated user context
+    if (!userId) {
+      throw AppError.validationError('Authenticated user is required.');
+    }
+    
     if (!Array.isArray(images) || images.length === 0) {
       logSystemInfo('No image updates provided; skipping.', {
         context,
@@ -902,6 +711,7 @@ const updateSkuImagesService = async (
     // ------------------------------------------------------------
     // Step 1: Lock SKU row
     // ------------------------------------------------------------
+    // Lock SKU row to prevent concurrent image updates
     const sku = await lockRow(client, 'skus', skuId, 'FOR UPDATE', {
       context,
       traceId,
@@ -958,7 +768,7 @@ const updateSkuImagesService = async (
       elapsedMs,
     });
     
-    return transformSkuImageResults(result ?? []);
+    return transformGroupedSkuImages(result ?? []);
   } catch (error) {
     logSystemException(error, 'Failed to update SKU images', {
       context,
@@ -983,6 +793,48 @@ const updateSkuImagesService = async (
   }
 };
 
+/**
+ * @async
+ * @function
+ *
+ * @description
+ * Processes bulk SKU image update operations with controlled concurrency.
+ *
+ * Each SKU update:
+ *   • Executes within its own database transaction
+ *   • Is isolated from other SKUs
+ *   • Allows partial success across the batch
+ *
+ * Concurrency:
+ *   • Uses p-limit to prevent database saturation
+ *   • Default concurrency limit = 3 SKUs at a time
+ *
+ * Failure handling:
+ *   • Individual SKU failures are captured and returned
+ *   • Batch does NOT abort if one SKU fails
+ *   • Unexpected system-level errors bubble up
+ *
+ * @param {Array<{
+ *   skuId: string,
+ *   skuCode: string,
+ *   images: Array<Object>
+ * }>} skuUpdateSets
+ *
+ * @param {Object} user
+ * @param {boolean} isProd
+ * @param {string} bucketName
+ *
+ * @returns {Promise<Array<{
+ *   skuId: string,
+ *   success: boolean,
+ *   count: number,
+ *   images: Array<Object>,
+ *   error: string|null
+ * }>>}
+ *
+ * @throws {AppError}
+ *   Throws only for unexpected system-level failures.
+ */
 const updateBulkSkuImagesService = async (
   skuUpdateSets,
   user,
@@ -991,7 +843,7 @@ const updateBulkSkuImagesService = async (
 ) => {
   const context = 'sku-image-service/updateBulkSkuImagesService';
   const startTime = Date.now();
-  const limit = pLimit(3); // Controlled concurrency
+  const limit = pLimit(BULK_SKU_CONCURRENCY); // Prevent DB overload
   
   try {
     if (!Array.isArray(skuUpdateSets) || skuUpdateSets.length === 0) {
@@ -1006,6 +858,8 @@ const updateBulkSkuImagesService = async (
       skuCount: skuUpdateSets.length,
     });
     
+    // Each SKU update runs in its own transaction.
+    // Failure of one SKU does NOT rollback others.
     const results = await Promise.allSettled(
       skuUpdateSets.map(({ skuId, skuCode, images }) =>
         limit(() =>
@@ -1025,7 +879,7 @@ const updateBulkSkuImagesService = async (
     );
     
     const normalized = results.map((res, i) => {
-      const { skuId } = skuUpdateSets[i];
+      const { skuId, skuCode } = skuUpdateSets[i];
       
       if (res.status === 'fulfilled') {
         const data = res.value;
@@ -1038,6 +892,7 @@ const updateBulkSkuImagesService = async (
         
         return {
           skuId,
+          skuCode,
           success: true,
           count: data.length,
           images: data,
@@ -1091,9 +946,6 @@ const updateBulkSkuImagesService = async (
 
 module.exports = {
   processAndUploadSkuImages,
-  // todo: remove
-  saveSkuImagesService,
   saveBulkSkuImagesService,
-  updateSkuImagesService,
   updateBulkSkuImagesService,
 };
