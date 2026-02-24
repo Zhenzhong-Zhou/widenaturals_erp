@@ -10,26 +10,91 @@ const { getFullName } = require('../utils/name-utils');
  */
 const transformSkuImageRow = (record) => ({
   id: record.id,
-  skuId: record.sku_id ?? record.skuId,
-  imageUrl: record.image_url ?? record.imageUrl,
-  imageType: record.image_type ?? record.imageType,
-  displayOrder: record.display_order ?? record.displayOrder,
-  isPrimary: record.is_primary ?? record.isPrimary,
+  skuId: record.sku_id,
+  imageUrl: record.image_url,
+  imageType: record.image_type,
+  displayOrder: record.display_order,
+  fileSizeKb: record.file_size_kb,
+  fileFormat: record.file_format,
+  altText: record.alt_text,
+  isPrimary: record.is_primary,
+  groupId: record.group_id,
+  uploadedAt: record.uploaded_at,
+  uploadedBy: record.uploaded_by,
 });
 
 /**
  * @function
- * @description
- * Transforms an array of DB records from `sku_images` into an array of
- * API-friendly objects with camelCase keys and filtered fields.
  *
- * @param {Object[]} records - Array of DB rows (snake_case keys).
- * @returns {Object[]} Transformed API-friendly image objects.
+ * @description
+ * Transforms flat `sku_images` DB rows into grouped SKU image entities.
+ *
+ * Each image group represents a logical SKU image consisting of:
+ *   • main variant
+ *   • thumbnail variant
+ *   • zoom variant
+ *
+ * The function:
+ *   • Normalizes DB snake_case fields via transformSkuImageRow()
+ *   • Groups rows by groupId
+ *   • Aggregates image variants under a single logical entity
+ *   • Preserves ordering and primary flag
+ *
+ * Output structure:
+ * [
+ *   {
+ *     groupId: string,
+ *     displayOrder: number,
+ *     altText: string,
+ *     uploadedAt: Date,
+ *     uploadedBy: string,
+ *     variants: {
+ *       main?: { id, imageUrl, isPrimary, fileFormat, fileSizeKb },
+ *       thumbnail?: { ... },
+ *       zoom?: { ... }
+ *     }
+ *   }
+ * ]
+ *
+ * @param {Array<Object>} records
+ *   Raw DB rows from `sku_images` table (snake_case fields).
+ *
+ * @returns {Array<Object>}
+ *   Grouped SKU image entities suitable for API responses.
  */
-const transformSkuImageResults = (records = []) =>
-  Array.isArray(records)
-    ? records.map((record) => transformSkuImageRow(record))
-    : [];
+const transformGroupedSkuImages = (records = []) => {
+  if (!Array.isArray(records) || records.length === 0) {
+    return [];
+  }
+  
+  const rows = records.map(transformSkuImageRow);
+  const groups = {};
+  
+  for (const r of rows) {
+    // Initialize group if first encounter
+    if (!groups[r.groupId]) {
+      groups[r.groupId] = {
+        groupId: r.groupId,
+        displayOrder: r.displayOrder,
+        altText: r.altText,
+        uploadedAt: r.uploadedAt,
+        uploadedBy: r.uploadedBy,
+        variants: {}
+      };
+    }
+    
+    // Attach variant under imageType key
+    groups[r.groupId].variants[r.imageType] = {
+      id: r.id,
+      imageUrl: r.imageUrl,
+      isPrimary: r.isPrimary,
+      fileFormat: r.fileFormat,
+      fileSizeKb: r.fileSizeKb
+    };
+  }
+  
+  return Object.values(groups);
+};
 
 /**
  * @typedef {Object} SlicedSkuImage
@@ -117,6 +182,6 @@ const transformSkuImage = (row) => {
 };
 
 module.exports = {
-  transformSkuImageResults,
+  transformGroupedSkuImages,
   transformSkuImage,
 };

@@ -398,26 +398,28 @@ const getSkuImagesBySkuId = async (skuId) => {
 /**
  * @async
  * @function
- * @description
- * Retrieves image IDs belonging to a specific SKU.
  *
- * Used to validate that provided image IDs exist and
- * are scoped to the correct SKU before update operations.
+ * @description
+ * Validates that the provided group IDs exist
+ * and belong to the specified SKU.
+ *
+ * Used before bulk update/delete operations
+ * to ensure image groups are scoped correctly.
  *
  * @param {string} skuId
  *   UUID of the SKU.
  *
- *   Array of image UUIDs to validate.
+ * @param {string[]} groupIds
+ *   Array of image group UUIDs to validate.
  *
- * @param groupIds
  * @param {object} client
  *   Transaction-bound PostgreSQL client.
  *
- * @returns {Promise<Array<string>>}
- *   Array of matching image IDs found in DB.
+ * @returns {Promise<string[]>}
+ *   Array of group IDs that exist for this SKU.
  *
  * @throws {AppError}
- *   Throws database error if query fails.
+ *   Throws databaseError if query fails.
  */
 const getSkuImageGroupIdsBySku = async (
   skuId,
@@ -433,6 +435,8 @@ const getSkuImageGroupIdsBySku = async (
   }
   
   try {
+    // Validate that provided groupIds belong to this SKU
+    // Prevents cross-SKU manipulation during bulk operations
     const sql = `
       SELECT DISTINCT group_id
       FROM sku_images
@@ -460,17 +464,32 @@ const getSkuImageGroupIdsBySku = async (
 /**
  * @async
  * @function
- * @description
- * Unsets the current primary image for a given SKU.
  *
- * Ensures that no image remains marked as primary.
- * Intended to be called before assigning a new primary image.
+ * @description
+ * Clears the current primary image flag for a specific SKU.
+ *
+ * This ensures that no image remains marked as primary
+ * before assigning a new primary image.
+ *
+ * Must be executed inside a transaction when used
+ * alongside primary reassignment to maintain atomicity.
  *
  * @param {string} skuId
+ *   UUID of the SKU.
+ *
+ * @param {string} uploadedBy
+ *   UUID of the user performing the update.
+ *
  * @param {object} client
- * @returns {Promise<number>} number of affected rows
+ *   Transaction-bound PostgreSQL client.
+ *
+ * @returns {Promise<number>}
+ *   Number of rows updated (0 or 1 in normal cases).
+ *
+ * @throws {AppError}
+ *   Throws validationError or databaseError.
  */
-const unsetPrimaryForSku = async (skuId, client) => {
+const unsetPrimaryForSku = async (skuId, uploadedBy, client) => {
   const context = 'sku-image-repository/unsetPrimaryForSku';
   
   if (!skuId) {
@@ -481,18 +500,19 @@ const unsetPrimaryForSku = async (skuId, client) => {
     throw AppError.validationError('Database client is required');
   }
   
+  // Ensure primary uniqueness by clearing existing primary
+  // Should be called before setting a new primary inside same transaction
+  const sql = `
+    UPDATE sku_images
+    SET is_primary = FALSE,
+        uploaded_at = NOW(),
+        uploaded_by = $2
+    WHERE sku_id = $1
+      AND is_primary = TRUE;
+  `;
+  
   try {
-    const { rowCount } = await query(
-      `
-      UPDATE sku_images
-      SET is_primary = FALSE,
-          uploaded_at = NOW()
-      WHERE sku_id = $1
-        AND is_primary = TRUE;
-      `,
-      [skuId],
-      client
-    );
+    const { rowCount } = await query(sql, [skuId, uploadedBy], client);
     
     logSystemInfo('Primary image unset successfully', {
       context,
@@ -516,63 +536,64 @@ const unsetPrimaryForSku = async (skuId, client) => {
 /**
  * @async
  * @function
+ *
  * @description
- * Bulk updates multiple SKU image records in a single atomic database operation.
+ * Bulk updates SKU image groups in a single atomic database operation.
  *
  * This function:
- * - Updates mutable image metadata (URL, type, order, size, format, alt text)
- * - Allows optional primary reassignment
+ * - Updates image URLs per variant (main / thumbnail / zoom)
+ * - Updates display_order and alt_text at group level
+ * - Supports optional primary reassignment
  * - Enforces single-primary rule per SKU
+ * - Ensures only the "main" image of a group may be primary
  * - Operates in a set-based manner using JSONB recordset
- * - Requires a transaction-bound PostgreSQL client
  *
  * Primary behavior:
- * - If exactly one image in the update payload has `is_primary = true`,
+ * - If exactly one image group in the payload sets `is_primary = true`,
  *   the existing primary image (if any) is unset before applying updates.
- * - If more than one image attempts to set `is_primary = true`,
+ * - If more than one group attempts to set `is_primary = true`,
  *   a validation error is thrown.
- * - If no image sets `is_primary`, primary state remains unchanged.
+ * - If no group sets `is_primary`, primary state remains unchanged.
  *
- * Safety guarantees:
+ * Database safety:
  * - Updates are scoped to the provided `skuId`
  * - Only images belonging to the SKU can be modified
- * - Partial unique index (single primary per SKU) remains respected
+ * - Partial unique index (one primary per SKU) remains respected
+ * - Must be executed inside a transaction
  *
  * @param {string} skuId
- *   UUID of the SKU whose images are being updated.
+ *   UUID of the SKU.
  *
- * @param {Array<Object>} updates
- *   Array of image update objects. Each object must include:
- *   - `id` (UUID of the image record)
- *   Optional mutable fields:
- *   - `image_url`
- *   - `image_type`
+ * @param {Array<Object>} images
+ *   Array of group update objects. Each object must include:
+ *   - `group_id` (UUID)
+ *   Optional fields:
+ *   - `main_url`
+ *   - `thumb_url`
+ *   - `zoom_url`
  *   - `display_order`
- *   - `file_size_kb`
- *   - `file_format`
  *   - `alt_text`
  *   - `is_primary`
  *
- * @param {string} updatedBy
+ * @param {string} uploadedBy
  *   UUID of the user performing the update.
  *
  * @param {object} client
  *   Transaction-bound PostgreSQL client.
  *
  * @returns {Promise<Array<Object>>}
- *   Returns the updated image rows.
+ *   Updated image rows sorted by display_order.
  *
  * @throws {AppError}
- *   Throws validation error for malformed input,
- *   or database error if the update fails.
+ *   Throws validationError or databaseError.
  */
 const updateSkuImagesBulk = async (
   skuId,
-  updates,
-  updatedBy,
+  images,
+  uploadedBy,
   client
 ) => {
-  if (!Array.isArray(updates) || updates.length === 0) {
+  if (!Array.isArray(images) || images.length === 0) {
     return [];
   }
   
@@ -584,8 +605,8 @@ const updateSkuImagesBulk = async (
     throw AppError.validationError('skuId is required');
   }
   
-  // Validate group_id instead of id
-  if (updates.some(u => !u?.group_id)) {
+  // Validate group_id
+  if (images.some(u => !u?.group_id)) {
     throw AppError.validationError(
       'Each image update must include a valid group_id'
     );
@@ -594,7 +615,7 @@ const updateSkuImagesBulk = async (
   // ------------------------------------------------------------
   // Validate single primary rule
   // ------------------------------------------------------------
-  const primaryUpdates = updates.filter(u => u.is_primary === true);
+  const primaryUpdates = images.filter(u => u.is_primary === true);
   
   if (primaryUpdates.length > 1) {
     throw AppError.validationError(
@@ -604,11 +625,12 @@ const updateSkuImagesBulk = async (
   
   try {
     if (primaryUpdates.length === 1) {
-      await unsetPrimaryForSku(skuId, client);
+      await unsetPrimaryForSku(skuId, uploadedBy, client);
     }
-    
+
     // ------------------------------------------------------------
-    // Bulk update by group_id
+    // Set-based bulk update per image group
+    // Each group updates main/thumb/zoom rows conditionally
     // ------------------------------------------------------------
     const sql = `
       UPDATE sku_images AS si
@@ -620,6 +642,22 @@ const updateSkuImagesBulk = async (
             WHEN 'zoom' THEN t.zoom_url
           END,
           si.image_url
+        ),
+        file_size_kb = COALESCE(
+          CASE si.image_type
+            WHEN 'main' THEN t.main_size_kb
+            WHEN 'thumbnail' THEN t.thumb_size_kb
+            WHEN 'zoom' THEN t.zoom_size_kb
+          END,
+          si.file_size_kb
+        ),
+        file_format = COALESCE(
+          CASE si.image_type
+            WHEN 'main' THEN t.main_format
+            WHEN 'thumbnail' THEN t.thumb_format
+            WHEN 'zoom' THEN t.zoom_format
+          END,
+          si.file_format
         ),
         display_order = COALESCE(t.display_order, si.display_order),
         alt_text = COALESCE(t.alt_text, si.alt_text),
@@ -635,6 +673,12 @@ const updateSkuImagesBulk = async (
         main_url text,
         thumb_url text,
         zoom_url text,
+        main_size_kb int,
+        thumb_size_kb int,
+        zoom_size_kb int,
+        main_format text,
+        thumb_format text,
+        zoom_format text,
         display_order int,
         alt_text text,
         is_primary boolean
@@ -646,11 +690,11 @@ const updateSkuImagesBulk = async (
     
     const { rows } = await query(
       sql,
-      [skuId, JSON.stringify(updates), updatedBy],
+      [skuId, JSON.stringify(images), uploadedBy],
       client
     );
     
-    return rows;
+    return rows.sort((a, b) => a.display_order - b.display_order);
   } catch (error) {
     logSystemException(error, 'Bulk SKU image update failed', {
       context: 'sku-image-repository/updateSkuImagesBulk',
