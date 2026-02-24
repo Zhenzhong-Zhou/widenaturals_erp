@@ -3,7 +3,7 @@ const fs = require('fs');
 const mime = require('mime-types');
 const { uploadSkuImageToS3 } = require('../../../utils/aws-s3-service');
 const { loadEnv } = require('../../../config/env');
-const { resizeImage } = require('../../../utils/image-utils');
+const { resizeImage } = require('../../../utils/media/image-processing');
 
 loadEnv();
 
