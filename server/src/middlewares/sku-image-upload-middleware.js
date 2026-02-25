@@ -60,41 +60,46 @@ const parseSkuImageJson = (req, res, next) => {
  * @function
  *
  * @description
- * Merges multipart-uploaded files (`req.files`) with the corresponding image
- * metadata defined in `req.body.skus[*].images`. This ensures each image object
- * is fully hydrated before Joi validation and downstream processing.
+ * Merges multipart-uploaded files (`req.files`) with corresponding image
+ * metadata defined in `req.body.skus[*].images`.
  *
- * This middleware is required because:
- *  - The client sends image metadata via JSON (image_type, alt_text, etc.).
+ * This middleware hydrates image objects before Joi validation and
+ * downstream processing.
+ *
+ * Why this step is required:
+ *  - The client submits image metadata via JSON (image_type, alt_text, etc.).
  *  - Multer provides uploaded files separately through `req.files`.
  *  - The backend schema requires each image to contain either:
  *        • a valid `image_url`, OR
  *        • `file_uploaded = true`
- *    Therefore this step attaches the actual uploaded file paths to the JSON entries.
+ *    Therefore this middleware attaches actual uploaded file paths
+ *    to matching image metadata entries.
  *
  * Security & normalization:
- *  - All untrusted request inputs (`req.files`, `req.body.skus`, `sku.images`)
- *    are normalized into array form before processing.
- *  - This prevents type confusion and parameter tampering vulnerabilities
- *    (CWE-843), and resolves CodeQL security alerts.
+ *  - All untrusted inputs (`req.files`, `req.body.skus`, `sku.images`)
+ *    are normalized into array form before iteration.
+ *  - Prevents type confusion and parameter tampering vulnerabilities (CWE-843).
  *
  * Core behaviors:
  *  - Iterates through all SKUs and their `images` arrays.
  *  - For each image with `file_uploaded = true`, assigns the next Multer file:
- *        • `image_url`   → server file path
- *        • `alt_text`    → preserved or defaulted to original filename
- *        • `source`      → "uploaded"
- *        • `uploaded_at` → ISO timestamp
+ *        • `image_url` → server file path (`file.path`)
+ *        • `alt_text`  → preserved or defaulted to original filename
+ *        • `source`    → defaults to "uploaded" if not already set
  *
  * File-to-image mapping:
- *  - Uses sequential order: `req.files[fileIndex]` → next `image[file_uploaded = true]`.
+ *  - Uses sequential order: `req.files[fileIndex]`
+ *    maps to the next `image[file_uploaded = true]`.
  *  - Throws a validation error if:
  *        • More `file_uploaded = true` entries exist than uploaded files
- *        • Fewer entries exist and leftover files remain (mismatch)
+ *        • Extra files remain unmatched after processing
  *
  * Pre-conditions:
  *  - Must run BEFORE Joi validation, since validation depends on enriched objects.
  *  - JSON body parsing middleware must run first so `req.body.skus` is available.
+ *
+ * This middleware performs synchronous object mutation only.
+ * It does NOT perform IO, logging, or database operations.
  *
  * @param {ExpressRequest & { body: any, files?: unknown }} req
  * @param {ExpressResponse} res
@@ -103,46 +108,54 @@ const parseSkuImageJson = (req, res, next) => {
 const attachUploadedFilesToSkus = (req, res, next) => {
   const files = normalizeToArray(req.files);
   const skus = normalizeToArray(req.body?.skus);
-
+  
+  // Nothing to map
   if (!files.length || !skus.length) {
     return next();
   }
-
+  
   let fileIndex = 0;
-
+  
   for (const sku of skus) {
     const images = normalizeToArray(sku.images);
-
+    
     for (const img of images) {
-      if (img.file_uploaded) {
+      if (img.file_uploaded === true) {
         const file = files[fileIndex];
-
+        
         if (!file) {
           return next(
             AppError.validationError(
-              "File count does not match 'file_uploaded' image entries."
+              'File count does not match file_uploaded entries.'
             )
           );
         }
-
+        
+        // Assign resolved upload path
         img.image_url = file.path;
-        img.alt_text = img.alt_text || file.originalname;
-        img.source = 'uploaded';
-        img.uploaded_at = new Date().toISOString();
-
+        
+        // Default alt_text to original filename if not provided
+        if (!img.alt_text) {
+          img.alt_text = file.originalname;
+        }
+        
+        // Explicitly set source
+        img.source = img.source || 'uploaded';
+        
         fileIndex++;
       }
     }
   }
-
+  
+  // Ensure all uploaded files were mapped
   if (fileIndex !== files.length) {
     return next(
       AppError.validationError(
-        `Received ${files.length} files but only ${fileIndex} were mapped.`
+        `Received ${files.length} files but only ${fileIndex} were mapped to file_uploaded entries.`
       )
     );
   }
-
+  
   next();
 };
 

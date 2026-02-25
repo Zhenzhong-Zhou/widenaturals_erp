@@ -4,7 +4,8 @@ const fsp = require('fs/promises');
 const net = require('net');
 const AppError = require('../AppError');
 const { retry } = require('../../database/db');
-const { logSystemException } = require('../system-logger');
+const { logSystemException, logSystemWarn } = require('../system-logger');
+const { ALLOWED_IMAGE_HOSTS } = require('../constants/security/media-security-constants');
 
 const ROOT_DIR = path.resolve(__dirname, '../../../');
 
@@ -79,34 +80,36 @@ const resolveSource = async (src, skuCode) => {
     // ------------------------------------------------------------
     if (isRemoteUrl(src)) {
       const url = new URL(src);
+      const hostname = url.hostname.toLowerCase();
       
-      const allowedHosts =
-        process.env.ALLOWED_IMAGE_HOSTS
-          ?.split(',')
-          .map(h => h.trim())
-          .filter(Boolean) ?? [];
-      
-      if (!allowedHosts.length) {
+      // Remote fetching must be explicitly enabled
+      if (!ALLOWED_IMAGE_HOSTS.length) {
         throw AppError.validationError(
-          'Remote image fetching is not enabled'
+          'Remote image fetching is not enabled.'
         );
       }
       
-      if (url.hostname === 'localhost') {
-        throw AppError.validationError('Localhost is not allowed');
+      // Block localhost explicitly
+      if (hostname === 'localhost') {
+        throw AppError.validationError('Localhost is not allowed.');
       }
       
-      if (net.isIP(url.hostname)) {
-        throw AppError.validationError('IP-based hosts are not allowed');
+      // Block direct IP access (prevents SSRF via numeric IP)
+      if (net.isIP(hostname)) {
+        throw AppError.validationError('IP-based hosts are not allowed.');
       }
       
-      const isAllowed = allowedHosts.some(
-        host =>
-          url.hostname === host ||
-          url.hostname.endsWith(`.${host}`)
+      // Enforce allow-list
+      const isAllowed = ALLOWED_IMAGE_HOSTS.some(
+        (host) =>
+          hostname === host || hostname.endsWith(`.${host}`)
       );
       
       if (!isAllowed) {
+        logSystemWarn('Blocked untrusted image host', {
+          hostname,
+          allowedHosts: ALLOWED_IMAGE_HOSTS,
+        });
         throw AppError.validationError('Untrusted image host');
       }
       
