@@ -10,8 +10,8 @@
  */
 
 const express = require('express');
-const multer = require('multer');
 const { authorize } = require('../middlewares/authorize');
+const upload = require('../middlewares/multer-config');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
 const validate = require('../middlewares/validate');
 const {
@@ -26,22 +26,6 @@ const {
 } = require('../middlewares/sku-image-upload-middleware');
 
 const router = express.Router();
-
-/**
- * Multer setup for temporary uploads.
- *
- * Notes:
- *  - Files are stored temporarily under `temp/uploads/` until processed by service layer.
- *  - Use a dedicated directory outside `src/` for better isolation and cleanup control.
- *  - File cleanup should be handled by the service or a background job after processing.
- */
-const upload = multer({
-  dest: 'temp/uploads/',
-  limits: {
-    fileSize: 50 * 1024 * 1024, // 50 MB max per file
-    files: 100, // Prevent abuse in bulk uploads
-  },
-});
 
 /**
  * POST /upload
