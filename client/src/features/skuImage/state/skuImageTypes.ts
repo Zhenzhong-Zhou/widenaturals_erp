@@ -103,27 +103,68 @@ export interface BulkSkuImageUploadItem {
 }
 
 /**
- * One successfully uploaded image as returned by the backend.
+ * Represents a single image variant generated during SKU image upload.
+ *
+ * Each logical SKU image group may contain multiple variants
+ * (e.g. main, thumbnail, zoom) stored as separate physical files.
+ *
+ * This type reflects the API upload response DTO shape,
+ * not the database schema.
  */
-// todo: need to adjust
-export interface UploadedSkuImage {
-  /** Image record identifier. */
+export interface SkuImageUploadVariant {
+  /** Unique identifier of the stored image record */
   id: string;
-
-  /** SKU identifier associated with this image. */
-  skuId: string;
-
-  /** Server-hosted URL for the uploaded image. */
+  
+  /** Server-hosted URL path of the image */
   imageUrl: string;
-
-  /** Logical image type (main, zoom, thumbnail, etc.). */
-  imageType: SkuImageType;
-
-  /** Display order index. */
-  displayOrder: number;
-
-  /** Whether this is the primary image for the SKU. */
+  
+  /** Whether this variant is marked as the primary image for the SKU */
   isPrimary: boolean;
+  
+  /** File format of the stored image (e.g. webp, jpg) */
+  fileFormat: string;
+  
+  /** File size in kilobytes */
+  fileSizeKb: number;
+}
+
+
+/**
+ * Represents a logical SKU image group returned by the bulk upload API.
+ *
+ * A group corresponds to one uploaded image set and contains
+ * multiple size/format variants under a shared groupId.
+ *
+ * Variants are optional because processing pipelines may
+ * conditionally generate certain sizes.
+ */
+export interface UploadedSkuImageGroup {
+  /** Logical grouping identifier shared across image variants */
+  groupId: string;
+  
+  /** Zero-based display ordering index for SKU gallery rendering */
+  displayOrder: number;
+  
+  /** Optional alt text used for accessibility and SEO */
+  altText: string | null;
+  
+  /** ISO 8601 timestamp indicating when the image group was uploaded */
+  uploadedAt: string;
+  
+  /** User identifier of the uploader */
+  uploadedBy: string;
+  
+  /**
+   * Map of image variants keyed by logical type.
+   *
+   * Keys represent presentation intent rather than database rows.
+   * Each value corresponds to a generated physical file.
+   */
+  variants: {
+    main?: SkuImageUploadVariant;
+    thumbnail?: SkuImageUploadVariant;
+    zoom?: SkuImageUploadVariant;
+  };
 }
 
 /**
@@ -140,7 +181,7 @@ export interface BulkSkuImageUploadResult {
   count: number;
 
   /** Array of uploaded image records for this SKU. */
-  images: UploadedSkuImage[];
+  images: UploadedSkuImageGroup[];
 
   /** Error message if the SKU batch failed. */
   error: string | null;
