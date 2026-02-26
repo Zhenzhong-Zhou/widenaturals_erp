@@ -4,26 +4,26 @@ import { alpha } from '@mui/material';
 import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
 import CardMedia from '@mui/material/CardMedia';
-import type { SkuImage } from '@features/sku/state';
+import type { SkuImageGroup } from '@features/sku/state';
 import { formatImageUrl } from '@utils/formatImageUrl';
 
 interface ThumbnailListProps {
-  images: SkuImage[];
-  selectedId?: string;
+  images: SkuImageGroup[];
+  selectedGroupId?: string;
   isMobile: boolean;
-  onSelect: (img: SkuImage) => void;
+  onSelect: (group: SkuImageGroup) => void;
 }
 
 const THUMB_SIZE = 150;
 
 const ThumbnailList: FC<ThumbnailListProps> = ({
-  images,
-  selectedId,
-  isMobile,
-  onSelect,
-}) => {
+                                                 images,
+                                                 selectedGroupId,
+                                                 isMobile,
+                                                 onSelect,
+                                               }) => {
   const theme = useTheme();
-
+  
   return (
     <Stack
       role="listbox"
@@ -36,20 +36,28 @@ const ThumbnailList: FC<ThumbnailListProps> = ({
         overflowY: isMobile ? 'hidden' : 'auto',
       }}
     >
-      {images.map((img) => {
-        const isSelected = img.id === selectedId;
-
+      {images.map((group) => {
+        // Select correct variant for thumbnail display
+        const variant =
+          group.variants.thumbnail ??
+          group.variants.main ??
+          group.variants.zoom;
+        
+        if (!variant) return null;
+        
+        const isSelected = group.groupId === selectedGroupId;
+        
         return (
           <Box
-            key={img.id}
+            key={group.groupId}
             role="option"
             tabIndex={0}
             aria-selected={isSelected}
-            onClick={() => onSelect(img)}
+            onClick={() => onSelect(group)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                onSelect(img);
+                onSelect(group);
               }
             }}
             sx={{
@@ -72,8 +80,8 @@ const ThumbnailList: FC<ThumbnailListProps> = ({
           >
             <CardMedia
               component="img"
-              image={formatImageUrl(img.imageUrl)}
-              alt={img.altText}
+              image={formatImageUrl(variant.imageUrl)}
+              alt={variant.altText ?? ''}
               sx={{
                 width: '100%',
                 height: '100%',

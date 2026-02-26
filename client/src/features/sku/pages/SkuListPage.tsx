@@ -57,7 +57,7 @@ const SkuListPage = () => {
     fetchSkus: fetchPaginatedSkusList,
     resetSkus: resetSkuState,
   } = usePaginatedSkus();
-
+console.log(skuData);
   const updateSelectedSkus = (
     prev: Record<string, SelectedSku>,
     ids: string[],

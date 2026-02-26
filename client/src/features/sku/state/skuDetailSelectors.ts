@@ -1,7 +1,10 @@
 import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
-import type { SkuImage, SkuPricing } from '@features/sku/state/skuTypes';
+import type {
+  SkuImageVariant,
+  SkuPricing
+} from '@features/sku/state/skuTypes';
 
 /**
  * Root selector for the SKU detail slice.
@@ -44,18 +47,6 @@ export const selectSkuDetail = createSelector(
 );
 
 /**
- * Memoized selector returning the entire detail object.
- * Useful for deeply memoized components that depend on
- * reference stability (e.g., rendering subcomponents).
- *
- * @returns {SkuDetail | null}
- */
-export const selectMemoizedSkuDetail = createSelector(
-  selectSkuDetail,
-  (data) => data
-);
-
-/**
  * Selector: Product-level metadata inside the SKU detail payload.
  *
  * @returns {SkuProduct | null}
@@ -68,9 +59,9 @@ export const selectSkuProductInfo = createSelector(
 /**
  * Selector: Full list of SKU images (main, thumbnail, zoom).
  *
- * @returns {SkuImage[]}
+ * @returns {SkuImageGroup[]}
  */
-export const selectSkuImages = createSelector(
+export const selectSkuImageGroups = createSelector(
   selectSkuDetail,
   (data) => data?.images ?? []
 );
@@ -97,23 +88,29 @@ export const selectSkuComplianceRecords = createSelector(
 );
 
 /**
- * Selector: The primary display image (isPrimary = true), if any.
+ * Selector: The primary image group (isPrimary = true),
+ * or the first group as fallback.
  *
- * @returns {SkuImage | null}
+ * @returns {SkuImageGroup | null}
  */
-export const selectSkuPrimaryImage = createSelector(
-  selectSkuImages,
-  (images) => images.find((img: SkuImage) => img.isPrimary) ?? null
+export const selectSkuPrimaryImageGroup = createSelector(
+  selectSkuImageGroups,
+  (groups) => groups.find(g => g.isPrimary) ?? groups[0] ?? null
 );
 
 /**
- * Selector: Thumbnail images for the SKU.
+ * Selector: Thumbnail image variants for the SKU.
  *
- * @returns {SkuImage[]}
+ * Returns the thumbnail variant (or main fallback) from each image group.
+ *
+ * @returns {SkuImageVariant[]}
  */
 export const selectSkuThumbnailImages = createSelector(
-  selectSkuImages,
-  (images) => images.filter((img: SkuImage) => img.type === 'thumbnail')
+  selectSkuImageGroups,
+  (groups): SkuImageVariant[] =>
+    groups
+      .map(g => g.variants.thumbnail ?? g.variants.main ?? null)
+      .filter((v): v is SkuImageVariant => Boolean(v))
 );
 
 /**

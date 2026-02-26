@@ -5,8 +5,8 @@ import {
   selectSkuDetailLoading,
   selectSkuDetailError,
   selectSkuProductInfo,
-  selectSkuPrimaryImage,
-  selectSkuImages,
+  selectSkuImageGroups,
+  selectSkuPrimaryImageGroup,
   selectSkuThumbnailImages,
   selectActivePricing,
   selectSkuComplianceRecords,
@@ -18,26 +18,26 @@ import {
  * Hook: Provides fully typed selectors and dispatchable actions
  * for interacting with SKU detail state.
  *
- * Includes:
- * - Memoized read selectors (`useAppSelector`)
- * - Memoized action dispatchers (`useCallback`)
- * - Structured return value for clean component integration
+ * Uses grouped image model (SkuImageGroup).
  */
 const useSkuDetail = () => {
   const dispatch = useAppDispatch();
-
-  // ----------------------------
-  // Selectors (memoized by RTK selector + useAppSelector)
-  // ----------------------------
-
+  
+  /* ------------------------------------------------------------------ */
+  /* Selectors                                                          */
+  /* ------------------------------------------------------------------ */
+  
   const sku = useAppSelector(selectSkuDetail);
   const loading = useAppSelector(selectSkuDetailLoading);
   const error = useAppSelector(selectSkuDetailError);
-
+  
   const product = useAppSelector(selectSkuProductInfo);
-  const images = useAppSelector(selectSkuImages);
-  const primaryImage = useAppSelector(selectSkuPrimaryImage);
+  
+  // New grouped image selectors
+  const imageGroups = useAppSelector(selectSkuImageGroups);
+  const primaryImageGroup = useAppSelector(selectSkuPrimaryImageGroup);
   const thumbnails = useAppSelector(selectSkuThumbnailImages);
+  
   const activePricing = useAppSelector(selectActivePricing);
   const complianceRecords = useAppSelector(selectSkuComplianceRecords);
 
@@ -62,17 +62,17 @@ const useSkuDetail = () => {
   const resetSkuDetailState = useCallback(() => {
     dispatch(resetSkuDetail());
   }, [dispatch]);
-
-  // ----------------------------
-  // Optionally memoize combined values
-  // ----------------------------
-
+  
+  /* ------------------------------------------------------------------ */
+  /* Memoized Combined Object                                           */
+  /* ------------------------------------------------------------------ */
+  
   const combined = useMemo(
     () => ({
       sku,
       product,
-      images,
-      primaryImage,
+      imageGroups,
+      primaryImageGroup,
       thumbnails,
       activePricing,
       complianceRecords,
@@ -80,24 +80,24 @@ const useSkuDetail = () => {
     [
       sku,
       product,
-      images,
-      primaryImage,
+      imageGroups,
+      primaryImageGroup,
       thumbnails,
       activePricing,
       complianceRecords,
     ]
   );
-
-  // ----------------------------
-  // Final structured API
-  // ----------------------------
-
+  
+  /* ------------------------------------------------------------------ */
+  /* Public API                                                         */
+  /* ------------------------------------------------------------------ */
+  
   return {
     // state
     ...combined,
     loading,
     error,
-
+    
     // actions
     fetchSkuDetail,
     resetSkuDetailState,

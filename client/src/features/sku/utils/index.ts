@@ -7,7 +7,6 @@ export {
 } from './flattenSkuDetailData';
 export { buildSingleSkuFields, buildBulkSkuFields } from './skuFieldFactory';
 export {
-  normalizeSkuImages,
   formatMetadataLabel,
   buildImageMetadataFields,
 } from './skuImageUtils';

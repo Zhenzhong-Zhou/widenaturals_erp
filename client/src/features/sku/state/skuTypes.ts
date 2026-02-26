@@ -314,7 +314,7 @@ export interface SkuDetail {
   audit: GenericAudit;
 
   /** List of images bound to this SKU */
-  images: SkuImage[];
+  images: SkuImageGroup[];
 
   /** Pricing entries for all regions and types */
   pricing: SkuPricing[];
@@ -396,44 +396,64 @@ export interface SkuDimensions {
 /* -------------------------------------------------------------------------- */
 
 /**
- * Image metadata attached to a SKU.
- *
- * Note: This uses a custom audit block because images have their own
- * `uploadedAt` + `uploadedBy`, not the standard created/updated fields.
+ * Represents a single image variant inside a group.
+ * Example: main, thumbnail, or zoom.
  */
-export interface SkuImage {
+export interface SkuImageVariant {
   /** Image UUID */
   id: string;
-
+  
   /** Fully resolved image URL (S3 or CDN) */
   imageUrl: string;
-
-  /** Image type: main | thumbnail | zoom */
-  type: 'main' | 'thumbnail' | 'zoom';
-
-  /** Indicates the primary image for presentation */
-  isPrimary: boolean;
-
+  
   /** Optional alt text for accessibility */
   altText: string;
-
-  /** Additional derived metadata such as size and order */
-  metadata: {
+  
+  /** Optional derived metadata */
+  metadata?: {
     /** File size in KB */
-    sizeKb: number;
-
-    /** MIME format (e.g., "image/jpeg") */
-    format: string;
-
-    /** Display order (for sorting in gallery) */
-    displayOrder: number;
+    sizeKb?: number | null;
+    
+    /** MIME format (e.g., "image/webp") */
+    format?: string | null;
+    
+    /** Display order (for sorting inside group) */
+    displayOrder?: number | null;
   };
+}
 
+/**
+ * Logical image group for a SKU.
+ *
+ * A group may contain multiple variants:
+ * - main      → default display image
+ * - thumbnail → used in list/grid views
+ * - zoom      → high resolution image
+ *
+ * Groups are ordered by primary priority and display order.
+ */
+export interface SkuImageGroup {
+  /** Logical image group UUID */
+  groupId: string;
+  
+  /** Whether this group is marked as primary */
+  isPrimary: boolean;
+  
+  /**
+   * Image variants available in this group.
+   * Not all variants are guaranteed to exist.
+   */
+  variants: {
+    main?: SkuImageVariant;
+    thumbnail?: SkuImageVariant;
+    zoom?: SkuImageVariant;
+  };
+  
   /** Image-specific audit fields */
-  audit: {
+  audit?: {
     /** Timestamp when uploaded */
     uploadedAt: string | null;
-
+    
     /** User who uploaded the image */
     uploadedBy: AuditUser | null;
   };
@@ -544,31 +564,52 @@ export interface SkuComplianceRecord {
 export type SkuDetailState = AsyncState<SkuDetail | null>;
 
 /**
- * Flattened metadata structure for a single SKU image.
+ * Flattened metadata structure for a single SKU image variant
+ * extracted from a grouped image model.
  *
- * This is used for table exports, CSV generation, and UI display where
- * nested audit/metadata fields must be normalized into a simple structure.
+ * Used for:
+ * - Table rendering
+ * - CSV exports
+ * - Metadata popovers
+ *
+ * This represents one selected variant (main | thumbnail | zoom)
+ * from a SkuImageGroup.
  */
 export interface FlattenedImageMetadata {
-  /** Image type (main, thumbnail, zoom) */
-  type: string | null;
-
-  /** "Yes" / "No" value for primary image flag */
-  isPrimary: string | null;
-
-  /** Display ordering for the image gallery */
+  /**
+   * Variant type selected from group.
+   * Example: "main", "thumbnail", "zoom"
+   */
+  type: 'main' | 'thumbnail' | 'zoom' | null;
+  
+  /**
+   * "Yes" / "No" value derived from group.isPrimary
+   */
+  isPrimary: 'Yes' | 'No' | null;
+  
+  /**
+   * Display order within the image group
+   */
   displayOrder: number | null;
-
-  /** File size in KB */
+  
+  /**
+   * File size in KB (variant-level metadata)
+   */
   sizeKb: number | null;
-
-  /** File format (e.g., "jpeg", "png") */
+  
+  /**
+   * File format (e.g., "webp", "jpg")
+   */
   format: string | null;
-
-  /** Timestamp when uploaded */
+  
+  /**
+   * Timestamp when the image group was uploaded
+   */
   uploadedAt: string | null;
-
-  /** User full name who uploaded the image */
+  
+  /**
+   * Full name of user who uploaded the image group
+   */
   uploadedBy: string | null;
 }
 

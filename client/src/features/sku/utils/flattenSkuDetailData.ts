@@ -4,8 +4,8 @@ import type {
   FlattenedPricingRecord,
   FlattenedSkuInfo,
   SkuComplianceRecord,
-  SkuDetail,
-  SkuImage,
+  SkuDetail, SkuImageGroup,
+  
 } from '@features/sku/state';
 
 /* ========================================================================== */
@@ -13,31 +13,38 @@ import type {
 /* ========================================================================== */
 
 /**
- * Flatten a SKU image into a normalized flat structure for UI table or popover display.
+ * Flatten a SKU image group + variant into a normalized flat structure
+ * for UI table or popover display.
  *
  * Responsibilities:
+ * - Selects a specific variant (main / thumbnail / zoom)
  * - Converts boolean → "Yes" / "No"
  * - Extracts metadata + audit fields safely
- * - Returns `null` if no image is provided
+ * - Returns null if group or selected variant does not exist
  *
- * Used by `<ImageMetadataPopover />`.
+ * Used by <ImageMetadataPopover />.
  *
- * @param img - Raw SkuImage object (or null)
+ * @param group - SkuImageGroup object (or null)
+ * @param variantType - Variant to extract ("main" | "thumbnail" | "zoom")
  * @returns FlattenedImageMetadata | null
  */
 export const flattenImageMetadata = (
-  img: SkuImage | null
+  group: SkuImageGroup | null,
+  variantType: 'main' | 'thumbnail' | 'zoom'
 ): FlattenedImageMetadata | null => {
-  if (!img) return null;
-
+  if (!group) return null;
+  
+  const variant = group.variants?.[variantType];
+  if (!variant) return null;
+  
   return {
-    type: img.type ?? null,
-    isPrimary: img.isPrimary ? 'Yes' : 'No',
-    displayOrder: img.metadata?.displayOrder ?? null,
-    sizeKb: img.metadata?.sizeKb ?? null,
-    format: img.metadata?.format ?? null,
-    uploadedBy: img.audit?.uploadedBy?.name ?? null,
-    uploadedAt: img.audit?.uploadedAt ?? null,
+    type: variantType,
+    isPrimary: group.isPrimary ? 'Yes' : 'No',
+    displayOrder: variant.metadata?.displayOrder ?? null,
+    sizeKb: variant.metadata?.sizeKb ?? null,
+    format: variant.metadata?.format ?? null,
+    uploadedBy: group.audit?.uploadedBy?.name ?? null,
+    uploadedAt: group.audit?.uploadedAt ?? null,
   };
 };
 

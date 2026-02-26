@@ -1,64 +1,8 @@
 import type {
   FlattenedImageMetadata,
   FormatterMap,
-  SkuImage,
 } from '@features/sku/state/skuTypes';
 import { formatSize } from '@utils/textUtils';
-
-/**
- * Normalize a raw SKU image array into structured groups:
- *
- * - Deduplicates images by `imageUrl`
- * - Selects a **primary main image** (fallback to first main)
- * - Selects the **zoom image**
- * - Returns a **sorted list of thumbnails** by display order
- *
- * This is used by detail pages and tables to unify image handling logic.
- *
- * @param images - The raw array of SKU images
- * @returns Object containing:
- *   - `mainImage`: SkuImage | null
- *   - `zoomImage`: SkuImage | null
- *   - `thumbnails`: SkuImage[]
- */
-export const normalizeSkuImages = (images: SkuImage[]) => {
-  // Defensive fallback if server returns null or malformed structure
-  if (!Array.isArray(images)) {
-    return {
-      thumbnails: [] as SkuImage[],
-      mainImage: null as SkuImage | null,
-      zoomImage: null as SkuImage | null,
-    };
-  }
-
-  // --- Deduplicate images by URL (most reliable unique key) ------------------
-  const uniqueImages = Array.from(
-    new Map(images.map((img) => [img.imageUrl, img])).values()
-  );
-
-  // --- Main image selection: primary main → fallback main → null -------------
-  const mainImage =
-    uniqueImages.find((img) => img.type === 'main' && img.isPrimary) ||
-    uniqueImages.find((img) => img.type === 'main') ||
-    null;
-
-  // --- Zoom image ------------------------------------------------------------
-  const zoomImage = uniqueImages.find((img) => img.type === 'zoom') || null;
-
-  // --- Thumbnails (sorted by displayOrder or fallback to bottom) -------------
-  const thumbnails = uniqueImages
-    .filter((img) => img.type === 'thumbnail')
-    .sort(
-      (a, b) =>
-        (a.metadata.displayOrder ?? 999) - (b.metadata.displayOrder ?? 999)
-    );
-
-  return {
-    thumbnails,
-    mainImage,
-    zoomImage,
-  };
-};
 
 /**
  * Convert raw metadata keys into clean, human-friendly labels.

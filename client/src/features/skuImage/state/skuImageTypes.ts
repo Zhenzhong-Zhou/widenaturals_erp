@@ -105,6 +105,7 @@ export interface BulkSkuImageUploadItem {
 /**
  * One successfully uploaded image as returned by the backend.
  */
+// todo: need to adjust
 export interface UploadedSkuImage {
   /** Image record identifier. */
   id: string;

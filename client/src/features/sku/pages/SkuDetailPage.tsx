@@ -66,9 +66,7 @@ const SkuDetailPage: FC = () => {
   const {
     sku,
     product,
-    images,
-    primaryImage,
-    thumbnails,
+    imageGroups,
     activePricing,
     complianceRecords,
     loading: skuDetailLoading,
@@ -236,9 +234,8 @@ const SkuDetailPage: FC = () => {
           {/* LEFT — Image Gallery */}
           <Grid size={{ xs: 12, md: 4 }} sx={{ pr: { md: 4 } }}>
             <SkuImageGallery
-              images={images}
-              thumbnails={thumbnails}
-              primaryImage={primaryImage}
+              images={imageGroups}
+              maxThumbsDesktop={5}
             />
           </Grid>
 
