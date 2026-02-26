@@ -154,9 +154,22 @@ const getPaginatedSkuProductCards = async ({
     ) pr ON TRUE
     LEFT JOIN status ps
       ON pr.status_id = ps.id
-    LEFT JOIN sku_images img
-      ON img.sku_id = s.id
-     AND img.is_primary = TRUE
+      LEFT JOIN LATERAL (
+        SELECT si.image_url, si.alt_text
+        FROM sku_images si
+        WHERE si.sku_id = s.id
+          AND si.image_type = 'thumbnail'
+        ORDER BY
+          MAX(
+            CASE
+              WHEN si.image_type = 'main'
+              THEN si.is_primary::int
+              ELSE 0
+            END
+          ) OVER (PARTITION BY si.group_id) DESC,
+          si.display_order ASC
+        LIMIT 1
+      ) img ON TRUE
     WHERE ${whereClause}
     GROUP BY
       p.id,
@@ -516,10 +529,24 @@ const getPaginatedSkus = async ({
       LEFT JOIN users u1 ON s.created_by = u1.id
       LEFT JOIN users u2 ON s.updated_by = u2.id
       LEFT JOIN LATERAL (
-        SELECT image_url
+      SELECT t.image_url
+      FROM (
+        SELECT
+          si.*,
+          MAX(
+            CASE
+              WHEN si.image_type = 'main'
+              THEN si.is_primary::int
+              ELSE 0
+            END
+          ) OVER (PARTITION BY si.group_id) AS group_primary
         FROM sku_images si
         WHERE si.sku_id = s.id
-        ORDER BY si.is_primary DESC, si.display_order ASC, si.uploaded_at ASC
+      ) t
+      WHERE t.image_type = 'thumbnail'
+      ORDER BY
+        t.group_primary DESC,
+        t.display_order ASC
         LIMIT 1
       ) img ON TRUE
       WHERE ${whereClause}
