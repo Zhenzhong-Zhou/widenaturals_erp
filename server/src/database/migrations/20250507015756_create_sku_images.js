@@ -17,8 +17,7 @@ exports.up = async function (knex) {
     table.boolean('is_primary').notNullable().defaultTo(false); // only one per SKU should be true
     table
       .uuid('group_id')
-      .notNullable()
-      .defaultTo(knex.raw('uuid_generate_v4()'));
+      .notNullable();
 
     table.timestamp('uploaded_at').defaultTo(knex.fn.now());
     table.uuid('uploaded_by').references('id').inTable('users');

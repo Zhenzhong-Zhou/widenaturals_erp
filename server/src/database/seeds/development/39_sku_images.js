@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const mime = require('mime-types');
+const { randomUUID } = require('crypto');
 const { uploadSkuImageToS3 } = require('../../../utils/aws-s3-service');
 const { loadEnv } = require('../../../config/env');
 const { resizeImage } = require('../../../utils/media/image-processing');
@@ -528,6 +529,8 @@ exports.seed = async function (knex) {
   const rows = [];
 
   for (const { sku, images } of seedData) {
+    const groupId = randomUUID();
+    
     const skuId = skuMap[sku];
     if (!skuId) {
       console.warn(`SKU not found: ${sku}`);
@@ -624,6 +627,7 @@ exports.seed = async function (knex) {
             file_size_kb: Math.ceil(mainStats.size / 1024),
             file_format: 'webp',
             is_primary: true,
+            group_id: groupId,
             alt_text: img.alt,
             uploaded_at: knex.fn.now(),
             uploaded_by: systemUser.id,
@@ -637,6 +641,7 @@ exports.seed = async function (knex) {
             file_size_kb: Math.ceil(thumbStats.size / 1024),
             file_format: 'webp',
             is_primary: false,
+            group_id: groupId,
             alt_text: img.alt,
             uploaded_at: knex.fn.now(),
             uploaded_by: systemUser.id,
@@ -650,6 +655,7 @@ exports.seed = async function (knex) {
             file_size_kb: Math.ceil(zoomStats.size / 1024),
             file_format: zoomFormat,
             is_primary: false,
+            group_id: groupId,
             alt_text: img.alt,
             uploaded_at: knex.fn.now(),
             uploaded_by: systemUser.id,
