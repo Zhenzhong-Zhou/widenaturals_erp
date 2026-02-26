@@ -10,7 +10,6 @@ const fs = require('fs');
 const path = require('path');
 const mime = require('mime-types');
 const s3Client = require('../config/aws-s3-config');
-const { logInfo, logError } = require('./logger-helper');
 const {
   logSystemInfo,
   logSystemError,
