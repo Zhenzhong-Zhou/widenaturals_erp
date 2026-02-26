@@ -103,6 +103,7 @@ const transformGroupedSkuImages = (records = []) => {
  * permission-filtered and safe for transformation.
  *
  * @property {string} id
+ * @property {string} groupId                - Logical image group UUID
  * @property {string} imageUrl                - Public URL of the image
  * @property {string} type                    - Image type (e.g., "main", "thumbnail")
  * @property {boolean} isPrimary              - Whether image is primary
@@ -119,69 +120,93 @@ const transformGroupedSkuImages = (records = []) => {
  */
 
 /**
- * @typedef {Object} SkuDetailImage
- * @description
- * Final normalized DTO returned in the SKU Detail API.
+ * @typedef {Object} SkuImageVariant
  *
+ * Represents a specific image variant inside a group
+ * (e.g., main, thumbnail, zoom).
+ *
+ * @property {string} id
  * @property {string} imageUrl
- * @property {string} type
- * @property {boolean} isPrimary
  * @property {string} altText
+ * @property {Object} [metadata]
+ * @property {number} metadata.sizeKb
+ * @property {string} metadata.format
+ * @property {number} metadata.displayOrder
  */
 
 /**
- * Transform a single *sliced* SKU image record into an API-safe DTO.
+ * @typedef {Object} SkuImageGroup
  *
- * This function is a pure transformer. All permission-based filtering
- * MUST happen in sliceSkuImagesForUser() before this step.
+ * Final grouped image structure returned in SKU Detail API.
+ * One logical image group may contain multiple size/type variants.
  *
- * @param {SlicedSkuImage|null} row
- *        A single filtered image row produced by sliceSkuImagesForUser().
- *
- * @returns {SkuDetailImage|null}
- *        Fully normalized DTO for API responses.
+ * @property {string} groupId
+ * @property {boolean} isPrimary
+ * @property {Object<string, SkuImageVariant>} variants
+ *           Keyed by image type ("main", "thumbnail", "zoom")
+ * @property {Object} [audit]
+ * @property {string|Date} audit.uploadedAt
+ * @property {Object|null} audit.uploadedBy
  */
-const transformSkuImage = (row) => {
-  if (!row) return null;
 
-  // --- Metadata block (optional) ---
-  const metadata = row.metadata
-    ? {
-        sizeKb: row.metadata.sizeKb,
-        format: row.metadata.format,
-        displayOrder: row.metadata.displayOrder,
-      }
-    : undefined;
-
-  // --- Audit block (optional) ---
-  const audit = row.audit
-    ? {
-        uploadedAt: row.audit.uploadedAt,
-        uploadedBy: row.audit.uploadedBy
-          ? {
-              id: row.audit.uploadedBy.id,
-              name: getFullName(
-                row.audit.uploadedBy.firstname,
-                row.audit.uploadedBy.lastname
-              ),
-            }
-          : null,
-      }
-    : undefined;
-
-  // --- Final DTO ---
-  return {
-    id: row.id,
-    imageUrl: row.imageUrl,
-    type: row.type,
-    isPrimary: row.isPrimary,
-    altText: row.altText,
-    metadata,
-    audit,
-  };
+/**
+ * Groups flat, permission-filtered SKU image rows into
+ * structured image groups for the SKU Detail API.
+ *
+ * Each group represents one logical image and may contain
+ * multiple variants (main, thumbnail, zoom).
+ *
+ * This function:
+ *   • Performs no permission checks (handled upstream)
+ *   • Performs no database access
+ *   • Is a pure structural transformer
+ *
+ * @param {SlicedSkuImage[]} rows
+ *        Flat array of permission-filtered image rows.
+ *
+ * @returns {SkuImageGroup[]}
+ *        Grouped image objects ready for API response.
+ */
+const transformSkuImageGroupsForDetail = (rows) => {
+  if (!Array.isArray(rows)) return [];
+  
+  const groups = new Map();
+  
+  for (const row of rows) {
+    const {
+      groupId,
+      type,
+      id,
+      imageUrl,
+      altText,
+      isPrimary,
+      metadata,
+      audit,
+    } = row;
+    
+    if (!groups.has(groupId)) {
+      groups.set(groupId, {
+        groupId,
+        isPrimary,
+        variants: {},
+        audit: audit ?? undefined,
+      });
+    }
+    
+    const group = groups.get(groupId);
+    
+    group.variants[type] = {
+      id,
+      imageUrl,
+      altText,
+      metadata: metadata ?? undefined,
+    };
+  }
+  
+  return Array.from(groups.values());
 };
 
 module.exports = {
   transformGroupedSkuImages,
-  transformSkuImage,
+  transformSkuImageGroupsForDetail,
 };

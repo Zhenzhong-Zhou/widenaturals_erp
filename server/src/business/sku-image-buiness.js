@@ -111,28 +111,33 @@ const evaluateSkuImageViewAccessControl = async (user) => {
 };
 
 /**
- * Business: Apply permission-based visibility slicing to SKU image rows.
+ * Business: Apply permission-based visibility slicing to raw SKU image rows.
  *
- * Removes or restricts fields depending on what the user is allowed to see.
+ * This function:
+ *   • Filters out images entirely if user lacks VIEW_IMAGES
+ *   • Selectively exposes metadata and audit fields based on access flags
+ *   • Normalizes snake_case DB fields into camelCase
+ *   • Preserves groupId for later grouping transformation
  *
- * Returned structure:
- *   {
- *     imageUrl:   string,
- *     type:       string,
- *     isPrimary:  boolean,
- *     altText:    string,
- *
- *     metadata?: { sizeKb, format, displayOrder },
- *     audit?:    { uploadedAt, uploadedBy }
- *   }
+ * ⚠️ Important:
+ * This function DOES NOT group images.
+ * It returns a flat list of permission-safe image rows.
+ * Grouping into logical image variants must be done by
+ * transformSkuImageGroupsForDetail().
  *
  * Performance:
  *   - O(n) linear pass
  *   - No deep cloning
  *   - No additional DB access
+ *   - Pure transformation
+ *
+ * ------------------------------------------------------------------
+ * Raw DB Row Shape
+ * ------------------------------------------------------------------
  *
  * @typedef {Object} RawImageRow
  * @property {string} id
+ * @property {string} group_id
  * @property {string} image_url
  * @property {string} image_type
  * @property {boolean} is_primary
@@ -140,32 +145,63 @@ const evaluateSkuImageViewAccessControl = async (user) => {
  * @property {number|null} file_size_kb
  * @property {string|null} file_format
  * @property {number|null} display_order
- * @property {string|null} uploaded_at
+ * @property {string|null|Date} uploaded_at
  * @property {string|null} uploaded_by
  * @property {string|null} uploaded_by_firstname
  * @property {string|null} uploaded_by_lastname
+ *
+ * ------------------------------------------------------------------
+ * Access Control Shape
+ * ------------------------------------------------------------------
  *
  * @typedef {Object} SkuImageAccess
  * @property {boolean} canViewImages
  * @property {boolean} canViewImageMetadata
  * @property {boolean} canViewImageHistory
  *
- * @param {Array<Object>} imageRows - Raw DB rows from repository
- * @param {Object} access - Result of evaluateSkuImageViewAccessControl()
- * @returns {Array<Object>} Filtered and safe image objects
+ * ------------------------------------------------------------------
+ * Returned Flat Image Shape (Permission-Safe)
+ * ------------------------------------------------------------------
+ *
+ * @typedef {Object} SlicedSkuImage
+ * @property {string} id
+ * @property {string} groupId
+ * @property {string} imageUrl
+ * @property {string} type
+ * @property {boolean} isPrimary
+ * @property {string} altText
+ * @property {Object} [metadata]
+ * @property {number|null} metadata.sizeKb
+ * @property {string|null} metadata.format
+ * @property {number|null} metadata.displayOrder
+ * @property {Object|null} [audit]
+ * @property {string|Date|null} audit.uploadedAt
+ * @property {Object|null} audit.uploadedBy
+ * @property {string} audit.uploadedBy.id
+ * @property {string|null} audit.uploadedBy.firstname
+ * @property {string|null} audit.uploadedBy.lastname
+ *
+ * ------------------------------------------------------------------
+ *
+ * @param {Array<RawImageRow>} imageRows
+ *        Raw DB rows from repository.
+ *
+ * @param {SkuImageAccess} access
+ *        Result of evaluateSkuImageViewAccessControl().
+ *
+ * @returns {Array<SlicedSkuImage>}
+ *          Flat, permission-safe image rows ready for grouping.
  */
 const sliceSkuImagesForUser = (imageRows, access) => {
   if (!Array.isArray(imageRows)) return [];
-
-  const result = [];
-
-  for (const row of imageRows) {
-    // If user cannot view images at all → skip completely
-    if (!access.canViewImages) continue;
-
-    // Base shared fields visible to EVERYONE with VIEW_IMAGES
+  
+  // If user cannot view images at all → return empty immediately
+  if (!access.canViewImages) return [];
+  
+  return imageRows.map((row) => {
     const safe = {
       id: row.id,
+      groupId: row.group_id,
       imageUrl: row.image_url,
       type: row.image_type,
       isPrimary: row.is_primary,
@@ -187,18 +223,16 @@ const sliceSkuImagesForUser = (imageRows, access) => {
         uploadedAt: row.uploaded_at,
         uploadedBy: row.uploaded_by
           ? {
-              id: row.uploaded_by,
-              firstname: row.uploaded_by_firstname,
-              lastname: row.uploaded_by_lastname,
-            }
+            id: row.uploaded_by,
+            firstname: row.uploaded_by_firstname,
+            lastname: row.uploaded_by_lastname,
+          }
           : null,
       };
     }
-
-    result.push(safe);
-  }
-
-  return result;
+    
+    return safe;
+  });
 };
 
 module.exports = {

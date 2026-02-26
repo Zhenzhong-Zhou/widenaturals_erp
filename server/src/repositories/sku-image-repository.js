@@ -343,6 +343,7 @@ const getSkuImagesBySkuId = async (skuId) => {
     SELECT
       img.id,
       img.sku_id,
+      img.group_id,
       img.image_url,
       img.image_type,
       img.display_order,
@@ -357,10 +358,17 @@ const getSkuImagesBySkuId = async (skuId) => {
     FROM sku_images AS img
     LEFT JOIN users AS u
       ON u.id = img.uploaded_by
-    WHERE sku_id = $1
+    WHERE img.sku_id = $1
     ORDER BY
-      is_primary DESC,
-      display_order ASC
+      MAX(
+        CASE
+          WHEN img.image_type = 'main'
+          THEN img.is_primary::int
+          ELSE 0
+        END
+      ) OVER (PARTITION BY img.group_id) DESC,
+      img.group_id,
+      img.display_order ASC;
   `;
 
   try {

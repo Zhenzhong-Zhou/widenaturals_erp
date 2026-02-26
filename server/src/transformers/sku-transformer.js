@@ -1,7 +1,7 @@
 const { getProductDisplayName } = require('../utils/display-name-utils');
 const { transformPaginatedResult } = require('../utils/transformer-utils');
 const { cleanObject } = require('../utils/object-utils');
-const { transformSkuImage } = require('./sku-image-transformer');
+const { transformSkuImageGroupsForDetail } = require('./sku-image-transformer');
 const { transformSkuPricing } = require('./pricing-transformer');
 const { transformComplianceRecord } = require('./compliance-record-transfomer');
 const { makeStatus } = require('../utils/status-utils');
@@ -300,37 +300,63 @@ const transformSkuRecord = (skuRows, generatedSkus = []) => {
 
 /**
  * @typedef {Object} SkuDetailInput
+ *
+ * Composite input to transformSkuDetail().
+ * All properties are already permission-filtered.
+ *
  * @property {SkuDetailSku} sku
- * @property {Array<SkuDetailImage>} images
+ * @property {Array<SkuImageGroup>} images
  * @property {Array<SkuDetailPricing>} pricing
  * @property {Array<SkuDetailCompliance>} complianceRecords
  */
 
 /**
- * Transform raw SKU detail components into the final API-safe response object.
+ * @typedef {Object} SkuDetailResponse
  *
- * This function consumes “sliced” (permission-filtered) records for:
- * - SKU core fields
- * - Product metadata
- * - Images
- * - Pricing
- * - Compliance documents
+ * @property {string} id
+ * @property {string} sku
+ * @property {string} barcode
+ * @property {string} description
+ * @property {string} language
+ * @property {string} sizeLabel
+ * @property {string} countryCode
+ * @property {string} marketRegion
+ * @property {Object} product
+ * @property {Object} dimensions
+ * @property {Object} status
+ * @property {Object} audit
+ * @property {Array<SkuImageGroup>} images
+ * @property {Array<SkuDetailPricing>} pricing
+ * @property {Array<SkuDetailCompliance>} complianceRecords
+ */
+
+/**
+ * Transform sliced (permission-safe) SKU detail components
+ * into the final normalized API response.
  *
- * And produces a **normalized, camelCase API payload** suitable for the client.
+ * This function:
+ *   • Accepts already permission-filtered records
+ *   • Normalizes snake_case DB fields to camelCase
+ *   • Groups image variants into logical image groups
+ *   • Applies nested transformers for pricing and compliance
+ *   • Guarantees consistent response structure
  *
- * ### Guarantees
- * - No duplicated or conflicting fields
- * - Only permission-safe data is included
- * - Missing categories (images/pricing/compliance) are returned as empty arrays
- * - Consistent object structure across all SKU detail responses
+ * ### Structural Guarantees
+ * - `images` are returned as grouped image objects
+ *   (see SkuImageGroup)
+ * - `pricing` and `complianceRecords` are always arrays
+ * - Missing collections default to empty arrays
+ * - No raw database field names leak into API layer
  *
  * @param {SkuDetailInput} input
- * @param {SkuDetailSku}          input.sku                 - Safe SKU record (already sliced)
- * @param {Array<SkuDetailImage>} input.images              - Safe image list (already sliced)
- * @param {Array<SkuDetailPricing>} input.pricing           - Safe pricing list (already sliced)
- * @param {Array<SkuDetailCompliance>} input.complianceRecords - Safe compliance list (already sliced)
+ * @param {SkuDetailSku} input.sku
+ * @param {Array<SkuImageGroup>} input.images
+ * @param {Array<SkuDetailPricing>} input.pricing
+ * @param {Array<SkuDetailCompliance>} input.complianceRecords
  *
- * @returns {Object} Final API-ready SKU detail response
+ * @returns {SkuDetailResponse|null}
+ *          Normalized API-ready SKU detail object,
+ *          or null if sku is missing.
  */
 const transformSkuDetail = ({ sku, images, pricing, complianceRecords }) => {
   if (!sku) return null;
@@ -390,7 +416,7 @@ const transformSkuDetail = ({ sku, images, pricing, complianceRecords }) => {
     audit: compactAudit(makeAudit(sku)),
 
     // --- Lists with transformers applied ---
-    images: images?.map(transformSkuImage) ?? [],
+    images: transformSkuImageGroupsForDetail(images ?? []),
     pricing: pricing?.map(transformSkuPricing) ?? [],
     complianceRecords: complianceRecords?.map(transformComplianceRecord) ?? [],
   };
