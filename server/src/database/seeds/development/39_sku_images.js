@@ -563,8 +563,8 @@ exports.seed = async function (knex) {
         const resizedMainPath = path.join(skuFolder, mainFileName);
         const resizedThumbPath = path.join(skuFolder, thumbFileName);
 
-        await resizeImage(localPath, resizedMainPath, 800, 70, 5);
-        await resizeImage(localPath, resizedThumbPath, 200, 60, 4);
+        await resizeImage(localPath, resizedMainPath, 1000, 80, 5);
+        await resizeImage(localPath, resizedThumbPath, 450, 75, 4);
 
         let s3MainUrl, s3ThumbUrl, s3ZoomUrl;
 

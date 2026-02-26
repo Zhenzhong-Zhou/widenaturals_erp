@@ -98,8 +98,8 @@ const processImageFile = async (localPath, skuCode, isProd, bucketName) => {
     
     // Resize variants in parallel
     await Promise.all([
-      resizeImage(localPath, resizedMain, 800, 70, 5),
-      resizeImage(localPath, resizedThumb, 200, 60, 4),
+      resizeImage(localPath, resizedMain, 1000, 80, 5),
+      resizeImage(localPath, resizedThumb, 450, 75, 4),
     ]);
     
     // -------------------------------
