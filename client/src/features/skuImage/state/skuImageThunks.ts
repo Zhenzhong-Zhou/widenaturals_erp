@@ -1,6 +1,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import type { BulkSkuImageUploadResponse } from '@features/skuImage/state';
+import type { BulkSkuImageUpdateResponse, BulkSkuImageUploadResponse } from '@features/skuImage/state';
 import { skuImageService } from '@services/skuImageService';
+import { extractUiErrorPayload, UiErrorPayload } from '@utils/error/uiErrorUtils';
 
 /**
  * Async thunk for performing **bulk SKU image uploads**.
@@ -32,6 +33,7 @@ import { skuImageService } from '@services/skuImageService';
  * - `message`: Human-readable error message
  * - `traceId?`: Optional backend correlation identifier
  */
+// todo: refactor with uiErrorUtil
 export const uploadSkuImagesThunk = createAsyncThunk<
   BulkSkuImageUploadResponse, // Success payload
   FormData, // Thunk argument
@@ -49,5 +51,19 @@ export const uploadSkuImagesThunk = createAsyncThunk<
       message: err?.message ?? 'Failed to upload SKU images.',
       traceId: err?.traceId,
     });
+  }
+});
+
+export const updateSkuImagesThunk = createAsyncThunk<
+  BulkSkuImageUpdateResponse,
+  FormData,
+  {
+    rejectValue: UiErrorPayload;
+  }
+>('skuImage/update', async (formData, { rejectWithValue }) => {
+  try {
+    return await skuImageService.updateSkuImages(formData);
+  } catch (error: unknown) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
 });

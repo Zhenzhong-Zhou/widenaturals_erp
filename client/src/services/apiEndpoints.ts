@@ -59,6 +59,7 @@ export const API_ENDPOINTS = {
   },
   SKU_IMAGES: {
     UPLOAD_IMAGES: '/sku-images/upload',
+    UPDATE_IMAGES: '/sku-images/update',
   },
   BOMS: {
     ALL_RECORDS: '/boms',

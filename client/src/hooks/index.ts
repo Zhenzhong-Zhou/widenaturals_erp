@@ -54,6 +54,7 @@ export { default as useSkuProductCards } from './useSkuProductCards';
 export { default as useSkuLookup } from './useSkuLookup';
 export { default as useSkuCodeBaseLookup } from './useSkuCodeBaseLookup';
 export { default as useSkuImageUpload } from './useSkuImageUpload';
+export { default as useSkuImageUpdate } from './useSkuImageUpdate';
 
 /* =====================================================
  * Compliance

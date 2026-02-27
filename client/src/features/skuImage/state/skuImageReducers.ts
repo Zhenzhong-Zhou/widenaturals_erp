@@ -1,4 +1,5 @@
 import skuImageUploadReducer from './skuImageUploadSlice';
+import skuImageUpdateReducer from './skuImageUpdateSlice';
 
 /**
  * Reducer map for the SKU Image feature.
@@ -16,4 +17,6 @@ import skuImageUploadReducer from './skuImageUploadSlice';
 export const skuImageReducers = {
   /** SKU image upload and processing workflow */
   skuImageUpload: skuImageUploadReducer,
+  
+  skuImageUpdate: skuImageUpdateReducer,
 };

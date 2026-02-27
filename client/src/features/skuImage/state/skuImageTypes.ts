@@ -23,6 +23,37 @@ export type SkuImageSource =
 export type SkuImageType = ImageType;
 
 /**
+ * Shared UI-level image fields used in create and update flows.
+ *
+ * Contains client-only properties and never sent directly to API.
+ */
+export interface SkuImageUiBase {
+  upload_mode?: 'file' | 'url';
+  
+  image_url?: NullableString;
+  
+  file_uploaded?: boolean;
+  
+  file?: File | null;
+  
+  previewUrl?: string;
+  
+  image_type?: SkuImageType;
+  
+  file_format?: ImageFileFormat;
+  
+  alt_text?: NullableString;
+  
+  source?: SkuImageSource;
+}
+
+// todo: refactor those soem property get repeated
+// /**
+//  * UI model for creating new SKU images.
+//  */
+// export interface SkuImageInput extends SkuImageUiBase {}
+
+/**
  * Represents a single image entry in a bulk SKU image upload operation.
  *
  * This structure is used on the client side to manage image staging,
@@ -146,7 +177,7 @@ export interface UploadedSkuImageGroup {
   displayOrder: number;
   
   /** Optional alt text used for accessibility and SEO */
-  altText: string | null;
+  altText: NullableString;
   
   /** ISO 8601 timestamp indicating when the image group was uploaded */
   uploadedAt: string;
@@ -184,7 +215,7 @@ export interface BulkSkuImageUploadResult {
   images: UploadedSkuImageGroup[];
 
   /** Error message if the SKU batch failed. */
-  error: string | null;
+  error: NullableString;
 }
 
 /**
@@ -228,4 +259,98 @@ export interface SkuImageUploadCardData extends BulkSkuImageUploadItem {
    * Required for UI display (e.g., upload card header, results dialog).
    */
   displayProductName: string;
+}
+
+/**
+ * Represents a single image update operation.
+ *
+ * At least one updatable field must be provided.
+ */
+export interface SkuImageUpdateItem {
+  group_id: string;
+  
+  file_uploaded?: boolean;
+  
+  image_url?: NullableString;
+  
+  /** Logical image category (e.g., thumbnail, main, gallery, detail) */
+  image_type?: SkuImageType;
+  
+  display_order?: number;
+  
+  alt_text?: NullableString;
+  
+  /** Inferred file extension/type such as jpg, png, webp */
+  file_format?: ImageFileFormat;
+  
+  is_primary?: boolean;
+  
+  source?: SkuImageSource;
+}
+
+/**
+ * UI model for updating an existing image group.
+ */
+export interface SkuImageUpdateDraft extends SkuImageUiBase {
+  /** Existing group identifier */
+  group_id: string;
+  
+  display_order?: number;
+  
+  is_primary?: boolean;
+}
+
+/**
+ * Represents one SKU update batch inside the bulk request.
+ */
+export interface SkuImageUpdateRequestItem {
+  /** SKU identifier */
+  skuId: string;
+  
+  /** SKU code */
+  skuCode: string;
+  
+  /** Array of image updates */
+  images: SkuImageUpdateItem[];
+}
+
+/**
+ * Request payload for bulk SKU image update.
+ *
+ * Uses snake_case to match backend validation schema.
+ */
+export interface BulkSkuImageUpdateRequest {
+  skus: SkuImageUpdateRequestItem[];
+}
+/**
+ * Result for a single SKU inside bulk image update response.
+ */
+export interface BulkSkuImageUpdateResult {
+  skuId: string;
+  skuCode: string;
+  success: boolean;
+  count: number;
+  images: UploadedSkuImageGroup[];
+  error: NullableString;
+}
+
+export interface BulkSkuImageUpdateResponse
+  extends ApiSuccessResponse<BulkSkuImageUpdateResult[]> {
+  stats: BatchProcessStats;
+}
+
+/**
+ * Redux state slice for bulk SKU image update operations.
+ *
+ * Extends AsyncState to track loading, success, and error states
+ * for update flows.
+ */
+export interface SkuImageUpdateState
+  extends AsyncState<BulkSkuImageUpdateResponse | null> {
+  
+  /** Last completed batch’s per-SKU update results. */
+  results: BulkSkuImageUpdateResult[] | null;
+  
+  /** Metrics summarizing the batch update (success/failure counts, duration). */
+  stats: BatchProcessStats | null;
 }
