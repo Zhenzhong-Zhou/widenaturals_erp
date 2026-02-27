@@ -30,6 +30,13 @@ import {
 } from '@features/sku/components/SkuDetail';
 import { UpdateSkuStatusDialog } from '@features/sku/components/UpdateSkuStatusForm';
 import { truncateText } from '@utils/textUtils';
+import { SkuImageUpdateDialog } from '@features/skuImage/components/UpdateImageForm';
+import { SkuImageUploadDialog } from '@features/skuImage/components/UploadImageForm';
+
+type SkuDetailDialog =
+  | 'status'
+  | 'images'
+  | null;
 
 /**
  * SKU Detail Page
@@ -83,6 +90,8 @@ const SkuDetailPage: FC = () => {
    * Local UI State for Dialog
    * --------------------------------------------------------- */
   const [openStatusDialog, setOpenStatusDialog] = useState(false);
+  const [activeDialog, setActiveDialog] = useState<SkuDetailDialog>(null);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
 
   // Setup open/close with focus restoration for accessibility
   const { handleOpenDialog, handleCloseDialog } = useDialogFocusHandlers(
@@ -90,7 +99,29 @@ const SkuDetailPage: FC = () => {
     createButtonRef,
     () => openStatusDialog
   );
-
+  
+  // const statusButtonRef = useRef<HTMLButtonElement>(null);
+  const imageButtonRef = useRef<HTMLButtonElement>(null);
+  const uploadButtonRef = useRef<HTMLButtonElement>(null);
+  
+  // const statusDialogHandlers = useDialogFocusHandlers(
+  //   (open) => setActiveDialog(open ? 'status' : null),
+  //   statusButtonRef,
+  //   () => activeDialog === 'status'
+  // );
+  
+  const imageDialogHandlers = useDialogFocusHandlers(
+    (open) => setActiveDialog(open ? 'images' : null),
+    imageButtonRef,
+    () => activeDialog === 'images'
+  );
+  
+  const uploadDialogHandlers = useDialogFocusHandlers(
+    setShowUploadDialog,
+    uploadButtonRef,
+    () => showUploadDialog
+  );
+  
   /* ---------------------------------------------------------
    * Fetching Logic
    * - refresh function re-fetches SKU detail
@@ -134,6 +165,10 @@ const SkuDetailPage: FC = () => {
   const canViewInactive = hasPermission('view_all_product_statuses');
 
   const canUpdateStatus = hasPermission('update_sku_status');
+  
+  const canUploadImages = hasPermission('update_sku_metadata');
+  
+  const canUpdateImages = hasPermission('update_sku_images');
 
   /* ---------------------------------------------------------
    * Page title (memoized)
@@ -181,7 +216,28 @@ const SkuDetailPage: FC = () => {
           statusLookup={statusLookup}
         />
       )}
-
+      
+      {/* Update Existing Images Dialog */}
+      <SkuImageUpdateDialog
+        open={activeDialog === 'images'}
+        onClose={imageDialogHandlers.handleCloseDialog}
+        skuId={skuId}
+        skuCode={flattenedSkuInfo?.sku ?? ''}
+        displayProductName={product?.displayName ?? ''}
+        imageGroups={imageGroups}
+        onSuccess={refresh}
+      />
+      
+      {/* Upload New Images Dialog */}
+      <SkuImageUploadDialog
+        open={showUploadDialog}
+        onClose={uploadDialogHandlers.handleCloseDialog}
+        skuId={skuId}
+        skuCode={flattenedSkuInfo?.sku ?? ''}
+        displayProductName={product?.displayName ?? ''}
+        onSuccess={refresh}
+      />
+      
       {/* Header Actions */}
       <Stack
         direction="row"
@@ -206,7 +262,36 @@ const SkuDetailPage: FC = () => {
             Update SKU Status
           </CustomButton>
         )}
-
+        
+        {canUpdateImages && (
+          <CustomButton
+            sx={{
+              minWidth: 160,
+              height: 44,
+              borderRadius: 22,
+            }}
+            color="primary"
+            onClick={imageDialogHandlers.handleOpenDialog}
+          >
+            Edit SKU Images
+          </CustomButton>
+        )}
+        
+        {canUploadImages && (
+          <CustomButton
+            sx={{
+              minWidth: 160,
+              height: 44,
+              borderRadius: 22
+          }}
+            color="primary"
+            ref={uploadButtonRef}
+            onClick={uploadDialogHandlers.handleOpenDialog}
+          >
+            Add Images
+          </CustomButton>
+        )}
+        
         <CustomButton
           sx={{
             minWidth: 160,

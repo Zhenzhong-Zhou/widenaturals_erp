@@ -51,7 +51,7 @@ const SkuImageUploadCard = ({ data, onChange }: Props) => {
     },
     [uploadMode, images, data, onChange]
   );
-// imgae size
+
   const updateImage = useCallback(
     (idx: number, next: SkuImageInput) => {
       const clone = [...images];

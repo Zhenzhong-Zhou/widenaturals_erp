@@ -12,7 +12,7 @@ const staticBaseURL = import.meta.env.VITE_STATIC_BASE_URL;
  * asset stored in your CDN/static hosting layer to ensure consistent URL
  * resolution across environments (dev, staging, production).
  */
-export const formatImageUrl = (url: string | null) => {
+export const formatImageUrl = (url?: string | null) => {
   if (!url) return '';
   if (url.startsWith('http')) return url;
   return `${staticBaseURL}${url}`;
