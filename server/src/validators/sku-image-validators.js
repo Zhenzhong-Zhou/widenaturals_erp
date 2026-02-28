@@ -177,7 +177,6 @@ const bulkSkuImageUploadSchema = Joi.object({
  *   • At least one updatable field must be present
  *   • Only 'main' image_type may set is_primary = true
  *   • file_format restricted to supported types
- *   • file_size_kb must be non-negative
  *   • Unknown fields are rejected
  *
  * Prevents empty or accidental no-op updates.
@@ -212,11 +211,6 @@ const updateSkuImageSchema = Joi.object({
       .lowercase()
       .optional(),
     
-    file_size_kb: Joi.number()
-      .integer()
-      .min(0)
-      .optional(),
-    
     is_primary: createBooleanFlag('Is Primary'),
     
     source: Joi.string()
@@ -236,7 +230,6 @@ const updateSkuImageSchema = Joi.object({
       'display_order',
       'alt_text',
       'file_format',
-      'file_size_kb',
       'is_primary',
       'file_uploaded',
       'source',
