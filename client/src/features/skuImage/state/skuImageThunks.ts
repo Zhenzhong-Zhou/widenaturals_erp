@@ -54,6 +54,35 @@ export const uploadSkuImagesThunk = createAsyncThunk<
   }
 });
 
+/**
+ * Async thunk for performing bulk SKU image updates.
+ *
+ * Responsibilities:
+ * - Sends multipart FormData payload to the backend update API.
+ * - Supports mixed update operations (file replacement + metadata updates).
+ * - Handles per-SKU partial success responses.
+ * - Normalizes backend errors into UiErrorPayload via extractUiErrorPayload.
+ *
+ * Payload:
+ * - Expects a pre-constructed FormData object.
+ * - FormData must contain:
+ *    - Serialized JSON for update metadata
+ *    - Binary file entries for any replaced images
+ *
+ * Returns:
+ * - BulkSkuImageUpdateResponse containing:
+ *    - Per-SKU results
+ *    - Batch-level processing stats
+ *
+ * Error Handling:
+ * - Uses rejectWithValue to propagate structured UI error payloads.
+ * - Ensures reducers can safely access typed error metadata.
+ *
+ * Redux Flow:
+ * - pending   → sets loading state
+ * - fulfilled → stores results + stats
+ * - rejected  → stores normalized UI error
+ */
 export const updateSkuImagesThunk = createAsyncThunk<
   BulkSkuImageUpdateResponse,
   FormData,

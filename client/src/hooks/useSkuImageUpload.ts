@@ -31,7 +31,7 @@ const useSkuImageUpload = () => {
   // Stable upload function
   const uploadImages = useCallback(
     async (formData: FormData) => {
-      return dispatch(uploadSkuImagesThunk(formData));
+      return dispatch(uploadSkuImagesThunk(formData)).unwrap();
     },
     [dispatch]
   );
