@@ -33,6 +33,8 @@ const SkuImageUpdateDialog = ({
   const {
     loading,
     error,
+    hasResults,
+    isSuccess,
     updateImages,
     reset,
   } = useSkuImageUpdate();
@@ -67,10 +69,12 @@ const SkuImageUpdateDialog = ({
   }, [open, initialDrafts]);
   
   useEffect(() => {
-    if (open) {
-      setDraftImages(initialDrafts);
+    if (isSuccess && hasResults) {
+      onSuccess?.();
+      reset();
+      onClose();
     }
-  }, [open, initialDrafts]);
+  }, [isSuccess, hasResults, onSuccess, reset, onClose]);
   
   const getChangedDrafts = () => {
     return draftImages.filter((draft) => {
@@ -114,18 +118,8 @@ const SkuImageUpdateDialog = ({
           images: changedDrafts,
         },
       ]);
-      console.log("??>>>>");
-      console.log(formData);
-      console.log('Changed Drafts:', changedDrafts);
-      console.log(
-        'FormData Entries:',
-        Array.from((formData as any).entries())
-      );
-      await updateImages(formData);
       
-      onSuccess?.();
-      reset();
-      onClose();
+      await updateImages(formData);
     } catch {
       // let slice handle error
     }

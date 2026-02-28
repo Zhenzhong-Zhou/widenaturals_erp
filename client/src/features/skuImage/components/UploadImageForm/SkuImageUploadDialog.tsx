@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   CustomDialog,
   CustomTypography,
@@ -69,23 +69,26 @@ const SkuImageUploadDialog = ({
   // Submit
   // ---------------------------------------------
   const handleSubmit = async () => {
+    if (item.images.length === 0) {
+      onClose();
+      return;
+    }
+    
+    const formData = buildFormData([item]);
+    
     try {
-      if (item.images.length === 0) {
-        onClose();
-        return;
-      }
-      
-      const formData = buildFormData([item]);
-      
       await uploadImages(formData);
-      
+    } catch {
+    }
+  };
+  
+  useEffect(() => {
+    if (isSuccess) {
       onSuccess?.();
       reset();
       onClose();
-    } catch {
-      // slice handles error
     }
-  };
+  }, [isSuccess, onSuccess, reset, onClose]);
   
   const handleClose = () => {
     reset();

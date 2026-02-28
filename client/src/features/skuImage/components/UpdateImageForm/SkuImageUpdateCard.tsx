@@ -11,6 +11,7 @@ import {
 import type { SkuImageGroup } from '@features/sku';
 import type {
   SkuImageUpdateDraft,
+  SkuImageUploadMode,
 } from '@features/skuImage/state';
 import { getImageFileFormat } from '@features/skuImage/utils/imageFormatUtils';
 
@@ -129,7 +130,7 @@ const SkuImageUpdateCard = ({
                 onChange={(e) =>
                   updateDraft(idx, {
                     ...draft,
-                    upload_mode: e.target.value as 'file' | 'url',
+                    upload_mode: e.target.value as SkuImageUploadMode,
                   })
                 }
                 sx={{ width: 200, mb: 2 }}

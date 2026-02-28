@@ -33,26 +33,32 @@ import { truncateText } from '@utils/textUtils';
 import { SkuImageUpdateDialog } from '@features/skuImage/components/UpdateImageForm';
 import { SkuImageUploadDialog } from '@features/skuImage/components/UploadImageForm';
 
+/**
+ * Represents the currently active dialog on the SKU detail page.
+ *
+ * Ensures only one dialog is open at a time.
+ * Used for centralized dialog state + focus restoration handling.
+ */
 type SkuDetailDialog =
-  | 'status'
-  | 'images'
+  | 'edit-metadata'
+  | 'edit-dimensions'
+  | 'edit-identity'
+  | 'edit-status'
+  | 'upload-images'
+  | 'edit-images'
   | null;
 
 /**
  * SKU Detail Page
  *
- * Displays all information about a single SKU including:
- * - images
- * - product metadata
- * - compliance records
- * - pricing
+ * Responsibilities:
+ * - Fetch and display complete SKU detail view
+ * - Render image gallery, metadata, compliance, and pricing sections
+ * - Provide permission-gated actions (status update, image management)
+ * - Centralize dialog control using `activeDialog`
+ * - Restore focus correctly after dialog close (accessibility)
  *
- * Also provides:
- * - permission-based access control
- * - ability to update SKU status
- * - refresh controls
- *
- * URL: /skus/:skuId
+ * Route: /skus/:skuId
  */
 const SkuDetailPage: FC = () => {
   /* ---------------------------------------------------------
@@ -85,48 +91,47 @@ const SkuDetailPage: FC = () => {
   const createButtonRef = useRef<HTMLButtonElement>(null);
 
   const statusLookup = useStatusLookup();
-
-  /* ---------------------------------------------------------
-   * Local UI State for Dialog
-   * --------------------------------------------------------- */
-  const [openStatusDialog, setOpenStatusDialog] = useState(false);
-  const [activeDialog, setActiveDialog] = useState<SkuDetailDialog>(null);
-  const [showUploadDialog, setShowUploadDialog] = useState(false);
-
-  // Setup open/close with focus restoration for accessibility
-  const { handleOpenDialog, handleCloseDialog } = useDialogFocusHandlers(
-    setOpenStatusDialog,
-    createButtonRef,
-    () => openStatusDialog
-  );
   
-  // const statusButtonRef = useRef<HTMLButtonElement>(null);
+  /* ---------------------------------------------------------
+   * Dialog State + Focus Management
+   *
+   * - `activeDialog` ensures only one dialog is open at a time.
+   * - Each dialog trigger button keeps a ref for accessibility.
+   * - `useDialogFocusHandlers` restores focus to the triggering
+   *   button when the dialog closes.
+   * - Open state is derived from `activeDialog` rather than
+   *   separate booleans for scalability.
+   * --------------------------------------------------------- */
+  const [activeDialog, setActiveDialog] = useState<SkuDetailDialog>(null);
+  
+  const statusButtonRef = useRef<HTMLButtonElement>(null);
   const imageButtonRef = useRef<HTMLButtonElement>(null);
   const uploadButtonRef = useRef<HTMLButtonElement>(null);
   
-  // const statusDialogHandlers = useDialogFocusHandlers(
-  //   (open) => setActiveDialog(open ? 'status' : null),
-  //   statusButtonRef,
-  //   () => activeDialog === 'status'
-  // );
+  // Per-dialog focus-aware open/close handlers
+  const statusDialogHandlers = useDialogFocusHandlers(
+    (open) => setActiveDialog(open ? 'edit-status' : null),
+    statusButtonRef,
+    () => activeDialog === 'edit-status'
+  );
   
   const imageDialogHandlers = useDialogFocusHandlers(
-    (open) => setActiveDialog(open ? 'images' : null),
+    (open) => setActiveDialog(open ? 'edit-images' : null),
     imageButtonRef,
-    () => activeDialog === 'images'
+    () => activeDialog === 'edit-images'
   );
   
   const uploadDialogHandlers = useDialogFocusHandlers(
-    setShowUploadDialog,
+    (open) => setActiveDialog(open ? 'upload-images' : null),
     uploadButtonRef,
-    () => showUploadDialog
+    () => activeDialog === 'upload-images'
   );
   
   /* ---------------------------------------------------------
-   * Fetching Logic
-   * - refresh function re-fetches SKU detail
-   * - load on mount + whenever skuId changes
-   * - cleanup resets global store slice on unmount
+   * Data Lifecycle
+   * - Fetch SKU detail on mount and skuId change
+   * - Provide manual refresh
+   * - Reset slice state on unmount
    * --------------------------------------------------------- */
   const refresh = useCallback(() => {
     if (skuId) fetchSkuDetail(skuId);
@@ -136,7 +141,7 @@ const SkuDetailPage: FC = () => {
     refresh();
     return () => resetSkuDetailState();
   }, [refresh, resetSkuDetailState]);
-
+  
   /* ---------------------------------------------------------
    * Flattened structures for UI components
    * Memoized to avoid unnecessary re-renders
@@ -178,11 +183,10 @@ const SkuDetailPage: FC = () => {
     const base = truncateText(name, 50) || 'Product Details';
     return `${base} - Product Details`;
   }, [product]);
-
+  
   /* ---------------------------------------------------------
-   * Access Guard:
-   * If both SKU and parent product are inactive → deny access
-   * unless user has explicit permission
+   * Access Guard
+   * Deny access to inactive SKUs unless user has permission
    * --------------------------------------------------------- */
   const isInactive = sku?.status?.name !== 'active';
 
@@ -205,11 +209,11 @@ const SkuDetailPage: FC = () => {
       error={skuDetailError ?? undefined}
       sx={{ maxWidth: '100%', px: { xs: 2, md: 4 }, pb: 6 }}
     >
-      {/* Dialog */}
+      {/* Status Dialog */}
       {skuId && (
         <UpdateSkuStatusDialog
-          open={openStatusDialog}
-          onClose={handleCloseDialog}
+          open={activeDialog === 'edit-status'}
+          onClose={statusDialogHandlers.handleCloseDialog}
           skuId={skuId}
           skuCode={flattenedSkuInfo?.sku ?? ''}
           onSuccess={refresh}
@@ -217,9 +221,9 @@ const SkuDetailPage: FC = () => {
         />
       )}
       
-      {/* Update Existing Images Dialog */}
+      {/* Edit Images Dialog */}
       <SkuImageUpdateDialog
-        open={activeDialog === 'images'}
+        open={activeDialog === 'edit-images'}
         onClose={imageDialogHandlers.handleCloseDialog}
         skuId={skuId}
         skuCode={flattenedSkuInfo?.sku ?? ''}
@@ -228,9 +232,9 @@ const SkuDetailPage: FC = () => {
         onSuccess={refresh}
       />
       
-      {/* Upload New Images Dialog */}
+      {/* Upload Images Dialog */}
       <SkuImageUploadDialog
-        open={showUploadDialog}
+        open={activeDialog === 'upload-images'}
         onClose={uploadDialogHandlers.handleCloseDialog}
         skuId={skuId}
         skuCode={flattenedSkuInfo?.sku ?? ''}
@@ -257,7 +261,7 @@ const SkuDetailPage: FC = () => {
             }}
             color="secondary"
             ref={createButtonRef}
-            onClick={handleOpenDialog}
+            onClick={statusDialogHandlers.handleOpenDialog}
           >
             Update SKU Status
           </CustomButton>

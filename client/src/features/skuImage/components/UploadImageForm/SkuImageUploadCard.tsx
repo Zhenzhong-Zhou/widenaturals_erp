@@ -12,6 +12,7 @@ import {
 import type {
   SkuImageInput,
   SkuImageUploadCardData,
+  SkuImageUploadMode,
 } from '@features/skuImage/state';
 import { getImageFileFormat } from '@features/skuImage/utils/imageFormatUtils';
 
@@ -26,7 +27,7 @@ const SkuImageUploadCard = ({ data, onChange }: Props) => {
   // -------------------------------------------------------
   // Local State
   // -------------------------------------------------------
-  const [uploadMode, setUploadMode] = useState<'file' | 'url'>('file');
+  const [uploadMode, setUploadMode] = useState<SkuImageUploadMode>('file');
   const [urlInput, setUrlInput] = useState('');
 
   // -------------------------------------------------------
@@ -116,7 +117,7 @@ const SkuImageUploadCard = ({ data, onChange }: Props) => {
         label="Upload Mode"
         size="small"
         value={uploadMode}
-        onChange={(e) => setUploadMode(e.target.value as 'file' | 'url')}
+        onChange={(e) => setUploadMode(e.target.value as SkuImageUploadMode)}
         sx={{ width: 200, mb: 2 }}
       >
         <MenuItem value="file">Upload File</MenuItem>
