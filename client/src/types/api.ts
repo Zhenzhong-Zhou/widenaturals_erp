@@ -3,6 +3,7 @@ import type {
   Pagination,
   PaginationLookupInfo,
 } from '@shared-types/pagination';
+import { UiErrorPayload } from '@utils/error/uiErrorUtils';
 
 /**
  * Generic interface for a paginated API response.
@@ -87,22 +88,26 @@ export interface PaginationParams {
  * Represents async state for any data fetch in Redux or UI state.
  *
  * @template T - Type of the data payload.
+ *
+ * Design notes:
+ * - Error handling uses {@link UiErrorPayload} for consistent UI-safe errors.
  */
 export interface AsyncState<T> {
   /**
-   * The data payload (can be null before loading or on error).
+   * The data payload.
    */
   data: T;
-
+  
   /**
    * Whether the request is currently loading.
    */
   loading: boolean;
-
+  
   /**
-   * Error message if the request fails, otherwise null.
+   * Structured error payload if the request fails.
+   * Null when no error has occurred.
    */
-  error: string | null;
+  error: UiErrorPayload | null;
 }
 
 /**
@@ -188,43 +193,37 @@ export type PaginatedLookupState<T> = AsyncState<T[]> & PaginationLookupInfo;
  * Represents the state of a data-modifying API operation (e.g., POST, PUT, DELETE).
  * Commonly used to track the status and response of a mutation request.
  *
- * @template T - The type of single response item. The `data` field will be an array of T.
+ * @template T - The type of the response payload.
  *
- * Example usage:
- * ```ts
- * const initialState: MutationState<UserResponse> = {
- *   data: null,
- *   loading: false,
- *   error: null,
- * };
- * ```
+ * Design notes:
+ * - Uses {@link UiErrorPayload} for structured, UI-safe error handling.
+ * - Errors are normalized via the application's error utilities.
  */
 export interface MutationState<T> {
   /**
    * The response payload returned from a successful mutation request.
-   * Always an array of type T (even for single-item operations).
    * Set to `null` before the request or if the request fails.
    */
   data: T | null;
-
+  
   /**
    * Indicates whether the mutation request is currently in progress.
    */
   loading: boolean;
-
+  
   /**
-   * Error message if the mutation request fails; otherwise `null`.
+   * Structured error payload if the request fails.
+   * Null when no error has occurred.
    */
-  error: string | null;
-
+  error: UiErrorPayload | null;
+  
   /**
    * Indicates if the mutation was successful.
-   * Useful for showing success messages or conditional UI rendering.
    */
   success?: boolean;
-
+  
   /**
-   * Server-provided success message or status message, if any.
+   * Server-provided success message.
    */
   message?: string;
 }
