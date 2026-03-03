@@ -33,7 +33,8 @@ export const selectLocationTypeDetailLoading = createSelector(
  */
 export const selectLocationTypeDetailError = createSelector(
   [selectLocationTypeDetailState],
-  (state) => state.error
+  (state): string | null =>
+    state.error?.message ?? null
 );
 
 /**

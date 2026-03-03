@@ -39,5 +39,5 @@ export const selectLotAdjustmentTypeLoading = createSelector(
  */
 export const selectLotAdjustmentTypeError = createSelector(
   [selectLotAdjustmentTypeLookupState],
-  (lookupState): string | null => lookupState.error
+  (lookupState): string | null => lookupState.error?.message ?? null
 );

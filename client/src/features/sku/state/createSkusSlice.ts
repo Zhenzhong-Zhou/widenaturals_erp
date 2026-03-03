@@ -1,6 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { createSkusThunk } from './skuThunks';
 import type { CreateSkuResponse, CreateSkusState } from './skuTypes';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 // ---------------------------
 // Initial State
@@ -52,10 +53,7 @@ const createSkusSlice = createSlice({
       // Rejected
       // -------------------------
       .addCase(createSkusThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.data = null;
-        state.error =
-          action.payload || action.error?.message || 'Failed to create SKUs.';
+        applyRejected(state, action, 'Failed to create SKUs.');
       });
   },
 });

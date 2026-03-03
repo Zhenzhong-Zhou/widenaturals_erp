@@ -4,6 +4,7 @@ import type {
   UpdateOrderStatusState,
 } from './orderTypes';
 import { updateOrderStatusThunk } from '@features/order/state/orderThunks';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: UpdateOrderStatusState = {
   data: null,
@@ -35,8 +36,11 @@ const updateOrderStatusSlice = createSlice({
         }
       )
       .addCase(updateOrderStatusThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload ?? 'Failed to update order status';
+        applyRejected(
+          state,
+          action,
+          'Failed to update order status.'
+        );
       });
   },
 });

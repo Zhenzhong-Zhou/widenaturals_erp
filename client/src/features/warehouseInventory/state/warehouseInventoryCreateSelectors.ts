@@ -31,6 +31,6 @@ export const selectCreatedWarehouseRecords = createSelector(
     message: slice.data?.message ?? '',
     success: slice.data?.success ?? false,
     loading: slice.loading,
-    error: slice.error,
+    error: slice.error?.message ?? null,
   })
 );

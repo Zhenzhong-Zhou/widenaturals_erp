@@ -37,7 +37,8 @@ export const selectDiscountLookupLoading = createSelector(
  */
 export const selectDiscountLookupError = createSelector(
   [selectDiscountLookupState],
-  (state) => state.error
+  (state): string | null =>
+    state.error?.message ?? null
 );
 
 /**

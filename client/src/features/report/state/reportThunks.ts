@@ -5,6 +5,7 @@ import type {
   InventoryActivityLogPaginatedResponse,
   InventoryActivityLogQueryParams,
 } from './reportTypes';
+import { extractUiErrorPayload, UiErrorPayload } from '@utils/error/uiErrorUtils';
 
 /**
  * Thunk to fetch the base (non-paginated) inventory activity logs.
@@ -18,14 +19,20 @@ import type {
  */
 export const fetchBaseInventoryActivityLogsThunk = createAsyncThunk<
   InventoryActivityLogBaseDataResponse,
-  number | undefined
->('report/fetchBaseInventoryActivityLogs', async (limit = 30, thunkAPI) => {
-  try {
-    return await reportService.fetchBaseInventoryActivityLogs({ limit });
-  } catch (error) {
-    return thunkAPI.rejectWithValue(error);
+  number | undefined,
+  { rejectValue: UiErrorPayload }
+>(
+  'report/fetchBaseInventoryActivityLogs',
+  async (limit = 30, { rejectWithValue }) => {
+    try {
+      return await reportService.fetchBaseInventoryActivityLogs({ limit });
+    } catch (error: unknown) {
+      return rejectWithValue(
+        extractUiErrorPayload(error)
+      );
+    }
   }
-});
+);
 
 /**
  * Thunk to fetch a paginated list of inventory activity logs based on filters.
@@ -39,11 +46,17 @@ export const fetchBaseInventoryActivityLogsThunk = createAsyncThunk<
  */
 export const fetchPaginatedInventoryActivityLogsThunk = createAsyncThunk<
   InventoryActivityLogPaginatedResponse,
-  InventoryActivityLogQueryParams
->('report/fetchPaginatedInventoryActivityLogs', async (params, thunkAPI) => {
-  try {
-    return await reportService.fetchPaginatedInventoryActivityLogs(params);
-  } catch (error) {
-    return thunkAPI.rejectWithValue(error);
+  InventoryActivityLogQueryParams,
+  { rejectValue: UiErrorPayload }
+>(
+  'report/fetchPaginatedInventoryActivityLogs',
+  async (params, { rejectWithValue }) => {
+    try {
+      return await reportService.fetchPaginatedInventoryActivityLogs(params);
+    } catch (error: unknown) {
+      return rejectWithValue(
+        extractUiErrorPayload(error)
+      );
+    }
   }
-});
+);

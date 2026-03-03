@@ -37,7 +37,8 @@ export const selectKpiSummaryLoading = createSelector(
  */
 export const selectKpiSummaryError = createSelector(
   [selectKpiSummaryState],
-  (state) => state.error
+  (state): string | null =>
+    state.error?.message ?? null
 );
 
 /**

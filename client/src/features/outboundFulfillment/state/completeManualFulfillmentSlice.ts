@@ -4,6 +4,7 @@ import type {
   CompleteManualFulfillmentSliceState,
 } from '@features/outboundFulfillment/state/outboundFulfillmentTypes';
 import { completeManualFulfillmentThunk } from '@features/outboundFulfillment/state/outboundFulfillmentThunks';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 /**
  * Initial state.
@@ -35,9 +36,11 @@ export const completeManualFulfillmentSlice = createSlice({
         }
       )
       .addCase(completeManualFulfillmentThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          action.payload ?? 'Failed to complete manual fulfillment.';
+        applyRejected(
+          state,
+          action,
+          'Failed to complete manual fulfillment.'
+        );
       });
   },
 });

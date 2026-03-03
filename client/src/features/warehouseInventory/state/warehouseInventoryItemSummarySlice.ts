@@ -1,6 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type { WarehouseInventoryItemSummaryState } from '@features/warehouseInventory/state';
 import { fetchWarehouseInventoryItemSummaryThunk } from './warehouseInventoryThunks';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: WarehouseInventoryItemSummaryState = {
   data: [],
@@ -36,10 +37,11 @@ const warehouseInventoryItemSummarySlice = createSlice({
       .addCase(
         fetchWarehouseInventoryItemSummaryThunk.rejected,
         (state, action) => {
-          state.loading = false;
-          state.error =
-            (action.payload as string) ??
-            'Failed to fetch warehouse inventory summary.';
+          applyRejected(
+            state,
+            action,
+            'Failed to fetch warehouse inventory summary.'
+          );
         }
       );
   },

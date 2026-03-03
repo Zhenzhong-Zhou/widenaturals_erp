@@ -6,6 +6,7 @@ import type {
   FlattenedLocationTypeRecord,
   PaginatedLocationTypeListUiResponse,
 } from '@features/locationType';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 /* ============================================================
    Initial State
@@ -71,12 +72,11 @@ const paginatedLocationTypesSlice = createSlice({
 
       // ---- rejected ----
       .addCase(fetchPaginatedLocationTypeThunk.rejected, (state, action) => {
-        state.loading = false;
-
-        state.error =
-          (action.payload as any)?.message ??
-          action.error?.message ??
-          'Failed to fetch location type records.';
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch location type records.'
+        );
       });
   },
 });

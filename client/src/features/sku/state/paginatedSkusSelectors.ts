@@ -31,7 +31,8 @@ export const selectPaginatedSkusLoading = createSelector(
  */
 export const selectPaginatedSkusError = createSelector(
   [selectPaginatedSkusState],
-  (state) => state.error
+  (state): string | null =>
+    state.error?.message ?? null
 );
 
 /**

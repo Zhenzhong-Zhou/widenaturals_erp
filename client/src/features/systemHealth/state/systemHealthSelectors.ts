@@ -40,7 +40,8 @@ export const selectSystemHealthLoading = createSelector(
  */
 export const selectSystemHealthError = createSelector(
   [selectSystemHealthState],
-  (health) => health.error
+  (health): string | null =>
+    health.error?.message ?? null
 );
 
 /* =========================================================

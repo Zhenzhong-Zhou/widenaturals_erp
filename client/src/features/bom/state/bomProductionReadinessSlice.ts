@@ -4,6 +4,7 @@ import type {
   BomProductionReadinessResponse,
   BomProductionReadinessState,
 } from '@features/bom/state/bomTypes';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 /**
  * Redux slice for managing BOM Production Readiness Summary state.
@@ -59,16 +60,17 @@ export const bomProductionReadinessSlice = createSlice({
           state.loading = false;
           state.data = action.payload;
           state.isReadyForProduction =
-            !!action.payload.data.metadata?.isReadyForProduction;
+            action.payload.data.metadata?.isReadyForProduction;
           state.bottleneckCount =
             action.payload.data.metadata?.bottleneckParts?.length ?? 0;
         }
       )
       .addCase(fetchBomProductionSummaryThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          (action.payload as { message?: string })?.message ||
-          'Failed to fetch BOM production summary.';
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch BOM production summary.'
+        );
       });
   },
 });

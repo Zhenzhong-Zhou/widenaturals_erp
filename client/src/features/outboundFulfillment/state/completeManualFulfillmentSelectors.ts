@@ -29,7 +29,8 @@ export const selectCompleteManualFulfillmentData = createSelector(
  */
 export const selectCompleteManualFulfillmentError = createSelector(
   selectCompleteManualFulfillmentState,
-  (state) => state.error
+  (state): string | null =>
+    state.error?.message ?? null
 );
 
 /**

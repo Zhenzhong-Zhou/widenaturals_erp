@@ -6,6 +6,7 @@ import type {
 import { createInitialOffsetPaginatedState } from '@store/pagination';
 import { fetchDeliveryMethodLookupThunk } from '@features/lookup/state';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: DeliveryMethodLookupState =
   createInitialOffsetPaginatedState<DeliveryMethodLookupItem>();
@@ -33,10 +34,7 @@ const deliveryMethodLookupSlice = createSlice({
         applyPaginatedFulfilled(state, action.payload);
       })
       .addCase(fetchDeliveryMethodLookupThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          (action.payload as Error | { message?: string })?.message ||
-          'Failed to fetch delivery method lookup';
+        applyRejected(state, action, 'Failed to fetch delivery method lookup');
       });
   },
 });

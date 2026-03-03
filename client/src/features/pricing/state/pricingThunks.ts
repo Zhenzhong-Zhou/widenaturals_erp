@@ -1,3 +1,27 @@
+/**
+ * ================================================================
+ * Pricing Thunks Module
+ * ================================================================
+ *
+ * Responsibility:
+ * - Orchestrates pricing-related asynchronous workflows.
+ * - Serves as the boundary between UI and pricingService.
+ *
+ * Scope:
+ * - Fetch paginated pricing records
+ * - Fetch pricing details by pricing type
+ *
+ * Architecture:
+ * - Delegates API calls to pricingService
+ * - No transformation performed at thunk level
+ * - Redux state stores service response models directly
+ *
+ * Error Model:
+ * - All failures return `UiErrorPayload`
+ * - Errors are normalized via `extractUiErrorPayload`
+ * ================================================================
+ */
+
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
   FetchPricingParams,
@@ -5,40 +29,57 @@ import type {
   PaginatedPricingRecordsResponse,
 } from '@features/pricing/state/pricingTypes';
 import { pricingService } from '@services/pricingService';
+import { extractUiErrorPayload, UiErrorPayload } from '@utils/error/uiErrorUtils';
 
 /**
- * Async thunk to fetch paginated pricing records with filters, sorting, and keyword search.
+ * Fetches a paginated list of pricing records.
  *
- * @param params - Object including page, limit, filters, sortBy, sortOrder, and keyword
- * @returns PaginatedPricingRecordsResponse
+ * Responsibilities:
+ * - Calls pricingService.fetchPaginatedPricingRecords
+ * - Passes pagination, sorting, filtering, and keyword parameters
+ * - Returns service response directly (no transformation)
+ *
+ * Error Model:
+ * - Failures return `UiErrorPayload`
+ *
+ * @param params - Pagination, filtering, sorting, and search options
  */
 export const fetchPricingListDataThunk = createAsyncThunk<
-  PaginatedPricingRecordsResponse, // Return type
-  FetchPricingParams, // Parameter type
-  { rejectValue: string } // Rejection error message type
->('pricing/fetchPricingData', async (params, { rejectWithValue }) => {
-  try {
-    return await pricingService.fetchPaginatedPricingRecords(params);
-  } catch (error: any) {
-    return rejectWithValue(error.message || 'Failed to fetch pricing data');
+  PaginatedPricingRecordsResponse,
+  FetchPricingParams,
+  { rejectValue: UiErrorPayload }
+>(
+  'pricing/fetchPricingData',
+  async (params, { rejectWithValue }) => {
+    try {
+      return await pricingService.fetchPaginatedPricingRecords(params);
+    } catch (error: unknown) {
+      return rejectWithValue(
+        extractUiErrorPayload(error)
+      );
+    }
   }
-});
+);
 
 /**
- * Thunk to fetch paginated pricing details by pricing type ID.
+ * Fetches paginated pricing details for a specific pricing type.
  *
- * Dispatches a request to retrieve enriched pricing records associated with a specific pricing type,
- * including product, SKU, location, and audit metadata. Support pagination.
+ * Responsibilities:
+ * - Calls pricingService.fetchPricingDetailsByType
+ * - Returns enriched pricing records associated with a pricing type
+ * - Preserves pagination metadata
  *
- * Used for detailed views of pricing configurations under a given pricing type.
+ * Error Model:
+ * - Failures return `UiErrorPayload`
  *
- * @example
- * dispatch(getPricingDetailsByTypeThunk({ pricingTypeId: 'uuid', page: 1, limit: 10 }));
+ * @param pricingTypeId - Pricing type UUID
+ * @param page          - Page number (default: 1)
+ * @param limit         - Page size (default: 10)
  */
 export const fetchPricingDetailsByTypeThunk = createAsyncThunk<
-  PaginatedPricingDetailsResponse, // Return type
-  { pricingTypeId: string; page?: number; limit?: number }, // Payload
-  { rejectValue: string } // Error
+  PaginatedPricingDetailsResponse,
+  { pricingTypeId: string; page?: number; limit?: number },
+  { rejectValue: UiErrorPayload }
 >(
   'pricing/getPricingDetailsByType',
   async ({ pricingTypeId, page = 1, limit = 10 }, { rejectWithValue }) => {
@@ -48,9 +89,9 @@ export const fetchPricingDetailsByTypeThunk = createAsyncThunk<
         page,
         limit
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       return rejectWithValue(
-        error?.response?.data?.message || 'Unable to fetch pricing details'
+        extractUiErrorPayload(error)
       );
     }
   }

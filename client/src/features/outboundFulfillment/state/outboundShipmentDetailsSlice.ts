@@ -4,6 +4,7 @@ import type {
   FetchShipmentDetailsUiResponse,
 } from './outboundFulfillmentTypes';
 import { fetchOutboundShipmentDetailsThunk } from '@features/outboundFulfillment/state/outboundFulfillmentThunks';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: OutboundShipmentDetailsState = {
   loading: false,
@@ -35,10 +36,11 @@ const outboundShipmentDetailsSlice = createSlice({
         }
       )
       .addCase(fetchOutboundShipmentDetailsThunk.rejected, (state, action) => {
-        state.loading = false;
-
-        state.error =
-          action.payload?.message ?? action.error.message ?? 'Unknown error';
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch shipment details.'
+        );
       });
   },
 });

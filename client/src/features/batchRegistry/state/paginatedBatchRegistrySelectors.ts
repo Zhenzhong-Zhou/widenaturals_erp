@@ -42,7 +42,8 @@ export const selectPaginatedBatchRegistryLoading = createSelector(
  */
 export const selectPaginatedBatchRegistryError = createSelector(
   [selectPaginatedBatchRegistryState],
-  (state) => state.error
+  (state): string | null =>
+    state.error?.message ?? null
 );
 
 /**

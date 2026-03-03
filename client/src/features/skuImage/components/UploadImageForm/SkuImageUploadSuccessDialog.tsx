@@ -4,10 +4,14 @@ import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
-import CustomDialog from '@components/common/CustomDialog';
-import ResultBody from '@components/common/ResultBody';
-import CustomButton from '@components/common/CustomButton';
-import GoBackButton from '@components/common/GoBackButton';
+import {
+  CustomButton,
+  CustomDialog,
+  CustomTypography,
+  ErrorMessage,
+  GoBackButton,
+  ResultBody,
+} from '@components/index';
 import type {
   BulkSkuImageUploadResult,
   SkuImageUploadCardData,
@@ -132,7 +136,16 @@ const SkuImageUploadSuccessDialog: FC<Props> = ({
                     </Box>
                     {r.error && (
                       <Box>
-                        <strong>Error:</strong> {r.error}
+                        {r.error && (
+                          <Box>
+                            <ErrorMessage message={r.error.message}/>
+                            {r.error.traceId && (
+                              <CustomTypography variant="caption" display="block">
+                                Ref: {r.error.traceId}
+                              </CustomTypography>
+                            )}
+                          </Box>
+                        )}
                       </Box>
                     )}
                     <Box>

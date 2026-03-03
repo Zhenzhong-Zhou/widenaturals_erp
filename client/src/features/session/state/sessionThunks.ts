@@ -1,7 +1,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { persistor } from '@store/store';
 import { sessionService } from '@services/sessionService';
-import { extractErrorMessage, extractUiErrorPayload } from '@utils/error';
+import { extractUiErrorPayload } from '@utils/error';
 import type { LoginRequestBody, LoginResponseData } from '@features/session';
 import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 import { resetLogin } from '@features/session/state/loginSlice';
@@ -37,17 +37,19 @@ import { getCsrfTokenThunk } from '@features/csrf';
 export const loginThunk = createAsyncThunk<
   LoginResponseData,
   LoginRequestBody,
-  { rejectValue: string }
+  { rejectValue: UiErrorPayload }
 >(
   'session/login',
   async ({ email, password }, { dispatch, rejectWithValue }) => {
     try {
       const response = await sessionService.login(email, password);
-
+      
       dispatch(setAccessToken(response.accessToken));
       return response;
-    } catch (error) {
-      return rejectWithValue(extractErrorMessage(error));
+    } catch (error: unknown) {
+      return rejectWithValue(
+        extractUiErrorPayload(error)
+      );
     }
   }
 );

@@ -1,5 +1,11 @@
-import type { ApiSuccessResponse, PaginatedResponse } from '@shared-types/api';
-import type { Pagination } from '@shared-types/pagination';
+import type {
+  ApiSuccessResponse,
+  AsyncState,
+  PaginatedResponse
+} from '@shared-types/api';
+import type {
+  ReduxPaginatedState
+} from '@shared-types/pagination';
 
 export interface FetchPricingTypesParams {
   page?: number;
@@ -27,12 +33,7 @@ export interface PricingType {
 // Interface for the response structure
 export type PricingTypesResponse = PaginatedResponse<PricingType>;
 
-export interface PricingTypesState {
-  data: PricingType[];
-  pagination: Pagination;
-  isLoading: boolean;
-  error: string | null;
-}
+export type PricingTypesState = ReduxPaginatedState<PricingType>;
 
 export interface PricingTypeTableProps {
   data: PricingType[];
@@ -166,3 +167,5 @@ export interface PricingTypeDropdownItem {
 
 // Type for the API response
 export type PricingTypeDropdownResponse = PricingTypeDropdownItem[];
+
+export type PricingTypeMetadataState = AsyncState<PricingTypeMetadata | null>;

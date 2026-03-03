@@ -4,6 +4,7 @@ import type {
   OrderDetailsState,
 } from '@features/order/state/orderTypes';
 import { fetchOrderDetailsByIdThunk } from '@features/order';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: OrderDetailsState = {
   data: null,
@@ -32,14 +33,11 @@ const orderDetailsSlice = createSlice({
         }
       )
       .addCase(fetchOrderDetailsByIdThunk.rejected, (state, action) => {
-        state.loading = false;
-
-        const payload = action.payload as { message: string } | undefined;
-
-        state.error =
-          payload?.message ??
-          action.error.message ??
-          'Failed to fetch sales order details';
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch sales order details.'
+        );
       });
   },
 });

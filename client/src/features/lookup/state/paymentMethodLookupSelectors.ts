@@ -37,7 +37,8 @@ export const selectPaymentMethodLookupLoading = createSelector(
  */
 export const selectPaymentMethodLookupError = createSelector(
   [selectPaymentMethodLookupState],
-  (state) => state.error
+  (state): string | null =>
+    state.error?.message ?? null
 );
 
 /**

@@ -28,7 +28,8 @@ export const selectAllocationConfirmLoading = createSelector(
  */
 export const selectAllocationConfirmError = createSelector(
   [selectInventoryAllocationConfirmation],
-  (state) => state.error
+  (state): string | null =>
+    state.error?.message ?? null
 );
 
 /**

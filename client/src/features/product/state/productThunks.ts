@@ -1,3 +1,30 @@
+/**
+ * ================================================================
+ * Product Thunks Module
+ * ================================================================
+ *
+ * Responsibility:
+ * - Orchestrates product-related asynchronous workflows.
+ * - Serves as the boundary between UI and productService.
+ *
+ * Scope:
+ * - Fetch paginated product list
+ * - Create products
+ * - Fetch product details
+ * - Update product information
+ * - Update product status
+ *
+ * Architecture:
+ * - API calls delegated to productService
+ * - UI normalization occurs at the thunk boundary where required
+ * - Redux reducers remain pure and state-focused
+ *
+ * Error Model:
+ * - All failures return `UiErrorPayload`
+ * - Errors are normalized via `extractUiErrorPayload`
+ * ================================================================
+ */
+
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
   CreateProductBulkInput,
@@ -16,25 +43,21 @@ import { extractUiErrorPayload } from '@utils/error';
 import { flattenProductRecords } from '@features/product/utils';
 
 /**
- * Thunk to fetch a paginated list of products.
+ * Fetches a paginated list of products and converts
+ * API records into UI-ready rows.
  *
- * This thunk performs a one-time transformation at the ingestion boundary:
- * - Fetches raw product records from the API
- * - Flattens them into UI-safe `FlattenedProductRecord`
- * - Stores only flattened data in Redux
+ * Responsibilities:
+ * - Calls productService.fetchPaginatedProducts
+ * - Flattens domain product records before entering Redux state
+ * - Preserves pagination metadata
  *
- * ### Behavior
- * - `pending`   → sets loading state
- * - `fulfilled` → stores flattened products + pagination metadata
- * - `rejected`  → stores a normalized error message
+ * Transformation Boundary:
+ * - Raw product models → flattenProductRecords → UI models
  *
- * ### Design guarantees
- * - Raw API models never enter Redux
- * - Flattening happens exactly once
- * - UI consumes `FlattenedProductRecord` only
+ * Error Model:
+ * - Failures return `UiErrorPayload`
  *
- * @param params Pagination, sorting, and filter options
- * @returns PaginatedProductListUiResponse
+ * @param params - Pagination, sorting, and filtering options
  */
 export const fetchPaginatedProductsThunk = createAsyncThunk<
   PaginatedProductListUiResponse,
@@ -54,41 +77,17 @@ export const fetchPaginatedProductsThunk = createAsyncThunk<
 });
 
 /**
- * Async thunk: Create one or more products.
+ * Creates one or more products.
  *
- * This thunk wraps the `productService.createProducts()` call and provides
- * a normalized, Redux-friendly interface for managing loading, success,
- * and error states related to bulk product creation.
+ * Responsibilities:
+ * - Calls productService.createProducts
+ * - Sends bulk product creation payload
+ * - Returns API response directly
  *
- * ## Behavior
- * - Dispatches pending → fulfilled/rejected lifecycle actions.
- * - Sends a payload containing one or more product definitions.
- * - Returns the API response (`CreateProductResponse`) on success.
- * - Normalizes backend and network errors into a `UiErrorPayload` for slice handling.
+ * Error Model:
+ * - Failures return `UiErrorPayload`
  *
- * ## Usage
- * ```ts
- * const payload: CreateProductBulkInput = {
- *   products: [
- *     { name: "Vitamin D3", brand: "Wide Naturals", category: "Supplements" }
- *   ]
- * };
- *
- * const result = await dispatch(createProductsThunk(payload));
- *
- * if (createProductsThunk.fulfilled.match(result)) {
- *   console.log("Created IDs:", result.payload.data);
- * }
- * ```
- *
- * ## Error Handling
- * - Captures server-side validation errors
- * - Captures network issues (timeouts, connectivity failures)
- * - Converts unknown errors into a stable `UiErrorPayload` via `extractUiErrorPayload`
- *
- * @param payload - Bulk product creation input object.
- * @returns A Promise that resolves with `CreateProductResponse` on success,
- *          or rejects with a normalized `UiErrorPayload` via `rejectWithValue`.
+ * @param payload - Bulk product creation input
  */
 export const createProductsThunk = createAsyncThunk<
   CreateProductResponse,
@@ -103,30 +102,16 @@ export const createProductsThunk = createAsyncThunk<
 });
 
 /**
- * Thunk: Fetch a single product's full detail record by ID.
+ * Fetches a single product detail record.
  *
- * This thunk calls `productService.fetchProductDetailById(productId)` and returns
- * the full standard API envelope (`ApiSuccessResponse<ProductResponse>`). The reducer
- * is responsible for unwrapping the `.data` payload if needed.
+ * Responsibilities:
+ * - Calls productService.fetchProductDetailById
+ * - Returns API response envelope without transformation
  *
- * Usage:
- * ```ts
- * dispatch(fetchProductDetailByIdThunk(productId));
- * ```
+ * Error Model:
+ * - Failures return `UiErrorPayload`
  *
- * Behavior:
- * - The service layer trims and sanitizes the incoming `productId`.
- * - Resolves with `GetProductApiResponse`, containing:
- *     - `success`
- *     - `message`
- *     - `data` (the `ProductResponse`)
- *     - `traceId`
- * - On failure, the thunk returns a normalized `UiErrorPayload` via `rejectWithValue`.
- * - No additional transformation is applied in this thunk; the response is returned
- *   exactly as delivered by the backend.
- *
- * @param productId - UUID of the product to fetch.
- * @returns The full API envelope (`GetProductApiResponse`) wrapped in AsyncThunk logic.
+ * @param productId - Product UUID
  */
 export const fetchProductDetailByIdThunk = createAsyncThunk<
   GetProductApiResponse,
@@ -141,32 +126,18 @@ export const fetchProductDetailByIdThunk = createAsyncThunk<
 });
 
 /**
- * Thunk: Update a product's core information fields by ID.
+ * Updates editable product information fields.
  *
- * Issues a `PUT /products/:productId/info` request to update one or more
- * editable product attributes. The backend enforces that the payload must
- * contain at least one valid field (name, series, brand, category, or
- * description), as validated by `productUpdateSchema`.
+ * Responsibilities:
+ * - Calls productService.updateProductInfoById
+ * - Sends partial update payload
+ * - Returns API response containing updated product ID
  *
- * Behavior:
- * - Accepts a typed partial update payload (`ProductUpdateRequest`).
- * - Returns an `ApiSuccessResponse<{ id: string }>` containing the updated product ID.
- * - Uses `rejectWithValue` with `extractUiErrorPayload` to provide a stable `UiErrorPayload`.
- * - Logs contextual metadata to help with debugging and monitoring.
+ * Error Model:
+ * - Failures return `UiErrorPayload`
  *
- * Typical Use Cases:
- * - Inline editing product fields
- * - Product detail page "Edit" form submission
- *
- * @param productId - UUID of the product to update.
- * @param payload - Partial fields allowed for update.
- * @returns API envelope containing `{ id }` of the updated product.
- *
- * @example
- * dispatch(updateProductInfoByIdThunk({
- *   productId: '411e7fca-bde3-47be-82b9-4607a6db7580',
- *   payload: { name: 'Updated Product Name' }
- * }));
+ * @param productId - Product UUID
+ * @param payload   - Partial product fields to update
  */
 export const updateProductInfoByIdThunk = createAsyncThunk<
   UpdateProductApiResponse,
@@ -184,31 +155,18 @@ export const updateProductInfoByIdThunk = createAsyncThunk<
 );
 
 /**
- * Thunk: Update a product's status by ID.
+ * Updates the status of a product.
  *
- * Issues a `PUT /products/:productId/status` request and updates only the
- * status field of a product. The payload must include a valid `statusId`,
- * validated by `updateStatusIdSchema`.
+ * Responsibilities:
+ * - Calls productService.updateProductStatusById
+ * - Sends new status identifier
+ * - Returns API response containing updated product ID
  *
- * Behavior:
- * - Accepts a payload containing only `{ statusId: string }`.
- * - Returns an `ApiSuccessResponse<{ id: string }>` with the updated product ID.
- * - Uses `rejectWithValue` with `extractUiErrorPayload` for normalized error propagation.
- * - Logs request context to assist with error diagnosis.
+ * Error Model:
+ * - Failures return `UiErrorPayload`
  *
- * Typical Use Cases:
- * - Activating or deactivating a product
- * - Workflow/state transitions in product lifecycle
- *
- * @param productId - UUID of the product whose status is being changed.
- * @param payload - Object containing the new `statusId`.
- * @returns API envelope containing `{ id }` of the updated product.
- *
- * @example
- * dispatch(updateProductStatusByIdThunk({
- *   productId: '411e7fca-bde3-47be-82b9-4607a6db7580',
- *   payload: { statusId: '73f01730-5166-4b83-9c56-270d1e03cbf6' }
- * }));
+ * @param productId - Product UUID
+ * @param statusId  - New product status identifier
  */
 export const updateProductStatusByIdThunk = createAsyncThunk<
   UpdateProductApiResponse,

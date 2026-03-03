@@ -2,6 +2,7 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 import { createSlice } from '@reduxjs/toolkit';
 import type { UserProfileResponse, UserSelfProfileState } from '@features/user';
 import { fetchUserSelfProfileThunk } from '@features/user';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: UserSelfProfileState = {
   data: null,
@@ -39,9 +40,8 @@ const userSelfProfileSlice = createSlice({
         }
       )
       .addCase(fetchUserSelfProfileThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload || 'Failed to load user profile.';
-      });
+        applyRejected(state, action, 'Failed to load user profile.');
+      })
   },
 });
 

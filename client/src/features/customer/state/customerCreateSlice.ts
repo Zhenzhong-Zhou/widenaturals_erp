@@ -2,6 +2,7 @@ import { createSlice } from '@reduxjs/toolkit';
 import type { CustomerCreateState } from './customerTypes';
 import { createCustomersThunk } from './customerThunks';
 import type { CreateCustomerResponse } from './customerTypes';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: CustomerCreateState = {
   data: null,
@@ -36,11 +37,13 @@ const customerCreateSlice = createSlice({
         state.message = result.message;
       })
       .addCase(createCustomersThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          (action.payload as Error)?.message || 'Failed to create customer(s)';
         state.data = null;
-      });
+        applyRejected(
+          state,
+          action,
+          'Failed to create customer(s).'
+        );
+      })
   },
 });
 

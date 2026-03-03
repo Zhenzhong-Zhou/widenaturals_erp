@@ -4,6 +4,7 @@ import type {
   AllocateInventoryState,
 } from './inventoryAllocationTypes';
 import { allocateInventoryThunk } from '@features/inventoryAllocation/state';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: AllocateInventoryState = {
   loading: false,
@@ -36,11 +37,11 @@ const allocateInventorySlice = createSlice({
         }
       )
       .addCase(allocateInventoryThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          (action.payload as string) ||
-          action.error.message ||
-          'Allocation failed';
+        applyRejected(
+          state,
+          action,
+          'Allocation failed'
+        );
       });
   },
 });

@@ -1,18 +1,14 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { fetchWarehouseInventorySummaryByItemIdThunk } from './warehouseInventoryThunks';
-import type { WarehouseInventorySummaryDetailState } from '@features/warehouseInventory/state/warehouseInventoryTypes';
+import type {
+  WarehouseInventorySummaryDetailState,
+  WarehouseInventorySummaryItemDetails,
+} from '@features/warehouseInventory/state/warehouseInventoryTypes';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
+import { createInitialPaginatedState } from '@store/pagination';
 
-const initialState: WarehouseInventorySummaryDetailState = {
-  data: [],
-  pagination: {
-    page: 1,
-    limit: 10,
-    totalRecords: 0,
-    totalPages: 1,
-  },
-  loading: false,
-  error: null,
-};
+const initialState: WarehouseInventorySummaryDetailState =
+  createInitialPaginatedState<WarehouseInventorySummaryItemDetails>();
 
 const warehouseInventorySummaryDetailSlice = createSlice({
   name: 'warehouseInventorySummaryDetail',
@@ -37,9 +33,11 @@ const warehouseInventorySummaryDetailSlice = createSlice({
       .addCase(
         fetchWarehouseInventorySummaryByItemIdThunk.rejected,
         (state, action) => {
-          state.loading = false;
-          state.error =
-            action.payload || 'Failed to fetch warehouse inventory summary.';
+          applyRejected(
+            state,
+            action,
+            'Failed to fetch warehouse inventory summary.'
+          );
         }
       );
   },

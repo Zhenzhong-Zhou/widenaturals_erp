@@ -2,6 +2,7 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { adjustWarehouseInventoryQuantitiesThunk } from './warehouseInventoryThunks';
 import type { InventoryRecordsResponse } from '@features/inventoryShared/types/InventorySharedType';
 import type { AdjustInventoryState } from './warehouseInventoryTypes';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: AdjustInventoryState = {
   data: null,
@@ -34,11 +35,11 @@ const warehouseInventoryAdjustSlice = createSlice({
       .addCase(
         adjustWarehouseInventoryQuantitiesThunk.rejected,
         (state, action) => {
-          state.loading = false;
-          state.error =
-            (action.payload as string) ||
-            action.error?.message ||
-            'Failed to adjust inventory quantities';
+          applyRejected(
+            state,
+            action,
+            'Failed to adjust inventory quantities'
+          );
         }
       );
   },

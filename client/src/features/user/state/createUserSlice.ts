@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type { CreateUserState } from '@features/user';
 import { createUserThunk } from '@features/user';
-import { extractErrorMessage } from '@utils/error';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 /**
  * Factory for initial create-user state.
@@ -56,9 +56,8 @@ const createUserSlice = createSlice({
         state.data = action.payload.data;
       })
       .addCase(createUserThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = extractErrorMessage(action.payload);
-      });
+        applyRejected(state, action, 'Failed to create user.');
+      })
   },
 });
 

@@ -3,7 +3,8 @@ import type {
   BomMaterialSupplyDetailsResponse,
   BomMaterialSupplyDetailsState,
 } from '@features/bom/state/bomTypes';
-import { fetchBomMaterialSupplyDetailsThunk } from './bomThunks';
+import { fetchBomMaterialSupplyDetailsThunk } from '@features/bom/state';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: BomMaterialSupplyDetailsState = {
   data: null,
@@ -35,10 +36,11 @@ export const bomMaterialSupplyDetailsSlice = createSlice({
         }
       )
       .addCase(fetchBomMaterialSupplyDetailsThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          (action.payload as string) ||
-          'Failed to fetch BOM Material Supply Details';
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch BOM Material Supply Details'
+        );
       });
   },
 });

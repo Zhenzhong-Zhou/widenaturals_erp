@@ -37,7 +37,8 @@ export const selectTaxRateLookupLoading = createSelector(
  */
 export const selectTaxRateLookupError = createSelector(
   [selectTaxRateLookupState],
-  (state) => state.error
+  (state): string | null =>
+    state.error?.message ?? null
 );
 
 /**

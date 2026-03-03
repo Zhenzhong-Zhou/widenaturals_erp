@@ -4,6 +4,7 @@ import type {
   SalesOrderCreationState,
 } from '@features/order/state/orderTypes';
 import { createSalesOrderThunk } from './orderThunks';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: SalesOrderCreationState = {
   loading: false,
@@ -32,8 +33,11 @@ export const salesOrderCreationSlice = createSlice({
         }
       )
       .addCase(createSalesOrderThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
+        applyRejected(
+          state,
+          action,
+          'Failed to create sales order.'
+        );
       });
   },
 });

@@ -5,6 +5,7 @@ import type {
   FlattenedUserRecord,
 } from '@features/user/state';
 import { fetchPaginatedUsersThunk } from '@features/user/state';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 // ---------------------------
 // Initial State
@@ -55,12 +56,8 @@ const paginatedUsersSlice = createSlice({
 
       // ---- rejected ----
       .addCase(fetchPaginatedUsersThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          action.payload?.message ??
-          action.error.message ??
-          'Failed to fetch users.';
-      });
+        applyRejected(state, action, 'Failed to fetch users.');
+      })
   },
 });
 

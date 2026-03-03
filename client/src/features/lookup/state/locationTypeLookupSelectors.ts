@@ -31,7 +31,8 @@ export const selectLocationTypeLookupLoading = createSelector(
 
 export const selectLocationTypeLookupError = createSelector(
   [selectLocationTypeLookupState],
-  (state) => state.error
+  (state): string | null =>
+    state.error?.message ?? null
 );
 
 // -----------------------------

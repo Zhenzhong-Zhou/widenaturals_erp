@@ -29,7 +29,8 @@ export const selectOutboundShipmentDetailsLoading = createSelector(
  */
 export const selectOutboundShipmentDetailsError = createSelector(
   [selectOutboundShipmentDetailsState],
-  (detailsState) => detailsState.error
+  (detailsState): string | null =>
+    detailsState.error?.message ?? null
 );
 
 /**

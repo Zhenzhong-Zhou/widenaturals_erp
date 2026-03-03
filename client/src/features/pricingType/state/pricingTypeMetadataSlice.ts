@@ -1,16 +1,14 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { fetchPricingTypeMetadataThunk } from './pricingTypeThunks';
-import type { PricingTypeMetadata } from './pricingTypeTypes';
-
-export interface PricingTypeMetadataState {
-  data: PricingTypeMetadata | null;
-  isLoading: boolean;
-  error: string | null;
-}
+import type {
+  PricingTypeMetadata,
+  PricingTypeMetadataState
+} from './pricingTypeTypes';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: PricingTypeMetadataState = {
   data: null,
-  isLoading: false,
+  loading: false,
   error: null,
 };
 
@@ -20,31 +18,26 @@ const pricingTypeMetadataSlice = createSlice({
   reducers: {
     resetPricingTypeMetadata: (state) => {
       state.data = null;
-      state.isLoading = false;
+      state.loading = false;
       state.error = null;
     },
   },
   extraReducers: (builder) => {
     builder
       .addCase(fetchPricingTypeMetadataThunk.pending, (state) => {
-        state.isLoading = true;
+        state.loading = true;
         state.error = null;
       })
       .addCase(
         fetchPricingTypeMetadataThunk.fulfilled,
         (state, action: PayloadAction<PricingTypeMetadata>) => {
           state.data = action.payload;
-          state.isLoading = false;
+          state.loading = false;
         }
       )
-      .addCase(
-        fetchPricingTypeMetadataThunk.rejected,
-        (state, action: PayloadAction<string | undefined>) => {
-          state.isLoading = false;
-          state.error =
-            action.payload || 'Failed to fetch pricing type metadata.';
-        }
-      );
+      .addCase(fetchPricingTypeMetadataThunk.rejected, (state, action) => {
+        applyRejected(state, action, 'Failed to fetch pricing type metadata.');
+      });
   },
 });
 

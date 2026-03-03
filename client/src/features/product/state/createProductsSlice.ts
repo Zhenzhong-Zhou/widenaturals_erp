@@ -4,6 +4,7 @@ import type {
   CreateProductResponse,
   CreateProductsState,
 } from './productTypes';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 // ---------------------------
 // Initial State
@@ -55,13 +56,9 @@ const createProductsSlice = createSlice({
       // Rejected
       // -------------------------
       .addCase(createProductsThunk.rejected, (state, action) => {
-        state.loading = false;
         state.data = null;
-        state.error =
-          action.payload?.message ||
-          action.error?.message ||
-          'Failed to create products.';
-      });
+        applyRejected(state, action, 'Failed to create products.');
+      })
   },
 });
 

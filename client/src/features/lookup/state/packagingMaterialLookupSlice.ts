@@ -7,6 +7,7 @@ import type {
 import { createInitialOffsetPaginatedState } from '@store/pagination';
 import { fetchPackagingMaterialLookupThunk } from '@features/lookup/state';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: PackagingMaterialLookupState =
   createInitialOffsetPaginatedState<PackagingMaterialOnlyLookupItem>();
@@ -39,10 +40,11 @@ const packagingMaterialLookupSlice = createSlice({
         }
       )
       .addCase(fetchPackagingMaterialLookupThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          (action.payload as string) ??
-          'Failed to fetch packaging material lookup';
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch packaging material lookup'
+        );
       });
   },
 });

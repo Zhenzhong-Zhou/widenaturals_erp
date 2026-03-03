@@ -5,6 +5,7 @@ import type {
   SkuListState,
 } from '@features/sku/state/skuTypes';
 import { fetchPaginatedSkusThunk } from '@features/sku/state/skuThunks';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 // ---------------------------
 // Initial State
@@ -50,13 +51,11 @@ const paginatedSkusSlice = createSlice({
 
       // ---- rejected ----
       .addCase(fetchPaginatedSkusThunk.rejected, (state, action) => {
-        state.loading = false;
-
-        // rejectWithValue(UiErrorPayload) OR fallback error
-        state.error =
-          action.payload?.message ??
-          action.error.message ??
-          'Failed to fetch SKUs.';
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch SKUs.'
+        );
       });
   },
 });

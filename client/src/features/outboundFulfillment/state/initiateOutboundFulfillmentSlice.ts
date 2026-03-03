@@ -4,6 +4,7 @@ import type {
   InitiateOutboundFulfillmentState,
 } from '@features/outboundFulfillment/state/outboundFulfillmentTypes';
 import { initiateOutboundFulfillmentThunk } from '@features/outboundFulfillment/state/outboundFulfillmentThunks';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: InitiateOutboundFulfillmentState = {
   loading: false,
@@ -32,10 +33,11 @@ export const initiateOutboundFulfillmentSlice = createSlice({
         }
       )
       .addCase(initiateOutboundFulfillmentThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          (action.payload as string) ||
-          'Failed to initiate outbound fulfillment';
+        applyRejected(
+          state,
+          action,
+          'Failed to initiate outbound fulfillment.'
+        );
       });
   },
 });

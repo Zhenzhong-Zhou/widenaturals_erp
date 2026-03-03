@@ -1,6 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type { CreateWarehouseInventoryState } from './warehouseInventoryTypes';
 import { createWarehouseInventoryRecordsThunk } from '@features/warehouseInventory/state/warehouseInventoryThunks';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: CreateWarehouseInventoryState = {
   data: null,
@@ -34,8 +35,11 @@ const createWarehouseInventorySlice = createSlice({
       .addCase(
         createWarehouseInventoryRecordsThunk.rejected,
         (state, action) => {
-          state.loading = false;
-          state.error = action.payload ?? 'Unknown error';
+          applyRejected(
+            state,
+            action,
+            'Failed to create warehouse inventory records.'
+          );
         }
       );
   },

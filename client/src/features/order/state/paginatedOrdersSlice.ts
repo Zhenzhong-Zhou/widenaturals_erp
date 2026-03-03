@@ -7,6 +7,7 @@ import type {
 } from '@features/order/state/orderTypes';
 import { fetchOrdersByCategoryThunk } from '@features/order/state/orderThunks';
 import { createInitialPaginatedState } from '@store/pagination';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: PaginatedOrderStateWithFilters = {
   ...createInitialPaginatedState<OrderListItem>(),
@@ -41,8 +42,11 @@ const paginatedOrdersSlice = createSlice({
         }
       )
       .addCase(fetchOrdersByCategoryThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload ?? 'Failed to load orders.';
+        applyRejected(
+          state,
+          action,
+          'Failed to load orders.'
+        );
       });
   },
 });

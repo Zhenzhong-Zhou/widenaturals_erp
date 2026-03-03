@@ -6,7 +6,7 @@ import type {
 } from '@features/outboundFulfillment/state';
 import { fetchPaginatedOutboundFulfillmentThunk } from './outboundFulfillmentThunks';
 import { createInitialPaginatedState } from '@store/pagination';
-import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: PaginatedOutboundFulfillmentsState =
   createInitialPaginatedState<FlattenedOutboundShipmentRow>();
@@ -37,20 +37,13 @@ const paginatedOutboundFulfillmentsSlice = createSlice({
           state.pagination = action.payload.pagination;
         }
       )
-      .addCase(
-        fetchPaginatedOutboundFulfillmentThunk.rejected,
-        (state, action) => {
-          state.loading = false;
-
-          const error = action.payload as UiErrorPayload | undefined;
-
-          state.error =
-            error?.message ?? 'Failed to fetch paginated outbound fulfillments';
-
-          // Optional but recommended if your state supports it
-          state.traceId = error?.traceId ?? null;
-        }
-      );
+      .addCase(fetchPaginatedOutboundFulfillmentThunk.rejected, (state, action) => {
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch paginated outbound fulfillments.'
+        );
+      });
   },
 });
 

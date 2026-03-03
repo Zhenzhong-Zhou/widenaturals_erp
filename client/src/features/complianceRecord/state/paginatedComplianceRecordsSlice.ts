@@ -6,6 +6,7 @@ import type {
 } from './complianceRecordTypes';
 import { createInitialPaginatedState } from '@store/pagination';
 import { fetchComplianceRecordsThunk } from '@features/complianceRecord';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: ComplianceRecordsState =
   createInitialPaginatedState<ComplianceRecordTableRow>();
@@ -47,12 +48,11 @@ const paginatedComplianceRecordsSlice = createSlice({
       // Rejected
       // --------------------------------------------------
       .addCase(fetchComplianceRecordsThunk.rejected, (state, action) => {
-        state.loading = false;
-
-        state.error =
-          action.payload?.message ||
-          action.error.message ||
-          'Failed to fetch compliance records';
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch compliance records.'
+        );
       });
   },
 });

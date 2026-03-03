@@ -7,6 +7,7 @@ import type {
 import { createInitialOffsetPaginatedState } from '@store/pagination';
 import { fetchSkuLookupThunk } from '@features/lookup/state';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: SkuLookupState =
   createInitialOffsetPaginatedState<SkuLookupItem>();
@@ -35,9 +36,11 @@ const skuLookupSlice = createSlice({
         }
       )
       .addCase(fetchSkuLookupThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          (action.payload as string) ?? 'Failed to fetch SKU lookup';
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch SKU lookup'
+        );
       });
   },
 });

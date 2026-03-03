@@ -25,7 +25,8 @@ export const selectBatchRegistryLookupLoading = createSelector(
  */
 export const selectBatchRegistryLookupError = createSelector(
   [selectBatchRegistryLookupSlice],
-  (slice) => slice.error
+  (slice): string | null =>
+    slice.error?.message ?? null
 );
 
 /**

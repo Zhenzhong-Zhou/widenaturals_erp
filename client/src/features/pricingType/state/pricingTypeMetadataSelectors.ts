@@ -21,7 +21,7 @@ export const selectPricingTypeMetadata = createSelector(
  */
 export const selectPricingTypeMetadataLoading = createSelector(
   [selectPricingTypeMetadataState],
-  (state) => state.isLoading
+  (state) => state.loading
 );
 
 /**
@@ -29,7 +29,8 @@ export const selectPricingTypeMetadataLoading = createSelector(
  */
 export const selectPricingTypeMetadataError = createSelector(
   [selectPricingTypeMetadataState],
-  (state) => state.error
+  (state): string | null =>
+    state.error?.message ?? null
 );
 
 /**

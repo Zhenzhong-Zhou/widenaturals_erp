@@ -4,6 +4,7 @@ import type {
   UpdateProductApiResponse,
 } from '@features/product/state/productTypes';
 import { updateProductStatusByIdThunk } from '@features/product/state/productThunks';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: ProductStatusUpdateState = {
   data: null,
@@ -36,13 +37,9 @@ export const productStatusUpdateSlice = createSlice({
           state.error = null;
         }
       )
-
+      
       .addCase(updateProductStatusByIdThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          action.payload?.message ??
-          action.error?.message ??
-          'Failed to update product status';
+        applyRejected(state, action, 'Failed to update product status.');
       });
   },
 });

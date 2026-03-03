@@ -4,6 +4,7 @@ import type {
   ConfirmOutboundFulfillmentState,
 } from './outboundFulfillmentTypes';
 import { confirmOutboundFulfillmentThunk } from './outboundFulfillmentThunks';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 /**
  * Initial state for outbound fulfillment confirmation flow.
@@ -53,9 +54,11 @@ export const confirmOutboundFulfillmentSlice = createSlice({
         }
       )
       .addCase(confirmOutboundFulfillmentThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          action.payload || 'Failed to confirm outbound fulfillment';
+        applyRejected(
+          state,
+          action,
+          'Failed to confirm outbound fulfillment.'
+        );
       });
   },
 });

@@ -7,6 +7,7 @@ import type {
 } from '@features/bom/state/bomTypes';
 import { createInitialPaginatedState } from '@store/pagination';
 import { fetchPaginatedBomsThunk } from '@features/bom/state/bomThunks';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: PaginatedBomStateWithFilters = {
   ...createInitialPaginatedState<FlattenedBomRecord>(),
@@ -62,11 +63,11 @@ const paginatedBomSlice = createSlice({
       )
       // --- Rejected ---
       .addCase(fetchPaginatedBomsThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          action.payload?.message ||
-          action.error.message ||
-          'Failed to fetch BOM list.';
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch BOM list.'
+        );
       });
   },
 });

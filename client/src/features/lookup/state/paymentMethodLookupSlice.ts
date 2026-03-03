@@ -7,6 +7,7 @@ import type {
 import { createInitialOffsetPaginatedState } from '@store/pagination';
 import { fetchPaymentMethodLookupThunk } from '@features/lookup/state';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: PaymentMethodLookupState =
   createInitialOffsetPaginatedState<PaymentMethodLookupItem>();
@@ -33,9 +34,11 @@ export const paymentMethodLookupSlice = createSlice({
         }
       )
       .addCase(fetchPaymentMethodLookupThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          (action.payload as string) || 'Failed to load payment methods';
+        applyRejected(
+          state,
+          action,
+          'Failed to load payment methods'
+        );
       });
   },
 });

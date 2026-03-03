@@ -4,6 +4,7 @@ import type {
   ProductDetailState,
 } from '@features/product/state/productTypes';
 import { fetchProductDetailByIdThunk } from '@features/product/state/productThunks';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 /**
  * Initial state for the Product detail slice.
@@ -43,12 +44,8 @@ export const productDetailSlice = createSlice({
 
       // --- Rejected ---
       .addCase(fetchProductDetailByIdThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          action.payload?.message ||
-          action.error.message ||
-          'Failed to load product details';
-      });
+        applyRejected(state, action, 'Failed to load product details.');
+      })
   },
 });
 

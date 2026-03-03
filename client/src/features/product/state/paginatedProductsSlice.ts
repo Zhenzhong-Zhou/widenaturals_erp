@@ -6,6 +6,7 @@ import type {
   ProductListState,
 } from '@features/product/state/productTypes';
 import { fetchPaginatedProductsThunk } from '@features/product/state/productThunks';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 // ---------------------------
 // Initial State
@@ -58,15 +59,9 @@ const paginatedProductsSlice = createSlice({
 
       // ---- rejected ----
       .addCase(fetchPaginatedProductsThunk.rejected, (state, action) => {
-        state.loading = false;
-
-        if (action.payload) {
-          state.error = action.payload.message;
-          state.traceId = action.payload.traceId;
-        } else {
-          state.error = action.error?.message ?? 'Failed to fetch products.';
-          state.traceId = undefined;
-        }
+        applyRejected(state, action, 'Failed to fetch products.');
+        
+        state.traceId = action.payload?.traceId ?? null;
       });
   },
 });

@@ -1,18 +1,14 @@
 import { createSlice } from '@reduxjs/toolkit';
-import type { LocationInventoryState } from './locationInventoryTypes';
+import type {
+  LocationInventoryRecord,
+  LocationInventoryState
+} from './locationInventoryTypes';
 import { fetchLocationInventoryRecordsThunk } from '@features/locationInventory/state/locationInventoryThunks';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
+import { createInitialPaginatedState } from '@store/pagination';
 
-const initialState: LocationInventoryState = {
-  data: [],
-  pagination: {
-    page: 1,
-    limit: 10,
-    totalRecords: 0,
-    totalPages: 1,
-  },
-  loading: false,
-  error: null,
-};
+const initialState: LocationInventoryState =
+  createInitialPaginatedState<LocationInventoryRecord>();
 
 const locationInventorySlice = createSlice({
   name: 'locationInventory',
@@ -35,9 +31,12 @@ const locationInventorySlice = createSlice({
         }
       )
       .addCase(fetchLocationInventoryRecordsThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      });
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch location inventory records.'
+        );
+      })
   },
 });
 

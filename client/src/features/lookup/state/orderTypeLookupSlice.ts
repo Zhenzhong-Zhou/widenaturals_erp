@@ -4,6 +4,7 @@ import type {
   OrderTypeLookupState,
 } from './lookupTypes';
 import { fetchOrderTypeLookupThunk } from './lookupThunks';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: OrderTypeLookupState = {
   data: [],
@@ -36,8 +37,11 @@ const orderTypeLookupSlice = createSlice({
         }
       )
       .addCase(fetchOrderTypeLookupThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch order types',
+        );
       });
   },
 });

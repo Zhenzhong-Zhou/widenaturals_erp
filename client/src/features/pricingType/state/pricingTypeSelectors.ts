@@ -46,7 +46,7 @@ export const selectTotalPages = createSelector(
  */
 export const selectIsLoading = createSelector(
   selectPricingTypesState,
-  (state) => state.isLoading
+  (state) => state.loading
 );
 
 /**
@@ -54,5 +54,6 @@ export const selectIsLoading = createSelector(
  */
 export const selectError = createSelector(
   selectPricingTypesState,
-  (state) => state.error
+  (state): string | null =>
+    state.error?.message ?? null
 );

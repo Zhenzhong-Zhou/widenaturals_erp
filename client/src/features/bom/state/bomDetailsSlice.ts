@@ -1,6 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { BomDetailsResponse, BomDetailsState } from './bomTypes';
 import { fetchBomDetailsThunk } from './bomThunks';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: BomDetailsState = {
   data: null,
@@ -36,8 +37,11 @@ export const bomDetailsSlice = createSlice({
         }
       )
       .addCase(fetchBomDetailsThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload ?? 'Failed to load BOM details.';
+        applyRejected(
+          state,
+          action,
+          'Failed to load BOM details.'
+        );
       });
   },
 });

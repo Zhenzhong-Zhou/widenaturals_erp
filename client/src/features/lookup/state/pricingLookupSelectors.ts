@@ -46,7 +46,8 @@ export const selectPricingLookupLoading = createSelector(
  */
 export const selectPricingLookupError = createSelector(
   selectPricingLookupState,
-  (pricingLookup) => pricingLookup.error
+  (state): string | null =>
+    state.error?.message ?? null
 );
 
 /**

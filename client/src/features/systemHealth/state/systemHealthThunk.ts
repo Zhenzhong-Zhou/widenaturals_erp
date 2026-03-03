@@ -1,32 +1,35 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type { HealthApiResponse } from '@features/systemHealth';
 import { systemHealthService } from '@services/systemHealthService';
-import { extractErrorMessage } from '@utils/error';
+import { extractUiErrorPayload } from '@utils/error';
+import { UiErrorPayload } from '@utils/error/uiErrorUtils';
 
 /**
- * Thunk: Fetch public system health status.
+ * Fetches the public system health status.
  *
- * Calls `systemHealthService.fetchPublicHealthStatus`,
- * which hits `GET /public/health` and returns a typed
- * {@link HealthApiResponse}.
+ * Responsibilities:
+ * - Calls systemHealthService.fetchPublicHealthStatus
+ * - Retrieves a system health snapshot used for diagnostics
+ *   and application bootstrap checks
  *
- * ## Behavior
- * - Public, unauthenticated request
- * - Used during app bootstrap and diagnostics
- * - Resolves with system health snapshot
- * - Rejects with a user-friendly error message
+ * Error Model:
+ * - Failures return `UiErrorPayload`
  *
- * @returns A typed thunk action resolving to `HealthApiResponse`
- *          or rejecting with `rejectValue: string`.
+ * @returns HealthApiResponse containing system health information
  */
 export const fetchSystemHealthThunk = createAsyncThunk<
-  HealthApiResponse, // fulfilled type
-  void, // argument type
-  { rejectValue: string }
->('systemHealth/fetch', async (_, { rejectWithValue }) => {
-  try {
-    return await systemHealthService.fetchPublicHealthStatus();
-  } catch (error: unknown) {
-    return rejectWithValue(extractErrorMessage(error));
+  HealthApiResponse,
+  void,
+  { rejectValue: UiErrorPayload }
+>(
+  'systemHealth/fetch',
+  async (_, { rejectWithValue }) => {
+    try {
+      return await systemHealthService.fetchPublicHealthStatus();
+    } catch (error: unknown) {
+      return rejectWithValue(
+        extractUiErrorPayload(error)
+      );
+    }
   }
-});
+);

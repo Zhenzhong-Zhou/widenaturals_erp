@@ -9,6 +9,7 @@ import type {
   NullableNumber,
   NullableString
 } from '@shared-types/shared';
+import { UiErrorPayload } from '@utils/error/uiErrorUtils';
 
 /**
  * Supported image upload modes.
@@ -183,7 +184,7 @@ export interface BulkSkuImageUploadResult {
   images: UploadedSkuImageGroup[];
 
   /** Error message if the SKU batch failed. */
-  error: NullableString;
+  error: UiErrorPayload | null;
 }
 
 /**
@@ -340,7 +341,7 @@ export interface BulkSkuImageUpdateResult {
   images: UploadedSkuImageGroup[];
   
   /** Error message if success = false */
-  error: NullableString;
+  error: UiErrorPayload | null;
 }
 
 /**

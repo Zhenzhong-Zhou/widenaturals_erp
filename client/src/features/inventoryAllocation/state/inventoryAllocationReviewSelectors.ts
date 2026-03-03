@@ -27,7 +27,8 @@ export const selectReviewLoading = createSelector(
 
 export const selectReviewError = createSelector(
   [selectInventoryAllocationReviewState],
-  (state) => state.error
+  (state): string | null =>
+    state.error?.message ?? null
 );
 
 export const selectReviewMessage = createSelector(

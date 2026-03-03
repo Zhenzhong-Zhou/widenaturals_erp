@@ -40,7 +40,8 @@ export const selectBomMaterialSupplyLoading = createSelector(
  */
 export const selectBomMaterialSupplyError = createSelector(
   [selectBomMaterialSupplyDetailsState],
-  (state) => state.error
+  (state): string | null =>
+    state.error?.message ?? null
 );
 
 /**

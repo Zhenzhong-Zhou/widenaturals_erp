@@ -6,6 +6,7 @@ import type {
   FlattenedPackagingMaterialBatchRow,
   PackagingMaterialBatchListUiResponse,
 } from '@features/packagingMaterialBatch';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 // ---------------------------
 // Initial State
@@ -69,11 +70,11 @@ const paginatedPackagingMaterialBatchesSlice = createSlice({
       .addCase(
         fetchPaginatedPackagingMaterialBatchThunk.rejected,
         (state, action) => {
-          state.loading = false;
-          state.error =
-            (action.payload as any)?.message ??
-            action.error?.message ??
-            'Failed to fetch packaging material batch records.';
+          applyRejected(
+            state,
+            action,
+            'Failed to fetch packaging material batch records.'
+          );
         }
       );
   },

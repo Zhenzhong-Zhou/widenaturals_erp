@@ -5,6 +5,7 @@ import type {
 } from '@features/inventoryAllocation/state/inventoryAllocationTypes';
 import { createInitialPaginatedState } from '@store/pagination';
 import { fetchPaginatedInventoryAllocationsThunk } from '@features/inventoryAllocation/state';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: PaginatedInventoryAllocationState = {
   ...createInitialPaginatedState<FlattenedInventoryAllocationSummary>(),
@@ -33,11 +34,11 @@ const paginatedInventoryAllocations = createSlice({
       .addCase(
         fetchPaginatedInventoryAllocationsThunk.rejected,
         (state, action) => {
-          state.loading = false;
-          state.error =
-            action.payload?.message ||
-            action.error.message ||
-            'Failed to fetch inventory allocations';
+          applyRejected(
+            state,
+            action,
+            'Failed to fetch inventory allocations.'
+          );
         }
       );
   },

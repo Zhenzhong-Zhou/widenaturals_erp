@@ -18,6 +18,7 @@ import {
   resetInventoryAllocationReview,
   setReviewError,
 } from '@features/inventoryAllocation/state/inventoryAllocationReviewSlice';
+import { ErrorType } from '@utils/error';
 
 const useInventoryAllocationReview = () => {
   const dispatch = useAppDispatch();
@@ -55,10 +56,19 @@ const useInventoryAllocationReview = () => {
   const resetReview = useCallback(() => {
     dispatch(resetInventoryAllocationReview());
   }, [dispatch]);
-
+  
   const updateReviewError = useCallback(
     (msg: string | null) => {
-      dispatch(setReviewError(msg));
+      dispatch(
+        setReviewError(
+          msg
+            ? {
+              message: msg,
+              type: ErrorType.Unknown,
+            }
+            : null
+        )
+      );
     },
     [dispatch]
   );

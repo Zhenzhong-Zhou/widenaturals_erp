@@ -5,6 +5,7 @@ import type {
   UserViewedProfileState,
 } from '@features/user';
 import { fetchUserViewedProfileThunk } from '@features/user';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: UserViewedProfileState = {
   data: null,
@@ -45,8 +46,7 @@ const userViewedProfileSlice = createSlice({
         }
       )
       .addCase(fetchUserViewedProfileThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload || 'Failed to load user profile.';
+        applyRejected(state, action, 'Failed to load user profile.');
       });
   },
 });

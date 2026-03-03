@@ -6,6 +6,7 @@ import type {
   SkuProductCardsState,
 } from '@features/sku/state/skuTypes';
 import { fetchPaginatedSkuProductCardsThunk } from '@features/sku/state/skuThunks';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 /**
  * Initial paginated state for SKU product cards.
@@ -62,13 +63,11 @@ export const skuProductCardsSlice = createSlice({
       // FETCH → FAILURE
       // -------------------------------------------------------
       .addCase(fetchPaginatedSkuProductCardsThunk.rejected, (state, action) => {
-        state.loading = false;
-
-        // Prefer backend-provided message if any exists
-        state.error =
-          (action.payload as any)?.message ||
-          action.error?.message ||
-          'Failed to fetch SKU product cards.';
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch SKU product cards.'
+        );
       });
   },
 });

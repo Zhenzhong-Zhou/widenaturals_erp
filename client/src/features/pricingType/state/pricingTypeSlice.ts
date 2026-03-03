@@ -1,44 +1,39 @@
 import { createSlice } from '@reduxjs/toolkit';
-import type { PricingTypesState } from './pricingTypeTypes';
+import type { PricingType, PricingTypesState } from './pricingTypeTypes';
 import { fetchAllPricingTypesThunk } from './pricingTypeThunks';
+import { createInitialPaginatedState } from '@store/pagination';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
-const initialState: PricingTypesState = {
-  data: [],
-  pagination: {
-    page: 1,
-    limit: 10,
-    totalRecords: 0,
-    totalPages: 0,
-  },
-  isLoading: false,
-  error: null,
-};
+const initialState: PricingTypesState =
+  createInitialPaginatedState<PricingType>();
 
 const pricingTypeSlice = createSlice({
   name: 'pricingTypes',
   initialState,
   reducers: {
-    clearPricingTypesState: (state) => {
-      state.data = [];
-      state.pagination = { page: 1, limit: 10, totalRecords: 0, totalPages: 0 };
-      state.isLoading = false;
-      state.error = null;
-    },
+    clearPricingTypesState: () =>
+      createInitialPaginatedState<PricingType>(),
   },
   extraReducers: (builder) => {
     builder
       .addCase(fetchAllPricingTypesThunk.pending, (state) => {
-        state.isLoading = true;
+        state.loading = true;
         state.error = null;
+        state.traceId = null;
       })
+      
       .addCase(fetchAllPricingTypesThunk.fulfilled, (state, action) => {
-        state.isLoading = false;
+        state.loading = false;
         state.data = action.payload.data;
         state.pagination = action.payload.pagination;
       })
+      
       .addCase(fetchAllPricingTypesThunk.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload || 'Failed to fetch pricing types';
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch pricing types.'
+        );
       });
   },
 });

@@ -1,18 +1,11 @@
 import { createSlice } from '@reduxjs/toolkit';
-import type { LocationInventorySummaryDetailState } from './locationInventoryTypes';
+import { LocationInventorySummaryDetailState, LocationInventorySummaryItemDetail } from './locationInventoryTypes';
 import { fetchLocationInventorySummaryByItemIdThunk } from './locationInventoryThunks';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
+import { createInitialPaginatedState } from '@store/pagination';
 
-const initialState: LocationInventorySummaryDetailState = {
-  data: [],
-  pagination: {
-    page: 1,
-    limit: 10,
-    totalRecords: 0,
-    totalPages: 1,
-  },
-  loading: false,
-  error: null,
-};
+const initialState: LocationInventorySummaryDetailState =
+  createInitialPaginatedState<LocationInventorySummaryItemDetail>();
 
 const locationInventorySummaryDetailSlice = createSlice({
   name: 'locationInventorySummaryDetail',
@@ -37,10 +30,11 @@ const locationInventorySummaryDetailSlice = createSlice({
       .addCase(
         fetchLocationInventorySummaryByItemIdThunk.rejected,
         (state, action) => {
-          state.loading = false;
-          state.error =
-            action.payload ??
-            'Failed to load location inventory summary detail.';
+          applyRejected(
+            state,
+            action,
+            'Failed to load location inventory summary detail.'
+          );
         }
       );
   },

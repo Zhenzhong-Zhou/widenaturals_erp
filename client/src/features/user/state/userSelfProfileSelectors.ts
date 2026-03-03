@@ -21,7 +21,8 @@ export const selectUserSelfProfileLoading = createSelector(
  */
 export const selectUserSelfProfileError = createSelector(
   [selectUserSelfProfileState],
-  (state) => state.error
+  (state): string | null =>
+    state.error?.message ?? null
 );
 
 /**

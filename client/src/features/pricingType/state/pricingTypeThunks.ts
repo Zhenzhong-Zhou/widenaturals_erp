@@ -1,3 +1,27 @@
+/**
+ * ================================================================
+ * Pricing Type Thunks Module
+ * ================================================================
+ *
+ * Responsibility:
+ * - Orchestrates asynchronous pricing type workflows.
+ * - Serves as the boundary between UI and pricingTypeService.
+ *
+ * Scope:
+ * - Fetch paginated pricing type records
+ * - Fetch pricing type metadata by ID
+ *
+ * Architecture:
+ * - Delegates API calls to pricingTypeService
+ * - No transformation is performed at the thunk layer
+ * - Redux state stores service response models directly
+ *
+ * Error Model:
+ * - All failures return `UiErrorPayload`
+ * - Errors are normalized via `extractUiErrorPayload`
+ * ================================================================
+ */
+
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { pricingTypeService } from '@services/pricingTypeService';
 import type { PaginatedResponse } from '@shared-types/api';
@@ -6,52 +30,66 @@ import type {
   PricingType,
   PricingTypeMetadata,
 } from './pricingTypeTypes';
+import { extractUiErrorPayload, UiErrorPayload } from '@utils/error/uiErrorUtils';
 
 /**
- * Redux thunk to fetch paginated pricing types with optional filters.
+ * Fetches a paginated list of pricing types.
  *
- * @param {FetchPricingTypesParams} params - Pagination and filter parameters.
- * @returns {PaginatedResponse<PricingType>} - A paginated list of pricing types.
+ * Responsibilities:
+ * - Calls pricingTypeService.fetchAllPricingTypes
+ * - Passes pagination and filter parameters
+ * - Returns service response directly without transformation
+ *
+ * Error Model:
+ * - Failures return `UiErrorPayload`
+ *
+ * @param params - Pagination and filtering options
  */
 export const fetchAllPricingTypesThunk = createAsyncThunk<
   PaginatedResponse<PricingType>,
   FetchPricingTypesParams,
-  { rejectValue: string }
->('pricingTypes/fetchAllPricingTypes', async (params, thunkAPI) => {
-  try {
-    return await pricingTypeService.fetchAllPricingTypes(params);
-  } catch (error: any) {
-    return thunkAPI.rejectWithValue(
-      error.message || 'Failed to fetch pricing types'
-    );
+  { rejectValue: UiErrorPayload }
+>(
+  'pricingTypes/fetchAllPricingTypes',
+  async (params, { rejectWithValue }) => {
+    try {
+      return await pricingTypeService.fetchAllPricingTypes(params);
+    } catch (error: unknown) {
+      return rejectWithValue(
+        extractUiErrorPayload(error)
+      );
+    }
   }
-});
+);
 
 /**
- * Thunk to fetch pricing type metadata by ID.
+ * Fetches metadata for a single pricing type.
  *
- * This thunk calls the pricing type service to retrieve metadata such as
- * name, code, status, and audit fields (createdBy, updatedBy). It handles
- * success and error states for use in Redux state management.
+ * Responsibilities:
+ * - Calls pricingTypeService.fetchPricingTypeMetadataById
+ * - Returns pricing type metadata for detail views
  *
- * @param {string} id - The UUID of the pricing type to fetch.
- * @returns {Promise<PricingTypeMetadata>} On success, returns the transformed pricing type metadata.
- * @throws {string} On failure, returns a rejected value containing the error message.
+ * Error Model:
+ * - Failures return `UiErrorPayload`
  *
- * @example
- * dispatch(fetchPricingTypeMetadataThunk('d421a039-...'));
+ * @param id - Pricing type UUID
  */
 export const fetchPricingTypeMetadataThunk = createAsyncThunk<
   PricingTypeMetadata,
   string,
-  { rejectValue: string }
->('pricingType/fetchMetadataById', async (id, { rejectWithValue }) => {
-  try {
-    const response = await pricingTypeService.fetchPricingTypeMetadataById(id);
-    return response.data;
-  } catch (error: any) {
-    return rejectWithValue(
-      error.message || 'Failed to fetch pricing type metadata'
-    );
+  { rejectValue: UiErrorPayload }
+>(
+  'pricingType/fetchMetadataById',
+  async (id, { rejectWithValue }) => {
+    try {
+      const response =
+        await pricingTypeService.fetchPricingTypeMetadataById(id);
+      
+      return response.data;
+    } catch (error: unknown) {
+      return rejectWithValue(
+        extractUiErrorPayload(error)
+      );
+    }
   }
-});
+);

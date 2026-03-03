@@ -1,87 +1,76 @@
-import { createAsyncThunk } from '@reduxjs/toolkit';
-import type { BulkSkuImageUpdateResponse, BulkSkuImageUploadResponse } from '@features/skuImage/state';
-import { skuImageService } from '@services/skuImageService';
-import { extractUiErrorPayload, UiErrorPayload } from '@utils/error/uiErrorUtils';
-
 /**
- * Async thunk for performing **bulk SKU image uploads**.
+ * ================================================================
+ * SKU Image Thunks Module
+ * ================================================================
  *
- * This thunk:
- * - Sends a multipart/form-data POST request using `skuImageService.uploadSkuImages()`.
- * - Provides strict compile-time types for the request (`FormData`) and response
- *   (`BulkSkuImageUploadResponse`).
- * - Converts backend exceptions into a typed `rejectValue`, ensuring reducers
- *   always receive predictable error shapes.
- * - Supports batch operations of **1–50 SKUs**, each with **1–100 images**.
+ * Responsibility:
+ * - Orchestrates SKU image upload and update workflows.
+ * - Serves as the boundary between UI and skuImageService.
  *
- * **Example Usage**
- * ```ts
- * dispatch(uploadSkuImagesThunk(formData));
- * ```
+ * Scope:
+ * - Bulk SKU image uploads
+ * - Bulk SKU image updates
  *
- * **FormData Structure**
- * The FormData passed to this thunk must contain:
- * - `"skus"`: JSON.stringify of the upload definition
- * - `"files"`: one or more binary file blobs (if file uploads are used)
+ * Architecture:
+ * - Multipart requests delegated to skuImageService
+ * - No transformation performed at thunk level
+ * - Redux reducers handle response state updates
  *
- * **Success Payload (`BulkSkuImageUploadResponse`) Includes:**
- * - `results`: Per-SKU status (`BulkSkuImageUploadResult[]`)
- * - `stats`: Batch processing summary (`BatchProcessStats`)
- * - `success`: Overall success flag
- *
- * **Error Payload (`rejectValue`) Includes:**
- * - `message`: Human-readable error message
- * - `traceId?`: Optional backend correlation identifier
+ * Error Model:
+ * - All failures return `UiErrorPayload`
+ * - Errors are normalized via `extractUiErrorPayload`
+ * ================================================================
  */
-// todo: refactor with uiErrorUtil
-export const uploadSkuImagesThunk = createAsyncThunk<
-  BulkSkuImageUploadResponse, // Success payload
-  FormData, // Thunk argument
-  {
-    rejectValue: {
-      message: string;
-      traceId?: string;
-    };
-  }
->('skuImage/upload', async (formData, { rejectWithValue }) => {
-  try {
-    return await skuImageService.uploadSkuImages(formData);
-  } catch (err: any) {
-    return rejectWithValue({
-      message: err?.message ?? 'Failed to upload SKU images.',
-      traceId: err?.traceId,
-    });
-  }
-});
+
+import { createAsyncThunk } from '@reduxjs/toolkit';
+import type {
+  BulkSkuImageUpdateResponse,
+  BulkSkuImageUploadResponse
+} from '@features/skuImage/state';
+import { skuImageService } from '@services/skuImageService';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import { extractUiErrorPayload } from '@utils/error/uiErrorUtils';
 
 /**
- * Async thunk for performing bulk SKU image updates.
+ * Uploads one or more SKU images.
  *
  * Responsibilities:
- * - Sends multipart FormData payload to the backend update API.
- * - Supports mixed update operations (file replacement + metadata updates).
- * - Handles per-SKU partial success responses.
- * - Normalizes backend errors into UiErrorPayload via extractUiErrorPayload.
+ * - Calls skuImageService.uploadSkuImages
+ * - Sends multipart FormData containing image files and metadata
+ * - Returns bulk upload result from the backend
  *
- * Payload:
- * - Expects a pre-constructed FormData object.
- * - FormData must contain:
- *    - Serialized JSON for update metadata
- *    - Binary file entries for any replaced images
+ * Error Model:
+ * - Failures return `UiErrorPayload`
  *
- * Returns:
- * - BulkSkuImageUpdateResponse containing:
- *    - Per-SKU results
- *    - Batch-level processing stats
+ * @param formData - Multipart form payload containing image files and metadata
+ */
+export const uploadSkuImagesThunk = createAsyncThunk<
+  BulkSkuImageUploadResponse,
+  FormData,
+  { rejectValue: UiErrorPayload }
+>(
+  'skuImage/upload',
+  async (formData, { rejectWithValue }) => {
+    try {
+      return await skuImageService.uploadSkuImages(formData);
+    } catch (error: unknown) {
+      return rejectWithValue(extractUiErrorPayload(error));
+    }
+  }
+);
+
+/**
+ * Updates existing SKU images in bulk.
  *
- * Error Handling:
- * - Uses rejectWithValue to propagate structured UI error payloads.
- * - Ensures reducers can safely access typed error metadata.
+ * Responsibilities:
+ * - Calls skuImageService.updateSkuImages
+ * - Sends multipart FormData containing updated image files and metadata
+ * - Returns batch update results and processing statistics
  *
- * Redux Flow:
- * - pending   → sets loading state
- * - fulfilled → stores results + stats
- * - rejected  → stores normalized UI error
+ * Error Model:
+ * - Failures return `UiErrorPayload`
+ *
+ * @param formData - Multipart form payload containing image updates
  */
 export const updateSkuImagesThunk = createAsyncThunk<
   BulkSkuImageUpdateResponse,

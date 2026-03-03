@@ -4,6 +4,7 @@ import type {
   LocationTypeDetailState,
 } from '@features/locationType/state/locationTypeTypes';
 import { fetchLocationTypeDetailsThunk } from '@features/locationType';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 /**
  * Initial state for the Location Type detail slice.
@@ -49,14 +50,11 @@ export const locationTypeDetailSlice = createSlice({
       // Rejected
       // --------------------------------------------------
       .addCase(fetchLocationTypeDetailsThunk.rejected, (state, action) => {
-        state.loading = false;
-
-        if (action.payload) {
-          state.error = action.payload.message;
-        } else {
-          state.error =
-            action.error?.message ?? 'Failed to load location type details.';
-        }
+        applyRejected(
+          state,
+          action,
+          'Failed to load location type details.'
+        );
       });
   },
 });

@@ -52,5 +52,6 @@ export const selectPaginatedAddressLoading = createSelector(
  */
 export const selectPaginatedAddressError = createSelector(
   [selectPaginatedAddressState],
-  (state) => state?.error ?? null
+  (state): string | null =>
+    state.error?.message ?? null
 );

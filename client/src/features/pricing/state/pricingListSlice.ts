@@ -2,23 +2,16 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { fetchPricingListDataThunk } from './pricingThunks';
 import type {
   PaginatedPricingRecordsResponse,
-  PricingListState,
+  PricingListState, PricingRecord,
 } from './pricingTypes';
+import { createInitialPaginatedState } from '@store/pagination';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 /**
  * Initial state and structure for managing paginated pricing records in the pricing list view.
  */
-const initialState: PricingListState = {
-  data: [],
-  pagination: {
-    page: 1,
-    limit: 10,
-    totalRecords: 0,
-    totalPages: 1,
-  },
-  loading: false,
-  error: null,
-};
+const initialState: PricingListState =
+  createInitialPaginatedState<PricingRecord>();
 
 const pricingListSlice = createSlice({
   name: 'pricingList',
@@ -39,8 +32,11 @@ const pricingListSlice = createSlice({
         }
       )
       .addCase(fetchPricingListDataThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload ?? 'Failed to fetch pricing records.';
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch pricing records.'
+        );
       });
   },
 });

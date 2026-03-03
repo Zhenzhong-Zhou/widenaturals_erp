@@ -1,8 +1,12 @@
 import type { FC } from 'react';
 import Box from '@mui/material/Box';
 import ErrorIcon from '@mui/icons-material/Error';
-import CustomDialog from '@components/common/CustomDialog';
-import ResultBody from '@components/common/ResultBody';
+import {
+  CustomDialog,
+  CustomTypography,
+  ErrorMessage,
+  ResultBody
+} from '@components/index';
 import type {
   BulkSkuImageUploadResult,
   SkuImageUploadCardData,
@@ -85,9 +89,16 @@ const SkuImageUploadErrorDialog: FC<Props> = ({
                       <Box>
                         <strong>SKU:</strong> {r.skuCode}
                       </Box>
-                      <Box>
-                        <strong>Error:</strong> {r.error ?? 'Unknown error'}
-                      </Box>
+                      {r.error && (
+                        <Box>
+                          <ErrorMessage message={r.error.message}/>
+                          {r.error.traceId && (
+                            <CustomTypography variant="caption" display="block">
+                              Ref: {r.error.traceId}
+                            </CustomTypography>
+                          )}
+                        </Box>
+                      )}
                     </Box>
                   ))}
                 </Box>

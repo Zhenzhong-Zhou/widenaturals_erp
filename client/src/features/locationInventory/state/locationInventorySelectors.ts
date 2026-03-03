@@ -42,7 +42,8 @@ export const selectLocationInventoryLoading = createSelector(
  */
 export const selectLocationInventoryError = createSelector(
   [selectLocationInventoryState],
-  (state) => state.error
+  (state): string | null =>
+    state.error?.message ?? null
 );
 
 /**

@@ -50,7 +50,8 @@ export const selectCreateProductsLoading = createSelector(
  */
 export const selectCreateProductsError = createSelector(
   [selectCreateProductsState],
-  (state) => state.error
+  (state): string | null =>
+    state.error?.message ?? null
 );
 
 /**

@@ -1,16 +1,17 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { createSlice } from '@reduxjs/toolkit';
 import type {
-  BulkSkuImageUploadResponse,
   SkuImageUploadState,
 } from '@features/skuImage/state';
 import { uploadSkuImagesThunk } from '@features/skuImage/state';
+import { applyBatchSuccess } from '@features/shared/batch/batchReducerUtils';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: SkuImageUploadState = {
-  data: null, // entire BulkSkuImageUploadResponse
+  data: null,
   loading: false,
   error: null,
-  results: null, // per-SKU results array
-  stats: null, // BatchProcessStats
+  results: null,
+  stats: null,
 };
 
 export const skuImageUploadSlice = createSlice({
@@ -24,40 +25,36 @@ export const skuImageUploadSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Pending → start loading, reset data
+      // --------------------------------------------
+      // Pending → start loading, reset previous data
+      // --------------------------------------------
       .addCase(uploadSkuImagesThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
-
         state.data = null;
         state.results = null;
         state.stats = null;
       })
-
-      // Fulfilled → store full response, plus unpack `results` & `stats`
-      .addCase(
-        uploadSkuImagesThunk.fulfilled,
-        (state, action: PayloadAction<BulkSkuImageUploadResponse>) => {
-          const payload = action.payload;
-
-          state.loading = false;
-          state.error = null;
-          state.data = payload;
-
-          // Unstack structured fields for UI convenience
-          state.results = payload.data ?? null;
-          state.stats = payload.stats ?? null;
-        }
-      )
-
-      // Rejected → store error message
+      
+      // --------------------------------------------
+      // Fulfilled → standardized batch success
+      // --------------------------------------------
+      .addCase(uploadSkuImagesThunk.fulfilled, (state, action) => {
+        applyBatchSuccess(state, action.payload);
+      })
+      
+      // --------------------------------------------
+      // Rejected → store user-facing error
+      // --------------------------------------------
       .addCase(uploadSkuImagesThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload?.message ?? 'Failed to upload SKU images.';
+        applyRejected(
+          state,
+          action,
+          'Failed to upload SKU images.'
+        );
       });
   },
 });
 
 export const { resetSkuImageUpload } = skuImageUploadSlice.actions;
-
 export default skuImageUploadSlice.reducer;

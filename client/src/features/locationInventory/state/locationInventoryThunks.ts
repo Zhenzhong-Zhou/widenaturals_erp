@@ -12,16 +12,28 @@ import type {
   InventorySummaryDetailByItemIdParams,
   ItemType,
 } from '@features/inventoryShared/types/InventorySharedType';
+import { extractUiErrorPayload, UiErrorPayload } from '@utils/error/uiErrorUtils';
 
 /**
- * Thunk to fetch KPI summary for location inventory.
+ * Redux async thunk to fetch location inventory KPI summary data.
  *
- * @param {ItemType} [itemType] - Optional item type filter: 'product' or 'packaging_material'
- * @returns {Promise<LocationInventoryKpiSummaryResponse>} The KPI summary data.
+ * Responsibilities:
+ * - Delegates data fetching to `locationInventoryService.fetchLocationInventoryKpiSummary`
+ * - Supports optional item type filtering (`product` or `packaging_material`)
+ * - Returns structured KPI summary metrics for dashboard display
+ *
+ * Error Handling:
+ * - Rejects with a structured {@link UiErrorPayload}
+ * - Errors are normalized via `extractUiErrorPayload`
+ * - Ensures consistent reducer-level error handling
+ *
+ * @param itemType - Optional item type filter
+ * @returns Fulfilled action containing {@link LocationInventoryKpiSummaryResponse}
  */
 export const fetchLocationInventoryKpiSummaryThunk = createAsyncThunk<
   LocationInventoryKpiSummaryResponse,
-  ItemType
+  ItemType,
+  { rejectValue: UiErrorPayload }
 >(
   'locationInventory/fetchKpiSummary',
   async (itemType, { rejectWithValue }) => {
@@ -29,27 +41,42 @@ export const fetchLocationInventoryKpiSummaryThunk = createAsyncThunk<
       return await locationInventoryService.fetchLocationInventoryKpiSummary(
         itemType
       );
-    } catch (error: any) {
-      console.error('Failed to fetch KPI summary:', error);
-      return rejectWithValue(error?.response?.data?.message || 'Unknown error');
+    } catch (error: unknown) {
+      console.error(
+        'Failed to fetch KPI summary:',
+        { itemType, error }
+      );
+      
+      return rejectWithValue(
+        extractUiErrorPayload(error)
+      );
     }
   }
 );
 
 /**
- * Thunk to fetch paginated and filtered location inventory summary data.
+ * Redux async thunk to fetch paginated location inventory summary data.
  *
- * This thunk calls the `locationInventoryService.fetchLocationInventorySummary` function
- * and returns a structured summary response. If an error occurs during the API request,
- * it returns a rejected value with a descriptive error message.
+ * Responsibilities:
+ * - Delegates to `locationInventoryService.fetchLocationInventorySummary`
+ * - Supports pagination, sorting, and filtering
+ * - Returns structured summary data with pagination metadata
  *
- * @param {LocationInventoryQueryParams} params - Pagination, sorting, and filter parameters
- * @returns {Promise<LocationInventorySummaryResponse>} A response with summary data and pagination
+ * Design Principles:
+ * - Contains no domain or business logic
+ * - Acts strictly as an API boundary adapter
+ *
+ * Error Handling:
+ * - Rejects with structured {@link UiErrorPayload}
+ * - Errors normalized using `extractUiErrorPayload`
+ *
+ * @param params - Pagination, sorting, and filter parameters
+ * @returns Fulfilled action containing {@link LocationInventorySummaryResponse}
  */
 export const fetchLocationInventorySummaryThunk = createAsyncThunk<
-  LocationInventorySummaryResponse, // Return type on success
-  LocationInventoryQueryParams, // Thunk input (params)
-  { rejectValue: string } // Return type on failure
+  LocationInventorySummaryResponse,
+  LocationInventoryQueryParams,
+  { rejectValue: UiErrorPayload }
 >(
   'locationInventory/fetchInventorySummary',
   async (params, { rejectWithValue }) => {
@@ -57,25 +84,33 @@ export const fetchLocationInventorySummaryThunk = createAsyncThunk<
       return await locationInventoryService.fetchLocationInventorySummary(
         params
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       return rejectWithValue(
-        error.message || 'Failed to fetch inventory summary'
+        extractUiErrorPayload(error)
       );
     }
   }
 );
 
 /**
- * Thunk to fetch location inventory summary details by item ID.
+ * Redux async thunk to fetch location inventory summary details by item ID.
  *
- * @param {InventorySummaryDetailByItemIdParams} params - Includes itemId and optional pagination (page, limit).
- * @returns {Promise<LocationInventorySummaryDetailResponse>} - The fetched summary detail with pagination metadata.
- * @throws {string} Rejected with a message if the request fails.
+ * Responsibilities:
+ * - Delegates to `locationInventoryService.fetchLocationInventorySummaryByItemId`
+ * - Supports optional pagination parameters
+ * - Returns structured detail response with pagination metadata
+ *
+ * Error Handling:
+ * - Rejects with structured {@link UiErrorPayload}
+ * - Errors normalized via `extractUiErrorPayload`
+ *
+ * @param params - Includes `itemId` and optional pagination fields
+ * @returns Fulfilled action containing {@link LocationInventorySummaryDetailResponse}
  */
 export const fetchLocationInventorySummaryByItemIdThunk = createAsyncThunk<
-  LocationInventorySummaryDetailResponse, // return type on success
-  InventorySummaryDetailByItemIdParams, // argument type
-  { rejectValue: string } // optional error type
+  LocationInventorySummaryDetailResponse,
+  InventorySummaryDetailByItemIdParams,
+  { rejectValue: UiErrorPayload }
 >(
   'locationInventory/fetchSummaryDetailByItemId',
   async (params, { rejectWithValue }) => {
@@ -83,32 +118,43 @@ export const fetchLocationInventorySummaryByItemIdThunk = createAsyncThunk<
       return await locationInventoryService.fetchLocationInventorySummaryByItemId(
         params
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       return rejectWithValue(
-        error?.response?.data?.message ||
-          'Failed to fetch inventory summary detail'
+        extractUiErrorPayload(error)
       );
     }
   }
 );
 
 /**
- * Thunk to fetch paginated location inventory records from the server.
+ * Redux async thunk to fetch paginated location inventory records.
  *
- * This thunk:
- * - Applies batch-type-specific filter cleanup via the service layer
- * - Uses the provided pagination and filter parameters
- * - Returns a structured response with records and pagination metadata
- * - Handles and propagates errors using `rejectWithValue`
+ * Responsibilities:
+ * - Delegates to `locationInventoryService.fetchLocationInventoryRecords`
+ * - Applies batch-type-specific filter normalization via the service layer
+ * - Returns structured record data with pagination metadata
+ *
+ * Design Principles:
+ * - No business logic in the thunk
+ * - Acts as a thin API boundary adapter
+ *
+ * Error Handling:
+ * - Rejects with structured {@link UiErrorPayload}
+ * - Errors normalized via `extractUiErrorPayload`
  *
  * Usage:
- * dispatch(fetchLocationInventoryRecordsThunk({ pagination: { page: 1, limit: 20 }, filters }))
+ * dispatch(fetchLocationInventoryRecordsThunk({
+ *   pagination: { page: 1, limit: 20 },
+ *   filters,
+ *   sortConfig
+ * }));
  *
- * @returns {Promise<LocationInventoryRecordsResponse>} Fulfilled with the fetched records or rejected with an error message
+ * @returns Fulfilled action containing {@link LocationInventoryRecordsResponse}
  */
 export const fetchLocationInventoryRecordsThunk = createAsyncThunk<
   LocationInventoryRecordsResponse,
-  FetchLocationInventoryArgs
+  FetchLocationInventoryArgs,
+  { rejectValue: UiErrorPayload }
 >(
   'locationInventory/fetchRecords',
   async ({ pagination, filters, sortConfig = {} }, { rejectWithValue }) => {
@@ -118,10 +164,11 @@ export const fetchLocationInventoryRecordsThunk = createAsyncThunk<
         filters,
         sortConfig
       );
-    } catch (error: any) {
-      console.error('Thunk error fetching location inventory:', error);
+    } catch (error: unknown) {
+      console.error('fetchLocationInventoryRecordsThunk error:', error);
+      
       return rejectWithValue(
-        error.message || 'Failed to fetch location inventory records.'
+        extractUiErrorPayload(error)
       );
     }
   }

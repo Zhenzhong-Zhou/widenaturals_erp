@@ -4,6 +4,7 @@ import {
   fetchPaginatedInventoryActivityLogsThunk,
 } from '@features/report/state';
 import type { InventoryActivityLogsState } from '@features/report/state';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: InventoryActivityLogsState = {
   base: {
@@ -50,9 +51,11 @@ export const inventoryActivityLogsSlice = createSlice({
       .addCase(
         fetchBaseInventoryActivityLogsThunk.rejected,
         (state, action) => {
-          state.base.loading = false;
-          state.base.error =
-            action.error.message ?? 'Failed to fetch base inventory logs.';
+          applyRejected(
+            state.base,
+            action,
+            'Failed to fetch base inventory logs.'
+          );
         }
       );
 
@@ -73,9 +76,11 @@ export const inventoryActivityLogsSlice = createSlice({
       .addCase(
         fetchPaginatedInventoryActivityLogsThunk.rejected,
         (state, action) => {
-          state.paginated.loading = false;
-          state.paginated.error =
-            action.error.message ?? 'Failed to fetch paginated inventory logs.';
+          applyRejected(
+            state.paginated,
+            action,
+            'Failed to fetch paginated inventory logs.'
+          );
         }
       );
   },

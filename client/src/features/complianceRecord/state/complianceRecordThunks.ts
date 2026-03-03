@@ -5,41 +5,58 @@ import type {
 } from '@features/complianceRecord/state';
 import { complianceRecordService } from '@services/complianceRecordService';
 import { flattenComplianceRecordsToRows } from '@features/complianceRecord/utils';
+import { UiErrorPayload } from '@utils/error/uiErrorUtils';
 import { extractUiErrorPayload } from '@utils/error';
 
 /**
- * Fetch a paginated list of compliance records.
+ * Redux async thunk to fetch a paginated list of compliance records.
  *
  * Responsibilities:
  * - Delegates data fetching to the compliance service layer
- * - Applies canonical compliance list flattening at the thunk boundary
- * - Preserves backend pagination metadata without transformation
- * - Normalizes API errors into a UI-safe payload
+ * - Applies canonical record flattening at the thunk boundary
+ * - Preserves backend pagination metadata
+ * - Ensures Redux stores only flattened, UI-ready rows
  *
- * Design notes:
- * - Thunk intentionally contains no domain logic
- * - Returned records are flattened and UI-ready
+ * Design Principles:
+ * - Contains no domain/business logic
+ * - Performs transformation only at the API boundary
+ * - Maintains strict separation between service models and UI state
+ *
+ * Error Handling:
+ * - Rejects with a structured {@link UiErrorPayload}
+ * - All errors are normalized via `extractUiErrorPayload`
+ * - Guarantees consistent UI-safe error handling across slices
  *
  * @param params - Pagination, sorting, and compliance filter options
- * @returns Paginated, flattened compliance records
+ * @returns A fulfilled action containing {@link PaginatedComplianceListResponse}
+ *          with flattened `data` rows.
+ *
+ * @example
+ * dispatch(fetchComplianceRecordsThunk({
+ *   page: 1,
+ *   limit: 20,
+ *   filters: { status: 'ACTIVE' }
+ * }));
  */
 export const fetchComplianceRecordsThunk = createAsyncThunk<
   PaginatedComplianceListResponse,
   GetPaginatedComplianceRecordsParams | undefined,
-  { rejectValue: { message: string; traceId?: string } }
+  { rejectValue: UiErrorPayload }
 >(
   'compliance/fetchPaginatedRecords',
   async (params = {}, { rejectWithValue }) => {
     try {
       const response =
         await complianceRecordService.fetchPaginatedComplianceRecords(params);
-
+      
       return {
         ...response,
         data: flattenComplianceRecordsToRows(response.data),
       };
-    } catch (error) {
-      return rejectWithValue(extractUiErrorPayload(error));
+    } catch (error: unknown) {
+      return rejectWithValue(
+        extractUiErrorPayload(error)
+      );
     }
   }
 );

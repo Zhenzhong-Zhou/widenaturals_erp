@@ -1,3 +1,34 @@
+/**
+ * ================================================================
+ * Order Thunks Module
+ * ================================================================
+ *
+ * Responsibility:
+ * - Orchestrates asynchronous order workflows.
+ * - Serves as the business boundary between UI and orderService.
+ *
+ * Scope:
+ * - Order creation
+ * - Category-based order listing
+ * - Order aggregate retrieval
+ * - Order status transitions
+ *
+ * Architecture:
+ * - Thunks coordinate API calls via `orderService`.
+ * - UI normalization occurs at the thunk boundary (not in reducers).
+ * - Reducers remain pure and state-focused.
+ *
+ * Error Model:
+ * - All failures return `UiErrorPayload`.
+ * - Errors are normalized via `extractUiErrorPayload`.
+ *
+ * Design Rules:
+ * - No direct component logic.
+ * - No persistence logic.
+ * - Transformations happen here when needed for UI consumption.
+ * ================================================================
+ */
+
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
   CreateSalesOrderInput,
@@ -13,117 +44,132 @@ import {
   flattenOrderItems,
   normalizeSalesOrderHeader,
 } from '@features/order/utils';
-import { extractUiErrorPayload } from '@utils/error';
+import { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import { ErrorType, extractUiErrorPayload } from '@utils/error';
+
+/* ------------------------------------------------------------------ */
+/* Create Sales Order */
+/* ------------------------------------------------------------------ */
 
 /**
- * Thunk to create a new sales order under a given category.
+ * Creates a new order under a given category.
  *
- * Sends a POST request to the appropriate category route (e.g., `/orders/create/sales`)
- * with full order metadata and item details. Commonly used in checkout flows,
- * admin order creation, or internal sales modules.
+ * Responsibilities:
+ * - Calls orderService.createSalesOrder
+ * - Returns API response directly
+ * - Standardizes errors via `rejectWithValue`
  *
- * Dispatch lifecycle:
- * - `orders/createSalesOrder/pending`: dispatched when the request starts
- * - `orders/createSalesOrder/fulfilled`: dispatched on successful response
- * - `orders/createSalesOrder/rejected`: dispatched if the request fails
- *
- * @param args - Includes the order `category` (e.g., 'sales', 'purchase') and the `data` payload.
- * @returns A {@link CreateSalesOrderResponse} containing the newly created order ID.
+ * @param category - Order category (e.g., 'sales', 'purchase')
+ * @param data     - Sales order payload
  */
 export const createSalesOrderThunk = createAsyncThunk<
   CreateSalesOrderResponse,
-  { category: string; data: CreateSalesOrderInput }
->('orders/createSalesOrder', async ({ category, data }, thunkAPI) => {
-  try {
-    return await orderService.createSalesOrder(category, data);
-  } catch (error: any) {
-    console.error('createSalesOrderThunk failed:', error);
-    return thunkAPI.rejectWithValue(error?.response?.data || error.message);
+  { category: string; data: CreateSalesOrderInput },
+  { rejectValue: UiErrorPayload }
+>(
+  'orders/createSalesOrder',
+  async ({ category, data }, { rejectWithValue }) => {
+    try {
+      return await orderService.createSalesOrder(category, data);
+    } catch (error: unknown) {
+      console.error('createSalesOrderThunk failed:', {
+        category,
+        error,
+      });
+      
+      return rejectWithValue(
+        extractUiErrorPayload(error)
+      );
+    }
   }
-});
+);
+
+/* ------------------------------------------------------------------ */
+/* Fetch Orders By Category */
+/* ------------------------------------------------------------------ */
 
 /**
- * Thunk to fetch a paginated list of orders for a specific category.
+ * Fetches a paginated list of orders for a specific category.
  *
- * This thunk:
- * - Accepts a category (e.g., 'sales', 'purchase') and optional filter/sort query parameters
- * - Dispatches Redux actions to update loading, data, and error states automatically
- * - Calls the underlying `orderService.fetchOrdersByCategory` API method
- * - Returns the API response payload on success (`OrderListResponse`)
- * - Returns a rejected value on failure for error handling in reducers
+ * Responsibilities:
+ * - Calls orderService.fetchOrdersByCategory
+ * - Passes through pagination and filter params
+ * - Standardizes error handling
  *
- * Useful for listing orders in paginated tables, filtered dashboards, or category-based views.
- *
- * Usage example:
- * ```ts
- * dispatch(fetchOrdersByCategoryThunk({ category: 'sales', params: { keyword: 'NMN' } }));
- * ```
- *
- * @param args - Object containing:
- *   - `category`: Order category (e.g., 'sales', 'purchase')
- *   - `params`: Optional query parameters such as keyword, page, sort, filters
- *
- * @returns A Promise resolving to the fetched order list or a rejected value containing an error message
+ * @param category - Order category
+ * @param params   - Optional pagination and filter parameters
  */
 export const fetchOrdersByCategoryThunk = createAsyncThunk<
-  OrderListResponse, // Return type
-  { category: string; params?: OrderQueryParams }, // Argument type
-  { rejectValue: string } // Optional reject payload
+  OrderListResponse,
+  { category: string; params?: OrderQueryParams },
+  { rejectValue: UiErrorPayload }
 >(
   'orders/fetchByCategory',
   async ({ category, params }, { rejectWithValue }) => {
     try {
       return await orderService.fetchOrdersByCategory(category, params);
-    } catch (error: any) {
-      console.error('fetchOrdersByCategoryThunk error:', error);
-      return rejectWithValue(error?.message ?? 'Failed to fetch orders');
+    } catch (error: unknown) {
+      console.error('fetchOrdersByCategoryThunk error:', {
+        category,
+        params,
+        error,
+      });
+      
+      return rejectWithValue(
+        extractUiErrorPayload(error)
+      );
     }
   }
 );
 
+/* ------------------------------------------------------------------ */
+/* Fetch Order Details */
+/* ------------------------------------------------------------------ */
+
 /**
- * Redux thunk to fetch detailed information for a single order by ID.
+ * Fetches a single order aggregate and transforms it into
+ * UI-ready structure.
  *
  * Responsibilities:
- * - Fetches the order aggregate from the backend
- * - Normalizes order header and items at the thunk boundary
- * - Emits UI-ready data into Redux state
- * - Standardizes error handling via `rejectWithValue`
+ * - Validates route parameters
+ * - Calls orderService.fetchOrderDetailsById
+ * - Normalizes header and items
+ * - Returns flattened UI payload
  *
- * Design notes:
- * - No domain logic lives in reducers or components
- * - Header and items are flattened separately for reuse
+ * Transformation Boundary:
+ * - Header → normalizeSalesOrderHeader
+ * - Items  → flattenOrderItems
  *
- * @param params.category - Order category (e.g. "sales", "transfer")
- * @param params.orderId  - Order UUID
- *
- * @returns UI-ready order details payload
+ * @param category - Order category
+ * @param orderId  - Order UUID
  */
 export const fetchOrderDetailsByIdThunk = createAsyncThunk<
   GetOrderDetailsUiResponse,
   OrderRouteParams,
-  { rejectValue: { message: string; traceId?: string } }
+  { rejectValue: UiErrorPayload }
 >(
   'orders/fetchOrderDetailsById',
   async ({ category, orderId }, { rejectWithValue }) => {
     try {
       if (!orderId) {
         return rejectWithValue({
-          message: 'Missing orderId for order details request',
+          message: 'Missing orderId for order details request.',
+          type: ErrorType.Validation,
         });
       }
-
+      
       if (!category) {
         return rejectWithValue({
-          message: 'Missing order category for order details request',
+          message: 'Missing order category for order details request.',
+          type: ErrorType.Validation,
         });
       }
-
+      
       const response = await orderService.fetchOrderDetailsById({
         category: category.trim(),
         orderId: orderId.trim(),
       });
-
+      
       return {
         ...response,
         data: {
@@ -131,45 +177,48 @@ export const fetchOrderDetailsByIdThunk = createAsyncThunk<
           items: flattenOrderItems(response.data.items),
         },
       };
-    } catch (error) {
-      return rejectWithValue(extractUiErrorPayload(error));
+    } catch (error: unknown) {
+      return rejectWithValue(
+        extractUiErrorPayload(error)
+      );
     }
   }
 );
 
+/* ------------------------------------------------------------------ */
+/* Update Order Status */
+/* ------------------------------------------------------------------ */
+
 /**
- * Thunk to update the status of a specific order via API.
+ * Updates the status of an existing order.
  *
- * This thunk handles the full request lifecycle (pending, fulfilled, rejected)
- * using Redux Toolkit's `createAsyncThunk`. It sends a PATCH request to the
- * appropriate order status update endpoint and returns the updated status
- * for both the order and its items.
+ * Responsibilities:
+ * - Calls orderService.updateOrderStatus
+ * - Returns updated order and item statuses
+ * - Standardizes error handling
  *
- * Typical use case: triggered when a user manually updates an order status
- * (e.g., from "pending" to "allocated" or "shipped").
- *
- * @param payload - Object containing:
- *   - `params`: Route parameters including `category` and `orderId`.
- *   - `data`: Payload with the new status code (e.g., `{ statusCode: 'ORDER_SHIPPED' }`)
- *
- * @example
- * dispatch(updateOrderStatusThunk({
- *   params: { category: 'sales', orderId: 'abc123' },
- *   data: { statusCode: 'ORDER_ALLOCATED' }
- * }));
- *
- * @returns A promise that resolves to the updated order and item statuses.
- * @throws Will dispatch `rejected` action if the request fails.
+ * @param params     - Route parameters (category, orderId)
+ * @param data       - Status update payload ({ statusCode })
  */
 export const updateOrderStatusThunk = createAsyncThunk<
-  UpdateOrderStatusResponse, // Return type
-  { params: OrderRouteParams; data: { statusCode: string } }, // Argument type
-  { rejectValue: string } // Optional extra options
->('orders/updateOrderStatus', async ({ params, data }, { rejectWithValue }) => {
-  try {
-    return await orderService.updateOrderStatus(params, data);
-  } catch (err: any) {
-    console.error('Error in updateOrderStatusThunk:', err);
-    return rejectWithValue(err?.message ?? 'Failed to update order status');
+  UpdateOrderStatusResponse,
+  { params: OrderRouteParams; data: { statusCode: string } },
+  { rejectValue: UiErrorPayload }
+>(
+  'orders/updateOrderStatus',
+  async ({ params, data }, { rejectWithValue }) => {
+    try {
+      return await orderService.updateOrderStatus(params, data);
+    } catch (error: unknown) {
+      console.error('updateOrderStatusThunk error:', {
+        params,
+        data,
+        error,
+      });
+      
+      return rejectWithValue(
+        extractUiErrorPayload(error)
+      );
+    }
   }
-});
+);

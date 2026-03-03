@@ -1,6 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type { LotAdjustmentTypeLookupState } from '@features/lookup/state/lookupTypes';
 import { fetchLotAdjustmentTypeLookupThunk } from '@features/lookup/state/lookupThunks';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: LotAdjustmentTypeLookupState = {
   data: [],
@@ -25,11 +26,11 @@ const lotAdjustmentTypeLookupSlice = createSlice({
         state.data = action.payload.data;
       })
       .addCase(fetchLotAdjustmentTypeLookupThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          (action.payload as { message?: string })?.message ??
-          action.error.message ??
-          'Failed to fetch lot adjustment types';
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch lot adjustment types'
+        );
       });
   },
 });

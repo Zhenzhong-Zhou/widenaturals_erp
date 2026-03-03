@@ -45,7 +45,8 @@ export const selectCreateUserLoading = createSelector(
  */
 export const selectCreateUserError = createSelector(
   [selectCreateUserState],
-  (state) => state.error
+  (state): string | null =>
+    state.error?.message ?? null
 );
 
 /**

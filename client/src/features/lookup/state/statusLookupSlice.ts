@@ -7,6 +7,7 @@ import type {
 import { createInitialOffsetPaginatedState } from '@store/pagination';
 import { fetchStatusLookupThunk } from '@features/lookup/state';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 // -----------------------------
 // Initial State
@@ -45,9 +46,11 @@ const statusLookupSlice = createSlice({
         }
       )
       .addCase(fetchStatusLookupThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          (action.payload as string) ?? 'Failed to fetch status lookup';
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch status lookup'
+        );
       });
   },
 });

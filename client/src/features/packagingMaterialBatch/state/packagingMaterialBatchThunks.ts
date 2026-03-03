@@ -5,29 +5,31 @@ import type {
 } from '@features/packagingMaterialBatch';
 import { packagingMaterialBatchService } from '@services/packagingMaterialBatchService';
 import { flattenPackagingMaterialBatchRecords } from '@features/packagingMaterialBatch/utils';
+import { UiErrorPayload } from '@utils/error/uiErrorUtils';
 import { extractUiErrorPayload } from '@utils/error';
 
 /**
- * Fetch a paginated list of packaging material batch records.
+ * Fetches a paginated list of packaging material batches
+ * and converts API records into UI-ready rows.
  *
  * Responsibilities:
- * - Delegates fetching to the service layer
- * - Supports pagination, sorting, and filtering
- * - Transforms domain-level records into flattened UI rows
- * - Preserves backend pagination metadata
- * - Normalizes API errors into UI-safe payload
+ * - Calls packagingMaterialBatchService.fetchPaginatedPackagingMaterialBatches
+ * - Flattens domain models before entering Redux state
+ * - Preserves pagination metadata from the backend
  *
- * Concurrency:
- * - Safe for concurrent dispatches
- * - Managed by Redux Toolkit request lifecycle
+ * Transformation Boundary:
+ * - Raw batch models → flattenPackagingMaterialBatchRecords → UI models
  *
- * @param params Pagination, sorting, and filter options
- * @returns Paginated packaging material batch response with flattened rows
+ * Error Model:
+ * - All failures return `UiErrorPayload`
+ * - Errors are normalized via `extractUiErrorPayload`
+ *
+ * @param params - Pagination, sorting, and filtering options
  */
 export const fetchPaginatedPackagingMaterialBatchThunk = createAsyncThunk<
   PackagingMaterialBatchListUiResponse,
   PackagingMaterialBatchQueryParams,
-  { rejectValue: { message: string; traceId?: string } }
+  { rejectValue: UiErrorPayload }
 >(
   'packagingMaterialBatch/fetchPaginatedPackagingMaterialBatch',
   async (params, { rejectWithValue }) => {
@@ -41,8 +43,10 @@ export const fetchPaginatedPackagingMaterialBatchThunk = createAsyncThunk<
         ...response,
         data: flattenPackagingMaterialBatchRecords(response.data),
       };
-    } catch (error) {
-      return rejectWithValue(extractUiErrorPayload(error));
+    } catch (error: unknown) {
+      return rejectWithValue(
+        extractUiErrorPayload(error)
+      );
     }
   }
 );

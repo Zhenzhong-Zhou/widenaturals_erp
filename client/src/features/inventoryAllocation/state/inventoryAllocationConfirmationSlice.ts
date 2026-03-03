@@ -4,6 +4,7 @@ import type {
   InventoryAllocationConfirmationState,
 } from '@features/inventoryAllocation/state';
 import { confirmInventoryAllocationThunk } from './inventoryAllocationThunks';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: InventoryAllocationConfirmationState = {
   data: null,
@@ -38,8 +39,11 @@ export const inventoryAllocationConfirmationSlice = createSlice({
         }
       )
       .addCase(confirmInventoryAllocationThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload ?? 'Failed to confirm allocation';
+        applyRejected(
+          state,
+          action,
+          'Failed to confirm allocation'
+        );
       });
   },
 });

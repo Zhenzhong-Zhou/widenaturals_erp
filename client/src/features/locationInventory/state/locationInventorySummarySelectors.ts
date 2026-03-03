@@ -46,5 +46,6 @@ export const selectLocationInventorySummaryLoading = createSelector(
  */
 export const selectLocationInventorySummaryError = createSelector(
   [selectLocationInventorySummaryState],
-  (slice) => slice.error
+  (state): string | null =>
+    state.error?.message ?? null
 );

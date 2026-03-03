@@ -38,7 +38,8 @@ export const selectWarehouseInventoryItemSummaryLoading = createSelector(
  */
 export const selectWarehouseInventoryItemSummaryError = createSelector(
   [selectWarehouseInventoryItemSummaryState],
-  (state) => state.error
+  (state): string | null =>
+    state.error?.message ?? null
 );
 
 /**

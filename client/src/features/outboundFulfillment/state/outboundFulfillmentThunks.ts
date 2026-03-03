@@ -1,3 +1,35 @@
+/**
+ * ================================================================
+ * Outbound Fulfillment Thunks Module
+ * ================================================================
+ *
+ * Responsibility:
+ * - Orchestrates outbound shipment and fulfillment workflows.
+ * - Serves as the business boundary between UI and outboundFulfillmentService.
+ *
+ * Scope:
+ * - Initiate outbound fulfillment
+ * - Fetch paginated shipment records
+ * - Fetch shipment details
+ * - Confirm fulfillment
+ * - Complete manual fulfillment
+ *
+ * Architecture:
+ * - API calls delegated to outboundFulfillmentService
+ * - UI normalization occurs at the thunk boundary
+ * - Redux reducers remain pure and state-focused
+ *
+ * Error Model:
+ * - All failures return `UiErrorPayload`
+ * - Errors are normalized via `extractUiErrorPayload`
+ *
+ * Design Rules:
+ * - No component logic
+ * - No persistence logic
+ * - Raw API models do not leak into Redux/UI
+ * ================================================================
+ */
+
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
   CompleteManualFulfillmentParams,
@@ -20,92 +52,51 @@ import { extractUiErrorPayload } from '@utils/error';
 import { flattenOutboundShipment } from '@features/outboundFulfillment/utils/flattenOutboundShipment';
 
 /**
- * Async thunk to initiate outbound fulfillment for a specific order.
+ * Initiates outbound fulfillment for an order.
  *
- * This thunk:
- *  - Calls the `outboundFulfillmentService.initiateOutboundFulfillment` service
- *  - Dispatches `pending`, `fulfilled`, and `rejected` lifecycle actions
- *  - Passes through a typed `InitiateFulfillmentResponse` on success
- *  - Provides a `rejectValue` string on failure, using backend error messages when available
+ * Responsibilities:
+ * - Calls outboundFulfillmentService.initiateOutboundFulfillment
+ * - Returns service response directly
+ * - Standardizes errors via `UiErrorPayload`
  *
- * Expected argument: `InitiateFulfillmentRequest`
- * Example:
- *   {
- *     orderId: 'a1f4e409-e7f8-4005-abf0-e98028bdace7', // path param
- *     body: {
- *       allocations: { ids: ['uuid-1', 'uuid-2'] },
- *       fulfillmentNotes: 'Triggered from Allocation Review',
- *       shipmentNotes: 'Handle with care',
- *       shipmentBatchNote: 'Batch ref ABC-123'
- *     }
- *   }
- *
- * Usage:
- *   dispatch(initiateOutboundFulfillmentThunk(requestData));
- *
- * Select results via slice selectors:
- *   - `loading`: boolean
- *   - `error`: string | null
- *   - `data`: InitiateFulfillmentData[] | null
+ * @param request - Initiation payload including orderId and allocation data
  */
 export const initiateOutboundFulfillmentThunk = createAsyncThunk<
-  InitiateFulfillmentResponse, // return type
-  InitiateFulfillmentRequest, // argument type
-  {
-    rejectValue: string; // optional error type
-  }
+  InitiateFulfillmentResponse,
+  InitiateFulfillmentRequest,
+  { rejectValue: UiErrorPayload }
 >(
   'outboundFulfillments/initiate',
-  async (request: InitiateFulfillmentRequest, { rejectWithValue }) => {
+  async (request, { rejectWithValue }) => {
     try {
       return await outboundFulfillmentService.initiateOutboundFulfillment(
         request
       );
-    } catch (error: any) {
-      console.error('Thunk error: initiateOutboundFulfillment', error);
-
-      // Use backend-provided message if available
-      const message =
-        error?.response?.data?.message ||
-        error.message ||
-        'Failed to initiate outbound fulfillment';
-
-      return rejectWithValue(message);
+    } catch (error: unknown) {
+      console.error('initiateOutboundFulfillmentThunk error:', {
+        request,
+        error,
+      });
+      
+      return rejectWithValue(
+        extractUiErrorPayload(error)
+      );
     }
   }
 );
 
 /**
- * Thunk to fetch a paginated list of outbound fulfillment (shipment) records.
+ * Fetches a paginated list of outbound shipments.
  *
- * This thunk applies a one-time transformation at the ingestion boundary,
- * converting raw API shipment records into flattened, UI-ready rows before
- * storing them in Redux state.
+ * Responsibilities:
+ * - Calls outboundFulfillmentService.fetchPaginatedOutboundFulfillment
+ * - Flattens shipment rows before entering Redux state
+ * - Preserves pagination metadata
  *
- * ### Behavior
- * - Dispatches lifecycle actions automatically:
- *   - `pending`   → sets `loading = true`, clears previous errors
- *   - `fulfilled` → stores flattened data + pagination metadata
- *   - `rejected`  → stores a normalized error message
+ * Transformation Boundary:
+ * - Raw shipment model → flattenOutboundShipment → UI model
  *
- * ### Design notes
- * - Raw API models MUST NOT leak into Redux or UI layers
- * - Flattening is performed exactly once in this thunk
- * - UI components consume `FlattenedOutboundShipmentRow` only
- *
- * ### Usage
- * ```ts
- * dispatch(fetchPaginatedOutboundFulfillmentThunk({
- *   page: 1,
- *   limit: 20,
- *   sortBy: 'createdAt',
- *   sortOrder: 'DESC',
- *   filters: { statusIds: ['uuid-status'] },
- * }));
- * ```
- *
- * @param queryParams Pagination, sorting, and filtering options
- * @returns PaginatedOutboundFulfillmentsResponse
+ * @param queryParams - Pagination, sorting, and filtering options
  */
 export const fetchPaginatedOutboundFulfillmentThunk = createAsyncThunk<
   PaginatedOutboundFulfillmentsResponse,
@@ -131,70 +122,61 @@ export const fetchPaginatedOutboundFulfillmentThunk = createAsyncThunk<
 );
 
 /**
- * Thunk: Fetch outbound shipment details by shipment ID.
+ * Fetches outbound shipment details and converts
+ * the response into a UI-ready structure.
  *
  * Responsibilities:
- * - Calls the outbound shipment details API
- * - Transforms the raw API response into a UI-ready structure
- * - Dispatches pending / fulfilled / rejected lifecycle actions
+ * - Calls outboundFulfillmentService.fetchOutboundShipmentDetails
+ * - Normalizes shipment header and fulfillments
  *
- * Design notes:
- * - Raw API types are NOT exposed to Redux or UI
- * - Flattening occurs at the thunk boundary
- * - Errors are normalized via `extractUiErrorPayload`
+ * Transformation Boundary:
+ * - Shipment → flattenShipmentHeader
+ * - Fulfillments → flattenFulfillments
  *
- * @param shipmentId - UUID of the outbound shipment
- * @returns UI-ready shipment details payload
- *
- * @example
- * dispatch(fetchOutboundShipmentDetailsThunk(
- *   '844f3d53-a102-46aa-8644-90b3a3b35fd7'
- * ));
+ * @param shipmentId - Shipment UUID
  */
 export const fetchOutboundShipmentDetailsThunk = createAsyncThunk<
   FetchShipmentDetailsUiResponse,
   string,
-  { rejectValue: { message: string; traceId?: string } }
->('outboundShipments/fetchDetails', async (shipmentId, { rejectWithValue }) => {
-  try {
-    const response =
-      await outboundFulfillmentService.fetchOutboundShipmentDetails(shipmentId);
-
-    const uiResponse: FetchShipmentDetailsUiResponse = {
-      success: response.success,
-      message: response.message,
-      traceId: response.traceId,
-      data: {
-        shipment: flattenShipmentHeader(response.data.shipment),
-        fulfillments: flattenFulfillments(response.data.fulfillments),
-      },
-    };
-
-    return uiResponse;
-  } catch (error) {
-    return rejectWithValue(extractUiErrorPayload(error));
+  { rejectValue: UiErrorPayload }
+>(
+  'outboundShipments/fetchDetails',
+  async (shipmentId, { rejectWithValue }) => {
+    try {
+      const response =
+        await outboundFulfillmentService.fetchOutboundShipmentDetails(shipmentId);
+      
+      return {
+        success: response.success,
+        message: response.message,
+        traceId: response.traceId,
+        data: {
+          shipment: flattenShipmentHeader(response.data.shipment),
+          fulfillments: flattenFulfillments(response.data.fulfillments),
+        },
+      };
+    } catch (error: unknown) {
+      return rejectWithValue(
+        extractUiErrorPayload(error)
+      );
+    }
   }
-});
+);
 
 /**
- * Thunk: confirmOutboundFulfillmentThunk
+ * Confirms an outbound fulfillment.
  *
- * Dispatches an async request to confirm an outbound fulfillment for a specific order.
- * This triggers backend validation and finalization of inventory, fulfillment, shipment,
- * and order statuses.
+ * Responsibilities:
+ * - Calls outboundFulfillmentService.confirmOutboundFulfillment
+ * - Finalizes fulfillment, shipment, and order states
+ * - Standardizes error handling
  *
- * Use this thunk after an outbound fulfillment has been initiated and allocations are complete.
- *
- * Flow:
- *  1. Dispatches loading state.
- *  2. Calls the backend API via `confirmOutboundFulfillment`.
- *  3. On success, updates state with new fulfillment confirmation data.
- *  4. On failure, dispatches rejected action with normalized error message.
+ * @param request - Confirmation payload
  */
 export const confirmOutboundFulfillmentThunk = createAsyncThunk<
-  ConfirmOutboundFulfillmentResponse, // Return type on success
-  ConfirmOutboundFulfillmentRequest, // Argument type
-  { rejectValue: string } // Rejected error payload
+  ConfirmOutboundFulfillmentResponse,
+  ConfirmOutboundFulfillmentRequest,
+  { rejectValue: UiErrorPayload }
 >(
   'outboundFulfillment/confirmOutboundFulfillment',
   async (request, { rejectWithValue }) => {
@@ -202,63 +184,42 @@ export const confirmOutboundFulfillmentThunk = createAsyncThunk<
       return await outboundFulfillmentService.confirmOutboundFulfillment(
         request
       );
-    } catch (error: any) {
-      console.error('Failed to confirm outbound fulfillment:', error);
-
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Unable to confirm outbound fulfillment. Please try again later.';
-
-      return rejectWithValue(message);
+    } catch (error: unknown) {
+      console.error('confirmOutboundFulfillmentThunk error:', {
+        request,
+        error,
+      });
+      
+      return rejectWithValue(
+        extractUiErrorPayload(error)
+      );
     }
   }
 );
 
 /**
- * Thunk to complete a manual outbound fulfillment (e.g., in-store pickup or personal delivery).
+ * Completes a manual outbound fulfillment (e.g., pickup or direct delivery).
  *
- * This thunk dispatches an asynchronous request to finalize a manual fulfillment by:
- * - Calling the backend API to update shipment, fulfillment, and order statuses
- * - Handling success or failure for downstream UI reactions (e.g., toast, redirect, reload)
+ * Responsibilities:
+ * - Calls outboundFulfillmentService.completeManualFulfillment
+ * - Finalizes shipment, fulfillment, and order statuses
+ * - Returns confirmation result
  *
- * Backend Endpoint:
- *   POST /outbound-fulfillments/manual/:shipmentId/complete
- *
- * Requirements:
- * - `shipmentId` (path param): ID of the shipment being fulfilled manually.
- * - `body` (request payload):
- *   - `orderStatus`: Final order status (e.g., "ORDER_DELIVERED")
- *   - `shipmentStatus`: Final shipment status (e.g., "SHIPMENT_COMPLETED")
- *   - `fulfillmentStatus`: Final fulfillment status (e.g., "FULFILLMENT_COMPLETED")
- *
- * Redux Usage:
- * ```ts
- * dispatch(completeManualFulfillmentThunk({
- *   shipmentId: '9cd7e960-985b-4f4e-9f68-1782535f5d18',
- *   body: {
- *     orderStatus: 'ORDER_DELIVERED',
- *     shipmentStatus: 'SHIPMENT_COMPLETED',
- *     fulfillmentStatus: 'FULFILLMENT_COMPLETED',
- *   }
- * }));
- * ```
- *
- * @param {CompleteManualFulfillmentParams} params - Object containing the shipment ID and status payload.
- * @returns {Promise<CompleteManualFulfillmentResponse>} - Fulfillment result data on success.
- * @throws {string} Rejected value with an error message on failure.
+ * @param params - Shipment ID and final status payload
  */
 export const completeManualFulfillmentThunk = createAsyncThunk<
   CompleteManualFulfillmentResponse,
   CompleteManualFulfillmentParams,
-  { rejectValue: string }
+  { rejectValue: UiErrorPayload }
 >(
   'outboundFulfillments/completeManual',
   async (params, { rejectWithValue }) => {
     try {
       return await outboundFulfillmentService.completeManualFulfillment(params);
-    } catch (error: any) {
-      return rejectWithValue(error?.message ?? 'Manual fulfillment failed.');
+    } catch (error: unknown) {
+      return rejectWithValue(
+        extractUiErrorPayload(error)
+      );
     }
   }
 );

@@ -8,23 +8,22 @@ import { flattenProductBatchRecords } from '@features/productBatch/utils';
 import { extractUiErrorPayload } from '@utils/error';
 
 /**
- * Fetch a paginated list of product batch records from the backend.
+ * Fetches a paginated list of product batch records
+ * and converts API records into UI-ready rows.
  *
  * Responsibilities:
- * - Delegates data fetching to the product batch service layer
- * - Supports pagination, sorting, and filtering
- * - Transforms domain-level product batch records into
- *   flattened, UI-ready structures
- * - Preserves backend pagination metadata without transformation
- * - Normalizes API errors into a structured UI-safe payload
- *   containing `message` and optional `traceId`
+ * - Calls productBatchService.fetchPaginatedProductBatches
+ * - Flattens domain batch models before entering Redux state
+ * - Preserves pagination metadata from the backend
  *
- * Concurrency:
- * - Safe for concurrent dispatches; request lifecycle is managed
- *   by Redux Toolkit.
+ * Transformation Boundary:
+ * - Raw batch models → flattenProductBatchRecords → UI models
  *
- * @param params - Pagination, sorting, and product batch filters
- * @returns A paginated product batch response with flattened records
+ * Error Model:
+ * - Failures return `UiErrorPayload`
+ * - Errors are normalized via `extractUiErrorPayload`
+ *
+ * @param params - Pagination, sorting, and filtering options
  */
 export const fetchPaginatedProductBatchThunk = createAsyncThunk<
   PaginatedProductBatchListResponse,

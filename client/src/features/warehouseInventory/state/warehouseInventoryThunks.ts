@@ -14,40 +14,60 @@ import type {
   InventoryRecordsResponse,
   InventorySummaryDetailByItemIdParams,
 } from '@features/inventoryShared/types/InventorySharedType';
+import { extractUiErrorPayload, UiErrorPayload } from '@utils/error/uiErrorUtils';
 
 /**
- * Redux thunk to fetch paginated warehouse inventory summary
- * including both SKU-level (products) and material-level records.
+ * Fetches paginated warehouse inventory **item summaries**
+ * (SKU-level products + material-level items).
  *
- * @param {FetchWarehouseInventoryItemSummaryParams} params - Pagination and filter input (page, limit, itemType).
- * @returns {PaginatedResponse<WarehouseInventoryItemSummary>} - Paginated inventory summary response.
+ * Responsibilities:
+ * - Calls `warehouseInventoryService.fetchWarehouseInventoryItemSummary`
+ * - Preserves backend pagination metadata
+ * - Returns UI-consumable summary rows (no reducer-side normalization needed)
+ *
+ * Error Model:
+ * - Failures reject with `UiErrorPayload` via `extractUiErrorPayload`
+ *
+ * @param params - Pagination + filtering options (e.g. page, limit, itemType)
+ * @returns PaginatedResponse<WarehouseInventoryItemSummary>
  */
 export const fetchWarehouseInventoryItemSummaryThunk = createAsyncThunk<
   PaginatedResponse<WarehouseInventoryItemSummary>,
-  FetchWarehouseInventoryItemSummaryParams
+  FetchWarehouseInventoryItemSummaryParams,
+  { rejectValue: UiErrorPayload }
 >(
   'warehouseInventory/fetchWarehouseInventorySummary',
-  async (params, thunkAPI) => {
+  async (params, { rejectWithValue }) => {
     try {
       return await warehouseInventoryService.fetchWarehouseInventoryItemSummary(
         params
       );
-    } catch (error) {
-      return thunkAPI.rejectWithValue(error);
+    } catch (error: unknown) {
+      return rejectWithValue(
+        extractUiErrorPayload(error)
+      );
     }
   }
 );
 
 /**
- * Redux thunk to fetch paginated warehouse inventory summary details for a specific item ID (SKU or material).
+ * Fetches paginated warehouse inventory **summary details** for a specific item
+ * (SKU or packaging material).
  *
- * @param {InventorySummaryDetailByItemIdParams} params - Query parameters including itemId, page, and limit.
- * @returns {Promise<WarehouseInventorySummaryDetailsByItemIdResponse>} - Paginated inventory summary response.
+ * Responsibilities:
+ * - Calls `warehouseInventoryService.fetchWarehouseInventorySummaryDetailsByItemId`
+ * - Preserves backend pagination metadata
+ *
+ * Error Model:
+ * - Failures reject with `UiErrorPayload` via `extractUiErrorPayload`
+ *
+ * @param params - Query params including itemId and pagination (page, limit)
+ * @returns WarehouseInventorySummaryDetailsByItemIdResponse
  */
 export const fetchWarehouseInventorySummaryByItemIdThunk = createAsyncThunk<
-  WarehouseInventorySummaryDetailsByItemIdResponse, // Return type
-  InventorySummaryDetailByItemIdParams, // Arg type
-  { rejectValue: string } // Optional: custom error type
+  WarehouseInventorySummaryDetailsByItemIdResponse,
+  InventorySummaryDetailByItemIdParams,
+  { rejectValue: UiErrorPayload }
 >(
   'warehouseInventory/fetchSummaryByItemId',
   async (params, { rejectWithValue }) => {
@@ -55,31 +75,36 @@ export const fetchWarehouseInventorySummaryByItemIdThunk = createAsyncThunk<
       return await warehouseInventoryService.fetchWarehouseInventorySummaryDetailsByItemId(
         params
       );
-    } catch (error) {
+    } catch (error: unknown) {
       return rejectWithValue(
-        'Failed to fetch warehouse inventory summary details.'
+        extractUiErrorPayload(error)
       );
     }
   }
 );
 
 /**
- * Thunk to fetch paginated warehouse inventory records from the server.
+ * Fetches paginated warehouse inventory **record rows** (batch-level records).
  *
- * This thunk:
- * - Applies batch-type-specific filter cleanup via the service layer
- * - Uses the provided pagination and filter parameters
- * - Returns a structured response with records and pagination metadata
- * - Handles and propagates errors using `rejectWithValue`
+ * Responsibilities:
+ * - Calls `warehouseInventoryService.fetchWarehouseInventoryRecords`
+ * - Supports pagination, sorting, and filtering
+ * - Returns a structured response with records + pagination metadata
  *
- * Usage:
- * dispatch(fetchWarehouseInventoryRecordsThunk({ pagination: { page: 1, limit: 20 }, filters }))
+ * Design Notes:
+ * - Any batch-type-specific filter cleanup belongs in the service layer
+ * - Redux stores the response as-is (no reducer-side normalization required)
  *
- * @returns {Promise<WarehouseInventoryRecordsResponse>} Fulfilled with the fetched records or rejected with an error message
+ * Error Model:
+ * - Failures reject with `UiErrorPayload` via `extractUiErrorPayload`
+ *
+ * @param args - Pagination + filters + optional sort config
+ * @returns WarehouseInventoryRecordsResponse
  */
 export const fetchWarehouseInventoryRecordsThunk = createAsyncThunk<
   WarehouseInventoryRecordsResponse,
-  FetchWarehouseInventoryArgs
+  FetchWarehouseInventoryArgs,
+  { rejectValue: UiErrorPayload }
 >(
   'warehouseInventory/fetchRecords',
   async ({ pagination, filters, sortConfig = {} }, { rejectWithValue }) => {
@@ -89,29 +114,34 @@ export const fetchWarehouseInventoryRecordsThunk = createAsyncThunk<
         filters,
         sortConfig
       );
-    } catch (error: any) {
-      console.error('Thunk error fetching warehouse inventory:', error);
+    } catch (error: unknown) {
+      console.error('fetchWarehouseInventoryRecordsThunk error:', error);
+      
       return rejectWithValue(
-        error.message || 'Failed to fetch warehouse inventory records.'
+        extractUiErrorPayload(error)
       );
     }
   }
 );
 
 /**
- * Thunk to create warehouse and/or location inventory records.
+ * Creates warehouse and/or location inventory records.
  *
- * This thunk dispatches an API call to create new inventory records in both
- * the warehouse and location inventory tables. It handles loading, success,
- * and error states automatically via Redux Toolkit's `createAsyncThunk`.
+ * Responsibilities:
+ * - Calls `warehouseInventoryService.createWarehouseInventoryRecords`
+ * - Inserts new inventory rows for warehouse + location scopes (as supported by backend)
+ * - Returns created/enriched inventory records in the API response envelope
  *
- * @param payload - The request payload containing inventory records to insert.
- * @returns A promise resolving to the API response or a rejection message.
+ * Error Model:
+ * - Failures reject with `UiErrorPayload` via `extractUiErrorPayload`
+ *
+ * @param payload - Bulk inventory insert request payload
+ * @returns InventoryRecordsResponse
  */
 export const createWarehouseInventoryRecordsThunk = createAsyncThunk<
-  InventoryRecordsResponse, // Return type
-  CreateInventoryRecordsRequest, // Payload type
-  { rejectValue: string } // Rejection type
+  InventoryRecordsResponse,
+  CreateInventoryRecordsRequest,
+  { rejectValue: UiErrorPayload }
 >(
   'warehouseInventory/createWarehouseInventoryRecords',
   async (payload, { rejectWithValue }) => {
@@ -119,39 +149,45 @@ export const createWarehouseInventoryRecordsThunk = createAsyncThunk<
       return await warehouseInventoryService.createWarehouseInventoryRecords(
         payload
       );
-    } catch (error: any) {
-      console.error('Error creating warehouse inventory records:', error);
+    } catch (error: unknown) {
+      console.error('createWarehouseInventoryRecordsThunk error:', error);
+      
       return rejectWithValue(
-        error?.message ?? 'Failed to create inventory records'
+        extractUiErrorPayload(error)
       );
     }
   }
 );
 
 /**
- * Thunk to adjust warehouse and location inventory quantities.
+ * Adjusts warehouse and/or location inventory quantities.
  *
- * This thunk:
- * - Sends an adjustment payload to the backend service
- * - Applies updates to warehouse and/or location inventory records
- * - Returns updated inventory records enriched with product or material info
- * - Handles and propagates errors using `rejectWithValue`
+ * Responsibilities:
+ * - Calls `warehouseInventoryService.adjustWarehouseInventoryQuantities`
+ * - Submits an adjustment payload (batch + delta/quantity updates)
+ * - Returns updated inventory rows (often enriched with product/material info)
  *
- * Usage:
- * dispatch(adjustWarehouseInventoryQuantitiesThunk([{ warehouse_id, batch_id, quantity, ... }]))
+ * Error Model:
+ * - Failures reject with `UiErrorPayload` via `extractUiErrorPayload`
  *
- * @param {AdjustInventoryRequestBody} data - Adjustment payload containing batch and quantity change details
- * @returns {Promise<InventoryRecordsResponse>} Fulfilled with updated inventory records or rejected with an error message
+ * @param data - Adjustment payload describing inventory changes
+ * @returns InventoryRecordsResponse
  */
 export const adjustWarehouseInventoryQuantitiesThunk = createAsyncThunk<
   InventoryRecordsResponse,
-  AdjustInventoryRequestBody
->('warehouseInventory/adjustQuantities', async (data, { rejectWithValue }) => {
-  try {
-    return await warehouseInventoryService.adjustWarehouseInventoryQuantities(
-      data
-    );
-  } catch (error: any) {
-    return rejectWithValue(error?.response?.data || error.message);
+  AdjustInventoryRequestBody,
+  { rejectValue: UiErrorPayload }
+>(
+  'warehouseInventory/adjustQuantities',
+  async (data, { rejectWithValue }) => {
+    try {
+      return await warehouseInventoryService.adjustWarehouseInventoryQuantities(
+        data
+      );
+    } catch (error: unknown) {
+      return rejectWithValue(
+        extractUiErrorPayload(error)
+      );
+    }
   }
-});
+);

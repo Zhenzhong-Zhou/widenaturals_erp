@@ -1,18 +1,11 @@
 import { createSlice } from '@reduxjs/toolkit';
-import type { PaginateAddressState } from './addressTypes';
+import type { AddressListItem, PaginateAddressState } from './addressTypes';
 import { fetchPaginatedAddressesThunk } from './addressThunks';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
+import { createInitialPaginatedState } from '@store/pagination';
 
-const initialState: PaginateAddressState = {
-  data: [],
-  pagination: {
-    page: 1,
-    limit: 10,
-    totalRecords: 0,
-    totalPages: 0,
-  },
-  loading: false,
-  error: null,
-};
+const initialState: PaginateAddressState =
+  createInitialPaginatedState<AddressListItem>();
 
 export const paginateAddressSlice = createSlice({
   name: 'paginateAddress',
@@ -33,8 +26,11 @@ export const paginateAddressSlice = createSlice({
         state.pagination = action.payload.pagination;
       })
       .addCase(fetchPaginatedAddressesThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload || 'Failed to fetch addresses';
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch addresses.'
+        );
       });
   },
 });

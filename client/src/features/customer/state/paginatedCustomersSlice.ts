@@ -5,6 +5,7 @@ import type {
 } from '@features/customer/state';
 import { fetchPaginatedCustomersThunk } from '@features/customer/state';
 import { createInitialPaginatedState } from '@store/pagination';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: PaginatedCustomerState =
   createInitialPaginatedState<CustomerListItem>();
@@ -27,8 +28,11 @@ const paginatedCustomersSlice = createSlice({
         state.pagination = action.payload.pagination;
       })
       .addCase(fetchPaginatedCustomersThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload ?? 'Failed to fetch customers';
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch customers.'
+        );
       });
   },
 });

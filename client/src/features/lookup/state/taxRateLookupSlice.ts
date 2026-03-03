@@ -6,6 +6,7 @@ import type {
 import { createInitialOffsetPaginatedState } from '@store/pagination';
 import { fetchTaxRateLookupThunk } from '@features/lookup/state';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: TaxRateLookupState =
   createInitialOffsetPaginatedState<TaxRateLookupItem>();
@@ -33,10 +34,11 @@ const taxRateLookupSlice = createSlice({
         applyPaginatedFulfilled(state, action.payload);
       })
       .addCase(fetchTaxRateLookupThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          (action.payload as Error | { message?: string })?.message ||
-          'Failed to fetch tax rate lookup';
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch tax rate lookup'
+        );
       });
   },
 });

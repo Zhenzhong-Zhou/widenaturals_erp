@@ -30,7 +30,8 @@ export const selectProductInfoUpdateLoading = createSelector(
  */
 export const selectProductInfoUpdateError = createSelector(
   [selectProductInfoUpdateState],
-  (state) => state.error
+  (state): string | null =>
+    state.error?.message ?? null
 );
 
 /**

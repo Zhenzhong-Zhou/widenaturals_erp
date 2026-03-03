@@ -33,7 +33,8 @@ export const selectBaseLogsLoading = createSelector(
  */
 export const selectBaseLogsError = createSelector(
   selectInventoryActivityLogsState,
-  (state) => state.base.error
+  (state): string | null =>
+    state.base.error?.message ?? null
 );
 
 //
@@ -69,5 +70,6 @@ export const selectPaginatedLogsLoading = createSelector(
  */
 export const selectPaginatedLogsError = createSelector(
   selectInventoryActivityLogsState,
-  (state) => state.paginated.error
+  (state): string | null =>
+    state.paginated.error?.message ?? null
 );

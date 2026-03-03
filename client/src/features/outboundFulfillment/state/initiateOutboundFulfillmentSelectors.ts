@@ -25,7 +25,8 @@ export const selectInitiateOutboundFulfillmentLoading = createSelector(
  */
 export const selectInitiateOutboundFulfillmentError = createSelector(
   [selectInitiateOutboundFulfillmentState],
-  (state) => state.error
+  (state): string | null =>
+    state.error?.message ?? null
 );
 
 /**

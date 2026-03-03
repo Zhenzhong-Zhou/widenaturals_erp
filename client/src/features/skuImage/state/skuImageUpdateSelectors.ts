@@ -24,7 +24,8 @@ export const selectSkuImageUpdateLoading = createSelector(
  */
 export const selectSkuImageUpdateError = createSelector(
   selectSkuImageUpdateState,
-  (state) => state.error
+  (state): string | null =>
+    state.error?.message ?? null
 );
 
 /**

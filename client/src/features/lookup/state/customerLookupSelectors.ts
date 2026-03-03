@@ -36,7 +36,8 @@ export const selectCustomerLookupLoading = createSelector(
  */
 export const selectCustomerLookupError = createSelector(
   [selectCustomerLookupState],
-  (state) => state.error
+  (state): string | null =>
+    state.error?.message ?? null
 );
 
 /**

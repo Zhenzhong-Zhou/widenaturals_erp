@@ -7,8 +7,8 @@ import {
 } from '@features/lookup/state/lookupTypes';
 import {
   createLookupMetaSelector,
-  mapLookupItems,
-} from '../utils/lookupSelectorUtils';
+  mapLookupItems
+} from '@features/lookup/utils/lookupSelectorUtils';
 
 /**
  * Root selector to access the `skuLookup` state slice from the Redux store.
@@ -46,7 +46,8 @@ export const selectSkuLookupLoading = createSelector(
  */
 export const selectSkuLookupError = createSelector(
   selectSkuLookupState,
-  (skuLookup) => skuLookup.error
+  (skuLookup): string | null =>
+    skuLookup.error?.message ?? null
 );
 
 /**

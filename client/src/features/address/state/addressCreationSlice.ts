@@ -4,6 +4,7 @@ import type {
   CreateAddressApiResponse,
 } from './addressTypes';
 import { createAddressesThunk } from '@features/address/state/addressThunks';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: AddressCreationState = {
   data: null,
@@ -45,9 +46,7 @@ export const addressCreationSlice = createSlice({
         }
       )
       .addCase(createAddressesThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          action.payload || 'An error occurred while creating addresses.';
+        applyRejected(state, action, 'Failed to create addresses.');
       });
   },
 });

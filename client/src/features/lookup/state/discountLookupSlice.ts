@@ -7,6 +7,7 @@ import type {
   DiscountLookupState,
 } from '@features/lookup/state';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: DiscountLookupState =
   createInitialOffsetPaginatedState<DiscountLookupItem>();
@@ -37,10 +38,11 @@ const discountLookupSlice = createSlice({
         }
       )
       .addCase(fetchDiscountLookupThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          (action.payload as Error | { message?: string })?.message ||
-          'Failed to fetch discount lookup';
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch discount lookup'
+        );
       });
   },
 });

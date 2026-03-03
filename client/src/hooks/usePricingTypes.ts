@@ -15,7 +15,7 @@ import {
 
 interface UsePricingTypesReturn {
   data: PricingType[];
-  pagination: Pagination;
+  pagination: Pagination | null;
   isLoading: boolean;
   error: string | null;
   refetchAllPricingTypes: (params?: FetchPricingTypesParams) => void;

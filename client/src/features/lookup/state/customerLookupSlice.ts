@@ -6,6 +6,7 @@ import type {
 import { createInitialOffsetPaginatedState } from '@store/pagination';
 import { fetchCustomerLookupThunk } from '@features/lookup/state';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: CustomerLookupState =
   createInitialOffsetPaginatedState<CustomerLookupItem>();
@@ -26,8 +27,11 @@ const customerLookupSlice = createSlice({
         applyPaginatedFulfilled(state, action.payload);
       })
       .addCase(fetchCustomerLookupThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch customers.'
+        );
       });
   },
 });

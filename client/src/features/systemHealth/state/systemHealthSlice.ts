@@ -1,6 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { HealthApiResponse, HealthUiState } from '@features/systemHealth';
 import { fetchSystemHealthThunk } from './systemHealthThunk';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: HealthUiState = {
   data: null,
@@ -39,9 +40,12 @@ const systemHealthSlice = createSlice({
       // -------------------------------
       // Rejected
       // -------------------------------
-      .addCase(fetchSystemHealthThunk.rejected, (state, { payload }) => {
-        state.loading = false;
-        state.error = payload ?? 'Failed to fetch system health status';
+      .addCase(fetchSystemHealthThunk.rejected, (state, action) => {
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch system health status.'
+        );
       });
   },
 });

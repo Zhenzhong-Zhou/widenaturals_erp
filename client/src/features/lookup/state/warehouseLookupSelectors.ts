@@ -30,5 +30,5 @@ export const selectWarehouseLookupLoading = createSelector(
  */
 export const selectWarehouseLookupError = createSelector(
   [selectWarehouseLookupState],
-  (lookupState): string | null => lookupState.error
+  (lookupState): string | null => lookupState.error?.message ?? null
 );

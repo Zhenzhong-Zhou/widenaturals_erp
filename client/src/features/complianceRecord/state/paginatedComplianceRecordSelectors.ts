@@ -36,7 +36,8 @@ export const selectPaginatedComplianceRecordsLoading = createSelector(
  */
 export const selectPaginatedComplianceRecordsError = createSelector(
   [selectPaginatedComplianceRecordsState],
-  (state) => state.error
+  (state): string | null =>
+    state.error?.message ?? null
 );
 
 /**

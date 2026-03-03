@@ -45,7 +45,8 @@ export const selectPaginatedPackagingMaterialBatchLoading = createSelector(
  */
 export const selectPaginatedPackagingMaterialBatchError = createSelector(
   [selectPaginatedPackagingMaterialBatchesState],
-  (state) => state.error
+  (state): string | null =>
+    state.error?.message ?? null
 );
 
 /**

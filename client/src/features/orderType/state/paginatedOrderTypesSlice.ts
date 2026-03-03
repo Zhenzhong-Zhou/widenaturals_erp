@@ -6,6 +6,7 @@ import type {
 } from '@features/orderType/state/orderTypeTypes';
 import { fetchPaginatedOrderTypesThunk } from '@features/orderType/state/orderTypeThunks';
 import { createInitialPaginatedState } from '@store/pagination';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: PaginatedOrderTypeListState =
   createInitialPaginatedState<FlattenedOrderTypeRecord>();
@@ -32,8 +33,11 @@ const paginatedOrderTypesSlice = createSlice({
         }
       )
       .addCase(fetchPaginatedOrderTypesThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload?.message ?? 'Failed to fetch order types';
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch order types.'
+        );
       });
   },
 });

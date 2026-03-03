@@ -7,6 +7,7 @@ import type {
 import { createInitialOffsetPaginatedState } from '@store/pagination';
 import { fetchLocationTypeLookupThunk } from '@features/lookup/state';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 // -----------------------------
 // Initial State
@@ -44,9 +45,11 @@ const locationTypeLookupSlice = createSlice({
         }
       )
       .addCase(fetchLocationTypeLookupThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          (action.payload as string) ?? 'Failed to fetch location type lookup';
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch location type lookup'
+        );
       });
   },
 });

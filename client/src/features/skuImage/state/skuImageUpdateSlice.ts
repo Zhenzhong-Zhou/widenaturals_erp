@@ -4,6 +4,8 @@ import type {
   SkuImageUpdateState,
 } from '@features/skuImage/state';
 import { updateSkuImagesThunk } from '@features/skuImage/state';
+import { applyBatchSuccess } from '@features/shared/batch/batchReducerUtils';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: SkuImageUpdateState = {
   data: null, // entire BulkSkuImageUpdateResponse
@@ -38,25 +40,18 @@ export const skuImageUpdateSlice = createSlice({
       .addCase(
         updateSkuImagesThunk.fulfilled,
         (state, action: PayloadAction<BulkSkuImageUpdateResponse>) => {
-          const payload = action.payload;
-          
-          state.loading = false;
-          state.error = null;
-          state.data = payload;
-          
-          state.results = payload.data ?? null;
-          state.stats = payload.stats ?? null;
+          applyBatchSuccess(state, action.payload);
         }
       )
       
       // Rejected → structured UI error payload
       .addCase(updateSkuImagesThunk.rejected, (state, action) => {
-        state.loading = false;
-        
-        state.error =
-          action.payload?.message ??
-          'Failed to update SKU images.';
-      });
+        applyRejected(
+          state,
+          action,
+          'Failed to update SKU images.'
+        );
+      })
   },
 });
 

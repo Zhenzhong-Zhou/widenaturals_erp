@@ -4,6 +4,7 @@ import type {
   ChangePasswordState,
 } from '@features/auth';
 import { changePasswordThunk } from '@features/auth';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 // ----------------------------------------
 // Initial State
@@ -56,14 +57,8 @@ const changePasswordSlice = createSlice({
       // Rejected
       // -------------------------
       .addCase(changePasswordThunk.rejected, (state, action) => {
-        state.loading = false;
         state.data = null;
-
-        if (action.payload) {
-          state.error = action.payload.message;
-        } else {
-          state.error = 'Password change failed.';
-        }
+        applyRejected(state, action, 'Password change failed.');
       });
   },
 });

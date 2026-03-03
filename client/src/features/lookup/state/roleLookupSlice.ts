@@ -7,6 +7,7 @@ import type {
 import { createInitialOffsetPaginatedState } from '@store/pagination';
 import { fetchRoleLookupThunk } from '@features/lookup/state';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 // -----------------------------
 // Initial State
@@ -42,9 +43,11 @@ const roleLookupSlice = createSlice({
         }
       )
       .addCase(fetchRoleLookupThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          (action.payload as string) ?? 'Failed to fetch role lookup';
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch role lookup'
+        );
       });
   },
 });

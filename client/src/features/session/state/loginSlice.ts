@@ -1,6 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { LoginResponseData, LoginState } from '@features/session';
 import { loginThunk } from './sessionThunks';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 // ---------------------------
 // Initial State
@@ -53,9 +54,13 @@ const loginSlice = createSlice({
       // Login: Rejected
       // -------------------------
       .addCase(loginThunk.rejected, (state, action) => {
-        state.loading = false;
         state.data = null;
-        state.error = action.payload ?? null;
+        
+        applyRejected(
+          state,
+          action,
+          'Login failed. Please try again.'
+        );
       });
   },
 });

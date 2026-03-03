@@ -1,6 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type { LocationInventoryKpiSummaryState } from '@features/locationInventory/state/locationInventoryTypes';
 import { fetchLocationInventoryKpiSummaryThunk } from '@features/locationInventory/state/locationInventoryThunks';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: LocationInventoryKpiSummaryState = {
   data: [],
@@ -34,8 +35,11 @@ const locationInventoryKpiSummarySlice = createSlice({
       .addCase(
         fetchLocationInventoryKpiSummaryThunk.rejected,
         (state, action) => {
-          state.loading = false;
-          state.error = action.payload as string;
+          applyRejected(
+            state,
+            action,
+            'Failed to fetch KPI summary.'
+          );
         }
       );
   },

@@ -2,21 +2,27 @@ import skuImageUploadReducer from './skuImageUploadSlice';
 import skuImageUpdateReducer from './skuImageUpdateSlice';
 
 /**
- * Reducer map for the SKU Image feature.
+ * SKU Image Feature Reducer Aggregator
  *
- * This reducer group is consumed exclusively by the root reducer
- * to compose the `skuImage` state subtree.
+ * Purpose:
+ * - Groups all SKU image–related slice reducers into a single object.
+ * - Consumed exclusively by the root reducer to compose the `skuImage`
+ *   subtree of the global Redux store.
  *
- * Design principles:
- * - Slice reducers are imported locally to avoid circular
+ * Architectural Constraints:
+ * - Must import slice reducers directly (never through barrel files).
+ * - Must NOT import feature index files to avoid circular
  *   ES module initialization (TDZ) issues.
- * - Slice reducers are private implementation details.
- * - Reducer aggregators must NEVER import feature or state
- *   index (barrel) files.
+ * - Acts as a boundary layer between feature slices and store composition.
+ *
+ * Design Intent:
+ * - Keep slice reducers private implementation details.
+ * - Provide a stable reducer contract for store integration.
  */
 export const skuImageReducers = {
-  /** SKU image upload and processing workflow */
+  /** Handles bulk upload lifecycle and results */
   skuImageUpload: skuImageUploadReducer,
   
+  /** Handles bulk update lifecycle and results */
   skuImageUpdate: skuImageUpdateReducer,
 };

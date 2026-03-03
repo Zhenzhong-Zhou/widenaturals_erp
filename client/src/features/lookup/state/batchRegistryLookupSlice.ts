@@ -1,6 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { fetchBatchRegistryLookupThunk } from '@features/lookup/state';
 import type { BatchRegistryLookupState } from '@features/lookup/state';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: BatchRegistryLookupState = {
   loading: false,
@@ -46,8 +47,11 @@ const batchRegistryLookupSlice = createSlice({
         state.hasMore = hasMore;
       })
       .addCase(fetchBatchRegistryLookupThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload ?? 'Failed to fetch lookup items';
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch lookup items'
+        );
       });
   },
 });

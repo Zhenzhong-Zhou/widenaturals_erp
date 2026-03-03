@@ -4,6 +4,7 @@ import type {
   SkuDetailState,
 } from '@features/sku/state/skuTypes';
 import { getSkuDetailByIdThunk } from '@features/sku/state/skuThunks';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 /**
  * Initial state for the SKU detail slice.
@@ -43,11 +44,7 @@ export const skuDetailSlice = createSlice({
 
       // --- Rejected ---
       .addCase(getSkuDetailByIdThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          (action.payload as string) ||
-          action.error.message ||
-          'Failed to load SKU details';
+        applyRejected(state, action, 'Failed to load SKU details.');
       });
   },
 });

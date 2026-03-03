@@ -4,6 +4,7 @@ import type {
   AddressByCustomerLookupState,
 } from '@features/lookup/state/lookupTypes';
 import { fetchCustomerAddressesLookupThunk } from '@features/lookup/state/lookupThunks';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 /**
  * Initial state for addressByCustomerSlice.
@@ -41,11 +42,11 @@ const addressByCustomerLookupSlice = createSlice({
         }
       )
       .addCase(fetchCustomerAddressesLookupThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          (action.payload as { message?: string })?.message ??
-          action.error.message ??
-          'Failed to fetch addresses';
+        applyRejected(
+          state,
+          action,
+          'Failed to fetch addresses'
+        );
       });
   },
 });

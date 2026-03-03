@@ -1,3 +1,29 @@
+/**
+ * ================================================================
+ * User Thunks Module
+ * ================================================================
+ *
+ * Responsibility:
+ * - Orchestrates asynchronous user workflows.
+ * - Serves as the boundary between UI and userService.
+ *
+ * Scope:
+ * - Create users
+ * - Fetch paginated user lists
+ * - Fetch authenticated user profile
+ * - Fetch user profiles by ID
+ *
+ * Architecture:
+ * - API calls delegated to userService
+ * - UI normalization occurs at the thunk boundary where required
+ * - Redux reducers remain pure and state-focused
+ *
+ * Error Model:
+ * - All failures return `UiErrorPayload`
+ * - Errors are normalized via `extractUiErrorPayload`
+ * ================================================================
+ */
+
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
   CreateUserRequest,
@@ -10,60 +36,54 @@ import type {
 import { userService } from '@services/userService';
 import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 import { flattenUserRecords } from '@features/user/utils';
-import { extractUiErrorPayload, extractErrorMessage } from '@utils/error';
+import { extractUiErrorPayload } from '@utils/error';
 
 /**
- * createUserThunk
- *
- * Dispatches a POST /users request to create a new user.
+ * Creates a new user.
  *
  * Responsibilities:
- * - Invoke the client API write operation
- * - Return transport-safe response data on success
- * - Surface normalized, UI-safe error payloads to reducers
+ * - Calls userService.createUser
+ * - Sends user creation payload
+ * - Returns API response containing created user data
  *
- * Error contract:
- * - On failure, rejects with a UI-safe error payload produced by
- *   `extractUiErrorPayload`
- * - Reducers should not assume raw Error or Axios shapes
+ * Error Model:
+ * - Failures return `UiErrorPayload`
  *
- * Side effects:
- * - Non-idempotent (creates a new server-side resource)
- *
- * MUST NOT:
- * - Perform request validation
- * - Perform authorization or permission checks
- * - Transform or interpret domain/business logic
+ * @param payload - User creation input
  */
 export const createUserThunk = createAsyncThunk<
   CreateUserResponse,
   CreateUserRequest,
-  {
-    rejectValue: ReturnType<typeof extractUiErrorPayload>;
+  { rejectValue: UiErrorPayload }
+>(
+  'users/createUser',
+  async (payload, { rejectWithValue }) => {
+    try {
+      return await userService.createUser(payload);
+    } catch (error: unknown) {
+      return rejectWithValue(
+        extractUiErrorPayload(error)
+      );
+    }
   }
->('users/createUser', async (payload, { rejectWithValue }) => {
-  try {
-    return await userService.createUser(payload);
-  } catch (error: unknown) {
-    return rejectWithValue(extractUiErrorPayload(error));
-  }
-});
+);
 
 /**
- * Redux Toolkit Thunk — Fetch paginated users (UI-normalized).
- *
- * Fetches users from the backend using the requested view mode
- * (`card` or `list`), then flattens the result into a single,
- * UI-ready user record shape before storing it in Redux.
+ * Fetches a paginated list of users and converts
+ * API records into UI-ready rows.
  *
  * Responsibilities:
- * - Delegate data fetching to the user service layer
- * - Support pagination, sorting, filtering, and view mode selection
- * - Transform API user views into `FlattenedUserRecord`
- * - Return a stable, UI-safe paginated response
+ * - Calls userService.fetchPaginatedUsers
+ * - Flattens domain user models before entering Redux state
+ * - Preserves pagination metadata
  *
- * @param params - Pagination, sorting, filters, and optional view mode
- * @returns Paginated UI response with flattened user records
+ * Transformation Boundary:
+ * - Raw user models → flattenUserRecords → UI models
+ *
+ * Error Model:
+ * - Failures return `UiErrorPayload`
+ *
+ * @param params - Pagination, sorting, filtering, and optional view mode
  */
 export const fetchPaginatedUsersThunk = createAsyncThunk<
   PaginatedUsersUiResponse,
@@ -83,55 +103,57 @@ export const fetchPaginatedUsersThunk = createAsyncThunk<
 });
 
 /**
- * Fetch the authenticated user's own profile.
- *
- * Issues a permission-aware request that returns the profile
- * of the currently authenticated user, sliced according to
- * server-side access rules.
+ * Fetches the authenticated user's profile.
  *
  * Responsibilities:
- * - Delegates profile retrieval to the user service layer
- * - Handles only "self" profile access (no parameters)
- * - Normalizes errors into a string reject payload
+ * - Calls userService.fetchUserProfileCore with self context
+ * - Returns the current user's profile data
  *
- * @returns The authenticated user's profile
- * @throws Rejects with a user-friendly error message string
+ * Error Model:
+ * - Failures return `UiErrorPayload`
  */
 export const fetchUserSelfProfileThunk = createAsyncThunk<
   UserProfileResponse,
   void,
-  { rejectValue: string }
->('userSelfProfile/fetch', async (_, { rejectWithValue }) => {
-  try {
-    return await userService.fetchUserProfileCore({ type: 'self' });
-  } catch (err) {
-    return rejectWithValue(extractErrorMessage(err));
+  { rejectValue: UiErrorPayload }
+>(
+  'userSelfProfile/fetch',
+  async (_, { rejectWithValue }) => {
+    try {
+      return await userService.fetchUserProfileCore({ type: 'self' });
+    } catch (error: unknown) {
+      return rejectWithValue(
+        extractUiErrorPayload(error)
+      );
+    }
   }
-});
+);
 
 /**
- * Fetch a user's profile by user ID for privileged views (e.g. HR/Admin).
- *
- * Access control is fully enforced server-side. The returned profile
- * is permission-sliced based on the viewer's role and scope.
+ * Fetches a user's profile by ID.
  *
  * Responsibilities:
- * - Delegates profile retrieval to the user service layer
- * - Supports route-driven profile views via user ID
- * - Normalizes errors into a string reject payload
+ * - Calls userService.fetchUserProfileCore
+ * - Retrieves profile data for the specified user
+ *
+ * Error Model:
+ * - Failures return `UiErrorPayload`
  *
  * @param userId - Target user UUID
- * @returns The requested user's profile
- * @throws Rejects with a user-friendly error message string
  */
 export const fetchUserViewedProfileThunk = createAsyncThunk<
   UserProfileResponse,
   string,
-  { rejectValue: string }
->('userViewedProfile/fetch', async (userId, { rejectWithValue }) => {
-  try {
-    return await userService.fetchUserProfileCore({ type: 'byId', userId });
-  } catch (err) {
-    return rejectWithValue(extractErrorMessage(err));
+  { rejectValue: UiErrorPayload }
+>(
+  'userViewedProfile/fetch',
+  async (userId, { rejectWithValue }) => {
+    try {
+      return await userService.fetchUserProfileCore({ type: 'byId', userId });
+    } catch (error: unknown) {
+      return rejectWithValue(
+        extractUiErrorPayload(error)
+      );
+    }
   }
-});
+);

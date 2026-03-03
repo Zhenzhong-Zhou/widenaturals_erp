@@ -4,6 +4,7 @@ import type {
   UpdateSkuStatusResponse,
 } from '@features/sku/state/skuTypes';
 import { updateSkuStatusThunk } from '@features/sku/state/skuThunks';
+import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: SkuStatusState = {
   data: null, // holds ApiSuccessResponse or null
@@ -37,8 +38,7 @@ export const skuStatusSlice = createSlice({
         }
       )
       .addCase(updateSkuStatusThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload ?? 'Failed to update SKU status';
+        applyRejected(state, action, 'Failed to update SKU status.');
       });
   },
 });
