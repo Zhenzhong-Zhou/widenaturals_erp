@@ -34,6 +34,12 @@ import type {
   GetSkuListUiResponse,
   GetSkuProductCardsResponse,
   SkuProductCardQueryParams,
+  UpdateSkuDimensionsRequest,
+  UpdateSkuDimensionsResponse,
+  UpdateSkuIdentityRequest,
+  UpdateSkuIdentityResponse,
+  UpdateSkuMetadataRequest,
+  UpdateSkuMetadataResponse,
   UpdateSkuStatusRequestBody,
   UpdateSkuStatusResponse,
   UpdateSkuStatusThunkArgs,
@@ -163,6 +169,35 @@ export const createSkusThunk = createAsyncThunk<
 );
 
 /**
+ * Updates the metadata of a SKU.
+ *
+ * Responsibilities:
+ * - Calls skuService.updateSkuMetadata
+ * - Sends metadata payload (description, size_label, language, market_region)
+ * - Returns API response containing updated SKU ID
+ *
+ * Error Model:
+ * - Failures return `UiErrorPayload`
+ *
+ * @param skuId  - SKU UUID
+ * @param payload - Metadata update payload
+ */
+export const updateSkuMetadataThunk = createAsyncThunk<
+  UpdateSkuMetadataResponse,
+  { skuId: string; payload: UpdateSkuMetadataRequest },
+  { rejectValue: UiErrorPayload }
+>(
+  'skus/updateMetadata',
+  async ({ skuId, payload }, { rejectWithValue }) => {
+    try {
+      return await skuService.updateSkuMetadata(skuId, payload);
+    } catch (error: unknown) {
+      return rejectWithValue(extractUiErrorPayload(error));
+    }
+  }
+);
+
+/**
  * Updates the status of a SKU.
  *
  * Responsibilities:
@@ -186,6 +221,64 @@ export const updateSkuStatusThunk = createAsyncThunk<
     try {
       const payload: UpdateSkuStatusRequestBody = { statusId };
       return await skuService.updateSkuStatus(skuId, payload);
+    } catch (error: unknown) {
+      return rejectWithValue(extractUiErrorPayload(error));
+    }
+  }
+);
+
+/**
+ * Updates the physical dimensions of a SKU.
+ *
+ * Responsibilities:
+ * - Calls skuService.updateSkuDimensions
+ * - Sends dimension payload (length_cm, width_cm, height_cm, weight_g)
+ * - Returns API response containing updated SKU ID
+ *
+ * Error Model:
+ * - Failures return `UiErrorPayload`
+ *
+ * @param skuId  - SKU UUID
+ * @param payload - Dimensions update payload
+ */
+export const updateSkuDimensionsThunk = createAsyncThunk<
+  UpdateSkuDimensionsResponse,
+  { skuId: string; payload: UpdateSkuDimensionsRequest },
+  { rejectValue: UiErrorPayload }
+>(
+  'skus/updateDimensions',
+  async ({ skuId, payload }, { rejectWithValue }) => {
+    try {
+      return await skuService.updateSkuDimensions(skuId, payload);
+    } catch (error: unknown) {
+      return rejectWithValue(extractUiErrorPayload(error));
+    }
+  }
+);
+
+/**
+ * Updates the identity fields of a SKU.
+ *
+ * Responsibilities:
+ * - Calls skuService.updateSkuIdentity
+ * - Sends identity payload (sku, barcode)
+ * - Returns API response containing updated SKU ID
+ *
+ * Error Model:
+ * - Failures return `UiErrorPayload`
+ *
+ * @param skuId  - SKU UUID
+ * @param payload - Identity update payload
+ */
+export const updateSkuIdentityThunk = createAsyncThunk<
+  UpdateSkuIdentityResponse,
+  { skuId: string; payload: UpdateSkuIdentityRequest },
+  { rejectValue: UiErrorPayload }
+>(
+  'skus/updateIdentity',
+  async ({ skuId, payload }, { rejectWithValue }) => {
+    try {
+      return await skuService.updateSkuIdentity(skuId, payload);
     } catch (error: unknown) {
       return rejectWithValue(extractUiErrorPayload(error));
     }

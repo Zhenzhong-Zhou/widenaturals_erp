@@ -1280,3 +1280,111 @@ export interface SelectedSku {
    */
   displayProductName: string;
 }
+
+/**
+ * Generic response payload returned by SKU update operations.
+ *
+ * Many SKU update endpoints (metadata, dimensions, identity, status)
+ * return only the identifier of the updated SKU.
+ *
+ * This interface is shared across those operations to avoid duplication.
+ */
+export interface UpdateSkuResponseData {
+  /** Unique identifier of the updated SKU */
+  id: string
+}
+
+/**
+ * Request payload for updating SKU metadata.
+ *
+ * All fields are optional, but at least one must be provided
+ * according to backend validation rules.
+ */
+export interface UpdateSkuMetadataRequest {
+  /** Marketing or product description */
+  description?: string
+  
+  /** Human-readable package size label (e.g. "120 Capsules") */
+  size_label?: string
+  
+  /** Language code used for the SKU metadata (e.g. "en", "fr") */
+  language?: string
+  
+  /** Target market region for the SKU (e.g. "Canada", "US") */
+  market_region?: string
+}
+
+/**
+ * API response returned after updating SKU metadata.
+ */
+export type UpdateSkuMetadataResponse =
+  ApiSuccessResponse<UpdateSkuResponseData>
+
+/**
+ * Redux async state for SKU metadata update operations.
+ *
+ * Stores:
+ * - API response data
+ * - loading state
+ * - error payload
+ */
+export type UpdateSkuMetadataState =
+  AsyncState<UpdateSkuMetadataResponse | null>
+
+/**
+ * Request payload for updating SKU physical dimensions.
+ *
+ * Units are explicitly defined in the field names to avoid
+ * ambiguity across shipping and logistics integrations.
+ */
+export interface UpdateSkuDimensionsRequest {
+  /** Product length in centimeters */
+  length_cm?: number
+  
+  /** Product width in centimeters */
+  width_cm?: number
+  
+  /** Product height in centimeters */
+  height_cm?: number
+  
+  /** Product weight in grams */
+  weight_g?: number
+}
+
+/**
+ * API response returned after updating SKU dimensions.
+ */
+export type UpdateSkuDimensionsResponse =
+  ApiSuccessResponse<UpdateSkuResponseData>
+
+/**
+ * Redux async state for SKU dimension update operations.
+ */
+export type UpdateSkuDimensionsState =
+  AsyncState<UpdateSkuDimensionsResponse | null>
+
+/**
+ * Request payload for updating SKU identity fields.
+ *
+ * These fields define the SKU's commercial identity used
+ * across sales channels, inventory systems, and barcoding.
+ */
+export interface UpdateSkuIdentityRequest {
+  /** SKU code used internally for inventory and product identification */
+  sku?: string
+  
+  /** Product barcode (UPC/EAN/GTIN depending on region) */
+  barcode?: string
+}
+
+/**
+ * API response returned after updating SKU identity.
+ */
+export type UpdateSkuIdentityResponse =
+  ApiSuccessResponse<UpdateSkuResponseData>
+
+/**
+ * Redux async state for SKU identity update operations.
+ */
+export type UpdateSkuIdentityState =
+  AsyncState<UpdateSkuIdentityResponse | null>
