@@ -443,7 +443,12 @@ const CustomFormInner = <TFieldValues extends FieldValues = FieldValues>(
         )}
 
         {showSubmitButton && (canSubmit || showSubmitButtonOverride) && (
-          <CustomButton type="submit" variant="contained" color="primary">
+          <CustomButton
+            type="submit"
+            variant="contained"
+            color="primary"
+            disabled={props.disabled}
+          >
             {submitButtonLabel}
           </CustomButton>
         )}
