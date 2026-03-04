@@ -55,7 +55,10 @@ export const API_ENDPOINTS = {
     SKU_DETAILS: (skuId: string) => `/skus/${skuId}/details`,
     ALL_RECORDS: '/skus',
     ADD_NEW_RECORD: '/skus/create',
+    UPDATE_METADATA: (skuId: string) => `/skus/${skuId}/metadata`,
     UPDATE_STATUS: (skuId: string) => `/skus/${skuId}/status`,
+    UPDATE_DIMENSIONS: (skuId: string) => `/skus/${skuId}/dimensions`,
+    UPDATE_IDENTITY: (skuId: string) => `/skus/${skuId}/identity`,
   },
   SKU_IMAGES: {
     UPLOAD_IMAGES: '/sku-images/upload',

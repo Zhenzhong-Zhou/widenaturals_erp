@@ -19,7 +19,10 @@ export * from './skuProductCardsSelectors';
 export * from './skuDetailSelectors';
 export * from './paginatedSkusSelectors';
 export * from './createSkusSelectors';
+export * from './skuMetadataSelectors';
 export * from './skuStatusSelectors';
+export * from './skuDimensionsSelectors';
+export * from './skuIdentitySelectors';
 
 // --------------------------------------------------
 // Thunks & Types
