@@ -10,14 +10,18 @@ import { Navigate, useParams } from 'react-router-dom';
 import { useLocation } from 'react-router';
 import Stack from '@mui/material/Stack';
 import Grid from '@mui/material/Grid';
-import DetailPage from '@components/common/DetailPage';
-import CustomButton from '@components/common/CustomButton';
-import GoBackButton from '@components/common/GoBackButton';
+import {
+  CustomButton,
+  DetailPage,
+  GoBackButton,
+  Loading
+} from '@components/index';
 import { NotFoundPage } from '@pages/system';
-import Loading from '@components/common/Loading';
+import {
+  useSkuDetail,
+  useStatusLookup
+} from '@hooks/index';
 import { useHasPermission } from '@features/authorize/hooks';
-import useSkuDetail from '@hooks/useSkuDetail';
-import useStatusLookup from '@hooks/useStatusLookup';
 import { useDialogFocusHandlers } from '@utils/hooks';
 import {
   flattenComplianceRecords,
@@ -29,7 +33,7 @@ import {
   SkuDetailRightPanel,
   SkuImageGallery,
 } from '@features/sku/components/SkuDetail';
-import { UpdateSkuStatusDialog } from '@features/sku/components/UpdateSkuStatusForm';
+import { UpdateSkuStatusDialog } from '@features/sku/components/UpdateSkuStatus';
 import { UpdateSkuMetadataDialog } from '@features/sku/components/UpdateSkuMetadata';
 import { UpdateSkuDimensionsDialog } from '@features/sku/components/UpdateSkuDimensions';
 import { UpdateSkuIdentityDialog } from '@features/sku/components/UpdateSkuIdentity';

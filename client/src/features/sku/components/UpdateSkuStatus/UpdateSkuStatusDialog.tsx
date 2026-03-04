@@ -1,12 +1,14 @@
 import { useCallback, useState } from 'react';
-import CustomDialog from '@components/common/CustomDialog';
-import CustomTypography from '@components/common/CustomTypography';
-import useSkuStatus from '@hooks/useSkuStatus';
+import {
+  CustomDialog,
+  CustomTypography
+} from '@components/index';
+import { useSkuStatus } from '@hooks/index';
 import {
   UpdateSkuStatusErrorDialog,
   UpdateSkuStatusForm,
   UpdateSkuStatusSuccessDialog,
-} from '@features/sku/components/UpdateSkuStatusForm';
+} from '@features/sku/components/UpdateSkuStatus';
 import type {
   StatusLookupController,
   StatusPayload,
