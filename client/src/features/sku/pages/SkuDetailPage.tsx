@@ -24,14 +24,21 @@ import {
   flattenPricingRecords,
   flattenSkuInfo,
 } from '@features/sku/utils';
+import { truncateText } from '@utils/textUtils';
 import {
   SkuDetailRightPanel,
   SkuImageGallery,
 } from '@features/sku/components/SkuDetail';
 import { UpdateSkuStatusDialog } from '@features/sku/components/UpdateSkuStatusForm';
-import { truncateText } from '@utils/textUtils';
+import { UpdateSkuMetadataDialog } from '@features/sku/components/UpdateSkuMetadata';
+import { UpdateSkuDimensionsDialog } from '@features/sku/components/UpdateSkuDimensions';
+import { UpdateSkuIdentityDialog } from '@features/sku/components/UpdateSkuIdentity';
 import { SkuImageUpdateDialog } from '@features/skuImage/components/UpdateImageForm';
 import { SkuImageUploadDialog } from '@features/skuImage/components/UploadImageForm';
+import {
+  transformFlattenedSkuToDimensionsFormValues,
+  transformFlattenedSkuToMetadataFormValues,
+} from '@features/sku/utils/skuTransformers';
 
 /**
  * Represents the currently active dialog on the SKU detail page.
@@ -105,6 +112,9 @@ const SkuDetailPage: FC = () => {
   const [activeDialog, setActiveDialog] = useState<SkuDetailDialog>(null);
   
   const statusButtonRef = useRef<HTMLButtonElement>(null);
+  const metadataButtonRef = useRef<HTMLButtonElement>(null);
+  const dimensionsButtonRef = useRef<HTMLButtonElement>(null);
+  const identityButtonRef = useRef<HTMLButtonElement>(null);
   const imageButtonRef = useRef<HTMLButtonElement>(null);
   const uploadButtonRef = useRef<HTMLButtonElement>(null);
   
@@ -113,6 +123,24 @@ const SkuDetailPage: FC = () => {
     (open) => setActiveDialog(open ? 'edit-status' : null),
     statusButtonRef,
     () => activeDialog === 'edit-status'
+  );
+  
+  const metadataDialogHandlers = useDialogFocusHandlers(
+    (open) => setActiveDialog(open ? 'edit-metadata' : null),
+    metadataButtonRef,
+    () => activeDialog === 'edit-metadata'
+  );
+  
+  const dimensionsDialogHandlers = useDialogFocusHandlers(
+    (open) => setActiveDialog(open ? 'edit-dimensions' : null),
+    dimensionsButtonRef,
+    () => activeDialog === 'edit-dimensions'
+  );
+  
+  const identityDialogHandlers = useDialogFocusHandlers(
+    (open) => setActiveDialog(open ? 'edit-identity' : null),
+    identityButtonRef,
+    () => activeDialog === 'edit-identity'
   );
   
   const imageDialogHandlers = useDialogFocusHandlers(
@@ -169,7 +197,13 @@ const SkuDetailPage: FC = () => {
 
   const canViewInactive = hasPermission('view_all_product_statuses');
 
+  const canUpdateMetadata = hasPermission('update_sku_metadata');
+  
   const canUpdateStatus = hasPermission('update_sku_status');
+ 
+  const canUpdateDimension = hasPermission('update_sku_dimension');
+ 
+  const canUpdateIdentity = hasPermission('update_sku_identity');
   
   const canUploadImages = hasPermission('update_sku_metadata');
   
@@ -209,6 +243,18 @@ const SkuDetailPage: FC = () => {
       error={skuDetailError ?? undefined}
       sx={{ maxWidth: '100%', px: { xs: 2, md: 4 }, pb: 6 }}
     >
+      {/* Metadata Dialog */}
+      {skuId && (
+        <UpdateSkuMetadataDialog
+          open={activeDialog === 'edit-metadata'}
+          onClose={metadataDialogHandlers.handleCloseDialog}
+          skuId={skuId}
+          skuCode={flattenedSkuInfo?.sku ?? ''}
+          initialValues={transformFlattenedSkuToMetadataFormValues(flattenedSkuInfo)}
+          onSuccess={refresh}
+        />
+      )}
+      
       {/* Status Dialog */}
       {skuId && (
         <UpdateSkuStatusDialog
@@ -218,6 +264,33 @@ const SkuDetailPage: FC = () => {
           skuCode={flattenedSkuInfo?.sku ?? ''}
           onSuccess={refresh}
           statusLookup={statusLookup}
+        />
+      )}
+      
+      {/* Dimensions Dialog */}
+      {skuId && (
+        <UpdateSkuDimensionsDialog
+          open={activeDialog === 'edit-dimensions'}
+          onClose={dimensionsDialogHandlers.handleCloseDialog}
+          skuId={skuId}
+          skuCode={flattenedSkuInfo?.sku ?? ''}
+          initialValues={transformFlattenedSkuToDimensionsFormValues(flattenedSkuInfo)}
+          onSuccess={refresh}
+        />
+      )}
+      
+      {/* Identity Dialog */}
+      {skuId && (
+        <UpdateSkuIdentityDialog
+          open={activeDialog === 'edit-identity'}
+          onClose={identityDialogHandlers.handleCloseDialog}
+          skuId={skuId}
+          skuCode={flattenedSkuInfo?.sku ?? ''}
+          onSuccess={refresh}
+          initialValues={{
+            sku: flattenedSkuInfo?.sku ?? '',
+            barcode: flattenedSkuInfo?.barcode ?? '',
+          }}
         />
       )}
       
@@ -252,6 +325,16 @@ const SkuDetailPage: FC = () => {
         alignItems="center"
         justifyContent="flex-end"
       >
+        {canUpdateMetadata && (
+          <CustomButton
+            sx={{ minWidth: 160, height: 44, borderRadius: 22 }}
+            ref={metadataButtonRef}
+            onClick={metadataDialogHandlers.handleOpenDialog}
+          >
+            Edit Metadata
+          </CustomButton>
+        )}
+        
         {canUpdateStatus && (
           <CustomButton
             sx={{
@@ -264,6 +347,26 @@ const SkuDetailPage: FC = () => {
             onClick={statusDialogHandlers.handleOpenDialog}
           >
             Update SKU Status
+          </CustomButton>
+        )}
+        
+        {canUpdateDimension && (
+          <CustomButton
+            sx={{ minWidth: 160, height: 44, borderRadius: 22 }}
+            ref={dimensionsButtonRef}
+            onClick={dimensionsDialogHandlers.handleOpenDialog}
+          >
+            Edit Dimensions
+          </CustomButton>
+        )}
+        
+        {canUpdateIdentity && (
+          <CustomButton
+            sx={{ minWidth: 160, height: 44, borderRadius: 22 }}
+            ref={identityButtonRef}
+            onClick={identityDialogHandlers.handleOpenDialog}
+          >
+            Edit Identity
           </CustomButton>
         )}
         
