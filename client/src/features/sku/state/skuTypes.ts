@@ -654,18 +654,18 @@ export interface FlattenedSkuInfo {
   marketRegion: string;
 
   /** Dimensions (cm) */
-  lengthCm: string;
-  widthCm: string;
-  heightCm: string;
+  lengthCm: number;
+  widthCm: number;
+  heightCm: number;
 
   /** Dimensions (inch) */
-  lengthInch: string;
-  widthInch: string;
-  heightInch: string;
+  lengthInch: number;
+  widthInch: number;
+  heightInch: number;
 
   /** Weight (metric + imperial) */
-  weightG: string;
-  weightLb: string;
+  weightG: number;
+  weightLb: number;
 
   /** Human-readable status name */
   statusName: string;
@@ -1301,9 +1301,6 @@ export interface UpdateSkuResponseData {
  * according to backend validation rules.
  */
 export interface UpdateSkuMetadataRequest {
-  /** Marketing or product description */
-  description?: string
-  
   /** Human-readable package size label (e.g. "120 Capsules") */
   size_label?: string
   
@@ -1312,6 +1309,9 @@ export interface UpdateSkuMetadataRequest {
   
   /** Target market region for the SKU (e.g. "Canada", "US") */
   market_region?: string
+  
+  /** Marketing or product description */
+  description?: string
 }
 
 /**
@@ -1388,3 +1388,54 @@ export type UpdateSkuIdentityResponse =
  */
 export type UpdateSkuIdentityState =
   AsyncState<UpdateSkuIdentityResponse | null>
+
+/**
+ * Form values used when editing SKU metadata.
+ *
+ * These fields represent descriptive attributes that define
+ * how the SKU is presented in different markets and languages.
+ *
+ * Used by:
+ * - UpdateSkuMetadataForm
+ * - metadata edit dialogs
+ * - metadata transformers
+ */
+export interface UpdateSkuMetadataFormValues {
+  /** Human-readable product size label (e.g., "60 Capsules", "120 Softgels") */
+  sizeLabel?: string
+  
+  /** Language code associated with the SKU (e.g., "EN", "FR", "CN") */
+  language?: string
+  
+  /** Target market region for this SKU (e.g., "CA", "US", "EU") */
+  marketRegion?: string
+  
+  /** Product description displayed to customers */
+  description?: string
+}
+
+/**
+ * Form values used when editing SKU physical dimensions.
+ *
+ * These values describe the physical characteristics of the SKU
+ * used for logistics, shipping calculations, and warehouse operations.
+ *
+ * Used by:
+ * - UpdateSkuDimensionsForm
+ * - dimension edit dialogs
+ * - dimension transformers
+ */
+export interface UpdateSkuDimensionsFormValues {
+  
+  /** Product length in centimeters */
+  lengthCm?: number
+  
+  /** Product width in centimeters */
+  widthCm?: number
+  
+  /** Product height in centimeters */
+  heightCm?: number
+  
+  /** Product weight in grams */
+  weightG?: number
+}
