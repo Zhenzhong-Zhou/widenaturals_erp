@@ -92,16 +92,17 @@ export const flattenSkuInfo = (data: SkuDetail): FlattenedSkuInfo => {
     marketRegion,
 
     // Dimensions (with empty-string fallback for UI table consistency)
-    lengthCm: dimensions?.cm?.length ?? '',
-    widthCm: dimensions?.cm?.width ?? '',
-    heightCm: dimensions?.cm?.height ?? '',
-    lengthInch: dimensions?.inches?.length ?? '',
-    widthInch: dimensions?.inches?.width ?? '',
-    heightInch: dimensions?.inches?.height ?? '',
-    weightG: dimensions?.weight?.g ?? '',
-    weightLb: dimensions?.weight?.lb ?? '',
+    lengthCm: dimensions?.cm?.length ?? null,
+    widthCm: dimensions?.cm?.width ?? null,
+    heightCm: dimensions?.cm?.height ?? null,
+    lengthInch: dimensions?.inches?.length ?? null,
+    widthInch: dimensions?.inches?.width ?? null,
+    heightInch: dimensions?.inches?.height ?? null,
+    weightG: dimensions?.weight?.g ?? null,
+    weightLb: dimensions?.weight?.lb ?? null,
 
     // Status
+    statusId: status?.id ?? '',
     statusName: status?.name ?? 'unknown',
     statusDate: status?.date ?? '',
 
