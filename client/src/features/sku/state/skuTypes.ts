@@ -362,32 +362,32 @@ export interface SkuProduct {
 export interface SkuDimensions {
   cm: {
     /** Length in centimeters */
-    length: string;
+    length: number;
 
     /** Width in centimeters */
-    width: string;
+    width: number;
 
     /** Height in centimeters */
-    height: string;
+    height: number;
   };
 
   inches: {
     /** Length in inches */
-    length: string;
+    length: number;
 
     /** Width in inches */
-    width: string;
+    width: number;
 
     /** Height in inches */
-    height: string;
+    height: number;
   };
 
   weight: {
     /** Weight in grams */
-    g: string;
+    g: number;
 
     /** Weight in pounds */
-    lb: string;
+    lb: number;
   };
 }
 
@@ -666,7 +666,10 @@ export interface FlattenedSkuInfo {
   /** Weight (metric + imperial) */
   weightG: number;
   weightLb: number;
-
+  
+  /** status UUID */
+  statusId: string;
+  
   /** Human-readable status name */
   statusName: string;
 
