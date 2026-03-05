@@ -225,6 +225,8 @@ const ProductDetailPage = () => {
           productId={productId}
           productName={flattenProductDetails.name}
           statusLookup={statusLookup}
+          currentStatusId={flattenProductDetails?.statusId}
+          currentStatusName={flattenProductDetails?.statusName}
         />
       )}
     </Box>

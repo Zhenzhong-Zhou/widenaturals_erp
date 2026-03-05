@@ -18,12 +18,17 @@ interface UpdateProductStatusFormProps {
   productId: string;
 
   statusLookup: StatusLookupController;
+  
+  currentStatusId: string
+  currentStatusName: string
 }
 
 const UpdateProductStatusForm: FC<UpdateProductStatusFormProps> = ({
-  loading,
-  onSubmit,
-  statusLookup,
+                                                                     loading,
+                                                                     onSubmit,
+                                                                     statusLookup,
+                                                                     currentStatusId,
+                                                                     currentStatusName,
 }) => {
   // -------------------------------------------------------
   // Shared reusable lookup + form-field controller
@@ -31,6 +36,8 @@ const UpdateProductStatusForm: FC<UpdateProductStatusFormProps> = ({
   const { formFields, buildSubmitPayload } = useStatusFieldController({
     lookup: statusLookup,
     createField: createProductStatusField,
+    currentStatusId,
+    currentStatusName,
   });
 
   // -------------------------------------------------------
@@ -46,6 +53,7 @@ const UpdateProductStatusForm: FC<UpdateProductStatusFormProps> = ({
   return (
     <CustomForm
       fields={formFields}
+      initialValues={{ statusId: currentStatusId }}
       onSubmit={handleSubmit}
       submitButtonLabel="Update Status"
       disabled={loading}
