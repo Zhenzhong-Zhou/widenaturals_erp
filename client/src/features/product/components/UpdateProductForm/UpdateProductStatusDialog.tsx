@@ -22,15 +22,21 @@ interface UpdateProductStatusDialogProps {
 
   /** Fully controlled dropdown lookup handler (hook object) */
   statusLookup: StatusLookupController;
+  
+  /** current product status */
+  currentStatusId?: string | null
+  currentStatusName?: string | null
 }
 
 const UpdateProductStatusDialog = ({
-  open,
-  onClose,
-  onSuccess,
-  productId,
-  productName,
-  statusLookup,
+                                     open,
+                                     onClose,
+                                     onSuccess,
+                                     productId,
+                                     productName,
+                                     statusLookup,
+                                     currentStatusId,
+                                     currentStatusName,
 }: UpdateProductStatusDialogProps) => {
   const [selectedStatusLabel, setSelectedStatusLabel] = useState<string>('');
 
@@ -42,12 +48,25 @@ const UpdateProductStatusDialog = ({
     updateStatus,
     reset: resetProductStatus,
   } = useProductStatusUpdate();
-
+  
+  /**
+   * Close dialog after successful update.
+   * Also clears local mutation state.
+   */
+  const handleSuccessClose = () => {
+    if (onSuccess) onSuccess();
+    resetProductStatus();
+    onClose();
+  };
+  
+  /**
+   * Close dialog without success callback.
+   */
   const handleClose = () => {
     resetProductStatus();
     onClose();
   };
-
+  
   const handleSubmit = useCallback(
     async (formData: StatusPayload) => {
       setSelectedStatusLabel(formData.statusLabel);
@@ -69,7 +88,7 @@ const UpdateProductStatusDialog = ({
     return (
       <UpdateProductStatusSuccessDialog
         open={open}
-        onClose={handleClose}
+        onClose={handleSuccessClose}
         productName={productName}
         newStatusName={selectedStatusLabel}
         responseData={updateStatusData}
@@ -110,6 +129,8 @@ const UpdateProductStatusDialog = ({
         loading={updateStatusLoading}
         onSubmit={handleSubmit}
         statusLookup={statusLookup}
+        currentStatusId={currentStatusId ?? ''}
+        currentStatusName={currentStatusName ?? ''}
       />
 
       <CustomTypography variant="caption" sx={{ mt: 1 }} color="text.secondary">
