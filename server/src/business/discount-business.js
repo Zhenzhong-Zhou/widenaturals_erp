@@ -175,9 +175,17 @@ const filterDiscountLookupQuery = (query, userAccess) => {
 /**
  * Enriches a discount row with computed flags like isActive and isValidToday.
  *
- * @param {Object} row - Raw discount row with `status_id`, `valid_from`, and `valid_to`
- * @param {string|number} activeStatusId - The status ID representing "active"
- * @returns {Object} Enriched row with `isActive` and `isValidToday` booleans
+ * @template T
+ * @param {T & {
+ *   status_id?: string,
+ *   valid_to?: string,
+ *   valid_from?: string
+ * }} row
+ * @param {string} activeStatusId
+ * @returns {T & {
+ *   isActive: boolean,
+ *   isValidToday: boolean
+ * }}
  */
 const enrichDiscountRow = (row, activeStatusId) => {
   const now = new Date();
