@@ -8,12 +8,9 @@ import {
 } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { useLocation } from 'react-router';
-import Stack from '@mui/material/Stack';
 import Grid from '@mui/material/Grid';
 import {
-  CustomButton,
   DetailPage,
-  GoBackButton,
   Loading,
 } from '@components/index';
 import { NotFoundPage } from '@pages/system';
@@ -21,7 +18,7 @@ import {
   useSkuDetail,
   useStatusLookup,
 } from '@hooks/index';
-import { useHasPermission } from '@features/authorize/hooks';
+import { useHasPermissionBoolean } from '@features/authorize/hooks';
 import { useDialogFocusHandlers } from '@utils/hooks';
 import {
   flattenComplianceRecords,
@@ -34,6 +31,7 @@ import {
 } from '@features/sku/utils/skuTransformers';
 import { truncateText } from '@utils/textUtils';
 import {
+  SkuDetailActionToolbar,
   SkuDetailRightPanel,
   SkuImageGallery,
 } from '@features/sku/components/SkuDetail';
@@ -55,15 +53,6 @@ type SkuDetailDialog =
   | 'upload-images'
   | 'edit-images'
   | null;
-
-/**
- * Shared style for action buttons.
- */
-const actionButtonStyle = {
-  minWidth: 160,
-  height: 44,
-  borderRadius: 22,
-};
 
 const SkuDetailPage: FC = () => {
   /* ---------------------------------------------------------
@@ -101,7 +90,7 @@ const SkuDetailPage: FC = () => {
    Permissions
   --------------------------------------------------------- */
   
-  const hasPermission = useHasPermission();
+  const hasPermission = useHasPermissionBoolean();
   
   const canViewInactive = hasPermission('view_all_product_statuses');
   const canUpdateMetadata = hasPermission('update_sku_metadata');
@@ -318,86 +307,24 @@ const SkuDetailPage: FC = () => {
           Header Actions
       --------------------------------------------------------- */}
       
-      <Stack
-        direction="row"
-        spacing={2}
-        mt={3}
-        mb={1}
-        flexWrap="wrap"
-        justifyContent="flex-end"
-      >
-        {canUpdateMetadata && (
-          <CustomButton
-            sx={actionButtonStyle}
-            ref={metadataButtonRef}
-            onClick={metadataDialogHandlers.handleOpenDialog}
-          >
-            Edit Metadata
-          </CustomButton>
-        )}
+      <SkuDetailActionToolbar
+        canUpdateMetadata={canUpdateMetadata}
+        canUpdateStatus={canUpdateStatus}
+        canUpdateDimension={canUpdateDimension}
+        canUpdateIdentity={canUpdateIdentity}
+        canUpdateImages={canUpdateImages}
+        canUploadImages={canUploadImages}
         
-        {canUpdateStatus && (
-          <CustomButton
-            sx={actionButtonStyle}
-            color="secondary"
-            ref={statusButtonRef}
-            onClick={statusDialogHandlers.handleOpenDialog}
-          >
-            Update SKU Status
-          </CustomButton>
-        )}
+        metadataDialogHandlers={metadataDialogHandlers}
+        statusDialogHandlers={statusDialogHandlers}
+        dimensionsDialogHandlers={dimensionsDialogHandlers}
+        identityDialogHandlers={identityDialogHandlers}
+        imageDialogHandlers={imageDialogHandlers}
+        uploadDialogHandlers={uploadDialogHandlers}
         
-        {canUpdateDimension && (
-          <CustomButton
-            sx={actionButtonStyle}
-            ref={dimensionsButtonRef}
-            onClick={dimensionsDialogHandlers.handleOpenDialog}
-          >
-            Edit Dimensions
-          </CustomButton>
-        )}
-        
-        {canUpdateIdentity && (
-          <CustomButton
-            sx={actionButtonStyle}
-            ref={identityButtonRef}
-            onClick={identityDialogHandlers.handleOpenDialog}
-          >
-            Edit Identity
-          </CustomButton>
-        )}
-        
-        {canUpdateImages && (
-          <CustomButton
-            sx={actionButtonStyle}
-            color="primary"
-            ref={imageButtonRef}
-            onClick={imageDialogHandlers.handleOpenDialog}
-          >
-            Edit SKU Images
-          </CustomButton>
-        )}
-        
-        {canUploadImages && (
-          <CustomButton
-            sx={actionButtonStyle}
-            color="primary"
-            ref={uploadButtonRef}
-            onClick={uploadDialogHandlers.handleOpenDialog}
-          >
-            Add Images
-          </CustomButton>
-        )}
-        
-        <CustomButton sx={actionButtonStyle} onClick={refresh}>
-          Refresh SKU Details
-        </CustomButton>
-        
-        <GoBackButton
-          sx={actionButtonStyle}
-          fallbackTo={cameFromUpload ? '/skus' : undefined}
-        />
-      </Stack>
+        refresh={refresh}
+        cameFromUpload={cameFromUpload}
+      />
       
       {/* ---------------------------------------------------------
           Main Content
