@@ -7,3 +7,4 @@ export { default as ComplianceInfoSection } from './ComplianceInfoSection';
 export { createPricingColumns } from './PricingColumns';
 export { default as PricingInfoSection } from './PricingInfoSection';
 export { default as SkuDetailRightPanel } from './SkuDetailRightPanel';
+export { default as SkuDetailActionToolbar } from './SkuDetailActionToolbar';
