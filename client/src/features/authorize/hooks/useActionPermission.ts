@@ -1,4 +1,5 @@
-import useHasPermission from '@features/authorize/hooks/useHasPermission';
+import { useMemo } from 'react';
+import { useHasPermission } from '@features/authorize/hooks/index';
 import { canPerformAction } from '@features/authorize/utils/permissionUtils';
 
 /**
@@ -40,19 +41,21 @@ const useActionPermission = (
   allowedStates: readonly string[]
 ): boolean => {
   const hasPermission = useHasPermission();
-
-  return canPerformAction({
-    /**
-     * Normalize tri-state permission into strict boolean.
-     *
-     * Pending permissions are treated as denied to ensure
-     * actions are never enabled prematurely.
-     */
-    hasPermission: (perm: string) => hasPermission(perm) === true,
-    requiredPermission,
-    currentState,
-    allowedStates,
-  });
+  
+  return useMemo(() => {
+    return canPerformAction({
+      /**
+       * Normalize tri-state permission into strict boolean.
+       *
+       * Pending permissions are treated as denied to ensure
+       * actions are never enabled prematurely.
+       */
+      hasPermission: (perm: string) => hasPermission(perm) === true,
+      requiredPermission,
+      currentState,
+      allowedStates,
+    });
+  }, [hasPermission, requiredPermission, currentState, allowedStates]);
 };
 
 export default useActionPermission;
