@@ -15,128 +15,129 @@ import type {
 } from '@features/lookup/hooks/useStatusFieldController';
 
 /**
- * Props for UpdateSkuStatusDialog
- *
- * This dialog manages three UI states:
- *   1. Form mode (default)
- *   2. Success mode (after API success)
- *   3. Error mode (after API failure)
- *
- * The parent page should:
- *   - supply current lookup options (statusDropdownOptions)
- *   - supply lookup handlers for search/pagination
- *   - provide SKU id + code for display
+ * Props for UpdateSkuStatusDialog.
  */
 interface UpdateSkuStatusDialogProps {
-  /** Controls dialog visibility */
   open: boolean;
-
-  /** Called when the dialog is dismissed */
   onClose: () => void;
-
-  /**
-   * Optional callback after successful status update.
-   * Useful for refreshing parent pages.
-   */
   onSuccess?: () => void;
-
-  /** SKU database ID (UUID) to update */
+  
+  /** SKU database ID */
   skuId: string;
-
-  /** Human-readable SKU code (for UI display) */
+  
+  /** SKU code for display */
   skuCode: string;
-
-  /** Fully controlled dropdown lookup handler (hook object) */
+  
+  /** Controlled lookup hook object */
   statusLookup: StatusLookupController;
+  
+  /** Current SKU status to prefill the dropdown */
+  currentStatusId?: string;
+  currentStatusName?: string;
 }
 
 /**
- * Dialog component for updating a SKU's status.
+ * Dialog for updating a SKU status.
  *
- * Renders:
- *   - Success dialog when update succeeds
- *   - Error dialog when update fails
- *   - Status selection form otherwise
+ * UI modes:
+ *   1. Form (default)
+ *   2. Success
+ *   3. Error
  */
 const UpdateSkuStatusDialog = ({
-  open,
-  onClose,
-  onSuccess,
-  skuId,
-  skuCode,
-  statusLookup,
-}: UpdateSkuStatusDialogProps) => {
-  const [selectedStatusLabel, setSelectedStatusLabel] = useState<string>('');
-
-  /**
-   * Internal slice-based status update state + actions
-   */
+                                 open,
+                                 onClose,
+                                 onSuccess,
+                                 skuId,
+                                 skuCode,
+                                 statusLookup,
+                                 currentStatusId,
+                                 currentStatusName,
+                               }: UpdateSkuStatusDialogProps) => {
+  
+  /** Used only for displaying the new status in the success dialog */
+  const [statusLabel, setStatusLabel] = useState<string>('');
+  
   const {
-    data: updateStatusData,
-    loading: updateStatusLoading,
-    error: updateStatusError,
-    isSuccess: updateStatusSuccess,
+    data,
+    loading,
+    error,
+    isSuccess,
     updateStatus,
-    reset: resetSkuStatus,
+    reset,
   } = useSkuStatus();
-
+  
   /**
-   * Close dialog + reset slice anytime dialog exits.
+   * Close dialog after successful update.
+   * Also clears local mutation state.
    */
-  const handleClose = () => {
+  const handleSuccessClose = () => {
     if (onSuccess) onSuccess();
-    resetSkuStatus();
+    reset();
     onClose();
   };
-
+  
   /**
-   * Submit handler: only pass minimal payload:
-   *   { skuId, statusId }
+   * Close dialog without success callback.
+   */
+  const handleClose = () => {
+    reset();
+    onClose();
+  };
+  
+  /**
+   * Submit handler.
+   * Only minimal payload is sent to API.
    */
   const handleSubmit = useCallback(
-    async (formData: StatusPayload) => {
-      setSelectedStatusLabel(formData.statusLabel);
-
+    async (payload: StatusPayload) => {
+      
+      setStatusLabel(payload.statusLabel);
+      
       await updateStatus({
         skuId,
-        statusId: formData.statusId,
+        statusId: payload.statusId,
       });
+      
     },
     [skuId, updateStatus]
   );
-
+  
   // ---------------------------------------------------------------------------
-  // UI STATE 1: Success Mode
+  // SUCCESS MODE
   // ---------------------------------------------------------------------------
-  if (updateStatusSuccess && updateStatusData) {
+  
+  if (isSuccess && data) {
     return (
       <UpdateSkuStatusSuccessDialog
         open={open}
-        onClose={handleClose}
+        onClose={handleSuccessClose}
         skuCode={skuCode}
-        newStatusName={selectedStatusLabel}
-        responseData={updateStatusData}
+        newStatusName={statusLabel}
+        responseData={data}
       />
     );
   }
-
+  
   // ---------------------------------------------------------------------------
-  // UI STATE 2: Error Mode
+  // ERROR MODE
   // ---------------------------------------------------------------------------
-  if (updateStatusError && !updateStatusLoading) {
+  
+  if (error && !loading) {
     return (
       <UpdateSkuStatusErrorDialog
         open={open}
         onClose={handleClose}
         skuCode={skuCode}
-        error={updateStatusError}
+        error={error}
       />
     );
   }
-
+  
   // ---------------------------------------------------------------------------
-  // UI STATE 3: Default Form Mode
+  // FORM MODE
   // ---------------------------------------------------------------------------
+  
   return (
     <CustomDialog
       open={open}
@@ -147,16 +148,21 @@ const UpdateSkuStatusDialog = ({
       <CustomTypography variant="body2" sx={{ mb: 2 }}>
         Updating status for SKU: <strong>{skuCode}</strong>
       </CustomTypography>
-
+      
       <UpdateSkuStatusForm
-        skuId={skuId}
-        loading={updateStatusLoading}
+        loading={loading}
         onSubmit={handleSubmit}
         statusLookup={statusLookup}
+        currentStatusId={currentStatusId ?? ''}
+        currentStatusName={currentStatusName ?? ''}
       />
-
-      <CustomTypography variant="caption" sx={{ mt: 1 }} color="text.secondary">
-        This change will be logged into the SKU audit history.
+      
+      <CustomTypography
+        variant="caption"
+        sx={{ mt: 1 }}
+        color="text.secondary"
+      >
+        This change will be recorded in the SKU audit history.
       </CustomTypography>
     </CustomDialog>
   );

@@ -268,6 +268,8 @@ const SkuDetailPage: FC = () => {
           skuCode={flattenedSkuInfo?.sku ?? ''}
           onSuccess={refresh}
           statusLookup={statusLookup}
+          currentStatusId={flattenedSkuInfo?.statusId}
+          currentStatusName={flattenedSkuInfo?.statusName}
         />
       )}
       
