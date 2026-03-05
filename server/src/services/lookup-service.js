@@ -173,7 +173,7 @@ const {
  * @param {Object} options.filters - Filtering parameters.
  * @param {number} [options.limit=50] - Number of records to fetch.
  * @param {number} [options.offset=0] - Offset for pagination.
- * @returns {Promise<Object[]>} - Transformed lookup items.
+ * @returns {Promise<LoadMoreResult<BatchRegistryLookupItem>>} - Transformed lookup items.
  */
 const fetchBatchRegistryLookupService = async ({
   filters = {},
@@ -561,8 +561,8 @@ const fetchOrderTypeLookupService = async (user, { filters = {} }) => {
  * @param {Object} [options.filters={}] - Optional filter parameters (e.g., keyword, isActive)
  * @param {number} [options.limit=50] - Number of records to return
  * @param {number} [options.offset=0] - Record offset for pagination
- * @returns {Promise<{ items: { label: string, value: string, isDisabled?: boolean }[], hasMore: boolean }>}
- *   Transformed paginated result suitable for lookup/autocomplete components.
+ * @returns {Promise<LoadMoreResult<LookupItem>>}
+ * Transformed paginated result suitable for lookup/autocomplete components.
  *
  * @throws {AppError} When lookup fails due to service error or permission issues.
  */
@@ -625,7 +625,7 @@ const fetchPaginatedPaymentMethodLookupService = async (
  * @param {number} [options.limit=50] - Max number of records to return.
  * @param {number} [options.offset=0] - Number of records to skip for pagination.
  *
- * @returns {Promise<{ items: { label: string, value: string, isActive?: boolean, isValidToday?: boolean }[], hasMore: boolean }>}
+ * @returns {Promise<LoadMoreResult<DiscountLookupItem>>}
  * Returns a list of formatted discount options and pagination metadata.
  *
  * @throws {AppError} Throws a service-level error if lookup fails.
@@ -706,7 +706,7 @@ const fetchPaginatedDiscountLookupService = async (
  * @param {number} [options.limit=50] - Max number of records to return.
  * @param {number} [options.offset=0] - Number of records to skip for pagination.
  *
- * @returns {Promise<{ items: { label: string, value: string, isActive?: boolean, isValidToday?: boolean }[], hasMore: boolean }>}
+ * @returns {Promise<LoadMoreResult<LookupItem>>}
  * Returns a list of formatted tax rate options and pagination metadata.
  *
  * @throws {AppError} Throws a service-level error if lookup fails.
@@ -782,15 +782,7 @@ const fetchPaginatedTaxRateLookupService = async (
  * @param {number} [options.limit=50] - Max number of records to return.
  * @param {number} [options.offset=0] - Number of records to skip for pagination.
  *
- * @returns {Promise<{
- *   items: {
- *     label: string,
- *     value: string,
- *     isActive?: boolean,
- *     isPickupLocation?: boolean
- *   }[],
- *   hasMore: boolean
- * }>}
+ * @returns {Promise<LoadMoreResult<LookupItem>>}
  * Returns a list of formatted delivery method options and pagination metadata.
  *
  * @throws {AppError} Throws a service-level error if lookup fails.
@@ -872,10 +864,8 @@ const fetchPaginatedDeliveryMethodLookupService = async (
  * @param {number} [params.limit=50] - Max number of records to return.
  * @param {number} [params.offset=0] - Number of records to skip for pagination.
  *
- * @returns {Promise<{
- *   items: { id: string, label: string, isAbnormal?: boolean, abnormalReasons?: string[] }[],
- *   hasMore: boolean
- * }>} - Transformed SKU options with pagination and conditional flags.
+ * @returns {Promise<LoadMoreResult<LookupItem>>}
+ * - Transformed SKU options with pagination and conditional flags.
  *
  * @throws {AppError} - Throws if SKU lookup fails or required status IDs are missing.
  */
@@ -1076,12 +1066,7 @@ const fetchPaginatedPricingLookupService = async (
  * @param {number} [options.offset=0]   - Pagination offset.
  * @param {"generic"|"salesDropdown"} [options.mode="generic"] - Endpoint mode (validated upstream).
  *
- * @returns {Promise<{
- *   items: Array<{ id: string, label: string, isArchived?: boolean, isActive?: boolean }>,
- *   offset: number,
- *   limit: number,
- *   hasMore: boolean
- * }>}
+ * @returns {Promise<LoadMoreResult<LookupItem>>}
  *
  * @throws {AppError} On permission evaluation failure, missing status id, repo or transform errors.
  *
@@ -1198,12 +1183,7 @@ const fetchPaginatedPackagingMaterialLookupService = async (
  * @param {number} [options.limit=50] - Maximum number of rows.
  * @param {number} [options.offset=0] - Offset for pagination.
  *
- * @returns {Promise<{
- *   items: Array<{ id: string, label: string, isActive?: boolean }>,
- *   offset: number,
- *   limit: number,
- *   hasMore: boolean
- * }>}
+ * @returns {Promise<LoadMoreResult<LookupItem>>}
  *
  * @throws {AppError} - If permission or query execution fails.
  */
@@ -1287,12 +1267,7 @@ const fetchSkuCodeBaseLookupService = async (
  * @param {number} [options.limit=50] - Max number of items to return.
  * @param {number} [options.offset=0] - Pagination offset.
  *
- * @returns {Promise<{
- *   items: Array<{ id: string, label: string, isActive?: boolean }>,
- *   offset: number,
- *   limit: number,
- *   hasMore: boolean
- * }>}
+ * @returns {Promise<LoadMoreResult<LookupItem>>}
  *
  * @throws {AppError} When permission evaluation or repository query fails.
  */
@@ -1376,12 +1351,7 @@ const fetchProductLookupService = async (
  * @param {number} [options.limit=50] - Maximum rows to return.
  * @param {number} [options.offset=0] - Offset for pagination.
  *
- * @returns {Promise<{
- *   items: Array<{ id: string, label: string, isActive?: boolean }>,
- *   offset: number,
- *   limit: number,
- *   hasMore: boolean
- * }>}
+ * @returns {Promise<LoadMoreResult<LookupItem>>}
  *
  * @throws {AppError} - If permission or lookup execution fails.
  */
@@ -1478,17 +1448,7 @@ const fetchStatusLookupService = async (
  * @param {number} [args.offset=0]
  *   Number of records to skip
  *
- * @returns {Promise<{
- *   items: Array<{
- *     id: string,
- *     label: string,
- *     subLabel?: string,
- *     isActive?: boolean
- *   }>,
- *   offset: number,
- *   limit: number,
- *   hasMore: boolean
- * }>}
+ * @returns {Promise<LoadMoreResult<LookupItem>>}
  *
  * @throws {AppError}
  *   When permission evaluation or repository query fails
@@ -1596,12 +1556,7 @@ const fetchUserLookupService = async (
  * @param {number} [options.limit=50] - Max number of items to return.
  * @param {number} [options.offset=0] - Pagination offset.
  *
- * @returns {Promise<{
- *   items: Array<{ id: string, label: string, isActive?: boolean }>,
- *   offset: number,
- *   limit: number,
- *   hasMore: boolean
- * }>}
+ * @returns {Promise<LoadMoreResult<LookupItem>>}
  *
  * @throws {AppError} When permission evaluation or repository query fails.
  */
