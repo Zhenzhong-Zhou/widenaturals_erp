@@ -8,7 +8,7 @@ const {
   getBatchSummary,
   getWarehouseInventoryList,
 } = require('../utils/inventory-utils');
-const { transformPaginatedResult } = require('../utils/transformer-utils');
+const { transformPageResult } = require('../utils/transformer-utils');
 
 /**
  * Extracts and deduplicates SKU and packaging material IDs from a list of order items.
@@ -446,13 +446,12 @@ const transformInventoryAllocationReviewRows = (rows) => {
  * @property {{ name: string, code: string }} orderStatus
  * @property {{ fullName: string }} customer
  * @property {string|null} paymentMethod
- * @property {string|null} paymentStatusName
- * @property {string|null} paymentStatusCode
+ * @property {{ name: string|null, code: string|null }} paymentStatus
  * @property {string|null} deliveryMethod
  * @property {string} orderCreatedAt - ISO timestamp of when the order was created
  * @property {string} orderCreatedBy - Full name of the user who created the order
- * @property {string} orderUpdatedAt - ISO timestamp of when the order was last updated
- * @property {string} orderUpdatedBy - Full name of the user who last updated the order
+ * @property {string|null} orderUpdatedAt - ISO timestamp of when the order was last updated
+ * @property {string|null} orderUpdatedBy - Full name of the user who last updated the order
  * @property {{ total: number, allocated: number }} itemCount
  * @property {{ ids: string[], names: string }} warehouses
  * @property {{
@@ -532,19 +531,30 @@ const transformInventoryAllocationRow = (row) => {
 };
 
 /**
- * Transforms a paginated result of raw SQL rows from `getPaginatedInventoryAllocations`
- * into a structured client-ready response, including typed rows and pagination metadata.
+ * Transform paginated inventory allocation query results into
+ * structured client-ready allocation summaries.
  *
- * Applies `transformInventoryAllocationRow` to each row in the result.
+ * Responsibilities:
+ * - Apply `transformInventoryAllocationRow` to each row
+ * - Preserve pagination metadata
  *
- * @param {{ data: InventoryAllocationRow[], pagination: { page: number, limit: number, totalRecords: number, totalPages: number } }} paginatedResult
- * @returns {{ data: InventoryAllocationSummary[], pagination: { page: number, limit: number, totalRecords: number, totalPages: number } }}
+ * @param {{
+ *   data: [],
+ *   pagination: {
+ *     page: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     totalPages: number
+ *   }
+ * }} paginatedResult
+ *
+ * @returns {Promise<PaginatedResult<T>>}
  */
-const transformPaginatedInventoryAllocationResults = (paginatedResult) => {
-  return transformPaginatedResult(paginatedResult, (row) =>
-    transformInventoryAllocationRow(row)
+const transformPaginatedInventoryAllocationResults = (paginatedResult) =>
+  transformPageResult(
+    paginatedResult,
+    (row) => transformInventoryAllocationRow(row)
   );
-};
 
 /**
  * Transforms the raw order allocation result into a standardized response object.

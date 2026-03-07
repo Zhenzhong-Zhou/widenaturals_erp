@@ -1,5 +1,5 @@
 const {
-  transformPaginatedResult,
+  transformPageResult,
   deriveInventoryStatusFlags,
 } = require('../utils/transformer-utils');
 const { getProductDisplayName } = require('../utils/display-name-utils');
@@ -9,13 +9,39 @@ const {
   transformInventoryRecordBase,
   transformInventoryRecordSummaryBase,
 } = require('./transform-inventory-record-base');
-const { generateChecksum } = require('../utils/crypto-utils');
 
 /**
- * Transforms raw KPI summary query result rows into structured output.
+ * Transforms raw KPI summary query result rows into structured KPI objects.
  *
- * @param {Array} rows - Raw rows returned from the KPI summary SQL query.
- * @returns {Array} An array of transformed KPI summary objects.
+ * @param {Array<{
+ *   batch_type: 'product' | 'packaging_material' | 'total',
+ *   total_products?: number | string | null,
+ *   total_materials?: number | string | null,
+ *   locations_count?: number | string | null,
+ *   total_quantity?: number | string | null,
+ *   total_reserved?: number | string | null,
+ *   total_available?: number | string | null,
+ *   near_expiry_inventory_records?: number | string | null,
+ *   expired_inventory_records?: number | string | null,
+ *   expired_product_batches?: number | string | null,
+ *   expired_material_batches?: number | string | null,
+ *   low_stock_count?: number | string | null
+ * }>} rows - Raw rows returned from the KPI summary SQL query.
+ *
+ * @returns {Array<{
+ *   batchType: 'product' | 'packaging_material' | 'total',
+ *   totalProducts: number,
+ *   totalMaterials: number,
+ *   locationsCount: number,
+ *   totalQuantity: number,
+ *   totalReserved: number,
+ *   totalAvailable: number,
+ *   nearExpiryInventoryRecords: number,
+ *   expiredInventoryRecords: number,
+ *   expiredProductBatches: number,
+ *   expiredMaterialBatches: number,
+ *   lowStockCount: number
+ * }>}
  */
 const transformLocationInventoryKpiSummary = (rows = []) => {
   return rows.map((row) => ({
@@ -41,17 +67,48 @@ const transformLocationInventoryKpiSummary = (rows = []) => {
 
 /**
  * Transforms a raw SQL row from the location inventory summary query
- * into a normalized inventory record with derived stock/expiry info.
+ * into a normalized inventory summary object with derived stock and expiry information.
  *
- * Supports both product and packaging material inventory types.
- * Removes irrelevant null values and separates product vs. material details.
+ * Supports both product and packaging material inventory records and derives
+ * display names and status flags used by the frontend inventory tables.
  *
- * @param {Object} row - Raw SQL result row
- * @returns {Object} Transformed inventory record for frontend consumption
+ * @param {{
+ *   item_id: string,
+ *   item_type: 'product' | 'packaging_material',
+ *   sku?: string | null,
+ *   product_name?: string | null,
+ *   brand_name?: string | null,
+ *   series_name?: string | null,
+ *   material_name?: string | null,
+ *   material_code?: string | null,
+ *   total_lots?: number | string | null,
+ *   earliest_manufacture_date?: string | null,
+ *   created_at?: string | null,
+ *   [key: string]: any
+ * }} row - Raw SQL result row from the location inventory summary query.
+ *
+ * @returns {{
+ *   itemId: string,
+ *   itemType: 'product' | 'packaging_material',
+ *   displayName: string,
+ *   totalLots: number,
+ *   earliestManufactureDate: string | null,
+ *   createdAt: string | null,
+ *   isLowStock?: boolean,
+ *   isNearExpiry?: boolean,
+ *   expirySeverity?: 'normal' | 'warning' | 'critical' | 'expired'
+ * }}
+ * Transformed inventory summary object ready for frontend consumption.
  */
 const transformLocationInventorySummaryRow = (row) => {
   const isProduct = row.item_type === 'product';
-  const productName = getProductDisplayName(row);
+  const productName = getProductDisplayName({
+    product_name: row.product_name ?? '',
+    brand: row.brand_name ?? '',
+    sku: row.sku ?? '',
+    country_code: row.country_code ?? '',
+    display_name: row.display_name ?? undefined,
+  });
   const statusInfo = deriveInventoryStatusFlags(row);
 
   return cleanObject({
@@ -70,29 +127,27 @@ const transformLocationInventorySummaryRow = (row) => {
 };
 
 /**
- * Transforms a paginated SQL result of raw location inventory summary rows
- * into a fully structured, frontend-ready result using `transformLocationInventorySummaryRow`.
+ * Transform paginated location inventory summary rows into
+ * structured frontend-ready objects.
  *
- * This includes:
- * - Row-level normalization (product/material shape)
- * - Derived stock, expiry, and quantity flags
- * - Preserves pagination metadata
+ * Responsibilities:
+ * - Apply `transformLocationInventorySummaryRow` to each row
+ * - Preserve pagination metadata
  *
- * @param {Object} paginatedResult - The raw result from `paginateQuery`
- * @param {Array<Object>} paginatedResult.data - Raw SQL rows
- * @param {Object} paginatedResult.pagination - Pagination metadata (page, limit, totalRecords, totalPages)
- * @returns {{
- *   data: Array<Object>,
+ * @param {{
+ *   data: [],
  *   pagination: {
  *     page: number,
  *     limit: number,
  *     totalRecords: number,
  *     totalPages: number
  *   }
- * }} Transformed result for frontend consumption
+ * }} paginatedResult
+ *
+ * @returns {Promise<PaginatedResult<T>>}
  */
 const transformPaginatedLocationInventorySummaryResult = (paginatedResult) =>
-  transformPaginatedResult(
+  transformPageResult(
     paginatedResult,
     transformLocationInventorySummaryRow
   );
@@ -100,8 +155,73 @@ const transformPaginatedLocationInventorySummaryResult = (paginatedResult) =>
 /**
  * Transform a single raw location inventory summary record.
  *
- * @param {Object} row - Raw DB record.
- * @returns {Object} Transformed and cleaned object.
+ * @param {{
+ *   location_inventory_id: string,
+ *   batch_type: 'product' | 'packaging_material',
+ *
+ *   sku_id?: string | null,
+ *   sku?: string | null,
+ *
+ *   material_id?: string | null,
+ *   material_code?: string | null,
+ *
+ *   lot_number?: string | null,
+ *
+ *   product_manufacture_date?: string | null,
+ *   material_manufacture_date?: string | null,
+ *
+ *   product_expiry_date?: string | null,
+ *   material_expiry_date?: string | null,
+ *
+ *   location_quantity?: number | null,
+ *   reserved_quantity?: number | null,
+ *
+ *   status_id?: string | null,
+ *   status_name?: string | null,
+ *   status_date?: string | null,
+ *
+ *   inbound_date?: string | null,
+ *   outbound_date?: string | null,
+ *   last_update?: string | null,
+ *
+ *   location_id?: string | null,
+ *   location_name?: string | null,
+ *   location_type?: string | null
+ * }} row - Raw DB record returned from the location inventory summary query.
+ *
+ * @returns {{
+ *   locationInventoryId: string,
+ *   batchType: 'product' | 'packaging_material',
+ *   item: {
+ *     type: 'sku' | 'material',
+ *     id: string | null,
+ *     code: string | null
+ *   },
+ *   lotNumber: string | null,
+ *   manufactureDate: string | null,
+ *   expiryDate: string | null,
+ *   quantity: {
+ *     locationQuantity: number | null,
+ *     reserved: number | null,
+ *     available: number
+ *   },
+ *   status: {
+ *     id: string | null,
+ *     name: string | null,
+ *     date: string | null
+ *   },
+ *   timestamps: {
+ *     inboundDate: string | null,
+ *     outboundDate: string | null,
+ *     lastUpdate: string | null
+ *   },
+ *   durationInStorage: number | null,
+ *   location: {
+ *     id: string | null,
+ *     name: string | null,
+ *     type: string | null
+ *   }
+ * }} Transformed inventory summary details item.
  */
 const transformLocationInventorySummaryDetailsItem = (row) =>
   cleanObject({
@@ -158,13 +278,26 @@ const transformLocationInventorySummaryDetailsItem = (row) =>
   });
 
 /**
- * Transform a full paginated location inventory summary result.
+ * Transforms a paginated location inventory summary details result
+ * into structured objects for frontend consumption.
  *
- * @param {Object} paginatedResult - The raw-paginated result.
- * @returns {Object} Paginated and transformed result.
+ * Applies `transformLocationInventorySummaryDetailsItem` to each row
+ * while preserving pagination metadata.
+ *
+ * @param {{
+ *   data: [],
+ *   pagination: {
+ *     page: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     totalPages: number
+ *   }
+ * }} paginatedResult - Raw paginated SQL result
+ *
+ @returns {Promise<PaginatedResult<T>>}
  */
 const transformPaginatedLocationInventorySummaryDetails = (paginatedResult) =>
-  transformPaginatedResult(
+  transformPageResult(
     paginatedResult,
     transformLocationInventorySummaryDetailsItem
   );
@@ -187,16 +320,30 @@ const transformLocationInventoryRecord = (row) =>
   });
 
 /**
- * Transforms a paginated result set of raw location inventory rows into enriched, display-ready objects.
+ * Transform paginated location inventory record rows into
+ * structured inventory objects for frontend consumption.
  *
- * This function applies `transformLocationInventoryRecord` to each record in the paginated result,
- * converting database field names into structured objects, deriving display names, and attaching status flags.
+ * Responsibilities:
+ * - Apply `transformLocationInventoryRecord` to each row
+ * - Preserve pagination metadata
  *
- * @param {Object} paginatedResult - The raw paginated database result
- * @returns {Object} Transformed a paginated result with structured inventory data
+ * @param {{
+ *   data: [],
+ *   pagination: {
+ *     page: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     totalPages: number
+ *   }
+ * }} paginatedResult
+ *
+ * @returns {Promise<PaginatedResult<T>>}
  */
 const transformPaginatedLocationInventoryRecordResults = (paginatedResult) =>
-  transformPaginatedResult(paginatedResult, transformLocationInventoryRecord);
+  transformPageResult(
+    paginatedResult,
+    transformLocationInventoryRecord
+  );
 
 /**
  * Transforms lightweight enriched location inventory records
@@ -207,7 +354,7 @@ const transformPaginatedLocationInventoryRecordResults = (paginatedResult) =>
  * - Strips null/undefined fields using `cleanObject`.
  *
  * @param {Array<Object>} rows - Raw DB rows from the location inventory join query.
- * @returns {Array<InventoryRecordOutput>} - Transformed summary records.
+ * @returns {Array<Object>} - Transformed summary records.
  */
 const transformLocationInventoryResponseRecords = (rows) => {
   return transformInventoryRecordSummaryBase(rows, {

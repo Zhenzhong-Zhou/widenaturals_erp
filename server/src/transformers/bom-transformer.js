@@ -2,7 +2,7 @@ const { getProductDisplayName } = require('../utils/display-name-utils');
 const { makeStatus } = require('../utils/status-utils');
 const { compactAudit, makeAudit } = require('../utils/audit-utils');
 const { cleanObject } = require('../utils/object-utils');
-const { transformPaginatedResult } = require('../utils/transformer-utils');
+const { transformPageResult } = require('../utils/transformer-utils');
 const { logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
@@ -125,8 +125,13 @@ const AppError = require('../utils/AppError');
  */
 const transformBomRow = (row) => {
   if (!row) return null;
-
-  const productName = getProductDisplayName(row);
+  
+  const productName = getProductDisplayName({
+    product_name: row.product_name,
+    brand: row.brand ?? '',
+    sku: row.sku_code,
+    country_code: row.country_code ?? '',
+  });
 
   const base = {
     product: {
@@ -175,22 +180,74 @@ const transformBomRow = (row) => {
 };
 
 /**
+ * @typedef {Object} BomQueryRow
+ * @property {string} product_id
+ * @property {string} product_name
+ * @property {string} brand
+ * @property {string} series
+ * @property {string} category
+ * @property {string} sku_id
+ * @property {string} sku_code
+ * @property {string} barcode
+ * @property {string} language
+ * @property {string} country_code
+ * @property {string} market_region
+ * @property {string} size_label
+ * @property {string} sku_description
+ * @property {string|null} compliance_id
+ * @property {string|null} compliance_type
+ * @property {string|null} compliance_number
+ * @property {string|null} compliance_status
+ * @property {string|null} compliance_issued_date
+ * @property {string|null} compliance_expiry_date
+ * @property {string} bom_id
+ * @property {string} bom_code
+ * @property {string} bom_name
+ * @property {number} bom_revision
+ * @property {boolean} is_active
+ * @property {boolean} is_default
+ * @property {string|null} bom_description
+ * @property {string|null} bom_status_id
+ * @property {string|null} bom_status
+ * @property {string|null} bom_status_date
+ * @property {string} bom_created_at
+ * @property {string} bom_created_by
+ * @property {string|null} bom_created_by_firstname
+ * @property {string|null} bom_created_by_lastname
+ * @property {string|null} bom_updated_at
+ * @property {string|null} bom_updated_by
+ * @property {string|null} bom_updated_by_firstname
+ * @property {string|null} bom_updated_by_lastname
+ */
+
+/**
  * Transform paginated BOM query results into structured BOM objects
  * with attached pagination metadata.
  *
- * @param {{
- *   rows: Object[],
- *   pagination: { page: number, limit: number, totalRecords: number, totalPages: number }
- * }} paginatedResult - Raw result from `paginateQuery()`.
+ * Responsibility:
+ * - Convert repository `rows` into `data`
+ * - Apply BOM row transformation
+ * - Preserve pagination metadata
  *
- * @returns {{
- *   data: BOMRecord[],
- *   pagination: { page: number, limit: number, totalRecords: number, totalPages: number }
- * }} Transformed BOM list with pagination info.
+ * @param {{
+ *   data: BomQueryRow[],
+ *   pagination: {
+ *     page: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     totalPages: number
+ *   }
+ * }} paginatedResult
+ *
+ * @returns {Promise<PaginatedResult<BomQueryRow>>}
  */
-const transformPaginatedOBoms = (paginatedResult) => {
-  return transformPaginatedResult(paginatedResult, (row) =>
-    transformBomRow(row)
+const transformPaginatedOBoms = async (paginatedResult) => {
+  return transformPageResult(
+    {
+      data: paginatedResult?.data ?? [],
+      pagination: paginatedResult?.pagination ?? {},
+    },
+    transformBomRow
   );
 };
 
@@ -277,7 +334,13 @@ const transformBomDetails = (rows = []) => {
 
   try {
     const headerRow = rows[0];
-    const productName = getProductDisplayName(headerRow);
+    
+    const productName = getProductDisplayName({
+      product_name: headerRow.product_name,
+      brand: headerRow.brand ?? '',
+      sku: headerRow.sku_code,
+      country_code: headerRow.country_code ?? '',
+    });
 
     // --- Header section ---
     const header = {

@@ -1,35 +1,60 @@
-const { transformPaginatedResult } = require('../utils/transformer-utils');
+const { transformPageResult } = require('../utils/transformer-utils');
 
 /**
  * Transforms a raw pricing type DB row into a formatted object.
  *
- * @param {object} row - Raw row from the database.
- * @returns {object} - Transformed pricing type object.
+ * @param {{
+ *   id: string,
+ *   name: string,
+ *   code: string,
+ *   slug?: string|null,
+ *   description?: string|null,
+ *   status: string,
+ *   status_date?: string|null,
+ *   created_at?: string|null,
+ *   updated_at?: string|null,
+ *   created_by_fullname?: string|null,
+ *   updated_by_fullname?: string|null
+ * }} row - Raw row from the database.
+ *
+ * @returns {{
+ *   id: string,
+ *   name: string,
+ *   code: string,
+ *   slug: string|null,
+ *   description: string|null,
+ *   status: string,
+ *   statusDate: string|null,
+ *   createdAt: string|null,
+ *   updatedAt: string|null,
+ *   createdByFullName: string|null,
+ *   updatedByFullName: string|null
+ * }}
  */
 const transformPricingTypeRow = (row) => ({
   id: row.id,
   name: row.name,
   code: row.code,
-  slug: row.slug || null,
-  description: row.description || null,
+  slug: row.slug ?? null,
+  description: row.description ?? null,
   status: row.status,
   statusDate: row.status_date ? new Date(row.status_date).toISOString() : null,
   createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
   updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null,
-  createdByFullName: row.created_by_fullname || null,
-  updatedByFullName: row.updated_by_fullname || null,
+  createdByFullName: row.created_by_fullname ?? null,
+  updatedByFullName: row.updated_by_fullname ?? null,
 });
 
 /**
- * Transforms a paginated result of pricing types using the shared pagination utility.
+ * Transforms a paginated result of pricing types using the shared page transformer.
  *
- * @param {object} paginatedResult - Raw paginated result from the database.
- * @param {Array<object>} paginatedResult.data - Raw pricing type rows.
- * @param {object} paginatedResult.pagination - Metadata including page, limit, totalRecords, totalPages.
- * @returns {object} Transformed response with pagination and formatted pricing type records.
+ * @param {Object} pageResult - Raw paginated result from the database.
+ * @param {Object[]} pageResult.data - Raw pricing type rows.
+ * @param {Object} pageResult.pagination - Pagination metadata.
+ * @returns {Object} Transformed response with formatted pricing type records and pagination info.
  */
-const transformPaginatedPricingTypeResult = (paginatedResult) =>
-  transformPaginatedResult(paginatedResult, transformPricingTypeRow);
+const transformPaginatedPricingTypeResult = (pageResult) =>
+  transformPageResult(pageResult, transformPricingTypeRow);
 
 /**
  * Transforms a flat row from the pricing type metadata query
@@ -59,12 +84,22 @@ const transformPaginatedPricingTypeResult = (paginatedResult) =>
  *   code: string,
  *   slug: string,
  *   description: string,
- *   status: { id: string, name: string, statusDate: string },
- *   createdBy: { id: string, fullName: string },
- *   updatedBy: { id: string | null, fullName: string },
- *   createdAt: string,
- *   updatedAt: string | null
- * }}
+ *   status: {
+ *     id: string,
+ *     name: string,
+ *     statusDate: string
+ *   },
+ *   createdBy: {
+ *     id: string,
+ *     fullName
+ *   },
+ *   updatedBy: {
+ *     id: string|null,
+ *     fullName
+ *   },
+ *   createdAt: Date,
+ *   updatedAt: Date|null
+ *  }}
  */
 const transformPricingTypeMetadata = (row) => ({
   id: row.pricing_type_id,

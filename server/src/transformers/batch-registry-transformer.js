@@ -1,7 +1,7 @@
 const { cleanObject } = require('../utils/object-utils');
 const { makeStatus } = require('../utils/status-utils');
 const { makeActor } = require('../utils/actor-utils');
-const { transformPaginatedResult } = require('../utils/transformer-utils');
+const { transformPageResult } = require('../utils/transformer-utils');
 
 /**
  * @typedef {Object} BatchRegistryRow
@@ -179,11 +179,23 @@ const transformBatchRegistryRow = (row) => {
  * - Does NOT alter pagination semantics
  * - Does NOT filter rows
  *
- * @param {Object} paginatedResult
- * @returns {Object}
+ * @param {{
+ *   data: Array<Object>,
+ *   pagination?: {
+ *     page?: number,
+ *     limit?: number,
+ *     totalRecords?: number,
+ *     totalPages?: number
+ *   }
+ * }} paginatedResult
+ *
+ * @returns {Promise<PaginatedResult<T>>}
  */
-const transformPaginatedBatchRegistryResults = (paginatedResult) => {
-  return transformPaginatedResult(paginatedResult, transformBatchRegistryRow);
+const transformPaginatedBatchRegistryResults = async (paginatedResult) => {
+  return transformPageResult(
+    paginatedResult,
+    transformBatchRegistryRow
+  );
 };
 
 module.exports = {

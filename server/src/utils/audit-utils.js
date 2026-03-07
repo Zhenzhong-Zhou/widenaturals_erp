@@ -1,6 +1,26 @@
 const { getFullName } = require('./name-utils');
 
 /**
+ * Generic audit metadata structure used internally by transformers.
+ *
+ * @typedef {Object} AuditMeta
+ * @property {string|null} createdAt
+ * @property {{
+ *   id?: string|null,
+ *   name?: string|null,
+ *   firstName?: string|null,
+ *   lastName?: string|null
+ * }} createdBy
+ * @property {string|null} [updatedAt]
+ * @property {{
+ *   id?: string|null,
+ *   name?: string|null,
+ *   firstName?: string|null,
+ *   lastName?: string|null
+ * }} [updatedBy]
+ */
+
+/**
  * @typedef {Object} MakeAuditOptions
  * @property {boolean} [dedupe=true]            When true, collapses updated* into created* if same timestamp + same user.
  * @property {string}  [prefix]                 Prefix for column names, e.g. "order_" -> "order_created_at".
@@ -28,12 +48,7 @@ const { getFullName } = require('./name-utils');
  *
  * @param {object} row
  * @param {MakeAuditOptions} [opts]
- * @returns {{
- *   createdAt: string|null,
- *   createdBy: { id?: string|null, name?: string|null, firstName?: string|null, lastName?: string|null },
- *   updatedAt?: string|null,
- *   updatedBy?: { id?: string|null, name?: string|null, firstName?: string|null, lastName?: string|null }
- * }}
+ * @returns {AuditMeta}
  */
 const makeAudit = (
   row,

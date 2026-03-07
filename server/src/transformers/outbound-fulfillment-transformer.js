@@ -1,6 +1,6 @@
 const { cleanObject } = require('../utils/object-utils');
 const { getFullName } = require('../utils/name-utils');
-const { transformPaginatedResult } = require('../utils/transformer-utils');
+const { transformPageResult } = require('../utils/transformer-utils');
 const { getProductDisplayName } = require('../utils/display-name-utils');
 const { logSystemInfo } = require('../utils/system-logger');
 const {
@@ -27,7 +27,7 @@ const {
  * @param {Object} params - Input payload for transformation
  * @param {string} params.orderId - Order ID
  * @param {Object} params.shipmentRow - Inserted shipment row
- * @param {Object} params.fulfillmentRowWithStatus - Inserted fulfillment row
+ * @param {Object[]} params.fulfillmentRowsWithStatus - Inserted fulfillment rows
  * @param {Object} params.shipmentBatchRow - Inserted shipment batch row
  * @param {Object} params.orderStatusRow - Updated order status row
  * @param {Object[]} params.orderItemStatusRow - Updated order item status rows
@@ -39,13 +39,15 @@ const {
  *  - {Object} statusUpdates { updatedOrderItemStatusIds }
  */
 const transformFulfillmentResult = ({
-  orderId,
-  shipmentRow,
-  fulfillmentRowWithStatus,
-  shipmentBatchRow,
-  orderStatusRow,
-  orderItemStatusRow,
-}) => {
+                                      orderId,
+                                      shipmentRow,
+                                      fulfillmentRowsWithStatus,
+                                      shipmentBatchRow,
+                                      orderStatusRow,
+                                      orderItemStatusRow,
+                                    }) => {
+  const fulfillmentRow = fulfillmentRowsWithStatus?.[0] ?? null;
+  
   const result = {
     orderId,
     orderStatus: {
@@ -57,8 +59,8 @@ const transformFulfillmentResult = ({
       batchId: shipmentBatchRow?.id ?? null,
     },
     fulfillment: {
-      id: fulfillmentRowWithStatus?.id ?? null,
-      statusId: fulfillmentRowWithStatus?.status_id ?? null,
+      id: fulfillmentRow?.id ?? null,
+      statusId: fulfillmentRow?.status_id ?? null,
     },
     statusUpdates: {
       updatedOrderItemStatusIds: orderItemStatusRow?.map((row) => row.id) ?? [],
@@ -87,18 +89,19 @@ const transformFulfillmentResult = ({
  *  - Minimal overhead: simple object construction and array mapping.
  *
  * @function
- * @param {Object} params - Input payload for transformation
- * @param {string} params.orderId - ID of the order
- * @param {string} params.orderNumber - Human-readable order number
- * @param {Object[]} params.fulfillments - Fulfillment rows from DB
- * @param {string} params.shipmentId - ID of the outbound shipment
- * @param {string[]} params.warehouseInventoryIds - IDs of updated warehouse inventory records
- * @param {Object} params.orderStatusRow - Updated order status row
- * @param {Object[]} params.orderItemStatusRow - Updated order item status rows
- * @param {Object[]} params.inventoryAllocationStatusRow - Updated allocation status rows
- * @param {Object[]} params.orderFulfillmentStatusRow - Updated fulfillment status rows
- * @param {Object[]} params.shipmentStatusRow - Updated shipment status rows
- * @param {Object[]} params.logMetadata - Inserted inventory activity log metadata
+ * @param {{
+ *   orderId: string,
+ *   orderNumber: string,
+ *   fulfillments: Object[],
+ *   shipmentId: string,
+ *   warehouseInventoryIds: { warehouse_id: string, batch_id: string }[],
+ *   orderStatusRow: Object,
+ *   orderItemStatusRow: Object[],
+ *   inventoryAllocationStatusRow: Object[],
+ *   orderFulfillmentStatusRow: Object[],
+ *   shipmentStatusRow: Object[],
+ *   logMetadata: Object[]
+ * }} params
  * @returns {Object} Structured fulfillment adjustment result:
  *  - {Object} order { id, number }
  *  - {Object} shipment { id, statuses }
@@ -242,19 +245,14 @@ const transformOutboundShipmentRow = (row) => {
  * - `{ data: TransformedOutboundShipment[], pagination }`
  *
  * @param {{
- *   data: Record<string, any>[];
+ *   data: [];
  *   pagination: { page: number; limit: number; totalRecords: number; totalPages: number };
- * }} paginatedResult - The raw paginated result from the repository
- * @returns {{
- *   data: Record<string, any>[];
- *   pagination: { page: number; limit: number; totalRecords: number; totalPages: number };
- * }} Cleaned paginated outbound shipment results
+ * }} paginatedResult - Raw paginated result from repository
+ *
+ * @returns {Promise<PaginatedResult<T>>}
  */
-const transformPaginatedOutboundShipmentResults = async (paginatedResult) => {
-  return await transformPaginatedResult(paginatedResult, (row) =>
-    transformOutboundShipmentRow(row)
-  );
-};
+const transformPaginatedOutboundShipmentResults = (paginatedResult) =>
+  transformPageResult(paginatedResult, transformOutboundShipmentRow);
 
 /**
  * @typedef {Object} ShipmentDetailRow

@@ -16,7 +16,7 @@ const { cleanObject } = require('../utils/object-utils');
 const { makeStatus } = require('../utils/status-utils');
 const { makeActor } = require('../utils/actor-utils');
 const { compactAudit, makeAudit } = require('../utils/audit-utils');
-const { transformPaginatedResult } = require('../utils/transformer-utils');
+const { transformPageResult } = require('../utils/transformer-utils');
 const { getProductDisplayName } = require('../utils/display-name-utils');
 
 /**
@@ -165,7 +165,7 @@ const transformProductBatchRow = (row, access) => {
  * @returns {Object} Paginated, transformed product batch result
  */
 const transformPaginatedProductBatchResults = (paginatedResult, access) => {
-  return transformPaginatedResult(paginatedResult, (row) =>
+  return transformPageResult(paginatedResult, (row) =>
     transformProductBatchRow(row, access)
   );
 };

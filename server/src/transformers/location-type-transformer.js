@@ -1,6 +1,6 @@
 const { compactAudit, makeAudit } = require('../utils/audit-utils');
 const { cleanObject } = require('../utils/object-utils');
-const { transformPaginatedResult } = require('../utils/transformer-utils');
+const { transformPageResult } = require('../utils/transformer-utils');
 
 /**
  * Transforms a single raw location type SQL row
@@ -29,53 +29,25 @@ const transformLocationTypeRow = (row) => {
 };
 
 /**
- * Transforms paginated location type results
- * into API-ready format.
+ * Transforms paginated location type results into API-ready format.
  *
- * Preserves pagination metadata while mapping
- * each SQL row through `transformLocationTypeRow`.
- *
- * ─────────────────────────────────────────────────────────────
- * Input
- * ─────────────────────────────────────────────────────────────
- * {
- *   data: [SQLRow, SQLRow, ...],
- *   pagination: { page, limit, totalRecords, totalPages }
- * }
- *
- * ─────────────────────────────────────────────────────────────
- * Output
- * ─────────────────────────────────────────────────────────────
- * {
- *   data: [TransformedLocationType, ...],
- *   pagination: { page, limit, totalRecords, totalPages }
- * }
+ * Applies `transformLocationTypeRow` to each row while preserving
+ * pagination metadata.
  *
  * @param {{
- *   data: Record<string, any>[];
+ *   data: Record<string, any>[],
  *   pagination: {
- *     page: number;
- *     limit: number;
- *     totalRecords: number;
- *     totalPages: number;
- *   };
+ *     page: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     totalPages: number
+ *   }
  * }} paginatedResult
  *
- * @returns {{
- *   data: Record<string, any>[];
- *   pagination: {
- *     page: number;
- *     limit: number;
- *     totalRecords: number;
- *     totalPages: number;
- *   };
- * }}
+ * @returns {Promise<PaginatedResult<T>>}
  */
-const transformPaginatedLocationTypeResults = (paginatedResult) => {
-  return transformPaginatedResult(paginatedResult, (row) =>
-    transformLocationTypeRow(row)
-  );
-};
+const transformPaginatedLocationTypeResults = (paginatedResult) =>
+  transformPageResult(paginatedResult, transformLocationTypeRow);
 
 /**
  * Transformer: Location Type Detail
