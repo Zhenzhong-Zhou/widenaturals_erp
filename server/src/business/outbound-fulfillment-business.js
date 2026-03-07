@@ -1153,13 +1153,12 @@ const updateShipmentsStatusBusiness = async (
  * @async
  * @param {Object} params - Function parameters.
  * @param {string} params.orderId - ID of the order being updated.
- * @param {string} params.orderNumber - Human-readable order number (used for logging/context).
- * @param {Object[]} [params.allocationMeta=[]] - Allocation metadata array to update (maybe empty or null).
- * @param {string} [params.newOrderStatusId] - New status ID for the order and its items.
- * @param {string} [params.newAllocationStatusId] - New status ID for allocations (if provided).
+ * @param {string} params.orderNumber - Human-readable order number.
+ * @param {Object[] | null} [params.allocationMeta] - Allocation metadata array to update.
+ * @param {string | null} [params.newAllocationStatusId] - New status ID for allocations.
  * @param {Object[]} [params.fulfillments=[]] - Fulfillment metadata array to update.
- * @param {string} [params.newFulfillmentStatusId] - New status ID for fulfillments (if provided).
- * @param {string} [params.newShipmentStatusId] - New status ID for shipments (if provided).
+ * @param {string | null} [params.newFulfillmentStatusId] - New status ID for fulfillments.
+ * @param {string | null} [params.newShipmentStatusId] - New status ID for shipments.
  * @param {string} params.userId - ID of the user performing the update.
  * @param {Object} params.client - Database transaction client.
  *
@@ -1351,22 +1350,15 @@ const buildFulfillmentLogEntry = ({
     reserved_quantity_after: update.reserved_quantity,
     warehouse_quantity_snapshot: previous_quantity,
   });
-
-  const checksumPayload = cleanObject({
-    warehouse_inventory_id: allocation.warehouse_inventory_id,
+  
+  const checksum = generateChecksum({
+    inventory_id: allocation.warehouse_inventory_id,
     inventory_action_type_id: inventoryActionTypeId,
-    adjustment_type_id: null,
-    order_id: orderId,
-    status_id: update.status_id,
+    previous_quantity,
     quantity_change,
     new_quantity,
+    source_action_id: fulfillmentId,
     comments,
-    performed_by: userId,
-    recorded_by: userId,
-    inventory_scope: 'warehouse',
-    source_type: 'fulfillment',
-    source_ref_id: fulfillmentId,
-    ...metadata,
   });
 
   return cleanObject({
@@ -1387,7 +1379,7 @@ const buildFulfillmentLogEntry = ({
     source_type: 'fulfillment',
     source_ref_id: fulfillmentId,
     status_effective_at: new Date().toISOString(),
-    checksum: generateChecksum(checksumPayload),
+    checksum,
   });
 };
 

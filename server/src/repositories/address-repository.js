@@ -112,6 +112,34 @@ const insertAddressRecords = async (addresses, client) => {
 };
 
 /**
+ * @typedef {Object} AddressRow
+ * @property {string} id
+ * @property {string} customer_id
+ * @property {string} recipient_name
+ * @property {string} phone
+ * @property {string} email
+ * @property {string} label
+ * @property {string} address_line1
+ * @property {string|null} address_line2
+ * @property {string} city
+ * @property {string} state
+ * @property {string} postal_code
+ * @property {string} country
+ * @property {string|null} region
+ * @property {string|null} note
+ * @property {Date} created_at
+ * @property {Date|null} updated_at
+ * @property {string|null} created_by_firstname
+ * @property {string|null} created_by_lastname
+ * @property {string|null} updated_by_firstname
+ * @property {string|null} updated_by_lastname
+ * @property {string|null} customer_firstname
+ * @property {string|null} customer_lastname
+ * @property {string|null} customer_email
+ * @property {string|null} customer_phone_number
+ */
+
+/**
  * Fetches enriched address records by ID.
  *
  * - Retrieves address details along with associated customer, creator, and updater metadata.
@@ -121,7 +149,7 @@ const insertAddressRecords = async (addresses, client) => {
  *
  * @param {string[]} ids - Array of address UUIDs to fetch.
  * @param {object} [client] - Optional PostgreSQL client for transactional context.
- * @returns {Promise<Array<Object>>} - Array of enriched address records.
+ * @returns {Promise<Array<AddressRow>>} - Array of enriched address records.
  * @throws {AppError} If query fails or invalid parameters are passed.
  */
 const getEnrichedAddressesByIds = async (ids, client) => {

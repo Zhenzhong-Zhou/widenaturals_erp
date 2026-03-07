@@ -103,7 +103,7 @@ const fetchPaginatedLocationsService = async ({
     // ----------------------------------------------------------
     // Step 3: Transform SQL rows → API DTO
     // ----------------------------------------------------------
-    const result = transformPaginatedLocationResults(rawResult);
+    const result = await transformPaginatedLocationResults(rawResult);
 
     // ----------------------------------------------------------
     // Step 4: Log success

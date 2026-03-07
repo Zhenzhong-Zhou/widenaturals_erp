@@ -134,7 +134,7 @@ const insertInventoryAllocationsBulk = async (allocations, client) => {
  * @param {string[]} input.allocationIds - UUIDs of allocation records to update.
  * @param {object} [client] - Optional PostgreSQL client for transactional execution.
  *
- * @returns {Promise<number>} - Number of allocation records updated.
+ * @returns {Promise<string[]>} - Array of allocation IDs whose status was updated.
  *
  * @throws {AppError} - Throws `AppError.databaseError` if the update fails.
  */
@@ -157,7 +157,7 @@ const updateInventoryAllocationStatus = async (
 
   try {
     const result = await query(sql, params, client);
-
+    
     if (result.rowCount === 0) {
       logSystemInfo(
         'Allocation status update skipped: no matching allocations',
@@ -170,7 +170,8 @@ const updateInventoryAllocationStatus = async (
           severity: 'WARN',
         }
       );
-      return 0;
+      
+      return [];
     }
 
     logSystemInfo('Inventory allocation statuses updated successfully', {
@@ -584,6 +585,8 @@ const getPaginatedInventoryAllocations = async ({
   sortBy = 'created_at',
   sortOrder = 'DESC',
 }) => {
+  const context = 'inventory-allocations-repository/getPaginatedInventoryAllocations';
+  
   const { rawAllocWhereClause, rawAllocParams, outerWhereClause, outerParams } =
     buildInventoryAllocationFilter(filters);
 
@@ -688,8 +691,7 @@ const getPaginatedInventoryAllocations = async ({
 
     if (result.data.length === 0) {
       logSystemInfo('No inventory allocations found', {
-        context:
-          'inventory-allocations-repository/getPaginatedInventoryAllocations',
+        context,
         pagination: { page, limit },
         sorting: { sortBy, sortOrder },
       });
@@ -697,8 +699,7 @@ const getPaginatedInventoryAllocations = async ({
     }
 
     logSystemInfo('Fetched paginated inventory allocations', {
-      context:
-        'inventory-allocations-repository/getPaginatedInventoryAllocations',
+      context,
       filters,
       pagination: { page, limit },
       sorting: { sortBy, sortOrder },
@@ -710,8 +711,7 @@ const getPaginatedInventoryAllocations = async ({
       error,
       'Failed to fetch paginated inventory allocations',
       {
-        context:
-          'inventory-allocations-repository/getPaginatedInventoryAllocations',
+        context,
         filters,
         pagination: { page, limit },
         sorting: { sortBy, sortOrder },
@@ -740,7 +740,7 @@ const getPaginatedInventoryAllocations = async ({
  * @async
  * @function
  * @param {string} orderId - UUID of the order to validate allocations against
- * @param {string[]|null} [allocationIds=null] - Optional array of allocation UUIDs to restrict results
+ * @param {string[]} [allocationIds=[]] - Optional array of allocation UUIDs to restrict results
  * @param {import('pg').PoolClient|null} [client=null] - Optional PostgreSQL client/transaction context
  *
  * @returns {Promise<Array<{
@@ -768,9 +768,11 @@ const getPaginatedInventoryAllocations = async ({
  */
 const getAllocationsByOrderId = async (
   orderId,
-  allocationIds = null,
+  allocationIds = [],
   client = null
 ) => {
+  const context = 'inventory-allocations-repository/getAllocationsByOrderId';
+  
   let sql = `
     SELECT
       ia.id AS allocation_id,
@@ -782,11 +784,12 @@ const getAllocationsByOrderId = async (
     JOIN order_items oi ON ia.order_item_id = oi.id
     WHERE oi.order_id = $1
   `;
-
+  
+  /** @type {(string | string[])[]} */
   const params = [orderId];
-
+  
   if (Array.isArray(allocationIds) && allocationIds.length > 0) {
-    sql += ` AND ia.id = ANY($2)`;
+    sql += ` AND ia.id = ANY($2::uuid[])`;
     params.push(allocationIds);
   }
 
@@ -794,7 +797,7 @@ const getAllocationsByOrderId = async (
     const { rows } = await query(sql, params, client);
 
     logSystemInfo('Validated allocations for order', {
-      context: 'inventory-allocations-repository/getAllocationsByOrderId',
+      context,
       orderId,
       requestedCount: Array.isArray(allocationIds) ? allocationIds.length : 0,
       returnedCount: rows.length,
@@ -803,7 +806,7 @@ const getAllocationsByOrderId = async (
     return rows;
   } catch (error) {
     logSystemException(error, 'Failed to validate allocations for order', {
-      context: 'inventory-allocations-repository/getAllocationsByOrderId',
+      context,
       orderId,
       allocationIds,
     });
@@ -825,7 +828,7 @@ const getAllocationsByOrderId = async (
  *
  * @function
  * @param {string} orderId - UUID of the order to fetch allocations for.
- * @param {string[] | null} [orderItemIds=null] - Optional array of order item IDs to filter allocations.
+ * @param {string[]} [orderItemIds=[]] - Optional array of order item IDs to filter allocations.
  * @param {import('pg').PoolClient|null} [client=null] - Optional PostgreSQL client for transactional usage.
  * @returns {Promise<Array<Object>>} Resolves to an array of allocation records with joined status info.
  *
@@ -842,9 +845,11 @@ const getAllocationsByOrderId = async (
  */
 const getAllocationStatuses = async (
   orderId,
-  orderItemIds = null,
+  orderItemIds = [],
   client = null
 ) => {
+  const context = 'inventory-allocations-repository/getAllocationStatuses';
+  
   let sql = `
     SELECT
       o.id AS order_id,
@@ -859,11 +864,12 @@ const getAllocationStatuses = async (
     JOIN inventory_allocation_status ias ON ia.status_id = ias.id
     WHERE oi.order_id = $1
   `;
-
+  
+  /** @type {(string | string[])[]} */
   const params = [orderId];
 
   if (Array.isArray(orderItemIds) && orderItemIds.length > 0) {
-    sql += ` AND ia.order_item_id = ANY($2)`;
+    sql += ` AND ia.order_item_id = ANY($2::uuid[])`;
     params.push(orderItemIds);
   }
 
@@ -875,7 +881,7 @@ const getAllocationStatuses = async (
       error,
       'Failed to fetch allocation statuses by orderId/orderItemIds',
       {
-        context: 'inventory-allocations-repository/getAllocationStatuses',
+        context,
         orderId,
         orderItemIds,
       }

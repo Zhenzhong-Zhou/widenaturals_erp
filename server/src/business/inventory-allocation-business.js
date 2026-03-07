@@ -11,7 +11,6 @@
  * @typedef {Batch & { allocated_quantity: number }} AllocatedBatch
  */
 
-const { cleanObject } = require('../utils/object-utils');
 const { generateChecksum } = require('../utils/crypto-utils');
 const AppError = require('../utils/AppError');
 
@@ -449,7 +448,7 @@ const updateReservedQuantitiesFromAllocations = (
  *   orderId: string,              // Sales order ID (used as `sourceRefId`)
  *   performedBy: string,          // ID of the user performing the allocation
  *   actionTypeId: string,         // Inventory action type (e.g., 'reserve', 'allocate')
- *   comments?: string             // Optional comment to include in each log entry
+ *   comments?: (string | null)          // Optional comment to include in each log entry
  * }} options - Contextual data for generating audit logs.
  *
  * @returns {Array<Object>} Array of inventory activity log objects to insert.
@@ -527,44 +526,32 @@ const buildWarehouseInventoryActivityLogsForOrderAllocation = (
  * @returns {object} Inventory activity log object with checksum and full context.
  */
 const buildAllocationLogEntry = ({
-  inventoryId,
-  previousReservedQty,
-  newReservedQty,
-  warehouseQty, // unchanged but included for reference
-  statusId,
-  userId,
-  orderId,
-  inventoryActionTypeId, // e.g., 'ALLOCATE'
-  sourceType = 'order',
-  sourceRefId = null,
-  recordScope = 'warehouse',
-  comments = null,
-  metadata = {},
-}) => {
+                                   inventoryId,
+                                   previousReservedQty,
+                                   newReservedQty,
+                                   warehouseQty,
+                                   statusId,
+                                   userId,
+                                   orderId,
+                                   inventoryActionTypeId,
+                                   sourceType = 'order',
+                                   sourceRefId = null,
+                                   recordScope = 'warehouse',
+                                   comments = null,
+                                   metadata = {},
+                                 }) => {
   const quantityChange = newReservedQty - previousReservedQty;
-
-  const checksumPayload = cleanObject({
-    warehouse_inventory_id: inventoryId,
+  
+  const checksum = generateChecksum({
+    inventory_id: inventoryId,
     inventory_action_type_id: inventoryActionTypeId,
-    adjustment_type_id: null, // not an adjustment
-    order_id: orderId || null,
+    previous_quantity: previousReservedQty,
     quantity_change: quantityChange,
     new_quantity: newReservedQty,
-    status_id: statusId,
-    performed_by: userId,
-    comments,
-    recorded_by: userId,
-    inventory_scope: recordScope,
-    source_type: sourceType,
-    source_ref_id: sourceRefId,
-    metadata: {
-      action: 'allocate',
-      warehouse_quantity_snapshot: warehouseQty,
-      record_scope: recordScope,
-      ...metadata,
-    },
+    source_action_id: sourceRefId || undefined,
+    comments: comments || undefined,
   });
-
+  
   return {
     warehouse_inventory_id: inventoryId,
     inventory_action_type_id: inventoryActionTypeId,
@@ -577,11 +564,16 @@ const buildAllocationLogEntry = ({
     performed_by: userId,
     recorded_by: userId,
     comments,
-    metadata: checksumPayload.metadata,
+    metadata: {
+      action: 'allocate',
+      warehouse_quantity_snapshot: warehouseQty,
+      record_scope: recordScope,
+      ...metadata,
+    },
     source_type: sourceType,
     source_ref_id: sourceRefId,
     inventory_scope: recordScope,
-    checksum: generateChecksum(checksumPayload),
+    checksum,
   };
 };
 

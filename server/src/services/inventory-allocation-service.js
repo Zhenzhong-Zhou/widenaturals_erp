@@ -93,9 +93,13 @@ const {
 const allocateInventoryForOrderService = async (
   user,
   rawOrderId,
-  { strategy = 'fefo', warehouseId = null }
+  { strategy = 'fefo', warehouseId }
 ) => {
   try {
+    if (!warehouseId) {
+      throw AppError.validationError('Warehouse ID is required for allocation');
+    }
+    
     return await withTransaction(async (client) => {
       const userId = user.id;
 
@@ -269,6 +273,7 @@ const allocateInventoryForOrderService = async (
  *   - `AppError.validationError` if provided allocation IDs do not belong to the order.
  *   - `AppError.serviceError` for any other failures during review processing.
  */
+// todo: there is bug that if an item is not available still will be insert but cannot fetch
 const reviewInventoryAllocationService = async (
   orderId,
   warehouseIds,
@@ -278,7 +283,8 @@ const reviewInventoryAllocationService = async (
     if (allocationIds.length > 0) {
       const mismatches = await getMismatchedAllocationIds(
         orderId,
-        allocationIds
+        allocationIds,
+        null
       );
 
       if (mismatches.length > 0) {
@@ -298,7 +304,8 @@ const reviewInventoryAllocationService = async (
     const rawReviewData = await getInventoryAllocationReview(
       orderId,
       warehouseIds,
-      allocationIds
+      allocationIds,
+      null
     );
 
     if (!rawReviewData || rawReviewData.length === 0) {
@@ -336,7 +343,7 @@ const reviewInventoryAllocationService = async (
  * @param {string} [params.sortOrder='DESC'] - Sort direction: 'ASC' or 'DESC'
  *
  * @returns {Promise<{
- *   data: InventoryAllocationSummary[],
+ *   data: [],
  *   pagination: {
  *     page: number,
  *     limit: number,
@@ -354,6 +361,8 @@ const fetchPaginatedInventoryAllocationsService = async ({
   sortBy = 'created_at',
   sortOrder = 'DESC',
 }) => {
+  const context = 'inventory-allocations-service/fetchPaginatedInventoryAllocationsService';
+  
   try {
     // Step 1: Query raw paginated allocation rows from repository layer
     const rawResult = await getPaginatedInventoryAllocations({
@@ -365,10 +374,9 @@ const fetchPaginatedInventoryAllocationsService = async ({
     });
 
     // Step 2: If no data, log and return empty result with pagination fallback
-    if (!rawResult || rawResult.length === 0) {
+    if (!rawResult || rawResult.data.length === 0) {
       logSystemInfo('No inventory allocation records found', {
-        context:
-          'inventory-allocations-service/fetchPaginatedInventoryAllocationsService',
+        context,
         filters,
         pagination: { page, limit },
         sort: { sortBy, sortOrder },
@@ -390,8 +398,7 @@ const fetchPaginatedInventoryAllocationsService = async ({
 
     // Step 4: Log successful response for auditing/metrics
     logSystemInfo('Fetched paginated inventory allocations', {
-      context:
-        'inventory-allocations-service/fetchPaginatedInventoryAllocationsService',
+      context,
       filters,
       pagination: { page, limit },
       sort: { sortBy, sortOrder },
@@ -404,8 +411,7 @@ const fetchPaginatedInventoryAllocationsService = async ({
       error,
       'Failed to fetch paginated inventory allocations',
       {
-        context:
-          'inventory-allocations-service/fetchPaginatedInventoryAllocationsService',
+        context,
         filters,
         pagination: { page, limit },
         sort: { sortBy, sortOrder },
@@ -615,9 +621,9 @@ const confirmInventoryAllocationService = async (user, rawOrderId) => {
 
       // --- 9. Confirm or partial allocation status update ---
       const confirmedStatusId =
-        await getInventoryAllocationStatusId('ALLOC_CONFIRMED');
+        await getInventoryAllocationStatusId('ALLOC_CONFIRMED', client);
       const partialStatusId =
-        await getInventoryAllocationStatusId('ALLOC_PARTIAL');
+        await getInventoryAllocationStatusId('ALLOC_PARTIAL', client);
 
       const fullyMatchedItemIds = new Set(
         allocationResults.filter((r) => r.isMatched).map((r) => r.orderItemId)
@@ -686,15 +692,31 @@ const confirmInventoryAllocationService = async (user, rawOrderId) => {
         );
       const logInsertResult = await insertInventoryActivityLogs(
         inventoryActivityLogs,
-        client
+        client,
+        {
+          context:
+            'inventory-allocation-service/confirmInventoryAllocationService/insertInventoryActivityLogs',
+          orderId: rawOrderId,
+          performedBy: userId,
+        }
       );
 
       // --- 11. Final transformation and return ---
       const rawResult = buildOrderAllocationResult({
         orderId: rawOrderId,
-        inventoryAllocations: inventoryAllocationDetails,
-        warehouseUpdateIds: updatedWarehouseRecords,
-        inventoryLogIds: logInsertResult.activityLogIds,
+        
+        inventoryAllocations: inventoryAllocationDetails.map(({ allocation_id }) => ({
+          allocation_id,
+        })),
+        
+        warehouseUpdateIds: updatedWarehouseRecords.map(
+          ({ warehouse_id, batch_id }) => ({
+            id: `${warehouse_id}-${batch_id}`,
+          })
+        ),
+        
+        inventoryLogIds: logInsertResult.activityLogIds.map(String),
+        
         allocationResults,
       });
 

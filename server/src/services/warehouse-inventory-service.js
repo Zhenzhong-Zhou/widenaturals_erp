@@ -32,7 +32,7 @@ const { getStatusId } = require('../config/status-cache');
  * @param {number} [options.limit=20] - Number of records per page.
  * @param {string} [options.itemType] - Optional filter for item type: 'product', 'material', or omitted for both.
  * @param {object} options.user - The authenticated user object.
- * @returns {Promise<object>} - Transformed paginated warehouse inventory summary with metadata.
+ * @returns {Promise<PaginatedResult<T>>} - Transformed paginated warehouse inventory summary with metadata.
  */
 const fetchPaginatedWarehouseInventoryItemSummary = async ({
   page = 1,
