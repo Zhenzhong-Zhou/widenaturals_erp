@@ -12,7 +12,8 @@ import type {
   InventorySummaryDetailByItemIdParams,
   ItemType,
 } from '@features/inventoryShared/types/InventorySharedType';
-import { extractUiErrorPayload, UiErrorPayload } from '@utils/error/uiErrorUtils';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import { extractUiErrorPayload } from '@utils/error/uiErrorUtils';
 
 /**
  * Redux async thunk to fetch location inventory KPI summary data.
@@ -42,14 +43,9 @@ export const fetchLocationInventoryKpiSummaryThunk = createAsyncThunk<
         itemType
       );
     } catch (error: unknown) {
-      console.error(
-        'Failed to fetch KPI summary:',
-        { itemType, error }
-      );
-      
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
+      console.error('Failed to fetch KPI summary:', { itemType, error });
+
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );
@@ -85,9 +81,7 @@ export const fetchLocationInventorySummaryThunk = createAsyncThunk<
         params
       );
     } catch (error: unknown) {
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );
@@ -119,9 +113,7 @@ export const fetchLocationInventorySummaryByItemIdThunk = createAsyncThunk<
         params
       );
     } catch (error: unknown) {
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );
@@ -166,10 +158,8 @@ export const fetchLocationInventoryRecordsThunk = createAsyncThunk<
       );
     } catch (error: unknown) {
       console.error('fetchLocationInventoryRecordsThunk error:', error);
-      
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
+
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );

@@ -402,21 +402,21 @@ export interface SkuDimensions {
 export interface SkuImageVariant {
   /** Image UUID */
   id: string;
-  
+
   /** Fully resolved image URL (S3 or CDN) */
   imageUrl: string;
-  
+
   /** Optional alt text for accessibility */
   altText: string;
-  
+
   /** Optional derived metadata */
   metadata?: {
     /** File size in KB */
     sizeKb?: number | null;
-    
+
     /** MIME format (e.g., "image/webp") */
     format?: string | null;
-    
+
     /** Display order (for sorting inside group) */
     displayOrder?: number | null;
   };
@@ -435,10 +435,10 @@ export interface SkuImageVariant {
 export interface SkuImageGroup {
   /** Logical image group UUID */
   groupId: string;
-  
+
   /** Whether this group is marked as primary */
   isPrimary: boolean;
-  
+
   /**
    * Image variants available in this group.
    * Not all variants are guaranteed to exist.
@@ -448,12 +448,12 @@ export interface SkuImageGroup {
     thumbnail?: SkuImageVariant;
     zoom?: SkuImageVariant;
   };
-  
+
   /** Image-specific audit fields */
   audit?: {
     /** Timestamp when uploaded */
     uploadedAt: string | null;
-    
+
     /** User who uploaded the image */
     uploadedBy: AuditUser | null;
   };
@@ -581,32 +581,32 @@ export interface FlattenedImageMetadata {
    * Example: "main", "thumbnail", "zoom"
    */
   type: 'main' | 'thumbnail' | 'zoom' | null;
-  
+
   /**
    * "Yes" / "No" value derived from group.isPrimary
    */
   isPrimary: 'Yes' | 'No' | null;
-  
+
   /**
    * Display order within the image group
    */
   displayOrder: number | null;
-  
+
   /**
    * File size in KB (variant-level metadata)
    */
   sizeKb: number | null;
-  
+
   /**
    * File format (e.g., "webp", "jpg")
    */
   format: string | null;
-  
+
   /**
    * Timestamp when the image group was uploaded
    */
   uploadedAt: string | null;
-  
+
   /**
    * Full name of user who uploaded the image group
    */
@@ -666,10 +666,10 @@ export interface FlattenedSkuInfo {
   /** Weight (metric + imperial) */
   weightG: number;
   weightLb: number;
-  
+
   /** status UUID */
   statusId: string;
-  
+
   /** Human-readable status name */
   statusName: string;
 
@@ -1294,7 +1294,7 @@ export interface SelectedSku {
  */
 export interface UpdateSkuResponseData {
   /** Unique identifier of the updated SKU */
-  id: string
+  id: string;
 }
 
 /**
@@ -1305,23 +1305,23 @@ export interface UpdateSkuResponseData {
  */
 export interface UpdateSkuMetadataRequest {
   /** Human-readable package size label (e.g. "120 Capsules") */
-  size_label?: string
-  
+  size_label?: string;
+
   /** Language code used for the SKU metadata (e.g. "en", "fr") */
-  language?: string
-  
+  language?: string;
+
   /** Target market region for the SKU (e.g. "Canada", "US") */
-  market_region?: string
-  
+  market_region?: string;
+
   /** Marketing or product description */
-  description?: string
+  description?: string;
 }
 
 /**
  * API response returned after updating SKU metadata.
  */
 export type UpdateSkuMetadataResponse =
-  ApiSuccessResponse<UpdateSkuResponseData>
+  ApiSuccessResponse<UpdateSkuResponseData>;
 
 /**
  * Redux async state for SKU metadata update operations.
@@ -1332,7 +1332,7 @@ export type UpdateSkuMetadataResponse =
  * - error payload
  */
 export type UpdateSkuMetadataState =
-  AsyncState<UpdateSkuMetadataResponse | null>
+  AsyncState<UpdateSkuMetadataResponse | null>;
 
 /**
  * Request payload for updating SKU physical dimensions.
@@ -1342,29 +1342,29 @@ export type UpdateSkuMetadataState =
  */
 export interface UpdateSkuDimensionsRequest {
   /** Product length in centimeters */
-  length_cm?: number
-  
+  length_cm?: number;
+
   /** Product width in centimeters */
-  width_cm?: number
-  
+  width_cm?: number;
+
   /** Product height in centimeters */
-  height_cm?: number
-  
+  height_cm?: number;
+
   /** Product weight in grams */
-  weight_g?: number
+  weight_g?: number;
 }
 
 /**
  * API response returned after updating SKU dimensions.
  */
 export type UpdateSkuDimensionsResponse =
-  ApiSuccessResponse<UpdateSkuResponseData>
+  ApiSuccessResponse<UpdateSkuResponseData>;
 
 /**
  * Redux async state for SKU dimension update operations.
  */
 export type UpdateSkuDimensionsState =
-  AsyncState<UpdateSkuDimensionsResponse | null>
+  AsyncState<UpdateSkuDimensionsResponse | null>;
 
 /**
  * Request payload for updating SKU identity fields.
@@ -1374,23 +1374,23 @@ export type UpdateSkuDimensionsState =
  */
 export interface UpdateSkuIdentityRequest {
   /** SKU code used internally for inventory and product identification */
-  sku?: string
-  
+  sku?: string;
+
   /** Product barcode (UPC/EAN/GTIN depending on region) */
-  barcode?: string
+  barcode?: string;
 }
 
 /**
  * API response returned after updating SKU identity.
  */
 export type UpdateSkuIdentityResponse =
-  ApiSuccessResponse<UpdateSkuResponseData>
+  ApiSuccessResponse<UpdateSkuResponseData>;
 
 /**
  * Redux async state for SKU identity update operations.
  */
 export type UpdateSkuIdentityState =
-  AsyncState<UpdateSkuIdentityResponse | null>
+  AsyncState<UpdateSkuIdentityResponse | null>;
 
 /**
  * Form values used when editing SKU metadata.
@@ -1405,16 +1405,16 @@ export type UpdateSkuIdentityState =
  */
 export interface UpdateSkuMetadataFormValues {
   /** Human-readable product size label (e.g., "60 Capsules", "120 Softgels") */
-  sizeLabel?: string
-  
+  sizeLabel?: string;
+
   /** Language code associated with the SKU (e.g., "EN", "FR", "CN") */
-  language?: string
-  
+  language?: string;
+
   /** Target market region for this SKU (e.g., "CA", "US", "EU") */
-  marketRegion?: string
-  
+  marketRegion?: string;
+
   /** Product description displayed to customers */
-  description?: string
+  description?: string;
 }
 
 /**
@@ -1429,16 +1429,15 @@ export interface UpdateSkuMetadataFormValues {
  * - dimension transformers
  */
 export interface UpdateSkuDimensionsFormValues {
-  
   /** Product length in centimeters */
-  lengthCm?: number
-  
+  lengthCm?: number;
+
   /** Product width in centimeters */
-  widthCm?: number
-  
+  widthCm?: number;
+
   /** Product height in centimeters */
-  heightCm?: number
-  
+  heightCm?: number;
+
   /** Product weight in grams */
-  weightG?: number
+  weightG?: number;
 }

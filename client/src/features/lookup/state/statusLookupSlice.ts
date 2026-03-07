@@ -46,11 +46,7 @@ const statusLookupSlice = createSlice({
         }
       )
       .addCase(fetchStatusLookupThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch status lookup'
-        );
+        applyRejected(state, action, 'Failed to fetch status lookup');
       });
   },
 });

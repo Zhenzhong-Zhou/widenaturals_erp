@@ -63,11 +63,7 @@ const paginatedBomSlice = createSlice({
       )
       // --- Rejected ---
       .addCase(fetchPaginatedBomsThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch BOM list.'
-        );
+        applyRejected(state, action, 'Failed to fetch BOM list.');
       });
   },
 });

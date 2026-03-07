@@ -34,7 +34,7 @@ export const flattenPackagingMaterialBatchRecords = (
   records: PackagingMaterialBatch[]
 ): FlattenedPackagingMaterialBatchRow[] => {
   if (!Array.isArray(records)) return [];
-  
+
   return records.map((record) => {
     const lifecycle = record.lifecycle ?? {};
     const status = record.status ?? {};
@@ -44,49 +44,49 @@ export const flattenPackagingMaterialBatchRecords = (
     const supplier = record.supplier ?? {};
     const cost = record.cost ?? {};
     const quantity = record.quantity ?? {};
-    
+
     return {
       // --- Core ---
       id: record.id,
       lotNumber: record.lotNumber ?? '—',
-      
+
       // --- Material Snapshot ---
       materialInternalName: material.internalName ?? '—',
       supplierLabel: material.supplierLabel ?? '—',
-      
+
       // --- Quantity ---
       quantityValue: quantity.value ?? '0',
       quantityUnit: quantity.unit ?? '—',
-      
+
       // --- Lifecycle ---
       manufactureDate: lifecycle.manufactureDate ?? null,
       expiryDate: lifecycle.expiryDate ?? null,
       receivedAt: lifecycle.receivedAt ?? '',
       receivedById: lifecycle.receivedBy?.id ?? null,
       receivedByName: lifecycle.receivedBy?.name ?? '—',
-      
+
       // --- Cost ---
       unitCost: cost.unitCost ?? '0',
       currency: cost.currency ?? '—',
       exchangeRate: cost.exchangeRate ?? '1',
       totalCost: cost.totalCost ?? '0',
-      
+
       // --- Status ---
       statusId: status.id ?? null,
       statusName: status.name ?? '—',
       statusDate: status.date ?? '',
-      
+
       // --- Packaging Material ---
       packagingMaterialId: packagingMaterial.id ?? null,
       packagingMaterialCode: packagingMaterial.code ?? '—',
       packagingMaterialCategory: packagingMaterial.category ?? '—',
-      
+
       // --- Supplier ---
       supplierId: supplier.id ?? null,
       supplierName: supplier.name ?? '—',
       isPreferredSupplier: supplier.isPreferred ?? false,
       supplierLeadTimeDays: supplier.leadTimeDays ?? 0,
-      
+
       // --- Audit ---
       createdAt: audit.createdAt ?? '',
       createdById: audit.createdBy?.id ?? null,

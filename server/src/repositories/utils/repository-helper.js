@@ -38,7 +38,7 @@ const existsQuery = async (
     return rowCount > 0;
   } catch (error) {
     logSystemException(error, logMessage, { context });
-    
+
     throw AppError.databaseError(logMessage, {
       cause: error,
       context,

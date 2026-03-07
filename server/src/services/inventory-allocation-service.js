@@ -99,7 +99,7 @@ const allocateInventoryForOrderService = async (
     if (!warehouseId) {
       throw AppError.validationError('Warehouse ID is required for allocation');
     }
-    
+
     return await withTransaction(async (client) => {
       const userId = user.id;
 
@@ -361,8 +361,9 @@ const fetchPaginatedInventoryAllocationsService = async ({
   sortBy = 'created_at',
   sortOrder = 'DESC',
 }) => {
-  const context = 'inventory-allocations-service/fetchPaginatedInventoryAllocationsService';
-  
+  const context =
+    'inventory-allocations-service/fetchPaginatedInventoryAllocationsService';
+
   try {
     // Step 1: Query raw paginated allocation rows from repository layer
     const rawResult = await getPaginatedInventoryAllocations({
@@ -620,10 +621,14 @@ const confirmInventoryAllocationService = async (user, rawOrderId) => {
       );
 
       // --- 9. Confirm or partial allocation status update ---
-      const confirmedStatusId =
-        await getInventoryAllocationStatusId('ALLOC_CONFIRMED', client);
-      const partialStatusId =
-        await getInventoryAllocationStatusId('ALLOC_PARTIAL', client);
+      const confirmedStatusId = await getInventoryAllocationStatusId(
+        'ALLOC_CONFIRMED',
+        client
+      );
+      const partialStatusId = await getInventoryAllocationStatusId(
+        'ALLOC_PARTIAL',
+        client
+      );
 
       const fullyMatchedItemIds = new Set(
         allocationResults.filter((r) => r.isMatched).map((r) => r.orderItemId)
@@ -704,19 +709,21 @@ const confirmInventoryAllocationService = async (user, rawOrderId) => {
       // --- 11. Final transformation and return ---
       const rawResult = buildOrderAllocationResult({
         orderId: rawOrderId,
-        
-        inventoryAllocations: inventoryAllocationDetails.map(({ allocation_id }) => ({
-          allocation_id,
-        })),
-        
+
+        inventoryAllocations: inventoryAllocationDetails.map(
+          ({ allocation_id }) => ({
+            allocation_id,
+          })
+        ),
+
         warehouseUpdateIds: updatedWarehouseRecords.map(
           ({ warehouse_id, batch_id }) => ({
             id: `${warehouse_id}-${batch_id}`,
           })
         ),
-        
+
         inventoryLogIds: logInsertResult.activityLogIds.map(String),
-        
+
         allocationResults,
       });
 

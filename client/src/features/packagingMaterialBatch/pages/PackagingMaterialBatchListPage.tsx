@@ -43,11 +43,9 @@ const PackagingMaterialBatchListPage = () => {
   const [sortBy, setSortBy] =
     useState<PackagingMaterialBatchSortKey>('defaultNaturalSort');
   const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
-  const [filters, setFilters] =
-    useState<PackagingMaterialBatchFilters>({});
-  const [expandedRowId, setExpandedRowId] =
-    useState<string | null>(null);
-  
+  const [filters, setFilters] = useState<PackagingMaterialBatchFilters>({});
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+
   const {
     data,
     pagination,
@@ -57,9 +55,9 @@ const PackagingMaterialBatchListPage = () => {
     fetchPackagingMaterialBatches,
     resetPackagingMaterialBatches,
   } = usePaginatedPackagingMaterialBatches();
-  
+
   const lookups = usePackagingMaterialBatchLookups();
-  
+
   // -----------------------------
   // Query model
   // -----------------------------
@@ -73,14 +71,14 @@ const PackagingMaterialBatchListPage = () => {
     }),
     [page, limit, sortBy, sortOrder, filters]
   );
-  
+
   // -----------------------------
   // Refresh action
   // -----------------------------
   const refreshList = useCallback(() => {
     fetchPackagingMaterialBatches(fullQuery);
   }, [fullQuery, fetchPackagingMaterialBatches]);
-  
+
   // -----------------------------
   // Query params engine
   // -----------------------------
@@ -91,18 +89,15 @@ const PackagingMaterialBatchListPage = () => {
     }),
     [fullQuery, refreshList]
   );
-  
+
   // -----------------------------
   // Debounced fetch
   // -----------------------------
   useEffect(() => {
-    const timeout = setTimeout(
-      () => applyFiltersAndSorting(queryParams),
-      200
-    );
+    const timeout = setTimeout(() => applyFiltersAndSorting(queryParams), 200);
     return () => clearTimeout(timeout);
   }, [queryParams]);
-  
+
   // ----------------------------------------
   // Cleanup on unmount
   // ----------------------------------------
@@ -111,7 +106,7 @@ const PackagingMaterialBatchListPage = () => {
       resetPackagingMaterialBatches();
     };
   }, [resetPackagingMaterialBatches]);
-  
+
   // -----------------------------
   // Lookup handlers
   // -----------------------------
@@ -122,7 +117,7 @@ const PackagingMaterialBatchListPage = () => {
         lookups.supplier.reset?.();
         lookups.packagingMaterial.reset?.();
       },
-      
+
       onOpen: {
         status: createLazyOpenHandler(
           lookups.status.options,
@@ -140,30 +135,30 @@ const PackagingMaterialBatchListPage = () => {
     }),
     [lookups]
   );
-  
+
   // -----------------------------
   // Event handlers
   // -----------------------------
   const handleRefresh = useCallback(() => {
     applyFiltersAndSorting(queryParams);
   }, [queryParams]);
-  
+
   const handleResetFilters = () => {
     resetPackagingMaterialBatches();
     setFilters({});
     lookupHandlers.resetAll();
     setPage(1);
   };
-  
-  const { handlePageChange, handleRowsPerPageChange } =
-    usePaginationHandlers(setPage, setLimit);
-  
+
+  const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(
+    setPage,
+    setLimit
+  );
+
   const handleDrillDownToggle = (rowId: string) => {
-    setExpandedRowId((current) =>
-      current === rowId ? null : rowId
-    );
+    setExpandedRowId((current) => (current === rowId ? null : rowId));
   };
-  
+
   // ----------------------------------------
   // Render
   // ----------------------------------------
@@ -182,9 +177,9 @@ const PackagingMaterialBatchListPage = () => {
           Packaging Material Batch Management
         </CustomTypography>
       </Box>
-      
+
       <Divider sx={{ mb: 3 }} />
-      
+
       {/* Filters + Sort */}
       <Card sx={{ p: 3, mb: 4, borderRadius: 2, minHeight: 200 }}>
         <Grid container spacing={2}>
@@ -198,7 +193,7 @@ const PackagingMaterialBatchListPage = () => {
               onReset={handleResetFilters}
             />
           </Grid>
-          
+
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <PackagingMaterialBatchSortControls
               sortBy={sortBy}
@@ -209,7 +204,7 @@ const PackagingMaterialBatchListPage = () => {
           </Grid>
         </Grid>
       </Card>
-      
+
       {/* Table Section */}
       {loading || !pagination ? (
         <Loading
@@ -222,9 +217,7 @@ const PackagingMaterialBatchListPage = () => {
         <NoDataFound
           message="No packaging material batch records found."
           action={
-            <CustomButton onClick={handleResetFilters}>
-              Reset
-            </CustomButton>
+            <CustomButton onClick={handleResetFilters}>Reset</CustomButton>
           }
         />
       ) : (

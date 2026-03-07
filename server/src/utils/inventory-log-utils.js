@@ -57,7 +57,7 @@ const buildInventoryLogRows = (records) => {
         : (record.quantity ?? 0));
 
     const metadata = record.meta ?? record.metadata ?? {}; // fallback for backward compatibility
-    
+
     const checksum = generateChecksum({
       inventory_id: inventoryId,
       inventory_action_type_id: record.inventory_action_type_id,
@@ -67,7 +67,7 @@ const buildInventoryLogRows = (records) => {
       source_action_id: record.source_ref_id || undefined,
       comments: record.comments || undefined,
     });
-    
+
     return {
       [inventoryFieldKey]: inventoryId,
       inventory_action_type_id: record.inventory_action_type_id,
@@ -105,13 +105,13 @@ const validateInventoryLogChecksum = (record) => {
   const isWarehouse = Boolean(
     record.warehouse_inventory_id || record.inventory_scope === 'warehouse'
   );
-  
+
   const inventoryFieldKey = isWarehouse
     ? 'warehouse_inventory_id'
     : 'location_inventory_id';
-  
+
   const inventoryId = record[inventoryFieldKey];
-  
+
   const generatedChecksum = generateChecksum({
     inventory_id: inventoryId,
     inventory_action_type_id: record.inventory_action_type_id,
@@ -121,11 +121,11 @@ const validateInventoryLogChecksum = (record) => {
     source_action_id: record.source_ref_id || undefined,
     comments: record.comments || undefined,
   });
-  
+
   if (generatedChecksum !== record.checksum) {
     throw new Error('Inventory log integrity check failed: checksum mismatch.');
   }
-  
+
   return true;
 };
 

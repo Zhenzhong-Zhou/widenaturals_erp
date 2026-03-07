@@ -66,7 +66,7 @@ const {
  */
 const createInventoryRecordService = async (records, user_id) => {
   const context = 'inventory-service/adjustInventoryQuantitiesService';
-  
+
   try {
     return await withTransaction(async (client) => {
       // Step 1: Validate, normalize, and deduplicate input records
@@ -124,15 +124,11 @@ const createInventoryRecordService = async (records, user_id) => {
 
       // Step 5: Build and insert log rows
       const logRows = buildInventoryLogRows(enrichedForLog);
-      await insertInventoryActivityLogs(
-        logRows,
-        client,
-        {
-          context: `${context}/insertInventoryActivityLogs`,
-          userId: user_id,
-          logCount: logRows.length,
-        }
-      );
+      await insertInventoryActivityLogs(logRows, client, {
+        context: `${context}/insertInventoryActivityLogs`,
+        userId: user_id,
+        logCount: logRows.length,
+      });
 
       // Step 6: Fetch full enriched inventory rows to return
       const [warehouseRaw, locationRaw] = await Promise.all([
@@ -196,7 +192,7 @@ const adjustInventoryQuantitiesService = async (
   lockBeforeUpdate = true
 ) => {
   const context = 'inventory-service/adjustInventoryQuantitiesService';
-  
+
   try {
     return await withTransaction(async (client) => {
       // Step 1: Validate updates and compute what needs to be changed

@@ -37,10 +37,10 @@ export const productInfoUpdateSlice = createSlice({
           state.error = null;
         }
       )
-      
+
       .addCase(updateProductInfoByIdThunk.rejected, (state, action) => {
         applyRejected(state, action, 'Failed to update product information.');
-      })
+      });
   },
 });
 

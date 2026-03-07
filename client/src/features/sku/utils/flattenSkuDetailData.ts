@@ -4,8 +4,8 @@ import type {
   FlattenedPricingRecord,
   FlattenedSkuInfo,
   SkuComplianceRecord,
-  SkuDetail, SkuImageGroup,
-  
+  SkuDetail,
+  SkuImageGroup,
 } from '@features/sku/state';
 
 /* ========================================================================== */
@@ -33,10 +33,10 @@ export const flattenImageMetadata = (
   variantType: 'main' | 'thumbnail' | 'zoom'
 ): FlattenedImageMetadata | null => {
   if (!group) return null;
-  
+
   const variant = group.variants?.[variantType];
   if (!variant) return null;
-  
+
   return {
     type: variantType,
     isPrimary: group.isPrimary ? 'Yes' : 'No',

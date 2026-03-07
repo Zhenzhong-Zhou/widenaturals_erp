@@ -26,8 +26,7 @@ export const selectPaginatedOutboundFulfillmentsLoading = createSelector(
  */
 export const selectPaginatedOutboundFulfillmentsError = createSelector(
   [selectPaginatedOutboundFulfillmentsState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );
 
 /**

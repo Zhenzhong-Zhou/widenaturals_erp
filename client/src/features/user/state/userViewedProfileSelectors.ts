@@ -21,8 +21,7 @@ export const selectUserViewedProfileLoading = createSelector(
  */
 export const selectUserViewedProfileError = createSelector(
   [selectUserViewedProfileState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );
 
 /**

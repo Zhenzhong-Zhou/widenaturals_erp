@@ -41,7 +41,7 @@ const userSelfProfileSlice = createSlice({
       )
       .addCase(fetchUserSelfProfileThunk.rejected, (state, action) => {
         applyRejected(state, action, 'Failed to load user profile.');
-      })
+      });
   },
 });
 

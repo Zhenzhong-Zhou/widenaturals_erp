@@ -31,8 +31,7 @@ export const selectChangePasswordLoading = createSelector(
  */
 export const selectChangePasswordError = createSelector(
   [selectChangePasswordState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );
 
 /**

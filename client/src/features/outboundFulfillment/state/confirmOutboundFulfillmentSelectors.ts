@@ -32,8 +32,7 @@ export const selectConfirmFulfillmentLoading = createSelector(
  */
 export const selectConfirmFulfillmentError = createSelector(
   [selectConfirmOutboundFulfillmentState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );
 
 /**

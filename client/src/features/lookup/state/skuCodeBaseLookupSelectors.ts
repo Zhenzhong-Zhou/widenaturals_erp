@@ -38,8 +38,7 @@ export const selectSkuCodeBaseLookupLoading = createSelector(
  */
 export const selectSkuCodeBaseLookupError = createSelector(
   [selectSkuCodeBaseLookupState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );
 
 /**

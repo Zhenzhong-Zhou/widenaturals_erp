@@ -29,8 +29,7 @@ export const selectLoginLoading = createSelector(
  */
 export const selectLoginError = createSelector(
   [selectLoginState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );
 
 /**

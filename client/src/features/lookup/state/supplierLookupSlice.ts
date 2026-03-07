@@ -45,11 +45,7 @@ const supplierLookupSlice = createSlice({
         }
       )
       .addCase(fetchSupplierLookupThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch supplier lookup'
-        );
+        applyRejected(state, action, 'Failed to fetch supplier lookup');
       });
   },
 });

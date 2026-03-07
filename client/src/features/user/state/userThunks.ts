@@ -55,18 +55,13 @@ export const createUserThunk = createAsyncThunk<
   CreateUserResponse,
   CreateUserRequest,
   { rejectValue: UiErrorPayload }
->(
-  'users/createUser',
-  async (payload, { rejectWithValue }) => {
-    try {
-      return await userService.createUser(payload);
-    } catch (error: unknown) {
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
-    }
+>('users/createUser', async (payload, { rejectWithValue }) => {
+  try {
+    return await userService.createUser(payload);
+  } catch (error: unknown) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});
 
 /**
  * Fetches a paginated list of users and converts
@@ -116,18 +111,13 @@ export const fetchUserSelfProfileThunk = createAsyncThunk<
   UserProfileResponse,
   void,
   { rejectValue: UiErrorPayload }
->(
-  'userSelfProfile/fetch',
-  async (_, { rejectWithValue }) => {
-    try {
-      return await userService.fetchUserProfileCore({ type: 'self' });
-    } catch (error: unknown) {
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
-    }
+>('userSelfProfile/fetch', async (_, { rejectWithValue }) => {
+  try {
+    return await userService.fetchUserProfileCore({ type: 'self' });
+  } catch (error: unknown) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});
 
 /**
  * Fetches a user's profile by ID.
@@ -145,15 +135,10 @@ export const fetchUserViewedProfileThunk = createAsyncThunk<
   UserProfileResponse,
   string,
   { rejectValue: UiErrorPayload }
->(
-  'userViewedProfile/fetch',
-  async (userId, { rejectWithValue }) => {
-    try {
-      return await userService.fetchUserProfileCore({ type: 'byId', userId });
-    } catch (error: unknown) {
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
-    }
+>('userViewedProfile/fetch', async (userId, { rejectWithValue }) => {
+  try {
+    return await userService.fetchUserProfileCore({ type: 'byId', userId });
+  } catch (error: unknown) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});

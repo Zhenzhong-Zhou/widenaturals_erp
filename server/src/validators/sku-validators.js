@@ -313,15 +313,14 @@ const createSkuBulkSchema = Joi.object({
  *   PATCH /api/skus/:skuId/metadata
  */
 const updateSkuMetadataSchema = Joi.object({
-    description: validateOptionalString('Description',2000),
+  description: validateOptionalString('Description', 2000),
 
-    size_label: validateOptionalString('Size label', 100),
+  size_label: validateOptionalString('Size label', 100),
 
-    language: validateOptionalString('Language', 10)
-      .pattern(/^[a-zA-Z-]+$/),
+  language: validateOptionalString('Language', 10).pattern(/^[a-zA-Z-]+$/),
 
-    market_region: validateOptionalString('Market Region', 100),
-  })
+  market_region: validateOptionalString('Market Region', 100),
+})
   .min(1)
   .messages({
     'object.min': 'At least one metadata field must be provided.',
@@ -366,11 +365,11 @@ const updateSkuStatusSchema = updateStatusIdSchema;
  *   PATCH /api/skus/:skuId/dimensions
  */
 const updateSkuDimensionsSchema = Joi.object({
-    length_cm: validatePositiveDecimal(),
-    width_cm: validatePositiveDecimal(),
-    height_cm: validatePositiveDecimal(),
-    weight_g: validatePositiveDecimal(),
-  })
+  length_cm: validatePositiveDecimal(),
+  width_cm: validatePositiveDecimal(),
+  height_cm: validatePositiveDecimal(),
+  weight_g: validatePositiveDecimal(),
+})
   .min(1)
   .messages({
     'object.min': 'At least one dimension field must be provided.',
@@ -395,22 +394,21 @@ const updateSkuDimensionsSchema = Joi.object({
  *   PATCH /api/skus/:skuId/identity
  */
 const updateSkuIdentitySchema = Joi.object({
-    sku: Joi.string()
-      .max(100)
-      .pattern(/^[A-Z0-9-]+$/)
-      .messages({
-        'string.pattern.base':
-          'SKU must contain only uppercase letters, numbers, and hyphens.',
-      }),
-    
-    barcode: Joi.string()
-      .max(100)
-      .pattern(/^[0-9]+$/)
-      .messages({
-        'string.pattern.base':
-          'Barcode must contain only numeric characters.',
-      }),
-  })
+  sku: Joi.string()
+    .max(100)
+    .pattern(/^[A-Z0-9-]+$/)
+    .messages({
+      'string.pattern.base':
+        'SKU must contain only uppercase letters, numbers, and hyphens.',
+    }),
+
+  barcode: Joi.string()
+    .max(100)
+    .pattern(/^[0-9]+$/)
+    .messages({
+      'string.pattern.base': 'Barcode must contain only numeric characters.',
+    }),
+})
   .min(1)
   .messages({
     'object.min': 'At least one identity field must be provided.',

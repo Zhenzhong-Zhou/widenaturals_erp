@@ -42,18 +42,20 @@ export const buildUpdateFormData = (
   }[]
 ): FormData => {
   const form = new FormData();
-  
+
   // 1. Convert UI drafts → API request structure
   const requestPayload: BulkSkuImageUpdateRequest = {
-    skus: items.map((item): SkuImageUpdateRequestItem => ({
-      skuId: item.skuId,
-      skuCode: item.skuCode,
-      images: item.images.map(mapDraftToUpdateItem),
-    })),
+    skus: items.map(
+      (item): SkuImageUpdateRequestItem => ({
+        skuId: item.skuId,
+        skuCode: item.skuCode,
+        images: item.images.map(mapDraftToUpdateItem),
+      })
+    ),
   };
-  
+
   form.append('skus', JSON.stringify(requestPayload.skus));
-  
+
   // 2. Append binary files (from drafts)
   items.forEach((item) => {
     item.images.forEach((img) => {
@@ -62,6 +64,6 @@ export const buildUpdateFormData = (
       }
     });
   });
-  
+
   return form;
 };

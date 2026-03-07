@@ -10,9 +10,12 @@ interface UpdateSkuMetadataErrorDialogProps {
   skuCode?: string;
 }
 
-const UpdateSkuMetadataErrorDialog: FC<
-  UpdateSkuMetadataErrorDialogProps
-> = ({ open, onClose, error, skuCode }) => {
+const UpdateSkuMetadataErrorDialog: FC<UpdateSkuMetadataErrorDialogProps> = ({
+  open,
+  onClose,
+  error,
+  skuCode,
+}) => {
   return (
     <CustomDialog
       open={open}
@@ -32,7 +35,7 @@ const UpdateSkuMetadataErrorDialog: FC<
                 <strong>SKU:</strong> {skuCode}
               </Box>
             )}
-            
+
             {error ? (
               <Box sx={{ mt: 1 }}>{error}</Box>
             ) : (

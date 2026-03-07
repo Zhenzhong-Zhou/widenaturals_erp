@@ -46,11 +46,7 @@ const skuCodeBaseLookupSlice = createSlice({
         }
       )
       .addCase(fetchSkuCodeBaseLookupThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch SKU Code Base lookup'
-        );
+        applyRejected(state, action, 'Failed to fetch SKU Code Base lookup');
       });
   },
 });

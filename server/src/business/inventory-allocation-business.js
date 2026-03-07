@@ -526,22 +526,22 @@ const buildWarehouseInventoryActivityLogsForOrderAllocation = (
  * @returns {object} Inventory activity log object with checksum and full context.
  */
 const buildAllocationLogEntry = ({
-                                   inventoryId,
-                                   previousReservedQty,
-                                   newReservedQty,
-                                   warehouseQty,
-                                   statusId,
-                                   userId,
-                                   orderId,
-                                   inventoryActionTypeId,
-                                   sourceType = 'order',
-                                   sourceRefId = null,
-                                   recordScope = 'warehouse',
-                                   comments = null,
-                                   metadata = {},
-                                 }) => {
+  inventoryId,
+  previousReservedQty,
+  newReservedQty,
+  warehouseQty,
+  statusId,
+  userId,
+  orderId,
+  inventoryActionTypeId,
+  sourceType = 'order',
+  sourceRefId = null,
+  recordScope = 'warehouse',
+  comments = null,
+  metadata = {},
+}) => {
   const quantityChange = newReservedQty - previousReservedQty;
-  
+
   const checksum = generateChecksum({
     inventory_id: inventoryId,
     inventory_action_type_id: inventoryActionTypeId,
@@ -551,7 +551,7 @@ const buildAllocationLogEntry = ({
     source_action_id: sourceRefId || undefined,
     comments: comments || undefined,
   });
-  
+
   return {
     warehouse_inventory_id: inventoryId,
     inventory_action_type_id: inventoryActionTypeId,

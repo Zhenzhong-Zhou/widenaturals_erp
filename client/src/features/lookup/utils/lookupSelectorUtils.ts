@@ -83,18 +83,21 @@ export const mapLookupItems = <
   extraFields: K[] = []
 ): Array<{ label: string; value: string } & Pick<T, K>> => {
   if (!Array.isArray(items)) return [];
-  
+
   return items.map((item) => {
     const base = {
       label: item.label,
       value: item.id,
     };
-    
-    const extras = extraFields.reduce((acc, key) => {
-      acc[key] = item[key];
-      return acc;
-    }, {} as Pick<T, K>);
-    
+
+    const extras = extraFields.reduce(
+      (acc, key) => {
+        acc[key] = item[key];
+        return acc;
+      },
+      {} as Pick<T, K>
+    );
+
     return { ...base, ...extras };
   });
 };

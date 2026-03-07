@@ -28,11 +28,7 @@ const paginatedCustomersSlice = createSlice({
         state.pagination = action.payload.pagination;
       })
       .addCase(fetchPaginatedCustomersThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch customers.'
-        );
+        applyRejected(state, action, 'Failed to fetch customers.');
       });
   },
 });

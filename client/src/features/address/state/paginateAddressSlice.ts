@@ -26,11 +26,7 @@ export const paginateAddressSlice = createSlice({
         state.pagination = action.payload.pagination;
       })
       .addCase(fetchPaginatedAddressesThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch addresses.'
-        );
+        applyRejected(state, action, 'Failed to fetch addresses.');
       });
   },
 });

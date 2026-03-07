@@ -38,8 +38,7 @@ export const selectOrderTypesLoading = createSelector(
  */
 export const selectOrderTypesError = createSelector(
   [selectOrderTypesState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );
 
 /**

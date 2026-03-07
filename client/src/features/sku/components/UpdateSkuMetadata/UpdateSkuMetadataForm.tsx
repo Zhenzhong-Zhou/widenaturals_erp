@@ -21,10 +21,10 @@ interface UpdateSkuMetadataFormProps {
  * changed to the parent handler.
  */
 const UpdateSkuMetadataForm: FC<UpdateSkuMetadataFormProps> = ({
-                                                                 loading,
-                                                                 onSubmit,
-                                                                 defaultValues,
-                                                               }) => {
+  loading,
+  onSubmit,
+  defaultValues,
+}) => {
   /**
    * Handle form submission.
    *
@@ -38,12 +38,12 @@ const UpdateSkuMetadataForm: FC<UpdateSkuMetadataFormProps> = ({
       defaultValues,
       data
     );
-    
+
     if (Object.keys(changed).length === 0) return;
-    
+
     onSubmit(changed);
   };
-  
+
   return (
     <CustomForm
       fields={createMetadataFields()}

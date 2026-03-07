@@ -111,7 +111,7 @@ const createOrderService = async (orderData, category, user) => {
           order_date: orderData.order_date,
           order_status_id: status_id,
           created_by: user.id,
-          
+
           note: orderData.note ?? null,
           shipping_address_id: orderData.shipping_address_id ?? null,
           billing_address_id: orderData.billing_address_id ?? null,
@@ -219,8 +219,10 @@ const fetchPaginatedOrdersService = async ({
     // Skip DB lookup if no status codes
     let allowedStatusIds = [];
     if (allowedStatusCodes.length > 0) {
-      const allowedStatusRecords =
-        await getOrderStatusesByCodes(allowedStatusCodes, null);
+      const allowedStatusRecords = await getOrderStatusesByCodes(
+        allowedStatusCodes,
+        null
+      );
       allowedStatusIds = extractStatusIds(allowedStatusRecords);
     }
 

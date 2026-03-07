@@ -30,8 +30,7 @@ export const selectProductStatusUpdateLoading = createSelector(
  */
 export const selectProductStatusUpdateError = createSelector(
   [selectProductStatusUpdateState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );
 
 /**

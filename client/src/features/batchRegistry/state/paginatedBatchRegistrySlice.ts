@@ -65,11 +65,7 @@ const paginatedBatchRegistrySlice = createSlice({
 
       // ---- rejected ----
       .addCase(fetchPaginatedBatchRegistryThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch batch registry records.'
-        );
+        applyRejected(state, action, 'Failed to fetch batch registry records.');
       });
   },
 });

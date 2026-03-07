@@ -31,7 +31,7 @@ const skuHasActiveTransfers = async (
   client = null
 ) => {
   const context = 'transfer-repository/skuHasActiveTransfers';
-  
+
   const queryText = `
     SELECT 1
     FROM transfer_order_items toi
@@ -43,7 +43,7 @@ const skuHasActiveTransfers = async (
       AND toi.status_id = ANY($2::uuid[])
     LIMIT 1
   `;
-  
+
   return existsQuery(
     queryText,
     [skuId, activeTransferStatusIds],

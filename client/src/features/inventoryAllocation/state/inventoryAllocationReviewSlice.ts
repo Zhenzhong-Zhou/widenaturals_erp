@@ -4,7 +4,7 @@ import type {
   InventoryAllocationReviewState,
 } from './inventoryAllocationTypes';
 import { fetchInventoryAllocationReviewThunk } from '@features/inventoryAllocation/state';
-import { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
 const initialState: InventoryAllocationReviewState = {
@@ -22,10 +22,7 @@ const inventoryAllocationReviewSlice = createSlice({
     /** Reset the slice back to its initial state. */
     resetInventoryAllocationReview: () => initialState,
     /** Manually set error and stop loading (optional utility). */
-    setReviewError: (
-      state,
-      action: PayloadAction<UiErrorPayload | null>
-    ) => {
+    setReviewError: (state, action: PayloadAction<UiErrorPayload | null>) => {
       state.error = action.payload;
       state.loading = false;
     },
@@ -49,11 +46,7 @@ const inventoryAllocationReviewSlice = createSlice({
       .addCase(
         fetchInventoryAllocationReviewThunk.rejected,
         (state, action) => {
-          applyRejected(
-            state,
-            action,
-            'Failed to fetch allocation review'
-          );
+          applyRejected(state, action, 'Failed to fetch allocation review');
         }
       );
   },

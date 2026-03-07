@@ -351,7 +351,7 @@ const findOrderByIdWithDetails = async (orderId) => {
     return rows[0]; // header-only query should return a single row
   } catch (error) {
     // DB-level exception logging stays in repo; business decisions happen in service
-    logSystemException(error, 'DB error fetching order',{
+    logSystemException(error, 'DB error fetching order', {
       ...logMeta,
       severity: 'ERROR',
     });

@@ -94,14 +94,14 @@ const buildLocationFilter = (filters = {}) => {
       params.push(statusFilterValue);
       paramIndexRef.value++;
     }
-    
+
     // -------------------------------------------------------------
     // Location type (supports single or multiple IDs)
     // -------------------------------------------------------------
     const locationTypeFilterValue = filters.locationTypeIds?.length
       ? filters.locationTypeIds
       : filters.locationTypeId;
-    
+
     if (
       locationTypeFilterValue !== undefined &&
       locationTypeFilterValue !== null
@@ -111,15 +111,13 @@ const buildLocationFilter = (filters = {}) => {
           `l.location_type_id = ANY($${paramIndexRef.value}::uuid[])`
         );
       } else {
-        conditions.push(
-          `l.location_type_id = $${paramIndexRef.value}`
-        );
+        conditions.push(`l.location_type_id = $${paramIndexRef.value}`);
       }
-      
+
       params.push(locationTypeFilterValue);
       paramIndexRef.value++;
     }
-    
+
     // -------------------------------------------------------------
     // City / Province / Country
     // -------------------------------------------------------------

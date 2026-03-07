@@ -30,8 +30,7 @@ export const selectSkuStatusLoading = createSelector(
  */
 export const selectSkuStatusError = createSelector(
   [selectSkuStatusState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );
 
 /**

@@ -147,10 +147,7 @@ const transformLocationInventorySummaryRow = (row) => {
  * @returns {Promise<PaginatedResult<T>>}
  */
 const transformPaginatedLocationInventorySummaryResult = (paginatedResult) =>
-  transformPageResult(
-    paginatedResult,
-    transformLocationInventorySummaryRow
-  );
+  transformPageResult(paginatedResult, transformLocationInventorySummaryRow);
 
 /**
  * Transform a single raw location inventory summary record.
@@ -340,10 +337,7 @@ const transformLocationInventoryRecord = (row) =>
  * @returns {Promise<PaginatedResult<T>>}
  */
 const transformPaginatedLocationInventoryRecordResults = (paginatedResult) =>
-  transformPageResult(
-    paginatedResult,
-    transformLocationInventoryRecord
-  );
+  transformPageResult(paginatedResult, transformLocationInventoryRecord);
 
 /**
  * Transforms lightweight enriched location inventory records

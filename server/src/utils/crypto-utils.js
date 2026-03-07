@@ -23,14 +23,14 @@ const hashData = (data) => {
  * @returns {string}
  */
 const generateChecksum = ({
-                            inventory_id,
-                            inventory_action_type_id,
-                            previous_quantity,
-                            quantity_change,
-                            new_quantity,
-                            source_action_id,
-                            comments,
-                          }) => {
+  inventory_id,
+  inventory_action_type_id,
+  previous_quantity,
+  quantity_change,
+  new_quantity,
+  source_action_id,
+  comments,
+}) => {
   const data = [
     inventory_id,
     inventory_action_type_id,
@@ -40,7 +40,7 @@ const generateChecksum = ({
     source_action_id || '',
     comments || '',
   ].join('|');
-  
+
   return crypto.createHash('sha256').update(data).digest('hex');
 };
 

@@ -30,12 +30,12 @@ export const skuImageUpdateSlice = createSlice({
       .addCase(updateSkuImagesThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
-        
+
         state.data = null;
         state.results = null;
         state.stats = null;
       })
-      
+
       // Fulfilled → store full response + unpack convenience fields
       .addCase(
         updateSkuImagesThunk.fulfilled,
@@ -43,15 +43,11 @@ export const skuImageUpdateSlice = createSlice({
           applyBatchSuccess(state, action.payload);
         }
       )
-      
+
       // Rejected → structured UI error payload
       .addCase(updateSkuImagesThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to update SKU images.'
-        );
-      })
+        applyRejected(state, action, 'Failed to update SKU images.');
+      });
   },
 });
 

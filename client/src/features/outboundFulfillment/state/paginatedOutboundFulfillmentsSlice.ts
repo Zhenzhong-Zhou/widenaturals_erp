@@ -37,13 +37,16 @@ const paginatedOutboundFulfillmentsSlice = createSlice({
           state.pagination = action.payload.pagination;
         }
       )
-      .addCase(fetchPaginatedOutboundFulfillmentThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch paginated outbound fulfillments.'
-        );
-      });
+      .addCase(
+        fetchPaginatedOutboundFulfillmentThunk.rejected,
+        (state, action) => {
+          applyRejected(
+            state,
+            action,
+            'Failed to fetch paginated outbound fulfillments.'
+          );
+        }
+      );
   },
 });
 

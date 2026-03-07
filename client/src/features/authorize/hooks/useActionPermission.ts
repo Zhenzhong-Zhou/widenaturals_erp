@@ -41,7 +41,7 @@ const useActionPermission = (
   allowedStates: readonly string[]
 ): boolean => {
   const hasPermission = useHasPermission();
-  
+
   return useMemo(() => {
     return canPerformAction({
       /**

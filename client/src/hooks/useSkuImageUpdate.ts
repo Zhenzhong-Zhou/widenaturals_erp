@@ -16,7 +16,7 @@ import { resetSkuImageUpdate } from '@features/skuImage/state/skuImageUpdateSlic
 
 const useSkuImageUpdate = () => {
   const dispatch = useAppDispatch();
-  
+
   // Primitive selectors (memoized via RTK createSelector)
   const loading = useAppSelector(selectSkuImageUpdateLoading);
   const error = useAppSelector(selectSkuImageUpdateError);
@@ -27,7 +27,7 @@ const useSkuImageUpdate = () => {
   const failedCount = useAppSelector(selectSkuImageUpdateFailedCount);
   const hasResults = useAppSelector(selectSkuImageUpdateHasResults);
   const isSuccess = useAppSelector(selectSkuImageUpdateSuccess);
-  
+
   // Stable update function
   const updateImages = useCallback(
     async (formData: FormData) => {
@@ -35,12 +35,12 @@ const useSkuImageUpdate = () => {
     },
     [dispatch]
   );
-  
+
   // Stable reset function
   const reset = useCallback(() => {
     dispatch(resetSkuImageUpdate());
   }, [dispatch]);
-  
+
   // Grouped memoized return object (stable reference)
   const state = useMemo(
     () => ({
@@ -66,7 +66,7 @@ const useSkuImageUpdate = () => {
       isSuccess,
     ]
   );
-  
+
   return {
     ...state,
     updateImages,

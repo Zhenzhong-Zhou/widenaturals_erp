@@ -104,10 +104,7 @@ const transformComplianceRecordRow = (row) => {
  * @returns {Promise<PaginatedResult<T>>}
  */
 const transformPaginatedComplianceRecordResults = async (paginatedResult) => {
-  return transformPageResult(
-    paginatedResult,
-    transformComplianceRecordRow
-  );
+  return transformPageResult(paginatedResult, transformComplianceRecordRow);
 };
 
 /**

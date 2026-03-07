@@ -35,11 +35,7 @@ const locationInventoryKpiSummarySlice = createSlice({
       .addCase(
         fetchLocationInventoryKpiSummaryThunk.rejected,
         (state, action) => {
-          applyRejected(
-            state,
-            action,
-            'Failed to fetch KPI summary.'
-          );
+          applyRejected(state, action, 'Failed to fetch KPI summary.');
         }
       );
   },

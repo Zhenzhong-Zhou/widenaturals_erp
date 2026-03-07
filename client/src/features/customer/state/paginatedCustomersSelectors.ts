@@ -47,8 +47,7 @@ export const selectPaginatedCustomersLoading = createSelector(
  */
 export const selectPaginatedCustomersError = createSelector(
   [selectPaginatedCustomersState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );
 
 /**

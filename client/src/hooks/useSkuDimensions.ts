@@ -16,24 +16,24 @@ import { resetSkuDimensions } from '@features/sku/state/skuDimensionsSlice';
  */
 const useSkuDimensions = () => {
   const dispatch = useAppDispatch();
-  
+
   const data = useAppSelector(selectSkuDimensionsData);
   const loading = useAppSelector(selectSkuDimensionsLoading);
   const error = useAppSelector(selectSkuDimensionsError);
   const isSuccess = useAppSelector(selectSkuDimensionsSuccess);
   const updatedSkuId = useAppSelector(selectUpdatedSkuDimensionsId);
-  
+
   const updateDimensions = useCallback(
     async (skuId: string, payload: UpdateSkuDimensionsRequest) => {
       return dispatch(updateSkuDimensionsThunk({ skuId, payload }));
     },
     [dispatch]
   );
-  
+
   const reset = useCallback(() => {
     dispatch(resetSkuDimensions());
   }, [dispatch]);
-  
+
   return useMemo(
     () => ({
       data,

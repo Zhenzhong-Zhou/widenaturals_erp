@@ -106,18 +106,18 @@ const transformPageResult = async (paginatedResult, transformFn) => {
       },
     };
   }
-  
+
   const { data = [], pagination = {} } = paginatedResult;
-  
-  const transformedItems = (
-    await transformRowsAsync(data, transformFn)
-  ).filter(Boolean);
-  
+
+  const transformedItems = (await transformRowsAsync(data, transformFn)).filter(
+    Boolean
+  );
+
   const page = Number(pagination.page ?? 1);
   const limit = Number(pagination.limit ?? 10);
   const totalRecords = Number(pagination.totalRecords ?? 0);
   const totalPages = pagination.totalPages ?? Math.ceil(totalRecords / limit);
-  
+
   return {
     data: transformedItems,
     pagination: {
@@ -195,18 +195,18 @@ const transformLoadMoreResult = async (paginatedResult, transformFn) => {
       hasMore: false,
     };
   }
-  
+
   const { data = [], pagination = {} } = paginatedResult;
-  
-  const transformedItems = (
-    await transformRowsAsync(data, transformFn)
-  ).filter(Boolean);
-  
+
+  const transformedItems = (await transformRowsAsync(data, transformFn)).filter(
+    Boolean
+  );
+
   const page = Number(pagination.page ?? 1);
   const limit = Number(pagination.limit ?? 10);
   const totalRecords = Number(pagination.totalRecords ?? 0);
   const offset = pagination.offset ?? (page - 1) * limit;
-  
+
   return {
     items: transformedItems,
     offset,

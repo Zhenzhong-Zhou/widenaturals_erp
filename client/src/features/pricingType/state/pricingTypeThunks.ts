@@ -30,7 +30,8 @@ import type {
   PricingType,
   PricingTypeMetadata,
 } from './pricingTypeTypes';
-import { extractUiErrorPayload, UiErrorPayload } from '@utils/error/uiErrorUtils';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import { extractUiErrorPayload } from '@utils/error/uiErrorUtils';
 
 /**
  * Fetches a paginated list of pricing types.
@@ -49,18 +50,13 @@ export const fetchAllPricingTypesThunk = createAsyncThunk<
   PaginatedResponse<PricingType>,
   FetchPricingTypesParams,
   { rejectValue: UiErrorPayload }
->(
-  'pricingTypes/fetchAllPricingTypes',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await pricingTypeService.fetchAllPricingTypes(params);
-    } catch (error: unknown) {
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
-    }
+>('pricingTypes/fetchAllPricingTypes', async (params, { rejectWithValue }) => {
+  try {
+    return await pricingTypeService.fetchAllPricingTypes(params);
+  } catch (error: unknown) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});
 
 /**
  * Fetches metadata for a single pricing type.
@@ -78,18 +74,12 @@ export const fetchPricingTypeMetadataThunk = createAsyncThunk<
   PricingTypeMetadata,
   string,
   { rejectValue: UiErrorPayload }
->(
-  'pricingType/fetchMetadataById',
-  async (id, { rejectWithValue }) => {
-    try {
-      const response =
-        await pricingTypeService.fetchPricingTypeMetadataById(id);
-      
-      return response.data;
-    } catch (error: unknown) {
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
-    }
+>('pricingType/fetchMetadataById', async (id, { rejectWithValue }) => {
+  try {
+    const response = await pricingTypeService.fetchPricingTypeMetadataById(id);
+
+    return response.data;
+  } catch (error: unknown) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});

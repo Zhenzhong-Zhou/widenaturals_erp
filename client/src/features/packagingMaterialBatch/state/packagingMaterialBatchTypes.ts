@@ -19,8 +19,8 @@ import type { ReduxPaginatedState } from '@shared-types/pagination';
  * All numeric values are serialized as strings to preserve decimal precision.
  */
 export interface QuantityValue {
-  value: string;   // decimal string (e.g. "100.000")
-  unit: string;    // e.g. "pcs"
+  value: string; // decimal string (e.g. "100.000")
+  unit: string; // e.g. "pcs"
 }
 
 /**
@@ -28,10 +28,10 @@ export interface QuantityValue {
  * Decimal precision is preserved as string for accounting safety.
  */
 export interface MoneyValue {
-  unitCost: string;     // decimal string
-  currency: string;     // ISO currency code (e.g. "CAD")
+  unitCost: string; // decimal string
+  currency: string; // ISO currency code (e.g. "CAD")
   exchangeRate: string; // decimal string
-  totalCost: string;    // decimal string
+  totalCost: string; // decimal string
 }
 
 /* ============================================================================
@@ -102,7 +102,7 @@ export interface PackagingMaterialBatchLifecycle {
 export interface PackagingMaterialBatch {
   id: string;
   lotNumber: string;
-  
+
   material: MaterialSnapshot;
   quantity: QuantityValue;
   lifecycle: PackagingMaterialBatchLifecycle;
@@ -126,21 +126,21 @@ export interface PackagingMaterialBatchFilters {
   statusIds?: string | string[];
   packagingMaterialIds?: string | string[];
   supplierIds?: string | string[];
-  
+
   lotNumber?: string;
-  
+
   expiryAfter?: string;
   expiryBefore?: string;
-  
+
   manufactureAfter?: string;
   manufactureBefore?: string;
-  
+
   receivedAfter?: string;
   receivedBefore?: string;
-  
+
   createdAfter?: string;
   createdBefore?: string;
-  
+
   keyword?: string;
 }
 
@@ -178,8 +178,7 @@ export type PackagingMaterialBatchSortKey =
  * Query parameter structure used when requesting paginated data.
  */
 export interface PackagingMaterialBatchQueryParams
-  extends PaginationParams,
-    SortConfig {
+  extends PaginationParams, SortConfig {
   filters?: PackagingMaterialBatchFilters;
 }
 
@@ -202,44 +201,44 @@ export interface FlattenedPackagingMaterialBatchRow {
   // Core identity
   id: string;
   lotNumber: string;
-  
+
   // Material snapshot
   materialInternalName: string;
   supplierLabel: string;
-  
+
   // Quantity
   quantityValue: string;
   quantityUnit: string;
-  
+
   // Lifecycle
   manufactureDate: NullableString;
   expiryDate: NullableString;
   receivedAt: string;
   receivedById: NullableString;
   receivedByName: string;
-  
+
   // Cost
   unitCost: string;
   currency: string;
   exchangeRate: string;
   totalCost: string;
-  
+
   // Status
   statusId: string;
   statusName: string;
   statusDate: string;
-  
+
   // Packaging material
   packagingMaterialId: string;
   packagingMaterialCode: string;
   packagingMaterialCategory: string;
-  
+
   // Supplier
   supplierId: string;
   supplierName: string;
   isPreferredSupplier: boolean;
   supplierLeadTimeDays: number;
-  
+
   // Audit
   createdAt: string;
   createdById: NullableString;

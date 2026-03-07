@@ -65,25 +65,20 @@ export const initiateOutboundFulfillmentThunk = createAsyncThunk<
   InitiateFulfillmentResponse,
   InitiateFulfillmentRequest,
   { rejectValue: UiErrorPayload }
->(
-  'outboundFulfillments/initiate',
-  async (request, { rejectWithValue }) => {
-    try {
-      return await outboundFulfillmentService.initiateOutboundFulfillment(
-        request
-      );
-    } catch (error: unknown) {
-      console.error('initiateOutboundFulfillmentThunk error:', {
-        request,
-        error,
-      });
-      
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
-    }
+>('outboundFulfillments/initiate', async (request, { rejectWithValue }) => {
+  try {
+    return await outboundFulfillmentService.initiateOutboundFulfillment(
+      request
+    );
+  } catch (error: unknown) {
+    console.error('initiateOutboundFulfillmentThunk error:', {
+      request,
+      error,
+    });
+
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});
 
 /**
  * Fetches a paginated list of outbound shipments.
@@ -139,29 +134,24 @@ export const fetchOutboundShipmentDetailsThunk = createAsyncThunk<
   FetchShipmentDetailsUiResponse,
   string,
   { rejectValue: UiErrorPayload }
->(
-  'outboundShipments/fetchDetails',
-  async (shipmentId, { rejectWithValue }) => {
-    try {
-      const response =
-        await outboundFulfillmentService.fetchOutboundShipmentDetails(shipmentId);
-      
-      return {
-        success: response.success,
-        message: response.message,
-        traceId: response.traceId,
-        data: {
-          shipment: flattenShipmentHeader(response.data.shipment),
-          fulfillments: flattenFulfillments(response.data.fulfillments),
-        },
-      };
-    } catch (error: unknown) {
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
-    }
+>('outboundShipments/fetchDetails', async (shipmentId, { rejectWithValue }) => {
+  try {
+    const response =
+      await outboundFulfillmentService.fetchOutboundShipmentDetails(shipmentId);
+
+    return {
+      success: response.success,
+      message: response.message,
+      traceId: response.traceId,
+      data: {
+        shipment: flattenShipmentHeader(response.data.shipment),
+        fulfillments: flattenFulfillments(response.data.fulfillments),
+      },
+    };
+  } catch (error: unknown) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});
 
 /**
  * Confirms an outbound fulfillment.
@@ -189,10 +179,8 @@ export const confirmOutboundFulfillmentThunk = createAsyncThunk<
         request,
         error,
       });
-      
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
+
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );
@@ -217,9 +205,7 @@ export const completeManualFulfillmentThunk = createAsyncThunk<
     try {
       return await outboundFulfillmentService.completeManualFulfillment(params);
     } catch (error: unknown) {
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );

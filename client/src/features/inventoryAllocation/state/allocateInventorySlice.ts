@@ -37,11 +37,7 @@ const allocateInventorySlice = createSlice({
         }
       )
       .addCase(allocateInventoryThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Allocation failed'
-        );
+        applyRejected(state, action, 'Allocation failed');
       });
   },
 });

@@ -37,8 +37,7 @@ export const selectDeliveryMethodLookupLoading = createSelector(
  */
 export const selectDeliveryMethodLookupError = createSelector(
   [selectDeliveryMethodLookupState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );
 
 /**

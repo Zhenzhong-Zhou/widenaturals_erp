@@ -125,7 +125,7 @@ const AppError = require('../utils/AppError');
  */
 const transformBomRow = (row) => {
   if (!row) return null;
-  
+
   const productName = getProductDisplayName({
     product_name: row.product_name,
     brand: row.brand ?? '',
@@ -334,7 +334,7 @@ const transformBomDetails = (rows = []) => {
 
   try {
     const headerRow = rows[0];
-    
+
     const productName = getProductDisplayName({
       product_name: headerRow.product_name,
       brand: headerRow.brand ?? '',

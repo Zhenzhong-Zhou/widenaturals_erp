@@ -68,16 +68,13 @@ export const fetchPaginatedSkuProductCardsThunk = createAsyncThunk<
   GetSkuProductCardsResponse,
   SkuProductCardQueryParams | undefined,
   { rejectValue: UiErrorPayload }
->(
-  'skus/fetchPaginatedProductCards',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await skuService.fetchPaginatedSkuProductCards(params);
-    } catch (error: unknown) {
-      return rejectWithValue(extractUiErrorPayload(error));
-    }
+>('skus/fetchPaginatedProductCards', async (params, { rejectWithValue }) => {
+  try {
+    return await skuService.fetchPaginatedSkuProductCards(params);
+  } catch (error: unknown) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});
 
 /**
  * Fetches a single SKU detail record.
@@ -95,16 +92,13 @@ export const getSkuDetailByIdThunk = createAsyncThunk<
   GetSkuDetailResponse,
   string,
   { rejectValue: UiErrorPayload }
->(
-  'skus/getSkuDetailById',
-  async (skuId, { rejectWithValue }) => {
-    try {
-      return await skuService.fetchSkuDetailById(skuId);
-    } catch (error: unknown) {
-      return rejectWithValue(extractUiErrorPayload(error));
-    }
+>('skus/getSkuDetailById', async (skuId, { rejectWithValue }) => {
+  try {
+    return await skuService.fetchSkuDetailById(skuId);
+  } catch (error: unknown) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});
 
 /**
  * Fetches a paginated list of SKUs and converts
@@ -157,16 +151,13 @@ export const createSkusThunk = createAsyncThunk<
   CreateSkuResponse,
   CreateSkuBulkInput,
   { rejectValue: UiErrorPayload }
->(
-  'skus/createSkus',
-  async (payload, { rejectWithValue }) => {
-    try {
-      return await skuService.createSkus(payload);
-    } catch (error: unknown) {
-      return rejectWithValue(extractUiErrorPayload(error));
-    }
+>('skus/createSkus', async (payload, { rejectWithValue }) => {
+  try {
+    return await skuService.createSkus(payload);
+  } catch (error: unknown) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});
 
 /**
  * Updates the metadata of a SKU.
@@ -186,16 +177,13 @@ export const updateSkuMetadataThunk = createAsyncThunk<
   UpdateSkuMetadataResponse,
   { skuId: string; payload: UpdateSkuMetadataRequest },
   { rejectValue: UiErrorPayload }
->(
-  'skus/updateMetadata',
-  async ({ skuId, payload }, { rejectWithValue }) => {
-    try {
-      return await skuService.updateSkuMetadata(skuId, payload);
-    } catch (error: unknown) {
-      return rejectWithValue(extractUiErrorPayload(error));
-    }
+>('skus/updateMetadata', async ({ skuId, payload }, { rejectWithValue }) => {
+  try {
+    return await skuService.updateSkuMetadata(skuId, payload);
+  } catch (error: unknown) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});
 
 /**
  * Updates the status of a SKU.
@@ -215,17 +203,14 @@ export const updateSkuStatusThunk = createAsyncThunk<
   UpdateSkuStatusResponse,
   UpdateSkuStatusThunkArgs,
   { rejectValue: UiErrorPayload }
->(
-  'skus/updateStatus',
-  async ({ skuId, statusId }, { rejectWithValue }) => {
-    try {
-      const payload: UpdateSkuStatusRequestBody = { statusId };
-      return await skuService.updateSkuStatus(skuId, payload);
-    } catch (error: unknown) {
-      return rejectWithValue(extractUiErrorPayload(error));
-    }
+>('skus/updateStatus', async ({ skuId, statusId }, { rejectWithValue }) => {
+  try {
+    const payload: UpdateSkuStatusRequestBody = { statusId };
+    return await skuService.updateSkuStatus(skuId, payload);
+  } catch (error: unknown) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});
 
 /**
  * Updates the physical dimensions of a SKU.
@@ -245,16 +230,13 @@ export const updateSkuDimensionsThunk = createAsyncThunk<
   UpdateSkuDimensionsResponse,
   { skuId: string; payload: UpdateSkuDimensionsRequest },
   { rejectValue: UiErrorPayload }
->(
-  'skus/updateDimensions',
-  async ({ skuId, payload }, { rejectWithValue }) => {
-    try {
-      return await skuService.updateSkuDimensions(skuId, payload);
-    } catch (error: unknown) {
-      return rejectWithValue(extractUiErrorPayload(error));
-    }
+>('skus/updateDimensions', async ({ skuId, payload }, { rejectWithValue }) => {
+  try {
+    return await skuService.updateSkuDimensions(skuId, payload);
+  } catch (error: unknown) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});
 
 /**
  * Updates the identity fields of a SKU.
@@ -274,13 +256,10 @@ export const updateSkuIdentityThunk = createAsyncThunk<
   UpdateSkuIdentityResponse,
   { skuId: string; payload: UpdateSkuIdentityRequest },
   { rejectValue: UiErrorPayload }
->(
-  'skus/updateIdentity',
-  async ({ skuId, payload }, { rejectWithValue }) => {
-    try {
-      return await skuService.updateSkuIdentity(skuId, payload);
-    } catch (error: unknown) {
-      return rejectWithValue(extractUiErrorPayload(error));
-    }
+>('skus/updateIdentity', async ({ skuId, payload }, { rejectWithValue }) => {
+  try {
+    return await skuService.updateSkuIdentity(skuId, payload);
+  } catch (error: unknown) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});

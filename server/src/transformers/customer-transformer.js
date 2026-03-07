@@ -101,9 +101,8 @@ const transformEnrichedCustomers = (rows) =>
  * @returns {Promise<PaginatedResult<T>>}
  */
 const transformPaginatedCustomerResults = async (paginatedResult) =>
-  transformPageResult(
-    paginatedResult,
-    (row) => transformCustomerRow(row, { format: 'flat' })
+  transformPageResult(paginatedResult, (row) =>
+    transformCustomerRow(row, { format: 'flat' })
   );
 
 module.exports = {

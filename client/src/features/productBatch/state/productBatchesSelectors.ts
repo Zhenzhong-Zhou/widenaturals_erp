@@ -42,8 +42,7 @@ export const selectPaginatedProductBatchLoading = createSelector(
  */
 export const selectPaginatedProductBatchError = createSelector(
   [selectPaginatedProductBatchesState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );
 
 /**

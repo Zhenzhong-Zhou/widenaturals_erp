@@ -44,7 +44,7 @@ import {
   flattenOrderItems,
   normalizeSalesOrderHeader,
 } from '@features/order/utils';
-import { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 import { ErrorType, extractUiErrorPayload } from '@utils/error';
 
 /* ------------------------------------------------------------------ */
@@ -76,10 +76,8 @@ export const createSalesOrderThunk = createAsyncThunk<
         category,
         error,
       });
-      
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
+
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );
@@ -114,10 +112,8 @@ export const fetchOrdersByCategoryThunk = createAsyncThunk<
         params,
         error,
       });
-      
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
+
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );
@@ -157,19 +153,19 @@ export const fetchOrderDetailsByIdThunk = createAsyncThunk<
           type: ErrorType.Validation,
         });
       }
-      
+
       if (!category) {
         return rejectWithValue({
           message: 'Missing order category for order details request.',
           type: ErrorType.Validation,
         });
       }
-      
+
       const response = await orderService.fetchOrderDetailsById({
         category: category.trim(),
         orderId: orderId.trim(),
       });
-      
+
       return {
         ...response,
         data: {
@@ -178,9 +174,7 @@ export const fetchOrderDetailsByIdThunk = createAsyncThunk<
         },
       };
     } catch (error: unknown) {
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );
@@ -204,21 +198,16 @@ export const updateOrderStatusThunk = createAsyncThunk<
   UpdateOrderStatusResponse,
   { params: OrderRouteParams; data: { statusCode: string } },
   { rejectValue: UiErrorPayload }
->(
-  'orders/updateOrderStatus',
-  async ({ params, data }, { rejectWithValue }) => {
-    try {
-      return await orderService.updateOrderStatus(params, data);
-    } catch (error: unknown) {
-      console.error('updateOrderStatusThunk error:', {
-        params,
-        data,
-        error,
-      });
-      
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
-    }
+>('orders/updateOrderStatus', async ({ params, data }, { rejectWithValue }) => {
+  try {
+    return await orderService.updateOrderStatus(params, data);
+  } catch (error: unknown) {
+    console.error('updateOrderStatusThunk error:', {
+      params,
+      data,
+      error,
+    });
+
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});

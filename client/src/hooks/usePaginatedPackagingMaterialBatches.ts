@@ -31,30 +31,22 @@ import { normalizePagination } from '@utils/pagination/normalizePagination';
  */
 export const usePaginatedPackagingMaterialBatches = () => {
   const dispatch = useAppDispatch();
-  
+
   // ---------------------------
   // Selectors (memoized via Reselect)
   // ---------------------------
-  const data = useAppSelector(
-    selectPaginatedPackagingMaterialBatchData
-  );
-  
+  const data = useAppSelector(selectPaginatedPackagingMaterialBatchData);
+
   const pagination = useAppSelector(
     selectPaginatedPackagingMaterialBatchPagination
   );
-  
-  const loading = useAppSelector(
-    selectPaginatedPackagingMaterialBatchLoading
-  );
-  
-  const error = useAppSelector(
-    selectPaginatedPackagingMaterialBatchError
-  );
-  
-  const isEmpty = useAppSelector(
-    selectPaginatedPackagingMaterialBatchIsEmpty
-  );
-  
+
+  const loading = useAppSelector(selectPaginatedPackagingMaterialBatchLoading);
+
+  const error = useAppSelector(selectPaginatedPackagingMaterialBatchError);
+
+  const isEmpty = useAppSelector(selectPaginatedPackagingMaterialBatchIsEmpty);
+
   // ---------------------------
   // Actions
   // ---------------------------
@@ -69,7 +61,7 @@ export const usePaginatedPackagingMaterialBatches = () => {
     },
     [dispatch]
   );
-  
+
   /**
    * Reset paginated packaging material batch state
    * back to its initial empty configuration.
@@ -77,24 +69,21 @@ export const usePaginatedPackagingMaterialBatches = () => {
   const resetPackagingMaterialBatches = useCallback(() => {
     dispatch(resetPaginatedPackagingMaterialBatches());
   }, [dispatch]);
-  
+
   // ---------------------------
   // Derived memoized values
   // ---------------------------
-  const pageInfo = useMemo(
-    () => normalizePagination(pagination),
-    [pagination]
-  );
-  
+  const pageInfo = useMemo(() => normalizePagination(pagination), [pagination]);
+
   return {
     data,
     pagination,
     loading,
     error,
     isEmpty,
-    
+
     pageInfo, // { page, limit }
-    
+
     fetchPackagingMaterialBatches,
     resetPackagingMaterialBatches,
   };
@@ -111,10 +100,7 @@ export const usePaginatedPackagingMaterialBatches = () => {
  * - side panels
  */
 export const usePackagingMaterialBatchById = (id: string) => {
-  const selector = useMemo(
-    () => makeSelectPackagingMaterialBatchById(),
-    []
-  );
-  
+  const selector = useMemo(() => makeSelectPackagingMaterialBatchById(), []);
+
   return useAppSelector((state) => selector(state, id));
 };

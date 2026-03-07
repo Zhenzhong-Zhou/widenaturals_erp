@@ -1350,7 +1350,7 @@ const buildFulfillmentLogEntry = ({
     reserved_quantity_after: update.reserved_quantity,
     warehouse_quantity_snapshot: previous_quantity,
   });
-  
+
   const checksum = generateChecksum({
     inventory_id: allocation.warehouse_inventory_id,
     inventory_action_type_id: inventoryActionTypeId,

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, startTransition } from 'react';
 import { debounce } from '@mui/material';
 import { getDetailCacheKey } from '@features/inventoryShared/utils/cacheKeys';
-import { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 
 export interface UseExpandableDetailPanelOptions<T> {
   fetchDetail: (params: {
@@ -80,12 +80,12 @@ export const useExpandableDetailPanel = <T>({
   const detailLoadingMap: Record<string, boolean> = expandedRowId
     ? { [expandedRowId]: !!detailLoading }
     : {};
-  
+
   const detailErrorMap: Record<string, string | null> =
     expandedRowId && detailError
       ? { [expandedRowId]: detailError.message }
       : {};
-  
+
   return {
     expandedRowId,
     detailPage,

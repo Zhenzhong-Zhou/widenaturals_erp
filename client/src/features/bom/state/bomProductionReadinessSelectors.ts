@@ -48,8 +48,7 @@ export const selectBomReadinessLoading = createSelector(
  */
 export const selectBomReadinessError = createSelector(
   [selectBomProductionReadinessState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );
 
 /**

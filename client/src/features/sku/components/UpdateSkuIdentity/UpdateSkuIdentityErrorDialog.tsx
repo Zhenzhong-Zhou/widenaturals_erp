@@ -10,9 +10,12 @@ interface UpdateSkuIdentityErrorDialogProps {
   skuCode?: string;
 }
 
-const UpdateSkuIdentityErrorDialog: FC<
-  UpdateSkuIdentityErrorDialogProps
-> = ({ open, onClose, error, skuCode }) => {
+const UpdateSkuIdentityErrorDialog: FC<UpdateSkuIdentityErrorDialogProps> = ({
+  open,
+  onClose,
+  error,
+  skuCode,
+}) => {
   return (
     <CustomDialog
       open={open}
@@ -32,7 +35,7 @@ const UpdateSkuIdentityErrorDialog: FC<
                 <strong>SKU:</strong> {skuCode}
               </Box>
             )}
-            
+
             {error ? (
               <Box sx={{ mt: 1 }}>{error}</Box>
             ) : (

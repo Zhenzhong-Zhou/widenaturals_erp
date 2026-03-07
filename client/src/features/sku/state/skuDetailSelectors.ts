@@ -1,10 +1,7 @@
 import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
 import { selectRuntime } from '@store/selectors';
-import type {
-  SkuImageVariant,
-  SkuPricing
-} from '@features/sku/state/skuTypes';
+import type { SkuImageVariant, SkuPricing } from '@features/sku/state/skuTypes';
 
 /**
  * Root selector for the SKU detail slice.
@@ -33,8 +30,7 @@ export const selectSkuDetailLoading = createSelector(
  */
 export const selectSkuDetailError = createSelector(
   [selectSkuDetailState],
-  (detailsState): string | null =>
-    detailsState.error?.message ?? null
+  (detailsState): string | null => detailsState.error?.message ?? null
 );
 
 /**
@@ -96,7 +92,7 @@ export const selectSkuComplianceRecords = createSelector(
  */
 export const selectSkuPrimaryImageGroup = createSelector(
   selectSkuImageGroups,
-  (groups) => groups.find(g => g.isPrimary) ?? groups[0] ?? null
+  (groups) => groups.find((g) => g.isPrimary) ?? groups[0] ?? null
 );
 
 /**
@@ -110,7 +106,7 @@ export const selectSkuThumbnailImages = createSelector(
   selectSkuImageGroups,
   (groups): SkuImageVariant[] =>
     groups
-      .map(g => g.variants.thumbnail ?? g.variants.main ?? null)
+      .map((g) => g.variants.thumbnail ?? g.variants.main ?? null)
       .filter((v): v is SkuImageVariant => Boolean(v))
 );
 

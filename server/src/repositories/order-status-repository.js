@@ -47,7 +47,7 @@ const getOrderStatusIdByCode = async (code, client = null) => {
  */
 const getOrderStatusByCode = async (statusCode, client) => {
   const context = 'order-status-repository/getOrderStatusByCode';
-  
+
   const sql = `
     SELECT id, code, category
     FROM order_status
@@ -115,9 +115,9 @@ const getOrderStatusMetadataById = async (id, client) => {
  */
 const getOrderStatusesByCodes = async (statusCodes, client) => {
   const context = 'order-status-repository/getOrderStatusesByCodes';
-  
+
   if (!Array.isArray(statusCodes) || statusCodes.length === 0) return [];
-  
+
   const sql = `
     SELECT id, code, category
     FROM order_status

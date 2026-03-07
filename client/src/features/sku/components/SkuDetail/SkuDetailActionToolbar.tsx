@@ -1,4 +1,5 @@
-import { FC, useState, MouseEvent } from 'react';
+import type { FC, MouseEvent } from 'react';
+import { useState } from 'react';
 import Stack from '@mui/material/Stack';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
@@ -15,14 +16,14 @@ interface Props {
   canUpdateIdentity: boolean;
   canUpdateImages: boolean;
   canUploadImages: boolean;
-  
+
   metadataDialogHandlers: DialogHandlers;
   statusDialogHandlers: DialogHandlers;
   dimensionsDialogHandlers: DialogHandlers;
   identityDialogHandlers: DialogHandlers;
   imageDialogHandlers: DialogHandlers;
   uploadDialogHandlers: DialogHandlers;
-  
+
   refresh: () => void;
   cameFromUpload: boolean;
 }
@@ -60,36 +61,35 @@ const actionButtonStyle = {
  * This component is purely presentational and contains no business logic.
  */
 const SkuDetailActionToolbar: FC<Props> = ({
-                                             canUpdateMetadata,
-                                             canUpdateStatus,
-                                             canUpdateDimension,
-                                             canUpdateIdentity,
-                                             canUpdateImages,
-                                             canUploadImages,
-                                             metadataDialogHandlers,
-                                             statusDialogHandlers,
-                                             dimensionsDialogHandlers,
-                                             identityDialogHandlers,
-                                             imageDialogHandlers,
-                                             uploadDialogHandlers,
-                                             refresh,
-                                             cameFromUpload,
-                                           }) => {
-  
+  canUpdateMetadata,
+  canUpdateStatus,
+  canUpdateDimension,
+  canUpdateIdentity,
+  canUpdateImages,
+  canUploadImages,
+  metadataDialogHandlers,
+  statusDialogHandlers,
+  dimensionsDialogHandlers,
+  identityDialogHandlers,
+  imageDialogHandlers,
+  uploadDialogHandlers,
+  refresh,
+  cameFromUpload,
+}) => {
   const [editAnchor, setEditAnchor] = useState<HTMLElement | null>(null);
   const [imageAnchor, setImageAnchor] = useState<HTMLElement | null>(null);
-  
+
   const openEditMenu = (e: MouseEvent<HTMLElement>) => {
     setEditAnchor(e.currentTarget);
   };
-  
+
   const openImageMenu = (e: MouseEvent<HTMLElement>) => {
     setImageAnchor(e.currentTarget);
   };
-  
+
   const closeEditMenu = () => setEditAnchor(null);
   const closeImageMenu = () => setImageAnchor(null);
-  
+
   return (
     <Stack
       direction="row"
@@ -100,7 +100,7 @@ const SkuDetailActionToolbar: FC<Props> = ({
       justifyContent="flex-end"
     >
       {/* EDIT MENU */}
-      
+
       {(canUpdateMetadata ||
         canUpdateStatus ||
         canUpdateDimension ||
@@ -113,7 +113,7 @@ const SkuDetailActionToolbar: FC<Props> = ({
           >
             Edit ▾
           </CustomButton>
-          
+
           <Menu
             anchorEl={editAnchor}
             open={Boolean(editAnchor)}
@@ -129,7 +129,7 @@ const SkuDetailActionToolbar: FC<Props> = ({
                 Edit Metadata
               </MenuItem>
             )}
-            
+
             {canUpdateDimension && (
               <MenuItem
                 onClick={() => {
@@ -140,7 +140,7 @@ const SkuDetailActionToolbar: FC<Props> = ({
                 Edit Dimensions
               </MenuItem>
             )}
-            
+
             {canUpdateIdentity && (
               <MenuItem
                 onClick={() => {
@@ -151,7 +151,7 @@ const SkuDetailActionToolbar: FC<Props> = ({
                 Edit Identity
               </MenuItem>
             )}
-            
+
             {canUpdateStatus && (
               <MenuItem
                 onClick={() => {
@@ -165,9 +165,9 @@ const SkuDetailActionToolbar: FC<Props> = ({
           </Menu>
         </>
       )}
-      
+
       {/* IMAGE MENU */}
-      
+
       {(canUpdateImages || canUploadImages) && (
         <>
           <CustomButton
@@ -177,7 +177,7 @@ const SkuDetailActionToolbar: FC<Props> = ({
           >
             Images ▾
           </CustomButton>
-          
+
           <Menu
             anchorEl={imageAnchor}
             open={Boolean(imageAnchor)}
@@ -193,7 +193,7 @@ const SkuDetailActionToolbar: FC<Props> = ({
                 Edit SKU Images
               </MenuItem>
             )}
-            
+
             {canUploadImages && (
               <MenuItem
                 onClick={() => {
@@ -207,15 +207,15 @@ const SkuDetailActionToolbar: FC<Props> = ({
           </Menu>
         </>
       )}
-      
+
       {/* REFRESH */}
-      
+
       <CustomButton sx={actionButtonStyle} onClick={refresh}>
         Refresh
       </CustomButton>
-      
+
       {/* BACK */}
-      
+
       <GoBackButton
         sx={actionButtonStyle}
         fallbackTo={cameFromUpload ? '/skus' : undefined}

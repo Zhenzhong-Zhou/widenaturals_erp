@@ -35,8 +35,7 @@ export const selectPricingLoading = createSelector(
  */
 export const selectPricingError = createSelector(
   [selectPricingListState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );
 
 /**

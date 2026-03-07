@@ -307,14 +307,14 @@ const createSkusController = wrapAsync(async (req, res) => {
  */
 const updateSkuMetadataController = wrapAsync(async (req, res) => {
   const context = 'sku-controller/updateSkuMetadataController';
-  
+
   // -------------------------------------------------
   // 1. Extract inputs
   // -------------------------------------------------
   const { skuId } = req.params;
   const payload = req.body;
   const user = req.auth.user;
-  
+
   // -------------------------------------------------
   // 2. Execute business logic
   // -------------------------------------------------
@@ -323,7 +323,7 @@ const updateSkuMetadataController = wrapAsync(async (req, res) => {
     payload,
     user,
   });
-  
+
   // -------------------------------------------------
   // 3. Logging + response
   // -------------------------------------------------
@@ -332,7 +332,7 @@ const updateSkuMetadataController = wrapAsync(async (req, res) => {
     skuId,
     userId: user.id,
   });
-  
+
   res.status(200).json({
     success: true,
     message: 'SKU metadata updated successfully.',
@@ -427,14 +427,14 @@ const updateSkuStatusController = wrapAsync(async (req, res) => {
  */
 const updateSkuDimensionsController = wrapAsync(async (req, res) => {
   const context = 'sku-controller/updateSkuDimensionsController';
-  
+
   // -------------------------------------------------
   // 1. Extract inputs
   // -------------------------------------------------
   const { skuId } = req.params;
   const payload = req.body;
   const user = req.auth.user;
-  
+
   // -------------------------------------------------
   // 2. Execute business logic
   // -------------------------------------------------
@@ -443,7 +443,7 @@ const updateSkuDimensionsController = wrapAsync(async (req, res) => {
     payload,
     user,
   });
-  
+
   // -------------------------------------------------
   // 3. Logging + response
   // -------------------------------------------------
@@ -452,7 +452,7 @@ const updateSkuDimensionsController = wrapAsync(async (req, res) => {
     skuId,
     userId: user.id,
   });
-  
+
   res.status(200).json({
     success: true,
     message: 'SKU dimensions updated successfully.',
@@ -481,14 +481,14 @@ const updateSkuDimensionsController = wrapAsync(async (req, res) => {
  */
 const updateSkuIdentityController = wrapAsync(async (req, res) => {
   const context = 'sku-controller/updateSkuIdentityController';
-  
+
   // -------------------------------------------------
   // 1. Extract inputs
   // -------------------------------------------------
   const { skuId } = req.params;
   const payload = req.body;
   const user = req.auth.user;
-  
+
   // -------------------------------------------------
   // 2. Execute business logic
   // -------------------------------------------------
@@ -497,7 +497,7 @@ const updateSkuIdentityController = wrapAsync(async (req, res) => {
     payload,
     user,
   });
-  
+
   // -------------------------------------------------
   // 3. Logging + response
   // -------------------------------------------------
@@ -507,7 +507,7 @@ const updateSkuIdentityController = wrapAsync(async (req, res) => {
     userId: user.id,
     updatedFields: Object.keys(payload),
   });
-  
+
   res.status(200).json({
     success: true,
     message: 'SKU identity updated successfully.',

@@ -108,7 +108,7 @@ const fetchPaginatedPricingRecordsService = async ({
  */
 const exportPricingRecordsService = async (filters = {}) => {
   const context = 'pricing-service/exportPricingRecordsService';
-  
+
   logSystemInfo('Exporting pricing records', {
     context,
     filters,
@@ -153,7 +153,7 @@ const fetchPricingDetailsByPricingTypeId = async (
   limit
 ) => {
   const context = 'pricing-service/fetchPricingDetailsByPricingTypeId';
-  
+
   try {
     // Input validation
     if (!pricingTypeId) {

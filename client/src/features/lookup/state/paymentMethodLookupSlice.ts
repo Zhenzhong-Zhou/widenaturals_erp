@@ -34,11 +34,7 @@ export const paymentMethodLookupSlice = createSlice({
         }
       )
       .addCase(fetchPaymentMethodLookupThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to load payment methods'
-        );
+        applyRejected(state, action, 'Failed to load payment methods');
       });
   },
 });

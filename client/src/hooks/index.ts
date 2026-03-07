@@ -76,7 +76,7 @@ export {
 } from './usePaginatedProductBatches';
 export {
   usePaginatedPackagingMaterialBatches,
-  usePackagingMaterialBatchById
+  usePackagingMaterialBatchById,
 } from './usePaginatedPackagingMaterialBatches';
 
 /* =====================================================

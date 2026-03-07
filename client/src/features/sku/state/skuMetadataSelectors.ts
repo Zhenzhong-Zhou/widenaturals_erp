@@ -30,8 +30,7 @@ export const selectSkuMetadataLoading = createSelector(
  */
 export const selectSkuMetadataError = createSelector(
   [selectSkuMetadataState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );
 
 /**

@@ -33,8 +33,7 @@
  *   Media processing utilities (e.g., resolveSource, remote image fetch logic).
  */
 const ALLOWED_IMAGE_HOSTS = Object.freeze(
-  process.env.ALLOWED_IMAGE_HOSTS
-    .split(',')
+  process.env.ALLOWED_IMAGE_HOSTS.split(',')
     .map((h) => h.trim().toLowerCase())
     .filter(Boolean)
 );

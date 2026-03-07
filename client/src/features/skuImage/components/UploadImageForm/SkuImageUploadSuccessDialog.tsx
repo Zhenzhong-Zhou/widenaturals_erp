@@ -138,9 +138,12 @@ const SkuImageUploadSuccessDialog: FC<Props> = ({
                       <Box>
                         {r.error && (
                           <Box>
-                            <ErrorMessage message={r.error.message}/>
+                            <ErrorMessage message={r.error.message} />
                             {r.error.traceId && (
-                              <CustomTypography variant="caption" display="block">
+                              <CustomTypography
+                                variant="caption"
+                                display="block"
+                              >
                                 Ref: {r.error.traceId}
                               </CustomTypography>
                             )}

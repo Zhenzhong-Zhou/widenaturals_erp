@@ -9,10 +9,10 @@ import { getChangedFields } from '@utils/form/getChangedFields';
  */
 interface UpdateSkuIdentityFormProps {
   loading?: boolean;
-  
+
   /** Called when the form submits updated identity values */
   onSubmit: (data: UpdateSkuIdentityRequest) => void | Promise<void>;
-  
+
   /** Initial identity values used to populate the form */
   defaultValues: Partial<UpdateSkuIdentityRequest>;
 }
@@ -27,10 +27,10 @@ interface UpdateSkuIdentityFormProps {
  * This prevents sending unnecessary updates to the API.
  */
 const UpdateSkuIdentityForm: FC<UpdateSkuIdentityFormProps> = ({
-                                                                 loading,
-                                                                 onSubmit,
-                                                                 defaultValues,
-                                                               }) => {
+  loading,
+  onSubmit,
+  defaultValues,
+}) => {
   /**
    * Handle form submission.
    *
@@ -44,12 +44,12 @@ const UpdateSkuIdentityForm: FC<UpdateSkuIdentityFormProps> = ({
       defaultValues,
       data
     );
-    
+
     if (Object.keys(changed).length === 0) return;
-    
+
     onSubmit(changed);
   };
-  
+
   return (
     <CustomForm
       fields={createIdentityFields()}

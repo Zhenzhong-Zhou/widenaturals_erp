@@ -139,14 +139,10 @@ const validatePositiveInteger = (defaultValue = undefined) =>
  *   A Joi number schema configured for positive decimal validation.
  */
 const validatePositiveDecimal = () =>
-  Joi.number()
-    .strict()
-    .positive()
-    .precision(2)
-    .messages({
-      'number.base': 'Value must be a number.',
-      'number.positive': 'Value must be greater than 0.',
-    });
+  Joi.number().strict().positive().precision(2).messages({
+    'number.base': 'Value must be a number.',
+    'number.positive': 'Value must be greater than 0.',
+  });
 
 /**
  * Creates a reusable Joi string validator with trimming, length constraints, and custom error messages.
