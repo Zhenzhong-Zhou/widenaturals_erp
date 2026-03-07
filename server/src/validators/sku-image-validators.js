@@ -21,7 +21,7 @@ const Joi = require('joi');
 const {
   validateUUID,
   createBooleanFlag,
-  validateOptionalString
+  validateOptionalString,
 } = require('./general-validators');
 
 /**
@@ -63,31 +63,33 @@ const {
  *    multer performs file extraction and format validation.
  */
 const skuImageSchema = Joi.object({
-    file_uploaded: createBooleanFlag('File Uploaded').default(false),
-    
-    image_url: Joi.alternatives()
-      .try(
-        Joi.string().uri({ allowRelative: true }).max(500),
-        Joi.string().pattern(/^[\w\-./]+$/).max(500)
-      )
-      .allow(null, '')
-      .messages({
-        'alternatives.match':
-          '"image_url" must be a valid URL or local file path',
-      }),
-    
-    image_type: Joi.string()
-      .valid('main', 'thumbnail', 'zoom', 'gallery', 'unknown')
-      .default('unknown')
-      .lowercase(),
-    
-    alt_text: validateOptionalString('Alt Text'),
-    
-    source: Joi.string()
-      .valid('uploaded', 'synced', 'migrated', 'api', 'imported')
-      .default('uploaded')
-      .lowercase(),
-  })
+  file_uploaded: createBooleanFlag('File Uploaded').default(false),
+
+  image_url: Joi.alternatives()
+    .try(
+      Joi.string().uri({ allowRelative: true }).max(500),
+      Joi.string()
+        .pattern(/^[\w\-./]+$/)
+        .max(500)
+    )
+    .allow(null, '')
+    .messages({
+      'alternatives.match':
+        '"image_url" must be a valid URL or local file path',
+    }),
+
+  image_type: Joi.string()
+    .valid('main', 'thumbnail', 'zoom', 'gallery', 'unknown')
+    .default('unknown')
+    .lowercase(),
+
+  alt_text: validateOptionalString('Alt Text'),
+
+  source: Joi.string()
+    .valid('uploaded', 'synced', 'migrated', 'api', 'imported')
+    .default('uploaded')
+    .lowercase(),
+})
   .unknown(false)
   .messages({
     'any.custom': '{{#message}}',
@@ -95,13 +97,13 @@ const skuImageSchema = Joi.object({
   .custom((value, helpers) => {
     const hasUrl = !!value.image_url;
     const hasFile = value.file_uploaded === true;
-    
+
     if (!hasUrl && !hasFile) {
       return helpers.error('any.custom', {
         message: 'Either image_url or uploaded file is required.',
       });
     }
-    
+
     return value;
   });
 
@@ -182,42 +184,41 @@ const bulkSkuImageUploadSchema = Joi.object({
  * Prevents empty or accidental no-op updates.
  */
 const updateSkuImageSchema = Joi.object({
-    group_id: validateUUID('Group ID').required(),
-    
-    file_uploaded: createBooleanFlag('File Uploaded').default(false),
-    
-    image_url: Joi.alternatives()
-      .try(
-        Joi.string().uri({ allowRelative: true }).max(500),
-        Joi.string().pattern(/^[\w\-./]+$/).max(500)
-      )
-      .allow(null, '')
-      .optional(),
-    
-    image_type: Joi.string()
-      .valid('main', 'thumbnail', 'zoom', 'gallery', 'unknown')
-      .lowercase()
-      .optional(),
-    
-    display_order: Joi.number()
-      .integer()
-      .min(0)
-      .optional(),
-    
-    alt_text: validateOptionalString('Alt Text'),
-    
-    file_format: Joi.string()
-      .valid('jpg', 'jpeg', 'png', 'webp')
-      .lowercase()
-      .optional(),
-    
-    is_primary: createBooleanFlag('Is Primary'),
-    
-    source: Joi.string()
-      .valid('uploaded', 'synced', 'migrated', 'api', 'imported')
-      .lowercase()
-      .optional(),
-  })
+  group_id: validateUUID('Group ID').required(),
+
+  file_uploaded: createBooleanFlag('File Uploaded').default(false),
+
+  image_url: Joi.alternatives()
+    .try(
+      Joi.string().uri({ allowRelative: true }).max(500),
+      Joi.string()
+        .pattern(/^[\w\-./]+$/)
+        .max(500)
+    )
+    .allow(null, '')
+    .optional(),
+
+  image_type: Joi.string()
+    .valid('main', 'thumbnail', 'zoom', 'gallery', 'unknown')
+    .lowercase()
+    .optional(),
+
+  display_order: Joi.number().integer().min(0).optional(),
+
+  alt_text: validateOptionalString('Alt Text'),
+
+  file_format: Joi.string()
+    .valid('jpg', 'jpeg', 'png', 'webp')
+    .lowercase()
+    .optional(),
+
+  is_primary: createBooleanFlag('Is Primary'),
+
+  source: Joi.string()
+    .valid('uploaded', 'synced', 'migrated', 'api', 'imported')
+    .lowercase()
+    .optional(),
+})
   .unknown(false)
   .messages({
     'any.custom': '{{#message}}',
@@ -234,17 +235,17 @@ const updateSkuImageSchema = Joi.object({
       'file_uploaded',
       'source',
     ];
-    
+
     const hasUpdatableField = allowedFields.some(
       (field) => value[field] !== undefined
     );
-    
+
     if (!hasUpdatableField) {
       return helpers.error('any.custom', {
         message: 'At least one updatable field must be provided.',
       });
     }
-    
+
     if (
       value.is_primary === true &&
       value.image_type &&
@@ -254,7 +255,7 @@ const updateSkuImageSchema = Joi.object({
         message: 'Only image_type "main" can be marked as primary.',
       });
     }
-    
+
     return value;
   });
 
@@ -299,11 +300,7 @@ const bulkSkuImageUpdateSchema = Joi.object({
     .items(
       Joi.object({
         skuId: validateUUID('SKU ID'),
-        skuCode: Joi.string()
-          .trim()
-          .max(100)
-          .required()
-          .label('SKU Code'),
+        skuCode: Joi.string().trim().max(100).required().label('SKU Code'),
         images: updateSkuImageArraySchema,
       }).unknown(false)
     )
@@ -312,8 +309,7 @@ const bulkSkuImageUpdateSchema = Joi.object({
     .required()
     .messages({
       'array.min': 'At least one SKU must be provided.',
-      'array.max':
-        'Cannot update images for more than 50 SKUs per request.',
+      'array.max': 'Cannot update images for more than 50 SKUs per request.',
     }),
 }).unknown(false);
 

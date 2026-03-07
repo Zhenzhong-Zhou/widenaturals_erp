@@ -535,7 +535,7 @@ const validateStatusTransitionByCategory = (
  */
 const canUpdateOrderStatus = async (user, category, order, nextStatusCode) => {
   const context = 'order-business/canUpdateOrderStatus';
-  
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
     if (isRoot) return true;
@@ -578,12 +578,16 @@ const canUpdateOrderStatus = async (user, category, order, nextStatusCode) => {
 
     return true;
   } catch (err) {
-    logSystemException(err, 'Failed to evaluate order status update permission', {
-      context,
-      userId: user?.id,
-      orderId: order.order_id,
-      nextStatusCode,
-    });
+    logSystemException(
+      err,
+      'Failed to evaluate order status update permission',
+      {
+        context,
+        userId: user?.id,
+        orderId: order.order_id,
+        nextStatusCode,
+      }
+    );
     throw AppError.businessError(
       'Unable to evaluate order status update permission',
       {
@@ -718,7 +722,7 @@ const enrichStatusMetadata = ({
     status_code: code,
     status_category: category,
   }));
-  
+
   return {
     enrichedOrder,
     enrichedItems,

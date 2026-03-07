@@ -7,7 +7,7 @@ import {
 } from '@features/lookup/state/lookupTypes';
 import {
   createLookupMetaSelector,
-  mapLookupItems
+  mapLookupItems,
 } from '@features/lookup/utils/lookupSelectorUtils';
 
 /**
@@ -46,8 +46,7 @@ export const selectSkuLookupLoading = createSelector(
  */
 export const selectSkuLookupError = createSelector(
   selectSkuLookupState,
-  (skuLookup): string | null =>
-    skuLookup.error?.message ?? null
+  (skuLookup): string | null => skuLookup.error?.message ?? null
 );
 
 /**

@@ -49,8 +49,7 @@ export const selectPaginatedLocationLoading = createSelector(
  */
 export const selectPaginatedLocationError = createSelector(
   [selectPaginatedLocationsState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );
 
 /**

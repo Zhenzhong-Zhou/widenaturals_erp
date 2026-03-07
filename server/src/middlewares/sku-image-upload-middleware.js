@@ -108,21 +108,21 @@ const parseSkuImageJson = (req, res, next) => {
 const attachUploadedFilesToSkus = (req, res, next) => {
   const files = normalizeToArray(req.files);
   const skus = normalizeToArray(req.body?.skus);
-  
+
   // Nothing to map
   if (!files.length || !skus.length) {
     return next();
   }
-  
+
   let fileIndex = 0;
-  
+
   for (const sku of skus) {
     const images = normalizeToArray(sku.images);
-    
+
     for (const img of images) {
       if (img.file_uploaded === true) {
         const file = files[fileIndex];
-        
+
         if (!file) {
           return next(
             AppError.validationError(
@@ -130,23 +130,23 @@ const attachUploadedFilesToSkus = (req, res, next) => {
             )
           );
         }
-        
+
         // Assign resolved upload path
         img.image_url = file.path;
-        
+
         // Default alt_text to original filename if not provided
         if (!img.alt_text) {
           img.alt_text = file.originalname;
         }
-        
+
         // Explicitly set source
         img.source = img.source || 'uploaded';
-        
+
         fileIndex++;
       }
     }
   }
-  
+
   // Ensure all uploaded files were mapped
   if (fileIndex !== files.length) {
     return next(
@@ -155,7 +155,7 @@ const attachUploadedFilesToSkus = (req, res, next) => {
       )
     );
   }
-  
+
   next();
 };
 

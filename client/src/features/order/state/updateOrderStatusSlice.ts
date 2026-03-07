@@ -36,11 +36,7 @@ const updateOrderStatusSlice = createSlice({
         }
       )
       .addCase(updateOrderStatusThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to update order status.'
-        );
+        applyRejected(state, action, 'Failed to update order status.');
       });
   },
 });

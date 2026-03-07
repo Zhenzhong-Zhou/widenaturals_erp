@@ -192,10 +192,7 @@ const transformBatchRegistryRow = (row) => {
  * @returns {Promise<PaginatedResult<T>>}
  */
 const transformPaginatedBatchRegistryResults = async (paginatedResult) => {
-  return transformPageResult(
-    paginatedResult,
-    transformBatchRegistryRow
-  );
+  return transformPageResult(paginatedResult, transformBatchRegistryRow);
 };
 
 module.exports = {

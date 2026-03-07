@@ -72,11 +72,7 @@ const paginatedLocationTypesSlice = createSlice({
 
       // ---- rejected ----
       .addCase(fetchPaginatedLocationTypeThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch location type records.'
-        );
+        applyRejected(state, action, 'Failed to fetch location type records.');
       });
   },
 });

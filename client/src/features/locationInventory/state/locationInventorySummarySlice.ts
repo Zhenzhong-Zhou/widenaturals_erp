@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type {
   LocationInventorySummary,
-  LocationInventorySummaryState
+  LocationInventorySummaryState,
 } from './locationInventoryTypes';
 import { fetchLocationInventorySummaryThunk } from '@features/locationInventory/state/locationInventoryThunks';
 import { applyRejected } from '@features/shared/async/asyncReducerUtils';
@@ -41,7 +41,7 @@ export const locationInventorySummarySlice = createSlice({
           action,
           'Failed to fetch location inventory summary.'
         );
-      })
+      });
   },
 });
 

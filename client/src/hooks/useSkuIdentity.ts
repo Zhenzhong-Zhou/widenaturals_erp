@@ -16,24 +16,24 @@ import { resetSkuIdentity } from '@features/sku/state/skuIdentitySlice';
  */
 const useSkuIdentity = () => {
   const dispatch = useAppDispatch();
-  
+
   const data = useAppSelector(selectSkuIdentityData);
   const loading = useAppSelector(selectSkuIdentityLoading);
   const error = useAppSelector(selectSkuIdentityError);
   const isSuccess = useAppSelector(selectSkuIdentitySuccess);
   const updatedSkuId = useAppSelector(selectUpdatedSkuIdentityId);
-  
+
   const updateIdentity = useCallback(
     async (skuId: string, payload: UpdateSkuIdentityRequest) => {
       return dispatch(updateSkuIdentityThunk({ skuId, payload }));
     },
     [dispatch]
   );
-  
+
   const reset = useCallback(() => {
     dispatch(resetSkuIdentity());
   }, [dispatch]);
-  
+
   return useMemo(
     () => ({
       data,

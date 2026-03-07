@@ -1,29 +1,22 @@
 import { useMemo } from 'react';
-import {
-  CustomDialog,
-  CustomTypography
-} from '@components/index';
+import { CustomDialog, CustomTypography } from '@components/index';
 import { useSkuMetadata } from '@hooks/index';
 import {
   UpdateSkuMetadataForm,
   UpdateSkuMetadataSuccessDialog,
   UpdateSkuMetadataErrorDialog,
 } from '@features/sku/components/UpdateSkuMetadata';
-import {
-  transformMetadataFormToRequest
-} from '@features/sku/utils/skuTransformers';
-import type {
-  UpdateSkuMetadataFormValues,
-} from '@features/sku/state/skuTypes';
+import { transformMetadataFormToRequest } from '@features/sku/utils/skuTransformers';
+import type { UpdateSkuMetadataFormValues } from '@features/sku/state/skuTypes';
 
 interface UpdateSkuMetadataDialogProps {
   open: boolean;
   onClose: () => void;
   onSuccess?: () => void;
-  
+
   skuId: string;
   skuCode: string;
-  
+
   initialValues: Partial<UpdateSkuMetadataFormValues>;
 }
 
@@ -39,34 +32,30 @@ interface UpdateSkuMetadataDialogProps {
  * `UpdateSkuMetadataForm`.
  */
 const UpdateSkuMetadataDialog = ({
-                                   open,
-                                   onClose,
-                                   onSuccess,
-                                   skuId,
-                                   skuCode,
-                                   initialValues,
-                                 }: UpdateSkuMetadataDialogProps) => {
-  
-  const {
-    data,
-    loading,
-    error,
-    isSuccess,
-    updateMetadata,
-    reset,
-  } = useSkuMetadata();
-  
+  open,
+  onClose,
+  onSuccess,
+  skuId,
+  skuCode,
+  initialValues,
+}: UpdateSkuMetadataDialogProps) => {
+  const { data, loading, error, isSuccess, updateMetadata, reset } =
+    useSkuMetadata();
+
   /**
    * Build form default values from incoming metadata.
    * Prevents uncontrolled → controlled input warnings.
    */
-  const defaultValues = useMemo(() => ({
-    description: initialValues.description ?? '',
-    sizeLabel: initialValues.sizeLabel ?? '',
-    language: initialValues.language ?? '',
-    marketRegion: initialValues.marketRegion ?? '',
-  }), [initialValues]);
-  
+  const defaultValues = useMemo(
+    () => ({
+      description: initialValues.description ?? '',
+      sizeLabel: initialValues.sizeLabel ?? '',
+      language: initialValues.language ?? '',
+      marketRegion: initialValues.marketRegion ?? '',
+    }),
+    [initialValues]
+  );
+
   /**
    * Close dialog after successful update.
    * Also clears local mutation state.
@@ -76,7 +65,7 @@ const UpdateSkuMetadataDialog = ({
     reset();
     onClose();
   };
-  
+
   /**
    * Close dialog without success callback.
    */
@@ -84,16 +73,16 @@ const UpdateSkuMetadataDialog = ({
     reset();
     onClose();
   };
-  
+
   /**
    * Submit metadata update request.
    */
   const handleSubmit = async (payload: UpdateSkuMetadataFormValues) => {
     const requestBody = transformMetadataFormToRequest(payload);
-    
+
     await updateMetadata(skuId, requestBody);
   };
-  
+
   // ---------------------------------------------------------------------------
   // Success state
   // ---------------------------------------------------------------------------
@@ -107,7 +96,7 @@ const UpdateSkuMetadataDialog = ({
       />
     );
   }
-  
+
   // ---------------------------------------------------------------------------
   // Error state
   // ---------------------------------------------------------------------------
@@ -121,7 +110,7 @@ const UpdateSkuMetadataDialog = ({
       />
     );
   }
-  
+
   // ---------------------------------------------------------------------------
   // Main dialog
   // ---------------------------------------------------------------------------
@@ -135,7 +124,7 @@ const UpdateSkuMetadataDialog = ({
       <CustomTypography variant="body2" sx={{ mb: 2 }}>
         Updating metadata for SKU: <strong>{skuCode}</strong>
       </CustomTypography>
-      
+
       <UpdateSkuMetadataForm
         loading={loading}
         onSubmit={handleSubmit}

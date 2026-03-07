@@ -33,11 +33,7 @@ export const salesOrderCreationSlice = createSlice({
         }
       )
       .addCase(createSalesOrderThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to create sales order.'
-        );
+        applyRejected(state, action, 'Failed to create sales order.');
       });
   },
 });

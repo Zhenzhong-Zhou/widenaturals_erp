@@ -32,7 +32,7 @@ const UpdateSkuDimensionsErrorDialog: FC<
                 <strong>SKU:</strong> {skuCode}
               </Box>
             )}
-            
+
             {error ? (
               <Box sx={{ mt: 1 }}>{error}</Box>
             ) : (

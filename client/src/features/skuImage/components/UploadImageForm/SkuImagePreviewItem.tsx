@@ -17,21 +17,19 @@ interface Props<T extends SkuImageUiBase> {
 }
 
 const SkuImagePreviewItem = <T extends SkuImageUiBase>({
-                                                         image,
-                                                         index,
-                                                         onChange,
-                                                         onRemove,
-                                                       }: Props<T>) => {
+  image,
+  index,
+  onChange,
+  onRemove,
+}: Props<T>) => {
   const handleField = <K extends keyof T>(field: K, value: T[K]) => {
     onChange({ ...image, [field]: value });
   };
-  
+
   const imageSrc =
     image.previewUrl ??
-    (image.image_url
-      ? formatImageUrl(image.image_url)
-      : null);
-  
+    (image.image_url ? formatImageUrl(image.image_url) : null);
+
   return (
     <Card sx={{ display: 'flex', p: 2, gap: 2, mb: 2 }}>
       {/* Image Preview */}
@@ -90,7 +88,7 @@ const SkuImagePreviewItem = <T extends SkuImageUiBase>({
             </Box>
           )}
         </Box>
-        
+
         <TextField
           label="Image Type"
           value={image.image_type ?? ''}

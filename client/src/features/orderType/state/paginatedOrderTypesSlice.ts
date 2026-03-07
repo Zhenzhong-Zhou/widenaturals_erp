@@ -33,11 +33,7 @@ const paginatedOrderTypesSlice = createSlice({
         }
       )
       .addCase(fetchPaginatedOrderTypesThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch order types.'
-        );
+        applyRejected(state, action, 'Failed to fetch order types.');
       });
   },
 });

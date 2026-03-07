@@ -392,8 +392,9 @@ const fulfillOutboundShipmentService = async (requestData, user) => {
  *  - ServiceError: if inventory update or transaction fails
  */
 const confirmOutboundFulfillmentService = async (requestData, user) => {
-  const  context = 'outbound-fulfillment-service/confirmOutboundFulfillmentService';
-  
+  const context =
+    'outbound-fulfillment-service/confirmOutboundFulfillmentService';
+
   try {
     return await withTransaction(async (client) => {
       const userId = user.id;
@@ -425,23 +426,23 @@ const confirmOutboundFulfillmentService = async (requestData, user) => {
       const uniqueShipmentIds = [
         ...new Set(fulfillments.map((f) => f.shipment_id)),
       ];
-      
+
       if (uniqueShipmentIds.length > 1) {
         throw AppError.validationError(
           'Multiple shipment IDs detected — cannot confirm multiple shipments in a single transaction.',
           { context: 'confirmOutboundFulfillmentService' }
         );
       }
-      
+
       if (uniqueShipmentIds.length === 0) {
         throw AppError.notFoundError(
           'No shipment found for the order fulfillments.',
           { context: 'confirmOutboundFulfillmentService' }
         );
       }
-      
+
       const shipmentId = uniqueShipmentIds[0];
-      
+
       // Optional: check for mismatch between request and derived shipment
       if (requestData.shipmentId && requestData.shipmentId !== shipmentId) {
         logSystemInfo('Shipment ID mismatch detected', {
@@ -566,16 +567,12 @@ const confirmOutboundFulfillmentService = async (requestData, user) => {
       });
 
       assertLogsGenerated(logs, 'build');
-      const logMetadata = await insertInventoryActivityLogs(
-        logs,
-        client,
-        {
-          context,
-          orderId,
-          orderNumber,
-          shipmentId
-        }
-      );
+      const logMetadata = await insertInventoryActivityLogs(logs, client, {
+        context,
+        orderId,
+        orderNumber,
+        shipmentId,
+      });
       assertLogsGenerated(logMetadata, 'insert');
 
       // --- 15. Log success
@@ -846,7 +843,12 @@ const completeManualFulfillmentService = async (requestData, user) => {
       const shipment = await getShipmentByShipmentId(rawShipmentId, client);
       assertShipmentFound(shipment, rawShipmentId);
 
-      const { order_id, status_code, delivery_method_name, is_pickup_location } = shipment;
+      const {
+        order_id,
+        status_code,
+        delivery_method_name,
+        is_pickup_location,
+      } = shipment;
       assertDeliveryMethodIsAllowed(delivery_method_name, is_pickup_location);
 
       const orderId = order_id;

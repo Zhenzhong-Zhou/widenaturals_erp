@@ -49,8 +49,7 @@ export const selectUserLookupLoading = createSelector(
  */
 export const selectUserLookupError = createSelector(
   [selectUserLookupState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );
 
 /**

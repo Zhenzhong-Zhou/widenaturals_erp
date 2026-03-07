@@ -30,8 +30,7 @@ export const selectSkuIdentityLoading = createSelector(
  */
 export const selectSkuIdentityError = createSelector(
   [selectSkuIdentityState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );
 
 /**

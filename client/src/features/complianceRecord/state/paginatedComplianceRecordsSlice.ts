@@ -48,11 +48,7 @@ const paginatedComplianceRecordsSlice = createSlice({
       // Rejected
       // --------------------------------------------------
       .addCase(fetchComplianceRecordsThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch compliance records.'
-        );
+        applyRejected(state, action, 'Failed to fetch compliance records.');
       });
   },
 });

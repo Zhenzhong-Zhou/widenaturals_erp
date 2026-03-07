@@ -551,9 +551,8 @@ const transformInventoryAllocationRow = (row) => {
  * @returns {Promise<PaginatedResult<T>>}
  */
 const transformPaginatedInventoryAllocationResults = (paginatedResult) =>
-  transformPageResult(
-    paginatedResult,
-    (row) => transformInventoryAllocationRow(row)
+  transformPageResult(paginatedResult, (row) =>
+    transformInventoryAllocationRow(row)
   );
 
 /**

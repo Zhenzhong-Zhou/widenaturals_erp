@@ -17,7 +17,9 @@ const app = require('./app');
 const { createDatabaseAndInitialize } = require('./database/create-db');
 const { testConnection } = require('./database/db');
 const { initAllStatusCaches } = require('./config/status-cache');
-const { initSkuOperationalStatusCache } = require('./config/sku-operational-status-cache');
+const {
+  initSkuOperationalStatusCache,
+} = require('./config/sku-operational-status-cache');
 const { initializeRootAdmin } = require('./config/initialize-root');
 const {
   startPoolMonitoring,

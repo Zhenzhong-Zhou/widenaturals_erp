@@ -45,11 +45,7 @@ const manufacturerLookupSlice = createSlice({
         }
       )
       .addCase(fetchManufacturerLookupThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch manufacturer lookup'
-        );
+        applyRejected(state, action, 'Failed to fetch manufacturer lookup');
       });
   },
 });

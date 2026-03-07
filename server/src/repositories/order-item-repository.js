@@ -48,7 +48,7 @@ const { existsQuery } = require('./utils/repository-helper');
  */
 const insertOrderItemsBulk = async (orderId, orderItems, client) => {
   const context = 'order-item-repository/insertOrderItemsBulk';
-  
+
   if (!Array.isArray(orderItems) || orderItems.length === 0) return [];
 
   const columns = [
@@ -122,7 +122,7 @@ const insertOrderItemsBulk = async (orderId, orderItems, client) => {
         ['order_id', 'sku_id'], // Valid because packaging_material_id is null
         updateStrategies,
         client,
-        { context: `${context}:sku` },
+        { context: `${context}:sku` }
       );
       results.push(...result);
     }
@@ -278,7 +278,7 @@ const updateOrderItemStatusesByOrderId = async (
   { orderId, newStatusId, updatedBy }
 ) => {
   const context = 'order-item-repository/updateOrderItemStatusesByOrderId';
-  
+
   const sql = `
     UPDATE order_items
     SET
@@ -368,7 +368,7 @@ const updateOrderItemStatus = async (
   { orderItemId, newStatusId, updatedBy }
 ) => {
   const context = 'order-item-repository/updateOrderItemStatus';
-  
+
   const sql = `
     UPDATE order_items
     SET
@@ -449,7 +449,7 @@ const updateOrderItemStatus = async (
  */
 const getOrderItemsByOrderId = async (orderId, client) => {
   const context = 'order-item-repository/getOrderItemsByOrderId';
-  
+
   const sql = `
     SELECT
       oi.id AS order_item_id,
@@ -526,7 +526,7 @@ const getOrderItemsByOrderId = async (orderId, client) => {
  */
 const validateFullAllocationForFulfillment = async (orderId, client = null) => {
   const context = 'order-item-repository/validateFullAllocationForFulfillment';
-  
+
   const sql = `
     SELECT 1
     FROM order_items oi
@@ -605,7 +605,7 @@ const skuHasActiveOrders = async (
   client = null
 ) => {
   const context = 'order-item-repository/skuHasActiveOrders';
-  
+
   const queryText = `
     SELECT 1
     FROM order_items oi
@@ -615,7 +615,7 @@ const skuHasActiveOrders = async (
       AND o.order_status_id = ANY($2::uuid[])
     LIMIT 1
   `;
-  
+
   return existsQuery(
     queryText,
     [skuId, activeOrderStatusIds],

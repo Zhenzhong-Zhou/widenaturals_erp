@@ -36,11 +36,7 @@ const skuLookupSlice = createSlice({
         }
       )
       .addCase(fetchSkuLookupThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch SKU lookup'
-        );
+        applyRejected(state, action, 'Failed to fetch SKU lookup');
       });
   },
 });

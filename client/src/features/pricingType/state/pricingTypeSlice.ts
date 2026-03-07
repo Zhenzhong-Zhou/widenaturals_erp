@@ -11,8 +11,7 @@ const pricingTypeSlice = createSlice({
   name: 'pricingTypes',
   initialState,
   reducers: {
-    clearPricingTypesState: () =>
-      createInitialPaginatedState<PricingType>(),
+    clearPricingTypesState: () => createInitialPaginatedState<PricingType>(),
   },
   extraReducers: (builder) => {
     builder
@@ -21,19 +20,15 @@ const pricingTypeSlice = createSlice({
         state.error = null;
         state.traceId = null;
       })
-      
+
       .addCase(fetchAllPricingTypesThunk.fulfilled, (state, action) => {
         state.loading = false;
         state.data = action.payload.data;
         state.pagination = action.payload.pagination;
       })
-      
+
       .addCase(fetchAllPricingTypesThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch pricing types.'
-        );
+        applyRejected(state, action, 'Failed to fetch pricing types.');
       });
   },
 });

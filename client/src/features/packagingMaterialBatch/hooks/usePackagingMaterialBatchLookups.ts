@@ -16,7 +16,7 @@ const usePackagingMaterialBatchLookups = () => {
   const common = useCommonProductLookups(); // includes status, etc.
   const supplier = useSupplierLookup();
   const packagingMaterial = usePackagingMaterialLookup();
-  
+
   return {
     ...common,
     supplier,

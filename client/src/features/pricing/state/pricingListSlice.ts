@@ -2,7 +2,8 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { fetchPricingListDataThunk } from './pricingThunks';
 import type {
   PaginatedPricingRecordsResponse,
-  PricingListState, PricingRecord,
+  PricingListState,
+  PricingRecord,
 } from './pricingTypes';
 import { createInitialPaginatedState } from '@store/pagination';
 import { applyRejected } from '@features/shared/async/asyncReducerUtils';
@@ -32,11 +33,7 @@ const pricingListSlice = createSlice({
         }
       )
       .addCase(fetchPricingListDataThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch pricing records.'
-        );
+        applyRejected(state, action, 'Failed to fetch pricing records.');
       });
   },
 });

@@ -37,8 +37,7 @@ export const selectPackagingMaterialLookupLoading = createSelector(
  */
 export const selectPackagingMaterialLookupError = createSelector(
   [selectPackagingMaterialLookupState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );
 
 /**

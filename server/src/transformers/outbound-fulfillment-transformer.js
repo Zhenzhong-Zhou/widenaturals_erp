@@ -39,15 +39,15 @@ const {
  *  - {Object} statusUpdates { updatedOrderItemStatusIds }
  */
 const transformFulfillmentResult = ({
-                                      orderId,
-                                      shipmentRow,
-                                      fulfillmentRowsWithStatus,
-                                      shipmentBatchRow,
-                                      orderStatusRow,
-                                      orderItemStatusRow,
-                                    }) => {
+  orderId,
+  shipmentRow,
+  fulfillmentRowsWithStatus,
+  shipmentBatchRow,
+  orderStatusRow,
+  orderItemStatusRow,
+}) => {
   const fulfillmentRow = fulfillmentRowsWithStatus?.[0] ?? null;
-  
+
   const result = {
     orderId,
     orderStatus: {

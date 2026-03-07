@@ -50,11 +50,7 @@ export const locationTypeDetailSlice = createSlice({
       // Rejected
       // --------------------------------------------------
       .addCase(fetchLocationTypeDetailsThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to load location type details.'
-        );
+        applyRejected(state, action, 'Failed to load location type details.');
       });
   },
 });

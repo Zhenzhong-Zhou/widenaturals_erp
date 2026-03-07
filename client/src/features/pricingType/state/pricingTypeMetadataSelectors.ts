@@ -29,8 +29,7 @@ export const selectPricingTypeMetadataLoading = createSelector(
  */
 export const selectPricingTypeMetadataError = createSelector(
   [selectPricingTypeMetadataState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );
 
 /**

@@ -53,8 +53,7 @@ export const selectCreateSkusLoading = createSelector(
  */
 export const selectCreateSkusError = createSelector(
   [selectCreateSkusState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );
 
 /**

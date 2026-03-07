@@ -22,21 +22,21 @@ interface UpdateProductStatusDialogProps {
 
   /** Fully controlled dropdown lookup handler (hook object) */
   statusLookup: StatusLookupController;
-  
+
   /** current product status */
-  currentStatusId?: string | null
-  currentStatusName?: string | null
+  currentStatusId?: string | null;
+  currentStatusName?: string | null;
 }
 
 const UpdateProductStatusDialog = ({
-                                     open,
-                                     onClose,
-                                     onSuccess,
-                                     productId,
-                                     productName,
-                                     statusLookup,
-                                     currentStatusId,
-                                     currentStatusName,
+  open,
+  onClose,
+  onSuccess,
+  productId,
+  productName,
+  statusLookup,
+  currentStatusId,
+  currentStatusName,
 }: UpdateProductStatusDialogProps) => {
   const [selectedStatusLabel, setSelectedStatusLabel] = useState<string>('');
 
@@ -48,7 +48,7 @@ const UpdateProductStatusDialog = ({
     updateStatus,
     reset: resetProductStatus,
   } = useProductStatusUpdate();
-  
+
   /**
    * Close dialog after successful update.
    * Also clears local mutation state.
@@ -58,7 +58,7 @@ const UpdateProductStatusDialog = ({
     resetProductStatus();
     onClose();
   };
-  
+
   /**
    * Close dialog without success callback.
    */
@@ -66,7 +66,7 @@ const UpdateProductStatusDialog = ({
     resetProductStatus();
     onClose();
   };
-  
+
   const handleSubmit = useCallback(
     async (formData: StatusPayload) => {
       setSelectedStatusLabel(formData.statusLabel);

@@ -9,7 +9,7 @@ import type {
 import { bomService } from '@services/bomService';
 import { flattenBomRecords } from '@features/bom/utils/flattenBomData';
 import { extractUiErrorPayload } from '@utils/error';
-import { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 
 /**
  * Redux async thunk to fetch a paginated and filtered list of BOMs.
@@ -33,23 +33,18 @@ export const fetchPaginatedBomsThunk = createAsyncThunk<
   FetchPaginatedBomsResponse,
   FetchBomsParams,
   { rejectValue: UiErrorPayload }
->(
-  'boms/fetchPaginatedBoms',
-  async (params, { rejectWithValue }) => {
-    try {
-      const response = await bomService.fetchPaginatedBoms(params);
-      
-      return {
-        ...response,
-        data: flattenBomRecords(response.data),
-      };
-    } catch (error: unknown) {
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
-    }
+>('boms/fetchPaginatedBoms', async (params, { rejectWithValue }) => {
+  try {
+    const response = await bomService.fetchPaginatedBoms(params);
+
+    return {
+      ...response,
+      data: flattenBomRecords(response.data),
+    };
+  } catch (error: unknown) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});
 
 /**
  * Thunk to fetch detailed information for a specific BOM.
@@ -70,20 +65,15 @@ export const fetchBomDetailsThunk = createAsyncThunk<
   BomDetailsResponse,
   string,
   { rejectValue: UiErrorPayload }
->(
-  'boms/fetchBomDetails',
-  async (bomId, { rejectWithValue }) => {
-    try {
-      return await bomService.fetchBomDetails(bomId);
-    } catch (error: unknown) {
-      console.error('Failed to fetch BOM details:', { bomId, error });
-      
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
-    }
+>('boms/fetchBomDetails', async (bomId, { rejectWithValue }) => {
+  try {
+    return await bomService.fetchBomDetails(bomId);
+  } catch (error: unknown) {
+    console.error('Failed to fetch BOM details:', { bomId, error });
+
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});
 
 /**
  * Thunk to fetch material supply details for a specific BOM.
@@ -103,23 +93,18 @@ export const fetchBomMaterialSupplyDetailsThunk = createAsyncThunk<
   BomMaterialSupplyDetailsResponse,
   string,
   { rejectValue: UiErrorPayload }
->(
-  'bom/fetchBomMaterialSupplyDetails',
-  async (bomId, { rejectWithValue }) => {
-    try {
-      return await bomService.fetchBomMaterialSupplyDetails(bomId);
-    } catch (error: unknown) {
-      console.error(
-        'Failed to fetch BOM Material Supply Details:',
-        { bomId, error }
-      );
-      
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
-    }
+>('bom/fetchBomMaterialSupplyDetails', async (bomId, { rejectWithValue }) => {
+  try {
+    return await bomService.fetchBomMaterialSupplyDetails(bomId);
+  } catch (error: unknown) {
+    console.error('Failed to fetch BOM Material Supply Details:', {
+      bomId,
+      error,
+    });
+
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});
 
 /**
  * Thunk to fetch the BOM Production Readiness Summary for a given BOM.
@@ -141,20 +126,12 @@ export const fetchBomProductionSummaryThunk = createAsyncThunk<
   BomProductionReadinessResponse,
   string,
   { rejectValue: UiErrorPayload }
->(
-  'bom/fetchBomProductionSummary',
-  async (bomId, { rejectWithValue }) => {
-    try {
-      return await bomService.fetchBomProductionSummary(bomId);
-    } catch (error: unknown) {
-      console.error(
-        'Failed to fetch BOM Production Summary',
-        { bomId, error }
-      );
-      
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
-    }
+>('bom/fetchBomProductionSummary', async (bomId, { rejectWithValue }) => {
+  try {
+    return await bomService.fetchBomProductionSummary(bomId);
+  } catch (error: unknown) {
+    console.error('Failed to fetch BOM Production Summary', { bomId, error });
+
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});

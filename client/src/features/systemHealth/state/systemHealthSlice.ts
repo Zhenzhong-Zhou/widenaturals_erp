@@ -41,11 +41,7 @@ const systemHealthSlice = createSlice({
       // Rejected
       // -------------------------------
       .addCase(fetchSystemHealthThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch system health status.'
-        );
+        applyRejected(state, action, 'Failed to fetch system health status.');
       });
   },
 });

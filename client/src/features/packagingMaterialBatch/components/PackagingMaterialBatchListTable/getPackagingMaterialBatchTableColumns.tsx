@@ -4,9 +4,7 @@ import { TruncatedText } from '@components/index';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
 import { formatLabel } from '@utils/textUtils';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
-import type {
-  FlattenedPackagingMaterialBatchRow,
-} from '@features/packagingMaterialBatch/state';
+import type { FlattenedPackagingMaterialBatchRow } from '@features/packagingMaterialBatch/state';
 
 /**
  * Returns table column definitions for the Packaging Material Batch list view.
@@ -37,7 +35,7 @@ export const getPackagingMaterialBatchTableColumns = (
         </Link>
       ),
     },
-    
+
     // --------------------------------------------------
     // Material context
     // --------------------------------------------------
@@ -66,7 +64,7 @@ export const getPackagingMaterialBatchTableColumns = (
       sortable: true,
       renderCell: (row) => formatLabel(row.packagingMaterialCategory),
     },
-    
+
     // --------------------------------------------------
     // Supplier
     // --------------------------------------------------
@@ -95,7 +93,7 @@ export const getPackagingMaterialBatchTableColumns = (
       sortable: true,
       renderCell: (row) => row.supplierLeadTimeDays ?? '—',
     },
-    
+
     // --------------------------------------------------
     // Lifecycle
     // --------------------------------------------------
@@ -117,7 +115,7 @@ export const getPackagingMaterialBatchTableColumns = (
       sortable: true,
       renderCell: (row) => formatDate(row.expiryDate),
     },
-    
+
     // --------------------------------------------------
     // Quantity & Cost
     // --------------------------------------------------
@@ -125,24 +123,21 @@ export const getPackagingMaterialBatchTableColumns = (
       id: 'quantityValue',
       label: 'Quantity',
       sortable: true,
-      renderCell: (row) =>
-        `${row.quantityValue} ${row.quantityUnit ?? ''}`,
+      renderCell: (row) => `${row.quantityValue} ${row.quantityUnit ?? ''}`,
     },
     {
       id: 'unitCost',
       label: 'Unit Cost',
       sortable: true,
-      renderCell: (row) =>
-        `${row.currency ?? ''} ${row.unitCost ?? '0'}`,
+      renderCell: (row) => `${row.currency ?? ''} ${row.unitCost ?? '0'}`,
     },
     {
       id: 'totalCost',
       label: 'Total Cost',
       sortable: true,
-      renderCell: (row) =>
-        `${row.currency ?? ''} ${row.totalCost ?? '0'}`,
+      renderCell: (row) => `${row.currency ?? ''} ${row.totalCost ?? '0'}`,
     },
-    
+
     // --------------------------------------------------
     // Status
     // --------------------------------------------------
@@ -158,7 +153,7 @@ export const getPackagingMaterialBatchTableColumns = (
       sortable: true,
       renderCell: (row) => formatDateTime(row.statusDate),
     },
-    
+
     // --------------------------------------------------
     // Audit
     // --------------------------------------------------
@@ -175,7 +170,7 @@ export const getPackagingMaterialBatchTableColumns = (
       renderCell: (row) => row.createdByName ?? '—',
     },
   ];
-  
+
   // --------------------------------------------------
   // Drill-down
   // --------------------------------------------------
@@ -187,6 +182,6 @@ export const getPackagingMaterialBatchTableColumns = (
       )
     );
   }
-  
+
   return columns;
 };

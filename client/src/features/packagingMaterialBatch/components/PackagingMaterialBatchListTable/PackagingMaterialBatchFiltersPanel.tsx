@@ -5,9 +5,7 @@ import { FilterPanelLayout } from '@components/index';
 import { renderDateField, renderInputField } from '@utils/filters/filterUtils';
 import { formatLabel } from '@utils/textUtils';
 import { toISODate } from '@utils/dateTimeUtils';
-import type {
-  PackagingMaterialBatchFilters,
-} from '@features/packagingMaterialBatch/state';
+import type { PackagingMaterialBatchFilters } from '@features/packagingMaterialBatch/state';
 import {
   PackagingMaterialMultiSelectDropdown,
   SupplierMultiSelectDropdown,
@@ -89,13 +87,13 @@ interface DateField {
 const DATE_FIELDS: DateField[] = [
   { name: 'expiryAfter', label: 'Expiry Date ≥' },
   { name: 'expiryBefore', label: 'Expiry Date <' },
-  
+
   { name: 'manufactureAfter', label: 'Manufacture Date ≥' },
   { name: 'manufactureBefore', label: 'Manufacture Date <' },
-  
+
   { name: 'receivedAfter', label: 'Received Date ≥' },
   { name: 'receivedBefore', label: 'Received Date <' },
-  
+
   { name: 'createdAfter', label: 'Created Date ≥' },
   { name: 'createdBefore', label: 'Created Date <' },
 ];
@@ -117,24 +115,24 @@ const DATE_FIELDS: DateField[] = [
  * - keyword search
  */
 const PackagingMaterialBatchFiltersPanel: FC<Props> = ({
-                                                         filters,
-                                                         lookups,
-                                                         lookupHandlers,
-                                                         onChange,
-                                                         onApply,
-                                                         onReset,
-                                                       }) => {
+  filters,
+  lookups,
+  lookupHandlers,
+  onChange,
+  onApply,
+  onReset,
+}) => {
   const { control, handleSubmit, reset, watch, setValue } =
     useForm<PackagingMaterialBatchFilters>({
       defaultValues: filters,
     });
-  
+
   const { packagingMaterial, supplier, status } = lookups;
-  
+
   /* -----------------------------
    * Lookup bindings
    * --------------------------- */
-  
+
   const packagingMaterialFilter = useFilterLookup({
     fieldName: 'packagingMaterialIds',
     lookup: packagingMaterial,
@@ -142,7 +140,7 @@ const PackagingMaterialBatchFiltersPanel: FC<Props> = ({
     setValue,
     useSearchHandlers: usePackagingMaterialSearchHandlers,
   });
-  
+
   const supplierFilter = useFilterLookup({
     fieldName: 'supplierIds',
     lookup: supplier,
@@ -150,25 +148,25 @@ const PackagingMaterialBatchFiltersPanel: FC<Props> = ({
     setValue,
     useSearchHandlers: useSupplierSearchHandlers,
   });
-  
+
   /* -----------------------------
    * Sync external filters
    * --------------------------- */
-  
+
   useEffect(() => {
     reset(filters);
   }, [filters, reset]);
-  
+
   /* -----------------------------
    * Submit / Reset
    * --------------------------- */
-  
+
   const submitFilters = (data: PackagingMaterialBatchFilters) => {
     const adjusted: PackagingMaterialBatchFilters = {
       ...data,
       lotNumber: data.lotNumber || undefined,
       keyword: data.keyword || undefined,
-      
+
       expiryAfter: toISODate(data.expiryAfter),
       expiryBefore: toISODate(data.expiryBefore),
       manufactureAfter: toISODate(data.manufactureAfter),
@@ -178,24 +176,24 @@ const PackagingMaterialBatchFiltersPanel: FC<Props> = ({
       createdAfter: toISODate(data.createdAfter),
       createdBefore: toISODate(data.createdBefore),
     };
-    
+
     onChange(adjusted);
     onApply();
   };
-  
+
   const resetFilters = () => {
     reset(emptyFilters);
-    
+
     packagingMaterialFilter.reset();
     supplierFilter.reset();
-    
+
     onReset();
   };
-  
+
   /* -----------------------------
    * Status multiselect
    * --------------------------- */
-  
+
   const {
     selectedOptions: selectedStatusOptions,
     handleSelect: handleStatusSelect,
@@ -205,16 +203,16 @@ const PackagingMaterialBatchFiltersPanel: FC<Props> = ({
     fieldName: 'statusIds',
     options: status.options,
   });
-  
+
   const formattedStatusOptions = useFormattedOptions(
     status.options,
     formatLabel
   );
-  
+
   /* -----------------------------
    * Render
    * --------------------------- */
-  
+
   return (
     <form onSubmit={handleSubmit(submitFilters)}>
       <FilterPanelLayout onReset={resetFilters}>
@@ -234,7 +232,7 @@ const PackagingMaterialBatchFiltersPanel: FC<Props> = ({
               onInputChange={packagingMaterialFilter.onInputChange}
             />
           </Grid>
-          
+
           <Grid size={{ xs: 12, md: 6 }}>
             <SupplierMultiSelectDropdown
               options={supplier.options}
@@ -250,7 +248,7 @@ const PackagingMaterialBatchFiltersPanel: FC<Props> = ({
               onInputChange={supplierFilter.onInputChange}
             />
           </Grid>
-          
+
           <Grid size={{ xs: 12, md: 3 }}>
             <StatusMultiSelectDropdown
               options={formattedStatusOptions}
@@ -259,7 +257,7 @@ const PackagingMaterialBatchFiltersPanel: FC<Props> = ({
               onOpen={lookupHandlers.onOpen.status}
             />
           </Grid>
-          
+
           {/* Keyword */}
           {renderInputField(
             control,
@@ -267,10 +265,10 @@ const PackagingMaterialBatchFiltersPanel: FC<Props> = ({
             'Keyword',
             'Lot, material, supplier'
           )}
-          
+
           {/* Lot */}
           {renderInputField(control, 'lotNumber', 'Lot Number')}
-          
+
           {/* Date Ranges */}
           {DATE_FIELDS.map(({ name, label }) =>
             renderDateField(control, name, label)

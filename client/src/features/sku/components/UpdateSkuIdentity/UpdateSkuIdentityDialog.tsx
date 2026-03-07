@@ -1,8 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import {
-  CustomDialog,
-  CustomTypography
-} from '@components/index';
+import { CustomDialog, CustomTypography } from '@components/index';
 import {
   UpdateSkuIdentityForm,
   UpdateSkuIdentitySuccessDialog,
@@ -18,14 +15,13 @@ interface UpdateSkuIdentityDialogProps {
   open: boolean;
   onClose: () => void;
   onSuccess?: () => void;
-  
+
   skuId: string;
   skuCode: string;
-  
+
   /** Existing SKU identity values used to populate the form */
   initialValues: Partial<UpdateSkuIdentityRequest>;
 }
-
 
 /**
  * Dialog used to update SKU identity information (SKU code + barcode).
@@ -37,33 +33,27 @@ interface UpdateSkuIdentityDialogProps {
  * - Display error dialog
  */
 const UpdateSkuIdentityDialog = ({
-                                   open,
-                                   onClose,
-                                   onSuccess,
-                                   skuId,
-                                   skuCode,
-                                   initialValues,
-                                 }: UpdateSkuIdentityDialogProps) => {
-  
-  const {
-    data,
-    loading,
-    error,
-    isSuccess,
-    updateIdentity,
-    reset,
-  } = useSkuIdentity();
-  
-  
+  open,
+  onClose,
+  onSuccess,
+  skuId,
+  skuCode,
+  initialValues,
+}: UpdateSkuIdentityDialogProps) => {
+  const { data, loading, error, isSuccess, updateIdentity, reset } =
+    useSkuIdentity();
+
   /**
    * Default form values derived from existing SKU data.
    */
-  const defaultValues = useMemo(() => ({
-    sku: initialValues.sku ?? '',
-    barcode: initialValues.barcode ?? '',
-  }), [initialValues]);
-  
-  
+  const defaultValues = useMemo(
+    () => ({
+      sku: initialValues.sku ?? '',
+      barcode: initialValues.barcode ?? '',
+    }),
+    [initialValues]
+  );
+
   /**
    * Submit identity update request.
    */
@@ -73,8 +63,7 @@ const UpdateSkuIdentityDialog = ({
     },
     [skuId, updateIdentity]
   );
-  
-  
+
   /**
    * Close dialog after successful update.
    */
@@ -83,8 +72,7 @@ const UpdateSkuIdentityDialog = ({
     reset();
     onClose();
   };
-  
-  
+
   /**
    * Close dialog and reset mutation state.
    */
@@ -92,12 +80,11 @@ const UpdateSkuIdentityDialog = ({
     reset();
     onClose();
   };
-  
-  
+
   // ---------------------------------------------------------------------------
   // Success state
   // ---------------------------------------------------------------------------
-  
+
   if (isSuccess && data) {
     return (
       <UpdateSkuIdentitySuccessDialog
@@ -108,12 +95,11 @@ const UpdateSkuIdentityDialog = ({
       />
     );
   }
-  
-  
+
   // ---------------------------------------------------------------------------
   // Error state
   // ---------------------------------------------------------------------------
-  
+
   if (error && !loading) {
     return (
       <UpdateSkuIdentityErrorDialog
@@ -124,12 +110,11 @@ const UpdateSkuIdentityDialog = ({
       />
     );
   }
-  
-  
+
   // ---------------------------------------------------------------------------
   // Main dialog
   // ---------------------------------------------------------------------------
-  
+
   return (
     <CustomDialog
       open={open}
@@ -140,7 +125,7 @@ const UpdateSkuIdentityDialog = ({
       <CustomTypography variant="body2" sx={{ mb: 2 }}>
         Updating identity for SKU: <strong>{skuCode}</strong>
       </CustomTypography>
-      
+
       <UpdateSkuIdentityForm
         loading={loading}
         onSubmit={handleSubmit}

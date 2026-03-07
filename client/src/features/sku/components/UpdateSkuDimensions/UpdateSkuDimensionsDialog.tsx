@@ -6,19 +6,17 @@ import {
   UpdateSkuDimensionsErrorDialog,
 } from '@features/sku/components/UpdateSkuDimensions';
 import { useSkuDimensions } from '@hooks/index';
-import {
-  UpdateSkuDimensionsFormValues,
-} from '@features/sku/state/skuTypes';
+import type { UpdateSkuDimensionsFormValues } from '@features/sku/state/skuTypes';
 import { transformDimensionsFormToRequest } from '@features/sku/utils/skuTransformers';
 
 interface UpdateSkuDimensionsDialogProps {
   open: boolean;
   onClose: () => void;
   onSuccess?: () => void;
-  
+
   skuId: string;
   skuCode: string;
-  
+
   initialValues: Partial<UpdateSkuDimensionsFormValues>;
 }
 
@@ -31,34 +29,30 @@ interface UpdateSkuDimensionsDialogProps {
  * - error dialog
  */
 const UpdateSkuDimensionsDialog = ({
-                                     open,
-                                     onClose,
-                                     onSuccess,
-                                     skuId,
-                                     skuCode,
-                                     initialValues,
-                                   }: UpdateSkuDimensionsDialogProps) => {
-  
-  const {
-    data,
-    loading,
-    error,
-    isSuccess,
-    updateDimensions,
-    reset,
-  } = useSkuDimensions();
-  
+  open,
+  onClose,
+  onSuccess,
+  skuId,
+  skuCode,
+  initialValues,
+}: UpdateSkuDimensionsDialogProps) => {
+  const { data, loading, error, isSuccess, updateDimensions, reset } =
+    useSkuDimensions();
+
   /**
    * Build form default values from incoming dimension data.
    * Converts numeric values to strings for form inputs.
    */
-  const defaultValues = useMemo(() => ({
-    lengthCm: Number(initialValues.lengthCm ?? 0),
-    widthCm: Number(initialValues.widthCm ?? 0),
-    heightCm: Number(initialValues.heightCm ?? 0),
-    weightG: Number(initialValues.weightG ?? 0),
-  }), [initialValues]);
-  
+  const defaultValues = useMemo(
+    () => ({
+      lengthCm: Number(initialValues.lengthCm ?? 0),
+      widthCm: Number(initialValues.widthCm ?? 0),
+      heightCm: Number(initialValues.heightCm ?? 0),
+      weightG: Number(initialValues.weightG ?? 0),
+    }),
+    [initialValues]
+  );
+
   /**
    * Close dialog after successful update.
    * Also clears local mutation state.
@@ -68,7 +62,7 @@ const UpdateSkuDimensionsDialog = ({
     reset();
     onClose();
   };
-  
+
   /**
    * Close dialog and reset mutation state.
    */
@@ -76,16 +70,16 @@ const UpdateSkuDimensionsDialog = ({
     reset();
     onClose();
   };
-  
+
   /**
    * Submit dimensions update request.
    */
   const handleSubmit = async (payload: UpdateSkuDimensionsFormValues) => {
     const requestBody = transformDimensionsFormToRequest(payload);
-    
+
     await updateDimensions(skuId, requestBody);
   };
-  
+
   // ---------------------------------------------------------------------------
   // Success state
   // ---------------------------------------------------------------------------
@@ -99,7 +93,7 @@ const UpdateSkuDimensionsDialog = ({
       />
     );
   }
-  
+
   // ---------------------------------------------------------------------------
   // Error state
   // ---------------------------------------------------------------------------
@@ -113,7 +107,7 @@ const UpdateSkuDimensionsDialog = ({
       />
     );
   }
-  
+
   // ---------------------------------------------------------------------------
   // Main dialog
   // ---------------------------------------------------------------------------
@@ -127,7 +121,7 @@ const UpdateSkuDimensionsDialog = ({
       <CustomTypography variant="body2" sx={{ mb: 2 }}>
         Updating dimensions for SKU: <strong>{skuCode}</strong>
       </CustomTypography>
-      
+
       <UpdateSkuDimensionsForm
         loading={loading}
         onSubmit={handleSubmit}

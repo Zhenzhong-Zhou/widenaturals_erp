@@ -40,8 +40,7 @@ export const selectAllocationLoading = createSelector(
  */
 export const selectAllocationError = createSelector(
   [selectAllocateInventoryState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );
 
 /**

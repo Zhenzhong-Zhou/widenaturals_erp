@@ -24,8 +24,8 @@ export interface StatusLookupController {
 interface UseStatusFieldControllerArgs {
   lookup: StatusLookupController;
   createField: (params: any) => FieldConfig;
-  currentStatusId?: string
-  currentStatusName?: string
+  currentStatusId?: string;
+  currentStatusName?: string;
 }
 
 export type StatusPayload = {
@@ -34,19 +34,19 @@ export type StatusPayload = {
 };
 
 const useStatusFieldController = ({
-                                    lookup,
-                                    createField,
-                                    currentStatusId,
-                                    currentStatusName,
+  lookup,
+  createField,
+  currentStatusId,
+  currentStatusName,
 }: UseStatusFieldControllerArgs) => {
   const { options, loading, error, meta, fetch, reset } = lookup;
-  
+
   const formattedStatusOptions = useMemo(() => {
     const formatted = options.map((opt) => ({
       ...opt,
       label: formatLabel(opt.label),
     }));
-    
+
     // ensure current value exists in list
     if (
       currentStatusId &&
@@ -59,7 +59,7 @@ const useStatusFieldController = ({
         isActive: true,
       });
     }
-    
+
     return formatted;
   }, [options, currentStatusId, currentStatusName]);
 

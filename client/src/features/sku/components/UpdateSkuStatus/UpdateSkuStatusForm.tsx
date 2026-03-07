@@ -13,16 +13,16 @@ import type {
 interface UpdateSkuStatusFormProps {
   /** Loading state for submit action */
   loading?: boolean;
-  
+
   /** Submit handler returning the selected status payload */
   onSubmit: (data: StatusPayload) => void | Promise<void>;
-  
+
   /** Controlled lookup object used by the status dropdown */
   statusLookup: StatusLookupController;
-  
+
   /** Current SKU status id used to preselect the dropdown */
   currentStatusId: string;
-  
+
   /** Current SKU status name (used for option injection when lookup loads async) */
   currentStatusName: string;
 }
@@ -39,13 +39,12 @@ interface UpdateSkuStatusFormProps {
  * helper before forwarding the result to the parent dialog.
  */
 const UpdateSkuStatusForm: FC<UpdateSkuStatusFormProps> = ({
-                                                             loading,
-                                                             onSubmit,
-                                                             statusLookup,
-                                                             currentStatusId,
-                                                             currentStatusName,
-                                                           }) => {
-  
+  loading,
+  onSubmit,
+  statusLookup,
+  currentStatusId,
+  currentStatusName,
+}) => {
   // -------------------------------------------------------
   // Shared lookup + field configuration
   // -------------------------------------------------------
@@ -55,7 +54,7 @@ const UpdateSkuStatusForm: FC<UpdateSkuStatusFormProps> = ({
     currentStatusId,
     currentStatusName,
   });
-  
+
   // -------------------------------------------------------
   // Submit handler
   // -------------------------------------------------------
@@ -63,7 +62,7 @@ const UpdateSkuStatusForm: FC<UpdateSkuStatusFormProps> = ({
     const payload = buildSubmitPayload(data);
     onSubmit(payload);
   };
-  
+
   return (
     <CustomForm
       fields={formFields}

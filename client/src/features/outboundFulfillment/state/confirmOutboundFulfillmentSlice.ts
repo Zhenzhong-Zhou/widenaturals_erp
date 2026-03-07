@@ -54,11 +54,7 @@ export const confirmOutboundFulfillmentSlice = createSlice({
         }
       )
       .addCase(confirmOutboundFulfillmentThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to confirm outbound fulfillment.'
-        );
+        applyRejected(state, action, 'Failed to confirm outbound fulfillment.');
       });
   },
 });

@@ -42,11 +42,7 @@ const paginatedOrdersSlice = createSlice({
         }
       )
       .addCase(fetchOrdersByCategoryThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to load orders.'
-        );
+        applyRejected(state, action, 'Failed to load orders.');
       });
   },
 });

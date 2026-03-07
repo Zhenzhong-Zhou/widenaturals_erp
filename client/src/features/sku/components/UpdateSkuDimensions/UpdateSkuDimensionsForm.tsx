@@ -1,9 +1,7 @@
 import { type FC } from 'react';
 import { CustomForm } from '@components/index';
 import { createDimensionsFields } from '@features/sku/components/UpdateSkuDimensions';
-import type {
-  UpdateSkuDimensionsFormValues
-} from '@features/sku/state/skuTypes';
+import type { UpdateSkuDimensionsFormValues } from '@features/sku/state/skuTypes';
 import { getChangedFields } from '@utils/form/getChangedFields';
 
 interface UpdateSkuDimensionsFormProps {
@@ -23,10 +21,10 @@ interface UpdateSkuDimensionsFormProps {
  * This helps avoid sending unnecessary updates to the API.
  */
 const UpdateSkuDimensionsForm: FC<UpdateSkuDimensionsFormProps> = ({
-                                                                     loading,
-                                                                     onSubmit,
-                                                                     defaultValues,
-                                                                   }) => {
+  loading,
+  onSubmit,
+  defaultValues,
+}) => {
   /**
    * Handle form submission.
    *
@@ -40,12 +38,12 @@ const UpdateSkuDimensionsForm: FC<UpdateSkuDimensionsFormProps> = ({
       defaultValues,
       data
     );
-    
+
     if (Object.keys(changed).length === 0) return;
-    
+
     onSubmit(changed);
   };
-  
+
   return (
     <CustomForm
       fields={createDimensionsFields()}

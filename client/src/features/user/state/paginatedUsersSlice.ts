@@ -57,7 +57,7 @@ const paginatedUsersSlice = createSlice({
       // ---- rejected ----
       .addCase(fetchPaginatedUsersThunk.rejected, (state, action) => {
         applyRejected(state, action, 'Failed to fetch users.');
-      })
+      });
   },
 });
 

@@ -38,12 +38,8 @@ const customerCreateSlice = createSlice({
       })
       .addCase(createCustomersThunk.rejected, (state, action) => {
         state.data = null;
-        applyRejected(
-          state,
-          action,
-          'Failed to create customer(s).'
-        );
-      })
+        applyRejected(state, action, 'Failed to create customer(s).');
+      });
   },
 });
 

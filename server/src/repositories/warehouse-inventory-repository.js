@@ -221,7 +221,8 @@ const getPaginatedWarehouseInventoryItemSummary = async ({
       limit,
     });
   } catch (error) {
-    logSystemException(error,
+    logSystemException(
+      error,
       'Error fetching paginated warehouse inventory summary (products + materials)',
       {
         context: 'warehouse-inventory-repository',
@@ -1169,7 +1170,7 @@ const getRecentInsertWarehouseInventoryRecords = async (warehouseLotIds) => {
  */
 const skuHasInventory = async (skuId, client = null) => {
   const context = 'warehouse-inventory-repository/skuHasInventory';
-  
+
   const queryText = `
     SELECT 1
     FROM warehouse_inventory wi
@@ -1180,7 +1181,7 @@ const skuHasInventory = async (skuId, client = null) => {
     WHERE pb.sku_id = $1
     LIMIT 1
   `;
-  
+
   return existsQuery(
     queryText,
     [skuId],

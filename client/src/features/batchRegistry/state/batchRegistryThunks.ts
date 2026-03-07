@@ -5,7 +5,7 @@ import type {
 } from '@features/batchRegistry';
 import { batchRegistryService } from '@services/batchRegistryService';
 import { flattenBatchRegistryRecords } from '@features/batchRegistry/utils';
-import { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 import { extractUiErrorPayload } from '@utils/error';
 
 /**
@@ -37,15 +37,13 @@ export const fetchPaginatedBatchRegistryThunk = createAsyncThunk<
     try {
       const response =
         await batchRegistryService.fetchPaginatedBatchRegistry(params);
-      
+
       return {
         ...response,
         data: flattenBatchRegistryRecords(response.data),
       };
     } catch (error: unknown) {
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );

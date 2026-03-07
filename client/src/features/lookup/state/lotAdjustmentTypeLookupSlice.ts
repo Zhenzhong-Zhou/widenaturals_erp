@@ -26,11 +26,7 @@ const lotAdjustmentTypeLookupSlice = createSlice({
         state.data = action.payload.data;
       })
       .addCase(fetchLotAdjustmentTypeLookupThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch lot adjustment types'
-        );
+        applyRejected(state, action, 'Failed to fetch lot adjustment types');
       });
   },
 });

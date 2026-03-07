@@ -255,36 +255,36 @@ const transformPaginatedUserForViewResults = (paginatedResult, viewMode) => {
  */
 const transformUserProfileRow = (row) => {
   if (!row) return null;
-  
+
   return cleanObject({
     id: row.id,
     email: row.email,
-    
+
     fullName: getFullName(row.firstname, row.lastname),
-    
+
     phoneNumber: row.phone_number ?? null,
     jobTitle: row.job_title ?? null,
-    
+
     isSystem: row.is_system,
 
     status: makeStatus(row),
 
     role: row.role_id
       ? {
-        id: row.role_id,
-        name: row.role_name ?? null,
-        roleGroup: row.role_group ?? null,
-        hierarchyLevel: row.hierarchy_level ?? null,
-        permissions: Array.isArray(row.permissions) ? row.permissions : [],
-      }
+          id: row.role_id,
+          name: row.role_name ?? null,
+          roleGroup: row.role_group ?? null,
+          hierarchyLevel: row.hierarchy_level ?? null,
+          permissions: Array.isArray(row.permissions) ? row.permissions : [],
+        }
       : null,
-    
+
     avatar: row.avatar_url
       ? {
-        url: row.avatar_url,
-        format: row.avatar_format ?? null,
-        uploadedAt: row.avatar_uploaded_at ?? null,
-      }
+          url: row.avatar_url,
+          format: row.avatar_format ?? null,
+          uploadedAt: row.avatar_uploaded_at ?? null,
+        }
       : null,
 
     audit: compactAudit(makeAudit(row)),

@@ -48,8 +48,7 @@ export const selectSkuProductCardLoading = createSelector(
  */
 export const selectSkuProductCardError = createSelector(
   [selectSkuProductCardsState],
-  (slice): string | null =>
-    slice.error?.message ?? null
+  (slice): string | null => slice.error?.message ?? null
 );
 
 /**

@@ -6,7 +6,8 @@ import type {
   FetchPaginatedCustomersParams,
 } from './customerTypes';
 import { customerService } from '@services/customerService';
-import { extractUiErrorPayload, UiErrorPayload } from '@utils/error/uiErrorUtils';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import { extractUiErrorPayload } from '@utils/error/uiErrorUtils';
 
 /**
  * Redux async thunk to create one or more customers.
@@ -33,19 +34,14 @@ export const createCustomersThunk = createAsyncThunk<
   CreateCustomerResponse,
   CreateCustomersRequest,
   { rejectValue: UiErrorPayload }
->(
-  'customers/create',
-  async (customers, { rejectWithValue }) => {
-    try {
-      return await customerService.createCustomers(customers);
-    } catch (error: unknown) {
-      console.error('createCustomersThunk error:', error);
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
-    }
+>('customers/create', async (customers, { rejectWithValue }) => {
+  try {
+    return await customerService.createCustomers(customers);
+  } catch (error: unknown) {
+    console.error('createCustomersThunk error:', error);
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});
 
 /**
  * Redux async thunk to fetch paginated customer records.
@@ -74,16 +70,11 @@ export const fetchPaginatedCustomersThunk = createAsyncThunk<
   PaginatedCustomerListResponse,
   FetchPaginatedCustomersParams,
   { rejectValue: UiErrorPayload }
->(
-  'customers/fetchPaginated',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await customerService.fetchPaginatedCustomers(params);
-    } catch (error: unknown) {
-      console.error('fetchPaginatedCustomersThunk error:', error);
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
-    }
+>('customers/fetchPaginated', async (params, { rejectWithValue }) => {
+  try {
+    return await customerService.fetchPaginatedCustomers(params);
+  } catch (error: unknown) {
+    console.error('fetchPaginatedCustomersThunk error:', error);
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});

@@ -28,8 +28,7 @@ export const selectAddressCreationLoading = createSelector(
  */
 export const selectAddressCreationError = createSelector(
   [selectAddressCreationState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );
 
 /**

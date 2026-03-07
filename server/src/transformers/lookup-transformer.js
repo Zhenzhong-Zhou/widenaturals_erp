@@ -3,7 +3,8 @@ const { cleanObject } = require('../utils/object-utils');
 const {
   transformRows,
   transformIdNameToIdLabel,
-  includeFlagsBasedOnAccess, transformLoadMoreResult,
+  includeFlagsBasedOnAccess,
+  transformLoadMoreResult,
 } = require('../utils/transformer-utils');
 const { getFullName } = require('../utils/name-utils');
 const {
@@ -94,10 +95,7 @@ const transformBatchRegistryLookupItem = (row) => {
  * @returns {Promise<LoadMoreResult<BatchRegistryLookupItem>>}
  */
 const transformBatchRegistryPaginatedLookupResult = (paginatedResult) =>
-  transformLoadMoreResult(
-    paginatedResult,
-    transformBatchRegistryLookupItem
-  );
+  transformLoadMoreResult(paginatedResult, transformBatchRegistryLookupItem);
 
 /**
  * Transforms raw warehouse lookup rows into a lookup-compatible format.
@@ -206,14 +204,14 @@ const transformCustomerLookup = (row, userAccess) => {
   if (!row || typeof row !== 'object') {
     throw AppError.validationError('Invalid customer lookup row.');
   }
-  
+
   const fullName = getFullName(row.firstname, row.lastname);
   const email = row.email || 'no-email';
   const label = `${fullName} (${email})`;
-  
+
   const base = transformIdNameToIdLabel({ ...row, name: label });
   const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
-  
+
   return {
     ...base,
     hasAddress: row?.has_address === true,
@@ -239,9 +237,8 @@ const transformCustomerLookup = (row, userAccess) => {
  * @returns {Promise<LoadMoreResult<CustomerLookupItem>>}
  */
 const transformCustomerPaginatedLookupResult = (paginatedResult, userAccess) =>
-  transformLoadMoreResult(
-    paginatedResult,
-    (row) => transformCustomerLookup(row, userAccess)
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformCustomerLookup(row, userAccess)
   );
 
 /**
@@ -318,12 +315,12 @@ const transformOrderTypeLookup = (row, userAccess) => {
   const label = userAccess?.canViewAllCategories
     ? `${row.category} - ${row.name}`
     : row.name;
-  
+
   const base = transformIdNameToIdLabel({
     id: row.id,
     name: label,
   });
-  
+
   const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
 
   return {
@@ -348,7 +345,7 @@ const transformOrderTypeLookupResult = (rows, userAccess) => {
   const items = transformRows(rows, (row) =>
     transformOrderTypeLookup(row, userAccess)
   );
-  
+
   return {
     items,
     hasMore: false,
@@ -390,9 +387,8 @@ const transformPaymentMethodPaginatedLookupResult = (
   paginatedResult,
   userAccess
 ) =>
-  transformLoadMoreResult(
-    paginatedResult,
-    (row) => transformPaymentMethodLookup(row, userAccess)
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformPaymentMethodLookup(row, userAccess)
   );
 
 /**
@@ -467,9 +463,8 @@ const transformDiscountLookup = (row, userAccess) => {
  * @returns {Promise<LoadMoreResult<DiscountLookupItem>>}
  */
 const transformDiscountPaginatedLookupResult = (paginatedResult, userAccess) =>
-  transformLoadMoreResult(
-    paginatedResult,
-    (row) => transformDiscountLookup(row, userAccess)
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformDiscountLookup(row, userAccess)
   );
 
 /**
@@ -523,9 +518,8 @@ const transformTaxRateLookup = (row, userAccess) => {
  * @returns {Promise<LoadMoreResult<LookupItem>>}
  */
 const transformTaxRatePaginatedLookupResult = (paginatedResult, userAccess) =>
-  transformLoadMoreResult(
-    paginatedResult,
-    (row) => transformTaxRateLookup(row, userAccess)
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformTaxRateLookup(row, userAccess)
   );
 
 /**
@@ -580,9 +574,8 @@ const transformDeliveryMethodPaginatedLookupResult = (
   paginatedResult,
   userAccess
 ) =>
-  transformLoadMoreResult(
-    paginatedResult,
-    (row) => transformDeliveryMethodLookup(row, userAccess)
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformDeliveryMethodLookup(row, userAccess)
   );
 
 /**
@@ -655,9 +648,8 @@ const transformSkuPaginatedLookupResult = (
   options = {},
   userAccess
 ) =>
-  transformLoadMoreResult(
-    paginatedResult,
-    (row) => transformSkuLookupRow(row, options, userAccess)
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformSkuLookupRow(row, options, userAccess)
   );
 
 /**
@@ -797,9 +789,8 @@ const transformPricingPaginatedLookupResult = (
   userAccess,
   options = {}
 ) =>
-  transformLoadMoreResult(
-    paginatedResult,
-    (row) => transformPricingLookupRow(row, userAccess, options)
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformPricingLookupRow(row, userAccess, options)
   );
 
 /**
@@ -823,20 +814,20 @@ const transformPricingPaginatedLookupResult = (
  */
 const transformPackagingMaterialLookupRow = (row, userAccess) => {
   if (!row || typeof row !== 'object' || !row.id) return null;
-  
+
   const label = formatPackagingMaterialLabel(row);
   if (!label) return null;
-  
+
   const base = transformIdNameToIdLabel({
     id: row.id,
     name: label,
   });
-  
+
   const flagSubset =
     typeof includeFlagsBasedOnAccess === 'function'
       ? includeFlagsBasedOnAccess(row, userAccess)
       : {};
-  
+
   const out = {
     ...base,
     ...flagSubset,
@@ -846,7 +837,7 @@ const transformPackagingMaterialLookupRow = (row, userAccess) => {
   if (userAccess?.canViewAllStatuses) {
     out.isArchived = row?.is_archived === true;
   }
-  
+
   return cleanObject(out);
 };
 
@@ -868,9 +859,8 @@ const transformPackagingMaterialPaginatedLookupResult = (
   paginatedResult,
   userAccess
 ) =>
-  transformLoadMoreResult(
-    paginatedResult,
-    (row) => transformPackagingMaterialLookupRow(row, userAccess)
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformPackagingMaterialLookupRow(row, userAccess)
   );
 
 /**
@@ -943,9 +933,8 @@ const transformSkuCodeBasePaginatedLookupResult = (
   paginatedResult,
   userAccess
 ) =>
-  transformLoadMoreResult(
-    paginatedResult,
-    (row) => transformSkuCodeBaseLookup(row, userAccess)
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformSkuCodeBaseLookup(row, userAccess)
   );
 
 /**
@@ -1030,9 +1019,8 @@ const transformProductLookup = (row, userAccess) => {
  * @returns {Promise<LoadMoreResult<LookupItem>>}
  */
 const transformProductPaginatedLookupResult = (paginatedResult, userAccess) =>
-  transformLoadMoreResult(
-    paginatedResult,
-    (row) => transformProductLookup(row, userAccess)
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformProductLookup(row, userAccess)
   );
 
 /**
@@ -1096,9 +1084,8 @@ const transformStatusLookup = (row, userAccess) => {
  * @returns {Promise<LoadMoreResult<LookupItem>>}
  */
 const transformStatusPaginatedLookupResult = (paginatedResult, userAccess) =>
-  transformLoadMoreResult(
-    paginatedResult,
-    (row) => transformStatusLookup(row, userAccess)
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformStatusLookup(row, userAccess)
   );
 
 /**
@@ -1167,9 +1154,8 @@ const transformUserLookup = (row, userAccess) => {
  * @returns {Promise<LoadMoreResult<LookupItem>>}
  */
 const transformUserPaginatedLookupResult = (paginatedResult, userAccess) =>
-  transformLoadMoreResult(
-    paginatedResult,
-    (row) => transformUserLookup(row, userAccess)
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformUserLookup(row, userAccess)
   );
 
 /**
@@ -1286,9 +1272,8 @@ const transformRoleLookup = (row, userAccess) => {
  * @returns {Promise<LoadMoreResult<LookupItem>>}
  */
 const transformRolePaginatedLookupResult = (paginatedResult, access) =>
-  transformLoadMoreResult(
-    paginatedResult,
-    (row) => transformRoleLookup(row, access)
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformRoleLookup(row, access)
   );
 
 /**
@@ -1340,9 +1325,8 @@ const transformManufacturerLookup = createEntityLookupTransformer({
  * @returns {Promise<LoadMoreResult<LookupItem>>}
  */
 const transformManufacturerPaginatedLookupResult = (paginatedResult, acl) =>
-  transformLoadMoreResult(
-    paginatedResult,
-    (row) => transformManufacturerLookup(row, acl)
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformManufacturerLookup(row, acl)
   );
 
 /**
@@ -1393,9 +1377,8 @@ const transformSupplierLookup = createEntityLookupTransformer({
  * @returns {Promise<LoadMoreResult<LookupItem>>}
  */
 const transformSupplierPaginatedLookupResult = (paginatedResult, acl) =>
-  transformLoadMoreResult(
-    paginatedResult,
-    (row) => transformSupplierLookup(row, acl)
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformSupplierLookup(row, acl)
   );
 
 /**
@@ -1444,9 +1427,8 @@ const transformLocationTypeLookup = createEntityLookupTransformer({
  * @returns {Promise<LoadMoreResult<LookupItem>>}
  */
 const transformLocationTypePaginatedLookupResult = (paginatedResult, acl) =>
-  transformLoadMoreResult(
-    paginatedResult,
-    (row) => transformLocationTypeLookup(row, acl)
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformLocationTypeLookup(row, acl)
   );
 
 module.exports = {

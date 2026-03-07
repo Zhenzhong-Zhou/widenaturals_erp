@@ -66,11 +66,7 @@ export const bomProductionReadinessSlice = createSlice({
         }
       )
       .addCase(fetchBomProductionSummaryThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch BOM production summary.'
-        );
+        applyRejected(state, action, 'Failed to fetch BOM production summary.');
       });
   },
 });

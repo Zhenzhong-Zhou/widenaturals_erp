@@ -23,8 +23,7 @@ export const selectOrderDetailsLoading = createSelector(
 
 export const selectOrderDetailsError = createSelector(
   [selectOrderDetailsState],
-  (s): string | null =>
-    s.error?.message ?? null
+  (s): string | null => s.error?.message ?? null
 );
 
 export const selectOrderDetailsData = createSelector(

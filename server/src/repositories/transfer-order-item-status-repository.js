@@ -46,36 +46,29 @@ const AppError = require('../utils/AppError');
  * @throws {AppError}
  *   Throws databaseError if the query fails.
  */
-const getTransferItemStatusesByCodes = async (
-  statusCodes,
-  client
-) => {
+const getTransferItemStatusesByCodes = async (statusCodes, client) => {
   const context =
     'transfer-order-item-status-repository/getTransferItemStatusesByCodes';
-  
+
   if (!Array.isArray(statusCodes) || statusCodes.length === 0) {
     return [];
   }
-  
+
   const sql = `
     SELECT id, code
     FROM transfer_order_item_status
     WHERE code = ANY($1)
   `;
-  
+
   try {
     const result = await query(sql, [statusCodes], client);
     return result.rows;
   } catch (error) {
-    logSystemException(
-      error,
-      'Failed to get transfer item statuses by codes',
-      {
-        context,
-        statusCodes,
-      }
-    );
-    
+    logSystemException(error, 'Failed to get transfer item statuses by codes', {
+      context,
+      statusCodes,
+    });
+
     throw AppError.databaseError(
       `Failed to retrieve transfer item statuses: ${error.message}`
     );

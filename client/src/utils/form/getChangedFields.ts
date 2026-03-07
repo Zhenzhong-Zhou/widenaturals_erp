@@ -19,14 +19,14 @@ export const getChangedFields = <T extends object>(
   current: Partial<T>
 ): Partial<T> => {
   const changed: Partial<T> = {};
-  
+
   Object.keys(current).forEach((key) => {
     const typedKey = key as keyof T;
-    
+
     if (current[typedKey] !== initial[typedKey]) {
       changed[typedKey] = current[typedKey];
     }
   });
-  
+
   return changed;
 };

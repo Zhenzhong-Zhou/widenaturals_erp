@@ -943,7 +943,7 @@ const getSkuDetailsById = async (skuId) => {
  */
 const skuHasAnyHistory = async (skuId, client = null) => {
   const context = 'sku-repository/skuHasAnyHistory';
-  
+
   const queryText = `
     SELECT 1
     WHERE EXISTS (
@@ -966,7 +966,7 @@ const skuHasAnyHistory = async (skuId, client = null) => {
       WHERE pb.sku_id = $1
     );
   `;
-  
+
   return existsQuery(
     queryText,
     [skuId],
@@ -1008,7 +1008,7 @@ const skuHasAnyHistory = async (skuId, client = null) => {
  */
 const updateSkuMetadata = async (skuId, payload, userId, client) => {
   const context = 'sku-repository/updateSkuMetadata';
-  
+
   try {
     const allowedFields = [
       'description',
@@ -1016,30 +1016,30 @@ const updateSkuMetadata = async (skuId, payload, userId, client) => {
       'language',
       'market_region',
     ];
-    
+
     const updates = {};
-    
+
     for (const key of allowedFields) {
       if (payload[key] !== undefined) {
         updates[key] = payload[key];
       }
     }
-    
+
     if (Object.keys(updates).length === 0) {
       throw AppError.validationError('No valid metadata fields provided.', {
         context,
       });
     }
-    
+
     const result = await updateById('skus', skuId, updates, userId, client);
-    
+
     logSystemInfo('Updated SKU metadata successfully', {
       context,
       skuId,
       updatedBy: userId,
       fieldsUpdated: Object.keys(updates),
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to update SKU metadata', {
@@ -1047,7 +1047,7 @@ const updateSkuMetadata = async (skuId, payload, userId, client) => {
       skuId,
       updatedBy: userId,
     });
-    
+
     throw AppError.databaseError('Failed to update SKU metadata.', {
       context,
       cause: error.message,
@@ -1077,23 +1077,23 @@ const updateSkuMetadata = async (skuId, payload, userId, client) => {
  */
 const updateSkuStatus = async (skuId, statusId, userId, client) => {
   const context = 'sku-repository/updateSkuStatus';
-  
+
   try {
     const updates = {
       status_id: statusId,
       status_date: new Date(),
     };
-    
+
     // Reuse generic updateById helper for consistency
     const result = await updateById('skus', skuId, updates, userId, client);
-    
+
     logSystemInfo('Updated SKU status successfully', {
       context,
       skuId,
       statusId,
       updatedBy: userId,
     });
-    
+
     return result; // { id: '...' }
   } catch (error) {
     logSystemException(error, 'Failed to update SKU status', {
@@ -1102,7 +1102,7 @@ const updateSkuStatus = async (skuId, statusId, userId, client) => {
       statusId,
       updatedBy: userId,
     });
-    
+
     throw AppError.databaseError('Failed to update SKU status.', {
       context,
       cause: error.message,
@@ -1142,38 +1142,33 @@ const updateSkuStatus = async (skuId, statusId, userId, client) => {
  */
 const updateSkuDimensions = async (skuId, payload, userId, client) => {
   const context = 'sku-repository/updateSkuDimensions';
-  
+
   try {
-    const allowedFields = [
-      'length_cm',
-      'width_cm',
-      'height_cm',
-      'weight_g',
-    ];
-    
+    const allowedFields = ['length_cm', 'width_cm', 'height_cm', 'weight_g'];
+
     const updates = {};
-    
+
     for (const key of allowedFields) {
       if (payload[key] !== undefined) {
         updates[key] = payload[key];
       }
     }
-    
+
     if (Object.keys(updates).length === 0) {
       throw AppError.validationError('No dimension fields provided.', {
         context,
       });
     }
-    
+
     const result = await updateById('skus', skuId, updates, userId, client);
-    
+
     logSystemInfo('Updated SKU dimensions successfully', {
       context,
       skuId,
       updatedBy: userId,
       fieldsUpdated: Object.keys(updates),
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to update SKU dimensions', {
@@ -1181,7 +1176,7 @@ const updateSkuDimensions = async (skuId, payload, userId, client) => {
       skuId,
       updatedBy: userId,
     });
-    
+
     throw AppError.databaseError('Failed to update SKU dimensions.', {
       context,
       cause: error.message,
@@ -1221,33 +1216,33 @@ const updateSkuDimensions = async (skuId, payload, userId, client) => {
  */
 const updateSkuIdentity = async (skuId, payload, userId, client) => {
   const context = 'sku-repository/updateSkuIdentity';
-  
+
   try {
     const allowedFields = ['sku', 'barcode'];
-    
+
     const updates = {};
-    
+
     for (const key of allowedFields) {
       if (payload[key] !== undefined) {
         updates[key] = payload[key];
       }
     }
-    
+
     if (Object.keys(updates).length === 0) {
       throw AppError.validationError('No identity fields provided.', {
         context,
       });
     }
-    
+
     const result = await updateById('skus', skuId, updates, userId, client);
-    
+
     logSystemInfo('Updated SKU identity successfully', {
       context,
       skuId,
       updatedBy: userId,
       fieldsUpdated: Object.keys(updates),
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to update SKU identity', {
@@ -1255,7 +1250,7 @@ const updateSkuIdentity = async (skuId, payload, userId, client) => {
       skuId,
       updatedBy: userId,
     });
-    
+
     throw AppError.databaseError('Failed to update SKU identity.', {
       context,
       cause: error.message,

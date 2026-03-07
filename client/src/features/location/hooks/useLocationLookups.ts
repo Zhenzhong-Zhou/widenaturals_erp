@@ -1,7 +1,4 @@
-import {
-  useLocationTypeLookup,
-  useStatusLookup
-} from '@hooks/index';
+import { useLocationTypeLookup, useStatusLookup } from '@hooks/index';
 
 /**
  * Lookup bundle used by Location pages.

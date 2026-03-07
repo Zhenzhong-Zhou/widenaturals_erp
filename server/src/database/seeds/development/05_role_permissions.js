@@ -94,10 +94,7 @@ exports.seed = async function (knex) {
   const ROLE_DEFINITIONS = {
     root_admin: ['root_access'],
 
-    admin: [
-      ...BASE_AUTH_PERMISSIONS,
-      'export_prices',
-    ],
+    admin: [...BASE_AUTH_PERMISSIONS, 'export_prices'],
 
     manager: [
       ...BASE_AUTH_PERMISSIONS,

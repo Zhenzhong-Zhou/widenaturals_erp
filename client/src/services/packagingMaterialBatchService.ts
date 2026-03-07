@@ -2,10 +2,7 @@ import type {
   PackagingMaterialBatchQueryParams,
   PackagingMaterialBatchListApiResponse,
 } from '@features/packagingMaterialBatch';
-import {
-  buildQueryString,
-  flattenListQueryParams
-} from '@utils/query';
+import { buildQueryString, flattenListQueryParams } from '@utils/query';
 import { getRequest } from '@utils/http';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 
@@ -50,12 +47,11 @@ const fetchPaginatedPackagingMaterialBatches = async (
     'createdAfter',
     'createdBefore',
   ]);
-  
+
   const queryString = buildQueryString(flatParams);
-  
-  const url =
-    `${API_ENDPOINTS.PACKAGING_MATERIAL_BATCHES.ALL_RECORDS}${queryString}`;
-  
+
+  const url = `${API_ENDPOINTS.PACKAGING_MATERIAL_BATCHES.ALL_RECORDS}${queryString}`;
+
   return getRequest<PackagingMaterialBatchListApiResponse>(url, {
     policy: 'READ',
   });

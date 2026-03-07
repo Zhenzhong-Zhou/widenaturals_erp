@@ -18,17 +18,17 @@ interface UpdateProductStatusFormProps {
   productId: string;
 
   statusLookup: StatusLookupController;
-  
-  currentStatusId: string
-  currentStatusName: string
+
+  currentStatusId: string;
+  currentStatusName: string;
 }
 
 const UpdateProductStatusForm: FC<UpdateProductStatusFormProps> = ({
-                                                                     loading,
-                                                                     onSubmit,
-                                                                     statusLookup,
-                                                                     currentStatusId,
-                                                                     currentStatusName,
+  loading,
+  onSubmit,
+  statusLookup,
+  currentStatusId,
+  currentStatusName,
 }) => {
   // -------------------------------------------------------
   // Shared reusable lookup + form-field controller

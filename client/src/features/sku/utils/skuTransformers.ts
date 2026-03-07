@@ -11,7 +11,7 @@
  * backend naming conventions and API contracts.
  */
 
-import {
+import type {
   FlattenedSkuInfo,
   UpdateSkuDimensionsFormValues,
   UpdateSkuDimensionsRequest,
@@ -31,7 +31,7 @@ export const transformFlattenedSkuToMetadataFormValues = (
   sku: FlattenedSkuInfo | null
 ): Partial<UpdateSkuMetadataFormValues> => {
   if (!sku) return {};
-  
+
   return {
     description: sku.description ?? undefined,
     sizeLabel: sku.sizeLabel ?? undefined,
@@ -71,7 +71,7 @@ export const transformFlattenedSkuToDimensionsFormValues = (
   sku: FlattenedSkuInfo | null
 ): Partial<UpdateSkuDimensionsFormValues> => {
   if (!sku) return {};
-  
+
   return {
     lengthCm: sku.lengthCm,
     widthCm: sku.widthCm,
@@ -90,16 +90,12 @@ export const transformDimensionsFormToRequest = (
   form: Partial<UpdateSkuDimensionsFormValues>
 ): UpdateSkuDimensionsRequest => {
   return {
-    length_cm:
-      form.lengthCm !== undefined ? Number(form.lengthCm) : undefined,
-    
-    width_cm:
-      form.widthCm !== undefined ? Number(form.widthCm) : undefined,
-    
-    height_cm:
-      form.heightCm !== undefined ? Number(form.heightCm) : undefined,
-    
-    weight_g:
-      form.weightG !== undefined ? Number(form.weightG) : undefined,
+    length_cm: form.lengthCm !== undefined ? Number(form.lengthCm) : undefined,
+
+    width_cm: form.widthCm !== undefined ? Number(form.widthCm) : undefined,
+
+    height_cm: form.heightCm !== undefined ? Number(form.heightCm) : undefined,
+
+    weight_g: form.weightG !== undefined ? Number(form.weightG) : undefined,
   };
 };

@@ -157,7 +157,7 @@ const updateInventoryAllocationStatus = async (
 
   try {
     const result = await query(sql, params, client);
-    
+
     if (result.rowCount === 0) {
       logSystemInfo(
         'Allocation status update skipped: no matching allocations',
@@ -170,7 +170,7 @@ const updateInventoryAllocationStatus = async (
           severity: 'WARN',
         }
       );
-      
+
       return [];
     }
 
@@ -585,8 +585,9 @@ const getPaginatedInventoryAllocations = async ({
   sortBy = 'created_at',
   sortOrder = 'DESC',
 }) => {
-  const context = 'inventory-allocations-repository/getPaginatedInventoryAllocations';
-  
+  const context =
+    'inventory-allocations-repository/getPaginatedInventoryAllocations';
+
   const { rawAllocWhereClause, rawAllocParams, outerWhereClause, outerParams } =
     buildInventoryAllocationFilter(filters);
 
@@ -772,7 +773,7 @@ const getAllocationsByOrderId = async (
   client = null
 ) => {
   const context = 'inventory-allocations-repository/getAllocationsByOrderId';
-  
+
   let sql = `
     SELECT
       ia.id AS allocation_id,
@@ -784,10 +785,10 @@ const getAllocationsByOrderId = async (
     JOIN order_items oi ON ia.order_item_id = oi.id
     WHERE oi.order_id = $1
   `;
-  
+
   /** @type {(string | string[])[]} */
   const params = [orderId];
-  
+
   if (Array.isArray(allocationIds) && allocationIds.length > 0) {
     sql += ` AND ia.id = ANY($2::uuid[])`;
     params.push(allocationIds);
@@ -849,7 +850,7 @@ const getAllocationStatuses = async (
   client = null
 ) => {
   const context = 'inventory-allocations-repository/getAllocationStatuses';
-  
+
   let sql = `
     SELECT
       o.id AS order_id,
@@ -864,7 +865,7 @@ const getAllocationStatuses = async (
     JOIN inventory_allocation_status ias ON ia.status_id = ias.id
     WHERE oi.order_id = $1
   `;
-  
+
   /** @type {(string | string[])[]} */
   const params = [orderId];
 
@@ -930,7 +931,7 @@ const skuHasActiveAllocations = async (
   client = null
 ) => {
   const context = 'inventory-allocations-repository/skuHasActiveAllocations';
-  
+
   const queryText = `
     SELECT 1
     FROM inventory_allocations ia
@@ -940,7 +941,7 @@ const skuHasActiveAllocations = async (
       AND ia.status_id = ANY($2::uuid[])
     LIMIT 1
   `;
-  
+
   return existsQuery(
     queryText,
     [skuId, activeAllocationStatusIds],

@@ -2,7 +2,7 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import type { HealthApiResponse } from '@features/systemHealth';
 import { systemHealthService } from '@services/systemHealthService';
 import { extractUiErrorPayload } from '@utils/error';
-import { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 
 /**
  * Fetches the public system health status.
@@ -21,15 +21,10 @@ export const fetchSystemHealthThunk = createAsyncThunk<
   HealthApiResponse,
   void,
   { rejectValue: UiErrorPayload }
->(
-  'systemHealth/fetch',
-  async (_, { rejectWithValue }) => {
-    try {
-      return await systemHealthService.fetchPublicHealthStatus();
-    } catch (error: unknown) {
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
-    }
+>('systemHealth/fetch', async (_, { rejectWithValue }) => {
+  try {
+    return await systemHealthService.fetchPublicHealthStatus();
+  } catch (error: unknown) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});

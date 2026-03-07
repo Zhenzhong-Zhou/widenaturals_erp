@@ -60,7 +60,7 @@ const paginatedProductsSlice = createSlice({
       // ---- rejected ----
       .addCase(fetchPaginatedProductsThunk.rejected, (state, action) => {
         applyRejected(state, action, 'Failed to fetch products.');
-        
+
         state.traceId = action.payload?.traceId ?? null;
       });
   },

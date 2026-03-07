@@ -5,7 +5,7 @@ import {
   CustomDialog,
   CustomTypography,
   ErrorMessage,
-  ResultBody
+  ResultBody,
 } from '@components/index';
 import type {
   BulkSkuImageUploadResult,
@@ -91,7 +91,7 @@ const SkuImageUploadErrorDialog: FC<Props> = ({
                       </Box>
                       {r.error && (
                         <Box>
-                          <ErrorMessage message={r.error.message}/>
+                          <ErrorMessage message={r.error.message} />
                           {r.error.traceId && (
                             <CustomTypography variant="caption" display="block">
                               Ref: {r.error.traceId}

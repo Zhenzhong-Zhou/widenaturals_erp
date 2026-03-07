@@ -7,7 +7,10 @@
 
 const wrapAsync = require('../utils/wrap-async');
 const { logInfo } = require('../utils/logger-helper');
-const { saveBulkSkuImagesService, updateBulkSkuImagesService } = require('../services/sku-image-service');
+const {
+  saveBulkSkuImagesService,
+  updateBulkSkuImagesService,
+} = require('../services/sku-image-service');
 
 /**
  * @async
@@ -109,17 +112,17 @@ const uploadSkuImagesController = wrapAsync(async (req, res) => {
 const updateSkuImagesController = wrapAsync(async (req, res) => {
   const context = 'sku-image-controller/updateSkuImagesController';
   const startTime = Date.now();
-  
+
   const { skus } = req.body;
   const user = req.auth.user;
-  
+
   // Determine storage mode
   const isProd = process.env.NODE_ENV === 'production';
   const bucketName = process.env.S3_BUCKET_NAME;
-  
+
   // Correlation identifier for batch tracing
   const traceId = `update-${Date.now().toString(36)}`;
-  
+
   logInfo('Starting SKU image update request', req, {
     context,
     traceId,
@@ -127,7 +130,7 @@ const updateSkuImagesController = wrapAsync(async (req, res) => {
     skuCount: Array.isArray(skus) ? skus.length : 0,
     mode: isProd ? 'production' : 'development',
   });
-  
+
   // Delegate heavy logic to service layer
   const result = await updateBulkSkuImagesService(
     skus,
@@ -135,12 +138,12 @@ const updateSkuImagesController = wrapAsync(async (req, res) => {
     isProd,
     bucketName
   );
-  
+
   const elapsedMs = Date.now() - startTime;
-  
-  const successCount = result.filter(r => r.success).length;
+
+  const successCount = result.filter((r) => r.success).length;
   const failureCount = result.length - successCount;
-  
+
   logInfo('Completed SKU image update batch', req, {
     context,
     traceId,
@@ -149,7 +152,7 @@ const updateSkuImagesController = wrapAsync(async (req, res) => {
     failureCount,
     elapsedMs,
   });
-  
+
   res.status(200).json({
     success: true,
     message: 'SKU image update batch completed successfully.',

@@ -5,7 +5,7 @@ import type {
 } from '@features/orderType/state/orderTypeTypes';
 import { orderTypeService } from '@services/orderTypeService';
 import { flattenOrderTypeRecords } from '@features/orderType/utils';
-import { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 import { extractUiErrorPayload } from '@utils/error';
 
 /**
@@ -30,21 +30,15 @@ export const fetchPaginatedOrderTypesThunk = createAsyncThunk<
   OrderTypeListResponse,
   FetchPaginatedOrderTypesParams,
   { rejectValue: UiErrorPayload }
->(
-  'orderTypes/fetchPaginated',
-  async (params, { rejectWithValue }) => {
-    try {
-      const response =
-        await orderTypeService.fetchPaginatedOrderTypes(params);
-      
-      return {
-        ...response,
-        data: flattenOrderTypeRecords(response.data),
-      };
-    } catch (error: unknown) {
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
-    }
+>('orderTypes/fetchPaginated', async (params, { rejectWithValue }) => {
+  try {
+    const response = await orderTypeService.fetchPaginatedOrderTypes(params);
+
+    return {
+      ...response,
+      data: flattenOrderTypeRecords(response.data),
+    };
+  } catch (error: unknown) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});

@@ -19,7 +19,7 @@ import { useHasPermission } from '@features/authorize/hooks/index';
  */
 const useHasPermissionBoolean = () => {
   const hasPermission = useHasPermission();
-  
+
   return useCallback(
     (required: string | readonly string[]) => {
       const result = hasPermission(required);

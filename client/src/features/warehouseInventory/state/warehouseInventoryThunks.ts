@@ -14,7 +14,8 @@ import type {
   InventoryRecordsResponse,
   InventorySummaryDetailByItemIdParams,
 } from '@features/inventoryShared/types/InventorySharedType';
-import { extractUiErrorPayload, UiErrorPayload } from '@utils/error/uiErrorUtils';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import { extractUiErrorPayload } from '@utils/error/uiErrorUtils';
 
 /**
  * Fetches paginated warehouse inventory **item summaries**
@@ -43,9 +44,7 @@ export const fetchWarehouseInventoryItemSummaryThunk = createAsyncThunk<
         params
       );
     } catch (error: unknown) {
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );
@@ -76,9 +75,7 @@ export const fetchWarehouseInventorySummaryByItemIdThunk = createAsyncThunk<
         params
       );
     } catch (error: unknown) {
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );
@@ -116,10 +113,8 @@ export const fetchWarehouseInventoryRecordsThunk = createAsyncThunk<
       );
     } catch (error: unknown) {
       console.error('fetchWarehouseInventoryRecordsThunk error:', error);
-      
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
+
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );
@@ -151,10 +146,8 @@ export const createWarehouseInventoryRecordsThunk = createAsyncThunk<
       );
     } catch (error: unknown) {
       console.error('createWarehouseInventoryRecordsThunk error:', error);
-      
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
+
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );
@@ -177,17 +170,12 @@ export const adjustWarehouseInventoryQuantitiesThunk = createAsyncThunk<
   InventoryRecordsResponse,
   AdjustInventoryRequestBody,
   { rejectValue: UiErrorPayload }
->(
-  'warehouseInventory/adjustQuantities',
-  async (data, { rejectWithValue }) => {
-    try {
-      return await warehouseInventoryService.adjustWarehouseInventoryQuantities(
-        data
-      );
-    } catch (error: unknown) {
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
-    }
+>('warehouseInventory/adjustQuantities', async (data, { rejectWithValue }) => {
+  try {
+    return await warehouseInventoryService.adjustWarehouseInventoryQuantities(
+      data
+    );
+  } catch (error: unknown) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});

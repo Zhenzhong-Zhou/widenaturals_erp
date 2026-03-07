@@ -37,8 +37,7 @@ export const selectRoleLookupLoading = createSelector(
  */
 export const selectRoleLookupError = createSelector(
   [selectRoleLookupState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );
 
 /**

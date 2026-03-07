@@ -10,12 +10,20 @@ const {
   SKU_EDIT_POLICIES,
 } = require('../utils/constants/domain/sku-constants');
 const { getGenericIssueReason } = require('../utils/enrich-utils');
-const { skuHasInventory } = require('../repositories/warehouse-inventory-repository');
+const {
+  skuHasInventory,
+} = require('../repositories/warehouse-inventory-repository');
 const { skuHasActiveOrders } = require('../repositories/order-item-repository');
-const { skuHasActiveAllocations } = require('../repositories/inventory-allocations-repository');
-const { skuHasActiveTransfers } = require('../repositories/transfer-order-item-repository');
+const {
+  skuHasActiveAllocations,
+} = require('../repositories/inventory-allocations-repository');
+const {
+  skuHasActiveTransfers,
+} = require('../repositories/transfer-order-item-repository');
 const { skuHasAnyHistory } = require('../repositories/sku-repository');
-const { getSkuOperationalStatusIds } = require('../config/sku-operational-status-cache');
+const {
+  getSkuOperationalStatusIds,
+} = require('../config/sku-operational-status-cache');
 
 /**
  * Evaluates whether the user is allowed to bypass SKU stock and status filters
@@ -692,33 +700,17 @@ const skuHasActiveDependencies = async (
   activeTransferStatusIds,
   client = null
 ) => {
-  
   if (await skuHasInventory(skuId, client)) return true;
-  
-  if (
-    await skuHasActiveOrders(
-      skuId,
-      activeOrderStatusIds,
-      client
-    )
-  ) return true;
-  
-  if (
-    await skuHasActiveAllocations(
-      skuId,
-      activeAllocationStatusIds,
-      client
-    )
-  ) return true;
-  
-  if (
-    await skuHasActiveTransfers(
-      skuId,
-      activeTransferStatusIds,
-      client
-    )
-  ) return true;
-  
+
+  if (await skuHasActiveOrders(skuId, activeOrderStatusIds, client))
+    return true;
+
+  if (await skuHasActiveAllocations(skuId, activeAllocationStatusIds, client))
+    return true;
+
+  if (await skuHasActiveTransfers(skuId, activeTransferStatusIds, client))
+    return true;
+
   return false;
 };
 
@@ -779,40 +771,27 @@ const skuHasActiveDependencies = async (
  * @throws {AppError}
  *   Throws businessError if edit is not allowed.
  */
-const assertSkuEditAllowed = async (
-  sku,
-  editType,
-  user,
-  client
-) => {
+const assertSkuEditAllowed = async (sku, editType, user, client) => {
   const { isRoot } = await resolveUserPermissionContext(user);
 
   if (isRoot) {
     return; // bypass business guard
   }
-  
+
   const policy = SKU_EDIT_POLICIES[editType];
-  
+
   if (!policy) {
-    throw AppError.businessError(
-      `Unknown SKU edit type: ${editType}`
-    );
+    throw AppError.businessError(`Unknown SKU edit type: ${editType}`);
   }
-  
+
   const ARCHIVED_STATUS_ID = getStatusId('general_archived');
   if (policy.blockArchived && sku.status_id === ARCHIVED_STATUS_ID) {
-    throw AppError.businessError(
-      'Archived SKU cannot be modified.'
-    );
+    throw AppError.businessError('Archived SKU cannot be modified.');
   }
-  
+
   if (policy.blockOperational) {
-    const {
-      order,
-      allocation,
-      transfer
-    } = getSkuOperationalStatusIds();
-    
+    const { order, allocation, transfer } = getSkuOperationalStatusIds();
+
     const hasOperational = await skuHasActiveDependencies(
       sku.id,
       order,
@@ -820,18 +799,15 @@ const assertSkuEditAllowed = async (
       transfer,
       client
     );
-    
+
     if (hasOperational) {
-      throw AppError.businessError(
-        'SKU has active operational dependencies.'
-      );
+      throw AppError.businessError('SKU has active operational dependencies.');
     }
   }
-  
+
   if (policy.blockCommercial) {
-    const hasCommercial =
-      await skuHasAnyHistory(sku.id, client);
-    
+    const hasCommercial = await skuHasAnyHistory(sku.id, client);
+
     if (hasCommercial) {
       throw AppError.businessError(
         'SKU has commercial history and cannot be modified.'

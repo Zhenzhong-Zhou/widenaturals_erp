@@ -31,8 +31,7 @@ export const selectManufacturerLookupLoading = createSelector(
 
 export const selectManufacturerLookupError = createSelector(
   [selectManufacturerLookupState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );
 
 // -----------------------------

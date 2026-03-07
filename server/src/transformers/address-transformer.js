@@ -138,10 +138,7 @@ const transformPaginatedAddressRow = (row) => {
  * Transformed paginated address result.
  */
 const transformPaginatedAddressResults = async (paginatedResult) => {
-  return transformPageResult(
-    paginatedResult,
-    transformPaginatedAddressRow
-  );
+  return transformPageResult(paginatedResult, transformPaginatedAddressRow);
 };
 
 module.exports = {

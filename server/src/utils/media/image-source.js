@@ -5,7 +5,9 @@ const net = require('net');
 const AppError = require('../AppError');
 const { retry } = require('../../database/db');
 const { logSystemException, logSystemWarn } = require('../system-logger');
-const { ALLOWED_IMAGE_HOSTS } = require('../constants/security/media-security-constants');
+const {
+  ALLOWED_IMAGE_HOSTS,
+} = require('../constants/security/media-security-constants');
 
 const ROOT_DIR = path.resolve(__dirname, '../../../');
 
@@ -23,7 +25,7 @@ const ROOT_DIR = path.resolve(__dirname, '../../../');
  */
 const isRemoteUrl = (value) => {
   if (typeof value !== 'string') return false;
-  
+
   try {
     const url = new URL(value);
     return url.protocol === 'http:' || url.protocol === 'https:';
@@ -69,11 +71,11 @@ const isRemoteUrl = (value) => {
  */
 const resolveSource = async (src, skuCode) => {
   const context = 'image-source/resolveSource';
-  
+
   if (!src || typeof src !== 'string') {
     throw AppError.validationError('Invalid image source');
   }
-  
+
   try {
     // ------------------------------------------------------------
     // Remote URL handling
@@ -81,30 +83,27 @@ const resolveSource = async (src, skuCode) => {
     if (isRemoteUrl(src)) {
       const url = new URL(src);
       const hostname = url.hostname.toLowerCase();
-      
+
       // Remote fetching must be explicitly enabled
       if (!ALLOWED_IMAGE_HOSTS.length) {
-        throw AppError.validationError(
-          'Remote image fetching is not enabled.'
-        );
+        throw AppError.validationError('Remote image fetching is not enabled.');
       }
-      
+
       // Block localhost explicitly
       if (hostname === 'localhost') {
         throw AppError.validationError('Localhost is not allowed.');
       }
-      
+
       // Block direct IP access (prevents SSRF via numeric IP)
       if (net.isIP(hostname)) {
         throw AppError.validationError('IP-based hosts are not allowed.');
       }
-      
+
       // Enforce allow-list
       const isAllowed = ALLOWED_IMAGE_HOSTS.some(
-        (host) =>
-          hostname === host || hostname.endsWith(`.${host}`)
+        (host) => hostname === host || hostname.endsWith(`.${host}`)
       );
-      
+
       if (!isAllowed) {
         logSystemWarn('Blocked untrusted image host', {
           hostname,
@@ -112,47 +111,45 @@ const resolveSource = async (src, skuCode) => {
         });
         throw AppError.validationError('Untrusted image host');
       }
-      
+
       const tempDir = path.join(
         ROOT_DIR,
         'temp',
-        `${skuCode}-${Date.now()}-${Math.random()
-          .toString(36)
-          .slice(2)}`
+        `${skuCode}-${Date.now()}-${Math.random().toString(36).slice(2)}`
       );
-      
+
       await fsp.mkdir(tempDir, { recursive: true });
-      
+
       const filename = path.basename(url.pathname);
       const tempFile = path.join(tempDir, filename);
-      
+
       const response = await retry(() => fetch(src), 3);
-      
+
       if (!response.ok || !response.body) {
         throw AppError.fileSystemError('Failed to fetch image', {
           status: response.status,
         });
       }
-      
+
       await new Promise((resolve, reject) => {
         const stream = fs.createWriteStream(tempFile);
         response.body.pipe(stream);
         stream.on('finish', () => resolve());
         stream.on('error', (err) => reject(err));
       });
-      
+
       return tempFile;
     }
-    
+
     // ------------------------------------------------------------
     // Local path handling
     // ------------------------------------------------------------
     const resolvedPath = path.isAbsolute(src)
       ? src
       : path.resolve(ROOT_DIR, src);
-    
+
     await fsp.access(resolvedPath);
-    
+
     return resolvedPath;
   } catch (error) {
     logSystemException(error, 'Failed to resolve image source', {
@@ -160,16 +157,15 @@ const resolveSource = async (src, skuCode) => {
       skuCode,
       src,
     });
-    
+
     // Preserve AppError subclasses
     if (error instanceof AppError) {
       throw error;
     }
-    
-    throw AppError.fileSystemError(
-      'Failed to resolve image source',
-      { cause: error }
-    );
+
+    throw AppError.fileSystemError('Failed to resolve image source', {
+      cause: error,
+    });
   }
 };
 
@@ -197,15 +193,15 @@ const detectImageSource = (image) => {
   if (!image || typeof image !== 'object') {
     return null;
   }
-  
+
   const { image_url } = image;
-  
+
   if (typeof image_url !== 'string') {
     return null;
   }
-  
+
   const trimmed = image_url.trim();
-  
+
   return trimmed.length > 0 ? trimmed : null;
 };
 

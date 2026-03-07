@@ -37,11 +37,7 @@ const orderTypeLookupSlice = createSlice({
         }
       )
       .addCase(fetchOrderTypeLookupThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch order types',
-        );
+        applyRejected(state, action, 'Failed to fetch order types');
       });
   },
 });

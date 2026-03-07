@@ -16,25 +16,25 @@ import { resetSkuMetadata } from '@features/sku/state/skuMetadataSlice';
  */
 const useSkuMetadata = () => {
   const dispatch = useAppDispatch();
-  
+
   // --- Selectors ---
   const data = useAppSelector(selectSkuMetadataData);
   const loading = useAppSelector(selectSkuMetadataLoading);
   const error = useAppSelector(selectSkuMetadataError);
   const isSuccess = useAppSelector(selectSkuMetadataSuccess);
   const updatedSkuId = useAppSelector(selectUpdatedSkuMetadataId);
-  
+
   const updateMetadata = useCallback(
     async (skuId: string, payload: UpdateSkuMetadataRequest) => {
       return dispatch(updateSkuMetadataThunk({ skuId, payload }));
     },
     [dispatch]
   );
-  
+
   const reset = useCallback(() => {
     dispatch(resetSkuMetadata());
   }, [dispatch]);
-  
+
   return useMemo(
     () => ({
       data,

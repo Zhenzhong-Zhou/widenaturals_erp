@@ -24,16 +24,16 @@ interface Props {
 }
 
 const SkuImageUpdateCard = ({
-                              displayProductName,
-                              skuCode,
-                              groups,
-                              drafts,
-                              onChange,
-                            }: Props) => {
+  displayProductName,
+  skuCode,
+  groups,
+  drafts,
+  onChange,
+}: Props) => {
   // -------------------------------------------------------
   // Helpers
   // -------------------------------------------------------
-  
+
   const updateDraft = useCallback(
     (idx: number, next: SkuImageUpdateDraft) => {
       const clone = [...drafts];
@@ -42,20 +42,20 @@ const SkuImageUpdateCard = ({
     },
     [drafts, onChange]
   );
-  
+
   const removeDraft = useCallback(
     (idx: number) => {
       onChange(drafts.filter((_, i) => i !== idx));
     },
     [drafts, onChange]
   );
-  
+
   const handleFileReplace = useCallback(
     (idx: number, file: File) => {
       const clone = [...drafts];
       const current = clone[idx];
       if (!current) return;
-      
+
       clone[idx] = {
         ...current,
         upload_mode: 'file',
@@ -66,16 +66,16 @@ const SkuImageUpdateCard = ({
         file_format: getImageFileFormat(file),
         source: 'uploaded',
       };
-      
+
       onChange(clone);
     },
     [drafts, onChange]
   );
-  
+
   // -------------------------------------------------------
   // Render
   // -------------------------------------------------------
-  
+
   return (
     <Card
       sx={{
@@ -94,33 +94,26 @@ const SkuImageUpdateCard = ({
           SKU: {skuCode}
         </CustomTypography>
       </Box>
-      
+
       {/* Per-Image Rendering */}
       <Box sx={{ mt: 2 }}>
         {drafts.map((draft, idx) => {
-          const group = groups.find(
-            (g) => g.groupId === draft.group_id
-          );
-          
+          const group = groups.find((g) => g.groupId === draft.group_id);
+
           const previewVariant =
             group?.variants.thumbnail ??
             group?.variants.main ??
             group?.variants.zoom;
-          
+
           const mergedImage = {
             ...draft,
             image_url:
-              draft.previewUrl ??
-              draft.image_url ??
-              previewVariant?.imageUrl,
-            alt_text:
-              draft.alt_text ??
-              previewVariant?.altText,
+              draft.previewUrl ?? draft.image_url ?? previewVariant?.imageUrl,
+            alt_text: draft.alt_text ?? previewVariant?.altText,
           };
-          
+
           return (
             <Box key={draft.group_id} sx={{ mb: 3 }}>
-              
               {/* Replace Mode */}
               <TextField
                 select
@@ -138,7 +131,7 @@ const SkuImageUpdateCard = ({
                 <MenuItem value="file">Replace File</MenuItem>
                 <MenuItem value="url">Replace with URL</MenuItem>
               </TextField>
-              
+
               {/* Replace Controls */}
               {draft.upload_mode === 'file' && (
                 <SkuImageDropzone
@@ -149,7 +142,7 @@ const SkuImageUpdateCard = ({
                   }}
                 />
               )}
-              
+
               {draft.upload_mode === 'url' && (
                 <TextField
                   fullWidth
@@ -167,14 +160,13 @@ const SkuImageUpdateCard = ({
                   }
                 />
               )}
-              
+
               <SkuImagePreviewItem
                 image={mergedImage}
                 index={idx}
                 onChange={(next) => updateDraft(idx, next)}
                 onRemove={() => removeDraft(idx)}
               />
-            
             </Box>
           );
         })}

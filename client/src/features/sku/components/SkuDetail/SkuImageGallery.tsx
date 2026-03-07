@@ -1,10 +1,4 @@
-import {
-  type FC,
-  type MouseEvent,
-  useState,
-  useMemo,
-  useEffect,
-} from 'react';
+import { type FC, type MouseEvent, useState, useMemo, useEffect } from 'react';
 import { alpha, useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
@@ -35,117 +29,109 @@ interface Props {
 
 const SkuImageGallery: FC<Props> = ({ images, maxThumbsDesktop }) => {
   const VISIBLE_THUMBS = maxThumbsDesktop ?? 5;
-  
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  
+
   const [thumbStart, setThumbStart] = useState(0);
   const [zoomOpen, setZoomOpen] = useState(false);
   const [metaAnchorEl, setMetaAnchorEl] = useState<null | HTMLElement>(null);
   const [metaOpen, setMetaOpen] = useState(false);
-  
+
   /* ----------------------------------------------------------------------- */
   /* SELECT PRIMARY GROUP                                                    */
   /* ----------------------------------------------------------------------- */
-  
+
   const primaryGroup = useMemo(() => {
-    return images.find(g => g.isPrimary) ?? images[0] ?? null;
+    return images.find((g) => g.isPrimary) ?? images[0] ?? null;
   }, [images]);
-  
-  const [selectedGroup, setSelectedGroup] =
-    useState<SkuImageGroup | null>(primaryGroup);
-  
+
+  const [selectedGroup, setSelectedGroup] = useState<SkuImageGroup | null>(
+    primaryGroup
+  );
+
   useEffect(() => {
     if (!selectedGroup || selectedGroup.groupId !== primaryGroup?.groupId) {
       setSelectedGroup(primaryGroup);
     }
   }, [primaryGroup]);
-  
+
   /* ----------------------------------------------------------------------- */
   /* DISPLAY VARIANTS                                                        */
   /* ----------------------------------------------------------------------- */
-  
-  const displayVariant =
-    selectedGroup?.variants.main ?? null;
-  
+
+  const displayVariant = selectedGroup?.variants.main ?? null;
+
   const thumbnailGroups = images;
-  
+
   const displayUrl = useMemo(
     () => formatImageUrl(displayVariant?.imageUrl ?? null),
     [displayVariant]
   );
-  
+
   const zoomVariant =
-    selectedGroup?.variants.zoom ??
-    selectedGroup?.variants.main ??
-    null;
-  
+    selectedGroup?.variants.zoom ?? selectedGroup?.variants.main ?? null;
+
   const zoomUrl = useMemo(
     () => formatImageUrl(zoomVariant?.imageUrl ?? null),
     [zoomVariant]
   );
-  
+
   /* ----------------------------------------------------------------------- */
   /* METADATA                                                                */
   /* ----------------------------------------------------------------------- */
-  
+
   const flatImage = flattenImageMetadata(selectedGroup, 'main');
-  
+
   const metadataFields = buildImageMetadataFields(flatImage, {
-    type: v => formatLabel(v),
-    uploadedAt: v => formatDateTime(v),
+    type: (v) => formatLabel(v),
+    uploadedAt: (v) => formatDateTime(v),
   });
-  
+
   /* ----------------------------------------------------------------------- */
   /* THUMBNAIL PAGING                                                        */
   /* ----------------------------------------------------------------------- */
-  
+
   const visibleThumbs = useMemo(
-    () =>
-      thumbnailGroups.slice(
-        thumbStart,
-        thumbStart + VISIBLE_THUMBS
-      ),
+    () => thumbnailGroups.slice(thumbStart, thumbStart + VISIBLE_THUMBS),
     [thumbnailGroups, thumbStart]
   );
-  
+
   const canScrollUp = thumbStart > 0;
-  const canScrollDown =
-    thumbStart + VISIBLE_THUMBS < thumbnailGroups.length;
-  
-  const scrollUp = () =>
-    setThumbStart(v => Math.max(0, v - VISIBLE_THUMBS));
-  
+  const canScrollDown = thumbStart + VISIBLE_THUMBS < thumbnailGroups.length;
+
+  const scrollUp = () => setThumbStart((v) => Math.max(0, v - VISIBLE_THUMBS));
+
   const scrollDown = () =>
-    setThumbStart(v =>
+    setThumbStart((v) =>
       Math.min(
         Math.max(0, thumbnailGroups.length - VISIBLE_THUMBS),
         v + VISIBLE_THUMBS
       )
     );
-  
+
   /* ----------------------------------------------------------------------- */
   /* HANDLERS                                                                */
   /* ----------------------------------------------------------------------- */
-  
+
   const handleThumbClick = (group: SkuImageGroup) => {
     setSelectedGroup(group);
   };
-  
+
   const openMetadata = (event: MouseEvent<HTMLElement>) => {
     setMetaAnchorEl(event.currentTarget);
     setMetaOpen(true);
   };
-  
+
   const closeMetadata = () => {
     setMetaOpen(false);
     setMetaAnchorEl(null);
   };
-  
+
   /* ----------------------------------------------------------------------- */
   /* RENDER                                                                  */
   /* ----------------------------------------------------------------------- */
-  
+
   return (
     <Box
       display="flex"
@@ -159,20 +145,24 @@ const SkuImageGallery: FC<Props> = ({ images, maxThumbsDesktop }) => {
           <IconButton size="small" disabled={!canScrollUp} onClick={scrollUp}>
             <KeyboardArrowUpIcon />
           </IconButton>
-          
+
           <ThumbnailList
             images={visibleThumbs}
             selectedGroupId={selectedGroup?.groupId}
             isMobile={false}
             onSelect={handleThumbClick}
           />
-          
-          <IconButton size="small" disabled={!canScrollDown} onClick={scrollDown}>
+
+          <IconButton
+            size="small"
+            disabled={!canScrollDown}
+            onClick={scrollDown}
+          >
             <KeyboardArrowDownIcon />
           </IconButton>
         </Stack>
       )}
-      
+
       {/* MAIN IMAGE */}
       <Box flex={1} textAlign="center" sx={{ position: 'relative' }}>
         <Tooltip title="Image Metadata">
@@ -197,7 +187,7 @@ const SkuImageGallery: FC<Props> = ({ images, maxThumbsDesktop }) => {
             <InfoOutlinedIcon fontSize="small" />
           </IconButton>
         </Tooltip>
-        
+
         <CardMedia
           component="img"
           image={displayUrl}
@@ -211,7 +201,7 @@ const SkuImageGallery: FC<Props> = ({ images, maxThumbsDesktop }) => {
             cursor: zoomVariant ? 'zoom-in' : 'default',
           }}
         />
-        
+
         <CustomTypography
           variant="caption"
           color="text.secondary"
@@ -221,14 +211,14 @@ const SkuImageGallery: FC<Props> = ({ images, maxThumbsDesktop }) => {
           Click image to zoom
         </CustomTypography>
       </Box>
-      
+
       {/* MOBILE THUMBNAILS */}
       {isMobile && (
         <Box>
           <CustomTypography variant="caption" color="text.secondary" mb={1}>
             Swipe to view images
           </CustomTypography>
-          
+
           <ThumbnailList
             images={thumbnailGroups}
             selectedGroupId={selectedGroup?.groupId}
@@ -237,14 +227,14 @@ const SkuImageGallery: FC<Props> = ({ images, maxThumbsDesktop }) => {
           />
         </Box>
       )}
-      
+
       <ZoomImageDialog
         open={zoomOpen}
         onClose={() => setZoomOpen(false)}
         imageUrl={zoomUrl}
         altText={zoomVariant?.altText}
       />
-      
+
       <ImageMetadataPopover
         anchorEl={metaAnchorEl}
         open={metaOpen}

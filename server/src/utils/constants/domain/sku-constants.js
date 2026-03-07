@@ -22,7 +22,7 @@ const BARCODE_REGEX = /^[0-9A-Za-z\-._\/ ]{1,64}$/;
 const SKU_EDIT_TYPE = {
   METADATA: 'METADATA',
   DIMENSIONS: 'DIMENSIONS',
-  IDENTITY: 'IDENTITY'
+  IDENTITY: 'IDENTITY',
 };
 
 const SKU_EDIT_POLICIES = {
@@ -40,7 +40,7 @@ const SKU_EDIT_POLICIES = {
     blockArchived: true,
     blockOperational: true,
     blockCommercial: true,
-  }
+  },
 };
 
 module.exports = {

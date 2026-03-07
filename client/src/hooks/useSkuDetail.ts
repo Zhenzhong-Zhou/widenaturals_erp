@@ -22,22 +22,22 @@ import {
  */
 const useSkuDetail = () => {
   const dispatch = useAppDispatch();
-  
+
   /* ------------------------------------------------------------------ */
   /* Selectors                                                          */
   /* ------------------------------------------------------------------ */
-  
+
   const sku = useAppSelector(selectSkuDetail);
   const loading = useAppSelector(selectSkuDetailLoading);
   const error = useAppSelector(selectSkuDetailError);
-  
+
   const product = useAppSelector(selectSkuProductInfo);
-  
+
   // New grouped image selectors
   const imageGroups = useAppSelector(selectSkuImageGroups);
   const primaryImageGroup = useAppSelector(selectSkuPrimaryImageGroup);
   const thumbnails = useAppSelector(selectSkuThumbnailImages);
-  
+
   const activePricing = useAppSelector(selectActivePricing);
   const complianceRecords = useAppSelector(selectSkuComplianceRecords);
 
@@ -62,11 +62,11 @@ const useSkuDetail = () => {
   const resetSkuDetailState = useCallback(() => {
     dispatch(resetSkuDetail());
   }, [dispatch]);
-  
+
   /* ------------------------------------------------------------------ */
   /* Memoized Combined Object                                           */
   /* ------------------------------------------------------------------ */
-  
+
   const combined = useMemo(
     () => ({
       sku,
@@ -87,17 +87,17 @@ const useSkuDetail = () => {
       complianceRecords,
     ]
   );
-  
+
   /* ------------------------------------------------------------------ */
   /* Public API                                                         */
   /* ------------------------------------------------------------------ */
-  
+
   return {
     // state
     ...combined,
     loading,
     error,
-    
+
     // actions
     fetchSkuDetail,
     resetSkuDetailState,

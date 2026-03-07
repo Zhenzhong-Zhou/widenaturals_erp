@@ -24,10 +24,7 @@ import type {
   LookupPaginationMeta,
   UserLookupParams,
 } from '@features/lookup';
-import type {
-  useLocationTypeLookup,
-  useStatusLookup
-} from '@hooks/index';
+import type { useLocationTypeLookup, useStatusLookup } from '@hooks/index';
 import { formatLabel } from '@utils/textUtils';
 import { toISODate } from '@utils/dateTimeUtils';
 import { useFormattedOptions } from '@features/lookup/utils/lookupUtils';
