@@ -1,8 +1,8 @@
 const { cleanObject } = require('../utils/object-utils');
 const { getFullName } = require('../utils/name-utils');
 const {
-  transformPaginatedResult,
   transformRows,
+  transformPageResult,
 } = require('../utils/transformer-utils');
 
 /**
@@ -81,19 +81,30 @@ const transformEnrichedCustomers = (rows) =>
   transformRows(rows, (row) => transformCustomerRow(row, { format: 'nested' }));
 
 /**
- * Transforms a paginated result set of raw customer rows into structured, display-ready objects.
+ * Transform paginated customer query results into display-ready customer objects.
  *
- * - Applies `transformCustomerRow` in flat mode to each row.
- * - Uses `transformPaginatedResult` to apply transformation and preserve pagination metadata.
+ * Responsibilities:
+ * - Convert repository `rows` into response `data`
+ * - Apply `transformCustomerRow` in flat format
+ * - Preserve pagination metadata
  *
- * @param {Object} paginatedResult - The raw-paginated customer result from the repository layer.
- * @returns {{ data: CustomerResponse[], pagination: Object }} Transformed customer data with pagination info.
+ * @param {{
+ *   data: Array<Object>,
+ *   pagination: {
+ *     page: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     totalPages: number
+ *   }
+ * }} paginatedResult
+ *
+ * @returns {Promise<PaginatedResult<T>>}
  */
-const transformPaginatedCustomerResults = (paginatedResult) => {
-  return transformPaginatedResult(paginatedResult, (row) =>
-    transformCustomerRow(row, { format: 'flat' })
+const transformPaginatedCustomerResults = async (paginatedResult) =>
+  transformPageResult(
+    paginatedResult,
+    (row) => transformCustomerRow(row, { format: 'flat' })
   );
-};
 
 module.exports = {
   transformEnrichedCustomers,

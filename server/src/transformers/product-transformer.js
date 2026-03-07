@@ -34,7 +34,7 @@
  */
 
 const { cleanObject } = require('../utils/object-utils');
-const { transformPaginatedResult } = require('../utils/transformer-utils');
+const { transformPageResult } = require('../utils/transformer-utils');
 const { compactAudit, makeAudit } = require('../utils/audit-utils');
 
 /**
@@ -86,13 +86,10 @@ const transformProductRow = (row) => {
  *   data: Record<string, any>[];
  *   pagination: { page: number; limit: number; totalRecords: number; totalPages: number };
  * }} paginatedResult - Raw paginated query result
- * @returns {{
- *   data: Record<string, any>[];
- *   pagination: { page: number; limit: number; totalRecords: number; totalPages: number };
- * }} Cleaned paginated product results
+ * @returns {Promise<PaginatedResult<T>>} Cleaned paginated product results
  */
 const transformPaginatedProductResults = (paginatedResult) => {
-  return transformPaginatedResult(paginatedResult, (row) =>
+  return transformPageResult(paginatedResult, (row) =>
     transformProductRow(row)
   );
 };

@@ -1,5 +1,5 @@
 const { cleanObject } = require('../utils/object-utils');
-const { transformPaginatedResult } = require('../utils/transformer-utils');
+const { transformPageResult } = require('../utils/transformer-utils');
 const { makeStatus } = require('../utils/status-utils');
 const { compactAudit, makeAudit } = require('../utils/audit-utils');
 
@@ -53,19 +53,17 @@ const transformOrderTypeRow = (row) => {
 /**
  * Applies transformation to a paginated list of order type records.
  *
- * This function maps each row through `transformOrderTypeRow`.
- * Use this after filtering the rows by user permission.
+ * Each row is transformed using `transformOrderTypeRow`.
+ * This should be used after filtering rows based on user permissions.
  *
- * @param {Object} paginatedResult - Paginated result object with `data: Array<Object>`
- * @returns {Object} Transformed paginated result (e.g., with `data`, `totalCount`, etc.)
+ * @param {Object} paginatedResult - Paginated query result containing `data` and `pagination`.
+ * @returns {Promise<PaginatedResult<T>>}
  *
  * @example
- * const transformed = transformPaginatedOrderTypes(filteredResult);
+ * const transformed = await transformPaginatedOrderTypes(filteredResult);
  */
-const transformPaginatedOrderTypes = (paginatedResult) => {
-  return transformPaginatedResult(paginatedResult, (row) =>
-    transformOrderTypeRow(row)
-  );
+const transformPaginatedOrderTypes = async (paginatedResult) => {
+  return transformPageResult(paginatedResult, transformOrderTypeRow);
 };
 
 module.exports = {

@@ -1,6 +1,6 @@
 const { compactAudit, makeAudit } = require('../utils/audit-utils');
 const { cleanObject } = require('../utils/object-utils');
-const { transformPaginatedResult } = require('../utils/transformer-utils');
+const { transformPageResult } = require('../utils/transformer-utils');
 
 /**
  * Transforms a single raw location SQL row into a clean, API-ready object.
@@ -36,41 +36,25 @@ const transformLocationRow = (row) => {
 };
 
 /**
- * Transforms a paginated result of location rows into API-ready format.
+ * Transform a paginated location query result into API-ready format.
  *
- * Wraps `transformLocationRow` for each item and preserves pagination metadata.
- *
- * ─────────────────────────────────────────────────────────────
- * Input
- * ─────────────────────────────────────────────────────────────
- * {
- *   data: [SQLRow, SQLRow, ...],
- *   pagination: { page, limit, totalRecords, totalPages }
- * }
- *
- * ─────────────────────────────────────────────────────────────
- * Output
- * ─────────────────────────────────────────────────────────────
- * {
- *   data: [TransformedLocation, ...],
- *   pagination: { page, limit, totalRecords, totalPages }
- * }
+ * Applies `transformLocationRow` to each row while preserving
+ * pagination metadata.
  *
  * @param {{
- *   data: Record<string, any>[];
- *   pagination: { page: number; limit: number; totalRecords: number; totalPages: number };
- * }} paginatedResult - Raw paginated query result
+ *   data: Record<string, any>[],
+ *   pagination: {
+ *     page: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     totalPages: number
+ *   }
+ * }} paginatedResult
  *
- * @returns {{
- *   data: Record<string, any>[];
- *   pagination: { page: number; limit: number; totalRecords: number; totalPages: number };
- * }} Cleaned paginated location results
+ * @returns {Promise<PaginatedResult<T>>}
  */
-const transformPaginatedLocationResults = (paginatedResult) => {
-  return transformPaginatedResult(paginatedResult, (row) =>
-    transformLocationRow(row)
-  );
-};
+const transformPaginatedLocationResults = (paginatedResult) =>
+  transformPageResult(paginatedResult, transformLocationRow);
 
 module.exports = {
   transformLocationRow,

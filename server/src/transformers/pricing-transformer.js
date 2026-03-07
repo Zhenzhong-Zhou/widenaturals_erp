@@ -1,6 +1,26 @@
 const { getProductDisplayName } = require('../utils/display-name-utils');
 const { getFullName } = require('../utils/name-utils');
-const { transformPaginatedResult } = require('../utils/transformer-utils');
+const { transformPageResult } = require('../utils/transformer-utils');
+
+/**
+ * @typedef {Object} PricingListItem
+ * @property {number} pricing_id
+ * @property {number} price
+ * @property {string} valid_from
+ * @property {string} valid_to
+ * @property {number} pricing_type_id
+ * @property {string} pricing_type
+ * @property {string} pricing_type_code
+ * @property {string} pricing_type_slug
+ * @property {number} sku_id
+ * @property {string} sku
+ * @property {string} country_code
+ * @property {string} size_label
+ * @property {string} barcode
+ * @property {number} product_id
+ * @property {string} product_name
+ * @property {string} brand
+ */
 
 /**
  * Transforms a raw SQL pricing row into a flattened pricing list item.
@@ -39,13 +59,13 @@ const transformPricingListRecord = (row) => ({
 /**
  * Transforms a paginated pricing query result using the shared pagination utility.
  *
- * @param {Object} paginatedResult - Raw-paginated result from the pricing repository.
+ * @param {Object} paginatedResult - Raw paginated result from the pricing repository.
  * @param {Array<Object>} paginatedResult.data - Raw pricing rows.
  * @param {Object} paginatedResult.pagination - Pagination metadata.
- * @returns {Object} Transformed response containing structured pricing data and pagination info.
+ * @returns {Promise<Object>} Transformed response containing structured pricing data and pagination info.
  */
 const transformPaginatedPricingResult = (paginatedResult) =>
-  transformPaginatedResult(paginatedResult, transformPricingListRecord);
+  transformPageResult(paginatedResult, transformPricingListRecord);
 
 /**
  * Transforms raw pricing data rows into flat export-friendly format.
@@ -69,12 +89,66 @@ const transformExportPricingData = (rows = []) => {
 };
 
 /**
- * /**
- *  * Transforms a single raw pricing detail row into a structured object.
- *  *
- *  * @param {Object} row - Raw database row.
- *  * @returns {Object} Transformed pricing detail.
- *  */
+ * @typedef {Object} RawPricingRow
+ * @property {string} pricing_type
+ * @property {number} location_id
+ * @property {string} location_name
+ * @property {number} price
+ * @property {string} valid_from
+ * @property {string} valid_to
+ * @property {number} pricing_status_id
+ * @property {string} pricing_status_name
+ * @property {string} pricing_created_at
+ * @property {string} created_by_firstname
+ * @property {string} created_by_lastname
+ * @property {string} pricing_updated_at
+ * @property {string} updated_by_firstname
+ * @property {string} updated_by_lastname
+ * @property {string} product_name
+ * @property {string} sku
+ * @property {string} barcode
+ * @property {string} country_code
+ * @property {string} size_label
+ * @property {string} brand_name
+ * @property {number|string} [product_count]
+ */
+
+/**
+ * @typedef {Object} TransformedPricingDetail
+ * @property {Object} pricingType
+ * @property {string} pricingType.name
+ * @property {Object} pricing
+ * @property {number} pricing.locationId
+ * @property {string} pricing.locationName
+ * @property {number} pricing.price
+ * @property {string} pricing.validFrom
+ * @property {string} pricing.validTo
+ * @property {Object} pricing.status
+ * @property {number} pricing.status.id
+ * @property {string} pricing.status.name
+ * @property {string} pricing.createdAt
+ * @property {Object} pricing.createdBy
+ * @property {string} pricing.createdBy.fullname
+ * @property {string} pricing.updatedAt
+ * @property {Object} pricing.updatedBy
+ * @property {string} pricing.updatedBy.fullname
+ * @property {Object} sku
+ * @property {string} sku.sku
+ * @property {string} sku.barcode
+ * @property {string} sku.countryCode
+ * @property {string} sku.sizeLabel
+ * @property {Object} product
+ * @property {string} product.productName
+ * @property {string} product.brand
+ * @property {number} [productCount] - Optional count of products
+ */
+
+/**
+ * Transforms a single raw pricing detail row into a structured object.
+ *
+ * @param {RawPricingRow} row - Raw database row containing pricing, sku, and product fields.
+ * @returns {TransformedPricingDetail} Transformed pricing detail object.
+ */
 const transformPricingDetailRow = (row) => {
   return {
     pricingType: {
@@ -112,7 +186,12 @@ const transformPricingDetailRow = (row) => {
       sizeLabel: row.size_label,
     },
     product: {
-      productName: getProductDisplayName(row),
+      productName: getProductDisplayName({
+        product_name: row.product_name,
+        brand: row.brand_name,
+        sku: row.sku,
+        country_code: row.country_code,
+      }),
       brand: row.brand_name,
     },
     productCount:
@@ -123,13 +202,13 @@ const transformPricingDetailRow = (row) => {
 /**
  * Transforms a paginated pricing detail result using the shared pagination transformer.
  *
- * @param {Object} result - Raw-paginated result from the pricing detail query.
+ * @param {Object} result - Raw paginated result from the pricing detail query.
  * @param {Array<Object>} result.data - Array of raw pricing detail rows.
  * @param {Object} result.pagination - Pagination metadata including page, limit, totalRecords, totalPages.
- * @returns {Object} Transformed result containing formatted pricing detail rows and pagination info.
+ * @returns {Promise<Object>} Transformed result containing formatted pricing detail rows and pagination info.
  */
 const transformPaginatedPricingDetailResult = (result) =>
-  transformPaginatedResult(result, transformPricingDetailRow);
+  transformPageResult(result, transformPricingDetailRow);
 
 /**
  * @typedef {Object} SlicedSkuPricing

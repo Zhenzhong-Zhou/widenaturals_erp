@@ -1,6 +1,6 @@
 const {
   transformRows,
-  transformPaginatedResult,
+  transformPageResult,
 } = require('../utils/transformer-utils');
 const { cleanObject } = require('../utils/object-utils');
 const { getFullName } = require('../utils/name-utils');
@@ -117,21 +117,28 @@ const transformPaginatedAddressRow = (row) => {
 };
 
 /**
- * Transforms a paginated address query result by applying the address row transformer
- * to each row in the result set.
+ * Transforms a paginated address query result by applying the address
+ * row transformer to each record in the dataset.
  *
- * @param {Object} paginatedResult - The raw-paginated result from the DB query.
- * @param {Array<Object>} paginatedResult.rows - The raw address rows.
- * @param {number} paginatedResult.totalRecords - Total record count.
- * @param {number} paginatedResult.totalPages - Total page counts.
- * @param {number} paginatedResult.page - Current page number.
- * @param {number} paginatedResult.limit - Page size.
+ * This helper delegates the row transformation to
+ * `transformPaginatedAddressRow` while preserving pagination metadata.
  *
- * @returns {Object} Transformed paginated result where rows contain
- * cleaned and formatted address data.
+ * @param {{
+ *   data: Array<Object>,
+ *   pagination?: {
+ *     page?: number,
+ *     limit?: number,
+ *     totalRecords?: number,
+ *     totalPages?: number
+ *   }
+ * }} paginatedResult
+ * Raw paginated result returned from the repository layer.
+ *
+ * @returns {Promise<PaginatedResult<T>>}
+ * Transformed paginated address result.
  */
-const transformPaginatedAddressResults = (paginatedResult) => {
-  return transformPaginatedResult(
+const transformPaginatedAddressResults = async (paginatedResult) => {
+  return transformPageResult(
     paginatedResult,
     transformPaginatedAddressRow
   );
