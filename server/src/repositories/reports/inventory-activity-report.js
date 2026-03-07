@@ -286,8 +286,10 @@ const getSkuIdsByProductIds = async (productIds = []) => {
  *   inventory_activity_log → warehouse/location inventory → batch_registry → packaging_material_batches
  *
  * @param {Object} params
- * @param {string[]} [params.productIds] - Array of product UUIDs
- * @param {string[]} [params.packagingMaterialBatchIds] - Array of packaging material batch UUIDs
+ * @param {{
+ *   productIds?: string[],
+ *   packagingMaterialBatchIds?: string[]
+ * }} params
  * @returns {Promise<string[]>} - Array of matching batch IDs
  */
 const getBatchIdsBySourceIds = async ({

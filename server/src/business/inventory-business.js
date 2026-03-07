@@ -153,6 +153,15 @@ const buildEnrichedRecordsForLog = ({
   });
 
 /**
+ * @typedef {Object} InventoryAdjustmentResult
+ * @property {Record<string, Object>} warehouseInventoryUpdates
+ * @property {Record<string, Object>} locationInventoryUpdates
+ * @property {Array<{warehouse_id: string, batch_id: string}>} warehouseCompositeKeys
+ * @property {Array<{location_id: string, batch_id: string}>} locationCompositeKeys
+ * @property {Array<Object>} logRecords
+ */
+
+/**
  * Validates and normalizes inventory adjustment records, then computes
  * the resulting quantity changes and corresponding audit log records.
  *
@@ -168,13 +177,7 @@ const buildEnrichedRecordsForLog = ({
  *
  * @param {import('pg').PoolClient} client - PostgreSQL client within transaction scope
  *
- * @returns {Promise<{
- *   warehouseInventoryUpdates: Object,
- *   locationInventoryUpdates: Object,
- *   warehouseCompositeKeys: Array<Object>,
- *   locationCompositeKeys: Array<Object>,
- *   logRecords: Array<Object>
- * }>}
+ * @returns {Promise<InventoryAdjustmentResult>}
  *
  * @throws {AppError} If validation fails or unexpected system error occurs
  */
@@ -214,13 +217,7 @@ const computeInventoryAdjustments = async (records, client) => {
  *
  * @param client - Postgres client (used within a transaction context)
  *
- * @returns {
- *   warehouseInventoryUpdates: Record<string, object>,
- *   locationInventoryUpdates: Record<string, object>,
- *   warehouseCompositeKeys: Array<{ warehouse_id: string, batch_id: string }>,
- *   locationCompositeKeys: Array<{ location_id: string, batch_id: string }>,
- *   logRecords: Array<object>
- * }
+ * @returns {Promise<InventoryAdjustmentResult>}
  *
  * @throws AppError if any inventory record is not found or reserved quantity exceeds target
  */

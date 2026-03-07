@@ -11,7 +11,7 @@ const { logSystemException } = require('../utils/system-logger');
  *
  * @param {string} code - The status code (e.g., 'ORDER_PENDING').
  * @param {object} [client=null] - Optional database client/transaction.
- * @returns {Promise<UUID|null>} - The status ID or null if not found.
+ * @returns {Promise<string|null>} - The status ID or null if not found.
  * @throws {AppError} - If the database query fails.
  */
 const getOrderStatusIdByCode = async (code, client = null) => {

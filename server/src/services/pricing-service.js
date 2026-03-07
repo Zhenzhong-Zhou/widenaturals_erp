@@ -96,7 +96,7 @@ const fetchPaginatedPricingRecordsService = async ({
       keyword,
     });
 
-    throw AppError.serviceError('Failed to fetch pricing records', 500, error);
+    throw AppError.serviceError('Failed to fetch pricing records', error);
   }
 };
 
@@ -104,14 +104,14 @@ const fetchPaginatedPricingRecordsService = async ({
  * Service to export pricing records in a format-friendly structure.
  *
  * @param {Object} filters - Filter object (e.g., brand, pricingType, etc.)
- * @param {string} format - Export format: 'csv' | 'xlsx' | 'txt'
  * @returns {Promise<Array<Object>>} - Transformed rows for export
  */
-const exportPricingRecordsService = async (filters = {}, format = 'csv') => {
+const exportPricingRecordsService = async (filters = {}) => {
+  const context = 'pricing-service/exportPricingRecordsService';
+  
   logSystemInfo('Exporting pricing records', {
-    context: 'pricing-service/exportPricingRecordsService',
+    context,
     filters,
-    format,
   });
 
   try {
@@ -127,15 +127,14 @@ const exportPricingRecordsService = async (filters = {}, format = 'csv') => {
       return [];
     }
 
-    return transformExportPricingData(rawData.data, format);
+    return transformExportPricingData(rawData.data);
   } catch (error) {
     logSystemException(error, 'Failed to export pricing records', {
-      context: 'pricing-service/exportPricingRecordsService',
+      context,
       filters,
-      format,
     });
 
-    throw AppError.serviceError('Failed to export pricing records', 500, error);
+    throw AppError.serviceError('Failed to export pricing records', error);
   }
 };
 
@@ -153,6 +152,8 @@ const fetchPricingDetailsByPricingTypeId = async (
   page,
   limit
 ) => {
+  const context = 'pricing-service/fetchPricingDetailsByPricingTypeId';
+  
   try {
     // Input validation
     if (!pricingTypeId) {
@@ -167,7 +168,7 @@ const fetchPricingDetailsByPricingTypeId = async (
     }
 
     logSystemInfo('Fetching pricing details by pricing type ID', {
-      context: 'pricing-service/fetchPricingDetailsByPricingTypeId',
+      context,
       pricingTypeId,
       page,
       limit,
@@ -186,8 +187,8 @@ const fetchPricingDetailsByPricingTypeId = async (
 
     return transformPaginatedPricingDetailResult(pricingRawData);
   } catch (error) {
-    logSystemException('Failed to fetch pricing details', {
-      context: 'pricing-service/fetchPricingDetailsByPricingTypeId',
+    logSystemException(error, 'Failed to fetch pricing details', {
+      context,
       pricingTypeId,
       page,
       limit,

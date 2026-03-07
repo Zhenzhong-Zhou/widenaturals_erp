@@ -105,10 +105,17 @@ const createOrderService = async (orderData, category, user) => {
       // 5. Insert base order
       const baseOrderId = await insertOrder(
         {
-          ...orderData,
           id,
           order_number: orderNumber,
+          order_type_id: orderData.order_type_id,
+          order_date: orderData.order_date,
           order_status_id: status_id,
+          created_by: user.id,
+          
+          note: orderData.note ?? null,
+          shipping_address_id: orderData.shipping_address_id ?? null,
+          billing_address_id: orderData.billing_address_id ?? null,
+          metadata: orderData.metadata ?? null,
         },
         client
       );

@@ -112,7 +112,7 @@ const fetchPaginatedProductsService = async ({
     }
 
     // Step 3: Transform raw SQL rows into clean API-ready objects
-    const result = transformPaginatedProductResults(rawResult);
+    const result = await transformPaginatedProductResults(rawResult);
 
     // Step 4: Log success
     logSystemInfo('Fetched paginated product records successfully', {

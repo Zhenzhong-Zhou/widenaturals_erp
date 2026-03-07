@@ -416,6 +416,17 @@ const updateOrderItemStatus = async (
 };
 
 /**
+ * @typedef {Object} OrderItemRow
+ * @property {string} order_item_id - UUID of the order item
+ * @property {string|null} sku_id - SKU ID if item represents a product
+ * @property {string|null} packaging_material_id - Packaging material ID if applicable
+ * @property {number} quantity_ordered - Quantity ordered for this item
+ * @property {string} order_item_status_id - UUID of the order item status
+ * @property {string} order_items_category - Status category
+ * @property {string} order_item_code - Status code
+ */
+
+/**
  * Retrieves all order items for a given order ID, including status metadata.
  *
  * This function queries the `order_items` table and joins related `orders` and `order_status`
@@ -430,14 +441,9 @@ const updateOrderItemStatus = async (
  * @async
  * @param {string} orderId - The UUID of the order whose items are being fetched.
  * @param {object} [client] - Optional PostgreSQL client for transaction context.
- * @returns {Promise<Array<object>>} Array of order items, each with fields:
- *   - order_item_id: UUID
- *   - sku_id: UUID | null
- *   - packaging_material_id: UUID | null
- *   - quantity_ordered: number
- *   - order_item_status_id: UUID
- *   - order_items_category: string
- *   - order_item_code: string
+ *
+ * @returns {Promise<OrderItemRow[]>}
+ * List of order items with status metadata.
  *
  * @throws {AppError} If the query fails to execute.
  */

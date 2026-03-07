@@ -96,7 +96,7 @@ const fetchPaginatedBatchRegistryService = async ({
     // ---------------------------------------------------------
     // Step 5 — Transform for UI consumption
     // ---------------------------------------------------------
-    const result = transformPaginatedBatchRegistryResults({
+    const result = await transformPaginatedBatchRegistryResults({
       ...rawResult,
       data: visibleRows,
     });

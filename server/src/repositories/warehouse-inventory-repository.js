@@ -42,7 +42,7 @@ const { existsQuery } = require('./utils/repository-helper');
  * @param {number} [options.limit=20] - The number of items per page.
  * @param {string} options.statusId - Required. The internal UUID for the 'active' status, used to match products, SKUs, and materials.
  * @param {string} [options.itemType] - Optional. `'product'`, `'material'`, or omitted for both.
- * @returns {Promise<{ data: any[], meta: { page: number, total: number } }>} A paginated summary of warehouse inventory grouped by SKU or material code.
+ * @returns {Promise<PaginatedResult<T>>} A paginated summary of warehouse inventory grouped by SKU or material code.
  */
 const getPaginatedWarehouseInventoryItemSummary = async ({
   page = 1,
@@ -221,7 +221,7 @@ const getPaginatedWarehouseInventoryItemSummary = async ({
       limit,
     });
   } catch (error) {
-    logSystemException(
+    logSystemException(error,
       'Error fetching paginated warehouse inventory summary (products + materials)',
       {
         context: 'warehouse-inventory-repository',
@@ -633,8 +633,13 @@ const getWarehouseInventoryResponseByIds = async (ids, client) => {
  *   }
  * }
  *
- * @param {Record<string, { warehouse_quantity: number, status_id: string, last_update: string }>} updates
- *   A map where each key is a composite of `warehouse_id-batch_id`, and the value contains the update payload.
+ * @param {Record<string, {
+ *   warehouse_quantity: number,
+ *   reserved_quantity: number,
+ *   status_id: string,
+ *   last_update: Date
+ * }>} updates
+ *  - A map where each key is a composite of `warehouse_id-batch_id`, and the value contains the update payload.
  *
  * @param {string} userId - The UUID of the user performing the update (used to populate `updated_by`).
  * @param {import('pg').PoolClient} client - A PostgreSQL client instance from the `pg` library.
@@ -779,10 +784,10 @@ const getWarehouseInventoryQuantities = async (keys, client) => {
  * and only returns batches with positive quantity and matching inventory status (e.g., "in_stock").
  *
  * @param {Object} allocationFilter - Filter criteria for the allocation query.
- * @param {UUID[]} allocationFilter.skuIds - List of SKU IDs to include.
- * @param {UUID[]} allocationFilter.packagingMaterialIds - List of packaging material IDs to include.
- * @param {UUID} allocationFilter.warehouseId - Warehouse ID to fetch batches from.
- * @param {UUID} allocationFilter.inventoryStatusId - Inventory status ID to filter by (e.g., "in_stock").
+ * @param {string[]} allocationFilter.skuIds - List of SKU IDs to include.
+ * @param {string[]} allocationFilter.packagingMaterialIds - List of packaging material IDs to include.
+ * @param {string} allocationFilter.warehouseId - Warehouse ID to fetch batches from.
+ * @param {string} allocationFilter.inventoryStatusId - Inventory status ID to filter by (e.g., "in_stock").
  *
  * @param {Object} [options={}] - Optional configuration for sorting and strategy.
  * @param {'fifo'|'fefo'} [options.strategy] - Allocation strategy to apply (sorts by `inbound_date` or `expiry_date`).

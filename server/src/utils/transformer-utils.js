@@ -44,81 +44,18 @@ const transformRowsAsync = async (rows, transformer) => {
 };
 
 /**
- * Transforms a generic paginated result using a row-level transformer.
+ * Generic paginated transformation result.
  *
- * Supports both:
- * - traditional `pagination` format: `{ data, pagination: { page, limit, totalRecords, totalPages } }`
- * - infinite scroll `loadMore` format: `{ items, offset, limit, hasMore }`
- *
- * The transformer function can be either synchronous or asynchronous (i.e., return a Promise).
- *
- * If the input result is malformed or has no data, a default empty pagination structure is returned.
- *
- * @template TInput
- * @template TOutput
- *
- * @param {{ data: TInput[], pagination?: { page?: number, limit?: number, totalRecords?: number, totalPages?: number, offset?: number } }} paginatedResult
- *   The original paginated query result.
- *
- * @param {(row: TInput) => TOutput | Promise<TOutput>} transformFn
- *   A row-level transformer function that maps each item in `data` to a new shape.
- *
- * @param {Object} [options] - Optional behavior flags.
- * @param {boolean} [options.includeLoadMore=false] - Whether to return `items`, `offset`, `hasMore` instead of `data`, `pagination`.
- *
- * @returns {Promise<
- *   | { data: TOutput[], pagination: { page: number, limit: number, totalRecords: number, totalPages: number } }
- *   | { items: TOutput[], offset: number, limit: number, hasMore: boolean }
- * >}
- *   Transformed paginated or load-more-compatible result.
+ * @template T
+ * @typedef {Object} PaginatedResult
+ * @property {T[]} data
+ * @property {{
+ *   page: number,
+ *   limit: number,
+ *   totalRecords: number,
+ *   totalPages: number
+ * }} pagination
  */
-const transformPaginatedResult = async (
-  paginatedResult,
-  transformFn,
-  options = {}
-) => {
-  if (!paginatedResult || !Array.isArray(paginatedResult.data)) {
-    return {
-      data: [],
-      pagination: {
-        page: 1,
-        limit: 10,
-        totalRecords: 0,
-        totalPages: 0,
-      },
-    };
-  }
-
-  const { data = [], pagination = {} } = paginatedResult;
-
-  const transformedItems = await Promise.all(data.map(transformFn));
-
-  // Support both page and offset style
-  const page = Number(pagination.page ?? 1);
-  const limit = Number(pagination.limit ?? 10);
-  const totalRecords = Number(pagination.totalRecords ?? 0);
-  const offset = pagination.offset ?? (page - 1) * limit;
-  const totalPages = pagination.totalPages ?? Math.ceil(totalRecords / limit);
-
-  if (options.includeLoadMore) {
-    return {
-      items: transformedItems,
-      offset,
-      limit,
-      hasMore: offset + transformedItems.length < totalRecords,
-    };
-  }
-
-  return {
-    data: transformedItems,
-    pagination: {
-      page,
-      limit,
-      totalRecords,
-      totalPages,
-    },
-  };
-};
 
 /**
  * Transforms a paginated repository result by applying a row transformer
@@ -146,15 +83,7 @@ const transformPaginatedResult = async (
  * @param {(row: T) => Promise<U> | U} transformFn
  * Row transformer applied to each record.
  *
- * @returns {Promise<{
- *   data: U[],
- *   pagination: {
- *     page: number,
- *     limit: number,
- *     totalRecords: number,
- *     totalPages: number
- *   }
- * }>}
+ * @returns {Promise<PaginatedResult<T>>}
  * Paginated result containing transformed rows.
  *
  * @example
@@ -424,7 +353,6 @@ const includeFlagsBasedOnAccess = (row, userAccess = {}) => {
 
 module.exports = {
   transformRows,
-  transformPaginatedResult,
   transformPageResult,
   transformLoadMoreResult,
   deriveInventoryStatusFlags,

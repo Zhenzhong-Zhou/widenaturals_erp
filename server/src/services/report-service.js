@@ -67,8 +67,8 @@ const determinePermissionKey = (scope) => {
  *
  * @returns {Promise<Object>} Resolves with transformed inventory activity logs and pagination metadata.
  *
- * @throws {AppError.AuthorizationError} If permission is denied or filters are invalid.
- * @throws {AppError.ServiceError} If the logs could not be retrieved due to internal issues.
+ * @throws {AppError.authorizationError} If permission is denied or filters are invalid.
+ * @throws {AppError.serviceError} If the logs could not be retrieved due to internal issues.
  */
 const fetchInventoryActivityLogsService = async (
   {

@@ -278,6 +278,7 @@ const fulfillOutboundShipmentService = async (requestData, user) => {
 
       const { orderStatusRow, orderItemStatusRow } = await updateAllStatuses({
         orderId: order_id,
+        orderNumber: shipmentMeta.order_number,
         allocationMeta,
         newOrderStatusId: newStatusId,
         newAllocationStatusId,
@@ -341,7 +342,7 @@ const fulfillOutboundShipmentService = async (requestData, user) => {
  * Validation & Business Rules:
  *  - Fulfillment records must exist for the given order; otherwise, confirmation cannot proceed.
  *  - Status validation ensures only confirmable states are processed
- *    (e.g., not confirming already fulfilled or cancelled shipments).
+ *    (e.g., not confirming already fulfilled or canceled shipments).
  *  - A single shipment ID must be associated with all fulfillments being confirmed.
  *  - Confirming outbound fulfillment always updates inventory and audit logs atomically.
  *
@@ -366,6 +367,7 @@ const fulfillOutboundShipmentService = async (requestData, user) => {
  * @param {string} requestData.orderId - ID of the order to confirm
  * @param {string} requestData.orderStatus - Target order status code
  * @param {string} requestData.allocationStatus - Target allocation status code
+ * @param {string} requestData.shipmentId - Target shipment id
  * @param {string} requestData.shipmentStatus - Target shipment status code
  * @param {string} requestData.fulfillmentStatus - Target fulfillment status code
  * @param {Object} user - Authenticated user context
@@ -390,6 +392,8 @@ const fulfillOutboundShipmentService = async (requestData, user) => {
  *  - ServiceError: if inventory update or transaction fails
  */
 const confirmOutboundFulfillmentService = async (requestData, user) => {
+  const  context = 'outbound-fulfillment-service/confirmOutboundFulfillmentService';
+  
   try {
     return await withTransaction(async (client) => {
       const userId = user.id;
@@ -421,15 +425,23 @@ const confirmOutboundFulfillmentService = async (requestData, user) => {
       const uniqueShipmentIds = [
         ...new Set(fulfillments.map((f) => f.shipment_id)),
       ];
+      
       if (uniqueShipmentIds.length > 1) {
         throw AppError.validationError(
           'Multiple shipment IDs detected — cannot confirm multiple shipments in a single transaction.',
           { context: 'confirmOutboundFulfillmentService' }
         );
       }
-
+      
+      if (uniqueShipmentIds.length === 0) {
+        throw AppError.notFoundError(
+          'No shipment found for the order fulfillments.',
+          { context: 'confirmOutboundFulfillmentService' }
+        );
+      }
+      
       const shipmentId = uniqueShipmentIds[0];
-
+      
       // Optional: check for mismatch between request and derived shipment
       if (requestData.shipmentId && requestData.shipmentId !== shipmentId) {
         logSystemInfo('Shipment ID mismatch detected', {
@@ -554,13 +566,21 @@ const confirmOutboundFulfillmentService = async (requestData, user) => {
       });
 
       assertLogsGenerated(logs, 'build');
-      const logMetadata = await insertInventoryActivityLogs(logs, client);
+      const logMetadata = await insertInventoryActivityLogs(
+        logs,
+        client,
+        {
+          context,
+          orderId,
+          orderNumber,
+          shipmentId
+        }
+      );
       assertLogsGenerated(logMetadata, 'insert');
 
       // --- 15. Log success
       logSystemInfo('Outbound fulfillment successfully confirmed', {
-        context:
-          'outbound-fulfillment-service/confirmOutboundFulfillmentService',
+        context,
         orderId,
         userId,
       });
@@ -582,14 +602,14 @@ const confirmOutboundFulfillmentService = async (requestData, user) => {
     });
   } catch (error) {
     logSystemException(error, 'Error confirming outbound fulfillment', {
-      context: 'outbound-fulfillment-service/confirmOutboundFulfillmentService',
+      context,
       orderId: requestData?.orderId,
       userId: user?.id,
     });
 
     throw AppError.serviceError('Unable to confirm outbound fulfillment.', {
       cause: error,
-      context: 'outbound-fulfillment-service/confirmOutboundFulfillmentService',
+      context,
     });
   }
 };
@@ -686,7 +706,7 @@ const fetchPaginatedOutboundFulfillmentService = async ({
     }
 
     // Step 3: Transform raw SQL rows into clean API-ready objects
-    const result = transformPaginatedOutboundShipmentResults(rawResult);
+    const result = await transformPaginatedOutboundShipmentResults(rawResult);
 
     // Step 4: Log success
     logSystemInfo('Fetched paginated outbound shipment records', {
@@ -826,8 +846,8 @@ const completeManualFulfillmentService = async (requestData, user) => {
       const shipment = await getShipmentByShipmentId(rawShipmentId, client);
       assertShipmentFound(shipment, rawShipmentId);
 
-      const { order_id, status_code, delivery_method_name } = shipment;
-      assertDeliveryMethodIsAllowed(delivery_method_name);
+      const { order_id, status_code, delivery_method_name, is_pickup_location } = shipment;
+      assertDeliveryMethodIsAllowed(delivery_method_name, is_pickup_location);
 
       const orderId = order_id;
       logSystemInfo('Step 1: Shipment record fetched', {

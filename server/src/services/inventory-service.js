@@ -65,6 +65,8 @@ const {
  * @throws {AppError} If validation fails or any DB operation encounters an error.
  */
 const createInventoryRecordService = async (records, user_id) => {
+  const context = 'inventory-service/adjustInventoryQuantitiesService';
+  
   try {
     return await withTransaction(async (client) => {
       // Step 1: Validate, normalize, and deduplicate input records
@@ -78,7 +80,12 @@ const createInventoryRecordService = async (records, user_id) => {
       );
       const insertedLocationRecords = await insertLocationInventoryRecords(
         dedupedLocationRecords,
-        client
+        client,
+        {
+          context: `${context}//insertLocationInventoryRecords`,
+          userId: user_id,
+          recordCount: dedupedLocationRecords.length,
+        }
       );
 
       // Step 3: Build mappings from a composite key → inserted inventory IDs
@@ -117,7 +124,15 @@ const createInventoryRecordService = async (records, user_id) => {
 
       // Step 5: Build and insert log rows
       const logRows = buildInventoryLogRows(enrichedForLog);
-      await insertInventoryActivityLogs(logRows, client);
+      await insertInventoryActivityLogs(
+        logRows,
+        client,
+        {
+          context: `${context}/insertInventoryActivityLogs`,
+          userId: user_id,
+          logCount: logRows.length,
+        }
+      );
 
       // Step 6: Fetch full enriched inventory rows to return
       const [warehouseRaw, locationRaw] = await Promise.all([
@@ -139,7 +154,7 @@ const createInventoryRecordService = async (records, user_id) => {
     });
   } catch (error) {
     logSystemException(error, 'createInventoryRecordService failed', {
-      context: 'inventory-service/createInventoryRecordService',
+      context,
       recordCount: records?.length,
     });
     throw AppError.serviceError('Failed to create inventory records.', {
@@ -180,6 +195,8 @@ const adjustInventoryQuantitiesService = async (
   user_id,
   lockBeforeUpdate = true
 ) => {
+  const context = 'inventory-service/adjustInventoryQuantitiesService';
+  
   try {
     return await withTransaction(async (client) => {
       // Step 1: Validate updates and compute what needs to be changed
@@ -220,7 +237,12 @@ const adjustInventoryQuantitiesService = async (
       const warehouseInventoryUpdatesWithReserve = Object.fromEntries(
         Object.entries(warehouseInventoryUpdates).map(([key, value]) => [
           key,
-          { ...value, reserved_quantity: 0, last_update: new Date() },
+          {
+            warehouse_quantity: value.warehouse_quantity,
+            status_id: value.status_id,
+            reserved_quantity: 0,
+            last_update: new Date(),
+          },
         ])
       );
 
@@ -243,7 +265,12 @@ const adjustInventoryQuantitiesService = async (
       // Step 5: Insert inventory activity logs
       await insertInventoryActivityLogs(
         buildInventoryLogRows(enrichedLogs),
-        client
+        client,
+        {
+          context: `${context}/insertInventoryActivityLogs`,
+          userId: user_id,
+          logCount: enrichedLogs.length,
+        }
       );
 
       // Step 6: Fetch full enriched inventory rows to return
@@ -269,7 +296,7 @@ const adjustInventoryQuantitiesService = async (
       error,
       'Failed to adjust inventory quantities due to unexpected system error.',
       {
-        context: 'inventory-service/adjustInventoryQuantitiesService',
+        context,
         updates,
       }
     );

@@ -84,7 +84,7 @@ const fetchPaginatedComplianceRecordsService = async ({
     // ---------------------------------------------------------
     // Step 3 — Transform results
     // ---------------------------------------------------------
-    const result = transformPaginatedComplianceRecordResults(rawResult);
+    const result = await transformPaginatedComplianceRecordResults(rawResult);
 
     // ---------------------------------------------------------
     // Step 4 — Log success
