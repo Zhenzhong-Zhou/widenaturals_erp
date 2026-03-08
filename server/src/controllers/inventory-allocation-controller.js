@@ -10,30 +10,48 @@ const { logInfo } = require('../utils/logger-helper');
 /**
  * Controller: allocateInventoryForOrderController
  *
- * Allocates inventory for a given sales order based on the selected warehouse and allocation strategy.
+ * Initiates automatic inventory allocation for a given order.
  *
- * This controller is responsible for:
- * - Validating the `orderId` from route params (must be a UUID).
- * - Extracting allocation parameters (`strategy`, `warehouseId`) from the request body.
- * - Delegating to the `allocateInventoryForOrderService` service function.
- * - Logging the result of the allocation.
- * - Returning a JSON response with allocation details.
+ * This controller:
+ * - Validates the `orderId` route parameter (UUID).
+ * - Extracts allocation parameters (`strategy`, `warehouseId`, `allowPartial`)
+ *   from the request body.
+ * - Delegates the allocation process to `allocateInventoryForOrderService`.
+ * - Returns allocation identifiers used for the allocation review step.
  *
- * Allocation strategy can be:
- * - `fefo`: First-Expire, First-Out (default)
- * - `fifo`: First-In, First-Out
+ * Allocation strategies:
+ * - `fefo` → First-Expire, First-Out (default)
+ * - `fifo` → First-In, First-Out
+ *
+ * Partial allocation workflow:
+ * 1. The client typically sends an allocation request without `allowPartial`.
+ * 2. If the warehouse has inventory but not enough to satisfy all items,
+ *    the service returns a validation error (`INSUFFICIENT_INVENTORY`)
+ *    with shortage details.
+ * 3. The UI prompts the user to confirm partial allocation.
+ * 4. The client retries the request with `allowPartial: true`.
+ * 5. The service allocates all available inventory batches.
+ *
+ * If no inventory exists in the selected warehouse for some items,
+ * the service returns a `NO_WAREHOUSE_INVENTORY` validation error.
  *
  * Example Request:
- * PATCH /inventory/allocate/:orderId
- * Body: { "strategy": "fefo", "warehouseId": "..." }
+ * POST /inventory-allocations/allocate/:orderId
+ *
+ * Body:
+ * {
+ *   "strategy": "fefo",
+ *   "warehouseId": "123e4567-e89b-12d3-a456-426614174000",
+ *   "allowPartial": false
+ * }
  *
  * Example Success Response:
  * {
  *   "success": true,
- *   "message": "Inventory allocation complete",
+ *   "message": "Inventory allocation created successfully",
  *   "data": {
- *     "allocations": [...],
- *     "summary": { fulfilled: true, partial: false, ... }
+ *     "orderId": "...",
+ *     "allocationIds": ["...", "..."]
  *   }
  * }
  *
@@ -43,12 +61,13 @@ const { logInfo } = require('../utils/logger-helper');
  */
 const allocateInventoryForOrderController = wrapAsync(async (req, res) => {
   const { orderId } = req.params;
-  const { strategy, warehouseId } = req.body;
+  const { strategy, warehouseId, allowPartial } = req.body;
   const user = req.auth.user;
 
   const result = await allocateInventoryForOrderService(user, orderId, {
     strategy,
     warehouseId,
+    allowPartial,
   });
 
   logInfo('Inventory allocated successfully', req, {

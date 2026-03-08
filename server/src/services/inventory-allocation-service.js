@@ -84,6 +84,8 @@ const {
  * - Validates the allocation results:
  *    - Throws `NO_WAREHOUSE_INVENTORY` if no eligible batch exists in the selected warehouse
  *    - Throws `INSUFFICIENT_INVENTORY` if batches exist but cannot fully satisfy the requested quantity
+ *      and `allowPartial` is false
+ *    - If `allowPartial` is true, allocation proceeds using the available quantities
  * - Inserts `inventory_allocations` records with status `inventory_allocation_init`
  * - Updates order and order item statuses to `ORDER_ALLOCATING`
  * - Returns allocation identifiers for the review step
@@ -92,7 +94,12 @@ const {
  * - Product SKUs
  * - Packaging materials
  *
- * Partial allocation can optionally be enabled using `allowPartial`. When enabled,
+ * Partial allocation can optionally be enabled using `allowPartial`.
+ * When enabled, the service will allocate all available inventory batches
+ * even if the requested quantity cannot be fully satisfied.
+ *
+ * Items that receive partial allocation will have a remaining
+ * unallocated quantity which can be resolved later via manual allocation. When enabled,
  * allocation proceeds even if some items cannot be fully satisfied.
  *
  * Concurrency notes:
@@ -114,7 +121,7 @@ const {
  * - the order is not in an allocatable status
  * - order items contain invalid statuses
  * - no inventory batches exist in the selected warehouse
- * - inventory batches exist but quantity is insufficient
+ * - inventory batches exist but quantity is insufficient and `allowPartial` is false
  * - an unexpected system failure occurs
  */
 const allocateInventoryForOrderService = async (
@@ -122,6 +129,8 @@ const allocateInventoryForOrderService = async (
   rawOrderId,
   { strategy = 'fefo', warehouseId, allowPartial = false }
 ) => {
+  const context = 'inventory-allocation-service/allocateInventoryForOrderService';
+  
   try {
     if (!warehouseId) {
       throw AppError.validationError('Warehouse ID is required for allocation');
@@ -132,7 +141,7 @@ const allocateInventoryForOrderService = async (
 
       // Lock order row first
       await lockRows(client, 'orders', [rawOrderId], 'FOR UPDATE', {
-        context: 'allocateInventoryForOrderService/lockOrderRow',
+        context: `${context}/lockOrderRow`,
       });
 
       // Fetch current order metadata and validate status transition
@@ -168,7 +177,7 @@ const allocateInventoryForOrderService = async (
       // Lock order_items rows for this order
       await lockRows(client, 'order_items', orderItemIds, 'FOR UPDATE', {
         context:
-          'inventory-allocation-service/allocateInventoryForOrderService/lockOrderItems',
+          `${context}/lockOrderItems`,
       });
 
       if (!orderItemsMetadata.length) {
@@ -218,7 +227,7 @@ const allocateInventoryForOrderService = async (
         'FOR UPDATE',
         {
           context:
-            'inventory-allocation-service/allocateInventoryForOrderService/lockWarehouseInventory',
+            `${context}/lockWarehouseInventory`,
         }
       );
 
@@ -228,6 +237,33 @@ const allocateInventoryForOrderService = async (
         batches,
         strategy
       );
+      
+      const missingBatchItems = allocationResult.filter(
+        item =>
+          !item.allocated.allocatedBatches ||
+          item.allocated.allocatedBatches.length === 0
+      );
+      
+      if (missingBatchItems.length > 0) {
+        const items = missingBatchItems.map(item => {
+          const meta = orderItemMap.get(item.order_item_id);
+          const { itemCode, itemName } = resolveOrderItemDisplay(meta);
+          
+          return {
+            itemCode,
+            itemName,
+            requestedQuantity: item.quantity_ordered
+          };
+        });
+        
+        throw AppError.validationError(
+          'No inventory batches are available in the selected warehouse for some items.',
+          {
+            code: 'NO_WAREHOUSE_INVENTORY',
+            details: { items }
+          }
+        );
+      }
       
       const insufficientItems = allocationResult
         .filter(item => item.allocated.allocatedTotal < item.quantity_ordered)
@@ -256,35 +292,10 @@ const allocateInventoryForOrderService = async (
           'Some items cannot be fully allocated due to insufficient inventory.',
           {
             code: 'INSUFFICIENT_INVENTORY',
-            items: insufficientItems,
-            canAllowPartial: true
-          }
-        );
-      }
-
-      const missingBatchItems = allocationResult.filter(
-        item =>
-          !item.allocated.allocatedBatches ||
-          item.allocated.allocatedBatches.length === 0
-      );
-
-      if (missingBatchItems.length > 0) {
-        const items = missingBatchItems.map(item => {
-          const meta = orderItemMap.get(item.order_item_id);
-          const { itemCode, itemName } = resolveOrderItemDisplay(meta);
-
-          return {
-            itemCode,
-            itemName,
-            requestedQuantity: item.quantity_ordered
-          };
-        });
-
-        throw AppError.validationError(
-          'No inventory batches are available in the selected warehouse for some items.',
-          {
-            code: 'NO_WAREHOUSE_INVENTORY',
-            items
+            details: {
+              items: insufficientItems,
+              canAllowPartial: true
+            }
           }
         );
       }
@@ -324,7 +335,7 @@ const allocateInventoryForOrderService = async (
     });
   } catch (error) {
     logSystemException(error, 'Inventory allocation failed', {
-      context: 'inventory-allocation-service/allocateInventoryForOrderService',
+      context,
       orderId: rawOrderId,
       userId: user?.id,
       strategy,

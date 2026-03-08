@@ -18,6 +18,7 @@ const {
   validateOptionalString,
   aggregatedDateRangeSchema,
   validateUUIDOrUUIDArrayOptional,
+  createBooleanFlag,
 } = require('./general-validators');
 
 /**
@@ -25,17 +26,36 @@ const {
  *
  * Fields:
  * - strategy: 4-character allocation strategy (default: 'fefo')
- * - warehouseId: UUID of the warehouse where inventory will be allocated from
+ * - warehouseId: UUID of the warehouse from which inventory will be allocated
+ * - allowPartial: whether the server should proceed with allocation when the
+ *   requested quantity cannot be fully satisfied
  *
- * Example body:
+ * Behavior:
+ * - When `allowPartial` is false (default), the request fails with
+ *   `INSUFFICIENT_INVENTORY` if the warehouse does not contain enough stock
+ *   to fully allocate all order items.
+ *
+ * - When `allowPartial` is true, the server allocates all available inventory
+ *   batches and leaves the remaining quantity unallocated.
+ *
+ * Typical workflow:
+ * 1. The client sends an allocation request without `allowPartial`.
+ * 2. If insufficient inventory is detected, the server returns a validation
+ *    error with details of the shortage.
+ * 3. The UI prompts the user to confirm partial allocation.
+ * 4. The client retries the request with `allowPartial: true`.
+ *
+ * Example request body:
  * {
  *   "strategy": "fefo",
- *   "warehouseId": "123e4567-e89b-12d3-a456-426614174000"
+ *   "warehouseId": "123e4567-e89b-12d3-a456-426614174000",
+ *   "allowPartial": false
  * }
  */
 const allocateInventorySchema = Joi.object({
   strategy: validateString('Strategy', 4, 4).default('fefo'),
   warehouseId: validateUUID('Warehouse ID'),
+  allowPartial: createBooleanFlag('Allow Partial').default(false),
 });
 
 /**
