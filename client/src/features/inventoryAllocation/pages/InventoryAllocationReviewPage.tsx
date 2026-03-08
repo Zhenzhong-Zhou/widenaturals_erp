@@ -13,10 +13,10 @@ import {
   Loading,
 } from '@components/index';
 import {
+  AllocationActionToolbar,
   AllocationOrderHeaderSection,
   AllocationReviewTable,
 } from '@features/inventoryAllocation/components/AllocationInventoryReviewDetails';
-import { InitiateFulfillmentModal } from '@features/outboundFulfillment/components/InitiateFulfillmentFormModal';
 import { getShortOrderNumber } from '@features/order/utils';
 import {
   useInventoryAllocationConfirmation,
@@ -126,16 +126,32 @@ const InventoryAllocationReviewPage = () => {
       confirmableStatusCodes.includes(item.allocationStatusCode)
     );
   }, [allocationReviewItems]);
-
-  const canInitiateFulfillment = useMemo(() => {
+  
+  const allocationSummary = useMemo(() => {
     if (!allocationReviewItems || allocationReviewItems.length === 0) {
-      return false;
+      return {
+        total: 0,
+        confirmed: 0,
+        incomplete: 0,
+        isFullyAllocated: false,
+      };
     }
-
-    return allocationReviewItems.some(
+    
+    const confirmed = allocationReviewItems.filter(
       (item) => item.allocationStatusCode === 'ALLOC_CONFIRMED'
-    );
+    ).length;
+    
+    const total = allocationReviewItems.length;
+    
+    return {
+      total,
+      confirmed,
+      incomplete: total - confirmed,
+      isFullyAllocated: confirmed === total,
+    };
   }, [allocationReviewItems]);
+  
+  const canInitiateFulfillment = allocationSummary.isFullyAllocated;
 
   // === Confirm Submit ===
   const handleConfirmationSubmit = async () => {
@@ -193,44 +209,20 @@ const InventoryAllocationReviewPage = () => {
             <CustomTypography variant="h4" sx={{ fontWeight: 'bold' }}>
               Inventory Allocation Review
             </CustomTypography>
-
-            <Stack direction="row" spacing={2} alignItems="center">
-              {confirmError && <ErrorMessage message={confirmError} />}
-              {canConfirm && (
-                <CustomButton
-                  onClick={handleConfirmationSubmit}
-                  disabled={isReviewLoading || isConfirming}
-                >
-                  {isReviewLoading || isConfirming
-                    ? 'Confirming'
-                    : 'Confirm Allocation'}
-                </CustomButton>
-              )}
-
-              {/* === New Initiate Fulfillment Button === */}
-              {orderId &&
-                allocationIds.length > 0 &&
-                canInitiateFulfillment && (
-                  <InitiateFulfillmentModal
-                    orderId={orderId}
-                    allocationIds={allocationIds}
-                    defaultValues={{
-                      fulfillmentNotes: `Fulfillment initiated for Order ${allocationReviewHeader?.orderNumber ?? ''} — created by ${allocationReviewHeader?.salespersonName ?? 'Unknown User'}`,
-                      shipmentNotes: `Prepare shipment for Order ${allocationReviewHeader?.orderNumber ?? ''} (Status: ${allocationReviewHeader?.orderStatus ?? 'N/A'})`,
-                      shipmentBatchNote: 'No additional batch notes provided.',
-                    }}
-                    onSuccess={refresh}
-                  />
-                )}
-
-              <CustomButton
-                onClick={refresh}
-                variant="outlined"
-                disabled={isReviewLoading}
-              >
-                {isReviewLoading ? 'Refreshing' : 'Refresh Data'}
-              </CustomButton>
-            </Stack>
+            
+            <AllocationActionToolbar
+              confirmError={confirmError}
+              canConfirm={canConfirm}
+              handleConfirmationSubmit={handleConfirmationSubmit}
+              isReviewLoading={isReviewLoading}
+              isConfirming={isConfirming}
+              allocationSummary={allocationSummary}
+              canInitiateFulfillment={canInitiateFulfillment}
+              orderId={orderId}
+              allocationIds={allocationIds}
+              allocationReviewHeader={allocationReviewHeader}
+              refresh={refresh}
+            />
           </Box>
 
           <Divider sx={{ mb: 3 }} />
