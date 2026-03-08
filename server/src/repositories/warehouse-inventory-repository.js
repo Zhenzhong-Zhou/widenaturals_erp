@@ -779,23 +779,53 @@ const getWarehouseInventoryQuantities = async (keys, client) => {
 };
 
 /**
- * Fetches allocatable batches from warehouse inventory based on SKU or packaging material filters.
+ * Fetches allocatable inventory batches from a specific warehouse.
  *
- * Applies allocation strategies like FIFO (first-in, first-out) or FEFO (first-expired, first-out),
- * and only returns batches with positive quantity and matching inventory status (e.g., "in_stock").
+ * This query retrieves batch-level inventory records from `warehouse_inventory`
+ * and joins related batch metadata from `batch_registry`, `product_batches`,
+ * and `packaging_material_batches`. The result provides a unified batch view
+ * regardless of whether the batch belongs to:
+ *
+ * - a product SKU
+ * - a packaging material
+ *
+ * Only batches that meet the following conditions are returned:
+ * - belong to the specified warehouse
+ * - have positive available quantity (`warehouse_quantity > 0`)
+ * - match the specified inventory status (e.g., `inventory_in_stock`)
+ * - match the provided SKU IDs or packaging material IDs
+ *
+ * Allocation strategies can optionally be applied to control batch ordering:
+ *
+ * - **FIFO**: sorts by `inbound_date`
+ * - **FEFO**: sorts by `expiry_date`
+ *
+ * The ordering determines how batches are consumed during inventory allocation.
  *
  * @param {Object} allocationFilter - Filter criteria for the allocation query.
- * @param {string[]} allocationFilter.skuIds - List of SKU IDs to include.
- * @param {string[]} allocationFilter.packagingMaterialIds - List of packaging material IDs to include.
- * @param {string} allocationFilter.warehouseId - Warehouse ID to fetch batches from.
- * @param {string} allocationFilter.inventoryStatusId - Inventory status ID to filter by (e.g., "in_stock").
+ * @param {string[]} allocationFilter.skuIds - List of SKU IDs eligible for allocation.
+ * @param {string[]} allocationFilter.packagingMaterialIds - List of packaging material IDs eligible for allocation.
+ * @param {string} allocationFilter.warehouseId - Warehouse ID to fetch inventory from.
+ * @param {string} allocationFilter.inventoryStatusId - Inventory status ID (e.g. `inventory_in_stock`).
  *
- * @param {Object} [options={}] - Optional configuration for sorting and strategy.
- * @param {'fifo'|'fefo'} [options.strategy] - Allocation strategy to apply (sorts by `inbound_date` or `expiry_date`).
+ * @param {Object} [options={}] - Optional allocation configuration.
+ * @param {'fifo'|'fefo'} [options.strategy] - Batch ordering strategy applied before allocation.
  *
- * @param {Object} [client] - Optional database client for transactional context.
+ * @param {Object} [client] - Optional PostgreSQL client used for transactional execution.
  *
- * @returns {Promise<Array>} Resolves to an array of allocatable batch records.
+ * @returns {Promise<Array<Object>>} Resolves to a list of allocatable batch records.
+ *
+ * Each returned row contains:
+ * - `batch_id`
+ * - `warehouse_id`
+ * - `warehouse_name`
+ * - `warehouse_quantity`
+ * - `reserved_quantity`
+ * - `expiry_date`
+ * - `lot_number`
+ * - `batch_type`
+ * - `sku_id` (if product batch)
+ * - `packaging_material_id` (if packaging batch)
  *
  * @throws {AppError} If the database query fails.
  */
@@ -824,13 +854,16 @@ const getAllocatableBatchesByWarehouse = async (
     SELECT
       wi.batch_id,
       wi.warehouse_id,
+      w.name AS warehouse_name,
       wi.warehouse_quantity,
       wi.reserved_quantity,
       COALESCE(pb.expiry_date, pmb.expiry_date) AS expiry_date,
+      COALESCE(pb.lot_number, pmb.lot_number) AS lot_number,
       br.batch_type,
       pb.sku_id,
       pm.id AS packaging_material_id
     FROM warehouse_inventory wi
+    JOIN warehouses w ON wi.warehouse_id = w.id
     JOIN batch_registry br ON wi.batch_id = br.id
     LEFT JOIN product_batches pb ON br.product_batch_id = pb.id
     LEFT JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id

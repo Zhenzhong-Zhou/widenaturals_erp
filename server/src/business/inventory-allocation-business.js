@@ -13,6 +13,7 @@
 
 const { generateChecksum } = require('../utils/crypto-utils');
 const AppError = require('../utils/AppError');
+const { getProductDisplayName } = require('../utils/display-name-utils');
 
 /**
  * Allocates inventory batches for each order item using the specified strategy (FEFO or FIFO).
@@ -49,12 +50,26 @@ const AppError = require('../utils/AppError');
  *   packaging_material_id: string | null,
  *   quantity_ordered: number,
  *   allocated: {
- *     allocatedBatches: Array<Object>,
+ *     allocatedBatches: Array<{
+ *       batch_id: string,
+ *       warehouse_id: string,
+ *       warehouse_name: string,
+ *       warehouse_quantity: number,
+ *       reserved_quantity: number,
+ *       expiry_date: Date | null,
+ *       lot_number: string | null,
+ *       batch_type: string,
+ *       sku_id: string | null,
+ *       packaging_material_id: string | null,
+ *       _available: number,
+ *       allocated_quantity: number
+ *     }>,
  *     allocatedTotal: number,
  *     remaining: number,
  *     fulfilled: boolean
  *   }
- * }>} Allocation result for each order item.
+ * }>}
+ * Allocation result for each order item.
  */
 const allocateBatchesForOrderItems = (
   orderItems,
@@ -98,6 +113,58 @@ const allocateBatchesForOrderItems = (
       allocated: { allocatedBatches, allocatedTotal, remaining, fulfilled },
     };
   });
+};
+
+/**
+ * Resolves a human-readable display code and name for an order item.
+ *
+ * Order items in the ERP system may represent different inventory entities,
+ * currently:
+ *   - Product SKUs
+ *   - Packaging materials
+ *
+ * This helper extracts a normalized `{ itemCode, itemName }` pair from the
+ * order item metadata so it can be safely used in:
+ *
+ * - validation error messages
+ * - allocation error responses
+ * - logs and audit entries
+ *
+ * The function is defensive and returns `null` values when the metadata
+ * does not contain a recognized item type.
+ *
+ * @param {Object} meta - Order item metadata row returned from repository query
+ * @param {string|null} meta.sku_id - SKU ID if the item represents a product
+ * @param {string|null} meta.packaging_material_id - Packaging material ID if applicable
+ * @param {string|null} meta.sku_code - SKU code
+ * @param {string|null} meta.material_code - Packaging material code
+ * @param {string|null} meta.material_name - Packaging material name
+ *
+ * @returns {{ itemCode: string | null, itemName: string | null }}
+ * Normalized display information for the order item.
+ */
+const resolveOrderItemDisplay = (meta) => {
+  if (!meta) {
+    return { itemCode: null, itemName: null };
+  }
+  
+  // Product SKU item
+  if (meta.sku_id) {
+    return {
+      itemCode: meta.sku_code ?? null,
+      itemName: getProductDisplayName(meta) ?? null
+    };
+  }
+  
+  // Packaging material item
+  if (meta.packaging_material_id) {
+    return {
+      itemCode: meta.material_code ?? null,
+      itemName: meta.material_name ?? null
+    };
+  }
+  
+  return { itemCode: null, itemName: null };
 };
 
 /**
@@ -644,6 +711,7 @@ const buildOrderAllocationResult = ({
 
 module.exports = {
   allocateBatchesForOrderItems,
+  resolveOrderItemDisplay,
   allocateBatchesByStrategy,
   validateAllocationStatusTransition,
   computeAllocationStatusPerItem,

@@ -34,6 +34,7 @@ const {
   buildWarehouseInventoryActivityLogsForOrderAllocation,
   buildOrderAllocationResult,
   validateAllocationStatusTransition,
+  resolveOrderItemDisplay,
 } = require('../business/inventory-allocation-business');
 const {
   insertInventoryAllocationsBulk,
@@ -68,32 +69,58 @@ const {
 /**
  * Allocates inventory batches to each order item using a batch allocation strategy (FEFO/FIFO).
  *
- * This function performs the allocation as a transactional operation with row-level locks:
- * - Locks the target order (`orders`) to prevent concurrent status changes
- * - Locks the associated `order_items` to avoid conflicting allocation processes
- * - Locks affected `warehouse_inventory` rows to guarantee consistency when allocating stock
- * - Validates the current order status and checks status transition validity
- * - Ensures all order items are in an allocatable status (e.g. 'ORDER_CONFIRMED')
- * - Retrieves in-stock batches for the order's SKUs or packaging materials
- * - Applies the chosen allocation strategy (FEFO or FIFO)
- * - Persists allocation rows with `inventory_allocation_init` status
- * - Updates the order and item statuses to `ORDER_ALLOCATING`
- * - Returns a simplified allocation review payload
+ * This operation runs inside a database transaction and applies row-level locks to ensure
+ * safe and consistent inventory allocation under concurrent requests.
+ *
+ * Main workflow:
+ * - Locks the target `orders` row to prevent concurrent status changes
+ * - Locks associated `order_items` rows
+ * - Validates order status transition rules
+ * - Ensures all order items are in allocatable status (`ORDER_CONFIRMED`)
+ * - Retrieves candidate inventory batches for the selected warehouse
+ *   from `warehouse_inventory` and related batch tables
+ * - Locks the corresponding `warehouse_inventory` rows
+ * - Applies the allocation strategy (FEFO or FIFO) to compute batch allocations
+ * - Validates the allocation results:
+ *    - Throws `NO_WAREHOUSE_INVENTORY` if no eligible batch exists in the selected warehouse
+ *    - Throws `INSUFFICIENT_INVENTORY` if batches exist but cannot fully satisfy the requested quantity
+ * - Inserts `inventory_allocations` records with status `inventory_allocation_init`
+ * - Updates order and order item statuses to `ORDER_ALLOCATING`
+ * - Returns allocation identifiers for the review step
+ *
+ * Order items may represent either:
+ * - Product SKUs
+ * - Packaging materials
+ *
+ * Partial allocation can optionally be enabled using `allowPartial`. When enabled,
+ * allocation proceeds even if some items cannot be fully satisfied.
+ *
+ * Concurrency notes:
+ * This operation applies row-level locks on `orders`, `order_items`,
+ * and `warehouse_inventory` records to prevent race conditions
+ * during concurrent allocation requests.
  *
  * @param {Object} user - Authenticated user object (must include `id`)
- * @param {string} rawOrderId - Raw order UUID
+ * @param {string} rawOrderId - Order UUID
  * @param {Object} options - Allocation configuration
- * @param {'fefo'|'fifo'} [options.strategy='fefo'] - Allocation strategy to use
- * @param {string|null} [options.warehouseId=null] - Warehouse to allocate from
+ * @param {'fefo'|'fifo'} [options.strategy='fefo'] - Allocation strategy to apply
+ * @param {string} options.warehouseId - Warehouse ID from which inventory will be allocated
+ * @param {boolean} [options.allowPartial=false] - Allow partial allocation when inventory is insufficient
  *
- * @returns {Promise<{ orderId: string, allocationIds: string[] }>} - Summary of created allocations for the order
+ * @returns {Promise<{ orderId: string, allocationIds: string[] }>}
+ * Returns the order ID and created inventory allocation record IDs for the review step.
  *
- * @throws {AppError} If the order is in an invalid status or allocation fails
+ * @throws {AppError} When:
+ * - the order is not in an allocatable status
+ * - order items contain invalid statuses
+ * - no inventory batches exist in the selected warehouse
+ * - inventory batches exist but quantity is insufficient
+ * - an unexpected system failure occurs
  */
 const allocateInventoryForOrderService = async (
   user,
   rawOrderId,
-  { strategy = 'fefo', warehouseId }
+  { strategy = 'fefo', warehouseId, allowPartial = false }
 ) => {
   try {
     if (!warehouseId) {
@@ -134,7 +161,10 @@ const allocateInventoryForOrderService = async (
       // Get order items and ensure only items in allocatable status are processed
       const orderItemsMetadata = await getOrderItemsByOrderId(orderId, client);
       const orderItemIds = orderItemsMetadata.map((item) => item.order_item_id);
-
+      const orderItemMap = new Map(
+        orderItemsMetadata.map(item => [item.order_item_id, item])
+      );
+      
       // Lock order_items rows for this order
       await lockRows(client, 'order_items', orderItemIds, 'FOR UPDATE', {
         context:
@@ -198,7 +228,67 @@ const allocateInventoryForOrderService = async (
         batches,
         strategy
       );
+      
+      const insufficientItems = allocationResult
+        .filter(item => item.allocated.allocatedTotal < item.quantity_ordered)
+        .map(item => {
+          const meta = orderItemMap.get(item.order_item_id);
+          const { itemCode, itemName } = resolveOrderItemDisplay(meta);
 
+          const firstBatch = item.allocated.allocatedBatches?.[0];
+
+          return {
+            itemCode,
+            itemName,
+
+            warehouseName: firstBatch?.warehouse_name ?? null,
+            lotNumber: firstBatch?.lot_number ?? null,
+
+            requestedQuantity: item.quantity_ordered,
+            allocatedQuantity: item.allocated.allocatedTotal,
+            missingQuantity:
+              item.quantity_ordered - item.allocated.allocatedTotal
+          };
+        });
+
+      if (insufficientItems.length > 0 && !allowPartial) {
+        throw AppError.validationError(
+          'Some items cannot be fully allocated due to insufficient inventory.',
+          {
+            code: 'INSUFFICIENT_INVENTORY',
+            items: insufficientItems,
+            canAllowPartial: true
+          }
+        );
+      }
+
+      const missingBatchItems = allocationResult.filter(
+        item =>
+          !item.allocated.allocatedBatches ||
+          item.allocated.allocatedBatches.length === 0
+      );
+
+      if (missingBatchItems.length > 0) {
+        const items = missingBatchItems.map(item => {
+          const meta = orderItemMap.get(item.order_item_id);
+          const { itemCode, itemName } = resolveOrderItemDisplay(meta);
+
+          return {
+            itemCode,
+            itemName,
+            requestedQuantity: item.quantity_ordered
+          };
+        });
+
+        throw AppError.validationError(
+          'No inventory batches are available in the selected warehouse for some items.',
+          {
+            code: 'NO_WAREHOUSE_INVENTORY',
+            items
+          }
+        );
+      }
+      
       // Transform to insert rows with audit metadata
       const inventoryAllocationStatusPendingId = getStatusId(
         'inventory_allocation_init'
@@ -240,7 +330,12 @@ const allocateInventoryForOrderService = async (
       strategy,
       warehouseId,
     });
-
+    
+    // preserve validation/business errors
+    if (error instanceof AppError) {
+      throw error;
+    }
+    
     throw AppError.serviceError('Failed to allocate inventory for order.');
   }
 };
@@ -273,7 +368,6 @@ const allocateInventoryForOrderService = async (
  *   - `AppError.validationError` if provided allocation IDs do not belong to the order.
  *   - `AppError.serviceError` for any other failures during review processing.
  */
-// todo: there is bug that if an item is not available still will be insert but cannot fetch
 const reviewInventoryAllocationService = async (
   orderId,
   warehouseIds,

@@ -416,34 +416,73 @@ const updateOrderItemStatus = async (
 };
 
 /**
+ * Database row representing an order item joined with product or packaging
+ * metadata used during inventory allocation.
+ *
+ * Returned by the order item allocation repository query.
+ *
+ * Order items may represent either:
+ * - a product SKU
+ * - a packaging material
+ *
  * @typedef {Object} OrderItemRow
+ *
  * @property {string} order_item_id - UUID of the order item
- * @property {string|null} sku_id - SKU ID if item represents a product
- * @property {string|null} packaging_material_id - Packaging material ID if applicable
+ * @property {string|null} sku_id - SKU ID if the item represents a product
+ * @property {string|null} packaging_material_id - Packaging material ID if the item represents packaging material
+ *
  * @property {number} quantity_ordered - Quantity ordered for this item
+ *
  * @property {string} order_item_status_id - UUID of the order item status
- * @property {string} order_items_category - Status category
- * @property {string} order_item_code - Status code
+ * @property {string} order_items_category - Status category (e.g. "ORDER_ITEM")
+ * @property {string} order_item_code - Order item status code (e.g. "ORDER_CONFIRMED")
+ *
+ * @property {string|null} sku_code - Human-readable SKU code (e.g. "NMN-30K-CA")
+ * @property {string|null} size_label - SKU size label (e.g. "60 Capsules")
+ * @property {string|null} country_code - SKU country code (e.g. "CA")
+ *
+ * @property {string|null} product_name - Product name associated with the SKU
+ * @property {string|null} brand - Product brand name
+ *
+ * @property {string|null} material_code - Packaging material code
+ * @property {string|null} material_name - Packaging material name
+ *
+ * @property {string|null} material_lot_number - Lot number of the packaging material batch
+ * @property {string|null} material_batch_name - Snapshot name of the packaging material batch
  */
 
 /**
- * Retrieves all order items for a given order ID, including status metadata.
+ * Retrieves all order items for a given order ID along with status and display metadata.
  *
- * This function queries the `order_items` table and joins related `orders` and `order_status`
- * tables to provide status category and code for each item. It's used to fetch the list of items
- * associated with a single sales order.
+ * This function queries the `order_items` table and joins related tables to provide
+ * item status information as well as product or packaging material display data.
+ *
+ * Joined tables include:
+ * - `orders`
+ * - `order_status`
+ * - `skus`
+ * - `products`
+ * - `packaging_materials`
+ * - `packaging_material_suppliers`
+ * - `packaging_material_batches`
+ *
+ * The result is primarily used during inventory allocation to:
+ * - validate item statuses
+ * - determine item type (product vs packaging material)
+ * - resolve human-readable item names and codes
+ * - support allocation error reporting
  *
  * Behavior:
  * - Accepts an optional DB client for transactional consistency.
- * - Logs success or failure using system-level structured logging.
+ * - Logs success or failure using structured system logging.
  * - Throws an AppError if the query fails.
  *
  * @async
- * @param {string} orderId - The UUID of the order whose items are being fetched.
+ * @param {string} orderId - UUID of the order whose items are being fetched.
  * @param {object} [client] - Optional PostgreSQL client for transaction context.
  *
  * @returns {Promise<OrderItemRow[]>}
- * List of order items with status metadata.
+ * List of order items with status metadata and display information.
  *
  * @throws {AppError} If the query fails to execute.
  */
@@ -458,10 +497,28 @@ const getOrderItemsByOrderId = async (orderId, client) => {
       oi.quantity_ordered,
       oi.status_id AS order_item_status_id,
       os.category AS order_items_category,
-      os.code AS order_item_code
+      os.code AS order_item_code,
+      s.sku AS sku_code,
+      s.size_label,
+      s.country_code,
+      p.name AS product_name,
+      p.brand,
+      pm.code AS material_code,
+      pm.name AS material_name,
+      pmb.lot_number AS material_lot_number,
+      pmb.material_snapshot_name AS material_batch_name
     FROM order_items oi
     JOIN orders o ON o.id = oi.order_id
     JOIN order_status os ON oi.status_id = os.id
+    LEFT JOIN skus s ON oi.sku_id = s.id
+    LEFT JOIN products p ON s.product_id = p.id
+    LEFT JOIN packaging_materials pm
+      ON oi.packaging_material_id = pm.id
+    LEFT JOIN packaging_material_suppliers pms
+      ON pms.packaging_material_id = pm.id
+      AND pms.is_preferred = true
+    LEFT JOIN packaging_material_batches pmb
+      ON pmb.packaging_material_supplier_id = pms.id
     WHERE o.id = $1;
   `;
 
