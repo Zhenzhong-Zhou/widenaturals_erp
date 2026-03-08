@@ -28,14 +28,48 @@ export type AllocationStrategy =
   | string; // Future custom strategy fallback
 
 /**
- * Request body payload sent during inventory allocation.
+ * Request body payload used to initiate automatic inventory allocation.
+ *
+ * This payload configures how the server should attempt to allocate
+ * inventory batches for all items within an order.
  */
 export interface AllocateInventoryBody {
-  /** Allocation strategy to use (optional, defaults server-side) */
+  /**
+   * Allocation strategy used to select inventory batches.
+   *
+   * - `fefo` → First Expiry, First Out (default)
+   * - `fifo` → First In, First Out
+   *
+   * If omitted, the server applies its default strategy.
+   */
   strategy?: AllocationStrategy;
-
-  /** Warehouse to constrain allocation scope to (optional UUID) */
+  
+  /**
+   * Warehouse identifier used to restrict allocation scope.
+   *
+   * When provided, only inventory located in this warehouse
+   * will be considered during allocation.
+   *
+   * If omitted, the server may determine the warehouse automatically
+   * or return a validation error depending on system configuration.
+   */
   warehouseId?: string;
+  
+  /**
+   * Allows allocation to proceed even if the full requested quantity
+   * cannot be satisfied.
+   *
+   * Behavior:
+   * - `false` (default): the server throws an `INSUFFICIENT_INVENTORY`
+   *   validation error if the requested quantity cannot be fully allocated.
+   *
+   * - `true`: the server allocates all available inventory batches
+   *   and leaves the remaining quantity unallocated.
+   *
+   * This flag is typically used during a **second allocation attempt**
+   * after the UI prompts the user to confirm partial allocation.
+   */
+  allowPartial?: boolean;
 }
 
 /**
