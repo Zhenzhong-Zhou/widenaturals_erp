@@ -345,9 +345,9 @@ const CustomTable = <T extends Record<string, any>>({
                           </TableCell>
                         ))}
                       </TableRow>
-
-                      {expandable && (
-                        <TableRow>
+                      
+                      {expandable && expandedRowId === rowId && (
+                        <TableRow key={`${rowId}-expanded`}>
                           <TableCell colSpan={totalColCount} sx={{ p: 0 }}>
                             <Collapse in={expandedRowId === rowId}>
                               {expandedContent?.(row)}
