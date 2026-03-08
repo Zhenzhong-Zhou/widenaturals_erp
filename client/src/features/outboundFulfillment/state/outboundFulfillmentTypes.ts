@@ -6,6 +6,7 @@ import type {
   SortConfig,
 } from '@shared-types/api';
 import type { ReduxPaginatedState } from '@shared-types/pagination';
+import { BatchEntityType } from '@shared-types/batch';
 
 /**
  * Request body payload for initiating outbound fulfillment.
@@ -402,7 +403,7 @@ export interface ShipmentBatch {
   notes: string | null;
   audit: AuditInfo;
   batchRegistryId: string;
-  batchType: 'product' | 'packaging_material';
+  batchType: BatchEntityType;
   lotNumber: string | null;
   expiryDate: string | null;
 }
@@ -543,13 +544,32 @@ export interface FlattenedBatchRow {
  * Represents a **flattened outbound fulfillment record** for display in
  * the Outbound Fulfillment Table.
  *
- * Each record corresponds to a single `order_fulfillment` entry, enriched with:
- *  - **Audit info** (created, updated, fulfilled users & timestamps)
- *  - **Item details** (either product SKU or packaging material)
- *  - **Batch list** (array of shipped batch entries linked to this fulfillment)
+ * Each record corresponds to a single `order_fulfillment` entry and includes:
  *
- * This flattened structure is optimized for table rendering and UI display —
- * providing a single row per fulfillment with nested batch data.
+ * - **Audit metadata** (created, updated, fulfilled users and timestamps)
+ * - **Item snapshot data** (either product SKU or packaging material details)
+ * - **Entity discriminator** (`itemType`) used by the UI to determine which
+ *   item fields should be rendered
+ * - **Batch shipment records** (`batches`) representing the lots shipped
+ *   for this fulfillment
+ *
+ * This flattened structure provides a stable UI projection of the fulfillment
+ * domain model, allowing table rows and expandable panels to render without
+ * inspecting nested backend relationships.
+ *
+ * Design notes:
+ * - `itemType` indicates whether the fulfillment item is a **product SKU**
+ *   or a **packaging material**
+ * - Product-specific and packaging-material-specific fields remain optional
+ *   because only one entity type is present per row
+ * - Batch shipment records are stored as a nested array for expandable batch views
+ *
+ * The structure is optimized for table rendering and UI display — producing
+ * one row per fulfillment with associated batch shipment entries.
+ *
+ * @remarks
+ * This interface is a UI-facing projection derived from Fulfillment API models.
+ * All backend-to-UI normalization should occur in `flattenFulfillments`.
  */
 export interface FlattenedFulfillmentRow {
   fulfillmentId: string;
@@ -558,7 +578,9 @@ export interface FlattenedFulfillmentRow {
   quantityFulfilled: number | null;
   fulfilledAt: string | null;
   fulfillmentNote: string | null;
-
+  
+  itemType: BatchEntityType;
+  
   // audit
   createdAt: string | null;
   createdByName: string | null;

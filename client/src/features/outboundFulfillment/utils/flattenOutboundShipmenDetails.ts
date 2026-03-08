@@ -77,63 +77,77 @@ export const flattenShipmentHeader = (
  * Flattens an array of `Fulfillment` API records into
  * table-ready `FlattenedFulfillmentRow` objects.
  *
- * This transformation:
- * - Normalizes fulfillment status and audit fields
- * - Extracts SKU / packaging material display data
- * - Flattens nested batch shipment records
- * - Produces a stable, nullable-safe structure for UI rendering
+ * This transformation performs several normalization steps:
+ *
+ * - Normalizes fulfillment status and audit metadata
+ * - Extracts SKU or packaging material display information
+ * - Derives a stable `itemType` discriminator (`product` | `packaging_material`)
+ * - Flattens nested shipment batch records into `FlattenedBatchRow`
+ * - Produces a consistent, nullable-safe structure suitable for UI rendering
  *
  * Design notes:
- * - Must be executed at the thunk / data ingestion layer
- * - UI components should NEVER access raw `Fulfillment` models
+ * - Executed at the thunk / data ingestion layer
+ * - UI components must never access raw `Fulfillment` domain models
+ * - The returned structure is a UI-friendly projection of the API response
+ * - `itemType` allows the UI to render product and packaging material rows
+ *   without inspecting nested order item structures
+ *
+ * Behavior:
  * - Returns an empty array if no fulfillments are provided
  *
- * @param fulfillments - Raw fulfillment records from the API
- * @returns Flattened fulfillment rows suitable for tables and detail panels
+ * @param fulfillments Raw fulfillment records returned from the API
+ * @returns Flattened fulfillment rows suitable for tables, detail panels,
+ *          and expandable shipment batch views
  */
 export const flattenFulfillments = (
   fulfillments: Fulfillment[] | null | undefined
 ): FlattenedFulfillmentRow[] => {
   if (!fulfillments || fulfillments.length === 0) return [];
-
-  return fulfillments.map((f) => ({
-    fulfillmentId: f.fulfillmentId,
-    fulfillmentStatusCode: f.status?.code ?? null,
-    fulfillmentStatusName: f.status?.name ?? null,
-    quantityFulfilled: f.quantityFulfilled ?? null,
-    fulfilledAt: f.fulfilledAt ?? null,
-    fulfillmentNote: f.notes ?? null,
-
-    // audit
-    createdAt: f.audit?.createdAt ?? null,
-    createdByName: f.audit?.createdBy?.name ?? null,
-    updatedAt: f.audit?.updatedAt ?? null,
-    updatedByName: f.audit?.updatedBy?.name ?? null,
-    fulfilledByName: f.audit?.fulfilledBy?.name ?? null,
-
-    // order item snapshot
-    orderItemId: f.orderItem?.id ?? null,
-    orderItemQuantity: f.orderItem?.quantityOrdered ?? null,
-    productName: f.orderItem?.sku?.product?.name ?? null,
-    skuCode: f.orderItem?.sku?.code ?? null,
-    barcode: f.orderItem?.sku?.barcode ?? null,
-    category: f.orderItem?.sku?.product?.category ?? null,
-    region: f.orderItem?.sku?.region ?? null,
-    sizeLabel: f.orderItem?.sku?.sizeLabel ?? null,
-    packagingMaterialCode: f.orderItem?.packagingMaterial?.code ?? null,
-    packagingMaterialLabel: f.orderItem?.packagingMaterial?.label ?? null,
-
-    // shipment batches
-    batches: f.batches.map((b) => ({
-      shipmentBatchId: b.shipmentBatchId,
-      batchRegistryId: b.batchRegistryId ?? null,
-      batchType: b.batchType ?? null,
-      lotNumber: b.lotNumber ?? null,
-      expiryDate: b.expiryDate ?? null,
-      quantityShipped: b.quantityShipped ?? null,
-      notes: b.notes ?? null,
-      createdAt: b.audit?.createdAt ?? null,
-      createdByName: b.audit?.createdBy?.name ?? null,
-    })),
-  }));
+  
+  return fulfillments.map((f) => {
+    const isPackagingMaterial = !!f.orderItem?.packagingMaterial;
+    
+    return {
+      fulfillmentId: f.fulfillmentId,
+      fulfillmentStatusCode: f.status?.code ?? null,
+      fulfillmentStatusName: f.status?.name ?? null,
+      quantityFulfilled: f.quantityFulfilled ?? null,
+      fulfilledAt: f.fulfilledAt ?? null,
+      fulfillmentNote: f.notes ?? null,
+      
+      itemType: isPackagingMaterial ? 'packaging_material' : 'product',
+      
+      // audit
+      createdAt: f.audit?.createdAt ?? null,
+      createdByName: f.audit?.createdBy?.name ?? null,
+      updatedAt: f.audit?.updatedAt ?? null,
+      updatedByName: f.audit?.updatedBy?.name ?? null,
+      fulfilledByName: f.audit?.fulfilledBy?.name ?? null,
+      
+      // order item snapshot
+      orderItemId: f.orderItem?.id ?? null,
+      orderItemQuantity: f.orderItem?.quantityOrdered ?? null,
+      productName: f.orderItem?.sku?.product?.name ?? null,
+      skuCode: f.orderItem?.sku?.code ?? null,
+      barcode: f.orderItem?.sku?.barcode ?? null,
+      category: f.orderItem?.sku?.product?.category ?? null,
+      region: f.orderItem?.sku?.region ?? null,
+      sizeLabel: f.orderItem?.sku?.sizeLabel ?? null,
+      packagingMaterialCode: f.orderItem?.packagingMaterial?.code ?? null,
+      packagingMaterialLabel: f.orderItem?.packagingMaterial?.label ?? null,
+      
+      // shipment batches
+      batches: f.batches.map((b) => ({
+        shipmentBatchId: b.shipmentBatchId,
+        batchRegistryId: b.batchRegistryId ?? null,
+        batchType: b.batchType ?? null,
+        lotNumber: b.lotNumber ?? null,
+        expiryDate: b.expiryDate ?? null,
+        quantityShipped: b.quantityShipped ?? null,
+        notes: b.notes ?? null,
+        createdAt: b.audit?.createdAt ?? null,
+        createdByName: b.audit?.createdBy?.name ?? null,
+      })),
+    };
+  });
 };
