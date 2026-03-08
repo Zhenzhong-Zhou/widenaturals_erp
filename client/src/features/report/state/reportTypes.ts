@@ -6,6 +6,7 @@ import type {
 } from '@shared-types/api';
 import type { ReduxPaginatedState } from '@shared-types/pagination';
 import type { ItemType } from '@features/inventoryShared/types/InventorySharedType';
+import { BatchEntityType } from '@shared-types/batch';
 
 export interface InventoryActivityLogEntry {
   id: string;
@@ -33,7 +34,7 @@ export interface InventoryActivityLogEntry {
     source: string;
     source_level?: string;
   };
-  batchType: 'product' | 'packaging_material';
+  batchType: BatchEntityType;
   locationName: string;
   warehouseName: string;
 
