@@ -175,10 +175,17 @@ axiosInstance.interceptors.response.use(
      * =================================================== */
 
     if (status === 400) {
+      const data = error.response?.data as any;
+      
+      const message =
+        data?.error?.message ||
+        data?.message ||
+        'Validation failed';
+      
       return Promise.reject(
         AppError.validation(
-          'Validation failed',
-          error.response?.data as Record<string, unknown> | undefined
+          message,
+          data
         )
       );
     }

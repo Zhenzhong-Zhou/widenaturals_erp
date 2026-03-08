@@ -22,7 +22,7 @@ export const flattenOrderItems = (
       itemName: item.displayName ?? item.packagingMaterial?.name ?? '—',
 
       skuCode: item.sku?.code ?? null,
-      barcode: item.barcode ?? null,
+      barcode: item.sku?.barcode ?? null,
 
       packagingMaterialCode: item.packagingMaterial?.code ?? null,
 
