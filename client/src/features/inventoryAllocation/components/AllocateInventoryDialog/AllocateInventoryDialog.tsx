@@ -34,10 +34,10 @@ const AllocateInventoryDialog: FC<AllocateInventoryDialogProps> = ({
 
   const [strategy, setStrategy] = useState<string>('fefo');
   const [warehouseId, setWarehouseId] = useState<string | undefined>();
-  const [showNoInventoryDialog, setShowNoInventoryDialog] = useState(false)
-  const [noInventoryItems, setNoInventoryItems] = useState<any[]>([])
+  const [showNoInventoryDialog, setShowNoInventoryDialog] = useState(false);
+  const [noInventoryItems, setNoInventoryItems] = useState<any[]>([]);
   const [showPartialConfirm, setShowPartialConfirm] = useState(false);
-  const [partialItems, setPartialItems] = useState<any[]>([])
+  const [partialItems, setPartialItems] = useState<any[]>([]);
 
   const {
     items: warehouseOptions,
@@ -113,19 +113,19 @@ const AllocateInventoryDialog: FC<AllocateInventoryDialogProps> = ({
       });
     } catch (err: any) {
       console.error('Allocation failed:', err);
-      
+
       if (err?.code === 'NO_WAREHOUSE_INVENTORY') {
-        setNoInventoryItems(err.details?.items ?? [])
-        setShowNoInventoryDialog(true)
-        return
+        setNoInventoryItems(err.details?.items ?? []);
+        setShowNoInventoryDialog(true);
+        return;
       }
-      
+
       if (err?.code === 'INSUFFICIENT_INVENTORY') {
-        setPartialItems(err.details.items ?? [])
-        setShowPartialConfirm(true)
-        return
+        setPartialItems(err.details.items ?? []);
+        setShowPartialConfirm(true);
+        return;
       }
-      
+
       alert(err?.message ?? 'Failed to allocate inventory.');
     }
   }, [
@@ -143,33 +143,32 @@ const AllocateInventoryDialog: FC<AllocateInventoryDialogProps> = ({
   };
 
   const canAllocate = !!strategy && !!warehouseId;
-  
+
   const handleConfirmPartial = useCallback(async () => {
-    if (!orderId || !warehouseId || !strategy) return
-    
+    if (!orderId || !warehouseId || !strategy) return;
+
     try {
       const result = await allocateInventory(
         { orderId },
         { strategy, warehouseId, allowPartial: true }
-      ).unwrap()
-      
-      const { orderId: allocationOrderId, allocationIds } = result.data
-      
-      setShowPartialConfirm(false)
-      
+      ).unwrap();
+
+      const { orderId: allocationOrderId, allocationIds } = result.data;
+
+      setShowPartialConfirm(false);
+
       navigate(`/inventory-allocations/review/${allocationOrderId}`, {
         state: {
           warehouseIds: [warehouseId],
           allocationIds,
-          category
-        }
-      })
-      
+          category,
+        },
+      });
     } catch (err) {
-      console.error('Partial allocation failed:', err)
+      console.error('Partial allocation failed:', err);
     }
-  }, [orderId, warehouseId, strategy, allocateInventory, navigate, category])
-  
+  }, [orderId, warehouseId, strategy, allocateInventory, navigate, category]);
+
   return (
     <>
       <CustomDialog
@@ -178,19 +177,23 @@ const AllocateInventoryDialog: FC<AllocateInventoryDialogProps> = ({
         title="Allocate Inventory"
         showCancelButton
         confirmButtonText={
-          canAllocate ? (isAllocating ? 'Allocating...' : 'Allocate') : undefined
+          canAllocate
+            ? isAllocating
+              ? 'Allocating...'
+              : 'Allocate'
+            : undefined
         }
         onConfirm={canAllocate ? handleAutoAllocate : undefined}
       >
         <CustomTypography variant="subtitle1" gutterBottom>
           Automatic Allocation
         </CustomTypography>
-        
+
         {allocationError && <ErrorMessage message={allocationError} />}
-        
+
         <Stack spacing={2} mb={3}>
           <StrategyDropdown value={strategy} onChange={setStrategy} />
-          
+
           <WarehouseDropdown
             value={warehouseId ?? ''}
             onChange={setWarehouseId}
@@ -200,24 +203,24 @@ const AllocateInventoryDialog: FC<AllocateInventoryDialogProps> = ({
             onRefresh={fetchWarehouseLookup}
           />
         </Stack>
-        
+
         <Divider />
-        
+
         <CustomTypography variant="subtitle1" mt={3} gutterBottom>
           Manual Allocation
         </CustomTypography>
-        
+
         <CustomButton variant="outlined" onClick={handleManualAllocate}>
           Go to Manual Allocation
         </CustomButton>
       </CustomDialog>
-      
+
       <NoInventoryAvailableDialog
         open={showNoInventoryDialog}
         items={noInventoryItems}
         onClose={() => setShowNoInventoryDialog(false)}
       />
-      
+
       <PartialAllocationConfirmDialog
         open={showPartialConfirm}
         items={partialItems}

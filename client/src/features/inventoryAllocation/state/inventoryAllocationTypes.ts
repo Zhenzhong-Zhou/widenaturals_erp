@@ -43,7 +43,7 @@ export interface AllocateInventoryBody {
    * If omitted, the server applies its default strategy.
    */
   strategy?: AllocationStrategy;
-  
+
   /**
    * Warehouse identifier used to restrict allocation scope.
    *
@@ -54,7 +54,7 @@ export interface AllocateInventoryBody {
    * or return a validation error depending on system configuration.
    */
   warehouseId?: string;
-  
+
   /**
    * Allows allocation to proceed even if the full requested quantity
    * cannot be satisfied.

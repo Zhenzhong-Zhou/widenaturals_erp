@@ -103,10 +103,10 @@ export const flattenFulfillments = (
   fulfillments: Fulfillment[] | null | undefined
 ): FlattenedFulfillmentRow[] => {
   if (!fulfillments || fulfillments.length === 0) return [];
-  
+
   return fulfillments.map((f) => {
     const isPackagingMaterial = !!f.orderItem?.packagingMaterial;
-    
+
     return {
       fulfillmentId: f.fulfillmentId,
       fulfillmentStatusCode: f.status?.code ?? null,
@@ -114,16 +114,16 @@ export const flattenFulfillments = (
       quantityFulfilled: f.quantityFulfilled ?? null,
       fulfilledAt: f.fulfilledAt ?? null,
       fulfillmentNote: f.notes ?? null,
-      
+
       itemType: isPackagingMaterial ? 'packaging_material' : 'product',
-      
+
       // audit
       createdAt: f.audit?.createdAt ?? null,
       createdByName: f.audit?.createdBy?.name ?? null,
       updatedAt: f.audit?.updatedAt ?? null,
       updatedByName: f.audit?.updatedBy?.name ?? null,
       fulfilledByName: f.audit?.fulfilledBy?.name ?? null,
-      
+
       // order item snapshot
       orderItemId: f.orderItem?.id ?? null,
       orderItemQuantity: f.orderItem?.quantityOrdered ?? null,
@@ -135,7 +135,7 @@ export const flattenFulfillments = (
       sizeLabel: f.orderItem?.sku?.sizeLabel ?? null,
       packagingMaterialCode: f.orderItem?.packagingMaterial?.code ?? null,
       packagingMaterialLabel: f.orderItem?.packagingMaterial?.label ?? null,
-      
+
       // shipment batches
       batches: f.batches.map((b) => ({
         shipmentBatchId: b.shipmentBatchId,

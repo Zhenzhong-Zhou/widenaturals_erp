@@ -172,7 +172,7 @@ class AppError extends Error {
    */
   static validationError(message, options = {}) {
     const { details = null, ...meta } = options;
-    
+
     return new AppError(message, 400, {
       type: 'ValidationError',
       code: 'VALIDATION_ERROR',

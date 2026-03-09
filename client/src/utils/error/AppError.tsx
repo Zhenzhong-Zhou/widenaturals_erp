@@ -111,7 +111,11 @@ export class AppError extends Error {
    * Factory helpers (recommended usage)
    * =================================================== */
 
-  static validation(message = 'Validation failed', details?: AppErrorDetails, code?: string) {
+  static validation(
+    message = 'Validation failed',
+    details?: AppErrorDetails,
+    code?: string
+  ) {
     return new AppError(message, {
       type: ErrorType.Validation,
       code,

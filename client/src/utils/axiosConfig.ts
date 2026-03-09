@@ -173,27 +173,18 @@ axiosInstance.interceptors.response.use(
     /* =====================================================
      * Normalization (unchanged)
      * =================================================== */
-    
+
     if (status === 400) {
       const data = error.response?.data as any;
-      
+
       const message =
-        data?.error?.message ||
-        data?.message ||
-        'Validation failed';
-      
-      const details =
-        data?.error?.details ||
-        data?.details ||
-        data;
-      
-      const code =
-        data?.error?.code ||
-        data?.code;
-      
-      return Promise.reject(
-        AppError.validation(message, details, code)
-      );
+        data?.error?.message || data?.message || 'Validation failed';
+
+      const details = data?.error?.details || data?.details || data;
+
+      const code = data?.error?.code || data?.code;
+
+      return Promise.reject(AppError.validation(message, details, code));
     }
 
     if (status === 404) {

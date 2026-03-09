@@ -345,7 +345,7 @@ const CustomTable = <T extends Record<string, any>>({
                           </TableCell>
                         ))}
                       </TableRow>
-                      
+
                       {expandable && expandedRowId === rowId && (
                         <TableRow key={`${rowId}-expanded`}>
                           <TableCell colSpan={totalColCount} sx={{ p: 0 }}>

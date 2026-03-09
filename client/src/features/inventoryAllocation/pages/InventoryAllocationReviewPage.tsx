@@ -126,7 +126,7 @@ const InventoryAllocationReviewPage = () => {
       confirmableStatusCodes.includes(item.allocationStatusCode)
     );
   }, [allocationReviewItems]);
-  
+
   const allocationSummary = useMemo(() => {
     if (!allocationReviewItems || allocationReviewItems.length === 0) {
       return {
@@ -136,13 +136,13 @@ const InventoryAllocationReviewPage = () => {
         isFullyAllocated: false,
       };
     }
-    
+
     const confirmed = allocationReviewItems.filter(
       (item) => item.allocationStatusCode === 'ALLOC_CONFIRMED'
     ).length;
-    
+
     const total = allocationReviewItems.length;
-    
+
     return {
       total,
       confirmed,
@@ -150,7 +150,7 @@ const InventoryAllocationReviewPage = () => {
       isFullyAllocated: confirmed === total,
     };
   }, [allocationReviewItems]);
-  
+
   const canInitiateFulfillment = allocationSummary.isFullyAllocated;
 
   // === Confirm Submit ===
@@ -209,7 +209,7 @@ const InventoryAllocationReviewPage = () => {
             <CustomTypography variant="h4" sx={{ fontWeight: 'bold' }}>
               Inventory Allocation Review
             </CustomTypography>
-            
+
             <AllocationActionToolbar
               confirmError={confirmError}
               canConfirm={canConfirm}

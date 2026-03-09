@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import type { ApiSuccessResponse, PaginationParams } from '@shared-types/api';
 import type { WarehouseInventoryRecord } from '@features/warehouseInventory/state';
 import type { LocationInventoryRecord } from '@features/locationInventory/state';
-import { BatchEntityType } from '@shared-types/batch';
+import type { BatchEntityType } from '@shared-types/batch';
 
 export interface InventoryHealthStatus {
   reservedQuantity: number;

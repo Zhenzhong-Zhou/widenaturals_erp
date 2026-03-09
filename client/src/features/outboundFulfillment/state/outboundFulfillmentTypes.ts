@@ -6,7 +6,7 @@ import type {
   SortConfig,
 } from '@shared-types/api';
 import type { ReduxPaginatedState } from '@shared-types/pagination';
-import { BatchEntityType } from '@shared-types/batch';
+import type { BatchEntityType } from '@shared-types/batch';
 
 /**
  * Request body payload for initiating outbound fulfillment.
@@ -578,9 +578,9 @@ export interface FlattenedFulfillmentRow {
   quantityFulfilled: number | null;
   fulfilledAt: string | null;
   fulfillmentNote: string | null;
-  
+
   itemType: BatchEntityType;
-  
+
   // audit
   createdAt: string | null;
   createdByName: string | null;

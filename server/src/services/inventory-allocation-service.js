@@ -129,8 +129,9 @@ const allocateInventoryForOrderService = async (
   rawOrderId,
   { strategy = 'fefo', warehouseId, allowPartial = false }
 ) => {
-  const context = 'inventory-allocation-service/allocateInventoryForOrderService';
-  
+  const context =
+    'inventory-allocation-service/allocateInventoryForOrderService';
+
   try {
     if (!warehouseId) {
       throw AppError.validationError('Warehouse ID is required for allocation');
@@ -171,13 +172,12 @@ const allocateInventoryForOrderService = async (
       const orderItemsMetadata = await getOrderItemsByOrderId(orderId, client);
       const orderItemIds = orderItemsMetadata.map((item) => item.order_item_id);
       const orderItemMap = new Map(
-        orderItemsMetadata.map(item => [item.order_item_id, item])
+        orderItemsMetadata.map((item) => [item.order_item_id, item])
       );
-      
+
       // Lock order_items rows for this order
       await lockRows(client, 'order_items', orderItemIds, 'FOR UPDATE', {
-        context:
-          `${context}/lockOrderItems`,
+        context: `${context}/lockOrderItems`,
       });
 
       if (!orderItemsMetadata.length) {
@@ -226,8 +226,7 @@ const allocateInventoryForOrderService = async (
         warehouseInventoryLockConditions,
         'FOR UPDATE',
         {
-          context:
-            `${context}/lockWarehouseInventory`,
+          context: `${context}/lockWarehouseInventory`,
         }
       );
 
@@ -237,37 +236,37 @@ const allocateInventoryForOrderService = async (
         batches,
         strategy
       );
-      
+
       const missingBatchItems = allocationResult.filter(
-        item =>
+        (item) =>
           !item.allocated.allocatedBatches ||
           item.allocated.allocatedBatches.length === 0
       );
-      
+
       if (missingBatchItems.length > 0) {
-        const items = missingBatchItems.map(item => {
+        const items = missingBatchItems.map((item) => {
           const meta = orderItemMap.get(item.order_item_id);
           const { itemCode, itemName } = resolveOrderItemDisplay(meta);
-          
+
           return {
             itemCode,
             itemName,
-            requestedQuantity: item.quantity_ordered
+            requestedQuantity: item.quantity_ordered,
           };
         });
-        
+
         throw AppError.validationError(
           'No inventory batches are available in the selected warehouse for some items.',
           {
             code: 'NO_WAREHOUSE_INVENTORY',
-            details: { items }
+            details: { items },
           }
         );
       }
-      
+
       const insufficientItems = allocationResult
-        .filter(item => item.allocated.allocatedTotal < item.quantity_ordered)
-        .map(item => {
+        .filter((item) => item.allocated.allocatedTotal < item.quantity_ordered)
+        .map((item) => {
           const meta = orderItemMap.get(item.order_item_id);
           const { itemCode, itemName } = resolveOrderItemDisplay(meta);
 
@@ -283,7 +282,7 @@ const allocateInventoryForOrderService = async (
             requestedQuantity: item.quantity_ordered,
             allocatedQuantity: item.allocated.allocatedTotal,
             missingQuantity:
-              item.quantity_ordered - item.allocated.allocatedTotal
+              item.quantity_ordered - item.allocated.allocatedTotal,
           };
         });
 
@@ -294,12 +293,12 @@ const allocateInventoryForOrderService = async (
             code: 'INSUFFICIENT_INVENTORY',
             details: {
               items: insufficientItems,
-              canAllowPartial: true
-            }
+              canAllowPartial: true,
+            },
           }
         );
       }
-      
+
       // Transform to insert rows with audit metadata
       const inventoryAllocationStatusPendingId = getStatusId(
         'inventory_allocation_init'
@@ -341,12 +340,12 @@ const allocateInventoryForOrderService = async (
       strategy,
       warehouseId,
     });
-    
+
     // preserve validation/business errors
     if (error instanceof AppError) {
       throw error;
     }
-    
+
     throw AppError.serviceError('Failed to allocate inventory for order.');
   }
 };

@@ -26,7 +26,7 @@ export interface UiErrorPayload {
    * Safe to display directly to users without exposing sensitive data.
    */
   message: string;
-  
+
   /**
    * High-level classification of the error.
    *
@@ -36,7 +36,7 @@ export interface UiErrorPayload {
    * - retry prompts
    */
   type: ErrorType;
-  
+
   /**
    * Optional domain-specific error code.
    *
@@ -49,7 +49,7 @@ export interface UiErrorPayload {
    * - `ORDER_STATUS_INVALID`
    */
   code?: string;
-  
+
   /**
    * Optional structured error details.
    *
@@ -61,7 +61,7 @@ export interface UiErrorPayload {
    * - field validation metadata
    */
   details?: unknown;
-  
+
   /**
    * Optional diagnostic trace identifier.
    *

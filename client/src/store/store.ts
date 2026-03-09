@@ -33,7 +33,7 @@ import {
   PERSIST,
   PURGE,
   REGISTER,
-} from 'redux-persist'
+} from 'redux-persist';
 import rootReducer from './rootReducer';
 
 const isDevelopment = import.meta.env.NODE_ENV === 'development';
@@ -43,25 +43,16 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       // redux-persist injects non-serializable metadata
-      immutableCheck: isDevelopment
-        ? { warnAfter: 128 }
-        : false,
-      
+      immutableCheck: isDevelopment ? { warnAfter: 128 } : false,
+
       serializableCheck: isDevelopment
         ? {
-          warnAfter: 128,
-          ignoredActions: [
-            FLUSH,
-            REHYDRATE,
-            PAUSE,
-            PERSIST,
-            PURGE,
-            REGISTER,
-          ],
-        }
+            warnAfter: 128,
+            ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+          }
         : false,
     }),
-  
+
   devTools: isDevelopment,
 });
 

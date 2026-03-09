@@ -16,10 +16,10 @@ const AllocationReviewTable: FC<AllocationReviewTableProps> = ({
   itemCount,
 }) => {
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-  
+
   const getRowId = (row: FlattenedAllocationReviewItem) =>
     row.allocationId ?? `orderItem-${row.orderItemId}`;
-  
+
   const handleDrillDownToggle = (rowId: string) => {
     setExpandedRowId((prev) => (prev === rowId ? null : rowId));
   };
@@ -29,7 +29,7 @@ const AllocationReviewTable: FC<AllocationReviewTableProps> = ({
     handleDrillDownToggle,
     getRowId
   );
-  
+
   return (
     <CustomTable<FlattenedAllocationReviewItem>
       columns={columns}

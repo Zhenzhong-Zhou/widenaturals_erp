@@ -147,23 +147,23 @@ const resolveOrderItemDisplay = (meta) => {
   if (!meta) {
     return { itemCode: null, itemName: null };
   }
-  
+
   // Product SKU item
   if (meta.sku_id) {
     return {
       itemCode: meta.sku_code ?? null,
-      itemName: getProductDisplayName(meta) ?? null
+      itemName: getProductDisplayName(meta) ?? null,
     };
   }
-  
+
   // Packaging material item
   if (meta.packaging_material_id) {
     return {
       itemCode: meta.material_code ?? null,
-      itemName: meta.material_name ?? null
+      itemName: meta.material_name ?? null,
     };
   }
-  
+
   return { itemCode: null, itemName: null };
 };
 

@@ -14,11 +14,11 @@ interface InitiateFulfillmentModalProps {
   allocationIds: string[];
   defaultValues?: Partial<InitiateFulfillmentBody>;
   onSuccess?: () => void;
-  
+
   buttonLabel?: string;
   buttonVariant?: 'text' | 'outlined' | 'contained';
   buttonColor?: 'primary' | 'secondary' | 'info' | 'error';
-  
+
   /** Disable the trigger button (e.g. when allocations incomplete) */
   disabled?: boolean;
 }
@@ -28,22 +28,22 @@ interface InitiateFulfillmentModalProps {
  * Renders a trigger button which opens the fulfillment form modal.
  */
 const InitiateFulfillmentModal: FC<InitiateFulfillmentModalProps> = ({
-                                                                       orderId,
-                                                                       allocationIds,
-                                                                       defaultValues,
-                                                                       onSuccess,
-                                                                       buttonLabel = 'Initiate Fulfillment',
-                                                                       buttonVariant = 'contained',
-                                                                       buttonColor = 'primary',
-                                                                       disabled = false,
-                                                                     }) => {
+  orderId,
+  allocationIds,
+  defaultValues,
+  onSuccess,
+  buttonLabel = 'Initiate Fulfillment',
+  buttonVariant = 'contained',
+  buttonColor = 'primary',
+  disabled = false,
+}) => {
   const { open, triggerRef, handleOpen, handleClose } = useModalFocusHandlers();
-  
+
   const handleClick = () => {
     if (disabled) return;
     handleOpen();
   };
-  
+
   return (
     <>
       <CustomButton
@@ -55,7 +55,7 @@ const InitiateFulfillmentModal: FC<InitiateFulfillmentModalProps> = ({
       >
         {buttonLabel}
       </CustomButton>
-      
+
       <Modal open={open} onClose={handleClose}>
         <Box
           sx={{
@@ -78,9 +78,9 @@ const InitiateFulfillmentModal: FC<InitiateFulfillmentModalProps> = ({
               Initiate Outbound Fulfillment
             </CustomTypography>
           </Box>
-          
+
           <Divider />
-          
+
           {/* Scrollable Content */}
           <Box sx={{ p: 3, flex: 1, overflowY: 'auto' }}>
             <InitiateFulfillmentForm
@@ -93,9 +93,9 @@ const InitiateFulfillmentModal: FC<InitiateFulfillmentModalProps> = ({
               }}
             />
           </Box>
-          
+
           <Divider />
-          
+
           {/* Footer */}
           <Stack
             direction="row"

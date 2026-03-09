@@ -6,7 +6,7 @@ import type {
 } from '@shared-types/api';
 import type { ReduxPaginatedState } from '@shared-types/pagination';
 import type { ItemType } from '@features/inventoryShared/types/InventorySharedType';
-import { BatchEntityType } from '@shared-types/batch';
+import type { BatchEntityType } from '@shared-types/batch';
 
 export interface InventoryActivityLogEntry {
   id: string;
