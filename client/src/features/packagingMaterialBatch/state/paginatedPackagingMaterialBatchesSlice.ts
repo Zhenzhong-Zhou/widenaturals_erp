@@ -20,7 +20,7 @@ const initialState: PaginatedPackagingMaterialBatchState =
 const paginatedPackagingMaterialBatchesSlice = createSlice({
   name: 'paginatedPackagingMaterialBatches',
   initialState,
-  
+
   reducers: {
     /**
      * Reset the entire paginated packaging material batch state
@@ -33,7 +33,7 @@ const paginatedPackagingMaterialBatchesSlice = createSlice({
      */
     resetPaginatedPackagingMaterialBatches: () => initialState,
   },
-  
+
   // ---------------------------
   // Extra reducers (async thunk lifecycle)
   // ---------------------------
@@ -44,7 +44,7 @@ const paginatedPackagingMaterialBatchesSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      
+
       // ---- fulfilled ----
       .addCase(
         fetchPaginatedPackagingMaterialBatchThunk.fulfilled,
@@ -53,10 +53,10 @@ const paginatedPackagingMaterialBatchesSlice = createSlice({
           action: PayloadAction<PackagingMaterialBatchListUiResponse>
         ) => {
           const payload = action.payload;
-          
+
           state.loading = false;
           state.data = payload.data;
-          
+
           state.pagination = {
             page: payload.pagination.page,
             limit: payload.pagination.limit,
@@ -65,7 +65,7 @@ const paginatedPackagingMaterialBatchesSlice = createSlice({
           };
         }
       )
-      
+
       // ---- rejected ----
       .addCase(
         fetchPaginatedPackagingMaterialBatchThunk.rejected,

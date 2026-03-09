@@ -6,6 +6,12 @@ import type {
   GetSkuListApiResponse,
   GetSkuProductCardsResponse,
   SkuProductCardQueryParams,
+  UpdateSkuDimensionsRequest,
+  UpdateSkuDimensionsResponse,
+  UpdateSkuIdentityRequest,
+  UpdateSkuIdentityResponse,
+  UpdateSkuMetadataRequest,
+  UpdateSkuMetadataResponse,
   UpdateSkuStatusRequestBody,
   UpdateSkuStatusResponse,
 } from '@features/sku/state/skuTypes';
@@ -98,6 +104,20 @@ const createSkus = (payload: CreateSkuBulkInput): Promise<CreateSkuResponse> =>
   );
 
 /**
+ * Update SKU metadata.
+ *
+ * WRITE operation.
+ */
+const updateSkuMetadata = (
+  skuId: string,
+  payload: UpdateSkuMetadataRequest
+): Promise<UpdateSkuMetadataResponse> =>
+  patchRequest<UpdateSkuMetadataRequest, UpdateSkuMetadataResponse>(
+    API_ENDPOINTS.SKUS.UPDATE_METADATA(skuId),
+    payload
+  );
+
+/**
  * Update SKU status.
  *
  * WRITE operation.
@@ -111,6 +131,34 @@ const updateSkuStatus = (
     payload
   );
 
+/**
+ * Update SKU physical dimensions.
+ *
+ * WRITE operation.
+ */
+const updateSkuDimensions = (
+  skuId: string,
+  payload: UpdateSkuDimensionsRequest
+): Promise<UpdateSkuDimensionsResponse> =>
+  patchRequest<UpdateSkuDimensionsRequest, UpdateSkuDimensionsResponse>(
+    API_ENDPOINTS.SKUS.UPDATE_DIMENSIONS(skuId),
+    payload
+  );
+
+/**
+ * Update SKU identity fields.
+ *
+ * WRITE operation.
+ */
+const updateSkuIdentity = (
+  skuId: string,
+  payload: UpdateSkuIdentityRequest
+): Promise<UpdateSkuIdentityResponse> =>
+  patchRequest<UpdateSkuIdentityRequest, UpdateSkuIdentityResponse>(
+    API_ENDPOINTS.SKUS.UPDATE_IDENTITY(skuId),
+    payload
+  );
+
 /* =========================================================
  * Public API
  * ======================================================= */
@@ -120,5 +168,8 @@ export const skuService = {
   fetchSkuDetailById,
   fetchPaginatedSkus,
   createSkus,
+  updateSkuMetadata,
   updateSkuStatus,
+  updateSkuDimensions,
+  updateSkuIdentity,
 };

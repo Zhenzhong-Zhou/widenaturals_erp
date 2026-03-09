@@ -38,11 +38,7 @@ const discountLookupSlice = createSlice({
         }
       )
       .addCase(fetchDiscountLookupThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch discount lookup'
-        );
+        applyRejected(state, action, 'Failed to fetch discount lookup');
       });
   },
 });

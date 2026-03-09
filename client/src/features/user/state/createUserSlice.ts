@@ -57,7 +57,7 @@ const createUserSlice = createSlice({
       })
       .addCase(createUserThunk.rejected, (state, action) => {
         applyRejected(state, action, 'Failed to create user.');
-      })
+      });
   },
 });
 

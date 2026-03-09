@@ -34,6 +34,7 @@ const {
   buildWarehouseInventoryActivityLogsForOrderAllocation,
   buildOrderAllocationResult,
   validateAllocationStatusTransition,
+  resolveOrderItemDisplay,
 } = require('../business/inventory-allocation-business');
 const {
   insertInventoryAllocationsBulk,
@@ -68,40 +69,80 @@ const {
 /**
  * Allocates inventory batches to each order item using a batch allocation strategy (FEFO/FIFO).
  *
- * This function performs the allocation as a transactional operation with row-level locks:
- * - Locks the target order (`orders`) to prevent concurrent status changes
- * - Locks the associated `order_items` to avoid conflicting allocation processes
- * - Locks affected `warehouse_inventory` rows to guarantee consistency when allocating stock
- * - Validates the current order status and checks status transition validity
- * - Ensures all order items are in an allocatable status (e.g. 'ORDER_CONFIRMED')
- * - Retrieves in-stock batches for the order's SKUs or packaging materials
- * - Applies the chosen allocation strategy (FEFO or FIFO)
- * - Persists allocation rows with `inventory_allocation_init` status
- * - Updates the order and item statuses to `ORDER_ALLOCATING`
- * - Returns a simplified allocation review payload
+ * This operation runs inside a database transaction and applies row-level locks to ensure
+ * safe and consistent inventory allocation under concurrent requests.
+ *
+ * Main workflow:
+ * - Locks the target `orders` row to prevent concurrent status changes
+ * - Locks associated `order_items` rows
+ * - Validates order status transition rules
+ * - Ensures all order items are in allocatable status (`ORDER_CONFIRMED`)
+ * - Retrieves candidate inventory batches for the selected warehouse
+ *   from `warehouse_inventory` and related batch tables
+ * - Locks the corresponding `warehouse_inventory` rows
+ * - Applies the allocation strategy (FEFO or FIFO) to compute batch allocations
+ * - Validates the allocation results:
+ *    - Throws `NO_WAREHOUSE_INVENTORY` if no eligible batch exists in the selected warehouse
+ *    - Throws `INSUFFICIENT_INVENTORY` if batches exist but cannot fully satisfy the requested quantity
+ *      and `allowPartial` is false
+ *    - If `allowPartial` is true, allocation proceeds using the available quantities
+ * - Inserts `inventory_allocations` records with status `inventory_allocation_init`
+ * - Updates order and order item statuses to `ORDER_ALLOCATING`
+ * - Returns allocation identifiers for the review step
+ *
+ * Order items may represent either:
+ * - Product SKUs
+ * - Packaging materials
+ *
+ * Partial allocation can optionally be enabled using `allowPartial`.
+ * When enabled, the service will allocate all available inventory batches
+ * even if the requested quantity cannot be fully satisfied.
+ *
+ * Items that receive partial allocation will have a remaining
+ * unallocated quantity which can be resolved later via manual allocation. When enabled,
+ * allocation proceeds even if some items cannot be fully satisfied.
+ *
+ * Concurrency notes:
+ * This operation applies row-level locks on `orders`, `order_items`,
+ * and `warehouse_inventory` records to prevent race conditions
+ * during concurrent allocation requests.
  *
  * @param {Object} user - Authenticated user object (must include `id`)
- * @param {string} rawOrderId - Raw order UUID
+ * @param {string} rawOrderId - Order UUID
  * @param {Object} options - Allocation configuration
- * @param {'fefo'|'fifo'} [options.strategy='fefo'] - Allocation strategy to use
- * @param {string|null} [options.warehouseId=null] - Warehouse to allocate from
+ * @param {'fefo'|'fifo'} [options.strategy='fefo'] - Allocation strategy to apply
+ * @param {string} options.warehouseId - Warehouse ID from which inventory will be allocated
+ * @param {boolean} [options.allowPartial=false] - Allow partial allocation when inventory is insufficient
  *
- * @returns {Promise<{ orderId: string, allocationIds: string[] }>} - Summary of created allocations for the order
+ * @returns {Promise<{ orderId: string, allocationIds: string[] }>}
+ * Returns the order ID and created inventory allocation record IDs for the review step.
  *
- * @throws {AppError} If the order is in an invalid status or allocation fails
+ * @throws {AppError} When:
+ * - the order is not in an allocatable status
+ * - order items contain invalid statuses
+ * - no inventory batches exist in the selected warehouse
+ * - inventory batches exist but quantity is insufficient and `allowPartial` is false
+ * - an unexpected system failure occurs
  */
 const allocateInventoryForOrderService = async (
   user,
   rawOrderId,
-  { strategy = 'fefo', warehouseId = null }
+  { strategy = 'fefo', warehouseId, allowPartial = false }
 ) => {
+  const context =
+    'inventory-allocation-service/allocateInventoryForOrderService';
+
   try {
+    if (!warehouseId) {
+      throw AppError.validationError('Warehouse ID is required for allocation');
+    }
+
     return await withTransaction(async (client) => {
       const userId = user.id;
 
       // Lock order row first
       await lockRows(client, 'orders', [rawOrderId], 'FOR UPDATE', {
-        context: 'allocateInventoryForOrderService/lockOrderRow',
+        context: `${context}/lockOrderRow`,
       });
 
       // Fetch current order metadata and validate status transition
@@ -130,11 +171,13 @@ const allocateInventoryForOrderService = async (
       // Get order items and ensure only items in allocatable status are processed
       const orderItemsMetadata = await getOrderItemsByOrderId(orderId, client);
       const orderItemIds = orderItemsMetadata.map((item) => item.order_item_id);
+      const orderItemMap = new Map(
+        orderItemsMetadata.map((item) => [item.order_item_id, item])
+      );
 
       // Lock order_items rows for this order
       await lockRows(client, 'order_items', orderItemIds, 'FOR UPDATE', {
-        context:
-          'inventory-allocation-service/allocateInventoryForOrderService/lockOrderItems',
+        context: `${context}/lockOrderItems`,
       });
 
       if (!orderItemsMetadata.length) {
@@ -183,8 +226,7 @@ const allocateInventoryForOrderService = async (
         warehouseInventoryLockConditions,
         'FOR UPDATE',
         {
-          context:
-            'inventory-allocation-service/allocateInventoryForOrderService/lockWarehouseInventory',
+          context: `${context}/lockWarehouseInventory`,
         }
       );
 
@@ -194,6 +236,68 @@ const allocateInventoryForOrderService = async (
         batches,
         strategy
       );
+
+      const missingBatchItems = allocationResult.filter(
+        (item) =>
+          !item.allocated.allocatedBatches ||
+          item.allocated.allocatedBatches.length === 0
+      );
+
+      if (missingBatchItems.length > 0) {
+        const items = missingBatchItems.map((item) => {
+          const meta = orderItemMap.get(item.order_item_id);
+          const { itemCode, itemName } = resolveOrderItemDisplay(meta);
+
+          return {
+            itemCode,
+            itemName,
+            requestedQuantity: item.quantity_ordered,
+          };
+        });
+
+        throw AppError.validationError(
+          'No inventory batches are available in the selected warehouse for some items.',
+          {
+            code: 'NO_WAREHOUSE_INVENTORY',
+            details: { items },
+          }
+        );
+      }
+
+      const insufficientItems = allocationResult
+        .filter((item) => item.allocated.allocatedTotal < item.quantity_ordered)
+        .map((item) => {
+          const meta = orderItemMap.get(item.order_item_id);
+          const { itemCode, itemName } = resolveOrderItemDisplay(meta);
+
+          const firstBatch = item.allocated.allocatedBatches?.[0];
+
+          return {
+            itemCode,
+            itemName,
+
+            warehouseName: firstBatch?.warehouse_name ?? null,
+            lotNumber: firstBatch?.lot_number ?? null,
+
+            requestedQuantity: item.quantity_ordered,
+            allocatedQuantity: item.allocated.allocatedTotal,
+            missingQuantity:
+              item.quantity_ordered - item.allocated.allocatedTotal,
+          };
+        });
+
+      if (insufficientItems.length > 0 && !allowPartial) {
+        throw AppError.validationError(
+          'Some items cannot be fully allocated due to insufficient inventory.',
+          {
+            code: 'INSUFFICIENT_INVENTORY',
+            details: {
+              items: insufficientItems,
+              canAllowPartial: true,
+            },
+          }
+        );
+      }
 
       // Transform to insert rows with audit metadata
       const inventoryAllocationStatusPendingId = getStatusId(
@@ -230,12 +334,17 @@ const allocateInventoryForOrderService = async (
     });
   } catch (error) {
     logSystemException(error, 'Inventory allocation failed', {
-      context: 'inventory-allocation-service/allocateInventoryForOrderService',
+      context,
       orderId: rawOrderId,
       userId: user?.id,
       strategy,
       warehouseId,
     });
+
+    // preserve validation/business errors
+    if (error instanceof AppError) {
+      throw error;
+    }
 
     throw AppError.serviceError('Failed to allocate inventory for order.');
   }
@@ -278,7 +387,8 @@ const reviewInventoryAllocationService = async (
     if (allocationIds.length > 0) {
       const mismatches = await getMismatchedAllocationIds(
         orderId,
-        allocationIds
+        allocationIds,
+        null
       );
 
       if (mismatches.length > 0) {
@@ -298,7 +408,8 @@ const reviewInventoryAllocationService = async (
     const rawReviewData = await getInventoryAllocationReview(
       orderId,
       warehouseIds,
-      allocationIds
+      allocationIds,
+      null
     );
 
     if (!rawReviewData || rawReviewData.length === 0) {
@@ -336,7 +447,7 @@ const reviewInventoryAllocationService = async (
  * @param {string} [params.sortOrder='DESC'] - Sort direction: 'ASC' or 'DESC'
  *
  * @returns {Promise<{
- *   data: InventoryAllocationSummary[],
+ *   data: [],
  *   pagination: {
  *     page: number,
  *     limit: number,
@@ -354,6 +465,9 @@ const fetchPaginatedInventoryAllocationsService = async ({
   sortBy = 'created_at',
   sortOrder = 'DESC',
 }) => {
+  const context =
+    'inventory-allocations-service/fetchPaginatedInventoryAllocationsService';
+
   try {
     // Step 1: Query raw paginated allocation rows from repository layer
     const rawResult = await getPaginatedInventoryAllocations({
@@ -365,10 +479,9 @@ const fetchPaginatedInventoryAllocationsService = async ({
     });
 
     // Step 2: If no data, log and return empty result with pagination fallback
-    if (!rawResult || rawResult.length === 0) {
+    if (!rawResult || rawResult.data.length === 0) {
       logSystemInfo('No inventory allocation records found', {
-        context:
-          'inventory-allocations-service/fetchPaginatedInventoryAllocationsService',
+        context,
         filters,
         pagination: { page, limit },
         sort: { sortBy, sortOrder },
@@ -390,8 +503,7 @@ const fetchPaginatedInventoryAllocationsService = async ({
 
     // Step 4: Log successful response for auditing/metrics
     logSystemInfo('Fetched paginated inventory allocations', {
-      context:
-        'inventory-allocations-service/fetchPaginatedInventoryAllocationsService',
+      context,
       filters,
       pagination: { page, limit },
       sort: { sortBy, sortOrder },
@@ -404,8 +516,7 @@ const fetchPaginatedInventoryAllocationsService = async ({
       error,
       'Failed to fetch paginated inventory allocations',
       {
-        context:
-          'inventory-allocations-service/fetchPaginatedInventoryAllocationsService',
+        context,
         filters,
         pagination: { page, limit },
         sort: { sortBy, sortOrder },
@@ -614,10 +725,14 @@ const confirmInventoryAllocationService = async (user, rawOrderId) => {
       );
 
       // --- 9. Confirm or partial allocation status update ---
-      const confirmedStatusId =
-        await getInventoryAllocationStatusId('ALLOC_CONFIRMED');
-      const partialStatusId =
-        await getInventoryAllocationStatusId('ALLOC_PARTIAL');
+      const confirmedStatusId = await getInventoryAllocationStatusId(
+        'ALLOC_CONFIRMED',
+        client
+      );
+      const partialStatusId = await getInventoryAllocationStatusId(
+        'ALLOC_PARTIAL',
+        client
+      );
 
       const fullyMatchedItemIds = new Set(
         allocationResults.filter((r) => r.isMatched).map((r) => r.orderItemId)
@@ -686,15 +801,33 @@ const confirmInventoryAllocationService = async (user, rawOrderId) => {
         );
       const logInsertResult = await insertInventoryActivityLogs(
         inventoryActivityLogs,
-        client
+        client,
+        {
+          context:
+            'inventory-allocation-service/confirmInventoryAllocationService/insertInventoryActivityLogs',
+          orderId: rawOrderId,
+          performedBy: userId,
+        }
       );
 
       // --- 11. Final transformation and return ---
       const rawResult = buildOrderAllocationResult({
         orderId: rawOrderId,
-        inventoryAllocations: inventoryAllocationDetails,
-        warehouseUpdateIds: updatedWarehouseRecords,
-        inventoryLogIds: logInsertResult.activityLogIds,
+
+        inventoryAllocations: inventoryAllocationDetails.map(
+          ({ allocation_id }) => ({
+            allocation_id,
+          })
+        ),
+
+        warehouseUpdateIds: updatedWarehouseRecords.map(
+          ({ warehouse_id, batch_id }) => ({
+            id: `${warehouse_id}-${batch_id}`,
+          })
+        ),
+
+        inventoryLogIds: logInsertResult.activityLogIds.map(String),
+
         allocationResults,
       });
 

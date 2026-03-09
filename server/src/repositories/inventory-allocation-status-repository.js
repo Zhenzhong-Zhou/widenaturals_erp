@@ -89,23 +89,20 @@ const getInventoryAllocationStatusId = async (statusCode, client) => {
  * @throws {AppError}
  *   Throws databaseError if query execution fails.
  */
-const getInventoryAllocationStatusesByCodes = async (
-  statusCodes,
-  client
-) => {
+const getInventoryAllocationStatusesByCodes = async (statusCodes, client) => {
   const context =
     'inventory-allocation-status-repository/getInventoryAllocationStatusesByCodes';
-  
+
   if (!Array.isArray(statusCodes) || statusCodes.length === 0) {
     return [];
   }
-  
+
   const sql = `
     SELECT id, code
     FROM inventory_allocation_status
     WHERE code = ANY($1)
   `;
-  
+
   try {
     const result = await query(sql, [statusCodes], client);
     return result.rows;
@@ -118,7 +115,7 @@ const getInventoryAllocationStatusesByCodes = async (
         statusCodes,
       }
     );
-    
+
     throw AppError.databaseError(
       `Failed to retrieve allocation statuses: ${error.message}`
     );

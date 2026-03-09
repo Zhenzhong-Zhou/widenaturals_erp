@@ -148,16 +148,18 @@ export const appRoutes: AppRoute[] = [
       parent: '/skus',
     },
   }),
-  
+
   defineRoute({
     path: '/sku-images/upload',
-    component: lazy(() => import('@features/skuImage/pages/SkuImageBulkUploadPage')),
+    component: lazy(
+      () => import('@features/skuImage/pages/SkuImageBulkUploadPage')
+    ),
     meta: {
       requiresAuth: true,
       parent: '/skus',
     },
   }),
-  
+
   defineRoute({
     path: '/boms',
     component: lazy(() => import('@features/bom/pages/BomsListPage')),
@@ -195,15 +197,17 @@ export const appRoutes: AppRoute[] = [
       requiresAuth: true,
     },
   }),
-  
+
   defineRoute({
     path: '/packaging-material-batches',
     component: lazy(
-      () => import('@features/packagingMaterialBatch/pages/PackagingMaterialBatchListPage')
+      () =>
+        import('@features/packagingMaterialBatch/pages/PackagingMaterialBatchListPage')
     ),
     meta: {
       requiresAuth: true,
-      requiredPermission: ROUTE_PERMISSIONS.PACKAGING_MATERIAL_BATCHES.VIEW_LIST,
+      requiredPermission:
+        ROUTE_PERMISSIONS.PACKAGING_MATERIAL_BATCHES.VIEW_LIST,
     },
   }),
 

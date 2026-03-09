@@ -1,11 +1,9 @@
 import type {
   ApiSuccessResponse,
   AsyncState,
-  PaginatedResponse
+  PaginatedResponse,
 } from '@shared-types/api';
-import type {
-  ReduxPaginatedState
-} from '@shared-types/pagination';
+import type { ReduxPaginatedState } from '@shared-types/pagination';
 
 export interface FetchPricingTypesParams {
   page?: number;

@@ -16,7 +16,7 @@ import {
   flattenInventoryAllocationSummary,
 } from '@features/inventoryAllocation/utils';
 import { extractUiErrorPayload } from '@utils/error';
-import { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 
 /**
  * Thunk to allocate inventory for a given order.
@@ -58,14 +58,13 @@ export const allocateInventoryThunk = createAsyncThunk<
         body
       );
     } catch (error: unknown) {
-      console.error(
-        'Thunk failed to allocate inventory:',
-        { params, body, error }
-      );
-      
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
+      console.error('Thunk failed to allocate inventory:', {
+        params,
+        body,
+        error,
+      });
+
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );
@@ -102,7 +101,7 @@ export const fetchInventoryAllocationReviewThunk = createAsyncThunk<
           orderId,
           body
         );
-      
+
       return {
         ...response,
         data: {
@@ -111,9 +110,7 @@ export const fetchInventoryAllocationReviewThunk = createAsyncThunk<
         },
       };
     } catch (error: unknown) {
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );
@@ -141,26 +138,21 @@ export const fetchPaginatedInventoryAllocationsThunk = createAsyncThunk<
   InventoryAllocationListResponse,
   FetchPaginatedInventoryAllocationsParams,
   { rejectValue: UiErrorPayload }
->(
-  'inventoryAllocations/fetch',
-  async (params, { rejectWithValue }) => {
-    try {
-      const response =
-        await inventoryAllocationService.fetchPaginatedInventoryAllocations(
-          params
-        );
-      
-      return {
-        ...response,
-        data: response.data.map(flattenInventoryAllocationSummary),
-      };
-    } catch (error: unknown) {
-      return rejectWithValue(
-        extractUiErrorPayload(error)
+>('inventoryAllocations/fetch', async (params, { rejectWithValue }) => {
+  try {
+    const response =
+      await inventoryAllocationService.fetchPaginatedInventoryAllocations(
+        params
       );
-    }
+
+    return {
+      ...response,
+      data: response.data.map(flattenInventoryAllocationSummary),
+    };
+  } catch (error: unknown) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});
 
 /**
  * Thunk to confirm inventory allocations for a given order.
@@ -187,20 +179,15 @@ export const confirmInventoryAllocationThunk = createAsyncThunk<
   InventoryAllocationConfirmationResponse,
   { orderId: string },
   { rejectValue: UiErrorPayload }
->(
-  'inventoryAllocations/confirm',
-  async ({ orderId }, { rejectWithValue }) => {
-    try {
-      return await inventoryAllocationService.confirmInventoryAllocation(orderId);
-    } catch (error: unknown) {
-      console.error(
-        'Thunk: confirmInventoryAllocation failed',
-        { orderId, error }
-      );
-      
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
-    }
+>('inventoryAllocations/confirm', async ({ orderId }, { rejectWithValue }) => {
+  try {
+    return await inventoryAllocationService.confirmInventoryAllocation(orderId);
+  } catch (error: unknown) {
+    console.error('Thunk: confirmInventoryAllocation failed', {
+      orderId,
+      error,
+    });
+
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});

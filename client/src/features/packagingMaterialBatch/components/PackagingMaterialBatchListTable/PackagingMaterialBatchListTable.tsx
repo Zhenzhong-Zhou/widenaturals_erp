@@ -6,9 +6,7 @@ import {
   CustomTypography,
   SkeletonExpandedRow,
 } from '@components/index';
-import type {
-  FlattenedPackagingMaterialBatchRow,
-} from '@features/packagingMaterialBatch/state';
+import type { FlattenedPackagingMaterialBatchRow } from '@features/packagingMaterialBatch/state';
 import {
   getPackagingMaterialBatchTableColumns,
   PackagingMaterialBatchExpandedContent,
@@ -40,20 +38,20 @@ interface PackagingMaterialBatchListTableProps {
  * - refresh and selection support
  */
 const PackagingMaterialBatchListTable = ({
-                                           data,
-                                           loading,
-                                           page,
-                                           totalPages,
-                                           totalRecords,
-                                           rowsPerPage,
-                                           onPageChange,
-                                           onRowsPerPageChange,
-                                           expandedRowId,
-                                           onDrillDownToggle,
-                                           selectedRowIds,
-                                           onSelectionChange,
-                                           onRefresh,
-                                         }: PackagingMaterialBatchListTableProps) => {
+  data,
+  loading,
+  page,
+  totalPages,
+  totalRecords,
+  rowsPerPage,
+  onPageChange,
+  onRowsPerPageChange,
+  expandedRowId,
+  onDrillDownToggle,
+  selectedRowIds,
+  onSelectionChange,
+  onRefresh,
+}: PackagingMaterialBatchListTableProps) => {
   // ----------------------------------------
   // Column definitions
   // ----------------------------------------
@@ -65,7 +63,7 @@ const PackagingMaterialBatchListTable = ({
       ),
     [expandedRowId, onDrillDownToggle]
   );
-  
+
   // ----------------------------------------
   // Expanded row renderer (lazy)
   // ----------------------------------------
@@ -86,7 +84,7 @@ const PackagingMaterialBatchListTable = ({
     ),
     []
   );
-  
+
   // ----------------------------------------
   // Render
   // ----------------------------------------
@@ -102,7 +100,7 @@ const PackagingMaterialBatchListTable = ({
         <CustomTypography variant="h6" fontWeight={600}>
           Packaging Material Batches
         </CustomTypography>
-        
+
         <CustomButton
           onClick={onRefresh}
           variant="outlined"
@@ -111,7 +109,7 @@ const PackagingMaterialBatchListTable = ({
           Refresh
         </CustomButton>
       </Box>
-      
+
       <CustomTable
         data={data}
         columns={columns}

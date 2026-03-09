@@ -1,8 +1,5 @@
 import { useEffect, useState } from 'react';
-import {
-  CustomDialog,
-  CustomTypography,
-} from '@components/index';
+import { CustomDialog, CustomTypography } from '@components/index';
 import { SkuImageUploadCard } from '@features/skuImage/components/UploadImageForm';
 import useSkuImageUpload from '@hooks/useSkuImageUpload';
 import type {
@@ -21,39 +18,31 @@ interface Props {
 }
 
 const SkuImageUploadDialog = ({
-                                open,
-                                onClose,
-                                skuId,
-                                skuCode,
-                                displayProductName,
-                                onSuccess,
-                              }: Props) => {
-  const {
-    loading,
-    error,
-    isSuccess,
-    uploadImages,
-    reset,
-  } = useSkuImageUpload();
-  
+  open,
+  onClose,
+  skuId,
+  skuCode,
+  displayProductName,
+  onSuccess,
+}: Props) => {
+  const { loading, error, isSuccess, uploadImages, reset } =
+    useSkuImageUpload();
+
   const [item, setItem] = useState<SkuImageUploadCardData>({
     skuId,
     skuCode,
     displayProductName,
     images: [],
   });
-  
+
   // ---------------------------------------------
   // Build FormData (same logic as bulk page)
   // ---------------------------------------------
   const buildFormData = (items: BulkSkuImageUploadItem[]) => {
     const form = new FormData();
-    
-    form.append(
-      'skus',
-      JSON.stringify(serializeBulkSkuImageUpload(items))
-    );
-    
+
+    form.append('skus', JSON.stringify(serializeBulkSkuImageUpload(items)));
+
     items.forEach((i) => {
       i.images.forEach((img) => {
         if (img.file) {
@@ -61,10 +50,10 @@ const SkuImageUploadDialog = ({
         }
       });
     });
-    
+
     return form;
   };
-  
+
   // ---------------------------------------------
   // Submit
   // ---------------------------------------------
@@ -73,15 +62,14 @@ const SkuImageUploadDialog = ({
       onClose();
       return;
     }
-    
+
     const formData = buildFormData([item]);
-    
+
     try {
       await uploadImages(formData);
-    } catch {
-    }
+    } catch {}
   };
-  
+
   useEffect(() => {
     if (isSuccess) {
       onSuccess?.();
@@ -89,12 +77,12 @@ const SkuImageUploadDialog = ({
       onClose();
     }
   }, [isSuccess, onSuccess, reset, onClose]);
-  
+
   const handleClose = () => {
     reset();
     onClose();
   };
-  
+
   return (
     <CustomDialog
       open={open}
@@ -105,11 +93,8 @@ const SkuImageUploadDialog = ({
       disableCloseOnBackdrop={loading}
       disableCloseOnEscape={loading}
     >
-      <SkuImageUploadCard
-        data={item}
-        onChange={setItem}
-      />
-      
+      <SkuImageUploadCard data={item} onChange={setItem} />
+
       {error && (
         <CustomTypography color="error" sx={{ mt: 2 }}>
           {error}

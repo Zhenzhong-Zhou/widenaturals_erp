@@ -1,7 +1,7 @@
 const { cleanObject } = require('../utils/object-utils');
 const { getProductDisplayName } = require('../utils/display-name-utils');
 const { compactAudit, makeAudit } = require('../utils/audit-utils');
-const { transformPaginatedResult } = require('../utils/transformer-utils');
+const { transformPageResult } = require('../utils/transformer-utils');
 
 /**
  * @typedef {Object} ComplianceRecordRow
@@ -28,6 +28,7 @@ const { transformPaginatedResult } = require('../utils/transformer-utils');
  *
  * @property {string} sku_id
  * @property {string} sku_code
+ * @property {string} country_code
  * @property {string|null} size_label
  * @property {string|null} market_region
  *
@@ -76,7 +77,12 @@ const transformComplianceRecordRow = (row) => {
       brand: row.brand,
       series: row.series,
       category: row.category,
-      displayName: getProductDisplayName(row),
+      displayName: getProductDisplayName({
+        product_name: row.product_name,
+        brand: row.brand ?? '',
+        sku: row.sku_code ?? '',
+        country_code: row.country_code ?? '',
+      }),
     },
   });
 };
@@ -85,15 +91,20 @@ const transformComplianceRecordRow = (row) => {
  * Applies `transformComplianceRecordRow` to each row of a paginated
  * SQL result object and returns the normalized paginated response.
  *
- * @template T
- * @param {import('../../types').PaginatedQueryResult<ComplianceRecordRow>} paginatedResult
- * @returns {import('../../types').PaginatedTransformedResult<T>}
+ * @param {{
+ *   data: Array<T>,
+ *   pagination?: {
+ *     page?: number,
+ *     limit?: number,
+ *     totalRecords?: number,
+ *     totalPages?: number
+ *   }
+ * }} paginatedResult
+ *
+ * @returns {Promise<PaginatedResult<T>>}
  */
-const transformPaginatedComplianceRecordResults = (paginatedResult) => {
-  return transformPaginatedResult(
-    paginatedResult,
-    transformComplianceRecordRow
-  );
+const transformPaginatedComplianceRecordResults = async (paginatedResult) => {
+  return transformPageResult(paginatedResult, transformComplianceRecordRow);
 };
 
 /**

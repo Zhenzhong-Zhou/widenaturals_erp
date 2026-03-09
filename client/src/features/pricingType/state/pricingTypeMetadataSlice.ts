@@ -2,7 +2,7 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { fetchPricingTypeMetadataThunk } from './pricingTypeThunks';
 import type {
   PricingTypeMetadata,
-  PricingTypeMetadataState
+  PricingTypeMetadataState,
 } from './pricingTypeTypes';
 import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 

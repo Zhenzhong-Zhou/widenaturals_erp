@@ -256,13 +256,18 @@ const getHighLevelLocationInventorySummary = async ({
 };
 
 /**
- * Fetch enriched location inventory summary details for a given item ID (product SKU or packaging material).
+ * Fetch enriched location inventory summary details for a given item ID
+ * (product SKU or packaging material).
  *
  * @param {Object} options
- * @param {number} options.page - The current page number for pagination.
- * @param {number} options.limit - The number of records per page.
- * @param {string} options.itemId - The SKU ID (for products) or the Material ID (for packaging materials).
- * @returns {Promise<Array>} A paginated array of location inventory summary detail records, including batch and location info.
+ * @param {number} options.page - Current page number.
+ * @param {number} options.limit - Number of records per page.
+ * @param {string} options.itemId - SKU ID or packaging material ID.
+ *
+ * @returns {Promise<PaginatedResult<T>>}
+ *
+ * A paginated result containing location inventory summary detail records.
+ *
  * @throws {AppError} If the database query fails.
  */
 const getLocationInventorySummaryDetailsByItemId = async ({
@@ -510,11 +515,14 @@ const getPaginatedLocationInventoryRecords = async ({
  * @param {Array<Object>} records - Array of location_inventory record objects.
  * @param {object} client - Knex transaction or client instance.
  * @param {Object} meta - Optional metadata for tracing/debugging
- * @returns {Promise<number>} Number of rows inserted or updated.
+ *
+ * @returns {Promise<Array<{ location_inventory_id: string }>>}
+ * List of inserted or updated location_inventory IDs.
+ *
  * @throws {AppError} On failure.
  */
 const insertLocationInventoryRecords = async (records, client, meta) => {
-  if (!Array.isArray(records) || records.length === 0) return 0;
+  if (!Array.isArray(records) || records.length === 0) return [];
 
   const columns = [
     'batch_id',

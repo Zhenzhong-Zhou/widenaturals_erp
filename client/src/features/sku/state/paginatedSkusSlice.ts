@@ -51,11 +51,7 @@ const paginatedSkusSlice = createSlice({
 
       // ---- rejected ----
       .addCase(fetchPaginatedSkusThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch SKUs.'
-        );
+        applyRejected(state, action, 'Failed to fetch SKUs.');
       });
   },
 });

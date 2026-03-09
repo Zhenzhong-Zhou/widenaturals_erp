@@ -8,7 +8,7 @@ const { formatDiscount } = require('../utils/discount-utils');
 const { formatTaxRateLabel } = require('../utils/tax-rate-utils');
 const { getProductDisplayName } = require('../utils/display-name-utils');
 const { buildAddress } = require('../utils/address-utils');
-const { transformPaginatedResult } = require('../utils/transformer-utils');
+const { transformPageResult } = require('../utils/transformer-utils');
 
 /**
  * Header row as returned by your SQL (only fields you actually read here).
@@ -221,25 +221,25 @@ const transformOrderRow = (row) => {
 };
 
 /**
- * Applies `transformOrderRow` to each item in a paginated query result.
+ * Transform paginated order rows into structured order objects.
  *
- * Used to convert raw SQL rows into structured order objects within paginated responses.
- * Relies on `transformPaginatedResult` utility to preserve pagination metadata.
+ * Applies `transformOrderRow` to each row while preserving
+ * pagination metadata.
  *
- * @param {Object} paginatedResult - Paginated query result from `paginateQuery`.
- * @param {Array<Object>} paginatedResult.data - Array of raw rows to transform.
- * @param {Object} paginatedResult.meta - Metadata including pagination info.
- * @returns {Object} Transformed result with `data` mapped via `transformOrderRow`.
+ * @param {{
+ *   data: [],
+ *   pagination: {
+ *     page: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     totalPages: number
+ *   }
+ * }} paginatedResult - Raw paginated query result.
  *
- * @example
- * const result = await getPaginatedOrders(...);
- * const output = transformPaginatedOrderTypes(result);
+ * @returns {Promise<PaginatedResult<T>>}
  */
-const transformPaginatedOrderTypes = (paginatedResult) => {
-  return transformPaginatedResult(paginatedResult, (row) =>
-    transformOrderRow(row)
-  );
-};
+const transformPaginatedOrderTypes = (paginatedResult) =>
+  transformPageResult(paginatedResult, transformOrderRow);
 
 /**
  * Transform a flat sales order header + items (from a joined SQL query) into a structured object.

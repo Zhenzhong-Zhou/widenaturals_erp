@@ -33,11 +33,7 @@ const orderDetailsSlice = createSlice({
         }
       )
       .addCase(fetchOrderDetailsByIdThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch sales order details.'
-        );
+        applyRejected(state, action, 'Failed to fetch sales order details.');
       });
   },
 });

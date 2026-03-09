@@ -63,11 +63,7 @@ export const skuProductCardsSlice = createSlice({
       // FETCH → FAILURE
       // -------------------------------------------------------
       .addCase(fetchPaginatedSkuProductCardsThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch SKU product cards.'
-        );
+        applyRejected(state, action, 'Failed to fetch SKU product cards.');
       });
   },
 });

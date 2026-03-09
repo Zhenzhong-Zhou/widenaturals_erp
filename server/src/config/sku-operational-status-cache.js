@@ -5,13 +5,16 @@
  */
 
 const AppError = require('../utils/AppError');
-const { getOrderStatusesByCodes } = require('../repositories/order-status-repository');
-const { getInventoryAllocationStatusesByCodes } = require('../repositories/inventory-allocation-status-repository');
-const { getTransferItemStatusesByCodes } = require('../repositories/transfer-order-item-status-repository');
 const {
-  logSystemInfo,
-  logSystemException,
-} = require('../utils/system-logger');
+  getOrderStatusesByCodes,
+} = require('../repositories/order-status-repository');
+const {
+  getInventoryAllocationStatusesByCodes,
+} = require('../repositories/inventory-allocation-status-repository');
+const {
+  getTransferItemStatusesByCodes,
+} = require('../repositories/transfer-order-item-status-repository');
+const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 
 // ---------------------------------------------
 // Cache Holder
@@ -34,19 +37,19 @@ const SKU_ACTIVE_ORDER_CODES = [
   'ORDER_PARTIALLY_FULFILLED',
   'ORDER_SHIPPED',
   'ORDER_OUT_FOR_DELIVERY',
-  'RETURN_REQUESTED'
+  'RETURN_REQUESTED',
 ];
 
 const SKU_ACTIVE_ALLOCATION_CODES = [
   'ALLOC_PENDING',
   'ALLOC_CONFIRMED',
   'ALLOC_PARTIAL',
-  'ALLOC_FULFILLING'
+  'ALLOC_FULFILLING',
 ];
 
 const SKU_ACTIVE_TRANSFER_ITEM_CODES = [
   'TRANSFER_ITEM_PENDING',
-  'TRANSFER_ITEM_ALLOCATED'
+  'TRANSFER_ITEM_ALLOCATED',
 ];
 
 /**
@@ -78,24 +81,18 @@ const SKU_ACTIVE_TRANSFER_ITEM_CODES = [
  */
 const initSkuOperationalStatusCache = async (client = null) => {
   const context = 'sku-operational-status-cache/initSkuOperationalStatusCache';
-  
+
   try {
     const [orderStatuses, allocationStatuses, transferStatuses] =
       await Promise.all([
-        getOrderStatusesByCodes(
-          SKU_ACTIVE_ORDER_CODES,
-          client
-        ),
+        getOrderStatusesByCodes(SKU_ACTIVE_ORDER_CODES, client),
         getInventoryAllocationStatusesByCodes(
           SKU_ACTIVE_ALLOCATION_CODES,
           client
         ),
-        getTransferItemStatusesByCodes(
-          SKU_ACTIVE_TRANSFER_ITEM_CODES,
-          client
-        ),
+        getTransferItemStatusesByCodes(SKU_ACTIVE_TRANSFER_ITEM_CODES, client),
       ]);
-    
+
     // Safety check
     if (
       orderStatuses.length !== SKU_ACTIVE_ORDER_CODES.length ||
@@ -106,20 +103,19 @@ const initSkuOperationalStatusCache = async (client = null) => {
         'Operational status cache initialization failed. Some required status codes are missing.'
       );
     }
-    
+
     SKU_OPERATIONAL_STATUS_IDS = {
-      order: orderStatuses.map(s => s.id),
-      allocation: allocationStatuses.map(s => s.id),
-      transfer: transferStatuses.map(s => s.id),
+      order: orderStatuses.map((s) => s.id),
+      allocation: allocationStatuses.map((s) => s.id),
+      transfer: transferStatuses.map((s) => s.id),
     };
-    
+
     logSystemInfo('SKU operational status cache initialized', {
       context,
       orderCount: SKU_OPERATIONAL_STATUS_IDS.order.length,
       allocationCount: SKU_OPERATIONAL_STATUS_IDS.allocation.length,
       transferCount: SKU_OPERATIONAL_STATUS_IDS.transfer.length,
     });
-    
   } catch (error) {
     logSystemException(
       error,

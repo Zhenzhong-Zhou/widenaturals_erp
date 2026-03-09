@@ -42,11 +42,7 @@ const addressByCustomerLookupSlice = createSlice({
         }
       )
       .addCase(fetchCustomerAddressesLookupThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch addresses'
-        );
+        applyRejected(state, action, 'Failed to fetch addresses');
       });
   },
 });

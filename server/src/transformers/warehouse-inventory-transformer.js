@@ -1,6 +1,6 @@
 const { getProductDisplayName } = require('../utils/display-name-utils');
 const {
-  transformPaginatedResult,
+  transformPageResult,
   deriveInventoryStatusFlags,
 } = require('../utils/transformer-utils');
 const { cleanObject } = require('../utils/object-utils');
@@ -13,8 +13,41 @@ const {
 /**
  * Transforms a single warehouse inventory summary row (product or material) into application format.
  *
- * @param {object} row - A single row from the DB result.
- * @returns {object} - Transformed warehouse inventory summary.
+ * @param {{
+ *   item_id: string,
+ *   item_type: 'product'|'packaging_material'|'material',
+ *   item_name: string,
+ *   item_code?: string|null,
+ *   sku?: string|null,
+ *   actual_quantity: number|string,
+ *   total_available_quantity: number|string,
+ *   total_reserved_quantity: number|string,
+ *   total_lots: number|string,
+ *   total_lot_quantity: number|string,
+ *   earliest_manufacture_date?: string|null,
+ *   nearest_expiry_date?: string|null,
+ *   display_status?: string|null
+ * }} row - A single row from the warehouse inventory summary query.
+ *
+ * @returns {{
+ *   itemId: string,
+ *   itemType: string,
+ *   itemName: string,
+ *   actualQuantity: number,
+ *   availableQuantity: number,
+ *   reservedQuantity: number,
+ *   totalLots: number,
+ *   lotQuantity: number,
+ *   earliestManufactureDate?: string|null,
+ *   nearestExpiryDate?: string|null,
+ *   displayStatus?: string|null,
+ *   skuId?: string,
+ *   sku?: string|null,
+ *   productName?: string,
+ *   materialId?: string,
+ *   materialCode?: string|null,
+ *   materialName?: string
+ * }}
  */
 const transformWarehouseInventoryItemSummaryRow = (row) => {
   const isProduct = row.item_type === 'product';
@@ -65,18 +98,10 @@ const transformWarehouseInventoryItemSummaryRow = (row) => {
  * @param {Object} paginatedResult - The raw result from `paginateQuery`
  * @param {Array<Object>} paginatedResult.data - Raw SQL rows
  * @param {Object} paginatedResult.pagination - Pagination metadata (page, limit, totalRecords, totalPages)
- * @returns {{
- *   data: Array<Object>,
- *   pagination: {
- *     page: number,
- *     limit: number,
- *     totalRecords: number,
- *     totalPages: number
- *   }
- * }} Transformed result for frontend consumption
+ * @returns {Promise<PaginatedResult<T>>} - Transformed result for frontend consumption
  */
 const transformPaginatedWarehouseInventoryItemSummary = (paginatedResult) =>
-  transformPaginatedResult(
+  transformPageResult(
     paginatedResult,
     transformWarehouseInventoryItemSummaryRow
   );
@@ -146,7 +171,7 @@ const transformWarehouseInventorySummaryDetailsItem = (row) =>
  * @returns {Object} Transformed paginated result.
  */
 const transformPaginatedWarehouseInventorySummaryDetails = (paginatedResult) =>
-  transformPaginatedResult(
+  transformPageResult(
     paginatedResult,
     transformWarehouseInventorySummaryDetailsItem
   );
@@ -177,7 +202,7 @@ const transformWarehouseInventoryRecord = (row) =>
  * @returns {Object} Transformed a paginated result with structured warehouse inventory data
  */
 const transformPaginatedWarehouseInventoryRecordResults = (paginatedResult) =>
-  transformPaginatedResult(paginatedResult, transformWarehouseInventoryRecord);
+  transformPageResult(paginatedResult, transformWarehouseInventoryRecord);
 
 /**
  * Transforms warehouse inventory records into a normalized API response structure.

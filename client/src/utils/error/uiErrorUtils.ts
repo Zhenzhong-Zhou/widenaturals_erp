@@ -3,49 +3,113 @@ import { AppError, ErrorType } from '@utils/error';
 /**
  * Structured UI-safe error payload.
  *
- * Used by Redux thunks and UI components that require
- * both a user-facing message and a diagnostic reference
- * (e.g. admin lists, retry banners, support workflows).
+ * Represents a normalized error object returned by UI-facing layers
+ * (e.g. Redux thunks, API hooks, or request interceptors).
+ *
+ * This structure intentionally contains only information that is safe
+ * to expose to the UI and end users.
+ *
+ * Typical uses:
+ * - Displaying validation errors in forms
+ * - Rendering error dialogs or banners
+ * - Showing retry notifications
+ * - Supporting admin/debug workflows via trace identifiers
+ *
+ * This payload must only be used in UI layers.
+ * Service, repository, and logging layers should use domain or system
+ * error types instead.
  */
 export interface UiErrorPayload {
   /**
-   * User-facing error message.
-   * Safe to display directly in the UI.
+   * Human-readable error message.
+   *
+   * Safe to display directly to users without exposing sensitive data.
    */
   message: string;
 
-  /** Error classification */
+  /**
+   * High-level classification of the error.
+   *
+   * Used to determine UI behavior such as:
+   * - validation feedback
+   * - authentication redirects
+   * - retry prompts
+   */
   type: ErrorType;
+
+  /**
+   * Optional domain-specific error code.
+   *
+   * Allows UI components to implement specialized behavior for
+   * particular business errors (e.g. inventory allocation rules).
+   *
+   * Example values:
+   * - `NO_WAREHOUSE_INVENTORY`
+   * - `INSUFFICIENT_INVENTORY`
+   * - `ORDER_STATUS_INVALID`
+   */
+  code?: string;
+
+  /**
+   * Optional structured error details.
+   *
+   * May contain additional context required by UI components,
+   * such as validation fields or affected entities.
+   *
+   * Example:
+   * - list of items that could not be allocated
+   * - field validation metadata
+   */
+  details?: unknown;
 
   /**
    * Optional diagnostic trace identifier.
    *
-   * Used for log correlation and support/debug workflows.
-   * This is intentionally UI-facing but non-sensitive.
+   * Used for correlating UI errors with backend logs during
+   * troubleshooting or support workflows.
+   *
+   * This value should never contain sensitive information.
    */
   traceId?: string;
 }
 
 /**
- * Extracts a structured, UI-safe error payload from an unknown error.
+ * Extracts a normalized, UI-safe error payload from an unknown error value.
+ *
+ * This helper converts different runtime and transport error shapes
+ * (e.g. AppError, Axios errors, or generic JS errors) into a stable
+ * structure that can safely be consumed by UI components.
  *
  * Responsibilities:
- * - Preserves user-facing message
- * - Preserves diagnostic correlation ID when available
- * - Normalizes transport and runtime errors into a stable shape
+ * - Preserves user-facing error messages
+ * - Preserves domain error codes when available
+ * - Preserves structured error details for UI rendering
+ * - Preserves diagnostic trace identifiers for log correlation
+ * - Normalizes transport/runtime errors into a consistent shape
  *
- * Usage:
- * - Redux thunks with `rejectValue: UiErrorPayload`
- * - Admin or observable UI flows
+ * Typical usage:
+ * - Redux Toolkit thunks using `rejectWithValue<UiErrorPayload>()`
+ * - UI dialogs, banners, and retry flows
+ * - Admin or observable UI error reporting
  *
- * This function is UI-facing only.
- * Must NOT be used in service, repository, or logging layers.
+ * Error handling behavior:
+ * - `AppError` instances preserve full structured metadata
+ *   (type, code, details, correlationId).
+ * - Axios/transport errors attempt to extract structured payloads
+ *   from `response.data`.
+ * - Generic runtime errors are converted to `Unknown` errors.
+ *
+ * This function is strictly UI-facing.
+ * It must NOT be used in service, repository, or logging layers,
+ * where domain or system error types should be handled directly.
  */
 export const extractUiErrorPayload = (error: unknown): UiErrorPayload => {
   if (error instanceof AppError) {
     return {
       message: error.message,
       type: error.type,
+      code: error.code,
+      details: error.details,
       traceId: error.correlationId,
     };
   }
@@ -56,6 +120,8 @@ export const extractUiErrorPayload = (error: unknown): UiErrorPayload => {
     return {
       message: resp?.data?.message ?? resp?.statusText ?? 'Request failed',
       type: ErrorType.Server,
+      code: resp?.data?.code,
+      details: resp?.data?.details,
       traceId: resp?.data?.traceId,
     };
   }

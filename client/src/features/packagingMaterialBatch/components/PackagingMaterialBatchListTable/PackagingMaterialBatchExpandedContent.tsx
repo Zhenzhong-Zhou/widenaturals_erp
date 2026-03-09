@@ -3,9 +3,7 @@ import Box from '@mui/material/Box';
 import { CustomTypography, DetailsSection } from '@components/index';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
-import type {
-  FlattenedPackagingMaterialBatchRow,
-} from '@features/packagingMaterialBatch/state';
+import type { FlattenedPackagingMaterialBatchRow } from '@features/packagingMaterialBatch/state';
 
 /**
  * Expanded detail section for a Packaging Material Batch row.
@@ -25,7 +23,7 @@ const PackagingMaterialBatchExpandedContent: FC<
       <CustomTypography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
         Packaging Material Batch Details
       </CustomTypography>
-      
+
       {/* --------------------------------------------------
        * Material Metadata
        * -------------------------------------------------- */}
@@ -51,7 +49,7 @@ const PackagingMaterialBatchExpandedContent: FC<
           },
         ]}
       />
-      
+
       {/* --------------------------------------------------
        * Supplier Details
        * -------------------------------------------------- */}
@@ -72,7 +70,7 @@ const PackagingMaterialBatchExpandedContent: FC<
           },
         ]}
       />
-      
+
       {/* --------------------------------------------------
        * Lifecycle Details
        * -------------------------------------------------- */}
@@ -100,7 +98,7 @@ const PackagingMaterialBatchExpandedContent: FC<
           },
         ]}
       />
-      
+
       {/* --------------------------------------------------
        * Cost Details
        * -------------------------------------------------- */}
@@ -121,7 +119,7 @@ const PackagingMaterialBatchExpandedContent: FC<
           },
         ]}
       />
-      
+
       {/* --------------------------------------------------
        * Status Details
        * -------------------------------------------------- */}
@@ -140,7 +138,7 @@ const PackagingMaterialBatchExpandedContent: FC<
           },
         ]}
       />
-      
+
       {/* --------------------------------------------------
        * Audit
        * -------------------------------------------------- */}

@@ -626,7 +626,7 @@ const paginateQuery = async ({
  * @param {string} [distinctColumn] - Required if `useDistinct` is true. The column to apply `DISTINCT` on (e.g., `'s.id'`).
  *
  * @returns {Promise<{
- *   data: Record<string, any>[],
+ *   data: [],
  *   pagination: {
  *     offset: number,
  *     limit: number,

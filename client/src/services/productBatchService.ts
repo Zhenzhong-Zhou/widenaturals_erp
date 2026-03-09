@@ -2,10 +2,7 @@ import type {
   ProductBatchQueryParams,
   PaginatedProductBatchApiResponse,
 } from '@features/productBatch';
-import {
-  buildQueryString,
-  flattenListQueryParams
-} from '@utils/query';
+import { buildQueryString, flattenListQueryParams } from '@utils/query';
 import { getRequest } from '@utils/http';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 
@@ -50,7 +47,7 @@ const fetchPaginatedProductBatches = async (
     'createdAfter',
     'createdBefore',
   ]);
-  
+
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.PRODUCT_BATCHES.ALL_RECORDS}${queryString}`;
 

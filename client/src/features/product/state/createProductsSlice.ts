@@ -58,7 +58,7 @@ const createProductsSlice = createSlice({
       .addCase(createProductsThunk.rejected, (state, action) => {
         state.data = null;
         applyRejected(state, action, 'Failed to create products.');
-      })
+      });
   },
 });
 

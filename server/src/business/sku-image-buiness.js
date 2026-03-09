@@ -194,10 +194,10 @@ const evaluateSkuImageViewAccessControl = async (user) => {
  */
 const sliceSkuImagesForUser = (imageRows, access) => {
   if (!Array.isArray(imageRows)) return [];
-  
+
   // If user cannot view images at all → return empty immediately
   if (!access.canViewImages) return [];
-  
+
   return imageRows.map((row) => {
     const safe = {
       id: row.id,
@@ -223,14 +223,14 @@ const sliceSkuImagesForUser = (imageRows, access) => {
         uploadedAt: row.uploaded_at,
         uploadedBy: row.uploaded_by
           ? {
-            id: row.uploaded_by,
-            firstname: row.uploaded_by_firstname,
-            lastname: row.uploaded_by_lastname,
-          }
+              id: row.uploaded_by,
+              firstname: row.uploaded_by_firstname,
+              lastname: row.uploaded_by_lastname,
+            }
           : null,
       };
     }
-    
+
     return safe;
   });
 };

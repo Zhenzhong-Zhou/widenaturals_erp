@@ -17,13 +17,13 @@ interface ThumbnailListProps {
 const THUMB_SIZE = 150;
 
 const ThumbnailList: FC<ThumbnailListProps> = ({
-                                                 images,
-                                                 selectedGroupId,
-                                                 isMobile,
-                                                 onSelect,
-                                               }) => {
+  images,
+  selectedGroupId,
+  isMobile,
+  onSelect,
+}) => {
   const theme = useTheme();
-  
+
   return (
     <Stack
       role="listbox"
@@ -42,11 +42,11 @@ const ThumbnailList: FC<ThumbnailListProps> = ({
           group.variants.thumbnail ??
           group.variants.main ??
           group.variants.zoom;
-        
+
         if (!variant) return null;
-        
+
         const isSelected = group.groupId === selectedGroupId;
-        
+
         return (
           <Box
             key={group.groupId}

@@ -37,6 +37,5 @@ export const selectPricingListByTypeLoading = createSelector(
  */
 export const selectPricingListByTypeError = createSelector(
   [selectPricingListByTypeState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );

@@ -534,6 +534,8 @@ const validateStatusTransitionByCategory = (
  * @returns {Promise<boolean>} - True if the user is allowed to update the status
  */
 const canUpdateOrderStatus = async (user, category, order, nextStatusCode) => {
+  const context = 'order-business/canUpdateOrderStatus';
+
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
     if (isRoot) return true;
@@ -576,13 +578,16 @@ const canUpdateOrderStatus = async (user, category, order, nextStatusCode) => {
 
     return true;
   } catch (err) {
-    logSystemException(err, {
-      message: 'Failed to evaluate order status update permission',
-      context: 'order-business/canUpdateOrderStatus',
-      userId: user?.id,
-      orderId: order.order_id,
-      nextStatusCode,
-    });
+    logSystemException(
+      err,
+      'Failed to evaluate order status update permission',
+      {
+        context,
+        userId: user?.id,
+        orderId: order.order_id,
+        nextStatusCode,
+      }
+    );
     throw AppError.businessError(
       'Unable to evaluate order status update permission',
       {
@@ -652,7 +657,10 @@ const canUserPerformActionOnOrderType = (
  *
  * Orders that are shipped, fulfilled, delivered, or already paid are considered locked.
  *
- * @param {object} orderMetadata - Order object with at least `order_status_code` and `payment_status`
+ * @param {{
+ *   order_status_code: string,
+ *   payment_status?: string | null
+ * }} orderMetadata - Order object with at least `order_status_code` and `payment_status`
  * @returns {boolean} True if the order is financially locked
  */
 const isFinanciallyLocked = (orderMetadata) => {
@@ -673,7 +681,7 @@ const isFinanciallyLocked = (orderMetadata) => {
 
   return (
     lockedOrderStatuses.includes(orderMetadata.order_status_code) ||
-    lockedPaymentStatuses.includes(orderMetadata.payment_status)
+    lockedPaymentStatuses.includes(orderMetadata.payment_status ?? '')
   );
 };
 
@@ -689,10 +697,10 @@ const isFinanciallyLocked = (orderMetadata) => {
  * @param {Array<Object>} params.updatedItems - List of updated order items.
  * @param {Object} params.orderStatusMetadata - Metadata about the new status.
  *
- * @returns {Promise<{
+ * @returns {{
  *   enrichedOrder: Object,
  *   enrichedItems: Array<Object>
- * }>} Enriched order and item records with status metadata fields.
+ * }} Enriched order and item records with status metadata fields.
  */
 const enrichStatusMetadata = ({
   updatedOrder,

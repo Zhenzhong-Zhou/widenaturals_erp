@@ -1,5 +1,4 @@
-import paginatedPackagingMaterialBatchesReducer
-  from './paginatedPackagingMaterialBatchesSlice';
+import paginatedPackagingMaterialBatchesReducer from './paginatedPackagingMaterialBatchesSlice';
 
 /**
  * Packaging material batch reducers.
@@ -27,6 +26,5 @@ export const packagingMaterialBatchReducers = {
    * - pagination metadata
    * - loading and error state
    */
-  paginatedPackagingMaterialBatches:
-  paginatedPackagingMaterialBatchesReducer,
+  paginatedPackagingMaterialBatches: paginatedPackagingMaterialBatchesReducer,
 };

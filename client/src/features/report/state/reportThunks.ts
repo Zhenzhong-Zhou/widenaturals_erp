@@ -5,7 +5,8 @@ import type {
   InventoryActivityLogPaginatedResponse,
   InventoryActivityLogQueryParams,
 } from './reportTypes';
-import { extractUiErrorPayload, UiErrorPayload } from '@utils/error/uiErrorUtils';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import { extractUiErrorPayload } from '@utils/error/uiErrorUtils';
 
 /**
  * Thunk to fetch the base (non-paginated) inventory activity logs.
@@ -27,9 +28,7 @@ export const fetchBaseInventoryActivityLogsThunk = createAsyncThunk<
     try {
       return await reportService.fetchBaseInventoryActivityLogs({ limit });
     } catch (error: unknown) {
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );
@@ -54,9 +53,7 @@ export const fetchPaginatedInventoryActivityLogsThunk = createAsyncThunk<
     try {
       return await reportService.fetchPaginatedInventoryActivityLogs(params);
     } catch (error: unknown) {
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );

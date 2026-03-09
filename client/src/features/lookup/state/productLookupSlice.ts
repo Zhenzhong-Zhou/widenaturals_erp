@@ -46,11 +46,7 @@ const productLookupSlice = createSlice({
         }
       )
       .addCase(fetchProductLookupThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch product lookup'
-        );
+        applyRejected(state, action, 'Failed to fetch product lookup');
       });
   },
 });

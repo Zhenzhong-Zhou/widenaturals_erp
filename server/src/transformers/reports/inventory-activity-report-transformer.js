@@ -1,5 +1,5 @@
 const { getProductDisplayName } = require('../../utils/display-name-utils');
-const { transformPaginatedResult } = require('../../utils/transformer-utils');
+const { transformPageResult } = require('../../utils/transformer-utils');
 const { cleanObject } = require('../../utils/object-utils');
 
 /**
@@ -8,8 +8,57 @@ const { cleanObject } = require('../../utils/object-utils');
  *
  * Includes common fields like timestamp, quantity, source, and related order.
  *
- * @param {Object} row - Raw database row from inventory activity log query
- * @returns {Object} Structured base log object with null-filled product/packaging fields
+ * @param {{
+ *   id: string,
+ *   action_timestamp: string,
+ *   action_type: string,
+ *   adjustment_type?: string|null,
+ *   status_name: string,
+ *   performed_by: string,
+ *   order_number?: string|null,
+ *   order_type?: string|null,
+ *   order_status?: string|null,
+ *   source_type?: string|null,
+ *   source_ref_id?: string|null,
+ *   previous_quantity?: number|null,
+ *   quantity_change?: number|null,
+ *   new_quantity?: number|null,
+ *   comments?: string|null,
+ *   metadata?: Object|null,
+ *   batch_type?: string|null,
+ *   warehouse_name?: string|null,
+ *   location_name?: string|null
+ * }} row - Raw database row from inventory activity log query.
+ *
+ * @returns {{
+ *   id: string,
+ *   actionTimestamp: string,
+ *   actionType: string,
+ *   adjustmentType: string|null|undefined,
+ *   status: string,
+ *   performedBy: string,
+ *   order: {
+ *     number: string|null|undefined,
+ *     type: string|null|undefined,
+ *     status: string|null|undefined
+ *   },
+ *   source: {
+ *     type: string|null|undefined,
+ *     refId: string|null|undefined
+ *   },
+ *   quantity: {
+ *     previous: number|null|undefined,
+ *     change: number|null|undefined,
+ *     new: number|null|undefined
+ *   },
+ *   comments: string|null|undefined,
+ *   metadata: Object|null|undefined,
+ *   batchType: string|null|undefined,
+ *   warehouseName: string|null,
+ *   locationName: string|null,
+ *   productInfo: null,
+ *   packagingMaterialInfo: null
+ * }} Structured base log object with null-filled product/packaging fields.
  */
 const buildBaseInventoryActivityLogEntry = (row) => ({
   id: row.id,
@@ -99,7 +148,7 @@ const transformFlatInventoryActivityLogs = (rows) => {
  * @returns {Object} Transformed result with `data` and pagination metadata
  */
 const transformInventoryActivityLogs = (result) => {
-  return transformPaginatedResult(result, transformInventoryActivityLogRow);
+  return transformPageResult(result, transformInventoryActivityLogRow);
 };
 
 module.exports = {

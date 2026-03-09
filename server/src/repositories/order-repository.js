@@ -111,7 +111,7 @@ const insertOrder = async (orderData, client) => {
  *
  * @async
  * @param {Object} options - Query options.
- * @param {OrderListFilters} [options.filters={}] - Filtering conditions (e.g., status code, type, created date).
+ * @param {Object} [options.filters={}] - Filtering conditions (e.g., status code, type, created date).
  * @param {number} [options.page=1] - Page number for pagination.
  * @param {number} [options.limit=10] - Page size for pagination.
  * @param {string} [options.sortBy='created_at'] - Column name to sort by (e.g., 'order_date', 'status_date').
@@ -351,7 +351,7 @@ const findOrderByIdWithDetails = async (orderId) => {
     return rows[0]; // header-only query should return a single row
   } catch (error) {
     // DB-level exception logging stays in repo; business decisions happen in service
-    logSystemException('DB error fetching order', error, {
+    logSystemException(error, 'DB error fetching order', {
       ...logMeta,
       severity: 'ERROR',
     });
@@ -465,7 +465,9 @@ const updateOrderData = async (orderId, updateData, client) => {
     const updatedOrder = await client.query(updateQuery, updateValues);
     return updatedOrder.rows[0];
   } catch (error) {
-    logError('Error updating order:', error);
+    logSystemException(error, 'Failed to update order', {
+      context: 'order-repository/updateOrderData',
+    });
     throw AppError.databaseError(`Failed to update order: ${error.message}`);
   }
 };
@@ -512,10 +514,9 @@ const fetchOrderMetadata = async (orderId, client) => {
 
     return rows[0];
   } catch (error) {
-    logSystemException('Failed to fetch order metadata', {
+    logSystemException(error, 'Failed to fetch order metadata', {
       context: 'fetchOrderMetadata',
       orderId,
-      error,
     });
 
     throw AppError.databaseError('Failed to retrieve order metadata.');
@@ -541,8 +542,8 @@ const fetchOrderMetadata = async (orderId, client) => {
  * @param {string} params.updatedBy - UUID of the user performing the update (used for audit).
  * @returns {Promise<{
  *   id: string,
- *   statusId: string,
- *   statusDate: string
+ *   order_status_id: string,
+ *   status_date: string
  * } | null>} The updated order info if successful, or `null` if no matching order was found.
  *
  * @throws {AppError} If a database error occurs.
@@ -575,7 +576,7 @@ const updateOrderStatus = async (
         updatedBy,
         severity: 'WARN',
       });
-      return false;
+      return null;
     }
 
     const updatedOrder = result.rows[0];
@@ -681,6 +682,7 @@ const getInventoryAllocationsByOrderId = async (orderId, client) => {
  * @param {import('pg').PoolClient|null} [client=null] - Optional PostgreSQL client or transaction
  *
  * @returns {Promise<{
+ *   order_number: string,
  *   sales_order_id: string,
  *   delivery_method_id: string | null,
  *   order_item_ids: string[]
@@ -699,6 +701,7 @@ const getInventoryAllocationsByOrderId = async (orderId, client) => {
 const getSalesOrderShipmentMetadata = async (orderId, client = null) => {
   const sql = `
     SELECT
+      o.order_number,
       so.id AS sales_order_id,
       so.delivery_method_id,
       ARRAY_AGG(oi.id) AS order_item_ids
@@ -706,7 +709,7 @@ const getSalesOrderShipmentMetadata = async (orderId, client = null) => {
     JOIN orders o ON so.id = o.id
     JOIN order_items oi ON oi.order_id = o.id
     WHERE o.id = $1
-    GROUP BY so.id, so.delivery_method_id;
+    GROUP BY o.order_number, so.id, so.delivery_method_id;
   `;
 
   try {

@@ -560,38 +560,24 @@ const createSkusService = async (skuList, user) => {
  * @throws {AppError.validationError}
  *   If edit rules are violated.
  */
-const updateSkuMetadataService = async ({
-                                          skuId,
-                                          payload,
-                                          user,
-                                        }) => {
+const updateSkuMetadataService = async ({ skuId, payload, user }) => {
   return withTransaction(async (client) => {
     const context = 'sku-service/updateSkuMetadataService';
     const userId = user.id;
-    
+
     // Lock the SKU row to ensure safe concurrent updates
     const sku = await lockRow(client, 'skus', skuId, 'FOR UPDATE', { context });
-    
+
     if (!sku) {
       throw AppError.notFoundError('SKU not found.', { context, skuId });
     }
-    
+
     // Enforce business rules before modification
-    await assertSkuEditAllowed(
-      sku,
-      SKU_EDIT_TYPE.METADATA,
-      user,
-      client
-    );
-    
+    await assertSkuEditAllowed(sku, SKU_EDIT_TYPE.METADATA, user, client);
+
     // Apply metadata update
-    const updated = await updateSkuMetadata(
-      skuId,
-      payload,
-      userId,
-      client
-    );
-    
+    const updated = await updateSkuMetadata(skuId, payload, userId, client);
+
     // Defensive concurrency check
     if (!updated) {
       throw AppError.conflictError(
@@ -599,13 +585,13 @@ const updateSkuMetadataService = async ({
         { context, skuId }
       );
     }
-    
+
     logSystemInfo('Updated SKU metadata successfully', {
       context,
       skuId,
       userId,
     });
-    
+
     return updated;
   });
 };
@@ -730,50 +716,36 @@ const updateSkuStatusService = async ({ skuId, statusId, user }) => {
  * @throws {AppError.conflictError}
  * @throws {AppError.validationError}
  */
-const updateSkuDimensionsService = async ({
-                                            skuId,
-                                            payload,
-                                            user,
-                                          }) => {
+const updateSkuDimensionsService = async ({ skuId, payload, user }) => {
   return withTransaction(async (client) => {
     const context = 'sku-service/updateSkuDimensionsService';
     const userId = user.id;
-    
+
     // Lock row to prevent concurrent modification
     const sku = await lockRow(client, 'skus', skuId, 'FOR UPDATE', { context });
-    
+
     if (!sku) {
       throw AppError.notFoundError('SKU not found.', { context, skuId });
     }
-    
+
     // Enforce edit permissions and state rules
-    await assertSkuEditAllowed(
-      sku,
-      SKU_EDIT_TYPE.DIMENSIONS,
-      user,
-      client
-    );
-    
-    const updated = await updateSkuDimensions(
-      skuId,
-      payload,
-      userId,
-      client
-    );
-    
+    await assertSkuEditAllowed(sku, SKU_EDIT_TYPE.DIMENSIONS, user, client);
+
+    const updated = await updateSkuDimensions(skuId, payload, userId, client);
+
     if (!updated) {
       throw AppError.conflictError(
         'Concurrent update detected — SKU dimensions not updated.',
         { context, skuId }
       );
     }
-    
+
     logSystemInfo('Updated SKU dimensions successfully', {
       context,
       skuId,
       userId,
     });
-    
+
     return updated;
   });
 };
@@ -802,48 +774,34 @@ const updateSkuDimensionsService = async ({
  * @throws {AppError.conflictError}
  * @throws {AppError.validationError}
  */
-const updateSkuIdentityService = async ({
-                                          skuId,
-                                          payload,
-                                          user,
-                                        }) => {
+const updateSkuIdentityService = async ({ skuId, payload, user }) => {
   return withTransaction(async (client) => {
     const context = 'sku-service/updateSkuIdentityService';
     const userId = user.id;
-    
+
     const sku = await lockRow(client, 'skus', skuId, 'FOR UPDATE', { context });
-    
+
     if (!sku) {
       throw AppError.notFoundError('SKU not found.', { context, skuId });
     }
-    
-    await assertSkuEditAllowed(
-      sku,
-      SKU_EDIT_TYPE.IDENTITY,
-      user,
-      client
-    );
-    
-    const updated = await updateSkuIdentity(
-      skuId,
-      payload,
-      userId,
-      client
-    );
-    
+
+    await assertSkuEditAllowed(sku, SKU_EDIT_TYPE.IDENTITY, user, client);
+
+    const updated = await updateSkuIdentity(skuId, payload, userId, client);
+
     if (!updated) {
       throw AppError.conflictError(
         'Concurrent update detected — SKU identity not updated.',
         { context, skuId }
       );
     }
-    
+
     logSystemInfo('Updated SKU identity successfully', {
       context,
       skuId,
       userId,
     });
-    
+
     return updated;
   });
 };

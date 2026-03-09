@@ -29,8 +29,7 @@ export const selectCustomerCreateLoading = createSelector(
  */
 export const selectCustomerCreateError = createSelector(
   [selectCustomerCreateState],
-  (customerCreate): string | null =>
-    customerCreate.error?.message ?? null
+  (customerCreate): string | null => customerCreate.error?.message ?? null
 );
 
 /**

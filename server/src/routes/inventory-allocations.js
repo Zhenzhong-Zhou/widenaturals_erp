@@ -22,19 +22,38 @@ const router = express.Router();
 /**
  * @route POST /inventory-allocations/allocate/:orderId
  * @permission INVENTORY_ALLOCATION.ALLOCATE
- * @description
- * Allocates available inventory to all items in a given sales order.
  *
- * Validates:
- * - `orderId` as a UUID from route params.
- * - `strategy` (4-character string, default: 'fefo') and `warehouseId` (UUID) from request body.
+ * @description
+ * Initiates automatic inventory allocation for all items in the specified order.
+ *
+ * The server attempts to allocate inventory batches from the selected warehouse
+ * using the configured allocation strategy.
+ *
+ * Request validation:
+ * - `orderId` must be a valid UUID (route param).
+ * - `strategy` must be a 4-character allocation strategy (`fefo` or `fifo`).
+ * - `warehouseId` must be a valid warehouse UUID.
+ * - `allowPartial` (boolean, default: false) allows allocation to proceed even
+ *   if the full requested quantity cannot be satisfied.
+ *
+ * Allocation behavior:
+ * - If no inventory exists in the selected warehouse for some items,
+ *   the server returns a `NO_WAREHOUSE_INVENTORY` validation error.
+ *
+ * - If inventory exists but cannot fully satisfy the requested quantity,
+ *   the server returns an `INSUFFICIENT_INVENTORY` validation error unless
+ *   `allowPartial` is true.
+ *
+ * - When `allowPartial` is true, the server allocates all available inventory
+ *   batches and leaves the remaining quantity unallocated.
  *
  * Middleware:
- * - `authorize`: Requires ALLOCATE permission.
- * - `validate`: Checks both route params and request body against Joi schemas.
+ * - `authorize`: Requires `INVENTORY_ALLOCATION.ALLOCATE` permission.
+ * - `validate`: Validates route params and request body against Joi schemas.
  *
  * Controller:
- * - `allocateInventoryForOrderController`: Executes allocation logic and responds with allocation results.
+ * - `allocateInventoryForOrderController` performs the allocation logic
+ *   and returns the created allocation identifiers used for the review step.
  */
 router.post(
   '/allocate/:orderId',

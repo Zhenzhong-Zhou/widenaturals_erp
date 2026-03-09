@@ -43,11 +43,7 @@ const roleLookupSlice = createSlice({
         }
       )
       .addCase(fetchRoleLookupThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch role lookup'
-        );
+        applyRejected(state, action, 'Failed to fetch role lookup');
       });
   },
 });

@@ -34,11 +34,7 @@ const taxRateLookupSlice = createSlice({
         applyPaginatedFulfilled(state, action.payload);
       })
       .addCase(fetchTaxRateLookupThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch tax rate lookup'
-        );
+        applyRejected(state, action, 'Failed to fetch tax rate lookup');
       });
   },
 });

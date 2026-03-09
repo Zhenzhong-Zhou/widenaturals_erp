@@ -55,12 +55,8 @@ const loginSlice = createSlice({
       // -------------------------
       .addCase(loginThunk.rejected, (state, action) => {
         state.data = null;
-        
-        applyRejected(
-          state,
-          action,
-          'Login failed. Please try again.'
-        );
+
+        applyRejected(state, action, 'Login failed. Please try again.');
       });
   },
 });

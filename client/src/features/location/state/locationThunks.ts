@@ -5,7 +5,7 @@ import type {
 } from '@features/location';
 import { locationService } from '@services/locationService';
 import { flattenLocationListRecord } from '@features/location/utils';
-import { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 import { extractUiErrorPayload } from '@utils/error';
 
 /**
@@ -38,20 +38,15 @@ export const fetchPaginatedLocationThunk = createAsyncThunk<
   PaginatedLocationListUiResponse,
   LocationListQueryParams,
   { rejectValue: UiErrorPayload }
->(
-  'location/fetchPaginatedLocation',
-  async (params, { rejectWithValue }) => {
-    try {
-      const response = await locationService.fetchPaginatedLocations(params);
-      
-      return {
-        ...response,
-        data: flattenLocationListRecord(response.data),
-      };
-    } catch (error: unknown) {
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
-    }
+>('location/fetchPaginatedLocation', async (params, { rejectWithValue }) => {
+  try {
+    const response = await locationService.fetchPaginatedLocations(params);
+
+    return {
+      ...response,
+      data: flattenLocationListRecord(response.data),
+    };
+  } catch (error: unknown) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});

@@ -38,7 +38,10 @@ const {
  * }>} fulfillments - Flat array of fulfillment objects
  * @param {import('pg').PoolClient} client - Active PostgreSQL transaction client
  *
- * @returns {Promise<Array<{ id: string }>>} Array of inserted or updated fulfillment rows
+ * @returns {Promise<Array<{
+ *   id: string,
+ *   order_item_id: string
+ * }>>} Array of inserted or updated fulfillment rows
  *
  * @throws {AppError} Throws `AppError.databaseError` if insert/update fails
  *
@@ -105,7 +108,7 @@ const insertOrderFulfillmentsBulk = async (fulfillments, client) => {
       updateStrategies,
       client,
       { context: 'order-fulfillment-repository/insertOrderFulfillmentsBulk' },
-      ['id', 'order_item_id']
+      'id, order_item_id'
     );
 
     logSystemInfo('Successfully inserted or updated order fulfillments', {

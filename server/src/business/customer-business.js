@@ -187,17 +187,21 @@ const enforceCustomerLookupVisibilityRules = (
  * These fields are useful for conditionally rendering customer options in dropdowns,
  * select lists, and other UI components.
  *
- * @param {object} row - The raw customer object from the database.
- *   Expected to contain at least:
- *     - `status_id: string`
- *     - `has_address: boolean | null`
- * @param {string} activeStatusId - The status ID representing an "active" customer.
+ * @template T
  *
- * @throws {AppError} If the row is not a valid object or if the activeStatusId is missing or invalid.
+ * @param {T & {
+ *   status_id?: string,
+ *   has_address?: boolean | null
+ * }} row - Raw customer row from the database.
  *
- * @returns {object} A new object containing all original customer fields plus:
- *   - `isActive: boolean`
- *   - `hasAddress: boolean`
+ * @param {string} activeStatusId - Status ID representing an "active" customer.
+ *
+ * @throws {AppError} If the row is invalid or the activeStatusId is missing.
+ *
+ * @returns {T & {
+ *   isActive: boolean,
+ *   hasAddress: boolean
+ * }} The original row enriched with UI flags.
  *
  * @example
  * const enriched = enrichCustomerOption(customerRow, ACTIVE_STATUS_ID);

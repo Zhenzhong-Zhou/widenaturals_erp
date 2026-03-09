@@ -1,5 +1,4 @@
 const AppError = require('./AppError');
-const { cleanObject } = require('./object-utils');
 const { generateChecksum } = require('./crypto-utils');
 
 /**
@@ -59,26 +58,14 @@ const buildInventoryLogRows = (records) => {
 
     const metadata = record.meta ?? record.metadata ?? {}; // fallback for backward compatibility
 
-    const checksumPayload = cleanObject({
-      [inventoryFieldKey]: inventoryId,
+    const checksum = generateChecksum({
+      inventory_id: inventoryId,
       inventory_action_type_id: record.inventory_action_type_id,
-      adjustment_type_id: record.adjustment_type_id || null,
-      order_id: record.order_id || null,
+      previous_quantity: previousQty,
       quantity_change: changeQty,
       new_quantity: newQty,
-      status_id: record.status_id,
-      status_effective_at: record.status_date,
-      performed_by: record.user_id,
-      comments: record.comments,
-      recorded_by: record.user_id,
-      inventory_scope: scope,
-      source_type: record.source_type || null,
-      source_ref_id: record.source_ref_id || null,
-      metadata: {
-        source: record.source_type,
-        record_scope: record.record_scope,
-        ...metadata,
-      },
+      source_action_id: record.source_ref_id || undefined,
+      comments: record.comments || undefined,
     });
 
     return {
@@ -94,11 +81,15 @@ const buildInventoryLogRows = (records) => {
       performed_by: record.user_id,
       recorded_by: record.user_id,
       comments: record.comments || null,
-      metadata: checksumPayload.metadata,
+      metadata: {
+        source: record.source_type,
+        record_scope: record.record_scope,
+        ...metadata,
+      },
       source_type: record.source_type || null,
       source_ref_id: record.source_ref_id || null,
       inventory_scope: scope,
-      checksum: generateChecksum(checksumPayload),
+      checksum,
     };
   });
 };
@@ -114,29 +105,22 @@ const validateInventoryLogChecksum = (record) => {
   const isWarehouse = Boolean(
     record.warehouse_inventory_id || record.inventory_scope === 'warehouse'
   );
+
   const inventoryFieldKey = isWarehouse
     ? 'warehouse_inventory_id'
     : 'location_inventory_id';
+
   const inventoryId = record[inventoryFieldKey];
 
-  const checksumPayload = cleanObject({
-    [inventoryFieldKey]: inventoryId,
+  const generatedChecksum = generateChecksum({
+    inventory_id: inventoryId,
     inventory_action_type_id: record.inventory_action_type_id,
-    adjustment_type_id: record.adjustment_type_id || null,
-    order_id: record.order_id || null,
-    quantity_change: record.quantity_change,
-    new_quantity: record.new_quantity,
-    status_id: record.status_id,
-    status_effective_at: record.status_effective_at,
-    performed_by: record.user_id,
-    recorded_by: record.user_id,
-    inventory_scope: record.inventory_scope,
-    source_type: record.source_type || null,
-    source_ref_id: record.source_ref_id || null,
-    metadata: record.metadata,
+    previous_quantity: record.previous_quantity ?? 0,
+    quantity_change: record.quantity_change ?? 0,
+    new_quantity: record.new_quantity ?? 0,
+    source_action_id: record.source_ref_id || undefined,
+    comments: record.comments || undefined,
   });
-
-  const generatedChecksum = generateChecksum(checksumPayload);
 
   if (generatedChecksum !== record.checksum) {
     throw new Error('Inventory log integrity check failed: checksum mismatch.');

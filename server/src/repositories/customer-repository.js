@@ -146,7 +146,16 @@ const getEnrichedCustomersByIds = async (ids, client) => {
  * @param {string} [options.sortBy='created_at'] - Column to sort by
  * @param {string} [options.sortOrder='DESC'] - Sort direction
  *
- * @returns {Promise<Array>} - Paginated customer result
+ * @returns {Promise<{
+ *   data: Object[],
+ *   pagination: {
+ *     page: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     totalPages: number
+ *   }
+ * }>}
+ * Paginated customer query result.
  *
  * @throws {AppError} - Throws databaseError on failure
  */

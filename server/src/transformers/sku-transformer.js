@@ -1,5 +1,5 @@
 const { getProductDisplayName } = require('../utils/display-name-utils');
-const { transformPaginatedResult } = require('../utils/transformer-utils');
+const { transformPageResult } = require('../utils/transformer-utils');
 const { cleanObject } = require('../utils/object-utils');
 const { transformSkuImageGroupsForDetail } = require('./sku-image-transformer');
 const { transformSkuPricing } = require('./pricing-transformer');
@@ -47,7 +47,7 @@ const { compactAudit, makeAudit } = require('../utils/audit-utils');
  * This structure feeds API results for product grids, SKU list pages, etc.
  *
  * @param {RawSkuProductCardRow} row
- * @returns {SkuProductCard}
+ * @returns {SkuProductCard|null}
  */
 const transformSkuProductCardRow = (row) => {
   if (!row) return null;
@@ -133,7 +133,7 @@ const transformSkuProductCardRow = (row) => {
  * @returns {object} API-ready structure with pagination.
  */
 const transformPaginatedSkuProductCardResult = (paginatedResult) =>
-  transformPaginatedResult(paginatedResult, transformSkuProductCardRow);
+  transformPageResult(paginatedResult, transformSkuProductCardRow);
 
 /**
  * Transform a single raw SKU row returned from the paginated SQL query
@@ -226,7 +226,7 @@ const transformSkuListRecord = (row) => {
 /**
  * Transform a paginated SKU query result by applying the SKU row
  * transformer to each record. Wraps the generic pagination formatter
- * (`transformPaginatedResult`) to return:
+ * (`transformPageResult`) to return:
  *
  * {
  *   data: [ transformedRows... ],
@@ -238,7 +238,7 @@ const transformSkuListRecord = (row) => {
  * @returns {Object} Normalized paginated response for API consumers.
  */
 const transformPaginatedSkuListResults = (paginatedResult) => {
-  return transformPaginatedResult(paginatedResult, transformSkuListRecord);
+  return transformPageResult(paginatedResult, transformSkuListRecord);
 };
 
 /**

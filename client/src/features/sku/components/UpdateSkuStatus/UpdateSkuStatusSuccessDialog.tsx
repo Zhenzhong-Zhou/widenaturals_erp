@@ -1,8 +1,7 @@
 import type { FC } from 'react';
 import Box from '@mui/material/Box';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import CustomDialog from '@components/common/CustomDialog';
-import ResultBody from '@components/common/ResultBody';
+import { CustomDialog, ResultBody } from '@components/index';
 import type { UpdateSkuStatusResponse } from '@features/sku/state';
 
 interface UpdateSkuStatusSuccessDialogProps {

@@ -15,10 +15,12 @@ const upload = require('../middlewares/multer-config');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
 const validate = require('../middlewares/validate');
 const {
-  bulkSkuImageUploadSchema, bulkSkuImageUpdateSchema,
+  bulkSkuImageUploadSchema,
+  bulkSkuImageUpdateSchema,
 } = require('../validators/sku-image-validators');
 const {
-  uploadSkuImagesController, updateSkuImagesController,
+  uploadSkuImagesController,
+  updateSkuImagesController,
 } = require('../controllers/sku-image-controller');
 const {
   parseSkuImageJson,

@@ -530,7 +530,7 @@ exports.seed = async function (knex) {
 
   for (const { sku, images } of seedData) {
     const groupId = randomUUID();
-    
+
     const skuId = skuMap[sku];
     if (!skuId) {
       console.warn(`SKU not found: ${sku}`);
@@ -674,7 +674,7 @@ exports.seed = async function (knex) {
       .insert(rows)
       .onConflict(['sku_id', 'group_id', 'image_type'])
       .ignore();
-    
+
     console.log(`Inserted ${rows.length} sku_images`);
   } else {
     console.warn('No sku_images to insert.');

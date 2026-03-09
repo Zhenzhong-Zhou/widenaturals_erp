@@ -79,9 +79,11 @@ export const mapLookupItems = <
   T extends { id: string; label: string } & Record<string, any>,
   K extends keyof T = never,
 >(
-  items: T[],
+  items: T[] = [],
   extraFields: K[] = []
 ): Array<{ label: string; value: string } & Pick<T, K>> => {
+  if (!Array.isArray(items)) return [];
+
   return items.map((item) => {
     const base = {
       label: item.label,

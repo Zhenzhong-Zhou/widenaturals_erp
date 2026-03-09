@@ -8,16 +8,11 @@ import {
 } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { useLocation } from 'react-router';
-import Stack from '@mui/material/Stack';
 import Grid from '@mui/material/Grid';
-import DetailPage from '@components/common/DetailPage';
-import CustomButton from '@components/common/CustomButton';
-import GoBackButton from '@components/common/GoBackButton';
+import { DetailPage, Loading } from '@components/index';
 import { NotFoundPage } from '@pages/system';
-import Loading from '@components/common/Loading';
-import { useHasPermission } from '@features/authorize/hooks';
-import useSkuDetail from '@hooks/useSkuDetail';
-import useStatusLookup from '@hooks/useStatusLookup';
+import { useSkuDetail, useStatusLookup } from '@hooks/index';
+import { useHasPermissionBoolean } from '@features/authorize/hooks';
 import { useDialogFocusHandlers } from '@utils/hooks';
 import {
   flattenComplianceRecords,
@@ -25,19 +20,24 @@ import {
   flattenSkuInfo,
 } from '@features/sku/utils';
 import {
+  transformFlattenedSkuToDimensionsFormValues,
+  transformFlattenedSkuToMetadataFormValues,
+} from '@features/sku/utils/skuTransformers';
+import { truncateText } from '@utils/textUtils';
+import {
+  SkuDetailActionToolbar,
   SkuDetailRightPanel,
   SkuImageGallery,
 } from '@features/sku/components/SkuDetail';
-import { UpdateSkuStatusDialog } from '@features/sku/components/UpdateSkuStatusForm';
-import { truncateText } from '@utils/textUtils';
+import { UpdateSkuStatusDialog } from '@features/sku/components/UpdateSkuStatus';
+import { UpdateSkuMetadataDialog } from '@features/sku/components/UpdateSkuMetadata';
+import { UpdateSkuDimensionsDialog } from '@features/sku/components/UpdateSkuDimensions';
+import { UpdateSkuIdentityDialog } from '@features/sku/components/UpdateSkuIdentity';
 import { SkuImageUpdateDialog } from '@features/skuImage/components/UpdateImageForm';
 import { SkuImageUploadDialog } from '@features/skuImage/components/UploadImageForm';
 
 /**
- * Represents the currently active dialog on the SKU detail page.
- *
- * Ensures only one dialog is open at a time.
- * Used for centralized dialog state + focus restoration handling.
+ * Active dialog state for SKU detail page.
  */
 type SkuDetailDialog =
   | 'edit-metadata'
@@ -48,25 +48,14 @@ type SkuDetailDialog =
   | 'edit-images'
   | null;
 
-/**
- * SKU Detail Page
- *
- * Responsibilities:
- * - Fetch and display complete SKU detail view
- * - Render image gallery, metadata, compliance, and pricing sections
- * - Provide permission-gated actions (status update, image management)
- * - Centralize dialog control using `activeDialog`
- * - Restore focus correctly after dialog close (accessibility)
- *
- * Route: /skus/:skuId
- */
 const SkuDetailPage: FC = () => {
   /* ---------------------------------------------------------
-   * Router + Context Hooks
-   * --------------------------------------------------------- */
-  const { skuId } = useParams<{ skuId: string }>();
+   Router
+  --------------------------------------------------------- */
 
+  const { skuId } = useParams<{ skuId: string }>();
   const location = useLocation();
+
   const cameFromUpload = location.state?.fromUpload === true;
 
   if (!skuId) {
@@ -74,8 +63,9 @@ const SkuDetailPage: FC = () => {
   }
 
   /* ---------------------------------------------------------
-   * SKU detail hook (provides all data & fetch helpers)
-   * --------------------------------------------------------- */
+   Data Hooks
+  --------------------------------------------------------- */
+
   const {
     sku,
     product,
@@ -88,51 +78,83 @@ const SkuDetailPage: FC = () => {
     resetSkuDetailState,
   } = useSkuDetail();
 
-  const createButtonRef = useRef<HTMLButtonElement>(null);
-
   const statusLookup = useStatusLookup();
-  
+
   /* ---------------------------------------------------------
-   * Dialog State + Focus Management
-   *
-   * - `activeDialog` ensures only one dialog is open at a time.
-   * - Each dialog trigger button keeps a ref for accessibility.
-   * - `useDialogFocusHandlers` restores focus to the triggering
-   *   button when the dialog closes.
-   * - Open state is derived from `activeDialog` rather than
-   *   separate booleans for scalability.
-   * --------------------------------------------------------- */
+   Permissions
+  --------------------------------------------------------- */
+
+  const hasPermission = useHasPermissionBoolean();
+
+  const canViewInactive = hasPermission('view_all_product_statuses');
+  const canUpdateMetadata = hasPermission('update_sku_metadata');
+  const canUpdateStatus = hasPermission('update_sku_status');
+  const canUpdateDimension = hasPermission('update_sku_dimension');
+  const canUpdateIdentity = hasPermission('update_sku_identity');
+  const canUploadImages = hasPermission('update_sku_metadata');
+  const canUpdateImages = hasPermission('update_sku_images');
+
+  /* ---------------------------------------------------------
+   Dialog State
+  --------------------------------------------------------- */
+
   const [activeDialog, setActiveDialog] = useState<SkuDetailDialog>(null);
-  
+
+  /* ---------------------------------------------------------
+   Button Refs (focus restore)
+  --------------------------------------------------------- */
+
+  const metadataButtonRef = useRef<HTMLButtonElement>(null);
   const statusButtonRef = useRef<HTMLButtonElement>(null);
+  const dimensionsButtonRef = useRef<HTMLButtonElement>(null);
+  const identityButtonRef = useRef<HTMLButtonElement>(null);
   const imageButtonRef = useRef<HTMLButtonElement>(null);
   const uploadButtonRef = useRef<HTMLButtonElement>(null);
-  
-  // Per-dialog focus-aware open/close handlers
+
+  /* ---------------------------------------------------------
+   Dialog Handlers
+  --------------------------------------------------------- */
+
+  const metadataDialogHandlers = useDialogFocusHandlers(
+    (open) => setActiveDialog(open ? 'edit-metadata' : null),
+    metadataButtonRef,
+    () => activeDialog === 'edit-metadata'
+  );
+
   const statusDialogHandlers = useDialogFocusHandlers(
     (open) => setActiveDialog(open ? 'edit-status' : null),
     statusButtonRef,
     () => activeDialog === 'edit-status'
   );
-  
+
+  const dimensionsDialogHandlers = useDialogFocusHandlers(
+    (open) => setActiveDialog(open ? 'edit-dimensions' : null),
+    dimensionsButtonRef,
+    () => activeDialog === 'edit-dimensions'
+  );
+
+  const identityDialogHandlers = useDialogFocusHandlers(
+    (open) => setActiveDialog(open ? 'edit-identity' : null),
+    identityButtonRef,
+    () => activeDialog === 'edit-identity'
+  );
+
   const imageDialogHandlers = useDialogFocusHandlers(
     (open) => setActiveDialog(open ? 'edit-images' : null),
     imageButtonRef,
     () => activeDialog === 'edit-images'
   );
-  
+
   const uploadDialogHandlers = useDialogFocusHandlers(
     (open) => setActiveDialog(open ? 'upload-images' : null),
     uploadButtonRef,
     () => activeDialog === 'upload-images'
   );
-  
+
   /* ---------------------------------------------------------
-   * Data Lifecycle
-   * - Fetch SKU detail on mount and skuId change
-   * - Provide manual refresh
-   * - Reset slice state on unmount
-   * --------------------------------------------------------- */
+   Data Lifecycle
+  --------------------------------------------------------- */
+
   const refresh = useCallback(() => {
     if (skuId) fetchSkuDetail(skuId);
   }, [skuId, fetchSkuDetail]);
@@ -141,11 +163,11 @@ const SkuDetailPage: FC = () => {
     refresh();
     return () => resetSkuDetailState();
   }, [refresh, resetSkuDetailState]);
-  
+
   /* ---------------------------------------------------------
-   * Flattened structures for UI components
-   * Memoized to avoid unnecessary re-renders
-   * --------------------------------------------------------- */
+   Derived Data
+  --------------------------------------------------------- */
+
   const flattenedSkuInfo = useMemo(
     () => (sku ? flattenSkuInfo(sku) : null),
     [sku]
@@ -162,35 +184,18 @@ const SkuDetailPage: FC = () => {
     [activePricing]
   );
 
-  /* ---------------------------------------------------------
-   * Permission logic
-   * --------------------------------------------------------- */
-  const hasPermission = useHasPermission();
-
-  const canViewInactive = hasPermission('view_all_product_statuses');
-
-  const canUpdateStatus = hasPermission('update_sku_status');
-  
-  const canUploadImages = hasPermission('update_sku_metadata');
-  
-  const canUpdateImages = hasPermission('update_sku_images');
-
-  /* ---------------------------------------------------------
-   * Page title (memoized)
-   * --------------------------------------------------------- */
   const pageTitle = useMemo(() => {
     const name = product?.displayName;
     const base = truncateText(name, 50) || 'Product Details';
     return `${base} - Product Details`;
   }, [product]);
-  
+
   /* ---------------------------------------------------------
-   * Access Guard
-   * Deny access to inactive SKUs unless user has permission
-   * --------------------------------------------------------- */
+   Access Guard
+  --------------------------------------------------------- */
+
   const isInactive = sku?.status?.name !== 'active';
 
-  // Prevent access to inactive SKUs unless user has proper permissions
   if (sku && isInactive && !canViewInactive) {
     return <Navigate to="/404" replace />;
   }
@@ -200,8 +205,9 @@ const SkuDetailPage: FC = () => {
   }
 
   /* ---------------------------------------------------------
-   * Render
-   * --------------------------------------------------------- */
+   Render
+  --------------------------------------------------------- */
+
   return (
     <DetailPage
       title={pageTitle}
@@ -209,19 +215,59 @@ const SkuDetailPage: FC = () => {
       error={skuDetailError ?? undefined}
       sx={{ maxWidth: '100%', px: { xs: 2, md: 4 }, pb: 6 }}
     >
-      {/* Status Dialog */}
+      {/* ---------------------------------------------------------
+          Dialogs
+      --------------------------------------------------------- */}
+
       {skuId && (
-        <UpdateSkuStatusDialog
-          open={activeDialog === 'edit-status'}
-          onClose={statusDialogHandlers.handleCloseDialog}
-          skuId={skuId}
-          skuCode={flattenedSkuInfo?.sku ?? ''}
-          onSuccess={refresh}
-          statusLookup={statusLookup}
-        />
+        <>
+          <UpdateSkuMetadataDialog
+            open={activeDialog === 'edit-metadata'}
+            onClose={metadataDialogHandlers.handleCloseDialog}
+            skuId={skuId}
+            skuCode={flattenedSkuInfo?.sku ?? ''}
+            initialValues={transformFlattenedSkuToMetadataFormValues(
+              flattenedSkuInfo
+            )}
+            onSuccess={refresh}
+          />
+
+          <UpdateSkuStatusDialog
+            open={activeDialog === 'edit-status'}
+            onClose={statusDialogHandlers.handleCloseDialog}
+            skuId={skuId}
+            skuCode={flattenedSkuInfo?.sku ?? ''}
+            onSuccess={refresh}
+            statusLookup={statusLookup}
+            currentStatusId={flattenedSkuInfo?.statusId}
+            currentStatusName={flattenedSkuInfo?.statusName}
+          />
+
+          <UpdateSkuDimensionsDialog
+            open={activeDialog === 'edit-dimensions'}
+            onClose={dimensionsDialogHandlers.handleCloseDialog}
+            skuId={skuId}
+            skuCode={flattenedSkuInfo?.sku ?? ''}
+            initialValues={transformFlattenedSkuToDimensionsFormValues(
+              flattenedSkuInfo
+            )}
+            onSuccess={refresh}
+          />
+
+          <UpdateSkuIdentityDialog
+            open={activeDialog === 'edit-identity'}
+            onClose={identityDialogHandlers.handleCloseDialog}
+            skuId={skuId}
+            skuCode={flattenedSkuInfo?.sku ?? ''}
+            onSuccess={refresh}
+            initialValues={{
+              sku: flattenedSkuInfo?.sku ?? '',
+              barcode: flattenedSkuInfo?.barcode ?? '',
+            }}
+          />
+        </>
       )}
-      
-      {/* Edit Images Dialog */}
+
       <SkuImageUpdateDialog
         open={activeDialog === 'edit-images'}
         onClose={imageDialogHandlers.handleCloseDialog}
@@ -231,8 +277,7 @@ const SkuDetailPage: FC = () => {
         imageGroups={imageGroups}
         onSuccess={refresh}
       />
-      
-      {/* Upload Images Dialog */}
+
       <SkuImageUploadDialog
         open={activeDialog === 'upload-images'}
         onClose={uploadDialogHandlers.handleCloseDialog}
@@ -241,94 +286,42 @@ const SkuDetailPage: FC = () => {
         displayProductName={product?.displayName ?? ''}
         onSuccess={refresh}
       />
-      
-      {/* Header Actions */}
-      <Stack
-        direction="row"
-        spacing={2}
-        mt={3}
-        mb={1}
-        flexWrap="wrap"
-        alignItems="center"
-        justifyContent="flex-end"
-      >
-        {canUpdateStatus && (
-          <CustomButton
-            sx={{
-              minWidth: 160,
-              height: 44,
-              borderRadius: 22,
-            }}
-            color="secondary"
-            ref={createButtonRef}
-            onClick={statusDialogHandlers.handleOpenDialog}
-          >
-            Update SKU Status
-          </CustomButton>
-        )}
-        
-        {canUpdateImages && (
-          <CustomButton
-            sx={{
-              minWidth: 160,
-              height: 44,
-              borderRadius: 22,
-            }}
-            color="primary"
-            onClick={imageDialogHandlers.handleOpenDialog}
-          >
-            Edit SKU Images
-          </CustomButton>
-        )}
-        
-        {canUploadImages && (
-          <CustomButton
-            sx={{
-              minWidth: 160,
-              height: 44,
-              borderRadius: 22
-          }}
-            color="primary"
-            ref={uploadButtonRef}
-            onClick={uploadDialogHandlers.handleOpenDialog}
-          >
-            Add Images
-          </CustomButton>
-        )}
-        
-        <CustomButton
-          sx={{
-            minWidth: 160,
-            height: 44, // FORCE SAME HEIGHT
-            borderRadius: 22, // MATCH YOUR DESIGN
-          }}
-          onClick={refresh}
-        >
-          Refresh SKU Details
-        </CustomButton>
 
-        <GoBackButton
-          sx={{
-            minWidth: 160,
-            height: 44, // SAME HEIGHT HERE
-            borderRadius: 22,
-          }}
-          fallbackTo={cameFromUpload ? '/skus' : undefined}
-        />
-      </Stack>
+      {/* ---------------------------------------------------------
+          Header Actions
+      --------------------------------------------------------- */}
 
-      {/* Main Content */}
+      <SkuDetailActionToolbar
+        canUpdateMetadata={canUpdateMetadata}
+        canUpdateStatus={canUpdateStatus}
+        canUpdateDimension={canUpdateDimension}
+        canUpdateIdentity={canUpdateIdentity}
+        canUpdateImages={canUpdateImages}
+        canUploadImages={canUploadImages}
+        metadataDialogHandlers={metadataDialogHandlers}
+        statusDialogHandlers={statusDialogHandlers}
+        dimensionsDialogHandlers={dimensionsDialogHandlers}
+        identityDialogHandlers={identityDialogHandlers}
+        imageDialogHandlers={imageDialogHandlers}
+        uploadDialogHandlers={uploadDialogHandlers}
+        refresh={refresh}
+        cameFromUpload={cameFromUpload}
+      />
+
+      {/* ---------------------------------------------------------
+          Main Content
+      --------------------------------------------------------- */}
+
       {sku && (
-        <Grid container spacing={2} mt={4} alignItems="flex-start">
-          {/* LEFT — Image Gallery */}
+        <Grid container spacing={2} mt={4}>
+          {/* Image Gallery */}
+
           <Grid size={{ xs: 12, md: 4 }} sx={{ pr: { md: 4 } }}>
-            <SkuImageGallery
-              images={imageGroups}
-              maxThumbsDesktop={5}
-            />
+            <SkuImageGallery images={imageGroups} maxThumbsDesktop={5} />
           </Grid>
 
-          {/* RIGHT — All Info Sections */}
+          {/* Info Panel */}
+
           <Grid
             size={{ xs: 12, md: 8 }}
             sx={{

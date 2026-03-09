@@ -3,7 +3,7 @@ import type {
   Pagination,
   PaginationLookupInfo,
 } from '@shared-types/pagination';
-import { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 
 /**
  * Generic interface for a paginated API response.
@@ -97,12 +97,12 @@ export interface AsyncState<T> {
    * The data payload.
    */
   data: T;
-  
+
   /**
    * Whether the request is currently loading.
    */
   loading: boolean;
-  
+
   /**
    * Structured error payload if the request fails.
    * Null when no error has occurred.
@@ -205,23 +205,23 @@ export interface MutationState<T> {
    * Set to `null` before the request or if the request fails.
    */
   data: T | null;
-  
+
   /**
    * Indicates whether the mutation request is currently in progress.
    */
   loading: boolean;
-  
+
   /**
    * Structured error payload if the request fails.
    * Null when no error has occurred.
    */
   error: UiErrorPayload | null;
-  
+
   /**
    * Indicates if the mutation was successful.
    */
   success?: boolean;
-  
+
   /**
    * Server-provided success message.
    */

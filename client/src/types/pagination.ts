@@ -4,7 +4,7 @@
  * ======================================================
  */
 
-import { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 
 /**
  * Offset-based pagination input.
@@ -53,23 +53,23 @@ export interface ReduxPaginatedState<T> {
    * Paginated data records.
    */
   data: T[];
-  
+
   /**
    * Pagination metadata returned from the backend.
    */
   pagination: Pagination | null;
-  
+
   /**
    * Indicates whether a paginated request is currently in flight.
    */
   loading: boolean;
-  
+
   /**
    * Structured UI-safe error payload.
    * Null when no error has occurred.
    */
   error: UiErrorPayload | null;
-  
+
   /**
    * Optional backend trace ID associated with the last failed request.
    */

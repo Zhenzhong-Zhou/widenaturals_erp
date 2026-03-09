@@ -347,7 +347,7 @@ const buildBatchRegistryFilter = (filters = {}) => {
       addKeywordIlikeGroup(
         conditions,
         params,
-        paramIndexRef,
+        paramIndexRef.value,
         filters.keyword,
         searchableFields
       );

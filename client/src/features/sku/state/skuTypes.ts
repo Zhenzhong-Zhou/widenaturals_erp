@@ -362,32 +362,32 @@ export interface SkuProduct {
 export interface SkuDimensions {
   cm: {
     /** Length in centimeters */
-    length: string;
+    length: number;
 
     /** Width in centimeters */
-    width: string;
+    width: number;
 
     /** Height in centimeters */
-    height: string;
+    height: number;
   };
 
   inches: {
     /** Length in inches */
-    length: string;
+    length: number;
 
     /** Width in inches */
-    width: string;
+    width: number;
 
     /** Height in inches */
-    height: string;
+    height: number;
   };
 
   weight: {
     /** Weight in grams */
-    g: string;
+    g: number;
 
     /** Weight in pounds */
-    lb: string;
+    lb: number;
   };
 }
 
@@ -402,21 +402,21 @@ export interface SkuDimensions {
 export interface SkuImageVariant {
   /** Image UUID */
   id: string;
-  
+
   /** Fully resolved image URL (S3 or CDN) */
   imageUrl: string;
-  
+
   /** Optional alt text for accessibility */
   altText: string;
-  
+
   /** Optional derived metadata */
   metadata?: {
     /** File size in KB */
     sizeKb?: number | null;
-    
+
     /** MIME format (e.g., "image/webp") */
     format?: string | null;
-    
+
     /** Display order (for sorting inside group) */
     displayOrder?: number | null;
   };
@@ -435,10 +435,10 @@ export interface SkuImageVariant {
 export interface SkuImageGroup {
   /** Logical image group UUID */
   groupId: string;
-  
+
   /** Whether this group is marked as primary */
   isPrimary: boolean;
-  
+
   /**
    * Image variants available in this group.
    * Not all variants are guaranteed to exist.
@@ -448,12 +448,12 @@ export interface SkuImageGroup {
     thumbnail?: SkuImageVariant;
     zoom?: SkuImageVariant;
   };
-  
+
   /** Image-specific audit fields */
   audit?: {
     /** Timestamp when uploaded */
     uploadedAt: string | null;
-    
+
     /** User who uploaded the image */
     uploadedBy: AuditUser | null;
   };
@@ -581,32 +581,32 @@ export interface FlattenedImageMetadata {
    * Example: "main", "thumbnail", "zoom"
    */
   type: 'main' | 'thumbnail' | 'zoom' | null;
-  
+
   /**
    * "Yes" / "No" value derived from group.isPrimary
    */
   isPrimary: 'Yes' | 'No' | null;
-  
+
   /**
    * Display order within the image group
    */
   displayOrder: number | null;
-  
+
   /**
    * File size in KB (variant-level metadata)
    */
   sizeKb: number | null;
-  
+
   /**
    * File format (e.g., "webp", "jpg")
    */
   format: string | null;
-  
+
   /**
    * Timestamp when the image group was uploaded
    */
   uploadedAt: string | null;
-  
+
   /**
    * Full name of user who uploaded the image group
    */
@@ -654,18 +654,21 @@ export interface FlattenedSkuInfo {
   marketRegion: string;
 
   /** Dimensions (cm) */
-  lengthCm: string;
-  widthCm: string;
-  heightCm: string;
+  lengthCm: number;
+  widthCm: number;
+  heightCm: number;
 
   /** Dimensions (inch) */
-  lengthInch: string;
-  widthInch: string;
-  heightInch: string;
+  lengthInch: number;
+  widthInch: number;
+  heightInch: number;
 
   /** Weight (metric + imperial) */
-  weightG: string;
-  weightLb: string;
+  weightG: number;
+  weightLb: number;
+
+  /** status UUID */
+  statusId: string;
 
   /** Human-readable status name */
   statusName: string;
@@ -1279,4 +1282,162 @@ export interface SelectedSku {
    * Used to show context to users without requiring the full product record.
    */
   displayProductName: string;
+}
+
+/**
+ * Generic response payload returned by SKU update operations.
+ *
+ * Many SKU update endpoints (metadata, dimensions, identity, status)
+ * return only the identifier of the updated SKU.
+ *
+ * This interface is shared across those operations to avoid duplication.
+ */
+export interface UpdateSkuResponseData {
+  /** Unique identifier of the updated SKU */
+  id: string;
+}
+
+/**
+ * Request payload for updating SKU metadata.
+ *
+ * All fields are optional, but at least one must be provided
+ * according to backend validation rules.
+ */
+export interface UpdateSkuMetadataRequest {
+  /** Human-readable package size label (e.g. "120 Capsules") */
+  size_label?: string;
+
+  /** Language code used for the SKU metadata (e.g. "en", "fr") */
+  language?: string;
+
+  /** Target market region for the SKU (e.g. "Canada", "US") */
+  market_region?: string;
+
+  /** Marketing or product description */
+  description?: string;
+}
+
+/**
+ * API response returned after updating SKU metadata.
+ */
+export type UpdateSkuMetadataResponse =
+  ApiSuccessResponse<UpdateSkuResponseData>;
+
+/**
+ * Redux async state for SKU metadata update operations.
+ *
+ * Stores:
+ * - API response data
+ * - loading state
+ * - error payload
+ */
+export type UpdateSkuMetadataState =
+  AsyncState<UpdateSkuMetadataResponse | null>;
+
+/**
+ * Request payload for updating SKU physical dimensions.
+ *
+ * Units are explicitly defined in the field names to avoid
+ * ambiguity across shipping and logistics integrations.
+ */
+export interface UpdateSkuDimensionsRequest {
+  /** Product length in centimeters */
+  length_cm?: number;
+
+  /** Product width in centimeters */
+  width_cm?: number;
+
+  /** Product height in centimeters */
+  height_cm?: number;
+
+  /** Product weight in grams */
+  weight_g?: number;
+}
+
+/**
+ * API response returned after updating SKU dimensions.
+ */
+export type UpdateSkuDimensionsResponse =
+  ApiSuccessResponse<UpdateSkuResponseData>;
+
+/**
+ * Redux async state for SKU dimension update operations.
+ */
+export type UpdateSkuDimensionsState =
+  AsyncState<UpdateSkuDimensionsResponse | null>;
+
+/**
+ * Request payload for updating SKU identity fields.
+ *
+ * These fields define the SKU's commercial identity used
+ * across sales channels, inventory systems, and barcoding.
+ */
+export interface UpdateSkuIdentityRequest {
+  /** SKU code used internally for inventory and product identification */
+  sku?: string;
+
+  /** Product barcode (UPC/EAN/GTIN depending on region) */
+  barcode?: string;
+}
+
+/**
+ * API response returned after updating SKU identity.
+ */
+export type UpdateSkuIdentityResponse =
+  ApiSuccessResponse<UpdateSkuResponseData>;
+
+/**
+ * Redux async state for SKU identity update operations.
+ */
+export type UpdateSkuIdentityState =
+  AsyncState<UpdateSkuIdentityResponse | null>;
+
+/**
+ * Form values used when editing SKU metadata.
+ *
+ * These fields represent descriptive attributes that define
+ * how the SKU is presented in different markets and languages.
+ *
+ * Used by:
+ * - UpdateSkuMetadataForm
+ * - metadata edit dialogs
+ * - metadata transformers
+ */
+export interface UpdateSkuMetadataFormValues {
+  /** Human-readable product size label (e.g., "60 Capsules", "120 Softgels") */
+  sizeLabel?: string;
+
+  /** Language code associated with the SKU (e.g., "EN", "FR", "CN") */
+  language?: string;
+
+  /** Target market region for this SKU (e.g., "CA", "US", "EU") */
+  marketRegion?: string;
+
+  /** Product description displayed to customers */
+  description?: string;
+}
+
+/**
+ * Form values used when editing SKU physical dimensions.
+ *
+ * These values describe the physical characteristics of the SKU
+ * used for logistics, shipping calculations, and warehouse operations.
+ *
+ * Used by:
+ * - UpdateSkuDimensionsForm
+ * - dimension edit dialogs
+ * - dimension transformers
+ */
+export interface UpdateSkuDimensionsFormValues {
+  /** Product length in centimeters */
+  lengthCm?: number;
+
+  /** Product width in centimeters */
+  widthCm?: number;
+
+  /** Product height in centimeters */
+  heightCm?: number;
+
+  /** Product weight in grams */
+  weightG?: number;
 }

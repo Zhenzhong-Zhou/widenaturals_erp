@@ -35,11 +35,7 @@ const warehouseInventoryAdjustSlice = createSlice({
       .addCase(
         adjustWarehouseInventoryQuantitiesThunk.rejected,
         (state, action) => {
-          applyRejected(
-            state,
-            action,
-            'Failed to adjust inventory quantities'
-          );
+          applyRejected(state, action, 'Failed to adjust inventory quantities');
         }
       );
   },

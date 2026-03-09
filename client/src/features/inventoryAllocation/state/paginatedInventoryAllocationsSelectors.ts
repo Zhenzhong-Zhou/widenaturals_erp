@@ -44,8 +44,7 @@ export const selectInventoryAllocationsLoading = createSelector(
  */
 export const selectInventoryAllocationsError = createSelector(
   [selectInventoryAllocationsSlice],
-  (slice): string | null =>
-    slice.error?.message ?? null
+  (slice): string | null => slice.error?.message ?? null
 );
 
 /**

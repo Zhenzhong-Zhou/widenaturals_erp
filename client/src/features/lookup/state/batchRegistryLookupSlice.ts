@@ -47,11 +47,7 @@ const batchRegistryLookupSlice = createSlice({
         state.hasMore = hasMore;
       })
       .addCase(fetchBatchRegistryLookupThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch lookup items'
-        );
+        applyRejected(state, action, 'Failed to fetch lookup items');
       });
   },
 });

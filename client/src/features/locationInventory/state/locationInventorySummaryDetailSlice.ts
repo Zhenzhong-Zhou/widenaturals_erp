@@ -1,5 +1,8 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { LocationInventorySummaryDetailState, LocationInventorySummaryItemDetail } from './locationInventoryTypes';
+import type {
+  LocationInventorySummaryDetailState,
+  LocationInventorySummaryItemDetail,
+} from './locationInventoryTypes';
 import { fetchLocationInventorySummaryByItemIdThunk } from './locationInventoryThunks';
 import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 import { createInitialPaginatedState } from '@store/pagination';

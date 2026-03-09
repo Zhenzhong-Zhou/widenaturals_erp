@@ -1,14 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  CustomDialog,
-  CustomTypography
-} from '@components/index';
-import {
-  SkuImageUpdateCard
-} from '@features/skuImage/components/UpdateImageForm/index';
+import { CustomDialog, CustomTypography } from '@components/index';
+import { SkuImageUpdateCard } from '@features/skuImage/components/UpdateImageForm/index';
 import { useSkuImageUpdate } from '@hooks/index';
 import type { SkuImageGroup } from '@features/sku';
-import type { SkuImageType, SkuImageUpdateDraft } from '@features/skuImage/state';
+import type {
+  SkuImageType,
+  SkuImageUpdateDraft,
+} from '@features/skuImage/state';
 import { buildUpdateFormData } from '@features/skuImage/utils';
 
 interface Props {
@@ -22,23 +20,17 @@ interface Props {
 }
 
 const SkuImageUpdateDialog = ({
-                                open,
-                                onClose,
-                                skuId,
-                                skuCode,
-                                displayProductName,
-                                imageGroups,
-                                onSuccess,
-                              }: Props) => {
-  const {
-    loading,
-    error,
-    hasResults,
-    isSuccess,
-    updateImages,
-    reset,
-  } = useSkuImageUpdate();
-  
+  open,
+  onClose,
+  skuId,
+  skuCode,
+  displayProductName,
+  imageGroups,
+  onSuccess,
+}: Props) => {
+  const { loading, error, hasResults, isSuccess, updateImages, reset } =
+    useSkuImageUpdate();
+
   // -------------------------------------------------------
   // Initialize Draft State from Existing Groups
   // -------------------------------------------------------
@@ -47,9 +39,9 @@ const SkuImageUpdateDialog = ({
       const variantEntry = Object.entries(group.variants).find(
         ([, variant]) => variant
       );
-      
+
       const imageType = variantEntry?.[0] as SkuImageType | undefined;
-      
+
       return {
         group_id: group.groupId,
         image_type: imageType ?? 'main',
@@ -57,17 +49,17 @@ const SkuImageUpdateDialog = ({
       };
     });
   }, [imageGroups]);
-  
+
   const [draftImages, setDraftImages] = useState<SkuImageUpdateDraft[]>([]);
   const initialDraftRef = useRef<SkuImageUpdateDraft[]>(initialDrafts);
-  
+
   useEffect(() => {
     if (open) {
       initialDraftRef.current = initialDrafts;
       setDraftImages(initialDrafts);
     }
   }, [open, initialDrafts]);
-  
+
   useEffect(() => {
     if (isSuccess && hasResults) {
       onSuccess?.();
@@ -75,20 +67,20 @@ const SkuImageUpdateDialog = ({
       onClose();
     }
   }, [isSuccess, hasResults, onSuccess, reset, onClose]);
-  
+
   const getChangedDrafts = () => {
     return draftImages.filter((draft) => {
       // Always include if file present
       if (draft.file_uploaded && draft.file) {
         return true;
       }
-      
+
       const original = initialDraftRef.current.find(
         (d) => d.group_id === draft.group_id
       );
-      
+
       if (!original) return true;
-      
+
       return (
         draft.image_url !== original.image_url ||
         draft.image_type !== original.image_type ||
@@ -98,19 +90,19 @@ const SkuImageUpdateDialog = ({
       );
     });
   };
-  
+
   // -------------------------------------------------------
   // Submit Handler
   // -------------------------------------------------------
   const handleSubmit = async () => {
     try {
       const changedDrafts = getChangedDrafts();
-      
+
       if (changedDrafts.length === 0) {
         onClose(); // nothing changed
         return;
       }
-      
+
       const formData = buildUpdateFormData([
         {
           skuId,
@@ -118,18 +110,18 @@ const SkuImageUpdateDialog = ({
           images: changedDrafts,
         },
       ]);
-      
+
       await updateImages(formData);
     } catch {
       // let slice handle error
     }
   };
-  
+
   const handleClose = () => {
     reset();
     onClose();
   };
-  
+
   return (
     <CustomDialog
       open={open}
@@ -147,7 +139,7 @@ const SkuImageUpdateDialog = ({
         drafts={draftImages}
         onChange={setDraftImages}
       />
-      
+
       {error && (
         <CustomTypography color="error" sx={{ mt: 2 }}>
           {error}

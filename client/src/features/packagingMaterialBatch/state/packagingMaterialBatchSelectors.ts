@@ -17,9 +17,8 @@ import { selectRuntime } from '@store/selectors';
  *
  * @param state Root redux state
  */
-const selectPaginatedPackagingMaterialBatchesState = (
-  state: RootState
-) => selectRuntime(state).paginatedPackagingMaterialBatches;
+const selectPaginatedPackagingMaterialBatchesState = (state: RootState) =>
+  selectRuntime(state).paginatedPackagingMaterialBatches;
 
 /**
  * Selector: Returns the array of flattened,
@@ -45,8 +44,7 @@ export const selectPaginatedPackagingMaterialBatchLoading = createSelector(
  */
 export const selectPaginatedPackagingMaterialBatchError = createSelector(
   [selectPaginatedPackagingMaterialBatchesState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );
 
 /**
@@ -83,6 +81,5 @@ export const makeSelectPackagingMaterialBatchById = () =>
       selectPaginatedPackagingMaterialBatchData,
       (_: RootState, id: string) => id,
     ],
-    (records, id) =>
-      records.find((record) => record.id === id) ?? null
+    (records, id) => records.find((record) => record.id === id) ?? null
   );

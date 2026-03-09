@@ -5,7 +5,7 @@ import type {
 } from '@features/packagingMaterialBatch';
 import { packagingMaterialBatchService } from '@services/packagingMaterialBatchService';
 import { flattenPackagingMaterialBatchRecords } from '@features/packagingMaterialBatch/utils';
-import { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 import { extractUiErrorPayload } from '@utils/error';
 
 /**
@@ -38,15 +38,13 @@ export const fetchPaginatedPackagingMaterialBatchThunk = createAsyncThunk<
         await packagingMaterialBatchService.fetchPaginatedPackagingMaterialBatches(
           params
         );
-      
+
       return {
         ...response,
         data: flattenPackagingMaterialBatchRecords(response.data),
       };
     } catch (error: unknown) {
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );

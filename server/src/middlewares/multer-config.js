@@ -53,13 +53,12 @@ const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, uploadDir);
   },
-  
+
   filename: function (req, file, cb) {
-    const uniqueSuffix =
-      Date.now() + '-' + Math.round(Math.random() * 1e9);
-    
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+
     const ext = path.extname(file.originalname);
-    
+
     cb(null, `${uniqueSuffix}${ext}`);
   },
 });
@@ -69,18 +68,16 @@ const storage = multer.diskStorage({
 // -----------------------------------------------------------------------------
 const upload = multer({
   storage,
-  
+
   limits: {
     fileSize: 50 * 1024 * 1024, // 50MB per file
-    files: 100,                // prevent bulk abuse
+    files: 100, // prevent bulk abuse
   },
-  
+
   fileFilter: (req, file, cb) => {
     if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
       return cb(
-        AppError.validationError(
-          `Unsupported file type: ${file.mimetype}`
-        )
+        AppError.validationError(`Unsupported file type: ${file.mimetype}`)
       );
     }
     cb(null, true);

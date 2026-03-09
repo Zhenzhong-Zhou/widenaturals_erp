@@ -37,7 +37,7 @@ export const productStatusUpdateSlice = createSlice({
           state.error = null;
         }
       )
-      
+
       .addCase(updateProductStatusByIdThunk.rejected, (state, action) => {
         applyRejected(state, action, 'Failed to update product status.');
       });

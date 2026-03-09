@@ -1,8 +1,7 @@
 import type { FC } from 'react';
 import Box from '@mui/material/Box';
 import ErrorIcon from '@mui/icons-material/Error';
-import CustomDialog from '@components/common/CustomDialog';
-import ResultBody from '@components/common/ResultBody';
+import { CustomDialog, ResultBody } from '@components/index';
 
 interface UpdateSkuStatusErrorDialogProps {
   open: boolean;

@@ -43,13 +43,11 @@ export const loginThunk = createAsyncThunk<
   async ({ email, password }, { dispatch, rejectWithValue }) => {
     try {
       const response = await sessionService.login(email, password);
-      
+
       dispatch(setAccessToken(response.accessToken));
       return response;
     } catch (error: unknown) {
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );

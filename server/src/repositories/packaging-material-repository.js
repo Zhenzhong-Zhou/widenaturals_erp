@@ -17,7 +17,7 @@ const AppError = require('../utils/AppError');
  * @param {number} [options.limit=50] - Max number of results
  * @param {number} [options.offset=0] - Offset for pagination
  * @param {Object} [options.filters={}] - Optional filters (e.g., keyword)
- * @returns {Promise<{ items: { label: string, value: string }[], hasMore: boolean }>}
+ * @returns {Promise<{data: [], pagination: {offset: number, limit: number, totalRecords: number, hasMore: boolean}}>}
  *
  * @throws {AppError} If query fails
  */

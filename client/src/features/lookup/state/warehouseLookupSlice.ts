@@ -37,11 +37,7 @@ const warehouseLookupSlice = createSlice({
         }
       )
       .addCase(fetchWarehouseLookupThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch warehouses'
-        );
+        applyRejected(state, action, 'Failed to fetch warehouses');
       });
   },
 });

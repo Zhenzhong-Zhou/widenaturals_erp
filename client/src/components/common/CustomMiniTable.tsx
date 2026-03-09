@@ -6,7 +6,7 @@ import TableCell from '@mui/material/TableCell';
 import TableBody from '@mui/material/TableBody';
 import TableContainer from '@mui/material/TableContainer';
 import TablePagination from '@mui/material/TablePagination';
-import NoDataFound from '@components/common/NoDataFound';
+import { NoDataFound } from '@components/index';
 
 export interface MiniColumn<T> {
   id: keyof T | 'select' | string;

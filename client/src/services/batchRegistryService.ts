@@ -2,10 +2,7 @@ import type {
   BatchRegistryQueryParams,
   PaginatedBatchRegistryApiResponse,
 } from '@features/batchRegistry';
-import {
-  buildQueryString,
-  flattenListQueryParams
-} from '@utils/query';
+import { buildQueryString, flattenListQueryParams } from '@utils/query';
 import { getRequest } from '@utils/http';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 
@@ -44,7 +41,7 @@ const fetchPaginatedBatchRegistry = async (
     'registeredAfter',
     'registeredBefore',
   ]);
-  
+
   const queryString = buildQueryString(flatParams);
   const url = `${API_ENDPOINTS.BATCH_REGISTRY.ALL_RECORDS}${queryString}`;
 

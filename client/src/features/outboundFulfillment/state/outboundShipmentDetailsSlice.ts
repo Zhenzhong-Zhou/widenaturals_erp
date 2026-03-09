@@ -36,11 +36,7 @@ const outboundShipmentDetailsSlice = createSlice({
         }
       )
       .addCase(fetchOutboundShipmentDetailsThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch shipment details.'
-        );
+        applyRejected(state, action, 'Failed to fetch shipment details.');
       });
   },
 });

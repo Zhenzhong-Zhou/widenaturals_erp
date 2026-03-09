@@ -429,19 +429,15 @@ const getSkuImagesBySkuId = async (skuId) => {
  * @throws {AppError}
  *   Throws databaseError if query fails.
  */
-const getSkuImageGroupIdsBySku = async (
-  skuId,
-  groupIds,
-  client
-) => {
+const getSkuImageGroupIdsBySku = async (skuId, groupIds, client) => {
   if (!skuId) {
     throw AppError.validationError('skuId is required');
   }
-  
+
   if (!Array.isArray(groupIds) || groupIds.length === 0) {
     return [];
   }
-  
+
   try {
     // Validate that provided groupIds belong to this SKU
     // Prevents cross-SKU manipulation during bulk operations
@@ -451,21 +447,20 @@ const getSkuImageGroupIdsBySku = async (
       WHERE sku_id = $1
         AND group_id = ANY($2::uuid[])
     `;
-    
+
     const { rows } = await query(sql, [skuId, groupIds], client);
-    
-    return rows.map(r => r.group_id);
+
+    return rows.map((r) => r.group_id);
   } catch (error) {
     logSystemException(error, 'Failed to validate SKU image groups', {
       context: 'sku-image-repository/getSkuImageGroupIdsBySku',
       skuId,
       groupCount: groupIds.length,
     });
-    
-    throw AppError.databaseError(
-      'Failed to validate SKU image groups',
-      { cause: error }
-    );
+
+    throw AppError.databaseError('Failed to validate SKU image groups', {
+      cause: error,
+    });
   }
 };
 
@@ -499,15 +494,15 @@ const getSkuImageGroupIdsBySku = async (
  */
 const unsetPrimaryForSku = async (skuId, uploadedBy, client) => {
   const context = 'sku-image-repository/unsetPrimaryForSku';
-  
+
   if (!skuId) {
     throw AppError.validationError('skuId is required');
   }
-  
+
   if (!client) {
     throw AppError.validationError('Database client is required');
   }
-  
+
   // Ensure primary uniqueness by clearing existing primary
   // Should be called before setting a new primary inside same transaction
   const sql = `
@@ -518,23 +513,23 @@ const unsetPrimaryForSku = async (skuId, uploadedBy, client) => {
     WHERE sku_id = $1
       AND is_primary = TRUE;
   `;
-  
+
   try {
     const { rowCount } = await query(sql, [skuId, uploadedBy], client);
-    
+
     logSystemInfo('Primary image unset successfully', {
       context,
       skuId,
       affectedRows: rowCount,
     });
-    
+
     return rowCount;
   } catch (error) {
     logSystemException(error, 'Failed to unset primary image', {
       context,
       skuId,
     });
-    
+
     throw AppError.databaseError('Failed to unset primary image', {
       cause: error,
     });
@@ -595,42 +590,37 @@ const unsetPrimaryForSku = async (skuId, uploadedBy, client) => {
  * @throws {AppError}
  *   Throws validationError or databaseError.
  */
-const updateSkuImagesBulk = async (
-  skuId,
-  images,
-  uploadedBy,
-  client
-) => {
+const updateSkuImagesBulk = async (skuId, images, uploadedBy, client) => {
   if (!Array.isArray(images) || images.length === 0) {
     return [];
   }
-  
+
   if (!client) {
     throw AppError.validationError('Database client is required');
   }
-  
+
   if (!skuId) {
     throw AppError.validationError('skuId is required');
   }
-  
+
   // Validate group_id
-  if (images.some(u => !u?.group_id)) {
+  if (images.some((u) => !u?.group_id)) {
     throw AppError.validationError(
       'Each image update must include a valid group_id'
     );
   }
-  
+
   // ------------------------------------------------------------
   // Validate single primary rule
   // ------------------------------------------------------------
-  const primaryUpdates = images.filter(u => u.is_primary === true);
-  
+  const primaryUpdates = images.filter((u) => u.is_primary === true);
+
   if (primaryUpdates.length > 1) {
     throw AppError.validationError(
       'Only one image group can be primary per SKU'
     );
   }
-  
+
   try {
     if (primaryUpdates.length === 1) {
       await unsetPrimaryForSku(skuId, uploadedBy, client);
@@ -695,24 +685,23 @@ const updateSkuImagesBulk = async (
         AND si.sku_id = $1
       RETURNING si.*;
     `;
-    
+
     const { rows } = await query(
       sql,
       [skuId, JSON.stringify(images), uploadedBy],
       client
     );
-    
+
     return rows.sort((a, b) => a.display_order - b.display_order);
   } catch (error) {
     logSystemException(error, 'Bulk SKU image update failed', {
       context: 'sku-image-repository/updateSkuImagesBulk',
       skuId,
     });
-    
-    throw AppError.databaseError(
-      'Failed to update SKU images',
-      { cause: error }
-    );
+
+    throw AppError.databaseError('Failed to update SKU images', {
+      cause: error,
+    });
   }
 };
 

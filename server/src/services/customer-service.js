@@ -127,7 +127,7 @@ const createCustomersService = async (
  * @param {'ASC' | 'DESC'} [params.sortOrder='DESC'] - Sort direction.
  *
  * @returns {Promise<{
- *   data: Array<CustomerResponse>,
+ *   data: Array<Object>,
  *   pagination: {
  *     page: number,
  *     limit: number,
@@ -188,7 +188,7 @@ const fetchPaginatedCustomersService = async ({
     });
 
     // Step 4: Transform result for UI
-    const result = transformPaginatedCustomerResults(rawResult, userAccess);
+    const result = transformPaginatedCustomerResults(rawResult);
 
     // Step 5: Log success
     logSystemInfo('Fetched paginated customers', {

@@ -22,7 +22,7 @@ import skuImageUpdateReducer from './skuImageUpdateSlice';
 export const skuImageReducers = {
   /** Handles bulk upload lifecycle and results */
   skuImageUpload: skuImageUploadReducer,
-  
+
   /** Handles bulk update lifecycle and results */
   skuImageUpdate: skuImageUpdateReducer,
 };

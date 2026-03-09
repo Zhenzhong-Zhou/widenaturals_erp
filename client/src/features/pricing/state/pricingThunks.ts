@@ -29,7 +29,8 @@ import type {
   PaginatedPricingRecordsResponse,
 } from '@features/pricing/state/pricingTypes';
 import { pricingService } from '@services/pricingService';
-import { extractUiErrorPayload, UiErrorPayload } from '@utils/error/uiErrorUtils';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import { extractUiErrorPayload } from '@utils/error/uiErrorUtils';
 
 /**
  * Fetches a paginated list of pricing records.
@@ -48,18 +49,13 @@ export const fetchPricingListDataThunk = createAsyncThunk<
   PaginatedPricingRecordsResponse,
   FetchPricingParams,
   { rejectValue: UiErrorPayload }
->(
-  'pricing/fetchPricingData',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await pricingService.fetchPaginatedPricingRecords(params);
-    } catch (error: unknown) {
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
-    }
+>('pricing/fetchPricingData', async (params, { rejectWithValue }) => {
+  try {
+    return await pricingService.fetchPaginatedPricingRecords(params);
+  } catch (error: unknown) {
+    return rejectWithValue(extractUiErrorPayload(error));
   }
-);
+});
 
 /**
  * Fetches paginated pricing details for a specific pricing type.
@@ -90,9 +86,7 @@ export const fetchPricingDetailsByTypeThunk = createAsyncThunk<
         limit
       );
     } catch (error: unknown) {
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );

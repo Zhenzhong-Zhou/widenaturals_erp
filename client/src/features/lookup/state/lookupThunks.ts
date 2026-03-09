@@ -96,14 +96,16 @@ export const fetchLotAdjustmentTypeLookupThunk = createAsyncThunk<
   LotAdjustmentTypeLookupResponse,
   LotAdjustmentLookupQueryParams | undefined,
   { rejectValue: UiErrorPayload }
->('lookup/fetchLotAdjustmentTypeLookup', async (filters = {}, { rejectWithValue }) => {
-  try {
-    return await lookupService.fetchLotAdjustmentTypeLookup(filters);
-  } catch (error) {
-    return rejectWithValue(extractUiErrorPayload(error));
+>(
+  'lookup/fetchLotAdjustmentTypeLookup',
+  async (filters = {}, { rejectWithValue }) => {
+    try {
+      return await lookupService.fetchLotAdjustmentTypeLookup(filters);
+    } catch (error) {
+      return rejectWithValue(extractUiErrorPayload(error));
+    }
   }
-});
-
+);
 
 /* ------------------------- Customer Lookups ------------------------- */
 
@@ -130,7 +132,6 @@ export const fetchCustomerAddressesLookupThunk = createAsyncThunk<
     return rejectWithValue(extractUiErrorPayload(error));
   }
 });
-
 
 /* ------------------------- Order & Finance Lookups ------------------------- */
 
@@ -194,7 +195,6 @@ export const fetchTaxRateLookupThunk = createAsyncThunk<
   }
 });
 
-
 /* ------------------------- Inventory & Product Lookups ------------------------- */
 
 export const fetchSkuCodeBaseLookupThunk = createAsyncThunk<
@@ -249,14 +249,16 @@ export const fetchPackagingMaterialLookupThunk = createAsyncThunk<
   PackagingMaterialLookupResponse,
   PackagingMaterialLookupQueryParams | undefined,
   { rejectValue: UiErrorPayload }
->('lookup/fetchPackagingMaterialLookup', async (params, { rejectWithValue }) => {
-  try {
-    return await lookupService.fetchPackagingMaterialLookup(params);
-  } catch (error) {
-    return rejectWithValue(extractUiErrorPayload(error));
+>(
+  'lookup/fetchPackagingMaterialLookup',
+  async (params, { rejectWithValue }) => {
+    try {
+      return await lookupService.fetchPackagingMaterialLookup(params);
+    } catch (error) {
+      return rejectWithValue(extractUiErrorPayload(error));
+    }
   }
-});
-
+);
 
 /* ------------------------- Admin Lookups ------------------------- */
 

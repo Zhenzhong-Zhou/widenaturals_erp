@@ -45,11 +45,7 @@ const pricingLookupSlice = createSlice({
         }
       )
       .addCase(fetchPricingLookupThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch pricing lookup'
-        );
+        applyRejected(state, action, 'Failed to fetch pricing lookup');
       });
   },
 });

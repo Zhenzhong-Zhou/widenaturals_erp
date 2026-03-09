@@ -39,11 +39,7 @@ export const inventoryAllocationConfirmationSlice = createSlice({
         }
       )
       .addCase(confirmInventoryAllocationThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to confirm allocation'
-        );
+        applyRejected(state, action, 'Failed to confirm allocation');
       });
   },
 });

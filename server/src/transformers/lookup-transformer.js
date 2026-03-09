@@ -1,10 +1,10 @@
 const { getProductDisplayName } = require('../utils/display-name-utils');
 const { cleanObject } = require('../utils/object-utils');
 const {
-  transformPaginatedResult,
   transformRows,
   transformIdNameToIdLabel,
   includeFlagsBasedOnAccess,
+  transformLoadMoreResult,
 } = require('../utils/transformer-utils');
 const { getFullName } = require('../utils/name-utils');
 const {
@@ -17,6 +17,27 @@ const AppError = require('../utils/AppError');
 const {
   createEntityLookupTransformer,
 } = require('./common/create-entity-lookup-transformer');
+
+/**
+ * Lookup item returned for batch registry dropdowns.
+ *
+ * @typedef {Object} BatchRegistryLookupItem
+ * @property {string} id
+ * @property {string} type
+ * @property {{
+ *   id: string,
+ *   name: string,
+ *   lotNumber: string,
+ *   expiryDate: string
+ * } | null} product
+ * @property {{
+ *   id: string,
+ *   lotNumber: string,
+ *   expiryDate: string,
+ *   snapshotName: string,
+ *   receivedLabel: string
+ * } | null} packagingMaterial
+ */
 
 /**
  * Transforms a raw batch registry row into a lookup-friendly shape.
@@ -38,7 +59,7 @@ const {
  * @param {string} [row.material_snapshot_name] - Snapshot name of material batch.
  * @param {string} [row.received_label_name] - Received label name for packaging material.
  *
- * @returns {object} Transformed lookup object with optional product and packaging material details.
+ * @returns {BatchRegistryLookupItem} Transformed lookup object with optional product and packaging material details.
  */
 const transformBatchRegistryLookupItem = (row) => {
   return cleanObject({
@@ -65,16 +86,16 @@ const transformBatchRegistryLookupItem = (row) => {
 };
 
 /**
- * Transforms a paginated result of batch registry records for lookup usage,
- * applying a row-level transformer and formatting the response for load-more support.
+ * Transforms a paginated result of batch registry records for lookup usage.
  *
- * @param {Object} paginatedResult - The raw paginated query result.
- * @returns {Object} Transformed response including items, limit, offset, and hasMore flag.
+ * Applies the batch registry row transformer and formats the response
+ * into a load-more compatible structure.
+ *
+ * @param {Object} paginatedResult
+ * @returns {Promise<LoadMoreResult<BatchRegistryLookupItem>>}
  */
 const transformBatchRegistryPaginatedLookupResult = (paginatedResult) =>
-  transformPaginatedResult(paginatedResult, transformBatchRegistryLookupItem, {
-    includeLoadMore: true,
-  });
+  transformLoadMoreResult(paginatedResult, transformBatchRegistryLookupItem);
 
 /**
  * Transforms raw warehouse lookup rows into a lookup-compatible format.
@@ -180,7 +201,9 @@ const transformLotAdjustmentLookupOptions = (rows) => {
  * // }
  */
 const transformCustomerLookup = (row, userAccess) => {
-  if (!row || typeof row !== 'object') return null;
+  if (!row || typeof row !== 'object') {
+    throw AppError.validationError('Invalid customer lookup row.');
+  }
 
   const fullName = getFullName(row.firstname, row.lastname);
   const email = row.email || 'no-email';
@@ -197,44 +220,25 @@ const transformCustomerLookup = (row, userAccess) => {
 };
 
 /**
+ * @typedef {Object} CustomerLookupItem
+ * @property {string} id
+ * @property {string} label
+ * @property {boolean} hasAddress
+ * @property {boolean} [isActive]
+ */
+
+/**
  * Transforms a paginated set of raw customer records into a UI-friendly
  * format for dropdowns or infinite-scroll selectors.
  *
- * Applies row-level transformation (`transformCustomerLookup`) to each record,
- * and standardizes the output for use with load-more patterns.
+ * @param {PaginatedQueryResult<Object>} paginatedResult
+ * @param {object} userAccess
  *
- * @param {{
- *   data: Array<object>,
- *   pagination: {
- *     offset: number,
- *     limit: number,
- *     totalRecords: number
- *   }
- * }} paginatedResult - Raw result from a repository-level paginated query.
- *
- * @param {object} userAccess - Access flags used to enrich each row with permission-aware fields.
- *
- * @returns {{
- *   items: Array<{
- *     id: string,
- *     label: string,
- *     hasAddress: boolean,
- *     [key: string]: any
- *   }>,
- *   offset: number,
- *   limit: number,
- *   hasMore: boolean
- * }} Final lookup result formatted for dropdown/infinite-scroll use.
- *
- * @example
- * const result = transformCustomerPaginatedLookupResult(paginatedResult, userAccess);
- * // result = { items: [...], offset: 0, limit: 20, hasMore: true }
+ * @returns {Promise<LoadMoreResult<CustomerLookupItem>>}
  */
 const transformCustomerPaginatedLookupResult = (paginatedResult, userAccess) =>
-  transformPaginatedResult(
-    paginatedResult,
-    (row) => transformCustomerLookup(row, userAccess),
-    { includeLoadMore: true }
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformCustomerLookup(row, userAccess)
   );
 
 /**
@@ -298,7 +302,7 @@ const transformCustomerAddressesLookupResult = (rows) =>
  * @param {boolean} userAccess.canViewAllStatuses - Whether to include the `isActive` flag.
  *
  * @returns {{
- *   value: string,
+ *   id: string,
  *   label: string,
  *   isRequiredPayment: boolean,
  *   isActive?: boolean,
@@ -312,7 +316,10 @@ const transformOrderTypeLookup = (row, userAccess) => {
     ? `${row.category} - ${row.name}`
     : row.name;
 
-  const base = transformIdNameToIdLabel({ ...row, name: label });
+  const base = transformIdNameToIdLabel({
+    id: row.id,
+    name: label,
+  });
 
   const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
 
@@ -324,22 +331,25 @@ const transformOrderTypeLookup = (row, userAccess) => {
 };
 
 /**
- * Transforms an array of raw order type rows into a dropdown-compatible list.
+ * Transforms raw order type rows into a dropdown-compatible lookup result.
  *
- * Each row is transformed using `transformOrderTypeLookup`, including conditional flags
- * like `isActive` and category-prefixed labels based on user permissions.
+ * @param {Object[]} rows
+ * @param {Object} userAccess
  *
- * @param {Object[]} rows - Array of raw order type rows from the DB.
- * @param {Object} userAccess - Evaluated user permission flags.
- * @param {boolean} userAccess.canViewAllCategories - Whether to prefix category in label.
- * @param {boolean} userAccess.canViewAllStatuses - Whether to include `isActive`.
- *
- * @returns {Array<{ value: string, label: string, isActive?: boolean }>} List of lookup options.
+ * @returns {{
+ *   items: { value: string, label: string, isActive?: boolean }[],
+ *   hasMore: boolean
+ * }}
  */
 const transformOrderTypeLookupResult = (rows, userAccess) => {
-  return transformRows(rows, (row) =>
+  const items = transformRows(rows, (row) =>
     transformOrderTypeLookup(row, userAccess)
   );
+
+  return {
+    items,
+    hasMore: false,
+  };
 };
 
 /**
@@ -354,7 +364,7 @@ const transformOrderTypeLookupResult = (rows, userAccess) => {
  * @param {boolean} row.is_active - Whether the payment method is active.
  * @param {Object} userAccess - Evaluated user permission result.
  * @param {boolean} userAccess.canViewAllStatuses - Whether the user can see inactive options.
- * @returns {{ value: string, label: string, isActive?: boolean }} Dropdown-compatible option.
+ * @returns {{ id: string, label: string, isActive?: boolean }} Dropdown-compatible option.
  */
 const transformPaymentMethodLookup = (row, userAccess) => {
   const base = transformIdNameToIdLabel(row);
@@ -369,28 +379,25 @@ const transformPaymentMethodLookup = (row, userAccess) => {
 /**
  * Transforms a paginated payment method result into a dropdown-compatible format.
  *
- * Each row is transformed using `transformPaymentMethodLookup`, adding optional flags like
- * `isActive` for elevated users. Used for paginated dropdown components.
- *
- * @param {Object} paginatedResult - Raw paginated DB query result.
- * @param {Object[]} paginatedResult.rows - Array of raw payment method rows.
- * @param {boolean} paginatedResult.hasMore - Whether more results are available for pagination.
- * @param {Object} userAccess - Evaluated user permission result.
- * @param {boolean} userAccess.canViewAllStatuses - Whether the user can see inactive options.
- * @returns {{
- *   items: Array<{ value: string, label: string, isActive?: boolean }>,
- *   hasMore: boolean
- * }} Transformed dropdown-compatible result with pagination support.
+ * @param {PaginatedQueryResult<Object>} paginatedResult
+ * @param {Object} userAccess
+ * @returns {Promise<LoadMoreResult<LookupItem>>}
  */
 const transformPaymentMethodPaginatedLookupResult = (
   paginatedResult,
   userAccess
 ) =>
-  transformPaginatedResult(
-    paginatedResult,
-    (row) => transformPaymentMethodLookup(row, userAccess),
-    { includeLoadMore: true }
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformPaymentMethodLookup(row, userAccess)
   );
+
+/**
+ * @typedef {Object} DiscountLookupItem
+ * @property {string} id
+ * @property {string} label
+ * @property {boolean} [isActive]
+ * @property {boolean} [isValidToday]
+ */
 
 /**
  * Transforms an enriched discount row into a UI-friendly structure for dropdowns.
@@ -445,17 +452,19 @@ const transformDiscountLookup = (row, userAccess) => {
 };
 
 /**
- * Transforms paginated discount records for lookup dropdowns.
+ * Transforms paginated discount records into a lookup-compatible load-more structure.
  *
- * @param {Object} paginatedResult - Raw DB paginated result
- * @param {Object} userAccess - Evaluated access control flags
- * @returns {{ items: { id: string, label: string, isActive: boolean, isValidToday: boolean }[], hasMore: boolean }}
+ * Applies the `transformDiscountLookup` row transformer and formats
+ * the result for dropdown/autocomplete components.
+ *
+ * @template T
+ * @param {PaginatedQueryResult<T>} paginatedResult
+ * @param {Object} userAccess
+ * @returns {Promise<LoadMoreResult<DiscountLookupItem>>}
  */
 const transformDiscountPaginatedLookupResult = (paginatedResult, userAccess) =>
-  transformPaginatedResult(
-    paginatedResult,
-    (row) => transformDiscountLookup(row, userAccess),
-    { includeLoadMore: true }
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformDiscountLookup(row, userAccess)
   );
 
 /**
@@ -506,13 +515,11 @@ const transformTaxRateLookup = (row, userAccess) => {
  *
  * @param {Object} paginatedResult - Raw DB paginated result
  * @param {Object} userAccess - Evaluated access control flags
- * @returns {{ items: { id: string, label: string }[], hasMore: boolean }}
+ * @returns {Promise<LoadMoreResult<LookupItem>>}
  */
 const transformTaxRatePaginatedLookupResult = (paginatedResult, userAccess) =>
-  transformPaginatedResult(
-    paginatedResult,
-    (row) => transformTaxRateLookup(row, userAccess),
-    { includeLoadMore: true }
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformTaxRateLookup(row, userAccess)
   );
 
 /**
@@ -522,7 +529,7 @@ const transformTaxRatePaginatedLookupResult = (paginatedResult, userAccess) =>
  *
  * @param {{
  *   id: string,
- *   method_name: string,
+ *   name: string,
  *   is_pickup_location?: boolean,
  *   is_active?: boolean
  * }} row - Raw delivery method record.
@@ -538,7 +545,11 @@ const transformTaxRatePaginatedLookupResult = (paginatedResult, userAccess) =>
  * }} Transformed delivery method object.
  */
 const transformDeliveryMethodLookup = (row, userAccess) => {
-  const base = transformIdNameToIdLabel(row);
+  const base = transformIdNameToIdLabel({
+    id: row.id,
+    name: row.name,
+  });
+
   const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
 
   return cleanObject({
@@ -549,20 +560,22 @@ const transformDeliveryMethodLookup = (row, userAccess) => {
 };
 
 /**
- * Transforms paginated delivery method records for lookup dropdowns.
+ * Transforms paginated delivery method records into a lookup-compatible
+ * load-more structure for dropdown/autocomplete components.
  *
- * @param {Object} paginatedResult - Raw DB paginated result
- * @param {Object} userAccess - Evaluated access control flags
- * @returns {{ items: { id: string, label: string }[], hasMore: boolean }}
+ * @template T
+ *
+ * @param {PaginatedQueryResult<T>} paginatedResult
+ * @param {Object} userAccess
+ *
+ * @returns {Promise<LoadMoreResult<LookupItem>>}
  */
 const transformDeliveryMethodPaginatedLookupResult = (
   paginatedResult,
   userAccess
 ) =>
-  transformPaginatedResult(
-    paginatedResult,
-    (row) => transformDeliveryMethodLookup(row, userAccess),
-    { includeLoadMore: true }
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformDeliveryMethodLookup(row, userAccess)
   );
 
 /**
@@ -611,36 +624,32 @@ const transformSkuLookupRow = (
 };
 
 /**
- * Transforms a paginated SKU lookup result set into a frontend-friendly format
- * using `transformSkuLookupRow`, with support for barcode inclusion and
- * conditional flag visibility based on user access permissions.
+ * Transforms paginated SKU lookup results into a load-more compatible structure
+ * for dropdown/autocomplete components.
  *
- * Each row is transformed into an `{ id, label }` object, and optional flags
- * such as `isAbnormal`, `abnormalReasons`, `isActive`, and `isValidToday` may be
- * included depending on the `userAccess` context.
+ * Applies `transformSkuLookupRow` to each row and returns a standardized
+ * `{ items, hasMore }` structure.
  *
- * @param {Object} paginatedResult - Raw paginated result from SKU lookup query,
- *                                   expected to include `data` and `pagination` keys.
- * @param {Object} [options={}] - Transformation options.
- * @param {boolean} [options.includeBarcode=false] - Whether to include barcode in each label.
- * @param {Object} [userAccess] - User access context to control visibility of additional flags.
- * @param {boolean} [userAccess.allowAllSkus] - Whether the user can view SKUs regardless of validation state.
- * @param {boolean} [userAccess.canViewAllStatuses] - Whether to expose `isActive`.
- * @param {boolean} [userAccess.canViewAllValidLookups] - Whether to expose `isValidToday`.
+ * @template T
  *
- * @returns {Object} Transformed paginated result with:
- *   - `items`: array of `{ id, label, ...flags }`
- *   - `hasMore`: boolean indicating whether more pages are available
+ * @param {PaginatedQueryResult<T>} paginatedResult
+ * @param {Object} [options={}]
+ * @param {boolean} [options.includeBarcode=false]
+ *
+ * @param {Object} [userAccess]
+ * @param {boolean} [userAccess.allowAllSkus]
+ * @param {boolean} [userAccess.canViewAllStatuses]
+ * @param {boolean} [userAccess.canViewAllValidLookups]
+ *
+ * @returns {Promise<LoadMoreResult<LookupItem>>}
  */
 const transformSkuPaginatedLookupResult = (
   paginatedResult,
   options = {},
   userAccess
 ) =>
-  transformPaginatedResult(
-    paginatedResult,
-    (row) => transformSkuLookupRow(row, options, userAccess),
-    { includeLoadMore: true }
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformSkuLookupRow(row, options, userAccess)
   );
 
 /**
@@ -661,6 +670,9 @@ const transformSkuPaginatedLookupResult = (
  * @param {string} row.id - Pricing ID.
  * @param {string|number} row.price - Pricing amount.
  * @param {string} row.sku - Associated SKU string.
+ * @param {string} [row.brand] - Product brand (used for display formatting).
+ * @param {string} [row.country_code] - Product market / region code.
+ * @param {string} [row.display_name] - Optional precomputed display name.
  * @param {string} [row.product_name] - Product display name.
  * @param {string} [row.price_type] - Pricing type name (e.g., Retail, Wholesale).
  * @param {string} [row.location_name] - Location name (if applicable).
@@ -698,7 +710,13 @@ const transformPricingLookupRow = (
     labelOnly = false, // For minimal display (e.g., during sales order creation)
   } = {}
 ) => {
-  const productDisplayName = getProductDisplayName(row);
+  const productDisplayName = getProductDisplayName({
+    product_name: row.product_name,
+    sku: row.sku,
+    brand: row.brand ?? '',
+    country_code: row.country_code ?? '',
+    display_name: row.display_name,
+  });
 
   const labelParts = [];
 
@@ -747,58 +765,52 @@ const transformPricingLookupRow = (
 };
 
 /**
- * Transforms paginated pricing records into dropdown-compatible lookup format.
+ * Transforms paginated pricing records into a lookup-compatible
+ * load-more structure for dropdown/autocomplete components.
  *
- * Applies user access rules for conditional fields like `isActive`, `isValidToday`,
- * and `locationName`, and returns transformed pricing options.
+ * Applies user access rules for conditional fields like `isActive`,
+ * `isValidToday`, and `locationName`.
  *
- * @param {Object} paginatedResult - Raw paginated DB result (e.g., from paginateQueryByOffset)
- * @param {Object} userAccess - Evaluated access control flags
- * @param {Object} [options] - Optional display config for label formatting
- * @param {boolean} [options.showSku=true] - Include SKU in label
- * @param {boolean} [options.showPriceType=true] - Include pricing type name in label
- * @param {boolean} [options.showPriceInLabel=true] - Include price in label
- * @param {boolean} [options.labelOnly=false] - Return only base display fields
+ * @template T
  *
- * @returns {{ items: { id: string, label: string }[], hasMore: boolean }}
+ * @param {PaginatedQueryResult<T>} paginatedResult
+ * @param {Object} userAccess
+ *
+ * @param {Object} [options]
+ * @param {boolean} [options.showSku=true]
+ * @param {boolean} [options.showPriceType=true]
+ * @param {boolean} [options.showPriceInLabel=true]
+ * @param {boolean} [options.labelOnly=false]
+ *
+ * @returns {Promise<LoadMoreResult<LookupItem>>}
  */
 const transformPricingPaginatedLookupResult = (
   paginatedResult,
   userAccess,
   options = {}
 ) =>
-  transformPaginatedResult(
-    paginatedResult,
-    (row) => transformPricingLookupRow(row, userAccess, options),
-    { includeLoadMore: true }
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformPricingLookupRow(row, userAccess, options)
   );
 
 /**
- * Transforms a raw packaging-material row into a lookup-friendly object `{ id, label }`,
- * conditionally enriched with flags for the UI.
- *
- * - Builds a human-readable label via `formatPackagingMaterialLabel(row)`.
- * - Converts to `{ id, label }` using `transformIdNameToIdLabel`.
- * - Optionally merges extra flags from `includeFlagsBasedOnAccess(row, userAccess)`.
- * - **Includes `isArchived` ONLY if `userAccess.canViewAllStatuses` is true**; otherwise it is omitted.
- *
  * @param {object} row - Raw DB row for a packaging material.
- * @param {string} row.id - Material ID (required).
- * @param {boolean} [row.is_archived] - Whether the material is archived.
- * @param {object} [userAccess] - Access flags used to decide which fields to expose it.
- * @param {boolean} [userAccess.canViewAllStatuses] - If true, expose `isArchived`.
  *
- * @returns {{
- *   id: string,
- *   label: string,
- *   isArchived?: boolean
- * } | null} Lookup item, or `null` if invalid.
+ * @param {string} row.id - Material ID.
+ * @param {string} row.name - Material name.
  *
- * @example
- * // With canViewAllStatuses:
- * // -> { id, label, isArchived: false }
- * // Without:
- * // -> { id, label }
+ * @param {string} [row.size]
+ * @param {string} [row.color]
+ * @param {string} [row.unit]
+ *
+ * @param {number} [row.length_cm]
+ * @param {number} [row.width_cm]
+ * @param {number} [row.height_cm]
+ *
+ * @param {boolean} [row.is_archived]
+ *
+ * @param {object} [userAccess]
+ * @param {boolean} [userAccess.canViewAllStatuses]
  */
 const transformPackagingMaterialLookupRow = (row, userAccess) => {
   if (!row || typeof row !== 'object' || !row.id) return null;
@@ -806,12 +818,15 @@ const transformPackagingMaterialLookupRow = (row, userAccess) => {
   const label = formatPackagingMaterialLabel(row);
   if (!label) return null;
 
-  const base = transformIdNameToIdLabel({ id: row.id, name: label });
+  const base = transformIdNameToIdLabel({
+    id: row.id,
+    name: label,
+  });
 
   const flagSubset =
-    (typeof includeFlagsBasedOnAccess === 'function'
+    typeof includeFlagsBasedOnAccess === 'function'
       ? includeFlagsBasedOnAccess(row, userAccess)
-      : {}) || {};
+      : {};
 
   const out = {
     ...base,
@@ -827,36 +842,25 @@ const transformPackagingMaterialLookupRow = (row, userAccess) => {
 };
 
 /**
- * Transforms a paginated repository result of packaging-material rows into a
- * lookup-ready payload using `transformPackagingMaterialLookupRow`.
+ * Transforms paginated packaging material rows into a lookup-compatible
+ * load-more structure for dropdown/autocomplete components.
  *
- * Intended for dropdowns / autocomplete with load-more behavior.
+ * Applies `transformPackagingMaterialLookupRow` to each row and returns a
+ * standardized `{ items, hasMore }` payload.
  *
- * @param {{
- *   data: Array<object>,
- *   pagination: { offset: number, limit: number, totalRecords: number }
- * }} paginatedResult - Raw-paginated result from the repository.
- * @param {object} [userAccess] - Access flags forwarded to the row transformer.
+ * @template T
  *
- * @returns {{
- *   items: Array<{ id: string, label: string, isArchived: boolean }>,
- *   offset: number,
- *   limit: number,
- *   hasMore: boolean
- * }} Lookup payload with pagination metadata.
+ * @param {PaginatedQueryResult<T>} paginatedResult
+ * @param {object} [userAccess]
  *
- * @example
- * const result = transformPackagingMaterialPaginatedLookupResult(repoResult, access);
- * // { items: [...], offset: 0, limit: 20, hasMore: true }
+ * @returns {Promise<LoadMoreResult<LookupItem>>}
  */
 const transformPackagingMaterialPaginatedLookupResult = (
   paginatedResult,
   userAccess
 ) =>
-  transformPaginatedResult(
-    paginatedResult,
-    (row) => transformPackagingMaterialLookupRow(row, userAccess),
-    { includeLoadMore: true }
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformPackagingMaterialLookupRow(row, userAccess)
   );
 
 /**
@@ -878,12 +882,12 @@ const transformPackagingMaterialPaginatedLookupResult = (
  * @param {object} userAccess - Object containing access-level flags
  *                              (e.g., from `evaluateSkuCodeBaseLookupAccessControl()`).
  *
- * @returns {{
- *   id: string,
- *   label: string,
- *   isActive?: boolean,
- *   [key: string]: any
- * }} Transformed lookup object with `id`, `label`, and optional enriched flags.
+ @returns {{
+  id: string,
+  label: string,
+  isActive?: boolean,
+  [key: string]: any
+  } | null} Transformed lookup object with `id`, `label`, and optional enriched flags.
  *
  * @example
  * const result = transformSkuCodeBaseLookup(row, userAccess);
@@ -912,39 +916,25 @@ const transformSkuCodeBaseLookup = (row, userAccess) => {
 };
 
 /**
- * Transforms a paginated set of raw SKU Code Base records into a UI-friendly
- * format suitable for dropdowns or infinite-scroll lookup components.
+ * Transforms paginated SKU Code Base records into a lookup-compatible
+ * load-more structure for dropdown/autocomplete components.
  *
- * @param {{
- *   data: Array<object>,
- *   pagination: {
- *     offset: number,
- *     limit: number,
- *     totalRecords: number
- *   }
- * }} paginatedResult - Raw paginated result from repository query.
+ * Applies `transformSkuCodeBaseLookup` to each row and returns a
+ * standardized `{ items, hasMore }` payload.
  *
- * @param {object} userAccess - Access flags used to enrich each row.
+ * @template T
  *
- * @returns {{
- *   items: Array<{
- *     id: string,
- *     label: string,
- *     [key: string]: any
- *   }>,
- *   offset: number,
- *   limit: number,
- *   hasMore: boolean
- * }} Final lookup result formatted for UI dropdowns/infinite-scroll.
+ * @param {PaginatedQueryResult<T>} paginatedResult
+ * @param {object} userAccess
+ *
+ * @returns {Promise<LoadMoreResult<LookupItem>>}
  */
 const transformSkuCodeBasePaginatedLookupResult = (
   paginatedResult,
   userAccess
 ) =>
-  transformPaginatedResult(
-    paginatedResult,
-    (row) => transformSkuCodeBaseLookup(row, userAccess),
-    { includeLoadMore: true }
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformSkuCodeBaseLookup(row, userAccess)
   );
 
 /**
@@ -973,12 +963,12 @@ const transformSkuCodeBasePaginatedLookupResult = (
  * @param {object} userAccess - Access control flags
  *                              (e.g. from `evaluateProductLookupAccessControl()`).
  *
- * @returns {{
- *   id: string,
- *   label: string,
- *   isActive?: boolean,
- *   [key: string]: any
- * }} A lookup-optimized product object.
+ @returns {{
+  id: string,
+  label: string,
+  isActive?: boolean,
+  [key: string]: any
+  } | null} A lookup-optimized product object.
  *
  * @example
  * const r = transformProductLookup(row, userAccess);
@@ -1018,36 +1008,19 @@ const transformProductLookup = (row, userAccess) => {
 };
 
 /**
- * Transforms a paginated set of Product records into a UI-friendly lookup format.
+ * Transforms paginated product records into a lookup-compatible
+ * load-more structure for dropdown/autocomplete components.
  *
- * Applies:
- * - Row-by-row transformation via `transformProductLookup`
- * - Pagination metadata rewrite
- * - Optional "Load more" flag for infinite scroll
+ * @template T
  *
- * @param {{
- *   data: Array<object>,
- *   pagination: {
- *     offset: number,
- *     limit: number,
- *     totalRecords: number
- *   }
- * }} paginatedResult - Raw repository output.
+ * @param {PaginatedQueryResult<T>} paginatedResult
+ * @param {object} userAccess
  *
- * @param {object} userAccess - Access flags for enriching each product row.
- *
- * @returns {{
- *   items: Array<{ id: string, label: string, [key: string]: any }>,
- *   offset: number,
- *   limit: number,
- *   hasMore: boolean
- * }} Transformed lookup result.
+ * @returns {Promise<LoadMoreResult<LookupItem>>}
  */
 const transformProductPaginatedLookupResult = (paginatedResult, userAccess) =>
-  transformPaginatedResult(
-    paginatedResult,
-    (row) => transformProductLookup(row, userAccess),
-    { includeLoadMore: true }
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformProductLookup(row, userAccess)
   );
 
 /**
@@ -1067,12 +1040,12 @@ const transformProductPaginatedLookupResult = (paginatedResult, userAccess) =>
  *
  * @param {object} userAccess - Access-level flags (e.g., from evaluateStatusLookupAccessControl()).
  *
- * @returns {{
- *   id: string,
- *   label: string,
- *   isActive?: boolean,
- *   [key: string]: any
- * }} A UI-ready lookup object.
+ @returns {{
+  id: string,
+  label: string,
+  isActive?: boolean,
+  [key: string]: any
+  } | null} A UI-ready lookup object.
  *
  * @example
  * const result = transformStatusLookup(row, userAccess);
@@ -1100,31 +1073,19 @@ const transformStatusLookup = (row, userAccess) => {
 };
 
 /**
- * Transforms a paginated set of raw Status records into a UI-friendly lookup result.
+ * Transforms paginated status records into a lookup-compatible
+ * load-more structure for dropdown/autocomplete components.
  *
- * @param {{
- *   data: Array<object>,
- *   pagination: {
- *     offset: number,
- *     limit: number,
- *     totalRecords: number
- *   }
- * }} paginatedResult - Raw paginated result from repository.
+ * @template T
  *
- * @param {object} userAccess - Access flags used to enrich each row.
+ * @param {PaginatedQueryResult<T>} paginatedResult
+ * @param {object} userAccess
  *
- * @returns {{
- *   items: Array<{ id: string, label: string, [key: string]: any }>,
- *   offset: number,
- *   limit: number,
- *   hasMore: boolean
- * }}
+ * @returns {Promise<LoadMoreResult<LookupItem>>}
  */
 const transformStatusPaginatedLookupResult = (paginatedResult, userAccess) =>
-  transformPaginatedResult(
-    paginatedResult,
-    (row) => transformStatusLookup(row, userAccess),
-    { includeLoadMore: true }
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformStatusLookup(row, userAccess)
   );
 
 /**
@@ -1182,40 +1143,19 @@ const transformUserLookup = (row, userAccess) => {
 };
 
 /**
- * Transforms a paginated repository result of User rows into a
- * lookup-ready payload for dropdowns / autocomplete UIs.
+ * Transforms paginated user records into a lookup-compatible
+ * load-more structure for dropdown/autocomplete components.
  *
- * Pattern-aligned with `transformStatusPaginatedLookupResult`.
+ * @template T
  *
- * @param {{
- *   data: Array<object>,
- *   pagination: {
- *     offset: number,
- *     limit: number,
- *     totalRecords: number
- *   }
- * }} paginatedResult - Raw paginated result from the repository.
+ * @param {PaginatedQueryResult<T>} paginatedResult
+ * @param {object} userAccess
  *
- * @param {object} userAccess - Access flags forwarded to the row transformer
- *   for conditional UI flag enrichment.
- *
- * @returns {{
- *   items: Array<{
- *     id: string,
- *     label: string,
- *     subLabel?: string,
- *     [key: string]: any
- *   }>,
- *   offset: number,
- *   limit: number,
- *   hasMore: boolean
- * }}
+ * @returns {Promise<LoadMoreResult<LookupItem>>}
  */
 const transformUserPaginatedLookupResult = (paginatedResult, userAccess) =>
-  transformPaginatedResult(
-    paginatedResult,
-    (row) => transformUserLookup(row, userAccess),
-    { includeLoadMore: true }
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformUserLookup(row, userAccess)
   );
 
 /**
@@ -1287,7 +1227,7 @@ const enrichRoleOption = (row, activeStatusId) => {
  *   isActive?: boolean,
  *   hierarchyLevel?: number,
  *   [key: string]: any
- * }} A lookup-optimized role object.
+ * } | null} A lookup-optimized role object.
  */
 const transformRoleLookup = (row, userAccess) => {
   if (!row || typeof row !== 'object') return null;
@@ -1321,36 +1261,19 @@ const transformRoleLookup = (row, userAccess) => {
 };
 
 /**
- * Transforms a paginated set of Role records into a UI-friendly lookup format.
+ * Transforms paginated role records into a lookup-compatible
+ * load-more structure for dropdown/autocomplete components.
  *
- * Applies:
- * - Row-by-row transformation via `transformRoleLookup`
- * - Pagination metadata rewrite
- * - Optional "Load more" support for infinite scroll UIs
+ * @template T
  *
- * @param {{
- *   data: Array<object>,
- *   pagination: {
- *     offset: number,
- *     limit: number,
- *     totalRecords: number
- *   }
- * }} paginatedResult - Raw repository output.
+ * @param {PaginatedQueryResult<T>} paginatedResult
+ * @param {object} access
  *
- * @param {object} access - Role visibility / enrichment context.
- *
- * @returns {{
- *   items: Array<{ id: string, label: string, [key: string]: any }>,
- *   offset: number,
- *   limit: number,
- *   hasMore: boolean
- * }} Transformed lookup result.
+ * @returns {Promise<LoadMoreResult<LookupItem>>}
  */
 const transformRolePaginatedLookupResult = (paginatedResult, access) =>
-  transformPaginatedResult(
-    paginatedResult,
-    (row) => transformRoleLookup(row, access),
-    { includeLoadMore: true }
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformRoleLookup(row, access)
   );
 
 /**
@@ -1391,32 +1314,19 @@ const transformManufacturerLookup = createEntityLookupTransformer({
 });
 
 /**
- * Transforms paginated Manufacturer lookup rows
- * into a UI-ready lookup payload.
+ * Transforms paginated manufacturer records into a lookup-compatible
+ * load-more structure for dropdown/autocomplete components.
  *
- * @param {{
- *   data: Array<object>,
- *   pagination: {
- *     offset: number,
- *     limit: number,
- *     totalRecords: number
- *   }
- * }} paginatedResult
+ * @template T
  *
+ * @param {PaginatedQueryResult<T>} paginatedResult
  * @param {object} acl
  *
- * @returns {{
- *   items: Array<object>,
- *   offset: number,
- *   limit: number,
- *   hasMore: boolean
- * }}
+ * @returns {Promise<LoadMoreResult<LookupItem>>}
  */
 const transformManufacturerPaginatedLookupResult = (paginatedResult, acl) =>
-  transformPaginatedResult(
-    paginatedResult,
-    (row) => transformManufacturerLookup(row, acl),
-    { includeLoadMore: true }
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformManufacturerLookup(row, acl)
   );
 
 /**
@@ -1456,32 +1366,19 @@ const transformSupplierLookup = createEntityLookupTransformer({
 });
 
 /**
- * Transforms paginated Supplier lookup rows
- * into a UI-ready lookup payload.
+ * Transforms paginated supplier records into a lookup-compatible
+ * load-more structure for dropdown/autocomplete components.
  *
- * @param {{
- *   data: Array<object>,
- *   pagination: {
- *     offset: number,
- *     limit: number,
- *     totalRecords: number
- *   }
- * }} paginatedResult
+ * @template T
  *
+ * @param {PaginatedQueryResult<T>} paginatedResult
  * @param {object} acl
  *
- * @returns {{
- *   items: Array<object>,
- *   offset: number,
- *   limit: number,
- *   hasMore: boolean
- * }}
+ * @returns {Promise<LoadMoreResult<LookupItem>>}
  */
 const transformSupplierPaginatedLookupResult = (paginatedResult, acl) =>
-  transformPaginatedResult(
-    paginatedResult,
-    (row) => transformSupplierLookup(row, acl),
-    { includeLoadMore: true }
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformSupplierLookup(row, acl)
   );
 
 /**
@@ -1519,32 +1416,19 @@ const transformLocationTypeLookup = createEntityLookupTransformer({
 });
 
 /**
- * Transforms paginated Location Type lookup rows
- * into a UI-ready lookup payload.
+ * Transforms paginated location type records into a lookup-compatible
+ * load-more structure for dropdown/autocomplete components.
  *
- * @param {{
- *   data: Array<object>,
- *   pagination: {
- *     offset: number,
- *     limit: number,
- *     totalRecords: number
- *   }
- * }} paginatedResult
+ * @template T
  *
+ * @param {PaginatedQueryResult<T>} paginatedResult
  * @param {object} acl
  *
- * @returns {{
- *   items: Array<object>,
- *   offset: number,
- *   limit: number,
- *   hasMore: boolean
- * }}
+ * @returns {Promise<LoadMoreResult<LookupItem>>}
  */
 const transformLocationTypePaginatedLookupResult = (paginatedResult, acl) =>
-  transformPaginatedResult(
-    paginatedResult,
-    (row) => transformLocationTypeLookup(row, acl),
-    { includeLoadMore: true }
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformLocationTypeLookup(row, acl)
   );
 
 module.exports = {

@@ -5,7 +5,7 @@ import type {
 } from '@features/complianceRecord/state';
 import { complianceRecordService } from '@services/complianceRecordService';
 import { flattenComplianceRecordsToRows } from '@features/complianceRecord/utils';
-import { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 import { extractUiErrorPayload } from '@utils/error';
 
 /**
@@ -48,15 +48,13 @@ export const fetchComplianceRecordsThunk = createAsyncThunk<
     try {
       const response =
         await complianceRecordService.fetchPaginatedComplianceRecords(params);
-      
+
       return {
         ...response,
         data: flattenComplianceRecordsToRows(response.data),
       };
     } catch (error: unknown) {
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );

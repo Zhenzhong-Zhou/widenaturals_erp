@@ -23,19 +23,19 @@ export const fetchPermissions = async (): Promise<{
   permissions: string[];
 }> => {
   const url = API_ENDPOINTS.SECURITY.PERMISSIONS.SELF;
-  
+
   const response = await getRequest<PermissionResponse>(url, {
     policy: 'READ',
   });
-  
+
   const { roleName, permissions } = response.data ?? {};
-  
+
   if (!Array.isArray(permissions)) {
     throw new Error(
       'Invalid permission response: roleName or permissions missing.'
     );
   }
-  
+
   return {
     roleName,
     permissions,

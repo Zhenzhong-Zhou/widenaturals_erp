@@ -27,11 +27,7 @@ const customerLookupSlice = createSlice({
         applyPaginatedFulfilled(state, action.payload);
       })
       .addCase(fetchCustomerLookupThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch customers.'
-        );
+        applyRejected(state, action, 'Failed to fetch customers.');
       });
   },
 });

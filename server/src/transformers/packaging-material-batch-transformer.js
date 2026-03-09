@@ -16,7 +16,7 @@ const { cleanObject } = require('../utils/object-utils');
 const { makeStatus } = require('../utils/status-utils');
 const { makeActor } = require('../utils/actor-utils');
 const { compactAudit, makeAudit } = require('../utils/audit-utils');
-const { transformPaginatedResult } = require('../utils/transformer-utils');
+const { transformPageResult } = require('../utils/transformer-utils');
 
 /**
  * @typedef {Object} PackagingMaterialBatchRow
@@ -165,16 +165,15 @@ const transformPackagingMaterialBatchRow = (row, access) => {
  *
  * @param {Object} paginatedResult
  * @param {Object} access - Evaluated visibility flags
- * @returns {Object} Paginated, transformed PMB result
+ * @returns {Promise<Object>} Paginated, transformed PMB result
  */
 const transformPaginatedPackagingMaterialBatchResults = (
   paginatedResult,
   access
-) => {
-  return transformPaginatedResult(paginatedResult, (row) =>
+) =>
+  transformPageResult(paginatedResult, (row) =>
     transformPackagingMaterialBatchRow(row, access)
   );
-};
 
 module.exports = {
   transformPaginatedPackagingMaterialBatchResults,

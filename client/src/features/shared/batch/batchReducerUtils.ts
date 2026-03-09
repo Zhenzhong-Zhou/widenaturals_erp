@@ -12,7 +12,7 @@ import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 export interface BatchWorkflowState<
   TResponse,
   TResult = unknown,
-  TStats = unknown
+  TStats = unknown,
 > {
   loading: boolean;
   error: UiErrorPayload | null;
@@ -49,11 +49,8 @@ export const applyBatchSuccess = <
   TResponse,
   TResult = unknown,
   TStats = unknown,
-  TState extends BatchWorkflowState<TResponse, TResult, TStats> = BatchWorkflowState<
-    TResponse,
-    TResult,
-    TStats
-  >
+  TState extends BatchWorkflowState<TResponse, TResult, TStats> =
+    BatchWorkflowState<TResponse, TResult, TStats>,
 >(
   state: TState,
   payload: TResponse & {
@@ -63,7 +60,7 @@ export const applyBatchSuccess = <
 ) => {
   state.loading = false;
   state.error = null;
-  
+
   state.data = payload;
   state.results = payload.data ?? null;
   state.stats = payload.stats ?? null;

@@ -18,7 +18,6 @@ const { buildPricingFilters } = require('../utils/sql/build-pricing-filters');
  * @param {string} [options.sortBy='brand'] - Field to sort by (e.g., 'productName', 'price').
  * @param {string} [options.sortOrder='ASC'] - Sort direction: 'ASC' or 'DESC'.
  * @param {Object} [options.filters] - Optional filters (e.g., { brand: 'X', pricingType: 'MSRP' }).
- * @param {string} [options.keyword] - Optional keyword for fuzzy search across product name or SKU.
  *
  * @returns {Promise<Object>} - Paginated pricing data and metadata:
  * {
@@ -39,7 +38,6 @@ const getAllPricingRecords = async ({
   sortBy = 'brand',
   sortOrder,
   filters = {},
-  keyword,
 }) => {
   const tableName = 'pricing p';
   const joins = [
@@ -49,7 +47,7 @@ const getAllPricingRecords = async ({
   ];
 
   // Use extracted filter logic
-  const { whereClause, params } = buildPricingFilters(filters, keyword);
+  const { whereClause, params } = buildPricingFilters(filters);
 
   const baseQueryText = `
     SELECT
@@ -82,7 +80,6 @@ const getAllPricingRecords = async ({
       sortBy,
       sortOrder,
       filters,
-      keyword,
     });
 
     return await paginateQuery({
@@ -104,7 +101,6 @@ const getAllPricingRecords = async ({
       sortBy,
       sortOrder,
       filters,
-      keyword,
     });
 
     throw AppError.databaseError('Failed to fetch pricing list', error);
@@ -196,7 +192,7 @@ const getPricingDetailsByPricingTypeId = async ({
       sortOrder: 'ASC',
     });
   } catch (error) {
-    logSystemException('Failed to fetch pricing details', {
+    logSystemException(error, 'Failed to fetch pricing details', {
       context: 'getPricingDetailsByPricingTypeId',
       pricingTypeId,
       page,
@@ -289,7 +285,7 @@ const getPricesByIdAndSkuBatch = async (pairs, client = null) => {
  * @param {number} [options.limit=50] - Max number of results to return
  * @param {number} [options.offset=0] - Offset for pagination
  * @param {Object} [options.filters={}] - Optional filter fields (e.g., brand, priceType, currentlyValid, keyword)
- * @returns {Promise<{ items: any[], hasMore: boolean }>} - Paginated pricing lookup result
+ * @returns {Promise<{data: [], pagination: {offset: number, limit: number, totalRecords: number, hasMore: boolean}}>} - Paginated pricing lookup result
  *
  * @throws {AppError} - If a database error occurs
  */
@@ -333,8 +329,8 @@ const getPricingLookup = async ({ limit = 50, offset = 0, filters = {} }) => {
       params,
       offset,
       limit,
-      sortBy: '',
-      sortOrder: '',
+      sortBy: null,
+      sortOrder: undefined,
       additionalSort: 'pt.name ASC, p.valid_from DESC',
     });
 

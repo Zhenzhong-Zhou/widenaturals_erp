@@ -37,11 +37,7 @@ export const bomDetailsSlice = createSlice({
         }
       )
       .addCase(fetchBomDetailsThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to load BOM details.'
-        );
+        applyRejected(state, action, 'Failed to load BOM details.');
       });
   },
 });

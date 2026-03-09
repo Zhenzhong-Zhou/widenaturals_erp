@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { FieldConfig } from '@components/common/CustomForm';
-import StatusDropdown from '@features/lookup/components/StatusDropdown';
+import { StatusDropdown } from '@features/lookup/components/index';
 import { normalizeLookupParams } from '@features/lookup/utils/lookupUtils';
 import type {
   StatusLookupParams,

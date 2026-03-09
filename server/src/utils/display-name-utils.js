@@ -33,12 +33,19 @@ const displayNameRules = {
 /**
  * Generate a display name for a product row based on brand, SKU prefix, and region.
  *
- * @param {Object} row - The product row object.
- * @param {string} row.product_name - The base product name.
- * @param {string} row.brand - Brand name (e.g. "Canaherb", "WIDE Naturals").
- * @param {string} row.sku - SKU code (e.g. "CH-HN101-R-CA").
- * @param {string} row.country_code -Country code (e.g. "CN", "CA", "UN").
- * @param {string} [row.display_name] - Optional custom display name from DB.
+ * @param {{
+ *   product_name?: string|null,
+ *   item_name?: string|null,
+ *   itemName?: string|null,
+ *   brand?: string|null,
+ *   brand_name?: string|null,
+ *   sku?: string|null,
+ *   sku_code?: string|null,
+ *   country_code?: string|null,
+ *   size_label?: string|null,
+ *   display_name?: string|null
+ * }} row
+ *
  * @returns {string} Final display name for rendering.
  */
 const getProductDisplayName = (row) => {

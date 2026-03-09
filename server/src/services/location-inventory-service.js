@@ -13,9 +13,6 @@ const {
   transformPaginatedLocationInventoryRecordResults,
 } = require('../transformers/location-inventory-transformer');
 const { sanitizeSortBy, sanitizeSortOrder } = require('../utils/sort-utils');
-const {
-  normalizePaginationAndSortParams,
-} = require('../utils/query/inventory-query-utils');
 
 /**
  * Service to fetch and transform KPI summary data for location inventory.

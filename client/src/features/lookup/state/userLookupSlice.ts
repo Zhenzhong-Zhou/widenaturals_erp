@@ -43,11 +43,7 @@ const userLookupSlice = createSlice({
         }
       )
       .addCase(fetchUserLookupThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch user lookup'
-        );
+        applyRejected(state, action, 'Failed to fetch user lookup');
       });
   },
 });

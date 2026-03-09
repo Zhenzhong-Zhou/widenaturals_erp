@@ -122,7 +122,7 @@ const loadAndValidateEnv = () => {
         { envVar: 'ALLOW_CREDENTIALS', required: true },
         { envVar: 'OPTIONS_SUCCESS_STATUS', required: true },
       ],
-      
+
       // --------------------------------------------------
       // Media / Image Security
       // --------------------------------------------------
@@ -132,10 +132,13 @@ const loadAndValidateEnv = () => {
           required: true,
           validate: (v) =>
             typeof v === 'string' &&
-            v.split(',').map(h => h.trim()).filter(Boolean).length > 0,
+            v
+              .split(',')
+              .map((h) => h.trim())
+              .filter(Boolean).length > 0,
         },
       ],
-      
+
       // --------------------------------------------------
       // CSRF
       // --------------------------------------------------

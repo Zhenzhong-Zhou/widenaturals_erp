@@ -87,7 +87,7 @@ const exportPricingRecordsController = wrapAsync(async (req, res) => {
   });
 
   // Fetch raw export data using filters
-  const exportRows = await exportPricingRecordsService(filters, exportFormat);
+  const exportRows = await exportPricingRecordsService(filters);
 
   // Export a final file using utility (handles formatting and content-type), handles an empty case inside
   const { fileBuffer, contentType, filename } = await exportData({

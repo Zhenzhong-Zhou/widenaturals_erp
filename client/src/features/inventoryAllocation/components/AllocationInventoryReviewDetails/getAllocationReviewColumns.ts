@@ -21,7 +21,8 @@ export const getPrimaryWarehouseField = <
 
 export const getAllocationReviewColumns = (
   expandedRowId: string | null,
-  handleDrillDownToggle?: (id: string) => void
+  handleDrillDownToggle?: (id: string) => void,
+  getRowId?: (row: FlattenedAllocationReviewItem) => string
 ): Column<FlattenedAllocationReviewItem>[] => {
   const getFormattedInventoryStatus = (row: any) => {
     const status = getPrimaryWarehouseField(row, 'statusName') ?? 'unknown';
@@ -104,8 +105,8 @@ export const getAllocationReviewColumns = (
     ...(handleDrillDownToggle
       ? [
           createDrillDownColumn<FlattenedAllocationReviewItem>(
-            (row) => handleDrillDownToggle(row.allocationId),
-            (row) => expandedRowId === row.allocationId
+            (row) => handleDrillDownToggle(getRowId!(row)),
+            (row) => expandedRowId === getRowId!(row)
           ),
         ]
       : []),

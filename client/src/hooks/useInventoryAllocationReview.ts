@@ -56,16 +56,16 @@ const useInventoryAllocationReview = () => {
   const resetReview = useCallback(() => {
     dispatch(resetInventoryAllocationReview());
   }, [dispatch]);
-  
+
   const updateReviewError = useCallback(
     (msg: string | null) => {
       dispatch(
         setReviewError(
           msg
             ? {
-              message: msg,
-              type: ErrorType.Unknown,
-            }
+                message: msg,
+                type: ErrorType.Unknown,
+              }
             : null
         )
       );

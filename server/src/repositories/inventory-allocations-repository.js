@@ -134,7 +134,7 @@ const insertInventoryAllocationsBulk = async (allocations, client) => {
  * @param {string[]} input.allocationIds - UUIDs of allocation records to update.
  * @param {object} [client] - Optional PostgreSQL client for transactional execution.
  *
- * @returns {Promise<number>} - Number of allocation records updated.
+ * @returns {Promise<string[]>} - Array of allocation IDs whose status was updated.
  *
  * @throws {AppError} - Throws `AppError.databaseError` if the update fails.
  */
@@ -170,7 +170,8 @@ const updateInventoryAllocationStatus = async (
           severity: 'WARN',
         }
       );
-      return 0;
+
+      return [];
     }
 
     logSystemInfo('Inventory allocation statuses updated successfully', {
@@ -259,34 +260,60 @@ const getMismatchedAllocationIds = async (orderId, allocationIds, client) => {
 };
 
 /**
- * Retrieves detailed review data for one or more inventory allocations within a specific order.
+ * Retrieves detailed allocation review rows for a given order.
  *
- * For the given `orderId`, this function fetches all inventory allocation records that:
- * - Belong to the specified order
- * - Match the given `allocationIds` (if provided)
- * - Match the given `warehouseIds` (if provided)
+ * For the specified `orderId`, this function returns one row per
+ * order item / allocation combination. Rows may represent either:
  *
- * Each result row includes:
- * - Allocation metadata (ID, status, quantity, timestamps)
- * - Order item information (ID, quantity, status, etc.)
- * - Product or packaging material details
- * - Batch details including warehouse inventory list
- * - Related user information (creator/updater)
- * - Order-level metadata (status, note, createdBy)
+ * - An existing inventory allocation for the order item
+ * - An order item that has not yet been allocated (allocation fields will be null)
  *
- * If `allocationIds` is an empty array, all allocations for the order are returned.
- * If `warehouseIds` is an empty array, all warehouses are included.
+ * Optional filters can narrow the results:
  *
- * Logs system info when allocations are found or not found.
- * Logs and throws a structured database error on failure.
+ * - `allocationIds` limits the results to specific allocation records.
+ * - `warehouseIds` limits allocations and related warehouse inventory to specific warehouses.
+ *
+ * Each row includes:
+ *
+ * Allocation fields
+ * - allocation ID, quantity, status, timestamps
+ * - allocation creator and updater user information
+ *
+ * Order item fields
+ * - order item ID, ordered quantity, status, and status date
+ *
+ * Product or packaging material information
+ * - product metadata when the order item references a SKU
+ * - packaging material metadata when the order item references a packaging material
+ *
+ * Batch information
+ * - batch type (product or packaging material)
+ * - batch metadata (lot number, expiry, manufacture date)
+ * - related warehouse inventory list for the batch
+ *
+ * Order metadata
+ * - order number
+ * - order note
+ * - order status
+ * - salesperson (order creator)
+ *
+ * Notes
+ * - If `allocationIds` is an empty array, all allocations for the order are returned.
+ * - If `warehouseIds` is an empty array, allocations and warehouse inventory from all warehouses are included.
+ * - Unallocated order items may appear with null allocation fields to support allocation review workflows.
+ *
+ * Logging
+ * - Logs a system info event when allocation rows are retrieved or none are found.
+ * - Logs and throws a structured database error on query failure.
  *
  * @async
- * @param {string} orderId - UUID of the order whose allocations are being reviewed.
- * @param {string[]} warehouseIds - Array of warehouse UUIDs to filter by (empty = all).
- * @param {string[]} allocationIds - Array of allocation UUIDs to include (empty = all for order).
+ * @param {string} orderId - UUID of the order whose allocation review data is requested.
+ * @param {string[]} warehouseIds - Warehouse UUIDs used to filter allocations and inventory (empty = all).
+ * @param {string[]} allocationIds - Allocation UUIDs used to filter results (empty = all for the order).
  * @param {object} client - PostgreSQL client instance (supports transactions).
- * @returns {Promise<object[] | null>} - Array of enriched allocation rows, or `null` if none found.
- * @throws {AppError} - Throws `AppError.databaseError` if query execution fails.
+ * @returns {Promise<object[] | null>} Flat allocation review rows used by the transformer layer,
+ * or `null` if no matching rows are found.
+ * @throws {AppError} Throws `AppError.databaseError` if the database query fails.
  */
 const getInventoryAllocationReview = async (
   orderId,
@@ -295,58 +322,109 @@ const getInventoryAllocationReview = async (
   client
 ) => {
   const sql = `
-   WITH input_ids AS (
-     SELECT
-       $2::uuid[] AS warehouse_ids,
-       $3::uuid[] AS allocation_ids
-   ),
+    WITH input_ids AS (
+      SELECT
+        $2::uuid[] AS warehouse_ids,
+        $3::uuid[] AS allocation_ids
+    ),
+    order_items_filtered AS (
+      SELECT
+        oi.id,
+        oi.order_id,
+        oi.quantity_ordered,
+        oi.status_id,
+        oi.status_date,
+        oi.sku_id,
+        oi.packaging_material_id
+      FROM order_items oi
+      WHERE oi.order_id = $1
+    ),
     selected_allocations AS (
       SELECT
-        ia.id,
-        ia.order_item_id,
+        ia.id AS allocation_id,
+        oi.id AS order_item_id,
+        oi.order_id,
+        oi.quantity_ordered,
+        oi.status_id AS item_status_id,
+        oi.status_date AS item_status_date,
+        oi.sku_id,
+        oi.packaging_material_id,
         ia.transfer_order_item_id,
         ia.warehouse_id,
         ia.batch_id,
         ia.allocated_quantity,
-        ia.status_id,
+        ia.status_id AS allocation_status_id,
         ia.allocated_at,
         ia.created_at,
         ia.updated_at,
         ia.created_by,
         ia.updated_by
-      FROM inventory_allocations ia
-      JOIN order_items oi ON ia.order_item_id = oi.id
+      FROM order_items_filtered oi
+      LEFT JOIN inventory_allocations ia
+        ON ia.order_item_id = oi.id
       JOIN input_ids i ON TRUE
       WHERE
-        oi.order_id = $1
-        AND (i.warehouse_ids IS NULL OR cardinality(i.warehouse_ids) = 0 OR ia.warehouse_id = ANY(i.warehouse_ids))
-        AND (i.allocation_ids IS NULL OR cardinality(i.allocation_ids) = 0 OR ia.id = ANY(i.allocation_ids))
+        (
+          ia.id IS NULL
+          OR COALESCE(cardinality(i.warehouse_ids),0) = 0
+          OR ia.warehouse_id = ANY(i.warehouse_ids)
+        )
+        AND (
+          ia.id IS NULL
+          OR COALESCE(cardinality(i.allocation_ids),0) = 0
+          OR ia.id = ANY(i.allocation_ids)
+        )
+    ),
+    warehouse_inventory_agg AS (
+      SELECT
+        wi.batch_id,
+        jsonb_agg(
+          jsonb_build_object(
+            'warehouse_inventory_id', wi.id,
+            'inbound_date', wi.inbound_date,
+            'warehouse_quantity', wi.warehouse_quantity,
+            'reserved_quantity', wi.reserved_quantity,
+            'inventory_status_date', wi.status_date,
+            'inventory_status_name', invs.name,
+            'warehouse_name', w.name
+          )
+          ORDER BY wi.inbound_date NULLS LAST, wi.id
+        ) AS wi_list
+      FROM warehouse_inventory wi
+      LEFT JOIN inventory_status invs
+        ON invs.id = wi.status_id
+      LEFT JOIN warehouses w
+        ON w.id = wi.warehouse_id
+      JOIN input_ids x ON TRUE
+      WHERE
+        COALESCE(cardinality(x.warehouse_ids),0) = 0
+        OR wi.warehouse_id = ANY(x.warehouse_ids)
+      GROUP BY wi.batch_id
     )
     SELECT
-      ia.id AS allocation_id,
-      ia.order_item_id,
-      ia.transfer_order_item_id,
-      ia.batch_id,
-      ia.allocated_quantity,
-      ia.status_id AS allocation_status_id,
+      sa.allocation_id,
+      sa.order_item_id,
+      sa.transfer_order_item_id,
+      sa.batch_id,
+      sa.allocated_quantity,
+      sa.allocation_status_id,
       s_alloc_status.name AS allocation_status_name,
       s_alloc_status.code AS allocation_status_code,
-      ia.created_at AS allocation_created_at,
-      ia.updated_at AS allocation_updated_at,
-      ia.created_by AS allocation_created_by,
+      sa.created_at AS allocation_created_at,
+      sa.updated_at AS allocation_updated_at,
+      sa.created_by AS allocation_created_by,
       ucb.firstname AS allocation_created_by_firstname,
-      ucb.lastname  AS allocation_created_by_lastname,
-      ia.updated_by AS allocation_updated_by,
+      ucb.lastname AS allocation_created_by_lastname,
+      sa.updated_by AS allocation_updated_by,
       uub.firstname AS allocation_updated_by_firstname,
-      uub.lastname  AS allocation_updated_by_lastname,
-      oi.id AS order_item_id,
-      oi.order_id,
-      oi.quantity_ordered,
-      oi.status_id AS item_status_id,
+      uub.lastname AS allocation_updated_by_lastname,
+      sa.order_id,
+      sa.quantity_ordered,
+      sa.item_status_id,
       ios.name AS item_status_name,
       ios.code AS item_status_code,
-      oi.status_date AS item_status_date,
-      oi.sku_id,
+      sa.item_status_date,
+      sa.sku_id,
       s.sku,
       s.barcode,
       s.country_code,
@@ -355,15 +433,15 @@ const getInventoryAllocationReview = async (
       p.name AS product_name,
       p.brand,
       p.category,
-      oi.packaging_material_id,
-      pkg.code AS packaging_material_code,
-      pkg.name AS packaging_material_name,
-      pkg.color AS packaging_material_color,
-      pkg.size AS packaging_material_size,
-      pkg.unit AS packaging_material_unit,
-      pkg.length_cm AS packaging_material_length_cm,
-      pkg.width_cm AS packaging_material_width_cm,
-      pkg.height_cm AS packaging_material_height_cm,
+      sa.packaging_material_id,
+      COALESCE(pkg.code, pm.code) AS packaging_material_code,
+      COALESCE(pmb.material_snapshot_name, pkg.name, pm.name) AS packaging_material_name,
+      COALESCE(pkg.color, pm.color) AS packaging_material_color,
+      COALESCE(pkg.size, pm.size) AS packaging_material_size,
+      COALESCE(pkg.unit, pm.unit) AS packaging_material_unit,
+      COALESCE(pkg.length_cm, pm.length_cm) AS packaging_material_length_cm,
+      COALESCE(pkg.width_cm, pm.width_cm) AS packaging_material_width_cm,
+      COALESCE(pkg.height_cm, pm.height_cm) AS packaging_material_height_cm,
       o.order_number,
       o.note AS order_note,
       o.order_type_id,
@@ -373,80 +451,55 @@ const getInventoryAllocationReview = async (
       os.code AS order_status_code,
       o.created_by AS salesperson_id,
       u.firstname AS salesperson_firstname,
-      u.lastname  AS salesperson_lastname,
+      u.lastname AS salesperson_lastname,
       br.batch_type,
-      CASE WHEN br.batch_type = 'product' THEN
+      CASE WHEN br.batch_type='product' THEN
         jsonb_build_object(
           'product_batch_id', pb.id,
-          'lot_number',       pb.lot_number,
-          'expiry_date',      pb.expiry_date,
+          'lot_number', pb.lot_number,
+          'expiry_date', pb.expiry_date,
           'manufacture_date', pb.manufacture_date,
-          'warehouse_inventory', wi_arr.wi_list
+          'warehouse_inventory', COALESCE(wi_arr.wi_list, '[]'::jsonb)
         )
       END AS product_batch,
-    
-      CASE WHEN br.batch_type = 'packaging_material' THEN
+      CASE WHEN br.batch_type='packaging_material' THEN
         jsonb_build_object(
           'packaging_material_batch_id', pmb.id,
-          'lot_number',       pmb.lot_number,
-          'expiry_date',      pmb.expiry_date,
+          'lot_number', pmb.lot_number,
+          'expiry_date', pmb.expiry_date,
           'manufacture_date', pmb.manufacture_date,
           'material_snapshot_name', pmb.material_snapshot_name,
-          'warehouse_inventory', wi_arr.wi_list
+          'warehouse_inventory', COALESCE(wi_arr.wi_list, '[]'::jsonb)
         )
       END AS packaging_material_batch
-    FROM selected_allocations ia
-    JOIN order_items oi ON ia.order_item_id = oi.id
-    JOIN orders o ON oi.order_id = o.id
+    FROM selected_allocations sa
+    JOIN orders o ON sa.order_id = o.id
     JOIN users u ON o.created_by = u.id
-    LEFT JOIN users ucb ON ia.created_by = ucb.id
-    LEFT JOIN users uub ON ia.updated_by = uub.id
-    LEFT JOIN inventory_allocation_status s_alloc_status ON ia.status_id = s_alloc_status.id
-    LEFT JOIN order_status ios ON ios.id = oi.status_id
-    LEFT JOIN skus s ON oi.sku_id = s.id
+    LEFT JOIN users ucb ON sa.created_by = ucb.id
+    LEFT JOIN users uub ON sa.updated_by = uub.id
+    LEFT JOIN inventory_allocation_status s_alloc_status
+      ON sa.allocation_status_id = s_alloc_status.id
+    LEFT JOIN order_status ios ON ios.id = sa.item_status_id
+    LEFT JOIN skus s ON sa.sku_id = s.id
     LEFT JOIN products p ON s.product_id = p.id
-    LEFT JOIN packaging_materials pkg ON oi.packaging_material_id = pkg.id
-    LEFT JOIN order_types ot ON o.order_type_id = ot.id
-    LEFT JOIN order_status os ON o.order_status_id = os.id
-    JOIN batch_registry br ON ia.batch_id = br.id
-    LEFT JOIN LATERAL (
-      SELECT
-        pb.id,
-        pb.lot_number,
-        pb.expiry_date,
-        pb.manufacture_date
-      FROM product_batches pb
-      WHERE br.batch_type = 'product' AND pb.id = br.product_batch_id
-    ) pb ON TRUE
-    LEFT JOIN LATERAL (
-      SELECT
-        pmb.id,
-        pmb.lot_number,
-        pmb.expiry_date,
-        pmb.manufacture_date,
-        pmb.material_snapshot_name
-      FROM packaging_material_batches pmb
-      WHERE br.batch_type = 'packaging_material' AND pmb.id = br.packaging_material_batch_id
-    ) pmb ON TRUE
-    LEFT JOIN LATERAL (
-      SELECT jsonb_agg(
-         jsonb_build_object(
-           'warehouse_inventory_id', wi.id,
-           'inbound_date', wi.inbound_date,
-           'warehouse_quantity', wi.warehouse_quantity,
-           'reserved_quantity', wi.reserved_quantity,
-           'inventory_status_date', wi.status_date,
-           'inventory_status_name', invs.name,
-           'warehouse_name', w.name
-         )
-       ) AS wi_list
-      FROM warehouse_inventory wi
-      LEFT JOIN inventory_status invs ON invs.id = wi.status_id
-      LEFT JOIN warehouses w ON w.id = wi.warehouse_id
-      JOIN input_ids x ON TRUE
-      WHERE wi.batch_id = br.id
-        AND (x.warehouse_ids IS NULL OR cardinality(x.warehouse_ids) = 0 OR wi.warehouse_id = ANY(x.warehouse_ids))
-    ) wi_arr ON TRUE
+    LEFT JOIN packaging_materials pm ON sa.packaging_material_id = pm.id
+    LEFT JOIN batch_registry br ON sa.batch_id = br.id
+    LEFT JOIN product_batches pb
+      ON br.batch_type='product'
+      AND pb.id = br.product_batch_id
+    LEFT JOIN packaging_material_batches pmb
+      ON br.batch_type='packaging_material'
+     AND pmb.id = br.packaging_material_batch_id
+    LEFT JOIN packaging_material_suppliers pms
+      ON pmb.packaging_material_supplier_id = pms.id
+    LEFT JOIN packaging_materials pkg
+      ON pms.packaging_material_id = pkg.id
+    LEFT JOIN order_types ot
+      ON o.order_type_id = ot.id
+    LEFT JOIN order_status os
+      ON o.order_status_id = os.id
+    LEFT JOIN warehouse_inventory_agg wi_arr
+      ON wi_arr.batch_id = br.id
   `;
 
   try {
@@ -584,6 +637,9 @@ const getPaginatedInventoryAllocations = async ({
   sortBy = 'created_at',
   sortOrder = 'DESC',
 }) => {
+  const context =
+    'inventory-allocations-repository/getPaginatedInventoryAllocations';
+
   const { rawAllocWhereClause, rawAllocParams, outerWhereClause, outerParams } =
     buildInventoryAllocationFilter(filters);
 
@@ -688,8 +744,7 @@ const getPaginatedInventoryAllocations = async ({
 
     if (result.data.length === 0) {
       logSystemInfo('No inventory allocations found', {
-        context:
-          'inventory-allocations-repository/getPaginatedInventoryAllocations',
+        context,
         pagination: { page, limit },
         sorting: { sortBy, sortOrder },
       });
@@ -697,8 +752,7 @@ const getPaginatedInventoryAllocations = async ({
     }
 
     logSystemInfo('Fetched paginated inventory allocations', {
-      context:
-        'inventory-allocations-repository/getPaginatedInventoryAllocations',
+      context,
       filters,
       pagination: { page, limit },
       sorting: { sortBy, sortOrder },
@@ -710,8 +764,7 @@ const getPaginatedInventoryAllocations = async ({
       error,
       'Failed to fetch paginated inventory allocations',
       {
-        context:
-          'inventory-allocations-repository/getPaginatedInventoryAllocations',
+        context,
         filters,
         pagination: { page, limit },
         sorting: { sortBy, sortOrder },
@@ -740,7 +793,7 @@ const getPaginatedInventoryAllocations = async ({
  * @async
  * @function
  * @param {string} orderId - UUID of the order to validate allocations against
- * @param {string[]|null} [allocationIds=null] - Optional array of allocation UUIDs to restrict results
+ * @param {string[]} [allocationIds=[]] - Optional array of allocation UUIDs to restrict results
  * @param {import('pg').PoolClient|null} [client=null] - Optional PostgreSQL client/transaction context
  *
  * @returns {Promise<Array<{
@@ -768,9 +821,11 @@ const getPaginatedInventoryAllocations = async ({
  */
 const getAllocationsByOrderId = async (
   orderId,
-  allocationIds = null,
+  allocationIds = [],
   client = null
 ) => {
+  const context = 'inventory-allocations-repository/getAllocationsByOrderId';
+
   let sql = `
     SELECT
       ia.id AS allocation_id,
@@ -783,10 +838,11 @@ const getAllocationsByOrderId = async (
     WHERE oi.order_id = $1
   `;
 
+  /** @type {(string | string[])[]} */
   const params = [orderId];
 
   if (Array.isArray(allocationIds) && allocationIds.length > 0) {
-    sql += ` AND ia.id = ANY($2)`;
+    sql += ` AND ia.id = ANY($2::uuid[])`;
     params.push(allocationIds);
   }
 
@@ -794,7 +850,7 @@ const getAllocationsByOrderId = async (
     const { rows } = await query(sql, params, client);
 
     logSystemInfo('Validated allocations for order', {
-      context: 'inventory-allocations-repository/getAllocationsByOrderId',
+      context,
       orderId,
       requestedCount: Array.isArray(allocationIds) ? allocationIds.length : 0,
       returnedCount: rows.length,
@@ -803,7 +859,7 @@ const getAllocationsByOrderId = async (
     return rows;
   } catch (error) {
     logSystemException(error, 'Failed to validate allocations for order', {
-      context: 'inventory-allocations-repository/getAllocationsByOrderId',
+      context,
       orderId,
       allocationIds,
     });
@@ -825,7 +881,7 @@ const getAllocationsByOrderId = async (
  *
  * @function
  * @param {string} orderId - UUID of the order to fetch allocations for.
- * @param {string[] | null} [orderItemIds=null] - Optional array of order item IDs to filter allocations.
+ * @param {string[]} [orderItemIds=[]] - Optional array of order item IDs to filter allocations.
  * @param {import('pg').PoolClient|null} [client=null] - Optional PostgreSQL client for transactional usage.
  * @returns {Promise<Array<Object>>} Resolves to an array of allocation records with joined status info.
  *
@@ -842,9 +898,11 @@ const getAllocationsByOrderId = async (
  */
 const getAllocationStatuses = async (
   orderId,
-  orderItemIds = null,
+  orderItemIds = [],
   client = null
 ) => {
+  const context = 'inventory-allocations-repository/getAllocationStatuses';
+
   let sql = `
     SELECT
       o.id AS order_id,
@@ -860,10 +918,11 @@ const getAllocationStatuses = async (
     WHERE oi.order_id = $1
   `;
 
+  /** @type {(string | string[])[]} */
   const params = [orderId];
 
   if (Array.isArray(orderItemIds) && orderItemIds.length > 0) {
-    sql += ` AND ia.order_item_id = ANY($2)`;
+    sql += ` AND ia.order_item_id = ANY($2::uuid[])`;
     params.push(orderItemIds);
   }
 
@@ -875,7 +934,7 @@ const getAllocationStatuses = async (
       error,
       'Failed to fetch allocation statuses by orderId/orderItemIds',
       {
-        context: 'inventory-allocations-repository/getAllocationStatuses',
+        context,
         orderId,
         orderItemIds,
       }
@@ -924,7 +983,7 @@ const skuHasActiveAllocations = async (
   client = null
 ) => {
   const context = 'inventory-allocations-repository/skuHasActiveAllocations';
-  
+
   const queryText = `
     SELECT 1
     FROM inventory_allocations ia
@@ -934,7 +993,7 @@ const skuHasActiveAllocations = async (
       AND ia.status_id = ANY($2::uuid[])
     LIMIT 1
   `;
-  
+
   return existsQuery(
     queryText,
     [skuId, activeAllocationStatusIds],

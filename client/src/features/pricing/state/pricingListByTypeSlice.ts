@@ -4,8 +4,7 @@ import { fetchPricingDetailsByTypeThunk } from './pricingThunks';
 import { createInitialPaginatedState } from '@store/pagination';
 import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
-const initialState: PricingState =
-  createInitialPaginatedState<PricingDetail>();
+const initialState: PricingState = createInitialPaginatedState<PricingDetail>();
 
 const pricingListByTypeSlice = createSlice({
   name: 'pricingListByType',
@@ -23,11 +22,7 @@ const pricingListByTypeSlice = createSlice({
         state.pagination = action.payload.pagination;
       })
       .addCase(fetchPricingDetailsByTypeThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch pricing details.'
-        );
+        applyRejected(state, action, 'Failed to fetch pricing details.');
       });
   },
 });

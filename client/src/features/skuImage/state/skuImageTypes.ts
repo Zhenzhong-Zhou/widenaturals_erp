@@ -5,11 +5,8 @@ import type {
   ImageFileFormat,
   ImageType,
 } from '@shared-types/api';
-import type {
-  NullableNumber,
-  NullableString
-} from '@shared-types/shared';
-import { UiErrorPayload } from '@utils/error/uiErrorUtils';
+import type { NullableNumber, NullableString } from '@shared-types/shared';
+import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
 
 /**
  * Supported image upload modes.
@@ -42,34 +39,34 @@ export type SkuImageType = ImageType;
 export interface SkuImageUiBase {
   /** Upload method selected by the user */
   upload_mode?: SkuImageUploadMode;
-  
+
   /** Public image URL when upload_mode = "url" */
   image_url?: NullableString;
-  
+
   /** True if this row represents a multipart file upload */
   file_uploaded?: boolean;
-  
+
   /**
    * Raw File object (client-only, never serialized).
    * Present only when file_uploaded = true.
    */
   file?: File | null;
-  
+
   /** Browser-generated preview URL (client-only) */
   previewUrl?: string;
-  
+
   /** Logical image category (thumbnail, main, gallery, etc.) */
   image_type?: SkuImageType;
-  
+
   /** Optional computed file size in KB (UI-facing only) */
   file_size_kb?: NullableNumber;
-  
+
   /** Inferred file format (jpg, png, webp, etc.) */
   file_format?: ImageFileFormat;
-  
+
   /** Accessibility / SEO alt text */
   alt_text?: NullableString;
-  
+
   /**
    * UI-only tracking field indicating how the image was added
    * (uploaded, url, auto-generated, etc.)
@@ -115,16 +112,16 @@ export interface BulkSkuImageUploadItem {
 export interface SkuImageUploadVariant {
   /** Unique identifier of the stored image record */
   id: string;
-  
+
   /** Server-hosted URL path of the image */
   imageUrl: string;
-  
+
   /** Whether this variant is marked as the primary image for the SKU */
   isPrimary: boolean;
-  
+
   /** File format of the stored image (e.g. webp, jpg) */
   fileFormat: string;
-  
+
   /** File size in kilobytes */
   fileSizeKb: number;
 }
@@ -141,19 +138,19 @@ export interface SkuImageUploadVariant {
 export interface UploadedSkuImageGroup {
   /** Logical grouping identifier shared across image variants */
   groupId: string;
-  
+
   /** Zero-based display ordering index for SKU gallery rendering */
   displayOrder: number;
-  
+
   /** Optional alt text used for accessibility and SEO */
   altText: NullableString;
-  
+
   /** ISO 8601 timestamp indicating when the image group was uploaded */
   uploadedAt: string;
-  
+
   /** User identifier of the uploader */
   uploadedBy: string;
-  
+
   /**
    * Map of image variants keyed by logical type.
    *
@@ -239,31 +236,31 @@ export interface SkuImageUploadCardData extends BulkSkuImageUploadItem {
 export interface SkuImageUpdateItem {
   /** Stable identifier for image group */
   group_id: string;
-  
+
   /**
    * True if this image should be replaced
    * by a newly uploaded file in the multipart payload.
    */
   file_uploaded?: boolean;
-  
+
   /** New image URL if replacing via external link */
   image_url?: NullableString;
-  
+
   /** Logical image category */
   image_type?: SkuImageType;
-  
+
   /** New display order position */
   display_order?: number;
-  
+
   /** Updated alt text */
   alt_text?: NullableString;
-  
+
   /** Updated file format (if changed during replacement) */
   file_format?: ImageFileFormat;
-  
+
   /** Whether this image becomes primary */
   is_primary?: boolean;
-  
+
   /** Optional source override */
   source?: SkuImageSource;
 }
@@ -283,10 +280,10 @@ export interface SkuImageUpdateItem {
 export interface SkuImageUpdateDraft extends SkuImageUiBase {
   /** Stable identifier of the existing image group */
   group_id: string;
-  
+
   /** New display order position (optional override) */
   display_order?: number;
-  
+
   /** Whether this image should become the primary image */
   is_primary?: boolean;
 }
@@ -300,10 +297,10 @@ export interface SkuImageUpdateDraft extends SkuImageUiBase {
 export interface SkuImageUpdateRequestItem {
   /** Internal SKU identifier (UUID) */
   skuId: string;
-  
+
   /** Human-readable SKU code */
   skuCode: string;
-  
+
   /** Collection of image update operations for this SKU */
   images: SkuImageUpdateItem[];
 }
@@ -330,16 +327,16 @@ export interface BulkSkuImageUpdateRequest {
 export interface BulkSkuImageUpdateResult {
   skuId: string;
   skuCode: string;
-  
+
   /** Whether this SKU’s update batch completed successfully */
   success: boolean;
-  
+
   /** Number of image records affected */
   count: number;
-  
+
   /** Updated image groups returned from persistence layer */
   images: UploadedSkuImageGroup[];
-  
+
   /** Error message if success = false */
   error: UiErrorPayload | null;
 }
@@ -350,9 +347,9 @@ export interface BulkSkuImageUpdateResult {
  * Extends the standard API success wrapper while also
  * returning batch-level processing metrics.
  */
-export interface BulkSkuImageUpdateResponse
-  extends ApiSuccessResponse<BulkSkuImageUpdateResult[]> {
-  
+export interface BulkSkuImageUpdateResponse extends ApiSuccessResponse<
+  BulkSkuImageUpdateResult[]
+> {
   /** Aggregated batch metrics (success count, failure count, duration, etc.) */
   stats: BatchProcessStats;
 }
@@ -369,12 +366,10 @@ export interface BulkSkuImageUpdateResponse
  *  - per-SKU results
  *  - aggregated batch statistics
  */
-export interface SkuImageUpdateState
-  extends AsyncState<BulkSkuImageUpdateResponse | null> {
-  
+export interface SkuImageUpdateState extends AsyncState<BulkSkuImageUpdateResponse | null> {
   /** Most recent per-SKU update results */
   results: BulkSkuImageUpdateResult[] | null;
-  
+
   /** Aggregated batch-level metrics */
   stats: BatchProcessStats | null;
 }

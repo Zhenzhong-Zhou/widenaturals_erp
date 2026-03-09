@@ -25,8 +25,7 @@ export const selectUpdateOrderStatusLoading = createSelector(
  */
 export const selectUpdateOrderStatusError = createSelector(
   selectUpdateOrderStatusState,
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );
 
 /**

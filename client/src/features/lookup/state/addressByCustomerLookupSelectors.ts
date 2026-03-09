@@ -38,6 +38,5 @@ export const selectCustomerAddressLookupLoading = createSelector(
  */
 export const selectCustomerAddressLookupError = createSelector(
   [selectAddressByCustomerLookupState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );

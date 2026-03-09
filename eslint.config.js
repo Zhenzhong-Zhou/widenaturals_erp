@@ -26,6 +26,7 @@ export default defineConfig([
       '**/dist/**',
       '**/build/**',
       '**/coverage/**',
+      '**/vite.config.d.ts',
       '**/*.log',
       '**/*.lock',
       '**/*.config.js',

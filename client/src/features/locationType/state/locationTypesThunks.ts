@@ -49,15 +49,13 @@ export const fetchPaginatedLocationTypeThunk = createAsyncThunk<
     try {
       const response =
         await locationTypeService.fetchPaginatedLocationTypes(params);
-      
+
       return {
         ...response,
         data: flattenLocationTypeListRecord(response.data),
       };
     } catch (error: unknown) {
-      return rejectWithValue(
-        extractUiErrorPayload(error)
-      );
+      return rejectWithValue(extractUiErrorPayload(error));
     }
   }
 );

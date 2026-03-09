@@ -52,6 +52,7 @@ export type AppErrorDetails =
 
 export interface AppErrorOptions {
   type: ErrorType;
+  code?: string;
   severity?: ErrorSeverity;
   details?: AppErrorDetails;
   correlationId?: string;
@@ -84,6 +85,7 @@ const ERROR_STATUS_MAP: Record<ErrorType, number> = {
 
 export class AppError extends Error {
   readonly type: ErrorType;
+  readonly code?: string;
   readonly severity: ErrorSeverity;
   readonly status: number;
   readonly details?: AppErrorDetails;
@@ -95,6 +97,7 @@ export class AppError extends Error {
 
     this.name = 'AppError';
     this.type = options.type;
+    this.code = options.code;
     this.severity = options.severity ?? ErrorSeverity.Medium;
     this.status = ERROR_STATUS_MAP[options.type] ?? 500;
     this.details = options.details;
@@ -108,9 +111,14 @@ export class AppError extends Error {
    * Factory helpers (recommended usage)
    * =================================================== */
 
-  static validation(message = 'Validation failed', details?: AppErrorDetails) {
+  static validation(
+    message = 'Validation failed',
+    details?: AppErrorDetails,
+    code?: string
+  ) {
     return new AppError(message, {
       type: ErrorType.Validation,
+      code,
       severity: ErrorSeverity.Low,
       details,
     });

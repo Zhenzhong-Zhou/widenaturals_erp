@@ -53,8 +53,7 @@ export const selectBomLoading = createSelector(
  */
 export const selectBomError = createSelector(
   [selectBomState],
-  (boms): string | null =>
-    boms.error?.message ?? null
+  (boms): string | null => boms.error?.message ?? null
 );
 
 /**

@@ -52,11 +52,9 @@ export const applyRejected = (
   fallbackMessage: string
 ) => {
   state.loading = false;
-  
-  state.error =
-    action.payload ??
-    {
-      message: action.error?.message ?? fallbackMessage,
-      type: ErrorType.Unknown,
-    };
+
+  state.error = action.payload ?? {
+    message: action.error?.message ?? fallbackMessage,
+    type: ErrorType.Unknown,
+  };
 };

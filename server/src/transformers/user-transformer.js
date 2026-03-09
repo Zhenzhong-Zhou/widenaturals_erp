@@ -15,7 +15,7 @@ const { cleanObject } = require('../utils/object-utils');
 const { getFullName } = require('../utils/name-utils');
 const { makeStatus } = require('../utils/status-utils');
 const { compactAudit, makeAudit } = require('../utils/audit-utils');
-const { transformPaginatedResult } = require('../utils/transformer-utils');
+const { transformPageResult } = require('../utils/transformer-utils');
 
 /**
  * Transforms a raw user insert DB row into a service-level user object.
@@ -130,7 +130,7 @@ const transformUserForView = (userRow, viewMode) => {
  * @returns {Object} Paginated response with transformed rows
  */
 const transformPaginatedUserForViewResults = (paginatedResult, viewMode) => {
-  return transformPaginatedResult(paginatedResult, (row) =>
+  return transformPageResult(paginatedResult, (row) =>
     transformUserForView(row, viewMode)
   );
 };
@@ -213,11 +213,7 @@ const transformPaginatedUserForViewResults = (paginatedResult, viewMode) => {
  * @property {boolean} isSystem
  *
  * Status
- * @property {{
- *   id: string,
- *   name: string,
- *   statusDate?: string|Date
- * }} status
+ * @property {NormalizedStatus} status
  *
  * Role
  * @property {{
@@ -240,12 +236,7 @@ const transformPaginatedUserForViewResults = (paginatedResult, viewMode) => {
  * }=} avatar
  *
  * Audit metadata
- * @property {{
- *   createdAt?: string|Date,
- *   updatedAt?: string|Date,
- *   createdBy?: string,
- *   updatedBy?: string
- * }=} audit
+ * @property {AuditMeta} audit
  */
 
 /**
@@ -260,7 +251,7 @@ const transformPaginatedUserForViewResults = (paginatedResult, viewMode) => {
  *  - Do NOT apply authorization or business rules
  *
  * @param {UserProfileRow|null} row
- * @returns {UserProfileDTO}
+ * @returns {UserProfileDTO|null}
  */
 const transformUserProfileRow = (row) => {
   if (!row) return null;
@@ -271,8 +262,8 @@ const transformUserProfileRow = (row) => {
 
     fullName: getFullName(row.firstname, row.lastname),
 
-    phoneNumber: row.phone_number || null,
-    jobTitle: row.job_title || null,
+    phoneNumber: row.phone_number ?? null,
+    jobTitle: row.job_title ?? null,
 
     isSystem: row.is_system,
 
@@ -281,9 +272,9 @@ const transformUserProfileRow = (row) => {
     role: row.role_id
       ? {
           id: row.role_id,
-          name: row.role_name,
-          roleGroup: row.role_group || null,
-          hierarchyLevel: row.hierarchy_level || null,
+          name: row.role_name ?? null,
+          roleGroup: row.role_group ?? null,
+          hierarchyLevel: row.hierarchy_level ?? null,
           permissions: Array.isArray(row.permissions) ? row.permissions : [],
         }
       : null,
@@ -291,8 +282,8 @@ const transformUserProfileRow = (row) => {
     avatar: row.avatar_url
       ? {
           url: row.avatar_url,
-          format: row.avatar_format || null,
-          uploadedAt: row.avatar_uploaded_at || null,
+          format: row.avatar_format ?? null,
+          uploadedAt: row.avatar_uploaded_at ?? null,
         }
       : null,
 

@@ -14,15 +14,18 @@ interface InitiateFulfillmentModalProps {
   allocationIds: string[];
   defaultValues?: Partial<InitiateFulfillmentBody>;
   onSuccess?: () => void;
+
   buttonLabel?: string;
   buttonVariant?: 'text' | 'outlined' | 'contained';
   buttonColor?: 'primary' | 'secondary' | 'info' | 'error';
+
+  /** Disable the trigger button (e.g. when allocations incomplete) */
+  disabled?: boolean;
 }
 
 /**
- * A dedicated modal wrapper for initiating outbound fulfillment.
- * Renders a trigger button, and on click opens a modal containing the
- * InitiateFulfillmentForm.
+ * Modal wrapper for initiating outbound fulfillment.
+ * Renders a trigger button which opens the fulfillment form modal.
  */
 const InitiateFulfillmentModal: FC<InitiateFulfillmentModalProps> = ({
   orderId,
@@ -32,8 +35,14 @@ const InitiateFulfillmentModal: FC<InitiateFulfillmentModalProps> = ({
   buttonLabel = 'Initiate Fulfillment',
   buttonVariant = 'contained',
   buttonColor = 'primary',
+  disabled = false,
 }) => {
   const { open, triggerRef, handleOpen, handleClose } = useModalFocusHandlers();
+
+  const handleClick = () => {
+    if (disabled) return;
+    handleOpen();
+  };
 
   return (
     <>
@@ -41,7 +50,8 @@ const InitiateFulfillmentModal: FC<InitiateFulfillmentModalProps> = ({
         ref={triggerRef}
         variant={buttonVariant}
         color={buttonColor}
-        onClick={handleOpen}
+        onClick={handleClick}
+        disabled={disabled}
       >
         {buttonLabel}
       </CustomButton>
@@ -68,6 +78,7 @@ const InitiateFulfillmentModal: FC<InitiateFulfillmentModalProps> = ({
               Initiate Outbound Fulfillment
             </CustomTypography>
           </Box>
+
           <Divider />
 
           {/* Scrollable Content */}
@@ -82,9 +93,10 @@ const InitiateFulfillmentModal: FC<InitiateFulfillmentModalProps> = ({
               }}
             />
           </Box>
+
           <Divider />
 
-          {/* Footer Actions */}
+          {/* Footer */}
           <Stack
             direction="row"
             justifyContent="flex-end"

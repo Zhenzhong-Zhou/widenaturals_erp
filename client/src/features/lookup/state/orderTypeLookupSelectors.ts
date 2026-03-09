@@ -34,8 +34,7 @@ export const selectOrderTypeLoading = createSelector(
  */
 export const selectOrderTypeError = createSelector(
   [selectOrderTypeLookupState],
-  (state): string | null =>
-    state.error?.message ?? null
+  (state): string | null => state.error?.message ?? null
 );
 
 /**

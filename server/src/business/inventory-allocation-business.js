@@ -11,9 +11,9 @@
  * @typedef {Batch & { allocated_quantity: number }} AllocatedBatch
  */
 
-const { cleanObject } = require('../utils/object-utils');
 const { generateChecksum } = require('../utils/crypto-utils');
 const AppError = require('../utils/AppError');
+const { getProductDisplayName } = require('../utils/display-name-utils');
 
 /**
  * Allocates inventory batches for each order item using the specified strategy (FEFO or FIFO).
@@ -50,12 +50,26 @@ const AppError = require('../utils/AppError');
  *   packaging_material_id: string | null,
  *   quantity_ordered: number,
  *   allocated: {
- *     allocatedBatches: Array<Object>,
+ *     allocatedBatches: Array<{
+ *       batch_id: string,
+ *       warehouse_id: string,
+ *       warehouse_name: string,
+ *       warehouse_quantity: number,
+ *       reserved_quantity: number,
+ *       expiry_date: Date | null,
+ *       lot_number: string | null,
+ *       batch_type: string,
+ *       sku_id: string | null,
+ *       packaging_material_id: string | null,
+ *       _available: number,
+ *       allocated_quantity: number
+ *     }>,
  *     allocatedTotal: number,
  *     remaining: number,
  *     fulfilled: boolean
  *   }
- * }>} Allocation result for each order item.
+ * }>}
+ * Allocation result for each order item.
  */
 const allocateBatchesForOrderItems = (
   orderItems,
@@ -99,6 +113,58 @@ const allocateBatchesForOrderItems = (
       allocated: { allocatedBatches, allocatedTotal, remaining, fulfilled },
     };
   });
+};
+
+/**
+ * Resolves a human-readable display code and name for an order item.
+ *
+ * Order items in the ERP system may represent different inventory entities,
+ * currently:
+ *   - Product SKUs
+ *   - Packaging materials
+ *
+ * This helper extracts a normalized `{ itemCode, itemName }` pair from the
+ * order item metadata so it can be safely used in:
+ *
+ * - validation error messages
+ * - allocation error responses
+ * - logs and audit entries
+ *
+ * The function is defensive and returns `null` values when the metadata
+ * does not contain a recognized item type.
+ *
+ * @param {Object} meta - Order item metadata row returned from repository query
+ * @param {string|null} meta.sku_id - SKU ID if the item represents a product
+ * @param {string|null} meta.packaging_material_id - Packaging material ID if applicable
+ * @param {string|null} meta.sku_code - SKU code
+ * @param {string|null} meta.material_code - Packaging material code
+ * @param {string|null} meta.material_name - Packaging material name
+ *
+ * @returns {{ itemCode: string | null, itemName: string | null }}
+ * Normalized display information for the order item.
+ */
+const resolveOrderItemDisplay = (meta) => {
+  if (!meta) {
+    return { itemCode: null, itemName: null };
+  }
+
+  // Product SKU item
+  if (meta.sku_id) {
+    return {
+      itemCode: meta.sku_code ?? null,
+      itemName: getProductDisplayName(meta) ?? null,
+    };
+  }
+
+  // Packaging material item
+  if (meta.packaging_material_id) {
+    return {
+      itemCode: meta.material_code ?? null,
+      itemName: meta.material_name ?? null,
+    };
+  }
+
+  return { itemCode: null, itemName: null };
 };
 
 /**
@@ -449,7 +515,7 @@ const updateReservedQuantitiesFromAllocations = (
  *   orderId: string,              // Sales order ID (used as `sourceRefId`)
  *   performedBy: string,          // ID of the user performing the allocation
  *   actionTypeId: string,         // Inventory action type (e.g., 'reserve', 'allocate')
- *   comments?: string             // Optional comment to include in each log entry
+ *   comments?: (string | null)          // Optional comment to include in each log entry
  * }} options - Contextual data for generating audit logs.
  *
  * @returns {Array<Object>} Array of inventory activity log objects to insert.
@@ -530,11 +596,11 @@ const buildAllocationLogEntry = ({
   inventoryId,
   previousReservedQty,
   newReservedQty,
-  warehouseQty, // unchanged but included for reference
+  warehouseQty,
   statusId,
   userId,
   orderId,
-  inventoryActionTypeId, // e.g., 'ALLOCATE'
+  inventoryActionTypeId,
   sourceType = 'order',
   sourceRefId = null,
   recordScope = 'warehouse',
@@ -543,26 +609,14 @@ const buildAllocationLogEntry = ({
 }) => {
   const quantityChange = newReservedQty - previousReservedQty;
 
-  const checksumPayload = cleanObject({
-    warehouse_inventory_id: inventoryId,
+  const checksum = generateChecksum({
+    inventory_id: inventoryId,
     inventory_action_type_id: inventoryActionTypeId,
-    adjustment_type_id: null, // not an adjustment
-    order_id: orderId || null,
+    previous_quantity: previousReservedQty,
     quantity_change: quantityChange,
     new_quantity: newReservedQty,
-    status_id: statusId,
-    performed_by: userId,
-    comments,
-    recorded_by: userId,
-    inventory_scope: recordScope,
-    source_type: sourceType,
-    source_ref_id: sourceRefId,
-    metadata: {
-      action: 'allocate',
-      warehouse_quantity_snapshot: warehouseQty,
-      record_scope: recordScope,
-      ...metadata,
-    },
+    source_action_id: sourceRefId || undefined,
+    comments: comments || undefined,
   });
 
   return {
@@ -577,11 +631,16 @@ const buildAllocationLogEntry = ({
     performed_by: userId,
     recorded_by: userId,
     comments,
-    metadata: checksumPayload.metadata,
+    metadata: {
+      action: 'allocate',
+      warehouse_quantity_snapshot: warehouseQty,
+      record_scope: recordScope,
+      ...metadata,
+    },
     source_type: sourceType,
     source_ref_id: sourceRefId,
     inventory_scope: recordScope,
-    checksum: generateChecksum(checksumPayload),
+    checksum,
   };
 };
 
@@ -652,6 +711,7 @@ const buildOrderAllocationResult = ({
 
 module.exports = {
   allocateBatchesForOrderItems,
+  resolveOrderItemDisplay,
   allocateBatchesByStrategy,
   validateAllocationStatusTransition,
   computeAllocationStatusPerItem,

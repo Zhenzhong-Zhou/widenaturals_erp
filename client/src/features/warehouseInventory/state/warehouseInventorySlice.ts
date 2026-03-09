@@ -1,6 +1,9 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { fetchWarehouseInventoryRecordsThunk } from './warehouseInventoryThunks';
-import { WarehouseInventoryRecord, WarehouseInventoryState } from './warehouseInventoryTypes';
+import type {
+  WarehouseInventoryRecord,
+  WarehouseInventoryState,
+} from './warehouseInventoryTypes';
 import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 import { createInitialPaginatedState } from '@store/pagination';
 

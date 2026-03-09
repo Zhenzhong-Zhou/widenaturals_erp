@@ -45,11 +45,7 @@ const locationTypeLookupSlice = createSlice({
         }
       )
       .addCase(fetchLocationTypeLookupThunk.rejected, (state, action) => {
-        applyRejected(
-          state,
-          action,
-          'Failed to fetch location type lookup'
-        );
+        applyRejected(state, action, 'Failed to fetch location type lookup');
       });
   },
 });
