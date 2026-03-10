@@ -332,18 +332,38 @@ export interface OrderTypeLookupItem extends LookupItemWithStatus {
 }
 
 /**
- * API response type for order type lookup.
+ * API response type for the order type lookup endpoint.
  *
- * Wraps an array of `OrderTypeLookupItem` in a standard API success response.
+ * Represents a paginated lookup response returned by the backend.
+ * The payload contains a list of `OrderTypeLookupItem` objects along with
+ * pagination metadata used for dropdown lazy loading or infinite scroll.
+ *
+ * Structure returned by the API:
+ *
+ * {
+ *   success: boolean;
+ *   message: string;
+ *   items: OrderTypeLookupItem[];
+ *   offset: number;
+ *   limit: number;
+ *   hasMore: boolean;
+ * }
  */
-export type OrderTypeLookupResponse = ApiSuccessResponse<OrderTypeLookupItem[]>;
+export type OrderTypeLookupResponse = LookupSuccessResponse<OrderTypeLookupItem>;
 
 /**
- * Async state shape used in store or hook for tracking order type lookup state.
+ * Redux state shape for the order type lookup slice.
  *
- * Includes loading, error, and data fields representing an array of `OrderTypeLookupItem`.
+ * Uses the generic `PaginatedLookupState` helper to track:
+ * - the list of lookup items
+ * - pagination metadata (`offset`, `limit`, `hasMore`)
+ * - loading state during async fetch
+ * - error information if the request fails
+ *
+ * This state is used by dropdown components and filters that
+ * retrieve order type options dynamically.
  */
-export type OrderTypeLookupState = AsyncState<OrderTypeLookupItem[]>;
+export type OrderTypeLookupState = PaginatedLookupState<OrderTypeLookupItem>;
 
 /**
  * Query parameters for fetching payment method lookup results.

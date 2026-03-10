@@ -375,9 +375,7 @@ const CreateSaleOrderForm: FC = () => {
     >
       {orderError && (
         <Alert severity="error">
-          {typeof orderError === 'string'
-            ? orderError
-            : 'Something went wrong.'}
+          {orderError}
         </Alert>
       )}
 

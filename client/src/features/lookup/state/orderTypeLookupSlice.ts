@@ -1,16 +1,16 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type {
+import {
+  OrderTypeLookupItem,
   OrderTypeLookupResponse,
   OrderTypeLookupState,
 } from './lookupTypes';
 import { fetchOrderTypeLookupThunk } from './lookupThunks';
 import { applyRejected } from '@features/shared/async/asyncReducerUtils';
+import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
+import { createInitialOffsetPaginatedState } from '@store/pagination';
 
-const initialState: OrderTypeLookupState = {
-  data: [],
-  loading: false,
-  error: null,
-};
+const initialState: OrderTypeLookupState =
+  createInitialOffsetPaginatedState<OrderTypeLookupItem>();
 
 const orderTypeLookupSlice = createSlice({
   name: 'orderTypeLookup',
@@ -31,9 +31,7 @@ const orderTypeLookupSlice = createSlice({
       .addCase(
         fetchOrderTypeLookupThunk.fulfilled,
         (state, action: PayloadAction<OrderTypeLookupResponse>) => {
-          state.loading = false;
-          state.data = action.payload.data;
-          state.error = null;
+          applyPaginatedFulfilled(state, action.payload);
         }
       )
       .addCase(fetchOrderTypeLookupThunk.rejected, (state, action) => {
