@@ -15,7 +15,7 @@ const { logSystemException, logSystemInfo } = require('../utils/system-logger');
  * @param {number} [options.limit=50] - Number of records to fetch
  * @param {number} [options.offset=0] - Pagination offset
  * @param {Object} [options.filters={}] - Filter criteria (e.g., keyword, isActive)
- * @returns {Promise<{ items: { label: string, value: string }[], hasMore: boolean }>}
+ * @returns {Promise<{data: [], pagination: {offset: number, limit: number, totalRecords: number, hasMore: boolean}}>}
  *
  * @throws {AppError} - If the database query fails
  */

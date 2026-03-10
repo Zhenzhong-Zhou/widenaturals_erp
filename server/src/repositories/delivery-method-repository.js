@@ -16,7 +16,7 @@ const AppError = require('../utils/AppError');
  * @param {number} [options.limit=50] - Maximum number of results to return
  * @param {number} [options.offset=0] - Offset for pagination
  * @param {Object} [options.filters={}] - Optional filter fields (e.g., isPickupLocation, keyword)
- * @returns {Promise<{ items: { label: string, value: string }[], hasMore: boolean }>} - Paginated dropdown data
+ * @returns {Promise<{data: [], pagination: {offset: number, limit: number, totalRecords: number, hasMore: boolean}}>} - Paginated dropdown data
  *
  * @throws {AppError} If an error occurs while querying the database
  */
