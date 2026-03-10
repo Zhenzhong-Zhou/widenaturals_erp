@@ -5,7 +5,10 @@ const {
   bulkInsert,
   updateById,
 } = require('../database/db');
-const { logSystemInfo, logSystemException } = require('../utils/system-logger');
+const {
+  logSystemInfo,
+  logSystemException,
+} = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 const {
   buildWhereClauseAndParams,
@@ -250,7 +253,7 @@ const getPaginatedSkuProductCards = async ({
  * @param {number} [params.offset=0] - Pagination offset for paged results (default: 0).
  *
  * @returns {Promise<{
- *   items: Array<{
+ *   data: Array<{
  *     id: string,
  *     sku: string,
  *     product_name: string,
@@ -265,7 +268,12 @@ const getPaginatedSkuProductCards = async ({
  *     location_status_id?: string,
  *     batch_status_id?: string
  *   }>,
- *   totalCount: number
+ *   pagination: {
+ *     offset: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     hasMore: boolean
+ *   }
  * }>} Resolves to a paginated list of SKU rows for dropdown consumption.
  *
  * @throws {AppError} If a query fails due to invalid input or database errors.
@@ -365,7 +373,7 @@ const getSkuLookup = async ({
       offset,
       limit,
       sortBy: null, // Avoid duplication with additionalSort
-      sortOrder: null, // Not needed if sortBy is null
+      sortOrder: undefined, // Not needed if sortBy is null
       additionalSort: `
         p.brand ASC,
         LPAD(REGEXP_REPLACE(p.name, '[^0-9]', '', 'g'), 10, '0') NULLS LAST,
@@ -728,11 +736,6 @@ const insertSkusBulk = async (skus, client) => {
   if (!Array.isArray(skus) || skus.length === 0) return [];
 
   const context = 'sku-repository/insertSkusBulk';
-
-  // Validate structure of input before processing
-  if (!skus.every((s) => s.product_id && s.sku)) {
-    throw AppError.validationError('Each SKU must include product_id and sku.');
-  }
 
   const columns = [
     'product_id',

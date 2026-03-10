@@ -4,7 +4,7 @@ const {
 const {
   paginateQuery,
   query,
-  getFieldValuesByField,
+  getFieldValuesByField, paginateQueryByOffset,
 } = require('../database/db');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
@@ -118,45 +118,95 @@ const getPaginatedOrderTypes = async ({
 };
 
 /**
- * Fetches a list of order types for lookup purposes.
+ * Repository: getOrderTypeLookup
  *
- * This function is optimized for small datasets (<100 rows) and is typically used
- * in dropdowns, filters, and selection UIs. It optionally applies filter conditions.
+ * Fetches paginated order type records for lookup or dropdown usage.
  *
- * @param {Object} [options] - Optional parameters
- * @param {Object} [options.filters] - Optional filters to narrow results (e.g., statusId, category)
- * @returns {Promise<Array>} Resolves to an array of order type objects (id, name, category, code, status_id)
- * @throws {AppError} Throws if a database query fails
+ * This query supports optional filtering and offset-based pagination,
+ * typically used by lookup endpoints and selection UIs.
+ *
+ * @param {Object} [options]
+ * @param {Object} [options.filters={}]
+ *   Optional query filters (e.g. keyword, category, statusId).
+ *
+ * @param {number} [options.limit=50]
+ *   Maximum number of records to return.
+ *
+ * @param {number} [options.offset=0]
+ *   Pagination offset for incremental loading.
+ *
+ * @returns {Promise<{
+ *   data: Array<{
+ *     id: string,
+ *     name: string,
+ *     category: string,
+ *     requires_payment: boolean,
+ *     status_id: string
+ *   }>,
+ *   pagination: {
+ *     offset: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     hasMore: boolean
+ *   }
+ * }>}
+ *
+ * Returns a paginated result object containing raw database rows and
+ * pagination metadata.
+ *
+ * @throws {AppError}
+ * Throws a `databaseError` if the query fails.
  */
-const getOrderTypeLookup = async ({ filters = {} } = {}) => {
+const getOrderTypeLookup = async ({
+                                    limit = 50,
+                                    offset = 0,
+                                    filters = {},
+                                  } = {}) => {
+  const tableName = 'order_types ot';
+  
   const { whereClause, params } = buildOrderTypeFilter(filters);
-
+  
   const queryText = `
     SELECT
-      id,
-      name,
-      category,
-      requires_payment,
-      status_id
-    FROM order_types ot
+      ot.id,
+      ot.name,
+      ot.category,
+      ot.requires_payment,
+      ot.status_id
+    FROM ${tableName}
     WHERE ${whereClause}
-    ORDER BY name ASC
   `;
-
+  
   try {
-    const { rows } = await query(queryText, params);
-
-    logSystemInfo('Fetched order type lookup', {
+    const result = await paginateQueryByOffset({
+      tableName,
+      whereClause,
+      queryText,
+      params,
+      offset,
+      limit,
+      sortBy: 'ot.name',
+      sortOrder: 'ASC',
+      additionalSort: 'ot.name ASC',
+    });
+    
+    logSystemInfo('Fetched order type lookup successfully', {
       context: 'order-type-repository/getOrderTypeLookup',
+      totalFetched: result.data?.length ?? 0,
+      offset,
+      limit,
       filters,
     });
-
-    return rows;
+    
+    return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch order type lookup', {
       context: 'order-type-repository/getOrderTypeLookup',
+      offset,
+      limit,
       filters,
     });
+    
     throw AppError.databaseError('Failed to fetch order type lookup');
   }
 };
