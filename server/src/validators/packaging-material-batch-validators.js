@@ -5,6 +5,11 @@ const {
   validateUUIDOrUUIDArrayOptional,
   validateOptionalString,
   optionalIsoDate,
+  validateUUID,
+  validateString,
+  validatePositiveDecimal,
+  requiredIsoDate,
+  validatePositiveIntegerRequired,
 } = require('./general-validators');
 
 /**
@@ -84,6 +89,92 @@ const packagingMaterialBatchQuerySchema = paginationSchema
     ),
   });
 
+/**
+ * Joi schema for validating a single packaging material batch creation payload.
+ *
+ * This schema ensures all fields required to create a packaging material batch
+ * are validated before reaching the service layer.
+ *
+ * Key validations include:
+ * - Supplier relationship
+ * - Lot number
+ * - Manufacturing and expiry dates
+ * - Quantity and unit
+ * - Optional cost and currency information
+ *
+ * This schema is intended for validating individual batch records in bulk
+ * batch creation requests.
+ *
+ * Security:
+ * - Prevents malformed or missing data entering the service layer.
+ *
+ * Performance:
+ * - Joi validation cost is linear with number of fields.
+ * - Used within bulk validation limits (max 200 records).
+ */
+const createPackagingMaterialBatchSchema = Joi.object({
+  packaging_material_supplier_id: validateUUID(
+    'Packaging Material Supplier ID'
+  ),
+  lot_number: validateString('Lot Number', 10, 100),
+  quantity: validatePositiveIntegerRequired(),
+  unit: validateString('Unit', 1, 5),
+  manufacture_date: requiredIsoDate(),
+  expiry_date: requiredIsoDate(),
+  material_snapshot_name: validateString(
+    'Material Snapshot Name',
+    10,
+    150
+  ),
+  received_label_name: validateString(
+    'Received Label Name',
+    10,
+    150
+  ),
+  unit_cost: validatePositiveDecimal(),
+  currency: Joi.string()
+    .length(3)
+    .uppercase()
+    .optional()
+    .allow(null),
+  exchange_rate: validatePositiveDecimal()
+    .optional()
+    .allow(null),
+  total_cost: validatePositiveDecimal(),
+  notes: validateOptionalString('Notes'),
+  registryNote: validateOptionalString('Registry Note'),
+});
+
+/**
+ * Joi schema for validating bulk packaging material batch creation requests.
+ *
+ * This schema wraps multiple batch records and ensures:
+ *
+ * - At least one batch is provided
+ * - No more than 200 records are submitted in a single request
+ *
+ * Limiting bulk size protects the system from excessive validation
+ * and database load during large batch imports.
+ *
+ * Typical usage:
+ * POST /packaging-material-batches/bulk
+ *
+ * Example payload:
+ * {
+ *   "packagingMaterialBatches": [...]
+ * }
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const createPackagingMaterialBatchBulkSchema = Joi.object({
+  packagingMaterialBatches: Joi.array()
+    .items(createPackagingMaterialBatchSchema)
+    .min(1)
+    .max(200)
+    .required(),
+});
+
 module.exports = {
   packagingMaterialBatchQuerySchema,
+  createPackagingMaterialBatchBulkSchema,
 };

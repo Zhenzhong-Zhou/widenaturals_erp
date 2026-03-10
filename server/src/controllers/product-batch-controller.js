@@ -3,6 +3,7 @@ const AppError = require('../utils/AppError');
 const { logInfo } = require('../utils/logger-helper');
 const {
   fetchPaginatedProductBatchesService,
+  createProductBatchesService,
 } = require('../services/product-batch-service');
 
 /**
@@ -94,6 +95,54 @@ const getPaginatedProductBatchesController = wrapAsync(async (req, res) => {
   });
 });
 
+const createProductBatchesController = wrapAsync(async (req, res) => {
+  const context = 'product-batch-controller/createProductBatchesController';
+  const startTime = Date.now();
+  const traceId = `create-product-batch-${Date.now().toString(36)}`;
+  
+  const { productBatches } = req.body; // validated by Joi
+  const user = req.auth.user;
+  
+  if (!Array.isArray(productBatches) || productBatches.length === 0) {
+    throw AppError.validationError('No product batches provided.', {
+      context,
+      traceId,
+    });
+  }
+  
+  logInfo('Starting bulk product batch creation request', req, {
+    context,
+    traceId,
+    userId: user.id,
+    count: productBatches.length,
+  });
+  
+  // --- Execute service layer ---
+  const result = await createProductBatchesService(productBatches, user);
+  
+  const elapsedMs = Date.now() - startTime;
+  
+  logInfo('Bulk product batch creation completed', req, {
+    context,
+    traceId,
+    inputCount: productBatches.length,
+    createdCount: result.length,
+    elapsedMs,
+  });
+  
+  res.status(201).json({
+    success: true,
+    message: 'Product batches created successfully.',
+    stats: {
+      inputCount: productBatches.length,
+      createdCount: result.length,
+      elapsedMs,
+    },
+    data: result,
+  });
+});
+
 module.exports = {
   getPaginatedProductBatchesController,
+  createProductBatchesController,
 };

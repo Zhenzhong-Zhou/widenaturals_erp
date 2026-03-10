@@ -3,6 +3,7 @@ const AppError = require('../utils/AppError');
 const { logInfo } = require('../utils/logger-helper');
 const {
   fetchPaginatedPackagingMaterialBatchesService,
+  createPackagingMaterialBatchesService,
 } = require('../services/packaging-material-batch-service');
 
 /**
@@ -97,6 +98,61 @@ const getPaginatedPackagingMaterialBatchesController = wrapAsync(
   }
 );
 
+const createPackagingMaterialBatchesController = wrapAsync(async (req, res) => {
+  const context =
+    'packaging-material-batch-controller/createPackagingMaterialBatchesController';
+  const startTime = Date.now();
+  const traceId = `create-packaging-batch-${Date.now().toString(36)}`;
+  
+  const { packagingMaterialBatches } = req.body; // validated by Joi
+  const user = req.auth.user;
+  
+  if (
+    !Array.isArray(packagingMaterialBatches) ||
+    packagingMaterialBatches.length === 0
+  ) {
+    throw AppError.validationError(
+      'No packaging material batches provided.',
+      { context, traceId }
+    );
+  }
+  
+  logInfo('Starting bulk packaging material batch creation request', req, {
+    context,
+    traceId,
+    userId: user.id,
+    count: packagingMaterialBatches.length,
+  });
+  
+  // --- Execute service layer ---
+  const result = await createPackagingMaterialBatchesService(
+    packagingMaterialBatches,
+    user
+  );
+  
+  const elapsedMs = Date.now() - startTime;
+  
+  logInfo('Bulk packaging material batch creation completed', req, {
+    context,
+    traceId,
+    inputCount: packagingMaterialBatches.length,
+    createdCount: result.length,
+    elapsedMs,
+  });
+  
+  res.status(201).json({
+    success: true,
+    message: 'Packaging material batches created successfully.',
+    stats: {
+      inputCount: packagingMaterialBatches.length,
+      createdCount: result.length,
+      elapsedMs,
+    },
+    data: result,
+  });
+});
+
 module.exports = {
   getPaginatedPackagingMaterialBatchesController,
+  createPackagingMaterialBatchesController,
 };

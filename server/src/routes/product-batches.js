@@ -1,14 +1,16 @@
 const express = require('express');
 const { authorize } = require('../middlewares/authorize');
-const { PRODUCT_BATCH } = require('../utils/constants/domain/permissions');
+const { PRODUCT_BATCHES } = require('../utils/constants/domain/permissions');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 const {
   productBatchQuerySchema,
+  createProductBatchBulkSchema,
 } = require('../validators/product-batch-validators');
 const { sanitizeFields } = require('../middlewares/sanitize');
 const validate = require('../middlewares/validate');
 const {
   getPaginatedProductBatchesController,
+  createProductBatchesController,
 } = require('../controllers/product-batch-controller');
 
 const router = express.Router();
@@ -61,7 +63,7 @@ const router = express.Router();
  */
 router.get(
   '/',
-  authorize([PRODUCT_BATCH.VIEW_LIST]),
+  authorize([PRODUCT_BATCHES.VIEW_LIST]),
   createQueryNormalizationMiddleware(
     'productBatchSortMap',
     [
@@ -82,6 +84,13 @@ router.get(
     allowUnknown: true,
   }),
   getPaginatedProductBatchesController
+);
+
+router.post(
+  '/create',
+  authorize([PRODUCT_BATCHES.CREATE]),
+  validate(createProductBatchBulkSchema, 'body'),
+  createProductBatchesController
 );
 
 module.exports = router;
