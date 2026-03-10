@@ -17,11 +17,22 @@ const {
 const AppError = require('../utils/AppError');
 const { getAllStatuses } = require('../repositories/status-repository');
 
+/**
+ * @typedef {Object} StatusRow
+ * @property {string} id
+ * @property {string} name
+ * @property {string|null} description
+ * @property {boolean} is_active
+ * @property {string} created_at
+ * @property {string} updated_at
+ */
+
 let statusMap = null;
 // ---------------------------------------------
 // Private in-memory maps (atomic swap pattern)
 // ---------------------------------------------
 let STATUS_NAME_MAP = new Map(); // id (UUID) → UPPERCASE(name)
+/** @type {Map<string, StatusRow>} */
 let STATUS_ROW_MAP = new Map(); // id (UUID) → full row object
 
 /**
@@ -56,9 +67,9 @@ const STATUS_KEY_LOOKUP = [
   { key: 'warehouse_active', table: 'status', name: 'active' },
   { key: 'sku_active', table: 'status', name: 'active' },
   {
-    key: 'batch_active',
+    key: 'batch_released',
     table: 'batch_status',
-    name: 'active',
+    name: 'released',
   },
   {
     key: 'inventory_in_stock',
@@ -144,6 +155,11 @@ const STATUS_KEY_LOOKUP = [
     key: 'logout',
     table: 'auth_action_types',
     name: 'Logout',
+  },
+  {
+    key: 'batch_created',
+    table: 'batch_activity_types',
+    name: 'Batch Created',
   },
 ];
 
@@ -337,18 +353,10 @@ const getStatusNameById = (statusId) => {
 };
 
 /**
- * Retrieves the full status record (id, name, description, etc.) by UUID.
- * Returns null if the ID is unknown.
+ * Retrieves the full status record by UUID.
  *
- * @param {string} statusId - Status UUID
- * @returns {{
- *   id: string,
- *   name: string,
- *   description: string|null,
- *   is_active: boolean,
- *   created_at: string,
- *   updated_at: string
- * }|null}
+ * @param {string} statusId
+ * @returns {StatusRow | null}
  */
 const getStatusRowById = (statusId) => STATUS_ROW_MAP.get(statusId) ?? null;
 

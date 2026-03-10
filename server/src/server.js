@@ -32,6 +32,7 @@ const {
 } = require('./monitors/health-check');
 const { ONE_MINUTE } = require('./utils/constants/general/time');
 const { runBackup } = require('./tasks/schedulers/backup-scheduler');
+const { initBatchActivityTypeCache } = require('./cache/batch-activity-type-cache');
 
 let server; // HTTP server instance
 const activeIntervals = new Set(); // Tracks active intervals for cleanup
@@ -62,6 +63,7 @@ const startServer = async () => {
     logSystemInfo('Initializing all status caches...');
     await initAllStatusCaches();
     await initSkuOperationalStatusCache();
+    await initBatchActivityTypeCache();
     logSystemInfo('All status caches initialized successfully.');
 
     // Root admin initialization
