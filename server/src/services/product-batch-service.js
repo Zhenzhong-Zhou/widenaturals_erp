@@ -3,13 +3,18 @@ const {
   applyProductBatchVisibilityRules,
 } = require('../business/product-batch-business');
 const {
-  getPaginatedProductBatches,
+  getPaginatedProductBatches, insertProductBatchesBulk,
 } = require('../repositories/product-batch-repository');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const {
-  transformPaginatedProductBatchResults,
+  transformPaginatedProductBatchResults, transformProductBatchRecords,
 } = require('../transformers/product-batch-transformer');
 const AppError = require('../utils/AppError');
+const { withTransaction, lockRows } = require('../database/db');
+const { validateRequiredFields } = require('../utils/validation/validation-utils');
+const { getStatusId } = require('../config/status-cache');
+const { registerBatchWorkflow } = require('../business/batches/register-batch-workflow');
+const { getBatchActivityTypeId } = require('../cache/batch-activity-type-cache');
 
 /**
  * Service: Fetch paginated product batch records for UI consumption.
@@ -121,6 +126,179 @@ const fetchPaginatedProductBatchesService = async ({
   }
 };
 
+/**
+ * Create product batches and register them within the ERP system.
+ *
+ * This service performs the full workflow required to create product
+ * batches while maintaining transactional consistency and auditability.
+ *
+ * Workflow:
+ * 1. Validate input payload structure and required fields.
+ * 2. Lock related SKU records to prevent concurrent batch creation.
+ * 3. Lock referenced manufacturers to ensure foreign key integrity.
+ * 4. Normalize batch records and apply default status values.
+ * 5. Insert batch records in bulk.
+ * 6. Register batches in the batch registry.
+ * 7. Create batch activity logs.
+ * 8. Transform database rows into API response format.
+ *
+ * Concurrency Protection:
+ * - SKU rows are locked to prevent concurrent batch creation
+ *   against the same SKU.
+ * - Manufacturer rows are locked to guarantee referential integrity
+ *   during batch creation.
+ *
+ * Performance Characteristics:
+ * - Bulk inserts minimize database round trips.
+ * - Entire workflow runs inside a single database transaction.
+ * - Designed for efficient batch imports.
+ *
+ * Data Integrity Guarantees:
+ * - Validates all referenced SKUs and manufacturers exist.
+ * - Ensures each batch is registered and audit logged.
+ * - Guarantees atomicity across batch, registry, and activity tables.
+ *
+ * @async
+ * @function createProductBatchesService
+ *
+ * @param {Array<Object>} productBatches
+ * Product batch payloads to create.
+ *
+ * @param {Object} user
+ * Authenticated user performing the operation.
+ *
+ * @param {string} user.id
+ * User identifier used for audit tracking.
+ *
+ * @returns {Promise<Array<Object>>}
+ * Transformed product batch records suitable for API responses.
+ */
+const createProductBatchesService = async (productBatches, user) => {
+  return withTransaction(async (client) => {
+    const context = 'product-batch-service/createProductBatchesService';
+    const actorId = user?.id;
+    
+    try {
+      // ------------------------------------------------------------
+      // 1. Validate input
+      // ------------------------------------------------------------
+      if (!Array.isArray(productBatches) || productBatches.length === 0) {
+        throw AppError.validationError('No product batches provided.', {
+          details: context,
+        });
+      }
+      
+      validateRequiredFields(
+        productBatches,
+        [
+          'lot_number',
+          'sku_id',
+          'manufacture_date',
+          'expiry_date',
+          'initial_quantity',
+        ],
+        context
+      );
+      
+      // ------------------------------------------------------------
+      // 2. Lock related SKUs to prevent concurrent batch creation
+      // ------------------------------------------------------------
+      const uniqueSkuIds = [...new Set(productBatches.map((b) => b.sku_id))];
+      
+      const lockedSkus = await lockRows(
+        client,
+        'skus',
+        uniqueSkuIds,
+        'FOR UPDATE',
+        { context }
+      );
+
+      // Ensure all referenced SKUs exist and were successfully locked
+      if (!lockedSkus || lockedSkus.length !== uniqueSkuIds.length) {
+        throw AppError.notFoundError('Some SKUs could not be locked.', {
+          context,
+        });
+      }
+
+      // Lock referenced manufacturers to preserve foreign key integrity
+      const uniqueManufacturerIds = [
+        ...new Set(productBatches.map((b) => b.manufacturer_id).filter(Boolean)),
+      ];
+      
+      const lockedManufacturers = await lockRows(
+        client,
+        'manufacturers',
+        uniqueManufacturerIds,
+        'FOR UPDATE',
+        { context }
+      );
+
+      // Ensure all referenced manufacturers exist and were successfully locked
+      if (
+        !lockedManufacturers ||
+        lockedManufacturers.length !== uniqueManufacturerIds.length
+      ) {
+        throw AppError.notFoundError(
+          'Some manufacturers could not be locked.',
+          { context }
+        );
+      }
+      
+      // ------------------------------------------------------------
+      // 3. Prepare batch records
+      // ------------------------------------------------------------
+      const activeStatusId = getStatusId('batch_released');
+      
+      const preparedBatches = productBatches.map((batch) => ({
+        ...batch,
+        status_id: batch.status_id ?? activeStatusId,
+        created_by: actorId,
+      }));
+      
+      // Resolve activity type once
+      const batchCreatedActivityTypeId = getBatchActivityTypeId('BATCH_CREATED');
+      
+      // ------------------------------------------------------------
+      // 4. Create batches + registry + activity logs
+      // ------------------------------------------------------------
+      const insertedBatches = await registerBatchWorkflow({
+        batchType: 'product',
+        batches: preparedBatches,
+        insertBatchFn: insertProductBatchesBulk,
+        batchCreatedActivityTypeId,
+        actorId,
+        client,
+      });
+      
+      // ------------------------------------------------------------
+      // 5. Transform response
+      // ------------------------------------------------------------
+      const transformed = transformProductBatchRecords(insertedBatches);
+      
+      // ------------------------------------------------------------
+      // 6. System audit log
+      // ------------------------------------------------------------
+      logSystemInfo('Product batch creation completed', {
+        context,
+        totalInput: productBatches.length,
+        insertedCount: insertedBatches.length,
+      });
+      
+      return transformed;
+    } catch (error) {
+      logSystemException(error, 'Failed to create product batches', {
+        context,
+      });
+      
+      throw AppError.databaseError('Failed to create product batches.', {
+        cause: error,
+        context,
+      });
+    }
+  });
+};
+
 module.exports = {
   fetchPaginatedProductBatchesService,
+  createProductBatchesService,
 };

@@ -3,13 +3,18 @@ const {
   applyPackagingMaterialBatchVisibilityRules,
 } = require('../business/packaging-material-batch-business');
 const {
-  getPaginatedPackagingMaterialBatches,
+  getPaginatedPackagingMaterialBatches, insertPackagingMaterialBatchesBulk,
 } = require('../repositories/packaging-material-batch-repository');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const {
-  transformPaginatedPackagingMaterialBatchResults,
+  transformPaginatedPackagingMaterialBatchResults, transformPackagingMaterialBatchRecords,
 } = require('../transformers/packaging-material-batch-transformer');
 const AppError = require('../utils/AppError');
+const { withTransaction, lockRows } = require('../database/db');
+const { validateRequiredFields } = require('../utils/validation/validation-utils');
+const { getStatusId } = require('../config/status-cache');
+const { registerBatchWorkflow } = require('../business/batches/register-batch-workflow');
+const { getBatchActivityTypeId } = require('../cache/batch-activity-type-cache');
 
 /**
  * Service: Fetch paginated packaging material batch records for UI consumption.
@@ -125,6 +130,180 @@ const fetchPaginatedPackagingMaterialBatchesService = async ({
   }
 };
 
+/**
+ * Create packaging material batches and register them within the ERP system.
+ *
+ * This service orchestrates the complete lifecycle required to create
+ * packaging material batches, ensuring transactional integrity and
+ * full audit traceability.
+ *
+ * Workflow:
+ * 1. Validate input payload structure and required fields.
+ * 2. Lock related packaging material supplier records to prevent
+ *    concurrent batch creation conflicts.
+ * 3. Normalize batch records and apply default status values.
+ * 4. Insert batch records in bulk.
+ * 5. Register batches in the batch registry.
+ * 6. Create batch activity logs for audit tracking.
+ * 7. Transform database rows into API response format.
+ *
+ * Concurrency Protection:
+ * - Supplier rows are locked using `SELECT ... FOR UPDATE` to ensure
+ *   batches referencing the same supplier cannot be created concurrently.
+ *
+ * Performance Characteristics:
+ * - Uses bulk insert operations to minimize database round trips.
+ * - Executes the entire workflow inside a single transaction.
+ * - Designed to efficiently process large batch imports.
+ *
+ * Data Integrity Guarantees:
+ * - Ensures all referenced suppliers exist before insertion.
+ * - Ensures every batch is registered and logged.
+ * - Maintains atomic consistency across all related tables.
+ *
+ * @async
+ * @function createPackagingMaterialBatchesService
+ *
+ * @param {Array<Object>} packagingMaterialBatches
+ * Packaging material batch payloads to create.
+ *
+ * @param {Object} user
+ * Authenticated user performing the operation.
+ *
+ * @param {string} user.id
+ * User identifier used for audit and ownership tracking.
+ *
+ * @returns {Promise<Array<Object>>}
+ * Transformed packaging material batch records for API response.
+ */
+const createPackagingMaterialBatchesService = async (
+  packagingMaterialBatches,
+  user
+) => {
+  return withTransaction(async (client) => {
+    const context =
+      'packaging-material-batch-service/createPackagingMaterialBatchesService';
+    
+    const actorId = user?.id;
+    
+    try {
+      // ------------------------------------------------------------
+      // 1. Validate input
+      // ------------------------------------------------------------
+      if (
+        !Array.isArray(packagingMaterialBatches) ||
+        packagingMaterialBatches.length === 0
+      ) {
+        throw AppError.validationError(
+          'No packaging material batches provided.',
+          { details: context }
+        );
+      }
+      
+      validateRequiredFields(
+        packagingMaterialBatches,
+        [
+          'lot_number',
+          'packaging_material_supplier_id',
+          'manufacture_date',
+          'expiry_date',
+          'quantity',
+        ],
+        context
+      );
+      
+      // ------------------------------------------------------------
+      // 2. Lock related packaging material supplier rows
+      // ------------------------------------------------------------
+      // Extract unique supplier ids referenced by incoming batches
+      // Filtering null prevents invalid locking queries.
+      const uniquePackagingMaterialSupplierIds = [
+        ...new Set(
+          packagingMaterialBatches
+            .map(b => b.packaging_material_supplier_id)
+            .filter(Boolean)
+        )
+      ];
+
+      // Lock supplier rows to prevent concurrent batch creation
+      const lockedSuppliers = await lockRows(
+        client,
+        'packaging_material_suppliers',
+        uniquePackagingMaterialSupplierIds,
+        'FOR UPDATE',
+        { context }
+      );
+
+      // Verify all suppliers exist
+      if (!lockedSuppliers || lockedSuppliers.length !== uniquePackagingMaterialSupplierIds.length) {
+        throw AppError.notFoundError(
+          'Some packaging material suppliers could not be locked.',
+          { context }
+        );
+      }
+      
+      // ------------------------------------------------------------
+      // 3. Prepare batch records
+      // ------------------------------------------------------------
+      const activeStatusId = getStatusId('batch_released');
+      
+      const preparedBatches = packagingMaterialBatches.map((batch) => ({
+        ...batch,
+        status_id: batch.status_id ?? activeStatusId,
+        created_by: actorId,
+      }));
+      
+      // Resolve activity type once
+      const batchCreatedActivityTypeId =
+        getBatchActivityTypeId('BATCH_CREATED');
+      
+      // ------------------------------------------------------------
+      // 4. Create batches + registry + activity logs
+      // ------------------------------------------------------------
+      const insertedBatches = await registerBatchWorkflow({
+        batchType: 'packaging_material',
+        batches: preparedBatches,
+        insertBatchFn: insertPackagingMaterialBatchesBulk,
+        batchCreatedActivityTypeId,
+        actorId,
+        client,
+      });
+      
+      // ------------------------------------------------------------
+      // 5. Transform response
+      // ------------------------------------------------------------
+      const transformed =
+        transformPackagingMaterialBatchRecords(insertedBatches);
+      
+      // ------------------------------------------------------------
+      // 6. System audit log
+      // ------------------------------------------------------------
+      logSystemInfo('Packaging material batch creation completed', {
+        context,
+        totalInput: packagingMaterialBatches.length,
+        insertedCount: insertedBatches.length,
+      });
+      
+      return transformed;
+    } catch (error) {
+      logSystemException(
+        error,
+        'Failed to create packaging material batches',
+        { context }
+      );
+      
+      throw AppError.databaseError(
+        'Failed to create packaging material batches.',
+        {
+          cause: error,
+          context,
+        }
+      );
+    }
+  });
+};
+
 module.exports = {
   fetchPaginatedPackagingMaterialBatchesService,
+  createPackagingMaterialBatchesService,
 };

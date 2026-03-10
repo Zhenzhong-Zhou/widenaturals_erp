@@ -1,7 +1,7 @@
 const {
   buildPackagingMaterialBatchFilter,
 } = require('../utils/sql/build-packaging-material-batch-filters');
-const { paginateResults } = require('../database/db');
+const { paginateResults, bulkInsert } = require('../database/db');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
@@ -135,6 +135,203 @@ const getPaginatedPackagingMaterialBatches = async ({
   }
 };
 
+/**
+ * Bulk insert or update packaging material batch records.
+ *
+ * This repository function inserts multiple packaging material batch records
+ * into the `packaging_material_batches` table using the shared `bulkInsert`
+ * utility. If a batch already exists (based on the unique constraint),
+ * selected fields will be updated according to defined update strategies.
+ *
+ * Conflict Handling:
+ * - A conflict is detected using (`packaging_material_supplier_id`, `lot_number`).
+ * - When a conflict occurs, mutable fields such as cost, quantity, and status
+ *   are updated while other fields remain unchanged.
+ *
+ * Performance:
+ * - Uses a single bulk insert operation to minimize database round-trips.
+ * - Suitable for ERP workflows such as supplier batch imports or inventory
+ *   reconciliation where multiple batches are processed at once.
+ *
+ * Logging:
+ * - Emits a system info log on successful insert/update.
+ * - Emits a system exception log if the operation fails.
+ *
+ * @async
+ * @function insertPackagingMaterialBatchesBulk
+ *
+ * @param {Array<Object>} packagingMaterialBatches
+ * List of packaging material batch records.
+ *
+ * @param {string} packagingMaterialBatches[].packaging_material_supplier_id
+ * Supplier reference for the packaging material.
+ *
+ * @param {string} packagingMaterialBatches[].lot_number
+ * Supplier lot number for the material batch.
+ *
+ * @param {string|null} [packagingMaterialBatches[].material_snapshot_name]
+ * Snapshot name of the material at the time of receipt.
+ *
+ * @param {string|null} [packagingMaterialBatches[].received_label_name]
+ * Label name used on the received packaging material.
+ *
+ * @param {number} packagingMaterialBatches[].quantity
+ * Quantity received in the batch.
+ *
+ * @param {string} packagingMaterialBatches[].unit
+ * Unit of measurement (e.g. `pcs`, `kg`, `roll`).
+ *
+ * @param {Date|string|null} [packagingMaterialBatches[].manufacture_date]
+ * Manufacturing date if provided by supplier.
+ *
+ * @param {Date|string|null} [packagingMaterialBatches[].expiry_date]
+ * Expiry date if applicable.
+ *
+ * @param {number|null} [packagingMaterialBatches[].unit_cost]
+ * Cost per unit of the material.
+ *
+ * @param {string|null} [packagingMaterialBatches[].currency]
+ * Currency used for the cost.
+ *
+ * @param {number|null} [packagingMaterialBatches[].exchange_rate]
+ * Exchange rate applied if foreign currency is used.
+ *
+ * @param {number|null} [packagingMaterialBatches[].total_cost]
+ * Total cost calculated for the batch.
+ *
+ * @param {string} packagingMaterialBatches[].status_id
+ * Current status identifier for the batch.
+ *
+ * @param {Date|string|null} [packagingMaterialBatches[].status_date]
+ * Timestamp for the status change.
+ *
+ * @param {Date|string|null} [packagingMaterialBatches[].received_at]
+ * Timestamp when the material was received.
+ *
+ * @param {string|null} [packagingMaterialBatches[].received_by]
+ * User who received the batch.
+ *
+ * @param {string|null} [packagingMaterialBatches[].created_by]
+ * User who created the record.
+ *
+ * @param {Object|null} [client]
+ * Optional PostgreSQL transaction client.
+ *
+ * @param {Object} [meta]
+ * Optional metadata passed to logging or query helpers.
+ *
+ * @returns {Promise<Array<Object>>}
+ * Returns inserted or updated batch records.
+ *
+ * @throws {AppError}
+ * Throws database error if insertion fails.
+ */
+const insertPackagingMaterialBatchesBulk = async (
+  packagingMaterialBatches,
+  client,
+  meta = {}
+) => {
+  if (!Array.isArray(packagingMaterialBatches) || packagingMaterialBatches.length === 0)
+    return [];
+  
+  const context =
+    'packaging-material-batch-repository/insertPackagingMaterialBatchesBulk';
+  
+  const columns = [
+    'packaging_material_supplier_id',
+    'lot_number',
+    'material_snapshot_name',
+    'received_label_name',
+    'quantity',
+    'unit',
+    'manufacture_date',
+    'expiry_date',
+    'unit_cost',
+    'currency',
+    'exchange_rate',
+    'total_cost',
+    'status_id',
+    'received_at',
+    'received_by',
+    'created_by',
+    'updated_at',
+    'updated_by',
+  ];
+  
+  const rows = packagingMaterialBatches.map((batch) => [
+    batch.packaging_material_supplier_id,
+    batch.lot_number,
+    batch.material_snapshot_name ?? null,
+    batch.received_label_name ?? null,
+    batch.quantity,
+    batch.unit,
+    batch.manufacture_date ?? null,
+    batch.expiry_date ?? null,
+    batch.unit_cost ?? null,
+    batch.currency ?? null,
+    batch.exchange_rate ?? null,
+    batch.total_cost ?? null,
+    batch.status_id,
+    null, // received_at (not set during creation)
+    null, // received_by
+    batch.created_by ?? null,
+    null, // updated_at handled by update strategy
+    null, // updated_by
+  ]);
+  
+  // Prevent duplicate batches for the same supplier lot
+  const conflictColumns = ['packaging_material_supplier_id', 'lot_number'];
+  
+  // Define field update behavior during conflicts
+  const updateStrategies = {
+    material_snapshot_name: 'overwrite',
+    received_label_name: 'overwrite',
+    quantity: 'overwrite',
+    unit_cost: 'overwrite',
+    exchange_rate: 'overwrite',
+    total_cost: 'overwrite',
+    status_id: 'overwrite',
+    status_date: 'overwrite',
+    updated_at: 'overwrite',
+  };
+  
+  try {
+    const result = await bulkInsert(
+      'packaging_material_batches',
+      columns,
+      rows,
+      conflictColumns,
+      updateStrategies,
+      client,
+      { context, ...meta },
+      '*'
+    );
+    
+    logSystemInfo('Successfully inserted or updated packaging material batches', {
+      context,
+      insertedCount: result.length,
+      totalInput: packagingMaterialBatches.length,
+    });
+    
+    return result;
+  } catch (error) {
+    logSystemException(
+      error,
+      'Failed to insert packaging material batch records',
+      {
+        context,
+        batchCount: packagingMaterialBatches.length,
+      }
+    );
+    
+    throw AppError.databaseError(
+      'Failed to insert packaging material batch records',
+      { cause: error }
+    );
+  }
+};
+
 module.exports = {
   getPaginatedPackagingMaterialBatches,
+  insertPackagingMaterialBatchesBulk,
 };

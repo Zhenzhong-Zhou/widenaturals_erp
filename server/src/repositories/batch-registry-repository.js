@@ -1,7 +1,7 @@
 const {
   query,
   paginateQueryByOffset,
-  paginateResults,
+  paginateResults, bulkInsert,
 } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
@@ -247,8 +247,145 @@ const getPaginatedBatchRegistry = async ({
   }
 };
 
+/**
+ * Bulk insert batch registry records.
+ *
+ * This repository function inserts multiple records into the `batch_registry`
+ * table, which tracks when batches are registered in the system.
+ *
+ * Each registry entry references either a product batch or a packaging
+ * material batch depending on the `batch_type`.
+ *
+ * Conflict Handling:
+ * - Prevents duplicate registry entries per batch.
+ * - If a conflict occurs, only the `note` field may be updated.
+ *
+ * Validation:
+ * - Ensures required identifiers exist based on `batch_type`.
+ * - Ensures all records in the request share the same `batch_type`.
+ *
+ * Performance:
+ * - Uses a single bulk insert query for efficiency.
+ * - Suitable for typical ERP batch registration operations.
+ *
+ * @async
+ * @function insertBatchRegistryBulk
+ *
+ * @param {Array<Object>} registries
+ * List of batch registry records.
+ *
+ * @param {string} registries[].batch_type
+ * Batch type: `product` or `packaging_material`.
+ *
+ * @param {string|null} registries[].product_batch_id
+ * Product batch identifier (required when batch_type = `product`).
+ *
+ * @param {string|null} registries[].packaging_material_batch_id
+ * Packaging material batch identifier (required when batch_type = `packaging_material`).
+ *
+ * @param {string|null} registries[].registered_by
+ * User who registered the batch.
+ *
+ * @param {string|null} registries[].note
+ * Optional registry note.
+ *
+ * @param {Object|null} [client]
+ * Optional PostgreSQL transaction client.
+ *
+ * @returns {Promise<Array<{id: string}>>}
+ * Returns inserted registry records containing generated IDs.
+ *
+ * @throws {AppError}
+ * Throws validation or database errors if the operation fails.
+ */
+const insertBatchRegistryBulk = async (registries, client) => {
+  if (!Array.isArray(registries) || registries.length === 0) return [];
+  
+  const context = 'batch-registry-repository/insertBatchRegistryBulk';
+  
+  // Ensure all records share the same batch type
+  const batchType = registries[0].batch_type;
+  
+  if (!registries.every((r) => r.batch_type === batchType)) {
+    throw AppError.validationError(
+      'Batch registry bulk insert must contain a single batch_type.'
+    );
+  }
+  
+  const columns = [
+    'batch_type',
+    'product_batch_id',
+    'packaging_material_batch_id',
+    'registered_by',
+    'note',
+  ];
+  
+  const rows = registries.map((r) => {
+    // Defensive validation for required identifiers
+    if (r.batch_type === 'product' && !r.product_batch_id) {
+      throw AppError.validationError('Invalid batch registry request.');
+    }
+    
+    if (
+      r.batch_type === 'packaging_material' &&
+      !r.packaging_material_batch_id
+    ) {
+      throw AppError.validationError('Invalid batch registry request.');
+    }
+    
+    return [
+      r.batch_type,
+      r.product_batch_id ?? null,
+      r.packaging_material_batch_id ?? null,
+      r.registered_by ?? null,
+      r.note ?? null,
+    ];
+  });
+  
+  // Determine conflict column based on batch type
+  const conflictColumns =
+    batchType === 'product'
+      ? ['product_batch_id']
+      : ['packaging_material_batch_id'];
+  
+  const updateStrategies = {
+    note: 'overwrite',
+  };
+  
+  try {
+    const result = await bulkInsert(
+      'batch_registry',
+      columns,
+      rows,
+      conflictColumns,
+      updateStrategies,
+      client,
+      { context },
+      'id'
+    );
+    
+    logSystemInfo('Successfully inserted batch registry records', {
+      context,
+      insertedCount: result.length,
+      totalInput: registries.length,
+    });
+    
+    return result;
+  } catch (error) {
+    logSystemException(error, 'Failed to insert batch registry records', {
+      context,
+      registryCount: registries.length,
+    });
+    
+    throw AppError.databaseError('Failed to insert batch registry records', {
+      cause: error,
+    });
+  }
+};
+
 module.exports = {
   getBatchRegistryById,
   getBatchRegistryLookup,
   getPaginatedBatchRegistry,
+  insertBatchRegistryBulk,
 };
