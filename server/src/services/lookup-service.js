@@ -466,41 +466,67 @@ const fetchCustomerAddressLookupService = async (customerId) => {
 /**
  * Service: fetchOrderTypeLookupService
  *
- * Retrieves a paginated list of order types for use in dropdowns or lookup UIs,
- * applying both role-based and attribute-based access control.
+ * Retrieves a paginated list of order types for dropdowns or lookup UIs,
+ * applying role-based and attribute-based access control.
  *
  * Workflow:
- *   1. Evaluate the user's access control flags via `evaluateOrderTypeLookupAccessControl`.
- *   2. Apply enforced visibility rules (categories, statuses, keywords) using `enforceOrderTypeLookupVisibilityRules`.
- *   3. Normalize and build DB query filters with `filterOrderTypeLookupQuery`.
- *   4. Fetch matching order type records from the database (`getOrderTypeLookup`).
- *   5. Enrich each row with UI flags (e.g., `isActive`).
- *   6. Transform the enriched rows into `{ label, value, isActive? }` objects for frontend consumption.
+ *   1. Evaluate the user's access permissions via `evaluateOrderTypeLookupAccessControl`.
+ *   2. Enforce visibility rules (categories, statuses, keywords) using `enforceOrderTypeLookupVisibilityRules`.
+ *   3. Normalize and build database query filters via `filterOrderTypeLookupQuery`.
+ *   4. Fetch paginated order type records from the repository (`getOrderTypeLookup`).
+ *   5. Enrich raw rows with UI flags such as `isActive`.
+ *   6. Transform enriched rows into dropdown-compatible lookup items.
  *
  * Access control:
- *   - Category scope is determined by `accessibleCategories` from `evaluateOrderTypeLookupAccessControl`.
- *   - Status and keyword scope are restricted unless `canViewAllStatuses` or `canViewAllKeywords` are true.
+ *   - Category visibility is determined by `accessibleCategories`.
+ *   - Status and keyword visibility may be restricted unless
+ *     `canViewAllStatuses` or `canViewAllKeywords` is true.
  *   - Root users bypass all restrictions.
  *
  * @async
- * @param {import('@types/custom').User} user - Authenticated user object (must include `id` and permission context).
- * @param {object} options - Lookup query options.
- * @param {object} [options.filters={}] - Optional filter parameters (e.g., `{ keyword, category, statusId }`).
- * @returns {Promise<{
- *   items: { label: string, value: string, isActive?: boolean }[],
+ * @param {import('@types/custom').User} user
+ *   Authenticated user object containing permission context.
+ *
+ * @param {object} options
+ * @param {object} [options.filters={}]
+ *   Optional lookup filters (e.g. `{ keyword, category, statusId }`).
+ *
+ * @param {number} [options.limit=50]
+ *   Maximum number of records to retrieve.
+ *
+ * @param {number} [options.offset=0]
+ *   Pagination offset used for incremental dropdown loading.
+ *
+ * @returns {Promise<LoadMoreResult<{
+ *   id: string,
+ *   label: string,
+ *   isRequiredPayment: boolean,
+ *   isActive?: boolean,
+ *   category?: string
+ * }>>}
+ *
+ * Returns a paginated dropdown lookup result:
+ *
+ * {
+ *   items: OrderTypeLookupItem[],
  *   hasMore: boolean
- * }>} A paginated set of dropdown-compatible order type options and a `hasMore` flag.
+ * }
  *
  * @throws {AppError}
- *   - `serviceError` if the lookup fails due to DB errors, permission issues, or unexpected conditions.
+ *   Throws `serviceError` if the lookup fails due to database errors,
+ *   permission issues, or unexpected conditions.
  *
  * @example
  * const { items, hasMore } = await fetchOrderTypeLookupService(currentUser, {
- *   filters: { keyword: 'sales', category: 'sales' }
+ *   filters: { keyword: 'sales', category: 'sales' },
+ *   limit: 50,
+ *   offset: 0
  * });
- * // items: [ { label: 'Sales Order', value: 'uuid', isActive: true }, ... ]
  */
-const fetchOrderTypeLookupService = async (user, { filters = {} }) => {
+const fetchOrderTypeLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+  ) => {
   try {
     // Step 1: Evaluate user access control flags
     const userAccess = await evaluateOrderTypeLookupAccessControl(user, {
@@ -527,15 +553,23 @@ const fetchOrderTypeLookupService = async (user, { filters = {} }) => {
     // Step 4: Fetch paginated raw DB records
     const rawResult = await getOrderTypeLookup({
       filters: finalQuery,
+      limit,
+      offset,
     });
-
+    
     // Step 5: Enrich raw rows with UI flags (e.g., isActive)
-    const enrichedRows = rawResult.map((row) =>
+    const enrichedRows = rawResult.data.map((row) =>
       enrichOrderTypeRow(row, activeStatusId)
     );
-
+    
     // Step 6: Transform for dropdown-compatible output
-    return transformOrderTypeLookupResult(enrichedRows, userAccess);
+    return transformOrderTypeLookupResult(
+      {
+        data: enrichedRows,
+        pagination: rawResult.pagination,
+      },
+      userAccess
+    );
   } catch (err) {
     logSystemException(err, 'Failed to fetch order type lookup', {
       context: 'lookup-service/fetchOrderTypeLookupService',
@@ -879,7 +913,7 @@ const fetchPaginatedSkuLookupService = async (
     // Step 1: Load expected status IDs for validation logic
     const activeStatusId = getStatusId('product_active'); // Used for both product & SKU
     const inventoryStatusId = getStatusId('inventory_in_stock'); // Shared for warehouse and location inventory
-    const batchStatusId = getStatusId('batch_active');
+    const batchStatusId = getStatusId('batch_released');
 
     // Step 2: Evaluate user access control (permissions, overrides)
     const userAccess = await evaluateSkuFilterAccessControl(user);

@@ -331,26 +331,37 @@ const transformOrderTypeLookup = (row, userAccess) => {
 };
 
 /**
- * Transforms raw order type rows into a dropdown-compatible lookup result.
+ * Transforms paginated order type rows into dropdown-compatible lookup items.
  *
- * @param {Object[]} rows
+ * Uses `transformLoadMoreResult` to map each database row through
+ * `transformOrderTypeLookup`, producing UI-ready dropdown options.
+ *
+ * @param {{ data: object[], pagination: { offset: number, limit: number, totalRecords: number, hasMore: boolean } }} paginatedResult
+ *   Paginated repository result containing raw order type rows.
+ *
  * @param {Object} userAccess
+ *   Access control flags used to determine which attributes should be exposed
+ *   in the transformed lookup items.
  *
- * @returns {{
- *   items: { value: string, label: string, isActive?: boolean }[],
+ * @returns {LoadMoreResult<{
+ *   id: string,
+ *   label: string,
+ *   isRequiredPayment: boolean,
+ *   isActive?: boolean,
+ *   category?: string
+ * }>}
+ *
+ * Returns a paginated lookup result structured as:
+ *
+ * {
+ *   items: OrderTypeLookupItem[],
  *   hasMore: boolean
- * }}
+ * }
  */
-const transformOrderTypeLookupResult = (rows, userAccess) => {
-  const items = transformRows(rows, (row) =>
+const transformOrderTypeLookupResult = async (paginatedResult, userAccess) =>
+  await transformLoadMoreResult(paginatedResult, (row) =>
     transformOrderTypeLookup(row, userAccess)
   );
-
-  return {
-    items,
-    hasMore: false,
-  };
-};
 
 /**
  * Transforms a single raw payment method row into a dropdown option format.
@@ -381,7 +392,7 @@ const transformPaymentMethodLookup = (row, userAccess) => {
  *
  * @param {PaginatedQueryResult<Object>} paginatedResult
  * @param {Object} userAccess
- * @returns {Promise<LoadMoreResult<LookupItem>>}
+ * @returns {Promise<LoadMoreResult<{id: string, label: string, isActive?: boolean}>>}
  */
 const transformPaymentMethodPaginatedLookupResult = (
   paginatedResult,
