@@ -175,6 +175,65 @@ const transformPaginatedPackagingMaterialBatchResults = (
     transformPackagingMaterialBatchRow(row, access)
   );
 
+/**
+ * Transform packaging material batch database rows into API-safe objects.
+ *
+ * This transformer converts raw PostgreSQL rows (snake_case) returned from
+ * repository queries into camelCase objects suitable for API responses.
+ *
+ * Only fields required by the service/controller layer are exposed to ensure
+ * a clean separation between database schema and API models.
+ *
+ * Performance:
+ * - Linear transformation (O(n))
+ * - No additional database queries
+ * - Minimal object allocations
+ *
+ * @function transformPackagingMaterialBatchRecords
+ *
+ * @param {Array<Object>} rows
+ * Raw database rows returned from the repository layer.
+ *
+ * @param {string} rows[].id
+ * Unique batch identifier.
+ *
+ * @param {string} rows[].lot_number
+ * Supplier lot number for the packaging material batch.
+ *
+ * @param {string} rows[].packaging_material_id
+ * Associated packaging material identifier.
+ *
+ * @param {Date|string|null} rows[].manufacture_date
+ * Manufacturing date provided by supplier.
+ *
+ * @param {Date|string|null} rows[].expiry_date
+ * Expiry date if applicable.
+ *
+ * @param {number} rows[].initial_quantity
+ * Initial quantity recorded when the batch was created.
+ *
+ * @param {string} rows[].status_id
+ * Current batch status identifier.
+ *
+ * @returns {Array<Object>}
+ * Transformed batch records with camelCase properties.
+ */
+const transformPackagingMaterialBatchRecords = (rows) => {
+  // Guard clause for invalid or empty input
+  if (!Array.isArray(rows) || rows.length === 0) return [];
+  
+  return rows.map((row) => ({
+    id: row.id,
+    lotNumber: row.lot_number,
+    packagingMaterialId: row.packaging_material_id,
+    manufactureDate: row.manufacture_date ?? null,
+    expiryDate: row.expiry_date ?? null,
+    initialQuantity: row.initial_quantity,
+    statusId: row.status_id,
+  }));
+};
+
 module.exports = {
   transformPaginatedPackagingMaterialBatchResults,
+  transformPackagingMaterialBatchRecords,
 };

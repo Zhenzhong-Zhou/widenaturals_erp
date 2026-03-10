@@ -170,6 +170,66 @@ const transformPaginatedProductBatchResults = (paginatedResult, access) => {
   );
 };
 
+/**
+ * Transform product batch database rows into API-safe objects.
+ *
+ * This transformer converts raw PostgreSQL rows (snake_case column names)
+ * returned from repository queries into camelCase objects used by the
+ * service and controller layers.
+ *
+ * The transformation isolates the database schema from API responses,
+ * ensuring the frontend remains stable even if database column names change.
+ *
+ * Performance:
+ * - Linear transformation (O(n))
+ * - No additional database queries
+ * - Minimal object allocations
+ *
+ * @function transformProductBatchRecords
+ *
+ * @param {Array<Object>} rows
+ * Raw database rows returned from the repository layer.
+ *
+ * @param {string} rows[].id
+ * Unique identifier of the product batch.
+ *
+ * @param {string} rows[].lot_number
+ * Manufacturing lot number associated with the batch.
+ *
+ * @param {string} rows[].sku_id
+ * SKU identifier linked to the batch.
+ *
+ * @param {Date|string|null} rows[].manufacture_date
+ * Manufacturing date of the product batch.
+ *
+ * @param {Date|string|null} rows[].expiry_date
+ * Expiry date of the batch.
+ *
+ * @param {number} rows[].initial_quantity
+ * Initial quantity recorded when the batch was created.
+ *
+ * @param {string} rows[].status_id
+ * Current status identifier of the batch.
+ *
+ * @returns {Array<Object>}
+ * Transformed product batch records with camelCase fields.
+ */
+const transformProductBatchRecords = (rows) => {
+  // Guard clause to handle invalid or empty inputs safely
+  if (!Array.isArray(rows) || rows.length === 0) return [];
+  
+  return rows.map((row) => ({
+    id: row.id,
+    lotNumber: row.lot_number,
+    skuId: row.sku_id,
+    manufactureDate: row.manufacture_date ?? null,
+    expiryDate: row.expiry_date ?? null,
+    initialQuantity: row.initial_quantity,
+    statusId: row.status_id,
+  }));
+};
+
 module.exports = {
   transformPaginatedProductBatchResults,
+  transformProductBatchRecords,
 };
