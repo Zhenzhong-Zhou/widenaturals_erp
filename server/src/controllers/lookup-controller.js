@@ -202,30 +202,62 @@ const getCustomerAddressLookupController = wrapAsync(async (req, res) => {
 });
 
 /**
- * Controller to handle order type lookup for dropdown components.
+ * Controller to handle order type lookup requests for dropdown components.
  *
- * - Retrieve the authenticated user and query filters (e.g., `keyword`).
- * - Applies permission-based filtering and category restriction via service layer.
- * - Returns a minimal or full transformed result based on user permissions.
+ * Responsibilities:
+ * - Extract the authenticated user and normalized query parameters.
+ * - Pass filters to the service layer for permission-aware lookup processing.
+ * - Return a paginated list of order type options formatted for UI dropdowns.
  *
- * Example query: `GET /api/lookup/order-types?keyword=transfer`
+ * Example request:
+ *   GET /api/lookup/order-types?keyword=transfer
  *
- * @function
+ * Query parameters (from `req.normalizedQuery`):
+ * - filters: optional search filters (e.g. keyword, category)
+ * - limit: maximum number of records to return
+ * - offset: pagination offset
+ *
+ * Response structure:
+ * {
+ *   success: boolean,
+ *   message: string,
+ *   items: OrderTypeLookupItem[],
+ *   offset: number,
+ *   limit: number,
+ *   hasMore: boolean
+ * }
+ *
  * @async
- * @param {import('express').Request} req - Express request object, expects `req.auth.user` and `req.normalizedQuery.filters`
- * @param {import('express').Response} res - Express response object used to send JSON response
- * @returns {Promise<void>} JSON response with transformed order type lookup data
+ * @function
+ * @param {import('express').Request} req
+ *   Express request object containing:
+ *   - `req.auth.user` authenticated user
+ *   - `req.normalizedQuery` normalized query parameters
+ *
+ * @param {import('express').Response} res
+ *   Express response object used to send the JSON response
+ *
+ * @returns {Promise<void>}
  */
 const getOrderTypeLookupController = wrapAsync(async (req, res) => {
   const user = req.auth.user;
-  const { filters = {} } = req.normalizedQuery;
-
-  const result = await fetchOrderTypeLookupService(user, { filters });
-
+  const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
+  
+  const dropdownResult = await fetchOrderTypeLookupService(user, {
+    filters,
+    limit,
+    offset,
+  });
+  
+  const { items, hasMore } = dropdownResult;
+  
   return res.status(200).json({
     success: true,
     message: 'Successfully retrieved order type lookup',
-    data: result,
+    items,
+    offset,
+    limit,
+    hasMore,
   });
 });
 
