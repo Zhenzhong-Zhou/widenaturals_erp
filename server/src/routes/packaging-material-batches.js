@@ -1,14 +1,16 @@
 const express = require('express');
 const { authorize } = require('../middlewares/authorize');
-const { PACKAGING_BATCH } = require('../utils/constants/domain/permissions');
+const { PACKAGING_MATERIAL_BATCHES } = require('../utils/constants/domain/permissions');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 const {
   packagingMaterialBatchQuerySchema,
+  createPackagingMaterialBatchBulkSchema,
 } = require('../validators/packaging-material-batch-validators');
 const { sanitizeFields } = require('../middlewares/sanitize');
 const validate = require('../middlewares/validate');
 const {
   getPaginatedPackagingMaterialBatchesController,
+  createPackagingMaterialBatchesController,
 } = require('../controllers/packaging-material-batch-controller');
 
 const router = express.Router();
@@ -61,7 +63,7 @@ const router = express.Router();
  */
 router.get(
   '/',
-  authorize([PACKAGING_BATCH.VIEW_LIST]),
+  authorize([PACKAGING_MATERIAL_BATCHES.VIEW_LIST]),
   createQueryNormalizationMiddleware(
     'packagingMaterialBatchSortMap',
     [
@@ -81,6 +83,13 @@ router.get(
     allowUnknown: true,
   }),
   getPaginatedPackagingMaterialBatchesController
+);
+
+router.post(
+  '/create',
+  authorize([PACKAGING_MATERIAL_BATCHES.CREATE]),
+  validate(createPackagingMaterialBatchBulkSchema, 'body'),
+  createPackagingMaterialBatchesController
 );
 
 module.exports = router;

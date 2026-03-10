@@ -116,10 +116,73 @@ const validateUUIDArray = (fieldName = 'IDs', options = {}) => {
 };
 
 /**
- * Returns a Joi schema for pagination integers with optional default.
+ * Creates a Joi schema for validating a positive integer value with an optional default.
+ *
+ * Rules:
+ * - Must be a number (no type coercion due to `.strict()`).
+ * - Must be an integer.
+ * - Must be greater than or equal to 1.
+ * - Field is optional unless `.required()` is applied by the caller.
+ * - If the value is undefined, the provided default value will be applied.
+ *
+ * Common use cases:
+ * - Pagination parameters (page, limit)
+ * - Offset values
+ * - Batch size limits
+ *
+ * Example:
+ *   page: validatePositiveInteger(1)
+ *   limit: validatePositiveInteger(20)
+ *
+ * @param {number|undefined} [defaultValue=undefined]
+ * Optional default value used when the field is not provided.
+ *
+ * @returns {Joi.NumberSchema}
+ * Joi number schema configured for positive integer validation.
  */
 const validatePositiveInteger = (defaultValue = undefined) =>
-  Joi.number().integer().min(1).default(defaultValue);
+  Joi.number()
+    .strict() // prevents string → number conversion
+    .integer()
+    .min(1)
+    .default(defaultValue)
+    .messages({
+      'number.base': 'Value must be a number.',
+      'number.integer': 'Value must be an integer.',
+      'number.min': 'Value must be greater than or equal to 1.',
+    });
+
+/**
+ * Creates a Joi schema for validating a required positive integer.
+ *
+ * Rules:
+ * - Must be a number (no string coercion due to `.strict()`).
+ * - Must be an integer.
+ * - Must be greater than or equal to 1.
+ * - Field is required.
+ *
+ * Commonly used for validating:
+ * - Quantities
+ * - Item counts
+ * - Inventory amounts
+ * - Batch quantities
+ *
+ * @returns {Joi.NumberSchema}
+ *   Joi schema configured for positive integer validation.
+ */
+const validatePositiveIntegerRequired = () =>
+  Joi.number()
+    .strict() // prevents automatic string → number conversion
+    .integer()
+    .min(1)
+    .required()
+    .messages({
+      'number.base': 'Value must be a number.',
+      'number.integer': 'Value must be an integer.',
+      'number.min': 'Value must be greater than or equal to 1.',
+      'any.required': 'Value is required.',
+    });
+
 
 /**
  * Creates a Joi schema for validating a strictly positive decimal number.
@@ -127,7 +190,7 @@ const validatePositiveInteger = (defaultValue = undefined) =>
  * Rules:
  * - Must be a number (no type coercion due to `.strict()`).
  * - Must be greater than 0.
- * - Must have a maximum of 2 decimal places.
+ * - Must have a limited number of decimal places.
  *
  * Commonly used for validating monetary values such as:
  * - Unit price
@@ -135,14 +198,21 @@ const validatePositiveInteger = (defaultValue = undefined) =>
  * - Discount amount
  * - Tax amount
  *
+ * @param {number} [precision=2]
+ * Maximum number of decimal places allowed.
+ *
  * @returns {Joi.NumberSchema}
- *   A Joi number schema configured for positive decimal validation.
+ *   Joi number schema configured for positive decimal validation.
  */
-const validatePositiveDecimal = () =>
-  Joi.number().strict().positive().precision(2).messages({
-    'number.base': 'Value must be a number.',
-    'number.positive': 'Value must be greater than 0.',
-  });
+const validatePositiveDecimal = (precision = 2) =>
+  Joi.number()
+    .strict() // ensures only real numbers are accepted
+    .positive()
+    .precision(precision)
+    .messages({
+      'number.base': 'Value must be a number.',
+      'number.positive': 'Value must be greater than 0.',
+    });
 
 /**
  * Creates a reusable Joi string validator with trimming, length constraints, and custom error messages.
@@ -590,11 +660,16 @@ const optionalIsoDate = (label = 'Date') =>
  * - invalid formats
  */
 const requiredIsoDate = () =>
-  Joi.date().iso().required().messages({
-    'any.required': 'Date is required',
-    'date.base': 'Date must be a valid ISO-8601 value',
-    'date.format': 'Date must be in ISO-8601 format',
-  });
+  Joi.alternatives()
+    .try(
+      Joi.date().iso(),
+      Joi.date()
+    )
+    .required()
+    .messages({
+      'any.required': 'Date is required',
+      'date.base': 'Date must be a valid ISO-8601 value',
+    });
 
 module.exports = {
   validateEmail,
@@ -603,6 +678,7 @@ module.exports = {
   validateUUIDOrUUIDArrayOptional,
   validateUUIDArray,
   validatePositiveInteger,
+  validatePositiveIntegerRequired,
   validatePositiveDecimal,
   validateString,
   validatePhoneNumber,
