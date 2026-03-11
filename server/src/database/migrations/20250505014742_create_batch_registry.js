@@ -22,6 +22,9 @@ exports.up = async function (knex) {
 
     table.timestamp('registered_at', { useTz: true }).defaultTo(knex.fn.now());
     table.uuid('registered_by').references('id').inTable('users');
+    
+    table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
+    table.uuid('updated_by').references('id').inTable('users');
     table.text('note');
 
     table.unique(['product_batch_id']);

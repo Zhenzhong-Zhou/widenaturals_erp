@@ -40,6 +40,8 @@ exports.seed = async function (knex) {
     packaging_material_batch_id: null,
     registered_by: registeredBy,
     registered_at: knex.fn.now(),
+    updated_at: null,
+    updated_by: null,
   }));
 
   // Step 2: Seed from packaging_material_batches
@@ -58,6 +60,8 @@ exports.seed = async function (knex) {
     packaging_material_batch_id: batch.id,
     registered_by: registeredBy,
     registered_at: knex.fn.now(),
+    updated_at: null,
+    updated_by: null,
   }));
 
   const allRows = [...productRows, ...pmRows];
