@@ -317,6 +317,8 @@ const insertBatchRegistryBulk = async (registries, client) => {
     'product_batch_id',
     'packaging_material_batch_id',
     'registered_by',
+    'updated_at',
+    'updated_by',
     'note',
   ];
   
@@ -338,6 +340,8 @@ const insertBatchRegistryBulk = async (registries, client) => {
       r.product_batch_id ?? null,
       r.packaging_material_batch_id ?? null,
       r.registered_by ?? null,
+      null,
+      null,
       r.note ?? null,
     ];
   });
