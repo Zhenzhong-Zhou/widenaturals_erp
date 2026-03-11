@@ -7,11 +7,11 @@ const { fetchDynamicValue } = require('../03_utils');
 exports.seed = async function (knex) {
   console.log('Seeding batches...');
 
-  const activeStatusId = await fetchDynamicValue(
+  const releasedStatusId = await fetchDynamicValue(
     knex,
     'batch_status',
     'name',
-    'active',
+    'released',
     'id'
   );
   const suspendedStatusId = await fetchDynamicValue(
@@ -575,10 +575,11 @@ exports.seed = async function (knex) {
       manufacturer_id: manufacturerId,
       manufacture_date: manufactureDate.toISOString().split('T')[0],
       expiry_date: expiry,
-      received_date: null,
+      received_at: null,
+      received_by: null,
       initial_quantity: entry.quantity,
       notes: null,
-      status_id: entry.status_id || activeStatusId,
+      status_id: entry.status_id || releasedStatusId,
       status_date: knex.fn.now(),
       released_at: knex.fn.now(),
       released_by: null,

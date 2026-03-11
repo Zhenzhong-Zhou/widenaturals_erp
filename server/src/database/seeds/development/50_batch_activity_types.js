@@ -31,13 +31,6 @@ exports.seed = async function (knex) {
       is_active: true,
     },
     {
-      name: 'Batch Registered',
-      code: 'BATCH_REGISTERED',
-      description: 'Batch registered in the unified batch registry',
-      is_system: true,
-      is_active: true,
-    },
-    {
       name: 'Batch Status Changed',
       code: 'BATCH_STATUS_CHANGED',
       description: 'Batch status updated',
