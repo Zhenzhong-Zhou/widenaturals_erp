@@ -3,18 +3,34 @@ const {
   applyPackagingMaterialBatchVisibilityRules,
 } = require('../business/packaging-material-batch-business');
 const {
-  getPaginatedPackagingMaterialBatches, insertPackagingMaterialBatchesBulk,
+  getPaginatedPackagingMaterialBatches,
+  insertPackagingMaterialBatchesBulk,
+  getPackagingMaterialBatchById,
+  updatePackagingMaterialBatch,
 } = require('../repositories/packaging-material-batch-repository');
-const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const {
-  transformPaginatedPackagingMaterialBatchResults, transformPackagingMaterialBatchRecords,
+  logSystemInfo,
+  logSystemException
+} = require('../utils/system-logger');
+const {
+  transformPaginatedPackagingMaterialBatchResults,
+  transformPackagingMaterialBatchRecords,
 } = require('../transformers/packaging-material-batch-transformer');
 const AppError = require('../utils/AppError');
 const { withTransaction, lockRows } = require('../database/db');
 const { validateRequiredFields } = require('../utils/validation/validation-utils');
 const { getStatusId } = require('../config/status-cache');
-const { registerBatchWorkflow } = require('../business/batches/register-batch-workflow');
+const {
+  registerBatchWorkflow,
+  updateBatchWorkflow
+} = require('../business/batches/batch-workflow');
 const { getBatchActivityTypeId } = require('../cache/batch-activity-type-cache');
+const {
+  PACKAGING_BATCH_EDIT_RULES,
+  PACKAGING_BATCH_STATUS_TRANSITIONS
+} = require('../utils/constants/domain/packaging-material-batch-constants');
+const { getBatchActivityType } = require('../business/batches/batch-activity-resolvers');
+const { transformIdOnlyResult } = require('../transformers/common/id-result-transformer');
 
 /**
  * Service: Fetch paginated packaging material batch records for UI consumption.
@@ -303,7 +319,110 @@ const createPackagingMaterialBatchesService = async (
   });
 };
 
+/**
+ * Adjust a packaging material batch and record related batch activity.
+ *
+ * This service executes the batch update workflow inside a database
+ * transaction and ensures that:
+ *
+ * - batch lifecycle rules are enforced
+ * - metadata updates are applied safely
+ * - status transitions are validated
+ * - activity logs are recorded for auditing
+ *
+ * Responsibilities:
+ * - Validate input parameters
+ * - Open transaction boundary
+ * - Execute the batch workflow
+ * - Transform response payload
+ * - Record structured system logs
+ *
+ * @async
+ *
+ * @param {string} batchId - Packaging material batch identifier
+ * @param {Object} updates - Fields to update
+ * @param {string} actorId - User performing the adjustment
+ *
+ * @returns {Promise<{id: string}>} Updated batch identifier
+ */
+const packagingMaterialBatchAdjustService = async (
+  batchId,
+  updates,
+  actorId
+) => {
+  return withTransaction(async (client) => {
+    const context =
+      'packaging-material-batch-service/packagingMaterialBatchAdjustService';
+    
+    try {
+      //------------------------------------------------------------
+      // 1. Validate input
+      //------------------------------------------------------------
+      if (!batchId) {
+        throw AppError.validationError('batchId is required.', { context });
+      }
+      
+      if (!updates || typeof updates !== 'object') {
+        throw AppError.validationError('Invalid updates payload.', { context });
+      }
+      
+      if (!actorId) {
+        throw AppError.validationError('actorId is required.', { context });
+      }
+      
+      //------------------------------------------------------------
+      // 2. Execute batch workflow
+      //------------------------------------------------------------
+      const updatedBatch = await updateBatchWorkflow({
+        batchId,
+        updates,
+        actorId,
+        client,
+        getBatchFn: getPackagingMaterialBatchById,
+        updateBatchFn: updatePackagingMaterialBatch,
+        editRules: PACKAGING_BATCH_EDIT_RULES,
+        statusTransitions: PACKAGING_BATCH_STATUS_TRANSITIONS,
+        batchType: 'packaging_material',
+        activityTypeResolver: getBatchActivityType
+      });
+      
+      //------------------------------------------------------------
+      // 3. Transform response
+      //------------------------------------------------------------
+      const transformedResult =
+        transformIdOnlyResult([updatedBatch]);
+      
+      //------------------------------------------------------------
+      // 4. System log
+      //------------------------------------------------------------
+      logSystemInfo('Packaging material batch adjusted successfully', {
+        context,
+        batchId,
+        actorId
+      });
+      
+      return transformedResult[0];
+    } catch (error) {
+      logSystemException(error, 'Failed to adjust packaging material batch', {
+        context,
+        batchId
+      });
+      
+      if (error instanceof AppError) throw error;
+      
+      throw AppError.databaseError(
+        'Failed to adjust packaging material batch.',
+        {
+          cause: error,
+          context
+        }
+      );
+    }
+  });
+};
+
 module.exports = {
   fetchPaginatedPackagingMaterialBatchesService,
   createPackagingMaterialBatchesService,
+  packagingMaterialBatchAdjustService,
 };
