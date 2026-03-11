@@ -73,6 +73,27 @@ exports.seed = async function (knex) {
       is_active: true,
     },
     {
+      name: 'Batch Received',
+      code: 'BATCH_RECEIVED',
+      description: 'Batch physically received into the warehouse',
+      is_system: true,
+      is_active: true,
+    },
+    {
+      name: 'Batch Quarantined',
+      code: 'BATCH_QUARANTINED',
+      description: 'Batch moved to quarantine status for quality inspection',
+      is_system: true,
+      is_active: true,
+    },
+    {
+      name: 'Batch Released',
+      code: 'BATCH_RELEASED',
+      description: 'Batch released for operational use after QA approval',
+      is_system: true,
+      is_active: true,
+    },
+    {
       name: 'Batch Metadata Updated',
       code: 'BATCH_METADATA_UPDATED',
       description: 'Batch metadata updated',
