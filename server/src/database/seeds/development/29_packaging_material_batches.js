@@ -6,19 +6,19 @@ exports.seed = async function (knex) {
   console.log('Seeding packaging_material_batches...');
 
   // --- Skip if already seeded
-  // const [{ count }] = await knex('packaging_material_batches').count('id');
-  // const total = Number(count) || 0;
-  //
-  // if (total > 0) {
-  //   console.log(
-  //     `[${new Date().toISOString()}] [SEED] Skipping [packaging_material_batches]: ${total} existing records.`
-  //   );
-  //   return;
-  // }
-  //
-  // console.log(
-  //   `[${new Date().toISOString()}] [SEED] Inserting into [packaging_material_batches]...`
-  // );
+  const [{ count }] = await knex('packaging_material_batches').count('id');
+  const total = Number(count) || 0;
+
+  if (total > 0) {
+    console.log(
+      `[${new Date().toISOString()}] [SEED] Skipping [packaging_material_batches]: ${total} existing records.`
+    );
+    return;
+  }
+
+  console.log(
+    `[${new Date().toISOString()}] [SEED] Inserting into [packaging_material_batches]...`
+  );
 
   // --- System user for audit
   const systemUserId = await knex('users')
@@ -30,7 +30,7 @@ exports.seed = async function (knex) {
   // --- Active status id
   const activeBatchStatusId = await knex('batch_status')
     .select('id')
-    .whereILike('name', 'active')
+    .whereILike('name', 'released')
     .first()
     .then((row) => row?.id);
 
