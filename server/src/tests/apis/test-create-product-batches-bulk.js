@@ -102,7 +102,7 @@ const { toLocal } = require('../utlis/convertDate');
     // ------------------------------------------------------------
     // 4. Prepare batch payloads
     // ------------------------------------------------------------
-    const activeStatusId = getStatusId('batch_released');
+    const pendingStatusId = getStatusId('batch_pending');
     
     const today = new Date();
     const expiry = new Date();
@@ -123,7 +123,7 @@ const { toLocal } = require('../utlis/convertDate');
       manufacture_date: today,
       expiry_date: expiry,
       initial_quantity: 1000 + idx * 500,
-      status_id: activeStatusId,
+      status_id: pendingStatusId,
       notes: randomNotes[idx % randomNotes.length],
     }));
     
