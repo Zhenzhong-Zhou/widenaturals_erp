@@ -45,6 +45,5 @@ exports.up = async function (knex) {
  * @returns { Promise<void> }
  */
 exports.down = async function (knex) {
-  await knex.schema.dropTableIfExists('product_batch_activity_logs');
-  await knex.raw(`DROP TYPE IF EXISTS batch_type_enum`);
+  await knex.schema.dropTableIfExists('batch_activity_logs');
 };
