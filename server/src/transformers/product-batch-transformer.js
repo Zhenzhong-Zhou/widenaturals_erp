@@ -229,7 +229,57 @@ const transformProductBatchRecords = (rows) => {
   }));
 };
 
+/**
+ * Convert camelCase API payload fields into snake_case database columns.
+ *
+ * This helper prepares update payloads for repository-level queries.
+ * Undefined fields are intentionally preserved so downstream utilities
+ * (such as `updateById`) can decide whether to omit them.
+ *
+ * Example:
+ *
+ * API payload:
+ * {
+ *   lotNumber: "LOT-2024-001",
+ *   expiryDate: "2027-01-01"
+ * }
+ *
+ * Result:
+ * {
+ *   lot_number: "LOT-2024-001",
+ *   expiry_date: "2027-01-01"
+ * }
+ *
+ * @param {Object} [updates={}] - API update payload
+ * @param {string} [updates.lotNumber]
+ * @param {string} [updates.manufactureDate]
+ * @param {string} [updates.expiryDate]
+ * @param {string} [updates.manufacturerId]
+ * @param {number} [updates.initialQuantity]
+ * @param {string} [updates.notes]
+ * @param {string} [updates.statusId]
+ *
+ * @returns {Object<string, any>} Object formatted for DB update operations
+ */
+const toSnakeCaseBatchUpdates = (updates = {}) => {
+  // Defensive guard in case non-object values are passed
+  if (!updates || typeof updates !== 'object') {
+    return {};
+  }
+  
+  return {
+    lot_number: updates.lotNumber,
+    manufacture_date: updates.manufactureDate,
+    expiry_date: updates.expiryDate,
+    manufacturer_id: updates.manufacturerId,
+    initial_quantity: updates.initialQuantity,
+    notes: updates.notes,
+    status_id: updates.statusId
+  };
+};
+
 module.exports = {
   transformPaginatedProductBatchResults,
   transformProductBatchRecords,
+  toSnakeCaseBatchUpdates,
 };
