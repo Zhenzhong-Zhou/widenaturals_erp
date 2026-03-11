@@ -189,18 +189,6 @@ const logDbPoolHealth = (metrics) => {
 };
 
 /**
- * Logs pool health monitoring failure.
- *
- * @param {Error} error - The error encountered during monitoring.
- */
-const logDbPoolHealthError = (error) => {
-  logSystemException(error, 'Error during pool monitoring', {
-    context: 'pool-monitor',
-    severity: 'warning',
-  });
-};
-
-/**
  * Logs a paginated query failure using structured metadata.
  *
  * @param {Error} error - The thrown error object.
@@ -368,7 +356,6 @@ module.exports = {
   logDbQueryError,
   logDbTransactionEvent,
   logDbPoolHealth,
-  logDbPoolHealthError,
   logPaginatedQueryError,
   logLockRowError,
   logLockRowsError,
