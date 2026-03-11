@@ -77,6 +77,16 @@ const STATUS_KEY_LOOKUP = [
     name: 'pending',
   },
   {
+    key: 'batch_received',
+    table: 'batch_status',
+    name: 'received',
+  },
+  {
+    key: 'batch_quarantined',
+    table: 'batch_status',
+    name: 'quarantined',
+  },
+  {
     key: 'inventory_in_stock',
     table: 'inventory_status',
     name: 'in_stock',
