@@ -34,6 +34,7 @@ const {
   logSystemInfo,
   logSystemWarn,
   logSystemDebug,
+  logSystemError,
 } = require('../utils/system-logger');
 const { generateTraceId } = require('../utils/id-utils');
 const {
@@ -1295,27 +1296,59 @@ const bulkInsert = async (
 };
 
 /**
- * Generic PG-based single-record update by ID with optional metadata fields.
+ * Generic PostgreSQL helper for updating a single record by ID.
  *
- * Performs a parameterized SQL UPDATE for a given table and ID, optionally injecting
- * audit metadata fields like `updated_at` and `updated_by`. This function is safe for use
- * inside transactions and supports customizable field names via the `options` parameter.
+ * This utility performs a parameterized UPDATE query on a specified table
+ * and returns the updated record's ID. It supports automatic audit field
+ * injection (`updated_at`, `updated_by`) and enforces basic protections
+ * against invalid updates.
  *
- * @param {string} table - The name of the table to update.
- * @param {string} id - The primary key (UUID) of the record to update.
- * @param {object} updates - An object representing the fields and values to update.
- * @param {string} [userId] - Optional user ID to populate the `updated_by` field.
- * @param {object} client - The PostgreSQL client or transaction object.
- * @param {object} [options] - Optional configuration for metadata fields.
- * @param {string} [options.updatedAtField='updated_at'] - Name of the timestamp field.
- * @param {string} [options.updatedByField='updated_by'] - Name of the user ID field.
+ * Designed for repository-layer usage and safe to call inside transactions.
  *
- * @returns {Promise<object>} The updated record's ID: `{ id: string }`.
+ * Features:
+ * - parameterized SQL queries
+ * - identifier validation (schema + table)
+ * - audit metadata injection
+ * - protected column enforcement
+ * - structured logging and error handling
  *
- * @throws {AppError} Throws a validation error for bad input, or a database error if the update fails.
+ * @param {string} table
+ * Target table name.
  *
- * @warning Ensure that the target table contains the metadata fields (`updated_at`, `updated_by`) or their configured equivalents.
- *          If these columns are not present, the query will fail at runtime.
+ * @param {string} id
+ * Primary key UUID of the record to update.
+ *
+ * @param {Object} updates
+ * Object containing fields and values to update.
+ *
+ * @param {string|null} [userId]
+ * Optional user ID used to populate the `updated_by` column.
+ *
+ * @param {import('pg').PoolClient} client
+ * PostgreSQL client or active transaction client.
+ *
+ * @param {Object} [options]
+ *
+ * @param {string} [options.schema='public']
+ * Target schema name.
+ *
+ * @param {string|null} [options.updatedAtField='updated_at']
+ * Timestamp field used for automatic update tracking.
+ *
+ * @param {string|null} [options.updatedByField='updated_by']
+ * User field used for automatic update tracking.
+ *
+ * @returns {Promise<{ id: string }>}
+ * Returns the updated record identifier.
+ *
+ * @throws {AppError}
+ * - ValidationError if inputs are invalid
+ * - NotFoundError if record does not exist
+ * - DatabaseError if the update fails
+ *
+ * @warning
+ * Ensure the target table contains the configured audit fields
+ * (`updated_at`, `updated_by`) if they are enabled.
  */
 const updateById = async (
   table,
@@ -1325,48 +1358,116 @@ const updateById = async (
   client,
   options = {}
 ) => {
-  const { updatedAtField = 'updated_at', updatedByField = 'updated_by' } =
-    options;
-
+  const {
+    schema = 'public',
+    updatedAtField = 'updated_at',
+    updatedByField = 'updated_by',
+  } = options;
+  
+  //------------------------------------------------------------
+  // Validate inputs
+  //------------------------------------------------------------
   if (!id || typeof id !== 'string' || !table || typeof table !== 'string') {
-    throw AppError.validationError('Invalid parameters for updateById');
+    logSystemError('Invalid parameters passed to updateById', {
+      context: 'db/updateById',
+      table,
+      id,
+    });
+    
+    throw AppError.validationError('Invalid update request.');
   }
-
+  
+  //------------------------------------------------------------
+  // Prevent SQL injection on identifiers
+  //------------------------------------------------------------
+  assertAllowed(schema, table);
+  
   const updateData = { ...updates };
-
-  if (updatedAtField) updateData[updatedAtField] = new Date();
-  if (userId && updatedByField) updateData[updatedByField] = userId;
-
+  
+  //------------------------------------------------------------
+  // Inject updated_by metadata
+  //------------------------------------------------------------
+  if (userId && updatedByField) {
+    updateData[updatedByField] = userId;
+  }
+  
+  //------------------------------------------------------------
+  // Protect restricted columns
+  //------------------------------------------------------------
+  const PROTECTED_FIELDS = new Set(['id', 'created_at', 'created_by']);
+  
+  Object.keys(updateData).forEach((key) => {
+    if (PROTECTED_FIELDS.has(key)) {
+      logSystemError('Attempted update of protected column', {
+        context: 'db/updateById',
+        field: key,
+        table,
+      });
+      
+      throw AppError.validationError('Invalid update field.');
+    }
+    
+    // Remove undefined fields so they don't break SQL
+    if (updateData[key] === undefined) {
+      delete updateData[key];
+    }
+  });
+  
+  //------------------------------------------------------------
+  // Build update field list
+  //------------------------------------------------------------
   const fields = Object.keys(updateData);
-  if (fields.length === 0) {
+  
+  if (fields.length === 0 && !updatedAtField) {
     throw AppError.validationError('No fields provided to update.');
   }
-
-  const setClauses = fields.map((field, idx) => `${field} = $${idx + 2}`);
+  
+  //------------------------------------------------------------
+  // Build SET clause
+  //------------------------------------------------------------
+  const setClauses =
+    fields.map((field, idx) => `${field} = $${idx + 2}`);
+  
+  //------------------------------------------------------------
+  // Automatically update timestamp using DB clock
+  //------------------------------------------------------------
+  if (updatedAtField) {
+    setClauses.push(`${updatedAtField} = NOW()`);
+  }
+  
   const values = [id, ...fields.map((f) => updateData[f])];
-
+  
   const sql = `
-    UPDATE ${table}
+    UPDATE ${schema}.${table}
     SET ${setClauses.join(', ')}
     WHERE id = $1
     RETURNING id
   `;
-
+  
   try {
-    const result = await client.query(sql, values);
+    const result = await query(sql, values, client);
+    
     if (result.rowCount === 0) {
-      throw AppError.notFoundError(
-        `Record not found in '${table}' with id: ${id}`
-      );
+      logSystemError('Record not found during update', {
+        context: 'db/updateById',
+        schema,
+        table,
+        id,
+      });
+      
+      throw AppError.notFoundError('Record not found.');
     }
-    return result.rows[0]; // { id: '...' }
+    
+    return result.rows[0];
   } catch (error) {
     logSystemException(error, 'Failed to update record by ID', {
       context: 'db/updateById',
+      schema,
       table,
       id,
       fields: Object.keys(updates),
     });
+    
     throw AppError.databaseError(`Failed to update ${table} record.`);
   }
 };
