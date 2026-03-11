@@ -1,7 +1,7 @@
 const {
   buildProductBatchFilter,
 } = require('../utils/sql/build-product-batch-filters');
-const { paginateResults, bulkInsert } = require('../database/db');
+const { paginateResults, bulkInsert, updateById, query } = require('../database/db');
 const {
   logSystemInfo,
   logSystemException,
@@ -270,7 +270,143 @@ const insertProductBatchesBulk = async (productBatches, client) => {
   }
 };
 
+/**
+ * Fetch minimal product batch data required for lifecycle workflows.
+ *
+ * @param {string} batchId
+ * @param {import('pg').PoolClient} client
+ * @returns {Promise<{
+ *   id: string,
+ *   status_id: string,
+ *   status_name: string,
+ *   batch_registry_id: string|null
+ * } | null>}
+ */
+const getProductBatchById = async (batchId, client) => {
+  const context = 'product-batch-repository/getProductBatchById';
+  
+  const queryText = `
+    SELECT
+      pb.id,
+      pb.status_id,
+      bs.name AS status_name,
+      br.id AS batch_registry_id
+    FROM product_batches pb
+    JOIN batch_status bs
+      ON bs.id = pb.status_id
+    LEFT JOIN batch_registry br
+      ON br.product_batch_id = pb.id
+    WHERE pb.id = $1
+  `;
+  
+  try {
+    const { rows } = await query(queryText, [batchId], client);
+    
+    if (rows.length === 0) {
+      logSystemInfo('No product batch found for given ID', {
+        context,
+        batchId,
+      });
+      return null;
+    }
+    
+    logSystemInfo('Fetched product batch successfully', {
+      context,
+      batchId,
+    });
+    
+    return rows[0];
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch product batch', {
+      context,
+      batchId,
+      error: error.message,
+    });
+    
+    throw AppError.databaseError('Failed to fetch product batch', {
+      details: {
+        context,
+        message: error.message,
+      }
+    });
+  }
+};
+
+/**
+ * Update product batch metadata.
+ *
+ * This function performs a partial update on the product_batches table.
+ * Only fields provided in the params object will be updated.
+ *
+ * @param {Object} params
+ * @param {string} params.batchId
+ * @param {string|null} [params.lotNumber]
+ * @param {string|null} [params.manufacturerId]
+ * @param {string|null} [params.manufactureDate]
+ * @param {string|null} [params.expiryDate]
+ * @param {number|null} [params.initialQuantity]
+ * @param {string|null} [params.notes]
+ * @param {string|null} [params.statusId]
+ * @param {string|null} [params.releasedBy]
+ * @param {string|null} [params.releasedByManufacturerId]
+ * @param {string} params.updatedBy
+ * @param {import('pg').PoolClient} client
+ *
+ * @returns {Promise<Object>}
+ */
+const updateProductBatch = async (params, client) => {
+  const context = 'product-batch-repository/updateProductBatch';
+  
+  const {
+    batchId,
+    lotNumber,
+    manufacturerId,
+    manufactureDate,
+    expiryDate,
+    initialQuantity,
+    notes,
+    statusId,
+    releasedBy,
+    releasedByManufacturerId,
+    updatedBy,
+  } = params;
+  
+  const updates = {
+    lot_number: lotNumber,
+    manufacturer_id: manufacturerId,
+    manufacture_date: manufactureDate,
+    expiry_date: expiryDate,
+    initial_quantity: initialQuantity,
+    notes,
+    status_id: statusId,
+    released_by: releasedBy,
+    released_by_manufacturer_id: releasedByManufacturerId,
+  };
+  
+  try {
+    return await updateById(
+      'product_batches',
+      batchId,
+      updates,
+      updatedBy,
+      client
+    );
+  } catch (error) {
+    logSystemException(error, 'Failed to update product batch', {
+      context,
+      batchId,
+    });
+    
+    throw AppError.databaseError('Failed to update product batch', {
+      context,
+      cause: error,
+    });
+  }
+};
+
 module.exports = {
   getPaginatedProductBatches,
   insertProductBatchesBulk,
+  getProductBatchById,
+  updateProductBatch,
 };

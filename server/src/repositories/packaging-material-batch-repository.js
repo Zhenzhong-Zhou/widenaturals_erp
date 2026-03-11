@@ -1,8 +1,11 @@
 const {
   buildPackagingMaterialBatchFilter,
 } = require('../utils/sql/build-packaging-material-batch-filters');
-const { paginateResults, bulkInsert } = require('../database/db');
-const { logSystemInfo, logSystemException } = require('../utils/system-logger');
+const { paginateResults, bulkInsert, updateById, query } = require('../database/db');
+const {
+  logSystemInfo,
+  logSystemException
+} = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
 /**
@@ -331,7 +334,164 @@ const insertPackagingMaterialBatchesBulk = async (
   }
 };
 
+/**
+ * Fetch minimal packaging material batch data required for lifecycle workflows.
+ *
+ * @param {string} batchId
+ * @param {import('pg').PoolClient} client
+ *
+ * @returns {Promise<{
+ *   id: string,
+ *   status_id: string,
+ *   status_name: string,
+ *   batch_registry_id: string|null
+ * } | null>}
+ */
+const getPackagingMaterialBatchById = async (batchId, client) => {
+  const context = 'packaging-material-batch-repository/getPackagingMaterialBatchById';
+  
+  const queryText = `
+    SELECT
+      pmb.id,
+      pmb.status_id,
+      bs.name AS status_name,
+      br.id AS batch_registry_id
+    FROM packaging_material_batches pmb
+    JOIN batch_status bs
+      ON bs.id = pmb.status_id
+    LEFT JOIN batch_registry br
+      ON br.packaging_material_batch_id = pmb.id
+    WHERE pmb.id = $1
+  `;
+  
+  try {
+    const { rows } = await query(queryText, [batchId], client);
+    
+    if (rows.length === 0) {
+      logSystemInfo('No packaging material batch found for given ID', {
+        context,
+        batchId,
+      });
+      
+      return null;
+    }
+    
+    logSystemInfo('Fetched packaging material batch successfully', {
+      context,
+      batchId,
+    });
+    
+    return rows[0];
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch packaging material batch', {
+      context,
+      batchId,
+      error: error.message,
+    });
+    
+    throw AppError.databaseError('Failed to fetch packaging material batch', {
+      details: {
+        context,
+        message: error.message,
+      }
+    });
+  }
+};
+
+/**
+ * Update packaging material batch metadata.
+ *
+ * This function performs a partial update on the
+ * `packaging_material_batches` table. Only fields provided
+ * in the params object will be updated.
+ *
+ * @param {Object} params
+ * @param {string} params.batchId
+ * @param {string|null} [params.packagingMaterialSupplierId]
+ * @param {string|null} [params.lotNumber]
+ * @param {string|null} [params.materialSnapshotName]
+ * @param {string|null} [params.receivedLabelName]
+ * @param {number|null} [params.quantity]
+ * @param {string|null} [params.unit]
+ * @param {string|null} [params.manufactureDate]
+ * @param {string|null} [params.expiryDate]
+ * @param {number|null} [params.unitCost]
+ * @param {string|null} [params.currency]
+ * @param {number|null} [params.exchangeRate]
+ * @param {number|null} [params.totalCost]
+ * @param {string|null} [params.statusId]
+ * @param {string|null} [params.receivedAt]
+ * @param {string|null} [params.receivedBy]
+ * @param {string} params.updatedBy
+ * @param {import('pg').PoolClient} client
+ *
+ * @returns {Promise<Object>}
+ */
+const updatePackagingMaterialBatch = async (params, client) => {
+  const context = 'packaging-material-batch-repository/updatePackagingMaterialBatch';
+  
+  const {
+    batchId,
+    packagingMaterialSupplierId,
+    lotNumber,
+    materialSnapshotName,
+    receivedLabelName,
+    quantity,
+    unit,
+    manufactureDate,
+    expiryDate,
+    unitCost,
+    currency,
+    exchangeRate,
+    totalCost,
+    statusId,
+    receivedAt,
+    receivedBy,
+    updatedBy,
+  } = params;
+  
+  const updates = {
+    packaging_material_supplier_id: packagingMaterialSupplierId,
+    lot_number: lotNumber,
+    material_snapshot_name: materialSnapshotName,
+    received_label_name: receivedLabelName,
+    quantity,
+    unit,
+    manufacture_date: manufactureDate,
+    expiry_date: expiryDate,
+    unit_cost: unitCost,
+    currency,
+    exchange_rate: exchangeRate,
+    total_cost: totalCost,
+    status_id: statusId,
+    received_at: receivedAt,
+    received_by: receivedBy,
+  };
+  
+  try {
+    return await updateById(
+      'packaging_material_batches',
+      batchId,
+      updates,
+      updatedBy,
+      client
+    );
+  } catch (error) {
+    logSystemException(error, 'Failed to update packaging material batch', {
+      context,
+      batchId,
+    });
+    
+    throw AppError.databaseError('Failed to update packaging material batch', {
+      context,
+      cause: error,
+    });
+  }
+};
+
 module.exports = {
   getPaginatedPackagingMaterialBatches,
   insertPackagingMaterialBatchesBulk,
+  getPackagingMaterialBatchById,
+  updatePackagingMaterialBatch,
 };

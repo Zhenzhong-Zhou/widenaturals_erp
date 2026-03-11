@@ -3,18 +3,34 @@ const {
   applyProductBatchVisibilityRules,
 } = require('../business/product-batch-business');
 const {
-  getPaginatedProductBatches, insertProductBatchesBulk,
+  getPaginatedProductBatches,
+  insertProductBatchesBulk,
+  updateProductBatch,
+  getProductBatchById,
 } = require('../repositories/product-batch-repository');
-const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const {
-  transformPaginatedProductBatchResults, transformProductBatchRecords,
+  logSystemInfo,
+  logSystemException
+} = require('../utils/system-logger');
+const {
+  transformPaginatedProductBatchResults,
+  transformProductBatchRecords,
 } = require('../transformers/product-batch-transformer');
 const AppError = require('../utils/AppError');
 const { withTransaction, lockRows } = require('../database/db');
 const { validateRequiredFields } = require('../utils/validation/validation-utils');
 const { getStatusId } = require('../config/status-cache');
-const { registerBatchWorkflow } = require('../business/batches/register-batch-workflow');
+const {
+  registerBatchWorkflow,
+  updateBatchWorkflow,
+} = require('../business/batches/batch-workflow');
+const { getBatchActivityType } = require('../business/batches/batch-activity-resolvers');
 const { getBatchActivityTypeId } = require('../cache/batch-activity-type-cache');
+const {
+  BATCH_EDIT_RULES,
+  BATCH_STATUS_TRANSITIONS
+} = require('../utils/constants/domain/product-batch-constants');
+const { transformIdOnlyResult } = require('../transformers/common/id-result-transformer');
 
 /**
  * Service: Fetch paginated product batch records for UI consumption.
@@ -298,7 +314,106 @@ const createProductBatchesService = async (productBatches, user) => {
   });
 };
 
+/**
+ * Adjust a product batch and record related batch activity.
+ *
+ * This service executes the batch update workflow inside a database
+ * transaction and ensures that:
+ *
+ * - batch lifecycle rules are enforced
+ * - metadata updates are applied safely
+ * - status transitions are validated
+ * - activity logs are recorded for auditing
+ *
+ * Responsibilities:
+ * - Validate input parameters
+ * - Open transaction boundary
+ * - Execute the batch workflow
+ * - Transform response payload
+ * - Record structured system logs
+ *
+ * @async
+ *
+ * @param {string} batchId - Product batch identifier
+ * @param {Object} updates - Fields to update
+ * @param {string} actorId - User performing the adjustment
+ *
+ * @returns {Promise<{id: string}>} Updated batch identifier
+ */
+const productBatchAdjustService = async (
+  batchId,
+  updates,
+  actorId
+) => {
+  return withTransaction(async (client) => {
+    const context = 'product-batch-service/productBatchAdjustService';
+    
+    try {
+      //------------------------------------------------------------
+      // 1. Validate input
+      //------------------------------------------------------------
+      if (!batchId) {
+        throw AppError.validationError('batchId is required.', { context });
+      }
+      
+      if (!updates || typeof updates !== 'object') {
+        throw AppError.validationError('Invalid updates payload.', { context });
+      }
+      
+      if (!actorId) {
+        throw AppError.validationError('actorId is required.', { context });
+      }
+      
+      //------------------------------------------------------------
+      // 2. Execute batch workflow
+      //------------------------------------------------------------
+      const updatedBatch = await updateBatchWorkflow({
+        batchId,
+        updates,
+        actorId,
+        client,
+        getBatchFn: getProductBatchById,
+        updateBatchFn: updateProductBatch,
+        editRules: BATCH_EDIT_RULES,
+        statusTransitions: BATCH_STATUS_TRANSITIONS,
+        batchType: 'product',
+        activityTypeResolver: getBatchActivityType
+      });
+      
+      //------------------------------------------------------------
+      // 3. Transform response
+      //------------------------------------------------------------
+      const transformedResult =
+        transformIdOnlyResult([updatedBatch]);
+      
+      //------------------------------------------------------------
+      // 4. System log
+      //------------------------------------------------------------
+      logSystemInfo('Product batch adjusted successfully', {
+        context,
+        batchId,
+        actorId
+      });
+      
+      return transformedResult[0];
+    } catch (error) {
+      logSystemException(error, 'Failed to adjust product batch', {
+        context,
+        batchId
+      });
+      
+      if (error instanceof AppError) throw error;
+      
+      throw AppError.databaseError('Failed to adjust product batch.', {
+        cause: error,
+        context
+      });
+    }
+  });
+};
+
 module.exports = {
   fetchPaginatedProductBatchesService,
   createProductBatchesService,
+  productBatchAdjustService,
 };
