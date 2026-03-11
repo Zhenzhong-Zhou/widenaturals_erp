@@ -16,7 +16,6 @@ const {
   logDbQueryError,
   logDbTransactionEvent,
   logDbPoolHealth,
-  logDbPoolHealthError,
   logPaginatedQueryError,
   logLockRowError,
   logLockRowsError,
@@ -41,7 +40,6 @@ const {
   assertAllowed,
   qualify,
   q,
-  isSafeIdent,
 } = require('../utils/sql-ident');
 const { uniq } = require('../utils/array-utils');
 
@@ -50,6 +48,7 @@ loadEnv();
 const connectionConfig = getConnectionConfig();
 
 // Configure the database connection pool
+/** @type {import('pg').Pool} */
 const pool = new Pool({
   ...connectionConfig,
   max: 10, // Maximum number of connections in the pool
@@ -57,13 +56,24 @@ const pool = new Pool({
   connectionTimeoutMillis: 2000, // Time to wait for a connection before timing out
 });
 
-pool.on('connect', logDbConnect);
-pool.on('error', (err) => {
+/**
+ * Handles unexpected database pool errors.
+ *
+ * @param {Error} err
+ */
+const handlePoolError = (err) => {
   logDbError(err);
+  
   throw AppError.databaseError('Unexpected database connection error', {
-    details: { error: err },
+    details: {
+      message: err.message,
+      code: err.code,
+    }
   });
-});
+};
+
+pool.on('connect', logDbConnect);
+pool.on('error', handlePoolError);
 
 /**
  * Retry a function with exponential backoff.
@@ -112,7 +122,7 @@ const retry = async (fn, retries = 3, backoffFactor = 1000) => {
  * @param {number} [retries=3] - Number of retry attempts.
  * @param {number} [backoff=200] - Backoff in ms between retries.
  * @param {Object} meta={} - Optional metadata for logging (e.g., traceId, txId, context).
- * @returns {Promise<object>} - Query result.
+ * @returns {Promise<import('pg').QueryResult>} - Query result.
  * @throws {AppError} - Custom database error if all retries fail.
  */
 const query = async (
@@ -176,7 +186,7 @@ const getClient = async () => {
       context: 'db/getClient/db-client',
       severity: 'critical',
     });
-
+    
     throw AppError.databaseError('Failed to acquire a database client', {
       details: { error: error.message },
     });
@@ -265,28 +275,34 @@ const testConnection = async () => {
 };
 
 /**
+ * @typedef {Object} PgPoolMetrics
+ * @property {number} totalCount
+ * @property {number} idleCount
+ * @property {number} waitingCount
+ */
+
+/**
+ * @typedef {import('pg').Pool & PgPoolMetrics} PgPoolWithMetrics
+ */
+
+/**
  * Logs current pool statistics.
  * Useful for monitoring pool health and client load.
  *
- * @returns {Promise<object>} - The current pool metrics.
+ * @returns {{ totalClients: number, idleClients: number, waitingRequests: number }}
  */
-const monitorPool = async () => {
-  try {
-    const metrics = {
-      totalClients: pool.totalCount,
-      idleClients: pool.idleCount,
-      waitingRequests: pool.waitingCount,
-    };
-
-    logDbPoolHealth(metrics);
-    return metrics;
-  } catch (error) {
-    logDbPoolHealthError(error);
-
-    throw AppError.serviceError('Failed to retrieve pool metrics', {
-      details: { error: error.message },
-    });
-  }
+const monitorPool = () => {
+  /** @type {PgPoolWithMetrics} */
+  const typedPool = pool;
+  
+  const metrics = {
+    totalClients: typedPool.totalCount,
+    idleClients: typedPool.idleCount,
+    waitingRequests: typedPool.waitingCount,
+  };
+  
+  logDbPoolHealth(metrics);
+  return metrics;
 };
 
 let poolClosed = false; // Flag to track if the pool has already been closed
@@ -343,6 +359,7 @@ const closePool = async () => {
  * @throws {AppError} - If connection fails after all retries.
  */
 const retryDatabaseConnection = async (config, retries = 5) => {
+  /** @type {import('pg').Pool} */
   const tempPool = new Pool(config);
   let attempts = 0;
 
@@ -521,8 +538,9 @@ const generateCountQuery = (
  * @param {number} [options.limit=10] - Number of records per page.
  * @param {string} [options.sortBy='id'] - Column to sort by (default: 'id').
  * @param {string} [options.sortOrder='ASC'] - Sorting order ('ASC' or 'DESC').
+ * @param {import('pg').Pool|import('pg').PoolClient} [clientOrPool]
  * @param {Object} meta={} - Optional additional metadata.
- * @returns {Promise<Object>} - Returns an object with `data` (records) and `pagination` (metadata).
+ * @returns {Promise<import('pg').QueryResult>} - Returns an object with `data` (records) and `pagination` (metadata).
  * @throws {AppError} - Throws an error if the query execution fails.
  */
 const paginateQuery = async ({
@@ -619,7 +637,7 @@ const paginateQuery = async ({
  * @param {number} limit - Number of records to return (default: 10).
  * @param {string | null} sortBy - Column to sort the results by (optional).
  * @param {'ASC' | 'DESC'} sortOrder - Sort direction (default: 'ASC').
- * @param {string} [additionalSort] - Additional sort logic (e.g., 'created_at DESC, id ASC').
+ * @param {string | null} [additionalSort] - Additional sort logic (e.g., 'created_at DESC, id ASC').
  * @param {any} clientOrPool - Instance of pg client or pool used to run the query (default: `pool`).
  * @param {object} [meta] - Optional metadata object for structured logging.
  * @param {boolean} [useDistinct=false] - If true, applies `COUNT(DISTINCT ...)` to avoid row inflation.
@@ -771,8 +789,13 @@ const paginateResults = async ({
       query(paginatedQuery, paginatedParams),
       query(countQuery, params),
     ]);
-
-    const totalRecords = parseInt(countResult.rows[0]?.total_count, 10) || 0;
+    
+    /** @typedef {{ total_count: string | number }} CountRow */
+    
+    /** @type {CountRow[]} */
+    const countRows = countResult.rows;
+    
+    const totalRecords = parseInt(countRows[0]?.total_count ?? 0, 10);
     const totalPages = Math.ceil(totalRecords / limit);
 
     return {
@@ -837,6 +860,7 @@ const lockRow = async (
   if (primaryKeyCache.has(table)) {
     tablePrimaryKey = primaryKeyCache.get(table);
   } else {
+    /** @typedef {{ primary_key: string }} PrimaryKeyRow */
     const primaryKeySql = `
       SELECT a.attname AS primary_key
       FROM pg_index i
@@ -845,12 +869,16 @@ const lockRow = async (
     `;
     try {
       const result = await query(primaryKeySql, [table], client);
-      if (result.rows.length === 0) {
+      
+      /** @type {PrimaryKeyRow[]} */
+      const rows = result.rows;
+      
+      if (rows.length === 0) {
         throw AppError.validationError(
           `No primary key found for table: ${maskedTable}`
         );
       }
-      tablePrimaryKey = result.rows[0].primary_key;
+      tablePrimaryKey = rows[0]?.primary_key;
       primaryKeyCache.set(table, tablePrimaryKey); // Cache result
     } catch (error) {
       logLockRowError(
@@ -1034,6 +1062,7 @@ const applyUpdateRule = (col, strategy, tableAlias = 'table') => {
     case 'merge_text':
       return buildMergeExpression(col, tableAlias, 'text');
     case 'keep':
+    case 'preserve':
       return null; // Skip update
     case 'overwrite':
     default:
@@ -1088,31 +1117,58 @@ const buildMergeExpression = (col, tableAlias, type = 'text') => {
 /**
  * Inserts multiple rows into a specified database table in bulk.
  *
- * Dynamically builds an `INSERT INTO ... VALUES` SQL statement, with optional
- * `ON CONFLICT` handling to either ignore duplicates or perform an upsert.
- * Supports returning specific columns (e.g., `id`, `*`, etc.) after execution.
- * Supports multiple update strategies (add, subtract, etc.).
+ * Dynamically builds an `INSERT INTO ... VALUES` SQL statement with optional
+ * `ON CONFLICT` handling. Conflicts can either be ignored (`DO NOTHING`)
+ * or resolved with an `UPDATE` strategy defined per column.
  *
- * @param {string} tableName - Name of the target table.
- * @param {string[]} columns - Array of column names to insert.
- * @param {Array<Array<any>>} rows - 2D array of rows, each matching the column structure.
- * @param {string[]} [conflictColumns=[]] - Columns that define a unique constraint for conflict resolution.
- * @param {Object} [updateStrategies={}] - Map of columns to update strategy.
- * @param {object} clientOrPool - The PostgreSQL client or pool to run the query.
- * @param {Object} [meta={}] - Optional metadata for logging or tracing purposes.
- * @param {string} [returning='RETURNING id'] - Custom RETURNING clause (e.g. `'RETURNING *'`, `'RETURNING id, status_id'`).
- * @returns {Promise<Array<Object>>} - Resolves to inserted or updated rows if `RETURNING` is specified.
+ * Supports returning specific columns after execution (e.g. `id`, `*`).
  *
- * @throws {AppError} - Throws a wrapped database error on failure.
+ * @param {string} tableName
+ * Name of the target table.
+ *
+ * @param {string[]} columns
+ * Ordered list of column names to insert.
+ *
+ * @param {Array<Array<any>>} rows
+ * 2D array of row values. Each inner array must match the order and length
+ * of the `columns` array.
+ *
+ * @param {string[]} [conflictColumns=[]]
+ * Columns that define the unique constraint used for `ON CONFLICT`.
+ *
+ * @param {Object<string,string>} [updateStrategies={}]
+ * Map of column names to update strategies used in `DO UPDATE`.
+ * Example strategies may include:
+ * - `'set'` → replace existing value
+ * - `'add'` → increment numeric column
+ * - `'subtract'` → decrement numeric column
+ *
+ * @param {object} [clientOrPool=pool]
+ * PostgreSQL client or connection pool used to execute the query.
+ *
+ * @param {Object} [meta={}]
+ * Optional metadata used for structured logging or tracing.
+ *
+ * @param {string} [returning='id']
+ * Columns to return after insertion (e.g. `'id'`, `'*'`, `'id, status_id'`).
+ * If falsy, no `RETURNING` clause will be included.
+ *
+ * @returns {Promise<number | Object[]>}
+ * Returns:
+ * - `0` if no rows were provided
+ * - inserted or updated rows when a `RETURNING` clause is used
+ *
+ * @throws {AppError}
+ * Throws a wrapped `databaseError` if the insert fails.
  *
  * @example
- * // Basic insert with no conflict handling
+ * // Basic insert
  * await bulkInsert(
  *   'inventory',
  *   ['product_id', 'location_id', 'quantity'],
  *   [['p1', 'loc-a', 100], ['p2', 'loc-b', 50]],
  *   [],
- *   [],
+ *   {},
  *   pool
  * );
  *
@@ -1123,7 +1179,7 @@ const buildMergeExpression = (col, tableAlias, type = 'text') => {
  *   ['product_id', 'location_id', 'quantity'],
  *   [['p1', 'loc-a', 100]],
  *   ['product_id', 'location_id'],
- *   [],
+ *   {},
  *   pool
  * );
  *
@@ -1134,10 +1190,10 @@ const buildMergeExpression = (col, tableAlias, type = 'text') => {
  *   ['product_id', 'location_id', 'quantity'],
  *   [['p1', 'loc-a', 100]],
  *   ['product_id', 'location_id'],
- *   ['quantity'],
+ *   { quantity: 'set' },
  *   pool,
  *   {},
- *   'RETURNING *'
+ *   '*'
  * );
  */
 const bulkInsert = async (
@@ -1179,8 +1235,13 @@ const bulkInsert = async (
     if (updateCols.length > 0) {
       const updateSet = updateCols
         .map((col) => applyUpdateRule(col, updateStrategies[col], tableName))
-        .join(', ');
-      conflictClause = `ON CONFLICT (${conflictColumns.join(', ')}) DO UPDATE SET ${updateSet}`;
+        .filter(Boolean);
+      
+      if (updateSet.length > 0) {
+        conflictClause = `ON CONFLICT (${conflictColumns.join(', ')}) DO UPDATE SET ${updateSet.join(', ')}`;
+      } else {
+        conflictClause = `ON CONFLICT (${conflictColumns.join(', ')}) DO NOTHING`;
+      }
     } else {
       conflictClause = `ON CONFLICT (${conflictColumns.join(', ')}) DO NOTHING`;
     }
@@ -1328,7 +1389,7 @@ const updateById = async (
  * @param {Object} columnTypes - (Optional) An object mapping column names to their SQL types.
  *   - Example: { reserved_quantity: 'integer', available_quantity: 'integer', status: 'text' }
  *
- * @returns {Promise<{ baseQuery: string, params: any[] } | null>} The SQL update query and parameters,
+ * @returns {{ baseQuery: string, params: any[] } | null} The SQL update query and parameters,
  *   or null if `data` is empty.
  *
  * @throws {Error} If query generation fails.
@@ -1391,7 +1452,10 @@ const formatBulkUpdateQuery = (
     RETURNING ${table}.id;
   `;
 
-  return { baseQuery, params };
+  return {
+    baseQuery,
+    params
+  };
 };
 
 /**
