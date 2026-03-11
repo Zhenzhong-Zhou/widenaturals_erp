@@ -245,11 +245,11 @@ const createPackagingMaterialBatchesService = async (
       // ------------------------------------------------------------
       // 3. Prepare batch records
       // ------------------------------------------------------------
-      const activeStatusId = getStatusId('batch_released');
+      const pendingStatusId = getStatusId('batch_pending');
       
       const preparedBatches = packagingMaterialBatches.map((batch) => ({
         ...batch,
-        status_id: batch.status_id ?? activeStatusId,
+        status_id: pendingStatusId,
         created_by: actorId,
       }));
       
