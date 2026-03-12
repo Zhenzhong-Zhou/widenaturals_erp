@@ -87,67 +87,80 @@ const registerBatchWorkflow = async ({
 };
 
 /**
- * Generic batch update workflow used for lifecycle and metadata updates.
+ * Generic batch update workflow shared by batch domains such as
+ * product batches and packaging material batches.
  *
  * Responsibilities:
+ * - loads the current batch record
+ * - validates requested updates against lifecycle edit rules
+ * - resolves user access control
+ * - enforces permission-based editable field restrictions
  * - validates lifecycle status transitions
- * - enforces editable fields per lifecycle state
- * - applies lifecycle automation (received_at / released_at timestamps)
- * - updates the batch record via repository
+ * - applies lifecycle automation (for example `received_at`, `released_at`)
+ * - updates the batch record through the repository layer
  * - generates lifecycle and metadata activity logs
+ * - persists activity logs in the same transaction
  *
- * This workflow is shared across batch domains
- * such as product batches and packaging material batches.
+ * This workflow is intended to centralize shared mutation logic so that
+ * product batch and packaging material batch services stay consistent.
  *
  * @param {Object} params
- *
- * @param {string} params.batchId
- * Unique batch identifier.
- *
- * @param {Object} params.updates
- * Partial batch fields to update.
- *
- * @param {string|null} params.actorId
- * User performing the operation.
- *
- * @param {import('pg').PoolClient} params.client
- * Active database transaction client.
+ * @param {string} params.batchId - Unique batch identifier.
+ * @param {Object} params.updates - Partial batch fields requested for update.
+ * @param {Object} params.user - Authenticated user performing the operation.
+ * @param {import('pg').PoolClient} params.client - Active database transaction client.
  *
  * @param {(id: string, client: import('pg').PoolClient) => Promise<Object|null>} params.getBatchFn
- * Repository function that retrieves the batch record.
+ * Repository function that retrieves the current batch record.
  *
  * @param {(params: Object, client: import('pg').PoolClient) => Promise<Object>} params.updateBatchFn
- * Repository function that performs the batch update.
+ * Repository function that updates the batch record.
  *
- * @param {Record<string,string[]>} params.editRules
- * Editable field whitelist per lifecycle state.
+ * @param {Record<string, string[]>} params.editRules
+ * Editable field whitelist grouped by current lifecycle status.
  *
- * @param {Record<string,string[]>} params.statusTransitions
- * Allowed lifecycle transitions.
+ * @param {Record<string, string[]>} params.statusTransitions
+ * Allowed lifecycle transitions grouped by current lifecycle status.
  *
  * @param {'product'|'packaging_material'} params.batchType
- * Batch domain used for activity logging.
+ * Batch domain used when building activity log rows.
  *
  * @param {(statusId: string) => string} params.activityTypeResolver
- * Resolver mapping a status_id to a batch activity type ID.
+ * Resolver that maps a status ID to a batch activity type ID.
+ *
+ * @param {(user: Object) => Promise<Object>} params.evaluateAccessControlFn
+ * Function that resolves access flags for the current user.
+ *
+ * @param {(params: {
+ *   batch: Object,
+ *   updates: Object,
+ *   access: Object,
+ *   editRules: Record<string, string[]>
+ * }) => Object} params.filterUpdatableFieldsFn
+ * Function that enforces permission and lifecycle-based field restrictions
+ * and returns the safe update payload.
  *
  * @returns {Promise<Object>}
- * Updated batch record returned from the repository layer.
+ * Updated batch record returned by the repository layer.
  */
 const updateBatchWorkflow = async ({
                                      batchId,
                                      updates,
-                                     actorId,
+                                     user,
                                      client,
                                      getBatchFn,
                                      updateBatchFn,
                                      editRules,
                                      statusTransitions,
                                      batchType,
-                                     activityTypeResolver
+                                     activityTypeResolver,
+                                     evaluateAccessControlFn,
+                                     filterUpdatableFieldsFn
                                    }) => {
+  const actorId = user.id;
+  
   //------------------------------------------------------------
-  // 1. Fetch current batch state
+  // 1. Load current batch state
   //------------------------------------------------------------
   const batch = await getBatchFn(batchId, client);
   
@@ -155,13 +168,9 @@ const updateBatchWorkflow = async ({
     throw AppError.notFoundError('Batch not found.');
   }
   
-  // Determine whether a lifecycle status change is requested
-  const nextStatus = updates?.status_id ?? null;
-  
   //------------------------------------------------------------
-  // 2. Prepare metadata updates
+  // 2. Normalize updates against lifecycle edit rules
   //------------------------------------------------------------
-  // Filters updates based on editable fields for the current lifecycle state
   const {
     safeUpdates,
     hasMetadataUpdates
@@ -172,11 +181,25 @@ const updateBatchWorkflow = async ({
   });
   
   //------------------------------------------------------------
-  // 3. Apply lifecycle transition engine
+  // 3. Resolve user access control
   //------------------------------------------------------------
-  // Handles:
-  // - transition validation
-  // - lifecycle automation (timestamps)
+  const access = await evaluateAccessControlFn(user);
+  
+  //------------------------------------------------------------
+  // 4. Enforce permission + lifecycle editable fields
+  //------------------------------------------------------------
+  const permittedUpdates = filterUpdatableFieldsFn({
+    batch,
+    updates: safeUpdates,
+    access,
+    editRules
+  });
+  
+  //------------------------------------------------------------
+  // 5. Validate and apply lifecycle transition side effects
+  //------------------------------------------------------------
+  const nextStatus = permittedUpdates?.status_id ?? null;
+  
   const {
     lifecycleUpdates,
     isStatusChange
@@ -188,15 +211,15 @@ const updateBatchWorkflow = async ({
   });
   
   //------------------------------------------------------------
-  // 4. Merge updates
+  // 6. Merge user-permitted updates with lifecycle automation
   //------------------------------------------------------------
   const finalUpdates = {
-    ...safeUpdates,
+    ...permittedUpdates,
     ...lifecycleUpdates
   };
   
   //------------------------------------------------------------
-  // 5. Update batch record
+  // 7. Persist batch update
   //------------------------------------------------------------
   const updatedBatch = await updateBatchFn(
     {
@@ -208,22 +231,21 @@ const updateBatchWorkflow = async ({
   );
   
   //------------------------------------------------------------
-  // 6. Build activity log rows
+  // 8. Build activity logs for lifecycle / metadata changes
   //------------------------------------------------------------
-  const activityRows =
-    buildBatchActivities({
-      batch,
-      batchType,
-      actorId,
-      nextStatus,
-      isStatusChange,
-      hasMetadataUpdates,
-      updates: finalUpdates,
-      activityTypeResolver
-    });
+  const activityRows = buildBatchActivities({
+    batch,
+    batchType,
+    actorId,
+    nextStatus,
+    isStatusChange,
+    hasMetadataUpdates,
+    updates: finalUpdates,
+    activityTypeResolver
+  });
   
   //------------------------------------------------------------
-  // 7. Insert activity logs
+  // 9. Persist activity logs
   //------------------------------------------------------------
   if (activityRows.length > 0) {
     await insertBatchActivityLogsBulk(activityRows, client);
