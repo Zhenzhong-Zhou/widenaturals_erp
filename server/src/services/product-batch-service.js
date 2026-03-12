@@ -1,6 +1,6 @@
 const {
   evaluateProductBatchVisibility,
-  applyProductBatchVisibilityRules,
+  applyProductBatchVisibilityRules, evaluateProductBatchAccessControl, filterUpdatableProductBatchFields,
 } = require('../business/product-batch-business');
 const {
   getPaginatedProductBatches,
@@ -27,8 +27,8 @@ const {
 const { getBatchActivityType } = require('../business/batches/batch-activity-resolvers');
 const { getBatchActivityTypeId } = require('../cache/batch-activity-type-cache');
 const {
-  BATCH_EDIT_RULES,
-  BATCH_STATUS_TRANSITIONS
+  PRODUCT_BATCH_EDIT_RULES,
+  PRODUCT_BATCH_STATUS_TRANSITIONS
 } = require('../utils/constants/domain/product-batch-constants');
 const { transformIdOnlyResult } = require('../transformers/common/id-result-transformer');
 
@@ -175,7 +175,6 @@ const fetchPaginatedProductBatchesService = async ({
  * - Guarantees atomicity across batch, registry, and activity tables.
  *
  * @async
- * @function createProductBatchesService
  *
  * @param {Array<Object>} productBatches
  * Product batch payloads to create.
@@ -315,53 +314,62 @@ const createProductBatchesService = async (productBatches, user) => {
 };
 
 /**
- * Adjust a product batch and record related batch activity.
+ * Service for editing product batch metadata.
  *
  * This service executes the batch update workflow inside a database
  * transaction and ensures that:
  *
- * - batch lifecycle rules are enforced
- * - metadata updates are applied safely
+ * - lifecycle rules are respected
+ * - metadata updates follow permission rules
  * - status transitions are validated
- * - activity logs are recorded for auditing
+ * - batch activity logs are generated
  *
  * Responsibilities:
- * - Validate input parameters
- * - Open transaction boundary
- * - Execute the batch workflow
- * - Transform response payload
- * - Record structured system logs
+ * - validate service inputs
+ * - open a database transaction
+ * - execute the shared batch workflow
+ * - transform the response payload
+ * - record structured system logs
  *
  * @async
  *
- * @param {string} batchId - Product batch identifier
- * @param {Object} updates - Fields to update
- * @param {string} actorId - User performing the adjustment
+ * @param {string} batchId
+ * Product batch identifier.
  *
- * @returns {Promise<{id: string}>} Updated batch identifier
+ * @param {Object} updates
+ * Partial fields to update on the batch.
+ *
+ * @param {{ id: string }} user
+ * Authenticated user performing the operation.
+ *
+ * @returns {Promise<{ id: string }>}
+ * Identifier of the updated batch.
  */
-const productBatchAdjustService = async (
+const editProductBatchMetadataService = async (
   batchId,
   updates,
-  actorId
+  user
 ) => {
   return withTransaction(async (client) => {
-    const context = 'product-batch-service/productBatchAdjustService';
+    const context =
+      'product-batch-service/editProductBatchMetadataService';
     
     try {
       //------------------------------------------------------------
-      // 1. Validate input
+      // 1. Validate service inputs
       //------------------------------------------------------------
       if (!batchId) {
-        throw AppError.validationError('batchId is required.', { context });
+        throw AppError.validationError(
+          'batchId is required.',
+          { context }
+        );
       }
       
       if (!updates || typeof updates !== 'object') {
-        throw AppError.validationError('Invalid updates payload.', { context });
-      }
-      
-      if (!actorId) {
-        throw AppError.validationError('actorId is required.', { context });
+        throw AppError.validationError(
+          'Invalid updates payload.',
+          { context }
+        );
       }
       
       //------------------------------------------------------------
@@ -370,44 +378,71 @@ const productBatchAdjustService = async (
       const updatedBatch = await updateBatchWorkflow({
         batchId,
         updates,
-        actorId,
+        user,
         client,
+        
+        // repository functions
         getBatchFn: getProductBatchById,
         updateBatchFn: updateProductBatch,
-        editRules: BATCH_EDIT_RULES,
-        statusTransitions: BATCH_STATUS_TRANSITIONS,
+        
+        // lifecycle configuration
+        editRules: PRODUCT_BATCH_EDIT_RULES,
+        statusTransitions: PRODUCT_BATCH_STATUS_TRANSITIONS,
+        
+        // batch domain type
         batchType: 'product',
-        activityTypeResolver: getBatchActivityType
+        
+        // activity resolver
+        activityTypeResolver: getBatchActivityType,
+        
+        // permission & filtering
+        evaluateAccessControlFn: evaluateProductBatchAccessControl,
+        filterUpdatableFieldsFn: filterUpdatableProductBatchFields,
       });
       
       //------------------------------------------------------------
-      // 3. Transform response
+      // 3. Transform response payload
       //------------------------------------------------------------
       const transformedResult =
         transformIdOnlyResult([updatedBatch]);
       
       //------------------------------------------------------------
-      // 4. System log
+      // 4. Structured system log
       //------------------------------------------------------------
-      logSystemInfo('Product batch adjusted successfully', {
-        context,
-        batchId,
-        actorId
-      });
+      logSystemInfo(
+        'Product batch metadata updated successfully',
+        {
+          context,
+          batchId,
+        }
+      );
       
       return transformedResult[0];
     } catch (error) {
-      logSystemException(error, 'Failed to adjust product batch', {
-        context,
-        batchId
-      });
+      //------------------------------------------------------------
+      // Error logging
+      //------------------------------------------------------------
+      logSystemException(
+        error,
+        'Failed to update product batch metadata',
+        {
+          context,
+          batchId,
+        }
+      );
       
       if (error instanceof AppError) throw error;
       
-      throw AppError.databaseError('Failed to adjust product batch.', {
-        cause: error,
-        context
-      });
+      //------------------------------------------------------------
+      // Normalize unexpected errors
+      //------------------------------------------------------------
+      throw AppError.databaseError(
+        'Failed to update product batch metadata.',
+        {
+          cause: error,
+          context,
+        }
+      );
     }
   });
 };
@@ -415,5 +450,5 @@ const productBatchAdjustService = async (
 module.exports = {
   fetchPaginatedProductBatchesService,
   createProductBatchesService,
-  productBatchAdjustService,
+  editProductBatchMetadataService,
 };

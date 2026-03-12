@@ -4,6 +4,7 @@ const { logInfo } = require('../utils/logger-helper');
 const {
   fetchPaginatedProductBatchesService,
   createProductBatchesService,
+  editProductBatchMetadataService,
 } = require('../services/product-batch-service');
 
 /**
@@ -142,7 +143,115 @@ const createProductBatchesController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * Controller for editing product batch metadata.
+ *
+ * This endpoint allows authorized users to update editable metadata
+ * fields of a product batch. Request body validation is handled by
+ * Joi middleware before the controller executes.
+ *
+ * Responsibilities:
+ * - validate required route parameters
+ * - write structured request logs
+ * - call the service layer to perform the metadata update
+ * - return a standardized success response
+ *
+ * Business rules such as lifecycle checks, permission enforcement,
+ * and field filtering are handled in the service/business layers.
+ *
+ * Route:
+ * PATCH /product-batches/:batchId/metadata
+ *
+ * Middleware requirements:
+ * - authorize(...)
+ * - validate(editProductBatchMetadataSchema, 'body')
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<void>}
+ */
+const editProductBatchMetadataController = wrapAsync(async (req, res) => {
+  const context =
+    'product-batch-controller/editProductBatchMetadataController';
+  const startTime = Date.now();
+  const traceId = `update-product-batch-${Date.now().toString(36)}`;
+  
+  //------------------------------------------------------------
+  // Extract request data
+  //------------------------------------------------------------
+  const { batchId } = req.params;
+  
+  // Already validated by Joi middleware
+  const updates = req.body;
+  const user = req.auth?.user;
+  
+  //------------------------------------------------------------
+  // Basic request validation
+  //------------------------------------------------------------
+  if (!batchId) {
+    throw AppError.validationError('batchId is required.', {
+      context,
+      traceId,
+    });
+  }
+  
+  if (!user?.id) {
+    throw AppError.authenticationError(
+      'Authenticated user required.',
+      {
+        context,
+        traceId,
+      }
+    );
+  }
+  
+  //------------------------------------------------------------
+  // Log request start
+  //------------------------------------------------------------
+  logInfo('Starting product batch metadata update request', req, {
+    context,
+    traceId,
+    userId: user.id,
+    batchId,
+  });
+  
+  //------------------------------------------------------------
+  // Execute service layer
+  //------------------------------------------------------------
+  const result = await editProductBatchMetadataService(
+    batchId,
+    updates,
+    user.id
+  );
+  
+  const elapsedMs = Date.now() - startTime;
+  
+  //------------------------------------------------------------
+  // Log completion
+  //------------------------------------------------------------
+  logInfo('Product batch metadata update completed', req, {
+    context,
+    traceId,
+    batchId,
+    elapsedMs,
+  });
+  
+  //------------------------------------------------------------
+  // Send response
+  //------------------------------------------------------------
+  res.status(200).json({
+    success: true,
+    message: 'Product batch updated successfully.',
+    stats: {
+      batchId,
+      elapsedMs,
+    },
+    data: result,
+  });
+});
+
 module.exports = {
   getPaginatedProductBatchesController,
   createProductBatchesController,
+  editProductBatchMetadataController,
 };

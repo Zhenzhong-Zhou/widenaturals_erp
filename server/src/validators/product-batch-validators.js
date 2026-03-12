@@ -8,6 +8,7 @@ const {
   validateUUID,
   requiredIsoDate,
   validatePositiveIntegerRequired,
+  validateString,
 } = require('./general-validators');
 
 /**
@@ -84,68 +85,100 @@ const productBatchQuerySchema = paginationSchema
   });
 
 /**
- * Joi schema for validating a single product batch creation payload.
+ * Base Joi schema definition for product batch fields.
  *
- * This schema ensures all required fields for creating a product batch
- * are validated before reaching the service layer.
+ * This schema contains the shared validation rules used across
+ * multiple product batch operations such as:
  *
- * Validations include:
- * - SKU association
- * - Manufacturer reference
- * - Lot number format
- * - Manufacturing and expiry dates
- * - Initial quantity
+ * - batch creation
+ * - metadata updates
+ * - bulk batch imports
  *
- * Notes and registry notes are optional fields used for internal tracking.
+ * Fields defined here represent the editable metadata of a batch.
  *
- * Security:
- * - Prevents malformed or missing data entering the service layer.
- *
- * Performance:
- * - Joi validation runs in linear time relative to the number of fields.
- * - Intended to validate individual records inside bulk requests.
+ * Note:
+ * Required/optional constraints are applied in specific schemas
+ * (create/edit workflows) using Joi `.fork()`.
  */
-const createProductBatchSchema = Joi.object({
-  // Unique lot number assigned to the production batch
-  lot_number: Joi.string().trim().max(100).required(),
+const productBatchBaseSchema = {
+  // Unique production lot number assigned to the batch
+  lot_number: validateString('Lot Number', 10, 100),
   
-  // Associated SKU identifier
-  sku_id: validateUUID('SKU ID'),
+  // Manufacturer responsible for producing the batch
+  manufacturer_id: validateUUID('Manufacturer'),
   
-  // Optional manufacturer reference
-  manufacturer_id: validateUUID('Manufacturer ID'),
-  
-  // Manufacturing date in ISO format
+  // Production manufacturing date
   manufacture_date: requiredIsoDate(),
   
-  // Expiry date in ISO format
+  // Expiry date for the batch
   expiry_date: requiredIsoDate(),
   
-  // Quantity produced in this batch
+  // Initial quantity produced during manufacturing
   initial_quantity: validatePositiveIntegerRequired(),
   
-  // Optional internal note for the batch
-  notes: validateOptionalString('Notes'),
+  // Internal notes for QA, operations, or traceability
+  notes: validateOptionalString('Notes', 500),
   
-  // Optional note stored in batch registry
-  registryNote: validateOptionalString('Registry Note'),
-});
+  // Optional note stored in the batch registry
+  registryNote: validateOptionalString('Registry Note', 500),
+};
+
+/**
+ * Joi schema for validating a single product batch creation payload.
+ *
+ * Ensures that all required fields for batch creation are present
+ * before the request reaches the service layer.
+ *
+ * Required fields:
+ * - sku_id
+ * - lot_number
+ * - manufacture_date
+ * - expiry_date
+ * - initial_quantity
+ *
+ * Optional fields:
+ * - manufacturer_id
+ * - notes
+ * - registryNote
+ *
+ * Security:
+ * - `.unknown(false)` prevents unexpected fields from entering
+ *   the application layer.
+ *
+ * Performance:
+ * - Joi validation runs in linear time relative to the number
+ *   of validated fields.
+ */
+const createProductBatchSchema = Joi.object({
+    ...productBatchBaseSchema,
+    
+    // Each batch must belong to a SKU
+    sku_id: validateUUID('SKU ID').required(),
+  })
+  .fork(
+    [
+      'lot_number',
+      'manufacture_date',
+      'expiry_date',
+      'initial_quantity',
+    ],
+    (schema) => schema.required()
+  )
+  .unknown(false);
 
 /**
  * Joi schema for validating bulk product batch creation requests.
  *
- * This schema wraps multiple product batch records and ensures:
+ * Wraps multiple batch records and ensures that:
  *
  * - At least one batch is provided
- * - No more than 200 batches are submitted in a single request
+ * - No more than 200 batches are submitted per request
  *
- * Limiting bulk size protects the system from excessive validation
- * and database load during large batch imports.
+ * Limiting bulk size prevents excessive validation and database
+ * load during large imports.
  *
- * Typical endpoint usage:
- * POST /product-batches/bulk
+ * Example request payload:
  *
- * Example payload:
  * {
  *   "productBatches": [...]
  * }
@@ -160,7 +193,69 @@ const createProductBatchBulkSchema = Joi.object({
     .required(),
 });
 
+/**
+ * Joi schema for editing product batch metadata.
+ *
+ * Allows partial updates of editable metadata fields while ensuring:
+ *
+ * - only known fields are accepted
+ * - at least one field is provided
+ *
+ * Required fields from creation become optional here using `.fork()`,
+ * allowing flexible metadata updates.
+ */
+const editProductBatchMetadataSchema = Joi.object(
+    productBatchBaseSchema
+  )
+  .fork(
+    Object.keys(productBatchBaseSchema),
+    (schema) => schema.optional()
+  )
+  .min(1)
+  .unknown(false);
+
+/**
+ * Joi schema for updating product batch lifecycle status.
+ *
+ * This schema is used for lifecycle transitions such as:
+ *
+ * - pending → received
+ * - received → released
+ *
+ * Status-specific timestamps and actors may also be included.
+ *
+ * Fields:
+ * - status_id → required lifecycle target
+ * - received_at → warehouse intake timestamp
+ * - released_at → QA or operational release timestamp
+ * - released_by → internal user responsible for release
+ * - released_by_manufacturer_id → manufacturer responsible for release
+ */
+const updateProductBatchStatusSchema = Joi.object({
+    
+    // Target lifecycle status
+    status_id: validateUUID('Status ID').required(),
+    
+    // Timestamp when batch is received into warehouse
+    received_at: optionalIsoDate('Received At'),
+    
+    // Timestamp when batch becomes operationally usable
+    released_at: optionalIsoDate('Released At'),
+    
+    // Internal user who performed release
+    released_by: validateUUID('Released By').allow(null),
+    
+    // Manufacturer who approved release
+    released_by_manufacturer_id: validateUUID(
+      'Released By Manufacturer'
+    ).allow(null),
+    
+  })
+  .unknown(false);
+
 module.exports = {
   productBatchQuerySchema,
   createProductBatchBulkSchema,
+  editProductBatchMetadataSchema,
+  updateProductBatchStatusSchema,
 };
