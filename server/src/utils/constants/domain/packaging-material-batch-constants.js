@@ -1,34 +1,43 @@
 /**
- * Defines which fields are editable for packaging material batches
- * based on the current batch status.
+ * Editable field rules for packaging material batches.
  *
- * These rules apply to the `packaging_material_batches` table and are
- * enforced in the business layer before repository updates are executed.
+ * This configuration defines which fields may be updated depending
+ * on the current lifecycle status of a batch.
  *
- * Important rules:
+ * The rules are enforced in the **business layer** before executing
+ * any repository update queries against the `packaging_material_batches` table.
+ *
+ * Key principles:
  *
  * 1. Only operational fields are listed here.
  * 2. Audit fields (`created_at`, `created_by`, `updated_at`, `updated_by`)
- *    are always handled by the server.
- * 3. Receipt metadata (`received_*`) can only be set when the batch
- *    is received into the warehouse.
- * 4. Identity fields such as supplier reference should not change
- *    after creation.
+ *    are always controlled by the server and never editable by clients.
+ * 3. Receipt metadata (`received_*`) can only be recorded once the batch
+ *    has physically arrived at the warehouse.
+ * 4. Identity fields such as supplier reference should generally remain
+ *    immutable after creation to preserve traceability.
  *
  * Typical lifecycle:
  *
  * pending → received → quarantined → released → consumed / archived
  *
+ * NOTE:
+ * These rules only control **which fields may be edited**. Actual permission
+ * checks (RBAC) are handled separately in `PACKAGING_BATCH_PERMISSION_FIELD_RULES`.
+ *
  * @type {Record<string, string[]>}
  */
 const PACKAGING_BATCH_EDIT_RULES = {
-  
   /**
-   * Initial creation stage.
+   * Initial registration stage.
    *
-   * Batch may still be corrected before warehouse receipt.
+   * The batch record exists but the physical goods may not yet
+   * have been received in the warehouse.
+   *
+   * Most metadata can still be corrected during this stage.
    */
   pending: [
+    'packaging_material_supplier_id',
     'lot_number',
     'material_snapshot_name',
     'received_label_name',
@@ -44,21 +53,33 @@ const PACKAGING_BATCH_EDIT_RULES = {
   ],
   
   /**
-   * Batch has been physically received into the warehouse.
+   * Batch has been physically received into warehouse inventory.
    *
-   * Receipt metadata may be recorded or corrected.
+   * Only limited corrections are allowed. Receipt metadata may
+   * still be adjusted if errors were made during intake.
    */
   received: [
-    'received_at',
-    'received_by',
+    'lot_number',
     'material_snapshot_name',
     'received_label_name',
+    'unit',
+    'manufacture_date',
+    'expiry_date',
+    
+    // Receipt metadata
+    'received_at',
+    'received_by',
+    
+    // Lifecycle control
     'status_id',
     'status_date'
   ],
   
   /**
-   * Batch is temporarily held due to inspection or operational issue.
+   * Batch temporarily blocked due to inspection,
+   * QA review, or operational issues.
+   *
+   * Only lifecycle transitions are allowed.
    */
   quarantined: [
     'status_id',
@@ -66,57 +87,139 @@ const PACKAGING_BATCH_EDIT_RULES = {
   ],
   
   /**
-   * Batch is approved and available for operational usage
-   * such as packaging production.
+   * Batch approved for operational usage.
+   *
+   * At this point the batch should be considered stable
+   * and metadata changes are no longer allowed.
+   *
+   * Only lifecycle transitions may occur.
    */
   released: [
     'status_id'
   ]
-  
 };
 
 /**
- * Defines valid lifecycle transitions for packaging material batches.
+ * Valid lifecycle transitions for packaging material batches.
  *
- * This prevents invalid state changes such as:
+ * This configuration prevents invalid state changes such as:
  *
- * released → pending
- * consumed → received
+ * - released → pending
+ * - consumed → received
  *
- * Terminal states cannot transition further.
+ * Terminal states should not appear here, ensuring
+ * they cannot transition further.
+ *
+ * These transitions are validated in the **business layer**
+ * before any status updates are applied.
  *
  * @type {Record<string, string[]>}
  */
 const PACKAGING_BATCH_STATUS_TRANSITIONS = {
-  
   /**
    * Batch registered but not yet received.
    */
-  pending: ['received', 'quarantined'],
+  pending: [
+    'received',
+    'quarantined'
+  ],
   
   /**
-   * Batch has been received into warehouse inventory.
+   * Batch has arrived at the warehouse.
    */
-  received: ['quarantined', 'released'],
+  received: [
+    'quarantined',
+    'released'
+  ],
   
   /**
-   * Batch temporarily blocked for inspection or issue resolution.
+   * Batch temporarily held for inspection.
    */
-  quarantined: ['released', 'suspended'],
+  quarantined: [
+    'released',
+    'suspended'
+  ],
   
   /**
-   * Batch is approved and available for operational usage.
+   * Batch approved for operational use.
    */
-  released: ['consumed', 'archived', 'suspended'],
+  released: [
+    'consumed',
+    'archived',
+    'suspended'
+  ],
   
   /**
-   * Suspended batches are blocked from operational usage.
+   * Suspended batches are blocked due to operational
+   * or quality issues.
    */
-  suspended: ['quarantined', 'archived']
+  suspended: [
+    'quarantined',
+    'archived'
+  ]
+};
+
+/**
+ * Permission-based field control for packaging batch updates.
+ *
+ * These rules define which fields a user may modify based on
+ * their granted permissions.
+ *
+ * This layer works together with `PACKAGING_BATCH_EDIT_RULES`:
+ *
+ * - `EDIT_RULES` → lifecycle restrictions
+ * - `PERMISSION_RULES` → RBAC restrictions
+ *
+ * Both must pass before an update is allowed.
+ *
+ * Example validation order:
+ *
+ * 1. Check user permission
+ * 2. Check lifecycle edit rules
+ * 3. Filter allowed fields
+ * 4. Execute repository update
+ *
+ * @type {Record<string, string[]>}
+ */
+const PACKAGING_BATCH_PERMISSION_FIELD_RULES = {
+  /**
+   * Basic metadata edits.
+   *
+   * Low-risk corrections such as label names or lot numbers.
+   */
+  edit_batch_metadata_basic: [
+    'material_snapshot_name',
+    'received_label_name',
+    'lot_number'
+  ],
   
+  /**
+   * Sensitive metadata edits.
+   *
+   * Includes supplier identity, financial data,
+   * and receipt timestamps.
+   *
+   * Typically restricted to higher roles.
+   */
+  edit_batch_metadata_sensitive: [
+    'packaging_material_supplier_id',
+    'unit_cost',
+    'currency',
+    'exchange_rate',
+    'total_cost',
+    'received_at'
+  ],
+  
+  /**
+   * Permission allowing lifecycle status transitions.
+   */
+  change_batch_status: [
+    'status_id'
+  ]
 };
 
 module.exports = {
   PACKAGING_BATCH_EDIT_RULES,
   PACKAGING_BATCH_STATUS_TRANSITIONS,
+  PACKAGING_BATCH_PERMISSION_FIELD_RULES,
 };
