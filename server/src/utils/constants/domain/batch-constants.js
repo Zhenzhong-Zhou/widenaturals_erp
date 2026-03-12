@@ -1,90 +1,206 @@
 /**
  * Batch permission constants.
  *
- * Scope:
- * - Batch registry visibility
- * - Product batch & packaging batch operational views
- * - Batch metadata exposure
- * - Search and audit tooling
+ * Defines all permission keys related to batch operations within the ERP.
+ *
+ * Scope includes:
+ * - Batch creation and lifecycle management
+ * - Product batch metadata editing
+ * - Packaging material batch metadata editing
+ * - Batch visibility and read-only access
+ * - Search capabilities across batch registries
+ * - Administrative overrides for support and audit purposes
  *
  * Design principles:
- * - Single authority domain for all batch-related permissions
- * - READ visibility is separate from MUTATING actions
- * - Registry-level permissions are reused by model-specific views
- * - Root users implicitly bypass all restrictions
+ *
+ * 1. All batch-related permissions are centralized in a single domain.
+ * 2. READ visibility is separated from MUTATING operations.
+ * 3. Permissions are granular to support RBAC across different roles
+ *    (warehouse, QA, operations, admin).
+ * 4. Root-level users may bypass permission checks through application logic.
+ *
+ * NOTE:
+ * This module only defines permission identifiers. Enforcement must be
+ * implemented in the authorization layer of the application.
  */
 
 const BATCH_CONSTANTS = {
   PERMISSIONS: {
+    
     // -------------------------------------------------
-    // Batch creation & lifecycle (mutating actions)
+    // Batch creation & lifecycle operations
     // -------------------------------------------------
-
+    
+    /**
+     * Allows registering new product batches.
+     *
+     * Example:
+     * Manufacturing batches received from production.
+     */
     CREATE_PRODUCT_BATCHES: 'create_product_batches',
-    // Allows registering new product batches
-
+    
+    /**
+     * Allows registering packaging material batches.
+     *
+     * Example:
+     * Packaging materials received from suppliers.
+     */
     CREATE_PACKAGING_BATCHES: 'create_packaging_batches',
-    // Allows registering new packaging material batches
-
+    
+    /**
+     * Global permission for updating batch lifecycle state.
+     *
+     * Typical states include:
+     * pending → received → quarantined → released → consumed
+     *
+     * Some systems may combine this with model-specific permissions.
+     */
     UPDATE_BATCH_STATUS: 'update_batch_status',
-    // Allows changing batch status (e.g. released, quarantined, expired)
-
+    
+    /**
+     * Allows archiving batches.
+     *
+     * Archiving typically removes batches from active operational views
+     * while preserving them for historical audit.
+     */
     ARCHIVE_BATCHES: 'archive_batches',
-    // Allows archiving or soft-removing batches from active views
-
+    
+    // -------------------------------
+    // Product batch metadata editing
+    // -------------------------------
+    
+    /**
+     * Allows editing non-sensitive product batch metadata.
+     */
+    EDIT_PRODUCT_BATCH_METADATA_BASIC:
+      'edit_product_batch_metadata_basic',
+    
+    /**
+     * Allows editing sensitive product batch fields
+     * such as quantities or operational timestamps.
+     */
+    EDIT_PRODUCT_BATCH_METADATA_SENSITIVE:
+      'edit_product_batch_metadata_sensitive',
+    
+    /**
+     * Allows editing release metadata
+     * used during QA approval.
+     */
+    EDIT_PRODUCT_BATCH_RELEASE_METADATA:
+      'edit_product_batch_release_metadata',
+    
+    /**
+     * Allows changing product batch lifecycle status.
+     */
+    CHANGE_PRODUCT_BATCH_STATUS:
+      'change_product_batch_status',
+    
+    // -------------------------------
+    // Packaging batch metadata editing
+    // -------------------------------
+    
+    /**
+     * Allows editing basic packaging batch metadata.
+     */
+    EDIT_PACKAGING_BATCH_METADATA_BASIC:
+      'edit_packaging_batch_metadata_basic',
+    
+    /**
+     * Allows editing sensitive packaging metadata
+     * such as supplier references or financial fields.
+     */
+    EDIT_PACKAGING_BATCH_METADATA_SENSITIVE:
+      'edit_packaging_batch_metadata_sensitive',
+    
+    /**
+     * Allows changing packaging batch lifecycle state.
+     */
+    CHANGE_PACKAGING_BATCH_STATUS:
+      'change_packaging_batch_status',
+    
     // -------------------------------------------------
-    // Visibility controls (read-only)
+    // Batch visibility (read-only access)
     // -------------------------------------------------
-
+    
+    /**
+     * Allows viewing product batch records.
+     */
     VIEW_PRODUCT_BATCHES: 'view_product_batches',
-    // Can view product batches (registry + product batch pages)
-
+    
+    /**
+     * Allows viewing packaging material batches.
+     */
     VIEW_PACKAGING_BATCHES: 'view_packaging_batches',
-    // Can view packaging material batches
-
+    
+    /**
+     * Allows viewing manufacturer information
+     * linked to product batches.
+     */
     VIEW_BATCH_MANUFACTURER: 'view_batch_manufacturer',
-    // Can view manufacturer metadata linked to product batches
-
+    
+    /**
+     * Allows viewing supplier metadata linked to
+     * packaging material batches.
+     */
     VIEW_BATCH_SUPPLIER: 'view_batch_supplier',
-    // Can view supplier metadata linked to packaging batches
-
+    
+    /**
+     * Grants full read-only visibility across all batch data.
+     *
+     * Useful for administrative users or support roles.
+     */
     VIEW_BATCH_ALL_VISIBILITY: 'view_all_batches_visibility',
-    // Full read-only visibility override across ALL batch views
-
+    
     // -------------------------------------------------
-    // Product batch–specific search & metadata exposure
-    // (used by product batch list pages)
+    // Product batch search capabilities
     // -------------------------------------------------
-
+    
+    /**
+     * Allows searching product batches by SKU code.
+     */
     SEARCH_PRODUCT_BATCH_BY_SKU: 'search_product_batch_by_sku',
-    // Allows keyword search on SKU code
-
+    
+    /**
+     * Allows searching product batches by manufacturer.
+     */
     SEARCH_PRODUCT_BATCH_BY_MANUFACTURER:
       'search_product_batch_by_manufacturer',
-    // Allows keyword search on manufacturer name
-
+    
     // -------------------------------------------------
-    // Registry / cross-batch search capabilities
+    // Cross-batch registry search capabilities
     // -------------------------------------------------
-
+    
+    /**
+     * Allows searching batches by lot number.
+     */
     SEARCH_BATCH_BY_LOT: 'search_batch_by_lot',
-    // Allows keyword search on lot numbers
-
+    
+    /**
+     * Allows searching batches by product name or SKU.
+     */
     SEARCH_BATCH_BY_PRODUCT: 'search_batch_by_product',
-    // Allows keyword search on product name / SKU
-
+    
+    /**
+     * Allows searching packaging batches by material name or code.
+     */
     SEARCH_BATCH_BY_MATERIAL: 'search_batch_by_material',
-    // Allows keyword search on packaging material name / code
-
+    
+    /**
+     * Allows searching batches by supplier.
+     */
     SEARCH_BATCH_BY_SUPPLIER: 'search_batch_by_supplier',
-    // Allows keyword search on supplier name
-
+    
     // -------------------------------------------------
-    // Administrative overrides
+    // Administrative override capabilities
     // -------------------------------------------------
-
+    
+    /**
+     * Allows bypassing visibility restrictions.
+     *
+     * Intended for support engineers, auditors,
+     * or administrators investigating system issues.
+     */
     ADMIN_OVERRIDE_BATCH_FILTERS: 'admin_override_batch_filters',
-    // Allows bypassing visibility constraints (audit / support)
   },
 };
 
