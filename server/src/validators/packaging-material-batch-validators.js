@@ -90,74 +90,120 @@ const packagingMaterialBatchQuerySchema = paginationSchema
   });
 
 /**
- * Joi schema for validating a single packaging material batch creation payload.
+ * Base Joi schema definition for packaging material batch fields.
  *
- * This schema ensures all fields required to create a packaging material batch
- * are validated before reaching the service layer.
+ * This schema defines shared validation rules used across multiple
+ * packaging material batch operations such as:
  *
- * Key validations include:
- * - Supplier relationship
- * - Lot number
- * - Manufacturing and expiry dates
- * - Quantity and unit
- * - Optional cost and currency information
+ * - batch creation
+ * - metadata updates
+ * - bulk imports
  *
- * This schema is intended for validating individual batch records in bulk
- * batch creation requests.
- *
- * Security:
- * - Prevents malformed or missing data entering the service layer.
- *
- * Performance:
- * - Joi validation cost is linear with number of fields.
- * - Used within bulk validation limits (max 200 records).
+ * Required/optional constraints are applied in operation-specific
+ * schemas (create/edit workflows) using Joi `.fork()`.
  */
-const createPackagingMaterialBatchSchema = Joi.object({
-  packaging_material_supplier_id: validateUUID(
-    'Packaging Material Supplier ID'
-  ),
+const packagingMaterialBatchBaseSchema = {
+  // Supplier providing the packaging material batch
+  packaging_material_supplier_id: validateUUID('Packaging Material Supplier'),
+  
+  // Supplier or manufacturing lot identifier
   lot_number: validateString('Lot Number', 10, 100),
-  quantity: validatePositiveIntegerRequired(),
-  unit: validateString('Unit', 1, 5),
-  manufacture_date: requiredIsoDate(),
-  expiry_date: requiredIsoDate(),
+  
+  // Snapshot name of the material at time of receipt
   material_snapshot_name: validateString(
     'Material Snapshot Name',
     10,
     150
   ),
+  
+  // Label name recorded during warehouse intake
   received_label_name: validateString(
     'Received Label Name',
     10,
     150
   ),
-  unit_cost: validatePositiveDecimal(),
+  
+  // Quantity received for this batch
+  quantity: validatePositiveIntegerRequired(),
+  
+  // Unit of measurement (e.g., pcs, kg, box)
+  unit: validateString('Unit', 1, 5),
+  
+  // Manufacturing date from supplier
+  manufacture_date: requiredIsoDate(),
+  
+  // Expiry date if applicable
+  expiry_date: requiredIsoDate(),
+  
+  // Optional cost per unit
+  unit_cost: validatePositiveDecimal().allow(null),
+  
+  // Currency code (ISO 4217)
   currency: Joi.string()
     .length(3)
     .uppercase()
-    .optional()
     .allow(null),
-  exchange_rate: validatePositiveDecimal()
-    .optional()
-    .allow(null),
-  total_cost: validatePositiveDecimal(),
-  notes: validateOptionalString('Notes'),
-  registryNote: validateOptionalString('Registry Note'),
-});
+  
+  // Exchange rate if foreign currency used
+  exchange_rate: validatePositiveDecimal().allow(null),
+  
+  // Calculated total cost for batch
+  total_cost: validatePositiveDecimal().allow(null),
+  
+  // Internal operational notes
+  notes: validateOptionalString('Notes', 500),
+  
+  // Optional note stored in batch registry
+  registryNote: validateOptionalString('Registry Note', 500),
+};
 
 /**
- * Joi schema for validating bulk packaging material batch creation requests.
+ * Joi schema for validating a single packaging material batch
+ * creation payload.
  *
- * This schema wraps multiple batch records and ensures:
+ * Ensures required fields for batch creation are present before
+ * reaching the service layer.
  *
- * - At least one batch is provided
- * - No more than 200 records are submitted in a single request
+ * Key validations include:
+ * - supplier relationship
+ * - lot number
+ * - manufacturing and expiry dates
+ * - quantity and unit
+ * - optional cost information
  *
- * Limiting bulk size protects the system from excessive validation
- * and database load during large batch imports.
+ * Security:
+ * - `.unknown(false)` prevents unexpected input fields.
  *
- * Typical usage:
- * POST /packaging-material-batches/bulk
+ * Performance:
+ * - Joi validation runs in linear time relative to number of fields.
+ */
+const createPackagingMaterialBatchSchema = Joi.object({
+    ...packagingMaterialBatchBaseSchema,
+  })
+  .fork(
+    [
+      'packaging_material_supplier_id',
+      'lot_number',
+      'material_snapshot_name',
+      'received_label_name',
+      'quantity',
+      'unit',
+      'manufacture_date',
+      'expiry_date',
+    ],
+    (schema) => schema.required()
+  )
+  .unknown(false);
+
+/**
+ * Joi schema for validating bulk packaging material batch creation.
+ *
+ * Ensures:
+ * - at least one batch is provided
+ * - maximum of 200 batches per request
+ *
+ * Limiting bulk size prevents excessive validation cost and protects
+ * database operations from overly large imports.
  *
  * Example payload:
  * {
@@ -174,7 +220,52 @@ const createPackagingMaterialBatchBulkSchema = Joi.object({
     .required(),
 });
 
+/**
+ * Joi schema for updating packaging material batch metadata.
+ *
+ * Allows partial updates of metadata fields while enforcing:
+ *
+ * - only known fields may be updated
+ * - at least one field must be provided
+ *
+ * Required fields from creation become optional using `.fork()`.
+ */
+const editPackagingMaterialBatchMetadataSchema = Joi.object(
+    packagingMaterialBatchBaseSchema
+  )
+  .fork(
+    Object.keys(packagingMaterialBatchBaseSchema),
+    (schema) => schema.optional()
+  )
+  .min(1)
+  .unknown(false);
+
+/**
+ * Joi schema for updating packaging material batch lifecycle status.
+ *
+ * Used for lifecycle transitions such as:
+ *
+ * pending → received
+ * received → released
+ *
+ * Fields:
+ * - status_id → target lifecycle state
+ * - received_at → timestamp of warehouse intake
+ */
+const updatePackagingMaterialBatchStatusSchema = Joi.object({
+    
+    // Target lifecycle status
+    status_id: validateUUID('Status ID').required(),
+    
+    // Timestamp when batch is officially received
+    received_at: optionalIsoDate('Received At'),
+    
+  })
+  .unknown(false);
+
 module.exports = {
   packagingMaterialBatchQuerySchema,
   createPackagingMaterialBatchBulkSchema,
+  editPackagingMaterialBatchMetadataSchema,
+  updatePackagingMaterialBatchStatusSchema,
 };

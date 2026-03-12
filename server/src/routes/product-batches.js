@@ -5,12 +5,14 @@ const createQueryNormalizationMiddleware = require('../middlewares/query-normali
 const {
   productBatchQuerySchema,
   createProductBatchBulkSchema,
+  editProductBatchMetadataSchema,
 } = require('../validators/product-batch-validators');
 const { sanitizeFields } = require('../middlewares/sanitize');
 const validate = require('../middlewares/validate');
 const {
   getPaginatedProductBatchesController,
   createProductBatchesController,
+  editProductBatchMetadataController,
 } = require('../controllers/product-batch-controller');
 
 const router = express.Router();
@@ -91,6 +93,24 @@ router.post(
   authorize([PRODUCT_BATCHES.CREATE]),
   validate(createProductBatchBulkSchema, 'body'),
   createProductBatchesController
+);
+
+/**
+ * Update metadata of a product batch.
+ *
+ * Middleware pipeline:
+ * 1. authorize → verifies the user has permission to edit product batches
+ * 2. validate → validates request payload using Joi schema
+ * 3. controller → executes metadata update workflow
+ *
+ * Route:
+ * PATCH /product-batches/:batchId/metadata
+ */
+router.patch(
+  '/:batchId/metadata',
+  authorize([PRODUCT_BATCHES.EDIT_METADATA]),
+  validate(editProductBatchMetadataSchema, 'body'),
+  editProductBatchMetadataController
 );
 
 module.exports = router;

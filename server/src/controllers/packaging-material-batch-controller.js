@@ -4,6 +4,7 @@ const { logInfo } = require('../utils/logger-helper');
 const {
   fetchPaginatedPackagingMaterialBatchesService,
   createPackagingMaterialBatchesService,
+  editPackagingMaterialBatchMetadataService,
 } = require('../services/packaging-material-batch-service');
 
 /**
@@ -152,7 +153,126 @@ const createPackagingMaterialBatchesController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * Controller for editing packaging material batch metadata.
+ *
+ * This endpoint allows authorized users to update editable metadata
+ * fields of a packaging material batch. Validation is performed by
+ * the Joi middleware before the controller executes.
+ *
+ * Responsibilities:
+ * - validate route parameters
+ * - initiate structured request logging
+ * - call the service layer to perform the batch update
+ * - return a standardized API response
+ *
+ * Lifecycle and permission enforcement are handled in the
+ * business/service layers.
+ *
+ * Route:
+ * PATCH /packaging-material-batches/:batchId/metadata
+ *
+ * Middleware requirements:
+ * - authorize()
+ * - validate(editPackagingMaterialBatchMetadataSchema)
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ *
+ * @returns {Promise<void>}
+ */
+const editPackagingMaterialBatchMetadataController = wrapAsync(
+  async (req, res) => {
+    const context =
+      'packaging-material-batch-controller/editPackagingMaterialBatchMetadataController';
+    const startTime = Date.now();
+    
+    // Unique trace identifier for log correlation
+    const traceId = `update-packaging-batch-${Date.now().toString(36)}`;
+    
+    //------------------------------------------------------------
+    // Extract request data
+    //------------------------------------------------------------
+    const { batchId } = req.params;
+    
+    // Payload already validated by Joi middleware
+    const updates = req.body;
+    const user = req.auth?.user;
+    
+    //------------------------------------------------------------
+    // Basic request validation
+    //------------------------------------------------------------
+    if (!batchId) {
+      throw AppError.validationError('batchId is required.', {
+        context,
+        traceId,
+      });
+    }
+    
+    if (!user?.id) {
+      throw AppError.authenticationError(
+        'Authenticated user required.',
+        { context, traceId }
+      );
+    }
+    
+    //------------------------------------------------------------
+    // Log request start
+    //------------------------------------------------------------
+    logInfo(
+      'Starting packaging material batch metadata update request',
+      req,
+      {
+        context,
+        traceId,
+        userId: user.id,
+        batchId,
+      }
+    );
+    
+    //------------------------------------------------------------
+    // Execute service layer
+    //------------------------------------------------------------
+    const result =
+      await editPackagingMaterialBatchMetadataService(
+        batchId,
+        updates,
+        user.id
+      );
+    
+    //------------------------------------------------------------
+    // Log completion
+    //------------------------------------------------------------
+    const elapsedMs = Date.now() - startTime;
+    
+    logInfo(
+      'Packaging material batch metadata update completed',
+      req,
+      {
+        context,
+        traceId,
+        batchId,
+        elapsedMs,
+      }
+    );
+    
+    //------------------------------------------------------------
+    // Send response
+    //------------------------------------------------------------
+    res.status(200).json({
+      success: true,
+      message: 'Packaging material batch updated successfully.',
+      stats: {
+        batchId,
+        elapsedMs,
+      },
+      data: result,
+    });
+  }
+);
+
 module.exports = {
   getPaginatedPackagingMaterialBatchesController,
   createPackagingMaterialBatchesController,
+  editPackagingMaterialBatchMetadataController,
 };

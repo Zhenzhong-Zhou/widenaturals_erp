@@ -5,12 +5,15 @@ const createQueryNormalizationMiddleware = require('../middlewares/query-normali
 const {
   packagingMaterialBatchQuerySchema,
   createPackagingMaterialBatchBulkSchema,
+  editPackagingMaterialBatchMetadataSchema,
+  updatePackagingMaterialBatchStatusSchema,
 } = require('../validators/packaging-material-batch-validators');
 const { sanitizeFields } = require('../middlewares/sanitize');
 const validate = require('../middlewares/validate');
 const {
   getPaginatedPackagingMaterialBatchesController,
   createPackagingMaterialBatchesController,
+  editPackagingMaterialBatchMetadataController,
 } = require('../controllers/packaging-material-batch-controller');
 
 const router = express.Router();
@@ -91,5 +94,30 @@ router.post(
   validate(createPackagingMaterialBatchBulkSchema, 'body'),
   createPackagingMaterialBatchesController
 );
+
+/**
+ * Update metadata of a packaging material batch.
+ *
+ * Middleware pipeline:
+ * 1. authorize → verifies the user has permission to edit packaging batches
+ * 2. validate → validates request payload using Joi schema
+ * 3. controller → executes metadata update workflow
+ *
+ * Route:
+ * PATCH /packaging-material-batches/:batchId/metadata
+ */
+router.patch(
+  '/:batchId/metadata',
+  authorize([PACKAGING_MATERIAL_BATCHES.EDIT]),
+  validate(editPackagingMaterialBatchMetadataSchema, 'body'),
+  editPackagingMaterialBatchMetadataController
+);
+
+// router.patch(
+//   '/:batchId/status',
+//   authorize([PACKAGING_MATERIAL_BATCHES.UPDATE_STATUS]),
+//   validate(updatePackagingMaterialBatchStatusSchema, 'body'),
+//   updatePackagingMaterialBatchStatusController
+// );
 
 module.exports = router;
