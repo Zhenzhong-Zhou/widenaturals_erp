@@ -38,10 +38,10 @@ const AppError = require('../../utils/AppError');
  * @param {Object} params
  *
  * @param {Object} params.batch
- * Current batch record.
+ * Current batch record containing lifecycle information.
  *
  * @param {string|null} params.nextStatus
- * Target lifecycle status ID requested by the update.
+ * Target lifecycle status **ID** requested by the update.
  *
  * @param {string|null} params.actorId
  * Identifier of the user performing the operation.
@@ -58,8 +58,18 @@ const AppError = require('../../utils/AppError');
  * @param {Object} params.access
  * Access control result for the current user.
  *
+ * @param {Object} [params.updates]
+ * Partial update payload provided by the caller.
+ * Used to allow explicit timestamps such as `received_at`
+ * or `released_at` when provided.
+ *
  * @returns {{
- *   lifecycleUpdates: Object,
+ *   lifecycleUpdates: {
+ *     received_at?: Date,
+ *     received_by?: string,
+ *     released_at?: Date,
+ *     released_by?: string
+ *   },
  *   isStatusChange: boolean
  * }}
  *
@@ -75,6 +85,7 @@ const applyLifecycleTransition = ({
                                     actorId,
                                     statusTransitions,
                                     access,
+                                    updates,
                                   }) => {
   //------------------------------------------------------------
   // If no lifecycle status change is requested, exit early
@@ -120,13 +131,15 @@ const applyLifecycleTransition = ({
    * fields when a batch reaches certain statuses.
    */
   const lifecycleHooks = {
-    [receivedStatusId]: () => ({
-      received_at: new Date(),
+    [receivedStatusId]: (updates) => ({
+      // Allow caller-provided timestamp, otherwise use system time
+      received_at: updates?.received_at ?? new Date(),
       received_by: actorId,
     }),
     
-    [releasedStatusId]: () => ({
-      released_at: new Date(),
+    [releasedStatusId]: (updates) => ({
+      // Allow caller-provided timestamp, otherwise use system time
+      released_at: updates?.released_at ?? new Date(),
       released_by: actorId,
     }),
   };
@@ -135,7 +148,10 @@ const applyLifecycleTransition = ({
   // Apply lifecycle automation if a hook exists
   //------------------------------------------------------------
   if (lifecycleHooks[nextStatus]) {
-    Object.assign(lifecycleUpdates, lifecycleHooks[nextStatus]());
+    Object.assign(
+      lifecycleUpdates,
+      lifecycleHooks[nextStatus](updates)
+    );
   }
   
   //------------------------------------------------------------

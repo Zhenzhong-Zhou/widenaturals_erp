@@ -216,7 +216,8 @@ const updateBatchWorkflow = async ({
     nextStatus,
     actorId,
     statusTransitions,
-    access
+    access,
+    updates,
   });
   
   //------------------------------------------------------------

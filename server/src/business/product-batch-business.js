@@ -215,7 +215,7 @@ const evaluateProductBatchAccessControl = async (user) => {
  * @returns {Set<string>}
  * Set of field names the user is permitted to edit.
  */
-const getEditableFieldsForPackagingBatch = (access) =>
+const getEditableFieldsForProductBatch = (access) =>
   resolveEditableFields(access, PRODUCT_BATCH_PERMISSION_FIELD_RULES);
 
 /**
