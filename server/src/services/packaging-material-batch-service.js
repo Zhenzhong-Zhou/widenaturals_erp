@@ -1,7 +1,7 @@
 const {
   evaluatePackagingMaterialBatchVisibility,
-  applyPackagingMaterialBatchVisibilityRules, evaluatePackagingMaterialBatchAccessControl,
-  filterUpdatablePackagingMaterialBatchFields,
+  applyPackagingMaterialBatchVisibilityRules,
+  evaluatePackagingMaterialBatchAccessControl,
 } = require('../business/packaging-material-batch-business');
 const {
   getPaginatedPackagingMaterialBatches,
@@ -32,6 +32,7 @@ const {
 } = require('../utils/constants/domain/packaging-material-batch-constants');
 const { getBatchActivityType } = require('../business/batches/batch-activity-resolvers');
 const { transformIdOnlyResult } = require('../transformers/common/id-result-transformer');
+const { filterUpdatableBatchFields } = require('../business/batches/batch-field-filter');
 
 /**
  * Service: Fetch paginated packaging material batch records for UI consumption.
@@ -325,10 +326,10 @@ const createPackagingMaterialBatchesService = async (
  * This service executes the shared batch update workflow inside a
  * database transaction and ensures that:
  *
- * - lifecycle rules are respected
+ * - lifecycle rules are enforced by the shared batch workflow
  * - metadata updates follow permission restrictions
- * - status transitions are validated
- * - batch activity logs are recorded for auditing
+ * - lifecycle status transitions are validated
+ * - batch activity logs are generated and persisted for auditing
  *
  * Responsibilities:
  * - validate service inputs
@@ -374,7 +375,11 @@ const editPackagingMaterialBatchMetadataService = async (
       if (!updates || typeof updates !== 'object') {
         throw AppError.validationError(
           'Invalid updates payload.',
-          { context }
+          {
+            details: {
+              context
+            }
+          }
         );
       }
       
@@ -405,8 +410,7 @@ const editPackagingMaterialBatchMetadataService = async (
         evaluateAccessControlFn: evaluatePackagingMaterialBatchAccessControl,
         
         // lifecycle + permission filtering
-        filterUpdatableFieldsFn:
-        filterUpdatablePackagingMaterialBatchFields,
+        filterUpdatableFieldsFn: filterUpdatableBatchFields,
       });
       
       //------------------------------------------------------------
