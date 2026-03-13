@@ -92,14 +92,14 @@ const registerBatchWorkflow = async ({
  *
  * Responsibilities:
  * - loads the current batch record
- * - validates requested updates against lifecycle edit rules
- * - resolves user access control
- * - enforces permission-based editable field restrictions
+ * - resolves user access control used for permission checks and lifecycle overrides
+ * - normalizes the incoming update payload
+ * - validates and filters update fields using lifecycle edit rules and permission restrictions
  * - validates lifecycle status transitions
- * - applies lifecycle automation (for example `received_at`, `released_at`)
+ * - applies lifecycle automation timestamps (for example `received_at`, `released_at`)
  * - updates the batch record through the repository layer
- * - generates lifecycle and metadata activity logs
- * - persists activity logs in the same transaction
+ * - generates lifecycle and metadata activity log entries
+ * - persists activity logs within the same transaction
  *
  * This workflow is intended to centralize shared mutation logic so that
  * product batch and packaging material batch services stay consistent.
@@ -137,8 +137,8 @@ const registerBatchWorkflow = async ({
  *   access: Object,
  *   editRules: Record<string, string[]>
  * }) => Object} params.filterUpdatableFieldsFn
- * Function that enforces permission and lifecycle-based field restrictions
- * and returns the safe update payload.
+ * Function that validates and filters update fields based on lifecycle
+ * edit rules and permission restrictions, returning a safe update payload.
  *
  * @returns {Promise<Object>}
  * Updated batch record returned by the repository layer.
@@ -148,14 +148,24 @@ const updateBatchWorkflow = async ({
                                      updates,
                                      user,
                                      client,
+                                     
+                                     // repositories
                                      getBatchFn,
                                      updateBatchFn,
+                                     
+                                     // lifecycle configuration
                                      editRules,
                                      statusTransitions,
+                                     
+                                     // domain
                                      batchType,
                                      activityTypeResolver,
+                                     
+                                     // security
                                      evaluateAccessControlFn,
-                                     filterUpdatableFieldsFn
+                                     
+                                     // validation
+                                     filterUpdatableFieldsFn,
                                    }) => {
   const actorId = user.id;
   
@@ -169,34 +179,32 @@ const updateBatchWorkflow = async ({
   }
   
   //------------------------------------------------------------
-  // 2. Normalize updates against lifecycle edit rules
+  // 2. Resolve access control
+  //------------------------------------------------------------
+  const access = await evaluateAccessControlFn(user);
+  
+  //------------------------------------------------------------
+  // 3. Normalize update payload
   //------------------------------------------------------------
   const {
     safeUpdates,
     hasMetadataUpdates
   } = prepareMetadataUpdates({
-    batch,
-    updates,
-    editRules
+    updates
   });
   
   //------------------------------------------------------------
-  // 3. Resolve user access control
-  //------------------------------------------------------------
-  const access = await evaluateAccessControlFn(user);
-  
-  //------------------------------------------------------------
-  // 4. Enforce permission + lifecycle editable fields
+  // 4. Enforce lifecycle + permission rules
   //------------------------------------------------------------
   const permittedUpdates = filterUpdatableFieldsFn({
     batch,
     updates: safeUpdates,
     access,
-    editRules
+    editRules,
   });
   
   //------------------------------------------------------------
-  // 5. Validate and apply lifecycle transition side effects
+  // 5. Apply lifecycle transition logic
   //------------------------------------------------------------
   const nextStatus = permittedUpdates?.status_id ?? null;
   
@@ -207,11 +215,12 @@ const updateBatchWorkflow = async ({
     batch,
     nextStatus,
     actorId,
-    statusTransitions
+    statusTransitions,
+    access
   });
   
   //------------------------------------------------------------
-  // 6. Merge user-permitted updates with lifecycle automation
+  // 6. Merge updates
   //------------------------------------------------------------
   const finalUpdates = {
     ...permittedUpdates,
@@ -219,7 +228,7 @@ const updateBatchWorkflow = async ({
   };
   
   //------------------------------------------------------------
-  // 7. Persist batch update
+  // 7. Persist update
   //------------------------------------------------------------
   const updatedBatch = await updateBatchFn(
     {
@@ -231,7 +240,7 @@ const updateBatchWorkflow = async ({
   );
   
   //------------------------------------------------------------
-  // 8. Build activity logs for lifecycle / metadata changes
+  // 8. Build activity logs
   //------------------------------------------------------------
   const activityRows = buildBatchActivities({
     batch,

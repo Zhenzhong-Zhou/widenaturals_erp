@@ -9,6 +9,7 @@ const AppError = require('../utils/AppError');
 const {
   PACKAGING_BATCH_PERMISSION_FIELD_RULES
 } = require('../utils/constants/domain/packaging-material-batch-constants');
+const { filterUpdatableBatchFields } = require('./batches/batch-field-filter');
 
 /**
  * Business: Determine packaging material batch visibility authority.
@@ -190,21 +191,34 @@ const evaluatePackagingMaterialBatchAccessControl = async (user) => {
 };
 
 /**
- * Converts access control flags into the set of fields
- * a user is permitted to modify for a packaging material batch.
+ * Resolves which packaging material batch fields a user is allowed
+ * to edit based on access-control flags.
  *
- * This function maps permission flags to field-level
- * editing rights defined in `PACKAGING_BATCH_PERMISSION_FIELD_RULES`.
+ * Permission flags are mapped to editable field sets defined in
+ * `PACKAGING_BATCH_PERMISSION_FIELD_RULES`.
+ *
+ * Root users automatically receive permission to modify all
+ * fields defined in the permission rule map.
  *
  * @param {Object} access
+ * @param {boolean} access.isRoot
  * @param {boolean} access.canEditBasicMetadata
  * @param {boolean} access.canEditSensitiveMetadata
  * @param {boolean} access.canChangeStatus
  *
- * @returns {Set<string>} allowed editable fields
+ * @returns {Set<string>} Set of field names the user may edit
  */
 const getEditableFieldsForPackagingBatch = (access) => {
   const allowed = new Set();
+  
+  // Root bypass
+  if (access.isRoot) {
+    Object.values(PACKAGING_BATCH_PERMISSION_FIELD_RULES)
+      .flat()
+      .forEach((f) => allowed.add(f));
+    
+    return allowed;
+  }
   
   if (access.canEditBasicMetadata) {
     PACKAGING_BATCH_PERMISSION_FIELD_RULES
@@ -230,12 +244,16 @@ const getEditableFieldsForPackagingBatch = (access) => {
 /**
  * Filters and validates packaging material batch update fields.
  *
- * This function enforces both:
+ * This function is a thin wrapper around the generic
+ * `filterUpdatableBatchFields` validator. It injects the
+ * packaging-batch-specific permission resolver and error label.
+ *
+ * The underlying validator enforces:
  *
  * 1. Lifecycle edit rules based on the batch's current status
- * 2. Permission-based field editing rules
+ * 2. Permission-based field editing rules derived from user access
  *
- * Final editable fields are calculated as:
+ * The final editable fields are determined as:
  *
  *   allowedFields =
  *      lifecycleAllowedFields
@@ -247,74 +265,17 @@ const getEditableFieldsForPackagingBatch = (access) => {
  * @param {Object} params
  * @param {Object} params.batch - Current batch record
  * @param {Object} params.updates - Requested update payload
- * @param {Object} params.access - Access control object
- * @param {Record<string, string[]>} params.editRules - Lifecycle edit rules
+ * @param {Object} params.access - Access control flags
+ * @param {Record<string,string[]>} params.editRules - Lifecycle edit rules
  *
- * @returns {Object} filtered update payload safe to apply
+ * @returns {Object} Filtered update payload safe to apply
  */
-const filterUpdatablePackagingMaterialBatchFields = ({
-                                                       batch,
-                                                       updates = {},
-                                                       access,
-                                                       editRules,
-                                                     }) => {
-  //------------------------------------------------------------
-  // Validate update payload structure
-  //------------------------------------------------------------
-  if (!updates || typeof updates !== 'object' || Array.isArray(updates)) {
-    throw AppError.validationError(
-      'Invalid packaging material batch update payload.'
-    );
-  }
-  
-  //------------------------------------------------------------
-  // 1. Lifecycle editable fields
-  //------------------------------------------------------------
-  const lifecycleFields = editRules[batch.status] ?? [];
-  
-  //------------------------------------------------------------
-  // 2. Permission editable fields
-  //------------------------------------------------------------
-  const permissionFields =
-    getEditableFieldsForPackagingBatch(access);
-  
-  //------------------------------------------------------------
-  // 3. Compute final allowed fields (intersection)
-  //------------------------------------------------------------
-  const allowedFields = lifecycleFields.filter((field) =>
-    permissionFields.has(field)
-  );
-  
-  //------------------------------------------------------------
-  // 4. Detect invalid update attempts
-  //------------------------------------------------------------
-  const invalidFields = Object.keys(updates).filter(
-    (field) => !allowedFields.includes(field)
-  );
-  
-  if (invalidFields.length) {
-    throw AppError.validationError(
-      `You are not allowed to modify: ${invalidFields.join(', ')}`
-    );
-  }
-  
-  //------------------------------------------------------------
-  // 5. Filter update payload
-  //------------------------------------------------------------
-  const filtered = Object.fromEntries(
-    Object.entries(updates).filter(([key]) =>
-      allowedFields.includes(key)
-    )
-  );
-  
-  if (!Object.keys(filtered).length) {
-    throw AppError.validationError(
-      'No valid editable packaging material batch fields provided.'
-    );
-  }
-  
-  return filtered;
-};
+const filterUpdatablePackagingMaterialBatchFields = (params) =>
+  filterUpdatableBatchFields({
+    ...params,
+    permissionResolver: getEditableFieldsForPackagingBatch,
+    errorLabel: 'packaging material batch',
+  });
 
 module.exports = {
   evaluatePackagingMaterialBatchVisibility,
