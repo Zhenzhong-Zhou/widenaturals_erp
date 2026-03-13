@@ -1,3 +1,38 @@
+/**
+ * Product Batch Route Definitions
+ *
+ * This module defines Express routes for managing product batch records.
+ *
+ * Supported operations include:
+ * - Listing product batches with pagination
+ * - Creating new product batches
+ * - Updating batch metadata
+ * - Managing batch lifecycle transitions
+ *
+ * Lifecycle operations include:
+ * - Updating batch status
+ * - Marking batches as received (warehouse intake)
+ * - Releasing batches for operational use
+ *
+ * Middleware pipeline order:
+ *
+ * 1. authorize
+ *    Ensures the authenticated user has permission
+ *    to perform the requested operation.
+ *
+ * 2. validate
+ *    Validates incoming request parameters or body
+ *    using Joi schemas.
+ *
+ * 3. controller
+ *    Executes the request handler and delegates
+ *    business logic to the service layer.
+ *
+ * Controllers remain thin and do not contain business logic.
+ * Lifecycle rules, validation, and persistence are handled
+ * in the service/business layers.
+ */
+
 const express = require('express');
 const { authorize } = require('../middlewares/authorize');
 const { PRODUCT_BATCHES } = require('../utils/constants/domain/permissions');
@@ -5,14 +40,15 @@ const createQueryNormalizationMiddleware = require('../middlewares/query-normali
 const {
   productBatchQuerySchema,
   createProductBatchBulkSchema,
-  editProductBatchMetadataSchema,
+  editProductBatchMetadataSchema, updateProductBatchStatusSchema, receiveProductBatchSchema, releaseProductBatchSchema,
 } = require('../validators/product-batch-validators');
 const { sanitizeFields } = require('../middlewares/sanitize');
 const validate = require('../middlewares/validate');
 const {
   getPaginatedProductBatchesController,
   createProductBatchesController,
-  editProductBatchMetadataController,
+  editProductBatchMetadataController, updateProductBatchStatusController, receiveProductBatchController,
+  releaseProductBatchController,
 } = require('../controllers/product-batch-controller');
 
 const router = express.Router();
@@ -126,9 +162,79 @@ router.post(
  */
 router.patch(
   '/:batchId/metadata',
-  authorize([PRODUCT_BATCHES.EDIT_METADATA]),
+  authorize([PRODUCT_BATCHES.EDIT]),
   validate(editProductBatchMetadataSchema, 'body'),
   editProductBatchMetadataController
+);
+
+//------------------------------------------------------------
+// Update batch lifecycle status
+//------------------------------------------------------------
+
+/**
+ * PATCH /:batchId/status
+ *
+ * Updates the lifecycle status of a product batch.
+ *
+ * Example transitions:
+ * - pending → received
+ * - received → quarantined
+ * - quarantined → released
+ *
+ * Middleware flow:
+ * 1. Permission check
+ * 2. Request body validation
+ * 3. Controller execution
+ */
+router.patch(
+  '/:batchId/status',
+  authorize([PRODUCT_BATCHES.UPDATE_STATUS]),
+  validate(updateProductBatchStatusSchema, 'body'),
+  updateProductBatchStatusController
+);
+
+//------------------------------------------------------------
+// Mark batch as received (warehouse intake)
+//------------------------------------------------------------
+
+/**
+ * PATCH /:batchId/receive
+ *
+ * Marks a product batch as received into warehouse inventory.
+ *
+ * This operation typically transitions the lifecycle state:
+ * pending → received
+ *
+ * The service layer applies lifecycle automation
+ * such as setting received_at and received_by.
+ */
+router.patch(
+  '/:batchId/receive',
+  authorize([PRODUCT_BATCHES.RECEIVE]),
+  validate(receiveProductBatchSchema, 'body'),
+  receiveProductBatchController
+);
+
+//------------------------------------------------------------
+// Release batch for operational use
+//------------------------------------------------------------
+
+/**
+ * PATCH /:batchId/release
+ *
+ * Releases a product batch after quality inspection.
+ *
+ * Typical lifecycle transition:
+ * received → released
+ *
+ * Releasing a batch indicates it is approved for
+ * fulfillment, manufacturing, or distribution.
+ */
+router.patch(
+  '/:batchId/release',
+  authorize([PRODUCT_BATCHES.RELEASE]),
+  validate(releaseProductBatchSchema, 'body'),
+  releaseProductBatchController
 );
 
 module.exports = router;

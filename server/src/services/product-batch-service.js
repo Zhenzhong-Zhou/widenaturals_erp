@@ -2,6 +2,7 @@ const {
   evaluateProductBatchVisibility,
   applyProductBatchVisibilityRules,
   evaluateProductBatchAccessControl,
+  filterUpdatableProductBatchFields,
 } = require('../business/product-batch-business');
 const {
   getPaginatedProductBatches,
@@ -32,7 +33,6 @@ const {
   PRODUCT_BATCH_STATUS_TRANSITIONS
 } = require('../utils/constants/domain/product-batch-constants');
 const { transformIdOnlyResult } = require('../transformers/common/id-result-transformer');
-const { filterUpdatableBatchFields } = require('../business/batches/batch-field-filter');
 
 /**
  * Service: Fetch paginated product batch records for UI consumption.
@@ -399,7 +399,7 @@ const editProductBatchMetadataService = async (
         
         // permission & filtering
         evaluateAccessControlFn: evaluateProductBatchAccessControl,
-        filterUpdatableFieldsFn: filterUpdatableBatchFields,
+        filterUpdatableFieldsFn: filterUpdatableProductBatchFields,
       });
       
       //------------------------------------------------------------
@@ -449,8 +449,227 @@ const editProductBatchMetadataService = async (
   });
 };
 
+/**
+ * Updates the lifecycle status of a product batch.
+ *
+ * This service delegates the update to
+ * {@link editProductBatchMetadataService} so that all batch
+ * modifications pass through the shared batch workflow engine.
+ *
+ * The workflow engine centrally handles:
+ *
+ * - lifecycle transition validation
+ * - permission checks
+ * - activity log generation
+ * - transactional database updates
+ *
+ * By routing status changes through the metadata update workflow,
+ * all lifecycle transitions remain consistent across the batch domain.
+ *
+ * @async
+ *
+ * @param {string} batchId
+ * Identifier of the product batch to update.
+ *
+ * @param {string} statusId
+ * Target lifecycle status identifier.
+ *
+ * @param {string|null} [notes]
+ * Optional notes describing the status change.
+ *
+ * @param {{ id: string }} user
+ * Authenticated user performing the operation.
+ *
+ * @returns {Promise<{ id: string }>}
+ * Identifier of the updated batch.
+ */
+const updateProductBatchStatusService = async (
+  batchId,
+  statusId,
+  notes,
+  user
+) => {
+  const context =
+    'product-batch-service/updateProductBatchStatusService';
+  
+  //------------------------------------------------------------
+  // Validate required inputs
+  //------------------------------------------------------------
+  if (!batchId) {
+    throw AppError.validationError(
+      'batchId is required.',
+      { context }
+    );
+  }
+  
+  if (!statusId) {
+    throw AppError.validationError(
+      'statusId is required.',
+      { context }
+    );
+  }
+  
+  //------------------------------------------------------------
+  // Delegate lifecycle update to shared metadata workflow
+  //------------------------------------------------------------
+  return editProductBatchMetadataService(
+    batchId,
+    {
+      status_id: statusId,
+      notes: notes ?? null
+    },
+    user
+  );
+};
+
+/**
+ * Marks a product batch as received by the warehouse.
+ *
+ * This lifecycle transition records warehouse intake
+ * information and moves the batch to the "received" status.
+ *
+ * The shared metadata service performs:
+ * - lifecycle validation
+ * - permission enforcement
+ * - activity logging
+ * - transactional updates
+ *
+ * @async
+ *
+ * @param {string} batchId
+ * Product batch identifier.
+ *
+ * @param {string|Date|null} received_at
+ * Timestamp indicating when the batch was received.
+ *
+ * @param {string|null} [notes]
+ * Optional intake notes.
+ *
+ * @param {{ id: string }} user
+ * Authenticated user performing the operation.
+ *
+ * @returns {Promise<{ id: string }>}
+ * Identifier of the updated batch.
+ */
+const receiveProductBatchService = async (
+  batchId,
+  received_at,
+  notes,
+  user
+) => {
+  const context =
+    'product-batch-service/receiveProductBatchService';
+  
+  //------------------------------------------------------------
+  // Validate required inputs
+  //------------------------------------------------------------
+  if (!batchId) {
+    throw AppError.validationError(
+      'batchId is required.',
+      { context }
+    );
+  }
+  
+  //------------------------------------------------------------
+  // Resolve lifecycle status identifier
+  //------------------------------------------------------------
+  const receivedStatusId = getStatusId('batch_received');
+  
+  //------------------------------------------------------------
+  // Delegate update to metadata workflow
+  //------------------------------------------------------------
+  return editProductBatchMetadataService(
+    batchId,
+    {
+      status_id: receivedStatusId,
+      received_at: received_at ?? null,
+      received_by: user.id,
+      notes: notes ?? null
+    },
+    user
+  );
+};
+
+/**
+ * Releases a product batch for operational use.
+ *
+ * This lifecycle transition represents QA approval,
+ * allowing the batch to be used in manufacturing
+ * or distribution workflows.
+ *
+ * The release operation records:
+ * - QA approver
+ * - manufacturer responsible for release
+ * - optional QA notes
+ *
+ * @async
+ *
+ * @param {string} batchId
+ * Product batch identifier.
+ *
+ * @param {string} manufacturerId
+ * Manufacturer responsible for release approval.
+ *
+ * @param {string|null} [notes]
+ * Optional QA release notes.
+ *
+ * @param {{ id: string }} user
+ * Authenticated user performing the operation.
+ *
+ * @returns {Promise<{ id: string }>}
+ * Identifier of the updated batch.
+ */
+const releaseProductBatchService = async (
+  batchId,
+  manufacturerId,
+  notes,
+  user
+) => {
+  const context =
+    'product-batch-service/releaseProductBatchService';
+  
+  //------------------------------------------------------------
+  // Validate required inputs
+  //------------------------------------------------------------
+  if (!batchId) {
+    throw AppError.validationError(
+      'batchId is required.',
+      { context }
+    );
+  }
+  
+  if (!manufacturerId) {
+    throw AppError.validationError(
+      'manufacturerId is required.',
+      { context }
+    );
+  }
+  
+  //------------------------------------------------------------
+  // Resolve lifecycle status identifier
+  //------------------------------------------------------------
+  const releasedStatusId = getStatusId('batch_released');
+  
+  //------------------------------------------------------------
+  // Delegate update to metadata workflow
+  //------------------------------------------------------------
+  return editProductBatchMetadataService(
+    batchId,
+    {
+      status_id: releasedStatusId,
+      released_by: user.id,
+      released_by_manufacturer_id: manufacturerId,
+      notes: notes ?? null
+    },
+    user
+  );
+};
+
 module.exports = {
   fetchPaginatedProductBatchesService,
   createProductBatchesService,
   editProductBatchMetadataService,
+  updateProductBatchStatusService,
+  receiveProductBatchService,
+  releaseProductBatchService,
 };
