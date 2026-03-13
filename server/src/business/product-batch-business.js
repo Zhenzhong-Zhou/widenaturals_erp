@@ -9,7 +9,7 @@ const AppError = require('../utils/AppError');
 const {
   PRODUCT_BATCH_PERMISSION_FIELD_RULES
 } = require('../utils/constants/domain/product-batch-constants');
-const { filterUpdatableBatchFields } = require('./batches/batch-field-filter');
+const { resolveEditableFields, filterUpdatableBatchFields } = require('./batches/batch-field-filter');
 
 /**
  * Business: Determine product batch visibility authority.
@@ -188,62 +188,35 @@ const evaluateProductBatchAccessControl = async (user) => {
 };
 
 /**
- * Resolves which product batch fields a user is allowed to edit
- * based on access-control flags.
+ * Resolves editable fields for a product batch based on
+ * the current user's access-control flags.
  *
- * This function maps permission flags to editable field sets
- * defined in `PRODUCT_BATCH_PERMISSION_FIELD_RULES`.
- *
- * Root users automatically receive permission to modify all
- * fields defined in the permission rule map.
+ * This wrapper delegates permission resolution to
+ * `resolveEditableFields` using product-batch specific rules.
  *
  * @param {Object} access
- * @param {boolean} access.isRoot
- * @param {boolean} access.canEditBasicMetadata
- * @param {boolean} access.canEditSensitiveMetadata
- * @param {boolean} access.canEditReleaseMetadata
- * @param {boolean} access.canChangeStatus
+ * Access-control flags for the current user.
  *
- * @returns {Set<string>} Set of field names the user may edit
+ * @param {boolean} access.isRoot
+ * Indicates whether the user has root privileges.
+ *
+ * @param {boolean} [access.canEditBasicMetadata]
+ * Permission to edit non-sensitive batch metadata.
+ *
+ * @param {boolean} [access.canEditSensitiveMetadata]
+ * Permission to edit sensitive metadata fields.
+ *
+ * @param {boolean} [access.canEditReleaseMetadata]
+ * Permission to edit release-related metadata fields.
+ *
+ * @param {boolean} [access.canChangeStatus]
+ * Permission to change the batch lifecycle status.
+ *
+ * @returns {Set<string>}
+ * Set of field names the user is permitted to edit.
  */
-const getEditableFieldsForProductBatch = (access) => {
-  const allowed = new Set();
-  
-  // Root bypass
-  if (access.isRoot) {
-    Object.values(PRODUCT_BATCH_PERMISSION_FIELD_RULES)
-      .flat()
-      .forEach((f) => allowed.add(f));
-    
-    return allowed;
-  }
-  
-  if (access.canEditBasicMetadata) {
-    PRODUCT_BATCH_PERMISSION_FIELD_RULES
-      .edit_batch_metadata_basic
-      .forEach((f) => allowed.add(f));
-  }
-  
-  if (access.canEditSensitiveMetadata) {
-    PRODUCT_BATCH_PERMISSION_FIELD_RULES
-      .edit_batch_metadata_sensitive
-      .forEach((f) => allowed.add(f));
-  }
-  
-  if (access.canEditReleaseMetadata) {
-    PRODUCT_BATCH_PERMISSION_FIELD_RULES
-      .edit_batch_release_metadata
-      .forEach((f) => allowed.add(f));
-  }
-  
-  if (access.canChangeStatus) {
-    PRODUCT_BATCH_PERMISSION_FIELD_RULES
-      .change_batch_status
-      .forEach((f) => allowed.add(f));
-  }
-  
-  return allowed;
-};
+const getEditableFieldsForPackagingBatch = (access) =>
+  resolveEditableFields(access, PRODUCT_BATCH_PERMISSION_FIELD_RULES);
 
 /**
  * Filters and validates product batch update fields.

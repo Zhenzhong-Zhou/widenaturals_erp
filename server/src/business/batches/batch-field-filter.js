@@ -2,6 +2,97 @@ const AppError = require('../../utils/AppError');
 const { logSystemInfo } = require('../../utils/system-logger');
 
 /**
+ * Resolves which batch fields a user is allowed to edit based on
+ * their access permissions and the configured permission field rules.
+ *
+ * This function converts role-based access flags into a Set of editable
+ * field names. The returned Set is later intersected with lifecycle rules
+ * to determine the final editable fields.
+ *
+ * Behavior:
+ * - Root users bypass permission restrictions and can edit all fields
+ *   defined in the rules object.
+ * - Non-root users receive fields based on their access flags.
+ * - Missing rule groups are safely ignored.
+ *
+ * Example rules structure:
+ *
+ * {
+ *   edit_batch_metadata_basic: ['notes', 'manufacture_date'],
+ *   edit_batch_metadata_sensitive: ['expiry_date'],
+ *   edit_batch_release_metadata: ['released_by', 'released_at'],
+ *   change_batch_status: ['status_id']
+ * }
+ *
+ * Example access object:
+ *
+ * {
+ *   isRoot: false,
+ *   canEditBasicMetadata: true,
+ *   canEditSensitiveMetadata: false,
+ *   canEditReleaseMetadata: true,
+ *   canChangeStatus: true
+ * }
+ *
+ * @param {Object} access
+ * Access control result for the current user.
+ *
+ * @param {boolean} access.isRoot
+ * Indicates whether the user has root privileges.
+ *
+ * @param {boolean} [access.canEditBasicMetadata]
+ * Permission to edit non-sensitive batch metadata.
+ *
+ * @param {boolean} [access.canEditSensitiveMetadata]
+ * Permission to edit sensitive batch metadata.
+ *
+ * @param {boolean} [access.canEditReleaseMetadata]
+ * Permission to edit release-related metadata.
+ *
+ * @param {boolean} [access.canChangeStatus]
+ * Permission to change batch lifecycle status.
+ *
+ * @param {Record<string, string[]>} rules
+ * Mapping of permission groups to editable field arrays.
+ *
+ * @returns {Set<string>}
+ * A Set containing all field names the user is allowed to edit.
+ */
+const resolveEditableFields = (access = {}, rules = {}) => {
+  const allowed = new Set();
+  
+  //------------------------------------------------------------
+  // Root users bypass permission restrictions
+  //------------------------------------------------------------
+  if (access.isRoot) {
+    return new Set(Object.values(rules).flat());
+  }
+  
+  //------------------------------------------------------------
+  // Map access flags to rule groups
+  //------------------------------------------------------------
+  const permissionMap = {
+    canEditBasicMetadata: 'edit_batch_metadata_basic',
+    canEditSensitiveMetadata: 'edit_batch_metadata_sensitive',
+    canEditReleaseMetadata: 'edit_batch_release_metadata',
+    canChangeStatus: 'change_batch_status',
+  };
+  
+  //------------------------------------------------------------
+  // Resolve allowed fields based on access flags
+  //------------------------------------------------------------
+  for (const [accessKey, ruleKey] of Object.entries(permissionMap)) {
+    if (access[accessKey] && Array.isArray(rules[ruleKey])) {
+      for (const field of rules[ruleKey]) {
+        allowed.add(field);
+      }
+    }
+  }
+  
+  return allowed;
+};
+
+/**
  * Filters and validates updatable batch fields based on
  * lifecycle state and user permissions.
  *
@@ -88,15 +179,15 @@ const filterUpdatableBatchFields = ({
   //------------------------------------------------------------
   // Intersection of lifecycle + permission rules
   //------------------------------------------------------------
-  const allowedFields = [...lifecycleSet].filter((f) =>
-    permissionFields.has(f)
+  const allowedFields = new Set(
+    [...lifecycleSet].filter((f) => permissionFields.has(f))
   );
   
   //------------------------------------------------------------
   // Validate requested update fields
   //------------------------------------------------------------
   const invalidFields = Object.keys(updates).filter(
-    (f) => !allowedFields.includes(f)
+    (f) => !allowedFields.has(f)
   );
   
   if (invalidFields.length) {
@@ -110,9 +201,7 @@ const filterUpdatableBatchFields = ({
   // Filter update payload
   //------------------------------------------------------------
   const filtered = Object.fromEntries(
-    Object.entries(updates).filter(([k]) =>
-      allowedFields.includes(k)
-    )
+    Object.entries(updates).filter(([k]) => allowedFields.has(k))
   );
   
   //------------------------------------------------------------
@@ -128,5 +217,6 @@ const filterUpdatableBatchFields = ({
 };
 
 module.exports = {
+  resolveEditableFields,
   filterUpdatableBatchFields,
 };
