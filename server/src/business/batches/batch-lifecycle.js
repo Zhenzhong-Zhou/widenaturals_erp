@@ -1,6 +1,6 @@
 const AppError = require('../../utils/AppError');
 const { logSystemError } = require('../../utils/system-logger');
-// todo: adjust file name remove buisnees, regroup functions
+
 /**
  * Validates whether a batch lifecycle transition is allowed.
  *
