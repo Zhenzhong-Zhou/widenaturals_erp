@@ -49,6 +49,7 @@ const PACKAGING_BATCH_EDIT_RULES = {
     'currency',
     'exchange_rate',
     'total_cost',
+    'notes',
     'status_id'
   ],
   
@@ -65,6 +66,7 @@ const PACKAGING_BATCH_EDIT_RULES = {
     'unit',
     'manufacture_date',
     'expiry_date',
+    'notes',
     
     // Receipt metadata
     'received_at',
@@ -82,6 +84,7 @@ const PACKAGING_BATCH_EDIT_RULES = {
    * Only lifecycle transitions are allowed.
    */
   quarantined: [
+    'notes',
     'status_id',
     'status_date'
   ],
@@ -95,6 +98,7 @@ const PACKAGING_BATCH_EDIT_RULES = {
    * Only lifecycle transitions may occur.
    */
   released: [
+    'notes',
     'status_id'
   ]
 };
@@ -190,7 +194,11 @@ const PACKAGING_BATCH_PERMISSION_FIELD_RULES = {
   edit_batch_metadata_basic: [
     'material_snapshot_name',
     'received_label_name',
-    'lot_number'
+    'lot_number',
+    'manufacture_date',
+    'expiry_date',
+    'unit',
+    'notes',
   ],
   
   /**
@@ -203,18 +211,20 @@ const PACKAGING_BATCH_PERMISSION_FIELD_RULES = {
    */
   edit_batch_metadata_sensitive: [
     'packaging_material_supplier_id',
+    'quantity',
     'unit_cost',
     'currency',
     'exchange_rate',
     'total_cost',
-    'received_at'
+    'received_at',
   ],
   
   /**
    * Permission allowing lifecycle status transitions.
    */
   change_batch_status: [
-    'status_id'
+    'status_id',
+    'notes'
   ]
 };
 

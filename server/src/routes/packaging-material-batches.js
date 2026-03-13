@@ -88,6 +88,24 @@ router.get(
   getPaginatedPackagingMaterialBatchesController
 );
 
+/**
+ * Creates one or more packaging material batches.
+ *
+ * Middleware order:
+ * 1. authorize → ensures the user has permission to create packaging batches
+ * 2. validate → validates request payload using Joi schema
+ * 3. controller → executes the batch creation workflow
+ *
+ * @route POST /packaging-material-batches/create
+ *
+ * @middleware authorize
+ * Requires permission: PACKAGING_MATERIAL_BATCHES.CREATE
+ *
+ * @middleware validate
+ * Validates request body against `createPackagingMaterialBatchBulkSchema`
+ *
+ * @controller createPackagingMaterialBatchesController
+ */
 router.post(
   '/create',
   authorize([PACKAGING_MATERIAL_BATCHES.CREATE]),
