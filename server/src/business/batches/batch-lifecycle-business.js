@@ -1,54 +1,6 @@
 const AppError = require('../../utils/AppError');
 const { logSystemError } = require('../../utils/system-logger');
-
-/**
- * Filters update payload fields based on lifecycle edit rules.
- *
- * Ensures that only fields permitted for the current batch status
- * can be updated. Any attempt to modify restricted fields will
- * trigger a validation error.
- *
- * This function does NOT mutate the original payload and returns
- * a sanitized copy of the update object.
- *
- * Example:
- * editRules = {
- *   pending: ['notes', 'status_id'],
- *   received: ['notes']
- * }
- *
- * @param {string} status - Current batch lifecycle status name
- * @param {Object<string, any>} updates - Incoming update payload
- * @param {Record<string, string[]>} editRules - Allowed fields per status
- * @returns {Object<string, any>} sanitized update payload
- *
- * @throws {AppError} If invalid fields are provided
- */
-const filterEditableFields = (status, updates, editRules) => {
-  // Defensive guard
-  if (!updates || typeof updates !== 'object') {
-    throw AppError.validationError('Invalid update payload.');
-  }
-  
-  const allowed = editRules[status] ?? [];
-  
-  // Detect fields that are not allowed for this lifecycle stage
-  const invalidFields = Object.keys(updates).filter(
-    (field) => !allowed.includes(field)
-  );
-  
-  if (invalidFields.length > 0) {
-    throw AppError.validationError(
-      'Some fields cannot be updated in the current batch state.',
-      { invalidFields }
-    );
-  }
-  
-  // Return shallow copy to avoid accidental mutation
-  return { ...updates };
-};
-
-
+// todo: adjust file name remove buisnees, regroup functions
 /**
  * Validates whether a batch lifecycle transition is allowed.
  *
@@ -102,6 +54,5 @@ const validateStatusTransition = (
 };
 
 module.exports = {
-  filterEditableFields,
   validateStatusTransition,
 };

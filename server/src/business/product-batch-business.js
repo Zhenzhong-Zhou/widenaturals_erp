@@ -9,6 +9,7 @@ const AppError = require('../utils/AppError');
 const {
   PRODUCT_BATCH_PERMISSION_FIELD_RULES
 } = require('../utils/constants/domain/product-batch-constants');
+const { filterUpdatableBatchFields } = require('./batches/batch-field-filter');
 
 /**
  * Business: Determine product batch visibility authority.
@@ -187,22 +188,35 @@ const evaluateProductBatchAccessControl = async (user) => {
 };
 
 /**
- * Converts access control flags into the set of fields
- * a user is permitted to modify for a product batch.
+ * Resolves which product batch fields a user is allowed to edit
+ * based on access-control flags.
  *
- * This function maps permission flags to field-level
- * editing rights defined in `PRODUCT_BATCH_PERMISSION_FIELD_RULES`.
+ * This function maps permission flags to editable field sets
+ * defined in `PRODUCT_BATCH_PERMISSION_FIELD_RULES`.
+ *
+ * Root users automatically receive permission to modify all
+ * fields defined in the permission rule map.
  *
  * @param {Object} access
+ * @param {boolean} access.isRoot
  * @param {boolean} access.canEditBasicMetadata
  * @param {boolean} access.canEditSensitiveMetadata
  * @param {boolean} access.canEditReleaseMetadata
  * @param {boolean} access.canChangeStatus
  *
- * @returns {Set<string>} allowed editable field names
+ * @returns {Set<string>} Set of field names the user may edit
  */
 const getEditableFieldsForProductBatch = (access) => {
   const allowed = new Set();
+  
+  // Root bypass
+  if (access.isRoot) {
+    Object.values(PRODUCT_BATCH_PERMISSION_FIELD_RULES)
+      .flat()
+      .forEach((f) => allowed.add(f));
+    
+    return allowed;
+  }
   
   if (access.canEditBasicMetadata) {
     PRODUCT_BATCH_PERMISSION_FIELD_RULES
@@ -234,91 +248,38 @@ const getEditableFieldsForProductBatch = (access) => {
 /**
  * Filters and validates product batch update fields.
  *
- * This function enforces both:
+ * This function is a thin wrapper around the generic
+ * `filterUpdatableBatchFields` validator. It injects the
+ * product-batch-specific permission resolver and error label.
  *
- * 1. Lifecycle edit rules (based on current batch status)
- * 2. Permission-based field editing rules
+ * Validation performed by the underlying function includes:
  *
- * Final editable fields are calculated as:
+ * 1. Lifecycle edit rules based on the batch's current status
+ * 2. Permission-based field editing rules derived from user access
+ *
+ * The final editable fields are determined as:
  *
  *   allowedFields =
  *      lifecycleAllowedFields
  *      ∩
  *      permissionAllowedFields
  *
- * Any attempted update outside this set is rejected.
+ * Any attempted update outside this set will be rejected.
  *
  * @param {Object} params
  * @param {Object} params.batch - Current batch record
  * @param {Object} params.updates - Requested update payload
- * @param {Object} params.access - Access control object
- * @param {Record<string, string[]>} params.editRules - Lifecycle rules
+ * @param {Object} params.access - Access control flags
+ * @param {Record<string,string[]>} params.editRules - Lifecycle edit rules
  *
- * @returns {Object} filtered update payload safe to apply
+ * @returns {Object} Filtered update payload safe to apply
  */
-const filterUpdatableProductBatchFields = ({
-                                             batch,
-                                             updates = {},
-                                             access,
-                                             editRules,
-                                           }) => {
-  //------------------------------------------------------------
-  // Validate payload structure
-  //------------------------------------------------------------
-  if (!updates || typeof updates !== 'object' || Array.isArray(updates)) {
-    throw AppError.validationError(
-      'Invalid product batch update payload.'
-    );
-  }
-  
-  //------------------------------------------------------------
-  // 1. Lifecycle editable fields
-  //------------------------------------------------------------
-  const lifecycleFields = editRules[batch.status] ?? [];
-  
-  //------------------------------------------------------------
-  // 2. Permission editable fields
-  //------------------------------------------------------------
-  const permissionFields =
-    getEditableFieldsForProductBatch(access);
-  
-  //------------------------------------------------------------
-  // 3. Compute final allowed fields (intersection)
-  //------------------------------------------------------------
-  const allowedFields = lifecycleFields.filter((f) =>
-    permissionFields.has(f)
-  );
-  
-  //------------------------------------------------------------
-  // 4. Detect invalid update attempts
-  //------------------------------------------------------------
-  const invalidFields = Object.keys(updates).filter(
-    (f) => !allowedFields.includes(f)
-  );
-  
-  if (invalidFields.length) {
-    throw AppError.validationError(
-      `You are not allowed to modify: ${invalidFields.join(', ')}`
-    );
-  }
-  
-  //------------------------------------------------------------
-  // 5. Filter payload to safe fields only
-  //------------------------------------------------------------
-  const filtered = Object.fromEntries(
-    Object.entries(updates).filter(([key]) =>
-      allowedFields.includes(key)
-    )
-  );
-  
-  if (!Object.keys(filtered).length) {
-    throw AppError.validationError(
-      'No valid editable product batch fields provided.'
-    );
-  }
-  
-  return filtered;
-};
+const filterUpdatableProductBatchFields = (params) =>
+  filterUpdatableBatchFields({
+    ...params,
+    permissionResolver: getEditableFieldsForProductBatch,
+    errorLabel: 'product batch'
+  });
 
 module.exports = {
   evaluateProductBatchVisibility,
