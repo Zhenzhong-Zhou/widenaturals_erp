@@ -9,7 +9,7 @@ const {
   prepareMetadataUpdates,
   applyLifecycleTransition,
   buildBatchActivities
-} = require('./batch-workflow-helpers');
+} = require('./batch-update-helpers');
 
 /**
  * Register newly created batches and record activity logs.

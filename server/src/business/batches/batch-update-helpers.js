@@ -1,6 +1,6 @@
 const {
   validateStatusTransition,
-} = require('./batch-lifecycle-business');
+} = require('./batch-lifecycle');
 const {
   getStatusId,
   getStatusNameById
@@ -16,24 +16,58 @@ const AppError = require('../../utils/AppError');
 /**
  * Applies lifecycle transition logic for a batch update.
  *
- * Responsibilities:
- * - validate status transitions (unless root bypass is applied)
- * - apply lifecycle automation timestamps for specific status changes
- * - determine whether the lifecycle state changed
+ * This function performs three responsibilities:
  *
- * No database operations occur in this function.
+ * 1. Validates whether the requested lifecycle transition is allowed.
+ * 2. Applies lifecycle automation fields (timestamps and actor IDs)
+ *    when specific statuses are reached.
+ * 3. Determines whether the lifecycle status actually changed.
+ *
+ * The function does **not perform any database operations**. It only
+ * returns the lifecycle-related update fields that should be merged
+ * into the final update payload by the caller.
+ *
+ * Root users may bypass lifecycle validation checks, but lifecycle
+ * automation hooks still apply.
+ *
+ * Example lifecycle automation:
+ *
+ * - `batch_received` → sets `received_at` and `received_by`
+ * - `batch_released` → sets `released_at` and `released_by`
  *
  * @param {Object} params
- * @param {Object} params.batch - Current batch record
- * @param {string|null} params.nextStatus - Target status_id
- * @param {string|null} params.actorId - User performing the operation
- * @param {Record<string,string[]>} params.statusTransitions - Allowed lifecycle transitions
- * @param {Object} params.access - Access control object
+ *
+ * @param {Object} params.batch
+ * Current batch record.
+ *
+ * @param {string|null} params.nextStatus
+ * Target lifecycle status ID requested by the update.
+ *
+ * @param {string|null} params.actorId
+ * Identifier of the user performing the operation.
+ *
+ * @param {Record<string,string[]>} params.statusTransitions
+ * Map describing allowed lifecycle transitions.
+ *
+ * Example:
+ * {
+ *   pending: ['received'],
+ *   received: ['quarantined','released']
+ * }
+ *
+ * @param {Object} params.access
+ * Access control result for the current user.
  *
  * @returns {{
  *   lifecycleUpdates: Object,
  *   isStatusChange: boolean
  * }}
+ *
+ * `lifecycleUpdates`
+ * Fields automatically applied by lifecycle rules.
+ *
+ * `isStatusChange`
+ * Indicates whether the lifecycle status actually changed.
  */
 const applyLifecycleTransition = ({
                                     batch,
@@ -42,20 +76,26 @@ const applyLifecycleTransition = ({
                                     statusTransitions,
                                     access,
                                   }) => {
-  // If no status change requested, nothing to process
+  //------------------------------------------------------------
+  // If no lifecycle status change is requested, exit early
+  //------------------------------------------------------------
   if (nextStatus == null) {
-    return { lifecycleUpdates: {}, isStatusChange: false };
+    return {
+      lifecycleUpdates: {},
+      isStatusChange: false,
+    };
   }
   
   //------------------------------------------------------------
   // Validate lifecycle transition
   //------------------------------------------------------------
   if (access?.isRoot && nextStatus !== batch.status_id) {
+    // Root users bypass transition validation but the action is logged
     logSystemInfo('Root bypassing batch lifecycle transition validation', {
       batchId: batch.id,
       actorId,
       fromStatus: batch.status_name,
-      toStatus: nextStatus
+      toStatus: nextStatus,
     });
   } else {
     validateStatusTransition(
@@ -67,27 +107,43 @@ const applyLifecycleTransition = ({
     );
   }
   
+  //------------------------------------------------------------
+  // Lifecycle automation hooks
+  //------------------------------------------------------------
   const lifecycleUpdates = {};
   
-  //------------------------------------------------------------
-  // Lifecycle automation timestamps
-  //------------------------------------------------------------
   const receivedStatusId = getStatusId('batch_received');
   const releasedStatusId = getStatusId('batch_released');
   
-  if (nextStatus === receivedStatusId) {
-    lifecycleUpdates.received_at = new Date();
-    lifecycleUpdates.received_by = actorId;
+  /**
+   * Lifecycle hooks automatically apply system-managed
+   * fields when a batch reaches certain statuses.
+   */
+  const lifecycleHooks = {
+    [receivedStatusId]: () => ({
+      received_at: new Date(),
+      received_by: actorId,
+    }),
+    
+    [releasedStatusId]: () => ({
+      released_at: new Date(),
+      released_by: actorId,
+    }),
+  };
+  
+  //------------------------------------------------------------
+  // Apply lifecycle automation if a hook exists
+  //------------------------------------------------------------
+  if (lifecycleHooks[nextStatus]) {
+    Object.assign(lifecycleUpdates, lifecycleHooks[nextStatus]());
   }
   
-  if (nextStatus === releasedStatusId) {
-    lifecycleUpdates.released_at = new Date();
-    lifecycleUpdates.released_by = actorId;
-  }
-  
+  //------------------------------------------------------------
+  // Return lifecycle updates and status-change indicator
+  //------------------------------------------------------------
   return {
     lifecycleUpdates,
-    isStatusChange: nextStatus !== batch.status_id
+    isStatusChange: nextStatus !== batch.status_id,
   };
 };
 
