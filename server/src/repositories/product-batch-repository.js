@@ -333,54 +333,95 @@ const getProductBatchById = async (batchId, client) => {
 };
 
 /**
- * Update product batch metadata.
+ * Update metadata of a product batch.
  *
- * This function performs a partial update on the product_batches table.
- * Only fields provided in the params object will be updated.
+ * Performs a partial update on the `product_batches` table.
+ * Only fields provided in the `params` object will be included
+ * in the update statement.
+ *
+ * This repository function does not contain business logic.
+ * Lifecycle rules and validation are handled in the service layer.
  *
  * @param {Object} params
+ *
  * @param {string} params.batchId
- * @param {string|null} [params.lotNumber]
- * @param {string|null} [params.manufacturerId]
- * @param {string|null} [params.manufactureDate]
- * @param {string|null} [params.expiryDate]
- * @param {number|null} [params.initialQuantity]
+ * Unique identifier of the batch to update.
+ *
+ * @param {string|null} [params.lot_number]
+ * Batch lot number assigned by the manufacturer.
+ *
+ * @param {string|null} [params.manufacturer_id]
+ * Manufacturer responsible for the batch.
+ *
+ * @param {string|null} [params.manufacture_date]
+ * Date when the batch was produced.
+ *
+ * @param {string|null} [params.expiry_date]
+ * Expiration date of the batch.
+ *
+ * @param {Date|null} [params.received_at]
+ * Timestamp indicating when the batch was received
+ * into warehouse inventory.
+ *
+ * @param {string|null} [params.received_by]
+ * Internal user who recorded the batch intake.
+ *
+ * @param {number|null} [params.initial_quantity]
+ * Initial quantity recorded for the batch.
+ *
  * @param {string|null} [params.notes]
- * @param {string|null} [params.statusId]
- * @param {string|null} [params.releasedBy]
- * @param {string|null} [params.releasedByManufacturerId]
+ * Optional notes or operational comments.
+ *
+ * @param {string|null} [params.status_id]
+ * Lifecycle status identifier of the batch.
+ *
+ * @param {string|null} [params.released_by]
+ * Internal user responsible for releasing the batch.
+ *
+ * @param {string|null} [params.released_by_manufacturer_id]
+ * Manufacturer responsible for approving the batch release.
+ *
  * @param {string} params.updatedBy
+ * Identifier of the user performing the update.
+ *
  * @param {import('pg').PoolClient} client
+ * Database client used for transactional execution.
  *
  * @returns {Promise<Object>}
+ * Updated product batch record.
  */
 const updateProductBatch = async (params, client) => {
   const context = 'product-batch-repository/updateProductBatch';
   
   const {
     batchId,
-    lotNumber,
-    manufacturerId,
-    manufactureDate,
-    expiryDate,
-    initialQuantity,
+    lot_number,
+    manufacturer_id,
+    manufacture_date,
+    expiry_date,
+    received_at,
+    received_by,
+    initial_quantity,
     notes,
-    statusId,
-    releasedBy,
-    releasedByManufacturerId,
+    status_id,
+    released_by,
+    released_by_manufacturer_id,
     updatedBy,
   } = params;
   
+  // Only defined fields will be applied by updateById
   const updates = {
-    lot_number: lotNumber,
-    manufacturer_id: manufacturerId,
-    manufacture_date: manufactureDate,
-    expiry_date: expiryDate,
-    initial_quantity: initialQuantity,
+    lot_number,
+    manufacturer_id,
+    manufacture_date,
+    expiry_date,
+    received_at,
+    received_by,
+    initial_quantity,
     notes,
-    status_id: statusId,
-    released_by: releasedBy,
-    released_by_manufacturer_id: releasedByManufacturerId,
+    status_id,
+    released_by,
+    released_by_manufacturer_id,
   };
   
   try {
