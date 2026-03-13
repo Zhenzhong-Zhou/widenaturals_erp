@@ -26,7 +26,9 @@ exports.up = async function (knex) {
     table.string('currency', 5); // 'CAD', 'USD', etc.
     table.decimal('exchange_rate', 12, 6); // optional if multi-currency
     table.decimal('total_cost', 14, 4); // optional convenience (quantity × unit_cost)
-
+    
+    table.text('notes'); // QA remarks, custom info
+    
     table
       .uuid('status_id')
       .notNullable()
