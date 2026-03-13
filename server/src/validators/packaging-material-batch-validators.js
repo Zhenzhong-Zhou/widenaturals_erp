@@ -152,9 +152,6 @@ const packagingMaterialBatchBaseSchema = {
   
   // Internal operational notes
   notes: validateOptionalString('Notes', 500),
-  
-  // Optional note stored in batch registry
-  registryNote: validateOptionalString('Registry Note', 500),
 };
 
 /**

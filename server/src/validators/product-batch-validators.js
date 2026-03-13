@@ -118,9 +118,6 @@ const productBatchBaseSchema = {
   
   // Internal notes for QA, operations, or traceability
   notes: validateOptionalString('Notes', 500),
-  
-  // Optional note stored in the batch registry
-  registryNote: validateOptionalString('Registry Note', 500),
 };
 
 /**

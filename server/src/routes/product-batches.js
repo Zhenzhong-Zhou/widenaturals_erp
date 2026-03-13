@@ -88,6 +88,24 @@ router.get(
   getPaginatedProductBatchesController
 );
 
+/**
+ * Creates one or more product batches.
+ *
+ * Middleware order:
+ * 1. authorize → ensures the user has permission to create product batches
+ * 2. validate → validates request payload using Joi schema
+ * 3. controller → executes the batch creation workflow
+ *
+ * @route POST /product-batches/create
+ *
+ * @middleware authorize
+ * Requires permission: PRODUCT_BATCHES.CREATE
+ *
+ * @middleware validate
+ * Validates request body against `createProductBatchBulkSchema`
+ *
+ * @controller createProductBatchesController
+ */
 router.post(
   '/create',
   authorize([PRODUCT_BATCHES.CREATE]),

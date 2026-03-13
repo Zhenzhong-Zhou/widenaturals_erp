@@ -96,14 +96,62 @@ const getPaginatedProductBatchesController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * Handles bulk creation of product batches.
+ *
+ * Responsibilities:
+ * - Validate request payload structure
+ * - Log request lifecycle information
+ * - Delegate batch creation to the service layer
+ * - Return structured API response
+ *
+ * Notes:
+ * - Input payload validation is primarily handled by Joi middleware.
+ * - This controller performs a defensive check to ensure the payload
+ *   still contains a valid batch array.
+ * - Business logic and database operations are delegated to the
+ *   `createProductBatchesService`.
+ *
+ * @route POST /product-batches
+ *
+ * @param {import('express').Request} req
+ * Express request object.
+ *
+ * @param {Object} req.body
+ * Request body validated by Joi middleware.
+ *
+ * @param {Array<Object>} req.body.productBatches
+ * List of product batch objects to create.
+ *
+ * @param {Object} req.auth
+ * Authenticated request metadata.
+ *
+ * @param {Object} req.auth.user
+ * Authenticated user performing the operation.
+ *
+ * @param {import('express').Response} res
+ * Express response object.
+ *
+ * @returns {Promise<void>}
+ *
+ * @throws {AppError}
+ * If the payload is invalid or batch creation fails.
+ */
 const createProductBatchesController = wrapAsync(async (req, res) => {
   const context = 'product-batch-controller/createProductBatchesController';
+  
+  // Track request start time for performance logging
   const startTime = Date.now();
+  
+  // Lightweight request trace identifier for debugging
   const traceId = `create-product-batch-${Date.now().toString(36)}`;
   
-  const { productBatches } = req.body; // validated by Joi
+  const { productBatches } = req.body;
   const user = req.auth.user;
   
+  //------------------------------------------------------------
+  // Defensive payload validation (Joi should already enforce this)
+  //------------------------------------------------------------
   if (!Array.isArray(productBatches) || productBatches.length === 0) {
     throw AppError.validationError('No product batches provided.', {
       context,
@@ -111,18 +159,26 @@ const createProductBatchesController = wrapAsync(async (req, res) => {
     });
   }
   
+  //------------------------------------------------------------
+  // Log request start
+  //------------------------------------------------------------
   logInfo('Starting bulk product batch creation request', req, {
     context,
     traceId,
     userId: user.id,
-    count: productBatches.length,
+    batchCount: productBatches.length,
   });
   
-  // --- Execute service layer ---
+  //------------------------------------------------------------
+  // Delegate creation to service layer
+  //------------------------------------------------------------
   const result = await createProductBatchesService(productBatches, user);
   
   const elapsedMs = Date.now() - startTime;
   
+  //------------------------------------------------------------
+  // Log completion
+  //------------------------------------------------------------
   logInfo('Bulk product batch creation completed', req, {
     context,
     traceId,
@@ -131,6 +187,9 @@ const createProductBatchesController = wrapAsync(async (req, res) => {
     elapsedMs,
   });
   
+  //------------------------------------------------------------
+  // Send structured API response
+  //------------------------------------------------------------
   res.status(201).json({
     success: true,
     message: 'Product batches created successfully.',

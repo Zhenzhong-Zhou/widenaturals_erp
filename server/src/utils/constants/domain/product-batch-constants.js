@@ -172,7 +172,7 @@ const PRODUCT_BATCH_PERMISSION_FIELD_RULES = {
     'manufacture_date',
     'expiry_date',
     'manufacturer_id',
-    'notes'
+    'notes',
   ],
   
   /**
@@ -205,7 +205,7 @@ const PRODUCT_BATCH_PERMISSION_FIELD_RULES = {
    */
   change_batch_status: [
     'status_id',
-    'status_date'
+    'notes'
   ]
 };
 

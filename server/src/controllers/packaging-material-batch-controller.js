@@ -99,15 +99,64 @@ const getPaginatedPackagingMaterialBatchesController = wrapAsync(
   }
 );
 
+/**
+ * Handles bulk creation of packaging material batches.
+ *
+ * Responsibilities:
+ * - Validate incoming request payload structure
+ * - Log request lifecycle events
+ * - Delegate batch creation to the service layer
+ * - Return structured API response
+ *
+ * Notes:
+ * - Primary validation is handled by Joi middleware.
+ * - This controller performs a defensive check to ensure
+ *   the request payload contains a valid array.
+ * - Business logic and database operations are handled
+ *   by `createPackagingMaterialBatchesService`.
+ *
+ * @route POST /packaging-material-batches
+ *
+ * @param {import('express').Request} req
+ * Express request object.
+ *
+ * @param {Object} req.body
+ * Request body validated by Joi middleware.
+ *
+ * @param {Array<Object>} req.body.packagingMaterialBatches
+ * List of packaging material batch objects to create.
+ *
+ * @param {Object} req.auth
+ * Authentication metadata injected by auth middleware.
+ *
+ * @param {Object} req.auth.user
+ * Authenticated user performing the operation.
+ *
+ * @param {import('express').Response} res
+ * Express response object.
+ *
+ * @returns {Promise<void>}
+ *
+ * @throws {AppError}
+ * If the request payload is invalid or batch creation fails.
+ */
 const createPackagingMaterialBatchesController = wrapAsync(async (req, res) => {
   const context =
     'packaging-material-batch-controller/createPackagingMaterialBatchesController';
+  
+  // Track request start time for performance monitoring
   const startTime = Date.now();
+  
+  // Generate lightweight trace ID for debugging
   const traceId = `create-packaging-batch-${Date.now().toString(36)}`;
   
-  const { packagingMaterialBatches } = req.body; // validated by Joi
+  const { packagingMaterialBatches } = req.body;
   const user = req.auth.user;
   
+  //------------------------------------------------------------
+  // Defensive payload validation
+  // (Joi should already validate this)
+  //------------------------------------------------------------
   if (
     !Array.isArray(packagingMaterialBatches) ||
     packagingMaterialBatches.length === 0
@@ -118,14 +167,19 @@ const createPackagingMaterialBatchesController = wrapAsync(async (req, res) => {
     );
   }
   
+  //------------------------------------------------------------
+  // Log request start
+  //------------------------------------------------------------
   logInfo('Starting bulk packaging material batch creation request', req, {
     context,
     traceId,
     userId: user.id,
-    count: packagingMaterialBatches.length,
+    batchCount: packagingMaterialBatches.length,
   });
   
-  // --- Execute service layer ---
+  //------------------------------------------------------------
+  // Delegate creation to service layer
+  //------------------------------------------------------------
   const result = await createPackagingMaterialBatchesService(
     packagingMaterialBatches,
     user
@@ -133,6 +187,9 @@ const createPackagingMaterialBatchesController = wrapAsync(async (req, res) => {
   
   const elapsedMs = Date.now() - startTime;
   
+  //------------------------------------------------------------
+  // Log completion
+  //------------------------------------------------------------
   logInfo('Bulk packaging material batch creation completed', req, {
     context,
     traceId,
@@ -141,6 +198,9 @@ const createPackagingMaterialBatchesController = wrapAsync(async (req, res) => {
     elapsedMs,
   });
   
+  //------------------------------------------------------------
+  // Return structured API response
+  //------------------------------------------------------------
   res.status(201).json({
     success: true,
     message: 'Packaging material batches created successfully.',
