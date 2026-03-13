@@ -85,20 +85,30 @@ const PRODUCT_BATCH_EDIT_RULES = {
 /**
  * Defines valid lifecycle status transitions for product batches.
  *
- * This prevents invalid workflow jumps such as:
+ * This configuration maps a **current batch status** to the list
+ * of **allowed next statuses** in the lifecycle workflow.
  *
- * - released → pending
- * - consumed → released
+ * Example:
  *
- * The business layer must validate transitions before applying
- * any status update.
+ * pending → received
+ * pending → quarantined
+ * pending → rejected
  *
- * Terminal states such as `consumed`, `archived`, and `expired`
- * normally cannot transition further.
+ * Invalid transitions such as:
+ *
+ * released → pending
+ * consumed → released
+ *
+ * are prevented by validating the requested transition
+ * against this map.
+ *
+ * Terminal states such as `consumed`, `archived`, `expired`,
+ * and `rejected` normally do not allow further transitions.
  *
  * Note:
- * `expired` batches are typically marked automatically by system
- * processes rather than manual transitions.
+ * Some statuses (such as `expired`) may also be applied
+ * automatically by scheduled system processes rather than
+ * manual updates.
  *
  * @type {Record<string, string[]>}
  */
@@ -108,7 +118,8 @@ const PRODUCT_BATCH_STATUS_TRANSITIONS = {
    */
   pending: [
     'received',
-    'quarantined'
+    'quarantined',
+    'rejected'
   ],
   
   /**
@@ -116,14 +127,16 @@ const PRODUCT_BATCH_STATUS_TRANSITIONS = {
    */
   received: [
     'quarantined',
-    'released'
+    'released',
+    'rejected'
   ],
   
   /**
-   * Batch temporarily blocked due to quality inspection.
+   * Batch temporarily blocked for QA inspection.
    */
   quarantined: [
     'released',
+    'rejected',
     'suspended'
   ],
   
@@ -132,18 +145,43 @@ const PRODUCT_BATCH_STATUS_TRANSITIONS = {
    */
   released: [
     'consumed',
-    'archived',
-    'suspended'
+    'expired',
+    'suspended',
+    'archived'
   ],
   
   /**
-   * Suspended batches are blocked due to operational
-   * or quality issues.
+   * Suspended batches blocked due to QA or operational issues.
    */
   suspended: [
     'quarantined',
+    'released',
     'archived'
-  ]
+  ],
+  
+  /**
+   * Batch rejected during QA or intake.
+   * Terminal lifecycle state.
+   */
+  rejected: [],
+  
+  /**
+   * Batch expired after shelf life.
+   * Terminal state.
+   */
+  expired: [],
+  
+  /**
+   * Batch fully consumed in production or fulfillment.
+   * Terminal state.
+   */
+  consumed: [],
+  
+  /**
+   * Batch archived for historical records.
+   * Terminal lifecycle state.
+   */
+  archived: []
 };
 
 /**

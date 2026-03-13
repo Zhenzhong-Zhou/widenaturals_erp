@@ -60,12 +60,16 @@ const PERMISSIONS = {
     CREATE: 'create_product_batches',
     EDIT: 'edit_product_material_batches',
     UPDATE_STATUS: 'update_product_batch_status',
+    RECEIVE: 'receive_product_batch',
+    RELEASE: 'release_product_batch',
   },
   PACKAGING_MATERIAL_BATCHES: {
     VIEW_LIST: 'view_packaging_material_batches',
     CREATE: 'create_packaging_material_batches',
     EDIT: 'edit_packaging_material_batches',
-    UPDATE_STATUS: 'update_packaging_material_status',
+    UPDATE_STATUS: 'update_packaging_material_batch_status',
+    RECEIVE: 'receive_packaging_material_batch',
+    RELEASE: 'release_packaging_material_batch',
   },
   WAREHOUSE_INVENTORY: {
     CREATE: 'create_warehouse_inventory',
