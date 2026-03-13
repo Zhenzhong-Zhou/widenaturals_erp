@@ -237,7 +237,7 @@ const editPackagingMaterialBatchMetadataController = wrapAsync(
       await editPackagingMaterialBatchMetadataService(
         batchId,
         updates,
-        user.id
+        user
       );
     
     //------------------------------------------------------------

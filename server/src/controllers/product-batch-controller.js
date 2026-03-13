@@ -221,7 +221,7 @@ const editProductBatchMetadataController = wrapAsync(async (req, res) => {
   const result = await editProductBatchMetadataService(
     batchId,
     updates,
-    user.id
+    user
   );
   
   const elapsedMs = Date.now() - startTime;

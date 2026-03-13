@@ -1,6 +1,7 @@
 const {
   evaluateProductBatchVisibility,
-  applyProductBatchVisibilityRules, evaluateProductBatchAccessControl, filterUpdatableProductBatchFields,
+  applyProductBatchVisibilityRules,
+  evaluateProductBatchAccessControl,
 } = require('../business/product-batch-business');
 const {
   getPaginatedProductBatches,
@@ -31,6 +32,7 @@ const {
   PRODUCT_BATCH_STATUS_TRANSITIONS
 } = require('../utils/constants/domain/product-batch-constants');
 const { transformIdOnlyResult } = require('../transformers/common/id-result-transformer');
+const { filterUpdatableBatchFields } = require('../business/batches/batch-field-filter');
 
 /**
  * Service: Fetch paginated product batch records for UI consumption.
@@ -316,13 +318,13 @@ const createProductBatchesService = async (productBatches, user) => {
 /**
  * Service for editing product batch metadata.
  *
- * This service executes the batch update workflow inside a database
- * transaction and ensures that:
+ * This service executes the shared batch update workflow inside a
+ * database transaction and ensures that:
  *
- * - lifecycle rules are respected
+ * - lifecycle rules are enforced by the shared batch workflow
  * - metadata updates follow permission rules
- * - status transitions are validated
- * - batch activity logs are generated
+ * - lifecycle status transitions are validated
+ * - batch activity logs are generated and persisted
  *
  * Responsibilities:
  * - validate service inputs
@@ -397,7 +399,7 @@ const editProductBatchMetadataService = async (
         
         // permission & filtering
         evaluateAccessControlFn: evaluateProductBatchAccessControl,
-        filterUpdatableFieldsFn: filterUpdatableProductBatchFields,
+        filterUpdatableFieldsFn: filterUpdatableBatchFields,
       });
       
       //------------------------------------------------------------

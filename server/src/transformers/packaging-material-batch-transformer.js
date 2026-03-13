@@ -225,10 +225,10 @@ const transformPackagingMaterialBatchRecords = (rows) => {
   return rows.map((row) => ({
     id: row.id,
     lotNumber: row.lot_number,
-    packagingMaterialId: row.packaging_material_id,
+    packagingMaterialSupplierId: row.packaging_material_supplier_id,
     manufactureDate: row.manufacture_date ?? null,
     expiryDate: row.expiry_date ?? null,
-    initialQuantity: row.initial_quantity,
+    initialQuantity: Number(row.quantity),
     statusId: row.status_id,
   }));
 };
