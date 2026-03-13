@@ -18,18 +18,15 @@ const {
   logSystemException,
 } = require('../../utils/system-logger');
 const {
-  productBatchAdjustService,
+  editProductBatchMetadataService,
 } = require('../../services/product-batch-service');
 const { initStatusCache } = require('../../config/status-cache');
 const {
   initBatchActivityTypeCache,
   getBatchActivityTypeId
 } = require('../../cache/batch-activity-type-cache');
-const {
-  toSnakeCaseBatchUpdates
-} = require('../../transformers/product-batch-transformer');
 const { runTestCase } = require('../utlis/runTestCase');
-
+// todo: add test case permissions
 /**
  * Fetch batch data
  */
@@ -103,21 +100,45 @@ const verifyActivity = async (client, batchRegistryId) => {
     await initBatchActivityTypeCache();
     
     //------------------------------------------------------------
-    // 2. Load test user
+    // 2. Load test users
     //------------------------------------------------------------
     
-    const { rows: users } = await client.query(
-      `SELECT id FROM users WHERE email = $1 LIMIT 1`,
+    const { rows: allowedUsers } = await client.query(
+      `SELECT id, role_id FROM users WHERE email = $1 LIMIT 1`,
       ['root@widenaturals.com']
     );
     
-    if (!users.length) {
-      throw new Error('Test user not found');
+    if (!allowedUsers.length) {
+      throw new Error('No allowed test user found');
     }
     
-    const actorId = users[0].id;
+    const allowedUser = {
+      id: allowedUsers[0].id,
+      role: allowedUsers[0].role_id
+    };
     
-    console.log(`${logPrefix} 👤 Using actor: ${actorId}`);
+    console.log(
+      `${logPrefix} 👤 Using allowed user: ${chalk.green(JSON.stringify(allowedUser))}`
+    );
+    
+    
+    const { rows: deniedUsers } = await client.query(
+      `SELECT id, role_id FROM users WHERE email = $1 LIMIT 1`,
+      ['jp@widenaturals.com']
+    );
+    
+    if (!deniedUsers.length) {
+      throw new Error('No denied test user found');
+    }
+    
+    const deniedUser = {
+      id: deniedUsers[0].id,
+      role: deniedUsers[0].role_id
+    };
+    
+    console.log(
+      `${logPrefix} 🚫 Using denied user: ${chalk.green(JSON.stringify(deniedUser))}`
+    );
     
     //------------------------------------------------------------
     // 3. Fetch editable batch
@@ -150,36 +171,54 @@ const verifyActivity = async (client, batchRegistryId) => {
     console.table(editableBatch);
     
     //------------------------------------------------------------
-    // 4. Prepare update payload
+    // 4. Fetch manufacturer for test
+    //------------------------------------------------------------
+    
+    const { rows: manufacturerRows } = await client.query(`
+      SELECT id
+      FROM manufacturers
+      ORDER BY RANDOM()
+      LIMIT 1
+    `);
+    
+    if (!manufacturerRows.length) {
+      throw new Error('No manufacturer found for test');
+    }
+    
+    const manufacturerId = manufacturerRows[0].id;
+    
+    console.log(`${logPrefix} 🏭 Using manufacturer: ${chalk.green(manufacturerId)}`);
+    
+    //------------------------------------------------------------
+    // 5. Prepare update payload
     //------------------------------------------------------------
     
     const updates = {
-      lotNumber: `TEST-${Date.now()}`,
-      manufactureDate: '2024-01-01',
-      expiryDate: '2027-01-01',
-      initialQuantity: Math.floor(Math.random() * 100 + 1),
-      notes: `Metadata test update ${Date.now()}`
+      lot_number: `LOT-PROD-TEST-${Date.now()}`,
+      manufacturer_id: manufacturerId,
+      manufacture_date: '2026-02-10',
+      expiry_date: '2029-02-10',
+      initial_quantity: Math.floor(Math.random() * 5000 + 1000),
+      notes: `Updated manufacturing record after QA review ${Date.now()}`
     };
     
     console.log(`${logPrefix} 📝 Update payload`);
     console.table(updates);
-    
+
     //------------------------------------------------------------
     // Test Case 1 — Editable batch
     //------------------------------------------------------------
     
     const editableCase = await runTestCase(
-      'Editable batch metadata update',
+      'Editable product batch metadata update',
       async () => {
         
-        const dbUpdates = toSnakeCaseBatchUpdates(updates);
-        
-        const result = await productBatchAdjustService(
-          editableBatch.id,
-          dbUpdates,
-          actorId,
-          client
-        );
+        const result =
+          await editProductBatchMetadataService(
+            editableBatch.id,
+            updates,
+            allowedUser,
+          );
         
         return {
           batchId: editableBatch.id,
@@ -189,13 +228,12 @@ const verifyActivity = async (client, batchRegistryId) => {
       }
     );
     
-    
     //------------------------------------------------------------
     // Test Case 2 — Locked batch should reject
     //------------------------------------------------------------
     
     const lockedCase = await runTestCase(
-      'Locked batch should reject update',
+      'Locked product batch should reject update',
       async () => {
         
         const { rows } = await client.query(`
@@ -220,18 +258,14 @@ const verifyActivity = async (client, batchRegistryId) => {
         const lockedBatch = rows[0];
         
         try {
-          
-          await productBatchAdjustService(
+          await editProductBatchMetadataService(
             lockedBatch.id,
             updates,
-            actorId,
-            client
+            allowedUser,
           );
           
-          throw new Error('Expected rejection but update succeeded');
-          
+          throw new Error('Expected lifecycle rejection');
         } catch (err) {
-          
           return {
             batchId: lockedBatch.id,
             batchRegistryId: lockedBatch.batch_registry_id,
@@ -241,22 +275,138 @@ const verifyActivity = async (client, batchRegistryId) => {
       }
     );
     
+    //------------------------------------------------------------
+    // Test Case 3 — Permission rejection
+    //------------------------------------------------------------
+    
+    const permissionCase = await runTestCase(
+      'Editable product batch should reject update without permission',
+      async () => {
+        
+        try {
+          await editProductBatchMetadataService(
+            editableBatch.id,
+            updates,
+            deniedUser,
+          );
+          
+          throw new Error('Expected permission rejection');
+        } catch (err) {
+          return {
+            batchId: editableBatch.id,
+            batchRegistryId: editableBatch.batch_registry_id,
+            expectedError: err.message
+          };
+        }
+      }
+    );
+    
+    //------------------------------------------------------------
+    // Test Case 4 — Partial metadata update
+    //------------------------------------------------------------
+    
+    const partialUpdateCase = await runTestCase(
+      'Partial metadata update (notes only)',
+      async () => {
+        
+        const result =
+          await editProductBatchMetadataService(
+            editableBatch.id,
+            { notes: `Partial update ${Date.now()}` },
+            allowedUser,
+          );
+        
+        return {
+          batchId: editableBatch.id,
+          batchRegistryId: editableBatch.batch_registry_id,
+          result
+        };
+      }
+    );
+    
+    //------------------------------------------------------------
+    // Test Case 5 — Invalid field update
+    //------------------------------------------------------------
+    
+    const invalidFieldCase = await runTestCase(
+      'Invalid field update should reject',
+      async () => {
+        try {
+          await editProductBatchMetadataService(
+            editableBatch.id,
+            {
+              invalid_field: 'test'
+            },
+            allowedUser,
+          );
+          
+          throw new Error('Expected invalid field rejection');
+        } catch (err) {
+          return {
+            batchId: editableBatch.id,
+            expectedError: err.message
+          };
+        }
+      }
+    );
+    
+    //------------------------------------------------------------
+    // Test Case 6 — Empty payload rejection
+    //------------------------------------------------------------
+    
+    const emptyPayloadCase = await runTestCase(
+      'Empty update payload should reject',
+      async () => {
+        try {
+          await editProductBatchMetadataService(
+            editableBatch.id,
+            {},
+            allowedUser,
+          );
+          
+          throw new Error('Expected empty payload rejection');
+        } catch (err) {
+          return {
+            expectedError: err.message
+          };
+        }
+      }
+    );
+    
+    //------------------------------------------------------------
+    // Test Case 7 — Batch not found
+    //------------------------------------------------------------
+    
+    const notFoundCase = await runTestCase(
+      'Non-existent batch should reject',
+      async () => {
+        try {
+          await editProductBatchMetadataService(
+            '00000000-0000-0000-0000-000000000000',
+            updates,
+            allowedUser,
+          );
+          
+          throw new Error('Expected not-found rejection');
+        } catch (err) {
+          return {
+            expectedError: err.message
+          };
+        }
+      }
+    );
     
     //------------------------------------------------------------
     // 5. Verify results
     //------------------------------------------------------------
     
     if (editableCase.success) {
-      
       console.log(`${logPrefix} 🔎 Verifying batch update`);
-      
       await verifyBatch(
         client,
         editableCase.result.batchId
       );
-      
       console.log(`${logPrefix} 📜 Verifying activity log`);
-      
       await verifyActivity(
         client,
         editableCase.result.batchRegistryId
@@ -264,11 +414,34 @@ const verifyActivity = async (client, batchRegistryId) => {
     }
     
     if (lockedCase.success) {
-      
       console.log(`${logPrefix} 🔒 Locked batch rejection confirmed`);
       console.table(lockedCase.result);
     }
     
+    if (permissionCase.success) {
+      console.log(`${logPrefix} 🚫 Permission rejection confirmed`);
+      console.table(permissionCase.result);
+    }
+    
+    if (partialUpdateCase?.success) {
+      console.log(`${logPrefix} ✏️ Partial metadata update confirmed`);
+      console.table(partialUpdateCase.result);
+    }
+    
+    if (invalidFieldCase?.success) {
+      console.log(`${logPrefix} ⚠️ Invalid field rejection confirmed`);
+      console.table(invalidFieldCase.result);
+    }
+    
+    if (emptyPayloadCase?.success) {
+      console.log(`${logPrefix} ⚠️ Empty payload rejection confirmed`);
+      console.table(emptyPayloadCase.result);
+    }
+    
+    if (notFoundCase?.success) {
+      console.log(`${logPrefix} ❓ Batch not found rejection confirmed`);
+      console.table(notFoundCase.result);
+    }
     
     //------------------------------------------------------------
     // Performance timing
