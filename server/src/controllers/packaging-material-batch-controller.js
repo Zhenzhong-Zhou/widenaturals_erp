@@ -5,6 +5,9 @@ const {
   fetchPaginatedPackagingMaterialBatchesService,
   createPackagingMaterialBatchesService,
   editPackagingMaterialBatchMetadataService,
+  updatePackagingMaterialBatchStatusService,
+  receivePackagingMaterialBatchService,
+  releasePackagingMaterialBatchService,
 } = require('../services/packaging-material-batch-service');
 
 /**
@@ -221,7 +224,6 @@ const createPackagingMaterialBatchesController = wrapAsync(async (req, res) => {
  * the Joi middleware before the controller executes.
  *
  * Responsibilities:
- * - validate route parameters
  * - initiate structured request logging
  * - call the service layer to perform the batch update
  * - return a standardized API response
@@ -258,23 +260,6 @@ const editPackagingMaterialBatchMetadataController = wrapAsync(
     // Payload already validated by Joi middleware
     const updates = req.body;
     const user = req.auth?.user;
-    
-    //------------------------------------------------------------
-    // Basic request validation
-    //------------------------------------------------------------
-    if (!batchId) {
-      throw AppError.validationError('batchId is required.', {
-        context,
-        traceId,
-      });
-    }
-    
-    if (!user?.id) {
-      throw AppError.authenticationError(
-        'Authenticated user required.',
-        { context, traceId }
-      );
-    }
     
     //------------------------------------------------------------
     // Log request start
@@ -331,8 +316,290 @@ const editPackagingMaterialBatchMetadataController = wrapAsync(
   }
 );
 
+/**
+ * Controller for updating the lifecycle status of a packaging material batch.
+ *
+ * This endpoint allows authorized users to transition a packaging batch
+ * to a different lifecycle status (e.g. pending → received).
+ *
+ * Responsibilities:
+ * - Perform minimal safety validation
+ * - Log request start and completion
+ * - Delegate lifecycle logic to the service layer
+ * - Return a standardized API response
+ *
+ * Lifecycle validation and automation (timestamps, actors, etc.)
+ * are handled in the service/business layer.
+ *
+ * Route example:
+ * PATCH /api/packaging-material-batches/:batchId/status
+ *
+ * Request body:
+ * {
+ *   "status_id": "uuid",
+ *   "notes": "optional note"
+ * }
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ *
+ * @returns {Promise<void>}
+ */
+const updatePackagingMaterialBatchStatusController = wrapAsync(async (req, res) => {
+  const context =
+    'packaging-material-batch-controller/updatePackagingMaterialBatchStatusController';
+  
+  const startTime = Date.now();
+  const traceId = `update-packaging-batch-status-${Date.now().toString(36)}`;
+  
+  //------------------------------------------------------------
+  // Extract request data
+  //------------------------------------------------------------
+  
+  const { batchId } = req.params;
+  const { status_id, notes } = req.body;
+  const user = req.auth?.user;
+  
+  //------------------------------------------------------------
+  // Log request start
+  //------------------------------------------------------------
+  
+  logInfo('Starting packaging material batch status update request', req, {
+    context,
+    traceId,
+    userId: user.id,
+    batchId,
+    statusId: status_id,
+  });
+  
+  //------------------------------------------------------------
+  // Delegate lifecycle update to service layer
+  //------------------------------------------------------------
+  
+  const result = await updatePackagingMaterialBatchStatusService(
+    batchId,
+    status_id,
+    notes,
+    user
+  );
+  
+  const elapsedMs = Date.now() - startTime;
+  
+  //------------------------------------------------------------
+  // Log completion
+  //------------------------------------------------------------
+  
+  logInfo('Packaging material batch status update completed', req, {
+    context,
+    traceId,
+    batchId,
+    statusId: status_id,
+    elapsedMs,
+  });
+  
+  //------------------------------------------------------------
+  // Send standardized response
+  //------------------------------------------------------------
+  
+  res.status(200).json({
+    success: true,
+    message: 'Packaging material batch status updated successfully.',
+    stats: {
+      batchId,
+      elapsedMs,
+    },
+    data: result,
+  });
+});
+
+/**
+ * Controller for marking a packaging material batch as received.
+ *
+ * This endpoint represents the warehouse intake step when
+ * packaging materials arrive from a supplier.
+ *
+ * Responsibilities:
+ * - Log lifecycle event start and completion
+ * - Delegate receive logic to the service layer
+ *
+ * The service layer will handle lifecycle validation,
+ * timestamp automation, and inventory updates.
+ *
+ * Route example:
+ * PATCH /api/packaging-material-batches/:batchId/receive
+ *
+ * Request body:
+ * {
+ *   "received_at": "optional ISO timestamp",
+ *   "notes": "optional note"
+ * }
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ *
+ * @returns {Promise<void>}
+ */
+const receivePackagingMaterialBatchController = wrapAsync(async (req, res) => {
+  const context =
+    'packaging-material-batch-controller/receivePackagingMaterialBatchController';
+  
+  const startTime = Date.now();
+  const traceId = `receive-packaging-batch-${Date.now().toString(36)}`;
+  
+  //------------------------------------------------------------
+  // Extract request data
+  //------------------------------------------------------------
+  
+  const { batchId } = req.params;
+  const { received_at, notes } = req.body;
+  const user = req.auth?.user;
+  
+  //------------------------------------------------------------
+  // Log request start
+  //------------------------------------------------------------
+  
+  logInfo('Starting packaging material batch receive request', req, {
+    context,
+    traceId,
+    userId: user.id,
+    batchId,
+  });
+  
+  //------------------------------------------------------------
+  // Execute service layer
+  //------------------------------------------------------------
+  
+  const result = await receivePackagingMaterialBatchService(
+    batchId,
+    received_at,
+    notes,
+    user
+  );
+  
+  const elapsedMs = Date.now() - startTime;
+  
+  //------------------------------------------------------------
+  // Log completion
+  //------------------------------------------------------------
+  
+  logInfo('Packaging material batch received successfully', req, {
+    context,
+    traceId,
+    batchId,
+    elapsedMs,
+  });
+  
+  //------------------------------------------------------------
+  // Send response
+  //------------------------------------------------------------
+  
+  res.status(200).json({
+    success: true,
+    message: 'Packaging material batch marked as received.',
+    stats: {
+      batchId,
+      elapsedMs,
+    },
+    data: result,
+  });
+});
+
+/**
+ * Controller for releasing a packaging material batch for operational use.
+ *
+ * This endpoint indicates that a packaging batch has passed
+ * quality inspection and is approved for manufacturing or packaging use.
+ *
+ * Responsibilities:
+ * - Log release lifecycle event
+ * - Delegate release logic to the service layer
+ *
+ * Route example:
+ * PATCH /api/packaging-material-batches/:batchId/release
+ *
+ * Request body:
+ * {
+ *   "supplier_id": "uuid",
+ *   "notes": "optional QA note"
+ * }
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ *
+ * @returns {Promise<void>}
+ */
+const releasePackagingMaterialBatchController = wrapAsync(async (req, res) => {
+  const context =
+    'packaging-material-batch-controller/releasePackagingMaterialBatchController';
+  
+  const startTime = Date.now();
+  const traceId = `release-packaging-batch-${Date.now().toString(36)}`;
+  
+  //------------------------------------------------------------
+  // Extract request data
+  //------------------------------------------------------------
+  
+  const { batchId } = req.params;
+  const { supplier_id, notes } = req.body;
+  const user = req.auth?.user;
+  
+  //------------------------------------------------------------
+  // Log request start
+  //------------------------------------------------------------
+  
+  logInfo('Starting packaging material batch release request', req, {
+    context,
+    traceId,
+    userId: user.id,
+    batchId,
+    supplierId: supplier_id,
+  });
+  
+  //------------------------------------------------------------
+  // Execute service layer
+  //------------------------------------------------------------
+  
+  const result = await releasePackagingMaterialBatchService(
+    batchId,
+    supplier_id,
+    notes,
+    user
+  );
+  
+  const elapsedMs = Date.now() - startTime;
+  
+  //------------------------------------------------------------
+  // Log completion
+  //------------------------------------------------------------
+  
+  logInfo('Packaging material batch release completed', req, {
+    context,
+    traceId,
+    batchId,
+    supplierId: supplier_id,
+    elapsedMs,
+  });
+  
+  //------------------------------------------------------------
+  // Send response
+  //------------------------------------------------------------
+  
+  res.status(200).json({
+    success: true,
+    message: 'Packaging material batch released successfully.',
+    stats: {
+      batchId,
+      elapsedMs,
+    },
+    data: result,
+  });
+});
+
 module.exports = {
   getPaginatedPackagingMaterialBatchesController,
   createPackagingMaterialBatchesController,
   editPackagingMaterialBatchMetadataController,
+  updatePackagingMaterialBatchStatusController,
+  receivePackagingMaterialBatchController,
+  releasePackagingMaterialBatchController,
 };
