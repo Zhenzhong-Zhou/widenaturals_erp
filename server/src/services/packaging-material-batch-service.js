@@ -332,11 +332,14 @@ const createPackagingMaterialBatchesService = async (
  * - batch activity logs are generated and persisted for auditing
  *
  * Responsibilities:
- * - validate service inputs
  * - open a database transaction
  * - execute the shared batch workflow
  * - transform the response payload
  * - record structured system logs
+ *
+ * The optional `overrideContext` parameter allows callers to provide
+ * a more specific logging context for lifecycle operations such as
+ * status updates, receiving, or releasing batches.
  *
  * @async
  *
@@ -349,29 +352,27 @@ const createPackagingMaterialBatchesService = async (
  * @param {{ id: string }} user
  * Authenticated user performing the operation.
  *
+ * @param {string} [overrideContext]
+ * Optional logging context used by lifecycle services.
+ *
  * @returns {Promise<{ id: string }>}
  * Identifier of the updated batch.
  */
 const editPackagingMaterialBatchMetadataService = async (
   batchId,
   updates,
-  user
+  user,
+  overrideContext,
 ) => {
   return withTransaction(async (client) => {
     const context =
+      overrideContext ??
       'packaging-material-batch-service/editPackagingMaterialBatchMetadataService';
     
     try {
       //------------------------------------------------------------
       // 1. Validate service inputs
       //------------------------------------------------------------
-      if (!batchId) {
-        throw AppError.validationError(
-          'batchId is required.',
-          { context }
-        );
-      }
-      
       if (!updates || typeof updates !== 'object') {
         throw AppError.validationError(
           'Invalid updates payload.',
@@ -500,6 +501,9 @@ const updatePackagingMaterialBatchStatusService = async (
   notes,
   user
 ) => {
+  const context =
+    'packaging-material-batch-service/updatePackagingMaterialBatchStatusService';
+  
   //------------------------------------------------------------
   // Delegate lifecycle update to shared metadata workflow
   //------------------------------------------------------------
@@ -509,7 +513,8 @@ const updatePackagingMaterialBatchStatusService = async (
       status_id: statusId,
       notes: notes ?? null
     },
-    user
+    user,
+    context,
   );
 };
 
@@ -548,6 +553,9 @@ const receivePackagingMaterialBatchService = async (
   notes,
   user
 ) => {
+  const context =
+    'packaging-material-batch-service/receivePackagingMaterialBatchService';
+  
   //------------------------------------------------------------
   // Resolve lifecycle status identifier
   //------------------------------------------------------------
@@ -564,7 +572,8 @@ const receivePackagingMaterialBatchService = async (
       received_by: user.id,
       notes: notes ?? null
     },
-    user
+    user,
+    context,
   );
 };
 
@@ -603,6 +612,9 @@ const releasePackagingMaterialBatchService = async (
   notes,
   user
 ) => {
+  const context =
+    'packaging-material-batch-service/releasePackagingMaterialBatchService';
+  
   //------------------------------------------------------------
   // Resolve lifecycle status identifier
   //------------------------------------------------------------
@@ -619,7 +631,8 @@ const releasePackagingMaterialBatchService = async (
       released_by_supplier_id: supplierId,
       notes: notes ?? null
     },
-    user
+    user,
+    context,
   );
 };
 
