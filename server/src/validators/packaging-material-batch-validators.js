@@ -11,6 +11,11 @@ const {
   requiredIsoDate,
   validatePositiveIntegerRequired,
 } = require('./general-validators');
+const {
+  lifecycleStatusUpdateSchema,
+  lifecycleReceiveSchema,
+  lifecycleNotes
+} = require('./batches/lifecycle-common');
 
 /**
  * Packaging Material Batch query schema
@@ -218,6 +223,29 @@ const createPackagingMaterialBatchBulkSchema = Joi.object({
 });
 
 /**
+ * Joi schema: Validate Packaging Material Batch ID route parameter.
+ *
+ * Used for routes like:
+ *   PATCH /api/v1/packaging-material-batches/:batchId/status
+ *   PATCH /api/v1/packaging-material-batches/:batchId/receive
+ *   PATCH /api/v1/packaging-material-batches/:batchId/release
+ *
+ * Ensures the provided packaging material batch ID is a valid UUID.
+ *
+ * @constant
+ * @type {Joi.ObjectSchema}
+ *
+ * @example
+ * // Example usage in middleware
+ * const { error } = packagingMaterialBatchIdParamSchema.validate(req.params);
+ * if (error) throw AppError.validationError(error.message);
+ */
+const packagingMaterialBatchIdParamSchema = Joi.object({
+  batchId: validateUUID('Packaging Material Batch ID')
+    .description('UUID of the packaging material batch record'),
+});
+
+/**
  * Joi schema for updating packaging material batch metadata.
  *
  * Allows partial updates of metadata fields while enforcing:
@@ -237,32 +265,102 @@ const editPackagingMaterialBatchMetadataSchema = Joi.object(
   .min(1)
   .unknown(false);
 
+//------------------------------------------------------------
+// Packaging material batch lifecycle schemas
+//------------------------------------------------------------
+
 /**
- * Joi schema for updating packaging material batch lifecycle status.
+ * Joi schema for updating the lifecycle status of a packaging material batch.
  *
- * Used for lifecycle transitions such as:
+ * This schema reuses the shared lifecycle status update validator
+ * to ensure consistent validation rules across all batch domains.
+ *
+ * Only the minimal payload required for lifecycle transition
+ * is accepted:
+ *
+ * Fields:
+ * - status_id (UUID, required)
+ *     Target lifecycle status identifier.
+ *
+ * - notes (string | null)
+ *     Optional lifecycle comment or operational note.
+ *
+ * Notes:
+ * This schema intentionally references the shared
+ * `lifecycleStatusUpdateSchema` to avoid duplication
+ * and guarantee consistent lifecycle validation logic
+ * across product batches and packaging material batches.
+ *
+ * Performance:
+ * The schema is instantiated once at module load time
+ * and reused for every request, so this pattern has
+ * no measurable runtime overhead.
+ */
+const updatePackagingMaterialBatchStatusSchema =
+  lifecycleStatusUpdateSchema;
+
+
+/**
+ * Joi schema for receiving a packaging material batch.
+ *
+ * This action represents the warehouse intake process when
+ * packaging materials arrive from a supplier.
+ *
+ * Typical lifecycle transition:
  *
  * pending → received
+ *
+ * Fields:
+ * - received_at (ISO date, optional)
+ *     Timestamp indicating when the batch was received.
+ *     If omitted, the system may automatically assign the
+ *     current server timestamp.
+ *
+ * - notes (string | null)
+ *     Optional operational intake note.
+ *
+ * Notes:
+ * Uses the shared lifecycle receive validator to maintain
+ * consistent validation behavior across batch domains.
+ */
+const receivePackagingMaterialBatchSchema =
+  lifecycleReceiveSchema;
+
+
+/**
+ * Joi schema for releasing a packaging material batch.
+ *
+ * This lifecycle action indicates that packaging materials
+ * have passed inspection and are approved for manufacturing
+ * or packaging operations.
+ *
+ * Typical lifecycle transition:
+ *
  * received → released
  *
  * Fields:
- * - status_id → target lifecycle state
- * - received_at → timestamp of warehouse intake
+ * - supplier_id (UUID, required)
+ *     Supplier responsible for the packaging materials.
+ *
+ * - notes (string | null)
+ *     Optional QA or operational comment recorded during release.
+ *
+ * Notes:
+ * Unlike status and receive schemas, this validator defines
+ * a domain-specific field (`supplier_id`) because packaging
+ * batches are associated with suppliers rather than manufacturers.
  */
-const updatePackagingMaterialBatchStatusSchema = Joi.object({
-    
-    // Target lifecycle status
-    status_id: validateUUID('Status ID').required(),
-    
-    // Timestamp when batch is officially received
-    received_at: optionalIsoDate('Received At'),
-    
-  })
-  .unknown(false);
+const releasePackagingMaterialBatchSchema = Joi.object({
+  supplier_id: validateUUID('Supplier ID').required(),
+  notes: lifecycleNotes,
+}).unknown(false);
 
 module.exports = {
   packagingMaterialBatchQuerySchema,
   createPackagingMaterialBatchBulkSchema,
+  packagingMaterialBatchIdParamSchema,
   editPackagingMaterialBatchMetadataSchema,
   updatePackagingMaterialBatchStatusSchema,
+  receivePackagingMaterialBatchSchema,
+  releasePackagingMaterialBatchSchema,
 };
