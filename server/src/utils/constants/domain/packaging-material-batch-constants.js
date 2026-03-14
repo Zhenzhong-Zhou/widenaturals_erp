@@ -103,64 +103,127 @@ const PACKAGING_BATCH_EDIT_RULES = {
   ]
 };
 
+//------------------------------------------------------------
+// Packaging material batch lifecycle state machine
+//------------------------------------------------------------
+
 /**
  * Valid lifecycle transitions for packaging material batches.
  *
- * This configuration prevents invalid state changes such as:
+ * This configuration defines the allowed **state transitions**
+ * for packaging material batch records. It acts as a lightweight
+ * state machine used by the business layer to validate lifecycle
+ * changes before applying any updates.
  *
- * - released → pending
- * - consumed → received
+ * Purpose:
+ * - Prevent invalid transitions such as:
+ *     released → pending
+ *     consumed → received
+ * - Ensure terminal states cannot transition further.
+ * - Provide a centralized definition of lifecycle behavior.
  *
- * Terminal states should not appear here, ensuring
- * they cannot transition further.
+ * Validation usage example (business layer):
  *
- * These transitions are validated in the **business layer**
- * before any status updates are applied.
+ * const allowed = PACKAGING_BATCH_STATUS_TRANSITIONS[currentStatus];
+ * if (!allowed.includes(targetStatus)) {
+ *   throw AppError.validationError(
+ *     `Invalid lifecycle transition: ${currentStatus} → ${targetStatus}`
+ *   );
+ * }
+ *
+ * Lifecycle design principles:
+ * - Terminal states return an empty array.
+ * - Only forward lifecycle movement is allowed.
+ * - Operational exceptions (e.g. suspended) may allow recovery.
+ *
+ * Performance:
+ * - The configuration is a static object loaded once at
+ *   module initialization.
+ * - Status checks are O(1) lookups followed by a small array check.
  *
  * @type {Record<string, string[]>}
  */
 const PACKAGING_BATCH_STATUS_TRANSITIONS = {
+  
   /**
-   * Batch registered but not yet received.
+   * Batch registered in the system but not yet received
+   * into warehouse inventory.
    */
   pending: [
-    'received',
-    'quarantined'
+    'received',      // warehouse intake completed
+    'quarantined',   // batch held for inspection
+    'rejected'       // intake rejected immediately
   ],
   
   /**
-   * Batch has arrived at the warehouse.
+   * Batch has physically arrived at the warehouse.
    */
   received: [
-    'quarantined',
-    'released'
+    'quarantined',   // QA inspection required
+    'released',      // approved for use
+    'rejected'       // rejected during intake inspection
   ],
   
   /**
-   * Batch temporarily held for inspection.
+   * Batch temporarily held for quality inspection
+   * or operational investigation.
    */
   quarantined: [
-    'released',
-    'suspended'
+    'released',      // inspection passed
+    'rejected',      // inspection failed
+    'suspended'      // operational hold
   ],
   
   /**
-   * Batch approved for operational use.
+   * Batch approved for operational use in manufacturing
+   * or packaging processes.
    */
   released: [
-    'consumed',
-    'archived',
-    'suspended'
+    'consumed',      // fully used in production
+    'expired',       // shelf-life expired
+    'suspended',     // blocked due to operational issues
+    'archived'       // archived after lifecycle completion
   ],
   
   /**
-   * Suspended batches are blocked due to operational
+   * Batch temporarily blocked due to operational
    * or quality issues.
    */
   suspended: [
-    'quarantined',
-    'archived'
-  ]
+    'quarantined',   // return to inspection
+    'released',      // issue resolved
+    'archived'       // permanently archived
+  ],
+  
+  /**
+   * Batch rejected during inspection or intake.
+   *
+   * Terminal state — no further transitions allowed.
+   */
+  rejected: [],
+  
+  /**
+   * Batch expired (possible for certain materials
+   * such as adhesives, liners, or chemical components).
+   *
+   * Terminal state.
+   */
+  expired: [],
+  
+  /**
+   * Batch fully consumed in manufacturing operations.
+   *
+   * Terminal state.
+   */
+  consumed: [],
+  
+  /**
+   * Batch archived for historical or compliance
+   * recordkeeping.
+   *
+   * Terminal state.
+   */
+  archived: []
 };
 
 /**
