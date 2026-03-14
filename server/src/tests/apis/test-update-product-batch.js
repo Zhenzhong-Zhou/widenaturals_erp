@@ -1,10 +1,15 @@
 /**
  * @fileoverview
- * Manual test script for `productBatchAdjustService`
+ * Manual test script for `editProductBatchMetadataService`
  *
  * Tests:
  *   1. Editable batch metadata update
  *   2. Locked batch rejection
+ *   3. Permission rejection
+ *   4. Partial metadata update
+ *   5. Invalid field rejection
+ *   6. Empty payload rejection
+ *   7. Batch not found
  *
  * Usage:
  *   node test-product-batch-adjust-metadata.js
@@ -15,67 +20,17 @@ const chalk = require('chalk');
 const { pool } = require('../../database/db');
 const {
   logSystemInfo,
-  logSystemException,
+  logSystemException
 } = require('../../utils/system-logger');
 const {
-  editProductBatchMetadataService,
+  editProductBatchMetadataService
 } = require('../../services/product-batch-service');
 const { initStatusCache } = require('../../config/status-cache');
 const {
-  initBatchActivityTypeCache,
-  getBatchActivityTypeId
+  initBatchActivityTypeCache
 } = require('../../cache/batch-activity-type-cache');
 const { runTestCase } = require('../utlis/runTestCase');
-// todo: add test case permissions
-/**
- * Fetch batch data
- */
-const verifyBatch = async (client, batchId) => {
-  
-  const { rows } = await client.query(`
-    SELECT
-      id,
-      lot_number,
-      notes,
-      updated_at
-    FROM product_batches
-    WHERE id = $1
-  `, [batchId]);
-  
-  console.table(rows);
-};
-
-
-/**
- * Fetch activity logs
- */
-const verifyActivity = async (client, batchRegistryId) => {
-  
-  const metadataActivityId =
-    getBatchActivityTypeId('BATCH_METADATA_UPDATED');
-  
-  const { rows } = await client.query(`
-    SELECT
-      id,
-      batch_registry_id,
-      batch_activity_type_id,
-      previous_value,
-      new_value,
-      changed_at
-    FROM batch_activity_logs
-    WHERE batch_registry_id = $1
-      AND batch_activity_type_id = $2
-    ORDER BY changed_at DESC
-    LIMIT 1
-  `, [
-    batchRegistryId,
-    metadataActivityId
-  ]);
-  
-  console.table(rows);
-};
-
-
+const { fetchBatchRecord, fetchBatchActivityLog } = require('../utlis/batches/batch-test-helpers');
 
 (async () => {
   
@@ -117,10 +72,7 @@ const verifyActivity = async (client, batchRegistryId) => {
       role: allowedUsers[0].role_id
     };
     
-    console.log(
-      `${logPrefix} 👤 Using allowed user: ${chalk.green(JSON.stringify(allowedUser))}`
-    );
-    
+    console.log(`${logPrefix} 👤 Allowed user`, allowedUser);
     
     const { rows: deniedUsers } = await client.query(
       `SELECT id, role_id FROM users WHERE email = $1 LIMIT 1`,
@@ -136,9 +88,7 @@ const verifyActivity = async (client, batchRegistryId) => {
       role: deniedUsers[0].role_id
     };
     
-    console.log(
-      `${logPrefix} 🚫 Using denied user: ${chalk.green(JSON.stringify(deniedUser))}`
-    );
+    console.log(`${logPrefix} 🚫 Denied user`, deniedUser);
     
     //------------------------------------------------------------
     // 3. Fetch editable batch
@@ -171,7 +121,7 @@ const verifyActivity = async (client, batchRegistryId) => {
     console.table(editableBatch);
     
     //------------------------------------------------------------
-    // 4. Fetch manufacturer for test
+    // 4. Fetch manufacturer
     //------------------------------------------------------------
     
     const { rows: manufacturerRows } = await client.query(`
@@ -187,7 +137,7 @@ const verifyActivity = async (client, batchRegistryId) => {
     
     const manufacturerId = manufacturerRows[0].id;
     
-    console.log(`${logPrefix} 🏭 Using manufacturer: ${chalk.green(manufacturerId)}`);
+    console.log(`${logPrefix} 🏭 Using manufacturer: ${manufacturerId}`);
     
     //------------------------------------------------------------
     // 5. Prepare update payload
@@ -204,7 +154,7 @@ const verifyActivity = async (client, batchRegistryId) => {
     
     console.log(`${logPrefix} 📝 Update payload`);
     console.table(updates);
-
+    
     //------------------------------------------------------------
     // Test Case 1 — Editable batch
     //------------------------------------------------------------
@@ -217,7 +167,7 @@ const verifyActivity = async (client, batchRegistryId) => {
           await editProductBatchMetadataService(
             editableBatch.id,
             updates,
-            allowedUser,
+            allowedUser
           );
         
         return {
@@ -229,7 +179,7 @@ const verifyActivity = async (client, batchRegistryId) => {
     );
     
     //------------------------------------------------------------
-    // Test Case 2 — Locked batch should reject
+    // Test Case 2 — Locked batch rejection
     //------------------------------------------------------------
     
     const lockedCase = await runTestCase(
@@ -261,7 +211,7 @@ const verifyActivity = async (client, batchRegistryId) => {
           await editProductBatchMetadataService(
             lockedBatch.id,
             updates,
-            allowedUser,
+            allowedUser
           );
           
           throw new Error('Expected lifecycle rejection');
@@ -282,12 +232,11 @@ const verifyActivity = async (client, batchRegistryId) => {
     const permissionCase = await runTestCase(
       'Editable product batch should reject update without permission',
       async () => {
-        
         try {
           await editProductBatchMetadataService(
             editableBatch.id,
             updates,
-            deniedUser,
+            deniedUser
           );
           
           throw new Error('Expected permission rejection');
@@ -313,7 +262,7 @@ const verifyActivity = async (client, batchRegistryId) => {
           await editProductBatchMetadataService(
             editableBatch.id,
             { notes: `Partial update ${Date.now()}` },
-            allowedUser,
+            allowedUser
           );
         
         return {
@@ -325,7 +274,7 @@ const verifyActivity = async (client, batchRegistryId) => {
     );
     
     //------------------------------------------------------------
-    // Test Case 5 — Invalid field update
+    // Test Case 5 — Invalid field rejection
     //------------------------------------------------------------
     
     const invalidFieldCase = await runTestCase(
@@ -334,10 +283,8 @@ const verifyActivity = async (client, batchRegistryId) => {
         try {
           await editProductBatchMetadataService(
             editableBatch.id,
-            {
-              invalid_field: 'test'
-            },
-            allowedUser,
+            { invalid_field: 'test' },
+            allowedUser
           );
           
           throw new Error('Expected invalid field rejection');
@@ -361,14 +308,12 @@ const verifyActivity = async (client, batchRegistryId) => {
           await editProductBatchMetadataService(
             editableBatch.id,
             {},
-            allowedUser,
+            allowedUser
           );
           
           throw new Error('Expected empty payload rejection');
         } catch (err) {
-          return {
-            expectedError: err.message
-          };
+          return { expectedError: err.message };
         }
       }
     );
@@ -380,36 +325,44 @@ const verifyActivity = async (client, batchRegistryId) => {
     const notFoundCase = await runTestCase(
       'Non-existent batch should reject',
       async () => {
+        
         try {
+          
           await editProductBatchMetadataService(
             '00000000-0000-0000-0000-000000000000',
             updates,
-            allowedUser,
+            allowedUser
           );
           
           throw new Error('Expected not-found rejection');
+          
         } catch (err) {
-          return {
-            expectedError: err.message
-          };
+          
+          return { expectedError: err.message };
+          
         }
       }
     );
     
     //------------------------------------------------------------
-    // 5. Verify results
+    // Verification
     //------------------------------------------------------------
     
     if (editableCase.success) {
+      
       console.log(`${logPrefix} 🔎 Verifying batch update`);
-      await verifyBatch(
+      
+      await fetchBatchRecord(
         client,
         editableCase.result.batchId
       );
+      
       console.log(`${logPrefix} 📜 Verifying activity log`);
-      await verifyActivity(
+      
+      await fetchBatchActivityLog(
         client,
-        editableCase.result.batchRegistryId
+        editableCase.result.batchRegistryId,
+        'BATCH_METADATA_UPDATED'
       );
     }
     
@@ -423,22 +376,22 @@ const verifyActivity = async (client, batchRegistryId) => {
       console.table(permissionCase.result);
     }
     
-    if (partialUpdateCase?.success) {
+    if (partialUpdateCase.success) {
       console.log(`${logPrefix} ✏️ Partial metadata update confirmed`);
       console.table(partialUpdateCase.result);
     }
     
-    if (invalidFieldCase?.success) {
+    if (invalidFieldCase.success) {
       console.log(`${logPrefix} ⚠️ Invalid field rejection confirmed`);
       console.table(invalidFieldCase.result);
     }
     
-    if (emptyPayloadCase?.success) {
+    if (emptyPayloadCase.success) {
       console.log(`${logPrefix} ⚠️ Empty payload rejection confirmed`);
       console.table(emptyPayloadCase.result);
     }
     
-    if (notFoundCase?.success) {
+    if (notFoundCase.success) {
       console.log(`${logPrefix} ❓ Batch not found rejection confirmed`);
       console.table(notFoundCase.result);
     }
@@ -454,22 +407,19 @@ const verifyActivity = async (client, batchRegistryId) => {
       elapsedSeconds: elapsed
     });
     
-    console.log(`${logPrefix} ⏱ Completed in ${chalk.green(`${elapsed}s`)}`);
+    console.log(`${logPrefix} ⏱ Completed in ${elapsed}s`);
     
     process.exitCode = 0;
     
   } catch (error) {
-    
-    console.error(`${logPrefix} ❌ Error: ${chalk.red(error.message)}`);
+    console.error(`${logPrefix} ❌ Error: ${error.message}`);
     
     logSystemException(error, 'Metadata update test failed', {
       context: 'test-product-batch-adjust-metadata'
     });
     
     process.exitCode = 1;
-    
   } finally {
-    
     if (client) client.release();
     
     console.log(`${logPrefix} 🧹 DB client released`);
@@ -480,5 +430,4 @@ const verifyActivity = async (client, batchRegistryId) => {
     
     process.exit(process.exitCode);
   }
-  
 })();

@@ -299,7 +299,6 @@ const editPackagingMaterialBatchMetadataSchema = Joi.object(
 const updatePackagingMaterialBatchStatusSchema =
   lifecycleStatusUpdateSchema;
 
-
 /**
  * Joi schema for receiving a packaging material batch.
  *
@@ -325,7 +324,6 @@ const updatePackagingMaterialBatchStatusSchema =
  */
 const receivePackagingMaterialBatchSchema =
   lifecycleReceiveSchema;
-
 
 /**
  * Joi schema for releasing a packaging material batch.
