@@ -316,33 +316,30 @@ const createProductBatchesService = async (productBatches, user) => {
 };
 
 /**
- * Service for editing product batch metadata.
+ * Updates product batch metadata through the shared batch workflow engine.
  *
- * This service executes the shared batch update workflow inside a
- * database transaction and ensures that:
+ * This service centralizes batch modification logic, including:
+ * - lifecycle transition validation
+ * - permission checks
+ * - transactional repository updates
+ * - batch activity log generation
  *
- * - lifecycle rules are enforced by the shared batch workflow
- * - metadata updates follow permission rules
- * - lifecycle status transitions are validated
- * - batch activity logs are generated and persisted
- *
- * Responsibilities:
- * - validate service inputs
- * - open a database transaction
- * - execute the shared batch workflow
- * - transform the response payload
- * - record structured system logs
+ * The optional `contextOverride` parameter allows callers to provide
+ * a more specific logging context for observability and debugging.
  *
  * @async
  *
  * @param {string} batchId
- * Product batch identifier.
+ * Identifier of the product batch to update.
  *
  * @param {Object} updates
- * Partial fields to update on the batch.
+ * Partial batch fields to update.
  *
  * @param {{ id: string }} user
  * Authenticated user performing the operation.
+ *
+ * @param {string} [contextOverride]
+ * Optional logging context used by the structured logging system.
  *
  * @returns {Promise<{ id: string }>}
  * Identifier of the updated batch.
@@ -350,23 +347,18 @@ const createProductBatchesService = async (productBatches, user) => {
 const editProductBatchMetadataService = async (
   batchId,
   updates,
-  user
+  user,
+  contextOverride,
 ) => {
   return withTransaction(async (client) => {
     const context =
+      contextOverride ??
       'product-batch-service/editProductBatchMetadataService';
     
     try {
       //------------------------------------------------------------
       // 1. Validate service inputs
       //------------------------------------------------------------
-      if (!batchId) {
-        throw AppError.validationError(
-          'batchId is required.',
-          { context }
-        );
-      }
-      
       if (!updates || typeof updates !== 'object') {
         throw AppError.validationError(
           'Invalid updates payload.',
@@ -493,23 +485,6 @@ const updateProductBatchStatusService = async (
     'product-batch-service/updateProductBatchStatusService';
   
   //------------------------------------------------------------
-  // Validate required inputs
-  //------------------------------------------------------------
-  if (!batchId) {
-    throw AppError.validationError(
-      'batchId is required.',
-      { context }
-    );
-  }
-  
-  if (!statusId) {
-    throw AppError.validationError(
-      'statusId is required.',
-      { context }
-    );
-  }
-  
-  //------------------------------------------------------------
   // Delegate lifecycle update to shared metadata workflow
   //------------------------------------------------------------
   return editProductBatchMetadataService(
@@ -518,7 +493,8 @@ const updateProductBatchStatusService = async (
       status_id: statusId,
       notes: notes ?? null
     },
-    user
+    user,
+    context,
   );
 };
 
@@ -561,16 +537,6 @@ const receiveProductBatchService = async (
     'product-batch-service/receiveProductBatchService';
   
   //------------------------------------------------------------
-  // Validate required inputs
-  //------------------------------------------------------------
-  if (!batchId) {
-    throw AppError.validationError(
-      'batchId is required.',
-      { context }
-    );
-  }
-  
-  //------------------------------------------------------------
   // Resolve lifecycle status identifier
   //------------------------------------------------------------
   const receivedStatusId = getStatusId('batch_received');
@@ -586,7 +552,8 @@ const receiveProductBatchService = async (
       received_by: user.id,
       notes: notes ?? null
     },
-    user
+    user,
+    context,
   );
 };
 
@@ -629,23 +596,6 @@ const releaseProductBatchService = async (
     'product-batch-service/releaseProductBatchService';
   
   //------------------------------------------------------------
-  // Validate required inputs
-  //------------------------------------------------------------
-  if (!batchId) {
-    throw AppError.validationError(
-      'batchId is required.',
-      { context }
-    );
-  }
-  
-  if (!manufacturerId) {
-    throw AppError.validationError(
-      'manufacturerId is required.',
-      { context }
-    );
-  }
-  
-  //------------------------------------------------------------
   // Resolve lifecycle status identifier
   //------------------------------------------------------------
   const releasedStatusId = getStatusId('batch_released');
@@ -661,7 +611,8 @@ const releaseProductBatchService = async (
       released_by_manufacturer_id: manufacturerId,
       notes: notes ?? null
     },
-    user
+    user,
+    context,
   );
 };
 
