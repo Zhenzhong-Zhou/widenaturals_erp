@@ -10,6 +10,11 @@ const {
   validatePositiveIntegerRequired,
   validateString,
 } = require('./general-validators');
+const {
+  lifecycleStatusUpdateSchema,
+  lifecycleReceiveSchema,
+  lifecycleNotes
+} = require('./batches/lifecycle-common');
 
 /**
  * Product Batch query schema
@@ -191,6 +196,29 @@ const createProductBatchBulkSchema = Joi.object({
 });
 
 /**
+ * Joi schema: Validate Product Batch ID route parameter.
+ *
+ * Used for routes like:
+ *   PATCH /api/v1/product-batches/:batchId/status
+ *   PATCH /api/v1/product-batches/:batchId/receive
+ *   PATCH /api/v1/product-batches/:batchId/release
+ *
+ * Ensures the provided product batch ID is a valid UUID.
+ *
+ * @constant
+ * @type {Joi.ObjectSchema}
+ *
+ * @example
+ * // Example usage in middleware
+ * const { error } = productBatchIdParamSchema.validate(req.params);
+ * if (error) throw AppError.validationError(error.message);
+ */
+const productBatchIdParamSchema = Joi.object({
+  batchId: validateUUID('Product Batch ID')
+    .description('UUID of the product batch record'),
+});
+
+/**
  * Joi schema for editing product batch metadata.
  *
  * Allows partial updates of editable metadata fields while ensuring:
@@ -211,82 +239,79 @@ const editProductBatchMetadataSchema = Joi.object(
   .min(1)
   .unknown(false);
 
-/**
- * Joi schema for updating the lifecycle status of a product batch.
- *
- * This schema validates the minimal payload required to change
- * the lifecycle state of a product batch record.
- *
- * Typical transitions include:
- *
- * - pending  → received   (warehouse intake)
- * - received → released   (QA approval / operational release)
- *
- * Only the target `status_id` and optional notes are accepted.
- * Status-specific metadata (timestamps, actors, etc.) are handled
- * by dedicated schemas or lifecycle automation logic.
- *
- * Fields:
- * - status_id (UUID, required)
- *     Target lifecycle status for the batch.
- *
- * - notes (string | null)
- *     Optional lifecycle comment or operational note.
- */
-const updateProductBatchStatusSchema = Joi.object({
-  status_id: validateUUID('Status ID').required(),
-  notes: Joi.string().trim().max(2000).allow(null),
-}).unknown(false);
+//------------------------------------------------------------
+// Product batch lifecycle schemas
+//------------------------------------------------------------
 
 /**
- * Joi schema for receiving a product batch into warehouse inventory.
+ * Validation schema for updating the lifecycle status of a product batch.
  *
- * This action represents the **physical intake of goods**
- * after they arrive from the manufacturer or supplier.
+ * This schema reuses the shared lifecycle status update validator
+ * defined in `validators/batches/lifecycle-common.js`.
  *
- * The lifecycle transition is typically:
+ * The shared schema ensures that lifecycle status transitions
+ * across different batch domains (product batches, packaging
+ * material batches, etc.) follow a consistent validation contract.
  *
- * pending → received
+ * Expected fields are defined by `lifecycleStatusUpdateSchema`,
+ * typically including:
  *
- * Fields:
- * - received_at (ISO date, optional)
- *     Timestamp indicating when the batch was received.
- *     If omitted, the system may automatically assign the current time.
+ * - status_id : target lifecycle status identifier
+ * - notes     : optional lifecycle transition notes
  *
- * - notes (string | null)
- *     Optional operational note recorded during intake.
+ * @type {Joi.ObjectSchema}
  */
-const receiveProductBatchSchema = Joi.object({
-  received_at: optionalIsoDate('Received At'),
-  notes: Joi.string().trim().max(2000).allow(null),
-}).unknown(false);
+const updateProductBatchStatusSchema = lifecycleStatusUpdateSchema;
 
 /**
- * Joi schema for releasing a product batch for operational use.
+ * Validation schema for marking a product batch as received.
  *
- * This action indicates that the batch has passed quality
- * inspection and is approved for use in fulfillment,
- * manufacturing, or distribution.
+ * This schema validates the warehouse intake operation and
+ * reuses the shared lifecycle receive validator from
+ * `validators/batches/lifecycle-common.js`.
  *
- * The lifecycle transition is typically:
+ * The shared validator standardizes fields such as:
  *
- * received → released
+ * - received_at : timestamp when the batch was received
+ * - notes       : optional intake notes
  *
- * Fields:
- * - manufacturer_id (UUID, required)
- *     Manufacturer responsible for the batch release approval.
+ * Reusing this schema ensures consistent receive validation
+ * behavior across all batch domains.
  *
- * - notes (string | null)
- *     Optional QA or operational comment recorded during release.
+ * @type {Joi.ObjectSchema}
+ */
+const receiveProductBatchSchema = lifecycleReceiveSchema;
+
+/**
+ * Validation schema for releasing a product batch.
+ *
+ * Releasing a batch typically represents QA approval or
+ * operational authorization allowing the batch to be used
+ * in manufacturing, fulfillment, or distribution workflows.
+ *
+ * Required fields:
+ *
+ * - manufacturer_id : manufacturer responsible for the release
+ *
+ * Optional fields:
+ *
+ * - notes : QA or operational release notes
+ *
+ * `.unknown(false)` is used to enforce strict validation so that
+ * only explicitly defined fields are accepted. This prevents
+ * accidental or malicious payload injection.
+ *
+ * @type {Joi.ObjectSchema}
  */
 const releaseProductBatchSchema = Joi.object({
   manufacturer_id: validateUUID('Manufacturer ID').required(),
-  notes: Joi.string().trim().max(2000).allow(null),
+  notes: lifecycleNotes,
 }).unknown(false);
 
 module.exports = {
   productBatchQuerySchema,
   createProductBatchBulkSchema,
+  productBatchIdParamSchema,
   editProductBatchMetadataSchema,
   updateProductBatchStatusSchema,
   receiveProductBatchSchema,
