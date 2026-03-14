@@ -12,6 +12,7 @@
 
 const { performance } = require('perf_hooks');
 const chalk = require('chalk');
+const { randomUUID } = require('crypto');
 const { pool } = require('../../database/db');
 const {
   logSystemInfo,
@@ -23,54 +24,9 @@ const {
 const { initStatusCache } = require('../../config/status-cache');
 const {
   initBatchActivityTypeCache,
-  getBatchActivityTypeId
 } = require('../../cache/batch-activity-type-cache');
 const { runTestCase } = require('../utlis/runTestCase');
-
-/**
- * Verify packaging batch data
- */
-const verifyBatch = async (client, batchId) => {
-  const { rows } = await client.query(`
-    SELECT
-      id,
-      lot_number,
-      notes,
-      updated_at
-    FROM packaging_material_batches
-    WHERE id = $1
-  `, [batchId]);
-  
-  console.table(rows);
-};
-
-
-/**
- * Verify activity logs
- */
-const verifyActivity = async (client, batchRegistryId) => {
-  const metadataActivityId =
-    getBatchActivityTypeId('BATCH_METADATA_UPDATED');
-  
-  const { rows } = await client.query(`
-    SELECT
-      id,
-      batch_registry_id,
-      batch_activity_type_id,
-      previous_value,
-      new_value,
-      changed_at
-    FROM batch_activity_logs
-    WHERE batch_registry_id = $1
-      AND batch_activity_type_id = $2
-    ORDER BY changed_at DESC
-    LIMIT 1
-  `, [
-    batchRegistryId,
-    metadataActivityId
-  ]);
-  console.table(rows);
-};
+const { fetchBatchRecord, fetchBatchActivityLog } = require('../utlis/batches/batch-test-helpers');
 
 (async () => {
   const logPrefix = chalk.cyan('[Test: PACKAGING_BATCH_METADATA_UPDATE]');
@@ -184,9 +140,11 @@ const verifyActivity = async (client, batchRegistryId) => {
     // 5. Prepare update payload
     //------------------------------------------------------------
     
+    const lotNumber =`LOT-PACK-${randomUUID()}`;
+    
     const updates = {
       packaging_material_supplier_id: packagingMaterialSupplierId,
-      lot_number: `LOT-PACK-${Date.now()}`,
+      lot_number: lotNumber,
       material_snapshot_name: 'Amber Glass Bottle 250ml',
       received_label_name: 'Bottle 250ml Supplier Label',
       quantity: Math.floor(Math.random() * 5000 + 1000),
@@ -255,7 +213,6 @@ const verifyActivity = async (client, batchRegistryId) => {
     const lockedCase = await runTestCase(
       'Locked packaging batch should reject update',
       async () => {
-        
         const { rows } = await client.query(`
           SELECT pb.id, br.id AS batch_registry_id
           FROM packaging_material_batches pb
@@ -282,7 +239,6 @@ const verifyActivity = async (client, batchRegistryId) => {
           );
           
           throw new Error('Expected lifecycle rejection');
-          
         } catch (err) {
           return {
             batchId: lockedBatch.id,
@@ -299,7 +255,6 @@ const verifyActivity = async (client, batchRegistryId) => {
     const permissionCase = await runTestCase(
       'Permission rejection for editable batch',
       async () => {
-        
         try {
           await editPackagingMaterialBatchMetadataService(
             editableBatch.id,
@@ -308,7 +263,6 @@ const verifyActivity = async (client, batchRegistryId) => {
           );
           
           throw new Error('Expected permission rejection');
-          
         } catch (err) {
           return {
             batchId: editableBatch.id,
@@ -325,7 +279,6 @@ const verifyActivity = async (client, batchRegistryId) => {
     const invalidFieldCase = await runTestCase(
       'Invalid field update should reject',
       async () => {
-        
         try {
           await editPackagingMaterialBatchMetadataService(
             editableBatch.id,
@@ -336,7 +289,6 @@ const verifyActivity = async (client, batchRegistryId) => {
           );
           
           throw new Error('Expected invalid field rejection');
-          
         } catch (err) {
           return {
             batchId: editableBatch.id,
@@ -353,7 +305,6 @@ const verifyActivity = async (client, batchRegistryId) => {
     const emptyPayloadCase = await runTestCase(
       'Empty payload should reject',
       async () => {
-        
         try {
           await editPackagingMaterialBatchMetadataService(
             editableBatch.id,
@@ -362,7 +313,6 @@ const verifyActivity = async (client, batchRegistryId) => {
           );
           
           throw new Error('Expected empty payload rejection');
-          
         } catch (err) {
           return {
             expectedError: err.message
@@ -378,7 +328,6 @@ const verifyActivity = async (client, batchRegistryId) => {
     const notFoundCase = await runTestCase(
       'Non-existent batch should reject',
       async () => {
-        
         try {
           await editPackagingMaterialBatchMetadataService(
             '00000000-0000-0000-0000-000000000000',
@@ -387,7 +336,6 @@ const verifyActivity = async (client, batchRegistryId) => {
           );
           
           throw new Error('Expected not-found rejection');
-          
         } catch (err) {
           return {
             expectedError: err.message
@@ -397,24 +345,30 @@ const verifyActivity = async (client, batchRegistryId) => {
     );
     
     //------------------------------------------------------------
-    // 5. Verify results
+    // 5. Verify editable update
     //------------------------------------------------------------
 
     // Editable update verification
     if (editableCase.success) {
       console.log(`${logPrefix} 🔎 Verifying batch update`);
       
-      await verifyBatch(
+      const batch = await fetchBatchRecord(
         client,
-        editableCase.result.batchId
+        editableCase.result.batchId,
+        'packaging_material_batches',
       );
+      
+      console.table(batch);
       
       console.log(`${logPrefix} 📜 Verifying activity log`);
       
-      await verifyActivity(
+      const activity = await fetchBatchActivityLog(
         client,
-        editableCase.result.batchRegistryId
+        editableCase.result.batchRegistryId,
+        'BATCH_METADATA_UPDATED'
       );
+      
+      console.table(activity);
     }
     
     // Partial update verification
