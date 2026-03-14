@@ -7,6 +7,8 @@ const {
   createPackagingMaterialBatchBulkSchema,
   editPackagingMaterialBatchMetadataSchema,
   updatePackagingMaterialBatchStatusSchema,
+  receivePackagingMaterialBatchSchema,
+  releasePackagingMaterialBatchSchema, packagingMaterialBatchIdParamSchema,
 } = require('../validators/packaging-material-batch-validators');
 const { sanitizeFields } = require('../middlewares/sanitize');
 const validate = require('../middlewares/validate');
@@ -14,6 +16,9 @@ const {
   getPaginatedPackagingMaterialBatchesController,
   createPackagingMaterialBatchesController,
   editPackagingMaterialBatchMetadataController,
+  updatePackagingMaterialBatchStatusController,
+  receivePackagingMaterialBatchController,
+  releasePackagingMaterialBatchController,
 } = require('../controllers/packaging-material-batch-controller');
 
 const router = express.Router();
@@ -127,15 +132,82 @@ router.post(
 router.patch(
   '/:batchId/metadata',
   authorize([PACKAGING_MATERIAL_BATCHES.EDIT]),
+  validate(packagingMaterialBatchIdParamSchema, 'params'),
   validate(editPackagingMaterialBatchMetadataSchema, 'body'),
   editPackagingMaterialBatchMetadataController
 );
 
-// router.patch(
-//   '/:batchId/status',
-//   authorize([PACKAGING_MATERIAL_BATCHES.UPDATE_STATUS]),
-//   validate(updatePackagingMaterialBatchStatusSchema, 'body'),
-//   updatePackagingMaterialBatchStatusController
-// );
+//------------------------------------------------------------
+// Update packaging material batch lifecycle status
+//------------------------------------------------------------
+
+/**
+ * PATCH /:batchId/status
+ *
+ * Updates the lifecycle status of a packaging material batch.
+ *
+ * Example transitions:
+ * - pending → received
+ * - received → quarantined
+ * - quarantined → released
+ *
+ * Middleware flow:
+ * 1. Permission check
+ * 2. Request body validation
+ * 3. Controller execution
+ */
+router.patch(
+  '/:batchId/status',
+  authorize([PACKAGING_MATERIAL_BATCHES.UPDATE_STATUS]),
+  validate(packagingMaterialBatchIdParamSchema, 'params'),
+  validate(updatePackagingMaterialBatchStatusSchema, 'body'),
+  updatePackagingMaterialBatchStatusController
+);
+
+//------------------------------------------------------------
+// Mark packaging batch as received (warehouse intake)
+//------------------------------------------------------------
+
+/**
+ * PATCH /:batchId/receive
+ *
+ * Marks a packaging material batch as received into warehouse inventory.
+ *
+ * This operation typically transitions the lifecycle state:
+ * pending → received
+ *
+ * The service layer applies lifecycle automation
+ * such as setting received_at and received_by.
+ */
+router.patch(
+  '/:batchId/receive',
+  authorize([PACKAGING_MATERIAL_BATCHES.RECEIVE]),
+  validate(packagingMaterialBatchIdParamSchema, 'params'),
+  validate(receivePackagingMaterialBatchSchema, 'body'),
+  receivePackagingMaterialBatchController
+);
+
+//------------------------------------------------------------
+// Release packaging batch for operational use
+//------------------------------------------------------------
+
+/**
+ * PATCH /:batchId/release
+ *
+ * Releases a packaging material batch after quality inspection.
+ *
+ * Typical lifecycle transition:
+ * received → released
+ *
+ * Releasing a batch indicates it is approved for
+ * manufacturing or packaging operations.
+ */
+router.patch(
+  '/:batchId/release',
+  authorize([PACKAGING_MATERIAL_BATCHES.RELEASE]),
+  validate(packagingMaterialBatchIdParamSchema, 'params'),
+  validate(releasePackagingMaterialBatchSchema, 'body'),
+  releasePackagingMaterialBatchController
+);
 
 module.exports = router;
