@@ -401,73 +401,117 @@ const getPackagingMaterialBatchById = async (batchId, client) => {
 /**
  * Update packaging material batch metadata.
  *
- * This function performs a partial update on the
- * `packaging_material_batches` table. Only fields provided
- * in the params object will be updated.
+ * Performs a partial update on the `packaging_material_batches` table.
+ * Only fields provided in the `params` object will be included
+ * in the update statement.
+ *
+ * This repository function does not contain business logic.
+ * Validation and lifecycle rules are handled in the service layer.
  *
  * @param {Object} params
+ *
  * @param {string} params.batchId
- * @param {string|null} [params.packagingMaterialSupplierId]
- * @param {string|null} [params.lotNumber]
- * @param {string|null} [params.materialSnapshotName]
- * @param {string|null} [params.receivedLabelName]
+ * Unique identifier of the packaging material batch.
+ *
+ * @param {string|null} [params.packaging_material_supplier_id]
+ * Supplier responsible for the packaging material.
+ *
+ * @param {string|null} [params.lot_number]
+ * Supplier-provided lot number.
+ *
+ * @param {string|null} [params.material_snapshot_name]
+ * Snapshot name of the packaging material at time of receipt.
+ *
+ * @param {string|null} [params.received_label_name]
+ * Label name recorded at warehouse intake.
+ *
  * @param {number|null} [params.quantity]
+ * Quantity received for the batch.
+ *
  * @param {string|null} [params.unit]
- * @param {string|null} [params.manufactureDate]
- * @param {string|null} [params.expiryDate]
- * @param {number|null} [params.unitCost]
+ * Measurement unit of the quantity (e.g. pieces, kg).
+ *
+ * @param {string|null} [params.manufacture_date]
+ * Manufacturing date of the packaging material batch.
+ *
+ * @param {string|null} [params.expiry_date]
+ * Expiration date of the packaging material batch.
+ *
+ * @param {number|null} [params.unit_cost]
+ * Unit cost of the packaging material.
+ *
  * @param {string|null} [params.currency]
- * @param {number|null} [params.exchangeRate]
- * @param {number|null} [params.totalCost]
- * @param {string|null} [params.statusId]
- * @param {string|null} [params.receivedAt]
- * @param {string|null} [params.receivedBy]
+ * Currency code for the cost values.
+ *
+ * @param {number|null} [params.exchange_rate]
+ * Exchange rate applied to convert costs to system currency.
+ *
+ * @param {number|null} [params.total_cost]
+ * Total calculated cost for the batch.
+ *
+ * @param {string|null} [params.notes]
+ * Optional notes or operational comments.
+ *
+ * @param {string|null} [params.status_id]
+ * Lifecycle status identifier for the batch.
+ *
+ * @param {Date|null} [params.received_at]
+ * Timestamp indicating when the batch was received.
+ *
+ * @param {string|null} [params.received_by]
+ * User who recorded the warehouse intake.
+ *
  * @param {string} params.updatedBy
+ * Identifier of the user performing the update.
+ *
  * @param {import('pg').PoolClient} client
+ * Database client used for transactional execution.
  *
  * @returns {Promise<Object>}
+ * Updated packaging material batch record.
  */
 const updatePackagingMaterialBatch = async (params, client) => {
   const context = 'packaging-material-batch-repository/updatePackagingMaterialBatch';
   
   const {
     batchId,
-    packagingMaterialSupplierId,
-    lotNumber,
-    materialSnapshotName,
-    receivedLabelName,
+    packaging_material_supplier_id,
+    lot_number,
+    material_snapshot_name,
+    received_label_name,
     quantity,
     unit,
-    manufactureDate,
-    expiryDate,
-    unitCost,
+    manufacture_date,
+    expiry_date,
+    unit_cost,
     currency,
-    exchangeRate,
-    totalCost,
+    exchange_rate,
+    total_cost,
     notes,
-    statusId,
-    receivedAt,
-    receivedBy,
+    status_id,
+    received_at,
+    received_by,
     updatedBy,
   } = params;
   
+  // Only defined fields will be applied by updateById
   const updates = {
-    packaging_material_supplier_id: packagingMaterialSupplierId,
-    lot_number: lotNumber,
-    material_snapshot_name: materialSnapshotName,
-    received_label_name: receivedLabelName,
+    packaging_material_supplier_id,
+    lot_number,
+    material_snapshot_name,
+    received_label_name,
     quantity,
     unit,
-    manufacture_date: manufactureDate,
-    expiry_date: expiryDate,
-    unit_cost: unitCost,
+    manufacture_date,
+    expiry_date,
+    unit_cost,
     currency,
-    exchange_rate: exchangeRate,
-    total_cost: totalCost,
+    exchange_rate,
+    total_cost,
     notes,
-    status_id: statusId,
-    received_at: receivedAt,
-    received_by: receivedBy,
+    status_id,
+    received_at,
+    received_by,
   };
   
   try {
