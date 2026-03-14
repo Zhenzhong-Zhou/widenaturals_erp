@@ -40,14 +40,20 @@ const createQueryNormalizationMiddleware = require('../middlewares/query-normali
 const {
   productBatchQuerySchema,
   createProductBatchBulkSchema,
-  editProductBatchMetadataSchema, updateProductBatchStatusSchema, receiveProductBatchSchema, releaseProductBatchSchema,
+  editProductBatchMetadataSchema,
+  updateProductBatchStatusSchema,
+  receiveProductBatchSchema,
+  releaseProductBatchSchema,
+  productBatchIdParamSchema,
 } = require('../validators/product-batch-validators');
 const { sanitizeFields } = require('../middlewares/sanitize');
 const validate = require('../middlewares/validate');
 const {
   getPaginatedProductBatchesController,
   createProductBatchesController,
-  editProductBatchMetadataController, updateProductBatchStatusController, receiveProductBatchController,
+  editProductBatchMetadataController,
+  updateProductBatchStatusController,
+  receiveProductBatchController,
   releaseProductBatchController,
 } = require('../controllers/product-batch-controller');
 
@@ -163,6 +169,7 @@ router.post(
 router.patch(
   '/:batchId/metadata',
   authorize([PRODUCT_BATCHES.EDIT]),
+  validate(productBatchIdParamSchema, 'params'),
   validate(editProductBatchMetadataSchema, 'body'),
   editProductBatchMetadataController
 );
@@ -189,6 +196,7 @@ router.patch(
 router.patch(
   '/:batchId/status',
   authorize([PRODUCT_BATCHES.UPDATE_STATUS]),
+  validate(productBatchIdParamSchema, 'params'),
   validate(updateProductBatchStatusSchema, 'body'),
   updateProductBatchStatusController
 );
@@ -211,6 +219,7 @@ router.patch(
 router.patch(
   '/:batchId/receive',
   authorize([PRODUCT_BATCHES.RECEIVE]),
+  validate(productBatchIdParamSchema, 'params'),
   validate(receiveProductBatchSchema, 'body'),
   receiveProductBatchController
 );
@@ -233,6 +242,7 @@ router.patch(
 router.patch(
   '/:batchId/release',
   authorize([PRODUCT_BATCHES.RELEASE]),
+  validate(productBatchIdParamSchema, 'params'),
   validate(releaseProductBatchSchema, 'body'),
   releaseProductBatchController
 );
