@@ -2,6 +2,7 @@ const {
   evaluatePackagingMaterialBatchVisibility,
   applyPackagingMaterialBatchVisibilityRules,
   evaluatePackagingMaterialBatchAccessControl,
+  filterUpdatablePackagingMaterialBatchFields,
 } = require('../business/packaging-material-batch-business');
 const {
   getPaginatedPackagingMaterialBatches,
@@ -32,7 +33,6 @@ const {
 } = require('../utils/constants/domain/packaging-material-batch-constants');
 const { getBatchActivityType } = require('../business/batches/batch-activity-resolvers');
 const { transformIdOnlyResult } = require('../transformers/common/id-result-transformer');
-const { filterUpdatableBatchFields } = require('../business/batches/batch-field-filter');
 
 /**
  * Service: Fetch paginated packaging material batch records for UI consumption.
@@ -410,7 +410,7 @@ const editPackagingMaterialBatchMetadataService = async (
         evaluateAccessControlFn: evaluatePackagingMaterialBatchAccessControl,
         
         // lifecycle + permission filtering
-        filterUpdatableFieldsFn: filterUpdatableBatchFields,
+        filterUpdatableFieldsFn: filterUpdatablePackagingMaterialBatchFields,
       });
       
       //------------------------------------------------------------
@@ -459,8 +459,175 @@ const editPackagingMaterialBatchMetadataService = async (
   });
 };
 
+/**
+ * Updates the lifecycle status of a packaging material batch.
+ *
+ * This service delegates the update to
+ * {@link editPackagingMaterialBatchMetadataService} so that all
+ * packaging batch modifications pass through the shared batch
+ * workflow engine.
+ *
+ * The workflow engine centrally handles:
+ *
+ * - lifecycle transition validation
+ * - permission checks
+ * - activity log generation
+ * - transactional database updates
+ *
+ * Routing lifecycle changes through the metadata workflow ensures
+ * consistent status handling across packaging material batches.
+ *
+ * @async
+ *
+ * @param {string} batchId
+ * Identifier of the packaging material batch to update.
+ *
+ * @param {string} statusId
+ * Target lifecycle status identifier.
+ *
+ * @param {string|null} [notes]
+ * Optional notes describing the status change.
+ *
+ * @param {{ id: string }} user
+ * Authenticated user performing the operation.
+ *
+ * @returns {Promise<{ id: string }>}
+ * Identifier of the updated batch.
+ */
+const updatePackagingMaterialBatchStatusService = async (
+  batchId,
+  statusId,
+  notes,
+  user
+) => {
+  //------------------------------------------------------------
+  // Delegate lifecycle update to shared metadata workflow
+  //------------------------------------------------------------
+  return editPackagingMaterialBatchMetadataService(
+    batchId,
+    {
+      status_id: statusId,
+      notes: notes ?? null
+    },
+    user
+  );
+};
+
+/**
+ * Marks a packaging material batch as received by the warehouse.
+ *
+ * This lifecycle transition records warehouse intake
+ * information and moves the batch to the "received" status.
+ *
+ * The shared metadata service performs:
+ * - lifecycle validation
+ * - permission enforcement
+ * - activity logging
+ * - transactional updates
+ *
+ * @async
+ *
+ * @param {string} batchId
+ * Packaging material batch identifier.
+ *
+ * @param {string|Date|null} received_at
+ * Timestamp indicating when the batch was received.
+ *
+ * @param {string|null} [notes]
+ * Optional intake notes.
+ *
+ * @param {{ id: string }} user
+ * Authenticated user performing the operation.
+ *
+ * @returns {Promise<{ id: string }>}
+ * Identifier of the updated batch.
+ */
+const receivePackagingMaterialBatchService = async (
+  batchId,
+  received_at,
+  notes,
+  user
+) => {
+  //------------------------------------------------------------
+  // Resolve lifecycle status identifier
+  //------------------------------------------------------------
+  const receivedStatusId = getStatusId('batch_received');
+  
+  //------------------------------------------------------------
+  // Delegate update to metadata workflow
+  //------------------------------------------------------------
+  return editPackagingMaterialBatchMetadataService(
+    batchId,
+    {
+      status_id: receivedStatusId,
+      received_at: received_at ?? null,
+      received_by: user.id,
+      notes: notes ?? null
+    },
+    user
+  );
+};
+
+/**
+ * Releases a packaging material batch for operational use.
+ *
+ * This lifecycle transition indicates that the packaging
+ * materials have passed inspection and are approved for
+ * manufacturing or packaging operations.
+ *
+ * The release operation records:
+ * - QA approver
+ * - supplier responsible for the batch
+ * - optional QA notes
+ *
+ * @async
+ *
+ * @param {string} batchId
+ * Packaging material batch identifier.
+ *
+ * @param {string} supplierId
+ * Supplier responsible for the released batch.
+ *
+ * @param {string|null} [notes]
+ * Optional QA release notes.
+ *
+ * @param {{ id: string }} user
+ * Authenticated user performing the operation.
+ *
+ * @returns {Promise<{ id: string }>}
+ * Identifier of the updated batch.
+ */
+const releasePackagingMaterialBatchService = async (
+  batchId,
+  supplierId,
+  notes,
+  user
+) => {
+  //------------------------------------------------------------
+  // Resolve lifecycle status identifier
+  //------------------------------------------------------------
+  const releasedStatusId = getStatusId('batch_released');
+  
+  //------------------------------------------------------------
+  // Delegate update to metadata workflow
+  //------------------------------------------------------------
+  return editPackagingMaterialBatchMetadataService(
+    batchId,
+    {
+      status_id: releasedStatusId,
+      released_by: user.id,
+      released_by_supplier_id: supplierId,
+      notes: notes ?? null
+    },
+    user
+  );
+};
+
 module.exports = {
   fetchPaginatedPackagingMaterialBatchesService,
   createPackagingMaterialBatchesService,
   editPackagingMaterialBatchMetadataService,
+  updatePackagingMaterialBatchStatusService,
+  receivePackagingMaterialBatchService,
+  releasePackagingMaterialBatchService,
 };
