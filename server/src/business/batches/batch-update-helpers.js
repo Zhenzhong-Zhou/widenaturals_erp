@@ -210,27 +210,87 @@ const prepareMetadataUpdates = ({ updates = {} }) => {
 };
 
 /**
- * Builds activity log rows for batch updates.
+ * Extract previous values for fields being updated on a batch.
  *
- * Responsibilities:
- * - create lifecycle activity rows
- * - create metadata update activity rows
+ * This helper builds a snapshot of the original values for each field
+ * present in the update payload. It is used to record before/after
+ * differences in batch activity logs.
  *
- * No database writes occur here.
- * The caller is responsible for inserting returned rows.
+ * Only fields included in the `updates` object are inspected.
+ *
+ * @param {Object} batch
+ * Current batch record loaded from the database.
+ *
+ * @param {Object} updates
+ * Update payload containing fields that will be modified.
+ *
+ * @returns {Object}
+ * Object containing the previous values for each updated field.
+ */
+const extractPreviousValues = (batch, updates) => {
+  //------------------------------------------------------------
+  // Create a clean object without prototype inheritance
+  //------------------------------------------------------------
+  const previous = Object.create(null);
+  
+  //------------------------------------------------------------
+  // Capture original values for fields being updated
+  //------------------------------------------------------------
+  for (const key of Object.keys(updates)) {
+    // If the field does not exist on the batch record,
+    // normalize the value to null for consistent logging
+    previous[key] = batch[key] ?? null;
+  }
+  
+  return previous;
+};
+
+/**
+ * Builds activity log rows representing lifecycle and metadata
+ * changes applied to a batch.
+ *
+ * This helper is intentionally pure and performs no database writes.
+ * It only constructs activity log payloads which the caller may
+ * later persist.
+ *
+ * Generated activities may include:
+ *  - lifecycle status transitions
+ *  - metadata updates (e.g. quantity, expiry date, notes)
+ *
+ * Metadata activity is recorded only when at least one field value
+ * actually differs from the current batch state.
  *
  * @param {Object} params
- * @param {Object} params.batch - Current batch record
+ * @param {Object} params.batch
+ * Current batch record containing at minimum:
+ * - batch_registry_id
+ * - status_name
+ *
  * @param {'product'|'packaging_material'} params.batchType
+ * Domain type of the batch.
+ *
  * @param {string|null} params.actorId
+ * User responsible for performing the update.
+ *
  * @param {string|null} params.nextStatus
+ * Target lifecycle status ID if a transition occurs.
+ *
  * @param {boolean} params.isStatusChange
+ * Indicates whether the lifecycle status changed.
+ *
  * @param {boolean} params.hasMetadataUpdates
+ * Indicates whether metadata updates were attempted or permitted.
+ *
  * @param {Object} params.updates
- * @param {(statusId: string) => string} params.activityTypeResolver
+ * Final update payload representing metadata values that will be
+ * written to the database.
+ *
+ * @param {(statusId: string) => string|null} params.activityTypeResolver
+ * Function mapping a status ID to its corresponding batch
+ * activity type ID.
  *
  * @returns {Array<Object>}
- * Activity rows ready for insertion.
+ * Activity rows ready for insertion into the batch activity log.
  */
 const buildBatchActivities = ({
                                 batch,
@@ -240,52 +300,69 @@ const buildBatchActivities = ({
                                 isStatusChange,
                                 hasMetadataUpdates,
                                 updates,
-                                activityTypeResolver
+                                activityTypeResolver,
                               }) => {
   const rows = [];
   
   //------------------------------------------------------------
-  // No registry → no activity tracking
+  // Activity logging requires a registry record
   //------------------------------------------------------------
   if (!batch.batch_registry_id) {
     return rows;
   }
   
   //------------------------------------------------------------
-  // Lifecycle activity
+  // Lifecycle activity (status transition)
   //------------------------------------------------------------
   if (isStatusChange) {
-    const activityTypeId =
-      activityTypeResolver(nextStatus);
+    const activityTypeId = activityTypeResolver(nextStatus);
     
-    rows.push(
-      buildBatchStatusChangeActivityRow({
-        batchRegistryId: batch.batch_registry_id,
-        batchType,
-        activityTypeId,
-        previousStatus: batch.status_name,
-        nextStatus: getStatusNameById(nextStatus),
-        actorId
-      })
-    );
+    if (activityTypeId) {
+      rows.push(
+        buildBatchStatusChangeActivityRow({
+          batchRegistryId: batch.batch_registry_id,
+          batchType,
+          activityTypeId,
+          previousStatus: batch.status_name,
+          nextStatus: getStatusNameById(nextStatus),
+          actorId,
+        })
+      );
+    }
   }
   
   //------------------------------------------------------------
   // Metadata update activity
   //------------------------------------------------------------
-  if (hasMetadataUpdates) {
-    const metadataActivityTypeId =
-      getBatchActivityTypeId('BATCH_METADATA_UPDATED');
+  if (hasMetadataUpdates && updates) {
+    const updateKeys = Object.keys(updates);
     
-    rows.push(
-      buildBatchMetadataUpdateActivityRow({
-        batchRegistryId: batch.batch_registry_id,
-        batchType,
-        activityTypeId: metadataActivityTypeId,
-        updates,
-        actorId
-      })
-    );
+    if (updateKeys.length > 0) {
+      const metadataActivityTypeId =
+        getBatchActivityTypeId('BATCH_METADATA_UPDATED');
+      
+      // Extract previous values only for fields being updated
+      const previousValues = extractPreviousValues(batch, updates);
+      
+      // Detect actual field changes compared to current batch state
+      const changedFields = updateKeys.filter(
+        key => batch[key] !== updates[key]
+      );
+      
+      // Only create an activity record when a real change occurred
+      if (changedFields.length > 0) {
+        rows.push(
+          buildBatchMetadataUpdateActivityRow({
+            batchRegistryId: batch.batch_registry_id,
+            batchType,
+            activityTypeId: metadataActivityTypeId,
+            previousValues,
+            updates,
+            actorId,
+          })
+        );
+      }
+    }
   }
   
   return rows;
