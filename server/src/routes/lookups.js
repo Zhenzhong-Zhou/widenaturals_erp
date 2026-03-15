@@ -22,6 +22,7 @@ const {
   getManufacturerLookupController,
   getSupplierLookupController,
   getLocationTypeLookupController,
+  getBatchStatusLookupController,
 } = require('../controllers/lookup-controller');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 const { sanitizeFields } = require('../middlewares/sanitize');
@@ -47,7 +48,7 @@ const {
   roleLookupQuerySchema,
   manufacturerLookupQuerySchema,
   supplierLookupQuerySchema,
-  locationTypeLookupQuerySchema,
+  locationTypeLookupQuerySchema, batchStatusLookupQuerySchema,
 } = require('../validators/lookup-validators');
 const { PERMISSIONS } = require('../utils/constants/domain/lookup-constants');
 
@@ -1329,6 +1330,50 @@ router.get(
     'Invalid Location Type lookup query parameters.'
   ),
   getLocationTypeLookupController
+);
+
+/**
+ * GET /batch-statuses
+ *
+ * Retrieve batch status lookup values for dropdowns and UI selectors.
+ *
+ * This endpoint provides a paginated lookup of batch lifecycle
+ * statuses used throughout the system (e.g., Draft, Released,
+ * Received, Suspended).
+ *
+ * Middleware pipeline:
+ * - authorize: ensures the user has permission to view batch statuses
+ * - createQueryNormalizationMiddleware: normalizes query parameters
+ * - sanitizeFields: removes unsafe characters from searchable fields
+ * - validate: validates query parameters against Joi schema
+ * - controller: executes the lookup service
+ *
+ * Query parameters:
+ * - keyword (optional): search term for batch status names
+ * - limit (optional): pagination limit
+ * - offset (optional): pagination offset
+ */
+router.get(
+  '/batch-statuses',
+  authorize([PERMISSIONS.VIEW_BATCH_STATUS]),
+  createQueryNormalizationMiddleware(
+    '',
+    [], // arrayKeys
+    [], // booleanKeys
+    ['keyword'], // filterKeys
+    { includePagination: true, includeSorting: false }
+  ),
+  sanitizeFields(['keyword']),
+  validate(
+    batchStatusLookupQuerySchema,
+    'query',
+    {
+      abortEarly: false,
+      convert: true,
+    },
+    'Invalid Batch Status lookup query parameters.'
+  ),
+  getBatchStatusLookupController
 );
 
 module.exports = router;
