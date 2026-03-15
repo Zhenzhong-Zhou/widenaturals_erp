@@ -54,6 +54,7 @@ const PERMISSIONS = {
   },
   BATCH_REGISTRY: {
     VIEW_LIST: 'view_batch_registry',
+    UPDATE_NOTE: 'update_batch_registry_note',
   },
   PRODUCT_BATCHES: {
     VIEW_LIST: 'view_product_batches',

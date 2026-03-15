@@ -4,11 +4,14 @@ const { BATCH_REGISTRY } = require('../utils/constants/domain/permissions');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 const {
   batchRegistryQuerySchema,
+  batchRegistryIdParamSchema,
+  updateBatchRegistryNoteSchema,
 } = require('../validators/batch-registry-validators');
 const { sanitizeFields } = require('../middlewares/sanitize');
 const validate = require('../middlewares/validate');
 const {
   getPaginatedBatchRegistryController,
+  updateBatchRegistryNoteController,
 } = require('../controllers/batch-registry-controller');
 
 const router = express.Router();
@@ -85,6 +88,41 @@ router.get(
     allowUnknown: true,
   }),
   getPaginatedBatchRegistryController
+);
+
+/**
+ * Route: Update batch registry note.
+ *
+ * Allows authorized users to update or clear the note associated
+ * with a batch registry record.
+ *
+ * Validation:
+ * - Route parameter `id` must be a valid UUID (validated by
+ *   `batchRegistryIdParamSchema`).
+ * - Request body must follow `updateBatchRegistryNoteSchema`.
+ *
+ * Authorization:
+ * - Requires the `BATCH_REGISTRY.UPDATE_NOTE` permission.
+ *
+ * Behavior:
+ * - Updates the `note` field of the specified batch registry record.
+ * - The note may be set to a trimmed string, an empty string, or `null`
+ *   to clear the existing note.
+ *
+ * Example request:
+ * PATCH /api/v1/batch-registry/:batchRegistryId/note
+ *
+ * Body:
+ * {
+ *   "note": "Supplier confirmed packaging batch passed inspection."
+ * }
+ */
+router.patch(
+  '/:batchRegistryId/note',
+  authorize([BATCH_REGISTRY.UPDATE_NOTE]),
+  validate(batchRegistryIdParamSchema, 'params'),
+  validate(updateBatchRegistryNoteSchema, 'body'),
+  updateBatchRegistryNoteController
 );
 
 module.exports = router;

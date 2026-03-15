@@ -11,16 +11,30 @@ const {
 } = require('../utils/sql/build-batch-registry-filters');
 
 /**
- * Fetches a batch_registry row by its ID.
+ * Fetch a batch_registry record by its ID.
  *
- * @param {string} batchRegistryId - UUID of the batch_registry row.
- * @param {object} client - pg client or pool instance.
- * @returns {Promise<object|null>} - The row { id, batch_type } or null if not found.
- * @throws {AppError} - On query failure.
+ * Retrieves the registry entry used to link product or packaging
+ * batches to lifecycle activity tracking.
+ *
+ * @param {string} batchRegistryId
+ * UUID of the batch_registry row.
+ *
+ * @param {import('pg').PoolClient} client
+ * Active PostgreSQL transaction client or pool instance.
+ *
+ * @returns {Promise<{
+ *   id: string,
+ *   batch_type: 'product' | 'packaging_material',
+ *   note: string | null
+ * } | null>}
+ * Returns the registry record or null if no entry exists.
+ *
+ * @throws {AppError}
+ * Thrown if the database query fails.
  */
 const getBatchRegistryById = async (batchRegistryId, client) => {
   const sql = `
-    SELECT id, batch_type
+    SELECT id, batch_type, note
     FROM batch_registry
     WHERE id = $1
     LIMIT 1
@@ -387,9 +401,95 @@ const insertBatchRegistryBulk = async (registries, client) => {
   }
 };
 
+/**
+ * Update the note field of a batch_registry record.
+ *
+ * This repository function performs a minimal update to the
+ * `batch_registry` table and records audit metadata
+ * (`updated_by`, `updated_at`).
+ *
+ * The caller is responsible for transaction handling.
+ *
+ * @param {Object} params
+ * @param {string} params.id
+ *   UUID of the batch_registry row to update.
+ *
+ * @param {string|null|undefined} params.note
+ *   New note value. If undefined, it will be normalized to null.
+ *
+ * @param {string|null|undefined} params.updatedBy
+ *   User ID performing the update.
+ *
+ * @param {import('pg').PoolClient} client
+ *   Active PostgreSQL transaction client.
+ *
+ * @returns {Promise<{ id: string }>}
+ *   The updated batch_registry identifier.
+ *
+ * @throws {AppError}
+ *   Throws `notFoundError` if the record does not exist,
+ *   or `databaseError` if the query fails.
+ */
+const updateBatchRegistryNoteById = async (
+  { id, note, updatedBy },
+  client
+) => {
+  const context = 'batch-registry-repository/updateBatchRegistryNoteById';
+  
+  //------------------------------------------------------------
+  // Update registry note and audit metadata
+  //------------------------------------------------------------
+  const queryText = `
+    UPDATE batch_registry
+      SET
+        note = $2,
+        updated_by = $3,
+        updated_at = NOW()
+      WHERE id = $1
+      RETURNING id;
+  `;
+  
+  try {
+    const result = await query(
+      queryText,
+      [
+        id,
+        // Normalize undefined to NULL for consistent DB storage
+        note ?? null,
+        updatedBy ?? null,
+      ],
+      client
+    );
+    
+    //------------------------------------------------------------
+    // Ensure the registry record exists
+    //------------------------------------------------------------
+    if (result.rowCount === 0) {
+      throw AppError.notFoundError('Batch registry record not found.');
+    }
+    
+    logSystemInfo('Successfully updated batch registry note', {
+      context,
+      batchRegistryId: id,
+    });
+    
+    return result.rows[0];
+  } catch (error) {
+    logSystemException(error, 'Failed to update batch registry note', {
+      context,
+      batchRegistryId: id,
+    });
+    
+    throw AppError.databaseError('Failed to update batch registry note', {
+      cause: error,
+    });
+  }
+};
+
 module.exports = {
   getBatchRegistryById,
   getBatchRegistryLookup,
   getPaginatedBatchRegistry,
   insertBatchRegistryBulk,
+  updateBatchRegistryNoteById,
 };
