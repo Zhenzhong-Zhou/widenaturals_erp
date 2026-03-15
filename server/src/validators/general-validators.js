@@ -671,6 +671,42 @@ const requiredIsoDate = () =>
       'date.base': 'Date must be a valid ISO-8601 value',
     });
 
+/**
+ * Build a Joi validator for optional text fields such as notes,
+ * comments, or remarks.
+ *
+ * The field is optional and may be cleared by sending either an
+ * empty string or `null`. The value is trimmed before validation
+ * and must not exceed the specified maximum length.
+ *
+ * This helper is commonly used for fields like:
+ *   - batch notes
+ *   - order notes
+ *   - inventory adjustment remarks
+ *   - QA inspection comments
+ *
+ * Centralizing this validation logic ensures consistent rules
+ * and error messages across the API.
+ *
+ * @param {string} fieldName
+ * Human-readable field name used in validation error messages.
+ *
+ * @param {number} [maxLength=1000]
+ * Maximum allowed length of the text value.
+ *
+ * @returns {Joi.StringSchema}
+ * Joi schema validating an optional trimmed string with a maximum length.
+ */
+const validateOptionalText = (fieldName, maxLength = 1000) =>
+  Joi.string()
+    .trim() // remove leading/trailing whitespace before validation
+    .max(maxLength) // enforce maximum allowed length
+    .allow('', null) // allow clearing the field by sending '' or null
+    .messages({
+      'string.base': `${fieldName} must be a string`,
+      'string.max': `${fieldName} must be at most ${maxLength} characters`,
+    });
+
 module.exports = {
   validateEmail,
   validateUUID,
@@ -702,4 +738,5 @@ module.exports = {
   createArraySchema,
   optionalIsoDate,
   requiredIsoDate,
+  validateOptionalText,
 };

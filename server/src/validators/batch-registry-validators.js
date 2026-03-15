@@ -5,6 +5,7 @@ const {
   validateUUIDOrUUIDArrayOptional,
   validateOptionalString,
   optionalIsoDate,
+  validateUUID, validateOptionalText,
 } = require('./general-validators');
 
 /**
@@ -83,6 +84,53 @@ const batchRegistryQuerySchema = paginationSchema
     ),
   });
 
+/**
+ * Joi schema: Validate Batch Registry ID route parameter.
+ *
+ * Used for routes like:
+ *   PATCH /api/v1/batch-registries/:batchRegistryId/note
+ *   GET   /api/v1/batch-registries/:batchRegistryId
+ *   DELETE /api/v1/batch-registries/:batchRegistryId
+ *
+ * Ensures the provided batch registry ID is a valid UUID.
+ *
+ * @constant
+ * @type {Joi.ObjectSchema}
+ *
+ * @example
+ * // Example usage in middleware
+ * const { error } = batchRegistryIdParamSchema.validate(req.params);
+ * if (error) throw AppError.validationError(error.message);
+ */
+const batchRegistryIdParamSchema = Joi.object({
+  batchRegistryId: validateUUID('Batch Registry ID')
+    .description('UUID of the batch registry record'),
+});
+
+/**
+ * Joi schema: Validate request body for updating a batch registry note.
+ *
+ * Used for routes like:
+ *   PATCH /api/v1/batch-registries/:batchRegistryId/note
+ *
+ * Ensures the note field is a valid trimmed string within allowed
+ * length constraints. The note may be cleared by sending an empty
+ * string or null.
+ *
+ * @constant
+ * @type {Joi.ObjectSchema}
+ *
+ * @example
+ * // Example usage in middleware
+ * const { error } = updateBatchRegistryNoteSchema.validate(req.body);
+ * if (error) throw AppError.validationError(error.message);
+ */
+const updateBatchRegistryNoteSchema = Joi.object({
+  note: validateOptionalText('Batch registry note'),
+});
+
 module.exports = {
   batchRegistryQuerySchema,
+  batchRegistryIdParamSchema,
+  updateBatchRegistryNoteSchema
 };
