@@ -152,6 +152,58 @@ const BATCH_CONSTANTS = {
     VIEW_BATCH_ALL_VISIBILITY: 'view_all_batches_visibility',
     
     // -------------------------------------------------
+    // Batch status visibility & administration
+    // -------------------------------------------------
+    
+    /**
+     * Allows viewing batch lifecycle status definitions.
+     *
+     * Typically used by UI dropdowns, reference data pages,
+     * and batch workflow configuration screens.
+     */
+    VIEW_BATCH_STATUSES: 'view_batch_statuses',
+    
+    /**
+     * Allows viewing inactive or archived batch statuses.
+     *
+     * Without this permission, users should only see
+     * statuses where `is_active = TRUE`.
+     */
+    VIEW_INACTIVE_BATCH_STATUSES: 'view_inactive_batch_statuses',
+    
+    /**
+     * Allows full visibility of all batch status records.
+     *
+     * This includes inactive, deprecated, or internal statuses
+     * that may not normally appear in operational workflows.
+     */
+    VIEW_ALL_BATCH_STATUSES: 'view_all_batch_statuses',
+    
+    /**
+     * Allows creating new batch status definitions.
+     *
+     * Intended for system administrators configuring
+     * workflow extensions.
+     */
+    CREATE_BATCH_STATUS: 'create_batch_status',
+    
+    /**
+     * Allows editing batch status definitions.
+     *
+     * This may include changing descriptions, display order,
+     * or operational metadata.
+     */
+    EDIT_BATCH_STATUS: 'edit_batch_status',
+    
+    /**
+     * Allows activating or deactivating batch statuses.
+     *
+     * Used to retire statuses from operational workflows
+     * without deleting historical references.
+     */
+    MANAGE_BATCH_STATUS_LIFECYCLE: 'manage_batch_status_lifecycle',
+    
+    // -------------------------------------------------
     // Product batch search capabilities
     // -------------------------------------------------
     
