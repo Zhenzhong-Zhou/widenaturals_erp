@@ -3,6 +3,7 @@ const AppError = require('../utils/AppError');
 const { logInfo } = require('../utils/logger-helper');
 const {
   fetchPaginatedBatchRegistryService,
+  updateBatchRegistryNoteService,
 } = require('../services/batch-registry-service');
 
 /**
@@ -95,6 +96,118 @@ const getPaginatedBatchRegistryController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * Controller: Update Batch Registry Note
+ *
+ * Updates the note field associated with a batch registry record.
+ * This endpoint is typically used to add operational remarks,
+ * QA comments, or investigation notes related to a batch lifecycle.
+ *
+ * The note field is optional and may be:
+ * - a trimmed string
+ * - an empty string to clear the note
+ * - null to remove the existing note
+ *
+ * Request validation is handled upstream by Joi middleware before
+ * the controller executes.
+ *
+ * Authorization:
+ * Requires the `BATCH_REGISTRY.UPDATE_NOTE` permission.
+ *
+ * Logging:
+ * The controller records request start and completion events with
+ * a generated trace ID to support observability, debugging, and
+ * audit tracing.
+ *
+ * Route:
+ * PATCH /api/v1/batch-registries/:batchRegistryId/note
+ *
+ * Path Parameters:
+ * @param {string} batchRegistryId
+ * UUID of the batch registry record whose note should be updated.
+ *
+ * Request Body:
+ * @param {string|null} note
+ * Optional note text describing batch-related remarks or comments.
+ * The value is trimmed and limited to the configured maximum length.
+ *
+ * Response:
+ * @returns {Object} JSON response containing:
+ * - success: boolean indicating operation result
+ * - message: human-readable success message
+ * - stats: request execution metadata (batchRegistryId, elapsedMs)
+ * - data: updated batch registry record identifier
+ *
+ * Example Request:
+ * PATCH /api/v1/batch-registries/5e5b6a7c-9c8e-4c5b-bd11-9c7dcb45a201/note
+ *
+ * {
+ *   "note": "Supplier confirmed packaging material batch passed QA inspection."
+ * }
+ */
+const updateBatchRegistryNoteController = wrapAsync(async (req, res) => {
+  const context =
+    'batch-registry-controller/updateBatchRegistryNoteController';
+  
+  const startTime = Date.now();
+  const traceId = `update-batch-registry-note-${Date.now().toString(36)}`;
+  
+  //------------------------------------------------------------
+  // Extract request data
+  //------------------------------------------------------------
+  const { batchRegistryId } = req.params;
+  
+  // Joi validation already ensures correct payload
+  const { note } = req.body;
+  
+  const user = req.auth?.user;
+  
+  //------------------------------------------------------------
+  // Log request start
+  //------------------------------------------------------------
+  logInfo('Starting batch registry note update request', req, {
+    context,
+    traceId,
+    userId: user.id,
+    batchRegistryId,
+  });
+  
+  //------------------------------------------------------------
+  // Execute service layer
+  //------------------------------------------------------------
+  const result = await updateBatchRegistryNoteService(
+    batchRegistryId,
+    note,
+    user,
+  );
+  
+  const elapsedMs = Date.now() - startTime;
+  
+  //------------------------------------------------------------
+  // Log completion
+  //------------------------------------------------------------
+  logInfo('Batch registry note update completed', req, {
+    context,
+    traceId,
+    batchRegistryId,
+    elapsedMs,
+  });
+  
+  //------------------------------------------------------------
+  // Send response
+  //------------------------------------------------------------
+  res.status(200).json({
+    success: true,
+    message: 'Batch registry note updated successfully.',
+    stats: {
+      batchRegistryId,
+      elapsedMs,
+    },
+    data: result,
+  });
+});
+
 module.exports = {
   getPaginatedBatchRegistryController,
+  updateBatchRegistryNoteController,
 };
