@@ -335,15 +335,38 @@ const insertPackagingMaterialBatchesBulk = async (
 };
 
 /**
- * Fetch minimal packaging material batch data required for lifecycle workflows.
+ * Fetch a packaging material batch record by ID.
+ *
+ * Returns the batch with status information and optional batch registry
+ * linkage. This record provides enough data for lifecycle workflows,
+ * metadata updates, and activity logging.
  *
  * @param {string} batchId
+ * Packaging material batch identifier.
+ *
  * @param {import('pg').PoolClient} client
+ * Active transaction client.
  *
  * @returns {Promise<{
  *   id: string,
+ *   packaging_material_supplier_id: string,
+ *   lot_number: string|null,
+ *   material_snapshot_name: string|null,
+ *   received_label_name: string|null,
+ *   quantity: number|null,
+ *   unit: string|null,
+ *   manufacture_date: Date|null,
+ *   expiry_date: Date|null,
+ *   unit_cost: number|null,
+ *   currency: string|null,
+ *   exchange_rate: number|null,
+ *   total_cost: number|null,
+ *   received_at: Date|null,
+ *   received_by: string|null,
+ *   notes: string|null,
  *   status_id: string,
  *   status_name: string,
+ *   status_date: Date|null,
  *   batch_registry_id: string|null
  * } | null>}
  */
@@ -353,8 +376,24 @@ const getPackagingMaterialBatchById = async (batchId, client) => {
   const queryText = `
     SELECT
       pmb.id,
+      pmb.packaging_material_supplier_id,
+      pmb.lot_number,
+      pmb.material_snapshot_name,
+      pmb.received_label_name,
+      pmb.quantity,
+      pmb.unit,
+      pmb.manufacture_date,
+      pmb.expiry_date,
+      pmb.unit_cost,
+      pmb.currency,
+      pmb.exchange_rate,
+      pmb.total_cost,
+      pmb.received_at,
+      pmb.received_by,
+      pmb.notes,
       pmb.status_id,
       bs.name AS status_name,
+      pmb.status_date,
       br.id AS batch_registry_id
     FROM packaging_material_batches pmb
     JOIN batch_status bs

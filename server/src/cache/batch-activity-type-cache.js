@@ -109,7 +109,7 @@ const refreshBatchActivityTypeCache = async () => {
  *
  * Performs an O(1) lookup against the in-memory cache.
  *
- * @function getBatchActivityTypeId
+ * @function
  *
  * @param {string} code
  * Activity type code (e.g. `BATCH_CREATED`, `BATCH_RELEASED`).

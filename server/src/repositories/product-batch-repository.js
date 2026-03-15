@@ -271,14 +271,35 @@ const insertProductBatchesBulk = async (productBatches, client) => {
 };
 
 /**
- * Fetch minimal product batch data required for lifecycle workflows.
+ * Fetch a product batch record by ID.
+ *
+ * Returns the batch with lifecycle status and registry linkage.
+ * This record provides enough information for lifecycle workflows,
+ * metadata updates, and batch activity logging.
  *
  * @param {string} batchId
+ * Product batch identifier.
+ *
  * @param {import('pg').PoolClient} client
+ * Active transaction client.
+ *
  * @returns {Promise<{
  *   id: string,
+ *   lot_number: string|null,
+ *   sku_id: string,
+ *   manufacturer_id: string|null,
+ *   manufacture_date: Date|null,
+ *   expiry_date: Date|null,
+ *   received_at: Date|null,
+ *   received_by: string|null,
+ *   initial_quantity: number|null,
+ *   notes: string|null,
  *   status_id: string,
  *   status_name: string,
+ *   status_date: Date|null,
+ *   released_at: Date|null,
+ *   released_by: string|null,
+ *   released_by_manufacturer_id: string|null,
  *   batch_registry_id: string|null
  * } | null>}
  */
@@ -288,8 +309,21 @@ const getProductBatchById = async (batchId, client) => {
   const queryText = `
     SELECT
       pb.id,
+      pb.lot_number,
+      pb.sku_id,
+      pb.manufacturer_id,
+      pb.manufacture_date,
+      pb.expiry_date,
+      pb.received_at,
+      pb.received_by,
+      pb.initial_quantity,
+      pb.notes,
       pb.status_id,
       bs.name AS status_name,
+      pb.status_date,
+      pb.released_at,
+      pb.released_by,
+      pb.released_by_manufacturer_id,
       br.id AS batch_registry_id
     FROM product_batches pb
     JOIN batch_status bs

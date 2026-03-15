@@ -115,49 +115,70 @@ const buildBatchActivityRows = (
 };
 
 /**
- * Build activity row for metadata updates.
+ * Build a batch activity log row for metadata updates.
  *
- * Used when batch properties (notes, expiry date, manufacturer, etc.)
- * are modified without changing lifecycle state.
+ * This helper constructs an audit log entry when batch metadata
+ * (e.g., notes, expiry date, quantity, manufacturer) changes
+ * without triggering a lifecycle state transition.
+ *
+ * The resulting object is intended to be inserted into the
+ * `batch_activity_logs` table via bulk insert operations.
  *
  * @param {Object} params
  * @param {string} params.batchRegistryId
- * @param {string} params.batchType
- * @param {string} params.activityTypeId
- * @param {Object} params.updates
- * @param {string} params.actorId
- * @param {string} [params.summary]
+ *   Unique identifier of the batch registry record.
  *
- * @returns {Object} activity log row
+ * @param {string} params.batchType
+ *   Batch domain type (e.g. "product", "packaging_material").
+ *
+ * @param {string} params.activityTypeId
+ *   Activity type identifier representing the metadata update event.
+ *
+ * @param {Object|null} [params.previousValues=null]
+ *   Snapshot of previous values before the update.
+ *   Only fields that are modified should be included.
+ *
+ * @param {Object} params.updates
+ *   Object containing the updated metadata values.
+ *
+ * @param {string} params.actorId
+ *   User ID of the actor performing the update.
+ *
+ * @param {string} [params.summary]
+ *   Optional custom summary message for the activity log.
+ *   Defaults to "Batch metadata updated".
+ *
+ * @returns {Object}
+ * Activity log row ready for insertion.
  */
 const buildBatchMetadataUpdateActivityRow = ({
                                                batchRegistryId,
                                                batchType,
                                                activityTypeId,
+                                               previousValues = null,
                                                updates,
                                                actorId,
-                                               summary
+                                               summary,
                                              }) => {
-  // Validate critical fields required for activity logging
+  //------------------------------------------------------------
+  // Validate required parameters
+  //------------------------------------------------------------
   if (!batchRegistryId || !batchType || !activityTypeId) {
     throw AppError.validationError(
       'Invalid parameters for batch metadata update activity log'
     );
   }
   
+  //------------------------------------------------------------
+  // Construct activity row for audit logging
+  //------------------------------------------------------------
   return {
     batch_registry_id: batchRegistryId,
     batch_type: batchType,
     batch_activity_type_id: activityTypeId,
-    
-    // Metadata updates often track only new values
-    previous_value: null,
-    
-    // Store fields that were updated
+    previous_value: previousValues,
     new_value: updates,
-    
     change_summary: summary ?? 'Batch metadata updated',
-    
     changed_by: actorId,
   };
 };
