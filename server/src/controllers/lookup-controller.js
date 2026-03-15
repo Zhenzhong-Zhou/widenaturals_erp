@@ -21,6 +21,7 @@ const {
   fetchManufacturerLookupService,
   fetchSupplierLookupService,
   fetchLocationTypeLookupService,
+  fetchBatchStatusLookupService,
 } = require('../services/lookup-service');
 const { logInfo } = require('../utils/logger-helper');
 const { getClientIp } = require('../utils/request-context');
@@ -1155,6 +1156,64 @@ const getLocationTypeLookupController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * Controller for fetching batch status lookup data.
+ *
+ * This endpoint is primarily used by UI dropdowns and lookup
+ * components that need to display available batch lifecycle
+ * status values.
+ *
+ * Responsibilities:
+ * - Extract authenticated user context
+ * - Read normalized query parameters (filters, limit, offset)
+ * - Delegate lookup execution to the service layer
+ * - Return a standardized API response payload
+ *
+ * Business logic, permission checks, and data transformation
+ * are handled by the service layer.
+ *
+ * @async
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} req.auth.user - Authenticated user context
+ * @param {Object} req.normalizedQuery - Normalized query parameters
+ *
+ * @param {Object} res - Express response object
+ *
+ * @returns {Promise<void>}
+ * Sends a JSON response containing lookup items and pagination info.
+ */
+const getBatchStatusLookupController = wrapAsync(async (req, res) => {
+  //---------------------------------------------------------
+  // Step 1 — Extract user and normalized query parameters
+  //---------------------------------------------------------
+  const user = req.auth.user;
+  const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
+  
+  //---------------------------------------------------------
+  // Step 2 — Execute lookup service
+  //---------------------------------------------------------
+  const dropdownResult = await fetchBatchStatusLookupService(user, {
+    filters,
+    limit,
+    offset,
+  });
+  
+  const { items, hasMore } = dropdownResult;
+  
+  //---------------------------------------------------------
+  // Step 3 — Send standardized API response
+  //---------------------------------------------------------
+  return res.status(200).json({
+    success: true,
+    message: 'Successfully retrieved Batch Status lookup',
+    items,
+    offset,
+    limit,
+    hasMore,
+  });
+});
+
 module.exports = {
   getBatchRegistryLookupController,
   getWarehouseLookupController,
@@ -1177,4 +1236,5 @@ module.exports = {
   getManufacturerLookupController,
   getSupplierLookupController,
   getLocationTypeLookupController,
+  getBatchStatusLookupController,
 };

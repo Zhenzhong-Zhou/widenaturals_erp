@@ -1442,6 +1442,85 @@ const transformLocationTypePaginatedLookupResult = (paginatedResult, acl) =>
     transformLocationTypeLookup(row, acl)
   );
 
+/**
+ * Transform a single batch status database row into a lookup item.
+ *
+ * Converts the raw database row into a UI-friendly structure used by
+ * dropdowns and autocomplete components.
+ *
+ * Responsibilities:
+ * - Validate the incoming row
+ * - Normalize lookup fields (`id`, `label`, `subLabel`)
+ * - Include optional flags depending on user visibility permissions
+ * - Remove undefined or empty properties using `cleanObject`
+ *
+ * @param {Object} row
+ * Raw database row from the batch_status table.
+ *
+ * @param {Object} userAccess
+ * Permission context resolved from the service layer.
+ *
+ * @returns {LookupItem|null}
+ * Transformed lookup item, or null if the row is invalid.
+ */
+const transformBatchStatusLookup = (row, userAccess) => {
+  //---------------------------------------------------------
+  // Guard against invalid rows
+  //---------------------------------------------------------
+  if (!row || typeof row !== 'object') return null;
+  if (!row.id || !row.name) return null;
+  
+  //---------------------------------------------------------
+  // Base lookup structure used by UI dropdowns
+  //---------------------------------------------------------
+  const baseObj = {
+    id: row.id,
+    label: row.name,
+    subLabel: row.description || undefined,
+  };
+  
+  //---------------------------------------------------------
+  // Include optional flags depending on visibility permissions
+  //---------------------------------------------------------
+  const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
+  
+  //---------------------------------------------------------
+  // Clean undefined values before returning
+  //---------------------------------------------------------
+  return cleanObject({
+    ...baseObj,
+    ...flagSubset,
+  });
+};
+
+/**
+ * Transform paginated batch status rows into a lookup load-more result.
+ *
+ * This helper converts a repository pagination result into the
+ * standardized load-more format used by dropdown and autocomplete
+ * components across the UI.
+ *
+ * Each row is processed through `transformBatchStatusLookup`.
+ *
+ * @template T
+ *
+ * @param {PaginatedQueryResult<T>} paginatedResult
+ * Repository query result containing `data` and `pagination`.
+ *
+ * @param {Object} userAccess
+ * Permission context used to determine which flags should be included.
+ *
+ * @returns {Promise<LoadMoreResult<LookupItem>>}
+ * Lookup result formatted for UI load-more components.
+ */
+const transformBatchStatusPaginatedLookupResult = (
+  paginatedResult,
+  userAccess
+) =>
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformBatchStatusLookup(row, userAccess)
+  );
+
 module.exports = {
   transformBatchRegistryPaginatedLookupResult,
   transformWarehouseLookupRows,
@@ -1465,4 +1544,5 @@ module.exports = {
   transformManufacturerPaginatedLookupResult,
   transformSupplierPaginatedLookupResult,
   transformLocationTypePaginatedLookupResult,
+  transformBatchStatusPaginatedLookupResult,
 };

@@ -26,6 +26,7 @@ const {
   transformManufacturerPaginatedLookupResult,
   transformSupplierPaginatedLookupResult,
   transformLocationTypePaginatedLookupResult,
+  transformBatchStatusPaginatedLookupResult,
 } = require('../transformers/lookup-transformer');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const {
@@ -165,6 +166,13 @@ const {
 const {
   getLocationTypeLookup,
 } = require('../repositories/location-type-repository');
+const {
+  evaluateBatchStatusVisibilityAccessControl,
+  applyBatchStatusLookupVisibilityRules,
+  enrichBatchStatusLookupWithActiveFlag
+} = require('../business/batch-status-business');
+const { getBatchStatusLookup } = require('../repositories/batch-status-repository');
+const { executeLookupWorkflow } = require('../business/lookup/lookup-workflow');
 
 /**
  * Service to fetch filtered and paginated batch registry records for lookup UI.
@@ -2025,6 +2033,81 @@ const fetchLocationTypeLookupService = async (
   }
 };
 
+/**
+ * Fetch paginated batch status lookup results.
+ *
+ * This service provides a lookup endpoint used primarily for
+ * dropdown selectors and lightweight UI queries.
+ *
+ * The service delegates execution to the shared `executeLookupWorkflow`
+ * helper, which performs the standardized lookup pipeline:
+ *
+ * 1. Logs the request
+ * 2. Resolves permission-based visibility rules
+ * 3. Applies ACL filter enforcement
+ * 4. Executes the repository lookup query
+ * 5. Optionally enriches rows with UI flags
+ * 6. Transforms the result into a paginated API payload
+ *
+ * This service configures the workflow specifically for
+ * **batch status lookups**, including permission checks and
+ * optional row enrichment when inactive statuses are visible.
+ *
+ * @async
+ *
+ * @param {Object} user
+ * Authenticated user object from the request context.
+ *
+ * @param {Object} options
+ *
+ * @param {Object} [options.filters={}]
+ * Lookup filters such as keyword or active status.
+ *
+ * @param {number} [options.limit=50]
+ * Maximum number of rows returned.
+ *
+ * @param {number} [options.offset=0]
+ * Pagination offset.
+ *
+ * @returns {Promise<Object>}
+ * Paginated lookup result formatted for UI consumption.
+ *
+ * @throws {AppError.serviceError}
+ * If the lookup operation fails.
+ */
+const fetchBatchStatusLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
+  return executeLookupWorkflow({
+    user,
+    filters,
+    limit,
+    offset,
+    
+    // Logging context for tracing and error reporting
+    context: 'lookup-service/fetchBatchStatusLookupService',
+    
+    // Repository function that performs the database query
+    repository: getBatchStatusLookup,
+    
+    // Resolves permission-based visibility rules
+    aclEvaluator: evaluateBatchStatusVisibilityAccessControl,
+    
+    // Applies ACL restrictions to query filters
+    aclFilterApplier: applyBatchStatusLookupVisibilityRules,
+    
+    // Converts repository output into UI-ready payload
+    transformer: transformBatchStatusPaginatedLookupResult,
+    
+    // Optional row enrichment for UI fields
+    rowEnricher: enrichBatchStatusLookupWithActiveFlag,
+    
+    // Only enrich rows when inactive statuses are visible
+    enrichmentCondition: (acl) => acl.canViewAllStatuses,
+  });
+};
+
 module.exports = {
   fetchBatchRegistryLookupService,
   fetchWarehouseLookupService,
@@ -2047,4 +2130,5 @@ module.exports = {
   fetchManufacturerLookupService,
   fetchSupplierLookupService,
   fetchLocationTypeLookupService,
+  fetchBatchStatusLookupService,
 };
