@@ -1,34 +1,50 @@
-const wrapAsync = require('../../utils/wrap-async');
+const { wrapAsyncHandler } = require('../../utils/wrap-async');
 
 /**
  * Factory to create standardized lookup controllers.
  *
- * This utility enforces a consistent pattern across all lookup endpoints
- * (e.g., suppliers, batch statuses, customers, inventory).
+ * ------------------------------------------------------------------
+ * Overview
+ * ------------------------------------------------------------------
+ * This factory generates Express controllers for lookup endpoints
+ * (e.g., SKUs, suppliers, statuses, customers).
+ *
+ * It enforces a consistent request → service → response pipeline.
  *
  * ------------------------------------------------------------------
  * Responsibilities
  * ------------------------------------------------------------------
- * - Extract authenticated user from request
- * - Extract normalized query parameters (filters, pagination)
- * - Invoke corresponding lookup service
- * - Return standardized API response format
+ * - Extract authenticated user (`req.auth.user`)
+ * - Extract normalized query parameters (`req.normalizedQuery`)
+ * - Invoke the provided lookup service
+ * - Return a standardized API response format
+ *
+ * NOTE:
+ * - Controllers created by this factory should NOT contain business logic.
+ * - All access control, filtering, and transformation must be handled
+ *   in the service layer.
  *
  * ------------------------------------------------------------------
  * Expected Service Contract
  * ------------------------------------------------------------------
- * The provided service MUST return:
+ * The provided service MUST follow this signature:
  *
- * {
- *   items: Array,        // list of lookup records
- *   hasMore: boolean     // pagination flag
- * }
+ *   (user, { filters, options, limit, offset }) =>
+ *     Promise<{ items: Array, hasMore: boolean }>
+ *
+ * Where:
+ * - `filters`: query filters (e.g., keyword, statusId)
+ * - `options`: optional behavior flags (e.g., labelOnly, mode)
+ * - `limit`: pagination limit
+ * - `offset`: pagination offset
  *
  * ------------------------------------------------------------------
  * Request Requirements
  * ------------------------------------------------------------------
- * - req.auth.user must be populated (via auth middleware)
- * - req.normalizedQuery is expected (via normalization middleware)
+ * - `req.auth.user` should be populated via authentication middleware
+ * - `req.normalizedQuery` should be provided via normalization middleware
+ *
+ * Fallback behavior is applied if missing to prevent runtime crashes.
  *
  * ------------------------------------------------------------------
  * Response Format
@@ -46,17 +62,15 @@ const wrapAsync = require('../../utils/wrap-async');
  * @param {object} config
  * @param {Function} config.service
  *   Lookup service function:
- *   (user, { filters, limit, offset }) => Promise<{ items, hasMore }>
+ *   (user, { filters, options, limit, offset }) =>
+ *     Promise<{ items: Array, hasMore: boolean }>
  *
  * @param {string} config.successMessage
- *   Success message returned in API response
+ *   Message returned in successful API response
  *
- * @returns {Function} Express controller (wrapped with async error handler)
+ * @returns {Function} Express controller wrapped with async error handler
  */
-const createLookupController = ({
-                                  service,
-                                  successMessage,
-                                }) => {
+const createLookupController = ({ service, successMessage }) => {
   //---------------------------------------------------------
   // Validate factory inputs (fail fast)
   //---------------------------------------------------------
@@ -70,36 +84,39 @@ const createLookupController = ({
     );
   }
   
-  //---------------------------------------------------------
-  // Return Express controller
-  //---------------------------------------------------------
-  return wrapAsync(async (req, res) => {
+  const handler = async (req, res) => {
     //---------------------------------------------------------
-    // Extract authenticated user (assumes auth middleware ran)
+    // Extract authenticated user
     //---------------------------------------------------------
     const user = req?.auth?.user;
     
     //---------------------------------------------------------
-    // Extract normalized query parameters
-    // (fallback ensures controller won't crash if middleware missing)
+    // Extract normalized query (safe fallback)
+    //---------------------------------------------------------
+    const normalizedQuery = req.normalizedQuery || {};
+    
+    //---------------------------------------------------------
+    // Destructure query parameters with defaults
     //---------------------------------------------------------
     const {
       filters = {},
+      options = {},
       limit = 50,
       offset = 0,
-    } = req.normalizedQuery || {};
+    } = normalizedQuery;
     
     //---------------------------------------------------------
     // Execute lookup service
     //---------------------------------------------------------
     const result = await service(user, {
       filters,
+      options,
       limit,
       offset,
     });
     
     //---------------------------------------------------------
-    // Defensive fallback (protects against malformed service output)
+    // Defensive fallback (protect against malformed service output)
     //---------------------------------------------------------
     const {
       items = [],
@@ -107,7 +124,7 @@ const createLookupController = ({
     } = result || {};
     
     //---------------------------------------------------------
-    // Send standardized API response
+    // Return standardized response
     //---------------------------------------------------------
     return res.status(200).json({
       success: true,
@@ -117,7 +134,12 @@ const createLookupController = ({
       limit,
       hasMore,
     });
-  });
+  };
+  
+  //---------------------------------------------------------
+  // Wrap with async error handler
+  //---------------------------------------------------------
+  return wrapAsyncHandler(handler);
 };
 
 module.exports = {
