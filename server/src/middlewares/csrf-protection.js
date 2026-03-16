@@ -17,26 +17,66 @@ const AppError = require('../utils/AppError');
 loadEnv();
 
 /**
- * Creates configured CSRF middleware using environment-based cookie options.
+ * Creates a CSRF protection middleware with environment-driven cookie configuration.
  *
- * @returns {Function} Express middleware for CSRF protection.
+ * This function encapsulates:
+ * - Secure cookie policy resolution (httpOnly, secure, sameSite)
+ * - Initialization logging for observability
+ * - Adaptation of third-party middleware (`@dr.pogodin/csurf`) into a
+ *   standard Express RequestHandler to resolve type incompatibilities
+ *
+ * NOTE:
+ * `@dr.pogodin/csurf` uses its own internal Express type references, which
+ * are not directly compatible with the application's `@types/express`.
+ * A lightweight adapter is used to normalize the middleware signature.
+ *
+ * @returns {import('express').RequestHandler}
+ * Express middleware enforcing CSRF protection via cookie-based tokens.
  */
 const createCsrfMiddleware = () => {
-  // Configure CSRF cookie behavior for security and session consistency
-  const csrfCookieOptions = {
-    httpOnly: true, // Prevent client-side access to the cookie (enhances security)
-    secure: process.env.COOKIE_SECURE === 'true', // Use secure cookies in production
-    sameSite: process.env.COOKIE_SAMESITE || 'strict', // Enforce same-site policy
-  };
-
-  // Log the resolved CSRF cookie configuration for traceability and debugging
+  //------------------------------------------------------------
+  // Resolve CSRF cookie configuration from environment
+  //------------------------------------------------------------
+  const csrfCookieOptions = /** @type {import('@dr.pogodin/csurf').CookieOptions} */ ({
+    httpOnly: true,
+    secure: process.env.COOKIE_SECURE === 'true',
+    sameSite: /** @type {'strict' | 'lax' | 'none'} */ (
+      process.env.COOKIE_SAMESITE === 'lax'
+        ? 'lax'
+        : process.env.COOKIE_SAMESITE === 'none'
+          ? 'none'
+          : 'strict'
+    ),
+  });
+  
+  //------------------------------------------------------------
+  // Log resolved configuration for debugging and traceability
+  //------------------------------------------------------------
   logSystemInfo('Initialized CSRF middleware with cookie settings.', {
     context: 'csrf-protection',
     cookie: csrfCookieOptions,
   });
-
-  // Create the CSRF middleware instance using the configured cookie policy
-  return csrf({ cookie: csrfCookieOptions });
+  
+  //------------------------------------------------------------
+  // Initialize CSRF middleware from external library
+  //------------------------------------------------------------
+  const middleware = csrf({ cookie: csrfCookieOptions });
+  
+  //------------------------------------------------------------
+  // Adapt middleware to Express RequestHandler
+  //
+  // WHY:
+  // - Avoid type mismatch between library and app-level Express types
+  // - Safely isolate `any` usage at the integration boundary
+  //------------------------------------------------------------
+  return /** @type {import('express').RequestHandler} */ (
+    (req, res, next) =>
+      middleware(
+        /** @type {any} */ (req),
+        /** @type {any} */ (res),
+        /** @type {any} */ (next)
+      )
+  );
 };
 
 // Initialize CSRF middleware once at module level with secure cookie settings.
