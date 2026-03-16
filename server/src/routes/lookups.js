@@ -4,7 +4,7 @@ const {
   getBatchRegistryLookupController,
   getWarehouseLookupController,
   getLotAdjustmentLookupController,
-  fetchCustomerLookupController,
+  getCustomerLookupController,
   getCustomerAddressLookupController,
   getOrderTypeLookupController,
   getPaymentMethodLookupController,
@@ -226,7 +226,7 @@ router.get(
     },
     'Invalid query parameters.'
   ),
-  fetchCustomerLookupController
+  getCustomerLookupController
 );
 
 /**
