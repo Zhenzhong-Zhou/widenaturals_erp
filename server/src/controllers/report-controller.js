@@ -1,4 +1,4 @@
-const wrapAsync = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../utils/wrap-async');
 const {
   fetchInventoryActivityLogsService,
 } = require('../services/report-service');
@@ -17,7 +17,7 @@ const {
  * @param {import('express').Response} res - Express response object
  * @returns {void}
  */
-const getInventoryActivityLogsController = wrapAsync(async (req, res) => {
+const getInventoryActivityLogsController = wrapAsyncHandler(async (req, res) => {
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
 
   const user = req.auth.user;

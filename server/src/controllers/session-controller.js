@@ -1,4 +1,4 @@
-const wrapAsync = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../utils/wrap-async');
 const {
   loginUserService,
   refreshTokenService,
@@ -31,7 +31,7 @@ const { getTtlMs } = require('../utils/auth/jwt-utils');
  *
  * @returns {Promise<void>}
  */
-const loginController = wrapAsync(async (req, res) => {
+const loginController = wrapAsyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
   // Pre-auth CSRF token (required before login)
@@ -104,7 +104,7 @@ const loginController = wrapAsync(async (req, res) => {
  *
  * @returns {Promise<void>} Resolves after issuing new tokens and setting cookies
  */
-const refreshTokenController = wrapAsync(async (req, res) => {
+const refreshTokenController = wrapAsyncHandler(async (req, res) => {
   // Refresh tokens are stored in HTTP-only cookies
   const refreshToken = req.cookies?.refreshToken;
 

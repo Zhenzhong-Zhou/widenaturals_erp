@@ -1,4 +1,4 @@
-const wrapAsync = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../utils/wrap-async');
 const {
   fetchAvailableMethodsForDropdown,
 } = require('../services/delivery-method-service');
@@ -10,7 +10,7 @@ const {
  * @param {Response} res - Express response object.
  * @param {NextFunction} next - Express next function.
  */
-const getDeliveryMethodsForDropdownController = wrapAsync(
+const getDeliveryMethodsForDropdownController = wrapAsyncHandler(
   async (req, res, next) => {
     try {
       const includePickup = req.query.includePickup === 'true'; // Check if pickup methods should be included

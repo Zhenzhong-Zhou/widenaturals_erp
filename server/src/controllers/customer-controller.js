@@ -1,9 +1,9 @@
+const { wrapAsyncHandler } = require('../utils/wrap-async');
+const { logInfo } = require('../utils/logger-helper');
 const {
   createCustomersService,
   fetchPaginatedCustomersService,
 } = require('../services/customer-service');
-const wrapAsync = require('../utils/wrap-async');
-const { logInfo } = require('../utils/logger-helper');
 
 /**
  * Controller to handle the creation of one or multiple customers.
@@ -13,7 +13,7 @@ const { logInfo } = require('../utils/logger-helper');
  * - Adds created_by metadata from the authenticated user.
  * - Returns inserted customer records.
  */
-const createCustomerController = wrapAsync(async (req, res) => {
+const createCustomerController = wrapAsyncHandler(async (req, res) => {
   const customers = req.body;
   const user = req.auth.user;
 
@@ -59,7 +59,7 @@ const createCustomerController = wrapAsync(async (req, res) => {
  * @param {import('express').Response} res - Express response object
  * @returns {Promise<void>} - Responds with JSON on success
  */
-const getPaginatedCustomersController = wrapAsync(async (req, res) => {
+const getPaginatedCustomersController = wrapAsyncHandler(async (req, res) => {
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
 
   const { data, pagination } = await fetchPaginatedCustomersService({

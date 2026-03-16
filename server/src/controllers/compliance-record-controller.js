@@ -1,4 +1,4 @@
-const wrapAsync = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../utils/wrap-async');
 const { logInfo } = require('../utils/logger-helper');
 const {
   fetchPaginatedComplianceRecordsService,
@@ -37,7 +37,7 @@ const {
  * @param {import('express').Response} res
  * @returns {Promise<void>}
  */
-const getPaginatedComplianceRecordsController = wrapAsync(async (req, res) => {
+const getPaginatedComplianceRecordsController = wrapAsyncHandler(async (req, res) => {
   const context =
     'compliance-controller/fetchPaginatedComplianceRecordsController';
   const startTime = Date.now();

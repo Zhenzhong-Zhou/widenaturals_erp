@@ -1,4 +1,4 @@
-const wrapAsync = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../utils/wrap-async');
 const { logInfo } = require('../utils/logger-helper');
 const {
   fetchBomMaterialSupplyDetailsService,
@@ -42,7 +42,7 @@ const {
  *   }
  * }
  */
-const getBomMaterialSupplyDetailsController = wrapAsync(async (req, res) => {
+const getBomMaterialSupplyDetailsController = wrapAsyncHandler(async (req, res) => {
   const { bomId } = req.params;
 
   logInfo('Fetching BOM Material Supply Details', req, {

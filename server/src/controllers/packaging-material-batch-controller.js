@@ -1,4 +1,4 @@
-const wrapAsync = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../utils/wrap-async');
 const AppError = require('../utils/AppError');
 const { logInfo } = require('../utils/logger-helper');
 const {
@@ -26,7 +26,7 @@ const {
  * - Sorting columns are assumed SQL-safe (resolved upstream)
  * - Controller performs NO business logic or ACL evaluation
  */
-const getPaginatedPackagingMaterialBatchesController = wrapAsync(
+const getPaginatedPackagingMaterialBatchesController = wrapAsyncHandler(
   async (req, res) => {
     const context =
       'packaging-material-batch-controller/getPaginatedPackagingMaterialBatchesController';
@@ -143,7 +143,7 @@ const getPaginatedPackagingMaterialBatchesController = wrapAsync(
  * @throws {AppError}
  * If the request payload is invalid or batch creation fails.
  */
-const createPackagingMaterialBatchesController = wrapAsync(async (req, res) => {
+const createPackagingMaterialBatchesController = wrapAsyncHandler(async (req, res) => {
   const context =
     'packaging-material-batch-controller/createPackagingMaterialBatchesController';
   
@@ -243,7 +243,7 @@ const createPackagingMaterialBatchesController = wrapAsync(async (req, res) => {
  *
  * @returns {Promise<void>}
  */
-const editPackagingMaterialBatchMetadataController = wrapAsync(
+const editPackagingMaterialBatchMetadataController = wrapAsyncHandler(
   async (req, res) => {
     const context =
       'packaging-material-batch-controller/editPackagingMaterialBatchMetadataController';
@@ -345,7 +345,7 @@ const editPackagingMaterialBatchMetadataController = wrapAsync(
  *
  * @returns {Promise<void>}
  */
-const updatePackagingMaterialBatchStatusController = wrapAsync(async (req, res) => {
+const updatePackagingMaterialBatchStatusController = wrapAsyncHandler(async (req, res) => {
   const context =
     'packaging-material-batch-controller/updatePackagingMaterialBatchStatusController';
   
@@ -439,7 +439,7 @@ const updatePackagingMaterialBatchStatusController = wrapAsync(async (req, res) 
  *
  * @returns {Promise<void>}
  */
-const receivePackagingMaterialBatchController = wrapAsync(async (req, res) => {
+const receivePackagingMaterialBatchController = wrapAsyncHandler(async (req, res) => {
   const context =
     'packaging-material-batch-controller/receivePackagingMaterialBatchController';
   
@@ -528,7 +528,7 @@ const receivePackagingMaterialBatchController = wrapAsync(async (req, res) => {
  *
  * @returns {Promise<void>}
  */
-const releasePackagingMaterialBatchController = wrapAsync(async (req, res) => {
+const releasePackagingMaterialBatchController = wrapAsyncHandler(async (req, res) => {
   const context =
     'packaging-material-batch-controller/releasePackagingMaterialBatchController';
   

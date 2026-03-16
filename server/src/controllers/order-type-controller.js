@@ -1,4 +1,4 @@
-const wrapAsync = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../utils/wrap-async');
 const {
   fetchPaginatedOrderTypesService,
 } = require('../services/order-type-service');
@@ -26,9 +26,9 @@ const {
  *
  * @returns {200} JSON API success response with paginated order type data.
  *
- * @throws {AppError} On service failure (handled by wrapAsync).
+ * @throws {AppError} On service failure (handled by wrapAsyncHandler).
  */
-const getPaginatedOrderTypesController = wrapAsync(async (req, res) => {
+const getPaginatedOrderTypesController = wrapAsyncHandler(async (req, res) => {
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
 
   const { data, pagination } = await fetchPaginatedOrderTypesService({

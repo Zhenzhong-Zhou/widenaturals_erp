@@ -1,4 +1,4 @@
-const wrapAsync = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../utils/wrap-async');
 const { logInfo } = require('../utils/logger-helper');
 const {
   createAddressService,
@@ -20,9 +20,9 @@ const {
  * @param res Express response that returns the creation result.
  *
  * @returns {Promise<void>}
- * Sends the HTTP response with created data or lets wrapAsync handle errors.
+ * Sends the HTTP response with created data or lets wrapAsyncHandler handle errors.
  */
-const createAddressController = wrapAsync(async (req, res) => {
+const createAddressController = wrapAsyncHandler(async (req, res) => {
   const addresses = req.body;
   const user = req.auth.user;
 
@@ -68,9 +68,9 @@ const createAddressController = wrapAsync(async (req, res) => {
  *
  * @returns {200} JSON API success response with paginated address data.
  *
- * @throws {AppError} On service failure (handled by wrapAsync).
+ * @throws {AppError} On service failure (handled by wrapAsyncHandler).
  */
-const getPaginatedAddressesController = wrapAsync(async (req, res) => {
+const getPaginatedAddressesController = wrapAsyncHandler(async (req, res) => {
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
 
   const { data, pagination } = await fetchPaginatedAddressesService({

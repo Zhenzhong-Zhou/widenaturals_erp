@@ -1,4 +1,4 @@
-const wrapAsync = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../utils/wrap-async');
 const {
   fetchPaginatedSkuProductCardsService,
   createSkusService,
@@ -48,7 +48,7 @@ const AppError = require('../utils/AppError');
  *     pagination: { page, limit, totalRecords, totalPages }
  *   }
  */
-const getPaginatedSkuProductCardsController = wrapAsync(async (req, res) => {
+const getPaginatedSkuProductCardsController = wrapAsyncHandler(async (req, res) => {
   const context = 'sku-controller/getPaginatedSkuProductCardsController';
 
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
@@ -104,7 +104,7 @@ const getPaginatedSkuProductCardsController = wrapAsync(async (req, res) => {
  *  - Validation (query schema) should be applied using route middleware.
  *  - Controller contains no DB logic — all business rules remain in services.
  */
-const getPaginatedSkusController = wrapAsync(async (req, res) => {
+const getPaginatedSkusController = wrapAsyncHandler(async (req, res) => {
   const context = 'sku-controller/getPaginatedSkusController';
   const startTime = Date.now();
 
@@ -173,7 +173,7 @@ const getPaginatedSkusController = wrapAsync(async (req, res) => {
  *  3. Delegates work to the service layer
  *  4. Returns final transformed response
  */
-const getSkuDetailsController = wrapAsync(async (req, res) => {
+const getSkuDetailsController = wrapAsyncHandler(async (req, res) => {
   const context = 'sku-controller/fetchSkuDetailsController';
 
   // Extract SKU ID from params
@@ -244,7 +244,7 @@ const getSkuDetailsController = wrapAsync(async (req, res) => {
  *    - stats (inputCount, createdCount, elapsedMs)
  *    - data (array of created SKU records)
  */
-const createSkusController = wrapAsync(async (req, res) => {
+const createSkusController = wrapAsyncHandler(async (req, res) => {
   const context = 'sku-controller/createSkusController';
   const startTime = Date.now();
   const traceId = `create-sku-${Date.now().toString(36)}`;
@@ -300,12 +300,12 @@ const createSkusController = wrapAsync(async (req, res) => {
  * - Return standardized API response
  *
  * Error handling:
- * - All errors are propagated to global error middleware via wrapAsync.
+ * - All errors are propagated to global error middleware via wrapAsyncHandler.
  *
  * Route:
  * PATCH /api/skus/:skuId/metadata
  */
-const updateSkuMetadataController = wrapAsync(async (req, res) => {
+const updateSkuMetadataController = wrapAsyncHandler(async (req, res) => {
   const context = 'sku-controller/updateSkuMetadataController';
 
   // -------------------------------------------------
@@ -370,7 +370,7 @@ const updateSkuMetadataController = wrapAsync(async (req, res) => {
  * @param {import('express').Response} res
  * @param {import('express').NextFunction} next
  */
-const updateSkuStatusController = wrapAsync(async (req, res) => {
+const updateSkuStatusController = wrapAsyncHandler(async (req, res) => {
   const context = 'sku-controller/updateSkuStatusController';
 
   // -------------------------------------------------
@@ -420,12 +420,12 @@ const updateSkuStatusController = wrapAsync(async (req, res) => {
  *
  * Error handling:
  * - All errors are automatically forwarded to global error middleware
- *   via wrapAsync.
+ *   via wrapAsyncHandler.
  *
  * Route:
  * PATCH /api/skus/:skuId/dimensions
  */
-const updateSkuDimensionsController = wrapAsync(async (req, res) => {
+const updateSkuDimensionsController = wrapAsyncHandler(async (req, res) => {
   const context = 'sku-controller/updateSkuDimensionsController';
 
   // -------------------------------------------------
@@ -474,12 +474,12 @@ const updateSkuDimensionsController = wrapAsync(async (req, res) => {
  *
  * Error handling:
  * - All errors are automatically forwarded to global error middleware
- *   via wrapAsync.
+ *   via wrapAsyncHandler.
  *
  * Route:
  * PATCH /api/skus/:skuId/identity
  */
-const updateSkuIdentityController = wrapAsync(async (req, res) => {
+const updateSkuIdentityController = wrapAsyncHandler(async (req, res) => {
   const context = 'sku-controller/updateSkuIdentityController';
 
   // -------------------------------------------------

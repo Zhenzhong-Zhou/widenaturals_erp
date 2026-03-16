@@ -3,7 +3,7 @@
  * @description Contains the logic for authentication routes.
  */
 
-const wrapAsync = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../utils/wrap-async');
 const {
   logoutService,
   changePasswordService,
@@ -44,7 +44,7 @@ const { extractRequestContext } = require('../utils/request-context');
  *
  * @returns {Promise<void>}
  */
-const logoutController = wrapAsync(async (req, res) => {
+const logoutController = wrapAsyncHandler(async (req, res) => {
   const isProduction = process.env.NODE_ENV === 'production';
 
   const { ipAddress, userAgent } = extractRequestContext(req);
@@ -128,7 +128,7 @@ const logoutController = wrapAsync(async (req, res) => {
  * - After a successful password change, the client must log in again.
  * - Any existing refresh token cookie is cleared by the controller.
  */
-const changePasswordController = wrapAsync(async (req, res) => {
+const changePasswordController = wrapAsyncHandler(async (req, res) => {
   const userId = req.auth.user.id;
   const { currentPassword, newPassword } = req.body;
 

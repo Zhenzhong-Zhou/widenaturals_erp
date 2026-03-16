@@ -1,4 +1,4 @@
-const wrapAsync = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../utils/wrap-async');
 const {
   fetchPaginatedWarehouseInventoryItemSummary,
   fetchWarehouseInventorySummaryByItemIdService,
@@ -32,7 +32,7 @@ const {
  * @param {function} next - Express next middleware function
  * @returns {void}
  */
-const getPaginatedWarehouseInventorySummaryController = wrapAsync(
+const getPaginatedWarehouseInventorySummaryController = wrapAsyncHandler(
   async (req, res) => {
     const { page, limit, itemType } = req.query;
     const user = req.auth.user;
@@ -69,7 +69,7 @@ const getPaginatedWarehouseInventorySummaryController = wrapAsync(
  * @param {import('express').Response} res - Express response object.
  * @param {import('express').NextFunction} next - Express next middleware function.
  */
-const getWarehouseInventorySummaryDetailsController = wrapAsync(
+const getWarehouseInventorySummaryDetailsController = wrapAsyncHandler(
   async (req, res, next) => {
     const { itemId } = req.params;
     const page = parseInt(req.query.page, 10) || 1;
@@ -128,7 +128,7 @@ const getWarehouseInventorySummaryDetailsController = wrapAsync(
  *
  * @returns {200} Paginated warehouse inventory data including metadata and counts
  */
-const getWarehouseInventoryRecordController = wrapAsync(async (req, res) => {
+const getWarehouseInventoryRecordController = wrapAsyncHandler(async (req, res) => {
   // Normalize req.query to a plain object to avoid [Object: null prototype] issues
   const query = { ...req.query };
 
@@ -173,7 +173,7 @@ const getWarehouseInventoryRecordController = wrapAsync(async (req, res) => {
  * - Logs inventory activity for traceability.
  * - Returns enriched inserted records.
  */
-const createWarehouseInventoryRecordController = wrapAsync(
+const createWarehouseInventoryRecordController = wrapAsyncHandler(
   async (req, res, next) => {
     const records = req.body?.records;
 
@@ -230,7 +230,7 @@ const createWarehouseInventoryRecordController = wrapAsync(
  *  - Status determination (in_stock / out_of_stock)
  *  - Inventory updates and audit logging
  */
-const adjustInventoryQuantitiesController = wrapAsync(
+const adjustInventoryQuantitiesController = wrapAsyncHandler(
   async (req, res, next) => {
     const updates = req.body?.updates;
     const lock = req.body?.lock !== false; // defaults to true if undefined

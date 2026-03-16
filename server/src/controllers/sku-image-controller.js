@@ -5,7 +5,7 @@
  * processing to `saveBulkSkuImagesService`.
  */
 
-const wrapAsync = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../utils/wrap-async');
 const { logInfo } = require('../utils/logger-helper');
 const {
   saveBulkSkuImagesService,
@@ -34,7 +34,7 @@ const {
  *  - Ensures the controller stays thin, testable, and consistent with
  *    service-oriented architecture.
  */
-const uploadSkuImagesController = wrapAsync(async (req, res) => {
+const uploadSkuImagesController = wrapAsyncHandler(async (req, res) => {
   const context = 'sku-image-controller/uploadSkuImagesController';
   const startTime = Date.now();
 
@@ -99,7 +99,7 @@ const uploadSkuImagesController = wrapAsync(async (req, res) => {
  * Behavior:
  *   • Partial success is allowed (per-SKU isolation)
  *   • Always returns HTTP 200 for processed batches
- *   • System-level failures are handled by wrapAsync/global error middleware
+ *   • System-level failures are handled by wrapAsyncHandler/global error middleware
  *
  * @route PUT /api/v1/skus/images/bulk
  *
@@ -109,7 +109,7 @@ const uploadSkuImagesController = wrapAsync(async (req, res) => {
  *   - stats (summary object)
  *   - data (per-SKU results)
  */
-const updateSkuImagesController = wrapAsync(async (req, res) => {
+const updateSkuImagesController = wrapAsyncHandler(async (req, res) => {
   const context = 'sku-image-controller/updateSkuImagesController';
   const startTime = Date.now();
 
