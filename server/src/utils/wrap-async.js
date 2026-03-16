@@ -1,61 +1,35 @@
 /**
- * @file wrapAsync.js
- * @description Utility for wrapping route handlers with express-async-handler.
+ * @file async-handler.js
+ * @description Express middleware wrapper for async route handlers.
  */
 
 const asyncHandler = require('express-async-handler');
-const normalizeError = require('./normalize-error');
-const { logDebug, logError } = require('./logger-helper');
 
 /**
- * Recursively wraps route handlers with asyncHandler for consistent error handling.
- * Supports single functions, objects, or nested objects of route handlers.
+ * Wraps an Express route handler to ensure async errors
+ * are properly propagated to the global error handler.
  *
- * @param {Function|Object} routes - A function or an object of route handlers.
- * @param {Object} [options={}] - Optional configuration options.
- * @param {boolean} [options.debug=false] - Whether to log the wrapping process.
- * @returns {Function|Object} - Wrapped function or object with wrapped handlers.
- * @throws {AppError} - Throws an AppError if the input is neither a function nor an object.
+ * Eliminates the need for repetitive try/catch blocks
+ * in controller functions.
+ *
+ * @param {import('express').RequestHandler} fn - Route handler (async or sync)
+ * @returns {import('express').RequestHandler}
  */
-const wrapAsync = (routes, options = { debug: false }) => {
-  if (typeof routes === 'function') {
-    if (options.debug) {
-      logDebug('Wrapping single route handler.', null, {
-        context: 'wrapAsync',
-      });
-    }
-    return asyncHandler(routes);
-  }
-
-  if (typeof routes !== 'object' || routes === null) {
-    const error = normalizeError(
-      new Error('wrapAsync expects a function or an object of route handlers'),
-      {
-        type: 'InvalidInputError',
-        code: 'WRAP_ASYNC_TYPE_ERROR',
-        isExpected: false,
-        details: { providedType: typeof routes },
-      }
+const wrapAsyncHandler = (fn) => {
+  if (typeof fn !== 'function') {
+    throw new TypeError(
+      `wrapAsyncHandler expected a function, received ${typeof fn}`
     );
-    logError(error, null, { context: 'wrapAsync' });
-    throw error;
   }
-
-  return Object.entries(routes).reduce((wrappedRoutes, [key, value]) => {
-    if (typeof value === 'function') {
-      if (options.debug) {
-        logDebug(`Wrapping route handler: ${key}`, null, {
-          context: 'wrapAsync',
-        });
-      }
-      wrappedRoutes[key] = asyncHandler(value);
-    } else if (typeof value === 'object' && value !== null) {
-      wrappedRoutes[key] = wrapAsync(value, options); // Recursively wrap nested objects
-    } else {
-      wrappedRoutes[key] = value; // Preserve non-function values
-    }
-    return wrappedRoutes;
-  }, {});
+  
+  return asyncHandler(
+    /** @type {(req: any, res: any, next: any) => Promise<void>} */
+    (async (req, res, next) => {
+      await fn(req, res, next);
+    })
+  );
 };
 
-module.exports = wrapAsync;
+module.exports = {
+  wrapAsyncHandler,
+};
