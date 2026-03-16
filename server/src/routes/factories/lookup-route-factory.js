@@ -21,6 +21,9 @@ const validate = require('../../middlewares/validate');
  * @property {boolean} [includePagination=true]
  * @property {boolean} [includeSorting=false]
  * @property {string[]} [sanitizeFields=['keyword']]
+ * @property {string[]} [optionBooleanKeys=[]]
+ * @property {string[]} [optionKeys=[]]
+ * @property {RequestHandler[]} [customHandlers=[]]
  */
 
 /**
@@ -31,38 +34,23 @@ const validate = require('../../middlewares/validate');
  * (e.g., via `registerLookupRoute`).
  *
  * ------------------------------------------------------------------
- * Responsibilities
- * ------------------------------------------------------------------
- * - Compose middleware chain for lookup endpoints
- * - Apply consistent authorization, normalization, sanitization, validation
- * - Return structured route definition ({ path, handlers })
- *
- * ------------------------------------------------------------------
  * Middleware Pipeline (execution order)
  * ------------------------------------------------------------------
  * 1. authorize → permission enforcement
  * 2. normalize → transform query into filters + pagination
  * 3. sanitize → clean user input
  * 4. validate → Joi schema validation
- * 5. controller → execute business logic + response formatting
+ * 5. customHandlers (optional extension point)
+ * 6. controller → execute business logic + response formatting
  *
  * ------------------------------------------------------------------
  *
  * @param {object} options
  * @param {string} options.path
- *   Route path (e.g., '/packaging-material-suppliers')
- *
  * @param {string[]} options.permission
- *   Required permissions for access
- *
  * @param {object} options.schema
- *   Joi validation schema for query parameters
- *
- * @param {Function} options.controller
- *   Controller created via `createLookupController`
- *
+ * @param {RequestHandler} options.controller
  * @param {LookupRouteConfig} [options.config]
- *   Optional normalization configuration:
  *
  * @returns {LookupRoute}
  */
@@ -104,6 +92,9 @@ const createLookupRoute = ({
     includePagination = true,
     includeSorting = false,
     sanitizeFields: fieldsToSanitize = ['keyword'],
+    optionBooleanKeys = [],
+    optionKeys = [],
+    customHandlers = [],
   } = config;
   
   //---------------------------------------------------------
@@ -126,6 +117,8 @@ const createLookupRoute = ({
       {
         includePagination,
         includeSorting,
+        optionBooleanKeys,
+        optionKeys
       }
     ),
     
@@ -146,6 +139,8 @@ const createLookupRoute = ({
       },
       'Invalid lookup query parameters.'
     ),
+    
+    ...customHandlers,
     
     //---------------------------------------------------------
     // Controller execution
