@@ -22,7 +22,7 @@ const {
   getManufacturerLookupController,
   getSupplierLookupController,
   getLocationTypeLookupController,
-  getBatchStatusLookupController,
+  getBatchStatusLookupController, getPackagingMaterialSupplierLookupController,
 } = require('../controllers/lookup-controller');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 const { sanitizeFields } = require('../middlewares/sanitize');
@@ -48,9 +48,10 @@ const {
   roleLookupQuerySchema,
   manufacturerLookupQuerySchema,
   supplierLookupQuerySchema,
-  locationTypeLookupQuerySchema, batchStatusLookupQuerySchema,
+  locationTypeLookupQuerySchema, batchStatusLookupQuerySchema, packagingMaterialSupplierLookupQuerySchema,
 } = require('../validators/lookup-validators');
 const { PERMISSIONS } = require('../utils/constants/domain/lookup-constants');
+const { createLookupRoute } = require('./factories/lookup-route-factory');
 
 const router = express.Router();
 
@@ -1375,5 +1376,103 @@ router.get(
   ),
   getBatchStatusLookupController
 );
+
+/**
+ * Registers a standardized lookup route on the given Express router.
+ *
+ * This helper composes a full lookup endpoint using:
+ * - authorization
+ * - query normalization
+ * - sanitization
+ * - validation
+ * - controller execution
+ *
+ * It delegates middleware construction to `createLookupRoute`
+ * and ensures consistent routing across all lookup endpoints.
+ *
+ * ------------------------------------------------------------------
+ * Typical Use Case
+ * ------------------------------------------------------------------
+ * Used for dropdown / autocomplete endpoints such as:
+ * - packaging material suppliers
+ * - batch statuses
+ * - customers
+ * - inventory lookups
+ *
+ * ------------------------------------------------------------------
+ * Middleware Pipeline (delegated to factory)
+ * ------------------------------------------------------------------
+ * 1. authorize → permission check
+ * 2. normalize → build filters + pagination
+ * 3. sanitize → clean user input
+ * 4. validate → Joi schema validation
+ * 5. controller → service execution + response formatting
+ *
+ * ------------------------------------------------------------------
+ * @param {import('express').Router} router
+ *   Express router instance
+ *
+ * @param {object} config
+ * @param {string} config.path
+ *   Route path (e.g., '/packaging-material-suppliers')
+ *
+ * @param {string[]} config.permission
+ *   Required permissions for accessing the route
+ *
+ * @param {object} config.schema
+ *   Joi validation schema for query parameters
+ *
+ * @param {Function} config.controller
+ *   Controller generated via `createLookupController`
+ *
+ * @param {object} [config.config]
+ *   Optional configuration overrides for normalization:
+ *   - arrayKeys
+ *   - booleanKeys
+ *   - filterKeys
+ *   - includePagination
+ *   - includeSorting
+ *   - sanitizeFields
+ *
+ * @returns {void}
+ */
+const registerLookupRoute = (router, config) => {
+  //---------------------------------------------------------
+  // Build route definition (path + middleware chain)
+  //---------------------------------------------------------
+  const route = createLookupRoute(config);
+  
+  //---------------------------------------------------------
+  // Register GET route with composed middleware
+  //---------------------------------------------------------
+  router.get(route.path, ...route.handlers);
+};
+
+/**
+ * ------------------------------------------------------------------
+ * Packaging Material Supplier Lookup Routes
+ * ------------------------------------------------------------------
+ *
+ * Provides lookup endpoints for packaging material suppliers,
+ * primarily used in dropdown / autocomplete UI components.
+ *
+ * All routes in this section:
+ * - require authentication and permission checks
+ * - support keyword search and filtering
+ * - use standardized lookup pipeline (normalization, validation)
+ *
+ * Base path: /lookups
+ * ------------------------------------------------------------------
+ */
+registerLookupRoute(router,{
+  path: '/packaging-material-suppliers',
+  permission: [PERMISSIONS.VIEW_PACKAGING_MATERIAL_SUPPLIER],
+  schema: packagingMaterialSupplierLookupQuerySchema,
+  controller: getPackagingMaterialSupplierLookupController,
+  config: {
+    booleanKeys: ['isPreferred'],
+    filterKeys: ['keyword'],
+  },
+});
 
 module.exports = router;

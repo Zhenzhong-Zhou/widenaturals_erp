@@ -519,6 +519,33 @@ const batchStatusLookupQuerySchema = Joi.object({
   ...baseLookupQuerySchema,
 });
 
+/**
+ * Joi schema for validating packaging material supplier lookup query parameters.
+ *
+ * This schema extends the shared `baseLookupQuerySchema`, which
+ * defines the standard lookup query structure used across the API.
+ *
+ * Typical fields inherited from the base schema include:
+ * - keyword
+ * - limit
+ * - offset
+ *
+ * Additional filters specific to packaging material supplier lookup:
+ * - isPreferred (boolean)
+ *
+ * Keeping this schema separate allows future extension without
+ * modifying the shared base schema.
+ */
+const packagingMaterialSupplierLookupQuerySchema = Joi.object({
+  // Reuse common lookup validation rules
+  ...baseLookupQuerySchema,
+  
+  //---------------------------------------------------------
+  // Supplier-specific filters
+  //---------------------------------------------------------
+  isPreferred: Joi.boolean().optional(),
+});
+
 module.exports = {
   batchRegistryLookupQuerySchema,
   warehouseLookupQuerySchema,
@@ -542,4 +569,5 @@ module.exports = {
   supplierLookupQuerySchema,
   locationTypeLookupQuerySchema,
   batchStatusLookupQuerySchema,
+  packagingMaterialSupplierLookupQuerySchema,
 };

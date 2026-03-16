@@ -22,9 +22,11 @@ const {
   fetchSupplierLookupService,
   fetchLocationTypeLookupService,
   fetchBatchStatusLookupService,
+  fetchPackagingMaterialSupplierLookupService,
 } = require('../services/lookup-service');
 const { logInfo } = require('../utils/logger-helper');
 const { getClientIp } = require('../utils/request-context');
+const { createLookupController } = require('./factories/lookup-controller-factory');
 
 /**
  * Controller to handle batch registry lookup requests.
@@ -1214,6 +1216,47 @@ const getBatchStatusLookupController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * Controller for retrieving packaging material supplier lookup data.
+ *
+ * This controller is generated via `createLookupController` and provides
+ * a standardized lookup endpoint for dropdown / autocomplete components
+ * with pagination ("load more" pattern).
+ *
+ * ------------------------------------------------------------------
+ * Behavior
+ * ------------------------------------------------------------------
+ * - Extracts authenticated user from request (via middleware)
+ * - Reads normalized query parameters (filters, limit, offset)
+ * - Delegates execution to lookup service
+ * - Returns standardized response payload
+ *
+ * NOTE:
+ * The core execution logic is handled by the shared
+ * `createLookupController` factory.
+ *
+ * ------------------------------------------------------------------
+ *
+ * @route GET /lookups/packaging-material-suppliers
+ *
+ * @param {object} req
+ * @param {object} req.auth.user - Authenticated user (injected by auth middleware)
+ * @param {object} req.normalizedQuery - Injected by normalization middleware
+ * @param {object} [req.normalizedQuery.filters]
+ * @param {number} [req.normalizedQuery.limit=50]
+ * @param {number} [req.normalizedQuery.offset=0]
+ *
+ * @param {object} res
+ *
+ * @returns {Promise<void>}
+ */
+const getPackagingMaterialSupplierLookupController =
+  createLookupController({
+    service: fetchPackagingMaterialSupplierLookupService,
+    successMessage:
+      'Successfully retrieved Packaging Material Supplier lookup',
+  });
+
 module.exports = {
   getBatchRegistryLookupController,
   getWarehouseLookupController,
@@ -1237,4 +1280,5 @@ module.exports = {
   getSupplierLookupController,
   getLocationTypeLookupController,
   getBatchStatusLookupController,
+  getPackagingMaterialSupplierLookupController,
 };
