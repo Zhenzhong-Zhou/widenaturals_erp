@@ -1,4 +1,4 @@
-const wrapAsync = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../utils/wrap-async');
 const AppError = require('../utils/AppError');
 const { logInfo } = require('../utils/logger-helper');
 const {
@@ -22,7 +22,7 @@ const {
  * - Sorting columns are assumed SQL-safe (resolved upstream)
  * - Controller performs NO business logic or ACL evaluation
  */
-const getPaginatedBatchRegistryController = wrapAsync(async (req, res) => {
+const getPaginatedBatchRegistryController = wrapAsyncHandler(async (req, res) => {
   const context =
     'batch-registry-controller/getPaginatedBatchRegistryController';
   const startTime = Date.now();
@@ -145,7 +145,7 @@ const getPaginatedBatchRegistryController = wrapAsync(async (req, res) => {
  *   "note": "Supplier confirmed packaging material batch passed QA inspection."
  * }
  */
-const updateBatchRegistryNoteController = wrapAsync(async (req, res) => {
+const updateBatchRegistryNoteController = wrapAsyncHandler(async (req, res) => {
   const context =
     'batch-registry-controller/updateBatchRegistryNoteController';
   

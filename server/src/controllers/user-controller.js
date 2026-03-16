@@ -1,4 +1,4 @@
-const wrapAsync = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../utils/wrap-async');
 const { logInfo } = require('../utils/logger-helper');
 const {
   createUserService,
@@ -29,7 +29,7 @@ const { fetchPermissions } = require('../services/role-permission-service');
  * All authorization, validation beyond shape,
  * and persistence logic are handled in the service layer.
  */
-const createUserController = wrapAsync(async (req, res) => {
+const createUserController = wrapAsyncHandler(async (req, res) => {
   const context = 'user-controller/createUser';
 
   const actor = req.auth.user;
@@ -77,7 +77,7 @@ const createUserController = wrapAsync(async (req, res) => {
  * - Sorting columns are assumed SQL-safe (resolved upstream)
  * - `viewMode` affects response shape only; it does not affect data visibility
  */
-const getPaginatedUsersController = wrapAsync(async (req, res) => {
+const getPaginatedUsersController = wrapAsyncHandler(async (req, res) => {
   const context = 'user-controller/getPaginatedUsersController';
   const startTime = Date.now();
 
@@ -196,7 +196,7 @@ const getPaginatedUsersController = wrapAsync(async (req, res) => {
  *  3. Delegating work to the service layer
  *  4. Returning the final transformed response
  */
-const getUserProfileController = wrapAsync(async (req, res) => {
+const getUserProfileController = wrapAsyncHandler(async (req, res) => {
   const context = 'user-controller/getUserProfileController';
 
   // Resolve target user ID:
@@ -246,7 +246,7 @@ const getUserProfileController = wrapAsync(async (req, res) => {
  * @param {Function} next - Express next middleware function
  * @throws {AppError} - Throws if validation fails or if there's an error in fetching permissions.
  */
-const getPermissions = wrapAsync(async (req, res, next) => {
+const getPermissions = wrapAsyncHandler(async (req, res, next) => {
   const { role } = req.auth.user;
 
   if (!role) {

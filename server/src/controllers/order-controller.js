@@ -1,3 +1,4 @@
+const { wrapAsyncHandler } = require('../utils/wrap-async');
 const {
   createOrderService,
   fetchOrderDetailsByIdService,
@@ -5,7 +6,6 @@ const {
   fetchPaginatedOrdersService,
 } = require('../services/order-service');
 const AppError = require('../utils/AppError');
-const wrapAsync = require('../utils/wrap-async');
 const { logInfo, logWarn } = require('../utils/logger-helper');
 const { cleanObject } = require('../utils/object-utils');
 
@@ -34,7 +34,7 @@ const { cleanObject } = require('../utils/object-utils');
  * @param {import('express').Response} res
  * @param {import('express').NextFunction} next
  */
-const createOrderController = wrapAsync(async (req, res, next) => {
+const createOrderController = wrapAsyncHandler(async (req, res, next) => {
   const { category } = req.params;
   const orderData = req.body;
   const user = req.auth.user;
@@ -138,7 +138,7 @@ const createOrderController = wrapAsync(async (req, res, next) => {
  * @param {import('express').Response} res - Express response object
  * @returns {Promise<void>}
  */
-const fetchPaginatedOrdersController = wrapAsync(async (req, res) => {
+const fetchPaginatedOrdersController = wrapAsyncHandler(async (req, res) => {
   const category = req.params.category;
   const user = req.auth.user;
 
@@ -203,7 +203,7 @@ const fetchPaginatedOrdersController = wrapAsync(async (req, res) => {
  *         message: string,
  *         data: TransformedOrder
  *       }
- *   - Forwards all thrown errors to the global error handler via `wrapAsync`.
+ *   - Forwards all thrown errors to the global error handler via `wrapAsyncHandler`.
  *
  * Success Response (200):
  *   - JSON payload with `success=true`, a message, and `data` containing the order details.
@@ -219,7 +219,7 @@ const fetchPaginatedOrdersController = wrapAsync(async (req, res) => {
  * @param {import('express').Response} res - Express response object.
  * @returns {Promise<void>} Sends JSON response to the client.
  */
-const getOrderDetailsByIdController = wrapAsync(async (req, res) => {
+const getOrderDetailsByIdController = wrapAsyncHandler(async (req, res) => {
   const { category, orderId } = req.params;
   const user = req.auth.user;
 
@@ -282,7 +282,7 @@ const getOrderDetailsByIdController = wrapAsync(async (req, res) => {
  *   - Business rules for valid status transitions are handled in the service layer.
  *   - Logging includes contextual metadata for traceability.
  */
-const updateOrderStatusController = wrapAsync(async (req, res) => {
+const updateOrderStatusController = wrapAsyncHandler(async (req, res) => {
   const user = req.auth.user; // must be injected by auth middleware
   const categoryParam = String(req.params.category || '')
     .trim()

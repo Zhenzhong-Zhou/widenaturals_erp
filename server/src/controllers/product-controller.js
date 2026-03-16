@@ -7,7 +7,7 @@
  * consistent API responses with structured pagination metadata.
  */
 
-const wrapAsync = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../utils/wrap-async');
 const {
   fetchPaginatedProductsService,
   fetchProductDetailsService,
@@ -37,7 +37,7 @@ const AppError = require('../utils/AppError');
  * @param {import('express').Response} res
  * @param {import('express').NextFunction} next
  */
-const getPaginatedProductsController = wrapAsync(async (req, res) => {
+const getPaginatedProductsController = wrapAsyncHandler(async (req, res) => {
   const logContext = 'products-controller/getPaginatedProductsController';
 
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery ?? {
@@ -141,7 +141,7 @@ const getPaginatedProductsController = wrapAsync(async (req, res) => {
  * @param {import('express').Response} res
  * @param {import('express').NextFunction} next
  */
-const getProductDetailsController = wrapAsync(async (req, res) => {
+const getProductDetailsController = wrapAsyncHandler(async (req, res) => {
   const logContext = 'products-controller/getProductDetailsController';
   const { productId } = req.params;
 
@@ -192,7 +192,7 @@ const getProductDetailsController = wrapAsync(async (req, res) => {
  * @param {import('express').Response} res
  * @param {import('express').NextFunction} next
  */
-const updateProductStatusController = wrapAsync(async (req, res) => {
+const updateProductStatusController = wrapAsyncHandler(async (req, res) => {
   const logContext = 'products-controller/updateProductStatusController';
 
   // Step 1: Extract and validate inputs
@@ -243,7 +243,7 @@ const updateProductStatusController = wrapAsync(async (req, res) => {
  *
  * @returns {Promise<void>}
  */
-const updateProductInfoController = wrapAsync(async (req, res) => {
+const updateProductInfoController = wrapAsyncHandler(async (req, res) => {
   const { productId } = req.params;
   const updates = req.body;
   const user = req.auth.user; // injected by auth middleware
@@ -290,7 +290,7 @@ const updateProductInfoController = wrapAsync(async (req, res) => {
  *  - Joi validation (shape, types) and authorization must occur in middleware.
  *  - This controller intentionally contains no DB logic or business rules.
  */
-const createProductsController = wrapAsync(async (req, res) => {
+const createProductsController = wrapAsyncHandler(async (req, res) => {
   const context = 'product-controller/createProductsController';
   const startTime = Date.now();
   const traceId = `create-products-${Date.now().toString(36)}`;

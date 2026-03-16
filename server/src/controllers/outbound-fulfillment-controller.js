@@ -1,4 +1,4 @@
-const wrapAsync = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../utils/wrap-async');
 const {
   fulfillOutboundShipmentService,
   confirmOutboundFulfillmentService,
@@ -27,7 +27,7 @@ const { logInfo } = require('../utils/logger-helper');
  *
  * Logging:
  *  - Logs success with context, order ID, and user ID.
- *  - Errors are caught by `wrapAsync` and global error handler.
+ *  - Errors are caught by `wrapAsyncHandler` and global error handler.
  *
  * @route POST /orders/:orderId/fulfillment/initiate
  * @access Protected
@@ -36,7 +36,7 @@ const { logInfo } = require('../utils/logger-helper');
  * @param {import('express').Response} res - Express response
  * @returns {Promise<import('express').Response>} JSON response with fulfillment result
  */
-const fulfillOutboundShipmentController = wrapAsync(async (req, res) => {
+const fulfillOutboundShipmentController = wrapAsyncHandler(async (req, res) => {
   const user = req.auth.user;
   const { orderId } = req.params;
   const requestData = {
@@ -86,7 +86,7 @@ const fulfillOutboundShipmentController = wrapAsync(async (req, res) => {
  *
  * Logging:
  *  - Uses structured logging with context, orderId, and userId.
- *  - All thrown errors are handled by the global error middleware (via wrapAsync).
+ *  - All thrown errors are handled by the global error middleware (via wrapAsyncHandler).
  *
  * @route   POST /orders/:orderId/fulfillment/confirm
  * @access  Protected
@@ -95,7 +95,7 @@ const fulfillOutboundShipmentController = wrapAsync(async (req, res) => {
  * @param   {import('express').Response} res - Express response
  * @returns {Promise<import('express').Response>} JSON response with fulfillment confirmation result
  */
-const confirmOutboundFulfillmentController = wrapAsync(async (req, res) => {
+const confirmOutboundFulfillmentController = wrapAsyncHandler(async (req, res) => {
   const user = req.auth.user;
   const { orderId } = req.params;
 
@@ -158,7 +158,7 @@ const confirmOutboundFulfillmentController = wrapAsync(async (req, res) => {
  * @access Protected
  * @throws {AppError} Propagates errors from the service layer
  */
-const getPaginatedOutboundFulfillmentController = wrapAsync(
+const getPaginatedOutboundFulfillmentController = wrapAsyncHandler(
   async (req, res) => {
     const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
 
@@ -196,7 +196,7 @@ const getPaginatedOutboundFulfillmentController = wrapAsync(
  * @param {import('express').Request} req - Express request object
  * @param {import('express').Response} res - Express response object
  */
-const getShipmentDetailsController = wrapAsync(async (req, res) => {
+const getShipmentDetailsController = wrapAsyncHandler(async (req, res) => {
   const { shipmentId } = req.params;
 
   const details = await fetchShipmentDetailsService(shipmentId);
@@ -238,7 +238,7 @@ const getShipmentDetailsController = wrapAsync(async (req, res) => {
  *
  * Logging:
  *  - Uses structured logging with context, shipmentId, and userId.
- *  - All thrown errors are handled by global error middleware (via wrapAsync).
+ *  - All thrown errors are handled by global error middleware (via wrapAsyncHandler).
  *
  * @route   POST /outbound-fulfillment/manual/:shipmentId/complete
  * @access  Protected
@@ -247,7 +247,7 @@ const getShipmentDetailsController = wrapAsync(async (req, res) => {
  * @param   {import('express').Response} res - Express response
  * @returns {Promise<import('express').Response>} JSON response with manual fulfillment result
  */
-const completeManualFulfillmentController = wrapAsync(async (req, res) => {
+const completeManualFulfillmentController = wrapAsyncHandler(async (req, res) => {
   const user = req.auth.user;
   const { shipmentId } = req.params;
 

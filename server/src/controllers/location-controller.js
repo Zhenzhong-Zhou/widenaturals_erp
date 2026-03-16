@@ -1,4 +1,4 @@
-const wrapAsync = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../utils/wrap-async');
 const {
   fetchPaginatedLocationsService,
 } = require('../services/location-service');
@@ -28,7 +28,7 @@ const { logInfo } = require('../utils/logger-helper');
  * @param {import('express').Response} res
  * @param {import('express').NextFunction} next
  */
-const getPaginatedLocationsController = wrapAsync(async (req, res) => {
+const getPaginatedLocationsController = wrapAsyncHandler(async (req, res) => {
   const logContext = 'locations-controller/getPaginatedLocationsController';
 
   const {

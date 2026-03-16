@@ -3,7 +3,7 @@
  * @description Contains the logic for the public routes: Welcome and Health Check.
  */
 
-const wrapAsync = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../utils/wrap-async');
 const { logInfo } = require('../utils/logger-helper');
 const { version } = require('../../package.json');
 const {
@@ -24,7 +24,7 @@ const { getClientIp } = require('../utils/request-context');
  * - Intended for human consumption and basic connectivity checks
  * - Does not expose internal system or dependency details
  */
-const getWelcomeMessageController = wrapAsync(async (req, res) => {
+const getWelcomeMessageController = wrapAsyncHandler(async (req, res) => {
   const context = 'system-controller/getWelcomeMessage';
   const traceId = `welcome-${Date.now().toString(36)}`;
 
@@ -73,7 +73,7 @@ const getWelcomeMessageController = wrapAsync(async (req, res) => {
  * - Designed for frequent polling with minimal overhead
  * - HTTP status code is the primary success/failure signal
  */
-const getHealthStatusController = wrapAsync(async (req, res) => {
+const getHealthStatusController = wrapAsyncHandler(async (req, res) => {
   const context = 'system-controller/getHealthStatus';
   const startTime = Date.now();
   const traceId = `health-${Date.now().toString(36)}`;

@@ -1,4 +1,4 @@
-const wrapAsync = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../utils/wrap-async');
 
 /**
  * Generate and return a CSRF token for frontend usage.
@@ -15,7 +15,7 @@ const wrapAsync = require('../utils/wrap-async');
  * - This is a thin controller by design; no service layer is required
  *   because CSRF token generation is framework-provided, stateless,
  *   and request-scoped.
- * - Errors are handled by `wrapAsync` and delegated to global
+ * - Errors are handled by `wrapAsyncHandler` and delegated to global
  *   error-handling middleware for consistent logging and response formatting.
  *
  * Security considerations:
@@ -31,7 +31,7 @@ const wrapAsync = require('../utils/wrap-async');
  * @param {import('express').Response} res
  * @returns {void}
  */
-const generateCsrfTokenController = wrapAsync((req, res) => {
+const generateCsrfTokenController = wrapAsyncHandler((req, res) => {
   const csrfToken = req.csrfToken();
 
   res.set({

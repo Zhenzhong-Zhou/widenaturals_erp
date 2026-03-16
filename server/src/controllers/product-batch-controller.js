@@ -1,4 +1,4 @@
-const wrapAsync = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../utils/wrap-async');
 const AppError = require('../utils/AppError');
 const { logInfo } = require('../utils/logger-helper');
 const {
@@ -26,7 +26,7 @@ const {
  * - Sorting columns are assumed SQL-safe (resolved upstream)
  * - Controller performs NO business logic or ACL evaluation
  */
-const getPaginatedProductBatchesController = wrapAsync(async (req, res) => {
+const getPaginatedProductBatchesController = wrapAsyncHandler(async (req, res) => {
   const context =
     'product-batch-controller/getPaginatedProductBatchesController';
   const startTime = Date.now();
@@ -140,7 +140,7 @@ const getPaginatedProductBatchesController = wrapAsync(async (req, res) => {
  * @throws {AppError}
  * If the payload is invalid or batch creation fails.
  */
-const createProductBatchesController = wrapAsync(async (req, res) => {
+const createProductBatchesController = wrapAsyncHandler(async (req, res) => {
   const context = 'product-batch-controller/createProductBatchesController';
   
   // Track request start time for performance logging
@@ -231,7 +231,7 @@ const createProductBatchesController = wrapAsync(async (req, res) => {
  * @param {import('express').Response} res
  * @returns {Promise<void>}
  */
-const editProductBatchMetadataController = wrapAsync(async (req, res) => {
+const editProductBatchMetadataController = wrapAsyncHandler(async (req, res) => {
   const context =
     'product-batch-controller/editProductBatchMetadataController';
   const startTime = Date.now();
@@ -320,7 +320,7 @@ const editProductBatchMetadataController = wrapAsync(async (req, res) => {
  *
  * @returns {Promise<void>}
  */
-const updateProductBatchStatusController = wrapAsync(async (req, res) => {
+const updateProductBatchStatusController = wrapAsyncHandler(async (req, res) => {
   const context =
     'product-batch-controller/updateProductBatchStatusController';
   
@@ -414,7 +414,7 @@ const updateProductBatchStatusController = wrapAsync(async (req, res) => {
  *
  * @returns {Promise<void>}
  */
-const receiveProductBatchController = wrapAsync(async (req, res) => {
+const receiveProductBatchController = wrapAsyncHandler(async (req, res) => {
   const context =
     'product-batch-controller/receiveProductBatchController';
   
@@ -505,7 +505,7 @@ const receiveProductBatchController = wrapAsync(async (req, res) => {
  *
  * @returns {Promise<void>}
  */
-const releaseProductBatchController = wrapAsync(async (req, res) => {
+const releaseProductBatchController = wrapAsyncHandler(async (req, res) => {
   const context =
     'product-batch-controller/releaseProductBatchController';
   

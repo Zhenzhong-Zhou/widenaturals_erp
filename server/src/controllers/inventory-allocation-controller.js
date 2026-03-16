@@ -1,4 +1,4 @@
-const wrapAsync = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../utils/wrap-async');
 const {
   allocateInventoryForOrderService,
   reviewInventoryAllocationService,
@@ -59,7 +59,7 @@ const { logInfo } = require('../utils/logger-helper');
  * @param {import('express').Response} res - Express response object
  * @returns {Promise<void>}
  */
-const allocateInventoryForOrderController = wrapAsync(async (req, res) => {
+const allocateInventoryForOrderController = wrapAsyncHandler(async (req, res) => {
   const { orderId } = req.params;
   const { strategy, warehouseId, allowPartial } = req.body;
   const user = req.auth.user;
@@ -111,7 +111,7 @@ const allocateInventoryForOrderController = wrapAsync(async (req, res) => {
  *
  * @returns {Promise<void>} Sends JSON response with review data or error message
  */
-const reviewInventoryAllocationController = wrapAsync(async (req, res) => {
+const reviewInventoryAllocationController = wrapAsyncHandler(async (req, res) => {
   const { orderId } = req.params;
   const { warehouseIds = [], allocationIds = [] } = req.body;
 
@@ -187,7 +187,7 @@ const reviewInventoryAllocationController = wrapAsync(async (req, res) => {
  * @route GET /api/inventory-allocations
  * @access Protected
  */
-const getPaginatedInventoryAllocationsController = wrapAsync(
+const getPaginatedInventoryAllocationsController = wrapAsyncHandler(
   async (req, res) => {
     const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
 
@@ -243,7 +243,7 @@ const getPaginatedInventoryAllocationsController = wrapAsync(
  * @param {import('express').Response} res
  * @returns {Promise<void>}
  */
-const confirmInventoryAllocationController = wrapAsync(async (req, res) => {
+const confirmInventoryAllocationController = wrapAsyncHandler(async (req, res) => {
   const rawOrderId = req.params.orderId;
   const user = req.auth.user;
 

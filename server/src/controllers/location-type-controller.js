@@ -1,4 +1,4 @@
-const wrapAsync = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../utils/wrap-async');
 const {
   fetchPaginatedLocationTypesService,
   fetchLocationTypeDetailsService,
@@ -28,7 +28,7 @@ const { logInfo } = require('../utils/logger-helper');
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  */
-const getPaginatedLocationTypesController = wrapAsync(async (req, res) => {
+const getPaginatedLocationTypesController = wrapAsyncHandler(async (req, res) => {
   const logContext =
     'location-types-controller/getPaginatedLocationTypesController';
 
@@ -156,7 +156,7 @@ const getPaginatedLocationTypesController = wrapAsync(async (req, res) => {
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  */
-const getLocationTypeDetailsController = wrapAsync(async (req, res) => {
+const getLocationTypeDetailsController = wrapAsyncHandler(async (req, res) => {
   const logContext =
     'location-types-controller/getLocationTypeDetailsController';
 

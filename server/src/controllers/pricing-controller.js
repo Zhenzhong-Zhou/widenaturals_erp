@@ -1,4 +1,4 @@
-const wrapAsync = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../utils/wrap-async');
 const {
   fetchPaginatedPricingRecordsService,
   fetchPricingDetailsByPricingTypeId,
@@ -14,7 +14,7 @@ const { generateTimestampedFilename } = require('../utils/name-utils');
  * @param {Request} req - Express a request object.
  * @param {Response} res - Express response object.
  */
-const getPaginatedPricingRecordsController = wrapAsync(async (req, res) => {
+const getPaginatedPricingRecordsController = wrapAsyncHandler(async (req, res) => {
   const {
     page,
     limit,
@@ -66,7 +66,7 @@ const getPaginatedPricingRecordsController = wrapAsync(async (req, res) => {
  * @param {Request} req - Express request object
  * @param {Response} res - Express response object
  */
-const exportPricingRecordsController = wrapAsync(async (req, res) => {
+const exportPricingRecordsController = wrapAsyncHandler(async (req, res) => {
   const { exportFormat, brand, pricingType, countryCode, sizeLabel } =
     req.query;
 
@@ -116,7 +116,7 @@ const exportPricingRecordsController = wrapAsync(async (req, res) => {
  * @param {import('express').NextFunction} next - Express next middleware function.
  * @returns {Promise<void>} Responds with JSON including pricing detail records and pagination metadata.
  */
-const getPricingDetailsController = wrapAsync(async (req, res) => {
+const getPricingDetailsController = wrapAsyncHandler(async (req, res) => {
   const { id } = req.params;
   const { page, limit } = req.query;
 

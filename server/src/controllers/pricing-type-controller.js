@@ -1,10 +1,10 @@
+const { wrapAsyncHandler } = require('../utils/wrap-async');
 const {
   fetchAllPriceTypes,
   fetchAvailablePricingTypesForDropdown,
   fetchPricingTypeByIdWithMetadataService,
 } = require('../services/price-type-service');
 const { logInfo } = require('../utils/logger-helper');
-const wrapAsync = require('../utils/wrap-async');
 
 /**
  * Controller: Handles GET request to fetch paginated pricing types with optional filters.
@@ -20,7 +20,7 @@ const wrapAsync = require('../utils/wrap-async');
  * @param {object} req - Express request object
  * @param {object} res - Express response object
  */
-const getAllPriceTypesController = wrapAsync(async (req, res, next) => {
+const getAllPriceTypesController = wrapAsyncHandler(async (req, res, next) => {
   const { page = 1, limit = 10, name, startDate, endDate } = req.query;
   const user = req.auth.user;
 
@@ -59,7 +59,7 @@ const getAllPriceTypesController = wrapAsync(async (req, res, next) => {
  * @param {import('express').NextFunction} next - Express next middleware function for error handling.
  * @returns {void}
  */
-const getPricingTypeMetadataController = wrapAsync(async (req, res, next) => {
+const getPricingTypeMetadataController = wrapAsyncHandler(async (req, res, next) => {
   const { id } = req.params;
 
   logInfo('Handling request to fetch pricing type metadata', req, {
@@ -83,7 +83,7 @@ const getPricingTypeMetadataController = wrapAsync(async (req, res, next) => {
  * @param {Response} res - Express response object.
  * @param {NextFunction} next - Express next function.
  */
-const getPricingTypesForDropdownController = wrapAsync(
+const getPricingTypesForDropdownController = wrapAsyncHandler(
   async (req, res, next) => {
     try {
       const { productId } = req.query; // Extract productId from query parameters
