@@ -22,7 +22,8 @@ const {
   getManufacturerLookupController,
   getSupplierLookupController,
   getLocationTypeLookupController,
-  getBatchStatusLookupController, getPackagingMaterialSupplierLookupController,
+  getBatchStatusLookupController,
+  getPackagingMaterialSupplierLookupController,
 } = require('../controllers/lookup-controller');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 const { sanitizeFields } = require('../middlewares/sanitize');
@@ -48,7 +49,9 @@ const {
   roleLookupQuerySchema,
   manufacturerLookupQuerySchema,
   supplierLookupQuerySchema,
-  locationTypeLookupQuerySchema, batchStatusLookupQuerySchema, packagingMaterialSupplierLookupQuerySchema,
+  locationTypeLookupQuerySchema,
+  batchStatusLookupQuerySchema,
+  packagingMaterialSupplierLookupQuerySchema,
 } = require('../validators/lookup-validators');
 const { PERMISSIONS } = require('../utils/constants/domain/lookup-constants');
 const { createLookupRoute } = require('./factories/lookup-route-factory');
@@ -319,220 +322,6 @@ router.get(
 );
 
 /**
- * GET /lookups/payment-methods
- *
- * Retrieves a paginated list of payment methods for use in dropdowns or lookup components.
- * Applies role-based access control and keyword-based filtering, and respects pagination params.
- *
- * Middleware Stack:
- * - `authorize(['view_payment_method_lookup'])`: Ensures user has lookup permission
- * - `createQueryNormalizationMiddleware(...)`: Extracts and normalizes query parameters:
- *    - `filters.keyword` (for search)
- *    - `pagination.limit`, `pagination.offset`
- * - `sanitizeFields(['keyword'])`: Trims and sanitizes the keyword field
- * - `validate(paymentMethodLookupQuerySchema, 'query', ...)`: Validates query against Joi schema
- * - `getPaymentMethodLookupController`: Fetches results using service → business → repo → transform
- *
- * Query Parameters:
- * @query {string} [keyword] - Optional keyword to search by name/code (if permitted)
- * @query {number} [limit=50] - Number of records per page (1–100)
- * @query {number} [offset=0] - Pagination offset (≥ 0)
- *
- * Response Format:
- * {
- *   success: true,
- *   message: 'Successfully retrieved payment method lookup',
- *   data: {
- *     items: [{ label: string, value: string }],
- *     hasMore: boolean
- *   }
- * }
- */
-router.get(
-  '/payment-methods',
-  authorize([PERMISSIONS.VIEW_PAYMENT_METHOD]),
-  createQueryNormalizationMiddleware(
-    '', // moduleKey (optional for sorting)
-    [], // arrayKeys (e.g., ['statusId'] if needed)
-    [], // booleanKeys (e.g., ['includeArchived'])
-    ['keyword'], // filterKeys: what to extract into `filters`
-    { includePagination: true, includeSorting: false } // enable pagination normalization
-  ),
-  sanitizeFields(['keyword']),
-  validate(
-    paymentMethodLookupQuerySchema,
-    'query',
-    {
-      abortEarly: false,
-      convert: true,
-    },
-    'Invalid query parameters.'
-  ),
-  getPaymentMethodLookupController
-);
-
-/**
- * @route GET /discounts
- * @description
- * Endpoint to fetch paginated discount lookup options for dropdowns or selectors.
- * Applies permission checks, query normalization, field sanitization, validation, and filtering.
- *
- * Middleware chain includes:
- * - `authorize`: Enforces user permission to view discount lookups
- * - `createQueryNormalizationMiddleware`: Extracts and structures query parameters (e.g., filters, keyword, pagination)
- * - `sanitizeFields`: Trims and sanitizes specific fields (e.g., `keyword`)
- * - `validate`: Validates the normalized query against `discountLookupQuerySchema`
- * - `getDiscountLookupController`: Handles the request and returns formatted discount options
- *
- * Query Parameters (after normalization):
- * - `filters.keyword` — Optional search keyword to match discount name/description
- * - `filters.statusId` — Optional status filter (maybe stripped based on access)
- * - `limit` — Pagination size (default: 50)
- * - `offset` — Pagination offset
- *
- * Response:
- * - `200 OK` with JSON:
- *   - `success` (boolean)
- *   - `message` (string)
- *   - `items` (array of `{ id, label, isActive, isValidToday }`)
- *   - `limit` (number)
- *   - `offset` (number)
- *   - `hasMore` (boolean)
- *
- * @access Protected
- * @permission Requires `view_discount_lookup` permission
- */
-router.get(
-  '/discounts',
-  authorize([PERMISSIONS.VIEW_DISCOUNT]),
-  createQueryNormalizationMiddleware(
-    '', // moduleKey (optional for sorting)
-    [], // arrayKeys (e.g., ['statusId'] if needed)
-    [], // booleanKeys (e.g., ['includeArchived'])
-    ['keyword'], // filterKeys: what to extract into `filters`
-    { includePagination: true, includeSorting: false } // enable pagination normalization
-  ),
-  sanitizeFields(['keyword']),
-  validate(
-    discountLookupQuerySchema,
-    'query',
-    {
-      abortEarly: false,
-      convert: true,
-    },
-    'Invalid query parameters.'
-  ),
-  getDiscountLookupController
-);
-
-/**
- * @route GET /tax-rates
- * @description
- * Endpoint to fetch paginated tax rate lookup options for dropdowns or selectors.
- * Applies permission checks, query normalization, field sanitization, validation, and filtering.
- *
- * Middleware chain includes:
- * - `authorize`: Enforces user permission to view tax rate lookups
- * - `createQueryNormalizationMiddleware`: Extracts and structures query parameters (e.g., filters, keyword, pagination)
- * - `sanitizeFields`: Trims and sanitizes specific fields (e.g., `keyword`)
- * - `validate`: Validates the normalized query against `taxRateLookupQuerySchema`
- * - `getTaxRateLookupController`: Handles the request and returns formatted tax rate options
- *
- * Query Parameters (after normalization):
- * - `filters.keyword` — Optional search keyword to match tax rate name/province
- * - `limit` — Pagination size (default: 50)
- * - `offset` — Pagination offset
- *
- * Response:
- * - `200 OK` with JSON:
- *   - `success` (boolean)
- *   - `message` (string)
- *   - `items` (array of `{ id, label, isActive }`)
- *   - `limit` (number)
- *   - `offset` (number)
- *   - `hasMore` (boolean)
- *
- * @access Protected
- * @permission Requires `view_tax_rate_lookup` permission
- */
-router.get(
-  '/tax-rates',
-  authorize([PERMISSIONS.VIEW_TAX_RATE]),
-  createQueryNormalizationMiddleware(
-    '', // moduleKey (optional for sorting)
-    [], // arrayKeys
-    [], // booleanKeys
-    ['keyword'], // filterKeys
-    { includePagination: true, includeSorting: false }
-  ),
-  sanitizeFields(['keyword']),
-  validate(
-    taxRateLookupQuerySchema,
-    'query',
-    {
-      abortEarly: false,
-      convert: true,
-    },
-    'Invalid query parameters.'
-  ),
-  getTaxRateLookupController
-);
-
-/**
- * @route GET /delivery-methods
- * @description
- * Endpoint to fetch paginated delivery method lookup options for dropdowns or selectors.
- * Applies permission checks, query normalization, field sanitization, validation, and filtering.
- *
- * Middleware chain includes:
- * - `authorize`: Enforces user permission to view delivery method lookups
- * - `createQueryNormalizationMiddleware`: Extracts and structures query parameters (e.g., filters, keyword, pagination)
- * - `sanitizeFields`: Trims and sanitizes specific fields (e.g., `keyword`)
- * - `validate`: Validates the normalized query against `deliveryMethodLookupQuerySchema`
- * - `getDeliveryMethodLookupController`: Handles the request and returns formatted delivery method options
- *
- * Query Parameters (after normalization):
- * - `filters.keyword` — Optional search keyword to match method name or description
- * - `filters.isPickupLocation` — Optional boolean to filter by pickup location flag
- * - `limit` — Pagination size (default: 50)
- * - `offset` — Pagination offset
- *
- * Response:
- * - `200 OK` with JSON:
- *   - `success` (boolean)
- *   - `message` (string)
- *   - `items` (array of `{ id, label, isPickupLocation, isActive }`)
- *   - `limit` (number)
- *   - `offset` (number)
- *   - `hasMore` (boolean)
- *
- * @access Protected
- * @permission Requires `view_delivery_method_lookup` permission
- */
-router.get(
-  '/delivery-methods',
-  authorize([PERMISSIONS.VIEW_DELIVERY_METHOD]),
-  createQueryNormalizationMiddleware(
-    '', // moduleKey (not needed here)
-    [], // arrayKeys
-    ['isPickupLocation'], // booleanKeys
-    deliveryMethodLookupQuerySchema, // filterKeys
-    { includePagination: true, includeSorting: false }
-  ),
-  sanitizeFields(['keyword']),
-  validate(
-    deliveryMethodLookupQuerySchema,
-    'query',
-    {
-      abortEarly: false,
-      convert: true,
-    },
-    'Invalid query parameters.'
-  ),
-  getDeliveryMethodLookupController
-);
-
-/**
  * @route GET /skus
  * @description
  * Endpoint to fetch paginated SKU lookup options for dropdowns or selectors.
@@ -738,675 +527,21 @@ router.get(
 );
 
 /**
- * @route GET /sku-code-bases
- * @description
- * Endpoint to fetch paginated SKU Code Base lookup options for dropdowns or selectors.
- * Applies permission checks, query normalization, field sanitization, validation, and filtering.
+ * Registers a standardized lookup route on an Express router.
  *
- * Middleware chain includes:
- * - `authorize`: Enforces user permission to view SKU Code Base lookups
- * - `createQueryNormalizationMiddleware`: Extracts and structures query parameters
- *     (e.g., filters, keyword, brand_code, pagination)
- * - `sanitizeFields`: Trims and sanitizes specific fields (e.g., `keyword`)
- * - `validate`: Validates the normalized query against `skuCodeBaseLookupQuerySchema`
- * - `getSkuCodeBaseLookupController`: Handles the request and returns formatted lookup options
+ * This helper delegates route construction to `createLookupRoute`
+ * and attaches the resulting middleware chain to the router.
  *
- * Query Parameters (after normalization):
- * - `filters.keyword` — Optional search keyword for brand/category
- * - `filters.brand_code` — Optional exact brand code filter
- * - `filters.category_code` — Optional exact category code filter
- * - `filters.status_id` — Optional status filter (maybe overridden based on permissions)
- * - `limit` — Pagination size (default: 50)
- * - `offset` — Pagination offset
- *
- * Response:
- * - `200 OK` with JSON:
- *   - `success` (boolean)
- *   - `message` (string)
- *   - `items` (array of `{ id, label, isActive }`)
- *   - `limit` (number)
- *   - `offset` (number)
- *   - `hasMore` (boolean)
- *
- * @access Protected
- * @permission Requires `view_sku_code_base_lookup` permission
- */
-router.get(
-  '/sku-code-bases',
-  authorize([PERMISSIONS.VIEW_SKU_CODE_BASE]),
-  createQueryNormalizationMiddleware(
-    '', // moduleKey (optional)
-    [], // arrayKeys (none needed for this lookup)
-    [], // booleanKeys (none needed)
-    ['keyword', 'brand_code', 'category_code'], // filterKeys
-    { includePagination: true, includeSorting: false }
-  ),
-  sanitizeFields(['keyword']),
-  validate(
-    skuCodeBaseLookupQuerySchema,
-    'query',
-    {
-      abortEarly: false,
-      convert: true,
-    },
-    'Invalid SKU Code Base lookup query parameters.'
-  ),
-  getSkuCodeBaseLookupController
-);
-
-/**
- * @route GET /products
- * @description
- * Endpoint to fetch paginated **Product** lookup options for dropdowns or selectors.
- *
- * This lookup endpoint is intentionally lightweight and optimized for UI usage.
- * It applies:
- * - User permission checks
- * - Query normalization (filters, pagination)
- * - Field sanitization (e.g., trimming user input)
- * - Joi validation for safe filter/pagination values
- * - Service-level filtering + visibility rules (active-only for restricted users)
- *
- * Middleware chain includes:
- *
- * 1. `authorize`
- *    Ensures the user has permission to load product lookup lists.
- *
- * 2. `createQueryNormalizationMiddleware`
- *    Extracts raw query parameters and normalizes them into:
- *    {
- *      filters: { brand, category, series },
- *      limit,
- *      offset
- *    }
- *
- * 3. `sanitizeFields`
- *    Cleans input fields (e.g., trims whitespace).
- *
- * 4. `validate(productLookupQuerySchema)`
- *    Application-level validation ensuring predictable filter/pagination structure.
- *
- * 5. `getProductLookupController`
- *    Service-driven lookup returning:
- *    - `{ id, label, isActive? }` items
- *    - pagination metadata
- *
- *
- * ### Query Parameters (after normalization)
- * - `filters.brand`    — Optional partial brand filter
- * - `filters.category` — Optional partial category filter
- * - `filters.series`   — Optional partial series filter
- * - `limit`            — Page size (default: 50)
- * - `offset`           — Pagination offset
- *
- *
- * ### Response: 200 OK
- * ```json
- * {
- *   "success": true,
- *   "message": "Successfully retrieved Product lookup",
- *   "items": [{ "id": "...", "label": "...", "isActive": true }],
- *   "limit": 50,
- *   "offset": 0,
- *   "hasMore": true
- * }
- * ```
- *
- * @access Protected
- * @permission Requires `view_product_lookup` permission
- */
-router.get(
-  '/products',
-  authorize([PERMISSIONS.VIEW_PRODUCT]),
-  createQueryNormalizationMiddleware(
-    '', // moduleKey not needed
-    [], // arrayKeys none for dropdown
-    [], // booleanKeys none
-    ['keyword', 'brand', 'category', 'series'], // filterKeys
-    { includePagination: true, includeSorting: false }
-  ),
-  sanitizeFields(['brand', 'category', 'series']),
-  validate(
-    productLookupQuerySchema,
-    'query',
-    {
-      abortEarly: false,
-      convert: true,
-    },
-    'Invalid Product lookup query parameters.'
-  ),
-  getProductLookupController
-);
-
-/**
- * @route GET /lookups/statuses
- * @description
- * Endpoint to fetch paginated **Status** lookup options for dropdowns or autocomplete.
- *
- * This endpoint is optimized for UI usage. It applies:
- * - User permission checks (via service layer)
- * - Query normalization (filters, pagination)
- * - Field sanitization (e.g., trim user input)
- * - Joi validation using `statusLookupQuerySchema`
- * - Service-level visibility rules (active-only for restricted users)
- *
- *
- * Middleware chain includes:
- *
- * 1. `authorize`
- *    Ensures the user has permission to load Status lookup lists.
- *
- * 2. `createQueryNormalizationMiddleware`
- *    Extracts raw query parameters and normalizes them into:
- *    {
- *      filters: { name, keyword, is_active },
- *      limit,
- *      offset
- *    }
- *
- * 3. `sanitizeFields`
- *    Trims user input for safety and consistent matching.
- *
- * 4. `validate(statusLookupQuerySchema)`
- *    Validates filter/pagination structure before service layer.
- *
- * 5. `getStatusLookupController`
- *    Fetches paginated lookup results:
- *    - `{ id, label, isActive }`
- *    - pagination metadata
- *
- *
- * ### Query Parameters (after normalization)
- * - `filters.name`      — Optional partial status name filter
- * - `filters.keyword`   — Optional fuzzy-match filter for name/description
- * - `filters.is_active` — Optional boolean; may be overridden by ACL
- * - `limit`             — Page size (default: 50)
- * - `offset`            — Pagination offset
- *
- *
- * ### Response: 200 OK
- * ```json
- * {
- *   "success": true,
- *   "message": "Successfully retrieved Status lookup",
- *   "items": [{ "id": "...", "label": "Active", "isActive": true }],
- *   "limit": 50,
- *   "offset": 0,
- *   "hasMore": true
- * }
- * ```
- *
- * @access Protected
- * @permission Requires `view_status_lookup` permission
- */
-router.get(
-  '/statuses',
-  authorize([PERMISSIONS.VIEW_STATUS]),
-  createQueryNormalizationMiddleware(
-    '', // no moduleKey needed for lookup UIs
-    [], // arrayKeys — none for Status lookup
-    ['is_active'], // booleanKeys
-    ['name', 'keyword', 'is_active'], // filterKeys for Status lookup
-    { includePagination: true, includeSorting: false }
-  ),
-  sanitizeFields(['name', 'keyword']),
-  validate(
-    statusLookupQuerySchema,
-    'query',
-    {
-      abortEarly: false,
-      convert: true,
-    },
-    'Invalid Status lookup query parameters.'
-  ),
-  getStatusLookupController
-);
-
-/**
- * @route GET /users
- * @description
- * Endpoint to fetch paginated **User** lookup options for dropdowns,
- * autocomplete inputs, or assignment selectors.
- *
- * This lookup endpoint is intentionally lightweight and optimized for UI usage.
- * It applies:
- * - User permission checks
- * - Query normalization (filters, pagination)
- * - Field sanitization (e.g., trimming user input)
- * - Joi validation for safe filter/pagination values
- * - Service-level visibility rules (active-only, system/root exclusion)
- *
- * Middleware chain includes:
- *
- * 1. `authorize`
- *    Ensures the user has permission to load user lookup lists.
- *
- * 2. `createQueryNormalizationMiddleware`
- *    Extracts raw query parameters and normalizes them into:
- *    {
- *      filters: { keyword },
- *      limit,
- *      offset
- *    }
- *
- * 3. `sanitizeFields`
- *    Cleans input fields (e.g., trims whitespace).
- *
- * 4. `validate(userLookupQuerySchema)`
- *    Application-level validation ensuring predictable filter/pagination structure.
- *
- * 5. `getUserLookupController`
- *    Service-driven lookup returning:
- *    - `{ id, label, subLabel?, isActive? }` items
- *    - pagination metadata
- *
- *
- * ### Query Parameters (after normalization)
- * - `filters.keyword` — Optional fuzzy match on name or email
- * - `limit`           — Page size (default: 50)
- * - `offset`          — Pagination offset
- *
- *
- * ### Response: 200 OK
- * ```json
- * {
- *   "success": true,
- *   "message": "Successfully retrieved User lookup",
- *   "items": [
- *     {
- *       "id": "...",
- *       "label": "John Doe",
- *       "subLabel": "john@company.com",
- *       "isActive": true
- *     }
- *   ],
- *   "limit": 50,
- *   "offset": 0,
- *   "hasMore": true
- * }
- * ```
- *
- * @access Protected
- * @permission Requires `view_user_lookup` permission
- */
-router.get(
-  '/users',
-  authorize([PERMISSIONS.VIEW_USER]),
-  createQueryNormalizationMiddleware(
-    '', // moduleKey not required for lookups
-    [], // arrayKeys none
-    [], // booleanKeys none
-    ['keyword'], // filterKeys
-    { includePagination: true, includeSorting: false }
-  ),
-  sanitizeFields(['keyword']),
-  validate(
-    userLookupQuerySchema,
-    'query',
-    {
-      abortEarly: false,
-      convert: true,
-    },
-    'Invalid User lookup query parameters.'
-  ),
-  getUserLookupController
-);
-
-/**
- * @route GET /lookups/roles
- * @description
- * Endpoint to fetch paginated **Role** lookup options for dropdowns,
- * assignment selectors, and admin configuration UIs.
- *
- * This endpoint is intentionally lightweight and permission-aware.
- * It applies:
- * - Role visibility ACL (active-only / full visibility)
- * - Query normalization (filters + pagination)
- * - Input sanitization
- * - Joi validation
- * - Service-driven lookup + UI transformation
- *
- * ### Query Parameters (after normalization)
- * - `filters.keyword` — Optional fuzzy match (name / description / role group)
- * - `limit`           — Page size (default: 50)
- * - `offset`          — Pagination offset
- *
- * ### Response: 200 OK
- * ```json
- * {
- *   "success": true,
- *   "message": "Successfully retrieved Role lookup",
- *   "items": [
- *     {
- *       "id": "...",
- *       "label": "Admin • System",
- *       "isActive": true
- *     }
- *   ],
- *   "limit": 50,
- *   "offset": 0,
- *   "hasMore": true
- * }
- * ```
- *
- * NOTE:
- * - Role lifecycle visibility (active vs inactive) and hierarchy scope
- *   are enforced exclusively in the service layer.
- * - Client-provided filters cannot override ACL rules.
- *
- * @access Protected
- * @permission Requires `view_role_lookup`
- */
-router.get(
-  '/roles',
-  authorize([PERMISSIONS.VIEW_ROLE]),
-  createQueryNormalizationMiddleware(
-    '',
-    [], // arrayKeys
-    [], // booleanKeys
-    ['keyword'], // filterKeys (keyword ONLY)
-    { includePagination: true, includeSorting: false }
-  ),
-  sanitizeFields(['keyword']),
-  validate(
-    roleLookupQuerySchema,
-    'query',
-    {
-      abortEarly: false,
-      convert: true,
-    },
-    'Invalid Role lookup query parameters.'
-  ),
-  getRoleLookupController
-);
-
-/**
- * @route GET /lookups/manufacturers
- * @description
- * Endpoint to fetch paginated **Manufacturer** lookup options
- * for dropdowns and assignment selectors.
- *
- * This endpoint is intentionally lightweight and permission-aware.
- * It applies:
- * - Manufacturer visibility ACL (active-only / archived inclusion / full visibility)
- * - Query normalization (filters + pagination)
- * - Input sanitization
- * - Joi validation
- * - Service-driven lookup + UI transformation
- *
- * ### Query Parameters (after normalization)
- * - `filters.keyword` — Optional fuzzy match (name / contact / code)
- * - `limit`           — Page size (default: 50)
- * - `offset`          — Pagination offset
- *
- * ### Response: 200 OK
- * ```json
- * {
- *   "success": true,
- *   "message": "Successfully retrieved Manufacturer lookup",
- *   "items": [
- *     {
- *       "id": "...",
- *       "label": "ABC Labs",
- *       "subLabel": "John Smith",
- *       "code": "ABC-001",
- *       "isActive": true
- *     }
- *   ],
- *   "limit": 50,
- *   "offset": 0,
- *   "hasMore": true
- * }
- * ```
- *
- * NOTE:
- * - Manufacturer lifecycle visibility (active / inactive / archived)
- *   is enforced exclusively in the service layer.
- * - Client-provided filters cannot override ACL rules.
- *
- * @access Protected
- * @permission Requires `view_manufacturer_lookup`
- */
-router.get(
-  '/manufacturers',
-  authorize([PERMISSIONS.VIEW_MANUFACTURER]),
-  createQueryNormalizationMiddleware(
-    '',
-    [], // arrayKeys
-    [], // booleanKeys
-    ['keyword'], // filterKeys (keyword ONLY)
-    { includePagination: true, includeSorting: false }
-  ),
-  sanitizeFields(['keyword']),
-  validate(
-    manufacturerLookupQuerySchema,
-    'query',
-    {
-      abortEarly: false,
-      convert: true,
-    },
-    'Invalid Manufacturer lookup query parameters.'
-  ),
-  getManufacturerLookupController
-);
-
-/**
- * @route GET /lookups/suppliers
- * @description
- * Endpoint to fetch paginated **Supplier** lookup options
- * for dropdowns and assignment selectors.
- *
- * This endpoint is intentionally lightweight and permission-aware.
- * It applies:
- * - Supplier visibility ACL (active-only / archived inclusion / full visibility)
- * - Query normalization (filters + pagination)
- * - Input sanitization
- * - Joi validation
- * - Service-driven lookup + UI transformation
- *
- * ### Query Parameters (after normalization)
- * - `filters.keyword` — Optional fuzzy match (name / contact / code)
- * - `limit`           — Page size (default: 50)
- * - `offset`          — Pagination offset
- *
- * ### Response: 200 OK
- * ```json
- * {
- *   "success": true,
- *   "message": "Successfully retrieved Supplier lookup",
- *   "items": [
- *     {
- *       "id": "...",
- *       "label": "Global Supply Co",
- *       "subLabel": "Jane Doe",
- *       "code": "SUP-100",
- *       "isActive": true
- *     }
- *   ],
- *   "limit": 50,
- *   "offset": 0,
- *   "hasMore": true
- * }
- * ```
- *
- * NOTE:
- * - Supplier lifecycle visibility (active / inactive / archived)
- *   is enforced exclusively in the service layer.
- * - Client-provided filters cannot override ACL rules.
- *
- * @access Protected
- * @permission Requires `view_supplier_lookup`
- */
-router.get(
-  '/suppliers',
-  authorize([PERMISSIONS.VIEW_SUPPLIER]),
-  createQueryNormalizationMiddleware(
-    '',
-    [], // arrayKeys
-    [], // booleanKeys
-    ['keyword'], // filterKeys (keyword ONLY)
-    { includePagination: true, includeSorting: false }
-  ),
-  sanitizeFields(['keyword']),
-  validate(
-    supplierLookupQuerySchema,
-    'query',
-    {
-      abortEarly: false,
-      convert: true,
-    },
-    'Invalid Supplier lookup query parameters.'
-  ),
-  getSupplierLookupController
-);
-
-/**
- * @route GET /lookups/location-types
- * @description
- * Endpoint to fetch paginated **Location Type** lookup options
- * for dropdowns, configuration selectors, and admin setup UIs.
- *
- * This endpoint is intentionally lightweight and permission-aware.
- * It applies:
- * - Location Type visibility ACL (active-only / full visibility)
- * - Query normalization (filters + pagination)
- * - Input sanitization
- * - Joi validation
- * - Service-driven lookup + UI transformation
- *
- * ------------------------------------------------------------------
- * Query Parameters (after normalization)
- * ------------------------------------------------------------------
- * - `filters.keyword` — Optional fuzzy match (name / code)
- * - `limit`           — Page size (default: 50)
- * - `offset`          — Pagination offset
- *
- * ------------------------------------------------------------------
- * Response: 200 OK
- * ------------------------------------------------------------------
- * ```json
- * {
- *   "success": true,
- *   "message": "Successfully retrieved Location Type lookup",
- *   "items": [
- *     {
- *       "id": "...",
- *       "label": "Warehouse",
- *       "code": "WH",
- *       "isActive": true
- *     }
- *   ],
- *   "limit": 50,
- *   "offset": 0,
- *   "hasMore": true
- * }
- * ```
- *
- * NOTE:
- * - Location Type lifecycle visibility (active / inactive)
- *   is enforced exclusively in the service layer.
- * - Client-provided filters cannot override ACL rules.
- *
- * @access Protected
- * @permission Requires `view_location_type_lookup`
- */
-router.get(
-  '/location-types',
-  authorize([PERMISSIONS.VIEW_LOCATION_TYPE]),
-  createQueryNormalizationMiddleware(
-    '',
-    [], // arrayKeys
-    [], // booleanKeys
-    ['keyword'], // filterKeys (keyword ONLY)
-    { includePagination: true, includeSorting: false }
-  ),
-  sanitizeFields(['keyword']),
-  validate(
-    locationTypeLookupQuerySchema,
-    'query',
-    {
-      abortEarly: false,
-      convert: true,
-    },
-    'Invalid Location Type lookup query parameters.'
-  ),
-  getLocationTypeLookupController
-);
-
-/**
- * GET /batch-statuses
- *
- * Retrieve batch status lookup values for dropdowns and UI selectors.
- *
- * This endpoint provides a paginated lookup of batch lifecycle
- * statuses used throughout the system (e.g., Draft, Released,
- * Received, Suspended).
- *
- * Middleware pipeline:
- * - authorize: ensures the user has permission to view batch statuses
- * - createQueryNormalizationMiddleware: normalizes query parameters
- * - sanitizeFields: removes unsafe characters from searchable fields
- * - validate: validates query parameters against Joi schema
- * - controller: executes the lookup service
- *
- * Query parameters:
- * - keyword (optional): search term for batch status names
- * - limit (optional): pagination limit
- * - offset (optional): pagination offset
- */
-router.get(
-  '/batch-statuses',
-  authorize([PERMISSIONS.VIEW_BATCH_STATUS]),
-  createQueryNormalizationMiddleware(
-    '',
-    [], // arrayKeys
-    [], // booleanKeys
-    ['keyword'], // filterKeys
-    { includePagination: true, includeSorting: false }
-  ),
-  sanitizeFields(['keyword']),
-  validate(
-    batchStatusLookupQuerySchema,
-    'query',
-    {
-      abortEarly: false,
-      convert: true,
-    },
-    'Invalid Batch Status lookup query parameters.'
-  ),
-  getBatchStatusLookupController
-);
-
-/**
- * Registers a standardized lookup route on the given Express router.
- *
- * This helper composes a full lookup endpoint using:
- * - authorization
- * - query normalization
- * - sanitization
- * - validation
- * - controller execution
- *
- * It delegates middleware construction to `createLookupRoute`
- * and ensures consistent routing across all lookup endpoints.
+ * Ensures consistent registration of lookup endpoints across modules.
  *
  * ------------------------------------------------------------------
  * Typical Use Case
  * ------------------------------------------------------------------
  * Used for dropdown / autocomplete endpoints such as:
- * - packaging material suppliers
+ * - suppliers, manufacturers
  * - batch statuses
- * - customers
- * - inventory lookups
- *
- * ------------------------------------------------------------------
- * Middleware Pipeline (delegated to factory)
- * ------------------------------------------------------------------
- * 1. authorize → permission check
- * 2. normalize → build filters + pagination
- * 3. sanitize → clean user input
- * 4. validate → Joi schema validation
- * 5. controller → service execution + response formatting
+ * - users, roles
+ * - products, SKUs
  *
  * ------------------------------------------------------------------
  * @param {import('express').Router} router
@@ -1414,55 +549,233 @@ router.get(
  *
  * @param {object} config
  * @param {string} config.path
- *   Route path (e.g., '/packaging-material-suppliers')
- *
  * @param {string[]} config.permission
- *   Required permissions for accessing the route
- *
  * @param {object} config.schema
- *   Joi validation schema for query parameters
- *
- * @param {Function} config.controller
- *   Controller generated via `createLookupController`
+ * @param {RequestHandler} config.controller
  *
  * @param {object} [config.config]
- *   Optional configuration overrides for normalization:
+ *   Optional normalization overrides:
  *   - arrayKeys
  *   - booleanKeys
  *   - filterKeys
+ *   - sanitizeFields
  *   - includePagination
  *   - includeSorting
- *   - sanitizeFields
  *
  * @returns {void}
  */
 const registerLookupRoute = (router, config) => {
-  //---------------------------------------------------------
-  // Build route definition (path + middleware chain)
-  //---------------------------------------------------------
   const route = createLookupRoute(config);
-  
-  //---------------------------------------------------------
-  // Register GET route with composed middleware
-  //---------------------------------------------------------
   router.get(route.path, ...route.handlers);
 };
 
+//=========================================================
+// SIMPLE LOOKUPS (Factory-based)
+//=========================================================
+
 /**
- * ------------------------------------------------------------------
- * Packaging Material Supplier Lookup Routes
- * ------------------------------------------------------------------
- *
- * Provides lookup endpoints for packaging material suppliers,
- * primarily used in dropdown / autocomplete UI components.
- *
- * All routes in this section:
- * - require authentication and permission checks
- * - support keyword search and filtering
- * - use standardized lookup pipeline (normalization, validation)
- *
- * Base path: /lookups
- * ------------------------------------------------------------------
+ * @route GET /lookups/suppliers
+ * @description Retrieve supplier options for dropdowns and assignment selectors.
+ * Supports keyword search and pagination.
+ * @access Protected
+ * @permission view_supplier_lookup
+ */
+registerLookupRoute(router, {
+  path: '/suppliers',
+  permission: [PERMISSIONS.VIEW_SUPPLIER],
+  schema: supplierLookupQuerySchema,
+  controller: getSupplierLookupController,
+});
+
+/**
+ * @route GET /lookups/manufacturers
+ * @description Retrieve manufacturer options for dropdowns and assignment selectors.
+ * Supports keyword search and pagination.
+ * @access Protected
+ * @permission view_manufacturer_lookup
+ */
+registerLookupRoute(router, {
+  path: '/manufacturers',
+  permission: [PERMISSIONS.VIEW_MANUFACTURER],
+  schema: manufacturerLookupQuerySchema,
+  controller: getManufacturerLookupController,
+});
+
+/**
+ * @route GET /lookups/users
+ * @description Retrieve user options for assignment and ownership selection.
+ * Supports keyword search and pagination.
+ * @access Protected
+ * @permission view_user_lookup
+ */
+registerLookupRoute(router, {
+  path: '/users',
+  permission: [PERMISSIONS.VIEW_USER],
+  schema: userLookupQuerySchema,
+  controller: getUserLookupController,
+});
+
+/**
+ * @route GET /lookups/roles
+ * @description Retrieve role options for admin configuration and assignment.
+ * Supports keyword search and pagination.
+ * @access Protected
+ * @permission view_role_lookup
+ */
+registerLookupRoute(router, {
+  path: '/roles',
+  permission: [PERMISSIONS.VIEW_ROLE],
+  schema: roleLookupQuerySchema,
+  controller: getRoleLookupController,
+});
+
+/**
+ * @route GET /lookups/location-types
+ * @description Retrieve location type options for configuration and setup.
+ * Supports keyword search and pagination.
+ * @access Protected
+ * @permission view_location_type_lookup
+ */
+registerLookupRoute(router, {
+  path: '/location-types',
+  permission: [PERMISSIONS.VIEW_LOCATION_TYPE],
+  schema: locationTypeLookupQuerySchema,
+  controller: getLocationTypeLookupController,
+});
+
+/**
+ * @route GET /lookups/batch-statuses
+ * @description Retrieve batch lifecycle statuses for workflow and dropdown usage.
+ * Supports keyword search and pagination.
+ * @access Protected
+ * @permission view_batch_status_lookup
+ */
+registerLookupRoute(router, {
+  path: '/batch-statuses',
+  permission: [PERMISSIONS.VIEW_BATCH_STATUS],
+  schema: batchStatusLookupQuerySchema,
+  controller: getBatchStatusLookupController,
+});
+
+/**
+ * @route GET /lookups/statuses
+ * @description Retrieve generic system status values for dropdowns.
+ * Supports keyword search, name filter, and active status filtering.
+ * @access Protected
+ * @permission view_status_lookup
+ */
+registerLookupRoute(router, {
+  path: '/statuses',
+  permission: [PERMISSIONS.VIEW_STATUS],
+  schema: statusLookupQuerySchema,
+  controller: getStatusLookupController,
+  config: {
+    booleanKeys: ['is_active'],
+    filterKeys: ['name', 'keyword', 'is_active'],
+    sanitizeFields: ['name', 'keyword'],
+  },
+});
+
+/**
+ * @route GET /lookups/products
+ * @description Retrieve product options for dropdowns and selection fields.
+ * Supports filtering by brand, category, series, and keyword.
+ * @access Protected
+ * @permission view_product_lookup
+ */
+registerLookupRoute(router, {
+  path: '/products',
+  permission: [PERMISSIONS.VIEW_PRODUCT],
+  schema: productLookupQuerySchema,
+  controller: getProductLookupController,
+  config: {
+    filterKeys: ['keyword', 'brand', 'category', 'series'],
+    sanitizeFields: ['brand', 'category', 'series'],
+  },
+});
+
+/**
+ * @route GET /lookups/sku-code-bases
+ * @description Retrieve SKU code base definitions for SKU generation and setup.
+ * Supports filtering by brand code, category code, and keyword.
+ * @access Protected
+ * @permission view_sku_code_base_lookup
+ */
+registerLookupRoute(router, {
+  path: '/sku-code-bases',
+  permission: [PERMISSIONS.VIEW_SKU_CODE_BASE],
+  schema: skuCodeBaseLookupQuerySchema,
+  controller: getSkuCodeBaseLookupController,
+  config: {
+    filterKeys: ['keyword', 'brand_code', 'category_code'],
+  },
+});
+
+/**
+ * @route GET /lookups/payment-methods
+ * @description Retrieve payment method options for order and billing workflows.
+ * Supports keyword search and pagination.
+ * @access Protected
+ * @permission view_payment_method_lookup
+ */
+registerLookupRoute(router, {
+  path: '/payment-methods',
+  permission: [PERMISSIONS.VIEW_PAYMENT_METHOD],
+  schema: paymentMethodLookupQuerySchema,
+  controller: getPaymentMethodLookupController,
+});
+
+/**
+ * @route GET /lookups/discounts
+ * @description Retrieve discount options for pricing and order calculations.
+ * Supports keyword search and pagination.
+ * @access Protected
+ * @permission view_discount_lookup
+ */
+registerLookupRoute(router, {
+  path: '/discounts',
+  permission: [PERMISSIONS.VIEW_DISCOUNT],
+  schema: discountLookupQuerySchema,
+  controller: getDiscountLookupController,
+});
+
+/**
+ * @route GET /lookups/tax-rates
+ * @description Retrieve tax rate options for order pricing and compliance.
+ * Supports keyword search and pagination.
+ * @access Protected
+ * @permission view_tax_rate_lookup
+ */
+registerLookupRoute(router, {
+  path: '/tax-rates',
+  permission: [PERMISSIONS.VIEW_TAX_RATE],
+  schema: taxRateLookupQuerySchema,
+  controller: getTaxRateLookupController,
+});
+
+/**
+ * @route GET /lookups/delivery-methods
+ * @description Retrieve delivery method options for shipping and fulfillment.
+ * Supports keyword search, pagination, and pickup location filtering.
+ * @access Protected
+ * @permission view_delivery_method_lookup
+ */
+registerLookupRoute(router, {
+  path: '/delivery-methods',
+  permission: [PERMISSIONS.VIEW_DELIVERY_METHOD],
+  schema: deliveryMethodLookupQuerySchema,
+  controller: getDeliveryMethodLookupController,
+  config: {
+    booleanKeys: ['isPickupLocation'],
+  },
+});
+
+/**
+ * @route GET /lookups/packaging-material-suppliers
+ * @description Retrieve packaging material supplier options for dropdowns and autocomplete.
+ * Supports keyword search and pagination.
+ * @access Protected
+ * @permission view_packaging_material_supplier_lookup
  */
 registerLookupRoute(router,{
   path: '/packaging-material-suppliers',
