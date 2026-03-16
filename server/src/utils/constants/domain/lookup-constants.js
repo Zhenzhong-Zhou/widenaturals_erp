@@ -25,6 +25,7 @@ const LOOKUPS = {
     VIEW_SUPPLIER: 'view_supplier_lookup',
     VIEW_LOCATION_TYPE: 'view_location_type_lookup',
     VIEW_BATCH_STATUS: 'view_batch_status_lookup',
+    VIEW_PACKAGING_MATERIAL_SUPPLIER: 'view_packaging_material_supplier_lookup',
   },
 };
 

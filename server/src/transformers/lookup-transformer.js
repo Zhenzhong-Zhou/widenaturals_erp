@@ -1521,6 +1521,100 @@ const transformBatchStatusPaginatedLookupResult = (
     transformBatchStatusLookup(row, userAccess)
   );
 
+/**
+ * Transforms a packaging material supplier row into a lookup item.
+ *
+ * Used for dropdown / autocomplete components where suppliers
+ * are displayed with optional secondary metadata.
+ *
+ * Required fields:
+ * - row.id
+ * - row.name
+ *
+ * Optional fields are safely handled and omitted if not present.
+ *
+ * @param {Object} row
+ * @param {string} row.id - Relationship ID (pms.id)
+ * @param {string} row.name - Supplier name
+ * @param {string|null} [row.contact_name]
+ * @param {string|null} [row.contact_email]
+ * @param {boolean} [row.is_preferred]
+ *
+ * @param {Object} userAccess
+ *   Access control context used to determine which flags
+ *   (e.g., archived, status, visibility flags) should be included.
+ *
+ * @returns {LookupItem|null}
+ */
+const transformPackagingMaterialSupplierLookup = (row, userAccess) => {
+  //------------------------------------------------------------
+  // Defensive validation (skip invalid rows)
+  //------------------------------------------------------------
+  if (!row || typeof row !== 'object') return null;
+  if (!row.id || !row.name) return null;
+  
+  //------------------------------------------------------------
+  // Build sub-label (secondary display text)
+  // Format: "contact_name • contact_email"
+  //------------------------------------------------------------
+  const subLabelParts = [
+    row.contact_name,
+    row.contact_email,
+  ].filter(Boolean);
+  
+  //------------------------------------------------------------
+  // Base lookup structure (UI-facing contract)
+  //------------------------------------------------------------
+  const baseObj = {
+    id: row.id,
+    label: row.name,
+    subLabel: subLabelParts.length
+      ? subLabelParts.join(' • ')
+      : undefined,
+    isPreferred: row.is_preferred ?? false,
+  };
+  
+  //------------------------------------------------------------
+  // Include conditional flags based on user access rules
+  //------------------------------------------------------------
+  const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
+  
+  //------------------------------------------------------------
+  // Return cleaned object (remove undefined fields)
+  //------------------------------------------------------------
+  return cleanObject({
+    ...baseObj,
+    ...flagSubset,
+  });
+};
+
+/**
+ * Transforms paginated packaging material supplier records
+ * into a lookup-compatible "load more" structure.
+ *
+ * This wrapper applies the row transformer to each record
+ * and preserves pagination metadata for infinite scroll / dropdowns.
+ *
+ * @param {PaginatedQueryResult<Object>} paginatedResult
+ *   Expected shape:
+ *   {
+ *     data: Array<Object>,
+ *     pagination: { ... }
+ *   }
+ *
+ * @param {Object} userAccess
+ *   Access control context passed to each row transformer.
+ *
+ * @returns {Promise<LoadMoreResult<LookupItem>>}
+ */
+const transformPackagingMaterialSupplierPaginatedLookupResult = (
+  paginatedResult,
+  userAccess
+) =>
+  transformLoadMoreResult(paginatedResult, (row) =>
+    transformPackagingMaterialSupplierLookup(row, userAccess)
+  );
+
 module.exports = {
   transformBatchRegistryPaginatedLookupResult,
   transformWarehouseLookupRows,
@@ -1545,4 +1639,5 @@ module.exports = {
   transformSupplierPaginatedLookupResult,
   transformLocationTypePaginatedLookupResult,
   transformBatchStatusPaginatedLookupResult,
+  transformPackagingMaterialSupplierPaginatedLookupResult,
 };

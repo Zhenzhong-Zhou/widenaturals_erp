@@ -27,8 +27,12 @@ const {
   transformSupplierPaginatedLookupResult,
   transformLocationTypePaginatedLookupResult,
   transformBatchStatusPaginatedLookupResult,
+  transformPackagingMaterialSupplierPaginatedLookupResult,
 } = require('../transformers/lookup-transformer');
-const { logSystemInfo, logSystemException } = require('../utils/system-logger');
+const {
+  logSystemInfo,
+  logSystemException
+} = require('../utils/system-logger');
 const {
   getLotAdjustmentTypeLookup,
 } = require('../repositories/lot-adjustment-type-repository');
@@ -173,6 +177,12 @@ const {
 } = require('../business/batch-status-business');
 const { getBatchStatusLookup } = require('../repositories/batch-status-repository');
 const { executeLookupWorkflow } = require('../business/lookup/lookup-workflow');
+const { getPackagingMaterialSupplierLookup } = require('../repositories/packaging-material-supplier-repository');
+const {
+  evaluatePackagingMaterialSupplierLookupAccessControl,
+  enforcePackagingMaterialSupplierLookupVisibilityRules,
+  enrichPackagingMaterialSupplierLookupWithActiveFlag
+} = require('../business/packaging-material-supplier-business');
 
 /**
  * Service to fetch filtered and paginated batch registry records for lookup UI.
@@ -2108,6 +2118,109 @@ const fetchBatchStatusLookupService = async (
   });
 };
 
+/**
+ * Service for fetching packaging material supplier lookup data.
+ *
+ * This service executes a standardized lookup workflow including:
+ * - Access control evaluation
+ * - ACL-based filter enforcement
+ * - Repository query execution
+ * - Optional row enrichment (derived flags)
+ * - Transformation into UI-compatible lookup format
+ *
+ * Designed for dropdown / autocomplete components with pagination support.
+ *
+ * ------------------------------------------------------------------
+ * Workflow Pipeline
+ * ------------------------------------------------------------------
+ *
+ * 1. Evaluate user access permissions
+ * 2. Apply ACL-based visibility rules to filters
+ * 3. Fetch paginated supplier lookup data from repository
+ * 4. Optionally enrich rows with derived flags (e.g., isActive)
+ * 5. Transform results into lookup-friendly response format
+ *
+ * ------------------------------------------------------------------
+ * Enrichment Strategy
+ * ------------------------------------------------------------------
+ *
+ * Row enrichment is only applied when the user can view all statuses,
+ * meaning inactive suppliers may be included in results.
+ *
+ * This avoids unnecessary computation for restricted users (active-only).
+ *
+ * ------------------------------------------------------------------
+ *
+ * @param {object} user
+ * @param {string} user.id - User identifier for permission resolution
+ *
+ * @param {object} params
+ * @param {object} [params.filters={}] - Lookup filter criteria
+ * @param {number} [params.limit=50] - Pagination limit
+ * @param {number} [params.offset=0] - Pagination offset
+ *
+ * @returns {Promise<LoadMoreResult<LookupItem>>}
+ */
+const fetchPackagingMaterialSupplierLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
+  //---------------------------------------------------------
+  // Resolve ACTIVE status ID for enrichment logic
+  //---------------------------------------------------------
+  const activeStatusId = getStatusId('general_active');
+  
+  return executeLookupWorkflow({
+    user,
+    filters,
+    limit,
+    offset,
+    
+    //---------------------------------------------------------
+    // Logging context (for tracing + debugging)
+    //---------------------------------------------------------
+    context:
+      'lookup-service/fetchPackagingMaterialSupplierLookupService',
+    
+    //---------------------------------------------------------
+    // Repository query (data access layer)
+    //---------------------------------------------------------
+    repository: getPackagingMaterialSupplierLookup,
+    
+    //---------------------------------------------------------
+    // Access-control evaluation (ACL layer)
+    //---------------------------------------------------------
+    aclEvaluator:
+    evaluatePackagingMaterialSupplierLookupAccessControl,
+    
+    //---------------------------------------------------------
+    // Apply ACL visibility rules to filters
+    //---------------------------------------------------------
+    aclFilterApplier:
+    enforcePackagingMaterialSupplierLookupVisibilityRules,
+    
+    //---------------------------------------------------------
+    // Transform repository output → API response format
+    //---------------------------------------------------------
+    transformer:
+    transformPackagingMaterialSupplierPaginatedLookupResult,
+    
+    //---------------------------------------------------------
+    // Optional row enrichment (derived flags)
+    //---------------------------------------------------------
+    rowEnricher: (row) =>
+      enrichPackagingMaterialSupplierLookupWithActiveFlag(
+        row,
+        activeStatusId
+      ),
+    
+    //---------------------------------------------------------
+    // Only enrich rows when inactive suppliers may appear
+    //---------------------------------------------------------
+    enrichmentCondition: (acl) => acl.canViewAllStatuses,
+  });
+};
+
 module.exports = {
   fetchBatchRegistryLookupService,
   fetchWarehouseLookupService,
@@ -2131,4 +2244,5 @@ module.exports = {
   fetchSupplierLookupService,
   fetchLocationTypeLookupService,
   fetchBatchStatusLookupService,
+  fetchPackagingMaterialSupplierLookupService,
 };

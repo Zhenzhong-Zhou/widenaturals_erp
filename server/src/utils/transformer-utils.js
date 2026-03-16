@@ -305,27 +305,46 @@ const transformIdNameToIdLabel = (row) => {
  * based on the user's access control permissions.
  *
  * This function is typically used to expose additional metadata in
- * lookup dropdown results, such as status flags and abnormal indicators,
- * only when the user is authorized to view them.
+ * lookup dropdown results (e.g., status flags, validation indicators,
+ * archived state) only when the user is authorized to view them.
  *
  * Flags may include:
  * - `isActive`: Whether the record is currently active.
  * - `isValidToday`: Whether the record is valid as of the current date.
  * - `isNormal`: Whether the SKU passed all required status checks.
- * - `issueReasons`: Human-readable reasons explaining abnormal state (if `isNormal` is false).
+ * - `issueReasons`: Human-readable reasons explaining abnormal state
+ *   (included only when `isNormal` is false).
+ * - `isArchived`: Whether the record is archived.
  *
- * @param {Object} row - An enriched row that may contain flags like `isActive`, `isValidToday`, `isNormal`, etc.
- * @param {Object} userAccess - User access context determining which flags should be included.
- * @param {boolean} [userAccess.canViewAllStatuses=false] - Whether to expose `isActive`.
- * @param {boolean} [userAccess.canViewAllValidLookups=false] - Whether to expose `isValidToday`.
- * @param {boolean} [userAccess.allowAllSkus=false] - Whether to expose `isNormal` and `issueReasons`.
- * @returns {Object} A subset of diagnostic flags from the row, filtered by access permissions.
+ * @param {Object} row
+ *   Enriched lookup row that may contain derived flags such as:
+ *   `isActive`, `isValidToday`, `isNormal`, `issueReasons`, `is_archived`.
+ *
+ * @param {Object} userAccess
+ *   Access control context determining which flags should be exposed.
+ *
+ * @param {boolean} [userAccess.canViewAllStatuses=false]
+ *   Controls visibility of `isActive`.
+ *
+ * @param {boolean} [userAccess.canViewAllValidLookups=false]
+ *   Controls visibility of `isValidToday`.
+ *
+ * @param {boolean} [userAccess.allowAllSkus=false]
+ *   Controls visibility of `isNormal` and `issueReasons`.
+ *
+ * @param {boolean} [userAccess.canViewArchived=false]
+ *   Controls visibility of `isArchived`.
+ *
+ * @returns {Object}
+ *   A subset of diagnostic flags filtered by access permissions.
+ *   Undefined fields are removed via `cleanObject`.
  */
 const includeFlagsBasedOnAccess = (row, userAccess = {}) => {
   const {
     canViewAllStatuses = false,
     canViewAllValidLookups = false,
     allowAllSkus = false,
+    canViewArchived = false,
   } = userAccess;
 
   if (!row) return {};
@@ -347,7 +366,14 @@ const includeFlagsBasedOnAccess = (row, userAccess = {}) => {
       result.issueReasons = row.issueReasons;
     }
   }
-
+  
+  //---------------------------------------------------------
+  // Archived visibility (NEW)
+  //---------------------------------------------------------
+  if (canViewArchived) {
+    result.isArchived = row.is_archived === true;
+  }
+  
   return cleanObject(result);
 };
 
