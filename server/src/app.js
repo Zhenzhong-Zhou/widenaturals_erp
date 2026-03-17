@@ -15,7 +15,7 @@
  */
 
 const express = require('express');
-const traceIdMiddleware = require('./middlewares/trace-id-middleware');
+const attachTraceId = require('./middlewares/trace-id-middleware');
 const applyGlobalMiddleware = require('./middlewares/middleware');
 const applyErrorHandlers = require('./middlewares/error-handlers/apply-error-handlers');
 const { createGlobalRateLimiter } = require('./middlewares/rate-limiter');
@@ -37,7 +37,7 @@ app.set('trust proxy', 1);
  * - All logs include correlation ID
  * - Errors include request context
  */
-app.use(traceIdMiddleware);
+app.use(attachTraceId);
 
 /**
  * Apply global middleware:
