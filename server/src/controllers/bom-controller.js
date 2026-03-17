@@ -35,7 +35,7 @@
  * @see utils/system-logger
  */
 
-const { wrapAsyncHandler } = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../middlewares/async-handler');
 const {
   fetchPaginatedBomsService,
   fetchBomDetailsService,

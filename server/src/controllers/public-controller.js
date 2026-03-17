@@ -3,7 +3,7 @@
  * @description Contains the logic for the public routes: Welcome and Health Check.
  */
 
-const { wrapAsyncHandler } = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../middlewares/async-handler');
 const { logInfo } = require('../utils/logger-helper');
 const { version } = require('../../package.json');
 const {

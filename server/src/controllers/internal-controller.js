@@ -1,4 +1,4 @@
-const { wrapAsyncHandler } = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../middlewares/async-handler');
 const {
   checkServerHealthService,
 } = require('../services/server-health-service');
