@@ -1,4 +1,4 @@
-const { wrapAsyncHandler } = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../middlewares/async-handler');
 const AppError = require('../utils/AppError');
 const { logInfo } = require('../utils/logger-helper');
 const {

@@ -1,4 +1,4 @@
-const { wrapAsyncHandler } = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../middlewares/async-handler');
 
 /**
  * Generate and return a CSRF token for frontend usage.

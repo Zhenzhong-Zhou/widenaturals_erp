@@ -1,3 +1,3 @@
-const { wrapAsyncHandler } = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../middlewares/async-handler');
 
 module.exports = {};

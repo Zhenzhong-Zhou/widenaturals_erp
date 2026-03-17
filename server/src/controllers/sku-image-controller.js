@@ -5,7 +5,7 @@
  * processing to `saveBulkSkuImagesService`.
  */
 
-const { wrapAsyncHandler } = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../middlewares/async-handler');
 const { logInfo } = require('../utils/logger-helper');
 const {
   saveBulkSkuImagesService,

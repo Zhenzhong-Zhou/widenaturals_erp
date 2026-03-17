@@ -7,7 +7,7 @@
  * consistent API responses with structured pagination metadata.
  */
 
-const { wrapAsyncHandler } = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../middlewares/async-handler');
 const {
   fetchPaginatedProductsService,
   fetchProductDetailsService,

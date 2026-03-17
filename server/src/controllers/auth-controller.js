@@ -3,7 +3,7 @@
  * @description Contains the logic for authentication routes.
  */
 
-const { wrapAsyncHandler } = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../middlewares/async-handler');
 const {
   logoutService,
   changePasswordService,
