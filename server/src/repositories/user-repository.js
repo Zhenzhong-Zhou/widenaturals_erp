@@ -5,7 +5,7 @@ const {
 } = require('../database/db');
 const { buildUserFilter } = require('../utils/sql/build-user-filters');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
-const { maskSensitiveInfo } = require('../utils/sensitive-data-utils');
+const { maskEmail } = require('../utils/mask-strategies');
 const AppError = require('../utils/AppError');
 
 /**
@@ -97,7 +97,7 @@ const insertUser = async (user, client) => {
   } catch (error) {
     logSystemException(error, 'Failed to insert user', {
       context,
-      email: maskSensitiveInfo(email, 'email'),
+      email: maskEmail(email),
       error: error.message,
     });
 

@@ -1,6 +1,6 @@
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
-const { sanitizeValidationError } = require('../utils/sensitive-data-utils');
+const { sanitizeValidationError } = require('../utils/validation/validation-utils');
 
 /**
  * Middleware to validate request data using Joi schema.
