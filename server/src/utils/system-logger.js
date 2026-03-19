@@ -1,3 +1,18 @@
+/**
+ * @file system-logger.js
+ * @description System-level logging wrappers.
+ *
+ * Responsibilities:
+ * - Provide consistent logging for system-level events (startup, cron, infra)
+ * - Ensure all logs are tagged with system context
+ * - Delegate ALL error normalization to logError
+ *
+ * Design Principles:
+ * - Thin wrappers ONLY (no logic duplication)
+ * - Always inject system context (traceId: 'system')
+ * - Never pass req (system ≠ request lifecycle)
+ */
+
 const {
   logInfo,
   logWarn,
@@ -5,127 +20,121 @@ const {
   logDebug,
   logFatal,
 } = require('./logger-helper');
-const { createSystemMeta } = require('./logger-helper');
 
 /**
- * Logs a critical error when an expected environment variable is missing.
- * Designed for use during startup or configuration validation stages.
+ * Injects system-level context into metadata.
  *
- * This function uses structured system-level metadata and includes the variable
- * name, error message, stack trace (only in non-production), and a startup context.
+ * Ensures:
+ * - traceId is always "system"
+ * - layer is clearly identifiable
  *
- * @param {string} varName - The name of the missing environment variable.
- * @param {Error} err - The error object describing the failure.
+ * @param {Object} meta
+ * @returns {Object}
+ */
+const withSystemContext = (meta = {}) => ({
+  traceId: 'system',
+  layer: 'system',
+  ...meta,
+});
+
+/**
+ * Logs missing environment variable (startup-critical).
  *
- * @example
- * if (!process.env.DB_URL) {
- *   const error = new Error('DB_URL is required but not set');
- *   logMissingEnvVar('DB_URL', error);
- *   process.exit(1);
- * }
+ * @param {string} varName
+ * @param {Error} err
  */
 const logMissingEnvVar = (varName, err) => {
-  logError(`Missing environment variable: ${varName}`, null, {
-    ...createSystemMeta(),
-    errorMessage: err.message,
-    stack: process.env.NODE_ENV !== 'production' ? err.stack : undefined,
-    severity: 'critical',
+  logError(err, null, withSystemContext({
+    overrideMessage: `Missing environment variable: ${varName}`,
     context: 'startup',
     variable: varName,
-  });
+  }));
 };
 
 /**
- * Logs a system-level info message.
+ * Logs system-level informational message.
+ *
  * @param {string} message
- * @param {Object} [extraMeta={}]
+ * @param {Object} meta
  */
-const logSystemInfo = (message, extraMeta = {}) => {
-  logInfo(message, null, { ...createSystemMeta(), ...extraMeta });
+const logSystemInfo = (message, meta = {}) => {
+  logInfo(message, null, withSystemContext(meta));
 };
 
 /**
- * Logs a system-level warning.
+ * Logs system-level warning.
+ *
  * @param {string} message
- * @param {Object} [extraMeta={}]
+ * @param {Object} meta
  */
-const logSystemWarn = (message, extraMeta = {}) => {
-  logWarn(message, null, { ...createSystemMeta(), ...extraMeta });
+const logSystemWarn = (message, meta = {}) => {
+  logWarn(message, null, withSystemContext(meta));
 };
 
 /**
- * Logs a system-level error.
+ * Logs system-level error (non-exception).
+ *
  * @param {string} message
- * @param {Object} [extraMeta={}]
+ * @param {Object} meta
  */
-const logSystemError = (message, extraMeta = {}) => {
-  logError(message, null, { ...createSystemMeta(), ...extraMeta });
+const logSystemError = (message, meta = {}) => {
+  logError(message, null, withSystemContext(meta));
 };
 
 /**
- * Logs a fatal system-level event with standardized system metadata.
+ * Logs system-level fatal message (no Error object).
  *
- * Intended for use in critical, non-recoverable situations such as startup failure,
- * shutdown failure, or corrupted state, especially when no exception object is involved.
+ * NOTE:
+ * Use logSystemCrash if you have an Error object.
  *
- * @param {string} message - A descriptive message for the fatal event.
- * @param {Object} [extraMeta={}] - Optional additional structured metadata.
- *
- * @example
- * logSystemFatal('Failed to bind to port. Shutting down.', { port: 3000 });
- */
-const logSystemFatal = (message, extraMeta = {}) => {
-  logFatal(message, null, { ...createSystemMeta(), ...extraMeta });
-};
-
-/**
- * Logs a caught exception with system-level context and stack trace.
- *
- * @param {Error} error - The error object to extract message/stack from.
- * @param {string} message - A descriptive log message.
- * @param {Object} [extraMeta={}] - Optional structured metadata.
- */
-const logSystemException = (error, message, extraMeta = {}) => {
-  logSystemError(message, {
-    errorMessage: error.message,
-    stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
-    ...extraMeta,
-  });
-};
-
-/**
- * Logs a system-level debug message.
  * @param {string} message
- * @param {Object} [extraMeta={}]
+ * @param {Object} meta
  */
-const logSystemDebug = (message, extraMeta = {}) => {
-  logDebug(message, null, { ...createSystemMeta(), ...extraMeta });
+const logSystemFatal = (message, meta = {}) => {
+  logFatal(message, null, withSystemContext(meta));
 };
 
 /**
- * Logs a fatal system exception with full error details and stack trace.
+ * Logs system exception with Error object.
  *
- * This is used for logging unrecoverable errors where an `Error` object is present,
- * such as during application initialization, shutdown failure, or infrastructure-level
- * crashes. It includes the error message and stack (if not in production).
+ * Delegates normalization to logError.
  *
- * @param {Error} error - The caught error object.
- * @param {string} message - A descriptive message of what failed.
- * @param {Object} [extraMeta={}] - Optional structured metadata like context, severity, etc.
- *
- * @example
- * try {
- *   await startServer();
- * } catch (error) {
- *   logSystemCrash(error, 'Server failed to start', { context: 'startup' });
- * }
+ * @param {Error} error
+ * @param {string} message
+ * @param {Object} meta
  */
-const logSystemCrash = (error, message, extraMeta = {}) => {
-  logSystemFatal(message, {
-    errorMessage: error.message,
-    stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
-    ...extraMeta,
-  });
+const logSystemException = (error, message, meta = {}) => {
+  logError(error, null, withSystemContext({
+    overrideMessage: message,
+    ...meta,
+  }));
+};
+
+/**
+ * Logs system debug message (development / diagnostics).
+ *
+ * @param {string} message
+ * @param {Object} meta
+ */
+const logSystemDebug = (message, meta = {}) => {
+  logDebug(message, null, withSystemContext(meta));
+};
+
+/**
+ * Logs system crash (fatal + Error object).
+ *
+ * Highest severity system event.
+ *
+ * @param {Error} error
+ * @param {string} message
+ * @param {Object} meta
+ */
+const logSystemCrash = (error, message, meta = {}) => {
+  logError(error, null, withSystemContext({
+    overrideMessage: message,
+    crash: true,
+    ...meta,
+  }));
 };
 
 module.exports = {
