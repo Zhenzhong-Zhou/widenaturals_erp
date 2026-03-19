@@ -12,7 +12,6 @@ const {
   JOB_TITLE,
 } = require('../utils/constants/general/root-admin');
 const { createUserService } = require('../services/user-service');
-const { maskSensitiveInfo } = require('../utils/sensitive-data-utils');
 const { validatePasswordStrength } = require('../security/password-policy');
 
 /**
@@ -48,7 +47,7 @@ const initializeRootAdmin = async () => {
     if (exists) {
       logSystemWarn('Root admin already exists. Skipping initialization.', {
         context,
-        email: maskSensitiveInfo(email, 'email'),
+        email,
       });
       return;
     }
@@ -93,7 +92,7 @@ const initializeRootAdmin = async () => {
     logSystemInfo('Root admin initialized successfully', {
       context,
       userId: user.id,
-      email: maskSensitiveInfo(user.email, 'email'),
+      email: user.email,
     });
   } catch (error) {
     logSystemException(error, 'Root admin initialization failed', { context });
