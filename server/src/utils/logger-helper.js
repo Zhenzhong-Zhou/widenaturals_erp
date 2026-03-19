@@ -1,183 +1,228 @@
 /**
- * @file loggerHelper.js
- * @description Centralized logging utility with contextual metadata and sensitive data sanitization.
+ * @file logger-helper.js
+ * @description Centralized logging utility for structured, safe, and consistent logging.
+ *
+ * Responsibilities:
+ * - Normalize log payloads (message + metadata)
+ * - Handle AppError, native Error, and plain messages
+ * - Enrich logs with request/system context
+ * - Sanitize + limit metadata (single pipeline)
+ * - Delegate final output to infra logger
+ *
+ * Architecture:
+ * - logWithLevel → core emitter (fast, no business logic)
+ * - logError     → centralized error intelligence
+ * - wrappers     → thin convenience helpers
+ *
+ * Design Principles:
+ * - Single responsibility per function
+ * - Zero circular dependency risk (lazy logger load)
+ * - Safe-by-default logging (no unsafe objects / oversized payloads)
  */
 
-const { sanitizeMessage } = require('./sensitive-data-utils');
+const { LOG_LEVELS } = require('./constants/log-constants');
+const { sanitizeMessage } = require('./sanitize-message');
 const AppError = require('./AppError');
-const { getClientIp } = require('./request-context');
+const { extractRequestContext } = require('./request-context');
+const { sanitizeAndLimitMeta } = require('./logging/sanitize-meta');
 
-let logger; // Lazy-loaded logger instance
+let logger;
 
+/**
+ * Lazy-load logger instance to avoid circular dependency.
+ * @returns {import('winston').Logger}
+ */
 const getLogger = () => {
   if (!logger) {
-    logger = require('./logger'); // Lazy import
+    logger = require('./logger');
   }
   return logger;
 };
 
 /**
- * Extracts standardized request metadata from an Express `req` object.
- *
- * This helper is used to enrich log entries with request-level context such as
- * HTTP method, URL, IP address, user agent, and timestamp. If no `req` object
- * is provided (e.g., in system-level logs), it returns only the current timestamp.
- *
- * @param {import('express').Request|null} req - The Express request object, or `null` for system logs.
- * @returns {Object} An object containing contextual metadata:
- *   - method: HTTP method (e.g., 'GET', 'POST') or 'N/A'
- *   - url: Request URL or 'N/A'
- *   - ip: Client IP address or 'N/A'
- *   - userAgent: User-Agent header or 'N/A'
- *   - timestamp: ISO-formatted timestamp
- *
- * @example
- * const meta = extractRequestMeta(req);
- * logInfo('User login attempt', req, meta);
+ * Maps log level → business severity.
+ * Used for observability systems (Datadog, ELK, etc.)
  */
-const extractRequestMeta = (req) => {
-  const timestamp = new Date().toISOString();
-
-  if (!req) return { timestamp };
-
-  return {
-    method: req.method || 'N/A',
-    url: req.originalUrl || req.url || 'N/A',
-    ip: getClientIp(req),
-    userAgent: req.get('user-agent') || null,
-    referer: req.get('referer') || null,
-    timestamp: new Date().toISOString(),
-    traceId: req.traceId || 'unknown',
-  };
+const SEVERITY_MAP = {
+  fatal: 'critical',
+  error: 'high',
+  warn: 'medium',
+  info: 'low',
+  debug: 'low',
 };
 
 /**
- * Centralized logging function with dynamic log levels and optional sanitization.
+ * Safely stringify objects (handles circular refs).
  *
- * @param {string} level - Log level (e.g., 'info', 'warn', 'error', 'debug').
- * @param {string} message - Log a message.
- * @param {Object} [req=null] - Optional Express request object for context.
- * @param {Object} [meta={}] - Additional metadata.
- * @param {boolean} [sanitize=false] - Whether to sanitize the message.
+ * NOTE:
+ * Only used when message is not a string.
+ *
+ * @param {any} value
+ * @returns {string}
  */
-const logWithLevel = (
-  level,
-  message,
-  req = null,
-  meta = {},
-  sanitize = false
-) => {
-  // Sanitize the message if requested
-  const sanitizedMessage =
-    sanitize && typeof message === 'string'
-      ? sanitizeMessage(message)
-      : typeof message === 'string'
-        ? message
-        : JSON.stringify(message);
-
-  // Safely extract context from the request object if available
-  const context = extractRequestMeta(req);
-
-  // Combine context and meta into a single `meta` object
-  const logPayload = {
-    level,
-    message: sanitizedMessage,
-    meta: {
-      ...context,
-      ...meta,
-    },
-  };
-
-  // Debug final payload (useful for development)
-  if (process.env.NODE_ENV !== 'production') {
-    console.debug('Final Log Payload:', JSON.stringify(logPayload, null, 2));
+const safeStringify = (value) => {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return '[Unserializable message]';
   }
-
-  // Log the structured message
-  getLogger().log(logPayload);
 };
 
-// Individual log level wrappers
-const logInfo = (message, req = null, meta = {}) =>
-  logWithLevel('info', message, req, meta);
-const logDebug = (message, req = null, meta = {}) =>
-  logWithLevel('debug', message, req, meta);
-const logWarn = (message, req = null, meta = {}) =>
-  logWithLevel('warn', message, req, meta);
-const logFatal = (message, req = null, meta = {}) =>
-  logWithLevel('fatal', message, req, meta);
+/**
+ * Core logging engine (transport bridge).
+ *
+ * Responsibilities:
+ * - Validate level
+ * - Normalize message
+ * - Sanitize + limit metadata (single pipeline)
+ * - Emit final payload to Winston
+ *
+ * @param {string} level
+ * @param {string|Object} message
+ * @param {Object} meta
+ * @param {boolean} sanitizeMessageFlag
+ */
+const logWithLevel = (level, message, meta = {}, sanitizeMessageFlag = false) => {
+  // Enforce valid level (fail-safe)
+  if (!LOG_LEVELS.includes(level)) {
+    level = 'error';
+  }
+  
+  // Remove reserved fields (prevent conflicts)
+  const { severity: _ignored, ...cleanMeta } = meta || {};
+  
+  // Single pipeline (fast + predictable)
+  const safeMeta = sanitizeAndLimitMeta(cleanMeta);
+  
+  // Normalize message (cheap path first)
+  let normalizedMessage;
+  if (typeof message === 'string') {
+    normalizedMessage = sanitizeMessageFlag
+      ? sanitizeMessage(message)
+      : message;
+  } else {
+    normalizedMessage = safeStringify(message);
+  }
+  
+  const payload = {
+    level,
+    severity: SEVERITY_MAP[level] || 'low',
+    message: normalizedMessage,
+    meta: safeMeta,
+  };
+  
+  // Optional debug visibility (dev only)
+  if (process.env.DEBUG_LOGS === 'true') {
+    console.debug('[Logger Payload]', safeStringify(payload));
+  }
+  
+  // Transport (isolated)
+  try {
+    getLogger().log(payload);
+  } catch (err) {
+    // Never throw from logger
+    console.error('[Logger Fallback]', {
+      error: err.message,
+      payload,
+    });
+  }
+};
 
 /**
- * Logs error messages with support for `Error` and `AppError` types.
+ * Centralized error logger.
  *
- * @param {string|Error|AppError} errOrMessage - The error object or message to log.
- * @param {Object} [req=null] - Optional Express request object for context.
- * @param {Object} [meta={}] - Additional metadata.
+ * Handles:
+ * - AppError → structured + rich metadata
+ * - Error → normalized safe structure
+ * - string → fallback
+ *
+ * @param {string|Error|AppError} errOrMessage
+ * @param {Object|null} req
+ * @param {Object} meta
  */
 const logError = (errOrMessage, req = null, meta = {}) => {
+  const requestContext = extractRequestContext(req);
+  
   let message = 'An unknown error occurred';
   let logLevel = 'error';
-  let finalMeta = { ...meta };
-
+  let finalMeta;
+  
+  const { overrideMessage, ...cleanMeta } = meta || {};
+  
+  // =========================
+  // AppError (rich domain error)
+  // =========================
   if (errOrMessage instanceof AppError) {
-    message = errOrMessage.message || message;
+    message = overrideMessage || errOrMessage.message || message;
     logLevel = errOrMessage.logLevel || logLevel;
-
+    
+    finalMeta = errOrMessage.toLog({
+      ...requestContext,
+      ...cleanMeta,
+    });
+  }
+    
+    // =========================
+    // Native Error
+  // =========================
+  else if (errOrMessage instanceof Error) {
+    message = overrideMessage || errOrMessage.message || message;
+    
     finalMeta = {
-      ...errOrMessage.toLog(req), // includes stack, request info, etc.
-      ...meta, // allows overrides
-    };
-  } else if (errOrMessage instanceof Error) {
-    message = errOrMessage.message || message;
-    finalMeta = {
-      ...extractRequestMeta(req),
-      ...meta,
+      ...requestContext,
+      ...cleanMeta,
+      errorName: errOrMessage.name,
+      errorMessage: errOrMessage.message,
       ...(process.env.NODE_ENV !== 'production'
         ? { stack: errOrMessage.stack }
         : {}),
     };
-  } else if (typeof errOrMessage === 'string') {
-    message = errOrMessage;
+  }
+    
+    // =========================
+    // Plain message fallback
+  // =========================
+  else {
+    message = overrideMessage || String(errOrMessage);
+    
     finalMeta = {
-      ...extractRequestMeta(req),
-      ...meta,
+      ...requestContext,
+      ...cleanMeta,
     };
   }
-
-  logWithLevel(logLevel, message, null, finalMeta); // `req` context already extracted
+  
+  logWithLevel(logLevel, message, finalMeta);
 };
 
+// ============================================================
+// Thin wrappers (no logic)
+// ============================================================
+
 /**
- * Generates standardized metadata for system-level log entries.
- *
- * This function is intended for use in non-request-driven contexts such as
- * background jobs, database tasks, startup scripts, or system health checks.
- * It returns a consistent object structure to ensure uniform logging and
- * easier downstream processing in log aggregators.
- *
- * @returns {Object} System-level log metadata including context, timestamp, process ID, and host.
- *
- * @example
- * logInfo('Backup completed successfully', null, createSystemMeta());
+ * Attach request context to metadata.
  */
-const createSystemMeta = () => ({
-  context: 'system',
-  ip: null,
-  method: null,
-  url: null,
-  userAgent: null,
-  timestamp: new Date().toISOString(),
-  pid: process.pid,
-  host: require('os').hostname(),
-  traceId: global.traceId ?? 'system-startup',
+const withContext = (req, meta) => ({
+  ...extractRequestContext(req),
+  ...meta,
 });
+
+const logInfo = (message, req = null, meta = {}) =>
+  logWithLevel('info', message, withContext(req, meta));
+
+const logWarn = (message, req = null, meta = {}) =>
+  logWithLevel('warn', message, withContext(req, meta));
+
+const logDebug = (message, req = null, meta = {}) =>
+  logWithLevel('debug', message, withContext(req, meta));
+
+const logFatal = (message, req = null, meta = {}) =>
+  logWithLevel('fatal', message, withContext(req, meta));
 
 module.exports = {
   logInfo,
-  logDebug,
   logWarn,
+  logDebug,
   logFatal,
   logError,
   logWithLevel,
-  createSystemMeta,
 };
