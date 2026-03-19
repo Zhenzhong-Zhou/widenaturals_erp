@@ -1,18 +1,18 @@
 /**
  * @file request-logger.js
- * @description Middleware for logging HTTP request lifecycle with structured logging.
+ * @description Middleware for structured HTTP request lifecycle logging.
  *
  * Responsibilities:
- * - Logs all incoming requests after response completion
- * - Measures full request lifecycle duration using high-resolution timing
- * - Classifies logs based on HTTP status (info, warn, exception)
- * - Handles aborted requests separately
- * - Supports traceId-based request correlation
+ * - Logs requests after response completion
+ * - Measures latency using high-resolution timer
+ * - Classifies logs by HTTP status
+ * - Handles aborted requests
+ * - Ensures sensitive data is masked via centralized masking pipeline
  *
- * Notes:
- * - Requires `attachTraceId` middleware to run BEFORE this middleware
- * - Does NOT mutate request state (read-only middleware)
- * - Uses `process.hrtime.bigint()` for precise latency measurement
+ * Design:
+ * - Read-only middleware (no mutation of req/res)
+ * - Uses centralized masking (maskSensitiveParams)
+ * - Avoids duplicate masking logic
  *
  * @type {import('express').RequestHandler}
  */
@@ -22,65 +22,24 @@ const {
   logSystemWarn,
   logSystemException,
 } = require('../utils/system-logger');
-const { getClientIp } = require('../utils/request-context');
-
-const SENSITIVE_FIELDS = ['password', 'token'];
-
-/**
- * Redact sensitive fields from a request body for safe logging.
- *
- * Behavior:
- * - Performs a shallow clone of the input object
- * - Masks known sensitive fields (e.g., password, token)
- * - Returns `undefined` if input is falsy
- *
- * Notes:
- * - Only intended for logging (NOT for data sanitization or security enforcement)
- * - Shallow clone only — nested sensitive fields are NOT redacted
- * - Extend this function if additional sensitive keys are introduced
- *
- * @param {any} body - Incoming request body
- * @returns {any} Redacted copy of the body
- */
-const redact = (body) => {
-  if (!body) return undefined;
-  
-  const clone = { ...body };
-  
-  for (const key of SENSITIVE_FIELDS) {
-    if (key in clone) {
-      clone[key] = '***';
-    }
-  }
-  
-  return clone;
-};
+const { extractRequestContext } = require('../utils/request-context');
+const { normalizeAppError } = require('../utils/errors/error-normalizer');
+const { maskSensitiveParams } = require('../utils/mask-sensitive-params');
 
 /**
  * Express middleware for structured HTTP request logging.
  *
- * Responsibilities:
- * - Logs request/response lifecycle events using structured logging
- * - Measures request duration using high-resolution timers
- * - Attaches contextual metadata (traceId, route, IP, user agent, etc.)
- * - Differentiates log severity based on response status:
- *   - 2xx → info
- *   - 4xx → warn
- *   - 5xx → exception
- * - Detects and logs aborted requests via `res.close`
- *
  * Requirements:
- * - Must be used AFTER trace middleware that sets:
- *   - `req.traceId`
- *   - `req.startTime` (process.hrtime.bigint)
+ * - attachTraceId middleware must run BEFORE this middleware
  *
- * Notes:
- * - Logging for certain routes can be skipped via `LOG_IGNORED_ROUTES`
- * - Request body is only logged (with redaction) in development mode
- * - Duration is calculated in milliseconds using monotonic clock
- * - Safe against missing `startTime` (skips duration calculation)
+ * Behavior:
+ * - Logs after response is completed (`finish`)
+ * - Logs aborted requests (`close`)
+ * - Uses centralized masking for request body (dev only)
  *
- * @type {import('express').RequestHandler}
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
  */
 const requestLogger = (req, res, next) => {
   /** @type {RequestWithTrace} */
@@ -93,17 +52,13 @@ const requestLogger = (req, res, next) => {
     .split(',')
     .map((r) => r.trim());
   
-  // Skip logging for health checks or configured routes
   if (ignoredRoutes.includes(request.originalUrl)) {
     return next();
   }
   
-  const traceId = request.traceId || 'unknown';
-  
-  /**
-   * Triggered when response is successfully sent
-   * → main logging path
-   */
+  // =========================
+  // Response completed
+  // =========================
   res.on('finish', () => {
     if (!request.startTime) return;
     
@@ -111,51 +66,51 @@ const requestLogger = (req, res, next) => {
       Number(process.hrtime.bigint() - request.startTime) / 1_000_000;
     
     const statusCode = res.statusCode;
+    const requestContext = extractRequestContext(request);
     
     const logMeta = {
-      traceId,
-      method: request.method,
-      route: request.originalUrl,
-      ip: getClientIp(request),
-      userAgent: request.get('user-agent') || 'Unknown',
+      ...requestContext,
       statusCode,
       durationMs,
-      queryParams: request.query,
     };
     
     const error = res.locals?.error;
+    const normalizedError = error ? normalizeAppError(error) : null;
     
-    // Server errors (5xx)
+    // =========================
+    // Server error (5xx)
+    // =========================
     if (statusCode >= 500) {
       logSystemException(
-        error || new Error('Unknown server error'),
+        normalizedError || new Error('Unknown server error'),
         'Internal server error during request',
-        {
-          ...logMeta,
-          errorType: error?.type || 'UnknownError',
-        }
+        logMeta
       );
       return;
     }
     
-    // Client errors (4xx)
+    // =========================
+    // Client error (4xx)
+    // =========================
     if (statusCode >= 400) {
       if (process.env.NODE_ENV === 'development') {
-        logMeta.requestBody = redact(request.body);
+        // Use centralized masking (deep + consistent)
+        logMeta.requestBody = maskSensitiveParams(request.body);
       }
       
       logSystemWarn('Client error during request', logMeta);
       return;
     }
     
+    // =========================
     // Success (2xx / 3xx)
+    // =========================
     logSystemInfo('Request handled successfully', logMeta);
   });
   
-  /**
-   * Triggered when connection is closed prematurely
-   * → client aborted request / network interruption
-   */
+  // =========================
+  // Aborted request
+  // =========================
   res.on('close', () => {
     if (res.writableEnded) return;
     
@@ -163,11 +118,10 @@ const requestLogger = (req, res, next) => {
       ? Number(process.hrtime.bigint() - request.startTime) / 1_000_000
       : undefined;
     
+    const requestContext = extractRequestContext(request);
+    
     logSystemWarn('Request aborted by client', {
-      traceId,
-      method: request.method,
-      route: request.originalUrl,
-      ip: getClientIp(request),
+      ...requestContext,
       durationMs,
       event: 'aborted',
     });
