@@ -25,8 +25,8 @@ const path = require('path');
 const { pipeline } = require('stream/promises');
 const { createLogger, format, transports } = require('winston');
 const DailyRotateFile = require('winston-daily-rotate-file');
-const { loadEnv } = require('../config/env');
-const { uploadFileToS3 } = require('./aws-s3-service');
+const { loadEnv } = require('../../config/env');
+const { uploadFileToS3 } = require('../aws-s3-service');
 
 loadEnv();
 
