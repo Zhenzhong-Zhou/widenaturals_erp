@@ -1,5 +1,5 @@
 const AppError = require('../AppError');
-const { logSystemError } = require('../system-logger');
+const { logSystemError } = require('../logging/system-logger');
 
 /**
  * Validate that required fields exist in each record of a dataset.

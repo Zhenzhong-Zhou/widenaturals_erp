@@ -16,12 +16,12 @@
 const {
   logSystemInfo,
   logSystemException,
-} = require('./system-logger');
+} = require('./logging/system-logger');
 const {
   logWarn,
   logError,
-} = require('./logger-helper');
-const { maskSensitiveParams } = require('./mask-sensitive-params');
+} = require('./logging/logger-helper');
+const { maskSensitiveParams } = require('./masking/mask-sensitive-params');
 
 // ============================================================
 // Context helper

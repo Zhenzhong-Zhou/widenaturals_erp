@@ -4,7 +4,7 @@
  */
 
 const { ERROR_TYPES, ERROR_CODES } = require('./constants/error-constants');
-const { LOG_LEVELS } = require('./constants/log-constants');
+const { LOG_LEVELS } = require('./logging/log-constants');
 
 // O(1) lookup for log level validation
 const LOG_LEVEL_SET = new Set(LOG_LEVELS);
