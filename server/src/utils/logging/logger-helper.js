@@ -20,11 +20,11 @@
  * - Safe-by-default logging (no unsafe objects / oversized payloads)
  */
 
-const { LOG_LEVELS } = require('./constants/log-constants');
+const { LOG_LEVELS } = require('./log-constants');
 const { sanitizeMessage } = require('./sanitize-message');
-const AppError = require('./AppError');
-const { extractRequestContext } = require('./request-context');
-const { sanitizeAndLimitMeta } = require('./logging/sanitize-meta');
+const AppError = require('../AppError');
+const { extractRequestContext } = require('../request-context');
+const { sanitizeAndLimitMeta } = require('./sanitize-meta');
 
 let logger;
 
