@@ -3,7 +3,7 @@ const {
   maskUUID,
   maskId,
   maskFull,
-} = require('./mask-strategies');
+} = require('./mask-primitives');
 
 /**
  * Domain-specific masking rules.
