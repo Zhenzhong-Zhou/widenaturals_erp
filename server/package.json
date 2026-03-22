@@ -81,6 +81,7 @@
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
+    "@types/pg": "^8.18.0",
     "dotenv-cli": "^11.0.0",
     "jest": "^30.2.0",
     "nodemon": "^3.1.9",
