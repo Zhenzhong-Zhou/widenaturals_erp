@@ -51,24 +51,6 @@ const logDbError = (error) => {
 };
 
 // ============================================================
-// Retry
-// ============================================================
-
-const logRetryWarning = (attempt, retries, error, nextDelayMs) => {
-  logWarn(
-    `Retry ${attempt}/${retries} failed`,
-    null,
-    withDbContext({
-      context: 'retry',
-      errorMessage: error.message,
-      attempt,
-      retries,
-      nextDelayMs,
-    })
-  );
-};
-
-// ============================================================
 // Query helpers
 // ============================================================
 
@@ -115,7 +97,6 @@ const logDbSlowQuery = (query, params, duration, meta = {}) => {
 const logDbQueryError = (query, params, error, meta = {}) => {
   logError(error, null, withDbContext(
     buildQueryErrorMeta(query, params, error, {
-      context: 'query',
       ...meta,
     })
   ));
@@ -221,7 +202,6 @@ const logBulkInsertError = (
 module.exports = {
   logDbConnect,
   logDbError,
-  logRetryWarning,
   logDbSlowQuery,
   logDbQueryError,
   logDbTransactionEvent,

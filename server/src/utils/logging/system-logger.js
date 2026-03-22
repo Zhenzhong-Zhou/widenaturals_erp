@@ -121,6 +121,29 @@ const logSystemDebug = (message, meta = {}) => {
 };
 
 /**
+ * Logs a warning when a retry attempt fails.
+ *
+ * @param {number} attempt     - Current attempt number (1-based).
+ * @param {number} retries     - Total number of retries allowed.
+ * @param {Error}  error       - The error that caused the attempt to fail.
+ * @param {number} nextDelayMs - Milliseconds before the next retry.
+ * @returns {void}
+ */
+const logRetryWarning = (attempt, retries, error, nextDelayMs) => {
+  logWarn(
+    `Retry ${attempt}/${retries} failed`,
+    null,
+    withSystemContext({
+      context: 'retry',
+      errorMessage: error.message,
+      attempt,
+      retries,
+      nextDelayMs,
+    })
+  );
+};
+
+/**
  * Logs system crash (fatal + Error object).
  *
  * Highest severity system event.
@@ -145,5 +168,6 @@ module.exports = {
   logSystemFatal,
   logSystemException,
   logSystemDebug,
+  logRetryWarning,
   logSystemCrash,
 };
