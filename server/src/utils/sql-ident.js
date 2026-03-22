@@ -24,31 +24,141 @@ const AppError = require('./AppError');
 const isSafeIdent = (s) => /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(String(s));
 
 /**
- * Quote an SQL identifier safely (`"name"`) after validating shape.
- * Throws AppError if the identifier is unsafe.
+ * Quote a SQL identifier safely (`"name"`).
  *
- * @param {string} s - identifier (schema/table/column)
- * @returns {string} - double-quoted identifier
- * @throws {AppError} - validationError on unsafe identifier
+ * Ensures the identifier is strictly alphanumeric with underscores,
+ * preventing SQL injection via identifiers.
+ *
+ * Rules:
+ * - Must start with a letter or underscore
+ * - Can only contain [a-zA-Z0-9_]
+ *
+ * @param {string} identifier - Column, table, or schema name
+ * @returns {string} Quoted identifier
+ *
+ * @throws {AppError} validationError if identifier is unsafe
  */
-const q = (s) => {
-  const str = String(s);
-  if (!isSafeIdent(str)) {
-    throw AppError.validationError(`Unsafe identifier: ${str}`);
+const q = (identifier) => {
+  const context = 'sql-ident/q';
+  
+  if (typeof identifier !== 'string') {
+    throw AppError.validationError('Invalid SQL identifier type', {
+      context,
+      meta: { identifier },
+    });
   }
-  // Double-quote and escape internal quotes
-  return `"${str.replace(/"/g, '""')}"`;
+  
+  //--------------------------------------------------
+  // Strict whitelist validation (NO dots, NO spaces)
+  //--------------------------------------------------
+  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(identifier)) {
+    throw AppError.validationError(`Unsafe SQL identifier: ${identifier}`, {
+      context,
+      meta: { identifier },
+    });
+  }
+  
+  return `"${identifier}"`;
 };
 
 /**
- * Qualify a table with optional schema, both safely quoted.
+ * Build a safe ORDER BY clause.
  *
- * @param {string|null|undefined} schema - e.g. 'public' (optional)
- * @param {string} table - table name
- * @returns {string} - e.g. `"public"."skus"` or `"skus"`
+ * Enforces:
+ * - Column must exist in whitelist
+ * - Direction is normalized (ASC/DESC)
+ *
+ * @param {string} column
+ * @param {'ASC'|'DESC'} [direction='ASC']
+ * @param {Set<string>} whitelistSet - Allowed columns
+ *
+ * @returns {string} Safe ORDER BY fragment
+ *
+ * @throws {AppError}
  */
-const qualify = (schema, table) =>
-  schema ? `${q(schema)}.${q(table)}` : q(table);
+const safeOrderBy = (
+  column,
+  direction = 'ASC',
+  whitelistSet
+) => {
+  const context = 'sql-ident/safeOrderBy';
+  
+  //--------------------------------------------------
+  // 1. Validate whitelist
+  //--------------------------------------------------
+  if (!(whitelistSet instanceof Set) || whitelistSet.size === 0) {
+    throw AppError.validationError('Invalid ORDER BY whitelist', {
+      context,
+    });
+  }
+  
+  //--------------------------------------------------
+  // 2. Validate column
+  //--------------------------------------------------
+  if (!column || !whitelistSet.has(column)) {
+    throw AppError.validationError('Invalid ORDER BY column', {
+      context,
+      meta: { column },
+    });
+  }
+  
+  //--------------------------------------------------
+  // 3. Normalize direction
+  //--------------------------------------------------
+  const dir =
+    typeof direction === 'string' && direction.toUpperCase() === 'DESC'
+      ? 'DESC'
+      : 'ASC';
+  
+  //--------------------------------------------------
+  // 4. Return safe SQL
+  //--------------------------------------------------
+  return `${q(column)} ${dir}`;
+};
+
+/**
+ * Qualify a table with optional schema, safely quoted.
+ *
+ * Examples:
+ * - qualify(null, 'skus') → `"skus"`
+ * - qualify('public', 'skus') → `"public"."skus"`
+ *
+ * @param {string|null|undefined} schema
+ * @param {string} table
+ *
+ * @returns {string}
+ *
+ * @throws {AppError}
+ */
+const qualify = (schema, table) => {
+  const context = 'sql-ident/qualify';
+  
+  //--------------------------------------------------
+  // Validate table
+  //--------------------------------------------------
+  if (!table || typeof table !== 'string') {
+    throw AppError.validationError('Table name is required', {
+      context,
+      meta: { table },
+    });
+  }
+  
+  //--------------------------------------------------
+  // Validate schema (if provided)
+  //--------------------------------------------------
+  if (schema === undefined || schema === null) {
+    return q(table);
+  }
+  
+  if (typeof schema !== 'string') {
+    throw AppError.validationError('Invalid schema name', {
+      context,
+      meta: { schema },
+    });
+  }
+  
+  return `${q(schema)}.${q(table)}`;
+};
 
 /**
  * Explicit allowlist of tables you permit for dynamic SQL.
@@ -158,6 +268,7 @@ const assertAllowed = (schema, table) => {
 module.exports = {
   isSafeIdent,
   q,
+  safeOrderBy,
   qualify,
   assertAllowed,
 };
