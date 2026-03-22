@@ -1,41 +1,41 @@
 /**
  * @file db.js
- * @description Centralized database connection and utility functions for application use.
- * Includes health checks, monitoring, retry logic, and graceful shutdown support.
+ * @description
+ * Centralized PostgreSQL database layer providing:
+ * - connection pooling and lifecycle management
+ * - query execution with retry and exponential backoff
+ * - transaction orchestration (BEGIN / COMMIT / ROLLBACK)
+ * - structured logging and slow query monitoring
+ * - standardized error normalization via AppError
+ * - SQL safety utilities (allowlist validation + identifier quoting)
+ * - pagination, bulk operations, and row locking helpers
+ *
+ * This module acts as the core database abstraction layer used across
+ * repositories and services to enforce consistency, safety, and observability.
  */
 
-/** @typedef {import('pg').PoolClient} PoolClient */
-
-const { Pool } = require('pg');
+const { Pool, Client } = require('pg');
+const { loadEnv } = require('../config/env');
 const {
   logDbConnect,
   logDbError,
-  logRetryWarning,
   logDbSlowQuery,
-  logDbQuerySuccess,
   logDbQueryError,
   logDbTransactionEvent,
   logDbPoolHealth,
   logPaginatedQueryError,
-  logLockRowError,
-  logLockRowsError,
-  logBulkInsertError,
-  logGetStatusValueError,
+  logBulkInsertError, logLockRowsError, logLockRowError,
 } = require('../utils/db-logger');
-const { getConnectionConfig } = require('../config/db-config');
-const { loadEnv } = require('../config/env');
+const { getConnectionConfig, getEnvNumber } = require('../config/db-config');
 const AppError = require('../utils/AppError');
-const {
-  maskSensitiveInfo,
-  maskTableName,
-} = require('../utils/sensitive-data-utils');
+const { retry } = require('../utils/retry/retry');
+const { maskTableName, maskUUID } = require('../utils/masking/mask-primitives');
 const {
   logSystemException,
   logSystemInfo,
   logSystemWarn,
   logSystemDebug,
-  logSystemError,
-} = require('../utils/system-logger');
+} = require('../utils/logging/system-logger');
 const { generateTraceId } = require('../utils/id-utils');
 const {
   assertAllowed,
@@ -43,133 +43,213 @@ const {
   q,
 } = require('../utils/sql-ident');
 const { uniq } = require('../utils/array-utils');
+const { handleDbError } = require('../utils/errors/error-handlers');
+const { isRetryableDbError } = require('../utils/db/db-error-utils');
+const { validateIdentifier } = require('../utils/db/validate-identifier');
+const { generateCountQuery, buildPaginatedQuery } = require('./utils/pagination/pagination-builder');
+const { executePaginatedQueries } = require('./utils/pagination/pagination-executor');
+const { LOCK_MODE_SET } = require('../utils/db/lock-modes');
+const { buildWhereClause, buildInClause } = require('../utils/db/where-builder');
+const { applyUpdateRule } = require('../utils/db/upsert-utils');
 
-// Get environment-specific connection configuration
+
+// ------------------------------------------------------------
+// Load environment and resolve database connection configuration
+// ------------------------------------------------------------
 loadEnv();
+
 const connectionConfig = getConnectionConfig();
 
-// Configure the database connection pool
-/** @type {import('pg').Pool} */
+// ------------------------------------------------------------
+// Configure PostgreSQL connection pool
+// ------------------------------------------------------------
+/**
+ * PostgreSQL connection pool (shared singleton).
+ *
+ * Responsibilities:
+ * - Provides a reusable connection pool for all database operations
+ * - Manages connection lifecycle and resource allocation
+ * - Lifecycle is managed centrally (initialization, monitoring, graceful shutdown)
+ * - Supports environment-based configuration for scalability
+ * - Enables observability via `application_name`
+ *
+ * Design considerations:
+ * - Pool size is configurable to support different environments
+ * - Timeouts prevent resource exhaustion and hanging connections
+ * - Shared across query, transaction, and repository layers
+ *
+ * Tuning guidelines:
+ * - max: ≈ (DB max connections / number of services)
+ * - idleTimeoutMillis: 30s–60s
+ * - connectionTimeoutMillis: 2s–5s
+ *
+ * @note
+ * This module must be the only place where a Pool is instantiated.
+ * Creating additional pools can lead to connection exhaustion and degraded performance.
+ *
+ * @type {import('pg').Pool}
+ */
 const pool = new Pool({
   ...connectionConfig,
-  max: 10, // Maximum number of connections in the pool
-  idleTimeoutMillis: 30000, // Time a client must sit idle before being closed
-  connectionTimeoutMillis: 2000, // Time to wait for a connection before timing out
+  
+  // Maximum number of active clients in the pool
+  max: getEnvNumber('DB_POOL_MAX', 10),
+  
+  // Time (ms) a client can remain idle before being closed
+  idleTimeoutMillis: getEnvNumber('DB_IDLE_TIMEOUT', 30000),
+  
+  // Max time (ms) to wait for a new connection before throwing error
+  connectionTimeoutMillis: getEnvNumber('DB_CONN_TIMEOUT', 2000),
+  
+  // Optional but highly recommended for observability
+  application_name:
+    `${process.env.DB_APP_NAME || 'wide-erp-api'}:${process.env.NODE_ENV}`,
 });
 
 /**
- * Handles unexpected database pool errors.
+ * Handles unexpected PostgreSQL pool-level errors.
+ *
+ * These errors are emitted by the pg Pool when an idle client
+ * encounters a failure (e.g., network issues, database restart).
+ *
+ * Important:
+ * - This handler must NOT throw (to avoid crashing the process)
+ * - Errors are not tied to a specific request context
+ * - Used only as an event listener: pool.on('error', ...)
+ *
+ * @param {Error & { code?: string }} error - Pool error emitted by pg
+ */
+const handlePoolError = (error) =>
+  handleDbError(error, {
+    context: 'db/pool',
+    message: 'Unexpected database connection error',
+    meta: { code: error.code },
+    logFn: logDbError,
+    suppressThrow: true,
+  });
+
+// ------------------------------------------------------------
+// Pool event listeners (connection lifecycle & error handling)
+// ------------------------------------------------------------
+
+/**
+ * Fired whenever a new client is created and connected to PostgreSQL.
+ *
+ * Used for:
+ * - Logging connection events (observability)
+ * - Optional session-level configuration (e.g., SET statements)
+ *
+ * @param {import('pg').PoolClient} client
+ */
+pool.on('connect', logDbConnect);
+
+/**
+ * Fired when an idle client in the pool encounters an error.
+ *
+ * Important:
+ * - These errors are NOT tied to a specific request
+ * - Must NEVER throw (will crash Node.js process)
+ * - Typically indicates connection instability (network / DB restart)
+ *
+ * Strategy:
+ * - Normalize and log the error via centralized handler
+ * - Do NOT propagate or rethrow
  *
  * @param {Error} err
  */
-const handlePoolError = (err) => {
-  logDbError(err);
-  
-  throw AppError.databaseError('Unexpected database connection error', {
-    details: {
-      message: err.message,
-      code: err.code,
-    }
-  });
-};
-
-pool.on('connect', logDbConnect);
 pool.on('error', handlePoolError);
 
 /**
- * Retry a function with exponential backoff.
+ * Executes a PostgreSQL query with retry, structured logging,
+ * and error normalization.
  *
- * This utility is designed to handle transient issues, such as temporary database connectivity problems or external service failures.
- * It retries the provided function a specified number of times, with an exponentially increasing delay between attempts.
+ * Features:
+ * - Automatic retry for transient failures (via retry engine)
+ * - Slow query monitoring
+ * - Structured error normalization (handleDbError)
+ * - Supports both pool and transaction clients
  *
- * @param {Function} fn - The function to execute. It should return a Promise (e.g., a database query or API call).
- * @param {number} [retries=3] - The maximum number of retry attempts before giving up.
- * @param {number} [backoffFactor=1000] - The base delay (in milliseconds) for the exponential backoff. Default is 1000ms.
- * @returns {Promise<any>} - Resolves with the result of the function if successful within the allowed retries.
- * @throws {Error} - Throws the last error encountered if all retries are exhausted.
- */
-const retry = async (fn, retries = 3, backoffFactor = 1000) => {
-  let attempt = 0;
-
-  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-  while (attempt < retries) {
-    try {
-      return await fn(); // Attempt to execute the function
-    } catch (error) {
-      attempt++;
-
-      const delayMs = backoffFactor * Math.pow(2, attempt);
-
-      logRetryWarning(attempt, retries, error, delayMs);
-
-      if (attempt === retries) {
-        throw AppError.serviceError('Function execution failed after retries', {
-          details: { error: error.message, attempts: attempt, retries },
-        });
-      }
-
-      await delay(delayMs); // Configurable exponential backoff
-    }
-  }
-};
-
-/**
- * Executes a PostgreSQL query with retry and slow query monitoring.
+ * Important:
+ * - Retry is applied only to retryable DB errors
+ * - Caller must ensure idempotency for write operations
  *
- * @param {string} text - SQL query string.
- * @param {Array} [params=[]] - Query parameters.
- * @param {object|null} [clientOrPool=null] - Optional pg client for transaction use.
- * @param {number} [retries=3] - Number of retry attempts.
- * @param {number} [backoff=200] - Backoff in ms between retries.
- * @param {Object} meta={} - Optional metadata for logging (e.g., traceId, txId, context).
- * @returns {Promise<import('pg').QueryResult>} - Query result.
- * @throws {AppError} - Custom database error if all retries fail.
+ * @param {string} text - SQL query string
+ * @param {Array<any>} [params=[]] - Query parameters
+ * @param {import('pg').PoolClient | null} [client=null] - Optional transaction client
+ * @param {Object} [options={}]
+ * @param {number} [options.retries=3]
+ * @param {number} [options.baseDelay=300]
+ * @param {Object} [options.meta={}] - Logging metadata
+ *
+ * @returns {Promise<import('pg').QueryResult>}
+ * @throws {AppError}
  */
 const query = async (
   text,
   params = [],
-  clientOrPool = null,
-  retries = 3,
-  backoff = 1000,
-  meta = {}
+  client = null,
+  {
+    retries = 3,
+    baseDelay = 300,
+    meta = {},
+  } = {}
 ) => {
   return retry(
     async () => {
-      /** @type {PoolClient} */
-      const client = clientOrPool || (await pool.connect());
-      const shouldRelease = !clientOrPool;
+      //--------------------------------------------------
+      // Acquire client if not provided (non-transactional)
+      //--------------------------------------------------
+      const localClient = client || (await pool.connect());
+      const shouldRelease = !client;
+      
       const startTime = Date.now();
-
+      
       try {
-        const result = await client.query(text, params);
+        //--------------------------------------------------
+        // Execute query
+        //--------------------------------------------------
+        const result = await localClient.query(text, params);
+        
+        //--------------------------------------------------
+        // Slow query logging
+        //--------------------------------------------------
         const duration = Date.now() - startTime;
-
         const slowQueryThreshold =
           parseInt(process.env.SLOW_QUERY_THRESHOLD, 10) || 1000;
+        
         if (duration > slowQueryThreshold) {
           logDbSlowQuery(text, params, duration, meta);
         }
-
-        logDbQuerySuccess(text, params, duration, meta);
+        
         return result;
       } catch (error) {
-        logDbQueryError(text, params, error, {
-          context: 'db/query/pg-query',
-          ...meta,
-        });
-
-        throw AppError.databaseError('Database query failed', {
-          details: { query: text, params, error: error.message },
+        //--------------------------------------------------
+        // Normalize + rethrow for retry engine
+        //--------------------------------------------------
+        throw handleDbError(error, {
+          context: 'db/query',
+          message: 'Database query failed',
+          meta,
+          logFn: (err) =>
+            logDbQueryError(text, params, err, {
+              context: 'db/query',
+              ...meta,
+            }),
         });
       } finally {
-        if (shouldRelease && client) {
-          client.release();
+        //--------------------------------------------------
+        // Release client if we created it
+        //--------------------------------------------------
+        if (shouldRelease) {
+          localClient.release();
         }
       }
     },
-    retries,
-    backoff
+    {
+      retries,
+      baseDelay,
+      shouldRetry: isRetryableDbError,
+    }
   );
 };
 
@@ -183,13 +263,17 @@ const getClient = async () => {
   try {
     return await pool.connect();
   } catch (error) {
-    logSystemException(error, 'Failed to acquire a database client', {
-      context: 'db/getClient/db-client',
-      severity: 'critical',
-    });
+    const message = 'Failed to acquire a database client';
+    const context = 'db/getClient/db-client';
     
-    throw AppError.databaseError('Failed to acquire a database client', {
-      details: { error: error.message },
+    throw handleDbError(error, {
+      context,
+      message,
+      logFn: (err) =>
+        logSystemException(err, message, {
+          context,
+          severity: 'critical',
+        }),
     });
   }
 };
@@ -197,54 +281,105 @@ const getClient = async () => {
 /**
  * Executes a database operation within a transaction.
  *
- * Begins a transaction, executes the provided callback using a PostgreSQL client,
- * commits on success, and rolls back on failure. Always releases the client.
+ * Behavior:
+ * - Acquires a client from pool
+ * - Begins transaction (with optional isolation level)
+ * - Applies optional statement timeout
+ * - Executes callback
+ * - Commits on success
+ * - Rolls back on failure (safe rollback handling)
+ * - Always releases client
  *
+ * @param {(client: PoolClient, txId: string) => Promise<any>} callback
+ * @param {Object} [options={}]
+ * @param {string} [options.isolationLevel='READ COMMITTED'] - Transaction isolation level
+ * @param {number} [options.timeoutMs=5000] - Statement timeout in milliseconds
  *
- * @param {(client: PoolClient, txId: string) => Promise<any>} callback -
- *        The operation to run inside the transaction. Receives the client and a generated txId.
- *
- * @returns {Promise<any>} - The result returned by the callback.
- * @throws {AppError} - Rethrows any errors encountered, optionally wrapped as a database error.
- *
- * @example
- * await withTransaction(async (client, txId) => {
- *   await client.query('UPDATE orders SET status = $1 WHERE id = $2', ['paid', orderId]);
- *   logInfo('Order updated', null, { txId });
- * });
+ * @returns {Promise<any>}
+ * @throws {AppError}
  */
-const withTransaction = async (callback) => {
+const withTransaction = async (callback, options = {}) => {
+  //--------------------------------------------------
+  // Validate input
+  //--------------------------------------------------
+  if (typeof callback !== 'function') {
+    throw AppError.validationError('Transaction callback must be a function');
+  }
+  
+  //--------------------------------------------------
+  // Resolve options (SAFE DEFAULTS)
+  //--------------------------------------------------
+  const {
+    isolationLevel = 'READ COMMITTED',
+    timeoutMs = 5000,
+  } = options;
+  
   const client = await getClient();
   const txId = generateTraceId();
-
+  
   try {
-    await client.query('BEGIN');
-    logDbTransactionEvent('BEGIN', txId);
-
+    //--------------------------------------------------
+    // Begin transaction with isolation level
+    //--------------------------------------------------
+    await client.query(`BEGIN ISOLATION LEVEL ${isolationLevel}`);
+    logDbTransactionEvent('BEGIN', txId, { isolationLevel });
+    
+    //--------------------------------------------------
+    // Apply timeout guard (local to this transaction)
+    //--------------------------------------------------
+    if (timeoutMs > 0) {
+      await client.query(`SET LOCAL statement_timeout = ${timeoutMs}`);
+    }
+    
+    //--------------------------------------------------
+    // Execute user logic
+    //--------------------------------------------------
     const result = await callback(client, txId);
-
+    
+    //--------------------------------------------------
+    // Commit
+    //--------------------------------------------------
     await client.query('COMMIT');
     logDbTransactionEvent('COMMIT', txId);
-
+    
     return result;
   } catch (error) {
-    await client.query('ROLLBACK');
-    logDbTransactionEvent('ROLLBACK', txId, { severity: 'critical' });
-
-    logSystemException(error, 'Transaction failed', {
-      txId,
-      context: 'db/withTransaction/database',
-      severity: 'critical',
-    });
-
-    if (!(error instanceof AppError)) {
-      throw AppError.databaseError('Transaction failed', {
-        details: { txId, originalError: error.message },
+    //--------------------------------------------------
+    // Safe rollback
+    //--------------------------------------------------
+    try {
+      await client.query('ROLLBACK');
+      logDbTransactionEvent('ROLLBACK', txId, { severity: 'critical' });
+    } catch (rollbackError) {
+      logSystemException(rollbackError, 'Rollback failed', {
+        txId,
+        context: 'db/withTransaction/rollback',
+        severity: 'critical',
       });
     }
-
-    throw error;
+    
+    //--------------------------------------------------
+    // Handle error
+    //--------------------------------------------------
+    const message = 'Transaction failed';
+    const context = 'db/withTransaction';
+    
+    throw handleDbError(error, {
+      context,
+      message,
+      meta: { txId, isolationLevel },
+      logFn: (err) =>
+        logSystemException(err, message, {
+          txId,
+          context,
+          isolationLevel,
+          severity: 'critical',
+        }),
+    });
   } finally {
+    //--------------------------------------------------
+    // Always release client
+    //--------------------------------------------------
     client.release();
   }
 };
@@ -253,24 +388,39 @@ const withTransaction = async (callback) => {
  * Performs a basic database connectivity test.
  *
  * Executes a lightweight query to confirm the database is reachable.
- * Logs the result and throws a structured AppError on failure.
+ * Uses a short timeout to avoid hanging in case of network or DB issues.
  *
- * @throws {AppError} - If the connectivity test fails.
+ * @returns {Promise<boolean>} Returns true if connection is healthy
+ *
+ * @throws {AppError} If the connectivity test fails
  */
 const testConnection = async () => {
+  const context = 'db/testConnection/healthcheck';
+  
   try {
-    await query('SELECT 1'); // Simple query to test connectivity
-    logSystemInfo('Database connection is healthy.', {
-      context: 'db/testConnection/healthcheck',
+    //--------------------------------------------------
+    // Use direct query with timeout guard
+    //--------------------------------------------------
+    await query('SELECT 1', [], null, {
+      retries: 0,
+      baseDelay: 0,
+      meta: { context },
     });
+    
+    logSystemInfo('Database connection is healthy.', { context });
+    
+    return true;
   } catch (error) {
-    logSystemException(error, 'Database connection test failed', {
-      context: 'db/testConnection/healthcheck',
-      severity: 'critical',
-    });
-
-    throw AppError.healthCheckError('Database connection test failed', {
-      details: { error: error.message },
+    const message = 'Database connection test failed';
+    
+    throw handleDbError(error, {
+      context,
+      message,
+      logFn: (err) =>
+        logSystemException(err, message, {
+          context,
+          severity: 'critical',
+        }),
     });
   }
 };
@@ -287,312 +437,323 @@ const testConnection = async () => {
  */
 
 /**
- * Logs current pool statistics.
- * Useful for monitoring pool health and client load.
+ * Retrieves and logs PostgreSQL pool metrics.
  *
- * @returns {{ totalClients: number, idleClients: number, waitingRequests: number }}
+ * Provides insight into:
+ * - total active clients
+ * - idle clients
+ * - queued (waiting) requests
+ *
+ * Useful for monitoring connection pool health and diagnosing bottlenecks.
+ *
+ * @returns {{
+ *   totalClients: number,
+ *   idleClients: number,
+ *   waitingRequests: number,
+ *   isHealthy: boolean
+ * }}
  */
 const monitorPool = () => {
   /** @type {PgPoolWithMetrics} */
   const typedPool = pool;
   
+  //--------------------------------------------------
+  // Collect metrics
+  //--------------------------------------------------
+  const totalClients = typedPool.totalCount;
+  const idleClients = typedPool.idleCount;
+  const waitingRequests = typedPool.waitingCount;
+  
+  //--------------------------------------------------
+  // Basic health evaluation
+  //--------------------------------------------------
+  const isHealthy = waitingRequests === 0;
+  
   const metrics = {
-    totalClients: typedPool.totalCount,
-    idleClients: typedPool.idleCount,
-    waitingRequests: typedPool.waitingCount,
+    totalClients,
+    idleClients,
+    waitingRequests,
+    isHealthy,
   };
   
-  logDbPoolHealth(metrics);
+  //--------------------------------------------------
+  // Log only if unhealthy or periodically
+  //--------------------------------------------------
+  if (!isHealthy) {
+    logDbPoolHealth(metrics, { severity: 'warning' });
+  }
+  
   return metrics;
 };
 
-let poolClosed = false; // Flag to track if the pool has already been closed
+let poolClosed = false;
+let closingPromise = null;
 
 /**
- * Gracefully shuts down the database connection pool.
- * Ensures that `pool.end()` is only called once to avoid errors.
+ * Gracefully shuts down the PostgreSQL connection pool.
+ *
+ * Ensures:
+ * - Idempotent behavior (safe to call multiple times)
+ * - Only one close operation executes
+ * - Concurrent calls wait for the same shutdown
+ *
+ * Notes:
+ * - Does NOT throw on shutdown failure (logs instead)
+ * - Intended for process shutdown (SIGINT, SIGTERM)
+ *
  * @returns {Promise<void>}
  */
 const closePool = async () => {
+  const context = 'db/closePool/shutdown';
+  
+  //--------------------------------------------------
+  // Already closed → no-op
+  //--------------------------------------------------
   if (poolClosed) {
-    logSystemWarn(
-      'Attempted to close the database connection pool, but it is already closed.',
-      {
-        context: 'db/closePool/shutdown',
-      }
-    );
-    return; // Prevent multiple calls
+    logSystemWarn('Pool already closed.', { context });
+    return;
   }
-
-  logSystemInfo('Closing database connection pool...', {
-    context: 'db/closePool/shutdown',
-  });
-
-  try {
-    await pool.end(); // Close all connections in the pool
-    logSystemInfo('Database connection pool closed.', {
-      context: 'db/closePool/shutdown',
-    });
-    poolClosed = true; // Mark the pool as closed
-  } catch (error) {
-    logSystemException(error, 'Error closing database connection pool', {
-      context: 'db/closePool/shutdown',
-      severity: 'critical',
-    });
-
-    throw AppError.databaseError(
-      'Failed to close the database connection pool',
-      {
-        details: { error: error.message },
-      }
-    );
+  
+  //--------------------------------------------------
+  // Closing in progress → reuse promise
+  //--------------------------------------------------
+  if (closingPromise) {
+    return closingPromise;
   }
+  
+  //--------------------------------------------------
+  // Start closing
+  //--------------------------------------------------
+  closingPromise = (async () => {
+    logSystemInfo('Closing database connection pool...', { context });
+    
+    try {
+      await pool.end();
+      
+      poolClosed = true;
+      
+      logSystemInfo('Database connection pool closed.', { context });
+    } catch (error) {
+      logSystemException(error, 'Error closing database connection pool', {
+        context,
+        severity: 'critical',
+      });
+      
+      // Do NOT rethrow (shutdown-safe)
+    }
+  })();
+  
+  return closingPromise;
 };
 
 /**
- * Retry database connection using a temporary pool.
+ * Retries database connectivity using a temporary client.
  *
- * Useful during startup or testing to confirm database availability.
+ * Intended for startup/readiness checks.
  *
- * @param {Object} config - PostgreSQL pool configuration.
- * @param {number} [retries=5] - Maximum number of retry attempts.
+ * Features:
+ * - Exponential backoff with jitter
+ * - Per-attempt timeout (prevents hanging)
+ * - Structured logging
+ *
+ * @param {Object} config - PostgreSQL connection config
+ * @param {Object} [options]
+ * @param {number} [options.retries=5] - Max attempts
+ * @param {number} [options.baseDelayMs=500] - Base delay for backoff
+ * @param {number} [options.maxDelayMs=5000] - Max delay cap
+ * @param {number} [options.connectTimeoutMs=3000] - Timeout per attempt
+ *
  * @returns {Promise<void>}
- * @throws {AppError} - If connection fails after all retries.
+ * @throws {AppError} If all attempts fail
  */
-const retryDatabaseConnection = async (config, retries = 5) => {
-  /** @type {import('pg').Pool} */
-  const tempPool = new Pool(config);
-  let attempts = 0;
-
-  while (attempts < retries) {
+const retryDatabaseConnection = async (
+  config,
+  {
+    retries = 5,
+    baseDelayMs = 500,
+    maxDelayMs = 5000,
+    connectTimeoutMs = 3000,
+  } = {}
+) => {
+  const context = 'db/retryDatabaseConnection';
+  
+  //--------------------------------------------------
+  // Helper: delay
+  //--------------------------------------------------
+  const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
+  
+  //--------------------------------------------------
+  // Helper: exponential backoff + jitter
+  //--------------------------------------------------
+  const computeDelay = (attempt) => {
+    const exp = Math.min(maxDelayMs, baseDelayMs * 2 ** attempt);
+    const jitter = Math.floor(Math.random() * 200);
+    return exp + jitter;
+  };
+  
+  //--------------------------------------------------
+  // Retry loop
+  //--------------------------------------------------
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    const client = new Client({
+      ...config,
+      connectionTimeoutMillis: connectTimeoutMs,
+    });
+    
     try {
-      const client = await tempPool.connect(); // Attempt to connect using the pool
-      logSystemInfo('Database connected successfully!', {
-        context: 'db/retryDatabaseConnection/db-connection-retry',
-        attempt: attempts + 1,
+      //--------------------------------------------------
+      // Attempt connection
+      //--------------------------------------------------
+      await client.connect();
+      
+      logSystemInfo('Database connected successfully', {
+        context,
+        attempt,
         retries,
       });
-
-      client.release(); // Release the client back to the pool
-      await tempPool.end(); // Close the temporary pool after success
+      
+      await client.end();
       return;
     } catch (error) {
-      attempts++;
-
-      logSystemWarn(`Database connection attempt ${attempts} failed`, {
-        context: 'db/retryDatabaseConnection/db-connection-retry',
-        attempt: attempts,
+      await client.end().catch(() => {});
+      
+      logSystemWarn('Database connection attempt failed', {
+        context,
+        attempt,
         retries,
         errorMessage: error.message,
       });
-
-      if (attempts === retries) {
-        await tempPool.end(); // Ensure the temporary pool is closed after the final attempt
-        logSystemException(
-          error,
-          'All retry attempts to connect to the database failed',
-          {
-            context: 'db/retryDatabaseConnection/db-connection-retry',
-            attempts,
-            retries,
-            severity: 'critical',
-          }
-        );
-
-        throw AppError.databaseError(
-          'Failed to connect to the database after multiple attempts.',
-          {
-            details: { attempts, retries, error: error.message },
-          }
-        );
+      
+      //--------------------------------------------------
+      // Final failure
+      //--------------------------------------------------
+      if (attempt === retries) {
+        const message = 'Database connection failed after retries';
+        
+        throw handleDbError(error, {
+          context,
+          message,
+          meta: { attempts: attempt, retries },
+          logFn: (err) =>
+            logSystemException(err, message, {
+              context,
+              attempts: attempt,
+              retries,
+              severity: 'critical',
+            }),
+        });
       }
-
-      await new Promise((res) => setTimeout(res, 5000)); // 5s delay before retry
+      
+      //--------------------------------------------------
+      // Backoff before next attempt
+      //--------------------------------------------------
+      const delayMs = computeDelay(attempt);
+      await sleep(delayMs);
     }
   }
 };
 
 /**
- * @function
- * @description
- * Utility function to construct a paginated SQL query by appending
- * `ORDER BY`, `LIMIT`, and `OFFSET` clauses to a provided base query string.
+ * Executes a paginated query with consistent COUNT and data retrieval.
  *
- * This function is typically used within repository or query-builder modules
- * to safely generate parameterized pagination logic compatible with PostgreSQL.
+ * SECURITY:
+ * - All SQL fragments (queryText, joins, whereClause, sortBy) MUST be
+ *   pre-built and validated internally (DO NOT pass raw user input).
  *
- * It supports:
- *  - Dynamic column sorting (`sortBy` and `sortOrder`)
- *  - Multi-column sorting (`additionalSort`)
- *  - Parameterized limit and offset for safe query binding
+ * Behavior:
+ * - Executes COUNT query and paginated data query
+ * - Ensures consistent filtering between queries
+ * - Applies safe LIMIT/OFFSET parameterization
+ * - Supports transaction or pool execution
  *
- * @param {Object} options - Configuration object.
- * @param {string} options.baseQuery - The base SQL `SELECT` query without `LIMIT` or `OFFSET` clauses.
- * @param {string|null} [options.sortBy] - Primary column or expression to sort by (e.g., `'b.created_at'`).
- * @param {'ASC'|'DESC'} [options.sortOrder='ASC'] - Sorting direction for the primary column.
- * @param {string} [options.additionalSort] - Optional secondary sort clause(s), e.g. `'p.name ASC, b.revision DESC'`.
- * @param {number} options.paramIndex - Starting parameter index for the `LIMIT` and `OFFSET` placeholders,
- * usually derived from the current length of the query parameters array (`params.length`).
+ * @param {Object} options
+ * @param {string} options.queryText - Full base query (without ORDER BY / LIMIT / OFFSET)
+ * @param {string} options.tableName - Main table (for COUNT query)
+ * @param {string[]} [options.joins=[]] - JOIN clauses (must match queryText)
+ * @param {string} [options.whereClause='1=1'] - WHERE clause (must match queryText)
+ * @param {any[]} [options.params=[]] - Query parameters
+ * @param {number} [options.page=1]
+ * @param {number} [options.limit=10]
+ * @param {string} [options.sortBy] - Validated column name
+ * @param {'ASC'|'DESC'} [options.sortOrder='ASC']
+ * @param {import('pg').Pool|import('pg').PoolClient} [options.clientOrPool]
+ * @param {Object} [options.meta={}]
  *
- * @returns {string} The complete SQL query string with appended `ORDER BY`, `LIMIT`, and `OFFSET` clauses.
- *
- * @example
- * const baseQuery = 'SELECT * FROM boms WHERE is_active = TRUE';
- * const finalQuery = buildPaginatedQuery({
- *   baseQuery,
- *   sortBy: 'b.created_at',
- *   sortOrder: 'DESC',
- *   additionalSort: 'p.name ASC',
- *   paramIndex: 3
- * });
- *
- * // Output:
- * // SELECT * FROM boms WHERE is_active = TRUE
- * // ORDER BY b.created_at DESC, p.name ASC
- * // LIMIT $4 OFFSET $5
- *
- * @see paginateQuery
- * @see getPaginatedBoms
- */
-const buildPaginatedQuery = ({
-  baseQuery,
-  sortBy,
-  sortOrder = 'ASC',
-  additionalSort,
-  paramIndex,
-}) => {
-  let query = baseQuery.trim();
-
-  // Handle raw multi-column sort or default sort clause
-  if (sortBy) {
-    const isRawClause = /\bASC\b|\bDESC\b/i.test(sortBy);
-
-    const orderClause = isRawClause
-      ? sortBy
-      : `${sortBy} ${
-          ['ASC', 'DESC'].includes((sortOrder || '').toUpperCase())
-            ? sortOrder.toUpperCase()
-            : 'ASC'
-        }`;
-
-    query += ` ORDER BY ${orderClause}`;
-
-    if (additionalSort) {
-      query += `, ${additionalSort}`;
-    }
-  }
-
-  // Append pagination
-  query += ` LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 2}`;
-
-  return query;
-};
-
-/**
- * Generates a dynamic SQL COUNT query.
- *
- * @param {string} tableName - The name of the main table (e.g., 'skus s').
- * @param {Array<string>} joins - Array of JOIN clauses to include.
- * @param {string} [whereClause='1=1'] - The WHERE clause for filtering.
- * @param {boolean} [useDistinct=false] - Whether to count distinct values instead of all rows.
- * @param {string} [distinctColumn] - The column to count distinct values on (e.g., 's.id'). Required if useDistinct is true.
- * @returns {string} - The dynamically generated COUNT SQL query.
- *
- * @example
- * generateCountQuery('skus s', ['LEFT JOIN products p ON s.product_id = p.id'], 'p.brand IS NOT NULL', true, 's.id');
- * // Returns: SELECT COUNT (DISTINCT s.id) AS total ...
- */
-const generateCountQuery = (
-  tableName,
-  joins = [],
-  whereClause = '1=1',
-  useDistinct = false,
-  distinctColumn
-) => {
-  const joinClause = joins.join(' ');
-
-  if (useDistinct && !distinctColumn) {
-    throw new Error(
-      'Distinct column must be provided when useDistinct is true.'
-    );
-  }
-
-  const countExpr = useDistinct
-    ? `COUNT(DISTINCT ${distinctColumn})`
-    : 'COUNT(*)';
-
-  return `
-    SELECT ${countExpr} AS total
-    FROM ${tableName}
-    ${joinClause}
-    WHERE ${whereClause}
-  `;
-};
-
-/**
- * Executes a paginated SQL query with optional sorting and filtering.
- *
- * @param {Object} options - The options for the paginated query.
- * @param {string} options.queryText - Base SQL query without pagination (e.g., "SELECT * FROM table_name WHERE condition").
- * @param {Array} [options.params=[]] - Query parameters for the base query.
- * @param {number} [options.page=1] - Current page number (1-based index).
- * @param {number} [options.limit=10] - Number of records per page.
- * @param {string} [options.sortBy='id'] - Column to sort by (default: 'id').
- * @param {string} [options.sortOrder='ASC'] - Sorting order ('ASC' or 'DESC').
- * @param {import('pg').Pool|import('pg').PoolClient} [clientOrPool]
- * @param {Object} meta={} - Optional additional metadata.
- * @returns {Promise<import('pg').QueryResult>} - Returns an object with `data` (records) and `pagination` (metadata).
- * @throws {AppError} - Throws an error if the query execution fails.
+ * @returns {Promise<{ data: any[], pagination: { page: number, limit: number, totalRecords: number, totalPages: number } }>}
  */
 const paginateQuery = async ({
-  tableName,
-  joins = [],
-  whereClause = '1=1',
-  queryText,
-  params = [],
-  page = 1,
-  limit = 10,
-  sortBy = '',
-  sortOrder = 'ASC',
-  clientOrPool = pool,
-  meta = {},
-}) => {
+                               queryText,
+                               tableName,
+                               joins = [],
+                               whereClause = '1=1',
+                               params = [],
+                               page = 1,
+                               limit = 10,
+                               sortBy,
+                               sortOrder = 'ASC',
+                               clientOrPool = pool,
+                               meta = {},
+                             }) => {
+  const context = 'db/paginateQuery';
+  
+  //--------------------------------------------------
+  // Validate inputs
+  //--------------------------------------------------
   if (page < 1 || limit < 1) {
     throw AppError.validationError('Page and limit must be positive integers.');
   }
-
+  
+  const MAX_LIMIT = 100;
+  if (limit > MAX_LIMIT) {
+    throw AppError.validationError(`Limit cannot exceed ${MAX_LIMIT}`);
+  }
+  
+  if (!queryText || typeof queryText !== 'string') {
+    throw AppError.validationError('Invalid queryText');
+  }
+  
+  //--------------------------------------------------
+  // Pagination calculation
+  //--------------------------------------------------
   const offset = (page - 1) * limit;
-
-  // Generate the COUNT query dynamically
-  const countQueryText = generateCountQuery(tableName, joins, whereClause);
-
-  // Construct the paginated query
+  
+  //--------------------------------------------------
+  // Build queries
+  //--------------------------------------------------
+  const countQueryText = generateCountQuery(
+    tableName,
+    joins,
+    whereClause
+  );
+  
   const paginatedQuery = buildPaginatedQuery({
     baseQuery: queryText,
-    sortBy,
+    sortBy: sortBy || 'id', // enforce deterministic sort
     sortOrder,
     paramIndex: params.length,
   });
-
-  // Append LIMIT and OFFSET to params
+  
   const queryParams = [...params, limit, offset];
-
+  
   try {
-    // Execute both the paginated query and the count query in parallel
-    const [dataResult, countResult] = await Promise.all([
-      query(paginatedQuery, queryParams, clientOrPool),
-      query(countQueryText, params, clientOrPool),
-    ]);
-
-    if (!countResult.rows.length) {
-      throw AppError.databaseError('Failed to fetch total record count.');
-    }
-
-    const totalRecords = parseInt(countResult.rows[0]?.total || 0, 10);
+    //--------------------------------------------------
+    // Execute queries via shared helper
+    //--------------------------------------------------
+    const { rows, totalRecords } = await executePaginatedQueries({
+      dataQuery: paginatedQuery,
+      dataParams: queryParams,
+      countQuery: countQueryText,
+      countParams: params,
+      clientOrPool,
+    });
+    
+    //--------------------------------------------------
+    // Build pagination response
+    //--------------------------------------------------
     const totalPages = Math.ceil(totalRecords / limit);
-
+    
     return {
-      data: dataResult.rows,
+      data: rows,
       pagination: {
         page,
         limit,
@@ -601,89 +762,102 @@ const paginateQuery = async ({
       },
     };
   } catch (error) {
-    logPaginatedQueryError(error, paginatedQuery, countQueryText, queryParams, {
-      page,
-      limit,
-      ...meta,
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to execute paginated query.',
+      meta: { page, limit, ...meta },
+      logFn: (err) =>
+        logPaginatedQueryError(
+          err,
+          paginatedQuery,
+          countQueryText,
+          queryParams,
+          { page, limit, ...meta }
+        ),
     });
-
-    throw AppError.databaseError('Failed to execute paginated query.');
   }
 };
 
 /**
  * Executes a paginated SQL query using offset-based pagination.
  *
- * This utility is ideal for "Load More" or infinite scroll interfaces,
- * where you fetch records using `offset` and `limit` rather than page numbers.
+ * SECURITY:
+ * - All SQL fragments (queryText, joins, whereClause, sortBy, additionalSort)
+ *   MUST be pre-built and validated internally (DO NOT pass raw user input).
  *
- * It supports:
- * - Custom `JOIN`s
- * - Dynamic filtering with `WHERE` clause
- * - Sorting (primary and additional)
- * - Total record counting
+ * CONSISTENCY:
+ * - `queryText`, `tableName`, `joins`, and `whereClause` MUST represent
+ *   the same logical query to ensure accurate pagination.
  *
- * The `queryText` **should NOT** include `LIMIT` or `OFFSET` — those are added automatically.
+ * Behavior:
+ * - Executes COUNT and data query
+ * - Supports DISTINCT counting to avoid JOIN duplication
+ * - Applies safe LIMIT/OFFSET parameterization
+ * - Handles pool vs transaction client safely
  *
- * To prevent row overcounting from 1: N joins (e.g., SKUs joined with inventory or batches),
- * you can set `useDistinct: true` and specify `distinctColumn` (e.g., `'s.id'`)
- * to count only distinct values in the count query.
+ * @param {Object} options
+ * @param {string} options.tableName
+ * @param {string[]} [options.joins=[]]
+ * @param {string} [options.whereClause='1=1']
+ * @param {string} options.queryText
+ * @param {any[]} [options.params=[]]
+ * @param {number} [options.offset=0]
+ * @param {number} [options.limit=10]
+ * @param {string|null} [options.sortBy]
+ * @param {'ASC'|'DESC'} [options.sortOrder='ASC']
+ * @param {string|null} [options.additionalSort]
+ * @param {import('pg').Pool|import('pg').PoolClient} [options.clientOrPool]
+ * @param {Object} [options.meta={}]
+ * @param {boolean} [options.useDistinct=false]
+ * @param {string} [options.distinctColumn]
  *
- * @param {string} tableName - The base table name or alias used in the `FROM` clause (e.g., 'skus s').
- * @param {string[]} joins - Array of SQL JOIN clauses (e.g., LEFT JOINs) to include in the query.
- * @param {string} whereClause - SQL WHERE clause (default: '1=1') to filter data.
- * @param {string} queryText - The base SELECT SQL query (without LIMIT or OFFSET).
- * @param {any[]} params - Query parameter values to be applied to both SELECT and count queries.
- * @param {number} offset - Number of records to skip (default: 0).
- * @param {number} limit - Number of records to return (default: 10).
- * @param {string | null} sortBy - Column to sort the results by (optional).
- * @param {'ASC' | 'DESC'} sortOrder - Sort direction (default: 'ASC').
- * @param {string | null} [additionalSort] - Additional sort logic (e.g., 'created_at DESC, id ASC').
- * @param {any} clientOrPool - Instance of pg client or pool used to run the query (default: `pool`).
- * @param {object} [meta] - Optional metadata object for structured logging.
- * @param {boolean} [useDistinct=false] - If true, applies `COUNT(DISTINCT ...)` to avoid row inflation.
- * @param {string} [distinctColumn] - Required if `useDistinct` is true. The column to apply `DISTINCT` on (e.g., `'s.id'`).
- *
- * @returns {Promise<{
- *   data: [],
- *   pagination: {
- *     offset: number,
- *     limit: number,
- *     totalRecords: number,
- *     hasMore: boolean
- *   }
- * }>} - The result set and pagination metadata.
- *
- * @throws {AppError} - Throws structured error on validation or query execution failure.
+ * @returns {Promise<{ data: any[], pagination: { offset: number, limit: number, totalRecords: number, hasMore: boolean } }>}
  */
 const paginateQueryByOffset = async ({
-  tableName,
-  joins = [],
-  whereClause = '1=1',
-  queryText,
-  params = [],
-  offset = 0,
-  limit = 10,
-  sortBy = null,
-  sortOrder = 'ASC',
-  additionalSort = null,
-  clientOrPool = pool,
-  meta = {},
-  useDistinct = false,
-  distinctColumn,
-}) => {
+                                       tableName,
+                                       joins = [],
+                                       whereClause = '1=1',
+                                       queryText,
+                                       params = [],
+                                       offset = 0,
+                                       limit = 10,
+                                       sortBy,
+                                       sortOrder = 'ASC',
+                                       additionalSort,
+                                       clientOrPool = pool,
+                                       meta = {},
+                                       useDistinct = false,
+                                       distinctColumn,
+                                     }) => {
+  const context = 'db/paginateQueryByOffset';
+  
+  //--------------------------------------------------
+  // Validate inputs
+  //--------------------------------------------------
   if (offset < 0 || limit < 1) {
     throw AppError.validationError(
       'Offset must be >= 0 and limit must be a positive integer.'
     );
   }
-
+  
+  const MAX_LIMIT = 100;
+  if (limit > MAX_LIMIT) {
+    throw AppError.validationError(`Limit cannot exceed ${MAX_LIMIT}`);
+  }
+  
+  if (!queryText || typeof queryText !== 'string') {
+    throw AppError.validationError('Invalid queryText');
+  }
+  
   if (useDistinct && !distinctColumn) {
     throw AppError.validationError(
       'distinctColumn must be provided when useDistinct is true.'
     );
   }
-
+  
+  //--------------------------------------------------
+  // Build queries
+  //--------------------------------------------------
   const countQueryText = generateCountQuery(
     tableName,
     joins,
@@ -691,25 +865,49 @@ const paginateQueryByOffset = async ({
     useDistinct,
     distinctColumn
   );
-
+  
   const paginatedQuery = buildPaginatedQuery({
     baseQuery: queryText,
-    sortBy,
+    sortBy: sortBy || 'id', // enforce deterministic order
     sortOrder,
     additionalSort,
     paramIndex: params.length,
   });
-
+  
   const queryParams = [...params, limit, offset];
-
+  
+  //--------------------------------------------------
+  // Execute queries (safe for client vs pool)
+  //--------------------------------------------------
   try {
-    const [dataResult, countResult] = await Promise.all([
-      query(paginatedQuery, queryParams, clientOrPool),
-      query(countQueryText, params, clientOrPool),
-    ]);
-
-    const totalRecords = parseInt(countResult.rows[0]?.total || 0, 10);
-
+    const isClient =
+      typeof clientOrPool?.query === 'function' &&
+      typeof clientOrPool?.release === 'function';
+    
+    let dataResult;
+    let countResult;
+    
+    if (isClient) {
+      // sequential (transaction-safe)
+      dataResult = await query(paginatedQuery, queryParams, clientOrPool);
+      countResult = await query(countQueryText, params, clientOrPool);
+    } else {
+      // parallel (pool-safe)
+      [dataResult, countResult] = await Promise.all([
+        query(paginatedQuery, queryParams, clientOrPool),
+        query(countQueryText, params, clientOrPool),
+      ]);
+    }
+    
+    //--------------------------------------------------
+    // Validate count result
+    //--------------------------------------------------
+    if (!countResult.rows.length) {
+      throw AppError.databaseError('Failed to fetch total record count.');
+    }
+    
+    const totalRecords = Number(countResult.rows[0].total) || 0;
+    
     return {
       data: dataResult.rows,
       pagination: {
@@ -720,17 +918,31 @@ const paginateQueryByOffset = async ({
       },
     };
   } catch (error) {
-    logPaginatedQueryError(error, paginatedQuery, countQueryText, queryParams, {
-      offset,
-      limit,
-      useDistinct,
-      distinctColumn,
-      ...meta,
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to execute offset-based paginated query.',
+      meta: {
+        offset,
+        limit,
+        useDistinct,
+        distinctColumn,
+        ...meta,
+      },
+      logFn: (err) =>
+        logPaginatedQueryError(
+          err,
+          paginatedQuery,
+          countQueryText,
+          queryParams,
+          {
+            offset,
+            limit,
+            useDistinct,
+            distinctColumn,
+            ...meta,
+          }
+        ),
     });
-
-    throw AppError.databaseError(
-      'Failed to execute offset-based paginated query.'
-    );
   }
 };
 
@@ -796,7 +1008,7 @@ const paginateResults = async ({
     /** @type {CountRow[]} */
     const countRows = countResult.rows;
     
-    const totalRecords = parseInt(countRows[0]?.total_count ?? 0, 10);
+    const totalRecords = Number(countRows[0]?.total_count ?? 0);
     const totalPages = Math.ceil(totalRecords / limit);
 
     return {
@@ -809,31 +1021,48 @@ const paginateResults = async ({
       },
     };
   } catch (error) {
-    logPaginatedQueryError(error, dataQuery, countQuery, params, {
-      page,
-      limit,
-      ...meta,
-    });
-
-    throw AppError.databaseError('Failed to execute paginated results query.', {
-      details: { page, limit, query: dataQuery, error: error.message },
+    throw handleDbError(error, {
+      context: 'db/paginateResults',
+      message: 'Failed to execute paginated results query.',
+      meta: {
+        page,
+        limit,
+      },
+      logFn: (err) =>
+        logPaginatedQueryError(err, dataQuery, countQuery, params, {
+          page,
+          limit,
+          ...meta,
+        }),
     });
   }
 };
 
-// Declare cache outside the function (module-scoped)
-const primaryKeyCache = new Map();
-
 /**
- * Locks a specific row in the given table using the specified lock mode.
+ * Lock a single row by primary key.
  *
- * @param {object} client - The database client.
- * @param {string} table - The name of the table.
- * @param {string} id - The ID of the row to lock.
- * @param {string} [lockMode='FOR UPDATE'] - The lock mode (e.g., 'FOR UPDATE', 'FOR SHARE').
- * @param {Object} meta={} - Optional additional metadata.
- * @returns {Promise<object>} - The locked row data.
- * @throws {AppError} - Throws an error if the table name or lock mode is invalid.
+ * Executes a SELECT ... FOR <LOCK_MODE> query to acquire a row-level lock
+ * within an active transaction.
+ *
+ * Design Notes:
+ * - Must be called inside a transaction
+ * - Uses parameterized query (SQL injection safe)
+ * - Assumes standardized primary key (`id`)
+ * - Guarantees exactly one row or throws
+ *
+ * Performance:
+ * - Single query (no schema lookup)
+ * - Index-based lookup on PK
+ *
+ * @param {object} client - Active DB transaction client
+ * @param {string} table - Table name (validated upstream)
+ * @param {string} id - Primary key value
+ * @param {string} [lockMode='FOR UPDATE'] - PostgreSQL lock mode
+ * @param {object} [meta={}] - Additional logging metadata
+ *
+ * @returns {Promise<object>} Locked row
+ *
+ * @throws {AppError}
  */
 const lockRow = async (
   client,
@@ -842,89 +1071,90 @@ const lockRow = async (
   lockMode = 'FOR UPDATE',
   meta = {}
 ) => {
-  const maskedId = maskSensitiveInfo(id, 'uuid');
+  const context = 'db/lockRow';
+  const maskedId = maskUUID(id);
   const maskedTable = maskTableName(table);
-
-  const allowedLockModes = [
-    'FOR UPDATE',
-    'FOR NO KEY UPDATE',
-    'FOR SHARE',
-    'FOR KEY SHARE',
-  ];
-
-  if (!allowedLockModes.includes(lockMode)) {
-    throw AppError.validationError(`Invalid lock mode: ${lockMode}`);
+  
+  //--------------------------------------------------
+  // 1. Validate input
+  //--------------------------------------------------
+  if (!id || typeof id !== 'string') {
+    throw AppError.validationError('Invalid id', { context });
   }
-
-  // Step 1: Fetch the primary key dynamically
-  let tablePrimaryKey;
-  if (primaryKeyCache.has(table)) {
-    tablePrimaryKey = primaryKeyCache.get(table);
-  } else {
-    /** @typedef {{ primary_key: string }} PrimaryKeyRow */
-    const primaryKeySql = `
-      SELECT a.attname AS primary_key
-      FROM pg_index i
-      JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
-      WHERE i.indrelid = $1::regclass AND i.indisprimary;
-    `;
-    try {
-      const result = await query(primaryKeySql, [table], client);
-      
-      /** @type {PrimaryKeyRow[]} */
-      const rows = result.rows;
-      
-      if (rows.length === 0) {
-        throw AppError.validationError(
-          `No primary key found for table: ${maskedTable}`
-        );
-      }
-      tablePrimaryKey = rows[0]?.primary_key;
-      primaryKeyCache.set(table, tablePrimaryKey); // Cache result
-    } catch (error) {
-      logLockRowError(
-        error,
-        primaryKeySql,
-        [table],
-        maskedTable,
-        'PRIMARY_KEY_LOOKUP',
-        meta
-      );
-      throw error;
-    }
-  }
-
-  // Step 2: Attempt to lock the row
-  const sql = `SELECT * FROM ${table} WHERE ${tablePrimaryKey} = $1 ${lockMode}`;
-  try {
-    const result = await query(sql, [id], client);
-    if (result.rows.length === 0) {
-      throw AppError.notFoundError(
-        `Row with ID "${maskedId}" not found in table "${maskedTable}"`
-      );
-    }
-    return result.rows[0];
-  } catch (error) {
-    logLockRowError(error, sql, [id], maskTableName(table), lockMode, {
-      ...meta,
+  
+  if (!LOCK_MODE_SET.has(lockMode)) {
+    throw AppError.validationError(`Invalid lock mode: ${lockMode}`, {
+      context,
     });
-
-    throw error; // Keep original error for retry logic
+  }
+  
+  //--------------------------------------------------
+  // 2. Build SQL (standard PK = id)
+  //--------------------------------------------------
+  const sql = `
+    SELECT *
+    FROM ${qualify('public', table)}
+    WHERE ${q('id')} = $1
+    ${lockMode}
+  `;
+  
+  //--------------------------------------------------
+  // 3. Execute
+  //--------------------------------------------------
+  try {
+    const { rows } = await query(sql, [id], client);
+    
+    //--------------------------------------------------
+    // Not found → explicit domain error
+    //--------------------------------------------------
+    if (!rows.length) {
+      throw AppError.notFoundError(
+        `Row "${maskedId}" not found in "${maskedTable}"`
+      );
+    }
+    
+    return rows[0];
+  } catch (error) {
+    throw handleDbError(error, {
+      context,
+      message: `Failed to lock row in "${maskedTable}"`,
+      meta: { table: maskedTable, id: maskedId, ...meta },
+      logFn: (err) =>
+        logLockRowError(err, sql, [id], maskedTable, lockMode, meta),
+    });
   }
 };
 
 /**
- * Dynamically verifies if a table exists before locking rows.
- * Locks rows in a table using a specified lock mode.
- * Supports single ID, multiple IDs, or composite keys.
+ * Lock multiple rows using primary key values or composite conditions.
  *
- * @param {object} client - Database transaction client.
- * @param {string} table - The name of the table.
- * @param {Array|object} conditions - Either an array of IDs or an array of key-value conditions.
- * @param {string} [lockMode='FOR UPDATE'] - The lock mode.
- * @param {Object} meta={} - Optional additional metadata.
- * @returns {Promise<object[]>} - The locked rows.
- * @throws {AppError} - Throws an error if table name or lock mode is invalid.
+ * Executes a SELECT ... FOR <LOCK_MODE> query to acquire row-level locks
+ * within an active transaction.
+ *
+ * Supports:
+ * - Array of primitive values → WHERE id IN (...)
+ * - Array of objects → WHERE (a=1 AND b=2) OR (...)
+ *
+ * Design Notes:
+ * - Must be called inside a transaction
+ * - Uses parameterized queries (SQL injection safe)
+ * - Assumes standardized primary key (`id`)
+ * - Delegates SQL building to pure helpers
+ * - Logs partial matches for primitive mode only
+ *
+ * Performance:
+ * - IN (...) is index-optimized (fast path)
+ * - Composite OR conditions degrade with size → batch if > 50–100
+ *
+ * @param {object} client - Active DB transaction client
+ * @param {string} table - Table name (validated upstream)
+ * @param {Array<string|object>} conditions - IDs or condition objects
+ * @param {string} [lockMode='FOR UPDATE'] - PostgreSQL lock mode
+ * @param {object} [meta={}] - Additional logging metadata
+ *
+ * @returns {Promise<object[]>} Locked rows
+ *
+ * @throws {AppError}
  */
 const lockRows = async (
   client,
@@ -933,269 +1163,128 @@ const lockRows = async (
   lockMode = 'FOR UPDATE',
   meta = {}
 ) => {
-  if (!Array.isArray(conditions) || conditions.length === 0) {
-    throw AppError.validationError(
-      'Invalid conditions for row locking. Expected a non-empty array.'
-    );
-  }
-
-  // Validate lock mode
-  const validLockModes = [
-    'FOR UPDATE',
-    'FOR NO KEY UPDATE',
-    'FOR SHARE',
-    'FOR KEY SHARE',
-  ];
-  if (!validLockModes.includes(lockMode)) {
-    throw AppError.validationError(
-      `Invalid lock mode: ${lockMode}. Allowed: ${validLockModes.join(', ')}`
-    );
-  }
-
-  // Dynamically check if the table exists in PostgreSQL
+  const context = 'db/lockRows';
   const maskedTable = maskTableName(table);
-  const tableExistsQuery = `SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE schemaname = 'public' AND tablename = $1)`;
-
-  const { rows } = await query(tableExistsQuery, [table], client);
-  if (!rows[0].exists) {
-    throw AppError.notFoundError(`Table "${maskedTable}" does not exist.`);
+  
+  //--------------------------------------------------
+  // 1. Validate input
+  //--------------------------------------------------
+  if (!Array.isArray(conditions) || conditions.length === 0) {
+    throw AppError.validationError('Invalid conditions', { context });
   }
-
-  let sql, values;
-
-  if (typeof conditions[0] === 'string') {
-    // Case 1: Simple ID Locking (e.g., `lockRows(client, 'inventory', [uuid1, uuid2])`)
-    const placeholders = conditions.map((_, i) => `$${i + 1}`).join(', ');
-    sql = `SELECT * FROM ${table} WHERE id IN (${placeholders}) ${lockMode}`;
-    values = conditions;
-  } else {
-    // Case 2: Composite Key Locking (e.g., `lockRows(client, 'warehouse_inventory', [{ warehouse_id, inventory_id }])`)
-    const whereClauses = conditions
-      .map(
-        (cond, i) =>
-          `(${Object.keys(cond)
-            .map(
-              (key, j) => `${key} = $${i * Object.keys(cond).length + j + 1}`
-            )
-            .join(' AND ')})`
-      )
-      .join(' OR ');
-
-    values = conditions.flatMap(Object.values);
-    sql = `SELECT * FROM ${table} WHERE ${whereClauses} ${lockMode}`;
+  
+  if (!LOCK_MODE_SET.has(lockMode)) {
+    throw AppError.validationError(`Invalid lock mode: ${lockMode}`, {
+      context,
+    });
   }
-
+  
+  //--------------------------------------------------
+  // 2. Determine condition type safely
+  //--------------------------------------------------
+  const isPrimitiveList =
+    typeof conditions[0] !== 'object' || conditions[0] === null;
+  
+  //--------------------------------------------------
+  // 3. Normalize / validate values
+  //--------------------------------------------------
+  const sanitizedConditions = conditions.filter(
+    (v) => v !== null && v !== undefined
+  );
+  
+  if (sanitizedConditions.length === 0) {
+    throw AppError.validationError('Empty conditions after sanitization', {
+      context,
+    });
+  }
+  
+  //--------------------------------------------------
+  // 4. Build WHERE clause
+  //--------------------------------------------------
+  const { clause, values } = isPrimitiveList
+    ? buildInClause('id', sanitizedConditions)
+    : buildWhereClause(sanitizedConditions);
+  
+  //--------------------------------------------------
+  // 5. Build SQL
+  //--------------------------------------------------
+  const sql = `
+    SELECT *
+    FROM ${qualify('public', table)}
+    WHERE ${clause}
+    ${lockMode}
+  `;
+  
+  //--------------------------------------------------
+  // 6. Execute
+  //--------------------------------------------------
   try {
     const { rows } = await query(sql, values, client);
-
-    // Log missing rows
-    if (rows.length !== conditions.length) {
-      logSystemWarn(`Some rows were not found in "${maskedTable}"`, {
-        context: 'db/lockRows/data-validation',
-        table: maskedTable,
-        expected: conditions.length,
+    
+    //--------------------------------------------------
+    // Partial match warning (ONLY for PK mode)
+    //--------------------------------------------------
+    if (isPrimitiveList && rows.length !== sanitizedConditions.length) {
+      logSystemWarn('Partial row lock result', {
+        context: `${context}/partial`,
+        expected: sanitizedConditions.length,
         found: rows.length,
+        table: maskedTable,
       });
     }
-
+    
+    //--------------------------------------------------
+    // Performance warning (composite heavy queries)
+    //--------------------------------------------------
+    if (!isPrimitiveList && conditions.length > 50) {
+      logSystemWarn('Potential slow composite lock query', {
+        context: `${context}/performance`,
+        count: conditions.length,
+        table: maskedTable,
+      });
+    }
+    
     return rows;
   } catch (error) {
-    logLockRowsError(error, sql, values, maskTableName(table), { ...meta });
-
-    throw AppError.databaseError(
-      `Database error while locking rows in "${maskedTable}".`,
-      {
-        details: { error: error.message },
-      }
-    );
+    throw handleDbError(error, {
+      context,
+      message: `Failed to lock rows in "${maskedTable}"`,
+      meta: { table: maskedTable, count: conditions.length, ...meta },
+      logFn: (err) =>
+        logLockRowsError(err, sql, values, maskedTable, meta),
+    });
   }
 };
 
-/**
- * Builds a SQL update expression for use in UPSERT (ON CONFLICT DO UPDATE).
- *
- * Business rule:
- *  - Each column update follows a strategy that defines how to merge
- *    the existing table value with the new EXCLUDED value.
- *  - Used to enforce consistent conflict resolution across tables.
- *
- * Supported strategies:
- *  - "add"        → Increment existing value by excluded value
- *  - "subtract"   → Decrement existing value by excluded value
- *  - "max"        → Take the greater of existing and excluded values
- *  - "min"        → Take the lesser of existing and excluded values
- *  - "coalesce"   → Use excluded value if not null, otherwise keep existing
- *  - "recalculate_subtotal" → Recompute subtotal using price * (qty + new qty)
- *  - "jsonb"/"json"/"merge_json" → Append structured JSON/JSONB with timestamp
- *  - "text"/"merge_text" → Append incoming text with timestamp to audit history
- *  - "keep"       → Skip updating this column
- *  - "overwrite"  → Default; replace with excluded value
- *
- * @function
- * @param {string} col - Column name to update
- * @param {string} strategy - Update strategy (see list above)
- * @param {string} [tableAlias='table'] - Table alias for the existing row
- * @returns {string|null} SQL expression fragment for the update, or null if skipped
- *
- * @example
- * applyUpdateRule('quantity', 'add', 'orders')
- * // => "quantity = orders.quantity + EXCLUDED.quantity"
- */
-const applyUpdateRule = (col, strategy, tableAlias = 'table') => {
-  switch (strategy) {
-    case 'add':
-      return `${col} = ${tableAlias}.${col} + EXCLUDED.${col}`;
-    case 'subtract':
-      return `${col} = ${tableAlias}.${col} - EXCLUDED.${col}`;
-    case 'max':
-      return `${col} = GREATEST(${tableAlias}.${col}, EXCLUDED.${col})`;
-    case 'min':
-      return `${col} = LEAST(${tableAlias}.${col}, EXCLUDED.${col})`;
-    case 'coalesce':
-      return `${col} = COALESCE(EXCLUDED.${col}, ${tableAlias}.${col})`;
-    case 'recalculate_subtotal':
-      return `subtotal = (EXCLUDED.price * (${tableAlias}.quantity_ordered + EXCLUDED.quantity_ordered))`;
-    case 'jsonb':
-    case 'json':
-    case 'merge_json':
-      return buildMergeExpression(col, tableAlias, 'jsonb');
-    case 'text':
-    case 'merge_text':
-      return buildMergeExpression(col, tableAlias, 'text');
-    case 'keep':
-    case 'preserve':
-      return null; // Skip update
-    case 'overwrite':
-    default:
-      return `${col} = EXCLUDED.${col}`;
-  }
-};
+const MAX_PARAMS = 60000;
 
 /**
- * Builds a SQL merge expression for JSON/JSONB or text columns.
+ * Inserts multiple rows into a database table using a bulk UPSERT pattern.
  *
- * Business rule:
- *  - Appends a new entry with timestamp and data, preserving audit trail.
- *  - For JSONB: uses `|| jsonb_build_object` to append structured data.
- *  - For text/JSON: concatenates string entries with line breaks and timestamp.
+ * Features:
+ * - Efficient multi-row INSERT
+ * - ON CONFLICT DO UPDATE with strategy-based updates
+ * - Supports computed updates via `extraUpdates`
+ * - Retry + structured logging support
  *
- * @function
- * @param {string} col - Column name to merge
- * @param {string} tableAlias - Table alias for the existing row
- * @param {string} [type='text'] - Type of merge ("text" | "json" | "jsonb")
- * @returns {string} SQL expression fragment
- *
- * @example
- * buildMergeExpression('notes', 'orders', 'text')
- * // => "notes = CONCAT_WS('\n\n', TRIM(orders.notes), CONCAT('[2025-09-16 14:00:00] ', TRIM(EXCLUDED.notes)))"
- */
-const buildMergeExpression = (col, tableAlias, type = 'text') => {
-  if (type === 'jsonb') {
-    return `${col} = COALESCE(${tableAlias}.${col}, '[]'::jsonb) || jsonb_build_object(
-      'timestamp', TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI:SS'),
-      'data', EXCLUDED.${col}
-    )`;
-  }
-
-  const needsCast = type === 'json';
-  const current = needsCast
-    ? `TRIM((${tableAlias}.${col})::text)`
-    : `TRIM(${tableAlias}.${col})`;
-
-  const incoming = needsCast
-    ? `TRIM((EXCLUDED.${col})::text)`
-    : `TRIM(EXCLUDED.${col})`;
-
-  const baseExpr = `CONCAT_WS(
-    E'\\n\\n',
-    ${current},
-    CONCAT('[', TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI:SS'), '] ', ${incoming})
-  )`;
-
-  return needsCast ? `${col} = (${baseExpr})::json` : `${col} = ${baseExpr}`;
-};
-
-/**
- * Inserts multiple rows into a specified database table in bulk.
- *
- * Dynamically builds an `INSERT INTO ... VALUES` SQL statement with optional
- * `ON CONFLICT` handling. Conflicts can either be ignored (`DO NOTHING`)
- * or resolved with an `UPDATE` strategy defined per column.
- *
- * Supports returning specific columns after execution (e.g. `id`, `*`).
+ * Update strategies:
+ * - add, subtract, max, min, coalesce
+ * - merge_jsonb, merge_text
+ * - overwrite, keep
  *
  * @param {string} tableName
- * Name of the target table.
- *
  * @param {string[]} columns
- * Ordered list of column names to insert.
- *
  * @param {Array<Array<any>>} rows
- * 2D array of row values. Each inner array must match the order and length
- * of the `columns` array.
- *
  * @param {string[]} [conflictColumns=[]]
- * Columns that define the unique constraint used for `ON CONFLICT`.
- *
  * @param {Object<string,string>} [updateStrategies={}]
- * Map of column names to update strategies used in `DO UPDATE`.
- * Example strategies may include:
- * - `'set'` → replace existing value
- * - `'add'` → increment numeric column
- * - `'subtract'` → decrement numeric column
+ * @param {import('pg').PoolClient|null} [client=null]
+ * @param {object} [options]
+ * @param {object} [options.meta]
+ * @param {string[]} [options.extraUpdates]
+ * @param {string|null} [returning='id']
  *
- * @param {object} [clientOrPool=pool]
- * PostgreSQL client or connection pool used to execute the query.
- *
- * @param {Object} [meta={}]
- * Optional metadata used for structured logging or tracing.
- *
- * @param {string} [returning='id']
- * Columns to return after insertion (e.g. `'id'`, `'*'`, `'id, status_id'`).
- * If falsy, no `RETURNING` clause will be included.
- *
- * @returns {Promise<number | Object[]>}
- * Returns:
- * - `0` if no rows were provided
- * - inserted or updated rows when a `RETURNING` clause is used
- *
+ * @returns {Promise<object[]>}
  * @throws {AppError}
- * Throws a wrapped `databaseError` if the insert fails.
- *
- * @example
- * // Basic insert
- * await bulkInsert(
- *   'inventory',
- *   ['product_id', 'location_id', 'quantity'],
- *   [['p1', 'loc-a', 100], ['p2', 'loc-b', 50]],
- *   [],
- *   {},
- *   pool
- * );
- *
- * @example
- * // Insert with DO NOTHING on conflict
- * await bulkInsert(
- *   'inventory',
- *   ['product_id', 'location_id', 'quantity'],
- *   [['p1', 'loc-a', 100]],
- *   ['product_id', 'location_id'],
- *   {},
- *   pool
- * );
- *
- * @example
- * // Insert with DO UPDATE on conflict
- * await bulkInsert(
- *   'inventory',
- *   ['product_id', 'location_id', 'quantity'],
- *   [['p1', 'loc-a', 100]],
- *   ['product_id', 'location_id'],
- *   { quantity: 'set' },
- *   pool,
- *   {},
- *   '*'
- * );
  */
 const bulkInsert = async (
   tableName,
@@ -1203,152 +1292,169 @@ const bulkInsert = async (
   rows,
   conflictColumns = [],
   updateStrategies = {},
-  clientOrPool = pool,
-  meta = {},
+  client = null,
+  options = {},
   returning = 'id'
 ) => {
-  if (!rows.length) return 0;
-
-  // Validate that rows are properly structured
-  if (
-    !Array.isArray(rows) ||
-    !rows.every((row) => Array.isArray(row) && row.length === columns.length)
-  ) {
+  const { meta = {}, extraUpdates = [] } = options;
+  
+  //--------------------------------------------------
+  // Validate input
+  //--------------------------------------------------
+  if (!Array.isArray(rows) || rows.length === 0) return [];
+  
+  if (!rows.every((r) => Array.isArray(r) && r.length === columns.length)) {
     throw AppError.validationError(
-      `Invalid data format: Expected an array of arrays, each with ${columns.length} values`
+      `Invalid rows: expected ${columns.length} columns`
     );
   }
-
-  // Generate column names and placeholders
-  const columnNames = columns.join(', ');
+  
+  //--------------------------------------------------
+  // Parameter limit protection
+  //--------------------------------------------------
+  const totalParams = rows.length * columns.length;
+  
+  if (totalParams >= MAX_PARAMS) {
+    throw AppError.validationError(
+      'Batch too large, split into smaller chunks'
+    );
+  }
+  
+  //--------------------------------------------------
+  // Validate identifiers
+  //--------------------------------------------------
+  const safeTable = validateIdentifier(tableName, 'table');
+  const safeColumns = columns.map((c) => validateIdentifier(c, 'column'));
+  const safeConflictColumns = conflictColumns.map((c) =>
+    validateIdentifier(c, 'conflict column')
+  );
+  const safeUpdateColumns = Object.keys(updateStrategies).map((c) =>
+    validateIdentifier(c, 'update column')
+  );
+  
+  //--------------------------------------------------
+  // Build VALUES
+  //--------------------------------------------------
+  const columnNames = safeColumns.join(', ');
+  
   const valuePlaceholders = rows
     .map(
-      (_, rowIndex) =>
-        `(${columns.map((_, colIndex) => `$${rowIndex * columns.length + colIndex + 1}`).join(', ')})`
+      (_, i) =>
+        `(${safeColumns
+          .map((_, j) => `$${i * safeColumns.length + j + 1}`)
+          .join(', ')})`
     )
     .join(', ');
-
-  // Handle conflict dynamically: Either `DO NOTHING` or `DO UPDATE`
+  
+  //--------------------------------------------------
+  // Conflict handling
+  //--------------------------------------------------
   let conflictClause = '';
-  const updateCols = Object.keys(updateStrategies);
-
-  if (conflictColumns.length > 0) {
-    if (updateCols.length > 0) {
-      const updateSet = updateCols
-        .map((col) => applyUpdateRule(col, updateStrategies[col], tableName))
-        .filter(Boolean);
-      
-      if (updateSet.length > 0) {
-        conflictClause = `ON CONFLICT (${conflictColumns.join(', ')}) DO UPDATE SET ${updateSet.join(', ')}`;
-      } else {
-        conflictClause = `ON CONFLICT (${conflictColumns.join(', ')}) DO NOTHING`;
-      }
-    } else {
-      conflictClause = `ON CONFLICT (${conflictColumns.join(', ')}) DO NOTHING`;
+  
+  if (safeConflictColumns.length > 0) {
+    const tableAlias = 't';
+    
+    const updateSet = safeUpdateColumns
+      .map((col) =>
+        applyUpdateRule(col, updateStrategies[col], tableAlias)
+      )
+      .filter(Boolean);
+    
+    //--------------------------------------------------
+    // Append extra updates (derived fields)
+    //--------------------------------------------------
+    if (!Array.isArray(extraUpdates)) {
+      throw AppError.validationError('extraUpdates must be array');
     }
+    
+    if (extraUpdates.length > 0) {
+      updateSet.push(...extraUpdates);
+    }
+    
+    conflictClause =
+      updateSet.length > 0
+        ? `ON CONFLICT (${safeConflictColumns.join(', ')}) DO UPDATE SET ${updateSet.join(', ')}`
+        : `ON CONFLICT (${safeConflictColumns.join(', ')}) DO NOTHING`;
   }
-
+  
+  //--------------------------------------------------
+  // Returning
+  //--------------------------------------------------
   const returningClause = returning ? `RETURNING ${returning}` : '';
-
-  // Construct SQL query
+  
+  //--------------------------------------------------
+  // Final SQL
+  //--------------------------------------------------
   const sql = `
-    INSERT INTO ${tableName} (${columnNames})
+    INSERT INTO ${safeTable} AS t (${columnNames})
     VALUES ${valuePlaceholders}
     ${conflictClause}
     ${returningClause};
   `;
-
-  // Flatten values for bulk insert
-  const flattenedValues = rows.flat();
-
+  
+  const values = rows.flat();
+  
+  //--------------------------------------------------
+  // Execute
+  //--------------------------------------------------
   try {
-    const result = await query(
-      sql,
-      flattenedValues,
-      clientOrPool,
-      3,
-      1000,
-      meta
-    );
+    const result = await query(sql, values, client, {
+      retries: 3,
+      baseDelay: 300,
+      meta,
+    });
+    
     return result.rows;
   } catch (error) {
-    logBulkInsertError(
-      error,
-      maskTableName(tableName),
-      columns,
-      conflictColumns,
-      Object.keys(updateStrategies),
-      flattenedValues,
-      rows.length,
-      { ...meta }
-    );
-
-    throw AppError.databaseError('Bulk insert failed', {
-      details: {
-        tableName,
-        columns,
-        conflictColumns,
-        updateStrategies,
-        error: error.message,
+    const maskedTable = maskTableName(safeTable);
+    
+    throw handleDbError(error, {
+      context: 'db/bulkInsert',
+      message: 'Bulk insert failed',
+      meta: {
+        table: maskedTable,
+        rowCount: rows.length,
       },
+      logFn: (err) =>
+        logBulkInsertError(err, maskedTable, values, rows.length, {
+          columns: safeColumns,
+          conflictColumns: safeConflictColumns,
+          updateStrategies: safeUpdateColumns,
+          extraUpdates,
+          ...meta,
+        }),
     });
   }
 };
 
 /**
- * Generic PostgreSQL helper for updating a single record by ID.
+ * Updates a single record by primary key with validation, audit handling,
+ * and structured error management.
  *
- * This utility performs a parameterized UPDATE query on a specified table
- * and returns the updated record's ID. It supports automatic audit field
- * injection (`updated_at`, `updated_by`) and enforces basic protections
- * against invalid updates.
+ * Designed for repository-layer usage with strict safety guarantees:
+ * - prevents updates to protected/system fields
+ * - enforces allowed schema/table access
+ * - supports automatic audit metadata injection
+ * - builds fully parameterized SQL (no injection risk)
  *
- * Designed for repository-layer usage and safe to call inside transactions.
- *
- * Features:
- * - parameterized SQL queries
- * - identifier validation (schema + table)
- * - audit metadata injection
- * - protected column enforcement
- * - structured logging and error handling
- *
- * @param {string} table
- * Target table name.
- *
- * @param {string} id
- * Primary key UUID of the record to update.
- *
- * @param {Object} updates
- * Object containing fields and values to update.
- *
- * @param {string|null} [userId]
- * Optional user ID used to populate the `updated_by` column.
- *
- * @param {import('pg').PoolClient} client
- * PostgreSQL client or active transaction client.
- *
+ * @param {string} table - Target table name
+ * @param {string} id - Primary key UUID
+ * @param {Object} updates - Fields to update
+ * @param {string|null} userId - User performing the update
+ * @param {import('pg').PoolClient} client - DB client or transaction
  * @param {Object} [options]
- *
  * @param {string} [options.schema='public']
- * Target schema name.
- *
- * @param {string|null} [options.updatedAtField='updated_at']
- * Timestamp field used for automatic update tracking.
- *
- * @param {string|null} [options.updatedByField='updated_by']
- * User field used for automatic update tracking.
+ * @param {string} [options.updatedAtField='updated_at']
+ * @param {string} [options.updatedByField='updated_by']
+ * @param {string} [options.idField='id'] - Primary key column name
+ * @param {Set<string>} [options.allowedFields] - Optional whitelist
  *
  * @returns {Promise<{ id: string }>}
- * Returns the updated record identifier.
  *
  * @throws {AppError}
- * - ValidationError if inputs are invalid
- * - NotFoundError if record does not exist
- * - DatabaseError if the update fails
- *
- * @warning
- * Ensure the target table contains the configured audit fields
- * (`updated_at`, `updated_by`) if they are enabled.
+ * - ValidationError
+ * - NotFoundError
+ * - DatabaseError
  */
 const updateById = async (
   table,
@@ -1358,205 +1464,129 @@ const updateById = async (
   client,
   options = {}
 ) => {
+  const context = 'db/updateById';
+  
   const {
     schema = 'public',
     updatedAtField = 'updated_at',
     updatedByField = 'updated_by',
+    idField = 'id',
+    allowedFields = null,
   } = options;
   
+  const maskedTable = maskTableName(table);
+  
   //------------------------------------------------------------
-  // Validate inputs
+  // 1. Validate inputs
   //------------------------------------------------------------
   if (!id || typeof id !== 'string' || !table || typeof table !== 'string') {
-    logSystemError('Invalid parameters passed to updateById', {
-      context: 'db/updateById',
-      table,
-      id,
-    });
-    
-    throw AppError.validationError('Invalid update request.');
+    throw AppError.validationError('Invalid update request.', { context });
+  }
+  
+  if (!updates || typeof updates !== 'object') {
+    throw AppError.validationError('Updates must be an object.', { context });
   }
   
   //------------------------------------------------------------
-  // Prevent SQL injection on identifiers
+  // 2. Access control (table-level)
   //------------------------------------------------------------
   assertAllowed(schema, table);
   
-  const updateData = { ...updates };
+  //------------------------------------------------------------
+  // 3. Normalize update payload (IMMUTABLE)
+  //------------------------------------------------------------
+  const PROTECTED_FIELDS = new Set(['id', 'created_at', 'created_by']);
+  
+  const updateData = Object.entries(updates).reduce((acc, [key, value]) => {
+    if (value === undefined) return acc;
+    
+    if (PROTECTED_FIELDS.has(key)) {
+      throw AppError.validationError('Invalid update field.', {
+        context,
+        field: key,
+      });
+    }
+    
+    if (allowedFields && !allowedFields.has(key)) {
+      throw AppError.validationError('Field not allowed.', {
+        context,
+        field: key,
+      });
+    }
+    
+    acc[key] = value;
+    return acc;
+  }, {});
   
   //------------------------------------------------------------
-  // Inject updated_by metadata
+  // 4. Inject audit metadata
   //------------------------------------------------------------
   if (userId && updatedByField) {
     updateData[updatedByField] = userId;
   }
   
-  //------------------------------------------------------------
-  // Protect restricted columns
-  //------------------------------------------------------------
-  const PROTECTED_FIELDS = new Set(['id', 'created_at', 'created_by']);
-  
-  Object.keys(updateData).forEach((key) => {
-    if (PROTECTED_FIELDS.has(key)) {
-      logSystemError('Attempted update of protected column', {
-        context: 'db/updateById',
-        field: key,
-        table,
-      });
-      
-      throw AppError.validationError('Invalid update field.');
-    }
-    
-    // Remove undefined fields so they don't break SQL
-    if (updateData[key] === undefined) {
-      delete updateData[key];
-    }
-  });
-  
-  //------------------------------------------------------------
-  // Build update field list
-  //------------------------------------------------------------
   const fields = Object.keys(updateData);
   
-  if (fields.length === 0 && !updatedAtField) {
-    throw AppError.validationError('No fields provided to update.');
+  //------------------------------------------------------------
+  // 5. Prevent empty updates (strict)
+  //------------------------------------------------------------
+  if (fields.length === 0) {
+    throw AppError.validationError('No valid fields provided to update.', {
+      context,
+    });
   }
   
   //------------------------------------------------------------
-  // Build SET clause
+  // 6. Build SET clause
   //------------------------------------------------------------
-  const setClauses =
-    fields.map((field, idx) => `${field} = $${idx + 2}`);
+  const setClauses = fields.map(
+    (field, idx) => `${q(field)} = $${idx + 2}`
+  );
   
-  //------------------------------------------------------------
-  // Automatically update timestamp using DB clock
-  //------------------------------------------------------------
   if (updatedAtField) {
-    setClauses.push(`${updatedAtField} = NOW()`);
+    setClauses.push(`${q(updatedAtField)} = NOW()`);
   }
   
   const values = [id, ...fields.map((f) => updateData[f])];
   
+  //------------------------------------------------------------
+  // 7. Execute
+  //------------------------------------------------------------
   const sql = `
-    UPDATE ${schema}.${table}
+    UPDATE ${qualify(schema, table)}
     SET ${setClauses.join(', ')}
-    WHERE id = $1
-    RETURNING id
+    WHERE ${q(idField)} = $1
+    RETURNING ${q(idField)}
   `;
   
   try {
     const result = await query(sql, values, client);
     
     if (result.rowCount === 0) {
-      logSystemError('Record not found during update', {
-        context: 'db/updateById',
-        schema,
-        table,
-        id,
-      });
-      
-      throw AppError.notFoundError('Record not found.');
+      throw AppError.notFoundError('Record not found.', { context });
     }
     
     return result.rows[0];
   } catch (error) {
-    logSystemException(error, 'Failed to update record by ID', {
-      context: 'db/updateById',
-      schema,
-      table,
-      id,
-      fields: Object.keys(updates),
+    throw handleDbError(error, {
+      context,
+      message: `Failed to update ${maskedTable} record.`,
+      meta: {
+        schema,
+        table: maskedTable,
+        id,
+        fields,
+      },
+      logFn: (err) =>
+        logSystemException(err, 'Update failed', {
+          context,
+          schema,
+          table: maskedTable,
+          id,
+          fields,
+        }),
     });
-    
-    throw AppError.databaseError(`Failed to update ${table} record.`);
   }
-};
-
-/**
- * Generates a bulk update SQL query for updating multiple rows in a given table.
- *
- * @param {string} table - The name of the table to update.
- * @param {Array<string>} columns - The columns to be updated (e.g., ['available_quantity', 'reserved_quantity']).
- * @param {Array<string>} whereColumns - The columns used for matching records (e.g., ['warehouse_id', 'inventory_id']).
- * @param {Object} data - An object mapping composite keys to an object of values to update.
- *   - Example:
- *     {
- *       "warehouseId-inventoryId": {
- *         reserved_quantity: 2,
- *         available_quantity: 74
- *       }
- *     }
- * @param {string} userId - The UUID of the user performing the update (used in `updated_by`).
- * @param {Object} columnTypes - (Optional) An object mapping column names to their SQL types.
- *   - Example: { reserved_quantity: 'integer', available_quantity: 'integer', status: 'text' }
- *
- * @returns {{ baseQuery: string, params: any[] } | null} The SQL update query and parameters,
- *   or null if `data` is empty.
- *
- * @throws {Error} If query generation fails.
- *
- * @example
- * const { baseQuery, params } = await formatBulkUpdateQuery(
- *   'warehouse_inventory',
- *   ['reserved_quantity', 'available_quantity'],
- *   ['warehouse_id', 'inventory_id'],
- *   {
- *     'wh-id-inv-id': { reserved_quantity: 2, available_quantity: 74 }
- *   },
- *   userId,
- *   {
- *     reserved_quantity: 'integer',
- *     available_quantity: 'integer'
- *   }
- * );
- */
-const formatBulkUpdateQuery = (
-  table,
-  columns, // e.g., ['reserved_quantity', 'status', 'remarks']
-  whereColumns, // e.g., ['warehouse_id', 'inventory_id']
-  data, // { 'id-id': { reserved_quantity: 5, status: 'active', ... } }
-  userId,
-  columnTypes = {} // e.g., { reserved_quantity: 'integer', status: 'text' }
-) => {
-  if (!Object.keys(data).length) return null;
-
-  let indexCounter = 2; // $1 = userId
-  const params = [userId]; // initial param list
-
-  const valuesSql = Object.entries(data).map(([key, value]) => {
-    const keyParts = key.split(/-(?=[a-f0-9-]{36}$)/); // split composite key like 'warehouseId-inventoryId'
-    const rowParams = [
-      ...keyParts,
-      ...(columns.length === 1 && typeof value !== 'object'
-        ? [value]
-        : columns.map((col) => value[col] ?? null)),
-    ];
-    params.push(...rowParams);
-
-    const placeholders = rowParams.map(() => `$${indexCounter++}`);
-    const typedPlaceholders = [
-      ...keyParts.map(() => `uuid`),
-      ...columns.map((col) => columnTypes[col] || 'text'),
-    ].map((type, i) => `${placeholders[i]}::${type}`);
-
-    return `(${typedPlaceholders.join(', ')})`;
-  });
-
-  const baseQuery = `
-    UPDATE ${table}
-    SET ${columns.map((col) => `${col} = data.${col}`).join(', ')},
-        updated_at = NOW(),
-        updated_by = $1
-    FROM (VALUES ${valuesSql.join(',\n')})
-      AS data(${[...whereColumns, ...columns].join(', ')})
-    WHERE ${whereColumns.map((col) => `${table}.${col} = data.${col}`).join(' AND ')}
-    RETURNING ${table}.id;
-  `;
-
-  return {
-    baseQuery,
-    params
-  };
 };
 
 /**
@@ -1618,19 +1648,23 @@ const getUniqueScalarValue = async (
     }
     return result.rows[0][select];
   } catch (error) {
-    logGetStatusValueError(
-      error,
-      sql,
-      maskedTable,
-      select,
-      whereValue,
-      whereKey,
-      { ...meta }
-    );
-
-    throw AppError.databaseError(
-      `Failed to fetch value '${select}' from '${maskedTable}': ${error.message}`
-    );
+    throw handleDbError(error, {
+      context: 'db/getUniqueScalarValue',
+      message: `Failed to fetch value '${select}' from '${maskedTable}'.`,
+      meta: {
+        table: maskedTable,
+        select,
+        whereKey,
+      },
+      logFn: (err) =>
+        logDbQueryError(sql, [whereValue], err, {
+          context: 'get-unique-scalar-value',
+          table: maskedTable,
+          select,
+          where: { [whereKey]: whereValue },
+          ...meta,
+        }),
+    });
   }
 };
 
@@ -1676,12 +1710,22 @@ const checkRecordExists = async (table, condition, client = null) => {
     const { rows } = await query(sql, values, client);
     return rows.length > 0 && rows[0].exists === true;
   } catch (error) {
-    logSystemException(error, 'Failed to check record existence', {
+    const maskedTable = maskTableName(table);
+    
+    throw handleDbError(error, {
       context: 'db/checkRecordExists',
-      table,
-      condition,
+      message: `Failed to check existence in "${maskedTable}"`,
+      meta: {
+        maskedTable,
+        condition,
+      },
+      logFn: (err) =>
+        logSystemException(err, 'Failed to check record existence', {
+          context: 'db/checkRecordExists',
+          maskedTable,
+          condition,
+        }),
     });
-    throw AppError.databaseError(`Failed to check existence in "${table}"`);
   }
 };
 
@@ -1698,16 +1742,29 @@ const checkRecordExists = async (table, condition, client = null) => {
  * @returns {Promise<string[]>} missing IDs
  */
 const findMissingIds = async (client, table, ids, opts = {}) => {
-  const { schema = 'public', idColumn = 'id', logOnError = true } = opts;
-
-  // Guard dynamic identifiers
-  assertAllowed(schema, table);
-
+  const context = 'db/findMissingIds';
+  
+  const {
+    schema = 'public',
+    idColumn = 'id',
+    logOnError = true,
+  } = opts;
+  
+  //--------------------------------------------------
+  // 1. Normalize input
+  //--------------------------------------------------
   const list = uniq(ids);
   if (list.length === 0) return [];
-
+  
+  const maskedTable = maskTableName(table);
+  
+  //--------------------------------------------------
+  // 2. Build SAFE SQL
+  //--------------------------------------------------
   const sql = `
-    WITH input(id) AS (SELECT DISTINCT UNNEST($1::uuid[]))
+    WITH input(id) AS (
+      SELECT DISTINCT UNNEST($1::uuid[])
+    )
     SELECT i.id
     FROM input i
     WHERE NOT EXISTS (
@@ -1716,21 +1773,32 @@ const findMissingIds = async (client, table, ids, opts = {}) => {
       WHERE t.${q(idColumn)} = i.id
     );
   `;
-
+  
+  //--------------------------------------------------
+  // 3. Execute
+  //--------------------------------------------------
   try {
-    // Prefer using the passed client directly
     const { rows } = await query(sql, [list], client);
     return rows.map((r) => r.id);
   } catch (error) {
-    if (logOnError) {
-      logSystemException(error, 'Batch ID existence check failed', {
-        context: 'db/findMissingIds',
-        table: `${schema}.${table}`,
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to validate IDs',
+      meta: {
+        table: `${schema}.${maskedTable}`,
         idColumn,
         count: list.length,
-      });
-    }
-    throw AppError.databaseError('Failed to validate IDs');
+      },
+      logFn: logOnError
+        ? (err) =>
+          logSystemException(err, 'Batch ID existence check failed', {
+            context,
+            table: `${schema}.${maskedTable}`,
+            idColumn,
+            count: list.length,
+          })
+        : undefined,
+    });
   }
 };
 
@@ -1759,7 +1827,9 @@ const getFieldsById = async (
   if (!table || typeof table !== 'string' || !id) {
     throw AppError.validationError('Invalid parameters for getFieldsById');
   }
-
+  
+  const maskedTable = maskTableName(table);
+  
   const safeFields = selectFields
     .map((field) => field.replace(/[^a-zA-Z0-9_]/g, ''))
     .filter(Boolean);
@@ -1779,21 +1849,28 @@ const getFieldsById = async (
     if (result.rows.length === 0) return null;
     if (result.rows.length > 1) {
       throw AppError.databaseError(
-        `Duplicate id in table '${maskTableName(table)}': ${id}`
+        `Duplicate id in table '${maskedTable}': ${id}`
       );
     }
 
     return result.rows[0]; // returns an object like { name: ..., category: ... }
   } catch (error) {
-    logSystemException(error, 'Failed to fetch fields by ID', {
+    throw handleDbError(error, {
       context: 'db/getFieldsById',
-      table: maskTableName(table),
-      id,
-      selectFields: safeFields,
+      message: `Failed to fetch fields from '${maskedTable}'`,
+      meta: {
+        table: maskedTable,
+        id,
+        selectFields: safeFields,
+      },
+      logFn: (err) =>
+        logSystemException(err, 'Failed to fetch fields by ID', {
+          context: 'db/getFieldsById',
+          table: maskedTable,
+          id,
+          selectFields: safeFields,
+        }),
     });
-    throw AppError.databaseError(
-      `Failed to fetch fields from '${maskTableName(table)}'`
-    );
   }
 };
 
@@ -1855,17 +1932,24 @@ const getFieldValuesByField = async (
     const result = await query(sql, [whereValue], client);
     return result.rows.map((row) => row[cleanField]);
   } catch (err) {
-    logSystemException(err, 'Failed to get field values by field', {
+    const maskedTable = maskTableName(table);
+    
+    throw handleDbError(err, {
       context: 'db/getFieldValuesByField',
-      table,
-      whereKey,
-      whereValue,
-      selectField,
-    });
-    throw AppError.databaseError('Failed to fetch field values', {
-      details: err.message,
-      table,
-      whereKey,
+      message: 'Failed to fetch field values',
+      meta: {
+        maskedTable,
+        whereKey,
+        selectField,
+      },
+      logFn: (error) =>
+        logSystemException(error, 'Failed to get field values by field', {
+          context: 'db/getFieldValuesByField',
+          maskedTable,
+          whereKey,
+          whereValue,
+          selectField,
+        }),
     });
   }
 };
@@ -1889,7 +1973,6 @@ module.exports = {
   lockRows,
   bulkInsert,
   updateById,
-  formatBulkUpdateQuery,
   getUniqueScalarValue,
   checkRecordExists,
   findMissingIds,

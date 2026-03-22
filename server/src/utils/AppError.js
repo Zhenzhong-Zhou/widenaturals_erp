@@ -145,6 +145,60 @@ class AppError extends Error {
   }
   
   /**
+   * Creates a new AppError by extending an existing error instance.
+   *
+   * This method is used to safely transform or enrich an existing AppError
+   * without mutating the original instance.
+   *
+   * Common use cases:
+   * - Attach additional metadata (e.g. DB context)
+   * - Override message or context
+   * - Preserve original error as `cause`
+   *
+   * Guarantees:
+   * - Original error remains immutable
+   * - Metadata is merged (existing + overrides)
+   * - Core fields (status, type, code) are preserved unless overridden
+   *
+   * @param {AppError} existingError - The original AppError instance
+   * @param {object} [overrides={}] - Fields to override or extend
+   * @param {string} [overrides.message]
+   * @param {number} [overrides.status]
+   * @param {string} [overrides.type]
+   * @param {string} [overrides.code]
+   * @param {string} [overrides.logLevel]
+   * @param {string} [overrides.context]
+   * @param {object} [overrides.meta]
+   * @param {any} [overrides.details]
+   * @param {Error} [overrides.cause]
+   *
+   * @returns {AppError} New AppError instance
+   */
+  static from(existingError, overrides = {}) {
+    return new AppError(
+      overrides.message || existingError.message,
+      overrides.status ?? existingError.status,
+      {
+        type: overrides.type ?? existingError.type,
+        code: overrides.code ?? existingError.code,
+        logLevel: overrides.logLevel ?? existingError.logLevel,
+        context: overrides.context ?? existingError.context,
+        meta: {
+          ...(existingError.meta || {}),
+          ...(overrides.meta || {}),
+        },
+        cause: overrides.cause ?? existingError.cause,
+        isExpected: existingError.isExpected,
+        exposeDetails: existingError.exposeDetails,
+        details:
+          overrides.details !== undefined
+            ? overrides.details
+            : existingError.details,
+      }
+    );
+  }
+  
+  /**
    * Merges base error configuration with caller-provided overrides.
    *
    * Notes:
