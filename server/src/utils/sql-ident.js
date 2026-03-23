@@ -24,24 +24,44 @@ const AppError = require('./AppError');
 const isSafeIdent = (s) => /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(String(s));
 
 /**
- * Quote a SQL identifier safely (`"name"`).
+ * Safely quotes a SQL identifier (PostgreSQL compatible).
  *
- * Ensures the identifier is strictly alphanumeric with underscores,
- * preventing SQL injection via identifiers.
+ * Supports:
+ * - Simple identifiers:
+ *     id → "id"
+ *
+ * - Qualified identifiers (any depth):
+ *     alias.column → "alias"."column"
+ *     schema.table.column → "schema"."table"."column"
+ *
+ * Security:
+ * - Prevents SQL injection via strict validation
+ * - Only allows identifiers matching: [a-zA-Z_][a-zA-Z0-9_]*
+ * - Rejects spaces, quotes, operators, and SQL fragments
  *
  * Rules:
- * - Must start with a letter or underscore
- * - Can only contain [a-zA-Z0-9_]
+ * - Each segment must:
+ *   - start with a letter or underscore
+ *   - contain only alphanumeric characters and underscores
+ * - Unlimited segments supported (split by ".")
  *
- * @param {string} identifier - Column, table, or schema name
- * @returns {string} Quoted identifier
+ * Examples:
+ *   q('id') → "id"
+ *   q('r.name') → "r"."name"
+ *   q('public.users.id') → "public"."users"."id"
+ *
+ * @param {string} identifier - SQL identifier (optionally qualified)
+ * @returns {string} Safely quoted SQL identifier
  *
  * @throws {AppError} validationError if identifier is unsafe
  */
 const q = (identifier) => {
   const context = 'sql-ident/q';
   
-  if (typeof identifier !== 'string') {
+  //--------------------------------------------------
+  // Validate type
+  //--------------------------------------------------
+  if (typeof identifier !== 'string' || identifier.length === 0) {
     throw AppError.validationError('Invalid SQL identifier type', {
       context,
       meta: { identifier },
@@ -49,16 +69,25 @@ const q = (identifier) => {
   }
   
   //--------------------------------------------------
-  // Strict whitelist validation (NO dots, NO spaces)
+  // Validate each segment
   //--------------------------------------------------
-  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(identifier)) {
-    throw AppError.validationError(`Unsafe SQL identifier: ${identifier}`, {
-      context,
-      meta: { identifier },
-    });
+  const IDENTIFIER_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+  
+  const parts = identifier.split('.');
+  
+  for (const part of parts) {
+    if (!IDENTIFIER_REGEX.test(part)) {
+      throw AppError.validationError(`Unsafe SQL identifier: ${identifier}`, {
+        context,
+        meta: { identifier },
+      });
+    }
   }
   
-  return `"${identifier}"`;
+  //--------------------------------------------------
+  // Quote all segments safely
+  //--------------------------------------------------
+  return parts.map((p) => `"${p}"`).join('.');
 };
 
 /**
