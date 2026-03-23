@@ -1,40 +1,31 @@
 const AppError = require('../../../utils/AppError');
+const { safeOrderBy, q } = require('../../../utils/sql-ident');
 
 /**
  * Builds a SQL COUNT query with optional JOINs and filtering.
  *
  * SECURITY:
- * - `tableName`, `joins`, `whereClause`, and `distinctColumn` MUST be
- *   pre-validated or constructed internally (DO NOT pass raw user input).
+ * - tableName, joins, and whereClause MUST be internally constructed (NOT user input)
+ * - distinctColumn MUST be a safe identifier (validated via q())
  *
- * Behavior:
+ * BEHAVIOR:
  * - Supports COUNT(*) or COUNT(DISTINCT column)
  * - Allows dynamic JOIN clauses
  * - Applies filtering via WHERE clause
  *
+ * CONTRACT:
+ * - This function does NOT sanitize raw SQL fragments (joins, whereClause)
+ * - Caller is responsible for ensuring SQL safety for those parts
+ *
  * @param {string} tableName - Main table with optional alias (e.g., 'skus s')
- * @param {string[]} [joins=[]] - Array of JOIN clauses (pre-validated)
- * @param {string} [whereClause='1=1'] - WHERE condition (pre-built and safe)
- * @param {boolean} [useDistinct=false] - Whether to count distinct values
- * @param {string} [distinctColumn] - Column for DISTINCT count (required if useDistinct=true)
+ * @param {string[]} [joins=[]] - Array of JOIN clauses (trusted SQL)
+ * @param {string} [whereClause='1=1'] - WHERE condition (trusted SQL)
+ * @param {boolean} [useDistinct=false]
+ * @param {string} [distinctColumn] - Safe identifier (e.g., 's.id')
  *
  * @returns {string} SQL COUNT query
  *
- * @throws {AppError} If inputs are invalid
- *
- * @example
- * generateCountQuery(
- *   'skus s',
- *   ['LEFT JOIN products p ON s.product_id = p.id'],
- *   'p.brand IS NOT NULL',
- *   true,
- *   's.id'
- * );
- *
- * // SELECT COUNT(DISTINCT s.id) AS total
- * // FROM skus s
- * // LEFT JOIN products p ON s.product_id = p.id
- * // WHERE p.brand IS NOT NULL
+ * @throws {AppError} validationError if inputs are invalid
  */
 const generateCountQuery = (
   tableName,
@@ -43,132 +34,214 @@ const generateCountQuery = (
   useDistinct = false,
   distinctColumn
 ) => {
+  const context = 'pagination/generateCountQuery';
+  
   //--------------------------------------------------
-  // Validate inputs
+  // Validate tableName
   //--------------------------------------------------
-  if (!tableName || typeof tableName !== 'string') {
-    throw AppError.validationError('Invalid tableName');
+  if (typeof tableName !== 'string' || tableName.trim().length === 0) {
+    throw AppError.validationError('Invalid tableName', { context });
   }
   
+  //--------------------------------------------------
+  // Validate joins
+  //--------------------------------------------------
   if (!Array.isArray(joins)) {
-    throw AppError.validationError('joins must be an array of strings');
+    throw AppError.validationError('joins must be an array', { context });
   }
   
+  for (const join of joins) {
+    if (typeof join !== 'string' || join.trim().length === 0) {
+      throw AppError.validationError('Invalid join clause', {
+        context,
+        meta: { join },
+      });
+    }
+  }
+  
+  //--------------------------------------------------
+  // Validate whereClause
+  //--------------------------------------------------
   if (typeof whereClause !== 'string') {
-    throw AppError.validationError('Invalid whereClause');
-  }
-  
-  if (useDistinct && !distinctColumn) {
-    throw AppError.validationError(
-      'distinctColumn is required when useDistinct is true'
-    );
+    throw AppError.validationError('Invalid whereClause', { context });
   }
   
   //--------------------------------------------------
-  // Build query parts
+  // Validate distinct usage
   //--------------------------------------------------
-  const joinClause = joins.length > 0 ? joins.join(' ') : '';
+  let countExpr;
   
-  const countExpr = useDistinct
-    ? `COUNT(DISTINCT ${distinctColumn})`
-    : 'COUNT(*)';
+  if (useDistinct) {
+    if (!distinctColumn || typeof distinctColumn !== 'string') {
+      throw AppError.validationError(
+        'distinctColumn is required when useDistinct is true',
+        { context }
+      );
+    }
+    
+    // SAFE identifier quoting
+    const safeColumn = q(distinctColumn);
+    
+    countExpr = `COUNT(DISTINCT ${safeColumn})`;
+  } else {
+    countExpr = 'COUNT(*)';
+  }
   
   //--------------------------------------------------
-  // Construct final query
+  // Build JOIN clause
+  //--------------------------------------------------
+  const joinClause = joins.length ? ` ${joins.join(' ')}` : '';
+  
+  //--------------------------------------------------
+  // Construct query
   //--------------------------------------------------
   return `
     SELECT ${countExpr} AS total
-    FROM ${tableName}
-    ${joinClause}
+    FROM ${tableName}${joinClause}
     WHERE ${whereClause}
-  `;
+    `.trim();
 };
 
 /**
- * Constructs a paginated SQL query by appending `ORDER BY`, `LIMIT`, and `OFFSET`
- * clauses to a base query.
+ * Constructs a paginated SQL query with ORDER BY, LIMIT, and OFFSET.
  *
  * SECURITY:
- * - `sortBy` and `additionalSort` MUST be validated or whitelisted before passing.
- * - This function does NOT sanitize raw SQL identifiers.
+ * - All sortable columns MUST be validated via whitelistSet
+ * - Delegates ORDER BY safety to `safeOrderBy`
+ * - `rawOrderBy` is allowed ONLY for trusted internal usage
  *
- * Behavior:
- * - Applies primary and optional secondary sorting
- * - Enforces safe `LIMIT` and `OFFSET` parameter placeholders
+ * BEHAVIOR:
+ * - Applies primary sort (user-provided or fallback)
+ * - Supports additional secondary sorts (explicit direction allowed)
  * - Ensures deterministic ordering for pagination
+ * - Uses parameterized LIMIT and OFFSET
+ *
+ * SORTING RULES:
+ * - `sortBy` must exist in whitelistSet
+ * - `additionalSorts` must be valid column definitions
+ * - Direction is normalized to ASC/DESC
+ *
+ * PARAM INDEX:
+ * - LIMIT uses $paramIndex + 1
+ * - OFFSET uses $paramIndex + 2
+ * - Caller must ensure params array alignment
+ *
+ * EXAMPLE:
+ *   ORDER BY "r"."hierarchy_level" ASC, "r"."name" ASC
  *
  * @param {Object} options
- * @param {string} options.baseQuery - Base SQL query (without ORDER BY / LIMIT / OFFSET)
- * @param {string} [options.sortBy] - Column name (must be pre-validated)
- * @param {'ASC'|'DESC'} [options.sortOrder='ASC'] - Sort direction
- * @param {string} [options.additionalSort] - Additional validated sort clause(s)
- * @param {number} options.paramIndex - Current parameter index (e.g., params.length)
- * @param {string} [options.defaultSort='id ASC'] - Fallback sort for stable pagination
+ * @param {string} options.baseQuery - SQL query without ORDER BY/LIMIT/OFFSET
+ * @param {string} [options.sortBy]
+ * @param {'ASC'|'DESC'} [options.sortOrder='ASC']
+ * @param {(string | { column: string, direction: 'ASC' | 'DESC' })[]} [options.additionalSorts=[]]
+ * @param {string} [options.rawOrderBy] - INTERNAL ONLY (bypasses validation)
+ * @param {number} options.paramIndex - Current parameter index (params.length)
+ * @param {string} [options.defaultSort='id']
+ * @param {Set<string>} options.whitelistSet
  *
- * @returns {string} Final SQL query with pagination applied
+ * @returns {string}
  *
- * @example
- * const query = buildPaginatedQuery({
- *   baseQuery: 'SELECT * FROM products',
- *   sortBy: 'created_at',
- *   sortOrder: 'DESC',
- *   paramIndex: 2,
- * });
- *
- * // SELECT * FROM products
- * // ORDER BY created_at DESC
- * // LIMIT $3 OFFSET $4
+ * @throws {AppError} validationError
  */
 const buildPaginatedQuery = ({
                                baseQuery,
                                sortBy,
                                sortOrder = 'ASC',
-                               additionalSort,
+                               additionalSorts = [],
+                               rawOrderBy,
                                paramIndex,
-                               defaultSort = 'id ASC',
+                               defaultSort = 'id',
+                               whitelistSet,
                              }) => {
+  const context = 'pagination/buildPaginatedQuery';
+  
   //--------------------------------------------------
-  // Validate inputs (fail fast)
+  // Validate required inputs
   //--------------------------------------------------
-  if (!baseQuery || typeof baseQuery !== 'string') {
-    throw AppError.validationError('Invalid baseQuery');
+  if (typeof baseQuery !== 'string' || baseQuery.trim().length === 0) {
+    throw AppError.validationError('Invalid baseQuery', { context });
   }
   
   if (typeof paramIndex !== 'number' || paramIndex < 0) {
-    throw AppError.validationError('Invalid paramIndex');
+    throw AppError.validationError('Invalid paramIndex', { context });
   }
   
   let query = baseQuery.trim();
   
   //--------------------------------------------------
-  // Normalize sort order
+  // Normalize direction
   //--------------------------------------------------
   const normalizedOrder =
-    ['ASC', 'DESC'].includes(sortOrder?.toUpperCase())
-      ? sortOrder.toUpperCase()
-      : 'ASC';
+    String(sortOrder).toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
   
   //--------------------------------------------------
-  // Build ORDER BY clause
+  // PRIORITY: rawOrderBy (trusted internal use ONLY)
   //--------------------------------------------------
-  let orderClause;
-  
-  if (sortBy) {
-    orderClause = `${sortBy} ${normalizedOrder}`;
-    
-    if (additionalSort) {
-      orderClause += `, ${additionalSort}`;
-    }
-  } else {
-    // Ensure stable pagination
-    orderClause = defaultSort;
+  if (rawOrderBy) {
+    query += ` ORDER BY ${rawOrderBy}`;
+    query += ` LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 2}`;
+    return query;
   }
   
-  query += ` ORDER BY ${orderClause}`;
+  //--------------------------------------------------
+  // Validate whitelist ONLY for dynamic sorting
+  //--------------------------------------------------
+  if (!(whitelistSet instanceof Set) || whitelistSet.size === 0) {
+    throw AppError.validationError('Invalid whitelistSet', { context });
+  }
   
   //--------------------------------------------------
-  // Append pagination (parameterized)
+  // Resolve primary sort
   //--------------------------------------------------
+  const primarySort = sortBy || defaultSort;
+  
+  //--------------------------------------------------
+  // Build ORDER BY
+  //--------------------------------------------------
+  const orderParts = [];
+  
+  // Primary sort
+  orderParts.push(
+    safeOrderBy(primarySort, normalizedOrder, whitelistSet)
+  );
+  
+  //--------------------------------------------------
+  // Secondary sorts
+  //--------------------------------------------------
+  for (const item of additionalSorts) {
+    if (typeof item === 'string') {
+      orderParts.push(
+        safeOrderBy(item, 'ASC', whitelistSet)
+      );
+      continue;
+    }
+    
+    if (
+      item &&
+      typeof item === 'object' &&
+      typeof item.column === 'string'
+    ) {
+      const dir =
+        String(item.direction).toUpperCase() === 'DESC'
+          ? 'DESC'
+          : 'ASC';
+      
+      orderParts.push(
+        safeOrderBy(item.column, dir, whitelistSet)
+      );
+      continue;
+    }
+    
+    throw AppError.validationError('Invalid additionalSorts entry', {
+      context,
+      meta: { item },
+    });
+  }
+  
+  //--------------------------------------------------
+  // Assemble final query
+  //--------------------------------------------------
+  query += ` ORDER BY ${orderParts.join(', ')}`;
   query += ` LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 2}`;
   
   return query;
