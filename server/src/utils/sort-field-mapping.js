@@ -132,14 +132,7 @@ const SORTABLE_FIELDS = {
     updatedBy: 'uu.firstname',
 
     // --- Complex / synthetic sorting ---
-    defaultNaturalSort: `
-      p.name ASC,
-      s.sku ASC,
-      b.is_default DESC,
-      b.is_active DESC,
-      b.revision DESC,
-      b.created_at DESC
-    `,
+    defaultNaturalSort: 'p.name',
   },
   skuProductCards: {
     brand: 'p.brand',
@@ -148,10 +141,7 @@ const SORTABLE_FIELDS = {
     sizeLabel: 's.size_label',
     createdAt: 's.created_at',
     complianceNumber: 'cr.compliance_id',
-    defaultNaturalSort: `
-      p.name,
-      s.created_at
-    `,
+    defaultNaturalSort: 'p.name',
   },
   locationTypeSortMap: {
     // --------------------------------------------------
@@ -311,7 +301,7 @@ const SORTABLE_FIELDS = {
     // --------------------------------------------------
     manufactureDate: `pb.manufacture_date`,
     expiryDate: `pb.expiry_date`,
-    receivedDate: `pb.received_date`,
+    receivedAt: `pb.received_at`,
 
     // --------------------------------------------------
     // Quantity (manufactured amount)
@@ -717,6 +707,13 @@ const SORTABLE_FIELDS = {
     // Default fallback
     defaultNaturalSort: 'os.created_at',
   },
+  statusSortMap: {
+    name: 'LOWER(s.name)',
+    isActive: 's.is_active',
+    createdAt: 's.created_at',
+    updatedAt: 's.updated_at',
+    defaultNaturalSort: 'LOWER(s.name)',
+  }
 };
 
 module.exports = {
