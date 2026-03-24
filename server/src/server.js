@@ -1,192 +1,184 @@
 /**
  * @file server.js
- * @description Initializes and starts the server, including database monitoring, health checks, and cleanup.
+ * @description Application bootstrap (startup only).
+ *
+ * Responsibilities:
+ * - Initialize system dependencies
+ * - Start HTTP server
+ * - Start runtime services (monitoring, health checks)
+ *
+ * Notes:
+ * - NO shutdown logic (handled by lifecycle/on-exit)
  */
 
 const http = require('http');
 const {
   logSystemInfo,
-  logSystemError,
-  logMissingEnvVar,
-  logSystemDebug,
   logSystemException,
-} = require('./utils/system-logger');
+  logMissingEnvVar,
+} = require('./utils/logging/system-logger');
 const AppError = require('./utils/AppError');
-const { handleExit } = require('./utils/on-exit');
-const app = require('./app');
-const { createDatabaseAndInitialize } = require('./database/create-db');
-const { testConnection } = require('./database/db');
-const { initAllStatusCaches } = require('./config/status-cache');
+const { runStartupStep } = require('./system/lifecycle/run-startup-step');
 const {
-  initSkuOperationalStatusCache,
-} = require('./config/sku-operational-status-cache');
+  setServer,
+  registerShutdownHook,
+} = require('./system/lifecycle/on-exit');
+const app = require('./app');
+const { createDatabaseAndInitialize } = require('./system/startup/initialize-database');
+const { testConnection, monitorPool } = require('./database/db');
+const { initAllStatusCaches } = require('./config/status-cache');
+const { initSkuOperationalStatusCache } = require('./config/sku-operational-status-cache');
+const { initBatchActivityTypeCache } = require('./cache/batch-activity-type-cache');
 const { initializeRootAdmin } = require('./config/initialize-root');
 const {
   startPoolMonitoring,
   stopPoolMonitoring,
-  isPoolMonitoringRunning,
-} = require('./monitors/pool-health');
+} = require('./system/monitoring/pool-monitor');
 const {
   startHealthCheck,
   stopHealthCheck,
-} = require('./monitors/health-check');
+} = require('./system/health/health-check');
 const { ONE_MINUTE } = require('./utils/constants/general/time');
-const { runBackup } = require('./tasks/schedulers/backup-scheduler');
-const { initBatchActivityTypeCache } = require('./cache/batch-activity-type-cache');
+const { runBackup } = require('./system/backup/jobs/run-backup');
 
-let server; // HTTP server instance
-const activeIntervals = new Set(); // Tracks active intervals for cleanup
+const CONTEXT = 'startup/server';
+
+let server;
 
 /**
- * Starts the server after verifying the database connection and performing initializations.
- * @returns {object} The server instance.
+ * Starts the application server with full initialization pipeline.
  */
 const startServer = async () => {
   const PORT = process.env.PORT;
+  
+  //--------------------------------------------------
+  // Validate env
+  //--------------------------------------------------
   if (!PORT) {
-    const error = new AppError(
-      'PORT environment variable is missing or undefined'
-    );
+    const error = new AppError('PORT environment variable is missing');
     logMissingEnvVar('PORT', error);
-    await handleExit(1);
+    throw error;
   }
-
+  
   try {
+    //--------------------------------------------------
     // Database initialization
-    logSystemInfo('Initializing database...');
-    await createDatabaseAndInitialize();
-
-    logSystemInfo('Testing database connection...');
-    await testConnection();
-    logSystemInfo('Database connected successfully.');
-
-    logSystemInfo('Initializing all status caches...');
-    await initAllStatusCaches();
-    await initSkuOperationalStatusCache();
-    await initBatchActivityTypeCache();
-    logSystemInfo('All status caches initialized successfully.');
-
-    // Root admin initialization
-    logSystemInfo('Initializing root admin...');
-    await initializeRootAdmin();
-    logSystemInfo('Root admin initialization completed.');
-
-    // Starting the server
-    logSystemInfo('Starting server...');
-    server = http.createServer(app);
-
-    // Health check scheduling
-    const healthCheckInterval =
-      parseInt(process.env.HEALTH_CHECK_INTERVAL, 10) || ONE_MINUTE;
-    startHealthCheck(healthCheckInterval);
-
-    // Log health check at the same interval
-    const healthCheckId = setInterval(() => {
-      logSystemInfo('Health check running...');
-    }, healthCheckInterval);
-    activeIntervals.add(healthCheckId);
-
-    // Start pool monitoring
-    startPoolMonitoring();
-
-    server.listen(PORT, () => {
-      logSystemInfo(`Server running at http://localhost:${PORT}`);
+    //--------------------------------------------------
+    await runStartupStep(
+      'Initialize database',
+      createDatabaseAndInitialize,
+      { context: CONTEXT }
+    );
+    
+    await runStartupStep(
+      'Test database connection',
+      testConnection,
+      { context: CONTEXT }
+    );
+    
+    //--------------------------------------------------
+    // Cache initialization
+    //--------------------------------------------------
+    await runStartupStep(
+      'Initialize status caches',
+      async () => {
+        await initAllStatusCaches();
+        await initSkuOperationalStatusCache();
+        await initBatchActivityTypeCache();
+      },
+      { context: CONTEXT }
+    );
+    
+    //--------------------------------------------------
+    // Root admin
+    //--------------------------------------------------
+    await runStartupStep(
+      'Initialize root admin',
+      initializeRootAdmin,
+      { context: CONTEXT }
+    );
+    
+    //--------------------------------------------------
+    // Create server
+    //--------------------------------------------------
+    await runStartupStep(
+      'Create HTTP server',
+      async () => {
+        server = http.createServer(app);
+        setServer(server); // register for lifecycle shutdown
+      },
+      { context: CONTEXT }
+    );
+    
+    //--------------------------------------------------
+    // Start runtime services
+    //--------------------------------------------------
+    await runStartupStep(
+      'Start health check',
+      () => {
+        const interval =
+          parseInt(process.env.HEALTH_CHECK_INTERVAL, 10) || ONE_MINUTE;
+        
+        startHealthCheck(interval);
+        
+        // register shutdown
+        registerShutdownHook(() => stopHealthCheck());
+      },
+      { context: CONTEXT }
+    );
+    
+    await runStartupStep(
+      'Start pool monitoring',
+      () => {
+        startPoolMonitoring(monitorPool);
+        
+        // register shutdown
+        registerShutdownHook(() => stopPoolMonitoring());
+      },
+      { context: CONTEXT }
+    );
+    
+    //--------------------------------------------------
+    // Start server listening
+    //--------------------------------------------------
+    await runStartupStep(
+      'Start HTTP server',
+      () =>
+        new Promise((resolve) => {
+          server.listen(PORT, () => {
+            logSystemInfo(`Server running at http://localhost:${PORT}`, {
+              context: CONTEXT,
+              port: PORT,
+            });
+            resolve();
+          });
+        }),
+      { context: CONTEXT }
+    );
+    
+    //--------------------------------------------------
+    // Optional: backup hook
+    //--------------------------------------------------
+    registerShutdownHook(async () => {
+      try {
+        await runBackup();
+      } catch (error) {
+        logSystemException(error, 'Final backup failed', {
+          context: CONTEXT,
+        });
+      }
     });
-
+    
     return server;
+    
   } catch (error) {
     logSystemException(error, 'Failed to start server', {
-      context: 'startup',
-      severity: 'critical',
+      context: CONTEXT,
     });
     throw error;
   }
 };
 
-/**
- * Gracefully shuts down the server and performs cleanup tasks.
- */
-const shutdownServer = async () => {
-  logSystemInfo('Shutting down server...');
-
-  // Set a timeout to force shutdown if it hangs
-  const timeout = setTimeout(() => {
-    logSystemError('Shutdown timeout reached. Forcing exit.', {
-      severity: 'critical',
-    });
-    process.exit(1); // Force exit with failure if timeout is reached
-  }, 10000); // Adjust timeout as needed
-
-  try {
-    // Perform a final backup
-    try {
-      logSystemInfo('Performing final database backup before shutdown...');
-      await runBackup();
-      logSystemInfo('Final backup completed successfully.');
-    } catch (error) {
-      logSystemException(error, 'Error during final backup');
-    }
-
-    // Clear active intervals
-    logSystemInfo('Clearing active intervals...');
-    activeIntervals.forEach((intervalId) => clearInterval(intervalId));
-    logSystemInfo('All active intervals cleared.');
-
-    // Check active connections
-    if (server) {
-      server.getConnections((err, count) => {
-        if (err) {
-          logSystemException(err, 'Error getting active connections');
-        } else {
-          logSystemInfo(`Active connections: ${count}`);
-        }
-      });
-
-      // Close the HTTP server
-      logSystemInfo('Closing HTTP server...');
-      await new Promise((resolve, reject) => {
-        server.close((err) => {
-          if (err) {
-            logSystemException(err, 'Error during server shutdown');
-            reject(err);
-          } else {
-            logSystemInfo('HTTP server closed successfully.');
-            resolve();
-          }
-        });
-      });
-    }
-
-    // Stop health checks
-    try {
-      logSystemInfo('Stopping health checks...');
-      stopHealthCheck();
-    } catch (error) {
-      logSystemException(error, 'Error stopping health checks');
-    }
-
-    // Stop pool monitoring
-    try {
-      logSystemInfo('Stopping pool monitoring...');
-      if (isPoolMonitoringRunning()) {
-        stopPoolMonitoring();
-      } else {
-        logSystemDebug('Pool monitoring was not running.');
-      }
-    } catch (error) {
-      logSystemException(error, 'Error stopping pool monitoring');
-    }
-
-    // Clear timeout to prevent force exit
-    clearTimeout(timeout);
-    logSystemInfo('Cleanup completed successfully.');
-  } catch (error) {
-    clearTimeout(timeout);
-    logSystemException(error, 'Error during shutdown', {
-      severity: 'critical',
-    });
-    await handleExit(1); // Exit with failure
-  }
+module.exports = {
+  startServer
 };
-
-module.exports = { startServer, shutdownServer };
