@@ -824,6 +824,39 @@ class AppError extends Error {
       )
     );
   }
+  
+  /**
+   * Creates a system-level error for unexpected infrastructure failures.
+   *
+   * Used for:
+   * - Database failures
+   * - File system errors
+   * - External service failures
+   * - Crypto / internal processing errors
+   *
+   * @param {string} message - Human-readable error message
+   * @param {Object} [options={}] - Additional error metadata
+   * @param {string} [options.context] - Logical context (e.g. 'database', 'filesystem')
+   * @param {string} [options.operation] - Operation name (e.g. 'decryptFile')
+   * @param {Error}  [options.cause] - Original error (if any)
+   *
+   * @returns {AppError}
+   */
+  static systemError(message, options = {}) {
+    return new AppError(
+      message,
+      500,
+      AppError.buildOptions(
+        {
+          type: ERROR_TYPES.SYSTEM,
+          code: ERROR_CODES.SYSTEM,
+          logLevel: 'fatal', // stronger than generalError
+          isExpected: false,
+        },
+        options
+      )
+    );
+  }
 }
 
 module.exports = AppError;
