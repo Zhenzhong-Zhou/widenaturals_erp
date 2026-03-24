@@ -120,17 +120,6 @@ const logDbTransactionEvent = (action, txId, meta = {}) => {
 };
 
 // ============================================================
-// Pool health (system-level)
-// ============================================================
-
-const logDbPoolHealth = (metrics) => {
-  logSystemInfo('DB pool health', {
-    context: 'pool-monitor',
-    ...metrics,
-  });
-};
-
-// ============================================================
 // Specialized errors
 // ============================================================
 
@@ -205,7 +194,6 @@ module.exports = {
   logDbSlowQuery,
   logDbQueryError,
   logDbTransactionEvent,
-  logDbPoolHealth,
   logPaginatedQueryError,
   logLockRowError,
   logLockRowsError,

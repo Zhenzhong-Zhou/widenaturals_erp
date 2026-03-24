@@ -81,6 +81,7 @@ const ERROR_TYPES = {
   INITIALIZATION: 'InitializationError',
   GENERAL: 'GeneralError',
   INTERNAL: 'InternalError',
+  SYSTEM: 'SystemError',
 };
 
 // =========================
@@ -121,6 +122,10 @@ const ERROR_CODES = {
   INITIALIZATION: 'INIT_FAILURE',
   GENERAL: 'GENERAL_ERROR',
   INTERNAL: 'INTERNAL_ERROR',
+  PROCESS_EXECUTION_FAILED: 'PROCESS_EXECUTION_FAILED',
+  PROCESS_SPAWN_FAILED: 'PROCESS_SPAWN_FAILED',
+  PROCESS_TIMEOUT: 'PROCESS_TIMEOUT',
+  SYSTEM: 'SYSTEM_ERROR',
 };
 
 // =========================
