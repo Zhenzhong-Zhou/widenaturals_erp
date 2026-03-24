@@ -1,5 +1,5 @@
 const { exec, execSync } = require('child_process');
-const { logSystemInfo } = require('../utils/system-logger');
+const { logSystemInfo } = require('../utils/logging/system-logger');
 const path = require('path');
 const fs = require('fs');
 
