@@ -3,24 +3,33 @@
  * @description Redis client lifecycle management.
  *
  * Responsibilities:
- * - Create a single Redis client instance
- * - Explicitly control connection and disconnection
- * - Provide safe access to the active client
+ * - Lazily create and manage a Redis client instance
+ * - Provide controlled connect/disconnect lifecycle
+ * - Ensure safe concurrent connection attempts
+ * - Expose read-only access to connection state
  *
- * IMPORTANT:
- * - This module MUST NOT load environment variables
- * - This module MUST NOT connect at import time
- * - Redis lifecycle is controlled by application bootstrap
+ * Design Principles:
+ * - No side effects on import
+ * - Idempotent connect/disconnect operations
+ * - Explicit lifecycle control by application bootstrap
+ * - Safe concurrency via shared connection promise
  */
 
 const Redis = require('ioredis');
-const { logSystemInfo, logSystemError } = require('../utils/system-logger');
+const {
+  logSystemInfo,
+  logSystemError,
+} = require('./logging/system-logger');
+
+const CONTEXT = 'system/redis-client';
 
 let redisClient = null;
 let connectingPromise = null;
 
 /**
- * Create Redis client instance (does NOT auto-connect).
+ * Creates a Redis client instance (without connecting).
+ *
+ * @returns {Redis} ioredis client instance
  */
 const createRedisClient = () => {
   return new Redis({
@@ -28,81 +37,108 @@ const createRedisClient = () => {
     port: Number(process.env.REDIS_PORT) || 6379,
     username: process.env.REDIS_USERNAME,
     password: process.env.REDIS_PASSWORD,
-
-    // Secure in production
+    
     tls: process.env.NODE_ENV === 'production' ? {} : undefined,
-
-    // IMPORTANT: prevent implicit connection
+    
     lazyConnect: true,
-
-    // Prevent infinite retry loops
     maxRetriesPerRequest: 3,
     enableOfflineQueue: false,
   });
 };
 
 /**
- * Connect to Redis explicitly.
+ * Establishes a Redis connection.
  *
  * Guarantees:
- * - Only one client instance is created
- * - Concurrent calls share the same connection attempt
- * - Errors are surfaced to the caller
+ * - Only one connection attempt runs at a time
+ * - Reuses existing client if already connected
+ * - Fails fast and resets state on error
+ *
+ * @returns {Promise<Redis>} Connected Redis client
  */
 const connectRedis = async () => {
+  //--------------------------------------------------
+  // Already connected
+  //--------------------------------------------------
   if (redisClient?.status === 'ready') {
     return redisClient;
   }
-
+  
+  //--------------------------------------------------
+  // Connection in progress
+  //--------------------------------------------------
   if (connectingPromise) {
     return connectingPromise;
   }
-
+  
+  //--------------------------------------------------
+  // Create new client
+  //--------------------------------------------------
   redisClient = createRedisClient();
-
-  redisClient.on('connect', () => {
-    logSystemInfo('Redis connected');
+  
+  //--------------------------------------------------
+  // Attach event listeners ONCE per instance
+  //--------------------------------------------------
+  redisClient.once('connect', () => {
+    logSystemInfo('Redis connected', { context: CONTEXT });
   });
-
+  
   redisClient.on('error', (err) => {
     logSystemError('Redis error', {
+      context: CONTEXT,
       message: err.message,
       stack: err.stack,
     });
   });
-
+  
+  //--------------------------------------------------
+  // Controlled connection attempt
+  //--------------------------------------------------
   connectingPromise = (async () => {
     try {
       await redisClient.connect();
       return redisClient;
     } catch (error) {
       logSystemError('Failed to connect to Redis', {
+        context: CONTEXT,
         message: error.message,
         stack: error.stack,
       });
+      
       redisClient = null;
       throw error;
     } finally {
       connectingPromise = null;
     }
   })();
-
+  
   return connectingPromise;
 };
 
 /**
- * Disconnect Redis cleanly.
+ * Disconnects Redis gracefully.
  *
- * Safe to call multiple times.
+ * Guarantees:
+ * - Safe to call multiple times (idempotent)
+ * - Handles partially connected states
  */
 const disconnectRedis = async () => {
   if (!redisClient) return;
-
+  
   try {
-    await redisClient.quit();
-    logSystemInfo('Redis disconnected');
+    //--------------------------------------------------
+    // Only quit if connection is active
+    //--------------------------------------------------
+    if (redisClient.status === 'ready') {
+      await redisClient.quit();
+      logSystemInfo('Redis disconnected', { context: CONTEXT });
+    } else {
+      // Force cleanup if not fully connected
+      redisClient.disconnect();
+    }
   } catch (error) {
     logSystemError('Redis disconnect failed', {
+      context: CONTEXT,
       message: error.message,
     });
   } finally {
@@ -111,21 +147,20 @@ const disconnectRedis = async () => {
 };
 
 /**
- * Returns the active Redis client instance, if connected.
+ * Returns the active Redis client instance.
  *
- * IMPORTANT:
- * - This function MUST NOT create or connect Redis
- * - Callers must ensure Redis is initialized
+ * NOTE:
+ * - Does NOT create or connect Redis
+ * - May return null if not initialized
+ *
+ * @returns {Redis|null}
  */
 const getRedisClient = () => redisClient;
 
 /**
  * Indicates whether Redis is connected and ready.
  *
- * Useful for:
- * - health checks
- * - feature gating
- * - diagnostics
+ * @returns {boolean}
  */
 const isRedisReady = () => redisClient?.status === 'ready';
 

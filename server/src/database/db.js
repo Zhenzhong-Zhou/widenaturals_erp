@@ -22,9 +22,10 @@ const {
   logDbSlowQuery,
   logDbQueryError,
   logDbTransactionEvent,
-  logDbPoolHealth,
   logPaginatedQueryError,
-  logBulkInsertError, logLockRowsError, logLockRowError,
+  logBulkInsertError,
+  logLockRowsError,
+  logLockRowError,
 } = require('../utils/db-logger');
 const { getConnectionConfig, getEnvNumber } = require('../config/db-config');
 const AppError = require('../utils/AppError');
@@ -35,6 +36,8 @@ const {
   logSystemInfo,
   logSystemWarn,
   logSystemDebug,
+  logRetryWarning,
+  logSystemCrash,
 } = require('../utils/logging/system-logger');
 const { generateTraceId } = require('../utils/id-utils');
 const {
@@ -434,12 +437,13 @@ const testConnection = async () => {
  */
 
 /**
- * Retrieves and logs PostgreSQL pool metrics.
+ * Retrieves PostgreSQL connection pool metrics.
  *
  * Provides insight into:
  * - total active clients
  * - idle clients
  * - queued (waiting) requests
+ * - utilization ratio (active / total)
  *
  * Useful for monitoring connection pool health and diagnosing bottlenecks.
  *
@@ -447,40 +451,28 @@ const testConnection = async () => {
  *   totalClients: number,
  *   idleClients: number,
  *   waitingRequests: number,
- *   isHealthy: boolean
+ *   utilization: number
  * }}
  */
 const monitorPool = () => {
   /** @type {PgPoolWithMetrics} */
   const typedPool = pool;
   
-  //--------------------------------------------------
-  // Collect metrics
-  //--------------------------------------------------
-  const totalClients = typedPool.totalCount;
-  const idleClients = typedPool.idleCount;
+  const totalClients    = typedPool.totalCount;
+  const idleClients     = typedPool.idleCount;
   const waitingRequests = typedPool.waitingCount;
   
-  //--------------------------------------------------
-  // Basic health evaluation
-  //--------------------------------------------------
-  const isHealthy = waitingRequests === 0;
+  // Avoid division by zero when the pool has no clients yet
+  const utilization = totalClients > 0
+    ? (totalClients - idleClients) / totalClients
+    : 0;
   
-  const metrics = {
+  return {
     totalClients,
     idleClients,
     waitingRequests,
-    isHealthy,
+    utilization,
   };
-  
-  //--------------------------------------------------
-  // Log only if unhealthy or periodically
-  //--------------------------------------------------
-  if (!isHealthy) {
-    logDbPoolHealth(metrics, { severity: 'warning' });
-  }
-  
-  return metrics;
 };
 
 let poolClosed = false;
@@ -546,36 +538,54 @@ const closePool = async () => {
 /**
  * Retries database connectivity using a temporary client.
  *
- * Intended for startup/readiness checks.
+ * Intended for:
+ * - Startup readiness checks
+ * - Infrastructure health verification
  *
  * Features:
  * - Exponential backoff with jitter
- * - Per-attempt timeout (prevents hanging)
- * - Structured logging
+ * - Per-attempt connection timeout (prevents hanging)
+ * - Structured logging with retry visibility
+ * - Safe resource cleanup (client always closed)
+ *
+ * Design Principles:
+ * - Fail fast on invalid input
+ * - No silent failures (final attempt throws)
+ * - Context-aware logging (propagates caller context)
  *
  * @param {Object} config - PostgreSQL connection config
- * @param {Object} [options]
- * @param {number} [options.retries=5] - Max attempts
- * @param {number} [options.baseDelayMs=500] - Base delay for backoff
- * @param {number} [options.maxDelayMs=5000] - Max delay cap
- * @param {number} [options.connectTimeoutMs=3000] - Timeout per attempt
+ * @param {Object} [options={}]
+ * @param {number} [options.retries=5] - Maximum retry attempts
+ * @param {number} [options.baseDelayMs=500] - Initial delay for backoff
+ * @param {number} [options.maxDelayMs=5000] - Maximum delay cap
+ * @param {number} [options.connectTimeoutMs=3000] - Timeout per connection attempt
+ * @param {string} [options.context='db/retryDatabaseConnection'] - Logging context
  *
  * @returns {Promise<void>}
- * @throws {AppError} If all attempts fail
+ *
+ * @throws {AppError} If all retry attempts fail
  */
 const retryDatabaseConnection = async (
   config,
-  {
+  options = {}
+) => {
+  //--------------------------------------------------
+  // Validate input (fail fast)
+  //--------------------------------------------------
+  if (!config || typeof config !== 'object') {
+    throw new Error('retryDatabaseConnection: "config" must be a valid object');
+  }
+  
+  const {
     retries = 5,
     baseDelayMs = 500,
     maxDelayMs = 5000,
     connectTimeoutMs = 3000,
-  } = {}
-) => {
-  const context = 'db/retryDatabaseConnection';
+    context = 'db/retryDatabaseConnection',
+  } = options;
   
   //--------------------------------------------------
-  // Helper: delay
+  // Helper: sleep
   //--------------------------------------------------
   const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
   
@@ -583,8 +593,13 @@ const retryDatabaseConnection = async (
   // Helper: exponential backoff + jitter
   //--------------------------------------------------
   const computeDelay = (attempt) => {
-    const exp = Math.min(maxDelayMs, baseDelayMs * 2 ** attempt);
+    const exp = Math.min(
+      maxDelayMs,
+      baseDelayMs * 2 ** (attempt - 1)
+    );
+    
     const jitter = Math.floor(Math.random() * 200);
+    
     return exp + jitter;
   };
   
@@ -603,26 +618,23 @@ const retryDatabaseConnection = async (
       //--------------------------------------------------
       await client.connect();
       
-      logSystemInfo('Database connected successfully', {
+      logSystemInfo('Database connection successful', {
         context,
         attempt,
         retries,
+        status: 'connected',
       });
       
       await client.end();
       return;
     } catch (error) {
+      //--------------------------------------------------
+      // Ensure client is closed
+      //--------------------------------------------------
       await client.end().catch(() => {});
       
-      logSystemWarn('Database connection attempt failed', {
-        context,
-        attempt,
-        retries,
-        errorMessage: error.message,
-      });
-      
       //--------------------------------------------------
-      // Final failure
+      // Final failure (no retry)
       //--------------------------------------------------
       if (attempt === retries) {
         const message = 'Database connection failed after retries';
@@ -632,19 +644,27 @@ const retryDatabaseConnection = async (
           message,
           meta: { attempts: attempt, retries },
           logFn: (err) =>
-            logSystemException(err, message, {
+            logSystemCrash(err, message, {
               context,
               attempts: attempt,
               retries,
-              severity: 'critical',
             }),
         });
       }
       
       //--------------------------------------------------
-      // Backoff before next attempt
+      // Compute delay only if retrying
       //--------------------------------------------------
       const delayMs = computeDelay(attempt);
+      
+      //--------------------------------------------------
+      // Log retry warning
+      //--------------------------------------------------
+      logRetryWarning(attempt, retries, error, delayMs);
+      
+      //--------------------------------------------------
+      // Wait before next attempt
+      //--------------------------------------------------
       await sleep(delayMs);
     }
   }

@@ -26,54 +26,11 @@ const {
   logSystemInfo,
   logSystemError,
   logSystemCrash,
-} = require('./utils/system-logger');
-
+} = require('./utils/logging/system-logger');
 const { connectRedis, disconnectRedis } = require('./utils/redis-client');
-const { startServer, shutdownServer } = require('./server');
-const { setServer, handleExit } = require('./utils/on-exit');
-
-// =========================================================
-// Process-level shutdown guard
-// =========================================================
-
-/**
- * Ensures shutdown logic runs exactly once.
- * Prevents double execution from multiple signals.
- */
-let shuttingDown = false;
-
-// =========================================================
-// Graceful shutdown handler
-// =========================================================
-
-/**
- * Handles graceful application shutdown.
- *
- * Guarantees:
- * - Runs at most once
- * - Attempts clean server and dependency shutdown
- * - Exits process with correct status code
- */
-const handleShutdown = async () => {
-  if (shuttingDown) return;
-  shuttingDown = true;
-
-  try {
-    logSystemInfo('Initiating application shutdown...');
-
-    // Disconnect infrastructure dependencies first
-    await disconnectRedis();
-    await shutdownServer();
-
-    logSystemInfo('Application shutdown completed.');
-    process.exit(0);
-  } catch (error) {
-    logSystemCrash(error, 'Error during shutdown', {
-      context: 'shutdown',
-    });
-    process.exit(1);
-  }
-};
+const { startServer } = require('./server');
+const { setServer, handleExit, registerShutdownHook } = require('./system/lifecycle/on-exit');
+const { stopPoolMonitoring } = require('./system/monitoring/pool-monitor');
 
 // =========================================================
 // Process signal & crash handlers
@@ -82,41 +39,67 @@ const handleShutdown = async () => {
 /**
  * Registers all process-level signal and crash handlers.
  *
- * MUST be called before any async initialization.
+ * Responsibilities:
+ * - Route ALL shutdown events through `handleExit`
+ * - Register infrastructure cleanup hooks
+ * - Ensure consistent logging for fatal conditions
+ *
+ * Design:
+ * - No direct cleanup logic here
+ * - No process.exit here
+ * - Delegates everything to lifecycle layer
  */
 const registerProcessHandlers = () => {
-  process.on('SIGINT', async () => {
-    logSystemInfo('SIGINT received');
-    await handleShutdown();
+  const exit = (code) => void handleExit(code);
+  
+  //--------------------------------------------------
+  // Register ALL shutdown hooks (single source of cleanup)
+  //--------------------------------------------------
+  registerShutdownHook(async () => {
+    await disconnectRedis();
   });
-
-  process.on('SIGTERM', async () => {
-    logSystemInfo('SIGTERM received');
-    await handleShutdown();
+  
+  registerShutdownHook(() => stopPoolMonitoring());
+  
+  //--------------------------------------------------
+  // OS signals → unified shutdown pipeline
+  //--------------------------------------------------
+  process.on('SIGINT', () => {
+    logSystemInfo('SIGINT received', { context: 'lifecycle/signal' });
+    exit(0);
   });
-
+  
+  process.on('SIGTERM', () => {
+    logSystemInfo('SIGTERM received', { context: 'lifecycle/signal' });
+    exit(0);
+  });
+  
+  //--------------------------------------------------
+  // Unhandled Promise Rejection
+  //--------------------------------------------------
   process.on('unhandledRejection', (reason) => {
     logSystemError('Unhandled Rejection occurred', {
+      context: 'lifecycle/crash',
       traceId: 'unhandled-rejection',
       reasonMessage: reason?.message ?? String(reason),
       reasonStack: reason?.stack ?? null,
     });
-
-    // Fail fast in development to surface bugs early
-    if (process.env.NODE_ENV === 'development') {
-      setTimeout(() => process.exit(1), 50);
-    }
+    
+    // Always terminate — app state is undefined
+    exit(1);
   });
-
+  
+  //--------------------------------------------------
+  // Uncaught Exception
+  //--------------------------------------------------
   process.on('uncaughtException', (err) => {
     logSystemCrash(err, 'Uncaught Exception occurred', {
+      context: 'lifecycle/crash',
       traceId: 'uncaught-exception',
-      errorMessage: err?.message ?? String(err),
-      errorStack: err?.stack ?? null,
     });
-
-    // Exit after logging to avoid corrupted state
-    setTimeout(() => process.exit(1), 50);
+    
+    // Always terminate — cannot recover safely
+    exit(1);
   });
 };
 
@@ -128,40 +111,68 @@ const registerProcessHandlers = () => {
  * Initializes and starts the application.
  *
  * Startup order:
- * 1. Register process handlers
- * 2. Initialize infrastructure (non-blocking where optional)
- * 3. Start server
- * 4. Store server reference for shutdown
+ * 1. Register process handlers (MUST be first)
+ * 2. Initialize optional infrastructure (Redis)
+ * 3. Start HTTP server
+ * 4. Register server instance for graceful shutdown
+ *
+ * Guarantees:
+ * - Fails fast on critical startup errors
+ * - Delegates shutdown responsibility to lifecycle system
+ *
+ * @returns {Promise<object>} HTTP server instance
  */
 const initializeApp = async () => {
   try {
-    // Step 1: Protect the process first
+    //--------------------------------------------------
+    // Step 1: Protect process FIRST (critical)
+    //--------------------------------------------------
     registerProcessHandlers();
-
+    
+    //--------------------------------------------------
     // Step 2: Initialize Redis (optional dependency)
+    //--------------------------------------------------
     try {
-      logSystemInfo('Connecting to Redis...');
+      logSystemInfo('Connecting to Redis...', {
+        context: 'startup/redis',
+      });
+      
       await connectRedis();
     } catch (error) {
       logSystemError('Redis unavailable at startup (continuing)', {
+        context: 'startup/redis',
         message: error.message,
       });
     }
-
-    // Step 3: Start server
-    logSystemInfo('Starting server...');
+    
+    //--------------------------------------------------
+    // Step 3: Start HTTP server
+    //--------------------------------------------------
+    logSystemInfo('Starting server...', {
+      context: 'startup/server',
+    });
+    
     const serverInstance = await startServer();
-
-    // Step 4: Register server reference for shutdown
+    
+    //--------------------------------------------------
+    // Step 4: Register server for graceful shutdown
+    //--------------------------------------------------
     setServer(serverInstance);
-
-    logSystemInfo('Application started successfully.');
+    
+    logSystemInfo('Application started successfully.', {
+      context: 'startup/app',
+    });
+    
     return serverInstance;
   } catch (error) {
+    //--------------------------------------------------
+    // Fatal startup failure → controlled exit
+    //--------------------------------------------------
     logSystemCrash(error, 'Application initialization failed', {
-      context: 'bootstrap',
+      context: 'startup/bootstrap',
       severity: 'critical',
     });
+    
     await handleExit(1);
   }
 };
