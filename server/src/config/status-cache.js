@@ -1,19 +1,28 @@
 /**
- * @fileoverview
- * Centralized status cache manager for system-wide status lookups.
+ * @file status-cache.js
+ * @description Centralized status cache manager for system-wide status lookups.
  *
- * - Supports both global (pool-based) and transactional (client-based) initialization.
- * - Provides in-memory caching for both logical status keys → UUIDs,
- *   and UUID → name/row mappings.
- * - Automatically refreshes status data at runtime.
+ * Responsibilities:
+ * - Cache logical application status keys to database UUIDs
+ * - Cache status UUIDs to uppercase names and full status rows
+ * - Support both pool-based and transactional initialization
+ * - Optionally refresh row/name caches in the background
+ *
+ * Context:
+ * - Used during bootstrap and runtime lookups
+ * - Exposes synchronous getters after async initialization
+ *
+ * Design:
+ * - Use atomic map replacement for row/name cache refreshes
+ * - Fail fast during bootstrap initialization
+ * - Log exceptions once at orchestration boundaries
  */
 
 const { query, pool } = require('../database/db');
 const {
   logSystemException,
-  logSystemError,
   logSystemInfo,
-} = require('../utils/system-logger');
+} = require('../utils/logging/system-logger');
 const AppError = require('../utils/AppError');
 const { getAllStatuses } = require('../repositories/status-repository');
 
@@ -27,13 +36,15 @@ const { getAllStatuses } = require('../repositories/status-repository');
  * @property {string} updated_at
  */
 
+/** @type {Readonly<Record<string, string>> | null} */
 let statusMap = null;
-// ---------------------------------------------
-// Private in-memory maps (atomic swap pattern)
-// ---------------------------------------------
-let STATUS_NAME_MAP = new Map(); // id (UUID) → UPPERCASE(name)
+let STATUS_NAME_MAP = new Map();
 /** @type {Map<string, StatusRow>} */
-let STATUS_ROW_MAP = new Map(); // id (UUID) → full row object
+let STATUS_ROW_MAP = new Map();
+/** @type {ReturnType<typeof setInterval> | null} */
+let statusCacheRefreshTimer = null;
+
+const CONTEXT = 'status-cache';
 
 /**
  * Defines mappings from logical status keys used in application code
@@ -179,177 +190,138 @@ const STATUS_KEY_LOOKUP = [
 ];
 
 /**
- * Fetches a map of application-level status keys to actual status UUIDs,
- * by dynamically resolving entries defined in the `STATUS_KEY_LOOKUP` array
- * through safe parameterized SQL queries.
+ * Builds the logical status key → UUID cache from the database.
  *
- * This map enables system-wide usage of logical status keys
- * without hardcoding UUIDs in application logic.
- *
- * Example output:
- * {
- *   product_active: 'uuid-...',
- *   warehouse_active: 'uuid-...',
- *   inventory_in_stock: 'uuid-...'
- * }
- *
+ * @param {import('pg').Pool | import('pg').PoolClient} [db=pool]
  * @returns {Promise<Readonly<Record<string, string>>>}
- *   A frozen map where each key is a logical status key and each value is the corresponding UUID.
- *
- * @throws {AppError}
- *   Throws if the status map query fails or if initialization fails.
+ * @throws {AppError} If the status map cannot be initialized.
  */
-const getStatusIdMap = async (client = null) => {
+const getStatusIdMap = async (db = pool) => {
   try {
-    const nameSet = new Set();
-    const unions = [];
+    const uniquePairs = [
+      ...new Set(
+        STATUS_KEY_LOOKUP.map(
+          ({ table, name }) => `${table}:${name.toLowerCase()}`
+        )
+      ),
+    ];
+    
     const params = [];
-    let paramIndex = 1;
-
-    for (const { table, name } of STATUS_KEY_LOOKUP) {
-      nameSet.add(`${table}:${name}`);
-    }
-
-    const uniquePairs = Array.from(nameSet);
-
-    for (const entry of uniquePairs) {
+    const unions = uniquePairs.map((entry, i) => {
       const [table, name] = entry.split(':');
-      unions.push(`
+      params.push(name);
+      
+      return `
         SELECT '${table}' AS source, LOWER(name) AS name, id
         FROM ${table}
-        WHERE LOWER(name) = $${paramIndex}
-      `);
-      params.push(name.toLowerCase());
-      paramIndex++;
-    }
-
+        WHERE LOWER(name) = $${i + 1}
+      `;
+    });
+    
     const sql = unions.join(' UNION ALL ');
-
-    // Use provided client if inside a transaction; fallback to shared pool otherwise
-    const { rows } = await query(sql, params, client || pool);
-
+    const { rows } = await query(sql, params, db);
+    
+    const rowIndex = new Map(
+      rows.map((row) => [`${row.source}:${row.name}`, row.id])
+    );
+    
     const map = {};
     for (const { key, table, name } of STATUS_KEY_LOOKUP) {
-      const row = rows.find(
-        (r) => r.source === table && r.name === name.toLowerCase()
-      );
-      if (row) {
-        map[key] = row.id;
-      }
+      const id = rowIndex.get(`${table}:${name.toLowerCase()}`);
+      if (id) map[key] = id;
     }
-
+    
     return Object.freeze(map);
   } catch (error) {
-    logSystemException(error, 'Failed to fetch status IDs', {
-      context: 'get-status-id-map',
-    });
-
     throw AppError.databaseError('Failed to initialize status map', {
       details: error.message,
+      context: `${CONTEXT}/getStatusIdMap`,
     });
   }
 };
 
 /**
- * Initializes and caches the logical status ID map for later use.
+ * Initializes and caches the logical status key → UUID map.
  *
- * ### Behavior
- * - Uses `getStatusIdMap(client)` to populate a key → UUID map.
- * - Designed to fail fast if initialization fails (halts boot).
- * - Can optionally run inside a transactional boot context.
+ * Behavior:
+ * - Resolves logical application status keys through STATUS_KEY_LOOKUP
+ * - Supports pool-based or transactional initialization
+ * - Fails fast if initialization cannot complete
  *
- * @param {import('pg').PoolClient} [client] - Optional PostgreSQL client for boot-time initialization.
+ * @param {import('pg').Pool | import('pg').PoolClient} [db=pool]
  * @returns {Promise<void>}
- * @throws {AppError.initializationError} If loading the status ID map fails.
+ * @throws {AppError} If the logical status cache cannot be initialized.
  */
-const initStatusCache = async (client = null) => {
-  try {
-    // Pass the client down to share connection context
-    statusMap = await getStatusIdMap(client || pool);
-
-    logSystemInfo('Initialized logical status ID map', {
-      context: 'status-cache/initStatusCache',
-      count: Object.keys(statusMap).length,
-    });
-  } catch (error) {
-    logSystemException(error, 'Failed to load status ID map', {
-      context: 'status-cache/initStatusCache',
-    });
-    throw AppError.initializationError('Failed to initialize status ID map', {
-      details: error.message,
-    });
-  }
+const initStatusCache = async (db = pool) => {
+  statusMap = await getStatusIdMap(db);
+  
+  logSystemInfo('Initialized logical status ID map', {
+    context: `${CONTEXT}/initStatusCache`,
+    count: Object.keys(statusMap).length,
+  });
 };
 
 /**
- * Retrieves a cached status ID by key, e.g., "product_active", "lot_in_stock".
- * @param {keyof typeof STATUS_KEY_LOOKUP | string} key
- * @returns {string} UUID of the status
- * @throws Error if status cache is not initialized or key is missing
+ * Retrieves a cached status UUID by logical key.
+ *
+ * @param {string} key - Logical application status key.
+ * @returns {string}
+ * @throws {AppError} If the cache is uninitialized or the key is missing.
  */
 const getStatusId = (key) => {
   if (!statusMap || typeof statusMap !== 'object') {
     throw AppError.initializationError(
-      `Status map not properly initialized. Cannot fetch key: "${key}"`
+      `Status cache not initialized. Cannot resolve key: "${key}"`
     );
   }
-
+  
   if (!statusMap[key]) {
-    logSystemError('Status key not found in cache', {
-      context: 'get-status-id',
-      missingKey: key,
+    throw AppError.notFoundError(`Missing status ID for key: "${key}"`, {
+      context: `${CONTEXT}/getStatusId`,
+      key,
     });
-    throw AppError.notFoundError(`Missing status ID for key: "${key}"`);
   }
-
+  
   return statusMap[key];
 };
 
 /**
- * Repository: Load All Statuses into Cache
+ * Loads all status rows into the UUID → name and UUID → row caches.
  *
- * Loads all rows from the `status` table into two in-memory maps:
- * - `STATUS_NAME_MAP`: For lightweight UUID → UPPERCASE(name) lookups
- * - `STATUS_ROW_MAP`:  For full record access (name, description, timestamps, etc.)
+ * Notes:
+ * - Independent of the logical key → UUID cache used by getStatusId()
+ * - Uses atomic map replacement to avoid exposing partial refresh state
  *
- * ### Notes
- * - Independent of `STATUS_KEY_LOOKUP` cache used by getStatusIdMap().
- * - Uses atomic swap to avoid race conditions when replacing cached data.
- *
- * @param {import('pg').PoolClient} [client] - Optional PostgreSQL client for transaction context.
+ * @param {import('pg').PoolClient} [client]
  * @returns {Promise<void>}
- * @throws {AppError} If the query or initialization fails.
+ * @throws {AppError} If the cache cannot be loaded.
  */
 const loadAllStatusesIntoCache = async (client) => {
+  const context = `${CONTEXT}/loadAllStatusesIntoCache`;
+  
   try {
-    // Use provided client if in a transaction, else fallback to shared pool
     const rows = await getAllStatuses(client);
-
-    // Prepare next generation of maps for atomic replacement
+    
     const nextNameMap = new Map();
     const nextRowMap = new Map();
-
+    
     for (const row of rows) {
       const code = (row.name || '').toUpperCase();
       nextNameMap.set(row.id, code);
       nextRowMap.set(row.id, row);
     }
-
-    // Atomic swap to prevent race conditions
+    
+    // Build replacement maps first, then swap references once complete.
     STATUS_NAME_MAP = nextNameMap;
     STATUS_ROW_MAP = nextRowMap;
-
+    
     logSystemInfo('Status name and row caches loaded successfully', {
-      context: 'status-cache/loadAllStatusesIntoCache',
+      context,
       recordCount: rows.length,
     });
   } catch (error) {
-    logSystemException(error, 'Failed to load status cache', {
-      context: 'status-cache/loadAllStatusesIntoCache',
-    });
-
-    throw AppError.databaseError('Failed to load status cache.', {
-      context: 'status-cache/loadAllStatusesIntoCache',
+    throw AppError.databaseError('Failed to load status cache', {
+      context,
       details: error.message,
     });
   }
@@ -387,81 +359,107 @@ const initStatusNameCache = async (client) => {
 };
 
 /**
- * Initializes all status caches at application startup.
+ * Starts periodic background refresh for the UUID → name and UUID → row caches.
+ *
+ * Behavior:
+ * - Creates only one interval per process
+ * - Skips overlapping refresh executions
+ * - Refreshes row/name caches in the background without blocking callers
+ *
+ * @param {number} [refreshIntervalMs=600000] - Refresh interval in milliseconds.
+ * @returns {void}
+ */
+const startStatusCacheAutoRefresh = (refreshIntervalMs = 10 * 60 * 1000) => {
+  const context = `${CONTEXT}/startStatusCacheAutoRefresh`;
+  
+  // Prevent duplicate intervals if bootstrap is called more than once.
+  if (statusCacheRefreshTimer) return;
+  
+  let refreshing = false;
+  
+  statusCacheRefreshTimer = setInterval(async () => {
+    // Avoid overlapping refresh runs if one execution is still in progress.
+    if (refreshing) return;
+    refreshing = true;
+    
+    try {
+      await loadAllStatusesIntoCache();
+      
+      logSystemInfo('Status cache refresh completed', {
+        context,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      logSystemException(error, 'Status cache refresh failed', {
+        context,
+      });
+    } finally {
+      refreshing = false;
+    }
+  }, refreshIntervalMs);
+  
+  // Do not keep the Node.js process alive solely for this background timer.
+  statusCacheRefreshTimer.unref?.();
+  
+  logSystemInfo('Periodic status cache auto-refresh enabled', {
+    context,
+    refreshIntervalMs,
+  });
+};
+
+/**
+ * Initializes all status caches during application startup.
  *
  * Combines:
- * - Logical key → UUID map (`initStatusCache`)
- * - UUID → name/row maps (`initStatusNameCache`)
+ * - logical key → UUID cache
+ * - UUID → uppercase name cache
+ * - UUID → row cache
  *
- * ### Features
- * - Loads both caches atomically for consistency.
- * - Provides optional background auto-refresh (default every 10 minutes).
- * - Safe to call during app bootstrap or runtime reloads.
+ * Behavior:
+ * - Initializes both cache layers before reporting success
+ * - Optionally enables background refresh for row/name caches
  *
- * @param {import('pg').PoolClient} [client] - Optional PostgreSQL client for boot-time transaction.
- * @param {boolean} [enableAutoRefresh=true] - Enable background periodic refresh.
- * @param {number} [refreshIntervalMs=600000] - Refresh interval (default 10 minutes).
- * @throws {AppError.initializationError} If any cache initialization fails.
- *
+ * @param {import('pg').PoolClient} [client]
+ * @param {boolean} [enableAutoRefresh=true]
+ * @param {number} [refreshIntervalMs=600000]
  * @returns {Promise<void>}
+ * @throws {AppError} If bootstrap cache initialization fails.
  */
 const initAllStatusCaches = async (
   client,
   enableAutoRefresh = true,
   refreshIntervalMs = 10 * 60 * 1000
 ) => {
+  const context = `${CONTEXT}/initAllStatusCaches`;
+  
   const startTime = Date.now();
+  
   logSystemInfo('Initializing all status caches...', {
-    context: 'status-cache/initAllStatusCaches',
+    context,
   });
-
+  
   try {
-    // Step 1: Run both caches concurrently (boot-time)
     await Promise.all([
-      initStatusCache(client), // key → UUID
-      initStatusNameCache(client), // UUID → name/row
+      initStatusCache(client),
+      initStatusNameCache(client),
     ]);
-
-    const elapsed = Date.now() - startTime;
-    logSystemInfo('All status caches initialized successfully', {
-      context: 'status-cache/initAllStatusCaches',
-      elapsedMs: elapsed,
-    });
-
-    // Step 2: Periodic auto-refresh (pool-based, not transaction client)
+    
     if (enableAutoRefresh) {
-      let refreshing = false;
-
-      setInterval(async () => {
-        if (refreshing) return; // skip overlapping refresh
-        refreshing = true;
-
-        try {
-          await loadAllStatusesIntoCache(); // uses pool by default
-          logSystemInfo('Status cache refresh completed', {
-            context: 'status-cache/auto-refresh',
-            timestamp: new Date().toISOString(),
-          });
-        } catch (err) {
-          logSystemException(err, 'Status cache refresh failed', {
-            context: 'status-cache/auto-refresh',
-          });
-        } finally {
-          refreshing = false;
-        }
-      }, refreshIntervalMs);
-
-      logSystemInfo('Periodic status cache auto-refresh enabled', {
-        context: 'status-cache/initAllStatusCaches',
-        refreshIntervalMs,
-      });
+      startStatusCacheAutoRefresh(refreshIntervalMs);
     }
+    
+    logSystemInfo('All status caches initialized successfully', {
+      context,
+      elapsedMs: Date.now() - startTime,
+    });
   } catch (error) {
     logSystemException(error, 'Failed to initialize all status caches', {
-      context: 'status-cache/initAllStatusCaches',
+      context,
     });
-    throw AppError.initializationError('Failed to initialize status caches.', {
+    
+    throw AppError.initializationError('Failed to initialize status caches', {
       details: error.message,
+      context,
     });
   }
 };
