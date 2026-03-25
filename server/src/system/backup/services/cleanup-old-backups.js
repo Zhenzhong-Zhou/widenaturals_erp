@@ -1,47 +1,49 @@
-const AppError = require('../../../utils/AppError');
 const {
   logSystemInfo,
-  logSystemException
+  logSystemWarn,
 } = require('../../../utils/logging/system-logger');
 const { cleanupS3Backups } = require('../adapters/backup-s3-adapter');
 const { cleanupLocalBackups } = require('../adapters/backup-fs-adapter');
 
 /**
- * Cleans up old backups from either S3 or local filesystem.
+ * Orchestrates old backup cleanup across storage backends.
  *
- * This is the orchestration layer responsible for:
- * - validating input
- * - choosing storage strategy (S3 vs local)
- * - handling AppError and logging
+ * Validates retention policy, selects the appropriate storage adapter
+ * (S3 or local filesystem), and delegates deletion. Each adapter owns
+ * its own file-counting logic — this layer speaks only in backup copies.
  *
  * @param {Object} params
- * @param {string} params.dir - Local directory path
- * @param {number} params.maxBackups - Number of backups to retain (must be multiple of 3)
- * @param {boolean} params.isProduction - Whether running in production (S3 mode)
- * @param {string} [params.bucketName] - S3 bucket name (required in production)
- * @param {number} [params.toleranceMs=5000] - Time tolerance for grouping S3 files
+ * @param {string} params.dir - Local backup directory path
+ * @param {number} params.maxBackups - Number of backup copies to retain
+ * @param {boolean} params.isProduction - Whether to target S3 (true) or local (false)
+ * @param {string} [params.bucketName] - S3 bucket name (required when isProduction is true)
+ * @param {number} [params.toleranceMs=5000] - Timestamp tolerance for S3 file grouping
  * @returns {Promise<void>}
  */
 const cleanupOldBackupsService = async ({
-                                                 dir,
-                                                 maxBackups,
-                                                 isProduction,
-                                                 bucketName,
-                                                 toleranceMs = 5000,
-                                               }) => {
+                                          dir,
+                                          maxBackups,
+                                          isProduction,
+                                          bucketName,
+                                          toleranceMs = 5000,
+                                        }) => {
   const CONTEXT = 'backup-cleanup';
   
   try {
-    // Validate input (SERVICE layer owns AppError)
-    if (!Number.isInteger(maxBackups) || maxBackups <= 0 || maxBackups % 3 !== 0) {
-      throw AppError.validationError(
-        `Invalid maxBackups: ${maxBackups}. Must be a positive multiple of 3`
-      );
+    // Fall back on invalid input — cleanup is secondary to the backup itself
+    if (!Number.isInteger(maxBackups) || maxBackups <= 0) {
+      logSystemWarn(`Invalid maxBackups: ${maxBackups}. Falling back to default (5).`, {
+        context: CONTEXT,
+        originalValue: maxBackups,
+        fallback: 5,
+      });
+      maxBackups = 5;
     }
     
     logSystemInfo('Starting backup cleanup', {
       context: CONTEXT,
       mode: isProduction ? 'S3' : 'local',
+      maxBackups,
     });
     
     if (isProduction && bucketName) {
@@ -70,11 +72,11 @@ const cleanupOldBackupsService = async ({
     });
     
   } catch (error) {
-    logSystemException(error, 'Backup cleanup failed', {
+    // Non-fatal — backup succeeded, only rotation failed
+    logSystemWarn('Old backup cleanup failed', {
       context: CONTEXT,
+      reason: error.message, // message only, not full error object
     });
-    
-    throw error;
   }
 };
 
