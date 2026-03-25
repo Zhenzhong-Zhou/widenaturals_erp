@@ -25,10 +25,6 @@ const path = require('path');
 const { pipeline } = require('stream/promises');
 const { createLogger, format, transports } = require('winston');
 const DailyRotateFile = require('winston-daily-rotate-file');
-const { loadEnv } = require('../../config/env');
-const { uploadFileToS3 } = require('../aws-s3-service');
-
-loadEnv();
 
 const isProduction = process.env.NODE_ENV === 'production';
 const logLevel = process.env.LOG_LEVEL || (isProduction ? 'info' : 'debug');
@@ -140,7 +136,6 @@ const compressFile = async (source, destination) => {
 // ============================================================
 const handleRotationAndUpload = (transport, prefix) => {
   transport.on('rotate', (oldFile) => {
-    // Run async safely without blocking event loop
     (async () => {
       try {
         const gzFile = `${oldFile}.gz`;
@@ -148,16 +143,16 @@ const handleRotationAndUpload = (transport, prefix) => {
         await compressFile(oldFile, gzFile);
         
         if (bucketName) {
+          // Lazy require — breaks the circular dependency
+          const { uploadFileToS3 } = require('../aws-s3-service');
           const key = `${prefix}/${path.basename(gzFile)}`;
           
           await uploadFileToS3(gzFile, bucketName, key);
           
-          // Delete only after success
           await fs.promises.unlink(oldFile);
           await fs.promises.unlink(gzFile);
         }
       } catch (err) {
-        // Fail-safe: keep files for manual recovery
         console.error('[Logger] Rotation failed:', err.message);
       }
     })();
