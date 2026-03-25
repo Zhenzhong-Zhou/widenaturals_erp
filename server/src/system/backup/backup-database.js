@@ -21,7 +21,8 @@ const { loadEnv } = require('../../config/env');
 const AppError = require('../../utils/AppError');
 const {
   logSystemInfo,
-  logSystemException
+  logSystemException,
+  logSystemWarn
 } = require('../../utils/logging/system-logger');
 const { ensureDirectory } = require('./utils/file-system');
 const { runPgDump } = require('./process/pg-dump');
@@ -30,6 +31,40 @@ const { generateHash, saveHashToFile } = require('./utils/file-hash');
 const { cleanupOldBackupsService } = require('./services/cleanup-old-backups');
 const { uploadBackupToS3 } = require('./adapters/backup-s3-adapter');
 const { cleanupLocalFiles } = require('./adapters/backup-fs-adapter');
+const { ERROR_TYPES, ERROR_CODES } = require('../../utils/constants/error-constants');
+
+const CONTEXT = 'backup';
+
+/** @type {string | null} */
+let _pgVersion = null;
+
+/**
+ * Returns the Postgres major version for use in backup filenames.
+ *
+ * Reads REQUIRED_PG_VERSION — set at startup and validated by
+ * checkPostgresVersion() — rather than spawning `pg_dump --version`.
+ * This reflects the server data version (what matters for restore
+ * compatibility) rather than the pg_dump client tool version.
+ *
+ * Result is cached at module level — resolved once per process lifetime.
+ *
+ * @returns {string} Major version number e.g. '17', or 'unknown' if env not set
+ */
+const getPgVersion = () => {
+  if (_pgVersion) return _pgVersion;
+  
+  // REQUIRED_PG_VERSION is set in .env and validated against the running
+  // server at startup — safe to use here without re-querying the DB
+  _pgVersion = process.env.REQUIRED_PG_VERSION ?? 'unknown';
+  
+  if (_pgVersion === 'unknown') {
+    logSystemWarn('REQUIRED_PG_VERSION not set — backup filename will use "unknown"', {
+      context: CONTEXT,
+    });
+  }
+  
+  return _pgVersion;
+};
 
 /**
  * Resolves and validates all backup configuration from environment variables.
@@ -52,35 +87,48 @@ const { cleanupLocalFiles } = require('./adapters/backup-fs-adapter');
  * @throws {AppError} If any required variable is missing or invalid.
  */
 const resolveConfig = () => {
+  const context = `${CONTEXT}-config`;
+  
+  //--------------------------------------------------
+  // Required env validation first — fail fast
+  //--------------------------------------------------
   const targetDatabase = process.env.DB_NAME;
   if (!targetDatabase) {
     throw AppError.validationError('Missing required environment variable: DB_NAME', {
-      context: 'backup-config',
+      context,
     });
   }
   
   const encryptionKey = process.env.BACKUP_ENCRYPTION_KEY;
   if (!encryptionKey) {
     throw AppError.validationError('Missing required environment variable: BACKUP_ENCRYPTION_KEY', {
-      context: 'backup-config',
+      context,
     });
   }
   
-  // parseInt returns NaN for missing/non-numeric values — fall back to 15 only then
+  //--------------------------------------------------
+  // maxBackups
+  //--------------------------------------------------
   const rawMaxBackups = parseInt(process.env.MAX_BACKUPS, 10);
-  const maxBackups    = isNaN(rawMaxBackups) ? 15 : rawMaxBackups;
+  let maxBackups = isNaN(rawMaxBackups) ? 5 : rawMaxBackups;
   
-  if (!Number.isInteger(maxBackups) || maxBackups <= 0 || maxBackups % 3 !== 0) {
-    throw AppError.validationError(
-      `Invalid MAX_BACKUPS: ${maxBackups}. Must be a positive multiple of 3.`,
-      { context: 'backup-config' }
-    );
+  if (!Number.isInteger(maxBackups) || maxBackups <= 0) {
+    logSystemWarn(`Invalid MAX_BACKUPS: ${maxBackups}. Falling back to default (5).`, {
+      context,
+      originalValue: process.env.MAX_BACKUPS,
+      fallback: 5,
+    });
+    maxBackups = 5;
   }
   
+  //--------------------------------------------------
+  // File paths — all dependencies resolved above
+  //--------------------------------------------------
   const backupDirEnv  = process.env.BACKUP_DIR ?? '../../../backups';
   const backupDir     = path.resolve(__dirname, backupDirEnv);
   const timestamp     = new Date().toISOString().replace(/[:.]/g, '-');
-  const baseFileName  = `${targetDatabase}-${timestamp}`;
+  const pgVersion            = getPgVersion();
+  const baseFileName  = `${targetDatabase}-pg${pgVersion}-${timestamp}`;
   const backupFile    = path.join(backupDir, `${baseFileName}.sql`);
   const encryptedFile = `${backupFile}.enc`;
   const ivFile        = `${encryptedFile}.iv`;
@@ -121,51 +169,67 @@ const backupDatabase = async () => {
     maxBackups, bucketName, encryptionKey,
   } = resolveConfig();
   
-  await ensureDirectory(backupDir);
-  
-  logSystemInfo(`Starting backup for database: '${targetDatabase}'`, {
-    context: 'backup',
-    backupDir,
-  });
-  
-  // Dump the database to a SQL file using pg_dump
-  await runPgDump(
-    [
-      '--format=custom', '--no-owner', '--clean', '--if-exists',
-      `--file=${backupFile}`,
-      `--username=${dbUser}`,
-      `--dbname=${targetDatabase}`,
-    ],
-    { isProduction, dbUser, dbPassword }
-  );
-  
-  // Encrypt — encryptFile owns key validation and partial-file cleanup on failure
-  await encryptFile(backupFile, encryptedFile, encryptionKey, ivFile);
-  
-  // Plain-text SQL is no longer needed once encrypted copy exists
-  await fs.unlink(backupFile).catch(() => {});
-  
-  // Hash the encrypted file so recipients can verify integrity
-  const hash = await generateHash(encryptedFile);
-  await saveHashToFile(hash, hashFile);
-  
-  await cleanupOldBackupsService({ dir: backupDir, maxBackups, isProduction, bucketName });
-  
-  logSystemInfo('Backup encrypted and saved locally', {
-    context: 'backup',
-    encryptedFile,
-    hashFile,
-  });
-  
-  if (isProduction && bucketName) {
-    await uploadBackupToS3({ encryptedFile, ivFile, hashFile, bucketName });
-    // Local copies removed after confirmed upload — best-effort, failures ignored
-    await cleanupLocalFiles([encryptedFile, ivFile, hashFile]);
-  } else {
-    logSystemInfo('Skipping S3 upload: not in production or no bucket configured', {
-      context: 'backup-upload',
-      isProduction,
-      bucketName: bucketName ?? null,
+  try {
+    await ensureDirectory(backupDir);
+    
+    logSystemInfo(`Starting backup for database: '${targetDatabase}'`, {
+      context: CONTEXT,
+      backupDir,
+    });
+    
+    // Dump the database to a SQL file using pg_dump
+    await runPgDump(
+      [
+        '--format=custom', '--no-owner', '--clean', '--if-exists',
+        `--file=${backupFile}`,
+        `--username=${dbUser}`,
+        `--dbname=${targetDatabase}`,
+      ],
+      { isProduction, dbUser, dbPassword }
+    );
+    
+    // Encrypt — encryptFile owns key validation and partial-file cleanup on failure
+    await encryptFile(backupFile, encryptedFile, encryptionKey, ivFile);
+    
+    // Plain-text SQL is no longer needed once encrypted copy exists
+    await fs.unlink(backupFile).catch(() => {});
+    
+    // Hash the encrypted file so recipients can verify integrity
+    const hash = await generateHash(encryptedFile);
+    await saveHashToFile(hash, hashFile);
+    
+    await cleanupOldBackupsService({ dir: backupDir, maxBackups, isProduction, bucketName });
+    
+    logSystemInfo('Backup encrypted and saved locally', {
+      context: CONTEXT,
+      encryptedFile,
+      hashFile,
+    });
+    
+    if (isProduction && bucketName) {
+      await uploadBackupToS3({ encryptedFile, ivFile, hashFile, bucketName });
+      // Local copies removed after confirmed upload — best-effort, failures ignored
+      await cleanupLocalFiles([encryptedFile, ivFile, hashFile]);
+    } else {
+      logSystemInfo('Skipping S3 upload: not in production or no bucket configured', {
+        context: `${CONTEXT}-upload`,
+        isProduction,
+        bucketName: bucketName ?? null,
+      });
+    }
+  } catch (error) {
+    // Best-effort cleanup of any partial files left behind
+    await cleanupLocalFiles([encryptedFile, ivFile, hashFile]).catch(() => {});
+    
+    // Already structured — re-throw as-is
+    if (error instanceof AppError) throw error;
+    
+    // Raw error from AWS SDK, fs, crypto — wrap it
+    throw new AppError('Backup pipeline failed', 500, {
+      type: ERROR_TYPES.SYSTEM,
+      code: ERROR_CODES.BACKUP_FAILED,
+      context: CONTEXT,
+      meta: { reason: error.message }, // message only — never full error (may contain credentials)
     });
   }
 };
@@ -178,11 +242,11 @@ module.exports = {
 if (require.main === module) {
   backupDatabase()
     .then(() => {
-      logSystemInfo('Database backup completed successfully', { context: 'backup' });
+      logSystemInfo('Database backup completed successfully', { context: CONTEXT });
     })
     .catch((error) => {
       logSystemException(error, 'Database backup failed', {
-        context: 'backup',
+        context: CONTEXT,
         severity: 'critical',
       });
       process.exit(1);

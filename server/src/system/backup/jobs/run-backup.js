@@ -55,6 +55,10 @@ const runBackup = async () => {
   }
 };
 
+module.exports = {
+  runBackup
+};
+
 //--------------------------------------------------
 // Standalone execution (cron / CLI entrypoint)
 //--------------------------------------------------
@@ -71,7 +75,3 @@ if (require.main === module) {
       void handleExit(1);
     });
 }
-
-module.exports = {
-  runBackup
-};
