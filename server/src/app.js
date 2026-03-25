@@ -1,98 +1,133 @@
 /**
  * @file app.js
- * @description Main application setup.
+ * @description Express application factory. Configures middleware, routes, and error handlers.
  *
  * Responsibilities:
- * - Configure Express instance
- * - Apply global middleware
- * - Register API routes
- * - Attach global error handlers
+ *   - Configure the Express instance
+ *   - Apply global middleware in the correct order
+ *   - Register API routes under the configured prefix
+ *   - Attach global error handlers after all routes
  *
- * Architectural Notes:
- * - Reverse proxy trust is enabled (1 hop)
- * - Trace ID middleware runs first for full request observability
- * - Static file serving is development-only
+ * Middleware order (order is load-bearing):
+ *   1. Trust proxy       — must be set before any middleware reads req.ip
+ *   2. Trace ID          — must run first so all subsequent logs include a correlation ID
+ *   3. Global middleware — body parsing, security headers, CSRF, logging, etc.
+ *   4. Rate limiter      — applied after parsing so headers are readable, before routes
+ *   5. Routes            — all API handlers
+ *   6. Error handlers    — must be last so they catch errors from all routes above
+ *
+ * Environment behaviour:
+ *   - Static file serving (/uploads) is mounted in development only.
+ *     In production, static assets must be served by a CDN or object storage.
  */
 
+'use strict';
+
+// -----------------------------------------------------------------------------
+// Node built-ins
+// -----------------------------------------------------------------------------
+const path = require('path');
+
+// -----------------------------------------------------------------------------
+// Third-party
+// -----------------------------------------------------------------------------
 const express = require('express');
+
+// -----------------------------------------------------------------------------
+// Internal
+// -----------------------------------------------------------------------------
+const AppError = require('./utils/AppError');
+const { logSystemException } = require('./utils/logging/system-logger');
 const attachTraceId = require('./middlewares/trace-id-middleware');
 const applyGlobalMiddleware = require('./middlewares/middleware');
 const applyErrorHandlers = require('./middlewares/error-handlers/apply-error-handlers');
 const { createGlobalRateLimiter } = require('./middlewares/rate-limiter');
-const path = require('path');
-const routes = require('./routes/routes');
 const corsMiddleware = require('./middlewares/cors');
+const routes = require('./routes/routes');
 
+// -----------------------------------------------------------------------------
+// App instance
+// -----------------------------------------------------------------------------
 const app = express();
 
-/**
- * Trust first reverse proxy.
- * Required for correct client IP resolution (req.ip)
- * when behind NGINX / Cloudflare / load balancer.
- */
+// -----------------------------------------------------------------------------
+// Reverse proxy trust
+// Required for correct client IP resolution (req.ip) when running behind
+// NGINX, Cloudflare, or a load balancer. Must be set before any middleware
+// that reads req.ip (rate limiter, logger, etc.).
+// -----------------------------------------------------------------------------
 app.set('trust proxy', 1);
 
-/**
- * Attach trace ID early to ensure:
- * - All logs include correlation ID
- * - Errors include request context
- */
+// -----------------------------------------------------------------------------
+// Trace ID — must run before everything else so that all downstream logs,
+// errors, and responses carry a consistent correlation ID for the request.
+// -----------------------------------------------------------------------------
 app.use(attachTraceId);
 
-/**
- * Apply global middleware:
- * - body parsing
- * - security headers
- * - logging
- * - CSRF protection
- * - etc.
- */
+// -----------------------------------------------------------------------------
+// Global middleware
+// Covers: body parsing, security headers (Helmet), CSRF, request logging.
+// See middlewares/middleware.js for the full list and order.
+// -----------------------------------------------------------------------------
 applyGlobalMiddleware(app);
 
-/**
- * Global rate limiting applied across API.
- * Should execute before route handling.
- */
-const globalRateLimiter = createGlobalRateLimiter();
-app.use(globalRateLimiter);
+// -----------------------------------------------------------------------------
+// Global rate limiter
+// Applied after body parsing (so headers are readable) and before route
+// handlers so that rate-limited requests never reach business logic.
+// -----------------------------------------------------------------------------
+app.use(createGlobalRateLimiter());
 
-/**
- * Development-only static file serving.
- * In production, static assets should be served by CDN or object storage.
- */
+// -----------------------------------------------------------------------------
+// Development-only static file serving
+//
+// Serves uploaded files directly from disk at /uploads. This is intentionally
+// disabled in production — static assets should be served by a CDN or object
+// storage (e.g. S3 + CloudFront) to avoid tying up Node worker threads.
+//
+// CORP and COEP headers are set explicitly because the default same-origin
+// policy would block cross-origin image/video requests from the dev frontend.
+// -----------------------------------------------------------------------------
 if (process.env.NODE_ENV === 'development') {
-  const rootPath = path.join(__dirname, '..');
-
   const uploadsRouter = express.Router();
-
+  const uploadsPath = path.join(__dirname, '..', 'public/uploads');
+  
   uploadsRouter.use(
     corsMiddleware,
-    (req, res, next) => {
+    (_req, res, next) => {
+      // Allow cross-origin access to uploaded assets in the dev environment.
       res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
       res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
       next();
     },
-    express.static(path.join(rootPath, 'public/uploads'))
+    express.static(uploadsPath)
   );
-
+  
   app.use('/uploads', uploadsRouter);
 }
 
-/**
- * API routes mounted under configurable prefix.
- */
+// -----------------------------------------------------------------------------
+// API routes
+// -----------------------------------------------------------------------------
 const API_PREFIX = process.env.API_PREFIX;
 
 if (!API_PREFIX) {
-  throw new Error('API_PREFIX is not defined');
+  // This runs at module load time, before runStartupStep wraps anything,
+  // so log explicitly before throwing to ensure the error appears in structured logs.
+  const error = new AppError('API_PREFIX environment variable is not defined');
+  logSystemException(error, 'Missing required env var: API_PREFIX', {
+    context: 'startup/app',
+  });
+  throw error;
 }
 
 app.use(API_PREFIX, routes);
 
-/**
- * Global error handling (404 + centralized error responses).
- * Must be registered after all routes.
- */
+// -----------------------------------------------------------------------------
+// Global error handlers
+// Must be registered after all routes so they catch errors thrown anywhere
+// above. Covers 404 (no route matched) and all other unhandled errors.
+// -----------------------------------------------------------------------------
 applyErrorHandlers(app);
 
 module.exports = app;
