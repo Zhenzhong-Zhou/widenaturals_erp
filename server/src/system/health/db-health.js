@@ -75,16 +75,6 @@ const checkPoolHealth = () => {
   const waiting = pool.waitingCount;
   
   //--------------------------------------------------
-  // Validate health (strict but fast)
-  //--------------------------------------------------
-  if (total === 0) {
-    throw AppError.healthCheckError('No active DB connections', {
-      context: CONTEXT,
-      subtype: 'PoolEmptyError',
-    });
-  }
-  
-  //--------------------------------------------------
   // Return snapshot (no logging)
   //--------------------------------------------------
   return {
