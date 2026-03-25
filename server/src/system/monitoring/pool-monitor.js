@@ -50,10 +50,8 @@ const startPoolMonitoring = (monitorPoolFn, options = {}) => {
   //--------------------------------------------------
   // Resolve interval
   //--------------------------------------------------
-  let interval =
-    options.interval ??
-    parseInt(process.env.POOL_MONITOR_INTERVAL, 10) ??
-    ONE_MINUTE;
+  const parsed = parseInt(process.env.POOL_MONITOR_INTERVAL, 10);
+  let interval = options.interval ?? (isNaN(parsed) ? ONE_MINUTE : parsed);
   
   if (isNaN(interval) || interval <= 0) {
     logSystemWarn('Invalid monitoring interval. Using default.', {
@@ -101,7 +99,7 @@ const startPoolMonitoring = (monitorPoolFn, options = {}) => {
       //--------------------------------------------------
       // WARN: signal-based alert
       //--------------------------------------------------
-      if (metrics?.waitingCount > 0) {
+      if (metrics?.waitingRequests > 0) {
         logSystemWarn('Pool contention detected', {
           context,
           metrics,

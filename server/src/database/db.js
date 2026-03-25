@@ -175,7 +175,7 @@ pool.on('error', handlePoolError);
  *
  * @param {string} text - SQL query string
  * @param {Array<any>} [params=[]] - Query parameters
- * @param {import('pg').PoolClient | null} [client=null] - Optional transaction client
+ * @param {import('pg').PoolClient | import('pg').Pool | null} [client=null] - Optional transaction client
  * @param {Object} [options={}]
  * @param {number} [options.retries=3]
  * @param {number} [options.baseDelay=300]
@@ -463,8 +463,8 @@ const monitorPool = () => {
   const waitingRequests = typedPool.waitingCount;
   
   // Avoid division by zero when the pool has no clients yet
-  const utilization = totalClients > 0
-    ? (totalClients - idleClients) / totalClients
+  const utilization = pool.options.max > 0
+    ? (totalClients - idleClients) / pool.options.max
     : 0;
   
   return {
