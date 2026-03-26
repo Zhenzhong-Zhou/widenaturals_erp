@@ -20,7 +20,7 @@
  */
 
 const http = require('http');
-const { isSensitiveField } = require('../sensitive-fields');
+const { isSensitiveField } = require('../masking/sensitive-fields');
 
 // =========================
 // Configuration
