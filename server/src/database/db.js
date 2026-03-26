@@ -18,7 +18,7 @@ const { Pool, Client } = require('pg');
 const { loadEnv } = require('../config/env');
 const {
   logDbConnect,
-  logDbError,
+  logDbConnectionError,
   logDbSlowQuery,
   logDbQueryError,
   logDbTransactionEvent,
@@ -124,7 +124,7 @@ const handlePoolError = (error) =>
     context: 'db/pool',
     message: 'Unexpected database connection error',
     meta: { code: error.code },
-    logFn: logDbError,
+    logFn: logDbConnectionError,
     suppressThrow: true,
   });
 
@@ -1681,7 +1681,6 @@ const getFieldValuesByField = async (
 // Export the utilities
 module.exports = {
   pool,
-  retry,
   query,
   getClient,
   withTransaction,
