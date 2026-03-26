@@ -1,3 +1,21 @@
+/**
+ * @file query-normalization.js
+ * @description Middleware factory that normalises raw Express query parameters
+ * into a typed, whitelisted, and consistently shaped `req.normalizedQuery`
+ * object for use by service and repository layers.
+ *
+ * Required middleware order (GET / lookup routes):
+ *   sanitizeInput (global) → validate(schema, 'query') → this middleware → controller
+ *
+ * This middleware reads from `req.validatedQuery`, which is written by the
+ * `validate` middleware after Joi coercion and default application. It will
+ * throw immediately at request time if `req.validatedQuery` is undefined,
+ * which means `validate` did not run before it — a pipeline misconfiguration
+ * that must be fixed at the route level.
+ */
+
+'use strict';
+
 const Joi = require('joi');
 const {
   normalizeFilterKeys,
@@ -10,166 +28,243 @@ const {
   getSortMapForModule,
 } = require('../utils/sort-utils');
 
+// -----------------------------------------------------------------------------
+// Module-level constants
+// Defined here so they are not reallocated on every request.
+// -----------------------------------------------------------------------------
+
 /**
- * Extract filter keys from either:
- *  - an array of strings, or
- *  - a Joi schema (object schema directly or a route schema with a nested `{ filters: object() }`)
+ * Query keys consumed by pagination/sorting logic that must never be injected
+ * into the `filters` object, even if they appear in `filterKeysOrSchema`.
  *
- * @param {string[]|import('joi').Schema} input
- * @param {string} [nestedKey='filters'] - key to read when schema is a full route schema
- * @returns {string[]} filter keys
- * @throws {Error} when input is neither an array nor a Joi schema with object keys
+ * @type {Set<string>}
+ */
+const RESERVED_KEYS = new Set(['page', 'limit', 'offset', 'sortBy', 'sortOrder']);
+
+// -----------------------------------------------------------------------------
+// Private helpers
+// -----------------------------------------------------------------------------
+
+/**
+ * Coerces a raw query value to a boolean.
+ *
+ * Truthy inputs : `true`, `'true'`, `1`, `'1'`.
+ * Everything else (including absent values) becomes `false`.
+ *
+ * @param {unknown} val - Raw value from the query object.
+ * @returns {boolean}
+ */
+const toBoolean = (val) =>
+  val === true || val === 'true' || val === 1 || val === '1';
+
+/**
+ * Extracts filter key names from either a plain string array or a Joi schema.
+ *
+ * Supports two Joi schema shapes:
+ *   - A bare object schema:  `Joi.object({ keyword: ..., statusId: ... })`
+ *   - A full route schema with a nested filters key:
+ *     `Joi.object({ filters: Joi.object({ ... }) })`
+ *
+ * @param {string[] | import('joi').Schema} input      - Allowed filter keys or a Joi schema.
+ * @param {string}                          [nestedKey='filters']
+ *   Nested key to inspect when `input` is a full route schema.
+ * @returns {string[]} Resolved filter key names.
+ * @throws {Error} If `input` is neither a string array nor a Joi object schema.
  */
 const extractFilterKeys = (input, nestedKey = 'filters') => {
   if (Array.isArray(input)) return input;
-
-  // Robust Joi detection (supports different Joi versions)
-  const isJoiSchema =
-    typeof Joi?.isSchema === 'function' && Joi.isSchema(input);
+  
+  const isJoiSchema = typeof Joi?.isSchema === 'function' && Joi.isSchema(input);
+  
   if (isJoiSchema) {
     const desc = input.describe?.();
-    // Case A: input itself is the filters object schema
+    
+    // Case A: input is the filters schema itself.
     if (desc?.type === 'object' && desc?.keys) {
       return Object.keys(desc.keys);
     }
-    // Case B: input is a full route schema with nested { filters: object() }
+    
+    // Case B: input is a full route schema containing a nested filters object.
     const nested = desc?.keys?.[nestedKey]?.keys;
     if (nested) return Object.keys(nested);
   }
-
+  
   const kind = Array.isArray(input) ? 'array' : typeof input;
   throw new Error(
-    `Invalid filterKeysOrSchema: expected string[] or Joi object schema (optionally with nested "${nestedKey}"). Received ${kind}.`
+    `Invalid filterKeysOrSchema: expected string[] or Joi object schema ` +
+    `(optionally with nested "${nestedKey}"). Received: ${kind}.`
   );
 };
 
+// -----------------------------------------------------------------------------
+// Middleware factory
+// -----------------------------------------------------------------------------
+
 /**
  * Creates an Express middleware that normalizes query parameters into a safe,
- * consistent shape for filtering, sorting, and pagination.
+ * consistently shaped object attached to `req.normalizedQuery`.
  *
- * Normalization pipeline:
- *  1) Trims all query keys/values.
- *  2) Parses pagination (`page`, `limit`) and keeps `offset` (defaults to 0 if absent).
- *  3) Sanitizes sorting using the module's sort map (`getSortMapForModule(moduleKey)`):
- *     - `sortBy` is validated via `sanitizeSortBy`; falls back to `sortMap.defaultNaturalSort` if invalid/absent.
- *     - `sortOrder` is normalized via `sanitizeSortOrder`.
- *  4) Normalizes selected query keys to arrays (e.g., `statusId`, `createdBy`) via `normalizeParamArray`.
- *  5) Converts selected query keys to booleans into `filters` (e.g., `onlyWithAddress`).
- *  6) Converts selected query keys to booleans/strings into `options` (feature flags or mode toggles).
- *  7) Whitelists and injects only allowed filter keys (array of keys or a Joi schema).
- *  8) Attaches the normalized payload to `req.normalizedQuery`:
- *     {
- *       filters: { ... },
- *       options: { ... },
- *       // optionally (if enabled via options):
- *       page, limit, offset, sortBy, sortOrder
- *     }
+ * Must run AFTER `validate(schema, 'query')` in the middleware pipeline so
+ * that Joi-coerced types and defaults (e.g. offset → number, limit → 50) are
+ * available on `req.validatedQuery`. If `req.validatedQuery` is absent when
+ * the returned middleware executes, it throws immediately to surface the
+ * misconfigured pipeline.
  *
- * Reserved query keys are ignored for filter injection: `page`, `limit`, `offset`, `sortBy`, `sortOrder`.
+ * Normalization pipeline (per request):
+ *   1.  Read `req.validatedQuery` (fail fast if undefined).
+ *   2.  Trim all query keys and string values.
+ *   3.  Parse pagination (`page`, `limit`, `offset`) via `normalizePaginationParams`.
+ *   4.  Sanitize sort fields (`sortBy`, `sortOrder`) via the module sort map.
+ *   5.  Coerce `arrayKeys` values to arrays → placed in `filters`.
+ *   6.  Coerce `booleanKeys` values to booleans → placed in `filters`.
+ *   7.  Coerce `optionBooleanKeys` values to booleans → placed in `options`.
+ *   8.  Coerce `optionStringKeys` values to trimmed strings → placed in `options`.
+ *   9.  Whitelist and inject remaining allowed filter keys → placed in `filters`.
+ *   10. Assemble and attach `req.normalizedQuery`.
  *
- * @param {string} [moduleKey=''] - Key used to lookup the module-specific sort map
- *   (e.g., 'packagingMaterials', 'customers'). Passed to `getSortMapForModule(moduleKey)`.
+ * Reserved keys (`page`, `limit`, `offset`, `sortBy`, `sortOrder`) are always
+ * excluded from `filters` regardless of what appears in `filterKeysOrSchema`.
  *
- * @param {string[]} [arrayKeys=[]] - Query keys to coerce into arrays and include under `filters`.
- *   Examples: ['statusId', 'createdBy']
+ * @param {string} [moduleKey='']
+ *   Key used to look up the module-specific sort map via `getSortMapForModule`.
+ *   Examples: `'packagingMaterials'`, `'customers'`.
  *
- * @param {string[]} [booleanKeys=[]] - Query keys to coerce into booleans and include under `filters`.
- *   Truthy values: true, 'true', 1, '1'. Everything else becomes false.
+ * @param {string[]} [arrayKeys=[]]
+ *   Query keys whose values are coerced to arrays and placed in `filters`.
+ *   Examples: `['statusId', 'createdBy']`.
  *
- * @param {string[]|object} filterKeysOrSchema - Either:
- *   - An array of allowed filter keys to copy from the query into `filters`, or
- *   - A Joi schema object; keys are derived from `schema.describe().keys`.
- *   (Used to whitelist which query params become `filters`.)
+ * @param {string[]} [booleanKeys=[]]
+ *   Query keys coerced to booleans and placed in `filters`.
+ *   Truthy inputs: `true`, `'true'`, `1`, `'1'`. All else → `false`.
  *
- * @param {object} [options={}] - Factory options.
- * @param {boolean} [options.includePagination=true] - If true, include `limit`, `offset`, and `page` on `req.normalizedQuery`.
- * @param {boolean} [options.includeSorting=true] - If true, include `sortBy` and `sortOrder` on `req.normalizedQuery`.
+ * @param {string[] | import('joi').Schema} filterKeysOrSchema
+ *   Whitelist of allowed filter keys (plain array or Joi schema).
+ *   Only matching query params are placed in `filters`.
  *
- * @param {string[]} [optionBooleanKeys=[]] - Query keys to coerce into booleans and include under `options`.
- *   Use this for knob-like feature flags (e.g., ['includeBarcode', 'visibleOnly']).
+ * @param {object}  [factoryOptions={}]                     Factory-level behaviour toggles.
+ * @param {boolean} [factoryOptions.includePagination=true] Attach `limit`, `offset`, `page`.
+ * @param {boolean} [factoryOptions.includeSorting=true]    Attach `sortBy`, `sortOrder`.
  *
- * @param {string[]} [optionStringKeys=[]] - Query keys to coerce into trimmed strings and include under `options`.
- *   Use this for small mode or string flags (e.g., ['mode', 'region']).
+ * @param {string[]} [optionBooleanKeys=[]]
+ *   Query keys coerced to booleans and placed in `options`.
+ *   Use for feature-flag knobs. Examples: `['includeBarcode', 'visibleOnly']`.
  *
- * @returns {(req: import('express').Request, res: import('express').Response, next: import('express').NextFunction) => void}
- *   Express middleware that sets `req.normalizedQuery = { filters, options, [page], [limit], [offset], [sortBy], [sortOrder] }`.
+ * @param {string[]} [optionStringKeys=[]]
+ *   Query keys coerced to trimmed strings and placed in `options`.
+ *   Use for mode or region toggles. Examples: `['mode', 'region']`.
  *
- * @throws {Error} If `filterKeysOrSchema` is neither an array nor a Joi-like schema (`.describe()` present).
+ * @returns {import('express').RequestHandler}
+ *   Middleware that sets `req.normalizedQuery` to:
+ *   ```js
+ *   {
+ *     filters:   { ...whitelistedKeys, ...arrays, ...booleans },
+ *     options:   { ...optionBooleans, ...optionStrings },
+ *     // if includePagination:
+ *     limit, offset, page,
+ *     // if includeSorting:
+ *     sortBy, sortOrder,
+ *   }
+ *   ```
+ *
+ * @throws {Error} At factory time if `filterKeysOrSchema` is invalid.
+ * @throws {Error} At request time if `req.validatedQuery` is undefined
+ *   (indicates `validate` middleware did not run before this middleware).
  *
  * @example
- * // Route wiring
- * const normalizePM = createQueryNormalizationMiddleware(
- *   'packagingMaterials',            // moduleKey
- *   ['statusId', 'createdBy'],       // arrayKeys -> filters
- *   ['onlyWithAddress'],             // booleanKeys -> filters
- *   ['keyword', 'statusId', 'createdBy', 'onlyWithAddress'], // allowed filter keys
- *   { includePagination: true, includeSorting: true },       // options
- *   ['includeBarcode', 'visibleOnly'], // optionBooleanKeys -> options
- *   ['mode']                           // optionStringKeys -> options
+ * // Correct pipeline — validate runs first so req.validatedQuery is populated.
+ * router.get(
+ *   '/packaging-materials',
+ *   validate(pmQuerySchema, 'query'),
+ *   createQueryNormalizationMiddleware(
+ *     'packagingMaterials',
+ *     ['statusId', 'createdBy'],   // arrayKeys
+ *     ['onlyWithAddress'],          // booleanKeys
+ *     ['keyword', 'statusId', 'createdBy', 'onlyWithAddress'], // filterKeys
+ *     { includePagination: true, includeSorting: true },
+ *     ['includeBarcode', 'visibleOnly'], // optionBooleanKeys
+ *     ['mode']                           // optionStringKeys
+ *   ),
+ *   listPackagingMaterialsHandler
  * );
  *
- * app.get('/api/packaging-materials', normalizePM, (req, res) => {
- *   // Example input:
- *   //   ?keyword= box &statusId=1&statusId=2&onlyWithAddress=true&includeBarcode=1&mode=salesDropdown&limit=25&offset=50&sortBy=name&sortOrder=ASC
- *   //
- *   // req.normalizedQuery =>
- *   // {
- *   //   filters: {
- *   //     keyword: 'box',
- *   //     statusId: ['1', '2'],
- *   //     onlyWithAddress: true
- *   //   },
- *   //   options: {
- *   //     includeBarcode: true,
- *   //     mode: 'salesDropdown'
- *   //   },
- *   //   limit: 25,
- *   //   offset: 50,
- *   //   page: 2,              // if your normalizePaginationParams computes page from offset/limit
- *   //   sortBy: 'name',       // sanitized via module sort map (or defaultNaturalSort if invalid/empty)
- *   //   sortOrder: 'ASC'
- *   // }
- *   service(req.normalizedQuery).then(res.json).catch(next);
- * });
+ * // Query string:  ?keyword= box &statusId=1&statusId=2&onlyWithAddress=true
+ * //               &includeBarcode=1&mode=salesDropdown&limit=25&offset=50
+ * // req.normalizedQuery =>
+ * // {
+ * //   filters: { keyword: 'box', statusId: ['1','2'], onlyWithAddress: true },
+ * //   options: { includeBarcode: true, mode: 'salesDropdown' },
+ * //   limit: 25, offset: 50, page: 2,
+ * //   sortBy: 'name', sortOrder: 'ASC'
+ * // }
  */
 const createQueryNormalizationMiddleware = (
-  moduleKey = '',
-  arrayKeys = [],
-  booleanKeys = [],
+  moduleKey          = '',
+  arrayKeys          = [],
+  booleanKeys        = [],
   filterKeysOrSchema = [],
-  options = {},
-  optionBooleanKeys = [],
-  optionStringKeys = []
+  factoryOptions     = {},
+  optionBooleanKeys  = [],
+  optionStringKeys   = []
 ) => {
-  const finalOptions = {
+  // Resolve factory options once — not per request.
+  const resolvedOptions = {
     includePagination: true,
-    includeSorting: true,
-    ...options,
+    includeSorting:    true,
+    ...factoryOptions,
   };
-
-  let filterKeys = extractFilterKeys(filterKeysOrSchema);
-
-  return (req, res, next) => {
-    const rawQuery = req.query ?? {};
-
-    // 1. Trim all keys/values
+  
+  // Extract and validate filter keys once at factory time — not per request.
+  const filterKeys = extractFilterKeys(filterKeysOrSchema);
+  
+  // Return the per-request middleware.
+  return (req, _res, next) => {
+    
+    // -------------------------------------------------------------------------
+    // 1. Read req.validatedQuery (written by validate middleware after Joi
+    //    coercion). Fail fast if it is absent — that means validate did not run
+    //    before this middleware, which is a pipeline misconfiguration.
+    // -------------------------------------------------------------------------
+    if (!req.validatedQuery) {
+      return next(
+        new Error(
+          '[createQueryNormalizationMiddleware] req.validatedQuery is undefined. ' +
+          'Ensure validate(schema, "query") runs before this middleware in the pipeline.'
+        )
+      );
+    }
+    
+    const rawQuery = req.validatedQuery;
+    
+    // -------------------------------------------------------------------------
+    // 2. Trim all query keys and string values
+    // -------------------------------------------------------------------------
     const trimmedQuery = normalizeFilterKeys(rawQuery);
-
-    // 2. Normalize pagination
+    
+    // -------------------------------------------------------------------------
+    // 3. Pagination
+    //    At this point limit/offset are already numbers (Joi coerced them).
+    //    normalizePaginationParams handles any remaining edge cases.
+    // -------------------------------------------------------------------------
     const {
       page,
       limit,
+      offset,
       sortOrder: rawSortOrder,
     } = normalizePaginationParams(trimmedQuery);
-
-    // 3. Sanitize sorting
-    const sortMap = getSortMapForModule(moduleKey);
-    const rawSortBy = trimmedQuery.sortBy;
-    const sanitizedSortBy =
-      sanitizeSortBy(rawSortBy, moduleKey) ?? sortMap?.defaultNaturalSort;
+    
+    // -------------------------------------------------------------------------
+    // 4. Sorting
+    //    sortBy falls back to the module's default natural sort when absent
+    //    or when the raw value fails sanitization.
+    // -------------------------------------------------------------------------
+    const sortMap            = getSortMapForModule(moduleKey);
+    const sanitizedSortBy    =
+      sanitizeSortBy(trimmedQuery.sortBy, moduleKey) ?? sortMap?.defaultNaturalSort;
     const sanitizedSortOrder = sanitizeSortOrder(rawSortOrder);
-
-    // 4. Normalize arrays
+    
+    // -------------------------------------------------------------------------
+    // 5. Array keys → filters
+    // -------------------------------------------------------------------------
     const normalizedArrays = {};
     for (const key of arrayKeys) {
       if (trimmedQuery[key] != null) {
@@ -177,52 +272,52 @@ const createQueryNormalizationMiddleware = (
         if (result.length > 0) normalizedArrays[key] = result;
       }
     }
-
-    // 5a. Filter-level booleans
+    
+    // -------------------------------------------------------------------------
+    // 6. Boolean keys → filters
+    // -------------------------------------------------------------------------
     const normalizedBooleans = {};
     for (const key of booleanKeys) {
       if (trimmedQuery[key] != null) {
-        const val = trimmedQuery[key];
-        normalizedBooleans[key] =
-          val === true || val === 'true' || val === '1' || val === 1;
+        normalizedBooleans[key] = toBoolean(trimmedQuery[key]);
       }
     }
-
-    // 5b. Option-level booleans
+    
+    // -------------------------------------------------------------------------
+    // 7. Boolean keys → options
+    // -------------------------------------------------------------------------
     const normalizedOptionBooleans = {};
     for (const key of optionBooleanKeys) {
       if (trimmedQuery[key] != null) {
-        const val = trimmedQuery[key];
-        normalizedOptionBooleans[key] =
-          val === true || val === 'true' || val === '1' || val === 1;
+        normalizedOptionBooleans[key] = toBoolean(trimmedQuery[key]);
       }
     }
-
-    // 5c. Option-level strings
+    
+    // -------------------------------------------------------------------------
+    // 8. String keys → options
+    // -------------------------------------------------------------------------
     const normalizedOptionStrings = {};
     for (const key of optionStringKeys) {
       if (trimmedQuery[key] != null) {
         normalizedOptionStrings[key] = String(trimmedQuery[key]).trim();
       }
     }
-
-    // 6. Filter plain fields
-    const reservedKeys = new Set([
-      'page',
-      'limit',
-      'offset',
-      'sortBy',
-      'sortOrder',
-    ]);
+    
+    // -------------------------------------------------------------------------
+    // 9. Whitelisted plain filter keys
+    //    Reserved keys are always excluded even if listed in filterKeysOrSchema.
+    // -------------------------------------------------------------------------
     const filters = {};
     for (const key of filterKeys) {
-      if (!reservedKeys.has(key) && trimmedQuery[key] !== undefined) {
+      if (!RESERVED_KEYS.has(key) && trimmedQuery[key] !== undefined) {
         filters[key] = trimmedQuery[key];
       }
     }
-
-    // 7. Assemble a final object
-    const normalized = {
+    
+    // -------------------------------------------------------------------------
+    // 10. Assemble req.normalizedQuery
+    // -------------------------------------------------------------------------
+    req.normalizedQuery = {
       filters: {
         ...filters,
         ...normalizedArrays,
@@ -232,24 +327,13 @@ const createQueryNormalizationMiddleware = (
         ...normalizedOptionBooleans,
         ...normalizedOptionStrings,
       },
+      ...(resolvedOptions.includePagination && { limit, offset, page }),
+      ...(resolvedOptions.includeSorting && {
+        sortBy:    sanitizedSortBy,
+        sortOrder: sanitizedSortOrder,
+      }),
     };
-
-    // 8. Add pagination
-    if (finalOptions.includePagination) {
-      normalized.limit = limit;
-      normalized.offset = Number(trimmedQuery.offset ?? 0);
-      if (page !== undefined) normalized.page = page;
-    }
-
-    // 9. Add sorting
-    if (finalOptions.includeSorting) {
-      normalized.sortBy = sanitizedSortBy;
-      normalized.sortOrder = sanitizedSortOrder;
-    }
-
-    // 10. Attach to request
-    req.normalizedQuery = normalized;
-
+    
     next();
   };
 };

@@ -38,7 +38,7 @@ const express = require('express');
 // -----------------------------------------------------------------------------
 const AppError = require('./utils/AppError');
 const { logSystemException } = require('./utils/logging/system-logger');
-const attachTraceId = require('./middlewares/trace-id-middleware');
+const attachTraceId = require('./middlewares/trace-id');
 const applyGlobalMiddleware = require('./middlewares/middleware');
 const applyErrorHandlers = require('./middlewares/error-handlers/apply-error-handlers');
 const { createGlobalRateLimiter } = require('./middlewares/rate-limiter');
@@ -114,7 +114,9 @@ const API_PREFIX = process.env.API_PREFIX;
 if (!API_PREFIX) {
   // This runs at module load time, before runStartupStep wraps anything,
   // so log explicitly before throwing to ensure the error appears in structured logs.
-  const error = new AppError('API_PREFIX environment variable is not defined');
+  const error = AppError.initializationError(
+    'API_PREFIX environment variable is not defined.'
+  );
   logSystemException(error, 'Missing required env var: API_PREFIX', {
     context: 'startup/app',
   });
