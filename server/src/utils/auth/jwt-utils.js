@@ -1,100 +1,113 @@
+/**
+ * @file jwt-utils.js
+ * @description JWT signing, verification, and TTL configuration utilities.
+ *
+ * Design intent:
+ *  - Tokens are signed with separate secrets for access and refresh — compromise
+ *    of one secret does not affect the other.
+ *  - TTL is always derived from environment variables — no hardcoded expiry anywhere.
+ *  - Verification is split into access/refresh variants so callers never need to
+ *    pass a boolean flag directly.
+ *  - This file handles cryptographic validation only — token revocation and session
+ *    state must be enforced separately at the database layer.
+ *
+ * Security rules enforced here:
+ *  - Raw tokens must never be stored or logged (enforced by convention, not code)
+ *  - Tokens must be hashed before persisting to the database
+ *  - Structural pre-validation (isLikelyJwt) runs before any crypto operation
+ *
+ * Depends on:
+ *  - jsonwebtoken            — signing and verification
+ *  - AppError                — structured domain error creation
+ *  - logSystemError          (system-logger.js) — unexpected error logging
+ */
+
 const jwt = require('jsonwebtoken');
 const AppError = require('../AppError');
-const { logError } = require('../logger-helper');
-const { logSystemError } = require('../system-logger');
+const { logSystemError } = require('../logging/system-logger');
 
 /**
- * Reads a TTL value (in seconds) from environment variables
- * and fails fast if the configuration is invalid.
+ * Reads a TTL value in seconds from environment variables.
  *
- * NOTE:
- * - This is a configuration-level helper, not business logic
- * - It intentionally throws a plain Error to crash on misconfiguration
+ * Intentionally throws a plain Error (not AppError) to crash the process
+ * on startup if configuration is missing — this is a config-level failure,
+ * not a recoverable runtime error.
  *
- * @param {string} envKey
- * @returns {number} TTL in seconds
+ * @param {string} envKey - Environment variable name (e.g. 'ACCESS_TOKEN_TTL_SECONDS').
+ * @returns {number} TTL in seconds.
+ * @throws {Error} If the env variable is missing, zero, or not a valid number.
  */
 const getTtlSeconds = (envKey) => {
   const value = Number(process.env[envKey]);
-
-  if (!value || Number.isNaN(value)) {
+  
+  if (!value || Number.isNaN(value) || value <= 0) {
     throw new Error(`${envKey} is not configured correctly`);
   }
-
+  
   return value;
 };
 
 /**
- * Returns token TTL in milliseconds for cookie usage.
+ * Returns a TTL value in milliseconds for cookie maxAge usage.
  *
- * @param {string} envKey
- * @returns {number}
+ * Delegates validation entirely to getTtlSeconds — no duplicate checks.
+ *
+ * @param {string} envKey - Environment variable name (e.g. 'ACCESS_TOKEN_TTL_SECONDS').
+ * @returns {number} TTL in milliseconds.
+ * @throws {Error} If the env variable is missing or invalid (via getTtlSeconds).
  */
 const getTtlMs = (envKey) => {
-  const seconds = getTtlSeconds(envKey);
-
-  if (!Number.isInteger(seconds) || seconds <= 0) {
-    throw new Error(`${envKey} must be a positive integer (seconds)`);
-  }
-
-  return seconds * 1000;
+  return getTtlSeconds(envKey) * 1000;
 };
 
 /**
  * Signs a JWT access or refresh token.
  *
  * Security guarantees:
- * - Uses separate secrets for access and refresh tokens
- * - TTL is derived from environment configuration (single source of truth)
- * - JWT payload is NOT hashed or encrypted
- * - Token confidentiality is enforced by transport + short TTL
+ *  - Access and refresh tokens use separate secrets
+ *  - TTL is always read from environment (single source of truth)
+ *  - Payload is not encrypted — only non-sensitive claims should be included
  *
  * IMPORTANT:
- * - Tokens MUST be hashed before persisting to database
- * - Raw tokens MUST NEVER be stored or logged
+ *  - Tokens MUST be hashed before persisting to the database
+ *  - Raw tokens MUST NEVER be stored or logged
  *
- * @param {object} payload - JWT payload (non-sensitive claims only)
- * @param {boolean} [isRefreshToken=false] - Whether to sign a refresh token
- * @returns {string} Signed JWT
- *
- * @throws {AppError} When JWT secrets are misconfigured
- * @throws {Error} When TTL configuration is invalid
+ * @param {object}  payload                  - JWT payload (non-sensitive claims only).
+ * @param {boolean} [isRefreshToken=false]   - Pass true to sign a refresh token.
+ * @returns {string} Signed JWT string.
+ * @throws {AppError} If the JWT secret is missing or misconfigured.
+ * @throws {Error}    If the TTL environment variable is invalid.
  */
 const signToken = (payload, isRefreshToken = false) => {
-  const secret = isRefreshToken
-    ? process.env.JWT_REFRESH_SECRET
-    : process.env.JWT_ACCESS_SECRET;
-
+  const secretKey = isRefreshToken ? 'JWT_REFRESH_SECRET' : 'JWT_ACCESS_SECRET';
+  const ttlKey    = isRefreshToken ? 'REFRESH_TOKEN_TTL_SECONDS' : 'ACCESS_TOKEN_TTL_SECONDS';
+  const secret    = process.env[secretKey];
+  
   if (!secret) {
     logSystemError('JWT secret missing', {
-      isRefreshToken,
-      secretName: isRefreshToken ? 'JWT_REFRESH_SECRET' : 'JWT_ACCESS_SECRET',
+      context: 'signToken',
+      secretName: secretKey,
     });
-
+    
     throw AppError.serviceError('JWT secret not configured');
   }
-
-  const ttlSeconds = getTtlSeconds(
-    isRefreshToken ? 'REFRESH_TOKEN_TTL_SECONDS' : 'ACCESS_TOKEN_TTL_SECONDS'
-  );
-
-  return jwt.sign(payload, secret, {
-    expiresIn: `${ttlSeconds}s`,
-  });
+  
+  const ttlSeconds = getTtlSeconds(ttlKey);
+  
+  return jwt.sign(payload, secret, { expiresIn: `${ttlSeconds}s` });
 };
 
 /**
- * Performs a lightweight structural check to determine
- * whether a token resembles a JWT.
+ * Performs a lightweight structural check to determine if a value resembles a JWT.
  *
- * Security utility:
- * - Ensures token is a string
- * - Ensures token has exactly 3 dot-separated segments
- * - Does NOT verify signature
- * - Does NOT validate expiry
+ * Checks:
+ *  - Value is a string
+ *  - Has exactly 3 non-empty dot-separated segments (header.payload.signature)
  *
- * @param {string} token
- * @returns {boolean} True if token appears structurally valid
+ * Does NOT verify signature or expiry — use verifyToken for cryptographic validation.
+ *
+ * @param {string} token - Value to check.
+ * @returns {boolean} True if the value looks structurally like a JWT.
  */
 const isLikelyJwt = (token) => {
   if (typeof token !== 'string') return false;
@@ -103,33 +116,34 @@ const isLikelyJwt = (token) => {
 };
 
 /**
- * Verifies a JWT access or refresh token.
+ * Verifies a JWT and returns its decoded payload.
  *
  * Verification guarantees:
- * - Signature is validated using the correct secret
- * - Expiry is enforced by JWT `exp`
- * - Domain-specific errors are thrown for expired / invalid tokens
+ *  - Signature validated against the correct secret
+ *  - Expiry enforced via JWT `exp` claim
+ *  - Domain-specific AppErrors thrown for expired and invalid tokens
  *
  * NOTE:
- * - This function does NOT check token revocation
- * - Database-level token validation must be performed separately
+ *  - Does NOT check token revocation — database-level validation must be done separately
+ *  - AppErrors thrown inside the try block (e.g. missing secret) are intentionally
+ *    re-thrown before the catch handles them, so they are not swallowed as generalError
  *
- * @param {string} token - Raw JWT from client
- * @param {boolean} [isRefresh=false] - Whether this is a refresh token
- * @returns {object} Decoded JWT payload
- *
- * @throws {AppError} For expired or invalid tokens
+ * @param {string}  token             - Raw JWT string.
+ * @param {boolean} [isRefresh=false] - Pass true when verifying a refresh token.
+ * @returns {object} Decoded JWT payload.
+ * @throws {AppError} For expired tokens, invalid tokens, or missing secrets.
  */
 const verifyToken = (token, isRefresh = false) => {
+  const secret = isRefresh
+    ? process.env.JWT_REFRESH_SECRET
+    : process.env.JWT_ACCESS_SECRET;
+  
+  // Check secret before entering try/catch so misconfiguration isn't swallowed
+  if (!secret) {
+    throw AppError.serviceError('JWT secret not configured');
+  }
+  
   try {
-    const secret = isRefresh
-      ? process.env.JWT_REFRESH_SECRET
-      : process.env.JWT_ACCESS_SECRET;
-
-    if (!secret) {
-      throw AppError.serviceError('JWT secret not configured');
-    }
-
     return jwt.verify(token, secret);
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
@@ -137,14 +151,19 @@ const verifyToken = (token, isRefresh = false) => {
         ? AppError.refreshTokenExpiredError('Refresh token expired')
         : AppError.accessTokenExpiredError('Access token expired');
     }
-
+    
     if (error.name === 'JsonWebTokenError') {
       throw isRefresh
         ? AppError.refreshTokenError('Invalid refresh token')
         : AppError.accessTokenError('Invalid access token');
     }
-
-    logError('Unexpected JWT verification error', error);
+    
+    // Unexpected error (e.g. malformed secret, internal jwt failure)
+    logSystemError('Unexpected JWT verification error', {
+      context: 'verifyToken',
+      error,
+    });
+    
     throw AppError.generalError('Token verification failed');
   }
 };
@@ -153,26 +172,19 @@ const verifyToken = (token, isRefresh = false) => {
  * Verifies an access token cryptographically.
  *
  * Security-layer function:
- * - Performs lightweight format validation
- * - Verifies JWT signature and expiry
- * - Does NOT validate session state
- * - Does NOT check persistence or revocation
+ *  - Performs lightweight format validation before crypto operations
+ *  - Verifies JWT signature and expiry
+ *  - Does NOT validate session state or revocation
  *
- * @param {string} token - Raw access token
- *
- * @returns {object} Decoded JWT payload
- *
- * @throws {AppError.validationError}
- *   If token format is invalid
- *
- * @throws {AppError.authenticationError}
- *   If signature verification fails or token is expired
+ * @param {string} token - Raw access token from client.
+ * @returns {object} Decoded JWT payload.
+ * @throws {AppError} If token format is invalid, signature fails, or token is expired.
  */
 const verifyAccessJwt = (token) => {
   if (!isLikelyJwt(token)) {
     throw AppError.validationError('Invalid token format');
   }
-
+  
   return verifyToken(token, false);
 };
 
@@ -180,26 +192,19 @@ const verifyAccessJwt = (token) => {
  * Verifies a refresh token cryptographically.
  *
  * Security-layer function:
- * - Performs lightweight format validation
- * - Verifies JWT signature and expiry
- * - Does NOT validate persistence state
- * - Does NOT enforce session revocation rules
+ *  - Performs lightweight format validation before crypto operations
+ *  - Verifies JWT signature and expiry
+ *  - Does NOT validate persistence state or session revocation
  *
- * @param {string} token - Raw refresh token
- *
- * @returns {object} Decoded JWT payload
- *
- * @throws {AppError.validationError}
- *   If token format is invalid
- *
- * @throws {AppError.authenticationError}
- *   If signature verification fails or token is expired
+ * @param {string} token - Raw refresh token from client.
+ * @returns {object} Decoded JWT payload.
+ * @throws {AppError} If token format is invalid, signature fails, or token is expired.
  */
 const verifyRefreshJwt = (token) => {
   if (!isLikelyJwt(token)) {
     throw AppError.validationError('Invalid token format');
   }
-
+  
   return verifyToken(token, true);
 };
 
