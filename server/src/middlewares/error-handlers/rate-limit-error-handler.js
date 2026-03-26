@@ -1,45 +1,42 @@
 /**
  * @file rate-limit-error-handler.js
- * @description Middleware to handle rate limiting errors.
+ * @description Express error middleware that intercepts rate limit errors,
+ * logs them, and returns a consistent JSON response.
+ * Non-rate-limit errors are forwarded unchanged.
+ *
+ * Rate limit violations are normalized to AppError at the source in
+ * rate-limit-helper.js defaultRateLimitHandler. This handler only matches,
+ * logs, and responds — no normalization needed.
  */
 
-const normalizeError = require('../../utils/normalize-error');
-const { logError } = require('../../utils/logger-helper');
+'use strict';
+
+const AppError        = require('../../utils/AppError');
+const { logError }    = require('../../utils/logging/logger-helper');
+const { ERROR_TYPES } = require('../../utils/constants/error-constants');
+
+const CONTEXT = 'middleware/rate-limit-error-handler';
 
 /**
- * Middleware to handle rate limiting errors.
+ * Express error-handling middleware for rate limit violations.
  *
- * @param {Error} err - The error object.
- * @param {object} req - The Express request object.
- * @param {object} res - The Express response object.
- * @param {function} next - The Express next middleware function.
+ * Matches AppError instances with type RATE_LIMIT. All other errors are
+ * forwarded to the next handler via next(err) unchanged — never swallowed.
+ *
+ * @param {Error | AppError}               err  - Incoming error.
+ * @param {import('express').Request}       req  - Express request object.
+ * @param {import('express').Response}      res  - Express response object.
+ * @param {import('express').NextFunction}  next - Forwards unmatched errors.
+ * @returns {void}
  */
 const rateLimitErrorHandler = (err, req, res, next) => {
-  const isRateLimitError =
-    err.name === 'RateLimitError' ||
-    err.message?.includes('Rate limit exceeded');
-
-  if (!isRateLimitError) return next(err);
-
-  const retryAfter = err.retryAfter || null;
-
-  // Normalize the error using centralized utility
-  const normalizedError = normalizeError(err, {
-    type: 'RateLimitError',
-    code: 'RATE_LIMIT_EXCEEDED',
-    status: 429,
-    isExpected: true,
-    logLevel: 'warn',
-    details: { retryAfter },
-  });
-
-  // Log the rate-limit event
-  logError(normalizedError, req, {
-    context: 'rate-limit-handler',
-  });
-
-  // Send structured error response
-  return res.status(normalizedError.status).json(normalizedError.toJSON());
+  if (!(err instanceof AppError) || err.type !== ERROR_TYPES.RATE_LIMIT) {
+    return next(err);
+  }
+  
+  logError(err, req, { context: CONTEXT });
+  
+  res.status(err.status).json(err.toJSON());
 };
 
 module.exports = rateLimitErrorHandler;

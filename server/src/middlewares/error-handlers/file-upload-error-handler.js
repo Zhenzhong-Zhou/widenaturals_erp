@@ -1,71 +1,41 @@
 /**
  * @file file-upload-error-handler.js
- * @description Middleware for handling file upload errors.
+ * @description Express error middleware that intercepts file upload errors,
+ * logs them, and returns a consistent JSON response.
+ * Non-file-upload errors are forwarded unchanged.
+ *
+ * MulterError normalization happens at the source in multer-config.js.
+ * This handler only matches, logs, and responds — no normalization needed.
  */
 
-const normalizeError = require('../../utils/normalize-error');
-const { logError } = require('../../utils/logger-helper');
+'use strict';
+
+const AppError        = require('../../utils/AppError');
+const { logError }    = require('../../utils/logging/logger-helper');
+const { ERROR_TYPES } = require('../../utils/constants/error-constants');
+
+const CONTEXT = 'middleware/file-upload-error-handler';
 
 /**
- * Middleware to handle file upload errors.
+ * Express error-handling middleware for file upload errors.
  *
- * @param {Error} err - The error object.
- * @param {object} req - Express request object.
- * @param {object} res - Express response object.
- * @param {function} next - Express next middleware function.
+ * Matches AppError instances with type FILE_UPLOAD. All other errors are
+ * forwarded to the next handler via next(err) unchanged — never swallowed.
+ *
+ * @param {Error | AppError}               err  - Incoming error.
+ * @param {import('express').Request}       req  - Express request object.
+ * @param {import('express').Response}      res  - Express response object.
+ * @param {import('express').NextFunction}  next - Forwards unmatched errors.
+ * @returns {void}
  */
 const fileUploadErrorHandler = (err, req, res, next) => {
-  let errorResponse;
-
-  // Handle Multer-specific errors
-  if (err.name === 'MulterError') {
-    errorResponse = normalizeError(err, {
-      type: 'FileUploadError',
-      code: 'MULTER_ERROR',
-      isExpected: true,
-      status: 400,
-      message: err.message || 'An error occurred during file upload.',
-      details: {
-        field: err.field,
-        errorCode: err.code,
-      },
-    });
+  if (!(err instanceof AppError) || err.type !== ERROR_TYPES.FILE_UPLOAD) {
+    return next(err);
   }
-
-  // Custom file type validation error
-  else if (err.name === 'FileTypeError') {
-    errorResponse = normalizeError(err, {
-      type: 'FileTypeError',
-      code: 'UNSUPPORTED_FILE_TYPE',
-      isExpected: true,
-      status: 400,
-      message: 'The uploaded file type is not supported.',
-    });
-  }
-
-  // Custom file size validation error
-  else if (err.name === 'FileSizeError') {
-    errorResponse = normalizeError(err, {
-      type: 'FileSizeError',
-      code: 'FILE_SIZE_EXCEEDED',
-      isExpected: true,
-      status: 400,
-      message: 'The uploaded file exceeds the allowed size.',
-    });
-  }
-
-  if (errorResponse) {
-    // Log the file upload error with metadata
-    logError(errorResponse, req, {
-      context: 'file-upload-handler',
-    });
-
-    // Send structured error response
-    return res.status(errorResponse.status).json(errorResponse.toJSON());
-  }
-
-  // Pass to the next error handler if not a file upload error
-  next(err);
+  
+  logError(err, req, { context: CONTEXT });
+  
+  res.status(err.status).json(err.toJSON());
 };
 
 module.exports = fileUploadErrorHandler;

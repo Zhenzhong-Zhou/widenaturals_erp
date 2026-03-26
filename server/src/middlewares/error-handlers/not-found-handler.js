@@ -1,30 +1,40 @@
 /**
  * @file not-found-handler.js
- * @description Middleware for handling 404 errors.
+ * @description Express middleware that catches unmatched routes and forwards
+ * a structured 404 AppError to the global error handler.
+ *
+ * Registered after all routes in apply-error-handlers.js so only genuinely
+ * unmatched requests reach it. Forwards via next(err) rather than responding
+ * directly — globalErrorHandler is the single response boundary for all errors.
  */
+
+'use strict';
 
 const AppError = require('../../utils/AppError');
-const { logError } = require('../../utils/logger-helper');
+
+const CONTEXT = 'middleware/not-found-handler';
 
 /**
- * Not found handler middleware.
+ * Express middleware for unmatched routes (404).
  *
- * Express 404 handler for unmatched routes.
- * Logs and returns a standardized not-found error respond.
+ * Creates a structured AppError and forwards it to the next error handler
+ * via next(err). Does not respond directly — consistent with the pattern
+ * that globalErrorHandler is the single log-and-respond boundary.
  *
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
+ * This is a regular 3-argument middleware, not a 4-argument error handler.
+ * It generates an error rather than receiving one.
+ *
+ * @param {import('express').Request}      req  - Express request object.
+ * @param {import('express').Response}     _res  - Express response object (unused).
+ * @param {import('express').NextFunction} next - Forwards the 404 error.
+ * @returns {void}
  */
-const notFoundHandler = (req, res) => {
-  const error = AppError.notFoundError(`Route not found: ${req.originalUrl}`);
-
-  // Log the 404 error with relevant metadata
-  logError(error, req, {
-    context: 'not-found-handler',
-  });
-
-  // Send structured error response
-  res.status(error.status).json(error.toJSON());
+const notFoundHandler = (req, _res, next) => {
+  next(
+    AppError.notFoundError(
+      `Route not found: ${req.method} ${req.originalUrl}`
+    )
+  );
 };
 
 module.exports = notFoundHandler;
