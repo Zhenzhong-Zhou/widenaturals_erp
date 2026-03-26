@@ -1,5 +1,5 @@
 /**
- * @file query-normalization.js
+ * @file normalize-query.js
  * @description Middleware factory that normalises raw Express query parameters
  * into a typed, whitelisted, and consistently shaped `req.normalizedQuery`
  * object for use by service and repository layers.
@@ -21,10 +21,10 @@ const {
   normalizeFilterKeys,
   normalizePaginationParams,
   normalizeParamArray,
+  normalizeSortOrder,
 } = require('../utils/query-normalizers');
 const {
   sanitizeSortBy,
-  sanitizeSortOrder,
   getSortMapForModule,
 } = require('../utils/sort-utils');
 
@@ -260,7 +260,7 @@ const createQueryNormalizationMiddleware = (
     const sortMap            = getSortMapForModule(moduleKey);
     const sanitizedSortBy    =
       sanitizeSortBy(trimmedQuery.sortBy, moduleKey) ?? sortMap?.defaultNaturalSort;
-    const sanitizedSortOrder = sanitizeSortOrder(rawSortOrder);
+    const sanitizedSortOrder = normalizeSortOrder(rawSortOrder);
     
     // -------------------------------------------------------------------------
     // 5. Array keys → filters
