@@ -1,94 +1,121 @@
+/**
+ * @file authenticate.js
+ * @description Express middleware factory that enforces authentication on
+ * protected routes by validating the access token and session state.
+ */
+
+'use strict';
+
 const AppError = require('../utils/AppError');
 const { getAccessTokenFromHeader } = require('../utils/auth-header-utils');
 const { validateAccessToken } = require('../utils/auth/validate-token');
 const { userExistsByField } = require('../repositories/user-repository');
-const {
-  updateSessionLastActivityAt,
-} = require('../repositories/session-repository');
-const { logSystemException } = require('../utils/system-logger');
+const { updateSessionLastActivityAt } = require('../repositories/session-repository');
+const { logWarn } = require('../utils/logging/logger-helper');
+
+const CONTEXT = 'middleware/authenticate';
 
 /**
- * Authentication middleware for protected routes.
+ * @typedef {Object} AuthContext
+ * @property {{ id: string, role: string }} user - Authenticated user identity.
+ * @property {string} sessionId - Active session ID associated with the token.
+ */
+
+/**
+ * Express middleware factory that enforces authentication on protected routes.
  *
  * Guarantees (on success):
- * - Access token (JWT) is cryptographically valid
- * - Token persistence state is valid (not revoked / not expired)
- * - Associated session is active and not revoked
- * - Referenced user still exists
- * - Immutable authentication context is attached as `req.auth`
- *
- * Responsibilities:
- * - Extract and validate access token from request
- * - Enforce token + session lifecycle invariants
- * - Perform structural user existence check
- * - Update session last-activity timestamp (best-effort)
+ *   - Access token (JWT) is cryptographically valid
+ *   - Token persistence state is valid (not revoked, not expired)
+ *   - Associated session is active and not revoked
+ *   - Referenced user still exists in the database
+ *   - Immutable auth context is attached as `req.auth` for downstream use
  *
  * Explicitly does NOT:
- * - Refresh tokens
- * - Rotate or revoke tokens
- * - Create or destroy sessions
- * - Perform authorization checks (handled separately)
+ *   - Refresh or rotate tokens
+ *   - Create or destroy sessions
+ *   - Perform authorization checks (role/permission checks are separate)
  *
  * Security properties:
- * - Fails closed on any validation error
- * - Does not expose internal token or session identifiers
- * - Normalizes unexpected errors into authentication errors
- *
- * Operational notes:
- * - Session activity updates are intended to be non-blocking
- * - Token refresh is handled exclusively by `/auth/refresh`
+ *   - Fails closed on any validation error
+ *   - Does not expose internal token or session identifiers in responses
+ *   - Unknown errors are wrapped as generic auth errors to prevent info leakage
  *
  * @returns {import('express').RequestHandler}
  */
 const authenticate = () => {
+  /**
+   * @param {import('express').Request & { auth?: AuthContext }} req
+   * @param {import('express').Response} res
+   * @param {import('express').NextFunction} next
+   */
   return async (req, res, next) => {
     try {
       const accessToken = getAccessTokenFromHeader(req);
-
+      
       if (!accessToken) {
         throw AppError.accessTokenError('Access token is missing.');
       }
-
-      // ------------------------------------------------------------
-      // 1. Validate access token (JWT + session)
-      // ------------------------------------------------------------
+      
+      // ------------------------------------------------------------------
+      // 1. Validate access token (JWT signature, expiry, session state)
+      // ------------------------------------------------------------------
       const payload = await validateAccessToken(accessToken);
-
-      // ------------------------------------------------------------
+      
+      // ------------------------------------------------------------------
       // 2. Structural user existence check
-      // ------------------------------------------------------------
+      // Ensures the user account still exists — it may have been deleted
+      // after the token was issued.
+      // ------------------------------------------------------------------
       const userExists = await userExistsByField('id', payload.id);
+      
       if (!userExists) {
         throw AppError.authenticationError(
           'User associated with this token no longer exists.'
         );
       }
-
-      // ------------------------------------------------------------
-      // 3. Update session activity
-      // ------------------------------------------------------------
-      await updateSessionLastActivityAt(payload.sessionId);
-
-      // ------------------------------------------------------------
-      // 4. Attach auth context
-      // ------------------------------------------------------------
+      
+      // ------------------------------------------------------------------
+      // 3. Update session activity (best-effort, non-blocking)
+      // A failure here means the activity timestamp is stale, which is
+      // acceptable. It must not fail the request or expose an error to
+      // the client.
+      // ------------------------------------------------------------------
+      try {
+        await updateSessionLastActivityAt(payload.sessionId);
+      } catch (activityError) {
+        logWarn('Failed to update session last activity', {
+          context: CONTEXT,
+          sessionId: payload.sessionId,
+          message: activityError.message,
+        });
+      }
+      
+      // ------------------------------------------------------------------
+      // 4. Attach auth context for downstream middleware and route handlers
+      // ------------------------------------------------------------------
+      
+      /** @type {AuthContext} */
       req.auth = {
         user: {
-          id: payload.id,
+          id:   payload.id,
           role: payload.role,
         },
         sessionId: payload.sessionId,
       };
-
-      return next();
+      
+      next();
+      
     } catch (error) {
-      logSystemException(error, 'Authentication failed');
-
-      return next(
+      // Pass known AppErrors through unchanged — they already carry the
+      // correct type, code, and status. Wrap anything else as a generic
+      // auth error to avoid leaking internal error details to the client.
+      const authError =
         error instanceof AppError
           ? error
-          : AppError.authenticationError('Authentication failed.')
-      );
+          : AppError.authenticationError('Authentication failed.');
+      
+      next(authError);
     }
   };
 };
