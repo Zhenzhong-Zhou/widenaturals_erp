@@ -1,47 +1,41 @@
 /**
  * @file cors-error-handler.js
- * @description Middleware to handle CORS errors and respond with appropriate error messages.
+ * @description Express error middleware that intercepts CORS errors,
+ * logs them, and returns a consistent JSON response.
+ * Non-CORS errors are forwarded unchanged.
+ *
+ * CORS violations are normalized to AppError at the source in cors.js.
+ * This handler only matches, logs, and responds — no normalization needed.
  */
 
-const normalizeError = require('../../utils/normalize-error');
-const { logError } = require('../../utils/logger-helper');
+'use strict';
+
+const AppError        = require('../../utils/AppError');
+const { logError }    = require('../../utils/logging/logger-helper');
+const { ERROR_TYPES } = require('../../utils/constants/error-constants');
+
+const CONTEXT = 'middleware/cors-error-handler';
 
 /**
- * Middleware to handle CORS errors.
+ * Express error-handling middleware for CORS policy violations.
  *
- * @param {Error} err - The error object.
- * @param {object} req - The Express request object.
- * @param {object} res - The Express response object.
- * @param {function} next - The Express next middleware function.
+ * Matches AppError instances with type CORS. All other errors are forwarded
+ * to the next handler via next(err) unchanged — never swallowed.
+ *
+ * @param {Error | AppError}               err  - Incoming error.
+ * @param {import('express').Request}       req  - Express request object.
+ * @param {import('express').Response}      res  - Express response object.
+ * @param {import('express').NextFunction}  next - Forwards unmatched errors.
+ * @returns {void}
  */
 const corsErrorHandler = (err, req, res, next) => {
-  const isCorsError =
-    err.name === 'CorsError' || err.message?.includes('CORS policy');
-
-  if (!isCorsError) return next(err);
-
-  const enrichedDetails = {
-    origin: req.get('origin') || null,
-    method: req.method,
-    route: req.originalUrl,
-  };
-
-  // Normalize the error first
-  const normalizedError = normalizeError(err, {
-    type: 'CorsError',
-    code: 'CORS_ERROR',
-    isExpected: true,
-    logLevel: 'warn',
-    details: err.details || enrichedDetails,
-  });
-
-  // Log the CORS error with detailed metadata
-  logError(normalizedError, req, {
-    context: 'cors-error-handler',
-  });
-
-  // Respond with a structured error response
-  return res.status(normalizedError.status).json(normalizedError.toJSON());
+  if (!(err instanceof AppError) || err.type !== ERROR_TYPES.CORS) {
+    return next(err);
+  }
+  
+  logError(err, req, { context: CONTEXT });
+  
+  res.status(err.status).json(err.toJSON());
 };
 
 module.exports = corsErrorHandler;
