@@ -130,40 +130,7 @@ const ERROR_CODES = {
   CONFIGURATION_ERROR: 'CONFIGURATION_ERROR',
 };
 
-// =========================
-// Postgres Error Codes (INFRA LEVEL)
-// =========================
-
-// Raw PostgreSQL error codes (infra-level, do not expose directly)
-const POSTGRES_ERROR_CODES = {
-  UNIQUE_VIOLATION: '23505',
-  FOREIGN_KEY_VIOLATION: '23503',
-  NOT_NULL_VIOLATION: '23502',
-  VALUE_TOO_LONG: '22001',
-  INVALID_INPUT_FORMAT: '22P02',
-  SERIALIZATION_FAILURE: '40001',
-  DEADLOCK_DETECTED: '40P01',
-};
-
-// =========================
-// App DB Error Mapping Codes (APP LEVEL)
-// =========================
-
-// Normalized database error codes used within application logic
-const DB_ERROR_CODES = {
-  UNIQUE_VIOLATION: 'UNIQUE_VIOLATION',
-  FOREIGN_KEY_VIOLATION: 'FOREIGN_KEY_VIOLATION',
-  NOT_NULL_VIOLATION: 'NOT_NULL_VIOLATION',
-  VALUE_TOO_LONG: 'VALUE_TOO_LONG',
-  INVALID_INPUT_FORMAT: 'INVALID_INPUT_FORMAT',
-  SERIALIZATION_FAILURE: 'SERIALIZATION_FAILURE',
-  DEADLOCK_DETECTED: 'DEADLOCK_DETECTED',
-  UNKNOWN_DB_ERROR: 'UNKNOWN_DB_ERROR',
-};
-
 module.exports = {
   ERROR_TYPES,
   ERROR_CODES,
-  POSTGRES_ERROR_CODES,
-  DB_ERROR_CODES,
 };
