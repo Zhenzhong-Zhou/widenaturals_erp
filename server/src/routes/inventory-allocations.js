@@ -1,8 +1,20 @@
-const express = require('express');
-const { authorize } = require('../middlewares/authorize');
-const PERMISSIONS = require('../utils/constants/domain/permissions');
-const validate = require('../middlewares/validate');
-const { orderIdParamSchema } = require('../validators/order-validators');
+/**
+ * @file inventory-allocations.js
+ * @description Inventory allocation routes for order-based allocation, review,
+ * confirmation, and paginated allocation queries.
+ *
+ * All routes are protected and require explicit permission checks via `authorize`.
+ * Query normalization is handled by `createQueryNormalizationMiddleware`.
+ */
+
+'use strict';
+
+const express                            = require('express');
+const { authorize }                      = require('../middlewares/authorize');
+const validate                           = require('../middlewares/validate');
+const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
+const PERMISSIONS                        = require('../utils/constants/domain/permissions');
+const { orderIdParamSchema }             = require('../validators/order-validators');
 const {
   allocateInventorySchema,
   allocationReviewSchema,
@@ -14,46 +26,15 @@ const {
   getPaginatedInventoryAllocationsController,
   confirmInventoryAllocationController,
 } = require('../controllers/inventory-allocation-controller');
-const { sanitizeFields } = require('../middlewares/sanitize');
-const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 
 const router = express.Router();
 
 /**
  * @route POST /inventory-allocations/allocate/:orderId
+ * @description Allocate available inventory against a specific order.
+ * Validates the order ID and allocation payload before delegating to the controller.
+ * @access protected
  * @permission INVENTORY_ALLOCATION.ALLOCATE
- *
- * @description
- * Initiates automatic inventory allocation for all items in the specified order.
- *
- * The server attempts to allocate inventory batches from the selected warehouse
- * using the configured allocation strategy.
- *
- * Request validation:
- * - `orderId` must be a valid UUID (route param).
- * - `strategy` must be a 4-character allocation strategy (`fefo` or `fifo`).
- * - `warehouseId` must be a valid warehouse UUID.
- * - `allowPartial` (boolean, default: false) allows allocation to proceed even
- *   if the full requested quantity cannot be satisfied.
- *
- * Allocation behavior:
- * - If no inventory exists in the selected warehouse for some items,
- *   the server returns a `NO_WAREHOUSE_INVENTORY` validation error.
- *
- * - If inventory exists but cannot fully satisfy the requested quantity,
- *   the server returns an `INSUFFICIENT_INVENTORY` validation error unless
- *   `allowPartial` is true.
- *
- * - When `allowPartial` is true, the server allocates all available inventory
- *   batches and leaves the remaining quantity unallocated.
- *
- * Middleware:
- * - `authorize`: Requires `INVENTORY_ALLOCATION.ALLOCATE` permission.
- * - `validate`: Validates route params and request body against Joi schemas.
- *
- * Controller:
- * - `allocateInventoryForOrderController` performs the allocation logic
- *   and returns the created allocation identifiers used for the review step.
  */
 router.post(
   '/allocate/:orderId',
@@ -65,142 +46,44 @@ router.post(
 
 /**
  * @route POST /inventory-allocations/review/:orderId
- * @summary Review inventory allocations for a specific order.
- * @description
- * Retrieves detailed review data for inventory allocations tied to a given order.
- *
- * Request behavior:
- * - Expects `orderId` as a route parameter.
- * - Requires a request body with:
- *   - `warehouseIds`: Array of UUIDs (required).
- *   - `allocationIds`: Array of UUIDs (required).
- *
- * Notes:
- * - POST is used instead of GET to support large request bodies and avoid URL length limits.
- * - Authorization is enforced using `PERMISSIONS.INVENTORY.REVIEW_ALLOCATION`.
- * - Input validation and sanitization are applied to all incoming data.
- *
- * Middleware:
- * - `authorize` – verifies permission.
- * - `sanitizeFields` – cleans known array fields like `allocationIds`.
- * - `validate` – validates `orderId` param and body schema.
- *
- * @permission PERMISSIONS.INVENTORY_ALLOCATION.REVIEW
- *
- * @param {string} req.params.orderId - UUID of the order to review allocations for.
- * @param {string[]} req.body.warehouseIds - Required list of warehouse UUIDs to filter by.
- * @param {string[]} req.body.allocationIds - Required list of allocation UUIDs to review.
- *
- * @returns {200} { success: true, data: { header, items }, message, allocationCount }
- * @returns {400} If input validation fails.
- * @returns {403} If the user lacks permission.
- * @returns {404} If no matching allocations are found.
+ * @description Submit a review decision on a pending inventory allocation for an order.
+ * @access protected
+ * @permission INVENTORY_ALLOCATION.REVIEW
  */
 router.post(
   '/review/:orderId',
   authorize([PERMISSIONS.INVENTORY_ALLOCATION.REVIEW]),
-  sanitizeFields(['allocationIds']),
   validate(orderIdParamSchema, 'params'),
   validate(allocationReviewSchema, 'body'),
   reviewInventoryAllocationController
 );
 
 /**
- * GET /api/inventory-allocations
- *
- * Fetch a paginated list of inventory allocation summaries with support for
- * filtering, sorting, and pagination.
- *
- * ### Middleware Stack:
- * 1. `authorize([PERMISSIONS.INVENTORY_ALLOCATION.VIEW])`
- *    → Ensures the user has permission to view inventory allocations.
- *
- * 2. `createQueryNormalizationMiddleware('inventoryAllocationSortMap', ['statusIds', 'warehouseIds', 'batchIds'], [], inventoryAllocationsQuerySchema)`
- *    → Normalizes query parameters into `req.normalizedQuery`:
- *       - Flattens and coerces query values to expected types
- *       - Handles array fields like `statusIds`, `warehouseIds`, `batchIds`
- *       - Validates sorting keys using `inventoryAllocationSortMap`
- *
- * 3. `sanitizeFields(['keyword'])`
- *    → Trims and cleans the `keyword` field for fuzzy search.
- *
- * 4. `validate(inventoryAllocationsQuerySchema, 'query')`
- *    → Validates query parameters against the Joi schema to ensure correct shape and types.
- *
- * 5. `getPaginatedInventoryAllocationsController`
- *    → Main controller to fetch data and respond with paginated allocation summaries.
- *
- * ### Query Parameters (via `inventoryAllocationsQuerySchema`):
- * - Pagination:
- *   - `page` (number, default: 1)
- *   - `limit` (number, default: 10)
- * - Sorting:
- *   - `sortBy` (string, default: `'created_at'`)
- *   - `sortOrder` (`'ASC'` | `'DESC'`, default: `'DESC'`)
- * - Filters (flattened top-level keys):
- *   - `statusIds`, `warehouseIds`, `batchIds` — array of UUIDs
- *   - `orderStatusId`, `orderTypeId`, `paymentStatusId`, `orderCreatedBy`, `allocationCreatedBy`
- *   - `allocatedAfter`, `allocatedBefore`, `aggregatedAllocatedAfter`, `aggregatedAllocatedBefore`
- *   - `aggregatedCreatedAfter`, `aggregatedCreatedBefore`
- *   - `orderNumber`, `keyword` (for fuzzy search on order/customer fields)
- *
- * ### Example Request:
- * ```http
- * GET /api/inventory-allocations?page=1&limit=20&sortBy=created_at&sortOrder=DESC&warehouseIds=abc-123&keyword=NMN
- * Authorization: Bearer <access_token>
- * ```
- *
- * @access Protected
- * @returns {200} JSON response with:
- * {
- *   data: InventoryAllocationSummary[],
- *   pagination: {
- *     page: number,
- *     limit: number,
- *     totalRecords: number,
- *     totalPages: number
- *   }
- * }
+ * @route GET /inventory-allocations
+ * @description Paginated inventory allocation records with optional filters and sorting.
+ * Filters: statusIds, warehouseIds, batchIds.
+ * Sorting: sortBy, sortOrder (uses inventoryAllocationSortMap).
+ * @access protected
+ * @permission INVENTORY_ALLOCATION.VIEW
  */
 router.get(
   '/',
   authorize([PERMISSIONS.INVENTORY_ALLOCATION.VIEW]),
-  createQueryNormalizationMiddleware(
-    'inventoryAllocationSortMap',
-    ['statusIds', 'warehouseIds', 'batchIds'],
-    [],
-    inventoryAllocationsQuerySchema
-  ),
-  sanitizeFields(['keyword']),
   validate(inventoryAllocationsQuerySchema, 'query'),
+  createQueryNormalizationMiddleware(
+    'inventoryAllocationSortMap',                  // moduleKey — drives allowed sortBy fields
+    ['statusIds', 'warehouseIds', 'batchIds'],     // arrayKeys — normalized as UUID arrays
+    [],                                            // booleanKeys — none client-controlled
+    inventoryAllocationsQuerySchema                // filterKeysOrSchema — extracts filter keys from schema
+  ),
   getPaginatedInventoryAllocationsController
 );
 
 /**
- * POST /inventory-allocations/confirm/:orderId
- *
- * Confirms inventory allocation for a specific order.
- *
- * This route:
- * - Requires `ALLOCATE_INVENTORY.CONFIRM` permission.
- * - Validates the `orderId` route parameter.
- * - Locks the order and its items.
- * - Updates item statuses based on matched allocation.
- * - Updates order status if all items are successfully allocated.
- * - Updates warehouse inventory and logs the action.
- *
- * Access Control:
- * - Only users with `PERMISSIONS.ALLOCATE_INVENTORY.CONFIRM` can invoke this action.
- *
- * Validation:
- * - `params.orderId` must be a valid UUID (validated via `orderIdParamSchema`).
- *
- * Response:
- * - `200 OK` with allocation result (transformed order allocation response)
- * - Errors are handled via global middleware and may include:
- *   - `403 Forbidden` (insufficient permissions)
- *   - `404 Not Found` (order or items not found)
- *   - `500 Internal Server Error` (unexpected failure during confirmation)
+ * @route POST /inventory-allocations/confirm/:orderId
+ * @description Confirm a reviewed inventory allocation, locking it for fulfillment.
+ * @access protected
+ * @permission INVENTORY_ALLOCATION.CONFIRM
  */
 router.post(
   '/confirm/:orderId',
