@@ -49,6 +49,8 @@ const addressSchema = Joi.object({
 
 /**
  * Joi schema for validating an array of addresses.
+ *
+ * @type {Joi.ArraySchema}
  */
 const addressArraySchema = createArraySchema(addressSchema, 1, 'Address list');
 
