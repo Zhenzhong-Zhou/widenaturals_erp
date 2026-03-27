@@ -611,7 +611,7 @@ const validateKeyword = (label = 'keyword', max = 100) =>
 /**
  * Creates a reusable Joi array schema for validating lists of items.
  *
- * @param {Joi.Schema} itemSchema - The Joi schema to apply to each array item.
+ * @param {Joi.ObjectSchema} itemSchema - The Joi schema to apply to each array item.
  * @param {number} [minItems=1] - Minimum number of items required in the array.
  * @param {string} [label='Items'] - Label for error messages.
  * @returns {Joi.ArraySchema} Joi schema for validating an array of items.

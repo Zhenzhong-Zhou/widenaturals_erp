@@ -144,10 +144,10 @@ const bomQuerySchema = paginationSchema
       .description('Filter by default BOMs only.'),
 
     // --- Revision range ---
-    revisionMin: validatePositiveInteger('Minimum Revision')
+    revisionMin: validatePositiveInteger(1)
       .optional()
       .description('Minimum revision number.'),
-    revisionMax: validatePositiveInteger('Maximum Revision')
+    revisionMax: validatePositiveInteger(1)
       .optional()
       .description('Maximum revision number.'),
 

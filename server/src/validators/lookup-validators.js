@@ -269,7 +269,7 @@ const pricingLookupQuerySchema = Joi.object({
  * - `mode? : 'generic' | 'salesDropdown'`  // **top-level** selector (defaults to 'generic')
  *
  * Note:
- * If your query-normalization middleware moves `mode` into `options.mode`,
+ * If your normalize-query middleware moves `mode` into `options.mode`,
  * either (a) keep this top-level validator and map it before validation,
  * or (b) validate `options.mode` inside the base schema instead.
  *
@@ -352,12 +352,9 @@ const skuCodeBaseLookupQuerySchema = Joi.object({
  */
 const productLookupQuerySchema = Joi.object({
   ...baseLookupQuerySchema,
-
-  filters: Joi.object({
-    brand: validateOptionalString('Brand', 20),
-    category: validateOptionalString('Category', 20),
-    series: validateOptionalString('Series', 20),
-  }).default({}),
+  brand: validateOptionalString('Brand', 20),
+  category: validateOptionalString('Category', 20),
+  series: validateOptionalString('Series', 20),
 });
 
 /**
