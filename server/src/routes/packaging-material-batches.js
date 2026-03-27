@@ -1,17 +1,29 @@
-const express = require('express');
-const { authorize } = require('../middlewares/authorize');
-const { PACKAGING_MATERIAL_BATCHES } = require('../utils/constants/domain/permissions');
-const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
+/**
+ * @file packaging-material-batches.js
+ * @description Packaging material batch query, creation, and lifecycle management routes.
+ * Covers paginated listing, bulk creation, metadata edits, and status transitions
+ * (update, receive, release).
+ *
+ * All routes are protected and require explicit permission checks via `authorize`.
+ * Query normalization is handled by `createQueryNormalizationMiddleware`.
+ */
+
+'use strict';
+
+const express                            = require('express');
+const { authorize }                      = require('../middlewares/authorize');
+const validate                           = require('../middlewares/validate');
+const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
+const { PACKAGING_MATERIAL_BATCHES }     = require('../utils/constants/domain/permissions');
 const {
   packagingMaterialBatchQuerySchema,
+  packagingMaterialBatchIdParamSchema,
   createPackagingMaterialBatchBulkSchema,
   editPackagingMaterialBatchMetadataSchema,
   updatePackagingMaterialBatchStatusSchema,
   receivePackagingMaterialBatchSchema,
-  releasePackagingMaterialBatchSchema, packagingMaterialBatchIdParamSchema,
+  releasePackagingMaterialBatchSchema,
 } = require('../validators/packaging-material-batch-validators');
-const { sanitizeFields } = require('../middlewares/sanitize');
-const validate = require('../middlewares/validate');
 const {
   getPaginatedPackagingMaterialBatchesController,
   createPackagingMaterialBatchesController,
@@ -24,92 +36,40 @@ const {
 const router = express.Router();
 
 /**
- * GET /packaging-material-batches
- *
- * Fetch a paginated list of PACKAGING MATERIAL batch records.
- *
- * Responsibilities by layer:
- *
- * - **Route Middleware**:
- *   - Enforces module-level access control (`PACKAGING_BATCH.VIEW_LIST`)
- *   - Normalizes query parameters (pagination, sorting, filters)
- *   - Sanitizes free-text inputs
- *   - Validates query shape and types (schema-level only)
- *
- * - **Controller**:
- *   - Coordinates request lifecycle, logging, and tracing
- *   - Delegates visibility resolution and pagination to the service layer
- *
- * - **Service / Business Layer**:
- *   - Evaluates packaging material batch visibility rules
- *   - Applies visibility constraints to filters (fail-closed)
- *   - Executes paginated PMB queries
- *   - Delegates data normalization to the transformer layer
- *
- * Query behavior:
- * - `statusIds`, `packagingMaterialIds`, `supplierIds`
- *   → normalized as UUID arrays
- *
- * - `lotNumber`
- *   → explicit lot filter (ILIKE)
- *
- * - Date filters
- *   → expiry / manufacture / received / created ranges
- *
- * - Pagination & sorting
- *   → normalized and SQL-safe via upstream middleware
- *
- * - `keyword`
- *   → free-text search
- *   → eligible fields determined by ACL (NOT client input)
- *
- * This route does NOT:
- * - Perform business logic
- * - Enforce row-level visibility
- * - Shape response data
- * - Decide keyword search scope
+ * @route GET /packaging-material-batches
+ * @description Paginated packaging material batch records with optional filters and sorting.
+ * Filters: statusIds, packagingMaterialIds, supplierIds.
+ * Sorting: sortBy, sortOrder (uses packagingMaterialBatchSortMap).
+ * @access protected
+ * @permission PACKAGING_MATERIAL_BATCHES.VIEW_LIST
  */
 router.get(
   '/',
   authorize([PACKAGING_MATERIAL_BATCHES.VIEW_LIST]),
+  validate(packagingMaterialBatchQuerySchema, 'query', {
+    allowUnknown: true, // downstream middleware normalizes unknown keys before business layer
+  }),
   createQueryNormalizationMiddleware(
-    'packagingMaterialBatchSortMap',
-    [
-      // array-style filters
+    'packagingMaterialBatchSortMap', // moduleKey — drives allowed sortBy fields
+    [                                // arrayKeys — normalized as UUID arrays
       'statusIds',
       'packagingMaterialIds',
       'supplierIds',
     ],
-    [], // boolean filters (none client-controlled)
-    packagingMaterialBatchQuerySchema, // query schema
-    {},
-    [], // option-level booleans
-    [] // option-level strings
+    [],                              // booleanKeys — none client-controlled
+    packagingMaterialBatchQuerySchema, // filterKeysOrSchema — extracts filter keys from schema
+    {},                              // options overrides — none
+    [],                              // option-level booleans — none
+    []                               // option-level strings — none
   ),
-  sanitizeFields(['keyword', 'lotNumber']),
-  validate(packagingMaterialBatchQuerySchema, 'query', {
-    allowUnknown: true,
-  }),
   getPaginatedPackagingMaterialBatchesController
 );
 
 /**
- * Creates one or more packaging material batches.
- *
- * Middleware order:
- * 1. authorize → ensures the user has permission to create packaging batches
- * 2. validate → validates request payload using Joi schema
- * 3. controller → executes the batch creation workflow
- *
  * @route POST /packaging-material-batches/create
- *
- * @middleware authorize
- * Requires permission: PACKAGING_MATERIAL_BATCHES.CREATE
- *
- * @middleware validate
- * Validates request body against `createPackagingMaterialBatchBulkSchema`
- *
- * @controller createPackagingMaterialBatchesController
+ * @description Bulk create one or more packaging material batch records.
+ * @access protected
+ * @permission PACKAGING_MATERIAL_BATCHES.CREATE
  */
 router.post(
   '/create',
@@ -119,15 +79,10 @@ router.post(
 );
 
 /**
- * Update metadata of a packaging material batch.
- *
- * Middleware pipeline:
- * 1. authorize → verifies the user has permission to edit packaging batches
- * 2. validate → validates request payload using Joi schema
- * 3. controller → executes metadata update workflow
- *
- * Route:
- * PATCH /packaging-material-batches/:batchId/metadata
+ * @route PATCH /packaging-material-batches/:batchId/metadata
+ * @description Update editable metadata fields on a packaging material batch.
+ * @access protected
+ * @permission PACKAGING_MATERIAL_BATCHES.EDIT
  */
 router.patch(
   '/:batchId/metadata',
@@ -137,24 +92,11 @@ router.patch(
   editPackagingMaterialBatchMetadataController
 );
 
-//------------------------------------------------------------
-// Update packaging material batch lifecycle status
-//------------------------------------------------------------
-
 /**
- * PATCH /:batchId/status
- *
- * Updates the lifecycle status of a packaging material batch.
- *
- * Example transitions:
- * - pending → received
- * - received → quarantined
- * - quarantined → released
- *
- * Middleware flow:
- * 1. Permission check
- * 2. Request body validation
- * 3. Controller execution
+ * @route PATCH /packaging-material-batches/:batchId/status
+ * @description Transition a packaging material batch to a new status.
+ * @access protected
+ * @permission PACKAGING_MATERIAL_BATCHES.UPDATE_STATUS
  */
 router.patch(
   '/:batchId/status',
@@ -164,20 +106,11 @@ router.patch(
   updatePackagingMaterialBatchStatusController
 );
 
-//------------------------------------------------------------
-// Mark packaging batch as received (warehouse intake)
-//------------------------------------------------------------
-
 /**
- * PATCH /:batchId/receive
- *
- * Marks a packaging material batch as received into warehouse inventory.
- *
- * This operation typically transitions the lifecycle state:
- * pending → received
- *
- * The service layer applies lifecycle automation
- * such as setting received_at and received_by.
+ * @route PATCH /packaging-material-batches/:batchId/receive
+ * @description Record physical receipt of a packaging material batch into the warehouse.
+ * @access protected
+ * @permission PACKAGING_MATERIAL_BATCHES.RECEIVE
  */
 router.patch(
   '/:batchId/receive',
@@ -187,20 +120,11 @@ router.patch(
   receivePackagingMaterialBatchController
 );
 
-//------------------------------------------------------------
-// Release packaging batch for operational use
-//------------------------------------------------------------
-
 /**
- * PATCH /:batchId/release
- *
- * Releases a packaging material batch after quality inspection.
- *
- * Typical lifecycle transition:
- * received → released
- *
- * Releasing a batch indicates it is approved for
- * manufacturing or packaging operations.
+ * @route PATCH /packaging-material-batches/:batchId/release
+ * @description Release a packaging material batch for production use.
+ * @access protected
+ * @permission PACKAGING_MATERIAL_BATCHES.RELEASE
  */
 router.patch(
   '/:batchId/release',

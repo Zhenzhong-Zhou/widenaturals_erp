@@ -1,9 +1,18 @@
-const express = require('express');
-const { authorize } = require('../middlewares/authorize');
-const PERMISSIONS = require('../utils/constants/domain/permissions');
-const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
-const { sanitizeFields } = require('../middlewares/sanitize');
-const validate = require('../middlewares/validate');
+/**
+ * @file reports.js
+ * @description Report query routes.
+ *
+ * All routes are protected and require explicit permission checks via `authorize`.
+ * Query normalization is handled by `createQueryNormalizationMiddleware`.
+ */
+
+'use strict';
+
+const express                            = require('express');
+const { authorize }                      = require('../middlewares/authorize');
+const validate                           = require('../middlewares/validate');
+const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
+const PERMISSIONS                        = require('../utils/constants/domain/permissions');
 const {
   inventoryActivityLogQuerySchema,
 } = require('../validators/report-validators');
@@ -14,33 +23,27 @@ const {
 const router = express.Router();
 
 /**
- * GET /inventory-activity-logs
- *
- * Retrieves a paginated list of inventory activity logs with optional filters.
- *
- * Authorization:
- * - Requires the 'view_inventory_log' permission.
- * - Additional filtering and access control (e.g., warehouse-level, role-based) is enforced in the service layer.
- *
- * Middleware:
- * - Normalizes array and boolean query parameters
- * - Sanitizes raw string fields (e.g., sortBy, sourceType)
- * - Validates query parameters against the schema
- * - Logs access attempts in the audit log
- *
- * Supported query parameters:
- * - Pagination: page, limit
- * - Sorting: sortBy, sortOrder
- * - Date range: fromDate, toDate
- * - Filter arrays: warehouseIds[], locationIds[], productIds[], skuIds[], batchIds[], packagingMaterialIds[], actionTypeIds[]
- * - Filter scalars: orderId, statusId, adjustmentTypeId, performedBy, sourceType, batchType
+ * @route GET /reports/inventory-activity-logs
+ * @description Paginated inventory activity log records with optional filters and sorting.
+ * Filters: warehouseIds, locationIds, productIds, skuIds, batchIds,
+ *          packagingMaterialIds, actionTypeIds, orderId, statusId,
+ *          adjustmentTypeIds, performedBy.
+ * Sorting: sortBy, sortOrder (uses inventoryActivityLogSortMap).
+ * @access protected
+ * @permission REPORTS.VIEW_INVENTORY_LOGS
  */
 router.get(
   '/inventory-activity-logs',
   authorize([PERMISSIONS.REPORTS.VIEW_INVENTORY_LOGS]),
+  validate(
+    inventoryActivityLogQuerySchema,
+    'query',
+    { convert: true },
+    'Invalid inventory activity log query parameters.'
+  ),
   createQueryNormalizationMiddleware(
-    'inventoryActivityLogSortMap',
-    [
+    'inventoryActivityLogSortMap', // moduleKey — drives allowed sortBy fields
+    [                              // arrayKeys — normalized as UUID arrays
       'warehouseIds',
       'locationIds',
       'productIds',
@@ -53,15 +56,8 @@ router.get(
       'adjustmentTypeIds',
       'performedBy',
     ],
-    [],
-    inventoryActivityLogQuerySchema
-  ),
-  sanitizeFields(['sourceType', 'batchType', 'sortBy', 'sortOrder']),
-  validate(
-    inventoryActivityLogQuerySchema,
-    'query',
-    { convert: true },
-    'Invalid inventory activity log query parameters.'
+    [],                   // booleanKeys — none client-controlled
+    inventoryActivityLogQuerySchema  // filterKeysOrSchema — extracts filter keys from schema
   ),
   getInventoryActivityLogsController
 );

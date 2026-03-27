@@ -66,49 +66,9 @@ const sanitizeInput = (req, res, next) => {
 };
 
 // -----------------------------------------------------------------------------
-// Field-level sanitizer factory
-// -----------------------------------------------------------------------------
-
-/**
- * Express middleware factory that sanitizes a specific subset of body fields.
- *
- * Use only on POST / PUT / PATCH routes that accept rich text (HTML) or
- * require field-level sanitization rules beyond the global pass.
- * Do NOT use on GET routes — there is no body to sanitize, and `sanitizeInput`
- * already handled req.query.
- *
- * @param {string[]} fields - Body field names to sanitize.
- * @param {boolean}  [isRichText=false]
- *   When `true`, fields are treated as rich text and HTML is sanitized
- *   (tags stripped to safe subset) rather than removed entirely.
- * @returns {import('express').RequestHandler}
- *
- * @example
- * // Mutation route — sanitize a rich-text body field before validation
- * router.post(
- *   '/products',
- *   sanitizeFields(['description'], true),
- *   validate(createProductSchema),
- *   createProductHandler
- * );
- */
-const sanitizeFields = (fields, isRichText = false) => {
-  return (req, res, next) => {
-    try {
-      sanitizeRequestBody(req, fields, isRichText);
-      
-      next();
-    } catch (error) {
-      next(AppError.sanitizationError('Field sanitization failed.'));
-    }
-  };
-};
-
-// -----------------------------------------------------------------------------
 // Exports
 // -----------------------------------------------------------------------------
 
 module.exports = {
   sanitizeInput,
-  sanitizeFields,
 };
