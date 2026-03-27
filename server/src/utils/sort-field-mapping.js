@@ -579,22 +579,20 @@ const SORTABLE_FIELDS = {
     `,
   },
   addressSortMap: {
-    createdAt: 'a.created_at', // Standard default sort
-    updatedAt: 'a.updated_at', // For recently modified addresses
-
-    city: 'a.city',
-    state: 'a.state',
-    postalCode: 'a.postal_code',
-    country: 'a.country',
-    region: 'a.region',
-
-    label: 'a.label', // Often used for identifying purpose (e.g. "Shipping", "Billing")
-    recipientName: 'a.full_name', // Useful for sorting by recipient
-    email: 'a.email', // In the case of email-based workflows
-    phone: 'a.phone', // Rare, but could be useful
-
-    customerName: 'c.firstname',
-    customerEmail: 'c.email',
+    createdAt:      'a.created_at',
+    updatedAt:      'a.updated_at',
+    city:           'a.city',
+    state:          'a.state',
+    postalCode:     'a.postal_code',
+    country:        'a.country',
+    region:         'a.region',
+    label:          'a.label',
+    recipientName:  'a.full_name',
+    email:          'a.email',
+    phone:          'a.phone',
+    customerName:   'c.firstname',
+    customerEmail:  'c.email',
+    defaultNaturalSort: 'a.created_at',
   },
   orderTypeSortMap: {
     name: 'ot.name',

@@ -55,6 +55,7 @@ const PERMISSIONS = {
   BATCH_REGISTRY: {
     VIEW_LIST: 'view_batch_registry',
     UPDATE_NOTE: 'update_batch_registry_note',
+    VIEW_DETAILS: 'view_batch_detailed_details',
   },
   PRODUCT_BATCHES: {
     VIEW_LIST: 'view_product_batches',
@@ -63,6 +64,7 @@ const PERMISSIONS = {
     UPDATE_STATUS: 'update_product_batch_status',
     RECEIVE: 'receive_product_batch',
     RELEASE: 'release_product_batch',
+    VIEW_DETAILS: 'view_product_batch_details',
   },
   PACKAGING_MATERIAL_BATCHES: {
     VIEW_LIST: 'view_packaging_material_batches',
@@ -71,6 +73,7 @@ const PERMISSIONS = {
     UPDATE_STATUS: 'update_packaging_material_batch_status',
     RECEIVE: 'receive_packaging_material_batch',
     RELEASE: 'release_packaging_material_batch',
+    VIEW_DETAILS: 'view_packaging_material_batch_details',
   },
   WAREHOUSE_INVENTORY: {
     CREATE: 'create_warehouse_inventory',
