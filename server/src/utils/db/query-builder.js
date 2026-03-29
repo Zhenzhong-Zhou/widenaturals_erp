@@ -13,11 +13,9 @@
  * - q(), qualify(), validateSqlIdentifiers() from ./sql-ident
  */
 
+const { UUID_RE } = require('../id-utils');
 const { q } = require('../sql-ident');
 const { validateSqlIdentifiers } = require('./sql-validation');
-
-// Compiled once — matches a bare UUID (8-4-4-4-12 hex groups)
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Splits a composite data key back into its individual UUID parts.

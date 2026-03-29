@@ -400,7 +400,7 @@ const SORTABLE_FIELDS = {
     // --------------------------------------------------
     defaultNaturalSort: `pmb.received_at`,
   },
-  pricingRecords: {
+  pricingSortMap: {
     productName: 'pr.name',
     brand: 'pr.brand',
     category: 'pr.category',
@@ -412,6 +412,7 @@ const SORTABLE_FIELDS = {
     price: 'p.price',
     validFrom: 'p.valid_from',
     validTo: 'p.valid_to',
+    defaultNaturalSort: 'pt.name',
   },
   locationInventorySummarySortMap: {
     lotNumber: `
