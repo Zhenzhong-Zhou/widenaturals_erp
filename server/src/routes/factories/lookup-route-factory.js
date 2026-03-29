@@ -122,12 +122,13 @@ const createLookupRoute = ({
   const {
     arrayKeys        = [],
     booleanKeys      = [],
-    filterKeys       = ['keyword'],
+    filterKeysOrSchema       = [],
     includePagination = true,
     includeSorting   = false,
     optionBooleanKeys = [],
     optionStringKeys       = [],
     customHandlers   = [],
+    paginationMode     = 'offset',
   } = config;
   
   // ---------------------------------------------------------
@@ -148,8 +149,12 @@ const createLookupRoute = ({
       '',
       arrayKeys,
       booleanKeys,
-      filterKeys,
-      { includePagination, includeSorting },
+      filterKeysOrSchema,
+      {
+        includePagination,
+        includeSorting,
+        paginationMode,
+      },
       optionBooleanKeys,
       optionStringKeys
     ),
