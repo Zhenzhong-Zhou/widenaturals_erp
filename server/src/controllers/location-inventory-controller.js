@@ -6,7 +6,7 @@ const {
   fetchPaginatedLocationInventorySummaryByItemIdService,
   fetchPaginatedLocationInventoryRecordService,
 } = require('../services/location-inventory-service');
-const { logInfo } = require('../utils/logger-helper');
+const { logInfo } = require('../utils/logging/logger-helper');
 const {
   normalizePaginationAndSortParams,
   sanitizeCommonInventoryFilters,
