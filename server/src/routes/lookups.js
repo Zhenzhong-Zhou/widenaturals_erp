@@ -7,6 +7,12 @@
  *
  * Routes are read-only, permission-protected, and return a standard envelope:
  *   { success, message, items, limit, offset, hasMore }
+ *
+ * Pagination mode:
+ *   All routes in this file are dropdowns/lookups — the factory default is 'offset'.
+ *   offset + limit only. page is never attached to req.normalizedQuery.
+ *
+ * Routes without pagination (includePagination: false) do not need paginationMode.
  */
 
 'use strict';
@@ -75,6 +81,7 @@ const router = express.Router();
  * @route GET /lookups/batch-registry
  * @description Paginated batch registry records for inventory dropdowns.
  * Filters: batchType, warehouseId, locationId. No sorting.
+ * Pagination: offset-based — navigates by raw offset, not page number.
  * @access protected
  * @permission PERMISSIONS.VIEW_BATCH_REGISTRY
  */
@@ -84,13 +91,15 @@ registerLookupRoute(router, {
   schema:     batchRegistryLookupQuerySchema,
   controller: getBatchRegistryLookupController,
   config: {
-    filterKeys: ['batchType', 'warehouseId', 'locationId'],
+    // filterKeysOrSchema: batchRegistryLookupQuerySchema,
+    filterKeysOrSchema: ['batchType', 'warehouseId', 'locationId'],
   },
 });
 
 /**
  * @route GET /lookups/warehouses
- * @description Warehouse records for UI dropdowns. Filters: warehouseTypeId. No pagination.
+ * @description Warehouse records for UI dropdowns. Filters: warehouseTypeId.
+ * No pagination — warehouse count is bounded by physical locations.
  * @access protected
  * @permission PERMISSIONS.VIEW_WAREHOUSE
  */
@@ -100,7 +109,7 @@ registerLookupRoute(router, {
   schema:     warehouseLookupQuerySchema,
   controller: getWarehouseLookupController,
   config: {
-    filterKeys:        ['warehouseTypeId'],
+    filterKeysOrSchema: warehouseLookupQuerySchema,
     includePagination: false,
   },
 });
@@ -108,7 +117,8 @@ registerLookupRoute(router, {
 /**
  * @route GET /lookups/lot-adjustment-types
  * @description Lot adjustment types for inventory UI.
- * Filters: excludeInternal (bool), restrictToQtyAdjustment (bool). No pagination.
+ * Filters: excludeInternal (bool), restrictToQtyAdjustment (bool).
+ * No pagination — config table, bounded by definition count.
  * @access protected
  * @permission PERMISSIONS.VIEW_LOT_ADJUSTMENT_TYPE
  */
@@ -119,13 +129,13 @@ registerLookupRoute(router, {
   controller: getLotAdjustmentLookupController,
   config: {
     booleanKeys: ['excludeInternal', 'restrictToQtyAdjustment'],
-    filterKeys:  [],
   },
 });
 
 /**
  * @route GET /lookups/addresses/by-customer
  * @description Address records for a given customer. Requires customerId in query.
+ * Pagination: offset-based — dropdown navigates by raw offset.
  * @access protected
  * @permission PERMISSIONS.VIEW_CUSTOMER_ADDRESS
  */
@@ -136,13 +146,14 @@ registerLookupRoute(router, {
   controller: getCustomerAddressLookupController,
   config: {
     arrayKeys:  ['customerId'],
-    filterKeys: [],
+    filterKeysOrSchema: customerAddressLookupQuerySchema,
   },
 });
 
 /**
  * @route GET /lookups/order-types
- * @description Order type options for dropdowns. No filter keys or pagination.
+ * @description Order type options for dropdowns.
+ * Pagination: offset-based — dropdown navigates by raw offset.
  * @access protected
  * @permission PERMISSIONS.VIEW_ORDER_TYPE
  */
@@ -152,7 +163,7 @@ registerLookupRoute(router, {
   schema:     orderTypeLookupQuerySchema,
   controller: getOrderTypeLookupController,
   config: {
-    filterKeys: [],
+    filterKeysOrSchema: orderTypeLookupQuerySchema,
   },
 });
 
@@ -160,6 +171,7 @@ registerLookupRoute(router, {
  * @route GET /lookups/skus
  * @description Paginated SKU options for dropdowns and selectors.
  * Filters: keyword. Options: includeBarcode (bool).
+ * Pagination: offset-based — dropdown navigates by raw offset.
  * @access protected
  * @permission PERMISSIONS.VIEW_SKU
  */
@@ -177,6 +189,7 @@ registerLookupRoute(router, {
  * @route GET /lookups/pricing
  * @description Paginated pricing options for dropdowns and selectors.
  * Filters: keyword, skuId. Options: labelOnly (bool).
+ * Pagination: offset-based — dropdown navigates by raw offset.
  * @access protected
  * @permission PERMISSIONS.VIEW_PRICING
  */
@@ -186,7 +199,7 @@ registerLookupRoute(router, {
   schema:     pricingLookupQuerySchema,
   controller: getPricingLookupController,
   config: {
-    filterKeys:        ['keyword', 'skuId'],
+    filterKeysOrSchema: ['keyword', 'skuId'],
     optionBooleanKeys: ['labelOnly'],
   },
 });
@@ -222,7 +235,7 @@ registerLookupRoute(router, {
   controller: getStatusLookupController,
   config: {
     booleanKeys: ['is_active'],
-    filterKeys:  ['name', 'keyword', 'is_active'],
+    filterKeysOrSchema: ['name', 'keyword', 'is_active'],
   },
 });
 
@@ -239,7 +252,7 @@ registerLookupRoute(router, {
   schema:     productLookupQuerySchema,
   controller: getProductLookupController,
   config: {
-    filterKeys: ['keyword', 'brand', 'category', 'series'],
+    filterKeysOrSchema: ['keyword', 'brand', 'category', 'series'],
   },
 });
 
@@ -256,7 +269,7 @@ registerLookupRoute(router, {
   schema:     skuCodeBaseLookupQuerySchema,
   controller: getSkuCodeBaseLookupController,
   config: {
-    filterKeys: ['keyword', 'brand_code', 'category_code'],
+    filterKeysOrSchema: ['keyword', 'brand_code', 'category_code'],
   },
 });
 
@@ -291,12 +304,12 @@ registerLookupRoute(router, {
   controller: getPackagingMaterialSupplierLookupController,
   config: {
     booleanKeys: ['isPreferred'],
-    filterKeys:  ['keyword'],
+    filterKeysOrSchema:  ['keyword'],
   },
 });
 
 //=========================================================
-// SIMPLE LOOKUPS (factory defaults — keyword + pagination)
+// SIMPLE LOOKUPS (factory defaults — keyword + offset-based pagination)
 //=========================================================
 
 /**
