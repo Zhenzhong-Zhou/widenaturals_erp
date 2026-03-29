@@ -14,7 +14,7 @@ const {
   logSystemInfo,
   logSystemError,
   logSystemException,
-} = require('./system-logger');
+} = require('./logging/system-logger');
 const AppError = require('./AppError');
 
 /**
