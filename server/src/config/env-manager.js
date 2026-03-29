@@ -68,6 +68,12 @@ const loadAndValidateEnv = () => {
           required: true,
         },
         {
+          envVar: 'TOKEN_PEPPER',
+          secret: () =>
+            loadSecret('token_pepper', 'TOKEN_PEPPER'),
+          required: true,
+        },
+        {
           envVar: 'ACCESS_TOKEN_TTL_SECONDS',
           required: true,
           validate: (v) => Number.isInteger(+v) && +v > 0,
