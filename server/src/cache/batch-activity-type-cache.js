@@ -1,126 +1,90 @@
+/**
+ * @file batch-activity-type-cache.js
+ * @description
+ * In-memory cache for batch activity type code-to-ID resolution.
+ *
+ * Initialized at server startup via initBatchActivityTypeCache(). Provides
+ * O(1) lookups to avoid repeated DB queries for static reference data.
+ * The cache map is frozen after load to prevent accidental runtime mutation.
+ */
+
+'use strict';
+
 const AppError = require('../utils/AppError');
-const { logSystemInfo, logSystemException } = require('../utils/system-logger');
+const { logSystemInfo, logSystemException } = require('../utils/logging/system-logger');
 const { getBatchActivityTypes } = require('../repositories/batch-activity-type-repository');
 
-// -------------------------------------------------------------
-// In-memory cache container
-// -------------------------------------------------------------
 const CACHE = {
-  map: null,      // code → activity_type_id
-  loadedAt: null, // timestamp when cache was last loaded
+  map:      null, // code → activity_type_id, frozen after load
+  loadedAt: null, // timestamp of last successful load
 };
 
 /**
- * Initialize or reload the batch activity type cache.
+ * Initializes or reloads the batch activity type cache from the database.
  *
- * This function queries active activity types from the database and
- * constructs an in-memory lookup map keyed by activity type `code`.
+ * Queries all active activity types, validates uniqueness, and builds a
+ * frozen code-to-id lookup map. Intended to run at server startup and
+ * optionally on demand when activity types change.
  *
- * The cache is intended to be initialized during server startup and reused
- * throughout the application's lifetime to avoid repeated database queries.
- *
- * Benefits:
- * - O(1) runtime lookup for activity type IDs
- * - Reduced database load
- * - Deterministic activity type resolution
- *
- * The resulting lookup map is frozen using `Object.freeze()` to prevent
- * accidental mutation at runtime.
- *
- * @async
- * @function initBatchActivityTypeCache
- *
- * @param {Object|null} [client=null]
- * Optional PostgreSQL transaction client.
- *
+ * @param {Object|null} [client=null] - Optional PostgreSQL transaction client
  * @returns {Promise<void>}
- *
- * @throws {AppError}
- * - Throws validation error if no activity types exist
- * - Throws validation error if duplicate codes are detected
- * - Propagates database errors from the repository
+ * @throws {AppError} ValidationError if no records exist or duplicate codes are detected
+ * @throws {AppError} Propagates DB errors from the repository
  */
 const initBatchActivityTypeCache = async (client = null) => {
   const context = 'batch-activity-type-cache/initBatchActivityTypeCache';
   
+  let rows;
+  
   try {
-    const rows = await getBatchActivityTypes(client);
-    
-    // Ensure activity types exist
-    if (!Array.isArray(rows) || rows.length === 0) {
-      throw AppError.validationError(
-        'Batch activity type cache initialization failed. No records found.'
-      );
-    }
-    
-    const map = {};
-    
-    // Build code → id lookup map
-    for (const row of rows) {
-      if (map[row.code]) {
-        throw AppError.validationError(
-          `Duplicate batch activity type code detected: ${row.code}`
-        );
-      }
-      
-      map[row.code] = row.id;
-    }
-    
-    // Freeze to prevent runtime mutation
-    CACHE.map = Object.freeze(map);
-    CACHE.loadedAt = new Date();
-    
-    logSystemInfo('Batch activity type cache initialized', {
-      context,
-      totalTypes: rows.length,
-      loadedAt: CACHE.loadedAt.toISOString(),
-    });
-    
+    rows = await getBatchActivityTypes(client);
   } catch (error) {
-    logSystemException(
-      error,
-      'Failed to initialize batch activity type cache',
-      { context }
-    );
-    
+    logSystemException(error, 'Failed to initialize batch activity type cache', {
+      context,
+    });
     throw error;
   }
+  
+  // Validation errors are expected — throw directly without logging
+  if (!Array.isArray(rows) || rows.length === 0) {
+    throw AppError.validationError(
+      'Batch activity type cache initialization failed: no records found.'
+    );
+  }
+  
+  const map = {};
+  
+  for (const row of rows) {
+    if (map[row.code]) {
+      throw AppError.validationError(
+        `Duplicate batch activity type code detected: ${row.code}`
+      );
+    }
+    map[row.code] = row.id;
+  }
+  
+  // Freeze to prevent accidental mutation after load
+  CACHE.map = Object.freeze(map);
+  CACHE.loadedAt = new Date();
+  
+  logSystemInfo('Batch activity type cache initialized', {
+    context,
+    totalTypes: rows.length,
+    loadedAt: CACHE.loadedAt.toISOString(),
+  });
 };
 
 /**
- * Refresh the batch activity type cache.
- *
- * This helper allows the cache to be reloaded without restarting the server.
- * It simply re-runs the initialization process.
- *
- * Useful when activity types are modified during runtime operations.
- *
- * @async
- * @function refreshBatchActivityTypeCache
- *
- * @returns {Promise<void>}
- */
-const refreshBatchActivityTypeCache = async () => {
-  return initBatchActivityTypeCache();
-};
-
-/**
- * Resolve a batch activity type ID from its code.
+ * Resolves a batch activity type ID from its code string.
  *
  * Performs an O(1) lookup against the in-memory cache.
+ * Cache must be initialized before this is called.
  *
- * @function
- *
- * @param {string} code
- * Activity type code (e.g. `BATCH_CREATED`, `BATCH_RELEASED`).
- *
- * @returns {string}
- * Returns the activity type ID corresponding to the provided code.
- *
- * @throws {AppError}
- * - Throws initialization error if cache has not been loaded
- * - Throws validation error if the provided code is invalid
- * - Throws not found error if the activity type code does not exist
+ * @param {string} code - Activity type code (e.g. 'BATCH_CREATED', 'BATCH_RELEASED')
+ * @returns {string} Corresponding activity type ID
+ * @throws {AppError} InitializationError if cache has not been loaded
+ * @throws {AppError} ValidationError if code is absent or not a string
+ * @throws {AppError} NotFoundError if the code has no matching entry in the cache
  */
 const getBatchActivityTypeId = (code) => {
   if (!CACHE.map) {
@@ -145,26 +109,17 @@ const getBatchActivityTypeId = (code) => {
 };
 
 /**
- * Retrieve cache diagnostics.
+ * Returns cache diagnostics for health checks and debugging.
  *
- * This helper exposes metadata about the current cache state for debugging
- * or health-check endpoints.
- *
- * @function getBatchActivityTypeCacheInfo
- *
- * @returns {{loadedAt: Date|null, totalTypes: number}}
- * Returns cache metadata including load timestamp and total types.
+ * @returns {{ loadedAt: Date|null, totalTypes: number }}
  */
-const getBatchActivityTypeCacheInfo = () => {
-  return {
-    loadedAt: CACHE.loadedAt,
-    totalTypes: CACHE.map ? Object.keys(CACHE.map).length : 0,
-  };
-};
+const getBatchActivityTypeCacheInfo = () => ({
+  loadedAt:   CACHE.loadedAt,
+  totalTypes: CACHE.map ? Object.keys(CACHE.map).length : 0,
+});
 
 module.exports = {
   initBatchActivityTypeCache,
-  refreshBatchActivityTypeCache,
   getBatchActivityTypeId,
   getBatchActivityTypeCacheInfo,
 };
