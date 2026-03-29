@@ -1,5 +1,5 @@
 const { cleanObject } = require('./object-utils');
-const { getFullName } = require('./name-utils');
+const { getFullName } = require('./person-utils');
 
 /**
  * @typedef {Object} Actor
