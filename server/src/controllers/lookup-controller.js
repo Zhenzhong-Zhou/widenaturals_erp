@@ -1,4 +1,22 @@
-const { wrapAsyncHandler } = require('../middlewares/async-handler');
+/**
+ * @file lookup-controller.js
+ * @module controllers/lookup-controller
+ *
+ * @description
+ * Lookup controllers for dropdown and autocomplete endpoints.
+ *
+ * Every controller in this file is produced by `createLookupController` —
+ * a factory that wraps a service call with a standardized request/response
+ * shape, error handling, and traceId propagation.
+ *
+ * Business logic, access control, and data transformation are handled
+ * in the service layer. Controllers here are intentionally thin.
+ *
+ * See: controllers/factories/lookup-controller-factory.js
+ */
+
+'use strict';
+
 const {
   fetchBatchRegistryLookupService,
   fetchWarehouseLookupService,
@@ -24,275 +42,178 @@ const {
   fetchBatchStatusLookupService,
   fetchPackagingMaterialSupplierLookupService,
 } = require('../services/lookup-service');
-const { logInfo } = require('../utils/logger-helper');
-const { getClientIp } = require('../utils/request-context');
 const { createLookupController } = require('./factories/lookup-controller-factory');
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Batch Registry
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Controller to handle batch registry lookup requests.
- * Supports query params for filtering, pagination, and inventory exclusion scoped to warehouse or location.
+ * Batch registry lookup.
+ * Supports batchType, warehouseId, locationId, limit, offset query params.
  *
- * @route GET /lookups/batch-registry
- * @query {string} [batchType] - 'product' or 'packaging_material'
- * @query {string} [warehouseId] - Optional warehouse ID to exclude batches already present in that warehouse
- * @query {string} [locationId] - Optional location ID to exclude batches already present in that location
- * @query {number} [limit=50] - Pagination limit
- * @query {number} [offset=0] - Pagination offset
+ * @route      GET /api/v1/lookups/batch-registry
+ * @permission view_batch_registry_lookup
  */
-const getBatchRegistryLookupController = wrapAsyncHandler(async (req, res) => {
-  logInfo('Incoming request for batch registry lookup', req, {
-    context: 'lookup-controller/getBatchRegistryLookup',
-    metadata: {
-      query: req.query,
-      user: req.auth.user?.id,
-      ip: getClientIp(req),
-    },
-  });
-
-  const { limit, offset, filters: rawFilters = {} } = req.normalizedQuery;
-
-  const {
-    batchType,
-    warehouseId,
-    locationId,
-    ...restFilters // in case there are more filters later
-  } = rawFilters;
-
-  const filters = {
-    ...(batchType !== undefined && { batchType }),
-    ...(warehouseId !== undefined && { warehouseId }),
-    ...(locationId !== undefined && { locationId }),
-    ...restFilters, // optional: include any other filters dynamically
-  };
-
-  const dropdownResult = await fetchBatchRegistryLookupService({
-    filters,
-    limit,
-    offset,
-  });
-
-  const { items, hasMore } = dropdownResult;
-
-  res.status(200).json({
-    success: true,
-    message: `Successfully retrieved batch registry lookup`,
-    items,
-    limit,
-    offset,
-    hasMore,
-  });
+const getBatchRegistryLookupController = createLookupController({
+  service:        fetchBatchRegistryLookupService,
+  successMessage: 'Batch registry lookup retrieved successfully.',
+  passUser:       false,
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Warehouse
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Controller to fetch a filtered warehouse lookup list.
- * Accepts optional query parameters: locationTypeId, warehouseTypeId, includeArchived.
+ * Warehouse lookup.
+ * Supports locationTypeId, warehouseTypeId, includeArchived query params.
  *
- * @param {import('express').Request} req - Express request object
- * @param {import('express').Response} res - Express response object
- * @returns {Promise<void>}
+ * @route      GET /api/v1/lookups/warehouses
+ * @permission view_warehouse_lookup
  */
-const getWarehouseLookupController = wrapAsyncHandler(async (req, res) => {
-  const user = req.auth.user;
-  const { warehouseTypeId } = req.normalizedQuery.filters ?? {};
-
-  const filters = {
-    ...(warehouseTypeId !== undefined && { warehouseTypeId }),
-  };
-
-  const dropdownItems = await fetchWarehouseLookupService(user, filters);
-
-  res.status(200).json({
-    success: true,
-    message: `Successfully retrieved warehouses lookup`,
-    data: dropdownItems,
-  });
+const getWarehouseLookupController = createLookupController({
+  service:        fetchWarehouseLookupService,
+  successMessage: 'Warehouse lookup retrieved successfully.',
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Lot Adjustment
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Handles HTTP GET requests to retrieve lot adjustment type options for lookup purposes.
+ * Lot adjustment type lookup.
+ * Supports excludeInternal query param to filter out internal-only types.
  *
- * Supports optional query parameter `excludeInternal=true` to filter out internal-only types
- * such as `'manual_stock_insert'` and `'manual_stock_update'`.
- *
- * @route GET /lookups/lot-adjustment-types
- * @query {boolean} [excludeInternal=true] - Whether to exclude internal-use adjustment types.
- * @returns {200} JSON array of lot adjustment type options, each containing:
- * - `value`: lot adjustment type ID,
- * - `label`: display name,
- * - `actionTypeId`: associated inventory action type ID.
+ * @route      GET /api/v1/lookups/lot-adjustment-types
+ * @permission view_lot_adjustment_lookup
  */
-const getLotAdjustmentLookupController = wrapAsyncHandler(async (req, res) => {
-  const user = req.auth.user;
-  const filters = ({ excludeInternal, restrictToQtyAdjustment } =
-    req.normalizedQuery.filters);
-
-  const options = await fetchLotAdjustmentLookupService(user, filters);
-
-  res.status(200).json({
-    success: true,
-    message: `Successfully retrieved lot adjustment lookup`,
-    data: options,
-  });
+const getLotAdjustmentLookupController = createLookupController({
+  service:        fetchLotAdjustmentLookupService,
+  successMessage: 'Lot adjustment lookup retrieved successfully.',
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Customer
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Customer lookup controller.
- *
- * Provides paginated customer options for dropdown and autocomplete components.
- *
- * Implementation is delegated to `createLookupController`.
- * Business logic, access control, and transformation are handled in the service layer.
- *
- * @route GET /lookups/customers
+ * @route      GET /api/v1/lookups/customers
  * @permission view_customer_lookup
  */
 const getCustomerLookupController = createLookupController({
-  service: fetchCustomerLookupService,
-  successMessage: 'Successfully retrieved customer lookup',
+  service:        fetchCustomerLookupService,
+  successMessage: 'Customer lookup retrieved successfully.',
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Customer Address
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Controller to handle HTTP GET request for fetching customer address lookup data.
+ * Customer address lookup.
+ * Requires customerId as a query param. passUser is false — user not needed by service.
  *
- * This endpoint retrieves a list of simplified, active addresses associated
- * with the provided `customerId` (passed as a query parameter). It returns
- * minimal address objects optimized for client-side selection or display.
- *
- * Common use cases include:
- * - Sales order creation
- * - Shipping/billing address selection
- * - Customer profile dropdowns
- *
- * Expected query parameter:
- *   - customerId (string, required): UUID of the customer
- *
- * @route GET /addresses/by-customer?customerId={UUID}
- * @access Protected
- * @permission view_customer - Required to access customer address data
- *
- * @returns {200} JSON response containing the transformed lookup address list
- * @throws {400} If `customerId` is missing or too many addresses exist
- * @throws {500} If address retrieval or transformation fails
+ * @route      GET /api/v1/lookups/customer-addresses
+ * @permission view_customer_lookup
  */
-const getCustomerAddressLookupController = wrapAsyncHandler(async (req, res) => {
-  const customerId = req.query.customerId;
-
-  const addresses = await fetchCustomerAddressLookupService(customerId);
-
-  res.status(200).json({
-    success: true,
-    message: 'Customer address lookup data retrieved successfully.',
-    data: addresses,
-  });
+const getCustomerAddressLookupController = createLookupController({
+  service: async (normalizedParams) => {
+    const customerId = normalizedParams?.filters?.customerId[0];
+    return fetchCustomerAddressLookupService(customerId);
+  },
+  successMessage: 'Customer address lookup retrieved successfully.',
+  passUser: false,
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Order Type
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Order type lookup controller.
- *
- * Provides paginated order type options for dropdown and autocomplete components.
- *
- * Implementation is delegated to `createLookupController`.
- * Business logic, access control, and transformation are handled in the service layer.
- *
- * @route GET /lookups/order-types
+ * @route      GET /api/v1/lookups/order-types
  * @permission view_order_type_lookup
  */
 const getOrderTypeLookupController = createLookupController({
-  service: fetchOrderTypeLookupService,
-  successMessage: 'Successfully retrieved order type lookup',
+  service:        fetchOrderTypeLookupService,
+  successMessage: 'Order type lookup retrieved successfully.',
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Payment Method
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Payment method lookup controller.
- *
- * Provides paginated payment method options for dropdown and autocomplete components.
- *
- * Implementation is delegated to `createLookupController`.
- * Business logic, access control, and transformation are handled in the service layer.
- *
- * @route GET /lookups/payment-methods
+ * @route      GET /api/v1/lookups/payment-methods
  * @permission view_payment_method_lookup
  */
 const getPaymentMethodLookupController = createLookupController({
-  service: fetchPaginatedPaymentMethodLookupService,
-  successMessage: 'Successfully retrieved payment method lookup',
+  service:        fetchPaginatedPaymentMethodLookupService,
+  successMessage: 'Payment method lookup retrieved successfully.',
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Discount
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Discount lookup controller.
- *
- * Provides paginated discount options for dropdown and autocomplete components.
- *
- * Implementation is delegated to `createLookupController`.
- * Business logic, access control, and transformation are handled in the service layer.
- *
- * @route GET /lookups/discounts
+ * @route      GET /api/v1/lookups/discounts
  * @permission view_discount_lookup
  */
 const getDiscountLookupController = createLookupController({
-  service: fetchPaginatedDiscountLookupService,
-  successMessage: 'Successfully retrieved discount lookup',
+  service:        fetchPaginatedDiscountLookupService,
+  successMessage: 'Discount lookup retrieved successfully.',
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Tax Rate
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Tax rate lookup controller.
- *
- * Provides paginated tax rate options for dropdown and autocomplete components.
- *
- * Implementation is delegated to `createLookupController`.
- * Business logic, access control, and transformation are handled in the service layer.
- *
- * @route GET /lookups/tax-rates
+ * @route      GET /api/v1/lookups/tax-rates
  * @permission view_tax_rate_lookup
  */
 const getTaxRateLookupController = createLookupController({
-  service: fetchPaginatedTaxRateLookupService,
-  successMessage: 'Successfully retrieved tax rate lookup',
+  service:        fetchPaginatedTaxRateLookupService,
+  successMessage: 'Tax rate lookup retrieved successfully.',
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Delivery Method
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Delivery method lookup controller.
- *
- * Provides paginated delivery method options for dropdown and autocomplete components.
- *
- * Implementation is delegated to `createLookupController`.
- * Business logic, access control, and transformation are handled in the service layer.
- *
- * @route GET /lookups/delivery-methods
+ * @route      GET /api/v1/lookups/delivery-methods
  * @permission view_delivery_method_lookup
  */
 const getDeliveryMethodLookupController = createLookupController({
-  service: fetchPaginatedDeliveryMethodLookupService,
-  successMessage: 'Successfully retrieved delivery method lookup',
+  service:        fetchPaginatedDeliveryMethodLookupService,
+  successMessage: 'Delivery method lookup retrieved successfully.',
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// SKU
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * SKU lookup controller.
- *
- * Provides paginated SKU options for dropdown and autocomplete components.
- *
- * Implementation is delegated to `createLookupController`.
- * Business logic, access control, and transformation are handled in the service layer.
- *
- * @route GET /lookups/skus
+ * @route      GET /api/v1/lookups/skus
  * @permission view_sku_lookup
  */
 const getSkuLookupController = createLookupController({
-  service: fetchPaginatedSkuLookupService,
-  successMessage: 'Successfully retrieved SKU lookup',
+  service:        fetchPaginatedSkuLookupService,
+  successMessage: 'SKU lookup retrieved successfully.',
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Pricing
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Pricing lookup controller.
+ * Pricing lookup.
+ * Wrapped to pass displayOptions — showSku is derived from whether skuId filter
+ * is present, and labelOnly is forwarded from options.
  *
- * Provides paginated pricing options for dropdown and autocomplete components.
- *
- * Supports dynamic label formatting based on SKU context and `labelOnly` option.
- *
- * Implementation is delegated to `createLookupController`.
- * Business logic, access control, and transformation are handled in the service layer.
- *
- * @route GET /lookups/pricing
+ * @route      GET /api/v1/lookups/pricing
  * @permission view_pricing_lookup
  */
 const getPricingLookupController = createLookupController({
@@ -302,25 +223,23 @@ const getPricingLookupController = createLookupController({
       limit,
       offset,
       displayOptions: {
-        showSku: !filters?.skuId,
+        showSku:   !filters?.skuId,
         labelOnly: options?.labelOnly,
       },
     });
   },
-  successMessage: 'Successfully retrieved pricing lookup',
+  successMessage: 'Pricing lookup retrieved successfully.',
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Packaging Material
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Packaging material lookup controller.
+ * Packaging material lookup.
+ * Wrapped to forward mode option (e.g. 'salesDropdown') to the service.
  *
- * Provides paginated packaging material options for dropdown and autocomplete components.
- *
- * Supports mode-based filtering (e.g., `salesDropdown`).
- *
- * Implementation is delegated to `createLookupController`.
- * Business logic, access control, and transformation are handled in the service layer.
- *
- * @route GET /lookups/packaging-materials
+ * @route      GET /api/v1/lookups/packaging-materials
  * @permission view_packaging_material_lookup
  */
 const getPackagingMaterialLookupController = createLookupController({
@@ -332,170 +251,142 @@ const getPackagingMaterialLookupController = createLookupController({
       mode: options?.mode,
     });
   },
-  successMessage: 'Successfully retrieved packaging material lookup',
+  successMessage: 'Packaging material lookup retrieved successfully.',
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// SKU Code Base
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * SKU Code Base lookup controller.
- *
- * Provides paginated SKU code base options for dropdown and autocomplete components.
- *
- * Implementation is delegated to `createLookupController`.
- * Business logic, access control, and transformation are handled in the service layer.
- *
- * @route GET /lookups/sku-code-bases
+ * @route      GET /api/v1/lookups/sku-code-bases
  * @permission view_sku_code_base_lookup
  */
 const getSkuCodeBaseLookupController = createLookupController({
-  service: fetchSkuCodeBaseLookupService,
-  successMessage: 'Successfully retrieved SKU Code Base lookup',
+  service:        fetchSkuCodeBaseLookupService,
+  successMessage: 'SKU code base lookup retrieved successfully.',
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Product
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Product lookup controller.
- *
- * Provides paginated product options for dropdown and autocomplete components.
- *
- * Implementation is delegated to `createLookupController`.
- * Business logic, access control, and transformation are handled in the service layer.
- *
- * @route GET /lookups/products
+ * @route      GET /api/v1/lookups/products
  * @permission view_product_lookup
  */
 const getProductLookupController = createLookupController({
-  service: fetchProductLookupService,
-  successMessage: 'Successfully retrieved Product lookup',
+  service:        fetchProductLookupService,
+  successMessage: 'Product lookup retrieved successfully.',
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Status
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Status lookup controller.
- *
- * Provides paginated status options for dropdown and autocomplete components.
- *
- * Implementation is delegated to `createLookupController`.
- * Business logic, access control, and transformation are handled in the service layer.
- *
- * @route GET /lookups/statuses
+ * @route      GET /api/v1/lookups/statuses
  * @permission view_status_lookup
  */
 const getStatusLookupController = createLookupController({
-  service: fetchStatusLookupService,
-  successMessage: 'Successfully retrieved Status lookup',
+  service:        fetchStatusLookupService,
+  successMessage: 'Status lookup retrieved successfully.',
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// User
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * User lookup controller.
- *
- * Provides paginated user options for dropdown and autocomplete components.
- *
- * Implementation is delegated to `createLookupController`.
- * Business logic, access control, and transformation are handled in the service layer.
- *
- * @route GET /lookups/users
+ * @route      GET /api/v1/lookups/users
  * @permission view_user_lookup
  */
 const getUserLookupController = createLookupController({
-  service: fetchUserLookupService,
-  successMessage: 'Successfully retrieved User lookup',
+  service:        fetchUserLookupService,
+  successMessage: 'User lookup retrieved successfully.',
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Role
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Role lookup controller.
- *
- * Provides paginated role options for dropdown and autocomplete components.
- *
- * Implementation is delegated to `createLookupController`.
- * Business logic, access control, and transformation are handled in the service layer.
- *
- * @route GET /lookups/roles
+ * @route      GET /api/v1/lookups/roles
  * @permission view_role_lookup
  */
 const getRoleLookupController = createLookupController({
-  service: fetchRoleLookupService,
-  successMessage: 'Successfully retrieved Role lookup',
+  service:        fetchRoleLookupService,
+  successMessage: 'Role lookup retrieved successfully.',
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Manufacturer
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Manufacturer lookup controller.
- *
- * Provides paginated manufacturer options for dropdown and autocomplete components.
- *
- * Implementation is delegated to `createLookupController`.
- * Business logic, access control, and transformation are handled in the service layer.
- *
- * @route GET /lookups/manufacturers
+ * @route      GET /api/v1/lookups/manufacturers
  * @permission view_manufacturer_lookup
  */
 const getManufacturerLookupController = createLookupController({
-  service: fetchManufacturerLookupService,
-  successMessage: 'Successfully retrieved Manufacturer lookup',
+  service:        fetchManufacturerLookupService,
+  successMessage: 'Manufacturer lookup retrieved successfully.',
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Supplier
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Supplier lookup controller.
- *
- * Provides paginated supplier options for dropdown and autocomplete components.
- *
- * Implementation is delegated to `createLookupController`.
- * Business logic, access control, and transformation are handled in the service layer.
- *
- * @route GET /lookups/suppliers
+ * @route      GET /api/v1/lookups/suppliers
  * @permission view_supplier_lookup
  */
 const getSupplierLookupController = createLookupController({
-  service: fetchSupplierLookupService,
-  successMessage: 'Successfully retrieved Supplier lookup',
+  service:        fetchSupplierLookupService,
+  successMessage: 'Supplier lookup retrieved successfully.',
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Location Type
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Location Type lookup controller.
- *
- * Provides paginated location type options for dropdown and autocomplete components.
- *
- * Implementation is delegated to `createLookupController`.
- * Business logic, access control, and transformation are handled in the service layer.
- *
- * @route GET /lookups/location-types
+ * @route      GET /api/v1/lookups/location-types
  * @permission view_location_type_lookup
  */
 const getLocationTypeLookupController = createLookupController({
-  service: fetchLocationTypeLookupService,
-  successMessage: 'Successfully retrieved Location Type lookup',
+  service:        fetchLocationTypeLookupService,
+  successMessage: 'Location type lookup retrieved successfully.',
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Batch Status
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Batch status lookup controller.
- *
- * Provides paginated batch status options for dropdown and workflow configuration.
- *
- * Implementation is delegated to `createLookupController`.
- * Business logic, access control, and transformation are handled in the service layer.
- *
- * @route GET /lookups/batch-statuses
+ * @route      GET /api/v1/lookups/batch-statuses
  * @permission view_batch_status_lookup
  */
 const getBatchStatusLookupController = createLookupController({
-  service: fetchBatchStatusLookupService,
-  successMessage: 'Successfully retrieved Batch Status lookup',
+  service:        fetchBatchStatusLookupService,
+  successMessage: 'Batch status lookup retrieved successfully.',
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Packaging Material Supplier
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Packaging material supplier lookup controller.
- *
- * Provides paginated supplier options for packaging material sourcing workflows.
- *
- * Implementation is delegated to `createLookupController`.
- * Business logic, access control, and transformation are handled in the service layer.
- *
- * @route GET /lookups/packaging-material-suppliers
+ * @route      GET /api/v1/lookups/packaging-material-suppliers
  * @permission view_packaging_material_supplier_lookup
  */
-const getPackagingMaterialSupplierLookupController =
-  createLookupController({
-    service: fetchPackagingMaterialSupplierLookupService,
-    successMessage:
-      'Successfully retrieved Packaging Material Supplier lookup',
-  });
+const getPackagingMaterialSupplierLookupController = createLookupController({
+  service:        fetchPackagingMaterialSupplierLookupService,
+  successMessage: 'Packaging material supplier lookup retrieved successfully.',
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Exports
+// ─────────────────────────────────────────────────────────────────────────────
 
 module.exports = {
   getBatchRegistryLookupController,
