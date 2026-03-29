@@ -1,170 +1,106 @@
 /**
- * @fileoverview
- * Controller for handling SKU image uploads — both single and bulk.
- * Automatically adapts to single or multiple SKUs and delegates
- * processing to `saveBulkSkuImagesService`.
+ * @file sku-image-controller.js
+ * @module controllers/sku-image-controller
+ *
+ * @description
+ * Controllers for SKU image upload and update operations.
+ *
+ * Routes:
+ *   POST  /api/v1/skus/images  → uploadSkuImagesController
+ *   PATCH /api/v1/skus/images  → updateSkuImagesController
+ *
+ * All handlers are wrapped with `wrapAsyncHandler` — errors propagate
+ * automatically to the global error handler without try/catch boilerplate.
+ *
+ * Logging:
+ *   Transport-level logs are emitted automatically by the global request-logger
+ *   middleware via res.on('finish'). No controller-level logging needed.
+ *
+ * Batch result shape:
+ *   Both controllers return successCount and failureCount in the response
+ *   because partial failure is possible in bulk image operations. The client
+ *   needs this to display per-item feedback — it is part of the API contract,
+ *   not internal instrumentation.
+ *
+ * Storage config (isProd, bucketName):
+ *   Resolved inside the service layer — controllers do not read process.env.
  */
 
+'use strict';
+
 const { wrapAsyncHandler } = require('../middlewares/async-handler');
-const { logInfo } = require('../utils/logger-helper');
 const {
   saveBulkSkuImagesService,
   updateBulkSkuImagesService,
 } = require('../services/sku-image-service');
 
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/v1/skus/images
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * @async
- * @function
- * @description
- * Handles the final execution of SKU image uploads after request normalization
- * and validation have been completed by middlewares.
+ * Uploads images for one or more SKUs in bulk.
  *
- * Responsibilities:
- *  - Assumes `req.body.skus` is already normalized and validated.
- *  - Delegates all processing to `saveBulkSkuImagesService`.
- *  - Logs batch execution details.
- *  - Returns standardized response payload including summary stats.
+ * Images are attached to req.body.skus by upstream middleware before this
+ * controller executes. Partial failures are reflected in the response.
  *
- * Notes:
- *  - This controller does NOT perform JSON parsing or file-to-SKU mapping.
- *    Those tasks are handled by upstream middlewares:
- *      • parseSkuImageJson
- *      • attachUploadedFilesToSkus
- *      • validate(bulkSkuImageUploadSchema)
- *  - Ensures the controller stays thin, testable, and consistent with
- *    service-oriented architecture.
+ * Requires: auth middleware, image-processing middleware, UPLOAD_SKU_IMAGES permission.
  */
 const uploadSkuImagesController = wrapAsyncHandler(async (req, res) => {
-  const context = 'sku-image-controller/uploadSkuImagesController';
-  const startTime = Date.now();
-
   const { skus } = req.body;
-  const user = req.auth.user;
-
-  const isProd = process.env.NODE_ENV === 'production';
-  const bucketName = process.env.S3_BUCKET_NAME;
-  const traceId = `upload-${Date.now().toString(36)}`;
-
-  logInfo('Starting SKU image upload request', req, {
-    context,
-    traceId,
-    userId: user.id,
-    skuCount: skus.length,
-    mode: isProd ? 'production' : 'development',
-  });
-
-  // Images are already fully attached by middleware
-  const result = await saveBulkSkuImagesService(skus, user, isProd, bucketName);
-
-  const elapsedMs = Date.now() - startTime;
-  const successCount = result.filter((r) => r.success).length;
-  const failureCount = result.length - successCount;
-
-  logInfo('Completed SKU image upload batch', req, {
-    context,
-    traceId,
-    total: result.length,
-    successCount,
-    failureCount,
-    elapsedMs,
-  });
-
+  const user     = req.auth.user;
+  
+  const result        = await saveBulkSkuImagesService(skus, user);
+  const successCount  = result.filter((r) => r.success).length;
+  const failureCount  = result.length - successCount;
+  
   res.status(200).json({
     success: true,
-    message: 'SKU image upload batch completed successfully.',
+    message: 'SKU image upload batch completed.',
     stats: {
       total: result.length,
       successCount,
       failureCount,
-      elapsedMs,
     },
-    data: result,
+    data:    result,
+    traceId: req.traceId,
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PATCH /api/v1/skus/images
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * @async
- * @function
+ * Updates images for one or more SKUs in bulk.
  *
- * @description
- * Handles bulk SKU image update requests.
- *
- * Responsibilities:
- *   • Extracts and validates request payload
- *   • Determines runtime environment (S3 vs local storage)
- *   • Delegates processing to updateBulkSkuImagesService()
- *   • Logs batch-level metrics
- *   • Returns aggregated result summary
- *
- * Behavior:
- *   • Partial success is allowed (per-SKU isolation)
- *   • Always returns HTTP 200 for processed batches
- *   • System-level failures are handled by wrapAsyncHandler/global error middleware
- *
- * @route PUT /api/v1/skus/images/bulk
- *
- * @returns {Object} JSON response containing:
- *   - success (boolean)
- *   - message (string)
- *   - stats (summary object)
- *   - data (per-SKU results)
+ * Partial failures are reflected in the response.
+ * Requires: auth middleware, image-processing middleware, UPDATE_SKU_IMAGES permission.
  */
 const updateSkuImagesController = wrapAsyncHandler(async (req, res) => {
-  const context = 'sku-image-controller/updateSkuImagesController';
-  const startTime = Date.now();
-
   const { skus } = req.body;
-  const user = req.auth.user;
-
-  // Determine storage mode
-  const isProd = process.env.NODE_ENV === 'production';
-  const bucketName = process.env.S3_BUCKET_NAME;
-
-  // Correlation identifier for batch tracing
-  const traceId = `update-${Date.now().toString(36)}`;
-
-  logInfo('Starting SKU image update request', req, {
-    context,
-    traceId,
-    userId: user.id,
-    skuCount: Array.isArray(skus) ? skus.length : 0,
-    mode: isProd ? 'production' : 'development',
-  });
-
-  // Delegate heavy logic to service layer
-  const result = await updateBulkSkuImagesService(
-    skus,
-    user,
-    isProd,
-    bucketName
-  );
-
-  const elapsedMs = Date.now() - startTime;
-
-  const successCount = result.filter((r) => r.success).length;
-  const failureCount = result.length - successCount;
-
-  logInfo('Completed SKU image update batch', req, {
-    context,
-    traceId,
-    total: result.length,
-    successCount,
-    failureCount,
-    elapsedMs,
-  });
-
+  const user     = req.auth.user;
+  
+  const result        = await updateBulkSkuImagesService(skus, user);
+  const successCount  = result.filter((r) => r.success).length;
+  const failureCount  = result.length - successCount;
+  
   res.status(200).json({
     success: true,
-    message: 'SKU image update batch completed successfully.',
+    message: 'SKU image update batch completed.',
     stats: {
       total: result.length,
       successCount,
       failureCount,
-      elapsedMs,
     },
-    data: result,
+    data:    result,
+    traceId: req.traceId,
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Exports
+// ─────────────────────────────────────────────────────────────────────────────
 
 module.exports = {
   uploadSkuImagesController,

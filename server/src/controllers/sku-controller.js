@@ -1,3 +1,35 @@
+/**
+ * @file sku-controller.js
+ * @module controllers/sku-controller
+ *
+ * @description
+ * Controllers for the SKU resource.
+ *
+ * Routes:
+ *   GET   /api/v1/skus/product-cards          → getPaginatedSkuProductCardsController
+ *   GET   /api/v1/skus                         → getPaginatedSkusController
+ *   POST  /api/v1/skus                         → createSkusController
+ *   GET   /api/v1/skus/:skuId                  → getSkuDetailsController
+ *   PATCH /api/v1/skus/:skuId/metadata         → updateSkuMetadataController
+ *   PATCH /api/v1/skus/:skuId/status           → updateSkuStatusController
+ *   PATCH /api/v1/skus/:skuId/dimensions       → updateSkuDimensionsController
+ *   PATCH /api/v1/skus/:skuId/identity         → updateSkuIdentityController
+ *
+ * All handlers are wrapped with `wrapAsyncHandler` — errors propagate
+ * automatically to the global error handler without try/catch boilerplate.
+ *
+ * Logging:
+ *   Transport-level logs (statusCode, durationMs, userId, traceId) are emitted
+ *   automatically by the global request-logger middleware via res.on('finish').
+ *   skuId is present in the URL — no controller-level logging needed.
+ *
+ * Validation:
+ *   All input validation (skuId, statusId, body shape, array checks) is
+ *   handled by Joi middleware upstream. Controllers never validate or coerce input.
+ */
+
+'use strict';
+
 const { wrapAsyncHandler } = require('../middlewares/async-handler');
 const {
   fetchPaginatedSkuProductCardsService,
@@ -9,62 +41,22 @@ const {
   fetchPaginatedSkusService,
   fetchSkuDetailsService,
 } = require('../services/sku-service');
-const { logInfo } = require('../utils/logger-helper');
-const AppError = require('../utils/AppError');
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/v1/skus/product-cards
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Controller: getSkuProductCardsController
+ * Retrieves paginated SKU product cards with optional filters and sorting.
  *
- * Fetch paginated SKU product cards for catalog/grid display.
- *
- * Responsibilities:
- *  - Read normalized + validated query parameters
- *  - Forward query parameters to service
- *  - Attach user for ACL evaluation (service handles visibility rules)
- *  - Return paginated list of SKU product-card results
- *
- * Query Parameters (after normalization middleware):
- *   - page: number (default 1)
- *   - limit: number (default 10)
- *   - sortBy: resolved & sanitized column key
- *   - sortOrder: 'ASC' | 'DESC'
- *   - filters: {
- *       productName?,
- *       brand?,
- *       category?,
- *       sku?,
- *       skuIds?,
- *       sizeLabel?,
- *       marketRegion?,
- *       complianceId?,
- *       keyword?
- *     }
- *
- * Response:
- *   {
- *     success: true,
- *     message: string,
- *     data: Array<ProductCard>,
- *     pagination: { page, limit, totalRecords, totalPages }
- *   }
+ * Reads from req.normalizedQuery — populated by createQueryNormalizationMiddleware.
+ * Requires: auth middleware, query normalizer, VIEW_SKU_PRODUCT_CARDS permission.
  */
 const getPaginatedSkuProductCardsController = wrapAsyncHandler(async (req, res) => {
-  const context = 'sku-controller/getPaginatedSkuProductCardsController';
-
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
   const user = req.auth.user;
-
-  logInfo('Fetching SKU product cards', req, {
-    context,
-    query: { page, limit, sortBy, sortOrder, filters },
-  });
-
-  // Service applies:
-  //  - ACL visibility rules
-  //  - Pagination
-  //  - Repository query
-  //  - Transformation
-  const result = await fetchPaginatedSkuProductCardsService({
+  
+  const { data, pagination } = await fetchPaginatedSkuProductCardsService({
     filters,
     page,
     limit,
@@ -72,57 +64,29 @@ const getPaginatedSkuProductCardsController = wrapAsyncHandler(async (req, res) 
     sortOrder,
     user,
   });
-
-  const { data, pagination } = result;
-
-  logInfo('Fetched SKU product cards successfully', req, {
-    context,
-    resultCount: data.length,
-    pagination,
-  });
-
-  return res.status(200).json({
-    success: true,
-    message: 'Fetched SKU product cards successfully',
+  
+  res.status(200).json({
+    success:   true,
+    message:   'SKU product cards retrieved successfully.',
     data,
     pagination,
+    traceId:   req.traceId,
   });
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/v1/skus
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Controller: Fetch Paginated SKUs
+ * Retrieves paginated SKU records with optional filters and sorting.
  *
- * Handles GET /skus with filtering, sorting, and pagination.
- *
- * Responsibilities:
- *  - Extracts query parameters (filters, pagination, sorting)
- *  - Delegates heavy logic to service layer: fetchPaginatedSkusService
- *  - Emits structured system logs
- *  - Returns standardized API response with pagination metadata
- *
- * Notes:
- *  - Validation (query schema) should be applied using route middleware.
- *  - Controller contains no DB logic — all business rules remain in services.
+ * Reads from req.normalizedQuery — populated by createQueryNormalizationMiddleware.
+ * Requires: auth middleware, query normalizer, VIEW_SKUS permission.
  */
 const getPaginatedSkusController = wrapAsyncHandler(async (req, res) => {
-  const context = 'sku-controller/getPaginatedSkusController';
-  const startTime = Date.now();
-
-  // -------------------------------
-  // 1. Extract request params
-  // -------------------------------
   const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
-
-  logInfo('Starting paginated SKU list request', req, {
-    context,
-    filters,
-    pagination: { page, limit },
-    sort: { sortBy, sortOrder },
-  });
-
-  // -------------------------------
-  // 2. Execute service logic
-  // -------------------------------
+  
   const { data, pagination } = await fetchPaginatedSkusService({
     filters,
     page,
@@ -130,396 +94,166 @@ const getPaginatedSkusController = wrapAsyncHandler(async (req, res) => {
     sortBy,
     sortOrder,
   });
-
-  const elapsedMs = Date.now() - startTime;
-
-  logInfo('Fetched paginated SKU list successfully', req, {
-    context,
-    filters,
-    pagination,
-    sort: { sortBy, sortOrder },
-    elapsedMs,
-  });
-
-  // -------------------------------
-  // 3. Send API response
-  // -------------------------------
+  
   res.status(200).json({
-    success: true,
-    message: 'SKUs fetched successfully.',
+    success:   true,
+    message:   'SKUs retrieved successfully.',
     data,
     pagination,
+    traceId:   req.traceId,
   });
 });
 
-/**
- * Controller: Fetch SKU Details
- *
- * GET /skus/:skuId/details
- *
- * Returns a comprehensive SKU detail payload containing:
- * - SKU base info (name, barcode, dimensions, status, audit)
- * - Product information (brand, series, category)
- * - SKU images (respecting image permissions)
- * - Pricing records (filtered by pricing permissions)
- * - Compliance records (filtered by compliance permissions)
- *
- * All access control, slicing, and data shaping is handled inside
- * `fetchSkuDetailsService` to keep the controller thin and consistent.
- *
- * This controller simply:
- *  1. Validates input
- *  2. Logs request metadata
- *  3. Delegates work to the service layer
- *  4. Returns final transformed response
- */
-const getSkuDetailsController = wrapAsyncHandler(async (req, res) => {
-  const context = 'sku-controller/fetchSkuDetailsController';
-
-  // Extract SKU ID from params
-  const { skuId } = req.params;
-
-  // Authenticated user context (set by verifyToken + verifySession)
-  const user = req.auth.user;
-
-  // Unique trace for monitoring distributed logs
-  const traceId = `sku-detail-${Date.now().toString(36)}`;
-
-  // -----------------------------
-  // 1. Incoming request log
-  // -----------------------------
-  logInfo('Incoming request: fetch SKU details', req, {
-    context,
-    traceId,
-    skuId,
-    userId: user?.id,
-  });
-
-  // -----------------------------
-  // 2. Execute business/service layer
-  // -----------------------------
-  const skuDetail = await fetchSkuDetailsService(skuId, user);
-
-  // -----------------------------
-  // 3. Send response
-  // -----------------------------
-  res.status(200).json({
-    success: true,
-    message: 'SKU details retrieved successfully.',
-    skuId,
-    data: skuDetail,
-    traceId,
-  });
-});
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/v1/skus
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * @async
- * @function
- * @description
- * Controller for handling **bulk SKU creation** requests.
+ * Creates one or more SKU records.
  *
- * Orchestrates the flow between request validation, business logic execution,
- * and API response formatting. This controller operates only on validated input
- * and delegates all domain logic to the service and business layers.
- *
- * Responsibilities:
- *  - Extract validated SKU array from `req.body.skus`
- *  - Retrieve authenticated user from `req.auth.user`
- *  - Log request lifecycle and metrics
- *  - Delegate SKU creation to `createSkusService`
- *  - Return standardized success response with creation results
- *
- * Not responsible for:
- *  - Joi validation (handled in route middleware)
- *  - Authorization (handled in route middleware)
- *  - Business rules, DB locking, or SKU code generation
- *    → These are implemented in the service + business layers.
- *
- * @param {Request} req - Express request object (validated payload + user context)
- * @param {Response} res - Express response object
- *
- * @returns {JSON} 201 Created with:
- *    - success flag
- *    - message
- *    - stats (inputCount, createdCount, elapsedMs)
- *    - data (array of created SKU records)
+ * Accepts a JSON array in req.body.skus.
+ * Requires: auth middleware, Joi body validation, CREATE_SKUS permission.
  */
 const createSkusController = wrapAsyncHandler(async (req, res) => {
-  const context = 'sku-controller/createSkusController';
-  const startTime = Date.now();
-  const traceId = `create-sku-${Date.now().toString(36)}`;
-
-  const { skus } = req.body; // validated by Joi prior to controller
-  const user = req.auth.user; // set by auth middleware
-
-  if (!Array.isArray(skus) || skus.length === 0) {
-    throw AppError.validationError('No SKUs provided.', { context, traceId });
-  }
-
-  logInfo('Starting bulk SKU creation request', req, {
-    context,
-    traceId,
-    userId: user.id,
-    count: skus.length,
-  });
-
-  // --- Execute business logic through service layer ---
+  const { skus } = req.body;
+  const user     = req.auth.user;
+  
   const result = await createSkusService(skus, user);
-
-  const elapsedMs = Date.now() - startTime;
-
-  logInfo('Bulk SKU creation completed', req, {
-    context,
-    traceId,
-    inputCount: skus.length,
-    createdCount: result.length,
-    elapsedMs,
-  });
-
+  
   res.status(201).json({
     success: true,
     message: 'SKUs created successfully.',
-    stats: {
-      inputCount: skus.length,
-      createdCount: result.length,
-      elapsedMs,
-    },
-    data: result,
+    data:    result,
+    traceId: req.traceId,
   });
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/v1/skus/:skuId
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Controller: Update SKU Metadata
+ * Retrieves full details for a specific SKU.
  *
- * Handles HTTP request for updating editable SKU metadata fields.
+ * Not-found case is handled by the service layer via AppError.notFound().
+ * Requires: auth middleware, VIEW_SKUS permission.
+ */
+const getSkuDetailsController = wrapAsyncHandler(async (req, res) => {
+  const { skuId } = req.params;
+  const user      = req.auth.user;
+  
+  const data = await fetchSkuDetailsService(skuId, user);
+  
+  res.status(200).json({
+    success: true,
+    message: 'SKU details retrieved successfully.',
+    data,
+    traceId: req.traceId,
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PATCH /api/v1/skus/:skuId/metadata
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Updates metadata fields on a specific SKU.
  *
- * Responsibilities:
- * - Extract route parameters and request payload
- * - Delegate business logic to service layer
- * - Log request-level success event
- * - Return standardized API response
- *
- * Error handling:
- * - All errors are propagated to global error middleware via wrapAsyncHandler.
- *
- * Route:
- * PATCH /api/skus/:skuId/metadata
+ * Requires: auth middleware, Joi body validation, UPDATE_SKU_METADATA permission.
  */
 const updateSkuMetadataController = wrapAsyncHandler(async (req, res) => {
-  const context = 'sku-controller/updateSkuMetadataController';
-
-  // -------------------------------------------------
-  // 1. Extract inputs
-  // -------------------------------------------------
   const { skuId } = req.params;
-  const payload = req.body;
-  const user = req.auth.user;
-
-  // -------------------------------------------------
-  // 2. Execute business logic
-  // -------------------------------------------------
-  const result = await updateSkuMetadataService({
-    skuId,
-    payload,
-    user,
-  });
-
-  // -------------------------------------------------
-  // 3. Logging + response
-  // -------------------------------------------------
-  logInfo('SKU metadata updated successfully', req, {
-    context,
-    skuId,
-    userId: user.id,
-  });
-
+  const user      = req.auth.user;
+  
+  const result = await updateSkuMetadataService({ skuId, payload: req.body, user });
+  
   res.status(200).json({
     success: true,
     message: 'SKU metadata updated successfully.',
-    data: result,
+    data:    result,
+    traceId: req.traceId,
   });
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PATCH /api/v1/skus/:skuId/status
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Controller: Update SKU Status
+ * Updates the status of a specific SKU.
  *
- * Handles PATCH requests to update a SKU’s status.
- * Provides structured logging, validation, and standardized JSON response.
- *
- * ### Flow
- * 1. Extract `skuId` from route params and `statusId` from request body.
- * 2. Validate input (handled via Joi + parameter guards).
- * 3. Delegate to `updateSkuStatusService` for transactional update.
- * 4. Respond with standardized API payload.
- * 5. Emit structured logs for traceability and auditing.
- *
- * ### Example Request
- * PATCH /api/v1/skus/:skuId/status
- * {
- *   "statusId": "uuid-of-new-status"
- * }
- *
- * ### Example Response
- * {
- *   "success": true,
- *   "message": "SKU status updated successfully.",
- *   "data": { "id": "uuid-of-sku" }
- * }
- *
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
+ * Requires: auth middleware, Joi body validation, UPDATE_SKU_STATUS permission.
  */
 const updateSkuStatusController = wrapAsyncHandler(async (req, res) => {
-  const context = 'sku-controller/updateSkuStatusController';
-
-  // -------------------------------------------------
-  // 1. Extract and validate inputs
-  // -------------------------------------------------
-  const { skuId } = req.params;
+  const { skuId }    = req.params;
   const { statusId } = req.body;
-  const user = req.auth.user;
-
-  // -------------------------------------------------
-  // 2. Execute business logic (transactional)
-  // -------------------------------------------------
-  const result = await updateSkuStatusService({
-    skuId,
-    statusId,
-    user,
-  });
-
-  // -------------------------------------------------
-  // 3. Logging + response
-  // -------------------------------------------------
-  logInfo('SKU status updated successfully', req, {
-    context,
-    skuId,
-    statusId,
-    userId: user.id,
-  });
-
+  const user         = req.auth.user;
+  
+  const result = await updateSkuStatusService({ skuId, statusId, user });
+  
   res.status(200).json({
     success: true,
     message: 'SKU status updated successfully.',
-    data: result, // { id: "..." }
+    data:    result,
+    traceId: req.traceId,
   });
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PATCH /api/v1/skus/:skuId/dimensions
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Controller: Update SKU Dimensions
+ * Updates dimension fields on a specific SKU.
  *
- * Handles HTTP request for updating dimensional attributes of a SKU
- * (e.g., weight, height, width, depth).
- *
- * Responsibilities:
- * - Extract route parameters and request payload
- * - Delegate dimension update logic to service layer
- * - Log request-level success event
- * - Return standardized API response
- *
- * Error handling:
- * - All errors are automatically forwarded to global error middleware
- *   via wrapAsyncHandler.
- *
- * Route:
- * PATCH /api/skus/:skuId/dimensions
+ * Requires: auth middleware, Joi body validation, UPDATE_SKU_DIMENSIONS permission.
  */
 const updateSkuDimensionsController = wrapAsyncHandler(async (req, res) => {
-  const context = 'sku-controller/updateSkuDimensionsController';
-
-  // -------------------------------------------------
-  // 1. Extract inputs
-  // -------------------------------------------------
   const { skuId } = req.params;
-  const payload = req.body;
-  const user = req.auth.user;
-
-  // -------------------------------------------------
-  // 2. Execute business logic
-  // -------------------------------------------------
-  const result = await updateSkuDimensionsService({
-    skuId,
-    payload,
-    user,
-  });
-
-  // -------------------------------------------------
-  // 3. Logging + response
-  // -------------------------------------------------
-  logInfo('SKU dimensions updated successfully', req, {
-    context,
-    skuId,
-    userId: user.id,
-  });
-
+  const user      = req.auth.user;
+  
+  const result = await updateSkuDimensionsService({ skuId, payload: req.body, user });
+  
   res.status(200).json({
     success: true,
     message: 'SKU dimensions updated successfully.',
-    data: result,
+    data:    result,
+    traceId: req.traceId,
   });
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PATCH /api/v1/skus/:skuId/identity
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Controller: Update SKU Identity
+ * Updates identity fields on a specific SKU.
  *
- * Handles HTTP request for updating identity-related attributes of a SKU
- * (e.g., SKU code, barcode, external identifiers).
- *
- * Responsibilities:
- * - Extract route parameters and request payload
- * - Delegate identity update logic to service layer
- * - Log request-level success event including updated fields
- * - Return standardized API response
- *
- * Error handling:
- * - All errors are automatically forwarded to global error middleware
- *   via wrapAsyncHandler.
- *
- * Route:
- * PATCH /api/skus/:skuId/identity
+ * Requires: auth middleware, Joi body validation, UPDATE_SKU_IDENTITY permission.
  */
 const updateSkuIdentityController = wrapAsyncHandler(async (req, res) => {
-  const context = 'sku-controller/updateSkuIdentityController';
-
-  // -------------------------------------------------
-  // 1. Extract inputs
-  // -------------------------------------------------
   const { skuId } = req.params;
-  const payload = req.body;
-  const user = req.auth.user;
-
-  // -------------------------------------------------
-  // 2. Execute business logic
-  // -------------------------------------------------
-  const result = await updateSkuIdentityService({
-    skuId,
-    payload,
-    user,
-  });
-
-  // -------------------------------------------------
-  // 3. Logging + response
-  // -------------------------------------------------
-  logInfo('SKU identity updated successfully', req, {
-    context,
-    skuId,
-    userId: user.id,
-    updatedFields: Object.keys(payload),
-  });
-
+  const user      = req.auth.user;
+  
+  const result = await updateSkuIdentityService({ skuId, payload: req.body, user });
+  
   res.status(200).json({
     success: true,
     message: 'SKU identity updated successfully.',
-    data: result,
+    data:    result,
+    traceId: req.traceId,
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Exports
+// ─────────────────────────────────────────────────────────────────────────────
 
 module.exports = {
   getPaginatedSkuProductCardsController,
   getPaginatedSkusController,
-  getSkuDetailsController,
   createSkusController,
+  getSkuDetailsController,
   updateSkuMetadataController,
   updateSkuStatusController,
   updateSkuDimensionsController,
