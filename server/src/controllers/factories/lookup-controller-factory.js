@@ -1,131 +1,77 @@
+/**
+ * @file lookup-controller-factory.js
+ * @description Factory for building standardized lookup controller handlers.
+ *
+ * Wraps a paginated lookup service into a consistent Express request handler.
+ * Reads from `req.normalizedQuery` (written by `createQueryNormalizationMiddleware`)
+ * and returns a uniform JSON response shape.
+ */
+
+'use strict';
+
 const { wrapAsyncHandler } = require('../../middlewares/async-handler');
 
 /**
- * Factory to create standardized lookup controllers.
+ * Creates a standardized Express controller for paginated lookup endpoints.
  *
- * ------------------------------------------------------------------
- * Overview
- * ------------------------------------------------------------------
- * This factory generates Express controllers for lookup endpoints
- * (e.g., SKUs, suppliers, statuses, customers).
+ * Reads `req.normalizedQuery` for filters, options, limit, and offset.
+ * Delegates to the provided service and returns a consistent response envelope.
  *
- * It enforces a consistent request → service → response pipeline.
+ * Throws at **boot time** if factory inputs are invalid.
+ * Throws at **request time** if `req.normalizedQuery` is absent (pipeline misconfiguration).
  *
- * ------------------------------------------------------------------
- * Responsibilities
- * ------------------------------------------------------------------
- * - Extract authenticated user (`req.auth.user`)
- * - Extract normalized query parameters (`req.normalizedQuery`)
- * - Invoke the provided lookup service
- * - Return a standardized API response format
+ * @param {object}   options
+ * @param {Function} options.service        - Async service function `(user, query) => { items, hasMore }`.
+ * @param {string}   options.successMessage - Message included in the success response envelope.
  *
- * NOTE:
- * - Controllers created by this factory should NOT contain business logic.
- * - All access control, filtering, and transformation must be handled
- *   in the service layer.
+ * @returns {import('express').RequestHandler} Wrapped async Express handler.
  *
- * ------------------------------------------------------------------
- * Expected Service Contract
- * ------------------------------------------------------------------
- * The provided service MUST follow this signature:
+ * @throws {Error} If `service` is not a function.
+ * @throws {Error} If `successMessage` is not a non-empty string.
  *
- *   (user, { filters, options, limit, offset }) =>
- *     Promise<{ items: Array, hasMore: boolean }>
- *
- * Where:
- * - `filters`: query filters (e.g., keyword, statusId)
- * - `options`: optional behavior flags (e.g., labelOnly, mode)
- * - `limit`: pagination limit
- * - `offset`: pagination offset
- *
- * ------------------------------------------------------------------
- * Request Requirements
- * ------------------------------------------------------------------
- * - `req.auth.user` should be populated via authentication middleware
- * - `req.normalizedQuery` should be provided via normalization middleware
- *
- * Fallback behavior is applied if missing to prevent runtime crashes.
- *
- * ------------------------------------------------------------------
- * Response Format
- * ------------------------------------------------------------------
- * {
- *   success: true,
- *   message: string,
- *   items: Array,
- *   offset: number,
- *   limit: number,
- *   hasMore: boolean
- * }
- *
- * ------------------------------------------------------------------
- * @param {object} config
- * @param {Function} config.service
- *   Lookup service function:
- *   (user, { filters, options, limit, offset }) =>
- *     Promise<{ items: Array, hasMore: boolean }>
- *
- * @param {string} config.successMessage
- *   Message returned in successful API response
- *
- * @returns {Function} Express controller wrapped with async error handler
+ * @example
+ * const getSkuLookupController = createLookupController({
+ *   service:        fetchPaginatedSkuLookupService,
+ *   successMessage: 'Successfully retrieved SKU lookup',
+ * });
  */
-const createLookupController = ({ service, successMessage }) => {
-  //---------------------------------------------------------
-  // Validate factory inputs (fail fast)
-  //---------------------------------------------------------
+const createLookupController = ({ service, successMessage, passUser = true }) => {
+  // Fail fast — catch misconfiguration at startup, not per request.
   if (typeof service !== 'function') {
     throw new Error('[createLookupController] service must be a function');
   }
   
   if (!successMessage || typeof successMessage !== 'string') {
-    throw new Error(
-      '[createLookupController] successMessage must be a non-empty string'
-    );
+    throw new Error('[createLookupController] successMessage must be a non-empty string');
   }
   
   const handler = async (req, res) => {
-    //---------------------------------------------------------
-    // Extract authenticated user
-    //---------------------------------------------------------
-    const user = req?.auth?.user;
+    // req.normalizedQuery is written by createQueryNormalizationMiddleware.
+    // If absent, the pipeline is misconfigured — fail loudly rather than silently falling back.
+    if (!req.normalizedQuery) {
+      throw new Error(
+        '[createLookupController] req.normalizedQuery is undefined. ' +
+        'Ensure createQueryNormalizationMiddleware runs before this controller.'
+      );
+    }
     
-    //---------------------------------------------------------
-    // Extract normalized query (safe fallback)
-    //---------------------------------------------------------
-    const normalizedQuery = req.normalizedQuery || {};
+    const user = req.auth.user; // guaranteed by authorize middleware
     
-    //---------------------------------------------------------
-    // Destructure query parameters with defaults
-    //---------------------------------------------------------
     const {
       filters = {},
       options = {},
-      limit = 50,
-      offset = 0,
-    } = normalizedQuery;
+      limit   = 50,
+      offset  = 0,
+    } = req.normalizedQuery;
     
-    //---------------------------------------------------------
-    // Execute lookup service
-    //---------------------------------------------------------
-    const result = await service(user, {
-      filters,
-      options,
-      limit,
-      offset,
-    });
+    // Some services don't need user (e.g. public or filter-only lookups).
+    const result = passUser
+      ? await service(user, { filters, options, limit, offset })
+      : await service({ filters, options, limit, offset });
     
-    //---------------------------------------------------------
-    // Defensive fallback (protect against malformed service output)
-    //---------------------------------------------------------
-    const {
-      items = [],
-      hasMore = false,
-    } = result || {};
+    // Guard against malformed service output.
+    const { items = [], hasMore = false } = result || {};
     
-    //---------------------------------------------------------
-    // Return standardized response
-    //---------------------------------------------------------
     return res.status(200).json({
       success: true,
       message: successMessage,
@@ -136,9 +82,6 @@ const createLookupController = ({ service, successMessage }) => {
     });
   };
   
-  //---------------------------------------------------------
-  // Wrap with async error handler
-  //---------------------------------------------------------
   return wrapAsyncHandler(handler);
 };
 
