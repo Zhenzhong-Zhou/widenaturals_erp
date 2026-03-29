@@ -20,7 +20,7 @@ const {
   createUserSchema,
 } = require('../validators/user-validators');
 const {
-  getPermissions,
+  getUserPermissionsController,
   getPaginatedUsersController,
   getUserProfileController,
   createUserController,
@@ -104,6 +104,9 @@ router.get(
  * permissions regardless of role.
  * @access protected
  */
-router.get('/me/permissions', getPermissions);
+router.get(
+  '/me/permissions',
+  getUserPermissionsController
+);
 
 module.exports = router;

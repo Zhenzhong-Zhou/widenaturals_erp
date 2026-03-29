@@ -21,7 +21,7 @@ const {
 const {
   getPaginatedBomsController,
   getBomDetailsController,
-  fetchBOMProductionSummaryController,
+  getBomProductionSummaryController,
 } = require('../controllers/bom-controller');
 
 const router = express.Router();
@@ -80,7 +80,7 @@ router.get(
   '/:bomId/production-summary',
   authorize([PERMISSIONS.BOMS.VIEW_BOM_PRODUCTION_SUMMARY]),
   validate(bomIdParamSchema, 'params'),
-  fetchBOMProductionSummaryController
+  getBomProductionSummaryController
 );
 
 module.exports = router;
