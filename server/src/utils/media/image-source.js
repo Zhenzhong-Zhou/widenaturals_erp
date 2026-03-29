@@ -1,31 +1,41 @@
+/**
+ * @file image-source.js
+ * @description
+ * Image source resolution and detection utilities.
+ *
+ * Resolves an image source (remote URL or local path) into an absolute
+ * local filesystem path suitable for downstream processing. Enforces
+ * security controls for remote URLs including host allow-listing and
+ * SSRF prevention.
+ */
+
+'use strict';
+
 const path = require('path');
 const fs = require('fs');
+const { Readable } = require('stream');
 const fsp = require('fs/promises');
 const net = require('net');
 const AppError = require('../AppError');
-const { retry } = require('../../database/db');
-const { logSystemException, logSystemWarn } = require('../system-logger');
-const {
-  ALLOWED_IMAGE_HOSTS,
-} = require('../constants/security/media-security-constants');
+const { retry } = require('../retry/retry');
+const { logSystemException, logSystemWarn } = require('../logging/system-logger');
+const { ALLOWED_IMAGE_HOSTS } = require('../constants/security/media-security-constants');
+const { isRetryableHttpError } = require('../db/db-error-utils');
 
 const ROOT_DIR = path.resolve(__dirname, '../../../');
 
 /**
- * @function
- *
- * @description
  * Determines whether a value is a valid HTTP(S) URL.
  *
- * This performs structural validation using the WHATWG URL parser
- * and ensures the protocol is either http or https.
+ * Uses the WHATWG URL parser for structural validation and
+ * confirms the protocol is http or https.
  *
  * @param {string} value
  * @returns {boolean}
  */
 const isRemoteUrl = (value) => {
   if (typeof value !== 'string') return false;
-
+  
   try {
     const url = new URL(value);
     return url.protocol === 'http:' || url.protocol === 'https:';
@@ -35,173 +45,173 @@ const isRemoteUrl = (value) => {
 };
 
 /**
- * @async
- * @function
+ * Resolves an image source into an absolute local filesystem path.
  *
- * @description
- * Resolves an image source into a local filesystem path.
+ * Supports remote HTTP(S) URLs (downloaded to a temp file) and local
+ * paths (absolute or relative to project root). Remote URLs are subject
+ * to strict security validation before any network IO is attempted.
  *
- * Supports:
- *   • Remote HTTP(S) URLs (downloaded temporarily)
- *   • Absolute local file paths
- *   • Relative project paths
- *
- * Security:
- *   • Enforces hostname allow-list for remote URLs
- *   • Rejects empty allow-list (remote fetching disabled)
- *   • Blocks localhost and IP-based hosts (IPv4 & IPv6)
- *   • Prevents SSRF via strict host validation
+ * Security controls (remote URLs only):
+ *   • Enforces hostname allow-list; rejects unlisted hosts
+ *   • Blocks localhost explicitly
+ *   • Blocks direct IP access to prevent SSRF
  *   • Supports subdomain matching for approved domains
+ *   • Rejects if allow-list is empty (remote fetching disabled)
  *
- * This function:
- *   • Does perform network IO (for remote URLs)
- *   • Does perform filesystem IO
- *   • Preserves AppError types
+ * Temp files are written to <project>/temp and must be cleaned up
+ * by the caller after processing.
  *
- * Temp files are created under <project>/temp and must be cleaned
- * by the calling service after processing.
- *
- * @param {string} src
- * @param {string} skuCode
- * @returns {Promise<string>} absolute local file path
- *
- * @throws {AppError}
- *   ValidationError for invalid inputs or untrusted hosts
- *   FileSystemError for IO failures
+ * @param {string} src - Remote URL or local file path
+ * @param {string} skuCode - SKU code used to namespace the temp directory
+ * @returns {Promise<string>} Absolute local path to the resolved image file
+ * @throws {AppError} ValidationError for invalid inputs or untrusted hosts
+ * @throws {AppError} FileSystemError for network or IO failures
  */
 const resolveSource = async (src, skuCode) => {
   const context = 'image-source/resolveSource';
-
+  
   if (!src || typeof src !== 'string') {
     throw AppError.validationError('Invalid image source');
   }
-
-  try {
-    // ------------------------------------------------------------
-    // Remote URL handling
-    // ------------------------------------------------------------
-    if (isRemoteUrl(src)) {
-      const url = new URL(src);
-      const hostname = url.hostname.toLowerCase();
-
-      // Remote fetching must be explicitly enabled
-      if (!ALLOWED_IMAGE_HOSTS.length) {
-        throw AppError.validationError('Remote image fetching is not enabled.');
-      }
-
-      // Block localhost explicitly
-      if (hostname === 'localhost') {
-        throw AppError.validationError('Localhost is not allowed.');
-      }
-
-      // Block direct IP access (prevents SSRF via numeric IP)
-      if (net.isIP(hostname)) {
-        throw AppError.validationError('IP-based hosts are not allowed.');
-      }
-
-      // Enforce allow-list
-      const isAllowed = ALLOWED_IMAGE_HOSTS.some(
-        (host) => hostname === host || hostname.endsWith(`.${host}`)
-      );
-
-      if (!isAllowed) {
-        logSystemWarn('Blocked untrusted image host', {
-          hostname,
-          allowedHosts: ALLOWED_IMAGE_HOSTS,
-        });
-        throw AppError.validationError('Untrusted image host');
-      }
-
+  
+  // ------------------------------------------------------------
+  // Remote URL handling
+  // ------------------------------------------------------------
+  if (isRemoteUrl(src)) {
+    const url = new URL(src);
+    const hostname = url.hostname.toLowerCase();
+    
+    // Validation errors are expected — throw directly without logging
+    if (!ALLOWED_IMAGE_HOSTS.length) {
+      throw AppError.validationError('Remote image fetching is not enabled.');
+    }
+    
+    if (hostname === 'localhost') {
+      throw AppError.validationError('Localhost is not allowed.');
+    }
+    
+    // Block numeric IPs to prevent SSRF via direct IP access
+    if (net.isIP(hostname)) {
+      throw AppError.validationError('IP-based hosts are not allowed.');
+    }
+    
+    const isAllowed = ALLOWED_IMAGE_HOSTS.some(
+      (host) => hostname === host || hostname.endsWith(`.${host}`)
+    );
+    
+    if (!isAllowed) {
+      logSystemWarn('Blocked untrusted image host', {
+        context,
+        hostname,
+        allowedHosts: ALLOWED_IMAGE_HOSTS,
+      });
+      throw AppError.validationError('Untrusted image host');
+    }
+    
+    try {
       const tempDir = path.join(
         ROOT_DIR,
         'temp',
         `${skuCode}-${Date.now()}-${Math.random().toString(36).slice(2)}`
       );
-
+      
       await fsp.mkdir(tempDir, { recursive: true });
-
+      
       const filename = path.basename(url.pathname);
       const tempFile = path.join(tempDir, filename);
-
-      const response = await retry(() => fetch(src), 3);
-
-      if (!response.ok || !response.body) {
-        throw AppError.fileSystemError('Failed to fetch image', {
-          status: response.status,
-        });
+      
+      const response = await retry(
+        async () => {
+          const res = await fetch(src);
+          
+          if (!res.ok) {
+            const error = new Error(`HTTP error: ${res.status}`);
+            error.response = res;
+            throw error;
+          }
+          
+          return res;
+        },
+        {
+          retries: 3,
+          baseDelay: 500,
+          shouldRetry: isRetryableHttpError,
+        }
+      );
+      
+      if (!response.body) {
+        throw AppError.fileSystemError('Fetch returned empty body', { src });
       }
-
+      
+      // Native fetch returns a WHATWG ReadableStream — convert to Node Readable
+      // before piping to the write stream
       await new Promise((resolve, reject) => {
-        const stream = fs.createWriteStream(tempFile);
-        response.body.pipe(stream);
-        stream.on('finish', () => resolve());
-        stream.on('error', (err) => reject(err));
+        const nodeStream = Readable.fromWeb(response.body);
+        const writeStream = fs.createWriteStream(tempFile);
+        nodeStream.pipe(writeStream);
+        writeStream.on('finish', resolve);
+        writeStream.on('error', reject);
       });
-
+      
       return tempFile;
+    } catch (error) {
+      logSystemException(error, 'Failed to fetch remote image', {
+        context,
+        skuCode,
+        src,
+      });
+      
+      if (error instanceof AppError) throw error;
+      
+      throw AppError.fileSystemError('Failed to fetch remote image', {
+        cause: error,
+      });
     }
-
-    // ------------------------------------------------------------
-    // Local path handling
-    // ------------------------------------------------------------
+  }
+  
+  // ------------------------------------------------------------
+  // Local path handling
+  // ------------------------------------------------------------
+  try {
     const resolvedPath = path.isAbsolute(src)
       ? src
       : path.resolve(ROOT_DIR, src);
-
+    
     await fsp.access(resolvedPath);
-
+    
     return resolvedPath;
   } catch (error) {
-    logSystemException(error, 'Failed to resolve image source', {
+    logSystemException(error, 'Failed to resolve local image path', {
       context,
       skuCode,
       src,
     });
-
-    // Preserve AppError subclasses
-    if (error instanceof AppError) {
-      throw error;
-    }
-
-    throw AppError.fileSystemError('Failed to resolve image source', {
+    
+    throw AppError.fileSystemError('Failed to resolve local image path', {
       cause: error,
     });
   }
 };
 
 /**
- * @function
+ * Extracts a candidate image source string from an image object.
  *
- * @description
- * Extracts a candidate image source URL from an image object.
- *
- * This function:
- *   • Performs NO validation
- *   • Performs NO IO
- *   • Performs NO security checks
- *
- * It only determines whether a string source exists and should be
- * passed to resolveSource() for further processing.
- *
- * Host validation, protocol validation, and IO resolution are handled
- * by resolveSource().
+ * Pure extraction only — performs no validation, no IO, and no security
+ * checks. The returned value should be passed to resolveSource() for
+ * full resolution and security enforcement.
  *
  * @param {Object} image
- * @returns {string|null}
+ * @returns {string|null} Trimmed image_url string, or null if absent or empty
  */
 const detectImageSource = (image) => {
-  if (!image || typeof image !== 'object') {
-    return null;
-  }
-
+  if (!image || typeof image !== 'object') return null;
+  
   const { image_url } = image;
-
-  if (typeof image_url !== 'string') {
-    return null;
-  }
-
+  
+  if (typeof image_url !== 'string') return null;
+  
   const trimmed = image_url.trim();
-
+  
   return trimmed.length > 0 ? trimmed : null;
 };
 
