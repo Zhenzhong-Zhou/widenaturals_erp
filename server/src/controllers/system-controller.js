@@ -7,7 +7,7 @@ const { healthCheckError } = require('../utils/AppError');
  * GET /system/status
  * Provides comprehensive system health status.
  *
- * @function getSystemStatus
+ * @function
  * @param {Request} req - Express request object.
  * @param {Response} res - Express response object.
  * @param {Function} next - Express next middleware function.

@@ -4,7 +4,7 @@ const {
   fetchWarehouseInventorySummaryByItemIdService,
   fetchPaginatedWarehouseInventoryRecordService,
 } = require('../services/warehouse-inventory-service');
-const { logInfo } = require('../utils/logger-helper');
+const { logInfo } = require('../utils/logging/logger-helper');
 const AppError = require('../utils/AppError');
 const {
   normalizePaginationAndSortParams,

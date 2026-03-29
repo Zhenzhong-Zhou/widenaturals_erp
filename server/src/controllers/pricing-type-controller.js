@@ -4,7 +4,7 @@ const {
   fetchAvailablePricingTypesForDropdown,
   fetchPricingTypeByIdWithMetadataService,
 } = require('../services/price-type-service');
-const { logInfo } = require('../utils/logger-helper');
+const { logInfo } = require('../utils/logging/logger-helper');
 
 /**
  * Controller: Handles GET request to fetch paginated pricing types with optional filters.

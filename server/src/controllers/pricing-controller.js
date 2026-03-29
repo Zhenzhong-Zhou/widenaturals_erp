@@ -4,7 +4,7 @@ const {
   fetchPricingDetailsByPricingTypeId,
   exportPricingRecordsService,
 } = require('../services/pricing-service');
-const { logInfo } = require('../utils/logger-helper');
+const { logInfo } = require('../utils/logging/logger-helper');
 const { exportData } = require('../utils/export-utils');
 const { generateTimestampedFilename } = require('../utils/name-utils');
 
