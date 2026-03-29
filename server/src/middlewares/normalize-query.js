@@ -12,6 +12,18 @@
  * throw immediately at request time if `req.validatedQuery` is undefined,
  * which means `validate` did not run before it — a pipeline misconfiguration
  * that must be fixed at the route level.
+ *
+ * Pagination modes (controlled by factoryOptions.paginationMode):
+ *   'page'   — page/limit style for table/list views.
+ *              Returns: { page, limit, offset, sortOrder }
+ *              offset is derived internally as (page - 1) * limit.
+ *              Callers must not pass offset directly.
+ *
+ *   'offset' — offset/limit style for dropdown/lookup views.
+ *              Returns: { offset, limit, sortOrder }
+ *              page is not computed or returned — meaningless in offset mode.
+ *
+ * Default: 'page' — preserves backward compatibility with all existing routes.
  */
 
 'use strict';
@@ -19,7 +31,8 @@
 const Joi = require('joi');
 const {
   normalizeFilterKeys,
-  normalizePaginationParams,
+  normalizePageParams,
+  normalizeOffsetParams,
   normalizeParamArray,
   normalizeSortOrder,
 } = require('../utils/query-normalizers');
@@ -30,7 +43,6 @@ const {
 
 // -----------------------------------------------------------------------------
 // Module-level constants
-// Defined here so they are not reallocated on every request.
 // -----------------------------------------------------------------------------
 
 /**
@@ -40,6 +52,12 @@ const {
  * @type {Set<string>}
  */
 const RESERVED_KEYS = new Set(['page', 'limit', 'offset', 'sortBy', 'sortOrder']);
+
+/**
+ * Valid pagination mode values.
+ * @type {Set<string>}
+ */
+const PAGINATION_MODES = new Set(['page', 'offset']);
 
 // -----------------------------------------------------------------------------
 // Private helpers
@@ -96,6 +114,24 @@ const extractFilterKeys = (input, nestedKey = 'filters') => {
   );
 };
 
+/**
+ * Normalizes pagination from trimmedQuery using the correct mode.
+ *
+ * 'page'   → normalizePageParams   → { page, limit, offset, sortOrder }
+ * 'offset' → normalizeOffsetParams → { offset, limit, sortOrder }
+ *            page is intentionally absent in offset mode — returning it would
+ *            risk callers reading a value that is meaningless when offset is
+ *            not a clean multiple of limit.
+ *
+ * @param {Object} trimmedQuery  - Trimmed query object.
+ * @param {string} mode          - 'page' or 'offset'.
+ * @returns {{ page?: number, limit: number, offset: number, sortOrder: string }}
+ */
+const resolvePaginationParams = (trimmedQuery, mode) => {
+  if (mode === 'offset') return normalizeOffsetParams(trimmedQuery);
+  return normalizePageParams(trimmedQuery);
+};
+
 // -----------------------------------------------------------------------------
 // Middleware factory
 // -----------------------------------------------------------------------------
@@ -105,16 +141,13 @@ const extractFilterKeys = (input, nestedKey = 'filters') => {
  * consistently shaped object attached to `req.normalizedQuery`.
  *
  * Must run AFTER `validate(schema, 'query')` in the middleware pipeline so
- * that Joi-coerced types and defaults (e.g. offset → number, limit → 50) are
- * available on `req.validatedQuery`. If `req.validatedQuery` is absent when
- * the returned middleware executes, it throws immediately to surface the
- * misconfigured pipeline.
+ * that Joi-coerced types and defaults are available on `req.validatedQuery`.
  *
  * Normalization pipeline (per request):
  *   1.  Read `req.validatedQuery` (fail fast if undefined).
  *   2.  Trim all query keys and string values.
- *   3.  Parse pagination (`page`, `limit`, `offset`) via `normalizePaginationParams`.
- *   4.  Sanitize sort fields (`sortBy`, `sortOrder`) via the module sort map.
+ *   3.  Parse pagination via the selected mode (page or offset).
+ *   4.  Sanitize sort fields via the module sort map.
  *   5.  Coerce `arrayKeys` values to arrays → placed in `filters`.
  *   6.  Coerce `booleanKeys` values to booleans → placed in `filters`.
  *   7.  Coerce `optionBooleanKeys` values to booleans → placed in `options`.
@@ -122,80 +155,60 @@ const extractFilterKeys = (input, nestedKey = 'filters') => {
  *   9.  Whitelist and inject remaining allowed filter keys → placed in `filters`.
  *   10. Assemble and attach `req.normalizedQuery`.
  *
- * Reserved keys (`page`, `limit`, `offset`, `sortBy`, `sortOrder`) are always
- * excluded from `filters` regardless of what appears in `filterKeysOrSchema`.
- *
  * @param {string} [moduleKey='']
  *   Key used to look up the module-specific sort map via `getSortMapForModule`.
- *   Examples: `'packagingMaterials'`, `'customers'`.
  *
  * @param {string[]} [arrayKeys=[]]
  *   Query keys whose values are coerced to arrays and placed in `filters`.
- *   Examples: `['statusId', 'createdBy']`.
  *
  * @param {string[]} [booleanKeys=[]]
  *   Query keys coerced to booleans and placed in `filters`.
- *   Truthy inputs: `true`, `'true'`, `1`, `'1'`. All else → `false`.
  *
  * @param {string[] | import('joi').Schema} filterKeysOrSchema
  *   Whitelist of allowed filter keys (plain array or Joi schema).
- *   Only matching query params are placed in `filters`.
  *
- * @param {object}  [factoryOptions={}]                     Factory-level behaviour toggles.
- * @param {boolean} [factoryOptions.includePagination=true] Attach `limit`, `offset`, `page`.
- * @param {boolean} [factoryOptions.includeSorting=true]    Attach `sortBy`, `sortOrder`.
+ * @param {object}  [factoryOptions={}]
+ * @param {boolean} [factoryOptions.includePagination=true]  Attach pagination fields.
+ * @param {boolean} [factoryOptions.includeSorting=true]     Attach sorting fields.
+ * @param {'page'|'offset'} [factoryOptions.paginationMode='page']
+ *   Controls which pagination normalizer is used.
+ *   'page'   — table/list views:    page + limit → offset derived internally.
+ *   'offset' — dropdown/lookup views: offset + limit → page not returned.
  *
  * @param {string[]} [optionBooleanKeys=[]]
  *   Query keys coerced to booleans and placed in `options`.
- *   Use for feature-flag knobs. Examples: `['includeBarcode', 'visibleOnly']`.
  *
  * @param {string[]} [optionStringKeys=[]]
  *   Query keys coerced to trimmed strings and placed in `options`.
- *   Use for mode or region toggles. Examples: `['mode', 'region']`.
  *
  * @returns {import('express').RequestHandler}
- *   Middleware that sets `req.normalizedQuery` to:
- *   ```js
- *   {
- *     filters:   { ...whitelistedKeys, ...arrays, ...booleans },
- *     options:   { ...optionBooleans, ...optionStrings },
- *     // if includePagination:
- *     limit, offset, page,
- *     // if includeSorting:
- *     sortBy, sortOrder,
- *   }
- *   ```
  *
  * @throws {Error} At factory time if `filterKeysOrSchema` is invalid.
- * @throws {Error} At request time if `req.validatedQuery` is undefined
- *   (indicates `validate` middleware did not run before this middleware).
+ * @throws {Error} At factory time if `paginationMode` is not 'page' or 'offset'.
+ * @throws {Error} At request time if `req.validatedQuery` is undefined.
  *
  * @example
- * // Correct pipeline — validate runs first so req.validatedQuery is populated.
- * router.get(
- *   '/packaging-materials',
- *   validate(pmQuerySchema, 'query'),
- *   createQueryNormalizationMiddleware(
- *     'packagingMaterials',
- *     ['statusId', 'createdBy'],   // arrayKeys
- *     ['onlyWithAddress'],          // booleanKeys
- *     ['keyword', 'statusId', 'createdBy', 'onlyWithAddress'], // filterKeys
- *     { includePagination: true, includeSorting: true },
- *     ['includeBarcode', 'visibleOnly'], // optionBooleanKeys
- *     ['mode']                           // optionStringKeys
- *   ),
- *   listPackagingMaterialsHandler
- * );
+ * // Table / list view — page-based (default)
+ * createQueryNormalizationMiddleware(
+ *   'skus',
+ *   ['statusId'],
+ *   [],
+ *   ['keyword', 'statusId'],
+ *   { includePagination: true, includeSorting: true, paginationMode: 'page' }
+ * )
+ * // req.normalizedQuery => { filters, options, page, limit, offset, sortBy, sortOrder }
  *
- * // Query string:  ?keyword= box &statusId=1&statusId=2&onlyWithAddress=true
- * //               &includeBarcode=1&mode=salesDropdown&limit=25&offset=50
- * // req.normalizedQuery =>
- * // {
- * //   filters: { keyword: 'box', statusId: ['1','2'], onlyWithAddress: true },
- * //   options: { includeBarcode: true, mode: 'salesDropdown' },
- * //   limit: 25, offset: 50, page: 2,
- * //   sortBy: 'name', sortOrder: 'ASC'
- * // }
+ * @example
+ * // Dropdown / lookup view — offset-based
+ * createQueryNormalizationMiddleware(
+ *   'skus',
+ *   [],
+ *   [],
+ *   ['keyword'],
+ *   { includePagination: true, includeSorting: false, paginationMode: 'offset' }
+ * )
+ * // req.normalizedQuery => { filters, options, offset, limit }
+ * // page is intentionally absent — meaningless in offset mode
  */
 const createQueryNormalizationMiddleware = (
   moduleKey          = '',
@@ -210,8 +223,18 @@ const createQueryNormalizationMiddleware = (
   const resolvedOptions = {
     includePagination: true,
     includeSorting:    true,
+    paginationMode:    'page',   // default preserves backward compatibility
     ...factoryOptions,
   };
+  
+  // Fail fast at factory time — misconfigured mode is caught at startup,
+  // not silently on the first request.
+  if (!PAGINATION_MODES.has(resolvedOptions.paginationMode)) {
+    throw new Error(
+      `[createQueryNormalizationMiddleware] Invalid paginationMode: ` +
+      `"${resolvedOptions.paginationMode}". Must be "page" or "offset".`
+    );
+  }
   
   // Extract and validate filter keys once at factory time — not per request.
   const filterKeys = extractFilterKeys(filterKeysOrSchema);
@@ -220,9 +243,7 @@ const createQueryNormalizationMiddleware = (
   return (req, _res, next) => {
     
     // -------------------------------------------------------------------------
-    // 1. Read req.validatedQuery (written by validate middleware after Joi
-    //    coercion). Fail fast if it is absent — that means validate did not run
-    //    before this middleware, which is a pipeline misconfiguration.
+    // 1. Read req.validatedQuery — fail fast if absent (pipeline misconfiguration)
     // -------------------------------------------------------------------------
     if (!req.validatedQuery) {
       return next(
@@ -241,21 +262,19 @@ const createQueryNormalizationMiddleware = (
     const trimmedQuery = normalizeFilterKeys(rawQuery);
     
     // -------------------------------------------------------------------------
-    // 3. Pagination
-    //    At this point limit/offset are already numbers (Joi coerced them).
-    //    normalizePaginationParams handles any remaining edge cases.
+    // 3. Pagination — mode selected at factory time, not per request
+    //    'page'   → normalizePageParams   → { page, limit, offset, sortOrder }
+    //    'offset' → normalizeOffsetParams → { offset, limit, sortOrder }
     // -------------------------------------------------------------------------
     const {
-      page,
+      page,             // present in 'page' mode, undefined in 'offset' mode
       limit,
       offset,
       sortOrder: rawSortOrder,
-    } = normalizePaginationParams(trimmedQuery);
+    } = resolvePaginationParams(trimmedQuery, resolvedOptions.paginationMode);
     
     // -------------------------------------------------------------------------
     // 4. Sorting
-    //    sortBy falls back to the module's default natural sort when absent
-    //    or when the raw value fails sanitization.
     // -------------------------------------------------------------------------
     const sortMap            = getSortMapForModule(moduleKey);
     const sanitizedSortBy    =
@@ -316,6 +335,8 @@ const createQueryNormalizationMiddleware = (
     
     // -------------------------------------------------------------------------
     // 10. Assemble req.normalizedQuery
+    //     page is spread conditionally — it is undefined in 'offset' mode and
+    //     must not appear in the output to prevent callers reading a wrong value.
     // -------------------------------------------------------------------------
     req.normalizedQuery = {
       filters: {
@@ -327,7 +348,13 @@ const createQueryNormalizationMiddleware = (
         ...normalizedOptionBooleans,
         ...normalizedOptionStrings,
       },
-      ...(resolvedOptions.includePagination && { limit, offset, page }),
+      ...(resolvedOptions.includePagination && {
+        limit,
+        offset,
+        // page is only attached in 'page' mode — absent in 'offset' mode so
+        // callers cannot accidentally read a stale or derived value.
+        ...(resolvedOptions.paginationMode === 'page' && { page }),
+      }),
       ...(resolvedOptions.includeSorting && {
         sortBy:    sanitizedSortBy,
         sortOrder: sanitizedSortOrder,
