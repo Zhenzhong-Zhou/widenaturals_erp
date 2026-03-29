@@ -1,142 +1,137 @@
-const { wrapAsyncHandler } = require('../middlewares/async-handler');
+/**
+ * @file session-controller.js
+ * @module controllers/session-controller
+ *
+ * @description
+ * Controllers for authentication and session management.
+ *
+ * Routes:
+ *   POST /api/v1/auth/login    → loginController
+ *   POST /api/v1/auth/refresh  → refreshTokenController
+ *
+ * All handlers are wrapped with `wrapAsyncHandler` — errors propagate
+ * automatically to the global error handler without try/catch boilerplate.
+ *
+ * Transport concerns handled here (not in service layer):
+ *   - HTTP-only refresh token cookie (set and rotated)
+ *   - Cache-Control: no-store header on all auth responses
+ *   - CSRF token generation via req.csrfToken()
+ *
+ * Note:
+ *   extractRequestContext is called directly in these controllers because
+ *   auth middleware has not yet run at login/refresh time. req.auth is not
+ *   available. attachTraceId middleware does run first, so req.traceId is safe.
+ */
+
+'use strict';
+
+const { wrapAsyncHandler }      = require('../middlewares/async-handler');
 const {
   loginUserService,
   refreshTokenService,
 } = require('../services/session-service');
 const { extractRequestContext } = require('../utils/request-context');
-const { getTtlMs } = require('../utils/auth/jwt-utils');
+const { getTtlMs }              = require('../utils/auth/jwt-utils');
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/v1/auth/login
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Handles user authentication and session initialization.
+ * Authenticates a user and issues access + refresh tokens.
  *
- * HTTP boundary for user login.
- * Enforces transport-level security requirements and delegates
- * authentication logic entirely to the service layer.
+ * Refresh token is persisted in an HTTP-only cookie.
+ * Access token and CSRF token are returned in the response body.
  *
- * Responsibilities:
- * - Enforce pre-authentication CSRF requirements
- * - Extract credentials from the request body
- * - Extract request metadata via request context utility
- * - Invoke the authentication service
- * - Persist refresh token via secure HTTP-only cookie
- * - Return a stable authentication API response
- *
- * Architectural notes:
- * - Request metadata normalization is delegated to extractRequestContext().
- * - This controller MUST NOT transform authentication data.
- * - The service layer returns API-ready authentication payloads.
- *
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- *
- * @returns {Promise<void>}
+ * Requires: CSRF middleware (req.csrfToken()), Joi body validation.
  */
 const loginController = wrapAsyncHandler(async (req, res) => {
   const { email, password } = req.body;
-
-  // Pre-auth CSRF token (required before login)
+  
+  // CSRF token must be issued at login and forwarded to the client
+  // for inclusion in subsequent state-changing requests
   const csrfToken = req.csrfToken();
-
-  const { ipAddress, userAgent, deviceId, note } = extractRequestContext(req);
-
-  // ------------------------------------------------------------
-  // 1. Authenticate user (domain + normalization handled by service)
-  // ------------------------------------------------------------
+  
+  // extractRequestContext is called directly — auth middleware has not run yet
+  const { ipAddress, userAgent, deviceId, parsedUserAgent } = extractRequestContext(req);
+  
   const result = await loginUserService(email, password, {
     ipAddress,
     userAgent,
     deviceId,
-    note,
+    parsedUserAgent,
   });
-
-  // ------------------------------------------------------------
-  // 2. Persist refresh token (transport concern only)
-  // ------------------------------------------------------------
+  
+  // Refresh token stored in HTTP-only cookie — never exposed to JS
   res.cookie('refreshToken', result.refreshToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure:   process.env.NODE_ENV === 'production',
     sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-    path: '/',
+    maxAge:   getTtlMs('REFRESH_TOKEN_TTL_SECONDS'),
+    path:     '/',
   });
-
-  // Prevent caching of auth response
+  
+  // Prevent auth responses from being cached at any layer
   res.set('Cache-Control', 'no-store');
-
-  // ------------------------------------------------------------
-  // 3. Send response
-  // ------------------------------------------------------------
+  
   res.status(200).json({
     success: true,
-    message: 'Login successful',
+    message: 'Login successful.',
     data: {
       accessToken: result.accessToken,
       csrfToken,
-      lastLogin: result.lastLogin,
+      lastLogin:   result.lastLogin,
     },
+    traceId: req.traceId,
   });
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/v1/auth/refresh
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Handles refresh-token requests and issues a new access token.
+ * Rotates the refresh token and issues a new access token.
  *
- * This controller is the HTTP boundary for token refresh. It:
- * - Reads the refresh token from HTTP-only cookies (transport concern)
- * - Delegates refresh-token validation, rotation, and token issuance to the service layer
- * - Persists the rotated refresh token back into a secure cookie
- * - Returns the new access token in the response body
+ * Refresh token is read from the HTTP-only cookie and rotated on every call.
+ * The new refresh token is persisted back into the cookie.
  *
- * Security model:
- * - This route does NOT require access-token authentication.
- *   It exists specifically to recover from an expired or missing access token.
- * - Refresh-token verification and rotation are enforced by `refreshTokenService`.
- * - Cookie attributes (httpOnly/secure/sameSite/maxAge) are set at the controller layer.
- *
- * Behavior guarantees:
- * - The controller is intentionally thin and deterministic.
- * - Expected token errors are surfaced as domain errors by the service layer
- *   and handled by centralized error middleware (no local try/catch needed).
- *
- * @param {import('express').Request} req
- *   Express request object. Reads refresh token from `req.cookies.refreshToken`.
- * @param {import('express').Response} res
- *   Express response object. Sets rotated refresh token cookie and returns access token.
- *
- * @returns {Promise<void>} Resolves after issuing new tokens and setting cookies
+ * Requires: CSRF middleware, valid refreshToken cookie.
  */
 const refreshTokenController = wrapAsyncHandler(async (req, res) => {
-  // Refresh tokens are stored in HTTP-only cookies
+  // Refresh token is stored in HTTP-only cookie — not in the request body
   const refreshToken = req.cookies?.refreshToken;
-
+  
+  // extractRequestContext is called directly — auth middleware has not run yet
   const { ipAddress, userAgent } = extractRequestContext(req);
-
-  // Service validates refresh token, rotates it, and issues a new access token
+  
   const { accessToken, refreshToken: newRefreshToken } =
     await refreshTokenService(refreshToken, { ipAddress, userAgent });
-
-  // Persist rotated refresh token (transport concern)
+  
+  // Persist rotated refresh token — old token is invalidated by the service
   res.cookie('refreshToken', newRefreshToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure:   process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-    maxAge: getTtlMs('REFRESH_TOKEN_TTL_SECONDS'),
-    path: '/',
+    maxAge:   getTtlMs('REFRESH_TOKEN_TTL_SECONDS'),
+    path:     '/',
   });
-
+  
   res.set('Cache-Control', 'no-store');
-
-  // Return new access token for subsequent authenticated requests
+  
   res.status(200).json({
     success: true,
-    message: 'Token refreshed successfully',
+    message: 'Token refreshed successfully.',
     data: {
       accessToken,
     },
-    meta: {
-      rotatedAt: new Date().toISOString(),
-    },
+    traceId: req.traceId,
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Exports
+// ─────────────────────────────────────────────────────────────────────────────
 
 module.exports = {
   loginController,

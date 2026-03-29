@@ -1,47 +1,60 @@
+/**
+ * @file csrf-controller.js
+ * @module controllers/csrf-controller
+ *
+ * @description
+ * Controller for CSRF token generation.
+ *
+ * Routes:
+ *   GET /api/v1/auth/csrf  → generateCsrfTokenController
+ *
+ * This is a thin controller by design — no service layer is required
+ * because CSRF token generation is framework-provided, stateless,
+ * and request-scoped via the csurf middleware.
+ *
+ * All errors are handled by wrapAsyncHandler and delegated to the
+ * global error handler without try/catch boilerplate.
+ */
+
+'use strict';
+
 const { wrapAsyncHandler } = require('../middlewares/async-handler');
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/v1/auth/csrf
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Generate and return a CSRF token for frontend usage.
+ * Generates and returns a per-request CSRF token for frontend usage.
  *
- * This controller is intended to be called by the frontend during
- * application bootstrap or before submitting state-changing requests.
+ * Call this during app bootstrap or before any state-changing request.
+ * The token must be included in subsequent mutating requests via header or body.
  *
- * Behavior:
- * - Generates a per-request CSRF token using `csurf` (`req.csrfToken()`).
- * - Disables all HTTP caching to prevent token reuse or leakage.
- * - Returns the token in a JSON response body.
+ * Cache headers are set to prevent token reuse or leakage via intermediaries.
  *
- * Design notes:
- * - This is a thin controller by design; no service layer is required
- *   because CSRF token generation is framework-provided, stateless,
- *   and request-scoped.
- * - Errors are handled by `wrapAsyncHandler` and delegated to global
- *   error-handling middleware for consistent logging and response formatting.
- *
- * Security considerations:
- * - Tokens must never be cached by intermediaries or the browser.
- * - Tokens should be included by the frontend in subsequent
- *   state-changing requests (e.g., via headers or request body),
- *   depending on the client implementation.
- *
- * @route   GET /auth/csrf
- * @access  Public
- *
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- * @returns {void}
+ * @route  GET /api/v1/auth/csrf
+ * @access Public
  */
 const generateCsrfTokenController = wrapAsyncHandler((req, res) => {
   const csrfToken = req.csrfToken();
-
+  
+  // Prevent token caching at every layer — browser, proxy, and CDN
   res.set({
     'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-    Pragma: 'no-cache',
-    Expires: '0',
+    Pragma:          'no-cache',
+    Expires:         '0',
   });
-
-  res.json({ csrfToken });
+  
+  res.status(200).json({
+    success:   true,
+    csrfToken,
+    traceId:   req.traceId,
+  });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Exports
+// ─────────────────────────────────────────────────────────────────────────────
 
 module.exports = {
   generateCsrfTokenController,
