@@ -67,8 +67,8 @@ const getSortMapForModule = (moduleKey) => {
  * query builder is responsible for handling a null result.
  *
  * @param {string|string[]} sortByRaw          - Raw sortBy value from the request.
- * @param {string}          moduleKey          - Registry key for the sort map.
- * @param {string|null}     [defaultSort=null] - Fallback SQL column when no keys resolve.
+ * @param {string|null} [moduleKey=null]       - Registry key for the sort map.
+ * @param {string|null} [defaultSort=null]     - Fallback SQL column when no keys resolve.
  *   Must be fully qualified (e.g. `'a.created_at'`) to avoid ambiguity in aliased queries.
  * @returns {string|null} Resolved SQL column string, or `defaultSort` if nothing mapped.
  * @throws {AppError} If `moduleKey` is not registered.
@@ -81,7 +81,7 @@ const getSortMapForModule = (moduleKey) => {
  * sanitizeSortBy('unknown', 'products', 'p.created_at')
  * // → 'p.created_at' (fallback; warns on 'unknown')
  */
-const sanitizeSortBy = (sortByRaw = '', moduleKey, defaultSort = null) => {
+const sanitizeSortBy = (sortByRaw = '', moduleKey = null, defaultSort = null) => {
   const sortMap = getSortMapForModule(moduleKey);
   
   // Reuse normalizeParamArray instead of re-implementing split/trim/filter.
