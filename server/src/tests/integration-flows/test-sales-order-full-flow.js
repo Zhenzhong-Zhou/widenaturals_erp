@@ -26,7 +26,7 @@ const {
     );
     const { id: userId, role_id } = rows[0];
     const enrichedUser = { id: userId, role: role_id };
-
+    
     // Step 2: Lookup required foreign keys
     const [
       order_type_id,
@@ -40,109 +40,34 @@ const {
       delivery_method_id,
       warehouse_id,
     ] = await Promise.all([
-      getUniqueScalarValue(
-        { table: 'order_types', where: { code: 'SALES_STD' }, select: 'id' },
-        client
-      ),
-      getUniqueScalarValue(
-        {
-          table: 'order_status',
-          where: { code: 'ORDER_PENDING' },
-          select: 'id',
-        },
-        client
-      ),
-      getUniqueScalarValue(
-        {
-          table: 'addresses',
-          where: { full_name: 'John Doe', label: 'Shipping' },
-          select: 'id',
-        },
-        client
-      ),
-      getUniqueScalarValue(
-        {
-          table: 'addresses',
-          where: { full_name: 'John Doe', label: 'Billing' },
-          select: 'id',
-        },
-        client
-      ),
-      getUniqueScalarValue(
-        {
-          table: 'customers',
-          where: { email: 'john.doe@example.com' },
-          select: 'id',
-        },
-        client
-      ),
-      getUniqueScalarValue(
-        {
-          table: 'payment_methods',
-          where: { code: 'CREDIT_CARD' },
-          select: 'id',
-        },
-        client
-      ),
-      getUniqueScalarValue(
-        {
-          table: 'discounts',
-          where: { name: 'New Customer Offer' },
-          select: 'id',
-        },
-        client
-      ),
-      getUniqueScalarValue(
-        {
-          table: 'tax_rates',
-          where: { name: 'PST', province: 'BC' },
-          select: 'id',
-        },
-        client
-      ),
-      getUniqueScalarValue(
-        {
-          table: 'delivery_methods',
-          where: { method_name: 'In-Store Pickup' },
-          select: 'id',
-        },
-        client
-      ),
-      // getUniqueScalarValue({ table: 'delivery_methods', where: { method_name: 'Standard Shipping' }, select: 'id' }, client),
-      getUniqueScalarValue(
-        {
-          table: 'warehouses',
-          where: { name: 'WIDE Naturals Inc.' },
-          select: 'id',
-        },
-        client
-      ),
+      getUniqueScalarValue({ table: 'order_types',     where: { code: 'SALES_STD' },                        select: 'id' }),
+      getUniqueScalarValue({ table: 'order_status',    where: { code: 'ORDER_PENDING' },                    select: 'id' }),
+      getUniqueScalarValue({ table: 'addresses',       where: { full_name: 'John Doe', label: 'Shipping' }, select: 'id' }),
+      getUniqueScalarValue({ table: 'addresses',       where: { full_name: 'John Doe', label: 'Billing' },  select: 'id' }),
+      getUniqueScalarValue({ table: 'customers',       where: { email: 'john.doe@example.com' },            select: 'id' }),
+      getUniqueScalarValue({ table: 'payment_methods', where: { code: 'CREDIT_CARD' },                      select: 'id' }),
+      getUniqueScalarValue({ table: 'discounts',       where: { name: 'New Customer Offer' },               select: 'id' }),
+      getUniqueScalarValue({ table: 'tax_rates',       where: { name: 'PST', province: 'BC' },              select: 'id' }),
+      getUniqueScalarValue({ table: 'delivery_methods',where: { method_name: 'In-Store Pickup' },           select: 'id' }),
+      getUniqueScalarValue({ table: 'warehouses',      where: { name: 'WIDE Naturals Inc.' },               select: 'id' }),
     ]);
 
     // Step 3: Lookup SKUs and packaging
     const [sku1, sku2, sku3, packaging_material_id_1] = await Promise.all([
-      getUniqueScalarValue(
-        { table: 'skus', where: { sku: 'PG-NM203-R-CA' }, select: 'id' },
-        client
-      ),
-      getUniqueScalarValue(
-        { table: 'skus', where: { sku: 'PG-NM208-R-CN' }, select: 'id' },
-        client
-      ),
-      getUniqueScalarValue(
-        { table: 'skus', where: { sku: 'CH-HN105-R-CA' }, select: 'id' },
-        client
-      ),
-      getUniqueScalarValue(
-        {
-          table: 'packaging_materials',
-          where: { name: 'Brand E Paper Bag - Medium (Brown)' },
-          select: 'id',
-        },
-        client
-      ),
+      getUniqueScalarValue({ table: 'skus',                where: { sku: 'PG-NM203-R-CA' },                       select: 'id' }),
+      getUniqueScalarValue({ table: 'skus',                where: { sku: 'PG-NM208-R-CN' },                       select: 'id' }),
+      getUniqueScalarValue({ table: 'skus',                where: { sku: 'CH-HN105-R-CA' },                       select: 'id' }),
+      getUniqueScalarValue({ table: 'packaging_materials', where: { name: 'Brand E Paper Bag - Medium (Brown)' }, select: 'id' }),
     ]);
-
+    
+    const getPriceId = async (skuId) => {
+      const { rows } = await pool.query(
+        `SELECT id FROM pricing WHERE sku_id = $1 ORDER BY created_at ASC LIMIT 1`,
+        [skuId]
+      );
+      return rows[0]?.id ?? null;
+    };
+    
     // Step 4: Create sales order
     const orderData = {
       order_type_id,
@@ -164,10 +89,7 @@ const {
       order_items: [
         {
           sku_id: sku1,
-          price_id: await getUniqueScalarValue(
-            { table: 'pricing', where: { sku_id: sku1 }, select: 'id' },
-            client
-          ),
+          price_id: await getPriceId(sku1),
           quantity_ordered: 2,
           price: 20.0,
           status_id: order_status_id,
@@ -175,10 +97,7 @@ const {
         },
         {
           sku_id: sku3,
-          price_id: await getUniqueScalarValue(
-            { table: 'pricing', where: { sku_id: sku3 }, select: 'id' },
-            client
-          ),
+          price_id: await getPriceId(sku3),
           quantity_ordered: 20,
           price: null,
           status_id: order_status_id,
@@ -186,10 +105,7 @@ const {
         },
         {
           sku_id: sku2,
-          price_id: await getUniqueScalarValue(
-            { table: 'pricing', where: { sku_id: sku2 }, select: 'id' },
-            client
-          ),
+          price_id: await getPriceId(sku2),
           quantity_ordered: 20,
           price: 200.0,
           status_id: order_status_id,
