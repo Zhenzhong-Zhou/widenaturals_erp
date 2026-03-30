@@ -60,6 +60,18 @@ loadEnv();
 
 const connectionConfig = getConnectionConfig();
 
+// -- Hoist threshold parse: avoids re-reading and re-parsing env on every call.
+const SLOW_QUERY_THRESHOLD_MS =
+  parseInt(process.env.SLOW_QUERY_THRESHOLD, 10) || 1000;
+
+// Allowlisted PostgreSQL isolation levels.
+const ISOLATION_LEVELS = new Set([
+  'READ UNCOMMITTED',
+  'READ COMMITTED',
+  'REPEATABLE READ',
+  'SERIALIZABLE',
+]);
+
 // ------------------------------------------------------------
 // Configure PostgreSQL connection pool
 // ------------------------------------------------------------
@@ -160,111 +172,78 @@ pool.on('connect', logDbConnect);
 pool.on('error', handlePoolError);
 
 /**
- * Executes a PostgreSQL query with retry, structured logging,
- * and error normalization.
+ * Executes a parameterized SQL query against the connection pool, with
+ * automatic retry on transient errors and slow-query telemetry.
  *
- * Features:
- * - Automatic retry for transient failures (via retry engine)
- * - Slow query monitoring
- * - Structured error normalization (handleDbError)
- * - Supports both pool and transaction clients
+ * When `client` is provided the caller owns the connection lifecycle
+ * (transactions). When omitted, a pool client is acquired and released
+ * internally.
  *
- * Important:
- * - Retry is applied only to retryable DB errors
- * - Caller must ensure idempotency for write operations
- *
- * @param {string} text - SQL query string
- * @param {Array<any>} [params=[]] - Query parameters
- * @param {import('pg').PoolClient | import('pg').Pool | null} [client=null] - Optional transaction client
- * @param {Object} [options={}]
- * @param {number} [options.retries=3]
- * @param {number} [options.baseDelay=300]
- * @param {Object} [options.meta={}] - Logging metadata
- *
+ * @param {string}      text              - Parameterized SQL string.
+ * @param {Array}       [params=[]]       - Bound parameter values.
+ * @param {object|null} [client=null]     - Existing pg client (transactional).
+ * @param {object}      [options={}]
+ * @param {number}      [options.retries=3]    - Max retry attempts.
+ * @param {number}      [options.baseDelay=300] - Base backoff delay (ms).
+ * @param {object}      [options.meta={}]      - Extra context forwarded to log helpers.
  * @returns {Promise<import('pg').QueryResult>}
- * @throws {AppError}
  */
 const query = async (
   text,
   params = [],
   client = null,
-  {
-    retries = 3,
-    baseDelay = 300,
-    meta = {},
-  } = {}
+  { retries = 3, baseDelay = 300, meta = {} } = {}
 ) => {
   return retry(
     async () => {
-      //--------------------------------------------------
-      // Acquire client if not provided (non-transactional)
-      //--------------------------------------------------
-      const localClient = client || (await pool.connect());
+      const localClient = client ?? (await pool.connect());
       const shouldRelease = !client;
-      
       const startTime = Date.now();
       
       try {
-        //--------------------------------------------------
-        // Execute query
-        //--------------------------------------------------
         const result = await localClient.query(text, params);
         
-        //--------------------------------------------------
-        // Slow query logging
-        //--------------------------------------------------
         const duration = Date.now() - startTime;
-        const slowQueryThreshold =
-          parseInt(process.env.SLOW_QUERY_THRESHOLD, 10) || 1000;
-        
-        if (duration > slowQueryThreshold) {
+        if (duration > SLOW_QUERY_THRESHOLD_MS) {
           logDbSlowQuery(text, params, duration, meta);
         }
         
         return result;
       } catch (error) {
-        //--------------------------------------------------
-        // Normalize + rethrow for retry engine
-        //--------------------------------------------------
         throw handleDbError(error, {
           context: 'db/query',
           message: 'Database query failed',
           meta,
           logFn: (err) =>
-            logDbQueryError(text, params, err, {
-              context: 'db/query',
-              ...meta,
-            }),
+            logDbQueryError(text, params, err, { context: 'db/query', ...meta }),
         });
       } finally {
-        //--------------------------------------------------
-        // Release client if we created it
-        //--------------------------------------------------
-        if (shouldRelease) {
+        // Only release if we acquired the client; skip on connect failure
+        // (localClient would be undefined, and the error already propagated).
+        if (shouldRelease && localClient) {
           localClient.release();
         }
       }
     },
-    {
-      retries,
-      baseDelay,
-      shouldRetry: isRetryableDbError,
-    }
+    { retries, baseDelay, shouldRetry: isRetryableDbError }
   );
 };
 
 /**
- * Directly acquires a PostgreSQL client from the pool for manual transaction control.
+ * Acquires a client from the connection pool.
  *
- * @returns {Promise<PoolClient>} - The connected client.
- * @throws {AppError} - If acquiring the client fails.
+ * Wraps `pool.connect()` with structured error handling so callers receive
+ * a normalized `AppError` on failure rather than a raw pg error.
+ *
+ * @returns {Promise<PoolClient>}
+ * @throws {AppError} If the pool cannot provide a client.
  */
 const getClient = async () => {
   try {
     return await pool.connect();
   } catch (error) {
     const message = 'Failed to acquire a database client';
-    const context = 'db/getClient/db-client';
+    const context = 'db/getClient';
     
     throw handleDbError(error, {
       context,
@@ -279,97 +258,78 @@ const getClient = async () => {
 };
 
 /**
- * Executes a database operation within a transaction.
+ * Executes `callback` inside a PostgreSQL transaction, handling BEGIN,
+ * COMMIT, ROLLBACK, and client release automatically.
  *
- * Behavior:
- * - Acquires a client from pool
- * - Begins transaction (with optional isolation level)
- * - Applies optional statement timeout
- * - Executes callback
- * - Commits on success
- * - Rolls back on failure (safe rollback handling)
- * - Always releases client
+ * The callback receives the active `client` and a `txId` trace identifier.
+ * Any error thrown by the callback triggers a ROLLBACK before re-throwing.
  *
- * @param {(client: PoolClient, txId: string) => Promise<any>} callback
- * @param {Object} [options={}]
- * @param {string} [options.isolationLevel='READ COMMITTED'] - Transaction isolation level
- * @param {number} [options.timeoutMs=5000] - Statement timeout in milliseconds
- *
- * @returns {Promise<any>}
- * @throws {AppError}
+ * @param {(client: PoolClient, txId: string) => Promise<*>} callback
+ *   - Async function containing the transactional work.
+ * @param {object} [options={}]
+ * @param {string} [options.isolationLevel='READ COMMITTED']
+ *   - Must be a valid PostgreSQL isolation level.
+ * @param {number} [options.timeoutMs=5000]
+ *   - Per-statement timeout in ms, scoped locally to this transaction.
+ *     Pass 0 to disable.
+ * @returns {Promise<*>} Resolves with the return value of `callback`.
+ * @throws {AppError} On invalid input, transaction failure, or DB error.
  */
 const withTransaction = async (callback, options = {}) => {
-  //--------------------------------------------------
-  // Validate input
-  //--------------------------------------------------
   if (typeof callback !== 'function') {
     throw AppError.validationError('Transaction callback must be a function');
   }
   
-  //--------------------------------------------------
-  // Resolve options (SAFE DEFAULTS)
-  //--------------------------------------------------
-  const {
-    isolationLevel = 'READ COMMITTED',
-    timeoutMs = 5000,
-  } = options;
+  const { isolationLevel = 'READ COMMITTED', timeoutMs = 5000 } = options;
+  
+  // Validate against allowlist — isolationLevel is interpolated into SQL.
+  if (!ISOLATION_LEVELS.has(isolationLevel)) {
+    throw AppError.validationError(`Invalid isolation level: ${isolationLevel}`);
+  }
+  
+  // timeoutMs is interpolated into SQL; must be a safe non-negative integer.
+  if (!Number.isInteger(timeoutMs) || timeoutMs < 0) {
+    throw AppError.validationError('timeoutMs must be a non-negative integer');
+  }
   
   const client = await getClient();
   const txId = generateTraceId();
+  const context = 'db/withTransaction';
   
   try {
-    //--------------------------------------------------
-    // Begin transaction with isolation level
-    //--------------------------------------------------
     await client.query(`BEGIN ISOLATION LEVEL ${isolationLevel}`);
     logDbTransactionEvent('BEGIN', txId, { isolationLevel });
     
-    //--------------------------------------------------
-    // Apply timeout guard (local to this transaction)
-    //--------------------------------------------------
     if (timeoutMs > 0) {
       await client.query(`SET LOCAL statement_timeout = ${timeoutMs}`);
     }
     
-    //--------------------------------------------------
-    // Execute user logic
-    //--------------------------------------------------
     const result = await callback(client, txId);
     
-    //--------------------------------------------------
-    // Commit
-    //--------------------------------------------------
     await client.query('COMMIT');
     logDbTransactionEvent('COMMIT', txId);
     
     return result;
   } catch (error) {
-    //--------------------------------------------------
-    // Safe rollback
-    //--------------------------------------------------
     try {
       await client.query('ROLLBACK');
       logDbTransactionEvent('ROLLBACK', txId, { severity: 'critical' });
     } catch (rollbackError) {
+      // Rollback failure is logged but not re-thrown — the original error
+      // is the authoritative failure signal.
       logSystemException(rollbackError, 'Rollback failed', {
         txId,
-        context: 'db/withTransaction/rollback',
+        context: `${context}/rollback`,
         severity: 'critical',
       });
     }
     
-    //--------------------------------------------------
-    // Handle error
-    //--------------------------------------------------
-    const message = 'Transaction failed';
-    const context = 'db/withTransaction';
-    
     throw handleDbError(error, {
       context,
-      message,
+      message: 'Transaction failed',
       meta: { txId, isolationLevel },
       logFn: (err) =>
-        logSystemException(err, message, {
+        logSystemException(err, 'Transaction failed', {
           txId,
           context,
           isolationLevel,
@@ -377,9 +337,6 @@ const withTransaction = async (callback, options = {}) => {
         }),
     });
   } finally {
-    //--------------------------------------------------
-    // Always release client
-    //--------------------------------------------------
     client.release();
   }
 };
