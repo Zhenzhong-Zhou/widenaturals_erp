@@ -217,7 +217,7 @@ registerLookupRoute(router, {
   schema:     packagingMaterialLookupQuerySchema,
   controller: getPackagingMaterialLookupController,
   config: {
-    optionKeys: ['mode'],
+    optionStringKeys: ['mode'],
   },
 });
 

@@ -26,7 +26,7 @@ const CACHE = {
  * frozen code-to-id lookup map. Intended to run at server startup and
  * optionally on demand when activity types change.
  *
- * @param {Object|null} [client=null] - Optional PostgreSQL transaction client
+ * @param {PoolClient} [client=null] - Optional PostgreSQL transaction client
  * @returns {Promise<void>}
  * @throws {AppError} ValidationError if no records exist or duplicate codes are detected
  * @throws {AppError} Propagates DB errors from the repository
