@@ -23,7 +23,7 @@ const { pool } = require('../../database/db');
 const {
   logSystemInfo,
   logSystemException,
-} = require('../../utils/system-logger');
+} = require('../../utils/logging/system-logger');
 const { createSkusService } = require('../../services/sku-service');
 const { initStatusCache, getStatusId } = require('../../config/status-cache');
 
@@ -116,20 +116,32 @@ const { initStatusCache, getStatusId } = require('../../config/status-cache');
       { brand_code: 'XY', category_code: 'PR' }, // should create base_code 700
       { brand_code: 'XA', category_code: 'PC' }, // should create base_code 800
     ];
-
+    
+    const VARIANT_CODES = [
+      'R','S','L','A','B','C','D','E','F','G',
+      'H','I','J','K','M','N','P','Q','T','V'
+    ];
+    
+    const REGION_CODES = [
+      'CN','CA','US','UN','EU','JP','KR','AU','MX','BR',
+      'IN','SG','HK','TW','DE','FR','IT','ES','NL','SE'
+    ];
+    
     // Use index modulo to assign different brand/category combinations per product
     const skuList = existingProducts.flatMap((p, idx) => {
       const { brand_code, category_code } =
         brandCategoryPairs[idx % brandCategoryPairs.length];
-
+      
+      const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+      
       return [
         {
           product_id: p.id,
           brand_code,
           category_code,
-          variant_code: 'R',
-          region_code: 'CN',
-          barcode: `628942007${880 + idx}`,
+          variant_code: pick(VARIANT_CODES),
+          region_code: pick(REGION_CODES),
+          barcode: `628942007${Date.now()}${Math.floor(Math.random() * 1000)}`,
           language: 'en',
           country_code: 'CN',
           market_region: 'China',
@@ -140,9 +152,9 @@ const { initStatusCache, getStatusId } = require('../../config/status-cache');
           product_id: p.id,
           brand_code,
           category_code,
-          variant_code: 'S',
-          region_code: 'CA',
-          barcode: `628942007${890 + idx}`,
+          variant_code: pick(VARIANT_CODES),
+          region_code: pick(REGION_CODES),
+          barcode: `628942007${Date.now()}${Math.floor(Math.random() * 1000)}`,
           language: 'en',
           country_code: 'CA',
           market_region: 'Canada',

@@ -15,7 +15,7 @@ const { pool } = require('../../database/db');
 const {
   logSystemInfo,
   logSystemException,
-} = require('../../utils/system-logger');
+} = require('../../utils/logging/system-logger');
 const { updateSkuIdentityService } = require('../../services/sku-service');
 const { initAllStatusCaches } = require('../../config/status-cache');
 const {

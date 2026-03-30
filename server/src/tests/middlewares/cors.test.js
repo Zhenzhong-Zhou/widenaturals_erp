@@ -1,9 +1,9 @@
-jest.mock('../../utils/logger-helper', () => ({
+jest.mock('../../utils/logging/logger-helper', () => ({
   logWarn: jest.fn(),
   logError: jest.fn(),
 }));
 
-const { logWarn } = require('../../utils/logger-helper');
+const { logWarn } = require('../../utils/logging/logger-helper');
 const express = require('express');
 const request = require('supertest');
 const corsMiddleware = require('../../middlewares/cors');
