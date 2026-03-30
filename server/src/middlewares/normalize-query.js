@@ -155,8 +155,10 @@ const resolvePaginationParams = (trimmedQuery, mode) => {
  *   9.  Whitelist and inject remaining allowed filter keys → placed in `filters`.
  *   10. Assemble and attach `req.normalizedQuery`.
  *
- * @param {string} [moduleKey='']
+ * @param {string|null} [moduleKey=null]
  *   Key used to look up the module-specific sort map via `getSortMapForModule`.
+ *   Required when `includeSorting` is true. Pass `null` for lookup/dropdown
+ *   routes that do not support dynamic sorting.
  *
  * @param {string[]} [arrayKeys=[]]
  *   Query keys whose values are coerced to arrays and placed in `filters`.
@@ -211,7 +213,7 @@ const resolvePaginationParams = (trimmedQuery, mode) => {
  * // page is intentionally absent — meaningless in offset mode
  */
 const createQueryNormalizationMiddleware = (
-  moduleKey          = '',
+  moduleKey          = null,
   arrayKeys          = [],
   booleanKeys        = [],
   filterKeysOrSchema = [],
@@ -275,11 +277,19 @@ const createQueryNormalizationMiddleware = (
     
     // -------------------------------------------------------------------------
     // 4. Sorting
+    //    Only resolved when sorting is enabled AND a moduleKey is configured.
+    //    Lookup routes set includeSorting: false and pass no moduleKey — they
+    //    skip this block entirely and produce no sortBy/sortOrder in output.
     // -------------------------------------------------------------------------
-    const sortMap            = getSortMapForModule(moduleKey);
-    const sanitizedSortBy    =
-      sanitizeSortBy(trimmedQuery.sortBy, moduleKey) ?? sortMap?.defaultNaturalSort;
     const sanitizedSortOrder = normalizeSortOrder(rawSortOrder);
+    let sanitizedSortBy = undefined;
+    
+    if (resolvedOptions.includeSorting && moduleKey) {
+      const sortMap     = getSortMapForModule(moduleKey);
+      sanitizedSortBy   = sanitizeSortBy(trimmedQuery.sortBy, moduleKey)
+        ?? sortMap.defaultNaturalSort
+        ?? null;
+    }
     
     // -------------------------------------------------------------------------
     // 5. Array keys → filters

@@ -146,7 +146,7 @@ const createLookupRoute = ({
     ),
     
     createQueryNormalizationMiddleware(
-      '',
+      null,
       arrayKeys,
       booleanKeys,
       filterKeysOrSchema,
