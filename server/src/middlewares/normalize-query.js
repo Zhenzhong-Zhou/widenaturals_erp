@@ -39,7 +39,7 @@ const {
 const {
   sanitizeSortBy,
   getSortMapForModule,
-} = require('../utils/sort-utils');
+} = require('../utils/query/sort-resolver');
 
 // -----------------------------------------------------------------------------
 // Module-level constants
