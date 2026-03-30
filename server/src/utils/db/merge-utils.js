@@ -1,42 +1,70 @@
-const AppError = require('../AppError');
-const { q } = require('../sql-ident');
-const { validateSqlIdentifiers } = require('./sql-validation');
+/**
+ * @file merge-utils.js
+ * @description
+ * SQL expression builders for audit-style column merge strategies used in
+ * ON CONFLICT DO UPDATE clauses.
+ *
+ * Provides `buildMergeExpression`, which generates a CASE-based SET fragment
+ * that appends incoming values to an existing column rather than overwriting it.
+ *
+ * Supported merge types:
+ * - 'jsonb' — appends the incoming value as a timestamped object into a JSONB array
+ * - 'text'  — appends the incoming value as a timestamped line into a text log
+ *
+ * All identifiers are validated and quoted before interpolation.
+ * This module has no I/O and no pg dependency.
+ */
+
+'use strict';
+
+const { q, validateIdentifier } = require('../sql-ident');
 
 /**
- * Builds a SQL merge expression for audit-style columns.
+ * Builds a CASE-based SQL SET fragment that appends an incoming value to an
+ * existing column, preserving the current value when the incoming one is null
+ * or empty.
  *
- * Supports:
- * - JSONB → append structured audit entries (array of objects)
- * - TEXT  → append timestamped log entries
+ * Designed for use in `ON CONFLICT DO UPDATE SET` clauses where the column
+ * acts as an append-only audit log rather than a simple scalar field.
  *
- * Behavior:
- * - Skips update if EXCLUDED value is NULL (or empty for text)
- * - Preserves existing data
- * - Ensures consistent audit trail format
+ * Validation is performed here even when called from `applyUpdateRule` (which
+ * pre-validates) because `buildMergeExpression` is exported and may be called
+ * directly by other code.
  *
- * JSONB structure:
- * [
- *   { "timestamp": "...", "data": ... }
- * ]
+ * JSONB strategy:
+ * - Preserves the existing array when EXCLUDED.col IS NULL
+ * - Otherwise appends `{ timestamp, data }` to the existing array,
+ *   initialising it to `[]` if currently null
  *
- * @param {string} col
- * @param {string} tableAlias
- * @param {'jsonb'|'text'} [type='text']
+ * TEXT strategy:
+ * - Preserves the existing text when EXCLUDED.col IS NULL or blank
+ * - Otherwise appends a `[YYYY-MM-DD HH24:MI:SS] <value>` line,
+ *   separated from the existing content by a blank line
  *
- * @returns {string}
- * @throws {AppError}
+ * @param {string} col                - Column name (validated + quoted).
+ * @param {string} tableAlias         - Alias of the target table in the upsert query.
+ * @param {'text'|'jsonb'} [type='text'] - Merge strategy.
+ * @returns {string} A SQL SET fragment for use in an ON CONFLICT DO UPDATE clause.
+ * @throws {AppError} If either identifier is invalid.
+ *
+ * @example
+ * buildMergeExpression('audit_log', 't', 'jsonb')
+ * // → '"audit_log" = CASE WHEN EXCLUDED."audit_log" IS NULL THEN ...'
+ *
+ * @example
+ * buildMergeExpression('notes', 't', 'text')
+ * // → '"notes" = CASE WHEN EXCLUDED."notes" IS NULL OR TRIM(...) ...'
  */
 const buildMergeExpression = (col, tableAlias, type = 'text') => {
-  const context = 'merge-utils/buildMergeExpression';
+  const safeCol   = validateIdentifier(col, 'column');
+  const safeAlias = validateIdentifier(tableAlias, 'table alias');
   
-  validateSqlIdentifiers({ col, tableAlias, context });
+  const c = q(safeCol);
+  const t = q(safeAlias);
   
-  const c = q(col);
-  const t = q(tableAlias);
-  
-  //--------------------------------------------------
-  // JSONB audit append
-  //--------------------------------------------------
+  // JSONB audit append: wraps the incoming value in a timestamped object
+  // and concatenates it onto the existing array. COALESCE initialises a
+  // null column to an empty array before appending.
   if (type === 'jsonb') {
     return `
       ${c} = CASE
@@ -52,9 +80,10 @@ const buildMergeExpression = (col, tableAlias, type = 'text') => {
     `;
   }
   
-  //--------------------------------------------------
-  // TEXT audit append
-  //--------------------------------------------------
+  // TEXT audit append: prefixes the incoming value with a timestamp and
+  // joins it to the existing text with a blank line separator.
+  // NULLIF(TRIM(...), '') ensures a leading blank line is not added when
+  // the column is currently null or empty.
   return `
     ${c} = CASE
       WHEN EXCLUDED.${c} IS NULL OR TRIM(EXCLUDED.${c}) = '' THEN ${t}.${c}

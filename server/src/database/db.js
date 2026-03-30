@@ -9,10 +9,15 @@
  * - standardized error normalization via AppError
  * - SQL safety utilities (allowlist validation + identifier quoting)
  * - pagination, bulk operations, and row locking helpers
+ * - single-row and multi-row scalar/field lookup utilities
  *
  * This module acts as the core database abstraction layer used across
  * repositories and services to enforce consistency, safety, and observability.
+ *
+ * @module db
  */
+
+'use strict';
 
 const { Pool, Client } = require('pg');
 const { loadEnv } = require('../config/env');
@@ -44,11 +49,11 @@ const {
   assertAllowed,
   qualify,
   q,
+  validateIdentifier,
 } = require('../utils/sql-ident');
 const { uniq } = require('../utils/array-utils');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { isRetryableDbError } = require('../utils/db/db-error-utils');
-const { validateIdentifier } = require('../utils/db/validate-identifier');
 const { LOCK_MODE_SET } = require('../utils/db/lock-modes');
 const { buildWhereClause, buildInClause } = require('../utils/db/where-builder');
 const { applyUpdateRule } = require('../utils/db/upsert-utils');
@@ -60,17 +65,26 @@ loadEnv();
 
 const connectionConfig = getConnectionConfig();
 
-// -- Hoist threshold parse: avoids re-reading and re-parsing env on every call.
+// Hoist threshold parse: avoids re-reading and re-parsing env on every call.
 const SLOW_QUERY_THRESHOLD_MS =
   parseInt(process.env.SLOW_QUERY_THRESHOLD, 10) || 1000;
 
-// Allowlisted PostgreSQL isolation levels.
+// Max pool size resolved once at startup; used in monitorPool to avoid
+// accessing the semi-private pool.options.max at call time.
+const DB_POOL_MAX = getEnvNumber('DB_POOL_MAX', 10);
+
+// Allowlisted PostgreSQL isolation levels for withTransaction validation.
 const ISOLATION_LEVELS = new Set([
   'READ UNCOMMITTED',
   'READ COMMITTED',
   'REPEATABLE READ',
   'SERIALIZABLE',
 ]);
+
+// Module-scoped sleep helper used by retryDatabaseConnection.
+// Defined here rather than inside the function to avoid re-allocating
+// the closure on every call.
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // ------------------------------------------------------------
 // Configure PostgreSQL connection pool
@@ -105,7 +119,7 @@ const pool = new Pool({
   ...connectionConfig,
   
   // Maximum number of active clients in the pool
-  max: getEnvNumber('DB_POOL_MAX', 10),
+  max: DB_POOL_MAX,
   
   // Time (ms) a client can remain idle before being closed
   idleTimeoutMillis: getEnvNumber('DB_IDLE_TIMEOUT', 30000),
@@ -115,7 +129,7 @@ const pool = new Pool({
   
   // Optional but highly recommended for observability
   application_name:
-    `${process.env.DB_APP_NAME || 'wide-erp-api'}:${process.env.NODE_ENV}`,
+    `${process.env.DB_APP_NAME ?? 'wide-erp-api'}:${process.env.NODE_ENV}`,
 });
 
 /**
@@ -171,6 +185,10 @@ pool.on('connect', logDbConnect);
  */
 pool.on('error', handlePoolError);
 
+// ============================================================
+// Core query execution
+// ============================================================
+
 /**
  * Executes a parameterized SQL query against the connection pool, with
  * automatic retry on transient errors and slow-query telemetry.
@@ -183,9 +201,9 @@ pool.on('error', handlePoolError);
  * @param {Array}       [params=[]]       - Bound parameter values.
  * @param {object|null} [client=null]     - Existing pg client (transactional).
  * @param {object}      [options={}]
- * @param {number}      [options.retries=3]    - Max retry attempts.
+ * @param {number}      [options.retries=3]     - Max retry attempts.
  * @param {number}      [options.baseDelay=300] - Base backoff delay (ms).
- * @param {object}      [options.meta={}]      - Extra context forwarded to log helpers.
+ * @param {object}      [options.meta={}]       - Extra context forwarded to log helpers.
  * @returns {Promise<import('pg').QueryResult>}
  */
 const query = async (
@@ -235,7 +253,7 @@ const query = async (
  * Wraps `pool.connect()` with structured error handling so callers receive
  * a normalized `AppError` on failure rather than a raw pg error.
  *
- * @returns {Promise<PoolClient>}
+ * @returns {Promise<import('pg').PoolClient>}
  * @throws {AppError} If the pool cannot provide a client.
  */
 const getClient = async () => {
@@ -257,6 +275,10 @@ const getClient = async () => {
   }
 };
 
+// ============================================================
+// Transaction orchestration
+// ============================================================
+
 /**
  * Executes `callback` inside a PostgreSQL transaction, handling BEGIN,
  * COMMIT, ROLLBACK, and client release automatically.
@@ -264,14 +286,13 @@ const getClient = async () => {
  * The callback receives the active `client` and a `txId` trace identifier.
  * Any error thrown by the callback triggers a ROLLBACK before re-throwing.
  *
- * @param {(client: PoolClient, txId: string) => Promise<*>} callback
- *   - Async function containing the transactional work.
- * @param {object} [options={}]
- * @param {string} [options.isolationLevel='READ COMMITTED']
- *   - Must be a valid PostgreSQL isolation level.
- * @param {number} [options.timeoutMs=5000]
- *   - Per-statement timeout in ms, scoped locally to this transaction.
- *     Pass 0 to disable.
+ * @param {(client: import('pg').PoolClient, txId: string) => Promise<*>} callback
+ *   Async function containing the transactional work.
+ * @param {object}  [options={}]
+ * @param {string}  [options.isolationLevel='READ COMMITTED']
+ *   Must be a valid PostgreSQL isolation level string (validated against allowlist).
+ * @param {number}  [options.timeoutMs=5000]
+ *   Per-statement timeout in ms, scoped locally via SET LOCAL. Pass 0 to disable.
  * @returns {Promise<*>} Resolves with the return value of `callback`.
  * @throws {AppError} On invalid input, transaction failure, or DB error.
  */
@@ -341,23 +362,23 @@ const withTransaction = async (callback, options = {}) => {
   }
 };
 
+// ============================================================
+// Pool health & lifecycle
+// ============================================================
+
 /**
  * Performs a basic database connectivity test.
  *
- * Executes a lightweight query to confirm the database is reachable.
- * Uses a short timeout to avoid hanging in case of network or DB issues.
+ * Executes a lightweight `SELECT 1` to confirm the database is reachable.
+ * Retries are disabled (retries=0) to fail fast in health-check contexts.
  *
- * @returns {Promise<boolean>} Returns true if connection is healthy
- *
- * @throws {AppError} If the connectivity test fails
+ * @returns {Promise<boolean>} `true` if the connection is healthy.
+ * @throws {AppError} If the connectivity test fails.
  */
 const testConnection = async () => {
   const context = 'db/testConnection/healthcheck';
   
   try {
-    //--------------------------------------------------
-    // Use direct query with timeout guard
-    //--------------------------------------------------
     await query('SELECT 1', [], null, {
       retries: 0,
       baseDelay: 0,
@@ -383,14 +404,11 @@ const testConnection = async () => {
 };
 
 /**
- * @typedef {Object} PgPoolMetrics
- * @property {number} totalCount
- * @property {number} idleCount
- * @property {number} waitingCount
- */
-
-/**
- * @typedef {import('pg').Pool & PgPoolMetrics} PgPoolWithMetrics
+ * @typedef {Object} PoolMetrics
+ * @property {number} totalClients    - Total clients currently in the pool.
+ * @property {number} idleClients     - Idle clients waiting for work.
+ * @property {number} waitingRequests - Requests queued for an available client.
+ * @property {number} utilization     - Ratio of active clients to pool max (0–1).
  */
 
 /**
@@ -402,26 +420,21 @@ const testConnection = async () => {
  * - queued (waiting) requests
  * - utilization ratio (active / total)
  *
+ * Uses the `DB_POOL_MAX` constant resolved at startup rather than
+ * `pool.options.max` (semi-private pg internals).
+ *
  * Useful for monitoring connection pool health and diagnosing bottlenecks.
  *
- * @returns {{
- *   totalClients: number,
- *   idleClients: number,
- *   waitingRequests: number,
- *   utilization: number
- * }}
+ * @returns {PoolMetrics}
  */
 const monitorPool = () => {
-  /** @type {PgPoolWithMetrics} */
-  const typedPool = pool;
+  const totalClients    = pool.totalCount;
+  const idleClients     = pool.idleCount;
+  const waitingRequests = pool.waitingCount;
   
-  const totalClients    = typedPool.totalCount;
-  const idleClients     = typedPool.idleCount;
-  const waitingRequests = typedPool.waitingCount;
-  
-  // Avoid division by zero when the pool has no clients yet
-  const utilization = pool.options.max > 0
-    ? (totalClients - idleClients) / pool.options.max
+  // Avoid division by zero when the pool has no clients yet.
+  const utilization = DB_POOL_MAX > 0
+    ? (totalClients - idleClients) / DB_POOL_MAX
     : 0;
   
   return {
@@ -440,36 +453,27 @@ let closingPromise = null;
  *
  * Ensures:
  * - Idempotent behavior (safe to call multiple times)
- * - Only one close operation executes
- * - Concurrent calls wait for the same shutdown
+ * - Only one close operation executes at a time (concurrent calls reuse the promise)
+ * - Does NOT throw on shutdown failure (logs instead, to keep process exit clean)
  *
- * Notes:
- * - Does NOT throw on shutdown failure (logs instead)
- * - Intended for process shutdown (SIGINT, SIGTERM)
+ * Intended for process shutdown hooks (SIGINT, SIGTERM).
  *
  * @returns {Promise<void>}
  */
 const closePool = async () => {
   const context = 'db/closePool/shutdown';
   
-  //--------------------------------------------------
-  // Already closed → no-op
-  //--------------------------------------------------
   if (poolClosed) {
     logSystemWarn('Pool already closed.', { context });
     return;
   }
   
-  //--------------------------------------------------
-  // Closing in progress → reuse promise
-  //--------------------------------------------------
+  // Closing already in progress — reuse the same promise so concurrent
+  // callers don't race to call pool.end() twice.
   if (closingPromise) {
     return closingPromise;
   }
   
-  //--------------------------------------------------
-  // Start closing
-  //--------------------------------------------------
   closingPromise = (async () => {
     logSystemInfo('Closing database connection pool...', { context });
     
@@ -485,7 +489,7 @@ const closePool = async () => {
         severity: 'critical',
       });
       
-      // Do NOT rethrow (shutdown-safe)
+      // Do NOT rethrow — shutdown must remain safe regardless of pool errors.
     }
   })();
   
@@ -493,42 +497,34 @@ const closePool = async () => {
 };
 
 /**
- * Retries database connectivity using a temporary client.
+ * Retries database connectivity using a temporary `Client` (not the pool).
  *
  * Intended for:
- * - Startup readiness checks
- * - Infrastructure health verification
+ * - Startup readiness checks before the pool begins accepting queries
+ * - Infrastructure health verification in container orchestration
  *
  * Features:
  * - Exponential backoff with jitter
  * - Per-attempt connection timeout (prevents hanging)
  * - Structured logging with retry visibility
- * - Safe resource cleanup (client always closed)
+ * - Safe resource cleanup (client always closed after each attempt)
  *
- * Design Principles:
- * - Fail fast on invalid input
+ * Design principles:
+ * - Fails fast on invalid input
  * - No silent failures (final attempt throws)
  * - Context-aware logging (propagates caller context)
  *
- * @param {Object} config - PostgreSQL connection config
- * @param {Object} [options={}]
- * @param {number} [options.retries=5] - Maximum retry attempts
- * @param {number} [options.baseDelayMs=500] - Initial delay for backoff
- * @param {number} [options.maxDelayMs=5000] - Maximum delay cap
- * @param {number} [options.connectTimeoutMs=3000] - Timeout per connection attempt
- * @param {string} [options.context='db/retryDatabaseConnection'] - Logging context
- *
+ * @param {object} config                              - PostgreSQL connection config (passed to `pg.Client`).
+ * @param {object} [options={}]
+ * @param {number} [options.retries=5]                 - Maximum retry attempts.
+ * @param {number} [options.baseDelayMs=500]           - Initial delay for backoff (ms).
+ * @param {number} [options.maxDelayMs=5000]           - Maximum delay cap (ms).
+ * @param {number} [options.connectTimeoutMs=3000]     - Timeout per connection attempt (ms).
+ * @param {string} [options.context='db/retryDatabaseConnection'] - Logging context label.
  * @returns {Promise<void>}
- *
- * @throws {AppError} If all retry attempts fail
+ * @throws {AppError} If all retry attempts fail.
  */
-const retryDatabaseConnection = async (
-  config,
-  options = {}
-) => {
-  //--------------------------------------------------
-  // Validate input (fail fast)
-  //--------------------------------------------------
+const retryDatabaseConnection = async (config, options = {}) => {
   if (!config || typeof config !== 'object') {
     throw new Error('retryDatabaseConnection: "config" must be a valid object');
   }
@@ -541,28 +537,14 @@ const retryDatabaseConnection = async (
     context = 'db/retryDatabaseConnection',
   } = options;
   
-  //--------------------------------------------------
-  // Helper: sleep
-  //--------------------------------------------------
-  const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
-  
-  //--------------------------------------------------
-  // Helper: exponential backoff + jitter
-  //--------------------------------------------------
+  // Exponential backoff with jitter: caps at maxDelayMs, adds up to 200ms of
+  // random jitter to prevent thundering herd on simultaneous startup.
   const computeDelay = (attempt) => {
-    const exp = Math.min(
-      maxDelayMs,
-      baseDelayMs * 2 ** (attempt - 1)
-    );
-    
+    const exp = Math.min(maxDelayMs, baseDelayMs * 2 ** (attempt - 1));
     const jitter = Math.floor(Math.random() * 200);
-    
     return exp + jitter;
   };
   
-  //--------------------------------------------------
-  // Retry loop
-  //--------------------------------------------------
   for (let attempt = 1; attempt <= retries; attempt++) {
     const client = new Client({
       ...config,
@@ -570,9 +552,6 @@ const retryDatabaseConnection = async (
     });
     
     try {
-      //--------------------------------------------------
-      // Attempt connection
-      //--------------------------------------------------
       await client.connect();
       
       logSystemInfo('Database connection successful', {
@@ -585,14 +564,9 @@ const retryDatabaseConnection = async (
       await client.end();
       return;
     } catch (error) {
-      //--------------------------------------------------
-      // Ensure client is closed
-      //--------------------------------------------------
+      // Always close the client regardless of success or failure.
       await client.end().catch(() => {});
       
-      //--------------------------------------------------
-      // Final failure (no retry)
-      //--------------------------------------------------
       if (attempt === retries) {
         const message = 'Database connection failed after retries';
         
@@ -609,36 +583,34 @@ const retryDatabaseConnection = async (
         });
       }
       
-      //--------------------------------------------------
-      // Compute delay only if retrying
-      //--------------------------------------------------
       const delayMs = computeDelay(attempt);
-      
-      //--------------------------------------------------
-      // Log retry warning
-      //--------------------------------------------------
       logRetryWarning(attempt, retries, error, delayMs);
-      
-      //--------------------------------------------------
-      // Wait before next attempt
-      //--------------------------------------------------
       await sleep(delayMs);
     }
   }
 };
 
+// ============================================================
+// Pagination
+// ============================================================
+
 /**
- * Wraps a complex SQL query into a count query.
- * Used for paginating CTEs or grouped queries.
+ * Wraps a complex SQL query in a `COUNT(*)` subquery.
  *
- * @param {string} queryText - The full query you want to count rows from.
- * @param {string} [alias='subquery'] - Optional alias for the wrapped subquery.
- * @returns {string} A SQL string that counts the rows of the input query.
+ * Used to derive a total-count query from a data query before adding
+ * LIMIT/OFFSET — correctly handles CTEs and grouped queries that cannot
+ * be wrapped with a simple `SELECT COUNT(*) WHERE ...`.
+ *
+ * Strips any trailing semicolon before wrapping to produce valid SQL.
+ *
+ * @param {string} queryText      - The full query to count rows from.
+ * @param {string} [alias='subquery'] - Alias applied to the wrapped subquery.
+ * @returns {string} A SQL string: `SELECT COUNT(*) AS total_count FROM (...) AS <alias>`.
  */
 const getCountQuery = (queryText, alias = 'subquery') => {
   const trimmedQuery = queryText.trim().replace(/;$/, '');
   const countQuery = `SELECT COUNT(*) AS total_count FROM (${trimmedQuery}) AS ${alias}`;
-
+  
   if (process.env.NODE_ENV !== 'production') {
     logSystemDebug('Generated count query', {
       context: 'db/getCountQuery/query-builder',
@@ -646,54 +618,55 @@ const getCountQuery = (queryText, alias = 'subquery') => {
       countQuery,
     });
   }
-
+  
   return countQuery;
 };
 
 /**
  * Executes a paginated query and returns results with metadata.
- * Uses your internal `query()` function for consistency and logging.
  *
- * @param {Object} options - Query options.
- * @param {string} options.dataQuery - Base SQL query (no LIMIT/OFFSET).
- * @param {Array} [options.params=[]] - Parameters for the base query.
- * @param {number} [options.page=1] - Page number (1-based).
- * @param {number} [options.limit=20] - Page size.
- * @param {Object} [options.meta={}] - Optional metadata for logging (e.g., traceId, txId, context).
- * @returns {Promise<Object>} - Paginated results with metadata.
+ * Runs the data query and its derived count query in parallel via
+ * `Promise.all` for a single round-trip cost. LIMIT/OFFSET are appended
+ * to the data query using the next available parameter indices.
+ *
+ * @param {object} options
+ * @param {string}   options.dataQuery      - Base SQL query (must NOT include LIMIT/OFFSET).
+ * @param {Array}    [options.params=[]]    - Parameters for the base query.
+ * @param {number}   [options.page=1]       - Page number (1-based).
+ * @param {number}   [options.limit=20]     - Page size.
+ * @param {object}   [options.meta={}]      - Optional metadata for logging (e.g., traceId, context).
+ * @returns {Promise<{ data: object[], pagination: { page: number, limit: number, totalRecords: number, totalPages: number } }>}
+ * @throws {AppError} On query failure.
  */
 const paginateResults = async ({
-  dataQuery,
-  params = [],
-  page = 1,
-  limit = 20,
-  meta = {},
-}) => {
+                                 dataQuery,
+                                 params = [],
+                                 page = 1,
+                                 limit = 20,
+                                 meta = {},
+                               }) => {
   const offset = (page - 1) * limit;
-
-  // Main paginated query
+  
+  // Append LIMIT/OFFSET as the next positional parameters after the caller's params.
   const paginatedQuery = `${dataQuery.trim().replace(/;$/, '')} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
   const paginatedParams = [...params, limit, offset];
-
-  // Generate a count query from original SQL
+  
   const countQuery = getCountQuery(dataQuery);
-
+  
   try {
     const [dataRows, countResult] = await Promise.all([
       query(paginatedQuery, paginatedParams),
       query(countQuery, params),
     ]);
     
-    /** @typedef {{ total_count: string | number }} CountRow */
-    
-    /** @type {CountRow[]} */
+    /** @type {{ total_count: string | number }[]} */
     const countRows = countResult.rows;
     
     const totalRecords = Number(countRows[0]?.total_count ?? 0);
     const totalPages = Math.ceil(totalRecords / limit);
-
+    
     return {
-      data: dataRows.rows || [],
+      data: dataRows.rows ?? [],
       pagination: {
         page,
         limit,
@@ -705,10 +678,7 @@ const paginateResults = async ({
     throw handleDbError(error, {
       context: 'db/paginateResults',
       message: 'Failed to execute paginated results query.',
-      meta: {
-        page,
-        limit,
-      },
+      meta: { page, limit, ...meta },
       logFn: (err) =>
         logPaginatedQueryError(err, dataQuery, countQuery, params, {
           page,
@@ -719,31 +689,29 @@ const paginateResults = async ({
   }
 };
 
+// ============================================================
+// Row locking
+// ============================================================
+
 /**
- * Lock a single row by primary key.
+ * Locks a single row by primary key within an active transaction.
  *
- * Executes a SELECT ... FOR <LOCK_MODE> query to acquire a row-level lock
- * within an active transaction.
+ * Executes `SELECT * FROM <table> WHERE id = $1 <lockMode>` to acquire
+ * a row-level lock. The caller is responsible for surrounding this call
+ * with `withTransaction`.
  *
- * Design Notes:
- * - Must be called inside a transaction
- * - Uses parameterized query (SQL injection safe)
- * - Assumes standardized primary key (`id`)
- * - Guarantees exactly one row or throws
+ * Design notes:
+ * - Assumes a standardized primary key column named `id`
+ * - Uses `qualify` and `q` for safe identifier quoting
+ * - Guarantees exactly one row or throws `NotFoundError`
  *
- * Performance:
- * - Single query (no schema lookup)
- * - Index-based lookup on PK
- *
- * @param {object} client - Active DB transaction client
- * @param {string} table - Table name (validated upstream)
- * @param {string} id - Primary key value
- * @param {string} [lockMode='FOR UPDATE'] - PostgreSQL lock mode
- * @param {object} [meta={}] - Additional logging metadata
- *
- * @returns {Promise<object>} Locked row
- *
- * @throws {AppError}
+ * @param {import('pg').PoolClient} client   - Active transaction client.
+ * @param {string}                  table    - Table name (validated upstream).
+ * @param {string}                  id       - Primary key UUID value.
+ * @param {string}                  [lockMode='FOR UPDATE'] - PostgreSQL lock mode (validated against allowlist).
+ * @param {object}                  [meta={}]              - Additional logging metadata.
+ * @returns {Promise<object>} The locked row.
+ * @throws {AppError} On invalid input, row not found, or query failure.
  */
 const lockRow = async (
   client,
@@ -756,22 +724,14 @@ const lockRow = async (
   const maskedId = maskUUID(id);
   const maskedTable = maskTableName(table);
   
-  //--------------------------------------------------
-  // 1. Validate input
-  //--------------------------------------------------
   if (!id || typeof id !== 'string') {
     throw AppError.validationError('Invalid id', { context });
   }
   
   if (!LOCK_MODE_SET.has(lockMode)) {
-    throw AppError.validationError(`Invalid lock mode: ${lockMode}`, {
-      context,
-    });
+    throw AppError.validationError(`Invalid lock mode: ${lockMode}`, { context });
   }
   
-  //--------------------------------------------------
-  // 2. Build SQL (standard PK = id)
-  //--------------------------------------------------
   const sql = `
     SELECT *
     FROM ${qualify('public', table)}
@@ -779,15 +739,9 @@ const lockRow = async (
     ${lockMode}
   `;
   
-  //--------------------------------------------------
-  // 3. Execute
-  //--------------------------------------------------
   try {
     const { rows } = await query(sql, [id], client);
     
-    //--------------------------------------------------
-    // Not found → explicit domain error
-    //--------------------------------------------------
     if (!rows.length) {
       throw AppError.notFoundError(
         `Row "${maskedId}" not found in "${maskedTable}"`
@@ -807,35 +761,23 @@ const lockRow = async (
 };
 
 /**
- * Lock multiple rows using primary key values or composite conditions.
+ * Locks multiple rows within an active transaction.
  *
- * Executes a SELECT ... FOR <LOCK_MODE> query to acquire row-level locks
- * within an active transaction.
+ * Supports two condition shapes:
+ * - **Primitive array** (e.g., `['id-1', 'id-2']`): generates `WHERE id IN (...)`.
+ *   Index-optimized; logs a warning on partial match.
+ * - **Object array** (e.g., `[{ tenant_id: 'x', sku: 'y' }]`): generates composite
+ *   `WHERE (a=$1 AND b=$2) OR (...)`. Degrades with size — batch at > 50 rows.
  *
- * Supports:
- * - Array of primitive values → WHERE id IN (...)
- * - Array of objects → WHERE (a=1 AND b=2) OR (...)
+ * Must be called inside a transaction. Uses `qualify` / `q` for safe identifier quoting.
  *
- * Design Notes:
- * - Must be called inside a transaction
- * - Uses parameterized queries (SQL injection safe)
- * - Assumes standardized primary key (`id`)
- * - Delegates SQL building to pure helpers
- * - Logs partial matches for primitive mode only
- *
- * Performance:
- * - IN (...) is index-optimized (fast path)
- * - Composite OR conditions degrade with size → batch if > 50–100
- *
- * @param {object} client - Active DB transaction client
- * @param {string} table - Table name (validated upstream)
- * @param {Array<string|object>} conditions - IDs or condition objects
- * @param {string} [lockMode='FOR UPDATE'] - PostgreSQL lock mode
- * @param {object} [meta={}] - Additional logging metadata
- *
- * @returns {Promise<object[]>} Locked rows
- *
- * @throws {AppError}
+ * @param {import('pg').PoolClient} client        - Active transaction client.
+ * @param {string}                  table         - Table name.
+ * @param {Array<string|object>}    conditions    - IDs (primitives) or condition objects.
+ * @param {string}                  [lockMode='FOR UPDATE'] - PostgreSQL lock mode.
+ * @param {object}                  [meta={}]               - Additional logging metadata.
+ * @returns {Promise<object[]>} Locked rows.
+ * @throws {AppError} On invalid input or query failure.
  */
 const lockRows = async (
   client,
@@ -847,48 +789,30 @@ const lockRows = async (
   const context = 'db/lockRows';
   const maskedTable = maskTableName(table);
   
-  //--------------------------------------------------
-  // 1. Validate input
-  //--------------------------------------------------
   if (!Array.isArray(conditions) || conditions.length === 0) {
     throw AppError.validationError('Invalid conditions', { context });
   }
   
   if (!LOCK_MODE_SET.has(lockMode)) {
-    throw AppError.validationError(`Invalid lock mode: ${lockMode}`, {
-      context,
-    });
+    throw AppError.validationError(`Invalid lock mode: ${lockMode}`, { context });
   }
   
-  //--------------------------------------------------
-  // 2. Determine condition type safely
-  //--------------------------------------------------
+  // Determine condition shape: primitives → IN clause; objects → composite WHERE.
   const isPrimitiveList =
     typeof conditions[0] !== 'object' || conditions[0] === null;
   
-  //--------------------------------------------------
-  // 3. Normalize / validate values
-  //--------------------------------------------------
   const sanitizedConditions = conditions.filter(
     (v) => v !== null && v !== undefined
   );
   
   if (sanitizedConditions.length === 0) {
-    throw AppError.validationError('Empty conditions after sanitization', {
-      context,
-    });
+    throw AppError.validationError('Empty conditions after sanitization', { context });
   }
   
-  //--------------------------------------------------
-  // 4. Build WHERE clause
-  //--------------------------------------------------
   const { clause, values } = isPrimitiveList
     ? buildInClause('id', sanitizedConditions)
     : buildWhereClause(sanitizedConditions);
   
-  //--------------------------------------------------
-  // 5. Build SQL
-  //--------------------------------------------------
   const sql = `
     SELECT *
     FROM ${qualify('public', table)}
@@ -896,15 +820,10 @@ const lockRows = async (
     ${lockMode}
   `;
   
-  //--------------------------------------------------
-  // 6. Execute
-  //--------------------------------------------------
   try {
     const { rows } = await query(sql, values, client);
     
-    //--------------------------------------------------
-    // Partial match warning (ONLY for PK mode)
-    //--------------------------------------------------
+    // Warn when fewer rows were locked than requested — indicates missing records.
     if (isPrimitiveList && rows.length !== sanitizedConditions.length) {
       logSystemWarn('Partial row lock result', {
         context: `${context}/partial`,
@@ -914,9 +833,7 @@ const lockRows = async (
       });
     }
     
-    //--------------------------------------------------
-    // Performance warning (composite heavy queries)
-    //--------------------------------------------------
+    // Composite OR conditions degrade with size — alert early.
     if (!isPrimitiveList && conditions.length > 50) {
       logSystemWarn('Potential slow composite lock query', {
         context: `${context}/performance`,
@@ -937,35 +854,46 @@ const lockRows = async (
   }
 };
 
+// ============================================================
+// Bulk operations
+// ============================================================
+
+// pg hard limit is 65535 parameters per query; stay comfortably below it.
 const MAX_PARAMS = 60000;
 
 /**
- * Inserts multiple rows into a database table using a bulk UPSERT pattern.
+ * Inserts multiple rows into a table using a bulk UPSERT pattern.
  *
  * Features:
- * - Efficient multi-row INSERT
- * - ON CONFLICT DO UPDATE with strategy-based updates
- * - Supports computed updates via `extraUpdates`
- * - Retry + structured logging support
+ * - Efficient multi-row INSERT using `VALUES ($1, $2, ...), (...), ...`
+ * - ON CONFLICT DO UPDATE with per-column strategy-based resolution
+ * - Computed updates via `extraUpdates` for derived fields (e.g., `updated_at = NOW()`)
+ * - Falls back to ON CONFLICT DO NOTHING when no update strategies are provided
+ * - Retry support via the internal `query()` wrapper
  *
- * Update strategies:
- * - add, subtract, max, min, coalesce
- * - merge_jsonb, merge_text
- * - overwrite, keep
+ * Update strategies (passed in `updateStrategies`):
+ * `add`, `subtract`, `max`, `min`, `coalesce`, `merge_jsonb`, `merge_text`, `overwrite`, `keep`
  *
- * @param {string} tableName
- * @param {string[]} columns
- * @param {Array<Array<any>>} rows
- * @param {string[]} [conflictColumns=[]]
- * @param {Object<string,string>} [updateStrategies={}]
+ * Identifier safety:
+ * All table names and column names are run through `validateIdentifier` before
+ * interpolation into SQL.
+ *
+ * Parameter limit:
+ * Total parameters (`rows.length × columns.length`) must stay below `MAX_PARAMS` (60 000).
+ * Split large batches into chunks at the call site.
+ *
+ * @param {string}                 tableName
+ * @param {string[]}               columns            - Column names in the same order as row values.
+ * @param {Array<Array<*>>}        rows               - Row values; each inner array must have `columns.length` elements.
+ * @param {string[]}               [conflictColumns=[]]   - Columns forming the conflict target.
+ * @param {Object<string,string>}  [updateStrategies={}]  - Map of column → strategy for DO UPDATE.
  * @param {import('pg').PoolClient|null} [client=null]
- * @param {object} [options]
- * @param {object} [options.meta]
- * @param {string[]} [options.extraUpdates]
- * @param {string|null} [returning='id']
- *
- * @returns {Promise<object[]>}
- * @throws {AppError}
+ * @param {object}                 [options={}]
+ * @param {object}                 [options.meta={}]        - Logging metadata.
+ * @param {string[]}               [options.extraUpdates=[]] - Raw SQL update fragments appended after strategy updates.
+ * @param {string|null}            [returning='id']         - RETURNING clause column(s); `null` omits it.
+ * @returns {Promise<object[]>} Rows returned by the RETURNING clause (empty array if none).
+ * @throws {AppError} On validation failure or query error.
  */
 const bulkInsert = async (
   tableName,
@@ -979,9 +907,6 @@ const bulkInsert = async (
 ) => {
   const { meta = {}, extraUpdates = [] } = options;
   
-  //--------------------------------------------------
-  // Validate input
-  //--------------------------------------------------
   if (!Array.isArray(rows) || rows.length === 0) return [];
   
   if (!rows.every((r) => Array.isArray(r) && r.length === columns.length)) {
@@ -990,20 +915,19 @@ const bulkInsert = async (
     );
   }
   
-  //--------------------------------------------------
-  // Parameter limit protection
-  //--------------------------------------------------
   const totalParams = rows.length * columns.length;
-  
   if (totalParams >= MAX_PARAMS) {
     throw AppError.validationError(
       'Batch too large, split into smaller chunks'
     );
   }
   
-  //--------------------------------------------------
-  // Validate identifiers
-  //--------------------------------------------------
+  // Validate extraUpdates before doing any other work so failures are caught early.
+  if (!Array.isArray(extraUpdates)) {
+    throw AppError.validationError('extraUpdates must be an array');
+  }
+  
+  // Run all identifiers through validateIdentifier to prevent injection.
   const safeTable = validateIdentifier(tableName, 'table');
   const safeColumns = columns.map((c) => validateIdentifier(c, 'column'));
   const safeConflictColumns = conflictColumns.map((c) =>
@@ -1013,9 +937,6 @@ const bulkInsert = async (
     validateIdentifier(c, 'update column')
   );
   
-  //--------------------------------------------------
-  // Build VALUES
-  //--------------------------------------------------
   const columnNames = safeColumns.join(', ');
   
   const valuePlaceholders = rows
@@ -1027,26 +948,14 @@ const bulkInsert = async (
     )
     .join(', ');
   
-  //--------------------------------------------------
-  // Conflict handling
-  //--------------------------------------------------
   let conflictClause = '';
   
   if (safeConflictColumns.length > 0) {
     const tableAlias = 't';
     
     const updateSet = safeUpdateColumns
-      .map((col) =>
-        applyUpdateRule(col, updateStrategies[col], tableAlias)
-      )
+      .map((col) => applyUpdateRule(col, updateStrategies[col], tableAlias))
       .filter(Boolean);
-    
-    //--------------------------------------------------
-    // Append extra updates (derived fields)
-    //--------------------------------------------------
-    if (!Array.isArray(extraUpdates)) {
-      throw AppError.validationError('extraUpdates must be array');
-    }
     
     if (extraUpdates.length > 0) {
       updateSet.push(...extraUpdates);
@@ -1058,14 +967,8 @@ const bulkInsert = async (
         : `ON CONFLICT (${safeConflictColumns.join(', ')}) DO NOTHING`;
   }
   
-  //--------------------------------------------------
-  // Returning
-  //--------------------------------------------------
   const returningClause = returning ? `RETURNING ${returning}` : '';
   
-  //--------------------------------------------------
-  // Final SQL
-  //--------------------------------------------------
   const sql = `
     INSERT INTO ${safeTable} AS t (${columnNames})
     VALUES ${valuePlaceholders}
@@ -1075,9 +978,6 @@ const bulkInsert = async (
   
   const values = rows.flat();
   
-  //--------------------------------------------------
-  // Execute
-  //--------------------------------------------------
   try {
     const result = await query(sql, values, client, {
       retries: 3,
@@ -1092,10 +992,7 @@ const bulkInsert = async (
     throw handleDbError(error, {
       context: 'db/bulkInsert',
       message: 'Bulk insert failed',
-      meta: {
-        table: maskedTable,
-        rowCount: rows.length,
-      },
+      meta: { table: maskedTable, rowCount: rows.length },
       logFn: (err) =>
         logBulkInsertError(err, maskedTable, values, rows.length, {
           columns: safeColumns,
@@ -1108,34 +1005,34 @@ const bulkInsert = async (
   }
 };
 
+// ============================================================
+// Single-record mutations
+// ============================================================
+
 /**
  * Updates a single record by primary key with validation, audit handling,
  * and structured error management.
  *
  * Designed for repository-layer usage with strict safety guarantees:
- * - prevents updates to protected/system fields
- * - enforces allowed schema/table access
- * - supports automatic audit metadata injection
+ * - prevents updates to protected/system fields (`id`, `created_at`, `created_by`)
+ * - enforces allowed schema/table access via `assertAllowed`
+ * - supports automatic audit metadata injection (`updated_by`, `updated_at`)
  * - builds fully parameterized SQL (no injection risk)
+ * - optionally restricts updates to a caller-supplied `allowedFields` set
  *
- * @param {string} table - Target table name
- * @param {string} id - Primary key UUID
- * @param {Object} updates - Fields to update
- * @param {string|null} userId - User performing the update
- * @param {import('pg').PoolClient} client - DB client or transaction
- * @param {Object} [options]
- * @param {string} [options.schema='public']
- * @param {string} [options.updatedAtField='updated_at']
- * @param {string} [options.updatedByField='updated_by']
- * @param {string} [options.idField='id'] - Primary key column name
- * @param {Set<string>} [options.allowedFields] - Optional whitelist
- *
- * @returns {Promise<{ id: string }>}
- *
- * @throws {AppError}
- * - ValidationError
- * - NotFoundError
- * - DatabaseError
+ * @param {string}                   table              - Target table name.
+ * @param {string}                   id                 - Primary key UUID.
+ * @param {object}                   updates            - Fields to update (undefined values are stripped).
+ * @param {string|null}              userId             - User performing the update (injected as `updated_by`).
+ * @param {import('pg').PoolClient}  client             - Active pg client or transaction.
+ * @param {object}                   [options={}]
+ * @param {string}                   [options.schema='public']
+ * @param {string}                   [options.updatedAtField='updated_at']
+ * @param {string}                   [options.updatedByField='updated_by']
+ * @param {string}                   [options.idField='id']          - Primary key column name.
+ * @param {Set<string>|null}         [options.allowedFields=null]    - Optional whitelist of updatable fields.
+ * @returns {Promise<{ id: string }>} The updated record's primary key.
+ * @throws {AppError} ValidationError, NotFoundError, or DatabaseError.
  */
 const updateById = async (
   table,
@@ -1157,9 +1054,6 @@ const updateById = async (
   
   const maskedTable = maskTableName(table);
   
-  //------------------------------------------------------------
-  // 1. Validate inputs
-  //------------------------------------------------------------
   if (!id || typeof id !== 'string' || !table || typeof table !== 'string') {
     throw AppError.validationError('Invalid update request.', { context });
   }
@@ -1168,61 +1062,38 @@ const updateById = async (
     throw AppError.validationError('Updates must be an object.', { context });
   }
   
-  //------------------------------------------------------------
-  // 2. Access control (table-level)
-  //------------------------------------------------------------
+  // Validate table/schema access before touching the payload.
   assertAllowed(schema, table);
   
-  //------------------------------------------------------------
-  // 3. Normalize update payload (IMMUTABLE)
-  //------------------------------------------------------------
   const PROTECTED_FIELDS = new Set(['id', 'created_at', 'created_by']);
   
   const updateData = Object.entries(updates).reduce((acc, [key, value]) => {
     if (value === undefined) return acc;
     
     if (PROTECTED_FIELDS.has(key)) {
-      throw AppError.validationError('Invalid update field.', {
-        context,
-        field: key,
-      });
+      throw AppError.validationError('Invalid update field.', { context, field: key });
     }
     
     if (allowedFields && !allowedFields.has(key)) {
-      throw AppError.validationError('Field not allowed.', {
-        context,
-        field: key,
-      });
+      throw AppError.validationError('Field not allowed.', { context, field: key });
     }
     
     acc[key] = value;
     return acc;
   }, {});
   
-  //------------------------------------------------------------
-  // 4. Inject audit metadata
-  //------------------------------------------------------------
   if (userId && updatedByField) {
     updateData[updatedByField] = userId;
   }
   
   const fields = Object.keys(updateData);
   
-  //------------------------------------------------------------
-  // 5. Prevent empty updates (strict)
-  //------------------------------------------------------------
   if (fields.length === 0) {
-    throw AppError.validationError('No valid fields provided to update.', {
-      context,
-    });
+    throw AppError.validationError('No valid fields provided to update.', { context });
   }
   
-  //------------------------------------------------------------
-  // 6. Build SET clause
-  //------------------------------------------------------------
-  const setClauses = fields.map(
-    (field, idx) => `${q(field)} = $${idx + 2}`
-  );
+  // Build SET clause: $1 is reserved for the WHERE id = $1 condition.
+  const setClauses = fields.map((field, idx) => `${q(field)} = $${idx + 2}`);
   
   if (updatedAtField) {
     setClauses.push(`${q(updatedAtField)} = NOW()`);
@@ -1230,9 +1101,6 @@ const updateById = async (
   
   const values = [id, ...fields.map((f) => updateData[f])];
   
-  //------------------------------------------------------------
-  // 7. Execute
-  //------------------------------------------------------------
   const sql = `
     UPDATE ${qualify(schema, table)}
     SET ${setClauses.join(', ')}
@@ -1252,12 +1120,7 @@ const updateById = async (
     throw handleDbError(error, {
       context,
       message: `Failed to update ${maskedTable} record.`,
-      meta: {
-        schema,
-        table: maskedTable,
-        id,
-        fields,
-      },
+      meta: { schema, table: maskedTable, id, fields },
       logFn: (err) =>
         logSystemException(err, 'Update failed', {
           context,
@@ -1270,32 +1133,39 @@ const updateById = async (
   }
 };
 
+// ============================================================
+// Scalar / field lookup utilities
+// ============================================================
+
 /**
- * Retrieves a unique scalar value from a specified table based on a given condition.
+ * Retrieves a single scalar value from a table matching a WHERE condition.
  *
- * This function executes an SQL `SELECT` query using the provided table name, `where` condition,
- * and the scalar field to retrieve. It enforces that only one row should match the condition,
- * and throws an error if multiple rows are found. If no row is found, it returns `null`.
+ * Supports one or more key-value pairs in `where` — all are combined with
+ * AND. Uses `LIMIT 2` internally to detect unexpected duplicate rows; throws
+ * a `DatabaseError` if more than one row matches. Returns `null` when no
+ * matching row is found.
  *
- * @param {Object} params - The query parameters.
- * @param {string} params.table - The name of the table to query.
- * @param {Object} params.where - An object containing a single key-value pair for the WHERE clause.
- * @param {string} params.select - The field name to select and return from the matched row.
- * @param {Object} [client] - Optional database client instance (e.g., for transactions).
- * @param {Object} [meta={}] - Optional metadata for logging purposes.
+ * Null values in `where` are converted to `IS NULL` conditions.
+ * All identifiers are quoted via `q`/`qualify` to prevent SQL injection.
  *
- * @returns {Promise<any|null>} - The scalar value if found, `null` if no match is found.
- *
- * @throws {AppError} - Throws validation error if inputs are invalid,
- *                      or database error if the query fails or returns multiple rows.
+ * @param {object}                  params
+ * @param {string}                  params.table  - Table name.
+ * @param {object}                  params.where  - One or more key-value WHERE conditions.
+ * @param {string}                  params.select - Column whose value is returned.
+ * @param {import('pg').PoolClient} [client]      - Optional transaction client.
+ * @param {object}                  [meta={}]     - Logging metadata.
+ * @returns {Promise<*|null>} The scalar value, or `null` if not found.
+ * @throws {AppError} On invalid input, duplicate row, or query failure.
  *
  * @example
- * const value = await getUniqueScalarValue({
- *   table: 'users',
- *   where: { email: 'test@example.com' },
- *   select: 'id'
- * });
- * // value might be '123e4567-e89b-12d3-a456-426614174000'
+ * const email = await getUniqueScalarValue(
+ *   { table: 'users', where: { id: userId }, select: 'email' }
+ * );
+ *
+ * @example
+ * const addressId = await getUniqueScalarValue(
+ *   { table: 'addresses', where: { full_name: 'John Doe', label: 'Shipping' }, select: 'id' }
+ * );
  */
 const getUniqueScalarValue = async (
   { table, where, select },
@@ -1304,45 +1174,63 @@ const getUniqueScalarValue = async (
 ) => {
   if (!table || typeof where !== 'object' || !select) {
     throw AppError.validationError(
-      'Invalid parameters for getScalarFieldValue.'
+      'Invalid parameters for getUniqueScalarValue.'
     );
   }
-
+  
   const maskedTable = maskTableName(table);
-  const whereKey = Object.keys(where ?? {})[0] ?? 'id';
-  const whereValue = where[whereKey];
-
+  const whereKeys = Object.keys(where ?? {});
+  
+  if (whereKeys.length === 0) {
+    throw AppError.validationError(
+      'getUniqueScalarValue: where condition must have at least one key.'
+    );
+  }
+  
+  // Build multi-condition WHERE clause with correct $N indices.
+  let paramIdx = 1;
+  const whereParts = [];
+  const whereValues = [];
+  
+  for (const key of whereKeys) {
+    const val = where[key];
+    if (val === null) {
+      whereParts.push(`${q(key)} IS NULL`);
+    } else {
+      whereParts.push(`${q(key)} = $${paramIdx++}`);
+      whereValues.push(val);
+    }
+  }
+  
   const sql = `
-    SELECT ${select}
-    FROM ${table}
-    WHERE ${whereKey} = $1
-    LIMIT 1
+    SELECT ${q(select)}
+    FROM ${qualify('public', table)}
+    WHERE ${whereParts.join(' AND ')}
+    LIMIT 2
   `;
-
+  
   try {
-    const result = await query(sql, [whereValue], client);
+    const result = await query(sql, whereValues, client);
+    
     if (result.rows.length === 0) return null;
+    
     if (result.rows.length > 1) {
       throw AppError.databaseError(
-        `Multiple rows found in "${maskedTable}" for ${whereKey} = ${whereValue}`
+        `Multiple rows found in "${maskedTable}" for ${whereKeys.join(', ')}`
       );
     }
+    
     return result.rows[0][select];
   } catch (error) {
     throw handleDbError(error, {
       context: 'db/getUniqueScalarValue',
       message: `Failed to fetch value '${select}' from '${maskedTable}'.`,
-      meta: {
-        table: maskedTable,
-        select,
-        whereKey,
-      },
+      meta: { table: maskedTable, select, where: Object.fromEntries(whereKeys.map(k => [k, where[k]])), ...meta },
       logFn: (err) =>
-        logDbQueryError(sql, [whereValue], err, {
-          context: 'get-unique-scalar-value',
+        logDbQueryError(sql, whereValues, err, {
+          context: 'db/getUniqueScalarValue',
           table: maskedTable,
           select,
-          where: { [whereKey]: whereValue },
           ...meta,
         }),
     });
@@ -1350,77 +1238,89 @@ const getUniqueScalarValue = async (
 };
 
 /**
- * Safely checks if a record exists in the specified table with the given condition.
+ * Checks whether a record matching `condition` exists in `table`.
  *
- * Supports `null` values by automatically converting them to `IS NULL` in the WHERE clause.
+ * Supports `null` values in the condition by converting them to `IS NULL`
+ * in the WHERE clause.
  *
- * Example:
- *   checkRecordExists('addresses', { customer_id: null }) → WHERE customer_id IS NULL
+ * Uses `validateIdentifier` for the table name and quotes each condition
+ * key via `q()` to prevent SQL injection on column names.
  *
- * @param {string} table - The name of the table (validated to prevent SQL injection).
- * @param {object} condition - Key-value pairs for the WHERE clause.
- *                             Null values will be translated to `IS NULL`.
- *                             (e.g., { id: 'uuid' }, { customer_id: null })
- * @param {PoolClient} [client] - Optional PostgreSQL client or transaction context.
- * @returns {Promise<boolean>} - Resolves to true if a matching record exists, false otherwise.
+ * @param {string}                   table      - Table name.
+ * @param {object}                   condition  - Key-value WHERE condition; null values → IS NULL.
+ * @param {import('pg').PoolClient}  [client=null]
+ * @returns {Promise<boolean>} `true` if a matching record exists.
+ * @throws {AppError} On invalid input or query failure.
+ *
+ * @example
+ * // Standard value condition
+ * await checkRecordExists('orders', { id: orderId });
+ *
+ * // Null condition (IS NULL)
+ * await checkRecordExists('addresses', { customer_id: null });
  */
 const checkRecordExists = async (table, condition, client = null) => {
-  if (!table || typeof table !== 'string') {
-    throw AppError.validationError('Invalid table name');
-  }
-
-  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(table)) {
-    throw AppError.validationError('Unsafe table name');
-  }
-
-  const keys = Object.keys(condition);
+  // Use validateIdentifier for consistency with the rest of the module.
+  const safeTable = validateIdentifier(table, 'table');
+  
+  const keys = Object.keys(condition ?? {});
   if (keys.length === 0) {
-    throw AppError.validationError('No condition provided');
+    throw AppError.validationError('No condition provided for checkRecordExists');
   }
-
-  const whereClause = keys
-    .map((key, idx) =>
-      condition[key] === null ? `${key} IS NULL` : `${key} = $${idx + 1}`
-    )
-    .join(' AND ');
-
-  const values = Object.values(condition).filter((v) => v !== null);
-  const sql = `SELECT EXISTS (SELECT 1 FROM ${table} WHERE ${whereClause}) AS exists;`;
-
+  
+  // Build a stable, ordered list of [key, value] pairs so that the
+  // $N parameter indices align correctly with the values array.
+  let paramIdx = 1;
+  const whereParts = [];
+  const values = [];
+  
+  for (const key of keys) {
+    const val = condition[key];
+    if (val === null) {
+      // Null values use IS NULL — no parameter placeholder needed.
+      whereParts.push(`${q(key)} IS NULL`);
+    } else {
+      whereParts.push(`${q(key)} = $${paramIdx++}`);
+      values.push(val);
+    }
+  }
+  
+  const sql = `SELECT EXISTS (SELECT 1 FROM ${safeTable} WHERE ${whereParts.join(' AND ')}) AS exists`;
+  
   try {
     const { rows } = await query(sql, values, client);
-    return rows.length > 0 && rows[0].exists === true;
+    return rows[0]?.exists === true;
   } catch (error) {
     const maskedTable = maskTableName(table);
     
     throw handleDbError(error, {
       context: 'db/checkRecordExists',
       message: `Failed to check existence in "${maskedTable}"`,
-      meta: {
-        maskedTable,
-        condition,
-      },
+      meta: { table: maskedTable },
       logFn: (err) =>
         logSystemException(err, 'Failed to check record existence', {
           context: 'db/checkRecordExists',
-          maskedTable,
-          condition,
+          table: maskedTable,
         }),
     });
   }
 };
 
 /**
- * Return IDs from `ids` that are NOT present in `${schema}.${table}.${idColumn}`.
+ * Returns IDs from `ids` that are NOT present in `<schema>.<table>.<idColumn>`.
  *
- * - One round-trip (UNNEST), parameterized values.
- * - Uses allowlist + quoted identifiers to prevent SQL injection on identifiers.
+ * Uses a single `UNNEST`-based query (one round-trip) to avoid N+1 lookups.
+ * Deduplicates `ids` before querying via `uniq`.
  *
  * @param {import('pg').PoolClient} client
- * @param {string} table
- * @param {string[]} ids
- * @param {{ schema?: string|null, idColumn?: string, logOnError?: boolean }} [opts]
- * @returns {Promise<string[]>} missing IDs
+ * @param {string}                  table
+ * @param {string[]}                ids
+ * @param {object}                  [opts={}]
+ * @param {string}                  [opts.schema='public']
+ * @param {string}                  [opts.idColumn='id']
+ * @param {boolean}                 [opts.logOnError=true]
+ * @returns {Promise<string[]>} IDs from the input list that have no matching row.
+ * @throws {AppError} On query failure.
  */
 const findMissingIds = async (client, table, ids, opts = {}) => {
   const context = 'db/findMissingIds';
@@ -1431,17 +1331,11 @@ const findMissingIds = async (client, table, ids, opts = {}) => {
     logOnError = true,
   } = opts;
   
-  //--------------------------------------------------
-  // 1. Normalize input
-  //--------------------------------------------------
   const list = uniq(ids);
   if (list.length === 0) return [];
   
   const maskedTable = maskTableName(table);
   
-  //--------------------------------------------------
-  // 2. Build SAFE SQL
-  //--------------------------------------------------
   const sql = `
     WITH input(id) AS (
       SELECT DISTINCT UNNEST($1::uuid[])
@@ -1455,9 +1349,6 @@ const findMissingIds = async (client, table, ids, opts = {}) => {
     );
   `;
   
-  //--------------------------------------------------
-  // 3. Execute
-  //--------------------------------------------------
   try {
     const { rows } = await query(sql, [list], client);
     return rows.map((r) => r.id);
@@ -1484,20 +1375,25 @@ const findMissingIds = async (client, table, ids, opts = {}) => {
 };
 
 /**
- * Fetches one or more specific columns (default: ['name']) from a table by its primary key (`id`).
+ * Fetches one or more columns from a table row by its primary key.
  *
- * This utility is safe, generic, and transaction-aware. It supports fetching multiple fields
- * and can be used across different tables that follow a common pattern (UUID `id` as PK).
+ * Returns the full row object (e.g., `{ name: '...', category: '...' }`).
+ * Returns `null` if no row matches. Throws `DatabaseError` on duplicate
+ * primary key (data integrity violation).
  *
- * @param {string} table - Table name (e.g., 'order_types')
- * @param {string} id - Primary key value to match (typically a UUID)
- * @param {string|string[]} [selectFields='name'] - Single field or array of fields to retrieve
- * @param {object|null} [client=null] - an Optional pg client for transaction context
+ * Column names are sanitized via `validateIdentifier`. Table name is
+ * quoted via `qualify`.
  *
- * @returns {Promise<object|null>} - If multiple fields are requested, returns an object like
- *   `{ name: '...', category: '...' }`; if a single field is requested, returns the raw value.
+ * @param {string}                   table                   - Table name.
+ * @param {string}                   id                      - Primary key UUID.
+ * @param {string|string[]}          [selectFields=['name']] - Column(s) to retrieve.
+ * @param {import('pg').PoolClient}  [client=null]
+ * @returns {Promise<object|null>} Row object with the requested fields, or `null`.
+ * @throws {AppError} On invalid input or query failure.
  *
- * @throws {AppError} - Throws databaseError if a query fails or validationError if input is invalid
+ * @example
+ * const row = await getFieldsById('order_types', typeId, ['name', 'category']);
+ * // { name: 'Standard', category: 'sales' }
  */
 const getFieldsById = async (
   table,
@@ -1511,44 +1407,39 @@ const getFieldsById = async (
   
   const maskedTable = maskTableName(table);
   
-  const safeFields = selectFields
-    .map((field) => field.replace(/[^a-zA-Z0-9_]/g, ''))
-    .filter(Boolean);
-
-  if (safeFields.length === 0) {
-    throw AppError.validationError(`Invalid select fields: ${selectFields}`);
-  }
-
+  // Use validateIdentifier for consistency — rejects unsafe names with a
+  // structured error rather than silently stripping characters.
+  const safeFields = (Array.isArray(selectFields) ? selectFields : [selectFields])
+    .map((field) => validateIdentifier(field, 'select field'));
+  
   const sql = `
-    SELECT ${safeFields.join(', ')}
-    FROM ${table}
-    WHERE id = $1
+    SELECT ${safeFields.map((f) => q(f)).join(', ')}
+    FROM ${qualify('public', table)}
+    WHERE ${q('id')} = $1
+    LIMIT 2
   `;
-
+  
   try {
     const result = await query(sql, [id], client);
+    
     if (result.rows.length === 0) return null;
+    
     if (result.rows.length > 1) {
       throw AppError.databaseError(
-        `Duplicate id in table '${maskedTable}': ${id}`
+        `Duplicate id in table '${maskedTable}'`
       );
     }
-
-    return result.rows[0]; // returns an object like { name: ..., category: ... }
+    
+    return result.rows[0];
   } catch (error) {
     throw handleDbError(error, {
       context: 'db/getFieldsById',
       message: `Failed to fetch fields from '${maskedTable}'`,
-      meta: {
-        table: maskedTable,
-        id,
-        selectFields: safeFields,
-      },
+      meta: { table: maskedTable, selectFields: safeFields },
       logFn: (err) =>
         logSystemException(err, 'Failed to fetch fields by ID', {
           context: 'db/getFieldsById',
           table: maskedTable,
-          id,
           selectFields: safeFields,
         }),
     });
@@ -1556,35 +1447,31 @@ const getFieldsById = async (
 };
 
 /**
- * Retrieves an array of values from one column (`selectField`) in a table,
- * filtered by a specific match condition on another column (`whereKey`).
+ * Returns an array of values from `selectField` in `table`, filtered
+ * by a single `whereKey = whereValue` condition.
  *
- * This utility is useful for simple lookups like:
- * - Getting all `id`s where `category = 'sales'`
- * - Fetching all `code`s where `status = 'active'`
+ * Useful for simple lookups such as:
+ * - all `id`s where `category = 'sales'`
+ * - all `code`s where `is_active = true`
  *
- * Internally:
- * - Table and field names are sanitized to prevent SQL injection.
- * - Query uses parameterized values (`$1`) for safe substitution.
- * - Supports optional `pg.PoolClient` for transactional context.
+ * All identifiers are run through `validateIdentifier` and quoted via `q`/`qualify`.
+ * Validation throws are separated from the IO try/catch to prevent double-logging.
  *
- * @async
- * @param {string} table - Name of the table to query (e.g., `'order_types'`).
- * @param {string} whereKey - Name of the column to filter by (e.g., `'category'`).
- * @param {any} whereValue - Value to filter against (e.g., `'sales'`).
- * @param {string} [selectField='id'] - Column to return values from (default is `'id'`).
- * @param {import('pg').PoolClient} [client=null] - Optional database client for transactions.
- * @returns {Promise<any[]>} Array of matching values from `selectField`.
- *
- * @throws {AppError} - If parameters are invalid or the query fails.
+ * @param {string}                   table
+ * @param {string}                   whereKey     - Column to filter by.
+ * @param {*}                        whereValue   - Value to filter against.
+ * @param {string}                   [selectField='id'] - Column whose values are returned.
+ * @param {import('pg').PoolClient}  [client=null]
+ * @returns {Promise<*[]>} Array of values from `selectField`.
+ * @throws {AppError} On invalid input or query failure.
  *
  * @example
  * const ids = await getFieldValuesByField('order_types', 'category', 'sales');
- * // Result: ['type-1', 'type-2', 'type-3']
+ * // ['type-1', 'type-2']
  *
  * @example
  * const codes = await getFieldValuesByField('discounts', 'is_active', true, 'code');
- * // Result: ['SUMMER10', 'FREESHIP']
+ * // ['SUMMER10', 'FREESHIP']
  */
 const getFieldValuesByField = async (
   table,
@@ -1593,49 +1480,48 @@ const getFieldValuesByField = async (
   selectField = 'id',
   client = null
 ) => {
+  // Validate before entering the IO try/catch so a ValidationError thrown
+  // here is NOT caught below and therefore not double-logged.
+  if (!table || !whereKey || !selectField) {
+    throw AppError.validationError(
+      'Invalid parameters for getFieldValuesByField'
+    );
+  }
+  
+  const safeTable    = validateIdentifier(table, 'table');
+  const safeField    = validateIdentifier(selectField, 'select field');
+  const safeWhereKey = validateIdentifier(whereKey, 'where key');
+  
+  const sql = `
+    SELECT ${q(safeField)}
+    FROM ${qualify('public', safeTable)}
+    WHERE ${q(safeWhereKey)} = $1
+  `;
+  
   try {
-    if (!table || !whereKey || !selectField) {
-      throw AppError.validationError(
-        'Invalid parameters for getFieldValuesByField'
-      );
-    }
-
-    const cleanField = selectField.replace(/[^a-zA-Z0-9_]/g, '');
-    const cleanWhereKey = whereKey.replace(/[^a-zA-Z0-9_]/g, '');
-    const maskedTable = table.replace(/[^a-zA-Z0-9_]/g, '');
-
-    const sql = `
-      SELECT ${cleanField}
-      FROM ${maskedTable}
-      WHERE ${cleanWhereKey} = $1
-    `;
-
     const result = await query(sql, [whereValue], client);
-    return result.rows.map((row) => row[cleanField]);
-  } catch (err) {
+    return result.rows.map((row) => row[safeField]);
+  } catch (error) {
     const maskedTable = maskTableName(table);
     
-    throw handleDbError(err, {
+    throw handleDbError(error, {
       context: 'db/getFieldValuesByField',
       message: 'Failed to fetch field values',
-      meta: {
-        maskedTable,
-        whereKey,
-        selectField,
-      },
-      logFn: (error) =>
-        logSystemException(error, 'Failed to get field values by field', {
+      meta: { table: maskedTable, whereKey, selectField },
+      logFn: (err) =>
+        logSystemException(err, 'Failed to get field values by field', {
           context: 'db/getFieldValuesByField',
-          maskedTable,
+          table: maskedTable,
           whereKey,
-          whereValue,
           selectField,
         }),
     });
   }
 };
 
-// Export the utilities
+// ============================================================
+// Exports
+// ============================================================
 module.exports = {
   pool,
   query,
