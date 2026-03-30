@@ -1,5 +1,5 @@
 const { normalizeSortOrder } = require('../query-normalizers');
-const { sanitizeSortBy } = require('../sort-utils');
+const { sanitizeSortBy } = require('../query/sort-resolver');
 const { SORTABLE_FIELDS } = require('../sort-field-mapping');
 const { cleanObject } = require('../object-utils');
 const { INVENTORY_STATUS } = require('../constants/domain/status-constants');

@@ -1,58 +1,157 @@
 /**
  * @file sort-resolver.js
- * @description Resolves a validated sort key and direction into a DB column
- * sort configuration for use in paginated queries.
+ * @description
+ * Resolves and sanitizes client-facing sort parameters into SQL column
+ * configurations for use in paginated queries.
  *
- * Pure function — no DB access, no logging, no async.
- * Callers are responsible for passing a valid moduleKey registered in sort-utils.
+ * Pure module — no DB access, no async, no side effects beyond warn logging.
+ * Sits between the HTTP layer (query-normalizers.js) and the SQL layer
+ * (sql-ident.js / query-builder.js).
  *
  * Exports:
- *  - resolveSort
+ * - getSortMapForModule — looks up the sort map for a registered module key
+ * - sanitizeSortBy     — maps a raw sortBy string to a resolved SQL column string
+ * - resolveSort        — maps a single sort key + direction to a full sort config object
  */
 
 'use strict';
 
 const AppError = require('../AppError');
-const { getSortMapForModule } = require('../sort-utils');
+const { SORTABLE_FIELDS } = require('../sort-field-mapping');
+const { normalizeParamArray } = require('../query-normalizers');
+const { logSystemWarn } = require('../logging/system-logger');
 
-// ─── Sort Resolver ────────────────────────────────────────────────────────────
+// ------------------------------------------------------------
+// Internal helpers
+// ------------------------------------------------------------
 
 /**
- * Resolves a request-level sort key into a DB column sort configuration.
+ * Returns the sort map registered under `moduleKey`.
  *
- * Looks up `sortBy` in the sort map registered under `moduleKey`. If the key
- * is not found, falls back to `defaultSort`. Supports multi-column fallback
- * sorting via an array `defaultSort`.
+ * Throws immediately on an unrecognized key so misconfigured call sites
+ * surface as hard errors rather than silently producing empty results.
  *
- * @param {Object}          options
- * @param {string}          options.sortBy          - Request-level sort key (e.g. 'createdAt').
- * @param {'ASC'|'DESC'}    [options.sortOrder='ASC'] - Sort direction.
- * @param {string}          options.moduleKey        - Key identifying the sort map (e.g. 'addressSortMap').
- * @param {string|string[]} [options.defaultSort]    - Fallback DB column(s) when sortBy is unmapped.
- *                                                     Must be fully qualified (e.g. 'a.created_at').
+ * @param {string} moduleKey - Registry key identifying the module (e.g. `'orders'`).
+ * @returns {Record<string, string>} Map of request-facing sort key → SQL column.
+ * @throws {AppError} If `moduleKey` is not registered in `SORTABLE_FIELDS`.
+ */
+const getSortMapForModule = (moduleKey) => {
+  const sortMap = SORTABLE_FIELDS[moduleKey];
+  
+  if (!sortMap || typeof sortMap !== 'object') {
+    throw AppError.validationError(
+      `Invalid or unregistered sort module key: "${moduleKey}"`,
+      {
+        context: 'sort-resolver/getSortMapForModule',
+        meta: { moduleKey },
+      }
+    );
+  }
+  
+  return sortMap;
+};
+
+// ------------------------------------------------------------
+// Exports
+// ------------------------------------------------------------
+
+/**
+ * Resolves a raw `sortBy` request value to a SQL column string.
  *
+ * Accepts a comma-separated string or array of sort keys, maps each through
+ * the module's sort map, warns on unmapped keys, and returns the resolved
+ * columns joined with `, `.
+ *
+ * Falls back to `defaultSort` when no requested keys map to a valid column.
+ * Returns `null` if neither the request keys nor the default resolve — the
+ * query builder is responsible for handling a null result.
+ *
+ * @param {string|string[]} sortByRaw          - Raw sortBy value from the request.
+ * @param {string}          moduleKey          - Registry key for the sort map.
+ * @param {string|null}     [defaultSort=null] - Fallback SQL column when no keys resolve.
+ *   Must be fully qualified (e.g. `'a.created_at'`) to avoid ambiguity in aliased queries.
+ * @returns {string|null} Resolved SQL column string, or `defaultSort` if nothing mapped.
+ * @throws {AppError} If `moduleKey` is not registered.
+ *
+ * @example
+ * sanitizeSortBy('name', 'products', 'p.created_at')
+ * // → 'p.name' (if 'name' maps to 'p.name' in the products sort map)
+ *
+ * @example
+ * sanitizeSortBy('unknown', 'products', 'p.created_at')
+ * // → 'p.created_at' (fallback; warns on 'unknown')
+ */
+const sanitizeSortBy = (sortByRaw = '', moduleKey, defaultSort = null) => {
+  const sortMap = getSortMapForModule(moduleKey);
+  
+  // Reuse normalizeParamArray instead of re-implementing split/trim/filter.
+  const requestedKeys = normalizeParamArray(sortByRaw) ?? [];
+  
+  const mappedColumns = requestedKeys
+    .map((key) => {
+      const column = sortMap[key];
+      
+      if (!column) {
+        // Warn rather than throw — an unmapped key is skipped, not fatal.
+        // The fallback below handles the case where nothing resolves.
+        logSystemWarn(`Unmapped sortBy key: "${key}"`, {
+          context: 'sort-resolver/sanitizeSortBy',
+          meta: { key, moduleKey },
+        });
+      }
+      
+      return column;
+    })
+    .filter(Boolean);
+  
+  if (mappedColumns.length > 0) {
+    return mappedColumns.join(', ');
+  }
+  
+  // No requested keys resolved — return the caller-supplied default.
+  // Returning null signals to the query builder that no sort was resolved.
+  return defaultSort ?? null;
+};
+
+/**
+ * Resolves a single request-level sort key and direction into a sort
+ * configuration object ready for the query builder.
+ *
+ * Looks up `sortBy` in the sort map registered under `moduleKey`. If the
+ * key is unmapped, falls back to `defaultSort`. Supports multi-column
+ * fallback sorting via an array `defaultSort` — the first element becomes
+ * the primary sort, remaining elements become `additionalSorts` for
+ * deterministic tie-breaking.
+ *
+ * @param {object}               options
+ * @param {string}               options.sortBy              - Request-level sort key (e.g. `'createdAt'`).
+ * @param {'ASC'|'DESC'}         [options.sortOrder='ASC']   - Sort direction.
+ * @param {string}               options.moduleKey           - Key identifying the sort map.
+ * @param {string|string[]|null} [options.defaultSort=null]  - Fallback DB column(s) when sortBy
+ *   is unmapped. Must be fully qualified (e.g. `'a.created_at'`).
  * @returns {{
  *   sortBy:          string,
  *   sortOrder:       'ASC'|'DESC',
  *   additionalSorts: Array<{ column: string, direction: string }>
- * }} Resolved sort configuration ready for the query builder.
+ * }}
+ * @throws {AppError} If `moduleKey` is unregistered or `sortBy` is unmapped with no fallback.
  *
- * @throws {AppError} If moduleKey does not resolve to a valid sort map.
+ * @example
+ * resolveSort({ sortBy: 'createdAt', sortOrder: 'DESC', moduleKey: 'orders', defaultSort: 'o.created_at' })
+ * // → { sortBy: 'o.created_at', sortOrder: 'DESC', additionalSorts: [] }
+ *
+ * @example
+ * resolveSort({ sortBy: 'unknown', moduleKey: 'orders', defaultSort: ['o.created_at', 'o.id'] })
+ * // → { sortBy: 'o.created_at', sortOrder: 'ASC', additionalSorts: [{ column: 'o.id', direction: 'ASC' }] }
  */
 const resolveSort = ({
                        sortBy,
-                       sortOrder    = 'ASC',
+                       sortOrder   = 'ASC',
                        moduleKey,
-                       defaultSort  = null,
+                       defaultSort = null,
                      }) => {
+  // getSortMapForModule throws on unrecognized moduleKey — no need to re-check here.
   const sortMap = getSortMapForModule(moduleKey);
-  
-  if (!sortMap || typeof sortMap !== 'object') {
-    throw AppError.validationError(`Invalid sortMap for moduleKey: ${moduleKey}`, {
-      context: 'sort-resolver/resolveSort',
-      meta:    { moduleKey },
-    });
-  }
   
   const normalizedOrder = String(sortOrder).toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
   
@@ -68,17 +167,20 @@ const resolveSort = ({
   }
   
   // sortBy was unmapped — fall back to defaultSort.
-  // defaultSort must be a fully qualified column (e.g. 'a.created_at'),
-  // not a bare column name, to avoid ambiguity in aliased queries.
+  // defaultSort must be fully qualified (e.g. 'a.created_at') to avoid
+  // column ambiguity in aliased multi-table queries.
   const fallbackSorts = Array.isArray(defaultSort)
     ? defaultSort
-    : [defaultSort].filter(Boolean); // guard against null default
+    : [defaultSort].filter(Boolean);
   
   if (!fallbackSorts.length) {
-    throw AppError.validationError(`Unmapped sortBy key with no fallback: "${sortBy}"`, {
-      context: 'sort-resolver/resolveSort',
-      meta:    { sortBy, moduleKey },
-    });
+    throw AppError.validationError(
+      `Unmapped sortBy key with no fallback: "${sortBy}"`,
+      {
+        context: 'sort-resolver/resolveSort',
+        meta: { sortBy, moduleKey },
+      }
+    );
   }
   
   const [primary, ...rest] = fallbackSorts;
@@ -95,5 +197,7 @@ const resolveSort = ({
 };
 
 module.exports = {
+  getSortMapForModule,
+  sanitizeSortBy,
   resolveSort,
 };
