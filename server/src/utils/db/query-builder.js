@@ -14,8 +14,7 @@
  */
 
 const { UUID_RE } = require('../id-utils');
-const { q } = require('../sql-ident');
-const { validateSqlIdentifiers } = require('./sql-validation');
+const { q, validateIdentifier } = require('../sql-ident');
 
 /**
  * Splits a composite data key back into its individual UUID parts.
@@ -133,10 +132,12 @@ const formatBulkUpdateQuery = (
 ) => {
   if (!Object.keys(data).length) return null;
   
+  const safeTable = validateIdentifier(table, 'table');
+  const quotedTable = q(safeTable);
+  
   // Validate and quote all identifiers before touching any data
-  const quotedTable = q(table);
-  columns.forEach((col) => validateSqlIdentifiers({ col, tableAlias: table, context: 'formatBulkUpdateQuery/columns' }));
-  whereColumns.forEach((col) => validateSqlIdentifiers({ col, tableAlias: table, context: 'formatBulkUpdateQuery/whereColumns' }));
+  columns.forEach((col) => validateIdentifier(col, 'column'));
+  whereColumns.forEach((col) => validateIdentifier(col, 'where column'));
   
   // $1 is always userId; data values start at $2
   const params = [userId];
