@@ -14,7 +14,7 @@
 
 const chalk = require('chalk');
 const { pool } = require('../../database/db');
-const { getSortMapForModule } = require('../../utils/sort-utils');
+const { getSortMapForModule } = require('../../utils/query/sort-resolver');
 const { fetchPaginatedUsersService } = require('../../services/user-service');
 
 (async () => {

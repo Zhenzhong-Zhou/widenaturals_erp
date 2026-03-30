@@ -24,7 +24,7 @@ const fs = require('fs');
 const {
   logSystemInfo,
   logSystemException,
-} = require('../../utils/system-logger');
+} = require('../../utils/logging/system-logger');
 const {
   processAndUploadSkuImages,
 } = require('../../services/sku-image-service');

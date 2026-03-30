@@ -1,5 +1,5 @@
 const { pool } = require('../../database/db');
-const { getSortMapForModule } = require('../../utils/sort-utils');
+const { getSortMapForModule } = require('../../utils/query/sort-resolver');
 const {
   fetchPaginatedInventoryAllocationsService,
 } = require('../../services/inventory-allocation-service');

@@ -14,18 +14,14 @@
 const { performance } = require('perf_hooks');
 const chalk = require('chalk');
 const { pool } = require('../../database/db');
-
 const {
   logSystemInfo,
   logSystemException,
-} = require('../../utils/system-logger');
-
+} = require('../../utils/logging/system-logger');
 const {
   createPackagingMaterialBatchesService,
 } = require('../../services/packaging-material-batch-service');
-
 const { initStatusCache, getStatusId } = require('../../config/status-cache');
-
 const {
   initBatchActivityTypeCache,
 } = require('../../cache/batch-activity-type-cache');
@@ -138,7 +134,6 @@ const { toLocal } = require('../utlis/convertDate');
     console.log(`${logPrefix} 🧾 Prepared batch payloads`);
     
     const displayPackagingBatches = packagingMaterialBatches.map((batch) => ({
-      sku_id: batch.sku_id,
       lot_number: batch.lot_number,
       quantity: batch.quantity,
       unit: batch.unit,

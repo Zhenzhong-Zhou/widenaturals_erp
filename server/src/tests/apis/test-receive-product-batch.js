@@ -4,7 +4,7 @@ const { pool } = require('../../database/db');
 const {
   logSystemInfo,
   logSystemException
-} = require('../../utils/system-logger');
+} = require('../../utils/logging/system-logger');
 const {
   receiveProductBatchService
 } = require('../../services/product-batch-service');

@@ -15,8 +15,7 @@
 const chalk = require('chalk');
 const { pool } = require('../../database/db');
 const { initStatusCache } = require('../../config/status-cache');
-const { getSortMapForModule } = require('../../utils/sort-utils');
-
+const { getSortMapForModule } = require('../../utils/query/sort-resolver');
 const {
   fetchPaginatedProductBatchesService,
 } = require('../../services/product-batch-service');

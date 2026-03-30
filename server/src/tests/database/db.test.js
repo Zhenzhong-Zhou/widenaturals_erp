@@ -10,11 +10,10 @@ const {
   logInfo,
   logError,
   logWarn,
-  logDebug,
-} = require('../../utils/logger-helper');
+} = require('../../utils/logging/logger-helper');
 
 // Mock logger to suppress actual logging during tests
-jest.mock('../../utils/logger-helper', () => ({
+jest.mock('../../utils/logging/logger-helper', () => ({
   logInfo: jest.fn(),
   logError: jest.fn(),
   logWarn: jest.fn(),
