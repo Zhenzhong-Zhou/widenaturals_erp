@@ -1,9 +1,11 @@
 const { pool, getUniqueScalarValue } = require('../../database/db');
 const { createOrderService } = require('../../services/order-service');
+const { initStatusCache } = require('../../config/status-cache');
 
 (async () => {
   const client = await pool.connect();
-
+  await initStatusCache();
+  
   try {
     const now = new Date();
     const { rows } = await client.query(
