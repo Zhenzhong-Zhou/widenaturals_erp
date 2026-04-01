@@ -11,7 +11,6 @@
 'use strict';
 
 const express                          = require('express');
-const { csrfMiddleware }               = require('../middlewares/csrf-protection');
 const { createResetPasswordRateLimiter } = require('../middlewares/rate-limiter');
 const validate                         = require('../middlewares/validate');
 const { changePasswordSchema }         = require('../validators/auth/password-change');
@@ -30,7 +29,6 @@ const router = express.Router();
  */
 router.post(
   '/logout',
-  csrfMiddleware,
   logoutController
 );
 
@@ -43,7 +41,6 @@ router.post(
  */
 router.post(
   '/change-password',
-  csrfMiddleware,
   createResetPasswordRateLimiter(),
   validate(changePasswordSchema, 'body'),
   changePasswordController
