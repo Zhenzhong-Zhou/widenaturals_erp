@@ -1,58 +1,55 @@
+/**
+ * @file batch-activity-type-repository.js
+ * @description Database access layer for batch activity type records.
+ *
+ * Follows the established repo pattern:
+ *  - Query constants at module scope — never recreated per request
+ *  - All errors normalized through handleDbError before bubbling up
+ *  - No success logging — middleware and globalErrorHandler own that layer
+ *
+ * Exports:
+ *  - getBatchActivityTypes — fetches all active batch activity type records
+ */
+
+'use strict';
+
 const { query } = require('../database/db');
-const { logSystemException } = require('../utils/system-logger');
-const AppError = require('../utils/AppError');
+const { handleDbError } = require('../utils/errors/error-handlers');
+const { logDbQueryError } = require('../utils/db-logger');
+const { BATCH_ACTIVITY_TYPE_SELECT } = require('./queries/batch-activity-type-queries');
+
+// ─── Queries ──────────────────────────────────────────────────────────────────
 
 /**
- * Retrieve active batch activity types.
+ * Fetches all active batch activity types.
  *
- * This repository function fetches the list of active activity types
- * used to classify batch lifecycle events such as creation, updates,
- * quantity adjustments, status changes, or other batch-related actions.
+ * Used to resolve activity type codes during batch lifecycle logging.
+ * Only active records are returned — inactive types are retired codes
+ * no longer valid for new batch operations.
  *
- * The returned activity types are typically used by service or business
- * layers to resolve activity type IDs when recording entries in the
- * `batch_activity_logs` table.
+ * @param {PoolClient|null} [client=null] - Optional DB client for transactional context.
  *
- * Performance:
- * - This query is lightweight and reads from a small lookup table.
- * - Only required columns (`id`, `code`) are selected to minimize payload size.
- *
- * @async
- * @function getBatchActivityTypes
- *
- * @param {Object|null} [client=null] - Optional PostgreSQL transaction client.
- *
- * @returns {Promise<Array<{id: string, code: string}>>}
- * Returns an array of active batch activity type records.
- *
- * @throws {AppError}
- * Throws `AppError.databaseError` if the query execution fails.
+ * @returns {Promise<Array<BatchActivityTypeRow>>} Active batch activity type records.
+ * @throws  {AppError} Normalized database error if the query fails.
  */
 const getBatchActivityTypes = async (client = null) => {
-  const context =
-    'batch-activity-type-repository/getBatchActivityTypes';
-  
-  // Retrieve only active batch activity types used for batch lifecycle logging
-  const sql = `
-    SELECT id, code
-    FROM batch_activity_types
-    WHERE is_active = TRUE
-  `;
+  const context = 'batch-activity-type-repository/getBatchActivityTypes';
   
   try {
-    const result = await query(sql, [], client);
-    
+    const result = await query(BATCH_ACTIVITY_TYPE_SELECT, [], client);
     return result.rows;
   } catch (error) {
-    logSystemException(
-      error,
-      'Failed to retrieve batch activity types',
-      { context }
-    );
-    
-    throw AppError.databaseError(
-      `Failed to retrieve batch activity types: ${error.message}`
-    );
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to retrieve batch activity types.',
+      meta:    { table: 'batch_activity_types' },
+      logFn:   (err) => logDbQueryError(
+        BATCH_ACTIVITY_TYPE_SELECT,
+        [],
+        err,
+        { context }
+      ),
+    });
   }
 };
 

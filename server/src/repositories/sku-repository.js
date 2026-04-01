@@ -1,742 +1,419 @@
+/**
+ * @file sku-repository.js
+ * @description Database access layer for SKU records.
+ *
+ * Follows the established repo pattern:
+ *  - Query constants and factories imported from sku-queries.js
+ *  - All errors normalized through handleDbError before bubbling up
+ *  - No success logging — middleware and globalErrorHandler own that layer
+ *
+ * Exports:
+ *  - getLastSku                — fetch most recent SKU for a brand/category pattern
+ *  - getPaginatedSkuProductCards — paginated product card list with filtering and sorting
+ *  - getSkuLookup              — offset-paginated SKU dropdown list
+ *  - getPaginatedSkus          — paginated SKU list with filtering and sorting
+ *  - checkBarcodeExists        — existence check for a barcode value
+ *  - checkSkuExists            — existence check for a sku + product_id pair
+ *  - insertSkusBulk            — bulk upsert of SKU records
+ *  - getSkuDetailsById         — full SKU metadata fetch by id
+ *  - skuHasAnyHistory          — existence check across orders, batches, and inventory
+ *  - updateSkuMetadata         — patch allowed metadata fields
+ *  - updateSkuStatus           — patch status_id and status_date
+ *  - updateSkuDimensions       — patch dimension fields
+ *  - updateSkuIdentity         — patch sku code and barcode
+ */
+
+'use strict';
+
+const { validateBulkInsertRows } = require('../utils/validation/bulk-insert-row-validator');
+const { query, bulkInsert, updateById } = require('../database/db');
 const {
-  query,
-  paginateResults,
   paginateQueryByOffset,
-  bulkInsert,
-  updateById,
-} = require('../database/db');
-const {
-  logSystemInfo,
-  logSystemException,
-} = require('../utils/system-logger');
+  paginateQuery,
+} = require('../database/utils/pagination/pagination-helpers');
+const { handleDbError } = require('../utils/errors/error-handlers');
+const { logDbQueryError, logBulkInsertError } = require('../utils/db-logger');
+const { logSystemException } = require('../utils/logging/system-logger');
 const AppError = require('../utils/AppError');
 const {
   buildWhereClauseAndParams,
   skuDropdownKeywordHandler,
   buildSkuFilter,
   buildSkuProductCardFilters,
-} = require('../utils/sql/build-sku-filters');
-const { minUuid } = require('../utils/sql/sql-helpers');
-const { getSortMapForModule } = require('../utils/sort-utils');
+} = require('../utils/sql/build-sku-filter');
 const { existsQuery } = require('./utils/repository-helper');
+const { resolveSort } = require('../utils/query/sort-resolver');
+const { SORTABLE_FIELDS } = require('../utils/sort-field-mapping');
+const {
+  GET_LAST_SKU_QUERY,
+  CHECK_BARCODE_EXISTS_QUERY,
+  CHECK_SKU_EXISTS_QUERY,
+  SKU_DETAILS_QUERY,
+  SKU_HAS_ANY_HISTORY_QUERY,
+  TABLE_NAME,
+  PRIVILEGED_JOINS,
+  BASE_JOINS,
+  PRIVILEGED_SELECT_FIELDS,
+  BASE_SELECT_FIELDS,
+  SKU_PRODUCT_CARD_JOINS,
+  SKU_PRODUCT_CARD_SORT_WHITELIST,
+  buildSkuProductCardQuery,
+  SKU_LIST_JOINS,
+  SKU_LIST_SORT_WHITELIST,
+  SKU_LIST_ADDITIONAL_SORTS,
+  buildPaginatedSkusQuery,
+} = require('./queries/sku-queries');
+
+// ─── Last SKU ─────────────────────────────────────────────────────────────────
 
 /**
- * Retrieves the most recent SKU string for a given brand and category combination.
+ * Fetches the most recent SKU code matching a brand/category prefix pattern.
  *
- * Used to determine the next sequence number in SKU generation.
+ * Returns null if no matching SKU exists.
  *
- * @param {string} brandCode - Brand code (e.g., 'CH')
- * @param {string} categoryCode - Category code (e.g., 'HN')
- * @returns {Promise<string|null>} - The latest matching SKU or null if none found.
+ * @param {string} brandCode    - Brand portion of the SKU prefix (e.g. 'CH').
+ * @param {string} categoryCode - Category portion of the SKU prefix (e.g. 'HN').
+ *
+ * @returns {Promise<string|null>} Most recent matching SKU code, or null.
+ * @throws  {AppError}            Normalized database error if the query fails.
  */
 const getLastSku = async (brandCode, categoryCode) => {
+  const context = 'sku-repository/getLastSku';
+  const pattern = `${brandCode}-${categoryCode}%`;
+  const params  = [pattern];
+  
   try {
-    const pattern = `${brandCode}-${categoryCode}%`; // e.g., 'CH-HN%'
-
-    const sql = `
-      SELECT sku
-      FROM skus
-      WHERE sku LIKE $1
-      ORDER BY sku DESC
-      LIMIT 1
-    `;
-
-    const result = await query(sql, [pattern]);
-
-    const lastSku = result.rows[0]?.sku || null;
-
-    logSystemInfo('[getLastSku] Retrieved last SKU', {
-      brandCode,
-      categoryCode,
-      pattern,
-      lastSku,
-    });
-
-    return lastSku;
+    const result = await query(GET_LAST_SKU_QUERY, params);
+    return result.rows[0]?.sku ?? null;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch last SKU', {
-      context: 'sku-repository/getLastSku',
-      error: error.message,
-      brandCode,
-      categoryCode,
-    });
-    throw AppError.databaseError('Database error while retrieving last SKU', {
-      brandCode,
-      categoryCode,
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch last SKU.',
+      meta:    { brandCode, categoryCode },
+      logFn:   (err) => logDbQueryError(
+        GET_LAST_SKU_QUERY,
+        params,
+        err,
+        { context, brandCode, categoryCode }
+      ),
     });
   }
 };
 
+// ─── SKU Product Cards ────────────────────────────────────────────────────────
+
 /**
- * Fetches paginated SKU product-card rows with combined product, SKU,
- * pricing, compliance, and image metadata.
+ * Fetches paginated SKU product card records with optional filtering and sorting.
  *
- * This repository function expects visibility rules (active-only,
- * inactive allowed, etc.) to already be applied by the service/business
- * layer via the `filters` argument.
+ * Joins products, compliance, MSRP pricing, status, and primary thumbnail image.
+ * Results are grouped to collapse compliance and image lateral joins.
  *
- * @param {Object} options
- * @param {number} options.page - Page number (1-based).
- * @param {number} options.limit - Items per page.
- * @param {string} options.sortBy - Fully-qualified sort column.
- * @param {string} options.sortOrder - Sort direction ('ASC' | 'DESC').
- * @param {Object} options.filters - Pre-normalized filters prepared by business logic.
+ * @param {Object}       options
+ * @param {number}       [options.page=1]               - Page number (1-based).
+ * @param {number}       [options.limit=10]             - Records per page.
+ * @param {string}       [options.sortBy='createdAt']   - Sort key (mapped via skuProductCards).
+ * @param {'ASC'|'DESC'} [options.sortOrder='DESC']     - Sort direction.
+ * @param {Object}       [options.filters={}]           - Field filters.
  *
- * @returns {Promise<{
- *   data: Array<Object>,
- *   pagination: {
- *     page: number,
- *     limit: number,
- *     totalRecords: number,
- *     totalPages: number
- *   }
- * }>}
+ * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
+ * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getPaginatedSkuProductCards = async ({
-  page = 1,
-  limit = 10,
-  sortBy = 's.created_at',
-  sortOrder = 'DESC',
-  filters = {},
-}) => {
+                                             page      = 1,
+                                             limit     = 10,
+                                             sortBy    = 'createdAt',
+                                             sortOrder = 'DESC',
+                                             filters   = {},
+                                           }) => {
   const context = 'sku-repository/getPaginatedSkuProductCards';
-
-  // ---------------------------------------------------------
-  // 1. Build WHERE clause + params from filters
-  // ---------------------------------------------------------
+  
   const { whereClause, params } = buildSkuProductCardFilters(filters);
-
-  // ---------------------------------------------------------
-  // 2. Core Product-Card SQL (dependencies: products, skus,
-  //    compliance, MSRP price, status, primary image)
-  // ---------------------------------------------------------
-  const queryText = `
-    SELECT
-      p.name AS product_name,
-      p.series,
-      p.brand,
-      p.category,
-      st.name AS product_status_name,
-      s.id AS sku_id,
-      s.sku AS sku_code,
-      s.barcode,
-      s.country_code,
-      s.market_region,
-      s.size_label,
-      sku_status.name AS sku_status_name,
-      cr.type AS compliance_type,
-      cr.compliance_id AS compliance_id,
-      pr.price AS msrp_price,
-      img.image_url AS primary_image_url,
-      img.alt_text AS image_alt_text
-    FROM skus s
-    INNER JOIN products p
-      ON s.product_id = p.id
-    INNER JOIN status st
-      ON p.status_id = st.id
-    LEFT JOIN status sku_status
-      ON s.status_id = sku_status.id
-    LEFT JOIN sku_compliance_links scl
-      ON scl.sku_id = s.id
-    LEFT JOIN compliance_records cr
-      ON cr.id = scl.compliance_record_id
-    LEFT JOIN LATERAL (
-      SELECT pr.price, pr.status_id
-      FROM pricing pr
-      INNER JOIN pricing_types pt
-        ON pr.price_type_id = pt.id
-       AND pt.name = 'MSRP'
-      INNER JOIN locations l
-        ON pr.location_id = l.id
-      INNER JOIN location_types lt
-        ON l.location_type_id = lt.id
-       AND lt.name = 'Office'
-      WHERE pr.sku_id = s.id
-      ORDER BY pr.valid_from DESC NULLS LAST
-      LIMIT 1
-    ) pr ON TRUE
-    LEFT JOIN status ps
-      ON pr.status_id = ps.id
-      LEFT JOIN LATERAL (
-        SELECT si.image_url, si.alt_text
-        FROM sku_images si
-        WHERE si.sku_id = s.id
-          AND si.image_type = 'thumbnail'
-        ORDER BY
-          MAX(
-            CASE
-              WHEN si.image_type = 'main'
-              THEN si.is_primary::int
-              ELSE 0
-            END
-          ) OVER (PARTITION BY si.group_id) DESC,
-          si.display_order ASC
-        LIMIT 1
-      ) img ON TRUE
-    WHERE ${whereClause}
-    GROUP BY
-      p.id,
-      st.name,
-      s.id,
-      s.sku,
-      s.barcode,
-      s.market_region,
-      s.size_label,
-      sku_status.name,
-      cr.compliance_id,
-      cr.type,
-      pr.price,
-      img.image_url,
-      img.alt_text
-    ORDER BY ${sortBy} ${sortOrder};
-  `;
-
+  
+  const sortConfig = resolveSort({
+    sortBy,
+    sortOrder,
+    moduleKey:   'skuProductCards',
+    defaultSort: SORTABLE_FIELDS.skuProductCards.defaultNaturalSort,
+  });
+  
+  // ORDER BY omitted — paginateQuery appends it from sortConfig.
+  const queryText = buildSkuProductCardQuery(whereClause);
+  
   try {
-    // ---------------------------------------------------------
-    // 3. Logging
-    // ---------------------------------------------------------
-    logSystemInfo('Executing product-card SKU pagination query', {
-      context,
-      filters,
-      sortBy,
-      sortOrder,
-      page,
-      limit,
-    });
-
-    // ---------------------------------------------------------
-    // 4. Execute paginated query
-    // ---------------------------------------------------------
-    return await paginateResults({
-      dataQuery: queryText,
+    return await paginateQuery({
+      tableName:    'skus s',
+      joins:        SKU_PRODUCT_CARD_JOINS,
+      whereClause,
+      queryText,
       params,
-      filters,
-      sortBy,
-      sortOrder,
       page,
       limit,
+      sortBy:       sortConfig.sortBy,
+      sortOrder:    sortConfig.sortOrder,
+      additionalSorts: ['s.created_at'],
+      whitelistSet: SKU_PRODUCT_CARD_SORT_WHITELIST,
+      meta:         { context },
     });
   } catch (error) {
-    logSystemException(error, 'Failed to fetch SKU product cards', {
+    throw handleDbError(error, {
       context,
-      stage: 'query-execution',
-      details: error.message,
-    });
-
-    throw AppError.databaseError('Failed to fetch SKU product cards', {
-      details: error.message,
-      context,
+      message: 'Failed to fetch SKU product cards.',
+      meta:    { filters, page, limit, sortBy, sortOrder },
+      logFn:   (err) => logDbQueryError(
+        queryText,
+        params,
+        err,
+        { context, filters, page, limit }
+      ),
     });
   }
 };
 
+// ─── SKU Lookup (Dropdown) ────────────────────────────────────────────────────
+
 /**
- * Fetches SKU lookup options for dropdowns, with support for filtering, pagination,
- * and privileged access to additional diagnostic fields (status and inventory joins).
+ * Fetches offset-paginated SKU records for dropdown/lookup use.
  *
- * This function builds a dynamic query with joins based on access options.
- * For users with `allowAllSkus`, the query will also join inventory, product, batch,
- * and status tables to allow downstream analysis of availability and abnormal flags.
+ * Supports privileged mode (allowAllSkus) which bypasses active status filtering
+ * and uses a broader join set.
  *
- * - The query performs deduplication using GROUP BY `s.id` with MIN() aggregation.
- * - If `allowAllSkus` is true, it counts `DISTINCT s.id` in pagination to avoid
- *   overcounting rows due to inventory or batch joins.
+ * @param {Object}  params
+ * @param {string}  productStatusId          - Active status UUID; required when allowAllSkus is false.
+ * @param {Object}  [filters={}]             - Field filters.
+ * @param {Object}  [options={}]             - Query behaviour options.
+ * @param {boolean} [options.allowAllSkus]   - If true, bypasses status enforcement.
+ * @param {number}  [limit=50]               - Records per page.
+ * @param {number}  [offset=0]               - Record offset.
  *
- * Typically used in UI dropdowns or internal search flows where SKU selection is needed.
- *
- * @param {Object} params - Parameter object.
- * @param {string} params.productStatusId - UUID of the expected product status.
- *   Required unless `options.allowAllSkus` is true.
- * @param {Object} [params.filters={}] - Optional filtering fields, e.g., brand, category, region, sizeLabel, keyword.
- * @param {Object} [params.options={}] - Visibility and diagnostic options.
- * @param {number} [params.limit=50] - Pagination limit (default: 50).
- * @param {number} [params.offset=0] - Pagination offset for paged results (default: 0).
- *
- * @returns {Promise<{
- *   data: Array<{
- *     id: string,
- *     sku: string,
- *     product_name: string,
- *     brand: string,
- *     barcode: string,
- *     country_code: string,
- *     size_label: string,
- *     // Additional diagnostic fields included only if allowAllSkus is true:
- *     sku_status_id?: string,
- *     product_status_id?: string,
- *     warehouse_status_id?: string,
- *     location_status_id?: string,
- *     batch_status_id?: string
- *   }>,
- *   pagination: {
- *     offset: number,
- *     limit: number,
- *     totalRecords: number,
- *     hasMore: boolean
- *   }
- * }>} Resolves to a paginated list of SKU rows for dropdown consumption.
- *
- * @throws {AppError} If a query fails due to invalid input or database errors.
+ * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
+ * @throws  {AppError}        Normalized database or validation error.
  */
 const getSkuLookup = async ({
-  productStatusId,
-  filters = {},
-  options = {},
-  limit = 50,
-  offset = 0,
-}) => {
+                              productStatusId,
+                              filters = {},
+                              options = {},
+                              limit   = 50,
+                              offset  = 0,
+                            }) => {
+  const context = 'sku-repository/getSkuLookup';
+  
   const { whereClause, params } = buildWhereClauseAndParams(
     productStatusId,
     filters,
     skuDropdownKeywordHandler,
     options
   );
-
-  const tableName = 'skus s';
-
-  const baseJoins = ['LEFT JOIN products p ON s.product_id = p.id'];
-
-  // Determine whether to include joins for extended diagnostics
-  const privilegedJoins = options.allowAllSkus
-    ? [
-        ...baseJoins,
-
-        // Join for SKU + product status
-        'LEFT JOIN status sku_status ON sku_status.id = s.status_id',
-        'LEFT JOIN status product_status ON product_status.id = p.status_id',
-
-        // ----- Warehouse inventory join chain -----
-        'LEFT JOIN product_batches pb_wi ON pb_wi.sku_id = s.id',
-        'LEFT JOIN batch_registry br_wi ON br_wi.product_batch_id = pb_wi.id',
-        'LEFT JOIN warehouse_inventory wi ON wi.batch_id = br_wi.id',
-        'LEFT JOIN inventory_status warehouse_status ON warehouse_status.id = wi.status_id',
-
-        // ----- Location inventory join chain -----
-        'LEFT JOIN product_batches pb_li ON pb_li.sku_id = s.id',
-        'LEFT JOIN batch_registry br_li ON br_li.product_batch_id = pb_li.id',
-        'LEFT JOIN location_inventory li ON li.batch_id = br_li.id',
-        'LEFT JOIN inventory_status location_status ON location_status.id = li.status_id',
-        'LEFT JOIN batch_registry br ON br.id = COALESCE(wi.batch_id, li.batch_id)',
-        'LEFT JOIN product_batches pb ON pb.id = br.product_batch_id',
-        'LEFT JOIN batch_status batch_status ON batch_status.id = pb.status_id',
-      ]
-    : baseJoins;
-
-  const joins = options.allowAllSkus ? privilegedJoins : baseJoins;
-
-  const baseSelectFields = [
-    's.id',
-    'MIN(s.sku) AS sku',
-    'MIN(s.barcode) AS barcode',
-    'MIN(s.country_code) AS country_code',
-    'MIN(p.name) AS product_name',
-    'MIN(p.brand) AS brand',
-    'MIN(s.size_label) AS size_label',
-  ];
-
-  const diagnosticSelects = [
-    minUuid('p', 'status_id', 'product_status_id'),
-    minUuid('s', 'status_id', 'sku_status_id'),
-    minUuid('wi', 'status_id', 'warehouse_status_id'),
-    minUuid('li', 'status_id', 'location_status_id'),
-    minUuid('pb', 'status_id', 'batch_status_id'),
-  ];
-
-  // Select fields to group by and return in SELECT clause
-  const groupedSelectFields = options.allowAllSkus
-    ? [...baseSelectFields, ...diagnosticSelects]
-    : baseSelectFields;
-
-  // Note: GROUP BY s.id and MIN() aggregation are used to deduplicate rows per SKU,
-  //       since one SKU may link to multiple inventory or batch entries.
+  
+  // Static parts resolved from module-level constants — no allocation per call.
+  const joins        = options.allowAllSkus ? PRIVILEGED_JOINS         : BASE_JOINS;
+  const selectFields = options.allowAllSkus ? PRIVILEGED_SELECT_FIELDS : BASE_SELECT_FIELDS;
+  
+  // queryText must be built per request because whereClause is dynamic.
   const queryText = `
     SELECT
-      ${groupedSelectFields.join(',\n')}
-    FROM ${tableName}
-    ${joins.join('\n')}
+      ${selectFields.join(',\n      ')}
+    FROM ${TABLE_NAME}
+    ${joins.join('\n    ')}
     WHERE ${whereClause}
     GROUP BY s.id
-    ORDER BY
-      MIN(p.brand) ASC,
-      LPAD(REGEXP_REPLACE(MIN(p.name), '[^0-9]', '', 'g'), 10, '0') NULLS LAST,
-      MIN(p.name) ASC,
-      s.id
   `;
-
+  
   try {
-    const result = await paginateQueryByOffset({
-      tableName,
+    return await paginateQueryByOffset({
+      tableName:      TABLE_NAME,
       joins,
       whereClause,
       queryText,
       params,
       offset,
       limit,
-      sortBy: null, // Avoid duplication with additionalSort
-      sortOrder: undefined, // Not needed if sortBy is null
-      additionalSort: `
-        p.brand ASC,
-        LPAD(REGEXP_REPLACE(p.name, '[^0-9]', '', 'g'), 10, '0') NULLS LAST,
-        p.name ASC,
+      additionalSorts: [],
+      rawOrderBy: `
+        MIN(p.brand) ASC,
+        LPAD(REGEXP_REPLACE(MIN(p.name), '[^0-9]', '', 'g'), 10, '0') NULLS LAST,
+        MIN(p.name) ASC,
         s.id
       `,
-      useDistinct: !!options.allowAllSkus,
+      whitelistSet:   null,
+      // useDistinct scopes COUNT(*) to unique s.id values so totalRecords stays
+      // accurate even before GROUP BY collapses rows.
+      useDistinct:    !!options.allowAllSkus,
       distinctColumn: options.allowAllSkus ? 's.id' : undefined,
     });
-
-    logSystemInfo('Fetched SKU dropdown lookup successfully', {
-      context: 'sku-repository/getSkuLookup',
-      totalFetched: result.data?.length ?? 0,
-      totalAvailable: result.pagination.totalRecords ?? null,
-      offset,
-      limit,
-      filters,
-      options,
-    });
-
-    return result;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch SKU dropdown options', {
-      context: 'sku-repository/getSkuLookup',
-      offset,
-      limit,
-      filters,
-      options,
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch SKU options for dropdown.',
+      meta:    { offset, limit, filters, options },
+      logFn:   (err) => logDbQueryError(
+        queryText,
+        params,
+        err,
+        { context, filters, offset, limit }
+      ),
     });
-
-    throw AppError.databaseError('Failed to fetch SKU options for dropdown.');
   }
 };
 
+// ─── Paginated SKU List ───────────────────────────────────────────────────────
+
 /**
- * @async
- * @function
- * @description
- * Retrieves paginated SKU records with optional filtering, SQL-safe sorting,
- * and related metadata from associated tables.
+ * Fetches paginated SKU records with optional filtering and sorting.
  *
- * This repository function is read-only and is responsible for assembling
- * SKU rows enriched with product, status, creator/updater, and primary image
- * information. It follows the shared pagination pattern used across the
- * application to ensure consistent API responses.
+ * Joins products, status, audit users, and primary thumbnail image.
+ * Applies deterministic tie-breaking via SKU_LIST_ADDITIONAL_SORTS.
  *
- * Features:
- *  - Supports dynamic filtering via `buildSkuFilter()`
- *  - Enforces SQL-safe sorting using an allowlisted sort map
- *  - Applies pagination using a shared helper (`paginateResults`)
- *  - Includes the SKU’s primary image (if available) via a LATERAL join
+ * @param {Object}       options
+ * @param {Object}       [options.filters={}]           - Field filters.
+ * @param {number}       [options.page=1]               - Page number (1-based).
+ * @param {number}       [options.limit=10]             - Records per page.
+ * @param {string}       [options.sortBy='createdAt']   - Sort key (mapped via skuSortMap).
+ * @param {'ASC'|'DESC'} [options.sortOrder='DESC']     - Sort direction.
  *
- * Filtering:
- * Accepts finalized filter criteria produced by `buildSkuFilter()`, which may
- * include (but is not limited to):
- *  - statusIds[]
- *  - productIds[]
- *  - sku or barcode (partial match)
- *  - language, country_code
- *  - market_region, size_label
- *  - dimensional filters (length / width / height / weight)
- *
- * Sorting:
- *  - `sortBy` must be a SQL column already mapped by the controller using
- *    the SKU module’s sort map.
- *  - The repository performs an additional allowlist check to prevent
- *    unsafe ORDER BY injection.
- *  - If the provided column is invalid, sorting falls back to the module’s
- *    `defaultNaturalSort` value.
- *
- * Pagination:
- *  - Page-based pagination (1-indexed)
- *  - Applies LIMIT and OFFSET internally
- *  - Returns pagination metadata alongside the data rows
- *
- * Returned structure:
- *  - `data`: Array of SKU row objects (already transformed for API use)
- *  - `meta`: Pagination metadata `{ page, limit, total, totalPages }`
- *
- * @param {Object} options
- * @param {Object} [options.filters={}]
- *   Finalized filter criteria generated by `buildSkuFilter()`.
- *
- * @param {number} [options.page=1]
- *   Page number (1-based).
- *
- * @param {number} [options.limit=10]
- *   Number of rows per page.
- *
- * @param {string} [options.sortBy='s.created_at']
- *   SQL column name already mapped and validated via the SKU sort map.
- *
- * @param {string} [options.sortOrder='DESC']
- *   Sort direction (`ASC` or `DESC`).
- *
- * @returns {Promise<{ data: Array<Object>, meta: Object }>}
- *   Resolves to paginated SKU records and pagination metadata.
- *
- * @throws {AppError}
- *   Throws a database error if query execution or pagination fails.
+ * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
+ * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getPaginatedSkus = async ({
-  filters = {},
-  page = 1,
-  limit = 10,
-  sortBy = 's.created_at',
-  sortOrder = 'DESC',
-}) => {
+                                  filters   = {},
+                                  page      = 1,
+                                  limit     = 10,
+                                  sortBy    = 'createdAt',
+                                  sortOrder = 'DESC',
+                                }) => {
   const context = 'sku-repository/getPaginatedSkus';
-
-  // 1. Load module sort map
-  const sortMap = getSortMapForModule('skuSortMap');
-
-  // 2. Allowed SQL columns
-  const allowedSort = new Set(Object.values(sortMap));
-
-  // 3. Final SQL-safe sort column
-  let sortByColumn = sortBy;
-  if (!allowedSort.has(sortByColumn)) {
-    sortByColumn = sortMap.defaultNaturalSort;
-  }
-
+  
+  const { whereClause, params } = buildSkuFilter(filters);
+  
+  const sortConfig = resolveSort({
+    sortBy,
+    sortOrder,
+    moduleKey:   'skuSortMap',
+    defaultSort: SORTABLE_FIELDS.skuSortMap.defaultNaturalSort,
+  });
+  
+  // ORDER BY omitted — paginateQuery appends it from sortConfig.
+  const queryText = buildPaginatedSkusQuery(whereClause);
+  
   try {
-    // ------------------------------------
-    // 1. Build WHERE clause + params
-    // ------------------------------------
-    const { whereClause, params } = buildSkuFilter(filters);
-
-    // ------------------------------------
-    // 2. Build the SELECT query
-    // ------------------------------------
-    const dataQuery = `
-      SELECT
-        s.id AS sku_id,
-        s.product_id,
-        p.name AS product_name,
-        p.series,
-        p.brand,
-        p.category,
-        s.sku,
-        s.barcode,
-        s.language,
-        s.country_code,
-        s.market_region,
-        s.size_label,
-        s.status_id,
-        st.name AS status_name,
-        s.status_date,
-        s.created_at,
-        s.updated_at,
-        s.created_by,
-        u1.firstname AS created_by_firstname,
-        u1.lastname AS created_by_lastname,
-        s.updated_by,
-        u2.firstname AS updated_by_firstname,
-        u2.lastname AS updated_by_lastname,
-        img.image_url AS primary_image_url
-      FROM skus s
-      LEFT JOIN products p ON p.id = s.product_id
-      LEFT JOIN status st ON st.id = s.status_id
-      LEFT JOIN users u1 ON s.created_by = u1.id
-      LEFT JOIN users u2 ON s.updated_by = u2.id
-      LEFT JOIN LATERAL (
-      SELECT t.image_url
-      FROM (
-        SELECT
-          si.*,
-          MAX(
-            CASE
-              WHEN si.image_type = 'main'
-              THEN si.is_primary::int
-              ELSE 0
-            END
-          ) OVER (PARTITION BY si.group_id) AS group_primary
-        FROM sku_images si
-        WHERE si.sku_id = s.id
-      ) t
-      WHERE t.image_type = 'thumbnail'
-      ORDER BY
-        t.group_primary DESC,
-        t.display_order ASC
-        LIMIT 1
-      ) img ON TRUE
-      WHERE ${whereClause}
-      ORDER BY ${sortByColumn} ${sortOrder}
-    `;
-
-    // ------------------------------------
-    // 3. Execute pagination helper
-    // ------------------------------------
-    const result = await paginateResults({
-      dataQuery,
+    return await paginateQuery({
+      tableName:       'skus s',
+      joins:           SKU_LIST_JOINS,
+      whereClause,
+      queryText,
       params,
       page,
       limit,
-      meta: { context },
+      sortBy:          sortConfig.sortBy,
+      sortOrder:       sortConfig.sortOrder,
+      additionalSorts: SKU_LIST_ADDITIONAL_SORTS,
+      whitelistSet:    SKU_LIST_SORT_WHITELIST,
+      meta:            { context },
     });
-
-    // ------------------------------------
-    // 4. Logging
-    // ------------------------------------
-    logSystemInfo('Fetched paginated SKU records successfully', {
-      context,
-      filters,
-      pagination: { page, limit },
-      sorting: { sortBy: sortByColumn, sortOrder },
-      count: result.data.length,
-    });
-
-    return result;
   } catch (error) {
-    // ------------------------------------
-    // 5. Error handling
-    // ------------------------------------
-    logSystemException(error, 'Failed to fetch paginated SKU records', {
+    throw handleDbError(error, {
       context,
-      filters,
-      pagination: { page, limit },
-      sorting: { sortBy: sortByColumn, sortOrder },
-    });
-
-    throw AppError.databaseError('Failed to fetch paginated SKU records.', {
-      context,
+      message: 'Failed to fetch paginated SKU records.',
+      meta:    { filters, page, limit, sortBy, sortOrder },
+      logFn:   (err) => logDbQueryError(
+        queryText,
+        params,
+        err,
+        { context, filters, page, limit }
+      ),
     });
   }
 };
 
+// ─── Barcode Existence Check ──────────────────────────────────────────────────
+
 /**
- * @async
- * @function
- * @description
- * Checks whether a barcode already exists in the `skus` table.
+ * Returns true if a SKU with the given barcode already exists.
  *
- * Behavior:
- * - Returns `false` immediately if barcode is null/empty (no validation needed)
- * - Performs a fast `SELECT 1 LIMIT 1` existence check
- * - Logs both success and failure paths for debugging/auditing
+ * Skips the query and returns false immediately when barcode is falsy.
  *
- * @example
- * const exists = await checkBarcodeExists('1234567890123', client);
- * if (exists) throw AppError.conflictError('Barcode already in use.');
+ * @param {string|null}                barcode - Barcode value to check.
+ * @param {PoolClient}    [client] - Optional transaction client.
  *
- * @param {string} barcode - The barcode to validate (EAN, UPC, internal code, etc.)
- * @param {object} client - Active PG client or transaction handler.
- * @returns {Promise<boolean>} True if barcode exists, otherwise false.
+ * @returns {Promise<boolean>}
+ * @throws  {AppError} Normalized database error if the query fails.
  */
 const checkBarcodeExists = async (barcode, client) => {
+  if (!barcode) return false;
+  
   const context = 'sku-repository/checkBarcodeExists';
-
-  // no barcode → nothing to check
-  if (!barcode) {
-    logSystemInfo('Skipped barcode existence check (empty barcode)', {
-      context,
-      barcode,
-    });
-    return false;
-  }
-
-  const sql = `
-    SELECT 1
-    FROM skus
-    WHERE barcode = $1
-    LIMIT 1;
-  `;
-
+  const params  = [barcode];
+  
   try {
-    const { rows } = await query(sql, [barcode], client);
-    const exists = rows.length > 0;
-
-    logSystemInfo('Checked barcode existence', {
-      context,
-      barcode,
-      exists,
-    });
-
-    return exists;
+    const { rows } = await query(CHECK_BARCODE_EXISTS_QUERY, params, client);
+    return rows.length > 0;
   } catch (error) {
-    logSystemException(error, 'Failed to check barcode existence.', {
+    throw handleDbError(error, {
       context,
-      barcode,
-    });
-
-    throw AppError.databaseError('Failed to check barcode existence.', {
-      cause: error,
-      context,
+      message: 'Failed to check barcode existence.',
+      meta:    { barcode },
+      logFn:   (err) => logDbQueryError(
+        CHECK_BARCODE_EXISTS_QUERY,
+        params,
+        err,
+        { context, barcode }
+      ),
     });
   }
 };
 
+// ─── SKU Existence Check ──────────────────────────────────────────────────────
+
 /**
- * @async
- * @function
- * @description
- * Checks if a SKU already exists for a given product.
+ * Returns true if a SKU with the given code already exists for the product.
  *
- * @example
- * const exists = await checkSkuExists('CH-HN101-R-CN', 'product-uuid', client);
- * if (exists) throw AppError.conflictError('SKU already exists.');
+ * @param {string}                  sku       - SKU code to check.
+ * @param {string}                  productId - Product UUID.
+ * @param {PoolClient} [client]  - Optional transaction client.
  *
- * @param {string} sku - SKU code (e.g. "CH-HN117-R-CN").
- * @param {string} productId - Product UUID.
- * @param {object} client - Active PG client or transaction.
- * @returns {Promise<boolean>} True if the SKU exists, false otherwise.
+ * @returns {Promise<boolean>}
+ * @throws  {AppError} Normalized database error if the query fails.
  */
 const checkSkuExists = async (sku, productId, client) => {
   const context = 'sku-repository/checkSkuExists';
-
-  const sql = `
-    SELECT 1
-    FROM skus
-    WHERE sku = $1 AND product_id = $2
-    LIMIT 1;
-  `;
-
+  const params  = [sku, productId];
+  
   try {
-    const { rows } = await query(sql, [sku, productId], client);
-    const exists = rows.length > 0;
-
-    logSystemInfo('Checked SKU existence', {
-      context,
-      sku,
-      productId,
-      exists,
-    });
-
-    return exists;
+    const { rows } = await query(CHECK_SKU_EXISTS_QUERY, params, client);
+    return rows.length > 0;
   } catch (error) {
-    logSystemException(error, 'Failed to check SKU existence.', {
+    throw handleDbError(error, {
       context,
-      sku,
-      productId,
-    });
-    throw AppError.databaseError('Failed to check SKU existence.', {
-      cause: error,
+      message: 'Failed to check SKU existence.',
+      meta:    { sku, productId },
+      logFn:   (err) => logDbQueryError(
+        CHECK_SKU_EXISTS_QUERY,
+        params,
+        err,
+        { context, sku, productId }
+      ),
     });
   }
 };
 
+// ─── Bulk Insert ──────────────────────────────────────────────────────────────
+
 /**
- * @async
- * @function
- * @description
- * Inserts one or multiple SKU records into the database efficiently.
+ * Bulk upserts SKU records, returning the inserted/updated row ids.
  *
- * - Supports **bulk insertion** (multi-row VALUES syntax).
- * - Applies **ON CONFLICT (product_id, sku)** upsert logic to avoid duplicates.
- * - Returns an array of inserted/updated records (default columns: `id`).
+ * Conflicts on (product_id, sku) update description and updated_at.
+ * Returns an empty array immediately when skus is empty.
  *
- * @example
- * await insertSkusBulk([
- *   { product_id: '...', sku: 'CH-HN101-R-CN', barcode: '628693...', created_by: userId },
- *   { product_id: '...', sku: 'CH-HN102-R-CA', barcode: '628693...', created_by: userId }
- * ], client);
+ * @param {Array<Object>}           skus     - SKU payloads to insert.
+ * @param {PoolClient} [client] - Optional transaction client.
  *
- * @param {Array<Object>} skus - SKU objects to insert.
- * @param {object} client - Active PG transaction client.
- * @returns {Promise<Array>} Inserted SKU rows (default: `{ id }` only).
+ * @returns {Promise<Array<{id: string}>>} Inserted/updated row ids.
+ * @throws  {AppError} Normalized database error if the insert fails.
  */
 const insertSkusBulk = async (skus, client) => {
   if (!Array.isArray(skus) || skus.length === 0) return [];
-
+  
   const context = 'sku-repository/insertSkusBulk';
-
+  
   const columns = [
     'product_id',
     'sku',
@@ -755,8 +432,7 @@ const insertSkusBulk = async (skus, client) => {
     'updated_at',
     'updated_by',
   ];
-
-  // Convert objects into row arrays
+  
   const rows = skus.map((s) => [
     s.product_id,
     s.sku,
@@ -766,212 +442,96 @@ const insertSkusBulk = async (skus, client) => {
     s.market_region,
     s.size_label,
     s.description,
-    s.length_cm ?? null, // null → distinguish "unset" vs 0
-    s.width_cm ?? null,
-    s.height_cm ?? null,
-    s.weight_g ?? null,
+    s.length_cm  ?? null,
+    s.width_cm   ?? null,
+    s.height_cm  ?? null,
+    s.weight_g   ?? null,
     s.status_id,
     s.created_by ?? null,
     null,
     null,
   ]);
-
-  // Conflict handling (avoid duplicate SKU code)
-  const conflictColumns = ['product_id', 'sku'];
-
-  const updateStrategies = {
-    description: 'overwrite', // Replace description if re-inserted
-    updated_at: 'overwrite', // Refresh timestamp
+  
+  validateBulkInsertRows(rows, columns.length);
+  
+  const conflictColumns   = ['product_id', 'sku'];
+  const updateStrategies  = {
+    description: 'overwrite',
+    updated_at:  'overwrite',
   };
-
+  
   try {
-    const result = await bulkInsert(
+    return await bulkInsert(
       'skus',
       columns,
       rows,
       conflictColumns,
       updateStrategies,
       client,
-      { context },
+      { meta: { context } },
       'id'
     );
-
-    logSystemInfo('Successfully inserted or updated SKU records', {
-      context,
-      insertedCount: result.length,
-      totalInput: skus.length,
-    });
-
-    return result;
   } catch (error) {
-    logSystemException(error, 'Failed to insert SKU records', {
+    throw handleDbError(error, {
       context,
-      skuCount: skus.length,
-    });
-
-    throw AppError.databaseError('Failed to insert SKU records', {
-      cause: error,
+      message: 'Failed to insert SKU records.',
+      meta:    { skuCount: skus.length },
+      logFn: (err) => logBulkInsertError(err, 'skus', null, rows.length, { context }),
     });
   }
 };
 
+// ─── SKU Detail ───────────────────────────────────────────────────────────────
+
 /**
- * Repository: Fetch a single SKU with minimal but complete base metadata.
+ * Fetches full SKU metadata for a single SKU by id.
  *
- * This function retrieves the core SKU information, including:
- *   - SKU fields (sku, barcode, dimensions, status, audit fields)
- *   - Related product metadata (name, brand, series, category)
- *   - Status lookup (SKU status name)
- *   - Created/updated user info (firstname/lastname)
+ * Returns null if no matching SKU exists.
  *
- * IMPORTANT:
- *   Does NOT include:
- *     - Pricing records
- *     - Compliance records
- *     - Images
- *   These are intentionally fetched separately to avoid performance-heavy joins.
+ * @param {string} skuId - UUID of the SKU to fetch.
  *
- * Performance:
- *   - Fast: uses PK filter `s.id = $1`
- *   - Joins limited to: products, status, and users
- *
- * Error Handling:
- *   - Returns `null` if SKU does not exist
- *   - Throws `AppError.databaseError` on DB failures
- *
- * @param {string} skuId - UUID of the SKU to fetch
- * @returns {Promise<Object|null>} SKU row with related metadata, or null if not found
+ * @returns {Promise<Object|null>} SKU detail row, or null if not found.
+ * @throws  {AppError}             Normalized database error if the query fails.
  */
 const getSkuDetailsById = async (skuId) => {
   const context = 'sku-repository/getSkuDetailsById';
-
-  // Base lookup of SKU metadata only — keep this query light & fast
-  const queryText = `
-    SELECT
-      s.id AS sku_id,
-      s.product_id,
-      p.name AS product_name,
-      p.series AS product_series,
-      p.brand AS product_brand,
-      p.category AS product_category,
-      s.sku,
-      s.barcode,
-      s.language,
-      s.country_code,
-      s.market_region,
-      s.size_label,
-      s.description AS sku_description,
-      s.length_cm,
-      s.width_cm,
-      s.height_cm,
-      s.weight_g,
-      s.length_inch,
-      s.width_inch,
-      s.height_inch,
-      s.weight_lb,
-      s.status_id AS sku_status_id,
-      st.name AS sku_status_name,
-      s.status_date AS sku_status_date,
-      s.created_at,
-      s.updated_at,
-      s.created_by,
-      s.updated_by,
-      u1.firstname AS created_by_firstname,
-      u1.lastname AS created_by_lastname,
-      u2.firstname AS updated_by_firstname,
-      u2.lastname AS updated_by_lastname
-    FROM skus s
-    LEFT JOIN products p ON p.id = s.product_id
-    LEFT JOIN status st ON st.id = s.status_id
-    LEFT JOIN users u1 ON u1.id = s.created_by
-    LEFT JOIN users u2 ON u2.id = s.updated_by
-    WHERE s.id = $1
-  `;
-
+  const params  = [skuId];
+  
   try {
-    const { rows } = await query(queryText, [skuId]);
-
-    if (rows.length === 0) {
-      // Not an error — SKU might simply not exist
-      logSystemInfo('No SKU found for given ID', {
-        context,
-        skuId,
-      });
-      return null;
-    }
-
-    logSystemInfo('Fetched SKU detail successfully', {
-      context,
-      skuId,
-    });
-
-    return rows[0];
+    const { rows } = await query(SKU_DETAILS_QUERY, params);
+    return rows[0] ?? null;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch SKU detail', {
+    throw handleDbError(error, {
       context,
-      skuId,
-      error: error.message,
-    });
-
-    throw AppError.databaseError('Failed to fetch SKU detail', {
-      context,
-      details: error.message,
+      message: 'Failed to fetch SKU detail.',
+      meta:    { skuId },
+      logFn:   (err) => logDbQueryError(
+        SKU_DETAILS_QUERY,
+        params,
+        err,
+        { context, skuId }
+      ),
     });
   }
 };
 
+// ─── SKU History Check ────────────────────────────────────────────────────────
+
 /**
- * Checks whether a SKU has any historical references in the system.
+ * Returns true if the SKU has any associated orders, product batches,
+ * or warehouse inventory entries.
  *
- * A SKU is considered to have history if it has ever been referenced in:
- * - order_items
- * - product_batches
- * - warehouse_inventory (via batch_registry → product_batches)
- *
- * This function is typically used to determine whether a SKU
- * can be permanently deleted from the system.
- *
- * This check does NOT evaluate operational state — only historical existence.
- *
- * @param {string} skuId - UUID of the SKU.
- * @param {import('pg').PoolClient|null} [client]
- *   Optional transactional client.
+ * @param {string}                  skuId    - UUID of the SKU to check.
+ * @param {PoolClient} [client] - Optional transaction client.
  *
  * @returns {Promise<boolean>}
- *   Returns true if any historical reference exists,
- *   false otherwise.
- *
- * @throws {AppError.databaseError}
- *   If the database query fails.
+ * @throws  {AppError} Normalized database error if the query fails.
  */
 const skuHasAnyHistory = async (skuId, client = null) => {
   const context = 'sku-repository/skuHasAnyHistory';
-
-  const queryText = `
-    SELECT 1
-    WHERE EXISTS (
-      SELECT 1
-      FROM order_items oi
-      WHERE oi.sku_id = $1
-    )
-    OR EXISTS (
-      SELECT 1
-      FROM product_batches pb
-      WHERE pb.sku_id = $1
-    )
-    OR EXISTS (
-      SELECT 1
-      FROM warehouse_inventory wi
-      JOIN batch_registry br
-        ON wi.batch_id = br.id
-      JOIN product_batches pb
-        ON br.product_batch_id = pb.id
-      WHERE pb.sku_id = $1
-    );
-  `;
-
+  
   return existsQuery(
-    queryText,
+    SKU_HAS_ANY_HISTORY_QUERY,
     [skuId],
     context,
     'Failed to check SKU historical references',
@@ -979,284 +539,151 @@ const skuHasAnyHistory = async (skuId, client = null) => {
   );
 };
 
+// ─── SKU Updates ─────────────────────────────────────────────────────────────
+
 /**
- * Repository: Update SKU Metadata (Safe Fields Only)
+ * Patches allowed metadata fields on a SKU record.
  *
- * Updates non-identity, non-dimensional metadata fields of a SKU.
+ * Allowed fields: description, size_label, language, market_region.
  *
- * Scope:
- * - Allowed fields: description, size_label, language, market_region
- * - Disallowed fields: sku, barcode, product_id, dimensions, status
+ * @param {string}                  skuId   - UUID of the SKU to update.
+ * @param {Object}                  payload - Fields to update.
+ * @param {string}                  userId  - UUID of the acting user.
+ * @param {PoolClient} client  - Transaction client.
  *
- * Behavior:
- * - Intended to be executed inside an existing transaction.
- * - Assumes the SKU row has already been locked (FOR UPDATE) by the service layer.
- * - Automatically updates audit fields (updated_at, updated_by).
- *
- * @param {string} skuId - UUID of the SKU to update.
- * @param {{
- *   description?: string,
- *   size_label?: string,
- *   language?: string,
- *   market_region?: string
- * }} payload - Partial metadata update fields.
- * @param {string} userId - UUID of the user performing the update.
- * @param {import('pg').PoolClient} client - Active transactional client.
- *
- * @returns {Promise<Object|null>}
- *   Returns the updated SKU record, or null if no row was modified.
- *
- * @throws {AppError.databaseError}
- *   If the update query fails.
+ * @returns {Promise<{id: string}>}
+ * @throws  {AppError} Validation error if no valid fields are provided.
+ * @throws  {AppError} Normalized database error if the update fails.
  */
 const updateSkuMetadata = async (skuId, payload, userId, client) => {
   const context = 'sku-repository/updateSkuMetadata';
-
+  
+  const allowedFields = ['description', 'size_label', 'language', 'market_region'];
+  const updates = {};
+  
+  for (const key of allowedFields) {
+    if (payload[key] !== undefined) updates[key] = payload[key];
+  }
+  
+  if (Object.keys(updates).length === 0) {
+    throw AppError.validationError('No valid metadata fields provided.', { context });
+  }
+  
   try {
-    const allowedFields = [
-      'description',
-      'size_label',
-      'language',
-      'market_region',
-    ];
-
-    const updates = {};
-
-    for (const key of allowedFields) {
-      if (payload[key] !== undefined) {
-        updates[key] = payload[key];
-      }
-    }
-
-    if (Object.keys(updates).length === 0) {
-      throw AppError.validationError('No valid metadata fields provided.', {
-        context,
-      });
-    }
-
-    const result = await updateById('skus', skuId, updates, userId, client);
-
-    logSystemInfo('Updated SKU metadata successfully', {
-      context,
-      skuId,
-      updatedBy: userId,
-      fieldsUpdated: Object.keys(updates),
-    });
-
-    return result;
+    return await updateById('skus', skuId, updates, userId, client);
   } catch (error) {
-    logSystemException(error, 'Failed to update SKU metadata', {
+    throw handleDbError(error, {
       context,
-      skuId,
-      updatedBy: userId,
-    });
-
-    throw AppError.databaseError('Failed to update SKU metadata.', {
-      context,
-      cause: error.message,
+      message: 'Failed to update SKU metadata.',
+      meta:    { skuId, updatedBy: userId, fieldsUpdated: Object.keys(updates) },
     });
   }
 };
 
 /**
- * Repository: Update SKU Status
+ * Patches the status_id and status_date on a SKU record.
  *
- * Updates the status of a SKU record by its ID. Automatically updates:
- *   - status_id
- *   - status_date
- *   - updated_at
- *   - updated_by
+ * @param {string}                  skuId    - UUID of the SKU to update.
+ * @param {string}                  statusId - UUID of the new status.
+ * @param {string}                  userId   - UUID of the acting user.
+ * @param {PoolClient} client   - Transaction client.
  *
- * Mirrors the product status update pattern to ensure consistent
- * audit behavior across ERP modules.
- *
- * @param {string} skuId - UUID of the SKU being updated
- * @param {string} statusId - UUID of the new status value
- * @param {string} userId - UUID of the user performing the update
- * @param {import('pg').PoolClient} client - Active DB client/transaction
- * @returns {Promise<{ id: string }>} Updated record identifier
- *
- * @throws {AppError} If update fails or SKU not found
+ * @returns {Promise<{id: string}>}
+ * @throws  {AppError} Normalized database error if the update fails.
  */
 const updateSkuStatus = async (skuId, statusId, userId, client) => {
   const context = 'sku-repository/updateSkuStatus';
-
+  
+  const updates = {
+    status_id:   statusId,
+    status_date: new Date(),
+  };
+  
   try {
-    const updates = {
-      status_id: statusId,
-      status_date: new Date(),
-    };
-
-    // Reuse generic updateById helper for consistency
-    const result = await updateById('skus', skuId, updates, userId, client);
-
-    logSystemInfo('Updated SKU status successfully', {
-      context,
-      skuId,
-      statusId,
-      updatedBy: userId,
-    });
-
-    return result; // { id: '...' }
+    return await updateById('skus', skuId, updates, userId, client);
   } catch (error) {
-    logSystemException(error, 'Failed to update SKU status', {
+    throw handleDbError(error, {
       context,
-      skuId,
-      statusId,
-      updatedBy: userId,
-    });
-
-    throw AppError.databaseError('Failed to update SKU status.', {
-      context,
-      cause: error.message,
+      message: 'Failed to update SKU status.',
+      meta:    { skuId, statusId, updatedBy: userId },
     });
   }
 };
 
 /**
- * Repository: Update SKU Dimensions (Controlled Fields Only)
+ * Patches dimension fields on a SKU record.
  *
- * Updates physical dimension attributes of a SKU.
+ * Allowed fields: length_cm, width_cm, height_cm, weight_g.
  *
- * Scope:
- * - Allowed fields: length_cm, width_cm, height_cm, weight_g
- * - Does NOT modify identity, metadata, pricing, or status fields.
+ * @param {string}                  skuId   - UUID of the SKU to update.
+ * @param {Object}                  payload - Fields to update.
+ * @param {string}                  userId  - UUID of the acting user.
+ * @param {PoolClient} client  - Transaction client.
  *
- * Behavior:
- * - Intended to be executed within an existing transaction.
- * - Assumes the SKU row has already been locked (FOR UPDATE).
- * - Audit fields (updated_at, updated_by) are updated automatically.
- * - Derived unit fields (inch / lb columns) are generated by database logic.
- *
- * @param {string} skuId - UUID of the SKU to update.
- * @param {{
- *   length_cm?: number,
- *   width_cm?: number,
- *   height_cm?: number,
- *   weight_g?: number
- * }} payload - Partial dimension updates.
- * @param {string} userId - UUID of the user performing the update.
- * @param {import('pg').PoolClient} client - Active transactional client.
- *
- * @returns {Promise<Object|null>}
- *   Returns updated SKU record or null if no row was modified.
- *
- * @throws {AppError.databaseError}
+ * @returns {Promise<{id: string}>}
+ * @throws  {AppError} Validation error if no valid fields are provided.
+ * @throws  {AppError} Normalized database error if the update fails.
  */
 const updateSkuDimensions = async (skuId, payload, userId, client) => {
   const context = 'sku-repository/updateSkuDimensions';
-
+  
+  const allowedFields = ['length_cm', 'width_cm', 'height_cm', 'weight_g'];
+  const updates = {};
+  
+  for (const key of allowedFields) {
+    if (payload[key] !== undefined) updates[key] = payload[key];
+  }
+  
+  if (Object.keys(updates).length === 0) {
+    throw AppError.validationError('No dimension fields provided.', { context });
+  }
+  
   try {
-    const allowedFields = ['length_cm', 'width_cm', 'height_cm', 'weight_g'];
-
-    const updates = {};
-
-    for (const key of allowedFields) {
-      if (payload[key] !== undefined) {
-        updates[key] = payload[key];
-      }
-    }
-
-    if (Object.keys(updates).length === 0) {
-      throw AppError.validationError('No dimension fields provided.', {
-        context,
-      });
-    }
-
-    const result = await updateById('skus', skuId, updates, userId, client);
-
-    logSystemInfo('Updated SKU dimensions successfully', {
-      context,
-      skuId,
-      updatedBy: userId,
-      fieldsUpdated: Object.keys(updates),
-    });
-
-    return result;
+    return await updateById('skus', skuId, updates, userId, client);
   } catch (error) {
-    logSystemException(error, 'Failed to update SKU dimensions', {
+    throw handleDbError(error, {
       context,
-      skuId,
-      updatedBy: userId,
-    });
-
-    throw AppError.databaseError('Failed to update SKU dimensions.', {
-      context,
-      cause: error.message,
+      message: 'Failed to update SKU dimensions.',
+      meta:    { skuId, updatedBy: userId, fieldsUpdated: Object.keys(updates) },
     });
   }
 };
 
 /**
- * Repository: Update SKU Identity (Controlled Fields Only)
+ * Patches identity fields (sku code and barcode) on a SKU record.
  *
- * Updates identity-related attributes of a SKU.
+ * Allowed fields: sku, barcode.
  *
- * Scope:
- * - Allowed fields: sku, barcode
- * - Does NOT modify metadata, dimensions, pricing, or status fields.
+ * @param {string}                  skuId   - UUID of the SKU to update.
+ * @param {Object}                  payload - Fields to update.
+ * @param {string}                  userId  - UUID of the acting user.
+ * @param {PoolClient} client  - Transaction client.
  *
- * Behavior:
- * - Intended to be executed within an existing transaction.
- * - Assumes the SKU row has already been locked (FOR UPDATE).
- * - Audit fields (updated_at, updated_by) are updated automatically.
- *
- * Identity changes may impact references and integrations,
- * but permission enforcement is handled at higher layers.
- *
- * @param {string} skuId - UUID of the SKU to update.
- * @param {{
- *   sku?: string,
- *   barcode?: string
- * }} payload - Partial identity updates.
- * @param {string} userId - UUID of the user performing the update.
- * @param {import('pg').PoolClient} client - Active transactional client.
- *
- * @returns {Promise<Object|null>}
- *   Returns updated SKU record or null if no row was modified.
- *
- * @throws {AppError.databaseError}
+ * @returns {Promise<{id: string}>}
+ * @throws  {AppError} Validation error if no valid fields are provided.
+ * @throws  {AppError} Normalized database error if the update fails.
  */
 const updateSkuIdentity = async (skuId, payload, userId, client) => {
   const context = 'sku-repository/updateSkuIdentity';
-
+  
+  const allowedFields = ['sku', 'barcode'];
+  const updates = {};
+  
+  for (const key of allowedFields) {
+    if (payload[key] !== undefined) updates[key] = payload[key];
+  }
+  
+  if (Object.keys(updates).length === 0) {
+    throw AppError.validationError('No identity fields provided.', { context });
+  }
+  
   try {
-    const allowedFields = ['sku', 'barcode'];
-
-    const updates = {};
-
-    for (const key of allowedFields) {
-      if (payload[key] !== undefined) {
-        updates[key] = payload[key];
-      }
-    }
-
-    if (Object.keys(updates).length === 0) {
-      throw AppError.validationError('No identity fields provided.', {
-        context,
-      });
-    }
-
-    const result = await updateById('skus', skuId, updates, userId, client);
-
-    logSystemInfo('Updated SKU identity successfully', {
-      context,
-      skuId,
-      updatedBy: userId,
-      fieldsUpdated: Object.keys(updates),
-    });
-
-    return result;
+    return await updateById('skus', skuId, updates, userId, client);
   } catch (error) {
-    logSystemException(error, 'Failed to update SKU identity', {
+    throw handleDbError(error, {
       context,
-      skuId,
-      updatedBy: userId,
-    });
-
-    throw AppError.databaseError('Failed to update SKU identity.', {
-      context,
-      cause: error.message,
+      message: 'Failed to update SKU identity.',
+      meta:    { skuId, updatedBy: userId, fieldsUpdated: Object.keys(updates) },
     });
   }
 };

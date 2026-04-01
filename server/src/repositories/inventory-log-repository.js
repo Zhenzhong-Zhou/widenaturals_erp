@@ -1,175 +1,191 @@
+/**
+ * @file inventory-activity-log-repository.js
+ * @description Database access layer for inventory activity log records.
+ *
+ * Follows the established repo pattern:
+ *  - Query constants imported from inventory-activity-log-queries.js
+ *  - All errors normalized through handleDbError before bubbling up
+ *  - No success logging — middleware and globalErrorHandler own that layer
+ *
+ * Exports:
+ *  - insertInventoryActivityLogs — inserts activity log and audit log records in one call
+ */
+
+'use strict';
+
 const { bulkInsert } = require('../database/db');
-const { logSystemException } = require('../utils/system-logger');
+const { validateBulkInsertRows } = require('../utils/validation/bulk-insert-row-validator');
 const AppError = require('../utils/AppError');
+const { handleDbError } = require('../utils/errors/error-handlers');
+const { logBulkInsertError } = require('../utils/db-logger');
+const {
+  INVENTORY_ACTIVITY_LOG_COLUMNS,
+  INVENTORY_ACTIVITY_AUDIT_LOG_COLUMNS,
+  INVENTORY_ACTIVITY_LOG_CONFLICT_COLUMNS,
+  INVENTORY_ACTIVITY_AUDIT_WAREHOUSE_CONFLICT_COLUMNS,
+  INVENTORY_ACTIVITY_AUDIT_LOCATION_CONFLICT_COLUMNS,
+} = require('./queries/inventory-activity-log-queries');
+
+// ─── Insert ───────────────────────────────────────────────────────────────────
 
 /**
- * Inserts bulk inventory activity logs (both active + audit logs) for warehouse inventory.
+ * Inserts inventory activity log and audit log records for a batch of log entries.
  *
- * @param {Array<Object>} logs - Array of structured log entries (see a format below).
- * @param {object} client - DB client or transaction instance.
- * @param {Object} meta - Optional metadata for tracing/debugging
+ * Writes to two tables in sequence:
+ *  1. inventory_activity_log        — active log, append-only
+ *  2. inventory_activity_audit_log  — immutable audit trail, split by scope
  *
- * Each log must include:
- * {
- *   warehouse_inventory_id: UUID,
- *   inventory_action_type_id: UUID,
- *   adjustment_type_id?: UUID,
- *   order_id?: UUID,
- *   status_id?: UUID,
- *   previous_quantity: number,
- *   quantity_change: number,
- *   new_quantity: number,
- *   performed_by: UUID,
- *   comments?: string,
- *   metadata?: object,
- *   source_type?: string,
- *   source_ref_id?: UUID,
- *   recorded_by?: UUID,
- *   inventory_scope: 'warehouse',
- *   recorded_at?: timestamp,
- *   checksum: string
- * }
+ * Each log entry must have exactly one of warehouse_inventory_id or
+ * location_inventory_id — not both, not neither. This is validated before
+ * any IO to prevent orphaned activity log records.
+ *
+ * Audit logs are split into warehouse-scope and location-scope batches
+ * because each has a different conflict target column.
+ *
+ * @param {Array<Object>}  logs   - Validated log entry objects.
+ * @param {PoolClient}     client - DB client for transactional context.
+ * @param {Object}         meta   - Caller context passed through to bulkInsert for tracing.
+ *
+ * @returns {Promise<{
+ *   insertedActivityCount: number,
+ *   insertedAuditCount:    number,
+ *   warehouseAuditCount:   number,
+ *   locationAuditCount:    number,
+ *   activityLogIds:        string[]
+ * }|undefined>} Summary of inserted records, or undefined if logs is empty.
+ *
+ * @throws {AppError} Validation error if any log entry has an invalid scope combination.
+ * @throws {AppError} Normalized database error if any insert fails.
  */
 const insertInventoryActivityLogs = async (logs, client, meta) => {
   if (!Array.isArray(logs) || logs.length === 0) return;
-
+  
+  const context = 'inventory-activity-log-repository/insertInventoryActivityLogs';
+  
+  // ─── Build Rows ───────────────────────────────────────────────────────────
+  
+  const activityRows = logs.map((log) => [
+    log.warehouse_inventory_id    ?? null,
+    log.location_inventory_id     ?? null,
+    log.inventory_action_type_id,
+    log.adjustment_type_id        ?? null,
+    log.order_id                  ?? null,
+    log.status_id                 ?? null,
+    log.previous_quantity,
+    log.quantity_change,
+    log.new_quantity,
+    log.performed_by,
+    log.comments                  ?? null,
+    JSON.stringify(log.metadata   ?? {}),
+    log.source_type               ?? null,
+    log.source_ref_id             ?? null,
+  ]);
+  
+  const auditRows = logs.map((log) => [
+    log.warehouse_inventory_id    ?? null,
+    log.location_inventory_id     ?? null,
+    log.inventory_action_type_id,
+    log.previous_quantity,
+    log.quantity_change,
+    log.new_quantity,
+    log.status_id,
+    log.performed_by,
+    log.comments                  ?? null,
+    log.checksum,
+    JSON.stringify(log.metadata   ?? {}),
+    log.recorded_by               ?? log.performed_by,
+    log.inventory_scope           ?? 'warehouse',
+  ]);
+  
+  // ─── Validate Scope ───────────────────────────────────────────────────────
+  // Validation is before any IO — a scope violation must not leave an orphaned
+  // activity log record with no corresponding audit log.
+  
+  for (const log of logs) {
+    const hasWarehouse = Boolean(log.warehouse_inventory_id);
+    const hasLocation  = Boolean(log.location_inventory_id);
+    
+    if ((hasWarehouse && hasLocation) || (!hasWarehouse && !hasLocation)) {
+      throw AppError.validationError(
+        'Each log must have exactly one of warehouse_inventory_id or location_inventory_id.',
+        { context }
+      );
+    }
+  }
+  
+  // ─── Validate Row Lengths ─────────────────────────────────────────────────
+  
+  validateBulkInsertRows(activityRows, INVENTORY_ACTIVITY_LOG_COLUMNS.length);
+  validateBulkInsertRows(auditRows, INVENTORY_ACTIVITY_AUDIT_LOG_COLUMNS.length);
+  
+  // ─── Split Audit Rows by Scope ────────────────────────────────────────────
+  
+  // Warehouse and location audit logs have different unique constraint columns
+  // so must be inserted separately with their respective conflict targets.
+  const warehouseAuditRows = auditRows.filter((r) => r[0] !== null);
+  const locationAuditRows  = auditRows.filter((r) => r[1] !== null);
+  
+  // ─── Insert ───────────────────────────────────────────────────────────────
+  
   try {
-    // === Inventory Activity Log (Active Table) ===
-    const activityColumns = [
-      'warehouse_inventory_id',
-      'location_inventory_id',
-      'inventory_action_type_id',
-      'adjustment_type_id',
-      'order_id',
-      'status_id',
-      'previous_quantity',
-      'quantity_change',
-      'new_quantity',
-      'performed_by',
-      'comments',
-      'metadata',
-      'source_type',
-      'source_ref_id',
-    ];
-
-    const activityRows = logs.map((log) => [
-      log.warehouse_inventory_id || null,
-      log.location_inventory_id || null,
-      log.inventory_action_type_id,
-      log.adjustment_type_id || null,
-      log.order_id || null,
-      log.status_id || null,
-      log.previous_quantity,
-      log.quantity_change,
-      log.new_quantity,
-      log.performed_by,
-      log.comments || null,
-      JSON.stringify(log.metadata || {}),
-      log.source_type || null,
-      log.source_ref_id || null,
-    ]);
-
     const activityResult = await bulkInsert(
       'inventory_activity_log',
-      activityColumns,
+      INVENTORY_ACTIVITY_LOG_COLUMNS,
       activityRows,
-      [],
+      INVENTORY_ACTIVITY_LOG_CONFLICT_COLUMNS,
       {},
       client,
       meta
     );
-
-    const activityIds = activityResult.map((r) => r.id);
-
-    // === Inventory Activity Audit Log ===
-    const auditColumns = [
-      'warehouse_inventory_id',
-      'location_inventory_id',
-      'inventory_action_type_id',
-      'previous_quantity',
-      'quantity_change',
-      'new_quantity',
-      'status_id',
-      'action_by',
-      'comments',
-      'checksum',
-      'metadata',
-      'recorded_by',
-      'inventory_scope',
-    ];
-
-    const auditRows = logs.map((log) => [
-      log.warehouse_inventory_id || null,
-      log.location_inventory_id || null,
-      log.inventory_action_type_id,
-      log.previous_quantity,
-      log.quantity_change,
-      log.new_quantity,
-      log.status_id,
-      log.performed_by,
-      log.comments || null,
-      log.checksum,
-      JSON.stringify(log.metadata || {}),
-      log.recorded_by || log.performed_by,
-      log.inventory_scope ?? 'warehouse',
-    ]);
-
-    for (const log of logs) {
-      if (
-        (log.warehouse_inventory_id && log.location_inventory_id) ||
-        (!log.warehouse_inventory_id && !log.location_inventory_id)
-      ) {
-        throw AppError.validationError(
-          'Each log must have exactly one of warehouse_inventory_id or location_inventory_id'
-        );
-      }
-    }
-
-    const warehouseAuditRows = auditRows.filter((r) => r[0] !== null);
-    const locationAuditRows = auditRows.filter((r) => r[1] !== null);
-
-    // Insert warehouse-scope logs
+    
+    const activityLogIds = activityResult.map((r) => r.id);
+    
     if (warehouseAuditRows.length) {
       await bulkInsert(
         'inventory_activity_audit_log',
-        auditColumns,
+        INVENTORY_ACTIVITY_AUDIT_LOG_COLUMNS,
         warehouseAuditRows,
-        ['warehouse_inventory_id', 'inventory_action_type_id', 'recorded_at'],
+        INVENTORY_ACTIVITY_AUDIT_WAREHOUSE_CONFLICT_COLUMNS,
         {},
         client,
         meta,
-        '' // no RETURNING
+        ''  // no RETURNING — audit log IDs are not needed by caller
       );
     }
-
-    // Insert location-scope logs
+    
     if (locationAuditRows.length) {
-      return await bulkInsert(
+      await bulkInsert(
         'inventory_activity_audit_log',
-        auditColumns,
+        INVENTORY_ACTIVITY_AUDIT_LOG_COLUMNS,
         locationAuditRows,
-        ['location_inventory_id', 'inventory_action_type_id', 'recorded_at'],
+        INVENTORY_ACTIVITY_AUDIT_LOCATION_CONFLICT_COLUMNS,
         {},
         client,
         meta,
-        ''
+        ''  // no RETURNING — audit log IDs are not needed by caller
       );
     }
-
+    
     return {
       insertedActivityCount: activityRows.length,
-      insertedAuditCount: auditRows.length,
-      warehouseAuditCount: warehouseAuditRows.length,
-      locationAuditCount: locationAuditRows.length,
-      activityLogIds: activityIds,
+      insertedAuditCount:    auditRows.length,
+      warehouseAuditCount:   warehouseAuditRows.length,
+      locationAuditCount:    locationAuditRows.length,
+      activityLogIds,
     };
   } catch (error) {
-    logSystemException(error, 'Failed to insert inventory activity logs', {
-      context: 'inventory-log-repository/insertInventoryActivityLogs',
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to insert inventory activity logs.',
+      meta:    { logCount: logs.length },
+      logFn:   (err) => logBulkInsertError(
+        err,
+        'inventory_activity_log / inventory_activity_audit_log',
+        [],           // rows omitted — too large to log across two tables
+        logs.length,
+        { context }
+      ),
     });
-    throw AppError.databaseError(
-      'Failed to insert inventory activity logs. See logs for details.'
-    );
   }
 };
 

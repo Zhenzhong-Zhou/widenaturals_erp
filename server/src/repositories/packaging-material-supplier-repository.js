@@ -1,118 +1,69 @@
+/**
+ * @file packaging-material-supplier-repository.js
+ * @description Database access layer for packaging material supplier records.
+ *
+ * Exports:
+ *  - getPackagingMaterialSupplierLookup — offset-paginated lookup with optional filtering
+ */
+
+'use strict';
+
+const { paginateQueryByOffset } = require('../database/utils/pagination/pagination-helpers');
+const { handleDbError } = require('../utils/errors/error-handlers');
+const { logDbQueryError } = require('../utils/db-logger');
 const { buildPackagingMaterialSupplierFilter } = require('../utils/sql/build-packaging-material-supplier-filter');
-const { paginateQueryByOffset } = require('../database/db');
-const { logSystemInfo, logSystemException } = require('../utils/system-logger');
-const AppError = require('../utils/AppError');
+const {
+  PMS_TABLE,
+  PMS_JOINS,
+  PMS_SORT_WHITELIST,
+  buildPmsLookupQuery,
+} = require('./queries/packaging-material-supplier-queries');
+
+// ─── Lookup ───────────────────────────────────────────────────────────────────
 
 /**
- * Retrieves packaging material supplier lookup data with pagination.
- *
- * Used by dropdown components to select suppliers when creating
- * or managing packaging material sourcing relationships.
- *
- * Archived suppliers are excluded by default unless explicitly
- * requested through filter options.
+ * Fetches paginated packaging material supplier records for dropdown/lookup use.
  *
  * @param {Object} params
- * @param {Object} params.filters
- * @param {number} params.limit
- * @param {number} params.offset
+ * @param {Object} [params.filters={}] - Optional filters.
+ * @param {number} [params.limit=50]   - Max records per page.
+ * @param {number} [params.offset=0]   - Offset for pagination.
  *
- * @returns {Promise<{
- *   data: Array<{
- *     id: string,
- *     supplier_id: string,
- *     name: string,
- *     contact_name: string|null,
- *     contact_email: string|null,
- *     is_preferred: boolean,
- *     is_archived: boolean,
- *     status_id: string
- *   }>,
- *   pagination: {
- *     offset: number,
- *     limit: number,
- *     totalRecords: number,
- *     hasMore: boolean
- *   }
- * }>}
+ * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
+ * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getPackagingMaterialSupplierLookup = async ({
                                                     filters = {},
-                                                    limit = 50,
-                                                    offset = 0,
+                                                    limit   = 50,
+                                                    offset  = 0,
                                                   }) => {
-  const context =
-    'packaging-material-supplier-repository/getPackagingMaterialSupplierLookup';
+  const context = 'packaging-material-supplier-repository/getPackagingMaterialSupplierLookup';
   
-  const tableName = 'packaging_material_suppliers pms';
-  
-  const joins = [
-    'JOIN suppliers s ON s.id = pms.supplier_id',
-    'LEFT JOIN status st ON st.id = s.status_id'
-  ];
-  
-  //------------------------------------------------------------
-  // Build dynamic WHERE clause
-  //------------------------------------------------------------
-  const { whereClause, params } =
-    buildPackagingMaterialSupplierFilter(filters);
-  
-  //------------------------------------------------------------
-  // Base query
-  //------------------------------------------------------------
-  const queryText = `
-    SELECT
-      pms.id,
-      pms.is_preferred,
-      s.name,
-      s.contact_name,
-      s.contact_email,
-      s.is_archived,
-      s.status_id
-    FROM ${tableName}
-    ${joins.join('\n')}
-    WHERE ${whereClause}
-  `;
+  const { whereClause, params } = buildPackagingMaterialSupplierFilter(filters);
+  const queryText = buildPmsLookupQuery(whereClause);
   
   try {
-    //------------------------------------------------------------
-    // Execute paginated query
-    //------------------------------------------------------------
-    const result = await paginateQueryByOffset({
-      tableName,
-      joins,
+    return await paginateQueryByOffset({
+      tableName:    PMS_TABLE,
+      joins:        PMS_JOINS,
       whereClause,
       queryText,
       params,
       offset,
       limit,
-      sortBy: 's.name',
-      sortOrder: 'ASC',
+      sortBy:       's.name',
+      sortOrder:    'ASC',
+      whitelistSet: PMS_SORT_WHITELIST,
     });
-    
-    logSystemInfo('Fetched packaging material supplier lookup', {
-      context,
-      filters,
-      limit,
-      offset,
-    });
-    
-    return result;
   } catch (error) {
-    logSystemException(
-      error,
-      'Failed to fetch packaging material supplier lookup',
-      {
-        context,
-        filters,
-        limit,
-        offset,
-      }
-    );
-    
-    throw AppError.databaseError(
-      'Failed to fetch packaging material supplier lookup.'
-    );
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch packaging material supplier lookup.',
+      meta:    { filters, limit, offset },
+      logFn:   (err) => logDbQueryError(
+        queryText, params, err, { context, filters, limit, offset }
+      ),
+    });
   }
 };
 

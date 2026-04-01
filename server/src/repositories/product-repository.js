@@ -1,382 +1,250 @@
-const {
-  query,
-  paginateResults,
-  updateById,
-  bulkInsert,
-  paginateQueryByOffset,
-} = require('../database/db');
+/**
+ * @file product-repository.js
+ * @description Database access layer for product records.
+ *
+ * Follows the established repo pattern:
+ *  - Query constants and factories imported from product-queries.js
+ *  - All errors normalized through handleDbError before bubbling up
+ *  - No success logging — middleware and globalErrorHandler own that layer
+ *
+ * Exports:
+ *  - checkProductExists      — parameterised existence check with validated field names
+ *  - getPaginatedProducts    — paginated list with filtering and sorting
+ *  - getProductDetailsById   — full detail fetch by product id
+ *  - updateProductStatus     — update product status via updateById
+ *  - updateProductInfo       — partial update via updateById
+ *  - insertProductsBulk      — bulk upsert with conflict resolution
+ *  - getProductLookup        — offset-paginated dropdown lookup
+ */
+
+'use strict';
+
+const { query, updateById, bulkInsert } = require('../database/db');
+const { validateBulkInsertRows } = require('../utils/validation/bulk-insert-row-validator');
+const { paginateQueryByOffset, paginateQuery } = require('../database/utils/pagination/pagination-helpers');
 const AppError = require('../utils/AppError');
-const { buildProductFilter } = require('../utils/sql/build-product-filters');
-const { logSystemInfo, logSystemException } = require('../utils/system-logger');
+const { handleDbError } = require('../utils/errors/error-handlers');
+const { logDbQueryError, logBulkInsertError } = require('../utils/db-logger');
+const { buildProductFilter } = require('../utils/sql/build-product-filter');
+const { SORTABLE_FIELDS } = require('../utils/sort-field-mapping');
+const { resolveSort } = require('../utils/query/sort-resolver');
+const { validateIdentifier } = require('../utils/sql-ident');
+const {
+  PRODUCT_INSERT_COLUMNS,
+  PRODUCT_CONFLICT_COLUMNS,
+  PRODUCT_UPDATE_STRATEGIES,
+  PRODUCT_TABLE,
+  PRODUCT_JOINS,
+  PRODUCT_SORT_WHITELIST,
+  buildProductPaginatedQuery,
+  PRODUCT_DETAILS_QUERY,
+  PRODUCT_LOOKUP_TABLE,
+  PRODUCT_LOOKUP_JOINS,
+  PRODUCT_LOOKUP_SORT_WHITELIST,
+  PRODUCT_LOOKUP_ADDITIONAL_SORTS,
+  buildProductLookupQuery,
+} = require('./queries/product-queries');
+
+// Allowed field names for checkProductExists — validated before SQL interpolation.
+const _PRODUCT_EXISTS_ALLOWED_FIELDS = new Set(['id', 'barcode', 'product_name']);
+
+// ─── Existence Check ──────────────────────────────────────────────────────────
 
 /**
- * Checks if a product exists in the database based on provided filters.
+ * Checks whether a product exists matching the given field filters.
  *
- * Dynamically constructs a SQL query to check for the existence of a product
- * by combining the provided filters (`id`, `barcode`, `product_name`) with the
- * specified logical operator (`combineWith`).
+ * Field names are validated against an allowlist before interpolation —
+ * only 'id', 'barcode', and 'product_name' are permitted.
  *
- * @param {Object} filters - The conditions to check for product existence.
- *                           Can include one or more of the following properties:
- *                           - `id` {string}: The unique identifier of the product.
- *                           - `barcode` {string}: The barcode of the product.
- *                           - `product_name` {string}: The name of the product.
- * @param {string} [combineWith='OR'] - Logical operator to combine the filters.
- *                                      - 'OR' (default): Checks if any condition is true.
- *                                      - 'AND': Checks if all conditions are true.
- * @returns {Promise<boolean>} - Resolves to `true` if a product matching the filters exists,
- *                               otherwise `false`.
+ * @param {Object}  filters             - Field/value pairs to match.
+ * @param {string}  [combineWith='OR']  - 'OR' or 'AND' — how conditions are combined.
  *
- * @throws {AppError} - If no filters are provided or if there is an issue with the query execution.
+ * @returns {Promise<boolean>} True if at least one matching product exists.
+ * @throws  {AppError}         Validation error if no valid filters are provided.
+ * @throws  {AppError}         Normalized database error if the query fails.
  */
 const checkProductExists = async (filters, combineWith = 'OR') => {
-  if (
-    !filters ||
-    typeof filters !== 'object' ||
-    Object.keys(filters).length === 0
-  ) {
+  const context = 'product-repository/checkProductExists';
+  
+  if (!filters || typeof filters !== 'object' || Object.keys(filters).length === 0) {
     throw AppError.validationError(
       'No valid filters provided for product existence check.',
-      { providedFilters: filters }
+      { context, meta: { providedFilters: filters } }
     );
   }
-
-  const allowedFilters = ['id', 'barcode', 'product_name'];
+  
   const whereClauses = [];
-  const queryParams = [];
-
-  // Build WHERE clause dynamically
-  Object.entries(filters).forEach(([key, value]) => {
-    if (allowedFilters.includes(key) && value) {
-      whereClauses.push(`${key} = $${queryParams.length + 1}`);
-      queryParams.push(value);
-    }
-  });
-
+  const queryParams  = [];
+  
+  for (const [key, value] of Object.entries(filters)) {
+    if (!_PRODUCT_EXISTS_ALLOWED_FIELDS.has(key) || !value) continue;
+    // validateIdentifier guards against SQL injection on the field name.
+    const safeKey = validateIdentifier(key);
+    whereClauses.push(`${safeKey} = $${queryParams.length + 1}`);
+    queryParams.push(value);
+  }
+  
   if (whereClauses.length === 0) {
     throw AppError.validationError(
       'No valid filters provided for product existence check.',
-      { providedFilters: filters }
+      { context, meta: { providedFilters: filters } }
     );
   }
-
-  // Use AND or OR based on the combineWith parameter
-  const operator = combineWith.toUpperCase() === 'AND' ? ' AND ' : ' OR ';
-  const whereClause = `WHERE ${whereClauses.join(operator)}`;
-
+  
+  const operator  = combineWith.toUpperCase() === 'AND' ? ' AND ' : ' OR ';
   const queryText = `
     SELECT EXISTS (
       SELECT 1
       FROM products
-      ${whereClause}
-    ) AS exists;
+      WHERE ${whereClauses.join(operator)}
+    ) AS exists
   `;
-
+  
   try {
-    const result = await query(queryText, queryParams);
-    return result.rows[0].exists;
+    const { rows } = await query(queryText, queryParams);
+    return rows[0].exists;
   } catch (error) {
-    logSystemException(error, 'Failed to execute product existence check', {
-      context: 'product-repository/checkProductExists',
-      query: queryText,
-      params: queryParams,
-      severity: 'error',
-      function: 'checkProductExists',
-    });
-
-    throw AppError.databaseError('Failed to execute product existence check.', {
-      query: queryText,
-      params: queryParams,
-      originalError: error.message,
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to execute product existence check.',
+      meta:    { filters },
+      logFn:   (err) => logDbQueryError(
+        queryText, queryParams, err, { context }
+      ),
     });
   }
 };
 
+// ─── Paginated List ───────────────────────────────────────────────────────────
+
 /**
- * Retrieves a paginated list of products with linked status and user metadata.
+ * Fetches paginated product records with optional filtering and sorting.
  *
- * This repository function builds a parameterized SQL query using the
- * `buildProductFilter` utility to safely construct WHERE clauses from structured
- * filter input. It supports pagination, dynamic sorting, and fuzzy keyword search,
- * returning consistent query results across services and dashboards.
+ * @param {Object}       options
+ * @param {Object}       [options.filters={}]          - Field filters.
+ * @param {number}       [options.page=1]              - Page number (1-based).
+ * @param {number}       [options.limit=10]            - Records per page.
+ * @param {string}       [options.sortBy='createdAt']  - Sort key (mapped via productSortMap).
+ * @param {'ASC'|'DESC'} [options.sortOrder='DESC']    - Sort direction.
  *
- * ### Features
- * - Secure, parameterized filtering via `buildProductFilter`
- * - Joins to `status` for readable status names
- * - Built-in pagination and structured logging
- *
- * ### Example
- * ```js
- * const result = await getPaginatedProducts({
- *   filters: { keyword: 'Immune', brand: 'Canaherb' },
- *   page: 2,
- *   limit: 20,
- *   sortBy: 'created_at',
- *   sortOrder: 'DESC'
- * });
- * ```
- *
- * ### Returns
- * ```js
- * {
- *   data: [ { id, name, brand, status_name, ... } ],
- *   pagination: { total, totalPages, page, limit }
- * }
- * ```
- *
- * @async
- * @function
- * @param {Object} options - Query configuration
- * @param {Object} [options.filters={}] - Structured filter criteria (see `buildProductFilter`)
- * @param {number} [options.page=1] - Current page number (1-indexed)
- * @param {number} [options.limit=10] - Records per page
- * @param {string} [options.sortBy='created_at'] - Column to sort by (validated internally)
- * @param {'ASC'|'DESC'} [options.sortOrder='DESC'] - Sort direction
- *
- * @returns {Promise<{
- *   data: any[];
- *   pagination: {
- *     page: number;
- *     limit: number;
- *     totalRecords: number;
- *     totalPages: number;
- *   };
- * }>} Paginated products results
- * Returns a paginated dataset or `null` if no records are found.
- *
- * @throws {AppError} If query execution or pagination fails.
+ * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
+ * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getPaginatedProducts = async ({
-  filters = {},
-  page = 1,
-  limit = 10,
-  sortBy = 'created_at',
-  sortOrder = 'DESC',
-}) => {
+                                      filters   = {},
+                                      page      = 1,
+                                      limit     = 10,
+                                      sortBy    = 'createdAt',
+                                      sortOrder = 'DESC',
+                                    }) => {
+  const context = 'product-repository/getPaginatedProducts';
+  
   const { whereClause, params } = buildProductFilter(filters);
-
-  const queryText = `
-    SELECT
-      p.id,
-      p.name,
-      p.brand,
-      p.category,
-      p.series,
-      s.name AS status_name,
-      p.status_id,
-      p.status_date,
-      p.created_at,
-      p.updated_at,
-      p.created_by,
-      p.updated_by,
-      cu.firstname AS created_by_firstname,
-      cu.lastname AS created_by_lastname,
-      uu.firstname AS updated_by_firstname,
-      uu.lastname AS updated_by_lastname
-    FROM products AS p
-    LEFT JOIN status AS s ON p.status_id = s.id
-    LEFT JOIN users AS cu ON p.created_by = cu.id
-    LEFT JOIN users AS uu ON p.updated_by = uu.id
-    WHERE ${whereClause}
-    ORDER BY ${sortBy} ${sortOrder};
-  `;
-
+  
+  const sortConfig = resolveSort({
+    sortBy,
+    sortOrder,
+    moduleKey:   'productSortMap',
+    defaultSort: SORTABLE_FIELDS.productSortMap.defaultNaturalSort,
+  });
+  
+  const queryText = buildProductPaginatedQuery(whereClause);
+  
   try {
-    const result = await paginateResults({
-      dataQuery: queryText,
+    return await paginateQuery({
+      tableName:    PRODUCT_TABLE,
+      joins:        PRODUCT_JOINS,
+      whereClause,
+      queryText,
       params,
       page,
       limit,
-      meta: {
-        context: 'product-repository/getPaginatedProducts',
-      },
+      sortBy:       sortConfig.sortBy,
+      sortOrder:    sortConfig.sortOrder,
+      whitelistSet: PRODUCT_SORT_WHITELIST,
     });
-
-    if (result.data.length === 0) {
-      logSystemInfo('No products found for current query', {
-        context: 'product-repository/getPaginatedProducts',
-        filters,
-        pagination: { page, limit },
-        sorting: { sortBy, sortOrder },
-      });
-      return null;
-    }
-
-    logSystemInfo('Fetched paginated product records successfully', {
-      context: 'product-repository/getPaginatedProducts',
-      filters,
-      pagination: { page, limit },
-      sorting: { sortBy, sortOrder },
-    });
-
-    return result;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch paginated product records', {
-      context: 'product-repository/getPaginatedProducts',
-      filters,
-      pagination: { page, limit },
-      sorting: { sortBy, sortOrder },
-    });
-
-    throw AppError.databaseError('Failed to fetch paginated product records', {
-      context: 'product-repository/getPaginatedProducts',
-      details: error.message,
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch paginated product records.',
+      meta:    { filters, page, limit, sortBy, sortOrder },
+      logFn:   (err) => logDbQueryError(
+        queryText, params, err, { context, filters, page, limit }
+      ),
     });
   }
 };
 
+// ─── Detail ───────────────────────────────────────────────────────────────────
+
 /**
- * Repository: Get Product Details by ID
+ * Fetches full product detail by ID.
  *
- * Fetches a single product record, including its status metadata and audit trail information.
- * Designed for product detail views or edit pages where full context is required.
+ * Returns null if no product exists for the given ID.
  *
- * ### Behavior
- * - Uses parameterized SQL for injection safety.
- * - Performs LEFT JOINs to include status and user metadata.
- * - Returns a single row or `null` if no record exists.
- * - Logs structured info and exception details for observability.
+ * @param {string} productId - UUID of the product.
  *
- * ### Performance
- * - Leverages indexed lookup on `products.id` (primary key).
- * - Uses minimal joins and columns for efficient data retrieval.
- *
- * @param {string} productId - UUID of the product to fetch.
- * @returns {Promise<object|null>} Full product record with status and audit info, or `null` if not found.
- *
- * @example
- * const row = await getProductDetailsById('8d5b7e4f-9231-4b0f-83d1-6c8e3b03b8f2');
- * if (row) console.log('Product:', row.name);
+ * @returns {Promise<Object|null>} Product detail row, or null if not found.
+ * @throws  {AppError}             Normalized database error if the query fails.
  */
 const getProductDetailsById = async (productId) => {
-  const queryText = `
-    SELECT
-      p.id,
-      p.name,
-      p.series,
-      p.brand,
-      p.category,
-      p.description,
-      s.id AS status_id,
-      s.name AS status_name,
-      p.status_date,
-      p.created_at,
-      p.updated_at,
-      p.created_by,
-      cb.firstname AS created_by_firstname,
-      cb.lastname AS created_by_lastname,
-      p.updated_by,
-      ub.firstname AS updated_by_firstname,
-      ub.lastname AS updated_by_lastname
-    FROM products AS p
-    LEFT JOIN status AS s ON p.status_id = s.id
-    LEFT JOIN users AS cb ON p.created_by = cb.id
-    LEFT JOIN users AS ub ON p.updated_by = ub.id
-    WHERE p.id = $1
-  `;
-
+  const context = 'product-repository/getProductDetailsById';
+  
   try {
-    const { rows } = await query(queryText, [productId]);
-
-    if (rows.length === 0) {
-      logSystemInfo('No product found for given ID', {
-        context: 'product-repository/getProductDetailsById',
-        productId,
-      });
-      return null;
-    }
-
-    logSystemInfo('Fetched product detail successfully', {
-      context: 'product-repository/getProductDetailsById',
-      productId,
-    });
-
-    return rows[0];
+    const { rows } = await query(PRODUCT_DETAILS_QUERY, [productId]);
+    return rows[0] ?? null;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch product detail', {
-      context: 'product-repository/getProductDetailsById',
-      productId,
-      error: error.message,
-    });
-
-    throw AppError.databaseError('Failed to fetch product detail', {
-      context: 'product-repository/getProductDetailsById',
-      details: error.message,
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch product detail.',
+      meta:    { productId },
+      logFn:   (err) => logDbQueryError(
+        PRODUCT_DETAILS_QUERY, [productId], err, { context, productId }
+      ),
     });
   }
 };
 
+// ─── Update ───────────────────────────────────────────────────────────────────
+
 /**
- * Repository: Update Product Status
+ * Updates a product's status and status_date.
  *
- * Updates the status of a product by its ID. Automatically updates
- * `status_date`, `updated_at`, and `updated_by` fields.
+ * Delegates to `updateById` which handles metadata injection and error
+ * normalization internally.
  *
- * @param {string} productId - UUID of the product to update
- * @param {string} statusId - UUID of the new status
- * @param {string} userId - UUID of the user performing the update
- * @param {import('pg').PoolClient} client - Active database client/transaction
- * @returns {Promise<{ id: string }>} Updated record identifier
+ * @param {string}                  productId - UUID of the product.
+ * @param {string}                  statusId  - UUID of the new status.
+ * @param {string}                  userId    - UUID of the user performing the update.
+ * @param {PoolClient} client    - DB client for transactional context.
  *
- * @throws {AppError} If update fails or product not found
+ * @returns {Promise<{ id: string }>} The updated product ID.
+ * @throws  {AppError}                If the product does not exist or the update fails.
  */
 const updateProductStatus = async (productId, statusId, userId, client) => {
-  try {
-    const updates = {
-      status_id: statusId,
-      status_date: new Date(),
-    };
-
-    const result = await updateById(
-      'products',
-      productId,
-      updates,
-      userId,
-      client
-    );
-
-    logSystemInfo('Updated product status successfully', {
-      context: 'product-repository/updateProductStatus',
-      productId,
-      statusId,
-      updatedBy: userId,
-    });
-
-    return result; // { id: '...' }
-  } catch (error) {
-    logSystemException(error, 'Failed to update product status', {
-      context: 'product-repository/updateProductStatus',
-      productId,
-      statusId,
-      updatedBy: userId,
-    });
-    throw AppError.databaseError('Failed to update product status.', {
-      context: 'product-repository/updateProductStatus',
-      details: error.message,
-    });
-  }
+  return await updateById(
+    'products',
+    productId,
+    { status_id: statusId, status_date: new Date() },
+    userId,
+    client
+  );
 };
 
 /**
- * Repository: Update Product Information
+ * Performs a partial update on a product record.
  *
- * Updates product fields such as name, brand, category, series, and description.
- * Automatically sets `updated_at` and `updated_by` fields through `updateById()`.
+ * Delegates to `updateById` which handles metadata injection and error
+ * normalization internally.
  *
- * ### Behavior
- * - Accepts validated updates (filtered by business layer).
- * - Performs SQL UPDATE with optimistic concurrency safety.
- * - Logs success and failure for audit tracking.
+ * @param {string}                  productId - UUID of the product.
+ * @param {Object}                  updates   - Fields to update.
+ * @param {string}                  userId    - UUID of the user performing the update.
+ * @param {PoolClient} client    - DB client for transactional context.
  *
- * @param {string} productId - UUID of the product to update.
- * @param {Object} updates - Fields to update (must be pre-validated).
- * @param {string} userId - ID of the user performing the update.
- * @param {import('pg').PoolClient} client - Active transaction client.
- *
- * @returns {Promise<{ id: string }>} Updated record identifier.
- *
- * @throws {AppError.validationError} If no valid fields are provided.
- * @throws {AppError.databaseError} If the update query fails or product not found.
+ * @returns {Promise<{ id: string }>} The updated product ID.
+ * @throws  {AppError}                Validation error if no update fields provided.
+ * @throws  {AppError}                If the product does not exist or the update fails.
  */
 const updateProductInfo = async (productId, updates, userId, client) => {
   if (!updates || Object.keys(updates).length === 0) {
@@ -384,270 +252,121 @@ const updateProductInfo = async (productId, updates, userId, client) => {
       'No update fields provided for product update.'
     );
   }
-
-  try {
-    const result = await updateById(
-      'products',
-      productId,
-      updates,
-      userId,
-      client
-    );
-
-    logSystemInfo('Product information updated successfully', {
-      context: 'product-repository/updateProductInfo',
-      productId,
-      updatedBy: userId,
-      fields: Object.keys(updates),
-    });
-
-    return result; // { id: '...' }
-  } catch (error) {
-    // Don’t rewrap AppError if it’s already typed correctly
-    if (error instanceof AppError) throw error;
-
-    logSystemException(error, 'Failed to update product information', {
-      context: 'product-repository/updateProductInfo',
-      productId,
-      updatedBy: userId,
-      updates,
-    });
-
-    throw AppError.databaseError(
-      'Database error while updating product information.',
-      {
-        context: 'product-repository/updateProductInfo',
-        details: error.message,
-      }
-    );
-  }
+  
+  return await updateById('products', productId, updates, userId, client);
 };
 
+// ─── Insert / Upsert ──────────────────────────────────────────────────────────
+
 /**
- * @async
- * @function
- * @description
- * Performs a bulk insert of product records using the shared `bulkInsert` helper.
+ * Bulk inserts or updates product records.
  *
- * This repository-level function:
- *   - Accepts already-normalized product payloads (business layer handles normalization)
- *   - Validates minimal structural requirements (name, brand, category)
- *   - Converts objects into row arrays for fast bulk insertion
- *   - Applies conflict-handling rules using PostgreSQL ON CONFLICT
- *   - Ensures audit fields (`created_by`, `updated_by`, `updated_at`) follow project conventions
+ * On conflict matching name + brand + category, overwrites description,
+ * status, and audit fields.
  *
- * Performance Characteristics:
- *   - Uses a single multi-row INSERT for efficiency
- *   - Returns only the `id` column to minimize payload size
- *   - Handles 1–10,000 rows with very low overhead
+ * @param {Array<Object>}              products - Validated product objects to insert.
+ * @param {PoolClient}    client   - DB client for transactional context.
  *
- * Conflict Strategy:
- *   - Uses the unique composite key (name, brand, category)
- *   - On conflict, selectively updates description, status_id, updated_by, and updated_at
- *
- * Expected product object shape:
- *   {
- *     name: string,
- *     series: string | null,
- *     brand: string,
- *     category: string,
- *     description: string | null,
- *     status_id: uuid,
- *     created_by: uuid,
- *     updated_by: uuid | null
- *   }
- *
- * @param {Array<Object>} products - List of normalized products to insert
- * @param {PoolClient} client - PostgreSQL transaction client
- * @returns {Promise<Array<{ id: string }>>} Array of inserted product IDs
- *
- * @throws {AppError} - When validation fails or the insert operation fails
+ * @returns {Promise<Array<{ id: string }>>} Inserted or updated product IDs.
+ * @throws  {AppError}                        Validation error if products is empty or invalid.
+ * @throws  {AppError}                        Normalized database error if the insert fails.
  */
 const insertProductsBulk = async (products, client) => {
+  if (!Array.isArray(products) || products.length === 0) return [];
+  
   const context = 'product-repository/insertProductsBulk';
-
-  // ------------------------------------------------------------
-  // 1. Fast-fail validation
-  // ------------------------------------------------------------
-  if (!Array.isArray(products) || products.length === 0) {
-    return [];
-  }
-
+  
+  // Validation is before IO — must not be inside the try block.
   if (!products.every((p) => p.name && p.brand && p.category)) {
     throw AppError.validationError(
       'Each product must include at least name, brand, and category.',
       { context }
     );
   }
-
-  // ------------------------------------------------------------
-  // 2. Explicit column ordering (must match DB schema)
-  // ------------------------------------------------------------
-  const columns = [
-    'name',
-    'series',
-    'brand',
-    'category',
-    'description',
-    'status_id',
-    'created_by',
-    'updated_by',
-    'updated_at',
-  ];
-
-  // ------------------------------------------------------------
-  // 3. Convert objects → row arrays
-  // ------------------------------------------------------------
+  
   const rows = products.map((p) => [
     p.name,
-    p.series ?? null,
+    p.series      ?? null,
     p.brand,
     p.category,
     p.description ?? null,
     p.status_id,
-    p.created_by ?? null,
-    null,
-    null,
+    p.created_by  ?? null,
+    null,                   // updated_by — null at insert time
+    null,                   // updated_at — null at insert time
   ]);
-
-  // ------------------------------------------------------------
-  // 4. Conflict handling:
-  // - Typically: unique(name, brand, category) or SKU-level constraints
-  // - You can adjust these depending on your schema indexes
-  // ------------------------------------------------------------
-  const conflictColumns = ['name', 'brand', 'category'];
-
-  const updateStrategies = {
-    description: 'overwrite',
-    status_id: 'overwrite',
-    status_date: 'overwrite',
-    updated_by: 'overwrite',
-    updated_at: 'overwrite',
-  };
-
-  // ------------------------------------------------------------
-  // 5. Execute bulk insert
-  // ------------------------------------------------------------
+  
+  validateBulkInsertRows(rows, PRODUCT_INSERT_COLUMNS.length);
+  
   try {
-    const result = await bulkInsert(
+    return await bulkInsert(
       'products',
-      columns,
+      PRODUCT_INSERT_COLUMNS,
       rows,
-      conflictColumns,
-      updateStrategies,
+      PRODUCT_CONFLICT_COLUMNS,
+      PRODUCT_UPDATE_STRATEGIES,
       client,
-      { context },
-      'id' // return id column
+      { meta: { context } },
+      'id'
     );
-
-    logSystemInfo('Successfully inserted or updated product records', {
-      context,
-      insertedCount: result.length,
-      totalInput: products.length,
-    });
-
-    return result;
   } catch (error) {
-    logSystemException(error, 'Failed to insert product records', {
+    throw handleDbError(error, {
       context,
-      productCount: products.length,
-    });
-
-    throw AppError.databaseError('Failed to insert product records', {
-      cause: error,
-      context,
+      message: 'Failed to insert product records.',
+      meta:    { productCount: products.length },
+      logFn:   (err) => logBulkInsertError(
+        err,
+        'products',
+        rows,
+        rows.length,
+        { context, conflictColumns: PRODUCT_CONFLICT_COLUMNS }
+      ),
     });
   }
 };
 
+// ─── Lookup ───────────────────────────────────────────────────────────────────
+
 /**
- * Fetches a lightweight, paginated list of products for use in
- * dropdowns, autocomplete fields, or SKU/BOM creation workflows.
+ * Fetches paginated product records for dropdown/lookup use.
  *
- * This function intentionally returns a minimal payload to improve
- * performance in UI lookup scenarios. Only the essential identifying
- * fields (id, name, brand, category) are returned.
+ * @param {Object} params
+ * @param {Object} [params.filters={}] - Optional filters.
+ * @param {number} [params.limit=50]   - Max records per page.
+ * @param {number} [params.offset=0]   - Offset for pagination.
  *
- * Supports:
- * - Exact and fuzzy filtering via buildProductFilter()
- * - Keyword search (name/brand/category)
- * - Stable sorting (name → brand → category)
- * - Efficient offset-based pagination
- *
- * Best practice:
- * - Keep lookup endpoints lightweight
- * - Avoid joining large tables
- * - Select only index-friendly fields
- *
- * @param {Object} options - Lookup query options.
- * @param {Object} [options.filters={}] - Filters passed to buildProductFilter().
- * @param {number} [options.limit=50] - Max number of rows to return.
- * @param {number} [options.offset=0] - Number of rows to skip.
- *
- * @returns {Promise<{
- *   data: Array<{
- *     id: string,
- *     name: string,
- *     brand: string,
- *     category: string
- *   }>,
- *   pagination: {
- *     offset: number,
- *     limit: number,
- *     totalRecords: number,
- *     hasMore: boolean
- *   }
- * }>}
- *
- * @throws {AppError} Database error if the lookup query fails.
+ * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
+ * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getProductLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
   const context = 'product-repository/getProductLookup';
-  const tableName = 'products p';
-
+  
   const { whereClause, params } = buildProductFilter(filters);
-
-  const queryText = `
-    SELECT
-      p.id,
-      p.name,
-      p.brand,
-      p.category,
-      p.status_id
-    FROM ${tableName}
-    LEFT JOIN status AS s ON s.id = p.status_id
-    WHERE ${whereClause}
-  `;
-
+  const queryText = buildProductLookupQuery(whereClause);
+  
   try {
-    const result = await paginateQueryByOffset({
-      tableName,
+    return await paginateQueryByOffset({
+      tableName:       PRODUCT_LOOKUP_TABLE,
+      joins:           PRODUCT_LOOKUP_JOINS,
       whereClause,
       queryText,
       params,
       offset,
       limit,
-      sortBy: 'p.name',
-      sortOrder: 'ASC',
-      additionalSort: 'p.brand ASC, p.category ASC',
+      sortBy:          'p.name',
+      sortOrder:       'ASC',
+      additionalSorts: PRODUCT_LOOKUP_ADDITIONAL_SORTS,
+      whitelistSet:    PRODUCT_LOOKUP_SORT_WHITELIST,
     });
-
-    logSystemInfo('Fetched product lookup data', {
-      context,
-      offset,
-      limit,
-      filters,
-    });
-
-    return result;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch product lookup', {
+    throw handleDbError(error, {
       context,
-      offset,
-      limit,
-      filters,
+      message: 'Failed to fetch product lookup.',
+      meta:    { filters, limit, offset },
+      logFn:   (err) => logDbQueryError(
+        queryText, params, err, { context, filters, limit, offset }
+      ),
     });
-    throw AppError.databaseError('Failed to fetch product lookup.');
   }
 };
 

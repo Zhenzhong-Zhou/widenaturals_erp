@@ -2,20 +2,20 @@ const {
   query,
   paginateResults,
   bulkInsert,
-  formatBulkUpdateQuery,
 } = require('../database/db');
 const AppError = require('../utils/AppError');
 const {
   logSystemException,
   logSystemInfo,
   logSystemWarn,
-} = require('../utils/system-logger');
+} = require('../utils/logging/system-logger');
 const {
   buildLocationInventoryWhereClause,
 } = require('../utils/sql/build-location-inventory-filters');
 const {
   getStatusIdByQuantity,
 } = require('../utils/query/inventory-query-utils');
+const { formatBulkUpdateQuery } = require('../utils/db/query-builder');
 
 /**
  * Fetches summarized KPI statistics for location inventory, grouped by item type.
@@ -665,7 +665,7 @@ const getLocationInventoryResponseByIds = async (ids, client) => {
  *
  * @param {Record<string, { location_quantity: number, status_id: string, last_update: string }>} updates
  * @param {string} userId - The UUID of the user performing the update.
- * @param {import('pg').PoolClient} client - A PostgreSQL client instance.
+ * @param {PoolClient} client - A PostgreSQL client instance.
  * @returns {Promise<Array<{ location_id: string, batch_id: string }>>}
  */
 const bulkUpdateLocationQuantities = async (updates, userId, client) => {
@@ -709,7 +709,7 @@ const bulkUpdateLocationQuantities = async (updates, userId, client) => {
  * Fetches multiple location_inventory rows by composite keys.
  *
  * @param {Array<{ location_id: string, batch_id: string }>} keys - List of composite keys.
- * @param {import('pg').PoolClient} client - pg client instance.
+ * @param {PoolClient} client - pg client instance.
  * @returns {Promise<Array<{ id: string, location_id: string, batch_id: string, location_quantity: number, reserved_quantity: number, status_id: string }>>}
  */
 const getLocationInventoryQuantities = async (keys, client) => {

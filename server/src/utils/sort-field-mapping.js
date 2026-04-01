@@ -400,6 +400,44 @@ const SORTABLE_FIELDS = {
     // --------------------------------------------------
     defaultNaturalSort: `pmb.received_at`,
   },
+  warehouseSortMap: {
+    // Warehouse-level fields (FROM warehouses w)
+    warehouseName: 'w.name',
+    warehouseCode: 'w.code',
+    storageCapacity: 'w.storage_capacity',
+    defaultFee: 'w.default_fee',
+    isArchived: 'w.is_archived',
+    
+    // Warehouse type (FROM warehouse_types wt)
+    warehouseTypeName: 'wt.name',
+    
+    // Location fields (FROM locations l)
+    locationName: 'l.name',
+    city: 'l.city',
+    provinceOrState: 'l.province_or_state',
+    country: 'l.country',
+    
+    // Location type (FROM location_types lt)
+    locationTypeName: 'lt.name',
+    
+    // Status fields (FROM status s)
+    statusName: 's.name',
+    statusId: 'w.status_id',
+    statusDate: 'w.status_date',
+    
+    // Audit timestamps (FROM warehouses w)
+    createdAt: 'w.created_at',
+    updatedAt: 'w.updated_at',
+    
+    // Audit user fields (FROM users cu/uu)
+    createdByFirstName: 'cu.firstname',
+    createdByLastName: 'cu.lastname',
+    updatedByFirstName: 'uu.firstname',
+    updatedByLastName: 'uu.lastname',
+    
+    // Default fallback
+    defaultNaturalSort: 'w.created_at',
+  },
   pricingSortMap: {
     productName: 'pr.name',
     brand: 'pr.brand',
@@ -572,12 +610,11 @@ const SORTABLE_FIELDS = {
     updatedBy: `
       COALESCE(TRIM(u2.firstname || ' ' || u2.lastname), '')
     `,
-    defaultNaturalSort: `
-      c.region,
-      s.name,
-      COALESCE(TRIM(c.firstname || ' ' || c.lastname), ''),
-      c.created_at DESC
-    `,
+    defaultNaturalSort: [
+      's.name',
+      `COALESCE(TRIM(c.firstname || ' ' || c.lastname), '')`,
+      'c.created_at DESC',
+    ],
   },
   addressSortMap: {
     createdAt:      'a.created_at',
@@ -614,23 +651,21 @@ const SORTABLE_FIELDS = {
     defaultNaturalSort: 'a.created_at',
   },
   orderSortMap: {
-    orderNumber: 'o.order_number',
-    orderDate: 'o.order_date',
-
-    // Order Type
-    orderType: 'ot.name',
-
-    // Status
-    statusName: 'os.name',
-    statusDate: 'o.status_date',
-
-    // Audit fields
-    createdAt: 'o.created_at',
-    updatedAt: 'o.updated_at',
-    createdBy: 'u1.firstname',
-    updatedBy: 'u2.firstname',
-
-    // Default fallback sort
+    orderNumber:    'o.order_number',
+    orderDate:      'o.order_date',
+    orderType:      'ot.name',
+    statusName:     'os.name',
+    statusDate:     'o.status_date',
+    deliveryMethod: 'dm.method_name',
+    customerFirst:  'c.firstname',
+    customerLast:   'c.lastname',
+    paymentMethod:  'pm.name',
+    paymentStatus:  'ps.name',
+    createdAt:      'o.created_at',
+    updatedAt:      'o.updated_at',
+    createdBy:      'u_created.firstname',
+    updatedBy:      'u_updated.firstname',
+    
     defaultNaturalSort: 'o.created_at',
   },
   inventoryAllocationSortMap: {
