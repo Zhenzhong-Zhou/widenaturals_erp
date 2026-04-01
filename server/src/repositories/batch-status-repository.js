@@ -1,113 +1,74 @@
+/**
+ * @file batch-status-repository.js
+ * @description Database access layer for batch status records.
+ *
+ * Follows the established repo pattern:
+ *  - Query constants and factories imported from batch-status-queries.js
+ *  - All errors normalized through handleDbError before bubbling up
+ *  - No success logging — middleware and globalErrorHandler own that layer
+ *
+ * Exports:
+ *  - getBatchStatusLookup — offset-paginated lookup with optional filtering
+ */
+
+'use strict';
+
+const { paginateQueryByOffset } = require('../database/utils/pagination/pagination-helpers');
+const { handleDbError } = require('../utils/errors/error-handlers');
+const { logDbQueryError } = require('../utils/db-logger');
 const { buildBatchStatusFilter } = require('../utils/sql/build-batch-status-filter');
-const { paginateQueryByOffset } = require('../database/db');
-const { logSystemInfo, logSystemException } = require('../utils/system-logger');
-const AppError = require('../utils/AppError');
+const {
+  BATCH_STATUS_TABLE,
+  BATCH_STATUS_SORT_WHITELIST,
+  buildBatchStatusLookupQuery,
+} = require('./queries/batch-status-queries');
+
+// ─── Lookup ───────────────────────────────────────────────────────────────────
 
 /**
- * Retrieve paginated batch status lookup records from the database.
+ * Fetches paginated batch status records with optional filtering.
  *
- * This repository function executes a read-only query used by lookup
- * endpoints and dropdown components that display batch lifecycle
- * status values.
+ * Sorted by name ascending — intended for dropdown/selection use.
  *
- * Responsibilities:
- * - Build SQL filtering conditions using `buildBatchStatusFilter`
- * - Execute the query through the shared `paginateQueryByOffset` utility
- * - Return a standardized `{ data, pagination }` result
+ * @param {Object}  options
+ * @param {Object}  [options.filters={}] - Optional filters (e.g. isActive, batchType).
+ * @param {number}  [options.limit=50]   - Max records per page.
+ * @param {number}  [options.offset=0]   - Offset for pagination.
  *
- * This function does not enforce access control or business rules.
- * Those responsibilities belong to the service layer.
- *
- * @async
- *
- * @param {Object} params
- *
- * @param {Object} [params.filters={}]
- * Optional SQL filter inputs (keyword, active flags, etc.).
- *
- * @param {number} [params.limit=50]
- * Maximum number of rows returned.
- *
- * @param {number} [params.offset=0]
- * Pagination offset.
- *
- * @returns {Promise<Object>}
- * Paginated query result:
- *
- * {
- *   data: Array<Object>,
- *   pagination: {
- *     limit: number,
- *     offset: number,
- *     totalRecords: number,
- *     totalPages: number
- *   }
- * }
- *
- * @throws {AppError.databaseError}
- * If the database query fails.
+ * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
+ * @throws  {AppError}        Normalized database error if the query fails.
  */
-const getBatchStatusLookup = async ({
-                                      filters = {},
-                                      limit = 50,
-                                      offset = 0,
-                                    }) => {
+const getBatchStatusLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
   const context = 'batch-status-repository/getBatchStatusLookup';
-  const tableName = 'batch_status bs';
   
-  //------------------------------------------------------------
-  // Build dynamic WHERE clause based on provided filters
-  //------------------------------------------------------------
   const { whereClause, params } = buildBatchStatusFilter(filters);
-  
-  //------------------------------------------------------------
-  // Base SQL query used by pagination utility
-  //------------------------------------------------------------
-  const queryText = `
-    SELECT
-      bs.id,
-      bs.name,
-      bs.description,
-      bs.is_active
-    FROM ${tableName}
-    WHERE ${whereClause}
-  `;
+  const queryText = buildBatchStatusLookupQuery(whereClause);
   
   try {
-    //------------------------------------------------------------
-    // Execute paginated query using shared DB helper
-    //------------------------------------------------------------
-    const result = await paginateQueryByOffset({
-      tableName,
-      joins: [],
+    return await paginateQueryByOffset({
+      tableName:    BATCH_STATUS_TABLE,
+      joins:        [],
       whereClause,
       queryText,
       params,
       offset,
       limit,
-      sortBy: 'bs.name',
-      sortOrder: 'ASC',
+      sortBy:       'bs.name',
+      sortOrder:    'ASC',
+      whitelistSet: BATCH_STATUS_SORT_WHITELIST,
     });
-    
-    logSystemInfo('Fetched batch status lookup data', {
-      context,
-      offset,
-      limit,
-      filters,
-    });
-    
-    return result;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch batch status lookup', {
+    throw handleDbError(error, {
       context,
-      offset,
-      limit,
-      filters,
+      message: 'Failed to fetch batch status lookup.',
+      meta:    { filters, limit, offset },
+      logFn:   (err) => logDbQueryError(
+        queryText,
+        params,
+        err,
+        { context, filters, limit, offset }
+      ),
     });
-    
-    throw AppError.databaseError(
-      'Failed to fetch batch status lookup.'
-    );
   }
 };
 

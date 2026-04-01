@@ -1,69 +1,66 @@
+/**
+ * @file role-permission-repository.js
+ * @description Database access layer for role permission records.
+ *
+ * Exports:
+ *  - getRolePermissionsByRoleId — fetch aggregated permissions for a role by status
+ */
+
+'use strict';
+
 const { query } = require('../database/db');
 const AppError = require('../utils/AppError');
-const { logSystemException, logSystemInfo } = require('../utils/system-logger');
+const { handleDbError } = require('../utils/errors/error-handlers');
+const { logDbQueryError } = require('../utils/db-logger');
+const { ROLE_PERMISSIONS_BY_ROLE_QUERY } = require('./queries/role-permission-queries');
+
+// ─── Query ────────────────────────────────────────────────────────────────────
 
 /**
- * Fetches permission keys assigned to a role using a resolved status ID.
+ * Fetches aggregated permissions for a role filtered by status.
  *
- * Intended for authorization resolution and permission hydration
- * during authentication or runtime permission checks.
+ * All three entities — role_permissions, roles, and permissions — must share
+ * the same status_id to be included in the result.
  *
- * Constraints:
- * - Role must match the provided status
- * - Permissions must match the provided status
- * - Role-permission links must match the provided status
+ * Not-found check is outside the try block — AppError.notFoundError must
+ * not be caught and re-thrown as a databaseError.
  *
- * @param {string} roleId
- * @param {string} statusId - Resolved status ID (e.g. ACTIVE)
+ * @param {string} roleId   - UUID of the role.
+ * @param {string} statusId - UUID of the active status to filter by.
  *
- * @returns {Promise<{
- *   role_name: string,
- *   permissions: string[]
- * }>}
+ * @returns {Promise<{ role_name: string, permissions: string[] }>}
+ * @throws  {AppError} Not found error if no permissions exist for the role.
+ * @throws  {AppError} Normalized database error if the query fails.
  */
 const getRolePermissionsByRoleId = async (roleId, statusId) => {
   const context = 'role-permission-repository/getRolePermissionsByRoleId';
-
-  const queryText = `
-    SELECT
-      r.name AS role_name,
-      ARRAY_AGG(p.key ORDER BY p.key) AS permissions
-    FROM role_permissions rp
-    INNER JOIN roles r ON r.id = rp.role_id
-    INNER JOIN permissions p ON p.id = rp.permission_id
-    WHERE rp.role_id = $1
-      AND rp.status_id = $2
-      AND r.status_id = $2
-      AND p.status_id = $2
-    GROUP BY r.name
-  `;
-
+  const params  = [roleId, statusId];
+  
+  let rows;
+  
   try {
-    const result = await query(queryText, [roleId, statusId]);
-
-    if (!result.rows.length) {
-      throw AppError.notFoundError(`No permissions found for role: ${roleId}`);
-    }
-
-    logSystemInfo('Fetched role permissions', {
-      context,
-      roleId,
-      statusId,
-      permissionCount: result.rows[0].permissions?.length ?? 0,
-    });
-
-    return result.rows[0];
+    ({ rows } = await query(ROLE_PERMISSIONS_BY_ROLE_QUERY, params));
   } catch (error) {
-    logSystemException(error, 'Failed to fetch role permissions', {
+    throw handleDbError(error, {
       context,
-      roleId,
-      statusId,
+      message: 'Failed to fetch permissions for the specified role.',
+      meta:    { roleId, statusId },
+      logFn:   (err) => logDbQueryError(
+        ROLE_PERMISSIONS_BY_ROLE_QUERY, params, err, { context, roleId }
+      ),
     });
-
-    throw AppError.databaseError(
-      'Failed to fetch permissions for the specified role.'
+  }
+  
+  // Not-found check outside try — throwing notFoundError inside would be
+  // caught and re-thrown as a databaseError.
+  if (!rows.length) {
+    throw AppError.notFoundError(
+      `No permissions found for role: ${roleId}`,
+      { context, meta: { roleId, statusId } }
     );
   }
+  
+  return rows[0];
 };
 
 module.exports = {

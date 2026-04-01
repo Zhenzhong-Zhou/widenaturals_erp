@@ -1,680 +1,365 @@
+/**
+ * @file order-item-repository.js
+ * @description Database access layer for order item records.
+ *
+ * Follows the established repo pattern:
+ *  - Query constants imported from order-item-queries.js
+ *  - All errors normalized through handleDbError before bubbling up
+ *  - No success logging — middleware and globalErrorHandler own that layer
+ *
+ * Exports:
+ *  - insertOrderItemsBulk                  — bulk upsert split by item type
+ *  - findOrderItemsByOrderId               — full detail fetch by order_id
+ *  - updateOrderItemStatusesByOrderId      — bulk status update by order_id
+ *  - updateOrderItemStatus                 — single item status update
+ *  - getOrderItemsByOrderId                — lightweight fetch by order_id
+ *  - validateFullAllocationForFulfillment  — checks for under-allocated items
+ *  - skuHasActiveOrders                   — EXISTS check for SKU active orders
+ */
+
+'use strict';
+
 const { bulkInsert, query } = require('../database/db');
+const { validateBulkInsertRows } = require('../utils/validation/bulk-insert-row-validator');
 const AppError = require('../utils/AppError');
-const { logSystemException, logSystemInfo } = require('../utils/system-logger');
+const { handleDbError } = require('../utils/errors/error-handlers');
+const { logDbQueryError, logBulkInsertError } = require('../utils/db-logger');
 const { existsQuery } = require('./utils/repository-helper');
+const {
+  ORDER_ITEM_INSERT_COLUMNS,
+  ORDER_ITEM_UPDATE_STRATEGIES,
+  ORDER_ITEM_EXTRA_UPDATES,
+  ORDER_ITEM_SKU_CONFLICT_COLUMNS,
+  ORDER_ITEM_PACKAGING_CONFLICT_COLUMNS,
+  ORDER_ITEM_FIND_BY_ORDER_QUERY,
+  ORDER_ITEM_GET_BY_ORDER_QUERY,
+  ORDER_ITEM_UPDATE_STATUS_BY_ORDER,
+  ORDER_ITEM_UPDATE_STATUS_BY_ID,
+  ORDER_ITEM_VALIDATE_ALLOCATION_QUERY,
+  ORDER_ITEM_SKU_ACTIVE_ORDERS_QUERY,
+} = require('./queries/order-item-queries');
+
+// ─── Insert / Upsert ──────────────────────────────────────────────────────────
 
 /**
- * Inserts multiple order items in bulk for a given order.
+ * Bulk inserts or updates order items split by item type.
  *
- * Business rule:
- *  - Each order item must reference either a SKU (`sku_id`) or a packaging material (`packaging_material_id`), but not both.
- *  - On conflict, updates follow the specified strategies:
- *    - `quantity_ordered` → incremented
- *    - `price` → overwritten
- *    - `subtotal` → recalculated as `(EXCLUDED.price * (existing.quantity_ordered + EXCLUDED.quantity_ordered))`
- *    - `metadata` → merged (JSON/text append)
- *    - `updated_at` → overwritten
+ * Each item must have exactly one of sku_id or packaging_material_id.
+ * Items are split into two batches and inserted separately because each
+ * type has a different unique constraint conflict target.
  *
- * Usage:
- *  - Call within a transaction when inserting new items or merging into an existing order.
- *  - Optimized to perform at most two bulk inserts: one for SKU items, one for packaging items.
+ * On conflict:
+ *  - quantity_ordered is incremented
+ *  - subtotal is recalculated from the cumulative quantity
+ *  - price and metadata are overwritten
  *
- * @async
- * @function
- * @param {string} orderId - The associated order ID
- * @param {Array<Object>} orderItems - List of order items to insert
- * @param {string|null} [orderItems[].sku_id] - SKU reference (mutually exclusive with packaging_material_id)
- * @param {string|null} [orderItems[].packaging_material_id] - Packaging material reference (mutually exclusive with sku_id)
- * @param {number} orderItems[].quantity_ordered - Quantity ordered
- * @param {string|null} [orderItems[].price_id] - Optional price reference
- * @param {number|null} [orderItems[].price] - Unit price
- * @param {number} [orderItems[].subtotal] - Subtotal (default: recalculated)
- * @param {string} orderItems[].status_id - Status ID
- * @param {string|Date} [orderItems[].status_date] - Optional status timestamp (default: now)
- * @param {Object|null} [orderItems[].metadata] - Optional metadata JSON object
- * @param {string|null} [orderItems[].created_by] - User ID who created the record
- * @param {string|null} [orderItems[].updated_by] - User ID who last updated the record
- * @param {import('pg').PoolClient} client - Active PostgreSQL transaction client
+ * @param {string}     orderId    - UUID of the order.
+ * @param {Array}      orderItems - Validated order item objects.
+ * @param {PoolClient} client     - DB client for transactional context.
  *
- * @returns {Promise<Object[]>} Inserted or updated order item rows returned by `bulkInsert`
- *
- * @throws {AppError} Throws validation error for invalid items, or database error on failure
- *
- * @example
- * await insertOrderItemsBulk(orderId, [
- *   { sku_id: "sku-123", quantity_ordered: 2, price: 10, status_id: "active" },
- *   { packaging_material_id: "pack-456", quantity_ordered: 5, price: 2, status_id: "active" }
- * ], client);
+ * @returns {Promise<Array<Object>>} Inserted or updated order item records.
+ * @throws  {AppError}               Validation error if any item has invalid type combination.
+ * @throws  {AppError}               Normalized database error if any insert fails.
  */
 const insertOrderItemsBulk = async (orderId, orderItems, client) => {
-  const context = 'order-item-repository/insertOrderItemsBulk';
-
   if (!Array.isArray(orderItems) || orderItems.length === 0) return [];
-
-  const columns = [
-    'order_id',
-    'sku_id',
-    'packaging_material_id',
-    'quantity_ordered',
-    'price_id',
-    'price',
-    'subtotal',
-    'status_id',
-    'metadata',
-    'updated_at',
-    'created_by',
-    'updated_by',
-  ];
-
-  const updateStrategies = {
-    quantity_ordered: 'add',
-    price: 'overwrite',
-    subtotal: 'recalculate_subtotal',
-    metadata: 'merge_json',
-    updated_at: 'overwrite',
-  };
-
-  const mapToRow = (item) => [
-    orderId,
-    item.sku_id ?? null,
-    item.packaging_material_id ?? null,
-    item.quantity_ordered,
-    item.price_id ?? null,
-    item.price ?? null,
-    item.subtotal ?? (item.price ?? 0) * item.quantity_ordered,
-    item.status_id,
-    item.metadata ?? null,
-    null,
-    item.created_by ?? null,
-    item.updated_by ?? null,
-  ];
-
-  const skuItems = orderItems.filter(
-    (item) => item.sku_id && !item.packaging_material_id
-  );
-  const packagingItems = orderItems.filter(
-    (item) => !item.sku_id && item.packaging_material_id
-  );
-
-  // Validate input
+  
+  const context = 'order-item-repository/insertOrderItemsBulk';
+  
+  // ─── Validate Item Types ────────────────────────────────────────────────────
+  // Validation is before any IO — must not be inside the try block.
+  
   const invalidItems = orderItems.filter(
     (item) =>
       (item.sku_id && item.packaging_material_id) ||
       (!item.sku_id && !item.packaging_material_id)
   );
-
+  
   if (invalidItems.length > 0) {
-    throw new Error(
-      `insertOrderItemsBulk(): Invalid items — each item must provide either sku_id or packaging_material_id (but not both).`
+    throw AppError.validationError(
+      'Each order item must have exactly one of sku_id or packaging_material_id.',
+      { context, meta: { invalidCount: invalidItems.length } }
     );
   }
-
+  
+  const mapToRow = (item) => [
+    orderId,
+    item.sku_id                 ?? null,
+    item.packaging_material_id  ?? null,
+    item.quantity_ordered,
+    item.price_id               ?? null,
+    item.price                  ?? null,
+    item.subtotal               ?? (item.price ?? 0) * item.quantity_ordered,
+    item.status_id,
+    item.metadata               ?? null,
+    null,                               // updated_at — null at insert time
+    item.created_by             ?? null,
+    item.updated_by             ?? null,
+  ];
+  
+  const skuItems      = orderItems.filter((item) => item.sku_id && !item.packaging_material_id);
+  const packagingItems = orderItems.filter((item) => !item.sku_id && item.packaging_material_id);
+  
+  // ─── Validate Row Lengths ───────────────────────────────────────────────────
+  
+  if (skuItems.length)       validateBulkInsertRows(skuItems.map(mapToRow),       ORDER_ITEM_INSERT_COLUMNS.length);
+  if (packagingItems.length) validateBulkInsertRows(packagingItems.map(mapToRow), ORDER_ITEM_INSERT_COLUMNS.length);
+  
+  // ─── Insert ─────────────────────────────────────────────────────────────────
+  
   try {
     const results = [];
-
-    // Insert SKU items
-    if (skuItems.length > 0) {
-      const rows = skuItems.map(mapToRow);
+    
+    if (skuItems.length) {
+      const rows   = skuItems.map(mapToRow);
       const result = await bulkInsert(
         'order_items',
-        columns,
+        ORDER_ITEM_INSERT_COLUMNS,
         rows,
-        ['order_id', 'sku_id'], // Valid because packaging_material_id is null
-        updateStrategies,
+        ORDER_ITEM_SKU_CONFLICT_COLUMNS,
+        ORDER_ITEM_UPDATE_STRATEGIES,
         client,
-        { context: `${context}:sku` }
+        { context: `${context}:sku`, extraUpdates: ORDER_ITEM_EXTRA_UPDATES }
       );
       results.push(...result);
     }
-
-    // Insert Packaging items
-    if (packagingItems.length > 0) {
-      const rows = packagingItems.map(mapToRow);
+    
+    if (packagingItems.length) {
+      const rows   = packagingItems.map(mapToRow);
       const result = await bulkInsert(
         'order_items',
-        columns,
+        ORDER_ITEM_INSERT_COLUMNS,
         rows,
-        ['order_id', 'packaging_material_id'], // Valid because sku_id is null
-        updateStrategies,
+        ORDER_ITEM_PACKAGING_CONFLICT_COLUMNS,
+        ORDER_ITEM_UPDATE_STRATEGIES,
         client,
-        { context: `${context}:packaging` }
+        { context: `${context}:packaging`, extraUpdates: ORDER_ITEM_EXTRA_UPDATES }
       );
       results.push(...result);
     }
-
+    
     return results;
   } catch (error) {
-    logSystemException(error, 'Failed to bulk insert order items', {
+    throw handleDbError(error, {
       context,
-      data: orderItems,
+      message: 'Failed to bulk insert order items.',
+      meta:    { orderItemCount: orderItems.length },
+      logFn:   (err) => logBulkInsertError(
+        err,
+        'order_items',
+        [],
+        orderItems.length,
+        { context }
+      ),
     });
-
-    throw AppError.databaseError('Unable to insert order items in bulk.');
   }
 };
 
+// ─── Find By Order (full detail) ─────────────────────────────────────────────
+
 /**
- * findOrderItemsByOrderId
- * ---------------------------------------
- * Repository: Fetch all order items for a given orderId with enriched details:
- * - Item-level status name
- * - SKU & product info (nullable if packaging_material line)
- * - Packaging material info (nullable if SKU line)
- * - Pricing info (price + price type)
- * - Audit fields with created/updated usernames
+ * Fetches full order item detail for a given order.
  *
- * @param {string} orderId - UUID of the order (required)
- * @returns {Promise<object[]>} Array of item rows (empty array if none found)
- * @throws {AppError} AppError.databaseError on DB failure
+ * Includes pricing, status, product, packaging, and audit fields.
+ * Returns an empty array if no items exist for the order.
+ *
+ * @param {string} orderId - UUID of the order.
+ *
+ * @returns {Promise<Array<Object>>} Order item rows ordered by created_at.
+ * @throws  {AppError}               Normalized database error if the query fails.
  */
 const findOrderItemsByOrderId = async (orderId) => {
-  const sql = `
-    SELECT
-      oi.id                     AS order_item_id,
-      oi.order_id,
-      oi.quantity_ordered,
-      oi.price_id,
-      pr.price                  AS listed_price,
-      pt.name                   AS price_type_name,
-      oi.price                  AS item_price,
-      oi.subtotal               AS item_subtotal,
-      oi.status_id              AS item_status_id,
-      ios.name                  AS item_status_name,
-      ios.code                  AS item_status_code,
-      oi.status_date            AS item_status_date,
-      oi.metadata               AS item_metadata,
-      oi.sku_id,
-      s.sku,
-      s.barcode,
-      s.country_code,
-      s.size_label,
-      p.id                      AS product_id,
-      p.name                    AS product_name,
-      p.brand,
-      p.category,
-      oi.packaging_material_id,
-      pkg.code                  AS packaging_material_code,
-      pkg.name                  AS packaging_material_name,
-      pkg.color                 AS packaging_material_color,
-      pkg.size                  AS packaging_material_size,
-      pkg.unit                  AS packaging_material_unit,
-      pkg.length_cm             AS packaging_material_length_cm,
-      pkg.width_cm              AS packaging_material_width_cm,
-      pkg.height_cm             AS packaging_material_height_cm,
-      oi.created_at             AS item_created_at,
-      oi.updated_at             AS item_updated_at,
-      oi.created_by             AS item_created_by,
-      ucb.firstname             AS item_created_by_firstname,
-      ucb.lastname              AS item_created_by_lastname,
-      oi.updated_by             AS item_updated_by,
-      uub.firstname             AS item_updated_by_firstname,
-      uub.lastname              AS item_updated_by_lastname
-    FROM order_items oi
-    LEFT JOIN order_status        ios  ON ios.id = oi.status_id
-    LEFT JOIN skus                s    ON s.id = oi.sku_id
-    LEFT JOIN products            p    ON p.id = s.product_id
-    LEFT JOIN packaging_materials pkg  ON pkg.id = oi.packaging_material_id
-    LEFT JOIN pricing             pr   ON pr.id = oi.price_id
-    LEFT JOIN pricing_types       pt   ON pt.id = pr.price_type_id
-    LEFT JOIN users               ucb  ON ucb.id = oi.created_by
-    LEFT JOIN users               uub  ON uub.id = oi.updated_by
-    WHERE oi.order_id = $1
-    ORDER BY oi.created_at;
-  `;
-
-  const logMeta = {
-    context: 'orderRepository.findOrderItemsByOrderId',
-    severity: 'INFO',
-    orderId,
-    sqlTag: 'findOrderItemsByOrderId.v1',
-  };
+  const context = 'order-item-repository/findOrderItemsByOrderId';
+  
   try {
-    const { rows } = await query(sql, [orderId]);
-
-    if (rows.length === 0) {
-      logSystemInfo('No order items found', { ...logMeta });
-      return [];
-    }
-
-    logSystemInfo('Order items fetched', { ...logMeta, rowCount: rows.length });
+    const { rows } = await query(ORDER_ITEM_FIND_BY_ORDER_QUERY, [orderId]);
     return rows;
   } catch (error) {
-    logSystemException(error, 'DB error fetching order items', {
-      ...logMeta,
-      severity: 'ERROR',
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch order items.',
+      meta:    { orderId },
+      logFn:   (err) => logDbQueryError(
+        ORDER_ITEM_FIND_BY_ORDER_QUERY,
+        [orderId],
+        err,
+        { context, orderId }
+      ),
     });
-
-    throw AppError.databaseError('Failed to fetch order items.');
   }
 };
 
+// ─── Update Status By Order ───────────────────────────────────────────────────
+
 /**
- * Updates the status of all items in a given order.
+ * Bulk updates status for all order items belonging to an order.
  *
- * This function performs the following:
- * - Updates the `status_id`, `status_date`, `updated_at`, and `updated_by` fields
- *   in the `order_items` table for all items belonging to the specified order.
- * - Logs audit messages for success or failure.
- * - Returns the list of updated item records (`id`, `status_id`, `status_date`), or `null` if no items were found.
+ * Skips items where the status already matches — IS DISTINCT FROM ensures
+ * only genuinely changed rows are updated and returned.
+ * Returns an empty array if all statuses already match.
  *
- * Typically used alongside `updateOrderStatus` to keep order-level and item-level statuses in sync.
+ * @param {PoolClient} client
+ * @param {Object}     options
+ * @param {string}     options.orderId      - UUID of the order.
+ * @param {string}     options.newStatusId  - UUID of the new status.
+ * @param {string}     options.updatedBy    - UUID of the user performing the update.
  *
- * @async
- * @param {object} client - An instance of a PostgreSQL client or transaction context (`pg.Client` or `pg.PoolClient`).
- * @param {object} params - Update parameters.
- * @param {string} params.orderId - UUID of the order whose items will be updated.
- * @param {string} params.newStatusId - UUID of the new status to assign to all items.
- * @param {string} params.updatedBy - UUID of the user performing the update (used for audit).
- * @returns {Promise<Array<{
- *   id: string,
- *   status_id: string,
- *   status_date: string
- * }> | null>} A list of updated order item rows, or `null` if no items were updated.
- *
- * @throws {AppError} If a database error occurs.
+ * @returns {Promise<Array<{ id: string, status_id: string, status_date: Date }>>}
+ * @throws  {AppError} Normalized database error if the update fails.
  */
 const updateOrderItemStatusesByOrderId = async (
   client,
   { orderId, newStatusId, updatedBy }
 ) => {
   const context = 'order-item-repository/updateOrderItemStatusesByOrderId';
-
-  const sql = `
-    UPDATE order_items
-    SET
-      status_id = $1,
-      status_date = NOW(),
-      updated_at = NOW(),
-      updated_by = $2
-    WHERE order_id = $3 AND status_id IS DISTINCT FROM $1
-    RETURNING id, status_id, status_date
-  `;
-
-  const values = [newStatusId, updatedBy, orderId];
-
+  const values  = [newStatusId, updatedBy, orderId];
+  
   try {
-    const result = await query(sql, values, client);
-
-    const updatedRows = result.rows || [];
-
-    if (updatedRows.length === 0) {
-      logSystemInfo(
-        'No order items updated by orderId: all statuses already match',
-        {
-          context: 'order-item-repository/updateOrderItemStatusesByOrderId',
-          orderId,
-          newStatusId,
-          updatedBy,
-          severity: 'WARN',
-        }
-      );
-      return null;
-    }
-
-    logSystemInfo('Order item statuses updated successfully by orderId', {
-      context,
-      updateType: 'bulk_by_order_id',
-      orderId,
-      newStatusId,
-      updatedBy,
-      updatedCount: updatedRows.length,
-      severity: 'INFO',
-    });
-
-    return updatedRows;
+    const result = await query(ORDER_ITEM_UPDATE_STATUS_BY_ORDER, values, client);
+    return result.rows;
   } catch (error) {
-    logSystemException(error, 'Failed to update order item statuses', {
+    throw handleDbError(error, {
       context,
-      orderId,
-      newStatusId,
-      updatedBy,
-      severity: 'ERROR',
+      message: 'Failed to update order item statuses by order.',
+      meta:    { orderId, newStatusId },
+      logFn:   (err) => logDbQueryError(
+        ORDER_ITEM_UPDATE_STATUS_BY_ORDER,
+        values,
+        err,
+        { context, orderId, newStatusId }
+      ),
     });
-
-    throw AppError.databaseError(
-      `Failed to update order item statuses: ${error.message}`
-    );
   }
 };
 
+// ─── Update Status By Item ────────────────────────────────────────────────────
+
 /**
- * Updates the status of a single order item, if the new status differs from the current one.
+ * Updates the status of a single order item.
  *
- * This function updates the following fields on the `order_items` table:
- * - `status_id`
- * - `status_date` (set to current timestamp)
- * - `updated_at` (set to current timestamp)
- * - `updated_by` (the user who performed the update)
+ * Returns null if the status already matches — IS DISTINCT FROM ensures
+ * no-op updates return null rather than the unchanged row.
  *
- * If the item already has the specified status, no update is performed and `null` is returned.
+ * @param {PoolClient} client
+ * @param {Object}     options
+ * @param {string}     options.orderItemId  - UUID of the order item.
+ * @param {string}     options.newStatusId  - UUID of the new status.
+ * @param {string}     options.updatedBy    - UUID of the user performing the update.
  *
- * @param {object} client - The PostgreSQL client instance, typically from a transaction context.
- * @param {object} params - Parameters for the status update.
- * @param {string} params.orderItemId - UUID of the order item to update.
- * @param {string} params.newStatusId - UUID of the new status to set.
- * @param {string} params.updatedBy - UUID of the user performing the update.
- * @returns {Promise<{ id: string, status_id: string, status_date: string } | null>} The updated row (if any), or null if unchanged.
- * @throws {AppError} If the database update fails.
- *
- * @example
- * await updateOrderItemStatus(client, {
- *   orderItemId: 'abc123',
- *   newStatusId: 'status_confirmed',
- *   updatedBy: 'user_456',
- * });
+ * @returns {Promise<{ id: string, status_id: string, status_date: Date }|null>}
+ * @throws  {AppError} Normalized database error if the update fails.
  */
 const updateOrderItemStatus = async (
   client,
   { orderItemId, newStatusId, updatedBy }
 ) => {
   const context = 'order-item-repository/updateOrderItemStatus';
-
-  const sql = `
-    UPDATE order_items
-    SET
-      status_id = $1,
-      status_date = NOW(),
-      updated_at = NOW(),
-      updated_by = $2
-    WHERE id = $3 AND status_id IS DISTINCT FROM $1
-    RETURNING id, status_id, status_date
-  `;
-
-  const values = [newStatusId, updatedBy, orderItemId];
-
+  const values  = [newStatusId, updatedBy, orderItemId];
+  
   try {
-    const result = await query(sql, values, client);
-    const updatedRow = result.rows?.[0] ?? null;
-
-    if (updatedRow) {
-      logSystemInfo('Order item status updated successfully', {
-        context,
-        orderItemId,
-        newStatusId,
-        updatedBy,
-      });
-    } else {
-      logSystemInfo('Order item status unchanged (already up-to-date)', {
-        context,
-        orderItemId,
-        newStatusId,
-        updatedBy,
-        severity: 'DEBUG',
-      });
-    }
-
-    return updatedRow;
+    const result = await query(ORDER_ITEM_UPDATE_STATUS_BY_ID, values, client);
+    return result.rows[0] ?? null;
   } catch (error) {
-    logSystemException(error, 'Failed to update order item status', {
+    throw handleDbError(error, {
       context,
-      orderItemId,
-      newStatusId,
-      updatedBy,
+      message: 'Failed to update order item status.',
+      meta:    { orderItemId, newStatusId },
+      logFn:   (err) => logDbQueryError(
+        ORDER_ITEM_UPDATE_STATUS_BY_ID,
+        values,
+        err,
+        { context, orderItemId, newStatusId }
+      ),
     });
-    throw AppError.databaseError('Failed to update order item status.');
   }
 };
 
-/**
- * Database row representing an order item joined with product or packaging
- * metadata used during inventory allocation.
- *
- * Returned by the order item allocation repository query.
- *
- * Order items may represent either:
- * - a product SKU
- * - a packaging material
- *
- * @typedef {Object} OrderItemRow
- *
- * @property {string} order_item_id - UUID of the order item
- * @property {string|null} sku_id - SKU ID if the item represents a product
- * @property {string|null} packaging_material_id - Packaging material ID if the item represents packaging material
- *
- * @property {number} quantity_ordered - Quantity ordered for this item
- *
- * @property {string} order_item_status_id - UUID of the order item status
- * @property {string} order_items_category - Status category (e.g. "ORDER_ITEM")
- * @property {string} order_item_code - Order item status code (e.g. "ORDER_CONFIRMED")
- *
- * @property {string|null} sku_code - Human-readable SKU code (e.g. "NMN-30K-CA")
- * @property {string|null} size_label - SKU size label (e.g. "60 Capsules")
- * @property {string|null} country_code - SKU country code (e.g. "CA")
- *
- * @property {string|null} product_name - Product name associated with the SKU
- * @property {string|null} brand - Product brand name
- *
- * @property {string|null} material_code - Packaging material code
- * @property {string|null} material_name - Packaging material name
- *
- * @property {string|null} material_lot_number - Lot number of the packaging material batch
- * @property {string|null} material_batch_name - Snapshot name of the packaging material batch
- */
+// ─── Get By Order (lightweight) ──────────────────────────────────────────────
 
 /**
- * Retrieves all order items for a given order ID along with status and display metadata.
+ * Fetches lightweight order item records for a given order.
  *
- * This function queries the `order_items` table and joins related tables to provide
- * item status information as well as product or packaging material display data.
+ * Minimal projection for fulfillment and allocation flows.
  *
- * Joined tables include:
- * - `orders`
- * - `order_status`
- * - `skus`
- * - `products`
- * - `packaging_materials`
- * - `packaging_material_suppliers`
- * - `packaging_material_batches`
+ * @param {string}     orderId - UUID of the order.
+ * @param {PoolClient} client  - DB client for transactional context.
  *
- * The result is primarily used during inventory allocation to:
- * - validate item statuses
- * - determine item type (product vs packaging material)
- * - resolve human-readable item names and codes
- * - support allocation error reporting
- *
- * Behavior:
- * - Accepts an optional DB client for transactional consistency.
- * - Logs success or failure using structured system logging.
- * - Throws an AppError if the query fails.
- *
- * @async
- * @param {string} orderId - UUID of the order whose items are being fetched.
- * @param {object} [client] - Optional PostgreSQL client for transaction context.
- *
- * @returns {Promise<OrderItemRow[]>}
- * List of order items with status metadata and display information.
- *
- * @throws {AppError} If the query fails to execute.
+ * @returns {Promise<Array<Object>>} Lightweight order item rows.
+ * @throws  {AppError}               Normalized database error if the query fails.
  */
 const getOrderItemsByOrderId = async (orderId, client) => {
   const context = 'order-item-repository/getOrderItemsByOrderId';
-
-  const sql = `
-    SELECT
-      oi.id AS order_item_id,
-      oi.sku_id,
-      oi.packaging_material_id,
-      oi.quantity_ordered,
-      oi.status_id AS order_item_status_id,
-      os.category AS order_items_category,
-      os.code AS order_item_code,
-      s.sku AS sku_code,
-      s.size_label,
-      s.country_code,
-      p.name AS product_name,
-      p.brand,
-      pm.code AS material_code,
-      pm.name AS material_name,
-      pmb.lot_number AS material_lot_number,
-      pmb.material_snapshot_name AS material_batch_name
-    FROM order_items oi
-    JOIN orders o ON o.id = oi.order_id
-    JOIN order_status os ON oi.status_id = os.id
-    LEFT JOIN skus s ON oi.sku_id = s.id
-    LEFT JOIN products p ON s.product_id = p.id
-    LEFT JOIN packaging_materials pm
-      ON oi.packaging_material_id = pm.id
-    LEFT JOIN packaging_material_suppliers pms
-      ON pms.packaging_material_id = pm.id
-      AND pms.is_preferred = true
-    LEFT JOIN packaging_material_batches pmb
-      ON pmb.packaging_material_supplier_id = pms.id
-    WHERE o.id = $1;
-  `;
-
+  
   try {
-    const result = await query(sql, [orderId], client);
-
-    logSystemInfo('Fetched order items by order ID', {
-      context,
-      orderId,
-      rowCount: result?.rows?.length ?? 0,
-      severity: 'INFO',
-    });
-
+    const result = await query(ORDER_ITEM_GET_BY_ORDER_QUERY, [orderId], client);
     return result.rows;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch order items by order ID', {
+    throw handleDbError(error, {
       context,
-      orderId,
-      severity: 'ERROR',
+      message: 'Failed to fetch order items by order ID.',
+      meta:    { orderId },
+      logFn:   (err) => logDbQueryError(
+        ORDER_ITEM_GET_BY_ORDER_QUERY,
+        [orderId],
+        err,
+        { context, orderId }
+      ),
     });
-
-    throw AppError.databaseError(
-      'Unable to retrieve order items for the specified order.'
-    );
   }
 };
 
+// ─── Allocation Validation ────────────────────────────────────────────────────
+
 /**
- * Validates that all order items in a given order are fully allocated.
+ * Checks whether all order items are fully allocated.
  *
- * Business rule:
- *  - An order item is fully allocated if the sum of allocated quantities
- *    (from `inventory_allocations`) is greater than or equal to its
- *    `quantity_ordered`.
- *  - Fulfillment should be blocked if any item is underallocated.
+ * Returns the first under-allocated row if any exist, or null if all items
+ * are fully allocated. Caller interprets null as fully allocated.
  *
- * Behavior:
- *  - Returns `null` if the order is fully allocated.
- *  - Returns a truthy row (e.g., `{ underallocated_item_id: <UUID> }`)
- *    if at least one item is underallocated.
+ * @param {string}          orderId       - UUID of the order to validate.
+ * @param {PoolClient|null} [client=null] - Optional DB client for transactional context.
  *
- * Performance:
- *  - Uses `GROUP BY` + `HAVING` with `LIMIT 1` for early exit.
- *  - Requires indexes on `order_items(order_id)` and
- *    `inventory_allocations(order_item_id)` for best performance.
- *
- * @async
- * @function
- * @param {string} orderId - UUID of the order to check
- * @param {import('pg').PoolClient|null} [client=null] - Optional PostgreSQL client or transaction
- * @returns {Promise<{ underallocated_item_id: string } | null>}
- *   - `null` if fully allocated
- *   - Row containing the `order_item_id` of one underallocated item
- *
- * @throws {AppError} Throws `AppError.databaseError` if the query fails
- *
- * @example
- * const underAllocated = await validateFullAllocationForFulfillment(orderId);
- * if (underAllocated) {
- *   throw new Error(`Order cannot be fulfilled; item ${underAllocated.underallocated_item_id} is underallocated.`);
- * }
+ * @returns {Promise<Object|null>} First under-allocated row, or null if fully allocated.
+ * @throws  {AppError}             Normalized database error if the query fails.
  */
 const validateFullAllocationForFulfillment = async (orderId, client = null) => {
   const context = 'order-item-repository/validateFullAllocationForFulfillment';
-
-  const sql = `
-    SELECT 1
-    FROM order_items oi
-    LEFT JOIN inventory_allocations ia ON ia.order_item_id = oi.id
-    WHERE oi.order_id = $1
-    GROUP BY oi.id, oi.quantity_ordered
-    HAVING COALESCE(SUM(ia.allocated_quantity), 0) < oi.quantity_ordered
-    LIMIT 1;
-  `;
-
+  
   try {
-    const { rows } = await query(sql, [orderId], client);
-
-    const isFullyAllocated = rows.length === 0;
-
-    logSystemInfo(
-      isFullyAllocated
-        ? 'All order items are fully allocated.'
-        : 'Some order items are not fully allocated.',
-      {
-        context,
-        orderId,
-        rowCount: rows.length,
-      }
-    );
-
+    const { rows } = await query(ORDER_ITEM_VALIDATE_ALLOCATION_QUERY, [orderId], client);
     return rows[0] ?? null;
   } catch (error) {
-    logSystemException(
-      error,
-      'Failed to validate order item allocations for fulfillment.',
-      {
-        context,
-        orderId,
-      }
-    );
-
-    throw AppError.databaseError(
-      'Could not validate order allocation status.',
-      {
-        cause: error,
-        orderId,
-      }
-    );
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to validate order item allocations for fulfillment.',
+      meta:    { orderId },
+      logFn:   (err) => logDbQueryError(
+        ORDER_ITEM_VALIDATE_ALLOCATION_QUERY,
+        [orderId],
+        err,
+        { context, orderId }
+      ),
+    });
   }
 };
 
+// ─── Existence Check ──────────────────────────────────────────────────────────
+
 /**
- * Checks whether a SKU is referenced by any active orders.
+ * Checks whether a SKU has any order items in an active order status.
  *
- * An active order is defined as an order whose status_id
- * matches one of the provided operational order status UUIDs.
+ * @param {string}          skuId                - UUID of the SKU to check.
+ * @param {string[]}        activeOrderStatusIds  - UUIDs of active order statuses.
+ * @param {PoolClient|null} [client=null]         - Optional DB client.
  *
- * This function is used by business-layer guards to prevent
- * SKU archival or deletion when active orders exist.
- *
- * Relationships:
- *   order_items → orders → SKU
- *
- * @param {string} skuId - UUID of the SKU.
- * @param {string[]} activeOrderStatusIds
- *   Array of order status UUIDs considered "active".
- * @param {import('pg').PoolClient|null} [client]
- *   Optional transactional client.
- *
- * @returns {Promise<boolean>}
- *   Returns true if at least one active order references the SKU,
- *   false otherwise.
- *
- * @throws {AppError.databaseError}
- *   If the database query fails.
+ * @returns {Promise<boolean>} True if at least one active order exists for the SKU.
+ * @throws  {AppError}         Normalized database error if the query fails.
  */
-const skuHasActiveOrders = async (
-  skuId,
-  activeOrderStatusIds,
-  client = null
-) => {
+const skuHasActiveOrders = async (skuId, activeOrderStatusIds, client = null) => {
   const context = 'order-item-repository/skuHasActiveOrders';
-
-  const queryText = `
-    SELECT 1
-    FROM order_items oi
-    JOIN orders o
-      ON o.id = oi.order_id
-    WHERE oi.sku_id = $1
-      AND o.order_status_id = ANY($2::uuid[])
-    LIMIT 1
-  `;
-
+  
   return existsQuery(
-    queryText,
+    ORDER_ITEM_SKU_ACTIVE_ORDERS_QUERY,
     [skuId, activeOrderStatusIds],
     context,
     'Failed to check SKU active order dependency',

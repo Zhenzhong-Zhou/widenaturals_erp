@@ -1,108 +1,75 @@
+/**
+ * @file sales-order-repository.js
+ * @description Database access layer for sales order records.
+ *
+ * Exports:
+ *  - insertSalesOrder — insert a single sales order record
+ */
+
+'use strict';
+
 const { query } = require('../database/db');
-const AppError = require('../utils/AppError');
-const { logSystemException } = require('../utils/system-logger');
+const { handleDbError } = require('../utils/errors/error-handlers');
+const { logDbQueryError } = require('../utils/db-logger');
+const { SALES_ORDER_INSERT_QUERY } = require('./queries/sales-order-queries');
+
+// ─── Insert ───────────────────────────────────────────────────────────────────
 
 /**
- * Inserts a new sales order record into the `sales_orders` table.
+ * Inserts a new sales order record and returns the generated ID.
  *
- * This function assumes that a corresponding `orders` entry (with the same ID) has already been created.
- * It records sales-specific fields such as payment details, tax, discount, delivery method, and amounts.
+ * @param {Object}                  salesOrderData
+ * @param {string}                  salesOrderData.id                   - UUID for the new sales order.
+ * @param {string}                  salesOrderData.customer_id          - UUID of the customer.
+ * @param {string}                  salesOrderData.order_date           - ISO date string.
+ * @param {string|null}             [salesOrderData.payment_status_id]
+ * @param {string|null}             [salesOrderData.payment_method_id]
+ * @param {string}                  [salesOrderData.currency_code='CAD']
+ * @param {number|null}             [salesOrderData.exchange_rate]
+ * @param {number|null}             [salesOrderData.base_currency_amount]
+ * @param {string|null}             [salesOrderData.discount_id]
+ * @param {number}                  [salesOrderData.discount_amount=0]
+ * @param {number}                  salesOrderData.subtotal
+ * @param {string}                  salesOrderData.tax_rate_id
+ * @param {number}                  [salesOrderData.tax_amount=0]
+ * @param {number}                  [salesOrderData.shipping_fee=0]
+ * @param {number}                  salesOrderData.total_amount
+ * @param {string}                  salesOrderData.delivery_method_id
+ * @param {Object|null}             [salesOrderData.metadata]
+ * @param {string|null}             [salesOrderData.created_by]
+ * @param {string|null}             [salesOrderData.updated_at]
+ * @param {string|null}             [salesOrderData.updated_by]
+ * @param {PoolClient} client - DB client for transactional context.
  *
- * @function insertSalesOrder
- * @param {Object} salesOrderData - The sales order data payload.
- * @param {string} salesOrderData.id - UUID of the corresponding order (must exist in `orders` table).
- * @param {string} salesOrderData.customer_id - UUID of the customer placing the order.
- * @param {string} salesOrderData.order_date - ISO-formatted order date (e.g., '2025-06-25').
- * @param {string} [salesOrderData.payment_status_id] - Optional UUID reference to `payment_status`.
- * @param {string} [salesOrderData.payment_method_id] - Optional UUID reference to `payment_methods`.
- * @param {string} [salesOrderData.currency_code='CAD'] - Currency code (e.g., 'CAD', 'USD').
- * @param {number} [salesOrderData.exchange_rate] - Optional exchange rate to base currency.
- * @param {number} [salesOrderData.base_currency_amount] - Optional amount in base currency.
- * @param {string} [salesOrderData.discount_id] - Optional UUID reference to `discounts`.
- * @param {number} [salesOrderData.discount_amount=0] - Discount amount (default 0).
- * @param {number} salesOrderData.subtotal - Subtotal before tax and fees.
- * @param {string} salesOrderData.tax_rate_id - UUID of the applied tax rate.
- * @param {number} [salesOrderData.tax_amount=0] - Tax amount (default 0).
- * @param {number} [salesOrderData.shipping_fee=0] - Shipping fee (default 0).
- * @param {number} salesOrderData.total_amount - Final total amount after all adjustments.
- * @param {string} salesOrderData.delivery_method_id - UUID reference to `delivery_methods`.
- * @param {string} [salesOrderData.created_by] - Optional user ID of the creator.
- * @param {import('pg').PoolClient} client - PostgreSQL client with an active transaction context.
- *
- * @throws {AppError} Throws a database error if the insert fails.
- *
- * @returns {Promise<void>} Resolves when the sales order has been successfully inserted.
- *
- * @example
- * await insertSalesOrder(client, {
- *   id: 'a1b2c3d4-...',
- *   customer_id: 'c123...',
- *   order_date: '2025-06-25',
- *   subtotal: 100.0,
- *   tax_rate_id: 't456...',
- *   total_amount: 113.0,
- *   delivery_method_id: 'd789...',
- *   created_by: 'u001...'
- * });
+ * @returns {Promise<string>} UUID of the inserted sales order.
+ * @throws  {AppError}        Normalized database error if the insert fails.
  */
 const insertSalesOrder = async (salesOrderData, client) => {
+  const context = 'sales-order-repository/insertSalesOrder';
+  
   const {
     id,
     customer_id,
     order_date,
-    payment_status_id = null,
-    payment_method_id = null,
-    currency_code = 'CAD',
-    exchange_rate = null,
+    payment_status_id   = null,
+    payment_method_id   = null,
+    currency_code       = 'CAD',
+    exchange_rate       = null,
     base_currency_amount = null,
-    discount_id = null,
-    discount_amount = 0,
+    discount_id         = null,
+    discount_amount     = 0,
     subtotal,
     tax_rate_id,
-    tax_amount = 0,
-    shipping_fee = 0,
+    tax_amount          = 0,
+    shipping_fee        = 0,
     total_amount,
     delivery_method_id,
-    metadata = null,
-    created_by = null,
-    updated_at = null,
-    updated_by = null,
+    metadata            = null,
+    created_by          = null,
+    updated_at          = null,
+    updated_by          = null,
   } = salesOrderData;
-
-  const sql = `
-    INSERT INTO sales_orders (
-      id,
-      customer_id,
-      order_date,
-      payment_status_id,
-      payment_method_id,
-      currency_code,
-      exchange_rate,
-      base_currency_amount,
-      discount_id,
-      discount_amount,
-      subtotal,
-      tax_rate_id,
-      tax_amount,
-      shipping_fee,
-      total_amount,
-      delivery_method_id,
-      metadata,
-      created_at,
-      updated_at,
-      created_by,
-      updated_by
-    )
-    VALUES (
-      $1,  $2, $3, $4, $5,
-      $6,  $7, $8, $9, $10,
-      $11, $12, $13, $14, $15,
-      $16, $17, NOW(), $18, $19,
-      $20
-    )
-    RETURNING id;
-  `;
-
+  
   const values = [
     id,
     customer_id,
@@ -125,23 +92,19 @@ const insertSalesOrder = async (salesOrderData, client) => {
     created_by,
     updated_by,
   ];
-
+  
   try {
-    const { rows } = await query(sql, values, client);
+    const { rows } = await query(SALES_ORDER_INSERT_QUERY, values, client);
     return rows[0]?.id;
   } catch (error) {
-    logSystemException(
-      error,
-      'Database insert failed while creating a new sales order',
-      {
-        context: 'sales-order-repository/insertSalesOrder',
-        payload: salesOrderData,
-      }
-    );
-
-    throw AppError.databaseError(
-      'Database insert failed: could not create new sales order.'
-    );
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to insert sales order.',
+      meta:    { order_id: id, customer_id },
+      logFn:   (err) => logDbQueryError(
+        SALES_ORDER_INSERT_QUERY, values, err, { context, order_id: id }
+      ),
+    });
   }
 };
 

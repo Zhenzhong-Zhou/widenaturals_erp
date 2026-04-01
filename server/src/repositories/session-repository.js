@@ -1,340 +1,233 @@
+/**
+ * @file session-repository.js
+ * @description Database access layer for session records.
+ *
+ * Follows the established repo pattern:
+ *  - Query constants imported from session-queries.js
+ *  - All errors normalized through handleDbError before bubbling up
+ *  - No success logging — middleware and globalErrorHandler own that layer
+ *
+ * Exports:
+ *  - insertSession                — insert new session record
+ *  - getSessionById               — fetch session by id
+ *  - revokeSessionsByUserId       — revoke all active sessions for a user
+ *  - updateSessionLastActivityAt  — throttled activity timestamp update
+ *  - revokeSessionRowById         — revoke single session by id
+ *  - logoutSessionRowById         — logout and revoke single session by id
+ */
+
+'use strict';
+
 const { query } = require('../database/db');
-const { logSystemInfo, logSystemException } = require('../utils/system-logger');
+const { handleDbError } = require('../utils/errors/error-handlers');
+const { logDbQueryError } = require('../utils/db-logger');
+const {
+  SESSION_INSERT_QUERY,
+  SESSION_GET_BY_ID_QUERY,
+  SESSION_REVOKE_BY_USER_QUERY,
+  SESSION_UPDATE_ACTIVITY_QUERY,
+  SESSION_REVOKE_BY_ID_QUERY,
+  SESSION_LOGOUT_BY_ID_QUERY,
+} = require('./queries/session-queries');
+
+// ─── Insert ───────────────────────────────────────────────────────────────────
 
 /**
- * Inserts a new session record into the `sessions` table.
+ * Inserts a new session record and returns the created row.
  *
- * Repository-layer function:
- * - Executes a single INSERT statement
- * - Assumes one session per call (NO bulk inserts)
- * - Relies on database constraints for integrity
- * - Does NOT create or manage tokens
- * - Does NOT enforce session limits or revocation rules
- * - Preserves raw database errors
+ * @param {Object}                  session
+ * @param {string}                  session.userId      - UUID of the user.
+ * @param {string}                  session.expiresAt   - ISO timestamp for session expiry.
+ * @param {string|null}             [session.ipAddress] - Client IP address.
+ * @param {string|null}             [session.userAgent] - Client user agent string.
+ * @param {string|null}             [session.deviceId]  - Device identifier.
+ * @param {string|null}             [session.note]      - Optional session note.
+ * @param {PoolClient} client              - DB client for transactional context.
  *
- * IMPORTANT:
- * Session lifecycle decisions (single-session policy, multi-device handling,
- * token issuance, revocation, rotation) MUST be handled in the service layer.
- *
- * @param {Object} session - Session data to insert
- * @param {string} session.userId
- * @param {Date} session.expiresAt
- * @param {string|null} [session.ipAddress]
- * @param {string|null} [session.userAgent]
- * @param {string|null} [session.deviceId]
- * @param {string|null} [session.note]
- * @param {Object} client - Database client or transaction
- *
- * @returns {Promise<{
- *   id: string,
- *   user_id: string,
- *   created_at: Date,
- *   last_activity_at: Date,
- *   expires_at: Date
- * }>}
- *
- * @throws {Error} Raw database errors such as:
- * - Foreign key violations (user_id)
- * - Other database-level failures
+ * @returns {Promise<{ id: string, user_id: string, created_at: Date, last_activity_at: Date, expires_at: Date }>}
+ * @throws  {AppError} Normalized database error if the insert fails.
  */
 const insertSession = async (session, client) => {
   const context = 'session-repository/insertSession';
-
+  
   const {
     userId,
     expiresAt,
     ipAddress = null,
     userAgent = null,
-    deviceId = null,
-    note = null,
+    deviceId  = null,
+    note      = null,
   } = session;
-
-  const queryText = `
-    INSERT INTO sessions (
-      user_id,
-      expires_at,
-      ip_address,
-      user_agent,
-      device_id,
-      note
-    )
-    VALUES ($1,$2,$3,$4,$5,$6)
-    RETURNING
-      id,
-      user_id,
-      created_at,
-      last_activity_at,
-      expires_at;
-  `;
-
+  
   const params = [userId, expiresAt, ipAddress, userAgent, deviceId, note];
-
+  
   try {
-    const { rows } = await query(queryText, params, client);
-
-    logSystemInfo('Session inserted successfully', {
-      context,
-      sessionId: rows[0]?.id,
-      userId,
-    });
-
+    const { rows } = await query(SESSION_INSERT_QUERY, params, client);
     return rows[0];
   } catch (error) {
-    logSystemException(error, 'Failed to insert session', {
+    throw handleDbError(error, {
       context,
-      userId,
-      error: error.message,
+      message: 'Failed to insert session.',
+      meta:    { userId },
+      logFn:   (err) => logDbQueryError(
+        SESSION_INSERT_QUERY, params, err, { context, userId }
+      ),
     });
-
-    throw error;
   }
 };
 
+// ─── Fetch ────────────────────────────────────────────────────────────────────
+
 /**
- * Fetches a session row by ID.
+ * Fetches a session record by ID.
  *
- * Repository-layer function:
- * - Executes a single SELECT
- * - Returns session row or null
- * - Does NOT enforce expiry or revocation semantics
- * - Preserves raw database errors
+ * Returns null if no session exists for the given ID.
  *
- * @param {string} sessionId
- * @param {Object|null} client
+ * @param {string}                      sessionId     - UUID of the session.
+ * @param {PoolClient|null} [client=null]
  *
- * @returns {Promise<{
- *   id: string,
- *   user_id: string,
- *   expires_at: Date,
- *   revoked_at: Date | null,
- *   logout_at: Date | null
- * } | null>}
+ * @returns {Promise<Object|null>} Session row, or null if not found.
+ * @throws  {AppError}             Normalized database error if the query fails.
  */
 const getSessionById = async (sessionId, client = null) => {
   const context = 'session-repository/getSessionById';
-
-  const queryText = `
-    SELECT
-      id,
-      user_id,
-      expires_at,
-      revoked_at,
-      logout_at
-    FROM sessions
-    WHERE id = $1
-    LIMIT 1;
-  `;
-
+  
   try {
-    const { rows } = await query(queryText, [sessionId], client);
-
-    if (!rows[0]) {
-      return null;
-    }
-
-    logSystemInfo('Session fetched by id', {
-      context,
-      sessionId: rows[0].id,
-      userId: rows[0].user_id,
-    });
-
-    return rows[0];
+    const { rows } = await query(SESSION_GET_BY_ID_QUERY, [sessionId], client);
+    return rows[0] ?? null;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch session by id', {
+    throw handleDbError(error, {
       context,
-      sessionId,
-      error: error.message,
+      message: 'Failed to fetch session by ID.',
+      meta:    { sessionId },
+      logFn:   (err) => logDbQueryError(
+        SESSION_GET_BY_ID_QUERY, [sessionId], err, { context, sessionId }
+      ),
     });
-
-    throw error;
   }
 };
 
+// ─── Revoke ───────────────────────────────────────────────────────────────────
+
 /**
- * Revokes all active sessions for a user.
+ * Revokes all active sessions for a given user.
  *
- * Repository guarantees:
- * - Operates exclusively on the `sessions` table
- * - Marks non-revoked sessions as revoked by setting `revoked_at`
- * - Does NOT revoke associated tokens (caller responsibility)
- * - Idempotent: calling multiple times will not re-revoke sessions
+ * Returns an empty array if no active sessions exist.
  *
- * Behavior:
- * - Only sessions with `revoked_at IS NULL` are affected
- * - Returns identifiers of sessions revoked during this call
+ * @param {string}                      userId        - UUID of the user.
+ * @param {PoolClient|null} [client=null]
  *
- * @param {string} userId - Target user identifier
- * @param {Object|null} client - Optional transaction client
- *
- * @returns {Promise<Array<{ id: string }>>}
- *   Array of session rows that were revoked in this operation.
- *
- * @throws {Error} Propagates raw database errors
+ * @returns {Promise<Array<{ id: string }>>} Revoked session rows.
+ * @throws  {AppError}                        Normalized database error if the update fails.
  */
 const revokeSessionsByUserId = async (userId, client = null) => {
   const context = 'session-repository/revokeSessionsByUserId';
-
-  const sql = `
-    UPDATE sessions
-    SET revoked_at = NOW()
-    WHERE user_id = $1
-      AND revoked_at IS NULL
-    RETURNING id;
-  `;
-
+  
   try {
-    const { rows } = await query(sql, [userId], client);
-
-    logSystemInfo('Sessions revoked for user', {
-      context,
-      userId,
-      revokedCount: rows.length,
-    });
-
+    const { rows } = await query(SESSION_REVOKE_BY_USER_QUERY, [userId], client);
     return rows;
   } catch (error) {
-    logSystemException(error, 'Failed to revoke sessions for user', {
+    throw handleDbError(error, {
       context,
-      userId,
+      message: 'Failed to revoke sessions for user.',
+      meta:    { userId },
+      logFn:   (err) => logDbQueryError(
+        SESSION_REVOKE_BY_USER_QUERY, [userId], err, { context, userId }
+      ),
     });
-    throw error;
   }
 };
 
+// ─── Activity ─────────────────────────────────────────────────────────────────
+
 /**
- * Updates session last_activity_at timestamp.
+ * Updates last_activity_at for a session with a 5-minute throttle guard.
  *
- * Repository guarantees:
- * - Safe to call multiple times
- * - Rate-limited at SQL level
- * - No validation or business logic
+ * Returns false if the session is already active within the throttle window
+ * or does not exist — not treated as an error.
  *
- * Semantics:
- * - Marks session as "recently active"
- * - Does NOT extend expiry
- * - Does NOT revive revoked sessions
+ * @param {string}                      sessionId     - UUID of the session.
+ * @param {PoolClient|null} [client=null]
  *
- * @param {string} sessionId
- * @param {Object|null} client
- *
- * @returns {Promise<boolean>} true if updated, false if skipped
+ * @returns {Promise<boolean>} True if the activity timestamp was updated.
+ * @throws  {AppError}          Normalized database error if the update fails.
  */
 const updateSessionLastActivityAt = async (sessionId, client = null) => {
   const context = 'session-repository/updateSessionLastActivityAt';
-
-  const sql = `
-    UPDATE sessions
-    SET last_activity_at = NOW()
-    WHERE id = $1
-      AND revoked_at IS NULL
-      AND (
-        last_activity_at IS NULL
-        OR last_activity_at < NOW() - INTERVAL '5 minutes'
-      )
-    RETURNING id;
-  `;
-
+  
   try {
-    const { rowCount } = await query(sql, [sessionId], client);
-
+    const { rowCount } = await query(SESSION_UPDATE_ACTIVITY_QUERY, [sessionId], client);
     return rowCount > 0;
   } catch (error) {
-    logSystemException(error, 'Failed to update session activity', {
+    throw handleDbError(error, {
       context,
-      sessionId,
+      message: 'Failed to update session activity.',
+      meta:    { sessionId },
+      logFn:   (err) => logDbQueryError(
+        SESSION_UPDATE_ACTIVITY_QUERY, [sessionId], err, { context, sessionId }
+      ),
     });
-    throw error;
   }
 };
 
 /**
- * Marks a session as revoked.
+ * Revokes a single session by ID.
  *
- * Repository guarantees:
- * - Safe to call multiple times (idempotent)
- * - Performs a single, bounded UPDATE
- * - No validation or business logic
+ * Returns false if the session is already revoked or does not exist.
  *
- * Semantics:
- * - Permanently invalidates the session
- * - Does NOT revoke tokens (handled by business layer)
- * - Does NOT affect logout timestamps
+ * @param {string}                      sessionId     - UUID of the session.
+ * @param {PoolClient|null} [client=null]
  *
- * @param {string} sessionId
- * @param {Object|null} client
- *
- * @returns {Promise<boolean>} true if session was revoked, false if already revoked
+ * @returns {Promise<boolean>} True if the session was revoked.
+ * @throws  {AppError}          Normalized database error if the update fails.
  */
 const revokeSessionRowById = async (sessionId, client = null) => {
   const context = 'session-repository/revokeSessionRowById';
-
-  const sql = `
-    UPDATE sessions
-    SET
-      revoked_at = NOW()
-    WHERE id = $1
-      AND revoked_at IS NULL
-    RETURNING id;
-  `;
-
+  
   try {
-    const { rowCount } = await query(sql, [sessionId], client);
-
+    const { rowCount } = await query(SESSION_REVOKE_BY_ID_QUERY, [sessionId], client);
     return rowCount > 0;
   } catch (error) {
-    logSystemException(error, 'Failed to revoke session', {
+    throw handleDbError(error, {
       context,
-      sessionId,
+      message: 'Failed to revoke session.',
+      meta:    { sessionId },
+      logFn:   (err) => logDbQueryError(
+        SESSION_REVOKE_BY_ID_QUERY, [sessionId], err, { context, sessionId }
+      ),
     });
-    throw error;
   }
 };
 
+// ─── Logout ───────────────────────────────────────────────────────────────────
+
 /**
- * Marks a session as explicitly logged out by the user.
+ * Logs out a session by setting logout_at and revoked_at.
  *
- * Repository-layer function:
- * - Executes a single, bounded UPDATE
- * - Idempotent (safe to call multiple times)
- * - Does NOT enforce business logic
- * - Preserves raw database errors
+ * COALESCE preserves existing values if the session is already logged out
+ * or revoked. Returns null if the session was already logged out.
  *
- * Semantics:
- * - Records voluntary user logout
- * - Sets logout_at and revoked_at if not already set
- * - Distinguishes user logout from security-triggered revocation
+ * @param {string}                  sessionId - UUID of the session.
+ * @param {PoolClient} client    - DB client for transactional context.
  *
- * @param {string} sessionId
- * @param {Object|null} client - Optional transaction client
- *
- * @returns {Promise<{
- *   id: string,
- *   user_id: string
- * } | null>}
- *   Updated session identifiers, or null if no active session was updated
+ * @returns {Promise<{ id: string, user_id: string }|null>}
+ * @throws  {AppError} Normalized database error if the update fails.
  */
 const logoutSessionRowById = async (sessionId, client) => {
   const context = 'session-repository/logoutSessionRowById';
-
-  const sql = `
-    UPDATE sessions
-    SET
-      logout_at  = COALESCE(logout_at, NOW()),
-      revoked_at = COALESCE(revoked_at, NOW())
-    WHERE id = $1
-      AND logout_at IS NULL
-    RETURNING id, user_id;
-  `;
-
+  
   try {
-    const { rows } = await query(sql, [sessionId], client);
+    const { rows } = await query(SESSION_LOGOUT_BY_ID_QUERY, [sessionId], client);
     return rows[0] ?? null;
   } catch (error) {
-    logSystemException(error, 'Failed to log out session', {
+    throw handleDbError(error, {
       context,
-      sessionId,
+      message: 'Failed to logout session.',
+      meta:    { sessionId },
+      logFn:   (err) => logDbQueryError(
+        SESSION_LOGOUT_BY_ID_QUERY, [sessionId], err, { context, sessionId }
+      ),
     });
-    throw error;
   }
 };
 

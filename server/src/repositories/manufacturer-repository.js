@@ -1,132 +1,74 @@
+/**
+ * @file manufacturer-repository.js
+ * @description Database access layer for manufacturer records.
+ *
+ * Exports:
+ *  - getManufacturerLookup — offset-paginated dropdown lookup with optional filtering
+ */
+
+'use strict';
+
+const { buildManufacturerFilter } = require('../utils/sql/build-manufacturer-filter');
+const { buildVendorLookup } = require('./utils/build-vendor-lookup');
 const {
-  buildManufacturerFilter,
-} = require('../utils/sql/build-manufacturer-filter');
-const { paginateQueryByOffset } = require('../database/db');
-const { logSystemInfo, logSystemException } = require('../utils/system-logger');
-const AppError = require('../utils/AppError');
+  MANUFACTURER_TABLE,
+  MANUFACTURER_SORT_WHITELIST,
+  MANUFACTURER_ADDITIONAL_SORTS,
+  buildManufacturerLookupQuery,
+} = require('./queries/manufacturer-queries');
+
+// ─── Lookup ───────────────────────────────────────────────────────────────────
 
 /**
- * Fetches a lightweight, paginated list of Manufacturers
- * for use in dropdowns, autocomplete inputs, and assignment workflows.
+ * Fetches paginated manufacturer records for dropdown/lookup use.
  *
- * This repository function is intentionally optimized for lookup scenarios.
+ * Status and location joins are conditional on capability flags —
+ * only included when keyword search needs to match against those fields.
  *
- * ------------------------------------------------------------------
- * Design Principles
- * ------------------------------------------------------------------
- * - Return minimal identifying fields only
- * - Avoid JOINs unless explicitly enabled by service-layer options
- * - Enforce SQL-level visibility constraints via sanitized filters
- * - Use deterministic sorting for stable pagination
- * - Support offset-based pagination
+ * @param {Object}  params
+ * @param {Object}  [params.filters={}]                    - Optional filters.
+ * @param {Object}  [params.options={}]                    - Capability flags.
+ * @param {number}  [params.limit=50]                      - Max records per page.
+ * @param {number}  [params.offset=0]                      - Offset for pagination.
  *
- * ------------------------------------------------------------------
- * Visibility & Security Model
- * ------------------------------------------------------------------
- * - Assumes visibility rules have already been resolved by the business layer.
- * - Does NOT evaluate permissions.
- * - Trusts `filters.includeArchived` and `filters.enforceActiveOnly`
- *   to be sanitized and ACL-safe.
- * - Client input must not directly control visibility flags.
- *
- * ------------------------------------------------------------------
- * Supported Features
- * ------------------------------------------------------------------
- * - Keyword-based fuzzy search (when enabled)
- * - Conditional JOIN expansion (status, location)
- * - Offset + limit pagination
- *
- * ------------------------------------------------------------------
- * Returns
- * ------------------------------------------------------------------
- * {
- *   data: Array<{
- *     id: string,
- *     name: string,
- *     contact_name?: string,
- *     status_id: string
- *   }>,
- *   pagination: {
- *     offset: number,
- *     limit: number,
- *     totalRecords: number,
- *     hasMore: boolean
- *   }
- * }
- *
- * @throws {AppError} If database query fails
+ * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
+ * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getManufacturerLookup = async ({
-  filters = {},
-  options = {},
-  limit = 50,
-  offset = 0,
-}) => {
+                                       filters = {},
+                                       options = {},
+                                       limit   = 50,
+                                       offset  = 0,
+                                     }) => {
   const context = 'manufacturer-repository/getManufacturerLookup';
-  const tableName = 'manufacturers m';
-
   const { canSearchStatus = false, canSearchLocation = false } = options;
-
-  const joins = [];
-
-  if (canSearchStatus) {
-    joins.push('LEFT JOIN status s ON s.id = m.status_id');
-  }
-
-  if (canSearchLocation) {
-    joins.push('LEFT JOIN locations l ON l.id = m.location_id');
-  }
-
+  
+  const joins = [
+    ...(canSearchStatus   ? ['LEFT JOIN status s    ON s.id = m.status_id']   : []),
+    ...(canSearchLocation ? ['LEFT JOIN locations l ON l.id = m.location_id'] : []),
+  ];
+  
   const { whereClause, params } = buildManufacturerFilter(filters, {
     canSearchStatus,
     canSearchLocation,
   });
-
-  const queryText = `
-    SELECT
-      m.id,
-      m.name,
-      m.contact_name,
-      m.status_id
-    FROM ${tableName}
-    ${joins.join('\n')}
-    WHERE ${whereClause}
-  `;
-
-  try {
-    const result = await paginateQueryByOffset({
-      tableName,
-      joins,
-      whereClause,
-      queryText,
-      params,
-      offset,
-      limit,
-      sortBy: 'm.name',
-      sortOrder: 'ASC',
-      additionalSort: 'm.code ASC',
-    });
-
-    logSystemInfo('Fetched manufacturer lookup data', {
-      context,
-      offset,
-      limit,
-      filters,
-      options,
-    });
-
-    return result;
-  } catch (error) {
-    logSystemException(error, 'Failed to fetch manufacturer lookup', {
-      context,
-      offset,
-      limit,
-      filters,
-      options,
-    });
-
-    throw AppError.databaseError('Failed to fetch manufacturer lookup.');
-  }
+  
+  const queryText = buildManufacturerLookupQuery(joins, whereClause);
+  
+  return buildVendorLookup({
+    context,
+    tableName:       MANUFACTURER_TABLE,
+    joins,
+    whereClause,
+    queryParams:     params,
+    queryText,
+    sortBy:          'm.name',
+    sortWhitelist:   MANUFACTURER_SORT_WHITELIST,
+    additionalSorts: MANUFACTURER_ADDITIONAL_SORTS,
+    limit,
+    offset,
+    filters,
+  });
 };
 
 module.exports = {

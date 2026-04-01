@@ -1121,14 +1121,12 @@ const updateById = async (
       context,
       message: `Failed to update ${maskedTable} record.`,
       meta: { schema, table: maskedTable, id, fields },
-      logFn: (err) =>
-        logSystemException(err, 'Update failed', {
-          context,
-          schema,
-          table: maskedTable,
-          id,
-          fields,
-        }),
+      logFn: (err) => logDbQueryError(
+        sql,
+        values,
+        err,
+        { context, schema, table: maskedTable, id, fields }
+      ),
     });
   }
 };

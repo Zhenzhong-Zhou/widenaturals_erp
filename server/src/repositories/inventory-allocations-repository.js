@@ -1,319 +1,218 @@
+/**
+ * @file inventory-allocation-repository.js
+ * @description Database access layer for inventory allocation records.
+ *
+ * Follows the established repo pattern:
+ *  - Query constants and factories imported from inventory-allocation-queries.js
+ *  - All errors normalized through handleDbError before bubbling up
+ *  - No success logging — middleware and globalErrorHandler own that layer
+ *
+ * Exception: getMismatchedAllocationIds uses logSystemWarn for detected
+ * mismatches — this is a notable business event, not a success log.
+ *
+ * Exports:
+ *  - insertInventoryAllocationsBulk    — bulk upsert with conflict resolution
+ *  - updateInventoryAllocationStatus   — bulk status update by allocation id array
+ *  - getMismatchedAllocationIds        — CTE validation of allocation ownership
+ *  - getInventoryAllocationReview      — full CTE-based allocation review by order
+ *  - getPaginatedInventoryAllocations  — CTE-based paginated list with filtering
+ *  - getAllocationsByOrderId           — fetch allocations by order with optional id filter
+ *  - getAllocationStatuses             — fetch allocation statuses by order/item ids
+ *  - skuHasActiveAllocations          — EXISTS check for active SKU allocations
+ */
+
+'use strict';
+
 const { bulkInsert, query, paginateResults } = require('../database/db');
-const {
-  logSystemException,
-  logSystemInfo,
-  logSystemWarn,
-} = require('../utils/system-logger');
-const AppError = require('../utils/AppError');
-const {
-  buildInventoryAllocationFilter,
-} = require('../utils/sql/build-inventory-allocation-filters');
+const { validateBulkInsertRows } = require('../utils/validation/bulk-insert-row-validator');
+const { handleDbError } = require('../utils/errors/error-handlers');
+const { logDbQueryError, logBulkInsertError } = require('../utils/db-logger');
+const { logSystemWarn } = require('../utils/logging/system-logger');
+const { buildInventoryAllocationFilter } = require('../utils/sql/build-inventory-allocation-filter');
 const { existsQuery } = require('./utils/repository-helper');
+const {
+  INVENTORY_ALLOCATION_INSERT_COLUMNS,
+  INVENTORY_ALLOCATION_CONFLICT_COLUMNS,
+  INVENTORY_ALLOCATION_UPDATE_STRATEGIES,
+  INVENTORY_ALLOCATION_EXTRA_UPDATES,
+  INVENTORY_ALLOCATION_UPDATE_STATUS_QUERY,
+  INVENTORY_ALLOCATION_MISMATCHED_IDS_QUERY,
+  INVENTORY_ALLOCATION_REVIEW_QUERY,
+  INVENTORY_ALLOCATION_PAGINATED_SORT_WHITELIST,
+  INVENTORY_ALLOCATION_BASE_QUERY,
+  INVENTORY_ALLOCATION_BY_ORDER_BASE,
+  INVENTORY_ALLOCATION_STATUSES_BASE,
+  SKU_ACTIVE_ALLOCATIONS_QUERY,
+} = require('./queries/inventory-allocation-queries');
+
+// ─── Insert / Upsert ──────────────────────────────────────────────────────────
 
 /**
- * Bulk inserts inventory allocation records into the `inventory_allocations` table.
+ * Bulk inserts inventory allocation records with conflict resolution.
  *
- * This function transforms a list of allocation objects into a tabular row format
- * and performs a batched insert using a shared `bulkInsert` utility. It supports
- * conflict resolution based on specified unique keys and applies update strategies
- * (e.g., overwriting or updating timestamps).
+ * On conflict matching target_item_id + batch_id + warehouse_id, overwrites
+ * allocated_quantity, status_id, updated_by, and refreshes timestamps via NOW().
  *
- * @param {Array<Object>} allocations - List of allocation objects, where each item includes:
- *   - {string} order_item_id
- *   - {string|null} transfer_order_item_id
- *   - {string} warehouse_id
- *   - {string} batch_id
- *   - {number} allocated_quantity
- *   - {string} status_id
- *   - {string|Date|null} allocated_at
- *   - {string|null} created_by
- *   - {string|null} updated_by
- *   - {string|Date|null} updated_at
+ * @param {Array<Object>} allocations - Validated allocation objects to insert.
+ * @param {PoolClient}    client      - DB client for transactional context.
  *
- * @param {import('pg').PoolClient} client - PG client instance for transactional execution.
- *
- * @returns {Promise<Array>} - Result of the `bulkInsert` operation (inserted/updated rows).
- *
- * @throws {AppError} - Throws a database error if the insert fails.
- *
- * @example
- * await insertInventoryAllocationsBulk([
- *   {
- *     order_item_id: 'abc-123',
- *     transfer_order_item_id: null,
- *     warehouse_id: 'wh-001',
- *     batch_id: 'batch-456',
- *     allocated_quantity: 10,
- *     status_id: 'allocated',
- *     allocated_at: new Date(),
- *     created_by: 'user-001',
- *     updated_by: 'user-001',
- *     updated_at: new Date()
- *   }
- * ], dbClient);
+ * @returns {Promise<Array<Object>>} Inserted or upserted allocation records.
+ * @throws  {AppError}               Normalized database error if the insert fails.
  */
 const insertInventoryAllocationsBulk = async (allocations, client) => {
+  const context = 'inventory-allocation-repository/insertInventoryAllocationsBulk';
+  
   const rows = allocations.map((item) => [
-    item.order_item_id ?? null,
-    item.transfer_order_item_id ?? null,
+    item.order_item_id              ?? null,
+    item.transfer_order_item_id     ?? null,
     item.warehouse_id,
     item.batch_id,
     item.allocated_quantity,
     item.status_id,
-    item.allocated_at ?? null,
-    item.created_by ?? null,
-    item.updated_by ?? null,
-    item.updated_at ?? null,
+    item.allocated_at               ?? null,
+    item.created_by                 ?? null,
+    item.updated_by                 ?? null,
+    item.updated_at                 ?? null,
   ]);
-
-  const columns = [
-    'order_item_id',
-    'transfer_order_item_id',
-    'warehouse_id',
-    'batch_id',
-    'allocated_quantity',
-    'status_id',
-    'allocated_at',
-    'created_by',
-    'updated_by',
-    'updated_at',
-  ];
-
-  const conflictColumns = ['target_item_id', 'batch_id', 'warehouse_id'];
-
-  const updateStrategies = {
-    allocated_quantity: 'overwrite',
-    status_id: 'overwrite',
-    allocated_at: 'now',
-    updated_by: 'overwrite',
-    updated_at: 'now',
-  };
-
+  
+  validateBulkInsertRows(rows, INVENTORY_ALLOCATION_INSERT_COLUMNS.length);
+  
   try {
     return await bulkInsert(
       'inventory_allocations',
-      columns,
+      INVENTORY_ALLOCATION_INSERT_COLUMNS,
       rows,
-      conflictColumns,
-      updateStrategies,
+      INVENTORY_ALLOCATION_CONFLICT_COLUMNS,
+      INVENTORY_ALLOCATION_UPDATE_STRATEGIES,
       client,
       {
-        context:
-          'inventory-allocation-repository/insertInventoryAllocationsBulk',
+        context,
+        extraUpdates: INVENTORY_ALLOCATION_EXTRA_UPDATES,
       }
     );
   } catch (error) {
-    logSystemException(error, 'Failed to bulk insert inventory allocations', {
-      context: 'inventory-allocation-repository/insertInventoryAllocationsBulk',
-      data: allocations,
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to bulk insert inventory allocations.',
+      meta:    { rowCount: allocations.length },
+      logFn:   (err) => logBulkInsertError(
+        err,
+        'inventory_allocations',
+        rows,
+        rows.length,
+        { context, conflictColumns: INVENTORY_ALLOCATION_CONFLICT_COLUMNS }
+      ),
     });
-
-    throw AppError.databaseError(
-      'Unable to insert inventory allocations in bulk.'
-    );
   }
 };
 
+// ─── Update ───────────────────────────────────────────────────────────────────
+
 /**
- * Updates the status and audit fields for one or more inventory allocation records.
+ * Updates the status of multiple inventory allocations by their IDs.
  *
- * This function sets:
- * - `status_id` to the provided new status
- * - `allocated_at` and `updated_at` to the current timestamp
- * - `updated_by` to the user performing the update
+ * Returns an empty array if no allocations match — not treated as an error.
  *
- * It logs a warning if no rows were updated (e.g. invalid allocation IDs),
- * and logs a success message if rows were updated.
+ * @param {Object}     options
+ * @param {string}     options.statusId       - UUID of the new allocation status.
+ * @param {string}     options.userId         - UUID of the user performing the update.
+ * @param {string[]}   options.allocationIds  - UUIDs of allocations to update.
+ * @param {PoolClient} client                 - DB client for transactional context.
  *
- * @async
- * @function
- *
- * @param {Object} input - Parameters for update.
- * @param {string} input.statusId - UUID of the new allocation status to set.
- * @param {string} input.userId - UUID of the user performing the update (for audit).
- * @param {string[]} input.allocationIds - UUIDs of allocation records to update.
- * @param {object} [client] - Optional PostgreSQL client for transactional execution.
- *
- * @returns {Promise<string[]>} - Array of allocation IDs whose status was updated.
- *
- * @throws {AppError} - Throws `AppError.databaseError` if the update fails.
+ * @returns {Promise<string[]>} UUIDs of updated allocation records.
+ * @throws  {AppError}          Normalized database error if the update fails.
  */
 const updateInventoryAllocationStatus = async (
   { statusId, userId, allocationIds },
   client
 ) => {
-  const sql = `
-    UPDATE inventory_allocations
-    SET
-      status_id = $1,
-      allocated_at = NOW(),
-      updated_at = NOW(),
-      updated_by = $2
-    WHERE id = ANY($3::uuid[])
-    RETURNING id
-  `;
-
-  const params = [statusId, userId, allocationIds];
-
+  const context = 'inventory-allocation-repository/updateInventoryAllocationStatus';
+  const params  = [statusId, userId, allocationIds];
+  
   try {
-    const result = await query(sql, params, client);
-
-    if (result.rowCount === 0) {
-      logSystemInfo(
-        'Allocation status update skipped: no matching allocations',
-        {
-          context:
-            'inventory-allocation-repository/updateInventoryAllocationStatus',
-          statusId,
-          userId,
-          allocationIds,
-          severity: 'WARN',
-        }
-      );
-
-      return [];
-    }
-
-    logSystemInfo('Inventory allocation statuses updated successfully', {
-      context:
-        'inventory-allocation-repository/updateInventoryAllocationStatus',
-      updatedCount: result.rowCount,
-      statusId,
-      userId,
-      allocationIds,
-      severity: 'INFO',
-    });
-
+    const result = await query(INVENTORY_ALLOCATION_UPDATE_STATUS_QUERY, params, client);
     return result.rows.map((r) => r.id);
-  } catch (err) {
-    logSystemException(err, 'Failed to update inventory allocation status', {
-      context:
-        'inventory-allocation-repository/updateInventoryAllocationStatus',
-      statusId,
-      userId,
-      allocationIds,
-      severity: 'ERROR',
+  } catch (error) {
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to update inventory allocation status.',
+      meta:    { statusId, allocationIds },
+      logFn:   (err) => logDbQueryError(
+        INVENTORY_ALLOCATION_UPDATE_STATUS_QUERY,
+        params,
+        err,
+        { context, statusId, allocationIds }
+      ),
     });
-    throw AppError.databaseError(
-      'Failed to update inventory allocation status'
-    );
   }
 };
 
+// ─── Validation ───────────────────────────────────────────────────────────────
+
 /**
- * Validates whether the provided allocation IDs are associated with a specific order.
+ * Returns allocation IDs from the input that do not belong to the given order.
  *
- * For each allocationId in the input array, this function checks if it belongs to an
- * order_item linked to the specified orderId. Any allocation ID that does not match
- * the given order is returned as a "mismatched" ID.
+ * Used to validate allocation ownership before bulk status updates.
+ * Logs a warning when mismatches are detected — this is a notable business
+ * event that warrants attention even when handled gracefully.
  *
- * If any mismatches are found, a warning is logged for traceability. If the database query
- * fails, a structured system exception is logged and a database error is thrown.
+ * @param {string}     orderId       - UUID of the order to validate against.
+ * @param {string[]}   allocationIds - UUIDs to validate.
+ * @param {PoolClient} client        - DB client for transactional context.
  *
- * @async
- * @param {string} orderId - UUID of the order to validate allocations against.
- * @param {string[]} allocationIds - List of allocation UUIDs to be checked.
- * @param {object} client - Database client instance (e.g., from a transaction).
- * @returns {Promise<string[]>} - List of allocation IDs not associated with the order.
- * @throws {AppError} - Throws AppError.databaseError on query failure.
+ * @returns {Promise<string[]>} Mismatched allocation UUIDs.
+ * @throws  {AppError}          Normalized database error if the query fails.
  */
 const getMismatchedAllocationIds = async (orderId, allocationIds, client) => {
   if (!allocationIds?.length) return [];
-
-  const sql = `
-    WITH input_ids AS (
-      SELECT unnest($2::uuid[]) AS id
-    ),
-    valid_allocations AS (
-      SELECT ia.id
-      FROM inventory_allocations ia
-      JOIN order_items oi ON ia.order_item_id = oi.id
-      WHERE oi.order_id = $1
-        AND ia.id = ANY($2::uuid[])
-    )
-    SELECT i.id
-    FROM input_ids i
-    LEFT JOIN valid_allocations v ON v.id = i.id
-    WHERE v.id IS NULL;
-  `;
-
+  
+  const context = 'inventory-allocation-repository/getMismatchedAllocationIds';
+  const params  = [orderId, allocationIds];
+  
   try {
-    const { rows } = await query(sql, [orderId, allocationIds], client);
-
+    const { rows } = await query(INVENTORY_ALLOCATION_MISMATCHED_IDS_QUERY, params, client);
+    
     if (rows.length > 0) {
       logSystemWarn('Mismatched allocation IDs detected', {
-        context: 'inventory-allocations-repository/getMismatchedAllocationIds',
+        context,
         orderId,
         mismatches: rows.map((r) => r.id),
       });
     }
-
-    return rows.map((r) => r.id); // return mismatches
+    
+    return rows.map((r) => r.id);
   } catch (error) {
-    logSystemException(error, 'Failed to check mismatched allocation IDs', {
-      context: 'inventory-allocations-repository/getMismatchedAllocationIds',
-      orderId,
-      allocationIds,
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to validate allocation IDs against order.',
+      meta:    { orderId, allocationIds },
+      logFn:   (err) => logDbQueryError(
+        INVENTORY_ALLOCATION_MISMATCHED_IDS_QUERY,
+        params,
+        err,
+        { context, orderId }
+      ),
     });
-    throw AppError.databaseError('Error validating allocation IDs');
   }
 };
 
+// ─── Review ───────────────────────────────────────────────────────────────────
+
 /**
- * Retrieves detailed allocation review rows for a given order.
+ * Fetches full allocation review data for a given order.
  *
- * For the specified `orderId`, this function returns one row per
- * order item / allocation combination. Rows may represent either:
+ * CTE-based query — includes warehouse inventory aggregation, batch details,
+ * order metadata, and packaging material joins.
  *
- * - An existing inventory allocation for the order item
- * - An order item that has not yet been allocated (allocation fields will be null)
+ * Returns an empty array if no allocations exist for the order.
  *
- * Optional filters can narrow the results:
+ * @param {string}     orderId       - UUID of the order.
+ * @param {string[]}   warehouseIds  - Filter by warehouse UUIDs (empty = all warehouses).
+ * @param {string[]}   allocationIds - Filter by allocation UUIDs (empty = all allocations).
+ * @param {PoolClient} client        - DB client for transactional context.
  *
- * - `allocationIds` limits the results to specific allocation records.
- * - `warehouseIds` limits allocations and related warehouse inventory to specific warehouses.
- *
- * Each row includes:
- *
- * Allocation fields
- * - allocation ID, quantity, status, timestamps
- * - allocation creator and updater user information
- *
- * Order item fields
- * - order item ID, ordered quantity, status, and status date
- *
- * Product or packaging material information
- * - product metadata when the order item references a SKU
- * - packaging material metadata when the order item references a packaging material
- *
- * Batch information
- * - batch type (product or packaging material)
- * - batch metadata (lot number, expiry, manufacture date)
- * - related warehouse inventory list for the batch
- *
- * Order metadata
- * - order number
- * - order note
- * - order status
- * - salesperson (order creator)
- *
- * Notes
- * - If `allocationIds` is an empty array, all allocations for the order are returned.
- * - If `warehouseIds` is an empty array, allocations and warehouse inventory from all warehouses are included.
- * - Unallocated order items may appear with null allocation fields to support allocation review workflows.
- *
- * Logging
- * - Logs a system info event when allocation rows are retrieved or none are found.
- * - Logs and throws a structured database error on query failure.
- *
- * @async
- * @param {string} orderId - UUID of the order whose allocation review data is requested.
- * @param {string[]} warehouseIds - Warehouse UUIDs used to filter allocations and inventory (empty = all).
- * @param {string[]} allocationIds - Allocation UUIDs used to filter results (empty = all for the order).
- * @param {object} client - PostgreSQL client instance (supports transactions).
- * @returns {Promise<object[] | null>} Flat allocation review rows used by the transformer layer,
- * or `null` if no matching rows are found.
- * @throws {AppError} Throws `AppError.databaseError` if the database query fails.
+ * @returns {Promise<Array<Object>>} Allocation review rows.
+ * @throws  {AppError}               Normalized database error if the query fails.
  */
 const getInventoryAllocationReview = async (
   orderId,
@@ -321,681 +220,196 @@ const getInventoryAllocationReview = async (
   allocationIds,
   client
 ) => {
-  const sql = `
-    WITH input_ids AS (
-      SELECT
-        $2::uuid[] AS warehouse_ids,
-        $3::uuid[] AS allocation_ids
-    ),
-    order_items_filtered AS (
-      SELECT
-        oi.id,
-        oi.order_id,
-        oi.quantity_ordered,
-        oi.status_id,
-        oi.status_date,
-        oi.sku_id,
-        oi.packaging_material_id
-      FROM order_items oi
-      WHERE oi.order_id = $1
-    ),
-    selected_allocations AS (
-      SELECT
-        ia.id AS allocation_id,
-        oi.id AS order_item_id,
-        oi.order_id,
-        oi.quantity_ordered,
-        oi.status_id AS item_status_id,
-        oi.status_date AS item_status_date,
-        oi.sku_id,
-        oi.packaging_material_id,
-        ia.transfer_order_item_id,
-        ia.warehouse_id,
-        ia.batch_id,
-        ia.allocated_quantity,
-        ia.status_id AS allocation_status_id,
-        ia.allocated_at,
-        ia.created_at,
-        ia.updated_at,
-        ia.created_by,
-        ia.updated_by
-      FROM order_items_filtered oi
-      LEFT JOIN inventory_allocations ia
-        ON ia.order_item_id = oi.id
-      JOIN input_ids i ON TRUE
-      WHERE
-        (
-          ia.id IS NULL
-          OR COALESCE(cardinality(i.warehouse_ids),0) = 0
-          OR ia.warehouse_id = ANY(i.warehouse_ids)
-        )
-        AND (
-          ia.id IS NULL
-          OR COALESCE(cardinality(i.allocation_ids),0) = 0
-          OR ia.id = ANY(i.allocation_ids)
-        )
-    ),
-    warehouse_inventory_agg AS (
-      SELECT
-        wi.batch_id,
-        jsonb_agg(
-          jsonb_build_object(
-            'warehouse_inventory_id', wi.id,
-            'inbound_date', wi.inbound_date,
-            'warehouse_quantity', wi.warehouse_quantity,
-            'reserved_quantity', wi.reserved_quantity,
-            'inventory_status_date', wi.status_date,
-            'inventory_status_name', invs.name,
-            'warehouse_name', w.name
-          )
-          ORDER BY wi.inbound_date NULLS LAST, wi.id
-        ) AS wi_list
-      FROM warehouse_inventory wi
-      LEFT JOIN inventory_status invs
-        ON invs.id = wi.status_id
-      LEFT JOIN warehouses w
-        ON w.id = wi.warehouse_id
-      JOIN input_ids x ON TRUE
-      WHERE
-        COALESCE(cardinality(x.warehouse_ids),0) = 0
-        OR wi.warehouse_id = ANY(x.warehouse_ids)
-      GROUP BY wi.batch_id
-    )
-    SELECT
-      sa.allocation_id,
-      sa.order_item_id,
-      sa.transfer_order_item_id,
-      sa.batch_id,
-      sa.allocated_quantity,
-      sa.allocation_status_id,
-      s_alloc_status.name AS allocation_status_name,
-      s_alloc_status.code AS allocation_status_code,
-      sa.created_at AS allocation_created_at,
-      sa.updated_at AS allocation_updated_at,
-      sa.created_by AS allocation_created_by,
-      ucb.firstname AS allocation_created_by_firstname,
-      ucb.lastname AS allocation_created_by_lastname,
-      sa.updated_by AS allocation_updated_by,
-      uub.firstname AS allocation_updated_by_firstname,
-      uub.lastname AS allocation_updated_by_lastname,
-      sa.order_id,
-      sa.quantity_ordered,
-      sa.item_status_id,
-      ios.name AS item_status_name,
-      ios.code AS item_status_code,
-      sa.item_status_date,
-      sa.sku_id,
-      s.sku,
-      s.barcode,
-      s.country_code,
-      s.size_label,
-      p.id AS product_id,
-      p.name AS product_name,
-      p.brand,
-      p.category,
-      sa.packaging_material_id,
-      COALESCE(pkg.code, pm.code) AS packaging_material_code,
-      COALESCE(pmb.material_snapshot_name, pkg.name, pm.name) AS packaging_material_name,
-      COALESCE(pkg.color, pm.color) AS packaging_material_color,
-      COALESCE(pkg.size, pm.size) AS packaging_material_size,
-      COALESCE(pkg.unit, pm.unit) AS packaging_material_unit,
-      COALESCE(pkg.length_cm, pm.length_cm) AS packaging_material_length_cm,
-      COALESCE(pkg.width_cm, pm.width_cm) AS packaging_material_width_cm,
-      COALESCE(pkg.height_cm, pm.height_cm) AS packaging_material_height_cm,
-      o.order_number,
-      o.note AS order_note,
-      o.order_type_id,
-      ot.name AS order_type_name,
-      o.order_status_id,
-      os.name AS order_status_name,
-      os.code AS order_status_code,
-      o.created_by AS salesperson_id,
-      u.firstname AS salesperson_firstname,
-      u.lastname AS salesperson_lastname,
-      br.batch_type,
-      CASE WHEN br.batch_type='product' THEN
-        jsonb_build_object(
-          'product_batch_id', pb.id,
-          'lot_number', pb.lot_number,
-          'expiry_date', pb.expiry_date,
-          'manufacture_date', pb.manufacture_date,
-          'warehouse_inventory', COALESCE(wi_arr.wi_list, '[]'::jsonb)
-        )
-      END AS product_batch,
-      CASE WHEN br.batch_type='packaging_material' THEN
-        jsonb_build_object(
-          'packaging_material_batch_id', pmb.id,
-          'lot_number', pmb.lot_number,
-          'expiry_date', pmb.expiry_date,
-          'manufacture_date', pmb.manufacture_date,
-          'material_snapshot_name', pmb.material_snapshot_name,
-          'warehouse_inventory', COALESCE(wi_arr.wi_list, '[]'::jsonb)
-        )
-      END AS packaging_material_batch
-    FROM selected_allocations sa
-    JOIN orders o ON sa.order_id = o.id
-    JOIN users u ON o.created_by = u.id
-    LEFT JOIN users ucb ON sa.created_by = ucb.id
-    LEFT JOIN users uub ON sa.updated_by = uub.id
-    LEFT JOIN inventory_allocation_status s_alloc_status
-      ON sa.allocation_status_id = s_alloc_status.id
-    LEFT JOIN order_status ios ON ios.id = sa.item_status_id
-    LEFT JOIN skus s ON sa.sku_id = s.id
-    LEFT JOIN products p ON s.product_id = p.id
-    LEFT JOIN packaging_materials pm ON sa.packaging_material_id = pm.id
-    LEFT JOIN batch_registry br ON sa.batch_id = br.id
-    LEFT JOIN product_batches pb
-      ON br.batch_type='product'
-      AND pb.id = br.product_batch_id
-    LEFT JOIN packaging_material_batches pmb
-      ON br.batch_type='packaging_material'
-     AND pmb.id = br.packaging_material_batch_id
-    LEFT JOIN packaging_material_suppliers pms
-      ON pmb.packaging_material_supplier_id = pms.id
-    LEFT JOIN packaging_materials pkg
-      ON pms.packaging_material_id = pkg.id
-    LEFT JOIN order_types ot
-      ON o.order_type_id = ot.id
-    LEFT JOIN order_status os
-      ON o.order_status_id = os.id
-    LEFT JOIN warehouse_inventory_agg wi_arr
-      ON wi_arr.batch_id = br.id
-  `;
-
+  const context = 'inventory-allocation-repository/getInventoryAllocationReview';
+  const params  = [orderId, warehouseIds, allocationIds];
+  
   try {
-    const { rows } = await query(
-      sql,
-      [orderId, warehouseIds, allocationIds],
-      client
-    );
-
-    if (rows.length === 0) {
-      logSystemInfo('No allocations found for review', {
-        context:
-          'inventory-allocations-repository/getInventoryAllocationReview',
-        orderId,
-        warehouseIds,
-        allocationIds,
-      });
-      return null;
-    }
-
-    logSystemInfo('Fetched allocation review successfully', {
-      context: 'inventory-allocations-repository/getInventoryAllocationReview',
-      orderId,
-      warehouseIds,
-      allocationCount: rows.length,
-    });
-
+    const { rows } = await query(INVENTORY_ALLOCATION_REVIEW_QUERY, params, client);
     return rows;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch allocation review', {
-      context: 'inventory-allocations-repository/getInventoryAllocationReview',
-      orderId,
-      warehouseIds,
-      allocationIds,
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch inventory allocation review.',
+      meta:    { orderId, warehouseIds },
+      logFn:   (err) => logDbQueryError(
+        INVENTORY_ALLOCATION_REVIEW_QUERY,
+        params,
+        err,
+        { context, orderId }
+      ),
     });
-
-    throw AppError.databaseError(
-      'Error occurred while retrieving inventory allocation review'
-    );
   }
 };
 
+// ─── Paginated List ───────────────────────────────────────────────────────────
+
 /**
- * Fetches a paginated list of order-grouped inventory allocations with joined metadata.
+ * Fetches paginated inventory allocations aggregated by order.
  *
- * This query groups `inventory_allocations` by `order_id`, aggregates warehouse and
- * allocation data, and joins with related tables (`orders`, `customers`, `payment methods`, etc.).
+ * Uses a two-level CTE — raw allocation filters applied in the inner CTE,
+ * order-level filters applied in the outer WHERE. Params are concatenated
+ * in the same order: [...rawAllocParams, ...outerParams].
  *
- * ### Filtering
- * - The `filters` object is parsed using `buildInventoryAllocationFilter`, which generates:
- *   - `rawAllocWhereClause` and `rawAllocParams` (for CTE-level filtering on `ia`)
- *   - `outerWhereClause` and `outerParams` (for outer-level filtering on `orders`, etc.)
+ * sortBy must be a raw DB column validated against
+ * INVENTORY_ALLOCATION_PAGINATED_SORT_WHITELIST before interpolation.
  *
- * ### Sorting
- * - `sortBy` is **whitelisted only** (e.g., `created_at`, `order_number`). Unsafe fields will be rejected or fallback may apply.
- * - `sortOrder` must be `'ASC'` or `'DESC'` (default: `'DESC'`)
+ * @param {Object}       options
+ * @param {Object}       [options.filters={}]              - Field filters.
+ * @param {number}       [options.page=1]                  - Page number (1-based).
+ * @param {number}       [options.limit=10]                - Records per page.
+ * @param {string}       [options.sortBy='o.created_at']   - Whitelisted DB column.
+ * @param {'ASC'|'DESC'} [options.sortOrder='DESC']        - Sort direction.
  *
- * ### Return Behavior
- * - Returns `null` if no results were found (`data.length === 0`)
- * - Returns a paginated result object if records exist
- *
- * ### Return Shape
- * ```ts
- * {
- *   data: Array<{
- *     order_id: string;
- *     order_number: string;
- *     order_type: string | null;
- *     order_category: string | null;
- *     order_status_name: string | null;
- *     order_status_code: string | null;
- *     customer_firstname: string | null;
- *     customer_lastname: string | null;
- *     payment_method: string | null;
- *     payment_status_name: string | null;
- *     payment_status_code: string | null;
- *     delivery_method: string | null;
- *     total_items: number;
- *     allocated_items: number;
- *     allocated_at: string | null;
- *     allocated_created_at: string | null;
- *     created_at: string;
- *     created_by_firstname: string | null;
- *     created_by_lastname: string | null;
- *     updated_at: string | null;
- *     updated_by_firstname: string | null;
- *     updated_by_lastname: string | null;
- *     warehouse_ids: string[];
- *     warehouse_names: string;
- *     allocation_status_codes: string[];
- *     allocation_statuses: string;
- *     allocation_summary_status:
- *       | 'Failed'
- *       | 'Partially Allocated'
- *       | 'Fulfilling'
- *       | 'Pending Allocation'
- *       | 'Allocation Confirmed'
- *       | 'Fulfilled'
- *       | 'Allocation Returned'
- *       | 'Unknown';
- *     allocation_ids: string[];
- *   }>,
- *   pagination: {
- *     page: number;
- *     limit: number;
- *     totalRecords: number;
- *     totalPages: number;
- *   }
- * }
- * ```
- *
- * @param {Object} options
- * @param {Object} [options.filters={}] - Filter criteria (passed to `buildInventoryAllocationFilter`)
- * @param {number} [options.page=1] - Current page number (1-based)
- * @param {number} [options.limit=10] - Number of records per page
- * @param {string} [options.sortBy='created_at'] - Whitelisted field to sort by
- * @param {string} [options.sortOrder='DESC'] - Sort direction ('ASC' | 'DESC')
- *
- * @returns {Promise<{
- *   data: any[];
- *   pagination: {
- *     page: number;
- *     limit: number;
- *     totalRecords: number;
- *     totalPages: number;
- *   };
- * } | null>} Paginated result set or null if no matches found
- *
- * @throws {AppError} Throws `AppError.databaseError` on failure
+ * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
+ * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getPaginatedInventoryAllocations = async ({
-  filters = {},
-  page = 1,
-  limit = 10,
-  sortBy = 'created_at',
-  sortOrder = 'DESC',
-}) => {
-  const context =
-    'inventory-allocations-repository/getPaginatedInventoryAllocations';
-
-  const { rawAllocWhereClause, rawAllocParams, outerWhereClause, outerParams } =
-    buildInventoryAllocationFilter(filters);
-
-  const baseQuery = `
-    WITH raw_alloc AS (
-      SELECT
-        oi.order_id,
-        ARRAY_AGG(DISTINCT ia.id) AS allocation_ids,
-        COUNT(DISTINCT ia.id)                         AS allocated_items,
-        ARRAY_AGG(DISTINCT w.id)                      AS warehouse_ids,
-        STRING_AGG(DISTINCT w.name, ', ' ORDER BY w.name) AS warehouse_names,
-        ARRAY_AGG(DISTINCT s.code)                    AS allocation_status_codes,
-        MIN(ia.allocated_at)                             AS allocated_at,
-        MIN(ia.created_at)                               AS allocated_created_at,
-        STRING_AGG(DISTINCT s.name, ', ' ORDER BY s.name) AS allocation_statuses
-      FROM inventory_allocations ia
-      JOIN order_items oi ON oi.id = ia.order_item_id
-      LEFT JOIN warehouses w ON w.id = ia.warehouse_id
-      LEFT JOIN inventory_allocation_status s ON s.id = ia.status_id
-      WHERE ${rawAllocWhereClause}
-      GROUP BY oi.order_id
-    ),
-    alloc_agg AS (
-      SELECT *,
-        CASE
-          WHEN 'ALLOC_FAILED' = ANY(allocation_status_codes) THEN 'Failed'
-          WHEN 'ALLOC_PARTIAL' = ANY(allocation_status_codes)
-            OR 'ALLOC_BACKORDERED' = ANY(allocation_status_codes)
-            THEN 'Partially Allocated'
-          WHEN 'ALLOC_FULFILLING' = ANY(allocation_status_codes)
-            AND NOT ('ALLOC_FULFILLED' = ALL(allocation_status_codes))
-            THEN 'Fulfilling'
-          WHEN 'ALLOC_PENDING' = ALL(allocation_status_codes)
-            THEN 'Pending Allocation'
-          WHEN 'ALLOC_CONFIRMED' = ALL(allocation_status_codes)
-            THEN 'Allocation Confirmed'
-          WHEN 'ALLOC_FULFILLED' = ALL(allocation_status_codes)
-            THEN 'Fulfilled'
-          WHEN 'ALLOC_RETURNED' = ALL(allocation_status_codes)
-            THEN 'Allocation Returned'
-          ELSE 'Unknown'
-        END AS allocation_summary_status
-      FROM raw_alloc
-    ),
-    item_counts AS (
-      SELECT oi.order_id, COUNT(*) AS total_items
-      FROM order_items oi
-      GROUP BY oi.order_id
-    )
-    SELECT
-      o.id AS order_id,
-      o.order_number,
-      ot.name AS order_type,
-      ot.category AS order_category,
-      os.name AS order_status_name,
-      os.code AS order_status_code,
-      c.firstname AS customer_firstname,
-      c.lastname  AS customer_lastname,
-      pm.name AS payment_method,
-      ps.name AS payment_status_name,
-      ps.code AS payment_status_code,
-      dm.method_name AS delivery_method,
-      ic.total_items,
-      aa.allocated_items,
-      aa.allocated_at,
-      aa.allocated_created_at,
-      o.created_at,
-      u1.firstname AS created_by_firstname,
-      u1.lastname  AS created_by_lastname,
-      o.updated_at,
-      u2.firstname AS updated_by_firstname,
-      u2.lastname  AS updated_by_lastname,
-      aa.warehouse_ids,
-      aa.allocation_ids,
-      aa.warehouse_names,
-      aa.allocation_status_codes,
-      aa.allocation_statuses,
-      aa.allocation_summary_status
-    FROM alloc_agg aa
-    JOIN orders o             ON o.id = aa.order_id
-    LEFT JOIN item_counts ic  ON ic.order_id = o.id
-    LEFT JOIN sales_orders so ON so.id = o.id
-    LEFT JOIN customers c       ON c.id = so.customer_id
-    LEFT JOIN payment_methods pm ON pm.id = so.payment_method_id
-    LEFT JOIN payment_status ps  ON ps.id = so.payment_status_id
-    LEFT JOIN delivery_methods dm ON dm.id = so.delivery_method_id
-    LEFT JOIN order_types ot     ON ot.id = o.order_type_id
-    LEFT JOIN order_status os    ON os.id = o.order_status_id
-    LEFT JOIN users u1            ON u1.id = o.created_by
-    LEFT JOIN users u2           ON u2.id = o.updated_by
-    WHERE ${outerWhereClause}
-    ORDER BY ${sortBy} ${sortOrder}
-  `;
-
+                                                  filters   = {},
+                                                  page      = 1,
+                                                  limit     = 10,
+                                                  sortBy    = 'o.created_at',
+                                                  sortOrder = 'DESC',
+                                                }) => {
+  const context = 'inventory-allocation-repository/getPaginatedInventoryAllocations';
+  
+  if (!INVENTORY_ALLOCATION_PAGINATED_SORT_WHITELIST.has(sortBy)) {
+    sortBy = 'o.created_at';
+  }
+  
+  const {
+    rawAllocWhereClause,
+    rawAllocParams,
+    outerWhereClause,
+    outerParams,
+  } = buildInventoryAllocationFilter(filters);
+  
+  // ORDER BY is appended after whitelist validation — not injectable since
+  // sortBy is constrained to the whitelist above.
+  const queryText = `${INVENTORY_ALLOCATION_BASE_QUERY(rawAllocWhereClause, outerWhereClause)} ORDER BY ${sortBy} ${sortOrder}`;
+  const params    = [...rawAllocParams, ...outerParams];
+  
   try {
-    const result = await paginateResults({
-      dataQuery: baseQuery,
-      params: [...rawAllocParams, ...outerParams],
+    return await paginateResults({
+      dataQuery: queryText,
+      params,
       page,
       limit,
     });
-
-    if (result.data.length === 0) {
-      logSystemInfo('No inventory allocations found', {
-        context,
-        pagination: { page, limit },
-        sorting: { sortBy, sortOrder },
-      });
-      return null;
-    }
-
-    logSystemInfo('Fetched paginated inventory allocations', {
-      context,
-      filters,
-      pagination: { page, limit },
-      sorting: { sortBy, sortOrder },
-    });
-
-    return result;
   } catch (error) {
-    logSystemException(
-      error,
-      'Failed to fetch paginated inventory allocations',
-      {
-        context,
-        filters,
-        pagination: { page, limit },
-        sorting: { sortBy, sortOrder },
-      }
-    );
-    throw AppError.databaseError('Error fetching inventory allocation list');
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch paginated inventory allocations.',
+      meta:    { filters, page, limit, sortBy, sortOrder },
+      logFn:   (err) => logDbQueryError(
+        queryText,
+        params,
+        err,
+        { context, filters, page, limit }
+      ),
+    });
   }
 };
 
+// ─── By Order ─────────────────────────────────────────────────────────────────
+
 /**
- * Fetches allocation records for a given order and optional allocation IDs.
+ * Fetches allocation records for a given order, optionally filtered by allocation IDs.
  *
- * Business rules:
- *  - Each allocation must belong to an `order_item` that is linked to the specified order.
- *  - Prevents cross-order allocation leakage during fulfillment or adjustment.
- *  - If fewer rows are returned than requested, some allocation IDs do not belong to the order.
+ * Base query targets all allocations for the order. When allocationIds is provided,
+ * an additional AND clause is appended to restrict to the specified IDs.
  *
- * Usage:
- *  - Call during fulfillment or adjustment flows to validate allocation ownership.
- *  - Use before locking rows (`getAndLockAllocations`) to ensure data integrity.
+ * @param {string}          orderId            - UUID of the order.
+ * @param {string[]}        [allocationIds=[]] - Optional allocation UUIDs to filter by.
+ * @param {PoolClient|null} [client=null]       - Optional DB client for transactional context.
  *
- * Performance:
- *  - Executes a single SQL query with optional filtering by allocation IDs.
- *  - Returns only matching allocations tied to the order.
- *
- * @async
- * @function
- * @param {string} orderId - UUID of the order to validate allocations against
- * @param {string[]} [allocationIds=[]] - Optional array of allocation UUIDs to restrict results
- * @param {import('pg').PoolClient|null} [client=null] - Optional PostgreSQL client/transaction context
- *
- * @returns {Promise<Array<{
- *   allocation_id: string,
- *   order_item_id: string,
- *   warehouse_id: string,
- *   batch_id: string,
- *   allocated_quantity: number
- * }>>} Array of matching allocation records. If allocationIds are provided,
- * the result length may be smaller if some IDs are invalid for the given order.
- *
- * @throws {AppError} - If the query fails or the database encounters an error
- *
- * @example
- * const allocations = await getAllocationsByOrderId(orderId, ['alloc-1', 'alloc-2']);
- * // [
- * //   {
- * //     allocation_id: "alloc-1",
- * //     order_item_id: "item-123",
- * //     warehouse_id: "wh-001",
- * //     batch_id: "batch-xyz",
- * //     allocated_quantity: 10
- * //   }
- * // ]
+ * @returns {Promise<Array<Object>>} Allocation rows for the order.
+ * @throws  {AppError}               Normalized database error if the query fails.
  */
-const getAllocationsByOrderId = async (
-  orderId,
-  allocationIds = [],
-  client = null
-) => {
-  const context = 'inventory-allocations-repository/getAllocationsByOrderId';
-
-  let sql = `
-    SELECT
-      ia.id AS allocation_id,
-      ia.order_item_id,
-      ia.warehouse_id,
-      ia.batch_id,
-      ia.allocated_quantity
-    FROM inventory_allocations ia
-    JOIN order_items oi ON ia.order_item_id = oi.id
-    WHERE oi.order_id = $1
-  `;
-
+const getAllocationsByOrderId = async (orderId, allocationIds = [], client = null) => {
+  const context = 'inventory-allocation-repository/getAllocationsByOrderId';
+  
+  let sql    = INVENTORY_ALLOCATION_BY_ORDER_BASE;
   /** @type {(string | string[])[]} */
   const params = [orderId];
-
+  
   if (Array.isArray(allocationIds) && allocationIds.length > 0) {
     sql += ` AND ia.id = ANY($2::uuid[])`;
     params.push(allocationIds);
   }
-
+  
   try {
     const { rows } = await query(sql, params, client);
-
-    logSystemInfo('Validated allocations for order', {
-      context,
-      orderId,
-      requestedCount: Array.isArray(allocationIds) ? allocationIds.length : 0,
-      returnedCount: rows.length,
-    });
-
     return rows;
   } catch (error) {
-    logSystemException(error, 'Failed to validate allocations for order', {
+    throw handleDbError(error, {
       context,
-      orderId,
-      allocationIds,
+      message: 'Failed to fetch allocations for order.',
+      meta:    { orderId, allocationIds },
+      logFn:   (err) => logDbQueryError(sql, params, err, { context, orderId }),
     });
-
-    throw AppError.databaseError(
-      'Database query failed while validating allocations for order',
-      {
-        cause: error,
-        orderId,
-        allocationIds,
-      }
-    );
   }
 };
 
+// ─── Statuses ─────────────────────────────────────────────────────────────────
+
 /**
- * Fetches allocation status metadata (code, description, is_final) for a given order,
- * optionally filtered by specific order item IDs.
+ * Fetches allocation statuses for a given order, optionally filtered by order item IDs.
  *
- * @function
- * @param {string} orderId - UUID of the order to fetch allocations for.
- * @param {string[]} [orderItemIds=[]] - Optional array of order item IDs to filter allocations.
- * @param {import('pg').PoolClient|null} [client=null] - Optional PostgreSQL client for transactional usage.
- * @returns {Promise<Array<Object>>} Resolves to an array of allocation records with joined status info.
+ * Base query targets all allocations for the order. When orderItemIds is provided,
+ * an additional AND clause is appended to restrict to the specified items.
  *
- * Each record in the returned array includes:
- *  - {string} order_id - The associated order ID
- *  - {string} allocation_id - The allocation record ID
- *  - {string} order_item_id - The order item ID this allocation belongs to
- *  - {string} status_id - The foreign key ID of the allocation status
- *  - {string} allocation_status_code - Human-readable allocation status code (e.g., ALLOC_CONFIRMED)
- *  - {string} allocation_status_description - Descriptive status explanation
- *  - {boolean} is_final - Whether this status is considered a terminal state
+ * @param {string}          orderId          - UUID of the order.
+ * @param {string[]}        [orderItemIds=[]] - Optional order item UUIDs to filter by.
+ * @param {PoolClient|null} [client=null]     - Optional DB client for transactional context.
  *
- * @throws {AppError} If the database query fails or parameters are invalid
+ * @returns {Promise<Array<Object>>} Allocation status rows.
+ * @throws  {AppError}               Normalized database error if the query fails.
  */
-const getAllocationStatuses = async (
-  orderId,
-  orderItemIds = [],
-  client = null
-) => {
-  const context = 'inventory-allocations-repository/getAllocationStatuses';
-
-  let sql = `
-    SELECT
-      o.id AS order_id,
-      ia.id AS allocation_id,
-      ia.order_item_id,
-      ia.status_id,
-      ias.code AS allocation_status_code,
-      ias.is_final
-    FROM inventory_allocations ia
-    JOIN order_items oi ON ia.order_item_id = oi.id
-    JOIN orders o ON oi.order_id = o.id
-    JOIN inventory_allocation_status ias ON ia.status_id = ias.id
-    WHERE oi.order_id = $1
-  `;
-
+const getAllocationStatuses = async (orderId, orderItemIds = [], client = null) => {
+  const context = 'inventory-allocation-repository/getAllocationStatuses';
+  
+  let sql      = INVENTORY_ALLOCATION_STATUSES_BASE;
   /** @type {(string | string[])[]} */
   const params = [orderId];
-
+  
   if (Array.isArray(orderItemIds) && orderItemIds.length > 0) {
     sql += ` AND ia.order_item_id = ANY($2::uuid[])`;
     params.push(orderItemIds);
   }
-
+  
   try {
     const { rows } = await query(sql, params, client);
     return rows;
   } catch (error) {
-    logSystemException(
-      error,
-      'Failed to fetch allocation statuses by orderId/orderItemIds',
-      {
-        context,
-        orderId,
-        orderItemIds,
-      }
-    );
-
-    throw AppError.databaseError(
-      'Failed to fetch allocation statuses for the specified order.',
-      {
-        function: 'getAllocationStatuses',
-        orderId,
-        orderItemIds,
-      }
-    );
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch allocation statuses for order.',
+      meta:    { orderId, orderItemIds },
+      logFn:   (err) => logDbQueryError(sql, params, err, { context, orderId }),
+    });
   }
 };
 
+// ─── Existence Check ──────────────────────────────────────────────────────────
+
 /**
- * Checks whether a SKU has active inventory allocations.
+ * Checks whether a SKU has any inventory allocations in an active status.
  *
- * An active allocation is defined as an inventory allocation record
- * whose status_id matches one of the provided operational allocation
- * status UUIDs.
+ * Delegates to `existsQuery` which handles execution, logging, and error
+ * normalization internally.
  *
- * This function is used by business-layer guards to prevent
- * SKU modification, archival, or deletion when active allocations exist.
+ * @param {string}          skuId                    - UUID of the SKU to check.
+ * @param {string[]}        activeAllocationStatusIds - UUIDs of active status records.
+ * @param {PoolClient|null} [client=null] - Optional DB client for transactional context.
  *
- * Relationships:
- *   inventory_allocations → order_items → SKU
- *
- * @param {string} skuId - UUID of the SKU.
- * @param {string[]} activeAllocationStatusIds
- *   Array of allocation status UUIDs considered "active".
- * @param {import('pg').PoolClient|null} [client]
- *   Optional transactional client.
- *
- * @returns {Promise<boolean>}
- *   Returns true if at least one active allocation exists,
- *   false otherwise.
- *
- * @throws {AppError.databaseError}
- *   If the database query fails.
+ * @returns {Promise<boolean>} True if at least one active allocation exists.
+ * @throws  {AppError}         If the query fails.
  */
-const skuHasActiveAllocations = async (
-  skuId,
-  activeAllocationStatusIds,
-  client = null
-) => {
-  const context = 'inventory-allocations-repository/skuHasActiveAllocations';
-
-  const queryText = `
-    SELECT 1
-    FROM inventory_allocations ia
-    JOIN order_items oi
-      ON ia.order_item_id = oi.id
-    WHERE oi.sku_id = $1
-      AND ia.status_id = ANY($2::uuid[])
-    LIMIT 1
-  `;
-
+const skuHasActiveAllocations = async (skuId, activeAllocationStatusIds, client = null) => {
+  const context = 'inventory-allocation-repository/skuHasActiveAllocations';
+  
   return existsQuery(
-    queryText,
+    SKU_ACTIVE_ALLOCATIONS_QUERY,
     [skuId, activeAllocationStatusIds],
     context,
     'Failed to check SKU active allocation dependency',

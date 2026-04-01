@@ -1,73 +1,74 @@
+/**
+ * @file delivery-method-repository.js
+ * @description Database access layer for delivery method records.
+ *
+ * Follows the established repo pattern:
+ *  - Query constants and factories imported from delivery-method-queries.js
+ *  - All errors normalized through handleDbError before bubbling up
+ *  - No success logging — middleware and globalErrorHandler own that layer
+ *
+ * Exports:
+ *  - getDeliveryMethodsLookup — offset-paginated dropdown lookup with optional filtering
+ */
+
+'use strict';
+
+const { paginateQueryByOffset } = require('../database/utils/pagination/pagination-helpers');
+const { handleDbError } = require('../utils/errors/error-handlers');
+const { logDbQueryError } = require('../utils/db-logger');
+const { buildDeliveryMethodFilter } = require('../utils/sql/build-delivery-method-filter');
 const {
-  buildDeliveryMethodFilter,
-} = require('../utils/sql/build-delivery-method-filters');
-const { paginateQueryByOffset } = require('../database/db');
-const { logSystemInfo, logSystemException } = require('../utils/system-logger');
-const AppError = require('../utils/AppError');
+  DELIVERY_METHOD_TABLE,
+  DELIVERY_METHOD_SORT_WHITELIST,
+  buildDeliveryMethodLookupQuery,
+} = require('./queries/delivery-method-queries');
+
+// ─── Lookup ───────────────────────────────────────────────────────────────────
 
 /**
- * Retrieves a paginated list of delivery method records for use in dropdown or autocomplete components.
+ * Fetches paginated delivery method records for dropdown/lookup use.
  *
- * Supports filtering by method name, pickup flag, status ID, and keyword search.
- * Typically used in order fulfillment or shipping configuration forms to allow users
- * to select from available delivery or pickup options.
+ * Sorted by method_name ascending — intended for selection interfaces.
  *
- * @param {Object} options - Lookup options
- * @param {number} [options.limit=50] - Maximum number of results to return
- * @param {number} [options.offset=0] - Offset for pagination
- * @param {Object} [options.filters={}] - Optional filter fields (e.g., isPickupLocation, keyword)
- * @returns {Promise<{data: [], pagination: {offset: number, limit: number, totalRecords: number, hasMore: boolean}}>} - Paginated dropdown data
+ * @param {Object} options
+ * @param {Object} [options.filters={}] - Optional filters (e.g. statusId, isPickupLocation).
+ * @param {number} [options.limit=50]   - Max records per page.
+ * @param {number} [options.offset=0]   - Offset for pagination.
  *
- * @throws {AppError} If an error occurs while querying the database
+ * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
+ * @throws  {AppError}        Normalized database error if the query fails.
  */
-const getDeliveryMethodsLookup = async ({
-  limit = 50,
-  offset = 0,
-  filters = {},
-}) => {
-  const tableName = 'delivery_methods dm';
+const getDeliveryMethodsLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
+  const context = 'delivery-method-repository/getDeliveryMethodsLookup';
+  
   const { whereClause, params } = buildDeliveryMethodFilter(filters);
-
-  const queryText = `
-    SELECT
-      dm.id,
-      dm.method_name AS name,
-      dm.is_pickup_location,
-      dm.status_id
-    FROM ${tableName}
-    WHERE ${whereClause}
-  `;
-
+  const queryText = buildDeliveryMethodLookupQuery(whereClause);
+  
   try {
-    const result = await paginateQueryByOffset({
-      tableName,
+    return await paginateQueryByOffset({
+      tableName:    DELIVERY_METHOD_TABLE,
+      joins:        [],
       whereClause,
       queryText,
       params,
       offset,
       limit,
-      sortBy: 'dm.method_name',
-      sortOrder: 'ASC',
-      additionalSort: 'dm.method_name ASC',
+      sortBy:       'dm.method_name',
+      sortOrder:    'ASC',
+      whitelistSet: DELIVERY_METHOD_SORT_WHITELIST,
     });
-
-    logSystemInfo('Fetched delivery methods lookup successfully', {
-      context: 'delivery_methods-repository/getDeliveryMethodsLookup',
-      totalFetched: result.data?.length ?? 0,
-      offset,
-      limit,
-      filters,
-    });
-
-    return result;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch delivery methods lookup', {
-      context: 'delivery_methods-repository/getDeliveryMethodsLookup',
-      offset,
-      limit,
-      filters,
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch delivery methods lookup.',
+      meta:    { filters, limit, offset },
+      logFn:   (err) => logDbQueryError(
+        queryText,
+        params,
+        err,
+        { context, filters, limit, offset }
+      ),
     });
-    throw AppError.databaseError('Failed to fetch delivery methods options.');
   }
 };
 

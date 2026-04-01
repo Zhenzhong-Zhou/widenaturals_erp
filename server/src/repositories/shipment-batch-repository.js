@@ -1,100 +1,78 @@
+/**
+ * @file shipment-batch-repository.js
+ * @description Database access layer for shipment batch records.
+ *
+ * Exports:
+ *  - insertShipmentBatchesBulk — bulk upsert with conflict resolution
+ */
+
+'use strict';
+
 const { bulkInsert } = require('../database/db');
-const { logSystemException, logSystemInfo } = require('../utils/system-logger');
-const AppError = require('../utils/AppError');
+const { validateBulkInsertRows } = require('../utils/validation/bulk-insert-row-validator');
+const { handleDbError } = require('../utils/errors/error-handlers');
+const { logBulkInsertError } = require('../utils/db-logger');
+const {
+  SHIPMENT_BATCH_INSERT_COLUMNS,
+  SHIPMENT_BATCH_CONFLICT_COLUMNS,
+  SHIPMENT_BATCH_UPDATE_STRATEGIES,
+} = require('./queries/shipment-batch-queries');
+
+// ─── Insert / Upsert ──────────────────────────────────────────────────────────
 
 /**
- * Inserts or updates shipment batch records in bulk.
+ * Bulk inserts or updates shipment batch records.
  *
- * Business rules:
- *  - On conflict (`fulfillment_id`, `batch_id`), the following strategies apply:
- *    - `quantity_shipped`: incremented (sums quantities if the same fulfillment/batch pair is reinserted).
- *    - `notes`: merged using text concatenation with timestamp prefix.
- *    - `created_at`: overwritten to reflect the most recent insert (acts as "last seen" timestamp).
+ * On conflict matching fulfillment_id + batch_id:
+ *  - quantity_shipped is incremented
+ *  - notes are merged
+ *  - created_at is refreshed
  *
- * Usage:
- *  - Call during fulfillment when recording which batches were shipped for a specific fulfillment.
- *  - Optimized to perform a single bulk insert/update round-trip.
+ * @param {Array<Object>}              shipmentBatches - Validated shipment batch objects.
+ * @param {PoolClient}    client          - DB client for transactional context.
  *
- * @async
- * @function
- * @param {Array<{
- *   shipment_id: string,
- *   fulfillment_id: string,
- *   batch_id: string,
- *   quantity_shipped: number,
- *   notes?: string | null,
- *   created_by?: string | null
- * }>} shipmentBatches - Array of shipment batch records
- * @param {import('pg').PoolClient} client - Active PostgreSQL transaction client
- *
- * @returns {Promise<Array<{ id: string }>>} Array of inserted or updated rows, returning only IDs
- *
- * @throws {AppError} Throws `AppError.databaseError` if the insert/update fails
- *
- * @example
- * await insertShipmentBatchesBulk([
- *   { shipment_id: "shp-001", fulfillment_id: "ful-789", batch_id: "batch-123", quantity_shipped: 10, notes: "Initial fulfillment" },
- *   { shipment_id: "shp-001", fulfillment_id: "ful-789", batch_id: "batch-123", quantity_shipped: 5, notes: "Extra allocation" }
- * ], client);
- * // Merges into one record with quantity_shipped = 15 and merged notes
+ * @returns {Promise<Array<Object>>} Inserted or updated shipment batch records.
+ * @throws  {AppError}               Normalized database error if the insert fails.
  */
 const insertShipmentBatchesBulk = async (shipmentBatches, client) => {
-  if (!Array.isArray(shipmentBatches) || shipmentBatches.length === 0)
-    return [];
-
-  const columns = [
-    'shipment_id',
-    'fulfillment_id',
-    'batch_id',
-    'quantity_shipped',
-    'notes',
-    'created_by',
-  ];
-
+  if (!Array.isArray(shipmentBatches) || shipmentBatches.length === 0) return [];
+  
+  const context = 'shipment-batch-repository/insertShipmentBatchesBulk';
+  
   const rows = shipmentBatches.map((b) => [
     b.shipment_id,
     b.fulfillment_id,
     b.batch_id,
     b.quantity_shipped,
-    b.notes ?? null,
+    b.notes      ?? null,
     b.created_by ?? null,
   ]);
-
-  // Now uniqueness is per-fulfillment, per-batch
-  const conflictColumns = ['fulfillment_id', 'batch_id'];
-
-  const updateStrategies = {
-    quantity_shipped: 'add', // Add to existing shipped quantity
-    notes: 'merge_text', // Concatenate notes
-    created_at: 'overwrite', // Refresh timestamp if re-inserted
-  };
-
+  
+  validateBulkInsertRows(rows, SHIPMENT_BATCH_INSERT_COLUMNS.length);
+  
   try {
-    const result = await bulkInsert(
+    return await bulkInsert(
       'shipment_batches',
-      columns,
+      SHIPMENT_BATCH_INSERT_COLUMNS,
       rows,
-      conflictColumns,
-      updateStrategies,
+      SHIPMENT_BATCH_CONFLICT_COLUMNS,
+      SHIPMENT_BATCH_UPDATE_STRATEGIES,
       client,
-      { context: 'shipment-batch-repository/insertShipmentBatchesBulk' },
+      { context },
       'id'
     );
-
-    logSystemInfo('Successfully inserted or updated shipment batches', {
-      context: 'shipment-batches-repository/insertShipmentBatchesBulk',
-      insertedCount: result.length,
-    });
-
-    return result;
   } catch (error) {
-    logSystemException(error, 'Failed to insert shipment batches', {
-      context: 'shipment-batches-repository/insertShipmentBatchesBulk',
-      shipmentBatchCount: shipmentBatches.length,
-    });
-
-    throw AppError.databaseError('Failed to insert shipment batches', {
-      cause: error,
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to insert shipment batches.',
+      meta:    { shipmentBatchCount: shipmentBatches.length },
+      logFn:   (err) => logBulkInsertError(
+        err,
+        'shipment_batches',
+        rows,
+        rows.length,
+        { context, conflictColumns: SHIPMENT_BATCH_CONFLICT_COLUMNS }
+      ),
     });
   }
 };

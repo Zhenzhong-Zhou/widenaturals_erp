@@ -1,18 +1,16 @@
 const {
   query,
-  paginateQuery,
-  retry,
   bulkInsert,
-  formatBulkUpdateQuery,
   paginateResults,
 } = require('../database/db');
+const { paginateQuery } = require('../database/utils/pagination/pagination-helpers');
 const AppError = require('../utils/AppError');
 const {
   logSystemInfo,
   logSystemException,
   logSystemWarn,
-} = require('../utils/system-logger');
-const { logError } = require('../utils/logger-helper');
+} = require('../utils/logging/system-logger');
+const { logError } = require('../utils/logging/logger-helper');
 const {
   buildWarehouseInventoryWhereClause,
 } = require('../utils/sql/build-warehouse-inventory-filters');
@@ -20,6 +18,7 @@ const {
   getStatusIdByQuantity,
 } = require('../utils/query/inventory-query-utils');
 const { existsQuery } = require('./utils/repository-helper');
+const { formatBulkUpdateQuery } = require('../utils/db/query-builder');
 
 /**
  * Fetches a paginated summary of warehouse inventory items, including both product SKUs and packaging materials.
@@ -360,11 +359,14 @@ const getWarehouseInventorySummaryDetailsByItemId = async ({
  * }>} Paginated warehouse inventory data with enriched metadata
  */
 const getPaginatedWarehouseInventoryRecords = async ({
-  page,
-  limit,
-  filters,
-  safeSortClause,
-}) => {
+                                                       page,
+                                                       limit,
+                                                       filters = {},
+                                                       safeSortClause,
+                                                     }) => {
+  const context =
+    'warehouse-inventory-repository/getPaginatedWarehouseInventoryRecords';
+    
   const tableName = 'warehouse_inventory wi';
 
   const joins = [
@@ -447,25 +449,24 @@ const getPaginatedWarehouseInventoryRecords = async ({
       params,
       page,
       limit,
-      meta: {
-        context:
-          'warehouse-inventory-repository/getPaginatedWarehouseInventoryRecords',
-      },
+      meta: { context },
     });
 
     logSystemInfo('Fetched warehouse inventory records.', {
-      context:
-        'warehouse-inventory-repository/getPaginatedWarehouseInventoryRecords',
-      page,
-      limit,
+      context,
+      filters,
+      pagination: { page, limit },
+      sorting: { safeSortClause },
       resultCount: result?.data?.length ?? 0,
     });
 
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch warehouse inventory records.', {
-      context:
-        'warehouse-inventory-repository/getPaginatedWarehouseInventoryRecords',
+      context,
+      filters,
+      pagination: { page, limit },
+      sorting: { safeSortClause },
     });
 
     throw AppError.databaseError('Failed to fetch warehouse inventory data.');
@@ -481,7 +482,7 @@ const getPaginatedWarehouseInventoryRecords = async ({
  * - Uses structured logging and standardized error handling
  *
  * @param {Array<Object>} records - Inventory records to insert or update
- * @param {Pool|Client} client - PostgreSQL client or pool
+ * @param {Pool|PoolClient} client - PostgreSQL client or pool
  * @param {Object} meta - Optional metadata for tracing/debugging
  * @returns {Promise<Array>} Inserted or updated row IDs
  * @throws {AppError} If the insert operation fails
@@ -643,7 +644,7 @@ const getWarehouseInventoryResponseByIds = async (ids, client) => {
  *  - A map where each key is a composite of `warehouse_id-batch_id`, and the value contains the update payload.
  *
  * @param {string} userId - The UUID of the user performing the update (used to populate `updated_by`).
- * @param {import('pg').PoolClient} client - A PostgreSQL client instance from the `pg` library.
+ * @param {PoolClient} client - A PostgreSQL client instance from the `pg` library.
  *
  * @returns {Promise<Array<{ warehouse_id: string, batch_id: string }>>}
  *   Resolves with an array of the updated composite keys.
@@ -707,7 +708,7 @@ const bulkUpdateWarehouseQuantities = async (updates, userId, client) => {
  * - Logs structured exception info on query failure.
  *
  * @param {Array<{ warehouse_id: string, batch_id: string }>} keys - Composite keys to fetch.
- * @param {import('pg').PoolClient} client - PostgreSQL client used for the transaction.
+ * @param {PoolClient} client - PostgreSQL client used for the transaction.
  * @returns {Promise<Array<{
  *   id: string,
  *   warehouse_id: string,
@@ -932,6 +933,8 @@ const getWarehouseInventoryDetailsByWarehouseId = async ({
   page,
   limit,
 }) => {
+  const context = 'warehouse-inventory-repository/getWarehouseInventoryDetailsByWarehouseId';
+  
   const tableName = 'warehouse_inventory wi';
 
   const joins = [
@@ -1003,21 +1006,38 @@ const getWarehouseInventoryDetailsByWarehouseId = async ({
     wil.created_at, wil.updated_at,
     u3.firstname, u3.lastname, u4.firstname, u4.lastname
   `;
-
+  
+  const INVENTORY_SORT_WHITELIST = new Set([
+    'i.product_id',
+    'i.identifier',
+    'wil.lot_number',
+    'wil.expiry_date',
+    'wil.id',
+    'wi.created_at',
+    'wi.updated_at',
+    'wi.last_update',
+    'ws.name',
+  ]);
+  
   try {
     // Use pagination if required
-    return await retry(async () => {
-      return await paginateQuery({
-        tableName,
-        joins,
-        whereClause,
-        queryText: baseQuery,
-        params: [warehouse_id],
+    return await paginateQuery({
+      tableName,
+      joins,
+      whereClause,
+      queryText: baseQuery,
+      params: [warehouse_id],
+      page,
+      limit,
+      sortBy: defaultSort,
+      sortOrder: 'ASC',
+      whitelistSet: INVENTORY_SORT_WHITELIST,
+      meta: {
+        context,
+        warehouse_id,
         page,
         limit,
-        sortBy: defaultSort,
-        sortOrder: 'ASC',
-      });
+      },
     });
   } catch (error) {
     logError(
@@ -1191,7 +1211,7 @@ const getRecentInsertWarehouseInventoryRecords = async (warehouseLotIds) => {
  * destructive operations (e.g., archive/delete) when inventory exists.
  *
  * @param {string} skuId - UUID of the SKU.
- * @param {import('pg').PoolClient|null} [client]
+ * @param {PoolClient|null} [client]
  *   Optional transactional client.
  *
  * @returns {Promise<boolean>}

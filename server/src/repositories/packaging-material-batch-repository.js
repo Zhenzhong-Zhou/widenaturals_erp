@@ -1,517 +1,224 @@
+/**
+ * @file packaging-material-batch-repository.js
+ * @description Database access layer for packaging material batch records.
+ *
+ * Follows the established repo pattern:
+ *  - Query constants and factories imported from packaging-material-batch-queries.js
+ *  - All errors normalized through handleDbError before bubbling up
+ *  - No success logging — middleware and globalErrorHandler own that layer
+ *
+ * Exports:
+ *  - getPaginatedPackagingMaterialBatches    — paginated list with filtering and sorting
+ *  - insertPackagingMaterialBatchesBulk     — bulk upsert with conflict resolution
+ *  - getPackagingMaterialBatchById          — fetch single batch by id
+ *  - updatePackagingMaterialBatch           — partial update via updateById
+ *  - getPackagingMaterialBatchDetailsById   — full detail fetch with material and supplier joins
+ */
+
+'use strict';
+
+const { bulkInsert, updateById, query } = require('../database/db');
+const { validateBulkInsertRows } = require('../utils/validation/bulk-insert-row-validator');
+const { paginateQuery } = require('../database/utils/pagination/pagination-helpers');
+const { handleDbError } = require('../utils/errors/error-handlers');
+const { logDbQueryError, logBulkInsertError } = require('../utils/db-logger');
+const { buildPackagingMaterialBatchFilter } = require('../utils/sql/build-packaging-material-batch-filter');
+const { SORTABLE_FIELDS } = require('../utils/sort-field-mapping');
+const { resolveSort } = require('../utils/query/sort-resolver');
 const {
-  buildPackagingMaterialBatchFilter,
-} = require('../utils/sql/build-packaging-material-batch-filters');
-const { paginateResults, bulkInsert, updateById, query } = require('../database/db');
-const {
-  logSystemInfo,
-  logSystemException
-} = require('../utils/system-logger');
-const AppError = require('../utils/AppError');
+  PMB_INSERT_COLUMNS,
+  PMB_CONFLICT_COLUMNS,
+  PMB_UPDATE_STRATEGIES,
+  PMB_TABLE,
+  PMB_JOINS,
+  PMB_SORT_WHITELIST,
+  buildPmbPaginatedQuery,
+  PMB_GET_BY_ID_QUERY,
+  PMB_GET_DETAILS_BY_ID_QUERY,
+} = require('./queries/packaging-material-batch-queries');
+
+// ─── Paginated List ───────────────────────────────────────────────────────────
 
 /**
- * Fetch paginated packaging material batch records with optional filtering.
+ * Fetches paginated packaging material batch records with optional filtering and sorting.
  *
- * Repository responsibility:
- * - Execute packaging material batch SQL
- * - Apply normalized filter conditions
- * - Return flat rows for transformer shaping
+ * @param {Object}       options
+ * @param {Object}       [options.filters={}]           - Field filters.
+ * @param {number}       [options.page=1]               - Page number (1-based).
+ * @param {number}       [options.limit=20]             - Records per page.
+ * @param {string}       [options.sortBy='receivedAt']  - Sort key (mapped via packagingMaterialBatchSortMap).
+ * @param {'ASC'|'DESC'} [options.sortOrder='DESC']     - Sort direction.
  *
- * Architectural notes:
- * - Snapshot-first (batch identity is historical, not master-driven)
- * - No inventory, allocation, or costing logic beyond stored values
- * - packaging_materials is reference-only
- *
- * Designed for:
- * - Packaging intake & batch registry
- * - QA review
- * - Expiry monitoring
- *
- * @param {Object} options
- * @param {Object} [options.filters]
- * @param {number} [options.page=1]
- * @param {number} [options.limit=20]
- * @param {string} [options.sortBy='received_at']
- * @param {'ASC'|'DESC'} [options.sortOrder='DESC']
- *
- * @returns {Promise<{ data: Object[], pagination: Object }>}
+ * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
+ * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getPaginatedPackagingMaterialBatches = async ({
-  filters = {},
-  page = 1,
-  limit = 20,
-  sortBy = 'received_at',
-  sortOrder = 'DESC',
-}) => {
-  const context =
-    'packaging-material-batch-repository/getPaginatedPackagingMaterialBatches';
-
-  // ------------------------------------
-  // 1. Build WHERE clause
-  // ------------------------------------
+                                                      filters   = {},
+                                                      page      = 1,
+                                                      limit     = 20,
+                                                      sortBy    = 'receivedAt',
+                                                      sortOrder = 'DESC',
+                                                    }) => {
+  const context = 'packaging-material-batch-repository/getPaginatedPackagingMaterialBatches';
+  
   const { whereClause, params } = buildPackagingMaterialBatchFilter(filters);
-
-  // ------------------------------------
-  // 2. Base query (flat, snapshot-first)
-  // ------------------------------------
-  const queryText = `
-    SELECT
-      pmb.id,
-      pmb.lot_number,
-      pmb.quantity,
-      pmb.unit,
-      pmb.manufacture_date,
-      pmb.expiry_date,
-      pmb.received_at,
-      pmb.received_by       AS received_by_id,
-      rb.firstname          AS received_by_firstname,
-      rb.lastname           AS received_by_lastname,
-      pmb.material_snapshot_name,
-      pmb.received_label_name,
-      pmb.unit_cost,
-      pmb.currency,
-      pmb.exchange_rate,
-      pmb.total_cost,
-      pmb.status_id,
-      bs.name               AS status_name,
-      pmb.status_date,
-      pm.id                 AS packaging_material_id,
-      pm.code               AS packaging_material_code,
-      pm.category           AS packaging_material_category,
-      s.id                  AS supplier_id,
-      s.name                AS supplier_name,
-      pms.is_preferred,
-      pms.lead_time_days,
-      pmb.created_at,
-      pmb.created_by        AS created_by_id,
-      cb.firstname          AS created_by_firstname,
-      cb.lastname           AS created_by_lastname,
-      pmb.updated_at,
-      pmb.updated_by        AS updated_by_id,
-      ub.firstname          AS updated_by_firstname,
-      ub.lastname           AS updated_by_lastname
-    FROM packaging_material_batches pmb
-    JOIN packaging_material_suppliers pms
-      ON pmb.packaging_material_supplier_id = pms.id
-    JOIN packaging_materials pm ON pms.packaging_material_id = pm.id
-    JOIN suppliers s ON pms.supplier_id = s.id
-    JOIN batch_status bs ON bs.id = pmb.status_id
-    LEFT JOIN users rb ON rb.id = pmb.received_by
-    LEFT JOIN users cb ON cb.id = pmb.created_by
-    LEFT JOIN users ub ON ub.id = pmb.updated_by
-    WHERE ${whereClause}
-    ORDER BY ${sortBy} ${sortOrder}
-  `;
-
+  
+  const sortConfig = resolveSort({
+    sortBy,
+    sortOrder,
+    moduleKey:   'packagingMaterialBatchSortMap',
+    defaultSort: SORTABLE_FIELDS.packagingMaterialBatchSortMap.defaultNaturalSort,
+  });
+  
+  const queryText = buildPmbPaginatedQuery(whereClause);
+  
   try {
-    // ------------------------------------
-    // 3. Execute paginated query
-    // ------------------------------------
-    const result = await paginateResults({
-      dataQuery: queryText,
+    return await paginateQuery({
+      tableName:    PMB_TABLE,
+      joins:        PMB_JOINS,
+      whereClause,
+      queryText,
       params,
       page,
       limit,
-      meta: { context },
+      sortBy:       sortConfig.sortBy,
+      sortOrder:    sortConfig.sortOrder,
+      whitelistSet: PMB_SORT_WHITELIST,
     });
-
-    logSystemInfo('Fetched paginated packaging material batches successfully', {
-      context,
-      filters,
-      pagination: { page, limit },
-      sorting: { sortBy, sortOrder },
-      count: result.data.length,
-    });
-
-    return result;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch packaging material batches', {
+    throw handleDbError(error, {
       context,
-      filters,
-      pagination: { page, limit },
-      sorting: { sortBy, sortOrder },
+      message: 'Failed to fetch paginated packaging material batches.',
+      meta:    { filters, page, limit, sortBy, sortOrder },
+      logFn:   (err) => logDbQueryError(
+        queryText, params, err, { context, filters, page, limit }
+      ),
     });
-
-    throw AppError.databaseError(
-      'Failed to fetch packaging material batches.',
-      { context }
-    );
   }
 };
 
+// ─── Insert / Upsert ──────────────────────────────────────────────────────────
+
 /**
- * Bulk insert or update packaging material batch records.
+ * Bulk inserts or updates packaging material batch records.
  *
- * This repository function inserts multiple packaging material batch records
- * into the `packaging_material_batches` table using the shared `bulkInsert`
- * utility. If a batch already exists (based on the unique constraint),
- * selected fields will be updated according to defined update strategies.
+ * On conflict matching packaging_material_supplier_id + lot_number,
+ * overwrites mutable fields including quantity, cost, and status.
  *
- * Conflict Handling:
- * - A conflict is detected using (`packaging_material_supplier_id`, `lot_number`).
- * - When a conflict occurs, mutable fields such as cost, quantity, and status
- *   are updated while other fields remain unchanged.
+ * @param {Array<Object>}              packagingMaterialBatches - Validated batch objects to insert.
+ * @param {PoolClient}    client                   - DB client for transactional context.
+ * @param {Object}                     [meta={}]                - Optional caller context for tracing.
  *
- * Performance:
- * - Uses a single bulk insert operation to minimize database round-trips.
- * - Suitable for ERP workflows such as supplier batch imports or inventory
- *   reconciliation where multiple batches are processed at once.
- *
- * Logging:
- * - Emits a system info log on successful insert/update.
- * - Emits a system exception log if the operation fails.
- *
- * @async
- * @function insertPackagingMaterialBatchesBulk
- *
- * @param {Array<Object>} packagingMaterialBatches
- * List of packaging material batch records.
- *
- * @param {string} packagingMaterialBatches[].packaging_material_supplier_id
- * Supplier reference for the packaging material.
- *
- * @param {string} packagingMaterialBatches[].lot_number
- * Supplier lot number for the material batch.
- *
- * @param {string|null} [packagingMaterialBatches[].material_snapshot_name]
- * Snapshot name of the material at the time of receipt.
- *
- * @param {string|null} [packagingMaterialBatches[].received_label_name]
- * Label name used on the received packaging material.
- *
- * @param {number} packagingMaterialBatches[].quantity
- * Quantity received in the batch.
- *
- * @param {string} packagingMaterialBatches[].unit
- * Unit of measurement (e.g. `pcs`, `kg`, `roll`).
- *
- * @param {Date|string|null} [packagingMaterialBatches[].manufacture_date]
- * Manufacturing date if provided by supplier.
- *
- * @param {Date|string|null} [packagingMaterialBatches[].expiry_date]
- * Expiry date if applicable.
- *
- * @param {number|null} [packagingMaterialBatches[].unit_cost]
- * Cost per unit of the material.
- *
- * @param {string|null} [packagingMaterialBatches[].currency]
- * Currency used for the cost.
- *
- * @param {number|null} [packagingMaterialBatches[].exchange_rate]
- * Exchange rate applied if foreign currency is used.
- *
- * @param {number|null} [packagingMaterialBatches[].total_cost]
- * Total cost calculated for the batch.
- *
- * @param {string} packagingMaterialBatches[].status_id
- * Current status identifier for the batch.
- *
- * @param {Date|string|null} [packagingMaterialBatches[].status_date]
- * Timestamp for the status change.
- *
- * @param {Date|string|null} [packagingMaterialBatches[].received_at]
- * Timestamp when the material was received.
- *
- * @param {string|null} [packagingMaterialBatches[].received_by]
- * User who received the batch.
- *
- * @param {string|null} [packagingMaterialBatches[].created_by]
- * User who created the record.
- *
- * @param {Object|null} [client]
- * Optional PostgreSQL transaction client.
- *
- * @param {Object} [meta]
- * Optional metadata passed to logging or query helpers.
- *
- * @returns {Promise<Array<Object>>}
- * Returns inserted or updated batch records.
- *
- * @throws {AppError}
- * Throws database error if insertion fails.
+ * @returns {Promise<Array<Object>>} Inserted or updated batch records.
+ * @throws  {AppError}               Normalized database error if the insert fails.
  */
 const insertPackagingMaterialBatchesBulk = async (
   packagingMaterialBatches,
   client,
   meta = {}
 ) => {
-  if (!Array.isArray(packagingMaterialBatches) || packagingMaterialBatches.length === 0)
-    return [];
+  if (!Array.isArray(packagingMaterialBatches) || packagingMaterialBatches.length === 0) return [];
   
-  const context =
-    'packaging-material-batch-repository/insertPackagingMaterialBatchesBulk';
-  
-  const columns = [
-    'packaging_material_supplier_id',
-    'lot_number',
-    'material_snapshot_name',
-    'received_label_name',
-    'quantity',
-    'unit',
-    'manufacture_date',
-    'expiry_date',
-    'unit_cost',
-    'currency',
-    'exchange_rate',
-    'total_cost',
-    'status_id',
-    'received_at',
-    'received_by',
-    'created_by',
-    'updated_at',
-    'updated_by',
-  ];
+  const context = 'packaging-material-batch-repository/insertPackagingMaterialBatchesBulk';
   
   const rows = packagingMaterialBatches.map((batch) => [
     batch.packaging_material_supplier_id,
     batch.lot_number,
-    batch.material_snapshot_name ?? null,
-    batch.received_label_name ?? null,
+    batch.material_snapshot_name  ?? null,
+    batch.received_label_name     ?? null,
     batch.quantity,
     batch.unit,
-    batch.manufacture_date ?? null,
-    batch.expiry_date ?? null,
-    batch.unit_cost ?? null,
-    batch.currency ?? null,
-    batch.exchange_rate ?? null,
-    batch.total_cost ?? null,
+    batch.manufacture_date        ?? null,
+    batch.expiry_date             ?? null,
+    batch.unit_cost               ?? null,
+    batch.currency                ?? null,
+    batch.exchange_rate           ?? null,
+    batch.total_cost              ?? null,
     batch.status_id,
-    null, // received_at (not set during creation)
-    null, // received_by
-    batch.created_by ?? null,
-    null, // updated_at handled by update strategy
-    null, // updated_by
+    null,                                   // received_at — set on receipt, not creation
+    null,                                   // received_by — set on receipt, not creation
+    batch.created_by              ?? null,
+    null,                                   // updated_at — null at insert time
+    null,                                   // updated_by — null at insert time
   ]);
   
-  // Prevent duplicate batches for the same supplier lot
-  const conflictColumns = ['packaging_material_supplier_id', 'lot_number'];
-  
-  // Define field update behavior during conflicts
-  const updateStrategies = {
-    material_snapshot_name: 'overwrite',
-    received_label_name: 'overwrite',
-    quantity: 'overwrite',
-    unit_cost: 'overwrite',
-    exchange_rate: 'overwrite',
-    total_cost: 'overwrite',
-    status_id: 'overwrite',
-    status_date: 'overwrite',
-    updated_at: 'overwrite',
-  };
+  validateBulkInsertRows(rows, PMB_INSERT_COLUMNS.length);
   
   try {
-    const result = await bulkInsert(
+    return await bulkInsert(
       'packaging_material_batches',
-      columns,
+      PMB_INSERT_COLUMNS,
       rows,
-      conflictColumns,
-      updateStrategies,
+      PMB_CONFLICT_COLUMNS,
+      PMB_UPDATE_STRATEGIES,
       client,
-      { context, ...meta },
+      { meta: { context, ...meta } },
       '*'
     );
-    
-    logSystemInfo('Successfully inserted or updated packaging material batches', {
-      context,
-      insertedCount: result.length,
-      totalInput: packagingMaterialBatches.length,
-    });
-    
-    return result;
   } catch (error) {
-    logSystemException(
-      error,
-      'Failed to insert packaging material batch records',
-      {
-        context,
-        batchCount: packagingMaterialBatches.length,
-      }
-    );
-    
-    throw AppError.databaseError(
-      'Failed to insert packaging material batch records',
-      { cause: error }
-    );
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to insert packaging material batch records.',
+      meta:    { batchCount: packagingMaterialBatches.length },
+      logFn:   (err) => logBulkInsertError(
+        err,
+        'packaging_material_batches',
+        rows,
+        rows.length,
+        { context, conflictColumns: PMB_CONFLICT_COLUMNS }
+      ),
+    });
   }
 };
 
+// ─── Single Record ────────────────────────────────────────────────────────────
+
 /**
- * Fetch a packaging material batch record by ID.
+ * Fetches a single packaging material batch by ID.
  *
- * Returns the batch with status information and optional batch registry
- * linkage. This record provides enough data for lifecycle workflows,
- * metadata updates, and activity logging.
+ * Returns null if no batch exists for the given ID.
  *
- * @param {string} batchId
- * Packaging material batch identifier.
+ * @param {string}                  batchId - UUID of the batch.
+ * @param {PoolClient} client  - DB client for transactional context.
  *
- * @param {import('pg').PoolClient} client
- * Active transaction client.
- *
- * @returns {Promise<{
- *   id: string,
- *   packaging_material_supplier_id: string,
- *   lot_number: string|null,
- *   material_snapshot_name: string|null,
- *   received_label_name: string|null,
- *   quantity: number|null,
- *   unit: string|null,
- *   manufacture_date: Date|null,
- *   expiry_date: Date|null,
- *   unit_cost: number|null,
- *   currency: string|null,
- *   exchange_rate: number|null,
- *   total_cost: number|null,
- *   received_at: Date|null,
- *   received_by: string|null,
- *   notes: string|null,
- *   status_id: string,
- *   status_name: string,
- *   status_date: Date|null,
- *   batch_registry_id: string|null
- * } | null>}
+ * @returns {Promise<Object|null>} Batch row, or null if not found.
+ * @throws  {AppError}             Normalized database error if the query fails.
  */
 const getPackagingMaterialBatchById = async (batchId, client) => {
   const context = 'packaging-material-batch-repository/getPackagingMaterialBatchById';
   
-  const queryText = `
-    SELECT
-      pmb.id,
-      pmb.packaging_material_supplier_id,
-      pmb.lot_number,
-      pmb.material_snapshot_name,
-      pmb.received_label_name,
-      pmb.quantity,
-      pmb.unit,
-      pmb.manufacture_date,
-      pmb.expiry_date,
-      pmb.unit_cost,
-      pmb.currency,
-      pmb.exchange_rate,
-      pmb.total_cost,
-      pmb.received_at,
-      pmb.received_by,
-      pmb.notes,
-      pmb.status_id,
-      bs.name AS status_name,
-      pmb.status_date,
-      br.id AS batch_registry_id
-    FROM packaging_material_batches pmb
-    JOIN batch_status bs
-      ON bs.id = pmb.status_id
-    LEFT JOIN batch_registry br
-      ON br.packaging_material_batch_id = pmb.id
-    WHERE pmb.id = $1
-  `;
-  
   try {
-    const { rows } = await query(queryText, [batchId], client);
-    
-    if (rows.length === 0) {
-      logSystemInfo('No packaging material batch found for given ID', {
-        context,
-        batchId,
-      });
-      
-      return null;
-    }
-    
-    logSystemInfo('Fetched packaging material batch successfully', {
-      context,
-      batchId,
-    });
-    
-    return rows[0];
+    const { rows } = await query(PMB_GET_BY_ID_QUERY, [batchId], client);
+    return rows[0] ?? null;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch packaging material batch', {
+    throw handleDbError(error, {
       context,
-      batchId,
-      error: error.message,
-    });
-    
-    throw AppError.databaseError('Failed to fetch packaging material batch', {
-      details: {
-        context,
-        message: error.message,
-      }
+      message: 'Failed to fetch packaging material batch.',
+      meta:    { batchId },
+      logFn:   (err) => logDbQueryError(
+        PMB_GET_BY_ID_QUERY, [batchId], err, { context, batchId }
+      ),
     });
   }
 };
 
+// ─── Update ───────────────────────────────────────────────────────────────────
+
 /**
- * Update packaging material batch metadata.
+ * Performs a partial update on a packaging material batch record.
  *
- * Performs a partial update on the `packaging_material_batches` table.
- * Only fields provided in the `params` object will be included
- * in the update statement.
+ * Delegates to `updateById` which handles metadata injection
+ * (updated_at, updated_by) and error normalization internally.
  *
- * This repository function does not contain business logic.
- * Validation and lifecycle rules are handled in the service layer.
+ * @param {Object}                  params
+ * @param {string}                  params.batchId   - UUID of the batch to update.
+ * @param {string}                  params.updatedBy - UUID of the user performing the update.
+ * @param {PoolClient} client           - DB client for transactional context.
  *
- * @param {Object} params
- *
- * @param {string} params.batchId
- * Unique identifier of the packaging material batch.
- *
- * @param {string|null} [params.packaging_material_supplier_id]
- * Supplier responsible for the packaging material.
- *
- * @param {string|null} [params.lot_number]
- * Supplier-provided lot number.
- *
- * @param {string|null} [params.material_snapshot_name]
- * Snapshot name of the packaging material at time of receipt.
- *
- * @param {string|null} [params.received_label_name]
- * Label name recorded at warehouse intake.
- *
- * @param {number|null} [params.quantity]
- * Quantity received for the batch.
- *
- * @param {string|null} [params.unit]
- * Measurement unit of the quantity (e.g. pieces, kg).
- *
- * @param {string|null} [params.manufacture_date]
- * Manufacturing date of the packaging material batch.
- *
- * @param {string|null} [params.expiry_date]
- * Expiration date of the packaging material batch.
- *
- * @param {number|null} [params.unit_cost]
- * Unit cost of the packaging material.
- *
- * @param {string|null} [params.currency]
- * Currency code for the cost values.
- *
- * @param {number|null} [params.exchange_rate]
- * Exchange rate applied to convert costs to system currency.
- *
- * @param {number|null} [params.total_cost]
- * Total calculated cost for the batch.
- *
- * @param {string|null} [params.notes]
- * Optional notes or operational comments.
- *
- * @param {string|null} [params.status_id]
- * Lifecycle status identifier for the batch.
- *
- * @param {Date|null} [params.received_at]
- * Timestamp indicating when the batch was received.
- *
- * @param {string|null} [params.received_by]
- * User who recorded the warehouse intake.
- *
- * @param {string} params.updatedBy
- * Identifier of the user performing the update.
- *
- * @param {import('pg').PoolClient} client
- * Database client used for transactional execution.
- *
- * @returns {Promise<Object>}
- * Updated packaging material batch record.
+ * @returns {Promise<{ id: string }>} The updated batch ID.
+ * @throws  {AppError}                If the batch does not exist or the update fails.
  */
 const updatePackagingMaterialBatch = async (params, client) => {
-  const context = 'packaging-material-batch-repository/updatePackagingMaterialBatch';
-  
   const {
     batchId,
     packaging_material_supplier_id,
@@ -533,7 +240,6 @@ const updatePackagingMaterialBatch = async (params, client) => {
     updatedBy,
   } = params;
   
-  // Only defined fields will be applied by updateById
   const updates = {
     packaging_material_supplier_id,
     lot_number,
@@ -553,23 +259,42 @@ const updatePackagingMaterialBatch = async (params, client) => {
     received_by,
   };
   
+  return await updateById(
+    'packaging_material_batches',
+    batchId,
+    updates,
+    updatedBy,
+    client
+  );
+};
+
+// ─── Detail ───────────────────────────────────────────────────────────────────
+
+/**
+ * Fetches full packaging material batch detail by ID.
+ *
+ * Includes material, supplier, status, and received_by user fields.
+ * Returns null if no batch exists for the given ID.
+ *
+ * @param {string} batchId - UUID of the batch.
+ *
+ * @returns {Promise<Object|null>} Full batch detail row, or null if not found.
+ * @throws  {AppError}             Normalized database error if the query fails.
+ */
+const getPackagingMaterialBatchDetailsById = async (batchId) => {
+  const context = 'packaging-material-batch-repository/getPackagingMaterialBatchDetailsById';
+  
   try {
-    return await updateById(
-      'packaging_material_batches',
-      batchId,
-      updates,
-      updatedBy,
-      client
-    );
+    const { rows } = await query(PMB_GET_DETAILS_BY_ID_QUERY, [batchId]);
+    return rows[0] ?? null;
   } catch (error) {
-    logSystemException(error, 'Failed to update packaging material batch', {
+    throw handleDbError(error, {
       context,
-      batchId,
-    });
-    
-    throw AppError.databaseError('Failed to update packaging material batch', {
-      context,
-      cause: error,
+      message: 'Failed to fetch packaging material batch detail.',
+      meta:    { batchId },
+      logFn:   (err) => logDbQueryError(
+        PMB_GET_DETAILS_BY_ID_QUERY, [batchId], err, { context, batchId }
+      ),
     });
   }
 };
@@ -579,4 +304,5 @@ module.exports = {
   insertPackagingMaterialBatchesBulk,
   getPackagingMaterialBatchById,
   updatePackagingMaterialBatch,
+  getPackagingMaterialBatchDetailsById,
 };
