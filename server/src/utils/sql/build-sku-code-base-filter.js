@@ -1,41 +1,10 @@
-/**
- * @fileoverview
- * Utility to build dynamic SQL WHERE clauses and parameter arrays
- * for filtering SKU code base records in dropdowns, SKU creation flows,
- * or admin search screens.
- *
- * Supports:
- * - Exact match filters (brand_code, category_code, status_id)
- * - Fuzzy keyword search (brand_code/category_code)
- * - Date filtering (created_at and status_date ranges)
- * - Fallback status enforcement for permission-based filtering
- */
-
 const {
   normalizeDateRangeFilters,
   applyDateRangeConditions,
 } = require('./date-range-utils');
-const { logSystemException } = require('../system-logger');
+const { logSystemException } = require('../logging/system-logger');
 const AppError = require('../AppError');
 
-/**
- * Builds a secure dynamic WHERE clause for filtering SKU code base records.
- *
- * @param {Object} [filters={}] - The optional filters.
- * @param {string} [filters.brand_code] - Exact match brand code.
- * @param {string} [filters.category_code] - Exact match category code.
- * @param {string} [filters.status_id] - Match by status id.
- * @param {string} [filters._activeStatusId] - Fallback enforced status.
- * @param {string} [filters.keyword] - Fuzzy keyword search.
- * @param {string} [filters.createdAfter] - created_at >= ISO timestamp.
- * @param {string} [filters.createdBefore] - created_at <= ISO timestamp.
- * @param {string} [filters.statusDateAfter] - status_date >= ISO timestamp.
- * @param {string} [filters.statusDateBefore] - status_date <= ISO timestamp.
- *
- * @returns {{ whereClause: string, params: any[] }}
- *
- * @throws {AppError} If filter construction fails.
- */
 const buildSkuCodeBaseFilter = (filters = {}) => {
   try {
     // -------------------------------------------------------------
