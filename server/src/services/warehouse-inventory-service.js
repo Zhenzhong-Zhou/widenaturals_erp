@@ -8,7 +8,7 @@ const {
   logSystemError,
   logSystemException,
   logSystemInfo,
-} = require('../utils/system-logger');
+} = require('../utils/logging/system-logger');
 const {
   transformPaginatedWarehouseInventoryItemSummary,
   transformPaginatedWarehouseInventorySummaryDetails,
@@ -161,10 +161,10 @@ const fetchWarehouseInventorySummaryByItemIdService = async ({
  *     }
  */
 const fetchPaginatedWarehouseInventoryRecordService = async ({
-  page,
-  limit,
-  filters,
-  safeSortClause,
+                                                               page,
+                                                               limit,
+                                                               filters = {},
+                                                               safeSortClause,
 }) => {
   try {
     const rawResult = await getPaginatedWarehouseInventoryRecords({

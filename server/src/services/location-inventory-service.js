@@ -5,14 +5,18 @@ const {
   getPaginatedLocationInventoryRecords,
 } = require('../repositories/location-inventory-repository');
 const AppError = require('../utils/AppError');
-const { logSystemException, logSystemInfo } = require('../utils/system-logger');
+const {
+  logSystemException,
+  logSystemInfo
+} = require('../utils/logging/system-logger');
 const {
   transformPaginatedLocationInventorySummaryResult,
   transformPaginatedLocationInventorySummaryDetails,
   transformLocationInventoryKpiSummary,
   transformPaginatedLocationInventoryRecordResults,
 } = require('../transformers/location-inventory-transformer');
-const { sanitizeSortBy, sanitizeSortOrder } = require('../utils/sort-utils');
+const { sanitizeSortBy } = require('../utils/query/sort-resolver');
+const { normalizeSortOrder } = require('../utils/query-normalizers');
 
 /**
  * Service to fetch and transform KPI summary data for location inventory.
@@ -93,7 +97,7 @@ const fetchPaginatedLocationInventorySummaryService = async ({
       sortBy || 'createdAt',
       'locationInventorySummarySortMap'
     );
-    const sortOrderClause = sanitizeSortOrder(sortOrder);
+    const sortOrderClause = normalizeSortOrder(sortOrder);
 
     const rawResult = await getHighLevelLocationInventorySummary({
       page,
