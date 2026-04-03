@@ -1,5 +1,5 @@
 const { getProductDisplayName } = require('../utils/display-name-utils');
-const { deriveInventoryStatusFlags } = require('../utils/transformer-utils');
+const { deriveInventoryStatusFlags } = require('../utils/inventory-utils');
 const { cleanObject } = require('../utils/object-utils');
 
 /**

@@ -1,235 +1,208 @@
 /**
- * @fileoverview
- * Transformer utilities for Product Batch list and detail views.
+ * @file product-batch-transformer.js
+ * @description Row-level and page-level transformers for product batch records.
  *
- * This module is responsible for shaping flat database rows
- * into UI-ready Product Batch representations.
+ * Exports:
+ *   - transformPaginatedProductBatchResults – paginated batch list
+ *   - transformProductBatchRecords          – insert result records
+ *   - transformProductBatchDetail           – single batch detail
  *
- * Architectural notes:
- * - This transformer operates on a single domain (product batches only)
- * - Row-level visibility is enforced upstream (business + repository)
- * - Field-level visibility (e.g. manufacturer) is applied here
- * - No filtering, permission evaluation, or business logic occurs here
+ * Internal helpers (not exported):
+ *   - transformProductBatchRow – per-row transformer for paginated list
+ *
+ * All functions are pure — no logging, no AppError, no side effects.
  */
 
-const { cleanObject } = require('../utils/object-utils');
-const { makeStatus } = require('../utils/status-utils');
-const { makeActor } = require('../utils/actor-utils');
-const { compactAudit, makeAudit } = require('../utils/audit-utils');
-const { transformPageResult } = require('../utils/transformer-utils');
-const { getProductDisplayName } = require('../utils/display-name-utils');
+'use strict';
 
-/**
- * @typedef {Object} ProductBatchRow
- *
- * Flat product batch row returned from repository queries.
- * This type represents a denormalized join result and is NOT
- * intended for direct UI consumption.
- *
- * All permission enforcement must occur outside this structure.
- *
- * Core batch fields
- * @property {string} id
- * @property {string} lot_number
- * @property {string} sku_id
- * @property {string} sku_code
- * @property {string|null} size_label
- * @property {string|null} country_code
- *
- * Product fields
- * @property {string} product_id
- * @property {string} product_name
- * @property {string|null} brand
- * @property {string|null} category
- *
- * Manufacturer fields
- * @property {string|null} manufacturer_id
- * @property {string|null} manufacturer_name
- *
- * Batch lifecycle
- * @property {string} manufacture_date
- * @property {string} expiry_date
- * @property {string|null} received_date
- * @property {number} initial_quantity
- *
- * Status
- * @property {string} status_id
- * @property {string} status_name
- * @property {string} status_date
- *
- * Release audit
- * @property {string|null} released_at
- * @property {string|null} released_by_id
- * @property {string|null} released_by_firstname
- * @property {string|null} released_by_lastname
- *
- * Creation audit
- * @property {string} created_at
- * @property {string} created_by_id
- * @property {string|null} created_by_firstname
- * @property {string|null} created_by_lastname
- *
- * Update audit
- * @property {string|null} updated_at
- * @property {string|null} updated_by_id
- * @property {string|null} updated_by_firstname
- * @property {string|null} updated_by_lastname
- */
+const { cleanObject }                = require('../utils/object-utils');
+const { makeStatus }                 = require('../utils/status-utils');
+const { makeActor }                  = require('../utils/actor-utils');
+const { compactAudit, makeAudit }    = require('../utils/audit-utils');
+const { transformPageResult }        = require('../utils/transformer-utils');
+const { getProductDisplayName }      = require('../utils/display-name-utils');
+const { getFullName }                = require('../utils/person-utils');
 
 /**
- * Transform a single product batch row into a UI-ready structure.
+ * Transforms a single paginated product batch DB row into the UI-facing shape.
  *
- * Responsibilities:
- * - Convert flat repository rows into structured product batch output
- * - Normalize lifecycle, status, actor, and audit information
- * - Apply field-level visibility (e.g. manufacturer projection)
- * - Remove null / undefined fields for clean API responses
+ * Manufacturer fields are conditionally included based on the resolved access scope.
  *
- * Explicitly does NOT:
- * - Perform permission checks
- * - Filter or exclude rows
- * - Apply search logic or ACL evaluation
- *
- * Assumptions:
- * - Row-level visibility has already been enforced upstream
- * - `access` contains evaluated visibility capabilities
- *
- * @param {ProductBatchRow} row
- * @param {Object} access - Evaluated visibility flags
- * @returns {Object} UI-ready product batch representation
+ * @param {ProductBatchRow}                  row
+ * @param {{ canViewManufacturer: boolean }} access
+ * @returns {Object}
  */
-const transformProductBatchRow = (row, access) => {
-  return cleanObject({
-    id: row.id,
+const transformProductBatchRow = (row, access) =>
+  cleanObject({
+    id:        row.id,
     lotNumber: row.lot_number,
-
+    
     sku: cleanObject({
-      id: row.sku_id,
-      code: row.sku_code,
+      id:        row.sku_id,
+      code:      row.sku_code,
       sizeLabel: row.size_label,
     }),
-
+    
     product: cleanObject({
-      id: row.product_id,
-      name: row.product_name,
-      brand: row.brand,
-      category: row.category,
+      id:          row.product_id,
+      name:        row.product_name,
+      brand:       row.brand,
+      category:    row.category,
       displayName: getProductDisplayName({
         product_name: row.product_name,
-        brand: row.brand,
-        sku: row.sku_code,
+        brand:        row.brand,
+        sku:          row.sku_code,
         country_code: row.country_code,
       }),
     }),
-
+    
+    // Manufacturer fields gated by access scope.
     manufacturer: access.canViewManufacturer
       ? cleanObject({
-          id: row.manufacturer_id,
-          name: row.manufacturer_name,
-        })
+        id:   row.manufacturer_id,
+        name: row.manufacturer_name,
+      })
       : null,
-
+    
     lifecycle: {
-      manufactureDate: row.manufacture_date,
-      expiryDate: row.expiry_date,
-      receivedDate: row.received_date,
-      initialQuantity: row.initial_quantity,
+      manufactureDate:  row.manufacture_date,
+      expiryDate:       row.expiry_date,
+      receivedDate:     row.received_date,
+      initialQuantity:  row.initial_quantity,
     },
-
+    
     status: makeStatus(row),
-
+    
     releasedAt: row.released_at,
     releasedBy: makeActor(
       row.released_by_id,
       row.released_by_firstname,
       row.released_by_lastname
     ),
-
+    
     audit: compactAudit(makeAudit(row)),
   });
-};
 
 /**
- * Transform paginated product batch query results for UI consumption.
+ * Transforms a paginated product batch result set into the UI-facing shape.
  *
- * Responsibilities:
- * - Preserve pagination metadata
- * - Apply product batch row transformation consistently
+ * Delegates per-row transformation to `transformProductBatchRow` via
+ * `transformPageResult`, which preserves pagination metadata.
  *
- * Notes:
- * - This function does not modify pagination semantics
- * - All rows are assumed to be product batch rows
- *
- * @param {Object} paginatedResult
- * @param {Object} access - Evaluated visibility flags
- * @returns {Object} Paginated, transformed product batch result
+ * @param {Object}                           paginatedResult
+ * @param {ProductBatchRow[]}                paginatedResult.data
+ * @param {Object}                           paginatedResult.pagination
+ * @param {{ canViewManufacturer: boolean }} access
+ * @returns {Promise<PaginatedResult<ProductBatchRow>>}
  */
-const transformPaginatedProductBatchResults = (paginatedResult, access) => {
-  return transformPageResult(paginatedResult, (row) =>
+const transformPaginatedProductBatchResults = (paginatedResult, access) =>
+  /** @type {Promise<PaginatedResult<ProductBatchRow>>} */
+  (transformPageResult(paginatedResult, (row) =>
     transformProductBatchRow(row, access)
-  );
-};
+  ));
 
 /**
- * Transform product batch database rows into API-safe objects.
+ * Transforms an array of product batch insert rows into insert result records.
  *
- * This transformer converts raw PostgreSQL rows (snake_case column names)
- * returned from repository queries into camelCase objects used by the
- * service and controller layers.
+ * Returns an empty array if the input is not a valid non-empty array.
  *
- * The transformation isolates the database schema from API responses,
- * ensuring the frontend remains stable even if database column names change.
- *
- * Performance:
- * - Linear transformation (O(n))
- * - No additional database queries
- * - Minimal object allocations
- *
- * @function transformProductBatchRecords
- *
- * @param {Array<Object>} rows
- * Raw database rows returned from the repository layer.
- *
- * @param {string} rows[].id
- * Unique identifier of the product batch.
- *
- * @param {string} rows[].lot_number
- * Manufacturing lot number associated with the batch.
- *
- * @param {string} rows[].sku_id
- * SKU identifier linked to the batch.
- *
- * @param {Date|string|null} rows[].manufacture_date
- * Manufacturing date of the product batch.
- *
- * @param {Date|string|null} rows[].expiry_date
- * Expiry date of the batch.
- *
- * @param {number} rows[].initial_quantity
- * Initial quantity recorded when the batch was created.
- *
- * @param {string} rows[].status_id
- * Current status identifier of the batch.
- *
- * @returns {Array<Object>}
- * Transformed product batch records with camelCase fields.
+ * @param {ProductBatchInsertRow[]} rows
+ * @returns {ProductBatchInsertRecord[]}
  */
 const transformProductBatchRecords = (rows) => {
-  // Guard clause to handle invalid or empty inputs safely
   if (!Array.isArray(rows) || rows.length === 0) return [];
   
   return rows.map((row) => ({
-    id: row.id,
-    lotNumber: row.lot_number,
-    skuId: row.sku_id,
+    id:              row.id,
+    lotNumber:       row.lot_number,
+    skuId:           row.sku_id,
     manufactureDate: row.manufacture_date ?? null,
-    expiryDate: row.expiry_date ?? null,
+    expiryDate:      row.expiry_date      ?? null,
     initialQuantity: row.initial_quantity,
-    statusId: row.status_id,
+    statusId:        row.status_id,
   }));
 };
+
+/**
+ * Transforms a single product batch detail DB row into the full detail shape.
+ *
+ * @param {ProductBatchDetailRow} row
+ * @returns {Object}
+ */
+const transformProductBatchDetail = (row) =>
+  cleanObject({
+    id:              row.id,
+    lotNumber:       row.lot_number,
+    initialQuantity: row.initial_quantity ?? null,
+    manufactureDate: row.manufacture_date ?? null,
+    expiryDate:      row.expiry_date      ?? null,
+    receivedAt:      row.received_at      ?? null,
+    releasedAt:      row.released_at      ?? null,
+    notes:           row.notes            ?? null,
+    
+    status: {
+      id:   row.batch_status_id,
+      name: row.batch_status_name ?? null,
+      date: row.status_date       ?? null,
+    },
+    
+    sku: row.sku_id
+      ? {
+        id:           row.sku_id,
+        code:         row.sku,
+        barcode:      row.barcode      ?? null,
+        sizeLabel:    row.size_label   ?? null,
+        marketRegion: row.market_region ?? null,
+        status: {
+          id:   row.sku_status_id   ?? null,
+          name: row.sku_status_name ?? null,
+        },
+      }
+      : null,
+    
+    product: row.product_id
+      ? {
+        id:       row.product_id,
+        name:     row.product_name,
+        brand:    row.brand    ?? null,
+        category: row.category ?? null,
+        status: {
+          id:   row.product_status_id   ?? null,
+          name: row.product_status_name ?? null,
+        },
+      }
+      : null,
+    
+    manufacturer: row.manufacturer_id
+      ? {
+        id:   row.manufacturer_id,
+        name: row.manufacturer_name,
+        status: {
+          id:   row.manufacturer_status_id   ?? null,
+          name: row.manufacturer_status_name ?? null,
+        },
+      }
+      : null,
+    
+    receivedBy: row.received_by_id
+      ? {
+        id:   row.received_by_id,
+        name: getFullName(row.received_by_firstname, row.received_by_lastname),
+      }
+      : null,
+    
+    releasedBy: row.released_by_id
+      ? {
+        id:   row.released_by_id,
+        name: getFullName(row.released_by_firstname, row.released_by_lastname),
+      }
+      : null,
+    
+    audit: compactAudit(makeAudit(row)),
+  });
 
 module.exports = {
   transformPaginatedProductBatchResults,
   transformProductBatchRecords,
+  transformProductBatchDetail,
 };

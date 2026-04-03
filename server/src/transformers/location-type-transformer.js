@@ -1,97 +1,71 @@
+/**
+ * @file location-type-transformer.js
+ * @description Row-level and page-level transformers for location type records.
+ *
+ * Exports:
+ *   - transformLocationTypeDetail           – transforms a single location type row (detail view)
+ *   - transformPaginatedLocationTypeResults – transforms a paginated location type result set
+ *
+ * Internal helpers (not exported):
+ *   - transformLocationTypeRow – per-row transformer; shared by both exported functions
+ *
+ * All functions are pure — no logging, no AppError, no side effects.
+ */
+
+'use strict';
+
 const { compactAudit, makeAudit } = require('../utils/audit-utils');
-const { cleanObject } = require('../utils/object-utils');
-const { transformPageResult } = require('../utils/transformer-utils');
+const { cleanObject }             = require('../utils/object-utils');
+const { transformPageResult }     = require('../utils/transformer-utils');
 
 /**
- * Transforms a single raw location type SQL row
- * into a normalized, API-ready object.
+ * Transforms a single location type DB row into the UI-facing shape.
  *
- * @param {Record<string, any>} row
- * @returns {Record<string, any>}
+ * Used by both the paginated transformer and the detail transformer —
+ * the output shape is identical for table and detail views.
+ *
+ * @param {LocationTypeRow} row
+ * @returns {LocationTypeRecord}
  */
-const transformLocationTypeRow = (row) => {
-  const base = {
-    id: row.id,
-    code: row.code,
-    name: row.name,
+const transformLocationTypeRow = (row) =>
+  cleanObject({
+    id:          row.id,
+    code:        row.code,
+    name:        row.name,
     description: row.description ?? null,
-
     status: {
-      id: row.status_id ?? null,
+      id:   row.status_id   ?? null,
       name: row.status_name ?? null,
       date: row.status_date ?? null,
     },
-
     audit: compactAudit(makeAudit(row)),
-  };
-
-  return cleanObject(base);
-};
+  });
 
 /**
- * Transforms paginated location type results into API-ready format.
+ * Transforms a paginated location type result set into the UI-facing shape.
  *
- * Applies `transformLocationTypeRow` to each row while preserving
- * pagination metadata.
+ * Delegates per-row transformation to `transformLocationTypeRow` via
+ * `transformPageResult`, which preserves pagination metadata.
  *
- * @param {{
- *   data: Record<string, any>[],
- *   pagination: {
- *     page: number,
- *     limit: number,
- *     totalRecords: number,
- *     totalPages: number
- *   }
- * }} paginatedResult
- *
- * @returns {Promise<PaginatedResult<T>>}
+ * @param {Object}            paginatedResult
+ * @param {LocationTypeRow[]} paginatedResult.data
+ * @param {Object}            paginatedResult.pagination
+ * @returns {Promise<PaginatedResult<LocationTypeRow>>}
  */
 const transformPaginatedLocationTypeResults = (paginatedResult) =>
-  transformPageResult(paginatedResult, transformLocationTypeRow);
+  /** @type {Promise<PaginatedResult<LocationTypeRow>>} */
+  (transformPageResult(paginatedResult, transformLocationTypeRow));
 
 /**
- * Transformer: Location Type Detail
+ * Transforms a single location type DB row into the detail view shape.
  *
- * Normalizes a raw SQL row from `getLocationTypeById`
- * into a clean, API-ready object structure used by
- * the service and controller layers.
+ * Delegates to `transformLocationTypeRow` — the output shape is identical
+ * to the paginated row shape.
  *
- * ─────────────────────────────────────────────────────────────
- * Behavior
- * ─────────────────────────────────────────────────────────────
- * - Groups status information into a nested `status` object.
- * - Groups audit information into a normalized `audit` object.
- * - Ensures optional fields default to `null` where applicable.
- * - Prevents leaking raw database column names.
- *
- * @param {Record<string, any>} row
- *   Raw location type row returned from repository.
- *
- * @returns {object}
- *   Normalized location type detail object.
- *
- * @example
- * const locationType = transformLocationTypeDetail(row);
- * console.log(locationType.status.name); // "Active"
+ * @param {LocationTypeRow} row
+ * @returns {LocationTypeRecord}
  */
-const transformLocationTypeDetail = (row) => {
-  const base = {
-    id: row.id,
-    code: row.code,
-    name: row.name,
-    description: row.description ?? null,
-
-    status: {
-      id: row.status_id ?? null,
-      name: row.status_name ?? null,
-      date: row.status_date ?? null,
-    },
-
-    audit: compactAudit(makeAudit(row)),
-  };
-
-  return cleanObject(base);
-};
+const transformLocationTypeDetail = (row) => transformLocationTypeRow(row);
 
 module.exports = {
   transformPaginatedLocationTypeResults,
