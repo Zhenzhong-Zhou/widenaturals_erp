@@ -1,6 +1,6 @@
 const { withTransaction, lockRows } = require('../database/db');
 const AppError = require('../utils/AppError');
-const { logSystemException } = require('../utils/system-logger');
+const { logSystemException } = require('../utils/logging/system-logger');
 const {
   insertWarehouseInventoryRecords,
   getWarehouseInventoryResponseByIds,
