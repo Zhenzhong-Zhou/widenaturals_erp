@@ -33,7 +33,7 @@ const {
   fetchPaginatedUsersService,
   fetchUserProfileService,
 } = require('../services/user-service');
-const { fetchPermissions } = require('../services/role-permission-service');
+const { fetchPermissions } = require('../services/permission-service');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/v1/users
