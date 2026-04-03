@@ -1,189 +1,94 @@
-const { getProductDisplayName } = require('../utils/display-name-utils');
-const { transformPageResult } = require('../utils/transformer-utils');
-const { cleanObject } = require('../utils/object-utils');
+/**
+ * @file sku-transformer.js
+ * @description Row-level and page-level transformers for SKU records.
+ *
+ * Exports:
+ *   - transformPaginatedSkuProductCardResult – paginated SKU product card list
+ *   - transformPaginatedSkuListResults       – paginated SKU table list
+ *   - transformSkuRecord                     – bulk insert result records
+ *   - transformSkuDetail                     – full SKU detail with images, pricing, compliance
+ *
+ * Internal helpers (not exported):
+ *   - transformSkuProductCardRow – per-row transformer for product card view
+ *   - transformSkuListRecord     – per-row transformer for table list view
+ *
+ * All functions are pure — no logging, no AppError, no side effects.
+ */
+
+'use strict';
+
+const { getProductDisplayName }           = require('../utils/display-name-utils');
+const { transformPageResult }             = require('../utils/transformer-utils');
+const { cleanObject }                     = require('../utils/object-utils');
 const { transformSkuImageGroupsForDetail } = require('./sku-image-transformer');
-const { transformSkuPricing } = require('./pricing-transformer');
-const { transformComplianceRecord } = require('./compliance-record-transfomer');
-const { makeStatus } = require('../utils/status-utils');
-const { compactAudit, makeAudit } = require('../utils/audit-utils');
+const { transformSkuPricing }             = require('./pricing-transformer');
+const { transformComplianceRecord }       = require('./compliance-record-transformer');
+const { makeStatus }                      = require('../utils/status-utils');
+const { compactAudit, makeAudit }         = require('../utils/audit-utils');
 
 /**
- * @typedef {object} RawSkuProductCardRow
- * @property {string} sku_id
- * @property {string} sku_code
- * @property {string} barcode
- * @property {string} product_name
- * @property {string} brand
- * @property {string} series
- * @property {string} category
- * @property {string|null} product_status_name  - Product status
- * @property {string|null} sku_status_name      - SKU-specific status
- * @property {string|null} compliance_type
- * @property {string|null} compliance_id
- * @property {number|string|null} msrp_price
- * @property {string|null} primary_image_url
- * @property {string|null} image_alt_text
- * @property {string|null} market_region
- */
-
-/**
- * @typedef {object} SkuProductCard
- * @property {string} skuId
- * @property {string} skuCode
- * @property {string} barcode
- * @property {string} displayName
- * @property {string} brand
- * @property {string} series
- * @property {string} category
- * @property {string|{product: string|null, sku: string|null}} status
- * @property {{ type: string|null, number: string|null } | null} compliance
- * @property {{ msrp: number|null }} price
- * @property {{ url: string|null, alt: string }} image
- */
-
-/**
- * Normalize a single SKU + Product row into a product-card response.
+ * Transforms a single SKU product card DB row into the card view shape.
  *
- * This structure feeds API results for product grids, SKU list pages, etc.
+ * Derives a unified status from product and SKU status fields.
+ * Returns `null` if the row is falsy.
  *
- * @param {RawSkuProductCardRow} row
- * @returns {SkuProductCard|null}
+ * @param {SkuProductCardRow} row
+ * @returns {Object|null}
  */
 const transformSkuProductCardRow = (row) => {
   if (!row) return null;
-
-  // ---------------------------------------------------------
-  // Unified status logic
-  // ---------------------------------------------------------
-  let status;
-
+  
   const productStatus = row.product_status_name || null;
-  const skuStatus = row.sku_status_name || null;
-
-  if (!productStatus && !skuStatus) {
-    status = null;
-  } else if (productStatus === skuStatus) {
-    status = productStatus; // both active
-  } else {
-    status = {
-      product: productStatus,
-      sku: skuStatus,
-    };
-  }
-
-  // ---------------------------------------------------------
-  // Compliance record (NPN, FDA, etc.)
-  // ---------------------------------------------------------
-  const compliance =
-    row.compliance_type || row.compliance_id
-      ? {
-          type: row.compliance_type || null,
-          number: row.compliance_id || null,
-        }
-      : null;
-
-  // ---------------------------------------------------------
-  // Safe pricing object
-  // ---------------------------------------------------------
-  const price = {
-    msrp: row.msrp_price ? Number(row.msrp_price) : null,
-  };
-
-  // ---------------------------------------------------------
-  // Image object
-  // ---------------------------------------------------------
-  const image = {
-    url: row.primary_image_url || null,
-    alt: row.image_alt_text || '',
-  };
-
-  // ---------------------------------------------------------
-  // Product display name
-  // ---------------------------------------------------------
-  const displayName =
-    typeof getProductDisplayName === 'function'
-      ? getProductDisplayName(row)
-      : `${row.product_name ?? ''} ${row.market_region ?? ''}`.trim();
-
-  // ---------------------------------------------------------
-  // Final normalized card structure
-  // ---------------------------------------------------------
+  const skuStatus     = row.sku_status_name     || null;
+  
+  // Unified status — null if both absent, string if equal, object if divergent.
+  const status =
+    !productStatus && !skuStatus   ? null
+      : productStatus === skuStatus  ? productStatus
+        : { product: productStatus, sku: skuStatus };
+  
+  const compliance = row.compliance_type || row.compliance_id
+    ? { type: row.compliance_type || null, number: row.compliance_id || null }
+    : null;
+  
   return {
-    skuId: row.sku_id,
-    skuCode: row.sku_code,
-    barcode: row.barcode,
-
-    displayName,
-
-    brand: row.brand,
-    series: row.series,
-    category: row.category,
-
+    skuId:       row.sku_id,
+    skuCode:     row.sku_code,
+    barcode:     row.barcode,
+    displayName: getProductDisplayName(row),
+    brand:       row.brand,
+    series:      row.series,
+    category:    row.category,
     status,
     compliance,
-    price,
-    image,
+    price:  { msrp: row.msrp_price ? Number(row.msrp_price) : null },
+    image:  { url: row.primary_image_url || null, alt: row.image_alt_text || '' },
   };
 };
 
 /**
- * Transforms a paginated result of SKU product cards.
+ * Transforms a paginated SKU product card result set into the card view shape.
  *
- * @param {object} paginatedResult - Raw result from repository.
- * @returns {object} API-ready structure with pagination.
+ * @param {Object}              paginatedResult
+ * @param {SkuProductCardRow[]} paginatedResult.data
+ * @param {Object}              paginatedResult.pagination
+ * @returns {Promise<PaginatedResult<SkuProductCardRow>>}
  */
 const transformPaginatedSkuProductCardResult = (paginatedResult) =>
-  transformPageResult(paginatedResult, transformSkuProductCardRow);
+  /** @type {Promise<PaginatedResult<SkuProductCardRow>>} */
+  (transformPageResult(paginatedResult, transformSkuProductCardRow));
 
 /**
- * Transform a single raw SKU row returned from the paginated SQL query
- * into a normalized, API-safe object. Produces nested groups for product
- * metadata, status metadata, audit information, and now includes a
- * `primaryImageUrl` returned by the LATERAL JOIN on `sku_images`.
+ * Transforms a single SKU list DB row into the table view shape.
  *
- * ### Structure Returned:
- * {
- *   id,
- *   productId,
- *   sku,
- *   barcode,
- *   language,
- *   countryCode,
- *   marketRegion,
- *   sizeLabel,
- *   displayLabel,
- *   primaryImageUrl,   // NEW FIELD
+ * Returns `null` if the row is falsy.
  *
- *   product: {
- *     id,
- *     name,
- *     series,
- *     brand,
- *     category,
- *     displayName
- *   },
- *
- *   status: {
- *     id,
- *     name,
- *     date
- *   },
- *
- *   audit: {
- *     createdBy: { id, firstname, lastname, displayName },
- *     updatedBy: { id, firstname, lastname, displayName },
- *     createdAt,
- *     updatedAt
- *   }
- * }
- *
- * @param {Object} row - Raw DB row from getPaginatedSkus().
- * @returns {Object|null} Clean, transformed SKU record.
+ * @param {SkuListRow} row
+ * @returns {Object|null}
  */
 const transformSkuListRecord = (row) => {
   if (!row) return null;
-
-  // Safely build display label (avoids “  — 60” artifacts)
+  
   const displayLabel = [
     row.brand,
     row.product_name,
@@ -192,232 +97,126 @@ const transformSkuListRecord = (row) => {
     .filter(Boolean)
     .join(' ')
     .trim();
-
+  
   return cleanObject({
-    id: row.sku_id,
-    productId: row.product_id,
-
-    sku: row.sku,
-    barcode: row.barcode,
-    language: row.language,
-    countryCode: row.country_code,
-    marketRegion: row.market_region,
-    sizeLabel: row.size_label,
-
+    id:               row.sku_id,
+    productId:        row.product_id,
+    sku:              row.sku,
+    barcode:          row.barcode,
+    language:         row.language,
+    countryCode:      row.country_code,
+    marketRegion:     row.market_region,
+    sizeLabel:        row.size_label,
     displayLabel,
-
-    primaryImageUrl: row.primary_image_url || null,
-
+    primaryImageUrl:  row.primary_image_url || null,
     product: {
-      id: row.product_id,
-      name: row.product_name,
-      series: row.series,
-      brand: row.brand,
-      category: row.category,
+      id:          row.product_id,
+      name:        row.product_name,
+      series:      row.series,
+      brand:       row.brand,
+      category:    row.category,
       displayName: getProductDisplayName(row),
     },
-
     status: makeStatus(row),
-
-    audit: compactAudit(makeAudit(row)),
+    audit:  compactAudit(makeAudit(row)),
   });
 };
 
 /**
- * Transform a paginated SKU query result by applying the SKU row
- * transformer to each record. Wraps the generic pagination formatter
- * (`transformPageResult`) to return:
+ * Transforms a paginated SKU list result set into the table view shape.
  *
- * {
- *   data: [ transformedRows... ],
- *   pagination: { page, limit, totalRecords, totalPages },
- *   sort: { sortBy, sortOrder }
- * }
- *
- * @param {Object} paginatedResult - Output from paginateResults().
- * @returns {Object} Normalized paginated response for API consumers.
+ * @param {Object}        paginatedResult
+ * @param {SkuListRow[]}  paginatedResult.data
+ * @param {Object}        paginatedResult.pagination
+ * @returns {Promise<PaginatedResult<SkuListRow>>}
  */
-const transformPaginatedSkuListResults = (paginatedResult) => {
-  return transformPageResult(paginatedResult, transformSkuListRecord);
-};
+const transformPaginatedSkuListResults = (paginatedResult) =>
+  /** @type {Promise<PaginatedResult<SkuListRow>>} */
+  (transformPageResult(paginatedResult, transformSkuListRecord));
 
 /**
- * Transforms an array of SKU rows returned from an insert or query
- * into a minimal API response format.
+ * Transforms an array of SKU insert rows into ID + SKU code result records.
  *
- * @param {object[]} skuRows - Array of rows returned from insertSkusBulk or query.
- * @param {string[]} generatedSkus - Array of corresponding generated SKU codes.
- * @returns {object[]} - Transformed list of minimal SKU objects.
+ * @param {SkuInsertRow[]} skuRows
+ * @param {string[]}       [generatedSkus=[]]
+ * @returns {SkuInsertRecord[]}
  */
 const transformSkuRecord = (skuRows, generatedSkus = []) => {
   if (!Array.isArray(skuRows) || skuRows.length === 0) return [];
-
+  
   return skuRows.map((row, idx) => ({
-    id: row.id,
+    id:      row.id,
     skuCode: generatedSkus[idx] ?? null,
   }));
 };
 
 /**
- * @typedef {Object} SkuDetailSku
- * @description
- * Permission-safe SKU record returned from sliceSkuForUser().
- * Contains core SKU fields plus joined product metadata.
+ * Transforms a full SKU detail object (with related data) into the detail response shape.
  *
- * @property {string} sku_id                  - Unique SKU identifier
- * @property {string} sku                     - SKU code
- * @property {string} barcode                 - Product barcode
- * @property {string} sku_description         - Descriptive text of the SKU
- * @property {string} language                - Language/locale code
- * @property {string} size_label              - Size or count label (e.g., "60 Capsules")
- * @property {string} country_code            - Country code (e.g., "CA", "US")
- * @property {string} market_region           - Market region (e.g., "CA", "INT")
- * @property {string} product_id              - Linked product ID
- * @property {string} product_name            - Product name
- * @property {string} product_series          - Product series
- * @property {string} product_brand           - Product brand
- * @property {string} product_category        - Product category
- * @property {number} length_cm               - Length in centimeters
- * @property {number} width_cm                - Width in centimeters
- * @property {number} height_cm               - Height in centimeters
- * @property {number} weight_g                - Weight in grams
- * @property {number} length_inch             - Length in inches
- * @property {number} width_inch              - Width in inches
- * @property {number} height_inch             - Height in inches
- * @property {number} weight_lb               - Weight in pounds
- * @property {string} sku_status_id           - Status UUID for the SKU
- * @property {string} sku_status_name         - Human-readable status name
- * @property {string|Date} sku_status_date    - When status was last changed
- * @property {string|Date} sku_created_at     - SKU creation timestamp
- * @property {string|Date} sku_updated_at     - SKU updated timestamp
- * @property {string} sku_created_by          - User ID who created SKU
- * @property {string} created_by_firstname    - Creator's first name
- * @property {string} created_by_lastname     - Creator's last name
- * @property {string} sku_updated_by          - User ID who last updated SKU
- * @property {string} updated_by_firstname    - Updater's first name
- * @property {string} updated_by_lastname     - Updater's last name
- */
-
-/**
- * @typedef {Object} SkuDetailInput
+ * Combines SKU fields with images, pricing, and compliance records,
+ * each transformed by their respective transformers.
  *
- * Composite input to transformSkuDetail().
- * All properties are already permission-filtered.
+ * Returns `null` if `sku` is falsy.
  *
- * @property {SkuDetailSku} sku
- * @property {Array<SkuImageGroup>} images
- * @property {Array<SkuDetailPricing>} pricing
- * @property {Array<SkuDetailCompliance>} complianceRecords
- */
-
-/**
- * @typedef {Object} SkuDetailResponse
- *
- * @property {string} id
- * @property {string} sku
- * @property {string} barcode
- * @property {string} description
- * @property {string} language
- * @property {string} sizeLabel
- * @property {string} countryCode
- * @property {string} marketRegion
- * @property {Object} product
- * @property {Object} dimensions
- * @property {Object} status
- * @property {Object} audit
- * @property {Array<SkuImageGroup>} images
- * @property {Array<SkuDetailPricing>} pricing
- * @property {Array<SkuDetailCompliance>} complianceRecords
- */
-
-/**
- * Transform sliced (permission-safe) SKU detail components
- * into the final normalized API response.
- *
- * This function:
- *   • Accepts already permission-filtered records
- *   • Normalizes snake_case DB fields to camelCase
- *   • Groups image variants into logical image groups
- *   • Applies nested transformers for pricing and compliance
- *   • Guarantees consistent response structure
- *
- * ### Structural Guarantees
- * - `images` are returned as grouped image objects
- *   (see SkuImageGroup)
- * - `pricing` and `complianceRecords` are always arrays
- * - Missing collections default to empty arrays
- * - No raw database field names leak into API layer
- *
- * @param {SkuDetailInput} input
- * @param {SkuDetailSku} input.sku
- * @param {Array<SkuImageGroup>} input.images
- * @param {Array<SkuDetailPricing>} input.pricing
- * @param {Array<SkuDetailCompliance>} input.complianceRecords
- *
- * @returns {SkuDetailResponse|null}
- *          Normalized API-ready SKU detail object,
- *          or null if sku is missing.
+ * @param {{ sku: SkuDetailRow, images: Array, pricing: Array, complianceRecords: Array }} params
+ * @returns {Object|null}
  */
 const transformSkuDetail = ({ sku, images, pricing, complianceRecords }) => {
   if (!sku) return null;
-
+  
   return {
-    // --- SKU fields ---
-    id: sku.sku_id,
-    sku: sku.sku,
-    barcode: sku.barcode,
+    id:          sku.sku_id,
+    sku:         sku.sku,
+    barcode:     sku.barcode,
     description: sku.sku_description,
-    language: sku.language,
-    sizeLabel: sku.size_label,
+    language:    sku.language,
+    sizeLabel:   sku.size_label,
     countryCode: sku.country_code,
     marketRegion: sku.market_region,
-
-    // --- Product ---
+    
     product: {
-      id: sku.product_id,
-      name: sku.product_name,
-      series: sku.product_series,
-      brand: sku.product_brand,
-      category: sku.product_category,
+      id:          sku.product_id,
+      name:        sku.product_name,
+      series:      sku.product_series,
+      brand:       sku.product_brand,
+      category:    sku.product_category,
       displayName: getProductDisplayName({
         product_name: sku.product_name,
-        brand: sku.brand,
-        sku: sku.sku_code,
+        brand:        sku.brand,
+        sku:          sku.sku_code,
         country_code: sku.country_code,
-        size_label: sku.size_label,
+        size_label:   sku.size_label,
         display_name: sku.display_name,
       }),
     },
-
-    // --- Dimensions ---
+    
     dimensions: {
       cm: {
         length: sku.length_cm,
-        width: sku.width_cm,
+        width:  sku.width_cm,
         height: sku.height_cm,
       },
       inches: {
         length: sku.length_inch,
-        width: sku.width_inch,
+        width:  sku.width_inch,
         height: sku.height_inch,
       },
       weight: {
-        g: sku.weight_g,
+        g:  sku.weight_g,
         lb: sku.weight_lb,
       },
     },
-
+    
     status: makeStatus(sku, {
-      id: 'sku_status_id',
+      id:   'sku_status_id',
       name: 'sku_status_name',
       date: 'sku_status_date',
     }),
-
+    
     audit: compactAudit(makeAudit(sku)),
-
-    // --- Lists with transformers applied ---
-    images: transformSkuImageGroupsForDetail(images ?? []),
-    pricing: pricing?.map(transformSkuPricing) ?? [],
+    
+    images:            transformSkuImageGroupsForDetail(images ?? []),
+    pricing:           pricing?.map(transformSkuPricing)         ?? [],
     complianceRecords: complianceRecords?.map(transformComplianceRecord) ?? [],
   };
 };

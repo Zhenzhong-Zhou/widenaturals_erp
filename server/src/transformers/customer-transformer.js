@@ -1,106 +1,103 @@
-const { cleanObject } = require('../utils/object-utils');
-const { getFullName } = require('../utils/name-utils');
+/**
+ * @file customer-transformer.js
+ * @description Row-level and page-level transformers for customer records.
+ *
+ * Exports:
+ *   - transformEnrichedCustomers         – transforms enriched customer rows (nested shape)
+ *   - transformPaginatedCustomerResults  – transforms a paginated result set (flat shape)
+ *
+ * Internal helpers (not exported):
+ *   - transformCustomerRow – transforms a single customer row; supports `nested` and `flat` formats
+ *
+ * All functions are pure — no logging, no AppError, no side effects.
+ */
+
+'use strict';
+
+const { cleanObject }  = require('../utils/object-utils');
+const { getFullName }  = require('../utils/person-utils');
 const {
   transformRows,
   transformPageResult,
 } = require('../utils/transformer-utils');
 
 /**
- * Transforms a customer row into a structured or flat object.
+ * Transforms a single customer DB row into either a nested or flat shape.
  *
- * - Handles data from queries that join status and user metadata.
- * - Can output either nested or flat format depending on options.
- * - Cleans null/undefined properties using `cleanObject`.
+ * - `'nested'` – full structured object with sub-objects for status, createdBy, updatedBy.
+ *   Used for enriched/detail views returned after insert.
+ * - `'flat'`   – collapsed object with combined name fields and flat status fields.
+ *   Used for paginated table views.
  *
- * @param {object} row - Raw customer DB row with joined fields.
- * @param {object} [options] - Transformation options.
- * @param {('nested'|'flat')} [options.format='nested'] - Output format.
- *   - 'nested': returns nested objects (e.g., status, createdBy, updatedBy).
- *   - 'flat': returns flattened presentation-friendly structure.
- * @returns {object} Transformed customer object.
- *
- * @example
- * transformCustomerRow(row, { format: 'nested' });
- * transformCustomerRow(row, { format: 'flat' });
+ * @param {CustomerRow} row
+ * @param {{ format?: 'nested'|'flat' }} [options]
+ * @returns {CustomerNestedRecord|CustomerFlatRecord}
  */
 const transformCustomerRow = (row, { format = 'nested' } = {}) => {
   const base = {
-    id: row.id ?? null,
-    firstname: row.firstname ?? null,
-    lastname: row.lastname ?? null,
-    email: row.email ?? null,
+    id:          row.id          ?? null,
+    firstname:   row.firstname   ?? null,
+    lastname:    row.lastname    ?? null,
+    email:       row.email       ?? null,
     phoneNumber: row.phone_number ?? null,
-    note: row.note ?? null,
+    note:        row.note        ?? null,
     status: {
-      id: row.status_id ?? null,
+      id:   row.status_id   ?? null,
       name: row.status_name ?? null,
     },
     hasAddress: row.has_address ?? null,
-    createdAt: row.created_at ?? null,
-    updatedAt: row.updated_at ?? null,
+    createdAt:  row.created_at  ?? null,
+    updatedAt:  row.updated_at  ?? null,
     createdBy: {
       firstname: row.created_by_firstname ?? null,
-      lastname: row.created_by_lastname ?? null,
+      lastname:  row.created_by_lastname  ?? null,
     },
     updatedBy: {
       firstname: row.updated_by_firstname ?? null,
-      lastname: row.updated_by_lastname ?? null,
+      lastname:  row.updated_by_lastname  ?? null,
     },
   };
-
+  
   if (format === 'flat') {
     return cleanObject({
-      id: base.id,
+      id:           base.id,
       customerName: getFullName(base.firstname, base.lastname),
-      email: base.email,
-      phoneNumber: base.phoneNumber,
-      statusId: base.status.id,
-      statusName: base.status.name,
-      hasAddress: base.hasAddress,
-      createdAt: base.createdAt,
-      updatedAt: base.updatedAt,
-      createdBy: getFullName(base.createdBy.firstname, base.createdBy.lastname),
-      updatedBy: getFullName(base.updatedBy.firstname, base.updatedBy.lastname),
+      email:        base.email,
+      phoneNumber:  base.phoneNumber,
+      statusId:     base.status.id,
+      statusName:   base.status.name,
+      hasAddress:   base.hasAddress,
+      createdAt:    base.createdAt,
+      updatedAt:    base.updatedAt,
+      createdBy:    getFullName(base.createdBy.firstname, base.createdBy.lastname),
+      updatedBy:    getFullName(base.updatedBy.firstname, base.updatedBy.lastname),
     });
   }
-
+  
   return cleanObject(base);
 };
 
 /**
- * Transforms an array of customer rows from the database into
- * clean and structured customer objects (nested format).
+ * Transforms an array of enriched customer rows into the nested detail shape.
  *
- * - Applies `transformCustomerRow` in nested mode.
- * - Ensures input is an array; returns an empty array if not.
- *
- * @param {Array<object>} rows - Array of raw DB rows with customer, status, and user metadata.
- * @returns {Array<object>} Array of cleaned and transformed customer objects.
+ * @param {CustomerRow[]} rows
+ * @returns {CustomerNestedRecord[]}
  */
 const transformEnrichedCustomers = (rows) =>
   transformRows(rows, (row) => transformCustomerRow(row, { format: 'nested' }));
 
 /**
- * Transform paginated customer query results into display-ready customer objects.
+ * Transforms a paginated customer result set into the flat table view shape.
  *
- * Responsibilities:
- * - Convert repository `rows` into response `data`
- * - Apply `transformCustomerRow` in flat format
- * - Preserve pagination metadata
+ * Delegates per-row transformation to `transformCustomerRow` via `transformPageResult`,
+ * which preserves pagination metadata.
  *
- * @param {{
- *   data: Array<Object>,
- *   pagination: {
- *     page: number,
- *     limit: number,
- *     totalRecords: number,
- *     totalPages: number
- *   }
- * }} paginatedResult
- *
- * @returns {Promise<PaginatedResult<T>>}
+ * @param {Object} paginatedResult
+ * @param {CustomerRow[]} paginatedResult.data
+ * @param {Object} paginatedResult.pagination
+ * @returns {Promise<PaginatedResult<CustomerRow>>}
  */
-const transformPaginatedCustomerResults = async (paginatedResult) =>
+const transformPaginatedCustomerResults = (paginatedResult) =>
   transformPageResult(paginatedResult, (row) =>
     transformCustomerRow(row, { format: 'flat' })
   );
