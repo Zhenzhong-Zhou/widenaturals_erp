@@ -648,7 +648,7 @@ const SORTABLE_FIELDS = {
     createdBy: 'u1.firstname', // or concat name if joined properly
     updatedBy: 'u2.firstname',
 
-    defaultNaturalSort: 'a.created_at',
+    defaultNaturalSort: 'ot.created_at',
   },
   orderSortMap: {
     orderNumber:    'o.order_number',

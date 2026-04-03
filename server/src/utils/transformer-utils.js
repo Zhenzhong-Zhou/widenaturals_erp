@@ -1,11 +1,38 @@
+/**
+ * @file transformer-utils.js
+ * @description Generic transformation utilities for row-level and paginated results.
+ *
+ * Exports:
+ *   - transformRows                – applies a sync transformer to an array of rows
+ *   - transformRowsAsync           – applies an async transformer to an array of rows
+ *   - transformPageResult          – transforms a paginated repository result (page-based)
+ *   - transformLoadMoreResult      – transforms a paginated repository result (offset/load-more)
+ *   - transformIdNameToIdLabel     – converts `{ id, name }` to `{ id, label }` for dropdowns
+ *   - includeFlagsBasedOnAccess    – selectively exposes row flags based on a caller-supplied flag map
+ *
+ * Note: `deriveInventoryStatusFlags` lives in `inventory-utils.js` —
+ * it derives computed domain flags and does not belong in a generic transformer utility.
+ *
+ * All functions are pure — no logging, no AppError, no side effects.
+ */
+
+'use strict';
+
 const { cleanObject } = require('./object-utils');
 
+// ---------------------------------------------------------------------------
+// Row transformers
+// ---------------------------------------------------------------------------
+
 /**
- * Applies a transformer function to an array of rows safely.
+ * Applies a synchronous transformer to an array of rows.
  *
- * @param {Array} rows - The raw rows to transform.
- * @param {Function} transformer - The function to apply to each row.
- * @returns {Array} The transformed rows.
+ * Returns an empty array if the input is not a valid array.
+ *
+ * @template T, U
+ * @param {T[]}           rows        - Raw rows to transform.
+ * @param {(row: T) => U} transformer - Sync function applied to each row.
+ * @returns {U[]}
  */
 const transformRows = (rows, transformer) => {
   if (!Array.isArray(rows)) return [];
@@ -13,375 +40,162 @@ const transformRows = (rows, transformer) => {
 };
 
 /**
- * Applies an asynchronous transformation function to each item in an array.
+ * Applies an async transformer to an array of rows concurrently.
  *
- * Designed for use in repository/service transformation pipelines where
- * each row may require async enrichment (e.g., permission checks,
- * derived calculations, secondary lookups).
+ * Uses `Promise.all` for concurrent execution. Returns an empty array
+ * if the input is not a valid array.
  *
- * Uses `Promise.all` to run transformations concurrently for better
- * performance when handling paginated datasets.
- *
- * If the input is not a valid array, an empty array is returned.
- *
- * @template T,U
- *
- * @param {T[]} rows
- * Array of raw rows to transform.
- *
- * @param {(row: T, index: number) => Promise<U> | U} transformer
- * Async or sync function that converts a raw row into a new shape.
- *
+ * @template T, U
+ * @param {T[]}                                       rows        - Raw rows to transform.
+ * @param {(row: T, index: number) => U | Promise<U>} transformer - Async or sync transformer.
  * @returns {Promise<U[]>}
- * Array of transformed rows in the same order as the input.
- *
- * @example
- * const transformed = await transformRowsAsync(rows, transformUserLookup);
  */
 const transformRowsAsync = async (rows, transformer) => {
   if (!Array.isArray(rows)) return [];
   return Promise.all(rows.map(transformer));
 };
 
-/**
- * Generic paginated transformation result.
- *
- * @template T
- * @typedef {Object} PaginatedResult
- * @property {T[]} data
- * @property {{
- *   page: number,
- *   limit: number,
- *   totalRecords: number,
- *   totalPages: number
- * }} pagination
- */
+// ---------------------------------------------------------------------------
+// Paginated transformer (page-based)
+// ---------------------------------------------------------------------------
 
 /**
  * Transforms a paginated repository result by applying a row transformer
  * to each record while preserving pagination metadata.
  *
- * This helper is typically used in the service layer to convert raw
- * database rows into UI-ready structures (DTOs, lookup items, etc.).
+ * Filters out null/undefined rows returned by the transformer.
+ * Returns a safe empty structure if the input is malformed.
  *
- * If the input result is malformed or contains no valid `data` array,
- * a safe empty paginated structure is returned.
- *
- * @template T,U
- *
- * @param {{
- *   data: T[],
- *   pagination?: {
- *     page?: number,
- *     limit?: number,
- *     totalRecords?: number,
- *     totalPages?: number
- *   }
- * }} paginatedResult
- * Raw paginated query result returned by a repository function.
- *
- * @param {(row: T) => Promise<U> | U} transformFn
- * Row transformer applied to each record.
- *
+ * @template T
+ * @param {PaginatedQueryResult<T>}                        paginatedResult
+ * @param {(row: T) => unknown | Promise<unknown>}         transformFn
  * @returns {Promise<PaginatedResult<T>>}
- * Paginated result containing transformed rows.
- *
- * @example
- * const result = await transformPageResult(repoResult, transformUserLookup);
- *
- * // {
- * //   data: [...transformedUsers],
- * //   pagination: { page: 1, limit: 20, totalRecords: 145, totalPages: 8 }
- * // }
  */
 const transformPageResult = async (paginatedResult, transformFn) => {
   if (!paginatedResult || !Array.isArray(paginatedResult.data)) {
     return {
-      data: [],
-      pagination: {
-        page: 1,
-        limit: 10,
-        totalRecords: 0,
-        totalPages: 0,
-      },
+      data:       [],
+      pagination: { page: 1, limit: 10, totalRecords: 0, totalPages: 0 },
     };
   }
-
+  
   const { data = [], pagination = {} } = paginatedResult;
-
-  const transformedItems = (await transformRowsAsync(data, transformFn)).filter(
-    Boolean
-  );
-
-  const page = Number(pagination.page ?? 1);
-  const limit = Number(pagination.limit ?? 10);
+  
+  const transformedItems = (await transformRowsAsync(data, transformFn)).filter(Boolean);
+  
+  const page         = Number(pagination.page         ?? 1);
+  const limit        = Number(pagination.limit        ?? 10);
   const totalRecords = Number(pagination.totalRecords ?? 0);
-  const totalPages = pagination.totalPages ?? Math.ceil(totalRecords / limit);
-
+  const totalPages   = pagination.totalPages ?? Math.ceil(totalRecords / limit);
+  
   return {
     data: transformedItems,
-    pagination: {
-      page,
-      limit,
-      totalRecords,
-      totalPages,
-    },
+    pagination: { page, limit, totalRecords, totalPages },
   };
 };
 
-/**
- * Generic load-more pagination result.
- *
- * @template T
- * @typedef {Object} LoadMoreResult
- * @property {T[]} items - Transformed result items.
- * @property {number} offset - Current query offset.
- * @property {number} limit - Maximum number of items returned.
- * @property {boolean} hasMore - Indicates whether more records exist.
- */
+// ---------------------------------------------------------------------------
+// Load-more transformer (offset-based)
+// ---------------------------------------------------------------------------
 
 /**
- * Generic lookup item used by dropdowns and autocomplete components.
+ * Transforms a paginated repository result into a load-more compatible response.
  *
- * @typedef {Object} LookupItem
- * @property {string} id
- * @property {string} label
- * @property {boolean} [isActive]
- */
-
-/**
- * Generic paginated query result returned from repository functions.
+ * Applies the transformer to each row, filters nulls, and computes `hasMore`
+ * from offset and total record count.
+ * Returns a safe empty structure if the input is malformed.
  *
- * @template T
- * @typedef {Object} PaginatedQueryResult
- * @property {T[]} data - Array of raw rows returned by the query.
- * @property {{
- *   page?: number,
- *   limit?: number,
- *   totalRecords?: number,
- *   offset?: number
- * }} [pagination] - Optional pagination metadata.
- */
-
-/**
- * Transforms a paginated query result into a load-more compatible response.
- *
- * Applies the provided transformer function to each row in `paginatedResult.data`,
- * allowing callers to reshape raw database rows into API response objects.
- *
- * The transformer may be synchronous or asynchronous.
- *
- * If the input result is invalid or missing data, a safe default empty response
- * will be returned.
- *
- * @template TInput
- * @template TOutput
- *
- * @param {PaginatedQueryResult<TInput>} paginatedResult
- * Raw paginated result returned from a repository query.
- *
- * @param {(row: TInput) => TOutput | Promise<TOutput>} transformFn
- * Row-level transformer used to convert raw rows into API response objects.
- *
+ * @template TInput, TOutput
+ * @param {PaginatedQueryResult<TInput>}                        paginatedResult
+ * @param {(row: TInput) => TOutput | Promise<TOutput>}         transformFn
  * @returns {Promise<LoadMoreResult<TOutput>>}
- * A load-more compatible response containing transformed items and pagination metadata.
  */
 const transformLoadMoreResult = async (paginatedResult, transformFn) => {
   if (!paginatedResult || !Array.isArray(paginatedResult.data)) {
-    return {
-      items: [],
-      offset: 0,
-      limit: 10,
-      hasMore: false,
-    };
+    return { items: [], offset: 0, limit: 10, hasMore: false };
   }
-
+  
   const { data = [], pagination = {} } = paginatedResult;
-
-  const transformedItems = (await transformRowsAsync(data, transformFn)).filter(
-    Boolean
-  );
-
-  const page = Number(pagination.page ?? 1);
-  const limit = Number(pagination.limit ?? 10);
+  
+  const transformedItems = (await transformRowsAsync(data, transformFn)).filter(Boolean);
+  
+  const page         = Number(pagination.page         ?? 1);
+  const limit        = Number(pagination.limit        ?? 10);
   const totalRecords = Number(pagination.totalRecords ?? 0);
-  const offset = pagination.offset ?? (page - 1) * limit;
-
+  const offset       = pagination.offset ?? (page - 1) * limit;
+  
   return {
-    items: transformedItems,
+    items:   transformedItems,
     offset,
     limit,
     hasMore: offset + transformedItems.length < totalRecords,
   };
 };
 
-/**
- * Derives high-level inventory status flags and severity from raw inventory data.
- *
- * @param {Object} row - Raw inventory row from SQL query
- * @param {Date | string} [row.nearest_expiry_date] - Earliest upcoming expiry date
- * @param {number | string} [row.available_quantity] - Available inventory amount
- * @param {number | string} [row.reserved_quantity] - Reserved inventory amount
- * @param {number | string} [row.total_lot_quantity] - Total quantity across lots
- * @param {Date | string} [row.earliest_manufacture_date] - First manufacture date
- * @param {string} [row.display_status] - High-level inventory status (optional)
- * @param {number} [lowStockThreshold=30] - Configurable threshold for low stock
- * @param {number} [nearExpiryDays=90] - Configurable expiry warning window
- *
- * @returns {{
- *   reservedQuantity: number,
- *   availableQuantity: number,
- *   totalLotQuantity: number,
- *   earliestManufactureDate: Date | null,
- *   nearestExpiryDate: Date | null,
- *   displayStatus: string | null,
- *   stockLevel: 'expired' | 'low_stock' | 'in_stock',
- *   expirySeverity: 'critical' | 'warning' | 'normal'
- * }}
- */
-const deriveInventoryStatusFlags = (
-  row,
-  lowStockThreshold = 30,
-  nearExpiryDays = 90
-) => {
-  const now = new Date();
-
-  const nearestExpiryDate = row.nearest_expiry_date
-    ? new Date(row.nearest_expiry_date)
-    : null;
-
-  const manufactureDate = row.earliest_manufacture_date
-    ? new Date(row.earliest_manufacture_date)
-    : null;
-
-  const availableQty = Number(row.available_quantity) || 0;
-  const reservedQty = Number(row.reserved_quantity) || 0;
-  const totalQty = Number(row.total_lot_quantity) || 0;
-
-  const stockLevel =
-    nearestExpiryDate && nearestExpiryDate < now
-      ? 'expired'
-      : availableQty <= lowStockThreshold
-        ? 'low_stock'
-        : 'in_stock';
-
-  const expirySeverity =
-    nearestExpiryDate && nearestExpiryDate < now
-      ? 'critical'
-      : nearestExpiryDate &&
-          nearestExpiryDate <=
-            new Date(now.getTime() + nearExpiryDays * 86400000)
-        ? 'warning'
-        : 'normal';
-
-  return {
-    reservedQuantity: reservedQty,
-    availableQuantity: availableQty,
-    totalLotQuantity: totalQty,
-    earliestManufactureDate: manufactureDate,
-    nearestExpiryDate,
-    displayStatus: row.display_status || null,
-    stockLevel,
-    expirySeverity,
-  };
-};
+// ---------------------------------------------------------------------------
+// Lookup helpers
+// ---------------------------------------------------------------------------
 
 /**
- * Generic transformer for lookup records with `{ id, name }` shape.
- * Converts to `{ id, label }` for dropdowns and cleans null/undefined values.
+ * Converts a `{ id, name }` row into the `{ id, label }` dropdown shape.
  *
- * @param {{ id: string, name: string }} row - The database row
+ * Null/undefined values are pruned via `cleanObject`.
+ * Callers are responsible for passing a valid `{ id, name }` object.
+ *
+ * @param {{ id: string, name: string }} row
  * @returns {{ id: string, label: string }}
  */
-const transformIdNameToIdLabel = (row) => {
-  return cleanObject({
-    id: row?.id,
-    label: row?.name,
+const transformIdNameToIdLabel = (row) =>
+  cleanObject({
+    id:    row.id,
+    label: row.name,
   });
-};
 
 /**
- * Selectively includes diagnostic flags from an enriched lookup row
- * based on the user's access control permissions.
+ * Selectively includes row flags in lookup output based on a caller-supplied flag map.
  *
- * This function is typically used to expose additional metadata in
- * lookup dropdown results (e.g., status flags, validation indicators,
- * archived state) only when the user is authorized to view them.
+ * The `flagMap` maps ACL key names to row property names. When the ACL key is
+ * truthy on `userAccess`, the corresponding row property is included in the result.
  *
- * Flags may include:
- * - `isActive`: Whether the record is currently active.
- * - `isValidToday`: Whether the record is valid as of the current date.
- * - `isNormal`: Whether the SKU passed all required status checks.
- * - `issueReasons`: Human-readable reasons explaining abnormal state
- *   (included only when `isNormal` is false).
- * - `isArchived`: Whether the record is archived.
+ * This design keeps `includeFlagsBasedOnAccess` open for extension — adding a new
+ * ACL flag never requires modifying this function. Each caller declares its own map.
  *
- * @param {Object} row
- *   Enriched lookup row that may contain derived flags such as:
- *   `isActive`, `isValidToday`, `isNormal`, `issueReasons`, `is_archived`.
+ * Special cases with conditional nested logic (e.g. `isNormal`/`issueReasons` for SKUs)
+ * should be handled inline in the caller after this function returns.
  *
- * @param {Object} userAccess
- *   Access control context determining which flags should be exposed.
+ * @param {Object}  row               - Enriched lookup row with derived flags.
+ * @param {Object}  [userAccess={}]   - Access control context.
+ * @param {FlagMap} [flagMap={}]      - Maps ACL keys to row property names.
+ * @returns {Object} Filtered subset of flags safe to expose to this user.
  *
- * @param {boolean} [userAccess.canViewAllStatuses=false]
- *   Controls visibility of `isActive`.
- *
- * @param {boolean} [userAccess.canViewAllValidLookups=false]
- *   Controls visibility of `isValidToday`.
- *
- * @param {boolean} [userAccess.allowAllSkus=false]
- *   Controls visibility of `isNormal` and `issueReasons`.
- *
- * @param {boolean} [userAccess.canViewArchived=false]
- *   Controls visibility of `isArchived`.
- *
- * @returns {Object}
- *   A subset of diagnostic flags filtered by access permissions.
- *   Undefined fields are removed via `cleanObject`.
+ * @example
+ * includeFlagsBasedOnAccess(row, userAccess, {
+ *   canViewAllStatuses:     'isActive',
+ *   canViewAllValidLookups: 'isValidToday',
+ *   canViewArchived:        'isArchived',
+ * })
  */
-const includeFlagsBasedOnAccess = (row, userAccess = {}) => {
-  const {
-    canViewAllStatuses = false,
-    canViewAllValidLookups = false,
-    allowAllSkus = false,
-    canViewArchived = false,
-  } = userAccess;
-
+const includeFlagsBasedOnAccess = (row, userAccess = {}, flagMap = {}) => {
   if (!row) return {};
-
-  const result = {};
-
-  if (canViewAllStatuses) {
-    result.isActive = row.isActive ?? false;
-  }
-
-  if (canViewAllValidLookups) {
-    result.isValidToday = row.isValidToday ?? false;
-  }
-
-  if (allowAllSkus && 'isNormal' in row) {
-    result.isNormal = row.isNormal;
-
-    if (!row.isNormal && Array.isArray(row.issueReasons)) {
-      result.issueReasons = row.issueReasons;
-    }
-  }
   
-  //---------------------------------------------------------
-  // Archived visibility (NEW)
-  //---------------------------------------------------------
-  if (canViewArchived) {
-    result.isArchived = row.is_archived === true;
+  const result = {};
+  
+  for (const [aclKey, rowKey] of Object.entries(flagMap)) {
+    if (userAccess[aclKey]) {
+      result[rowKey] = row[rowKey] ?? false;
+    }
   }
   
   return cleanObject(result);
 };
 
+// ---------------------------------------------------------------------------
+
 module.exports = {
   transformRows,
+  transformRowsAsync,
   transformPageResult,
   transformLoadMoreResult,
-  deriveInventoryStatusFlags,
   transformIdNameToIdLabel,
   includeFlagsBasedOnAccess,
 };

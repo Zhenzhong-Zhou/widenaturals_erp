@@ -1,70 +1,56 @@
 /**
- * Transform database result rows into a minimal key-only response.
+ * @file id-result-transformer.js
+ * @description Utility transformers for extracting a single key from DB result rows.
  *
- * This utility is commonly used after insert, update, or delete operations
- * where the API only needs to confirm which records were affected.
+ * Exports:
+ *   - transformKeyOnlyResult – extracts a named key from each record in an array
+ *   - transformIdOnlyResult  – shorthand for extracting `id` from each record
  *
- * Example:
+ * Distinct from `transformRows` / `transformPageResult` — those handle full row
+ * reshaping. These handle the narrow case of returning only a single field per row,
+ * typically used for returning inserted/updated record IDs to callers.
  *
- * Input:
- * [
- *   { id: "uuid-1", name: "A" },
- *   { id: "uuid-2", name: "B" }
- * ]
+ * All functions are pure — no logging, no AppError, no side effects.
+ */
+
+'use strict';
+
+/**
+ * Extracts a single named key from each record in an array.
  *
- * transformKeyOnlyResult(records, "id")
+ * Returns an empty array if the input is not a valid non-empty array.
+ * Uses a computed property name so the output key matches the extracted key.
  *
- * Output:
- * [
- *   { id: "uuid-1" },
- *   { id: "uuid-2" }
- * ]
+ * @param {Array<Object>} [records=[]] - Array of DB result rows.
+ * @param {string}        [key='id']  - The property name to extract from each row.
+ * @returns {Array<{ [key: string]: unknown }>}
  *
- * @param {Array<Object>} records - Database query result rows
- * @param {string} [key='id'] - Field name to extract from each record
- * @returns {Array<Object>} Array of objects containing only the selected key
+ * @example
+ * transformKeyOnlyResult([{ id: '1', name: 'foo' }], 'id')
+ * // → [{ id: '1' }]
  */
 const transformKeyOnlyResult = (records = [], key = 'id') => {
-  // Guard against invalid inputs
-  if (!Array.isArray(records) || records.length === 0) {
-    return [];
-  }
-  
-  return records.map((record) => ({
-    // Dynamic property name allows reuse for different primary keys
-    [key]: record[key]
-  }));
+  if (!Array.isArray(records) || records.length === 0) return [];
+  return records.map((record) => ({ [key]: record[key] }));
 };
 
 /**
- * Transform database rows into an ID-only response.
+ * Extracts only the `id` field from each record in an array.
  *
- * This is a convenience wrapper around `transformKeyOnlyResult`
- * for the most common case where the primary key column is `id`.
+ * Shorthand for `transformKeyOnlyResult(records, 'id')`.
+ * Typically used to return inserted or updated record IDs to service callers.
  *
- * Example:
+ * @param {Array<Object>} [records=[]] - Array of DB result rows.
+ * @returns {Array<{ id: unknown }>}
  *
- * Input:
- * [
- *   { id: "uuid-1", name: "A" },
- *   { id: "uuid-2", name: "B" }
- * ]
- *
- * transformIdOnlyResult(records)
- *
- * Output:
- * [
- *   { id: "uuid-1" },
- *   { id: "uuid-2" }
- * ]
- *
- * @param {Array<Object>} records - Database query result rows
- * @returns {Array<{id: string}>} Minimal response payload
+ * @example
+ * transformIdOnlyResult([{ id: 'abc', name: 'foo' }])
+ * // → [{ id: 'abc' }]
  */
 const transformIdOnlyResult = (records = []) =>
   transformKeyOnlyResult(records, 'id');
 
 module.exports = {
+  transformKeyOnlyResult,
   transformIdOnlyResult,
-  transformKeyOnlyResult
 };
