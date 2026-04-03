@@ -173,7 +173,7 @@ const insertBaseCodesBulk = async (pairs, client, chunkSize = 1000) => {
   
   try {
     const { rows: baseRows } = await query(SKU_CODE_BASE_NEXT_BASE_QUERY, [], client);
-    next_base = baseRows[0].next_base;
+    next_base = /** @type {{ next_base: number }} */ (baseRows[0]);
   } catch (error) {
     throw handleDbError(error, {
       context,

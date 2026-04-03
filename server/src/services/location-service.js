@@ -1,139 +1,58 @@
-const {
-  getPaginatedLocations,
-} = require('../repositories/location-repository');
-const {
-  transformPaginatedLocationResults,
-} = require('../transformers/location-transformer');
-const { logSystemInfo, logSystemException } = require('../utils/system-logger');
-const AppError = require('../utils/AppError');
+/**
+ * @file location-service.js
+ * @description Business logic for location retrieval.
+ *
+ * Exports:
+ *   - fetchPaginatedLocationsService – paginated location records with filtering and sorting
+ *
+ * Error handling follows a single-log principle — errors are not logged here.
+ * They bubble up to globalErrorHandler, which logs once with the normalised shape.
+ *
+ * AppErrors thrown by lower layers (repository) are re-thrown as-is.
+ * Unexpected errors are wrapped in AppError.serviceError before bubbling up.
+ */
+
+'use strict';
+
+const { getPaginatedLocations }              = require('../repositories/location-repository');
+const { transformPaginatedLocationResults }  = require('../transformers/location-transformer');
+const AppError                               = require('../utils/AppError');
+
+const CONTEXT = 'location-service';
 
 /**
- * Service: Fetch Paginated Locations
+ * Fetches paginated location records with optional filtering and sorting.
  *
- * Provides a service-level abstraction over repository queries for locations.
- * Handles pagination, filtering, transformation, and structured logging.
+ * @param {Object}        options
+ * @param {Object}        [options.filters={}]           - Field filters to apply.
+ * @param {number}        [options.page=1]               - Page number (1-based).
+ * @param {number}        [options.limit=10]             - Records per page.
+ * @param {string}        [options.sortBy='createdAt']   - Sort field key (validated against sort map).
+ * @param {'ASC'|'DESC'}  [options.sortOrder='DESC']     - Sort direction.
  *
- * ─────────────────────────────────────────────────────────────
- * Flow
- * ─────────────────────────────────────────────────────────────
- * 1. Delegates to `getPaginatedLocations` in repository layer.
- * 2. If no results:
- *    - Logs informational event
- *    - Returns normalized empty result set.
- * 3. If results exist:
- *    - Transforms raw SQL rows into API-ready DTO objects.
- *    - Logs success with metadata.
- * 4. On error:
- *    - Logs structured exception.
- *    - Throws service-level AppError.
+ * @returns {Promise<PaginatedResult<LocationRow>>}
  *
- * ─────────────────────────────────────────────────────────────
- * Intended Usage
- * ─────────────────────────────────────────────────────────────
- * - Location list page
- * - Admin dashboards
- * - Expandable table rows (summary metadata only)
- *
- * Heavy detail fields should be retrieved via:
- *   `fetchLocationByIdService`
- *
- * ─────────────────────────────────────────────────────────────
- * @param {Object} options
- * @param {Object} [options.filters={}] - Location filter criteria
- * @param {number} [options.page=1] - Page number (1-based)
- * @param {number} [options.limit=10] - Page size
- * @param {string} [options.sortBy='created_at'] - Sort column (validated upstream)
- * @param {'ASC'|'DESC'} [options.sortOrder='DESC'] - Sort direction
- *
- * @returns {Promise<{
- *   data: any[];
- *   pagination: {
- *     page: number;
- *     limit: number;
- *     totalRecords: number;
- *     totalPages: number;
- *   };
- * }>}
- *
- * @throws {AppError}
+ * @throws {AppError} Re-throws AppErrors from lower layers unchanged.
+ * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const fetchPaginatedLocationsService = async ({
-  filters = {},
-  page = 1,
-  limit = 10,
-  sortBy = 'created_at',
-  sortOrder = 'DESC',
-}) => {
-  const context = 'location-service/fetchPaginatedLocationsService';
-
+                                                filters   = {},
+                                                page      = 1,
+                                                limit     = 10,
+                                                sortBy    = 'createdAt',
+                                                sortOrder = 'DESC',
+                                              }) => {
+  const context = `${CONTEXT}/fetchPaginatedLocationsService`;
+  
   try {
-    // ----------------------------------------------------------
-    // Step 1: Query raw paginated rows
-    // ----------------------------------------------------------
-    const rawResult = await getPaginatedLocations({
-      filters,
-      page,
-      limit,
-      sortBy,
-      sortOrder,
-    });
-
-    // ----------------------------------------------------------
-    // Step 2: Handle empty result
-    // ----------------------------------------------------------
-    if (!rawResult || rawResult.data.length === 0) {
-      logSystemInfo('No locations found', {
-        context,
-        filters,
-        pagination: { page, limit },
-        sort: { sortBy, sortOrder },
-      });
-
-      return {
-        data: [],
-        pagination: {
-          page,
-          limit,
-          totalRecords: 0,
-          totalPages: 0,
-        },
-      };
-    }
-
-    // ----------------------------------------------------------
-    // Step 3: Transform SQL rows → API DTO
-    // ----------------------------------------------------------
-    const result = await transformPaginatedLocationResults(rawResult);
-
-    // ----------------------------------------------------------
-    // Step 4: Log success
-    // ----------------------------------------------------------
-    logSystemInfo('Fetched paginated location records successfully', {
-      context,
-      filters,
-      pagination: result.pagination,
-      sort: { sortBy, sortOrder },
-    });
-
-    return result;
+    const rawResult = await getPaginatedLocations({ filters, page, limit, sortBy, sortOrder });
+    return transformPaginatedLocationResults(rawResult);
   } catch (error) {
-    // ----------------------------------------------------------
-    // Step 5: Log exception and rethrow
-    // ----------------------------------------------------------
-    logSystemException(error, 'Failed to fetch paginated location records', {
-      context,
-      filters,
-      pagination: { page, limit },
-      sort: { sortBy, sortOrder },
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError('Unable to fetch locations.', {
+      meta: { error: error.message, context },
     });
-
-    throw AppError.serviceError(
-      'Could not fetch locations. Please try again later.',
-      {
-        context,
-        details: error.message,
-      }
-    );
   }
 };
 

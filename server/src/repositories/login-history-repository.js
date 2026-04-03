@@ -25,7 +25,7 @@ const { LOGIN_HISTORY_INSERT } = require('./queries/login-history-queries');
  * interrupt the authentication flow. A warning is logged instead.
  *
  * @param {Object}      entry
- * @param {string}      entry.userId             - UUID of the user.
+ * @param {string|null} entry.userId             - UUID of the user, or null for unknown users.
  * @param {string|null} [entry.sessionId=null]   - Session UUID if applicable.
  * @param {string|null} [entry.tokenId=null]     - Token UUID if applicable.
  * @param {string}      entry.authActionTypeId   - UUID of the auth action type.

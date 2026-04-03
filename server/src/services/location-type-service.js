@@ -1,243 +1,96 @@
+/**
+ * @file location-type-service.js
+ * @description Business logic for location type retrieval.
+ *
+ * Exports:
+ *   - fetchPaginatedLocationTypesService  – paginated location types with filtering and sorting
+ *   - fetchLocationTypeDetailsService     – single location type detail by ID
+ *
+ * Error handling follows a single-log principle — errors are not logged here.
+ * They bubble up to globalErrorHandler, which logs once with the normalised shape.
+ *
+ * AppErrors thrown by lower layers (repository) are re-thrown as-is.
+ * Unexpected errors are wrapped in AppError.serviceError before bubbling up.
+ */
+
+'use strict';
+
 const {
   getPaginatedLocationTypes,
   getLocationTypeById,
-} = require('../repositories/location-type-repository');
+}                                           = require('../repositories/location-type-repository');
 const {
   transformPaginatedLocationTypeResults,
   transformLocationTypeDetail,
-} = require('../transformers/location-type-transformer');
-const { logSystemInfo, logSystemException } = require('../utils/system-logger');
-const AppError = require('../utils/AppError');
+}                                           = require('../transformers/location-type-transformer');
+const AppError                              = require('../utils/AppError');
+
+const CONTEXT = 'location-type-service';
 
 /**
- * Service: Fetch Paginated Location Types
+ * Fetches paginated location type records with optional filtering and sorting.
  *
- * Provides a service-level abstraction over repository queries
- * for location type configuration entities.
+ * @param {Object}        options
+ * @param {Object}        [options.filters={}]           - Field filters to apply.
+ * @param {number}        [options.page=1]               - Page number (1-based).
+ * @param {number}        [options.limit=10]             - Records per page.
+ * @param {string}        [options.sortBy='createdAt']   - Sort field key (validated against sort map).
+ * @param {'ASC'|'DESC'}  [options.sortOrder='DESC']     - Sort direction.
  *
- * ─────────────────────────────────────────────────────────────
- * Flow
- * ─────────────────────────────────────────────────────────────
- * 1. Delegates to `getPaginatedLocationTypes` (repository layer).
- * 2. If no results:
- *    - Logs informational event
- *    - Returns normalized empty result set.
- * 3. If results exist:
- *    - Transforms raw SQL rows into API-ready DTO objects.
- *    - Logs structured success metadata.
- * 4. On error:
- *    - Logs structured exception.
- *    - Throws service-level AppError.
+ * @returns {Promise<PaginatedResult<LocationTypeRow>>}
  *
- * ─────────────────────────────────────────────────────────────
- * Intended Usage
- * ─────────────────────────────────────────────────────────────
- * - Admin configuration pages
- * - Settings modules
- * - Lookup management UI
- *
- * NOTE:
- * For single-record detail retrieval, use:
- *   `fetchLocationTypeByIdService`
- *
- * ─────────────────────────────────────────────────────────────
- * @param {Object} options
- * @param {Object} [options.filters={}] - Location type filter criteria
- * @param {number} [options.page=1] - Page number (1-based)
- * @param {number} [options.limit=10] - Page size
- * @param {string} [options.sortBy='created_at'] - Sort column (validated upstream)
- * @param {'ASC'|'DESC'} [options.sortOrder='DESC'] - Sort direction
- *
- * @returns {Promise<{
- *   data: any[];
- *   pagination: {
- *     page: number;
- *     limit: number;
- *     totalRecords: number;
- *     totalPages: number;
- *   };
- * }>}
- *
- * @throws {AppError}
+ * @throws {AppError} Re-throws AppErrors from lower layers unchanged.
+ * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const fetchPaginatedLocationTypesService = async ({
-  filters = {},
-  page = 1,
-  limit = 10,
-  sortBy = 'created_at',
-  sortOrder = 'DESC',
-}) => {
-  const context = 'location-type-service/fetchPaginatedLocationTypesService';
-
+                                                    filters   = {},
+                                                    page      = 1,
+                                                    limit     = 10,
+                                                    sortBy    = 'createdAt',
+                                                    sortOrder = 'DESC',
+                                                  }) => {
+  const context = `${CONTEXT}/fetchPaginatedLocationTypesService`;
+  
   try {
-    // ----------------------------------------------------------
-    // Step 1: Query raw paginated rows
-    // ----------------------------------------------------------
-    const rawResult = await getPaginatedLocationTypes({
-      filters,
-      page,
-      limit,
-      sortBy,
-      sortOrder,
-    });
-
-    // ----------------------------------------------------------
-    // Step 2: Handle empty result
-    // ----------------------------------------------------------
-    if (!rawResult || rawResult.data.length === 0) {
-      logSystemInfo('No location types found', {
-        context,
-        filters,
-        pagination: { page, limit },
-        sort: { sortBy, sortOrder },
-      });
-
-      return {
-        data: [],
-        pagination: {
-          page,
-          limit,
-          totalRecords: 0,
-          totalPages: 0,
-        },
-      };
-    }
-
-    // ----------------------------------------------------------
-    // Step 3: Transform SQL rows → API DTO
-    // ----------------------------------------------------------
-    const result = await transformPaginatedLocationTypeResults(rawResult);
-
-    // ----------------------------------------------------------
-    // Step 4: Log success
-    // ----------------------------------------------------------
-    logSystemInfo('Fetched paginated location type records successfully', {
-      context,
-      filters,
-      pagination: result.pagination,
-      sort: { sortBy, sortOrder },
-    });
-
-    return result;
+    const rawResult = await getPaginatedLocationTypes({ filters, page, limit, sortBy, sortOrder });
+    return transformPaginatedLocationTypeResults(rawResult);
   } catch (error) {
-    // ----------------------------------------------------------
-    // Step 5: Log exception and rethrow
-    // ----------------------------------------------------------
-    logSystemException(
-      error,
-      'Failed to fetch paginated location type records',
-      {
-        context,
-        filters,
-        pagination: { page, limit },
-        sort: { sortBy, sortOrder },
-      }
-    );
-
-    throw AppError.serviceError(
-      'Could not fetch location types. Please try again later.',
-      {
-        context,
-        details: error.message,
-      }
-    );
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError('Unable to fetch location types.', {
+      meta: { error: error.message, context },
+    });
   }
 };
 
 /**
- * Service: Fetch Location Type Details by ID
+ * Fetches a single location type record by ID.
  *
- * Provides a service-level abstraction for fetching a single
- * location type configuration record from the repository,
- * including status and audit information.
+ * @param {string} locationTypeId - UUID of the location type to retrieve.
  *
- * ─────────────────────────────────────────────────────────────
- * Flow
- * ─────────────────────────────────────────────────────────────
- * 1. Delegates to `getLocationTypeById` in the repository layer.
- * 2. If no record is found:
- *    - Logs an informational event.
- *    - Throws an AppError.notFoundError for clean controller handling.
- * 3. If found:
- *    - Transforms raw SQL row via `transformLocationTypeDetail`
- *      into an API-ready object.
- *    - Logs a successful fetch event.
- * 4. On error:
- *    - Logs structured exception.
- *    - Wraps and throws service-level AppError.
+ * @returns {Promise<LocationTypeRecord>} Transformed location type detail.
  *
- * ─────────────────────────────────────────────────────────────
- * @param {string} locationTypeId - UUID of the location type.
- *
- * @returns {Promise<object>} Clean, transformed location type detail object.
- *
- * @throws {AppError.notFoundError}
- *   If the location type does not exist.
- *
- * @throws {AppError.serviceError}
- *   If an unexpected failure occurs.
- *
- * @example
- * const locationType =
- *   await fetchLocationTypeDetailsService('uuid-value');
- * console.log(locationType.status.name); // "Active"
+ * @throws {AppError} `notFoundError`  – no location type found for the given ID.
+ * @throws {AppError} Re-throws all other AppErrors from lower layers unchanged.
+ * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const fetchLocationTypeDetailsService = async (locationTypeId) => {
-  const logContext = 'location-type-service/fetchLocationTypeDetailsService';
-
+  const context = `${CONTEXT}/fetchLocationTypeDetailsService`;
+  
   try {
-    // ----------------------------------------------------------
-    // Step 1: Fetch raw row from repository
-    // ----------------------------------------------------------
     const rawLocationType = await getLocationTypeById(locationTypeId);
-
-    // ----------------------------------------------------------
-    // Step 2: Handle not found
-    // ----------------------------------------------------------
+    
     if (!rawLocationType) {
-      logSystemInfo('No location type found for given ID', {
-        context: logContext,
-        locationTypeId,
-      });
-
-      throw AppError.notFoundError('Location type not found', {
-        context: logContext,
-        locationTypeId,
-      });
+      throw AppError.notFoundError('Location type not found.');
     }
-
-    // ----------------------------------------------------------
-    // Step 3: Transform to API-ready format
-    // ----------------------------------------------------------
-    const locationType = transformLocationTypeDetail(rawLocationType);
-
-    // ----------------------------------------------------------
-    // Step 4: Log success
-    // ----------------------------------------------------------
-    logSystemInfo('Fetched location type detail successfully', {
-      context: logContext,
-      locationTypeId,
-    });
-
-    return locationType;
+    
+    return transformLocationTypeDetail(rawLocationType);
   } catch (error) {
-    // ----------------------------------------------------------
-    // Step 5: Log exception and wrap as service error
-    // ----------------------------------------------------------
-    logSystemException(error, 'Failed to fetch location type detail', {
-      context: logContext,
-      locationTypeId,
-      error: error.message,
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError('Unable to fetch location type details.', {
+      meta: { error: error.message, context },
     });
-
-    throw AppError.serviceError(
-      'Could not fetch location type details. Please try again later.',
-      {
-        context: logContext,
-        locationTypeId,
-        details: error.message,
-      }
-    );
   }
 };
 

@@ -1,33 +1,53 @@
-const { withTransaction } = require('../database/db');
-const MAX_LIMITS = require('../utils/constants/general/max-limits');
-const { validateBulkInputSize } = require('../utils/bulk-input-validator');
-const AppError = require('../utils/AppError');
-const { generateAddressHash } = require('../utils/crypto-utils');
+/**
+ * @file address-service.js
+ * @description Business logic for address creation and paginated retrieval.
+ *
+ * Exports:
+ *   - createAddressService           – bulk-insert addresses with hash generation
+ *   - fetchPaginatedAddressesService – paginated address retrieval with filtering/sorting
+ *
+ * Error handling follows a single-log principle — errors are not logged here.
+ * They bubble up to globalErrorHandler, which logs once with the normalised shape.
+ *
+ * AppErrors thrown by lower layers (repository, validators) are re-thrown as-is.
+ * Unexpected errors are wrapped in AppError.serviceError before bubbling up.
+ */
+
+'use strict';
+
+const { withTransaction }          = require('../database/db');
+const MAX_LIMITS                   = require('../utils/constants/general/max-limits');
+const { validateBulkInputSize }    = require('../utils/validation/bulk-input-validator');
+const AppError                     = require('../utils/AppError');
+const { generateAddressHash }      = require('../utils/crypto-utils');
 const {
   insertAddressRecords,
   getEnrichedAddressesByIds,
   getPaginatedAddresses,
 } = require('../repositories/address-repository');
-const { logSystemException, logSystemInfo } = require('../utils/system-logger');
+const { logSystemInfo }            = require('../utils/logging/system-logger');
 const {
   transformEnrichedAddresses,
   transformPaginatedAddressResults,
 } = require('../transformers/address-transformer');
-const { filterAddressForViewer } = require('../business/address-business');
+const { filterAddressForViewer }   = require('../business/address-business');
 
 /**
- * Creates bulk address records with hash generation and DB insertion.
+ * Creates one or more address records with hash generation and DB insertion.
  *
- * - Enriches address data with address hashes and created_by.
- * - Performs bulk insert with conflict handling.
- * - Retrieves and transforms enriched address records.
- * - Applies permission-based filtering for the response.
+ * Enriches each address with a generated hash and `created_by`, performs a bulk
+ * insert with conflict handling, then retrieves and transforms the inserted records.
+ * Applies permission-based field filtering before returning.
  *
- * @param {Array<Object>} addresses - Array of address objects to insert.
- * @param {Object} user - an Authenticated user object with a role and id.
- * @param {string} [purpose='insert_response'] - The purpose of the response ('insert_response', 'detail_view', 'admin_view').
- * @returns {Promise<Array>} Inserted or upserted address records formatted for the viewer.
- * @throws {AppError} On validation or database error.
+ * @param {Array<Object>} addresses        - Address objects to insert.
+ * @param {Object}        user             - Authenticated user (requires `id` and `role`).
+ * @param {string}        [purpose='insert_response'] - Response shape purpose:
+ *                                           `'insert_response'` | `'detail_view'` | `'admin_view'`
+ *
+ * @returns {Promise<Array<Object>>} Transformed and permission-filtered address records.
+ *
+ * @throws {AppError} Re-throws AppErrors from validators/repository unchanged.
+ * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const createAddressService = async (
   addresses,
@@ -35,113 +55,91 @@ const createAddressService = async (
   purpose = 'insert_response'
 ) => {
   const createdBy = user.id;
-
+  
   return withTransaction(async (client) => {
     try {
-      const max = MAX_LIMITS.BULK_INPUT_LIMITS.MAX_UI_INSERT_SIZE;
-
       validateBulkInputSize(
         addresses,
-        max,
-        'address-service/createAddressRecords',
+        MAX_LIMITS.BULK_INPUT_LIMITS.MAX_UI_INSERT_SIZE,
         'addresses'
       );
-
+      
       const enrichedAddresses = addresses.map((address) => ({
         ...address,
         address_hash: generateAddressHash(address),
-        created_by: createdBy,
+        created_by:   createdBy,
       }));
-
+      
       const inserted = await insertAddressRecords(enrichedAddresses, client);
-
+      
       if (!Array.isArray(inserted) || inserted.length === 0) {
-        throw AppError.databaseError('No customer records were inserted.');
+        throw AppError.databaseError('No address records were inserted.');
       }
-
-      const insertedIds = inserted.map((row) => row.id);
-
+      
+      // Audit trail — intentional low-frequency compliance event; not a routine read log.
       logSystemInfo('Address bulk insert completed', {
+        context:       'address-service/createAddressService',
         insertedCount: inserted.length,
-        context: 'address-service/createAddressService',
+        requestedBy:   createdBy,
       });
-
-      const rawResult = await getEnrichedAddressesByIds(insertedIds, client);
+      
+      const insertedIds     = inserted.map((row) => row.id);
+      const rawResult       = await getEnrichedAddressesByIds(insertedIds, client);
       const enrichedRecords = transformEnrichedAddresses(rawResult);
-
-      return await Promise.all(
+      
+      // filterAddressForViewer is async — run concurrently, not sequentially.
+      return Promise.all(
         enrichedRecords.map((address) =>
           filterAddressForViewer(address, user, purpose)
         )
       );
     } catch (error) {
-      logSystemException(error, 'Failed to create address records', {
-        context: 'address-service/createAddressRecords',
-        requestedBy: createdBy,
-        addressCount: addresses?.length || 0,
+      // AppErrors from validators/repository already carry the correct type —
+      // re-throw unchanged so globalErrorHandler receives the original context.
+      if (error instanceof AppError) throw error;
+      
+      // Unexpected error — wrap once with service context before bubbling up.
+      throw AppError.serviceError('Unable to create address records.', {
+        meta: { error: error.message },
       });
-      throw AppError.businessError('Unable to create address records.', error);
     }
   });
 };
 
 /**
- * Fetches paginated addresses with optional filtering, sorting, and logging.
+ * Fetches paginated address records with optional filtering and sorting.
  *
- * Applies sorting rules based on the address sort map,
- * transforms raw DB rows into client-friendly format,
- * and logs the operation for monitoring.
+ * Delegates query execution to the repository, transforms raw DB rows into the
+ * client-facing shape, and returns paginated results with metadata.
  *
- * @param {Object} options - Service options.
- * @param {Object} [options.filters={}] - Filters to apply (e.g., city, country, customerId).
- * @param {Object} [options.user] - The user performing the request (for logging).
- * @param {number} [options.page=1] - Page number (1-based).
- * @param {number} [options.limit=10] - Number of records per page.
- * @param {string} [options.sortBy='created_at'] - Field to sort by (uses addressSortMap).
- * @param {'ASC'|'DESC'} [options.sortOrder='DESC'] - Sort direction.
+ * @param {Object}        options
+ * @param {Object}        [options.filters={}]         - Field filters (city, country, customerId, etc.).
+ * @param {number}        [options.page=1]             - Page number (1-based).
+ * @param {number}        [options.limit=10]           - Records per page.
+ * @param {string}        [options.sortBy='createdAt'] - Sort field key (validated against addressSortMap).
+ * @param {'ASC'|'DESC'}  [options.sortOrder='DESC']   - Sort direction.
  *
- * @returns {Promise<Object>} Paginated result containing transformed address rows and pagination metadata.
+ * @returns {Promise<{ data: Array<Object>, pagination: Object }>} Transformed records and pagination metadata.
  *
- * @throws {AppError} Throws a service error if fetching fails.
+ * @throws {AppError} Re-throws AppErrors from the repository unchanged.
+ * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const fetchPaginatedAddressesService = async ({
-  filters = {},
-  user,
-  page = 1,
-  limit = 10,
-  sortBy = 'created_at',
-  sortOrder = 'DESC',
-}) => {
+                                                filters   = {},
+                                                page      = 1,
+                                                limit     = 10,
+                                                sortBy    = 'createdAt',
+                                                sortOrder = 'DESC',
+                                              }) => {
   try {
-    const rawResult = await getPaginatedAddresses({
-      filters,
-      page,
-      limit,
-      sortBy,
-      sortOrder,
-    });
-
-    const result = transformPaginatedAddressResults(rawResult);
-
-    logSystemInfo('Fetched paginated addresses', {
-      context: 'address-service/fetchPaginatedAddressesService',
-      userId: user?.id,
-      filters,
-      pagination: { page, limit },
-      sort: { sortBy, sortOrder },
-    });
-
-    return result;
+    const rawResult = await getPaginatedAddresses({ filters, page, limit, sortBy, sortOrder });
+    return transformPaginatedAddressResults(rawResult);
   } catch (error) {
-    logSystemException(error, 'Failed to fetch paginated addresses', {
-      context: 'address-service/fetchPaginatedAddressesService',
-      userId: user?.id,
-      filters,
-      pagination: { page, limit },
-      sort: { sortBy, sortOrder },
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError('Unable to fetch paginated addresses.', {
+      meta: { error: error.message },
     });
-
-    throw AppError.serviceError('Failed to fetch address list.');
   }
 };
 

@@ -1,73 +1,77 @@
+/**
+ * @file pricing-type-service.js
+ * @description Business logic for pricing type retrieval.
+ *
+ * Exports:
+ *   - fetchAllPriceTypes                        – paginated pricing type list with access scoping
+ *   - fetchPricingTypeByIdWithMetadataService   – single pricing type detail by ID
+ *   - fetchAvailablePricingTypesForDropdown     – pricing types scoped to a product for dropdown use
+ *
+ * Error handling follows a single-log principle — errors are not logged here.
+ * They bubble up to globalErrorHandler, which logs once with the normalised shape.
+ *
+ * AppErrors thrown by lower layers are re-thrown as-is.
+ * Unexpected errors are wrapped in AppError.serviceError before bubbling up.
+ */
+
+'use strict';
+
 const {
   getAllPriceTypes,
   getPricingTypeById,
   getPricingTypesForDropdown,
-} = require('../repositories/pricing-type-repository');
-const { logError } = require('../utils/logger-helper');
-const AppError = require('../utils/AppError');
-const { logSystemInfo, logSystemError } = require('../utils/system-logger');
-const { canViewPricingTypes } = require('../business/pricing-type-business');
+}                                          = require('../repositories/pricing-type-repository');
+const AppError                             = require('../utils/AppError');
+const { canViewPricingTypes }              = require('../business/pricing-type-business');
 const {
   transformPaginatedPricingTypeResult,
   transformPricingTypeMetadata,
-} = require('../transformers/pricing-type-transformer');
-const { getStatusId } = require('../config/status-cache');
+}                                          = require('../transformers/pricing-type-transformer');
+const { getStatusId }                      = require('../config/status-cache');
+
+const CONTEXT = 'pricing-type-service';
 
 /**
- * Service: Fetches all pricing types with pagination and filtering.
+ * Fetches paginated pricing types with optional filtering and access-scoped status visibility.
  *
- * Applies business logic for permission checking, optional filtering,
- * and formats results using transformer utilities.
+ * @param {Object}        options
+ * @param {number}        [options.page=1]       - Page number (1-based).
+ * @param {number}        [options.limit=10]     - Records per page.
+ * @param {string|null}   [options.name]         - Optional name search string.
+ * @param {string|null}   [options.startDate]    - Optional date range start (must pair with endDate).
+ * @param {string|null}   [options.endDate]      - Optional date range end (must pair with startDate).
+ * @param {Object}        options.user           - Authenticated user.
  *
- * @param {object} params - Query parameters.
- * @param {number} [params.page=1] - Page number for pagination.
- * @param {number} [params.limit=10] - Records per page.
- * @param {string} [params.name] - Optional name/code search filter.
- * @param {string} [params.startDate] - Optional filter start range (ISO date).
- * @param {string} [params.endDate] - Optional filter end range (ISO date).
- * @param {object} params.user - Authenticated user object.
- * @returns {Promise<object>} - Transformed paginated price types.
+ * @returns {Promise<PaginatedResult<Object>>}
+ *
+ * @throws {AppError} `authenticationError` – user is missing.
+ * @throws {AppError} `validationError`     – startDate/endDate provided without its pair.
+ * @throws {AppError} Re-throws all other AppErrors from lower layers unchanged.
+ * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const fetchAllPriceTypes = async ({
-  page = 1,
-  limit = 10,
-  name,
-  startDate,
-  endDate,
-  user,
-}) => {
+                                    page      = 1,
+                                    limit     = 10,
+                                    name,
+                                    startDate,
+                                    endDate,
+                                    user,
+                                  }) => {
+  const context = `${CONTEXT}/fetchAllPriceTypes`;
+  
   if (!user) {
-    throw AppError.authenticationError('User authentication required');
+    throw AppError.authenticationError('User authentication required.');
   }
-
+  
   if ((startDate && !endDate) || (!startDate && endDate)) {
-    throw AppError.validationError(
-      'Both startDate and endDate must be provided together.'
-    );
+    throw AppError.validationError('Both startDate and endDate must be provided together.');
   }
-
-  const canViewAllStatuses = await canViewPricingTypes(user);
-
-  // Determine effective statusId to pass to repository
-  const statusId = canViewAllStatuses
-    ? null
-    : getStatusId('pricing_type_active');
-
-  const search = name?.trim() || null;
-
+  
   try {
-    logSystemInfo('Fetching pricing types', {
-      context: 'pricing-type-service',
-      page,
-      limit,
-      statusId,
-      search,
-      startDate,
-      endDate,
-      canViewAllStatuses,
-      userId: user.id,
-    });
-
+    const canViewAllStatuses = await canViewPricingTypes(user);
+    const statusId           = canViewAllStatuses ? null : getStatusId('pricing_type_active');
+    const search             = name?.trim() || null;
+    
     const rawResult = await getAllPriceTypes({
       page,
       limit,
@@ -77,83 +81,79 @@ const fetchAllPriceTypes = async ({
       endDate,
       canViewAllStatuses,
     });
-
-    const result = await transformPaginatedPricingTypeResult(rawResult);
-
-    logSystemInfo('Successfully fetched pricing types', {
-      context: 'pricing-type-service',
-      resultCount: result.data.length,
-    });
-
-    return result;
+    
+    return transformPaginatedPricingTypeResult(rawResult);
   } catch (error) {
-    logSystemError('Failed to fetch pricing types', {
-      context: 'pricing-type-service',
-      error,
-    });
-
-    throw AppError.serviceError('Failed to fetch pricing types', {
-      cause: error,
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError('Unable to fetch pricing types.', {
+      meta: { error: error.message, context },
     });
   }
 };
 
 /**
- * Service function to fetch pricing type metadata by ID.
+ * Fetches a single pricing type with full metadata by ID.
  *
- * @param {string} pricingTypeId - UUID of the pricing type.
- * @returns {Promise<object>} The transformed pricing type metadata.
- * @throws {AppError} If the pricing type is not found or a database error occurs.
+ * @param {string} pricingTypeId - UUID of the pricing type to retrieve.
+ *
+ * @returns {Promise<PricingTypeDetailRecord>}
+ *
+ * @throws {AppError} `notFoundError` – pricing type does not exist.
+ * @throws {AppError} Re-throws all other AppErrors from lower layers unchanged.
+ * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const fetchPricingTypeByIdWithMetadataService = async (pricingTypeId) => {
+  const context = `${CONTEXT}/fetchPricingTypeByIdWithMetadataService`;
+  
   try {
     const pricingTypeRow = await getPricingTypeById(pricingTypeId);
-
+    
     if (!pricingTypeRow) {
-      throw AppError.notFoundError('Pricing type not found');
+      throw AppError.notFoundError('Pricing type not found.');
     }
-
+    
     return transformPricingTypeMetadata(pricingTypeRow);
   } catch (error) {
-    logSystemError('Failed to fetch pricing type metadata', {
-      context: 'pricing-types-service/fetchPricingTypeByIdWithMetadata',
-      pricingTypeId,
-      error,
-    });
-
+    if (error instanceof AppError) throw error;
+    
     throw AppError.serviceError('Unable to retrieve pricing type metadata.', {
-      cause: error,
+      meta: { error: error.message, context },
     });
   }
 };
 
 /**
- * Service function to fetch active pricing types for dropdown.
- * Applies business logic such as formatting labels and validating product ID.
- * Labels are formatted as: 'PricingTypeName - $Price'.
+ * Fetches available pricing types scoped to a product for dropdown use.
  *
- * @param {string} productId - The ID of the product to fetch related pricing types.
- * @returns {Promise<Array<{ id: string, label: string }>>} - List of pricing types formatted for dropdown use.
- * @throws {Error} - Throws an error if the productId is missing or fetching data fails.
+ * @param {string} productId - UUID of the product to scope pricing types for.
+ *
+ * @returns {Promise<Array<{ id: string, label: string }>>}
+ *
+ * @throws {AppError} `validationError` – productId is missing.
+ * @throws {AppError} Re-throws all other AppErrors from lower layers unchanged.
+ * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const fetchAvailablePricingTypesForDropdown = async (productId) => {
+  const context = `${CONTEXT}/fetchAvailablePricingTypesForDropdown`;
+  
+  if (!productId) {
+    throw AppError.validationError('Product ID is required to fetch pricing types.');
+  }
+  
   try {
-    if (!productId) {
-      throw AppError.validationError(
-        'Product ID is required to fetch pricing types.'
-      );
-    }
-
     const pricingTypes = await getPricingTypesForDropdown(productId);
-
-    // Apply additional formatting or filtering if needed (e.g., logging, auditing)
+    
     return pricingTypes.map((type) => ({
-      id: type.id,
+      id:    type.id,
       label: type.label,
     }));
   } catch (error) {
-    logError('Error fetching pricing types in service:', error);
-    throw AppError.serviceError('Failed to fetch pricing types for dropdown');
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError('Unable to fetch pricing types for dropdown.', {
+      meta: { error: error.message, context },
+    });
   }
 };
 
