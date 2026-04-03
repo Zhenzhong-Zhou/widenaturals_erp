@@ -90,7 +90,7 @@ const generateCountQuery = (
   //--------------------------------------------------
   // Build JOIN clause
   //--------------------------------------------------
-  const joinClause = joins.length ? ` ${joins.join(' ')}` : '';
+  const joinClause = joins.length ? `\n    ${joins.join('\n    ')}` : '';
   
   //--------------------------------------------------
   // Construct query

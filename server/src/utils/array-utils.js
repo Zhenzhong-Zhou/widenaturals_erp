@@ -1,31 +1,42 @@
 /**
- * @fileoverview
- * Shared array and collection utilities.
- * Contains pure helper functions for deduplication, merging, and normalization.
- * All functions here must remain side-effect-free and framework-agnostic.
+ * @file array-utils.js
+ * @description Generic array manipulation utilities.
+ *
+ * Exports:
+ *   - deduplicateByCompositeKey – deduplicates records by a composite key with optional merge
+ *   - compact                   – removes null and undefined values from an array
+ *   - uniq                      – removes duplicate primitive values from an array
+ *   - uniqCompact               – removes duplicates and nulls in one pass
+ *   - uniqUuids                 – normalises and deduplicates UUID strings
+ *   - deduplicatePairs          – deduplicates objects by a computed key selector
+ *   - normalizeToArray          – coerces a value to an array
+ *
+ * All functions are pure — no logging, no AppError, no side effects.
  */
 
+'use strict';
+
 /**
- * Deduplicates an array of records by a composite key formed from specified fields.
- * Allows merging logic to be applied to duplicate via an optional mergeFn.
+ * Deduplicates an array of records by a composite key derived from `keyFields`.
  *
- * @param {Array<Object>} records - Array of objects to deduplicate.
- * @param {string[]} keyFields - List of field names to construct the composite key.
- * @param {Function|null} mergeFn - Optional function to merge two records with the same key.
- *        Receives (existingRecord, newRecord) as arguments and should mutate the existing one.
+ * On first encounter of a key the record is stored as-is.
+ * On subsequent encounters:
+ *   - If `mergeFn` is provided it is called with `(existing, duplicate)` to merge in-place.
+ *   - If `mergeFn` is not provided a plain `Error` is thrown — callers must decide
+ *     how to handle duplicates before reaching this utility.
  *
- * @returns {Array<Object>} - Deduplicated array of records.
- *
- * @example
- * const result = deduplicateByCompositeKey(records, ['location_id', 'batch_id'], (a, b) => {
- *   a.location_quantity += b.location_quantity ?? 0;
- * });
+ * @param {Array<Object>}                              records    - Records to deduplicate.
+ * @param {string[]}                                   keyFields  - Field names to build the composite key from.
+ * @param {((existing: Object, duplicate: Object) => void)|null} [mergeFn=null] - Optional merge function.
+ * @returns {Array<Object>} Deduplicated records.
+ * @throws {Error} If a duplicate key is encountered without a `mergeFn`.
  */
 const deduplicateByCompositeKey = (records, keyFields = [], mergeFn = null) => {
   const map = new Map();
-
+  
   for (const r of records) {
     const key = keyFields.map((k) => r[k]).join('::');
+    
     if (!map.has(key)) {
       map.set(key, { ...r });
     } else if (mergeFn) {
@@ -34,28 +45,53 @@ const deduplicateByCompositeKey = (records, keyFields = [], mergeFn = null) => {
       throw new Error(`Duplicate key encountered without mergeFn: ${key}`);
     }
   }
-
+  
   return Array.from(map.values());
 };
 
 /**
- * Remove only null/undefined from an array.
+ * Removes `null` and `undefined` values from an array.
+ *
+ * Treats a `null` or `undefined` input as an empty array.
+ *
+ * @template T
+ * @param {(T | null | undefined)[] | null | undefined} arr
+ * @returns {T[]}
  */
 const compact = (arr) =>
   (arr ?? []).filter((v) => v !== null && v !== undefined);
 
 /**
- * Unique while preserving order.
+ * Removes duplicate primitive values from an array preserving first occurrence.
+ *
+ * Treats a `null` or `undefined` input as an empty array.
+ *
+ * @template T
+ * @param {T[] | null | undefined} arr
+ * @returns {T[]}
  */
 const uniq = (arr) => Array.from(new Set(arr ?? []));
 
 /**
- * Compact + unique (common case).
+ * Removes duplicates and null/undefined values from an array in one pass.
+ *
+ * Equivalent to `uniq(compact(arr))` but avoids the intermediate array.
+ *
+ * @template T
+ * @param {(T | null | undefined)[] | null | undefined} arr
+ * @returns {T[]}
  */
 const uniqCompact = (arr) => Array.from(new Set(compact(arr)));
 
 /**
- * UUID-friendly: trim, lowercase, drop null/undefined, then unique.
+ * Normalises and deduplicates an array of UUID strings.
+ *
+ * Each value is coerced to a trimmed lowercase string before deduplication,
+ * ensuring UUIDs differing only in case or whitespace are treated as equal.
+ * Null and undefined values are filtered out before normalisation.
+ *
+ * @param {(string | null | undefined)[] | null | undefined} arr
+ * @returns {string[]}
  */
 const uniqUuids = (arr) =>
   Array.from(
@@ -67,68 +103,38 @@ const uniqUuids = (arr) =>
   );
 
 /**
- * @function
- * @description
- * Deduplicates an array of pair-like objects based on a composite key
- * (e.g., brandCode + categoryCode).
+ * Deduplicates an array of objects by a computed key selector.
  *
- * Returns a new array containing only one entry per unique key.
+ * When multiple items share the same key, the **last** occurrence wins
+ * (Map constructor behaviour — later entries overwrite earlier ones).
+ * Returns an empty array if the input is not a valid non-empty array.
  *
  * @template T
- * @param {Array<T>} list - Input array of objects to deduplicate.
- * @param {(item: T) => string} keySelector - Function that returns a unique key string for each item.
- * @returns {Array<T>} Deduplicated array of objects.
- *
- * @example
- * const pairs = [
- *   { brandCode: 'CH', categoryCode: 'HN' },
- *   { brandCode: 'CH', categoryCode: 'HN' },
- *   { brandCode: 'PG', categoryCode: 'NM' },
- * ];
- *
- * const uniquePairs = deduplicatePairs(pairs, (p) => `${p.brandCode}-${p.categoryCode}`);
- * // → [{ brandCode: 'CH', categoryCode: 'HN' }, { brandCode: 'PG', categoryCode: 'NM' }]
+ * @param {T[]}               list        - Items to deduplicate.
+ * @param {(item: T) => string} keySelector - Function that derives a string key from each item.
+ * @returns {T[]}
  */
 const deduplicatePairs = (list, keySelector) => {
   if (!Array.isArray(list) || list.length === 0) return [];
-
-  // Use a Map for O(1) lookups and maintain last occurrence of each unique key
   return Array.from(
     new Map(list.map((item) => [keySelector(item), item])).values()
   );
 };
 
 /**
- * Normalize an unknown input into a safe array.
+ * Coerces a value into an array.
  *
- * This utility is designed for untrusted inputs (e.g. HTTP request
- * parameters, body fields, or middleware-injected values) that may be:
- *
- * - an array
- * - a single value
- * - null / undefined
- *
- * It guarantees the return value is always an array, preventing
- * type confusion and unsafe `.length` or iteration access.
+ * - Arrays are returned as-is.
+ * - `null` and `undefined` return an empty array.
+ * - All other values are wrapped in a single-element array.
  *
  * @template T
  * @param {T | T[] | null | undefined} value
- *   The input value to normalize.
- *
  * @returns {T[]}
- *   - Returns the original array if already an array
- *   - Wraps a single value into an array
- *   - Returns an empty array for null/undefined
- *
- * @example
- * normalizeToArray('a');            // ['a']
- * normalizeToArray(['a', 'b']);     // ['a', 'b']
- * normalizeToArray(undefined);      // []
- * normalizeToArray(null);           // []
  */
 const normalizeToArray = (value) => {
   if (Array.isArray(value)) return value;
-  if (value == null) return [];
+  if (value == null)         return [];
   return [value];
 };
 
