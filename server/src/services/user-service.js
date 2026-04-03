@@ -1,4 +1,22 @@
-const { withTransaction } = require('../database/db');
+/**
+ * @file user-service.js
+ * @description Business logic for user creation, retrieval, and profile access.
+ *
+ * Exports:
+ *   - createUserService           – creates a user with auth record and role validation
+ *   - fetchPaginatedUsersService  – paginated user list with visibility scoping
+ *   - fetchUserProfileService     – single user profile with permission-filtered fields
+ *
+ * Error handling follows a single-log principle — errors are not logged here.
+ * They bubble up to globalErrorHandler, which logs once with the normalised shape.
+ *
+ * AppErrors thrown by lower layers are re-thrown as-is.
+ * Unexpected errors are wrapped in AppError.serviceError before bubbling up.
+ */
+
+'use strict';
+
+const { withTransaction }                    = require('../database/db');
 const {
   evaluateUserCreationAccessControl,
   evaluateUserVisibilityAccessControl,
@@ -8,265 +26,177 @@ const {
   sliceUserProfileForUser,
   evaluateUserRoleViewAccessControl,
   sliceUserRoleForUser,
-} = require('../business/user-business');
+}                                            = require('../business/user-business');
 const {
   insertUser,
   getPaginatedUsers,
   getUserProfileById,
-} = require('../repositories/user-repository');
-const { logSystemInfo, logSystemException } = require('../utils/system-logger');
+}                                            = require('../repositories/user-repository');
 const {
   transformPaginatedUserForViewResults,
   transformUserProfileRow,
   transformUserInsertResult,
-} = require('../transformers/user-transformer');
-const AppError = require('../utils/AppError');
-const { insertUserAuth } = require('../repositories/user-auth-repository');
-const { getStatusId } = require('../config/status-cache');
-const { hashPassword } = require('../business/user-auth-business');
-const { classifyRole } = require('../business/roles/role-semantics');
-const { getRoleById } = require('../repositories/role-repository');
+}                                            = require('../transformers/user-transformer');
+const AppError                               = require('../utils/AppError');
+const { insertUserAuth }                     = require('../repositories/user-auth-repository');
+const { getStatusId }                        = require('../config/status-cache');
+const { hashPassword }                       = require('../business/user-auth-business');
+const { classifyRole }                       = require('../business/roles/role-semantics');
+const { getRoleById }                        = require('../repositories/role-repository');
+
+const CONTEXT = 'user-service';
 
 /**
- * Creates a new user with authentication credentials.
+ * Creates a new user with a linked auth record inside a single transaction.
  *
- * Service-layer orchestration function.
+ * Resolves the target role, evaluates ACL, determines initial status,
+ * hashes the password, inserts the user and auth records atomically.
  *
- * Responsibilities:
- * - Enforces user-creation ACL and role assignment rules
- * - Resolves and validates target role semantics
- * - Hashes plaintext password securely before persistence
- * - Creates user and authentication records atomically
- * - Initializes newly created users in an inactive status
- *   (except initial bootstrap root user)
- * - Emits structured audit logs
+ * Initial status is a service invariant — callers must not control it.
+ * Bootstrap root users start active; all other API-created users start inactive.
  *
- * Transactional guarantees:
- * - User and user_auth records are created in the same transaction
- * - Partial writes are impossible (all-or-nothing)
+ * @param {Object} input
+ * @param {string} input.email
+ * @param {string} input.roleId
+ * @param {string} input.password
+ * @param {string} [input.firstname]
+ * @param {string} [input.lastname]
+ * @param {string} [input.phoneNumber]
+ * @param {string} [input.jobTitle]
+ * @param {string} [input.note]
+ * @param {Object} actor                      - Authenticated user performing the action.
+ * @param {string} actor.id
+ * @param {boolean} [actor.isBootstrap=false]
+ * @param {boolean} [actor.isRoot=false]
  *
- * Explicitly NOT handled here:
- * - Input shape validation (handled by route schema / Joi)
- * - Role hierarchy traversal (pending hierarchy_level implementation)
- * - Conflict resolution (delegated to DB constraints)
- * - Presentation-layer transformation beyond insert result mapping
+ * @returns {Promise<Object>} Transformed insert result.
  *
- * Security notes:
- * - Role semantics are resolved via `classifyRole` only
- * - Privilege escalation is prevented via ACL checks
- * - Passwords are never persisted or logged in plaintext
- * - Newly created users are inactive until explicitly activated
- *
- * @param {Object} input - User creation payload (validated upstream)
- * @param {Object} actor - Authenticated user performing the action
- *
- * @returns {Promise<Object>} Newly created user record (DB truth)
- *
- * @throws {AppError}
- * - validationError: invalid or inactive role
- * - authorizationError: insufficient permission to create target role
- * - databaseError: unexpected persistence failure
+ * @throws {AppError} `validationError`    – invalid or inactive role.
+ * @throws {AppError} `authorizationError` – actor lacks permission to create this user type.
+ * @throws {AppError} Re-throws all other AppErrors from lower layers unchanged.
+ * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const createUserService = async (input, actor) => {
-  const context = 'user-service/createUserService';
-
+  const context = `${CONTEXT}/createUserService`;
+  
   return withTransaction(async (client) => {
     try {
-      // ------------------------------------------------------------
-      // 1. Resolve target role (single source of truth)
-      // ------------------------------------------------------------
+      // 1. Resolve target role — single source of truth for role semantics.
       const targetRole = await getRoleById(input.roleId, client);
-
+      
       if (!targetRole || !targetRole.is_active) {
         throw AppError.validationError('Invalid or inactive role.');
       }
-
-      const { isRootRole, isAdminRole, isSystemRole } =
-        classifyRole(targetRole);
-
-      // ------------------------------------------------------------
-      // 2. ACL / permission check
-      // ------------------------------------------------------------
+      
+      const { isRootRole, isAdminRole, isSystemRole } = classifyRole(targetRole);
+      
+      // 2. Evaluate ACL — check actor has permission to create this user type.
       const access = await evaluateUserCreationAccessControl(actor);
-
+      
       if (!access.canCreateUsers) {
-        throw AppError.authorizationError(
-          'You are not allowed to create users.'
-        );
+        throw AppError.authorizationError('You are not allowed to create users.');
       }
-
+      
       if (isSystemRole && !access.canCreateSystemUsers) {
-        throw AppError.authorizationError(
-          'You are not allowed to create system users.'
-        );
+        throw AppError.authorizationError('You are not allowed to create system users.');
       }
-
+      
       if (isRootRole && !access.canCreateRootUsers) {
-        throw AppError.authorizationError(
-          'You are not allowed to create root users.'
-        );
+        throw AppError.authorizationError('You are not allowed to create root users.');
       }
-
+      
       if (isAdminRole && !access.canCreateAdminUsers) {
-        throw AppError.authorizationError(
-          'You are not allowed to create admin users.'
-        );
+        throw AppError.authorizationError('You are not allowed to create admin users.');
       }
-
-      // TODO(role-hierarchy):
-      // Replace name-based role semantics with hierarchy-based checks
-      // once `hierarchy_level` and `parent_role_id` are finalized.
-      // This MUST be implemented inside `classifyRole()` only.
-      // Do not add inline hierarchy checks here.
-
-      // ------------------------------------------------------------
-      // 3. Determine initial status (SERVICE-OWNED RULE)
-      // ------------------------------------------------------------
-      // IMPORTANT:
-      // Activation state is a service invariant.
-      // Callers MUST NOT control initial user status.
+      
+      // TODO(role-hierarchy): Replace name-based role semantics with hierarchy-based
+      // checks once `hierarchy_level` and `parent_role_id` are finalised.
+      // Must be implemented inside `classifyRole()` only — no inline checks here.
+      
+      // 3. Determine initial status — service invariant, callers must not control this.
       let statusId;
-
+      
       if (actor?.isBootstrap === true && actor?.isRoot === true) {
-        // Bootstrap-only exception: initial root admin starts ACTIVE
+        // Bootstrap-only exception: initial root admin starts active.
         statusId = getStatusId('general_active');
       } else {
-        // All normal API-created users start INACTIVE
+        // All normal API-created users start inactive.
         statusId = getStatusId('general_inactive');
       }
-
-      // ------------------------------------------------------------
-      // 4. Hash password (outside DB write)
-      // ------------------------------------------------------------
+      
+      // 4. Hash password outside the DB write to avoid holding the transaction open.
       const passwordHash = await hashPassword(input.password);
-
-      // ------------------------------------------------------------
-      // 5. Insert user
-      // ------------------------------------------------------------
+      
+      // 5. Insert user record.
       const userRecord = await insertUser(
         {
-          email: input.email,
-          roleId: input.roleId,
+          email:       input.email,
+          roleId:      input.roleId,
           statusId,
-          firstname: input.firstname,
-          lastname: input.lastname,
+          firstname:   input.firstname,
+          lastname:    input.lastname,
           phoneNumber: input.phoneNumber,
-          jobTitle: input.jobTitle,
-          note: input.note,
-          createdBy: actor.id,
+          jobTitle:    input.jobTitle,
+          note:        input.note,
+          createdBy:   actor.id,
         },
         client
       );
-
-      // ------------------------------------------------------------
-      // 6. Insert auth (same transaction)
-      // ------------------------------------------------------------
-      await insertUserAuth(
-        {
-          userId: userRecord.id,
-          passwordHash,
-        },
-        client
-      );
-
-      // ------------------------------------------------------------
-      // 7. Transform & audit
-      // ------------------------------------------------------------
-      const transformed = transformUserInsertResult(userRecord);
-
-      logSystemInfo('User created successfully', {
-        context,
-        userId: userRecord.id,
-        createdBy: actor.id,
-        roleId: targetRole.id,
-      });
-
-      return transformed;
+      
+      // 6. Insert auth record in the same transaction for atomicity.
+      await insertUserAuth({ userId: userRecord.id, passwordHash }, client);
+      
+      // 7. Transform and return.
+      return transformUserInsertResult(userRecord);
     } catch (error) {
-      logSystemException(error, 'Failed to create user', { context });
-
-      throw error instanceof AppError
-        ? error
-        : AppError.databaseError('Failed to create user.', {
-            cause: error,
-            context,
-          });
+      if (error instanceof AppError) throw error;
+      
+      throw AppError.serviceError('Unable to create user.', {
+        meta: { error: error.message, context },
+      });
     }
   });
 };
 
 /**
- * Service: Fetch paginated users for UI consumption.
+ * Fetches paginated user records scoped to the requesting user's visibility.
  *
- * Responsibilities:
- * - Resolve visibility authority for the requesting user
- * - Translate ACL decisions into repository-consumable visibility filters
- * - Orchestrate paginated repository queries
- * - Defensively enforce per-row visibility constraints (safety net)
- * - Normalize empty result sets
- * - Transform records into UI-ready response shapes
- * - Emit structured success and failure logs
+ * Evaluates access control, applies visibility rules to filters, queries
+ * the repository, applies per-row slicing, and transforms results for UI consumption.
  *
- * Visibility enforcement model:
- * - Repository-level filtering is the PRIMARY enforcement mechanism
- * - Service-level filter adjustment translates ACL → SQL intent
- * - Per-row slicing is DEFENSIVE only and must never broaden visibility
+ * @param {Object}        options
+ * @param {Object}        [options.filters={}]           - Field filters to apply.
+ * @param {number}        [options.page=1]               - Page number (1-based).
+ * @param {number}        [options.limit=10]             - Records per page.
+ * @param {string}        [options.sortBy='createdAt']   - Sort field key (validated against sort map).
+ * @param {'ASC'|'DESC'}  [options.sortOrder='DESC']     - Sort direction.
+ * @param {string}        [options.viewMode='list']      - View mode passed to transformer.
+ * @param {Object}        options.user                   - Authenticated user.
  *
- * This service DOES:
- * - Apply visibility rules via applyUserListVisibilityRules()
- * - Pass visibility-adjusted filters to the repository
- * - Enforce ACTIVE-only visibility when required
+ * @returns {Promise<PaginatedResult<Object>>}
  *
- * This service DOES NOT:
- * - Grant or infer permissions
- * - Bypass repository visibility rules
- * - Perform business-specific response shaping
- * - Infer visibility from roles or identity flags
- *
- * @param {Object} options
- * @param {Object} [options.filters={}] - Normalized filtering criteria (pre-ACL)
- * @param {number} [options.page=1] - Page number (1-based)
- * @param {number} [options.limit=10] - Records per page
- * @param {string} [options.sortBy='u.created_at'] - SQL-safe sort column
- * @param {'ASC'|'DESC'} [options.sortOrder='DESC'] - Sort direction
- * @param {'list'|'card'} [options.viewMode='list'] - UI presentation mode
- * @param {Object} options.user - Authenticated requester context
- *
- * @returns {Promise<{
- *   data: Object[],
- *   pagination: {
- *     page: number,
- *     limit: number,
- *     totalRecords: number,
- *     totalPages: number
- *   }
- * }>}
+ * @throws {AppError} Re-throws AppErrors from lower layers unchanged.
+ * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const fetchPaginatedUsersService = async ({
-  filters = {},
-  page = 1,
-  limit = 10,
-  sortBy = 'u.created_at',
-  sortOrder = 'DESC',
-  viewMode = 'list',
-  user,
-}) => {
-  const context = 'user-service/fetchPaginatedUsersService';
-
+                                            filters   = {},
+                                            page      = 1,
+                                            limit     = 10,
+                                            sortBy    = 'createdAt',
+                                            sortOrder = 'DESC',
+                                            viewMode  = 'list',
+                                            user,
+                                          }) => {
+  const context = `${CONTEXT}/fetchPaginatedUsersService`;
+  
   try {
-    // ---------------------------------------------------------
-    // Step 0 — Resolve visibility access control
-    // ---------------------------------------------------------
+    // 1. Resolve visibility access control scope for this user.
     const access = await evaluateUserVisibilityAccessControl(user);
-
-    // ---------------------------------------------------------
-    // Step 1 — Apply visibility rules to filters (CRITICAL)
-    // ---------------------------------------------------------
+    
+    // 2. Apply visibility rules to filters (CRITICAL — must run before query).
     const adjustedFilters = applyUserListVisibilityRules(filters, access);
-
-    // ---------------------------------------------------------
-    // Step 2 — Query raw data from repository
-    // ---------------------------------------------------------
+    
+    // 3. Query raw paginated rows.
     const rawResult = await getPaginatedUsers({
       filters: adjustedFilters,
       page,
@@ -274,173 +204,85 @@ const fetchPaginatedUsersService = async ({
       sortBy,
       sortOrder,
     });
-
-    // ---------------------------------------------------------
-    // Step 3 — Handle empty result
-    // ---------------------------------------------------------
+    
+    // 4. Return empty shape immediately — no records to process.
     if (!rawResult || rawResult.data.length === 0) {
-      logSystemInfo('No user records found', {
-        context,
-        filters: adjustedFilters,
-        pagination: { page, limit },
-        sort: { sortBy, sortOrder },
-        viewMode,
-      });
-
       return {
-        data: [],
-        pagination: {
-          page,
-          limit,
-          totalRecords: 0,
-          totalPages: 0,
-        },
+        data:       [],
+        pagination: { page, limit, totalRecords: 0, totalPages: 0 },
       };
     }
-
-    // ---------------------------------------------------------
-    // Step 4 — Defensive per-row visibility (minimal)
-    // ---------------------------------------------------------
+    
+    // 5. Apply per-row visibility slicing based on resolved access scope.
     const visibleRows = rawResult.data
       .map((row) => sliceUserForUser(row, access))
       .filter(Boolean);
-
-    // ---------------------------------------------------------
-    // Step 5 — Transform for UI consumption
-    // ---------------------------------------------------------
-    const result = await transformPaginatedUserForViewResults(
-      {
-        ...rawResult,
-        data: visibleRows,
-      },
-      viewMode
+    
+    // 6. Transform for UI consumption.
+    const typedResult = /** @type {{ data: UserRow[], pagination: Object }} */ (
+      { ...rawResult, data: visibleRows }
     );
-
-    // ---------------------------------------------------------
-    // Step 6 — Log success
-    // ---------------------------------------------------------
-    logSystemInfo('Paginated user records fetched', {
-      context,
-      filters: adjustedFilters,
-      pagination: result.pagination,
-      sort: { sortBy, sortOrder },
-      viewMode,
-      count: result.data?.length,
-    });
-
-    return result;
+    
+    return transformPaginatedUserForViewResults(typedResult, viewMode);
   } catch (error) {
-    // ---------------------------------------------------------
-    // Step 7 — Log + rethrow
-    // ---------------------------------------------------------
-    logSystemException(error, 'Failed to fetch paginated user records', {
-      context,
-      filters,
-      pagination: { page, limit },
-      sort: { sortBy, sortOrder },
-      viewMode,
-      userId: user?.id,
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError('Unable to retrieve user records.', {
+      meta: { error: error.message, context },
     });
-
-    throw AppError.serviceError(
-      'Unable to retrieve user records at this time. Please try again later.',
-      { context }
-    );
   }
 };
 
 /**
- * Service: Fetch complete user profile with permission filtering.
+ * Fetches a single user profile with permission-filtered fields.
  *
- * Root entry point for the User Profile page.
- * Enforces server-side visibility to prevent ID-guessing
- * and client-side mistakes.
+ * Evaluates profile-level and role-level visibility separately.
+ * Returns only the fields the requester is authorised to see.
  *
- * Security & policy notes:
- * - Only ACTIVE users are directly accessible by profile ID
- * - Profile visibility is enforced per-request on the server
- * - Avatars are intentionally public and do not require ACL checks
+ * @param {string} userId     - UUID of the user to retrieve.
+ * @param {Object} requester  - Authenticated user making the request.
  *
- * @param {string} userId - Target user UUID
- * @param {Object} requester - Authenticated user context
- * @returns {Promise<UserProfileDTO>}
+ * @returns {Promise<Object>} Permission-filtered user profile DTO.
+ *
+ * @throws {AppError} `notFoundError`      – user does not exist or is inactive.
+ * @throws {AppError} `authorizationError` – requester is not authorised to view this profile.
+ * @throws {AppError} Re-throws all other AppErrors from lower layers unchanged.
+ * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const fetchUserProfileService = async (userId, requester) => {
-  const context = 'user-service/fetchUserProfileService';
-  const traceId = `user-profile-${Date.now().toString(36)}`;
-
+  const context = `${CONTEXT}/fetchUserProfileService`;
+  
   try {
     const activeId = getStatusId('general_active');
-
-    // --------------------------------------------------------
-    // 1. Fetch base user profile record (ACTIVE users only)
-    // --------------------------------------------------------
-    // Inactive users are not directly accessible by profile ID.
+    
+    // 1. Fetch base profile — active users only.
     const userRow = await getUserProfileById(userId, activeId);
-
+    
     if (!userRow) {
-      throw AppError.notFoundError(`User not found: ${userId}`, { context });
+      throw AppError.notFoundError(`User not found: ${userId}`);
     }
-
-    // --------------------------------------------------------
-    // 2. Profile-level visibility (block entire page if denied)
-    // --------------------------------------------------------
-    const profileAccess = await evaluateUserProfileAccessControl(
-      requester,
-      userId
-    );
-
-    const safeProfileRow = sliceUserProfileForUser(userRow, profileAccess);
-
+    
+    // 2. Evaluate profile-level visibility — blocks entire profile if denied.
+    const profileAccess   = await evaluateUserProfileAccessControl(requester, userId);
+    const safeProfileRow  = sliceUserProfileForUser(userRow, profileAccess);
+    
     if (!safeProfileRow) {
       throw AppError.authorizationError(
-        'You are not authorized to view this user profile.',
-        { context, userId }
+        'You are not authorized to view this user profile.'
       );
     }
-
-    // --------------------------------------------------------
-    // 3. Role visibility (self OR permission)
-    // --------------------------------------------------------
-    const roleAccess = await evaluateUserRoleViewAccessControl(
-      requester,
-      profileAccess
-    );
-
-    const withRole = sliceUserRoleForUser(safeProfileRow, roleAccess);
-
-    // --------------------------------------------------------
-    // 4. Transform → API DTO
-    // --------------------------------------------------------
-    // Avatar visibility is intentionally public for all users.
-    const response = transformUserProfileRow(withRole);
-
-    // --------------------------------------------------------
-    // 5. Structured logging
-    // --------------------------------------------------------
-    logSystemInfo('Fetched user profile', {
-      context,
-      traceId,
-      targetUserId: userId,
-      requesterId: requester?.id,
-      isSelf: profileAccess.isSelf,
-      roleVisible: Boolean(response?.role),
-      avatarVisible: Boolean(response?.avatar),
-      permissionCount: response?.role?.permissions?.length ?? 0,
-    });
-
-    return response;
+    
+    // 3. Evaluate role visibility — self or explicit permission.
+    const roleAccess = await evaluateUserRoleViewAccessControl(requester, profileAccess);
+    const withRole   = sliceUserRoleForUser(safeProfileRow, roleAccess);
+    
+    // 4. Transform to API DTO — avatar visibility is intentionally public.
+    return transformUserProfileRow(withRole);
   } catch (error) {
-    logSystemException(error, 'Failed to fetch user profile', {
-      context,
-      traceId,
-      targetUserId: userId,
-      requesterId: requester?.id,
-    });
-
-    throw AppError.serviceError('Failed to fetch user profile', {
-      details: error.message,
-      context,
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError('Unable to fetch user profile.', {
+      meta: { error: error.message, context },
     });
   }
 };

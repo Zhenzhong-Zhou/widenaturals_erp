@@ -149,7 +149,7 @@ const getBatchRegistryLookup = async ({ filters, limit = 50, offset = 0 }) => {
  * @param {string}       [options.sortBy='registeredAt']  - Sort key (mapped via batchRegistrySortMap).
  * @param {'ASC'|'DESC'} [options.sortOrder='DESC']       - Sort direction.
  *
- * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
+ * @returns {Promise<PaginatedResult<Object>>} Paginated result with rows and pagination metadata.
  * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getPaginatedBatchRegistry = async ({

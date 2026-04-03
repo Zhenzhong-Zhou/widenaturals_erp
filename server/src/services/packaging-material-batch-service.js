@@ -1,640 +1,319 @@
+/**
+ * @file packaging-material-batch-service.js
+ * @description Business logic for packaging material batch lifecycle operations.
+ *
+ * Exports:
+ *   - fetchPaginatedPackagingMaterialBatchesService  – paginated batch list with visibility scoping
+ *   - createPackagingMaterialBatchesService          – bulk batch creation with registry and activity logs
+ *   - editPackagingMaterialBatchMetadataService      – shared metadata update workflow
+ *   - updatePackagingMaterialBatchStatusService      – status-only update (delegates to metadata workflow)
+ *   - receivePackagingMaterialBatchService           – marks batch as received (delegates to metadata workflow)
+ *   - releasePackagingMaterialBatchService           – marks batch as released (delegates to metadata workflow)
+ *
+ * Error handling follows a single-log principle — errors are not logged here.
+ * They bubble up to globalErrorHandler, which logs once with the normalised shape.
+ *
+ * AppErrors thrown by lower layers are re-thrown as-is.
+ * Unexpected errors are wrapped in AppError.serviceError before bubbling up.
+ */
+
+'use strict';
+
 const {
   evaluatePackagingMaterialBatchVisibility,
   applyPackagingMaterialBatchVisibilityRules,
   evaluatePackagingMaterialBatchAccessControl,
   filterUpdatablePackagingMaterialBatchFields,
-} = require('../business/packaging-material-batch-business');
+}                                            = require('../business/packaging-material-batch-business');
 const {
   getPaginatedPackagingMaterialBatches,
   insertPackagingMaterialBatchesBulk,
   getPackagingMaterialBatchById,
   updatePackagingMaterialBatch,
-} = require('../repositories/packaging-material-batch-repository');
-const {
-  logSystemInfo,
-  logSystemException
-} = require('../utils/system-logger');
+}                                            = require('../repositories/packaging-material-batch-repository');
 const {
   transformPaginatedPackagingMaterialBatchResults,
   transformPackagingMaterialBatchRecords,
-} = require('../transformers/packaging-material-batch-transformer');
-const AppError = require('../utils/AppError');
-const { withTransaction, lockRows } = require('../database/db');
-const { validateRequiredFields } = require('../utils/validation/validation-utils');
-const { getStatusId } = require('../config/status-cache');
-const {
-  registerBatchWorkflow,
-  updateBatchWorkflow
-} = require('../business/batches/batch-workflow');
-const { getBatchActivityTypeId } = require('../cache/batch-activity-type-cache');
+}                                            = require('../transformers/packaging-material-batch-transformer');
+const AppError                               = require('../utils/AppError');
+const { withTransaction, lockRows }          = require('../database/db');
+const { validateRequiredFields }             = require('../utils/validation/validate-required-fields');
+const { getStatusId }                        = require('../config/status-cache');
+const { registerBatchWorkflow, updateBatchWorkflow } = require('../business/batches/batch-workflow');
+const { getBatchActivityTypeId }             = require('../cache/batch-activity-type-cache');
 const {
   PACKAGING_BATCH_EDIT_RULES,
-  PACKAGING_BATCH_STATUS_TRANSITIONS
-} = require('../utils/constants/domain/packaging-material-batch-constants');
-const { getBatchActivityType } = require('../business/batches/batch-activity-resolvers');
-const { transformIdOnlyResult } = require('../transformers/common/id-result-transformer');
+  PACKAGING_BATCH_STATUS_TRANSITIONS,
+}                                            = require('../utils/constants/domain/packaging-material-batch-constants');
+const { getBatchActivityType }               = require('../business/batches/batch-activity-resolvers');
+const { transformIdOnlyResult }              = require('../transformers/common/id-result-transformer');
+
+const CONTEXT = 'packaging-material-batch-service';
 
 /**
- * Service: Fetch paginated packaging material batch records for UI consumption.
+ * Fetches paginated packaging material batches scoped to the user's visibility.
  *
- * Responsibilities:
- * - Resolve packaging material batch visibility for the requesting user
- * - Translate ACL decisions into repository-consumable filters
- * - Execute paginated packaging material batch queries
- * - Normalize empty result sets
- * - Transform flat PMB rows into UI-ready shapes
- * - Emit structured success and failure logs
+ * @param {Object}  options
+ * @param {Object}  [options.filters={}]  - Field filters to apply.
+ * @param {number}  [options.page=1]      - Page number (1-based).
+ * @param {number}  [options.limit=20]    - Records per page.
+ * @param {Object}  options.user          - Authenticated user.
+ * @returns {Promise<PaginatedResult<Object>>}
  *
- * Visibility enforcement model:
- * - Repository-level filtering is the PRIMARY enforcement mechanism
- * - Service-level filter adjustment expresses business intent
- * - No row-level slicing is required (non-polymorphic domain)
- *
- * @param {Object} options
- * @param {Object} [options.filters={}] - Normalized pre-business filters
- * @param {number} [options.page=1]
- * @param {number} [options.limit=20]
- * @param {Object} options.user - Authenticated requester context
- *
- * @returns {Promise<{ data: Object[], pagination: Object }>}
+ * @throws {AppError} Re-throws AppErrors from lower layers unchanged.
+ * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const fetchPaginatedPackagingMaterialBatchesService = async ({
-  filters = {},
-  page = 1,
-  limit = 20,
-  user,
-}) => {
-  const context =
-    'packaging-material-batch-service/fetchPaginatedPackagingMaterialBatchesService';
-
+                                                               filters = {},
+                                                               page    = 1,
+                                                               limit   = 20,
+                                                               user,
+                                                             }) => {
+  const context = `${CONTEXT}/fetchPaginatedPackagingMaterialBatchesService`;
+  
   try {
-    // ---------------------------------------------------------
-    // Step 0 — Resolve PMB visibility
-    // ---------------------------------------------------------
+    // 1. Resolve visibility access control scope.
     const access = await evaluatePackagingMaterialBatchVisibility(user);
-
-    // ---------------------------------------------------------
-    // Step 1 — Apply visibility / scope rules (CRITICAL)
-    // ---------------------------------------------------------
-    const adjustedFilters = applyPackagingMaterialBatchVisibilityRules(
-      filters,
-      access
-    );
-
-    // ---------------------------------------------------------
-    // Step 2 — Query raw PMB rows
-    // ---------------------------------------------------------
+    
+    // 2. Apply visibility rules to filters (CRITICAL — must run before query).
+    const adjustedFilters = applyPackagingMaterialBatchVisibilityRules(filters, access);
+    
+    // 3. Query raw paginated rows.
     const rawResult = await getPaginatedPackagingMaterialBatches({
       filters: adjustedFilters,
       page,
       limit,
     });
-
-    // ---------------------------------------------------------
-    // Step 3 — Handle empty result
-    // ---------------------------------------------------------
+    
+    // 4. Return empty shape immediately — no records to process.
     if (!rawResult || rawResult.data.length === 0) {
-      logSystemInfo('No packaging material batches found', {
-        context,
-        filters: adjustedFilters,
-        pagination: { page, limit },
-      });
-
       return {
-        data: [],
-        pagination: {
-          page,
-          limit,
-          totalRecords: 0,
-          totalPages: 0,
-        },
+        data:       [],
+        pagination: { page, limit, totalRecords: 0, totalPages: 0 },
       };
     }
-
-    // ---------------------------------------------------------
-    // Step 4 — Transform for UI consumption
-    // ---------------------------------------------------------
-    const result = await transformPaginatedPackagingMaterialBatchResults(
-      rawResult,
-      access
-    );
-
-    // ---------------------------------------------------------
-    // Step 5 — Log success
-    // ---------------------------------------------------------
-    logSystemInfo('Paginated packaging material batches fetched', {
-      context,
-      filters: adjustedFilters,
-      pagination: result.pagination,
-      count: result.data?.length,
-    });
-
-    return result;
+    
+    // 5. Transform for UI consumption.
+    return transformPaginatedPackagingMaterialBatchResults(rawResult, access);
   } catch (error) {
-    // ---------------------------------------------------------
-    // Step 6 — Log + rethrow
-    // ---------------------------------------------------------
-    logSystemException(error, 'Failed to fetch packaging material batches', {
-      context,
-      filters,
-      pagination: { page, limit },
-      userId: user?.id,
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError('Unable to retrieve packaging material batches.', {
+      meta: { error: error.message, context },
     });
-
-    throw AppError.serviceError(
-      'Unable to retrieve packaging material batches at this time.',
-      { context }
-    );
   }
 };
 
 /**
- * Create packaging material batches and register them within the ERP system.
+ * Creates packaging material batches in bulk with registry entries and activity logs.
  *
- * This service orchestrates the complete lifecycle required to create
- * packaging material batches, ensuring transactional integrity and
- * full audit traceability.
+ * Validates input, locks supplier rows, prepares batch records, and delegates
+ * to the shared batch registration workflow.
  *
- * Workflow:
- * 1. Validate input payload structure and required fields.
- * 2. Lock related packaging material supplier records to prevent
- *    concurrent batch creation conflicts.
- * 3. Normalize batch records and apply default status values.
- * 4. Insert batch records in bulk.
- * 5. Register batches in the batch registry.
- * 6. Create batch activity logs for audit tracking.
- * 7. Transform database rows into API response format.
+ * @param {Array<Object>} packagingMaterialBatches - Batch input objects.
+ * @param {Object}        user                     - Authenticated user.
+ * @returns {Promise<PackagingMaterialBatchInsertRecord[]>}
  *
- * Concurrency Protection:
- * - Supplier rows are locked using `SELECT ... FOR UPDATE` to ensure
- *   batches referencing the same supplier cannot be created concurrently.
- *
- * Performance Characteristics:
- * - Uses bulk insert operations to minimize database round trips.
- * - Executes the entire workflow inside a single transaction.
- * - Designed to efficiently process large batch imports.
- *
- * Data Integrity Guarantees:
- * - Ensures all referenced suppliers exist before insertion.
- * - Ensures every batch is registered and logged.
- * - Maintains atomic consistency across all related tables.
- *
- * @async
- *
- * @param {Array<Object>} packagingMaterialBatches
- * Packaging material batch payloads to create.
- *
- * @param {Object} user
- * Authenticated user performing the operation.
- *
- * @param {string} user.id
- * User identifier used for audit and ownership tracking.
- *
- * @returns {Promise<Array<Object>>}
- * Transformed packaging material batch records for API response.
+ * @throws {AppError} `validationError`  – missing required fields or empty input.
+ * @throws {AppError} `notFoundError`    – supplier rows could not be locked.
+ * @throws {AppError} Re-throws all other AppErrors from lower layers unchanged.
+ * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
-const createPackagingMaterialBatchesService = async (
-  packagingMaterialBatches,
-  user
-) => {
+const createPackagingMaterialBatchesService = async (packagingMaterialBatches, user) => {
+  const context = `${CONTEXT}/createPackagingMaterialBatchesService`;
+  
   return withTransaction(async (client) => {
-    const context =
-      'packaging-material-batch-service/createPackagingMaterialBatchesService';
-    
-    const actorId = user?.id;
-    
     try {
-      // ------------------------------------------------------------
-      // 1. Validate input
-      // ------------------------------------------------------------
-      if (
-        !Array.isArray(packagingMaterialBatches) ||
-        packagingMaterialBatches.length === 0
-      ) {
-        throw AppError.validationError(
-          'No packaging material batches provided.',
-          { details: context }
-        );
+      // 1. Validate input array.
+      if (!Array.isArray(packagingMaterialBatches) || packagingMaterialBatches.length === 0) {
+        throw AppError.validationError('No packaging material batches provided.');
       }
       
       validateRequiredFields(
         packagingMaterialBatches,
-        [
-          'lot_number',
-          'packaging_material_supplier_id',
-          'manufacture_date',
-          'expiry_date',
-          'quantity',
-        ],
+        ['lot_number', 'packaging_material_supplier_id', 'manufacture_date', 'expiry_date', 'quantity'],
         context
       );
       
-      // ------------------------------------------------------------
-      // 2. Lock related packaging material supplier rows
-      // ------------------------------------------------------------
-      // Extract unique supplier ids referenced by incoming batches
-      // Filtering null prevents invalid locking queries.
-      const uniquePackagingMaterialSupplierIds = [
+      // 2. Lock supplier rows to prevent concurrent batch creation.
+      const uniqueSupplierIds = [
         ...new Set(
           packagingMaterialBatches
-            .map(b => b.packaging_material_supplier_id)
+            .map((b) => b.packaging_material_supplier_id)
             .filter(Boolean)
-        )
+        ),
       ];
-
-      // Lock supplier rows to prevent concurrent batch creation
+      
       const lockedSuppliers = await lockRows(
         client,
         'packaging_material_suppliers',
-        uniquePackagingMaterialSupplierIds,
+        uniqueSupplierIds,
         'FOR UPDATE',
         { context }
       );
-
-      // Verify all suppliers exist
-      if (!lockedSuppliers || lockedSuppliers.length !== uniquePackagingMaterialSupplierIds.length) {
-        throw AppError.notFoundError(
-          'Some packaging material suppliers could not be locked.',
-          { context }
-        );
+      
+      if (!lockedSuppliers || lockedSuppliers.length !== uniqueSupplierIds.length) {
+        throw AppError.notFoundError('Some packaging material suppliers could not be locked.');
       }
       
-      // ------------------------------------------------------------
-      // 3. Prepare batch records
-      // ------------------------------------------------------------
+      // 3. Prepare batch records with status and actor.
       const pendingStatusId = getStatusId('batch_pending');
+      const actorId         = user?.id;
       
       const preparedBatches = packagingMaterialBatches.map((batch) => ({
         ...batch,
-        status_id: pendingStatusId,
+        status_id:  pendingStatusId,
         created_by: actorId,
       }));
       
-      // Resolve activity type once
-      const batchCreatedActivityTypeId =
-        getBatchActivityTypeId('BATCH_CREATED');
+      // 4. Resolve activity type and run batch registration workflow.
+      const batchCreatedActivityTypeId = getBatchActivityTypeId('BATCH_CREATED');
       
-      // ------------------------------------------------------------
-      // 4. Create batches + registry + activity logs
-      // ------------------------------------------------------------
       const insertedBatches = await registerBatchWorkflow({
-        batchType: 'packaging_material',
-        batches: preparedBatches,
-        insertBatchFn: insertPackagingMaterialBatchesBulk,
+        batchType:                'packaging_material',
+        batches:                  preparedBatches,
+        insertBatchFn:            insertPackagingMaterialBatchesBulk,
         batchCreatedActivityTypeId,
         actorId,
         client,
       });
       
-      // ------------------------------------------------------------
-      // 5. Transform response
-      // ------------------------------------------------------------
-      const transformed =
-        transformPackagingMaterialBatchRecords(insertedBatches);
-      
-      // ------------------------------------------------------------
-      // 6. System audit log
-      // ------------------------------------------------------------
-      logSystemInfo('Packaging material batch creation completed', {
-        context,
-        totalInput: packagingMaterialBatches.length,
-        insertedCount: insertedBatches.length,
-      });
-      
-      return transformed;
+      // 5. Transform and return insert results.
+      return transformPackagingMaterialBatchRecords(insertedBatches);
     } catch (error) {
-      logSystemException(
-        error,
-        'Failed to create packaging material batches',
-        { context }
-      );
+      if (error instanceof AppError) throw error;
       
-      throw AppError.databaseError(
-        'Failed to create packaging material batches.',
-        {
-          cause: error,
-          context,
-        }
-      );
+      throw AppError.serviceError('Unable to create packaging material batches.', {
+        meta: { error: error.message, context },
+      });
     }
   });
 };
 
 /**
- * Service for editing packaging material batch metadata.
+ * Updates packaging material batch metadata using the shared batch update workflow.
  *
- * This service executes the shared batch update workflow inside a
- * database transaction and ensures that:
+ * Used directly for metadata edits and indirectly by status/receive/release operations.
  *
- * - lifecycle rules are enforced by the shared batch workflow
- * - metadata updates follow permission restrictions
- * - lifecycle status transitions are validated
- * - batch activity logs are generated and persisted for auditing
- *
- * Responsibilities:
- * - open a database transaction
- * - execute the shared batch workflow
- * - transform the response payload
- * - record structured system logs
- *
- * The optional `overrideContext` parameter allows callers to provide
- * a more specific logging context for lifecycle operations such as
- * status updates, receiving, or releasing batches.
- *
- * @async
- *
- * @param {string} batchId
- * Packaging material batch identifier.
- *
- * @param {Object} updates
- * Partial fields to update on the batch.
- *
- * @param {{ id: string }} user
- * Authenticated user performing the operation.
- *
- * @param {string} [overrideContext]
- * Optional logging context used by lifecycle services.
- *
+ * @param {string}      batchId          - UUID of the batch to update.
+ * @param {Object}      updates          - Fields to update.
+ * @param {Object}      user             - Authenticated user.
+ * @param {string|null} [overrideContext] - Optional context override from delegating functions.
  * @returns {Promise<{ id: string }>}
- * Identifier of the updated batch.
+ *
+ * @throws {AppError} `validationError`  – invalid updates payload.
+ * @throws {AppError} Re-throws all other AppErrors from lower layers unchanged.
+ * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const editPackagingMaterialBatchMetadataService = async (
   batchId,
   updates,
   user,
-  overrideContext,
+  overrideContext
 ) => {
+  const context = overrideContext ?? `${CONTEXT}/editPackagingMaterialBatchMetadataService`;
+  
   return withTransaction(async (client) => {
-    const context =
-      overrideContext ??
-      'packaging-material-batch-service/editPackagingMaterialBatchMetadataService';
-    
     try {
-      //------------------------------------------------------------
-      // 1. Validate service inputs
-      //------------------------------------------------------------
+      // 1. Validate updates payload.
       if (!updates || typeof updates !== 'object') {
-        throw AppError.validationError(
-          'Invalid updates payload.',
-          {
-            details: {
-              context
-            }
-          }
-        );
+        throw AppError.validationError('Invalid updates payload.');
       }
       
-      //------------------------------------------------------------
-      // 2. Execute shared batch workflow
-      //------------------------------------------------------------
+      // 2. Execute shared batch update workflow.
       const updatedBatch = await updateBatchWorkflow({
         batchId,
         updates,
         user,
         client,
-        
-        // repository access
-        getBatchFn: getPackagingMaterialBatchById,
-        updateBatchFn: updatePackagingMaterialBatch,
-        
-        // lifecycle configuration
-        editRules: PACKAGING_BATCH_EDIT_RULES,
-        statusTransitions: PACKAGING_BATCH_STATUS_TRANSITIONS,
-        
-        // domain type for activity logging
-        batchType: 'packaging_material',
-        
-        // activity type resolver
-        activityTypeResolver: getBatchActivityType,
-        
-        // permission evaluation
-        evaluateAccessControlFn: evaluatePackagingMaterialBatchAccessControl,
-        
-        // lifecycle + permission filtering
-        filterUpdatableFieldsFn: filterUpdatablePackagingMaterialBatchFields,
+        getBatchFn:               getPackagingMaterialBatchById,
+        updateBatchFn:            updatePackagingMaterialBatch,
+        editRules:                PACKAGING_BATCH_EDIT_RULES,
+        statusTransitions:        PACKAGING_BATCH_STATUS_TRANSITIONS,
+        batchType:                'packaging_material',
+        activityTypeResolver:     getBatchActivityType,
+        evaluateAccessControlFn:  evaluatePackagingMaterialBatchAccessControl,
+        filterUpdatableFieldsFn:  filterUpdatablePackagingMaterialBatchFields,
       });
       
-      //------------------------------------------------------------
-      // 3. Transform response payload
-      //------------------------------------------------------------
-      const transformedResult =
-        transformIdOnlyResult([updatedBatch]);
-      
-      //------------------------------------------------------------
-      // 4. Structured system log
-      //------------------------------------------------------------
-      logSystemInfo(
-        'Packaging material batch metadata updated successfully',
-        {
-          context,
-          batchId,
-        }
-      );
-      return transformedResult[0];
+      // 3. Transform and return ID-only result.
+      return transformIdOnlyResult([updatedBatch])[0];
     } catch (error) {
-      //------------------------------------------------------------
-      // Log unexpected errors
-      //------------------------------------------------------------
-      logSystemException(
-        error,
-        'Failed to update packaging material batch metadata',
-        {
-          context,
-          batchId,
-        }
-      );
-      
       if (error instanceof AppError) throw error;
       
-      //------------------------------------------------------------
-      // Normalize unexpected errors
-      //------------------------------------------------------------
-      throw AppError.databaseError(
-        'Failed to update packaging material batch metadata.',
-        {
-          cause: error,
-          context,
-        }
-      );
+      throw AppError.serviceError('Unable to update packaging material batch metadata.', {
+        meta: { error: error.message, context },
+      });
     }
   });
 };
 
 /**
- * Updates the lifecycle status of a packaging material batch.
+ * Updates the status of a packaging material batch.
  *
- * This service delegates the update to
- * {@link editPackagingMaterialBatchMetadataService} so that all
- * packaging batch modifications pass through the shared batch
- * workflow engine.
+ * Delegates to `editPackagingMaterialBatchMetadataService`.
  *
- * The workflow engine centrally handles:
- *
- * - lifecycle transition validation
- * - permission checks
- * - activity log generation
- * - transactional database updates
- *
- * Routing lifecycle changes through the metadata workflow ensures
- * consistent status handling across packaging material batches.
- *
- * @async
- *
- * @param {string} batchId
- * Identifier of the packaging material batch to update.
- *
- * @param {string} statusId
- * Target lifecycle status identifier.
- *
- * @param {string|null} [notes]
- * Optional notes describing the status change.
- *
- * @param {{ id: string }} user
- * Authenticated user performing the operation.
- *
+ * @param {string}      batchId   - UUID of the batch to update.
+ * @param {string}      statusId  - New status UUID.
+ * @param {string|null} notes     - Optional notes.
+ * @param {Object}      user      - Authenticated user.
  * @returns {Promise<{ id: string }>}
- * Identifier of the updated batch.
  */
-const updatePackagingMaterialBatchStatusService = async (
-  batchId,
-  statusId,
-  notes,
-  user
-) => {
-  const context =
-    'packaging-material-batch-service/updatePackagingMaterialBatchStatusService';
-  
-  //------------------------------------------------------------
-  // Delegate lifecycle update to shared metadata workflow
-  //------------------------------------------------------------
-  return editPackagingMaterialBatchMetadataService(
+const updatePackagingMaterialBatchStatusService = async (batchId, statusId, notes, user) =>
+  editPackagingMaterialBatchMetadataService(
     batchId,
-    {
-      status_id: statusId,
-      notes: notes ?? null
-    },
+    { status_id: statusId, notes: notes ?? null },
     user,
-    context,
+    `${CONTEXT}/updatePackagingMaterialBatchStatusService`
   );
-};
 
 /**
- * Marks a packaging material batch as received by the warehouse.
+ * Marks a packaging material batch as received.
  *
- * This lifecycle transition records warehouse intake
- * information and moves the batch to the "received" status.
+ * Delegates to `editPackagingMaterialBatchMetadataService`.
  *
- * The shared metadata service performs:
- * - lifecycle validation
- * - permission enforcement
- * - activity logging
- * - transactional updates
- *
- * @async
- *
- * @param {string} batchId
- * Packaging material batch identifier.
- *
- * @param {string|Date|null} received_at
- * Timestamp indicating when the batch was received.
- *
- * @param {string|null} [notes]
- * Optional intake notes.
- *
- * @param {{ id: string }} user
- * Authenticated user performing the operation.
- *
+ * @param {string}      batchId     - UUID of the batch to update.
+ * @param {string|null} received_at - Timestamp of receipt.
+ * @param {string|null} notes       - Optional notes.
+ * @param {Object}      user        - Authenticated user.
  * @returns {Promise<{ id: string }>}
- * Identifier of the updated batch.
  */
-const receivePackagingMaterialBatchService = async (
-  batchId,
-  received_at,
-  notes,
-  user
-) => {
-  const context =
-    'packaging-material-batch-service/receivePackagingMaterialBatchService';
-  
-  //------------------------------------------------------------
-  // Resolve lifecycle status identifier
-  //------------------------------------------------------------
-  const receivedStatusId = getStatusId('batch_received');
-  
-  //------------------------------------------------------------
-  // Delegate update to metadata workflow
-  //------------------------------------------------------------
-  return editPackagingMaterialBatchMetadataService(
+const receivePackagingMaterialBatchService = async (batchId, received_at, notes, user) =>
+  editPackagingMaterialBatchMetadataService(
     batchId,
     {
-      status_id: receivedStatusId,
+      status_id:   getStatusId('batch_received'),
       received_at: received_at ?? null,
       received_by: user.id,
-      notes: notes ?? null
+      notes:       notes ?? null,
     },
     user,
-    context,
+    `${CONTEXT}/receivePackagingMaterialBatchService`
   );
-};
 
 /**
- * Releases a packaging material batch for operational use.
+ * Marks a packaging material batch as released.
  *
- * This lifecycle transition indicates that the packaging
- * materials have passed inspection and are approved for
- * manufacturing or packaging operations.
+ * Delegates to `editPackagingMaterialBatchMetadataService`.
  *
- * The release operation records:
- * - QA approver
- * - supplier responsible for the batch
- * - optional QA notes
- *
- * @async
- *
- * @param {string} batchId
- * Packaging material batch identifier.
- *
- * @param {string} supplierId
- * Supplier responsible for the released batch.
- *
- * @param {string|null} [notes]
- * Optional QA release notes.
- *
- * @param {{ id: string }} user
- * Authenticated user performing the operation.
- *
+ * @param {string}      batchId     - UUID of the batch to update.
+ * @param {string}      supplierId  - UUID of the releasing supplier.
+ * @param {string|null} notes       - Optional notes.
+ * @param {Object}      user        - Authenticated user.
  * @returns {Promise<{ id: string }>}
- * Identifier of the updated batch.
  */
-const releasePackagingMaterialBatchService = async (
-  batchId,
-  supplierId,
-  notes,
-  user
-) => {
-  const context =
-    'packaging-material-batch-service/releasePackagingMaterialBatchService';
-  
-  //------------------------------------------------------------
-  // Resolve lifecycle status identifier
-  //------------------------------------------------------------
-  const releasedStatusId = getStatusId('batch_released');
-  
-  //------------------------------------------------------------
-  // Delegate update to metadata workflow
-  //------------------------------------------------------------
-  return editPackagingMaterialBatchMetadataService(
+const releasePackagingMaterialBatchService = async (batchId, supplierId, notes, user) =>
+  editPackagingMaterialBatchMetadataService(
     batchId,
     {
-      status_id: releasedStatusId,
-      released_by: user.id,
+      status_id:               getStatusId('batch_released'),
+      released_by:             user.id,
       released_by_supplier_id: supplierId,
-      notes: notes ?? null
+      notes:                   notes ?? null,
     },
     user,
-    context,
+    `${CONTEXT}/releasePackagingMaterialBatchService`
   );
-};
 
 module.exports = {
   fetchPaginatedPackagingMaterialBatchesService,

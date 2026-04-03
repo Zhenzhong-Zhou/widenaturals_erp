@@ -15,9 +15,10 @@
 
 'use strict';
 
+const { SORTABLE_FIELDS } = require('../../utils/sort-field-mapping');
+
 // ─── Paginated List ───────────────────────────────────────────────────────────
 
-const { SORTABLE_FIELDS } = require('../../utils/sort-field-mapping');
 const ORDER_TYPE_TABLE = 'order_types ot';
 
 const ORDER_TYPE_JOINS = [

@@ -1,200 +1,181 @@
-const AppError = require('../utils/AppError');
-const { sanitizeSortBy } = require('../utils/sort-utils');
+/**
+ * @file pricing-service.js
+ * @description Business logic for pricing record retrieval and export.
+ *
+ * Exports:
+ *   - fetchPaginatedPricingRecordsService  – paginated pricing list with filtering and sorting
+ *   - exportPricingRecordsService          – full pricing export (up to 10,000 records)
+ *   - fetchPricingDetailsByPricingTypeId   – paginated pricing details scoped to a pricing type
+ *
+ * Error handling follows a single-log principle — errors are not logged here.
+ * They bubble up to globalErrorHandler, which logs once with the normalised shape.
+ *
+ * AppErrors thrown by lower layers are re-thrown as-is.
+ * Unexpected errors are wrapped in AppError.serviceError before bubbling up.
+ */
+
+'use strict';
+
+const AppError                             = require('../utils/AppError');
+const { sanitizeSortBy }                   = require('../utils/query/sort-resolver');
 const {
-  getAllPricingRecords,
+  getPaginatedPricings,
+  exportAllPricingRecords,
   getPricingDetailsByPricingTypeId,
-} = require('../repositories/pricing-repository');
+}                                          = require('../repositories/pricing-repository');
 const {
   transformPaginatedPricingResult,
   transformExportPricingData,
   transformPaginatedPricingDetailResult,
-} = require('../transformers/pricing-transformer');
-const { logSystemException, logSystemInfo } = require('../utils/system-logger');
+}                                          = require('../transformers/pricing-transformer');
+
+const CONTEXT = 'pricing-service';
 
 /**
- * Service to fetch paginated pricing records.
+ * Fetches paginated pricing records with optional filtering and sorting.
  *
- * Supports sorting, filtering, and keyword search across product name or SKU.
+ * Input validation is performed before the try/catch — guards are not
+ * error handling, they are pre-conditions.
  *
- * @param {Object} options - Options for the paginated query.
- * @param {number} [options.page=1] - Current page number.
- * @param {number} [options.limit=10] - Number of records per page.
- * @param {string} [options.sortBy='brand'] - Field to sort by (must match allowed keys).
- * @param {string} [options.sortOrder='ASC'] - Sort direction ('ASC' or 'DESC').
- * @param {Object} [options.filters={}] - Optional filters (e.g., { brand, pricingType }).
- * @param {string} [options.keyword] - Optional keyword for fuzzy search.
+ * @param {Object}        options
+ * @param {number}        [options.page=1]          - Page number (1-based).
+ * @param {number}        [options.limit=10]        - Records per page.
+ * @param {string}        [options.sortBy='brand']  - Sort field key.
+ * @param {'ASC'|'DESC'}  [options.sortOrder='ASC'] - Sort direction.
+ * @param {Object}        [options.filters={}]      - Field filters.
+ * @param {string|null}   [options.keyword]         - Optional keyword search.
  *
- * @returns {Promise<Object>} - Returns transformed pricing data with pagination metadata.
+ * @returns {Promise<PaginatedResult<Object>>}
+ *
+ * @throws {AppError} `validationError`  – invalid page, limit, or date range.
+ * @throws {AppError} Re-throws all other AppErrors from lower layers unchanged.
+ * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const fetchPaginatedPricingRecordsService = async ({
-  page = 1,
-  limit = 10,
-  sortBy = 'brand',
-  sortOrder = 'ASC',
-  filters = {},
-  keyword,
-}) => {
-  // Validate inputs
+                                                     page      = 1,
+                                                     limit     = 10,
+                                                     sortBy    = 'brand',
+                                                     sortOrder = 'ASC',
+                                                     filters   = {},
+                                                     keyword,
+                                                   }) => {
+  const context = `${CONTEXT}/fetchPaginatedPricingRecordsService`;
+  
   if (!Number.isInteger(page) || page < 1) {
-    throw AppError.validationError(
-      'Invalid page number. Must be a positive integer.'
-    );
+    throw AppError.validationError('Invalid page number. Must be a positive integer.');
   }
-
+  
   if (!Number.isInteger(limit) || limit < 1) {
-    throw AppError.validationError(
-      'Invalid limit. Must be a positive integer.'
-    );
+    throw AppError.validationError('Invalid limit. Must be a positive integer.');
   }
-
-  if (
-    (filters.validFrom && !filters.validTo) ||
-    (!filters.validFrom && filters.validTo)
-  ) {
+  
+  if ((filters.validFrom && !filters.validTo) || (!filters.validFrom && filters.validTo)) {
     throw AppError.validationError(
       'Both validFrom and validTo must be provided together for date filtering.'
     );
   }
-
-  const sanitizedSortBy = sanitizeSortBy(sortBy, 'pricingRecords');
-  const resolvedSortOrder =
-    sortOrder?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
-
+  
   try {
-    const rawResult = await getAllPricingRecords({
+    const sanitizedSortBy    = sanitizeSortBy(sortBy, 'pricingSortMap');
+    const resolvedSortOrder  = sortOrder?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+    
+    const rawResult = await getPaginatedPricings({
       page,
       limit,
-      sortBy: sanitizedSortBy,
+      sortBy:    sanitizedSortBy,
       sortOrder: resolvedSortOrder,
       filters,
       keyword,
     });
-
+    
+    // Return standard empty shape — no special success/message fields.
     if (!rawResult || !rawResult.data || rawResult.data.length === 0) {
       return {
-        success: true,
-        message: 'No pricing records found.',
-        data: [],
-        pagination: {
-          page,
-          limit,
-          totalRecords: 0,
-          totalPages: 0,
-        },
+        data:       [],
+        pagination: { page, limit, totalRecords: 0, totalPages: 0 },
       };
     }
-
+    
     return transformPaginatedPricingResult(rawResult);
   } catch (error) {
-    logSystemException(error, 'Failed to fetch pricing records', {
-      context: 'pricing-service/fetchPaginatedPricingRecordsService',
-      page,
-      limit,
-      sortBy,
-      sortOrder,
-      filters,
-      keyword,
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError('Unable to fetch pricing records.', {
+      meta: { error: error.message, context },
     });
-
-    throw AppError.serviceError('Failed to fetch pricing records', error);
   }
 };
 
 /**
- * Service to export pricing records in a format-friendly structure.
+ * Exports all pricing records up to a hard limit of 10,000 rows.
  *
- * @param {Object} filters - Filter object (e.g., brand, pricingType, etc.)
- * @returns {Promise<Array<Object>>} - Transformed rows for export
+ * @param {Object} [filters={}] - Field filters to apply.
+ *
+ * @returns {Promise<Array<Object>>} Flat export-friendly rows, or empty array if none found.
+ *
+ * @throws {AppError} Re-throws AppErrors from lower layers unchanged.
+ * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const exportPricingRecordsService = async (filters = {}) => {
-  const context = 'pricing-service/exportPricingRecordsService';
-
-  logSystemInfo('Exporting pricing records', {
-    context,
-    filters,
-  });
-
+  const context = `${CONTEXT}/exportPricingRecordsService`;
+  
   try {
-    const rawData = await getAllPricingRecords({
-      page: 1,
-      limit: 10000,
-      sortBy: 'brand',
+    const rows = await exportAllPricingRecords({
+      page:      1,
+      limit:     10000,
+      sortBy:    'brand',
       sortOrder: 'ASC',
       filters,
     });
-
-    if (!rawData.data || rawData.data.length === 0) {
-      return [];
-    }
-
-    return transformExportPricingData(rawData.data);
+    
+    if (!rows.length) return [];
+    
+    return transformExportPricingData(rows);
   } catch (error) {
-    logSystemException(error, 'Failed to export pricing records', {
-      context,
-      filters,
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError('Unable to export pricing records.', {
+      meta: { error: error.message, context },
     });
-
-    throw AppError.serviceError('Failed to export pricing records', error);
   }
 };
 
 /**
- * Fetch pricing details by pricing type ID, including product, location, and audit metadata.
+ * Fetches paginated pricing details scoped to a pricing type.
  *
- * @param {string} pricingTypeId - The UUID of the pricing type.
- * @param {number} page - Page number for pagination.
- * @param {number} limit - Number of records per page.
- * @returns {Promise<Object>} Paginated pricing detail records.
- * @throws {AppError} If validation fails or no records are found.
+ * @param {string} pricingTypeId - UUID of the pricing type to scope results.
+ * @param {number} page          - Page number (1-based).
+ * @param {number} limit         - Records per page.
+ *
+ * @returns {Promise<PaginatedResult<Object>|[]>} Transformed detail records, or empty array if none found.
+ *
+ * @throws {AppError} `validationError`  – missing pricing type ID or invalid page/limit.
+ * @throws {AppError} Re-throws all other AppErrors from lower layers unchanged.
+ * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
-const fetchPricingDetailsByPricingTypeId = async (
-  pricingTypeId,
-  page,
-  limit
-) => {
-  const context = 'pricing-service/fetchPricingDetailsByPricingTypeId';
-
+const fetchPricingDetailsByPricingTypeId = async (pricingTypeId, page, limit) => {
+  const context = `${CONTEXT}/fetchPricingDetailsByPricingTypeId`;
+  
+  if (!pricingTypeId) {
+    throw AppError.validationError('Pricing type ID is required.');
+  }
+  
+  if (page < 1 || limit < 1) {
+    throw AppError.validationError('Page and limit must be positive integers.');
+  }
+  
   try {
-    // Input validation
-    if (!pricingTypeId) {
-      throw AppError.validationError('Pricing type ID is required', 400);
-    }
-
-    if (page < 1 || limit < 1) {
-      throw AppError.validationError(
-        'Page and limit must be positive integers',
-        400
-      );
-    }
-
-    logSystemInfo('Fetching pricing details by pricing type ID', {
-      context,
-      pricingTypeId,
-      page,
-      limit,
-    });
-
-    // Repository fetch
-    const pricingRawData = await getPricingDetailsByPricingTypeId({
-      pricingTypeId,
-      page,
-      limit,
-    });
-
-    if (!pricingRawData.data.length || pricingRawData.data.length === 0) {
-      return [];
-    }
-
+    const pricingRawData = await getPricingDetailsByPricingTypeId({ pricingTypeId, page, limit });
+    
+    if (pricingRawData.data.length === 0) return [];
+    
     return transformPaginatedPricingDetailResult(pricingRawData);
   } catch (error) {
-    logSystemException(error, 'Failed to fetch pricing details', {
-      context,
-      pricingTypeId,
-      page,
-      limit,
-      error,
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError('Unable to fetch pricing details.', {
+      meta: { error: error.message, context },
     });
-    throw AppError.serviceError('Internal pricing fetch error', error);
   }
 };
 

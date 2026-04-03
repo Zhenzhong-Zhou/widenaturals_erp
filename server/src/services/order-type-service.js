@@ -1,81 +1,76 @@
-const AppError = require('../utils/AppError');
-const { logSystemException, logSystemInfo } = require('../utils/system-logger');
-const {
-  getPaginatedOrderTypes,
-} = require('../repositories/order-type-repository');
-const {
-  transformPaginatedOrderTypes,
-} = require('../transformers/order-type-transformer');
+/**
+ * @file order-type-service.js
+ * @description Business logic for order type retrieval.
+ *
+ * Exports:
+ *   - fetchPaginatedOrderTypesService – paginated order types with access control and filtering
+ *
+ * Error handling follows a single-log principle — errors are not logged here.
+ * They bubble up to globalErrorHandler, which logs once with the normalised shape.
+ *
+ * AppErrors thrown by lower layers are re-thrown as-is.
+ * Unexpected errors are wrapped in AppError.serviceError before bubbling up.
+ */
+
+'use strict';
+
+const AppError                           = require('../utils/AppError');
+const { getPaginatedOrderTypes }         = require('../repositories/order-type-repository');
+const { transformPaginatedOrderTypes }   = require('../transformers/order-type-transformer');
 const {
   enforceOrderTypeCodeAccessControl,
   filterOrderTypeRowsByPermission,
-} = require('../business/order-type-business');
+}                                        = require('../business/order-type-business');
+
+const CONTEXT = 'order-type-service';
 
 /**
- * Fetches paginated order types with optional filtering, sorting, and logging.
+ * Fetches paginated order type records with access control and row-level filtering.
  *
- * Applies sorting rules based on the order type sort map,
- * transforms raw DB rows into client-friendly format,
- * and logs the operation for monitoring.
+ * Enforces code-level access control on filters and sort fields, queries the
+ * repository, applies per-row permission filtering, and transforms results.
  *
- * @param {Object} options - Service options.
- * @param {Object} [options.filters={}] - Filters to apply (e.g., category, keyword, requiresPayment).
- * @param {Object} [options.user] - The user performing the request (for audit logging).
- * @param {number} [options.page=1] - Page number (1-based).
- * @param {number} [options.limit=10] - Number of records per page.
- * @param {string} [options.sortBy='name'] - Field to sort by (uses orderTypeSortMap).
- * @param {'ASC'|'DESC'} [options.sortOrder='ASC'] - Sort direction.
+ * @param {Object}        options
+ * @param {Object}        [options.filters={}]        - Field filters to apply.
+ * @param {Object}        options.user                - Authenticated user.
+ * @param {number}        [options.page=1]            - Page number (1-based).
+ * @param {number}        [options.limit=10]          - Records per page.
+ * @param {string}        [options.sortBy='name']     - Sort field key.
+ * @param {'ASC'|'DESC'}  [options.sortOrder='ASC']   - Sort direction.
  *
- * @returns {Promise<Object>} Paginated result containing transformed order type rows and pagination metadata.
+ * @returns {Promise<PaginatedResult<OrderTypeRow>>}
  *
- * @throws {AppError} Throws a service error if fetching fails.
+ * @throws {AppError} Re-throws AppErrors from lower layers unchanged.
+ * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const fetchPaginatedOrderTypesService = async ({
-  filters = {},
-  user,
-  page = 1,
-  limit = 10,
-  sortBy = 'name',
-  sortOrder = 'ASC',
-}) => {
+                                                 filters   = {},
+                                                 user,
+                                                 page      = 1,
+                                                 limit     = 10,
+                                                 sortBy    = 'name',
+                                                 sortOrder = 'ASC',
+                                               }) => {
+  const context = `${CONTEXT}/fetchPaginatedOrderTypesService`;
+  
   try {
-    await enforceOrderTypeCodeAccessControl({
-      user,
-      filters,
-      sortBy,
-    });
-
-    const rawResult = await getPaginatedOrderTypes({
-      filters,
-      page,
-      limit,
-      sortBy,
-      sortOrder,
-    });
-
+    // 1. Enforce code-level access control on filters and sort fields.
+    await enforceOrderTypeCodeAccessControl({ user, filters, sortBy });
+    
+    // 2. Query raw paginated rows.
+    const rawResult = await getPaginatedOrderTypes({ filters, page, limit, sortBy, sortOrder });
+    
+    // 3. Apply per-row permission filtering.
     const filteredRows = await filterOrderTypeRowsByPermission(rawResult, user);
-
-    const result = await transformPaginatedOrderTypes(filteredRows);
-
-    logSystemInfo('Fetched paginated order types', {
-      context: 'order-type-service/fetchPaginatedOrderTypesService',
-      userId: user?.id,
-      filters,
-      pagination: { page, limit },
-      sort: { sortBy, sortOrder },
-    });
-
-    return result;
+    
+    // 4. Transform for UI consumption.
+    return transformPaginatedOrderTypes(filteredRows);
   } catch (error) {
-    logSystemException(error, 'Failed to fetch paginated order types', {
-      context: 'order-type-service/fetchPaginatedOrderTypesService',
-      userId: user?.id,
-      filters,
-      pagination: { page, limit },
-      sort: { sortBy, sortOrder },
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError('Unable to fetch order type list.', {
+      meta: { error: error.message, context },
     });
-
-    throw AppError.serviceError('Failed to fetch order type list.');
   }
 };
 
