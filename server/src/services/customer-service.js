@@ -67,7 +67,13 @@ const createCustomersService = async (
         'customers'
       );
       
-      const preparedCustomers = await prepareCustomersForInsert(customers, createdBy);
+      const activeStatusId = getStatusId('general_active');
+      
+      if (!activeStatusId) {
+        throw AppError.notFoundError('Active status ID not found.');
+      }
+      
+      const preparedCustomers = prepareCustomersForInsert(customers, createdBy, activeStatusId);
       const inserted          = await insertCustomerRecords(preparedCustomers, client);
       
       if (!Array.isArray(inserted) || inserted.length === 0) {

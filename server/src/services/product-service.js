@@ -36,7 +36,7 @@ const { checkStatusExists }            = require('../repositories/status-reposit
 const {
   assertValidProductStatusTransition,
   filterUpdatableProductFields,
-  validateProductListBusiness,
+  validateProductList,
   prepareProductInsertPayloads,
 }                                      = require('../business/product-business');
 
@@ -241,7 +241,7 @@ const createProductsService = async (productList, user) => {
   try {
     return await withTransaction(async (client) => {
       // 1. Validate product list against business rules.
-      validateProductListBusiness(productList);
+      validateProductList(productList);
       
       // 2. Prepare normalised insert payloads.
       const insertPayloads = prepareProductInsertPayloads(productList, user.id);

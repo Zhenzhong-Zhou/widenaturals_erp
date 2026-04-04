@@ -35,14 +35,14 @@ const {
 /**
  * Inserts a new session record and returns the created row.
  *
- * @param {Object}                  session
- * @param {string}                  session.userId      - UUID of the user.
- * @param {string}                  session.expiresAt   - ISO timestamp for session expiry.
- * @param {string|null}             [session.ipAddress] - Client IP address.
- * @param {string|null}             [session.userAgent] - Client user agent string.
- * @param {string|null}             [session.deviceId]  - Device identifier.
- * @param {string|null}             [session.note]      - Optional session note.
- * @param {PoolClient} client              - DB client for transactional context.
+ * @param {Object}                session
+ * @param {string}                session.userId      - UUID of the user.
+ * @param {string | Date}         session.expiresAt   - Session expiry as ISO string or Date object.
+ * @param {string|null}           [session.ipAddress] - Client IP address.
+ * @param {string|null}           [session.userAgent] - Client user agent string.
+ * @param {string|null}           [session.deviceId]  - Device identifier.
+ * @param {string|null}           [session.note]      - Optional session note.
+ * @param {PoolClient} client                         - DB client for transactional context.
  *
  * @returns {Promise<{ id: string, user_id: string, created_at: Date, last_activity_at: Date, expires_at: Date }>}
  * @throws  {AppError} Normalized database error if the insert fails.

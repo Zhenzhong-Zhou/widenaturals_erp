@@ -92,7 +92,7 @@ const insertToken = async (token, client) => {
  * @param {string}                  tokenHash - Hashed token value to look up.
  * @param {PoolClient} [client]  - Optional transaction client.
  *
- * @returns {Promise<Object|null>} Token row, or null if not found.
+ * @returns {Promise<TokenRow>} Token row, or null if not found.
  * @throws  Propagates raw DB error — auth service owns error handling.
  */
 const getTokenByHash = async (tokenHash, client = null) => {

@@ -10,7 +10,7 @@
 
 'use strict';
 
-const { query } = require('../database/db');
+const { query, pool } = require('../database/db');
 const { paginateQueryByOffset } = require('../database/utils/pagination/pagination-helpers');
 const AppError = require('../utils/AppError');
 const { handleDbError } = require('../utils/errors/error-handlers');
@@ -65,16 +65,18 @@ const getRoleById = async (roleId, client) => {
  * Not-found check is outside the try block — AppError.notFoundError must
  * not be caught and re-thrown as a databaseError.
  *
- * @param {string}                  roleName - Name of the role to look up.
- * @param {PoolClient} client   - DB client for transactional context.
- *
- * @returns {Promise<string>} UUID of the matching role.
- * @throws  {AppError}         Validation error if roleName is not provided.
- * @throws  {AppError}         Not found error if no role matches the name.
- * @throws  {AppError}         Normalized database error if the query fails.
+ * @param {string}             roleName - Name of the role to look up.
+ * @param {PoolClient}         [client] - Optional DB client for transactional context.
+ *                                        Falls back to pool if omitted.
+ * @returns {Promise<string>}             UUID of the matching role.
+ * @throws  {AppError}                    Validation error if roleName is not provided.
+ * @throws  {AppError}                    Not found error if no role matches the name.
+ * @throws  {AppError}                    Normalized database error if the query fails.
  */
 const resolveRoleIdByName = async (roleName, client) => {
   const context = 'role-repository/resolveRoleIdByName';
+  
+  const db = client ?? pool; // fall back to pool
   
   if (!roleName || typeof roleName !== 'string') {
     throw AppError.validationError('Role name is required.', { context });
@@ -83,7 +85,7 @@ const resolveRoleIdByName = async (roleName, client) => {
   let rows;
   
   try {
-    ({ rows } = await query(ROLE_RESOLVE_BY_NAME_QUERY, [roleName], client));
+    ({ rows } = await query(ROLE_RESOLVE_BY_NAME_QUERY, [roleName], db));
   } catch (error) {
     throw handleDbError(error, {
       context,

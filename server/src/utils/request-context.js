@@ -93,7 +93,7 @@ const getClientIp = (req) => {
  *   - Express internals        → method, route, ip
  *   - Request headers          → user-agent, x-device-id
  *
- * @param {import('express').Request | object} req - Express request (or any object).
+ * @param {AppRequest | object} req - Express request (or any object).
  *
  * @returns {{
  *   traceId:           string,

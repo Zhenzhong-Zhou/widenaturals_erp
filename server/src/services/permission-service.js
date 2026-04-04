@@ -20,7 +20,7 @@ const { getStatusId }                    = require('../config/status-cache');
 const { getRolePermissionsByRoleId }     = require('../repositories/role-permission-repository');
 const {
   getAccessibleOrderCategoriesFromPermissions,
-}                                        = require('../utils/permission-utils');
+}                                        = require('../utils/order-access-utils');
 const AppError                           = require('../utils/AppError');
 const { ORDER_CATEGORIES }               = require('../utils/constants/domain/order-type-constants');
 
@@ -80,7 +80,7 @@ const hasRootAccessSync = (permissions = []) =>
 /**
  * Resolves the full permission context for a user including root status.
  *
- * @param {Object} user          - Authenticated user.
+ * @param {AuthUser} user          - Authenticated user.
  * @param {string} user.role     - Role UUID.
  * @returns {Promise<{ roleName: string, permissions: string[], isRoot: boolean }>}
  *

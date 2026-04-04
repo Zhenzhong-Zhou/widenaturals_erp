@@ -22,7 +22,7 @@ const {
   transformBomMaterialSupplyDetails,
 }                                    = require('../transformers/bom-item-transformer');
 const {
-  calculateBomMaterialCostsBusiness,
+  calculateBomMaterialCosts,
 }                                    = require('../business/bom-item-business');
 const AppError                       = require('../utils/AppError');
 
@@ -46,7 +46,7 @@ const fetchBomMaterialSupplyDetailsService = async (bomId) => {
     const structuredResult = transformBomMaterialSupplyDetails(rows);
     
     // 3. Attach aggregated cost summary.
-    structuredResult.summary = calculateBomMaterialCostsBusiness(
+    structuredResult.summary = calculateBomMaterialCosts(
       bomId,
       structuredResult
     );

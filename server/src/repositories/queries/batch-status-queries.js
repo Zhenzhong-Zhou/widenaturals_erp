@@ -26,7 +26,6 @@ const buildBatchStatusLookupQuery = (whereClause) => `
   SELECT
     bs.id,
     bs.name,
-    bs.description,
     bs.is_active
   FROM ${BATCH_STATUS_TABLE}
   WHERE ${whereClause}
