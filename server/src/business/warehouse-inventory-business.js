@@ -1,4 +1,4 @@
-const { checkPermissions } = require('../services/role-permission-service');
+const { checkPermissions } = require('../services/permission-service');
 
 /**
  * Checks if the user has permission to view the warehouse inventory summary.

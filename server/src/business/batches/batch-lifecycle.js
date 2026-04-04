@@ -1,27 +1,33 @@
+/**
+ * @file batch-lifecycle.js
+ * @description Pure domain validator for batch status transition rules.
+ */
+
+'use strict';
+
 const AppError = require('../../utils/AppError');
-const { logSystemError } = require('../../utils/system-logger');
+const { logSystemWarn } = require('../../utils/logging/system-logger');
+
+const CONTEXT = 'batch-lifecycle';
 
 /**
- * Validates whether a batch lifecycle transition is allowed.
+ * Validates that a requested batch status transition is permitted by the
+ * transition rule map for the current status.
  *
- * Ensures that the requested next status follows the defined
- * lifecycle rules. If the transition is not permitted, the
- * attempt is logged and a validation error is thrown.
+ * A warn-level audit log is emitted on invalid transition attempts —
+ * these are security-relevant events worth tracking even though the error
+ * is handled by the caller.
  *
- * Example transitionRules:
- * {
- *   pending: ['received'],
- *   received: ['quarantined','released'],
- *   quarantined: ['released']
- * }
+ * No-ops if `nextStatus` is absent — no transition requested.
  *
- * @param {string} currentStatus - Current lifecycle status name
- * @param {string} nextStatus - Requested next status ID
- * @param {Record<string,string[]>} transitionRules - Allowed status transitions
- * @param {string} batchId - Batch identifier for audit logging
- * @param {string} actorId - User performing the operation
- *
- * @throws {AppError} If transition is not allowed
+ * @param {string} currentStatus - The batch's current status name.
+ * @param {string | undefined} nextStatus - The requested next status name.
+ * @param {Record<string, string[]>} transitionRules - Map of current status
+ *   to array of permitted next statuses.
+ * @param {string} batchId - UUID of the batch being transitioned (for audit).
+ * @param {string} actorId - UUID of the user requesting the transition (for audit).
+ * @returns {void}
+ * @throws {AppError} validationError if the transition is not permitted.
  */
 const validateStatusTransition = (
   currentStatus,
@@ -30,21 +36,19 @@ const validateStatusTransition = (
   batchId,
   actorId
 ) => {
-  // If no status update is requested, nothing to validate
   if (!nextStatus) return;
   
   const allowed = transitionRules[currentStatus] ?? [];
   
-  // Check if requested transition is permitted
   if (!allowed.includes(nextStatus)) {
-    
-    // Log security/audit event
-    logSystemError('Invalid batch status transition attempt', {
-      context: 'batch-lifecycle/validateStatusTransition',
+    // logSystemWarn used here — invalid transition attempts are security-relevant
+    // audit events worth tracking independently of the validation error thrown.
+    logSystemWarn('Invalid batch status transition attempt', {
+      context: `${CONTEXT}/validateStatusTransition`,
       batchId,
       actorId,
       currentStatus,
-      nextStatus
+      nextStatus,
     });
     
     throw AppError.validationError(

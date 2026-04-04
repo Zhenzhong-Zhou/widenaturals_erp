@@ -1,86 +1,43 @@
+/**
+ * @file batch-field-filter.js
+ * @description Domain business logic for resolving and filtering editable fields
+ * on batch records based on lifecycle state and permission-based access rules.
+ */
+
+'use strict';
+
 const AppError = require('../../utils/AppError');
-const { logSystemInfo } = require('../../utils/system-logger');
 
 /**
- * Resolves which batch fields a user is allowed to edit based on
- * their access permissions and the configured permission field rules.
+ * Resolves the set of fields a user is permitted to edit on a batch record,
+ * based on their access flags and the provided field rule groups.
  *
- * This function converts role-based access flags into a Set of editable
- * field names. The returned Set is later intersected with lifecycle rules
- * to determine the final editable fields.
+ * Root users receive access to all fields across all rule groups.
  *
- * Behavior:
- * - Root users bypass permission restrictions and can edit all fields
- *   defined in the rules object.
- * - Non-root users receive fields based on their access flags.
- * - Missing rule groups are safely ignored.
- *
- * Example rules structure:
- *
- * {
- *   edit_batch_metadata_basic: ['notes', 'manufacture_date'],
- *   edit_batch_metadata_sensitive: ['expiry_date'],
- *   edit_batch_release_metadata: ['released_by', 'released_at'],
- *   change_batch_status: ['status_id']
- * }
- *
- * Example access object:
- *
- * {
- *   isRoot: false,
- *   canEditBasicMetadata: true,
- *   canEditSensitiveMetadata: false,
- *   canEditReleaseMetadata: true,
- *   canChangeStatus: true
- * }
- *
- * @param {Object} access
- * Access control result for the current user.
- *
- * @param {boolean} access.isRoot
- * Indicates whether the user has root privileges.
- *
+ * @param {object} [access={}] - Resolved ACL flags for the requesting user.
+ * @param {boolean} [access.isRoot]
  * @param {boolean} [access.canEditBasicMetadata]
- * Permission to edit non-sensitive batch metadata.
- *
  * @param {boolean} [access.canEditSensitiveMetadata]
- * Permission to edit sensitive batch metadata.
- *
  * @param {boolean} [access.canEditReleaseMetadata]
- * Permission to edit release-related metadata.
- *
  * @param {boolean} [access.canChangeStatus]
- * Permission to change batch lifecycle status.
- *
- * @param {Record<string, string[]>} rules
- * Mapping of permission groups to editable field arrays.
- *
- * @returns {Set<string>}
- * A Set containing all field names the user is allowed to edit.
+ * @param {object} [rules={}] - Map of rule group keys to arrays of field names.
+ * @returns {Set<string>} Set of permitted field names.
  */
-const resolveEditableFields = (access = {}, rules = {}) => {
-  const allowed = new Set();
-  
-  //------------------------------------------------------------
-  // Root users bypass permission restrictions
-  //------------------------------------------------------------
+const resolveBatchEditableFields = (access = {}, rules = {}) => {
+  // Root users bypass permission restrictions — all fields across all rule groups.
   if (access.isRoot) {
     return new Set(Object.values(rules).flat());
   }
   
-  //------------------------------------------------------------
-  // Map access flags to rule groups
-  //------------------------------------------------------------
+  const allowed = new Set();
+  
   const permissionMap = {
-    canEditBasicMetadata: 'edit_batch_metadata_basic',
+    canEditBasicMetadata:     'edit_batch_metadata_basic',
     canEditSensitiveMetadata: 'edit_batch_metadata_sensitive',
-    canEditReleaseMetadata: 'edit_batch_release_metadata',
-    canChangeStatus: 'change_batch_status',
+    canEditReleaseMetadata:   'edit_batch_release_metadata',
+    canChangeStatus:          'change_batch_status',
   };
   
-  //------------------------------------------------------------
-  // Resolve allowed fields based on access flags
-  //------------------------------------------------------------
   for (const [accessKey, ruleKey] of Object.entries(permissionMap)) {
     if (access[accessKey] && Array.isArray(rules[ruleKey])) {
       for (const field of rules[ruleKey]) {
@@ -93,47 +50,26 @@ const resolveEditableFields = (access = {}, rules = {}) => {
 };
 
 /**
- * Filters and validates updatable batch fields based on
- * lifecycle state and user permissions.
+ * Filters an update payload to only the fields permitted by both the batch's
+ * current lifecycle state and the user's permission-based access flags.
  *
- * This function enforces two levels of protection:
+ * Root users bypass lifecycle restrictions entirely.
+ * Throws a `validationError` if any requested field is not permitted, or if
+ * no valid fields remain after filtering.
  *
- * 1. Lifecycle restrictions
- *    Fields that can be edited in the current batch status.
- *
- * 2. Permission restrictions
- *    Fields the current user role is allowed to modify.
- *
- * The final editable fields are the intersection of:
- *
- *    lifecycle rules ∩ permission rules
- *
- * Root users bypass lifecycle restrictions and may update any field.
- *
- * @param {Object} params
- * @param {Object} params.batch
- * Current batch record.
- *
- * @param {Object} params.updates
- * Incoming partial update payload.
- *
- * @param {Object} params.access
- * Access control result for the current user.
- *
- * @param {Record<string, string[]>} params.editRules
- * Editable field whitelist grouped by batch lifecycle status.
- *
- * @param {(access:Object) => Set<string>} params.permissionResolver
- * Function that resolves which fields the user is allowed to edit.
- *
- * @param {string} params.errorLabel
- * Domain label used in validation messages (e.g. "batch").
- *
- * @returns {Object}
- * Sanitized update payload containing only permitted fields.
- *
- * @throws {AppError}
- * When lifecycle rules are missing or invalid fields are requested.
+ * @param {object} options
+ * @param {object} options.batch - Current batch record (must include `id` and `status_name`).
+ * @param {object} [options.updates={}] - Requested update payload from the caller.
+ * @param {object} options.access - Resolved ACL flags for the requesting user.
+ * @param {Record<string, string[]>} options.editRules - Map of batch status names to
+ *   arrays of fields editable in that lifecycle state.
+ * @param {(access: object) => Set<string>} options.permissionResolver - Function that
+ *   returns the set of fields the user is permitted to edit based on their ACL.
+ * @param {string} options.errorLabel - Domain label used in validation error messages
+ *   (e.g. `'product batch'`).
+ * @returns {object} Filtered update payload containing only permitted fields.
+ * @throws {AppError} validationError if the current status has no lifecycle rules,
+ *   if any requested fields are not permitted, or if no valid fields remain.
  */
 const filterUpdatableBatchFields = ({
                                       batch,
@@ -141,23 +77,13 @@ const filterUpdatableBatchFields = ({
                                       access,
                                       editRules,
                                       permissionResolver,
-                                      errorLabel
+                                      errorLabel,
                                     }) => {
-  //------------------------------------------------------------
-  // Root users bypass lifecycle restrictions
-  //------------------------------------------------------------
+  // Root users bypass lifecycle restrictions entirely.
   if (access?.isRoot) {
-    logSystemInfo('Root override lifecycle restriction', {
-      batchId: batch.id,
-      updates: Object.keys(updates)
-    });
-    
     return { ...updates };
   }
   
-  //------------------------------------------------------------
-  // Resolve lifecycle editable fields
-  //------------------------------------------------------------
   const lifecycleFields = editRules[batch.status_name] ?? [];
   
   if (!lifecycleFields.length) {
@@ -166,26 +92,14 @@ const filterUpdatableBatchFields = ({
     );
   }
   
-  //------------------------------------------------------------
-  // Convert lifecycle rules to a Set for faster lookup
-  //------------------------------------------------------------
   const lifecycleSet = new Set(lifecycleFields);
-  
-  //------------------------------------------------------------
-  // Resolve permission-based editable fields
-  //------------------------------------------------------------
   const permissionFields = permissionResolver(access);
   
-  //------------------------------------------------------------
-  // Intersection of lifecycle + permission rules
-  //------------------------------------------------------------
+  // Intersection of lifecycle-permitted and permission-permitted fields.
   const allowedFields = new Set(
     [...lifecycleSet].filter((f) => permissionFields.has(f))
   );
   
-  //------------------------------------------------------------
-  // Validate requested update fields
-  //------------------------------------------------------------
   const invalidFields = Object.keys(updates).filter(
     (f) => !allowedFields.has(f)
   );
@@ -197,16 +111,10 @@ const filterUpdatableBatchFields = ({
     );
   }
   
-  //------------------------------------------------------------
-  // Filter update payload
-  //------------------------------------------------------------
   const filtered = Object.fromEntries(
     Object.entries(updates).filter(([k]) => allowedFields.has(k))
   );
   
-  //------------------------------------------------------------
-  // Ensure at least one valid field remains
-  //------------------------------------------------------------
   if (!Object.keys(filtered).length) {
     throw AppError.validationError(
       `No valid editable ${errorLabel} fields provided.`
@@ -217,6 +125,6 @@ const filterUpdatableBatchFields = ({
 };
 
 module.exports = {
-  resolveEditableFields,
+  resolveBatchEditableFields,
   filterUpdatableBatchFields,
 };

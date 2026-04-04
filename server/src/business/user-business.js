@@ -1,34 +1,39 @@
+/**
+ * @file user-business.js
+ * @description Domain business logic for user access control evaluation,
+ * visibility rule application, and row-level access slicing. Covers user
+ * creation, list visibility, profile access, role visibility, lookup search
+ * capabilities, and lookup visibility.
+ */
+
+'use strict';
+
 const {
   resolveUserPermissionContext,
-} = require('../services/role-permission-service');
+} = require('../services/permission-service');
 const { USER_CONSTANTS } = require('../utils/constants/domain/user-constants');
-const { logSystemException } = require('../utils/system-logger');
+const { logSystemException } = require('../utils/logging/system-logger');
 const AppError = require('../utils/AppError');
 const { getStatusId } = require('../config/status-cache');
+const { enrichWithActiveFlag } = require('./lookup-visibility');
+
+const CONTEXT = 'user-business';
 
 /**
- * Business: Determine whether the requester is allowed to create users
- * and which privilege tiers they may assign.
+ * Resolves which user creation capabilities the requesting user holds.
  *
- * This function evaluates USER CREATION AUTHORITY ONLY.
- * It does NOT validate input shape or perform persistence logic.
+ * Bootstrap users bypass permission resolution entirely and receive full
+ * creation access — this path is explicit and auditable.
  *
- * Root users implicitly bypass all creation restrictions.
- *
- * @param {Object} user - Authenticated user context.
- *
- * @returns {Promise<{
- *   canCreateUsers: boolean,
- *   canCreateAdminUsers: boolean,
- *   canCreateSystemUsers: boolean,
- *   canCreateRootUsers: boolean
- * }>}
+ * @param {AuthUser | SystemActor} user - Authenticated user or system actor.
+ * @returns {Promise<UserCreationAcl>}
+ * @throws {AppError} businessError if permission resolution fails.
  */
 const evaluateUserCreationAccessControl = async (user) => {
+  const context = `${CONTEXT}/evaluateUserCreationAccessControl`;
+  
   try {
-    // ------------------------------------------------------------
-    // Bootstrap bypass (explicit and auditable)
-    // ------------------------------------------------------------
+    // Bootstrap bypass — explicit and auditable.
     if (user?.isBootstrap === true) {
       return {
         canCreateUsers: true,
@@ -37,24 +42,24 @@ const evaluateUserCreationAccessControl = async (user) => {
         canCreateRootUsers: true,
       };
     }
-
+    
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-
+    
     const canCreateUsers =
       isRoot || permissions.includes(USER_CONSTANTS.PERMISSIONS.CREATE_USERS);
-
+    
     const canCreateAdminUsers =
       isRoot ||
       permissions.includes(USER_CONSTANTS.PERMISSIONS.CREATE_ADMIN_USERS);
-
+    
     const canCreateSystemUsers =
       isRoot ||
       permissions.includes(USER_CONSTANTS.PERMISSIONS.CREATE_SYSTEM_USERS);
-
+    
     const canCreateRootUsers =
       isRoot ||
       permissions.includes(USER_CONSTANTS.PERMISSIONS.CREATE_ROOT_USERS);
-
+    
     return {
       canCreateUsers,
       canCreateAdminUsers,
@@ -63,102 +68,57 @@ const evaluateUserCreationAccessControl = async (user) => {
     };
   } catch (err) {
     logSystemException(err, 'Failed to evaluate user creation access control', {
-      context: 'user-business/evaluateUserCreationAccessControl',
+      context,
       userId: user?.id,
     });
-
+    
     throw AppError.businessError(
-      'Unable to evaluate user creation access control.',
-      { details: err.message }
+      'Unable to evaluate user creation access control.'
     );
   }
 };
 
 /**
- * Business: Determine which categories of users the requester
- * is allowed to view in user list pages, directory views, or lookup dropdowns.
+ * Resolves which user visibility capabilities the requesting user holds.
  *
- * This function resolves USER VISIBILITY AUTHORITY ONLY.
- * It does NOT inspect filters, modify data, or apply query logic.
+ * `canViewAllUsers` is a full override — it implies inactive, system, and root
+ * user visibility. `enforceActiveOnly` is derived: true when neither
+ * `canViewAllStatuses` nor `canViewAllUsers` is granted.
  *
- * Visibility categories covered:
- *   ✔ Regular (active) users
- *   ✔ Inactive users
- *   ✔ System / automation users
- *   ✔ Root-level users
- *
- * Permission semantics:
- *
- *   - VIEW_SYSTEM_USERS
- *       Allows viewing system / automation users.
- *
- *   - VIEW_ROOT_USERS
- *       Allows viewing root-level users.
- *
- *   - VIEW_INACTIVE_USERS
- *       Allows viewing inactive users.
- *
- *   - VIEW_USERS_ALL_VISIBILITY
- *       VIEW ALL USERS (FULL VISIBILITY OVERRIDE).
- *
- *       This permission implicitly allows viewing:
- *         • active users
- *         • inactive users
- *         • system / automation users
- *         • root-level users
- *
- *       It supersedes all other user visibility permissions.
- *
- * Root users (`isRoot === true`) implicitly bypass all user visibility restrictions.
- *
- * Derived rule:
- *   - ACTIVE-only visibility is enforced by default.
- *   - `enforceActiveOnly` is true ONLY when the requester cannot view inactive users
- *     and does not have full user visibility.
- *
- * @param {Object} user - Authenticated user context.
- *
- * @returns {Promise<{
- *   canViewSystemUsers: boolean,
- *   canViewRootUsers: boolean,
- *   canViewAllStatuses: boolean,
- *   canViewAllUsers: boolean,
- *   enforceActiveOnly: boolean
- * }>}
+ * @param {AuthUser} user - Authenticated user making the request.
+ * @returns {Promise<UserVisibilityAcl>}
+ * @throws {AppError} businessError if permission resolution fails.
  */
 const evaluateUserVisibilityAccessControl = async (user) => {
+  const context = `${CONTEXT}/evaluateUserVisibilityAccessControl`;
+  
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-
-    // Can view system / automation users
+    
     const canViewSystemUsers =
       isRoot ||
       permissions.includes(USER_CONSTANTS.PERMISSIONS.VIEW_SYSTEM_USERS);
-
-    // Can view root-level users
+    
     const canViewRootUsers =
       isRoot ||
       permissions.includes(USER_CONSTANTS.PERMISSIONS.VIEW_ROOT_USERS);
-
-    // Full visibility override:
-    // implies inactive + system + root visibility
+    
+    // Full visibility override — implies inactive, system, and root visibility.
     const canViewAllUsers =
       isRoot ||
       permissions.includes(
         USER_CONSTANTS.PERMISSIONS.VIEW_USERS_ALL_VISIBILITY
       );
-
-    // Inactive users are visible either via explicit permission
-    // or via full visibility override
+    
+    // Inactive users visible via explicit permission or full override.
     const canViewAllStatuses =
       canViewAllUsers ||
       permissions.includes(USER_CONSTANTS.PERMISSIONS.VIEW_INACTIVE_USERS);
-
-    // Derived rule:
-    // Default to ACTIVE-only visibility unless explicitly permitted
-    // to view inactive users or granted full visibility override
-    const enforceActiveOnly = !canViewAllStatuses && !canViewAllUsers;
-
+    
+    // Active-only enforcement is the default — lifted only when the user can
+    // view all statuses (which already incorporates canViewAllUsers).
+    const enforceActiveOnly = !canViewAllStatuses;
+    
     return {
       canViewSystemUsers,
       canViewRootUsers,
@@ -171,50 +131,32 @@ const evaluateUserVisibilityAccessControl = async (user) => {
       err,
       'Failed to evaluate user visibility access control',
       {
-        context: 'user-business/evaluateUserVisibilityAccessControl',
+        context,
         userId: user?.id,
       }
     );
-
+    
     throw AppError.businessError(
-      'Unable to evaluate user visibility access control.',
-      { details: err.message }
+      'Unable to evaluate user visibility access control.'
     );
   }
 };
 
 /**
- * Business: applyUserListVisibilityRules
+ * Applies ACL-driven visibility rules to a user list filter object.
  *
- * Adjust user list query filters based on evaluated visibility access control.
+ * Full override grants system and root user visibility and removes active-only
+ * enforcement. Otherwise active-only is enforced by default, and system/root
+ * visibility is set from the ACL flags.
  *
- * Responsibility:
- * - Translate ACL decisions into repository-consumable filter flags
- * - Enforce ACTIVE-only visibility for non-privileged users (default)
- * - Apply widened visibility when explicitly granted by ACL
- *
- * Enforcement model:
- * - SQL filtering is the PRIMARY enforcement mechanism
- * - Row slicing is defensive only
- *
- * This function MUST:
- * - Set includeSystemUsers / includeRootUsers explicitly
- * - Set enforceActiveOnly + activeStatusId when required
- * - Remove conflicting status filters when ACTIVE-only enforcement applies
- *
- * This function MUST NOT:
- * - Perform row-level filtering
- * - Evaluate permissions or infer privilege from roles
- * - Bypass repository-level visibility constraints
- *
- * @param {Object} filters - Original query filters
- * @param {Object} acl - Result from evaluateUserVisibilityAccessControl()
- * @returns {Object} Adjusted filters for repository consumption
+ * @param {object} filters - Base filter object from the request.
+ * @param {UserVisibilityAcl} acl - Resolved ACL from `evaluateUserVisibilityAccessControl`.
+ * @returns {object} Adjusted copy of `filters` with visibility rules applied.
  */
 const applyUserListVisibilityRules = (filters, acl) => {
   const adjusted = { ...filters };
   const ACTIVE_USER_STATUS_ID = getStatusId('general_active');
-
+  
   // -------------------------------------------------------------
   // 1. Full override → no visibility restrictions
   // -------------------------------------------------------------
@@ -226,9 +168,9 @@ const applyUserListVisibilityRules = (filters, acl) => {
     delete adjusted.activeStatusId;
     return adjusted;
   }
-
+  
   // -------------------------------------------------------------
-  // 2. Status visibility (ACTIVE-only enforced unless permitted)
+  // 2. Status visibility (active-only enforced unless permitted)
   // -------------------------------------------------------------
   if (acl.enforceActiveOnly) {
     adjusted.enforceActiveOnly = true;
@@ -238,93 +180,91 @@ const applyUserListVisibilityRules = (filters, acl) => {
     delete adjusted.enforceActiveOnly;
     delete adjusted.activeStatusId;
   }
-
+  
   // -------------------------------------------------------------
   // 3. System user visibility
   // -------------------------------------------------------------
   adjusted.includeSystemUsers = acl.canViewSystemUsers === true;
-
+  
   // -------------------------------------------------------------
   // 4. Root user visibility
   // -------------------------------------------------------------
   adjusted.includeRootUsers = acl.canViewRootUsers === true;
-
+  
   return adjusted;
 };
 
 /**
- * Business: Slice a user row based on visibility rules.
+ * Filters a single user row based on list-level visibility access.
+ * Returns `null` if the user should not appear in the result set.
  *
- * Enforces WHAT categories of users the requester is allowed to view,
- * based on access flags from evaluateUserVisibilityAccessControl().
+ * Root user filtering is defensive only — SQL already excludes root users
+ * when the caller lacks `canViewRootUsers`.
  *
- * NOTE:
- * Repository-level filtering is the primary enforcement.
- * This function provides a defensive, per-row safeguard.
- *
- * @param {Object} userRow - Raw row from repository
- * @param {Object} access - Flags from evaluateUserVisibilityAccessControl()
- * @returns {Object|null} User row or null if not visible
+ * @param {UserRow} userRow - Raw user row from the repository.
+ * @param {UserVisibilityAcl} access - Resolved ACL from `evaluateUserVisibilityAccessControl`.
+ * @returns {UserRow | null}
  */
 const sliceUserForUser = (userRow, access) => {
-  // Full override → see everything
+  // Full override → allow everything.
   if (access.canViewAllUsers) return userRow;
-
-  // Root user visibility
-  // Root-ness is determined from the user row itself (role/type flag),
-  // while permission to view root users comes from ACL
-  if (!access.canViewRootUsers && access.isRoot === false) {
-    // Root users should already be filtered by SQL,
-    // this is defensive only
-    return null;
-  }
-
-  // Status visibility (ACTIVE-only)
+  
+  // Defensive root-user guard — SQL should already have excluded these.
+  if (!access.canViewRootUsers) return null;
+  
+  // Active-only enforcement.
   if (access.enforceActiveOnly && userRow.status_name !== 'active') {
     return null;
   }
-
+  
   return userRow;
 };
 
 /**
- * Business: Determine whether the requester can view the target user's profile.
+ * Resolves whether the requesting user can view a specific user's profile.
  *
- * Visibility rules:
- *  - Users can always view their own profile
- *  - Root users can view all profiles
- *  - Users with explicit permission can view others' profiles
- *
- * This function resolves visibility authority only.
- * It does NOT fetch data or perform slicing.
- *
- * @param {Object} requester - Authenticated user context
- * @param {string} targetUserId - Target user UUID
- * @returns {Promise<{
- *   isSelf: boolean,
- *   canViewProfile: boolean
- * }>}
+ * @param {AuthUser} requester - Authenticated user making the request.
+ * @param {string} targetUserId - UUID of the user whose profile is being accessed.
+ * @returns {Promise<UserProfileAcl>}
+ * @throws {AppError} businessError if permission resolution fails.
  */
 const evaluateUserProfileAccessControl = async (requester, targetUserId) => {
-  const isSelf = requester?.id === targetUserId;
-
-  const { permissions, isRoot } = await resolveUserPermissionContext(requester);
-
-  return {
-    isSelf,
-    canViewProfile:
-      isSelf ||
-      isRoot ||
-      permissions.includes(USER_CONSTANTS.PERMISSIONS.VIEW_ANY_USER_PROFILE),
-  };
+  const context = `${CONTEXT}/evaluateUserProfileAccessControl`;
+  
+  try {
+    const isSelf = requester?.id === targetUserId;
+    const { permissions, isRoot } =
+      await resolveUserPermissionContext(requester);
+    
+    return {
+      isSelf,
+      canViewProfile:
+        isSelf ||
+        isRoot ||
+        permissions.includes(
+          USER_CONSTANTS.PERMISSIONS.VIEW_ANY_USER_PROFILE
+        ),
+    };
+  } catch (err) {
+    logSystemException(err, 'Failed to evaluate user profile access control', {
+      context,
+      requesterId: requester?.id,
+      targetUserId,
+    });
+    
+    throw AppError.businessError(
+      'Unable to evaluate user profile access control.'
+    );
+  }
 };
 
 /**
- * Blocks profile visibility entirely if not permitted.
+ * Filters a single user profile row based on profile-level access.
+ * Returns `null` if the requester cannot view the profile.
  *
- * @param {UserProfileRow} row
- * @param {{ canViewProfile: boolean }} access
- * @returns {UserProfileRow|null}
+ * @param {UserRow} row - Raw user row from the repository.
+ * @param {UserProfileAcl} access - Resolved ACL from `evaluateUserProfileAccessControl`.
+ * @returns {UserRow | null}
  */
 const sliceUserProfileForUser = (row, access) => {
   if (!access.canViewProfile) return null;
@@ -332,37 +272,48 @@ const sliceUserProfileForUser = (row, access) => {
 };
 
 /**
- * Business: Determine whether the requester can view role information
- * on a user profile.
+ * Resolves whether the requesting user can view role details on a user profile.
  *
- * Visibility rules:
- *  - Users can always view their own role
- *  - Root users can view all roles
- *  - Users with explicit permission can view others' roles
- *
- * @param {Object} requester - Authenticated user context
- * @param {{ isSelf: boolean }} profileAccess
- * @returns {Promise<{
- *   canViewRole: boolean
- * }>}
+ * @param {AuthUser} requester - Authenticated user making the request.
+ * @param {UserProfileAcl} profileAccess - Resolved ACL from `evaluateUserProfileAccessControl`.
+ * @returns {Promise<UserRoleAcl>}
+ * @throws {AppError} businessError if permission resolution fails.
  */
 const evaluateUserRoleViewAccessControl = async (requester, profileAccess) => {
-  const { permissions, isRoot } = await resolveUserPermissionContext(requester);
-
-  return {
-    canViewRole:
-      profileAccess.isSelf ||
-      isRoot ||
-      permissions.includes(USER_CONSTANTS.PERMISSIONS.VIEW_USER_ROLES),
-  };
+  const context = `${CONTEXT}/evaluateUserRoleViewAccessControl`;
+  
+  try {
+    const { permissions, isRoot } =
+      await resolveUserPermissionContext(requester);
+    
+    return {
+      canViewRole:
+        profileAccess.isSelf ||
+        isRoot ||
+        permissions.includes(USER_CONSTANTS.PERMISSIONS.VIEW_USER_ROLES),
+    };
+  } catch (err) {
+    logSystemException(
+      err,
+      'Failed to evaluate user role view access control',
+      {
+        context,
+        requesterId: requester?.id,
+      }
+    );
+    
+    throw AppError.businessError(
+      'Unable to evaluate user role view access control.'
+    );
+  }
 };
 
 /**
- * Applies role visibility rules.
+ * Nulls out role fields on a user row if the requester cannot view role details.
  *
- * @param {UserProfileRow} row
- * @param {{ canViewRole: boolean }} access
- * @returns {UserProfileRow}
+ * @param {UserRow} row - Raw user row from the repository.
+ * @param {UserRoleAcl} access - Resolved ACL from `evaluateUserRoleViewAccessControl`.
+ * @returns {UserRow | UserRowRoleRedacted}
  */
 const sliceUserRoleForUser = (row, access) => {
   if (!access.canViewRole) {
@@ -379,50 +330,27 @@ const sliceUserRoleForUser = (row, access) => {
 };
 
 /**
- * Evaluates which lookup search dimensions are available to the user
- * when performing user lookup queries (e.g. dropdowns, autocomplete).
+ * Resolves which keyword search capabilities the requesting user holds
+ * for user lookup queries.
  *
- * This function determines **query capabilities**, not row visibility.
- * It does NOT decide which users are visible — only which metadata
- * fields are allowed to participate in keyword search.
- *
- * ### Responsibilities
- * - Resolve permission-based search capabilities
- * - Control whether role or status metadata may be searched
- * - Prevent unauthorized JOIN expansion in lookup queries
- *
- * ### Notes
- * - These flags are intended for repository query shaping only
- * - They must be resolved by the business / ACL layer
- * - They should never be derived from client input
- *
- * ### Derived Capabilities
- * - `canSearchRole`   → enables role name search (roles JOIN)
- * - `canSearchStatus` → enables status name search (statuses JOIN)
- *
- * @param {Object} user
- *   Authenticated user context
- *
- * @returns {Promise<{
- *   canSearchRole: boolean,
- *   canSearchStatus: boolean
- * }>}
- *
- * @throws {AppError}
- *   If permission context resolution fails
+ * @param {AuthUser} user - Authenticated user making the request.
+ * @returns {Promise<UserLookupSearchAcl>}
+ * @throws {AppError} businessError if permission resolution fails.
  */
 const evaluateUserLookupSearchCapabilities = async (user) => {
+  const context = `${CONTEXT}/evaluateUserLookupSearchCapabilities`;
+  
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-
+    
     const canSearchRole =
       isRoot ||
       permissions.includes(USER_CONSTANTS.PERMISSIONS.SEARCH_USERS_BY_ROLE);
-
+    
     const canSearchStatus =
       isRoot ||
       permissions.includes(USER_CONSTANTS.PERMISSIONS.SEARCH_USERS_BY_STATUS);
-
+    
     return {
       canSearchRole,
       canSearchStatus,
@@ -432,66 +360,32 @@ const evaluateUserLookupSearchCapabilities = async (user) => {
       err,
       'Failed to evaluate user lookup search capabilities',
       {
-        context: 'user-business/evaluateUserLookupSearchCapabilities',
+        context,
         userId: user?.id,
       }
     );
-
+    
     throw AppError.businessError(
-      'Unable to evaluate user lookup search capabilities.',
-      { details: err.message }
+      'Unable to evaluate user lookup search capabilities.'
     );
   }
 };
 
 /**
- * Business: applyUserLookupVisibilityRules
+ * Applies ACL-driven visibility rules to a user lookup filter object.
  *
- * Purpose:
- * - Translate evaluated ACL decisions into repository-safe lookup filters
- * - Enforce conservative visibility rules for USER LOOKUPS
+ * Full override grants system and root user visibility and removes active-only
+ * enforcement. Without override, active-only is always enforced and system/root
+ * users are always excluded from lookup results.
  *
- * Lookup-specific behavior:
- * - Lookups are intentionally MORE restrictive than full user lists
- * - Designed for dropdowns, autocomplete, and assignment selectors
- *
- * Enforced rules (in order of precedence):
- * 1. Full visibility override:
- *    - Includes system users
- *    - Includes root users
- *    - Disables ACTIVE-only enforcement
- *
- * 2. Default visibility (non-privileged users):
- *    - ACTIVE users only
- *    - System users hidden
- *    - Root users hidden
- *
- * 3. Privileged visibility (partial):
- *    - Inactive users allowed ONLY when explicitly permitted by ACL
- *    - System/root users still hidden unless full override
- *
- * IMPORTANT:
- * - This function does NOT evaluate permissions.
- * - It assumes ACL has already been resolved by
- *   `evaluateUserVisibilityAccessControl`.
- * - All enforcement happens at the SQL/repository level.
- *
- * @param {Object} filters
- *   - Original lookup filters provided by the caller.
- *
- * @param {Object} acl
- *   - Result of `evaluateUserVisibilityAccessControl()`.
- *
- * @param {string} activeStatusId
- *   - Status ID representing the ACTIVE user state.
- *   - Must be resolved by the service layer and passed explicitly.
- *
- * @returns {Object}
- *   - Repository-safe filters suitable for user lookup queries.
+ * @param {object} filters - Base filter object from the request.
+ * @param {UserVisibilityAcl} acl - Resolved ACL from `evaluateUserVisibilityAccessControl`.
+ * @param {string} activeStatusId - UUID of the active status record.
+ * @returns {object} Adjusted copy of `filters` with visibility rules applied.
  */
 const applyUserLookupVisibilityRules = (filters, acl, activeStatusId) => {
   const adjusted = { ...filters };
-
+  
   // ---------------------------------------------------------
   // Full visibility override
   // ---------------------------------------------------------
@@ -502,75 +396,30 @@ const applyUserLookupVisibilityRules = (filters, acl, activeStatusId) => {
     delete adjusted.activeStatusId;
     return adjusted;
   }
-
+  
   // ---------------------------------------------------------
-  // ACTIVE-only enforcement (default)
+  // Active-only enforcement (always applied without full override)
   // ---------------------------------------------------------
-  if (!acl.canViewAllUsers) {
-    adjusted.enforceActiveOnly = true;
-    adjusted.activeStatusId = activeStatusId;
-    delete adjusted.statusIds;
-  }
-
-  // ---------------------------------------------------------
-  // System users — never shown unless full override
-  // ---------------------------------------------------------
+  adjusted.enforceActiveOnly = true;
+  adjusted.activeStatusId = activeStatusId;
+  delete adjusted.statusIds;
+  
+  // System and root users are never shown in lookup without full override.
   adjusted.includeSystemUsers = false;
-
-  // ---------------------------------------------------------
-  // Root users — never shown unless full override
-  // ---------------------------------------------------------
   adjusted.includeRootUsers = false;
-
+  
   return adjusted;
 };
 
 /**
- * Enrich a User lookup row with an explicit active-state flag.
+ * Enriches a user lookup row with a derived `isActive` boolean flag.
  *
- * Purpose:
- * - Expose a simple boolean (`isActive`) for UI rendering logic
- * - Allow user lookup UIs to visually differentiate active vs inactive users
- *   (e.g. disabled options, muted styling, warning icons)
- *
- * IMPORTANT:
- * - This function does NOT change visibility rules.
- * - Inactive users must already be permitted by ACL and SQL filters.
- * - This is a pure UI-enrichment helper.
- *
- * Usage guidance:
- * - Attach `isActive` ONLY when inactive users may appear in the result set
- *   (e.g. admin / manager views).
- * - Omit this enrichment for active-only lookups to keep payload minimal.
- *
- * @param {object} row - A User lookup row from the repository.
- *   Expected to include `status_id`.
- *
- * @param {string} activeStatusId - Status ID representing the ACTIVE user state.
- *
- * @returns {object} User lookup row with:
- *   - `isActive: boolean`
- *
- * @throws {AppError} If input validation fails.
+ * @param {UserRow} row - Raw user row from the repository.
+ * @param {string} activeStatusId - UUID of the active status record.
+ * @returns {UserRow & { isActive: boolean }}
  */
-const enrichUserLookupWithActiveFlag = (row, activeStatusId) => {
-  if (!row || typeof row !== 'object') {
-    throw AppError.validationError(
-      '[enrichUserLookupWithActiveFlag] Invalid `row`.'
-    );
-  }
-
-  if (typeof activeStatusId !== 'string' || !activeStatusId) {
-    throw AppError.validationError(
-      '[enrichUserLookupWithActiveFlag] Missing or invalid activeStatusId.'
-    );
-  }
-
-  return {
-    ...row,
-    isActive: row.status_id === activeStatusId,
-  };
-};
+const enrichUserLookupWithActiveFlag = (row, activeStatusId) =>
+  enrichWithActiveFlag(row, activeStatusId);
 
 module.exports = {
   evaluateUserCreationAccessControl,

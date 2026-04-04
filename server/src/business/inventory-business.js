@@ -9,7 +9,7 @@ const {
 const {
   getLocationInventoryQuantities,
 } = require('../repositories/location-inventory-repository');
-const { logSystemException } = require('../utils/system-logger');
+const { logSystemException } = require('../utils/logging/system-logger');
 const { validateBatchRegistryEntryById } = require('./batch-registry-business');
 const { deduplicateByCompositeKey } = require('../utils/array-utils');
 const { mergeInventoryFields } = require('./utils/merge-inventory-fields');

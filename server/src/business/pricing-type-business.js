@@ -1,4 +1,4 @@
-const { checkPermissions } = require('../services/role-permission-service');
+const { checkPermissions } = require('../services/permission-service');
 
 /**
  * Checks whether a user is authorized to view pricing types.

@@ -1,73 +1,46 @@
-const { resolveUserPermissionContext } = require('../services/role-permission-service');
+/**
+ * @file batch-status-business.js
+ * @description Domain business logic for batch status visibility access control
+ * evaluation, lookup filter rule application, and row enrichment.
+ */
+
+'use strict';
+
+const { resolveUserPermissionContext } = require('../services/permission-service');
 const { BATCH_CONSTANTS } = require('../utils/constants/domain/batch-constants');
-const { logSystemException } = require('../utils/system-logger');
+const { logSystemException } = require('../utils/logging/system-logger');
 const AppError = require('../utils/AppError');
 
+const CONTEXT = 'batch-status-business';
+
 /**
- * Evaluate access control rules for batch status visibility.
+ * Resolves which batch status visibility capabilities the requesting user holds.
  *
- * Determines what batch statuses the current user is allowed to see
- * based on their resolved permission context.
+ * `enforceActiveOnly` is the default — lifted only when the user holds inactive
+ * or full visibility permission.
  *
- * Visibility levels:
- * - Root users or users with `VIEW_ALL_BATCH_STATUSES` can see all statuses.
- * - Users with `VIEW_INACTIVE_BATCH_STATUSES` can see both active and inactive statuses.
- * - All other users are restricted to active statuses only.
- *
- * This function performs **no database access** itself and relies on the
- * centralized permission resolver to determine the user's effective permissions.
- *
- * @async
- * @param {Object} user - Authenticated user object from request context.
- *
- * @returns {boolean} return.canViewAllStatuses
- * Indicates the user can view all batch statuses without restriction.
- *
- * @returns {boolean} return.canViewInactiveBatchStatuses
- * Indicates the user can view inactive statuses.
- *
- * @returns {boolean} return.enforceActiveOnly
- * Indicates only active statuses should be returned.
- *
- * @returns {Promise<{
- *   canViewAllStatuses: boolean,
- *   canViewInactiveBatchStatuses: boolean,
- *   enforceActiveOnly: boolean
- * }>}
+ * @param {AuthUser} user - Authenticated user making the request.
+ * @returns {Promise<BatchStatusVisibilityAcl>}
+ * @throws {AppError} businessError if permission resolution fails.
  */
 const evaluateBatchStatusVisibilityAccessControl = async (user) => {
-  const context = 'batch-status-business/evaluateBatchStatusVisibilityAccessControl';
+  const context = `${CONTEXT}/evaluateBatchStatusVisibilityAccessControl`;
   
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
     
-    //---------------------------------------------------------
-    // Full visibility override
-    //---------------------------------------------------------
-    const canViewAllStatuses =
+    const canViewInactiveBatchStatuses =
       isRoot ||
       permissions.includes(
         BATCH_CONSTANTS.PERMISSIONS.VIEW_ALL_BATCH_STATUSES
-      );
-    
-    //---------------------------------------------------------
-    // Inactive visibility permission
-    //---------------------------------------------------------
-    const canViewInactiveBatchStatuses =
-      canViewAllStatuses ||
+      ) ||
       permissions.includes(
         BATCH_CONSTANTS.PERMISSIONS.VIEW_INACTIVE_BATCH_STATUSES
       );
     
-    //---------------------------------------------------------
-    // Default rule: restrict to ACTIVE statuses only
-    //---------------------------------------------------------
-    const enforceActiveOnly = !canViewInactiveBatchStatuses;
-    
     return {
-      canViewAllStatuses,
       canViewInactiveBatchStatuses,
-      enforceActiveOnly,
+      enforceActiveOnly: !canViewInactiveBatchStatuses,
     };
   } catch (err) {
     logSystemException(
@@ -80,83 +53,43 @@ const evaluateBatchStatusVisibilityAccessControl = async (user) => {
     );
     
     throw AppError.businessError(
-      'Unable to evaluate batch status visibility access control.',
-      { details: err.message }
+      'Unable to evaluate batch status visibility access control.'
     );
   }
 };
 
 /**
- * Apply visibility rules to batch status lookup filters.
+ * Applies ACL-driven visibility rules to a batch status lookup filter object.
  *
- * This function mutates query filters based on the user's
- * evaluated access control flags. It ensures the repository
- * query respects the user's permission scope.
+ * Without full visibility, active-only is enforced and any caller-supplied
+ * `isActive` filter is removed to prevent override.
  *
- * Rules:
- * - If user can view all statuses → remove active restrictions.
- * - If active-only enforcement applies → force `enforceActiveOnly`.
- *
- * Designed specifically for **lookup queries**, where inactive
- * statuses may optionally be hidden from limited-permission users.
- *
- * @param {Object} filters - Incoming lookup filters from request.
- * @param {Object} acl - Access control flags returned from
- * `evaluateBatchStatusVisibilityAccessControl`.
- *
- * @returns {Object} Adjusted filters safe for repository queries.
+ * @param {object} filters - Base filter object from the request.
+ * @param {BatchStatusVisibilityAcl} acl - Resolved ACL from `evaluateBatchStatusVisibilityAccessControl`.
+ * @returns {object} Adjusted copy of `filters` with visibility rules applied.
  */
 const applyBatchStatusLookupVisibilityRules = (filters, acl) => {
   const adjusted = { ...filters };
   
-  //---------------------------------------------------------
-  // Full visibility override
-  //---------------------------------------------------------
-  if (acl.canViewAllStatuses) {
-    // Remove enforced active-only restriction
+  if (acl.canViewInactiveBatchStatuses) {
     delete adjusted.enforceActiveOnly;
     return adjusted;
   }
   
-  //---------------------------------------------------------
-  // Default rule: ACTIVE-only
-  //---------------------------------------------------------
-  if (acl.enforceActiveOnly) {
-    // Enforce repository-level filtering
-    adjusted.enforceActiveOnly = true;
-    
-    // Prevent clients from overriding active filtering
-    delete adjusted.isActive;
-  }
+  // Active-only enforced — prevent clients from overriding via isActive filter.
+  adjusted.enforceActiveOnly = true;
+  delete adjusted.isActive;
   
   return adjusted;
 };
 
 /**
- * Enrich batch status lookup rows with a normalized `isActive` flag.
+ * Enriches a batch status lookup row with a derived `isActive` boolean flag.
  *
- * Converts the database column `is_active` into a normalized
- * API response field `isActive`. This ensures frontend consumers
- * always receive a consistent boolean flag regardless of how
- * the database stores the value.
- *
- * This helper is typically used in lookup transformers when
- * preparing rows for API responses.
- *
- * @param {Object} row - Raw database row.
- *
- * @returns {Object} Row enriched with `isActive`.
- *
- * @throws {AppError.validationError}
- * If the input row is invalid.
+ * @param {BatchStatusRow} row - Raw batch status row from the repository.
+ * @returns {BatchStatusRow & { isActive: boolean }}
  */
 const enrichBatchStatusLookupWithActiveFlag = (row) => {
-  if (!row || typeof row !== 'object') {
-    throw AppError.validationError(
-      '[enrichBatchStatusLookupWithActiveFlag] Invalid `row`.'
-    );
-  }
-  
   return {
     ...row,
     isActive: Boolean(row.is_active),
