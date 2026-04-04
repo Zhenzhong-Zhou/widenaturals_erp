@@ -1,5 +1,5 @@
-const { query } = require('../../db');
-const AppError = require('../../../utils/AppError');
+const { query } = require('../../../database/db');
+const AppError = require('../../AppError');
 
 /**
  * @typedef {Object} CountRow

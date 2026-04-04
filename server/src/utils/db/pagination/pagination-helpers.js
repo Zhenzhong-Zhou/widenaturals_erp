@@ -1,10 +1,10 @@
-const { pool, query } = require('../../db');
-const AppError = require('../../../utils/AppError');
+const { pool, query } = require('../../../database/db');
+const AppError = require('../../AppError');
 const { generateCountQuery, buildPaginatedQuery } = require('./pagination-builder');
 const { executePaginatedQueries } = require('./pagination-executor');
-const { handleDbError } = require('../../../utils/errors/error-handlers');
-const { logPaginatedQueryError } = require('../../../utils/db-logger');
-const { validateSortingConfig } = require('../../../utils/query/sort-validator');
+const { handleDbError } = require('../../errors/error-handlers');
+const { logPaginatedQueryError } = require('../../db-logger');
+const { validateSortingConfig } = require('../../query/sort-validator');
 
 /**
  * Executes a page-based paginated query with optional sorting and total count.
