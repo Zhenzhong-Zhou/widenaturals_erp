@@ -31,7 +31,8 @@ const {
   transformProductDetail,
   transformProductList,
 }                                      = require('../transformers/product-transformer');
-const { withTransaction, lockRow }     = require('../database/db');
+const { withTransaction }     = require('../database/db');
+const { lockRow } = require('../utils/db/lock-modes');
 const { checkStatusExists }            = require('../repositories/status-repository');
 const {
   assertValidProductStatusTransition,

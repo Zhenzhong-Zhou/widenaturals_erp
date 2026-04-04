@@ -1,8 +1,8 @@
 const {
   query,
   paginateResults,
-  bulkInsert,
 } = require('../database/db');
+const { bulkInsert } = require('../utils/db/write-utils');
 const AppError = require('../utils/AppError');
 const {
   logSystemException,

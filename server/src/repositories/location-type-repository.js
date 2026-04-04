@@ -16,7 +16,7 @@
 'use strict';
 
 const { query } = require('../database/db');
-const { paginateQuery, paginateQueryByOffset } = require('../database/utils/pagination/pagination-helpers');
+const { paginateQuery, paginateQueryByOffset } = require('../utils/db/pagination/pagination-helpers');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
 const { buildLocationTypeFilter } = require('../utils/sql/build-location-type-filter');

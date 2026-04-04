@@ -39,7 +39,8 @@ const {
   transformProductBatchDetail,
 }                                            = require('../transformers/product-batch-transformer');
 const AppError                               = require('../utils/AppError');
-const { withTransaction, lockRows }          = require('../database/db');
+const { withTransaction }          = require('../database/db');
+const { lockRows } = require('../utils/db/lock-modes');
 const { validateRequiredFields }             = require('../utils/validation/validate-required-fields');
 const { getStatusId }                        = require('../config/status-cache');
 const { registerBatchWorkflow, updateBatchWorkflow } = require('../business/batches/batch-workflow');

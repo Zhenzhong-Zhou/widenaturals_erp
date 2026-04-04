@@ -16,7 +16,7 @@
 'use strict';
 
 const { query } = require('../database/db');
-const { paginateQuery } = require('../database/utils/pagination/pagination-helpers');
+const { paginateQuery } = require('../utils/db/pagination/pagination-helpers');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
 const { buildWarehouseFilter } = require('../utils/sql/build-warehouse-filter');

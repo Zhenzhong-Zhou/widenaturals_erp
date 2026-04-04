@@ -17,9 +17,10 @@
 
 'use strict';
 
-const { bulkInsert, updateById, query } = require('../database/db');
+const { query } = require('../database/db');
+const { bulkInsert, updateById } = require('../utils/db/write-utils');
 const { validateBulkInsertRows } = require('../utils/validation/bulk-insert-row-validator');
-const { paginateQuery } = require('../database/utils/pagination/pagination-helpers');
+const { paginateQuery } = require('../utils/db/pagination/pagination-helpers');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError, logBulkInsertError } = require('../utils/db-logger');
 const { buildPackagingMaterialBatchFilter } = require('../utils/sql/build-packaging-material-batch-filter');

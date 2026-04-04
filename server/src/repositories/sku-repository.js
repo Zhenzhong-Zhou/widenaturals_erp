@@ -26,14 +26,14 @@
 'use strict';
 
 const { validateBulkInsertRows } = require('../utils/validation/bulk-insert-row-validator');
-const { query, bulkInsert, updateById } = require('../database/db');
+const { query } = require('../database/db');
 const {
   paginateQueryByOffset,
   paginateQuery,
-} = require('../database/utils/pagination/pagination-helpers');
+} = require('../utils/db/pagination/pagination-helpers');
+const { bulkInsert, updateById } = require('../utils/db/write-utils');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError, logBulkInsertError } = require('../utils/db-logger');
-const { logSystemException } = require('../utils/logging/system-logger');
 const AppError = require('../utils/AppError');
 const {
   buildWhereClauseAndParams,

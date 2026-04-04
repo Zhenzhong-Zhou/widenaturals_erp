@@ -13,7 +13,7 @@
 
 'use strict';
 
-const { paginateQuery } = require('../database/utils/pagination/pagination-helpers');
+const { paginateQuery } = require('../utils/db/pagination/pagination-helpers');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
 const { buildLocationFilter } = require('../utils/sql/build-location-filter');

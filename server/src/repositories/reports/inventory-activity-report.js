@@ -1,4 +1,4 @@
-const { paginateQuery } = require('../../database/utils/pagination/pagination-helpers');
+const { paginateQuery } = require('../../utils/db/pagination/pagination-helpers');
 const { query } = require('../../database/db');
 const AppError = require('../../utils/AppError');
 const {

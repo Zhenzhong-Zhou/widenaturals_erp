@@ -14,7 +14,7 @@
 'use strict';
 
 const { validateBulkInsertRows } = require('../utils/validation/bulk-insert-row-validator');
-const { bulkInsert } = require('../database/db');
+const { bulkInsert } = require('../utils/db/write-utils');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logBulkInsertError } = require('../utils/db-logger');
 const {

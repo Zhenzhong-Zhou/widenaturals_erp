@@ -18,7 +18,7 @@ const {
   getAllocationsByOrderId,
   updateInventoryAllocationStatus,
 } = require('../repositories/inventory-allocations-repository');
-const { lockRows }          = require('../database/db');
+const { lockRows } = require('../utils/db/lock-modes');
 const { getStatusId }       = require('../config/status-cache');
 const {
   insertOutboundShipmentsBulk,

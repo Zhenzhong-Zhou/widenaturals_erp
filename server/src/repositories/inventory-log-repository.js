@@ -13,7 +13,7 @@
 
 'use strict';
 
-const { bulkInsert } = require('../database/db');
+const { bulkInsert } = require('../utils/db/write-utils');
 const { validateBulkInsertRows } = require('../utils/validation/bulk-insert-row-validator');
 const AppError = require('../utils/AppError');
 const { handleDbError } = require('../utils/errors/error-handlers');
