@@ -18,6 +18,10 @@
  *   - CSRF token generation via req.csrfToken()
  *
  * Note:
+ *   Both session-controller and auth-controller import exclusively from
+ *   auth-service. session-service is an internal dependency of auth-service
+ *   and is never imported directly by controllers.
+ *
  *   extractRequestContext is called directly in these controllers because
  *   auth middleware has not yet run at login/refresh time. req.auth is not
  *   available. attachTraceId middleware does run first, so req.traceId is safe.
@@ -29,7 +33,7 @@ const { wrapAsyncHandler }      = require('../middlewares/async-handler');
 const {
   loginUserService,
   refreshTokenService,
-} = require('../services/session-service');
+} = require('../services/auth-service');
 const { extractRequestContext } = require('../utils/request-context');
 const { getTtlMs }              = require('../utils/auth/jwt-utils');
 
