@@ -139,6 +139,13 @@
  * @property {string|null} location_name
  */
 
+/**
+ * @typedef {object} BatchStatusRow
+ * @property {string} id
+ * @property {string} name
+ * @property {boolean} is_active
+ */
+
 // ---------------------------------------------------------------------------
 // Filter types (service-layer input shapes)
 // ---------------------------------------------------------------------------

@@ -211,7 +211,7 @@ const getPricingDetailsByPricingTypeId = async ({ pricingTypeId, page, limit }) 
  * @param {Array<{ price_id: string, sku_id: string }>} pairs    - Pairs to fetch.
  * @param {PoolClient|null}                [client=null]
  *
- * @returns {Promise<Array<{ price_id: string, sku_id: string, price: number }>>}
+ * @returns {Promise<Array<{ price_id: string, sku_id: string, price: string }>>}
  * @throws  {AppError} Normalized database error if the query fails.
  */
 const getPricesByIdAndSkuBatch = async (pairs, client = null) => {

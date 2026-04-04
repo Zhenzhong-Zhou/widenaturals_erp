@@ -47,3 +47,27 @@
  * @property {string}      postal_code
  * @property {string}      country
  */
+
+/**
+ * @typedef {object} AddressDetailRecord
+ * @property {string} id
+ * @property {string | null} customerId
+ * @property {string | null} recipientName
+ * @property {string | null} phone
+ * @property {string | null} email
+ * @property {string | null} label
+ * @property {string | null} displayAddress
+ * @property {string | null} addressLine1
+ * @property {string | null} addressLine2
+ * @property {string | null} city
+ * @property {string | null} state
+ * @property {string | null} postalCode
+ * @property {string | null} country
+ * @property {string | null} region
+ * @property {string | null} note
+ * @property {string | null} createdBy
+ * @property {string | null} updatedBy
+ * @property {string} createdAt
+ * @property {string} updatedAt
+ * @property {{ fullName: string | null, email: string | null, phoneNumber: string | null } | null} customer
+ */

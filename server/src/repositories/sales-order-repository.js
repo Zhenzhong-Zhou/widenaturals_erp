@@ -18,27 +18,7 @@ const { SALES_ORDER_INSERT_QUERY } = require('./queries/sales-order-queries');
 /**
  * Inserts a new sales order record and returns the generated ID.
  *
- * @param {Object}                  salesOrderData
- * @param {string}                  salesOrderData.id                   - UUID for the new sales order.
- * @param {string}                  salesOrderData.customer_id          - UUID of the customer.
- * @param {string}                  salesOrderData.order_date           - ISO date string.
- * @param {string|null}             [salesOrderData.payment_status_id]
- * @param {string|null}             [salesOrderData.payment_method_id]
- * @param {string}                  [salesOrderData.currency_code='CAD']
- * @param {number|null}             [salesOrderData.exchange_rate]
- * @param {number|null}             [salesOrderData.base_currency_amount]
- * @param {string|null}             [salesOrderData.discount_id]
- * @param {number}                  [salesOrderData.discount_amount=0]
- * @param {number}                  salesOrderData.subtotal
- * @param {string}                  salesOrderData.tax_rate_id
- * @param {number}                  [salesOrderData.tax_amount=0]
- * @param {number}                  [salesOrderData.shipping_fee=0]
- * @param {number}                  salesOrderData.total_amount
- * @param {string}                  salesOrderData.delivery_method_id
- * @param {Object|null}             [salesOrderData.metadata]
- * @param {string|null}             [salesOrderData.created_by]
- * @param {string|null}             [salesOrderData.updated_at]
- * @param {string|null}             [salesOrderData.updated_by]
+ * @param {InsertSalesOrderPayload}  salesOrderData
  * @param {PoolClient} client - DB client for transactional context.
  *
  * @returns {Promise<string>} UUID of the inserted sales order.

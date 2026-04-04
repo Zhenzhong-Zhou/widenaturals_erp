@@ -189,7 +189,6 @@
  * @property {string|null}              marketRegion
  * @property {string|null}              sizeLabel
  * @property {string|null}              description
- * @property {BomComplianceRecord|null} compliance
  */
 
 /**
