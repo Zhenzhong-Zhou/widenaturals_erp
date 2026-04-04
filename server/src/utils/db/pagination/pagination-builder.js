@@ -1,5 +1,5 @@
-const AppError = require('../../../utils/AppError');
-const { safeOrderBy, q } = require('../../../utils/sql-ident');
+const AppError = require('../../AppError');
+const { safeOrderBy, q } = require('../../sql-ident');
 
 /**
  * Builds a SQL COUNT query with optional JOINs and filtering.
