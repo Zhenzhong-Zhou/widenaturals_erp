@@ -1,236 +1,138 @@
+/**
+ * @file sku-image-business.js
+ * @description Domain business logic for SKU image insert normalization,
+ * access control evaluation, and row-level field slicing.
+ */
+
+'use strict';
+
 const AppError = require('../utils/AppError');
 const {
   resolveUserPermissionContext,
-} = require('../services/role-permission-service');
+} = require('../services/permission-service');
 const {
   SKU_IMAGES_CONSTANTS,
 } = require('../utils/constants/domain/sku-constants');
-const { logSystemException } = require('../utils/system-logger');
+const { logSystemException } = require('../utils/logging/system-logger');
+
+const CONTEXT = 'sku-image-business';
 
 /**
- * @function
- * @description
- * Pre-insert normalization function that converts processed SKU image metadata
- * into a standardized record structure for insertion into the `sku_images` table.
+ * Normalizes a raw image metadata object into an insert-ready shape.
  *
- * It ensures consistent casing, default fallbacks, and safe handling of missing fields.
- * Typically used within business/service layers (e.g., `saveSkuImagesService`).
+ * `display_order` falls back to the item index when not explicitly provided.
+ * `file_size_kb` is rounded to the nearest integer when finite.
+ * `source` defaults to `'uploaded'` for audit traceability.
  *
- * @param {Object} img - Processed image metadata returned from `processAndUploadSkuImages`.
- * @param {string} skuId - UUID of the associated SKU.
- * @param {string} userId - ID of the user performing the upload.
- * @param {number} index - Fallback index used for display_order if not provided.
- * @returns {Object} Normalized DB-ready image record.
+ * @param {object} img - Raw image metadata from the caller.
+ * @param {string} skuId - UUID of the SKU this image belongs to.
+ * @param {string} userId - UUID of the user uploading the image.
+ * @param {number} [index=0] - Position index used as `display_order` fallback.
+ * @returns {object} Insert-ready image record.
  */
-const normalizeSkuImageForInsert = (img, skuId, userId, index = 0) => {
-  if (!img || typeof img !== 'object') {
-    throw AppError.validationError(
-      'Invalid image metadata provided to normalizeSkuImageForInsert'
-    );
-  }
-
-  return {
-    group_id: img.group_id,
-    sku_id: skuId,
-    image_url: String(img.image_url || '').trim(),
-    image_type: String(img.image_type || 'unknown').toLowerCase(),
-    display_order:
-      typeof img.display_order === 'number'
-        ? img.display_order
-        : Number.isFinite(index)
-          ? index
-          : 0,
-    file_size_kb: Number.isFinite(img.file_size_kb)
-      ? Math.round(img.file_size_kb)
-      : null,
-    file_format: String(img.file_format || 'webp').toLowerCase(),
-    alt_text: img.alt_text?.trim?.() || '',
-    is_primary: Boolean(img.is_primary),
-    uploaded_by: userId,
-    created_at: new Date(), // optional if DB doesn’t auto-fill
-    source: img.source || 'uploaded', // optional for audit
-  };
-};
+const normalizeSkuImageForInsert = (img, skuId, userId, index = 0) => ({
+  group_id:      img.group_id,
+  sku_id:        skuId,
+  image_url:     String(img.image_url || '').trim(),
+  image_type:    String(img.image_type || 'unknown').toLowerCase(),
+  display_order: typeof img.display_order === 'number'
+    ? img.display_order
+    : Number.isFinite(index) ? index : 0,
+  file_size_kb:  Number.isFinite(img.file_size_kb)
+    ? Math.round(img.file_size_kb)
+    : null,
+  file_format:   String(img.file_format || 'webp').toLowerCase(),
+  alt_text:      img.alt_text?.trim?.() || '',
+  is_primary:    Boolean(img.is_primary),
+  uploaded_by:   userId,
+  created_at:    new Date(),
+  source:        img.source || 'uploaded',
+});
 
 /**
- * Business: Evaluate whether the authenticated user can view SKU images
- * and which *levels* of metadata they may access.
+ * Resolves which SKU image viewing capabilities the requesting user holds.
  *
- * Permission model:
- *   VIEW_IMAGES            → Can view image URLs, primary flag, alt text
- *   VIEW_IMAGE_METADATA    → Can view technical metadata (size, type, format, order)
- *   VIEW_IMAGE_HISTORY     → Can view audit fields (uploaded_at, uploaded_by)
- *
- * This function returns BOOLEANS only. It does NOT fetch or modify data.
- * Used directly by `sliceSkuImagesForUser()` in the service layer.
- *
- * @param {Object} user - Authenticated user containing ID, role_id, and permissions.
- * @returns {Promise<{
- *   canViewImages: boolean,
- *   canViewImageMetadata: boolean,
- *   canViewImageHistory: boolean
- * }>}
+ * @param {AuthUser} user - Authenticated user making the request.
+ * @returns {Promise<SkuImageViewAcl>}
+ * @throws {AppError} businessError if permission resolution fails.
  */
 const evaluateSkuImageViewAccessControl = async (user) => {
+  const context = `${CONTEXT}/evaluateSkuImageViewAccessControl`;
+  
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-
-    // Basic permission: Can the user view the SKU images at all?
-    const canViewImages =
-      isRoot ||
-      permissions.includes(SKU_IMAGES_CONSTANTS.PERMISSIONS.VIEW_IMAGES);
-
-    // Extended: Can view file metadata (size, format, order, etc.)?
-    const canViewImageMetadata =
-      isRoot ||
-      permissions.includes(
-        SKU_IMAGES_CONSTANTS.PERMISSIONS.VIEW_IMAGE_METADATA
-      );
-
-    // Extended: Can view audit info (uploaded_at, uploaded_by)?
-    const canViewImageHistory =
-      isRoot ||
-      permissions.includes(SKU_IMAGES_CONSTANTS.PERMISSIONS.VIEW_IMAGE_HISTORY);
-
+    
     return {
-      canViewImages,
-      canViewImageMetadata,
-      canViewImageHistory,
+      canViewImages:
+        isRoot ||
+        permissions.includes(SKU_IMAGES_CONSTANTS.PERMISSIONS.VIEW_IMAGES),
+      canViewImageMetadata:
+        isRoot ||
+        permissions.includes(
+          SKU_IMAGES_CONSTANTS.PERMISSIONS.VIEW_IMAGE_METADATA
+        ),
+      canViewImageHistory:
+        isRoot ||
+        permissions.includes(
+          SKU_IMAGES_CONSTANTS.PERMISSIONS.VIEW_IMAGE_HISTORY
+        ),
     };
   } catch (err) {
     logSystemException(err, 'Failed to evaluate SKU image access control', {
-      context: 'sku-image-business/evaluateSkuImageViewAccessControl',
+      context,
       userId: user?.id,
     });
-
+    
     throw AppError.businessError(
-      'Unable to evaluate SKU image access control.',
-      { details: err.message }
+      'Unable to evaluate SKU image access control.'
     );
   }
 };
 
 /**
- * Business: Apply permission-based visibility slicing to raw SKU image rows.
+ * Filters and shapes a list of SKU image rows based on the user's access flags.
  *
- * This function:
- *   • Filters out images entirely if user lacks VIEW_IMAGES
- *   • Selectively exposes metadata and audit fields based on access flags
- *   • Normalizes snake_case DB fields into camelCase
- *   • Preserves groupId for later grouping transformation
+ * Returns an empty array if the user cannot view images at all. Metadata and
+ * audit fields are conditionally included based on the ACL.
  *
- * ⚠️ Important:
- * This function DOES NOT group images.
- * It returns a flat list of permission-safe image rows.
- * Grouping into logical image variants must be done by
- * transformSkuImageGroupsForDetail().
- *
- * Performance:
- *   - O(n) linear pass
- *   - No deep cloning
- *   - No additional DB access
- *   - Pure transformation
- *
- * ------------------------------------------------------------------
- * Raw DB Row Shape
- * ------------------------------------------------------------------
- *
- * @typedef {Object} RawImageRow
- * @property {string} id
- * @property {string} group_id
- * @property {string} image_url
- * @property {string} image_type
- * @property {boolean} is_primary
- * @property {string} alt_text
- * @property {number|null} file_size_kb
- * @property {string|null} file_format
- * @property {number|null} display_order
- * @property {string|null|Date} uploaded_at
- * @property {string|null} uploaded_by
- * @property {string|null} uploaded_by_firstname
- * @property {string|null} uploaded_by_lastname
- *
- * ------------------------------------------------------------------
- * Access Control Shape
- * ------------------------------------------------------------------
- *
- * @typedef {Object} SkuImageAccess
- * @property {boolean} canViewImages
- * @property {boolean} canViewImageMetadata
- * @property {boolean} canViewImageHistory
- *
- * ------------------------------------------------------------------
- * Returned Flat Image Shape (Permission-Safe)
- * ------------------------------------------------------------------
- *
- * @typedef {Object} SlicedSkuImage
- * @property {string} id
- * @property {string} groupId
- * @property {string} imageUrl
- * @property {string} type
- * @property {boolean} isPrimary
- * @property {string} altText
- * @property {Object} [metadata]
- * @property {number|null} metadata.sizeKb
- * @property {string|null} metadata.format
- * @property {number|null} metadata.displayOrder
- * @property {Object|null} [audit]
- * @property {string|Date|null} audit.uploadedAt
- * @property {Object|null} audit.uploadedBy
- * @property {string} audit.uploadedBy.id
- * @property {string|null} audit.uploadedBy.firstname
- * @property {string|null} audit.uploadedBy.lastname
- *
- * ------------------------------------------------------------------
- *
- * @param {Array<RawImageRow>} imageRows
- *        Raw DB rows from repository.
- *
- * @param {SkuImageAccess} access
- *        Result of evaluateSkuImageViewAccessControl().
- *
- * @returns {Array<SlicedSkuImage>}
- *          Flat, permission-safe image rows ready for grouping.
+ * @param {SkuImageRow[]} imageRows - Raw SKU image rows from the repository.
+ * @param {SkuImageViewAcl} access - Resolved ACL from `evaluateSkuImageViewAccessControl`.
+ * @returns {object[]} Filtered and shaped image records.
  */
 const sliceSkuImagesForUser = (imageRows, access) => {
-  if (!Array.isArray(imageRows)) return [];
-
-  // If user cannot view images at all → return empty immediately
-  if (!access.canViewImages) return [];
-
+  if (!Array.isArray(imageRows) || !access.canViewImages) return [];
+  
   return imageRows.map((row) => {
     const safe = {
-      id: row.id,
-      groupId: row.group_id,
-      imageUrl: row.image_url,
-      type: row.image_type,
+      id:        row.id,
+      groupId:   row.group_id,
+      imageUrl:  row.image_url,
+      type:      row.image_type,
       isPrimary: row.is_primary,
-      altText: row.alt_text,
+      altText:   row.alt_text,
     };
-
-    // Optional: Extended metadata
+    
     if (access.canViewImageMetadata) {
       safe.metadata = {
-        sizeKb: row.file_size_kb,
-        format: row.file_format,
+        sizeKb:       row.file_size_kb,
+        format:       row.file_format,
         displayOrder: row.display_order,
       };
     }
-
-    // Optional: Audit history
+    
     if (access.canViewImageHistory) {
       safe.audit = {
         uploadedAt: row.uploaded_at,
         uploadedBy: row.uploaded_by
           ? {
-              id: row.uploaded_by,
-              firstname: row.uploaded_by_firstname,
-              lastname: row.uploaded_by_lastname,
-            }
+            id:        row.uploaded_by,
+            firstname: row.uploaded_by_firstname,
+            lastname:  row.uploaded_by_lastname,
+          }
           : null,
       };
     }
-
+    
     return safe;
   });
 };

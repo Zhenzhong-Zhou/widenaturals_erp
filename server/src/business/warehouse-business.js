@@ -1,58 +1,63 @@
-const { checkPermissions } = require('../services/role-permission-service');
-const { getStatusId } = require('../config/status-cache');
-const { logSystemException } = require('../utils/system-logger');
-const AppError = require('../utils/AppError');
+/**
+ * @file warehouse-business.js
+ * @description Domain business logic for warehouse filter resolution
+ * based on user permissions.
+ */
+
+'use strict';
+
+const {
+  resolveUserPermissionContext,
+} = require('../services/permission-service');
+const { getStatusId }        = require('../config/status-cache');
+const { logSystemException } = require('../utils/logging/system-logger');
+const AppError               = require('../utils/AppError');
+
+const CONTEXT = 'warehouse-business';
 
 /**
- * Resolves and sanitizes warehouse filters based on the user's permission level.
+ * Resolves warehouse lookup filters based on the requesting user's permissions.
  *
- * Behavior:
- * - Regular users (without `view_all_warehouse_statuses`) are restricted to active warehouses only.
- * - Users without `view_archived_warehouses` cannot see archived records (enforces isArchived = false).
+ * Restricted users are pinned to the active warehouse status. Users without
+ * archive visibility have `isArchived` forced to `false`.
  *
- * @param {Object} user - Authenticated user object
- * @param {Object} rawFilters - Raw filters from request/query (e.g., statusId, isArchived)
- * @returns {Promise<Object>} - Final sanitized filter object based on permission level
- *
- * @throws {AppError} - If permission check or status resolution fails
+ * @param {AuthUser} user - Authenticated user making the request.
+ * @param {object} [rawFilters={}] - Base filter object from the request.
+ * @returns {Promise<object>} Adjusted filter object with permission-based rules applied.
+ * @throws {AppError} businessError if permission resolution fails.
  */
 const resolveWarehouseFiltersByPermission = async (user, rawFilters = {}) => {
+  const context = `${CONTEXT}/resolveWarehouseFiltersByPermission`;
+  
   try {
-    const canViewAllStatuses = await checkPermissions(user, [
-      'view_all_warehouse_statuses',
-    ]);
-    const canViewArchived = await checkPermissions(user, [
-      'view_archived_warehouses',
-    ]);
-
-    const defaultActiveStatusId = getStatusId('warehouse_active');
-
+    const { permissions, isRoot } = await resolveUserPermissionContext(user);
+    
+    const canViewAllStatuses =
+      isRoot || permissions.includes('view_all_warehouse_statuses');
+    const canViewArchived =
+      isRoot || permissions.includes('view_archived_warehouses');
+    
     const resolvedFilters = { ...rawFilters };
-
-    // Apply status restriction if not allowed to view all statuses
+    
     if (canViewAllStatuses) {
       delete resolvedFilters.statusId;
     } else if (!resolvedFilters.statusId) {
-      resolvedFilters.statusId = defaultActiveStatusId;
+      resolvedFilters.statusId = getStatusId('warehouse_active');
     }
-
-    // Enforce isArchived = false if user is not allowed to view archived
+    
+    // Default to excluding archived records for users without archive permission.
     if (!canViewArchived && resolvedFilters.isArchived === undefined) {
       resolvedFilters.isArchived = false;
     }
-
+    
     return resolvedFilters;
-  } catch (error) {
+  } catch (err) {
     logSystemException(
-      error,
-      'Permission-based warehouse filter resolution failed. Please check user roles or status ID mapping.',
-      {
-        context: 'warehouse-business/resolveWarehouseFiltersByPermission',
-        userId: user?.id,
-        filters: rawFilters,
-      }
+      err,
+      'Failed to resolve warehouse filters by permission',
+      { context, userId: user?.id }
     );
-
+    
     throw AppError.businessError(
       'Failed to resolve warehouse filters by permission.'
     );

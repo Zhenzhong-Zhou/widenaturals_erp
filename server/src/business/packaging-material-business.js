@@ -1,42 +1,43 @@
+/**
+ * @file packaging-material-business.js
+ * @description Domain business logic for packaging material access control
+ * evaluation, visibility rule application, and lookup row enrichment.
+ */
+
+'use strict';
+
 const {
   resolveUserPermissionContext,
-} = require('../services/role-permission-service');
+} = require('../services/permission-service');
 const {
   PERMISSIONS,
 } = require('../utils/constants/domain/packaging-material-constants');
-const { logSystemException } = require('../utils/system-logger');
+const { logSystemException } = require('../utils/logging/system-logger');
 const AppError = require('../utils/AppError');
 
+const CONTEXT = 'packaging-material-business';
+
 /**
- * Evaluates user permission context for packaging material lookups.
+ * Resolves which packaging material lookup visibility capabilities the
+ * requesting user holds.
  *
- * Grants access flags for:
- * - Archived materials (admin-facing or audit views)
- * - All status values (e.g., inactive, deprecated)
- * - Hidden sales materials (excluded from sales order dropdowns by default)
- *
- * @param {object} user - Authenticated user object.
- * @returns {Promise<{
- *   canViewArchived: boolean,
- *   canViewAllStatuses: boolean,
- *   canViewHiddenSalesMaterials: boolean
- * }>}
- * @throws {AppError} If permission evaluation fails.
- *
- * @example
- * const access = await evaluatePackagingMaterialLookupAccessControl(user);
- * if (access.canViewArchived) { /* include archived in admin tables *\/ }
+ * @param {AuthUser} user - Authenticated user making the request.
+ * @returns {Promise<PackagingMaterialLookupAcl>}
+ * @throws {AppError} businessError if permission resolution fails.
  */
 const evaluatePackagingMaterialLookupAccessControl = async (user) => {
+  const context = `${CONTEXT}/evaluatePackagingMaterialLookupAccessControl`;
+  
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-
+    
     return {
       canViewArchived:
         isRoot ||
         permissions.includes(PERMISSIONS.VIEW_ARCHIVED_PACKAGING_MATERIALS),
       canViewAllStatuses:
-        isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_PACKAGING_STATUSES),
+        isRoot ||
+        permissions.includes(PERMISSIONS.VIEW_ALL_PACKAGING_STATUSES),
       canViewHiddenSalesMaterials:
         isRoot ||
         permissions.includes(PERMISSIONS.VIEW_HIDDEN_SALES_PACKAGING_MATERIALS),
@@ -45,51 +46,26 @@ const evaluatePackagingMaterialLookupAccessControl = async (user) => {
     logSystemException(
       err,
       'Failed to evaluate packaging material lookup access control',
-      {
-        context: 'packaging-materials-business/evaluateLookupAccessControl',
-        userId: user?.id,
-      }
+      { context, userId: user?.id }
     );
+    
     throw AppError.businessError(
-      'Unable to evaluate access control for packaging material lookup',
-      {
-        details: err.message,
-        stage: 'evaluate-lookup-access',
-      }
+      'Unable to evaluate access control for packaging material lookup.'
     );
   }
 };
 
 /**
- * Applies role-based restrictions to packaging material filters.
+ * Applies ACL-driven visibility rules to a packaging material lookup filter object.
  *
- * Behavior:
- * - If the user CANNOT view all statuses:
- *   - Forces active-only by setting `restrictToActiveStatus = true`.
- *   - Injects `_activeStatusId` for internal enforcement.
- *   - Forces unarchived-only via `restrictToUnarchived = true`.
- *   - Removes any caller-provided `statusId`.
- *   - Requires `activeStatusId`; throws if missing.
- * - If the user CAN view all statuses:
- *   - Removes internally enforced flags (`_activeStatusId`, `restrictToUnarchived`, `restrictToActiveStatus`).
- *   - Preserves any caller-provided `statusId`/archive filters.
+ * Restricted users are pinned to active and unarchived records only.
+ * Elevated users retain any caller-provided status and archive filters.
  *
- * Note: This function returns a shallow copy of the provided filters and may add internal flags
- * used downstream by the repository/query builder.
- *
- * @param {object} filters - Incoming filters from the request.
- * @param {{
- *   canViewAllStatuses: boolean,
- *   canViewArchived?: boolean,
- *   canViewHiddenSalesMaterials?: boolean
- * }} userAccess - Access control flags.
- * @param {string} activeStatusId - Status ID to enforce when restricting to active-only.
- * @returns {object} Adjusted filters with enforcement flags applied/removed.
- * @throws {AppError} If `activeStatusId` is missing for restricted views.
- *
- * @example
- * const adjusted = enforcePackagingMaterialVisibilityRules(req.query, access, ACTIVE_STATUS_ID);
- * // adjusted may include: { ...req.query, restrictToActiveStatus: true, _activeStatusId: ACTIVE_STATUS_ID, restrictToUnarchived: true }
+ * @param {object} filters - Base filter object from the request.
+ * @param {PackagingMaterialLookupAcl} userAccess - Resolved ACL from `evaluatePackagingMaterialLookupAccessControl`.
+ * @param {string} activeStatusId - UUID of the active status record.
+ * @returns {object} Adjusted copy of `filters` with visibility rules applied.
+ * @throws {AppError} validationError if `activeStatusId` is missing for restricted users.
  */
 const enforcePackagingMaterialVisibilityRules = (
   filters,
@@ -97,57 +73,39 @@ const enforcePackagingMaterialVisibilityRules = (
   activeStatusId
 ) => {
   const adjusted = { ...filters };
-
+  
   if (!userAccess.canViewAllStatuses) {
-    // Enforce active-only
-    delete adjusted.statusId;
-    adjusted.restrictToActiveStatus = true;
-
     if (!activeStatusId) {
       throw AppError.validationError(
-        'Missing activeStatusId for restricted status view',
-        {
-          field: 'activeStatusId',
-          stage: 'enforcePackagingMaterialVisibilityRules',
-        }
+        'Missing activeStatusId for restricted status view.'
       );
     }
-    adjusted._activeStatusId = activeStatusId;
-
-    // Enforce unarchived-only
-    adjusted.restrictToUnarchived = true;
+    
+    // Pin to active and unarchived records for restricted users.
+    delete adjusted.statusId;
+    adjusted.restrictToActiveStatus = true;
+    adjusted._activeStatusId        = activeStatusId;
+    adjusted.restrictToUnarchived   = true;
   } else {
-    // Elevated access: remove forced restrictions
+    // Elevated access — remove forced restrictions, retain caller-provided filters.
     delete adjusted._activeStatusId;
     delete adjusted.restrictToUnarchived;
-    // Note: keep any caller-provided statusId/archive filters
   }
-
+  
   return adjusted;
 };
 
 /**
- * Enriches a packaging material row with UI-friendly flags.
+ * Enriches a packaging material lookup row with derived boolean flags.
  *
- * Adds:
- * - `isActive`: true when `row.status_id === activeStatusId`.
- * - `isArchived`: true when `row.is_archived === true`.
- *
- * Useful when transforming DB records for dropdowns/select lists.
- *
- * @param {{ status_id: string, is_archived?: boolean, [key:string]: any }} row
- *   Raw packaging material row.
- * @param {string} activeStatusId - Status ID representing "active".
- * @returns {object} The enriched material record with `isActive` and `isArchived`.
- *
- * @example
- * const enriched = enrichPackagingMaterialOption(row, ACTIVE_STATUS_ID);
- * if (enriched.isActive && !enriched.isArchived) { /* show in dropdown *\/ }
+ * @param {object} row - Raw packaging material row from the repository.
+ * @param {string} activeStatusId - UUID of the active status record.
+ * @returns {object & { isActive: boolean, isArchived: boolean }}
  */
 const enrichPackagingMaterialOption = (row, activeStatusId) => {
   return {
     ...row,
-    isActive: row.status_id === activeStatusId,
+    isActive:   row.status_id === activeStatusId,
     isArchived: row.is_archived === true,
   };
 };

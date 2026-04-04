@@ -1,67 +1,76 @@
+/**
+ * @file packaging-material-batch-business.js
+ * @description Domain business logic for packaging material batch visibility
+ * evaluation, filter rule application, access control resolution, and
+ * field-level update filtering.
+ */
+
+'use strict';
+
 const {
   resolveUserPermissionContext,
-} = require('../services/role-permission-service');
+} = require('../services/permission-service');
 const {
   BATCH_CONSTANTS,
 } = require('../utils/constants/domain/batch-constants');
-const { logSystemException } = require('../utils/system-logger');
+const { logSystemException } = require('../utils/logging/system-logger');
 const AppError = require('../utils/AppError');
 const {
-  PACKAGING_BATCH_PERMISSION_FIELD_RULES
+  PACKAGING_BATCH_PERMISSION_FIELD_RULES,
 } = require('../utils/constants/domain/packaging-material-batch-constants');
-const { resolveEditableFields, filterUpdatableBatchFields } = require('./batches/batch-field-filter');
+const {
+  resolveBatchEditableFields,
+  filterUpdatableBatchFields,
+} = require('./batches/batch-field-filter');
+
+const CONTEXT = 'packaging-material-batch-business';
 
 /**
- * Business: Determine packaging material batch visibility authority.
+ * Resolves which packaging material batch visibility capabilities the
+ * requesting user holds.
  *
- * Resolves PACKAGING MATERIAL BATCH visibility ONLY.
- * No filter logic, no SQL, no joins.
+ * `canViewAllPackagingBatches` is a full override — it implies supplier
+ * visibility and all keyword search capabilities.
  *
- * @param {Object} user
- * @returns {Promise<{
- *   canViewPackagingBatches: boolean,
- *   canViewSupplier: boolean,
- *   canViewAllPackagingBatches: boolean,
- *   canSearchMaterial: boolean,
- *   canSearchSupplier: boolean
- * }>}
+ * @param {AuthUser} user - Authenticated user making the request.
+ * @returns {Promise<PackagingBatchVisibilityAcl>}
+ * @throws {AppError} businessError if permission resolution fails.
  */
 const evaluatePackagingMaterialBatchVisibility = async (user) => {
-  const context =
-    'packaging-material-batch-business/evaluatePackagingMaterialBatchVisibility';
-
+  const context = `${CONTEXT}/evaluatePackagingMaterialBatchVisibility`;
+  
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-
+    
     const canViewAllPackagingBatches =
       isRoot ||
       permissions.includes(
         BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_ALL_VISIBILITY
       );
-
+    
     const canViewPackagingBatches =
       canViewAllPackagingBatches ||
       permissions.includes(BATCH_CONSTANTS.PERMISSIONS.VIEW_PACKAGING_BATCHES);
-
+    
     const canViewSupplier =
       canViewAllPackagingBatches ||
       permissions.includes(BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_SUPPLIER);
-
+    
     return {
+      canViewAllPackagingBatches,
       canViewPackagingBatches,
       canViewSupplier,
-      canViewAllPackagingBatches,
-
-      // Derived keyword capabilities
+      // Derived keyword search capabilities — driven by visibility flags.
       canSearchMaterial:
+        canViewAllPackagingBatches ||
         permissions.includes(
           BATCH_CONSTANTS.PERMISSIONS.SEARCH_BATCH_BY_MATERIAL
-        ) || canViewAllPackagingBatches,
-
+        ),
       canSearchSupplier:
+        canViewAllPackagingBatches ||
         permissions.includes(
           BATCH_CONSTANTS.PERMISSIONS.SEARCH_BATCH_BY_SUPPLIER
-        ) || canViewAllPackagingBatches,
+        ),
     };
   } catch (err) {
     logSystemException(
@@ -69,29 +78,32 @@ const evaluatePackagingMaterialBatchVisibility = async (user) => {
       'Failed to evaluate packaging material batch visibility',
       { context, userId: user?.id }
     );
-
+    
     throw AppError.businessError(
-      'Unable to evaluate packaging material batch visibility.',
-      { details: err.message }
+      'Unable to evaluate packaging material batch visibility.'
     );
   }
 };
 
 /**
- * Business: applyPackagingMaterialBatchVisibilityRules
+ * Applies ACL-driven visibility rules to a packaging material batch filter object.
  *
- * Narrows packaging material batch query filters based on visibility ACL.
+ * Full override enables all keyword capabilities and leaves filters intact.
+ * No packaging batch permission forces an empty result. Otherwise keyword
+ * capabilities are injected from the ACL.
  *
- * @param {Object} filters - User-requested filters
- * @param {Object} acl - Result from evaluatePackagingMaterialBatchVisibility()
- * @returns {Object} Adjusted filters
+ * Snapshot name and supplier label are always searchable when the user has
+ * basic packaging batch visibility — they are batch-owned fields that do not
+ * require additional permissions.
+ *
+ * @param {object} filters - Base filter object from the request.
+ * @param {PackagingBatchVisibilityAcl} acl - Resolved ACL from `evaluatePackagingMaterialBatchVisibility`.
+ * @returns {object} Adjusted copy of `filters` with visibility rules applied.
  */
 const applyPackagingMaterialBatchVisibilityRules = (filters, acl) => {
   const adjusted = { ...filters };
-
-  // -----------------------------------------
-  // 1. Full visibility override
-  // -----------------------------------------
+  
+  // Full visibility override — enable all keyword capabilities.
   if (acl.canViewAllPackagingBatches) {
     adjusted.keywordCapabilities = {
       canSearchInternalName: true,
@@ -101,66 +113,51 @@ const applyPackagingMaterialBatchVisibilityRules = (filters, acl) => {
     };
     return adjusted;
   }
-
-  // -----------------------------------------
-  // 2. No permission → fail closed
-  // -----------------------------------------
+  
+  // No packaging batch permission — fail closed.
   if (acl.canViewPackagingBatches !== true) {
     adjusted.forceEmptyResult = true;
     return adjusted;
   }
-
-  // -----------------------------------------
-  // 3. Inject keyword search capabilities
-  // -----------------------------------------
+  
+  // Inject keyword search capabilities from ACL.
+  // Internal name and supplier label are batch-owned — always searchable.
   adjusted.keywordCapabilities = {
-    canSearchInternalName: true, // snapshot name is always allowed
-    canSearchSupplierLabel: true, // supplier label is batch-owned
+    canSearchInternalName: true,
+    canSearchSupplierLabel: true,
     canSearchMaterialCode: acl.canSearchMaterial,
     canSearchSupplier: acl.canSearchSupplier,
   };
-
+  
   return adjusted;
 };
 
 /**
- * Evaluates packaging material batch access control for a user.
+ * Resolves which packaging material batch edit capabilities the requesting
+ * user holds.
  *
- * Resolves the user's permission context and derives
- * convenience flags used by batch mutation logic.
- *
- * Root users automatically bypass permission checks.
- *
- * @param {Object} user
- * @returns {Promise<{
- *   permissions: string[],
- *   isRoot: boolean,
- *   canEditBasicMetadata: boolean,
- *   canEditSensitiveMetadata: boolean,
- *   canChangeStatus: boolean
- * }>}
+ * @param {AuthUser} user - Authenticated user making the request.
+ * @returns {Promise<PackagingBatchAccessAcl>}
+ * @throws {AppError} businessError if permission resolution fails.
  */
 const evaluatePackagingMaterialBatchAccessControl = async (user) => {
+  const context = `${CONTEXT}/evaluatePackagingMaterialBatchAccessControl`;
+  
   try {
-    const { permissions, isRoot } =
-      await resolveUserPermissionContext(user);
+    const { permissions, isRoot } = await resolveUserPermissionContext(user);
     
     return {
-      permissions,
       isRoot,
-      
       canEditBasicMetadata:
         isRoot ||
         permissions.includes(
           BATCH_CONSTANTS.PERMISSIONS.EDIT_PACKAGING_BATCH_METADATA_BASIC
         ),
-      
       canEditSensitiveMetadata:
         isRoot ||
         permissions.includes(
           BATCH_CONSTANTS.PERMISSIONS.EDIT_PACKAGING_BATCH_METADATA_SENSITIVE
         ),
-      
       canChangeStatus:
         isRoot ||
         permissions.includes(
@@ -170,86 +167,45 @@ const evaluatePackagingMaterialBatchAccessControl = async (user) => {
   } catch (err) {
     logSystemException(
       err,
-      'Failed to evaluate Packaging Material Batch access control',
-      {
-        context:
-          'packaging-batch-business/evaluatePackagingMaterialBatchAccessControl',
-        userId: user?.id,
-      }
+      'Failed to evaluate packaging material batch access control',
+      { context, userId: user?.id }
     );
     
-    if (err instanceof AppError) throw err;
-    
     throw AppError.businessError(
-      'Unable to evaluate access control for Packaging Material Batch',
-      {
-        details: err.message,
-        stage: 'evaluate-packaging-batch-access',
-      }
+      'Unable to evaluate packaging material batch access control.'
     );
   }
 };
 
 /**
- * Resolves editable fields for a packaging material batch based on
- * the current user's access-control flags.
+ * Resolves the set of fields the user is permitted to edit on a packaging
+ * material batch, based on their ACL flags and the field rule configuration.
  *
- * This is a thin wrapper around `resolveEditableFields` that applies
- * packaging-batch specific permission field rules.
- *
- * @param {Object} access
- * Access-control flags for the current user.
- *
- * @param {boolean} access.isRoot
- * Indicates whether the user has root privileges.
- *
- * @param {boolean} [access.canEditBasicMetadata]
- * Permission to edit non-sensitive batch metadata.
- *
- * @param {boolean} [access.canEditSensitiveMetadata]
- * Permission to edit sensitive metadata fields.
- *
- * @param {boolean} [access.canChangeStatus]
- * Permission to change the batch lifecycle status.
- *
- * @returns {Set<string>}
- * Set of field names the user is permitted to edit.
+ * @param {PackagingBatchAccessAcl} access - Resolved ACL from `evaluatePackagingMaterialBatchAccessControl`.
+ * @returns {Set<string>} Set of permitted field names.
  */
 const getEditableFieldsForPackagingBatch = (access) =>
-  resolveEditableFields(access, PACKAGING_BATCH_PERMISSION_FIELD_RULES);
+  resolveBatchEditableFields(access, PACKAGING_BATCH_PERMISSION_FIELD_RULES);
 
 /**
- * Filters and validates packaging material batch update fields.
+ * Filters an update payload to only the fields permitted by the packaging
+ * material batch's current lifecycle state and the user's permission-based
+ * access flags.
  *
- * This function is a thin wrapper around the generic
- * `filterUpdatableBatchFields` validator. It injects the
- * packaging-batch-specific permission resolver and error label.
- *
- * The underlying validator enforces:
- *
- * 1. Lifecycle edit rules based on the batch's current status
- * 2. Permission-based field editing rules derived from user access
- *
- * The final editable fields are determined as:
- *
- *   allowedFields =
- *      lifecycleAllowedFields
- *      ∩
- *      permissionAllowedFields
- *
- * Any attempted update outside this set will be rejected.
- *
- * @param {Object} params
- * @param {Object} params.batch - Current batch record
- * @param {Object} params.updates - Requested update payload
- * @param {Object} params.access - Access control flags
- * @param {Record<string,string[]>} params.editRules - Lifecycle edit rules
- *
- * @returns {Object} Filtered update payload safe to apply
+ * @param {object} params
+ * @param {object} params.batch - Current batch record with `id` and `status_name`.
+ * @param {object} [params.updates={}] - Requested update payload.
+ * @param {PackagingBatchAccessAcl} params.access - Resolved ACL.
+ * @param {Record<string, string[]>} params.editRules - Lifecycle edit rules map.
+ * @returns {object} Filtered update payload.
+ * @throws {AppError} validationError if fields are not permitted or none remain.
  */
-const filterUpdatablePackagingMaterialBatchFields = (params) =>
+const filterUpdatablePackagingMaterialBatchFields = ({ batch, updates, access, editRules }) =>
   filterUpdatableBatchFields({
-    ...params,
+    batch,
+    updates,
+    access,
+    editRules,
     permissionResolver: getEditableFieldsForPackagingBatch,
     errorLabel: 'packaging material batch',
   });
@@ -258,5 +214,6 @@ module.exports = {
   evaluatePackagingMaterialBatchVisibility,
   applyPackagingMaterialBatchVisibilityRules,
   evaluatePackagingMaterialBatchAccessControl,
+  getEditableFieldsForPackagingBatch,
   filterUpdatablePackagingMaterialBatchFields,
 };

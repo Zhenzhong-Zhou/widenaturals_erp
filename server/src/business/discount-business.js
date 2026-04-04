@@ -1,111 +1,90 @@
-const { logSystemException } = require('../utils/system-logger');
+/**
+ * @file discount-business.js
+ * @description Domain business logic for discount amount calculation, access
+ * control evaluation, visibility rule application, query filtering, and
+ * lookup row enrichment.
+ */
+
+'use strict';
+
+const { logSystemException } = require('../utils/logging/system-logger');
 const AppError = require('../utils/AppError');
 const {
   resolveUserPermissionContext,
-} = require('../services/role-permission-service');
+} = require('../services/permission-service');
 const { PERMISSIONS } = require('../utils/constants/domain/discount-constants');
 
+const CONTEXT = 'discount-business';
+
 /**
- * Calculates the discount amount based on discount type and subtotal.
+ * Calculates the discount amount for a given subtotal based on the discount type.
  *
- * Applies business rules based on discount type (`PERCENTAGE` or `FIXED`).
- * Returns 0 if no discount is provided or type is unsupported.
+ * Supports `PERCENTAGE` and `FIXED_AMOUNT` discount types.
+ * Returns `0` if no discount is provided.
  *
- * @param {number} subtotal - The original subtotal before discount.
- * @param {object|null} discount - The discount object containing type and value.
- * @param {string} discount.discount_type - Type of discount: 'PERCENTAGE' or 'FIXED'.
- * @param {number} discount.discount_value - The numeric value of the discount.
- * @returns {number} - The computed discount amount, or 0 if not applicable.
- *
- * @throws {AppError} - If a calculation error occurs.
+ * @param {number} subtotal - The order subtotal to apply the discount to.
+ * @param {{ discount_type: string, discount_value: number } | null} discount - Discount record.
+ * @returns {number} Calculated discount amount.
+ * @throws {AppError} validationError if the discount type is not supported.
  */
 const calculateDiscountAmount = (subtotal, discount) => {
-  try {
-    if (!discount) return 0;
-
-    if (discount.discount_type === 'PERCENTAGE') {
-      return subtotal * (discount.discount_value / 100);
-    }
-
-    if (discount.discount_type === 'FIXED_AMOUNT') {
-      return discount.discount_value;
-    }
-
-    // Throw for unsupported type
-    throw AppError.validationError(
-      `Unsupported discount type: ${discount.discount_type}`
-    );
-  } catch (error) {
-    logSystemException(error, 'Failed to calculate discount amount', {
-      context: 'discount-business/calculateDiscountAmount',
-      discount,
-      subtotal,
-    });
-    throw AppError.businessError('Unable to calculate discount amount.');
+  if (!discount) return 0;
+  
+  if (discount.discount_type === 'PERCENTAGE') {
+    return subtotal * (discount.discount_value / 100);
   }
+  
+  if (discount.discount_type === 'FIXED_AMOUNT') {
+    return discount.discount_value;
+  }
+  
+  throw AppError.validationError(
+    `Unsupported discount type: ${discount.discount_type}`
+  );
 };
 
 /**
- * Evaluates user permission context to determine access to extended lookup options.
+ * Resolves which discount lookup visibility capabilities the requesting
+ * user holds.
  *
- * Determines if the user has permission to:
- * - View all discount statuses (including inactive or hidden)
- * - View all discount validity periods (including expired or future ones)
- *
- * Root users are automatically granted full access.
- *
- * @param {Object} user - Authenticated user object with a role.
- * @returns {Promise<{
- *   canViewAllStatuses: boolean,
- *   canViewAllValidLookups: boolean
- * }>}
- *
- * @throws {AppError} If the permission resolution fails.
+ * @param {AuthUser} user - Authenticated user making the request.
+ * @returns {Promise<DiscountLookupAcl>}
+ * @throws {AppError} businessError if permission resolution fails.
  */
 const evaluateDiscountLookupAccessControl = async (user) => {
+  const context = `${CONTEXT}/evaluateDiscountLookupAccessControl`;
+  
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-
-    const canViewAllStatuses =
-      isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_DISCOUNT_STATUSES);
-
-    const canViewAllValidLookups =
-      isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_VALID_DISCOUNTS);
-
+    
     return {
-      canViewAllStatuses,
-      canViewAllValidLookups,
+      canViewAllStatuses:
+        isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_DISCOUNT_STATUSES),
+      canViewAllValidLookups:
+        isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_VALID_DISCOUNTS),
     };
   } catch (err) {
-    logSystemException(err, 'Failed to evaluate lookup access control', {
-      context: 'discount-business/evaluateLookupAccessControl',
+    logSystemException(err, 'Failed to evaluate discount lookup access control', {
+      context,
       userId: user?.id,
     });
-
+    
     throw AppError.businessError(
-      'Unable to evaluate user access control for discount lookup',
-      {
-        details: err.message,
-        stage: 'evaluate-lookup-access',
-      }
+      'Unable to evaluate user access control for discount lookup.'
     );
   }
 };
 
 /**
- * Enforces visibility restrictions on keyword and status filtering
- * based on user access permissions.
+ * Applies ACL-driven visibility rules to a discount lookup filter object.
  *
- * If the user lacks permission to view all valid records and provides a keyword filter,
- * a special `_restrictKeywordToValidOnly` flag is added.
+ * Restricted users are pinned to active-only results and keyword searches
+ * are restricted to currently valid discounts only.
  *
- * If the user lacks permission to view all statuses, any `status_id` filter is removed,
- * and `_activeStatusId` is added to constrain filtering.
- *
- * @param {Object} filters - Original filter object (may include `keyword`, `status_id`, etc.)
- * @param {Object} userAccess - Access flags (e.g., `canViewAllValidLookups`, `canViewAllStatuses`)
- * @param {string|number} [activeStatusId] - Default status ID (e.g., for "active")
- * @returns {Object} Updated filters with restricted access rules applied
+ * @param {object} filters - Base filter object from the request.
+ * @param {DiscountLookupAcl} userAccess - Resolved ACL from `evaluateDiscountLookupAccessControl`.
+ * @param {string} activeStatusId - UUID of the active status record.
+ * @returns {object} Adjusted copy of `filters` with visibility rules applied.
  */
 const enforceDiscountLookupVisibilityRules = (
   filters,
@@ -113,83 +92,52 @@ const enforceDiscountLookupVisibilityRules = (
   activeStatusId
 ) => {
   const adjusted = { ...filters };
-
-  // Restrict keyword visibility to valid discounts only
+  
+  // Restrict keyword searches to valid discounts only for unpermitted users.
   if (filters.keyword && !userAccess.canViewAllValidLookups) {
     adjusted._restrictKeywordToValidOnly = true;
   }
-
-  // Enforce active-only restriction if user can't view all statuses
+  
   if (!userAccess.canViewAllStatuses) {
+    // Remove caller-supplied statusId — active status is pinned via _activeStatusId.
     delete adjusted.statusId;
     if (activeStatusId) {
       adjusted._activeStatusId = activeStatusId;
     }
   }
-
+  
   return adjusted;
 };
 
 /**
- * Applies access control filters to a discount lookup query based on user permissions.
+ * Injects a `validOn` date into the query for users who cannot view all
+ * valid discounts, restricting results to currently active discount windows.
  *
- * If the user lacks permission to view all statuses, the `statusId` filter is removed.
- * If the user lacks permission to view all valid discounts, the query is restricted to
- * currently valid discounts (i.e., `valid_from <= now` and `valid_to >= now OR IS NULL`).
- *
- * @param {Object} query - Original query object with filters.
- * @param {Object} userAccess - Flags for user permissions (`canViewAllStatuses`, `canViewAllValidLookups`).
- * @returns {Object} Modified query object with enforced access filters.
+ * @param {object} query - Raw query object from the request.
+ * @param {DiscountLookupAcl} userAccess - Resolved ACL from `evaluateDiscountLookupAccessControl`.
+ * @returns {object} Adjusted copy of `query` with validity filter applied if needed.
  */
 const filterDiscountLookupQuery = (query, userAccess) => {
-  try {
-    const modifiedQuery = { ...query };
-
-    // Only inject validOn if needed
-    if (!userAccess.canViewAllValidLookups) {
-      modifiedQuery.validOn = new Date().toISOString();
-    }
-
-    return modifiedQuery;
-  } catch (err) {
-    logSystemException(
-      err,
-      'Failed to apply access filters in filterDiscountLookupQuery',
-      {
-        context: 'discount-business/filterDiscountLookupQuery',
-        originalQuery: query,
-        userAccess,
-      }
-    );
-
-    throw AppError.businessError(
-      'Failed to apply access control filters to discount query',
-      {
-        details: err.message,
-        stage: 'filter-discount-lookup-query',
-      }
-    );
+  const modifiedQuery = { ...query };
+  
+  // Pin to today's date for users who cannot view discounts outside valid windows.
+  if (!userAccess.canViewAllValidLookups) {
+    modifiedQuery.validOn = new Date().toISOString();
   }
+  
+  return modifiedQuery;
 };
 
 /**
- * Enriches a discount row with computed flags like isActive and isValidToday.
+ * Enriches a discount lookup row with derived boolean flags.
  *
- * @template T
- * @param {T & {
- *   status_id?: string,
- *   valid_to?: string,
- *   valid_from?: string
- * }} row
- * @param {string} activeStatusId
- * @returns {T & {
- *   isActive: boolean,
- *   isValidToday: boolean
- * }}
+ * @param {object} row - Raw discount row from the repository.
+ * @param {string} activeStatusId - UUID of the active status record.
+ * @returns {object & { isActive: boolean, isValidToday: boolean }}
  */
 const enrichDiscountRow = (row, activeStatusId) => {
   const now = new Date();
-
+  
   return {
     ...row,
     isActive: row.status_id === activeStatusId,

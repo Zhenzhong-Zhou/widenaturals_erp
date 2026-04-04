@@ -1,5 +1,18 @@
-const { insertBatchRegistryBulk } = require('../../repositories/batch-registry-repository');
-const { insertBatchActivityLogsBulk } = require('../../repositories/batch-activity-log-repository');
+/**
+ * @file batch-workflow.js
+ * @description Domain workflow orchestrators for batch registration and update
+ * operations. Coordinates access control, lifecycle transitions, field
+ * filtering, persistence, and activity logging in a single reusable pipeline.
+ */
+
+'use strict';
+
+const {
+  insertBatchRegistryBulk,
+} = require('../../repositories/batch-registry-repository');
+const {
+  insertBatchActivityLogsBulk,
+} = require('../../repositories/batch-activity-log-repository');
 const AppError = require('../../utils/AppError');
 const {
   buildBatchRegistryRows,
@@ -8,31 +21,23 @@ const {
 const {
   prepareMetadataUpdates,
   applyLifecycleTransition,
-  buildBatchActivities
+  buildBatchActivities,
 } = require('./batch-update-helpers');
 
 /**
- * Register newly created batches and record activity logs.
+ * Orchestrates bulk batch registration — inserts batch records, registers them
+ * in the batch registry, and records creation activity logs.
  *
- * This workflow ensures that batch creation, registry entry creation,
- * and activity logging occur within the same database transaction.
- *
- * Steps:
- * 1. Insert batch records.
- * 2. Register batches in `batch_registry`.
- * 3. Record creation activity logs.
- *
- * Supports multiple batch types (product, packaging_material).
- *
- * @param {Object} params
- * @param {'product'|'packaging_material'} params.batchType - Type of batch being created
- * @param {Array<Object>} params.batches - Batch records to insert
- * @param {(batches: Object[], client: any) => Promise<Object[]>} params.insertBatchFn - Repository insert function
- * @param {string} params.batchCreatedActivityTypeId - Activity type ID for batch creation
- * @param {string|null} params.actorId - User performing the operation
- * @param {import('pg').PoolClient} params.client - Transaction client
- *
- * @returns {Promise<Array<Object>>} Inserted batch records
+ * @param {object} options
+ * @param {string} options.batchType - Batch type string (e.g. `'product'`).
+ * @param {object[]} options.batches - Array of batch payloads to register.
+ * @param {Function} options.insertBatchFn - Async function that inserts batch records.
+ * @param {string} options.batchCreatedActivityTypeId - Activity type ID for creation events.
+ * @param {string} options.actorId - UUID of the user performing the registration.
+ * @param {import('pg').PoolClient} options.client - Active transaction client.
+ * @returns {Promise<object[]>} Inserted batch records.
+ * @throws {AppError} validationError if no batches are provided.
+ * @throws {AppError} businessError if insert or registry creation fails.
  */
 const registerBatchWorkflow = async ({
                                        batchType,
@@ -46,33 +51,27 @@ const registerBatchWorkflow = async ({
     throw AppError.validationError('No batches provided for registration.');
   }
   
-  // -------------------------------------------------------------
-  // Step 1: Insert batch records
-  // -------------------------------------------------------------
+  // 1. Insert batch records.
   const insertedBatches = await insertBatchFn(batches, client);
   
   if (!insertedBatches?.length) {
-    throw AppError.databaseError('Failed to insert batch records.');
+    throw AppError.businessError('Failed to insert batch records.');
   }
   
-  // -------------------------------------------------------------
-  // Step 2: Register batches in batch_registry
-  // -------------------------------------------------------------
+  // 2. Register batches in batch_registry.
   const registryRows = buildBatchRegistryRows({
     batchType,
     insertedBatches,
-    actorId
+    actorId,
   });
   
   const registry = await insertBatchRegistryBulk(registryRows, client);
   
   if (registry.length !== insertedBatches.length) {
-    throw AppError.databaseError('Batch registry creation mismatch.');
+    throw AppError.businessError('Batch registry creation mismatch.');
   }
   
-  // -------------------------------------------------------------
-  // Step 3: Record batch creation activity logs
-  // -------------------------------------------------------------
+  // 3. Record batch creation activity logs.
   const activityRows = buildBatchActivityRows(
     registry,
     insertedBatches,
@@ -87,115 +86,58 @@ const registerBatchWorkflow = async ({
 };
 
 /**
- * Generic batch update workflow shared by batch domains such as
- * product batches and packaging material batches.
+ * Orchestrates a batch update — resolves access control, normalizes and filters
+ * the update payload, applies lifecycle transitions, persists the update, and
+ * records activity logs.
  *
- * Responsibilities:
- * - loads the current batch record
- * - resolves user access control used for permission checks and lifecycle overrides
- * - normalizes the incoming update payload
- * - validates and filters update fields using lifecycle edit rules and permission restrictions
- * - validates lifecycle status transitions
- * - applies lifecycle automation timestamps (for example `received_at`, `released_at`)
- * - updates the batch record through the repository layer
- * - generates lifecycle and metadata activity log entries
- * - persists activity logs within the same transaction
- *
- * This workflow is intended to centralize shared mutation logic so that
- * product batch and packaging material batch services stay consistent.
- *
- * @param {Object} params
- * @param {string} params.batchId - Unique batch identifier.
- * @param {Object} params.updates - Partial batch fields requested for update.
- * @param {Object} params.user - Authenticated user performing the operation.
- * @param {import('pg').PoolClient} params.client - Active database transaction client.
- *
- * @param {(id: string, client: import('pg').PoolClient) => Promise<Object|null>} params.getBatchFn
- * Repository function that retrieves the current batch record.
- *
- * @param {(params: Object, client: import('pg').PoolClient) => Promise<Object>} params.updateBatchFn
- * Repository function that updates the batch record.
- *
- * @param {Record<string, string[]>} params.editRules
- * Editable field whitelist grouped by current lifecycle status.
- *
- * @param {Record<string, string[]>} params.statusTransitions
- * Allowed lifecycle transitions grouped by current lifecycle status.
- *
- * @param {'product'|'packaging_material'} params.batchType
- * Batch domain used when building activity log rows.
- *
- * @param {(statusId: string) => string} params.activityTypeResolver
- * Resolver that maps a status ID to a batch activity type ID.
- *
- * @param {(user: Object) => Promise<Object>} params.evaluateAccessControlFn
- * Function that resolves access flags for the current user.
- *
- * @param {(params: {
- *   batch: Object,
- *   updates: Object,
- *   access: Object,
- *   editRules: Record<string, string[]>
- * }) => Object} params.filterUpdatableFieldsFn
- * Function that validates and filters update fields based on lifecycle
- * edit rules and permission restrictions, returning a safe update payload.
- *
- * @returns {Promise<Object>}
- * Updated batch record returned by the repository layer.
+ * @param {object} options
+ * @param {string} options.batchId - UUID of the batch to update.
+ * @param {object} options.updates - Raw update payload from the caller.
+ * @param {AuthUser} options.user - Authenticated user performing the update.
+ * @param {import('pg').PoolClient} options.client - Active transaction client.
+ * @param {Function} options.getBatchFn - Async function that fetches the current batch record.
+ * @param {Function} options.updateBatchFn - Async function that persists the updated batch.
+ * @param {Record<string, string[]>} options.editRules - Lifecycle edit rules map.
+ * @param {Record<string, string[]>} options.statusTransitions - Permitted status transition map.
+ * @param {string} options.batchType - Batch type string (e.g. `'product'`).
+ * @param {Function} options.activityTypeResolver - Function that maps a status ID to an activity type ID.
+ * @param {Function} options.evaluateAccessControlFn - Async function that resolves the ACL for the user.
+ * @param {Function} options.filterUpdatableFieldsFn - Function that filters updates to permitted fields.
+ * @returns {Promise<object>} Updated batch record.
+ * @throws {AppError} notFoundError if the batch does not exist.
  */
 const updateBatchWorkflow = async ({
                                      batchId,
                                      updates,
                                      user,
                                      client,
-                                     
-                                     // repositories
                                      getBatchFn,
                                      updateBatchFn,
-                                     
-                                     // lifecycle configuration
                                      editRules,
                                      statusTransitions,
-                                     
-                                     // domain
                                      batchType,
                                      activityTypeResolver,
-                                     
-                                     // security
                                      evaluateAccessControlFn,
-                                     
-                                     // validation
                                      filterUpdatableFieldsFn,
                                    }) => {
   const actorId = user.id;
   
-  //------------------------------------------------------------
-  // 1. Load current batch state
-  //------------------------------------------------------------
+  // 1. Load current batch state.
   const batch = await getBatchFn(batchId, client);
   
   if (!batch) {
     throw AppError.notFoundError('Batch not found.');
   }
   
-  //------------------------------------------------------------
-  // 2. Resolve access control
-  //------------------------------------------------------------
+  // 2. Resolve access control.
   const access = await evaluateAccessControlFn(user);
   
-  //------------------------------------------------------------
-  // 3. Normalize update payload
-  //------------------------------------------------------------
-  const {
-    safeUpdates,
-    hasMetadataUpdates
-  } = prepareMetadataUpdates({
-    updates
+  // 3. Normalize update payload.
+  const { safeUpdates, hasMetadataUpdates } = prepareMetadataUpdates({
+    updates,
   });
   
-  //------------------------------------------------------------
-  // 4. Enforce lifecycle + permission rules
-  //------------------------------------------------------------
+  // 4. Enforce lifecycle and permission rules.
   const permittedUpdates = filterUpdatableFieldsFn({
     batch,
     updates: safeUpdates,
@@ -203,15 +145,10 @@ const updateBatchWorkflow = async ({
     editRules,
   });
   
-  //------------------------------------------------------------
-  // 5. Apply lifecycle transition logic
-  //------------------------------------------------------------
+  // 5. Apply lifecycle transition logic.
   const nextStatus = permittedUpdates?.status_id ?? null;
   
-  const {
-    lifecycleUpdates,
-    isStatusChange
-  } = applyLifecycleTransition({
+  const { lifecycleUpdates, isStatusChange } = applyLifecycleTransition({
     batch,
     nextStatus,
     actorId,
@@ -220,29 +157,23 @@ const updateBatchWorkflow = async ({
     updates,
   });
   
-  //------------------------------------------------------------
-  // 6. Merge updates
-  //------------------------------------------------------------
+  // 6. Merge permitted and lifecycle-driven updates.
   const finalUpdates = {
     ...permittedUpdates,
-    ...lifecycleUpdates
+    ...lifecycleUpdates,
   };
   
-  //------------------------------------------------------------
-  // 7. Persist update
-  //------------------------------------------------------------
+  // 7. Persist update.
   const updatedBatch = await updateBatchFn(
     {
       batchId,
       ...finalUpdates,
-      updatedBy: actorId
+      updatedBy: actorId,
     },
     client
   );
   
-  //------------------------------------------------------------
-  // 8. Build activity logs
-  //------------------------------------------------------------
+  // 8. Build and persist activity logs.
   const activityRows = buildBatchActivities({
     batch,
     batchType,
@@ -251,12 +182,9 @@ const updateBatchWorkflow = async ({
     isStatusChange,
     hasMetadataUpdates,
     updates: finalUpdates,
-    activityTypeResolver
+    activityTypeResolver,
   });
   
-  //------------------------------------------------------------
-  // 9. Persist activity logs
-  //------------------------------------------------------------
   if (activityRows.length > 0) {
     await insertBatchActivityLogsBulk(activityRows, client);
   }

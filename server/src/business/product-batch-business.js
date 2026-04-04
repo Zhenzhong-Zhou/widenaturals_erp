@@ -1,58 +1,65 @@
+/**
+ * @file product-batch-business.js
+ * @description Domain business logic for product batch visibility evaluation,
+ * filter rule application, access control resolution, and field-level update
+ * filtering.
+ */
+
+'use strict';
+
 const {
   resolveUserPermissionContext,
-} = require('../services/role-permission-service');
+} = require('../services/permission-service');
 const {
   BATCH_CONSTANTS,
 } = require('../utils/constants/domain/batch-constants');
-const { logSystemException } = require('../utils/system-logger');
+const { logSystemException } = require('../utils/logging/system-logger');
 const AppError = require('../utils/AppError');
 const {
-  PRODUCT_BATCH_PERMISSION_FIELD_RULES
+  PRODUCT_BATCH_PERMISSION_FIELD_RULES,
 } = require('../utils/constants/domain/product-batch-constants');
-const { resolveEditableFields, filterUpdatableBatchFields } = require('./batches/batch-field-filter');
+const {
+  resolveBatchEditableFields,
+  filterUpdatableBatchFields,
+} = require('./batches/batch-field-filter');
+
+const CONTEXT = 'product-batch-business';
 
 /**
- * Business: Determine product batch visibility authority.
+ * Resolves which product batch visibility capabilities the requesting user holds.
  *
- * Resolves PRODUCT BATCH visibility ONLY.
- * No filter logic, no query execution.
+ * `canViewAllProductBatches` is a full override — it implies manufacturer
+ * visibility and all keyword search capabilities.
  *
- * @param {Object} user
- * @returns {Promise<{
- *   canViewProductBatches: boolean,
- *   canViewManufacturer: boolean,
- *   canViewAllProductBatches: boolean,
- *   canSearchProduct: boolean,
- *   canSearchSku: boolean,
- *   canSearchManufacturer: boolean
- * }>}
+ * @param {AuthUser} user - Authenticated user making the request.
+ * @returns {Promise<ProductBatchVisibilityAcl>}
+ * @throws {AppError} businessError if permission resolution fails.
  */
 const evaluateProductBatchVisibility = async (user) => {
-  const context = 'product-batch-business/evaluateProductBatchVisibility';
-
+  const context = `${CONTEXT}/evaluateProductBatchVisibility`;
+  
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-
+    
     const canViewAllProductBatches =
       isRoot ||
       permissions.includes(
         BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_ALL_VISIBILITY
       );
-
+    
     const canViewProductBatches =
       canViewAllProductBatches ||
       permissions.includes(BATCH_CONSTANTS.PERMISSIONS.VIEW_PRODUCT_BATCHES);
-
+    
     const canViewManufacturer =
       canViewAllProductBatches ||
       permissions.includes(BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_MANUFACTURER);
-
+    
     return {
+      canViewAllProductBatches,
       canViewProductBatches,
       canViewManufacturer,
-      canViewAllProductBatches,
-
-      // Derived keyword capabilities
+      // Derived keyword search capabilities — driven entirely by visibility flags.
       canSearchProduct: canViewProductBatches,
       canSearchSku: canViewProductBatches,
       canSearchManufacturer: canViewManufacturer,
@@ -62,29 +69,28 @@ const evaluateProductBatchVisibility = async (user) => {
       context,
       userId: user?.id,
     });
-
+    
     throw AppError.businessError(
-      'Unable to evaluate product batch visibility.',
-      { details: err.message }
+      'Unable to evaluate product batch visibility.'
     );
   }
 };
 
 /**
- * Business: applyProductBatchVisibilityRules
+ * Applies ACL-driven visibility rules to a product batch filter object.
  *
- * Narrows product batch query filters based on visibility ACL.
+ * Full override enables all keyword capabilities and leaves filters intact.
+ * No product batch permission forces an empty result. Otherwise keyword
+ * capabilities are injected from the ACL.
  *
- * @param {Object} filters - User-requested filters
- * @param {Object} acl - Result from evaluateProductBatchVisibility()
- * @returns {Object} Adjusted filters
+ * @param {object} filters - Base filter object from the request.
+ * @param {ProductBatchVisibilityAcl} acl - Resolved ACL from `evaluateProductBatchVisibility`.
+ * @returns {object} Adjusted copy of `filters` with visibility rules applied.
  */
 const applyProductBatchVisibilityRules = (filters, acl) => {
   const adjusted = { ...filters };
-
-  // -----------------------------------------
-  // 1. Full visibility override
-  // -----------------------------------------
+  
+  // Full visibility override — enable all keyword capabilities.
   if (acl.canViewAllProductBatches) {
     adjusted.keywordCapabilities = {
       canSearchProduct: true,
@@ -93,72 +99,53 @@ const applyProductBatchVisibilityRules = (filters, acl) => {
     };
     return adjusted;
   }
-
-  // -----------------------------------------
-  // 2. No permission → fail closed
-  // -----------------------------------------
+  
+  // No product batch permission — fail closed.
   if (acl.canViewProductBatches !== true) {
     adjusted.forceEmptyResult = true;
     return adjusted;
   }
-
-  // -----------------------------------------
-  // 3. Inject keyword search capabilities
-  // -----------------------------------------
+  
+  // Inject keyword search capabilities from ACL.
   adjusted.keywordCapabilities = {
     canSearchProduct: acl.canSearchProduct,
     canSearchSku: acl.canSearchSku,
     canSearchManufacturer: acl.canSearchManufacturer,
   };
-
+  
   return adjusted;
 };
 
 /**
- * Evaluates product batch access control for a user.
+ * Resolves which product batch edit capabilities the requesting user holds.
  *
- * This resolves the user's permission context and derives
- * convenience flags used by batch mutation logic.
- *
- * Root users automatically bypass permission checks.
- *
- * @param {Object} user
- * @returns {Promise<{
- *   permissions: string[],
- *   isRoot: boolean,
- *   canEditBasicMetadata: boolean,
- *   canEditSensitiveMetadata: boolean,
- *   canEditReleaseMetadata: boolean,
- *   canChangeStatus: boolean
- * }>}
+ * @param {AuthUser} user - Authenticated user making the request.
+ * @returns {Promise<ProductBatchAccessAcl>}
+ * @throws {AppError} businessError if permission resolution fails.
  */
 const evaluateProductBatchAccessControl = async (user) => {
+  const context = `${CONTEXT}/evaluateProductBatchAccessControl`;
+  
   try {
-    const { permissions, isRoot } =
-      await resolveUserPermissionContext(user);
+    const { permissions, isRoot } = await resolveUserPermissionContext(user);
     
     return {
-      permissions,
       isRoot,
-      
       canEditBasicMetadata:
         isRoot ||
         permissions.includes(
           BATCH_CONSTANTS.PERMISSIONS.EDIT_PRODUCT_BATCH_METADATA_BASIC
         ),
-      
       canEditSensitiveMetadata:
         isRoot ||
         permissions.includes(
           BATCH_CONSTANTS.PERMISSIONS.EDIT_PRODUCT_BATCH_METADATA_SENSITIVE
         ),
-      
       canEditReleaseMetadata:
         isRoot ||
         permissions.includes(
           BATCH_CONSTANTS.PERMISSIONS.EDIT_PRODUCT_BATCH_RELEASE_METADATA
         ),
-      
       canChangeStatus:
         isRoot ||
         permissions.includes(
@@ -168,95 +155,55 @@ const evaluateProductBatchAccessControl = async (user) => {
   } catch (err) {
     logSystemException(
       err,
-      'Failed to evaluate Product Batch access control',
+      'Failed to evaluate product batch access control',
       {
-        context: 'product-batch-business/evaluateProductBatchAccessControl',
+        context,
         userId: user?.id,
       }
     );
     
-    if (err instanceof AppError) throw err;
-    
     throw AppError.businessError(
-      'Unable to evaluate access control for Product Batch',
-      {
-        details: err.message,
-        stage: 'evaluate-product-batch-access',
-      }
+      'Unable to evaluate product batch access control.'
     );
   }
 };
 
 /**
- * Resolves editable fields for a product batch based on
- * the current user's access-control flags.
+ * Resolves the set of fields the user is permitted to edit on a product batch,
+ * based on their ACL flags and the product batch field rule configuration.
  *
- * This wrapper delegates permission resolution to
- * `resolveEditableFields` using product-batch specific rules.
- *
- * @param {Object} access
- * Access-control flags for the current user.
- *
- * @param {boolean} access.isRoot
- * Indicates whether the user has root privileges.
- *
- * @param {boolean} [access.canEditBasicMetadata]
- * Permission to edit non-sensitive batch metadata.
- *
- * @param {boolean} [access.canEditSensitiveMetadata]
- * Permission to edit sensitive metadata fields.
- *
- * @param {boolean} [access.canEditReleaseMetadata]
- * Permission to edit release-related metadata fields.
- *
- * @param {boolean} [access.canChangeStatus]
- * Permission to change the batch lifecycle status.
- *
- * @returns {Set<string>}
- * Set of field names the user is permitted to edit.
+ * @param {ProductBatchAccessAcl} access - Resolved ACL from `evaluateProductBatchAccessControl`.
+ * @returns {Set<string>} Set of permitted field names.
  */
 const getEditableFieldsForProductBatch = (access) =>
-  resolveEditableFields(access, PRODUCT_BATCH_PERMISSION_FIELD_RULES);
+  resolveBatchEditableFields(access, PRODUCT_BATCH_PERMISSION_FIELD_RULES);
 
 /**
- * Filters and validates product batch update fields.
+ * Filters an update payload to only the fields permitted by the product batch's
+ * current lifecycle state and the user's permission-based access flags.
  *
- * This function is a thin wrapper around the generic
- * `filterUpdatableBatchFields` validator. It injects the
- * product-batch-specific permission resolver and error label.
- *
- * Validation performed by the underlying function includes:
- *
- * 1. Lifecycle edit rules based on the batch's current status
- * 2. Permission-based field editing rules derived from user access
- *
- * The final editable fields are determined as:
- *
- *   allowedFields =
- *      lifecycleAllowedFields
- *      ∩
- *      permissionAllowedFields
- *
- * Any attempted update outside this set will be rejected.
- *
- * @param {Object} params
- * @param {Object} params.batch - Current batch record
- * @param {Object} params.updates - Requested update payload
- * @param {Object} params.access - Access control flags
- * @param {Record<string,string[]>} params.editRules - Lifecycle edit rules
- *
- * @returns {Object} Filtered update payload safe to apply
+ * @param {object} params
+ * @param {object} params.batch - Current batch record with `id` and `status_name`.
+ * @param {object} [params.updates={}] - Requested update payload.
+ * @param {ProductBatchAccessAcl} params.access - Resolved ACL.
+ * @param {Record<string, string[]>} params.editRules - Lifecycle edit rules map.
+ * @returns {object} Filtered update payload.
+ * @throws {AppError} validationError if fields are not permitted or none remain.
  */
-const filterUpdatableProductBatchFields = (params) =>
+const filterUpdatableProductBatchFields = ({ batch, updates, access, editRules }) =>
   filterUpdatableBatchFields({
-    ...params,
+    batch,
+    updates,
+    access,
+    editRules,
     permissionResolver: getEditableFieldsForProductBatch,
-    errorLabel: 'product batch'
+    errorLabel: 'product batch',
   });
 
 module.exports = {
   evaluateProductBatchVisibility,
   applyProductBatchVisibilityRules,
   evaluateProductBatchAccessControl,
+  getEditableFieldsForProductBatch,
   filterUpdatableProductBatchFields,
 };

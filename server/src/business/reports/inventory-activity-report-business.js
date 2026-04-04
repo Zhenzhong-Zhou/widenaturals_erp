@@ -1,4 +1,4 @@
-const { checkPermissions } = require('../../services/role-permission-service');
+const { checkPermissions } = require('../../services/permission-service');
 const AppError = require('../../utils/AppError');
 const {
   enforceAllowedFilters,
@@ -12,7 +12,7 @@ const {
  * @param {Object} scope - User inventory access scope
  * @param {Object} filters - Filters passed in
  * @param {string[]} [allowedKeys] - Optional list of allowed filter keys
- * @throws {AppError.AuthorizationError}
+ * @throws {AppError.authorizationError}
  */
 const rejectEmptyFiltersForScopedAccess = (
   scope,

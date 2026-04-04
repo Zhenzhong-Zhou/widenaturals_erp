@@ -1,185 +1,113 @@
+/**
+ * @file location-type-business.js
+ * @description Domain business logic for location type visibility access
+ * control evaluation, lookup search capability resolution, and row enrichment.
+ */
+
+'use strict';
+
 const {
   resolveUserPermissionContext,
-} = require('../services/role-permission-service');
+} = require('../services/permission-service');
 const {
   LOCATION_TYPE_CONSTANTS,
 } = require('../utils/constants/domain/location-type-constants');
-const { logSystemException } = require('../utils/system-logger');
+const { logSystemException } = require('../utils/logging/system-logger');
 const AppError = require('../utils/AppError');
+const { enrichWithActiveFlag } = require('./lookup-visibility');
+
+const CONTEXT = 'location-type-business';
 
 /**
- * Business: Determine which categories of location types
- * the requester is allowed to view in list or lookup contexts.
+ * Resolves which location type visibility capabilities the requesting user holds.
  *
- * This function resolves LOCATION TYPE VISIBILITY AUTHORITY ONLY.
- * It does NOT inspect filters or shape repository queries.
+ * `canViewAllLocationTypes` is a full override — it implies inactive visibility.
+ * `enforceActiveOnly` is the default — lifted only when the user can view inactive
+ * location types.
  *
- * Visibility categories:
- *   ✔ Active location types
- *   ✔ Inactive location types
- *
- * Permission semantics:
- *
- *   - VIEW_INACTIVE_LOCATION_TYPES
- *       Allows viewing location types in inactive status.
- *
- *   - VIEW_ALL_LOCATION_TYPES_VISIBILITY
- *       Full visibility override.
- *       Implicitly allows viewing:
- *         • active
- *         • inactive
- *
- * Root users implicitly bypass visibility restrictions.
- *
- * Derived rule:
- *   - ACTIVE-only visibility enforced by default.
- *
- * @param {Object} user
- *
- * @returns {Promise<{
- *   canViewInactive: boolean,
- *   canViewAllLocationTypes: boolean,
- *   enforceActiveOnly: boolean
- * }>}
+ * @param {AuthUser} user - Authenticated user making the request.
+ * @returns {Promise<LocationTypeVisibilityAcl>}
+ * @throws {AppError} businessError if permission resolution fails.
  */
 const evaluateLocationTypeVisibilityAccessControl = async (user) => {
+  const context = `${CONTEXT}/evaluateLocationTypeVisibilityAccessControl`;
+  
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-
+    
     const canViewAllLocationTypes =
       isRoot ||
       permissions.includes(
         LOCATION_TYPE_CONSTANTS.PERMISSIONS.VIEW_ALL_LOCATION_TYPES_VISIBILITY
       );
-
-    const canViewAllStatuses =
-      canViewAllLocationTypes ||
-      permissions.includes(
-        LOCATION_TYPE_CONSTANTS.PERMISSIONS.VIEW_INACTIVE_SUPPLIERS
-      );
-
+    
     const canViewInactive =
       canViewAllLocationTypes ||
       permissions.includes(
         LOCATION_TYPE_CONSTANTS.PERMISSIONS.VIEW_INACTIVE_LOCATION_TYPES
       );
-
-    const enforceActiveOnly = !canViewInactive;
-
+    
     return {
-      canViewAllStatuses,
-      canViewInactive,
       canViewAllLocationTypes,
-      enforceActiveOnly,
+      canViewInactive,
+      enforceActiveOnly: !canViewInactive,
     };
   } catch (err) {
     logSystemException(
       err,
       'Failed to evaluate location type visibility access control',
-      {
-        context:
-          'location-type-business/evaluateLocationTypeVisibilityAccessControl',
-        userId: user?.id,
-      }
+      { context, userId: user?.id }
     );
-
+    
     throw AppError.businessError(
-      'Unable to evaluate location type visibility access control.',
-      { details: err.message }
+      'Unable to evaluate location type visibility access control.'
     );
   }
 };
 
 /**
- * Evaluates which lookup search dimensions are available
- * when performing location type lookup queries.
+ * Resolves which location type lookup search capabilities the requesting
+ * user holds.
  *
- * This function determines QUERY SHAPING ONLY.
- * It does NOT control visibility.
- *
- * Derived Capabilities:
- *   - canSearchStatus
- *
- * @param {Object} user
- *
- * @returns {Promise<{
- *   canSearchStatus: boolean
- * }>}
+ * @param {AuthUser} user - Authenticated user making the request.
+ * @returns {Promise<LocationTypeLookupSearchAcl>}
+ * @throws {AppError} businessError if permission resolution fails.
  */
 const evaluateLocationTypeLookupSearchCapabilities = async (user) => {
+  const context = `${CONTEXT}/evaluateLocationTypeLookupSearchCapabilities`;
+  
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-
-    const canSearchStatus =
-      isRoot ||
-      permissions.includes(
-        LOCATION_TYPE_CONSTANTS.PERMISSIONS.SEARCH_LOCATION_TYPES_BY_STATUS
-      );
-
+    
     return {
-      canSearchStatus,
+      canSearchStatus:
+        isRoot ||
+        permissions.includes(
+          LOCATION_TYPE_CONSTANTS.PERMISSIONS.SEARCH_LOCATION_TYPES_BY_STATUS
+        ),
     };
   } catch (err) {
     logSystemException(
       err,
       'Failed to evaluate location type lookup search capabilities',
-      {
-        context:
-          'location-type-business/evaluateLocationTypeLookupSearchCapabilities',
-        userId: user?.id,
-      }
+      { context, userId: user?.id }
     );
-
+    
     throw AppError.businessError(
-      'Unable to evaluate location type lookup search capabilities.',
-      { details: err.message }
+      'Unable to evaluate location type lookup search capabilities.'
     );
   }
 };
 
 /**
- * Enrich a Location Type lookup row with an explicit active-state flag.
+ * Enriches a location type lookup row with a derived `isActive` boolean flag.
  *
- * Purpose:
- * - Provide `isActive` boolean for UI rendering logic.
- * - Allow dropdowns to visually distinguish active vs inactive records.
- *
- * IMPORTANT:
- * - Does NOT affect visibility.
- * - Visibility must already be enforced at repository level.
- * - This is a pure, side-effect-free helper.
- *
- * @param {object} row
- *   Location type lookup row returned from repository.
- *   Expected to include `status_id`.
- *
- * @param {string} activeStatusId
- *   Status ID representing ACTIVE state.
- *
- * @returns {object}
- *   Row enriched with:
- *   - `isActive: boolean`
- *
- * @throws {AppError}
+ * @param {object} row - Raw location type row from the repository.
+ * @param {string} activeStatusId - UUID of the active status record.
+ * @returns {object & { isActive: boolean }}
  */
-const enrichLocationTypeLookupWithActiveFlag = (row, activeStatusId) => {
-  if (!row || typeof row !== 'object') {
-    throw AppError.validationError(
-      '[enrichLocationTypeLookupWithActiveFlag] Invalid row.'
-    );
-  }
-
-  if (!activeStatusId) {
-    throw AppError.validationError(
-      '[enrichLocationTypeLookupWithActiveFlag] Missing activeStatusId.'
-    );
-  }
-
-  return {
-    ...row,
-    isActive: row.status_id === activeStatusId,
-  };
-};
+const enrichLocationTypeLookupWithActiveFlag = (row, activeStatusId) =>
+  enrichWithActiveFlag(row, activeStatusId);
 
 module.exports = {
   evaluateLocationTypeVisibilityAccessControl,

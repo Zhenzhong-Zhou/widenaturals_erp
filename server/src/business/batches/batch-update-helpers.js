@@ -1,83 +1,47 @@
+/**
+ * @file batch-update-helpers.js
+ * @description Pure domain helpers for orchestrating batch update operations.
+ * Covers lifecycle transition validation, metadata normalization, previous
+ * value extraction, and activity row construction.
+ */
+
+'use strict';
+
 const {
   validateStatusTransition,
 } = require('./batch-lifecycle');
 const {
   getStatusId,
-  getStatusNameById
+  getStatusNameById,
 } = require('../../config/status-cache');
 const {
   buildBatchStatusChangeActivityRow,
-  buildBatchMetadataUpdateActivityRow
+  buildBatchMetadataUpdateActivityRow,
 } = require('./batch-activity-builder');
 const { getBatchActivityTypeId } = require('../../cache/batch-activity-type-cache');
-const { logSystemInfo } = require('../../utils/system-logger');
 const AppError = require('../../utils/AppError');
 
 /**
- * Applies lifecycle transition logic for a batch update.
+ * Applies lifecycle transition logic to a batch update operation.
  *
- * This function performs three responsibilities:
+ * Validates the requested status transition against the allowed transition
+ * map. Applies lifecycle automation hooks for statuses that require
+ * system-managed field updates (e.g. `received_at`, `released_at`).
  *
- * 1. Validates whether the requested lifecycle transition is allowed.
- * 2. Applies lifecycle automation fields (timestamps and actor IDs)
- *    when specific statuses are reached.
- * 3. Determines whether the lifecycle status actually changed.
+ * Root users bypass transition validation — they may move a batch to any
+ * status regardless of the current state.
  *
- * The function does **not perform any database operations**. It only
- * returns the lifecycle-related update fields that should be merged
- * into the final update payload by the caller.
+ * No-ops if `nextStatus` is null — returns empty lifecycle updates and
+ * `isStatusChange: false`.
  *
- * Root users may bypass lifecycle validation checks, but lifecycle
- * automation hooks still apply.
- *
- * Example lifecycle automation:
- *
- * - `batch_received` → sets `received_at` and `received_by`
- * - `batch_released` → sets `released_at` and `released_by`
- *
- * @param {Object} params
- *
- * @param {Object} params.batch
- * Current batch record containing lifecycle information.
- *
- * @param {string|null} params.nextStatus
- * Target lifecycle status **ID** requested by the update.
- *
- * @param {string|null} params.actorId
- * Identifier of the user performing the operation.
- *
- * @param {Record<string,string[]>} params.statusTransitions
- * Map describing allowed lifecycle transitions.
- *
- * Example:
- * {
- *   pending: ['received'],
- *   received: ['quarantined','released']
- * }
- *
- * @param {Object} params.access
- * Access control result for the current user.
- *
- * @param {Object} [params.updates]
- * Partial update payload provided by the caller.
- * Used to allow explicit timestamps such as `received_at`
- * or `released_at` when provided.
- *
- * @returns {{
- *   lifecycleUpdates: {
- *     received_at?: Date,
- *     received_by?: string,
- *     released_at?: Date,
- *     released_by?: string
- *   },
- *   isStatusChange: boolean
- * }}
- *
- * `lifecycleUpdates`
- * Fields automatically applied by lifecycle rules.
- *
- * `isStatusChange`
- * Indicates whether the lifecycle status actually changed.
+ * @param {object} options
+ * @param {object} options.batch - Current batch record.
+ * @param {string | null} options.nextStatus - Requested next status ID, or null.
+ * @param {string} options.actorId - UUID of the user requesting the update.
+ * @param {Record<string, string[]>} options.statusTransitions - Permitted transition map.
+ * @param {object} options.access - Resolved ACL flags for the requesting user.
+ * @param {object} [options.updates={}] - Full update payload (used by lifecycle hooks).
+ * @returns {{ lifecycleUpdates: object, isStatusChange: boolean }}
  */
 const applyLifecycleTransition = ({
                                     batch,
@@ -87,9 +51,6 @@ const applyLifecycleTransition = ({
                                     access,
                                     updates,
                                   }) => {
-  //------------------------------------------------------------
-  // If no lifecycle status change is requested, exit early
-  //------------------------------------------------------------
   if (nextStatus == null) {
     return {
       lifecycleUpdates: {},
@@ -97,17 +58,8 @@ const applyLifecycleTransition = ({
     };
   }
   
-  //------------------------------------------------------------
-  // Validate lifecycle transition
-  //------------------------------------------------------------
-  if (access?.isRoot && nextStatus !== batch.status_id) {
-    // Root users bypass transition validation but the action is logged
-    logSystemInfo('Root bypassing batch lifecycle transition validation', {
-      batchId: batch.id,
-      actorId,
-      fromStatus: batch.status_name,
-      toStatus: nextStatus,
-    });
+  if (access?.isRoot) {
+    // Root users bypass transition validation — no restriction on target status.
   } else {
     validateStatusTransition(
       batch.status_name,
@@ -118,45 +70,28 @@ const applyLifecycleTransition = ({
     );
   }
   
-  //------------------------------------------------------------
-  // Lifecycle automation hooks
-  //------------------------------------------------------------
   const lifecycleUpdates = {};
   
   const receivedStatusId = getStatusId('batch_received');
   const releasedStatusId = getStatusId('batch_released');
   
-  /**
-   * Lifecycle hooks automatically apply system-managed
-   * fields when a batch reaches certain statuses.
-   */
+  // Lifecycle hooks automatically apply system-managed fields when a batch
+  // reaches certain statuses. Caller-provided timestamps take precedence.
   const lifecycleHooks = {
-    [receivedStatusId]: (updates) => ({
-      // Allow caller-provided timestamp, otherwise use system time
-      received_at: updates?.received_at ?? new Date(),
+    [receivedStatusId]: (u) => ({
+      received_at: u?.received_at ?? new Date(),
       received_by: actorId,
     }),
-    
-    [releasedStatusId]: (updates) => ({
-      // Allow caller-provided timestamp, otherwise use system time
-      released_at: updates?.released_at ?? new Date(),
+    [releasedStatusId]: (u) => ({
+      released_at: u?.released_at ?? new Date(),
       released_by: actorId,
     }),
   };
   
-  //------------------------------------------------------------
-  // Apply lifecycle automation if a hook exists
-  //------------------------------------------------------------
   if (lifecycleHooks[nextStatus]) {
-    Object.assign(
-      lifecycleUpdates,
-      lifecycleHooks[nextStatus](updates)
-    );
+    Object.assign(lifecycleUpdates, lifecycleHooks[nextStatus](updates));
   }
   
-  //------------------------------------------------------------
-  // Return lifecycle updates and status-change indicator
-  //------------------------------------------------------------
   return {
     lifecycleUpdates,
     isStatusChange: nextStatus !== batch.status_id,
@@ -164,81 +99,38 @@ const applyLifecycleTransition = ({
 };
 
 /**
- * Normalizes and inspects an incoming batch update payload.
+ * Validates and normalizes a batch update payload.
  *
- * Responsibilities:
- * - validate update payload structure
- * - detect whether metadata fields (non-status fields) changed
- * - return a safe shallow copy of the updates object
- *
- * Note:
- * Lifecycle edit rules and permission validation are enforced
- * later by `filterUpdatableBatchFields`.
- *
- * @param {Object} params
- * @param {Object} params.updates - Incoming update payload
- *
- * @returns {{
- *   safeUpdates: Object,
- *   hasMetadataUpdates: boolean
- * }}
+ * @param {object} options
+ * @param {object} [options.updates={}] - Raw update payload from the caller.
+ * @returns {{ safeUpdates: object, hasMetadataUpdates: boolean }}
+ * @throws {AppError} validationError if the update payload is not a plain object.
  */
 const prepareMetadataUpdates = ({ updates = {} }) => {
-  //------------------------------------------------------------
-  // Validate update payload structure
-  //------------------------------------------------------------
-  if (!updates || typeof updates !== 'object' || Array.isArray(updates)) {
-    throw AppError.validationError(
-      'Invalid batch update payload.'
-    );
+  if (typeof updates !== 'object' || Array.isArray(updates)) {
+    throw AppError.validationError('Invalid batch update payload.');
   }
   
-  //------------------------------------------------------------
-  // Detect metadata updates
-  //------------------------------------------------------------
-  const hasMetadataUpdates = Object.keys(updates).some(
-    (k) => k !== 'status_id'
-  );
-  
-  //------------------------------------------------------------
-  // Return normalized update payload
-  //------------------------------------------------------------
   return {
     safeUpdates: { ...updates },
-    hasMetadataUpdates
+    hasMetadataUpdates: Object.keys(updates).some((k) => k !== 'status_id'),
   };
 };
 
 /**
- * Extract previous values for fields being updated on a batch.
+ * Captures the current values of fields that are about to be updated,
+ * for use in activity log entries.
  *
- * This helper builds a snapshot of the original values for each field
- * present in the update payload. It is used to record before/after
- * differences in batch activity logs.
+ * Fields not present on the batch record are normalized to `null`.
  *
- * Only fields included in the `updates` object are inspected.
- *
- * @param {Object} batch
- * Current batch record loaded from the database.
- *
- * @param {Object} updates
- * Update payload containing fields that will be modified.
- *
- * @returns {Object}
- * Object containing the previous values for each updated field.
+ * @param {object} batch - Current batch record.
+ * @param {object} updates - Update payload containing the fields being changed.
+ * @returns {object} Map of field names to their pre-update values.
  */
 const extractPreviousValues = (batch, updates) => {
-  //------------------------------------------------------------
-  // Create a clean object without prototype inheritance
-  //------------------------------------------------------------
-  const previous = Object.create(null);
+  const previous = {};
   
-  //------------------------------------------------------------
-  // Capture original values for fields being updated
-  //------------------------------------------------------------
   for (const key of Object.keys(updates)) {
-    // If the field does not exist on the batch record,
-    // normalize the value to null for consistent logging
     previous[key] = batch[key] ?? null;
   }
   
@@ -246,51 +138,23 @@ const extractPreviousValues = (batch, updates) => {
 };
 
 /**
- * Builds activity log rows representing lifecycle and metadata
- * changes applied to a batch.
+ * Builds batch activity log rows for a status transition and/or metadata update.
  *
- * This helper is intentionally pure and performs no database writes.
- * It only constructs activity log payloads which the caller may
- * later persist.
+ * Skips activity creation entirely if the batch has no `batch_registry_id`.
+ * Only creates a metadata activity row when at least one field value has
+ * actually changed compared to the current batch state.
  *
- * Generated activities may include:
- *  - lifecycle status transitions
- *  - metadata updates (e.g. quantity, expiry date, notes)
- *
- * Metadata activity is recorded only when at least one field value
- * actually differs from the current batch state.
- *
- * @param {Object} params
- * @param {Object} params.batch
- * Current batch record containing at minimum:
- * - batch_registry_id
- * - status_name
- *
- * @param {'product'|'packaging_material'} params.batchType
- * Domain type of the batch.
- *
- * @param {string|null} params.actorId
- * User responsible for performing the update.
- *
- * @param {string|null} params.nextStatus
- * Target lifecycle status ID if a transition occurs.
- *
- * @param {boolean} params.isStatusChange
- * Indicates whether the lifecycle status changed.
- *
- * @param {boolean} params.hasMetadataUpdates
- * Indicates whether metadata updates were attempted or permitted.
- *
- * @param {Object} params.updates
- * Final update payload representing metadata values that will be
- * written to the database.
- *
- * @param {(statusId: string) => string|null} params.activityTypeResolver
- * Function mapping a status ID to its corresponding batch
- * activity type ID.
- *
- * @returns {Array<Object>}
- * Activity rows ready for insertion into the batch activity log.
+ * @param {object} options
+ * @param {object} options.batch - Current batch record.
+ * @param {string} options.batchType - Batch type string (e.g. `'product'`).
+ * @param {string} options.actorId - UUID of the user performing the update.
+ * @param {string | null} options.nextStatus - Target status ID, if a transition occurred.
+ * @param {boolean} options.isStatusChange - Whether the status is changing.
+ * @param {boolean} options.hasMetadataUpdates - Whether non-status fields are being updated.
+ * @param {object} [options.updates] - Update payload.
+ * @param {Function} options.activityTypeResolver - Function that maps a status ID to
+ *   an activity type ID.
+ * @returns {object[]} Array of activity row objects ready for bulk insert.
  */
 const buildBatchActivities = ({
                                 batch,
@@ -304,16 +168,11 @@ const buildBatchActivities = ({
                               }) => {
   const rows = [];
   
-  //------------------------------------------------------------
-  // Activity logging requires a registry record
-  //------------------------------------------------------------
+  // Activity logging requires a registry record — skip if absent.
   if (!batch.batch_registry_id) {
     return rows;
   }
   
-  //------------------------------------------------------------
-  // Lifecycle activity (status transition)
-  //------------------------------------------------------------
   if (isStatusChange) {
     const activityTypeId = activityTypeResolver(nextStatus);
     
@@ -331,25 +190,16 @@ const buildBatchActivities = ({
     }
   }
   
-  //------------------------------------------------------------
-  // Metadata update activity
-  //------------------------------------------------------------
   if (hasMetadataUpdates && updates) {
     const updateKeys = Object.keys(updates);
     
     if (updateKeys.length > 0) {
-      const metadataActivityTypeId =
-        getBatchActivityTypeId('BATCH_METADATA_UPDATED');
-      
-      // Extract previous values only for fields being updated
+      const metadataActivityTypeId = getBatchActivityTypeId('BATCH_METADATA_UPDATED');
       const previousValues = extractPreviousValues(batch, updates);
       
-      // Detect actual field changes compared to current batch state
-      const changedFields = updateKeys.filter(
-        key => batch[key] !== updates[key]
-      );
+      // Only create an activity record when at least one field value changed.
+      const changedFields = updateKeys.filter((key) => batch[key] !== updates[key]);
       
-      // Only create an activity record when a real change occurred
       if (changedFields.length > 0) {
         rows.push(
           buildBatchMetadataUpdateActivityRow({
@@ -371,5 +221,6 @@ const buildBatchActivities = ({
 module.exports = {
   applyLifecycleTransition,
   prepareMetadataUpdates,
+  extractPreviousValues,
   buildBatchActivities,
 };

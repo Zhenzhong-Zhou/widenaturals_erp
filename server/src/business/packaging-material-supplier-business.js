@@ -1,62 +1,42 @@
-const { createLookupAccessControl } = require('./lookup/lookup-access-control-factory');
-const { PERMISSIONS } = require('../utils/constants/domain/packaging-material-supplier-constants');
-const AppError = require('../utils/AppError');
+/**
+ * @file packaging-material-supplier-business.js
+ * @description Domain business logic for packaging material supplier access
+ * control evaluation, visibility rule application, and lookup row enrichment.
+ */
+
+'use strict';
+
+const { createLookupAccessControl } = require('./lookup-access-control');
+const {
+  PERMISSIONS,
+} = require('../utils/constants/domain/packaging-material-supplier-constants');
 
 /**
- * Access control evaluator for packaging material supplier lookup.
+ * Resolves which packaging material supplier lookup visibility capabilities
+ * the requesting user holds.
  *
- * This function is created using `createLookupAccessControl` and evaluates
- * user permissions to determine visibility rules for supplier lookup queries.
- *
- * Determines whether the user can:
- * - View all supplier statuses (no restriction)
- * - View archived suppliers
- *
- * NOTE:
- * - "Active-only" enforcement is derived later based on `canViewAllStatuses`.
- * - Permissions are resolved via `resolveUserPermissionContext`.
- *
- * @param {object} user
- * @param {string} user.id - User identifier (required for permission resolution)
- *
- * @returns {Promise<{
- *   canViewAllStatuses: boolean,
- *   canViewArchived: boolean
- * }>}
+ * @type {(user: AuthUser) => Promise<Record<string, boolean>>}
  */
 const evaluatePackagingMaterialSupplierLookupAccessControl =
   createLookupAccessControl({
     context: 'packaging-material-supplier-lookup',
     permissionsMap: {
-      canViewAllStatuses:
-      PERMISSIONS.VIEW_ALL_PACKAGING_MATERIAL_SUPPLIERS,
-      canViewArchived:
-      PERMISSIONS.VIEW_ARCHIVED_PACKAGING_MATERIAL_SUPPLIERS,
+      canViewAllStatuses: PERMISSIONS.VIEW_ALL_PACKAGING_MATERIAL_SUPPLIERS,
+      canViewArchived:    PERMISSIONS.VIEW_ARCHIVED_PACKAGING_MATERIAL_SUPPLIERS,
     },
   });
 
 /**
- * Applies access-based visibility rules to packaging material supplier lookup filters.
+ * Applies ACL-driven visibility rules to a packaging material supplier lookup
+ * filter object.
  *
- * Rules:
- * - If user CANNOT view all statuses:
- *     → enforce ACTIVE-only filter
- *     → inject `activeStatusId`
- * - If user CAN view all statuses:
- *     → remove enforced status filters (allow full visibility)
+ * Restricted users are pinned to active-only results and archived records are
+ * excluded. Elevated users may include archived records if explicitly requested.
  *
- * - If user CANNOT view archived:
- *     → force `includeArchived = false`
- * - If user CAN view archived:
- *     → allow client override (`filters.includeArchived`)
- *
- * @param {object} [filters={}]
- * @param {object} userAccess
- * @param {boolean} userAccess.canViewAllStatuses
- * @param {boolean} userAccess.canViewArchived
- * @param {string} activeStatusId
- *
- * @returns {object} adjustedFilters
+ * @param {object} [filters={}] - Base filter object from the request.
+ * @param {PackagingMaterialSupplierLookupAcl} userAccess - Resolved ACL.
+ * @param {string} activeStatusId - UUID of the active status record.
+ * @returns {object} Adjusted copy of `filters` with visibility rules applied.
  */
 const enforcePackagingMaterialSupplierLookupVisibilityRules = (
   filters = {},
@@ -65,67 +45,38 @@ const enforcePackagingMaterialSupplierLookupVisibilityRules = (
 ) => {
   const adjusted = { ...filters };
   
-  //---------------------------------------------------------
-  // ACTIVE status enforcement
-  //---------------------------------------------------------
   if (!userAccess.canViewAllStatuses) {
     adjusted.enforceActiveOnly = true;
-    adjusted.activeStatusId = activeStatusId;
+    adjusted.activeStatusId    = activeStatusId;
   } else {
     delete adjusted.enforceActiveOnly;
     delete adjusted.activeStatusId;
   }
   
-  //---------------------------------------------------------
-  // Archived visibility enforcement
-  //---------------------------------------------------------
-  if (!userAccess.canViewArchived) {
-    adjusted.includeArchived = false;
-  } else {
-    // Allow override if user has permission
-    adjusted.includeArchived = filters.includeArchived === true;
-  }
+  // Archived records excluded by default — elevated users may opt in explicitly.
+  adjusted.includeArchived = userAccess.canViewArchived
+    ? filters.includeArchived === true
+    : false;
   
   return adjusted;
 };
 
 /**
- * Enriches a packaging material supplier lookup row with derived flags.
+ * Enriches a packaging material supplier lookup row with derived boolean flags.
  *
- * Adds:
- * - isActive   → based on supplier status
- * - isPreferred → normalized boolean
- * - isArchived → normalized boolean
- *
- * @param {object} row
- * @param {string} activeStatusId
- *
- * @returns {object} enrichedRow
+ * @param {object} row - Raw supplier row from the repository.
+ * @param {string} activeStatusId - UUID of the active status record.
+ * @returns {object & { isActive: boolean, isPreferred: boolean, isArchived: boolean }}
  */
 const enrichPackagingMaterialSupplierLookupWithActiveFlag = (
   row,
   activeStatusId
 ) => {
-  if (!row || typeof row !== 'object') {
-    throw AppError.validationError(
-      '[enrichPackagingMaterialSupplierLookupWithActiveFlag] Invalid `row`.'
-    );
-  }
-  
-  if (typeof activeStatusId !== 'string' || !activeStatusId) {
-    throw AppError.validationError(
-      '[enrichPackagingMaterialSupplierLookupWithActiveFlag] Missing or invalid activeStatusId.'
-    );
-  }
-  
-  //---------------------------------------------------------
-  // Add derived flags without mutating original row
-  //---------------------------------------------------------
   return {
     ...row,
-    isActive: row.status_id === activeStatusId,
+    isActive:    row.status_id === activeStatusId,
     isPreferred: row.is_preferred ?? false,
-    isArchived: row.is_archived === true,
+    isArchived:  row.is_archived === true,
   };
 };
 

@@ -1,69 +1,67 @@
-const { getStatusIdByName } = require('../repositories/status-repository');
+/**
+ * @file customer-business.js
+ * @description Domain business logic for customer record preparation, access
+ * control evaluation, visibility rule application, field filtering, and
+ * lookup row enrichment.
+ */
+
+'use strict';
+
 const AppError = require('../utils/AppError');
-const {
-  logSystemException,
-  logSystemError,
-} = require('../utils/system-logger');
+const { logSystemException } = require('../utils/logging/system-logger');
 const {
   checkPermissions,
   resolveUserPermissionContext,
-} = require('../services/role-permission-service');
+} = require('../services/permission-service');
 const { PERMISSIONS } = require('../utils/constants/domain/customer-constants');
 
+const CONTEXT = 'customer-business';
+
 /**
- * Prepares customer data by validating and enriching it with default fields.
+ * Enriches a list of raw customer objects with status and audit fields
+ * required for insert, using a pre-resolved active status ID.
  *
- * @param {Array<Object>} customers - Array of pre-validated customer objects.
- * @param {String} createdBy - ID of the user creating the records.
- * @returns {Promise<Array<Object>>} - Enriched customer objects ready for insertion.
+ * The caller is responsible for resolving `activeStatusId` before calling
+ * this function — it must not be null or undefined.
  *
- * @throws {AppError} - Throws database or enrichment error.
+ * @param {object[]} customers - Raw customer objects to prepare.
+ * @param {string} createdBy - UUID of the user performing the insert.
+ * @param {string} activeStatusId - Pre-resolved active status UUID.
+ * @returns {object[]} Enriched customer objects ready for bulk insert.
  */
-const prepareCustomersForInsert = async (customers, createdBy) => {
-  try {
-    const activeStatusId = await getStatusIdByName('active');
-    if (!activeStatusId) {
-      logSystemError('Customer preparation failed: Missing active status ID');
-      throw AppError.notFoundError('Active status ID not found.');
-    }
-
-    return customers.map((customer) => ({
-      ...customer,
-      status_id: activeStatusId,
-      created_by: createdBy,
-      updated_by: createdBy,
-    }));
-  } catch (error) {
-    logSystemException(error, 'Failed to prepare customers for insert', {
-      traceContext: 'prepareCustomersForInsert',
-    });
-
-    throw AppError.businessError(
-      'Customer preparation failed: Validation or enrichment error.',
-      error
-    );
-  }
+const prepareCustomersForInsert = (customers, createdBy, activeStatusId) => {
+  return customers.map((customer) => ({
+    ...customer,
+    status_id: activeStatusId,
+    created_by: createdBy,
+    updated_by: createdBy,
+  }));
 };
 
 /**
- * Filters and returns a customer object based on the viewer's role and purpose.
+ * Filters a transformed customer object to only the fields the requesting
+ * user is permitted to see, shaped by the rendering purpose.
  *
- * - Purpose can be 'insert_response', 'detail_view', or 'admin_view'.
- * - Viewer permissions and context determine what fields are returned.
+ * - `insert_response`: returns base fields only — minimal confirmation of creation.
+ * - `detail_view`: always includes `note` regardless of explicit permission,
+ *   since detail views are gated upstream by route-level auth.
+ * - `admin_view`: always includes audit fields regardless of explicit permission.
  *
- * @param {object} customer - Fully enriched customer object.
- * @param {object} user - Authenticated user object with role info.
- * @param {string} purpose - Context of the filtering, e.g., 'insert_response', 'detail_view'.
- * @returns {object} Filtered customer object.
+ * @param {object} customer - Transformed customer record.
+ * @param {AuthUser} user - Authenticated user making the request.
+ * @param {'detail_view' | 'insert_response' | 'admin_view'} [purpose='detail_view']
+ * @returns {Promise<object>} Filtered customer object safe to return to the client.
  */
 const filterCustomerForViewer = async (
   customer,
   user,
   purpose = 'detail_view'
 ) => {
-  const canViewAudit = await checkPermissions(user, ['view_customer_audit']);
-  const canViewDetails = await checkPermissions(user, ['view_customer_detail']);
-
+  const [canViewAudit, canViewDetails] = await Promise.all([
+    checkPermissions(user, ['view_customer_audit']),
+    checkPermissions(user, ['view_customer_detail']),
+  ]);
+  
   const base = {
     id: customer.id,
     firstname: customer.firstname,
@@ -72,16 +70,19 @@ const filterCustomerForViewer = async (
     phoneNumber: customer.phoneNumber,
     status: { name: customer.status?.name },
   };
-
+  
+  // insert_response returns base fields only — minimal creation confirmation.
   if (purpose === 'insert_response') {
-    // Minimal info to confirm creation
     return base;
   }
-
+  
+  // detail_view routes are already access-gated, so note is always safe there.
   if (canViewDetails || purpose === 'detail_view') {
     base.note = customer.note;
   }
-
+  
+  // admin_view routes are already access-gated, so audit fields are always
+  // safe there.
   if (canViewAudit || purpose === 'admin_view') {
     base.createdBy = customer.createdBy;
     base.updatedBy = customer.updatedBy;
@@ -89,33 +90,24 @@ const filterCustomerForViewer = async (
     base.updatedAt = customer.updatedAt;
     base.status = customer.status;
   }
-
+  
   return base;
 };
 
 /**
- * Evaluates access control flags for customer lookup based on user permissions.
+ * Resolves which customer lookup visibility capabilities the requesting
+ * user holds.
  *
- * Determines whether the current user is allowed to view:
- * - All customer statuses (`canViewAllStatuses`)
- * - Only active customers (`canViewActiveOnly`)
- *
- * This is typically used before building dropdown filters or customer queries.
- *
- * @param {object} user - The user object (must contain user ID or context for permission resolution).
- * @returns {Promise<{ canViewAllStatuses: boolean, canViewActiveOnly: boolean }>}
- *          An object representing the user's access level.
- *
- * @throws {AppError} - If permission resolution fails.
- *
- * @example
- * const access = await evaluateCustomerLookupAccessControl(currentUser);
- * if (access.canViewAllStatuses) { ... }
+ * @param {AuthUser} user - Authenticated user making the request.
+ * @returns {Promise<CustomerLookupAcl>}
+ * @throws {AppError} businessError if permission resolution fails.
  */
 const evaluateCustomerLookupAccessControl = async (user) => {
+  const context = `${CONTEXT}/evaluateCustomerLookupAccessControl`;
+  
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-
+    
     return {
       canViewAllStatuses:
         isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_CUSTOMERS),
@@ -124,38 +116,26 @@ const evaluateCustomerLookupAccessControl = async (user) => {
     };
   } catch (err) {
     logSystemException(err, 'Failed to evaluate customer access control', {
-      context: 'customer-business/evaluateCustomerLookupAccessControl',
+      context,
       userId: user?.id,
     });
-
+    
     throw AppError.businessError(
-      'Unable to evaluate access control for customer lookup',
-      {
-        details: err.message,
-        stage: 'evaluate-customer-access',
-      }
+      'Unable to evaluate access control for customer lookup.'
     );
   }
 };
 
 /**
- * Enforces access-based visibility rules for customer lookup filters.
+ * Applies ACL-driven visibility rules to a customer lookup filter object.
  *
- * Modifies the incoming filters object to restrict the data a user can see
- * based on their access level:
- * - If user cannot view all statuses, applies `statusId` to restrict results to active only.
- * - Adds `_activeStatusId` as fallback for internal filtering (e.g., in keyword search).
+ * Restricted users are pinned to active-only results via `statusId` and
+ * `_activeStatusId`. Elevated users have those constraints removed.
  *
- * This function mutates a shallow copy of the provided `filters` object and returns it.
- *
- * @param {object} [filters={}] - Initial filter object provided by the caller.
- * @param {object} userAccess - Result of `evaluateCustomerLookupAccessControl`, includes boolean flags.
- * @param {string} activeStatusId - The ID of the "active" status to enforce if restricted.
- * @returns {object} - The modified filter object with enforced visibility rules.
- *
- * @example
- * const userAccess = await evaluateCustomerLookupAccessControl(currentUser);
- * const safeFilters = enforceCustomerLookupVisibilityRules(userFilters, userAccess, ACTIVE_STATUS_ID);
+ * @param {object} [filters={}] - Base filter object from the request.
+ * @param {CustomerLookupAcl} userAccess - Resolved ACL from `evaluateCustomerLookupAccessControl`.
+ * @param {string} activeStatusId - UUID of the active status record.
+ * @returns {object} Adjusted copy of `filters` with visibility rules applied.
  */
 const enforceCustomerLookupVisibilityRules = (
   filters = {},
@@ -163,68 +143,27 @@ const enforceCustomerLookupVisibilityRules = (
   activeStatusId
 ) => {
   const adjusted = { ...filters };
-
-  // Enforce active-only status filter for restricted users
+  
   if (!userAccess.canViewAllStatuses) {
+    // Pin to active-only — _activeStatusId is used by the keyword clause as fallback.
     adjusted.statusId ??= activeStatusId;
-    adjusted._activeStatusId = activeStatusId; // used by keyword clause as fallback
+    adjusted._activeStatusId = activeStatusId;
   } else {
-    // Clean up if elevated
     delete adjusted.statusId;
     delete adjusted._activeStatusId;
   }
-
+  
   return adjusted;
 };
 
 /**
- * Enriches a customer database row with UI-ready flags.
+ * Enriches a customer lookup row with derived boolean flags.
  *
- * This function adds derived boolean fields:
- * - `isActive`: Whether the customer's `status_id` matches the provided active status ID.
- * - `hasAddress`: Whether the customer has an associated address (based on `has_address` field).
- *
- * These fields are useful for conditionally rendering customer options in dropdowns,
- * select lists, and other UI components.
- *
- * @template T
- *
- * @param {T & {
- *   status_id?: string,
- *   has_address?: boolean | null
- * }} row - Raw customer row from the database.
- *
- * @param {string} activeStatusId - Status ID representing an "active" customer.
- *
- * @throws {AppError} If the row is invalid or the activeStatusId is missing.
- *
- * @returns {T & {
- *   isActive: boolean,
- *   hasAddress: boolean
- * }} The original row enriched with UI flags.
- *
- * @example
- * const enriched = enrichCustomerOption(customerRow, ACTIVE_STATUS_ID);
- * if (enriched.isActive && enriched.hasAddress) {
- *   showCustomer(enriched);
- * }
+ * @param {object} row - Raw customer lookup row from the repository.
+ * @param {string} activeStatusId - UUID of the active status record.
+ * @returns {object & { isActive: boolean, hasAddress: boolean }}
  */
 const enrichCustomerOption = (row, activeStatusId) => {
-  // Validate row
-  if (!row || typeof row !== 'object') {
-    throw AppError.validationError(
-      '[enrichCustomerOption] Invalid `row` - expected object but got ' +
-        typeof row
-    );
-  }
-
-  // Validate activeStatusId
-  if (typeof activeStatusId !== 'string' || activeStatusId.length === 0) {
-    throw AppError.validationError(
-      '[enrichCustomerOption] Missing or invalid `activeStatusId`'
-    );
-  }
-
   return {
     ...row,
     isActive: row.status_id === activeStatusId,
