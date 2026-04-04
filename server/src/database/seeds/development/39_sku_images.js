@@ -4,7 +4,7 @@ const mime = require('mime-types');
 const { randomUUID } = require('crypto');
 const { uploadSkuImageToS3 } = require('../../../utils/aws-s3-service');
 const { loadEnv } = require('../../../config/env');
-const { resizeImage } = require('../../../utils/media/image-processing');
+const { resizeImage } = require('../../../utils/media/sku-image-media');
 
 loadEnv();
 
