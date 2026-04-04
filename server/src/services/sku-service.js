@@ -50,7 +50,8 @@ const {
   applySkuProductCardVisibilityRules,
   assertSkuEditAllowed,
 }                                        = require('../business/sku-business');
-const { withTransaction, lockRows, lockRow } = require('../database/db');
+const { withTransaction } = require('../database/db');
+const { lockRows, lockRow } = require('../utils/db/lock-modes');
 const { getOrCreateBaseCodesBulk }       = require('./sku-code-base-service');
 const { generateSKU }                    = require('../utils/sku-generator');
 const { checkStatusExists }              = require('../repositories/status-repository');

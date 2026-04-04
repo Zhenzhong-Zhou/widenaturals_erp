@@ -13,7 +13,7 @@
 
 'use strict';
 
-const { paginateQueryByOffset } = require('../database/utils/pagination/pagination-helpers');
+const { paginateQueryByOffset } = require('../utils/db/pagination/pagination-helpers');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
 const { buildBatchStatusFilter } = require('../utils/sql/build-batch-status-filter');

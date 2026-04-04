@@ -17,7 +17,8 @@
 
 'use strict';
 
-const { withTransaction, lockRows }              = require('../database/db');
+const { withTransaction }              = require('../database/db');
+const { lockRows } = require('../utils/db/lock-modes');
 const {
   fetchOrderMetadata,
   updateOrderStatus,

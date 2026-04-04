@@ -22,15 +22,14 @@
 'use strict';
 
 const { validateBulkInsertRows } = require('../utils/validation/bulk-insert-row-validator');
+const { bulkInsert, updateById } = require('../utils/db/write-utils');
 const {
-  bulkInsert,
   query,
   checkRecordExists,
   getFieldsById,
-  updateById,
 } = require('../database/db');
 const { buildAddressFilter } = require('../utils/sql/build-address-filter');
-const { paginateQuery } = require('../database/utils/pagination/pagination-helpers');
+const { paginateQuery } = require('../utils/db/pagination/pagination-helpers');
 const { SORTABLE_FIELDS } = require('../utils/sort-field-mapping');
 const { resolveSort } = require('../utils/query/sort-resolver');
 const { handleDbError } = require('../utils/errors/error-handlers');

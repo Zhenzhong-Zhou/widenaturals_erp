@@ -16,7 +16,7 @@
 
 'use strict';
 
-const { paginateQuery, paginateQueryByOffset } = require('../database/utils/pagination/pagination-helpers');
+const { paginateQuery, paginateQueryByOffset } = require('../utils/db/pagination/pagination-helpers');
 const { query, getFieldValuesByField } = require('../database/db');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');

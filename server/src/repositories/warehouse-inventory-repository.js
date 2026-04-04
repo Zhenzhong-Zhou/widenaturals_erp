@@ -1,9 +1,9 @@
 const {
   query,
-  bulkInsert,
   paginateResults,
 } = require('../database/db');
-const { paginateQuery } = require('../database/utils/pagination/pagination-helpers');
+const { paginateQuery } = require('../utils/db/pagination/pagination-helpers');
+const { bulkInsert } = require('../utils/db/write-utils');
 const AppError = require('../utils/AppError');
 const {
   logSystemInfo,

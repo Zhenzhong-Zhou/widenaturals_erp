@@ -20,7 +20,7 @@ const { query } = require('../database/db');
 const {
   paginateQueryByOffset,
   paginateQuery,
-} = require('../database/utils/pagination/pagination-helpers');
+} = require('../utils/db/pagination/pagination-helpers');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
 const { buildStatusFilter } = require('../utils/sql/build-status-filter');

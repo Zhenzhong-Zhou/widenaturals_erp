@@ -35,7 +35,8 @@ const { processWithConcurrencyLimit } = require('../utils/concurrency-utils');
 const AppError                       = require('../utils/AppError');
 const { normalizeSkuImageForInsert } = require('../business/sku-image-buiness');
 const { transformGroupedSkuImages }  = require('../transformers/sku-image-transformer');
-const { lockRow, withTransaction }   = require('../database/db');
+const { lockRow } = require('../utils/db/lock-modes');
+const { withTransaction }   = require('../database/db');
 const { resolveSource, detectImageSource } = require('../utils/media/image-source');
 const { processImageFile }           = require('../utils/media/sku-image-media');
 
