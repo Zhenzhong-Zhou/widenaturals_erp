@@ -20,7 +20,7 @@ const {
   logSystemException,
 } = require('../../utils/logging/system-logger');
 const { changePasswordService } = require('../../services/auth-service');
-const { hashPassword } = require('../../business/user-auth-business');
+const { hashPassword } = require('../../utils/password-utils');
 const { loadEnv } = require('../../config/env');
 
 loadEnv();

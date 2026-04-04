@@ -1,5 +1,5 @@
 const { fetchDynamicValue } = require('../03_utils');
-const { hashPassword } = require('../../../business/user-auth-business');
+const { hashPassword } = require('../../../utils/password-utils');
 const {
   validatePasswordStrength,
 } = require('../../../security/password-policy');
