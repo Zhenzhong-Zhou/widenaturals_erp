@@ -17,6 +17,14 @@
  *   - Cookie config (httpOnly, secure, sameSite) resolved from NODE_ENV
  *
  * Note:
+ *   Both session-controller and auth-controller import exclusively from
+ *   auth-service. session-service is an internal dependency of auth-service
+ *   and is never imported directly by controllers.
+ *
+ *   The auth domain is split across two controller/route pairs due to
+ *   middleware boundaries — login and refresh are public endpoints that
+ *   cannot share a route file with authenticated operations.
+ *
  *   extractRequestContext is called directly in logoutController because
  *   the auth session may be partially invalidated at this point.
  *   req.traceId is safe — attachTraceId runs before auth middleware.
