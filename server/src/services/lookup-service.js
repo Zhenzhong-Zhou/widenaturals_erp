@@ -62,7 +62,6 @@ const { getOrderTypeLookup }               = require('../repositories/order-type
 const {
   evaluateOrderTypeLookupAccessControl,
   enforceOrderTypeLookupVisibilityRules,
-  filterOrderTypeLookupQuery,
   enrichOrderTypeRow,
 }                                          = require('../business/order-type-business');
 const {
@@ -149,7 +148,7 @@ const {
   evaluateManufacturerLookupSearchCapabilities,
   enrichManufacturerLookupWithActiveFlag,
 }                                          = require('../business/manufacturer-business');
-const { applyLookupVisibilityRules }       = require('../business/visibility/apply-lookup-visibility');
+const { applyLookupVisibilityRules }       = require('../business/lookup-visibility');
 const { getManufacturerLookup }            = require('../repositories/manufacturer-repository');
 const {
   evaluateSupplierVisibilityAccessControl,
@@ -169,7 +168,7 @@ const {
   enrichBatchStatusLookupWithActiveFlag,
 }                                          = require('../business/batch-status-business');
 const { getBatchStatusLookup }             = require('../repositories/batch-status-repository');
-const { executeLookupWorkflow }            = require('../business/lookup/lookup-workflow');
+const { executeLookupWorkflow }            = require('../utils/lookup-workflow');
 const {
   getPackagingMaterialSupplierLookup,
 }                                          = require('../repositories/packaging-material-supplier-repository');
@@ -314,9 +313,8 @@ const fetchOrderTypeLookupService = async (user, { filters = {}, limit = 50, off
     const activeStatusId = getStatusId('order_type_active');
     
     const enforcedFilters = enforceOrderTypeLookupVisibilityRules(filters, userAccess, { activeStatusId });
-    const finalQuery      = filterOrderTypeLookupQuery(enforcedFilters, userAccess, activeStatusId);
     
-    const rawResult    = await getOrderTypeLookup({ filters: finalQuery, limit, offset });
+    const rawResult    = await getOrderTypeLookup({ filters: enforcedFilters, limit, offset });
     const enrichedRows = rawResult.data.map((row) => enrichOrderTypeRow(row, activeStatusId));
     
     return transformOrderTypeLookupResult(
@@ -846,7 +844,6 @@ const fetchBatchStatusLookupService = async (user, { filters = {}, limit = 50, o
     filters,
     limit,
     offset,
-    context:            `${CONTEXT}/fetchBatchStatusLookupService`,
     repository:         getBatchStatusLookup,
     aclEvaluator:       evaluateBatchStatusVisibilityAccessControl,
     aclFilterApplier:   applyBatchStatusLookupVisibilityRules,
@@ -869,7 +866,6 @@ const fetchPackagingMaterialSupplierLookupService = async (
     filters,
     limit,
     offset,
-    context:            `${CONTEXT}/fetchPackagingMaterialSupplierLookupService`,
     repository:         getPackagingMaterialSupplierLookup,
     aclEvaluator:       evaluatePackagingMaterialSupplierLookupAccessControl,
     aclFilterApplier:   enforcePackagingMaterialSupplierLookupVisibilityRules,

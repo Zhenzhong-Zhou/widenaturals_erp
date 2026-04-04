@@ -25,8 +25,8 @@ const { transformPageResult }    = require('../utils/transformer-utils');
 /**
  * Transforms a single flat paginated BOM DB row into the UI-facing shape.
  *
- * @param {import('../types/bom-types').RawBOMRow} row
- * @returns {import('../types/bom-types').BOMRecord|null}
+ * @param {RawBOMRow} row
+ * @returns {BOMRecord|null}
  */
 const transformBomRow = (row) => {
   if (!row) return null;
@@ -89,9 +89,9 @@ const transformBomRow = (row) => {
  * which preserves pagination metadata.
  *
  * @param {Object} paginatedResult
- * @param {import('../types/bom-types').RawBOMRow[]} paginatedResult.data
+ * @param {RawBOMRow[]} paginatedResult.data
  * @param {Object} paginatedResult.pagination
- * @returns {Promise<PaginatedResult<import('../types/bom-types').BOMRecord>>}
+ * @returns {Promise<PaginatedResult<RawBOMRow>>}
  */
 const transformPaginatedOBoms = (paginatedResult) =>
   transformPageResult(paginatedResult, transformBomRow);
@@ -103,8 +103,8 @@ const transformPaginatedOBoms = (paginatedResult) =>
  * each row with a `bom_item_id` into a detail entry with part and audit metadata.
  * Returns `null` if the input is empty.
  *
- * @param {import('../types/bom-types').BomDetailsRow[]} rows
- * @returns {import('../types/bom-types').BomDetailResult|null}
+ * @param {BomDetailsRow[]} rows
+ * @returns {BomDetailResult|null}
  */
 const transformBomDetails = (rows = []) => {
   if (!rows.length) return null;
@@ -198,8 +198,8 @@ const transformBomDetails = (rows = []) => {
  * Groups rows by `part_id`, accumulates batch-level data per part, then enriches
  * each part with representative display fields from the first available batch.
  *
- * @param {import('../types/bom-types').BOMProductionSummaryRow[]} rows
- * @returns {import('../types/bom-types').BOMPartSummary[]}
+ * @param {BOMProductionSummaryRow[]} rows
+ * @returns {BOMPartSummary[]}
  */
 const transformBOMProductionSummaryRows = (rows = []) => {
   if (!rows.length) return [];

@@ -17,7 +17,7 @@
  * Wraps an Express route handler to forward any thrown error or rejected
  * promise to `next()`, routing it to the global error handler pipeline.
  *
- * @param {import('express').RequestHandler} fn - Async or sync route handler.
+ * @param {AppRequestHandler} fn - Async or sync route handler.
  * @returns {import('express').RequestHandler}
  * @throws {TypeError} At call time if `fn` is not a function.
  *

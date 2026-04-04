@@ -97,20 +97,20 @@ const CONTEXT = 'outbound-fulfillment-service';
  * and shipment batch records, then updates order and allocation statuses.
  *
  * @param {Object} requestData
+ * @param {string} orderId
  * @param {Object} user
  * @returns {Promise<Object>}
  *
  * @throws {AppError} Re-throws AppErrors from lower layers unchanged.
  * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
-const fulfillOutboundShipmentService = async (requestData, user) => {
+const fulfillOutboundShipmentService = async (requestData, orderId, user) => {
   const context = `${CONTEXT}/fulfillOutboundShipmentService`;
   
   try {
     return await withTransaction(async (client) => {
       const userId = user.id;
       const {
-        orderId: rawOrderId,
         allocations,
         fulfillmentNotes,
         shipmentNotes,
@@ -120,23 +120,21 @@ const fulfillOutboundShipmentService = async (requestData, user) => {
       const nextAllocationStepCode = 'ALLOC_FULFILLING';
       
       // 1. Validate order is fully allocated — no partial or missing allocations.
-      await validateOrderIsFullyAllocated(rawOrderId, client);
+      await validateOrderIsFullyAllocated(orderId, client);
       
       // 2. Fetch and lock allocations for this order and allocation IDs.
-      const { allocationMeta } = await getAndLockAllocations(rawOrderId, allocations.ids, client);
+      const { allocationMeta } = await getAndLockAllocations(orderId, allocations.ids, client);
       
       // 3. Ensure all allocations belong to the same warehouse.
       const warehouseId = assertSingleWarehouseAllocations(allocationMeta);
       
       // 4. Validate allocation statuses can transition to ALLOC_FULFILLING.
       const orderItemIds       = allocationMeta.map((item) => item.order_item_id);
-      const allocationStatuses = await getAllocationStatuses(rawOrderId, orderItemIds, client);
+      const allocationStatuses = await getAllocationStatuses(orderId, orderItemIds, client);
       
       allocationStatuses.forEach(({ allocation_status_code: code }) => {
         validateAllocationStatusTransition(code, nextAllocationStepCode);
       });
-      
-      const orderId = allocationStatuses[0]?.order_id;
       
       // 5. Fetch order metadata including type category.
       const { order_id, order_type_category } = await getOrderTypeMetaByOrderId(orderId, client);
@@ -240,20 +238,20 @@ const fulfillOutboundShipmentService = async (requestData, user) => {
  * and updates all linked statuses and activity logs.
  *
  * @param {Object} requestData
+ * @param {string} orderId
  * @param {Object} user
  * @returns {Promise<Object>}
  *
  * @throws {AppError} Re-throws AppErrors from lower layers unchanged.
  * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
-const confirmOutboundFulfillmentService = async (requestData, user) => {
+const confirmOutboundFulfillmentService = async (requestData, orderId, user) => {
   const context = `${CONTEXT}/confirmOutboundFulfillmentService`;
   
   try {
     return await withTransaction(async (client) => {
       const userId = user.id;
       const {
-        orderId: rawOrderId,
         orderStatus,
         allocationStatus,
         shipmentStatus,
@@ -261,9 +259,9 @@ const confirmOutboundFulfillmentService = async (requestData, user) => {
       } = requestData;
       
       // 1. Validate and fetch order metadata.
-      const orderMeta = await getOrderTypeMetaByOrderId(rawOrderId, client);
+      const orderMeta = await getOrderTypeMetaByOrderId(orderId, client);
       assertOrderMeta(orderMeta);
-      const { order_id: orderId, order_number: orderNumber } = orderMeta;
+      const { order_number: orderNumber } = orderMeta;
       
       const { order_status_code } = await fetchOrderMetadata(orderId, client);
       
@@ -492,15 +490,14 @@ const completeManualFulfillmentService = async (completionData, shipmentId, user
     return await withTransaction(async (client) => {
       const userId = user.id;
       const {
-        shipmentId: rawShipmentId,
         orderStatus,
         shipmentStatus,
         fulfillmentStatus,
       } = completionData;
       
       // 1. Fetch and validate shipment record.
-      const shipment = await getShipmentByShipmentId(rawShipmentId, client);
-      assertShipmentFound(shipment, rawShipmentId);
+      const shipment = await getShipmentByShipmentId(shipmentId, client);
+      assertShipmentFound(shipment, shipmentId);
       
       const { order_id, status_code, delivery_method_name, is_pickup_location } = shipment;
       assertDeliveryMethodIsAllowed(delivery_method_name, is_pickup_location);

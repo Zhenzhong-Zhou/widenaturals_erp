@@ -40,8 +40,8 @@ const {
 const AppError                               = require('../utils/AppError');
 const { insertUserAuth }                     = require('../repositories/user-auth-repository');
 const { getStatusId }                        = require('../config/status-cache');
-const { hashPassword }                       = require('../business/user-auth-business');
-const { classifyRole }                       = require('../business/roles/role-semantics');
+const { hashPassword }                       = require('../utils/password-utils');
+const { classifyRole }                       = require('../utils/role-classifier');
 const { getRoleById }                        = require('../repositories/role-repository');
 
 const CONTEXT = 'user-service';
@@ -55,16 +55,8 @@ const CONTEXT = 'user-service';
  * Initial status is a service invariant — callers must not control it.
  * Bootstrap root users start active; all other API-created users start inactive.
  *
- * @param {Object} input
- * @param {string} input.email
- * @param {string} input.roleId
- * @param {string} input.password
- * @param {string} [input.firstname]
- * @param {string} [input.lastname]
- * @param {string} [input.phoneNumber]
- * @param {string} [input.jobTitle]
- * @param {string} [input.note]
- * @param {Object} actor                      - Authenticated user performing the action.
+ * @param {CreateUserPayload} input - User creation payload.
+ * @param {AuthUser | SystemActor} actor - User or system actor performing the action.
  * @param {string} actor.id
  * @param {boolean} [actor.isBootstrap=false]
  * @param {boolean} [actor.isRoot=false]

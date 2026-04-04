@@ -16,12 +16,6 @@ const { logWarn } = require('../utils/logging/logger-helper');
 const CONTEXT = 'middleware/authenticate';
 
 /**
- * @typedef {Object} AuthContext
- * @property {{ id: string, role: string }} user - Authenticated user identity.
- * @property {string} sessionId - Active session ID associated with the token.
- */
-
-/**
  * Express middleware factory that enforces authentication on protected routes.
  *
  * Guarantees (on success):
@@ -95,7 +89,6 @@ const authenticate = () => {
       // 4. Attach auth context for downstream middleware and route handlers
       // ------------------------------------------------------------------
       
-      /** @type {AuthContext} */
       req.auth = {
         user: {
           id:   payload.id,

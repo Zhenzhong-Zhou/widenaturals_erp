@@ -158,7 +158,6 @@ const {
     // Step 8: Build fulfillment request
     const allocationIds = allocationResult?.allocations?.map((a) => a.id) || [];
     const requestData = {
-      orderId: order.orderId,
       allocations: { ids: allocationIds },
       fulfillmentNotes: 'Automated test fulfillment',
       shipmentNotes: 'Handle with care',
@@ -168,6 +167,7 @@ const {
     // Step 9: Fulfill outbound shipment
     const fulfillmentResult = await fulfillOutboundShipmentService(
       requestData,
+      order.orderId,
       enrichedUser
     );
     console.log('✅ Outbound fulfillment completed:');
