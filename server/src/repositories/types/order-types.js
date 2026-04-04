@@ -137,6 +137,20 @@
  * @property {string|null} item_updated_by_lastname
  */
 
+/**
+ * @typedef {object} OrderMetadataRow
+ * @property {string} order_id
+ * @property {string} order_status_id
+ * @property {string} order_status_category
+ * @property {string} order_status_code
+ * @property {string} order_status_name
+ * @property {string} order_type_id
+ * @property {string} order_type_code
+ * @property {string} order_type_name
+ * @property {string} order_category
+ * @property {string | null} payment_code
+ */
+
 // ---------------------------------------------------------------------------
 // Record types (UI-facing shapes)
 // ---------------------------------------------------------------------------

@@ -51,6 +51,26 @@
  */
 
 /**
+ * @typedef {Omit<UserRow, 'role_id' | 'role_name' | 'role_group' | 'hierarchy_level' | 'permissions'> & {
+ *   role_id:         null,
+ *   role_name:       null,
+ *   role_group:      null,
+ *   hierarchy_level: null,
+ *   permissions:     null,
+ * }} UserRowRoleRedacted
+ */
+
+/**
+ * Raw DB row returned by user profile queries (includes role join).
+ *
+ * @typedef {UserRow & {
+ *   role_group?:      string|null,
+ *   hierarchy_level?: number|null,
+ *   permissions?:     string|null,
+ * }} UserProfileRow
+ */
+
+/**
  * Raw DB row returned by the user profile query.
  *
  * @typedef {Object} UserProfileRow
@@ -151,4 +171,42 @@
  *   uploadedAt: string|null
  * }|null} avatar
  * @property {Object} audit
+ */
+
+// ---------------------------------------------------------------------------
+// Access control types (internal ACL shapes, never returned to client)
+// ---------------------------------------------------------------------------
+
+/**
+ * @typedef {object} UserCreationAcl
+ * @property {boolean} canCreateUsers
+ * @property {boolean} canCreateAdminUsers
+ * @property {boolean} canCreateSystemUsers
+ * @property {boolean} canCreateRootUsers
+ */
+
+/**
+ * @typedef {object} UserVisibilityAcl
+ * @property {boolean} canViewSystemUsers
+ * @property {boolean} canViewRootUsers
+ * @property {boolean} canViewAllStatuses
+ * @property {boolean} canViewAllUsers
+ * @property {boolean} enforceActiveOnly
+ */
+
+/**
+ * @typedef {object} UserProfileAcl
+ * @property {boolean} isSelf
+ * @property {boolean} canViewProfile
+ */
+
+/**
+ * @typedef {object} UserRoleAcl
+ * @property {boolean} canViewRole
+ */
+
+/**
+ * @typedef {object} UserLookupSearchAcl
+ * @property {boolean} canSearchRole
+ * @property {boolean} canSearchStatus
  */
