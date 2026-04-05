@@ -1,12 +1,12 @@
 const AppError = require('../utils/AppError');
-const { checkRecordExists, findMissingIds } = require('../database/db');
+const { checkRecordExists, findMissingIds } = require('../utils/db/record-utils');
 
 /**
  * Validates if an ID exists in the given table.
  *
  * @param {string} table - Table name to query
  * @param {string} id - ID to validate
- * @param {object} client - Optional pg client/transaction
+ * @param {PoolClient} client - Optional pg client/transaction
  * @param {string} label - Optional label for error messages (e.g., "Order Type")
  * @returns {Promise<void>}
  * @throws {AppError} - If ID is missing or not found

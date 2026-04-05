@@ -1,4 +1,4 @@
-const { getUniqueScalarValue } = require('../database/db');
+const { getUniqueScalarValue } = require('../utils/db/record-utils');
 
 /**
  * Retrieves the payment status ID by its code.

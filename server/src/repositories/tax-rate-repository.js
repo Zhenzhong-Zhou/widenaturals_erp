@@ -14,7 +14,7 @@
 
 'use strict';
 
-const { getUniqueScalarValue } = require('../database/db');
+const { getUniqueScalarValue } = require('../utils/db/record-utils');
 const { paginateQueryByOffset } = require('../utils/db/pagination/pagination-helpers');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');

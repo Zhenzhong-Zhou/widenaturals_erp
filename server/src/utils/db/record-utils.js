@@ -17,6 +17,8 @@ const { logDbQueryError } = require('../db-logger');
 const { logSystemException } = require('../logging/system-logger');
 const { uniq } = require('../array-utils');
 
+const CONTEXT = 'record-utils';
+
 // ============================================================
 // Scalar / field lookup utilities
 // ============================================================
@@ -56,6 +58,8 @@ const getUniqueScalarValue = async (
   client,
   meta = {}
 ) => {
+  const context = `${CONTEXT}/getUniqueScalarValue`;
+  
   if (!table || typeof where !== 'object' || !select) {
     throw AppError.validationError(
       'Invalid parameters for getUniqueScalarValue.'
@@ -107,12 +111,12 @@ const getUniqueScalarValue = async (
     return result.rows[0][select];
   } catch (error) {
     throw handleDbError(error, {
-      context: 'db/getUniqueScalarValue',
+      context,
       message: `Failed to fetch value '${select}' from '${maskedTable}'.`,
       meta: { table: maskedTable, select, where: Object.fromEntries(whereKeys.map(k => [k, where[k]])), ...meta },
       logFn: (err) =>
         logDbQueryError(sql, whereValues, err, {
-          context: 'db/getUniqueScalarValue',
+          context,
           table: maskedTable,
           select,
           ...meta,
@@ -175,15 +179,17 @@ const checkRecordExists = async (table, condition, client = null) => {
     const { rows } = await query(sql, values, client);
     return rows[0]?.exists === true;
   } catch (error) {
+    const context = `${CONTEXT}/checkRecordExists`;
+    
     const maskedTable = maskTableName(table);
     
     throw handleDbError(error, {
-      context: 'db/checkRecordExists',
+      context,
       message: `Failed to check existence in "${maskedTable}"`,
       meta: { table: maskedTable },
       logFn: (err) =>
         logSystemException(err, 'Failed to check record existence', {
-          context: 'db/checkRecordExists',
+          context,
           table: maskedTable,
         }),
     });
@@ -207,7 +213,7 @@ const checkRecordExists = async (table, condition, client = null) => {
  * @throws {AppError} On query failure.
  */
 const findMissingIds = async (client, table, ids, opts = {}) => {
-  const context = 'db/findMissingIds';
+  const context = `${CONTEXT}/findMissingIds`;
   
   const {
     schema = 'public',
@@ -285,6 +291,8 @@ const getFieldsById = async (
   selectFields = ['name'],
   client = null
 ) => {
+  const context = `${CONTEXT}/getFieldsById`;
+  
   if (!table || typeof table !== 'string' || !id) {
     throw AppError.validationError('Invalid parameters for getFieldsById');
   }
@@ -317,12 +325,12 @@ const getFieldsById = async (
     return result.rows[0];
   } catch (error) {
     throw handleDbError(error, {
-      context: 'db/getFieldsById',
+      context,
       message: `Failed to fetch fields from '${maskedTable}'`,
       meta: { table: maskedTable, selectFields: safeFields },
       logFn: (err) =>
         logSystemException(err, 'Failed to fetch fields by ID', {
-          context: 'db/getFieldsById',
+          context,
           table: maskedTable,
           selectFields: safeFields,
         }),
@@ -364,6 +372,8 @@ const getFieldValuesByField = async (
   selectField = 'id',
   client = null
 ) => {
+  const context = `${CONTEXT}/getFieldValuesByField`;
+  
   // Validate before entering the IO try/catch so a ValidationError thrown
   // here is NOT caught below and therefore not double-logged.
   if (!table || !whereKey || !selectField) {
@@ -389,12 +399,12 @@ const getFieldValuesByField = async (
     const maskedTable = maskTableName(table);
     
     throw handleDbError(error, {
-      context: 'db/getFieldValuesByField',
+      context,
       message: 'Failed to fetch field values',
       meta: { table: maskedTable, whereKey, selectField },
       logFn: (err) =>
         logSystemException(err, 'Failed to get field values by field', {
-          context: 'db/getFieldValuesByField',
+          context,
           table: maskedTable,
           whereKey,
           selectField,

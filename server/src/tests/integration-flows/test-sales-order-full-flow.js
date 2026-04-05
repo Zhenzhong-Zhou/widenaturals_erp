@@ -1,4 +1,5 @@
-const { pool, getUniqueScalarValue } = require('../../database/db');
+const { pool } = require('../../database/db');
+const { getUniqueScalarValue } = require('../../utils/db/record-utils');
 const { initStatusCache } = require('../../config/status-cache');
 const {
   createOrderService,
@@ -42,8 +43,8 @@ const {
     ] = await Promise.all([
       getUniqueScalarValue({ table: 'order_types',     where: { code: 'SALES_STD' },                        select: 'id' }),
       getUniqueScalarValue({ table: 'order_status',    where: { code: 'ORDER_PENDING' },                    select: 'id' }),
-      getUniqueScalarValue({ table: 'addresses',       where: { full_name: 'John Doe', label: 'Shipping' }, select: 'id' }),
-      getUniqueScalarValue({ table: 'addresses',       where: { full_name: 'John Doe', label: 'Billing' },  select: 'id' }),
+      getUniqueScalarValue({ table: 'addresses',       where: { full_name: 'Acme Corp', label: 'Shipping' }, select: 'id' }),
+      getUniqueScalarValue({ table: 'addresses',       where: { full_name: 'Acme Corp', label: 'Billing' },  select: 'id' }),
       getUniqueScalarValue({ table: 'customers',       where: { email: 'john.doe@example.com' },            select: 'id' }),
       getUniqueScalarValue({ table: 'payment_methods', where: { code: 'CREDIT_CARD' },                      select: 'id' }),
       getUniqueScalarValue({ table: 'discounts',       where: { name: 'New Customer Offer' },               select: 'id' }),

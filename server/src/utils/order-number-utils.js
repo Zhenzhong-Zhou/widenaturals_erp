@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
-const { getFieldsById } = require('../database/db');
+const { getFieldsById } = require('./db/record-utils');
 const AppError = require('./AppError');
 
 /**
@@ -26,7 +26,7 @@ const categoryToPrefixMap = {
  * @param {string} order_type_id - The order type ID (used to fetch name and category)
  * @param {string} expectedCategory - The category expected for this order (e.g. 'sales', 'purchase')
  * @param {PoolClient} client - DB client within transaction
- * @returns {Promise<{ id: string, category: string, orderNumber: string }>} - Generated identifiers
+ * @returns {Promise<{ id: string, orderNumber: string }>} - Generated identifiers
  *
  * @throws {AppError} - Throws notFoundError if an order type not found,
  *                     or validationError if category mismatch
