@@ -20,7 +20,6 @@
  * Not a real authenticated user — no role or session.
  *
  * @typedef {{
- *   id:           string,
  *   isBootstrap?: boolean,
  *   isRoot?:      boolean,
  *   isSystem?:    boolean,

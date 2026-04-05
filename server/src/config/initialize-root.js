@@ -97,7 +97,6 @@ const initializeRootAdmin = async () => {
     // isBootstrap bypasses normal ACL checks in the service layer.
     /** @type {SystemActor} */
     const bootstrapActor = {
-      id:          'system:bootstrap',
       isBootstrap: true,
       isRoot:      true,
       isSystem:    true,
