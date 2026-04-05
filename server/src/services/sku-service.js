@@ -42,7 +42,7 @@ const {
 }                                        = require('../transformers/sku-transformer');
 const AppError                           = require('../utils/AppError');
 const {
-  validateSkuListBusiness,
+  validateSkuList,
   prepareSkuInsertPayloads,
   assertValidSkuStatusTransition,
   evaluateSkuStatusAccessControl,
@@ -267,7 +267,7 @@ const createSkusService = async (skuList, user) => {
         throw AppError.validationError('No SKUs provided for creation.');
       }
       
-      validateSkuListBusiness(skuList);
+      validateSkuList(skuList);
       
       const activeStatusId   = getStatusId('general_active');
       const inactiveStatusId = getStatusId('general_inactive');

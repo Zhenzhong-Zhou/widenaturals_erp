@@ -32,7 +32,7 @@ const AppError = require('../AppError');
 const {
   POSTGRES_ERROR_CODES,
   DB_ERROR_CODES,
-} = require('../constants/error-constants');
+} = require('../constants/db-error-constants');
 
 // -----------------------------------------------------------------------------
 // Metadata extractor

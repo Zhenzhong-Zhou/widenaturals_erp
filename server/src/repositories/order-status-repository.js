@@ -16,7 +16,8 @@
 
 'use strict';
 
-const { getUniqueScalarValue, getFieldsById, query } = require('../database/db');
+const { getUniqueScalarValue, getFieldsById } = require('../utils/db/record-utils');
+const { query } = require('../database/db');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
 const {

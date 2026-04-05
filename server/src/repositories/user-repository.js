@@ -101,19 +101,14 @@ const insertUser = async (user, client) => {
   
   try {
     const { rows } = await query(INSERT_USER_QUERY, params, client);
-    
-    logSystemInfo('User inserted successfully', {
-      context,
-      userId: rows[0]?.id,
-    });
-    
     return rows[0];
   } catch (error) {
-    logSystemException(error, 'Failed to insert user', {
+    throw handleDbError(error, {
       context,
-      email: maskEmail(email),
+      message: 'Failed to insert user.',
+      meta:    { email: maskEmail(email) },
+      logFn:   (err) => logDbQueryError(INSERT_USER_QUERY, params, err, { context }),
     });
-    throw error;
   }
 };
 

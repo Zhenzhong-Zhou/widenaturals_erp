@@ -17,7 +17,8 @@
 'use strict';
 
 const { paginateQuery, paginateQueryByOffset } = require('../utils/db/pagination/pagination-helpers');
-const { query, getFieldValuesByField } = require('../database/db');
+const { query } = require('../database/db');
+const { getFieldValuesByField } = require('../utils/db/record-utils');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
 const { buildOrderTypeFilter } = require('../utils/sql/build-order-type-filter');

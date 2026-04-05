@@ -144,7 +144,8 @@ const createUserService = async (input, actor) => {
       if (error instanceof AppError) throw error;
       
       throw AppError.serviceError('Unable to create user.', {
-        meta: { error: error.message, context },
+        context,
+        meta: { error: error.message },
       });
     }
   });
@@ -220,7 +221,8 @@ const fetchPaginatedUsersService = async ({
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to retrieve user records.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message },
     });
   }
 };
@@ -274,7 +276,8 @@ const fetchUserProfileService = async (userId, requester) => {
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch user profile.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message },
     });
   }
 };

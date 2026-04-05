@@ -1,4 +1,4 @@
-const { getUniqueScalarValue } = require('../database/db');
+const { getUniqueScalarValue } = require('../utils/db/record-utils');
 
 /**
  * Retrieves the unique ID of an inventory action type by its exact name.

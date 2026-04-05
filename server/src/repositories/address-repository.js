@@ -25,9 +25,8 @@ const { validateBulkInsertRows } = require('../utils/validation/bulk-insert-row-
 const { bulkInsert, updateById } = require('../utils/db/write-utils');
 const {
   query,
-  checkRecordExists,
-  getFieldsById,
 } = require('../database/db');
+const { checkRecordExists, getFieldsById, } = require('../utils/db/record-utils');
 const { buildAddressFilter } = require('../utils/sql/build-address-filter');
 const { paginateQuery } = require('../utils/db/pagination/pagination-helpers');
 const { SORTABLE_FIELDS } = require('../utils/sort-field-mapping');
