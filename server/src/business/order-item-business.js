@@ -7,8 +7,8 @@
 'use strict';
 
 const {
-  getPricesByIdAndSkuBatch,
-} = require('../repositories/pricing-repository');
+  getPricesByGroupAndSkuPairs,
+} = require('../repositories/pricing-group-repository');
 const AppError              = require('../utils/AppError');
 const { resolveFinalPrice } = require('./pricing-business');
 const { deduplicatePairs }  = require('../utils/array-utils');
@@ -138,53 +138,68 @@ const assertNotPackagingOnly = (items) => {
  * @throws {AppError} validationError if a price_id/sku_id pair is not found.
  */
 const enrichOrderItemsWithResolvedPrice = async (orderItems, client) => {
+  const normalizedOrderItems = orderItems.map((item) => ({
+    ...item,
+    pricing_id: item.pricing_id || item.price_id || null,
+  }));
+  
   // Collect unique (price_id, sku_id) pairs for SKU lines — single batch query.
   const pairs = deduplicatePairs(
     orderItems
-      .filter((it) => it.sku_id && it.price_id && !it.packaging_material_id)
-      .map((it) => ({ price_id: it.price_id, sku_id: it.sku_id })),
-    (item) => `${item.price_id}|${item.sku_id}`
+      .filter(
+        (it) => it.sku_id && (it.pricing_id || it.price_id) && !it.packaging_material_id
+      )
+      .map((it) => ({
+        pricing_id: it.pricing_id || it.price_id,
+        sku_id: it.sku_id,
+      })),
+    (item) => `${item.pricing_id}|${item.sku_id}`
   );
   
-  const priceRows = await getPricesByIdAndSkuBatch(pairs, client);
+  const priceRows = await getPricesByGroupAndSkuPairs(pairs, client);
   const priceMap = new Map(
     priceRows.map((r) => [
-      `${r.price_id}|${r.sku_id}`,
+      `${r.pricing_id}|${r.sku_id}`,
       parseFloat(r.price),
     ])
   );
-  
+ 
   let subtotal       = 0;
   const enrichedItems = [];
   
   for (let i = 0; i < orderItems.length; i++) {
-    const item = orderItems[i];
+    const item = normalizedOrderItems[i];
     
     if (item.packaging_material_id) {
       // Packaging lines are always free — no price_id persisted.
       const lineSubtotal = 0;
       subtotal += lineSubtotal;
+      
       enrichedItems.push({
         ...item,
-        price_id: null,
-        price:    0,
+        pricing_id: null,
+        price: 0,
         subtotal: lineSubtotal,
       });
       continue;
     }
     
-    const key     = `${item.price_id}|${item.sku_id}`;
+    const pricingId = item.pricing_id || item.price_id;
+    
+    const key = `${pricingId}|${item.sku_id}`;
     const dbPrice = priceMap.get(key);
     
     if (dbPrice == null) {
       throw AppError.validationError(
-        `Item #${i + 1}: invalid price_id ${item.price_id} for sku_id ${item.sku_id}`
+        `Item #${i + 1}: invalid pricing_id ${pricingId} for sku_id ${item.sku_id}`
       );
     }
     
-    const submittedPrice = item.price != null ? parseFloat(item.price) : undefined;
-    const finalPrice     = resolveFinalPrice(submittedPrice, dbPrice);
-    const lineSubtotal   = (Number(item.quantity_ordered) || 0) * finalPrice;
+    const submittedPrice =
+      item.price != null ? parseFloat(item.price) : undefined;
+    
+    const finalPrice = resolveFinalPrice(submittedPrice, dbPrice);
+    const lineSubtotal = (Number(item.quantity_ordered) || 0) * finalPrice;
     
     subtotal += lineSubtotal;
     
@@ -192,14 +207,15 @@ const enrichOrderItemsWithResolvedPrice = async (orderItems, client) => {
       submittedPrice != null && finalPrice !== dbPrice
         ? {
           submitted_price: submittedPrice,
-          db_price:        dbPrice,
-          reason:          'manual override',
+          db_price: dbPrice,
+          reason: 'manual override',
         }
         : null;
     
     enrichedItems.push({
       ...item,
-      price:    finalPrice,
+      pricing_id: pricingId,
+      price: finalPrice,
       subtotal: lineSubtotal,
       ...(metadata ? { metadata } : {}),
     });

@@ -29,7 +29,7 @@ const {
   fetchPaginatedTaxRateLookupService,
   fetchPaginatedDeliveryMethodLookupService,
   fetchPaginatedSkuLookupService,
-  fetchPaginatedPricingLookupService,
+  fetchPaginatedPricingGroupLookupService,
   fetchPaginatedPackagingMaterialLookupService,
   fetchSkuCodeBaseLookupService,
   fetchProductLookupService,
@@ -216,9 +216,10 @@ const getSkuLookupController = createLookupController({
  * @route      GET /api/v1/lookups/pricing
  * @permission view_pricing_lookup
  */
-const getPricingLookupController = createLookupController({
+// todo: name and docstring
+const getPricingGroupLookupController = createLookupController({
   service: async (user, { filters, options, limit, offset }) => {
-    return fetchPaginatedPricingLookupService(user, {
+    return fetchPaginatedPricingGroupLookupService(user, {
       filters,
       limit,
       offset,
@@ -400,7 +401,7 @@ module.exports = {
   getTaxRateLookupController,
   getDeliveryMethodLookupController,
   getSkuLookupController,
-  getPricingLookupController,
+  getPricingGroupLookupController,
   getPackagingMaterialLookupController,
   getSkuCodeBaseLookupController,
   getProductLookupController,

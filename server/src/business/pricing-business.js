@@ -216,14 +216,17 @@ const slicePricingForUser = (pricingRows, access) => {
   if (!Array.isArray(pricingRows)) return [];
   
   const ACTIVE_STATUS_ID = getStatusId('general_active');
-  const now              = new Date();
-  const result           = [];
+  const now = new Date();
+  const result = [];
   
   for (const row of pricingRows) {
     const priceTypeName = row.price_type_name?.toUpperCase();
     
-    // Non-public price types (e.g. wholesale, internal) require elevated access.
-    if (!access.canViewAllPricingTypes && !PUBLIC_PRICE_TYPES.includes(priceTypeName)) {
+    // Non-public price types require elevated access.
+    if (
+      !access.canViewAllPricingTypes &&
+      !PUBLIC_PRICE_TYPES.includes(priceTypeName)
+    ) {
       continue;
     }
     
@@ -231,27 +234,31 @@ const slicePricingForUser = (pricingRows, access) => {
       continue;
     }
     
-    const validFrom    = row.valid_from ? new Date(row.valid_from) : null;
-    const validTo      = row.valid_to   ? new Date(row.valid_to)   : null;
-    const isExpired    = validTo   && validTo   < now;
+    const validFrom = row.valid_from ? new Date(row.valid_from) : null;
+    const validTo = row.valid_to ? new Date(row.valid_to) : null;
+    const isExpired = validTo && validTo < now;
     const isNotYetValid = validFrom && validFrom > now;
     
-    if (!access.canViewPricingHistory  && isExpired)      continue;
-    if (!access.canViewAllValidPricing && isNotYetValid)  continue;
+    if (!access.canViewPricingHistory && isExpired) continue;
+    if (!access.canViewAllValidPricing && isNotYetValid) continue;
     
     const safe = {
-      id:        row.id,
-      skuId:     row.sku_id,
-      priceType: { name: row.price_type_name },
-      location:  { name: row.location_name, type: row.location_type },
-      price:     row.price,
+      id: row.pricing_id ?? row.id,
+      skuId: row.sku_id,
+      pricingGroupId: row.pricing_group_id,
+      priceType: {
+        name: row.price_type_name,
+        code: row.price_type_code,
+      },
+      countryCode: row.country_code,
+      price: row.price,
       validFrom: row.valid_from,
-      validTo:   row.valid_to,
+      validTo: row.valid_to,
     };
     
     if (access.canViewAllPricingTypes) {
       safe.status = {
-        id:   row.status_id,
+        id: row.status_id,
         date: row.status_date,
       };
     }
