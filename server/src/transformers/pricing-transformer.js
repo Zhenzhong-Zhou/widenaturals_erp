@@ -158,24 +158,18 @@ const transformSkuPricing = (row) => {
   if (!row) return null;
   
   return {
-    id:       row.id,
-    skuId:    row.skuId,
+    id: row.pricingId ?? row.id,
+    pricingGroupId: row.pricingGroupId ?? null,
+    skuId: row.skuId,
     priceType: row.priceType?.name ?? null,
-    
-    location: {
-      name: row.location?.name ?? null,
-      type: row.location?.type ?? null,
-    },
-    
-    price:     row.price,
+    priceTypeCode: row.priceType?.code ?? null,
+    countryCode: row.countryCode ?? null,
+    price: row.price,
     validFrom: row.validFrom,
-    validTo:   row.validTo,
-    
-    // Status is optional — omit if not present.
+    validTo: row.validTo,
     status: row.status
       ? { id: row.status.id, date: row.status.date }
       : undefined,
-    
     audit: row.audit,
   };
 };

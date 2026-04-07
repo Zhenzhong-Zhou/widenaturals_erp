@@ -67,8 +67,17 @@ const ORDER_ITEM_FIND_BY_ORDER_QUERY = `
     oi.order_id,
     oi.quantity_ordered,
     oi.price_id,
-    pr.price                      AS listed_price,
+    pr.id                         AS pricing_id,
+    pr.sku_id                     AS pricing_sku_id,
+    pr.pricing_group_id,
+    pg.price                      AS listed_price,
+    pg.country_code               AS pricing_country_code,
+    pg.valid_from                 AS pricing_valid_from,
+    pg.valid_to                   AS pricing_valid_to,
+    pg.status_id                  AS pricing_status_id,
+    pg.status_date                AS pricing_status_date,
     pt.name                       AS price_type_name,
+    pt.code                       AS price_type_code,
     oi.price                      AS item_price,
     oi.subtotal                   AS item_subtotal,
     oi.status_id                  AS item_status_id,
@@ -108,7 +117,8 @@ const ORDER_ITEM_FIND_BY_ORDER_QUERY = `
   LEFT JOIN products            p   ON p.id   = s.product_id
   LEFT JOIN packaging_materials pkg ON pkg.id = oi.packaging_material_id
   LEFT JOIN pricing             pr  ON pr.id  = oi.price_id
-  LEFT JOIN pricing_types       pt  ON pt.id  = pr.price_type_id
+  LEFT JOIN pricing_groups      pg  ON pg.id  = pr.pricing_group_id
+  LEFT JOIN pricing_types       pt  ON pt.id  = pg.pricing_type_id
   LEFT JOIN users               ucb ON ucb.id = oi.created_by
   LEFT JOIN users               uub ON uub.id = oi.updated_by
   WHERE oi.order_id = $1

@@ -57,7 +57,7 @@ const {
   getTaxRateLookupController,
   getDeliveryMethodLookupController,
   getSkuLookupController,
-  getPricingLookupController,
+  getPricingGroupLookupController,
   getPackagingMaterialLookupController,
   getSkuCodeBaseLookupController,
   getProductLookupController,
@@ -91,7 +91,6 @@ registerLookupRoute(router, {
   schema:     batchRegistryLookupQuerySchema,
   controller: getBatchRegistryLookupController,
   config: {
-    // filterKeysOrSchema: batchRegistryLookupQuerySchema,
     filterKeysOrSchema: ['batchType', 'warehouseId', 'locationId'],
   },
 });
@@ -193,11 +192,12 @@ registerLookupRoute(router, {
  * @access protected
  * @permission PERMISSIONS.VIEW_PRICING
  */
+// todo: name and docstring
 registerLookupRoute(router, {
   path:       '/pricing',
   permission: [PERMISSIONS.VIEW_PRICING],
   schema:     pricingLookupQuerySchema,
-  controller: getPricingLookupController,
+  controller: getPricingGroupLookupController,
   config: {
     filterKeysOrSchema: ['keyword', 'skuId'],
     optionBooleanKeys: ['labelOnly'],

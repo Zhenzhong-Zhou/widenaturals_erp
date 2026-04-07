@@ -11,14 +11,12 @@
  *  - getPaginatedPricings              — paginated list with filtering and sorting
  *  - exportAllPricingRecords           — full result set export with sorting
  *  - getPricingDetailsByPricingTypeId  — paginated details by pricing type
- *  - getPricesByIdAndSkuBatch          — batch fetch by price_id + sku_id pairs
- *  - getPricingLookup                  — offset-paginated dropdown lookup
  *  - getPricingBySkuId                 — fetch all pricing rows for a SKU
  */
 
 'use strict';
 
-const { paginateQuery, paginateQueryByOffset } = require('../utils/db/pagination/pagination-helpers');
+const { paginateQuery } = require('../utils/db/pagination/pagination-helpers');
 const { query } = require('../database/db');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
@@ -34,13 +32,7 @@ const {
   PRICING_DETAILS_JOINS,
   PRICING_DETAILS_SORT_WHITELIST,
   buildPricingDetailsQuery,
-  PRICING_LOOKUP_TABLE,
-  PRICING_LOOKUP_JOINS,
-  PRICING_LOOKUP_SORT_WHITELIST,
-  PRICING_LOOKUP_ADDITIONAL_SORTS,
-  buildPricingLookupQuery,
   PRICING_BY_SKU_QUERY,
-  PRICING_BY_ID_AND_SKU_BATCH_QUERY,
 } = require('./queries/pricing-queries');
 
 // ─── Paginated List ───────────────────────────────────────────────────────────
@@ -200,88 +192,6 @@ const getPricingDetailsByPricingTypeId = async ({ pricingTypeId, page, limit }) 
   }
 };
 
-// ─── Batch Fetch By ID + SKU Pairs ────────────────────────────────────────────
-
-/**
- * Fetches pricing records for a batch of price_id + sku_id pairs.
- *
- * Returns only rows where both IDs match — unmatched pairs are silently dropped.
- * Returns an empty array if pairs is empty.
- *
- * @param {Array<{ price_id: string, sku_id: string }>} pairs    - Pairs to fetch.
- * @param {PoolClient|null}                [client=null]
- *
- * @returns {Promise<Array<{ price_id: string, sku_id: string, price: string }>>}
- * @throws  {AppError} Normalized database error if the query fails.
- */
-const getPricesByIdAndSkuBatch = async (pairs, client = null) => {
-  if (!pairs?.length) return [];
-  
-  const context  = 'pricing-repository/getPricesByIdAndSkuBatch';
-  const priceIds = pairs.map((p) => p.price_id);
-  const skuIds   = pairs.map((p) => p.sku_id);
-  const params   = [priceIds, skuIds];
-  
-  try {
-    const { rows } = await query(PRICING_BY_ID_AND_SKU_BATCH_QUERY, params, client);
-    return rows;
-  } catch (error) {
-    throw handleDbError(error, {
-      context,
-      message: 'Failed to fetch prices for pairs.',
-      meta:    { pairCount: pairs.length },
-      logFn:   (err) => logDbQueryError(
-        PRICING_BY_ID_AND_SKU_BATCH_QUERY, params, err, { context }
-      ),
-    });
-  }
-};
-
-// ─── Lookup ───────────────────────────────────────────────────────────────────
-
-/**
- * Fetches paginated pricing records for dropdown/lookup use.
- *
- * @param {Object} params
- * @param {Object} [params.filters={}] - Optional filters.
- * @param {number} [params.limit=50]   - Max records per page.
- * @param {number} [params.offset=0]   - Offset for pagination.
- *
- * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
- * @throws  {AppError}        Normalized database error if the query fails.
- */
-const getPricingLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
-  const context = 'pricing-repository/getPricingLookup';
-  
-  const { whereClause, params } = buildPricingFilters(filters);
-  const queryText = buildPricingLookupQuery(whereClause);
-  
-  try {
-    return await paginateQueryByOffset({
-      tableName:       PRICING_LOOKUP_TABLE,
-      joins:           PRICING_LOOKUP_JOINS,
-      whereClause,
-      queryText,
-      params,
-      offset,
-      limit,
-      sortBy:          'pt.name',
-      sortOrder:       'ASC',
-      additionalSorts: PRICING_LOOKUP_ADDITIONAL_SORTS,
-      whitelistSet:    PRICING_LOOKUP_SORT_WHITELIST,
-    });
-  } catch (error) {
-    throw handleDbError(error, {
-      context,
-      message: 'Failed to fetch pricing lookup.',
-      meta:    { filters, limit, offset },
-      logFn:   (err) => logDbQueryError(
-        queryText, params, err, { context, filters, limit, offset }
-      ),
-    });
-  }
-};
-
 // ─── By SKU ───────────────────────────────────────────────────────────────────
 
 /**
@@ -316,7 +226,5 @@ module.exports = {
   getPaginatedPricings,
   exportAllPricingRecords,
   getPricingDetailsByPricingTypeId,
-  getPricesByIdAndSkuBatch,
-  getPricingLookup,
   getPricingBySkuId,
 };

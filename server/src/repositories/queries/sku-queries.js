@@ -195,36 +195,47 @@ const SKU_PRODUCT_CARD_JOINS = [
   'LEFT JOIN status sku_status             ON s.status_id = sku_status.id',
   'LEFT JOIN sku_compliance_links scl      ON scl.sku_id = s.id',
   'LEFT JOIN compliance_records cr         ON cr.id = scl.compliance_record_id',
+  
   `LEFT JOIN LATERAL (
-    SELECT pr.price, pr.status_id
+    SELECT
+      pg.id           AS pricing_group_id,
+      pg.price,
+      pg.status_id,
+      pg.country_code,
+      pg.valid_from,
+      pg.valid_to
     FROM pricing pr
+    INNER JOIN pricing_groups pg
+      ON pg.id = pr.pricing_group_id
     INNER JOIN pricing_types pt
-      ON pr.price_type_id = pt.id
+      ON pt.id = pg.pricing_type_id
      AND pt.name = 'MSRP'
-    INNER JOIN locations l
-      ON pr.location_id = l.id
-    INNER JOIN location_types lt
-      ON l.location_type_id = lt.id
-     AND lt.name = 'Office'
     WHERE pr.sku_id = s.id
-    ORDER BY pr.valid_from DESC NULLS LAST
+      AND (
+        pg.country_code = s.country_code
+        OR pg.country_code = 'GLOBAL'
+      )
+      AND pg.valid_from <= NOW()
+      AND (pg.valid_to IS NULL OR pg.valid_to >= NOW())
+    ORDER BY
+      CASE
+        WHEN pg.country_code = s.country_code THEN 0
+        WHEN pg.country_code = 'GLOBAL' THEN 1
+        ELSE 2
+      END,
+      pg.valid_from DESC,
+      pg.created_at DESC
     LIMIT 1
   ) pr ON TRUE`,
-  'LEFT JOIN status ps                     ON pr.status_id = ps.id',
+  
+  'LEFT JOIN status ps                     ON ps.id = pr.status_id',
+  
   `LEFT JOIN LATERAL (
     SELECT si.image_url, si.alt_text
     FROM sku_images si
     WHERE si.sku_id = s.id
       AND si.image_type = 'thumbnail'
-    ORDER BY
-      MAX(
-        CASE
-          WHEN si.image_type = 'main'
-          THEN si.is_primary::int
-          ELSE 0
-        END
-      ) OVER (PARTITION BY si.group_id) DESC,
-      si.display_order ASC
+    ORDER BY si.display_order ASC
     LIMIT 1
   ) img ON TRUE`,
 ];
@@ -265,13 +276,9 @@ const buildSkuProductCardQuery = (whereClause) => `
     p.id,
     st.name,
     s.id,
-    s.sku,
-    s.barcode,
-    s.market_region,
-    s.size_label,
     sku_status.name,
-    cr.compliance_id,
     cr.type,
+    cr.compliance_id,
     pr.price,
     img.image_url,
     img.alt_text

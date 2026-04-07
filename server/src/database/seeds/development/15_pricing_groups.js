@@ -1,13 +1,33 @@
 const { fetchDynamicValue } = require('../03_utils');
 
 /**
+ * Derive country_code from SKU suffix.
+ * Examples:
+ * - CH-HN101-R-CA -> CA
+ * - CH-HN100-R-CN -> CN
+ * - WN-MO400-S-UN -> null (global/universal)
+ *
+ * @param {string} sku
+ * @returns {string|null}
+ */
+const getCountryCodeFromSku = (sku) => {
+  const suffix = sku?.split('-').pop();
+  
+  if (suffix === 'CA') return 'CA';
+  if (suffix === 'CN') return 'CN';
+  if (suffix === 'UN') return 'GLOBAL';
+  
+  return 'GLOBAL';
+};
+
+/**
  * @param { import("knex").Knex } knex
  * @returns { Promise<void> }
  */
 exports.seed = async function (knex) {
   try {
-    console.log('Seeding pricing data...');
-
+    console.log('Seeding pricing_groups data...');
+    
     const activeStatusId = await fetchDynamicValue(
       knex,
       'status',
@@ -15,13 +35,7 @@ exports.seed = async function (knex) {
       'active',
       'id'
     );
-    const locationId = await fetchDynamicValue(
-      knex,
-      'locations',
-      'name',
-      'Head Office Canada',
-      'id'
-    );
+    
     const systemUserId = await fetchDynamicValue(
       knex,
       'users',
@@ -29,8 +43,7 @@ exports.seed = async function (knex) {
       'system@internal.local',
       'id'
     );
-
-    // Fetch pricing types
+    
     const pricingTypes = await knex('pricing_types')
       .select('id', 'name')
       .whereIn('name', [
@@ -39,62 +52,10 @@ exports.seed = async function (knex) {
         'MSRP',
         'Friend and Family Price',
       ]);
-
+    
     const getPricingTypeId = (name) =>
       pricingTypes.find((type) => type.name === name)?.id;
-
-    // Fetch SKU IDs
-    const skuCodes = [
-      'CH-HN100-R-CN',
-      'CH-HN101-R-CA',
-      'CH-HN102-R-CN',
-      'CH-HN103-R-CA',
-      'CH-HN104-R-CN',
-      'CH-HN105-R-CA',
-      'CH-HN106-R-CN',
-      'CH-HN107-R-CA',
-      'CH-HN108-R-CN',
-      'CH-HN109-R-CA',
-      'CH-HN110-R-CN',
-      'CH-HN111-R-CA',
-      'CH-HN112-R-CN',
-      'CH-HN113-R-CA',
-      'CH-HN114-R-CN',
-      'CH-HN115-R-UN',
-      'CH-HN116-R-UN',
-
-      'PG-NM200-R-CN',
-      'PG-NM201-R-CA',
-      'PG-NM202-R-CN',
-      'PG-NM203-R-CA',
-      'PG-NM204-R-CN',
-      'PG-NM205-R-CA',
-      'PG-NM206-R-CN',
-      'PG-NM207-R-CA',
-      'PG-NM208-R-CN',
-      'PG-NM209-R-CA',
-      'PG-TCM300-R-CN',
-      'PG-TCM301-R-CA',
-
-      'WN-MO400-S-UN',
-      'WN-MO401-L-UN',
-      'WN-MO402-S-UN',
-      'WN-MO403-L-UN',
-      'WN-MO404-S-UN',
-      'WN-MO405-L-UN',
-      'WN-MO406-S-UN',
-      'WN-MO407-L-UN',
-      'WN-MO408-S-UN',
-      'WN-MO409-L-UN',
-      'WN-MO410-S-UN',
-      'WN-MO411-L-UN',
-    ];
-
-    const skus = await knex('skus')
-      .select('id', 'sku')
-      .whereIn('sku', skuCodes);
-    const getSkuId = (code) => skus.find((s) => s.sku === code)?.id;
-
+    
     const pricingData = [
       // Canaherb
       {
@@ -216,6 +177,7 @@ exports.seed = async function (knex) {
         friend_and_family: 25,
         retail: 35.99,
       },
+      
       // PG
       {
         sku: 'PG-NM200-R-CN',
@@ -301,6 +263,7 @@ exports.seed = async function (knex) {
         friend_and_family: 92,
         retail: 600,
       },
+      
       // WIDE Naturals
       {
         sku: 'WN-MO400-S-UN',
@@ -387,69 +350,34 @@ exports.seed = async function (knex) {
         retail: 29.99,
       },
     ];
-
+    
     const fixedTimestamp = new Date('2025-03-01T00:00:00Z');
-    const rows = [];
-
-    for (const entry of pricingData) {
-      const skuId = getSkuId(entry.sku);
-      if (!skuId) {
-        console.warn(`SKU not found: ${entry.sku}`);
-        continue;
+    const groupMap = new Map();
+    
+    const addGroup = (sku, priceTypeName, price) => {
+      if (price === null || price === undefined) return;
+      
+      const priceTypeId = getPricingTypeId(priceTypeName);
+      if (!priceTypeId) {
+        throw new Error(`Pricing type not found: ${priceTypeName}`);
       }
-
-      rows.push(
-        {
+      
+      const countryCode = getCountryCodeFromSku(sku);
+      const normalizedPrice = Number(price).toFixed(2);
+      
+      const key = [
+        priceTypeId,
+        countryCode ?? 'GLOBAL',
+        normalizedPrice,
+        fixedTimestamp.toISOString(),
+      ].join('|');
+      
+      if (!groupMap.has(key)) {
+        groupMap.set(key, {
           id: knex.raw('uuid_generate_v4()'),
-          sku_id: skuId,
-          price_type_id: getPricingTypeId('Wholesale'),
-          location_id: locationId,
-          price: entry.wholesale,
-          valid_from: fixedTimestamp,
-          valid_to: null,
-          status_id: activeStatusId,
-          status_date: knex.fn.now(),
-          created_by: systemUserId,
-          updated_by: null,
-          updated_at: null,
-        },
-        {
-          id: knex.raw('uuid_generate_v4()'),
-          sku_id: skuId,
-          price_type_id: getPricingTypeId('MSRP'),
-          location_id: locationId,
-          price: entry.msrp,
-          valid_from: fixedTimestamp,
-          valid_to: null,
-          status_id: activeStatusId,
-          status_date: knex.fn.now(),
-          created_by: systemUserId,
-          updated_by: null,
-          updated_at: null,
-        },
-        {
-          id: knex.raw('uuid_generate_v4()'),
-          sku_id: skuId,
-          price_type_id: getPricingTypeId('Retail'),
-          location_id: locationId,
-          price: entry.retail,
-          valid_from: fixedTimestamp,
-          valid_to: null,
-          status_id: activeStatusId,
-          status_date: knex.fn.now(),
-          created_by: systemUserId,
-          updated_by: null,
-          updated_at: null,
-        }
-      );
-
-      if (entry.friend_and_family !== null) {
-        rows.push({
-          id: knex.raw('uuid_generate_v4()'),
-          sku_id: skuId,
-          price_type_id: getPricingTypeId('Friend and Family Price'),
-          location_id: locationId,
-          price: entry.friend_and_family,
+          pricing_type_id: priceTypeId,
+          country_code: countryCode,
+          price: normalizedPrice,
           valid_from: fixedTimestamp,
           valid_to: null,
           status_id: activeStatusId,
@@ -459,18 +387,34 @@ exports.seed = async function (knex) {
           updated_at: null,
         });
       }
+    };
+    
+    for (const entry of pricingData) {
+      addGroup(entry.sku, 'Wholesale', entry.wholesale);
+      addGroup(entry.sku, 'MSRP', entry.msrp);
+      addGroup(entry.sku, 'Retail', entry.retail);
+      
+      if (entry.friend_and_family !== null) {
+        addGroup(
+          entry.sku,
+          'Friend and Family Price',
+          entry.friend_and_family
+        );
+      }
     }
-
+    
+    const rows = Array.from(groupMap.values());
+    
     if (rows.length > 0) {
-      await knex('pricing')
+      await knex('pricing_groups')
         .insert(rows)
-        .onConflict(['sku_id', 'price_type_id', 'location_id', 'valid_from'])
+        .onConflict(['pricing_type_id', 'country_code', 'price', 'valid_from'])
         .ignore();
     }
-
-    console.log(`${rows.length} pricing records seeded successfully.`);
+    
+    console.log(`${rows.length} pricing_groups records seeded successfully.`);
   } catch (err) {
-    console.error('Failed to seed pricing:', err.message);
+    console.error('Failed to seed pricing_groups:', err.message);
     throw err;
   }
 };

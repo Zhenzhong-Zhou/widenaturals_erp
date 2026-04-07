@@ -104,7 +104,7 @@ const {
   filterPricingLookupQuery,
   enrichPricingRow,
 }                                          = require('../business/pricing-business');
-const { getPricingLookup }                 = require('../repositories/pricing-repository');
+const { getPricingGroupLookup }            = require('../repositories/pricing-group-repository');
 const {
   evaluatePackagingMaterialLookupAccessControl,
   enforcePackagingMaterialVisibilityRules,
@@ -501,11 +501,12 @@ const fetchPaginatedSkuLookupService = async (
 
 // ---------------------------------------------------------------------------
 
-const fetchPaginatedPricingLookupService = async (
+// todo: name and docstring
+const fetchPaginatedPricingGroupLookupService = async (
   user,
   { filters = {}, limit = 50, offset = 0, displayOptions = {} }
 ) => {
-  const context = `${CONTEXT}/fetchPaginatedPricingLookupService`;
+  const context = `${CONTEXT}/fetchPaginatedPricingGroupLookupService`;
   
   try {
     const activeStatusId  = getStatusId('pricing_active');
@@ -513,7 +514,7 @@ const fetchPaginatedPricingLookupService = async (
     const adjustedFilters = enforcePricingLookupVisibilityRules(filters, userAccess, activeStatusId);
     const queryFilters    = filterPricingLookupQuery(adjustedFilters, userAccess, activeStatusId);
     
-    const { data = [], pagination = {} } = await getPricingLookup({
+    const { data = [], pagination = {} } = await getPricingGroupLookup({
       filters: queryFilters,
       limit,
       offset,
@@ -889,7 +890,7 @@ module.exports = {
   fetchPaginatedTaxRateLookupService,
   fetchPaginatedDeliveryMethodLookupService,
   fetchPaginatedSkuLookupService,
-  fetchPaginatedPricingLookupService,
+  fetchPaginatedPricingGroupLookupService,
   fetchPaginatedPackagingMaterialLookupService,
   fetchSkuCodeBaseLookupService,
   fetchProductLookupService,

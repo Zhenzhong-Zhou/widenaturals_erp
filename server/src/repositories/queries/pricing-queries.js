@@ -134,104 +134,38 @@ const buildPricingDetailsQuery = () => `
     s.sku, s.barcode, s.country_code, s.size_label, pr.name, pr.brand
 `;
 
-// ─── Lookup Query ─────────────────────────────────────────────────────────────
-
-const PRICING_LOOKUP_TABLE = 'pricing p';
-
-const PRICING_LOOKUP_JOINS = [
-  'JOIN  skus          s  ON s.id  = p.sku_id',
-  'JOIN  pricing_types pt ON pt.id = p.price_type_id',
-  'JOIN  products      pr ON pr.id = s.product_id',
-  'LEFT JOIN locations l  ON l.id  = p.location_id',
-];
-
-const _PRICING_LOOKUP_JOINS_SQL = PRICING_LOOKUP_JOINS.join('\n  ');
-
-const PRICING_LOOKUP_SORT_WHITELIST = new Set([
-  'pt.name',
-  'p.valid_from',
-  'p.id',
-]);
-
-// Primary sort is pt.name — valid_from is the tie-breaker only.
-const PRICING_LOOKUP_ADDITIONAL_SORTS = [
-  { column: 'p.valid_from', direction: 'DESC' },
-];
-
-/**
- * @param {string} whereClause - Parameterised WHERE predicate from buildPricingFilters.
- * @returns {string}
- */
-const buildPricingLookupQuery = (whereClause) => `
-  SELECT
-    p.id,
-    p.price,
-    pt.name                       AS price_type,
-    pr.name                       AS product_name,
-    pr.brand,
-    s.sku,
-    s.barcode,
-    s.size_label,
-    s.country_code,
-    l.name                        AS location_name,
-    p.valid_from,
-    p.valid_to,
-    p.status_id
-  FROM ${PRICING_LOOKUP_TABLE}
-  ${_PRICING_LOOKUP_JOINS_SQL}
-  WHERE ${whereClause}
-`;
-
 // ─── By SKU ───────────────────────────────────────────────────────────────────
 
 // $1: sku_id (UUID)
 const PRICING_BY_SKU_QUERY = `
   SELECT
-    pr.id,
+    pr.id                         AS pricing_id,
     pr.sku_id,
-    pr.price_type_id,
+    pr.pricing_group_id,
+    pg.pricing_type_id,
     pt.name                       AS price_type_name,
     pt.code                       AS price_type_code,
-    pr.location_id,
-    l.name                        AS location_name,
-    lt.name                       AS location_type,
-    pr.price,
-    pr.valid_from,
-    pr.valid_to,
-    pr.status_id,
-    pr.status_date,
-    pr.created_at,
-    pr.updated_at,
-    pr.created_by,
+    pg.country_code,
+    pg.price,
+    pg.valid_from,
+    pg.valid_to,
+    pg.status_id,
+    pg.status_date,
+    pg.created_at,
+    pg.updated_at,
+    pg.created_by,
     u1.firstname                  AS created_by_firstname,
     u1.lastname                   AS created_by_lastname,
-    pr.updated_by,
+    pg.updated_by,
     u2.firstname                  AS updated_by_firstname,
     u2.lastname                   AS updated_by_lastname
   FROM pricing pr
-  LEFT JOIN pricing_types  pt ON pr.price_type_id    = pt.id
-  LEFT JOIN locations      l  ON pr.location_id      = l.id
-  LEFT JOIN location_types lt ON l.location_type_id  = lt.id
-  LEFT JOIN users          u1 ON pr.created_by       = u1.id
-  LEFT JOIN users          u2 ON pr.updated_by       = u2.id
+  INNER JOIN pricing_groups pg ON pr.pricing_group_id = pg.id
+  LEFT JOIN pricing_types  pt ON pg.pricing_type_id     = pt.id
+  LEFT JOIN users          u1 ON pg.created_by        = u1.id
+  LEFT JOIN users          u2 ON pg.updated_by        = u2.id
   WHERE pr.sku_id = $1
-  ORDER BY pt.code ASC, pr.valid_from DESC
-`;
-
-// ─── Batch Fetch By ID + SKU Pairs ────────────────────────────────────────────
-
-// Fetches only rows where both price_id and sku_id match — returns matched
-// pairs only, silently drops unmatched inputs.
-// $1: price_ids (UUID array), $2: sku_ids (UUID array)
-const PRICING_BY_ID_AND_SKU_BATCH_QUERY = `
-  WITH input(price_id, sku_id) AS (
-    SELECT * FROM UNNEST($1::uuid[], $2::uuid[])
-  )
-  SELECT i.price_id, i.sku_id, p.price
-  FROM input i
-  JOIN pricing p
-    ON p.id     = i.price_id
-   AND p.sku_id = i.sku_id
+  ORDER BY pt.code ASC, pg.country_code ASC, pg.valid_from DESC
 `;
 
 module.exports = {
@@ -243,11 +177,5 @@ module.exports = {
   PRICING_DETAILS_JOINS,
   PRICING_DETAILS_SORT_WHITELIST,
   buildPricingDetailsQuery,
-  PRICING_LOOKUP_TABLE,
-  PRICING_LOOKUP_JOINS,
-  PRICING_LOOKUP_SORT_WHITELIST,
-  PRICING_LOOKUP_ADDITIONAL_SORTS,
-  buildPricingLookupQuery,
   PRICING_BY_SKU_QUERY,
-  PRICING_BY_ID_AND_SKU_BATCH_QUERY,
 };
