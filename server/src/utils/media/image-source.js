@@ -16,6 +16,7 @@ const fs = require('fs');
 const { Readable } = require('stream');
 const fsp = require('fs/promises');
 const net = require('net');
+const dns = require('dns').promises;
 const AppError = require('../AppError');
 const { retry } = require('../retry/retry');
 const { logSystemException, logSystemWarn } = require('../logging/system-logger');
@@ -23,6 +24,49 @@ const { ALLOWED_IMAGE_HOSTS } = require('../constants/security/media-security-co
 const { isRetryableHttpError } = require('../db/db-error-utils');
 
 const ROOT_DIR = path.resolve(__dirname, '../../../');
+
+const isPrivateOrUnsafeIp = (ip) => {
+  const ipVersion = net.isIP(ip);
+  if (!ipVersion) return true;
+
+  if (ipVersion === 4) {
+    const parts = ip.split('.').map(Number);
+    const [a, b] = parts;
+
+    if (a === 10) return true;
+    if (a === 127) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 0) return true;
+    if (a >= 224) return true; // multicast/reserved
+
+    return false;
+  }
+
+  const normalized = ip.toLowerCase();
+  if (normalized === '::1') return true;
+  if (normalized === '::') return true;
+  if (normalized.startsWith('fc') || normalized.startsWith('fd')) return true; // unique local
+  if (normalized.startsWith('fe8') || normalized.startsWith('fe9')
+    || normalized.startsWith('fea') || normalized.startsWith('feb')) return true; // link-local
+
+  return false;
+};
+
+const assertHostnameResolvesToPublicIp = async (hostname) => {
+  const records = await dns.lookup(hostname, { all: true });
+
+  if (!Array.isArray(records) || records.length === 0) {
+    throw AppError.validationError('Unable to resolve remote image host.');
+  }
+
+  for (const record of records) {
+    if (isPrivateOrUnsafeIp(record.address)) {
+      throw AppError.validationError('Resolved host IP is not allowed.');
+    }
+  }
+};
 
 /**
  * Determines whether a value is a valid HTTP(S) URL.
@@ -89,6 +133,10 @@ const resolveSource = async (src, skuCode) => {
     if (hostname === 'localhost') {
       throw AppError.validationError('Localhost is not allowed.');
     }
+
+    if (url.username || url.password) {
+      throw AppError.validationError('URL credentials are not allowed.');
+    }
     
     // Block numeric IPs to prevent SSRF via direct IP access
     if (net.isIP(hostname)) {
@@ -112,6 +160,8 @@ const resolveSource = async (src, skuCode) => {
       });
       throw AppError.validationError('Untrusted image host');
     }
+
+    await assertHostnameResolvesToPublicIp(hostname);
     
     // Build a canonical URL from validated components only.
     const sanitizedUrl = `${url.protocol}//${hostname}${url.pathname}${url.search}`;
