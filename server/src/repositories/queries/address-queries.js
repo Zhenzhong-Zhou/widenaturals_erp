@@ -137,6 +137,8 @@ const buildAddressBaseQuery = (whereClause) => `
     u2.lastname        AS updated_by_lastname,
     c.firstname        AS customer_firstname,
     c.lastname         AS customer_lastname,
+    c.customer_type    AS customer_type,
+    c.company_name     AS customer_company_name,
     c.email            AS customer_email
   FROM ${ADDRESS_TABLE_NAME}
   ${_ADDRESS_BASE_JOINS_SQL}
@@ -183,6 +185,8 @@ const ADDRESS_ENRICHED_QUERY = `
     uu.lastname        AS updated_by_lastname,
     c.firstname        AS customer_firstname,
     c.lastname         AS customer_lastname,
+    c.customer_type    AS customer_type,
+    c.company_name     AS customer_company_name,
     c.email            AS customer_email,
     c.phone_number     AS customer_phone_number
   FROM addresses a

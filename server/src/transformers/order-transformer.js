@@ -48,8 +48,11 @@ const transformOrderRow = (row) => {
     createdBy:     getFullName(row.created_by_firstname, row.created_by_lastname),
     updatedAt:     row.updated_at,
     updatedBy:     getFullName(row.updated_by_firstname, row.updated_by_lastname),
-    note:          row.note          ?? null,
-    customerName:  getFullName(row.customer_firstname, row.customer_lastname),
+    note:          row.note ?? null,
+    customerType:  row.customer_type || null,
+    customerName:  row.customer_type === 'company'
+      ? row.customer_company_name || null
+      : getFullName(row.customer_firstname, row.customer_lastname),
     paymentMethod: row.payment_method || null,
     paymentStatus: {
       name: row.payment_status_name || null,
@@ -241,10 +244,16 @@ const transformOrderWithItems = (
       code: orderRow.order_status_code,
     },
     customer: {
-      id:       orderRow.customer_id,
-      fullName: getFullName(orderRow.customer_firstname, orderRow.customer_lastname),
-      email:    orderRow.customer_email,
-      phone:    orderRow.customer_phone,
+      id:          orderRow.customer_id,
+      type:        orderRow.customer_type || null,
+      fullName:    orderRow.customer_type === 'company'
+        ? orderRow.customer_company_name || null
+        : getFullName(orderRow.customer_firstname, orderRow.customer_lastname),
+      firstName:   orderRow.customer_firstname || null,
+      lastName:    orderRow.customer_lastname  || null,
+      companyName: orderRow.customer_company_name || null,
+      email:       orderRow.customer_email,
+      phone:       orderRow.customer_phone,
     },
     payment: {
       status: {

@@ -22,15 +22,18 @@
 
 'use strict';
 
+const { SORTABLE_FIELDS } = require('../../utils/sort-field-mapping');
+
 // ─── Insert / Upsert ──────────────────────────────────────────────────────────
 
 // Order must match the values array in insertCustomerRecords row map.
-const { SORTABLE_FIELDS } = require('../../utils/sort-field-mapping');
 const CUSTOMER_INSERT_COLUMNS = [
   'firstname',
   'lastname',
   'email',
   'phone_number',
+  'customer_type',
+  'company_name',
   'status_id',
   'note',
   'updated_at',
@@ -43,6 +46,7 @@ const CUSTOMER_INSERT_COLUMNS = [
 const _CUSTOMER_UPDATE_COLUMNS = [
   'firstname',
   'lastname',
+  'company_name',
   'status_id',
   'note',
   'updated_at',
@@ -54,7 +58,7 @@ const CUSTOMER_UPDATE_STRATEGIES = Object.fromEntries(
 );
 
 // Conflict target: a customer is considered duplicate when either matches.
-const CUSTOMER_CONFLICT_COLUMNS = ['email', 'phone_number'];
+const CUSTOMER_CONFLICT_COLUMNS = ['email'];
 
 // ─── Enriched Bulk Fetch ──────────────────────────────────────────────────────
 
@@ -66,6 +70,8 @@ const CUSTOMER_ENRICHED_QUERY = `
     c.lastname,
     c.email,
     c.phone_number,
+    c.customer_type,
+    c.company_name,
     c.note,
     c.status_id,
     s.name                        AS status_name,
@@ -111,6 +117,8 @@ const buildCustomerPaginatedQuery = (whereClause) => `
     c.lastname,
     c.email,
     c.phone_number,
+    c.customer_type,
+    c.company_name,
     c.status_id,
     s.name                        AS status_name,
     EXISTS (
@@ -153,6 +161,8 @@ const buildCustomerLookupQuery = (whereClause) => `
     c.id,
     c.firstname,
     c.lastname,
+    c.customer_type,
+    c.company_name,
     c.email,
     EXISTS (
       SELECT 1 FROM addresses a WHERE a.customer_id = c.id

@@ -35,12 +35,14 @@ const {
  */
 const transformCustomerRow = (row, { format = 'nested' } = {}) => {
   const base = {
-    id:          row.id          ?? null,
-    firstname:   row.firstname   ?? null,
-    lastname:    row.lastname    ?? null,
-    email:       row.email       ?? null,
-    phoneNumber: row.phone_number ?? null,
-    note:        row.note        ?? null,
+    id:           row.id           ?? null,
+    customerType: row.customer_type ?? null,
+    firstname:    row.firstname    ?? null,
+    lastname:     row.lastname     ?? null,
+    companyName:  row.company_name ?? null,
+    email:        row.email        ?? null,
+    phoneNumber:  row.phone_number ?? null,
+    note:         row.note         ?? null,
     status: {
       id:   row.status_id   ?? null,
       name: row.status_name ?? null,
@@ -61,7 +63,10 @@ const transformCustomerRow = (row, { format = 'nested' } = {}) => {
   if (format === 'flat') {
     return cleanObject({
       id:           base.id,
-      customerName: getFullName(base.firstname, base.lastname),
+      customerType: base.customerType,
+      customerName: base.customerType === 'company'
+        ? base.companyName
+        : getFullName(base.firstname, base.lastname),
       email:        base.email,
       phoneNumber:  base.phoneNumber,
       statusId:     base.status.id,
@@ -84,7 +89,7 @@ const transformCustomerRow = (row, { format = 'nested' } = {}) => {
  * @returns {CustomerNestedRecord[]}
  */
 const transformEnrichedCustomers = (rows) =>
-  transformRows(rows, (row) => transformCustomerRow(row, { format: 'nested' }));
+  transformRows(rows, (row) => /** @type {CustomerNestedRecord} */ (transformCustomerRow(row, { format: 'nested' })));
 
 /**
  * Transforms a paginated customer result set into the flat table view shape.

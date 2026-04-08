@@ -55,6 +55,14 @@ const buildCustomerFilter = (filters = {}) => {
   const params        = [];
   const paramIndexRef = { value: 1 };
   
+  // ─── Customer Type ───────────────────────────────────────────────────────────
+  
+  if (normalizedFilters.customerType) {
+    conditions.push(`c.customer_type = $${paramIndexRef.value}`);
+    params.push(normalizedFilters.customerType);
+    paramIndexRef.value++;
+  }
+  
   // ─── Audit ──────────────────────────────────────────────────────────────────
   
   if (normalizedFilters.createdBy) {
@@ -73,6 +81,7 @@ const buildCustomerFilter = (filters = {}) => {
     conditions.push(`(
       c.firstname    ILIKE $${paramIndexRef.value} OR
       c.lastname     ILIKE $${paramIndexRef.value} OR
+      c.company_name ILIKE $${paramIndexRef.value} OR
       c.email        ILIKE $${paramIndexRef.value + 1} OR
       c.phone_number ILIKE $${paramIndexRef.value + 1}
     )`);

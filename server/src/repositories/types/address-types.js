@@ -69,5 +69,5 @@
  * @property {string | null} updatedBy
  * @property {string} createdAt
  * @property {string} updatedAt
- * @property {{ fullName: string | null, email: string | null, phoneNumber: string | null } | null} customer
+ * @property {CustomerSummary} customer
  */

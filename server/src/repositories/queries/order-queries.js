@@ -17,12 +17,13 @@
 
 'use strict';
 
+const { SORTABLE_FIELDS } = require('../../utils/sort-field-mapping');
+
 // ─── Insert ───────────────────────────────────────────────────────────────────
 
 // $1-$11: id, order_number, order_type_id, order_date, order_status_id,
 //         note, shipping_address_id, billing_address_id, created_by,
 //         updated_at, updated_by
-const { SORTABLE_FIELDS } = require('../../utils/sort-field-mapping');
 const ORDER_INSERT_QUERY = `
   INSERT INTO orders (
     id,
@@ -85,6 +86,8 @@ const buildOrderPaginatedQuery = (whereClause) => `
     o.note,
     c.firstname                   AS customer_firstname,
     c.lastname                    AS customer_lastname,
+    c.company_name                AS customer_company_name,
+    c.customer_type               AS customer_type,
     pm.name                       AS payment_method,
     ps.name                       AS payment_status_name,
     ps.code                       AS payment_status_code,
@@ -115,9 +118,10 @@ const ORDER_FIND_BY_ID_QUERY = `
     os.name                       AS order_status_name,
     os.code                       AS order_status_code,
     so.customer_id,
+    c.customer_type               AS customer_type,
     c.firstname                   AS customer_firstname,
     c.lastname                    AS customer_lastname,
-    (c.firstname || ' ' || c.lastname) AS customer_full_name,
+    c.company_name                AS customer_company_name,
     c.email                       AS customer_email,
     c.phone_number                AS customer_phone,
     so.payment_status_id,

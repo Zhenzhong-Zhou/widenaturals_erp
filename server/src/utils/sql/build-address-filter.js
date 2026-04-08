@@ -34,6 +34,7 @@ const {
  *
  * @param {Object}  [filters={}]                   - Validated filter fields from the request.
  * @param {string}  [filters.customerId]            - Filter by owning customer UUID.
+ * @param {string}  [filters.customerType] - Filter by customer type ('individual' or 'company').
  * @param {string}  [filters.createdBy]             - Filter by creator user UUID.
  * @param {string}  [filters.updatedBy]             - Filter by updater user UUID.
  * @param {string}  [filters.region]                - Filter by region string.
@@ -73,6 +74,12 @@ const buildAddressFilter = (filters = {}, includeUnassigned = false) => {
     paramIndexRef.value++;
   }
   
+  if (normalizedFilters.customerType) {
+    conditions.push(`c.customer_type = $${paramIndexRef.value}`);
+    params.push(normalizedFilters.customerType);
+    paramIndexRef.value++;
+  }
+  
   if (normalizedFilters.createdBy) {
     conditions.push(`a.created_by = $${paramIndexRef.value}`);
     params.push(normalizedFilters.createdBy);
@@ -102,11 +109,14 @@ const buildAddressFilter = (filters = {}, includeUnassigned = false) => {
     // PostgreSQL allows a single bound parameter to be referenced multiple
     // times in the same query. Only one entry is pushed to params.
     conditions.push(`(
-      a.label     ILIKE $${paramIndexRef.value} OR
-      a.full_name ILIKE $${paramIndexRef.value} OR
-      a.email     ILIKE $${paramIndexRef.value} OR
-      a.phone     ILIKE $${paramIndexRef.value} OR
-      a.city      ILIKE $${paramIndexRef.value}
+      a.label        ILIKE $${paramIndexRef.value} OR
+      a.full_name    ILIKE $${paramIndexRef.value} OR
+      a.email        ILIKE $${paramIndexRef.value} OR
+      a.phone        ILIKE $${paramIndexRef.value} OR
+      a.city         ILIKE $${paramIndexRef.value} OR
+      c.firstname    ILIKE $${paramIndexRef.value} OR
+      c.lastname     ILIKE $${paramIndexRef.value} OR
+      c.company_name ILIKE $${paramIndexRef.value}
     )`);
     params.push(`%${normalizedFilters.keyword}%`);
     paramIndexRef.value++;

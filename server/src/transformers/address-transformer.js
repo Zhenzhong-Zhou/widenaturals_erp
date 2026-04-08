@@ -80,9 +80,13 @@ const transformEnrichedAddress = (row) => {
       fullName:  getFullName(row.updated_by_firstname, row.updated_by_lastname),
     },
     customer: {
+      type:        row.customer_type         ?? null,
       firstname:   row.customer_firstname    ?? null,
       lastname:    row.customer_lastname     ?? null,
-      fullName:    getFullName(row.customer_firstname, row.customer_lastname),
+      companyName: row.customer_company_name ?? null,
+      fullName:    row.customer_type === 'company'
+        ? row.customer_company_name ?? null
+        : getFullName(row.customer_firstname, row.customer_lastname),
       email:       row.customer_email        ?? null,
       phoneNumber: row.customer_phone_number ?? null,
     },

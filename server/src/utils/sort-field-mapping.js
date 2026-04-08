@@ -640,7 +640,10 @@ const SORTABLE_FIELDS = {
   },
   customerSortMap: {
     customerName: `
-      COALESCE(TRIM(c.firstname || ' ' || c.lastname), '')
+      CASE
+        WHEN c.customer_type = 'company' THEN COALESCE(c.company_name, '')
+        ELSE COALESCE(TRIM(c.firstname || ' ' || c.lastname), '')
+      END
     `,
     email: 'c.email',
     phoneNumber: 'c.phone_number',
@@ -660,7 +663,10 @@ const SORTABLE_FIELDS = {
     `,
     defaultNaturalSort: [
       's.name',
-      `COALESCE(TRIM(c.firstname || ' ' || c.lastname), '')`,
+      `CASE
+        WHEN c.customer_type = 'company' THEN COALESCE(c.company_name, '')
+        ELSE COALESCE(TRIM(c.firstname || ' ' || c.lastname), '')
+      END`,
       'c.created_at DESC',
     ],
   },
@@ -676,7 +682,12 @@ const SORTABLE_FIELDS = {
     recipientName:  'a.full_name',
     email:          'a.email',
     phone:          'a.phone',
-    customerName:   'c.firstname',
+    customerName: `
+      CASE
+        WHEN c.customer_type = 'company' THEN COALESCE(c.company_name, '')
+        ELSE COALESCE(TRIM(c.firstname || ' ' || c.lastname), '')
+      END
+    `,
     customerEmail:  'c.email',
     defaultNaturalSort: 'a.created_at',
   },

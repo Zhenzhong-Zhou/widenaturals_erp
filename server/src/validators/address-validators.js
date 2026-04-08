@@ -71,13 +71,14 @@ const addressArraySchema = createArraySchema(addressSchema, 1, 'Address list');
  * @type {Joi.ObjectSchema}
  */
 const addressFiltersSchema = Joi.object({
-  country: safeString('Country').allow('', null),
-  city: safeString('City').allow('', null),
-  region: safeString('Region').allow('', null),
-  customerId: validateOptionalUUID('Customer ID').allow('', null),
-  createdBy: validateOptionalUUID('Created By').allow('', null),
-  updatedBy: validateOptionalUUID('Updated By').allow('', null),
-  keyword: validateKeyword('Keyword'),
+  country:      safeString('Country').allow('', null),
+  city:         safeString('City').allow('', null),
+  region:       safeString('Region').allow('', null),
+  customerId:   validateOptionalUUID('Customer ID').allow('', null),
+  createdBy:    validateOptionalUUID('Created By').allow('', null),
+  updatedBy:    validateOptionalUUID('Updated By').allow('', null),
+  customerType: Joi.string().valid('individual', 'company').optional(),
+  keyword:      validateKeyword('Keyword'),
 });
 
 /**

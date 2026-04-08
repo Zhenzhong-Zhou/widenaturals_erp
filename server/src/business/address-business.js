@@ -56,8 +56,10 @@ const filterAddressForViewer = async (
     label: address.label,
     displayAddress: address.displayAddress,
     customer: {
-      fullName: address.customer?.fullName ?? null,
-      email: address.customer?.email ?? null,
+      type:        address.customer?.type        ?? null,
+      fullName:    address.customer?.fullName    ?? null,
+      companyName: address.customer?.companyName ?? null,
+      email:       address.customer?.email       ?? null,
       phoneNumber: address.customer?.phoneNumber ?? null,
     },
   };

@@ -29,6 +29,8 @@ const {
  * @param {Object}          [filters={}]
  * @param {string}          [filters.orderNumber]                    - ILIKE filter on order number.
  * @param {string|string[]} [filters.orderTypeId]                    - Filter by order type UUID(s).
+ * @param {string}          [filters.customerType]                   - Filter by customer type ('individual' or 'company').
+ * @param {string} [filters.customerName]                            - ILIKE filter across firstname, lastname, and company_name.
  * @param {string}          [filters._activeStatusId]                - Server-injected status enforcement.
  * @param {string}          [filters.orderStatusId]                  - Filter by single status UUID.
  * @param {string|string[]} [filters.orderStatusIds]                 - Filter by multiple status UUIDs.
@@ -70,6 +72,27 @@ const buildOrderFilter = (filters = {}) => {
       : [normalizedFilters.orderTypeId];
     conditions.push(`o.order_type_id = ANY($${paramIndexRef.value}::uuid[])`);
     params.push(ids);
+    paramIndexRef.value++;
+  }
+  
+  // ─── Customer Type ───────────────────────────────────────────────────────────
+  
+  if (normalizedFilters.customerType) {
+    conditions.push(`c.customer_type = $${paramIndexRef.value}`);
+    params.push(normalizedFilters.customerType);
+    paramIndexRef.value++;
+  }
+  
+  // ─── Customer Name ───────────────────────────────────────────────────────────
+  
+  if (normalizedFilters.customerName) {
+    const kw = `%${normalizedFilters.customerName.trim().replace(/\s+/g, ' ')}%`;
+    conditions.push(`(
+    c.firstname    ILIKE $${paramIndexRef.value} OR
+    c.lastname     ILIKE $${paramIndexRef.value} OR
+    c.company_name ILIKE $${paramIndexRef.value}
+  )`);
+    params.push(kw);
     paramIndexRef.value++;
   }
   
