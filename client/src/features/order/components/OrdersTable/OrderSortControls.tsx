@@ -11,13 +11,21 @@ interface OrderSortControlsProps {
 }
 
 const sortOptions: { label: string; value: OrderListSortField }[] = [
-  { label: 'Order #', value: 'orderNumber' },
-  { label: 'Order Date', value: 'orderDate' },
-  { label: 'Order Type', value: 'orderType' },
-  { label: 'Status', value: 'statusName' },
-  { label: 'Status Date', value: 'statusDate' },
-  { label: 'Created At', value: 'createdAt' },
-  { label: 'Updated At', value: 'updatedAt' },
+  { label: 'Order #',          value: 'orderNumber'      },
+  { label: 'Order Date',       value: 'orderDate'        },
+  { label: 'Order Type',       value: 'orderType'        },
+  { label: 'Status',           value: 'statusName'       },
+  { label: 'Status Date',      value: 'statusDate'       },
+  { label: 'Delivery Method',  value: 'deliveryMethod'   },
+  { label: 'Customer First',   value: 'customerFirst'    },
+  { label: 'Customer Last',    value: 'customerLast'     },
+  { label: 'Payment Method',   value: 'paymentMethod'    },
+  { label: 'Payment Status',   value: 'paymentStatus'    },
+  { label: 'Created At',       value: 'createdAt'        },
+  { label: 'Updated At',       value: 'updatedAt'        },
+  { label: 'Created By',       value: 'createdBy'        },
+  { label: 'Updated By',       value: 'updatedBy'        },
+  { label: 'Default',          value: 'defaultNaturalSort' },
 ];
 
 const OrderSortControls: FC<OrderSortControlsProps> = ({

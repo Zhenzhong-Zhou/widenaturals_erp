@@ -24,8 +24,7 @@ import { AppError } from '@utils/error';
  * Notes:
  * - Filters are provided via `params.filters`
  * - Date range filters are flattened into:
- *     - createdFrom
- *     - createdTo
+ *
  * - Multi-select filters (statusIds) may be arrays or comma-separated values
  *
  * Guarantees:
