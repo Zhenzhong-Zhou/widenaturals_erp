@@ -186,9 +186,10 @@ const verifyOrderCreationPermission = async (
  * @throws {AppError} validationError if the category has no registered strategy.
  */
 const createOrderWithType = async (category, orderData, client) => {
-  const createFn = orderCreationStrategies[category];
+  const hasStrategy = Object.prototype.hasOwnProperty.call(orderCreationStrategies, category);
+  const createFn = hasStrategy ? orderCreationStrategies[category] : null;
   
-  if (!createFn) {
+  if (typeof createFn !== 'function') {
     throw AppError.validationError(`Unsupported order category: ${category}`);
   }
   
