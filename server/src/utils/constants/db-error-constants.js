@@ -45,6 +45,7 @@ const POSTGRES_ERROR_CODES = {
   // Class 28 — Invalid authorization specification
   // ---------------------------------------------------------------------------
   INVALID_AUTHORIZATION_SPECIFICATION: '28000',
+  // GitGuardian-ignore-next-line
   INVALID_PASSWORD:                    '28P01',
   
   // ---------------------------------------------------------------------------
