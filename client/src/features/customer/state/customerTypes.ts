@@ -6,7 +6,7 @@ import type {
   SortConfig,
 } from '@shared-types/api';
 import type { ReduxPaginatedState } from '@shared-types/pagination';
-
+// todo: dajust type
 // Represents a single customer creation request payload
 export interface CustomerRequest {
   firstname: string;

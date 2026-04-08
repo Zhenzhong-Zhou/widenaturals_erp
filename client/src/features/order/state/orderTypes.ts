@@ -6,7 +6,7 @@ import type {
   SortConfig,
 } from '@shared-types/api';
 import type { ReduxPaginatedState } from '@shared-types/pagination';
-
+// todo: ajust customers
 /**
  * Represents a single item in a sales order.
  */
