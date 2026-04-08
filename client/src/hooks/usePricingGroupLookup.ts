@@ -1,14 +1,14 @@
 import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  fetchPricingLookupThunk,
+  fetchPricingGroupLookupThunk,
   selectPricingLookupOptions,
   selectPricingLookupLoading,
   selectPricingLookupError,
   selectPricingLookupMeta,
 } from '@features/lookup/state';
-import type { PricingLookupQueryParams } from '@features/lookup/state';
-import { resetPricingLookup } from '@features/lookup/state/pricingLookupSlice';
+import type { PricingGroupLookupQueryParams } from '@features/lookup/state';
+import { resetPricingLookup } from '@features/lookup/state/pricingGroupLookupSlice';
 
 /**
  * Hook to access pricing lookup state and utility actions.
@@ -27,8 +27,8 @@ const usePricingLookup = () => {
   const meta = useAppSelector(selectPricingLookupMeta);
 
   const fetch = useCallback(
-    (params?: PricingLookupQueryParams) => {
-      dispatch(fetchPricingLookupThunk(params));
+    (params?: PricingGroupLookupQueryParams) => {
+      dispatch(fetchPricingGroupLookupThunk(params));
     },
     [dispatch]
   );

@@ -5,7 +5,7 @@ import type {
   PricingLookupState,
 } from '@features/lookup/state';
 import { createInitialOffsetPaginatedState } from '@store/pagination';
-import { fetchPricingLookupThunk } from '@features/lookup/state';
+import { fetchPricingGroupLookupThunk } from '@features/lookup/state';
 import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 
@@ -34,17 +34,17 @@ const pricingLookupSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchPricingLookupThunk.pending, (state) => {
+      .addCase(fetchPricingGroupLookupThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(
-        fetchPricingLookupThunk.fulfilled,
+        fetchPricingGroupLookupThunk.fulfilled,
         (state, action: PayloadAction<PricingLookupResponse>) => {
           applyPaginatedFulfilled(state, action.payload);
         }
       )
-      .addCase(fetchPricingLookupThunk.rejected, (state, action) => {
+      .addCase(fetchPricingGroupLookupThunk.rejected, (state, action) => {
         applyRejected(state, action, 'Failed to fetch pricing lookup');
       });
   },

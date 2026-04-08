@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { PricingLookupQueryParams } from '@features/lookup/state';
+import type { PricingGroupLookupQueryParams } from '@features/lookup/state';
 import type { PaginatedDropdownProps } from '@components/common/PaginatedDropdown';
 import PaginatedDropdown from '@components/common/PaginatedDropdown';
 import CustomTypography from '@components/common/CustomTypography';
@@ -10,7 +10,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { getRawLabel } from '@utils/labelHelpers';
 
-type PricingDropdownProps = PaginatedDropdownProps<PricingLookupQueryParams>;
+type PricingDropdownProps = PaginatedDropdownProps<PricingGroupLookupQueryParams>;
 
 /**
  * Dropdown component for selecting a pricing record from the lookup list.
