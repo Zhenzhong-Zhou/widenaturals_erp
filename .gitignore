@@ -78,15 +78,18 @@ tsconfig.tsbuildinfo
 *.sw?
 
 # Sever
-server/backup
-server/backups
+# Runtime backup data (NOT source code)
+server/backup-data/
+server/backups-data/
 backups/
-backup/
 temp/
-server/public/uploads/sku-images
-server/public/uploads/user-images
-!/server/public/uploads/.gitkeep
-server/src/tests/apis/public
+
+# Uploads
+server/public/uploads/*
+!server/public/uploads/.gitkeep
+
+# Test artifacts (if needed)
+server/src/tests/apis/public/
 
 # Client
 vite.config.d.ts
