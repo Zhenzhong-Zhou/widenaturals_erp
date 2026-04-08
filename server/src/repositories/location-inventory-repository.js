@@ -29,7 +29,8 @@ const { formatBulkUpdateQuery } = require('../utils/db/query-builder');
  * @returns {Promise<Array>} An array of summary objects, grouped by item type and a total row if no filter is applied.
  */
 const getLocationInventoryKpiSummary = async ({ itemType } = {}) => {
-  const filterCondition = itemType ? `WHERE br.batch_type = '${itemType}'` : '';
+  const filterCondition = itemType ? 'WHERE br.batch_type = $1' : '';
+  const params = itemType ? [itemType] : [];
 
   const queryText = `
     SELECT
@@ -115,7 +116,7 @@ const getLocationInventoryKpiSummary = async ({ itemType } = {}) => {
       context: 'location-inventory-repository/getLocationInventoryKPIStats',
       itemType,
     });
-    const { rows } = await query(queryText);
+    const { rows } = await query(queryText, params);
     return rows;
   } catch (error) {
     logSystemException(error, 'Error fetching location inventory KPI stats', {
