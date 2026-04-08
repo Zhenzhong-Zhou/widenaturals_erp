@@ -95,6 +95,11 @@ const resolveSource = async (src, skuCode) => {
       throw AppError.validationError('IP-based hosts are not allowed.');
     }
     
+    // Restrict to default HTTP(S) ports to reduce SSRF surface.
+    if (url.port && url.port !== '80' && url.port !== '443') {
+      throw AppError.validationError('Non-standard ports are not allowed.');
+    }
+    
     const isAllowed = ALLOWED_IMAGE_HOSTS.some(
       (host) => hostname === host || hostname.endsWith(`.${host}`)
     );
@@ -108,6 +113,9 @@ const resolveSource = async (src, skuCode) => {
       throw AppError.validationError('Untrusted image host');
     }
     
+    // Build a canonical URL from validated components only.
+    const sanitizedUrl = `${url.protocol}//${hostname}${url.pathname}${url.search}`;
+    
     try {
       const tempDir = path.join(
         ROOT_DIR,
@@ -117,12 +125,12 @@ const resolveSource = async (src, skuCode) => {
       
       await fsp.mkdir(tempDir, { recursive: true });
       
-      const filename = path.basename(url.pathname);
+      const filename = path.basename(url.pathname) || 'image';
       const tempFile = path.join(tempDir, filename);
       
       const response = await retry(
         async () => {
-          const res = await fetch(src);
+          const res = await fetch(sanitizedUrl, { redirect: 'error' });
           
           if (!res.ok) {
             const error = new Error(`HTTP error: ${res.status}`);
