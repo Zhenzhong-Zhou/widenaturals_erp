@@ -79,16 +79,16 @@ const validateSalesOrderIds = async (orderData, client) => {
   }
   
   // Batch FK checks — deduplicated per type, run in parallel.
-  const skuIds    = uniqUuids(order_items.map((i) => i.sku_id));
-  const pkgIds    = uniqUuids(order_items.map((i) => i.packaging_material_id));
-  const statusIds = uniqUuids(order_items.map((i) => i.status_id));
-  const priceIds  = uniqUuids(order_items.map((i) => i.price_id));
+  const skuIds           = uniqUuids(order_items.map((i) => i.sku_id));
+  const pkgIds           = uniqUuids(order_items.map((i) => i.packaging_material_id));
+  const statusIds        = uniqUuids(order_items.map((i) => i.status_id));
+  const pricingGroupIds  = uniqUuids(order_items.map((i) => i.pricing_group_id));
   
   await Promise.all([
-    validateIdsExist(client, 'skus',               skuIds,    { label: 'SKU' }),
-    validateIdsExist(client, 'packaging_materials', pkgIds,    { label: 'Packaging' }),
-    validateIdsExist(client, 'order_status',        statusIds, { label: 'Order item status' }),
-    validateIdsExist(client, 'pricing',             priceIds,  { label: 'Price' }),
+    validateIdsExist(client, 'skus',                 skuIds,    { label: 'SKU' }),
+    validateIdsExist(client, 'packaging_materials',  pkgIds,    { label: 'Packaging' }),
+    validateIdsExist(client, 'order_status',         statusIds, { label: 'Order item status' }),
+    validateIdsExist(client, 'pricing_groups',       pricingGroupIds,  { label: 'Pricing Group' }),
   ]);
 };
 

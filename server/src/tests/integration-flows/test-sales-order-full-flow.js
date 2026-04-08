@@ -61,12 +61,12 @@ const {
       getUniqueScalarValue({ table: 'packaging_materials', where: { name: 'Brand E Paper Bag - Medium (Brown)' }, select: 'id' }),
     ]);
     
-    const getPriceId = async (skuId) => {
+    const getPricingGroupId = async (skuId) => {
       const { rows } = await pool.query(
-        `SELECT id FROM pricing WHERE sku_id = $1 ORDER BY created_at ASC LIMIT 1`,
+        `SELECT pricing_group_id FROM pricing WHERE sku_id = $1 ORDER BY created_at ASC LIMIT 1`,
         [skuId]
       );
-      return rows[0]?.id ?? null;
+      return rows[0]?.pricing_group_id ?? null;
     };
     
     // Step 4: Create sales order
@@ -90,7 +90,7 @@ const {
       order_items: [
         {
           sku_id: sku1,
-          price_id: await getPriceId(sku1),
+          pricing_group_id: await getPricingGroupId(sku1),
           quantity_ordered: 2,
           price: 20.0,
           status_id: order_status_id,
@@ -98,7 +98,7 @@ const {
         },
         {
           sku_id: sku3,
-          price_id: await getPriceId(sku3),
+          pricing_group_id: await getPricingGroupId(sku3),
           quantity_ordered: 20,
           price: null,
           status_id: order_status_id,
@@ -106,7 +106,7 @@ const {
         },
         {
           sku_id: sku2,
-          price_id: await getPriceId(sku2),
+          pricing_group_id: await getPricingGroupId(sku2),
           quantity_ordered: 20,
           price: 200.0,
           status_id: order_status_id,
