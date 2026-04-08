@@ -53,6 +53,15 @@ const createCustomerController = wrapAsyncHandler(async (req, res) => {
     });
   }
 
+
+  if (!Array.isArray(customers)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid request body. Expected an array of customers.',
+      traceId: req.traceId,
+    });
+  }
+
   const user      = req.auth.user;
   const isBulk    = customers.length > 1;
 
