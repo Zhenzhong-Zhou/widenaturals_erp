@@ -1,29 +1,78 @@
 import type { FC } from 'react';
-import PhoneInput from 'react-phone-input-2';
+import * as PhoneInputLib from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 import type { SxProps, Theme } from '@mui/system';
 import Box from '@mui/material/Box';
 import InputLabel from '@mui/material/InputLabel';
+import { resolveCjsDefault } from '@utils/utils/module/resolveCjsDefault';
 
-interface PhoneInputProps {
+/**
+ * Safely resolve the PhoneInput component from a CJS module.
+ * Handles Vite/ESM interop where the component may be nested under multiple `.default` layers.
+ */
+const PhoneInput = resolveCjsDefault<any>(PhoneInputLib);
+
+/**
+ * Props for CustomPhoneInput component.
+ */
+interface CustomPhoneInputProps {
+  /** Current phone value (recommended: E.164 format, e.g. +16041234567) */
   value: string;
+  
+  /** Change handler returning normalized phone value */
   onChange: (value: string) => void;
+  
+  /** Default country (ISO2 code, e.g. 'ca', 'us') */
   country?: string;
+  
+  /** Disable input interaction */
   disabled?: boolean;
-  sx?: SxProps<Theme>; // Optional style override
+  
+  /** MUI sx style overrides */
+  sx?: SxProps<Theme>;
+  
+  /** Whether field is required */
   required?: boolean;
+  
+  /** Optional label displayed above input */
   label?: string;
 }
 
-const CustomPhoneInput: FC<PhoneInputProps> = ({
-  value,
-  onChange,
-  country = 'ca',
-  disabled = false,
-  sx,
-  required = true,
-  label,
-}) => {
+/**
+ * CustomPhoneInput
+ *
+ * A wrapper around `react-phone-input-2` that:
+ * - integrates with MUI styling system
+ * - normalizes phone values to E.164 format
+ * - provides consistent UI behavior across ERP forms
+ *
+ * Notes:
+ * - Underlying library is not fully controlled; use with caution in complex forms.
+ * - For long-term scalability, consider migrating to `react-phone-number-input`.
+ *
+ * @component
+ */
+const CustomPhoneInput: FC<CustomPhoneInputProps> = ({
+                                                       value,
+                                                       onChange,
+                                                       country = 'ca',
+                                                       disabled = false,
+                                                       sx,
+                                                       required = true,
+                                                       label,
+                                                     }) => {
+  /**
+   * Normalize phone number to E.164 format.
+   * Ensures consistent backend storage.
+   */
+  const handleChange = (phone: string) => {
+    const normalized = phone.startsWith('+')
+      ? phone
+      : `+${phone.replace(/\D/g, '')}`;
+    
+    onChange(normalized);
+  };
+  
   return (
     <Box
       sx={{
@@ -46,14 +95,11 @@ const CustomPhoneInput: FC<PhoneInputProps> = ({
           {label}
         </InputLabel>
       )}
+      
       <PhoneInput
         country={country}
         value={value}
-        onChange={(phone) => {
-          const cleaned = phone.replace(/\D/g, '');
-          const formatted = phone.startsWith('+') ? phone : `+${cleaned}`;
-          onChange(formatted);
-        }}
+        onChange={handleChange}
         inputProps={{
           name: 'phone',
           required,
