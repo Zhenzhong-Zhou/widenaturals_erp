@@ -9,7 +9,7 @@ import discountLookupReducer from './discountLookupSlice';
 import taxRateLookupReducer from './taxRateLookupSlice';
 import deliveryMethodLookupReducer from './deliveryMethodLookupSlice';
 import skuLookupReducer from './skuLookupSlice';
-import pricingLookupReducer from './pricingLookupSlice';
+import pricingGroupLookupReducer from './pricingGroupLookupSlice';
 import packagingMaterialLookupReducer from './packagingMaterialLookupSlice';
 import skuCodeBaseLookupReducer from './skuCodeBaseLookupSlice';
 import productLookupReducer from './productLookupSlice';
@@ -52,7 +52,7 @@ export const lookupReducers = {
   taxRateLookup: taxRateLookupReducer,
   deliveryMethodLookup: deliveryMethodLookupReducer,
   skuLookup: skuLookupReducer,
-  pricingLookup: pricingLookupReducer,
+  pricingGroupLookup: pricingGroupLookupReducer,
   packagingMaterialLookup: packagingMaterialLookupReducer,
   skuCodeBaseLookup: skuCodeBaseLookupReducer,
   productLookup: productLookupReducer,

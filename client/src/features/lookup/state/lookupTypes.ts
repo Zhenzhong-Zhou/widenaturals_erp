@@ -1,5 +1,6 @@
 import type {
-  ApiSuccessResponse,
+  // todo:
+  // ApiSuccessResponse,
   AsyncState,
   LookupSuccessResponse,
   PaginatedLookupState,
@@ -177,10 +178,9 @@ export interface WarehouseLookupItem extends LookupOption {
     locationTypeId: string;
   };
 }
-
-export type GetWarehouseLookupResponse = ApiSuccessResponse<
-  WarehouseLookupItem[]
->;
+// todo:
+// export type GetWarehouseLookupResponse =
+//   LookupSuccessResponse<WarehouseLookupItem>;
 
 export type WarehouseLookupState = AsyncState<WarehouseLookupItem[]>;
 
@@ -204,9 +204,10 @@ export interface LotAdjustmentTypeLookupItem extends LookupOption {
 /**
  * Typed API response for fetching lot adjustment lookup options.
  */
-export type LotAdjustmentTypeLookupResponse = ApiSuccessResponse<
-  LotAdjustmentTypeLookupItem[]
->;
+// todo:
+// export type LotAdjustmentTypeLookupResponse = LookupSuccessResponse<
+//   LotAdjustmentTypeLookupItem
+// >;
 
 export type LotAdjustmentTypeLookupState = AsyncState<
   LotAdjustmentTypeLookupItem[]
@@ -274,9 +275,9 @@ export interface AddressByCustomerLookup {
  * API response containing a list of address lookup entries for a specific customer.
  * Used in endpoints like GET /addresses/by-customer.
  */
-export type AddressByCustomerLookupResponse = ApiSuccessResponse<
-  AddressByCustomerLookup[]
->;
+// todo:
+// export type AddressByCustomerLookupResponse =
+//   LookupSuccessResponse<AddressByCustomerLookup>;
 
 /**
  * Redux state for managing address lookup results by customer ID.
@@ -527,12 +528,12 @@ export type SkuLookupResponse = LookupSuccessResponse<SkuLookupItem>;
 export type SkuLookupState = PaginatedLookupState<SkuLookupItem>;
 
 /**
- * Query parameters for paginated pricing lookup results.
+ * Query parameters for paginated pricing group lookup results.
  *
  * Used to filter and control the structure of returned pricing records.
  * Supports keyword search, pagination, SKU-based filtering, and simplified label-only formatting.
  */
-export interface PricingLookupQueryParams extends LookupQuery {
+export interface PricingGroupLookupQueryParams extends LookupQuery {
   /**
    * Optional SKU ID to filter pricing results.
    * If provided, only pricing records related to the specified SKU will be returned.
@@ -549,23 +550,22 @@ export interface PricingLookupQueryParams extends LookupQuery {
 }
 
 /**
- * Represents a detailed pricing lookup result with full metadata.
+ * Represents a detailed pricing group lookup result with full metadata.
  *
- * Returned when `labelOnly` is `false`. Includes location name, price, and pricing type name.
+ * Returned when `labelOnly` is `false`. Includes country code, price, and pricing type name.
  * Also inherits `id`, `label`, and optional `isActive`/`isValidToday` from `LookupItemWithStatus`.
  */
-export interface PricingLookupFullItem extends LookupItemWithStatus {
+export interface PricingGroupLookupFullItem extends LookupItemWithStatus {
   /**
-   * Location where the price is applicable.
-   * Optional based on user access and response options.
+   * ISO country code where the price is applicable (e.g., "CA", "US").
    */
-  locationName?: string;
-
+  countryCode: string;
+  
   /**
-   * Price value for the SKU or product, as a string or number.
+   * Price value for the SKU or product.
    */
-  price: string | number;
-
+  price: number;
+  
   /**
    * Pricing type name (e.g., "Wholesale", "Retail").
    */
@@ -573,44 +573,44 @@ export interface PricingLookupFullItem extends LookupItemWithStatus {
 }
 
 /**
- * Represents a minimal pricing lookup result, typically returned when `labelOnly` is `true`.
+ * Represents a minimal pricing group lookup result, typically returned when `labelOnly` is `true`.
  *
  * Includes only `id`, `label`, and optionally `isActive`/`isValidToday`
  * depending on user permission.
  */
-export type PricingLookupLabelOnlyItem = LookupItemWithStatus;
+export type PricingGroupLookupLabelOnlyItem = LookupItemWithStatus;
 
 /**
- * Union type representing a pricing lookup result.
+ * Union type representing a pricing group lookup result.
  *
- * The result may be a minimal item (`PricingLookupLabelOnlyItem`) or
- * a full item (`PricingLookupFullItem`) depending on display options and user access.
+ * The result may be a minimal item (`PricingGroupLookupLabelOnlyItem`) or
+ * a full item (`PricingGroupLookupFullItem`) depending on display options and user access.
  */
-export type PricingLookupItem =
-  | PricingLookupFullItem
-  | PricingLookupLabelOnlyItem;
+export type PricingGroupLookupItem =
+  | PricingGroupLookupFullItem
+  | PricingGroupLookupLabelOnlyItem;
 
 /**
- * API response type for pricing lookup endpoints.
+ * API response type for pricing group lookup endpoints.
  *
- * This wraps the pricing lookup items in a standard paginated lookup response format.
+ * This wraps the pricing group lookup items in a standard paginated lookup response format.
  * The `items` array may include either full or label-only pricing records,
  * depending on the provided query options and user access level.
  *
  * @example Successful response (labelOnly = false):
  * {
  *   success: true,
- *   message: "Successfully retrieved pricing lookup",
+ *   message: "Pricing group lookup retrieved successfully.",
  *   offset: 0,
  *   limit: 50,
  *   hasMore: true,
  *   items: [
  *     {
  *       id: "uuid",
- *       label: "Focus (SKU123) · Wholesale · $19.99",
- *       locationName: "Main Warehouse",
- *       price: "19.99",
- *       pricingTypeName: "Wholesale",
+ *       label: "Immune - CA (CH-HN105-R-CA) · Friend and Family Price · $30.00",
+ *       countryCode: "CA",
+ *       price: 30,
+ *       pricingTypeName: "Friend and Family Price",
  *       isActive: true,
  *       isValidToday: true
  *     }
@@ -620,26 +620,26 @@ export type PricingLookupItem =
  * @example Successful response (labelOnly = true):
  * {
  *   success: true,
- *   message: "Successfully retrieved pricing lookup",
+ *   message: "Pricing group lookup retrieved successfully.",
  *   offset: 0,
  *   limit: 50,
  *   hasMore: false,
  *   items: [
  *     {
  *       id: "uuid",
- *       label: "Wholesale · $19.99",
+ *       label: "Immune - CA (CH-HN105-R-CA) · Friend and Family Price · $30.00",
  *       isActive: true
  *     }
  *   ]
  * }
  */
-export type PricingLookupResponse = LookupSuccessResponse<PricingLookupItem>;
+export type PricingGroupLookupResponse = LookupSuccessResponse<PricingGroupLookupItem>;
 
 /**
- * Redux slice state for pricing lookup dropdowns or autocomplete inputs.
+ * Redux slice state for pricing group lookup dropdowns or autocomplete inputs.
  *
  * Extends a generic paginated async lookup state to track:
- * - Matching pricing items (`PricingLookupItem[]`)
+ * - Matching pricing group items (`PricingGroupLookupItem[]`)
  * - Loading and error states for async requests
  * - Pagination info (`offset`, `limit`, `hasMore`)
  *
@@ -647,7 +647,7 @@ export type PricingLookupResponse = LookupSuccessResponse<PricingLookupItem>;
  * discount selectors, or inventory pricing filters. Supports both
  * full and label-only pricing entries depending on access level and display mode.
  */
-export type PricingLookupState = PaginatedLookupState<PricingLookupItem>;
+export type PricingGroupLookupState = PaginatedLookupState<PricingGroupLookupItem>;
 
 /**
  * Represents a full lookup bundle with results, loading/error states, pagination metadata,

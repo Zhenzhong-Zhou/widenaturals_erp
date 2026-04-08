@@ -46,8 +46,8 @@ import type {
   PackagingMaterialLookupResponse,
   PaymentMethodLookupQueryParams,
   PaymentMethodLookupResponse,
-  PricingLookupQueryParams,
-  PricingLookupResponse,
+  PricingGroupLookupQueryParams,
+  PricingGroupLookupResponse,
   ProductLookupParams,
   ProductLookupResponse,
   RoleLookupParams,
@@ -221,13 +221,13 @@ export const fetchSkuLookupThunk = createAsyncThunk<
   }
 });
 
-export const fetchPricingLookupThunk = createAsyncThunk<
-  PricingLookupResponse,
-  PricingLookupQueryParams | undefined,
+export const fetchPricingGroupLookupThunk = createAsyncThunk<
+  PricingGroupLookupResponse,
+  PricingGroupLookupQueryParams | undefined,
   { rejectValue: UiErrorPayload }
->('lookup/fetchPricingLookup', async (params, { rejectWithValue }) => {
+>('lookup/fetchPricingGroupLookup', async (params, { rejectWithValue }) => {
   try {
-    return await lookupService.fetchPricingLookup(params);
+    return await lookupService.fetchPricingGroupLookup(params);
   } catch (error) {
     return rejectWithValue(extractUiErrorPayload(error));
   }

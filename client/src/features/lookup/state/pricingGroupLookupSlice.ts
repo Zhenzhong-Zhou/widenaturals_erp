@@ -1,8 +1,8 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type {
-  PricingLookupItem,
-  PricingLookupResponse,
-  PricingLookupState,
+  PricingGroupLookupItem,
+  PricingGroupLookupResponse,
+  PricingGroupLookupState,
 } from '@features/lookup/state';
 import { createInitialOffsetPaginatedState } from '@store/pagination';
 import { fetchPricingGroupLookupThunk } from '@features/lookup/state';
@@ -12,23 +12,23 @@ import { applyRejected } from '@features/shared/async/asyncReducerUtils';
 /**
  * Initial state for the pricing lookup slice.
  */
-const initialState: PricingLookupState =
-  createInitialOffsetPaginatedState<PricingLookupItem>();
+const initialState: PricingGroupLookupState =
+  createInitialOffsetPaginatedState<PricingGroupLookupItem>();
 
 /**
- * Redux slice to manage pricing lookup state for dropdowns and autocomplete fields.
+ * Redux slice to manage pricing group lookup state for dropdowns and autocomplete fields.
  *
  * Handles async lifecycle of pricing fetch operations and tracks paginated results,
  * error/loading states, and optional enrichment (e.g., status flags).
  */
-const pricingLookupSlice = createSlice({
-  name: 'pricingLookup',
+const pricingGroupLookupSlice = createSlice({
+  name: 'pricingGroupLookup',
   initialState,
   reducers: {
     /**
-     * Resets the pricing lookup state to its initial default values.
+     * Resets the pricing group lookup state to its initial default values.
      */
-    resetPricingLookup: (state) => {
+    resetPricingGroupLookup: (state) => {
       Object.assign(state, initialState);
     },
   },
@@ -40,15 +40,15 @@ const pricingLookupSlice = createSlice({
       })
       .addCase(
         fetchPricingGroupLookupThunk.fulfilled,
-        (state, action: PayloadAction<PricingLookupResponse>) => {
+        (state, action: PayloadAction<PricingGroupLookupResponse>) => {
           applyPaginatedFulfilled(state, action.payload);
         }
       )
       .addCase(fetchPricingGroupLookupThunk.rejected, (state, action) => {
-        applyRejected(state, action, 'Failed to fetch pricing lookup');
+        applyRejected(state, action, 'Failed to fetch pricing group lookup');
       });
   },
 });
 
-export const { resetPricingLookup } = pricingLookupSlice.actions;
-export default pricingLookupSlice.reducer;
+export const { resetPricingGroupLookup } = pricingGroupLookupSlice.actions;
+export default pricingGroupLookupSlice.reducer;

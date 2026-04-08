@@ -96,7 +96,7 @@ export { default as usePricingList } from './usePricingList';
 export { default as usePricingListByType } from './usePricingListByType';
 export { default as usePricingTypes } from './usePricingTypes';
 export { default as usePricingTypeMetadata } from './usePricingTypeMetadata';
-export { default as usePricingLookup } from './usePricingLookup';
+export { default as usePricingGroupLookup } from './usePricingGroupLookup';
 
 /* =====================================================
  * Customer & Address

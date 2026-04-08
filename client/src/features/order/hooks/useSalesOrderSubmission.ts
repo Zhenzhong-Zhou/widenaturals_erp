@@ -59,7 +59,7 @@ const useSalesOrderSubmission = ({
         const override = !!it.override_price;
 
         if (lineType === 'packaging_material') {
-          // Packaging line: no price_id; price is 0 unless overridden
+          // Packaging line: no pricing_group_id; price is 0 unless overridden
           const item: Partial<OrderItemInput> = {
             packaging_material_id: it.packaging_material_id || undefined,
             quantity_ordered,
@@ -71,8 +71,8 @@ const useSalesOrderSubmission = ({
           const item: Partial<OrderItemInput> = {
             sku_id: it.sku_id || undefined,
             quantity_ordered,
-            price_id: it.price_id || undefined,
-            // If overridden, send price; else rely on price_id
+            pricing_group_id: it.pricing_group_id || undefined,
+            // If overridden, send price; else rely on pricing_group_id
             price: override ? toNumberOrUndefined(it.price) : undefined,
           };
           return stripUndefined(item as OrderItemInput);

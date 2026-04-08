@@ -6,7 +6,7 @@ import {
   useOrderTypeLookup,
   usePackagingMaterialLookup,
   usePaymentMethodLookup,
-  usePricingLookup,
+  usePricingGroupLookup,
   useSkuLookup,
   useTaxRateLookup,
 } from '@hooks/index';
@@ -23,7 +23,7 @@ const useSalesOrderLookups = () => {
   const taxRate = useTaxRateLookup();
   const deliveryMethod = useDeliveryMethodLookup();
   const sku = useSkuLookup();
-  const pricing = usePricingLookup();
+  const pricingGroup = usePricingGroupLookup();
   const packagingMaterial = usePackagingMaterialLookup();
 
   return {
@@ -35,7 +35,7 @@ const useSalesOrderLookups = () => {
     taxRate,
     deliveryMethod,
     sku,
-    pricing,
+    pricingGroup,
     packagingMaterial,
   };
 };

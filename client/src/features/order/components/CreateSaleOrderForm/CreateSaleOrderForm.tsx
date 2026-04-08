@@ -20,7 +20,7 @@ import type {
   DiscountLookupQueryParams,
   PackagingMaterialLookupQueryParams,
   PaymentMethodLookupQueryParams,
-  PricingLookupQueryParams,
+  PricingGroupLookupQueryParams,
   SkuLookupQueryParams,
   TaxRateLookupQueryParams,
 } from '@features/lookup/state';
@@ -63,7 +63,7 @@ const CreateSaleOrderForm: FC = () => {
     taxRate,
     deliveryMethod,
     sku,
-    pricing,
+    pricingGroup,
     packagingMaterial,
   } = useSalesOrderLookups();
 
@@ -84,7 +84,7 @@ const CreateSaleOrderForm: FC = () => {
     handleTaxRateSearch,
     handleDeliveryMethodSearch,
     handleSkuSearch,
-    handlePricingSearch,
+    handlePricingGroupSearch,
     handlePackagingMaterialSearch,
   } = useAllSalesOrderSearchHandlers(
     {
@@ -95,7 +95,7 @@ const CreateSaleOrderForm: FC = () => {
       taxRate,
       deliveryMethod,
       sku,
-      pricing,
+      pricingGroup,
       packagingMaterial,
     },
     category
@@ -130,7 +130,7 @@ const CreateSaleOrderForm: FC = () => {
   const skuDropdown = createDropdownBundle<SkuLookupQueryParams>({
     includeBarcode: true,
   });
-  const pricingDropdown = createDropdownBundle<PricingLookupQueryParams>({
+  const pricingGroupDropdown = createDropdownBundle<PricingGroupLookupQueryParams>({
     skuId: selectedSkuId ?? null,
     labelOnly: false,
   });
@@ -153,7 +153,7 @@ const CreateSaleOrderForm: FC = () => {
       { fetch: taxRate.fetch, dropdown: taxRateDropdown },
       { fetch: deliveryMethod.fetch, dropdown: deliveryMethodDropdown },
       { fetch: sku.fetch, dropdown: skuDropdown },
-      { fetch: pricing.fetch, dropdown: pricingDropdown },
+      { fetch: pricingGroup.fetch, dropdown: pricingGroupDropdown },
       { fetch: packagingMaterial.fetch, dropdown: packagingMaterialDropdown },
     ]);
 
@@ -166,7 +166,7 @@ const CreateSaleOrderForm: FC = () => {
         { reset: taxRate.reset },
         { reset: deliveryMethod.reset },
         { reset: sku.reset },
-        { reset: pricing.reset },
+        { reset: pricingGroup.reset },
         { reset: packagingMaterial.reset },
       ]);
       resetSalesOrderState();
@@ -196,11 +196,11 @@ const CreateSaleOrderForm: FC = () => {
     setSkuFetchParams: skuDropdown.setFetchParams,
     fetchSku: sku.fetch,
 
-    pricingFetchParams: pricingDropdown.fetchParams,
-    setPricingFetchParams: pricingDropdown.setFetchParams,
-    fetchPricing: pricing.fetch,
+    pricingFetchParams: pricingGroupDropdown.fetchParams,
+    setPricingFetchParams: pricingGroupDropdown.setFetchParams,
+    fetchPricing: pricingGroup.fetch,
     setPricingInputValue: (value: string) =>
-      pricingDropdown.setDropdownState((prev) => ({
+      pricingGroupDropdown.setDropdownState((prev) => ({
         ...prev,
         inputValue: value,
       })),
@@ -247,8 +247,8 @@ const CreateSaleOrderForm: FC = () => {
         row.price !== '' &&
         row.price != null &&
         !Number.isNaN(Number(row.price));
-      const priceIdOk = !override && !!row.price_id;
-      return hasSku && qtyOk && (manualOk || priceIdOk);
+      const priceGroupIdOk = !override && !!row.pricing_group_id;
+      return hasSku && qtyOk && (manualOk || priceGroupIdOk);
     }
 
     // packaging: require id + qty; manual price only if override=true
@@ -422,15 +422,15 @@ const CreateSaleOrderForm: FC = () => {
           onItemsChange={setItems}
           // Lookup bundles
           sku={sku}
-          pricing={pricing}
+          pricingGroup={pricingGroup}
           packagingMaterial={packagingMaterial}
           // Dropdown states
           skuDropdown={skuDropdown}
-          pricingDropdown={pricingDropdown}
+          pricingGroupDropdown={pricingGroupDropdown}
           packagingMaterialDropdown={packagingMaterialDropdown}
           // Search handlers
           handleSkuSearch={handleSkuSearch}
-          handlePricingSearch={handlePricingSearch}
+          handlePricingGroupSearch={handlePricingGroupSearch}
           handlePackagingMaterialSearch={handlePackagingMaterialSearch}
           // Selected ids
           setSelectedSkuId={setSelectedSkuId}

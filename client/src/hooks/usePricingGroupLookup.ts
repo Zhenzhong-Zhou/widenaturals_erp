@@ -2,41 +2,41 @@ import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchPricingGroupLookupThunk,
-  selectPricingLookupOptions,
-  selectPricingLookupLoading,
-  selectPricingLookupError,
-  selectPricingLookupMeta,
+  selectPricingGroupLookupOptions,
+  selectPricingGroupLookupLoading,
+  selectPricingGroupLookupError,
+  selectPricingGroupLookupMeta,
 } from '@features/lookup/state';
 import type { PricingGroupLookupQueryParams } from '@features/lookup/state';
-import { resetPricingLookup } from '@features/lookup/state/pricingGroupLookupSlice';
+import { resetPricingGroupLookup } from '@features/lookup/state/pricingGroupLookupSlice';
 
 /**
- * Hook to access pricing lookup state and utility actions.
+ * Hook to access pricing group lookup state and utility actions.
  *
  * Does not trigger fetch automatically — call `fetch()` to retrieve data.
  * Provides dropdown options, loading/error state, and pagination metadata.
  *
  * @returns Enriched state, dropdown options, fetch/reset actions, and pagination info.
  */
-const usePricingLookup = () => {
+const usePricingGroupLookup = () => {
   const dispatch = useAppDispatch();
-
-  const options = useAppSelector(selectPricingLookupOptions);
-  const loading = useAppSelector(selectPricingLookupLoading);
-  const error = useAppSelector(selectPricingLookupError);
-  const meta = useAppSelector(selectPricingLookupMeta);
-
+  
+  const options = useAppSelector(selectPricingGroupLookupOptions);
+  const loading = useAppSelector(selectPricingGroupLookupLoading);
+  const error = useAppSelector(selectPricingGroupLookupError);
+  const meta = useAppSelector(selectPricingGroupLookupMeta);
+  
   const fetch = useCallback(
     (params?: PricingGroupLookupQueryParams) => {
       dispatch(fetchPricingGroupLookupThunk(params));
     },
     [dispatch]
   );
-
+  
   const reset = useCallback(() => {
-    dispatch(resetPricingLookup());
+    dispatch(resetPricingGroupLookup());
   }, [dispatch]);
-
+  
   return useMemo(
     () => ({
       options,
@@ -50,4 +50,4 @@ const usePricingLookup = () => {
   );
 };
 
-export default usePricingLookup;
+export default usePricingGroupLookup;

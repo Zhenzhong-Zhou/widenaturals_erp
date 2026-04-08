@@ -113,7 +113,7 @@ export const API_ENDPOINTS = {
     TAX_RATES: '/lookups/tax-rates',
     DELIVERY_METHODS: '/lookups/delivery-methods',
     SKUS: '/lookups/skus',
-    PRICING: '/lookups/pricing',
+    PRICING_GROUP: '/lookups/pricing-groups',
     PACKAGING_MATERIALS: '/lookups/packaging-materials',
     SKU_CODE_BASES: '/lookups/sku-code-bases',
     PRODUCTS: '/lookups/products',

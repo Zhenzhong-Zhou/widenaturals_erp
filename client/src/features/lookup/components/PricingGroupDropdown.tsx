@@ -27,7 +27,7 @@ type PricingDropdownProps = PaginatedDropdownProps<PricingGroupLookupQueryParams
  * @component
  * @param {PricingDropdownProps} props - Standard dropdown props plus lookup state.
  */
-const PricingDropdown = ({ options = [], ...rest }: PricingDropdownProps) => {
+const PricingGroupDropdown = ({ options = [], ...rest }: PricingDropdownProps) => {
   const enrichedPricingOptions = useMemo(() => {
     return Array.from(
       new Map(
@@ -93,4 +93,4 @@ const PricingDropdown = ({ options = [], ...rest }: PricingDropdownProps) => {
   );
 };
 
-export default PricingDropdown;
+export default PricingGroupDropdown;
