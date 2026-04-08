@@ -76,7 +76,7 @@ const sanitizeMessage = (message, maskIp = false) => {
   // =========================
   // IP masking (optional)
   // =========================
-  if (maskIp && /\d+\.\d+\.\d+\.\d+/.test(sanitized)) {
+  if (maskIp && /\b(?:\d{1,3}\.){3}\d{1,3}\b/.test(sanitized)) {
     sanitized = sanitized.replace(
       /\b(?:\d{1,3}\.){3}\d{1,3}\b/g,
       '***.***.***.***'
