@@ -35,14 +35,16 @@ const validate                             = require('../../middlewares/validate
  * All fields have sensible defaults for a standard keyword-based lookup.
  *
  * @typedef {object} LookupRouteConfig
- * @property {string[]}          [arrayKeys=[]]         - Query keys whose values should be normalized to arrays.
- * @property {string[]}          [booleanKeys=[]]        - Query keys whose values should be coerced to booleans (filters).
- * @property {string[]}          [filterKeys=['keyword']]- Whitelisted plain filter keys passed to the service.
- * @property {boolean}           [includePagination=true]- Whether to include limit/offset in normalizedQuery.
- * @property {boolean}           [includeSorting=false]  - Whether to include sortBy/sortOrder in normalizedQuery.
- * @property {string[]}          [optionBooleanKeys=[]]  - Query keys coerced to booleans and placed in `options`.
- * @property {string[]}          [optionKeys=[]]         - Query keys kept as strings and placed in `options`.
- * @property {RequestHandler[]}  [customHandlers=[]]     - Extra middleware inserted between normalization and controller.
+ * @property {string[]}          [arrayKeys=[]]          - Query keys whose values should be normalized to arrays.
+ * @property {string[]}          [booleanKeys=[]]         - Query keys whose values should be coerced to booleans (filters).
+ * @property {string[] | object} [filterKeysOrSchema]     - Whitelist of filter keys or a Joi schema for filter validation.
+ * @property {string[]}          [filterKeys=['keyword']] - Whitelisted plain filter keys passed to the service.
+ * @property {boolean}           [includePagination=true] - Whether to include limit/offset in normalizedQuery.
+ * @property {boolean}           [includeSorting=false]   - Whether to include sortBy/sortOrder in normalizedQuery.
+ * @property {string[]}          [optionBooleanKeys=[]]   - Query keys coerced to booleans and placed in `options`.
+ * @property {string[]}          [optionStringKeys=[]]   - Query keys kept as strings and placed in `options`.
+ * @property {'page' | 'offset'} [paginationMode='offset']- Pagination mode passed to the query normalization middleware.
+ * @property {RequestHandler[]}  [customHandlers=[]]      - Extra middleware inserted between normalization and controller.
  */
 
 /**

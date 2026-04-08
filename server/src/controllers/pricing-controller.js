@@ -1,86 +1,85 @@
+/**
+ * @file pricing-controller.js
+ * @description HTTP request handlers for pricing records.
+ *
+ * Handles SKU-level pricing queries, full dataset export, and SKU pricing lookup.
+ * Controllers never log — traceId injection and error logging are owned by middleware.
+ *
+ * Exports:
+ *  - getPaginatedPricingSkusController — paginated SKU list for a pricing group
+ *  - exportPricingRecordsController    — full export as CSV or XLSX
+ *  - getPricingBySkuIdController       — all pricing groups a SKU belongs to
+ */
+
+'use strict';
+
 const { wrapAsyncHandler } = require('../middlewares/async-handler');
 const {
-  fetchPaginatedPricingRecordsService,
-  fetchPricingDetailsByPricingTypeId,
+  fetchPaginatedPricingSkusService,
   exportPricingRecordsService,
+  fetchPricingBySkuIdService,
 } = require('../services/pricing-service');
 const { exportData } = require('../utils/export-utils');
 
+// ─── Pricing SKUs ─────────────────────────────────────────────────────────────
+
 /**
- * Controller to handle the fetching of paginated pricing records.
+ * GET /pricing-groups/:pricingGroupId/skus
+ * Fetches a paginated list of SKUs assigned to a pricing group.
  *
- * @param {Request} req - Express a request object.
- * @param {Response} res - Express response object.
+ * @param {string} req.params.pricingGroupId        - UUID of the pricing group.
+ * @param {Object} req.normalizedQuery              - { page, limit, sortBy, sortOrder, filters }
+ * @param {Object} req.user                         - Authenticated user object.
  */
-const getPaginatedPricingRecordsController = wrapAsyncHandler(async (req, res) => {
-  const {
+const getPaginatedPricingSkusController = wrapAsyncHandler(async (req, res) => {
+  const { pricingGroupId }                          = req.params;
+  const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
+  const user = req.auth.user;
+  
+  const { data, pagination } = await fetchPaginatedPricingSkusService({
+    pricingGroupId,
+    filters,
     page,
     limit,
     sortBy,
     sortOrder,
-    keyword,
-    brand,
-    pricingType,
-    countryCode,
-    sizeLabel,
-    validFrom,
-    validTo,
-  } = req.query;
-
-  // Parse and normalize numeric values
-  const parsedPage = parseInt(page, 10) || 1;
-  const parsedLimit = parseInt(limit, 10) || 10;
-
-  // Build filters object
-  const filters = {
-    ...(brand && { brand }),
-    ...(pricingType && { pricingType }),
-    ...(countryCode && { countryCode }),
-    ...(sizeLabel && { sizeLabel }),
-    ...(validFrom && { validFrom }),
-    ...(validTo && { validTo }),
-  };
-
-  const pricingData = await fetchPaginatedPricingRecordsService({
-    page: parsedPage,
-    limit: parsedLimit,
-    sortBy,
-    sortOrder,
-    filters,
-    keyword,
+    user,
   });
-
-  return res.status(200).json({
-    success: true,
-    message: 'Pricing records fetched successfully.',
-    ...pricingData, // includes data and pagination
+  
+  res.status(200).json({
+    success:    true,
+    message:    'Pricing SKUs retrieved successfully.',
+    data,
+    pagination,
+    traceId:    req.traceId,
   });
 });
 
+// ─── Export ───────────────────────────────────────────────────────────────────
+
 /**
- * Controller to export pricing records.
- * Accepts optional filters and export format (default: csv).
+ * GET /pricing/export
+ * Exports all pricing records matching the given filters as CSV or XLSX.
  *
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
+ * @param {Object} req.normalizedQuery              - { filters }
+ * @param {string} req.query.exportFormat           - 'csv' | 'xlsx'
+ * @param {Object} req.user                         - Authenticated user object.
  */
 const exportPricingRecordsController = wrapAsyncHandler(async (req, res) => {
-  const { exportFormat, brand, pricingType, countryCode, sizeLabel } = req.query;
+  const { filters }      = req.normalizedQuery;
+  const { exportFormat } = req.query;
+  const user = req.auth.user;
   
-  const filters = {
-    ...(brand && { brand }),
-    ...(pricingType && { pricingType }),
-    ...(countryCode && { countryCode }),
-    ...(sizeLabel && { sizeLabel }),
-  };
-  
-  const exportRows = await exportPricingRecordsService(filters);
+  const exportRows = await exportPricingRecordsService({
+    filters,
+    user,
+  });
   
   const { fileBuffer, contentType, filename } = await exportData({
-    data: exportRows,
+    data:         exportRows,
     exportFormat,
-    filename: 'pricing_export',
-    title: 'Pricing Export',
+    filename:     'pricing_export',
+    title:        'Pricing Export',
   });
   
   res.setHeader('Content-Type', contentType);
@@ -88,37 +87,29 @@ const exportPricingRecordsController = wrapAsyncHandler(async (req, res) => {
   res.status(200).send(fileBuffer);
 });
 
+// ─── By SKU ───────────────────────────────────────────────────────────────────
+
 /**
- * Controller: Get pricing details by pricing type ID.
+ * GET /skus/:skuId/pricing
+ * Fetches all pricing groups a SKU belongs to.
  *
- * @description Fetches paginated pricing details including product, SKU, location, status, and audit metadata.
- *
- * @route GET /api/pricing-types/:id/details
- * @param {import('express').Request} req - Express request object.
- * @param {import('express').Response} res - Express response object.
- * @param {import('express').NextFunction} next - Express next middleware function.
- * @returns {Promise<void>} Responds with JSON including pricing detail records and pagination metadata.
+ * @param {string} req.params.skuId - UUID of the SKU.
  */
-const getPricingDetailsController = wrapAsyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const { page, limit } = req.query;
-
-  const { data, pagination } = await fetchPricingDetailsByPricingTypeId(
-    id,
-    page,
-    limit
-  );
-
-  return res.status(200).json({
+const getPricingBySkuIdController = wrapAsyncHandler(async (req, res) => {
+  const { skuId } = req.params;
+  
+  const data = await fetchPricingBySkuIdService(skuId);
+  
+  res.status(200).json({
     success: true,
-    message: 'Pricing details fetched successfully',
+    message: 'Pricing retrieved successfully.',
     data,
-    pagination,
+    traceId: req.traceId,
   });
 });
 
 module.exports = {
-  getPaginatedPricingRecordsController,
+  getPaginatedPricingSkusController,
   exportPricingRecordsController,
-  getPricingDetailsController,
+  getPricingBySkuIdController,
 };

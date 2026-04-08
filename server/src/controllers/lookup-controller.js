@@ -205,18 +205,19 @@ const getSkuLookupController = createLookupController({
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Pricing
+// Pricing Groups
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Pricing lookup.
- * Wrapped to pass displayOptions — showSku is derived from whether skuId filter
- * is present, and labelOnly is forwarded from options.
+ * Pricing group lookup.
  *
- * @route      GET /api/v1/lookups/pricing
- * @permission view_pricing_lookup
+ * Returns offset-paginated pricing groups for dropdown use.
+ * Scoped by filters — common use cases include filtering by pricingTypeId
+ * or skuId to populate dropdowns in order entry or SKU assignment forms.
+ *
+ * @route      GET /api/v1/lookups/pricing-groups
+ * @permission view_pricing_group_lookup
  */
-// todo: name and docstring
 const getPricingGroupLookupController = createLookupController({
   service: async (user, { filters, options, limit, offset }) => {
     return fetchPaginatedPricingGroupLookupService(user, {
@@ -229,7 +230,7 @@ const getPricingGroupLookupController = createLookupController({
       },
     });
   },
-  successMessage: 'Pricing lookup retrieved successfully.',
+  successMessage: 'Pricing group lookup retrieved successfully.',
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

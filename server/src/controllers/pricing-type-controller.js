@@ -1,103 +1,67 @@
+/**
+ * @file pricing-type-controller.js
+ * @description HTTP request handlers for pricing type records.
+ *
+ * Handles paginated pricing type list and single record retrieval.
+ * Controllers never log — traceId injection and error logging are owned by middleware.
+ *
+ * Exports:
+ *  - getPaginatedPricingTypesController — paginated pricing type list
+ *  - getPricingTypeByIdController       — single pricing type detail by ID
+ */
+
+'use strict';
+
 const { wrapAsyncHandler } = require('../middlewares/async-handler');
-const {
-  fetchAllPriceTypes,
-  fetchAvailablePricingTypesForDropdown,
-  fetchPricingTypeByIdWithMetadataService,
-} = require('../services/price-type-service');
-const { logInfo } = require('../utils/logging/logger-helper');
+const { fetchPaginatedPricingTypesService, fetchPricingTypeByIdService } = require('../services/pricing-type-service');
 
 /**
- * Controller: Handles GET request to fetch paginated pricing types with optional filters.
+ * GET /pricing-types
+ * Fetches a paginated list of pricing types.
  *
- * @route GET /api/v1/pricing-types
- * @access Protected
- *
- * @query {number} [page=1] - Page number for pagination
- * @query {number} [limit=10] - Page size
- * @query {string} [name] - Optional name/code search keyword
- * @query {string} [startDate] - Optional start date for status_date filter
- * @query {string} [endDate] - Optional end date for status_date filter
- * @param {object} req - Express request object
- * @param {object} res - Express response object
+ * @param {Object} req.normalizedQuery - { page, limit, sortBy, sortOrder, filters }
  */
-const getAllPriceTypesController = wrapAsyncHandler(async (req, res, next) => {
-  const { page = 1, limit = 10, name, startDate, endDate } = req.query;
-  const user = req.auth.user;
-
-  logInfo('Request received for fetching pricing types', req, {
-    context: 'pricing-type-controller',
+const getPaginatedPricingTypesController = wrapAsyncHandler(async (req, res) => {
+  const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
+  
+  const { data, pagination } = await fetchPaginatedPricingTypesService({
+    filters,
     page,
     limit,
-    userId: user?.id,
+    sortBy,
+    sortOrder,
+    user: req.auth.user,
   });
-
-  const { data, pagination } = await fetchAllPriceTypes({
-    page: Number(page),
-    limit: Number(limit),
-    name,
-    startDate,
-    endDate,
-    user,
-  });
-
-  // Call the service layer to fetch price types
+  
   res.status(200).json({
-    success: true,
-    message: 'Pricing types fetched successfully.',
+    success:    true,
+    message:    'Pricing types retrieved successfully.',
     data,
     pagination,
+    traceId:    req.traceId,
   });
 });
 
 /**
- * Controller to fetch pricing type metadata by ID.
+ * GET /pricing-types/:pricingTypeId
+ * Fetches a single pricing type by ID.
  *
- * @function
- * @name getPricingTypeMetadataController
- * @param {import('express').Request} req - Express request object, expects `req.params.id` (UUID of a pricing type).
- * @param {import('express').Response} res - Express response object used to send the metadata JSON.
- * @param {import('express').NextFunction} next - Express next middleware function for error handling.
- * @returns {void}
+ * @param {string} req.params.pricingTypeId - UUID of the pricing type.
  */
-const getPricingTypeMetadataController = wrapAsyncHandler(async (req, res, next) => {
-  const { id } = req.params;
-
-  logInfo('Handling request to fetch pricing type metadata', req, {
-    context: 'pricing-types-controller/getPricingTypeMetadataController',
-    pricingTypeId: id,
-  });
-
-  const pricingType = await fetchPricingTypeByIdWithMetadataService(id);
-
+const getPricingTypeByIdController = wrapAsyncHandler(async (req, res) => {
+  const { pricingTypeId } = req.params;
+  
+  const data = await fetchPricingTypeByIdService(pricingTypeId);
+  
   res.status(200).json({
     success: true,
-    message: 'Pricing type metadata fetched successfully.',
-    data: pricingType,
+    message: 'Pricing type retrieved successfully.',
+    data,
+    traceId: req.traceId,
   });
 });
 
-/**
- * Controller to handle fetching pricing types for dropdowns based on product ID.
- *
- * @param {Request} req - Express request object.
- * @param {Response} res - Express response object.
- * @param {NextFunction} next - Express next function.
- */
-const getPricingTypesForDropdownController = wrapAsyncHandler(
-  async (req, res, next) => {
-    try {
-      const { productId } = req.query; // Extract productId from query parameters
-      const pricingTypes =
-        await fetchAvailablePricingTypesForDropdown(productId); // Pass productId to the service
-      res.status(200).json(pricingTypes);
-    } catch (error) {
-      next(error); // Passes the error to global error handling middleware
-    }
-  }
-);
-
 module.exports = {
-  getAllPriceTypesController,
-  getPricingTypeMetadataController,
-  getPricingTypesForDropdownController,
+  getPaginatedPricingTypesController,
+  getPricingTypeByIdController,
 };

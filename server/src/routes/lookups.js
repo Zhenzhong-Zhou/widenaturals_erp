@@ -27,7 +27,7 @@ const {
   customerAddressLookupQuerySchema,
   orderTypeLookupQuerySchema,
   skuLookupQuerySchema,
-  pricingLookupQuerySchema,
+  pricingGroupLookupQuerySchema,
   packagingMaterialLookupQuerySchema,
   statusLookupQuerySchema,
   productLookupQuerySchema,
@@ -185,18 +185,17 @@ registerLookupRoute(router, {
 });
 
 /**
- * @route GET /lookups/pricing
- * @description Paginated pricing options for dropdowns and selectors.
- * Filters: keyword, skuId. Options: labelOnly (bool).
+ * @route GET /lookups/pricing-groups
+ * @description Offset-paginated pricing group options for dropdowns and selectors.
+ * Filters: pricingTypeId, skuId, countryCode, statusId.
  * Pagination: offset-based — dropdown navigates by raw offset.
  * @access protected
- * @permission PERMISSIONS.VIEW_PRICING
+ * @permission view_pricing
  */
-// todo: name and docstring
 registerLookupRoute(router, {
-  path:       '/pricing',
-  permission: [PERMISSIONS.VIEW_PRICING],
-  schema:     pricingLookupQuerySchema,
+  path:       '/pricing-groups',
+  permission: [PERMISSIONS.VIEW_PRICING_GROUP],
+  schema:     pricingGroupLookupQuerySchema,
   controller: getPricingGroupLookupController,
   config: {
     filterKeysOrSchema: ['keyword', 'skuId'],
