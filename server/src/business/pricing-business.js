@@ -54,112 +54,6 @@ const resolveFinalPrice = (submittedPrice, dbPrice) => {
 };
 
 /**
- * Resolves which pricing lookup visibility capabilities the requesting user holds.
- *
- * @param {AuthUser} user - Authenticated user making the request.
- * @returns {Promise<PricingLookupAcl>}
- * @throws {AppError} businessError if permission resolution fails.
- */
-const evaluatePricingLookupAccessControl = async (user) => {
-  const context = `${CONTEXT}/evaluatePricingLookupAccessControl`;
-  
-  try {
-    const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
-    return {
-      canViewAllStatuses:
-        isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_PRICING_STATES),
-      canViewAllValidLookups:
-        isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_VALID_PRICING),
-    };
-  } catch (err) {
-    logSystemException(
-      err,
-      'Failed to evaluate pricing lookup access control',
-      { context, userId: user?.id }
-    );
-    
-    throw AppError.businessError(
-      'Unable to evaluate user access control for pricing lookup.'
-    );
-  }
-};
-
-/**
- * Applies ACL-driven visibility rules to a pricing lookup filter object.
- *
- * Restricted users are pinned to the active status. Keyword searches are
- * restricted to currently valid pricing only for unpermitted users.
- *
- * @param {object} filters - Base filter object from the request.
- * @param {PricingLookupAcl} userAccess - Resolved ACL from `evaluatePricingLookupAccessControl`.
- * @param {string} activeStatusId - UUID of the active status record.
- * @returns {object} Adjusted copy of `filters` with visibility rules applied.
- */
-const enforcePricingLookupVisibilityRules = (
-  filters,
-  userAccess,
-  activeStatusId
-) => {
-  const adjusted = { ...filters };
-  
-  // Restrict keyword searches to currently valid pricing for unpermitted users.
-  if (filters.keyword?.trim().length > 0 && !userAccess.canViewAllValidLookups) {
-    adjusted._restrictKeywordToValidOnly = true;
-  }
-  
-  if (!userAccess.canViewAllStatuses && activeStatusId) {
-    adjusted.statusId = activeStatusId;
-  }
-  
-  return adjusted;
-};
-
-/**
- * Applies validity window and status filters to a pricing lookup query.
- *
- * Restricted users are limited to currently valid pricing records
- * (`valid_from <= now` and `valid_to >= now OR NULL`).
- *
- * @param {object} query - Raw query object from the request.
- * @param {PricingLookupAcl} userAccess - Resolved ACL from `evaluatePricingLookupAccessControl`.
- * @param {string} activeStatusId - UUID of the active status record.
- * @returns {object} Adjusted copy of `query` with access filters applied.
- */
-const filterPricingLookupQuery = (query, userAccess, activeStatusId) => {
-  const modifiedQuery = { ...query };
-  const now           = new Date().toISOString();
-  
-  if (!userAccess.canViewAllStatuses && activeStatusId) {
-    modifiedQuery.statusId = activeStatusId;
-  }
-  
-  if (!userAccess.canViewAllValidLookups) {
-    modifiedQuery.valid_from = { lte: now };
-    modifiedQuery.valid_to   = { gteOrNull: now };
-  }
-  
-  return modifiedQuery;
-};
-
-/**
- * Enriches a pricing lookup row with derived boolean flags.
- *
- * @param {object} row - Raw pricing row from the repository.
- * @param {string} activeStatusId - UUID of the active status record.
- * @returns {object & { isActive: boolean, isValidToday: boolean }}
- */
-const enrichPricingRow = (row, activeStatusId) => {
-  const now = new Date();
-  
-  return {
-    ...row,
-    isActive:     row.status_id === activeStatusId,
-    isValidToday: row.valid_from <= now && (!row.valid_to || row.valid_to >= now),
-  };
-};
-
-/**
  * Resolves which pricing detail viewing capabilities the requesting user holds.
  *
  * @param {AuthUser} user - Authenticated user making the request.
@@ -173,8 +67,6 @@ const evaluatePricingViewAccessControl = async (user) => {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
     
     return {
-      canViewPricing:
-        isRoot || permissions.includes(PERMISSIONS.VIEW_PRICING),
       canViewAllPricingTypes:
         isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_TYPES),
       canViewInactivePricing:
@@ -273,12 +165,85 @@ const slicePricingForUser = (pricingRows, access) => {
   return result;
 };
 
+/**
+ * Evaluates pricing SKU table visibility permissions for the given user.
+ *
+ * @param {Object} user - Authenticated user object.
+ * @returns {Promise<PricingAcl>}
+ * @throws {AppError} businessError if permission context cannot be resolved.
+ */
+const evaluatePricingVisibility = async (user) => {
+  const context = `${CONTEXT}/evaluatePricingVisibility`;
+  
+  try {
+    const { permissions, isRoot } = await resolveUserPermissionContext(user);
+    
+    const canViewAllPricingStates =
+      isRoot ||
+      permissions.includes(PERMISSIONS.VIEW_ALL_PRICING_STATES);
+    
+    const canViewAllValidPricing =
+      isRoot ||
+      permissions.includes(PERMISSIONS.VIEW_ALL_VALID_PRICING);
+    
+    const canViewInactive =
+      isRoot ||
+      permissions.includes(PERMISSIONS.VIEW_INACTIVE);
+    
+    const canViewHistory =
+      isRoot ||
+      permissions.includes(PERMISSIONS.VIEW_HISTORY);
+    
+    const canExportPricing =
+      isRoot ||
+      permissions.includes(PERMISSIONS.EXPORT_PRICING);
+    
+    return {
+      canViewAllPricingStates,
+      canViewAllValidPricing,
+      canViewInactive,
+      canViewHistory,
+      canExportPricing,
+    };
+  } catch (err) {
+    logSystemException(err, 'Failed to evaluate pricing visibility', {
+      context,
+      userId: user?.id,
+    });
+    throw AppError.businessError('Unable to evaluate pricing visibility.');
+  }
+};
+
+/**
+ * Applies pricing SKU table visibility rules to the filter set.
+ *
+ * - No view permission → fail closed via forceEmptyResult.
+ * - Injects server-side validity flags based on ACL.
+ *
+ * @param {Object}      filters - Raw filter object from the controller.
+ * @param {PricingAcl}  acl     - Resolved ACL from evaluatePricingVisibility.
+ * @returns {Object} Adjusted filters.
+ */
+const applyPricingVisibilityRules = (filters, acl) => {
+  const adjusted = { ...filters };
+  
+  // Restrict to currently valid pricing unless user can view all valid states.
+  if (!acl.canViewAllValidPricing) {
+    adjusted.currentlyValid = true;
+  }
+  
+  // Restrict to active status unless user can view inactive.
+  if (!acl.canViewInactive && !acl.canViewAllPricingStates) {
+    adjusted._restrictKeywordToValidOnly = true;
+  }
+  
+  return adjusted;
+};
+
 module.exports = {
   resolveFinalPrice,
-  evaluatePricingLookupAccessControl,
-  enforcePricingLookupVisibilityRules,
-  filterPricingLookupQuery,
-  enrichPricingRow,
   evaluatePricingViewAccessControl,
   slicePricingForUser,
+  evaluatePricingVisibility,
+  applyPricingVisibilityRules,
 };
