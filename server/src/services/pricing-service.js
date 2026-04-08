@@ -1,11 +1,15 @@
 /**
  * @file pricing-service.js
- * @description Business logic for pricing record retrieval and export.
+ * @description Service layer for pricing record retrieval and export.
+ *
+ * Orchestrates ACL evaluation, filter adjustment, repository calls,
+ * and result transformation. Contains no domain logic — business rules
+ * live in pricing-business.js.
  *
  * Exports:
- *   - fetchPaginatedPricingRecordsService  – paginated pricing list with filtering and sorting
- *   - exportPricingRecordsService          – full pricing export (up to 10,000 records)
- *   - fetchPricingDetailsByPricingTypeId   – paginated pricing details scoped to a pricing type
+ *  - fetchPaginatedPricingSkusService       — paginated SKU list for a pricing group
+ *  - exportPricingRecordsService            — full export with filters
+ *  - fetchPricingBySkuIdService             — all pricing groups a SKU belongs to
  *
  * Error handling follows a single-log principle — errors are not logged here.
  * They bubble up to globalErrorHandler, which logs once with the normalised shape.
@@ -16,171 +20,173 @@
 
 'use strict';
 
-const AppError                             = require('../utils/AppError');
-const { sanitizeSortBy }                   = require('../utils/query/sort-resolver');
+const AppError = require('../utils/AppError');
 const {
-  getPaginatedPricings,
   exportAllPricingRecords,
-  getPricingDetailsByPricingTypeId,
-}                                          = require('../repositories/pricing-repository');
+  getSkusByGroupId,
+  getPricingBySkuId,
+} = require('../repositories/pricing-repository');
 const {
-  transformPaginatedPricingResult,
-  transformExportPricingData,
-  transformPaginatedPricingDetailResult,
-}                                          = require('../transformers/pricing-transformer');
+  transformPricingSkuList,
+  transformPricingExport,
+  transformPricingBySku,
+} = require('../transformers/pricing-transformer');
+const {
+  evaluatePricingVisibility,
+  applyPricingVisibilityRules,
+} = require('../business/pricing-business');
 
 const CONTEXT = 'pricing-service';
 
+// ─── Paginated SKU List ───────────────────────────────────────────────────────
+
 /**
- * Fetches paginated pricing records with optional filtering and sorting.
+ * Fetches a paginated list of SKUs assigned to a pricing group.
  *
- * Input validation is performed before the try/catch — guards are not
- * error handling, they are pre-conditions.
+ * Resolves ACL, applies visibility rules, queries the repository,
+ * and transforms the result for UI consumption.
  *
- * @param {Object}        options
- * @param {number}        [options.page=1]          - Page number (1-based).
- * @param {number}        [options.limit=10]        - Records per page.
- * @param {string}        [options.sortBy='brand']  - Sort field key.
- * @param {'ASC'|'DESC'}  [options.sortOrder='ASC'] - Sort direction.
- * @param {Object}        [options.filters={}]      - Field filters.
- * @param {string|null}   [options.keyword]         - Optional keyword search.
- *
- * @returns {Promise<PaginatedResult<Object>>}
- *
- * @throws {AppError} `validationError`  – invalid page, limit, or date range.
- * @throws {AppError} Re-throws all other AppErrors from lower layers unchanged.
- * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
+ * @param {Object}       options
+ * @param {string}       options.pricingGroupId      - UUID of the pricing group.
+ * @param {Object}       [options.filters={}]        - Field filters.
+ * @param {number}       [options.page=1]            - Page number (1-based).
+ * @param {number}       [options.limit=20]          - Page size.
+ * @param {string}       [options.sortBy='productName'] - Sort key.
+ * @param {'ASC'|'DESC'} [options.sortOrder='ASC']   - Sort direction.
+ * @param {Object}       options.user                - Authenticated user object.
+ * @returns {Promise<PaginatedResult>}
+ * @throws {AppError} serviceError if an unexpected error occurs.
  */
-const fetchPaginatedPricingRecordsService = async ({
-                                                     page      = 1,
-                                                     limit     = 10,
-                                                     sortBy    = 'brand',
-                                                     sortOrder = 'ASC',
-                                                     filters   = {},
-                                                     keyword,
-                                                   }) => {
-  const context = `${CONTEXT}/fetchPaginatedPricingRecordsService`;
-  
-  if (!Number.isInteger(page) || page < 1) {
-    throw AppError.validationError('Invalid page number. Must be a positive integer.');
-  }
-  
-  if (!Number.isInteger(limit) || limit < 1) {
-    throw AppError.validationError('Invalid limit. Must be a positive integer.');
-  }
-  
-  if ((filters.validFrom && !filters.validTo) || (!filters.validFrom && filters.validTo)) {
-    throw AppError.validationError(
-      'Both validFrom and validTo must be provided together for date filtering.'
-    );
-  }
+const fetchPaginatedPricingSkusService = async ({
+                                                  pricingGroupId,
+                                                  filters   = {},
+                                                  page      = 1,
+                                                  limit     = 20,
+                                                  sortBy    = 'productName',
+                                                  sortOrder = 'ASC',
+                                                  user,
+                                                }) => {
+  const context = `${CONTEXT}/fetchPaginatedPricingSkusService`;
   
   try {
-    const sanitizedSortBy    = sanitizeSortBy(sortBy, 'pricingSortMap');
-    const resolvedSortOrder  = sortOrder?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+    // 1. Resolve visibility access control scope.
+    const acl = await evaluatePricingVisibility(user);
     
-    const rawResult = await getPaginatedPricings({
-      page,
-      limit,
-      sortBy:    sanitizedSortBy,
-      sortOrder: resolvedSortOrder,
-      filters,
-      keyword,
-    });
+    // 2. Apply visibility rules to filters (CRITICAL — must run before query).
+    const adjustedFilters = applyPricingVisibilityRules(filters, acl);
     
-    // Return standard empty shape — no special success/message fields.
-    if (!rawResult || !rawResult.data || rawResult.data.length === 0) {
-      return {
-        data:       [],
-        pagination: { page, limit, totalRecords: 0, totalPages: 0 },
-      };
+    // 3. Return empty shape immediately — no permission to view.
+    if (adjustedFilters.forceEmptyResult) {
+      return { data: [], pagination: { page, limit, totalRecords: 0, totalPages: 0 } };
     }
     
-    return transformPaginatedPricingResult(rawResult);
+    // 4. Query raw paginated rows.
+    const rawResult = await getSkusByGroupId({
+      pricingGroupId,
+      filters: adjustedFilters,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
+    
+    // 5. Return empty shape immediately — no records to process.
+    if (!rawResult || rawResult.data.length === 0) {
+      return { data: [], pagination: { page, limit, totalRecords: 0, totalPages: 0 } };
+    }
+    
+    // 6. Transform for UI consumption.
+    return transformPricingSkuList(rawResult);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
-    throw AppError.serviceError('Unable to fetch pricing records.', {
-      meta: { error: error.message, context },
+    throw AppError.serviceError('Unable to retrieve pricing SKUs.', {
+      context,
+      meta: { error: error.message },
     });
   }
 };
 
+// ─── Export ───────────────────────────────────────────────────────────────────
+
 /**
- * Exports all pricing records up to a hard limit of 10,000 rows.
+ * Exports all pricing records matching the given filters.
  *
- * @param {Object} [filters={}] - Field filters to apply.
+ * Requires explicit export permission — throws authorizationError if not granted.
+ * Returns an empty array if no records match.
  *
- * @returns {Promise<Array<Object>>} Flat export-friendly rows, or empty array if none found.
- *
- * @throws {AppError} Re-throws AppErrors from lower layers unchanged.
- * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
+ * @param {Object} options
+ * @param {Object} [options.filters={}] - Field filters.
+ * @param {Object} options.user         - Authenticated user object.
+ * @returns {Promise<Array<Object>>} Transformed export rows.
+ * @throws {AppError} authorizationError if user lacks export permission.
+ * @throws {AppError} serviceError if an unexpected error occurs.
  */
-const exportPricingRecordsService = async (filters = {}) => {
+const exportPricingRecordsService = async ({
+                                             filters = {},
+                                             user,
+                                           }) => {
   const context = `${CONTEXT}/exportPricingRecordsService`;
   
   try {
-    const rows = await exportAllPricingRecords({
-      page:      1,
-      limit:     10000,
-      sortBy:    'brand',
-      sortOrder: 'ASC',
-      filters,
-    });
+    // 1. Resolve visibility access control scope.
+    const acl = await evaluatePricingVisibility(user);
     
-    if (!rows.length) return [];
+    // 2. Check export permission explicitly.
+    if (!acl.canExportPricing) {
+      throw AppError.authorizationError(
+        'You do not have permission to export pricing.', { context }
+      );
+    }
     
-    return transformExportPricingData(rows);
+    // 3. Apply visibility rules to filters.
+    const adjustedFilters = applyPricingVisibilityRules(filters, acl);
+    
+    // 4. Query all matching rows — no pagination.
+    const rows = await exportAllPricingRecords({ filters: adjustedFilters });
+    
+    // 5. Return empty array immediately — no records to process.
+    if (!rows || rows.length === 0) return [];
+    
+    // 6. Transform for export consumption.
+    return transformPricingExport(rows);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
     throw AppError.serviceError('Unable to export pricing records.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message },
     });
   }
 };
 
+// ─── By SKU ───────────────────────────────────────────────────────────────────
+
 /**
- * Fetches paginated pricing details scoped to a pricing type.
+ * Fetches all pricing groups a SKU belongs to.
  *
- * @param {string} pricingTypeId - UUID of the pricing type to scope results.
- * @param {number} page          - Page number (1-based).
- * @param {number} limit         - Records per page.
+ * Returns an empty array if the SKU has no pricing assignments.
+ * No ACL check — callers are expected to gate access at the controller level.
  *
- * @returns {Promise<PaginatedResult<Object>|[]>} Transformed detail records, or empty array if none found.
- *
- * @throws {AppError} `validationError`  – missing pricing type ID or invalid page/limit.
- * @throws {AppError} Re-throws all other AppErrors from lower layers unchanged.
- * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
+ * @param {string} skuId - UUID of the SKU.
+ * @returns {Promise<Array<Object>>} Transformed pricing rows.
+ * @throws {AppError} serviceError if an unexpected error occurs.
  */
-const fetchPricingDetailsByPricingTypeId = async (pricingTypeId, page, limit) => {
-  const context = `${CONTEXT}/fetchPricingDetailsByPricingTypeId`;
-  
-  if (!pricingTypeId) {
-    throw AppError.validationError('Pricing type ID is required.');
-  }
-  
-  if (page < 1 || limit < 1) {
-    throw AppError.validationError('Page and limit must be positive integers.');
-  }
+const fetchPricingBySkuIdService = async (skuId) => {
+  const context = `${CONTEXT}/fetchPricingBySkuIdService`;
   
   try {
-    const pricingRawData = await getPricingDetailsByPricingTypeId({ pricingTypeId, page, limit });
-    
-    if (pricingRawData.data.length === 0) return [];
-    
-    return transformPaginatedPricingDetailResult(pricingRawData);
+    const rows = await getPricingBySkuId(skuId);
+    return transformPricingBySku(rows);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    
-    throw AppError.serviceError('Unable to fetch pricing details.', {
-      meta: { error: error.message, context },
+    throw AppError.serviceError('Unable to retrieve pricing for SKU.', {
+      context,
+      meta: { error: error.message },
     });
   }
 };
 
 module.exports = {
-  fetchPaginatedPricingRecordsService,
+  fetchPaginatedPricingSkusService,
   exportPricingRecordsService,
-  fetchPricingDetailsByPricingTypeId,
+  fetchPricingBySkuIdService,
 };

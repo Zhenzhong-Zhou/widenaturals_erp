@@ -109,7 +109,8 @@ const fetchPaginatedProductBatchesService = async ({
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to retrieve product batches.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message },
     });
   }
 };
@@ -199,7 +200,8 @@ const createProductBatchesService = async (productBatches, user) => {
       if (error instanceof AppError) throw error;
       
       throw AppError.serviceError('Unable to create product batches.', {
-        meta: { error: error.message, context },
+        context,
+        meta: { error: error.message },
       });
     }
   });
@@ -252,7 +254,8 @@ const editProductBatchMetadataService = async (batchId, updates, user, contextOv
       if (error instanceof AppError) throw error;
       
       throw AppError.serviceError('Unable to update product batch metadata.', {
-        meta: { error: error.message, context },
+        context,
+        meta: { error: error.message },
       });
     }
   });
@@ -344,7 +347,8 @@ const fetchProductBatchDetailsService = async (batchId) => {
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch product batch details.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message },
     });
   }
 };

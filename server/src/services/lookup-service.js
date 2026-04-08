@@ -30,7 +30,7 @@ const {
   transformTaxRatePaginatedLookupResult,
   transformDeliveryMethodPaginatedLookupResult,
   transformSkuPaginatedLookupResult,
-  transformPricingPaginatedLookupResult,
+  transformPricingGroupPaginatedLookupResult,
   transformPackagingMaterialPaginatedLookupResult,
   transformSkuCodeBasePaginatedLookupResult,
   transformProductPaginatedLookupResult,
@@ -99,12 +99,12 @@ const {
 }                                          = require('../business/sku-business');
 const { getSkuLookup }                     = require('../repositories/sku-repository');
 const {
-  evaluatePricingLookupAccessControl,
-  enforcePricingLookupVisibilityRules,
-  filterPricingLookupQuery,
-  enrichPricingRow,
-}                                          = require('../business/pricing-business');
-const { getPricingGroupLookup }            = require('../repositories/pricing-group-repository');
+  evaluatePricingGroupLookupVisibility,
+  applyPricingGroupLookupVisibilityRules,
+  buildPricingGroupLookupQueryFilters,
+  enrichPricingGroupRow
+}                                          = require('../business/pricing-group-business');
+const { getPaginatedPricingGroupLookup }   = require('../repositories/pricing-group-repository');
 const {
   evaluatePackagingMaterialLookupAccessControl,
   enforcePackagingMaterialVisibilityRules,
@@ -192,7 +192,8 @@ const fetchBatchRegistryLookupService = async ({ filters = {}, limit, offset = 0
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch batch registry lookup list.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message },
     });
   }
 };
@@ -214,7 +215,8 @@ const fetchWarehouseLookupService = async (user, { filters = {} } = {}) => {
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch warehouse lookup list.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message },
     });
   }
 };
@@ -238,7 +240,8 @@ const fetchLotAdjustmentLookupService = async (user, filters = {}) => {
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch lot adjustment lookup options.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message },
     });
   }
 };
@@ -267,7 +270,8 @@ const fetchCustomerLookupService = async (user, { filters = {}, limit = 50, offs
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch customer lookup list.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message },
     });
   }
 };
@@ -298,7 +302,8 @@ const fetchCustomerAddressLookupService = async (customerId) => {
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch customer address lookup data.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message },
     });
   }
 };
@@ -325,7 +330,8 @@ const fetchOrderTypeLookupService = async (user, { filters = {}, limit = 50, off
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch order type lookup options.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message },
     });
   }
 };
@@ -352,7 +358,8 @@ const fetchPaginatedPaymentMethodLookupService = async (user, { filters = {}, li
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch payment method lookup options.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message },
     });
   }
 };
@@ -382,7 +389,8 @@ const fetchPaginatedDiscountLookupService = async (user, { filters = {}, limit =
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch discount lookup options.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message },
     });
   }
 };
@@ -410,7 +418,8 @@ const fetchPaginatedTaxRateLookupService = async (user, { filters = {}, limit = 
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch tax rate lookup options.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message },
     });
   }
 };
@@ -438,7 +447,8 @@ const fetchPaginatedDeliveryMethodLookupService = async (user, { filters = {}, l
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch delivery method lookup options.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message },
     });
   }
 };
@@ -494,14 +504,14 @@ const fetchPaginatedSkuLookupService = async (
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch SKU lookup options.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message },
     });
   }
 };
 
 // ---------------------------------------------------------------------------
 
-// todo: name and docstring
 const fetchPaginatedPricingGroupLookupService = async (
   user,
   { filters = {}, limit = 50, offset = 0, displayOptions = {} }
@@ -510,19 +520,19 @@ const fetchPaginatedPricingGroupLookupService = async (
   
   try {
     const activeStatusId  = getStatusId('pricing_active');
-    const userAccess      = await evaluatePricingLookupAccessControl(user);
-    const adjustedFilters = enforcePricingLookupVisibilityRules(filters, userAccess, activeStatusId);
-    const queryFilters    = filterPricingLookupQuery(adjustedFilters, userAccess, activeStatusId);
+    const userAccess      = await evaluatePricingGroupLookupVisibility(user);
+    const adjustedFilters = applyPricingGroupLookupVisibilityRules(filters, userAccess, activeStatusId);
+    const queryFilters    = buildPricingGroupLookupQueryFilters(adjustedFilters, userAccess, activeStatusId);
     
-    const { data = [], pagination = {} } = await getPricingGroupLookup({
+    const { data = [], pagination = {} } = await getPaginatedPricingGroupLookup({
       filters: queryFilters,
       limit,
       offset,
     });
     
-    const enrichedRows = data.map((row) => enrichPricingRow(row, activeStatusId));
+    const enrichedRows = data.map((row) => enrichPricingGroupRow(row, activeStatusId));
     
-    return transformPricingPaginatedLookupResult(
+    return transformPricingGroupPaginatedLookupResult(
       { data: enrichedRows, pagination },
       userAccess,
       displayOptions
@@ -530,8 +540,9 @@ const fetchPaginatedPricingGroupLookupService = async (
   } catch (error) {
     if (error instanceof AppError) throw error;
     
-    throw AppError.serviceError('Unable to fetch pricing lookup options.', {
-      meta: { error: error.message, context },
+    throw AppError.serviceError('Unable to fetch pricing group lookup options.', {
+      context,
+      meta: { error: error.message },
     });
   }
 };
@@ -577,7 +588,8 @@ const fetchPaginatedPackagingMaterialLookupService = async (
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch packaging material lookup options.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message },
     });
   }
 };
@@ -605,7 +617,8 @@ const fetchSkuCodeBaseLookupService = async (user, { filters = {}, limit = 50, o
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch SKU code base lookup list.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message },
     });
   }
 };
@@ -633,7 +646,8 @@ const fetchProductLookupService = async (user, { filters = {}, limit = 50, offse
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch product lookup list.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message },
     });
   }
 };
@@ -660,7 +674,8 @@ const fetchStatusLookupService = async (user, { filters = {}, limit = 50, offset
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch status lookup list.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message },
     });
   }
 };
@@ -693,7 +708,8 @@ const fetchUserLookupService = async (user, { filters = {}, limit = 50, offset =
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch user lookup list.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message },
     });
   }
 };
@@ -721,7 +737,8 @@ const fetchRoleLookupService = async (user, { filters = {}, limit = 50, offset =
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch role lookup list.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message },
     });
   }
 };
@@ -758,7 +775,8 @@ const fetchManufacturerLookupService = async (user, { filters = {}, limit = 50, 
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch manufacturer lookup list.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message },
     });
   }
 };
@@ -795,7 +813,8 @@ const fetchSupplierLookupService = async (user, { filters = {}, limit = 50, offs
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch supplier lookup list.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message },
     });
   }
 };
@@ -832,7 +851,8 @@ const fetchLocationTypeLookupService = async (user, { filters = {}, limit = 50, 
     if (error instanceof AppError) throw error;
     
     throw AppError.serviceError('Unable to fetch location type lookup list.', {
-      meta: { error: error.message, context },
+      context,
+      meta: { error: error.message },
     });
   }
 };
