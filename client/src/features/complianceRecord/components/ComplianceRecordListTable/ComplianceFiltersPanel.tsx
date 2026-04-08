@@ -91,20 +91,20 @@ interface ComplianceDateField {
 // ---------------------------------------
 const COMPLIANCE_DATE_FIELDS: ComplianceDateField[] = [
   // Issued date
-  { name: 'dateRanges.issued.from', label: 'Issued Date ≥' },
-  { name: 'dateRanges.issued.to', label: 'Issued Date <' },
+  { name: 'dateRanges.issuedAfter', label: 'Issued Date ≥' },
+  { name: 'dateRanges.issuedBefore', label: 'Issued Date <' },
+  
+  // Expiry date
+  { name: 'dateRanges.expiry.expiringAfter', label: 'Expiry Date ≥' },
+  { name: 'dateRanges.expiry.expiringBefore', label: 'Expiry Date <' },
 
   // Created date
-  { name: 'dateRanges.created.from', label: 'Created Date ≥' },
-  { name: 'dateRanges.created.to', label: 'Created Date <' },
+  { name: 'dateRanges.createdAfter', label: 'Created Date ≥' },
+  { name: 'dateRanges.createdBefore', label: 'Created Date <' },
 
   // Updated date
-  { name: 'dateRanges.updated.from', label: 'Updated Date ≥' },
-  { name: 'dateRanges.updated.to', label: 'Updated Date <' },
-
-  // Expiry date
-  { name: 'dateRanges.expiry.from', label: 'Expiry Date ≥' },
-  { name: 'dateRanges.expiry.to', label: 'Expiry Date <' },
+  { name: 'dateRanges.updatedAfter', label: 'Updated Date ≥' },
+  { name: 'dateRanges.updatedBefore', label: 'Updated Date <' },
 ];
 
 /**

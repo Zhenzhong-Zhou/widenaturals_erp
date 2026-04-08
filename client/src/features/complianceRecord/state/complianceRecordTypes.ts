@@ -1,5 +1,6 @@
-import type {
-  DateRange,
+import {
+  CreatedUpdatedDateFilter,
+  ExpiryDateRanges,
   GenericAudit,
   GenericStatus,
   PaginatedResponse,
@@ -113,18 +114,15 @@ export type PaginatedComplianceListResponse =
  *
  * Each field represents an optional inclusive date range.
  */
-export interface ComplianceDateRanges {
-  /** Filter by record creation date */
-  created?: DateRange;
-
-  /** Filter by last update date */
-  updated?: DateRange;
-
-  /** Filter by issued date */
-  issued?: DateRange;
-
+export interface ComplianceDateRanges extends CreatedUpdatedDateFilter {
+  /** Include records created on or after this ISO timestamp (>= condition) */
+  issuedAfter?: string;
+  
+  /** Include records created on or before this ISO timestamp (<= condition) */
+  issuedBefore?: string;
+  
   /** Filter by expiry date */
-  expiry?: DateRange;
+  expiry?: ExpiryDateRanges;
 }
 
 /**
