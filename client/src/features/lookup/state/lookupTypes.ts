@@ -1,6 +1,4 @@
 import type {
-  // todo:
-  // ApiSuccessResponse,
   AsyncState,
   LookupSuccessResponse,
   PaginatedLookupState,
@@ -178,9 +176,9 @@ export interface WarehouseLookupItem extends LookupOption {
     locationTypeId: string;
   };
 }
-// todo:
-// export type GetWarehouseLookupResponse =
-//   LookupSuccessResponse<WarehouseLookupItem>;
+
+export type GetWarehouseLookupResponse =
+  LookupSuccessResponse<WarehouseLookupItem>;
 
 export type WarehouseLookupState = AsyncState<WarehouseLookupItem[]>;
 
@@ -204,10 +202,9 @@ export interface LotAdjustmentTypeLookupItem extends LookupOption {
 /**
  * Typed API response for fetching lot adjustment lookup options.
  */
-// todo:
-// export type LotAdjustmentTypeLookupResponse = LookupSuccessResponse<
-//   LotAdjustmentTypeLookupItem
-// >;
+export type LotAdjustmentTypeLookupResponse = LookupSuccessResponse<
+  LotAdjustmentTypeLookupItem
+>;
 
 export type LotAdjustmentTypeLookupState = AsyncState<
   LotAdjustmentTypeLookupItem[]
@@ -275,9 +272,9 @@ export interface AddressByCustomerLookup {
  * API response containing a list of address lookup entries for a specific customer.
  * Used in endpoints like GET /addresses/by-customer.
  */
-// todo:
-// export type AddressByCustomerLookupResponse =
-//   LookupSuccessResponse<AddressByCustomerLookup>;
+
+export type AddressByCustomerLookupResponse =
+  LookupSuccessResponse<AddressByCustomerLookup>;
 
 /**
  * Redux state for managing address lookup results by customer ID.
