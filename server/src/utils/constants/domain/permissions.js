@@ -32,10 +32,15 @@ const PERMISSIONS = {
     VIEW: 'view_pricing_types',
     VIEW_PRICING_TYPES_DETAILS: 'view_pricing_type_details',
   },
+  PRICING_GROUPS: {
+    VIEW: 'view_pricing_groups',
+    VIEW_DETAILS: 'view_pricing_group_details',
+    VIEW_SKUS: 'view_pricing_group_skus',
+  },
   PRICING: {
-    VIEW: 'view_prices',
-    EXPORT_DATA: 'export_prices',
-    VIEW_DETAILS: 'view_price_details',
+    VIEW: 'view_pricing',
+    EXPORT_DATA: 'export_pricing',
+    VIEW_DETAILS: 'view_pricing_details',
   },
   COMPLIANCE_RECORDS: {
     VIEW_LIST: 'view_compliance_records',

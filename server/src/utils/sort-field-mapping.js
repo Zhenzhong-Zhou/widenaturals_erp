@@ -438,19 +438,67 @@ const SORTABLE_FIELDS = {
     // Default fallback
     defaultNaturalSort: 'w.created_at',
   },
-  pricingSortMap: {
+  pricingTypeSortMap: {
+    // Pricing type fields (FROM pricing_types pt)
+    pricingTypeName: 'pt.name',
+    pricingTypeCode: 'pt.code',
+    pricingTypeSlug: 'pt.slug',
+    statusDate:      'pt.status_date',
+    createdAt:       'pt.created_at',
+    updatedAt:       'pt.updated_at',
+    
+    // Status (FROM status s)
+    statusName: 's.name',
+    
+    // Default fallback
+    defaultNaturalSort: 'pt.created_at',
+  },
+  pricingSkuListSortMap: {
+    // Product-level fields (FROM products pr)
     productName: 'pr.name',
-    brand: 'pr.brand',
-    category: 'pr.category',
-    sku: 's.sku',
-    countryCode: 's.country_code',
-    sizeLabel: 's.size_label',
-    pricingType: 'pt.name',
-    marketRegion: 's.market_region',
-    price: 'p.price',
-    validFrom: 'p.valid_from',
-    validTo: 'p.valid_to',
-    defaultNaturalSort: 'pt.name',
+    brand:       'pr.brand',
+    category:    'pr.category',
+    
+    // SKU-level fields (FROM skus s)
+    sku:            's.sku',
+    barcode:        's.barcode',
+    sizeLabel:      's.size_label',
+    skuCountryCode: 's.country_code',
+    
+    // Pricing group-level fields (FROM pricing_groups pg)
+    price:       'pg.price',
+    countryCode: 'pg.country_code',
+    validFrom:   'pg.valid_from',
+    validTo:     'pg.valid_to',
+    
+    // Status (FROM status st)
+    statusName: 'st.name',
+    
+    // Default fallback
+    defaultNaturalSort: 'pg.valid_from',
+  },
+  pricingGroupListSortMap: {
+    // Pricing type fields (FROM pricing_types pt)
+    pricingTypeName: 'pt.name',
+    pricingTypeCode: 'pt.code',
+    
+    // Pricing group fields (FROM pricing_groups pg)
+    countryCode: 'pg.country_code',
+    price:       'pg.price',
+    validFrom:   'pg.valid_from',
+    
+    // Status (FROM status st)
+    statusName: 'st.name',
+    
+    // Counts
+    skuCount:     'sku_count',
+    productCount: 'product_count',
+    
+    // Audit
+    updatedAt: 'pg.updated_at',
+    
+    // Default fallback
+    defaultNaturalSort: 'pg.valid_from',
   },
   locationInventorySummarySortMap: {
     lotNumber: `
