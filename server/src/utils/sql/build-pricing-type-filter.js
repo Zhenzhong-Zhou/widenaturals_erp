@@ -10,27 +10,38 @@
 
 'use strict';
 
+const {
+  normalizeDateRangeFilters,
+  applyDateRangeConditions,
+} = require('./date-range-utils');
+const { applyAuditConditions } = require('./build-audit-filter');
+
 /**
  * Builds a parameterised SQL WHERE clause for pricing type queries.
+ *
+ * Column anchor: pt. — pricing_types
  *
  * `canViewAllStatuses` controls whether the status filter is enforced:
  *  - false (default) → statusId is always applied
  *  - true + no statusId → no status condition applied
  *  - true + statusId → statusId is still applied
  *
- * startDate/endDate apply a BETWEEN range on pt.status_date.
- *
  * @param {Object}  [filters={}]
- * @param {string}  [filters.statusId]              - Filter by status UUID.
- * @param {boolean} [filters.canViewAllStatuses]    - If true, status filter is optional.
- * @param {string}  [filters.search]                - ILIKE search across name and code.
- * @param {string}  [filters.startDate]             - Lower bound for status_date (BETWEEN).
- * @param {string}  [filters.endDate]               - Upper bound for status_date (BETWEEN).
- *
+ * @param {string}  [filters.statusId]           - Filter by status UUID.
+ * @param {boolean} [filters.canViewAllStatuses] - If true, status filter is optional.
+ * @param {string}  [filters.search]             - ILIKE search across name and code.
+ * @param {string}  [filters.createdAfter]       - Lower bound for created_at (inclusive, UTC).
+ * @param {string}  [filters.createdBefore]      - Upper bound for created_at (exclusive, UTC).
+ * @param {string}  [filters.createdBy]          - Filter by creator UUID.
+ * @param {string}  [filters.updatedBy]          - Filter by updater UUID.
  * @returns {{ whereClause: string, params: Array }}
  */
 const buildPricingTypeFilter = (filters = {}) => {
-  const conditions    = [];
+  const normalizedFilters = normalizeDateRangeFilters(
+    filters, 'createdAfter', 'createdBefore'
+  );
+  
+  const conditions    = ['1=1'];
   const params        = [];
   const paramIndexRef = { value: 1 };
   
@@ -38,44 +49,42 @@ const buildPricingTypeFilter = (filters = {}) => {
     statusId,
     canViewAllStatuses = false,
     search,
-    startDate,
-    endDate,
-  } = filters;
+  } = normalizedFilters;
   
-  // ─── Status ──────────────────────────────────────────────────────────────────
+  // ─── Status ────────────────────────────────────────────────────────────────
   
-  // Apply status filter when: caller cannot view all statuses, OR
-  // caller can but has also specified an explicit statusId.
   if (!canViewAllStatuses || (canViewAllStatuses && statusId)) {
-    conditions.push(`pt.status_id = $${paramIndexRef.value}`);
+    conditions.push(`pt.status_id = $${paramIndexRef.value++}`);
     params.push(statusId);
-    paramIndexRef.value++;
   }
   
-  // ─── Search ──────────────────────────────────────────────────────────────────
+  // ─── Search ────────────────────────────────────────────────────────────────
   
   // Same $N referenced twice — single param covers both columns.
-  // LOWER() applied for case-insensitive matching without ILIKE.
   if (search) {
-    conditions.push(
-      `(LOWER(pt.name) ILIKE $${paramIndexRef.value} OR LOWER(pt.code) ILIKE $${paramIndexRef.value})`
-    );
-    params.push(`%${search.toLowerCase()}%`);
+    conditions.push(`(
+      pt.name ILIKE $${paramIndexRef.value} OR
+      pt.code ILIKE $${paramIndexRef.value}
+    )`);
+    params.push(`%${String(search).trim()}%`);
     paramIndexRef.value++;
   }
   
-  // ─── Status Date Range ───────────────────────────────────────────────────────
+  // ─── Audit ─────────────────────────────────────────────────────────────────
   
-  if (startDate && endDate) {
-    conditions.push(
-      `pt.status_date BETWEEN $${paramIndexRef.value} AND $${paramIndexRef.value + 1}`
-    );
-    params.push(startDate, endDate);
-    paramIndexRef.value += 2;
-  }
+  applyDateRangeConditions({
+    conditions,
+    params,
+    column:        'pt.created_at',
+    after:         normalizedFilters.createdAfter,
+    before:        normalizedFilters.createdBefore,
+    paramIndexRef,
+  });
+  
+  applyAuditConditions(conditions, params, paramIndexRef, normalizedFilters, 'pt');
   
   return {
-    whereClause: conditions.length > 0 ? conditions.join(' AND ') : '1=1',
+    whereClause: conditions.join(' AND '),
     params,
   };
 };
