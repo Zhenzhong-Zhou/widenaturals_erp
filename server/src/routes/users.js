@@ -1,22 +1,26 @@
 /**
  * @file users.js
- * @description Routes related to user operations.
+ * @description User creation, profile, permission, and paginated query routes.
+ *
+ * All routes are protected and require explicit permission checks via `authorize`
+ * or `authorizeAny`. Query normalization is handled by `createQueryNormalizationMiddleware`.
  */
 
-const express = require('express');
-const { authorize, authorizeAny } = require('../middlewares/authorize');
-const PERMISSIONS = require('../utils/constants/domain/permissions');
-const { createUserProfileRateLimiter } = require('../middlewares/rate-limiter');
-const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
+'use strict';
+
+const express                            = require('express');
+const { authorize, authorizeAny }        = require('../middlewares/authorize');
+const { createUserProfileRateLimiter }   = require('../middlewares/rate-limiter');
+const validate                           = require('../middlewares/validate');
+const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
+const PERMISSIONS                        = require('../utils/constants/domain/permissions');
 const {
   userQuerySchema,
   userIdParamSchema,
   createUserSchema,
 } = require('../validators/user-validators');
-const validate = require('../middlewares/validate');
-const { sanitizeFields } = require('../middlewares/sanitize');
 const {
-  getPermissions,
+  getUserPermissionsController,
   getPaginatedUsersController,
   getUserProfileController,
   createUserController,
@@ -25,133 +29,53 @@ const {
 const router = express.Router();
 
 /**
- * POST /users
- *
- * Create a new user profile.
- *
- * Responsibilities by layer:
- *
- * - **Route Middleware**:
- *   - Enforces module-level access control (`USERS.CREATE_USER`)
- *   - Applies rate limiting to protect against abuse
- *   - Validates request body shape and primitive constraints
- *   - Rejects unknown or malformed fields
- *
- * - **Controller**:
- *   - Validates authenticated actor presence
- *   - Coordinates logging and request lifecycle
- *   - Delegates all authorization, role semantics, and persistence
- *     to the service layer
- *
- * - **Service / Business Layer**:
- *   - Enforces ACL and role-creation rules
- *   - Validates role activity and hierarchy
- *   - Hashes credentials
- *   - Executes transactional inserts
- *   - Emits audit and system logs
- *
- * This route does NOT:
- * - Enforce role hierarchy or system-user rules
- * - Perform password hashing
- * - Perform database operations
+ * @route POST /users
+ * @description Create a new user account. Rate-limited to prevent automated
+ * account creation. Strict body validation — no unknown fields permitted.
+ * @access protected
+ * @permission USERS.CREATE_USER
  */
 router.post(
   '/',
   authorize([PERMISSIONS.USERS.CREATE_USER]),
   createUserProfileRateLimiter(),
   validate(createUserSchema, 'body', {
-    allowUnknown: false,
+    allowUnknown: false, // strict — no unknown fields permitted on user creation
   }),
   createUserController
 );
 
 /**
- * GET /users
- *
- * Fetch a paginated list of users with optional filtering, sorting,
- * and UI presentation control (list or card view).
- *
- * Responsibilities by layer:
- *
- * - **Route Middleware**:
- *   - Enforces module-level access control (`USERS.VIEW_USERS`)
- *   - Ensures the requester has permission for at least one supported view
- *     (`USERS.VIEW_LIST` or `USERS.VIEW_CARD`)
- *   - Normalizes query parameters (pagination, sorting, filters, options)
- *   - Sanitizes free-text inputs
- *   - Validates query shape and types (schema-level only)
- *
- * - **Controller**:
- *   - Enforces view-mode–specific permissions (`VIEW_LIST` vs `VIEW_CARD`)
- *   - Validates supported `viewMode` values
- *   - Coordinates logging, tracing, and request lifecycle
- *   - Delegates pagination, visibility, and data shaping to the service layer
- *
- * - **Service / Business Layer**:
- *   - Applies user visibility rules (system users, root users, status)
- *   - Executes paginated queries
- *   - Shapes response data according to the requested view mode
- *
- * Query behavior:
- * - `statusIds`, `roleIds`
- *   → normalized as UUID arrays
- * - Pagination & sorting
- *   → normalized and SQL-safe via upstream middleware
- * - `viewMode`
- *   → UI-only option (`list` | `card`)
- *     - Forwarded to the controller for authorization and response shaping
- *     - Does NOT affect filtering or visibility rules
- *
- * This route does NOT:
- * - Perform business logic
- * - Apply row-level visibility rules
- * - Shape response data directly
+ * @route GET /users
+ * @description Paginated user records with optional filters, sorting, and view mode.
+ * Filters: statusIds, roleIds.
+ * Sorting: sortBy, sortOrder (uses userSortMap).
+ * @access protected
+ * @permission USERS.VIEW_LIST or USERS.VIEW_CARD
  */
 router.get(
   '/',
   authorizeAny([PERMISSIONS.USERS.VIEW_LIST, PERMISSIONS.USERS.VIEW_CARD]),
-  createQueryNormalizationMiddleware(
-    'userSortMap',
-    ['statusIds', 'roleIds'], // array filters
-    [], // boolean filters (none at filter level)
-    userQuerySchema, // filter schema
-    {},
-    [], // option-level booleans
-    ['viewMode'] // option-level strings (UI-only)
-  ),
-  sanitizeFields(['keyword']),
   validate(userQuerySchema, 'query', {
-    allowUnknown: true,
+    allowUnknown: true, // downstream middleware normalizes unknown keys before business layer
   }),
+  createQueryNormalizationMiddleware(
+    'userSortMap',               // moduleKey — drives allowed sortBy fields
+    ['statusIds', 'roleIds'],    // arrayKeys — normalized as UUID arrays
+    [],                          // booleanKeys — none client-controlled
+    userQuerySchema,             // filterKeysOrSchema — extracts filter keys from schema
+    {},                          // options overrides — none
+    [],                          // option-level booleans — none
+    ['viewMode']                 // option-level strings — controls UI view shape
+  ),
   getPaginatedUsersController
 );
 
 /**
- * Route: GET /users/me/profile
- *
- * Retrieves the authenticated user's own profile.
- *
- * This endpoint:
- * - Always resolves to the requesting user
- * - Does NOT accept a userId parameter
- * - Does NOT allow viewing other users
- *
- * Middleware Chain:
- * 1. authorize([PERMISSIONS.USERS.VIEW_SELF_PROFILE])
- *      - Ensures the requester is allowed to view their own profile.
- *      - Granted to all authenticated user roles.
- *
- * 2. getUserProfileController
- *      - Resolves target user as req.auth.user.id
- *      - Delegates visibility enforcement to the service layer
- *      - Returns a fully transformed UserProfileDTO
- *
- * Permissions:
- *   - Requires USERS.VIEW_SELF_PROFILE
- *
- * Errors:
- *   - 403 if requester lacks self-profile access (rare)
- *   - 500 for unexpected server errors
+ * @route GET /users/me/profile
+ * @description Returns the authenticated user's own profile record.
+ * @access protected
+ * @permission USERS.VIEW_SELF_PROFILE
  */
 router.get(
   '/me/profile',
@@ -160,47 +84,10 @@ router.get(
 );
 
 /**
- * Route: GET /users/:userId/profile
- *
- * Retrieves a fully enriched user profile payload for a specific user.
- *
- * This endpoint is intended for privileged users (e.g. admin, HR, support)
- * who are allowed to view profiles other than their own.
- *
- * Returned payload may include:
- * - Core identity (email, full name)
- * - Contact information (phone number, job title)
- * - Status information
- * - Role metadata (permission-aware)
- * - Avatar (public)
- * - Audit metadata
- *
- * Middleware Chain:
- * 1. authorize([PERMISSIONS.USERS.VIEW_ANY_USER_PROFILE])
- *      - Ensures the requester has explicit permission to view
- *        other users’ profiles.
- *      - This is a privileged capability and is NOT granted
- *        to normal users.
- *
- * 2. validate(userIdParamSchema, 'params')
- *      - Ensures `userId` is a valid UUID.
- *      - Prevents unnecessary database queries and improves error clarity.
- *
- * 3. getUserProfileController
- *      - Delegates to fetchUserProfileService(), which:
- *          → enforces profile-level visibility (self vs non-self)
- *          → slices role metadata based on permissions
- *          → transforms output via transformUserProfileRow()
- *      - Returns a consistent API response envelope with traceId.
- *
- * Permissions:
- *   - Requires USERS.VIEW_ANY_USER_PROFILE
- *
- * Errors:
- *   - 400 if userId is invalid
- *   - 403 if requester lacks permission to view other users
- *   - 404 if user does not exist or is not accessible
- *   - 500 for unexpected server errors (captured by global error handler)
+ * @route GET /users/:userId/profile
+ * @description Returns the profile record for any user by ID.
+ * @access protected
+ * @permission USERS.VIEW_ANY_USER_PROFILE
  */
 router.get(
   '/:userId/profile',
@@ -209,6 +96,17 @@ router.get(
   getUserProfileController
 );
 
-router.get('/me/permissions', getPermissions);
+/**
+ * @route GET /users/me/permissions
+ * @description Returns the full permission set for the authenticated user.
+ * No explicit authorize call — access is gated by the global authentication
+ * middleware applied upstream. All authenticated users may fetch their own
+ * permissions regardless of role.
+ * @access protected
+ */
+router.get(
+  '/me/permissions',
+  getUserPermissionsController
+);
 
 module.exports = router;

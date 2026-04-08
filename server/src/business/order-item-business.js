@@ -1,112 +1,121 @@
+/**
+ * @file order-item-business.js
+ * @description Domain business logic for order item deduplication, validation,
+ * price enrichment, and subtotal calculation.
+ */
+
+'use strict';
+
 const {
-  getPricesByIdAndSkuBatch,
+  getPricesByGroupAndSkuBatch,
 } = require('../repositories/pricing-repository');
-const AppError = require('../utils/AppError');
+const AppError              = require('../utils/AppError');
 const { resolveFinalPrice } = require('./pricing-business');
+const { deduplicatePairs }  = require('../utils/array-utils');
+
+// ---------------------------------------------------------------------------
+// Private helpers
+// ---------------------------------------------------------------------------
 
 /**
- * Build a stable identity key for an order item.
- * Kind is inferred: SKU if `sku_id`, else Packaging if `packaging_material_id`.
- * Identity uses primary id + (price_id OR override_price) + optional extra fields.
- * Note: `price` (client display) is ignored; only `override_price` affects identity.
+ * Builds a stable deduplication key for an order item.
  *
- * @param {object} item
- * @param {object} [opts]
- * @param {string[]} [opts.extraFields=[]] - Extra field names to include in the key (e.g. ['uom_id']).
- * @returns {string} A stable key used for deduplication.
- * @example
- * buildDedupeKey({ sku_id:'A', price_id:'P' }) // "sku|A|price:P"
+ * Key shape: `kind|primaryId|priceIdentity[|extraField:value...]`
+ *
+ * Price identity prefers `price_id` over `override_price`. A placeholder is
+ * used when neither is present to keep the key shape stable.
+ *
+ * @param {object} item - Order item object.
+ * @param {object} [opts={}]
+ * @param {string[]} [opts.extraFields=[]] - Additional fields to include in the key.
+ * @returns {string} Composite deduplication key.
  */
 const buildDedupeKey = (item, opts = {}) => {
   const { extraFields = [] } = opts;
-
-  // infer kind
+  
   const isSku = !!item.sku_id;
   const isPkg = !!item.packaging_material_id;
-
-  const kind = isSku ? 'sku' : isPkg ? 'pkg' : 'unknown'; // still allow dedupe on unknown with provided fields
-
+  const kind  = isSku ? 'sku' : isPkg ? 'pkg' : 'unknown';
+  
   const parts = [kind];
-
-  // primary identity
+  
   if (isSku) parts.push(item.sku_id);
   if (isPkg) parts.push(item.packaging_material_id);
-
-  // price identity (prefer catalog price_id, else override_price)
+  
   if (item.price_id != null) {
     parts.push(`price:${item.price_id}`);
   } else if (item.override_price != null) {
     parts.push(`ovr:${item.override_price}`);
   } else {
-    parts.push('price:'); // placeholder to keep shape stable
+    // Placeholder keeps key shape stable when no price identity is present.
+    parts.push('price:');
   }
-
-  // any extras (stable order)
+  
   for (const f of extraFields) {
     parts.push(`${f}:${item[f] ?? ''}`);
   }
-
+  
   return parts.join('|');
 };
 
+// ---------------------------------------------------------------------------
+// Exported business functions
+// ---------------------------------------------------------------------------
+
 /**
- * Merge duplicate order items by identity key and sum `quantity_ordered`.
- * Does not mutate the input array or its objects.
+ * Deduplicates order items by composite key, accumulating quantities for
+ * matching items.
  *
- * @param {Array<object>} items - Raw order items.
- * @param {object} [opts] - Passed through to `buildDedupeKey` (e.g. { extraFields:['uom_id'] }).
- * @returns {Array<object>} New array with merged items.
- * @example
- * dedupeOrderItems([{sku_id:'A', price_id:'P', quantity_ordered:1},
- *                   {sku_id:'A', price_id:'P', quantity_ordered:2}])
- * // => [{sku_id:'A', price_id:'P', quantity_ordered:3}]
+ * @param {object[]} [items=[]] - Raw order item array.
+ * @param {object} [opts={}] - Options passed to `buildDedupeKey`.
+ * @param {string[]} [opts.extraFields=[]] - Additional fields to include in the key.
+ * @returns {object[]} Deduplicated order items with accumulated quantities.
  */
 const dedupeOrderItems = (items, opts = {}) => {
   const map = new Map();
-
+  
   for (const it of items ?? []) {
-    const key = buildDedupeKey(it, opts);
+    const key  = buildDedupeKey(it, opts);
     const prev = map.get(key);
-
+    
     if (prev) {
       const prevQty = Number(prev.quantity_ordered) || 0;
-      const addQty = Number(it.quantity_ordered) || 0;
+      const addQty  = Number(it.quantity_ordered)   || 0;
       map.set(key, { ...prev, quantity_ordered: prevQty + addQty });
     } else {
-      // shallow clone so caller’s objects aren’t mutated
       map.set(key, { ...it });
     }
   }
-
+  
   return Array.from(map.values());
 };
 
 /**
- * Assert that every item has a strictly positive `quantity_ordered`.
- * Intended as a business-layer safeguard (in addition to schema + DB CHECK).
+ * Asserts that all order items have a positive `quantity_ordered`.
  *
- * @param {Array<object>} items
- * @throws {AppError} If any quantity is missing, NaN, or <= 0.
+ * @param {object[]} items - Order item array.
+ * @returns {void}
+ * @throws {AppError} validationError if any item has a non-positive quantity.
  */
-
 const assertPositiveQuantities = (items) => {
-  items.forEach((it, i) => {
-    if (!(Number(it.quantity_ordered) > 0)) {
+  for (let i = 0; i < items.length; i++) {
+    if (!(Number(items[i].quantity_ordered) > 0)) {
       throw AppError.validationError(`Item #${i + 1}: quantity must be > 0`);
     }
-  });
+  }
 };
 
 /**
- * Sales-order rule: the order must include at least one SKU item.
- * Packaging-only orders are rejected.
+ * Asserts that the order contains at least one SKU line item.
  *
- * @param {Array<object>} items
- * @throws {AppError} If no item has `sku_id`.
+ * Sales orders must not consist exclusively of packaging material lines.
+ *
+ * @param {object[]} items - Order item array.
+ * @returns {void}
+ * @throws {AppError} validationError if no SKU line items are present.
  */
 const assertNotPackagingOnly = (items) => {
-  const hasSku = items.some((it) => !!it.sku_id);
-  if (!hasSku) {
+  if (!items.some((it) => !!it.sku_id)) {
     throw AppError.validationError(
       'Sales order must include at least one product (SKU) item; packaging-only is not allowed.'
     );
@@ -114,125 +123,98 @@ const assertNotPackagingOnly = (items) => {
 };
 
 /**
- * Enrich sales order items with resolved pricing and calculated subtotals (batched).
+ * Enriches order items with resolved prices and computes the order subtotal.
  *
- * How it works:
- * - Collects unique (price_id, sku_id) pairs from SKU lines and fetches their catalog prices
- *   in **one** DB round-trip (via `getPricesByIdAndSkuBatch`).
- * - Validates each SKU line’s `(price_id, sku_id)`; if no matching pricing row exists,
- *   throws a validation error pointing to the item index.
- * - Uses `resolveFinalPrice(submittedPrice, dbPrice)` to determine the final unit price
- *   (e.g., accept manual override, or fall back to the catalog price).
- * - Computes line `subtotal = quantity_ordered * finalPrice` without rounding to preserve
- *   precision for downstream tax/rounding logic.
- * - Attaches `metadata` when a manual override occurs: `{ submitted_price, db_price, reason }`.
+ * SKU lines: fetches catalog prices in a single batch query by
+ * (pricing_group_id, sku_id) pairs, then resolves the final price per line
+ * (allowing manual override via `resolveFinalPrice`).
+ * Packaging lines: always priced at zero.
  *
- * Packaging lines:
- * - Treated as zero-priced items (`price = 0`).
- * - `price_id` is forced to `null` to avoid persisting irrelevant references.
- * - Subtotal is always `quantity_ordered * 0`.
+ * Attaches `price`, `subtotal`, and optionally `metadata` (for manual
+ * overrides) to each enriched item.
  *
- * Assumptions / Notes:
- * - Call this on a **deduped** items array (duplicates merged upstream).
- * - Quantities should already be validated as positive.
- * - Current implementation expects SKU lines to include a `price_id` that belongs to the `sku_id`.
- *   If you support SKU lines without `price_id` (pure overrides), adjust the fetch/resolve logic accordingly.
- *
- * @param {Array<object>} orderItems - Items with:
- *   - `sku_id` {string} (for SKU lines)
- *   - `price_id` {string|null} (required for SKU lines in this implementation)
- *   - `quantity_ordered` {number}
- *   - `price` {number|null} (client-submitted; may be overridden)
- *   - `packaging_material_id` {string|null}
- * @param {import('pg').PoolClient|null} client - Optional DB client/transaction
- *
- * @returns {Promise<{ enrichedItems: Array<object>, subtotal: number }>}
- *   - `enrichedItems`: items augmented with resolved `price`, `subtotal`, and optional `metadata`
- *   - `subtotal`: sum of all line subtotals (number)
- *
- * @throws {AppError}
- *   - `validationError` when `(price_id, sku_id)` is invalid for a SKU line
- *   - `databaseError` if the batch pricing query fails
+ * @param {object[]} orderItems - Deduplicated order item array.
+ * @param {import('pg').PoolClient} client - Active transaction client.
+ * @returns {Promise<{ enrichedItems: object[], subtotal: number }>}
+ * @throws {AppError} validationError if a (pricing_group_id, sku_id) pair is not found.
  */
 const enrichOrderItemsWithResolvedPrice = async (orderItems, client) => {
-  // 0) Collect unique (price_id, sku_id) pairs for SKU lines
-  const pairs = [];
-  const seen = new Set();
-  for (const it of orderItems) {
-    if (it.sku_id && it.price_id && !it.packaging_material_id) {
-      const k = `${it.price_id}|${it.sku_id}`;
-      if (!seen.has(k)) {
-        seen.add(k);
-        pairs.push({ price_id: it.price_id, sku_id: it.sku_id });
-      }
-    }
-  }
-
-  // 1) One round-trip: fetch catalog prices for all pairs
-  const priceRows = await getPricesByIdAndSkuBatch(pairs, client);
-  const priceMap = new Map(
-    priceRows.map((r) => [`${r.price_id}|${r.sku_id}`, parseFloat(r.price)])
+  const normalizedOrderItems = orderItems.map((item) => ({
+    ...item,
+    pricing_group_id: item.pricing_group_id || null,
+  }));
+  
+  // Collect unique (pricing_group_id, sku_id) pairs for SKU lines — single batch query.
+  const pairs = deduplicatePairs(
+    normalizedOrderItems
+      .filter((it) => it.sku_id && it.pricing_group_id && !it.packaging_material_id)
+      .map((it) => ({
+        pricing_group_id: it.pricing_group_id,
+        sku_id:           it.sku_id,
+      })),
+    (item) => `${item.pricing_group_id}|${item.sku_id}`
   );
-
-  // 2) Enrich items + compute subtotal
-  let subtotal = 0;
+  
+  const priceRows = await getPricesByGroupAndSkuBatch(pairs, client);
+  const priceMap  = new Map(
+    priceRows.map((r) => [
+      `${r.pricing_group_id}|${r.sku_id}`,
+      parseFloat(r.price),
+    ])
+  );
+  
+  let subtotal        = 0;
   const enrichedItems = [];
-
+  
   for (let i = 0; i < orderItems.length; i++) {
-    const item = orderItems[i];
-
-    // ---- CASE: Packaging (always zero-priced) ----
+    const item = normalizedOrderItems[i];
+    
     if (item.packaging_material_id) {
-      const finalPrice = 0;
-      const lineSubtotal = (Number(item.quantity_ordered) || 0) * finalPrice;
-
-      subtotal += lineSubtotal;
+      subtotal += 0;
       enrichedItems.push({
         ...item,
-        price_id: null, // ensure we don't persist irrelevant price IDs
-        price: finalPrice, // packaging is free
-        subtotal: lineSubtotal,
+        pricing_group_id: null,
+        price:            0,
+        subtotal:         0,
       });
       continue;
     }
-
-    // ---- CASE: SKU lines ----
-    const key = `${item.price_id}|${item.sku_id}`;
+    
+    const key     = `${item.pricing_group_id}|${item.sku_id}`;
     const dbPrice = priceMap.get(key);
-
+    
     if (dbPrice == null) {
-      // pair didn’t come back → invalid mapping
       throw AppError.validationError(
-        `Item #${i + 1}: invalid price_id ${item.price_id} for sku_id ${item.sku_id}`
+        `Item #${i + 1}: invalid pricing_group_id ${item.pricing_group_id} for sku_id ${item.sku_id}`
       );
     }
-
+    
     const submittedPrice =
       item.price != null ? parseFloat(item.price) : undefined;
-
-    // Resolve final price via your business rule (e.g., allow manual override)
-    const finalPrice = resolveFinalPrice(submittedPrice, dbPrice);
-
-    const lineSubtotal = (Number(item.quantity_ordered) || 0) * finalPrice;
+    
+    const finalPrice    = resolveFinalPrice(submittedPrice, dbPrice);
+    const lineSubtotal  = (Number(item.quantity_ordered) || 0) * finalPrice;
+    
     subtotal += lineSubtotal;
-
+    
     const metadata =
       submittedPrice != null && finalPrice !== dbPrice
         ? {
-            submitted_price: submittedPrice,
-            db_price: dbPrice,
-            reason: 'manual override',
-          }
+          submitted_price: submittedPrice,
+          db_price:        dbPrice,
+          reason:          'manual override',
+        }
         : null;
-
+    
     enrichedItems.push({
       ...item,
-      price: finalPrice, // trusted resolved price
-      subtotal: lineSubtotal,
+      pricing_group_id: item.pricing_group_id,
+      price:            finalPrice,
+      subtotal:         lineSubtotal,
       ...(metadata ? { metadata } : {}),
     });
   }
-
+  
   return { enrichedItems, subtotal };
 };
 

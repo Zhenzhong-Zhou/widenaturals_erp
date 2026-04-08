@@ -1,199 +1,140 @@
-const { cleanObject } = require('../utils/object-utils');
-const { makeStatus } = require('../utils/status-utils');
-const { makeActor } = require('../utils/actor-utils');
+/**
+ * @file batch-registry-transformer.js
+ * @description Row-level and page-level transformers for batch registry records.
+ *
+ * Exports:
+ *   - transformPaginatedBatchRegistryResults – transforms a paginated batch registry result set
+ *
+ * Internal helpers (not exported):
+ *   - transformBatchRegistryRow – transforms a single batch registry row by batch type
+ *
+ * Supports two batch types:
+ *   - `'product'`           – product batches with lot number, expiry, SKU, and manufacturer
+ *   - `'packaging_material'`– packaging batches with lot number, expiry, material code, and supplier
+ *
+ * Rows with an unrecognised `batch_type` return `null` and are filtered out by the caller.
+ */
+
+'use strict';
+
+const { cleanObject }       = require('../utils/object-utils');
+const { makeStatus }        = require('../utils/status-utils');
+const { makeActor }         = require('../utils/actor-utils');
 const { transformPageResult } = require('../utils/transformer-utils');
 
 /**
- * @typedef {Object} BatchRegistryRow
+ * Transforms a single batch registry DB row into the UI-facing shape.
  *
- * Core registry fields
- * @property {string} batch_registry_id
- * @property {'product'|'packaging_material'} batch_type
- * @property {string} registered_at
- * @property {string} registered_by
- * @property {string|null} registered_by_firstname
- * @property {string|null} registered_by_lastname
- * @property {string|null} note
+ * Dispatches to a type-specific shape based on `row.batch_type`.
+ * Returns `null` for unrecognised batch types — callers should filter these out.
  *
- * ─────────────────────────────────────────────
- * Product batch fields (batch_type === 'product')
- * ─────────────────────────────────────────────
- * @property {string|null} product_batch_id
- * @property {string|null} product_lot_number
- * @property {string|null} product_expiry_date
- * @property {string|null} product_batch_status_id
- * @property {string|null} product_batch_status_name
- * @property {string|null} product_batch_status_date
- *
- * @property {string|null} sku_id
- * @property {string|null} sku_code
- *
- * @property {string|null} product_id
- * @property {string|null} product_name
- *
- * @property {string|null} manufacturer_id
- * @property {string|null} manufacturer_name
- *
- * ─────────────────────────────────────────────
- * Packaging material batch fields
- * (batch_type === 'packaging_material')
- * ─────────────────────────────────────────────
- * @property {string|null} packaging_batch_id
- * @property {string|null} packaging_lot_number
- * @property {string|null} packaging_display_name
- * @property {string|null} packaging_expiry_date
- * @property {string|null} packaging_batch_status_id
- * @property {string|null} packaging_batch_status_name
- * @property {string|null} packaging_batch_status_date
- *
- * @property {string|null} packaging_material_id
- * @property {string|null} packaging_material_code
- *
- * @property {string|null} supplier_id
- * @property {string|null} supplier_name
- */
-
-/**
- * Transform a single batch registry row into a UI-ready representation.
- *
- * Responsibility:
- * - Normalize polymorphic batch registry rows
- * - Return ONLY the relevant branch based on `batch_type`
- * - Strip null / undefined fields for clean API output
- *
- * IMPORTANT:
- * - This transformer is designed for BATCH REGISTRY LIST & DETAIL VIEWS
- * - It intentionally excludes inventory, QA, warehouse, and financial fields
- *
- * This function MUST NOT:
- * - Enforce visibility
- * - Perform filtering
- * - Apply business rules
- *
- * It ASSUMES:
- * - The row has already passed ACL + SQL enforcement
- *
- * @param {BatchRegistryRow} row
- * @returns {Object|null}
+ * @param {BatchRegistryRow} row - Raw DB row from the batch registry query.
+ * @returns {BatchRegistryRecord|null} Transformed batch registry record, or `null` if batch type is unrecognised.
  */
 const transformBatchRegistryRow = (row) => {
-  // ------------------------------
-  // Product batch
-  // ------------------------------
+  // Product batch shape.
   if (row.batch_type === 'product') {
     return cleanObject({
-      id: row.batch_registry_id,
+      id:   row.batch_registry_id,
       type: row.batch_type,
-
+      
       productBatchId: row.product_batch_id,
-      lotNumber: row.product_lot_number,
-      expiryDate: row.product_expiry_date,
-
-      // Product is a reference, not the producer
+      lotNumber:      row.product_lot_number,
+      expiryDate:     row.product_expiry_date,
+      
+      // Product is the reference item — not the producer.
       product: cleanObject({
-        id: row.product_id,
+        id:   row.product_id,
         name: row.product_name,
       }),
-
-      sku: {
-        id: row.sku_id,
+      
+      sku: cleanObject({
+        id:   row.sku_id,
         code: row.sku_code,
-      },
-
-      // Manufacturer is the PRODUCER of the batch
+      }),
+      
+      // Manufacturer is the producer of this batch.
       manufacturer: cleanObject({
-        id: row.manufacturer_id,
+        id:   row.manufacturer_id,
         name: row.manufacturer_name,
       }),
-
+      
       status: makeStatus(row, {
-        id: 'product_batch_status_id',
+        id:   'product_batch_status_id',
         name: 'product_batch_status_name',
         date: 'product_batch_status_date',
       }),
-
+      
       registeredAt: row.registered_at,
       registeredBy: makeActor(
         row.registered_by,
         row.registered_by_firstname,
         row.registered_by_lastname
       ),
-
+      
       note: row.note,
     });
   }
-
-  // ------------------------------
-  // Packaging material batch
-  // ------------------------------
+  
+  // Packaging material batch shape.
   if (row.batch_type === 'packaging_material') {
     return cleanObject({
-      id: row.batch_registry_id,
+      id:   row.batch_registry_id,
       type: row.batch_type,
-
-      packagingBatchId: row.packaging_batch_id,
-      lotNumber: row.packaging_lot_number,
+      
+      packagingBatchId:     row.packaging_batch_id,
+      lotNumber:            row.packaging_lot_number,
       packagingDisplayName: row.packaging_display_name,
-      expiryDate: row.packaging_expiry_date,
-
+      expiryDate:           row.packaging_expiry_date,
+      
       packagingMaterial: cleanObject({
-        id: row.packaging_material_id,
+        id:   row.packaging_material_id,
         code: row.packaging_material_code,
       }),
-
-      // Supplier produces / provides the batch
+      
+      // Supplier is the producer / provider of this batch.
       supplier: cleanObject({
-        id: row.supplier_id,
+        id:   row.supplier_id,
         name: row.supplier_name,
       }),
-
+      
       status: makeStatus(row, {
-        id: 'packaging_batch_status_id',
+        id:   'packaging_batch_status_id',
         name: 'packaging_batch_status_name',
         date: 'packaging_batch_status_date',
       }),
-
+      
       registeredAt: row.registered_at,
       registeredBy: makeActor(
         row.registered_by,
         row.registered_by_firstname,
         row.registered_by_lastname
       ),
-
+      
       note: row.note,
     });
   }
-
-  // Defensive fallback — should never occur
+  
+  // Unrecognised batch type — defensive fallback, should never occur in practice.
   return null;
 };
 
 /**
- * Transform paginated batch registry results for UI consumption.
+ * Transforms a paginated batch registry result set into the UI-facing shape.
  *
- * Responsibility:
- * - Preserve pagination metadata (page, limit, totals)
- * - Apply per-row batch registry transformation
+ * Delegates per-row transformation to `transformBatchRegistryRow` via
+ * `transformPageResult`, which preserves pagination metadata.
  *
- * This function:
- * - Does NOT alter pagination semantics
- * - Does NOT filter rows
+ * Rows returning `null` from `transformBatchRegistryRow` (unrecognised batch types)
+ * are handled by `transformPageResult`'s filtering behaviour.
  *
- * @param {{
- *   data: Array<Object>,
- *   pagination?: {
- *     page?: number,
- *     limit?: number,
- *     totalRecords?: number,
- *     totalPages?: number
- *   }
- * }} paginatedResult
- *
- * @returns {Promise<PaginatedResult<T>>}
+ * @param {Object}        paginatedResult              - Raw paginated result from the repository.
+ * @param {Array<BatchRegistryRow>} paginatedResult.data         - Raw DB rows.
+ * @param {Object}        paginatedResult.pagination   - Pagination metadata.
+ * @returns {Promise<PaginatedResult<BatchRegistryRow>>} Transformed records and pagination metadata.
  */
-const transformPaginatedBatchRegistryResults = async (paginatedResult) => {
-  return transformPageResult(paginatedResult, transformBatchRegistryRow);
-};
+const transformPaginatedBatchRegistryResults = (paginatedResult) =>
+  transformPageResult(paginatedResult, transformBatchRegistryRow);
 
 module.exports = {
   transformPaginatedBatchRegistryResults,

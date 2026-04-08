@@ -1,330 +1,229 @@
+/**
+ * @file product-business.js
+ * @description Domain business logic for product status transition validation,
+ * field update filtering, insert payload preparation, access control evaluation,
+ * visibility rule application, and lookup row enrichment.
+ */
+
+'use strict';
+
 const { getStatusNameById, getStatusId } = require('../config/status-cache');
 const AppError = require('../utils/AppError');
 const { PERMISSIONS } = require('../utils/constants/domain/product-constants');
 const {
   resolveUserPermissionContext,
-} = require('../services/role-permission-service');
-const { logSystemException } = require('../utils/system-logger');
+} = require('../services/permission-service');
+const { logSystemException } = require('../utils/logging/system-logger');
+const { enforceActiveOnlyVisibilityRules, enrichWithActiveFlag } = require('./lookup-visibility');
+
+const CONTEXT = 'product-business';
 
 /**
- * Validates whether a product can transition from its current status
- * to a new target status, based on allowed transitions.
+ * Checks whether a product status transition is permitted.
  *
- * ### Behavior
- * - Uses uppercase normalization for status names from cache.
- * - Returns `false` if either status ID is missing or unknown.
+ * Returns `false` if either status ID cannot be resolved to a known code.
  *
- * ### Example
- * ```
- * validateProductStatusTransition('uuid-active', 'uuid-archived'); // true
- * validateProductStatusTransition('uuid-archived', 'uuid-active'); // false
- * ```
- *
- * @param {string} currentStatusId - UUID of the current product status
- * @param {string} newStatusId - UUID of the target product status
- * @returns {boolean} True if the transition is allowed, false otherwise
+ * @param {string} currentStatusId - UUID of the current status.
+ * @param {string} newStatusId - UUID of the target status.
+ * @returns {boolean}
  */
 const validateProductStatusTransition = (currentStatusId, newStatusId) => {
   const allowedTransitions = {
-    PENDING: ['ACTIVE', 'INACTIVE'],
-    ACTIVE: ['INACTIVE', 'DISCONTINUED', 'ARCHIVED'],
-    INACTIVE: ['ACTIVE'],
+    PENDING:      ['ACTIVE', 'INACTIVE'],
+    ACTIVE:       ['INACTIVE', 'DISCONTINUED', 'ARCHIVED'],
+    INACTIVE:     ['ACTIVE'],
     DISCONTINUED: ['ARCHIVED'],
-    ARCHIVED: [],
+    ARCHIVED:     [],
   };
-
+  
   const currentCode = getStatusNameById(currentStatusId);
-  const nextCode = getStatusNameById(newStatusId);
-
+  const nextCode    = getStatusNameById(newStatusId);
+  
   if (!currentCode || !nextCode) return false;
-
-  const allowedNextStates = allowedTransitions[currentCode] ?? [];
-  return allowedNextStates.includes(nextCode);
+  
+  return (allowedTransitions[currentCode] ?? []).includes(nextCode);
 };
 
 /**
- * Asserts that a product’s status transition is valid according to
- * business-defined transition rules.
+ * Asserts that a product status transition is permitted, throwing if not.
  *
- * This function builds upon {@link validateProductStatusTransition},
- * but instead of returning `false`, it **throws** an AppError if the
- * transition is not permitted.
- *
- * ### Behavior
- * - Looks up both statuses from the in-memory cache.
- * - Throws if either status ID is unknown.
- * - Throws if the transition violates defined transition rules.
- *
- * ### Example
- * ```
- * assertValidProductStatusTransition(currentStatusId, nextStatusId);
- * // continues silently if allowed
- * // throws AppError.validationError if invalid
- * ```
- *
- * @param {string} currentStatusId - UUID of the current product status
- * @param {string} newStatusId - UUID of the target product status
- * @throws {AppError} If the transition is invalid or unknown
+ * @param {string} currentStatusId - UUID of the current status.
+ * @param {string} newStatusId - UUID of the target status.
+ * @returns {void}
+ * @throws {AppError} validationError if either status ID is unknown or the
+ *   transition is not permitted.
  */
 const assertValidProductStatusTransition = (currentStatusId, newStatusId) => {
   const current = getStatusNameById(currentStatusId);
-  const next = getStatusNameById(newStatusId);
-
+  const next    = getStatusNameById(newStatusId);
+  
   if (!current || !next) {
     throw AppError.validationError('Unknown status ID(s).', {
       currentStatusId,
       newStatusId,
     });
   }
-
+  
   if (!validateProductStatusTransition(currentStatusId, newStatusId)) {
     throw AppError.validationError(`Invalid transition: ${current} → ${next}`);
   }
 };
 
 /**
- * Business Rule: Filter and Validate Updatable Product Fields
+ * Filters a product update payload to only permitted fields.
  *
- * Ensures only safe, business-allowed fields can be updated in product info
- * operations. Blocks modification of status or system-managed metadata fields.
+ * Throws if the payload contains forbidden fields (e.g. `status_id`,
+ * `created_by`) or if no valid editable fields remain after filtering.
  *
- * ### Behavior
- * - Accepts a raw update payload (usually from service layer).
- * - Rejects forbidden fields like `status_id` or audit columns.
- * - Returns a sanitized object containing only whitelisted fields.
- *
- * @param {Object} updates - Raw update payload (partial product data).
- * @returns {Object} Filtered update object ready for persistence.
- *
- * @throws {AppError.validationError}
- *   - If payload is invalid or empty.
- *   - If forbidden fields are included.
+ * @param {object} [updates={}] - Raw update payload from the caller.
+ * @returns {object} Filtered update payload containing only permitted fields.
+ * @throws {AppError} validationError if the payload is invalid, contains
+ *   forbidden fields, or has no valid editable fields.
  */
 const filterUpdatableProductFields = (updates = {}) => {
   if (!updates || typeof updates !== 'object' || Array.isArray(updates)) {
     throw AppError.validationError('Invalid product update payload.');
   }
-
-  // Explicitly allowed fields for editable product info
+  
   const allowedFields = [
-    'name',
-    'series',
-    'brand',
-    'category',
-    'description',
-    'updated_by',
-    'updated_at',
+    'name', 'series', 'brand', 'category',
+    'description', 'updated_by', 'updated_at',
   ];
-
-  // Fields that must never be changed through this flow
+  
   const forbiddenFields = ['status_id', 'status', 'created_by', 'created_at'];
-
-  // Quick check for forbidden keys (fast path)
+  
   for (const key of Object.keys(updates)) {
     if (forbiddenFields.includes(key)) {
       throw AppError.validationError(
         `Field "${key}" cannot be modified through this operation. ` +
-          'Use the appropriate workflow (e.g., status update service).'
+        'Use the appropriate workflow (e.g., status update service).'
       );
     }
   }
-
-  // Extract only allowed keys
+  
   const filtered = Object.fromEntries(
     Object.entries(updates).filter(([key]) => allowedFields.includes(key))
   );
-
+  
   if (Object.keys(filtered).length === 0) {
     throw AppError.validationError(
       'No valid editable product fields provided for update.'
     );
   }
-
+  
   return filtered;
 };
 
 /**
- * @function
- * @description
- * Performs business-level validation on the incoming product list before
- * storage or normalization. This function enforces domain rules that are
- * not suitable for Joi schemas, such as:
+ * Validates a list of product objects before bulk insert.
  *
- *  - Ensuring at least one product is supplied.
- *  - Ensuring each product provides the minimum identity fields:
- *      * name
- *      * brand
- *      * category
- *
- * Joi validates structure and types at the request layer, while this function
- * validates domain logic that applies regardless of how the data enters the system.
- *
- * @param {Array<Object>} products - Array of raw product input objects.
- * @throws {AppError} If the product list is empty or missing required fields.
+ * @param {object[]} products - Array of product objects to validate.
+ * @returns {void}
+ * @throws {AppError} validationError if the list is empty or any product is
+ *   missing required fields.
  */
-const validateProductListBusiness = (products) => {
-  const context = 'product-business/validateProductListBusiness';
-
+const validateProductList = (products) => {
   if (!Array.isArray(products) || products.length === 0) {
-    throw AppError.validationError('No products provided for creation.', {
-      context,
-    });
+    throw AppError.validationError('No products provided for creation.');
   }
-
+  
   for (const p of products) {
     if (!p.name || !p.brand || !p.category) {
       throw AppError.validationError(
-        'Each product must include name, brand, and category.',
-        { context }
+        'Each product must include name, brand, and category.'
       );
     }
   }
 };
 
 /**
- * @function
- * @description
- * Normalizes and enriches raw product input objects to produce a clean,
- * database-ready insert payload. This includes:
+ * Prepares product objects for bulk insert by normalising fields and
+ * assigning the inactive status and audit fields.
  *
- *  - Trimming and uppercasing brand/category fields.
- *  - Normalizing optional fields such as series and description.
- *  - Applying default status (`general_inactive`).
- *  - Assigning audit fields (`created_by`, `updated_by`).
- *  - Ensuring `updated_by` remains NULL on insert, preserving audit integrity.
+ * New products are created with `general_inactive` status — activation
+ * requires a separate status transition workflow.
  *
- * This function ensures all products follow a consistent format before they
- * reach the repository layer and guarantees that database triggers and audit
- * fields behave predictably.
- *
- * @param {Array<Object>} products - Validated raw product objects.
- * @param {string} userId - The authenticated user creating these records.
- * @returns {Array<Object>} A normalized array ready for bulk insertion.
+ * @param {object[]} products - Validated product objects.
+ * @param {string} userId - UUID of the user performing the insert.
+ * @returns {object[]} Insert-ready product payloads.
  */
 const prepareProductInsertPayloads = (products, userId) => {
-  const activeStatusId = getStatusId('general_inactive');
-
+  const inactiveStatusId = getStatusId('general_inactive');
+  
   return products.map((p) => ({
-    name: p.name.trim(),
-    series: p.series?.trim() ?? null,
-    brand: p.brand.trim().toUpperCase(),
-    category: p.category.trim().toUpperCase(),
+    name:        p.name.trim(),
+    series:      p.series?.trim() ?? null,
+    brand:       p.brand.trim().toUpperCase(),
+    category:    p.category.trim().toUpperCase(),
     description: p.description ?? null,
-    status_id: activeStatusId,
-    created_by: userId,
-    updated_by: null, // IMPORTANT: per your repo rules — remains NULL on insert
+    status_id:   inactiveStatusId,
+    created_by:  userId,
+    updated_by:  null, // remains NULL on insert per repository convention
   }));
 };
 
 /**
- * Evaluates access control flags for Product lookup queries.
+ * Resolves which product lookup visibility capabilities the requesting user holds.
  *
- * Determines whether the user can:
- * - View all product statuses (`canViewAllStatuses`)
- * - View only "active" products (`canViewActiveOnly`)
- *
- * This influences lookup filtering rules.
- *
- * @param {object} user - Current authenticated user.
- * @returns {Promise<{ canViewAllStatuses: boolean, canViewActiveOnly: boolean }>}
- *
- * @throws {AppError} If permission context cannot be resolved.
+ * @param {AuthUser} user - Authenticated user making the request.
+ * @returns {Promise<ProductLookupAcl>}
+ * @throws {AppError} businessError if permission resolution fails.
  */
 const evaluateProductLookupAccessControl = async (user) => {
+  const context = `${CONTEXT}/evaluateProductLookupAccessControl`;
+  
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-
+    
     return {
       canViewAllStatuses:
         isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_PRODUCTS),
-
       canViewActiveOnly:
         isRoot || permissions.includes(PERMISSIONS.VIEW_ACTIVE_PRODUCTS),
     };
   } catch (err) {
-    logSystemException(err, 'Failed to evaluate Product access control', {
-      context: 'product-business/evaluateProductLookupAccessControl',
+    logSystemException(err, 'Failed to evaluate product access control', {
+      context,
       userId: user?.id,
     });
-
+    
     throw AppError.businessError(
-      'Unable to evaluate access control for Product lookup',
-      {
-        details: err.message,
-        stage: 'evaluate-product-access',
-      }
+      'Unable to evaluate access control for product lookup.'
     );
   }
 };
 
 /**
- * Applies access-based visibility rules to Product lookup filters.
+ * Applies ACL-driven visibility rules to a product lookup filter object.
  *
- * - If user cannot view all statuses → enforce active-only.
- * - If user has elevated permissions → remove enforced restrictions.
+ * Restricted users are pinned to the active status via `status_id` and
+ * `_activeStatusId`. Elevated users have those constraints removed.
  *
- * @param {object} [filters={}] - Caller-provided filters.
- * @param {object} userAccess - From evaluateProductLookupAccessControl().
- * @param {string} activeStatusId - Status ID considered "active".
- *
- * @returns {object} A new filters object with enforced rules applied.
+ * @param {object} [filters={}] - Base filter object from the request.
+ * @param {ProductLookupAcl} userAccess - Resolved ACL from `evaluateProductLookupAccessControl`.
+ * @param {string} activeStatusId - UUID of the active status record.
+ * @returns {object} Adjusted copy of `filters` with visibility rules applied.
  */
 const enforceProductLookupVisibilityRules = (
   filters = {},
   userAccess,
   activeStatusId
-) => {
-  const adjusted = { ...filters };
-
-  if (!userAccess.canViewAllStatuses) {
-    adjusted.status_id ??= activeStatusId;
-    adjusted._activeStatusId = activeStatusId;
-  } else {
-    delete adjusted.status_id;
-    delete adjusted._activeStatusId;
-  }
-
-  return adjusted;
-};
+) => enforceActiveOnlyVisibilityRules(filters, userAccess, activeStatusId);
 
 /**
- * Adds UI-friendly derived fields to a Product lookup row.
+ * Enriches a product lookup row with a derived `isActive` boolean flag.
  *
- * Adds:
- * - `isActive`: true if row.status_id === activeStatusId
- *
- * @param {object} row - A Product DB row.
- * @param {string} activeStatusId - ID representing an active product.
- *
- * @returns {object} Row with `isActive` added.
- *
- * @throws {AppError} If row or activeStatusId is invalid.
+ * @param {object} row - Raw product row from the repository.
+ * @param {string} activeStatusId - UUID of the active status record.
+ * @returns {object & { isActive: boolean }}
  */
-const enrichProductOption = (row, activeStatusId) => {
-  if (!row || typeof row !== 'object') {
-    throw AppError.validationError(
-      '[enrichProductOption] Invalid `row` - expected object but got ' +
-        typeof row
-    );
-  }
-
-  if (typeof activeStatusId !== 'string' || !activeStatusId) {
-    throw AppError.validationError(
-      '[enrichProductOption] Missing or invalid `activeStatusId`'
-    );
-  }
-
-  return {
-    ...row,
-    isActive: row.status_id === activeStatusId,
-  };
-};
+const enrichProductOption = (row, activeStatusId) =>
+  enrichWithActiveFlag(row, activeStatusId);
 
 module.exports = {
-  validateProductStatusTransition,
   assertValidProductStatusTransition,
   filterUpdatableProductFields,
-  validateProductListBusiness,
+  validateProductList,
   prepareProductInsertPayloads,
   evaluateProductLookupAccessControl,
   enforceProductLookupVisibilityRules,

@@ -8,7 +8,6 @@ const {
   createWarehouseInventoryRecordController,
   adjustInventoryQuantitiesController,
 } = require('../controllers/warehouse-inventory-controller');
-const { csrfMiddleware } = require('../middlewares/csrf-protection');
 
 const router = express.Router();
 
@@ -114,7 +113,6 @@ router.get(
  */
 router.post(
   '/',
-  csrfMiddleware,
   authorize([PERMISSIONS.WAREHOUSE_INVENTORY.CREATE]),
   createWarehouseInventoryRecordController
 );
@@ -146,7 +144,6 @@ router.post(
  */
 router.patch(
   '/adjust-quantities',
-  csrfMiddleware,
   authorize([PERMISSIONS.WAREHOUSE_INVENTORY.ADJUST]),
   adjustInventoryQuantitiesController
 );

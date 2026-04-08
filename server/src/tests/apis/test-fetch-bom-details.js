@@ -19,7 +19,7 @@
 const { performance } = require('perf_hooks');
 const { pool } = require('../../database/db');
 const { fetchBomDetailsService } = require('../../services/bom-service');
-const { logSystemException } = require('../../utils/logger');
+const { logSystemException } = require('../../utils/logging/system-logger');
 const chalk = require('chalk');
 
 (async () => {

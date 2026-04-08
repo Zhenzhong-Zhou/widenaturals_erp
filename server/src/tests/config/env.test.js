@@ -1,13 +1,12 @@
 const { loadEnv, validateEnv, loadSecret } = require('../../../src/config/env');
 const dotenv = require('dotenv');
-const path = require('path');
 const fs = require('fs');
-const { logWarn, logError } = require('../../../src/utils/logger-helper');
+const { logWarn, logError } = require('../../utils/logging/logger-helper');
 const AppError = require('../../utils/AppError');
 
 jest.mock('dotenv');
 jest.mock('fs');
-jest.mock('../../../src/utils/logger-helper', () => ({
+jest.mock('../../utils/logging/logger-helper', () => ({
   logWarn: jest.fn(),
   logError: jest.fn(),
 }));

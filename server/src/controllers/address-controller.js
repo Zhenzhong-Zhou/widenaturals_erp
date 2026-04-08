@@ -1,94 +1,102 @@
-const wrapAsync = require('../utils/wrap-async');
-const { logInfo } = require('../utils/logger-helper');
+/**
+ * @file address-controller.js
+ * @module controllers/address-controller
+ *
+ * @description
+ * Controllers for the Address resource.
+ *
+ * Routes:
+ *   POST /api/v1/addresses          → createAddressController
+ *   GET  /api/v1/addresses          → getPaginatedAddressesController
+ *
+ * All handlers are wrapped with `wrapAsyncHandler` — errors propagate
+ * automatically to the global error handler without try/catch boilerplate.
+ *
+ * Logging:
+ *   Transport-level logs (statusCode, durationMs, userId, traceId, pagination,
+ *   sorting, filters) are emitted automatically by the global request-logger
+ *   middleware via res.on('finish'). No controller-level logging needed.
+ */
+
+'use strict';
+
+const { wrapAsyncHandler } = require('../middlewares/async-handler');
 const {
   createAddressService,
   fetchPaginatedAddressesService,
 } = require('../services/address-service');
 
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/v1/addresses
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Controller for creating one or more address records.
+ * Creates one or more address records.
  *
- * Expects an array of address objects in the request body.
- * Logs the creation request with contextual metadata (record count, requester, trace ID).
- * Delegates to the service layer for actual creation.
+ * Accepts a JSON array in req.body for single or bulk insertion.
+ * Returns a single object for one address, or an array for bulk.
  *
- * On success:
- * - Responds with 201 Created status and a success message.
- * - Returns created address data (single object or array depending on input size).
- *
- * @param req Express request containing the address data and authenticated user.
- * @param res Express response that returns the creation result.
- *
- * @returns {Promise<void>}
- * Sends the HTTP response with created data or lets wrapAsync handle errors.
+ * Requires: auth middleware, Joi body validation, CREATE_ADDRESSES permission.
  */
-const createAddressController = wrapAsync(async (req, res) => {
+const createAddressController = wrapAsyncHandler(async (req, res) => {
   const addresses = req.body;
-  const user = req.auth.user;
 
-  logInfo('Creating address record(s)', req, {
-    context: 'address-controller/createAddressController',
-    recordCount: addresses.length,
-    requestedBy: user.id,
-    requestId: req.id,
-    traceId: req.traceId,
-  });
+  if (!Array.isArray(addresses)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid request body. Expected an array of addresses.',
+      traceId: req.traceId,
+    });
+  }
 
+  const user      = req.auth.user;
+  const isBulk    = addresses.length > 1;
+  
   const result = await createAddressService(addresses, user);
-
+  
   res.status(201).json({
     success: true,
-    message:
-      addresses.length > 1
-        ? 'Bulk addresses created successfully.'
-        : 'Address created successfully.',
-    data: addresses.length > 1 ? result : result[0],
+    message: isBulk
+      ? 'Bulk addresses created successfully.'
+      : 'Address created successfully.',
+    data:    isBulk ? result : result[0],
+    traceId: req.traceId,
   });
 });
 
-/**
- * Controller for fetching paginated address records.
- *
- * Normalizes pagination and sorting parameters,
- * passes filters and user info to the service layer,
- * and returns the result in a standard API response format.
- *
- * @route GET /addresses
- * @queryparam {number} [page=1] - Page number (1-based).
- * @queryparam {number} [limit=10] - Number of records per page.
- * @queryparam {string} [sortBy='createdAt'] - Field to sort by.
- * @queryparam {'ASC'|'DESC'} [sortOrder='DESC'] - Sort direction.
- * @queryparam {string} [region] - Optional filter: region.
- * @queryparam {string} [country] - Optional filter: country.
- * @queryparam {string} [city] - Optional filter: city.
- * @queryparam {string} [customerId] - Optional filter: customer ID.
- * @queryparam {string} [createdBy] - Optional filter: creator user ID.
- * @queryparam {string} [updatedBy] - Optional filter: updater user ID.
- * @queryparam {string} [keyword] - Optional filter: search across recipient, label, email, phone, city.
- *
- * @returns {200} JSON API success response with paginated address data.
- *
- * @throws {AppError} On service failure (handled by wrapAsync).
- */
-const getPaginatedAddressesController = wrapAsync(async (req, res) => {
-  const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/v1/addresses
+// ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Retrieves paginated address records with optional filters and sorting.
+ *
+ * Reads from req.normalizedQuery — populated by createQueryNormalizationMiddleware.
+ * Requires: auth middleware, query normalizer, VIEW_ADDRESS permission.
+ */
+const getPaginatedAddressesController = wrapAsyncHandler(async (req, res) => {
+  const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
+  
   const { data, pagination } = await fetchPaginatedAddressesService({
-    user: req.auth.user,
     filters,
     page,
     limit,
     sortBy,
     sortOrder,
   });
-
+  
   res.status(200).json({
     success: true,
     message: 'Addresses retrieved successfully.',
     data,
     pagination,
+    traceId: req.traceId,
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Exports
+// ─────────────────────────────────────────────────────────────────────────────
 
 module.exports = {
   createAddressController,

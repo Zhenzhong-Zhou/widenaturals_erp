@@ -25,7 +25,7 @@ const {
 const {
   logSystemException,
   logSystemInfo,
-} = require('../../utils/system-logger');
+} = require('../../utils/logging/system-logger');
 
 (async () => {
   const logPrefix = chalk.cyan('[Test: BOM_DETAILS]');

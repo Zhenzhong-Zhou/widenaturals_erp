@@ -1,9 +1,10 @@
-const { paginateQuery, query } = require('../../database/db');
+const { paginateQuery } = require('../../utils/db/pagination/pagination-helpers');
+const { query } = require('../../database/db');
 const AppError = require('../../utils/AppError');
 const {
   logSystemInfo,
   logSystemException,
-} = require('../../utils/system-logger');
+} = require('../../utils/logging/system-logger');
 const {
   buildInventoryLogWhereClause,
 } = require('../../utils/sql/build-inventory-log-filters');
@@ -42,6 +43,8 @@ const getInventoryActivityLogs = async ({
   sortBy = 'action_timestamp',
   sortOrder = 'DESC',
 }) => {
+  const context = 'inventory-activity-report/getInventoryActivityLogs';
+  
   const { whereClause, params } = buildInventoryLogWhereClause(filters);
 
   const tableName = 'inventory_activity_log AS ial';
@@ -103,10 +106,38 @@ const getInventoryActivityLogs = async ({
     ${joins.join('\n')}
     WHERE ${whereClause}
   `;
+  
+  const INVENTORY_ACTIVITY_SORT_WHITELIST = new Set([
+    'ial.action_timestamp',
+    'ial.previous_quantity',
+    'ial.quantity_change',
+    'ial.new_quantity',
+    'iat.name',
+    'lat.name',
+    'ist.name',
+    'u.firstname',
+    'u.lastname',
+    'o.order_number',
+    'ot.name',
+    'os.name',
+    's.sku',
+    's.size_label',
+    's.country_code',
+    'p.name',
+    'p.brand',
+    'pb.lot_number',
+    'pb.expiry_date',
+    'pmb.lot_number',
+    'pmb.expiry_date',
+    'pm.code',
+    'wh.name',
+    'loc.name',
+    'ial.id',
+  ]);
 
   try {
     logSystemInfo('Executing inventory activity log report query', {
-      context: 'inventory-activity-report/getInventoryActivityLogs',
+      context,
       page,
       limit,
       sortBy,
@@ -124,13 +155,22 @@ const getInventoryActivityLogs = async ({
       limit,
       sortBy,
       sortOrder,
+      whitelistSet: INVENTORY_ACTIVITY_SORT_WHITELIST,
+      meta: {
+        context,
+        filters,
+        page,
+        limit,
+        sortBy,
+        sortOrder,
+      },
     });
   } catch (error) {
     logSystemException(
       error,
       'Error during inventory activity log report query',
       {
-        context: 'inventory-activity-report/getInventoryActivityLogs',
+        context,
       }
     );
     throw AppError.databaseError('Unable to fetch inventory activity logs');

@@ -217,6 +217,16 @@ exports.up = function (knex) {
     BEFORE UPDATE ON shipment_status
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
+    
+    CREATE TRIGGER trg_product_batches_status_date
+    BEFORE UPDATE ON product_batches
+    FOR EACH ROW
+    EXECUTE FUNCTION update_status_date_if_changed();
+    
+    CREATE TRIGGER trg_packaging_material_batches_status_date
+    BEFORE UPDATE ON packaging_material_batches
+    FOR EACH ROW
+    EXECUTE FUNCTION update_status_date_if_changed();
   `);
 };
 
@@ -277,5 +287,7 @@ exports.down = function (knex) {
     DROP TRIGGER IF EXISTS set_order_fulfillments_updated_at ON order_fulfillments;
     DROP TRIGGER IF EXISTS set_outbound_shipments_updated_at ON outbound_shipments;
     DROP TRIGGER IF EXISTS set_shipment_status_updated_at ON shipment_status;
+    DROP TRIGGER IF EXISTS trg_product_batches_status_date ON product_batches;
+    DROP TRIGGER IF EXISTS trg_packaging_material_batches_status_date ON packaging_material_batches;
   `);
 };

@@ -1,8 +1,9 @@
-const { pool, getUniqueScalarValue } = require('../../database/db');
+const { pool } = require('../../database/db');
 const { initStatusCache } = require('../../config/status-cache');
 const {
   confirmInventoryAllocationService,
 } = require('../../services/inventory-allocation-service');
+const { getUniqueScalarValue } = require('../../utils/db/record-utils');
 
 (async () => {
   const client = await pool.connect();

@@ -1,4 +1,4 @@
-const wrapAsync = require('../utils/wrap-async');
+const { wrapAsyncHandler } = require('../middlewares/async-handler');
 const AppError = require('../utils/AppError');
 const {
   fetchLocationInventoryKpiSummaryService,
@@ -6,7 +6,7 @@ const {
   fetchPaginatedLocationInventorySummaryByItemIdService,
   fetchPaginatedLocationInventoryRecordService,
 } = require('../services/location-inventory-service');
-const { logInfo } = require('../utils/logger-helper');
+const { logInfo } = require('../utils/logging/logger-helper');
 const {
   normalizePaginationAndSortParams,
   sanitizeCommonInventoryFilters,
@@ -19,7 +19,7 @@ const {
  * @queryParam {string} [itemType] - Optional item type filter ('product' | 'packaging_material')
  * @returns {200} JSON array of KPI summary objects grouped by item type, including a total row.
  */
-const getLocationInventoryKpiSummaryController = wrapAsync(async (req, res) => {
+const getLocationInventoryKpiSummaryController = wrapAsyncHandler(async (req, res) => {
   const { itemType } = req.query;
 
   if (itemType && !['product', 'packaging_material'].includes(itemType)) {
@@ -61,7 +61,7 @@ const getLocationInventoryKpiSummaryController = wrapAsync(async (req, res) => {
  *
  * @returns {200} JSON response containing summary records and pagination metadata
  */
-const getLocationInventorySummaryController = wrapAsync(async (req, res) => {
+const getLocationInventorySummaryController = wrapAsyncHandler(async (req, res) => {
   const {
     page = 1,
     limit = 10,
@@ -116,7 +116,7 @@ const getLocationInventorySummaryController = wrapAsync(async (req, res) => {
  *
  * @returns {Promise<void>} Responds with paginated inventory summary in JSON format.
  */
-const getLocationInventorySummaryDetailsController = wrapAsync(
+const getLocationInventorySummaryDetailsController = wrapAsyncHandler(
   async (req, res, next) => {
     const { itemId } = req.params;
     const page = parseInt(req.query.page, 10) || 1;
@@ -178,7 +178,7 @@ const getLocationInventorySummaryDetailsController = wrapAsync(
  *
  * @returns {200} Paginated inventory data including metadata and counts
  */
-const getLocationInventoryRecordController = wrapAsync(async (req, res) => {
+const getLocationInventoryRecordController = wrapAsyncHandler(async (req, res) => {
   // Step 1: Normalize an incoming query to a plain object
   const query = { ...req.query }; // ensures no null prototype issues
 

@@ -1,50 +1,61 @@
+/**
+ * @file user-auth-repository.js
+ * @description Database access layer for user authentication records.
+ *
+ * Auth infrastructure pattern — differs from domain repos in two ways:
+ *  - Errors are re-thrown raw (no handleDbError wrapping); the auth service
+ *    owns error handling and needs the original error, not a normalized wrapper.
+ *    Exception: incrementFailedAttempts and resetFailedAttemptsAndUpdateLastLogin
+ *    wrap with AppError.databaseError since their callers expect a normalized error.
+ *  - Security-relevant success logging is retained on insert and password update.
+ *
+ * Exports:
+ *  - insertUserAuth                          — insert a new user_auth row
+ *  - getAndLockUserAuthByEmail               — fetch and row-lock auth by email
+ *  - getAndLockUserAuthByUserId              — fetch and row-lock auth by user id
+ *  - incrementFailedAttempts                 — increment failed attempts and conditionally set lockout
+ *  - resetFailedAttemptsAndUpdateLastLogin   — reset failed attempts and stamp last_login
+ *  - updatePasswordAndHistory                — update password hash and history metadata
+ */
+
+'use strict';
+
 const { query } = require('../database/db');
 const {
   logSystemInfo,
   logSystemException,
   logSystemWarn,
-} = require('../utils/system-logger');
+} = require('../utils/logging/system-logger');
 const AppError = require('../utils/AppError');
+const {
+  INSERT_USER_AUTH_QUERY,
+  GET_AND_LOCK_USER_AUTH_BY_EMAIL_QUERY,
+  GET_AND_LOCK_USER_AUTH_BY_USER_ID_QUERY,
+  INCREMENT_FAILED_ATTEMPTS_QUERY,
+  RESET_FAILED_ATTEMPTS_AND_UPDATE_LOGIN_QUERY,
+  UPDATE_PASSWORD_AND_HISTORY_QUERY,
+} = require('./queries/user-auth-queries');
+
+// ─── Insert ───────────────────────────────────────────────────────────────────
 
 /**
- * Inserts authentication credentials for a user.
+ * Inserts a new user_auth row for the given user.
  *
- * Repository-layer function:
- * - Inserts a single user_auth record
- * - Relies on database constraints for integrity
- * - Does NOT handle retries, conflict resolution, or business logic
- * - Throws raw database errors to preserve error context
- *
- * Must be called within the same transaction as user creation.
- *
- * @param {Object} auth
- * @param {string} auth.userId - User ID (FK to users).
- * @param {string} auth.passwordHash - Hashed password.
- * @param {Object} client - Database client or transaction.
+ * @param {Object}                  options
+ * @param {string}                  options.userId       - UUID of the user.
+ * @param {string}                  options.passwordHash - Hashed password value.
+ * @param {import('pg').PoolClient} client               - Transaction client.
  *
  * @returns {Promise<void>}
- *
- * @throws {Error} Raw database errors:
- * - Unique constraint violation (user already has auth)
- * - Foreign key violation (user does not exist)
- * - Other database-level errors
+ * @throws  Propagates raw DB error — auth service owns error handling.
  */
 const insertUserAuth = async ({ userId, passwordHash }, client) => {
   const context = 'user-auth-repository/insertUserAuth';
-
-  const queryText = `
-    INSERT INTO user_auth (
-      user_id,
-      password_hash
-    )
-    VALUES ($1, $2);
-  `;
-
-  const params = [userId, passwordHash];
-
+  const params  = [userId, passwordHash];
+  
   try {
-    await query(queryText, params, client);
-
+    await query(INSERT_USER_AUTH_QUERY, params, client);
+    
     logSystemInfo('User auth inserted successfully', {
       context,
       userId,
@@ -53,225 +64,125 @@ const insertUserAuth = async ({ userId, passwordHash }, client) => {
     logSystemException(error, 'Failed to insert user auth', {
       context,
       userId,
-      error: error.message,
     });
-
     throw error;
   }
 };
 
+// ─── Fetch and Lock by Email ──────────────────────────────────────────────────
+
 /**
- * Fetches active user authentication details by email and acquires
- * a row-level lock on the corresponding user_auth record.
+ * Fetches and row-locks the user auth record matching the given email and status.
  *
- * This function is intended for login flows that perform
- * stateful mutations (e.g. failed attempt increments, lockouts,
- * last_login updates) and therefore must be executed within
- * an explicit transaction.
+ * Must be called inside a transaction — uses FOR UPDATE OF ua.
+ * Throws a notFoundError (isExpected: true) if no matching active user exists.
  *
- * Locking is applied at SELECT time using `FOR UPDATE` to prevent
- * concurrent login attempts from causing inconsistent auth state.
+ * @param {string}                  email          - Email address to look up.
+ * @param {string}                  activeStatusId - UUID of the active status.
+ * @param {import('pg').PoolClient} client         - Transaction client.
  *
- * @param {string} email - The user's email address.
- * @param {string} activeStatusId - The resolved status ID representing an active user.
- * @param {object} client - Transaction-scoped database client.
- *
- * @returns {Promise<object>} Locked user authentication record, including auth metadata.
- *
- * @throws {AppError} If the user does not exist, is inactive, or a database error occurs.
+ * @returns {Promise<Object>} User auth row.
+ * @throws  {AppError} notFoundError if user not found or inactive.
+ * @throws  {AppError} databaseError on unexpected DB failure.
  */
 const getAndLockUserAuthByEmail = async (email, activeStatusId, client) => {
   const context = 'user-auth-repository/getAndLockUserAuthByEmail';
-
-  const sql = `
-    SELECT
-      u.id            AS user_id,
-      u.email,
-      u.role_id,
-      ua.id           AS auth_id,
-      ua.password_hash,
-      ua.last_login,
-      ua.attempts,
-      ua.failed_attempts,
-      ua.lockout_time
-    FROM users u
-    JOIN user_auth ua ON ua.user_id = u.id
-    WHERE u.email = $1
-      AND u.status_id = $2
-    FOR UPDATE OF ua;
-  `;
-
+  
   try {
-    const { rows } = await query(sql, [email, activeStatusId], client);
-
+    const { rows } = await query(
+      GET_AND_LOCK_USER_AUTH_BY_EMAIL_QUERY,
+      [email, activeStatusId],
+      client
+    );
+    
     if (rows.length === 0) {
       throw AppError.notFoundError('User not found or inactive', {
         isExpected: true,
       });
     }
-
+    
     return rows[0];
   } catch (error) {
-    if (error.isExpected) {
-      throw error;
-    }
-
-    logSystemException(
-      error,
-      'Failed to fetch and lock user authentication by email',
-      {
-        context,
-        email,
-        error: error.message,
-      }
-    );
-
-    throw AppError.databaseError(
-      'Failed to fetch user authentication details',
-      {
-        isExpected: false,
-        details: { email },
-      }
-    );
+    if (error.isExpected) throw error;
+    
+    logSystemException(error, 'Failed to fetch and lock user auth by email', {
+      context,
+      email,
+    });
+    
+    throw AppError.databaseError('Failed to fetch user authentication details', {
+      isExpected: false,
+      details:    { email },
+    });
   }
 };
 
+// ─── Fetch and Lock by User ID ────────────────────────────────────────────────
+
 /**
- * Fetches and locks the authentication record for a user.
+ * Fetches and row-locks the user auth record for the given user id.
  *
- * Guarantees (on success):
- * - Returns the user's authentication state
- * - Acquires a row-level lock on `user_auth` via `FOR UPDATE`
- * - Prevents concurrent mutation of authentication state
+ * Must be called inside a transaction — uses FOR UPDATE OF ua.
+ * Throws a notFoundError (isExpected: true) if no auth record exists.
  *
- * Concurrency contract:
- * - MUST be executed within an active transaction
- * - Lock is held until transaction commit or rollback
- * - Ensures serialized updates to password, lockout, and attempt counters
+ * @param {string}                  userId - UUID of the user.
+ * @param {import('pg').PoolClient} client - Transaction client.
  *
- * Scope:
- * - Locks only the `user_auth` row
- * - Does NOT lock the `users` table
- * - Does NOT perform business validation
- *
- * @param {string} userId - Target user identifier
- * @param {Object} client - Transaction-scoped database client (required)
- *
- * @returns {Promise<{
- *   user_id: string,
- *   email: string,
- *   role_id: string,
- *   auth_id: string,
- *   password_hash: string,
- *   last_login: Date | null,
- *   attempts: number,
- *   failed_attempts: number,
- *   lockout_time: Date | null,
- *   metadata: {
- *     password_history?: Array<{
- *       password_hash: string,
- *       changed_at: string
- *     }>,
- *     lastSuccessfulLogin?: string,
- *     lastLockout?: string,
- *     notes?: string
- *   } | null
- * }>}
- *
- * @throws {AppError}
+ * @returns {Promise<Object>} User auth row.
+ * @throws  {AppError} validationError if userId is absent.
+ * @throws  {AppError} serviceError if client is absent.
+ * @throws  {AppError} notFoundError if auth record not found.
+ * @throws  {AppError} databaseError on unexpected DB failure.
  */
 const getAndLockUserAuthByUserId = async (userId, client) => {
   const context = 'user-auth-repository/getAndLockUserAuthByUserId';
-
-  if (!userId) {
-    throw AppError.validationError('User ID is required.');
-  }
-
-  if (!client) {
-    throw AppError.serviceError('Transaction client is required.');
-  }
-
-  const sql = `
-    SELECT
-      u.id            AS user_id,
-      u.email,
-      u.role_id,
-      ua.id           AS auth_id,
-      ua.password_hash,
-      ua.last_login,
-      ua.attempts,
-      ua.failed_attempts,
-      ua.lockout_time,
-      ua.metadata
-    FROM users u
-    JOIN user_auth ua ON ua.user_id = u.id
-    WHERE u.id = $1
-    FOR UPDATE OF ua;
-  `;
-
+  
+  if (!userId) throw AppError.validationError('User ID is required.');
+  if (!client) throw AppError.serviceError('Transaction client is required.');
+  
   try {
-    const { rows } = await query(sql, [userId], client);
-
+    const { rows } = await query(
+      GET_AND_LOCK_USER_AUTH_BY_USER_ID_QUERY,
+      [userId],
+      client
+    );
+    
     if (rows.length === 0) {
       throw AppError.notFoundError('User authentication record not found.', {
         isExpected: true,
       });
     }
-
+    
     return rows[0];
   } catch (error) {
-    if (error.isExpected) {
-      throw error;
-    }
-
-    logSystemException(
-      error,
-      'Failed to fetch and lock user authentication by user ID',
-      {
-        context,
-        userId,
-        error: error.message,
-      }
-    );
-
-    throw AppError.databaseError(
-      'Failed to fetch user authentication details.',
-      {
-        isExpected: false,
-        details: { userId },
-      }
-    );
+    if (error.isExpected) throw error;
+    
+    logSystemException(error, 'Failed to fetch and lock user auth by user ID', {
+      context,
+      userId,
+    });
+    
+    throw AppError.databaseError('Failed to fetch user authentication details.', {
+      isExpected: false,
+      details:    { userId },
+    });
   }
 };
 
+// ─── Increment Failed Attempts ────────────────────────────────────────────────
+
 /**
- * Increments failed login attempts for a user authentication record
- * and applies an account lockout when the configured threshold is reached.
+ * Increments failed login attempts and sets a lockout if the threshold is reached.
  *
- * Locking contract:
- * This function assumes the corresponding `user_auth` row has already been
- * locked by the caller (e.g. via `getAndLockUserAuthByEmail`) and MUST be
- * executed within the same database transaction. This function does NOT
- * acquire locks itself.
+ * Lockout threshold: 15 failed attempts → 30 minute lockout.
  *
- * Typical usage:
- *   1. Fetch and lock the user_auth row.
- *   2. Evaluate login credentials.
- *   3. Call this function to record a failed attempt.
+ * @param {string}                  authId                - UUID of the user_auth row.
+ * @param {number}                  newTotalAttempts      - New cumulative attempt count.
+ * @param {number}                  currentFailedAttempts - Current failed attempt count before increment.
+ * @param {import('pg').PoolClient} client                - Transaction client.
  *
- * Concurrency guarantees:
- * - Safe against concurrent login attempts when used as intended.
- * - No retries are performed; mutations are deterministic under lock.
- *
- * @param {string} authId - Primary key of the locked `user_auth` record.
- * @param {number} newTotalAttempts - Updated cumulative count of all login attempts.
- * @param {number} currentFailedAttempts - Current failed login attempt count.
- * @param {object} client - Transaction-scoped database client.
- *
- * @returns {Promise<void>} Resolves when the authentication state is updated.
- *
- * @throws {AppError} If the update fails due to a database error or misuse
- *                    (e.g. missing transaction context).
+ * @returns {Promise<void>}
+ * @throws  {AppError} databaseError if the update fails.
  */
 const incrementFailedAttempts = async (
   authId,
@@ -280,60 +191,26 @@ const incrementFailedAttempts = async (
   client
 ) => {
   const context = 'user-auth-repository/incrementFailedAttempts';
-
+  
   const newFailedAttempts = currentFailedAttempts + 1;
-
-  const lockoutTime =
-    newFailedAttempts >= 15
-      ? new Date(Date.now() + 30 * 60 * 1000) // 30 minutes
-      : null;
-
-  const notes =
-    lockoutTime !== null
-      ? 'Account locked due to multiple failed login attempts.'
-      : null;
-
-  const sql = `
-    UPDATE user_auth
-    SET
-      attempts = $1,
-      failed_attempts = $2,
-      lockout_time = $3,
-      metadata = jsonb_set(
-        jsonb_set(
-          COALESCE(metadata, '{}'),
-          '{lastLockout}',
-          to_jsonb($4::timestamp),
-          true
-        ),
-        '{notes}',
-        to_jsonb($5::text),
-        true
-      ),
-      updated_at = NOW()
-    WHERE id = $6;
-  `;
-
+  const lockoutTime       = newFailedAttempts >= 15
+    ? new Date(Date.now() + 30 * 60 * 1000)
+    : null;
+  const notes             = lockoutTime !== null
+    ? 'Account locked due to multiple failed login attempts.'
+    : null;
+  
   try {
     await query(
-      sql,
-      [
-        newTotalAttempts,
-        newFailedAttempts,
-        lockoutTime,
-        lockoutTime,
-        notes,
-        authId,
-      ],
+      INCREMENT_FAILED_ATTEMPTS_QUERY,
+      [newTotalAttempts, newFailedAttempts, lockoutTime, lockoutTime, notes, authId],
       client
     );
   } catch (error) {
     logSystemException(error, 'Failed to increment failed login attempts', {
       context,
       authId,
-      error: error.message,
     });
-
     throw AppError.databaseError('Failed to update failed login attempts.', {
       cause: error,
       context,
@@ -341,146 +218,82 @@ const incrementFailedAttempts = async (
   }
 };
 
+// ─── Reset Failed Attempts ────────────────────────────────────────────────────
+
 /**
- * Resets failed login attempts and records a successful login
- * for a locked user authentication record.
+ * Resets failed attempts to zero, clears lockout, and stamps last_login.
  *
- * Locking contract:
- * This function assumes the corresponding `user_auth` row has already been
- * locked by the caller (e.g. via `getAndLockUserAuthByEmail`) and MUST be
- * executed within the same database transaction. This function does NOT
- * acquire locks itself.
+ * Called on successful authentication.
  *
- * Typical usage:
- *   1. Fetch and lock the user_auth row.
- *   2. Verify login credentials.
- *   3. Call this function to reset failure counters and update login metadata.
+ * @param {string}                  authId           - UUID of the user_auth row.
+ * @param {number}                  newTotalAttempts - New cumulative attempt count.
+ * @param {import('pg').PoolClient} client           - Transaction client.
  *
- * Concurrency guarantees:
- * - Safe under concurrent login attempts when used as intended.
- * - No retries are performed; updates are deterministic under lock.
- *
- * @param {string} authId - Primary key of the locked `user_auth` record.
- * @param {number} newTotalAttempts - Updated cumulative count of all login attempts.
- * @param {object} client - Transaction-scoped database client.
- *
- * @returns {Promise<void>} Resolves when the authentication state is updated.
- *
- * @throws {AppError} If the update fails due to a database error or misuse
- *                    (e.g. missing transaction context).
+ * @returns {Promise<void>}
+ * @throws  {AppError} databaseError if the update fails.
  */
-const resetFailedAttemptsAndUpdateLastLogin = async (
-  authId,
-  newTotalAttempts,
-  client
-) => {
+const resetFailedAttemptsAndUpdateLastLogin = async (authId, newTotalAttempts, client) => {
   const context = 'user-auth-repository/resetFailedAttemptsAndUpdateLastLogin';
-
-  const sql = `
-    UPDATE user_auth
-    SET
-      attempts = $1,
-      failed_attempts = 0,
-      lockout_time = NULL,
-      last_login = NOW(),
-      metadata = jsonb_set(
-        COALESCE(metadata, '{}'),
-        '{lastSuccessfulLogin}',
-        to_jsonb(NOW()::timestamp),
-        true
-      ),
-      updated_at = NOW()
-    WHERE id = $2;
-  `;
-
+  
   try {
-    await query(sql, [newTotalAttempts, authId], client);
+    await query(
+      RESET_FAILED_ATTEMPTS_AND_UPDATE_LOGIN_QUERY,
+      [newTotalAttempts, authId],
+      client
+    );
   } catch (error) {
-    logSystemException(
-      error,
-      'Failed to reset failed login attempts and update last login',
-      {
-        context,
-        authId,
-        error: error.message,
-      }
-    );
-
-    throw AppError.databaseError(
-      'Failed to reset failed attempts or update last login.',
-      {
-        cause: error,
-        context,
-      }
-    );
+    logSystemException(error, 'Failed to reset failed login attempts and update last login', {
+      context,
+      authId,
+    });
+    throw AppError.databaseError('Failed to reset failed attempts or update last login.', {
+      cause: error,
+      context,
+    });
   }
 };
 
+// ─── Update Password and History ──────────────────────────────────────────────
+
 /**
- * Updates a user's password hash and password history.
+ * Updates the password hash and appends to the password history metadata.
  *
- * Repository guarantees:
- * - Performs a single UPDATE statement
- * - Does not contain business logic
- * - Does not validate password policy
- * - Throws on database failure
+ * Returns null if the auth record was not found (no rows updated).
  *
- * @param {string} authId
- * @param {string} newPasswordHash
- * @param {Array<Object>} updatedHistory
- * @param {Object|null} client
+ * @param {string}                  authId          - UUID of the user_auth row.
+ * @param {string}                  newPasswordHash - New hashed password value.
+ * @param {Array}                   updatedHistory  - Updated password history array.
+ * @param {import('pg').PoolClient} [client]        - Optional transaction client.
  *
- * @returns {Promise<void>}
+ * @returns {Promise<{id: string}|null>} Updated row id, or null if not found.
+ * @throws  Propagates raw DB error — auth service owns error handling.
  */
-const updatePasswordAndHistory = async (
-  authId,
-  newPasswordHash,
-  updatedHistory,
-  client = null
-) => {
+const updatePasswordAndHistory = async (authId, newPasswordHash, updatedHistory, client = null) => {
   const context = 'user-auth-repository/updatePasswordAndHistory';
-
-  const sql = `
-    UPDATE user_auth
-    SET
-      password_hash = $1,
-      metadata = jsonb_set(
-        COALESCE(metadata, '{}'),
-        '{password_history}',
-        $2::jsonb
-      ),
-      updated_at = NOW()
-    WHERE id = $3
-    RETURNING id;
-  `;
-
-  const params = [newPasswordHash, JSON.stringify(updatedHistory), authId];
-
+  const params  = [newPasswordHash, JSON.stringify(updatedHistory), authId];
+  
   try {
-    const { rows } = await query(sql, params, client);
-
+    const { rows } = await query(UPDATE_PASSWORD_AND_HISTORY_QUERY, params, client);
+    
     if (!rows.length) {
       logSystemWarn('Password update affected no rows', {
         context,
         authId,
       });
-
       return null;
     }
-
+    
     logSystemInfo('Password and history updated', {
       context,
       authId,
     });
-
-    return rows[0] || null;
+    
+    return rows[0];
   } catch (error) {
     logSystemException(error, 'Failed to update password and history', {
       context,
       authId,
-      error: error.message,
     });
-
     throw error;
   }
 };

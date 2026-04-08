@@ -1,112 +1,89 @@
+/**
+ * @file validate-token.js
+ * @description Token validation utilities for access and refresh token flows.
+ *
+ * `validateAccessToken` verifies JWT cryptographic validity and session state.
+ * `validateRefreshTokenState` enforces persistence-layer token rules including
+ * reuse detection and expiry, treating both as security incidents that trigger
+ * session revocation and audit logging.
+ */
+
+'use strict';
+
 const { verifyAccessJwt } = require('./jwt-utils');
 const { validateSessionState } = require('./validate-session');
 const AppError = require('../../utils/AppError');
 const { hashToken } = require('../../utils/auth/token-hash');
 const { getTokenByHash } = require('../../repositories/token-repository');
-const { revokeSession } = require('../../business/auth/session-lifecycle');
-const { logSystemWarn, logSystemInfo } = require('../system-logger');
+const { revokeSession } = require('../../services/session-service');
+const { logSystemWarn } = require('../logging/system-logger');
 const {
   insertTokenActivityLog,
 } = require('../../repositories/token-activity-log-repository');
 
+const CONTEXT = 'validate-token';
+
 /**
- * Validates an access token and enforces session state integrity.
+ * Verifies an access token's cryptographic validity, payload shape, and
+ * associated session state.
  *
- * Service-layer function:
- * - Performs cryptographic JWT verification
- * - Ensures required payload fields exist
- * - Validates associated session state
- * - Does NOT check persistence of access tokens (stateless by design)
+ * A missing payload field indicates the token was signed with an incorrect
+ * or outdated payload shape — treated as an authentication failure.
  *
- * @param {string} rawAccessToken - The raw access token string
- * @param {Object|null} client - Optional transaction client
- *
- * @returns {Promise<{
- *   id: string,
- *   role: string,
- *   sessionId: string,
- *   iat: number,
- *   exp: number
- * }>} Decoded and validated JWT payload
- *
- * @throws {AppError.validationError}
- *   If token format is invalid
- *
- * @throws {AppError.authenticationError}
- *   If token payload is malformed or session is invalid
+ * @param {string} rawAccessToken - Raw JWT access token string.
+ * @param {import('pg').PoolClient | null} [client=null] - Optional transaction client.
+ * @returns {Promise<object>} Decoded and validated JWT payload.
+ * @throws {AppError} authenticationError if payload is malformed or session is invalid.
  */
 const validateAccessToken = async (rawAccessToken, client = null) => {
   const payload = verifyAccessJwt(rawAccessToken);
-
-  if (!payload.sessionId) {
+  
+  // A missing field means the token was signed with an incorrect or outdated
+  // payload shape — reject rather than proceeding with incomplete identity.
+  if (!payload.id || !payload.role || !payload.sessionId) {
     throw AppError.authenticationError('Invalid access token payload.');
   }
-
+  
   await validateSessionState(payload.sessionId, client);
-
+  
   return payload;
 };
 
 /**
- * Validates refresh token persistence state and enforces strict rotation policy.
+ * Validates a refresh token's persistence state — checks existence, type,
+ * revocation status, and expiry.
  *
- * Guarantees (on success):
- * - Token exists in the database
- * - Token type is `refresh`
- * - Token is not expired
- * - Token has not been revoked
- *
- * Security behavior:
- * - Presentation of a revoked refresh token is treated as reuse and
- *   triggers full session invalidation.
- * - Presentation of an expired refresh token invalidates the session.
- * - All reuse or expiry attempts are recorded in the token activity log.
- * - This function fails closed on any persistence inconsistency.
- *
- * Operational notes:
- * - Designed to run inside a transaction.
- * - Does NOT perform JWT signature validation (handled earlier).
- * - Does NOT expose internal token state to callers.
+ * Reuse and expiry are treated as security incidents: both trigger an audit
+ * log entry and full session revocation before throwing.
  *
  * @param {string} refreshToken - Raw refresh token string.
- * @param {string|null} ipAddress - Client IP address for audit logging.
- * @param {string|null} userAgent - Client user agent for audit logging.
- * @param {Object|null} [client] - Optional transaction client.
- *
- * @returns {Promise<{
- *   id: string,
- *   user_id: string,
- *   session_id: string | null,
- *   token_type: 'refresh',
- *   issued_at: Date,
- *   expires_at: Date,
- *   is_revoked: boolean
- * }>}
- *
- * @throws {AppError}
- * - refreshTokenError
- * - refreshTokenExpiredError
- * - authenticationError
+ * @param {object} [options={}]
+ * @param {string | null} [options.ipAddress=null] - IP address for audit logging.
+ * @param {string | null} [options.userAgent=null] - User agent for audit logging.
+ * @param {import('pg').PoolClient | null} [options.client=null] - Optional transaction client.
+ * @returns {Promise<object>} Validated token row from the database.
+ * @throws {AppError} refreshTokenError if token is missing, invalid, wrong type, or revoked.
+ * @throws {AppError} refreshTokenExpiredError if token has expired.
+ * @throws {AppError} authenticationError if token reuse is detected.
  */
 const validateRefreshTokenState = async (
   refreshToken,
-  { ipAddress = null, userAgent = null } = {},
-  client = null
+  { ipAddress = null, userAgent = null, client = null } = {}
 ) => {
-  const context = 'validate-token/validateRefreshTokenState';
-
+  const context = `${CONTEXT}/validateRefreshTokenState`;
+  
   if (!refreshToken) {
     throw AppError.refreshTokenError('Refresh token is missing.');
   }
-
+  
   const tokenHash = hashToken(refreshToken);
   const token = await getTokenByHash(tokenHash, client);
-
+  
   if (!token) {
-    // Do not reveal whether token ever existed
+    // Deliberately vague — do not reveal whether the token ever existed.
     throw AppError.refreshTokenError('Refresh token is invalid.');
   }
-
+  
   if (token.token_type !== 'refresh') {
     logSystemWarn('Non-refresh token used in refresh flow', {
       context,
@@ -114,12 +91,13 @@ const validateRefreshTokenState = async (
       userId: token.user_id,
       tokenType: token.token_type,
     });
-
+    
     throw AppError.refreshTokenError('Invalid token type.');
   }
-
+  
   // ------------------------------------------------------------
-  // Reuse Detection (Revoked Token)
+  // Reuse detection — revoked token presented.
+  // Treat as security incident: audit + full session invalidation.
   // ------------------------------------------------------------
   if (token.is_revoked) {
     logSystemWarn('Refresh token reuse detected', {
@@ -128,8 +106,7 @@ const validateRefreshTokenState = async (
       userId: token.user_id,
       sessionId: token.session_id,
     });
-
-    // Record security incident in token activity log
+    
     await insertTokenActivityLog(
       {
         userId: token.user_id,
@@ -142,35 +119,28 @@ const validateRefreshTokenState = async (
       },
       client
     );
-
+    
     if (token.session_id) {
-      await revokeSession(
-        token.session_id,
-        {
-          ipAddress,
-          userAgent,
-        },
-        client
-      );
+      await revokeSession(token.session_id, { ipAddress, userAgent }, client);
     }
-
+    
     throw AppError.authenticationError(
       'Refresh token reuse detected. Session has been revoked.'
     );
   }
-
+  
   // ------------------------------------------------------------
-  // Expiry Detection
+  // Expiry detection — expired token presented.
+  // Audit the attempt and invalidate the session.
   // ------------------------------------------------------------
   if (token.expires_at <= new Date()) {
-    logSystemInfo('Expired refresh token presented', {
+    logSystemWarn('Expired refresh token presented', {
       context,
       tokenId: token.id,
       userId: token.user_id,
       sessionId: token.session_id,
     });
-
-    // Audit expired refresh token attempt
+    
     await insertTokenActivityLog(
       {
         userId: token.user_id,
@@ -183,16 +153,16 @@ const validateRefreshTokenState = async (
       },
       client
     );
-
+    
     if (token.session_id) {
-      await revokeSession(token.session_id, {}, client);
+      await revokeSession(token.session_id, { ipAddress, userAgent }, client);
     }
-
+    
     throw AppError.refreshTokenExpiredError(
       'Refresh token expired. Session has been revoked.'
     );
   }
-
+  
   return token;
 };
 

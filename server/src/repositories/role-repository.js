@@ -1,209 +1,158 @@
-const { query, paginateQueryByOffset } = require('../database/db');
-const { logSystemException, logSystemInfo } = require('../utils/system-logger');
+/**
+ * @file role-repository.js
+ * @description Database access layer for role records.
+ *
+ * Exports:
+ *  - getRoleById          — fetch single role by id
+ *  - resolveRoleIdByName  — resolve role id by name (case-insensitive)
+ *  - getRoleLookup        — offset-paginated dropdown lookup with optional filtering
+ */
+
+'use strict';
+
+const { query, pool } = require('../database/db');
+const { paginateQueryByOffset } = require('../utils/db/pagination/pagination-helpers');
 const AppError = require('../utils/AppError');
-const { buildRoleFilter } = require('../utils/sql/build-role-filters');
+const { handleDbError } = require('../utils/errors/error-handlers');
+const { logDbQueryError } = require('../utils/db-logger');
+const { buildRoleFilter } = require('../utils/sql/build-role-filter');
+const {
+  ROLE_GET_BY_ID_QUERY,
+  ROLE_RESOLVE_BY_NAME_QUERY,
+  ROLE_LOOKUP_TABLE,
+  ROLE_LOOKUP_JOINS,
+  ROLE_LOOKUP_SORT_WHITELIST,
+  ROLE_LOOKUP_ADDITIONAL_SORTS,
+  buildRoleLookupQuery,
+} = require('./queries/role-queries');
+
+// ─── Single Record ────────────────────────────────────────────────────────────
 
 /**
- * Fetch a role by its ID.
+ * Fetches a single role record by ID.
  *
- * Repository-layer function:
- * - Fetches raw role data
- * - Does NOT enforce business rules (e.g. active/inactive)
- * - Throws raw database errors
+ * Returns null if no role exists for the given ID.
  *
- * @param {string} roleId
- * @param {object} client - Optional transaction client
- * @returns {Promise<Object|null>} Role row or null if not found
+ * @param {string}                  roleId - UUID of the role.
+ * @param {PoolClient} client - DB client for transactional context.
+ *
+ * @returns {Promise<Object|null>} Role row, or null if not found.
+ * @throws  {AppError}             Normalized database error if the query fails.
  */
 const getRoleById = async (roleId, client) => {
   const context = 'role-repository/getRoleById';
-
-  const sql = `
-    SELECT
-      id,
-      name,
-      role_group,
-      parent_role_id,
-      hierarchy_level,
-      is_active,
-      status_id
-    FROM roles
-    WHERE id = $1
-    LIMIT 1;
-  `;
-
+  
   try {
-    const { rows } = await query(sql, [roleId], client);
-    return rows[0] || null;
+    const { rows } = await query(ROLE_GET_BY_ID_QUERY, [roleId], client);
+    return rows[0] ?? null;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch role by ID', {
+    throw handleDbError(error, {
       context,
-      roleId,
+      message: 'Failed to fetch role by ID.',
+      meta:    { roleId },
+      logFn:   (err) => logDbQueryError(
+        ROLE_GET_BY_ID_QUERY, [roleId], err, { context, roleId }
+      ),
     });
-    throw error; // raw error only
   }
 };
 
+// ─── Resolve By Name ─────────────────────────────────────────────────────────
+
 /**
- * Resolves a role ID by role name.
+ * Resolves a role UUID by its name (case-insensitive).
  *
- * Repository-layer function.
+ * Not-found check is outside the try block — AppError.notFoundError must
+ * not be caught and re-thrown as a databaseError.
  *
- * Characteristics:
- * - Bootstrap-safe (no status or permission enforcement)
- * - Case-insensitive role name matching
- * - Single-responsibility: ID resolution only
- *
- * Intended usage:
- * - Root admin initialization
- * - Database seeding
- * - System bootstrap flows
- *
- * NOT intended for:
- * - Authorization checks
- * - Active/inactive role validation
- *
- * @param {string} roleName - Role name to resolve
- * @param {object} [client] - Optional transaction client
- *
- * @returns {Promise<string>} Role ID
- *
- * @throws {AppError} If role does not exist or query fails
+ * @param {string}             roleName - Name of the role to look up.
+ * @param {PoolClient}         [client] - Optional DB client for transactional context.
+ *                                        Falls back to pool if omitted.
+ * @returns {Promise<string>}             UUID of the matching role.
+ * @throws  {AppError}                    Validation error if roleName is not provided.
+ * @throws  {AppError}                    Not found error if no role matches the name.
+ * @throws  {AppError}                    Normalized database error if the query fails.
  */
 const resolveRoleIdByName = async (roleName, client) => {
   const context = 'role-repository/resolveRoleIdByName';
-
+  
+  const db = client ?? pool; // fall back to pool
+  
   if (!roleName || typeof roleName !== 'string') {
-    throw AppError.validationError('Role name is required.', {
-      context,
-    });
+    throw AppError.validationError('Role name is required.', { context });
   }
-
-  const sql = `
-    SELECT id
-    FROM roles
-    WHERE LOWER(name) = LOWER($1)
-    LIMIT 1
-  `;
-
+  
+  let rows;
+  
   try {
-    const { rows } = await query(sql, [roleName], client);
-
-    if (!rows.length) {
-      throw AppError.notFoundError(`Required role "${roleName}" not found.`, {
-        context,
-        roleName,
-      });
-    }
-
-    logSystemInfo('Resolved role ID by name', {
-      context,
-      roleName,
-      roleId: rows[0].id,
-    });
-
-    return rows[0].id;
+    ({ rows } = await query(ROLE_RESOLVE_BY_NAME_QUERY, [roleName], db));
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
-
-    logSystemException(error, 'Failed to resolve role ID by name', {
+    throw handleDbError(error, {
       context,
-      roleName,
-    });
-
-    throw AppError.databaseError('Failed to resolve role ID.', {
-      context,
-      cause: error,
+      message: 'Failed to resolve role ID by name.',
+      meta:    { roleName },
+      logFn:   (err) => logDbQueryError(
+        ROLE_RESOLVE_BY_NAME_QUERY, [roleName], err, { context, roleName }
+      ),
     });
   }
+  
+  // Not-found check outside try — throwing notFoundError inside would be
+  // caught and re-thrown as a databaseError.
+  if (!rows.length) {
+    throw AppError.notFoundError(
+      `Required role "${roleName}" not found.`,
+      { context, meta: { roleName } }
+    );
+  }
+  
+  return rows[0].id;
 };
 
+// ─── Lookup ───────────────────────────────────────────────────────────────────
+
 /**
- * Fetches a lightweight, paginated list of roles for use in
- * dropdowns, permission assignment, and admin configuration screens.
+ * Fetches paginated role records for dropdown/lookup use.
  *
- * Returns only identity and classification fields required for UI lookup.
+ * Sorted by hierarchy_level ascending with name as tie-breaker.
  *
- * Supports:
- * - Keyword search (name / description / role_group)
- * - Hierarchy and parent filtering
- * - Active and status-based filtering
- * - Stable sorting by hierarchy → name
- * - Offset-based pagination
+ * @param {Object} params
+ * @param {Object} [params.filters={}] - Optional filters.
+ * @param {number} [params.limit=50]   - Max records per page.
+ * @param {number} [params.offset=0]   - Offset for pagination.
  *
- * @param {Object} options
- * @param {Object} [options.filters={}]
- * @param {number} [options.limit=50]
- * @param {number} [options.offset=0]
- *
- * @returns {Promise<{
- *   data: Array<{
- *     id: string,
- *     name: string,
- *     role_group: string | null,
- *     hierarchy_level: number | null,
- *     parent_role_id: string | null,
- *     is_active: boolean
- *   }>,
- *   pagination: {
- *     offset: number,
- *     limit: number,
- *     totalRecords: number,
- *     hasMore: boolean
- *   }
- * }>}
+ * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
+ * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getRoleLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
   const context = 'role-repository/getRoleLookup';
-  const tableName = 'roles r';
-
+  
   const { whereClause, params } = buildRoleFilter(filters);
-
-  const queryText = `
-    SELECT
-      r.id,
-      r.name,
-      r.role_group,
-      r.hierarchy_level,
-      r.parent_role_id,
-      r.is_active,
-      r.status_id
-    FROM ${tableName}
-    LEFT JOIN status s ON s.id = r.status_id
-    WHERE ${whereClause}
-  `;
-
+  const queryText = buildRoleLookupQuery(whereClause);
+  
   try {
-    const result = await paginateQueryByOffset({
-      tableName,
+    return await paginateQueryByOffset({
+      tableName:       ROLE_LOOKUP_TABLE,
+      joins:           ROLE_LOOKUP_JOINS,
       whereClause,
       queryText,
       params,
       offset,
       limit,
-      sortBy: 'r.hierarchy_level',
-      sortOrder: 'ASC',
-      additionalSort: 'r.name ASC',
+      sortBy:          'r.hierarchy_level',
+      sortOrder:       'ASC',
+      additionalSorts: ROLE_LOOKUP_ADDITIONAL_SORTS,
+      whitelistSet:    ROLE_LOOKUP_SORT_WHITELIST,
     });
-
-    logSystemInfo('Fetched role lookup data', {
-      context,
-      offset,
-      limit,
-      filters,
-    });
-
-    return result;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch role lookup', {
+    throw handleDbError(error, {
       context,
-      offset,
-      limit,
-      filters,
+      message: 'Failed to fetch role lookup.',
+      meta:    { filters, limit, offset },
+      logFn:   (err) => logDbQueryError(
+        queryText, params, err, { context, filters, limit, offset }
+      ),
     });
-    throw AppError.databaseError('Failed to fetch role lookup.');
   }
 };
 

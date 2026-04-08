@@ -1,60 +1,59 @@
+/**
+ * @file location-transformer.js
+ * @description Row-level and page-level transformers for location records.
+ *
+ * Exports:
+ *   - transformLocationRow               – transforms a single location DB row
+ *   - transformPaginatedLocationResults  – transforms a paginated location result set
+ *
+ * All functions are pure — no logging, no AppError, no side effects.
+ */
+
+'use strict';
+
 const { compactAudit, makeAudit } = require('../utils/audit-utils');
-const { cleanObject } = require('../utils/object-utils');
-const { transformPageResult } = require('../utils/transformer-utils');
+const { cleanObject }             = require('../utils/object-utils');
+const { transformPageResult }     = require('../utils/transformer-utils');
 
 /**
- * Transforms a single raw location SQL row into a clean, API-ready object.
+ * Transforms a single location DB row into the UI-facing shape.
  *
- * @param {Record<string, any>} row - Raw SQL row from `getPaginatedLocations`
- * @returns {Record<string, any>} Normalized location object
+ * @param {LocationRow} row
+ * @returns {LocationRecord}
  */
-const transformLocationRow = (row) => {
-  const base = {
-    id: row.id,
-    name: row.name,
-
+const transformLocationRow = (row) =>
+  cleanObject({
+    id:           row.id,
+    name:         row.name,
     locationType: row.location_type_name ?? null,
-
     address: {
-      city: row.city ?? null,
+      city:            row.city             ?? null,
       provinceOrState: row.province_or_state ?? null,
-      country: row.country ?? null,
+      country:         row.country           ?? null,
     },
-
     isArchived: row.is_archived ?? false,
-
     status: {
-      id: row.status_id ?? null,
+      id:   row.status_id   ?? null,
       name: row.status_name ?? null,
       date: row.status_date ?? null,
     },
-
     audit: compactAudit(makeAudit(row)),
-  };
-
-  return cleanObject(base);
-};
+  });
 
 /**
- * Transform a paginated location query result into API-ready format.
+ * Transforms a paginated location result set into the UI-facing shape.
  *
- * Applies `transformLocationRow` to each row while preserving
- * pagination metadata.
+ * Delegates per-row transformation to `transformLocationRow` via `transformPageResult`,
+ * which preserves pagination metadata.
  *
- * @param {{
- *   data: Record<string, any>[],
- *   pagination: {
- *     page: number,
- *     limit: number,
- *     totalRecords: number,
- *     totalPages: number
- *   }
- * }} paginatedResult
- *
- * @returns {Promise<PaginatedResult<T>>}
+ * @param {Object}        paginatedResult
+ * @param {LocationRow[]} paginatedResult.data
+ * @param {Object}        paginatedResult.pagination
+ * @returns {Promise<PaginatedResult<LocationRow>>}
  */
 const transformPaginatedLocationResults = (paginatedResult) =>
-  transformPageResult(paginatedResult, transformLocationRow);
+  /** @type {Promise<PaginatedResult<LocationRow>>} */
+  (transformPageResult(paginatedResult, transformLocationRow));
 
 module.exports = {
   transformLocationRow,

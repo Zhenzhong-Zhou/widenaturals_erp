@@ -17,7 +17,7 @@ export * from './discountLookupSelectors';
 export * from './taxRateLookupSelectors';
 export * from './deliveryMethodLookupSelectors';
 export * from './skuLookupSelectors';
-export * from './pricingLookupSelectors';
+export * from './pricingGroupLookupSelectors';
 export * from './packagingMaterialLookupSelectors';
 export * from './skuCodeBaseLookupSelectors';
 export * from './productLookupSelectors';

@@ -12,12 +12,14 @@ import MultiItemForm, {
   type MultiItemFormRef,
   type RowAwareComponentProps,
 } from '@components/common/MultiItemForm';
-import SkuDropdown from '@features/lookup/components/SkuDropdown';
-import PricingDropdown from '@features/lookup/components/PricingDropdown';
-import PackagingMaterialDropdown from '@features/lookup/components/PackagingMaterialDropdown';
+import {
+  PackagingMaterialDropdown,
+  PricingGroupDropdown,
+  SkuDropdown
+} from '@features/lookup/components';
 import type {
   LookupBundle,
-  PricingLookupQueryParams,
+  PricingGroupLookupQueryParams,
   SkuLookupQueryParams,
   PackagingMaterialLookupQueryParams,
 } from '@features/lookup/state';
@@ -31,17 +33,17 @@ type OrderItemSectionProps = {
 
   // Lookup bundles
   sku: LookupBundle<SkuLookupQueryParams>;
-  pricing: LookupBundle<PricingLookupQueryParams>;
+  pricingGroup: LookupBundle<PricingGroupLookupQueryParams>;
   packagingMaterial: LookupBundle<PackagingMaterialLookupQueryParams>;
 
   // Paginated dropdowns
   skuDropdown: UsePaginatedDropdownReturn<SkuLookupQueryParams>;
-  pricingDropdown: UsePaginatedDropdownReturn<PricingLookupQueryParams>;
+  pricingGroupDropdown: UsePaginatedDropdownReturn<PricingGroupLookupQueryParams>;
   packagingMaterialDropdown: UsePaginatedDropdownReturn<PackagingMaterialLookupQueryParams>;
 
   // Search handlers
   handleSkuSearch: (keyword: string) => void;
-  handlePricingSearch: (keyword: string) => void;
+  handlePricingGroupSearch: (keyword: string) => void;
   handlePackagingMaterialSearch: (keyword: string) => void;
 
   setSelectedSkuId: (id: string) => void;
@@ -55,14 +57,14 @@ const OrderItemSection: FC<OrderItemSectionProps> = ({
   formRef,
   onItemsChange,
   sku,
-  pricing,
+  pricingGroup,
   packagingMaterial,
   skuDropdown,
-  pricingDropdown,
+  pricingGroupDropdown,
   packagingMaterialDropdown,
   setSelectedSkuId,
   handleSkuSearch,
-  handlePricingSearch,
+  handlePricingGroupSearch,
   handlePackagingMaterialSearch,
   showBarcode,
   setShowBarcode,
@@ -75,11 +77,11 @@ const OrderItemSection: FC<OrderItemSectionProps> = ({
   } = skuDropdown;
 
   const {
-    dropdownState: pricingDropdownState,
-    setDropdownState: setPricingDropdownState,
-    fetchParams: pricingFetchParams,
-    setFetchParams: setPricingFetchParams,
-  } = pricingDropdown;
+    dropdownState: pricingGroupDropdownState,
+    setDropdownState: setPricingGroupDropdownState,
+    fetchParams: pricingGroupFetchParams,
+    setFetchParams: setPricingGroupFetchParams,
+  } = pricingGroupDropdown;
 
   const {
     dropdownState: packagingDropdownState,
@@ -205,13 +207,13 @@ const OrderItemSection: FC<OrderItemSectionProps> = ({
 
                 // fetch prices for THIS row’s SKU (not global)
                 const next = {
-                  ...(pricingFetchParams ?? {}),
+                  ...(pricingGroupFetchParams ?? {}),
                   skuId: val || null,
                   keyword: '',
                   offset: 0,
                 };
-                setPricingFetchParams(next);
-                pricing.fetch(next);
+                setPricingGroupFetchParams(next);
+                pricingGroup.fetch(next);
               }}
               onInputChange={(_, newValue, reason) => {
                 if (reason !== 'input') return;
@@ -348,11 +350,11 @@ const OrderItemSection: FC<OrderItemSectionProps> = ({
           return undefined;
         },
       },
-
-      // Pricing (SKU only; packaging has no price_id field)
+      
+      // Pricing (SKU only; packaging has no pricing_group_id field)
       {
-        id: 'price_id',
-        label: 'Price ID',
+        id: 'pricing_group_id',
+        label: 'Pricing Group ID',
         type: 'custom',
         required: true,
         group: 'priceBlock',
@@ -360,50 +362,50 @@ const OrderItemSection: FC<OrderItemSectionProps> = ({
         conditional: (row) =>
           (row?.line_type ?? 'sku') === 'sku' && !row?.override_price,
         component: ({
-          value,
-          onChange,
-          required,
-          getRowValues,
-          setRowValues,
-        }: RowAwareComponentProps) => {
+                      value,
+                      onChange,
+                      required,
+                      getRowValues,
+                      setRowValues,
+                    }: RowAwareComponentProps) => {
           const row = getRowValues?.() ?? {};
           const rowSku: string | null = row.sku_id ?? null;
-
-          // Build an options list that always includes the currently selected price_id
+          
+          // Build an options list that always includes the currently selected pricing_group_id
           const inList = value
-            ? pricing.options.some((o) => o.value === value)
+            ? pricingGroup.options.some((o) => o.value === value)
             : true;
           const mergedOptions =
             !inList && value
               ? [
-                  { value, label: row.price_label || '(selected)' },
-                  ...pricing.options,
-                ]
-              : pricing.options;
-
+                { value, label: row.pricing_group_label || '(selected)' },
+                ...pricingGroup.options,
+              ]
+              : pricingGroup.options;
+          
           return onChange ? (
-            <PricingDropdown
-              label={'Select A Pricing'}
+            <PricingGroupDropdown
+              label={'Select A Pricing Group'}
               key={rowSku || 'no-sku'}
               value={value ?? ''}
               disabled={!rowSku}
               onChange={(val: string) => {
                 onChange(val);
                 // cache label in the row so it keeps displaying even if global options change later
-                const picked = pricing.options.find((o) => o.value === val);
+                const picked = pricingGroup.options.find((o) => o.value === val);
                 setRowValues?.({
                   ...row,
-                  price_id: val,
-                  price_label: picked?.label ?? '',
+                  pricing_group_id: val,
+                  pricing_group_label: picked?.label ?? '',
                 });
               }}
               options={mergedOptions}
-              loading={pricing.loading}
-              error={!rowSku ? 'Select a SKU first.' : pricing.error}
-              paginationMeta={pricing.meta}
+              loading={pricingGroup.loading}
+              error={!rowSku ? 'Select a SKU first.' : pricingGroup.error}
+              paginationMeta={pricingGroup.meta}
               // keep skuId bound to this row for any programmatic refresh
-              fetchParams={{ ...(pricingFetchParams ?? {}), skuId: rowSku }}
-              setFetchParams={setPricingFetchParams}
+              fetchParams={{ ...(pricingGroupFetchParams ?? {}), skuId: rowSku }}
+              setFetchParams={setPricingGroupFetchParams}
               onRefresh={(params) => {
                 if (!rowSku) return;
                 const next = {
@@ -411,19 +413,19 @@ const OrderItemSection: FC<OrderItemSectionProps> = ({
                   skuId: rowSku,
                   offset: params?.offset ?? 0,
                 };
-                setPricingFetchParams(next);
-                pricing.fetch(next);
+                setPricingGroupFetchParams(next);
+                pricingGroup.fetch(next);
               }}
               onInputChange={(_, newValue, reason) => {
                 if (reason !== 'input' || !rowSku) return;
                 const next = {
-                  ...(pricingFetchParams ?? {}),
+                  ...(pricingGroupFetchParams ?? {}),
                   keyword: newValue,
                   skuId: rowSku,
                   offset: 0,
                 };
-                setPricingFetchParams(next);
-                handlePricingSearch(newValue); // debounced keyword search
+                setPricingGroupFetchParams(next);
+                handlePricingGroupSearch(newValue); // debounced keyword search
               }}
               helperText={
                 !rowSku ? (
@@ -442,7 +444,7 @@ const OrderItemSection: FC<OrderItemSectionProps> = ({
           ) : null;
         },
       },
-
+      
       // Manual price toggle
       {
         id: 'override_price',
@@ -496,30 +498,30 @@ const OrderItemSection: FC<OrderItemSectionProps> = ({
             value={value}
             onChange={onChange}
             rowIndex={rowIndex}
-            pricingOptions={pricing.options}
+            pricingOptions={pricingGroup.options}
           />
         ),
       },
     ],
     [
       sku,
-      pricing,
+      pricingGroup,
       packagingMaterial,
       skuDropdownState,
-      pricingDropdownState,
+      pricingGroupDropdownState,
       packagingDropdownState,
       showBarcode,
       handleSkuSearch,
-      handlePricingSearch,
+      handlePricingGroupSearch,
       handlePackagingMaterialSearch,
       setSkuDropdownState,
-      setPricingDropdownState,
+      setPricingGroupDropdownState,
       setPackagingDropdownState,
       setSelectedSkuId,
       skuFetchParams,
       setSkuFetchParams,
-      pricingFetchParams,
-      setPricingFetchParams,
+      pricingGroupFetchParams,
+      setPricingGroupFetchParams,
       packagingFetchParams,
       setPackagingFetchParams,
     ]

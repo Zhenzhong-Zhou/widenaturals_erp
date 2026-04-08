@@ -1,76 +1,63 @@
+/**
+ * @file bom-item-service.js
+ * @description Business logic for BOM material supply detail retrieval.
+ *
+ * Exports:
+ *   - fetchBomMaterialSupplyDetailsService – fetches, transforms, and enriches
+ *     BOM material supply details with aggregated cost summary
+ *
+ * Error handling follows a single-log principle — errors are not logged here.
+ * They bubble up to globalErrorHandler, which logs once with the normalised shape.
+ *
+ * AppErrors thrown by lower layers (repository, business) are re-thrown as-is.
+ * Unexpected errors are wrapped in AppError.serviceError before bubbling up.
+ */
+
+'use strict';
+
 const {
   getBomMaterialSupplyDetailsById,
-} = require('../repositories/bom-item-repository');
+}                                    = require('../repositories/bom-item-repository');
 const {
   transformBomMaterialSupplyDetails,
-} = require('../transformers/bom-item-transformer');
+}                                    = require('../transformers/bom-item-transformer');
 const {
-  calculateBomMaterialCostsBusiness,
-} = require('../business/bom-item-business');
-const { logSystemException, logSystemInfo } = require('../utils/system-logger');
-const AppError = require('../utils/AppError');
+  calculateBomMaterialCosts,
+}                                    = require('../business/bom-item-business');
+const AppError                       = require('../utils/AppError');
 
 /**
- * Service: Fetch BOM Material Supply Details
- * ------------------------------------------
- * - Retrieves full BOM item composition with associated packaging materials, suppliers, and batches.
- * - Transforms raw SQL rows into a structured hierarchical object.
- * - Calculates total material cost summary (estimated vs. actual) in system base currency.
+ * Fetches raw BOM material supply rows, transforms them into a structured
+ * nested format, and attaches an aggregated cost summary.
  *
- * @async
- * @function
- * @param {string} bomId - The BOM ID to fetch details for.
- * @returns {Promise<Object>} Structured BOM material supply details including cost summary.
- * @throws {AppError} When repository, transformation, or business logic fails.
+ * @param {string} bomId - UUID of the BOM record to retrieve supply details for.
+ *
+ * @returns {Promise<Array<Object>>} Structured BOM material supply entries with cost summary.
+ *
+ * @throws {AppError} Re-throws AppErrors from lower layers unchanged.
+ * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const fetchBomMaterialSupplyDetailsService = async (bomId) => {
   try {
-    // --- 1. Fetch raw data from repository ---
+    // 1. Fetch raw rows from repository.
     const rows = await getBomMaterialSupplyDetailsById(bomId);
-
-    logSystemInfo('Fetched raw BOM material supply data', {
-      context: 'bom-item-service/fetchBomMaterialSupplyDetailsService',
-      bomId,
-      recordCount: rows?.length || 0,
-    });
-
-    // --- 2. Transform into structured nested format ---
+    
+    // 2. Transform flat rows into structured nested format.
     const structuredResult = transformBomMaterialSupplyDetails(rows);
-
-    // --- 3. Compute cost summary (aggregated totals) ---
-    structuredResult.summary = calculateBomMaterialCostsBusiness(
+    
+    // 3. Attach aggregated cost summary.
+    structuredResult.summary = calculateBomMaterialCosts(
       bomId,
       structuredResult
     );
-
-    logSystemInfo('Successfully built BOM material supply structure', {
-      context: 'bom-item-service/fetchBomMaterialSupplyDetailsService',
-      bomId,
-      hasSummary: !!structuredResult.summary,
-    });
-
+    
     return structuredResult;
   } catch (error) {
-    // --- 4. Structured exception logging ---
-    logSystemException(
-      error,
-      'Failed to fetch or transform BOM material supply details',
-      {
-        context: 'bom-item-service/fetchBomMaterialSupplyDetailsService',
-        bomId,
-        severity: 'error',
-      }
-    );
-
-    // --- 5. Unified service-layer error rethrow ---
-    throw AppError.serviceError(
-      'Unable to fetch BOM material supply details.',
-      {
-        bomId,
-        hint: 'Verify BOM ID exists and repository query joins are valid.',
-        cause: error.message,
-      }
-    );
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError('Unable to fetch BOM material supply details.', {
+      meta: { error: error.message },
+    });
   }
 };
 

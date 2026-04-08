@@ -1,135 +1,181 @@
+/**
+ * @file batch-registry-service.js
+ * @description Business logic for batch registry retrieval and mutation.
+ *
+ * Exports:
+ *   - fetchPaginatedBatchRegistryService  – paginated batch registry with visibility scoping
+ *   - updateBatchRegistryNoteService      – updates a batch registry note with activity log
+ *
+ * Error handling follows a single-log principle — errors are not logged here.
+ * They bubble up to globalErrorHandler, which logs once with the normalised shape.
+ *
+ * AppErrors thrown by lower layers (repository, business, cache) are re-thrown as-is.
+ * Unexpected errors are wrapped in AppError.serviceError before bubbling up.
+ */
+
+'use strict';
+
 const {
   evaluateBatchRegistryVisibility,
   applyBatchRegistryVisibilityRules,
   sliceBatchRegistryRow,
-} = require('../business/batch-registry-business');
+}                                        = require('../business/batch-registry-business');
 const {
   getPaginatedBatchRegistry,
-} = require('../repositories/batch-registry-repository');
-const { logSystemInfo, logSystemException } = require('../utils/system-logger');
+  updateBatchRegistryNoteById,
+  getBatchRegistryById,
+}                                        = require('../repositories/batch-registry-repository');
 const {
   transformPaginatedBatchRegistryResults,
-} = require('../transformers/batch-registry-transformer');
-const AppError = require('../utils/AppError');
+}                                        = require('../transformers/batch-registry-transformer');
+const AppError                           = require('../utils/AppError');
+const { withTransaction }                = require('../database/db');
+const { getBatchActivityTypeId }         = require('../cache/batch-activity-type-cache');
+const {
+  buildBatchMetadataUpdateActivityRow,
+}                                        = require('../business/batches/batch-activity-builder');
+const {
+  insertBatchActivityLogsBulk,
+}                                        = require('../repositories/batch-activity-log-repository');
+const { transformIdOnlyResult }          = require('../transformers/common/id-result-transformer');
 
 /**
- * Service: Fetch paginated batch registry records for UI consumption.
+ * Fetches paginated batch registry records scoped to the requesting user's visibility.
  *
- * Responsibilities:
- * - Resolve batch visibility scope for the requesting user
- * - Translate business / ACL decisions into repository-consumable filters
- * - Orchestrate paginated batch registry queries
- * - Optionally enforce defensive row-level visibility (non-broadening)
- * - Normalize empty result sets
- * - Transform flat batch rows into UI-ready shapes
- * - Emit structured success and failure logs
+ * Resolves the user's access scope, applies visibility rules to filters, queries
+ * the registry, applies row-level slicing, and transforms results for UI consumption.
  *
- * Visibility enforcement model:
- * - Repository-level filtering is the PRIMARY enforcement mechanism
- * - Service-level filter adjustment expresses business intent (scope, mode)
- * - Per-row filtering is DEFENSIVE only (never expands visibility)
+ * @param {Object}        options
+ * @param {Object}        [options.filters={}]            - Field filters to apply.
+ * @param {number}        [options.page=1]                - Page number (1-based).
+ * @param {number}        [options.limit=20]              - Records per page.
+ * @param {string}        [options.sortBy='registeredAt'] - Sort field key (validated against sort map).
+ * @param {'ASC'|'DESC'}  [options.sortOrder='DESC']      - Sort direction.
+ * @param {Object}        options.user                    - Authenticated user (requires `id` and `role`).
  *
- * @param {Object} options
- * @param {Object} [options.filters={}] - Normalized pre-business filters
- * @param {number} [options.page=1]
- * @param {number} [options.limit=20]
- * @param {Object} options.user - Authenticated requester context
+ * @returns {Promise<{ data: Array<Object>, pagination: Object }>} Transformed records and pagination metadata.
  *
- * @returns {Promise<{ data: Object[], pagination: Object }>}
+ * @throws {AppError} Re-throws AppErrors from lower layers unchanged.
+ * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
  */
 const fetchPaginatedBatchRegistryService = async ({
-  filters = {},
-  page = 1,
-  limit = 20,
-  user,
-}) => {
-  const context = 'batch-registry-service/fetchPaginatedBatchRegistryService';
-
+                                                    filters   = {},
+                                                    page      = 1,
+                                                    limit     = 20,
+                                                    sortBy    = 'registeredAt',
+                                                    sortOrder = 'DESC',
+                                                    user,
+                                                  }) => {
   try {
-    // ---------------------------------------------------------
-    // Step 0 — Resolve batch registry visibility scope
-    // ---------------------------------------------------------
+    // 1. Resolve batch registry visibility scope for this user.
     const access = await evaluateBatchRegistryVisibility(user);
-
-    // ---------------------------------------------------------
-    // Step 1 — Apply visibility / scope rules (CRITICAL)
-    // ---------------------------------------------------------
+    
+    // 2. Apply visibility / scope rules to filters (CRITICAL — must run before query).
     const adjustedFilters = applyBatchRegistryVisibilityRules(filters, access);
-
-    // ---------------------------------------------------------
-    // Step 2 — Query raw batch registry rows
-    // ---------------------------------------------------------
+    
+    // 3. Query raw batch registry rows.
     const rawResult = await getPaginatedBatchRegistry({
       filters: adjustedFilters,
       page,
       limit,
+      sortBy,
+      sortOrder,
     });
-
-    // ---------------------------------------------------------
-    // Step 3 — Handle empty result
-    // ---------------------------------------------------------
+    
+    // 4. Return empty shape immediately — no records to process.
     if (!rawResult || rawResult.data.length === 0) {
-      logSystemInfo('No batch registry records found', {
-        context,
-        filters: adjustedFilters,
-        pagination: { page, limit },
-      });
-
       return {
-        data: [],
-        pagination: {
-          page,
-          limit,
-          totalRecords: 0,
-          totalPages: 0,
-        },
+        data:       [],
+        pagination: { page, limit, totalRecords: 0, totalPages: 0 },
       };
     }
-
-    // ---------------------------------------------------------
-    // Step 4 — Defensive row-level slicing (minimal)
-    // ---------------------------------------------------------
+    
+    // 5. Apply row-level field slicing based on resolved access scope.
     const visibleRows = rawResult.data
       .map((row) => sliceBatchRegistryRow(row, access))
       .filter(Boolean);
-
-    // ---------------------------------------------------------
-    // Step 5 — Transform for UI consumption
-    // ---------------------------------------------------------
-    const result = await transformPaginatedBatchRegistryResults({
+    
+    // 6. Transform for UI consumption.
+    return transformPaginatedBatchRegistryResults({
       ...rawResult,
       data: visibleRows,
     });
-
-    // ---------------------------------------------------------
-    // Step 6 — Log success
-    // ---------------------------------------------------------
-    logSystemInfo('Paginated batch registry fetched', {
-      context,
-      filters: adjustedFilters,
-      pagination: result.pagination,
-      count: result.data?.length,
-    });
-
-    return result;
   } catch (error) {
-    // ---------------------------------------------------------
-    // Step 7 — Log + rethrow
-    // ---------------------------------------------------------
-    logSystemException(error, 'Failed to fetch batch registry', {
-      context,
-      filters,
-      pagination: { page, limit },
-      userId: user?.id,
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError('Unable to retrieve batch records at this time.', {
+      meta: { error: error.message },
     });
-
-    throw AppError.serviceError(
-      'Unable to retrieve batch records at this time.',
-      { context }
-    );
   }
+};
+
+/**
+ * Updates the note field on a batch registry record and writes an activity log entry.
+ *
+ * Skips the update entirely if the note value has not changed.
+ * Wraps the update and activity log insert in a single transaction for atomicity.
+ *
+ * @param {string|number} id    - Batch registry record ID.
+ * @param {string|null}   note  - New note value (null to clear).
+ * @param {Object}        user  - Authenticated user (requires `id`).
+ *
+ * @returns {Promise<{ id: string|number }>} Transformed ID-only result of the updated record.
+ *
+ * @throws {AppError} `notFoundError`  – batch registry record does not exist.
+ * @throws {AppError} Re-throws all other AppErrors from lower layers unchanged.
+ * @throws {AppError} Wraps unexpected errors as `AppError.serviceError`.
+ */
+const updateBatchRegistryNoteService = async (id, note, user) => {
+  return withTransaction(async (client) => {
+    try {
+      // 1. Load current registry state.
+      const registry = await getBatchRegistryById(id, client);
+      
+      if (!registry) {
+        throw AppError.notFoundError('Batch registry not found.');
+      }
+      
+      const previousNote = registry.note ?? null;
+      
+      // Skip update if value did not change.
+      if (previousNote === (note ?? null)) {
+        return transformIdOnlyResult([registry])[0];
+      }
+      
+      // 2. Persist updated note.
+      const updated = await updateBatchRegistryNoteById(
+        { id, note, updatedBy: user.id },
+        client
+      );
+      
+      // 3. Build metadata activity log entry.
+      const activityTypeId = getBatchActivityTypeId('BATCH_METADATA_UPDATED');
+      
+      const activityRow = buildBatchMetadataUpdateActivityRow({
+        batchRegistryId: id,
+        batchType:       registry.batch_type,
+        activityTypeId,
+        previousValues:  { note: previousNote },
+        updates:         { note },
+        actorId:         user.id,
+      });
+      
+      // 4. Persist activity log atomically within the same transaction.
+      await insertBatchActivityLogsBulk([activityRow], client);
+      
+      // 5. Transform and return ID-only response payload.
+      return transformIdOnlyResult([updated])[0];
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      
+      throw AppError.serviceError('Unable to update batch registry note.', {
+        meta: { error: error.message },
+      });
+    }
+  });
 };
 
 module.exports = {
   fetchPaginatedBatchRegistryService,
+  updateBatchRegistryNoteService,
 };

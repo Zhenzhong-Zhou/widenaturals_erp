@@ -1,165 +1,126 @@
 /**
  * @file auth-controller.js
- * @description Contains the logic for authentication routes.
+ * @module controllers/auth-controller
+ *
+ * @description
+ * Controllers for authentication lifecycle operations.
+ *
+ * Routes:
+ *   POST  /api/v1/auth/logout           → logoutController
+ *   PATCH /api/v1/auth/change-password  → changePasswordController
+ *
+ * All handlers are wrapped with `wrapAsyncHandler` — errors propagate
+ * automatically to the global error handler without try/catch boilerplate.
+ *
+ * Transport concerns handled here (not in service layer):
+ *   - Refresh token cookie cleared on logout and password change
+ *   - Cookie config (httpOnly, secure, sameSite) resolved from NODE_ENV
+ *
+ * Note:
+ *   Both session-controller and auth-controller import exclusively from
+ *   auth-service. session-service is an internal dependency of auth-service
+ *   and is never imported directly by controllers.
+ *
+ *   The auth domain is split across two controller/route pairs due to
+ *   middleware boundaries — login and refresh are public endpoints that
+ *   cannot share a route file with authenticated operations.
+ *
+ *   extractRequestContext is called directly in logoutController because
+ *   the auth session may be partially invalidated at this point.
+ *   req.traceId is safe — attachTraceId runs before auth middleware.
  */
 
-const wrapAsync = require('../utils/wrap-async');
+'use strict';
+
+const { wrapAsyncHandler }      = require('../middlewares/async-handler');
 const {
   logoutService,
   changePasswordService,
 } = require('../services/auth-service');
-const AppError = require('../utils/AppError');
 const { extractRequestContext } = require('../utils/request-context');
 
+// Resolved once at module load — used by both controllers for cookie config
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/v1/auth/logout
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Handles user logout.
+ * Terminates the authenticated session and clears the refresh token cookie.
  *
- * This controller is the HTTP boundary for logout intent.
- * It delegates all security-sensitive behavior to the service layer
- * and performs transport-level cleanup by clearing authentication cookies.
+ * extractRequestContext is called directly — auth session may be partially
+ * invalidated at this point so req.auth cannot be fully trusted.
  *
- * Responsibilities:
- * - Invoke logout business logic (session + token revocation)
- * - Clear refresh-token cookies (transport concern)
- * - Return a deterministic success response
- *
- * Behavior guarantees:
- * - Logout is idempotent and always succeeds
- * - Missing user, session, or refresh token is NOT an error
- * - Refresh-token cookies are cleared regardless of current state
- *
- * Security model:
- * - Endpoint is protected by CSRF middleware
- * - Refresh tokens are stored in HTTP-only cookies and removed on logout
- * - Access tokens are short-lived and invalidated via session revocation
- *
- * Notes:
- * - Session revocation and audit logging are handled by `logoutService`
- * - No session or token identifiers are exposed to the client
- *
- * @param {import('express').Request} req
- *   Express request object. May include authenticated user/session context.
- * @param {import('express').Response} res
- *   Express response object used for cookie cleanup and response.
- *
- * @returns {Promise<void>}
+ * Requires: CSRF middleware.
  */
-const logoutController = wrapAsync(async (req, res) => {
-  const isProduction = process.env.NODE_ENV === 'production';
-
+const logoutController = wrapAsyncHandler(async (req, res) => {
   const { ipAddress, userAgent } = extractRequestContext(req);
-
-  /**
-   * Delegate logout semantics to the service layer.
-   *
-   * The service is responsible for:
-   * - Revoking the active session (if present)
-   * - Revoking all tokens associated with that session
-   * - Recording audit / security logs
-   *
-   * Absence of auth context is treated as a no-op.
-   */
+  
   await logoutService(
     {
-      userId: req.auth?.user?.id ?? null,
-      sessionId: req.auth?.sessionId ?? null,
+      userId:    req.auth?.user?.id    ?? null,
+      sessionId: req.auth?.sessionId   ?? null,
     },
-    { ipAddress, userAgent }
+    { ipAddress, userAgent },
   );
-
-  /**
-   * Clear refresh-token cookie (transport-level concern).
-   *
-   * This operation is intentionally idempotent and safe
-   * even if the cookie does not exist.
-   */
+  
+  // Clear refresh token — client must re-authenticate after logout
   res.clearCookie('refreshToken', {
     httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? 'strict' : 'lax',
-    path: '/',
+    secure:   IS_PRODUCTION,
+    sameSite: IS_PRODUCTION ? 'strict' : 'lax',
+    path:     '/',
   });
-
-  // Deterministic success response
+  
   res.status(200).json({
     success: true,
-    message: 'Logout successful',
-    data: null,
+    message: 'Logout successful.',
+    data:    null,
+    traceId: req.traceId,
   });
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PATCH /api/v1/auth/change-password
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * POST /auth/change-password
+ * Changes the authenticated user's password and forces re-authentication.
  *
- * Changes the password of the currently authenticated user.
+ * Refresh token is cleared — client must log in again with the new password.
+ * All security invariants (current password verification, strength rules)
+ * are enforced in the service layer.
  *
- * This endpoint performs a security-critical password mutation and
- * revokes all active sessions and tokens associated with the user.
- *
- * ─────────────────────────────────────────────────────────────
- * Security characteristics
- * ─────────────────────────────────────────────────────────────
- * - Requires prior authentication
- * - Verifies the user's current password
- * - Enforces the configured password strength policy
- * - Prevents password reuse based on stored history
- * - Revokes all active sessions
- * - Revokes all access and refresh tokens
- * - Forces re-authentication across all devices
- *
- * ─────────────────────────────────────────────────────────────
- * Request body
- * ─────────────────────────────────────────────────────────────
- * {
- *   currentPassword: string, // Existing password
- *   newPassword: string      // New password (policy-enforced)
- * }
- *
- * ─────────────────────────────────────────────────────────────
- * Successful response (200)
- * ─────────────────────────────────────────────────────────────
- * {
- *   success: true,
- *   changedAt: string,       // ISO 8601 timestamp
- *   message: string
- * }
- *
- * Notes:
- * - After a successful password change, the client must log in again.
- * - Any existing refresh token cookie is cleared by the controller.
+ * Requires: auth middleware, Joi body validation.
  */
-const changePasswordController = wrapAsync(async (req, res) => {
-  const userId = req.auth.user.id;
-  const { currentPassword, newPassword } = req.body;
-
-  // Transport-level validation
-  if (!currentPassword || !newPassword) {
-    throw AppError.validationError(
-      'Both current and new passwords are required.'
-    );
-  }
-
-  // All security invariants handled in service
+const changePasswordController = wrapAsyncHandler(async (req, res) => {
+  const { id: userId }                    = req.auth.user;
+  const { currentPassword, newPassword }  = req.body;
+  
   await changePasswordService(userId, currentPassword, newPassword);
-
-  // Clear refresh token cookie (force re-auth)
+  
+  // Clear refresh token — forces re-authentication with new credentials
   res.clearCookie('refreshToken', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure:   IS_PRODUCTION,
     sameSite: 'strict',
-    path: '/',
+    path:     '/',
   });
-
-  return res.status(200).json({
+  
+  res.status(200).json({
     success: true,
     message: 'Password changed successfully. Please log in again.',
-    data: {
-      changedAt: new Date().toISOString(),
-    },
+    data:    { changedAt: new Date().toISOString() },
+    traceId: req.traceId,
   });
 });
 
 // todo /auth/forgot-password
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Exports
+// ─────────────────────────────────────────────────────────────────────────────
 
 module.exports = {
   logoutController,

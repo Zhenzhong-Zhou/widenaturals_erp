@@ -17,7 +17,7 @@ export { default as ProductMultiSelectDropdown } from './ProductMultiSelectDropd
 export { default as SkuDropdown } from './SkuDropdown';
 export { default as SkuMultiSelectDropdown } from './SkuMultiSelectDropdown';
 export { default as SkuCodeBaseDropdown } from './SkuCodeBaseDropdown';
-export { default as PricingDropdown } from './PricingDropdown';
+export { default as PricingGroupDropdown } from './PricingGroupDropdown';
 export { default as DiscountDropdown } from './DiscountDropdown';
 
 // Order / Payment / Delivery

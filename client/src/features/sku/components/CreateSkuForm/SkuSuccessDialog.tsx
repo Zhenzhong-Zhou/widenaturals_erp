@@ -4,7 +4,6 @@ import type { CreateSkuResponse, CreatedSkuRecord } from '@features/sku/state';
 import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
 import CustomDialog from '@components/common/CustomDialog';
-import DetailsSection from '@components/common/DetailsSection';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 
@@ -28,8 +27,6 @@ const SkuSuccessDialog: FC<SkuSuccessDialogProps> = ({
     [response]
   );
 
-  const stats = response?.stats;
-
   return (
     <CustomDialog
       open={open}
@@ -47,23 +44,6 @@ const SkuSuccessDialog: FC<SkuSuccessDialogProps> = ({
         <CustomTypography variant="body1" sx={{ mb: 2 }}>
           {response?.message}
         </CustomTypography>
-
-        {/* Optional stats block */}
-        {stats && (
-          <Box sx={{ mb: 3 }}>
-            <DetailsSection
-              sectionTitle="Summary"
-              fields={[
-                { label: 'Total Submitted', value: stats.inputCount },
-                { label: 'Successfully Created', value: stats.processedCount },
-                {
-                  label: 'Processing Time (ms)',
-                  value: `${stats.elapsedMs} ms`,
-                },
-              ]}
-            />
-          </Box>
-        )}
 
         {/* SKU list with View buttons */}
         <Stack spacing={2}>

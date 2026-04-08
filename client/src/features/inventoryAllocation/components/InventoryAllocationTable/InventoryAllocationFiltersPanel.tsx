@@ -229,6 +229,7 @@ const InventoryAllocationFiltersPanel: FC<Props> = ({
                     field.value?.includes(opt.value)
                   );
                   return (
+                    // TODO(#<46>): add refresh, keyword search, fix expand during loading
                     <BatchRegistryMultiSelectDropdown
                       label="Batches"
                       batchLookupOptions={batchLookupOptions}

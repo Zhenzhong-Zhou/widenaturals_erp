@@ -1,47 +1,41 @@
+/**
+ * @file repository-helper.js
+ * @description Shared query utilities for repository functions.
+ *
+ * Exports:
+ *  - existsQuery — executes a SELECT 1 existence check and returns a boolean
+ */
+
+'use strict';
+
 const { query } = require('../../database/db');
-const { logSystemException } = require('../../utils/system-logger');
-const AppError = require('../../utils/AppError');
+const { handleDbError } = require('../../utils/errors/error-handlers');
+const { logDbQueryError } = require('../../utils/db-logger');
 
 /**
- * Executes a boolean existence query.
+ * Executes a SELECT 1 existence check query and returns a boolean.
  *
- * Designed for repository-layer usage to standardize:
- * - Error handling
- * - Logging
- * - AppError wrapping
- * - Boolean result semantics
+ * Designed for LIMIT 1 / EXISTS queries — returns true if at least
+ * one row is returned, false otherwise.
  *
- * The provided SQL should follow the pattern:
- *   SELECT 1 FROM ... WHERE ... LIMIT 1
+ * @param {string}          queryText  - The SQL query to execute.
+ * @param {Array}           params     - Bound parameter values.
+ * @param {string}          context    - Caller context string for error logging.
+ * @param {string}          message    - Error message if the query fails.
+ * @param {PoolClient|null} [client=null] - Optional DB client for transactional context.
  *
- * @param {string} queryText - Parameterized SQL query.
- * @param {Array<any>} params - Query parameter values.
- * @param {string} context - Logging context identifier.
- * @param {string} logMessage - Human-readable failure message.
- * @param {import('pg').PoolClient|null} [client] - Optional transactional client.
- *
- * @returns {Promise<boolean>}
- *   Returns true if at least one row exists, false otherwise.
- *
- * @throws {AppError.databaseError}
- *   If query execution fails.
+ * @returns {Promise<boolean>} True if at least one row exists, false otherwise.
+ * @throws  {AppError}         Normalized database error if the query fails.
  */
-const existsQuery = async (
-  queryText,
-  params,
-  context,
-  logMessage,
-  client = null
-) => {
+const existsQuery = async (queryText, params, context, message, client = null) => {
   try {
     const { rowCount } = await query(queryText, params, client);
     return rowCount > 0;
   } catch (error) {
-    logSystemException(error, logMessage, { context });
-
-    throw AppError.databaseError(logMessage, {
-      cause: error,
+    throw handleDbError(error, {
       context,
+      message,
+      logFn: (err) => logDbQueryError(queryText, params, err, { context }),
     });
   }
 };

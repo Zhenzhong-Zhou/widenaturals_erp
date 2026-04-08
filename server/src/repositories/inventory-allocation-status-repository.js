@@ -1,124 +1,90 @@
-const { getUniqueScalarValue, query } = require('../database/db');
-const { logSystemException } = require('../utils/system-logger');
-const AppError = require('../utils/AppError');
+/**
+ * @file inventory-allocation-status-repository.js
+ * @description Database access layer for inventory allocation status records.
+ *
+ * Follows the established repo pattern:
+ *  - Query constants imported from inventory-allocation-status-queries.js
+ *  - All errors normalized through handleDbError before bubbling up
+ *  - No success logging — middleware and globalErrorHandler own that layer
+ *
+ * Exports:
+ *  - getInventoryAllocationStatusId        — fetch single status ID by code via getUniqueScalarValue
+ *  - getInventoryAllocationStatusesByCodes — bulk fetch status records by code array
+ */
+
+'use strict';
+
+const { getUniqueScalarValue } = require('../utils/db/record-utils');
+const { query } = require('../database/db');
+const { handleDbError } = require('../utils/errors/error-handlers');
+const { logDbQueryError } = require('../utils/db-logger');
+const {
+  INVENTORY_ALLOCATION_STATUS_GET_BY_CODES,
+} = require('./queries/inventory-allocation-status-queries');
+
+// ─── Single Value ─────────────────────────────────────────────────────────────
 
 /**
- * Retrieves the unique ID of an inventory allocation status by its exact code.
+ * Fetches a single inventory allocation status ID by its code.
  *
- * This function queries the `status` table (or your status mapping table, if separated)
- * to fetch the UUID associated with the given status code (e.g., "ALLOCATION_CONFIRMED").
- * It ensures that:
- * - Exactly one row matches the given code.
- * - If no rows or multiple rows are found, it throws a detailed error.
+ * Delegates entirely to `getUniqueScalarValue` which handles logging,
+ * not-found errors, and duplicate-result errors internally.
+ * No additional error handling is needed here.
  *
- * Uses `getUniqueScalarValue` to ensure consistency and traceability.
+ * @param {string}     statusCode - The allocation status code to look up.
+ * @param {PoolClient} client     - DB client for transactional context.
  *
- * @async
- * @param {string} statusCode - Case-sensitive status code to lookup.
- * @param {import('pg').PoolClient} client - Active PostgreSQL client or transaction context.
- * @returns {Promise<string>} - UUID of the matching allocation status.
- *
- * @throws {AppError} - Throws if the status is not found or not unique.
- *
- * @example
- * const confirmedStatusId = await getInventoryAllocationStatusId('ALLOCATION_CONFIRMED', client);
+ * @returns {Promise<string>} The status UUID matching the given code.
+ * @throws  {AppError}        If no record is found or the query fails.
  */
 const getInventoryAllocationStatusId = async (statusCode, client) => {
-  try {
-    return await getUniqueScalarValue(
-      {
-        table: 'inventory_allocation_status',
-        where: { code: statusCode },
-        select: 'id',
-      },
-      client,
-      {
-        context:
-          'inventory-allocation-status-repository/getInventoryAllocationStatusId',
-        statusCode,
-      }
-    );
-  } catch (error) {
-    // getUniqueScalarValue already logs and throws with traceable context
-    throw error;
-  }
+  return await getUniqueScalarValue(
+    {
+      table:  'inventory_allocation_status',
+      where:  { code: statusCode },
+      select: 'id',
+    },
+    client,
+    {
+      context: 'inventory-allocation-status-repository/getInventoryAllocationStatusId',
+      statusCode,
+    }
+  );
 };
 
+// ─── Bulk Fetch ───────────────────────────────────────────────────────────────
+
 /**
- * Repository: Get Inventory Allocation Statuses by Codes
+ * Fetches inventory allocation status records by their codes.
  *
- * Retrieves allocation status records by their unique status codes.
+ * Returns an empty array if statusCodes is empty — no query is executed.
  *
- * This helper is typically used in:
- *   - Business rule enforcement (e.g. operational dependency checks)
- *   - Status transition validation
- *   - Filtering allocation records by lifecycle stage
+ * @param {string[]}   statusCodes - Array of allocation status codes to fetch.
+ * @param {PoolClient} client      - DB client for transactional context.
  *
- * ─────────────────────────────────────────────────────────────
- * Behavior
- * ─────────────────────────────────────────────────────────────
- * - Accepts an array of status code strings.
- * - Returns matching status rows from `inventory_allocation_status`.
- * - If `statusCodes` is empty or invalid, returns an empty array.
- * - Uses parameterized SQL to prevent injection.
- *
- * ─────────────────────────────────────────────────────────────
- * Example Usage
- * ─────────────────────────────────────────────────────────────
- * const ACTIVE_ALLOCATION_CODES = [
- *   'ALLOC_PENDING',
- *   'ALLOC_CONFIRMED',
- *   'ALLOC_PARTIAL'
- * ];
- *
- * const statuses = await getInventoryAllocationStatusesByCodes(
- *   ACTIVE_ALLOCATION_CODES,
- *   client
- * );
- *
- * ─────────────────────────────────────────────────────────────
- * @param {string[]} statusCodes
- *   Array of allocation status codes (e.g. ['ALLOC_PENDING']).
- *
- * @param {import('pg').PoolClient} client
- *   Active PostgreSQL transaction client.
- *
- * @returns {Promise<Array<{ id: string, code: string }>>}
- *   Array of matching status records.
- *
- * @throws {AppError}
- *   Throws databaseError if query execution fails.
+ * @returns {Promise<Array<{ id: string, code: string }>>} Matching status records.
+ * @throws  {AppError} Normalized database error if the query fails.
  */
 const getInventoryAllocationStatusesByCodes = async (statusCodes, client) => {
-  const context =
-    'inventory-allocation-status-repository/getInventoryAllocationStatusesByCodes';
-
-  if (!Array.isArray(statusCodes) || statusCodes.length === 0) {
-    return [];
-  }
-
-  const sql = `
-    SELECT id, code
-    FROM inventory_allocation_status
-    WHERE code = ANY($1)
-  `;
-
+  if (!Array.isArray(statusCodes) || statusCodes.length === 0) return [];
+  
+  const context = 'inventory-allocation-status-repository/getInventoryAllocationStatusesByCodes';
+  
   try {
-    const result = await query(sql, [statusCodes], client);
+    const result = await query(INVENTORY_ALLOCATION_STATUS_GET_BY_CODES, [statusCodes], client);
     return result.rows;
   } catch (error) {
-    logSystemException(
-      error,
-      'Failed to get inventory allocation statuses by codes',
-      {
-        context,
-        statusCodes,
-      }
-    );
-
-    throw AppError.databaseError(
-      `Failed to retrieve allocation statuses: ${error.message}`
-    );
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch inventory allocation statuses by codes.',
+      meta:    { statusCodes },
+      logFn:   (err) => logDbQueryError(
+        INVENTORY_ALLOCATION_STATUS_GET_BY_CODES,
+        [statusCodes],
+        err,
+        { context, statusCodes }
+      ),
+    });
   }
 };
 

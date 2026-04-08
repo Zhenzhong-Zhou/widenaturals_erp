@@ -25,7 +25,7 @@ const {
   };
 
   const productStatusId = getStatusId('product_active');
-  const batchStatusId = getStatusId('batch_active');
+  const batchStatusId = getStatusId('batch_released');
   const inventoryStatusId = getStatusId('inventory_in_stock');
 
   try {

@@ -249,6 +249,25 @@ export interface CreatedUpdatedDateFilter {
 }
 
 /**
+ * Date range filters for querying records by expiry date.
+ * Both fields are optional and can be combined to define a date window.
+ *
+ * @example
+ * // Records expiring within Q1 2026
+ * const range: ExpiryDateRanges = {
+ *   expiringAfter: '2026-01-01',
+ *   expiringBefore: '2026-03-31',
+ * };
+ */
+export interface ExpiryDateRanges {
+  /** Include records expiring on or after this date (ISO 8601, e.g. `'2026-01-01'`). */
+  expiringAfter?: string;
+  
+  /** Include records expiring on or before this date (ISO 8601, e.g. `'2026-12-31'`). */
+  expiringBefore?: string;
+}
+
+/**
  * Filter for querying by who created or last updated the record.
  *
  * Useful for audit queries or admin-level filtering by user.
@@ -381,26 +400,6 @@ export interface BatchProcessStats {
 
   /** Execution time in milliseconds */
   elapsedMs: number;
-}
-
-/**
- * Represents an inclusive date range filter.
- *
- * Used for filtering records by date-based fields
- * such as creation date, issue date, expiry date, etc.
- */
-export interface DateRange {
-  /**
-   * Inclusive start date (ISO 8601 string).
-   * Records with a date greater than or equal to this value are included.
-   */
-  from?: string;
-
-  /**
-   * Inclusive end date (ISO 8601 string).
-   * Records with a date less than or equal to this value are included.
-   */
-  to?: string;
 }
 
 /**

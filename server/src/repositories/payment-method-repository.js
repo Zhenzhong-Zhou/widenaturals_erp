@@ -1,72 +1,68 @@
-const { paginateQueryByOffset } = require('../database/db');
+/**
+ * @file payment-method-repository.js
+ * @description Database access layer for payment method records.
+ *
+ * Exports:
+ *  - getPaymentMethodLookup — offset-paginated dropdown lookup with optional filtering
+ */
+
+'use strict';
+
+const { paginateQueryByOffset } = require('../utils/db/pagination/pagination-helpers');
+const { handleDbError } = require('../utils/errors/error-handlers');
+const { logDbQueryError } = require('../utils/db-logger');
+const { buildPaymentMethodFilter } = require('../utils/sql/build-payment-method-filter');
 const {
-  buildPaymentMethodFilter,
-} = require('../utils/sql/build-payment-method-filters');
-const AppError = require('../utils/AppError');
-const { logSystemException, logSystemInfo } = require('../utils/system-logger');
+  PAYMENT_METHOD_TABLE,
+  PAYMENT_METHOD_SORT_WHITELIST,
+  PAYMENT_METHOD_ADDITIONAL_SORTS,
+  buildPaymentMethodLookupQuery,
+} = require('./queries/payment-method-queries');
+
+// ─── Lookup ───────────────────────────────────────────────────────────────────
 
 /**
- * Retrieves a paginated list of payment methods for dropdown components.
+ * Fetches paginated payment method records for dropdown/lookup use.
  *
- * Supports filtering by keyword, isActive flag, and sorting by display order.
- * Typically used in UI components like dropdowns or autocomplete fields.
+ * Sorted by display_order ascending with name as tie-breaker.
  *
- * @param {Object} options - Filter and pagination options
- * @param {number} [options.limit=50] - Number of records to fetch
- * @param {number} [options.offset=0] - Pagination offset
- * @param {Object} [options.filters={}] - Filter criteria (e.g., keyword, isActive)
- * @returns {Promise<{ items: { label: string, value: string }[], hasMore: boolean }>}
+ * @param {Object} params
+ * @param {Object} [params.filters={}] - Optional filters (e.g. isActive, keyword).
+ * @param {number} [params.limit=50]   - Max records per page.
+ * @param {number} [params.offset=0]   - Offset for pagination.
  *
- * @throws {AppError} - If the database query fails
+ * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
+ * @throws  {AppError}        Normalized database error if the query fails.
  */
-const getPaymentMethodLookup = async ({
-  limit = 50,
-  offset = 0,
-  filters = {},
-}) => {
-  const tableName = 'payment_methods pm';
-
+const getPaymentMethodLookup = async ({ filters = {}, limit = 50, offset = 0 }) => {
+  const context = 'payment-method-repository/getPaymentMethodLookup';
+  
   const { whereClause, params } = buildPaymentMethodFilter(filters);
-
-  const queryText = `
-    SELECT
-      pm.id,
-      pm.name,
-      pm.is_active
-    FROM ${tableName}
-    WHERE ${whereClause}
-  `;
-
+  const queryText = buildPaymentMethodLookupQuery(whereClause);
+  
   try {
-    const result = await paginateQueryByOffset({
-      tableName,
+    return await paginateQueryByOffset({
+      tableName:       PAYMENT_METHOD_TABLE,
+      joins:           [],
       whereClause,
       queryText,
       params,
       offset,
       limit,
-      sortBy: 'pm.display_order',
-      sortOrder: 'ASC',
-      additionalSort: 'pm.display_order ASC, pm.name ASC',
+      sortBy:          'pm.display_order',
+      sortOrder:       'ASC',
+      additionalSorts: PAYMENT_METHOD_ADDITIONAL_SORTS,
+      whitelistSet:    PAYMENT_METHOD_SORT_WHITELIST,
     });
-
-    logSystemInfo('Fetched payment method dropdown successfully', {
-      context: 'payment-method-repository/getPaymentMethodLookup',
-      totalFetched: result.data?.length ?? 0,
-      offset,
-      limit,
-      filters,
-    });
-
-    return result;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch payment method dropdown', {
-      context: 'payment-method-repository/getPaymentMethodLookup',
-      offset,
-      limit,
-      filters,
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch payment method lookup.',
+      meta:    { filters, limit, offset },
+      logFn:   (err) => logDbQueryError(
+        queryText, params, err, { context, filters, limit, offset }
+      ),
     });
-    throw AppError.databaseError('Failed to fetch payment method options.');
   }
 };
 

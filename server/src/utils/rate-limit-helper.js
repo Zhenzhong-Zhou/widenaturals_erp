@@ -1,124 +1,183 @@
-const { loadEnv } = require('../config/env');
-const rateLimit = require('express-rate-limit');
+/**
+ * @file rate-limit-helper.js
+ * @description Generic rate limiter factory used by all route-specific
+ * rate limiter middleware in `middlewares/rate-limiter.js`.
+ *
+ * Responsibilities:
+ *   - Provide a reusable `createRateLimiter` factory with sensible defaults
+ *   - Handle trusted IP bypass via `TRUSTED_IPS` env var
+ *   - Provide a consistent rate-limit violation handler with structured logging
+ *   - Support development mode bypass via `disableInDev`
+ *
+ * Environment variables:
+ *   TRUSTED_IPS            — comma-separated IPs that bypass all rate limiters
+ *   RATE_LIMIT_WINDOW_MS   — default window override (optional)
+ *   RATE_LIMIT_MAX         — default max requests override (optional)
+ */
+
+'use strict';
+
+const rateLimit        = require('express-rate-limit');
 const { ipKeyGenerator } = require('express-rate-limit');
-const { getClientIp } = require('./request-context');
-const { logError } = require('./logger-helper');
-const { logSystemInfo } = require('./system-logger');
-const AppError = require('./AppError');
-const RATE_LIMIT = require('../utils/constants/domain/rate-limit');
+const { getClientIp }    = require('./request-context');
+const { logWarn }        = require('./logging/logger-helper');
+const { logSystemInfo }  = require('./logging/system-logger');
+const AppError           = require('./AppError');
+const RATE_LIMIT         = require('../utils/constants/domain/rate-limit');
 
-loadEnv();
+const CONTEXT = 'utils/rate-limit-helper';
 
-const trustedIPs = process.env.TRUSTED_IPS
-  ? process.env.TRUSTED_IPS.split(',')
-  : [];
+// -----------------------------------------------------------------------------
+// Trusted IPs — resolved once at module load
+// Stored as a Set for O(1) lookup on every request.
+// -----------------------------------------------------------------------------
 
 /**
- * Default custom handler for rate-limited requests.
- * Logs rate-limit violations and forwards a structured AppError to the error handler.
+ * Set of IP addresses that bypass all rate limiters.
+ * Populated from the TRUSTED_IPS environment variable.
  *
- * @param {import('express').Request} req - The Express request object.
- * @param {import('express').Response} res - The Express response object.
- * @param {Function} next - The next middleware function in the stack.
- * @param {object} options - Rate limiter options, including windowMs used to calculate retry delay.
+ * @type {Set<string>}
+ */
+const TRUSTED_IPS = new Set(
+  process.env.TRUSTED_IPS
+    ? process.env.TRUSTED_IPS.split(',').map((ip) => ip.trim()).filter(Boolean)
+    : []
+);
+
+// -----------------------------------------------------------------------------
+// Default window and max — resolved once at module load
+// Reading process.env inside a destructuring default runs on every call.
+// -----------------------------------------------------------------------------
+
+const DEFAULT_WINDOW_MS =
+  process.env.RATE_LIMIT_WINDOW_MS
+    ? parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10)
+    : RATE_LIMIT.DEFAULT_WINDOW_MS;
+
+const DEFAULT_MAX =
+  process.env.RATE_LIMIT_MAX
+    ? parseInt(process.env.RATE_LIMIT_MAX, 10)
+    : RATE_LIMIT.DEFAULT_MAX;
+
+// -----------------------------------------------------------------------------
+// Default violation handler
+// -----------------------------------------------------------------------------
+
+/**
+ * Handles requests that have exceeded the rate limit.
+ *
+ * Sets a `Retry-After` header, logs the violation as a warning (not an error —
+ * rate limiting is expected behaviour under normal traffic patterns), and
+ * forwards a structured `AppError` to the Express error handler.
+ *
+ * Request metadata (IP, route, user-agent) is placed in `meta` rather than
+ * `details` — it is observability data for logs, not client-facing context.
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ * @param {object} options - Rate limiter options passed by express-rate-limit.
+ * @param {number} options.windowMs - Window duration in milliseconds.
+ * @param {number} options.max - Maximum requests allowed in the window.
+ * @param {Function} [options.keyGenerator] - Client key generator function.
+ * @returns {void}
  */
 const defaultRateLimitHandler = (req, res, next, options) => {
   const retryAfter = Math.ceil(options.windowMs / 1000);
-  const clientKey = options.keyGenerator
+  const clientKey  = options.keyGenerator
     ? options.keyGenerator(req)
     : getClientIp(req);
-
-  // Set Retry-After header (in seconds)
-  res.set('Retry-After', retryAfter.toString());
-
-  // Log the rate limit event
-  logError('Rate limit exceeded', req, {
-    context: 'rate-limiter',
+  
+  // Inform the client when it may retry.
+  res.set('Retry-After', String(retryAfter));
+  
+  // Rate limiting is expected behaviour — log as warn, not error.
+  logWarn('Rate limit exceeded', req, {
+    context:     CONTEXT,
     retryAfter,
     maxRequests: options.max,
     clientKey,
+    method:      req.method,
+    route:       req.originalUrl,
+    userAgent:   req.get('user-agent') ?? 'unknown',
   });
-
-  // Return a structured JSON response using AppError
+  
   next(
     AppError.rateLimitError(
-      'You have exceeded the allowed number of requests. Please try again later.',
-      {
-        details: {
-          ip: getClientIp(req),
-          method: req.method,
-          route: req.originalUrl,
-          userAgent: req.get('user-agent') || 'Unknown',
-          retryAfter,
-          clientKey,
-        },
-      }
+      'Too many requests. Please try again later.',
+      { details: { retryAfter } }
     )
   );
 };
 
+// -----------------------------------------------------------------------------
+// Factory
+// -----------------------------------------------------------------------------
+
 /**
- * Creates a rate limiter with reusable defaults and customizable options.
+ * Creates a configured `express-rate-limit` middleware instance.
  *
- * @param {Object} options - Configuration options for rate limiting.
- * @param {number} [options.windowMs=RATE_LIMIT.DEFAULT_WINDOW_MS] - Time window in milliseconds.
- * @param {number} [options.max=RATE_LIMIT.DEFAULT_MAX] - Maximum number of requests allowed in the time window.
- * @param {boolean} [options.headers=true] - Include rate limit headers in responses.
- * @param {number} [options.statusCode=429] - HTTP status code for rate limit exceeded.
- * @param {Function} [options.keyGenerator=(req) => req.ip] - Function to identify clients (default: IP).
- * @param {Function} [options.skip=() => false] - Function to skip rate limiting for certain requests.
- * @param {Function} [options.handler=defaultRateLimitHandler] - Custom handler for rate-limited responses.
- * @param {boolean} [options.disableInDev=false] - Disable rate limiting in development mode.
- * @param {string} [options.context]
+ * `ipKeyGenerator` from `express-rate-limit` is used as the default key
+ * generator instead of plain `req.ip` because it correctly respects the
+ * `trust proxy` setting configured in `app.js`, ensuring the real client IP
+ * is used behind NGINX or a load balancer.
  *
+ * @param {object} [options={}] - Rate limiter configuration.
+ * @param {number} [options.windowMs=DEFAULT_WINDOW_MS] - Time window in ms.
+ * @param {number} [options.max=DEFAULT_MAX] - Max requests per window.
+ * @param {boolean} [options.headers=true] - Include standard rate limit headers.
+ * @param {number} [options.statusCode=429] - HTTP status for limited responses.
+ * @param {Function} [options.keyGenerator=ipKeyGenerator] - Client identifier function.
+ * @param {Function} [options.skip] - Return `true` to bypass limiting for a request.
+ *   Defaults to skipping requests from `TRUSTED_IPS`.
+ * @param {Function} [options.handler=defaultRateLimitHandler] - Violation handler.
+ * @param {boolean} [options.disableInDev=false] - When `true`, sets max to
+ *   `Number.MAX_SAFE_INTEGER` in development so limits are effectively disabled.
+ * @param {string} [options.context='rate-limiter'] - Label used in log entries.
  * @returns {import('express-rate-limit').RateLimitRequestHandler}
  */
 const createRateLimiter = ({
-  windowMs = process.env.RATE_LIMIT_WINDOW_MS
-    ? parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10)
-    : RATE_LIMIT.DEFAULT_WINDOW_MS,
-  max = process.env.RATE_LIMIT_MAX
-    ? parseInt(process.env.RATE_LIMIT_MAX, 10)
-    : RATE_LIMIT.DEFAULT_MAX,
-  headers = true,
-  statusCode = 429,
-  keyGenerator = ipKeyGenerator,
-  skip = (req) => {
-    const ip = getClientIp(req);
-    return trustedIPs.includes(ip);
-  },
-  handler = defaultRateLimitHandler, // Use the default handler if none is provided
-  disableInDev = false,
-  context = 'rate-limiter',
-} = {}) => {
+                             windowMs    = DEFAULT_WINDOW_MS,
+                             max         = DEFAULT_MAX,
+                             headers     = true,
+                             statusCode  = 429,
+                             keyGenerator = ipKeyGenerator,
+                             skip = (req) => TRUSTED_IPS.has(getClientIp(req)),
+                             handler     = defaultRateLimitHandler,
+                             disableInDev = false,
+                             context     = 'rate-limiter',
+                           } = {}) => {
+  // In development with disableInDev, set max to MAX_SAFE_INTEGER rather than
+  // skipping the middleware entirely — this keeps the middleware in the chain
+  // (preserving headers and key generation) while effectively removing the limit.
   if (disableInDev && process.env.NODE_ENV === 'development') {
-    logSystemInfo('Rate limiter disabled in development mode.', {
+    logSystemInfo('Rate limiter disabled in development', {
       context,
       windowMs,
       max,
     });
-
+    
     return rateLimit({
       windowMs,
-      max: Number.MAX_SAFE_INTEGER,
+      max:             Number.MAX_SAFE_INTEGER,
       standardHeaders: headers,
-      legacyHeaders: false,
+      legacyHeaders:   false,
     });
   }
-
-  logSystemInfo('Rate limiter initialized.', {
+  
+  logSystemInfo('Rate limiter initialized', {
     context,
     windowMs,
     max,
     statusCode,
     headers,
   });
-
+  
   return rateLimit({
     windowMs,
     max,
     standardHeaders: headers,
-    legacyHeaders: false,
+    legacyHeaders:   false,
     statusCode,
     keyGenerator,
     skip,
@@ -126,4 +185,6 @@ const createRateLimiter = ({
   });
 };
 
-module.exports = { createRateLimiter };
+module.exports = {
+  createRateLimiter
+};

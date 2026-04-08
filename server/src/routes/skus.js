@@ -1,32 +1,30 @@
 /**
- * @fileoverview
- * SKU API Routes — ERP Product Management Module
+ * @file skus.js
+ * @description SKU query, creation, and management routes.
+ * Covers paginated listing, product card view, detail view, bulk creation,
+ * and targeted field updates (metadata, status, dimensions, identity).
  *
- * This router defines all SKU-related HTTP endpoints, including:
- *
- * Retrieval:
- *   - Active SKU product card listing
- *   - Detailed SKU information
- *   - Active BOM composition with estimated cost
- *
- * Updates:
- *   - Metadata updates
- *   - Dimension updates
- *   - Identity updates
- *
- * Design Principles:
- *   - Fine-grained permission enforcement per operation
- *   - Strict request validation (params + body)
- *   - Separation of update domains (metadata, dimensions, identity)
- *   - Delegation to service layer for business logic
- *
- * Base Path:
- *   /api/skus
+ * All routes are protected and require explicit permission checks via `authorize`.
+ * Query normalization is handled by `createQueryNormalizationMiddleware`.
  */
 
-const express = require('express');
-const { authorize } = require('../middlewares/authorize');
-const PERMISSIONS = require('../utils/constants/domain/permissions');
+'use strict';
+
+const express                            = require('express');
+const { authorize }                      = require('../middlewares/authorize');
+const validate                           = require('../middlewares/validate');
+const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
+const PERMISSIONS                        = require('../utils/constants/domain/permissions');
+const {
+  getPaginatedSkuProductCardsSchema,
+  skuQuerySchema,
+  skuIdParamSchema,
+  createSkuBulkSchema,
+  updateSkuStatusSchema,
+  updateSkuMetadataSchema,
+  updateSkuDimensionsSchema,
+  updateSkuIdentitySchema,
+} = require('../validators/sku-validators');
 const {
   getPaginatedSkuProductCardsController,
   getPaginatedSkusController,
@@ -37,178 +35,56 @@ const {
   updateSkuDimensionsController,
   updateSkuIdentityController,
 } = require('../controllers/sku-controller');
-const validate = require('../middlewares/validate');
-const {
-  getPaginatedSkuProductCardsSchema,
-  createSkuBulkSchema,
-  skuIdParamSchema,
-  updateSkuStatusSchema,
-  skuQuerySchema,
-  updateSkuMetadataSchema,
-  updateSkuDimensionsSchema,
-  updateSkuIdentitySchema,
-} = require('../validators/sku-validators');
-const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
-const { sanitizeFields } = require('../middlewares/sanitize');
 
 const router = express.Router();
 
 /**
- * ---------------------------------------------------------------------
- * GET /api/v1/skus/cards
- * ---------------------------------------------------------------------
- * @summary Fetch a paginated list of SKU product cards.
- * @description
- * Returns lightweight SKU “product card” entries optimized for grid/list views.
- * Each card includes:
- *  - Product fields: name, brand, category, series
- *  - SKU fields: SKU code, barcode, size label, market region
- *  - Compliance: e.g., NPN document number
- *  - Pricing: latest MSRP (location = Office)
- *  - Primary image metadata: image_url, alt_text
- *
- * Access Control:
- *  - Visibility rules (active-only, inactive allowed, etc.) are applied
- *    automatically based on the requesting user's permissions.
- *  - Filters are transparently adjusted using ACL before the DB query.
- *
- * Query Capabilities:
- *  - Pagination: `page`, `limit`
- *  - Sorting: via `skuProductCards` sort map (validated by middleware)
- *  - Filtering:
- *      - productName, brand, category
- *      - sku, skuIds[], sizeLabel, marketRegion
- *      - complianceId
- *      - keyword (multi-field fuzzy search)
- *
- * @access Protected
- *
- * @returns {200} Paginated list of SKU product cards
- * @returns {400} Validation error (invalid query parameters)
- * @returns {403} Forbidden (insufficient permissions)
+ * @route GET /skus/cards
+ * @description Paginated SKU product cards with optional filters and sorting.
+ * Filters: skuIds.
+ * Sorting: sortBy, sortOrder (uses skuProductCards sort map).
+ * @access protected
+ * @permission SKUS.VIEW_CARDS
  */
 router.get(
   '/cards',
   authorize([PERMISSIONS.SKUS.VIEW_CARDS]),
-  createQueryNormalizationMiddleware(
-    'skuProductCards', // sort map name
-    ['skuIds'], // array-based filter fields
-    [], // numeric fields
-    getPaginatedSkuProductCardsSchema
-  ),
-  sanitizeFields(['keyword', 'productName', 'sku', 'brand', 'category']),
   validate(getPaginatedSkuProductCardsSchema, 'query'),
+  createQueryNormalizationMiddleware(
+    'skuProductCards',                  // moduleKey — drives allowed sortBy fields
+    ['skuIds'],                         // arrayKeys — normalized as UUID arrays
+    [],                                 // booleanKeys — none client-controlled
+    getPaginatedSkuProductCardsSchema   // filterKeysOrSchema — extracts filter keys from schema
+  ),
   getPaginatedSkuProductCardsController
 );
 
 /**
- * GET /api/v1/skus
- *
- * Retrieves a paginated, filterable, sortable list of SKU records.
- *
- * ### Middleware stack:
- * - `authorize` → Ensures the user has SKUS.VIEW_LIST permission
- *
- * - `createQueryNormalizationMiddleware` →
- *     Normalizes sort keys and array-based filters using:
- *     - Sort map: `skuSortMap`
- *     - Array fields: `statusIds`, `productIds`
- *       (expand here if more array filters are added)
- *
- * - `sanitizeFields` →
- *     Sanitizes potentially unsafe or user-typed string fields:
- *     - `keyword`, `productName`, `sku`
- *
- * - `validate` →
- *     Validates normalized query parameters using `skuQuerySchema`
- *
- *
- * ### Query Parameters (normalized & validated):
- * - Pagination:
- *     - `page`, `limit`
- *
- * - Sorting:
- *     - `sortBy`, `sortOrder` (validated against `skuSortMap`)
- *
- * - SKU-level filters:
- *     - `statusIds[]`
- *     - `productIds[]`
- *     - `sku` (ILIKE)
- *     - `barcode`
- *     - `sizeLabel`
- *     - `marketRegion`
- *     - `countryCode`
- *     - creation/updated date ranges
- *     - createdBy, updatedBy
- *
- * - Product-level filters:
- *     - `productName`
- *     - `brand`
- *     - `category`
- *
- * - Keyword search:
- *     - fuzzy match across SKU, product name, brand, category
- *
- *
- * ### Response (200 OK):
- * {
- *   "success": true,
- *   "message": "SKUs retrieved successfully.",
- *   "data": [...],
- *   "pagination": { "page", "limit", "totalRecords", "totalPages" }
- * }
- *
- * @access Protected
+ * @route GET /skus
+ * @description Paginated SKU records with optional filters and sorting.
+ * Filters: statusIds, productIds.
+ * Sorting: sortBy, sortOrder (uses skuSortMap).
+ * @access protected
+ * @permission SKUS.VIEW_LIST
  */
 router.get(
   '/',
   authorize([PERMISSIONS.SKUS.VIEW_LIST]),
-  createQueryNormalizationMiddleware(
-    'skuSortMap', // Name of sort map
-    ['statusIds', 'productIds'], // Array-based filter fields
-    [], // Reserved: fields that require numeric normalization (none for SKUs)
-    skuQuerySchema // Joi schema for validation
-  ),
-  sanitizeFields(['keyword', 'productName', 'sku', 'brand', 'category']),
   validate(skuQuerySchema, 'query'),
+  createQueryNormalizationMiddleware(
+    'skuSortMap',                  // moduleKey — drives allowed sortBy fields
+    ['statusIds', 'productIds'],   // arrayKeys — normalized as UUID arrays
+    [],                            // booleanKeys — none client-controlled
+    skuQuerySchema                 // filterKeysOrSchema — extracts filter keys from schema
+  ),
   getPaginatedSkusController
 );
 
 /**
- * Route: GET /skus/:skuId/details
- *
- * Retrieves a fully enriched SKU detail payload including:
- * - SKU base attributes
- * - Product metadata
- * - Images (permission-aware)
- * - Pricing records (permission-aware)
- * - Compliance records (permission-aware)
- *
- * Middleware Chain:
- * 1. authorize([PERMISSIONS.SKUS.VIEW_DETAILS])
- *      - Ensures the authenticated user has the required permission to
- *        view SKU details. Does NOT determine what fields they can view—
- *        the service layer handles fine-grained access control.
- *
- * 2. validate(skuIdParamSchema, 'params')
- *      - Ensures `skuId` is a valid UUID before reaching the controller.
- *        Prevents useless database queries and improves error clarity.
- *
- * 3. fetchSkuDetailsController
- *      - Executes the full business logic:
- *          → fetchSkuDetailsService()
- *          → slices pricing/images/compliance based on user permissions
- *          → transforms output via transformSkuDetail()
- *      - Returns consistent API response shape with traceId.
- *
- * Permissions:
- *   - Requires SKUS.VIEW_DETAILS
- *
- * Errors:
- *   - 400 if skuId invalid
- *   - 403 if user lacks permission
- *   - 404 if SKU does not exist
- *   - 500 for unexpected server errors (captured by global error handler)
+ * @route GET /skus/:skuId/details
+ * @description Full detail record for a single SKU by ID.
+ * @access protected
+ * @permission SKUS.VIEW_DETAILS
  */
 router.get(
   '/:skuId/details',
@@ -219,55 +95,9 @@ router.get(
 
 /**
  * @route POST /skus/create
- * @group SKUs
+ * @description Bulk create one or more SKU records.
+ * @access protected
  * @permission SKUS.CREATE
- *
- * @description
- * Bulk SKU creation endpoint.
- * Accepts an array of SKU definitions and generates SKU codes,
- * enforces business rules, locks related products, performs duplicate
- * checks, and inserts all SKUs in a single transactional operation.
- *
- * Request body must match `createSkuBulkSchema`, which validates:
- *   - product_id (UUID)
- *   - brand_code / category_code / variant_code / region_code
- *   - optional metadata (barcode, size_label, description, dimensions, etc.)
- *
- * Middlewares:
- *   1. authorize([SKUS.CREATE])
- *        - Ensures caller has permission to create SKUs.
- *
- *   2. validate(createSkuBulkSchema, 'body')
- *        - Ensures payload structure and values are valid before passing
- *          request to controller.
- *
- *   3. createSkusController
- *        - Executes bulk creation using service + business logic layers.
- *        - Handles logging, error wrapping, and API response formatting.
- *
- * Expected JSON payload (example):
- * {
- *   "skus": [
- *     {
- *       "product_id": "uuid",
- *       "brand_code": "CH",
- *       "category_code": "HN",
- *       "variant_code": "200",
- *       "region_code": "CA",
- *       "barcode": "628693253017",
- *       "size_label": "60 Capsules",
- *       "description": "Hair Nutrition CA",
- *       "length_cm": 5.2,
- *       "width_cm": 5.0,
- *       "height_cm": 10.0,
- *       "weight_g": 150
- *     }
- *   ]
- * }
- *
- * Success Response:
- *   - HTTP 201
- *   - JSON body containing normalized and enriched SKU records.
  */
 router.post(
   '/create',
@@ -277,96 +107,23 @@ router.post(
 );
 
 /**
- * ────────────────────────────────────────────────
- * SKU Section Update Routes
- * ────────────────────────────────────────────────
- *
- * These PATCH endpoints allow partial updates to distinct SKU domains.
- *
- * Each route:
- * - Requires a dedicated permission scope
- * - Validates :skuId parameter
- * - Validates request payload against domain-specific schema
- * - Delegates business rules and transaction handling to service layer
- *
- * Rationale:
- * SKU updates are intentionally segmented (metadata, dimensions, identity)
- * to enforce fine-grained authorization and prevent over-posting of fields.
- */
-
-/**
- * PATCH /:skuId/metadata
- *
- * Updates editable metadata fields such as:
- * - Display name
- * - Description
- * - Tags
- * - Non-operational attributes
- *
- * Permission: SKUS.UPDATE_METADATA
+ * @route PATCH /skus/:skuId/metadata
+ * @description Update editable metadata fields on a SKU.
+ * @access protected
+ * @permission SKUS.UPDATE_METADATA
  */
 router.patch(
   '/:skuId/metadata',
-  authorize(PERMISSIONS.SKUS.UPDATE_METADATA),
+  authorize([PERMISSIONS.SKUS.UPDATE_METADATA]),
   validate(skuIdParamSchema, 'params'),
   validate(updateSkuMetadataSchema, 'body'),
   updateSkuMetadataController
 );
 
 /**
- * @route PATCH /api/v1/skus/:skuId/status
- * @description
- * Updates the status of a specific SKU.
- *
- * ### Purpose
- * - Allows authorized users to change a SKU’s lifecycle state
- *   (e.g., `PENDING` → `ACTIVE`, `ACTIVE` → `INACTIVE`, or `ACTIVE` → `DISCONTINUED`).
- * - Ensures transactional integrity with row locking, audit updates, and
- *   business-rule enforcement through `updateSkuStatusService`.
- *
- * ### Middleware Flow
- * 1. **authorize([PERMISSIONS.SKUS.UPDATE_STATUS])**
- *    - Ensures the user has permission to modify SKU status.
- *
- * 2. **validate(skuIdParamSchema, 'params')**
- *    - Verifies the `skuId` path parameter is a valid UUID.
- *
- * 3. **validate(updateSkuStatusSchema, 'body')**
- *    - Validates request body (requires a valid `statusId` UUID).
- *
- * 4. **updateSkuStatusController**
- *    - Executes the transactional update and returns a standardized response.
- *
- *
- * ### Request
- * **Path params:**
- * - `skuId` → UUID of the SKU to update
- *
- * **Body:**
- * ```json
- * {
- *   "statusId": "uuid-of-new-status"
- * }
- * ```
- *
- *
- * ### Response
- * **200 OK**
- * ```json
- * {
- *   "success": true,
- *   "message": "SKU status updated successfully.",
- *   "data": { "id": "uuid-of-sku" }
- * }
- * ```
- *
- * ### Error Responses
- * - `400 Bad Request` → Invalid skuId or statusId
- * - `403 Forbidden` → Missing `SKUS.UPDATE_STATUS` permission
- * - `404 Not Found` → SKU or status not found
- * - `409 Conflict` → Invalid status transition (business rule violation)
- *
- * @access Protected
+ * @route PATCH /skus/:skuId/status
+ * @description Transition a SKU to a new status.
+ * @access protected
  * @permission SKUS.UPDATE_STATUS
  */
 router.patch(
@@ -378,40 +135,28 @@ router.patch(
 );
 
 /**
- * PATCH /:skuId/dimensions
- *
- * Updates physical dimension attributes such as:
- * - Weight
- * - Length
- * - Width
- * - Height
- *
- * Permission: SKUS.UPDATE_DIMENSIONS
+ * @route PATCH /skus/:skuId/dimensions
+ * @description Update physical dimension fields on a SKU.
+ * @access protected
+ * @permission SKUS.UPDATE_DIMENSIONS
  */
 router.patch(
   '/:skuId/dimensions',
-  authorize(PERMISSIONS.SKUS.UPDATE_DIMENSIONS),
+  authorize([PERMISSIONS.SKUS.UPDATE_DIMENSIONS]),
   validate(skuIdParamSchema, 'params'),
   validate(updateSkuDimensionsSchema, 'body'),
   updateSkuDimensionsController
 );
 
 /**
- * PATCH /:skuId/identity
- *
- * Updates identity-related attributes such as:
- * - SKU code
- * - Barcode
- * - External identifiers
- *
- * Identity updates may impact integrations and references,
- * therefore strict permission enforcement applies.
- *
- * Permission: SKUS.UPDATE_IDENTITY
+ * @route PATCH /skus/:skuId/identity
+ * @description Update identity fields on a SKU (e.g. codes, identifiers).
+ * @access protected
+ * @permission SKUS.UPDATE_IDENTITY
  */
 router.patch(
   '/:skuId/identity',
-  authorize(PERMISSIONS.SKUS.UPDATE_IDENTITY),
+  authorize([PERMISSIONS.SKUS.UPDATE_IDENTITY]),
   validate(skuIdParamSchema, 'params'),
   validate(updateSkuIdentitySchema, 'body'),
   updateSkuIdentityController

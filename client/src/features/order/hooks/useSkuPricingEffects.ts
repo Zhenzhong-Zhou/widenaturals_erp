@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import type {
   SkuLookupQueryParams,
-  PricingLookupQueryParams,
+  PricingGroupLookupQueryParams,
 } from '@features/lookup/state';
 
 interface UseSkuPricingEffectsParams {
@@ -14,9 +14,9 @@ interface UseSkuPricingEffectsParams {
   fetchSku: (params: SkuLookupQueryParams) => void;
 
   // Pricing state
-  pricingFetchParams: PricingLookupQueryParams;
-  setPricingFetchParams: (params: PricingLookupQueryParams) => void;
-  fetchPricing: (params: PricingLookupQueryParams) => void;
+  pricingFetchParams: PricingGroupLookupQueryParams;
+  setPricingFetchParams: (params: PricingGroupLookupQueryParams) => void;
+  fetchPricing: (params: PricingGroupLookupQueryParams) => void;
   setPricingInputValue: (value: string) => void;
 }
 

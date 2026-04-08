@@ -1,270 +1,196 @@
+/**
+ * @file order-type-repository.js
+ * @description Database access layer for order type records.
+ *
+ * Follows the established repo pattern:
+ *  - Query constants and factories imported from order-type-queries.js
+ *  - All errors normalized through handleDbError before bubbling up
+ *  - No success logging — middleware and globalErrorHandler own that layer
+ *
+ * Exports:
+ *  - getPaginatedOrderTypes        — paginated list with filtering and sorting
+ *  - getOrderTypeLookup            — offset-paginated dropdown lookup
+ *  - getOrderTypeIdsByCategory     — fetch order type UUIDs by category
+ *  - getOrderTypeMetaByOrderId     — fetch order type metadata by order id
+ */
+
+'use strict';
+
+const { paginateQuery, paginateQueryByOffset } = require('../utils/db/pagination/pagination-helpers');
+const { query } = require('../database/db');
+const { getFieldValuesByField } = require('../utils/db/record-utils');
+const { handleDbError } = require('../utils/errors/error-handlers');
+const { logDbQueryError } = require('../utils/db-logger');
+const { buildOrderTypeFilter } = require('../utils/sql/build-order-type-filter');
+const { resolveSort } = require('../utils/query/sort-resolver');
+const { SORTABLE_FIELDS } = require('../utils/sort-field-mapping');
 const {
-  buildOrderTypeFilter,
-} = require('../utils/sql/build-order-type-filters');
-const {
-  paginateQuery,
-  query,
-  getFieldValuesByField,
-} = require('../database/db');
-const { logSystemException, logSystemInfo } = require('../utils/system-logger');
-const AppError = require('../utils/AppError');
+  ORDER_TYPE_TABLE,
+  ORDER_TYPE_JOINS,
+  ORDER_TYPE_PAGINATED_SORT_WHITELIST,
+  buildOrderTypePaginatedQuery,
+  ORDER_TYPE_LOOKUP_TABLE,
+  ORDER_TYPE_LOOKUP_SORT_WHITELIST,
+  buildOrderTypeLookupQuery,
+  ORDER_TYPE_META_BY_ORDER_QUERY,
+} = require('./queries/order-type-queries');
+
+// ─── Paginated List ───────────────────────────────────────────────────────────
 
 /**
- * Fetches paginated and optionally filtered list of order types from the database.
+ * Fetches paginated order type records with optional filtering and sorting.
  *
- * Executes a raw SQL query with dynamic WHERE clause, sorting, and pagination support.
- * Join `status`, `users` (created_by / updated_by) for enriched display data.
+ * @param {Object}       options
+ * @param {Object}       [options.filters={}]          - Field filters.
+ * @param {number}       [options.page=1]              - Page number (1-based).
+ * @param {number}       [options.limit=10]            - Records per page.
+ * @param {string}       [options.sortBy='ot.name']    - Whitelisted DB column.
+ * @param {'ASC'|'DESC'} [options.sortOrder='ASC']     - Sort direction.
  *
- * @param {Object} options - Query options.
- * @param {number} [options.page=1] - Page number (1-based).
- * @param {number} [options.limit=10] - Number of records per page.
- * @param {string} [options.sortBy='name'] - Column to sort by (e.g., 'name', 'created_at').
- * @param {'ASC'|'DESC'} [options.sortOrder='ASC'] - Sorting direction.
- * @param {Object} [options.filters={}] - Filtering criteria (category, keyword, status, etc.).
- *
- * @returns {Promise<{ data: Array, pagination: Object }>} A promise resolving to paginated order types with metadata.
- *
- * @throws {AppError} Throws if the query fails or pagination fails.
- *
- * @example
- * const result = await getPaginatedOrderTypes({
- *   page: 2,
- *   limit: 20,
- *   sortBy: 'created_at',
- *   sortOrder: 'DESC',
- *   filters: {
- *     category: 'sales',
- *     keyword: 'return',
- *     requiresPayment: true,
- *   }
- * });
+ * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
+ * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getPaginatedOrderTypes = async ({
-  filters = {},
-  page = 1,
-  limit = 10,
-  sortBy = 'name',
-  sortOrder = 'ASC',
-}) => {
+                                        filters   = {},
+                                        page      = 1,
+                                        limit     = 10,
+                                        sortBy    = 'ot.name',
+                                        sortOrder = 'ASC',
+                                      }) => {
+  const context = 'order-type-repository/getPaginatedOrderTypes';
+  
   const { whereClause, params } = buildOrderTypeFilter(filters);
-
-  const tableName = 'order_types ot';
-
-  const joins = [
-    'INNER JOIN status s ON ot.status_id = s.id',
-    'LEFT JOIN users u1 ON ot.created_by = u1.id',
-    'LEFT JOIN users u2 ON ot.updated_by = u2.id',
-  ];
-
-  const baseQuery = `
-    SELECT
-      ot.id,
-      ot.name,
-      ot.code,
-      ot.category,
-      ot.requires_payment,
-      ot.status_id,
-      s.name AS status_name,
-      ot.status_date,
-      ot.created_at,
-      ot.updated_at,
-      u1.firstname AS created_by_firstname,
-      u1.lastname AS created_by_lastname,
-      u2.firstname AS updated_by_firstname,
-      u2.lastname AS updated_by_lastname
-    FROM ${tableName}
-    ${joins.join('\n')}
-    WHERE ${whereClause}
-  `;
-
+  
+  const sortConfig = resolveSort({
+    sortBy,
+    sortOrder,
+    moduleKey:   'orderTypeSortMap',
+    defaultSort: SORTABLE_FIELDS.orderTypeSortMap.defaultNaturalSort,
+  });
+  
+  const queryText = buildOrderTypePaginatedQuery(whereClause);
+  
   try {
-    const result = await paginateQuery({
-      tableName,
-      joins,
+    return await paginateQuery({
+      tableName:    ORDER_TYPE_TABLE,
+      joins:        ORDER_TYPE_JOINS,
       whereClause,
-      queryText: baseQuery,
+      queryText,
       params,
       page,
       limit,
-      sortBy,
-      sortOrder,
+      sortBy:       sortConfig.sortBy,
+      sortOrder:    sortConfig.sortOrder,
+      whitelistSet: ORDER_TYPE_PAGINATED_SORT_WHITELIST,
     });
-
-    logSystemInfo('Fetched order types successfully', {
-      context: 'order-type-repository/getPaginatedOrderTypes',
-      resultCount: result?.data?.length,
-      filters,
-      pagination: { page, limit },
-      sorting: { sortBy, sortOrder },
-    });
-
-    return result;
   } catch (error) {
-    logSystemException(
-      error,
-      'Failed to fetch paginated order types from database',
-      {
-        context: 'order-type-repository/getPaginatedOrderTypes',
-        filters,
-        pagination: { page, limit },
-        sorting: { sortBy, sortOrder },
-      }
-    );
-
-    throw AppError.databaseError(
-      'Unable to retrieve order types. Please try again later.'
-    );
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch paginated order types.',
+      meta:    { filters, page, limit, sortBy, sortOrder },
+      logFn:   (err) => logDbQueryError(
+        queryText, params, err, { context, filters, page, limit }
+      ),
+    });
   }
 };
 
+// ─── Lookup ───────────────────────────────────────────────────────────────────
+
 /**
- * Fetches a list of order types for lookup purposes.
+ * Fetches paginated order type records for dropdown/lookup use.
  *
- * This function is optimized for small datasets (<100 rows) and is typically used
- * in dropdowns, filters, and selection UIs. It optionally applies filter conditions.
+ * @param {Object} params
+ * @param {Object} [params.filters={}] - Optional filters.
+ * @param {number} [params.limit=50]   - Max records per page.
+ * @param {number} [params.offset=0]   - Offset for pagination.
  *
- * @param {Object} [options] - Optional parameters
- * @param {Object} [options.filters] - Optional filters to narrow results (e.g., statusId, category)
- * @returns {Promise<Array>} Resolves to an array of order type objects (id, name, category, code, status_id)
- * @throws {AppError} Throws if a database query fails
+ * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
+ * @throws  {AppError}        Normalized database error if the query fails.
  */
-const getOrderTypeLookup = async ({ filters = {} } = {}) => {
+const getOrderTypeLookup = async ({ filters = {}, limit = 50, offset = 0 } = {}) => {
+  const context = 'order-type-repository/getOrderTypeLookup';
+  
   const { whereClause, params } = buildOrderTypeFilter(filters);
-
-  const queryText = `
-    SELECT
-      id,
-      name,
-      category,
-      requires_payment,
-      status_id
-    FROM order_types ot
-    WHERE ${whereClause}
-    ORDER BY name ASC
-  `;
-
+  const queryText = buildOrderTypeLookupQuery(whereClause);
+  
   try {
-    const { rows } = await query(queryText, params);
-
-    logSystemInfo('Fetched order type lookup', {
-      context: 'order-type-repository/getOrderTypeLookup',
-      filters,
+    return await paginateQueryByOffset({
+      tableName:    ORDER_TYPE_LOOKUP_TABLE,
+      joins:        [],
+      whereClause,
+      queryText,
+      params,
+      offset,
+      limit,
+      sortBy:       'ot.name',
+      sortOrder:    'ASC',
+      whitelistSet: ORDER_TYPE_LOOKUP_SORT_WHITELIST,
     });
-
-    return rows;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch order type lookup', {
-      context: 'order-type-repository/getOrderTypeLookup',
-      filters,
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch order type lookup.',
+      meta:    { filters, limit, offset },
+      logFn:   (err) => logDbQueryError(
+        queryText, params, err, { context, filters, limit, offset }
+      ),
     });
-    throw AppError.databaseError('Failed to fetch order type lookup');
   }
 };
 
+// ─── By Category ─────────────────────────────────────────────────────────────
+
 /**
- * Retrieves the IDs of all order types that belong to a specific category.
+ * Fetches order type UUIDs filtered by category.
  *
- * This is typically used for access control and filtering orders by category.
- * For example, in a sales dashboard, you may only want to fetch orders whose
- * `order_type_id` matches a set of types within the "sales" category.
+ * Delegates entirely to `getFieldValuesByField` which handles execution
+ * and error normalization internally.
  *
- * Internally, this delegates to `getFieldValuesByField`, selecting all `id` values
- * from the `order_types` table where `category` equals the provided value.
+ * @param {string}          category      - Order type category to filter by.
+ * @param {PoolClient|null} [client=null] - Optional DB client for transactional context.
  *
- * @async
- * @param {string} category - The category to filter order types by (e.g., `'sales'`, `'purchase'`, `'logistics'`).
- * @param {import('pg').PoolClient} [client=null] - Optional PostgreSQL client to use within a transaction or query chain.
- * @returns {Promise<string[]>} - A list of UUIDs representing the order type IDs in the given category.
- *
- * @throws {AppError} - Throws an AppError if:
- *   - The `category` is invalid or not provided
- *   - The database query fails (wrapped from `getFieldValuesByField`)
- *
- * @example
- * const salesTypeIds = await getOrderTypeIdsByCategory('sales');
- * const orders = await getOrders({ orderTypeId: salesTypeIds });
+ * @returns {Promise<string[]>} Array of order type UUIDs matching the category.
+ * @throws  {AppError}          If the query fails.
  */
 const getOrderTypeIdsByCategory = async (category, client = null) => {
   return await getFieldValuesByField(
-    'order_types', // table name
-    'category', // filter field
-    category, // filter value
-    'id', // field to return
-    client // optional transaction context
+    'order_types',
+    'category',
+    category,
+    'id',
+    client
   );
 };
 
+// ─── Meta By Order ────────────────────────────────────────────────────────────
+
 /**
- * Fetches the order type metadata (code, name, category, number) for a given order ID.
+ * Fetches order type metadata for a given order.
  *
- * Business rule:
- *  - Orders are linked to an order type that defines their category (e.g. sales, purchase, transfer).
- *  - This metadata is required to determine downstream logic such as fulfillment and shipment rules.
+ * Returns null if no order exists for the given ID.
  *
- * Usage:
- *  - Call at the service layer before performing operations that depend on order type.
- *  - Intended as a read-only repository helper.
+ * @param {string}          orderId       - UUID of the order.
+ * @param {PoolClient|null} [client=null] - Optional DB client for transactional context.
  *
- * @async
- * @function
- * @param {string} orderId - UUID of the order
- * @param {import('pg').PoolClient|null} [client=null] - Optional PostgreSQL client or transaction
- * @returns {Promise<{
- *   order_id: string,
- *   order_number: string,
- *   order_type_code: string,
- *   order_type_name: string,
- *   order_type_category: string
- * } | null>} The order type metadata, or null if the order is not found
- *
- * @throws {AppError} DatabaseError if the query fails
- *
- * @example
- * const orderTypeMeta = await getOrderTypeMetaByOrderId('uuid-123');
- * // {
- * //   order_id: "uuid-123",
- * //   order_number: "SO-2025-0001",
- * //   order_type_code: "SALES",
- * //   order_type_name: "Sales Order",
- * //   order_type_category: "sales"
- * // }
+ * @returns {Promise<Object|null>} Order type metadata row, or null if not found.
+ * @throws  {AppError}             Normalized database error if the query fails.
  */
 const getOrderTypeMetaByOrderId = async (orderId, client = null) => {
-  const sql = `
-    SELECT
-      o.id AS order_id,
-      o.order_number,
-      ot.code AS order_type_code,
-      ot.name AS order_type_name,
-      ot.category AS order_type_category
-    FROM orders o
-    JOIN order_types ot ON o.order_type_id = ot.id
-    WHERE o.id = $1;
-  `;
-
+  const context = 'order-type-repository/getOrderTypeMetaByOrderId';
+  
   try {
-    const { rows } = await query(sql, [orderId], client);
-
-    logSystemInfo('Fetched order type metadata', {
-      context: 'order-type-repository/getOrderTypeMetaByOrderId',
-      orderId,
-      rowCount: rows.length,
-    });
-
+    const { rows } = await query(ORDER_TYPE_META_BY_ORDER_QUERY, [orderId], client);
     return rows[0] ?? null;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch order type metadata', {
-      context: 'order-type-repository/getOrderTypeMetaByOrderId',
-      orderId,
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch order type metadata.',
+      meta:    { orderId },
+      logFn:   (err) => logDbQueryError(
+        ORDER_TYPE_META_BY_ORDER_QUERY, [orderId], err, { context, orderId }
+      ),
     });
-
-    throw AppError.databaseError(
-      'Database query failed while fetching order type metadata',
-      {
-        cause: error,
-        orderId,
-      }
-    );
   }
 };
 

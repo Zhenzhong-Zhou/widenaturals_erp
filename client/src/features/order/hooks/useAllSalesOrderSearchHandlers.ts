@@ -5,7 +5,7 @@ import type {
   DiscountLookupQueryParams,
   OrderTypeLookupQueryParams,
   PaymentMethodLookupQueryParams,
-  PricingLookupQueryParams,
+  PricingGroupLookupQueryParams,
   SkuLookupQueryParams,
   TaxRateLookupQueryParams,
   PackagingMaterialLookupQueryParams,
@@ -19,7 +19,7 @@ type LookupBundles = {
   taxRate: { fetch: (params?: TaxRateLookupQueryParams) => void };
   deliveryMethod: { fetch: (params?: DeliveryMethodLookupQueryParams) => void };
   sku: { fetch: (params?: SkuLookupQueryParams) => void };
-  pricing: { fetch: (params?: PricingLookupQueryParams) => void };
+  pricingGroup: { fetch: (params?: PricingGroupLookupQueryParams) => void };
   packagingMaterial: {
     fetch: (params?: PackagingMaterialLookupQueryParams) => void;
   };
@@ -53,8 +53,8 @@ const useAllSalesOrderSearchHandlers = (
     handleSkuSearch: useDebouncedSearch<SkuLookupQueryParams>(
       bundles.sku.fetch
     ),
-    handlePricingSearch: useDebouncedSearch<PricingLookupQueryParams>(
-      bundles.pricing.fetch
+    handlePricingGroupSearch: useDebouncedSearch<PricingGroupLookupQueryParams>(
+      bundles.pricingGroup.fetch
     ),
     handlePackagingMaterialSearch:
       useDebouncedSearch<PackagingMaterialLookupQueryParams>(

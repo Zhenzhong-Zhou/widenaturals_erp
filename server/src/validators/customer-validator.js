@@ -15,6 +15,8 @@ const {
 
 /**
  * Joi schema for customer validation.
+ *
+ * @type {Joi.ObjectSchema}
  */
 const customerSchema = Joi.object({
   firstname: validateString('Firstname', 2, 50),
@@ -26,6 +28,8 @@ const customerSchema = Joi.object({
 
 /**
  * Joi schema for validating an array of customers.
+ *
+ * @type {Joi.ArraySchema}
  */
 const customerArraySchema = createArraySchema(
   customerSchema,

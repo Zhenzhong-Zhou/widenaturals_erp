@@ -1,131 +1,74 @@
+/**
+ * @file supplier-repository.js
+ * @description Database access layer for supplier records.
+ *
+ * Exports:
+ *  - getSupplierLookup — offset-paginated dropdown lookup with optional filtering
+ */
+
+'use strict';
+
 const { buildSupplierFilter } = require('../utils/sql/build-supplier-filter');
-const { paginateQueryByOffset } = require('../database/db');
-const { logSystemInfo, logSystemException } = require('../utils/system-logger');
-const AppError = require('../utils/AppError');
+const { buildVendorLookup } = require('./utils/build-vendor-lookup');
+const {
+  SUPPLIER_TABLE,
+  SUPPLIER_SORT_WHITELIST,
+  SUPPLIER_ADDITIONAL_SORTS,
+  buildSupplierLookupQuery,
+} = require('./queries/supplier-queries');
+
+// ─── Lookup ───────────────────────────────────────────────────────────────────
 
 /**
- * Fetches a lightweight, paginated list of Suppliers
- * for use in dropdowns and procurement-related workflows.
+ * Fetches paginated supplier records for dropdown/lookup use.
  *
- * This repository function is optimized for lookup contexts
- * and intentionally avoids unnecessary data expansion.
+ * Status and location joins are conditional on capability flags —
+ * only included when keyword search needs to match against those fields.
  *
- * ------------------------------------------------------------------
- * Design Principles
- * ------------------------------------------------------------------
- * - Return minimal identifying fields only
- * - Avoid JOINs unless explicitly enabled by service-layer options
- * - Enforce SQL-level visibility constraints via sanitized filters
- * - Maintain deterministic ordering for stable pagination
- * - Support offset-based pagination
+ * @param {Object}  params
+ * @param {Object}  [params.filters={}]                      - Optional filters.
+ * @param {Object}  [params.options={}]                      - Capability flags.
+ * @param {number}  [params.limit=50]                        - Max records per page.
+ * @param {number}  [params.offset=0]                        - Offset for pagination.
  *
- * ------------------------------------------------------------------
- * Visibility & Security Model
- * ------------------------------------------------------------------
- * - Assumes visibility rules are already resolved by business layer.
- * - Does NOT evaluate permissions.
- * - Trusts sanitized filter flags (e.g., includeArchived).
- * - Client-provided filters must not override ACL.
- *
- * ------------------------------------------------------------------
- * Supported Features
- * ------------------------------------------------------------------
- * - Keyword fuzzy search (when permitted)
- * - Conditional JOIN expansion (status, location)
- * - Offset + limit pagination
- *
- * ------------------------------------------------------------------
- * Returns
- * ------------------------------------------------------------------
- * {
- *   data: Array<{
- *     id: string,
- *     name: string,
- *     contact_name?: string,
- *     code?: string,
- *     status_id: string
- *   }>,
- *   pagination: {
- *     offset: number,
- *     limit: number,
- *     totalRecords: number,
- *     hasMore: boolean
- *   }
- * }
- *
- * @throws {AppError} If database query fails
+ * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
+ * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getSupplierLookup = async ({
-  filters = {},
-  options = {},
-  limit = 50,
-  offset = 0,
-}) => {
+                                   filters = {},
+                                   options = {},
+                                   limit   = 50,
+                                   offset  = 0,
+                                 }) => {
   const context = 'supplier-repository/getSupplierLookup';
-  const tableName = 'suppliers s';
-
   const { canSearchStatus = false, canSearchLocation = false } = options;
-
-  const joins = [];
-
-  if (canSearchStatus) {
-    joins.push('LEFT JOIN status st ON st.id = s.status_id');
-  }
-
-  if (canSearchLocation) {
-    joins.push('LEFT JOIN locations l ON l.id = s.location_id');
-  }
-
+  
+  const joins = [
+    ...(canSearchStatus   ? ['LEFT JOIN status st   ON st.id = s.status_id']  : []),
+    ...(canSearchLocation ? ['LEFT JOIN locations l  ON l.id = s.location_id'] : []),
+  ];
+  
   const { whereClause, params } = buildSupplierFilter(filters, {
     canSearchStatus,
     canSearchLocation,
   });
-
-  const queryText = `
-    SELECT
-      s.id,
-      s.name,
-      s.contact_name,
-      s.status_id
-    FROM ${tableName}
-    ${joins.join('\n')}
-    WHERE ${whereClause}
-  `;
-
-  try {
-    const result = await paginateQueryByOffset({
-      tableName,
-      joins,
-      whereClause,
-      queryText,
-      params,
-      offset,
-      limit,
-      sortBy: 's.name',
-      sortOrder: 'ASC',
-      additionalSort: 's.code ASC',
-    });
-
-    logSystemInfo('Fetched supplier lookup data', {
-      context,
-      offset,
-      limit,
-      filters,
-      options,
-    });
-
-    return result;
-  } catch (error) {
-    logSystemException(error, 'Failed to fetch supplier lookup', {
-      context,
-      offset,
-      limit,
-      filters,
-      options,
-    });
-
-    throw AppError.databaseError('Failed to fetch supplier lookup.');
-  }
+  
+  const queryText = buildSupplierLookupQuery(joins, whereClause);
+  
+  return buildVendorLookup({
+    context,
+    tableName:       SUPPLIER_TABLE,
+    joins,
+    whereClause,
+    queryParams:     params,
+    queryText,
+    sortBy:          's.name',
+    sortWhitelist:   SUPPLIER_SORT_WHITELIST,
+    additionalSorts: SUPPLIER_ADDITIONAL_SORTS,
+    limit,
+    offset,
+    filters,
+  });
 };
 
 module.exports = {

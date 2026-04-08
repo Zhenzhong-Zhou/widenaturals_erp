@@ -1,8 +1,8 @@
+const { wrapAsyncHandler } = require('../middlewares/async-handler');
 const {
   checkServerHealthService,
 } = require('../services/server-health-service');
 const AppError = require('../utils/AppError');
-const wrapAsync = require('../utils/wrap-async');
 
 /**
  * GET /internal/status
@@ -14,7 +14,7 @@ const wrapAsync = require('../utils/wrap-async');
  * @param {Function} next - Express next middleware function.
  * @returns {Object} JSON response with system and service status.
  */
-const getInternalStatus = wrapAsync(async (req, res, next) => {
+const getInternalStatus = wrapAsyncHandler(async (req, res, next) => {
   try {
     // Perform server health checks
     const healthMetrics = await checkServerHealthService();

@@ -6,9 +6,9 @@ const { validateOptionalUUID } = require('./general-validators');
  *
  * Fields:
  * - `quantity_ordered` (number, required): Positive integer (>= 1).
- * - `price_id` (string, UUID | null, optional): Reference to a pricing record.
+ * - `pricing_group_id` (string, UUID | null, optional): Reference to a pricing record.
  * - `price` (number, optional, >= 0, nullable): Client-provided unit price **for display or drafts**.
- *    Not used for identity/deduping; server should resolve canonical price via `price_id`
+ *    Not used for identity/deduping; server should resolve canonical price via `pricing_group_id`
  *    (or via an override mechanism if you support it).
  * - `metadata` (object, optional): Free-form JSON for extra per-line info.
  *
@@ -19,7 +19,7 @@ const { validateOptionalUUID } = require('./general-validators');
  */
 const baseOrderItemSchema = Joi.object({
   quantity_ordered: Joi.number().integer().min(1).positive().required(),
-  price_id: validateOptionalUUID('Price Id'),
+  pricing_group_id: validateOptionalUUID('Price Group Id'),
   price: Joi.number().precision(2).min(0).optional().allow(null),
   metadata: Joi.object().optional(),
 });

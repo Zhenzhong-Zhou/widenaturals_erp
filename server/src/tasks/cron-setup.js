@@ -1,77 +1,182 @@
-const { exec, execSync } = require('child_process');
-const { logSystemInfo } = require('../utils/system-logger');
-const path = require('path');
-const fs = require('fs');
+/**
+ * @file cron-setup.js
+ * @description Registers scheduled cron jobs for system tasks.
+ *
+ * Execution modes:
+ * - Imported: call `setupCronJobs()` directly
+ * - Standalone: node cron-setup.js
+ *
+ * Environment variables:
+ *   NODE_ENV              — determines production vs development paths
+ *   LOGS_DIR              — overrides default dev log directory
+ *   BACKUP_CRON_SCHEDULE  — cron schedule expression (default: '0 2 * * *')
+ *   CRON_PATH             — PATH injected into cron environment
+ */
 
-// Check if running in production or development
-const isProduction = process.env.NODE_ENV === 'production';
+const { execSync, exec } = require('node:child_process');
+const path = require('node:path');
+const fs = require('node:fs');
+const os = require('node:os');
+const { loadEnv } = require('../config/env');
+const {
+  logSystemInfo,
+  logSystemException,
+} = require('../utils/logging/system-logger');
 
-// Define a log path based on environment
-const logsPath = isProduction
-  ? path.resolve('/logs/database') // Production path
-  : path.resolve(process.env.LOGS_DIR || '../../dev_logs'); // Local path
+const CONTEXT = 'cron-setup';
 
-// Define paths for your cron job scripts
-const cronBackupPath = path.resolve(
-  __dirname,
-  '../tasks/schedulers/backup-scheduler.js'
-);
-
-// Ensure logs directory exists
-if (!fs.existsSync(logsPath)) {
-  fs.mkdirSync(logsPath, { recursive: true });
-}
-
-// Define the PATH depending on the environment
-const PATH_ENV = isProduction
-  ? '/usr/local/bin' // Ubuntu default PATH
-  : '/opt/homebrew/bin'; // macOS with Homebrew
-
-// Dynamically resolve the Node.js path
-const nodePath = execSync('which node').toString().trim();
-
-// Define Timezone (UTC)
-const TIMEZONE = 'UTC';
-
-// Define your cron jobs
-const cronJobs = [
-  // Runs the backup-scheduler.js every minute (for testing purpose, change to 2 AM for production)
-  `0 2 * * * PATH=${PATH_ENV} NODE_ENV=${isProduction ? 'production' : 'development'} TZ=${TIMEZONE} ${nodePath} ${cronBackupPath} >> ${logsPath}/cron-backup.log 2>&1`,
-  // `* * * * * PATH=${PATH_ENV} NODE_ENV=${isProduction ? 'production': 'development'} TZ=${TIMEZONE} ${nodePath} ${cronBackupPath} >> ${logsPath}/cron-backup.log 2>&1`,
-];
+const resolveNodePath = () => {
+  try {
+    const detected = execSync('which node').toString().trim();
+    
+    // Reject IDE-managed Node paths (JetBrains, etc.)
+    if (detected.includes('Application Support') || detected.includes('JetBrains')) {
+      return '/opt/homebrew/bin/node'; // fallback (macOS M-series default)
+    }
+    
+    return detected;
+  } catch {
+    return '/opt/homebrew/bin/node';
+  }
+};
 
 /**
- * Adds cron jobs to the crontab.
+ * Resolves cron configuration from environment variables.
+ * Called at runtime — not at module load — so loadEnv() has already run.
+ *
+ * @returns {{
+ *   isProduction: boolean,
+ *   logsDir: string,
+ *   backupJobPath: string,
+ *   nodePath: string,
+ *   nodeEnv: string,
+ *   cronPath: string,
+ *   schedule: string
+ * }}
+ */
+const resolveConfig = () => {
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  const logsDir = isProduction
+    ? '/logs/database'
+    : path.resolve(process.env.LOGS_DIR || path.join(__dirname, '../../../dev_logs'));
+  
+  // Updated path — backup-scheduler.js replaced by run-backup.js
+  const backupJobPath = path.resolve(__dirname, '../system/backup/jobs/run-backup.js');
+  
+  // Resolved at call time, not module load
+  const nodePath = resolveNodePath();
+  
+  const cronPath = process.env.CRON_PATH || (() => {
+    try {
+      const pgDumpDir = path.dirname(execSync('which pg_dump').toString().trim());
+      const base = isProduction
+        ? '/usr/local/bin:/usr/bin:/bin'
+        : '/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin';
+      return `${pgDumpDir}:${base}`;
+    } catch {
+      return isProduction
+        ? '/usr/local/bin:/usr/bin:/bin'
+        : '/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin';
+    }
+  })();
+  
+  return {
+    isProduction,
+    logsDir,
+    backupJobPath,
+    nodePath,
+    nodeEnv: isProduction ? 'production' : 'development',
+    cronPath,
+    schedule: process.env.BACKUP_CRON_SCHEDULE || '0 2 * * *',
+  };
+};
+
+const escapeCronPath = (p) => JSON.stringify(String(p));
+
+/**
+ * Builds cron job entry strings from resolved config.
+ *
+ * @param {ReturnType<typeof resolveConfig>} config
+ * @returns {string[]}
+ */
+const buildCronJobs = ({ schedule, cronPath, nodeEnv, nodePath, backupJobPath, logsDir }) => {
+  return [
+    `${schedule} PATH=${cronPath} NODE_ENV=${nodeEnv} TZ=UTC ${escapeCronPath(nodePath)} ${escapeCronPath(backupJobPath)} >> ${escapeCronPath(path.join(logsDir, 'cron-backup.log'))} 2>&1`,
+  ];
+};
+
+/**
+ * Writes cron jobs to crontab via a temp file to avoid shell injection.
+ *
+ * @returns {Promise<void>}
  */
 const setupCronJobs = () => {
-  logSystemInfo('Registering cron jobs...', {
-    context: 'setup-cron',
-  });
-
-  const cronString = cronJobs.join('\n') + '\n';
-  logSystemInfo('Generated cron job string.', {
-    context: 'setup-cron',
-    jobCount: cronJobs.length,
-    preview: cronString, // or omit if too verbose
-  });
-
-  exec(`echo "${cronString}" | crontab -`, (error, stdout, stderr) => {
-    if (error) {
-      logSystemException(error, 'Failed to set up cron jobs.', {
-        context: 'setup-cron',
-        stderr,
-      });
-      return;
+  return new Promise((resolve, reject) => {
+    loadEnv();
+    
+    const config = resolveConfig();
+    const { logsDir } = config;
+    
+    // Ensure log directory exists before the cron job runs
+    if (!fs.existsSync(logsDir)) {
+      fs.mkdirSync(logsDir, { recursive: true });
+      logSystemInfo('Created logs directory', { context: CONTEXT, logsDir });
     }
-
-    logSystemInfo('Cron jobs set up successfully.', {
-      context: 'setup-cron',
-      stdout: stdout.trim(),
+    
+    const jobs = buildCronJobs(config);
+    const cronString = jobs.join('\n') + '\n';
+    
+    logSystemInfo('Registering cron jobs', {
+      context: CONTEXT,
+      jobCount: jobs.length,
+      schedule: config.schedule,
+    });
+    
+    // Write to a temp file instead of piping through echo/printf
+    // to avoid shell interpretation of special characters in the cron string
+    const tmpFile = path.join(os.tmpdir(), `crontab-${process.pid}.tmp`);
+    
+    try {
+      fs.writeFileSync(tmpFile, cronString, 'utf8');
+    } catch (writeError) {
+      logSystemException(writeError, 'Failed to write crontab temp file', {
+        context: CONTEXT,
+        tmpFile,
+      });
+      return reject(writeError);
+    }
+    
+    exec(`crontab ${tmpFile}`, (error, stdout, stderr) => {
+      // Clean up temp file regardless of outcome
+      fs.unlink(tmpFile, () => {});
+      
+      if (error) {
+        logSystemException(error, 'Failed to register cron jobs', {
+          context: CONTEXT,
+          stderr,
+        });
+        return reject(error);
+      }
+      
+      logSystemInfo('Cron jobs registered successfully', {
+        context: CONTEXT,
+        jobCount: jobs.length,
+      });
+      
+      resolve();
     });
   });
 };
 
-// Run setup if script is executed directly
+module.exports = { setupCronJobs };
+
+// Standalone boundary — mirrors backup-database.js pattern
 if (require.main === module) {
-  setupCronJobs();
+  setupCronJobs()
+    .then(() => logSystemInfo('Cron setup completed successfully', { context: CONTEXT }))
+    .catch((error) => {
+      logSystemException(error, 'Cron setup failed', { context: CONTEXT });
+      process.exit(1);
+    });
 }

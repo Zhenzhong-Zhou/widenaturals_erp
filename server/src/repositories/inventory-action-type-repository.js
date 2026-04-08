@@ -1,4 +1,4 @@
-const { getUniqueScalarValue } = require('../database/db');
+const { getUniqueScalarValue } = require('../utils/db/record-utils');
 
 /**
  * Retrieves the unique ID of an inventory action type by its exact name.
@@ -13,7 +13,7 @@ const { getUniqueScalarValue } = require('../database/db');
  *
  * @async
  * @param {string} actionTypeName - Case-sensitive name of the inventory action type.
- * @param {import('pg').PoolClient} client - Active database client or transaction context.
+ * @param {PoolClient} client - Active database client or transaction context.
  * @returns {Promise<string>} - Resolved UUID string of the matching inventory action type.
  *
  * @throws {AppError} - If the action type does not exist or if a uniqueness violation occurs.

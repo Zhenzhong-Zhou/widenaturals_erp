@@ -1,150 +1,104 @@
+/**
+ * @file batch-registry-business.js
+ * @description Domain business logic for batch registry validation, permission
+ * evaluation, filter visibility rules, and row-level access slicing.
+ */
+
+'use strict';
+
 const {
   getBatchRegistryById,
 } = require('../repositories/batch-registry-repository');
 const AppError = require('../utils/AppError');
-const { logSystemException } = require('../utils/system-logger');
+const { logSystemException } = require('../utils/logging/system-logger');
 const {
   resolveUserPermissionContext,
-} = require('../services/role-permission-service');
+} = require('../services/permission-service');
 const {
   BATCH_CONSTANTS,
 } = require('../utils/constants/domain/batch-constants');
 
+const CONTEXT = 'batch-registry-business';
+
 /**
- * Validates that a given batch_registry ID exists and matches the specified batch type.
+ * Validates that a batch registry entry exists and matches the expected batch type.
  *
- * - Reads a single row from `batch_registry` by ID.
- * - Ensures the type matches expected ('product' or 'packaging_material').
- * - This is a pure validation step — it does NOT lock or mutate data.
- * - Row locking is NOT required as batch registry records are expected to be immutable.
+ * Throws a `notFoundError` if no entry is found for the given ID.
+ * Throws a `validationError` if the entry's batch type does not match `expectedType`.
+ * Unexpected database errors propagate from the repository via `handleDbError`.
  *
- * @param {'product' | 'packaging_material'} expectedType - The expected batch type.
- * @param {string} batchRegistryId - UUID of the row in batch_registry.
- * @param {object} client - pg client/pool instance.
- *
- * @throws {AppError} If not found or mismatched type.
+ * @param {string} expectedType - The batch type the entry must have (e.g. `'product'`).
+ * @param {string} batchRegistryId - UUID of the batch registry entry to validate.
+ * @param {import('pg').PoolClient} client - Active transaction client.
+ * @returns {Promise<void>}
+ * @throws {AppError} notFoundError | validationError
  */
 const validateBatchRegistryEntryById = async (
   expectedType,
   batchRegistryId,
   client
 ) => {
-  try {
-    const row = await getBatchRegistryById(batchRegistryId, client);
-
-    if (!row) {
-      throw AppError.notFoundError(
-        `No batch registry found with ID: ${batchRegistryId}`
-      );
-    }
-
-    if (row.batch_type !== expectedType) {
-      throw AppError.validationError(
-        `Batch type mismatch: expected "${expectedType}", found "${row.batch_type}" for ID "${batchRegistryId}"`
-      );
-    }
-  } catch (err) {
-    logSystemException(err, 'Batch registry validation failed', {
-      context: 'batch-registry-business/validateBatchRegistryEntryById',
-      batchRegistryId,
-      expectedType,
-    });
-
-    throw AppError.businessError('Batch validation failed', {
-      details: { batchRegistryId, expectedType, error: err.message },
-    });
+  const row = await getBatchRegistryById(batchRegistryId, client);
+  
+  if (!row) {
+    throw AppError.notFoundError(
+      `No batch registry found with ID: ${batchRegistryId}`
+    );
+  }
+  
+  if (row.batch_type !== expectedType) {
+    throw AppError.validationError(
+      `Batch type mismatch: expected "${expectedType}", found "${row.batch_type}" for ID "${batchRegistryId}"`
+    );
   }
 };
 
 /**
- * Business: Determine which categories of batches the requester
- * is allowed to view in batch registry list pages and related UIs.
+ * Resolves which batch registry visibility capabilities the given user holds,
+ * based on their permissions and root status.
  *
- * This function resolves BATCH VISIBILITY AUTHORITY ONLY.
- * It does NOT inspect filters, modify data, or apply query logic.
+ * `canViewAllBatches` short-circuits all other flags — if true, all scoped
+ * view and search capabilities are also true.
  *
- * Visibility categories covered:
- *   ✔ Product batches
- *   ✔ Packaging material batches
- *   ✔ Manufacturer metadata
- *   ✔ Supplier metadata
- *
- * Permission semantics:
- *
- *   - VIEW_PRODUCT_BATCHES
- *       Allows viewing product-related batches.
- *
- *   - VIEW_PACKAGING_BATCHES
- *       Allows viewing packaging-material batches.
- *
- *   - VIEW_BATCH_MANUFACTURER
- *       Allows viewing manufacturer metadata.
- *
- *   - VIEW_BATCH_SUPPLIER
- *       Allows viewing supplier metadata.
- *
- *   - VIEW_BATCH_ALL_VISIBILITY
- *       FULL VISIBILITY OVERRIDE.
- *       Grants access to all batch types and related metadata.
- *
- * Root users (`isRoot === true`) implicitly bypass all batch visibility restrictions.
- *
- * NOTE:
- * This function may return DERIVED capability flags (e.g. keyword search scope),
- * but only as a direct consequence of visibility authority.
- *
- * @param {Object} user - Authenticated user context.
- *
- * @returns {Promise<{
- *   canViewProductBatches: boolean,
- *   canViewPackagingBatches: boolean,
- *   canViewManufacturer: boolean,
- *   canViewSupplier: boolean,
- *   canViewAllBatches: boolean,
- *   canSearchProduct: boolean,
- *   canSearchSku: boolean,
- *   canSearchManufacturer: boolean,
- *   canSearchPackagingMaterial: boolean,
- *   canSearchSupplier: boolean
- * }>}
+ * @param {AuthUser} user - Authenticated user making the request.
+ * @returns {Promise<BatchRegistryVisibilityAcl>}
+ * @throws {AppError} businessError if permission resolution fails.
  */
 const evaluateBatchRegistryVisibility = async (user) => {
-  const context = 'batch-registry-business/evaluateBatchRegistryVisibility';
-
+  const context = `${CONTEXT}/evaluateBatchRegistryVisibility`;
+  
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-
-    // Full visibility override
+    
     const canViewAllBatches =
       isRoot ||
       permissions.includes(
         BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_ALL_VISIBILITY
       );
-
+    
     const canViewProductBatches =
       canViewAllBatches ||
       permissions.includes(BATCH_CONSTANTS.PERMISSIONS.VIEW_PRODUCT_BATCHES);
-
+    
     const canViewPackagingBatches =
       canViewAllBatches ||
       permissions.includes(BATCH_CONSTANTS.PERMISSIONS.VIEW_PACKAGING_BATCHES);
-
+    
     const canViewManufacturer =
       canViewAllBatches ||
       permissions.includes(BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_MANUFACTURER);
-
+    
     const canViewSupplier =
       canViewAllBatches ||
       permissions.includes(BATCH_CONSTANTS.PERMISSIONS.VIEW_BATCH_SUPPLIER);
-
+    
     return {
+      canViewAllBatches,
       canViewProductBatches,
       canViewPackagingBatches,
       canViewManufacturer,
       canViewSupplier,
-      canViewAllBatches,
-
-      // Derived keyword search capabilities (visibility-driven)
+      // Derived keyword search capabilities — driven entirely by visibility flags.
       canSearchProduct: canViewProductBatches,
       canSearchSku: canViewProductBatches,
       canSearchManufacturer: canViewManufacturer,
@@ -156,54 +110,38 @@ const evaluateBatchRegistryVisibility = async (user) => {
       context,
       userId: user?.id,
     });
-
+    
     throw AppError.businessError(
-      'Unable to evaluate batch registry visibility.',
-      { details: err.message }
+      'Unable to evaluate batch registry visibility.'
     );
   }
 };
 
 /**
- * Business: applyBatchRegistryVisibilityRules
+ * Applies ACL-driven visibility rules to a batch registry filter object.
  *
- * Adjust batch registry query filters based on evaluated visibility access control.
+ * Mutually exclusive outcomes:
+ * - Full visibility (`canViewAllBatches`): all keyword capabilities enabled,
+ *   requested `batchType` left intact.
+ * - Explicit `batchType` requested but user lacks permission: `forceEmptyResult`
+ *   set to short-circuit the query.
+ * - No `batchType` requested: `batchType` narrowed to the user's allowed scope,
+ *   or `forceEmptyResult` if the user has no batch visibility at all.
+ * - Keyword capabilities always injected into the adjusted filters.
  *
- * Responsibility:
- * - Translate batch visibility ACL decisions into repository-consumable filter intent
- * - Intersect user-requested filters with visibility constraints (never broaden scope)
- * - Enforce batch-type visibility by narrowing or rejecting invalid requests
- *
- * Enforcement model:
- * - Repository-level SQL filtering is the PRIMARY enforcement mechanism
- * - This function expresses visibility intent; it does not execute queries
- * - Row-level slicing is DEFENSIVE only and must never expand visibility
- *
- * This function MUST:
- * - Preserve user intent whenever it is permitted
- * - Restrict `batchType` when visibility is limited
- * - Fail closed (force empty result) when requested visibility exceeds permission
- * - Explicitly signal impossible visibility via `forceEmptyResult`
- *
- * This function MUST NOT:
- * - Perform row-level filtering or transformation
- * - Evaluate permissions, roles, or identity flags
- * - Broaden visibility beyond what ACL allows
- * - Apply inventory placement, pagination, or sorting logic
- *
- * @param {Object} filters - Original query filters (pre-ACL)
- * @param {Object} acl - Result from evaluateBatchRegistryVisibility()
- * @returns {Object} Adjusted filters for repository consumption
+ * @param {object} filters - Base filter object from the request.
+ * @param {BatchRegistryVisibilityAcl} acl - Resolved ACL from `evaluateBatchRegistryVisibility`.
+ * @returns {object} Adjusted copy of `filters` with visibility rules applied.
  */
 const applyBatchRegistryVisibilityRules = (filters, acl) => {
   const adjusted = { ...filters };
-
+  
   const requestedType = filters.batchType;
-
+  
   const canViewProduct = acl.canViewProductBatches === true;
   const canViewPackaging = acl.canViewPackagingBatches === true;
   const canViewAll = acl.canViewAllBatches === true;
-
+  
   // -------------------------------------------------------------
   // 1. Full visibility override → respect user intent entirely
   // -------------------------------------------------------------
@@ -217,26 +155,22 @@ const applyBatchRegistryVisibilityRules = (filters, acl) => {
     };
     return adjusted;
   }
-
+  
   // -------------------------------------------------------------
-  // 2. User explicitly requested a batch type
+  // 2. User explicitly requested a batch type they cannot view
   // -------------------------------------------------------------
-  if (requestedType === 'product') {
-    if (!canViewProduct) {
-      adjusted.forceEmptyResult = true;
-      return adjusted;
-    }
+  if (requestedType === 'product' && !canViewProduct) {
+    adjusted.forceEmptyResult = true;
+    return adjusted;
   }
-
-  if (requestedType === 'packaging_material') {
-    if (!canViewPackaging) {
-      adjusted.forceEmptyResult = true;
-      return adjusted;
-    }
+  
+  if (requestedType === 'packaging_material' && !canViewPackaging) {
+    adjusted.forceEmptyResult = true;
+    return adjusted;
   }
-
+  
   // -------------------------------------------------------------
-  // 3. No batchType requested → restrict to allowed scope
+  // 3. No batchType requested → narrow to allowed scope
   // -------------------------------------------------------------
   if (!requestedType) {
     if (canViewProduct && !canViewPackaging) {
@@ -247,10 +181,11 @@ const applyBatchRegistryVisibilityRules = (filters, acl) => {
       adjusted.forceEmptyResult = true;
       return adjusted;
     }
+    // canViewProduct && canViewPackaging → no restriction needed, leave batchType unset
   }
-
+  
   // -------------------------------------------------------------
-  // 4. Inject keyword search capabilities (CRITICAL)
+  // 4. Inject keyword search capabilities
   // -------------------------------------------------------------
   adjusted.keywordCapabilities = {
     canSearchProduct: canViewProduct,
@@ -259,53 +194,35 @@ const applyBatchRegistryVisibilityRules = (filters, acl) => {
     canSearchPackagingMaterial: canViewPackaging,
     canSearchSupplier: acl.canViewSupplier === true,
   };
-
+  
   return adjusted;
 };
 
 /**
- * Business: Slice a batch registry row based on visibility rules.
+ * Filters a single batch registry row based on the user's visibility access.
+ * Returns `null` if the user is not permitted to see the row's batch type.
  *
- * Enforces WHICH categories of batches the requester is allowed to view,
- * based on access flags from evaluateBatchRegistryVisibility().
- *
- * NOTE:
- * Repository-level filtering is the PRIMARY enforcement mechanism.
- * This function exists as a DEFENSIVE, per-row safeguard only.
- *
- * It MUST:
- * - Never broaden visibility
- * - Only exclude rows that should not be visible
- *
- * @param {Object} row - Raw batch registry row from repository
- * @param {Object} access - Flags from evaluateBatchRegistryVisibility()
- * @returns {Object|null} Batch registry row or null if not visible
+ * @param {BatchRegistryRow} row - Raw batch registry row from the repository.
+ * @param {BatchRegistryVisibilityAcl} access - Resolved ACL from `evaluateBatchRegistryVisibility`.
+ * @returns {BatchRegistryRow | null}
  */
 const sliceBatchRegistryRow = (row, access) => {
-  // ---------------------------------------------------------
-  // 1. Full visibility override → allow everything
-  // ---------------------------------------------------------
+  // Full visibility override → allow everything.
   if (access.canViewAllBatches) {
     return row;
   }
-
-  // ---------------------------------------------------------
-  // 2. Product batch visibility
-  // ---------------------------------------------------------
+  
   if (row.batch_type === 'product' && access.canViewProductBatches !== true) {
     return null;
   }
-
-  // ---------------------------------------------------------
-  // 3. Packaging material batch visibility
-  // ---------------------------------------------------------
+  
   if (
     row.batch_type === 'packaging_material' &&
     access.canViewPackagingBatches !== true
   ) {
     return null;
   }
-
+  
   return row;
 };
 

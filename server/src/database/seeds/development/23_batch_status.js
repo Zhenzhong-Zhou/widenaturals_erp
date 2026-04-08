@@ -19,8 +19,33 @@ exports.seed = async function (knex) {
 
   const statusList = [
     {
-      name: 'active',
-      description: 'Batch is verified and can be used in operations',
+      name: 'pending',
+      description: 'Batch created but awaiting verification or QA review',
+      is_active: true,
+    },
+    {
+      name: 'received',
+      description: 'Batch physically received from supplier but not yet verified',
+      is_active: true,
+    },
+    {
+      name: 'quarantined',
+      description: 'Batch held for quality inspection or investigation',
+      is_active: true,
+    },
+    {
+      name: 'released',
+      description: 'Batch approved and available for operations',
+      is_active: true,
+    },
+    {
+      name: 'rejected',
+      description: 'Batch rejected due to failed quality inspection',
+      is_active: false,
+    },
+    {
+      name: 'suspended',
+      description: 'Batch temporarily blocked due to operational or QA issues',
       is_active: true,
     },
     {
@@ -29,18 +54,13 @@ exports.seed = async function (knex) {
       is_active: false,
     },
     {
-      name: 'quarantined',
-      description: 'Batch is under investigation or quality check',
-      is_active: true,
-    },
-    {
-      name: 'suspended',
-      description: 'Batch temporarily blocked due to admin/QA issues',
-      is_active: true,
+      name: 'consumed',
+      description: 'Batch fully used in manufacturing or fulfillment',
+      is_active: false,
     },
     {
       name: 'archived',
-      description: 'Batch is no longer in use, e.g., fully used',
+      description: 'Batch record retained for historical reference',
       is_active: false,
     },
   ];

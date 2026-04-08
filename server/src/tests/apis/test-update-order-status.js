@@ -1,5 +1,6 @@
-const { pool, getUniqueScalarValue } = require('../../database/db');
+const { pool } = require('../../database/db');
 const { updateOrderStatusService } = require('../../services/order-service');
+const { getUniqueScalarValue } = require('../../utils/db/record-utils');
 
 (async () => {
   const client = await pool.connect();

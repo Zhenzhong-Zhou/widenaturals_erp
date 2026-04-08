@@ -23,7 +23,7 @@ const { pool } = require('../../database/db');
 const {
   logSystemInfo,
   logSystemException,
-} = require('../../utils/system-logger');
+} = require('../../utils/logging/system-logger');
 const { updateProductInfoService } = require('../../services/product-service');
 const AppError = require('../../utils/AppError');
 

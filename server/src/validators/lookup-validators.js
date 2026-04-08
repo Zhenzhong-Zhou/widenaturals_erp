@@ -224,9 +224,9 @@ const skuLookupQuerySchema = Joi.object({
 });
 
 /**
- * Joi validation schema for pricing lookup query parameters.
+ * Joi validation schema for pricing group lookup query parameters.
  *
- * Validates GET requests to the `/lookups/pricing` endpoint.
+ * Validates GET requests to the `/lookups/pricing-groups` endpoint.
  *
  * Supports:
  * - `filters`: Optional object for filtering pricing results, includes:
@@ -235,16 +235,13 @@ const skuLookupQuerySchema = Joi.object({
  * - `limit`: Optional number for pagination (default: 50)
  * - `offset`: Optional number for pagination offset (default: 0)
  *
- * Options:
- * - `options.labelOnly`: Optional boolean to return minimal `{ id, label }` only
- *
- * This schema is used for pricing lookups in sales order creation,
- * admin panels, and dynamic dropdowns.
+ * Used for pricing group dropdowns in order entry, SKU assignment forms,
+ * and pricing management screens.
  *
  * @type {Joi.ObjectSchema}
  */
-const pricingLookupQuerySchema = Joi.object({
-  ...baseLookupQuerySchema, // includes filters, keyword, limit, offset
+const pricingGroupLookupQuerySchema = Joi.object({
+  ...baseLookupQuerySchema,
   skuId: validateOptionalUUID('SKU ID'),
   labelOnly: createBooleanFlag('Minimal label-only mode'),
 });
@@ -269,7 +266,7 @@ const pricingLookupQuerySchema = Joi.object({
  * - `mode? : 'generic' | 'salesDropdown'`  // **top-level** selector (defaults to 'generic')
  *
  * Note:
- * If your query-normalization middleware moves `mode` into `options.mode`,
+ * If your normalize-query middleware moves `mode` into `options.mode`,
  * either (a) keep this top-level validator and map it before validation,
  * or (b) validate `options.mode` inside the base schema instead.
  *
@@ -352,12 +349,9 @@ const skuCodeBaseLookupQuerySchema = Joi.object({
  */
 const productLookupQuerySchema = Joi.object({
   ...baseLookupQuerySchema,
-
-  filters: Joi.object({
-    brand: validateOptionalString('Brand', 20),
-    category: validateOptionalString('Category', 20),
-    series: validateOptionalString('Series', 20),
-  }).default({}),
+  brand: validateOptionalString('Brand', 20),
+  category: validateOptionalString('Category', 20),
+  series: validateOptionalString('Series', 20),
 });
 
 /**
@@ -499,6 +493,53 @@ const locationTypeLookupQuerySchema = Joi.object({
   ...baseLookupQuerySchema,
 });
 
+/**
+ * Joi schema for validating batch status lookup query parameters.
+ *
+ * This schema extends the shared `baseLookupQuerySchema`, which
+ * defines the standard lookup query structure used across the API.
+ *
+ * Typical fields inherited from the base schema include:
+ * - keyword
+ * - limit
+ * - offset
+ *
+ * Defining a dedicated schema per lookup endpoint keeps validation
+ * modular and allows endpoint-specific filters to be added later
+ * without modifying the shared base schema.
+ */
+const batchStatusLookupQuerySchema = Joi.object({
+  // Reuse common lookup validation rules
+  ...baseLookupQuerySchema,
+});
+
+/**
+ * Joi schema for validating packaging material supplier lookup query parameters.
+ *
+ * This schema extends the shared `baseLookupQuerySchema`, which
+ * defines the standard lookup query structure used across the API.
+ *
+ * Typical fields inherited from the base schema include:
+ * - keyword
+ * - limit
+ * - offset
+ *
+ * Additional filters specific to packaging material supplier lookup:
+ * - isPreferred (boolean)
+ *
+ * Keeping this schema separate allows future extension without
+ * modifying the shared base schema.
+ */
+const packagingMaterialSupplierLookupQuerySchema = Joi.object({
+  // Reuse common lookup validation rules
+  ...baseLookupQuerySchema,
+  
+  //---------------------------------------------------------
+  // Supplier-specific filters
+  //---------------------------------------------------------
+  isPreferred: Joi.boolean().optional(),
+});
+
 module.exports = {
   batchRegistryLookupQuerySchema,
   warehouseLookupQuerySchema,
@@ -511,7 +552,7 @@ module.exports = {
   taxRateLookupQuerySchema,
   deliveryMethodLookupQuerySchema,
   skuLookupQuerySchema,
-  pricingLookupQuerySchema,
+  pricingGroupLookupQuerySchema,
   packagingMaterialLookupQuerySchema,
   skuCodeBaseLookupQuerySchema,
   productLookupQuerySchema,
@@ -521,4 +562,6 @@ module.exports = {
   manufacturerLookupQuerySchema,
   supplierLookupQuerySchema,
   locationTypeLookupQuerySchema,
+  batchStatusLookupQuerySchema,
+  packagingMaterialSupplierLookupQuerySchema,
 };

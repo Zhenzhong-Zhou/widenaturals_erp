@@ -21,6 +21,17 @@ exports.up = function (knex) {
       RETURN NEW;
     END;
     $$ LANGUAGE plpgsql;
+    
+    CREATE OR REPLACE FUNCTION update_status_date_if_changed()
+    RETURNS trigger AS $$
+    BEGIN
+      IF NEW.status_id IS DISTINCT FROM OLD.status_id THEN
+        NEW.status_date = NOW();
+      END IF;
+    
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
   `);
 };
 

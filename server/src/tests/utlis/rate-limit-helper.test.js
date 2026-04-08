@@ -1,4 +1,4 @@
-jest.mock('../../utils/logger-helper', () => ({
+jest.mock('../../utils/logging/logger-helper', () => ({
   logWarn: jest.fn(), // Mock the logWarn function
 }));
 

@@ -1,57 +1,52 @@
+/**
+ * @file compliance-record-business.js
+ * @description Domain business logic for compliance record access control
+ * evaluation and row-level field slicing based on user permissions.
+ */
+
+'use strict';
+
 const {
   resolveUserPermissionContext,
-} = require('../services/role-permission-service');
+} = require('../services/permission-service');
 const {
   VIEW_COMPLIANCE_RECORDINGS,
   VIEW_COMPLIANCE_RECORDINGS_METADATA,
   VIEW_COMPLIANCE_RECORDINGS_HISTORY,
   VIEW_COMPLIANCE_RECORDINGS_INACTIVE,
 } = require('../utils/constants/domain/permissions');
-const { logSystemException } = require('../utils/system-logger');
+const { logSystemException } = require('../utils/logging/system-logger');
 const AppError = require('../utils/AppError');
 const { getStatusId } = require('../config/status-cache');
 const { compactAudit, makeAudit } = require('../utils/audit-utils');
 
+const CONTEXT = 'compliance-record-business';
+
 /**
- * Business: Determine what compliance record fields a user may view.
+ * Resolves which compliance record viewing capabilities the requesting user holds.
  *
- * Controls visibility of:
- *   ✔ Basic compliance info (type, compliance number, issued/expiry date)
- *   ✔ Metadata such as status + description
- *   ✔ Historical audit fields (created_by / updated_by)
- *   ✔ Inactive or expired compliance documents
- *
- * This does NOT fetch data and does NOT modify data — it only determines what
- * is allowed to appear in API responses.
- *
- * @param {Object} user - Authenticated user context
- * @returns {Promise<{
- *   canViewCompliance: boolean,
- *   canViewComplianceMetadata: boolean,
- *   canViewComplianceHistory: boolean,
- *   canViewInactiveCompliance: boolean
- * }>}
+ * @param {AuthUser} user - Authenticated user making the request.
+ * @returns {Promise<ComplianceViewAcl>}
+ * @throws {AppError} businessError if permission resolution fails.
  */
 const evaluateComplianceViewAccessControl = async (user) => {
+  const context = `${CONTEXT}/evaluateComplianceViewAccessControl`;
+  
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-
-    // Basic permission — can user view compliance at all?
+    
     const canViewCompliance =
       isRoot || permissions.includes(VIEW_COMPLIANCE_RECORDINGS);
-
-    // Can view status, status_date, description
+    
     const canViewComplianceMetadata =
       isRoot || permissions.includes(VIEW_COMPLIANCE_RECORDINGS_METADATA);
-
-    // Can view created_by, updated_by, timestamps
+    
     const canViewComplianceHistory =
       isRoot || permissions.includes(VIEW_COMPLIANCE_RECORDINGS_HISTORY);
-
-    // Can view inactive / expired compliance documents
+    
     const canViewInactiveCompliance =
       isRoot || permissions.includes(VIEW_COMPLIANCE_RECORDINGS_INACTIVE);
-
+    
     return {
       canViewCompliance,
       canViewComplianceMetadata,
@@ -60,53 +55,42 @@ const evaluateComplianceViewAccessControl = async (user) => {
     };
   } catch (err) {
     logSystemException(err, 'Failed to evaluate compliance access control', {
-      context: 'compliance-business/evaluateComplianceViewAccessControl',
+      context,
       userId: user?.id,
     });
-
+    
     throw AppError.businessError(
-      'Unable to evaluate user access control for compliance records.',
-      { details: err.message }
+      'Unable to evaluate user access control for compliance records.'
     );
   }
 };
 
 /**
- * Business: Remove restricted compliance fields from API output.
+ * Filters and shapes a list of compliance record rows based on the user's
+ * access flags.
  *
- * The repository always returns full compliance rows. This function applies
- * access rules to reduce fields based on user visibility permissions.
+ * Inactive records are excluded unless `canViewInactiveCompliance` is true.
+ * Metadata and audit fields are conditionally included based on the ACL.
  *
- * Behavior:
- *   ✔ Filters out inactive records for restricted users
- *   ✔ Reduces fields based on metadata + history visibility
- *   ✔ Returns safe, normalized objects for API response
- *   ✔ Never mutates the original repository rows
- *
- * @param {Array<Object>} complianceRows - Raw rows from repository
- * @param {Object} access - Flags from evaluateComplianceViewAccessControl()
- * @returns {Array<Object>} Sanitized compliance records
+ * @param {object[]} complianceRows - Raw compliance record rows from the repository.
+ * @param {ComplianceViewAcl} access - Resolved ACL from `evaluateComplianceViewAccessControl`.
+ * @returns {object[]} Array of filtered and shaped compliance record objects.
  */
 const sliceComplianceRecordsForUser = (complianceRows, access) => {
   if (!Array.isArray(complianceRows)) return [];
-
+  
   const ACTIVE_STATUS_ID = getStatusId('general_active');
   const results = [];
-
+  
   for (const row of complianceRows) {
-    // ---------------------------------------------------------
-    // 1. Filter inactive compliance docs unless allowed
-    // ---------------------------------------------------------
+    // Skip inactive records unless the user has explicit permission to view them.
     if (
       !access.canViewInactiveCompliance &&
       row.status_id !== ACTIVE_STATUS_ID
     ) {
       continue;
     }
-
-    // ---------------------------------------------------------
-    // 2. Base safe object for all users
-    // ---------------------------------------------------------
+    
     const safe = {
       id: row.id,
       type: row.type,
@@ -114,10 +98,7 @@ const sliceComplianceRecordsForUser = (complianceRows, access) => {
       issuedDate: row.issued_date,
       expiryDate: row.expiry_date,
     };
-
-    // ---------------------------------------------------------
-    // 3. Metadata: description, status fields
-    // ---------------------------------------------------------
+    
     if (access.canViewComplianceMetadata) {
       safe.metadata = {
         status: {
@@ -128,17 +109,14 @@ const sliceComplianceRecordsForUser = (complianceRows, access) => {
         description: row.description,
       };
     }
-
-    // ---------------------------------------------------------
-    // 4. Audit history: created_by, updated_by
-    // ---------------------------------------------------------
+    
     if (access.canViewComplianceHistory) {
       safe.audit = compactAudit(makeAudit(row));
     }
-
+    
     results.push(safe);
   }
-
+  
   return results;
 };
 

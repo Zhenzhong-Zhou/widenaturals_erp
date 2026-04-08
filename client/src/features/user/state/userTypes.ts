@@ -2,7 +2,7 @@ import type { NullableNumber, NullableString } from '@shared-types/shared';
 import type {
   ApiSuccessResponse,
   AsyncState,
-  DateRange,
+  CreatedUpdatedDateFilter,
   GenericAudit,
   GenericAvatar,
   GenericStatus,
@@ -200,13 +200,7 @@ export type PaginatedUsersUiResponse = PaginatedResponse<FlattenedUserRecord>;
 /**
  * Date range filter using ISO strings for API safety.
  */
-export interface UserDateRanges {
-  /** Filter by creation timestamp */
-  created?: DateRange;
-
-  /** Filter by last update timestamp */
-  updated?: DateRange;
-}
+export type UserDateRanges = CreatedUpdatedDateFilter;
 
 /**
  * Supported filters for user list retrieval.

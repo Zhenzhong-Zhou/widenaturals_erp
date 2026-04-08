@@ -1,52 +1,175 @@
+/**
+ * @file order-business.js
+ * @description Domain business logic for order creation, permission enforcement,
+ * access control evaluation, filter application, status transition validation,
+ * and status metadata enrichment.
+ */
+
+'use strict';
+
 const {
   resolveUserPermissionContext,
-} = require('../services/role-permission-service');
-const AppError = require('../utils/AppError');
-const { logSystemWarn, logSystemException } = require('../utils/system-logger');
-const { createSalesOrder } = require('./sales-order-business');
-const {
   resolveOrderAccessContext,
-} = require('../services/role-permission-service');
+} = require('../services/permission-service');
+const AppError = require('../utils/AppError');
+const { logSystemWarn, logSystemException } = require('../utils/logging/system-logger');
+const { createSalesOrder } = require('./sales-order-business');
 const { PERMISSIONS } = require('../utils/constants/domain/order-constants');
 
+const CONTEXT = 'order-business';
+
+// ---------------------------------------------------------------------------
+// Status code configuration
+// ---------------------------------------------------------------------------
+
 /**
- * Checks whether the given user has permission to perform an order action
- * (defaults to creating) for a specific order category.
+ * Maps order categories to their status code groups.
+ * Virtual categories (e.g. `allocatable`) are cross-cutting views that span
+ * multiple real order categories and are not tied to a single order type.
  *
- * This function:
- * - Resolves the user's accessible categories via `resolveOrderAccessContext`.
- * - Grants unconditional access for root users.
- * - Logs and throws an authorization error if the category is not accessible.
+ * @type {Record<string, { _virtual?: boolean, [group: string]: string[] | boolean }>}
+ */
+const STATUS_CODES_BY_CATEGORY = {
+  sales: {
+    draft:        ['ORDER_PENDING', 'ORDER_EDITED'],
+    confirmation: ['ORDER_AWAITING_REVIEW', 'ORDER_CONFIRMED'],
+    processing:   ['ORDER_ALLOCATING', 'ORDER_PARTIALLY_ALLOCATED', 'ORDER_ALLOCATED'],
+    return:       ['RETURN_REQUESTED', 'RETURN_COMPLETED'],
+    completion:   ['ORDER_COMPLETED', 'ORDER_CANCELED'],
+  },
+  allocatable: {
+    _virtual:     true,
+    confirmation: ['ORDER_CONFIRMED'],
+    processing:   ['ORDER_ALLOCATING', 'ORDER_PARTIALLY_ALLOCATED', 'ORDER_ALLOCATED'],
+  },
+};
+
+/**
+ * Maps order categories to their creation strategy functions.
+ * Add new order types here as they are implemented.
+ */
+const orderCreationStrategies = {
+  sales: createSalesOrder,
+};
+
+/**
+ * Maps order type categories to role-based action permissions.
+ */
+const ORDER_TYPE_PERMISSIONS = {
+  sales: {
+    updateStatus: ['sales', 'manager', 'admin'],
+  },
+};
+
+/**
+ * Maps target status codes to the permission required to transition to them.
+ */
+const TRANSITION_PERMISSION_MAP = {
+  ORDER_AWAITING_REVIEW: PERMISSIONS.CONFIRM_AWAITING_REVIEW_SALES_ORDER,
+  ORDER_CONFIRMED:       PERMISSIONS.CONFIRM_SALES_ORDER,
+  ORDER_CANCELED:        PERMISSIONS.CANCEL_SALES_ORDER,
+  ORDER_SHIPPED:         PERMISSIONS.SHIP_SALES_ORDER,
+  ORDER_COMPLETED:       PERMISSIONS.COMPLETE_SALES_ORDER,
+};
+
+/**
+ * Status codes that indicate an order is financially locked.
+ * Cancellation of locked orders requires an explicit override permission.
+ */
+const LOCKED_ORDER_STATUSES = [
+  'ORDER_SHIPPED',
+  'ORDER_OUT_FOR_DELIVERY',
+  'ORDER_FULFILLED',
+  'ORDER_DELIVERED',
+];
+
+const LOCKED_PAYMENT_STATUSES = [
+  'PAID',
+  'PARTIALLY_PAID',
+  'OVERPAID',
+  'REFUNDED',
+  'PARTIALLY_REFUNDED',
+];
+
+// ---------------------------------------------------------------------------
+// Private helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Determines whether an order is financially locked based on its order and
+ * payment status codes.
  *
- * @async
- * @param {object} user - The authenticated user object (must include `role` and related access context).
- * @param {string} category - Order category key (e.g., "sales", "purchase", "transfer").
- * @param {object} [options] - Optional settings.
- * @param {'VIEW'|'CREATE'|'UPDATE'|'DELETE'} [options.action='CREATE'] - Action to check permission for.
- * @returns {Promise<void>} Resolves if permission is granted; rejects with `AppError` if denied.
+ * @param {OrderMetadataRow} orderMetadata - Order record with `order_status_code` and optional `payment_status`.
+ * @returns {boolean}
+ */
+const isFinanciallyLocked = (orderMetadata) =>
+  LOCKED_ORDER_STATUSES.includes(orderMetadata.order_status_code) ||
+  LOCKED_PAYMENT_STATUSES.includes(orderMetadata.payment_code ?? '');
+
+/**
+ * Determines whether a user's role permits them to perform an action on a
+ * given order type category.
  *
- * @throws {AppError} Authorization error if the user lacks permission.
+ * Root users always return `true`.
+ *
+ * @param {{ isRoot: boolean, roleName: string }} resolvedContext - Resolved permission context.
+ * @param {string} orderTypeCategory - Order category (e.g. `'sales'`).
+ * @param {string} [action='updateStatus'] - Action to check.
+ * @returns {boolean}
+ */
+const canUserPerformActionOnOrderType = (
+  resolvedContext,
+  orderTypeCategory,
+  action = 'updateStatus'
+) => {
+  if (resolvedContext.isRoot) return true;
+  
+  const allowedRoles =
+    ORDER_TYPE_PERMISSIONS[orderTypeCategory]?.[action] || [];
+  
+  return allowedRoles.includes(resolvedContext.roleName);
+};
+
+// ---------------------------------------------------------------------------
+// Exported business functions
+// ---------------------------------------------------------------------------
+
+/**
+ * Verifies that the requesting user has permission to create an order of the
+ * given category.
+ *
+ * Root users bypass all checks. Non-root users must have the category in their
+ * accessible categories for the given action.
+ *
+ * @param {AuthUser} user - Authenticated user making the request.
+ * @param {string} category - Order category being created (e.g. `'sales'`).
+ * @param {object} [options={}]
+ * @param {string} [options.action='CREATE'] - Action context for permission resolution.
+ * @returns {Promise<void>}
+ * @throws {AppError} authorizationError if the user lacks permission.
  */
 const verifyOrderCreationPermission = async (
   user,
   category,
   { action = 'CREATE' } = {}
 ) => {
+  const context = `${CONTEXT}/verifyOrderCreationPermission`;
+  
   const { isRoot, accessibleCategories } = await resolveOrderAccessContext(
     user,
     { action }
   );
-
+  
   if (isRoot) return;
-
+  
   if (!accessibleCategories.includes(category)) {
     logSystemWarn('Permission denied for order creation', {
-      context: 'order-business/verifyOrderCreationPermission',
+      context,
       role: user.role,
       attemptedCategory: category,
       accessibleCategories,
     });
-
+    
     throw AppError.authorizationError(
       `You do not have permission to create ${category} orders.`
     );
@@ -54,71 +177,59 @@ const verifyOrderCreationPermission = async (
 };
 
 /**
- * Order creation strategy map
- */
-const orderCreationStrategies = {
-  sales: createSalesOrder,
-  // TRANSFER: createTransferOrder,
-  // PURCHASE: createPurchaseOrder,
-};
-
-/**
- * Creates an order based on the specified category using the mapped strategy.
+ * Creates an order using the strategy registered for the given category.
  *
- * This function:
- * - Look up the creation strategy for the given category.
- * - Delegates the insert logic to the corresponding strategy function.
- *
- * @param {string} category - The order category (e.g., 'sales', 'purchase', 'transfer').
- * @param {object} orderData - Full order payload.
- * @param {PoolClient} client - DB client within transaction.
- * @returns {Promise<object>} - Inserted order object (type-specific).
- * @throws {AppError} - If category is unsupported or creation fails.
+ * @param {string} category - Order category (e.g. `'sales'`).
+ * @param {object} orderData - Order creation payload.
+ * @param {import('pg').PoolClient} client - Active transaction client.
+ * @returns {Promise<object>} Created order record.
+ * @throws {AppError} validationError if the category has no registered strategy.
  */
 const createOrderWithType = async (category, orderData, client) => {
-  const createFn = orderCreationStrategies[category];
-
-  if (!createFn) {
+  const hasStrategy = Object.prototype.hasOwnProperty.call(orderCreationStrategies, category);
+  const createFn = hasStrategy ? orderCreationStrategies[category] : null;
+  
+  if (typeof createFn !== 'function') {
     throw AppError.validationError(`Unsupported order category: ${category}`);
   }
-
-  return await createFn(orderData, client);
+  
+  return createFn(orderData, client);
 };
 
 /**
- * Verifies if the user has permission to VIEW an order of the specified category.
- * Uses dynamic permission naming + resolveOrderAccessContext for consistency.
+ * Verifies that the requesting user has permission to view orders of the
+ * given category.
  *
- * @param {object} user - Authenticated user object.
- * @param {string} category - Order category (e.g., 'sales', 'purchase', 'transfer').
- * @param {{ action?: 'VIEW'|'CREATE'|'UPDATE'|'DELETE', orderId?: string }} [opts]
- *   - action: Defaults to 'VIEW'. Included for symmetry / future reuse.
- *   - orderId: Optional — used only for logging context.
+ * Root users bypass all checks. Category is normalized to lowercase before
+ * comparison.
+ *
+ * @param {AuthUser} user - Authenticated user making the request.
+ * @param {string} category - Order category being viewed.
+ * @param {object} [options={}]
+ * @param {string} [options.action='VIEW'] - Action context for permission resolution.
+ * @param {string} [options.orderId] - Order UUID for audit logging.
  * @returns {Promise<void>}
- *
- * @throws {AppError} - If the user lacks permission to view the given category.
+ * @throws {AppError} authorizationError if the user lacks permission.
  */
 const verifyOrderViewPermission = async (
   user,
   category,
   { action = 'VIEW', orderId } = {}
 ) => {
-  // Normalize category defensively
-  const cat = String(category || '')
-    .trim()
-    .toLowerCase();
-
+  const context = `${CONTEXT}/verifyOrderViewPermission`;
+  
+  const cat = String(category || '').trim().toLowerCase();
+  
   const { isRoot, accessibleCategories } = await resolveOrderAccessContext(
     user,
     { action }
   );
-
-  // Root users bypass checks
+  
   if (isRoot) return;
-
+  
   if (!accessibleCategories.includes(cat)) {
     logSystemWarn('Permission denied for viewing orders in this category.', {
-      context: 'order-business/verifyOrderViewPermission',
+      context,
       role: user?.role,
       userId: user?.id,
       orderId,
@@ -126,7 +237,7 @@ const verifyOrderViewPermission = async (
       accessibleCategories,
       action,
     });
-
+    
     throw AppError.authorizationError(
       `You do not have permission to ${action.toLowerCase()} ${cat} orders.`
     );
@@ -134,353 +245,193 @@ const verifyOrderViewPermission = async (
 };
 
 /**
- * Evaluates whether the authenticated user is allowed to view all orders
- * or specific lifecycle stages (e.g., allocation, fulfillment, shipping).
+ * Resolves which order list viewing capabilities the requesting user holds.
  *
- * Behavior:
- * - Root users are always granted full access to all stages and categories.
- * - Users with `VIEW_ALL_ORDERS` are granted unrestricted order access.
- * - Users with stage-level permissions will be granted access to specific order stages
- *   (e.g., allocation, fulfillment, shipping) — useful for virtual views like "allocatable".
- * - All other users will be restricted by order type or category.
- *
- * This function does **not** return any actual order data. It simply resolves access flags
- * used to filter or scope data later in the business logic.
- *
- * @async
- * @param {Object} user - The authenticated user object (should include at least `id` and `role_id`)
- * @returns {Promise<{
- *   canViewAllOrders: boolean,
- *   canViewAllocationStage: boolean,
- *   canViewFulfillmentStage: boolean,
- *   canViewShippingStage: boolean
- * }>} - Object containing permission flags for view access
- *
- * @example
- * const {
- *   canViewAllOrders,
- *   canViewAllocationStage,
- *   canViewFulfillmentStage,
- *   canViewShippingStage
- * } = await evaluateOrdersViewAccessControl(user);
- *
- * if (canViewAllOrders) {
- *   // show all orders
- * } else if (canViewAllocationStage) {
- *   // show only allocation-stage orders
- * }
+ * @param {AuthUser} user - Authenticated user making the request.
+ * @returns {Promise<OrdersViewAcl>}
+ * @throws {AppError} businessError if permission resolution fails.
  */
 const evaluateOrdersViewAccessControl = async (user) => {
+  const context = `${CONTEXT}/evaluateOrdersViewAccessControl`;
+  
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-
-    const canViewAllOrders =
-      isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_ORDERS);
-    const canViewAllocationStage =
-      isRoot || permissions.includes(PERMISSIONS.VIEW_ALLOCATION_STAGE);
-    const canViewFulfillmentStage =
-      isRoot || permissions.includes(PERMISSIONS.VIEW_FULFILLMENT_STAGE);
-    const canViewShippingStage =
-      isRoot || permissions.includes(PERMISSIONS.VIEW_SHIPPING_STAGE);
-
+    
     return {
-      canViewAllOrders,
-      canViewAllocationStage,
-      canViewFulfillmentStage,
-      canViewShippingStage,
+      canViewAllOrders:
+        isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_ORDERS),
+      canViewAllocationStage:
+        isRoot || permissions.includes(PERMISSIONS.VIEW_ALLOCATION_STAGE),
+      canViewFulfillmentStage:
+        isRoot || permissions.includes(PERMISSIONS.VIEW_FULFILLMENT_STAGE),
+      canViewShippingStage:
+        isRoot || permissions.includes(PERMISSIONS.VIEW_SHIPPING_STAGE),
     };
   } catch (err) {
     logSystemException(err, 'Failed to evaluate order view access control', {
-      context: 'order-business/evaluateOrdersViewAccessControl',
+      context,
       userId: user?.id,
     });
-
-    throw AppError.businessError('Unable to evaluate order view access', {
-      details: err.message,
-      stage: 'evaluate-order-access',
-    });
+    
+    throw AppError.businessError('Unable to evaluate order view access control.');
   }
 };
 
 /**
- * Applies scoped access control filters to an order query based on the user's access rights.
+ * Applies ACL-driven access filters to an order list filter object.
  *
- * This function injects or removes `orderTypeId` and `orderStatusIds` fields in the provided
- * filter object, depending on whether the user has global view access, category-level access,
- * or stage-level access (e.g., allocation, fulfillment, or shipping).
+ * Five cases handled:
+ * - Full access with no category filter → remove all access-based filters.
+ * - Full access with category filter → retain scoped filters.
+ * - Category-level access → restrict by `orderTypeId`.
+ * - Stage-level access → restrict by `orderStatusIds`.
+ * - No access → inject sentinel value to force empty result.
  *
- * Behavior:
- * - If the user has **global access** (`canViewAllOrders`):
- *   - If no `orderCategory` filter is provided, all scoped filters (`orderTypeId`, `orderStatusIds`) are removed.
- *   - If `orderCategory` **is** provided, scoped filters are retained and respected.
- *
- * - If the user has **category-level access**, the `orderTypeId` filter is applied using resolved IDs.
- * - If the user has **stage-level access**, the `orderStatusIds` filter is applied using resolved status IDs.
- * - If the user has both category and stage access, both filters are applied together.
- *
- * - If the user has category access but **not** stage access, only `orderTypeId` is used and `orderStatusIds` is removed.
- * - If the user has neither category nor stage access, the query is forcibly denied using `orderStatusIds: ['__NO_ACCESS__']`.
- *
- * This ensures the resulting query filters accurately reflect the user's access scope and prevent unauthorized visibility.
- *
- * @async
- * @param {Object} filters - Original query filter object (e.g., keyword, dates, orderTypeId, orderStatusId, etc.)
- * @param {Object} userAccess - Result of `evaluateOrdersViewAccessControl`, including access flags like `canViewAllOrders`
- * @param {Array<string>|undefined} orderTypeIds - List of allowed order type UUIDs (based on category)
- * @param {Array<string>|undefined} allowedStatusIds - List of allowed order status UUIDs (based on stage access)
- * @returns {Promise<Object>} A new filters object with scoped access restrictions applied
- *
- * @example
- * const userAccess = await evaluateOrdersViewAccessControl(user);
- * const orderTypeIds = await getOrderTypeIdsByCategory('sales');
- * const allowedStatusIds = await getAllowedStageStatusIds(userAccess);
- * const filters = await applyOrderAccessFilters(originalFilters, userAccess, orderTypeIds, allowedStatusIds);
+ * @param {object} filters - Base filter object from the request.
+ * @param {OrdersViewAcl} userAccess - Resolved ACL from `evaluateOrdersViewAccessControl`.
+ * @param {string[]} orderTypeIds - Permitted order type IDs for the user.
+ * @param {string[]} allowedStatusIds - Permitted order status IDs for stage access.
+ * @returns {object} Adjusted copy of `filters` with access rules applied.
  */
-const applyOrderAccessFilters = async (
+const applyOrderAccessFilters = (
   filters,
   userAccess,
   orderTypeIds,
   allowedStatusIds
 ) => {
-  try {
-    const modifiedFilters = { ...filters };
-
-    // Determine if user has any stage-based access (allocation, fulfillment, shipping)
-    const hasStageAccess =
-      userAccess?.canViewAllocationStage ||
-      userAccess?.canViewFulfillmentStage ||
-      userAccess?.canViewShippingStage;
-
-    // Case 1: User has full access to all orders
-    // - If no `orderCategory` is present → clear access filters (true global view)
-    // - If `orderCategory` is present → retain scoped filters from that category
-    if (userAccess?.canViewAllOrders) {
-      const hasOrderCategoryFilter = Boolean(filters?.orderCategory);
-
-      if (!hasOrderCategoryFilter) {
-        // Pure global view → remove all access-based filters
-        delete modifiedFilters.orderTypeId;
-        delete modifiedFilters.orderStatusIds;
-      }
-
-      // Otherwise: keep any filters applied due to orderCategory
-      return modifiedFilters;
-    }
-
-    const hasOrderTypeAccess =
-      Array.isArray(orderTypeIds) && orderTypeIds.length > 0;
-
-    // Case 2: Category-level access — restrict by orderTypeId
-    if (hasOrderTypeAccess) {
-      modifiedFilters.orderTypeId = orderTypeIds;
-    } else {
+  const modifiedFilters = { ...filters };
+  
+  const hasStageAccess =
+    userAccess?.canViewAllocationStage ||
+    userAccess?.canViewFulfillmentStage ||
+    userAccess?.canViewShippingStage;
+  
+  if (userAccess?.canViewAllOrders) {
+    if (!filters?.orderCategory) {
+      // Pure global view — remove all access-based filters.
       delete modifiedFilters.orderTypeId;
-    }
-
-    // Case 3: Stage-level access — restrict by orderStatusIds (based on allowed statuses)
-    if (hasStageAccess) {
-      if (Array.isArray(allowedStatusIds) && allowedStatusIds.length > 0) {
-        modifiedFilters.orderStatusIds = allowedStatusIds;
-      }
-    }
-
-    // Case 4: Has category access but not stage — restrict by orderTypeId only
-    if (!hasStageAccess && hasOrderTypeAccess) {
       delete modifiedFilters.orderStatusIds;
-      return modifiedFilters;
     }
-
-    // Case 5: No access → deny all results
-    if (!hasStageAccess && !hasOrderTypeAccess) {
-      return {
-        ...modifiedFilters,
-        orderStatusIds: ['__NO_ACCESS__'],
-      };
-    }
-
     return modifiedFilters;
-  } catch (err) {
-    logSystemException(
-      err,
-      'Failed to apply access filters in applyOrderAccessFilters',
-      {
-        context: 'order-business/applyOrderAccessFilters',
-        originalFilters: filters,
-        userAccess,
-        orderTypeIds,
-      }
-    );
-
-    throw AppError.businessError('Unable to apply order access filters', {
-      details: err.message,
-      stage: 'filter-order-access',
-      cause: err,
-    });
   }
+  
+  const hasOrderTypeAccess =
+    Array.isArray(orderTypeIds) && orderTypeIds.length > 0;
+  
+  if (hasOrderTypeAccess) {
+    modifiedFilters.orderTypeId = orderTypeIds;
+  } else {
+    delete modifiedFilters.orderTypeId;
+  }
+  
+  if (hasStageAccess) {
+    if (Array.isArray(allowedStatusIds) && allowedStatusIds.length > 0) {
+      modifiedFilters.orderStatusIds = allowedStatusIds;
+    }
+  }
+  
+  // Category access without stage access — restrict by orderTypeId only.
+  if (!hasStageAccess && hasOrderTypeAccess) {
+    delete modifiedFilters.orderStatusIds;
+    return modifiedFilters;
+  }
+  
+  // No access at all — force empty result.
+  if (!hasStageAccess && !hasOrderTypeAccess) {
+    return {
+      ...modifiedFilters,
+      orderStatusIds: ['__NO_ACCESS__'],
+    };
+  }
+  
+  return modifiedFilters;
 };
 
 /**
- * Evaluate whether a user can view order details (header-level and item-level metadata).
+ * Resolves which order detail viewing capabilities the requesting user holds.
  *
- * This function checks whether the user has view access to:
- * - `VIEW_SALES_ORDER_METADATA` (header-level metadata)
- * - `VIEW_ORDER_ITEM_METADATA` (item-level metadata)
- *
- * Root users are automatically granted both permissions.
- *
- * @async
- * @param {Object} user - Authenticated user object with permissions context
- * @returns {Promise<{ canViewOrderMetadata: boolean, canViewOrderItemMetadata: boolean }>}
+ * @param {AuthUser} user - Authenticated user making the request.
+ * @returns {Promise<OrderDetailsViewAcl>}
+ * @throws {AppError} businessError if permission resolution fails.
  */
 const evaluateOrderDetailsViewAccessControl = async (user) => {
+  const context = `${CONTEXT}/evaluateOrderDetailsViewAccessControl`;
+  
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-
-    const canViewOrderMetadata =
-      isRoot || permissions.includes(PERMISSIONS.VIEW_SALES_ORDER_METADATA);
-
-    const canViewOrderItemMetadata =
-      isRoot || permissions.includes(PERMISSIONS.VIEW_ORDER_ITEM_METADATA);
-
+    
     return {
-      canViewOrderMetadata,
-      canViewOrderItemMetadata,
+      canViewOrderMetadata:
+        isRoot || permissions.includes(PERMISSIONS.VIEW_SALES_ORDER_METADATA),
+      canViewOrderItemMetadata:
+        isRoot || permissions.includes(PERMISSIONS.VIEW_ORDER_ITEM_METADATA),
     };
   } catch (err) {
-    logSystemException(err, 'Failed to evaluate order lookup access control', {
-      context: 'order-business/evaluateOrderDetailsViewAccessControl',
+    logSystemException(err, 'Failed to evaluate order details view access control', {
+      context,
       userId: user?.id,
     });
-
+    
     throw AppError.businessError(
-      'Unable to evaluate user access control for order lookup',
-      {
-        details: err.message,
-        stage: 'evaluate-order-access',
-      }
+      'Unable to evaluate user access control for order details.'
     );
   }
 };
 
 /**
- * Maps each order category to its associated status progression structure.
+ * Returns a flat list of `{ code, category }` pairs for the allowed statuses
+ * of a given order category.
  *
- * This object defines how orders progress through various lifecycle stages,
- * grouped by category. It supports validation, filtering, and business logic
- * that depends on category-specific status flows.
+ * When `orderCategory` is provided, returns statuses from that category's
+ * non-virtual status groups. When omitted or `'all'`, returns statuses from
+ * virtual categories only (e.g. `allocatable`).
  *
- * Structure:
- * - Keys are order categories (e.g., 'sales', 'allocatable')
- * - Each category maps to an object grouping status codes by phase:
- *   - `draft`, `confirmation`, `processing`, `return`, `completion`, etc.
- * - Each phase maps to an array of status codes (as string identifiers)
- * - Categories may optionally include `_virtual: true` to indicate that they are
- *   synthetic or filtered (e.g., 'allocatable' is a virtual view, not a true type)
- *
- * Notes:
- * - Used by validation functions such as `validateStatusTransitionByCategory`
- * - Helps drive UI groupings, filtering, and access control based on lifecycle stage
- * - The `allocatable` category is virtual and represents orders in the allocation stage,
- *   regardless of their originating category
- *
- * Example:
- *   STATUS_CODES_BY_CATEGORY.sales.processing
- *   → ['ORDER_ALLOCATING', 'ORDER_PARTIALLY_ALLOCATED', 'ORDER_ALLOCATED']
- */
-const STATUS_CODES_BY_CATEGORY = {
-  sales: {
-    draft: ['ORDER_PENDING', 'ORDER_EDITED'],
-    confirmation: ['ORDER_AWAITING_REVIEW', 'ORDER_CONFIRMED'],
-    processing: [
-      'ORDER_ALLOCATING',
-      'ORDER_PARTIALLY_ALLOCATED',
-      'ORDER_ALLOCATED',
-    ],
-    return: ['RETURN_REQUESTED', 'RETURN_COMPLETED'],
-    completion: ['ORDER_COMPLETED', 'ORDER_CANCELED'],
-  },
-  allocatable: {
-    _virtual: true,
-    confirmation: ['ORDER_CONFIRMED'],
-    processing: [
-      'ORDER_ALLOCATING',
-      'ORDER_PARTIALLY_ALLOCATED',
-      'ORDER_ALLOCATED',
-    ],
-  },
-};
-
-/**
- * Returns all allowed order status codes grouped by their logical phase (e.g., 'draft', 'processing'),
- * filtered by a specific order category if provided.
- *
- * This function is typically used for building filters, validating status transitions,
- * or generating dropdowns for order status selection within a category.
- *
- * Behavior:
- * - If a specific `orderCategory` is provided (e.g., `'sales'`, `'transfer'`), only statuses
- *   under that category will be evaluated — **but only if the category is marked as `_virtual: true`**.
- * - If `orderCategory` is `'all'` or falsy, the function returns statuses from **all virtual categories only**.
- * - Categories that are not marked as `_virtual: true` are excluded from the result entirely.
- *
- * The returned format is a flat array of objects with each status code and its corresponding status phase
- * (e.g., 'draft', 'processing', etc.).
- *
- * @param {string} [orderCategory] - The order category to filter by (e.g., `'sales'`). Pass `'all'` or falsy to include all virtual categories.
- * @returns {Array<{ code: string, category: string }>} - A flat list of `{ code, category }` pairs.
- *
- * @example
- * getNextAllowedStatuses('sales');
- * // → [
- * //     { code: 'ORDER_PENDING', category: 'draft' },
- * //     { code: 'ORDER_CONFIRMED', category: 'confirmation' },
- * //     ...
- * //   ]
- *
- * getNextAllowedStatuses();
- * // → Returns statuses from all `_virtual: true` categories.
+ * @param {string} [orderCategory] - Order category to resolve statuses for.
+ * @returns {Array<{ code: string, category: string }>}
  */
 const getNextAllowedStatuses = (orderCategory) => {
   const relevantCategories =
     orderCategory && orderCategory !== 'all'
       ? [orderCategory]
       : Object.keys(STATUS_CODES_BY_CATEGORY);
-
+  
   const allowedStatuses = [];
-
+  
   for (const categoryKey of relevantCategories) {
     const categoryMap = STATUS_CODES_BY_CATEGORY[categoryKey];
-    if (!categoryMap || categoryMap._virtual !== true) continue;
-
+    if (!categoryMap) continue;
+    
+    // When a specific category is requested, skip virtual categories.
+    if (orderCategory && orderCategory !== 'all' && categoryMap._virtual === true) continue;
+    
+    // When no category is provided, only include virtual categories.
+    if (!orderCategory && categoryMap._virtual !== true) continue;
+    
     for (const [statusCategory, codes] of Object.entries(categoryMap)) {
       if (statusCategory === '_virtual') continue;
-
+      
       allowedStatuses.push(
-        ...codes.map((code) => ({
-          code,
-          category: statusCategory,
-        }))
+        ...codes.map((code) => ({ code, category: statusCategory }))
       );
     }
   }
-
+  
   return allowedStatuses;
 };
 
 /**
- * Validates whether a status transition is allowed based on category-specific flow.
+ * Validates that a status transition is permitted within the given order category.
  *
- * Rules:
- * - Allows forward transitions within the same category (based on defined sequence).
- * - Allows transitions to a new category (as long as it's listed for that order type).
+ * A transition is valid if it moves forward within the same status group, or
+ * forward to a different status group within the category.
  *
- * @param {string} orderCategory - The high-level order category (e.g., 'sales').
- * @param {string} currentCategory - Current status category (e.g., 'draft').
- * @param {string} nextCategory - Next status category to transition to.
- * @param {string} currentCode - Current status code (e.g., 'ORDER_PENDING').
- * @param {string} nextCode - Next status code to transition to (e.g., 'ORDER_CONFIRMED').
- *
- * @throws {AppError} If the transition is invalid.
+ * @param {string} orderCategory - Order category (e.g. `'sales'`).
+ * @param {string} currentCategory - Current status group (e.g. `'draft'`).
+ * @param {string} nextCategory - Target status group.
+ * @param {string} currentCode - Current status code.
+ * @param {string} nextCode - Target status code.
+ * @returns {void}
+ * @throws {AppError} validationError if the transition is not permitted.
  */
 const validateStatusTransitionByCategory = (
   orderCategory,
@@ -491,23 +442,23 @@ const validateStatusTransitionByCategory = (
 ) => {
   const sequence =
     STATUS_CODES_BY_CATEGORY[orderCategory]?.[currentCategory] || [];
-
+  
   const isSameCategory = currentCategory === nextCategory;
-
+  
   const isForwardWithinSameCategory =
     isSameCategory &&
     sequence.includes(currentCode) &&
     sequence.includes(nextCode) &&
     sequence.indexOf(nextCode) > sequence.indexOf(currentCode);
-
+  
   const allowedNextCategories = Object.keys(
     STATUS_CODES_BY_CATEGORY[orderCategory] || {}
   );
-
+  
   const isForwardToNextCategory =
     allowedNextCategories.includes(nextCategory) &&
     currentCategory !== nextCategory;
-
+  
   if (!isForwardWithinSameCategory && !isForwardToNextCategory) {
     throw AppError.validationError(
       `Invalid transition for ${orderCategory}: ${currentCode} (${currentCategory}) → ${nextCode} (${nextCategory})`
@@ -516,216 +467,78 @@ const validateStatusTransitionByCategory = (
 };
 
 /**
- * Determines whether the given user is authorized to update the order's status.
+ * Evaluates whether the requesting user can update an order to the given
+ * status code.
  *
- * This function enforces:
- *  - Role-based permission checks (RBAC)
- *  - Category-based access (e.g., sales vs. purchase)
- *  - Lock overrides for financially locked orders
+ * Enforces both RBAC (role-based) and permission-based checks in strict mode
+ * (both must pass). Also enforces financial lock override for cancellations
+ * of locked orders.
  *
- * Throws:
- *  - Business error if attempting restricted transitions (e.g., canceling a paid order without override)
- *  - Validation error if next status is unknown
- *
- * @param {object} user - Authenticated user object (must include `id` and `role`)
- * @param {string} category - Order category (e.g., 'sales')
- * @param {object} order - Current order object with status, type, and ID
- * @param {string} nextStatusCode - Status code to transition to
- * @returns {Promise<boolean>} - True if the user is allowed to update the status
+ * @param {AuthUser} user - Authenticated user making the request.
+ * @param {string} category - Order category (e.g. `'sales'`).
+ * @param {OrderMetadataRow} orderWithMeta - Current order record with status and payment metadata.
+ * @param {string} nextStatusCode - Target status code.
+ * @returns {Promise<boolean>} `true` if permitted, `false` if not.
+ * @throws {AppError} validationError if the status code is unknown.
+ * @throws {AppError} businessError if cancellation of a locked order is attempted
+ *   without override permission.
  */
-const canUpdateOrderStatus = async (user, category, order, nextStatusCode) => {
-  const context = 'order-business/canUpdateOrderStatus';
-
-  try {
-    const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    if (isRoot) return true;
-
-    // 1. Map target status → required permission
-    const transitionToPermissionMap = {
-      ORDER_AWAITING_REVIEW: PERMISSIONS.CONFIRM_AWAITING_REVIEW_SALES_ORDER,
-      ORDER_CONFIRMED: PERMISSIONS.CONFIRM_SALES_ORDER,
-      ORDER_CANCELED: PERMISSIONS.CANCEL_SALES_ORDER,
-      ORDER_SHIPPED: PERMISSIONS.SHIP_SALES_ORDER,
-      ORDER_COMPLETED: PERMISSIONS.COMPLETE_SALES_ORDER,
-    };
-
-    const requiredPermission = transitionToPermissionMap[nextStatusCode];
-    if (!requiredPermission) {
-      throw AppError.validationError(`Unknown status code: ${nextStatusCode}`);
-    }
-
-    // 2. Check RBAC + category access (strict mode = require both)
-    const hasPermission = permissions.includes(requiredPermission);
-    const hasRoleAccess = canUserPerformActionOnOrderType(user, category);
-    const isStrictAuthorization = true; // Optional: make this configurable
-
-    if (
-      isStrictAuthorization
-        ? !(hasPermission && hasRoleAccess)
-        : !(hasPermission || hasRoleAccess)
-    ) {
-      return false;
-    }
-
-    // 3. Handle financial lock override
-    if (isFinanciallyLocked(order) && nextStatusCode === 'ORDER_CANCELED') {
-      if (!permissions.includes(PERMISSIONS.OVERRIDE_LOCKED_STATUS)) {
-        throw AppError.businessError(
-          'Cannot cancel a shipped or paid order unless override permission is granted.'
-        );
-      }
-    }
-
-    return true;
-  } catch (err) {
-    logSystemException(
-      err,
-      'Failed to evaluate order status update permission',
-      {
-        context,
-        userId: user?.id,
-        orderId: order.order_id,
-        nextStatusCode,
-      }
-    );
-    throw AppError.businessError(
-      'Unable to evaluate order status update permission',
-      {
-        details: err.message,
-      }
-    );
+const canUpdateOrderStatus = async (user, category, orderWithMeta, nextStatusCode) => {
+  const resolved = await resolveUserPermissionContext(user);
+  const { permissions, isRoot } = resolved;
+  
+  if (isRoot) return true;
+  
+  const requiredPermission = TRANSITION_PERMISSION_MAP[nextStatusCode];
+  
+  if (!requiredPermission) {
+    throw AppError.validationError(`Unknown status code: ${nextStatusCode}`);
   }
+  
+  const hasPermission = permissions.includes(requiredPermission);
+  const hasRoleAccess = canUserPerformActionOnOrderType(resolved, category);
+  
+  // Strict mode — both RBAC and permission check must pass.
+  if (!(hasPermission && hasRoleAccess)) {
+    return false;
+  }
+  
+  if (isFinanciallyLocked(orderWithMeta) && nextStatusCode === 'ORDER_CANCELED') {
+    if (!permissions.includes(PERMISSIONS.OVERRIDE_LOCKED_STATUS)) {
+      throw AppError.businessError(
+        'Cannot cancel a shipped or paid order unless override permission is granted.'
+      );
+    }
+  }
+  
+  return true;
 };
 
 /**
- * Defines role-based permissions for various order type categories and actions.
+ * Enriches updated order and item records with resolved status metadata fields.
  *
- * This structure maps each order type category (e.g., 'sales', 'transfer') to allowed roles
- * for specific actions (e.g., 'updateStatus').
- *
- * Example Usage:
- *   ORDER_TYPE_PERMISSIONS['sales']['updateStatus'] → ['sales', 'manager', 'admin']
- *
- * Used by: `canUserPerformActionOnOrderType(user, orderTypeCategory, action)`
- *
- * Add or uncomment entries as needed for more order types and actions.
+ * @param {object} options
+ * @param {object} options.updatedOrder - Updated order record.
+ * @param {object[]} options.updatedItems - Updated order item records.
+ * @param {{ name: string, code: string, category: string }} options.orderStatusMetadata
+ * @returns {{ enrichedOrder: object, enrichedItems: object[] }}
  */
-const ORDER_TYPE_PERMISSIONS = {
-  sales: {
-    updateStatus: ['sales', 'manager', 'admin'],
-  },
-  // transfer: {
-  //   updateStatus: ['outbound_user', 'admin'],
-  // },
-  // logistics: {
-  //   updateStatus: ['outbound_user', 'admin'],
-  // },
-  // sample: {
-  //   updateStatus: ['admin'],
-  // },
-  // purchase: {
-  //   updateStatus: ['admin'],
-  // },
-};
-
-/**
- * Determines whether a user can perform a specific action on a given order type category.
- *
- * This is a role-based access control (RBAC) check based on `roleName` and order category.
- *
- * @param {object} user - Authenticated user (must include `roleName`, `isRoot`)
- * @param {string} orderTypeCategory - The category of the order type (e.g., 'sales', 'transfer')
- * @param {string} [action='updateStatus'] - The specific action to evaluate permission for
- * @returns {boolean} True if the user is allowed to perform the action
- */
-const canUserPerformActionOnOrderType = (
-  user,
-  orderTypeCategory,
-  action = 'updateStatus'
-) => {
-  if (user.isRoot) return true;
-
-  const roleName = user.roleName;
-  const allowedRoles =
-    ORDER_TYPE_PERMISSIONS[orderTypeCategory]?.[action] || [];
-
-  return allowedRoles.includes(roleName);
-};
-
-/**
- * Checks whether an order is financially locked based on its status or payment state.
- *
- * Orders that are shipped, fulfilled, delivered, or already paid are considered locked.
- *
- * @param {{
- *   order_status_code: string,
- *   payment_status?: string | null
- * }} orderMetadata - Order object with at least `order_status_code` and `payment_status`
- * @returns {boolean} True if the order is financially locked
- */
-const isFinanciallyLocked = (orderMetadata) => {
-  const lockedOrderStatuses = [
-    'ORDER_SHIPPED',
-    'ORDER_OUT_FOR_DELIVERY',
-    'ORDER_FULFILLED',
-    'ORDER_DELIVERED',
-  ];
-
-  const lockedPaymentStatuses = [
-    'PAID',
-    'PARTIALLY_PAID',
-    'OVERPAID',
-    'REFUNDED',
-    'PARTIALLY_REFUNDED',
-  ];
-
-  return (
-    lockedOrderStatuses.includes(orderMetadata.order_status_code) ||
-    lockedPaymentStatuses.includes(orderMetadata.payment_status ?? '')
-  );
-};
-
-/**
- * Enriches the updated order and item records with status metadata.
- *
- * This function attaches human-readable status fields (name, code, category)
- * to both the updated order object and its associated items using the
- * resolved `orderStatusMetadata` fetched earlier from the database.
- *
- * @param {Object} params - Function input parameters.
- * @param {Object} params.updatedOrder - The updated order object after status change.
- * @param {Array<Object>} params.updatedItems - List of updated order items.
- * @param {Object} params.orderStatusMetadata - Metadata about the new status.
- *
- * @returns {{
- *   enrichedOrder: Object,
- *   enrichedItems: Array<Object>
- * }} Enriched order and item records with status metadata fields.
- */
-const enrichStatusMetadata = ({
-  updatedOrder,
-  updatedItems,
-  orderStatusMetadata,
-}) => {
+const enrichStatusMetadata = ({ updatedOrder, updatedItems, orderStatusMetadata }) => {
   const { name, code, category } = orderStatusMetadata;
-
-  const enrichedOrder = {
-    ...updatedOrder,
-    status_name: name,
-    status_code: code,
-    status_category: category,
-  };
-
-  const enrichedItems = updatedItems.map((item) => ({
-    ...item,
-    status_name: name,
-    status_code: code,
-    status_category: category,
-  }));
-
+  
   return {
-    enrichedOrder,
-    enrichedItems,
+    enrichedOrder: {
+      ...updatedOrder,
+      status_name:     name,
+      status_code:     code,
+      status_category: category,
+    },
+    enrichedItems: updatedItems.map((item) => ({
+      ...item,
+      status_name:     name,
+      status_code:     code,
+      status_category: category,
+    })),
   };
 };
 

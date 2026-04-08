@@ -1,39 +1,85 @@
+/**
+ * @file user-repository.js
+ * @description Database access layer for user records.
+ *
+ * Mixed pattern — two distinct error handling strategies coexist:
+ *
+ *  Auth infrastructure functions (insertUser, getAuthUserById):
+ *    - Raw re-throws — auth service owns error handling
+ *    - Security-relevant success logging retained
+ *
+ *  Domain functions (getPaginatedUsers, getUserProfileById, getUserLookup,
+ *    userExistsByField, activeUserExistsByEmail):
+ *    - handleDbError wrapping
+ *    - No success logging
+ *
+ * Exports:
+ *  - insertUser               — insert a new user row
+ *  - userExistsByField        — existence check by id or email
+ *  - activeUserExistsByEmail  — existence check for active user by email
+ *  - getPaginatedUsers        — paginated user list with filtering and sorting
+ *  - getUserProfileById       — full profile fetch with role permissions
+ *  - getUserLookup            — offset-paginated user dropdown list
+ *  - getAuthUserById          — lightweight auth fetch by user id
+ */
+
+'use strict';
+
+const { query } = require('../database/db');
 const {
-  query,
-  paginateResults,
   paginateQueryByOffset,
-} = require('../database/db');
-const { buildUserFilter } = require('../utils/sql/build-user-filters');
-const { logSystemInfo, logSystemException } = require('../utils/system-logger');
-const { maskSensitiveInfo } = require('../utils/sensitive-data-utils');
+  paginateQuery,
+} = require('../utils/db/pagination/pagination-helpers');
+const { handleDbError } = require('../utils/errors/error-handlers');
+const { logDbQueryError } = require('../utils/db-logger');
+const { logSystemInfo, logSystemException } = require('../utils/logging/system-logger');
+const { maskEmail } = require('../utils/masking/mask-primitives');
 const AppError = require('../utils/AppError');
+const { buildUserFilter } = require('../utils/sql/build-user-filter');
+const { resolveSort } = require('../utils/query/sort-resolver');
+const { SORTABLE_FIELDS } = require('../utils/sort-field-mapping');
+const {
+  INSERT_USER_QUERY,
+  buildUserExistsByFieldQuery,
+  ACTIVE_USER_EXISTS_BY_EMAIL_QUERY,
+  GET_AUTH_USER_BY_ID_QUERY,
+  GET_USER_PROFILE_BY_ID_QUERY,
+  USER_LIST_TABLE,
+  USER_LIST_JOINS,
+  USER_LIST_SORT_WHITELIST,
+  buildPaginatedUsersQuery,
+  USER_LOOKUP_TABLE,
+  USER_LOOKUP_SORT_WHITELIST,
+  USER_LOOKUP_ADDITIONAL_SORTS,
+  buildUserLookupQuery,
+  buildUserLookupJoins,
+} = require('./queries/user-queries');
+
+// ─── Insert (auth infrastructure) ────────────────────────────────────────────
 
 /**
- * Inserts a new user record into the `users` table.
+ * Inserts a new user row and returns the created record.
  *
- * Repository-layer function:
- * - Executes a single INSERT statement
- * - Relies on database constraints for integrity (UNIQUE, FK)
- * - Does NOT handle conflict resolution, retries, ACL, or business rules
- * - Throws raw database errors to preserve full error context
+ * @param {Object}                  user
+ * @param {string}                  user.email
+ * @param {string}                  user.roleId
+ * @param {string}                  user.statusId
+ * @param {string}                  user.firstname
+ * @param {string}                  user.lastname
+ * @param {string|null}             [user.phoneNumber]
+ * @param {string|null}             [user.jobTitle]
+ * @param {string|null}             [user.note]
+ * @param {string}                  user.createdBy
+ * @param {string|null}             [user.updatedBy]
+ * @param {Date|null}               [user.updatedAt]
+ * @param {import('pg').PoolClient} client - Transaction client.
  *
- * User creation conflicts (e.g. duplicate email) are exceptional and
- * MUST be handled explicitly in the service / business layer.
- *
- * @param {Object} user - User data to insert.
- *
- * @param {Object} client - Database client or transaction.
- *
- * @returns {Promise<Object>} Inserted user summary.
- *
- * @throws {Error} Raw database errors:
- * - Unique constraint violations (email, phone)
- * - Foreign key violations (role, status)
- * - Other database-level failures
+ * @returns {Promise<Object>} Inserted user row.
+ * @throws  Propagates raw DB error — auth service owns error handling.
  */
 const insertUser = async (user, client) => {
   const context = 'user-repository/insertUser';
-
+  
   const {
     email,
     roleId,
@@ -47,595 +93,297 @@ const insertUser = async (user, client) => {
     updatedBy = null,
     updatedAt = null,
   } = user;
-
-  const queryText = `
-    INSERT INTO users (
-      email,
-      role_id,
-      status_id,
-      firstname,
-      lastname,
-      phone_number,
-      job_title,
-      note,
-      created_by,
-      updated_by,
-      updated_at
-    )
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-    RETURNING
-      id,
-      email,
-      role_id,
-      status_id,
-      created_at;
-  `;
-
+  
   const params = [
-    email,
-    roleId,
-    statusId,
-    firstname,
-    lastname,
-    phoneNumber,
-    jobTitle,
-    note,
-    createdBy,
-    updatedBy,
-    updatedAt,
+    email, roleId, statusId, firstname, lastname,
+    phoneNumber, jobTitle, note, createdBy, updatedBy, updatedAt,
   ];
-
+  
   try {
-    const { rows } = await query(queryText, params, client);
-
-    logSystemInfo('User inserted successfully', {
-      context,
-      userId: rows[0]?.id,
-    });
-
+    const { rows } = await query(INSERT_USER_QUERY, params, client);
     return rows[0];
   } catch (error) {
-    logSystemException(error, 'Failed to insert user', {
+    throw handleDbError(error, {
       context,
-      email: maskSensitiveInfo(email, 'email'),
-      error: error.message,
+      message: 'Failed to insert user.',
+      meta:    { email: maskEmail(email) },
+      logFn:   (err) => logDbQueryError(INSERT_USER_QUERY, params, err, { context }),
     });
-
-    throw error;
   }
 };
 
+// ─── Existence Checks ─────────────────────────────────────────────────────────
+
 /**
- * Checks whether a user exists by a unique field, regardless of status.
+ * Returns true if a user with the given field value exists.
  *
- * Repository-layer function:
- * - Performs a structural existence check only
- * - Does NOT apply status, visibility, or business rules
- * - Intended for conflict detection and bootstrap logic
+ * @param {'id'|'email'}            field  - Field to check against.
+ * @param {string}                  value  - Value to match.
+ * @param {import('pg').PoolClient} [client]
  *
- * @param {'id'|'email'} field - Field to check uniqueness against.
- * @param {string} value - Field value to look up.
- * @param {Object} [client] - Optional DB client for transactional context.
- *
- * @returns {Promise<boolean>} True if a matching user exists.
- *
- * @throws {AppError} If the field is invalid or the query fails.
+ * @returns {Promise<boolean>}
+ * @throws  {AppError} validationError if field is not 'id' or 'email'.
+ * @throws  {AppError} databaseError if the query fails.
  */
 const userExistsByField = async (field, value, client) => {
   const context = 'user-repository/userExistsByField';
-
+  
   if (!['id', 'email'].includes(field)) {
     throw AppError.validationError('Invalid field for user existence check.', {
       context,
       field,
     });
   }
-
-  const queryText = `
-    SELECT 1
-    FROM users
-    WHERE ${field} = $1
-    LIMIT 1
-  `;
-
+  
+  const queryText = buildUserExistsByFieldQuery(field);
+  const params    = [value];
+  
   try {
-    const { rowCount } = await query(queryText, [value], client);
+    const { rowCount } = await query(queryText, params, client);
     return rowCount > 0;
   } catch (error) {
-    logSystemException(error, 'Failed to check user existence', {
+    throw handleDbError(error, {
       context,
-      field,
-    });
-
-    throw AppError.databaseError('Failed to check user existence.', {
-      cause: error,
-      context,
+      message: 'Failed to check user existence.',
+      meta:    { field },
+      logFn:   (err) => logDbQueryError(queryText, params, err, { context, field }),
     });
   }
 };
 
 /**
- * Checks whether an active user exists for the given email.
+ * Returns true if an active user with the given email exists.
  *
- * Repository-layer function:
- * - Performs a structural existence check scoped by status_id
- * - Assumes status semantics are resolved by the caller
- * - Avoids JOINs and string-based status checks
+ * @param {string}                  email          - Email to check.
+ * @param {string}                  activeStatusId - UUID of the active status.
+ * @param {import('pg').PoolClient} [client]
  *
- * @param {string} email - User email to check.
- * @param {string} activeStatusId - Status ID representing "active".
- * @param {Object} [client] - Optional DB client for transactional context.
- *
- * @returns {Promise<boolean>} True if an active user exists.
- *
- * @throws {AppError} If the query fails.
+ * @returns {Promise<boolean>}
+ * @throws  {AppError} databaseError if the query fails.
  */
 const activeUserExistsByEmail = async (email, activeStatusId, client) => {
   const context = 'user-repository/activeUserExistsByEmail';
-
-  const queryText = `
-    SELECT 1
-    FROM users
-    WHERE email = $1
-      AND status_id = $2
-    LIMIT 1
-  `;
-
+  const params  = [email, activeStatusId];
+  
   try {
-    const { rowCount } = await query(
-      queryText,
-      [email, activeStatusId],
-      client
-    );
-
+    const { rowCount } = await query(ACTIVE_USER_EXISTS_BY_EMAIL_QUERY, params, client);
     return rowCount > 0;
   } catch (error) {
-    logSystemException(error, 'Failed to check active user existence', {
+    throw handleDbError(error, {
       context,
-      email,
-    });
-
-    throw AppError.databaseError('Failed to check active user existence.', {
-      cause: error,
-      context,
+      message: 'Failed to check active user existence.',
+      meta:    { email },
+      logFn:   (err) => logDbQueryError(
+        ACTIVE_USER_EXISTS_BY_EMAIL_QUERY,
+        params,
+        err,
+        { context, email }
+      ),
     });
   }
 };
 
+// ─── Paginated User List ──────────────────────────────────────────────────────
+
 /**
- * Fetch paginated user records with optional filtering and sorting.
+ * Fetches paginated user records with optional filtering and sorting.
  *
- * Repository responsibility:
- * - Execute SQL queries to retrieve user records
- * - Apply precomputed filter conditions
- * - Return paginated raw rows for service-layer processing
+ * Joins roles, status, audit users, and primary avatar image.
  *
- * Architectural notes:
- * - Visibility and access control rules are enforced upstream
- *   and expressed via injected filter flags
- * - This function does NOT interpret permissions or roles
- * - Sorting fields are assumed SQL-safe and pre-validated
+ * @param {Object}       options
+ * @param {Object}       [options.filters={}]           - Field filters.
+ * @param {number}       [options.page=1]               - Page number (1-based).
+ * @param {number}       [options.limit=10]             - Records per page.
+ * @param {string}       [options.sortBy='createdAt']   - Sort key (mapped via userSortMap).
+ * @param {'ASC'|'DESC'} [options.sortOrder='DESC']     - Sort direction.
  *
- * Designed for:
- * - Administrative user list views
- * - Card and table-based directory UIs
- *
- * @param {Object} options
- * @param {Object} [options.filters] - Normalized filter criteria
- * @param {number} [options.page=1] - Page number (1-based)
- * @param {number} [options.limit=10] - Records per page
- * @param {string} [options.sortBy='created_at'] - SQL-safe sort column
- * @param {'ASC'|'DESC'} [options.sortOrder='DESC'] - Sort direction
- *
- * @returns {Promise<{ data: Object[], pagination: Object }>}
+ * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
+ * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getPaginatedUsers = async ({
-  filters = {},
-  page = 1,
-  limit = 10,
-  sortBy = 'created_at',
-  sortOrder = 'DESC',
-}) => {
+                                   filters   = {},
+                                   page      = 1,
+                                   limit     = 10,
+                                   sortBy    = 'createdAt',
+                                   sortOrder = 'DESC',
+                                 }) => {
   const context = 'user-repository/getPaginatedUsers';
-
-  // ------------------------------------
-  // 1. Build WHERE clause from filters
-  // ------------------------------------
+  
   const { whereClause, params } = buildUserFilter(filters);
-
-  // ------------------------------------
-  // 2. Construct base query
-  // ------------------------------------
-  const queryText = `
-    SELECT
-      u.id,
-      u.firstname,
-      u.lastname,
-      u.email,
-      u.phone_number,
-      u.job_title,
-      u.created_at,
-      u.created_by,
-      cb.firstname AS created_by_firstname,
-      cb.lastname AS created_by_lastname,
-      u.updated_at,
-      u.updated_by,
-      ub.firstname AS updated_by_firstname,
-      ub.lastname AS updated_by_lastname,
-      u.role_id,
-      r.name AS role_name,
-      u.status_id,
-      s.name AS status_name,
-      u.status_date,
-      ui.image_url AS avatar_url
-    FROM users u
-    LEFT JOIN roles r ON r.id = u.role_id
-    LEFT JOIN status s ON s.id = u.status_id
-    LEFT JOIN users cb ON cb.id = u.created_by
-    LEFT JOIN users ub ON ub.id = u.updated_by
-    LEFT JOIN (
-      SELECT
-        user_id,
-        image_url
-      FROM user_images
-      WHERE is_primary = TRUE
-    ) ui ON ui.user_id = u.id
-     WHERE ${whereClause}
-     ORDER BY ${sortBy} ${sortOrder};
-  `;
-
+  
+  const sortConfig = resolveSort({
+    sortBy,
+    sortOrder,
+    moduleKey:   'userSortMap',
+    defaultSort: SORTABLE_FIELDS.userSortMap.defaultNaturalSort,
+  });
+  
+  // ORDER BY omitted — paginateQuery appends it from sortConfig.
+  const queryText = buildPaginatedUsersQuery(whereClause);
+  
   try {
-    // ------------------------------------
-    // 4. Execute paginated query
-    // ------------------------------------
-    const result = await paginateResults({
-      dataQuery: queryText,
+    return await paginateQuery({
+      tableName:    USER_LIST_TABLE,
+      joins:        USER_LIST_JOINS,
+      whereClause,
+      queryText,
       params,
       page,
       limit,
-      meta: { context },
+      sortBy:       sortConfig.sortBy,
+      sortOrder:    sortConfig.sortOrder,
+      whitelistSet: USER_LIST_SORT_WHITELIST,
+      meta:         { context },
     });
-
-    // ------------------------------------
-    // 5. Success logging
-    // ------------------------------------
-    logSystemInfo('Fetched paginated user records successfully', {
-      context,
-      filters,
-      pagination: { page, limit },
-      sorting: { sortBy, sortOrder },
-      count: result.data.length,
-    });
-
-    return result;
   } catch (error) {
-    // ------------------------------------
-    // 6. Error handling
-    // ------------------------------------
-    logSystemException(error, 'Failed to fetch paginated user records', {
+    throw handleDbError(error, {
       context,
-      filters,
-      pagination: { page, limit },
-      sorting: { sortBy, sortOrder },
-    });
-
-    throw AppError.databaseError('Failed to fetch paginated user records.', {
-      context,
+      message: 'Failed to fetch paginated user records.',
+      meta:    { filters, page, limit, sortBy, sortOrder },
+      logFn:   (err) => logDbQueryError(
+        queryText,
+        params,
+        err,
+        { context, filters, page, limit }
+      ),
     });
   }
 };
 
+// ─── User Profile ─────────────────────────────────────────────────────────────
+
 /**
- * Repository: Fetch a single User Profile with complete identity context.
+ * Fetches full user profile by id including role, permissions, and avatar.
  *
- * This function retrieves:
- *   - Core user identity fields
- *   - User status metadata
- *   - Role metadata
- *   - Derived (read-only) role permissions
- *   - Primary avatar (if exists)
- *   - Audit metadata
+ * Returns null if no matching user exists.
  *
- * IMPORTANT:
- *   Does NOT include:
- *     - Authentication data (passwords, sessions, tokens)
- *     - Security state (lockouts, login attempts)
- *     - Activity / audit history
+ * @param {string} userId          - UUID of the user to fetch.
+ * @param {string} activeStatusId  - UUID of the active status (used to scope permissions).
  *
- * Performance:
- *   - Single-user lookup via PK filter `u.id = $1`
- *   - Permissions aggregated once per role
- *   - Avatar resolved via partial unique index
- *
- * Error Handling:
- *   - Returns `null` if user does not exist
- *   - Throws `AppError.databaseError` on DB failures
- *
- * @param {string} userId - UUID of the user
- * @param {string} activeStatusId - UUID of the "active" status
- * @returns {Promise<Object|null>} User profile row or null if not found
+ * @returns {Promise<Object|null>} User profile row, or null if not found.
+ * @throws  {AppError} Normalized database error if the query fails.
  */
 const getUserProfileById = async (userId, activeStatusId) => {
   const context = 'user-repository/getUserProfileById';
-
-  const queryText = `
-    WITH role_permissions_agg AS (
-      SELECT
-        rp.role_id,
-        jsonb_agg(
-          jsonb_build_object(
-            'id', p.id,
-            'key', p.key,
-            'name', p.name
-          )
-          ORDER BY p.key
-        ) AS permissions
-      FROM role_permissions rp
-      JOIN permissions p
-        ON p.id = rp.permission_id
-       AND p.status_id = $2
-      WHERE rp.status_id = $2
-      GROUP BY rp.role_id
-    )
-
-    SELECT
-      u.id,
-      u.email,
-      u.firstname,
-      u.lastname,
-      u.phone_number,
-      u.job_title,
-      u.is_system,
-      s.id   AS status_id,
-      s.name AS status_name,
-      u.status_date,
-      r.id           AS role_id,
-      r.name         AS role_name,
-      r.role_group,
-      r.hierarchy_level,
-      COALESCE(rpa.permissions, '[]'::jsonb) AS permissions,
-      ui.image_url   AS avatar_url,
-      ui.file_format AS avatar_format,
-      ui.uploaded_at AS avatar_uploaded_at,
-      u.created_at,
-      u.updated_at,
-      u.created_by,
-      cu.firstname AS created_by_firstname,
-      cu.lastname  AS created_by_lastname,
-      u.updated_by,
-      uu.firstname AS updated_by_firstname,
-      uu.lastname  AS updated_by_lastname
-    FROM users u
-    JOIN status s ON s.id = u.status_id
-    LEFT JOIN roles r ON r.id = u.role_id
-    LEFT JOIN role_permissions_agg rpa ON rpa.role_id = r.id
-    LEFT JOIN user_images ui ON ui.user_id = u.id AND ui.is_primary = TRUE
-    LEFT JOIN users cu ON cu.id = u.created_by
-    LEFT JOIN users uu ON uu.id = u.updated_by
-    WHERE u.id = $1
-  `;
-
+  const params  = [userId, activeStatusId];
+  
   try {
-    const { rows } = await query(queryText, [userId, activeStatusId]);
-
-    if (rows.length === 0) {
-      logSystemInfo('No user profile found for given ID', {
-        context,
-        userId,
-      });
-      return null;
-    }
-
-    logSystemInfo('Fetched user profile successfully', {
-      context,
-      userId,
-    });
-
-    return rows[0];
+    const { rows } = await query(GET_USER_PROFILE_BY_ID_QUERY, params);
+    return rows[0] ?? null;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch user profile', {
+    throw handleDbError(error, {
       context,
-      userId,
-      error: error.message,
-    });
-
-    throw AppError.databaseError('Failed to fetch user profile', {
-      context,
-      details: error.message,
+      message: 'Failed to fetch user profile.',
+      meta:    { userId },
+      logFn:   (err) => logDbQueryError(
+        GET_USER_PROFILE_BY_ID_QUERY,
+        params,
+        err,
+        { context, userId }
+      ),
     });
   }
 };
 
+// ─── User Lookup ──────────────────────────────────────────────────────────────
+
 /**
- * Fetches a lightweight, paginated list of users for use in
- * dropdowns, autocomplete fields, or assignment workflows.
+ * Fetches offset-paginated user records for dropdown/lookup use.
  *
- * This repository function intentionally returns a minimal payload
- * to optimize performance for UI lookup scenarios.
+ * Joins are conditional on capability flags resolved by the service/ACL layer.
  *
- * ### Design principles
- * - Lookup endpoints must remain lightweight by default
- * - Avoid joins unless explicitly required and permitted
- * - Select only index-friendly, identifying fields
+ * @param {Object}  options
+ * @param {Object}  [filters={}]                  - Field filters.
+ * @param {Object}  [options={}]                  - Capability flags.
+ * @param {boolean} [options.canSearchRole]       - Include roles join and filter.
+ * @param {boolean} [options.canSearchStatus]     - Include status join and filter.
+ * @param {number}  [limit=50]                    - Records per page.
+ * @param {number}  [offset=0]                    - Record offset.
  *
- * ### Supported features
- * - Row-level filtering via `buildUserFilter`
- * - Keyword search on basic user fields
- * - Stable, deterministic sorting
- * - Offset-based pagination
- *
- * ### Permission-aware behavior
- * - Role and status joins are applied only when explicitly enabled
- *   via `options` (resolved by the service / ACL layer)
- *
- * @param {Object} [filters={}]
- *   Row-level filters passed to `buildUserFilter`
- *
- * @param {Object} [options={}]
- *   Query capability flags resolved by business / ACL logic
- *
- * @param {boolean} [options.canSearchRole=false]
- *   Allow keyword search against role name (requires role join)
- *
- * @param {boolean} [options.canSearchStatus=false]
- *   Allow keyword search against status name (requires status join)
- *
- * @param {number} [limit=50]
- *   Maximum number of rows to return
- *
- * @param {number} [offset=0]
- *   Number of rows to skip
- *
- * @returns {Promise<{
- *   data: Record<{
- *     id: string,
- *     email: string,
- *     firstname: string | null,
- *     lastname: string | null,
- *     status_id: string
- *   }>,
- *   pagination: {
- *     offset: number,
- *     limit: number,
- *     totalRecords: number,
- *     hasMore: boolean
- *   }
- * }>}
- *
- * @throws {AppError} If the database query fails
+ * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
+ * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getUserLookup = async ({
-  filters = {},
-  options = {},
-  limit = 50,
-  offset = 0,
-}) => {
+                               filters = {},
+                               options = {},
+                               limit   = 50,
+                               offset  = 0,
+                             }) => {
   const context = 'user-repository/getUserLookup';
-  const tableName = 'users u';
-
-  // Query capability flags (resolved by service / ACL layer)
+  
   const { canSearchRole = false, canSearchStatus = false } = options;
-
-  // Lookup queries avoid joins unless explicitly required
-  const joins = [];
-
-  if (canSearchRole) {
-    joins.push('LEFT JOIN roles r ON r.id = u.role_id');
-  }
-
-  if (canSearchStatus) {
-    joins.push('LEFT JOIN status s ON s.id = u.status_id');
-  }
-
-  // Build WHERE clause with awareness of enabled capabilities
+  
+  const joins     = buildUserLookupJoins(canSearchRole, canSearchStatus);
   const { whereClause, params } = buildUserFilter(filters, {
     canSearchRole,
     canSearchStatus,
   });
-
-  const queryText = `
-    SELECT
-      u.id,
-      u.email,
-      u.firstname,
-      u.lastname,
-      u.status_id
-    FROM ${tableName}
-    ${joins.join('\n')}
-    WHERE ${whereClause}
-  `;
-
+  
+  const queryText = buildUserLookupQuery(whereClause, joins);
+  
   try {
-    const result = await paginateQueryByOffset({
-      tableName,
+    return await paginateQueryByOffset({
+      tableName:       USER_LOOKUP_TABLE,
       joins,
       whereClause,
       queryText,
       params,
       offset,
       limit,
-      sortBy: 'u.firstname',
-      sortOrder: 'ASC',
-      additionalSort: 'u.lastname ASC, u.email ASC',
+      sortBy:          'u.firstname',
+      sortOrder:       'ASC',
+      additionalSorts: USER_LOOKUP_ADDITIONAL_SORTS,
+      whitelistSet:    USER_LOOKUP_SORT_WHITELIST,
     });
-
-    logSystemInfo('Fetched user lookup data', {
-      context,
-      offset,
-      limit,
-      filters,
-      options,
-    });
-
-    return result;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch user lookup', {
+    throw handleDbError(error, {
       context,
-      offset,
-      limit,
-      filters,
-      options,
+      message: 'Failed to fetch user lookup.',
+      meta:    { filters, offset, limit, options },
+      logFn:   (err) => logDbQueryError(
+        queryText,
+        params,
+        err,
+        { context, filters, offset, limit }
+      ),
     });
-    throw AppError.databaseError('Failed to fetch user lookup.');
   }
 };
 
+// ─── Auth Fetch (auth infrastructure) ────────────────────────────────────────
+
 /**
- * Fetches minimal authentication user data by ID.
+ * Fetches a lightweight user row for auth middleware use.
  *
- * Repository-layer function:
- * - Executes a single SELECT
- * - Returns user row or null
- * - Does NOT enforce auth semantics
- * - Preserves raw database errors
+ * Returns null if no matching user exists.
  *
- * @param {string} userId
- * @param {Object|null} client
+ * @param {string}                  userId   - UUID of the user to fetch.
+ * @param {import('pg').PoolClient} [client] - Optional transaction client.
  *
- * @returns {Promise<{
- *   id: string,
- *   role_id: string,
- *   status_id: string,
- *   status_name: string
- * } | null>}
+ * @returns {Promise<Object|null>} Auth user row, or null if not found.
+ * @throws  Propagates raw DB error — auth service owns error handling.
  */
 const getAuthUserById = async (userId, client = null) => {
   const context = 'user-repository/getAuthUserById';
-
-  const queryText = `
-    SELECT
-      u.id,
-      u.role_id,
-      u.status_id,
-      s.name AS status_name
-    FROM users u
-    LEFT JOIN status s ON s.id = u.status_id
-    WHERE u.id = $1
-    LIMIT 1;
-  `;
-
+  
   try {
-    const { rows } = await query(queryText, [userId], client);
-
-    if (!rows[0]) {
-      return null;
-    }
-
+    const { rows } = await query(GET_AUTH_USER_BY_ID_QUERY, [userId], client);
+    
+    if (!rows[0]) return null;
+    
     logSystemInfo('Auth user fetched by ID', {
       context,
-      userId: rows[0].id,
-      roleId: rows[0].role_id,
-      status: rows[0].status_name,
+      userId:   rows[0].id,
+      roleId:   rows[0].role_id,
+      status:   rows[0].status_name,
     });
-
+    
     return rows[0];
   } catch (error) {
     logSystemException(error, 'Failed to fetch auth user by ID', {
       context,
       userId,
-      error: error.message,
     });
-
     throw error;
   }
 };

@@ -132,14 +132,7 @@ const SORTABLE_FIELDS = {
     updatedBy: 'uu.firstname',
 
     // --- Complex / synthetic sorting ---
-    defaultNaturalSort: `
-      p.name ASC,
-      s.sku ASC,
-      b.is_default DESC,
-      b.is_active DESC,
-      b.revision DESC,
-      b.created_at DESC
-    `,
+    defaultNaturalSort: 'p.name',
   },
   skuProductCards: {
     brand: 'p.brand',
@@ -148,10 +141,7 @@ const SORTABLE_FIELDS = {
     sizeLabel: 's.size_label',
     createdAt: 's.created_at',
     complianceNumber: 'cr.compliance_id',
-    defaultNaturalSort: `
-      p.name,
-      s.created_at
-    `,
+    defaultNaturalSort: 'p.name',
   },
   locationTypeSortMap: {
     // --------------------------------------------------
@@ -311,7 +301,7 @@ const SORTABLE_FIELDS = {
     // --------------------------------------------------
     manufactureDate: `pb.manufacture_date`,
     expiryDate: `pb.expiry_date`,
-    receivedDate: `pb.received_date`,
+    receivedAt: `pb.received_at`,
 
     // --------------------------------------------------
     // Quantity (manufactured amount)
@@ -410,18 +400,105 @@ const SORTABLE_FIELDS = {
     // --------------------------------------------------
     defaultNaturalSort: `pmb.received_at`,
   },
-  pricingRecords: {
+  warehouseSortMap: {
+    // Warehouse-level fields (FROM warehouses w)
+    warehouseName: 'w.name',
+    warehouseCode: 'w.code',
+    storageCapacity: 'w.storage_capacity',
+    defaultFee: 'w.default_fee',
+    isArchived: 'w.is_archived',
+    
+    // Warehouse type (FROM warehouse_types wt)
+    warehouseTypeName: 'wt.name',
+    
+    // Location fields (FROM locations l)
+    locationName: 'l.name',
+    city: 'l.city',
+    provinceOrState: 'l.province_or_state',
+    country: 'l.country',
+    
+    // Location type (FROM location_types lt)
+    locationTypeName: 'lt.name',
+    
+    // Status fields (FROM status s)
+    statusName: 's.name',
+    statusId: 'w.status_id',
+    statusDate: 'w.status_date',
+    
+    // Audit timestamps (FROM warehouses w)
+    createdAt: 'w.created_at',
+    updatedAt: 'w.updated_at',
+    
+    // Audit user fields (FROM users cu/uu)
+    createdByFirstName: 'cu.firstname',
+    createdByLastName: 'cu.lastname',
+    updatedByFirstName: 'uu.firstname',
+    updatedByLastName: 'uu.lastname',
+    
+    // Default fallback
+    defaultNaturalSort: 'w.created_at',
+  },
+  pricingTypeSortMap: {
+    // Pricing type fields (FROM pricing_types pt)
+    pricingTypeName: 'pt.name',
+    pricingTypeCode: 'pt.code',
+    pricingTypeSlug: 'pt.slug',
+    statusDate:      'pt.status_date',
+    createdAt:       'pt.created_at',
+    updatedAt:       'pt.updated_at',
+    
+    // Status (FROM status s)
+    statusName: 's.name',
+    
+    // Default fallback
+    defaultNaturalSort: 'pt.created_at',
+  },
+  pricingSkuListSortMap: {
+    // Product-level fields (FROM products pr)
     productName: 'pr.name',
-    brand: 'pr.brand',
-    category: 'pr.category',
-    sku: 's.sku',
-    countryCode: 's.country_code',
-    sizeLabel: 's.size_label',
-    pricingType: 'pt.name',
-    marketRegion: 's.market_region',
-    price: 'p.price',
-    validFrom: 'p.valid_from',
-    validTo: 'p.valid_to',
+    brand:       'pr.brand',
+    category:    'pr.category',
+    
+    // SKU-level fields (FROM skus s)
+    sku:            's.sku',
+    barcode:        's.barcode',
+    sizeLabel:      's.size_label',
+    skuCountryCode: 's.country_code',
+    
+    // Pricing group-level fields (FROM pricing_groups pg)
+    price:       'pg.price',
+    countryCode: 'pg.country_code',
+    validFrom:   'pg.valid_from',
+    validTo:     'pg.valid_to',
+    
+    // Status (FROM status st)
+    statusName: 'st.name',
+    
+    // Default fallback
+    defaultNaturalSort: 'pg.valid_from',
+  },
+  pricingGroupListSortMap: {
+    // Pricing type fields (FROM pricing_types pt)
+    pricingTypeName: 'pt.name',
+    pricingTypeCode: 'pt.code',
+    
+    // Pricing group fields (FROM pricing_groups pg)
+    countryCode: 'pg.country_code',
+    price:       'pg.price',
+    validFrom:   'pg.valid_from',
+    
+    // Status (FROM status st)
+    statusName: 'st.name',
+    
+    // Counts
+    skuCount:     'sku_count',
+    productCount: 'product_count',
+    
+    // Audit
+    updatedAt: 'pg.updated_at',
+    
+    // Default fallback
+    defaultNaturalSort: 'pg.valid_from',
   },
   locationInventorySummarySortMap: {
     lotNumber: `
@@ -581,30 +658,27 @@ const SORTABLE_FIELDS = {
     updatedBy: `
       COALESCE(TRIM(u2.firstname || ' ' || u2.lastname), '')
     `,
-    defaultNaturalSort: `
-      c.region,
-      s.name,
-      COALESCE(TRIM(c.firstname || ' ' || c.lastname), ''),
-      c.created_at DESC
-    `,
+    defaultNaturalSort: [
+      's.name',
+      `COALESCE(TRIM(c.firstname || ' ' || c.lastname), '')`,
+      'c.created_at DESC',
+    ],
   },
   addressSortMap: {
-    createdAt: 'a.created_at', // Standard default sort
-    updatedAt: 'a.updated_at', // For recently modified addresses
-
-    city: 'a.city',
-    state: 'a.state',
-    postalCode: 'a.postal_code',
-    country: 'a.country',
-    region: 'a.region',
-
-    label: 'a.label', // Often used for identifying purpose (e.g. "Shipping", "Billing")
-    recipientName: 'a.full_name', // Useful for sorting by recipient
-    email: 'a.email', // In the case of email-based workflows
-    phone: 'a.phone', // Rare, but could be useful
-
-    customerName: 'c.firstname',
-    customerEmail: 'c.email',
+    createdAt:      'a.created_at',
+    updatedAt:      'a.updated_at',
+    city:           'a.city',
+    state:          'a.state',
+    postalCode:     'a.postal_code',
+    country:        'a.country',
+    region:         'a.region',
+    label:          'a.label',
+    recipientName:  'a.full_name',
+    email:          'a.email',
+    phone:          'a.phone',
+    customerName:   'c.firstname',
+    customerEmail:  'c.email',
+    defaultNaturalSort: 'a.created_at',
   },
   orderTypeSortMap: {
     name: 'ot.name',
@@ -622,26 +696,24 @@ const SORTABLE_FIELDS = {
     createdBy: 'u1.firstname', // or concat name if joined properly
     updatedBy: 'u2.firstname',
 
-    defaultNaturalSort: 'a.created_at',
+    defaultNaturalSort: 'ot.created_at',
   },
   orderSortMap: {
-    orderNumber: 'o.order_number',
-    orderDate: 'o.order_date',
-
-    // Order Type
-    orderType: 'ot.name',
-
-    // Status
-    statusName: 'os.name',
-    statusDate: 'o.status_date',
-
-    // Audit fields
-    createdAt: 'o.created_at',
-    updatedAt: 'o.updated_at',
-    createdBy: 'u1.firstname',
-    updatedBy: 'u2.firstname',
-
-    // Default fallback sort
+    orderNumber:    'o.order_number',
+    orderDate:      'o.order_date',
+    orderType:      'ot.name',
+    statusName:     'os.name',
+    statusDate:     'o.status_date',
+    deliveryMethod: 'dm.method_name',
+    customerFirst:  'c.firstname',
+    customerLast:   'c.lastname',
+    paymentMethod:  'pm.name',
+    paymentStatus:  'ps.name',
+    createdAt:      'o.created_at',
+    updatedAt:      'o.updated_at',
+    createdBy:      'u_created.firstname',
+    updatedBy:      'u_updated.firstname',
+    
     defaultNaturalSort: 'o.created_at',
   },
   inventoryAllocationSortMap: {
@@ -717,6 +789,13 @@ const SORTABLE_FIELDS = {
     // Default fallback
     defaultNaturalSort: 'os.created_at',
   },
+  statusSortMap: {
+    name: 'LOWER(s.name)',
+    isActive: 's.is_active',
+    createdAt: 's.created_at',
+    updatedAt: 's.updated_at',
+    defaultNaturalSort: 'LOWER(s.name)',
+  }
 };
 
 module.exports = {

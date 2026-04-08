@@ -1,101 +1,100 @@
+/**
+ * @file order-status-repository.js
+ * @description Database access layer for order status records.
+ *
+ * Follows the established repo pattern:
+ *  - Query constants imported from order-status-queries.js
+ *  - All errors normalized through handleDbError before bubbling up
+ *  - No success logging — middleware and globalErrorHandler own that layer
+ *
+ * Exports:
+ *  - getOrderStatusIdByCode        — fetch single status ID by code
+ *  - getOrderStatusByCode          — fetch single status record by code
+ *  - getOrderStatusMetadataById    — fetch status name/category/code by id
+ *  - getOrderStatusesByCodes       — bulk fetch status records by code array
+ */
+
+'use strict';
+
+const { getUniqueScalarValue, getFieldsById } = require('../utils/db/record-utils');
+const { query } = require('../database/db');
+const { handleDbError } = require('../utils/errors/error-handlers');
+const { logDbQueryError } = require('../utils/db-logger');
 const {
-  getUniqueScalarValue,
-  getFieldsById,
-  query,
-} = require('../database/db');
-const AppError = require('../utils/AppError');
-const { logSystemException } = require('../utils/system-logger');
+  ORDER_STATUS_GET_BY_CODE,
+  ORDER_STATUS_GET_BY_CODES,
+} = require('./queries/order-status-queries');
+
+// ─── Single Record ────────────────────────────────────────────────────────────
 
 /**
- * Retrieves the order status ID by its code.
+ * Fetches a single order status ID by its code.
  *
- * @param {string} code - The status code (e.g., 'ORDER_PENDING').
- * @param {object} [client=null] - Optional database client/transaction.
- * @returns {Promise<string|null>} - The status ID or null if not found.
- * @throws {AppError} - If the database query fails.
+ * Delegates entirely to `getUniqueScalarValue` which handles logging,
+ * not-found errors, and duplicate-result errors internally.
+ *
+ * @param {string}          code          - The order status code to look up.
+ * @param {PoolClient|null} [client=null] - Optional DB client for transactional context.
+ *
+ * @returns {Promise<string>} The status UUID matching the given code.
+ * @throws  {AppError}        If no record is found or the query fails.
  */
 const getOrderStatusIdByCode = async (code, client = null) => {
-  try {
-    return await getUniqueScalarValue(
-      {
-        table: 'order_status',
-        where: { code },
-        select: 'id',
-      },
-      client,
-      {
-        context: 'order-status-repository/getOrderStatusIdByCode',
-        code,
-      }
-    );
-  } catch (error) {
-    throw error; // already logged by getUniqueScalarValue
-  }
-};
-
-/**
- * Retrieves an order status record by its code.
- *
- * This function queries the `order_status` table for the given status code,
- * returning its ID, code, and category if found.
- *
- * @param {string} statusCode - The status code to look up (e.g., 'ORDER_CONFIRMED').
- * @param {object} client - PostgreSQL client instance (usually from a transaction context).
- * @returns {Promise<{ id: string, code: string, category: string }>} - The matching order status record.
- *
- * @throws {AppError} - If no matching status is found or if a database error occurs.
- */
-const getOrderStatusByCode = async (statusCode, client) => {
-  const context = 'order-status-repository/getOrderStatusByCode';
-
-  const sql = `
-    SELECT id, code, category
-    FROM order_status
-    WHERE code = $1
-    LIMIT 1
-  `;
-
-  const values = [statusCode];
-
-  try {
-    const result = await query(sql, values, client);
-    const row = result.rows?.[0];
-
-    if (!row) {
-      throw AppError.notFoundError(
-        `Order status not found for code: ${statusCode}`
-      );
+  return await getUniqueScalarValue(
+    {
+      table:  'order_status',
+      where:  { code },
+      select: 'id',
+    },
+    client,
+    {
+      context: 'order-status-repository/getOrderStatusIdByCode',
+      code,
     }
+  );
+};
 
-    return {
-      id: row.id,
-      code: row.code,
-      category: row.category,
-    };
+/**
+ * Fetches a single order status record by its code.
+ *
+ * Returns null if no record exists — not-found handling belongs in the
+ * service layer, consistent with the repo pattern.
+ *
+ * @param {string}          statusCode    - The order status code to look up.
+ * @param {PoolClient|null} [client=null] - Optional DB client for transactional context.
+ *
+ * @returns {Promise<{ id: string, code: string, category: string }|null>}
+ * @throws  {AppError} Normalized database error if the query fails.
+ */
+const getOrderStatusByCode = async (statusCode, client = null) => {
+  const context = 'order-status-repository/getOrderStatusByCode';
+  
+  try {
+    const { rows } = await query(ORDER_STATUS_GET_BY_CODE, [statusCode], client);
+    return rows[0] ?? null;
   } catch (error) {
-    logSystemException(error, 'Failed to get order status by code', {
+    throw handleDbError(error, {
       context,
-      statusCode,
+      message: 'Failed to fetch order status by code.',
+      meta:    { statusCode },
+      logFn:   (err) => logDbQueryError(
+        ORDER_STATUS_GET_BY_CODE, [statusCode], err, { context, statusCode }
+      ),
     });
-
-    throw AppError.databaseError(
-      `Failed to retrieve order status: ${error.message}`
-    );
   }
 };
 
 /**
- * Fetches the order status metadata by its ID.
+ * Fetches order status name, category, and code by ID.
  *
- * Retrieves the `name`, `category`, and `code` fields from the `order_status` table
- * for a given status ID. This is typically used to resolve the full status metadata
- * of an order for display, logging, or validation purposes.
+ * Delegates to `getFieldsById` which handles execution and error
+ * normalization internally.
  *
- * @param {string} id - UUID of the order status.
- * @param {object} client - Optional PostgreSQL client for transaction context.
- * @returns {Promise<object>} - An object containing `name`, `category`, and `code`.
+ * @param {string}     id     - UUID of the order status.
+ * @param {PoolClient} client - DB client for transactional context.
  *
- * @throws {AppError} - If the record is not found or query fails.
+ * @returns {Promise<{ name: string, category: string, code: string }|null>}
+ * @throws  {AppError} If the query fails.
  */
 const getOrderStatusMetadataById = async (id, client) => {
   return await getFieldsById(
@@ -106,36 +105,36 @@ const getOrderStatusMetadataById = async (id, client) => {
   );
 };
 
+// ─── Bulk Fetch ───────────────────────────────────────────────────────────────
+
 /**
- * Retrieves multiple order status records by their codes.
+ * Fetches order status records by their codes.
  *
- * @param {string[]} statusCodes - An array of status codes (e.g. ['ORDER_CONFIRMED', 'ORDER_ALLOCATED']).
- * @param {object} client - PostgreSQL client instance.
+ * Returns an empty array if statusCodes is empty — no query is executed.
+ *
+ * @param {string[]}   statusCodes - Array of order status codes to fetch.
+ * @param {PoolClient} client      - DB client for transactional context.
+ *
  * @returns {Promise<Array<{ id: string, code: string, category: string }>>}
+ * @throws  {AppError} Normalized database error if the query fails.
  */
 const getOrderStatusesByCodes = async (statusCodes, client) => {
-  const context = 'order-status-repository/getOrderStatusesByCodes';
-
   if (!Array.isArray(statusCodes) || statusCodes.length === 0) return [];
-
-  const sql = `
-    SELECT id, code, category
-    FROM order_status
-    WHERE code = ANY($1::text[])
-  `;
-
+  
+  const context = 'order-status-repository/getOrderStatusesByCodes';
+  
   try {
-    const result = await query(sql, [statusCodes], client);
+    const result = await query(ORDER_STATUS_GET_BY_CODES, [statusCodes], client);
     return result.rows;
   } catch (error) {
-    logSystemException(error, 'Failed to get order statuses by codes', {
+    throw handleDbError(error, {
       context,
-      statusCodes,
+      message: 'Failed to fetch order statuses by codes.',
+      meta:    { statusCodes },
+      logFn:   (err) => logDbQueryError(
+        ORDER_STATUS_GET_BY_CODES, [statusCodes], err, { context, statusCodes }
+      ),
     });
-
-    throw AppError.databaseError(
-      `Failed to retrieve order statuses: ${error.message}`
-    );
   }
 };
 

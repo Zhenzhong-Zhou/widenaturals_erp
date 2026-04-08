@@ -1,61 +1,61 @@
+/**
+ * @file lot-adjustment-type-repository.js
+ * @description Database access layer for lot adjustment type records.
+ *
+ * Follows the established repo pattern:
+ *  - Query factories imported from lot-adjustment-type-queries.js
+ *  - All errors normalized through handleDbError before bubbling up
+ *  - No success logging — middleware and globalErrorHandler own that layer
+ *
+ * Exports:
+ *  - getLotAdjustmentTypeLookup — fetch active lot adjustment types with optional filtering
+ */
+
+'use strict';
+
 const { query } = require('../database/db');
-const AppError = require('../utils/AppError');
-const {
-  buildLotAdjustmentWhereClause,
-} = require('../utils/sql/build-lot-adjustment-type-filters');
-const { logSystemException } = require('../utils/system-logger');
+const { handleDbError } = require('../utils/errors/error-handlers');
+const { logDbQueryError } = require('../utils/db-logger');
+const { buildLotAdjustmentWhereClause } = require('../utils/sql/build-lot-adjustment-type-filter');
+const { buildLotAdjustmentTypeLookupQuery } = require('./queries/lot-adjustment-type-queries');
+
+// ─── Lookup ───────────────────────────────────────────────────────────────────
 
 /**
- * Retrieves active lot adjustment types linked to inventory action types categorized as 'adjustment'.
+ * Fetches active lot adjustment types for dropdown/lookup use.
  *
- * By default, internal/system-only types such as `'manual_stock_insert'` and `'manual_stock_update'`
- * are excluded unless explicitly included via the `filters` parameter.
+ * Always filters to active records only (lat.is_active = true).
+ * Supports optional restriction to quantity adjustment category
+ * and exclusion of internal-only types.
  *
- * @param {Object} [filters={}] - Optional configuration to control query behavior.
- * @param {boolean} [filters.excludeInternal=true] - If true, excludes internal adjustment types.
- * @returns {Promise<Array>} A promise that resolves to a list of lot adjustment types and their related action types.
+ * @param {Object}  [filters={}]
+ * @param {boolean} [filters.restrictToQtyAdjustment] - If true, restricts to iat.category = 'adjustment'.
+ * @param {boolean} [filters.excludeInternal]         - If true, excludes internal stock management types.
  *
- * @example
- * // Default (excludes internal types)
- * const types = await getLotAdjustmentTypeLookup();
- *
- * @example
- * // Include internal/system adjustment types
- * const types = await getLotAdjustmentTypeLookup({ excludeInternal: false });
+ * @returns {Promise<Array<{ lot_adjustment_type_id: string, inventory_action_type_id: string, name: string }>>}
+ * @throws  {AppError} Normalized database error if the query fails.
  */
 const getLotAdjustmentTypeLookup = async (filters = {}) => {
+  const context = 'lot-adjustment-type-repository/getLotAdjustmentTypeLookup';
+  
   const { whereClause, params } = buildLotAdjustmentWhereClause(filters);
-
-  const sql = `
-      SELECT
-        lat.id AS lot_adjustment_type_id,
-        iat.id AS inventory_action_type_id,
-        lat.name
-      FROM lot_adjustment_types lat
-      JOIN inventory_action_types iat ON lat.inventory_action_type_id = iat.id
-      WHERE ${whereClause}
-      ORDER BY lat.name ASC;
-    `;
+  const queryText = buildLotAdjustmentTypeLookupQuery(whereClause);
+  
   try {
-    const result = await query(sql, params);
+    const result = await query(queryText, params);
     return result.rows;
   } catch (error) {
-    logSystemException(
-      error,
-      'Failed to fetch lot adjustment types for lookup',
-      {
-        context: 'lot-adjustment-type-repository/getLotAdjustmentTypeLookup',
-        filters,
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch lot adjustment type lookup.',
+      meta:    { filters },
+      logFn:   (err) => logDbQueryError(
+        queryText,
         params,
-      }
-    );
-
-    throw AppError.databaseError(
-      'Unable to load lot adjustment lookup options',
-      {
-        stage: 'lot-adjustment-type-repository/getLotAdjustmentTypeLookup',
-      }
-    );
+        err,
+        { context, filters }
+      ),
+    });
   }
 };
 

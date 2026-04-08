@@ -16,7 +16,7 @@
  */
 
 const { pool } = require('../../database/db');
-const { getSortMapForModule } = require('../../utils/sort-utils');
+const { getSortMapForModule } = require('../../utils/query/sort-resolver');
 const {
   fetchPaginatedProductsService,
 } = require('../../services/product-service');

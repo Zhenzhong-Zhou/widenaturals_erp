@@ -1,4 +1,15 @@
-const express = require('express');
+/**
+ * @file csrf.js
+ * @description CSRF token issuance route.
+ *
+ * Used by the frontend to retrieve a per-session CSRF token before
+ * making any state-changing requests. Rate-limited to prevent token
+ * farming. No authentication or permission check required.
+ */
+
+'use strict';
+
+const express                        = require('express');
 const { createCsrfTokenRateLimiter } = require('../middlewares/rate-limiter');
 const {
   generateCsrfTokenController,
@@ -7,12 +18,15 @@ const {
 const router = express.Router();
 
 /**
- * CSRF token endpoint.
- *
- * Used by the frontend to retrieve a per-session CSRF token.
- * The token must be included with subsequent state-changing
- * requests to satisfy CSRF protection.
+ * @route GET /csrf/token
+ * @description Returns a per-session CSRF token for use in subsequent
+ * state-changing requests.
+ * @access public
  */
-router.get('/token', createCsrfTokenRateLimiter(), generateCsrfTokenController);
+router.get(
+  '/token',
+  createCsrfTokenRateLimiter(),
+  generateCsrfTokenController
+);
 
 module.exports = router;

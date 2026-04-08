@@ -4,7 +4,6 @@ import type {
   AuditUser,
   GenericAudit,
   GenericStatus,
-  OperationStats,
   PaginatedResponse,
   PaginationParams,
   SortConfig,
@@ -1141,18 +1140,7 @@ export interface CreateSkuBulkInput {
  *  - OperationStats for timing + processing summary
  *  - Created SKU array
  */
-export interface CreateSkuResponse extends ApiSuccessResponse<
-  CreatedSkuRecord[]
-> {
-  /**
-   * Operational statistics such as:
-   *  - inputCount
-   *  - processedCount
-   *  - elapsedMs
-   *  - optional meta
-   */
-  stats: OperationStats;
-}
+export type CreateSkuResponse = ApiSuccessResponse<CreatedSkuRecord[]>;
 
 /**
  * Individual created SKU entry returned by the API.

@@ -1,162 +1,87 @@
 /**
- * @fileoverview
- * Transforms raw SQL product rows into clean, API-ready objects.
+ * @file product-transformer.js
+ * @description Row-level and page-level transformers for product records.
  *
- * Used by:
- * - `getPaginatedProducts` repository function
- * - Product listing, dashboard, and admin detail APIs
+ * Exports:
+ *   - transformPaginatedProductResults – paginated product list
+ *   - transformProductDetail           – single product detail
+ *   - transformProductList             – bulk insert result list
  *
- * ### Input
- * A flat SQL row returned from the `products` query with:
- * - Core fields (`id`, `name`, `series`, `brand`, `category`, `description`)
- * - Status info (`status_id`, `status_name`, `status_date`)
- * - Audit info (`created_at`, `updated_at`, `created_by`, `updated_by`, and user names)
+ * Internal helpers (not exported):
+ *   - transformProductRow – base per-row transformer shared by list and detail views
  *
- * ### Output
- * A normalized object with nested structure:
- * ```js
- * {
- *   id,
- *   name,
- *   series,
- *   brand,
- *   category,
- *   description,
- *   status: { id, name, date },
- *   audit: {
- *     createdAt,
- *     createdBy: { id, fullName },
- *     updatedAt,
- *     updatedBy: { id, fullName },
- *   }
- * }
- * ```
+ * All functions are pure — no logging, no AppError, no side effects.
  */
 
-const { cleanObject } = require('../utils/object-utils');
-const { transformPageResult } = require('../utils/transformer-utils');
+'use strict';
+
+const { cleanObject }             = require('../utils/object-utils');
+const { transformPageResult }     = require('../utils/transformer-utils');
 const { compactAudit, makeAudit } = require('../utils/audit-utils');
 
 /**
- * Transforms a single raw product SQL row into a clean, API-ready object.
+ * Transforms a single product DB row into the base UI-facing shape.
  *
- * @param {Record<string, any>} row - Raw SQL row from `getPaginatedProducts`
- * @returns {Record<string, any>} Normalized product object
+ * Used by both the paginated list and the detail transformer.
+ * Pass `includeDescription: true` to include the description field.
+ *
+ * @param {ProductRow} row
+ * @param {{ includeDescription?: boolean }} [options={}]
+ * @returns {ProductRecord|ProductDetailRecord}
  */
-const transformProductRow = (row) => {
-  const base = {
-    id: row.id,
-    name: row.name,
-    series: row.series ?? null,
-    brand: row.brand ?? null,
-    category: row.category ?? null,
+const transformProductRow = (row, { includeDescription = false } = {}) =>
+  cleanObject({
+    id:          row.id,
+    name:        row.name,
+    series:      row.series   ?? null,
+    brand:       row.brand    ?? null,
+    category:    row.category ?? null,
+    ...(includeDescription && { description: row.description ?? null }),
     status: {
-      id: row.status_id,
+      id:   row.status_id,
       name: row.status_name ?? null,
       date: row.status_date ?? null,
     },
     audit: compactAudit(makeAudit(row)),
-  };
-
-  return cleanObject(base);
-};
+  });
 
 /**
- * Transforms a paginated result of product rows into API-ready format.
+ * Transforms a paginated product result set into the list view shape.
  *
- * Wraps `transformProductRow` for each item and preserves pagination metadata.
+ * Delegates per-row transformation to `transformProductRow` via
+ * `transformPageResult`, which preserves pagination metadata.
  *
- * ### Input
- * ```js
- * {
- *   data: [SQLRow, SQLRow, ...],
- *   pagination: { page, limit, totalRecords, totalPages }
- * }
- * ```
- *
- * ### Output
- * ```js
- * {
- *   data: [TransformedProduct, ...],
- *   pagination: { page, limit, totalRecords, totalPages }
- * }
- * ```
- *
- * @param {{
- *   data: Record<string, any>[];
- *   pagination: { page: number; limit: number; totalRecords: number; totalPages: number };
- * }} paginatedResult - Raw paginated query result
- * @returns {Promise<PaginatedResult<T>>} Cleaned paginated product results
+ * @param {Object}       paginatedResult
+ * @param {ProductRow[]} paginatedResult.data
+ * @param {Object}       paginatedResult.pagination
+ * @returns {Promise<PaginatedResult<ProductRow>>}
  */
-const transformPaginatedProductResults = (paginatedResult) => {
-  return transformPageResult(paginatedResult, (row) =>
-    transformProductRow(row)
-  );
-};
+const transformPaginatedProductResults = (paginatedResult) =>
+  /** @type {Promise<PaginatedResult<ProductRow>>} */
+  (transformPageResult(paginatedResult, (row) => transformProductRow(row)));
 
 /**
- * Transformer: Product Detail
+ * Transforms a single product DB row into the full detail shape.
  *
- * Normalizes a raw SQL row from `getProductDetailsById` into a clean,
- * API-ready object structure used by the service and controller layers.
+ * Includes the `description` field in addition to the base list shape.
  *
- * ### Behavior
- * - Groups status and audit information into nested objects.
- * - Normalizes null values for optional fields.
- * - Combines first/last names into full names using `getFullName()`.
- *
- * @param {Record<string, any>} row - Raw product row from the database.
- * @returns {object} Normalized product detail object.
- *
- * @example
- * const product = transformProductDetail(row);
- * console.log(product.status.name); // "Active"
+ * @param {ProductRow} row
+ * @returns {ProductDetailRecord}
  */
-const transformProductDetail = (row) => {
-  const base = {
-    id: row.id,
-    name: row.name,
-    series: row.series ?? null,
-    brand: row.brand ?? null,
-    category: row.category ?? null,
-    description: row.description ?? null,
-    status: {
-      id: row.status_id,
-      name: row.status_name ?? null,
-      date: row.status_date ?? null,
-    },
-    audit: compactAudit(makeAudit(row)),
-  };
-
-  return cleanObject(base);
-};
+const transformProductDetail = (row) =>
+  /** @type {ProductDetailRecord} */ (transformProductRow(row, { includeDescription: true }));
 
 /**
- * Transform a single raw product row into a minimal response shape.
+ * Transforms an array of product insert rows into ID-only result records.
  *
- * This is used after bulk inserts where the database only returns
- * the `id` column. No additional product attributes are included.
+ * Returns an empty array if the input is not a valid array.
  *
- * @param {Object|null} row - Raw DB row containing at least `{ id }`
- * @returns {Object|null} Object with `{ id }`
- */
-const transformProductRecord = (row) => {
-  if (!row) return null;
-
-  return {
-    id: row.id,
-  };
-};
-
-/**
- * Transform an array of raw product insert-return rows.
- *
- * @param {Array<Object>} rows - Array of rows from bulk insert
- * @returns {Array<{id: string}>} Array of `{ id }` objects
+ * @param {ProductInsertRow[]} [rows=[]]
+ * @returns {ProductInsertRecord[]}
  */
 const transformProductList = (rows = []) => {
   if (!Array.isArray(rows)) return [];
-  return rows.map(transformProductRecord);
+  return rows.map((row) => (row ? { id: row.id } : null)).filter(Boolean);
 };
 
 module.exports = {

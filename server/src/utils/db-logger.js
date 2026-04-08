@@ -1,243 +1,276 @@
 /**
  * @file db-logger.js
- * @description Utility functions for logging database events such as queries and errors.
+ * @description Database-level logging utilities (low-noise, production-safe).
+ *
+ * Responsibilities:
+ *   - Log ONLY meaningful DB events (errors, slow queries, system health)
+ *   - Avoid high-frequency noise (every query success should NOT be logged)
+ *   - Ensure all logs carry consistent database layer context
+ *
+ * Design:
+ *   - No request context — DB layer operates below the request lifecycle
+ *   - Uses system logger for infrastructure-level events (connect, crash)
+ *   - Uses logError / logWarn for query and operational events
+ *   - All query params are masked before logging via maskSensitiveParams
+ *   - Query strings are truncated at 500 chars to prevent oversized log entries
+ *
+ * Log level guide:
+ *   logSystemInfo / logDbInfo  — connection established, tx committed, record found
+ *   logWarn / logDbSlowQuery   — slow queries, unexpected but non-fatal conditions
+ *   logError / logDbQueryError — query failures, lock errors, bulk insert errors
+ *   logSystemException         — connection failures, pool crashes (infrastructure)
  */
 
-const { logSystemInfo, logSystemException } = require('./system-logger');
-const {
-  logInfo,
-  logWarn,
-  logError,
-  createSystemMeta,
-} = require('./logger-helper');
-const { maskSensitiveParams } = require('./mask-logger-params');
+'use strict';
+
+const { logSystemInfo, logSystemException } = require('./logging/system-logger');
+const { logWarn, logError }                 = require('./logging/logger-helper');
+const { maskSensitiveParams }               = require('./masking/mask-sensitive-params');
+
+// -----------------------------------------------------------------------------
+// Context helper
+// Stamps every log entry with a consistent database layer identity so log
+// queries can filter by layer without relying on per-function context strings.
+// -----------------------------------------------------------------------------
 
 /**
- * Logs a successful database connection event using system-level logging.
+ * Merges caller-supplied meta with standard database layer identifiers.
  *
- * Intended to be used inside connection lifecycle hooks (e.g., pool.on('connect'))
- * to confirm that the application has established a database connection.
+ * @param {object} [meta={}] - Caller-supplied metadata to merge.
+ * @returns {object} Meta object stamped with `traceId: 'system'` and `layer: 'database'`.
+ */
+const withDbContext = (meta = {}) => ({
+  traceId: 'system',
+  layer:   'database',
+  ...meta,
+});
+
+// -----------------------------------------------------------------------------
+// Connection
+// -----------------------------------------------------------------------------
+
+/**
+ * Logs a successful database connection at system info level.
+ * Called once per pool initialization — not per query.
  *
- * Adds standardized system metadata and includes the logging context.
- *
- * @example
- * pool.on('connect', logDbConnect);
+ * @returns {void}
  */
 const logDbConnect = () => {
-  logSystemInfo('Connected to the database', { context: 'database' });
+  logSystemInfo('Database connected', {
+    context: 'database',
+  });
 };
 
 /**
- * Logs a fatal database connection error using standardized system logging.
+ * Logs a database **connection** error at system exception level.
  *
- * This should be used in cases where the application encounters an unexpected
- * database error that may affect core functionality (e.g., pool.on('error')).
- * It includes the error message, stack trace (if enabled), and context.
+ * Use only for pool-level or connection-level failures (e.g. pg `error` event,
+ * pool exhaustion, startup connectivity failure). For query errors use
+ * `logDbQueryError` instead.
  *
- * @param {Error} error - The error object caught during the database event.
- *
- * @example
- * pool.on('error', (err) => {
- *   logDbError(err);
- *   throw AppError.databaseError('Unexpected database connection error', { details: { error: err } });
- * });
+ * @param {Error} error - The connection error.
+ * @returns {void}
  */
-const logDbError = (error) => {
+const logDbConnectionError = (error) => {
   logSystemException(error, 'Database connection error', {
     context: 'database',
-    severity: 'critical',
+    crash:   true,
   });
 };
 
+// -----------------------------------------------------------------------------
+// Info — low-frequency success events
+// -----------------------------------------------------------------------------
+
 /**
- * Logs a retry attempt failure with exponential backoff info.
+ * Logs a low-frequency informational DB event at system info level.
  *
- * @param {number} attempt - The current retry attempt number.
- * @param {number} retries - Total allowed retries.
- * @param {Error} error - The caught error.
- * @param {number} nextDelayMs - The delay (in ms) before the next attempt.
+ * Use for meaningful outcomes only — e.g. record found, transaction committed,
+ * migration applied. Never use for every query success; high-frequency success
+ * logging creates noise that drowns out meaningful signal in production logs.
+ *
+ * @param {string} message   - Human-readable event description.
+ * @param {object} [meta={}] - Additional context (context, table, rowCount, etc.).
+ * @returns {void}
  */
-const logRetryWarning = (attempt, retries, error, nextDelayMs) => {
-  logWarn(`Retry ${attempt}/${retries} failed`, null, {
-    ...createSystemMeta(),
-    errorMessage: error.message,
-    attempt,
-    retries,
-    nextDelayMs,
-    context: 'retry',
-  });
+const logDbInfo = (message, meta = {}) => {
+  logSystemInfo(message, withDbContext(meta));
 };
 
+// -----------------------------------------------------------------------------
+// Query helpers — private, not exported
+// -----------------------------------------------------------------------------
+
 /**
- * Builds standardized metadata for query logging, combining system context,
- * masked query parameters, and execution duration.
+ * Truncates a query string to 500 characters to prevent oversized log entries.
+ * Non-string values (e.g. object with dataQuery/countQuery) are returned as-is.
  *
- * @param {string} query - The SQL query string.
- * @param {Array|Object} params - Query parameters (masked internally).
- * @param {number} durationMs - Execution time in milliseconds.
- * @param {Object} [extraMeta={}] - Optional additional metadata.
- * @returns {Object} Structured metadata for logging.
+ * @param {string | unknown} query - Raw query string or query descriptor object.
+ * @returns {string | unknown} Truncated string or original value unchanged.
+ */
+const truncateQuery = (query) =>
+  typeof query === 'string' && query.length > 500
+    ? `${query.slice(0, 500)}...[truncated]`
+    : query;
+
+/**
+ * Builds standardized metadata for a successful or slow query log entry.
+ *
+ * @param {string | object} query      - SQL query string or descriptor.
+ * @param {unknown[]}       params     - Query parameters (will be masked).
+ * @param {number}          durationMs - Query execution time in milliseconds.
+ * @param {object}          [extraMeta={}] - Additional caller-supplied context.
+ * @returns {object}
  */
 const buildQueryMeta = (query, params, durationMs, extraMeta = {}) => ({
-  ...createSystemMeta(),
-  query,
+  query: truncateQuery(query),
   params: maskSensitiveParams(params),
   durationMs,
   ...extraMeta,
 });
 
 /**
- * Builds standardized metadata for failed query logs, including masked parameters and error context.
+ * Builds standardized metadata for a query error log entry.
+ * Stack trace is included in non-production environments only.
  *
- * @param {string|Object} query - SQL query string or an object like { dataQuery, countQuery }.
- * @param {Array|Object} params - Query parameters.
- * @param {Error} error - The thrown error.
- * @param {Object} extraMeta - Any additional metadata (context, page, limit, etc.).
- * @returns {Object} - Structured metadata for logging.
+ * @param {string | object} query      - SQL query string or descriptor.
+ * @param {unknown[]}       params     - Query parameters (will be masked).
+ * @param {Error}           error      - The caught error.
+ * @param {object}          [extraMeta={}] - Additional caller-supplied context.
+ * @returns {object}
  */
 const buildQueryErrorMeta = (query, params, error, extraMeta = {}) => ({
-  ...createSystemMeta(),
-  ...(typeof query === 'string' ? { query } : query), // supports { dataQuery, countQuery }
-  params: maskSensitiveParams(params),
+  query:        truncateQuery(query),
+  params:       maskSensitiveParams(params),
+  errorName:    error.name,
   errorMessage: error.message,
-  stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
+  // Include stack in non-production only — stacks are verbose and should
+  // never appear in production log streams.
+  ...(process.env.NODE_ENV !== 'production' ? { stack: error.stack } : {}),
   ...extraMeta,
 });
 
-/**
- * Logs a successful query execution.
- *
- * @param {string} text - The SQL query.
- * @param {Array|Object} params - Query parameters.
- * @param {number} duration - Execution time in ms.
- * @param {Object} [meta={}] - Optional metadata (e.g., traceId, txId, context).
- */
-const logDbQuerySuccess = (text, params, duration, meta = {}) => {
-  logInfo(
-    'Query executed',
-    null,
-    buildQueryMeta(text, params, duration, {
-      status: 'success',
-      ...meta,
-    })
-  );
-};
+// -----------------------------------------------------------------------------
+// Query logging — low noise
+// -----------------------------------------------------------------------------
 
 /**
  * Logs a slow query warning.
+ * Triggered when query execution time exceeds the configured slow query threshold.
  *
- * @param {string} text - The query text.
- * @param {Array|Object} params - Query parameters.
- * @param {number} duration - Execution time in ms.
- * @param {Object} [meta={}] - Optional metadata (e.g., traceId, txId, context).
+ * @param {string}   query      - SQL query string.
+ * @param {unknown[]} params    - Query parameters (will be masked).
+ * @param {number}   duration   - Query execution time in milliseconds.
+ * @param {object}   [meta={}]  - Additional context (context, table, etc.).
+ * @returns {void}
  */
-const logDbSlowQuery = (text, params, duration, meta = {}) => {
+const logDbSlowQuery = (query, params, duration, meta = {}) => {
   logWarn(
     'Slow query detected',
     null,
-    buildQueryMeta(text, params, duration, {
-      severity: 'slow',
-      ...meta,
-    })
+    withDbContext(
+      buildQueryMeta(query, params, duration, {
+        slow: true,
+        ...meta,
+      })
+    )
   );
 };
 
 /**
- * Logs a database query failure using structured metadata.
+ * Logs a query execution error.
+ * Use for failed SELECT, INSERT, UPDATE, DELETE operations.
+ * For connection-level failures use `logDbConnectionError` instead.
  *
- * @param {string|Object} query - A single SQL string or an object with multiple queries (e.g., { dataQuery, countQuery }).
- * @param {Array|Object} params - Parameters for the query/queries.
- * @param {Error} error - The thrown error.
- * @param {Object} [extraMeta={}] - Optional additional log metadata.
+ * @param {string}   query      - SQL query string.
+ * @param {unknown[]} params    - Query parameters (will be masked).
+ * @param {Error}    error      - The caught error.
+ * @param {object}   [meta={}]  - Additional context (context, table, etc.).
+ * @returns {void}
  */
-const logDbQueryError = (query, params, error, extraMeta = {}) => {
-  const meta = buildQueryErrorMeta(query, params, error, {
-    severity: 'critical',
-    ...extraMeta,
-  });
-
-  logError('Query execution failed', null, meta);
+const logDbQueryError = (query, params, error, meta = {}) => {
+  logError(
+    error,
+    null,
+    withDbContext(buildQueryErrorMeta(query, params, error, meta))
+  );
 };
 
+// -----------------------------------------------------------------------------
+// Transactions
+// -----------------------------------------------------------------------------
+
 /**
- * Logs a database transaction lifecycle event (e.g., BEGIN, COMMIT, ROLLBACK).
+ * Logs a transaction lifecycle event (begin, commit, rollback) at info level.
  *
- * @param {'BEGIN'|'COMMIT'|'ROLLBACK'|'SAVEPOINT'|'RELEASE'} action - The transaction action.
- * @param {string} txId - Unique identifier for this transaction.
- * @param {Object} [extraMeta={}] - Optional additional metadata.
+ * Transaction events are normal DB operations — they are logged at info, not
+ * warn, unless the action itself indicates a problem (e.g. unexpected rollback).
+ * Pass `warn: true` in meta to escalate a specific event to warn level.
+ *
+ * @param {'begin' | 'commit' | 'rollback' | string} action - Transaction action label.
+ * @param {string | number} txId   - Transaction identifier for correlation.
+ * @param {object}          [meta={}] - Additional context. Pass `warn: true` to
+ *   log at warn level instead of info (e.g. for unexpected rollbacks).
+ * @returns {void}
  */
-const logDbTransactionEvent = (action, txId, extraMeta = {}) => {
-  logInfo(`Transaction ${action}`, null, {
-    ...createSystemMeta(),
+const logDbTransactionEvent = (action, txId, meta = {}) => {
+  const { warn: isWarn, ...restMeta } = meta;
+  
+  const logMeta = withDbContext({
+    context: 'transaction',
     txId,
     action,
-    context: 'transaction',
-    ...extraMeta,
+    ...restMeta,
   });
+  
+  // Escalate to warn for unexpected rollbacks or caller-flagged events.
+  if (isWarn) {
+    logWarn(`Transaction ${action}`, null, logMeta);
+    return;
+  }
+  
+  logSystemInfo(`Transaction ${action}`, logMeta);
 };
 
-/**
- * Logs current pool statistics as a system event.
- *
- * @param {object} metrics - The pool metrics (e.g., total, idle, waiting).
- */
-const logDbPoolHealth = (metrics) => {
-  logSystemInfo('Pool health metrics', {
-    context: 'pool-monitor',
-    ...metrics,
-  });
-};
+// -----------------------------------------------------------------------------
+// Specialized error loggers
+// -----------------------------------------------------------------------------
 
 /**
- * Logs pool health monitoring failure.
+ * Logs an error from a paginated query (data + count query pair).
  *
- * @param {Error} error - The error encountered during monitoring.
+ * @param {Error}           error      - The caught error.
+ * @param {string}          dataQuery  - The data fetch query string.
+ * @param {string}          countQuery - The count query string.
+ * @param {unknown[]}       params     - Shared query parameters (will be masked).
+ * @param {object}          [meta={}]  - Additional context.
+ * @returns {void}
  */
-const logDbPoolHealthError = (error) => {
-  logSystemException(error, 'Error during pool monitoring', {
-    context: 'pool-monitor',
-    severity: 'warning',
-  });
-};
-
-/**
- * Logs a paginated query failure using structured metadata.
- *
- * @param {Error} error - The thrown error object.
- * @param {string} dataQuery - The main SQL query.
- * @param {string} countQuery - The COUNT(*) SQL query.
- * @param {Array|Object} params - Query parameters.
- * @param {Object} [extraMeta={}] - Optional metadata (e.g., page, limit, traceId).
- */
-const logPaginatedQueryError = (
-  error,
-  dataQuery,
-  countQuery,
-  params,
-  extraMeta = {}
-) => {
-  const logMeta = buildQueryErrorMeta(
-    { dataQuery, countQuery },
-    params,
+const logPaginatedQueryError = (error, dataQuery, countQuery, params, meta = {}) => {
+  logError(
     error,
-    {
-      context: 'paginate-results',
-      ...extraMeta,
-    }
+    null,
+    withDbContext(
+      buildQueryErrorMeta(
+        { dataQuery, countQuery },
+        params,
+        error,
+        { context: 'paginate', ...meta }
+      )
+    )
   );
-
-  logError('Paginated query execution failed', null, logMeta);
 };
 
 /**
- * Logs a database row lock failure using structured metadata.
+ * Logs an error from a single-row lock operation (SELECT ... FOR UPDATE/SHARE).
  *
- * @param {Error} error - The caught error object.
- * @param {string} query - The SQL locking query attempted.
- * @param {Array|Object} params - Query parameters (masked internally).
- * @param {string} table - The table involved (masked if needed).
- * @param {string} lockMode - The lock mode used (e.g., 'FOR UPDATE').
- * @param {Object} [extraMeta={}] - Optional metadata (e.g., traceId, txId, context override).
+ * @param {Error}    error    - The caught error.
+ * @param {string}   query    - The lock query string.
+ * @param {unknown[]} params  - Query parameters (will be masked).
+ * @param {string}   table    - Table being locked.
+ * @param {string}   lockMode - Lock mode (e.g. `'FOR UPDATE'`, `'FOR SHARE'`).
+ * @param {object}   [meta={}] - Additional context.
+ * @returns {void}
  */
 const logLockRowError = (
   error,
@@ -245,133 +278,96 @@ const logLockRowError = (
   params,
   table,
   lockMode,
-  extraMeta = {}
+  meta = {}
 ) => {
-  const logMeta = buildQueryErrorMeta(query, params, error, {
-    context: 'lock-row',
-    table,
-    lockMode,
-    errorType: error.name,
-    ...extraMeta,
-  });
-
-  logError('Failed to lock row', null, logMeta);
+  logError(
+    error,
+    null,
+    withDbContext(
+      buildQueryErrorMeta(query, params, error, {
+        context: 'lock-row',
+        table,
+        lockMode,
+        ...meta,
+      })
+    )
+  );
 };
 
 /**
- * Logs a failure when attempting to lock multiple rows (e.g., composite key locking).
+ * Logs an error from a multi-row lock operation.
  *
- * @param {Error} error - The caught error.
- * @param {string} query - The generated SQL query.
- * @param {Array|Object} params - Parameters used in the query (masked internally).
- * @param {string} table - The masked table name.
- * @param {Object} [meta={}] - Optional additional metadata.
- * @param {string} [meta.traceId] - Trace identifier for request tracing.
- * @param {string} [meta.txId] - Transaction ID, if applicable.
- * @param {string} [meta.context] - Optional override for logging context.
+ * @param {Error}    error    - The caught error.
+ * @param {string}   query    - The lock query string.
+ * @param {unknown[]} params  - Query parameters (will be masked).
+ * @param {string}   table    - Table being locked.
+ * @param {object}   [meta={}] - Additional context.
+ * @returns {void}
  */
-const logLockRowsError = (error, query, params, table, meta = {}) => {
-  const logMeta = buildQueryErrorMeta(query, params, error, {
-    context: 'lock-rows',
-    table,
-    ...meta,
-  });
-
-  logError(`Error locking rows in table ${table}`, null, logMeta);
+const logLockRowsError = (
+  error,
+  query,
+  params,
+  table,
+  meta = {}
+) => {
+  logError(
+    error,
+    null,
+    withDbContext(
+      buildQueryErrorMeta(query, params, error, {
+        context: 'lock-rows',
+        table,
+        ...meta,
+      })
+    )
+  );
 };
 
 /**
- * Logs a structured error for a failed bulk insert operation.
+ * Logs an error from a bulk INSERT operation.
  *
- * @param {Error} error - The caught error object.
- * @param {string} table - The masked table name where the insert was attempted.
- * @param {string[]} columns - List of columns targeted by the insert.
- * @param {string[]} conflictColumns - Columns used in the ON CONFLICT clause.
- * @param {string[]} updateColumns - Columns targeted by DO UPDATE (if any).
- * @param {Array} flattenedValues - The flattened parameter values for the insert.
- * @param {number} rowCount - Number of rows attempted to insert.
- * @param {Object} [meta={}] - Optional additional metadata (e.g., traceId, txId).
- * @param {string} [meta.traceId] - Request-scoped trace ID.
- * @param {string} [meta.txId] - Transaction ID, if applicable.
- * @param {string} [meta.context] - Optional context override (default is 'bulk-insert').
+ * @param {Error}    error    - The caught error.
+ * @param {string}   table    - Target table name.
+ * @param {unknown[]} params  - Insert parameters (will be masked).
+ * @param {number}   rowCount - Number of rows attempted.
+ * @param {object}   [meta={}] - Additional context.
+ * @returns {void}
  */
 const logBulkInsertError = (
   error,
   table,
-  columns,
-  conflictColumns,
-  updateColumns,
-  flattenedValues,
+  params,
   rowCount,
   meta = {}
 ) => {
-  const logMeta = buildQueryErrorMeta(
-    'INSERT INTO ' + table,
-    flattenedValues,
+  logError(
     error,
-    {
-      context: 'bulk-insert',
-      table,
-      columns,
-      conflictColumns,
-      updateColumns,
-      rowCount,
-      ...meta,
-    }
+    null,
+    withDbContext(
+      buildQueryErrorMeta(`INSERT INTO ${table}`, params, error, {
+        context: 'bulk-insert',
+        table,
+        rowCount,
+        ...meta,
+      })
+    )
   );
-
-  logError('Bulk insert failed', null, logMeta);
 };
 
-/**
- * Logs a failure when fetching a status value from a table.
- *
- * @param {Error} error - The caught error.
- * @param {string} query - The SQL query executed.
- * @param {string} table - The masked table name.
- * @param {string} column - The column being selected.
- * @param {*} whereValue - The value used in the WHERE clause.
- * @param {string} whereKey - The column name used in the WHERE clause.
- * @param {Object} [meta={}] - Optional extra metadata (e.g., traceId, txId).
- */
-const logGetStatusValueError = (
-  error,
-  query,
-  table,
-  column,
-  whereValue,
-  whereKey,
-  meta = {}
-) => {
-  const logMeta = buildQueryErrorMeta(
-    query,
-    { [whereKey]: whereValue },
-    error,
-    {
-      context: 'get-status-value',
-      table,
-      column,
-      where: { [whereKey]: maskSensitiveParams(whereValue) },
-      ...meta,
-    }
-  );
-
-  logError(`Failed to fetch "${column}" from "${table}"`, null, logMeta);
-};
+// -----------------------------------------------------------------------------
+// Exports
+// -----------------------------------------------------------------------------
 
 module.exports = {
   logDbConnect,
-  logDbError,
-  logRetryWarning,
-  logDbQuerySuccess,
+  logDbConnectionError,
+  logDbInfo,
   logDbSlowQuery,
   logDbQueryError,
   logDbTransactionEvent,
-  logDbPoolHealth,
-  logDbPoolHealthError,
   logPaginatedQueryError,
   logLockRowError,
   logLockRowsError,
   logBulkInsertError,
-  logGetStatusValueError,
 };

@@ -1,6 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type {
-  AddressByCustomerLookup,
+import {
+  AddressByCustomerLookupResponse,
   AddressByCustomerLookupState,
 } from '@features/lookup/state/lookupTypes';
 import { fetchCustomerAddressesLookupThunk } from '@features/lookup/state/lookupThunks';
@@ -36,9 +36,10 @@ const addressByCustomerLookupSlice = createSlice({
       })
       .addCase(
         fetchCustomerAddressesLookupThunk.fulfilled,
-        (state, action: PayloadAction<{ data: AddressByCustomerLookup[] }>) => {
+        (state, action: PayloadAction<AddressByCustomerLookupResponse>) => {
           state.loading = false;
-          state.data = action.payload.data;
+          state.error = null;
+          state.data = action.payload.items;
         }
       )
       .addCase(fetchCustomerAddressesLookupThunk.rejected, (state, action) => {

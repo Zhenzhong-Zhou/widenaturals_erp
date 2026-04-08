@@ -1,4 +1,5 @@
-const { sanitizeSortOrder, sanitizeSortBy } = require('../sort-utils');
+const { normalizeSortOrder } = require('../query-normalizers');
+const { sanitizeSortBy } = require('../query/sort-resolver');
 const { SORTABLE_FIELDS } = require('../sort-field-mapping');
 const { cleanObject } = require('../object-utils');
 const { INVENTORY_STATUS } = require('../constants/domain/status-constants');
@@ -25,11 +26,10 @@ const normalizePaginationAndSortParams = (
   const sortByExpression = sortByRaw?.trim()
     ? sanitizeSortBy(sortByRaw, sortMapKey)
     : SORTABLE_FIELDS[sortMapKey].defaultNaturalSort;
-
-  const safeSortClause =
-    sortByExpression.includes(',') || sortByExpression.includes('CASE')
-      ? sortByExpression
-      : `${sortByExpression} ${sanitizeSortOrder(sortOrderRaw)}`;
+  
+  const safeSortClause = sortByExpression.includes(',') || sortByExpression.includes('CASE')
+    ? sortByExpression
+    : `${sortByExpression} ${normalizeSortOrder(sortOrderRaw)}`;
 
   return {
     page: resolvedPage,

@@ -32,10 +32,15 @@ const PERMISSIONS = {
     VIEW: 'view_pricing_types',
     VIEW_PRICING_TYPES_DETAILS: 'view_pricing_type_details',
   },
+  PRICING_GROUPS: {
+    VIEW: 'view_pricing_groups',
+    VIEW_DETAILS: 'view_pricing_group_details',
+    VIEW_SKUS: 'view_pricing_group_skus',
+  },
   PRICING: {
-    VIEW: 'view_prices',
-    EXPORT_DATA: 'export_prices',
-    VIEW_DETAILS: 'view_price_details',
+    VIEW: 'view_pricing',
+    EXPORT_DATA: 'export_pricing',
+    VIEW_DETAILS: 'view_pricing_details',
   },
   COMPLIANCE_RECORDS: {
     VIEW_LIST: 'view_compliance_records',
@@ -54,12 +59,26 @@ const PERMISSIONS = {
   },
   BATCH_REGISTRY: {
     VIEW_LIST: 'view_batch_registry',
+    UPDATE_NOTE: 'update_batch_registry_note',
+    VIEW_DETAILS: 'view_batch_detailed_details',
   },
-  PRODUCT_BATCH: {
+  PRODUCT_BATCHES: {
     VIEW_LIST: 'view_product_batches',
+    CREATE: 'create_product_batches',
+    EDIT: 'edit_product_material_batches',
+    UPDATE_STATUS: 'update_product_batch_status',
+    RECEIVE: 'receive_product_batch',
+    RELEASE: 'release_product_batch',
+    VIEW_DETAILS: 'view_product_batch_details',
   },
-  PACKAGING_BATCH: {
+  PACKAGING_MATERIAL_BATCHES: {
     VIEW_LIST: 'view_packaging_material_batches',
+    CREATE: 'create_packaging_material_batches',
+    EDIT: 'edit_packaging_material_batches',
+    UPDATE_STATUS: 'update_packaging_material_batch_status',
+    RECEIVE: 'receive_packaging_material_batch',
+    RELEASE: 'release_packaging_material_batch',
+    VIEW_DETAILS: 'view_packaging_material_batch_details',
   },
   WAREHOUSE_INVENTORY: {
     CREATE: 'create_warehouse_inventory',

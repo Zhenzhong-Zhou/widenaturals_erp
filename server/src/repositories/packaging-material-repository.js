@@ -1,79 +1,68 @@
+/**
+ * @file packaging-material-repository.js
+ * @description Database access layer for packaging material records.
+ *
+ * Exports:
+ *  - getPackagingMaterialsForSalesOrderLookup — offset-paginated lookup for sales order selection
+ */
+
+'use strict';
+
+const { paginateQueryByOffset } = require('../utils/db/pagination/pagination-helpers');
+const { handleDbError } = require('../utils/errors/error-handlers');
+const { logDbQueryError } = require('../utils/db-logger');
+const { buildPackagingMaterialsFilter } = require('../utils/sql/build-packaging-material-filter');
 const {
-  buildPackagingMaterialsFilter,
-} = require('../utils/sql/build-packaging-material-filters');
-const { paginateQueryByOffset } = require('../database/db');
-const { logSystemException, logSystemInfo } = require('../utils/system-logger');
-const AppError = require('../utils/AppError');
+  PM_TABLE,
+  PM_SORT_WHITELIST,
+  buildPmLookupQuery,
+} = require('./queries/packaging-material-queries');
+
+// ─── Lookup ───────────────────────────────────────────────────────────────────
 
 /**
- * Retrieves a paginated list of packaging materials that are visible for sales orders.
+ * Fetches paginated packaging material records for sales order lookup use.
  *
- * This is used in dropdown/autocomplete components in the Sales Order form
- * to let users choose packaging options (e.g., gift boxes, paper bags).
+ * @param {Object} params
+ * @param {Object} [params.filters={}] - Optional filters (e.g. visibleOnly, statusId).
+ * @param {number} [params.limit=50]   - Max records per page.
+ * @param {number} [params.offset=0]   - Offset for pagination.
  *
- * Supports keyword search on `name`, `color`, `size`, and `material_composition`.
- *
- * @param {Object} options - Lookup options
- * @param {number} [options.limit=50] - Max number of results
- * @param {number} [options.offset=0] - Offset for pagination
- * @param {Object} [options.filters={}] - Optional filters (e.g., keyword)
- * @returns {Promise<{data: [], pagination: {offset: number, limit: number, totalRecords: number, hasMore: boolean}}>}
- *
- * @throws {AppError} If query fails
+ * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
+ * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getPackagingMaterialsForSalesOrderLookup = async ({
-  limit = 50,
-  offset = 0,
-  filters = {},
-}) => {
-  const tableName = 'packaging_materials pm';
-
+                                                          filters = {},
+                                                          limit   = 50,
+                                                          offset  = 0,
+                                                        }) => {
+  const context = 'packaging-material-repository/getPackagingMaterialsForSalesOrderLookup';
+  
   const { whereClause, params } = buildPackagingMaterialsFilter(filters);
-  const queryText = `
-    SELECT
-      pm.id,
-      pm.name,
-      pm.size,
-      pm.color,
-      pm.unit,
-      pm.status_id,
-      pm.is_archived
-    FROM ${tableName}
-    WHERE ${whereClause}
-  `;
-
+  const queryText = buildPmLookupQuery(whereClause);
+  
   try {
-    const result = await paginateQueryByOffset({
-      tableName,
+    return await paginateQueryByOffset({
+      tableName:    PM_TABLE,
+      joins:        [],
       whereClause,
       queryText,
       params,
       offset,
       limit,
-      sortBy: 'pm.name',
-      sortOrder: 'ASC',
-      additionalSort: 'pm.name ASC',
+      sortBy:       'pm.name',
+      sortOrder:    'ASC',
+      whitelistSet: PM_SORT_WHITELIST,
     });
-
-    logSystemInfo('Fetched packaging materials lookup successfully', {
-      context:
-        'packaging-materials-repository/getPackagingMaterialsForSalesOrderLookup',
-      totalFetched: result.data?.length ?? 0,
-      offset,
-      limit,
-      filters,
-    });
-
-    return result;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch packaging materials lookup', {
-      context:
-        'packaging-materials-repository/getPackagingMaterialsForSalesOrderLookup',
-      offset,
-      limit,
-      filters,
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch packaging materials lookup.',
+      meta:    { filters, limit, offset },
+      logFn:   (err) => logDbQueryError(
+        queryText, params, err, { context, filters, limit, offset }
+      ),
     });
-    throw AppError.databaseError('Failed to fetch packaging materials.');
   }
 };
 

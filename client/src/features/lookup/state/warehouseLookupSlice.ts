@@ -31,7 +31,7 @@ const warehouseLookupSlice = createSlice({
       .addCase(
         fetchWarehouseLookupThunk.fulfilled,
         (state, action: PayloadAction<GetWarehouseLookupResponse>) => {
-          state.data = action.payload.data;
+          state.data = action.payload.items;
           state.loading = false;
           state.error = null;
         }

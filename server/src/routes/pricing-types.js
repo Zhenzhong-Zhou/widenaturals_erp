@@ -1,47 +1,62 @@
 /**
- * @file price_types.js
- * @description Routes related to user operations.
+ * @file pricing-type-routes.js
+ * @description Routes for pricing type records.
+ *
+ * Endpoints:
+ *  GET /pricing-types              — paginated list with filters and sorting
+ *  GET /pricing-types/:pricingTypeId — single pricing type detail by ID
  */
 
-const express = require('express');
-const { authorize } = require('../middlewares/authorize');
+'use strict';
+
+const express                            = require('express');
+const { authorize }                      = require('../middlewares/authorize');
+const validate                           = require('../middlewares/validate');
+const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
 const {
-  getAllPriceTypesController,
-  getPricingTypeMetadataController,
-  getPricingTypesForDropdownController,
+  getPaginatedPricingTypesController,
+  getPricingTypeByIdController,
 } = require('../controllers/pricing-type-controller');
+const {
+  pricingTypeQuerySchema,
+  pricingTypeParamsSchema,
+} = require('../validators/pricing-type-validators');
 
 const router = express.Router();
 
 /**
- * @route GET /pricing-types/
- * @description Fetch all pricing types available in the system.
- * @access Protected
- * @returns {Object} 200 - A list of pricing types with basic metadata.
- * @throws {500} If an internal server error occurs while fetching data.
+ * @route GET /pricing-types
+ * @description Paginated pricing type records with optional filters and sorting.
+ * Filters: statusId, search, createdAfter, createdBefore, createdBy, updatedBy.
+ * Sorting: sortBy, sortOrder (uses pricingTypeSortMap).
+ * @access protected
+ * @permission view_pricing
  */
 router.get(
   '/',
   authorize([PERMISSIONS.PRICING_TYPES.VIEW]),
-  getAllPriceTypesController
+  validate(pricingTypeQuerySchema, 'query'),
+  createQueryNormalizationMiddleware(
+    'pricingTypeSortMap',
+    [],
+    [],
+    pricingTypeQuerySchema
+  ),
+  getPaginatedPricingTypesController
 );
 
 /**
- * @route GET /pricing-types/metadata/:id
- * @description Fetch pricing type metadata by ID.
- * @access Protected
- * @param {string} req.params.id - UUID of the pricing type.
- * @returns {Object} 200 - JSON object containing pricing type metadata.
- * @throws {404} If pricing type is not found.
- * @throws {500} If an internal server error occurs.
+ * @route GET /pricing-types/:pricingTypeId
+ * @description Single pricing type detail by ID.
+ * @access protected
+ * @permission view_pricing
  */
 router.get(
-  '/metadata/:id',
+  '/:pricingTypeId',
   authorize([PERMISSIONS.PRICING_TYPES.VIEW_PRICING_TYPES_DETAILS]),
-  getPricingTypeMetadataController
+  validate(pricingTypeParamsSchema, 'params'),
+  getPricingTypeByIdController
 );
-
-router.get('/dropdown', getPricingTypesForDropdownController);
 
 module.exports = router;

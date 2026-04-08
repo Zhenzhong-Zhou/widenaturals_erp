@@ -1,11 +1,11 @@
-const { getUniqueScalarValue } = require('../database/db');
+const { getUniqueScalarValue } = require('../utils/db/record-utils');
 
 /**
  * Retrieves the payment status ID by its code.
  *
  * @param {string} code - The payment status code (e.g., 'UNPAID').
- * @param {object} [client=null] - Optional database client/transaction.
- * @returns {Promise<UUID|null>} - The status ID or null if not found.
+ * @param {PoolClient} [client=null] - Optional database client/transaction.
+ * @returns {Promise<string|null>} - The status ID or null if not found.
  * @throws {AppError} - If the database query fails.
  */
 const getPaymentStatusIdByCode = async (code, client = null) => {

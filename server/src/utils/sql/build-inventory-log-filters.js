@@ -8,7 +8,7 @@ const {
   normalizeDateRangeFilters,
   applyDateRangeConditions,
 } = require('./date-range-utils');
-const { logSystemException } = require('../system-logger');
+const { logSystemException } = require('../logging/system-logger');
 const AppError = require('../AppError');
 const { toPgArray } = require('../query/query-utils');
 

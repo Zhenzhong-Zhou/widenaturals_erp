@@ -21,7 +21,7 @@ export interface OrderItemInput {
   quantity_ordered: number;
 
   /** The UUID of the price record associated with this item */
-  price_id: string;
+  pricing_group_id: string;
 
   /** The price per unit of the SKU */
   price: number;
@@ -225,8 +225,15 @@ export type OrderListSortField =
   | 'orderType'
   | 'statusName'
   | 'statusDate'
+  | 'deliveryMethod'
+  | 'customerFirst'
+  | 'customerLast'
+  | 'paymentMethod'
+  | 'paymentStatus'
   | 'createdAt'
   | 'updatedAt'
+  | 'createdBy'
+  | 'updatedBy'
   | 'defaultNaturalSort';
 
 /**

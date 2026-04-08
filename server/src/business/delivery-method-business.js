@@ -1,61 +1,64 @@
+/**
+ * @file delivery-method-business.js
+ * @description Domain business logic for delivery method access control
+ * evaluation, visibility rule application, and lookup row enrichment.
+ */
+
+'use strict';
+
 const {
   resolveUserPermissionContext,
-} = require('../services/role-permission-service');
+} = require('../services/permission-service');
 const {
   PERMISSIONS,
 } = require('../utils/constants/domain/delivery-method-constants');
-const { logSystemException } = require('../utils/system-logger');
+const { logSystemException } = require('../utils/logging/system-logger');
 const AppError = require('../utils/AppError');
 
+const CONTEXT = 'delivery-method-business';
+
 /**
- * Determines whether the user can access hidden or extended delivery method lookup values
- * based on their assigned permissions.
+ * Resolves which delivery method lookup visibility capabilities the
+ * requesting user holds.
  *
- * @param {Object} user - Authenticated user object with a permission set
- * @returns {Promise<{ canViewAllStatuses: boolean }>} Promise resolving to access flags for delivery method visibility
+ * @param {AuthUser} user - Authenticated user making the request.
+ * @returns {Promise<DeliveryMethodLookupAcl>}
+ * @throws {AppError} businessError if permission resolution fails.
  */
 const evaluateDeliveryMethodLookupAccessControl = async (user) => {
+  const context = `${CONTEXT}/evaluateDeliveryMethodLookupAccessControl`;
+  
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-
-    const canViewAllStatuses =
-      isRoot ||
-      permissions.includes(PERMISSIONS.VIEW_ALL_DELIVERY_METHOD_STATUSES);
-
-    return { canViewAllStatuses };
+    
+    return {
+      canViewAllStatuses:
+        isRoot ||
+        permissions.includes(PERMISSIONS.VIEW_ALL_DELIVERY_METHOD_STATUSES),
+    };
   } catch (err) {
     logSystemException(
       err,
       'Failed to evaluate delivery method lookup access control',
-      {
-        context:
-          'delivery-method-business/evaluateDeliveryMethodLookupAccessControl',
-        userId: user?.id,
-      }
+      { context, userId: user?.id }
     );
-
+    
     throw AppError.businessError(
-      'Unable to evaluate user access control for delivery method lookup',
-      {
-        details: err.message,
-        stage: 'evaluate-delivery-method-lookup-access',
-      }
+      'Unable to evaluate user access control for delivery method lookup.'
     );
   }
 };
 
 /**
- * Enforces visibility restrictions on delivery method lookup filters
- * based on user access permissions.
+ * Applies ACL-driven visibility rules to a delivery method lookup filter object.
  *
- * - Removes the `statusId` filter if the user lacks permission to view all statuses.
- * - Injects `_activeStatusId` internally to enforce active-only filtering.
- * - Does not enforce validity windows (delivery methods do not have `valid_from` / `valid_to`).
+ * Restricted users are pinned to active-only results via `_activeStatusId`.
+ * The caller-supplied `statusId` is removed to prevent override.
  *
- * @param {Object} filters - Original filter object (e.g., `{ keyword, statusId, isPickupLocation }`)
- * @param {Object} userAccess - Access flags (e.g., `canViewAllStatuses`)
- * @param {string|number} [activeStatusId] - Default status ID to enforce (e.g., "active")
- * @returns {Object} Updated filters with access-based restrictions applied
+ * @param {object} filters - Base filter object from the request.
+ * @param {DeliveryMethodLookupAcl} userAccess - Resolved ACL from `evaluateDeliveryMethodLookupAccessControl`.
+ * @param {string} activeStatusId - UUID of the active status record.
+ * @returns {object} Adjusted copy of `filters` with visibility rules applied.
  */
 const enforceDeliveryMethodLookupVisibilityRules = (
   filters,
@@ -63,24 +66,24 @@ const enforceDeliveryMethodLookupVisibilityRules = (
   activeStatusId
 ) => {
   const adjusted = { ...filters };
-
-  // Enforce active-only restriction if user can't view all statuses
+  
   if (!userAccess.canViewAllStatuses) {
+    // Remove caller-supplied statusId — active status is pinned via _activeStatusId.
     delete adjusted.statusId;
     if (activeStatusId) {
       adjusted._activeStatusId = activeStatusId;
     }
   }
-
+  
   return adjusted;
 };
 
 /**
- * Enriches a delivery method row with computed flags such as isActive and isPickupLocation.
+ * Enriches a delivery method lookup row with derived boolean flags.
  *
- * @param {Object} row - Raw delivery method row with `status_id` and `is_pickup_location`.
- * @param {string|number} activeStatusId - The status ID representing "active".
- * @returns {Object} Enriched row with `isActive` and `isPickupLocation` booleans.
+ * @param {object} row - Raw delivery method row from the repository.
+ * @param {string} activeStatusId - UUID of the active status record.
+ * @returns {object & { isActive: boolean, isPickupLocation: boolean }}
  */
 const enrichDeliveryMethodRow = (row, activeStatusId) => {
   return {

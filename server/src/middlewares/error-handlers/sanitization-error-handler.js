@@ -1,42 +1,41 @@
 /**
  * @file sanitization-error-handler.js
- * @description Middleware to handle sanitization errors.
+ * @description Express error middleware that intercepts sanitization errors,
+ * logs them, and returns a consistent JSON response.
+ * Non-sanitization errors are forwarded unchanged.
+ *
+ * Sanitization errors are normalized to AppError at the source in sanitize.js.
+ * This handler only matches, logs, and responds — no normalization needed.
  */
 
-const normalizeError = require('../../utils/normalize-error');
-const { logError } = require('../../utils/logger-helper');
+'use strict';
+
+const AppError        = require('../../utils/AppError');
+const { logError }    = require('../../utils/logging/logger-helper');
+const { ERROR_TYPES } = require('../../utils/constants/error-constants');
+
+const CONTEXT = 'middleware/sanitization-error-handler';
 
 /**
- * Middleware to handle sanitization errors.
+ * Express error-handling middleware for sanitization errors.
  *
- * @param {Error} err - The error object.
- * @param {object} req - The Express request object.
- * @param {object} res - The Express response object.
- * @param {function} next - The Express next middleware function.
+ * Matches AppError instances with type SANITIZATION. All other errors are
+ * forwarded to the next handler via next(err) unchanged — never swallowed.
+ *
+ * @param {Error | AppError}               err  - Incoming error.
+ * @param {import('express').Request}       req  - Express request object.
+ * @param {import('express').Response}      res  - Express response object.
+ * @param {import('express').NextFunction}  next - Forwards unmatched errors.
+ * @returns {void}
  */
 const sanitizationErrorHandler = (err, req, res, next) => {
-  const isSanitizationError =
-    err.name === 'SanitizationError' || err.type === 'SanitizationError';
-
-  if (!isSanitizationError) return next(err);
-
-  // Normalize the error for consistent structure
-  const normalizedError = normalizeError(err, {
-    type: 'SanitizationError',
-    code: 'SANITIZATION_ERROR',
-    status: 422,
-    isExpected: true,
-    logLevel: 'error',
-    details: err.details || null,
-  });
-
-  // Log the error with structured metadata
-  logError(normalizedError, req, {
-    context: 'sanitization-error-handler',
-  });
-
-  // Return structured JSON response
-  return res.status(normalizedError.status).json(normalizedError.toJSON());
+  if (!(err instanceof AppError) || err.type !== ERROR_TYPES.SANITIZATION) {
+    return next(err);
+  }
+  
+  logError(err, req, { context: CONTEXT });
+  
+  res.status(err.status).json(err.toJSON());
 };
 
 module.exports = sanitizationErrorHandler;

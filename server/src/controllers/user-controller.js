@@ -1,139 +1,78 @@
-const wrapAsync = require('../utils/wrap-async');
-const { logInfo } = require('../utils/logger-helper');
+/**
+ * @file user-controller.js
+ * @module controllers/user-controller
+ *
+ * @description
+ * Controllers for the User resource.
+ *
+ * Routes:
+ *   POST /api/v1/users                        → createUserController
+ *   GET  /api/v1/users                        → getPaginatedUsersController
+ *   GET  /api/v1/users/:userId/profile        → getUserProfileController
+ *   GET  /api/v1/users/me/profile             → getUserProfileController
+ *   GET  /api/v1/users/permissions            → getUserPermissionsController
+ *
+ * All handlers are wrapped with `wrapAsyncHandler` — errors propagate
+ * automatically to the global error handler without try/catch boilerplate.
+ *
+ * Logging:
+ *   Transport-level logs (statusCode, durationMs, userId, traceId, pagination,
+ *   sorting, filters) are emitted automatically by the global request-logger
+ *   middleware via res.on('finish'). No controller-level logging needed.
+ *
+ * Validation:
+ *   All input validation (body shape, viewMode, role) is handled by Joi
+ *   middleware upstream. Controllers never validate or coerce input.
+ */
+
+'use strict';
+
+const { wrapAsyncHandler } = require('../middlewares/async-handler');
 const {
   createUserService,
   fetchPaginatedUsersService,
   fetchUserProfileService,
 } = require('../services/user-service');
-const AppError = require('../utils/AppError');
-const { fetchPermissions } = require('../services/role-permission-service');
+const { fetchPermissions } = require('../services/permission-service');
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/v1/users
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Create User Controller
+ * Creates a new user account.
  *
- * Handles HTTP request lifecycle for user creation.
- *
- * Responsibilities:
- * - Extract and normalize request input
- * - Assert authenticated actor presence
- * - Delegate all business logic to the service layer
- * - Shape and return HTTP response
- * - Emit request-level system logs
- *
- * MUST NOT:
- * - Perform authorization or ACL checks
- * - Interpret role semantics or hierarchy
- * - Perform database, transactional, or hashing logic
- * - Enforce business invariants
- *
- * All authorization, validation beyond shape,
- * and persistence logic are handled in the service layer.
+ * Requires: auth middleware, Joi body validation, CREATE_USER permission.
  */
-const createUserController = wrapAsync(async (req, res) => {
-  const context = 'user-controller/createUser';
-
+const createUserController = wrapAsyncHandler(async (req, res) => {
   const actor = req.auth.user;
-
-  const input = {
-    email: req.body.email,
-    password: req.body.password,
-    roleId: req.body.roleId,
-    firstname: req.body.firstname,
-    lastname: req.body.lastname,
-    phoneNumber: req.body.phoneNumber,
-    jobTitle: req.body.jobTitle,
-    note: req.body.note,
-  };
-
-  const result = await createUserService(input, actor);
-
-  logInfo('User created successfully', req, {
-    context,
-    userId: result.id,
-    createdBy: actor.id,
-  });
-
+  
+  const result = await createUserService(req.body, actor);
+  
   res.status(201).json({
     success: true,
-    message: 'User created successfully',
-    data: result,
+    message: 'User created successfully.',
+    data:    result,
+    traceId: req.traceId,
   });
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/v1/users
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Controller: Fetch paginated users (list or card view).
+ * Retrieves paginated user records with optional filters, sorting, and view mode.
  *
- * Responsibilities:
- * - Extract normalized and validated query parameters from middleware
- * - Enforce UI-level view-mode permissions (list vs card)
- * - Log request metadata and execution timing
- * - Delegate pagination, visibility, and transformation to the service layer
- * - Return a standardized paginated API response with trace metadata
- *
- * Notes:
- * - Route-level authorization ensures module access (e.g. VIEW_USERS)
- * - View-mode permissions (VIEW_LIST / VIEW_CARD) are enforced here
- * - Visibility rules (system/root users) are enforced in service/business layers
- * - Sorting columns are assumed SQL-safe (resolved upstream)
- * - `viewMode` affects response shape only; it does not affect data visibility
+ * viewMode ('list' | 'card') is validated upstream by Joi.
+ * Reads from req.normalizedQuery — populated by createQueryNormalizationMiddleware.
+ * Requires: auth middleware, query normalizer, VIEW_USERS permission.
  */
-const getPaginatedUsersController = wrapAsync(async (req, res) => {
-  const context = 'user-controller/getPaginatedUsersController';
-  const startTime = Date.now();
-
-  // -------------------------------
-  // 1. Extract normalized query params
-  // -------------------------------
-  // Parameters are normalized and schema-validated by upstream middleware
-  const { page, limit, sortBy, sortOrder, filters, options } =
-    req.normalizedQuery;
-
-  // -------------------------------
-  // 1.1 View-mode permission enforcement
-  // -------------------------------
-  const permissions = req.permissions; // populated by authorize middleware (route-level)
-
-  if (!permissions) {
-    throw AppError.authorizationError('Permission context missing');
-  }
-
-  // UI-only view hint; defaults to list presentation
+const getPaginatedUsersController = wrapAsyncHandler(async (req, res) => {
+  const { page, limit, sortBy, sortOrder, filters, options } = req.normalizedQuery;
+  const user     = req.auth.user;
   const viewMode = options?.viewMode ?? 'list';
-
-  // Defensive validation at controller boundary:
-  // viewMode is UI-driven and validated separately from query schema
-  const allowedViewModes = new Set(['list', 'card']);
-  if (!allowedViewModes.has(viewMode)) {
-    throw AppError.validationError('Invalid viewMode');
-  }
-
-  // Authenticated requester (populated by auth middleware)
-  const user = req.auth.user;
-
-  // Trace identifier for correlating logs across controller,
-  // service, and repository layers for this request lifecycle
-  const traceId = `user-list-${Date.now().toString(36)}`;
-
-  // -------------------------------
-  // 2. Incoming request log
-  // -------------------------------
-  // Log request entry with normalized parameters for auditability
-  // and performance diagnostics (no business logic applied yet)
-  logInfo('Incoming request: fetch paginated users', req, {
-    context,
-    traceId,
-    userId: user?.id,
-    pagination: { page, limit },
-    sorting: { sortBy, sortOrder },
-    viewMode,
-    filters,
-  });
-
-  // -------------------------------
-  // 3. Execute service layer
-  // -------------------------------
-  // Sorting fields are resolved and SQL-safe via upstream normalization.
-  // Visibility rules and data shaping are handled by the service layer.
+  
   const { data, pagination } = await fetchPaginatedUsersService({
     filters,
     page,
@@ -143,129 +82,72 @@ const getPaginatedUsersController = wrapAsync(async (req, res) => {
     viewMode,
     user,
   });
-
-  const elapsedMs = Date.now() - startTime;
-
-  // -------------------------------
-  // 4. Completion log
-  // -------------------------------
-  // Log completion with execution metrics for observability
-  logInfo('Completed fetch paginated users', req, {
-    context,
-    traceId,
-    pagination,
-    sort: { sortBy, sortOrder },
-    viewMode,
-    count: data.length,
-    elapsedMs,
-  });
-
-  // -------------------------------
-  // 5. Send response
-  // -------------------------------
+  
   res.status(200).json({
-    success: true,
-    message: 'Users retrieved successfully.',
+    success:   true,
+    message:   'Users retrieved successfully.',
     data,
     pagination,
-    traceId,
+    traceId:   req.traceId,
   });
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/v1/users/:userId/profile
+// GET /api/v1/users/me/profile
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Controller: Fetch User Profile
+ * Retrieves the profile for a specific user or the authenticated user.
  *
- * Handles:
- *   GET /users/me/profile
- *   GET /users/:userId/profile
+ * /users/me/profile    → resolves to req.auth.user.id
+ * /users/:userId/profile → resolves to req.params.userId
  *
- * Returns a comprehensive user profile payload containing:
- * - Core identity (email, full name)
- * - Contact information (phone, job title)
- * - Status information
- * - Role metadata (permission-aware)
- * - Avatar (public)
- * - Audit metadata
- *
- * All access control, slicing, and data shaping is handled inside
- * `fetchUserProfileService` to keep the controller thin and consistent.
- *
- * This controller is responsible only for:
- *  1. Resolving the target user ID (self vs explicit user)
- *  2. Logging request metadata
- *  3. Delegating work to the service layer
- *  4. Returning the final transformed response
+ * Requires: auth middleware, VIEW_USER_PROFILE permission.
  */
-const getUserProfileController = wrapAsync(async (req, res) => {
-  const context = 'user-controller/getUserProfileController';
-
-  // Resolve target user ID:
-  // - /users/me/profile        → req.auth.user.id
-  // - /users/:userId/profile   → req.params.userId
-  const targetUserId = req.params.userId ?? req.auth.user.id;
-
-  // Authenticated requester context (set by verifyToken + verifySession)
-  const requester = req.auth.user;
-
-  // Unique trace ID for request correlation
-  const traceId = `user-profile-${Date.now().toString(36)}`;
-
-  // -----------------------------
-  // 1. Incoming request log
-  // -----------------------------
-  logInfo('Incoming request: fetch user profile', req, {
-    context,
-    traceId,
-    targetUserId,
-    requesterId: requester?.id,
-    isSelf: requester?.id === targetUserId,
-  });
-
-  // -----------------------------
-  // 2. Execute service layer
-  // -----------------------------
-  const userProfile = await fetchUserProfileService(targetUserId, requester);
-
-  // -----------------------------
-  // 3. Send response
-  // -----------------------------
+const getUserProfileController = wrapAsyncHandler(async (req, res) => {
+  const requester    = req.auth.user;
+  const targetUserId = req.params.userId ?? requester.id;
+  
+  const data = await fetchUserProfileService(targetUserId, requester);
+  
   res.status(200).json({
     success: true,
     message: 'User profile retrieved successfully.',
-    userId: targetUserId,
-    data: userProfile,
-    traceId,
+    data,
+    traceId: req.traceId,
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/v1/users/permissions
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Controller to get permissions for the authenticated user.
+ * Retrieves permissions for the authenticated user's role.
  *
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- * @param {Function} next - Express next middleware function
- * @throws {AppError} - Throws if validation fails or if there's an error in fetching permissions.
+ * Requires: auth middleware, VIEW_PERMISSIONS permission.
  */
-const getPermissions = wrapAsync(async (req, res, next) => {
+const getUserPermissionsController = wrapAsyncHandler(async (req, res) => {
   const { role } = req.auth.user;
-
-  if (!role) {
-    return next(AppError.notFoundError('Role ID is required'));
-  }
-
-  // Fetch permissions from the service
-  const rolePermissions = await fetchPermissions(role);
-
+  
+  const data = await fetchPermissions(role);
+  
   res.status(200).json({
     success: true,
-    message: 'Permissions retrieved successfully',
-    data: rolePermissions,
+    message: 'Permissions retrieved successfully.',
+    data,
+    traceId: req.traceId,
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Exports
+// ─────────────────────────────────────────────────────────────────────────────
 
 module.exports = {
   createUserController,
   getPaginatedUsersController,
   getUserProfileController,
-  getPermissions,
+  getUserPermissionsController,
 };

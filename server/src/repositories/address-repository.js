@@ -1,438 +1,348 @@
-const { validateBulkInsertRows } = require('../database/db-utils');
+/**
+ * @file address-repository.js
+ * @description Database access layer for address records.
+ *
+ * Follows the established repo pattern:
+ *  - Query constants imported from address-queries.js
+ *  - All errors normalized through handleDbError before bubbling up
+ *  - No direct logging — handleDbError delegates to the caller-supplied logFn;
+ *    globalErrorHandler logs once at the response layer
+ *
+ * Exports:
+ *  - insertAddressRecords        — bulk upsert with conflict resolution
+ *  - getEnrichedAddressesByIds   — bulk fetch with full audit/customer metadata
+ *  - getPaginatedAddresses       — paginated list with filtering and sorting
+ *  - getCustomerAddressLookupById — lightweight dropdown lookup by customer
+ *  - hasUnassignedAddresses      — existence check for orphan addresses
+ *  - hasAssignedAddresses        — existence check for customer-owned addresses
+ *  - getAddressById              — partial fetch (id + customer_id) for ownership checks
+ *  - assignCustomerToAddress     — assigns customer_id to an orphan address
+ */
+
+'use strict';
+
+const { validateBulkInsertRows } = require('../utils/validation/bulk-insert-row-validator');
+const { bulkInsert, updateById } = require('../utils/db/write-utils');
 const {
-  bulkInsert,
   query,
-  paginateQuery,
-  checkRecordExists,
-  getFieldsById,
-  updateById,
 } = require('../database/db');
-const { logSystemException, logSystemInfo } = require('../utils/system-logger');
-const AppError = require('../utils/AppError');
-const { buildAddressFilter } = require('../utils/sql/build-address-filters');
+const { checkRecordExists, getFieldsById, } = require('../utils/db/record-utils');
+const { buildAddressFilter } = require('../utils/sql/build-address-filter');
+const { paginateQuery } = require('../utils/db/pagination/pagination-helpers');
+const { SORTABLE_FIELDS } = require('../utils/sort-field-mapping');
+const { resolveSort } = require('../utils/query/sort-resolver');
+const { handleDbError } = require('../utils/errors/error-handlers');
+const {
+  logDbQueryError,
+  logBulkInsertError,
+} = require('../utils/db-logger');
+const {
+  ADDRESS_INSERT_COLUMNS,
+  ADDRESS_CONFLICT_COLUMNS,
+  ADDRESS_UPDATE_STRATEGIES,
+  ADDRESS_SORT_WHITELIST,
+  ADDRESS_TABLE_NAME,
+  ADDRESS_BASE_JOINS,
+  ADDRESS_ENRICHED_QUERY,
+  buildAddressBaseQuery,
+  buildAddressLookupQuery,
+} = require('./queries/address-queries');
+
+// ─── Insert / Upsert ──────────────────────────────────────────────────────────
 
 /**
  * Bulk inserts address records with conflict handling.
  *
- * - Transforms and inserts validated address data into the database.
- * - On conflict (matching `address_hash` or another defined conflict key), updates defined fields.
- * - Primarily used for insert operations, with conflict resolution as fallback.
+ * On conflict matching `customer_id` + `address_hash`, overwrites all
+ * mutable fields. Primarily used for insert with upsert fallback.
  *
- * @param {Array<Object>} addresses - Array of validated address objects.
- * @param {Object} client - Optional DB client for transactional context.
- * @returns {Promise<Array<Object>>} - Array of inserted or updated address records.
- * @throws {AppError} - Throws on validation or database error.
+ * `updated_at` and `updated_by` are set to null at insert time
+ * and populated by subsequent update operations.
+ *
+ * @param {Array<Object>} addresses - Validated address objects enriched with `address_hash` and `created_by`.
+ * @param {Object}        client    - DB client for transactional context.
+ *
+ * @returns {Promise<Array<Object>>} Inserted or upserted address records.
+ * @throws  {AppError}              Normalized database error if the insert fails.
  */
 const insertAddressRecords = async (addresses, client) => {
-  const columns = [
-    'customer_id',
-    'full_name',
-    'phone',
-    'email',
-    'label',
-    'address_line1',
-    'address_line2',
-    'city',
-    'state',
-    'postal_code',
-    'country',
-    'region',
-    'note',
-    'address_hash',
-    'updated_at',
-    'created_by',
-    'updated_by',
-  ];
-
-  const updateColumns = [
-    'full_name',
-    'phone',
-    'email',
-    'label',
-    'address_line1',
-    'address_line2',
-    'city',
-    'state',
-    'postal_code',
-    'country',
-    'region',
-    'note',
-    'address_hash',
-    'updated_at',
-    'updated_by',
-  ];
-
-  const updateStrategies = Object.fromEntries(
-    updateColumns.map((col) => [col, 'overwrite'])
-  );
-
+  const context = 'address-repository/insertAddressRecords';
+  
   const rows = addresses.map((address) => [
-    address.customer_id || null,
-    address.full_name || null,
-    address.phone || null,
-    address.email || null,
-    address.label || null,
+    address.customer_id   ?? null,
+    address.full_name     ?? null,
+    address.phone         ?? null,
+    address.email         ?? null,
+    address.label         ?? null,
     address.address_line1,
-    address.address_line2 || null,
+    address.address_line2 ?? null,
     address.city,
-    address.state || null,
+    address.state         ?? null,
     address.postal_code,
-    address.country || 'Canada',
-    address.region || null,
-    address.note || null,
-    address.address_hash || null,
-    null, // updated_at at insert time
-    address.created_by || null,
-    null, // updated_by at insert time
+    address.country,        // default applied upstream in service/schema
+    address.region        ?? null,
+    address.note          ?? null,
+    address.address_hash,   // always present — generated by service before this call
+    null,                   // updated_at — null at insert time
+    address.created_by,
+    null,                   // updated_by — null at insert time
   ]);
-
+  
   try {
-    validateBulkInsertRows(rows, columns.length);
-
+    validateBulkInsertRows(rows, ADDRESS_INSERT_COLUMNS.length);
+    
     return await bulkInsert(
       'addresses',
-      columns,
+      ADDRESS_INSERT_COLUMNS,
       rows,
-      ['customer_id', 'address_hash'],
-      updateStrategies,
+      ADDRESS_CONFLICT_COLUMNS,
+      ADDRESS_UPDATE_STRATEGIES,
       client
     );
   } catch (error) {
-    logSystemException(error, 'Bulk Insert Failed', {
-      context: 'address-repository/insertAddressRecords',
-      table: 'addresses',
-      columns,
-      conflictColumns: ['address_hash'],
-      rowCount: rows.length,
-    });
-    throw AppError.databaseError('Bulk insert operation failed', {
-      details: { tableName: 'addresses', error: error.message },
+    throw handleDbError(error, {
+      context,
+      message: 'Bulk insert operation failed.',
+      meta:    { table: 'addresses', rowCount: rows.length },
+      logFn:   (err) => logBulkInsertError(
+        err,
+        'addresses',
+        rows,
+        rows.length,
+        {
+          context,
+          conflictColumns: ADDRESS_CONFLICT_COLUMNS,
+        }
+      ),
     });
   }
 };
 
-/**
- * @typedef {Object} AddressRow
- * @property {string} id
- * @property {string} customer_id
- * @property {string} recipient_name
- * @property {string} phone
- * @property {string} email
- * @property {string} label
- * @property {string} address_line1
- * @property {string|null} address_line2
- * @property {string} city
- * @property {string} state
- * @property {string} postal_code
- * @property {string} country
- * @property {string|null} region
- * @property {string|null} note
- * @property {Date} created_at
- * @property {Date|null} updated_at
- * @property {string|null} created_by_firstname
- * @property {string|null} created_by_lastname
- * @property {string|null} updated_by_firstname
- * @property {string|null} updated_by_lastname
- * @property {string|null} customer_firstname
- * @property {string|null} customer_lastname
- * @property {string|null} customer_email
- * @property {string|null} customer_phone_number
- */
+// ─── Enriched Bulk Fetch ──────────────────────────────────────────────────────
 
 /**
- * Fetches enriched address records by ID.
+ * Fetches enriched address records by their IDs.
  *
- * - Retrieves address details along with associated customer, creator, and updater metadata.
- * - Joins with `users` table for created_by and updated_by names.
- * - Joins with `customers` table for customer name, email, and phone number.
- * - Designed for use in admin views, audit logs, or detailed API responses.
+ * Joins customer, creator, and updater metadata for use in
+ * admin views, audit logs, or detailed API responses.
  *
- * @param {string[]} ids - Array of address UUIDs to fetch.
- * @param {object} [client] - Optional PostgreSQL client for transactional context.
- * @returns {Promise<Array<AddressRow>>} - Array of enriched address records.
- * @throws {AppError} If query fails or invalid parameters are passed.
+ * @param {string[]} ids    - Address UUIDs to fetch.
+ * @param {Object}   client - DB client for transactional context.
+ *
+ * @returns {Promise<AddressRow[]>} Enriched address rows.
+ * @throws  {AppError}             Normalized database error if the query fails.
  */
 const getEnrichedAddressesByIds = async (ids, client) => {
-  const sql = `
-    SELECT
-      a.id,
-      a.customer_id,
-      a.full_name AS recipient_name,
-      a.phone,
-      a.email,
-      a.label,
-      a.address_line1,
-      a.address_line2,
-      a.city,
-      a.state,
-      a.postal_code,
-      a.country,
-      a.region,
-      a.note,
-      a.created_at,
-      a.updated_at,
-      cu.firstname AS created_by_firstname,
-      cu.lastname AS created_by_lastname,
-      uu.firstname AS updated_by_firstname,
-      uu.lastname AS updated_by_lastname,
-      c.firstname AS customer_firstname,
-      c.lastname AS customer_lastname,
-      c.email AS customer_email,
-      c.phone_number AS customer_phone_number
-    FROM addresses a
-    LEFT JOIN customers c ON c.id = a.customer_id
-    LEFT JOIN users cu ON cu.id = a.created_by
-    LEFT JOIN users uu ON uu.id = a.updated_by
-    WHERE a.id = ANY($1)
-  `;
-
+  const context = 'address-repository/getEnrichedAddressesByIds';
+  
   try {
-    const result = await query(sql, [ids], client);
+    const result = await query(ADDRESS_ENRICHED_QUERY, [ids], client);
     return result.rows;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch enriched address records', {
-      context: 'address-repository/getEnrichedAddressesByIds',
-      ids,
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to retrieve enriched address records.',
+      meta:    { ids },
+      logFn:   (err) => logDbQueryError(
+        ADDRESS_ENRICHED_QUERY,
+        [ids],
+        err,
+        { context, ids }
+      ),
     });
-    throw AppError.databaseError('Failed to retrieve address records.');
   }
 };
 
+// ─── Paginated List ───────────────────────────────────────────────────────────
+
 /**
- * Fetches paginated addresses with optional filtering and sorting.
+ * Fetches paginated address records with optional filtering and sorting.
  *
- * Joins customer and user information for display purposes.
+ * Joins customer and creator/updater user info for display purposes.
+ * Errors are normalized via `handleDbError` — Postgres codes are mapped
+ * to typed AppErrors before bubbling up to the service layer.
  *
- * @param {Object} options - Options for pagination, filtering, and sorting.
- * @param {Object} [options.filters={}] - Filters to apply to the address query.
- * @param {number} [options.page=1] - Page number (1-based).
- * @param {number} [options.limit=10] - Number of records per page.
- * @param {string} [options.sortBy='created_at'] - Field to sort by.
- * @param {'ASC'|'DESC'} [options.sortOrder='DESC'] - Sort order.
+ * @param {Object}       options
+ * @param {Object}       [options.filters={}]          - Field filters (city, country, customerId, etc.).
+ * @param {number}       [options.page=1]              - Page number (1-based).
+ * @param {number}       [options.limit=10]            - Records per page.
+ * @param {string}       [options.sortBy='created_at'] - Sort field (validated against ADDRESS_SORT_WHITELIST).
+ * @param {'ASC'|'DESC'} [options.sortOrder='DESC']    - Sort direction.
  *
- * @returns {Promise<Object>} Paginated result with data and metadata (e.g., total records).
- *
- * @throws {AppError} When the query fails.
+ * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
+ * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getPaginatedAddresses = async ({
-  filters = {},
-  page = 1,
-  limit = 10,
-  sortBy = 'created_at',
-  sortOrder = 'DESC',
-}) => {
+                                       filters   = {},
+                                       page      = 1,
+                                       limit     = 10,
+                                       sortBy    = 'created_at',
+                                       sortOrder = 'DESC',
+                                     }) => {
+  const context = 'address-repository/getPaginatedAddresses';
+  
   const { whereClause, params } = buildAddressFilter(filters);
-
-  const tableName = 'addresses a';
-  const joins = [
-    'LEFT JOIN users u1 ON a.created_by = u1.id',
-    'LEFT JOIN users u2 ON a.updated_by = u2.id',
-    'LEFT JOIN customers c ON a.customer_id = c.id',
-  ];
-
-  const baseQuery = `
-    SELECT
-      a.id,
-      a.customer_id,
-      a.label,
-      a.full_name AS recipient_name,
-      a.phone,
-      a.email,
-      a.address_line1,
-      a.address_line2,
-      a.city,
-      a.state,
-      a.postal_code,
-      a.country,
-      a.region,
-      a.note,
-      a.created_at,
-      a.updated_at,
-      u1.firstname AS created_by_firstname,
-      u1.lastname AS created_by_lastname,
-      u2.firstname AS updated_by_firstname,
-      u2.lastname AS updated_by_lastname,
-      c.firstname AS customer_firstname,
-      c.lastname AS customer_lastname,
-      c.email AS customer_email
-    FROM ${tableName}
-    ${joins.join('\n')}
-    WHERE ${whereClause}
-  `;
-
+  
+  const sortConfig = resolveSort({
+    sortBy,
+    sortOrder,
+    moduleKey:   'addressSortMap',
+    defaultSort: SORTABLE_FIELDS.addressSortMap.defaultNaturalSort,
+  });
+  
+  // tableName + joins are passed separately so paginateQuery can build the COUNT query.
+  // ORDER BY is intentionally omitted here — paginateQuery appends it from sortConfig.
+  const queryText = buildAddressBaseQuery(whereClause);
+  
   try {
-    const result = await paginateQuery({
-      tableName,
-      joins,
+    return await paginateQuery({
+      tableName:    ADDRESS_TABLE_NAME,
+      joins:        ADDRESS_BASE_JOINS,
       whereClause,
-      queryText: baseQuery,
+      queryText,
       params,
       page,
       limit,
-      sortBy,
-      sortOrder,
+      sortBy:       sortConfig.sortBy,
+      sortOrder:    sortConfig.sortOrder,
+      whitelistSet: ADDRESS_SORT_WHITELIST,
     });
-
-    logSystemInfo('Fetched paginated addresses', {
-      context: 'address-repository/fetchPaginatedAddresses',
-      filters,
-      pagination: { page, limit },
-      sorting: { sortBy, sortOrder },
-    });
-
-    return result;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch paginated addresses', {
-      context: 'address-repository/fetchPaginatedAddresses',
-      filters,
-      pagination: { page, limit },
-      sorting: { sortBy, sortOrder },
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch paginated addresses.',
+      meta:    { filters, page, limit, sortBy, sortOrder },
+      logFn:   (err) => logDbQueryError(
+        queryText,
+        params,
+        err,
+        { context, filters, page, limit }
+      ),
     });
-    throw AppError.databaseError('Failed to fetch addresses.');
   }
 };
 
+// ─── Lookup ───────────────────────────────────────────────────────────────────
+
 /**
- * Retrieves lightweight address lookup data for a given customer.
+ * Fetches lightweight address records for dropdown/lookup use.
  *
- * This function fetches simplified address records for use in customer-related
- * selection interfaces, such as shipping/billing dropdowns or sales order forms.
- * It supports optionally including addresses that are not yet assigned to any customer.
+ * Returns a minimal projection (no audit or contact fields) scoped to a
+ * specific customer. Optionally includes unassigned addresses (customer_id IS NULL)
+ * when the customer has no addresses of their own.
  *
- * Results are ordered by creation time (newest first).
+ * `includeUnassigned` is passed to `buildAddressFilter`, which appends
+ * an OR customer_id IS NULL clause — so the WHERE clause remains dynamic
+ * and is not covered by the static ADDRESS_LOOKUP_BY_CUSTOMER constant.
  *
- * @param {Object} params - Parameters for address lookup.
- * @param {Object} [params.filters={}] - Optional filters (e.g., customerId).
- * @param {boolean} [params.includeUnassigned=false] - If true, also include addresses where customer_id is NULL.
+ * @param {Object}  options
+ * @param {Object}  [options.filters={}]             - Optional filters (e.g. customerId).
+ * @param {boolean} [options.includeUnassigned=false] - If true, also include addresses where customer_id IS NULL.
  *
- * @returns {Promise<Array<{
- *   id: string,
- *   recipient_name: string,
- *   label: string | null,
- *   address_line1: string,
- *   city: string,
- *   state: string,
- *   postal_code: string,
- *   country: string
- * }>>} A promise resolving to an array of minimal address lookup objects.
+ * @returns {Promise<AddressLookupRow[]>} Minimal address lookup records.
  *
- * @throws {AppError} Throws a database error if the query fails.
+ * @throws {AppError} Normalized database error if the query fails.
  */
 const getCustomerAddressLookupById = async ({
-  filters = {},
-  includeUnassigned = false,
-}) => {
-  const { whereClause, params } = buildAddressFilter(
-    filters,
-    includeUnassigned
-  );
-
-  const queryText = `
-    SELECT
-      id,
-      full_name AS recipient_name,
-      label,
-      address_line1,
-      city,
-      state,
-      postal_code,
-      country
-    FROM addresses a
-    WHERE ${whereClause}
-    ORDER BY created_at DESC;
-  `;
-
+                                              filters           = {},
+                                              includeUnassigned = false,
+                                            }) => {
+  const context = 'address-repository/getCustomerAddressLookupById';
+  
+  // whereClause is dynamic — buildAddressLookupQuery accepts it as an argument
+  // rather than a static constant because includeUnassigned can append OR customer_id IS NULL.
+  const { whereClause, params } = buildAddressFilter(filters, includeUnassigned);
+  
+  const queryText = buildAddressLookupQuery(whereClause);
+  
   try {
-    logSystemInfo('Fetching customer address lookup data', {
-      context: 'address-repository/getCustomerAddressLookupById',
-      filters,
-    });
-
     const { rows } = await query(queryText, params);
     return rows;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch customer address lookup data', {
-      context: 'address-repository/getCustomerAddressLookupById',
-      filters,
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch customer address lookup data.',
+      meta:    { filters, includeUnassigned },
+      logFn:   (err) => logDbQueryError(
+        queryText,
+        params,
+        err,
+        { context, filters, includeUnassigned }
+      ),
     });
-    throw AppError.databaseError('Failed to fetch customer addresses.');
   }
 };
 
+// ─── Existence Checks ─────────────────────────────────────────────────────────
+
 /**
- * Checks whether there are any addresses in the system
- * that are not yet assigned to any customer (i.e., customer_id IS NULL).
+ * Checks whether any addresses exist with no assigned customer (customer_id IS NULL).
  *
- * Typically used in admin flows or order creation fallback logic
- * to determine whether generic/unlinked addresses exist.
+ * Used in order creation fallback logic to decide whether to surface
+ * generic/unlinked addresses as selectable options.
  *
- * @returns {Promise<boolean>} - Resolves to true if at least one unassigned address exists.
- * @throws {AppError} - If the underlying database check fails.
+ * @returns {Promise<boolean>} True if at least one unassigned address exists.
+ * @throws  {AppError}         If the underlying DB check fails.
  */
 const hasUnassignedAddresses = async () => {
   return await checkRecordExists('addresses', { customer_id: null });
 };
 
 /**
- * Checks whether the specified customer has any assigned addresses.
+ * Checks whether a specific customer has any assigned addresses.
  *
- * Used to determine if the customer already has their own address records,
- * before deciding whether to include fallback unassigned addresses.
+ * Used before deciding whether to surface unassigned fallback addresses
+ * in order creation flows.
  *
- * @param {string} customerId - The UUID of the customer to check.
- * @returns {Promise<boolean>} - Resolves to true if the customer has any addresses.
- * @throws {AppError} - If the underlying database check fails.
+ * @param {string} customerId - UUID of the customer to check.
+ *
+ * @returns {Promise<boolean>} True if the customer has at least one address.
+ * @throws  {AppError}         If the underlying DB check fails.
  */
 const hasAssignedAddresses = async (customerId) => {
   return await checkRecordExists('addresses', { customer_id: customerId });
 };
 
+// ─── Single Record ────────────────────────────────────────────────────────────
+
 /**
- * Retrieves an address by its ID, returning only the `id` and `customer_id` fields.
- * This function is primarily used for validating or assigning customer ownership
- * during sales order creation and related business logic.
+ * Fetches a partial address record by ID — returns only `id` and `customer_id`.
  *
- * @param {string} id - The unique identifier of the address.
- * @param {object} client - The database transaction client (e.g., pg or Knex).
- * @returns {Promise<{ id: string, customer_id: string | null } | null>}
- *   A partial address object if found, otherwise null.
+ * Used for ownership validation during sales order creation and related flows
+ * where only the customer assignment needs to be checked, not the full record.
  *
- * @throws {AppError} If invalid input is provided or a database error occurs.
+ * @param {string} id     - Address UUID.
+ * @param {PoolClient} client - DB client for transactional context.
+ *
+ * @returns {Promise<{ id: string, customer_id: string|null }|null>} Partial address, or null if not found.
+ * @throws  {AppError} If the query fails.
  */
 const getAddressById = async (id, client) => {
   return await getFieldsById('addresses', id, ['id', 'customer_id'], client);
 };
 
 /**
- * Assigns a customer to an existing address by updating the `customer_id` field.
- * Typically used when a customer is claiming an orphan (unassigned) address during order creation.
+ * Assigns a customer to an existing orphan address by updating `customer_id`.
  *
- * This function performs a safe, audited update and relies on `updateById` for validation,
- * metadata injection (`updated_at`, `updated_by`), and error handling.
+ * Typically called during order creation when a customer claims an unassigned address.
+ * Relies on `updateById` for metadata injection (`updated_at`, `updated_by`) and
+ * error normalization.
  *
- * @param {string} addressId - The ID of the address to assign.
- * @param {string} customerId - The customer ID to associate with the address.
- * @param {object} client - The PostgreSQL client or transaction object.
- * @param {string} [userId] - Optional ID of the user performing the operation.
+ * @param {string} addressId  - UUID of the address to assign.
+ * @param {string} customerId - UUID of the customer to associate.
+ * @param {PoolClient} client - DB client for transactional context.
+ * @param {string} [userId]   - ID of the user performing the operation (for audit trail).
  *
- * @returns {Promise<{ id: string }>} An object containing the updated address ID.
- *
- * @throws {AppError} If the address does not exist or the update fails.
+ * @returns {Promise<{ id: string }>} The updated address ID.
+ * @throws  {AppError}                If the address doesn't exist or the update fails.
  */
-const assignCustomerToAddress = async (
-  addressId,
-  customerId,
-  client,
-  userId
-) => {
+const assignCustomerToAddress = async (addressId, customerId, client, userId) => {
   return await updateById(
     'addresses',
     addressId,
     { customer_id: customerId },
     userId,
     client
-    // optional: pass custom metadata fields as 6th arg if needed
-    // { updatedAtField: 'modified_at', updatedByField: 'modified_by' }
   );
 };
 

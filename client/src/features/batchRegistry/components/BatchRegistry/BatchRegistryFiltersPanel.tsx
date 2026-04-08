@@ -160,7 +160,7 @@ const BatchRegistryFiltersPanel: FC<Props> = ({
       registeredBefore: toISODate(data.registeredBefore),
       keyword: data.keyword || undefined,
     };
-    console.log('adjusted', adjusted);
+    
     onChange(adjusted);
     onApply();
   };
@@ -220,6 +220,7 @@ const BatchRegistryFiltersPanel: FC<Props> = ({
           </Grid>
 
           <Grid size={{ xs: 12, md: 6 }}>
+            {/* TODO(#46): add refresh, keyword search, fix expand during loading */}
             <SkuMultiSelectDropdown
               options={sku.options}
               selectedOptions={skuFilter.selectedOptions}

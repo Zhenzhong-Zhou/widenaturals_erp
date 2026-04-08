@@ -1,76 +1,47 @@
+/**
+ * @file shipment-status-repository.js
+ * @description Database access layer for shipment status records.
+ *
+ * Exports:
+ *  - getShipmentStatusByCode — fetch single shipment status record by code
+ */
+
+'use strict';
+
 const { query } = require('../database/db');
-const AppError = require('../utils/AppError');
-const { logSystemException } = require('../utils/system-logger');
+const { handleDbError } = require('../utils/errors/error-handlers');
+const { logDbQueryError } = require('../utils/db-logger');
+const { SHIPMENT_STATUS_GET_BY_CODE } = require('./queries/shipment-status-queries');
+
+// ─── Single Record ────────────────────────────────────────────────────────────
 
 /**
- * Fetches a shipment status row by its code.
+ * Fetches a shipment status record by its code.
  *
- * Business rules:
- *  - Shipment statuses represent lifecycle stages of an outbound shipment
- *    (e.g., PENDING, SHIPPED, DELIVERED).
- *  - A valid status code must map to exactly one row.
- *  - If no row is found, a NotFoundError is thrown.
+ * Returns null if no record exists — not-found handling belongs in the
+ * service layer, consistent with the repo pattern.
  *
- * Usage:
- *  - Call before updating outbound shipment records to resolve the correct status ID.
- *  - Used in workflows such as marking a shipment as shipped or delivered.
+ * @param {string}                      statusCode    - The shipment status code to look up.
+ * @param {PoolClient|null} [client=null]
  *
- * Performance:
- *  - O(1): Single-row lookup using indexed `code` column.
- *  - Uses `LIMIT 1` for efficiency.
- *
- * @async
- * @function
- * @param {string} statusCode - Shipment status code (e.g., "FULFILLMENT_SHIPPED")
- * @param {import('pg').PoolClient|null} [client=null] - Optional PostgreSQL client/transaction
- * @returns {Promise<{
- *   id: string,
- *   code: string,
- *   isFinal: boolean
- * }>} Shipment status metadata
- *
- * @throws {AppError.notFoundError} If no status is found for the given code
- * @throws {AppError.databaseError} If the query fails
- *
- * @example
- * const status = await getShipmentStatusByCode('FULFILLMENT_SHIPPED');
- * // {
- * //   id: "uuid-456",
- * //   code: "FULFILLMENT_SHIPPED",
- * //   isFinal: false
- * // }
+ * @returns {Promise<{ id: string, code: string, is_final: boolean }|null>}
+ * @throws  {AppError} Normalized database error if the query fails.
  */
 const getShipmentStatusByCode = async (statusCode, client = null) => {
-  const sql = `
-    SELECT id, code, is_final
-    FROM shipment_status
-    WHERE code = $1
-    LIMIT 1
-  `;
-
+  const context = 'shipment-status-repository/getShipmentStatusByCode';
+  
   try {
-    const { rows } = await query(sql, [statusCode], client);
-    const row = rows?.[0];
-
-    if (!row) {
-      throw AppError.notFoundError(
-        `Shipment status not found for code: ${statusCode}`
-      );
-    }
-
-    return {
-      id: row.id,
-      code: row.code,
-      isFinal: row.is_final,
-    };
+    const { rows } = await query(SHIPMENT_STATUS_GET_BY_CODE, [statusCode], client);
+    return rows[0] ?? null;
   } catch (error) {
-    logSystemException(error, 'Failed to get shipment status by code', {
-      context: 'shipment-repository/getShipmentStatusByCode',
-      statusCode,
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch shipment status by code.',
+      meta:    { statusCode },
+      logFn:   (err) => logDbQueryError(
+        SHIPMENT_STATUS_GET_BY_CODE, [statusCode], err, { context, statusCode }
+      ),
     });
-    throw AppError.databaseError(
-      `Failed to retrieve shipment status: ${error.message}`
-    );
   }
 };
 

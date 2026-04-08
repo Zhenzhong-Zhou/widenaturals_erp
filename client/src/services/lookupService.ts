@@ -24,8 +24,8 @@ import type {
   PackagingMaterialLookupResponse,
   PaymentMethodLookupQueryParams,
   PaymentMethodLookupResponse,
-  PricingLookupQueryParams,
-  PricingLookupResponse,
+  PricingGroupLookupQueryParams,
+  PricingGroupLookupResponse,
   ProductLookupParams,
   ProductLookupResponse,
   RoleLookupParams,
@@ -143,11 +143,11 @@ const fetchDeliveryMethodLookup = (
 ): Promise<DeliveryMethodLookupResponse> =>
   getLookup(API_ENDPOINTS.LOOKUPS.DELIVERY_METHODS, params);
 
-/** Fetch pricing lookup items. */
-const fetchPricingLookup = (
-  params?: PricingLookupQueryParams
-): Promise<PricingLookupResponse> =>
-  getLookup(API_ENDPOINTS.LOOKUPS.PRICING, params);
+/** Fetch pricing group lookup items. */
+const fetchPricingGroupLookup = (
+  params?: PricingGroupLookupQueryParams
+): Promise<PricingGroupLookupResponse> =>
+  getLookup(API_ENDPOINTS.LOOKUPS.PRICING_GROUP, params);
 
 /* =========================================================
  * SKU / Product / Status
@@ -228,7 +228,7 @@ export const lookupService = {
   fetchTaxRateLookup,
   fetchDeliveryMethodLookup,
   fetchSkuLookup,
-  fetchPricingLookup,
+  fetchPricingGroupLookup,
   fetchPackagingMaterialLookup,
   fetchSkuCodeBaseLookup,
   fetchProductLookup,

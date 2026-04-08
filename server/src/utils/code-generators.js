@@ -1,4 +1,4 @@
-const { logSystemError } = require('./system-logger');
+const { logSystemError } = require('./logging/system-logger');
 
 /**
  * Clean and normalize a name string.

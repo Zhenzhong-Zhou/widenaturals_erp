@@ -1,9 +1,18 @@
+/**
+ * @file sku-business.js
+ * @description Domain business logic for SKU access control evaluation,
+ * visibility rule application, creation validation, insert payload preparation,
+ * status transition validation, row enrichment, and edit policy enforcement.
+ */
+
+'use strict';
+
 const AppError = require('../utils/AppError');
 const {
   resolveUserPermissionContext,
-} = require('../services/role-permission-service');
+} = require('../services/permission-service');
 const { getStatusId, getStatusNameById } = require('../config/status-cache');
-const { logSystemException, logSystemInfo } = require('../utils/system-logger');
+const { logSystemException } = require('../utils/logging/system-logger');
 const {
   SKU_CONSTANTS,
   BARCODE_REGEX,
@@ -25,245 +34,9 @@ const {
   getSkuOperationalStatusIds,
 } = require('../config/sku-operational-status-cache');
 
-/**
- * Evaluates whether the user is allowed to bypass SKU stock and status filters
- * in SKU lookup queries (e.g., for sales, internal orders, or admin overrides).
- *
- * Resolves to a flag `allowAllSkus` that enables visibility of inactive or out-of-stock SKUs.
- * Common use cases include:
- * - Admin overrides
- * - Internal sample or R&D orders
- * - Backorders / preorders
- *
- * @param {Object} user - Authenticated user object (must include ID or context).
- * @returns {Promise<{ allowAllSkus: boolean }>} Access control decision for SKU visibility.
- */
-const evaluateSkuFilterAccessControl = async (user) => {
-  try {
-    const { permissions, isRoot } = await resolveUserPermissionContext(user);
+const CONTEXT = 'sku-business';
 
-    const allowAllSkus =
-      isRoot ||
-      permissions.includes(SKU_CONSTANTS.ADMIN_OVERRIDE_SKU_FILTERS) ||
-      permissions.includes(SKU_CONSTANTS.ALLOW_INTERNAL_ORDER_SKUS) ||
-      permissions.includes(SKU_CONSTANTS.ALLOW_BACKORDER_SKUS);
-
-    return { allowAllSkus };
-  } catch (err) {
-    logSystemException(err, 'Failed to evaluate SKU filter access control', {
-      context: 'sku-business/evaluateSkuFilterAccessControl',
-      userId: user?.id,
-    });
-
-    throw AppError.businessError(
-      'Unable to evaluate SKU filter access control',
-      {
-        details: err.message,
-        stage: 'evaluate-sku-access',
-      }
-    );
-  }
-};
-
-/**
- * Enforces visibility restrictions on SKU filtering
- * based on the user's access control flags.
- *
- * - If the user lacks permission to view all SKUs, `allowAllSkus` is false
- *   and filtering for available stock is automatically enabled.
- * - The `requireAvailableStockFrom` option is defaulted to `'warehouse'`
- *   if not explicitly set, ensuring controlled source visibility.
- *
- * This function is useful for SKU lookup queries where inactive or out-of-stock
- * products should be hidden unless elevated access is granted (e.g., internal orders).
- *
- * @param {Object} options - Original options object used in SKU queries.
- * @param {Object} userAccess - User access flags, e.g., `{ allowAllSkus: boolean }`.
- * @returns {Object} Adjusted options with enforced SKU visibility rules.
- */
-const enforceSkuLookupVisibilityRules = (options = {}, userAccess = {}) => {
-  const adjusted = {
-    ...options,
-    allowAllSkus: !!userAccess.allowAllSkus,
-  };
-
-  // Force stock check if not allowed to see inactive or out-of-stock SKUs
-  if (!userAccess.allowAllSkus) {
-    adjusted.requireAvailableStock = true;
-
-    // Default to warehouse if not specified
-    adjusted.requireAvailableStockFrom =
-      adjusted.requireAvailableStockFrom || 'warehouse';
-  }
-
-  return adjusted;
-};
-
-/**
- * Applies access control filters to a SKU lookup query based on user permissions.
- *
- * - If the user lacks permission to view inactive SKUs, `status_id` is forced to active.
- * - If the user lacks permission to view out-of-stock SKUs, a virtual flag
- *   `requireAvailableStock = true` is added (to enforce EXISTS stock check in builder).
- *
- * @param {object} filters - Base query filters (brand, category, keyword, etc.).
- * @param {object} userAccess - Access flags (e.g., `{ allowAllSkus: boolean }`).
- * @param {string} activeStatusId - UUID for the 'active' SKU/product status.
- * @returns {object} Modified query object with enforced filters.
- */
-const filterSkuLookupQuery = (
-  filters = {},
-  userAccess = {},
-  activeStatusId
-) => {
-  try {
-    if (typeof activeStatusId !== 'string' || activeStatusId.length === 0) {
-      throw AppError.validationError(
-        '[filterSkuLookupQuery] Missing or invalid `activeStatusId`'
-      );
-    }
-
-    if (!userAccess || typeof userAccess !== 'object') {
-      throw AppError.validationError(
-        '[filterSkuLookupQuery] Invalid `userAccess` object'
-      );
-    }
-
-    const modified = { ...filters };
-
-    if (!userAccess.allowAllSkus) {
-      // Enforce active status on both SKU and Product level
-      modified.sku_status_id = activeStatusId;
-      modified.product_status_id = activeStatusId;
-
-      // Require stock availability checks
-      modified.requireAvailableStock = true;
-
-      // Only set default if not already provided
-      if (!modified.requireAvailableStockFrom) {
-        modified.requireAvailableStockFrom = 'warehouse';
-      }
-    }
-
-    return modified;
-  } catch (err) {
-    logSystemException(
-      err,
-      'Failed to apply access filters in filterSkuLookupQuery',
-      {
-        context: 'sku-business/filterSkuLookupQuery',
-        originalFilters: filters,
-        userAccess,
-        activeStatusId,
-      }
-    );
-
-    throw AppError.businessError('Unable to apply SKU lookup access filters', {
-      details: err.message,
-      stage: 'filter-sku-lookup',
-      cause: err,
-    });
-  }
-};
-
-/**
- * Enriches a SKU row with derived flags about its status validity.
- *
- * - If the row has no status fields at all, it is considered `isNormal = true`.
- * - Otherwise, each status field (SKU, product, warehouse, location, batch)
- *   is compared against the expected "active/normal" status IDs.
- * - The row is considered `isNormal = true` only if all checks pass.
- * - If any check fails, `issueReasons` is added with human-readable messages
- *   describing which statuses are invalid.
- *
- * @param {object} row - Raw SKU row that may include status fields:
- *   {
- *     sku_status_id?: string,
- *     product_status_id?: string,
- *     warehouse_status_id?: string,
- *     location_status_id?: string,
- *     batch_status_id?: string,
- *     ...
- *   }
- * @param {object} expectedStatusIds - Map of expected status IDs:
- *   {
- *     sku: string,
- *     product: string,
- *     warehouse: string,
- *     location: string,
- *     batch: string
- *   }
- *
- * @returns {object} The enriched row, extended with:
- *   - `isNormal: boolean` — true if all checks pass or no status fields exist.
- *   - `issueReasons?: string[]` — array of human-readable reasons when `isNormal` is false.
- *
- * @example
- * const row = { sku_status_id: 'abc', product_status_id: 'xyz' };
- * const expected = { sku: 'abc', product: 'xyz', warehouse: 'w1', location: 'l1', batch: 'b1' };
- * const result = enrichSkuRow(row, expected);
- *
- * // result = {
- * //   sku_status_id: 'abc',
- * //   product_status_id: 'xyz',
- * //   isNormal: true
- * // }
- */
-const enrichSkuRow = (row, expectedStatusIds) => {
-  const {
-    sku_status_id,
-    product_status_id,
-    warehouse_status_id,
-    location_status_id,
-    batch_status_id,
-  } = row;
-
-  // If no status fields at all → default to normal
-  const noStatusFields =
-    sku_status_id == null &&
-    product_status_id == null &&
-    warehouse_status_id == null &&
-    location_status_id == null &&
-    batch_status_id == null;
-
-  if (noStatusFields) {
-    return {
-      ...row,
-      isNormal: true,
-    };
-  }
-
-  const statusChecks = {
-    skuStatusValid: sku_status_id === expectedStatusIds.sku,
-    productStatusValid: product_status_id === expectedStatusIds.product,
-    warehouseInventoryValid:
-      !warehouse_status_id ||
-      warehouse_status_id === expectedStatusIds.warehouse,
-    locationInventoryValid:
-      !location_status_id || location_status_id === expectedStatusIds.location,
-    batchStatusValid:
-      !batch_status_id || batch_status_id === expectedStatusIds.batch,
-  };
-
-  const isNormal = Object.values(statusChecks).every(Boolean);
-
-  return {
-    ...row,
-    isNormal,
-    ...(isNormal
-      ? {}
-      : {
-          issueReasons: Object.entries(statusChecks)
-            .filter(([_, valid]) => !valid)
-            .map(([key]) => getGenericIssueReason(key)),
-        }),
-  };
-};
-
-/**
- * @constant SKU_REQUIRED_FIELDS
- * Immutable list of required fields for all SKU creation payloads.
- */
+/** Required fields for SKU creation. */
 const SKU_REQUIRED_FIELDS = Object.freeze([
   'product_id',
   'brand_code',
@@ -272,426 +45,46 @@ const SKU_REQUIRED_FIELDS = Object.freeze([
   'region_code',
 ]);
 
-/**
- * Validates a single SKU creation payload against required fields and business rules.
- *
- * @param {object} skuData - The SKU payload to validate.
- * @param {string} [context='sku-business/validateSkuCreationBusiness'] - Log context for tracing.
- * @throws {AppError.validationError} If a required field is missing or invalid.
- *
- * @example
- * validateSkuCreationBusiness({
- *   product_id: '123',
- *   brand_code: 'CH',
- *   category_code: 'HN',
- *   variant_code: '101',
- *   region_code: 'CA',
- *   barcode: '1234567890123',
- * });
- */
-const validateSkuCreationBusiness = (
-  skuData,
-  context = 'sku-business/validateSkuCreationBusiness'
-) => {
-  // ---------------------------------------------
-  // 1. Required field validation
-  // ---------------------------------------------
-  for (const field of SKU_REQUIRED_FIELDS) {
-    if (!skuData[field]) {
-      throw AppError.validationError(`Missing required field: ${field}`, {
-        context,
-      });
-    }
-  }
-
-  // ---------------------------------------------
-  // 2. Barcode format validation (if provided)
-  // ---------------------------------------------
-  // Allowed: digits, letters, dash, underscore, dot, slash, space, max len 64
-  if (skuData.barcode && !BARCODE_REGEX.test(skuData.barcode)) {
-    throw AppError.validationError(
-      `Invalid barcode format: ${skuData.barcode}`,
-      { context }
-    );
-  }
-
-  // ---------------------------------------------
-  // 4. Minimal safe logging
-  // ---------------------------------------------
-  logSystemInfo('SKU creation input validated.', {
-    context,
-    product_id: skuData.product_id,
-    brand_code: skuData.brand_code,
-    category_code: skuData.category_code,
-  });
-};
+// ---------------------------------------------------------------------------
+// Private helpers
+// ---------------------------------------------------------------------------
 
 /**
- * Validates an array of SKU creation payloads in a single batch.
+ * Checks whether a SKU status transition is permitted.
  *
- * Performs structural validation (array shape, non-empty) and
- * iteratively validates each item with `validateSkuCreationBusiness`.
+ * Returns `false` if either status ID cannot be resolved to a known code.
  *
- * @param {Array<object>} skuList - List of SKU payloads to validate.
- * @param {string} [context='sku-business/validateSkuListBusiness'] - Log context for tracing.
- * @throws {AppError.validationError} If the list is empty or contains invalid entries.
- *
- * @example
- * validateSkuListBusiness([
- *   { product_id: 'p1', brand_code: 'CH', category_code: 'HN', variant_code: '101', region_code: 'CA' },
- *   { product_id: 'p2', brand_code: 'PG', category_code: 'NM', variant_code: '204', region_code: 'CN' }
- * ]);
- */
-const validateSkuListBusiness = (
-  skuList,
-  context = 'sku-business/validateSkuListBusiness'
-) => {
-  // Structural validation first
-  if (!Array.isArray(skuList) || skuList.length === 0) {
-    throw AppError.validationError(
-      `SKU list is empty or invalid. Expected fields: ${SKU_REQUIRED_FIELDS.join(', ')}`,
-      { context }
-    );
-  }
-
-  // Validate each entry
-  for (const sku of skuList) {
-    validateSkuCreationBusiness(sku, context);
-  }
-
-  // Summary log
-  logSystemInfo('Bulk SKU creation input validated successfully.', {
-    context,
-    count: skuList.length,
-  });
-};
-
-/**
- * Normalizes a single SKU payload into a schema-compliant record for insertion.
- *
- * @param {object} skuData - Original SKU payload.
- * @param {string} generatedSku - Generated SKU code string.
- * @param {string} statusId - Default status ID.
- * @param {string} userId - ID of the creator.
- * @returns {object} Normalized payload suitable for DB insertion.
- *
- * @example
- * const record = prepareSkuInsertPayload(sku, 'CH-HN101-R-CN', activeStatusId, user.id);
- */
-const prepareSkuInsertPayload = (skuData, generatedSku, statusId, userId) => ({
-  product_id: skuData.product_id,
-  sku: generatedSku,
-  barcode: skuData.barcode ?? null,
-  language: skuData.language ?? 'en-fr',
-  country_code: skuData.region_code ?? null,
-  market_region: skuData.market_region ?? null,
-  size_label: skuData.size_label ?? null,
-  description: skuData.description ?? null,
-  length_cm: skuData.length_cm ?? null,
-  width_cm: skuData.width_cm ?? null,
-  height_cm: skuData.height_cm ?? null,
-  weight_g: skuData.weight_g ?? null,
-  status_id: statusId,
-  created_by: userId,
-});
-
-/**
- * Prepares normalized database-ready payloads for multiple SKUs.
- *
- * Ensures that all optional fields are defaulted or sanitized.
- * Each SKU payload is processed by `prepareSkuInsertPayload`.
- *
- * @param {Array<object>} skuList - Raw SKU input payloads.
- * @param {Array<string>} generatedSkus - Generated SKU codes (must match length of skuList).
- * @param {string} statusId - Default status ID for inserted SKUs.
- * @param {string} userId - ID of the user performing the creation.
- * @returns {Array<object>} Prepared payloads ready for bulk insertion.
- *
- * @example
- * const payloads = prepareSkuInsertPayloads(skus, codes, activeStatusId, user.id);
- */
-const prepareSkuInsertPayloads = (skuList, generatedSkus, statusId, userId) => {
-  // Optimization: preallocate array for better V8 perf on large lists
-  const result = new Array(skuList.length);
-
-  for (let i = 0; i < skuList.length; i++) {
-    result[i] = prepareSkuInsertPayload(
-      skuList[i],
-      generatedSkus[i],
-      statusId,
-      userId
-    );
-  }
-
-  return result;
-};
-
-/**
- * Validates whether an SKU can transition from its current status
- * to a new target status, based on allowed SKU-specific transitions.
- *
- * ### Behavior
- * - Fetches normalized status codes using `getStatusNameById`
- * - Returns `false` if either status ID is missing or unknown
- * - Only returns `true` for transitions explicitly defined below
- *
- * ### Example
- * ```
- * validateSkuStatusTransition('uuid-draft', 'uuid-active');       // true
- * validateSkuStatusTransition('uuid-active', 'uuid-archived');    // false
- * ```
- *
- * @param {string} currentStatusId - Current SKU status (UUID)
- * @param {string} newStatusId - Target SKU status (UUID)
- * @returns {boolean} True if the transition is allowed, false otherwise
+ * @param {string} currentStatusId
+ * @param {string} newStatusId
+ * @returns {boolean}
  */
 const validateSkuStatusTransition = (currentStatusId, newStatusId) => {
-  // ------------------------------------
-  // Allowed SKU status transitions
-  // ------------------------------------
   const allowedTransitions = {
-    DRAFT: ['ACTIVE', 'INACTIVE'],
-    ACTIVE: ['INACTIVE', 'DISCONTINUED'],
-    INACTIVE: ['ACTIVE'],
+    DRAFT:        ['ACTIVE', 'INACTIVE'],
+    ACTIVE:       ['INACTIVE', 'DISCONTINUED'],
+    INACTIVE:     ['ACTIVE'],
     DISCONTINUED: ['ARCHIVED'],
-    ARCHIVED: [], // final state
+    ARCHIVED:     [],
   };
-
-  // Look up status names via cache
+  
   const currentCode = getStatusNameById(currentStatusId);
-  const nextCode = getStatusNameById(newStatusId);
-
+  const nextCode    = getStatusNameById(newStatusId);
+  
   if (!currentCode || !nextCode) return false;
-
-  // Match transitions
-  const allowedNextStates = allowedTransitions[currentCode] ?? [];
-  return allowedNextStates.includes(nextCode);
+  
+  return (allowedTransitions[currentCode] ?? []).includes(nextCode);
 };
 
 /**
- * Asserts that an SKU’s status transition is valid based on
- * business-defined transition rules.
+ * Checks whether a SKU has any active operational dependencies (inventory,
+ * orders, allocations, or transfers).
  *
- * This function mirrors the product version (`assertValidProductStatusTransition`)
- * but applies SKU-specific transition logic using
- * {@link validateSkuStatusTransition}.
- *
- * ### Behavior
- * - Resolves both current & next status names from the status cache.
- * - Throws if either ID is unknown.
- * - Throws if the transition violates defined SKU transition rules.
- *
- * ### Example
- * ```
- * assertValidSkuStatusTransition(currentStatusId, nextStatusId);
- * // continues silently if allowed
- * // throws AppError.validationError if invalid
- * ```
- *
- * @param {string} currentStatusId - UUID of the current SKU status
- * @param {string} newStatusId - UUID of the target SKU status
- * @throws {AppError} If the transition is invalid or unknown
- */
-const assertValidSkuStatusTransition = (currentStatusId, newStatusId) => {
-  const current = getStatusNameById(currentStatusId);
-  const next = getStatusNameById(newStatusId);
-
-  // Unknown or missing status values
-  if (!current || !next) {
-    throw AppError.validationError('Unknown SKU status ID(s).', {
-      currentStatusId,
-      newStatusId,
-    });
-  }
-
-  // Transition not allowed per SKU rules
-  if (!validateSkuStatusTransition(currentStatusId, newStatusId)) {
-    throw AppError.validationError(
-      `Invalid SKU status transition: ${current} → ${next}`,
-      {
-        currentStatusId,
-        newStatusId,
-      }
-    );
-  }
-};
-
-/**
- * Business: Determine what SKU + Product status combinations a user is
- * allowed to view on SKU list pages, SKU detail pages, or dropdowns.
- *
- * This does NOT modify any data — it only resolves *visibility authority*.
- *
- * Controls visibility of:
- *   ✔ Active SKUs
- *   ✔ Inactive / discontinued SKUs
- *   ✔ SKUs linked to inactive or discontinued products
- *   ✔ Full visibility override for admins / privileged users
- *
- * Permission meanings:
- *   VIEW_SKU_INACTIVE       → Allows viewing SKUs whose status != active
- *   VIEW_PRODUCT_INACTIVE   → Allows viewing SKUs whose product is inactive
- *   VIEW_SKUS_ALL_STATUSES  → Overrides all restrictions (super-user mode)
- *
- * @param {Object} user - Authenticated user with permissions
- * @returns {Promise<{
- *   canViewInactiveSku: boolean,
- *   canViewInactiveProduct: boolean,
- *   canViewAllSkuStatuses: boolean
- * }>}
- */
-const evaluateSkuStatusAccessControl = async (user) => {
-  try {
-    const { permissions, isRoot } = await resolveUserPermissionContext(user);
-
-    // Can see SKUs whose *SKU status* is inactive
-    const canViewInactiveSku =
-      isRoot ||
-      permissions.includes(SKU_CONSTANTS.PERMISSIONS.VIEW_SKU_INACTIVE);
-
-    // Can see SKUs whose *product* is inactive
-    const canViewInactiveProduct =
-      isRoot ||
-      permissions.includes(SKU_CONSTANTS.PERMISSIONS.VIEW_PRODUCT_INACTIVE);
-
-    // Full override → see everything regardless of SKU or product status
-    const canViewAllSkuStatuses =
-      isRoot ||
-      permissions.includes(SKU_CONSTANTS.PERMISSIONS.VIEW_SKUS_ALL_STATUSES);
-
-    return {
-      canViewInactiveSku,
-      canViewInactiveProduct,
-      canViewAllSkuStatuses,
-    };
-  } catch (err) {
-    logSystemException(err, 'Failed to evaluate SKU access control', {
-      context: 'sku-business/evaluateSkuStatusAccessControl',
-      userId: user?.id,
-    });
-
-    throw AppError.businessError(
-      'Unable to evaluate SKU status access control.',
-      { details: err.message }
-    );
-  }
-};
-
-/**
- * Business: Slice a SKU row based on visibility rules.
- *
- * This function enforces WHAT the user is allowed to see,
- * based on the access flags from evaluateSkuStatusAccessControl().
- *
- * Behavior:
- *   ✔ Returns full SKU row for privileged users
- *   ✔ Returns null if SKU is forbidden to this user
- *   ✔ Does NOT redact partial fields — redaction can be added if needed
- *
- * @param {Object} skuRow - Raw row from getSkuDetailsById()
- * @param {Object} access - Flags from evaluateSkuStatusAccessControl()
- * @returns {Object|null} Sanitized SKU row or null if user cannot view it
- */
-const sliceSkuForUser = (skuRow, access) => {
-  const ACTIVE_SKU_STATUS_ID = getStatusId('general_active');
-  const ACTIVE_PRODUCT_STATUS_ID = getStatusId('product_active');
-
-  // Admin or super-permission override → full visibility
-  if (access.canViewAllSkuStatuses) return skuRow;
-
-  const isSkuActive = skuRow.sku_status_id === ACTIVE_SKU_STATUS_ID;
-  const isProductActive = skuRow.product_status_id === ACTIVE_PRODUCT_STATUS_ID;
-
-  // Inactive SKU but user cannot view inactive SKUs
-  if (!isSkuActive && !access.canViewInactiveSku) return null;
-
-  // SKU belongs to an inactive product but user cannot view inactive products
-  if (!isProductActive && !access.canViewInactiveProduct) return null;
-
-  // Passed all visibility filters — return full row
-  return skuRow;
-};
-
-/**
- * Business: applySkuProductCardVisibilityRules
- *
- * Adjust filters for SKU product-card listings based on ACL permissions.
- *
- * Rules:
- *   - If user lacks permission → force ACTIVE-only SKU and/or product filters.
- *   - If user has permission → do NOT inject active filters (leave as-is).
- *   - No “blocking” or UUID hacks; filtering is done by controlled SQL filters.
- */
-const applySkuProductCardVisibilityRules = (filters, acl) => {
-  const adjusted = { ...filters };
-
-  const ACTIVE_SKU_STATUS_ID = getStatusId('general_active');
-  const ACTIVE_PRODUCT_STATUS_ID = getStatusId('product_active');
-
-  // -------------------------------------------------------------
-  // 1. Full override → no visibility restrictions at all
-  // -------------------------------------------------------------
-  if (acl.canViewAllSkuStatuses) {
-    // Ensure no status restrictions are artificially applied
-    delete adjusted.skuStatusIds;
-    delete adjusted.productStatusIds;
-    return adjusted;
-  }
-
-  // -------------------------------------------------------------
-  // 2. SKU-level visibility
-  // -------------------------------------------------------------
-  if (!acl.canViewInactiveSku) {
-    // User cannot see inactive SKUs → enforce ACTIVE SKUs
-    adjusted.skuStatusIds = [ACTIVE_SKU_STATUS_ID];
-  } else {
-    // User CAN see inactive SKUs → remove restrictions (if added earlier)
-    delete adjusted.skuStatusIds;
-  }
-
-  // -------------------------------------------------------------
-  // 3. Product-level visibility
-  // -------------------------------------------------------------
-  if (!acl.canViewInactiveProduct) {
-    // User cannot see SKUs under inactive products
-    adjusted.productStatusIds = [ACTIVE_PRODUCT_STATUS_ID];
-  } else {
-    // User CAN see inactive products → remove restrictions
-    delete adjusted.productStatusIds;
-  }
-
-  return adjusted;
-};
-
-/**
- * Determines whether a SKU has any active operational dependencies.
- *
- * A SKU is considered to have active dependencies if it is currently:
- * - Present in warehouse inventory
- * - Referenced by active orders
- * - Referenced by active inventory allocations
- * - Referenced by active transfer order items
- *
- * The definition of "active" is determined by the provided
- * status UUID arrays for each domain.
- *
- * This function is typically used by business-layer guards
- * to prevent SKU archival or deletion while operational
- * dependencies still exist.
- *
- * Note:
- * - Database errors are not handled here and are allowed
- *   to propagate from the repository layer.
- *
- * @param {string} skuId - UUID of the SKU.
- * @param {string[]} activeOrderStatusIds - Active order status UUIDs.
- * @param {string[]} activeAllocationStatusIds - Active allocation status UUIDs.
- * @param {string[]} activeTransferStatusIds - Active transfer status UUIDs.
- * @param {import('pg').PoolClient|null} [client]
- *   Optional transactional client.
- *
+ * @param {string} skuId
+ * @param {string[]} activeOrderStatusIds
+ * @param {string[]} activeAllocationStatusIds
+ * @param {string[]} activeTransferStatusIds
+ * @param {import('pg').PoolClient | null} [client=null]
  * @returns {Promise<boolean>}
- *   Returns true if any active dependency exists.
  */
 const skuHasActiveDependencies = async (
   skuId,
@@ -701,97 +94,402 @@ const skuHasActiveDependencies = async (
   client = null
 ) => {
   if (await skuHasInventory(skuId, client)) return true;
+  if (await skuHasActiveOrders(skuId, activeOrderStatusIds, client)) return true;
+  if (await skuHasActiveAllocations(skuId, activeAllocationStatusIds, client)) return true;
+  return await skuHasActiveTransfers(skuId, activeTransferStatusIds, client);
+  
+};
 
-  if (await skuHasActiveOrders(skuId, activeOrderStatusIds, client))
-    return true;
+// ---------------------------------------------------------------------------
+// Exported business functions
+// ---------------------------------------------------------------------------
 
-  if (await skuHasActiveAllocations(skuId, activeAllocationStatusIds, client))
-    return true;
-
-  if (await skuHasActiveTransfers(skuId, activeTransferStatusIds, client))
-    return true;
-
-  return false;
+/**
+ * Resolves which SKU lookup filter capabilities the requesting user holds.
+ *
+ * `allowAllSkus` grants access to inactive, backordered, and internal SKUs.
+ *
+ * @param {AuthUser} user - Authenticated user making the request.
+ * @returns {Promise<SkuFilterAcl>}
+ * @throws {AppError} businessError if permission resolution fails.
+ */
+const evaluateSkuFilterAccessControl = async (user) => {
+  const context = `${CONTEXT}/evaluateSkuFilterAccessControl`;
+  
+  try {
+    const { permissions, isRoot } = await resolveUserPermissionContext(user);
+    
+    return {
+      allowAllSkus:
+        isRoot ||
+        permissions.includes(SKU_CONSTANTS.ADMIN_OVERRIDE_SKU_FILTERS) ||
+        permissions.includes(SKU_CONSTANTS.ALLOW_INTERNAL_ORDER_SKUS) ||
+        permissions.includes(SKU_CONSTANTS.ALLOW_BACKORDER_SKUS),
+    };
+  } catch (err) {
+    logSystemException(err, 'Failed to evaluate SKU filter access control', {
+      context,
+      userId: user?.id,
+    });
+    
+    throw AppError.businessError(
+      'Unable to evaluate SKU filter access control.'
+    );
+  }
 };
 
 /**
- * Business Guard: Assert SKU Edit Allowed
+ * Applies ACL-driven visibility rules to a SKU lookup options object.
  *
- * Enforces business-level edit policies for SKU modifications.
+ * Restricted users are required to have available stock and are defaulted
+ * to warehouse stock checks.
  *
- * This guard evaluates whether a SKU can be modified based on:
+ * @param {object} [options={}] - Base options object from the request.
+ * @param {SkuFilterAcl} [userAccess={}] - Resolved ACL from `evaluateSkuFilterAccessControl`.
+ * @returns {object} Adjusted options with visibility rules applied.
+ */
+const enforceSkuLookupVisibilityRules = (options = {}, userAccess = {}) => {
+  const adjusted = {
+    ...options,
+    allowAllSkus: !!userAccess.allowAllSkus,
+  };
+  
+  if (!userAccess.allowAllSkus) {
+    adjusted.requireAvailableStock     = true;
+    adjusted.requireAvailableStockFrom = adjusted.requireAvailableStockFrom || 'warehouse';
+  }
+  
+  return adjusted;
+};
+
+/**
+ * Applies ACL-driven access filters to a SKU lookup filter object.
  *
- *   1. User permission context (root bypass support)
- *   2. SKU lifecycle state (e.g., ARCHIVED)
- *   3. Operational dependencies (orders, allocations, transfers)
- *   4. Commercial history (fulfilled orders, shipments, etc.)
+ * Restricted users are pinned to active SKU and product statuses and must
+ * have available stock.
  *
- * The enforcement logic is controlled by `SKU_EDIT_POLICIES`,
- * which determines which constraints apply per edit type.
+ * @param {object} [filters={}] - Base filter object from the request.
+ * @param {SkuFilterAcl} [userAccess={}] - Resolved ACL from `evaluateSkuFilterAccessControl`.
+ * @param {string} activeStatusId - UUID of the active status record.
+ * @returns {object} Adjusted copy of `filters` with access rules applied.
+ */
+const filterSkuLookupQuery = (
+  filters = {},
+  userAccess = {},
+  activeStatusId
+) => {
+  const modified = { ...filters };
+  
+  if (!userAccess.allowAllSkus) {
+    modified.sku_status_id              = activeStatusId;
+    modified.product_status_id          = activeStatusId;
+    modified.requireAvailableStock      = true;
+    modified.requireAvailableStockFrom  = modified.requireAvailableStockFrom || 'warehouse';
+  }
+  
+  return modified;
+};
+
+/**
+ * Enriches a SKU row with a derived `isNormal` flag and optional `issueReasons`.
  *
- * ─────────────────────────────────────────────────────────────
- * Edit Types
- * ─────────────────────────────────────────────────────────────
- * METADATA   → Blocks archived only
- * DIMENSIONS → Blocks archived + operational
- * IDENTITY   → Blocks archived + operational + commercial
+ * `isNormal` is true when all present status fields match their expected values.
+ * `issueReasons` is only included when `isNormal` is false.
  *
- * ─────────────────────────────────────────────────────────────
- * Root Bypass
- * ─────────────────────────────────────────────────────────────
- * If the user has root privileges, business guards are bypassed.
+ * @param {object} row - Raw SKU row from the repository.
+ * @param {{ sku: string, product: string, warehouse: string, location: string, batch: string }} expectedStatusIds
+ * @returns {object}
+ */
+const enrichSkuRow = (row, expectedStatusIds) => {
+  const {
+    sku_status_id,
+    product_status_id,
+    warehouse_status_id,
+    location_status_id,
+    batch_status_id,
+  } = row;
+  
+  const noStatusFields =
+    sku_status_id      == null &&
+    product_status_id  == null &&
+    warehouse_status_id == null &&
+    location_status_id == null &&
+    batch_status_id    == null;
+  
+  if (noStatusFields) {
+    return { ...row, isNormal: true };
+  }
+  
+  const statusChecks = {
+    skuStatusValid:          sku_status_id === expectedStatusIds.sku,
+    productStatusValid:      product_status_id === expectedStatusIds.product,
+    warehouseInventoryValid: !warehouse_status_id || warehouse_status_id === expectedStatusIds.warehouse,
+    locationInventoryValid:  !location_status_id  || location_status_id  === expectedStatusIds.location,
+    batchStatusValid:        !batch_status_id      || batch_status_id      === expectedStatusIds.batch,
+  };
+  
+  const isNormal = Object.values(statusChecks).every(Boolean);
+  
+  return {
+    ...row,
+    isNormal,
+    ...(isNormal
+      ? {}
+      : {
+        issueReasons: Object.entries(statusChecks)
+          .filter(([, valid]) => !valid)
+          .map(([key]) => getGenericIssueReason(key)),
+      }),
+  };
+};
+
+/**
+ * Validates a single SKU creation payload for required fields and barcode format.
  *
- * ─────────────────────────────────────────────────────────────
- * Usage
- * ─────────────────────────────────────────────────────────────
- * await assertSkuEditAllowed(
- *   sku,
- *   SKU_EDIT_TYPE.DIMENSIONS,
- *   user,
- *   client
- * );
+ * @param {object} skuData - SKU creation payload.
+ * @returns {void}
+ * @throws {AppError} validationError if required fields are missing or barcode is invalid.
+ */
+const validateSkuCreation = (skuData) => {
+  for (const field of SKU_REQUIRED_FIELDS) {
+    if (!skuData[field]) {
+      throw AppError.validationError(`Missing required field: ${field}`);
+    }
+  }
+  
+  if (skuData.barcode && !BARCODE_REGEX.test(skuData.barcode)) {
+    throw AppError.validationError(
+      `Invalid barcode format: ${skuData.barcode}`
+    );
+  }
+};
+
+/**
+ * Validates a list of SKU creation payloads.
  *
- * ─────────────────────────────────────────────────────────────
- * @param {Object} sku
- *   Locked SKU row including at minimum:
- *     - id
- *     - status_name (or statusName)
+ * @param {object[]} skuList - Array of SKU creation payloads.
+ * @returns {void}
+ * @throws {AppError} validationError if the list is empty or any entry is invalid.
+ */
+const validateSkuList = (skuList) => {
+  if (!Array.isArray(skuList) || skuList.length === 0) {
+    throw AppError.validationError(
+      `SKU list is empty or invalid. Expected fields: ${SKU_REQUIRED_FIELDS.join(', ')}`
+    );
+  }
+  
+  for (const sku of skuList) {
+    validateSkuCreation(sku);
+  }
+};
+
+/**
+ * Prepares a single SKU insert payload from creation data.
  *
- * @param {string} editType
- *   One of SKU_EDIT_TYPE values.
+ * @param {object} skuData - Validated SKU creation payload.
+ * @param {string} generatedSku - Generated SKU code.
+ * @param {string} statusId - UUID of the initial status.
+ * @param {string} userId - UUID of the creating user.
+ * @returns {object}
+ */
+const prepareSkuInsertPayload = (skuData, generatedSku, statusId, userId) => ({
+  product_id:    skuData.product_id,
+  sku:           generatedSku,
+  barcode:       skuData.barcode       ?? null,
+  language:      skuData.language      ?? 'en-fr',
+  country_code:  skuData.region_code   ?? null,
+  market_region: skuData.market_region ?? null,
+  size_label:    skuData.size_label    ?? null,
+  description:   skuData.description  ?? null,
+  length_cm:     skuData.length_cm     ?? null,
+  width_cm:      skuData.width_cm      ?? null,
+  height_cm:     skuData.height_cm     ?? null,
+  weight_g:      skuData.weight_g      ?? null,
+  status_id:     statusId,
+  created_by:    userId,
+});
+
+/**
+ * Prepares a list of SKU insert payloads from validated creation data.
  *
- * @param {Object} user
- *   Authenticated user context (used to resolve permission).
+ * @param {object[]} skuList - Validated SKU creation payloads.
+ * @param {string[]} generatedSkus - Generated SKU codes, index-matched to `skuList`.
+ * @param {string} statusId - UUID of the initial status.
+ * @param {string} userId - UUID of the creating user.
+ * @returns {object[]}
+ */
+const prepareSkuInsertPayloads = (skuList, generatedSkus, statusId, userId) => {
+  const result = new Array(skuList.length);
+  
+  for (let i = 0; i < skuList.length; i++) {
+    result[i] = prepareSkuInsertPayload(
+      skuList[i],
+      generatedSkus[i],
+      statusId,
+      userId
+    );
+  }
+  
+  return result;
+};
+
+/**
+ * Asserts that a SKU status transition is permitted, throwing if not.
  *
- * @param {import('pg').PoolClient} client
- *   Active PostgreSQL transaction client.
+ * @param {string} currentStatusId - UUID of the current status.
+ * @param {string} newStatusId - UUID of the target status.
+ * @returns {void}
+ * @throws {AppError} validationError if either status ID is unknown or the
+ *   transition is not permitted.
+ */
+const assertValidSkuStatusTransition = (currentStatusId, newStatusId) => {
+  const current = getStatusNameById(currentStatusId);
+  const next    = getStatusNameById(newStatusId);
+  
+  if (!current || !next) {
+    throw AppError.validationError('Unknown SKU status ID(s).', {
+      currentStatusId,
+      newStatusId,
+    });
+  }
+  
+  if (!validateSkuStatusTransition(currentStatusId, newStatusId)) {
+    throw AppError.validationError(
+      `Invalid SKU status transition: ${current} → ${next}`,
+      { currentStatusId, newStatusId }
+    );
+  }
+};
+
+/**
+ * Resolves which SKU status visibility capabilities the requesting user holds.
  *
+ * `canViewAllSkuStatuses` is a full override — it implies inactive SKU and
+ * product visibility.
+ *
+ * @param {AuthUser} user - Authenticated user making the request.
+ * @returns {Promise<SkuStatusAcl>}
+ * @throws {AppError} businessError if permission resolution fails.
+ */
+const evaluateSkuStatusAccessControl = async (user) => {
+  const context = `${CONTEXT}/evaluateSkuStatusAccessControl`;
+  
+  try {
+    const { permissions, isRoot } = await resolveUserPermissionContext(user);
+    
+    return {
+      canViewInactiveSku:
+        isRoot || permissions.includes(SKU_CONSTANTS.PERMISSIONS.VIEW_SKU_INACTIVE),
+      canViewInactiveProduct:
+        isRoot || permissions.includes(SKU_CONSTANTS.PERMISSIONS.VIEW_PRODUCT_INACTIVE),
+      canViewAllSkuStatuses:
+        isRoot || permissions.includes(SKU_CONSTANTS.PERMISSIONS.VIEW_SKUS_ALL_STATUSES),
+    };
+  } catch (err) {
+    logSystemException(err, 'Failed to evaluate SKU status access control', {
+      context,
+      userId: user?.id,
+    });
+    
+    throw AppError.businessError(
+      'Unable to evaluate SKU status access control.'
+    );
+  }
+};
+
+/**
+ * Filters a single SKU row based on the user's status visibility access.
+ * Returns `null` if the row should not be visible to the user.
+ *
+ * @param {object} skuRow - Raw SKU row from the repository.
+ * @param {SkuStatusAcl} access - Resolved ACL from `evaluateSkuStatusAccessControl`.
+ * @returns {object | null}
+ */
+const sliceSkuForUser = (skuRow, access) => {
+  if (access.canViewAllSkuStatuses) return skuRow;
+  
+  const ACTIVE_SKU_STATUS_ID     = getStatusId('general_active');
+  const ACTIVE_PRODUCT_STATUS_ID = getStatusId('product_active');
+  
+  const isSkuActive     = skuRow.sku_status_id     === ACTIVE_SKU_STATUS_ID;
+  const isProductActive = skuRow.product_status_id === ACTIVE_PRODUCT_STATUS_ID;
+  
+  if (!isSkuActive     && !access.canViewInactiveSku)     return null;
+  if (!isProductActive && !access.canViewInactiveProduct) return null;
+  
+  return skuRow;
+};
+
+/**
+ * Applies ACL-driven visibility rules to a SKU product card filter object.
+ *
+ * Full override removes all status restrictions. Otherwise SKU and product
+ * status filters are set based on the user's visibility flags.
+ *
+ * @param {object} filters - Base filter object from the request.
+ * @param {SkuStatusAcl} acl - Resolved ACL from `evaluateSkuStatusAccessControl`.
+ * @returns {object} Adjusted copy of `filters` with visibility rules applied.
+ */
+const applySkuProductCardVisibilityRules = (filters, acl) => {
+  const adjusted = { ...filters };
+  
+  if (acl.canViewAllSkuStatuses) {
+    delete adjusted.skuStatusIds;
+    delete adjusted.productStatusIds;
+    return adjusted;
+  }
+  
+  const ACTIVE_SKU_STATUS_ID     = getStatusId('general_active');
+  const ACTIVE_PRODUCT_STATUS_ID = getStatusId('product_active');
+  
+  if (!acl.canViewInactiveSku) {
+    adjusted.skuStatusIds = [ACTIVE_SKU_STATUS_ID];
+  } else {
+    delete adjusted.skuStatusIds;
+  }
+  
+  if (!acl.canViewInactiveProduct) {
+    adjusted.productStatusIds = [ACTIVE_PRODUCT_STATUS_ID];
+  } else {
+    delete adjusted.productStatusIds;
+  }
+  
+  return adjusted;
+};
+
+/**
+ * Asserts that a SKU is permitted to be edited under the given edit policy.
+ *
+ * Root users bypass all edit guards. Non-root users are checked against the
+ * policy's archived, operational, and commercial history restrictions.
+ *
+ * @param {object} sku - Current SKU record with `id` and `status_id`.
+ * @param {string} editType - Edit policy key from `SKU_EDIT_POLICIES`.
+ * @param {AuthUser} user - Authenticated user making the request.
+ * @param {import('pg').PoolClient | null} client - Optional transaction client.
  * @returns {Promise<void>}
- *
- * @throws {AppError}
- *   Throws businessError if edit is not allowed.
+ * @throws {AppError} businessError if the edit is not permitted.
  */
 const assertSkuEditAllowed = async (sku, editType, user, client) => {
   const { isRoot } = await resolveUserPermissionContext(user);
-
-  if (isRoot) {
-    return; // bypass business guard
-  }
-
+  
+  if (isRoot) return;
+  
   const policy = SKU_EDIT_POLICIES[editType];
-
+  
   if (!policy) {
     throw AppError.businessError(`Unknown SKU edit type: ${editType}`);
   }
-
+  
   const ARCHIVED_STATUS_ID = getStatusId('general_archived');
+  
   if (policy.blockArchived && sku.status_id === ARCHIVED_STATUS_ID) {
     throw AppError.businessError('Archived SKU cannot be modified.');
   }
-
+  
   if (policy.blockOperational) {
     const { order, allocation, transfer } = getSkuOperationalStatusIds();
-
+    
     const hasOperational = await skuHasActiveDependencies(
       sku.id,
       order,
@@ -799,15 +497,15 @@ const assertSkuEditAllowed = async (sku, editType, user, client) => {
       transfer,
       client
     );
-
+    
     if (hasOperational) {
       throw AppError.businessError('SKU has active operational dependencies.');
     }
   }
-
+  
   if (policy.blockCommercial) {
     const hasCommercial = await skuHasAnyHistory(sku.id, client);
-
+    
     if (hasCommercial) {
       throw AppError.businessError(
         'SKU has commercial history and cannot be modified.'
@@ -821,11 +519,10 @@ module.exports = {
   enforceSkuLookupVisibilityRules,
   filterSkuLookupQuery,
   enrichSkuRow,
-  validateSkuCreationBusiness,
-  validateSkuListBusiness,
+  validateSkuCreation,
+  validateSkuList,
   prepareSkuInsertPayload,
   prepareSkuInsertPayloads,
-  validateSkuStatusTransition,
   assertValidSkuStatusTransition,
   evaluateSkuStatusAccessControl,
   sliceSkuForUser,

@@ -1,107 +1,113 @@
-const { query, paginateQueryByOffset } = require('../database/db');
-const { buildDiscountFilter } = require('../utils/sql/build-discount-filters');
-const AppError = require('../utils/AppError');
-const { logSystemException, logSystemInfo } = require('../utils/system-logger');
+/**
+ * @file discount-repository.js
+ * @description Database access layer for discount records.
+ *
+ * Follows the established repo pattern:
+ *  - Query constants and factories imported from discount-queries.js
+ *  - All errors normalized through handleDbError before bubbling up
+ *  - No success logging — middleware and globalErrorHandler own that layer
+ *
+ * Exports:
+ *  - getDiscountById      — minimal fetch by ID for order processing
+ *  - getDiscountsLookup   — offset-paginated dropdown lookup with optional filtering
+ */
+
+'use strict';
+
+const { query } = require('../database/db');
+const { paginateQueryByOffset } = require('../utils/db/pagination/pagination-helpers');
+const { handleDbError } = require('../utils/errors/error-handlers');
+const { logDbQueryError } = require('../utils/db-logger');
+const { buildDiscountFilter } = require('../utils/sql/build-discount-filter');
+const {
+  DISCOUNT_GET_BY_ID,
+  DISCOUNT_LOOKUP_TABLE,
+  DISCOUNT_LOOKUP_SORT_WHITELIST,
+  DISCOUNT_LOOKUP_ADDITIONAL_SORTS,
+  buildDiscountLookupQuery,
+} = require('./queries/discount-queries');
+
+// ─── Single Record ────────────────────────────────────────────────────────────
 
 /**
- * Retrieves discount details by ID.
- * Does not perform validity checks (e.g., time range); use a lookup/service function if needed.
+ * Fetches a minimal discount record by ID.
  *
- * @param {UUID} discountId - The ID of the discount to fetch.
- * @param {Object} client - Optional transaction client.
- * @returns {Promise<Object|null>} - The discount details (e.g., type, value, validity dates) or null if not found.
+ * Returns only discount_type and discount_value — used for discount
+ * resolution during order processing, not for display.
+ *
+ * @param {string}       discountId    - UUID of the discount to fetch.
+ * @param {PoolClient|null} [client=null] - Optional DB client for transactional context.
+ *
+ * @returns {Promise<{ discount_type: string, discount_value: number }|null>}
+ * @throws  {AppError} Normalized database error if the query fails.
  */
 const getDiscountById = async (discountId, client = null) => {
-  const sql = `
-    SELECT discount_type, discount_value
-    FROM discounts
-    WHERE id = $1
-  `;
-
+  const context = 'discount-repository/getDiscountById';
+  
   try {
-    const result = await query(sql, [discountId], client);
-    return result.rows[0] || null; // Return the discount object or null if not found
+    const result = await query(DISCOUNT_GET_BY_ID, [discountId], client);
+    return result.rows[0] ?? null;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch discount by ID', {
-      context: 'discount-repository/getDiscountById',
-      query: sql,
-      discountId,
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch discount by ID.',
+      meta:    { discountId },
+      logFn:   (err) => logDbQueryError(
+        DISCOUNT_GET_BY_ID,
+        [discountId],
+        err,
+        { context, discountId }
+      ),
     });
-
-    throw AppError.databaseError(`Failed to fetch discount: ${error.message}`);
   }
 };
 
+// ─── Lookup ───────────────────────────────────────────────────────────────────
+
 /**
- * Retrieves a paginated list of discount records for use in dropdown or autocomplete components.
+ * Fetches paginated discount records for dropdown/lookup use.
  *
- * Supports filtering by keyword, active status, creator, validity dates, and other metadata.
- * Results are sorted ascending by name for predictable dropdown behavior.
+ * Sorted by name ascending with valid_from as tie-breaker.
  *
- * Typically used in client UI components where users select available discounts,
- * such as in pricing or promotional forms.
+ * @param {Object} options
+ * @param {Object} [options.filters={}] - Optional filters (e.g. statusId, discountType).
+ * @param {number} [options.limit=50]   - Max records per page.
+ * @param {number} [options.offset=0]   - Offset for pagination.
  *
- * @param {Object} options - Lookup options
- * @param {number} [options.limit=50] - Maximum number of results to return
- * @param {number} [options.offset=0] - Offset for pagination
- * @param {Object} [options.filters={}] - Optional filter fields (e.g., keyword, isActive, createdBy)
- * @returns {Promise<{ data: { label: string, value: string }[], pagination: { hasMore: boolean, limit: number, offset: number } }>}
- *
- * @throws {AppError} If an error occurs while querying the database
+ * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
+ * @throws  {AppError}        Normalized database error if the query fails.
  */
-const getDiscountsLookup = async ({
-  limit = 50,
-  offset = 0,
-  filters = {},
-} = {}) => {
-  const tableName = 'discounts d';
-
+const getDiscountsLookup = async ({ filters = {}, limit = 50, offset = 0 } = {}) => {
+  const context = 'discount-repository/getDiscountsLookup';
+  
   const { whereClause, params } = buildDiscountFilter(filters);
-
-  const queryText = `
-    SELECT
-      d.id,
-      d.name,
-      d.status_id,
-      d.valid_from,
-      d.valid_to,
-      d.discount_type,
-      d.discount_value
-    FROM ${tableName}
-    WHERE ${whereClause}
-  `;
-
+  const queryText = buildDiscountLookupQuery(whereClause);
+  
   try {
-    const result = await paginateQueryByOffset({
-      tableName,
+    return await paginateQueryByOffset({
+      tableName:       DISCOUNT_LOOKUP_TABLE,
+      joins:           [],
       whereClause,
       queryText,
       params,
       offset,
       limit,
-      sortBy: 'd.name',
-      sortOrder: 'ASC',
-      additionalSort: 'd.valid_from ASC',
+      sortBy:          'd.name',
+      sortOrder:       'ASC',
+      additionalSorts: DISCOUNT_LOOKUP_ADDITIONAL_SORTS,
+      whitelistSet:    DISCOUNT_LOOKUP_SORT_WHITELIST,
     });
-
-    logSystemInfo('Fetched discounts lookup successfully', {
-      context: 'discounts-repository/getDiscountsLookup',
-      totalFetched: result.data?.length ?? 0,
-      pagination: { offset, limit },
-      filters,
-    });
-
-    return result;
-  } catch (err) {
-    logSystemException(err, 'Failed to fetch discounts lookup', {
-      context: 'discounts-repository/getDiscountsLookup',
-      offset,
-      limit,
-      filters,
-    });
-
-    throw AppError.databaseError('Failed to fetch discounts lookup options.', {
-      cause: err,
+  } catch (error) {
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch discounts lookup.',
+      meta:    { filters, limit, offset },
+      logFn:   (err) => logDbQueryError(
+        queryText,
+        params,
+        err,
+        { context, filters, limit, offset }
+      ),
     });
   }
 };
