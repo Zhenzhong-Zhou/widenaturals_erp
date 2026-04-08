@@ -40,6 +40,15 @@ const {
  */
 const createAddressController = wrapAsyncHandler(async (req, res) => {
   const addresses = req.body;
+
+  if (!Array.isArray(addresses)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid request body. Expected an array of addresses.',
+      traceId: req.traceId,
+    });
+  }
+
   const user      = req.auth.user;
   const isBulk    = addresses.length > 1;
   
