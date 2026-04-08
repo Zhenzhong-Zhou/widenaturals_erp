@@ -21,9 +21,9 @@ exports.up = async function (knex) {
 
     table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
     table.uuid('created_by').references('id').inTable('users');
-    table.timestamp('updated_at', { useTz: true });
+    table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
     table.uuid('updated_by').references('id').inTable('users');
-
+ 
     // Recommended indexes
     table.index(['type', 'compliance_id'], 'idx_compliance_type_id');
   });
@@ -34,6 +34,19 @@ exports.up = async function (knex) {
     ADD CONSTRAINT unique_compliance_type_id
     UNIQUE (type, compliance_id)
   `);
+  
+  await knex.raw(`
+  ALTER TABLE compliance_records
+  ADD CONSTRAINT compliance_records_type_check
+  CHECK (type IN (
+    'NPN',   -- Health Canada natural product number
+    'FDA',   -- US FDA registration
+    'COA',   -- Certificate of Analysis
+    'GRAS',  -- FDA generally recognized as safe
+    'NHPD',  -- Health Canada NHPD
+    'NMPA'   -- National Medical Products Administration (China, replaced CFDA)
+  ))
+`);
 
   //
   // 2. sku_compliance_links — join table for M:N relationship
@@ -45,14 +58,12 @@ exports.up = async function (knex) {
       .uuid('sku_id')
       .notNullable()
       .references('id')
-      .inTable('skus')
-      .onDelete('CASCADE');
+      .inTable('skus');
     table
       .uuid('compliance_record_id')
       .notNullable()
       .references('id')
-      .inTable('compliance_records')
-      .onDelete('CASCADE');
+      .inTable('compliance_records');
 
     table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
     table.uuid('created_by').references('id').inTable('users');
@@ -60,7 +71,7 @@ exports.up = async function (knex) {
     // Ensure one SKU links to one compliance document only once
     table.unique(
       ['sku_id', 'compliance_record_id'],
-      'unique_sku_compliance_link'
+      { indexName: 'unique_sku_compliance_link' },
     );
 
     table.index(['sku_id'], 'idx_sku_compliance_sku');
