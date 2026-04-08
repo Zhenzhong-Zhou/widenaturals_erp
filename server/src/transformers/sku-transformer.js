@@ -21,7 +21,7 @@ const { getProductDisplayName }           = require('../utils/display-name-utils
 const { transformPageResult }             = require('../utils/transformer-utils');
 const { cleanObject }                     = require('../utils/object-utils');
 const { transformSkuImageGroupsForDetail } = require('./sku-image-transformer');
-const { transformSkuPricing }             = require('./pricing-transformer');
+const { transformPricingSkuList }         = require('./pricing-transformer');
 const { transformComplianceRecord }       = require('./compliance-record-transformer');
 const { makeStatus }                      = require('../utils/status-utils');
 const { compactAudit, makeAudit }         = require('../utils/audit-utils');
@@ -216,7 +216,7 @@ const transformSkuDetail = ({ sku, images, pricing, complianceRecords }) => {
     audit: compactAudit(makeAudit(sku)),
     
     images:            transformSkuImageGroupsForDetail(images ?? []),
-    pricing:           pricing?.map(transformSkuPricing)         ?? [],
+    pricing:           pricing?.map(transformPricingSkuList)         ?? [],
     complianceRecords: complianceRecords?.map(transformComplianceRecord) ?? [],
   };
 };

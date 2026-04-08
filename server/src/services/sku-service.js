@@ -209,7 +209,7 @@ const fetchSkuDetailsService = async (skuId, user) => {
     const pricingAccess = await evaluatePricingViewAccessControl(user);
     let safePricing     = [];
     
-    if (pricingAccess.canViewPricing) {
+    if (pricingAccess.canViewAllValidPricing) {
       const pricingRows = await getPricingBySkuId(skuId);
       safePricing       = slicePricingForUser(pricingRows, pricingAccess);
     }
