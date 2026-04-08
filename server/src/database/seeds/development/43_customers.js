@@ -174,7 +174,7 @@ exports.seed = async function (knex) {
 
   await knex('customers')
     .insert(records)
-    .onConflict(['email', 'phone_number'])
+    .onConflict('email')
     .ignore();
 
   console.log(`Seeded ${records.length} customers.`);
