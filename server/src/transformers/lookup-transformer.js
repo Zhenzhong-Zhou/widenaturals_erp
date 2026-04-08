@@ -256,13 +256,26 @@ const transformSkuPaginatedLookupResult = (paginatedResult, options = {}, userAc
     transformSkuLookupRow(row, options, userAccess)
   );
 
-// ---------------------------------------------------------------------------
-// Pricing
-// ---------------------------------------------------------------------------
+// ─── Pricing Group Lookup ─────────────────────────────────────────────────────
 
-const transformPricingLookupRow = (
+/**
+ * Transforms a single pricing group lookup row for dropdown/selector use.
+ *
+ * Label is composed of product display name, pricing type, and price.
+ * Extended fields are included when labelOnly is false.
+ *
+ * @param {Object}                row        - Raw pricing group lookup row from the repository.
+ * @param {PricingGroupLookupAcl} acl        - Resolved ACL from evaluatePricingGroupLookupVisibility.
+ * @param {Object}                [options]
+ * @param {boolean}               [options.showSku=true]          - Include SKU code in label.
+ * @param {boolean}               [options.showPriceType=true]    - Include pricing type in label.
+ * @param {boolean}               [options.showPriceInLabel=true] - Include price in label.
+ * @param {boolean}               [options.labelOnly=false]       - Return minimal { id, label } only.
+ * @returns {Object}
+ */
+const transformPricingGroupLookupRow = (
   row,
-  userAccess,
+  acl,
   {
     showSku          = true,
     showPriceType    = true,
@@ -273,9 +286,8 @@ const transformPricingLookupRow = (
   const productDisplayName = getProductDisplayName({
     product_name: row.product_name,
     sku:          row.sku,
-    brand:        row.brand        ?? '',
-    country_code: row.country_code ?? '',
-    display_name: row.display_name,
+    brand:        row.brand            ?? '',
+    country_code: row.sku_country_code ?? '',
   });
   
   const labelParts = [];
@@ -283,24 +295,35 @@ const transformPricingLookupRow = (
   if (showPriceType)    labelParts.push(row.price_type);
   if (showPriceInLabel) labelParts.push(`$${row.price}`);
   
-  const canViewExtended = userAccess?.canViewAllStatuses || userAccess?.canViewAllValidLookups;
-  const base            = { id: row.id, label: labelParts.join(' · ') };
+  const canViewExtended = acl?.canViewAllPricingStates || acl?.canViewAllValidPricing;
+  const base            = {
+    id:    row.pricing_group_id,
+    label: labelParts.join(' · '),
+  };
   
   if (!labelOnly) {
-    if (canViewExtended && row.location_name) base.locationName = row.location_name;
-    base.price           = row.price;
+    base.price           = parseFloat(row.price);
+    base.countryCode     = row.country_code     ?? null;
     base.pricingTypeName = row.price_type;
-    Object.assign(base, includeFlagsBasedOnAccess(row, userAccess, STANDARD_FLAG_MAP));
+    Object.assign(base, includeFlagsBasedOnAccess(row, acl, STANDARD_FLAG_MAP));
   } else if (canViewExtended) {
-    Object.assign(base, includeFlagsBasedOnAccess(row, userAccess, STANDARD_FLAG_MAP));
+    Object.assign(base, includeFlagsBasedOnAccess(row, acl, STANDARD_FLAG_MAP));
   }
   
   return cleanObject(base);
 };
 
-const transformPricingPaginatedLookupResult = (paginatedResult, userAccess, options = {}) =>
+/**
+ * Transforms a paginated pricing group lookup result for dropdown/selector use.
+ *
+ * @param {Object}                paginatedResult - Raw paginated result from the repository.
+ * @param {PricingGroupLookupAcl} acl             - Resolved ACL from evaluatePricingGroupLookupVisibility.
+ * @param {Object}                [options]        - Display options forwarded to transformPricingGroupLookupRow.
+ * @returns {Object} Transformed paginated result.
+ */
+const transformPricingGroupPaginatedLookupResult = (paginatedResult, acl, options = {}) =>
   transformLoadMoreResult(paginatedResult, (row) =>
-    transformPricingLookupRow(row, userAccess, options)
+    transformPricingGroupLookupRow(row, acl, options)
   );
 
 // ---------------------------------------------------------------------------
@@ -555,7 +578,7 @@ module.exports = {
   transformTaxRatePaginatedLookupResult,
   transformDeliveryMethodPaginatedLookupResult,
   transformSkuPaginatedLookupResult,
-  transformPricingPaginatedLookupResult,
+  transformPricingGroupPaginatedLookupResult,
   transformPackagingMaterialPaginatedLookupResult,
   transformSkuCodeBasePaginatedLookupResult,
   transformProductPaginatedLookupResult,
