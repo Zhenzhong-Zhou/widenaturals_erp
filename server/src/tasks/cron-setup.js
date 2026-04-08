@@ -92,7 +92,7 @@ const resolveConfig = () => {
   };
 };
 
-const escapeCronPath = (p) => p.replace(/ /g, '\\ ');
+const escapeCronPath = (p) => JSON.stringify(String(p));
 
 /**
  * Builds cron job entry strings from resolved config.
