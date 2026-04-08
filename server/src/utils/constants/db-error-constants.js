@@ -9,7 +9,6 @@ const POSTGRES_ERROR_CODES = {
   // ---------------------------------------------------------------------------
   // Class 08 — Connection exceptions
   // ---------------------------------------------------------------------------
-  // GitGuardian-ignore-next-line
   CONNECTION_EXCEPTION:                                '08000',
   CONNECTION_DOES_NOT_EXIST:                           '08003',
   CONNECTION_FAILURE:                                  '08006',
