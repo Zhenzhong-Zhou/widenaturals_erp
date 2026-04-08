@@ -157,13 +157,11 @@ const BomOverviewPage = () => {
     isBomLoading ||
     isSupplyLoading ||
     readinessLoading ||
-    !hasBomData ||
-    !hasSupplyData ||
-    !hasReadinessData ||
     !flattenedHeader ||
     !flattenedSummary ||
     !flattenedDetails ||
     !flattenedSupplySummary ||
+    !flattenedSupplyDetails ||
     !flattenedReadinessMetadata;
 
   if (isPageLoading) {

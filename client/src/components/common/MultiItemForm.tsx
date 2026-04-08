@@ -343,7 +343,7 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>(
                             {CustomComponent({
                               value,
                               onChange,
-                              control,
+                              control: control as Control<any>,
                               disabled,
                               placeholder,
                               error: errorMessage,

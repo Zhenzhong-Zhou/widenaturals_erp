@@ -36,7 +36,6 @@ const CompleteManualFulfillmentButton: FC<
         },
       });
     } catch (err) {
-      console.error('Manual fulfillment failed:', err);
     }
   }, [shipmentId, submitManualFulfillment]);
 
@@ -48,12 +47,15 @@ const CompleteManualFulfillmentButton: FC<
       alert('Manual fulfillment completed successfully.');
       refresh();
       resetManualFulfillment();
-    } else if (error) {
-      console.error('Manual fulfillment error:', error);
-      alert('Failed to complete manual fulfillment.');
     }
   }, [data, error, refresh, resetManualFulfillment]);
-
+  
+  useEffect(() => {
+    if (error) {
+      resetManualFulfillment();
+    }
+  }, [error, resetManualFulfillment]);
+  
   return (
     <Box>
       <CustomButton
