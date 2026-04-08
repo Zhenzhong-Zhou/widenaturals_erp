@@ -195,6 +195,7 @@ const ComplianceFiltersPanel: FC<Props> = ({
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, md: 6 }}>
             {/* Lookup filters */}
+            {/* TODO(#46): add refresh, keyword search, fix expand during loading */}
             <ProductMultiSelectDropdown
               options={product.options}
               selectedOptions={productFilter.selectedOptions}
@@ -211,6 +212,7 @@ const ComplianceFiltersPanel: FC<Props> = ({
           </Grid>
 
           <Grid size={{ xs: 12, md: 3 }}>
+            // todo: fix cannot expand all data may need to add refresh button
             <SkuMultiSelectDropdown
               options={sku.options}
               selectedOptions={skuFilter.selectedOptions}

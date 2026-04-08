@@ -32,6 +32,7 @@ const SkuMultiSelectDropdown: FC<SkuMultiSelectDropdownProps> = ({
   inputValue,
   onInputChange,
 }) => {
+  {/* TODO(#46): add refresh, keyword search, fix expand during loading */}
   return (
     <MultiSelectDropdown
       label={label}
