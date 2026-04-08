@@ -26,7 +26,11 @@ const { formatTaxRateLabel }            = require('../utils/tax-rate-utils');
 const {
   createEntityLookupTransformer,
 }                                       = require('./common/create-entity-lookup-transformer');
-const { STANDARD_FLAG_MAP, STATUS_ONLY_FLAG_MAP } = require('../utils/constants/lookup-flag-maps');
+const {
+  STANDARD_FLAG_MAP,
+  STATUS_ONLY_FLAG_MAP,
+  PRICING_GROUP_FLAG_MAP
+}                                       = require('../utils/constants/lookup-flag-maps');
 
 // ---------------------------------------------------------------------------
 // Batch registry
@@ -305,9 +309,9 @@ const transformPricingGroupLookupRow = (
     base.price           = parseFloat(row.price);
     base.countryCode     = row.country_code     ?? null;
     base.pricingTypeName = row.price_type;
-    Object.assign(base, includeFlagsBasedOnAccess(row, acl, STANDARD_FLAG_MAP));
+    Object.assign(base, includeFlagsBasedOnAccess(row, acl, PRICING_GROUP_FLAG_MAP));
   } else if (canViewExtended) {
-    Object.assign(base, includeFlagsBasedOnAccess(row, acl, STANDARD_FLAG_MAP));
+    Object.assign(base, includeFlagsBasedOnAccess(row, acl, PRICING_GROUP_FLAG_MAP));
   }
   
   return cleanObject(base);
