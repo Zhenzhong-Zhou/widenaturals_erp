@@ -8,18 +8,18 @@
  *  - No success logging — middleware and globalErrorHandler own that layer
  *
  * Exports:
- *  - getAllPriceTypes              — paginated list with optional filtering
- *  - getPricingTypeById           — full detail fetch by id
- *  - checkPriceTypeExists         — existence check by id
- *  - getPricingTypesForDropdown   — dropdown fetch by product id
+ *  - getPricingTypeList   — paginated list with optional filtering
+ *  - getPricingTypeById   — full detail fetch by id
  */
 
 'use strict';
 
-const { paginateQuery } = require('../utils/db/pagination/pagination-helpers');
-const { query } = require('../database/db');
-const { handleDbError } = require('../utils/errors/error-handlers');
+const { paginateQuery }   = require('../utils/db/pagination/pagination-helpers');
+const { query }           = require('../database/db');
+const { handleDbError }   = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
+const { resolveSort }     = require('../utils/query/sort-resolver');
+const { SORTABLE_FIELDS } = require('../utils/sort-field-mapping');
 const { buildPricingTypeFilter } = require('../utils/sql/build-pricing-type-filter');
 const {
   PRICING_TYPE_TABLE,
@@ -27,52 +27,46 @@ const {
   PRICING_TYPE_SORT_WHITELIST,
   buildPricingTypePaginatedQuery,
   PRICING_TYPE_GET_BY_ID_QUERY,
-  PRICING_TYPE_EXISTS_QUERY,
-  PRICING_TYPE_DROPDOWN_QUERY,
 } = require('./queries/pricing-type-queries');
+
+const CONTEXT = 'pricing-type-repository';
 
 // ─── Paginated List ───────────────────────────────────────────────────────────
 
 /**
  * Fetches paginated pricing type records with optional filtering.
  *
- * Status filter behaviour is controlled by `canViewAllStatuses`:
+ * Status filter behaviour is controlled by `canViewAllStatuses` inside filters:
  *  - false → statusId always applied
  *  - true + no statusId → no status condition
  *  - true + statusId → statusId still applied
  *
- * @param {Object}  options
- * @param {number}  [options.page=1]                - Page number (1-based).
- * @param {number}  [options.limit=10]              - Records per page.
- * @param {string}  [options.statusId]              - Filter by status UUID.
- * @param {string}  [options.search]                - ILIKE search across name and code.
- * @param {string}  [options.startDate]             - Lower bound for status_date (BETWEEN).
- * @param {string}  [options.endDate]               - Upper bound for status_date (BETWEEN).
- * @param {boolean} [options.canViewAllStatuses]    - If true, status filter is optional.
- *
+ * @param {Object}       options
+ * @param {Object}       [options.filters={}]          - Field filters (statusId, search, startDate, endDate, canViewAllStatuses).
+ * @param {number}       [options.page=1]              - Page number (1-based).
+ * @param {number}       [options.limit=10]            - Records per page.
+ * @param {string}       [options.sortBy='pricingTypeName'] - Sort key (from pricingTypeSortMap).
+ * @param {'ASC'|'DESC'} [options.sortOrder='ASC']     - Sort direction.
  * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
- * @throws  {AppError}        Normalized database error if the query fails.
+ * @throws  {AppError} Normalized database error if the query fails.
  */
-const getAllPriceTypes = async ({
-                                  page,
-                                  limit,
-                                  statusId,
-                                  search,
-                                  startDate,
-                                  endDate,
-                                  canViewAllStatuses = false,
-                                }) => {
-  const context = 'pricing-type-repository/getAllPriceTypes';
+const getPaginatedPricingTypes = async ({
+                                    filters   = {},
+                                    page      = 1,
+                                    limit     = 10,
+                                    sortBy    = 'pricingTypeName',
+                                    sortOrder = 'ASC',
+                                  }) => {
+  const context                 = `${CONTEXT}/getPricingTypeList`;
+  const { whereClause, params } = buildPricingTypeFilter(filters);
+  const queryText               = buildPricingTypePaginatedQuery(whereClause);
   
-  const { whereClause, params } = buildPricingTypeFilter({
-    statusId,
-    canViewAllStatuses,
-    search,
-    startDate,
-    endDate,
+  const sortConfig = resolveSort({
+    sortBy,
+    sortOrder,
+    moduleKey:   'pricingTypeSortMap',
+    defaultSort: SORTABLE_FIELDS.pricingTypeSortMap.defaultNaturalSort,
   });
-  
-  const queryText = buildPricingTypePaginatedQuery(whereClause);
   
   try {
     return await paginateQuery({
@@ -83,17 +77,17 @@ const getAllPriceTypes = async ({
       params,
       page,
       limit,
-      sortBy:       'pt.name',
-      sortOrder:    'ASC',
+      sortBy:       sortConfig.sortBy,
+      sortOrder:    sortConfig.sortOrder,
       whitelistSet: PRICING_TYPE_SORT_WHITELIST,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
       message: 'Failed to fetch paginated pricing types.',
-      meta:    { page, limit },
+      meta:    { filters, page, limit },
       logFn:   (err) => logDbQueryError(
-        queryText, params, err, { context, page, limit }
+        queryText, params, err, { context, filters, page, limit }
       ),
     });
   }
@@ -107,15 +101,15 @@ const getAllPriceTypes = async ({
  * Returns null if no record exists for the given ID.
  *
  * @param {string} pricingTypeId - UUID of the pricing type.
- *
  * @returns {Promise<Object|null>} Pricing type detail row, or null if not found.
- * @throws  {AppError}             Normalized database error if the query fails.
+ * @throws  {AppError} Normalized database error if the query fails.
  */
 const getPricingTypeById = async (pricingTypeId) => {
-  const context = 'pricing-type-repository/getPricingTypeById';
+  const context = `${CONTEXT}/getPricingTypeById`;
+  const params  = [pricingTypeId];
   
   try {
-    const { rows } = await query(PRICING_TYPE_GET_BY_ID_QUERY, [pricingTypeId]);
+    const { rows } = await query(PRICING_TYPE_GET_BY_ID_QUERY, params);
     return rows[0] ?? null;
   } catch (error) {
     throw handleDbError(error, {
@@ -123,74 +117,13 @@ const getPricingTypeById = async (pricingTypeId) => {
       message: 'Failed to fetch pricing type by ID.',
       meta:    { pricingTypeId },
       logFn:   (err) => logDbQueryError(
-        PRICING_TYPE_GET_BY_ID_QUERY, [pricingTypeId], err, { context, pricingTypeId }
-      ),
-    });
-  }
-};
-
-// ─── Existence Check ──────────────────────────────────────────────────────────
-
-/**
- * Checks whether a pricing type exists by ID.
- *
- * @param {string}                  priceTypeId   - UUID to check.
- * @param {PoolClient|null} [client=null]
- *
- * @returns {Promise<boolean>} True if the pricing type exists.
- * @throws  {AppError}          Normalized database error if the query fails.
- */
-const checkPriceTypeExists = async (priceTypeId, client = null) => {
-  const context = 'pricing-type-repository/checkPriceTypeExists';
-  
-  try {
-    const { rows } = await query(PRICING_TYPE_EXISTS_QUERY, [priceTypeId], client);
-    return rows[0]?.exists ?? false;
-  } catch (error) {
-    throw handleDbError(error, {
-      context,
-      message: 'Failed to check pricing type existence.',
-      meta:    { priceTypeId },
-      logFn:   (err) => logDbQueryError(
-        PRICING_TYPE_EXISTS_QUERY, [priceTypeId], err, { context, priceTypeId }
-      ),
-    });
-  }
-};
-
-// ─── Dropdown ─────────────────────────────────────────────────────────────────
-
-/**
- * Fetches active pricing types with price labels for a given product.
- *
- * Returns rows ordered by pricing type name ascending.
- *
- * @param {string} productId - UUID of the product.
- *
- * @returns {Promise<Array<{ id: string, label: string }>>}
- * @throws  {AppError} Normalized database error if the query fails.
- */
-const getPricingTypesForDropdown = async (productId) => {
-  const context = 'pricing-type-repository/getPricingTypesForDropdown';
-  
-  try {
-    const { rows } = await query(PRICING_TYPE_DROPDOWN_QUERY, [productId]);
-    return rows;
-  } catch (error) {
-    throw handleDbError(error, {
-      context,
-      message: 'Failed to fetch pricing types for dropdown.',
-      meta:    { productId },
-      logFn:   (err) => logDbQueryError(
-        PRICING_TYPE_DROPDOWN_QUERY, [productId], err, { context, productId }
+        PRICING_TYPE_GET_BY_ID_QUERY, params, err, { context, pricingTypeId }
       ),
     });
   }
 };
 
 module.exports = {
-  getAllPriceTypes,
+  getPaginatedPricingTypes,
   getPricingTypeById,
-  checkPriceTypeExists,
-  getPricingTypesForDropdown,
 };

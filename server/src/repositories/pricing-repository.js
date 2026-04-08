@@ -1,6 +1,6 @@
 /**
  * @file pricing-repository.js
- * @description Database access layer for pricing records.
+ * @description Database access layer for pricing join table records.
  *
  * Follows the established repo pattern:
  *  - Query constants and factories imported from pricing-queries.js
@@ -8,72 +8,76 @@
  *  - No success logging — middleware and globalErrorHandler own that layer
  *
  * Exports:
- *  - getPaginatedPricings              — paginated list with filtering and sorting
- *  - exportAllPricingRecords           — full result set export with sorting
- *  - getPricingDetailsByPricingTypeId  — paginated details by pricing type
- *  - getPricingBySkuId                 — fetch all pricing rows for a SKU
+ *  - getSkusByGroupId              — paginated SKU list for a pricing group
+ *  - exportAllPricingRecords       — full export with filters and sorting
+ *  - getPricingBySkuId             — all pricing groups a SKU belongs to
+ *  - getPricesByGroupAndSkuBatch   — batch price fetch by (pricing_group_id, sku_id) pairs
  */
 
 'use strict';
 
-const { paginateQuery } = require('../utils/db/pagination/pagination-helpers');
-const { query } = require('../database/db');
-const { handleDbError } = require('../utils/errors/error-handlers');
-const { logDbQueryError } = require('../utils/db-logger');
-const { buildPricingFilters } = require('../utils/sql/build-pricing-filter');
+const { paginateQuery }    = require('../utils/db/pagination/pagination-helpers');
+const { query }            = require('../database/db');
+const { handleDbError }    = require('../utils/errors/error-handlers');
+const { logDbQueryError }  = require('../utils/db-logger');
+const {
+  buildPricingSkuFilters,
+  buildPricingExportFilters
+} = require('../utils/sql/build-pricing-filter');
+const {
+  PRICING_SKU_LIST_TABLE,
+  PRICING_SKU_LIST_JOINS,
+  PRICING_SKU_LIST_SORT_WHITELIST,
+  buildPricingSkuListQuery,
+  buildPricingExportQuery,
+  PRICING_BY_SKU_QUERY,
+  PRICING_BY_GROUP_AND_SKU_BATCH_QUERY,
+} = require('./queries/pricing-queries');
 const { resolveSort } = require('../utils/query/sort-resolver');
 const { SORTABLE_FIELDS } = require('../utils/sort-field-mapping');
-const {
-  PRICING_TABLE,
-  PRICING_JOINS,
-  PRICING_SORT_WHITELIST,
-  buildPricingSelectQuery,
-  PRICING_DETAILS_TABLE,
-  PRICING_DETAILS_JOINS,
-  PRICING_DETAILS_SORT_WHITELIST,
-  buildPricingDetailsQuery,
-  PRICING_BY_SKU_QUERY,
-} = require('./queries/pricing-queries');
 
-// ─── Paginated List ───────────────────────────────────────────────────────────
+const CONTEXT = 'pricing-repository';
+
+// ─── SKU List ─────────────────────────────────────────────────────────────────
 
 /**
- * Fetches paginated pricing records with optional filtering and sorting.
+ * Fetches a paginated list of SKUs assigned to a pricing group.
+ *
+ * Supports filtering by brand, product, SKU, country code, and free-text search.
  *
  * @param {Object}       options
- * @param {number}       [options.page=1]           - Page number (1-based).
- * @param {number}       [options.limit=10]          - Records per page.
- * @param {string}       [options.sortBy='brand']    - Sort key (mapped via pricingSortMap).
- * @param {'ASC'|'DESC'} [options.sortOrder='DESC']  - Sort direction.
- * @param {Object}       [options.filters={}]        - Field filters.
- *
- * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
- * @throws  {AppError}        Normalized database error if the query fails.
+ * @param {string}       options.pricingGroupId       - UUID of the pricing group.
+ * @param {Object}       [options.filters={}]         - Field filters.
+ * @param {number}       [options.page=1]             - Page number (1-based).
+ * @param {number}       [options.limit=20]           - Page size.
+ * @param {string}       [options.sortBy='pr.name']   - Sort column (from pricingSkuListSortMap).
+ * @param {'ASC'|'DESC'} [options.sortOrder='ASC']    - Sort direction.
+ * @returns {Promise<PaginatedResult>}
+ * @throws  {AppError} Normalized database error if the query fails.
  */
-const getPaginatedPricings = async ({
-                                      page,
-                                      limit,
-                                      sortBy    = 'brand',
-                                      sortOrder,
-                                      filters   = {},
-                                    }) => {
-  const context = 'pricing-repository/getPaginatedPricings';
-  
-  const { whereClause, params } = buildPricingFilters(filters);
+const getSkusByGroupId = async ({
+                                  pricingGroupId,
+                                  filters = {},
+                                  page = 1,
+                                  limit = 20,
+                                  sortBy    = 'productName',
+                                  sortOrder = 'ASC',
+                                }) => {
+  const context                 = `${CONTEXT}/getSkusByGroupId`;
+  const { whereClause, params } = buildPricingSkuFilters({ pricingGroupId, filters });
+  const queryText               = buildPricingSkuListQuery(whereClause);
   
   const sortConfig = resolveSort({
     sortBy,
     sortOrder,
-    moduleKey:   'pricingSortMap',
-    defaultSort: SORTABLE_FIELDS.pricingSortMap.defaultNaturalSort,
+    moduleKey:   'pricingSkuListSortMap',
+    defaultSort: SORTABLE_FIELDS.pricingSkuListSortMap.defaultNaturalSort,
   });
-  
-  const queryText = buildPricingSelectQuery(whereClause);
   
   try {
     return await paginateQuery({
-      tableName:    PRICING_TABLE,
-      joins:        PRICING_JOINS,
+      tableName:    PRICING_SKU_LIST_TABLE,
+      joins:        PRICING_SKU_LIST_JOINS,
       whereClause,
       queryText,
       params,
@@ -81,15 +85,15 @@ const getPaginatedPricings = async ({
       limit,
       sortBy:       sortConfig.sortBy,
       sortOrder:    sortConfig.sortOrder,
-      whitelistSet: PRICING_SORT_WHITELIST,
+      whitelistSet: PRICING_SKU_LIST_SORT_WHITELIST,
     });
   } catch (error) {
     throw handleDbError(error, {
       context,
-      message: 'Failed to fetch paginated pricing records.',
-      meta:    { filters, sortBy, sortOrder },
+      message: 'Failed to fetch SKUs for pricing group.',
+      meta:    { pricingGroupId, filters, page, limit },
       logFn:   (err) => logDbQueryError(
-        queryText, params, err, { context, filters }
+        queryText, params, err, { context, pricingGroupId, filters, page, limit }
       ),
     });
   }
@@ -101,36 +105,17 @@ const getPaginatedPricings = async ({
  * Fetches all pricing records matching filters for export.
  *
  * Returns all rows without pagination — intended for CSV/Excel export flows.
+ * ORDER BY is baked into buildPricingExportQuery.
  *
- * @param {Object}       options
- * @param {string}       [options.sortBy='brand']   - Sort key (mapped via pricingSortMap).
- * @param {'ASC'|'DESC'} [options.sortOrder='ASC']  - Sort direction.
- * @param {Object}       [options.filters={}]       - Field filters.
- *
+ * @param {Object} [options]
+ * @param {Object} [options.filters={}] - Field filters.
  * @returns {Promise<Array<Object>>} All matching pricing rows.
- * @throws  {AppError}               Normalized database error if the query fails.
+ * @throws  {AppError} Normalized database error if the query fails.
  */
-const exportAllPricingRecords = async ({
-                                         sortBy    = 'brand',
-                                         sortOrder = 'ASC',
-                                         filters   = {},
-                                       }) => {
-  const context = 'pricing-repository/exportAllPricingRecords';
-  
-  const { whereClause, params } = buildPricingFilters(filters);
-  
-  const sortConfig = resolveSort({
-    sortBy,
-    sortOrder,
-    moduleKey:   'pricingSortMap',
-    defaultSort: SORTABLE_FIELDS.pricingSortMap.defaultNaturalSort,
-  });
-  
-  // ORDER BY appended directly — this is a plain query(), not paginateQuery().
-  const queryText = `
-    ${buildPricingSelectQuery(whereClause)}
-    ORDER BY ${sortConfig.sortBy} ${sortConfig.sortOrder}
-  `;
+const exportAllPricingRecords = async ({ filters = {} } = {}) => {
+  const context                 = `${CONTEXT}/exportAllPricingRecords`;
+  const { whereClause, params } = buildPricingExportFilters(filters);
+  const queryText               = buildPricingExportQuery(whereClause);
   
   try {
     const { rows } = await query(queryText, params);
@@ -139,54 +124,9 @@ const exportAllPricingRecords = async ({
     throw handleDbError(error, {
       context,
       message: 'Failed to export pricing records.',
-      meta:    { filters, sortBy, sortOrder },
+      meta:    { filters },
       logFn:   (err) => logDbQueryError(
         queryText, params, err, { context, filters }
-      ),
-    });
-  }
-};
-
-// ─── Details By Pricing Type ──────────────────────────────────────────────────
-
-/**
- * Fetches paginated pricing detail records for a given pricing type.
- *
- * Aggregates SKU and product data grouped by pricing configuration fields.
- *
- * @param {Object} options
- * @param {string} options.pricingTypeId - UUID of the pricing type.
- * @param {number} [options.page=1]      - Page number (1-based).
- * @param {number} [options.limit=10]    - Records per page.
- *
- * @returns {Promise<Object>} Paginated result with rows and pagination metadata.
- * @throws  {AppError}        Normalized database error if the query fails.
- */
-const getPricingDetailsByPricingTypeId = async ({ pricingTypeId, page, limit }) => {
-  const context  = 'pricing-repository/getPricingDetailsByPricingTypeId';
-  const queryText = buildPricingDetailsQuery();
-  const params    = [pricingTypeId];
-  
-  try {
-    return await paginateQuery({
-      tableName:    PRICING_DETAILS_TABLE,
-      joins:        PRICING_DETAILS_JOINS,
-      whereClause:  'p.price_type_id = $1',
-      queryText,
-      params,
-      page,
-      limit,
-      sortBy:       'pr.name',
-      sortOrder:    'ASC',
-      whitelistSet: PRICING_DETAILS_SORT_WHITELIST,
-    });
-  } catch (error) {
-    throw handleDbError(error, {
-      context,
-      message: 'Failed to fetch pricing details.',
-      meta:    { pricingTypeId, page, limit },
-      logFn:   (err) => logDbQueryError(
-        queryText, params, err, { context, pricingTypeId }
       ),
     });
   }
@@ -195,17 +135,16 @@ const getPricingDetailsByPricingTypeId = async ({ pricingTypeId, page, limit }) 
 // ─── By SKU ───────────────────────────────────────────────────────────────────
 
 /**
- * Fetches all pricing records for a given SKU.
+ * Fetches all pricing groups a SKU belongs to.
  *
- * Returns an empty array if no pricing records exist for the SKU.
+ * Returns an empty array if the SKU has no pricing assignments.
  *
  * @param {string} skuId - UUID of the SKU.
- *
- * @returns {Promise<Array<Object>>} Pricing rows ordered by price_type code and valid_from.
- * @throws  {AppError}               Normalized database error if the query fails.
+ * @returns {Promise<Array<Object>>} Pricing rows ordered by price type code, country, valid_from.
+ * @throws  {AppError} Normalized database error if the query fails.
  */
 const getPricingBySkuId = async (skuId) => {
-  const context = 'pricing-repository/getPricingBySkuId';
+  const context = `${CONTEXT}/getPricingBySkuId`;
   
   try {
     const { rows } = await query(PRICING_BY_SKU_QUERY, [skuId]);
@@ -213,7 +152,7 @@ const getPricingBySkuId = async (skuId) => {
   } catch (error) {
     throw handleDbError(error, {
       context,
-      message: 'Failed to fetch SKU pricing.',
+      message: 'Failed to fetch pricing groups for SKU.',
       meta:    { skuId },
       logFn:   (err) => logDbQueryError(
         PRICING_BY_SKU_QUERY, [skuId], err, { context, skuId }
@@ -222,9 +161,45 @@ const getPricingBySkuId = async (skuId) => {
   }
 };
 
+// ─── Batch Fetch by (pricing_group_id, sku_id) Pairs ─────────────────────────
+
+/**
+ * Fetches prices for a batch of (pricing_group_id, sku_id) pairs.
+ *
+ * Returns only rows where both IDs match — unmatched pairs are silently dropped.
+ * Returns an empty array if pairs is empty.
+ *
+ * @param {Array<{ pricing_group_id: string, sku_id: string }>} pairs
+ * @param {import('pg').PoolClient|null} [client=null]
+ * @returns {Promise<Array<{ pricing_group_id: string, sku_id: string, price: string }>>}
+ * @throws  {AppError} Normalized database error if the query fails.
+ */
+const getPricesByGroupAndSkuBatch = async (pairs, client = null) => {
+  if (!pairs?.length) return [];
+  
+  const context         = `${CONTEXT}/getPricesByGroupAndSkuBatch`;
+  const pricingGroupIds = pairs.map((p) => p.pricing_group_id);
+  const skuIds          = pairs.map((p) => p.sku_id);
+  const params          = [pricingGroupIds, skuIds];
+  
+  try {
+    const { rows } = await query(PRICING_BY_GROUP_AND_SKU_BATCH_QUERY, params, client);
+    return rows;
+  } catch (error) {
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch prices for group/SKU pairs.',
+      meta:    { pairCount: pairs.length },
+      logFn:   (err) => logDbQueryError(
+        PRICING_BY_GROUP_AND_SKU_BATCH_QUERY, params, err, { context }
+      ),
+    });
+  }
+};
+
 module.exports = {
-  getPaginatedPricings,
+  getSkusByGroupId,
   exportAllPricingRecords,
-  getPricingDetailsByPricingTypeId,
   getPricingBySkuId,
+  getPricesByGroupAndSkuBatch,
 };
