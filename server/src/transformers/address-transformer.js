@@ -111,8 +111,12 @@ const transformPaginatedAddressRow = (row) => {
   return cleanObject({
     id:            row.id,
     customerId:    row.customer_id,
-    customerName:  getFullName(row.customer_firstname, row.customer_lastname),
+    customerType:    row.customer_type,
+    customerName: row.customer_type === 'company'
+      ? row.customer_company_name || null
+      : getFullName(row.customer_firstname, row.customer_lastname),
     customerEmail: row.customer_email ?? null,
+    companyName: row.company_name ?? null,
     
     label:         row.label          ?? null,
     recipientName: row.recipient_name ?? null,

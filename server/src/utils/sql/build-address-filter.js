@@ -39,6 +39,7 @@ const {
  * @param {string}  [filters.updatedBy]             - Filter by updater user UUID.
  * @param {string}  [filters.region]                - Filter by region string.
  * @param {string}  [filters.country]               - Filter by country string.
+ * @param {string}  [filters.city]                  - Filter by city string.
  * @param {string}  [filters.keyword]               - ILIKE search across label, full_name, email, phone, city.
  * @param {string}  [filters.createdAfter]          - Lower bound for created_at (inclusive, normalized to UTC).
  * @param {string}  [filters.createdBefore]         - Upper bound for created_at (exclusive, normalized to UTC).
@@ -101,6 +102,12 @@ const buildAddressFilter = (filters = {}, includeUnassigned = false) => {
   if (normalizedFilters.country) {
     conditions.push(`a.country = $${paramIndexRef.value}`);
     params.push(normalizedFilters.country);
+    paramIndexRef.value++;
+  }
+  
+  if (normalizedFilters.city) {
+    conditions.push(`a.city = $${paramIndexRef.value}`);
+    params.push(normalizedFilters.city);
     paramIndexRef.value++;
   }
   
