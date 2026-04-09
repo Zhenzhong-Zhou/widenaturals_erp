@@ -51,8 +51,6 @@ const customerArraySchema = createArraySchema(
  * These fields are commonly used across customer-related list or search endpoints.
  * Includes support for basic filters like a region, country, and metadata such as creator or keyword.
  *
- * - `region`: Optional string representing a region filter (e.g., 'North America')
- * - `country`: Optional string representing a country code or name
  * - `createdBy`: Optional UUID of the user who created the customer
  * - `keyword`: Optional string used for searching by name, email, etc.
  * - `customerType`:    Optional string filter by customer type — must be 'individual' or 'company'
@@ -64,8 +62,6 @@ const customerArraySchema = createArraySchema(
  * @type {Joi.ObjectSchema}
  */
 const baseCustomerFields = Joi.object({
-  region:          Joi.string().optional().allow(null),
-  country:         Joi.string().optional().allow(null),
   createdBy:       validateOptionalUUID('Created By'),
   keyword:         validateKeyword('Customer keyword'),
   customerType:    Joi.string().valid('individual', 'company').optional(),

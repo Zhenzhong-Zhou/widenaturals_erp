@@ -63,6 +63,8 @@ const insertCustomerRecords = async (customers, client) => {
     customer.lastname,
     customer.email          ?? null,
     customer.phone_number   ?? null,
+    customer.customer_type  ?? 'individual',
+    customer.company_name   ?? null,
     customer.status_id,
     customer.note           ?? null,
     null,                           // updated_at — null at insert time

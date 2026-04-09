@@ -20,6 +20,7 @@ const {
   transformRows,
   transformPageResult,
 } = require('../utils/transformer-utils');
+const { makeStatus } = require('../utils/status-utils');
 
 /**
  * Transforms a single customer DB row into either a nested or flat shape.
@@ -43,10 +44,7 @@ const transformCustomerRow = (row, { format = 'nested' } = {}) => {
     email:        row.email        ?? null,
     phoneNumber:  row.phone_number ?? null,
     note:         row.note         ?? null,
-    status: {
-      id:   row.status_id   ?? null,
-      name: row.status_name ?? null,
-    },
+    status:     makeStatus(row),
     hasAddress: row.has_address ?? null,
     createdAt:  row.created_at  ?? null,
     updatedAt:  row.updated_at  ?? null,
@@ -71,6 +69,7 @@ const transformCustomerRow = (row, { format = 'nested' } = {}) => {
       phoneNumber:  base.phoneNumber,
       statusId:     base.status.id,
       statusName:   base.status.name,
+      statusDate:   base.status.date,
       hasAddress:   base.hasAddress,
       createdAt:    base.createdAt,
       updatedAt:    base.updatedAt,

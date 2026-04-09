@@ -121,6 +121,7 @@ const buildCustomerPaginatedQuery = (whereClause) => `
     c.company_name,
     c.status_id,
     s.name                        AS status_name,
+    c.status_date,
     EXISTS (
       SELECT 1 FROM addresses a WHERE a.customer_id = c.id
     )                             AS has_address,

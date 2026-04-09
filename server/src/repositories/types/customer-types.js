@@ -30,6 +30,7 @@
  * @property {string|null}  note
  * @property {string|null}  status_id
  * @property {string|null}  status_name
+ * @property {string|null}  status_date
  * @property {boolean|null} has_address
  * @property {string|null}  created_at
  * @property {string|null}  updated_at
@@ -57,7 +58,7 @@
  * @property {string|null} email
  * @property {string|null} phoneNumber
  * @property {string|null} note
- * @property {{ id: string|null, name: string|null }} status
+ * @property {{ id: string|null, name: string|null, date: string|null }} status
  * @property {boolean|null} hasAddress
  * @property {string|null} createdAt
  * @property {string|null} updatedAt
@@ -76,6 +77,7 @@
  * @property {string|null}  phoneNumber
  * @property {string|null}  statusId
  * @property {string|null}  statusName
+ * @property {string|null}  statusDate
  * @property {boolean|null} hasAddress
  * @property {string|null}  createdAt
  * @property {string|null}  updatedAt
