@@ -8,7 +8,27 @@ interface SingleCustomerFormProps {
   loading?: boolean;
 }
 
+export const CUSTOMER_TYPE_OPTIONS: { label: string; value: string }[] = [
+  { label: 'Individual', value: 'individual' },
+  { label: 'Company',    value: 'company'    },
+];
+
 const customerFormFields: FieldConfig[] = [
+  {
+    id: 'customer_type',
+    label: 'Customer Type',
+    type: 'select',
+    required: true,
+    options: CUSTOMER_TYPE_OPTIONS,
+    grid: { xs: 12, sm: 6 },
+  },
+  {
+    id: 'company_name',
+    label: 'Company Name',
+    type: 'text',
+    required: false,
+    grid: { xs: 12, sm: 6 },
+  },
   {
     id: 'firstname',
     label: 'First Name',

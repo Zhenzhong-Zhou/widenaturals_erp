@@ -3,6 +3,7 @@ import MultiItemForm, {
   type MultiItemFieldConfig,
 } from '@components/common/MultiItemForm';
 import { emailValidator } from '@utils/validation';
+import { CUSTOMER_TYPE_OPTIONS } from '@features/customer/components/SingleCustomerForm';
 
 export interface BulkCustomerFormProps {
   onSubmit: (customers: Record<string, any>[]) => void;
@@ -10,6 +11,21 @@ export interface BulkCustomerFormProps {
 }
 
 const customerFields: MultiItemFieldConfig[] = [
+  {
+    id: 'customer_type',
+    label: 'Customer Type',
+    type: 'select',
+    required: true,
+    options: CUSTOMER_TYPE_OPTIONS,
+    group: 'basic',
+  },
+  {
+    id: 'company_name',
+    label: 'Company Name',
+    type: 'text',
+    required: false,
+    group: 'basic',
+  },
   {
     id: 'firstname',
     label: 'First Name',

@@ -10,15 +10,19 @@ import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Card from '@mui/material/Card';
 import Divider from '@mui/material/Divider';
-import CustomTypography from '@components/common/CustomTypography';
-import CustomButton from '@components/common/CustomButton';
+import {
+  CustomButton,
+  CustomTypography,
+  Loading,
+  NoDataFound
+} from '@components/index';
 import CustomerCreateDialog from '@features/customer/components/CustomerCreateDialog';
-import CustomerTable from '@features/customer/components/CustomerTable';
-import NoDataFound from '@components/common/NoDataFound';
-import Loading from '@components/common/Loading';
-import CustomerFiltersPanel from '@features/customer/components/CustomerFiltersPanel';
-import CustomerSortControls from '../components/CustomerSortControls';
-import usePaginatedCustomers from '@hooks/usePaginatedCustomers';
+import {
+  CustomerFiltersPanel,
+  CustomerSortControls,
+  CustomerTable
+} from '@features/customer/components/CustomerTable';
+import { usePaginatedCustomers } from '@hooks/index';
 import type {
   CustomerFilters,
   CustomerSortField,
@@ -34,6 +38,7 @@ const CustomersPage: FC = () => {
   const [sortBy, setSortBy] = useState<CustomerSortField>('createdAt');
   const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
   const [filters, setFilters] = useState<CustomerFilters>({});
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
 
   const { handleOpenDialog, handleCloseDialog } = useDialogFocusHandlers(
     setDialogOpen,
@@ -44,7 +49,11 @@ const CustomersPage: FC = () => {
     setPage,
     setLimit
   );
-
+  
+  const handleDrillDownToggle = (rowId: string) => {
+    setExpandedRowId((current) => (current === rowId ? null : rowId));
+  };
+  
   const {
     customers,
     totalPages,
@@ -158,6 +167,8 @@ const CustomersPage: FC = () => {
             totalPages={totalPages}
             onPageChange={handlePageChange}
             onRowsPerPageChange={handleRowsPerPageChange}
+            expandedRowId={expandedRowId}
+            onDrillDownToggle={handleDrillDownToggle}
             onRefresh={handleRefresh}
           />
         )}

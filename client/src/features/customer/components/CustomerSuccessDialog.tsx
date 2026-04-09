@@ -8,6 +8,7 @@ import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
 import type { CustomerResponse } from '@features/customer/state';
 import { formatLabel } from '@utils/textUtils';
+import { formatDateTime } from '@utils/dateTimeUtils';
 import AddAddressButton from '@features/address/components/AddAddressButton';
 
 interface CustomerSuccessDialogProps {
@@ -31,8 +32,15 @@ const CustomerSuccessDialog: FC<CustomerSuccessDialogProps> = ({
 }) => {
   const transformFields = (data: CustomerResponse): DetailsSectionField[] => [
     {
+      label: 'Customer Type',
+      value: data.customerType,
+      format: (value) => formatLabel(value),
+    },
+    {
       label: 'Customer Name',
-      value: `${data.firstname} ${data.lastname}`,
+      value: data.customerType === 'company'
+        ? data.companyName
+        : `${data.firstname ?? ''} ${data.lastname ?? ''}`.trim(),
       format: (value) => formatLabel(value),
     },
     { label: 'Email', value: data.email },
@@ -41,6 +49,11 @@ const CustomerSuccessDialog: FC<CustomerSuccessDialogProps> = ({
       label: 'Status',
       value: data.status?.name ?? '—',
       format: (value) => formatLabel(value),
+    },
+    {
+      label: 'Status Date',
+      value: data.status?.date ?? '—',
+      format: (value) => formatDateTime(value),
     },
   ];
 
