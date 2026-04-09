@@ -1,85 +1,51 @@
 /**
- * ================================================================
- * Pricing Type Thunks Module
- * ================================================================
- *
- * Responsibility:
- * - Orchestrates asynchronous pricing type workflows.
- * - Serves as the boundary between UI and pricingTypeService.
- *
- * Scope:
- * - Fetch paginated pricing type records
- * - Fetch pricing type metadata by ID
- *
- * Architecture:
- * - Delegates API calls to pricingTypeService
- * - No transformation is performed at the thunk layer
- * - Redux state stores service response models directly
- *
- * Error Model:
- * - All failures return `UiErrorPayload`
- * - Errors are normalized via `extractUiErrorPayload`
- * ================================================================
+ * @file pricingTypeThunks.ts
+ * @description Async thunks for pricing type data fetching.
+ * Covers paginated list queries and single record detail fetches.
  */
 
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { pricingTypeService } from '@services/pricingTypeService';
-import type { PaginatedResponse } from '@shared-types/api';
 import type {
-  FetchPricingTypesParams,
-  PricingType,
-  PricingTypeMetadata,
-} from './pricingTypeTypes';
+  PaginatedPricingTypeApiResponse,
+  PricingTypeDetailApiResponse,
+  PricingTypeQueryParams,
+} from '@features/pricingType';
+import { pricingTypeService } from '@services/pricingTypeService';
+import { extractUiErrorPayload } from '@utils/error';
 import type { UiErrorPayload } from '@utils/error/uiErrorUtils';
-import { extractUiErrorPayload } from '@utils/error/uiErrorUtils';
 
 /**
- * Fetches a paginated list of pricing types.
- *
- * Responsibilities:
- * - Calls pricingTypeService.fetchAllPricingTypes
- * - Passes pagination and filter parameters
- * - Returns service response directly without transformation
- *
- * Error Model:
- * - Failures return `UiErrorPayload`
- *
- * @param params - Pagination and filtering options
+ * Fetch a paginated list of pricing types with optional filters and sorting.
  */
-export const fetchAllPricingTypesThunk = createAsyncThunk<
-  PaginatedResponse<PricingType>,
-  FetchPricingTypesParams,
-  { rejectValue: UiErrorPayload }
->('pricingTypes/fetchAllPricingTypes', async (params, { rejectWithValue }) => {
-  try {
-    return await pricingTypeService.fetchAllPricingTypes(params);
-  } catch (error: unknown) {
-    return rejectWithValue(extractUiErrorPayload(error));
-  }
-});
+export const fetchPaginatedPricingTypesThunk = createAsyncThunk<
+  PaginatedPricingTypeApiResponse,
+  PricingTypeQueryParams,
+{ rejectValue: UiErrorPayload }
+>(
+  'pricingType/fetchPaginatedPricingTypes',
+    async (params, { rejectWithValue }) => {
+      try {
+        return await pricingTypeService.fetchPaginatedPricingTypes(params);
+      } catch (error: unknown) {
+        return rejectWithValue(extractUiErrorPayload(error));
+      }
+    }
+);
 
 /**
- * Fetches metadata for a single pricing type.
- *
- * Responsibilities:
- * - Calls pricingTypeService.fetchPricingTypeMetadataById
- * - Returns pricing type metadata for detail views
- *
- * Error Model:
- * - Failures return `UiErrorPayload`
- *
- * @param id - Pricing type UUID
+ * Fetch full pricing type details by ID.
  */
-export const fetchPricingTypeMetadataThunk = createAsyncThunk<
-  PricingTypeMetadata,
+export const fetchPricingTypeByIdThunk = createAsyncThunk<
+  PricingTypeDetailApiResponse,
   string,
-  { rejectValue: UiErrorPayload }
->('pricingType/fetchMetadataById', async (id, { rejectWithValue }) => {
-  try {
-    const response = await pricingTypeService.fetchPricingTypeMetadataById(id);
-
-    return response.data;
-  } catch (error: unknown) {
-    return rejectWithValue(extractUiErrorPayload(error));
-  }
-});
+{ rejectValue: UiErrorPayload }
+>(
+  'pricingType/fetchPricingTypeById',
+    async (pricingTypeId, { rejectWithValue }) => {
+      try {
+        return await pricingTypeService.fetchPricingTypeDetailsById(pricingTypeId);
+      } catch (error: unknown) {
+        return rejectWithValue(extractUiErrorPayload(error));
+      }
+    }
+);

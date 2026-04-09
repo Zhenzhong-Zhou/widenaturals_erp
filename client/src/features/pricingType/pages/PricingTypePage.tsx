@@ -11,7 +11,7 @@ import PricingTypeFilterPanel, {
 } from '@features/pricingType/components/PricingTypeFilterPanel';
 import PricingTypeTable from '@features/pricingType/components/PricingTypeTable';
 import CustomButton from '@components/common/CustomButton';
-import usePricingTypes from '@hooks/usePricingTypes';
+import usePricingTypes from '@hooks/usePaginatedPricingTypes';
 
 const PricingTypePage = () => {
   const [page, setPage] = useState(1);

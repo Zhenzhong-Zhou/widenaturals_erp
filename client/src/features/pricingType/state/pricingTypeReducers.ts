@@ -1,5 +1,5 @@
-import pricingTypesReducer from './pricingTypeSlice';
-import pricingTypeMetadataReducer from './pricingTypeMetadataSlice';
+import paginatedPricingTypesReducer from './paginatedPricingTypesSlice';
+import pricingTypeDetailReducer from './pricingTypeDetailSlice';
 
 /**
  * Reducer map for the Pricing Type feature.
@@ -16,8 +16,8 @@ import pricingTypeMetadataReducer from './pricingTypeMetadataSlice';
  */
 export const pricingTypeReducers = {
   /** Paginated and searchable pricing type list */
-  pricingTypes: pricingTypesReducer,
+  paginatedPricingTypes: paginatedPricingTypesReducer,
 
   /** Metadata and configuration for a single pricing type */
-  pricingTypeMetadata: pricingTypeMetadataReducer,
+  pricingTypeDetail: pricingTypeDetailReducer,
 };

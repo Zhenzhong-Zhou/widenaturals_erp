@@ -1,69 +1,57 @@
-import axiosInstance from '@utils/axiosConfig';
-import { API_ENDPOINTS } from '@services/apiEndpoints';
+/**
+ * @file pricingTypeService.ts
+ * @description HTTP service functions for pricing type data retrieval.
+ * Covers paginated list queries and single record detail fetches.
+ */
+
 import type {
-  FetchPricingTypesParams,
-  PricingTypeMetadataResponse,
-} from '@features/pricingType/state';
-import type { PricingType } from '@features/pricingType';
-import type { PaginatedResponse } from '@shared-types/api';
+  PaginatedPricingTypeApiResponse,
+  PricingTypeDetailApiResponse,
+  PricingTypeQueryParams,
+} from '@features/pricingType';
+import { buildQueryString, flattenListQueryParams } from '@utils/query';
+import { API_ENDPOINTS } from '@services/apiEndpoints';
+import { getRequest } from '@utils/http';
+import { sanitizeString } from '@utils/stringUtils';
 
 /**
- * Fetches a paginated list of pricing types with optional filters.
+ * Fetch a paginated list of pricing types with optional filters and sorting.
  *
- * This client function calls the backend API to retrieve pricing type records,
- * supporting optional filters such as search keyword (`name`), and a date range.
- *
- * @param {FetchPricingTypesParams} params - Query parameters including pagination and optional filters:
- * - `page` (number): Page number for pagination (default is 1).
- * - `limit` (number): Number of records per page (default is 10).
- * - `name` (string): Optional search keyword for name or code.
- * - `startDate` (string): Optional start date (ISO string) for status_date filtering.
- * - `endDate` (string): Optional end date (ISO string) for status_date filtering.
- *
- * @returns {Promise<PaginatedResponse<PricingType>>} - A promise resolving to a paginated list of pricing types.
- *
- * @throws {Error} Throws an error if the request fails.
+ * READ-only operation.
  */
-const fetchAllPricingTypes = async (
-  params: FetchPricingTypesParams
-): Promise<PaginatedResponse<PricingType>> => {
-  try {
-    const response = await axiosInstance.get<PaginatedResponse<PricingType>>(
-      API_ENDPOINTS.PRICING_TYPES,
-      { params }
-    );
-    return response.data;
-  } catch (error) {
-    throw new Error('Failed to fetch pricing types');
-  }
+const fetchPaginatedPricingTypes = async (
+  params: PricingTypeQueryParams = {}
+): Promise<PaginatedPricingTypeApiResponse> => {
+  const flatParams = flattenListQueryParams(params, [
+    'createdAfter',
+    'createdBefore',
+  ]);
+  
+  const queryString = buildQueryString(flatParams);
+  const url = `${API_ENDPOINTS.PRICING_TYPES.ALL_RECORDS}${queryString}`;
+  
+  return getRequest<PaginatedPricingTypeApiResponse>(url, {
+    policy: 'READ',
+  });
 };
 
 /**
- * Fetches metadata for a single pricing type by ID.
+ * Fetch full pricing type details by ID.
  *
- * @param {string} pricingTypeId - The UUID of the pricing type to fetch.
- * @returns {Promise<PricingTypeMetadataResponse>} The metadata response.
- * @throws {Error} If the request fails.
+ * READ-only operation.
  */
-export const fetchPricingTypeMetadataById = async (
+const fetchPricingTypeDetailsById = (
   pricingTypeId: string
-): Promise<PricingTypeMetadataResponse> => {
-  try {
-    const endpoint = API_ENDPOINTS.PRICING_TYPE_METADATA.replace(
-      ':id',
-      pricingTypeId
-    );
-    const response =
-      await axiosInstance.get<PricingTypeMetadataResponse>(endpoint);
-    return response.data;
-  } catch (error: any) {
-    const message =
-      error?.response?.data?.message || error.message || 'Unknown error';
-    throw new Error(`Failed to fetch pricing type metadata: ${message}`);
-  }
+): Promise<PricingTypeDetailApiResponse> => {
+  const cleanId = sanitizeString(pricingTypeId);
+  
+  return getRequest<PricingTypeDetailApiResponse>(
+    API_ENDPOINTS.PRICING_TYPES.PRICING_TYPE_DETAILS(cleanId),
+    { policy: 'READ' }
+  );
 };
 
 export const pricingTypeService = {
-  fetchAllPricingTypes,
-  fetchPricingTypeMetadataById,
+  fetchPaginatedPricingTypes,
+  fetchPricingTypeDetailsById,
 };

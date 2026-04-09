@@ -94,8 +94,8 @@ export { default as useBomProductionReadiness } from './useBomProductionReadines
 
 export { default as usePricingList } from './usePricingList';
 export { default as usePricingListByType } from './usePricingListByType';
-export { default as usePricingTypes } from './usePricingTypes';
-export { default as usePricingTypeMetadata } from './usePricingTypeMetadata';
+export { default as usePaginatedPricingTypes } from './usePaginatedPricingTypes';
+export { default as usePricingTypeDetail } from './usePricingTypeDetail';
 export { default as usePricingGroupLookup } from './usePricingGroupLookup';
 
 /* =====================================================

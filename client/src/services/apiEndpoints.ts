@@ -30,7 +30,11 @@ export const API_ENDPOINTS = {
   COMPLIANCE_RECORDS: {
     ALL_RECORDS: '/compliance-records',
   },
-  PRICING_TYPES: '/pricing-types',
+  PRICING_TYPES: {
+    ALL_RECORDS: '/pricing-types',
+    PRICING_TYPE_DETAILS: (pricingTypeId: string) =>
+      `/pricing-types/${pricingTypeId}/details`,
+  },
   PRICING_TYPE_METADATA: '/pricing-types/metadata/:id',
   PRICING_LIST: '/pricings',
   PRICING_LIST_EXPORT: '/pricings/export',

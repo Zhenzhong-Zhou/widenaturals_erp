@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import usePricingTypeMetadata from '@hooks/usePricingTypeMetadata';
+import usePricingTypeDetail from '@hooks/usePricingTypeDetail';
 import Box from '@mui/material/Box';
 import ErrorMessage from '@components/common/ErrorMessage';
 import CustomTypography from '@components/common/CustomTypography';
@@ -20,7 +20,7 @@ const PricingTypeDetailPage = () => {
   }
 
   const { data, isLoading, error, fetchData, statusName } =
-    usePricingTypeMetadata();
+    usePricingTypeDetail();
 
   useEffect(() => {
     if (id) {
