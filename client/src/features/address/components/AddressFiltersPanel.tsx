@@ -11,7 +11,8 @@ import type {
   LookupPaginationMeta,
 } from '@features/lookup/state';
 import { toISODate } from '@utils/dateTimeUtils';
-import { renderDateField, renderInputField } from '@utils/filters/filterUtils';
+import { renderDateField, renderInputField, renderSelectField } from '@utils/filters/filterUtils';
+import { CUSTOMER_TYPE_OPTIONS } from '@features/customer/components/SingleCustomerForm';
 
 interface Props {
   filters: AddressFilterConditions;
@@ -29,41 +30,45 @@ interface Props {
 
 const emptyFilters: AddressFilterConditions = {
   keyword: '',
-  region: '',
   country: '',
+  city: '',
+  region: '',
+  customerType: '',
+  customerId: '',
   createdAfter: '',
   createdBefore: '',
   updatedAfter: '',
   updatedBefore: '',
+  createdBy: '',
   updatedBy: '',
 };
 
 const AddressFiltersPanel: FC<Props> = ({
-  filters,
-  onChange,
-  onApply,
-  onReset,
-  customerDropdownOptions,
-  fetchCustomerDropdownOptions,
-  customerLookupLoading,
-  customerLookupError,
-  customerLookupMeta,
-  fetchParams,
-  setFetchParams,
-}) => {
+                                          filters,
+                                          onChange,
+                                          onApply,
+                                          onReset,
+                                          customerDropdownOptions,
+                                          fetchCustomerDropdownOptions,
+                                          customerLookupLoading,
+                                          customerLookupError,
+                                          customerLookupMeta,
+                                          fetchParams,
+                                          setFetchParams,
+                                        }) => {
   const textFields: {
     name: keyof AddressFilterConditions;
     label: string;
     placeholder?: string;
   }[] = [
-    { name: 'updatedBy', label: 'Updated By' },
     {
       name: 'keyword',
       label: 'Search Keyword',
       placeholder: 'Label, Name, Email, etc.',
     },
-    { name: 'region', label: 'Region' },
     { name: 'country', label: 'Country' },
+    { name: 'city', label: 'City' },
+    { name: 'region', label: 'Region' },
   ];
 
   const dateFields: { name: keyof AddressFilterConditions; label: string }[] = [
@@ -102,7 +107,7 @@ const AddressFiltersPanel: FC<Props> = ({
     <Box mb={2} p={2} border="1px solid #ccc" borderRadius={2}>
       <form onSubmit={handleSubmit(submitFilters)}>
         <Grid container spacing={2} sx={{ minHeight: 160 }}>
-          <Grid size={{ xs: 12, sm: 6 }}>
+          <Grid size={{ xs: 12, sm: 9 }}>
             <Controller
               name="customerId"
               control={control}
@@ -131,7 +136,9 @@ const AddressFiltersPanel: FC<Props> = ({
               )}
             />
           </Grid>
-
+          
+          {renderSelectField(control, 'customerType', 'Customer Type', CUSTOMER_TYPE_OPTIONS)}
+          
           {textFields.map(({ name, label, placeholder }) =>
             renderInputField(control, name, label, placeholder)
           )}

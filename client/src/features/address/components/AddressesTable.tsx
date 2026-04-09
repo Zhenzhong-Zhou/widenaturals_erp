@@ -45,10 +45,19 @@ const AddressesTable: FC<AddressesTableProps> = ({
   const columns: Column<AddressListItem>[] = useMemo(() => {
     const base: Column<AddressListItem>[] = [
       {
+        id: 'customerType',
+        label: 'Customer Type',
+        minWidth: 150,
+        renderCell: (row) => formatLabel(row.customerType),
+      },
+      {
         id: 'customerName',
         label: 'Customer Name',
         minWidth: 150,
-        renderCell: (row) => formatLabel(row.customerName),
+        renderCell: (row) =>
+          row.customerType === 'company'
+            ? formatLabel(row.companyName)
+            : formatLabel(row.customerName),
       },
       {
         id: 'label',

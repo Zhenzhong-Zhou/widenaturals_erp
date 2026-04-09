@@ -171,7 +171,14 @@ const AddressesPage: FC = () => {
         ) : error ? (
           <CustomTypography color="error">{error}</CustomTypography>
         ) : addresses.length === 0 ? (
-          <NoDataFound message="No addresses found." />
+          <NoDataFound
+            message="No addresses found."
+            action={
+              <CustomButton onClick={handleResetFilters} sx={{ mt: 1, minWidth: 160 }}>
+                Reset Filters
+              </CustomButton>
+            }
+          />
         ) : (
           <AddressesTable
             loading={addressLoading}

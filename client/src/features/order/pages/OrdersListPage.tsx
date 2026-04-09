@@ -229,15 +229,22 @@ const OrdersListPage = () => {
 
       <Box>
         {ordersLoading && (
-          <Loading variant="dotted" message="Loading addresses..." />
+          <Loading variant="dotted" message="Loading orders..." />
         )}
 
         {!ordersLoading && ordersError && (
           <CustomTypography color="error">{ordersError}</CustomTypography>
         )}
-
+        
         {!ordersLoading && !ordersError && orders.length === 0 && (
-          <NoDataFound message="No addresses found." />
+          <NoDataFound
+            message="No orders found."
+            action={
+              <CustomButton onClick={handleResetFilters} sx={{ mt: 1, minWidth: 160 }}>
+                Reset Filters
+              </CustomButton>
+            }
+          />
         )}
 
         {!ordersLoading && !ordersError && pagination && orders.length > 0 && (

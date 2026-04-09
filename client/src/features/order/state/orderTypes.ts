@@ -6,7 +6,7 @@ import type {
   SortConfig,
 } from '@shared-types/api';
 import type { ReduxPaginatedState } from '@shared-types/pagination';
-// todo: ajust customers
+
 /**
  * Represents a single item in a sales order.
  */
@@ -155,6 +155,10 @@ export interface OrderListFilters {
    * This may be user-provided or injected from access stage control.
    */
   orderStatusId?: string | string[];
+  
+  customerType?: string;
+  
+  customerName?: string;
 
   /**
    * Filter for orders created after this ISO date (inclusive).
@@ -283,7 +287,9 @@ export interface OrderListItem {
 
   /** Optional note or comment attached to the order */
   note?: string | null;
-
+  
+  customerType?: string | null;
+  
   /** Full name of the associated customer, if available */
   customerName?: string | null;
 
@@ -599,7 +605,11 @@ export interface OrderAggregate {
   /** Customer details */
   customer: {
     id: string;
+    type: string | null;
     fullName: string;
+    firstName: string | null;
+    lastName: string | null;
+    companyName: string | null;
     email: string | null;
     phone: string | null;
   };
@@ -802,8 +812,10 @@ export interface FlattenedOrderHeader {
     /** Formatted billing address string */
     address: string;
   };
+  
+  customerType: string;
 
-  /** Full name of the customer placing the order */
+  /** Full name of the customer or company placing the order */
   customerName: string;
 
   /** Customer’s email address */
@@ -811,6 +823,8 @@ export interface FlattenedOrderHeader {
 
   /** Customer’s phone number */
   customerPhone: string;
+  
+  companyName?: string | null;
 
   /** Metadata about who created/updated the order */
   auditInfo: {

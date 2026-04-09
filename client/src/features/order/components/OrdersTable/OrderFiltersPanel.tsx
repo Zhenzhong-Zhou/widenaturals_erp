@@ -5,7 +5,12 @@ import CustomButton from '@components/common/CustomButton';
 import { useForm } from 'react-hook-form';
 import type { OrderListFilters } from '@features/order/state';
 import { toISODate } from '@utils/dateTimeUtils';
-import { renderDateField, renderInputField } from '@utils/filters/filterUtils';
+import {
+  renderDateField,
+  renderInputField,
+  renderSelectField
+} from '@utils/filters/filterUtils';
+import { CUSTOMER_TYPE_OPTIONS } from '@features/customer/components/SingleCustomerForm';
 
 interface Props {
   filters: OrderListFilters;
@@ -18,18 +23,24 @@ const emptyFilters: OrderListFilters = {
   keyword: '',
   orderNumber: '',
   orderCategory: '',
+  orderStatusId: '',
+  orderTypeId: '',
+  customerType: '',
+  customerName: '',
   createdAfter: '',
   createdBefore: '',
   statusDateAfter: '',
   statusDateBefore: '',
+  createdBy: '',
+  updatedBy: '',
 };
 
 const OrderFiltersPanel: FC<Props> = ({
-  filters,
-  onChange,
-  onApply,
-  onReset,
-}) => {
+                                        filters,
+                                        onChange,
+                                        onApply,
+                                        onReset,
+                                      }) => {
   const { control, handleSubmit, reset } = useForm<OrderListFilters>({
     defaultValues: filters,
   });
@@ -61,6 +72,7 @@ const OrderFiltersPanel: FC<Props> = ({
     { name: 'orderNumber', label: 'Order Number' },
     { name: 'keyword', label: 'Search Keyword', placeholder: 'Order #...' },
     { name: 'orderCategory', label: 'Order Category' },
+    { name: 'customerName', label: 'Customer Name' },
   ];
 
   const dateFields: { name: keyof OrderListFilters; label: string }[] = [
@@ -81,6 +93,8 @@ const OrderFiltersPanel: FC<Props> = ({
           {dateFields.map(({ name, label }) =>
             renderDateField(control, name, label)
           )}
+          
+          {renderSelectField(control, 'customerType', 'Customer Type', CUSTOMER_TYPE_OPTIONS)}
         </Grid>
 
         <Box display="flex" flexWrap="wrap" gap={2} mt={3}>
