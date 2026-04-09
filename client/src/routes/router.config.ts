@@ -331,7 +331,7 @@ export const appRoutes: AppRoute[] = [
   defineRoute({
     path: '/pricing-types',
     component: lazy(
-      () => import('@features/pricingType/pages/PricingTypePage')
+      () => import('@features/pricingType/pages/PricingTypeListPage')
     ),
     meta: {
       requiresAuth: true,
