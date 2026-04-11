@@ -35,7 +35,9 @@ export const API_ENDPOINTS = {
     PRICING_TYPE_DETAILS: (pricingTypeId: string) =>
       `/pricing-types/${pricingTypeId}/details`,
   },
-  PRICING_TYPE_METADATA: '/pricing-types/metadata/:id',
+  PRICING_GROUPS: {
+    ALL_RECORDS: '/pricing-groups',
+  },
   PRICING_LIST: '/pricings',
   PRICING_LIST_EXPORT: '/pricings/export',
   PRICING_DETAILS_BY_TYPE: '/pricings/by-type/:id/details',

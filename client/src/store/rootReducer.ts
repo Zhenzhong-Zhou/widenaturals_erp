@@ -44,6 +44,7 @@ import { locationTypeReducers } from '@features/locationType';
 import { orderReducers } from '@features/order';
 import { orderTypeReducers } from '@features/orderType';
 import { pricingReducers } from '@features/pricing';
+import { pricingGroupReducers } from '@features/pricingGroup';
 import { pricingTypeReducers } from '@features/pricingType';
 import { productReducers } from '@features/product';
 import { skuReducers } from '@features/sku';
@@ -76,6 +77,7 @@ const runtimeReducer = combineReducers({
   ...complianceRecordReducers,
   ...bomReducers,
   ...pricingTypeReducers,
+  ...pricingGroupReducers,
   ...pricingReducers,
 
   // Batch
