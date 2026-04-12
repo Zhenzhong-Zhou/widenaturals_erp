@@ -3,7 +3,8 @@
  * @description Routes for pricing records.
  *
  * Endpoints:
- *  GET /pricing/export      — full dataset export as CSV or XLSX
+ *  GET /pricing         — paginated pricing join list (scoped by group, type, SKU, or cross-group)
+ *  GET /pricing/export  — full dataset export as CSV or XLSX
  *  GET /skus/:skuId/pricing — all pricing groups a SKU belongs to
  */
 
@@ -16,12 +17,36 @@ const createQueryNormalizationMiddleware = require('../middlewares/normalize-que
 const PERMISSIONS = require('../utils/constants/domain/permissions');
 const {
   exportPricingRecordsController,
-  getPricingBySkuIdController,
+  getPricingBySkuIdController, getPaginatedPricingJoinController,
 } = require('../controllers/pricing-controller');
-const { pricingExportQuerySchema } = require('../validators/pricing-validators');
+const { pricingExportQuerySchema, pricingJoinQuerySchema } = require('../validators/pricing-validators');
 const { skuIdParamSchema }         = require('../validators/sku-validators');
 
 const router = express.Router();
+
+/**
+ * @route GET /pricing
+ * @description Paginated pricing join list. Scope is determined by filters —
+ * pass pricingGroupId, pricingTypeId, or skuId to narrow results, or omit
+ * for a cross-group price book view.
+ * Filters: pricingGroupId, pricingTypeId, skuId, productId, search, brand,
+ *          category, countryCode, statusId, currentlyValid, validFrom, validTo, validOn.
+ * Sorting: sortBy, sortOrder (uses pricingJoinSortMap).
+ * @access protected
+ * @permission view_pricing
+ */
+router.get(
+  '/',
+  authorize([PERMISSIONS.PRICING.VIEW]),
+  validate(pricingJoinQuerySchema, 'query'),
+  createQueryNormalizationMiddleware(
+    'pricingJoinSortMap',
+    [],
+    [],
+    pricingJoinQuerySchema
+  ),
+  getPaginatedPricingJoinController
+);
 
 /**
  * @route GET /pricing/export

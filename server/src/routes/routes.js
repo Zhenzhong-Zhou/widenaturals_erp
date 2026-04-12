@@ -29,7 +29,8 @@ const complianceRecordRoutes         = require('./compliance-records');
 const batchRegistryRoutes            = require('./batch-registry');
 const productBatchRoutes             = require('./product-batches');
 const packagingMaterialBatchRoutes   = require('./packaging-material-batches');
-const priceTypeRoutes                = require('./pricing-types');
+const pricingTypeRoutes              = require('./pricing-types');
+const pricingGroupRoutes             = require('./pricing-groups');
 const pricingRoutes                  = require('./pricings');
 const locationTypeRoutes             = require('./locations-types');
 const locationRoutes                 = require('./locations');
@@ -91,8 +92,9 @@ router.use('/product-batches',             authenticate(), productBatchRoutes);
 router.use('/packaging-material-batches',  authenticate(), packagingMaterialBatchRoutes);
 
 // Pricing
-router.use('/pricing-types', authenticate(), priceTypeRoutes);
-router.use('/pricings',      authenticate(), pricingRoutes);
+router.use('/pricing-types',  authenticate(), pricingTypeRoutes);
+router.use('/pricing-groups', authenticate(), pricingGroupRoutes);
+router.use('/pricings',       authenticate(), pricingRoutes);
 
 // Locations and warehouse inventory
 router.use('/location-types',       authenticate(), locationTypeRoutes);

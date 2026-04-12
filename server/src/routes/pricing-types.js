@@ -47,13 +47,13 @@ router.get(
 );
 
 /**
- * @route GET /pricing-types/:pricingTypeId
+ * @route GET /pricing-types/:pricingTypeId/details
  * @description Single pricing type detail by ID.
  * @access protected
  * @permission view_pricing
  */
 router.get(
-  '/:pricingTypeId',
+  '/:pricingTypeId/details',
   authorize([PERMISSIONS.PRICING_TYPES.VIEW_PRICING_TYPES_DETAILS]),
   validate(pricingTypeParamsSchema, 'params'),
   getPricingTypeByIdController
