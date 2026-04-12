@@ -21,7 +21,7 @@
 
 const AppError = require('../utils/AppError');
 const {
-  getPricingTypeList,
+  getPaginatedPricingTypes,
   getPricingTypeById,
 } = require('../repositories/pricing-type-repository');
 const {
@@ -76,7 +76,7 @@ const fetchPaginatedPricingTypesService = async ({
     }
     
     // 4. Query raw paginated rows.
-    const rawResult = await getPricingTypeList({
+    const rawResult = await getPaginatedPricingTypes({
       filters: adjustedFilters,
       page,
       limit,
@@ -108,7 +108,7 @@ const fetchPaginatedPricingTypesService = async ({
  * Throws notFoundError if no record exists for the given ID.
  *
  * @param {string} pricingTypeId - UUID of the pricing type.
- * @returns {Promise<PricingTypeFlatRecord>}
+ * @returns {Promise<PricingTypeRecord>}
  * @throws {AppError} notFoundError if the pricing type does not exist.
  * @throws {AppError} serviceError if an unexpected error occurs.
  */

@@ -21,7 +21,7 @@
 
 const AppError = require('../utils/AppError');
 const {
-  getPricingGroupList,
+  getPaginatedPricingGroups,
   getPricingGroupById,
 } = require('../repositories/pricing-group-repository');
 const {
@@ -76,7 +76,7 @@ const fetchPaginatedPricingGroupsService = async ({
     }
     
     // 4. Query raw paginated rows.
-    const rawResult = await getPricingGroupList({
+    const rawResult = await getPaginatedPricingGroups({
       filters: adjustedFilters,
       page,
       limit,

@@ -7,7 +7,7 @@
  * live in pricing-business.js.
  *
  * Exports:
- *  - fetchPaginatedPricingSkusService       — paginated SKU list for a pricing group
+ *  - fetchPaginatedPricingJoinService       — paginated pricing join list (scoped by group, type, SKU, or cross-group)
  *  - exportPricingRecordsService            — full export with filters
  *  - fetchPricingBySkuIdService             — all pricing groups a SKU belongs to
  *
@@ -23,11 +23,11 @@
 const AppError = require('../utils/AppError');
 const {
   exportAllPricingRecords,
-  getSkusByGroupId,
+  getPaginatedPricingJoin,
   getPricingBySkuId,
 } = require('../repositories/pricing-repository');
 const {
-  transformPricingSkuList,
+  transformPricingJoinList,
   transformPricingExport,
   transformPricingBySku,
 } = require('../transformers/pricing-transformer');
@@ -38,27 +38,26 @@ const {
 
 const CONTEXT = 'pricing-service';
 
-// ─── Paginated SKU List ───────────────────────────────────────────────────────
+// ─── Paginated Pricing Join List ──────────────────────────────────────────────
 
 /**
- * Fetches a paginated list of SKUs assigned to a pricing group.
+ * Fetches a paginated pricing join list scoped by an optional fixed filter
+ * (e.g. pricingGroupId, pricingTypeId, skuId) plus user-supplied filters.
  *
  * Resolves ACL, applies visibility rules, queries the repository,
  * and transforms the result for UI consumption.
  *
  * @param {Object}       options
- * @param {string}       options.pricingGroupId      - UUID of the pricing group.
- * @param {Object}       [options.filters={}]        - Field filters.
- * @param {number}       [options.page=1]            - Page number (1-based).
- * @param {number}       [options.limit=20]          - Page size.
- * @param {string}       [options.sortBy='productName'] - Sort key.
- * @param {'ASC'|'DESC'} [options.sortOrder='ASC']   - Sort direction.
- * @param {Object}       options.user                - Authenticated user object.
+ * @param {Object}       [options.filters={}]               - Field filters (includes any fixed scope filter).
+ * @param {number}       [options.page=1]                   - Page number (1-based).
+ * @param {number}       [options.limit=20]                 - Page size.
+ * @param {string}       [options.sortBy='productName']     - Sort key.
+ * @param {'ASC'|'DESC'} [options.sortOrder='ASC']          - Sort direction.
+ * @param {Object}       options.user                       - Authenticated user object.
  * @returns {Promise<PaginatedResult>}
  * @throws {AppError} serviceError if an unexpected error occurs.
  */
-const fetchPaginatedPricingSkusService = async ({
-                                                  pricingGroupId,
+const fetchPaginatedPricingJoinService = async ({
                                                   filters   = {},
                                                   page      = 1,
                                                   limit     = 20,
@@ -66,7 +65,7 @@ const fetchPaginatedPricingSkusService = async ({
                                                   sortOrder = 'ASC',
                                                   user,
                                                 }) => {
-  const context = `${CONTEXT}/fetchPaginatedPricingSkusService`;
+  const context = `${CONTEXT}/fetchPaginatedPricingJoinService`;
   
   try {
     // 1. Resolve visibility access control scope.
@@ -81,8 +80,7 @@ const fetchPaginatedPricingSkusService = async ({
     }
     
     // 4. Query raw paginated rows.
-    const rawResult = await getSkusByGroupId({
-      pricingGroupId,
+    const rawResult = await getPaginatedPricingJoin({
       filters: adjustedFilters,
       page,
       limit,
@@ -96,10 +94,10 @@ const fetchPaginatedPricingSkusService = async ({
     }
     
     // 6. Transform for UI consumption.
-    return transformPricingSkuList(rawResult);
+    return transformPricingJoinList(rawResult);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    throw AppError.serviceError('Unable to retrieve pricing SKUs.', {
+    throw AppError.serviceError('Unable to retrieve pricing records.', {
       context,
       meta: { error: error.message },
     });
@@ -186,7 +184,7 @@ const fetchPricingBySkuIdService = async (skuId) => {
 };
 
 module.exports = {
-  fetchPaginatedPricingSkusService,
+  fetchPaginatedPricingJoinService,
   exportPricingRecordsService,
   fetchPricingBySkuIdService,
 };
