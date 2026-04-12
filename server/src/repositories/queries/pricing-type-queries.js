@@ -67,11 +67,11 @@ const buildPricingTypePaginatedQuery = (whereClause) => `
 // $1: pricing_type_id (UUID)
 const PRICING_TYPE_GET_BY_ID_QUERY = `
   SELECT
-    pt.id                         AS pricing_type_id,
-    pt.name                       AS pricing_type_name,
-    pt.code                       AS pricing_type_code,
-    pt.slug                       AS pricing_type_slug,
-    pt.description                AS pricing_type_description,
+    pt.id,
+    pt.name,
+    pt.code,
+    pt.slug,
+    pt.description,
     pt.status_id,
     st.name                       AS status_name,
     pt.status_date,

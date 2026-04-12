@@ -14,7 +14,7 @@
 const { pool }            = require('../../database/db');
 const { initStatusCache } = require('../../config/status-cache');
 const {
-  getPricingGroupList,
+  getPaginatedPricingGroups,
   getPricingGroupById,
 } = require('../../repositories/pricing-group-repository');
 
@@ -84,16 +84,16 @@ const info = (label, value) => console.log(`     ${label}:`, value);
       results.failed++;
     }
     
-    // ─── 3a. getPricingGroupList — no filters ─────────────────────────────────
+    // ─── 3a. getPaginatedPricingGroups — no filters ─────────────────────────────────
     try {
-      console.log(`\n${LOG} [getPricingGroupList] no filters`);
-      const result = await getPricingGroupList({ page: 1, limit: 5 });
+      console.log(`\n${LOG} [getPaginatedPricingGroups] no filters`);
+      const result = await getPaginatedPricingGroups({ page: 1, limit: 5 });
       info('Total records', result.pagination.totalRecords);
       console.dir(result.data, { depth: null, colors: true });
-      pass('getPricingGroupList — no filters');
+      pass('getPaginatedPricingGroups — no filters');
       results.passed++;
     } catch (error) {
-      fail('getPricingGroupList — no filters', error);
+      fail('getPaginatedPricingGroups — no filters', error);
       results.failed++;
     }
     

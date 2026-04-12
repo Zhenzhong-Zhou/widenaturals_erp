@@ -3,24 +3,24 @@
  * @description SQL query constants and factory functions for pricing-repository.js.
  *
  * Exports:
- *  - PRICING_SKU_LIST_TABLE          — aliased table name for paginated SKU list query
- *  - PRICING_SKU_LIST_JOINS          — join array for SKU list query
- *  - PRICING_SKU_LIST_SORT_WHITELIST — valid sort fields for SKU list query
- *  - buildPricingSkuListQuery        — factory for SKU-granular queries (filtered search, per-group SKU table, export base)
- *  - buildPricingExportQuery         — factory for full export query
- *  - PRICING_BY_SKU_QUERY            — fetch all pricing groups a SKU belongs to
- *  - PRICING_BY_GROUP_AND_SKU_BATCH_QUERY — batch fetch price by (pricing_group_id, sku_id) pairs
+ *  - PRICING_JOIN_TABLE                       — aliased table name for the pricing join query
+ *  - PRICING_JOIN_JOINS                       — join array for the pricing join query
+ *  - PRICING_JOIN_SORT_WHITELIST              — valid sort fields for the pricing join query
+ *  - buildPricingJoinQuery                    — factory for the full pricing join query (per-group SKU table, SKU detail, price book, export base)
+ *  - buildPricingExportQuery                  — factory for the full export query (includes audit user fields and fixed ORDER BY)
+ *  - PRICING_BY_SKU_QUERY                     — fetch all pricing groups a SKU belongs to
+ *  - PRICING_BY_GROUP_AND_SKU_BATCH_QUERY     — batch fetch price by (pricing_group_id, sku_id) pairs
  */
 
 'use strict';
 
 const { SORTABLE_FIELDS } = require('../../utils/sort-field-mapping');
 
-// ─── SKU-Granular Query (filtered search, detail SKU table, export base) ─────
+// ─── Pricing Join Query (per-group SKU table, SKU detail, price book, export) ─────
 
-const PRICING_SKU_LIST_TABLE = 'pricing p';
+const PRICING_JOIN_TABLE = 'pricing p';
 
-const PRICING_SKU_LIST_JOINS = [
+const PRICING_JOIN_JOINS = [
   'JOIN pricing_groups pg ON pg.id  = p.pricing_group_id',
   'JOIN pricing_types  pt ON pt.id  = pg.pricing_type_id',
   'JOIN status         st ON st.id  = pg.status_id',
@@ -28,21 +28,22 @@ const PRICING_SKU_LIST_JOINS = [
   'JOIN products       pr ON pr.id  = s.product_id',
 ];
 
-const _PRICING_SKU_LIST_JOINS_SQL = PRICING_SKU_LIST_JOINS.join('\n  ');
+const _PRICING_JOIN_JOINS_SQL = PRICING_JOIN_JOINS.join('\n  ');
 
-const PRICING_SKU_LIST_SORT_WHITELIST = new Set(
-  Object.values(SORTABLE_FIELDS.pricingSkuListSortMap)
+const PRICING_JOIN_SORT_WHITELIST = new Set(
+  Object.values(SORTABLE_FIELDS.pricingJoinSortMap)
 );
 
 /**
- * Base SKU-level query across pricing, pricing_groups, skus, and products.
- * Used for filtered SKU search, per-group SKU table, and export.
- * Scope is determined entirely by the whereClause passed in.
+ * Base pricing join query across pricing, pricing_groups, pricing_types,
+ * skus, and products. The scope is determined entirely by the whereClause
+ * passed in — this query is reused for the per-group SKU table, the SKU
+ * detail pricing panel, the price book, and export.
  *
  * @param {string} whereClause
  * @returns {string}
  */
-const buildPricingSkuListQuery = (whereClause) => `
+const buildPricingJoinQuery = (whereClause) => `
   SELECT
     p.id                          AS pricing_id,
     pg.id                         AS pricing_group_id,
@@ -64,8 +65,8 @@ const buildPricingSkuListQuery = (whereClause) => `
     pr.name                       AS product_name,
     pr.brand,
     pr.category
-  FROM ${PRICING_SKU_LIST_TABLE}
-  ${_PRICING_SKU_LIST_JOINS_SQL}
+  FROM ${PRICING_JOIN_TABLE}
+  ${_PRICING_JOIN_JOINS_SQL}
   WHERE ${whereClause}
 `;
 
@@ -160,10 +161,10 @@ const PRICING_BY_GROUP_AND_SKU_BATCH_QUERY = `
 `;
 
 module.exports = {
-  PRICING_SKU_LIST_TABLE,
-  PRICING_SKU_LIST_JOINS,
-  PRICING_SKU_LIST_SORT_WHITELIST,
-  buildPricingSkuListQuery,
+  PRICING_JOIN_TABLE,
+  PRICING_JOIN_JOINS,
+  PRICING_JOIN_SORT_WHITELIST,
+  buildPricingJoinQuery,
   buildPricingExportQuery,
   PRICING_BY_SKU_QUERY,
   PRICING_BY_GROUP_AND_SKU_BATCH_QUERY,

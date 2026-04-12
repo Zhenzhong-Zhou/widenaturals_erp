@@ -8,7 +8,7 @@
  *  - No success logging — middleware and globalErrorHandler own that layer
  *
  * Exports:
- *  - getPricingGroupList    — paginated group list with SKU/product counts
+ *  - getPaginatedPricingGroups    — paginated group list with SKU/product counts
  *  - getPricingGroupById    — single group record for detail page header
  *  - getPricingGroupLookup  — offset-paginated lookup for dropdowns
  */
@@ -21,10 +21,10 @@ const { handleDbError }   = require('../utils/errors/error-handlers');
 const { logDbQueryError } = require('../utils/db-logger');
 const { buildPricingGroupFilters } = require('../utils/sql/build-pricing-group-filter');
 const {
-  PRICING_GROUP_LIST_TABLE,
-  PRICING_GROUP_LIST_JOINS,
-  PRICING_GROUP_LIST_SORT_WHITELIST,
-  buildPricingGroupListQuery,
+  PRICING_GROUP_TABLE,
+  PRICING_GROUP_JOINS,
+  PRICING_GROUP_SORT_WHITELIST,
+  buildPricingGroupPaginatedQuery,
   PRICING_GROUP_BY_ID_QUERY,
   PRICING_GROUP_LOOKUP_TABLE,
   PRICING_GROUP_LOOKUP_JOINS,
@@ -50,33 +50,33 @@ const CONTEXT = 'pricing-group-repository';
  * @param {Object}       [options.filters={}]         - Field filters (pricingTypeId, countryCode, statusId, etc.)
  * @param {number}       [options.page=1]             - Page number (1-based).
  * @param {number}       [options.limit=20]           - Page size.
- * @param {string}       [options.sortBy='pt.name']   - Sort column (from pricingGroupListSortMap).
+ * @param {string}       [options.sortBy='pt.name']   - Sort column (from pricingGroupSortMap).
  * @param {'ASC'|'DESC'} [options.sortOrder='ASC']    - Sort direction.
  * @returns {Promise<PaginatedResult>}
  * @throws  {AppError} Normalized database error if the query fails.
  */
-const getPricingGroupList = async ({
+const getPaginatedPricingGroups = async ({
                                      filters = {},
                                      page = 1,
                                      limit = 20,
                                      sortBy    = 'pricingTypeName',
                                      sortOrder = 'ASC',
                                    }) => {
-  const context                 = `${CONTEXT}/getPricingGroupList`;
+  const context                 = `${CONTEXT}/getPaginatedPricingGroups`;
   const { whereClause, params } = buildPricingGroupFilters(filters);
-  const queryText               = buildPricingGroupListQuery(whereClause);
+  const queryText               = buildPricingGroupPaginatedQuery(whereClause);
   
   const sortConfig = resolveSort({
     sortBy,
     sortOrder,
-    moduleKey:   'pricingGroupListSortMap',
-    defaultSort: SORTABLE_FIELDS.pricingGroupListSortMap.defaultNaturalSort,
+    moduleKey:   'pricingGroupSortMap',
+    defaultSort: SORTABLE_FIELDS.pricingGroupSortMap.defaultNaturalSort,
   });
   
   try {
     return await paginateQuery({
-      tableName:    PRICING_GROUP_LIST_TABLE,
-      joins:        PRICING_GROUP_LIST_JOINS,
+      tableName:    PRICING_GROUP_TABLE,
+      joins:        PRICING_GROUP_JOINS,
       whereClause,
       queryText,
       params,
@@ -84,7 +84,7 @@ const getPricingGroupList = async ({
       limit,
       sortBy:       sortConfig.sortBy,
       sortOrder:    sortConfig.sortOrder,
-      whitelistSet: PRICING_GROUP_LIST_SORT_WHITELIST,
+      whitelistSet: PRICING_GROUP_SORT_WHITELIST,
     });
   } catch (error) {
     throw handleDbError(error, {
@@ -174,7 +174,7 @@ const getPaginatedPricingGroupLookup = async ({ filters = {}, limit = 50, offset
 };
 
 module.exports = {
-  getPricingGroupList,
+  getPaginatedPricingGroups,
   getPricingGroupById,
   getPaginatedPricingGroupLookup,
 };
