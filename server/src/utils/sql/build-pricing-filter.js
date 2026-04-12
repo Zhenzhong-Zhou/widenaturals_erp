@@ -9,41 +9,56 @@
  * metadata dates (createdAfter/createdBefore) are normalized.
  *
  * Exports:
- *  - buildPricingFilters       — legacy lookup/filter query (pricing_groups as anchor)
- *  - buildPricingSkuFilters    — SKU-granular query filters (within a group or cross-group)
- *  - buildPricingExportFilters — export query filters (cross-group, group-level scope)
+ *  - buildPricingJoinFilters    — full pricing join query (scoped by group, type, SKU, or cross-group)
+ *  - buildPricingExportFilters  — export query filters (cross-group, group-level scope)
  */
 
 'use strict';
 
-// ─── Pricing SKU Filters (per-group SKU table + cross-group SKU search) ───────
+// ─── Pricing Join Filters ─────────────────────────────────────────────────────
 
 /**
- * Builds a parameterised WHERE clause for SKU-granular pricing queries.
+ * Builds a parameterised WHERE clause for pricing join queries.
  *
- * When pricingGroupId is provided the query is scoped to that group (detail
- * page SKU table). When omitted all groups are searched (cross-group SKU lookup).
+ * Scope is determined entirely by the filters passed in — pricingGroupId,
+ * pricingTypeId, or skuId narrow to a specific context; omitting them
+ * produces a cross-group, cross-type result set (price book, export).
  *
- * @param {Object}  params
- * @param {string|null} pricingGroupId - Scope to a specific pricing group, or null for cross-group.
- * @param {Object}  [filters={}]
- * @param {string}  [filters.search]      - Fuzzy match on sku, barcode, product name.
- * @param {string}  [filters.brand]       - Exact match on product brand.
- * @param {string}  [filters.category]    - Exact match on product category.
- * @param {string}  [filters.productId]   - Filter by product UUID.
- * @param {string}  [filters.skuId]       - Filter by SKU UUID.
- * @param {string}  [filters.countryCode] - Exact match on SKU country code.
+ * @param {Object}      [filters={}]
+ * @param {string}      [filters.pricingGroupId]  - Scope to a specific pricing group.
+ * @param {string}      [filters.pricingTypeId]   - Scope to a specific pricing type.
+ * @param {string}      [filters.skuId]           - Scope to a specific SKU.
+ * @param {string}      [filters.productId]       - Filter by product UUID.
+ * @param {string}      [filters.search]          - Fuzzy match on sku, barcode, product name.
+ * @param {string}      [filters.brand]           - Exact match on product brand.
+ * @param {string}      [filters.category]        - Exact match on product category.
+ * @param {string}      [filters.countryCode]     - Exact match on SKU country code.
  *
  * @returns {{ whereClause: string, params: Array }}
  */
-const buildPricingSkuFilters = ({ pricingGroupId, filters = {} }) => {
+const buildPricingJoinFilters = (filters = {}) => {
   const conditions    = ['1=1'];
   const params        = [];
   const paramIndexRef = { value: 1 };
   
-  if (pricingGroupId) {
+  if (filters.pricingGroupId) {
     conditions.push(`p.pricing_group_id = $${paramIndexRef.value++}`);
-    params.push(pricingGroupId);
+    params.push(filters.pricingGroupId);
+  }
+  
+  if (filters.pricingTypeId) {
+    conditions.push(`pg.pricing_type_id = $${paramIndexRef.value++}`);
+    params.push(filters.pricingTypeId);
+  }
+  
+  if (filters.skuId) {
+    conditions.push(`s.id = $${paramIndexRef.value++}`);
+    params.push(filters.skuId);
+  }
+  
+  if (filters.productId) {
+    conditions.push(`pr.id = $${paramIndexRef.value++}`);
+    params.push(filters.productId);
   }
   
   if (filters.search) {
@@ -64,16 +79,6 @@ const buildPricingSkuFilters = ({ pricingGroupId, filters = {} }) => {
   if (filters.category) {
     conditions.push(`pr.category = $${paramIndexRef.value++}`);
     params.push(filters.category);
-  }
-  
-  if (filters.productId) {
-    conditions.push(`pr.id = $${paramIndexRef.value++}`);
-    params.push(filters.productId);
-  }
-  
-  if (filters.skuId) {
-    conditions.push(`s.id = $${paramIndexRef.value++}`);
-    params.push(filters.skuId);
   }
   
   if (filters.countryCode) {
@@ -135,6 +140,6 @@ const buildPricingExportFilters = (filters = {}) => {
 };
 
 module.exports = {
-  buildPricingSkuFilters,
+  buildPricingJoinFilters,
   buildPricingExportFilters,
 };

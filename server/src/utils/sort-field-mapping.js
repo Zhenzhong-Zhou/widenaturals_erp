@@ -453,7 +453,7 @@ const SORTABLE_FIELDS = {
     // Default fallback
     defaultNaturalSort: 'pt.created_at',
   },
-  pricingSkuListSortMap: {
+  pricingJoinSortMap: {
     // Product-level fields (FROM products pr)
     productName: 'pr.name',
     brand:       'pr.brand',
@@ -477,7 +477,7 @@ const SORTABLE_FIELDS = {
     // Default fallback
     defaultNaturalSort: 'pg.valid_from',
   },
-  pricingGroupListSortMap: {
+  pricingGroupSortMap: {
     // Pricing type fields (FROM pricing_types pt)
     pricingTypeName: 'pt.name',
     pricingTypeCode: 'pt.code',
