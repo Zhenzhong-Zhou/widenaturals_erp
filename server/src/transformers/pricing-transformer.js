@@ -40,7 +40,7 @@ const transformPricingJoinRow = (row) => ({
 
 /**
  * @param {PaginatedResult<PricingJoinRow>} paginatedResult
- * @returns {PaginatedResult<PricingJoinRecord>}
+ * @returns {Promise<PaginatedResult<PricingJoinRow>>}
  */
 const transformPricingJoinList = (paginatedResult) =>
   transformPageResult(paginatedResult, transformPricingJoinRow);
