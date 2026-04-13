@@ -1,100 +1,285 @@
-import { useEffect } from 'react';
+import { type FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import usePricingTypeDetail from '@hooks/usePricingTypeDetail';
 import Box from '@mui/material/Box';
-import ErrorMessage from '@components/common/ErrorMessage';
-import CustomTypography from '@components/common/CustomTypography';
-import NoDataFound from '@components/common/NoDataFound';
-import Loading from '@components/common/Loading';
-import GoBackButton from '@components/common/GoBackButton';
-import CustomButton from '@components/common/CustomButton';
-import MetadataSection from '@components/common/MetadataSection';
-import { formatLabel, formatNullable } from '@utils/textUtils';
-import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
+import Card from '@mui/material/Card';
+import Divider from '@mui/material/Divider';
+import Grid from '@mui/material/Grid';
+import {
+  CustomButton,
+  CustomTypography,
+  ErrorMessage,
+  Loading,
+  NoDataFound,
+} from '@components/index';
+import type {
+  PricingGroupFilters,
+  PricingGroupSortField,
+} from '@features/pricingGroup';
+import {
+  PricingGroupFiltersPanel,
+  PricingGroupListTable,
+  PricingGroupSortControls,
+} from '@features/pricingGroup/components';
+import { usePricingGroupLookups } from '@features/pricingGroup/hook';
+import { PricingTypeDetailPanel } from '@features/pricingType/components/PricingTypeDetail';
+import { createLazyOpenHandler } from '@features/lookup/utils/lookupUtils';
+import {
+  usePaginatedPricingGroups,
+  usePricingTypeDetail,
+} from '@hooks/index';
+import { applyFiltersAndSorting } from '@utils/query';
+import { usePaginationHandlers } from '@utils/hooks';
 
-const PricingTypeDetailPage = () => {
-  const { id } = useParams<{ id: string }>();
+/**
+ * Full detail page for a single pricing type.
+ *
+ * Displays identity, status, and audit information for the pricing type,
+ * followed by the pricing group list which is managed within this context.
+ *
+ * Route param: pricingTypeId (UUID)
+ */
+const PricingTypeDetailsPage: FC = () => {
+  const { pricingTypeId } = useParams<{ pricingTypeId: string }>();
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(25);
+  const [sortBy, setSortBy] =
+    useState<PricingGroupSortField>('defaultNaturalSort');
+  const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
+  const [filters, setFilters] = useState<PricingGroupFilters>({});
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+  
+  const {
+    pricingType,
+    loading,
+    error,
+    fetchPricingTypeDetail,
+    resetPricingTypeDetailState,
+  } = usePricingTypeDetail();
 
-  if (!id) {
-    return <ErrorMessage message="Pricing Type ID is required." />;
-  }
-
-  const { data, isLoading, error, fetchData, statusName } =
-    usePricingTypeDetail();
-
+  const {
+    data: pricingGroupData,
+    pagination: pricingGroupPagination,
+    loading: pricingGroupLoading,
+    error: pricingGroupError,
+    isEmpty: isPricingGroupEmpty,
+    fetchPricingGroups,
+    resetPricingGroups,
+  } = usePaginatedPricingGroups();
+  
+  const lookups = usePricingGroupLookups();
+  
+  // -----------------------------
+  // Fetch on mount
+  // -----------------------------
   useEffect(() => {
-    if (id) {
-      fetchData(id);
+    if (pricingTypeId) {
+      fetchPricingTypeDetail(pricingTypeId);
     }
-  }, [id]);
+    
+    return () => {
+      resetPricingTypeDetailState();
+    };
+  }, [pricingTypeId]);
+  
+  // -----------------------------
+  // Query model (shared)
+  // -----------------------------
+  const fullQuery = useMemo(
+    () => ({
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      filters: {
+        ...filters,
+        pricingTypeId,
+      },
+    }),
+    [page, limit, sortBy, sortOrder, filters, pricingTypeId]
+  );
 
-  if (!data) {
-    return <NoDataFound />;
-  }
+  // -----------------------------
+  // Refresh action
+  // -----------------------------
+  const refreshPricingGroupList = useCallback(() => {
+    fetchPricingGroups(fullQuery);
+  }, [fullQuery, fetchPricingGroups]);
 
-  const flattenedData = {
-    name: data.name,
-    code: data.code,
-    slug: data.slug,
-    description: data.description,
-    status: formatLabel(statusName),
-    statusDate: formatDate(data.status.statusDate),
-    createdBy: data.createdBy.fullName,
-    createdAt: formatDateTime(data.createdAt),
-    updatedBy: formatNullable(data.updatedBy?.fullName),
-    updatedAt: formatDateTime(data.updatedAt),
+  // -----------------------------
+  // Params for filtering/sorting engine
+  // -----------------------------
+  const queryParams = useMemo(
+    () => ({
+      ...fullQuery,
+      fetchFn: refreshPricingGroupList,
+    }),
+    [fullQuery, refreshPricingGroupList]
+  );
+
+  // -----------------------------
+  // Debounced fetch
+  // -----------------------------
+  useEffect(() => {
+    const timeout = setTimeout(() => applyFiltersAndSorting(queryParams), 200);
+    return () => clearTimeout(timeout);
+  }, [queryParams]);
+
+  // ----------------------------------------
+  // Cleanup on unmount
+  // ----------------------------------------
+  useEffect(() => {
+    return () => {
+      resetPricingGroups();
+    };
+  }, [resetPricingGroups]);
+
+  // -----------------------------
+  // Lookup handlers (lazy fetch, reset)
+  // -----------------------------
+  const lookupHandlers = useMemo(
+    () => ({
+      resetAll: () => {
+        lookups.status.reset();
+      },
+      
+      onOpen: {
+        status: createLazyOpenHandler(
+          lookups.status.options,
+          lookups.status.fetch
+        ),
+      },
+    }),
+    [lookups]
+  );
+
+  // -----------------------------
+  // Event handlers
+  // -----------------------------
+  const handleRefresh = useCallback(() => {
+    applyFiltersAndSorting(queryParams);
+  }, [queryParams]);
+  
+  const handleResetFilters = () => {
+    resetPricingGroups();
+    setFilters({});
+    setSortBy('defaultNaturalSort');
+    setSortOrder('');
+    lookupHandlers.resetAll();
+    setPage(1);
   };
-
-  if (isLoading) return <Loading message="Fetching pricing type metadata..." />;
-
-  if (error) {
-    return <ErrorMessage message={error} />;
+  
+  const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(
+    setPage,
+    setLimit
+  );
+  
+  const handleDrillDownToggle = (rowId: string) => {
+    setExpandedRowId((current) => (current === rowId ? null : rowId));
+  };
+  
+  // -----------------------------
+  // Loading / error states
+  // -----------------------------
+  if (loading) {
+    return <Loading variant="dotted" message="Loading pricing type..." />;
   }
-
+  
+  if (error) {
+    return <ErrorMessage message={error} showNavigation />;
+  }
+  
+  if (!pricingType) {
+    return <NoDataFound message="Pricing type not found." />;
+  }
+  
+  // -----------------------------
+  // Render
+  // -----------------------------
   return (
-    <Box
-      mt={{ xs: 3, md: 4 }}
-      mx="auto"
-      px={{ xs: 2, sm: 3, md: 4 }}
-      width="100%"
-      maxWidth={{ xs: '100%', sm: '720px', md: '900px', lg: '1080px' }}
-    >
+    <Box sx={{ px: 4, py: 3 }}>
+      
+      {/* --------------------------------------------------
+       * Page Header
+       * -------------------------------------------------- */}
+      <PricingTypeDetailPanel
+        pricingType={pricingType}
+        onEdit={() => {/* TODO */}}
+      />
+      
+      <Divider sx={{ my: 3 }} />
+      
+      {/* --------------------------------------------------
+       * Pricing Groups Section
+       * -------------------------------------------------- */}
       <Box
         display="flex"
         justifyContent="space-between"
         alignItems="center"
-        flexWrap="wrap"
         mb={2}
-        gap={2}
       >
-        <GoBackButton />
-        <CustomButton onClick={() => fetchData(id)} variant="outlined">
-          Refresh Data
+        <CustomTypography variant="h6" fontWeight={600}>
+          Pricing Groups
+        </CustomTypography>
+        
+        <CustomButton variant="contained">
+          + New Price Group
         </CustomButton>
       </Box>
-      <CustomTypography variant="h4">
-        {data.name} ({data.code})
-      </CustomTypography>
-      <CustomTypography variant="subtitle1" color="text.secondary">
-        {data.description}
-      </CustomTypography>
-      <Box mt={3}>
-        <MetadataSection
-          data={flattenedData}
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: {
-              xs: '1fr', // one column on mobile
-              sm: '1fr 1fr', // two columns on small screens and up
-            },
-            columnGap: 4,
-            rowGap: 2,
-            mt: 2,
-          }}
+      
+      {/* Filter + Sort Controls */}
+      <Card sx={{ p: 3, mb: 4, borderRadius: 2, minHeight: 200 }}>
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 12, sm: 6, md: 9 }}>
+            <PricingGroupFiltersPanel
+              filters={filters}
+              lookups={lookups}
+              lookupHandlers={lookupHandlers}
+              onChange={setFilters}
+              onApply={() => setPage(1)}
+              onReset={handleResetFilters}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <PricingGroupSortControls
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSortByChange={setSortBy}
+              onSortOrderChange={setSortOrder}
+              showPricingType={false}
+            />
+          </Grid>
+        </Grid>
+      </Card>
+      
+      {/* Pricing Group Table Section */}
+      {pricingGroupLoading || !pricingGroupPagination ? (
+        <Loading variant="dotted" message="Loading pricing groups..." />
+      ) : pricingGroupError ? (
+        <ErrorMessage message={pricingGroupError} showNavigation />
+      ) : isPricingGroupEmpty ? (
+        <NoDataFound
+          message="No pricing groups found for this pricing type."
+          action={
+            <CustomButton onClick={handleResetFilters}>Reset</CustomButton>
+          }
         />
-      </Box>
+      ) : (
+        <PricingGroupListTable
+          data={pricingGroupData}
+          loading={pricingGroupLoading}
+          page={page - 1}
+          rowsPerPage={limit}
+          totalRecords={pricingGroupPagination.totalRecords}
+          totalPages={pricingGroupPagination.totalPages}
+          onPageChange={handlePageChange}
+          onRowsPerPageChange={handleRowsPerPageChange}
+          expandedRowId={expandedRowId}
+          onDrillDownToggle={handleDrillDownToggle}
+          onRefresh={handleRefresh}
+        />
+      )}
     </Box>
   );
 };
 
-export default PricingTypeDetailPage;
+export default PricingTypeDetailsPage;

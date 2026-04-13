@@ -25,7 +25,7 @@ export const getPricingTypeTableColumns = (
       label: 'Name',
       sortable: true,
       renderCell: (row) => (
-        <Link to="#">
+        <Link to={`/pricing-types/${row.slug}/${row.id}`}>
           <TruncatedText
             text={row.name}
             maxLength={30}

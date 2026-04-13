@@ -339,7 +339,7 @@ export const appRoutes: AppRoute[] = [
     },
   }),
   defineRoute({
-    path: '/pricing-types/:slug/:id',
+    path: '/pricing-types/:slug/:pricingTypeId',
     component: lazy(
       () => import('@features/pricingType/pages/PricingTypeDetailsPage')
     ),
