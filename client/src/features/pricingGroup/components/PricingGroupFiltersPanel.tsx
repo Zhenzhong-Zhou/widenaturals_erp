@@ -55,19 +55,23 @@ const emptyFilters: PricingGroupFilters = {
   currentlyValid: undefined,
   createdAfter:  '',
   createdBefore: '',
+  updatedAfter:  '',
+  updatedBefore: '',
 };
 
 interface PricingGroupDateField {
-  name: 'validFrom' | 'validTo' | 'validOn' | 'createdAfter' | 'createdBefore';
+  name: 'validFrom' | 'validTo' | 'validOn' | 'createdAfter' | 'createdBefore' | 'updatedAfter' | 'updatedBefore';
   label: string;
 }
 
 const PRICING_GROUP_DATE_FIELDS: PricingGroupDateField[] = [
-  { name: 'validFrom',     label: 'Valid From ≥'    },
-  { name: 'validTo',       label: 'Valid To ≤'      },
-  { name: 'validOn',       label: 'Valid On'         },
-  { name: 'createdAfter',  label: 'Created Date ≥'  },
-  { name: 'createdBefore', label: 'Created Date <'  },
+  { name: 'validFrom',     label: 'Valid From ≥'     },
+  { name: 'validTo',       label: 'Valid To ≤'       },
+  { name: 'validOn',       label: 'Valid On'          },
+  { name: 'createdAfter',  label: 'Created Date ≥'   },
+  { name: 'createdBefore', label: 'Created Date <'   },
+  { name: 'updatedAfter',  label: 'Updated Date ≥'   },
+  { name: 'updatedBefore', label: 'Updated Date <'   },
 ];
 
 /* =========================================================
@@ -125,6 +129,8 @@ const PricingGroupFiltersPanel: FC<Props> = ({
       validOn:       toISODate(data.validOn),
       createdAfter:  toISODate(data.createdAfter),
       createdBefore: toISODate(data.createdBefore),
+      updatedAfter:  toISODate(data.updatedAfter),
+      updatedBefore: toISODate(data.updatedBefore),
     };
     onChange(adjusted);
     onApply();
@@ -162,6 +168,13 @@ const PricingGroupFiltersPanel: FC<Props> = ({
           {/* --- Keyword --- */}
           {renderInputField(control, 'keyword', 'Keyword', 'Search pricing groups')}
           
+          {/* --- Country Code --- */}
+          {renderInputField(control, 'countryCode', 'Country Code', 'e.g. CA, US, GLOBAL')}
+          
+          {/* --- Price Range --- */}
+          {renderNumericField(control, 'priceMin', 'Min Price')}
+          {renderNumericField(control, 'priceMax', 'Max Price')}
+          
           {/* --- Status --- */}
           <Grid size={{ xs: 12, md: 3 }}>
             <StatusMultiSelectDropdown
@@ -171,13 +184,6 @@ const PricingGroupFiltersPanel: FC<Props> = ({
               onOpen={lookupHandlers.onOpen.status}
             />
           </Grid>
-          
-          {/* --- Country Code --- */}
-          {renderInputField(control, 'countryCode', 'Country Code', 'e.g. CA, US, GLOBAL')}
-          
-          {/* --- Price Range --- */}
-          {renderNumericField(control, 'priceMin', 'Min Price')}
-          {renderNumericField(control, 'priceMax', 'Max Price')}
           
           {/* --- Date fields --- */}
           {PRICING_GROUP_DATE_FIELDS.map(({ name, label }) =>
