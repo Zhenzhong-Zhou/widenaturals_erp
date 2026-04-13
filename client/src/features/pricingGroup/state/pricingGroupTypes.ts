@@ -73,8 +73,7 @@ export type PricingGroupFilters = {
   productId?: string;
   /** When true, returns only groups where today falls within valid_from–valid_to. */
   currentlyValid?: boolean;
-} & CreatedUpdatedByFilter
-  & Pick<CreatedUpdatedDateFilter, 'createdAfter' | 'createdBefore'>;
+} & CreatedUpdatedByFilter & CreatedUpdatedDateFilter;
 
 /** Full query parameter shape for the pricing group list endpoint. */
 export interface PricingGroupQueryParams extends PaginationParams, SortConfig {
@@ -91,6 +90,7 @@ export type PricingGroupSortField =
   | 'statusName'
   | 'skuCount'
   | 'productCount'
+  | 'createdAt'
   | 'updatedAt'
   | 'defaultNaturalSort';
 
