@@ -495,6 +495,7 @@ const SORTABLE_FIELDS = {
     productCount: 'product_count',
     
     // Audit
+    createdAt: 'pg.created_at',
     updatedAt: 'pg.updated_at',
     
     // Default fallback

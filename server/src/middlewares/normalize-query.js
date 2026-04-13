@@ -38,7 +38,6 @@ const {
 } = require('../utils/query-normalizers');
 const {
   sanitizeSortBy,
-  getSortMapForModule,
 } = require('../utils/query/sort-resolver');
 
 // -----------------------------------------------------------------------------
@@ -285,10 +284,8 @@ const createQueryNormalizationMiddleware = (
     let sanitizedSortBy = undefined;
     
     if (resolvedOptions.includeSorting && moduleKey) {
-      const sortMap     = getSortMapForModule(moduleKey);
-      sanitizedSortBy   = sanitizeSortBy(trimmedQuery.sortBy, moduleKey)
-        ?? sortMap.defaultNaturalSort
-        ?? null;
+      sanitizedSortBy = sanitizeSortBy(trimmedQuery.sortBy, moduleKey)
+        ?? 'defaultNaturalSort';
     }
     
     // -------------------------------------------------------------------------

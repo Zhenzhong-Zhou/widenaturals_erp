@@ -21,6 +21,8 @@ const { SORTABLE_FIELDS } = require('../sort-field-mapping');
 const { normalizeParamArray } = require('../query-normalizers');
 const { logSystemWarn } = require('../logging/system-logger');
 
+const CONTEXT = 'sort-resolver';
+
 // ------------------------------------------------------------
 // Internal helpers
 // ------------------------------------------------------------
@@ -42,7 +44,7 @@ const getSortMapForModule = (moduleKey) => {
     throw AppError.validationError(
       `Invalid or unregistered sort module key: "${moduleKey}"`,
       {
-        context: 'sort-resolver/getSortMapForModule',
+        context: `${CONTEXT}/getSortMapForModule`,
         meta: { moduleKey },
       }
     );
@@ -56,60 +58,53 @@ const getSortMapForModule = (moduleKey) => {
 // ------------------------------------------------------------
 
 /**
- * Resolves a raw `sortBy` request value to a SQL column string.
+ * Validates and sanitizes a raw `sortBy` request value against a module's sort map.
  *
- * Accepts a comma-separated string or array of sort keys, maps each through
- * the module's sort map, warns on unmapped keys, and returns the resolved
- * columns joined with `, `.
+ * Accepts a comma-separated string or array of sort keys, validates each against
+ * the module's sort map, warns on unrecognized keys, and returns the valid camelCase
+ * keys joined with `, `.
  *
- * Falls back to `defaultSort` when no requested keys map to a valid column.
+ * Falls back to `'defaultNaturalSort'` when no requested keys are valid.
  * Returns `null` if neither the request keys nor the default resolve — the
  * query builder is responsible for handling a null result.
  *
+ * Note: This function returns camelCase sort map keys, NOT resolved SQL columns.
+ * SQL resolution is the responsibility of `resolveSort`.
+ *
  * @param {string|string[]} sortByRaw          - Raw sortBy value from the request.
- * @param {string|null} [moduleKey=null]       - Registry key for the sort map.
- * @param {string|null} [defaultSort=null]     - Fallback SQL column when no keys resolve.
- *   Must be fully qualified (e.g. `'a.created_at'`) to avoid ambiguity in aliased queries.
- * @returns {string|null} Resolved SQL column string, or `defaultSort` if nothing mapped.
+ * @param {string|null}     [moduleKey=null]   - Registry key for the sort map.
+ * @param {string|null}     [defaultSort=null] - Fallback camelCase key when no keys resolve.
+ * @returns {string|null} Valid camelCase sort key(s), or `defaultSort` if nothing matched.
  * @throws {AppError} If `moduleKey` is not registered.
  *
  * @example
- * sanitizeSortBy('name', 'products', 'p.created_at')
- * // → 'p.name' (if 'name' maps to 'p.name' in the products sort map)
+ * sanitizeSortBy('brand', 'products')
+ * // → 'brand' (valid key in the products sort map)
  *
  * @example
- * sanitizeSortBy('unknown', 'products', 'p.created_at')
- * // → 'p.created_at' (fallback; warns on 'unknown')
+ * sanitizeSortBy('unknown', 'products')
+ * // → null (warns on 'unknown', no fallback provided)
  */
 const sanitizeSortBy = (sortByRaw = '', moduleKey = null, defaultSort = null) => {
   const sortMap = getSortMapForModule(moduleKey);
-  
-  // Reuse normalizeParamArray instead of re-implementing split/trim/filter.
   const requestedKeys = normalizeParamArray(sortByRaw) ?? [];
   
-  const mappedColumns = requestedKeys
-    .map((key) => {
-      const column = sortMap[key];
-      
-      if (!column) {
-        // Warn rather than throw — an unmapped key is skipped, not fatal.
-        // The fallback below handles the case where nothing resolves.
+  const validKeys = requestedKeys
+    .filter((key) => {
+      const isValid = key in sortMap;
+      if (!isValid) {
         logSystemWarn(`Unmapped sortBy key: "${key}"`, {
-          context: 'sort-resolver/sanitizeSortBy',
+          context: `${CONTEXT}/sanitizeSortBy`,
           meta: { key, moduleKey },
         });
       }
-      
-      return column;
-    })
-    .filter(Boolean);
+      return isValid;
+    });
   
-  if (mappedColumns.length > 0) {
-    return mappedColumns.join(', ');
+  if (validKeys.length > 0) {
+    return validKeys.join(', ');
   }
   
-  // No requested keys resolved — return the caller-supplied default.
-  // Returning null signals to the query builder that no sort was resolved.
   return defaultSort ?? null;
 };
 
@@ -177,7 +172,7 @@ const resolveSort = ({
     throw AppError.validationError(
       `Unmapped sortBy key with no fallback: "${sortBy}"`,
       {
-        context: 'sort-resolver/resolveSort',
+        context: `${CONTEXT}/resolveSort`,
         meta: { sortBy, moduleKey },
       }
     );
