@@ -10,6 +10,7 @@ const {
   paginationSchema,
   createSortSchema,
   createdDateRangeSchema,
+  updatedDateRangeSchema,
   validateOptionalUUID,
   validateKeyword,
   createBooleanFlag,
@@ -52,8 +53,9 @@ const pricingGroupParamsSchema = Joi.object({
  * @property {string}  [updatedBy]      - Filter by last-updater user UUID.
  */
 const pricingGroupQuerySchema = paginationSchema
-  .concat(createSortSchema('pricingGroupName'))
+  .concat(createSortSchema('pricingTypeName'))
   .concat(createdDateRangeSchema)
+  .concat(updatedDateRangeSchema)
   .concat(Joi.object({
     pricingTypeId:  validateOptionalUUID('Pricing Type ID'),
     statusId:       validateOptionalUUID('Status ID'),

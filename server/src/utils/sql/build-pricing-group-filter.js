@@ -52,7 +52,9 @@ const { applyAuditConditions } = require('./build-audit-filter');
  */
 const buildPricingGroupFilters = (filters = {}) => {
   const normalizedFilters = normalizeDateRangeFilters(
-    filters, 'createdAfter', 'createdBefore'
+    normalizeDateRangeFilters(filters, 'createdAfter', 'createdBefore'),
+    'updatedAfter',
+    'updatedBefore'
   );
   
   const conditions    = ['1=1'];
