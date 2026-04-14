@@ -38,9 +38,10 @@ export const API_ENDPOINTS = {
   PRICING_GROUPS: {
     ALL_RECORDS: '/pricing-groups',
   },
-  PRICING_LIST: '/pricings',
-  PRICING_LIST_EXPORT: '/pricings/export',
-  PRICING_DETAILS_BY_TYPE: '/pricings/by-type/:id/details',
+  PRICING: {
+    ALL_RECORDS: '/pricings',
+    EXPORT_DATA: '/pricings/export',
+  },
   LOCATION_TYPES: {
     ALL_RECORDS: '/location-types',
     LOCATION_TYPE_DETAILS: (locationTypeId: string) =>

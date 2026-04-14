@@ -92,12 +92,11 @@ export { default as useBomProductionReadiness } from './useBomProductionReadines
  * Pricing
  * ===================================================== */
 
-export { default as usePricingList } from './usePricingList';
-export { default as usePricingListByType } from './usePricingListByType';
 export { default as usePaginatedPricingTypes } from './usePaginatedPricingTypes';
 export { default as usePaginatedPricingGroups } from './usePaginatedPricingGroups';
 export { default as usePricingTypeDetail } from './usePricingTypeDetail';
 export { default as usePricingGroupLookup } from './usePricingGroupLookup';
+export { default as usePaginatedPricing } from './usePaginatedPricing';
 
 /* =====================================================
  * Customer & Address
