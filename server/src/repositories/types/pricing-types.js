@@ -127,6 +127,7 @@
  * @property {string}        productName
  * @property {string|null}   brand
  * @property {string|null}   category
+ * @property {string|null}   displayName
  */
 
 /**

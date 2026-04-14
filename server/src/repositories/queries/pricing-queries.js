@@ -56,6 +56,7 @@ const buildPricingJoinQuery = (whereClause) => `
     pg.valid_to,
     pg.status_id,
     st.name                       AS status_name,
+    pg.status_date                AS status_date,
     s.id                          AS sku_id,
     s.sku,
     s.barcode,
@@ -94,8 +95,8 @@ const buildPricingExportQuery = (whereClause) => `
     pr.category,
     pg.created_at,
     pg.updated_at,
-    cu.firstname                  AS created_by_firstname,
-    cu.lastname                   AS created_by_lastname,
+    uc.firstname                  AS created_by_firstname,
+    uc.lastname                   AS created_by_lastname,
     uu.firstname                  AS updated_by_firstname,
     uu.lastname                   AS updated_by_lastname
   FROM pricing p

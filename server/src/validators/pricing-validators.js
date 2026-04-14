@@ -80,7 +80,7 @@ const pricingExportQuerySchema = Joi.object({
   statusId:      validateOptionalUUID('Status ID'),
   brand:         Joi.string().max(100).optional(),
   productId:     validateOptionalUUID('Product ID'),
-  exportFormat:  Joi.string().valid('csv', 'xlsx').default('xlsx'),
+  exportFormat:  Joi.string().lowercase().valid('txt', 'csv', 'xlsx').default('xlsx'),
 });
 
 module.exports = {
