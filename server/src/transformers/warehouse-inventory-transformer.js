@@ -1,196 +1,95 @@
+/**
+ * @file warehouse-inventory-transformer.js
+ * @description Row-to-record transformers for warehouse inventory queries.
+ *
+ * Pure functions — no logging, no errors, no side effects.
+ *
+ * Exports:
+ *  - transformWarehouseInventoryRecord
+ *  - transformPaginatedWarehouseInventory
+ */
+
+'use strict';
+
 const { getProductDisplayName } = require('../utils/display-name-utils');
-const {
-  transformPageResult,
-} = require('../utils/transformer-utils');
-const { deriveInventoryStatusFlags } = require('../utils/inventory-utils');
 const { cleanObject } = require('../utils/object-utils');
-const { differenceInDays } = require('date-fns');
 const {
-  transformInventoryRecordBase,
   transformInventoryRecordSummaryBase,
 } = require('./transform-inventory-record-base');
+const { makeStatus } = require('../utils/status-utils');
+const { transformPageResult } = require('../utils/transformer-utils');
 
 /**
- * Transforms a single warehouse inventory summary row (product or material) into application format.
+ * Transforms a raw warehouse inventory DB row into a structured API record.
  *
- * @param {{
- *   item_id: string,
- *   item_type: 'product'|'packaging_material'|'material',
- *   item_name: string,
- *   item_code?: string|null,
- *   sku?: string|null,
- *   actual_quantity: number|string,
- *   total_available_quantity: number|string,
- *   total_reserved_quantity: number|string,
- *   total_lots: number|string,
- *   total_lot_quantity: number|string,
- *   earliest_manufacture_date?: string|null,
- *   nearest_expiry_date?: string|null,
- *   display_status?: string|null
- * }} row - A single row from the warehouse inventory summary query.
- *
- * @returns {{
- *   itemId: string,
- *   itemType: string,
- *   itemName: string,
- *   actualQuantity: number,
- *   availableQuantity: number,
- *   reservedQuantity: number,
- *   totalLots: number,
- *   lotQuantity: number,
- *   earliestManufactureDate?: string|null,
- *   nearestExpiryDate?: string|null,
- *   displayStatus?: string|null,
- *   skuId?: string,
- *   sku?: string|null,
- *   productName?: string,
- *   materialId?: string,
- *   materialCode?: string|null,
- *   materialName?: string
- * }}
+ * @param {WarehouseInventoryRow} row
+ * @returns {WarehouseInventoryRecord}
  */
-const transformWarehouseInventoryItemSummaryRow = (row) => {
-  const isProduct = row.item_type === 'product';
-
-  const status = deriveInventoryStatusFlags({
-    nearest_expiry_date: row.nearest_expiry_date,
-    earliest_manufacture_date: row.earliest_manufacture_date,
-    available_quantity: row.total_available_quantity,
-    reserved_quantity: row.total_reserved_quantity,
-    total_lot_quantity: row.total_lot_quantity,
-    display_status: row.display_status,
-  });
-
-  const base = {
-    itemId: row.item_id,
-    itemType: row.item_type,
-    itemName: row.item_name,
-    actualQuantity: Number(row.actual_quantity),
-    availableQuantity: Number(row.total_available_quantity),
-    reservedQuantity: Number(row.total_reserved_quantity),
-    totalLots: Number(row.total_lots),
-    lotQuantity: Number(row.total_lot_quantity),
-    earliestManufactureDate: row.earliest_manufacture_date,
-    nearestExpiryDate: row.nearest_expiry_date,
-    displayStatus: row.display_status,
-    ...status,
-  };
-
-  return cleanObject({
-    ...base,
-    ...(isProduct
-      ? {
-          skuId: row.item_id,
-          sku: row.sku,
-          productName: getProductDisplayName(row),
-        }
-      : {
-          materialId: row.item_id,
-          materialCode: row.item_code,
-          materialName: row.item_name,
-        }),
-  });
-};
-
-/**
- * Transforms a paginated inventory result with metadata and transformed rows.
- *
- * @param {Object} paginatedResult - The raw result from `paginateQuery`
- * @param {Array<Object>} paginatedResult.data - Raw SQL rows
- * @param {Object} paginatedResult.pagination - Pagination metadata (page, limit, totalRecords, totalPages)
- * @returns {Promise<PaginatedResult<T>>} - Transformed result for frontend consumption
- */
-const transformPaginatedWarehouseInventoryItemSummary = (paginatedResult) =>
-  transformPageResult(
-    paginatedResult,
-    transformWarehouseInventoryItemSummaryRow
-  );
-
-/**
- * Transform a single raw warehouse inventory summary record into a clean structure.
- *
- * @param {Object} row - Raw DB row from warehouse inventory summary query.
- * @returns {Object} Cleaned and enriched inventory record.
- */
-const transformWarehouseInventorySummaryDetailsItem = (row) =>
-  cleanObject({
-    warehouseInventoryId: row.warehouse_inventory_id,
-
-    item:
-      row.batch_type === 'product'
-        ? cleanObject({
-            type: 'sku',
-            id: row.sku_id,
-            code: row.sku,
-          })
-        : cleanObject({
-            type: 'material',
-            id: row.material_id,
-            code: row.material_code,
-          }),
-
-    lotNumber: row.lot_number,
-    manufactureDate:
-      row.product_manufacture_date || row.material_manufacture_date,
-    expiryDate: row.product_expiry_date || row.material_expiry_date,
-
-    quantity: cleanObject({
-      warehouseQuantity: row.warehouse_quantity,
-      reserved: row.reserved_quantity,
-      available: Math.max(
-        (row.warehouse_quantity || 0) - (row.reserved_quantity || 0),
-        0
-      ),
+const transformWarehouseInventoryRecord = (row) => ({
+  id:                row.id,
+  batchId:           row.batch_id,
+  batchType:         row.batch_type,
+  warehouseQuantity: row.warehouse_quantity,
+  reservedQuantity:  row.reserved_quantity,
+  availableQuantity: row.available_quantity,
+  warehouseFee:      row.warehouse_fee,
+  inboundDate:       row.inbound_date,
+  outboundDate:      row.outbound_date,
+  lastMovementAt:    row.last_movement_at,
+  
+  status: makeStatus(row),
+  
+  productInfo: cleanObject({
+    batch: cleanObject({
+      id:         row.product_batch_id,
+      lotNumber:  row.product_lot_number,
+      expiryDate: row.product_expiry_date,
     }),
-
-    status: cleanObject({
-      id: row.status_id,
-      name: row.status_name,
-      date: row.status_date,
+    sku: cleanObject({
+      id:           row.sku_id,
+      sku:          row.sku,
+      barcode:      row.barcode,
+      sizeLabel:    row.size_label,
+      countryCode:  row.country_code,
+      marketRegion: row.market_region,
     }),
-
-    timestamps: cleanObject({
-      inboundDate: row.inbound_date,
-      outboundDate: row.outbound_date,
-      lastUpdate: row.last_update,
+    product: cleanObject({
+      id:    row.product_id,
+      name:  row.product_name,
+      brand: row.brand,
     }),
-    durationInStorage: row.inbound_date
-      ? differenceInDays(new Date(), new Date(row.inbound_date))
-      : null,
-
-    warehouse: cleanObject({
-      id: row.warehouse_id,
-      name: row.warehouse_name,
+    manufacturer: cleanObject({
+      id:   row.manufacturer_id,
+      name: row.manufacturer_name,
     }),
-  });
+  }),
+  
+  packagingInfo: cleanObject({
+    batch: cleanObject({
+      id:          row.packaging_batch_id,
+      lotNumber:   row.packaging_lot_number,
+      displayName: row.packaging_display_name,
+      expiryDate:  row.packaging_expiry_date,
+    }),
+    material: cleanObject({
+      id:   row.packaging_material_id,
+      code: row.packaging_material_code,
+    }),
+    supplier: cleanObject({
+      id:   row.supplier_id,
+      name: row.supplier_name,
+    }),
+  }),
+});
 
 /**
- * Transform a paginated warehouse inventory summary result.
- *
- * @param {Object} paginatedResult - Raw-paginated result from repository.
- * @returns {Object} Transformed paginated result.
+ * @param {PaginatedResult<WarehouseInventoryRow>} paginatedResult
+ * @returns {PaginatedResult<WarehouseInventoryRecord>}
  */
-const transformPaginatedWarehouseInventorySummaryDetails = (paginatedResult) =>
-  transformPageResult(
-    paginatedResult,
-    transformWarehouseInventorySummaryDetailsItem
-  );
-
-/**
- * Transforms a single raw warehouse inventory row into structured, display-ready data.
- * Dynamically handles both product and packaging material item types.
- *
- * @param {Object} row - A raw DB row from the warehouse inventory query
- * @returns {Object} Transformed and cleaned warehouse inventory object
- */
-const transformWarehouseInventoryRecord = (row) =>
-  transformInventoryRecordBase(row, {
-    idField: 'warehouse_inventory_id',
-    scopeKey: 'warehouse',
-    scopeIdField: 'warehouse_id',
-    scopeNameField: 'warehouse_name',
-    quantityField: 'warehouse_quantity',
-  });
+const transformPaginatedWarehouseInventory = (paginatedResult) =>
+  /** @type {PaginatedResult<WarehouseInventoryRecord>} */ (
+  transformPageResult(paginatedResult, transformWarehouseInventoryRecord)
+);
 
 /**
  * Transforms a paginated result set of raw warehouse inventory rows into enriched, display-ready objects.
@@ -223,8 +122,8 @@ const transformWarehouseInventoryResponseRecords = (rows) => {
 };
 
 module.exports = {
-  transformPaginatedWarehouseInventoryItemSummary,
-  transformPaginatedWarehouseInventorySummaryDetails,
+  transformWarehouseInventoryRecord,
+  transformPaginatedWarehouseInventory,
   transformPaginatedWarehouseInventoryRecordResults,
   transformWarehouseInventoryResponseRecords,
 };

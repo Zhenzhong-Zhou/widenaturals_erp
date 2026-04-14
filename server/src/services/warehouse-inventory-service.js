@@ -1,198 +1,99 @@
-const {
-  getPaginatedWarehouseInventoryItemSummary,
-  getWarehouseInventorySummaryDetailsByItemId,
-  getPaginatedWarehouseInventoryRecords,
-} = require('../repositories/warehouse-inventory-repository');
+/**
+ * @file warehouse-inventory-service.js
+ * @description
+ * Service layer for warehouse inventory retrieval.
+ *
+ * Orchestrates ACL evaluation, filter adjustment, paginated querying,
+ * and transformer application for warehouse inventory records.
+ *
+ * Exports:
+ *  - fetchPaginatedWarehouseInventoryService
+ */
+
+'use strict';
+
+const { getPaginatedWarehouseInventory } = require('../repositories/warehouse-inventory-repository');
 const AppError = require('../utils/AppError');
+const { logSystemException } = require('../utils/logging/system-logger');
+const { transformPaginatedWarehouseInventory } = require('../transformers/warehouse-inventory-transformer');
 const {
-  logSystemError,
-  logSystemException,
-  logSystemInfo,
-} = require('../utils/logging/system-logger');
-const {
-  transformPaginatedWarehouseInventoryItemSummary,
-  transformPaginatedWarehouseInventorySummaryDetails,
-  transformPaginatedWarehouseInventoryRecordResults,
-} = require('../transformers/warehouse-inventory-transformer');
-const {
-  canViewWarehouseInventorySummary,
+  evaluateWarehouseInventoryVisibility,
+  applyWarehouseInventoryVisibilityRules
 } = require('../business/warehouse-inventory-business');
-const { getStatusId } = require('../config/status-cache');
+
+const CONTEXT = 'warehouse-inventory-service';
 
 /**
- * Fetches a paginated warehouse inventory item summary (products and/or materials).
+ * Fetches a paginated, ACL-filtered list of warehouse inventory records.
  *
- * This function verifies the user's authorization, validates pagination input,
- * and fetches warehouse inventory summary data from the repository. It includes metadata
- * such as total records and pages, and supports unified or filtered summaries across products (SKUs)
- * and materials based on the `itemType` parameter.
+ * Resolves the user's warehouse scope and batch-type visibility, applies
+ * those rules to the incoming filters, queries the repository, and
+ * transforms the result for UI consumption.
  *
- * @param {object} options
- * @param {number} [options.page=1] - Page number for pagination.
- * @param {number} [options.limit=20] - Number of records per page.
- * @param {string} [options.itemType] - Optional filter for item type: 'product', 'material', or omitted for both.
- * @param {object} options.user - The authenticated user object.
- * @returns {Promise<PaginatedResult<T>>} - Transformed paginated warehouse inventory summary with metadata.
+ * @param {WarehouseInventoryFilters} filters
+ * @param {number}   [page=1]
+ * @param {number}   [limit=20]
+ * @param {string}   [sortBy='inboundDate']
+ * @param {string}   [sortOrder='DESC']
+ * @param {AuthUser} user
+ *
+ * @returns {Promise<PaginatedResult<WarehouseInventoryRecord>>}
+ * @throws {AppError} Passes through business/ACL AppErrors; wraps unexpected errors as serviceError.
  */
-const fetchPaginatedWarehouseInventoryItemSummary = async ({
-  page = 1,
-  limit = 20,
-  itemType,
-  user,
-}) => {
-  const statusId = getStatusId('sku_active');
-
-  const isAllowed = await canViewWarehouseInventorySummary(user);
-  if (!isAllowed) {
-    throw AppError.authorizationError(
-      'You do not have permission to view warehouse inventory summary.'
-    );
-  }
-
-  if (page < 1 || limit < 1) {
-    throw AppError.validationError('Invalid pagination parameters.');
-  }
-
-  if (itemType && !['product', 'packaging_material'].includes(itemType)) {
-    throw AppError.validationError(`Invalid itemType filter: ${itemType}`);
-  }
-
+const fetchPaginatedWarehouseInventoryService = async ({
+                                                         filters   = {},
+                                                         page      = 1,
+                                                         limit     = 20,
+                                                         sortBy    = 'inboundDate',
+                                                         sortOrder = 'DESC',
+                                                         user,
+                                                       }) => {
+  const context = `${CONTEXT}/fetchPaginatedWarehouseInventoryService`;
+  
   try {
-    const rawResult = await getPaginatedWarehouseInventoryItemSummary({
+    // 1. Resolve warehouse inventory visibility scope for this user.
+    const access = await evaluateWarehouseInventoryVisibility(user);
+    
+    // 2. Apply warehouse scope + batch-type visibility rules to filters.
+    const adjustedFilters = /** @type {WarehouseInventoryFilters} */ (
+      applyWarehouseInventoryVisibilityRules(filters, access)
+    );
+    
+    // 3. Short-circuit if user lacks access to the requested warehouse.
+    if (adjustedFilters.forceEmptyResult) {
+      return { data: [], pagination: { page, limit, totalRecords: 0, totalPages: 0 } };
+    }
+    
+    // 4. Query raw warehouse inventory rows.
+    const rawResult = await getPaginatedWarehouseInventory({
+      filters: adjustedFilters,
       page,
       limit,
-      itemType,
-      statusId,
+      sortBy,
+      sortOrder,
     });
-
-    return transformPaginatedWarehouseInventoryItemSummary(rawResult);
+    
+    // 5. Return empty shape immediately — no records to process.
+    if (!rawResult?.data?.length) {
+      return { data: [], pagination: { page, limit, totalRecords: 0, totalPages: 0 } };
+    }
+    
+    // 6. Transform for UI consumption.
+    return transformPaginatedWarehouseInventory(rawResult);
   } catch (error) {
-    logSystemError('Failed to fetch paginated warehouse inventory summary', {
-      context: 'warehouse-inventory-service',
-      params: { page, limit, itemType, userId: user.id },
-      error,
+    if (error instanceof AppError) throw error;
+    
+    logSystemException(error, 'Failed to fetch paginated warehouse inventory', {
+      context,
+      meta: { error: error.message },
     });
-
+    
     throw AppError.serviceError(
-      'Unable to fetch warehouse inventory summary at this time.'
+      'Unable to retrieve warehouse inventory records at this time.'
     );
-  }
-};
-
-/**
- * Service to fetch and transform paginated warehouse inventory summary details
- * for a given item ID (SKU or material).
- *
- * @param {Object} options - Request options.
- * @param {number} options.page - Current page number for pagination.
- * @param {number} options.limit - Number of records per page.
- * @param {string} options.itemId - SKU ID or packaging material ID.
- * @returns {Promise<Object>} Transformed and paginated warehouse inventory summary result.
- * @throws {AppError} On database or transformation failure.
- */
-const fetchWarehouseInventorySummaryByItemIdService = async ({
-  page,
-  limit,
-  itemId,
-}) => {
-  try {
-    const rawResult = await getWarehouseInventorySummaryDetailsByItemId({
-      page,
-      limit,
-      itemId,
-    });
-
-    logSystemInfo(
-      'Successfully fetched warehouse inventory summary by item ID',
-      {
-        context:
-          'warehouse-inventory-service/fetchWarehouseInventorySummaryByItemId',
-        itemId,
-        page,
-        limit,
-        resultCount: rawResult?.data?.length ?? 0,
-      }
-    );
-
-    return transformPaginatedWarehouseInventorySummaryDetails(rawResult);
-  } catch (error) {
-    logSystemException(
-      error,
-      'Failed to fetch and transform warehouse inventory summary',
-      {
-        context:
-          'warehouse-inventory-service/fetchWarehouseInventorySummaryByItemIdService',
-        itemId,
-        page,
-        limit,
-      }
-    );
-
-    throw AppError.serviceError(
-      'Unable to retrieve warehouse inventory summary for the given item.'
-    );
-  }
-};
-
-/**
- * Fetches and transforms paginated warehouse inventory records with optional filters and sorting.
- *
- * This service layer function:
- * - Sanitizes raw sort input to protect against SQL injection
- * - Applies fallback default sorting if no input is provided
- * - Delegates to the repository to fetch raw paginated results
- * - Transforms raw DB rows into structured display-ready objects
- *
- * @param {Object} options - Query options
- * @param {number} options.page - Current page number (1-based)
- * @param {number} options.limit - Number of records per page
- * @param {Object} [options.filters] - Optional filters (e.g., warehouseName, sku, productName, etc.)
- * @param {string} options.safeSortClause - Fully sanitized SQL ORDER BY clause
- *
- * @returns {Promise<Object>} Transformed paginated result, including structured inventory data and pagination metadata
- *    {
- *      data: Array<Object>,        // Transformed location inventory records
- *      pagination: {
- *        page: number,             // Current page
- *        limit: number,            // Items per page
- *        totalRecords: number,     // Total matching records
- *        totalPages: number        // Total number of pages
- *       }
- *     }
- */
-const fetchPaginatedWarehouseInventoryRecordService = async ({
-                                                               page,
-                                                               limit,
-                                                               filters = {},
-                                                               safeSortClause,
-}) => {
-  try {
-    const rawResult = await getPaginatedWarehouseInventoryRecords({
-      page,
-      limit,
-      filters,
-      safeSortClause,
-    });
-
-    return transformPaginatedWarehouseInventoryRecordResults(rawResult);
-  } catch (error) {
-    logSystemException(
-      error,
-      'Failed in warehouseInventoryService.getPaginatedWarehouseInventory',
-      {
-        context: 'warehouse-inventory-service/getPaginatedWarehouseInventory',
-        page,
-        limit,
-        filters,
-      }
-    );
-
-    throw AppError.serviceError('Failed to retrieve warehouse inventory data.');
   }
 };
 
 module.exports = {
-  fetchPaginatedWarehouseInventoryItemSummary,
-  fetchWarehouseInventorySummaryByItemIdService,
-  fetchPaginatedWarehouseInventoryRecordService,
+  fetchPaginatedWarehouseInventoryService
 };
