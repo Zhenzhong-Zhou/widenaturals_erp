@@ -3,12 +3,23 @@
  * @description
  * Static query parts and SQL builder for the warehouse inventory domain.
  *
- * Exports the base table alias, join array, sort whitelist, and a
- * paginated SELECT builder used by the warehouse inventory repository.
- * All exports are module-level constants — built once on load, never
- * mutated at runtime.
+ * Exports the base table alias, join array, sort whitelist, paginated
+ * SELECT builder, insert/upsert constants, and update queries used by
+ * the warehouse inventory repository. All exports are module-level
+ * constants — built once on load, never mutated at runtime.
  *
- * @module warehouse-inventory-queries
+ * Exports:
+ *  - WAREHOUSE_INVENTORY_TABLE
+ *  - WAREHOUSE_INVENTORY_JOINS
+ *  - WAREHOUSE_INVENTORY_SORT_WHITELIST
+ *  - buildWarehouseInventoryPaginatedQuery
+ *  - WAREHOUSE_INVENTORY_INSERT_COLUMNS
+ *  - WAREHOUSE_INVENTORY_CONFLICT_COLUMNS
+ *  - WAREHOUSE_INVENTORY_UPDATE_STRATEGIES
+ *  - UPDATE_WAREHOUSE_INVENTORY_QUANTITY_QUERY
+ *  - UPDATE_WAREHOUSE_INVENTORY_STATUS_QUERY
+ *  - UPDATE_WAREHOUSE_INVENTORY_OUTBOUND_QUERY
+ *  - UPDATE_WAREHOUSE_INVENTORY_METADATA_QUERY
  */
 
 'use strict';
@@ -107,9 +118,97 @@ const buildWarehouseInventoryPaginatedQuery = (whereClause) => `
   WHERE ${whereClause}
 `;
 
+// ── Insert / upsert ─────────────────────────────────────────────────
+
+/** @type {string[]} */
+const WAREHOUSE_INVENTORY_INSERT_COLUMNS = [
+  'warehouse_id',
+  'batch_id',
+  'warehouse_quantity',
+  'reserved_quantity',
+  'warehouse_fee',
+  'inbound_date',
+  'status_id',
+  'status_date',
+  'created_by',
+  'updated_at',
+  'updated_by',
+];
+
+/** @type {string[]} */
+const WAREHOUSE_INVENTORY_CONFLICT_COLUMNS = ['warehouse_id', 'batch_id'];
+
+/** @type {Record<string, string>} */
+const WAREHOUSE_INVENTORY_UPDATE_STRATEGIES = {
+  warehouse_quantity: 'overwrite',
+  reserved_quantity:  'overwrite',
+  warehouse_fee:      'overwrite',
+  inbound_date:       'overwrite',
+  status_id:          'overwrite',
+  status_date:        'overwrite',
+  updated_at:         'overwrite',
+  updated_by:         'overwrite',
+};
+
+// ── Update queries ──────────────────────────────────────────────────
+
+const UPDATE_WAREHOUSE_INVENTORY_QUANTITY_QUERY = `
+  UPDATE warehouse_inventory
+  SET warehouse_quantity = $1,
+      reserved_quantity  = $2,
+      last_movement_at   = NOW(),
+      updated_at         = NOW(),
+      updated_by         = $3
+  WHERE id = $4
+    AND warehouse_id = $5
+  RETURNING *
+`;
+
+const UPDATE_WAREHOUSE_INVENTORY_STATUS_QUERY = `
+  UPDATE warehouse_inventory
+  SET status_id   = $1,
+      status_date = NOW(),
+      updated_at  = NOW(),
+      updated_by  = $2
+  WHERE id = $3
+    AND warehouse_id = $4
+  RETURNING *
+`;
+
+const UPDATE_WAREHOUSE_INVENTORY_OUTBOUND_QUERY = `
+  UPDATE warehouse_inventory
+  SET outbound_date      = $1,
+      warehouse_quantity = $2,
+      reserved_quantity  = 0,
+      last_movement_at   = NOW(),
+      updated_at         = NOW(),
+      updated_by         = $3
+  WHERE id = $4
+    AND warehouse_id = $5
+  RETURNING *
+`;
+
+const UPDATE_WAREHOUSE_INVENTORY_METADATA_QUERY = `
+  UPDATE warehouse_inventory
+  SET inbound_date  = COALESCE($1, inbound_date),
+      warehouse_fee = COALESCE($2, warehouse_fee),
+      updated_at    = NOW(),
+      updated_by    = $3
+  WHERE id = $4
+    AND warehouse_id = $5
+  RETURNING *
+`;
+
 module.exports = {
   WAREHOUSE_INVENTORY_TABLE,
   WAREHOUSE_INVENTORY_JOINS,
   WAREHOUSE_INVENTORY_SORT_WHITELIST,
   buildWarehouseInventoryPaginatedQuery,
+  WAREHOUSE_INVENTORY_INSERT_COLUMNS,
+  WAREHOUSE_INVENTORY_CONFLICT_COLUMNS,
+  WAREHOUSE_INVENTORY_UPDATE_STRATEGIES,
+  UPDATE_WAREHOUSE_INVENTORY_QUANTITY_QUERY,
+  UPDATE_WAREHOUSE_INVENTORY_STATUS_QUERY,
+  UPDATE_WAREHOUSE_INVENTORY_OUTBOUND_QUERY,
+  UPDATE_WAREHOUSE_INVENTORY_METADATA_QUERY,
 };

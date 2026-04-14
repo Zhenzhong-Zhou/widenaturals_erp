@@ -68,3 +68,45 @@
  * @property {object}      productInfo
  * @property {object}      packagingInfo
  */
+
+/**
+ * @typedef {object} WarehouseInventoryInsertRecord
+ * @property {string}      warehouse_id
+ * @property {string}      batch_id
+ * @property {number}      warehouse_quantity
+ * @property {number}      [reserved_quantity=0]
+ * @property {number}      [warehouse_fee=0]
+ * @property {string}      inbound_date
+ * @property {string}      status_id
+ * @property {string|null} [status_date]
+ * @property {string|null} [created_by]
+ */
+
+/**
+ * @typedef {object} WarehouseInventoryQuantityUpdate
+ * @property {string} id
+ * @property {number} warehouseQuantity
+ * @property {number} reservedQuantity
+ */
+
+/**
+ * @typedef {object} WarehouseInventoryStatusUpdate
+ * @property {string} id
+ * @property {string} statusId
+ */
+
+/**
+ * @typedef {object} WarehouseInventoryMetadataUpdate
+ * @property {string} id
+ * @property {string} warehouseId
+ * @property {string} [inboundDate]
+ * @property {number} [warehouseFee]
+ * @property {string} updatedBy
+ */
+
+/**
+ * @typedef {object} WarehouseInventoryOutboundUpdate
+ * @property {string} id
+ * @property {string} outboundDate
+ * @property {number} warehouseQuantity
+ */
