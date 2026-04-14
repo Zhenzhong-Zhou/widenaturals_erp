@@ -565,40 +565,33 @@ const SORTABLE_FIELDS = {
     `,
   },
   warehouseInventorySortMap: {
-    warehouseName: 'wh.name',
-    productName: 'p.name',
-    materialName: 'pmb.material_snapshot_name',
-    expiryDate: `
-      CASE
-        WHEN br.batch_type = 'product' THEN pb.expiry_date
-        WHEN br.batch_type = 'packaging_material' THEN pmb.expiry_date
-        ELSE NULL
-      END
-    `,
-    createdAt: 'wi.created_at',
-    lastUpdate: 'wi.last_update',
-    availableQuantity: '(wi.warehouse_quantity - wi.reserved_quantity)',
-    status: 'st.name',
-    name: `
-      CASE
-        WHEN br.batch_type = 'product' THEN p.name
-        ELSE COALESCE(pmb.material_snapshot_name, pt.name, p.name)
-      END
-    `,
-    defaultNaturalSort: `
-      wh.name DESC,
-      p.brand,
-      br.batch_type,
-      CASE
+    inboundDate:           'wi.inbound_date',
+    warehouseQuantity:     'wi.warehouse_quantity',
+    reservedQuantity:      'wi.reserved_quantity',
+    availableQuantity:     '(wi.warehouse_quantity - wi.reserved_quantity)',
+    productName:           'p.name',
+    packagingDisplayName:  'pmb.received_label_name',
+    lotNumber:             'COALESCE(pb.lot_number, pmb.lot_number)',
+    expiryDate:            'COALESCE(pb.expiry_date, pmb.expiry_date)',
+    sku:                   's.sku',
+    statusName:            'ist.name',
+    lastMovementAt:        'wi.last_movement_at',
+    statusDate:            'wi.status_date',
+    batchType:             'br.batch_type',
+    defaultNaturalSort: [
+      'p.brand ASC NULLS LAST',
+      'br.batch_type ASC',
+      `CASE
         WHEN br.batch_type = 'product' AND p.name ILIKE 'NMN%' THEN
           LPAD(REGEXP_REPLACE(p.name, '[^0-9]', '', 'g'), 10, '0')
         WHEN br.batch_type = 'product' THEN
           p.name
         ELSE
-          LPAD(REGEXP_REPLACE(COALESCE(pmb.material_snapshot_name, pt.name), '[^0-9]', '', 'g'), 20, '0')
-      END NULLS LAST,
-      wi.last_update DESC
-    `,
+          LPAD(REGEXP_REPLACE(COALESCE(pmb.received_label_name, pm.name), '[^0-9]', '', 'g'), 20, '0')
+      END NULLS LAST`,
+      'COALESCE(pb.lot_number, pmb.lot_number) ASC',
+      'wi.last_movement_at DESC NULLS LAST',
+    ],
   },
   inventoryActivityLogSortMap: {
     actionTimestamp: 'ial.action_timestamp',
