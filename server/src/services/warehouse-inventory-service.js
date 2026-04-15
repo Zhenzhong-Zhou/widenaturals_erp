@@ -1,25 +1,54 @@
 /**
  * @file warehouse-inventory-service.js
  * @description
- * Service layer for warehouse inventory retrieval.
+ * Service layer for warehouse inventory operations.
  *
- * Orchestrates ACL evaluation, filter adjustment, paginated querying,
- * and transformer application for warehouse inventory records.
+ * Orchestrates ACL evaluation, business rule enforcement, transactional
+ * repository calls, activity log generation, and transformer application
+ * across all warehouse inventory mutations and queries.
  *
  * Exports:
- *  - fetchPaginatedWarehouseInventoryService
+ *  - fetchPaginatedWarehouseInventoryService      — paginated ACL-filtered inventory list
+ *  - createWarehouseInventoryService              — bulk inbound inventory creation
+ *  - adjustWarehouseInventoryQuantityService      — bulk quantity adjustment
+ *  - updateWarehouseInventoryStatusService        — bulk status update
+ *  - updateWarehouseInventoryMetadataService      — single record metadata patch
+ *  - recordWarehouseInventoryOutboundService      — bulk outbound movement recording
  */
 
 'use strict';
 
-const { getPaginatedWarehouseInventory } = require('../repositories/warehouse-inventory-repository');
+const {
+  getPaginatedWarehouseInventory,
+  insertWarehouseInventoryBulk,
+  fetchWarehouseInventoryStateByIds,
+  updateWarehouseInventoryQuantityBulk,
+  updateWarehouseInventoryOutboundBulk,
+  updateWarehouseInventoryStatusBulk,
+  updateWarehouseInventoryMetadata
+} = require('../repositories/warehouse-inventory-repository');
 const AppError = require('../utils/AppError');
-const { logSystemException } = require('../utils/logging/system-logger');
 const { transformPaginatedWarehouseInventory } = require('../transformers/warehouse-inventory-transformer');
 const {
   evaluateWarehouseInventoryVisibility,
-  applyWarehouseInventoryVisibilityRules
+  applyWarehouseInventoryVisibilityRules,
+  assertWarehouseAccess,
+  enforceWarehouseScope,
+  validateInboundQuantities,
+  validateInboundBatches,
+  resolveInboundStatus,
+  buildInboundActivityLogEntries,
+  validateQuantityAdjustments,
+  buildQuantityAdjustmentLogEntries,
+  validateOutboundRecords,
+  buildOutboundLogEntries,
+  buildStatusChangeLogEntries,
+  assertAllInventoryRecordsFound
 } = require('../business/warehouse-inventory-business');
+const { withTransaction } = require('../database/db');
+const { insertInventoryActivityLogBulk } = require('../repositories/inventory-activity-log-repository');
+const { getStatusId } = require('../config/status-cache');
+const { validateInventoryStatusIds } = require('../repositories/inventory-status-repository');
 
 const CONTEXT = 'warehouse-inventory-service';
 
@@ -83,17 +112,406 @@ const fetchPaginatedWarehouseInventoryService = async ({
   } catch (error) {
     if (error instanceof AppError) throw error;
     
-    logSystemException(error, 'Failed to fetch paginated warehouse inventory', {
-      context,
-      meta: { error: error.message },
+    throw AppError.serviceError(
+      'Unable to retrieve warehouse inventory records at this time.',
+      {
+        context,
+        meta: { error: error.message }
+      }
+    );
+  }
+};
+
+/**
+ * Bulk creates inbound warehouse inventory records for a given warehouse.
+ *
+ * Validates warehouse access, batch existence, quantity rules, and resolves
+ * the inbound status before inserting records and writing activity log entries.
+ *
+ * @param {string}   warehouseId
+ * @param {object[]} records
+ * @param {string}   records[].batchId
+ * @param {number}   records[].warehouseQuantity
+ * @param {number}   [records[].warehouseFee]
+ * @param {string}   [records[].statusId]
+ * @param {AuthUser} user
+ * @returns {Promise<{ count: number, ids: string[] }>}
+ * @throws {AppError} Passes through business/ACL AppErrors; wraps unexpected errors as serviceError.
+ */
+const createWarehouseInventoryService = async ({
+                                               warehouseId,
+                                               records,
+                                               user,
+                                             }) => {
+  const context = `${CONTEXT}/createWarehouseInventoryService`;
+  
+  try {
+    // 1. Warehouse scope check
+    const assignedWarehouseIds = await assertWarehouseAccess(user);
+    enforceWarehouseScope(assignedWarehouseIds, warehouseId);
+    
+    return await withTransaction(async (client) => {
+      // 2. Validate quantities
+      validateInboundQuantities(records);
+      
+      // 3. Validate batch IDs exist and not duplicated at this warehouse
+      const batchIds = records.map((r) => r.batchId);
+      await validateInboundBatches(batchIds, warehouseId, client);
+      
+      // 4. Resolve inbound status
+      const statusId = await resolveInboundStatus(
+        client,
+        records[0]?.statusId
+      );
+      
+      // 5. Resolve inbound action type
+      const actionTypeId = getStatusId('action_manual_stock_insert');
+      
+      if (!actionTypeId) {
+        throw AppError.businessError(
+          'Inbound action type not found. Contact an administrator.'
+        );
+      }
+      
+      // 6. Build and insert inventory records
+      const inventoryRows = records.map((record) => ({
+        warehouse_id:       warehouseId,
+        batch_id:           record.batchId,
+        warehouse_quantity: record.warehouseQuantity,
+        reserved_quantity:  0,
+        warehouse_fee:      record.warehouseFee ?? 0,
+        inbound_date:       record.inboundDate ?? new Date().toISOString(),
+        status_id:          statusId,
+        created_by:         user.id,
+      }));
+      
+      const insertedRecords = await insertWarehouseInventoryBulk(
+        inventoryRows, client
+      );
+      
+      // 7. Build and insert activity log entries
+      const logEntries = buildInboundActivityLogEntries(
+        insertedRecords, actionTypeId, user.id
+      );
+      
+      await insertInventoryActivityLogBulk(logEntries, client);
+      
+      // 8. Lean response
+      return {
+        count: insertedRecords.length,
+        ids:   insertedRecords.map((r) => r.id),
+      };
     });
+  } catch (error) {
+    if (error instanceof AppError) throw error;
     
     throw AppError.serviceError(
-      'Unable to retrieve warehouse inventory records at this time.'
+      'Unable to record inbound inventory at this time.',
+      {
+        context,
+        meta: { error: error.message }
+      }
+    );
+  }
+};
+
+// ── Adjust quantities ───────────────────────────────────────────────
+
+/**
+ * Bulk adjusts warehouse and reserved quantities for inventory records.
+ *
+ * Validates warehouse access and quantity rules, fetches pre-mutation state
+ * for log generation, applies updates, and writes activity log entries.
+ *
+ * @param {string}   warehouseId
+ * @param {object[]} updates
+ * @param {string}   updates[].id
+ * @param {number}   updates[].warehouseQuantity
+ * @param {number}   updates[].reservedQuantity
+ * @param {AuthUser} user
+ * @returns {Promise<{ count: number, updatedIds: string[] }>}
+ * @throws {AppError} Passes through business/ACL AppErrors; wraps unexpected errors as serviceError.
+ */
+const adjustWarehouseInventoryQuantityService = async ({
+                                                         warehouseId,
+                                                         updates,
+                                                         user,
+                                                       }) => {
+  const context = `${CONTEXT}/adjustWarehouseInventoryQuantityService`;
+  
+  try {
+    const assignedWarehouseIds = await assertWarehouseAccess(user);
+    enforceWarehouseScope(assignedWarehouseIds, warehouseId);
+    
+    validateQuantityAdjustments(updates);
+    
+    return await withTransaction(async (client) => {
+      const ids = updates.map((u) => u.id);
+      const previousRecords = await fetchWarehouseInventoryStateByIds(ids, warehouseId, client);
+      
+      assertAllInventoryRecordsFound(ids, previousRecords);
+      
+      const actionTypeId = getStatusId('action_manual_stock_adjust');
+      
+      if (!actionTypeId) {
+        throw AppError.businessError(
+          'Adjustment action type not found. Contact an administrator.'
+        );
+      }
+      
+      const adjustmentTypeId = getStatusId('adjustment_manual_stock_insert');
+      
+      const updatedRecords = await updateWarehouseInventoryQuantityBulk(
+        updates, warehouseId, user.id, client
+      );
+      
+      const logEntries = buildQuantityAdjustmentLogEntries(
+        previousRecords, updatedRecords, actionTypeId, adjustmentTypeId, user.id
+      );
+      
+      await insertInventoryActivityLogBulk(logEntries, client);
+      
+      return {
+        count:      updatedRecords.length,
+        updatedIds: updatedRecords.map((r) => r.id),
+      };
+    });
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError(
+      'Unable to adjust warehouse inventory quantities at this time.',
+      {
+        context,
+        meta: { error: error.message }
+      }
+    );
+  }
+};
+
+// ── Update status ───────────────────────────────────────────────────
+
+/**
+ * Bulk updates inventory status for a set of warehouse inventory records.
+ *
+ * Validates warehouse access and status ID existence, fetches pre-mutation
+ * state for log generation, applies updates, and writes activity log entries.
+ *
+ * @param {string}   warehouseId
+ * @param {object[]} updates
+ * @param {string}   updates[].id
+ * @param {string}   updates[].statusId
+ * @param {AuthUser} user
+ * @returns {Promise<{ count: number, updatedIds: string[] }>}
+ * @throws {AppError} Passes through business/ACL AppErrors; wraps unexpected errors as serviceError.
+ */
+const updateWarehouseInventoryStatusService = async ({
+                                                       warehouseId,
+                                                       updates,
+                                                       user,
+                                                     }) => {
+  const context = `${CONTEXT}/updateWarehouseInventoryStatusService`;
+  
+  try {
+    const assignedWarehouseIds = await assertWarehouseAccess(user);
+    enforceWarehouseScope(assignedWarehouseIds, warehouseId);
+    
+    return await withTransaction(async (client) => {
+      const ids = updates.map((u) => u.id);
+      const previousRecords = await fetchWarehouseInventoryStateByIds(ids, warehouseId, client);
+      
+      assertAllInventoryRecordsFound(ids, previousRecords);
+      
+      // Validate all status IDs exist
+      const statusIds = [...new Set(updates.map((u) => u.statusId))];
+      const validStatuses = await validateInventoryStatusIds(statusIds, client);
+      
+      if (validStatuses.length !== statusIds.length) {
+        const foundIds = new Set(validStatuses.map((r) => r.id));
+        const invalidIds = statusIds.filter((id) => !foundIds.has(id));
+        throw AppError.validationError(
+          'One or more invalid inventory status IDs.',
+          { context, meta: { invalidStatusIds: invalidIds } }
+        );
+      }
+      
+      const actionTypeId = getStatusId('action_manual_stock_adjust');
+      
+      if (!actionTypeId) {
+        throw AppError.businessError(
+          'Status change action type not found. Contact an administrator.'
+        );
+      }
+      
+      const updatedRecords = await updateWarehouseInventoryStatusBulk(
+        updates, warehouseId, user.id, client
+      );
+      
+      const logEntries = buildStatusChangeLogEntries(
+        previousRecords, updatedRecords, actionTypeId, user.id
+      );
+      
+      await insertInventoryActivityLogBulk(logEntries, client);
+      
+      return {
+        count:      updatedRecords.length,
+        updatedIds: updatedRecords.map((r) => r.id),
+      };
+    });
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError(
+      'Unable to update warehouse inventory status at this time.',
+      {
+        context,
+        meta: { error: error.message },
+      }
+    );
+  }
+};
+
+// ── Update metadata ─────────────────────────────────────────────────
+
+/**
+ * Updates inbound date and warehouse fee for a single inventory record.
+ *
+ * No activity log is written — metadata corrections are not quantity
+ * or status changes and are not tracked in the inventory audit trail.
+ *
+ * @param {string}  warehouseId
+ * @param {string}  id
+ * @param {object}  fields
+ * @param {string}  [fields.inboundDate]
+ * @param {number}  [fields.warehouseFee]
+ * @param {AuthUser} user
+ * @returns {Promise<{ id: string, inboundDate: string, warehouseFee: number, updatedAt: string }>}
+ * @throws {AppError} Passes through business/ACL AppErrors; wraps unexpected errors as serviceError.
+ */
+const updateWarehouseInventoryMetadataService = async ({
+                                                         warehouseId,
+                                                         id,
+                                                         fields,
+                                                         user,
+                                                       }) => {
+  const context = `${CONTEXT}/updateWarehouseInventoryMetadataService`;
+  
+  try {
+    const assignedWarehouseIds = await assertWarehouseAccess(user);
+    enforceWarehouseScope(assignedWarehouseIds, warehouseId);
+    
+    return await withTransaction(async (client) => {
+      const updated = await updateWarehouseInventoryMetadata({
+        id,
+        warehouseId,
+        inboundDate:  fields.inboundDate,
+        warehouseFee: fields.warehouseFee ?? null,
+        updatedBy:    user.id,
+      }, client);
+      
+      if (!updated) {
+        throw AppError.notFoundError('Warehouse inventory record not found.');
+      }
+      
+      // No activity log for metadata corrections — not a quantity or status change
+      
+      return {
+        id:          updated.id,
+        inboundDate: updated.inbound_date,
+        warehouseFee: updated.warehouse_fee,
+        updatedAt:   updated.updated_at,
+      };
+    });
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError(
+      'Unable to update warehouse inventory metadata at this time.',
+      {
+        context,
+        meta: { error: error.message },
+      }
+    );
+  }
+};
+
+// ── Record outbound ─────────────────────────────────────────────────
+
+/**
+ * Bulk records outbound stock movement for warehouse inventory records.
+ *
+ * Validates warehouse access and outbound record rules, fetches pre-mutation
+ * state for log generation, applies updates, and writes activity log entries.
+ *
+ * @param {string}   warehouseId
+ * @param {object[]} updates
+ * @param {string}   updates[].id
+ * @param {string}   updates[].outboundDate
+ * @param {number}   updates[].warehouseQuantity
+ * @param {AuthUser} user
+ * @returns {Promise<{ count: number, updatedIds: string[] }>}
+ * @throws {AppError} Passes through business/ACL AppErrors; wraps unexpected errors as serviceError.
+ */
+const recordWarehouseInventoryOutboundService = async ({
+                                                         warehouseId,
+                                                         updates,
+                                                         user,
+                                                       }) => {
+  const context = `${CONTEXT}/recordWarehouseInventoryOutboundService`;
+  
+  try {
+    const assignedWarehouseIds = await assertWarehouseAccess(user);
+    enforceWarehouseScope(assignedWarehouseIds, warehouseId);
+    
+    validateOutboundRecords(updates);
+    
+    return await withTransaction(async (client) => {
+      const ids = updates.map((u) => u.id);
+      const previousRecords = await fetchWarehouseInventoryStateByIds(ids, warehouseId, client);
+      
+      assertAllInventoryRecordsFound(ids, previousRecords);
+      
+      const actionTypeId = getStatusId('action_fulfilled');
+      
+      if (!actionTypeId) {
+        throw AppError.businessError(
+          'Outbound action type not found. Contact an administrator.'
+        );
+      }
+      
+      const updatedRecords = await updateWarehouseInventoryOutboundBulk(
+        updates, warehouseId, user.id, client
+      );
+      
+      const logEntries = buildOutboundLogEntries(
+        previousRecords, updatedRecords, actionTypeId, user.id
+      );
+      
+      await insertInventoryActivityLogBulk(logEntries, client);
+      
+      return {
+        count:      updatedRecords.length,
+        updatedIds: updatedRecords.map((r) => r.id),
+      };
+    });
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError(
+      'Unable to record warehouse inventory outbound at this time.',
+      {
+        context,
+        meta: { error: error.message },
+      }
     );
   }
 };
 
 module.exports = {
-  fetchPaginatedWarehouseInventoryService
+  fetchPaginatedWarehouseInventoryService,
+  createWarehouseInventoryService,
+  adjustWarehouseInventoryQuantityService,
+  updateWarehouseInventoryStatusService,
+  updateWarehouseInventoryMetadataService,
+  recordWarehouseInventoryOutboundService,
 };
