@@ -14,6 +14,7 @@
  *  - insertBatchRegistryBulk      — bulk insert with batch-type-aware conflict resolution
  *  - updateBatchRegistryNoteById  — updates note and audit fields by ID
  *  - getBatchRegistryDetailsById  — full detail fetch with batch and user joins
+ *  - validateBatchRegistryIds     — existence check for a set of batch IDs
  */
 
 'use strict';
@@ -45,8 +46,11 @@ const {
   BATCH_REGISTRY_CONFLICT_COLUMNS_PRODUCT,
   BATCH_REGISTRY_CONFLICT_COLUMNS_PACKAGING,
   BATCH_REGISTRY_UPDATE_NOTE_QUERY,
-  BATCH_REGISTRY_DETAILS_QUERY, buildBatchRegistryLookupQuery,
+  BATCH_REGISTRY_DETAILS_QUERY,
+  buildBatchRegistryLookupQuery, VALIDATE_BATCH_REGISTRY_IDS_QUERY,
 } = require('./queries/batch-registry-queries');
+
+const CONTEXT = 'batch-registry-repository';
 
 // ─── Single Record ────────────────────────────────────────────────────────────
 
@@ -63,7 +67,7 @@ const {
  * @throws  {AppError} Normalized database error if the query fails.
  */
 const getBatchRegistryById = async (batchRegistryId, client) => {
-  const context = 'batch-registry-repository/getBatchRegistryById';
+  const context = `${CONTEXT}/getBatchRegistryById`;
   
   try {
     const { rows } = await query(BATCH_REGISTRY_GET_BY_ID, [batchRegistryId], client);
@@ -100,7 +104,7 @@ const getBatchRegistryById = async (batchRegistryId, client) => {
  * @throws  {AppError}        Normalized database error if the query fails.
  */
 const getBatchRegistryLookup = async ({ filters, limit = 50, offset = 0 }) => {
-  const context = 'batch-registry-repository/getBatchRegistryLookup';
+  const context = `${CONTEXT}/getBatchRegistryLookup`;
   
   const { whereClause, params } = buildBatchRegistryInventoryScopeFilter(filters);
   const queryText = buildBatchRegistryLookupQuery(whereClause);
@@ -160,7 +164,7 @@ const getPaginatedBatchRegistry = async ({
                                            sortBy    = 'registeredAt',  // map key, not DB column
                                            sortOrder = 'DESC',
                                          }) => {
-  const context = 'batch-registry-repository/getPaginatedBatchRegistry';
+  const context = `${CONTEXT}/getPaginatedBatchRegistry`;
   
   const { whereClause, params } = buildBatchRegistryFilter(filters);
   
@@ -224,7 +228,7 @@ const getPaginatedBatchRegistry = async ({
 const insertBatchRegistryBulk = async (registries, client) => {
   if (!Array.isArray(registries) || registries.length === 0) return [];
   
-  const context = 'batch-registry-repository/insertBatchRegistryBulk';
+  const context = `${CONTEXT}/insertBatchRegistryBulk`;
   
   // All records must share the same batch_type — mixed types in a single
   // bulk insert would apply the wrong conflict column to some records.
@@ -310,7 +314,7 @@ const insertBatchRegistryBulk = async (registries, client) => {
  * @throws  {AppError}                Normalized database error if the update fails.
  */
 const updateBatchRegistryNoteById = async ({ id, note, updatedBy }, client) => {
-  const context = 'batch-registry-repository/updateBatchRegistryNoteById';
+  const context = `${CONTEXT}/updateBatchRegistryNoteById`;
   
   let result;
   
@@ -356,7 +360,7 @@ const updateBatchRegistryNoteById = async ({ id, note, updatedBy }, client) => {
  * @throws  {AppError}             Normalized database error if the query fails.
  */
 const getBatchRegistryDetailsById = async (registryId) => {
-  const context = 'batch-registry-repository/getBatchRegistryDetailsById';
+  const context = `${CONTEXT}/getBatchRegistryDetailsById`;
   
   try {
     const { rows } = await query(BATCH_REGISTRY_DETAILS_QUERY, [registryId]);
@@ -376,6 +380,37 @@ const getBatchRegistryDetailsById = async (registryId) => {
   }
 };
 
+/**
+ * Checks which of the given batch IDs exist in batch_registry.
+ * Returns only the rows that matched — caller compares against input to detect missing IDs.
+ *
+ * @param {string[]}               batchIds
+ * @param {import('pg').PoolClient} client
+ * @returns {Promise<{ id: string }[]>}
+ * @throws {AppError} Normalized database error if the query fails.
+ */
+const validateBatchRegistryIds = async (batchIds, client) => {
+  const context = `${CONTEXT}/validateBatchRegistryIds`;
+  
+  const params = [batchIds];
+  
+  try {
+    const { rows } = await query(
+      VALIDATE_BATCH_REGISTRY_IDS_QUERY, params, client
+    );
+    return rows;
+  } catch (error) {
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to validate batch registry IDs.',
+      meta:    { batchCount: batchIds.length },
+      logFn:   (err) => logDbQueryError(
+        VALIDATE_BATCH_REGISTRY_IDS_QUERY, params, err, { context }
+      ),
+    });
+  }
+};
+
 module.exports = {
   getBatchRegistryById,
   getBatchRegistryLookup,
@@ -383,4 +418,5 @@ module.exports = {
   insertBatchRegistryBulk,
   updateBatchRegistryNoteById,
   getBatchRegistryDetailsById,
+  validateBatchRegistryIds,
 };

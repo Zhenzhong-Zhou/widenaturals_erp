@@ -23,6 +23,7 @@
  *  - BATCH_REGISTRY_CONFLICT_COLUMNS_PACKAGING — conflict target for packaging batches
  *  - BATCH_REGISTRY_UPDATE_NOTE_QUERY          — update note by ID
  *  - BATCH_REGISTRY_DETAILS_QUERY              — full detail fetch with joins
+ *  - VALIDATE_BATCH_REGISTRY_IDS_QUERY         — existence check for a set of batch IDs
  */
 
 'use strict';
@@ -208,6 +209,12 @@ const BATCH_REGISTRY_DETAILS_QUERY = `
   WHERE br.id = $1
 `;
 
+const VALIDATE_BATCH_REGISTRY_IDS_QUERY = `
+  SELECT id
+  FROM batch_registry
+  WHERE id = ANY($1::uuid[])
+`;
+
 module.exports = {
   BATCH_REGISTRY_GET_BY_ID,
   BATCH_REGISTRY_LOOKUP_TABLE,
@@ -224,4 +231,5 @@ module.exports = {
   BATCH_REGISTRY_CONFLICT_COLUMNS_PACKAGING,
   BATCH_REGISTRY_UPDATE_NOTE_QUERY,
   BATCH_REGISTRY_DETAILS_QUERY,
+  VALIDATE_BATCH_REGISTRY_IDS_QUERY,
 };

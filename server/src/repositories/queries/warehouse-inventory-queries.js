@@ -9,17 +9,19 @@
  * constants — built once on load, never mutated at runtime.
  *
  * Exports:
- *  - WAREHOUSE_INVENTORY_TABLE
- *  - WAREHOUSE_INVENTORY_JOINS
- *  - WAREHOUSE_INVENTORY_SORT_WHITELIST
- *  - buildWarehouseInventoryPaginatedQuery
- *  - WAREHOUSE_INVENTORY_INSERT_COLUMNS
- *  - WAREHOUSE_INVENTORY_CONFLICT_COLUMNS
- *  - WAREHOUSE_INVENTORY_UPDATE_STRATEGIES
- *  - UPDATE_WAREHOUSE_INVENTORY_QUANTITY_QUERY
- *  - UPDATE_WAREHOUSE_INVENTORY_STATUS_QUERY
- *  - UPDATE_WAREHOUSE_INVENTORY_OUTBOUND_QUERY
- *  - UPDATE_WAREHOUSE_INVENTORY_METADATA_QUERY
+ *  - WAREHOUSE_INVENTORY_TABLE                      — primary table alias
+ *  - WAREHOUSE_INVENTORY_JOINS                      — ordered JOIN clauses for paginated query
+ *  - WAREHOUSE_INVENTORY_SORT_WHITELIST             — allowed sort column values
+ *  - buildWarehouseInventoryPaginatedQuery          — paginated SELECT builder
+ *  - WAREHOUSE_INVENTORY_INSERT_COLUMNS             — ordered column list for bulk insert
+ *  - WAREHOUSE_INVENTORY_CONFLICT_COLUMNS           — conflict target for upsert
+ *  - WAREHOUSE_INVENTORY_UPDATE_STRATEGIES          — conflict update strategies
+ *  - UPDATE_WAREHOUSE_INVENTORY_QUANTITY_QUERY      — update warehouse and reserved quantities
+ *  - UPDATE_WAREHOUSE_INVENTORY_STATUS_QUERY        — update inventory status
+ *  - UPDATE_WAREHOUSE_INVENTORY_OUTBOUND_QUERY      — record outbound and zero reserved quantity
+ *  - UPDATE_WAREHOUSE_INVENTORY_METADATA_QUERY      — update inbound date and warehouse fee
+ *  - FETCH_WAREHOUSE_INVENTORY_STATE_QUERY          — fetch quantity and status for a set of inventory IDs
+ *  - FIND_EXISTING_INVENTORY_BY_BATCH_IDS_QUERY     — check which batch IDs already have inventory records
  */
 
 'use strict';
@@ -199,6 +201,20 @@ const UPDATE_WAREHOUSE_INVENTORY_METADATA_QUERY = `
   RETURNING *
 `;
 
+const FETCH_WAREHOUSE_INVENTORY_STATE_QUERY = `
+  SELECT id, warehouse_quantity, reserved_quantity, status_id
+  FROM warehouse_inventory
+  WHERE id = ANY($1::uuid[])
+    AND warehouse_id = $2
+`;
+
+const FIND_EXISTING_INVENTORY_BY_BATCH_IDS_QUERY = `
+  SELECT batch_id
+  FROM warehouse_inventory
+  WHERE warehouse_id = $1
+    AND batch_id = ANY($2::uuid[])
+`;
+
 module.exports = {
   WAREHOUSE_INVENTORY_TABLE,
   WAREHOUSE_INVENTORY_JOINS,
@@ -211,4 +227,6 @@ module.exports = {
   UPDATE_WAREHOUSE_INVENTORY_STATUS_QUERY,
   UPDATE_WAREHOUSE_INVENTORY_OUTBOUND_QUERY,
   UPDATE_WAREHOUSE_INVENTORY_METADATA_QUERY,
+  FETCH_WAREHOUSE_INVENTORY_STATE_QUERY,
+  FIND_EXISTING_INVENTORY_BY_BATCH_IDS_QUERY,
 };

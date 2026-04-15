@@ -1,3 +1,25 @@
+/**
+ * @file warehouse-inventory-repository.js
+ * @description Database access layer for warehouse inventory records.
+ *
+ * Follows the established repo pattern:
+ *  - Query constants and factories imported from warehouse-inventory-queries.js
+ *  - All errors normalized through handleDbError before bubbling up
+ *  - No success logging — middleware and globalErrorHandler own that layer
+ *
+ * Exports:
+ *  - getPaginatedWarehouseInventory       — paginated inventory list scoped to a warehouse
+ *  - insertWarehouseInventoryBulk         — bulk insert with upsert on warehouse + batch conflict
+ *  - updateWarehouseInventoryQuantityBulk — bulk update warehouse and reserved quantities
+ *  - updateWarehouseInventoryStatusBulk   — bulk update inventory status
+ *  - updateWarehouseInventoryMetadata     — update inbound date and warehouse fee for a single record
+ *  - updateWarehouseInventoryOutboundBulk — bulk record outbound movement and zero reserved quantity
+ *  - fetchWarehouseInventoryStateByIds    — fetch quantity and status snapshot for pre-mutation validation
+ *  - findExistingInventoryByBatchIds      — detect which batch IDs already have inventory records
+ */
+
+'use strict';
+
 const {
   query,
 } = require('../database/db');
@@ -22,8 +44,12 @@ const {
   WAREHOUSE_INVENTORY_INSERT_COLUMNS,
   WAREHOUSE_INVENTORY_CONFLICT_COLUMNS,
   WAREHOUSE_INVENTORY_UPDATE_STRATEGIES,
-  UPDATE_WAREHOUSE_INVENTORY_QUANTITY_QUERY, UPDATE_WAREHOUSE_INVENTORY_STATUS_QUERY,
-  UPDATE_WAREHOUSE_INVENTORY_METADATA_QUERY, UPDATE_WAREHOUSE_INVENTORY_OUTBOUND_QUERY
+  UPDATE_WAREHOUSE_INVENTORY_QUANTITY_QUERY,
+  UPDATE_WAREHOUSE_INVENTORY_STATUS_QUERY,
+  UPDATE_WAREHOUSE_INVENTORY_METADATA_QUERY,
+  UPDATE_WAREHOUSE_INVENTORY_OUTBOUND_QUERY,
+  FETCH_WAREHOUSE_INVENTORY_STATE_QUERY,
+  FIND_EXISTING_INVENTORY_BY_BATCH_IDS_QUERY
 } = require('./queries/warehouse-inventory-queries');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const { logDbQueryError, logBulkInsertError } = require('../utils/db-logger');
@@ -351,6 +377,74 @@ const updateWarehouseInventoryOutboundBulk = async (
       logFn:   (err) => logDbQueryError(
         UPDATE_WAREHOUSE_INVENTORY_OUTBOUND_QUERY, [], err,
         { context, warehouseId, updateCount: updates.length }
+      ),
+    });
+  }
+};
+
+// ── Fetch previous state ────────────────────────────────────────────
+
+/**
+ * Fetches the current quantity and status snapshot for a set of inventory record IDs.
+ * Used for pre-mutation state validation before bulk quantity or status updates.
+ *
+ * @param {string[]}               ids
+ * @param {string}                 warehouseId
+ * @param {import('pg').PoolClient} client
+ * @returns {Promise<{ id: string, warehouse_quantity: number, reserved_quantity: number, status_id: string }[]>}
+ * @throws {AppError} Normalized database error if the query fails.
+ */
+const fetchWarehouseInventoryStateByIds = async (ids, warehouseId, client) => {
+  const context = `${CONTEXT}/fetchWarehouseInventoryStateByIds`;
+  
+  const params = [ids, warehouseId];
+  
+  try {
+    const { rows } = await query(
+      FETCH_WAREHOUSE_INVENTORY_STATE_QUERY, params, client
+    );
+    return rows;
+  } catch (error) {
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch warehouse inventory state.',
+      meta:    { warehouseId, idCount: ids.length },
+      logFn:   (err) => logDbQueryError(
+        FETCH_WAREHOUSE_INVENTORY_STATE_QUERY, params, err, { context }
+      ),
+    });
+  }
+};
+
+// ── Find existing inventory by batch IDs ────────────────────────────
+
+/**
+ * Returns the batch IDs that already have an inventory record in the given warehouse.
+ * Used to detect duplicates before bulk insert.
+ *
+ * @param {string}                 warehouseId
+ * @param {string[]}               batchIds
+ * @param {import('pg').PoolClient} client
+ * @returns {Promise<{ batch_id: string }[]>}
+ * @throws {AppError} Normalized database error if the query fails.
+ */
+const findExistingInventoryByBatchIds = async (warehouseId, batchIds, client) => {
+  const context = `${CONTEXT}/findExistingInventoryByBatchIds`;
+  
+  const params = [warehouseId, batchIds];
+  
+  try {
+    const { rows } = await query(
+      FIND_EXISTING_INVENTORY_BY_BATCH_IDS_QUERY, params, client
+    );
+    return rows;
+  } catch (error) {
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to check existing inventory by batch IDs.',
+      meta:    { warehouseId, batchCount: batchIds.length },
+      logFn:   (err) => logDbQueryError(
+        FIND_EXISTING_INVENTORY_BY_BATCH_IDS_QUERY, params, err, { context }
       ),
     });
   }
@@ -733,6 +827,8 @@ module.exports = {
   updateWarehouseInventoryStatusBulk,
   updateWarehouseInventoryMetadata,
   updateWarehouseInventoryOutboundBulk,
+  fetchWarehouseInventoryStateByIds,
+  findExistingInventoryByBatchIds,
   getWarehouseInventoryQuantities,
   getAllocatableBatchesByWarehouse,
   getRecentInsertWarehouseInventoryRecords,
