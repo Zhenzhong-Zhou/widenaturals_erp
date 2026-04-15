@@ -29,11 +29,6 @@ const CONTEXT = 'user-warehouse-assignment-repository';
 const getWarehouseIdsByUserId = async (userId) => {
   const context = `${CONTEXT}/getWarehouseIdsByUserId`;
   
-  const queryText = `
-    SELECT warehouse_id
-    FROM user_warehouse_assignments
-    WHERE user_id = $1
-  `;
   const params = [userId];
   
   try {
