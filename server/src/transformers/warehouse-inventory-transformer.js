@@ -9,6 +9,8 @@
  *  - transformPaginatedWarehouseInventory       — paginated list transformer
  *  - transformWarehouseInventoryDetailRecord    — detail view row to record
  *  - transformWarehouseSummary                  — warehouse summary row and status rows to record
+ *  - transformWarehouseProductSummary           — product summary rows to API records
+ *  - transformWarehousePackagingSummary         — packaging summary rows to API records
  */
 
 'use strict';
@@ -182,7 +184,7 @@ const transformWarehouseSummary = (row, statusRows) => ({
     id:              row.warehouse_id,
     name:            row.warehouse_name,
     code:            row.warehouse_code,
-    storageCapacity: row.storage_capacity != null ? parseInt(row.storage_capacity, 10) : null,
+    storageCapacity: row.storage_capacity,
     defaultFee:      row.default_fee,
     typeName:        row.warehouse_type_name,
   },
@@ -217,8 +219,86 @@ const transformWarehouseSummary = (row, statusRows) => ({
   })),
 });
 
+/**
+ * Groups flat SKU rows under their parent product with product-level totals.
+ *
+ * @param {object[]} rows
+ * @returns {object[]}
+ */
+const transformWarehouseProductSummary = (rows) => {
+  const productMap = new Map();
+  
+  rows.forEach((row) => {
+    const pid = row.product_id;
+    
+    if (!productMap.has(pid)) {
+      productMap.set(pid, {
+        productId:      pid,
+        productName:    row.product_name,
+        brand:          row.brand,
+        totalQuantity:  0,
+        totalReserved:  0,
+        totalAvailable: 0,
+        batchCount:     0,
+        earliestExpiry: null,
+        skus:           [],
+      });
+    }
+    
+    const product = productMap.get(pid);
+    const qty       = parseInt(row.total_quantity, 10);
+    const reserved  = parseInt(row.total_reserved, 10);
+    const available = parseInt(row.total_available, 10);
+    const batches   = parseInt(row.batch_count, 10);
+    const expiry    = row.earliest_expiry;
+    
+    product.totalQuantity  += qty;
+    product.totalReserved  += reserved;
+    product.totalAvailable += available;
+    product.batchCount     += batches;
+    
+    if (expiry && (!product.earliestExpiry || expiry < product.earliestExpiry)) {
+      product.earliestExpiry = expiry;
+    }
+    
+    product.skus.push({
+      skuId:          row.sku_id,
+      sku:            row.sku,
+      sizeLabel:      row.size_label,
+      countryCode:    row.country_code,
+      marketRegion:   row.market_region,
+      totalQuantity:  qty,
+      totalReserved:  reserved,
+      totalAvailable: available,
+      batchCount:     batches,
+      earliestExpiry: expiry,
+    });
+  });
+  
+  return Array.from(productMap.values());
+};
+
+/**
+ * @param {object[]} rows
+ * @returns {object[]}
+ */
+const transformWarehousePackagingSummary = (rows) =>
+  rows.map((row) => ({
+    packagingMaterialId:       row.packaging_material_id,
+    packagingMaterialCode:     row.packaging_material_code,
+    packagingMaterialName:     row.packaging_material_name,
+    packagingMaterialCategory: row.packaging_material_category,
+    totalQuantity:             parseInt(row.total_quantity, 10),
+    totalReserved:             parseInt(row.total_reserved, 10),
+    totalAvailable:            parseInt(row.total_available, 10),
+    batchCount:                parseInt(row.batch_count, 10),
+    earliestExpiry:            row.earliest_expiry,
+  }));
+
 module.exports = {
   transformPaginatedWarehouseInventory,
   transformWarehouseInventoryDetailRecord,
   transformWarehouseSummary,
+  transformWarehouseProductSummary,
+  transformWarehousePackagingSummary,
 };

@@ -18,7 +18,7 @@ const {
   updateWarehouseInventoryMetadataController,
   recordWarehouseInventoryOutboundController,
   getWarehouseInventoryDetailController,
-  getWarehouseSummaryController,
+  getWarehouseSummaryController, getWarehouseItemSummaryController,
 } = require('../controllers/warehouse-inventory-controller');
 const validate = require('../middlewares/validate');
 const { warehouseIdParamSchema } = require('../validators/warehouse-validators');
@@ -29,10 +29,11 @@ const {
   updateWarehouseInventoryStatusSchema,
   inventoryIdParamSchema,
   updateWarehouseInventoryMetadataSchema,
-  recordWarehouseInventoryOutboundSchema
+  recordWarehouseInventoryOutboundSchema,
+  warehouseItemSummaryQuerySchema
 } = require('../validators/warehouse-inventory-validators');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
-const { inventoryActivityLogQuerySchema } = require('../validators/report-validators');
+const { inventoryActivityLogQuerySchema } = require('../validators/inventory-activity-log-validators');
 const { getPaginatedActivityLogController } = require('../controllers/inventory-activity-log-controller');
 
 const router = express.Router();
@@ -182,6 +183,21 @@ router.get(
   authorize([WAREHOUSE_INVENTORY.VIEW_SUMMARY]),
   validate(warehouseIdParamSchema, 'params'),
   getWarehouseSummaryController
+);
+
+/**
+ * @route GET /:warehouseId/summary/items
+ * @description Paginated product and packaging material inventory summary
+ *   for a given warehouse, with optional batch-type filtering.
+ * @access protected
+ * @permission WAREHOUSE_INVENTORY.VIEW_SUMMARY_ITEM_DETAILS
+ */
+router.get(
+  '/:warehouseId/summary/items',
+  authorize([WAREHOUSE_INVENTORY.VIEW_SUMMARY_ITEM_DETAILS]),
+  validate(warehouseIdParamSchema, 'params'),
+  validate(warehouseItemSummaryQuerySchema, 'query'),
+  getWarehouseItemSummaryController
 );
 
 module.exports = router;

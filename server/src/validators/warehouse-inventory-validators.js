@@ -16,6 +16,7 @@
  *  - updateWarehouseInventoryStatusSchema      — bulk status update body
  *  - updateWarehouseInventoryMetadataSchema    — single metadata patch body
  *  - recordWarehouseInventoryOutboundSchema    — bulk outbound recording body
+ *  - warehouseItemSummaryQuerySchema           — batch-type filter schema for warehouse item summary
  */
 
 'use strict';
@@ -226,6 +227,18 @@ const recordWarehouseInventoryOutboundSchema = Joi.object({
     }),
 }).unknown(false);
 
+// ── Query schema (GET summary/items) ───────────────────────────────
+
+const warehouseItemSummaryQuerySchema = Joi.object({
+  batchType: Joi.string()
+    .valid('product', 'packaging_material')
+    .optional()
+    .messages({
+      'string.base': 'Batch Type must be a string.',
+      'any.only':    'Batch Type must be one of: product, packaging_material.',
+    }),
+}).unknown(false);
+
 module.exports = {
   inventoryIdParamSchema,
   warehouseInventoryQuerySchema,
@@ -234,4 +247,5 @@ module.exports = {
   updateWarehouseInventoryStatusSchema,
   updateWarehouseInventoryMetadataSchema,
   recordWarehouseInventoryOutboundSchema,
+  warehouseItemSummaryQuerySchema,
 };

@@ -25,6 +25,8 @@
  *  - WAREHOUSE_INVENTORY_DETAIL_QUERY               — full detail fetch for a single inventory record
  *  - WAREHOUSE_SUMMARY_QUERY                        — aggregate quantity and fee totals for a warehouse
  *  - WAREHOUSE_SUMMARY_BY_STATUS_QUERY              — quantity totals grouped by inventory status
+ *  - WAREHOUSE_PRODUCT_SUMMARY_QUERY                — quantity totals grouped by SKU for product batches
+ *  - WAREHOUSE_PACKAGING_SUMMARY_QUERY              — quantity totals grouped by packaging material
  */
 
 'use strict';
@@ -347,6 +349,58 @@ const WAREHOUSE_SUMMARY_BY_STATUS_QUERY = `
   ORDER BY total_quantity DESC
 `;
 
+// ── Item summary ────────────────────────────────────────────────────
+
+const WAREHOUSE_PRODUCT_SUMMARY_QUERY = `
+  SELECT
+    p.id                          AS product_id,
+    p.name                        AS product_name,
+    p.brand,
+    s.id                          AS sku_id,
+    s.sku,
+    s.size_label,
+    s.country_code,
+    s.market_region,
+    COUNT(wi.id)                  AS batch_count,
+    COALESCE(SUM(wi.warehouse_quantity), 0)    AS total_quantity,
+    COALESCE(SUM(wi.reserved_quantity), 0)     AS total_reserved,
+    COALESCE(SUM(wi.warehouse_quantity - wi.reserved_quantity), 0)
+                                  AS total_available,
+    MIN(pb.expiry_date)           AS earliest_expiry
+  FROM warehouse_inventory wi
+  JOIN batch_registry br          ON br.id = wi.batch_id
+  JOIN product_batches pb         ON pb.id = br.product_batch_id
+  JOIN skus s                     ON s.id  = pb.sku_id
+  JOIN products p                 ON p.id  = s.product_id
+  WHERE wi.warehouse_id = $1
+    AND br.batch_type = 'product'
+  GROUP BY p.id, p.name, p.brand, s.id, s.sku, s.size_label, s.country_code, s.market_region
+  ORDER BY p.name ASC, s.sku ASC
+`;
+
+const WAREHOUSE_PACKAGING_SUMMARY_QUERY = `
+  SELECT
+    pm.id                         AS packaging_material_id,
+    pm.code                       AS packaging_material_code,
+    pm.name                       AS packaging_material_name,
+    pm.category                   AS packaging_material_category,
+    COUNT(wi.id)                  AS batch_count,
+    COALESCE(SUM(wi.warehouse_quantity), 0)    AS total_quantity,
+    COALESCE(SUM(wi.reserved_quantity), 0)     AS total_reserved,
+    COALESCE(SUM(wi.warehouse_quantity - wi.reserved_quantity), 0)
+                                  AS total_available,
+    MIN(pmb.expiry_date)          AS earliest_expiry
+  FROM warehouse_inventory wi
+  JOIN batch_registry br          ON br.id = wi.batch_id
+  JOIN packaging_material_batches pmb ON pmb.id = br.packaging_material_batch_id
+  JOIN packaging_material_suppliers pms ON pms.id = pmb.packaging_material_supplier_id
+  JOIN packaging_materials pm     ON pm.id = pms.packaging_material_id
+  WHERE wi.warehouse_id = $1
+    AND br.batch_type = 'packaging_material'
+  GROUP BY pm.id, pm.code, pm.name, pm.category
+  ORDER BY pm.name ASC
+`;
+
 module.exports = {
   WAREHOUSE_INVENTORY_TABLE,
   WAREHOUSE_INVENTORY_JOINS,
@@ -364,4 +418,6 @@ module.exports = {
   WAREHOUSE_INVENTORY_DETAIL_QUERY,
   WAREHOUSE_SUMMARY_QUERY,
   WAREHOUSE_SUMMARY_BY_STATUS_QUERY,
+  WAREHOUSE_PRODUCT_SUMMARY_QUERY,
+  WAREHOUSE_PACKAGING_SUMMARY_QUERY,
 };

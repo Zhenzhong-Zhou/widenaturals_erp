@@ -220,3 +220,33 @@
  * @property {string} total_reserved
  * @property {string} total_available
  */
+
+/**
+ * @typedef {object} WarehouseProductSummaryRow
+ * @property {string}      product_id
+ * @property {string}      product_name
+ * @property {string|null} brand
+ * @property {string}      sku_id
+ * @property {string}      sku
+ * @property {string|null} size_label
+ * @property {string|null} country_code
+ * @property {string|null} market_region
+ * @property {string}      batch_count
+ * @property {string}      total_quantity
+ * @property {string}      total_reserved
+ * @property {string}      total_available
+ * @property {string|null} earliest_expiry
+ */
+
+/**
+ * @typedef {object} WarehousePackagingSummaryRow
+ * @property {string}      packaging_material_id
+ * @property {string}      packaging_material_code
+ * @property {string}      packaging_material_name
+ * @property {string|null} packaging_material_category
+ * @property {string}      batch_count
+ * @property {string}      total_quantity
+ * @property {string}      total_reserved
+ * @property {string}      total_available
+ * @property {string|null} earliest_expiry
+ */

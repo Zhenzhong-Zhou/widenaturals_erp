@@ -16,6 +16,7 @@
  *  - recordWarehouseInventoryOutboundService      — bulk outbound movement recording
  *  - getWarehouseInventoryDetailService           — full detail view for a single inventory record
  *  - getWarehouseSummaryService                   — warehouse summary with quantity and status breakdown
+ *  - getWarehouseItemSummaryService               — product and packaging quantity summary for a warehouse
  */
 
 'use strict';
@@ -30,13 +31,17 @@ const {
   updateWarehouseInventoryMetadata,
   getWarehouseInventoryDetailById,
   getWarehouseSummary,
-  getWarehouseSummaryByStatus
+  getWarehouseSummaryByStatus,
+  getWarehouseProductSummary,
+  getWarehousePackagingSummary
 } = require('../repositories/warehouse-inventory-repository');
 const AppError = require('../utils/AppError');
 const {
   transformPaginatedWarehouseInventory,
   transformWarehouseInventoryDetailRecord,
-  transformWarehouseSummary
+  transformWarehouseSummary,
+  transformWarehouseProductSummary,
+  transformWarehousePackagingSummary
 } = require('../transformers/warehouse-inventory-transformer');
 const {
   evaluateWarehouseInventoryVisibility,
@@ -585,6 +590,8 @@ const getWarehouseInventoryDetailService = async ({
  * @throws {AppError} Passes through ACL and not-found AppErrors; wraps unexpected errors as serviceError.
  */
 const getWarehouseSummaryService = async ({ warehouseId, user }) => {
+  const context = `${CONTEXT}/getWarehouseSummaryService`;
+  
   try {
     const assignedWarehouseIds = await assertWarehouseAccess(user);
     enforceWarehouseScope(assignedWarehouseIds, warehouseId);
@@ -607,7 +614,53 @@ const getWarehouseSummaryService = async ({ warehouseId, user }) => {
     
     throw AppError.serviceError(
       'Unable to retrieve warehouse summary at this time.',
-      { meta: { error: error.message } }
+      {
+        context,
+        meta: { error: error.message }
+      }
+    );
+  }
+};
+
+/**
+ * Fetches product and packaging material quantity summaries for a given warehouse,
+ * optionally filtered to a single batch type. Both types are fetched in parallel
+ * when no batch type filter is applied.
+ *
+ * @param {string}   warehouseId
+ * @param {string}   [batchType]  - 'product' | 'packaging_material' — omit for both.
+ * @param {AuthUser} user
+ * @returns {Promise<{ products: object[], packagingMaterials: object[] }>}
+ * @throws {AppError} Passes through ACL AppErrors; wraps unexpected errors as serviceError.
+ */
+const getWarehouseItemSummaryService = async ({ warehouseId, batchType, user }) => {
+  const context = `${CONTEXT}/getWarehouseItemSummaryService`;
+  
+  try {
+    const assignedWarehouseIds = await assertWarehouseAccess(user);
+    enforceWarehouseScope(assignedWarehouseIds, warehouseId);
+    
+    const fetchProduct   = !batchType || batchType === 'product';
+    const fetchPackaging = !batchType || batchType === 'packaging_material';
+    
+    const [productRows, packagingRows] = await Promise.all([
+      fetchProduct   ? getWarehouseProductSummary(warehouseId)   : Promise.resolve([]),
+      fetchPackaging ? getWarehousePackagingSummary(warehouseId) : Promise.resolve([]),
+    ]);
+    
+    return {
+      products:           fetchProduct   ? transformWarehouseProductSummary(productRows)     : [],
+      packagingMaterials: fetchPackaging ? transformWarehousePackagingSummary(packagingRows) : [],
+    };
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError(
+      'Unable to retrieve warehouse item summary at this time.',
+      {
+        context,
+        meta: { error: error.message }
+      }
     );
   }
 };
@@ -621,4 +674,5 @@ module.exports = {
   recordWarehouseInventoryOutboundService,
   getWarehouseInventoryDetailService,
   getWarehouseSummaryService,
+  getWarehouseItemSummaryService,
 };

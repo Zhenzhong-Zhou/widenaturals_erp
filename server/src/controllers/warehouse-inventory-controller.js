@@ -12,6 +12,7 @@
  *  - recordWarehouseInventoryOutboundController
  *  - getWarehouseInventoryDetailController
  *  - getWarehouseSummaryController
+ *  - getWarehouseItemSummaryController
  */
 
 'use strict';
@@ -24,7 +25,9 @@ const {
   updateWarehouseInventoryStatusService,
   updateWarehouseInventoryMetadataService,
   recordWarehouseInventoryOutboundService,
-  getWarehouseInventoryDetailService, getWarehouseSummaryService,
+  getWarehouseInventoryDetailService,
+  getWarehouseSummaryService,
+  getWarehouseItemSummaryService,
 } = require('../services/warehouse-inventory-service');
 
 // ── List ─────────────────────────────────────────────────
@@ -192,6 +195,27 @@ const getWarehouseSummaryController = wrapAsyncHandler(async (req, res) => {
   });
 });
 
+// ── Item summary ────────────────────────────────────────────────────
+
+const getWarehouseItemSummaryController = wrapAsyncHandler(async (req, res) => {
+  const { warehouseId } = req.params;
+  const { batchType }   = req.query;
+  const user            = req.auth?.user;
+  
+  const data = await getWarehouseItemSummaryService({
+    warehouseId,
+    batchType,
+    user,
+  });
+  
+  res.status(200).json({
+    success: true,
+    message: 'Warehouse item summary retrieved successfully.',
+    data,
+    traceId: req.traceId,
+  });
+});
+
 module.exports = {
   getPaginatedWarehouseInventoryController,
   createWarehouseInventoryController,
@@ -201,4 +225,5 @@ module.exports = {
   recordWarehouseInventoryOutboundController,
   getWarehouseInventoryDetailController,
   getWarehouseSummaryController,
+  getWarehouseItemSummaryController,
 };

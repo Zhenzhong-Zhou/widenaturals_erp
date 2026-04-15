@@ -19,6 +19,8 @@
  *  - getWarehouseInventoryDetailById      — fetch full detail record for a single inventory entry
  *  - getWarehouseSummary                  — aggregate quantity and fee totals for a warehouse
  *  - getWarehouseSummaryByStatus          — quantity totals grouped by inventory status
+ *  - getWarehouseProductSummary           — quantity totals grouped by SKU for product batches
+ *  - getWarehousePackagingSummary         — quantity totals grouped by packaging material
  */
 
 'use strict';
@@ -53,7 +55,11 @@ const {
   UPDATE_WAREHOUSE_INVENTORY_OUTBOUND_QUERY,
   FETCH_WAREHOUSE_INVENTORY_STATE_QUERY,
   FIND_EXISTING_INVENTORY_BY_BATCH_IDS_QUERY,
-  WAREHOUSE_INVENTORY_DETAIL_QUERY, WAREHOUSE_SUMMARY_QUERY, WAREHOUSE_SUMMARY_BY_STATUS_QUERY
+  WAREHOUSE_INVENTORY_DETAIL_QUERY,
+  WAREHOUSE_SUMMARY_QUERY,
+  WAREHOUSE_SUMMARY_BY_STATUS_QUERY,
+  WAREHOUSE_PRODUCT_SUMMARY_QUERY,
+  WAREHOUSE_PACKAGING_SUMMARY_QUERY
 } = require('./queries/warehouse-inventory-queries');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const {
@@ -543,6 +549,61 @@ const getWarehouseSummaryByStatus = async (warehouseId) => {
   }
 };
 
+// ── Item summary ────────────────────────────────────────────────────
+
+/**
+ * Fetches quantity totals grouped by SKU for all product batches in a given warehouse.
+ *
+ * @param {string} warehouseId
+ * @returns {Promise<WarehouseProductSummaryRow[]>}
+ * @throws {AppError} Normalized database error if the query fails.
+ */
+const getWarehouseProductSummary = async (warehouseId) => {
+  const context = `${CONTEXT}/getWarehouseProductSummary`;
+  const params = [warehouseId];
+  
+  try {
+    const { rows } = await query(WAREHOUSE_PRODUCT_SUMMARY_QUERY, params);
+    return rows;
+  } catch (error) {
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch warehouse product summary.',
+      meta:    { warehouseId },
+      logFn:   (err) => logDbQueryError(
+        WAREHOUSE_PRODUCT_SUMMARY_QUERY, params, err, { context }
+      ),
+    });
+  }
+};
+
+/**
+ * Fetches quantity totals grouped by packaging material for all packaging batches in a given warehouse.
+ *
+ * @param {string} warehouseId
+ * @returns {Promise<WarehousePackagingSummaryRow[]>}
+ * @throws {AppError} Normalized database error if the query fails.
+ */
+const getWarehousePackagingSummary = async (warehouseId) => {
+  const context = `${CONTEXT}/getWarehousePackagingSummary`;
+  const params = [warehouseId];
+  
+  try {
+    const { rows } = await query(WAREHOUSE_PACKAGING_SUMMARY_QUERY, params);
+    return rows;
+  } catch (error) {
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch warehouse packaging summary.',
+      meta:    { warehouseId },
+      logFn:   (err) => logDbQueryError(
+        WAREHOUSE_PACKAGING_SUMMARY_QUERY, params, err, { context }
+      ),
+    });
+  }
+};
+
+// todo:
 const getWarehouseInventoryQuantities = async (keys, client) => {
   const sql = `
     SELECT id, warehouse_id, batch_id, warehouse_quantity, reserved_quantity, status_id
@@ -901,6 +962,10 @@ module.exports = {
   getWarehouseInventoryDetailById,
   getWarehouseSummary,
   getWarehouseSummaryByStatus,
+  getWarehouseProductSummary,
+  getWarehousePackagingSummary,
+  
+  // todo:
   getWarehouseInventoryQuantities,
   getAllocatableBatchesByWarehouse,
   getRecentInsertWarehouseInventoryRecords,
