@@ -11,6 +11,7 @@
  *  - updateWarehouseInventoryMetadataController
  *  - recordWarehouseInventoryOutboundController
  *  - getWarehouseInventoryDetailController
+ *  - getWarehouseSummaryController
  */
 
 'use strict';
@@ -23,7 +24,7 @@ const {
   updateWarehouseInventoryStatusService,
   updateWarehouseInventoryMetadataService,
   recordWarehouseInventoryOutboundService,
-  getWarehouseInventoryDetailService,
+  getWarehouseInventoryDetailService, getWarehouseSummaryService,
 } = require('../services/warehouse-inventory-service');
 
 // ── List ─────────────────────────────────────────────────
@@ -175,6 +176,22 @@ const getWarehouseInventoryDetailController = wrapAsyncHandler(async (req, res) 
   });
 });
 
+// ── Summary ─────────────────────────────────────────────────────────
+
+const getWarehouseSummaryController = wrapAsyncHandler(async (req, res) => {
+  const { warehouseId } = req.params;
+  const user = req.auth?.user;
+  
+  const data = await getWarehouseSummaryService({ warehouseId, user });
+  
+  res.status(200).json({
+    success: true,
+    message: 'Warehouse summary retrieved successfully.',
+    data,
+    traceId: req.traceId,
+  });
+});
+
 module.exports = {
   getPaginatedWarehouseInventoryController,
   createWarehouseInventoryController,
@@ -183,4 +200,5 @@ module.exports = {
   updateWarehouseInventoryMetadataController,
   recordWarehouseInventoryOutboundController,
   getWarehouseInventoryDetailController,
+  getWarehouseSummaryController,
 };

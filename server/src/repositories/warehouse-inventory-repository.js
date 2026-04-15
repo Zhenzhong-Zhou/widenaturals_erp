@@ -17,6 +17,8 @@
  *  - fetchWarehouseInventoryStateByIds    — fetch quantity and status snapshot for pre-mutation validation
  *  - findExistingInventoryByBatchIds      — detect which batch IDs already have inventory records
  *  - getWarehouseInventoryDetailById      — fetch full detail record for a single inventory entry
+ *  - getWarehouseSummary                  — aggregate quantity and fee totals for a warehouse
+ *  - getWarehouseSummaryByStatus          — quantity totals grouped by inventory status
  */
 
 'use strict';
@@ -51,7 +53,7 @@ const {
   UPDATE_WAREHOUSE_INVENTORY_OUTBOUND_QUERY,
   FETCH_WAREHOUSE_INVENTORY_STATE_QUERY,
   FIND_EXISTING_INVENTORY_BY_BATCH_IDS_QUERY,
-  WAREHOUSE_INVENTORY_DETAIL_QUERY
+  WAREHOUSE_INVENTORY_DETAIL_QUERY, WAREHOUSE_SUMMARY_QUERY, WAREHOUSE_SUMMARY_BY_STATUS_QUERY
 } = require('./queries/warehouse-inventory-queries');
 const { handleDbError } = require('../utils/errors/error-handlers');
 const {
@@ -486,30 +488,61 @@ const getWarehouseInventoryDetailById = async (inventoryId, warehouseId) => {
   }
 };
 
+// ── Summary ─────────────────────────────────────────────────────────
+
 /**
- * Fetches multiple `warehouse_inventory` rows using composite keys (`warehouse_id`, `batch_id`).
+ * Fetches aggregate quantity and fee totals for a given warehouse.
+ * Returns null if the warehouse has no inventory records.
  *
- * For each input pair, attempts to retrieve the corresponding inventory record from the database.
- * If any expected records are missing, a system warning will be logged.
- * This function is useful when verifying current stock and reservation state across multiple batches.
- *
- * Logs:
- * - Warns when one or more requested rows are not found.
- * - Logs structured exception info on query failure.
- *
- * @param {Array<{ warehouse_id: string, batch_id: string }>} keys - Composite keys to fetch.
- * @param {PoolClient} client - PostgreSQL client used for the transaction.
- * @returns {Promise<Array<{
- *   id: string,
- *   warehouse_id: string,
- *   batch_id: string,
- *   warehouse_quantity: number,
- *   reserved_quantity: number,
- *   status_id: string
- * }>>} - Matching inventory records.
- *
- * @throws {AppError} - If a database error occurs.
+ * @param {string} warehouseId
+ * @returns {Promise<WarehouseSummaryRow|null>}
+ * @throws {AppError} Normalized database error if the query fails.
  */
+const getWarehouseSummary = async (warehouseId) => {
+  const context = `${CONTEXT}/getWarehouseSummary`;
+  const params = [warehouseId];
+  
+  try {
+    const { rows } = await query(WAREHOUSE_SUMMARY_QUERY, params);
+    return rows[0] || null;
+  } catch (error) {
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch warehouse summary.',
+      meta:    { warehouseId },
+      logFn:   (err) => logDbQueryError(
+        WAREHOUSE_SUMMARY_QUERY, params, err, { context }
+      ),
+    });
+  }
+};
+
+/**
+ * Fetches quantity totals grouped by inventory status for a given warehouse.
+ *
+ * @param {string} warehouseId
+ * @returns {Promise<WarehouseSummaryByStatusRow[]>}
+ * @throws {AppError} Normalized database error if the query fails.
+ */
+const getWarehouseSummaryByStatus = async (warehouseId) => {
+  const context = `${CONTEXT}/getWarehouseSummaryByStatus`;
+  const params = [warehouseId];
+  
+  try {
+    const { rows } = await query(WAREHOUSE_SUMMARY_BY_STATUS_QUERY, params);
+    return rows;
+  } catch (error) {
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch warehouse summary by status.',
+      meta:    { warehouseId },
+      logFn:   (err) => logDbQueryError(
+        WAREHOUSE_SUMMARY_BY_STATUS_QUERY, params, err, { context }
+      ),
+    });
+  }
+};
+
 const getWarehouseInventoryQuantities = async (keys, client) => {
   const sql = `
     SELECT id, warehouse_id, batch_id, warehouse_quantity, reserved_quantity, status_id
@@ -866,6 +899,8 @@ module.exports = {
   fetchWarehouseInventoryStateByIds,
   findExistingInventoryByBatchIds,
   getWarehouseInventoryDetailById,
+  getWarehouseSummary,
+  getWarehouseSummaryByStatus,
   getWarehouseInventoryQuantities,
   getAllocatableBatchesByWarehouse,
   getRecentInsertWarehouseInventoryRecords,

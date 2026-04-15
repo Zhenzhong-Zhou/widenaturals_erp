@@ -190,3 +190,33 @@
  * @property {object|null} packagingInfo
  * @property {object}      audit
  */
+
+/**
+ * @typedef {object} WarehouseSummaryRow
+ * @property {string} warehouse_id
+ * @property {string} warehouse_name
+ * @property {string} warehouse_code
+ * @property {number|null} storage_capacity
+ * @property {number|null} default_fee
+ * @property {string|null} warehouse_type_name
+ * @property {string} total_batches
+ * @property {string} total_product_skus
+ * @property {string} total_packaging_materials
+ * @property {string} total_quantity
+ * @property {string} total_reserved
+ * @property {string} total_available
+ * @property {string} product_quantity
+ * @property {string} packaging_quantity
+ * @property {string} product_batch_count
+ * @property {string} packaging_batch_count
+ */
+
+/**
+ * @typedef {object} WarehouseSummaryByStatusRow
+ * @property {string} status_id
+ * @property {string} status_name
+ * @property {string} batch_count
+ * @property {string} total_quantity
+ * @property {string} total_reserved
+ * @property {string} total_available
+ */

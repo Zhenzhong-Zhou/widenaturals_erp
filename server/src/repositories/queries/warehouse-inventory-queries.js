@@ -23,6 +23,8 @@
  *  - FETCH_WAREHOUSE_INVENTORY_STATE_QUERY          — fetch quantity and status for a set of inventory IDs
  *  - FIND_EXISTING_INVENTORY_BY_BATCH_IDS_QUERY     — check which batch IDs already have inventory records
  *  - WAREHOUSE_INVENTORY_DETAIL_QUERY               — full detail fetch for a single inventory record
+ *  - WAREHOUSE_SUMMARY_QUERY                        — aggregate quantity and fee totals for a warehouse
+ *  - WAREHOUSE_SUMMARY_BY_STATUS_QUERY              — quantity totals grouped by inventory status
  */
 
 'use strict';
@@ -291,6 +293,60 @@ const WAREHOUSE_INVENTORY_DETAIL_QUERY = `
     AND wi.warehouse_id = $2
 `;
 
+// ── Summary ─────────────────────────────────────────────────────────
+
+const WAREHOUSE_SUMMARY_QUERY = `
+  SELECT
+    w.id                          AS warehouse_id,
+    w.name                        AS warehouse_name,
+    w.code                        AS warehouse_code,
+    w.storage_capacity,
+    w.default_fee,
+    wt.name                       AS warehouse_type_name,
+    COUNT(wi.id)                  AS total_batches,
+    COUNT(DISTINCT CASE WHEN br.batch_type = 'product' THEN pb.sku_id END)
+                                  AS total_product_skus,
+    COUNT(DISTINCT CASE WHEN br.batch_type = 'packaging_material' THEN pms.packaging_material_id END)
+                                  AS total_packaging_materials,
+    COALESCE(SUM(wi.warehouse_quantity), 0)    AS total_quantity,
+    COALESCE(SUM(wi.reserved_quantity), 0)     AS total_reserved,
+    COALESCE(SUM(wi.warehouse_quantity - wi.reserved_quantity), 0)
+                                  AS total_available,
+    COALESCE(SUM(CASE WHEN br.batch_type = 'product' THEN wi.warehouse_quantity ELSE 0 END), 0)
+                                  AS product_quantity,
+    COALESCE(SUM(CASE WHEN br.batch_type = 'packaging_material' THEN wi.warehouse_quantity ELSE 0 END), 0)
+                                  AS packaging_quantity,
+    COUNT(CASE WHEN br.batch_type = 'product' THEN 1 END)
+                                  AS product_batch_count,
+    COUNT(CASE WHEN br.batch_type = 'packaging_material' THEN 1 END)
+                                  AS packaging_batch_count
+  FROM warehouses w
+  LEFT JOIN warehouse_types wt    ON wt.id = w.type_id
+  LEFT JOIN warehouse_inventory wi ON wi.warehouse_id = w.id
+  LEFT JOIN batch_registry br     ON br.id = wi.batch_id
+  LEFT JOIN product_batches pb    ON pb.id = br.product_batch_id
+  LEFT JOIN packaging_material_batches pmb ON pmb.id = br.packaging_material_batch_id
+  LEFT JOIN packaging_material_suppliers pms ON pms.id = pmb.packaging_material_supplier_id
+  WHERE w.id = $1
+  GROUP BY w.id, w.name, w.code, w.storage_capacity, w.default_fee, wt.name
+`;
+
+const WAREHOUSE_SUMMARY_BY_STATUS_QUERY = `
+  SELECT
+    ist.id                        AS status_id,
+    ist.name                      AS status_name,
+    COUNT(wi.id)                  AS batch_count,
+    COALESCE(SUM(wi.warehouse_quantity), 0)    AS total_quantity,
+    COALESCE(SUM(wi.reserved_quantity), 0)     AS total_reserved,
+    COALESCE(SUM(wi.warehouse_quantity - wi.reserved_quantity), 0)
+                                  AS total_available
+  FROM warehouse_inventory wi
+  JOIN inventory_status ist       ON ist.id = wi.status_id
+  WHERE wi.warehouse_id = $1
+  GROUP BY ist.id, ist.name
+  ORDER BY total_quantity DESC
+`;
+
 module.exports = {
   WAREHOUSE_INVENTORY_TABLE,
   WAREHOUSE_INVENTORY_JOINS,
@@ -306,4 +362,6 @@ module.exports = {
   FETCH_WAREHOUSE_INVENTORY_STATE_QUERY,
   FIND_EXISTING_INVENTORY_BY_BATCH_IDS_QUERY,
   WAREHOUSE_INVENTORY_DETAIL_QUERY,
+  WAREHOUSE_SUMMARY_QUERY,
+  WAREHOUSE_SUMMARY_BY_STATUS_QUERY,
 };

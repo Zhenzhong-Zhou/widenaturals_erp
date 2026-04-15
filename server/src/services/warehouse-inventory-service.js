@@ -15,6 +15,7 @@
  *  - updateWarehouseInventoryMetadataService      — single record metadata patch
  *  - recordWarehouseInventoryOutboundService      — bulk outbound movement recording
  *  - getWarehouseInventoryDetailService           — full detail view for a single inventory record
+ *  - getWarehouseSummaryService                   — warehouse summary with quantity and status breakdown
  */
 
 'use strict';
@@ -27,12 +28,15 @@ const {
   updateWarehouseInventoryOutboundBulk,
   updateWarehouseInventoryStatusBulk,
   updateWarehouseInventoryMetadata,
-  getWarehouseInventoryDetailById
+  getWarehouseInventoryDetailById,
+  getWarehouseSummary,
+  getWarehouseSummaryByStatus
 } = require('../repositories/warehouse-inventory-repository');
 const AppError = require('../utils/AppError');
 const {
   transformPaginatedWarehouseInventory,
-  transformWarehouseInventoryDetailRecord
+  transformWarehouseInventoryDetailRecord,
+  transformWarehouseSummary
 } = require('../transformers/warehouse-inventory-transformer');
 const {
   evaluateWarehouseInventoryVisibility,
@@ -570,6 +574,44 @@ const getWarehouseInventoryDetailService = async ({
   }
 };
 
+/**
+ * Fetches the warehouse summary including quantity totals, batch-type
+ * breakdown, and per-status breakdown for a given warehouse.
+ * Enforces warehouse scope before querying.
+ *
+ * @param {string}   warehouseId
+ * @param {AuthUser} user
+ * @returns {Promise<object>}
+ * @throws {AppError} Passes through ACL and not-found AppErrors; wraps unexpected errors as serviceError.
+ */
+const getWarehouseSummaryService = async ({ warehouseId, user }) => {
+  try {
+    const assignedWarehouseIds = await assertWarehouseAccess(user);
+    enforceWarehouseScope(assignedWarehouseIds, warehouseId);
+    
+    const [summaryRow, statusRows] = await Promise.all([
+      getWarehouseSummary(warehouseId),
+      getWarehouseSummaryByStatus(warehouseId),
+    ]);
+    
+    if (!summaryRow) {
+      throw AppError.notFoundError('Warehouse not found.');
+    }
+    
+    return transformWarehouseSummary(
+      /** @type {WarehouseSummaryRow} */ (summaryRow),
+      statusRows
+    );
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError(
+      'Unable to retrieve warehouse summary at this time.',
+      { meta: { error: error.message } }
+    );
+  }
+};
+
 module.exports = {
   fetchPaginatedWarehouseInventoryService,
   createWarehouseInventoryService,
@@ -578,4 +620,5 @@ module.exports = {
   updateWarehouseInventoryMetadataService,
   recordWarehouseInventoryOutboundService,
   getWarehouseInventoryDetailService,
+  getWarehouseSummaryService,
 };

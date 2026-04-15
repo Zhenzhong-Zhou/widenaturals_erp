@@ -18,6 +18,7 @@ const {
   updateWarehouseInventoryMetadataController,
   recordWarehouseInventoryOutboundController,
   getWarehouseInventoryDetailController,
+  getWarehouseSummaryController,
 } = require('../controllers/warehouse-inventory-controller');
 const validate = require('../middlewares/validate');
 const { warehouseIdParamSchema } = require('../validators/warehouse-validators');
@@ -167,6 +168,20 @@ router.get(
     []
   ),
   getPaginatedActivityLogController
+);
+
+/**
+ * @route GET /:warehouseId/summary
+ * @description Warehouse-level inventory summary including quantity totals,
+ *   batch-type breakdown, and per-status breakdown.
+ * @access protected
+ * @permission WAREHOUSE_INVENTORY.VIEW_SUMMARY
+ */
+router.get(
+  '/:warehouseId/summary',
+  authorize([WAREHOUSE_INVENTORY.VIEW_SUMMARY]),
+  validate(warehouseIdParamSchema, 'params'),
+  getWarehouseSummaryController
 );
 
 module.exports = router;

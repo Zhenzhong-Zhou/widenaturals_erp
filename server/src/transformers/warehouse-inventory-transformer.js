@@ -8,6 +8,7 @@
  *  - transformWarehouseInventoryRecord          — list view row to record
  *  - transformPaginatedWarehouseInventory       — paginated list transformer
  *  - transformWarehouseInventoryDetailRecord    — detail view row to record
+ *  - transformWarehouseSummary                  — warehouse summary row and status rows to record
  */
 
 'use strict';
@@ -167,8 +168,57 @@ const transformWarehouseInventoryDetailRecord = (row) => ({
   audit:       compactAudit(makeAudit(row)),
 });
 
+/**
+ * Transforms a raw warehouse summary row and status breakdown rows
+ * into a structured API record with warehouse info, quantity totals,
+ * batch-type breakdown, and per-status breakdown.
+ *
+ * @param {WarehouseSummaryRow}         row
+ * @param {WarehouseSummaryByStatusRow[]} statusRows
+ * @returns {object}
+ */
+const transformWarehouseSummary = (row, statusRows) => ({
+  warehouse: {
+    id:              row.warehouse_id,
+    name:            row.warehouse_name,
+    code:            row.warehouse_code,
+    storageCapacity: row.storage_capacity != null ? parseInt(row.storage_capacity, 10) : null,
+    defaultFee:      row.default_fee,
+    typeName:        row.warehouse_type_name,
+  },
+  
+  totals: {
+    batches:              parseInt(row.total_batches, 10),
+    productSkus:          parseInt(row.total_product_skus, 10),
+    packagingMaterials:   parseInt(row.total_packaging_materials, 10),
+    quantity:             parseInt(row.total_quantity, 10),
+    reserved:             parseInt(row.total_reserved, 10),
+    available:            parseInt(row.total_available, 10),
+  },
+  
+  byBatchType: {
+    product: {
+      batchCount: parseInt(row.product_batch_count, 10),
+      quantity:   parseInt(row.product_quantity, 10),
+    },
+    packagingMaterial: {
+      batchCount: parseInt(row.packaging_batch_count, 10),
+      quantity:   parseInt(row.packaging_quantity, 10),
+    },
+  },
+  
+  byStatus: statusRows.map((s) => ({
+    statusId:   s.status_id,
+    statusName: s.status_name,
+    batchCount: parseInt(s.batch_count, 10),
+    quantity:   parseInt(s.total_quantity, 10),
+    reserved:   parseInt(s.total_reserved, 10),
+    available:  parseInt(s.total_available, 10),
+  })),
+});
+
 module.exports = {
-  transformWarehouseInventoryRecord,
   transformPaginatedWarehouseInventory,
   transformWarehouseInventoryDetailRecord,
+  transformWarehouseSummary,
 };
