@@ -17,6 +17,7 @@ const {
   updateWarehouseInventoryStatusController,
   updateWarehouseInventoryMetadataController,
   recordWarehouseInventoryOutboundController,
+  getWarehouseInventoryDetailController,
 } = require('../controllers/warehouse-inventory-controller');
 const validate = require('../middlewares/validate');
 const { warehouseIdParamSchema } = require('../validators/warehouse-validators');
@@ -30,6 +31,8 @@ const {
   recordWarehouseInventoryOutboundSchema
 } = require('../validators/warehouse-inventory-validators');
 const createQueryNormalizationMiddleware = require('../middlewares/normalize-query');
+const { inventoryActivityLogQuerySchema } = require('../validators/report-validators');
+const { getPaginatedActivityLogController } = require('../controllers/inventory-activity-log-controller');
 
 const router = express.Router();
 
@@ -126,6 +129,44 @@ router.post(
   validate(warehouseIdParamSchema, 'params'),
   validate(recordWarehouseInventoryOutboundSchema, 'body'),
   recordWarehouseInventoryOutboundController
+);
+
+/**
+ * @route GET /:warehouseId/inventory/:inventoryId
+ * @description Full detail view for a single warehouse inventory record,
+ *   including zone assignments and recent movement history.
+ * @access protected
+ * @permission WAREHOUSE_INVENTORY.READ
+ */
+router.get(
+  '/:warehouseId/inventory/:inventoryId',
+  authorize([WAREHOUSE_INVENTORY.READ]),
+  validate(inventoryIdParamSchema, 'params'),
+  getWarehouseInventoryDetailController
+);
+
+/**
+ * @route GET /:warehouseId/inventory/activity-log
+ * @description Paginated inventory activity log scoped to a given warehouse.
+ *   Filters: inventoryId, actionTypeId, performedBy, dateAfter, dateBefore.
+ * @access protected
+ * @permission WAREHOUSE_INVENTORY.READ
+ */
+router.get(
+  '/:warehouseId/inventory/activity-log',
+  authorize([WAREHOUSE_INVENTORY.READ]),
+  validate(warehouseIdParamSchema, 'params'),
+  validate(inventoryActivityLogQuerySchema, 'query', { allowUnknown: true }),
+  createQueryNormalizationMiddleware(
+    'inventoryActivityLogSortMap',
+    [],
+    [],
+    inventoryActivityLogQuerySchema,
+    {},
+    [],
+    []
+  ),
+  getPaginatedActivityLogController
 );
 
 module.exports = router;

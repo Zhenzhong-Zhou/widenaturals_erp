@@ -14,6 +14,7 @@
  *  - updateWarehouseInventoryStatusService        — bulk status update
  *  - updateWarehouseInventoryMetadataService      — single record metadata patch
  *  - recordWarehouseInventoryOutboundService      — bulk outbound movement recording
+ *  - getWarehouseInventoryDetailService           — full detail view for a single inventory record
  */
 
 'use strict';
@@ -25,10 +26,14 @@ const {
   updateWarehouseInventoryQuantityBulk,
   updateWarehouseInventoryOutboundBulk,
   updateWarehouseInventoryStatusBulk,
-  updateWarehouseInventoryMetadata
+  updateWarehouseInventoryMetadata,
+  getWarehouseInventoryDetailById
 } = require('../repositories/warehouse-inventory-repository');
 const AppError = require('../utils/AppError');
-const { transformPaginatedWarehouseInventory } = require('../transformers/warehouse-inventory-transformer');
+const {
+  transformPaginatedWarehouseInventory,
+  transformWarehouseInventoryDetailRecord
+} = require('../transformers/warehouse-inventory-transformer');
 const {
   evaluateWarehouseInventoryVisibility,
   applyWarehouseInventoryVisibilityRules,
@@ -49,6 +54,10 @@ const { withTransaction } = require('../database/db');
 const { insertInventoryActivityLogBulk } = require('../repositories/inventory-activity-log-repository');
 const { getStatusId } = require('../config/status-cache');
 const { validateInventoryStatusIds } = require('../repositories/inventory-status-repository');
+const { getWarehouseZonesByInventoryId } = require('../repositories/warehouse-zone-repository');
+const { getWarehouseMovementsByInventoryId } = require('../repositories/warehouse-movement-repository');
+const { transformWarehouseZones } = require('../transformers/warehouse-zone-transformer');
+const { transformWarehouseMovements } = require('../transformers/warehouse-movement-transformer');
 
 const CONTEXT = 'warehouse-inventory-service';
 
@@ -507,6 +516,60 @@ const recordWarehouseInventoryOutboundService = async ({
   }
 };
 
+/**
+ * Fetches the full detail view for a single warehouse inventory record,
+ * including zone assignments and recent movement history.
+ *
+ * @param {string}   warehouseId
+ * @param {string}   inventoryId
+ * @param {AuthUser} user
+ * @returns {Promise<WarehouseInventoryDetailRecord & { zones: object[], recentMovements: object[] }>}
+ * @throws {AppError} Passes through business/ACL AppErrors; wraps unexpected errors as serviceError.
+ */
+const getWarehouseInventoryDetailService = async ({
+                                                    warehouseId,
+                                                    inventoryId,
+                                                    user,
+                                                  }) => {
+  const context = `${CONTEXT}/getWarehouseInventoryDetailService`;
+  
+  try {
+    // 1. Warehouse scope check
+    const assignedWarehouseIds = await assertWarehouseAccess(user);
+    enforceWarehouseScope(assignedWarehouseIds, warehouseId);
+    
+    // 2. Fetch inventory detail
+    const row = await getWarehouseInventoryDetailById(inventoryId, warehouseId);
+    
+    if (!row) {
+      throw AppError.notFoundError('Warehouse inventory record not found.');
+    }
+    
+    // 3. Fetch zones and movements in parallel
+    const [zoneRows, movementRows] = await Promise.all([
+      getWarehouseZonesByInventoryId(inventoryId),
+      getWarehouseMovementsByInventoryId(inventoryId),
+    ]);
+    
+    // 4. Transform and compose response
+    return {
+      ...transformWarehouseInventoryDetailRecord(row),
+      zones:           transformWarehouseZones(zoneRows),
+      recentMovements: transformWarehouseMovements(movementRows),
+    };
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    
+    throw AppError.serviceError(
+      'Unable to retrieve warehouse inventory detail at this time.',
+      {
+        context,
+        meta: { error: error.message }
+      }
+    );
+  }
+};
+
 module.exports = {
   fetchPaginatedWarehouseInventoryService,
   createWarehouseInventoryService,
@@ -514,4 +577,5 @@ module.exports = {
   updateWarehouseInventoryStatusService,
   updateWarehouseInventoryMetadataService,
   recordWarehouseInventoryOutboundService,
+  getWarehouseInventoryDetailService,
 };

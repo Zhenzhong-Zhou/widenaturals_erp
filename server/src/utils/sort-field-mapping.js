@@ -594,43 +594,13 @@ const SORTABLE_FIELDS = {
     ],
   },
   inventoryActivityLogSortMap: {
-    actionTimestamp: 'ial.action_timestamp',
+    performedAt:    'ial.performed_at',
     quantityChange: 'ial.quantity_change',
-    previousQuantity: 'ial.previous_quantity',
-    newQuantity: 'ial.new_quantity',
-    sourceType: 'ial.source_type',
-    batchType: 'br.batch_type',
-
-    // Action + Adjustment
-    actionType: 'iat.name',
-    adjustmentType: 'lat.name',
-
-    // Performed by
-    performedBy: `(u.firstname || ' ' || u.lastname)`,
-
-    // Product & Material Info
-    productName: 'p.name',
-    productBrand: 'p.brand',
-    sku: 's.sku',
-    sizeLabel: 's.size_label',
-    countryCode: 's.country_code',
-    productLotNumber: 'pb.lot_number',
-    productExpiryDate: 'pb.expiry_date',
-    materialLotNumber: 'pmb.lot_number',
-    materialExpiryDate: 'pmb.expiry_date',
-    materialName: 'pmb.material_snapshot_name',
-
-    // Order Info
-    orderNumber: 'o.order_number',
-    orderType: 'ot.name',
-    orderStatus: 'os.name',
-
-    // Warehouse & Location
-    warehouseName: 'wh.name',
-    locationName: 'loc.name',
-
-    // Fallback default
-    defaultNaturalSort: 'ial.action_timestamp DESC',
+    actionType:     'iat.name',
+    referenceType:  'ial.reference_type',
+    defaultNaturalSort: [
+      'ial.performed_at DESC',
+    ],
   },
   customerSortMap: {
     customerName: `

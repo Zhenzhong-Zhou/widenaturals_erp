@@ -10,6 +10,7 @@
  *  - updateWarehouseInventoryStatusController
  *  - updateWarehouseInventoryMetadataController
  *  - recordWarehouseInventoryOutboundController
+ *  - getWarehouseInventoryDetailController
  */
 
 'use strict';
@@ -17,8 +18,12 @@
 const { wrapAsyncHandler } = require('../middlewares/async-handler');
 const {
   fetchPaginatedWarehouseInventoryService,
-  createWarehouseInventoryService, adjustWarehouseInventoryQuantityService, updateWarehouseInventoryStatusService,
-  updateWarehouseInventoryMetadataService, recordWarehouseInventoryOutboundService,
+  createWarehouseInventoryService,
+  adjustWarehouseInventoryQuantityService,
+  updateWarehouseInventoryStatusService,
+  updateWarehouseInventoryMetadataService,
+  recordWarehouseInventoryOutboundService,
+  getWarehouseInventoryDetailService,
 } = require('../services/warehouse-inventory-service');
 
 // ── List ─────────────────────────────────────────────────
@@ -150,6 +155,26 @@ const recordWarehouseInventoryOutboundController = wrapAsyncHandler(async (req, 
   });
 });
 
+// ── Detail ──────────────────────────────────────────────────────────
+
+const getWarehouseInventoryDetailController = wrapAsyncHandler(async (req, res) => {
+  const { warehouseId, inventoryId } = req.params;
+  const user = req.auth?.user;
+  
+  const data = await getWarehouseInventoryDetailService({
+    warehouseId,
+    inventoryId,
+    user,
+  });
+  
+  res.status(200).json({
+    success: true,
+    message: 'Warehouse inventory detail retrieved successfully.',
+    data,
+    traceId: req.traceId,
+  });
+});
+
 module.exports = {
   getPaginatedWarehouseInventoryController,
   createWarehouseInventoryController,
@@ -157,4 +182,5 @@ module.exports = {
   updateWarehouseInventoryStatusController,
   updateWarehouseInventoryMetadataController,
   recordWarehouseInventoryOutboundController,
+  getWarehouseInventoryDetailController,
 };

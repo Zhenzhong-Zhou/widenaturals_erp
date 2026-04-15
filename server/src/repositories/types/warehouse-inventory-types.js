@@ -110,3 +110,83 @@
  * @property {string} outboundDate
  * @property {number} warehouseQuantity
  */
+
+/**
+ * @typedef {object} WarehouseInventoryDetailRow
+ * @property {string}      id
+ * @property {string}      batch_id
+ * @property {string}      batch_type
+ * @property {number}      warehouse_quantity
+ * @property {number}      reserved_quantity
+ * @property {number}      available_quantity
+ * @property {number}      warehouse_fee
+ * @property {string}      inbound_date
+ * @property {string|null} outbound_date
+ * @property {string|null} last_movement_at
+ * @property {string}      status_id
+ * @property {string}      status_date
+ * @property {string}      status_name
+ * @property {string}      batch_type
+ * @property {string}      registered_at
+ * @property {string|null} batch_note
+ * @property {string|null} product_batch_id
+ * @property {string|null} product_lot_number
+ * @property {string|null} product_expiry_date
+ * @property {string|null} product_manufacture_date
+ * @property {number|null} product_initial_quantity
+ * @property {string|null} product_batch_notes
+ * @property {string|null} sku_id
+ * @property {string|null} sku
+ * @property {string|null} barcode
+ * @property {string|null} size_label
+ * @property {string|null} country_code
+ * @property {string|null} market_region
+ * @property {string|null} product_id
+ * @property {string|null} product_name
+ * @property {string|null} brand
+ * @property {string|null} category
+ * @property {string|null} series
+ * @property {string|null} displayName
+ * @property {string|null} manufacturer_id
+ * @property {string|null} manufacturer_name
+ * @property {string|null} packaging_batch_id
+ * @property {string|null} packaging_lot_number
+ * @property {string|null} packaging_display_name
+ * @property {string|null} packaging_expiry_date
+ * @property {number|null} packaging_initial_quantity
+ * @property {string|null} packaging_unit
+ * @property {string|null} packaging_material_id
+ * @property {string|null} packaging_material_code
+ * @property {string|null} packaging_material_name
+ * @property {string|null} packaging_material_category
+ * @property {string|null} supplier_id
+ * @property {string|null} supplier_name
+ * @property {string}      created_by
+ * @property {string}      created_at
+ * @property {string|null} updated_by
+ * @property {string|null} updated_at
+ * @property {string}      created_by_firstname
+ * @property {string}      created_by_lastname
+ * @property {string|null} updated_by_firstname
+ * @property {string|null} updated_by_lastname
+ */
+
+/**
+ * @typedef {object} WarehouseInventoryDetailRecord
+ * @property {string}      id
+ * @property {string}      batchId
+ * @property {string}      batchType
+ * @property {number}      warehouseQuantity
+ * @property {number}      reservedQuantity
+ * @property {number}      availableQuantity
+ * @property {number}      warehouseFee
+ * @property {string}      inboundDate
+ * @property {string|null} outboundDate
+ * @property {string|null} lastMovementAt
+ * @property {string}      registeredAt
+ * @property {string|null} batchNote
+ * @property {object}      status
+ * @property {object|null} productInfo
+ * @property {object|null} packagingInfo
+ * @property {object}      audit
+ */

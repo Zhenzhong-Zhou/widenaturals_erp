@@ -1,10 +1,12 @@
 /**
  * @file inventory-activity-report-types.js
- * @description JSDoc typedefs for the inventory activity report domain.
+ * @description JSDoc typedefs for the inventory activity log domain.
  *
- * Two categories of types:
- *   - Row types    – raw DB column aliases from repository queries
- *   - Record types – transformed UI-facing shapes
+ * Three categories of types:
+ *   - Row types     — raw DB column aliases from repository queries
+ *   - Record types  — transformed UI-facing shapes
+ *   - Filter types  — filter input shapes for repository and service layers
+ *   - Entry types   — insert input shapes for repository writes
  */
 
 'use strict';
@@ -86,4 +88,43 @@
  *   snapshotName: string|null,
  *   code: string|null
  * }|null} packagingMaterialInfo
+ */
+
+// ---------------------------------------------------------------------------
+// Filter types
+// ---------------------------------------------------------------------------
+
+/**
+ * @typedef {object} InventoryActivityLogFilters
+ * @property {string}  warehouseId              - Required. UUID of the warehouse to scope the query.
+ * @property {string}  [inventoryId]            - Filter by specific inventory record UUID.
+ * @property {string}  [actionTypeId]           - Filter by action type UUID.
+ * @property {string}  [adjustmentTypeId]       - Filter by adjustment type UUID.
+ * @property {string}  [referenceType]          - Filter by reference type string.
+ * @property {string}  [performedBy]            - Filter by performer user UUID.
+ * @property {string}  [performedAtAfter]       - ISO date string — lower bound on performed_at.
+ * @property {string}  [performedAtBefore]      - ISO date string — upper bound on performed_at.
+ */
+
+// ---------------------------------------------------------------------------
+// Entry types (insert shapes)
+// ---------------------------------------------------------------------------
+
+/**
+ * @typedef {object} InventoryActivityLogEntry
+ * @property {string}      warehouse_inventory_id
+ * @property {string}      inventory_action_type_id
+ * @property {string|null} [adjustment_type_id]
+ * @property {number}      previous_quantity
+ * @property {number}      quantity_change
+ * @property {number}      new_quantity
+ * @property {string|null} [status_id]
+ * @property {string|null} [status_effective_at]
+ * @property {string|null} [reference_type]
+ * @property {string|null} [reference_id]
+ * @property {string}      performed_by
+ * @property {string|null} [comments]
+ * @property {string}      checksum
+ * @property {object|null} [metadata]
+ * @property {string|null} [created_by]
  */

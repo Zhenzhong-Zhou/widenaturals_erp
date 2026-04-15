@@ -22,6 +22,7 @@
  *  - UPDATE_WAREHOUSE_INVENTORY_METADATA_QUERY      — update inbound date and warehouse fee
  *  - FETCH_WAREHOUSE_INVENTORY_STATE_QUERY          — fetch quantity and status for a set of inventory IDs
  *  - FIND_EXISTING_INVENTORY_BY_BATCH_IDS_QUERY     — check which batch IDs already have inventory records
+ *  - WAREHOUSE_INVENTORY_DETAIL_QUERY               — full detail fetch for a single inventory record
  */
 
 'use strict';
@@ -215,6 +216,81 @@ const FIND_EXISTING_INVENTORY_BY_BATCH_IDS_QUERY = `
     AND batch_id = ANY($2::uuid[])
 `;
 
+// ── Detail ──────────────────────────────────────────────────────────
+
+const WAREHOUSE_INVENTORY_DETAIL_QUERY = `
+  SELECT
+    wi.id,
+    wi.batch_id,
+    wi.warehouse_quantity,
+    wi.reserved_quantity,
+    (wi.warehouse_quantity - wi.reserved_quantity) AS available_quantity,
+    wi.warehouse_fee,
+    wi.inbound_date,
+    wi.outbound_date,
+    wi.last_movement_at,
+    wi.status_id,
+    wi.status_date,
+    ist.name                      AS status_name,
+    br.batch_type,
+    br.registered_at,
+    br.note                       AS batch_note,
+    pb.id                         AS product_batch_id,
+    pb.lot_number                 AS product_lot_number,
+    pb.expiry_date                AS product_expiry_date,
+    pb.manufacture_date           AS product_manufacture_date,
+    pb.initial_quantity           AS product_initial_quantity,
+    pb.notes                      AS product_batch_notes,
+    s.id                          AS sku_id,
+    s.sku,
+    s.barcode,
+    s.size_label,
+    s.country_code,
+    s.market_region,
+    p.id                          AS product_id,
+    p.name                        AS product_name,
+    p.brand,
+    p.category,
+    p.series,
+    m.id                          AS manufacturer_id,
+    m.name                        AS manufacturer_name,
+    pmb.id                        AS packaging_batch_id,
+    pmb.lot_number                AS packaging_lot_number,
+    pmb.received_label_name       AS packaging_display_name,
+    pmb.expiry_date               AS packaging_expiry_date,
+    pmb.quantity                  AS packaging_initial_quantity,
+    pmb.unit                      AS packaging_unit,
+    pm.id                         AS packaging_material_id,
+    pm.code                       AS packaging_material_code,
+    pm.name                       AS packaging_material_name,
+    pm.category                   AS packaging_material_category,
+    sup.id                        AS supplier_id,
+    sup.name                      AS supplier_name,
+    wi.created_by,
+    wi.created_at,
+    wi.updated_by,
+    wi.updated_at,
+    cu.firstname                  AS created_by_firstname,
+    cu.lastname                   AS created_by_lastname,
+    uu.firstname                  AS updated_by_firstname,
+    uu.lastname                   AS updated_by_lastname
+  FROM warehouse_inventory wi
+  JOIN batch_registry br                   ON br.id  = wi.batch_id
+  JOIN inventory_status ist                ON ist.id = wi.status_id
+  LEFT JOIN product_batches pb             ON pb.id  = br.product_batch_id
+  LEFT JOIN skus s                         ON s.id   = pb.sku_id
+  LEFT JOIN products p                     ON p.id   = s.product_id
+  LEFT JOIN manufacturers m                ON m.id   = pb.manufacturer_id
+  LEFT JOIN packaging_material_batches pmb ON pmb.id = br.packaging_material_batch_id
+  LEFT JOIN packaging_material_suppliers pms ON pms.id = pmb.packaging_material_supplier_id
+  LEFT JOIN packaging_materials pm         ON pm.id  = pms.packaging_material_id
+  LEFT JOIN suppliers sup                  ON sup.id = pms.supplier_id
+  LEFT JOIN users cu                       ON cu.id  = wi.created_by
+  LEFT JOIN users uu                       ON uu.id  = wi.updated_by
+  WHERE wi.id = $1
+    AND wi.warehouse_id = $2
+`;
+
 module.exports = {
   WAREHOUSE_INVENTORY_TABLE,
   WAREHOUSE_INVENTORY_JOINS,
@@ -229,4 +305,5 @@ module.exports = {
   UPDATE_WAREHOUSE_INVENTORY_METADATA_QUERY,
   FETCH_WAREHOUSE_INVENTORY_STATE_QUERY,
   FIND_EXISTING_INVENTORY_BY_BATCH_IDS_QUERY,
+  WAREHOUSE_INVENTORY_DETAIL_QUERY,
 };

@@ -16,6 +16,7 @@
  *  - updateWarehouseInventoryOutboundBulk — bulk record outbound movement and zero reserved quantity
  *  - fetchWarehouseInventoryStateByIds    — fetch quantity and status snapshot for pre-mutation validation
  *  - findExistingInventoryByBatchIds      — detect which batch IDs already have inventory records
+ *  - getWarehouseInventoryDetailById      — fetch full detail record for a single inventory entry
  */
 
 'use strict';
@@ -49,10 +50,14 @@ const {
   UPDATE_WAREHOUSE_INVENTORY_METADATA_QUERY,
   UPDATE_WAREHOUSE_INVENTORY_OUTBOUND_QUERY,
   FETCH_WAREHOUSE_INVENTORY_STATE_QUERY,
-  FIND_EXISTING_INVENTORY_BY_BATCH_IDS_QUERY
+  FIND_EXISTING_INVENTORY_BY_BATCH_IDS_QUERY,
+  WAREHOUSE_INVENTORY_DETAIL_QUERY
 } = require('./queries/warehouse-inventory-queries');
 const { handleDbError } = require('../utils/errors/error-handlers');
-const { logDbQueryError, logBulkInsertError } = require('../utils/db-logger');
+const {
+  logDbQueryError,
+  logBulkInsertError
+} = require('../utils/db-logger');
 const { validateBulkInsertRows } = require('../utils/validation/bulk-insert-row-validator');
 
 const CONTEXT = 'warehouse-inventory-repository';
@@ -450,6 +455,37 @@ const findExistingInventoryByBatchIds = async (warehouseId, batchIds, client) =>
   }
 };
 
+// ── Get detail by ID ────────────────────────────────────────────────
+
+/**
+ * Fetches the full detail record for a single warehouse inventory entry.
+ * Returns null if no record matches — caller is responsible for the not-found check.
+ *
+ * @param {string} inventoryId
+ * @param {string} warehouseId
+ * @returns {Promise<WarehouseInventoryDetailRow|null>}
+ * @throws {AppError} Normalized database error if the query fails.
+ */
+const getWarehouseInventoryDetailById = async (inventoryId, warehouseId) => {
+  const context = `${CONTEXT}/getWarehouseInventoryDetailById`;
+  
+  const params = [inventoryId, warehouseId];
+  
+  try {
+    const { rows } = await query(WAREHOUSE_INVENTORY_DETAIL_QUERY, params);
+    return rows[0] || null;
+  } catch (error) {
+    throw handleDbError(error, {
+      context,
+      message: 'Failed to fetch warehouse inventory detail.',
+      meta:    { inventoryId, warehouseId },
+      logFn:   (err) => logDbQueryError(
+        WAREHOUSE_INVENTORY_DETAIL_QUERY, params, err, { context }
+      ),
+    });
+  }
+};
+
 /**
  * Fetches multiple `warehouse_inventory` rows using composite keys (`warehouse_id`, `batch_id`).
  *
@@ -829,6 +865,7 @@ module.exports = {
   updateWarehouseInventoryOutboundBulk,
   fetchWarehouseInventoryStateByIds,
   findExistingInventoryByBatchIds,
+  getWarehouseInventoryDetailById,
   getWarehouseInventoryQuantities,
   getAllocatableBatchesByWarehouse,
   getRecentInsertWarehouseInventoryRecords,
