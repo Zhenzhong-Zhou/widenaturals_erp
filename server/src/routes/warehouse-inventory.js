@@ -18,7 +18,8 @@ const {
   updateWarehouseInventoryMetadataController,
   recordWarehouseInventoryOutboundController,
   getWarehouseInventoryDetailController,
-  getWarehouseSummaryController, getWarehouseItemSummaryController,
+  getWarehouseSummaryController,
+  getWarehouseItemSummaryController,
 } = require('../controllers/warehouse-inventory-controller');
 const validate = require('../middlewares/validate');
 const { warehouseIdParamSchema } = require('../validators/warehouse-validators');
@@ -42,7 +43,8 @@ const router = express.Router();
  * @route GET /:warehouseId/inventory
  * @description Paginated warehouse inventory records for a given warehouse.
  *   Filters: statusId, batchType, skuId, productId, packagingMaterialId,
- *   inboundDateAfter, inboundDateBefore, hasReserved, search.
+ *   inboundDateAfter, inboundDateBefore, hasReserved, lowStockThreshold,
+ *   expiringWithinDays, search.
  * @access protected
  * @permission WAREHOUSE_INVENTORY.VIEW
  */
@@ -53,12 +55,12 @@ router.get(
   validate(warehouseInventoryQuerySchema, 'query'),
   createQueryNormalizationMiddleware(
     'warehouseInventorySortMap',
-    [],              // arrayKeys        — none, all single UUIDs
-    ['hasReserved'], // booleanKeys
+    [],                                          // arrayKeys
+    ['hasReserved'],                             // booleanKeys
     warehouseInventoryQuerySchema,
-    {},              // filterDefaults
-    [],              // dateRangeKeys
-    []               // numericKeys
+    {},                                          // filterDefaults
+    [],                                          // dateRangeKeys
+    ['lowStockThreshold', 'expiringWithinDays']  // numericKeys
   ),
   getPaginatedWarehouseInventoryController
 );

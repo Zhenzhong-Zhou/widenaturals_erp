@@ -73,6 +73,29 @@ const warehouseInventoryQuerySchema = paginationSchema
     packagingMaterialId: validateOptionalUUID('Packaging Material ID'),
     
     // --------------------------------------------------
+    // Low stock and expiry alerts
+    // --------------------------------------------------
+    lowStockThreshold: Joi.number()
+      .integer()
+      .min(0)
+      .optional()
+      .messages({
+        'number.base':    'Low Stock Threshold must be a number.',
+        'number.integer': 'Low Stock Threshold must be an integer.',
+        'number.min':     'Low Stock Threshold must be zero or greater.',
+      }),
+    
+    expiringWithinDays: Joi.number()
+      .integer()
+      .min(1)
+      .optional()
+      .messages({
+        'number.base':    'Expiring Within Days must be a number.',
+        'number.integer': 'Expiring Within Days must be an integer.',
+        'number.min':     'Expiring Within Days must be at least 1.',
+      }),
+    
+    // --------------------------------------------------
     // Inbound date range
     // --------------------------------------------------
     inboundDateAfter:  optionalIsoDate('Inbound Date After'),

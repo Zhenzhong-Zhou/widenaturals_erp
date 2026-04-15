@@ -3,20 +3,34 @@
  * @description
  * Service layer for warehouse inventory operations.
  *
- * Orchestrates ACL evaluation, business rule enforcement, transactional
- * repository calls, activity log generation, and transformer application
- * across all warehouse inventory mutations and queries.
+ * All read operations enforce warehouse scope via assertWarehouseAccess
+ * and enforceWarehouseScope before querying. Write operations additionally
+ * validate business rules and generate activity log entries within
+ * transactions.
+ *
+ * Read services:
+ *  - fetchPaginatedWarehouseInventoryService  — paginated list with ACL-driven filters
+ *  - getWarehouseInventoryDetailService       — single record with zones and movements
+ *  - getWarehouseSummaryService               — warehouse-level aggregate totals
+ *  - getWarehouseItemSummaryService           — product/packaging item-level summaries
+ *
+ * Write services:
+ *  - createWarehouseInventoryService          — inbound inventory creation with activity log
+ *  - adjustWarehouseInventoryQuantityService  — bulk quantity adjustment with activity log
+ *  - updateWarehouseInventoryStatusService    — bulk status update with activity log
+ *  - updateWarehouseInventoryMetadataService  — single record metadata correction
+ *  - recordWarehouseInventoryOutboundService  — bulk outbound recording with activity log
  *
  * Exports:
- *  - fetchPaginatedWarehouseInventoryService      — paginated ACL-filtered inventory list
- *  - createWarehouseInventoryService              — bulk inbound inventory creation
- *  - adjustWarehouseInventoryQuantityService      — bulk quantity adjustment
- *  - updateWarehouseInventoryStatusService        — bulk status update
- *  - updateWarehouseInventoryMetadataService      — single record metadata patch
- *  - recordWarehouseInventoryOutboundService      — bulk outbound movement recording
- *  - getWarehouseInventoryDetailService           — full detail view for a single inventory record
- *  - getWarehouseSummaryService                   — warehouse summary with quantity and status breakdown
- *  - getWarehouseItemSummaryService               — product and packaging quantity summary for a warehouse
+ *  - fetchPaginatedWarehouseInventoryService
+ *  - getWarehouseInventoryDetailService
+ *  - getWarehouseSummaryService
+ *  - getWarehouseItemSummaryService
+ *  - createWarehouseInventoryService
+ *  - adjustWarehouseInventoryQuantityService
+ *  - updateWarehouseInventoryStatusService
+ *  - updateWarehouseInventoryMetadataService
+ *  - recordWarehouseInventoryOutboundService
  */
 
 'use strict';
