@@ -118,6 +118,21 @@ const STATUS_KEY_LOOKUP = [
     name: 'manual_stock_insert',
   },
   {
+    key: 'action_manual_stock_adjust',
+    table: 'inventory_action_types',
+    name: 'manual_adjustment',
+  },
+  {
+    key: 'action_fulfilled',
+    table: 'inventory_action_types',
+    name: 'fulfilled',
+  },
+  {
+    key: 'adjustment_manual_adjustment',
+    table: 'lot_adjustment_types',
+    name: 'adjustment',
+  },
+  {
     key: 'adjustment_manual_stock_insert',
     table: 'lot_adjustment_types',
     name: 'manual_stock_insert',

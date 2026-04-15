@@ -81,10 +81,12 @@ const PERMISSIONS = {
     VIEW_DETAILS: 'view_packaging_material_batch_details',
   },
   WAREHOUSE_INVENTORY: {
-    CREATE: 'create_warehouse_inventory',
-    VIEW: 'view_warehouse_inventory',
-    ADJUST: 'adjust_warehouse_inventory',
-    VIEW_SUMMARY: 'view_warehouse_inventory_summary',
+    READ:                    'read_warehouse_inventory',
+    CREATE_INBOUND:          'create_warehouse_inbound',
+    CREATE_OUTBOUND:         'create_warehouse_outbound',
+    ADJUST_INVENTORY:        'adjust_warehouse_inventory',
+    UPDATE_INVENTORY_STATUS: 'update_warehouse_inventory_status',
+    VIEW_SUMMARY:            'view_warehouse_inventory_summary',
     VIEW_SUMMARY_ITEM_DETAILS: 'view_warehouse_inventory_summary_item_details',
   },
   REPORTS: {
