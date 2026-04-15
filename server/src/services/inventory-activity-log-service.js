@@ -38,7 +38,7 @@ const CONTEXT = 'inventory-activity-log-service';
  * @param {string}   [sortBy='performedAt']
  * @param {string}   [sortOrder='DESC']
  * @param {AuthUser} user
- * @returns {Promise<PaginatedResult<InventoryActivityLogRecord>>}
+ * @returns {Promise<PaginatedResult<InventoryActivityLogRow>>}
  * @throws {AppError} Passes through ACL AppErrors; wraps unexpected errors as serviceError.
  */
 const fetchPaginatedActivityLogService = async ({
